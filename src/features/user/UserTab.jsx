@@ -14,8 +14,11 @@ function renderMedia(f, blobUrl) {
 
 function statusText(s) {
   if (!s || s.status === 'queued') return 'В очереди'
-  if (s.status === 'loading') return `Загружается... ${s.progress}%`
-  if (s.status === 'error') return 'Ошибка загрузки'
+  if (s.status === 'loading') {
+    const retry = s.attempt > 1 ? ` (попытка ${s.attempt}/3)` : ''
+    return `Загружается... ${s.progress}%${retry}`
+  }
+  if (s.status === 'error') return 'Ошибка загрузки (после 3 попыток)'
   return `Готово · ${s.kbps} КБ/с · ${s.ms}мс`
 }
 
