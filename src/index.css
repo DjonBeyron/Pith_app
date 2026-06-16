@@ -1,0 +1,153 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #0f1115;
+  color: #e8e8ea;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tabBtn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #333;
+  background: #1a1c22;
+  color: #aaa;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tabBtnActive {
+  background: #2a3a1a;
+  color: #b6fe3b;
+  border-color: #b6fe3b;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #1f2128;
+  color: #e8e8ea;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.primaryBtn {
+  background: #2a3a1a;
+  color: #b6fe3b;
+  border-color: #b6fe3b;
+}
+
+.debugBtnOn {
+  background: #3a1a1a;
+  color: #ff8080;
+  border-color: #ff8080;
+}
+
+.syncMsg {
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  background: #1a1c22;
+  font-size: 13px;
+}
+
+.filesTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.filesTable th,
+.filesTable td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #2a2c33;
+}
+
+.passwordForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 280px;
+  margin: 60px auto;
+}
+
+.passwordForm input {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #1a1c22;
+  color: #e8e8ea;
+}
+
+.errorText {
+  color: #ff8080;
+  font-size: 13px;
+}
+
+.fileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.fileCard {
+  background: #1a1c22;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.fileCardMedia img,
+.fileCardMedia video {
+  width: 100%;
+  border-radius: 6px;
+  display: block;
+}
+
+.fileCardMedia audio {
+  width: 100%;
+}
+
+.fileCardName {
+  margin-top: 6px;
+  word-break: break-all;
+}
+
+.fileCardMeta {
+  color: #888;
+}
+
+.unknownType {
+  color: #888;
+  font-size: 12px;
+}
