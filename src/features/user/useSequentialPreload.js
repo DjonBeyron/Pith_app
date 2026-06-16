@@ -75,5 +75,17 @@ export function useSequentialPreload(files) {
     return () => { cancelled = true }
   }, [files])
 
-  return state
+  // Releases a ready blob's memory once the caller decides it's no longer in the "last N"
+  // window — this is the buffer-eviction half of the memory cap (see PROJECT.md).
+  function evict(id, label) {
+    setState(prev => {
+      const cur = prev[id]
+      if (!cur || cur.status !== 'ready') return prev
+      URL.revokeObjectURL(cur.blobUrl)
+      dbg('[buffer] evict', label, '— блоб выгружен из памяти')
+      return { ...prev, [id]: { ...cur, status: 'evicted', blobUrl: null } }
+    })
+  }
+
+  return { state, evict }
 }
