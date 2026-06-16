@@ -162,3 +162,23 @@ button:disabled {
   color: #888;
   font-size: 12px;
 }
+
+.fileCardSeq {
+  font-size: 11px;
+  color: #b6fe3b;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.fileCardPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  border-radius: 6px;
+  background: #15171c;
+  color: #888;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px;
+}
