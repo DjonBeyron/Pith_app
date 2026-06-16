@@ -5,6 +5,7 @@ import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 
 const MAX_ATTEMPTS = 3
 const RETRY_DELAY_MS = 1500
+const POLL_MS = 300
 export const BUFFER_SIZE = 5
 
 function sleep(ms) {
@@ -32,7 +33,10 @@ async function fetchBlobWithProgress(url, onProgress) {
   return new Blob(chunks)
 }
 
-export function useSequentialPreload(files) {
+// `allowUpTo` caps how far into `files` the queue is allowed to prefetch right now — without
+// this, the whole list downloads almost instantly regardless of reveal pace, and the buffer
+// cycles through (evicting early items) long before the user has actually seen them.
+export function useSequentialPreload(files, allowUpTo) {
   const [map, setMap] = useState({})
   // Mirrors `map` for synchronous reads inside async functions (eviction, retries) — `map`
   // itself is only ever read during render, per React's rules-of-refs.
@@ -40,6 +44,12 @@ export function useSequentialPreload(files) {
   const cancelledRef = useRef(false)
   const bufferQueueRef = useRef([]) // FIFO of ids holding full (non-photo) blob data
   const filesByIdRef = useRef({})
+  const cursorRef = useRef(0)
+  const allowUpToRef = useRef(allowUpTo)
+
+  useEffect(() => {
+    allowUpToRef.current = allowUpTo
+  }, [allowUpTo])
 
   function patch(id, fields) {
     if (cancelledRef.current) return
@@ -115,14 +125,22 @@ export function useSequentialPreload(files) {
     })
     filesByIdRef.current = Object.fromEntries(files.map(f => [f.id, f]))
     bufferQueueRef.current = []
+    cursorRef.current = 0
     snapshotRef.current = Object.fromEntries(files.map(f => [f.id, { status: 'queued', progress: 0 }]))
     setMap(snapshotRef.current)
     if (!files.length) return undefined
 
+    // Waits for `allowUpTo` to grant permission to go further, instead of racing through
+    // the whole list — keeps prefetch a few messages ahead of reveal, not the entire chat.
     async function runQueue() {
-      for (const f of files) {
-        if (cancelledRef.current) return
+      while (!cancelledRef.current && cursorRef.current < files.length) {
+        if (cursorRef.current >= allowUpToRef.current) {
+          await sleep(POLL_MS)
+          continue
+        }
+        const f = files[cursorRef.current]
         await loadOne(f)
+        cursorRef.current += 1
       }
     }
     runQueue()

@@ -4,6 +4,7 @@ import { dbg } from '../../shared/lib/debug.js'
 import { useSequentialPreload, BUFFER_SIZE } from './useSequentialPreload.js'
 
 const REVEAL_INTERVAL_MS = 3000
+const PREFETCH_LOOKAHEAD = 3
 
 function statusText(s) {
   if (!s || s.status === 'queued') return 'В очереди'
@@ -71,7 +72,8 @@ export default function UserTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [visibleCount, setVisibleCount] = useState(0)
-  const { state: preload, reload } = useSequentialPreload(files)
+  const allowUpTo = visibleCount + PREFETCH_LOOKAHEAD
+  const { state: preload, reload } = useSequentialPreload(files, allowUpTo)
   useBufferLog(files, preload)
 
   useEffect(() => {
@@ -79,11 +81,14 @@ export default function UserTab() {
   }, [])
 
   // Simulates messages arriving one by one in a chat — reveals one more file every 3s.
+  // Prefetch (in the hook) is capped at `allowUpTo`, so it stays a few messages ahead of
+  // this instead of racing through the whole list immediately.
   useEffect(() => {
     if (visibleCount >= files.length) return
+    dbg('[reveal] показано', visibleCount, '· разрешено грузить до', allowUpTo)
     const t = setTimeout(() => setVisibleCount(c => c + 1), REVEAL_INTERVAL_MS)
     return () => clearTimeout(t)
-  }, [visibleCount, files.length])
+  }, [visibleCount, files.length, allowUpTo])
 
   async function load() {
     setLoading(true)
