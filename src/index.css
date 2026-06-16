@@ -182,3 +182,30 @@ button:disabled {
   text-align: center;
   padding: 8px;
 }
+
+.fileCardClickable {
+  cursor: pointer;
+}
+
+.evictedVideo {
+  position: relative;
+  cursor: pointer;
+}
+
+.evictedVideo img {
+  width: 100%;
+  border-radius: 6px;
+  display: block;
+  filter: brightness(0.6);
+}
+
+.evictedOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}

@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { listFiles, formatBytes } from '../../shared/lib/filesApi.js'
+import { listFiles, formatBytes, getMediaKind } from '../../shared/lib/filesApi.js'
 import { dbg } from '../../shared/lib/debug.js'
-import { useSequentialPreload } from './useSequentialPreload.js'
+import { useSequentialPreload, BUFFER_SIZE } from './useSequentialPreload.js'
 
 const REVEAL_INTERVAL_MS = 3000
-const BUFFER_SIZE = 5
-
-function renderMedia(f, blobUrl) {
-  const type = f.content_type || ''
-  if (type.startsWith('image/')) return <img src={blobUrl} alt={f.file_name} />
-  if (type.startsWith('video/')) return <video src={blobUrl} controls />
-  if (type.startsWith('audio/')) return <audio src={blobUrl} controls />
-  return <div className="unknownType">Неизвестный тип файла</div>
-}
 
 function statusText(s) {
   if (!s || s.status === 'queued') return 'В очереди'
@@ -21,8 +12,36 @@ function statusText(s) {
     return `Загружается... ${s.progress}%${retry}`
   }
   if (s.status === 'error') return 'Ошибка загрузки (после 3 попыток)'
-  if (s.status === 'evicted') return '🗑 выгружено из памяти (вне последних 5)'
   return `Готово · ${s.kbps} КБ/с · ${s.ms}мс`
+}
+
+function renderMedia(f, s, onReload) {
+  const kind = getMediaKind(f.content_type)
+
+  if (s?.status === 'ready') {
+    if (kind === 'photo') return <img src={s.blobUrl} alt={f.file_name} />
+    if (kind === 'video') return <video src={s.blobUrl} controls />
+    if (kind === 'audio') return <audio src={s.blobUrl} controls />
+    return <div className="unknownType">Неизвестный тип файла</div>
+  }
+
+  if (s?.status === 'evicted') {
+    if (kind === 'video' && s.posterUrl) {
+      return (
+        <div className="evictedVideo" onClick={onReload}>
+          <img src={s.posterUrl} alt={f.file_name} />
+          <div className="evictedOverlay">▶ Загрузить видео</div>
+        </div>
+      )
+    }
+    return (
+      <div className="fileCardPlaceholder fileCardClickable" onClick={onReload}>
+        🔄 Выгружено — нажми, чтобы загрузить
+      </div>
+    )
+  }
+
+  return <div className="fileCardPlaceholder">{statusText(s)}</div>
 }
 
 // Logs current buffer occupancy whenever it changes — this is what lets us confirm from a
@@ -30,15 +49,20 @@ function statusText(s) {
 function useBufferLog(files, preloadState) {
   const lastSigRef = useRef('')
   useEffect(() => {
-    const readyFiles = files.filter(f => preloadState[f.id]?.status === 'ready')
-    const sig = readyFiles.map(f => f.id).join(',')
+    const ready = files.filter(f => preloadState[f.id]?.status === 'ready')
+    const sig = ready.map(f => f.id).join(',')
     if (sig === lastSigRef.current) return
     lastSigRef.current = sig
-    const totalKb = readyFiles.reduce((sum, f) => sum + f.size_bytes, 0) / 1024
+    const evictable = ready.filter(f => getMediaKind(f.content_type) !== 'photo')
+    const photos = ready.length - evictable.length
+    const totalKb = ready.reduce((sum, f) => sum + f.size_bytes, 0) / 1024
     const heap = performance.memory
       ? ` · JS heap: ${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)}MB`
       : ''
-    dbg('[buffer] в памяти сейчас', readyFiles.length, 'из max', BUFFER_SIZE, `(~${Math.round(totalKb)}KB)${heap}`)
+    dbg(
+      '[buffer] видео/аудио:', evictable.length, `из max ${BUFFER_SIZE}`,
+      '· фото (не выгружаются):', photos, `(~${Math.round(totalKb)}KB)${heap}`,
+    )
   }, [files, preloadState])
 }
 
@@ -47,7 +71,7 @@ export default function UserTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [visibleCount, setVisibleCount] = useState(0)
-  const { state: preload, evict } = useSequentialPreload(files)
+  const { state: preload, reload } = useSequentialPreload(files)
   useBufferLog(files, preload)
 
   useEffect(() => {
@@ -60,12 +84,6 @@ export default function UserTab() {
     const t = setTimeout(() => setVisibleCount(c => c + 1), REVEAL_INTERVAL_MS)
     return () => clearTimeout(t)
   }, [visibleCount, files.length])
-
-  // Once a new file is revealed, evict whatever fell more than BUFFER_SIZE messages behind it.
-  useEffect(() => {
-    const evictIdx = visibleCount - 1 - BUFFER_SIZE
-    if (evictIdx >= 0) evict(files[evictIdx].id, files[evictIdx].file_name)
-  }, [visibleCount, files, evict])
 
   async function load() {
     setLoading(true)
@@ -102,11 +120,7 @@ export default function UserTab() {
             return (
               <div className="fileCard" key={f.id}>
                 <div className="fileCardSeq">#{idx + 1}</div>
-                <div className="fileCardMedia">
-                  {s?.status === 'ready'
-                    ? renderMedia(f, s.blobUrl)
-                    : <div className="fileCardPlaceholder">{statusText(s)}</div>}
-                </div>
+                <div className="fileCardMedia">{renderMedia(f, s, () => reload(f))}</div>
                 <div className="fileCardName">{f.file_name}</div>
                 <div className="fileCardMeta">{formatBytes(f.size_bytes)}</div>
               </div>

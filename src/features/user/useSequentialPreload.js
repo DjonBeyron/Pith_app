@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
-import { formatBytes } from '../../shared/lib/filesApi.js'
+import { useEffect, useRef, useState } from 'react'
+import { formatBytes, getMediaKind } from '../../shared/lib/filesApi.js'
 import { dbg } from '../../shared/lib/debug.js'
+import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 
 const MAX_ATTEMPTS = 3
 const RETRY_DELAY_MS = 1500
+export const BUFFER_SIZE = 5
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -31,61 +33,111 @@ async function fetchBlobWithProgress(url, onProgress) {
 }
 
 export function useSequentialPreload(files) {
-  const [state, setState] = useState({})
+  const [map, setMap] = useState({})
+  // Mirrors `map` for synchronous reads inside async functions (eviction, retries) — `map`
+  // itself is only ever read during render, per React's rules-of-refs.
+  const snapshotRef = useRef({})
+  const cancelledRef = useRef(false)
+  const bufferQueueRef = useRef([]) // FIFO of ids holding full (non-photo) blob data
+  const filesByIdRef = useRef({})
+
+  function patch(id, fields) {
+    if (cancelledRef.current) return
+    snapshotRef.current = { ...snapshotRef.current, [id]: { ...snapshotRef.current[id], ...fields } }
+    setMap(snapshotRef.current)
+  }
+
+  // Photos are never evicted — an empty photo bubble would look broken. Videos lose the heavy
+  // blob but keep one captured frame as a "frozen" preview. Audio just drops fully.
+  async function evictOldestIfNeeded() {
+    while (bufferQueueRef.current.length > BUFFER_SIZE) {
+      const oldId = bufferQueueRef.current.shift()
+      const rec = snapshotRef.current[oldId]
+      const f = filesByIdRef.current[oldId]
+      if (!rec || rec.status !== 'ready' || !f) continue
+      if (getMediaKind(f.content_type) === 'video') {
+        let posterUrl = rec.posterUrl
+        if (!posterUrl) {
+          try {
+            posterUrl = await capturePosterFrame(rec.blobUrl)
+          } catch (e) {
+            console.error('[buffer] poster capture failed', f.file_name, e)
+            posterUrl = null
+          }
+        }
+        URL.revokeObjectURL(rec.blobUrl)
+        dbg('[buffer] evict (видео → стоп-кадр)', f.file_name)
+        patch(oldId, { status: 'evicted', blobUrl: null, posterUrl })
+      } else {
+        URL.revokeObjectURL(rec.blobUrl)
+        dbg('[buffer] evict', f.file_name)
+        patch(oldId, { status: 'evicted', blobUrl: null })
+      }
+    }
+  }
+
+  async function loadOne(f) {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      if (cancelledRef.current) return
+      patch(f.id, { status: 'loading', progress: 0, attempt })
+      const t0 = performance.now()
+      dbg('[preload] start', f.file_name, formatBytes(f.size_bytes), `попытка ${attempt}/${MAX_ATTEMPTS}`)
+      try {
+        const blob = await fetchBlobWithProgress(f.r2_url, progress => {
+          patch(f.id, { status: 'loading', progress, attempt })
+        })
+        if (cancelledRef.current) return
+        const ms = Math.round(performance.now() - t0)
+        const kbps = Math.round(blob.size / 1024 / (ms / 1000))
+        dbg('[preload] done', f.file_name, `${ms}ms`, `${kbps} KB/s`)
+        const blobUrl = URL.createObjectURL(blob)
+        patch(f.id, { status: 'ready', progress: 100, blobUrl, ms, kbps })
+        if (getMediaKind(f.content_type) !== 'photo') {
+          bufferQueueRef.current = bufferQueueRef.current.filter(id => id !== f.id)
+          bufferQueueRef.current.push(f.id)
+          await evictOldestIfNeeded()
+        }
+        return
+      } catch (e) {
+        console.error('[preload] attempt failed', f.file_name, attempt, e)
+        dbg('[preload] attempt failed', f.file_name, `попытка ${attempt}/${MAX_ATTEMPTS}`)
+        if (attempt < MAX_ATTEMPTS && !cancelledRef.current) await sleep(RETRY_DELAY_MS)
+      }
+    }
+    if (!cancelledRef.current) patch(f.id, { status: 'error', progress: 0 })
+  }
 
   useEffect(() => {
-    if (!files.length) return
-    let cancelled = false
-
-    async function loadOne(f) {
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        if (cancelled) return
-        setState(prev => ({ ...prev, [f.id]: { status: 'loading', progress: 0, attempt } }))
-        const t0 = performance.now()
-        dbg('[preload] start', f.file_name, formatBytes(f.size_bytes), `попытка ${attempt}/${MAX_ATTEMPTS}`)
-        try {
-          const blob = await fetchBlobWithProgress(f.r2_url, progress => {
-            if (!cancelled) setState(prev => ({ ...prev, [f.id]: { status: 'loading', progress, attempt } }))
-          })
-          if (cancelled) return
-          const ms = Math.round(performance.now() - t0)
-          const kbps = Math.round(blob.size / 1024 / (ms / 1000))
-          dbg('[preload] done', f.file_name, `${ms}ms`, `${kbps} KB/s`)
-          const blobUrl = URL.createObjectURL(blob)
-          setState(prev => ({ ...prev, [f.id]: { status: 'ready', progress: 100, blobUrl, ms, kbps } }))
-          return
-        } catch (e) {
-          console.error('[preload] attempt failed', f.file_name, attempt, e)
-          dbg('[preload] attempt failed', f.file_name, `попытка ${attempt}/${MAX_ATTEMPTS}`)
-          if (attempt < MAX_ATTEMPTS && !cancelled) await sleep(RETRY_DELAY_MS)
-        }
-      }
-      if (!cancelled) setState(prev => ({ ...prev, [f.id]: { status: 'error', progress: 0 } }))
-    }
+    cancelledRef.current = false
+    Object.values(snapshotRef.current).forEach(rec => {
+      if (rec?.blobUrl) URL.revokeObjectURL(rec.blobUrl)
+      if (rec?.posterUrl) URL.revokeObjectURL(rec.posterUrl)
+    })
+    filesByIdRef.current = Object.fromEntries(files.map(f => [f.id, f]))
+    bufferQueueRef.current = []
+    snapshotRef.current = Object.fromEntries(files.map(f => [f.id, { status: 'queued', progress: 0 }]))
+    setMap(snapshotRef.current)
+    if (!files.length) return undefined
 
     async function runQueue() {
-      setState(Object.fromEntries(files.map(f => [f.id, { status: 'queued', progress: 0 }])))
       for (const f of files) {
-        if (cancelled) return
+        if (cancelledRef.current) return
         await loadOne(f)
       }
     }
-
     runQueue()
-    return () => { cancelled = true }
+    return () => { cancelledRef.current = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files])
 
-  // Releases a ready blob's memory once the caller decides it's no longer in the "last N"
-  // window — this is the buffer-eviction half of the memory cap (see PROJECT.md).
-  function evict(id, label) {
-    setState(prev => {
-      const cur = prev[id]
-      if (!cur || cur.status !== 'ready') return prev
-      URL.revokeObjectURL(cur.blobUrl)
-      dbg('[buffer] evict', label, '— блоб выгружен из памяти')
-      return { ...prev, [id]: { ...cur, status: 'evicted', blobUrl: null } }
-    })
+  // Called when the user interacts with an already-evicted item — fetches it again on demand,
+  // which (per the same FIFO rule) bumps the oldest currently-buffered file out instead.
+  function reload(f) {
+    const cur = snapshotRef.current[f.id]
+    if (cur && (cur.status === 'loading' || cur.status === 'ready')) return
+    dbg('[preload] подгрузка по требованию', f.file_name)
+    loadOne(f)
   }
 
-  return { state, evict }
+  return { state: map, reload }
 }

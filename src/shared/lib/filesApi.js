@@ -34,3 +34,11 @@ export function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
+
+export function getMediaKind(contentType) {
+  const type = contentType || ''
+  if (type.startsWith('image/')) return 'photo'
+  if (type.startsWith('video/')) return 'video'
+  if (type.startsWith('audio/')) return 'audio'
+  return 'other'
+}
