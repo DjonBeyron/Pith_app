@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { uploadToR2, deleteFromR2 } from '../../shared/lib/r2.js'
 import { listFiles, insertFile, deleteFileRow, formatBytes } from '../../shared/lib/filesApi.js'
-import { isDebugOn, setDebug, dbg } from '../../shared/lib/debug.js'
+import { isDebugOn, setDebug, dbg, downloadLog } from '../../shared/lib/debug.js'
 import PasswordForm, { ADMIN_AUTH_KEY } from './PasswordForm.jsx'
 
 function statusLabel(status) {
@@ -192,6 +192,7 @@ function AdminPanel() {
         <button onClick={toggleDebug} className={debugOn ? 'debugBtnOn' : 'debugBtn'}>
           {debugOn ? '🐞 Дебаг включён' : 'Активировать дебаг'}
         </button>
+        <button onClick={downloadLog}>⬇ Скачать лог</button>
         <button onClick={load} disabled={loading || syncing}>Обновить список</button>
       </div>
 

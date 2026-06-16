@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import AdminTab from '../features/admin/AdminTab.jsx'
 import UserTab from '../features/user/UserTab.jsx'
+import { APP_VERSION } from '../shared/lib/version.js'
 
 export default function App() {
   const [tab, setTab] = useState('user')
 
   return (
     <div className="app">
+      <div className="versionBadge">v{APP_VERSION}</div>
       <div className="tabs">
         <button
           className={tab === 'user' ? 'tabBtn tabBtnActive' : 'tabBtn'}

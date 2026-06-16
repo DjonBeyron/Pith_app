@@ -13,6 +13,17 @@ body {
   max-width: 720px;
   margin: 0 auto;
   padding: 16px;
+  position: relative;
+}
+
+.versionBadge {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 10px;
+  color: #555;
+  pointer-events: none;
+  user-select: none;
 }
 
 .tabs {
