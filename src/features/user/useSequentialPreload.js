@@ -124,6 +124,9 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
       )
       const rec = snapshotRef.current[evictId]
       const f = filesByIdRef.current[evictId]
+      // Capture BEFORE filter: sizeBeforeEvict = кандидаты + защищённый = реальный размер буфера,
+      // именно это значение > BUFFER_SIZE и спровоцировало вытеснение.
+      const sizeBeforeEvict = buffered.length
       buffered = buffered.filter(id => id !== evictId)
       if (!rec || !f) continue
 
@@ -133,8 +136,7 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
 
       const userReqLabel = userRequestedIdsRef.current.size
         ? ` user-req защищены: ${[...userRequestedIdsRef.current].map(pos).join(',')}` : ''
-      // `buffered.length` includes justLoadedId — показываем реальный размер буфера до вытеснения
-      dbg(`[buffer] ${buffered.length}→${BUFFER_SIZE} | кандидаты: ${candidates.map(pos).join(', ')} | защищён: ${pos(justLoadedId)} src=${source}${userReqLabel} → вытесняю ${pos(evictId)}`, f.file_name)
+      dbg(`[buffer] ${sizeBeforeEvict}→${BUFFER_SIZE} | кандидаты: ${candidates.map(pos).join(', ')} | защищён: ${pos(justLoadedId)} src=${source}${userReqLabel} → вытесняю ${pos(evictId)}`, f.file_name)
 
       if (getMediaKind(f.content_type) === 'video') {
         let posterUrl = rec.posterUrl
