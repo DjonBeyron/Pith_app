@@ -3,42 +3,36 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //
 // 1. ПОСЛЕДОВАТЕЛЬНАЯ ОЧЕРЕДЬ
-//    Файлы скачиваются строго по одному, в порядке массива `files`.
-//    Следующий начинается только когда предыдущий полностью в памяти.
-//    Никаких параллельных fetch — иначе на медленном 3G они «дерутся» за канал.
-//    Очередь не убегает далеко вперёд: `allowUpTo` — внешний лимит, до которого
-//    разрешено идти; пока не разрешено — ждём опросом каждые POLL_MS мс.
+//    Файлы скачиваются строго по одному. Очередь не убегает дальше `allowUpTo`
+//    (= reveal + PREFETCH_LOOKAHEAD), ждёт разрешения опросом каждые POLL_MS мс.
 //
 // 2. БУФЕР НА 5 ФАЙЛОВ (только видео/аудио)
-//    Скачанные blob-ы держим в памяти. При переполнении вытесняем самый ранний
-//    (с наименьшим порядковым номером в массиве), кроме того файла, что только
-//    что загрузился — он остаётся. Буфер так «скользит» вперёд вместе с очередью.
-//
-//    Пример: буфер {21,22,23,24,25}, пользователь нажал на файл #10 (старый).
-//    #10 загружается. Вытесняется #21 — наименьший из оставшихся.
-//    Нажал #8 — вытесняется #10. Нажал #17 — вытесняется #8.
+//    Готовые blob-ы держим в памяти. При переполнении — вытесняем наименьший
+//    из допустимых кандидатов (см. ниже).
 //
 // 3. ФОТО НИКОГДА НЕ ВЫТЕСНЯЮТСЯ
-//    Пустое фото в чате выглядело бы как поломка. Фото не входят в счётчик
-//    буфера (max 5 считается только для видео/аудио).
+//    Не входят в счётчик буфера и в кандидаты на вытеснение.
 //
 // 4. ВИДЕО ПРИ ВЫТЕСНЕНИИ ОСТАВЛЯЕТ СТОП-КАДР
-//    Перед удалением тяжёлого blob-а захватывается один кадр через скрытый
-//    <video>+<canvas> и остаётся как превью. Если захват завис (слабый Android,
-//    плохой кодек) — через 2 сек capturePosterFrame резолвится с null и вытеснение
-//    всё равно происходит, чтобы очередь не встала мёртво.
+//    capturePosterFrame имеет таймаут 2 с — зависший декодер Android не блокирует
+//    очередь. Пока идёт захват, файл помечен во внутреннем `evictingIdsRef` и не
+//    попадает в кандидаты повторно (защита от двойного вытеснения).
 //
-// 5. ПОДГРУЗКА ПО ТРЕБОВАНИЮ
-//    Клик на вытесненный файл (стоп-кадр видео или плейсхолдер аудио) вызывает
-//    reload(f), который запускает loadOne для этого конкретного файла с текущим
-//    поколением очереди. Этот файл при первом же переполнении буфера станет
-//    первым кандидатом на вытеснение (он самый «ранний» в окне).
+// 5. ПРАВИЛА ВЫТЕСНЕНИЯ (source-aware):
+//    Sequential загрузка (автоочередь) → вытесняет только файлы, которые НЕ были
+//    запрошены пользователем вручную. User-clicked файлы защищены от выброса
+//    автоочередью — они остаются пока пользователь сам не нажмёт на что-то ещё.
 //
-// ЗАЩИТА ОТ ДВУХ ПАРАЛЛЕЛЬНЫХ ОЧЕРЕДЕЙ (genRef)
-//    Каждый запуск useEffect захватывает `gen = genRef.current`. Cleanup делает
-//    genRef.current++. Любая async-операция (patch, loadOne, evict) проверяет
-//    genRef.current === gen и тихо останавливается при несовпадении. Это гарантирует,
-//    что повторный вызов load() (кнопка «Обновить») не запустит два queue одновременно.
+//    Demand загрузка (клик пользователя) → может вытеснить любой кандидат,
+//    включая ранее demand-загруженные. Пример: буфер {21,22,23,24,25}.
+//    Клик на #10 → вытесняется #21 (наименьший из seq).
+//    Клик на #8  → вытесняется #10 (наименьший из всех, включая demand).
+//    Клик на #17 → вытесняется #8.
+//
+// 6. ЗАЩИТА ОТ ДВУХ ПАРАЛЛЕЛЬНЫХ ОЧЕРЕДЕЙ (genRef)
+//    Cleanup эффекта делает genRef.current++. Все async-операции проверяют свой
+//    `gen` — при несовпадении тихо выходят. Это гарантирует, что повторный
+//    вызов load() не запустит два queue одновременно.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState } from 'react'
@@ -55,8 +49,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-// Downloads one file and streams progress. Keeps the connection serial so slow 3G
-// isn't overloaded by parallel fetches fighting each other.
 async function fetchBlobWithProgress(url, onProgress) {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -77,14 +69,16 @@ async function fetchBlobWithProgress(url, onProgress) {
 export function useSequentialPreload(files, allowUpTo, currentIndex) {
   const [map, setMap] = useState({})
   const snapshotRef = useRef({})
-  // Generation counter — incremented on cleanup. Each async operation checks its own
-  // captured `gen` against genRef.current; mismatch means a newer queue took over.
   const genRef = useRef(0)
   const filesByIdRef = useRef({})
   const indexByIdRef = useRef({})
   const cursorRef = useRef(0)
   const allowUpToRef = useRef(allowUpTo)
   const currentIndexRef = useRef(currentIndex)
+  // Tracks files loaded on user demand — sequential eviction skips them.
+  const userRequestedIdsRef = useRef(new Set())
+  // Tracks files currently mid-eviction (poster capture) — prevents double-evict.
+  const evictingIdsRef = useRef(new Set())
 
   useEffect(() => { allowUpToRef.current = allowUpTo }, [allowUpTo])
   useEffect(() => { currentIndexRef.current = currentIndex }, [currentIndex])
@@ -95,58 +89,67 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
     setMap(snapshotRef.current)
   }
 
+  // Human-readable position label for debug logs, e.g. "#5"
+  function pos(id) { return '#' + ((indexByIdRef.current[id] ?? 0) + 1) }
+
+  // Photos and files already mid-eviction are excluded from candidates.
   function bufferedEvictableIds() {
     return Object.entries(snapshotRef.current)
-      .filter(([id, rec]) => rec.status === 'ready' && getMediaKind(filesByIdRef.current[id]?.content_type) !== 'photo')
+      .filter(([id, rec]) =>
+        rec.status === 'ready' &&
+        !evictingIdsRef.current.has(id) &&
+        getMediaKind(filesByIdRef.current[id]?.content_type) !== 'photo'
+      )
       .map(([id]) => id)
   }
 
-  // Helper: human-readable position label for a file id, e.g. "#5"
-  function pos(id) { return '#' + ((indexByIdRef.current[id] ?? 0) + 1) }
-
-  // Eviction policy: remove the file with the LOWEST sequential index, excluding
-  // `justLoadedId` (the file we just finished loading — keep it, it's the freshest).
-  // This makes the buffer a sliding window: as the queue advances, the tail falls off.
-  // On-demand loaded past files become the next eviction target without extra logic.
-  // Photos are never included in candidates — bufferedEvictableIds() already filters them.
-  async function evictFarthestIfNeeded(gen, justLoadedId) {
+  // source='sequential' → protect user-clicked files (evict from seq pool only).
+  // source='demand'     → evict from all candidates (lowest index, excl just-loaded).
+  async function evictFarthestIfNeeded(gen, justLoadedId, source) {
     let buffered = bufferedEvictableIds()
     while (buffered.length > BUFFER_SIZE) {
       if (genRef.current !== gen) return
       const candidates = buffered.filter(id => id !== justLoadedId)
       if (!candidates.length) break
-      const evictId = candidates.reduce((minId, id) =>
+
+      let pool = candidates
+      if (source === 'sequential') {
+        const seqPool = candidates.filter(id => !userRequestedIdsRef.current.has(id))
+        if (seqPool.length > 0) pool = seqPool
+      }
+
+      const evictId = pool.reduce((minId, id) =>
         (indexByIdRef.current[id] ?? 0) < (indexByIdRef.current[minId] ?? 0) ? id : minId,
-        candidates[0]
+        pool[0]
       )
       const rec = snapshotRef.current[evictId]
       const f = filesByIdRef.current[evictId]
       buffered = buffered.filter(id => id !== evictId)
       if (!rec || !f) continue
 
-      // Debug: show all candidates (photos excluded), which is protected, which is chosen.
-      const candidateList = candidates.map(id => pos(id)).join(', ')
-      const protectedLabel = justLoadedId ? `защищён ${pos(justLoadedId)}` : 'нет защищённого'
-      dbg(`[buffer] кандидаты (фото исключены): ${candidateList} | ${protectedLabel} → вытесняю наименьший ${pos(evictId)}`, f.file_name)
+      // Lock before any await so concurrent calls don't double-evict the same file.
+      evictingIdsRef.current.add(evictId)
+      userRequestedIdsRef.current.delete(evictId)
+
+      const userReqLabel = userRequestedIdsRef.current.size
+        ? ` user-req защищены: ${[...userRequestedIdsRef.current].map(pos).join(',')}` : ''
+      dbg(`[buffer] кандидаты: ${candidates.map(pos).join(', ')} | src=${source}${userReqLabel} → вытесняю ${pos(evictId)}`, f.file_name)
 
       if (getMediaKind(f.content_type) === 'video') {
-        // Capture poster frame before revoking the blob. capturePosterFrame has a built-in
-        // 2 s timeout so a stuck decoder on Android never blocks the queue indefinitely.
         let posterUrl = rec.posterUrl
-        if (!posterUrl) {
-          posterUrl = await capturePosterFrame(rec.blobUrl)
-        }
-        if (genRef.current !== gen) return
+        if (!posterUrl) posterUrl = await capturePosterFrame(rec.blobUrl)
+        if (genRef.current !== gen) { evictingIdsRef.current.delete(evictId); return }
         URL.revokeObjectURL(rec.blobUrl)
         patch(evictId, { status: 'evicted', blobUrl: null, posterUrl }, gen)
       } else {
         URL.revokeObjectURL(rec.blobUrl)
         patch(evictId, { status: 'evicted', blobUrl: null }, gen)
       }
+      evictingIdsRef.current.delete(evictId)
     }
   }
 
-  async function loadOne(f, gen) {
+  async function loadOne(f, gen, source = 'sequential') {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       if (genRef.current !== gen) return
       patch(f.id, { status: 'loading', progress: 0, attempt }, gen)
@@ -163,7 +166,7 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
         const blobUrl = URL.createObjectURL(blob)
         if (genRef.current !== gen) { URL.revokeObjectURL(blobUrl); return }
         patch(f.id, { status: 'ready', progress: 100, blobUrl, ms, kbps }, gen)
-        if (getMediaKind(f.content_type) !== 'photo') await evictFarthestIfNeeded(gen, f.id)
+        if (getMediaKind(f.content_type) !== 'photo') await evictFarthestIfNeeded(gen, f.id, source)
         return
       } catch (e) {
         console.error('[preload] attempt failed', f.file_name, attempt, e)
@@ -189,7 +192,6 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
     cursorRef.current = 0
     snapshotRef.current = Object.fromEntries(files.map(f => [f.id, { status: 'queued', progress: 0 }]))
     setMap(snapshotRef.current)
-    if (!files.length) return () => { genRef.current++ }
 
     async function runQueue() {
       while (genRef.current === gen && cursorRef.current < files.length) {
@@ -198,23 +200,28 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
           continue
         }
         const f = files[cursorRef.current]
-        await loadOne(f, gen)
+        await loadOne(f, gen, 'sequential')
         cursorRef.current += 1
       }
     }
-    runQueue()
-    return () => { genRef.current++ }
+    if (files.length) runQueue()
+
+    return () => {
+      genRef.current++
+      userRequestedIdsRef.current.clear()
+      evictingIdsRef.current.clear()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files])
 
-  // Called when the user taps an evicted item — fetches it again on demand.
-  // The on-demand file keeps its original sequential index, so it naturally becomes
-  // the next eviction candidate if its index is lower than the rest of the buffer.
+  // User tapped an evicted item — load on demand.
+  // Sequential queue will NOT evict this file until the user demands another one.
   function reload(f) {
     const cur = snapshotRef.current[f.id]
     if (cur && (cur.status === 'loading' || cur.status === 'ready')) return
     dbg(`[user] клик → ${pos(f.id)} ${f.file_name}`)
-    loadOne(f, genRef.current)
+    userRequestedIdsRef.current.add(f.id)
+    loadOne(f, genRef.current, 'demand')
   }
 
   return { state: map, reload }
