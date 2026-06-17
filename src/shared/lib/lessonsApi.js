@@ -36,6 +36,14 @@ export async function saveScript(id, script) {
   if (error) throw error
 }
 
+export async function saveLesson(id, { title, script }) {
+  const { error } = await supabase
+    .from('lessons')
+    .update({ title, script })
+    .eq('id', id)
+  if (error) throw error
+}
+
 export async function loadScript(id) {
   const { data, error } = await supabase
     .from('lessons')
