@@ -141,6 +141,11 @@ begin
 end;
 $$;
 
+-- ── Lesson script column (ver 2.0 canvas editor) ──
+-- Stores the node-graph JSON for the new lesson editor.
+-- Run this ALTER if the lessons table already exists from the old app.
+alter table public.lessons add column if not exists script jsonb not null default '{"nodes":[]}';
+
 -- ── Lesson results ────────────────────────────
 create table if not exists public.lesson_results (
   id              uuid primary key default gen_random_uuid(),

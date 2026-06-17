@@ -79,15 +79,6 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
 
   useEffect(() => { allowUpToRef.current = allowUpTo }, [allowUpTo])
 
-  // When reveal advances, preloaded-ahead files become "revealed" — trigger eviction check
-  // so the revealed count stays ≤ BUFFER_SIZE even when no new file is being loaded.
-  useEffect(() => {
-    currentIndexRef.current = currentIndex
-    const gen = genRef.current
-    evictFarthestIfNeeded(gen, null, 'sequential').catch(console.error)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex])
-
   function patch(id, fields, gen) {
     if (genRef.current !== gen) return
     snapshotRef.current = { ...snapshotRef.current, [id]: { ...snapshotRef.current[id], ...fields } }
@@ -173,6 +164,16 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
       evictingIdsRef.current.delete(evictId)
     }
   }
+
+  // When reveal advances, preloaded-ahead files become "revealed" — trigger eviction check
+  // so the revealed count stays ≤ BUFFER_SIZE even when no new file is being loaded.
+  // Must be declared after evictFarthestIfNeeded to satisfy react-hooks/immutability.
+  useEffect(() => {
+    currentIndexRef.current = currentIndex
+    const gen = genRef.current
+    evictFarthestIfNeeded(gen, null, 'sequential').catch(console.error)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex])
 
   async function loadOne(f, gen, source = 'sequential') {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
