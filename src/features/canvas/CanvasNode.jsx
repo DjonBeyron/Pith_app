@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import NodeAudioPicker from './NodeAudioPicker.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
@@ -18,6 +19,13 @@ export default function CanvasNode({
   node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
+
+  // When leaving max mode, clear stale trigger measurements so they don't
+  // ghost onto the next max layout (e.g. after type switch or size cycle).
+  useEffect(() => {
+    if (node.size !== 'max') onTriggerMeasure?.([])
+  }, [node.size, onTriggerMeasure])
+
   // Per-type data: each type stores its own file_id and (for photo/video) crop
   const tData  = node.typeData?.[node.type] ?? {}
   const fileId = tData.file_id ?? null

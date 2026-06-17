@@ -13,7 +13,7 @@ function makeNode(seq, x, y) {
     y,
     size: 'mini',
     type: 'audio',
-    triggers: [],
+    triggers: [{ if: 'played', then: null }],
     typeData: {
       audio:  { file_id: null },
       photo:  { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
@@ -123,10 +123,16 @@ export default function CanvasBoard({
       if (nextNode) newNode.triggers = [{ if: 'played', then: nextNode.id }]
       const updated = prev.map(n => {
         let out = n.seq >= insertSeq ? { ...n, seq: n.seq + 1 } : n
-        if (n.id === nodeId && nextNode) {
-          out = { ...out, triggers: out.triggers.map(t => ({
-            ...t, then: t.then === nextNode.id ? newNode.id : t.then,
-          }))}
+        if (n.id === nodeId) {
+          if (nextNode) {
+            // middle insert: rewire existing trigger A→B to A→new→B
+            out = { ...out, triggers: out.triggers.map(t => ({
+              ...t, then: t.then === nextNode.id ? newNode.id : t.then,
+            }))}
+          } else {
+            // tail insert: add trigger from clicked node to new node
+            out = { ...out, triggers: [...out.triggers, { if: 'played', then: newNode.id }] }
+          }
         }
         return out
       })
