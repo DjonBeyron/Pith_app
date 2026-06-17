@@ -47,24 +47,25 @@ function renderMedia(f, s, onReload) {
 
 // Logs current buffer occupancy whenever it changes — this is what lets us confirm from a
 // downloaded debug log (no devtools on a weak Android phone) that memory really stays capped.
-function useBufferLog(files, preloadState) {
+function useBufferLog(files, preloadState, currentIndex) {
   const lastSigRef = useRef('')
   useEffect(() => {
     const ready = files.filter(f => preloadState[f.id]?.status === 'ready')
     const sig = ready.map(f => f.id).join(',')
     if (sig === lastSigRef.current) return
     lastSigRef.current = sig
-    const evictable = ready.filter(f => getMediaKind(f.content_type) !== 'photo')
-    const photos = ready.length - evictable.length
+    const avReady = ready.filter(f => getMediaKind(f.content_type) !== 'photo')
+    const revealedAv = avReady.filter(f => files.indexOf(f) <= currentIndex).length
+    const photos = ready.length - avReady.length
     const totalKb = ready.reduce((sum, f) => sum + f.size_bytes, 0) / 1024
     const heap = performance.memory
       ? ` · JS heap: ${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)}MB`
       : ''
     dbg(
-      '[buffer] видео/аудио:', evictable.length, `из max ${BUFFER_SIZE}`,
-      '· фото (не выгружаются):', photos, `(~${Math.round(totalKb)}KB)${heap}`,
+      `[buffer] видео/аудио в памяти: ${avReady.length} (показанных ${revealedAv} из max ${BUFFER_SIZE})`,
+      `· фото: ${photos} (~${Math.round(totalKb)}KB)${heap}`,
     )
-  }, [files, preloadState])
+  }, [files, preloadState, currentIndex])
 }
 
 export default function UserTab() {
@@ -75,7 +76,7 @@ export default function UserTab() {
   const allowUpTo = visibleCount + PREFETCH_LOOKAHEAD
   const currentIndex = Math.max(0, visibleCount - 1)
   const { state: preload, reload } = useSequentialPreload(files, allowUpTo, currentIndex)
-  useBufferLog(files, preload)
+  useBufferLog(files, preload, currentIndex)
 
   useEffect(() => {
     load()
