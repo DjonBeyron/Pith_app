@@ -1,0 +1,59 @@
+.lessonsHint {
+  color: #666;
+  font-size: 13px;
+  padding: 20px 0;
+}
+
+.lessonsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lessonRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1c22;
+  border: 1px solid #2a2c33;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.lessonRowMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.lessonRowMain:hover .lessonTitle {
+  color: #b6fe3b;
+}
+
+.lessonTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8e8ea;
+  transition: color 0.15s;
+}
+
+.lessonDate {
+  font-size: 11px;
+  color: #555;
+}
+
+.lessonDeleteBtn {
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #888;
+  border-color: #333;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.lessonDeleteBtn:hover {
+  color: #ff8080;
+  border-color: #ff8080;
+}

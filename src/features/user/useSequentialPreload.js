@@ -227,7 +227,7 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
         }
         const f = files[cursorRef.current]
         await loadOne(f, gen, 'sequential')
-        cursorRef.current += 1
+        if (genRef.current === gen) cursorRef.current += 1
       }
     }
     if (files.length) runQueue()

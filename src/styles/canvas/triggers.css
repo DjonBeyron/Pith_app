@@ -1,0 +1,87 @@
+.nodeTriggers {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px solid #1a1c22;
+  padding-top: 6px;
+}
+
+.nodeTriggerRow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: #0d0f14;
+  border: 1px solid #1e2030;
+  border-radius: 6px;
+  padding: 5px 6px;
+}
+
+.nodeTriggerLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nodeTriggerKw {
+  font-size: 9px;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.nodeTriggerSel {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 3px;
+  background: #0a0c10;
+  border: 1px solid #1e2030;
+  border-radius: 4px;
+  color: #999;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.nodeTriggerMsInput {
+  width: 36px;
+  padding: 2px 3px;
+  background: #0a0c10;
+  border: 1px solid #1e2030;
+  border-radius: 4px;
+  color: #b6fe3b;
+  font-size: 9px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nodeTriggerDel {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #333;
+  font-size: 14px;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.nodeTriggerDel:hover { color: #ff6060; }
+
+.nodeTriggerAdd {
+  align-self: flex-start;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px dashed #2a2c33;
+  border-radius: 4px;
+  color: #444;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.nodeTriggerAdd:hover { border-color: #b6fe3b; color: #b6fe3b; }

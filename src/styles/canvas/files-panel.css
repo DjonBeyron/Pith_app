@@ -1,0 +1,139 @@
+.lessonFilesPanel {
+  background: #0d0f16;
+  border-bottom: 1px solid #1e2030;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 40vh;
+  overflow: hidden;
+}
+
+.lessonFilesPanelHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #181a24;
+  flex-shrink: 0;
+}
+
+.lessonFilesPanelTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #aaa;
+  flex: 1;
+}
+
+.lessonFilesSyncBtn {
+  font-size: 11px;
+  padding: 5px 12px;
+  background: #1a2e0a;
+  border: 1px solid #3a6010;
+  color: #7acc30;
+  border-radius: 6px;
+}
+
+.lessonFilesSyncBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.lessonFilesPanelClose {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #2a2c33;
+  border-radius: 5px;
+  color: #555;
+  font-size: 14px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.lessonFilesList {
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 14px 10px;
+}
+
+.lessonFilesEmpty {
+  font-size: 12px;
+  color: #444;
+  margin: 12px 0;
+}
+
+.lessonFilesRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #181a24;
+}
+
+.lessonFilesDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lessonFilesDotLocal   { background: #ff8040; }
+.lessonFilesDotSynced  { background: #60c840; }
+.lessonFilesDotDelete  { background: #e05050; }
+
+.lessonFilesName {
+  flex: 1;
+  font-size: 11px;
+  color: #ccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lessonFilesNodeTag {
+  font-size: 10px;
+  color: #7a8a9a;
+  flex-shrink: 0;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lessonFilesSize {
+  font-size: 10px;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.lessonFilesStatus {
+  font-size: 10px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.lessonFilesStatusLocal  { color: #ff8040; background: rgba(255,128,64,0.1); }
+.lessonFilesStatusSynced { color: #60c840; background: rgba(96,200,64,0.1); }
+.lessonFilesStatusDelete { color: #e05050; background: rgba(224,80,80,0.1); }
+.lessonFilesRowDelete .lessonFilesName { text-decoration: line-through; opacity: 0.5; }
+
+.lessonFilesDelBtn {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #333;
+  font-size: 14px;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.lessonFilesDelBtn:hover { color: #ff6060; }

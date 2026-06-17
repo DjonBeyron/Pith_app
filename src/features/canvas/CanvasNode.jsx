@@ -15,7 +15,7 @@ const TYPE_COLOR = {
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
 
 export default function CanvasNode({
-  node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile,
+  node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
   // Per-type data: each type stores its own file_id and (for photo/video) crop
@@ -144,8 +144,10 @@ export default function CanvasNode({
         )}
         <NodeTriggerEditor
           triggers={node.triggers}
+          nodeId={node.id}
           nodes={allNodes}
           onChange={triggers => onUpdate({ triggers })}
+          onMeasure={onTriggerMeasure}
         />
       </div>
     </div>

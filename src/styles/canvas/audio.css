@@ -1,0 +1,42 @@
+.nodeAudioPicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nodeAudioPickerLabel {
+  flex: 1;
+  cursor: pointer;
+}
+
+.nodeAudioInput {
+  display: none;
+}
+
+.nodeAudioPickerBtn {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  background: #0a0c10;
+  border: 1px dashed #2a3040;
+  border-radius: 6px;
+  color: #888;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nodeAudioPickerLabel:hover .nodeAudioPickerBtn {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+}
+
+.nodeAudioStatus {
+  font-size: 11px;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.nodeAudioStatusLocal  { color: #ff8040; }
+.nodeAudioStatusSynced { color: #60c840; }

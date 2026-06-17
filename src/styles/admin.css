@@ -1,0 +1,28 @@
+.filesTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.filesTable th,
+.filesTable td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #2a2c33;
+}
+
+.passwordForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 280px;
+  margin: 60px auto;
+}
+
+.passwordForm input {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #1a1c22;
+  color: #e8e8ea;
+}
