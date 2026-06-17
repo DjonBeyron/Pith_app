@@ -2,23 +2,16 @@ import { useState } from 'react'
 import AdminTab from '../features/admin/AdminTab.jsx'
 import UserTab from '../features/user/UserTab.jsx'
 import LessonsTab from '../features/lessons/LessonsTab.jsx'
+import CanvasPage from '../features/canvas/CanvasPage.jsx'
 import { APP_VERSION } from '../shared/lib/version.js'
 
 export default function App() {
   const [tab, setTab] = useState('user')
   const [canvasLessonId, setCanvasLessonId] = useState(null)
 
-  // Canvas editor opens as a full-screen page on top of the tab layout (Stage 2)
+  // Canvas editor replaces the entire layout — no tabs, full screen
   if (canvasLessonId) {
-    return (
-      <div className="app">
-        <div className="canvasStub">
-          <button onClick={() => setCanvasLessonId(null)}>← Назад к урокам</button>
-          <div className="canvasStubHint">Редактор урока — скоро здесь</div>
-          <div className="canvasStubId">ID: {canvasLessonId}</div>
-        </div>
-      </div>
-    )
+    return <CanvasPage lessonId={canvasLessonId} onBack={() => setCanvasLessonId(null)} />
   }
 
   return (
