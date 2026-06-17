@@ -1,7 +1,13 @@
 import { formatBytes } from '../../shared/lib/filesApi.js'
 
-export default function LessonFilesPanel({ files, syncing, onSync, onRemove, onClose }) {
-  const unsyncedCount = files.filter(f => f.status === 'local').length
+const TYPE_LABEL = { audio: 'Голос', photo: 'Фото', video: 'Видео', circle: 'Кружок', text: 'Текст' }
+
+function getNodeUsage(fileId, nodes) {
+  return (nodes ?? []).filter(n => n.typeData?.[n.type]?.file_id === fileId)
+}
+
+export default function LessonFilesPanel({ files, nodes, syncing, onSync, onRemove, onClose }) {
+  const pendingCount = files.filter(f => f.status === 'local' || f.status === 'toDelete').length
 
   return (
     <div className="lessonFilesPanel">
@@ -10,9 +16,9 @@ export default function LessonFilesPanel({ files, syncing, onSync, onRemove, onC
         <button
           className="lessonFilesSyncBtn"
           onClick={onSync}
-          disabled={syncing || unsyncedCount === 0}
+          disabled={syncing || pendingCount === 0}
         >
-          {syncing ? 'Загружаю…' : `Синхронизировать${unsyncedCount ? ` (${unsyncedCount})` : ''}`}
+          {syncing ? 'Синхронизирую…' : `Синхронизировать${pendingCount ? ` (${pendingCount})` : ''}`}
         </button>
         <button className="lessonFilesPanelClose" onClick={onClose}>×</button>
       </div>
@@ -21,17 +27,34 @@ export default function LessonFilesPanel({ files, syncing, onSync, onRemove, onC
         {files.length === 0 && (
           <p className="lessonFilesEmpty">Нет файлов — выберите файл в ноде</p>
         )}
-        {files.map(f => (
-          <div key={f.id} className="lessonFilesRow">
-            <span className={`lessonFilesDot ${f.status === 'synced' ? 'lessonFilesDotSynced' : 'lessonFilesDotLocal'}`} />
-            <span className="lessonFilesName" title={f.name}>{f.name}</span>
-            <span className="lessonFilesSize">{formatBytes(f.size)}</span>
-            <span className={`lessonFilesStatus ${f.status === 'synced' ? 'lessonFilesStatusSynced' : 'lessonFilesStatusLocal'}`}>
-              {f.status === 'synced' ? 'сервер' : 'локально'}
-            </span>
-            <button className="lessonFilesDelBtn" onClick={() => onRemove(f.id)}>×</button>
-          </div>
-        ))}
+        {files.map(f => {
+          const isDelete = f.status === 'toDelete'
+          const dotClass = isDelete ? 'lessonFilesDotDelete'
+            : f.status === 'synced' ? 'lessonFilesDotSynced' : 'lessonFilesDotLocal'
+          const statusLabel = isDelete ? 'удалить' : f.status === 'synced' ? 'сервер' : 'локально'
+          const statusClass = isDelete ? 'lessonFilesStatusDelete'
+            : f.status === 'synced' ? 'lessonFilesStatusSynced' : 'lessonFilesStatusLocal'
+          const usage = getNodeUsage(f.id, nodes)
+          const usageText = usage.length
+            ? usage.map(n => `#${n.seq} ${TYPE_LABEL[n.type] ?? n.type}`).join(', ')
+            : '—'
+          return (
+            <div key={f.id} className={`lessonFilesRow${isDelete ? ' lessonFilesRowDelete' : ''}`}>
+              <span className={`lessonFilesDot ${dotClass}`} />
+              <span className="lessonFilesName" title={f.name}>{f.name}</span>
+              <span className="lessonFilesNodeTag" title={usageText}>{usageText}</span>
+              <span className="lessonFilesSize">{formatBytes(f.size)}</span>
+              <span className={`lessonFilesStatus ${statusClass}`}>{statusLabel}</span>
+              <button
+                className="lessonFilesDelBtn"
+                onClick={() => onRemove(f.id)}
+                title={isDelete ? 'Отменить удаление' : 'Удалить'}
+              >
+                {isDelete ? '↺' : '×'}
+              </button>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

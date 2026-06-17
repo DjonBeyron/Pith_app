@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import CanvasBoard from './CanvasBoard.jsx'
 import LessonFilesPanel from './LessonFilesPanel.jsx'
 import { useLessonFiles } from './useLessonFiles.js'
@@ -7,8 +7,10 @@ import { useLessonFiles } from './useLessonFiles.js'
 // App.jsx swaps the whole render tree when canvasLessonId is set).
 export default function CanvasPage({ lessonId, onBack }) {
   const [showPanel, setShowPanel] = useState(false)
+  const [panelNodes, setPanelNodes] = useState([])
   const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer } =
     useLessonFiles(lessonId)
+  const handleNodesChange = useCallback(n => setPanelNodes(n), [])
 
   return (
     <div className="canvasPage">
@@ -27,6 +29,7 @@ export default function CanvasPage({ lessonId, onBack }) {
       {showPanel && (
         <LessonFilesPanel
           files={files}
+          nodes={panelNodes}
           syncing={syncing}
           onSync={syncToServer}
           onRemove={removeFile}
@@ -34,7 +37,12 @@ export default function CanvasPage({ lessonId, onBack }) {
         />
       )}
 
-      <CanvasBoard lessonId={lessonId} lessonFiles={files} onPickLessonFile={pickFile} />
+      <CanvasBoard
+        lessonId={lessonId}
+        lessonFiles={files}
+        onPickLessonFile={pickFile}
+        onNodesChange={handleNodesChange}
+      />
     </div>
   )
 }

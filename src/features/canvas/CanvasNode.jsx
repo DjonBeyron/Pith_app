@@ -1,11 +1,15 @@
 import NodeAudioPicker from './NodeAudioPicker.jsx'
+import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
 
+const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
+
 const TYPE_COLOR = {
-  audio: '#4a7ca8',
-  photo: '#5a9a5a',
-  video: '#7a5a9a',
-  text:  '#55556a',
+  audio:  '#4a7ca8',
+  photo:  '#5a9a5a',
+  video:  '#7a5a9a',
+  circle: '#c06a6a',
+  text:   '#55556a',
 }
 
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
@@ -14,6 +18,19 @@ export default function CanvasNode({
   node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile,
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
+  // Per-type data: each type stores its own file_id and (for photo/video) crop
+  const tData  = node.typeData?.[node.type] ?? {}
+  const fileId = tData.file_id ?? null
+  const crop   = tData.crop ?? DEFAULT_CROP
+
+  function updateTypeData(patch) {
+    onUpdate({
+      typeData: {
+        ...node.typeData,
+        [node.type]: { ...tData, ...patch },
+      },
+    })
+  }
 
   function expandClick(e) {
     e.stopPropagation()
@@ -23,12 +40,18 @@ export default function CanvasNode({
 
   function changeType(e) {
     e.stopPropagation()
+    // Just switch type — typeData for each type is preserved independently
     onUpdate({ type: e.target.value })
   }
 
   function handleAudioPick(file) {
     const id = onPickLessonFile(file)
-    onUpdate({ file_id: id })
+    updateTypeData({ file_id: id })
+  }
+
+  function handleMediaPick(file) {
+    const id = onPickLessonFile(file)
+    updateTypeData({ file_id: id, crop: DEFAULT_CROP })
   }
 
   // ── nano ────────────────────────────────────────────────────────
@@ -46,7 +69,7 @@ export default function CanvasNode({
   }
 
   // ── mini ────────────────────────────────────────────────────────
-  const miniFile = lessonFiles.find(f => f.id === node.file_id) ?? null
+  const miniFile = lessonFiles.find(f => f.id === fileId) ?? null
 
   if (node.size === 'mini') {
     return (
@@ -64,6 +87,7 @@ export default function CanvasNode({
             <option value="audio">Голосовое</option>
             <option value="photo">Фото</option>
             <option value="video">Видео</option>
+            <option value="circle">Кружок</option>
             <option value="text">Текстовое</option>
           </select>
           {miniFile && (
@@ -97,13 +121,25 @@ export default function CanvasNode({
           <option value="audio">Голосовое сообщение</option>
           <option value="photo">Фото сообщение</option>
           <option value="video">Видео сообщение</option>
+          <option value="circle">Кружок</option>
           <option value="text">Текстовое сообщение</option>
         </select>
         {node.type === 'audio' && (
           <NodeAudioPicker
-            fileId={node.file_id}
+            fileId={fileId}
             lessonFiles={lessonFiles}
             onPick={handleAudioPick}
+          />
+        )}
+        {(node.type === 'photo' || node.type === 'video' || node.type === 'circle') && (
+          <NodeMediaCrop
+            type={node.type}
+            fileId={fileId}
+            crop={crop}
+            lessonFiles={lessonFiles}
+            onPickFile={handleMediaPick}
+            onCropChange={newCrop => updateTypeData({ crop: newCrop })}
+            shape={node.type === 'circle' ? 'circle' : 'rect'}
           />
         )}
         <NodeTriggerEditor

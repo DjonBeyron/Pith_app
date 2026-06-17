@@ -29,6 +29,11 @@ export async function deleteFileRow(id) {
   if (error) throw error
 }
 
+export async function deleteFileByR2Url(r2Url) {
+  const { error } = await supabase.from('files').delete().eq('r2_url', r2Url)
+  if (error) throw error
+}
+
 export function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`

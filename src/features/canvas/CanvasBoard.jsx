@@ -5,16 +5,22 @@ import { useCanvasDrag } from './useCanvasDrag.js'
 
 const CANVAS_LS = id => `lesson_canvas_${id}`
 
-function makeNode(seq) {
+function makeNode(seq, x, y) {
   return {
     id: crypto.randomUUID(),
     seq,
-    x: 40 + Math.random() * 200,
-    y: 60 + Math.random() * 140,
+    x,
+    y,
     size: 'mini',
     type: 'audio',
-    file_id: null,
     triggers: [],
+    typeData: {
+      audio:  { file_id: null },
+      photo:  { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
+      video:  { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
+      circle: { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
+      text:   { file_id: null },
+    },
   }
 }
 
@@ -26,12 +32,12 @@ function loadSaved(lessonId) {
 
 // connections prop: [{ from: id, to: id }] — empty for now, wired in Stage 4
 export default function CanvasBoard({
-  initialNodes, connections = [], lessonFiles = [], onPickLessonFile, lessonId,
+  initialNodes, connections = [], lessonFiles = [], onPickLessonFile, lessonId, onNodesChange,
 }) {
   // Lazy initializers read localStorage once at mount — no effect needed for load.
   const [nodes, setNodes] = useState(() => {
     const s = loadSaved(lessonId)
-    return s.nodes?.length ? s.nodes : (initialNodes?.length ? initialNodes : [makeNode(1)])
+    return s.nodes?.length ? s.nodes : (initialNodes?.length ? initialNodes : [makeNode(1, 120, 80)])
   })
   const [offset, setOffset] = useState(() => loadSaved(lessonId).offset ?? { x: 0, y: 0 })
   const [scale, setScale] = useState(() => {
@@ -39,8 +45,8 @@ export default function CanvasBoard({
     return typeof s.scale === 'number' ? s.scale : 1
   })
   // scaleRef mirrors scale for wheel handler (avoids stale closure)
-  const scaleRef  = useRef(scale)
-  const boardRef  = useRef(null)
+  const scaleRef   = useRef(scale)
+  const boardRef   = useRef(null)
   const mountedRef = useRef(false) // skips autosave on the first render
 
   const updateNode = useCallback((id, patch) =>
@@ -88,8 +94,20 @@ export default function CanvasBoard({
     return () => clearTimeout(t)
   }, [lessonId, nodes, offset, scale])
 
+  // Notify parent of node list changes (debounced 500ms to avoid firing on every drag frame)
+  useEffect(() => {
+    if (!onNodesChange) return
+    const t = setTimeout(() => onNodesChange(nodes), 500)
+    return () => clearTimeout(t)
+  }, [nodes, onNodesChange])
+
   function addNode() {
-    setNodes(prev => [...prev, makeNode(prev.length + 1)])
+    const el = boardRef.current
+    const rect = el ? el.getBoundingClientRect() : { width: 900, height: 600 }
+    // Convert viewport center to world coordinates, offset by half mini node size
+    const cx = (rect.width  / 2 - offset.x) / scale - 79 + (Math.random() - 0.5) * 60
+    const cy = (rect.height / 2 - offset.y) / scale - 20 + (Math.random() - 0.5) * 60
+    setNodes(prev => [...prev, makeNode(prev.length + 1, cx, cy)])
   }
 
   const transform = `translate(${offset.x}px,${offset.y}px) scale(${scale})`
