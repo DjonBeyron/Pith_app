@@ -3,36 +3,35 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //
 // 1. ПОСЛЕДОВАТЕЛЬНАЯ ОЧЕРЕДЬ
-//    Файлы скачиваются строго по одному. Очередь не убегает дальше `allowUpTo`
+//    Файлы скачиваются строго по одному. Не уходит дальше `allowUpTo`
 //    (= reveal + PREFETCH_LOOKAHEAD), ждёт разрешения опросом каждые POLL_MS мс.
 //
-// 2. БУФЕР НА 5 ФАЙЛОВ (только видео/аудио)
-//    Готовые blob-ы держим в памяти. При переполнении — вытесняем наименьший
-//    из допустимых кандидатов (см. ниже).
+// 2. БУФЕР НА 5 ПОКАЗАННЫХ ФАЙЛОВ (только видео/аудио)
+//    «Показанный» = файл с порядковым номером ≤ currentIndex (уже открыт
+//    пользователю reveal-ом). Предзагруженные-вперёд (ещё не показанные)
+//    не входят в лимит и могут быть в памяти сверх пяти. Итого в памяти:
+//    до BUFFER_SIZE показанных + до PREFETCH_LOOKAHEAD вперёд.
 //
-// 3. ФОТО НИКОГДА НЕ ВЫТЕСНЯЮТСЯ
-//    Не входят в счётчик буфера и в кандидаты на вытеснение.
+//    Вытеснение запускается только когда показанных audio/video > BUFFER_SIZE.
+//    Пока пользователь видит ≤5 файлов — ни один из них не выгружается.
+//    Вытеснение также проверяется при каждом сдвиге reveal (currentIndex).
+//
+// 3. ФОТО НИКОГДА НЕ ВЫТЕСНЯЮТСЯ — не входят в счётчик и в кандидаты.
 //
 // 4. ВИДЕО ПРИ ВЫТЕСНЕНИИ ОСТАВЛЯЕТ СТОП-КАДР
-//    capturePosterFrame имеет таймаут 2 с — зависший декодер Android не блокирует
-//    очередь. Пока идёт захват, файл помечен во внутреннем `evictingIdsRef` и не
-//    попадает в кандидаты повторно (защита от двойного вытеснения).
+//    capturePosterFrame имеет таймаут 2 с — зависший декодер Android не
+//    блокирует очередь. Файл помечен в evictingIdsRef до завершения захвата.
 //
 // 5. ПРАВИЛА ВЫТЕСНЕНИЯ (source-aware):
-//    Sequential загрузка (автоочередь) → вытесняет только файлы, которые НЕ были
-//    запрошены пользователем вручную. User-clicked файлы защищены от выброса
-//    автоочередью — они остаются пока пользователь сам не нажмёт на что-то ещё.
+//    Sequential (автоочередь) → вытесняет только показанные файлы, которые
+//    НЕ были запрошены пользователем вручную (user-req защищены).
 //
-//    Demand загрузка (клик пользователя) → может вытеснить любой кандидат,
+//    Demand (клик пользователя) → может вытеснить любой показанный кандидат,
 //    включая ранее demand-загруженные. Пример: буфер {21,22,23,24,25}.
-//    Клик на #10 → вытесняется #21 (наименьший из seq).
-//    Клик на #8  → вытесняется #10 (наименьший из всех, включая demand).
-//    Клик на #17 → вытесняется #8.
+//    Клик #10 → вытесняет #21. Клик #8 → вытесняет #10. Клик #17 → #8.
 //
 // 6. ЗАЩИТА ОТ ДВУХ ПАРАЛЛЕЛЬНЫХ ОЧЕРЕДЕЙ (genRef)
-//    Cleanup эффекта делает genRef.current++. Все async-операции проверяют свой
-//    `gen` — при несовпадении тихо выходят. Это гарантирует, что повторный
-//    вызов load() не запустит два queue одновременно.
+//    Cleanup делает genRef.current++. Все async-операции проверяют свой gen.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState } from 'react'
@@ -75,13 +74,19 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
   const cursorRef = useRef(0)
   const allowUpToRef = useRef(allowUpTo)
   const currentIndexRef = useRef(currentIndex)
-  // Tracks files loaded on user demand — sequential eviction skips them.
   const userRequestedIdsRef = useRef(new Set())
-  // Tracks files currently mid-eviction (poster capture) — prevents double-evict.
   const evictingIdsRef = useRef(new Set())
 
   useEffect(() => { allowUpToRef.current = allowUpTo }, [allowUpTo])
-  useEffect(() => { currentIndexRef.current = currentIndex }, [currentIndex])
+
+  // When reveal advances, preloaded-ahead files become "revealed" — trigger eviction check
+  // so the revealed count stays ≤ BUFFER_SIZE even when no new file is being loaded.
+  useEffect(() => {
+    currentIndexRef.current = currentIndex
+    const gen = genRef.current
+    evictFarthestIfNeeded(gen, null, 'sequential').catch(console.error)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex])
 
   function patch(id, fields, gen) {
     if (genRef.current !== gen) return
@@ -89,11 +94,10 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
     setMap(snapshotRef.current)
   }
 
-  // Human-readable position label for debug logs, e.g. "#5"
-  function pos(id) { return '#' + ((indexByIdRef.current[id] ?? 0) + 1) }
+  function pos(id) { return id ? '#' + ((indexByIdRef.current[id] ?? 0) + 1) : '—' }
 
-  // Photos and files already mid-eviction are excluded from candidates.
-  function bufferedEvictableIds() {
+  // All ready audio/video (including preloaded-ahead) — for total-in-memory log only.
+  function allEvictableIds() {
     return Object.entries(snapshotRef.current)
       .filter(([id, rec]) =>
         rec.status === 'ready' &&
@@ -103,13 +107,28 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
       .map(([id]) => id)
   }
 
-  // source='sequential' → protect user-clicked files (evict from seq pool only).
-  // source='demand'     → evict from all candidates (lowest index, excl just-loaded).
+  // Only files already REVEALED to the user (index ≤ currentIndex).
+  // These count against BUFFER_SIZE. Preloaded-ahead files are free.
+  function revealedEvictableIds() {
+    const cur = currentIndexRef.current
+    return Object.entries(snapshotRef.current)
+      .filter(([id, rec]) =>
+        rec.status === 'ready' &&
+        !evictingIdsRef.current.has(id) &&
+        getMediaKind(filesByIdRef.current[id]?.content_type) !== 'photo' &&
+        (indexByIdRef.current[id] ?? 0) <= cur
+      )
+      .map(([id]) => id)
+  }
+
+  // Eviction fires only when REVEALED audio/video count > BUFFER_SIZE.
+  // Preloaded-ahead files are never evicted here — they're outside the limit.
+  // source='sequential' skips user-requested files; source='demand' evicts all candidates.
   async function evictFarthestIfNeeded(gen, justLoadedId, source) {
-    let buffered = bufferedEvictableIds()
-    while (buffered.length > BUFFER_SIZE) {
+    let revealed = revealedEvictableIds()
+    while (revealed.length > BUFFER_SIZE) {
       if (genRef.current !== gen) return
-      const candidates = buffered.filter(id => id !== justLoadedId)
+      const candidates = justLoadedId ? revealed.filter(id => id !== justLoadedId) : revealed
       if (!candidates.length) break
 
       let pool = candidates
@@ -122,21 +141,24 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
         (indexByIdRef.current[id] ?? 0) < (indexByIdRef.current[minId] ?? 0) ? id : minId,
         pool[0]
       )
+      if (evictingIdsRef.current.has(evictId)) {
+        revealed = revealed.filter(id => id !== evictId)
+        continue
+      }
+
       const rec = snapshotRef.current[evictId]
       const f = filesByIdRef.current[evictId]
-      // Capture BEFORE filter: sizeBeforeEvict = кандидаты + защищённый = реальный размер буфера,
-      // именно это значение > BUFFER_SIZE и спровоцировало вытеснение.
-      const sizeBeforeEvict = buffered.length
-      buffered = buffered.filter(id => id !== evictId)
+      const revealedBefore = revealed.length
+      const totalInMem = allEvictableIds().length
+      revealed = revealed.filter(id => id !== evictId)
       if (!rec || !f) continue
 
-      // Lock before any await so concurrent calls don't double-evict the same file.
       evictingIdsRef.current.add(evictId)
       userRequestedIdsRef.current.delete(evictId)
 
       const userReqLabel = userRequestedIdsRef.current.size
-        ? ` user-req защищены: ${[...userRequestedIdsRef.current].map(pos).join(',')}` : ''
-      dbg(`[buffer] ${sizeBeforeEvict}→${BUFFER_SIZE} | кандидаты: ${candidates.map(pos).join(', ')} | защищён: ${pos(justLoadedId)} src=${source}${userReqLabel} → вытесняю ${pos(evictId)}`, f.file_name)
+        ? ` user-req: ${[...userRequestedIdsRef.current].map(pos).join(',')}` : ''
+      dbg(`[buffer] показано ${revealedBefore}→${BUFFER_SIZE} (в памяти ${totalInMem}) | кандидаты: ${candidates.map(pos).join(', ')} | защищён: ${pos(justLoadedId)} src=${source}${userReqLabel} → вытесняю ${pos(evictId)}`, f.file_name)
 
       if (getMediaKind(f.content_type) === 'video') {
         let posterUrl = rec.posterUrl
