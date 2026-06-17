@@ -73,7 +73,8 @@ export default function UserTab() {
   const [error, setError] = useState('')
   const [visibleCount, setVisibleCount] = useState(0)
   const allowUpTo = visibleCount + PREFETCH_LOOKAHEAD
-  const { state: preload, reload } = useSequentialPreload(files, allowUpTo)
+  const currentIndex = Math.max(0, visibleCount - 1)
+  const { state: preload, reload } = useSequentialPreload(files, allowUpTo, currentIndex)
   useBufferLog(files, preload)
 
   useEffect(() => {
