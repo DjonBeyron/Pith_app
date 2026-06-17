@@ -1,4 +1,6 @@
-// Color accent by message type — soft tones that read on a dark background.
+import NodeAudioPicker from './NodeAudioPicker.jsx'
+import NodeTriggerEditor from './NodeTriggerEditor.jsx'
+
 const TYPE_COLOR = {
   audio: '#4a7ca8',
   photo: '#5a9a5a',
@@ -6,23 +8,27 @@ const TYPE_COLOR = {
   text:  '#55556a',
 }
 
-const TYPE_LABEL = {
-  audio: 'Голосовое',
-  photo: 'Фото',
-  video: 'Видео',
-  text:  'Текстовое',
-}
-
-// Click cycles: nano → mini → max → nano
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
 
-export default function CanvasNode({ node, onUpdate, onDragStart, wasDragged }) {
+export default function CanvasNode({
+  node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile,
+}) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
 
-  function cycleSize(e) {
+  function expandClick(e) {
     e.stopPropagation()
     if (wasDragged()) return
     onUpdate({ size: NEXT_SIZE[node.size] })
+  }
+
+  function changeType(e) {
+    e.stopPropagation()
+    onUpdate({ type: e.target.value })
+  }
+
+  function handleAudioPick(file) {
+    const id = onPickLessonFile(file)
+    onUpdate({ file_id: id })
   }
 
   // ── nano ────────────────────────────────────────────────────────
@@ -32,7 +38,7 @@ export default function CanvasNode({ node, onUpdate, onDragStart, wasDragged }) 
         className="canvasNode canvasNodeNano"
         style={{ background: color }}
         onMouseDown={onDragStart}
-        onClick={cycleSize}
+        onClick={expandClick}
       >
         <span className="canvasNodeSeq">{node.seq}</span>
       </div>
@@ -40,13 +46,34 @@ export default function CanvasNode({ node, onUpdate, onDragStart, wasDragged }) 
   }
 
   // ── mini ────────────────────────────────────────────────────────
+  const miniFile = lessonFiles.find(f => f.id === node.file_id) ?? null
+
   if (node.size === 'mini') {
     return (
-      <div className="canvasNode canvasNodeMini" onMouseDown={onDragStart} onClick={cycleSize}>
-        <div className="canvasNodeMiniBar" style={{ background: color }} />
+      <div className="canvasNode canvasNodeMini" onMouseDown={onDragStart}>
+        <div className="canvasNodeTopBar" style={{ background: color }} />
         <div className="canvasNodeMiniBody">
+          <button className="canvasNodeExpandBtn" onClick={expandClick}>›</button>
           <span className="canvasNodeSeq">#{node.seq}</span>
-          <span className="canvasNodeTypeLabel">{TYPE_LABEL[node.type]}</span>
+          <select
+            className="canvasNodeTypeSelectSm"
+            value={node.type}
+            onClick={e => e.stopPropagation()}
+            onChange={changeType}
+          >
+            <option value="audio">Голосовое</option>
+            <option value="photo">Фото</option>
+            <option value="video">Видео</option>
+            <option value="text">Текстовое</option>
+          </select>
+          {miniFile && (
+            <span
+              className={`nodeAudioStatus ${miniFile.status === 'synced' ? 'nodeAudioStatusSynced' : 'nodeAudioStatusLocal'}`}
+              title={miniFile.status === 'synced' ? 'На сервере' : 'Локально'}
+            >
+              {miniFile.status === 'synced' ? '↑' : '○'}
+            </span>
+          )}
         </div>
       </div>
     )
@@ -55,25 +82,35 @@ export default function CanvasNode({ node, onUpdate, onDragStart, wasDragged }) 
   // ── max ─────────────────────────────────────────────────────────
   return (
     <div className="canvasNode canvasNodeMax" onMouseDown={onDragStart}>
-      <div className="canvasNodeMaxTop">
-        <span className="canvasNodeSeq">#{node.seq}</span>
-        <button className="canvasNodeSizeBtn" onClick={cycleSize} title="Свернуть">↙</button>
-      </div>
-
-      <select
-        className="canvasNodeTypeSelect"
-        value={node.type}
-        onClick={e => e.stopPropagation()}
-        onChange={e => { e.stopPropagation(); onUpdate({ type: e.target.value }) }}
-      >
-        <option value="audio">Голосовое сообщение</option>
-        <option value="photo">Фото сообщение</option>
-        <option value="video">Видео сообщение</option>
-        <option value="text">Текстовое сообщение</option>
-      </select>
-
-      <div className="canvasNodeTriggerStub">
-        Если / Тогда — Этап 3
+      <div className="canvasNodeTopBar" style={{ background: color }} />
+      <div className="canvasNodeMaxBody">
+        <div className="canvasNodeMaxTop">
+          <button className="canvasNodeExpandBtn" onClick={expandClick}>‹</button>
+          <span className="canvasNodeSeq">#{node.seq}</span>
+        </div>
+        <select
+          className="canvasNodeTypeSelect"
+          value={node.type}
+          onClick={e => e.stopPropagation()}
+          onChange={changeType}
+        >
+          <option value="audio">Голосовое сообщение</option>
+          <option value="photo">Фото сообщение</option>
+          <option value="video">Видео сообщение</option>
+          <option value="text">Текстовое сообщение</option>
+        </select>
+        {node.type === 'audio' && (
+          <NodeAudioPicker
+            fileId={node.file_id}
+            lessonFiles={lessonFiles}
+            onPick={handleAudioPick}
+          />
+        )}
+        <NodeTriggerEditor
+          triggers={node.triggers}
+          nodes={allNodes}
+          onChange={triggers => onUpdate({ triggers })}
+        />
       </div>
     </div>
   )
