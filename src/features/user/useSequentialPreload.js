@@ -133,7 +133,8 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
 
       const userReqLabel = userRequestedIdsRef.current.size
         ? ` user-req защищены: ${[...userRequestedIdsRef.current].map(pos).join(',')}` : ''
-      dbg(`[buffer] кандидаты: ${candidates.map(pos).join(', ')} | src=${source}${userReqLabel} → вытесняю ${pos(evictId)}`, f.file_name)
+      // `buffered.length` includes justLoadedId — показываем реальный размер буфера до вытеснения
+      dbg(`[buffer] ${buffered.length}→${BUFFER_SIZE} | кандидаты: ${candidates.map(pos).join(', ')} | защищён: ${pos(justLoadedId)} src=${source}${userReqLabel} → вытесняю ${pos(evictId)}`, f.file_name)
 
       if (getMediaKind(f.content_type) === 'video') {
         let posterUrl = rec.posterUrl
