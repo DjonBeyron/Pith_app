@@ -101,10 +101,14 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
       .map(([id]) => id)
   }
 
+  // Helper: human-readable position label for a file id, e.g. "#5"
+  function pos(id) { return '#' + ((indexByIdRef.current[id] ?? 0) + 1) }
+
   // Eviction policy: remove the file with the LOWEST sequential index, excluding
   // `justLoadedId` (the file we just finished loading — keep it, it's the freshest).
   // This makes the buffer a sliding window: as the queue advances, the tail falls off.
   // On-demand loaded past files become the next eviction target without extra logic.
+  // Photos are never included in candidates — bufferedEvictableIds() already filters them.
   async function evictFarthestIfNeeded(gen, justLoadedId) {
     let buffered = bufferedEvictableIds()
     while (buffered.length > BUFFER_SIZE) {
@@ -120,6 +124,11 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
       buffered = buffered.filter(id => id !== evictId)
       if (!rec || !f) continue
 
+      // Debug: show all candidates (photos excluded), which is protected, which is chosen.
+      const candidateList = candidates.map(id => pos(id)).join(', ')
+      const protectedLabel = justLoadedId ? `защищён ${pos(justLoadedId)}` : 'нет защищённого'
+      dbg(`[buffer] кандидаты (фото исключены): ${candidateList} | ${protectedLabel} → вытесняю наименьший ${pos(evictId)}`, f.file_name)
+
       if (getMediaKind(f.content_type) === 'video') {
         // Capture poster frame before revoking the blob. capturePosterFrame has a built-in
         // 2 s timeout so a stuck decoder on Android never blocks the queue indefinitely.
@@ -129,11 +138,9 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
         }
         if (genRef.current !== gen) return
         URL.revokeObjectURL(rec.blobUrl)
-        dbg('[buffer] evict (видео → стоп-кадр)', f.file_name)
         patch(evictId, { status: 'evicted', blobUrl: null, posterUrl }, gen)
       } else {
         URL.revokeObjectURL(rec.blobUrl)
-        dbg('[buffer] evict', f.file_name)
         patch(evictId, { status: 'evicted', blobUrl: null }, gen)
       }
     }
@@ -201,12 +208,12 @@ export function useSequentialPreload(files, allowUpTo, currentIndex) {
   }, [files])
 
   // Called when the user taps an evicted item — fetches it again on demand.
-  // The on-demand file gets the lowest sequential index among "old" files, so it
-  // becomes the next eviction candidate the moment another file is loaded.
+  // The on-demand file keeps its original sequential index, so it naturally becomes
+  // the next eviction candidate if its index is lower than the rest of the buffer.
   function reload(f) {
     const cur = snapshotRef.current[f.id]
     if (cur && (cur.status === 'loading' || cur.status === 'ready')) return
-    dbg('[preload] подгрузка по требованию', f.file_name)
+    dbg(`[user] клик → ${pos(f.id)} ${f.file_name}`)
     loadOne(f, genRef.current)
   }
 
