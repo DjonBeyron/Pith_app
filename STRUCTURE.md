@@ -62,7 +62,8 @@
 | `player/topbar.css` | Шапка плеера: аватар, название, статус |
 | `player/feed.css` | Изолированная лента чата: скролл, анимация появления, «три точки» ожидания |
 | `player/message.css` | Базовый пузырь — только общие стили, без типов |
-| `player/modules/audio.css` | Аудио-модуль: ::before-маска, волна, печатание текста, анимации |
+| `player/modules/audio.css` | Аудио-модуль: ::before-маска, canvas-волна, печатание текста |
+| `player/modules/voice-record.css` | Запись голоса: кнопка-микрофон, rings-canvas, waveform-strip, sent-пузырь |
 | `player/modules/circle.css` | Видео-кружок: круглый контейнер 200×200 |
 | `player/modules/text.css` | Текстовое сообщение |
 | `player/modules/photo.css` | Фото-сообщение |
@@ -114,7 +115,10 @@
 | `PlayerBubble.jsx` | Обёртка-пузырь с анимацией высоты (ResizeObserver + cubic-bezier) — общий для модулей |
 | `PlayerTypingText.jsx` | Посимвольная анимация текста: каждый символ вспыхивает лаймовым; курсор — светящаяся линия |
 | `modules/index.js` | Роутер: `type → Module`; добавить новый тип = одна строка здесь |
-| `modules/audio/AudioModule.jsx` | Аудио: кнопка ▶/⏸, волна 50 баров, печатание текста под волной |
+| `modules/audio/AudioModule.jsx` | Аудио: кнопка ▶/⏸, canvas-волна реальная из analyzeWaveform, печатание текста |
+| `modules/voice-record/VoiceRecordModule.jsx` | Оркестратор: idle → VoiceRecordBar; после отправки → VoiceRecordBubble |
+| `modules/voice-record/VoiceRecordBar.jsx` | UI записи: удерживай кнопку, rings-canvas, waveform-preview, отправить/перезаписать |
+| `modules/voice-record/VoiceRecordBubble.jsx` | Пузырь отправленного голоса: canvas waveform, ▶/⏸, таймер |
 | `modules/circle/CircleModule.jsx` | Видео-кружок: круглый контейнер 200×200, autoplay muted loop |
 | `modules/text/TextModule.jsx` | Текстовое сообщение |
 | `modules/photo/PhotoModule.jsx` | Фото-сообщение |
@@ -165,6 +169,7 @@
 | `debug.js` | Включает/выключает подробные логи в консоли браузера (кнопка «Активировать дебаг») |
 | `videoFrame.js` | Достаёт один кадр из видео как картинку — используется для превью выгруженного из памяти видео |
 | `version.js` | Номер версии приложения (`APP_VERSION`) — показывается мелко наверху экрана |
+| `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar`, `fmtAudioTime`, `probeAudioDuration` |
 | `textHighlight.js` | Утилиты для работы с выделениями: `buildCharStyles` (карта символ→стиль) и `hexToRgba` |
 
 ### `src/shared/ui/` — общие кусочки интерфейса

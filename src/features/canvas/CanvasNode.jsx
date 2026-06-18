@@ -9,7 +9,8 @@ import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
 const TYPE_COLOR = {
-  audio:       '#4a7ca8',
+  audio:        '#4a7ca8',
+  voice_record: '#8b3a6a',
   photo:       '#5a9a5a',
   video:       '#7a5a9a',
   circle:      '#c06a6a',
@@ -139,6 +140,7 @@ export default function CanvasNode({
             onChange={changeType}
           >
             <option value="audio">Голосовое</option>
+            <option value="voice_record">Запись голоса</option>
             <option value="photo">Фото</option>
             <option value="video">Видео</option>
             <option value="circle">Кружок</option>
@@ -178,6 +180,7 @@ export default function CanvasNode({
           onChange={changeType}
         >
           <option value="audio">Голосовое сообщение</option>
+          <option value="voice_record">Запись голоса</option>
           <option value="photo">Фото сообщение</option>
           <option value="video">Видео сообщение</option>
           <option value="circle">Кружок</option>

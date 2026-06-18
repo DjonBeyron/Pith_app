@@ -1,4 +1,5 @@
-import AudioModule      from './audio/AudioModule.jsx'
+import AudioModule       from './audio/AudioModule.jsx'
+import VoiceRecordModule from './voice-record/VoiceRecordModule.jsx'
 import CircleModule     from './circle/CircleModule.jsx'
 import TextModule       from './text/TextModule.jsx'
 import PhotoModule      from './photo/PhotoModule.jsx'
@@ -11,7 +12,8 @@ import PinMessageModule     from './pin-message/PinMessageModule.jsx'
 import PhotoChoiceModule    from './photo-choice/PhotoChoiceModule.jsx'
 
 const MODULE_MAP = {
-  audio:           AudioModule,
+  audio:        AudioModule,
+  voice_record: VoiceRecordModule,
   circle:          CircleModule,
   text:            TextModule,
   photo:           PhotoModule,

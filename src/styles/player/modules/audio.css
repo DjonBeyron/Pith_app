@@ -78,25 +78,10 @@
   overflow: hidden;
 }
 
-.playerAudioBar {
-  width: 2px;
-  height: var(--bar-h, 10px);
-  background: #2a2d35;
-  border-radius: 2px 2px 1px 1px;
-  flex-shrink: 0;
-  transform-origin: bottom;
-  will-change: transform;
-}
-
-.playerAudioBarPlaying {
-  background: #b6fe3b;
-  animation: playerWaveAnim 0.75s ease-in-out infinite;
-  animation-delay: var(--delay, 0s);
-}
-
-@keyframes playerWaveAnim {
-  0%, 100% { transform: scaleY(1);    }
-  50%       { transform: scaleY(0.25); }
+.playerAudioWaveCanvas {
+  display: block;
+  width: 100%;
+  height: 26px;
 }
 
 .playerAudioDur {

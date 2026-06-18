@@ -1,0 +1,171 @@
+/* ── Voice Record module ─────────────────────────────────────────────── */
+
+/* Recording bar — full-width section in chat feed */
+.vrWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 16px;
+  gap: 6px;
+  width: 100%;
+  background: #1a1e2e;
+  border-top: 1.5px solid #252840;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.vrTimerRow {
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.vrTimerText {
+  font-size: 13px;
+  color: #ff5064;
+  font-variant-numeric: tabular-nums;
+}
+
+.vrListenHint {
+  font-size: 12px;
+  color: #9aa0b4;
+  height: 18px;
+  line-height: 18px;
+}
+
+/* Waveform playback strip */
+.vrWaveStrip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  background: #1a1d22;
+  border-radius: 20px;
+  padding: 0 10px;
+  min-width: 220px;
+}
+
+.vrWavePlayBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid #b6fe3b;
+  background: #b6fe3b;
+  color: #0e1013;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.vrWaveCanvas {
+  display: block;
+  flex: 1;
+}
+
+.vrWaveTime {
+  font-size: 10px;
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.vrWaveDelete {
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+}
+.vrWaveDelete:hover { color: #aaa; }
+
+/* Mic area with ring visualizer */
+.vrMicArea {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vrRingsCanvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px;
+  height: 240px;
+}
+
+.vrMicBtn {
+  position: relative;
+  z-index: 1;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: none;
+  background: #2a2d35;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+  touch-action: none;
+}
+.vrMicBtnRec  { background: #ff3a50; transform: scale(1.06); }
+.vrMicBtnDone { background: #3a3f4a; }
+
+.vrHint {
+  font-size: 11px;
+  color: #666;
+  height: 16px;
+  text-align: center;
+}
+
+.vrActions {
+  display: flex;
+  gap: 10px;
+  height: 36px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.vrSendBtn {
+  padding: 7px 20px;
+  border-radius: 18px;
+  border: none;
+  background: #b6fe3b;
+  color: #0e1013;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.vrSendBtn:hover { background: #cffe6e; }
+
+.vrDeleteBtn {
+  padding: 7px 14px;
+  border-radius: 18px;
+  border: 1px solid #333;
+  background: transparent;
+  color: #9aa0b4;
+  font-size: 13px;
+  cursor: pointer;
+}
+.vrDeleteBtn:hover { border-color: #555; color: #ccc; }
+
+/* Sent bubble — right-aligned, user's side */
+.vrUserBubble {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1e3a12;
+  border-radius: 18px 4px 18px 18px;
+  padding: 6px 10px;
+  max-width: 220px;
+}
