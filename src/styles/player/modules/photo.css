@@ -1,0 +1,15 @@
+/* ── Photo message module ─────────────────────────────────────────────── */
+
+.playerMsgBubble--photo {
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.playerPhoto {
+  max-width: 100%;
+  max-height: 340px;
+  object-fit: cover;
+  border-radius: 4px 18px 18px 18px;
+  display: block;
+}

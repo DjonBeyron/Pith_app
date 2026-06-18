@@ -40,3 +40,30 @@
 
 .nodeAudioStatusLocal  { color: #ff8040; }
 .nodeAudioStatusSynced { color: #60c840; }
+
+/* Outer wrapper for audio node (picker row + text textarea) */
+.nodeAudioWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Text that will be printed character-by-character in the player */
+.nodeAudioText {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0a0c10;
+  border: 1px dashed #2a3a50;
+  border-radius: 6px;
+  color: #b0c4d8;
+  font-size: 11px;
+  font-family: inherit;
+  line-height: 1.55;
+  padding: 6px 8px;
+  resize: none;
+}
+.nodeAudioText:focus {
+  outline: none;
+  border-color: #4a7ca8;
+}
+.nodeAudioText::placeholder { color: #334; }

@@ -1,0 +1,23 @@
+/* ── Circle (video note) module ──────────────────────────────────────── */
+
+.playerMsgRowCircle {
+  justify-content: center;
+}
+
+.playerMsgBubble--circle {
+  background: transparent;
+  padding: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+}
+
+.playerCircleVideo {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}

@@ -1,0 +1,63 @@
+/* ── Scrollable feed — ISOLATED scroll layer ──────────────────────────
+   Only this file (and PlayerFeed.jsx) owns scroll behavior.
+   Message modules must never set scrollTop or scrollIntoView.
+   ──────────────────────────────────────────────────────────────────── */
+
+.playerFeed {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 0;
+}
+
+.playerFeedInner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 12px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.playerEmpty {
+  color: #9aa0b4;
+  font-size: 13px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+/* ── Message entry animation ──────────────────────────────────────────
+   Applied to .playerMsgRow when it first appears in the feed.
+   Controlled here, not inside module CSS.
+   ──────────────────────────────────────────────────────────────────── */
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Waiting dots ("teacher is typing") ──────────────────────────────
+   Fixed height = 48px so feed doesn't jump when dots appear/disappear.
+   ──────────────────────────────────────────────────────────────────── */
+.playerWaiting {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  height: 48px;
+  box-sizing: border-box;
+}
+
+.playerWaitingDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9aa0b4;
+  animation: waitingBounce 1.2s ease-in-out infinite;
+}
+.playerWaitingDot:nth-child(2) { animation-delay: 0.2s; }
+.playerWaitingDot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes waitingBounce {
+  0%, 60%, 100% { transform: translateY(0);    opacity: 0.4; }
+  30%            { transform: translateY(-6px); opacity: 1;   }
+}

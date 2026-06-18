@@ -137,6 +137,10 @@ export default function CanvasNode({
             fileId={fileId}
             lessonFiles={lessonFiles}
             onPick={handleAudioPick}
+            text={tData.text ?? ''}
+            onTextChange={t => updateTypeData({ text: t })}
+            highlights={tData.highlights ?? []}
+            onHighlightsChange={hl => updateTypeData({ highlights: hl })}
           />
         )}
         {(node.type === 'photo' || node.type === 'video' || node.type === 'circle') && (

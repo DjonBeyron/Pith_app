@@ -74,3 +74,9 @@
 }
 
 .mediaCropResetBtn:hover { border-color: #888; color: #888; }
+
+/* ── Avatar crop size override ─────────────────────────────────────── */
+/* width: fit-content prevents the wrap from stretching to panel width, */
+/* which would scatter controls across the full row on wide screens.    */
+.avatarCropWrap  { display: flex; flex-direction: column; gap: 4px; width: fit-content; }
+.avatarCropFrame { width: 80px; } /* overrides mediaCropFrame width:100% */

@@ -81,6 +81,18 @@
   font-size: 13px;
 }
 
+.canvasPagePlay {
+  background: transparent;
+  border: 1px solid #2a3a20;
+  color: #7aaa30;
+  font-size: 14px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+.canvasPagePlay:hover { background: #1a2a10; }
+
 .canvasPageSave {
   background: #1e2e10;
   border-color: #4a6a20;

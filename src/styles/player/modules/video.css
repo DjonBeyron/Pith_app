@@ -1,0 +1,14 @@
+/* ── Video message module ─────────────────────────────────────────────── */
+
+.playerMsgBubble--video {
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.playerVideo {
+  max-width: 100%;
+  max-height: 340px;
+  border-radius: 4px 18px 18px 18px;
+  display: block;
+}

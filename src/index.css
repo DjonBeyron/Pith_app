@@ -9,3 +9,13 @@
 @import './styles/canvas/crop.css';
 @import './styles/canvas/nodes.css';
 @import './styles/canvas/triggers.css';
+@import './styles/player/layout.css';
+@import './styles/player/topbar.css';
+@import './styles/player/feed.css';
+@import './styles/player/message.css';
+@import './styles/player/modules/audio.css';
+@import './styles/player/modules/circle.css';
+@import './styles/player/modules/text.css';
+@import './styles/player/modules/photo.css';
+@import './styles/player/modules/video.css';
+@import './styles/canvas/highlights.css';

@@ -1,11 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import CanvasBoard from './CanvasBoard.jsx'
 import LessonFilesPanel from './LessonFilesPanel.jsx'
+import LessonPlayer from '../player/LessonPlayer.jsx'
 import { useLessonFiles } from './useLessonFiles.js'
+import { useTeacherSettings } from './useTeacherSettings.js'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 
 export default function CanvasPage({ lessonId, onBack }) {
   const [showPanel,   setShowPanel]   = useState(false)
+  const [showPlayer,  setShowPlayer]  = useState(false)
   const [title,       setTitle]       = useState('')
   const [loading,     setLoading]     = useState(!!lessonId)
   const [isSaving,    setIsSaving]    = useState(false)
@@ -15,6 +18,15 @@ export default function CanvasPage({ lessonId, onBack }) {
 
   const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer } =
     useLessonFiles(lessonId)
+
+  const {
+    teacherName, setTeacherName,
+    teacherLogoUrl,
+    teacherLogoCrop, setTeacherLogoCrop,
+    handleLogoPick,
+    applyServerData,
+    prepareForSave,
+  } = useTeacherSettings(lessonId)
 
   const handleNodesChange = useCallback(n => {
     nodesRef.current = n
@@ -26,16 +38,23 @@ export default function CanvasPage({ lessonId, onBack }) {
     loadScript(lessonId)
       .then(data => {
         setTitle(data?.title ?? '')
+        applyServerData(data?.script)
         if (data?.script?.nodes?.length) setServerNodes(data.script.nodes)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
+  // applyServerData is stable (defined outside render), safe to omit from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId])
 
   async function handleSave() {
     setIsSaving(true)
     try {
-      await saveLesson(lessonId, { title, script: { nodes: nodesRef.current } })
+      const teacherData = await prepareForSave()
+      await saveLesson(lessonId, {
+        title,
+        script: { nodes: nodesRef.current, ...teacherData },
+      })
     } finally {
       setIsSaving(false)
     }
@@ -55,10 +74,23 @@ export default function CanvasPage({ lessonId, onBack }) {
           placeholder="Название урока"
         />
         <button className="canvasPageBack" onClick={onBack}>← Назад</button>
+        <button className="canvasPagePlay" onClick={() => setShowPlayer(true)}>▶</button>
         <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
           {isSaving ? 'Сохраняю…' : 'Сохранить'}
         </button>
       </div>
+
+      {showPlayer && (
+        <LessonPlayer
+          nodes={panelNodes}
+          files={files}
+          lessonTitle={title}
+          teacherName={teacherName}
+          teacherLogo={teacherLogoUrl}
+          teacherLogoCrop={teacherLogoCrop}
+          onClose={() => setShowPlayer(false)}
+        />
+      )}
 
       {showPanel && (
         <LessonFilesPanel
@@ -68,6 +100,12 @@ export default function CanvasPage({ lessonId, onBack }) {
           onSync={syncToServer}
           onRemove={removeFile}
           onClose={() => setShowPanel(false)}
+          teacherName={teacherName}
+          onNameChange={setTeacherName}
+          teacherLogoUrl={teacherLogoUrl}
+          onLogoPick={handleLogoPick}
+          teacherLogoCrop={teacherLogoCrop}
+          onCropChange={setTeacherLogoCrop}
         />
       )}
 

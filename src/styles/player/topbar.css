@@ -1,0 +1,71 @@
+.playerTopBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #1a1d22;
+  border-bottom: 1px solid #252830;
+  flex-shrink: 0;
+  min-height: 52px;
+}
+
+.playerTopBarBack {
+  background: none;
+  border: none;
+  color: #9aa0b4;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.playerTopBarBack:hover { background: #2a2f3e; color: #e0e0e0; }
+
+.playerTopBarAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #4caf82;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.playerTopBarInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.playerTopBarName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playerTopBarStatus {
+  font-size: 11px;
+  color: #4caf82;
+}
+
+.playerTopBarLesson {
+  font-size: 12px;
+  color: #9aa0b4;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}

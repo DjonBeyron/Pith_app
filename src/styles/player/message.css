@@ -1,0 +1,32 @@
+/* ── Base bubble — shared by all message modules ──────────────────────
+   Each module overrides its own variant in styles/player/modules/xxx.css
+   ──────────────────────────────────────────────────────────────────── */
+
+.playerMsgRow {
+  display: flex;
+  justify-content: flex-start;
+  padding: 2px 0;
+}
+
+.playerMsgRowCircle {
+  justify-content: center;
+}
+
+.playerMsgBubble {
+  background: #1a1d22;
+  border-radius: 4px 18px 18px 18px;
+  padding: 10px 14px;
+  max-width: 78%;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #e0e0e0;
+}
+
+/* Shared placeholder for any module that has no file yet */
+.playerMediaPlaceholder {
+  padding: 20px 16px;
+  color: #9aa0b4;
+  font-size: 13px;
+  font-style: italic;
+}

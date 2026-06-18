@@ -1,0 +1,146 @@
+/* ── Audio module ─────────────────────────────────────────────────────
+   Owns: bubble variant, ::before mask, waveform, typing text animation.
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Bubble variant — background on ::before so mask doesn't clip text */
+.playerMsgBubble--audio {
+  background: transparent !important;
+  padding: 8px 12px;
+  min-width: 220px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.playerMsgBubble--audio::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #1a1d22;
+  border-radius: inherit;
+  z-index: 0;
+  pointer-events: none;
+}
+.playerMsgBubble--audio > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Bottom fade while text types — only background fades, text stays */
+.playerMsgBubbleFading::before {
+  -webkit-mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
+}
+
+/* ── Waveform layout ───────────── */
+
+.playerAudio {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.playerAudioRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.playerAudioBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid #b6fe3b;
+  background: #b6fe3b;
+  color: #0e1013;
+  font-size: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.playerAudioWaveCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.playerAudioWave {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 26px;
+  overflow: hidden;
+}
+
+.playerAudioBar {
+  width: 2px;
+  height: var(--bar-h, 10px);
+  background: #2a2d35;
+  border-radius: 2px 2px 1px 1px;
+  flex-shrink: 0;
+  transform-origin: bottom;
+  will-change: transform;
+}
+
+.playerAudioBarPlaying {
+  background: #b6fe3b;
+  animation: playerWaveAnim 0.75s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes playerWaveAnim {
+  0%, 100% { transform: scaleY(1);    }
+  50%       { transform: scaleY(0.25); }
+}
+
+.playerAudioDur {
+  font-size: 9px;
+  color: #888;
+  white-space: nowrap;
+  line-height: 1;
+  padding-left: 1px;
+}
+
+/* ── Typing text section ───────── */
+
+.playerAudioTextSection {
+  margin-top: 3px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+  line-height: 1.65;
+  color: #ffffff;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.playerTypingText { display: inline; }
+
+.playerTypingChar {
+  display: inline;
+  animation: charRevealGlow 0.55s ease-out forwards;
+}
+
+@keyframes charRevealGlow {
+  from { text-shadow: 0 0 6px #b6fe3b, 0 0 12px #b6fe3b; }
+  to   { text-shadow: none; }
+}
+
+.playerCursor {
+  display: inline-block;
+  width: 1px;
+  height: 1.1em;
+  background: #b6fe3b;
+  box-shadow: 0 0 4px #b6fe3b, 0 0 10px #b6fe3b;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+}
+
+.playerUnrevealed { opacity: 0; }
