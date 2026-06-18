@@ -2,7 +2,8 @@ import { useRef } from 'react'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerMessage from './PlayerMessage.jsx'
-import ChooseWordPanel from './panels/choose-word/ChooseWordPanel.jsx'
+import ChooseWordPanel      from './panels/choose-word/ChooseWordPanel.jsx'
+import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.jsx'
 
 export default function LessonPlayer({
   nodes = [], files = [], lessonTitle = '',
@@ -12,8 +13,9 @@ export default function LessonPlayer({
   const feedRef = useRef(null)
   const sorted  = [...nodes].sort((a, b) => a.seq - b.seq)
 
-  // Show panel for the last word_choice node in sequence
-  const wcNode = sorted.filter(n => n.type === 'word_choice').at(-1) ?? null
+  // Show panel for the last node of each interactive type
+  const wcNode = sorted.filter(n => n.type === 'word_choice').at(-1)     ?? null
+  const paNode = sorted.filter(n => n.type === 'phrase_assembly').at(-1) ?? null
 
   return (
     <div className="lessonPlayer">
@@ -35,6 +37,7 @@ export default function LessonPlayer({
         )}
       </PlayerFeed>
       {wcNode && <ChooseWordPanel node={wcNode} />}
+      {paNode && <PhraseAssemblyPanel node={paNode} />}
     </div>
   )
 }

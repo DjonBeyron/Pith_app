@@ -1,0 +1,160 @@
+/* ── Phrase-assembly panel ─────────────────────────────────────────────
+   Bottom interactive panel — lives outside PlayerFeed, never scrolls.
+   ──────────────────────────────────────────────────────────────────── */
+
+.phrasePanel {
+  flex-shrink: 0;
+  width: 100%;
+  border-top: 1.5px solid #2a2d35;
+  background: #0e1013;
+  padding: 12px 16px 16px;
+}
+
+.phraseInner {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Response bubble ─────────────────────────────────────── */
+.phraseResponseRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.phraseResponseBubble {
+  background: #1a1d22;
+  border-radius: 18px 18px 4px 18px;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: #e0e0e0;
+  width: fit-content;
+  max-width: 85%;
+}
+
+.phraseResponseOk  { background: rgba(74,222,128,.07); color: #4ade80; }
+.phraseResponseErr { background: rgba(248,113,113,.07); color: #f87171; }
+
+/* ── Answer row (drop zone) ─────────────────────────────── */
+.phraseAnswerRow {
+  min-height: 50px;
+  border: 2px dashed #2a2d35;
+  border-radius: 14px;
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  transition: border-color .2s, background .2s;
+}
+
+.phraseAnswerFilled {
+  border-color: #b6fe3b;
+  background: rgba(182,254,59,.04);
+}
+
+.phraseAnswerOk {
+  border-color: #b6fe3b !important;
+  background: rgba(182,254,59,.08) !important;
+}
+
+.phraseAnswerErr {
+  border-color: #f87171 !important;
+  background: rgba(248,113,113,.06) !important;
+  animation: phraseShake .6s ease;
+}
+
+.phraseAnswerPlaceholder {
+  font-size: 13px;
+  color: #555;
+  margin: auto;
+}
+
+/* ── Placed words in answer row ─────────────────────────── */
+.phraseAnswerChip {
+  background: #12141d;
+  border: 2px solid #b6fe3b;
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b6fe3b;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity .15s, transform .15s;
+}
+
+.phraseAnswerChip:hover:not(:disabled) {
+  opacity: .7;
+  transform: scale(.95);
+}
+
+.phraseAnswerChip:disabled { cursor: default; }
+
+/* ── Chip pool ───────────────────────────────────────────── */
+.phrasePool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.phraseChip {
+  background: #12141d;
+  border: 2px solid #2a2d35;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s, transform .1s;
+}
+
+.phraseChip:hover:not(:disabled) {
+  border-color: #b6fe3b;
+  transform: translateY(-2px);
+}
+
+.phraseChipUsed {
+  opacity: .25;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ── Check button ────────────────────────────────────────── */
+.phraseCheckBtn {
+  width: 100%;
+  background: #12141d;
+  border: 2px solid #b6fe3b;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #b6fe3b;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, color .15s;
+}
+
+.phraseCheckBtn:hover:not(:disabled) {
+  background: #b6fe3b;
+  color: #000;
+}
+
+.phraseCheckBtn:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+/* ── Shake animation ─────────────────────────────────────── */
+@keyframes phraseShake {
+  0%, 100% { transform: translateX(0);    }
+  20%      { transform: translateX(-8px); }
+  40%      { transform: translateX(8px);  }
+  60%      { transform: translateX(-5px); }
+  80%      { transform: translateX(5px);  }
+}

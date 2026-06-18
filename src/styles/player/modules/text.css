@@ -2,9 +2,11 @@
 
 .playerMsgBubble--text {
   background: #1a1d22;
+  padding: 6px 14px;
 }
 
 .playerText {
+  margin: 0;
   font-size: 14px;
   line-height: 1.5;
   color: #e0e0e0;

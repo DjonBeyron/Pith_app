@@ -1,0 +1,85 @@
+/* ── NodePhraseAssemblyPicker — canvas node editor ─────────────────── */
+
+.nodePaWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 10px;
+}
+
+/* Phrase text input */
+.nodePaInput {
+  width: 100%;
+  background: #12141d;
+  border: 1.5px solid #2a2d35;
+  border-radius: 7px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #e0e0e0;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.nodePaInput:focus { border-color: #b6fe3b; }
+.nodePaInput::placeholder { color: #555; }
+
+/* Words preview chips */
+.nodePaWordsPreview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.nodePaWordChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(182,254,59,.1);
+  border: 1px solid #b6fe3b;
+  border-radius: 5px;
+  padding: 2px 4px 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #b6fe3b;
+}
+
+/* Distractors section label */
+.nodePaLabel {
+  font-size: 10px;
+  color: #666;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Distractor chips list */
+.nodePaDistractors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 0;
+}
+
+.nodePaDistractorChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: #12141d;
+  border: 1.5px solid #2a2d35;
+  border-radius: 6px;
+  padding: 2px 4px 2px 7px;
+  font-size: 11px;
+  color: #9aa0b4;
+}
+
+.nodePaDistractorDel {
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color .15s;
+}
+.nodePaDistractorDel:hover { color: #f87171; }

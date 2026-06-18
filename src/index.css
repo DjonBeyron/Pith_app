@@ -20,4 +20,6 @@
 @import './styles/player/modules/video.css';
 @import './styles/canvas/highlights.css';
 @import './styles/canvas/word-choice.css';
+@import './styles/canvas/phrase-assembly.css';
 @import './styles/player/panels/choose-word.css';
+@import './styles/player/panels/phrase-assembly.css';

@@ -68,7 +68,9 @@
 | `player/modules/photo.css` | Фото-сообщение |
 | `player/modules/video.css` | Видео-сообщение |
 | `canvas/word-choice.css` | Редактор ноды «Выбор слова»: список вариантов, кнопка ✓, поле ответа |
+| `canvas/phrase-assembly.css` | Редактор ноды «Собрать фразу»: инпут фразы, превью чипов, лишние слова |
 | `player/panels/choose-word.css` | Панель выбора слова в плеере: кнопки-варианты, анимации wcFlashGreen/wcFlashRed, пузырь-ответ |
+| `player/panels/phrase-assembly.css` | Панель сборки фразы: зона ответа (dashed border), пул чипов, кнопка «Проверить», анимация shake |
 
 ### `src/app/` — общая сборка приложения
 | Файл | Зачем нужен |
@@ -120,11 +122,16 @@
 | `modules/sticker/StickerModule.jsx` | Стикер (заглушка) |
 | `modules/system/SystemModule.jsx` | Системное сообщение без пузыря (заглушка) |
 | `modules/word-choice/WordChoiceModule.jsx` | Выбор слова — в ленте не рендерит ничего; панель снизу (`ChooseWordPanel`) |
+| `modules/phrase-assembly/PhraseAssemblyModule.jsx` | Собрать фразу — в ленте не рендерит ничего; панель снизу (`PhraseAssemblyPanel`) |
 | `waiting/WaitingDots.jsx` | Три точки «учитель печатает»: волна по Y, пузырь с фоном, всегда внизу ленты |
 | `panels/choose-word/useChooseWord.js` | Хук: выбранный вариант, результат (correct/wrong), флаг isAnswered |
 | `panels/choose-word/ChooseWordOption.jsx` | Одна кнопка-вариант: 4 состояния (default/correct/wrong/dimmed) |
 | `panels/choose-word/ChooseWordResponse.jsx` | Пузырь-ответ справа (зелёный / красный) после выбора |
 | `panels/choose-word/ChooseWordPanel.jsx` | Панель снизу плеера: варианты + ответ; показывается за пределами PlayerFeed |
+| `panels/phrase-assembly/usePhraseAssembly.js` | Хук: перемешанные чипы, placed[], usedIdxs, result (correct/wrong), checkAnswer |
+| `panels/phrase-assembly/PhraseWordChip.jsx` | Кнопка-чип из пула: состояния default/used/disabled |
+| `panels/phrase-assembly/PhraseAnswerRow.jsx` | Зона ответа: dashed border, placed chips, shake при ошибке |
+| `panels/phrase-assembly/PhraseAssemblyPanel.jsx` | Панель снизу: ответная зона + пул + кнопка «Проверить» |
 
 ### `src/features/lessons/` — всё для вкладки «Уроки»
 | Файл | Зачем нужен |

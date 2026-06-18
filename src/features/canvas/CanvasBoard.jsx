@@ -19,8 +19,9 @@ function makeNode(seq, x, y) {
       photo:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
       video:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
       circle:      { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
-      text:        { file_id: null },
-      word_choice: { options: [], responseCorrect: '', responseWrong: '' },
+      text:        { content: '' },
+      word_choice:     { options: [], responseCorrect: '', responseWrong: '' },
+      phrase_assembly: { words: [], distractors: [], responseCorrect: '', responseWrong: '' },
     },
   }
 }
