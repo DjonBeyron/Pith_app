@@ -1,23 +1,91 @@
 /* ── Circle (video note) module ──────────────────────────────────────── */
 
-.playerMsgRowCircle {
+.playerMsgBubble--circle {
+  background: #1a1d22;
+  padding: 3px;
+  overflow: visible;
+  border-radius: 20px 50% 50% 50%;  /* one small corner top-left, rest blend with circle */
+}
+
+.circleWrap {
+  position: relative;
+  width: min(50vw, 200px);
+  height: min(50vw, 200px);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.circleFrame {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px #1a1d22;
+}
+
+.circleMedia {
+  display: block;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Ring SVG extends 9px outside the circle on each side */
+.circleRingSvg {
+  position: absolute;
+  inset: -9px;
+  width: calc(100% + 18px);
+  height: calc(100% + 18px);
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ── Fullscreen ── */
+.circleFullOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(0,0,0,.92);
+  display: flex;
+  align-items: center;
   justify-content: center;
 }
 
-.playerMsgBubble--circle {
-  background: transparent;
-  padding: 0;
+.circleFullWrap {
+  position: relative;
+  width: min(78vw, 78vh);
+  height: min(78vw, 78vh);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity .25s;
+}
+.circleFullWrap.circleFullWrapOn { opacity: 1; }
+
+.circleFullFrame {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
   overflow: hidden;
-  width: 200px;
-  height: 200px;
-  flex-shrink: 0;
 }
 
-.playerCircleVideo {
-  width: 200px;
-  height: 200px;
+.circleFullClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  object-fit: cover;
-  display: block;
+  border: none;
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+  z-index: 1;
 }
+.circleFullClose:hover { background: rgba(255,255,255,.28); }
