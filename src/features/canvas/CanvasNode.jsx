@@ -4,6 +4,7 @@ import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
 import NodeWordChoicePicker     from './NodeWordChoicePicker.jsx'
 import NodePhraseAssemblyPicker from './NodePhraseAssemblyPicker.jsx'
+import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
@@ -15,6 +16,9 @@ const TYPE_COLOR = {
   text:        '#55556a',
   word_choice:     '#b07030',
   phrase_assembly: '#2a8070',
+  pin_message:     '#8b6914',
+  sticker:         '#c05830',
+  photo_choice:    '#0e7490',
 }
 
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
@@ -77,6 +81,15 @@ export default function CanvasNode({
         ]
       }
     }
+    if (newType === 'photo_choice') {
+      const hasPc = node.triggers?.some(t => t.if === 'photo_correct' || t.if === 'photo_wrong')
+      if (!hasPc) {
+        update.triggers = [
+          { id: crypto.randomUUID(), if: 'photo_correct', then: null },
+          { id: crypto.randomUUID(), if: 'photo_wrong',   then: null },
+        ]
+      }
+    }
     onUpdate(update)
   }
 
@@ -87,7 +100,12 @@ export default function CanvasNode({
 
   function handleMediaPick(file) {
     const id = onPickLessonFile(file)
-    updateTypeData({ file_id: id, crop: DEFAULT_CROP })
+    if (node.type === 'sticker') {
+      const isVid = file.type?.startsWith('video/')
+      updateTypeData({ file_id: id, crop: DEFAULT_CROP, isVideo: isVid, muted: true })
+    } else {
+      updateTypeData({ file_id: id, crop: DEFAULT_CROP })
+    }
   }
 
   // ── nano ────────────────────────────────────────────────────────
@@ -127,6 +145,9 @@ export default function CanvasNode({
             <option value="text">Текстовое</option>
             <option value="word_choice">Выбор слова</option>
             <option value="phrase_assembly">Собрать фразу</option>
+            <option value="pin_message">Закрепить сообщение</option>
+            <option value="sticker">Стикер</option>
+            <option value="photo_choice">Выбрать фото</option>
           </select>
           {miniFile && (
             <span
@@ -163,6 +184,9 @@ export default function CanvasNode({
           <option value="text">Текстовое сообщение</option>
           <option value="word_choice">Выбор слова</option>
           <option value="phrase_assembly">Собрать фразу</option>
+          <option value="pin_message">Закрепить сообщение</option>
+          <option value="sticker">Стикер</option>
+          <option value="photo_choice">Выбрать фото</option>
         </select>
         {node.type === 'audio' && (
           <NodeAudioPicker
@@ -175,23 +199,36 @@ export default function CanvasNode({
             onHighlightsChange={hl => updateTypeData({ highlights: hl })}
           />
         )}
-        {(node.type === 'photo' || node.type === 'video' || node.type === 'circle') && (
-          <NodeMediaCrop
-            type={node.type}
-            fileId={fileId}
-            crop={crop}
-            lessonFiles={lessonFiles}
-            onPickFile={handleMediaPick}
-            onCropChange={newCrop => updateTypeData({ crop: newCrop })}
-            shape={node.type === 'circle' ? 'circle' : 'rect'}
-          />
+        {(node.type === 'photo' || node.type === 'video' || node.type === 'circle' || node.type === 'sticker') && (
+          <>
+            <NodeMediaCrop
+              type={node.type}
+              fileId={fileId}
+              crop={crop}
+              lessonFiles={lessonFiles}
+              onPickFile={handleMediaPick}
+              onCropChange={newCrop => updateTypeData({ crop: newCrop })}
+              shape={node.type === 'circle' ? 'circle' : node.type === 'sticker' ? 'square' : 'rect'}
+            />
+            {node.type === 'sticker' && tData.isVideo && (
+              <label className="nodeStickerMuteRow" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  checked={!tData.muted}
+                  onChange={e => updateTypeData({ muted: !e.target.checked })}
+                  onClick={e => e.stopPropagation()}
+                />
+                <span className="nodeStickerMuteLabel">Со звуком</span>
+              </label>
+            )}
+          </>
         )}
-        {node.type === 'text' && (
+        {(node.type === 'text' || node.type === 'pin_message') && (
           <textarea
             className="nodeTextInput"
             value={tData.content ?? ''}
             onChange={e => updateTypeData({ content: e.target.value })}
-            placeholder="Введи текст сообщения..."
+            placeholder={node.type === 'pin_message' ? 'Текст закреплённого сообщения...' : 'Введи текст сообщения...'}
             onClick={e => e.stopPropagation()}
             onMouseDown={e => e.stopPropagation()}
             rows={4}
@@ -229,7 +266,24 @@ export default function CanvasNode({
             onTriggerMeasure={onTriggerMeasure}
           />
         )}
-        {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && (
+        {node.type === 'photo_choice' && (
+          <NodePhotoChoicePicker
+            photos={tData.photos ?? []}
+            correctIndexes={tData.correctIndexes ?? []}
+            responseCorrect={tData.responseCorrect ?? ''}
+            responseWrong={tData.responseWrong ?? ''}
+            onPhotosChange={p => updateTypeData({ photos: p })}
+            onCorrectIndexesChange={ci => updateTypeData({ correctIndexes: ci })}
+            onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
+            onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+            triggers={node.triggers ?? []}
+            allNodes={allNodes}
+            nodeId={node.id}
+            onTriggersChange={triggers => onUpdate({ triggers })}
+            onTriggerMeasure={onTriggerMeasure}
+          />
+        )}
+        {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'photo_choice' && (
           <NodeTriggerEditor
             triggers={node.triggers}
             nodeId={node.id}

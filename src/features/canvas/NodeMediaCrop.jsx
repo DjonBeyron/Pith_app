@@ -35,11 +35,16 @@ export default function NodeMediaCrop({
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const isVideo  = type === 'video' || type === 'circle'
-  const accept   = type === 'photo' ? 'image/*' : 'video/*'
-  const btnLabel = type === 'photo' ? '+ Выбрать фото' : type === 'circle' ? '+ Видео-кружок' : '+ Выбрать видео'
+  const isVideo  = type === 'video' || type === 'circle' ||
+    (type === 'sticker' && (file?.localFile?.type?.startsWith('video/') ||
+      ['mp4','mov','webm','avi','m4v'].includes((file?.name ?? '').split('.').pop().toLowerCase())))
+  const accept   = type === 'photo' ? 'image/*' : type === 'sticker' ? 'image/*,video/*' : 'video/*'
+  const btnLabel = type === 'photo' ? '+ Выбрать фото'
+    : type === 'circle'  ? '+ Видео-кружок'
+    : type === 'sticker' ? '+ Выбрать стикер'
+    : '+ Выбрать видео'
   const src      = file?.r2Url ?? objectUrl
-  const frameClass = `mediaCropFrame${shape === 'circle' ? ' mediaCropFrameCircle' : ''}`
+  const frameClass = `mediaCropFrame${shape === 'circle' ? ' mediaCropFrameCircle' : shape === 'square' ? ' mediaCropFrameSquare' : ''}`
 
   // Measure frame dimensions after it appears (src-gated render).
   // Stored in state so it's safe to read during render.

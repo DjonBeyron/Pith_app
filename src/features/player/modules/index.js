@@ -7,6 +7,8 @@ import StickerModule    from './sticker/StickerModule.jsx'
 import SystemModule     from './system/SystemModule.jsx'
 import WordChoiceModule     from './word-choice/WordChoiceModule.jsx'
 import PhraseAssemblyModule from './phrase-assembly/PhraseAssemblyModule.jsx'
+import PinMessageModule     from './pin-message/PinMessageModule.jsx'
+import PhotoChoiceModule    from './photo-choice/PhotoChoiceModule.jsx'
 
 const MODULE_MAP = {
   audio:           AudioModule,
@@ -18,6 +20,8 @@ const MODULE_MAP = {
   system:          SystemModule,
   word_choice:     WordChoiceModule,
   phrase_assembly: PhraseAssemblyModule,
+  pin_message:     PinMessageModule,
+  photo_choice:    PhotoChoiceModule,
 }
 
 // Returns the component for a given node type, or null if unknown.

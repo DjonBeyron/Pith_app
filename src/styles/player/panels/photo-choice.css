@@ -1,0 +1,203 @@
+/* ── Photo in feed: user answer ───────────────────────────────────── */
+
+.pcAnswerRow { justify-content: flex-end; }
+
+.pcAnswerPhoto {
+  width: 160px;
+  height: 160px;
+  border-radius: 18px 18px 4px 18px;   /* bottom-right sharp = right-side user bubble */
+  overflow: hidden;
+  border: 2.5px solid rgba(139, 92, 246, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pcAnswerPhotoOk  { border-color: rgba(139, 92, 246, 0.7); }
+.pcAnswerPhotoErr { border-color: rgba(139, 92, 246, 0.3); }
+
+.pcAnswerImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pcAnswerIdx {
+  font-size: 32px;
+  font-weight: 800;
+  color: rgba(255,255,255,.9);
+}
+
+/* ── PhotoChoicePanel — bottom bar + gallery overlay ──────────────── */
+
+.pcPanel {
+  flex-shrink: 0;
+  border-top: 1px solid #2a2d35;
+  background: #1a1d22;
+}
+
+.pcAttachBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background .15s;
+}
+.pcAttachBtn:hover { background: rgba(182,254,59,.06); }
+.pcAttachBtn:active { background: rgba(182,254,59,.1); }
+
+.pcAttachIcon {
+  font-size: 24px;
+  flex-shrink: 0;
+  display: inline-block;
+  transform-origin: center;
+  animation: pcPaperclip 2.4s ease-in-out .6s infinite;
+}
+
+@keyframes pcPaperclip {
+  0%, 55%, 100% { transform: rotate(0deg) scale(1); }
+  10%  { transform: rotate(-22deg) scale(1.18); }
+  22%  { transform: rotate(14deg)  scale(1.12); }
+  34%  { transform: rotate(-10deg) scale(1.06); }
+  44%  { transform: rotate(6deg)   scale(1.02); }
+}
+
+.pcAttachLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #888;
+}
+
+/* ── Gallery overlay ── */
+.pcGalleryOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  backdrop-filter: blur(4px);
+}
+
+.pcGallery {
+  background: #1a1d22;
+  border-radius: 22px;
+  padding: 18px 16px 24px;
+  width: min(400px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pcGalleryTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+
+.pcGalleryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.pcGalleryTile {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 2.5px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .12s, border-color .15s;
+}
+.pcGalleryTile:hover  { transform: scale(.96); border-color: rgba(255,255,255,.25); }
+.pcGalleryTile:active { transform: scale(.9); }
+
+.pcGalleryTileIdx {
+  font-size: 20px;
+  font-weight: 800;
+  color: rgba(255,255,255,.9);
+}
+
+.pcGalleryTileLabel {
+  font-size: 10px;
+  color: rgba(255,255,255,.75);
+  text-align: center;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.pcGalleryImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Sent photo (after pick) ── */
+.pcSentWrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+}
+
+.pcSentPhoto {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: border-color .2s;
+}
+.pcSentPhotoOk  { border-color: #b6fe3b; }
+.pcSentPhotoErr { border-color: #f87171; }
+
+.pcSentImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pcSentIdx {
+  font-size: 22px;
+  font-weight: 800;
+  color: rgba(255,255,255,.9);
+}
+
+.pcSentLabel {
+  font-size: 10px;
+  color: rgba(255,255,255,.8);
+  text-align: center;
+  padding: 0 4px;
+}
+
+.pcResponseText {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.pcResponseOk  { color: #b6fe3b; }
+.pcResponseErr { color: #f87171; }

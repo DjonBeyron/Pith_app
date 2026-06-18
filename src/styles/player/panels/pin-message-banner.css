@@ -1,0 +1,26 @@
+/* ── Pinned message banner — under top bar ────────────────────────── */
+
+.pinBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #1a1d22;
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin: 0 12px 4px;
+  flex-shrink: 0;
+}
+
+.pinBannerLabel {
+  font-size: 13px;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.pinBannerText {
+  font-size: 13px;
+  color: #e0e0e0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

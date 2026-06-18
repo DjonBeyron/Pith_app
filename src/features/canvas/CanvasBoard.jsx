@@ -22,6 +22,9 @@ function makeNode(seq, x, y) {
       text:        { content: '' },
       word_choice:     { options: [], responseCorrect: '', responseWrong: '' },
       phrase_assembly: { words: [], distractors: [], responseCorrect: '', responseWrong: '' },
+      pin_message:     { content: '' },
+      sticker:         { file_id: null, crop: { x: 0, y: 0, scale: 1 }, muted: true, isVideo: false },
+      photo_choice:    { photos: [], correctIndexes: [], responseCorrect: '', responseWrong: '' },
     },
   }
 }

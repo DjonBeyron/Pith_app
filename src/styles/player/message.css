@@ -23,6 +23,9 @@
   color: #e0e0e0;
 }
 
+/* Right-aligned row for user answers */
+.playerMsgRowRight { justify-content: flex-end; }
+
 /* Shared placeholder for any module that has no file yet */
 .playerMediaPlaceholder {
   padding: 20px 16px;

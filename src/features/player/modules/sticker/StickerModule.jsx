@@ -1,9 +1,28 @@
+import { useState, useEffect } from 'react'
+
 export default function StickerModule({ node, file }) {
-  const src = file?.r2Url ?? null
+  const [objectUrl, setObjectUrl] = useState(null)
+
+  useEffect(() => {
+    if (!file?.localFile) { setObjectUrl(null); return }
+    const url = URL.createObjectURL(file.localFile)
+    setObjectUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file?.localFile])
+
+  const src     = file?.r2Url ?? objectUrl
+  const isVideo = node.typeData?.sticker?.isVideo ?? false
+  const muted   = node.typeData?.sticker?.muted   ?? true
+
   return (
     <div className="playerMsgRow">
-      <div className="playerMediaPlaceholder">
-        {src ? '[ стикер ]' : 'Стикер не загружен'}
+      <div className="stickerWrap">
+        {src
+          ? (isVideo
+            ? <video src={src} className="stickerMedia" autoPlay loop playsInline muted={muted} />
+            : <img   src={src} className="stickerMedia" alt="" />)
+          : <div className="stickerPlaceholder">Стикер не загружен</div>
+        }
       </div>
     </div>
   )

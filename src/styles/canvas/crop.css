@@ -23,6 +23,10 @@
   border-radius: 50%;
 }
 
+.mediaCropFrameSquare {
+  aspect-ratio: 1 / 1;
+}
+
 .mediaCropMedia {
   display: block;
   user-select: none;

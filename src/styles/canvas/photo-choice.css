@@ -1,0 +1,85 @@
+/* ── NodePhotoChoicePicker — canvas node editor ────────────────────── */
+
+.nodePcWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 10px;
+}
+
+.nodePcList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nodePcItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-radius: 6px;
+  transition: background .12s;
+}
+
+.nodePcItemCorrect { background: rgba(182,254,59,.06); }
+
+.nodePcThumbWrap {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+.nodePcThumbWrap:hover { opacity: .8; }
+
+.nodePcSwatch {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(255,255,255,.9);
+}
+
+.nodePcThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.nodePcFileInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.nodePcLabel {
+  flex: 1;
+  font-size: 11px;
+  color: #aaa;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nodePcDel {
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color .15s;
+}
+.nodePcDel:hover { color: #f87171; }

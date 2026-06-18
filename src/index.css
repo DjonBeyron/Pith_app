@@ -19,6 +19,11 @@
 @import './styles/player/modules/photo.css';
 @import './styles/player/modules/video.css';
 @import './styles/canvas/highlights.css';
+@import './styles/player/modules/pin-message.css';
+@import './styles/player/modules/sticker.css';
+@import './styles/player/panels/pin-message-banner.css';
+@import './styles/canvas/photo-choice.css';
+@import './styles/player/panels/photo-choice.css';
 @import './styles/canvas/word-choice.css';
 @import './styles/canvas/phrase-assembly.css';
 @import './styles/player/panels/choose-word.css';

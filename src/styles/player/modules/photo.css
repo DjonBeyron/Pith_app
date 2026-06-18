@@ -1,15 +1,69 @@
 /* ── Photo message module ─────────────────────────────────────────────── */
 
 .playerMsgBubble--photo {
-  background: transparent;
-  padding: 0;
-  overflow: hidden;
+  background: #1a1d22;
+  padding: 2px;
+  overflow: visible;
 }
 
-.playerPhoto {
+.playerPhotoCropFrame {
+  width: min(50vw, 200px);
+  aspect-ratio: 9 / 12;
+  border-radius: 4px 14px 14px 14px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity .15s;
+}
+.playerPhotoCropFrame:hover { opacity: .88; }
+
+.playerPhotoMedia {
+  display: block;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ── Fullscreen overlay ── */
+.photoFullOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(0,0,0,.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.photoFullImg {
   max-width: 100%;
-  max-height: 340px;
-  object-fit: cover;
-  border-radius: 4px 18px 18px 18px;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
   display: block;
 }
+
+.photoFullClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+  z-index: 1;
+}
+.photoFullClose:hover { background: rgba(255,255,255,.28); }

@@ -173,6 +173,19 @@
 .nodeHoverBtnDel:hover { background: #2a1010; color: #ff6060; border-color: #ff6060; }
 .nodeHoverBtnAdd:hover { background: #1a2a10; color: #b6fe3b; border-color: #b6fe3b; }
 
+/* ── Sticker mute checkbox ── */
+.nodeStickerMuteRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.nodeStickerMuteLabel {
+  font-size: 11px;
+  color: #888;
+}
+
 /* ── Text node textarea ── */
 .nodeTextInput {
   width: 100%;

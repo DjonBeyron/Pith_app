@@ -119,10 +119,15 @@
 | `modules/text/TextModule.jsx` | Текстовое сообщение |
 | `modules/photo/PhotoModule.jsx` | Фото-сообщение |
 | `modules/video/VideoModule.jsx` | Видео-сообщение с controls |
-| `modules/sticker/StickerModule.jsx` | Стикер (заглушка) |
+| `modules/sticker/StickerModule.jsx` | Стикер: квадрат 160px, поддерживает фото/gif/видео, muted по флагу isVideo |
 | `modules/system/SystemModule.jsx` | Системное сообщение без пузыря (заглушка) |
 | `modules/word-choice/WordChoiceModule.jsx` | Выбор слова — в ленте не рендерит ничего; панель снизу (`ChooseWordPanel`) |
 | `modules/phrase-assembly/PhraseAssemblyModule.jsx` | Собрать фразу — в ленте не рендерит ничего; панель снизу (`PhraseAssemblyPanel`) |
+| `modules/pin-message/PinMessageModule.jsx` | Закрепить сообщение — центрированная системная строка «[учитель] закрепил сообщение» |
+| `modules/photo-choice/PhotoChoiceModule.jsx` | Выбрать фото — возвращает null (панель снизу ведёт весь UI) |
+| `panels/photo-choice/usePhotoChoice.js` | Хук: photos, correctIndexes, selected, result, galleryOpen, handlePick |
+| `panels/photo-choice/PhotoChoicePanel.jsx` | Панель снизу: кнопка «Прикрепи фото», галерея-оверлей, выбранное фото |
+| `panels/PinMessageBanner.jsx` | Баннер под шапкой с текстом закреплённого сообщения |
 | `waiting/WaitingDots.jsx` | Три точки «учитель печатает»: волна по Y, пузырь с фоном, всегда внизу ленты |
 | `panels/choose-word/useChooseWord.js` | Хук: выбранный вариант, результат (correct/wrong), флаг isAnswered |
 | `panels/choose-word/ChooseWordOption.jsx` | Одна кнопка-вариант: 4 состояния (default/correct/wrong/dimmed) |
