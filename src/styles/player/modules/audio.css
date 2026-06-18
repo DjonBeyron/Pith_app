@@ -1,15 +1,20 @@
 /* ── Audio module ─────────────────────────────────────────────────────
-   Owns: bubble variant, ::before mask, waveform, typing text animation.
+   Bubble variant + div-based waveform bars (Telegram-style, from bottom).
    ──────────────────────────────────────────────────────────────────── */
 
-/* Bubble variant — background on ::before so mask doesn't clip text */
 .playerMsgBubble--audio {
   background: transparent !important;
-  padding: 8px 12px;
-  min-width: 220px;
+  border-radius: 4px 18px 18px 18px;
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px !important;
+  overflow: hidden;
   position: relative;
   isolation: isolate;
-  overflow: hidden;
 }
 .playerMsgBubble--audio::before {
   content: '';
@@ -25,13 +30,12 @@
   z-index: 1;
 }
 
-/* Bottom fade while text types — only background fades, text stays */
 .playerMsgBubbleFading::before {
   -webkit-mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
   mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
 }
 
-/* ── Waveform layout ───────────── */
+/* ── Layout ────────────────────────────────────────────────────────── */
 
 .playerAudio {
   display: flex;
@@ -42,7 +46,8 @@
 .playerAudioRow {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  width: 100%;
+  gap: 0;
 }
 
 .playerAudioBtn {
@@ -59,6 +64,7 @@
   justify-content: center;
   flex-shrink: 0;
   padding: 0;
+  margin: 0 8px 0 0;
 }
 
 .playerAudioWaveCol {
@@ -69,35 +75,70 @@
   gap: 6px;
 }
 
-.playerAudioWave {
+/* ── Wave bars (div-based, Telegram style) ─────────────────────────── */
+
+.playerAudioWaveRow {
   width: 100%;
+  overflow: hidden;
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  gap: 2px;
   height: 26px;
-  overflow: hidden;
+  contain: layout;
 }
 
-.playerAudioWaveCanvas {
-  display: block;
-  width: 100%;
-  height: 26px;
+@keyframes playerSepFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+
+@keyframes playerWaveAnim {
+  0%, 100% { transform: scaleY(1);   }
+  50%       { transform: scaleY(.25); }
+}
+
+.playerAudioBar {
+  width: 2px;
+  height: var(--bar-h, 10px);
+  background: #2a2d35;
+  border-radius: 2px 2px 1px 1px;
+  flex-shrink: 0;
+  transform-origin: bottom;
+  will-change: transform;
+}
+
+/* No waveformData — animated bounce while playing */
+.playerAudioBarPlaying {
+  background: #b6fe3b;
+  animation: playerWaveAnim .75s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* Has waveformData — heights controlled via JS scaleY */
+.playerAudioBarLive {
+  animation: none;
+  transition: transform 0.04s ease-out;
+  transform-origin: bottom;
+}
+
+/* ── Timer ─────────────────────────────────────────────────────────── */
 
 .playerAudioDur {
   font-size: 9px;
   color: #888;
+  font-family: 'Comfortaa', system-ui, sans-serif;
   white-space: nowrap;
   line-height: 1;
   padding-left: 1px;
 }
 
-/* ── Typing text section ───────── */
+/* ── Typing text section ───────────────────────────────────────────── */
 
 .playerAudioTextSection {
   margin-top: 3px;
   padding-top: 7px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  animation: playerSepFadeIn 0.4s ease forwards;
   font-size: 13px;
   line-height: 1.65;
   color: #ffffff;

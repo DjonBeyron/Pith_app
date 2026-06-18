@@ -34,6 +34,7 @@
 | `supabase/functions/r2-upload-url/deno.json`, `.npmrc` | Технические настройки для этой функции |
 | `supabase/functions/r2-delete/index.ts` | Серверная функция: удаляет файл из облачного хранилища по ссылке |
 | `supabase/functions/r2-delete/deno.json` | Технические настройки для этой функции |
+| `supabase/functions/transcribe-audio/index.ts` | Серверная функция: принимает аудиофайл (или R2 URL), транскрибирует через Groq Whisper, возвращает тайминги слов. Ключ GROQ_API_KEY хранится только здесь |
 
 ## `src/` — код приложения
 
@@ -170,6 +171,7 @@
 | `videoFrame.js` | Достаёт один кадр из видео как картинку — используется для превью выгруженного из памяти видео |
 | `version.js` | Номер версии приложения (`APP_VERSION`) — показывается мелко наверху экрана |
 | `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar`, `fmtAudioTime`, `probeAudioDuration` |
+| `transcribeApi.js` | Клиентская обёртка для Edge Function `transcribe-audio`: отправляет файл или R2 URL, возвращает `wordTimings` |
 | `textHighlight.js` | Утилиты для работы с выделениями: `buildCharStyles` (карта символ→стиль) и `hexToRgba` |
 
 ### `src/shared/ui/` — общие кусочки интерфейса

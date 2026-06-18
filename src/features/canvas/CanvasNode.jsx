@@ -96,7 +96,8 @@ export default function CanvasNode({
 
   function handleAudioPick(file) {
     const id = onPickLessonFile(file)
-    updateTypeData({ file_id: id })
+    // Clear old analysis when file is replaced
+    updateTypeData({ file_id: id, waveformData: null, wordTimings: null, duration: null })
   }
 
   function handleMediaPick(file) {
@@ -196,6 +197,9 @@ export default function CanvasNode({
             fileId={fileId}
             lessonFiles={lessonFiles}
             onPick={handleAudioPick}
+            onAnalyzed={patch => updateTypeData(patch)}
+            hasWaveform={!!(tData.waveformData?.length)}
+            hasTimings={!!(tData.wordTimings?.length)}
             text={tData.text ?? ''}
             onTextChange={t => updateTypeData({ text: t })}
             highlights={tData.highlights ?? []}

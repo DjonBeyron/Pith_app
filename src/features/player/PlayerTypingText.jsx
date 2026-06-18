@@ -1,17 +1,21 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { buildCharStyles, hexToRgba } from '../../shared/lib/textHighlight.js'
 
-// Посимвольная анимация с поддержкой выделений (цвет, жирный, подложка).
-export default function PlayerTypingText({ text, speed = 45, onTypingChange, highlights = [] }) {
-  const [count,   setCount]   = useState(0)
+// Посимвольная анимация с поддержкой выделений.
+// revealedCharIdx — управляемый режим (синхронизация с аудио через Groq).
+// Без revealedCharIdx — автономный режим с внутренним таймером.
+export default function PlayerTypingText({ text, speed = 45, onTypingChange, highlights = [], revealedCharIdx }) {
+  const isControlled = revealedCharIdx !== undefined
+  const [count, setCount] = useState(0)
   const timerRef  = useRef(null)
   const changeRef = useRef(onTypingChange)
   useEffect(() => { changeRef.current = onTypingChange }, [onTypingChange])
 
   const charStyles = useMemo(() => buildCharStyles(text, highlights), [text, highlights])
 
+  // Auto-timer mode: runs only when not controlled externally
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isControlled) return
     setCount(0)
     changeRef.current?.(true)
     let i = 0
@@ -24,13 +28,19 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
       }
     }, speed)
     return () => { clearInterval(timerRef.current); changeRef.current?.(false) }
-  }, [text, speed])
+  }, [text, speed, isControlled])
 
-  const revealed = text.slice(0, count).split('')
+  // In controlled mode notify parent when at least one char is revealed
+  useEffect(() => {
+    if (!isControlled) return
+    changeRef.current?.(revealedCharIdx >= 0)
+  }, [revealedCharIdx, isControlled])
+
+  const displayCount = isControlled ? Math.max(0, revealedCharIdx + 1) : count
 
   return (
     <span className="playerTypingText">
-      {revealed.map((ch, i) => {
+      {text.slice(0, displayCount).split('').map((ch, i) => {
         const h = charStyles?.[i]
         const style = h ? {
           color:        h.color   || undefined,
@@ -41,9 +51,9 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
         } : undefined
         return <span key={i} className="playerTypingChar" style={style}>{ch}</span>
       })}
-      {count < text.length && <span className="playerCursor" />}
-      {count < text.length && (
-        <span className="playerUnrevealed">{text.slice(count)}</span>
+      {displayCount < text.length && <span className="playerCursor" />}
+      {displayCount < text.length && (
+        <span className="playerUnrevealed">{text.slice(displayCount)}</span>
       )}
     </span>
   )

@@ -67,3 +67,21 @@
   border-color: #4a7ca8;
 }
 .nodeAudioText::placeholder { color: #334; }
+
+/* Analysis status tags */
+.nodeAudioTagRow {
+  display: flex;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.nodeAudioTag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-family: 'Comfortaa', sans-serif;
+}
+
+.nodeAudioTagLoading { background: rgba(255,200,50,0.15); color: #f0c040; }
+.nodeAudioTagDone    { background: rgba(100,220,100,0.15); color: #6dc86d; }
+.nodeAudioTagError   { background: rgba(255,80,80,0.15);  color: #f06060; }
