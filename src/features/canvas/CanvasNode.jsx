@@ -2,15 +2,17 @@ import { useEffect } from 'react'
 import NodeAudioPicker from './NodeAudioPicker.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
+import NodeWordChoicePicker from './NodeWordChoicePicker.jsx'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
 const TYPE_COLOR = {
-  audio:  '#4a7ca8',
-  photo:  '#5a9a5a',
-  video:  '#7a5a9a',
-  circle: '#c06a6a',
-  text:   '#55556a',
+  audio:       '#4a7ca8',
+  photo:       '#5a9a5a',
+  video:       '#7a5a9a',
+  circle:      '#c06a6a',
+  text:        '#55556a',
+  word_choice: '#b07030',
 }
 
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
@@ -22,6 +24,8 @@ export default function CanvasNode({
 
   // When leaving max mode, clear stale trigger measurements so they don't
   // ghost onto the next max layout (e.g. after type switch or size cycle).
+  // Clear stale measurements when leaving max mode.
+  // word_choice stays out — NodeWordChoicePicker calls onTriggerMeasure itself.
   useEffect(() => {
     if (node.size !== 'max') onTriggerMeasure?.([])
   }, [node.size, onTriggerMeasure])
@@ -48,8 +52,21 @@ export default function CanvasNode({
 
   function changeType(e) {
     e.stopPropagation()
-    // Just switch type — typeData for each type is preserved independently
-    onUpdate({ type: e.target.value })
+    const newType = e.target.value
+    const update = { type: newType }
+    // word_choice needs its own trigger format (word_correct / word_wrong).
+    // Initialize them when switching to this type if not already present,
+    // so drag-connect and the dropdown selects work from the first interaction.
+    if (newType === 'word_choice') {
+      const hasWc = node.triggers?.some(t => t.if === 'word_correct' || t.if === 'word_wrong')
+      if (!hasWc) {
+        update.triggers = [
+          { id: crypto.randomUUID(), if: 'word_correct', then: null },
+          { id: crypto.randomUUID(), if: 'word_wrong',   then: null },
+        ]
+      }
+    }
+    onUpdate(update)
   }
 
   function handleAudioPick(file) {
@@ -97,6 +114,7 @@ export default function CanvasNode({
             <option value="video">Видео</option>
             <option value="circle">Кружок</option>
             <option value="text">Текстовое</option>
+            <option value="word_choice">Выбор слова</option>
           </select>
           {miniFile && (
             <span
@@ -131,6 +149,7 @@ export default function CanvasNode({
           <option value="video">Видео сообщение</option>
           <option value="circle">Кружок</option>
           <option value="text">Текстовое сообщение</option>
+          <option value="word_choice">Выбор слова</option>
         </select>
         {node.type === 'audio' && (
           <NodeAudioPicker
@@ -154,13 +173,30 @@ export default function CanvasNode({
             shape={node.type === 'circle' ? 'circle' : 'rect'}
           />
         )}
-        <NodeTriggerEditor
-          triggers={node.triggers}
-          nodeId={node.id}
-          nodes={allNodes}
-          onChange={triggers => onUpdate({ triggers })}
-          onMeasure={onTriggerMeasure}
-        />
+        {node.type === 'word_choice' && (
+          <NodeWordChoicePicker
+            options={tData.options ?? []}
+            responseCorrect={tData.responseCorrect ?? ''}
+            responseWrong={tData.responseWrong ?? ''}
+            onOptionsChange={opts => updateTypeData({ options: opts })}
+            onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
+            onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+            triggers={node.triggers ?? []}
+            allNodes={allNodes}
+            nodeId={node.id}
+            onTriggersChange={triggers => onUpdate({ triggers })}
+            onTriggerMeasure={onTriggerMeasure}
+          />
+        )}
+        {node.type !== 'word_choice' && (
+          <NodeTriggerEditor
+            triggers={node.triggers}
+            nodeId={node.id}
+            nodes={allNodes}
+            onChange={triggers => onUpdate({ triggers })}
+            onMeasure={onTriggerMeasure}
+          />
+        )}
       </div>
     </div>
   )

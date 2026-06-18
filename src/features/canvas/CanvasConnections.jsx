@@ -32,7 +32,7 @@ const THEN_Y_FALLBACK = 28
 // Dot sits 8px outside node edge (max only); mini/nano lines go 5px inside the node body
 const PORT_OFFSET  = 8
 const INNER_OFFSET = 5
-const NODE_W = { nano: 36, mini: 158, max: 192 }
+const NODE_W = { nano: 42, mini: 182, max: 220 }
 
 // y-center of trigger i's "Тогда" line for MAX nodes only.
 // triggerMeasures is ignored for mini/nano to prevent stale data after size change.

@@ -19,3 +19,5 @@
 @import './styles/player/modules/photo.css';
 @import './styles/player/modules/video.css';
 @import './styles/canvas/highlights.css';
+@import './styles/canvas/word-choice.css';
+@import './styles/player/panels/choose-word.css';

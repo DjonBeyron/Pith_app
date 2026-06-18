@@ -15,11 +15,12 @@ function makeNode(seq, x, y) {
     type: 'audio',
     triggers: [{ if: 'played', then: null }],
     typeData: {
-      audio:  { file_id: null },
-      photo:  { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
-      video:  { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
-      circle: { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
-      text:   { file_id: null },
+      audio:       { file_id: null },
+      photo:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
+      video:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
+      circle:      { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
+      text:        { file_id: null },
+      word_choice: { options: [], responseCorrect: '', responseWrong: '' },
     },
   }
 }
@@ -29,7 +30,7 @@ function loadSaved(lessonId) {
   try { return JSON.parse(localStorage.getItem(CANVAS_LS(lessonId)) ?? '{}') } catch { return {} }
 }
 
-const NODE_HIT_W = { nano: 36, mini: 158, max: 192 }
+const NODE_HIT_W = { nano: 42, mini: 182, max: 220 }
 const NODE_HIT_H = { nano: 36, mini: 55,  max: 500 }
 function nodeAtPos(nodeList, wx, wy, excludeId) {
   return nodeList.find(n => {
@@ -119,7 +120,7 @@ export default function CanvasBoard({
       if (!node) return prev
       const insertSeq = node.seq + 1
       const nextNode  = prev.find(n => n.seq === insertSeq) ?? null
-      const newNode   = makeNode(insertSeq, node.x + 230, node.y)
+      const newNode   = makeNode(insertSeq, node.x + 260, node.y)
       if (nextNode) newNode.triggers = [{ if: 'played', then: nextNode.id }]
       const updated = prev.map(n => {
         let out = n.seq >= insertSeq ? { ...n, seq: n.seq + 1 } : n
@@ -223,7 +224,7 @@ export default function CanvasBoard({
   function addNode() {
     const el = boardRef.current
     const rect = el ? el.getBoundingClientRect() : { width: 900, height: 600 }
-    const cx = (rect.width  / 2 - offset.x) / scale - 79 + (Math.random() - 0.5) * 60
+    const cx = (rect.width  / 2 - offset.x) / scale - 91 + (Math.random() - 0.5) * 60
     const cy = (rect.height / 2 - offset.y) / scale - 20 + (Math.random() - 0.5) * 60
     setNodes(prev => [...prev, makeNode(prev.length + 1, cx, cy)])
   }

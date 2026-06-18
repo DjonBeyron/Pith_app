@@ -36,28 +36,29 @@
 }
 
 /* ── Waiting dots ("teacher is typing") ──────────────────────────────
-   Fixed height = 48px so feed doesn't jump when dots appear/disappear.
+   Bubble has fixed inner height so feed won't jump when dots appear/disappear.
    ──────────────────────────────────────────────────────────────────── */
 .playerWaiting {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 10px 14px;
-  height: 48px;
-  box-sizing: border-box;
+  background: #1a1d22;
+  border-radius: 4px 18px 18px 18px;
 }
 
 .playerWaitingDot {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #9aa0b4;
-  animation: waitingBounce 1.2s ease-in-out infinite;
+  animation: waitingBounce 1.3s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  flex-shrink: 0;
 }
-.playerWaitingDot:nth-child(2) { animation-delay: 0.2s; }
-.playerWaitingDot:nth-child(3) { animation-delay: 0.4s; }
+.playerWaitingDot:nth-child(2) { animation-delay: 0.22s; }
+.playerWaitingDot:nth-child(3) { animation-delay: 0.44s; }
 
 @keyframes waitingBounce {
-  0%, 60%, 100% { transform: translateY(0);    opacity: 0.4; }
-  30%            { transform: translateY(-6px); opacity: 1;   }
+  0%, 55%, 100% { transform: translateY(0);    opacity: 0.35; }
+  28%            { transform: translateY(-7px); opacity: 1;    }
 }

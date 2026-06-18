@@ -6,9 +6,9 @@
 .canvasNode:active { cursor: grabbing; }
 
 .canvasNodeNano {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,7 +16,7 @@
 }
 
 .canvasNodeMini {
-  width: 158px;
+  width: 182px;
   background: #12141a;
   border: 1px solid #242630;
   border-radius: 10px;
@@ -40,7 +40,7 @@
 }
 
 .canvasNodeMax {
-  width: 192px;
+  width: 220px;
   background: #12141a;
   border: 1px solid #242630;
   border-radius: 10px;

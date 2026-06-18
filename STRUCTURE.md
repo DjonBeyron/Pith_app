@@ -67,6 +67,8 @@
 | `player/modules/text.css` | Текстовое сообщение |
 | `player/modules/photo.css` | Фото-сообщение |
 | `player/modules/video.css` | Видео-сообщение |
+| `canvas/word-choice.css` | Редактор ноды «Выбор слова»: список вариантов, кнопка ✓, поле ответа |
+| `player/panels/choose-word.css` | Панель выбора слова в плеере: кнопки-варианты, анимации wcFlashGreen/wcFlashRed, пузырь-ответ |
 
 ### `src/app/` — общая сборка приложения
 | Файл | Зачем нужен |
@@ -95,6 +97,7 @@
 | `NodeAudioPicker.jsx` | Кнопка выбора аудиофайла + textarea для текста; при выделении слова появляется кнопка «Выделить» → открывает NodeHighlightEditor |
 | `NodeHighlightEditor.jsx` | Редактор выделений: список слов с цветом/жирным/подложкой, предпросмотр всего текста с применёнными выделениями |
 | `NodeMediaCrop.jsx` | Пикер + inline кроп-редактор 4:5 для фото/видео-нод; drag-панорама, зум колёсиком и кнопками ±; сохраняет `{ x, y, scale }` в ноде |
+| `NodeWordChoicePicker.jsx` | Редактор ноды «Выбор слова»: список вариантов с ✓-кнопкой, добавление/удаление, поле ответного пузыря |
 | `useLessonFiles.js` | Хук: список файлов урока (локальные + синхронизированные), дедупликация по имени+весу, синхронизация на сервер |
 | `LessonFilesPanel.jsx` | Панель «Файлы урока» под шапкой редактора: список файлов, кнопка «Синхронизировать», удаление |
 
@@ -105,11 +108,23 @@
 | `LessonPlayer.jsx` | Оркестратор плеера: сортирует ноды, передаёт в PlayerFeed, держит ref на скролл |
 | `PlayerFeed.jsx` | Изолированный скролл-контейнер: auto-scroll при новом сообщении, lock/unlock, imperative ref |
 | `PlayerTopBar.jsx` | Шапка плеера: кнопка «←», аватар, «Учитель / онлайн», название урока |
-| `PlayerMessage.jsx` | Одно сообщение: роутит по типу ноды к нужному пузырю (audio/photo/video/circle/text) |
-| `PlayerBubble.jsx` | Обёртка-пузырь с анимацией высоты (ResizeObserver + cubic-bezier), порт MsgBubble из старого проекта — плавно растёт по мере добавления текста |
-| `PlayerAudioBubble.jsx` | Пузырь аудио: кнопка ▶/⏸, волна (бары серые в покое / лаймовые+анимация при воспроизведении), текст-печатание под волной |
-| `PlayerTypingText.jsx` | Посимвольная анимация текста: каждый новый символ вспыхивает лаймовым; курсор — светящаяся линия |
-| `PlayerCircleBubble.jsx` | Пузырь видео-кружка: круглый контейнер с `object-fit: cover`, без кроп-логики |
+| `PlayerMessage.jsx` | Тонкая обёртка: `resolveModule(node.type)` → рендерит нужный модуль |
+| `PlayerBubble.jsx` | Обёртка-пузырь с анимацией высоты (ResizeObserver + cubic-bezier) — общий для модулей |
+| `PlayerTypingText.jsx` | Посимвольная анимация текста: каждый символ вспыхивает лаймовым; курсор — светящаяся линия |
+| `modules/index.js` | Роутер: `type → Module`; добавить новый тип = одна строка здесь |
+| `modules/audio/AudioModule.jsx` | Аудио: кнопка ▶/⏸, волна 50 баров, печатание текста под волной |
+| `modules/circle/CircleModule.jsx` | Видео-кружок: круглый контейнер 200×200, autoplay muted loop |
+| `modules/text/TextModule.jsx` | Текстовое сообщение |
+| `modules/photo/PhotoModule.jsx` | Фото-сообщение |
+| `modules/video/VideoModule.jsx` | Видео-сообщение с controls |
+| `modules/sticker/StickerModule.jsx` | Стикер (заглушка) |
+| `modules/system/SystemModule.jsx` | Системное сообщение без пузыря (заглушка) |
+| `modules/word-choice/WordChoiceModule.jsx` | Выбор слова — в ленте не рендерит ничего; панель снизу (`ChooseWordPanel`) |
+| `waiting/WaitingDots.jsx` | Три точки «учитель печатает»: волна по Y, пузырь с фоном, всегда внизу ленты |
+| `panels/choose-word/useChooseWord.js` | Хук: выбранный вариант, результат (correct/wrong), флаг isAnswered |
+| `panels/choose-word/ChooseWordOption.jsx` | Одна кнопка-вариант: 4 состояния (default/correct/wrong/dimmed) |
+| `panels/choose-word/ChooseWordResponse.jsx` | Пузырь-ответ справа (зелёный / красный) после выбора |
+| `panels/choose-word/ChooseWordPanel.jsx` | Панель снизу плеера: варианты + ответ; показывается за пределами PlayerFeed |
 
 ### `src/features/lessons/` — всё для вкладки «Уроки»
 | Файл | Зачем нужен |
