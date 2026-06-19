@@ -43,6 +43,7 @@
    overflow:visible на playerFeed позволяет это показать.
    ──────────────────────────────────────────────────────────────────── */
 @keyframes msgSlideIn {
-  from { opacity: 0; transform: translateY(72px); }
+  /* 100% = собственная высота элемента → любой модуль стартует полностью за краем экрана */
+  from { opacity: 0; transform: translateY(calc(100% + 24px)); }
   to   { opacity: 1; transform: translateY(0); }
 }
