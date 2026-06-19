@@ -16,7 +16,7 @@ export default function LessonPlayer({
   onClose,
 }) {
   const [files, setFiles] = useState(propFiles)
-  const { visibleNodes, isWaiting, onNodeDone } = useGraphPlayer(nodes)
+  const { visibleNodes, onNodeDone } = useGraphPlayer(nodes)
 
   // On mount: fetch from Supabase any file IDs referenced by nodes but absent from prop files
   useEffect(() => {
@@ -57,8 +57,10 @@ export default function LessonPlayer({
         teacherLogoCrop={teacherLogoCrop}
       />
       {pmNode && <PinMessageBanner content={pmNode.typeData?.pin_message?.content ?? ''} />}
-      <PlayerFeed showDots={isWaiting}>
-        {visibleNodes.map(node => {
+      <PlayerFeed>
+        {/* Реверс: в column-reverse первый DOM = визуальный низ.
+            Рендерим [newest..oldest] → newest внизу, каждый новый вытесняет предыдущие вверх */}
+        {[...visibleNodes].reverse().map(node => {
           const fileId = node.typeData?.[node.type]?.file_id ?? null
           const file   = files.find(f => f.id === fileId) ?? null
           return (

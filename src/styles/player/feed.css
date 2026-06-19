@@ -5,14 +5,10 @@
 
 .playerFeed {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* visible: позволяет msgSlideIn выйти за нижний край экрана для эффекта "снизу" */
+  overflow: visible;
   padding: 12px 0;
-  /* Скрыть скроллбар во всех браузерах */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
 }
-.playerFeed::-webkit-scrollbar { display: none; }
 
 .playerFeedInner {
   display: flex;
@@ -48,36 +44,3 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Waiting dots ("teacher is typing") ──────────────────────────────
-   Bubble has fixed inner height so feed won't jump when dots appear/disappear.
-   ──────────────────────────────────────────────────────────────────── */
-.playerWaiting {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  background: #1a1d22;
-  border-radius: 4px 18px 18px 18px;
-}
-
-.playerWaitingDot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #9aa0b4;
-  animation: waitingBounce 1.3s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-  flex-shrink: 0;
-}
-.playerWaitingDot:nth-child(2) { animation-delay: 0.22s; }
-.playerWaitingDot:nth-child(3) { animation-delay: 0.44s; }
-
-/* Idle: dots visible but не анимируются (учитель онлайн, не печатает) */
-.playerWaitingIdle .playerWaitingDot {
-  animation: none;
-  opacity: 0.3;
-}
-
-@keyframes waitingBounce {
-  0%, 55%, 100% { transform: translateY(0);    opacity: 0.35; }
-  28%            { transform: translateY(-7px); opacity: 1;    }
-}
