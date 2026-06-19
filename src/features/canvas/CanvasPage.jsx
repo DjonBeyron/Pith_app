@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { pLog } from '../../shared/lib/debug.js'
 import CanvasBoard from './CanvasBoard.jsx'
 import LessonFilesPanel from './LessonFilesPanel.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
@@ -31,8 +32,8 @@ export default function CanvasPage({ lessonId, onBack }) {
   const handleNodesChange = useCallback(n => {
     nodesRef.current = n
     setPanelNodes(n)
-    // Fetch from Supabase any file IDs referenced by nodes but missing from local storage
     const ids = [...new Set(n.map(nd => nd.typeData?.[nd.type]?.file_id).filter(Boolean))]
+    pLog('handleNodesChange: nodes=', n.length, 'fileIds=', JSON.stringify(ids))
     if (ids.length) fetchMissingFiles(ids)
   }, [fetchMissingFiles])
 

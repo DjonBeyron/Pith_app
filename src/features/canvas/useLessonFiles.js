@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { uploadToR2, deleteFromR2 } from '../../shared/lib/r2.js'
 import { insertFile, deleteFileByR2Url, getFilesByIds } from '../../shared/lib/filesApi.js'
 import { lfSave, lfGet, lfDelete } from '../../shared/lib/localFileStore.js'
+import { pLog } from '../../shared/lib/debug.js'
 
 const LS_KEY  = id => `lesson_files_${id}`
 const IDB_KEY = (lid, fid) => `lesson_blob_${lid}_${fid}`
@@ -133,13 +134,17 @@ export function useLessonFiles(lessonId) {
   // Fetch from Supabase any file IDs not already known locally.
   // Call this when you have node file_ids but no local metadata (e.g. deployed version).
   const fetchMissingFiles = useCallback(async (fileIds) => {
+    pLog('fetchMissingFiles called, ids=', JSON.stringify(fileIds), 'known=', files.map(f => f.id).join(',') || 'none')
     if (!fileIds?.length) return
     const missing = fileIds.filter(id => !files.some(f => f.id === id))
+    pLog('fetchMissingFiles missing=', JSON.stringify(missing))
     if (!missing.length) return
     try {
       const fetched = await getFilesByIds(missing)
+      pLog('fetchMissingFiles fetched from server:', fetched.map(f => f.id + ':' + f.r2Url?.slice(0, 30)).join(', ') || 'none')
       if (fetched.length) setFiles(prev => [...prev, ...fetched])
     } catch (e) {
+      pLog('fetchMissingFiles ERROR:', e.message)
       console.warn('[lessonFiles] fetchMissingFiles error', e)
     }
   }, [files])
