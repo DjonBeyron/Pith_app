@@ -74,7 +74,7 @@ export default function AudioModule({ node, file, onDone }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src = objectUrl ?? file?.r2Url ?? node.typeData?.audio?.r2Url ?? null
+  const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.audio?.r2Url ?? null
 
   useEffect(() => {
     pLog('AudioModule mount/src change — r2Url=', file?.r2Url ?? 'null', 'objectUrl=', objectUrl ?? 'null', 'src=', src ?? 'NULL')

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerMessage from './PlayerMessage.jsx'
@@ -7,8 +7,9 @@ import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.js
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
-import { getFilesByIds, listFiles } from '../../shared/lib/filesApi.js'
-import { pLog }            from '../../shared/lib/debug.js'
+import { usePlayerPreload } from './usePlayerPreload.js'
+import { getFilesByIds } from '../../shared/lib/filesApi.js'
+import { pLog }          from '../../shared/lib/debug.js'
 
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',
@@ -24,37 +25,12 @@ export default function LessonPlayer({
     const missing = allIds.filter(id => !propFiles.some(f => f.id === id))
     pLog('LessonPlayer mount: allFileIds=', JSON.stringify(allIds), 'missing=', JSON.stringify(missing))
     if (!missing.length) { setFiles(propFiles); return }
-    // Also fetch ALL files from Supabase to compare IDs (debug)
-    listFiles().then(all => {
-      pLog('Supabase ALL files count=', all.length, 'ids=', all.map(f => f.id).join(','))
-    }).catch(() => {})
     getFilesByIds(missing).then(fetched => {
       pLog('LessonPlayer fetched from server:', fetched.map(f => f.id + ' r2=' + (f.r2Url ?? 'null')).join(' | ') || 'none')
       setFiles([...propFiles, ...fetched])
     }).catch(e => pLog('LessonPlayer getFilesByIds ERROR:', e.message))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  // Preload media files for nodes that will appear next (based on triggers of visible nodes)
-  const preloadedRef = useRef({})
-  useEffect(() => {
-    const nextIds = new Set()
-    visibleNodes.forEach(n => {
-      ;(n.triggers ?? []).forEach(t => { if (t.then) nextIds.add(t.then) })
-    })
-    nextIds.forEach(id => {
-      const node = nodes.find(n => n.id === id)
-      if (!node) return
-      const fileId = node.typeData?.[node.type]?.file_id
-      const file   = files.find(f => f.id === fileId)
-      const url    = file?.r2Url ?? node.typeData?.[node.type]?.r2Url
-      if (!url || preloadedRef.current[url]) return
-      const tag = node.type === 'audio' ? 'audio' : 'video'
-      const el  = document.createElement(tag)
-      el.preload = 'auto'
-      el.src     = url
-      preloadedRef.current[url] = el
-      pLog('Preload next node seq=', node.seq, 'type=', node.type, 'url=', url)
-    })
-  }, [visibleNodes, files]) // eslint-disable-line react-hooks/exhaustive-deps
+  const blobMap = usePlayerPreload(nodes, files, visibleNodes)
 
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
 
@@ -86,11 +62,12 @@ export default function LessonPlayer({
         {visibleNodes.map(node => {
           const fileId = node.typeData?.[node.type]?.file_id ?? null
           const file   = files.find(f => f.id === fileId) ?? null
+          const fileWithBlob = file && blobMap[file.id] ? { ...file, blobUrl: blobMap[file.id] } : file
           return (
             <PlayerMessage
               key={node.id}
               node={node}
-              file={file}
+              file={fileWithBlob}
               teacherName={teacherName}
               photoChoiceState={photoChoiceStates[node.id] ?? null}
               onDone={() => onNodeDone(node.id)}
