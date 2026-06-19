@@ -8,7 +8,11 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px 0;
+  /* Скрыть скроллбар во всех браузерах */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.playerFeed::-webkit-scrollbar { display: none; }
 
 .playerFeedInner {
   display: flex;

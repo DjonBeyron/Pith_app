@@ -2,8 +2,9 @@ import { useRef, useEffect, Children } from 'react'
 import WaitingDots from './waiting/WaitingDots.jsx'
 import { pLog } from '../../shared/lib/debug.js'
 
-// column-reverse feed: newest message is last in DOM = visually at bottom.
-// No scrollToBottom needed — scrollTop=0 always shows the bottom in column-reverse.
+// column-reverse: first DOM item = visual BOTTOM, last DOM item = visual TOP.
+// Messages in DOM order [oldest..newest] → oldest at bottom, newest just above.
+// WaitingDots last in DOM → appears above latest message (not below it).
 export default function PlayerFeed({ children, showDots = false }) {
   const outerRef = useRef(null)
   const innerRef = useRef(null)
@@ -16,7 +17,6 @@ export default function PlayerFeed({ children, showDots = false }) {
       'PlayerFeed layout:',
       'outer.h=', outer.clientHeight,
       'inner.h=', inner.clientHeight,
-      'inner.minH=', inner.style.minHeight || getComputedStyle(inner).minHeight,
       'flexDir=', getComputedStyle(inner).flexDirection,
       'childCount=', Children.count(children),
     )
@@ -25,8 +25,8 @@ export default function PlayerFeed({ children, showDots = false }) {
   return (
     <div className="playerFeed" ref={outerRef}>
       <div className="playerFeedInner" ref={innerRef}>
-        {showDots && <WaitingDots />}
         {children}
+        {showDots && <WaitingDots />}
       </div>
     </div>
   )
