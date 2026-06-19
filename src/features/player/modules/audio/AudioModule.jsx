@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 const WAVE_H_BASE = [7,11,16,22,14,19,24,17,10,20,13,22,18,11,25,21,15,9,18,24,16,12,21,14,19,10,17,23,15,9,13,19,21,14,17,24,11,18,22,15,10,19,13,25,16,9,20,23,12,17]
 const BAR_W = 2, BAR_GAP = 2
@@ -76,6 +77,7 @@ export default function AudioModule({ node, file, onDone }) {
   const src = file?.r2Url ?? objectUrl
 
   useEffect(() => {
+    pLog('AudioModule mount/src change — r2Url=', file?.r2Url ?? 'null', 'objectUrl=', objectUrl ?? 'null', 'src=', src ?? 'NULL')
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0 }
     setIsPlaying(false)
@@ -84,7 +86,7 @@ export default function AudioModule({ node, file, onDone }) {
     barSmoothRef.current.fill(0)
     setWaveData(storedWaveform?.length ? storedWaveform : null)
     setDuration(storedDuration || null)
-    if (!src) return
+    if (!src) { pLog('AudioModule: src is null, skipping load'); return }
     let cancelled = false
     if (!storedWaveform?.length) {
       analyzeWaveform(src).then(wd => { if (!cancelled) setWaveData(wd) }).catch(() => {})
@@ -146,7 +148,8 @@ export default function AudioModule({ node, file, onDone }) {
 
   function toggle() {
     const audio = audioRef.current
-    if (!audio || !src) return
+    pLog('AudioModule toggle — audio=', !!audio, 'src=', src ?? 'NULL', 'paused=', audio?.paused ?? 'n/a')
+    if (!audio || !src) { pLog('AudioModule toggle: early return (no audio or no src)'); return }
 
     if (!audio.paused) {
       audio.pause()
@@ -224,10 +227,13 @@ export default function AudioModule({ node, file, onDone }) {
     }
 
     audio.addEventListener('ended', onEnded, { once: true })
+    pLog('AudioModule: calling audio.play(), readyState=', audio.readyState, 'networkState=', audio.networkState)
     audio.play().then(() => {
+      pLog('AudioModule: play() resolved OK')
       setIsPlaying(true)
       rafRef.current = requestAnimationFrame(tick)
     }).catch(err => {
+      pLog('AudioModule: play() ERROR —', err.name, err.message)
       console.warn('[AudioModule] play failed:', err.message)
       audio.removeEventListener('ended', onEnded)
       setIsPlaying(false)
