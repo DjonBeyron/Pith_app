@@ -5,26 +5,34 @@
 
 .playerFeed {
   flex: 1;
-  /* flex-контейнер для inner: даёт inner точную высоту (flex:1) без min-height */
+  /* min-height: 0 обязателен: без него flex-item растёт под контент,
+     и дочерний .playerFeedInner тоже растёт вместе с ним. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  /* overflow visible: анимация msgSlideIn уходит за нижний край экрана */
+  /* overflow visible: анимация slide-in стартует ниже нижнего края playerFeed */
   overflow: visible;
   padding: 12px 0;
 }
 
 .playerFeedInner {
-  /* flex:1 вместо min-height:100% — высота точно равна playerFeed */
-  /* Это гарантирует что пузырь растёт только вверх, не даёт кадровой вспышки вниз */
   flex: 1;
+  /* min-height: 0 обязателен: без него flex-item имеет min-height: auto
+     (= размер контента), контейнер растёт вниз вместо того чтобы фиксироваться
+     на flex:1 значении и пропускать контент вверх. */
+  min-height: 0;
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
+  /* flex-end: сообщения у нижнего края. При добавлении нового — flex реально
+     сдвигает старые вверх (overflow вверх, а не вниз), FLIP работает корректно. */
+  justify-content: flex-end;
   gap: 4px;
   padding: 0 12px;
   max-width: 600px;
   width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
+  overflow: visible;
 }
 
 @media (max-width: 400px) {
@@ -38,12 +46,5 @@
   padding: 40px 0;
 }
 
-/* ── Анимация появления сообщения ─────────────────────────────────────
-   translateY(72px) — стартует ниже своей позиции, уходит за край экрана.
-   overflow:visible на playerFeed позволяет это показать.
-   ──────────────────────────────────────────────────────────────────── */
-@keyframes msgSlideIn {
-  /* 100% = собственная высота элемента → любой модуль стартует полностью за краем экрана */
-  from { opacity: 0; transform: translateY(calc(100% + 24px)); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* msgSlideIn — удалён. Анимация применяется через Web Animations API
+   в PlayerFeed.jsx с точной стартовой позицией под нижним краем экрана. */

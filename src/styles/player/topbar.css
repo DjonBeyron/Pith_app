@@ -1,4 +1,6 @@
 .playerTopBar {
+  position: relative;
+  z-index: 5; /* перекрывает сообщения, которые могут выйти выше области чата */
   display: flex;
   align-items: center;
   gap: 10px;

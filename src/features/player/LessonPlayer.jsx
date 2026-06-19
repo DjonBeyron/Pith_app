@@ -58,9 +58,9 @@ export default function LessonPlayer({
       />
       {pmNode && <PinMessageBanner content={pmNode.typeData?.pin_message?.content ?? ''} />}
       <PlayerFeed>
-        {/* Реверс: в column-reverse первый DOM = визуальный низ.
-            Рендерим [newest..oldest] → newest внизу, каждый новый вытесняет предыдущие вверх */}
-        {[...visibleNodes].reverse().map(node => {
+        {/* column + justify-content:flex-end: newest = последний в DOM = визуальный низ.
+            При добавлении нового flex реально сдвигает старые вверх → FLIP их анимирует. */}
+        {visibleNodes.map(node => {
           const fileId = node.typeData?.[node.type]?.file_id ?? null
           const file   = files.find(f => f.id === fileId) ?? null
           return (

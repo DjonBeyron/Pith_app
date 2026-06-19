@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/refs */
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { pLog } from '../../shared/lib/debug.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
@@ -59,7 +60,7 @@ export function useGraphPlayer(nodes) {
     const t = (node.triggers ?? []).find(tr => tr.if === 'timer' && tr.then)
     if (!t) return
     const key = `${node.id}:timer`
-    console.log('[GraphPlayer] timer trigger for node', node.seq, '→', t.ms, 'ms → next:', t.then)
+    pLog('[GraphPlayer] timer trigger for node', node.seq, '→', t.ms, 'ms → next:', t.then)
     addTimer(() => {
       if (firedRef.current.has(key)) return
       firedRef.current.add(key)
@@ -73,7 +74,7 @@ export function useGraphPlayer(nodes) {
     const node = nodeMapRef.current[nodeId]
     if (!node) return
     const triggers = node.triggers ?? []
-    console.log('[GraphPlayer] onNodeDone seq=', node.seq, 'triggers=', triggers)
+    pLog('[GraphPlayer] onNodeDone seq=', node.seq, 'triggers=', triggers)
 
     for (const ev of ['played', 'photo_shown']) {
       const t = triggers.find(tr => tr.if === ev && tr.then)
@@ -106,7 +107,7 @@ export function useGraphPlayer(nodes) {
     clearTimers()
     firedRef.current = new Set()
     const entry = findEntry(nodes)
-    console.log('[GraphPlayer] init — entry node seq=', entry?.seq, 'id=', entry?.id)
+    pLog('[GraphPlayer] init — entry node seq=', entry?.seq, 'id=', entry?.id)
     if (!entry) return
     setVisibleNodes([entry])
     setIsWaiting(false)
