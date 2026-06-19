@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { uploadToR2, deleteFromR2 } from '../../shared/lib/r2.js'
-import { insertFile, deleteFileByR2Url } from '../../shared/lib/filesApi.js'
+import { insertFile, deleteFileByR2Url, getFilesByIds } from '../../shared/lib/filesApi.js'
 import { lfSave, lfGet, lfDelete } from '../../shared/lib/localFileStore.js'
 
 const LS_KEY  = id => `lesson_files_${id}`
@@ -130,5 +130,19 @@ export function useLessonFiles(lessonId) {
 
   const hasUnsynced = files.some(f => f.status === 'local' || f.status === 'toDelete')
 
-  return { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer }
+  // Fetch from Supabase any file IDs not already known locally.
+  // Call this when you have node file_ids but no local metadata (e.g. deployed version).
+  const fetchMissingFiles = useCallback(async (fileIds) => {
+    if (!fileIds?.length) return
+    const missing = fileIds.filter(id => !files.some(f => f.id === id))
+    if (!missing.length) return
+    try {
+      const fetched = await getFilesByIds(missing)
+      if (fetched.length) setFiles(prev => [...prev, ...fetched])
+    } catch (e) {
+      console.warn('[lessonFiles] fetchMissingFiles error', e)
+    }
+  }, [files])
+
+  return { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles }
 }

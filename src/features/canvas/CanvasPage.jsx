@@ -16,7 +16,7 @@ export default function CanvasPage({ lessonId, onBack }) {
   const [panelNodes,  setPanelNodes]  = useState([])
   const nodesRef = useRef([])
 
-  const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer } =
+  const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles } =
     useLessonFiles(lessonId)
 
   const {
@@ -31,7 +31,10 @@ export default function CanvasPage({ lessonId, onBack }) {
   const handleNodesChange = useCallback(n => {
     nodesRef.current = n
     setPanelNodes(n)
-  }, [])
+    // Fetch from Supabase any file IDs referenced by nodes but missing from local storage
+    const ids = [...new Set(n.map(nd => nd.typeData?.[nd.type]?.file_id).filter(Boolean))]
+    if (ids.length) fetchMissingFiles(ids)
+  }, [fetchMissingFiles])
 
   useEffect(() => {
     if (!lessonId) return

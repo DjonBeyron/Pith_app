@@ -1,5 +1,23 @@
 import { supabase } from '../api/supabase.js'
 
+export async function getFilesByIds(ids) {
+  if (!ids?.length) return []
+  const { data, error } = await supabase
+    .from('files')
+    .select('id, file_name, size_bytes, content_type, r2_url')
+    .in('id', ids)
+  if (error) throw error
+  return data.map(r => ({
+    id:       r.id,
+    name:     r.file_name,
+    size:     r.size_bytes,
+    type:     r.content_type,
+    r2Url:    r.r2_url,
+    status:   'synced',
+    localFile: null,
+  }))
+}
+
 export async function listFiles() {
   const { data, error } = await supabase
     .from('files')
