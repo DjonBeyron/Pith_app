@@ -55,9 +55,17 @@ export default function CanvasPage({ lessonId, onBack }) {
     setIsSaving(true)
     try {
       const teacherData = await prepareForSave()
+      // Inject r2Url into each node's typeData so the player can use it without Supabase lookup
+      const nodesForSave = nodesRef.current.map(node => {
+        const fileId = node.typeData?.[node.type]?.file_id
+        if (!fileId) return node
+        const f = files.find(fl => fl.id === fileId)
+        if (!f?.r2Url) return node
+        return { ...node, typeData: { ...node.typeData, [node.type]: { ...node.typeData[node.type], r2Url: f.r2Url } } }
+      })
       await saveLesson(lessonId, {
         title,
-        script: { nodes: nodesRef.current, ...teacherData },
+        script: { nodes: nodesForSave, ...teacherData },
       })
     } finally {
       setIsSaving(false)

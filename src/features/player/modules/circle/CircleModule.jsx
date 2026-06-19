@@ -42,7 +42,7 @@ export default function CircleModule({ node, file, onDone }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src = file?.r2Url ?? objectUrl
+  const src = objectUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
   useEffect(() => { setIntr(null); setFintr(null) }, [src])
 
   useLayoutEffect(() => {

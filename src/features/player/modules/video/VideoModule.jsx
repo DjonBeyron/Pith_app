@@ -19,7 +19,7 @@ export default function VideoModule({ node, file, onDone }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src = file?.r2Url ?? objectUrl
+  const src = objectUrl ?? file?.r2Url ?? node.typeData?.video?.r2Url ?? null
 
   useEffect(() => { setIntrinsic(null) }, [src])
 

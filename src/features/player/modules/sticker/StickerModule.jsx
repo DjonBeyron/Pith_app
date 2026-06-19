@@ -12,7 +12,7 @@ export default function StickerModule({ node, file, onDone }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src     = file?.r2Url ?? objectUrl
+  const src     = objectUrl ?? file?.r2Url ?? node.typeData?.sticker?.r2Url ?? null
   const isVideo = node.typeData?.sticker?.isVideo ?? false
   const muted   = node.typeData?.sticker?.muted   ?? true
 
