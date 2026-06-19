@@ -26,7 +26,11 @@ export default function VideoModule({ node, file, onDone }) {
 
   const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.video?.r2Url ?? null
 
-  useEffect(() => { setIntrinsic(null) }, [src])
+  useEffect(() => {
+    pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null',
+      '| blobUrl=', file?.blobUrl ? 'YES' : 'no', '| r2Url=', file?.r2Url ? 'YES' : 'no')
+    setIntrinsic(null)
+  }, [src])
 
   useLayoutEffect(() => {
     const el = frameRef.current
@@ -87,8 +91,17 @@ export default function VideoModule({ node, file, onDone }) {
                   autoPlay
                   muted
                   preload="auto"
-                  onPlay={e => { e.currentTarget.muted = false }}
+                  onPlay={e => {
+                    const v = e.currentTarget
+                    pLog('VideoModule onPlay — readyState=', v.readyState, 'muted=', v.muted, 'currentTime=', v.currentTime)
+                    // Unmuting here can cause iOS to PAUSE (unmuted audio = requires user gesture).
+                    // So we keep muted and add a tap-to-unmute button instead.
+                  }}
                   onEnded={handleEnded}
+                  onCanPlay={e => {
+                    const v = e.currentTarget
+                    pLog('VideoModule onCanPlay — readyState=', v.readyState, 'paused=', v.paused)
+                  }}
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
@@ -98,7 +111,7 @@ export default function VideoModule({ node, file, onDone }) {
                     const v = e.currentTarget
                     pLog('VideoModule onError — error=', v.error?.code, v.error?.message, 'src=', src)
                   }}
-                  onStalled={() => pLog('VideoModule onStalled — network stalled')}
+                  onStalled={() => pLog('VideoModule onStalled')}
                   onWaiting={() => pLog('VideoModule onWaiting — buffering')}
                 />
               </div>
