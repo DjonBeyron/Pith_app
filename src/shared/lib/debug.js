@@ -11,6 +11,10 @@ try {
 // there's no devtools console to read from directly.
 const logLines = []
 
+// Player log — always collected, no debug flag needed.
+// Use pLog() for player events so they can be downloaded even without enabling debug.
+const playerLines = []
+
 export function isDebugOn() {
   return enabled
 }
@@ -42,6 +46,34 @@ export function dbg(...args) {
   if (!enabled) return
   console.log('[PITHY]', ...args)
   logLines.push(`[${stamp()}] ${args.map(toText).join(' ')}`)
+}
+
+// Always-on player logger — collects regardless of debug flag.
+// Use for player/voice-record events that need to be inspected on mobile.
+export function pLog(...args) {
+  const line = `[${stamp()}] ${args.map(toText).join(' ')}`
+  playerLines.push(line)
+  if (enabled) console.log('[PLAYER]', ...args)
+}
+
+export function clearPlayerLog() {
+  playerLines.length = 0
+}
+
+export function downloadPlayerLog() {
+  const text = playerLines.length
+    ? playerLines.join('\n')
+    : '(лог пуст — открой плеер и повтори действия, затем нажми скачать)'
+  const blob = new Blob([text], { type: 'text/plain' })
+  const url  = URL.createObjectURL(blob)
+  const ts   = new Date().toISOString().replace(/[:.]/g, '-')
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `pithy-player-${ts}.txt`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 export function downloadLog() {

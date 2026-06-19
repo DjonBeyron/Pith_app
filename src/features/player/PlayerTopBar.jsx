@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { downloadPlayerLog, clearPlayerLog, pLog } from '../../shared/lib/debug.js'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
 const CROP_FRAME  = 80
@@ -7,8 +8,12 @@ const AVATAR_SIZE = 36
 export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo, teacherLogoCrop }) {
   const [intrinsic, setIntrinsic] = useState(null)
 
-  // Reset intrinsic when logo changes so stale dims don't flash
   useEffect(() => { setIntrinsic(null) }, [teacherLogo])
+
+  useEffect(() => {
+    clearPlayerLog()
+    pLog('=== Player opened ===', 'ua:', navigator.userAgent)
+  }, [])
 
   const name    = teacherName || 'Учитель'
   const initial = name[0]?.toUpperCase() ?? 'У'
@@ -63,6 +68,12 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
         <span className="playerTopBarStatus">онлайн</span>
       </div>
       {title && <span className="playerTopBarLesson">{title}</span>}
+      <button
+        className="playerTopBarDebugBtn"
+        onClick={downloadPlayerLog}
+        title="Скачать лог"
+        aria-label="Скачать лог"
+      >⬇</button>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { analyzeWaveform, drawWaveBar, fmtAudioTime, probeAudioDuration } from '../../../../shared/lib/audioUtils.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 function PlayIcon()  { return <svg width="9"  height="9"  viewBox="0 0 10 10"><polygon points="1,0 10,5 1,10" fill="currentColor" /></svg> }
 function PauseIcon() { return <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="0" width="3" height="10" fill="currentColor" rx="1" /><rect x="6" y="0" width="3" height="10" fill="currentColor" rx="1" /></svg> }
@@ -71,8 +72,10 @@ export default function VoiceRecordBar({ onSend }) {
 
   useEffect(() => {
     let audioCtx = null
+    pLog('VoiceRecordBar mount — requesting mic. RECORD_MIME:', RECORD_MIME || '(none)')
     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
       .then(stream => {
+        pLog('mic: getUserMedia OK, tracks:', stream.getAudioTracks().length)
         streamRef.current = stream
         audioCtx = new (window.AudioContext || window.webkitAudioContext)()
         const src      = audioCtx.createMediaStreamSource(stream)
@@ -82,7 +85,10 @@ export default function VoiceRecordBar({ onSend }) {
         analyserRef.current = analyser
         startRingRaf()
       })
-      .catch(err => console.warn('[VoiceRec] mic:', err.message))
+      .catch(err => {
+        pLog('mic: getUserMedia ERROR:', err.name, err.message)
+        console.warn('[VoiceRec] mic:', err.message)
+      })
     return () => {
       if (rafRef.current)      cancelAnimationFrame(rafRef.current)
       if (playRafRef.current)  cancelAnimationFrame(playRafRef.current)
@@ -101,14 +107,18 @@ export default function VoiceRecordBar({ onSend }) {
 
   function handlePressStart(e) {
     e.preventDefault()
+    pLog('handlePressStart: phase=', phaseRef.current, 'stream=', !!streamRef.current)
     if (phaseRef.current !== 'idle' || !streamRef.current) return
-    const recorder = new MediaRecorder(streamRef.current, RECORD_MIME ? { mimeType: RECORD_MIME } : {})
+    const mimeOpts = RECORD_MIME ? { mimeType: RECORD_MIME } : {}
+    pLog('MediaRecorder create, mimeOpts:', JSON.stringify(mimeOpts))
+    const recorder = new MediaRecorder(streamRef.current, mimeOpts)
     chunksRef.current = []
     recorder.ondataavailable = ev => { if (ev.data.size > 0) chunksRef.current.push(ev.data) }
     recorder.onstop = handleRecordStop
     recorder.start(100)
     recorderRef.current = recorder
     recStartRef.current = Date.now()
+    pLog('recording started, recorder.state=', recorder.state)
     setPhase('recording')
     recTimerRef.current = setInterval(() => {
       if (!timerRef.current) return
@@ -125,31 +135,43 @@ export default function VoiceRecordBar({ onSend }) {
 
   async function handleRecordStop() {
     const elapsed  = (Date.now() - recStartRef.current) / 1000
-    const mimeType = chunksRef.current[0]?.type || 'audio/webm'
-    const blob = new Blob(chunksRef.current, { type: mimeType })
+    const chunks   = chunksRef.current
+    pLog('handleRecordStop: chunks=', chunks.length, 'elapsed=', elapsed.toFixed(2) + 's')
+    const mimeType = chunks[0]?.type || 'audio/webm'
+    const blob = new Blob(chunks, { type: mimeType })
+    pLog('blob: size=', blob.size, 'type=', blob.type)
     const url  = URL.createObjectURL(blob)
+    pLog('objectURL created:', url.slice(0, 40))
     recUrlRef.current = url
     setPhase('recorded')
     try {
       let dur = await probeAudioDuration(url)
+      pLog('probeAudioDuration result=', dur, 'elapsed=', elapsed.toFixed(2))
       if (!dur || !isFinite(dur)) dur = elapsed
       recDurRef.current = dur
       if (timeRef.current) timeRef.current.textContent = fmtAudioTime(dur)
       const wd = await analyzeWaveform(url)
+      pLog('analyzeWaveform result length=', wd?.length ?? 'null')
       waveDataRef.current = wd
       if (waveCanvasRef.current) drawWaveBar(waveCanvasRef.current, wd, 0)
-    } catch (e) { console.warn('[VoiceRec] analyze:', e.message) }
+    } catch (e) {
+      pLog('analyze ERROR:', e.message)
+      console.warn('[VoiceRec] analyze:', e.message)
+    }
   }
 
   function handlePlayToggle() {
+    pLog('handlePlayToggle: url=', !!recUrlRef.current, 'paused=', audioRef.current?.paused ?? 'no-audio')
     if (!recUrlRef.current) return
     if (audioRef.current && !audioRef.current.paused) {
       audioRef.current.pause()
       if (playRafRef.current) { cancelAnimationFrame(playRafRef.current); playRafRef.current = null }
       setIsPlaying(false); return
     }
+    const isNew = !audioRef.current
     const audio = audioRef.current ?? new Audio(recUrlRef.current)
     if (!audioRef.current) audioRef.current = audio
+    pLog('audio.play() attempt, isNew=', isNew, 'src=', audio.src?.slice(0, 40))
     setIsPlaying(true)
     function tick() {
       const ct = audio.currentTime, d = recDurRef.current || 1
@@ -158,12 +180,18 @@ export default function VoiceRecordBar({ onSend }) {
       playRafRef.current = requestAnimationFrame(tick)
     }
     audio.addEventListener('ended', () => {
+      pLog('audio ended (preview)')
       setIsPlaying(false)
       if (playRafRef.current) { cancelAnimationFrame(playRafRef.current); playRafRef.current = null }
       drawWaveBar(waveCanvasRef.current, waveDataRef.current, 0)
       if (timeRef.current && recDurRef.current) timeRef.current.textContent = fmtAudioTime(recDurRef.current)
     }, { once: true })
-    audio.play().catch(e => console.warn('[VoiceRec] play:', e.message))
+    audio.play()
+      .then(() => pLog('audio.play() resolved OK'))
+      .catch(e => {
+        pLog('audio.play() ERROR:', e.name, e.message)
+        console.warn('[VoiceRec] play:', e.message)
+      })
     playRafRef.current = requestAnimationFrame(tick)
   }
 

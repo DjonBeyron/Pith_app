@@ -75,6 +75,25 @@
   flex-shrink: 0;
 }
 
+.playerTopBarDebugBtn {
+  background: none;
+  border: 1px solid #2a2d35;
+  color: #555;
+  font-size: 13px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .15s, color .15s;
+}
+.playerTopBarDebugBtn:hover { border-color: #444; color: #999; }
+
 @media (max-width: 400px) {
   .playerTopBarLesson { display: none; }
   .playerTopBar { padding: 6px 8px; gap: 6px; }
