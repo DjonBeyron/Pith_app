@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, Children } from 'react'
+import { useRef, useLayoutEffect } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
 
 const CSS_GAP = 4 // должно совпадать с gap в .playerFeedInner
@@ -19,9 +19,6 @@ export default function PlayerFeed({ children }) {
     const rows     = inner.querySelectorAll('.playerMsgRow')
     const rowCount = rows.length
 
-    const cr = inner.getBoundingClientRect()
-    pLog('PlayerFeed: rows=', rowCount, 'children=', Children.count(children), '| container top=', Math.round(cr.top), 'bottom=', Math.round(cr.bottom), 'h=', Math.round(cr.height))
-
     if (rowCount === prevRowCount.current) return // ничего не изменилось
 
     const prevEls = prevElsRef.current
@@ -29,13 +26,11 @@ export default function PlayerFeed({ children }) {
     if (rowCount > prevRowCount.current && prevEls.size > 0) {
       let shift = 0
 
-      // Новые элементы: slide-in через Web Animations API с точной стартовой позицией
       rows.forEach(el => {
         if (prevEls.has(el)) return
         const rect   = el.getBoundingClientRect()
         const startY = window.innerHeight - rect.top + rect.height + 24
         shift += rect.height + CSS_GAP
-        pLog('PlayerFeed slide-in: h=', Math.round(rect.height), 'top=', Math.round(rect.top), 'startY=', Math.round(startY), 'cls=', el.className)
         el.animate(
           [
             { opacity: '0', transform: `translateY(${startY}px)` },
@@ -45,11 +40,8 @@ export default function PlayerFeed({ children }) {
         )
       })
 
-      pLog('PlayerFeed FLIP: shift=', Math.round(shift), 'to', prevEls.size, 'old rows')
       if (shift > 0) {
         prevEls.forEach(el => {
-          const elR = el.getBoundingClientRect()
-          pLog('  FLIP old:', el.className.split(' ').slice(-1)[0] || 'row', 'top=', Math.round(elR.top))
           el.style.transition = 'none'
           el.style.transform  = `translateY(${shift}px)`
           void el.offsetHeight

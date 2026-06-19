@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerMessage from './PlayerMessage.jsx'
@@ -33,6 +33,29 @@ export default function LessonPlayer({
       setFiles([...propFiles, ...fetched])
     }).catch(e => pLog('LessonPlayer getFilesByIds ERROR:', e.message))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Preload media files for nodes that will appear next (based on triggers of visible nodes)
+  const preloadedRef = useRef({})
+  useEffect(() => {
+    const nextIds = new Set()
+    visibleNodes.forEach(n => {
+      ;(n.triggers ?? []).forEach(t => { if (t.then) nextIds.add(t.then) })
+    })
+    nextIds.forEach(id => {
+      const node = nodes.find(n => n.id === id)
+      if (!node) return
+      const fileId = node.typeData?.[node.type]?.file_id
+      const file   = files.find(f => f.id === fileId)
+      const url    = file?.r2Url ?? node.typeData?.[node.type]?.r2Url
+      if (!url || preloadedRef.current[url]) return
+      const tag = node.type === 'audio' ? 'audio' : 'video'
+      const el  = document.createElement(tag)
+      el.preload = 'auto'
+      el.src     = url
+      preloadedRef.current[url] = el
+      pLog('Preload next node seq=', node.seq, 'type=', node.type, 'url=', url)
+    })
+  }, [visibleNodes, files]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
 
   function handlePhotoPick(nodeId, idx, isCorrect) {

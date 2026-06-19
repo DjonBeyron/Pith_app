@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
+import { pLog } from '../../../../shared/lib/debug.js'
+
+// Delay before video.play() — must exceed slide-in animation duration (400ms)
+const PLAY_DELAY_MS = 420
 
 export default function VideoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
@@ -27,6 +31,23 @@ export default function VideoModule({ node, file, onDone }) {
     const el = frameRef.current
     if (!el) return
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
+  }, [src])
+
+  // Start playback after slide-in animation finishes.
+  // muted first → onPlay unmutes: satisfies mobile autoplay policy.
+  useEffect(() => {
+    if (!src) return
+    const t = setTimeout(() => {
+      const v = videoRef.current
+      if (!v) return
+      pLog('VideoModule play attempt — readyState=', v.readyState, 'networkState=', v.networkState, 'paused=', v.paused, 'muted=', v.muted, 'src=', src)
+      v.play().then(() => {
+        pLog('VideoModule play() OK')
+      }).catch(err => {
+        pLog('VideoModule play() FAILED:', err.name, '—', err.message)
+      })
+    }, PLAY_DELAY_MS)
+    return () => clearTimeout(t)
   }, [src])
 
   function getMediaStyle() {
@@ -78,9 +99,21 @@ export default function VideoModule({ node, file, onDone }) {
                   className="playerVideoMedia"
                   style={getMediaStyle()}
                   playsInline
-                  autoPlay
+                  muted
+                  preload="auto"
+                  onPlay={e => { e.currentTarget.muted = false }}
                   onEnded={handleEnded}
-                  onLoadedMetadata={e => setIntrinsic({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight })}
+                  onLoadedMetadata={e => {
+                    const v = e.currentTarget
+                    setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
+                    pLog('VideoModule onLoadedMetadata — readyState=', v.readyState, 'networkState=', v.networkState, 'duration=', v.duration)
+                  }}
+                  onError={e => {
+                    const v = e.currentTarget
+                    pLog('VideoModule onError — error=', v.error?.code, v.error?.message, 'src=', src)
+                  }}
+                  onStalled={() => pLog('VideoModule onStalled — network stalled')}
+                  onWaiting={() => pLog('VideoModule onWaiting — buffering')}
                 />
               </div>
               {fullscreen && (
