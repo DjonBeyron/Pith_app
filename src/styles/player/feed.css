@@ -36,8 +36,9 @@
    Applied to .playerMsgRow when it first appears in the feed.
    Controlled here, not inside module CSS.
    ──────────────────────────────────────────────────────────────────── */
+/* Сообщение вылетает снизу — translateY большой чтобы визуально из-за края экрана */
 @keyframes msgSlideIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(72px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 

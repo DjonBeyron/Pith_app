@@ -6,7 +6,8 @@
   display: flex;
   justify-content: flex-start;
   padding: 2px 0;
-  animation: msgSlideIn 0.22s ease;
+  /* ease-out: быстрый старт снизу, плавная остановка на месте */
+  animation: msgSlideIn 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .playerMsgRowCircle {
