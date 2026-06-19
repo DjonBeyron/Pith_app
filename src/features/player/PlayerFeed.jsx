@@ -2,9 +2,9 @@ import { useRef, useEffect, Children } from 'react'
 import WaitingDots from './waiting/WaitingDots.jsx'
 import { pLog } from '../../shared/lib/debug.js'
 
-// column-reverse: first DOM item = visual BOTTOM, last DOM item = visual TOP.
-// Messages in DOM order [oldest..newest] → oldest at bottom, newest just above.
-// WaitingDots last in DOM → appears above latest message (not below it).
+// column-reverse: first DOM item = visual BOTTOM.
+// WaitingDots is always first → always pinned to the visual bottom.
+// Messages follow in DOM order → oldest just above dots, newest above previous.
 export default function PlayerFeed({ children, showDots = false }) {
   const outerRef = useRef(null)
   const innerRef = useRef(null)
@@ -25,8 +25,8 @@ export default function PlayerFeed({ children, showDots = false }) {
   return (
     <div className="playerFeed" ref={outerRef}>
       <div className="playerFeedInner" ref={innerRef}>
+        <WaitingDots active={showDots} />
         {children}
-        {showDots && <WaitingDots />}
       </div>
     </div>
   )

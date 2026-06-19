@@ -71,6 +71,12 @@
 .playerWaitingDot:nth-child(2) { animation-delay: 0.22s; }
 .playerWaitingDot:nth-child(3) { animation-delay: 0.44s; }
 
+/* Idle: dots visible but не анимируются (учитель онлайн, не печатает) */
+.playerWaitingIdle .playerWaitingDot {
+  animation: none;
+  opacity: 0.3;
+}
+
 @keyframes waitingBounce {
   0%, 55%, 100% { transform: translateY(0);    opacity: 0.35; }
   28%            { transform: translateY(-7px); opacity: 1;    }
