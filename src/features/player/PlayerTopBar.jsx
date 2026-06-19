@@ -11,7 +11,6 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
   useEffect(() => { setIntrinsic(null) }, [teacherLogo])
 
   useEffect(() => {
-    clearPlayerLog()
     pLog('=== Player opened ===', 'ua:', navigator.userAgent)
   }, [])
 

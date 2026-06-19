@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerMessage from './PlayerMessage.jsx'
@@ -7,14 +7,29 @@ import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.js
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
+import { getFilesByIds }   from '../../shared/lib/filesApi.js'
+import { pLog }            from '../../shared/lib/debug.js'
 
 export default function LessonPlayer({
-  nodes = [], files = [], lessonTitle = '',
+  nodes = [], files: propFiles = [], lessonTitle = '',
   teacherName, teacherLogo, teacherLogoCrop,
   onClose,
 }) {
   const feedRef = useRef(null)
+  const [files, setFiles] = useState(propFiles)
   const { visibleNodes, isWaiting, onNodeDone } = useGraphPlayer(nodes)
+
+  // On mount: fetch from Supabase any file IDs referenced by nodes but absent from prop files
+  useEffect(() => {
+    const allIds = [...new Set(nodes.map(n => n.typeData?.[n.type]?.file_id).filter(Boolean))]
+    const missing = allIds.filter(id => !propFiles.some(f => f.id === id))
+    pLog('LessonPlayer mount: allFileIds=', JSON.stringify(allIds), 'missing=', JSON.stringify(missing))
+    if (!missing.length) { setFiles(propFiles); return }
+    getFilesByIds(missing).then(fetched => {
+      pLog('LessonPlayer fetched from server:', fetched.map(f => f.id + ' r2=' + (f.r2Url ?? 'null')).join(' | '))
+      setFiles([...propFiles, ...fetched])
+    }).catch(e => pLog('LessonPlayer getFilesByIds ERROR:', e.message))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
