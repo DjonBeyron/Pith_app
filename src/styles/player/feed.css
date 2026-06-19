@@ -1,20 +1,24 @@
-/* ── Scrollable feed — ISOLATED scroll layer ──────────────────────────
-   Only this file (and PlayerFeed.jsx) owns scroll behavior.
-   Message modules must never set scrollTop or scrollIntoView.
+/* ── Feed — система чата ───────────────────────────────────────────────
+   PlayerFeed.jsx владеет поведением прокрутки и анимациями.
+   Модули сообщений никогда не трогают scrollTop / scrollIntoView.
    ──────────────────────────────────────────────────────────────────── */
 
 .playerFeed {
   flex: 1;
-  /* visible: позволяет msgSlideIn выйти за нижний край экрана для эффекта "снизу" */
+  /* flex-контейнер для inner: даёт inner точную высоту (flex:1) без min-height */
+  display: flex;
+  flex-direction: column;
+  /* overflow visible: анимация msgSlideIn уходит за нижний край экрана */
   overflow: visible;
   padding: 12px 0;
 }
 
 .playerFeedInner {
+  /* flex:1 вместо min-height:100% — высота точно равна playerFeed */
+  /* Это гарантирует что пузырь растёт только вверх, не даёт кадровой вспышки вниз */
+  flex: 1;
   display: flex;
   flex-direction: column-reverse;
-  /* min-height: 100% — чтобы column-reverse прижимал контент к низу даже при 1 сообщении */
-  min-height: 100%;
   gap: 4px;
   padding: 0 12px;
   max-width: 600px;
@@ -34,13 +38,11 @@
   padding: 40px 0;
 }
 
-/* ── Message entry animation ──────────────────────────────────────────
-   Applied to .playerMsgRow when it first appears in the feed.
-   Controlled here, not inside module CSS.
+/* ── Анимация появления сообщения ─────────────────────────────────────
+   translateY(72px) — стартует ниже своей позиции, уходит за край экрана.
+   overflow:visible на playerFeed позволяет это показать.
    ──────────────────────────────────────────────────────────────────── */
-/* Сообщение вылетает снизу — translateY большой чтобы визуально из-за края экрана */
 @keyframes msgSlideIn {
   from { opacity: 0; transform: translateY(72px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
