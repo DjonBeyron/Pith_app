@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R   // circumference in SVG units
@@ -57,9 +58,19 @@ export default function CircleModule({ node, file, onDone }) {
   }, [fs, src])
 
   const circleDoneFiredRef = useRef(false)
+
+  useEffect(() => {
+    pLog('CircleModule mount — src=', src ?? 'NULL', 'onDone=', typeof onDone)
+  }, [src]) // eslint-disable-line
+
   // Inline: first play with sound → silent infinite loop (no ring)
   function onEnd() {
-    if (!circleDoneFiredRef.current) { circleDoneFiredRef.current = true; onDone?.() }
+    pLog('CircleModule onEnd — fired=', circleDoneFiredRef.current, 'onDone=', typeof onDone)
+    if (!circleDoneFiredRef.current) {
+      circleDoneFiredRef.current = true
+      pLog('CircleModule: calling onDone()')
+      onDone?.()
+    }
     const v = vRef.current; if (!v) return
     v.muted = true
     v.loop  = true
