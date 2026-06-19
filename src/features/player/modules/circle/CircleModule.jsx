@@ -43,7 +43,7 @@ export default function CircleModule({ node, file, onDone }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src = objectUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
+  const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
   useEffect(() => { setIntr(null); setFintr(null) }, [src])
 
   useLayoutEffect(() => {
@@ -60,7 +60,8 @@ export default function CircleModule({ node, file, onDone }) {
   const circleDoneFiredRef = useRef(false)
 
   useEffect(() => {
-    pLog('CircleModule mount — src=', src ?? 'NULL', 'onDone=', typeof onDone)
+    pLog('CircleModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'NULL',
+      '| blobUrl=', file?.blobUrl ? 'YES' : 'no')
   }, [src]) // eslint-disable-line
 
   // Inline: first play with sound → silent infinite loop (no ring)
@@ -114,8 +115,7 @@ export default function CircleModule({ node, file, onDone }) {
             <div className="circleWrap" onClick={openFs}>
               <div ref={frRef} className="circleFrame">
                 <video ref={vRef} src={src} className="circleMedia" style={calcStyle(intr, dims, crop)}
-                  playsInline autoPlay muted onEnded={onEnd}
-                  onPlay={e => { e.currentTarget.muted = false }}
+                  playsInline autoPlay muted preload="auto" onEnded={onEnd}
                   onLoadedMetadata={e => setIntr({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight })}
                 />
               </div>
