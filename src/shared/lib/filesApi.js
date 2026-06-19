@@ -27,15 +27,12 @@ export async function listFiles() {
   return data
 }
 
-export async function insertFile({ fileName, sizeBytes, contentType, r2Url }) {
+export async function insertFile({ id, fileName, sizeBytes, contentType, r2Url }) {
+  const row = { file_name: fileName, size_bytes: sizeBytes, content_type: contentType, r2_url: r2Url }
+  if (id) row.id = id
   const { data, error } = await supabase
     .from('files')
-    .insert({
-      file_name: fileName,
-      size_bytes: sizeBytes,
-      content_type: contentType,
-      r2_url: r2Url,
-    })
+    .insert(row)
     .select()
     .single()
   if (error) throw error

@@ -103,7 +103,7 @@ export function useLessonFiles(lessonId) {
     for (const f of toUpload) {
       try {
         const r2Url = await uploadToR2(f.localFile)
-        await insertFile({ fileName: f.name, sizeBytes: f.size, contentType: f.type, r2Url })
+        await insertFile({ id: f.id, fileName: f.name, sizeBytes: f.size, contentType: f.type, r2Url })
         setFiles(prev => prev.map(x =>
           x.id === f.id ? { ...x, status: 'synced', r2Url, localFile: null } : x
         ))
