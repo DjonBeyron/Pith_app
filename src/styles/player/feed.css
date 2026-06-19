@@ -13,6 +13,8 @@
 .playerFeedInner {
   display: flex;
   flex-direction: column-reverse;
+  /* min-height: 100% — чтобы column-reverse прижимал контент к низу даже при 1 сообщении */
+  min-height: 100%;
   gap: 4px;
   padding: 0 12px;
   max-width: 600px;
