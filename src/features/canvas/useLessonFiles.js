@@ -104,12 +104,15 @@ export function useLessonFiles(lessonId) {
     for (const f of toUpload) {
       try {
         const r2Url = await uploadToR2(f.localFile)
-        await insertFile({ id: f.id, fileName: f.name, sizeBytes: f.size, contentType: f.type, r2Url })
+        pLog('syncToServer: uploadToR2 OK, r2Url=', r2Url?.slice(0, 50), 'clientId=', f.id)
+        const inserted = await insertFile({ id: f.id, fileName: f.name, sizeBytes: f.size, contentType: f.type, r2Url })
+        pLog('syncToServer: insertFile result id=', inserted?.id ?? 'null', 'expected=', f.id, 'match=', inserted?.id === f.id)
         setFiles(prev => prev.map(x =>
           x.id === f.id ? { ...x, status: 'synced', r2Url, localFile: null } : x
         ))
         if (lessonId) lfDelete(IDB_KEY(lessonId, f.id)).catch(() => {})
       } catch (err) {
+        pLog('syncToServer ERROR:', err.message)
         console.error('[lessonFiles] upload failed', f.name, err)
       }
     }

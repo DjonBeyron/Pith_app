@@ -7,7 +7,7 @@ import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.js
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
-import { getFilesByIds }   from '../../shared/lib/filesApi.js'
+import { getFilesByIds, listFiles } from '../../shared/lib/filesApi.js'
 import { pLog }            from '../../shared/lib/debug.js'
 
 export default function LessonPlayer({
@@ -25,8 +25,12 @@ export default function LessonPlayer({
     const missing = allIds.filter(id => !propFiles.some(f => f.id === id))
     pLog('LessonPlayer mount: allFileIds=', JSON.stringify(allIds), 'missing=', JSON.stringify(missing))
     if (!missing.length) { setFiles(propFiles); return }
+    // Also fetch ALL files from Supabase to compare IDs (debug)
+    listFiles().then(all => {
+      pLog('Supabase ALL files count=', all.length, 'ids=', all.map(f => f.id).join(','))
+    }).catch(() => {})
     getFilesByIds(missing).then(fetched => {
-      pLog('LessonPlayer fetched from server:', fetched.map(f => f.id + ' r2=' + (f.r2Url ?? 'null')).join(' | '))
+      pLog('LessonPlayer fetched from server:', fetched.map(f => f.id + ' r2=' + (f.r2Url ?? 'null')).join(' | ') || 'none')
       setFiles([...propFiles, ...fetched])
     }).catch(e => pLog('LessonPlayer getFilesByIds ERROR:', e.message))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
