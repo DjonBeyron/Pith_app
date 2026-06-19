@@ -1,13 +1,16 @@
 import { useRef, useLayoutEffect, Children } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
 
+const CSS_GAP = 4 // должно совпадать с gap в .playerFeedInner
+
 // column-reverse + reversed DOM order: newest message first in DOM = visual bottom.
-// overflow: visible on .playerFeed so msgSlideIn translateY goes below screen edge.
-// FLIP: captured positions used only when row count increases — no reflow during playback.
+// overflow: visible → msgSlideIn translateY может уйти за нижний край экрана.
+// FLIP: сдвиг считается из высоты новых элементов, а не из старых позиций
+// (старые позиции стали бы неверны если пузырь вырос во время воспроизведения).
 export default function PlayerFeed({ children }) {
-  const innerRef      = useRef(null)
-  const prevPosRef    = useRef(new Map())
-  const prevRowCount  = useRef(0)
+  const innerRef    = useRef(null)
+  const prevElsRef  = useRef(new Set()) // известные элементы строк
+  const prevRowCount = useRef(0)
 
   useLayoutEffect(() => {
     const inner = innerRef.current
@@ -18,30 +21,32 @@ export default function PlayerFeed({ children }) {
 
     pLog('PlayerFeed: rows=', rowCount, 'children=', Children.count(children))
 
-    // Ранний выход если количество строк не изменилось — не форсируем reflow во время воспроизведения
-    if (rowCount === prevRowCount.current) return
+    if (rowCount === prevRowCount.current) return // ничего не изменилось
 
-    // Захватываем позиции (getBoundingClientRect только при изменении состава)
-    const newPos = new Map()
-    rows.forEach(el => newPos.set(el, el.getBoundingClientRect().top))
+    const prevEls = prevElsRef.current
 
-    // FLIP: плавно поднимаем существующие сообщения когда добавляется новое
-    if (rowCount > prevRowCount.current && prevPosRef.current.size > 0) {
-      newPos.forEach((newTop, el) => {
-        const prevTop = prevPosRef.current.get(el)
-        if (prevTop == null) return          // новый элемент — CSS msgSlideIn
-        const delta = prevTop - newTop
-        if (Math.abs(delta) < 1) return
-
-        el.style.transition = 'none'
-        el.style.transform = `translateY(${delta}px)`
-        void el.offsetHeight
-        el.style.transition = 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
-        el.style.transform = ''
+    if (rowCount > prevRowCount.current && prevEls.size > 0) {
+      // Считаем суммарную высоту новых элементов для точного FLIP-сдвига
+      let shift = 0
+      rows.forEach(el => {
+        if (!prevEls.has(el)) shift += el.getBoundingClientRect().height + CSS_GAP
       })
+
+      if (shift > 0) {
+        prevEls.forEach(el => {
+          el.style.transition = 'none'
+          el.style.transform  = `translateY(${shift}px)`
+          void el.offsetHeight
+          el.style.transition = 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
+          el.style.transform  = ''
+        })
+      }
     }
 
-    prevPosRef.current  = newPos
+    // Обновляем набор известных элементов
+    const next = new Set()
+    rows.forEach(el => next.add(el))
+    prevElsRef.current  = next
     prevRowCount.current = rowCount
   })
 

@@ -52,9 +52,6 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
         return <span key={i} className="playerTypingChar" style={style}>{ch}</span>
       })}
       {displayCount < text.length && <span className="playerCursor" />}
-      {displayCount < text.length && (
-        <span className="playerUnrevealed">{text.slice(displayCount)}</span>
-      )}
     </span>
   )
 }
