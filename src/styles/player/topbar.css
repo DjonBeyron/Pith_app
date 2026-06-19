@@ -15,10 +15,15 @@
   color: #9aa0b4;
   font-size: 20px;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 8px 10px;
   border-radius: 6px;
   flex-shrink: 0;
   line-height: 1;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .playerTopBarBack:hover { background: #2a2f3e; color: #e0e0e0; }
 
@@ -68,4 +73,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
+}
+
+@media (max-width: 400px) {
+  .playerTopBarLesson { display: none; }
+  .playerTopBar { padding: 6px 8px; gap: 6px; }
 }
