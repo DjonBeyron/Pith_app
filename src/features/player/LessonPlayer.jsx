@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerMessage from './PlayerMessage.jsx'
@@ -15,7 +15,6 @@ export default function LessonPlayer({
   teacherName, teacherLogo, teacherLogoCrop,
   onClose,
 }) {
-  const feedRef = useRef(null)
   const [files, setFiles] = useState(propFiles)
   const { visibleNodes, isWaiting, onNodeDone } = useGraphPlayer(nodes)
 
@@ -58,7 +57,7 @@ export default function LessonPlayer({
         teacherLogoCrop={teacherLogoCrop}
       />
       {pmNode && <PinMessageBanner content={pmNode.typeData?.pin_message?.content ?? ''} />}
-      <PlayerFeed ref={feedRef} showDots={isWaiting}>
+      <PlayerFeed showDots={isWaiting}>
         {visibleNodes.map(node => {
           const fileId = node.typeData?.[node.type]?.file_id ?? null
           const file   = files.find(f => f.id === fileId) ?? null

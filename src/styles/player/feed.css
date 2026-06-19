@@ -12,7 +12,7 @@
 
 .playerFeedInner {
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   gap: 4px;
   padding: 0 12px;
   max-width: 600px;
@@ -37,7 +37,7 @@
    Controlled here, not inside module CSS.
    ──────────────────────────────────────────────────────────────────── */
 @keyframes msgSlideIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
