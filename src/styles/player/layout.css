@@ -20,4 +20,6 @@
   /* Запрет выделения текста во всём плеере */
   user-select: none;
   -webkit-user-select: none;
+  /* Запрет pinch-zoom только в плеере; pan-y оставляет вертикальный скролл */
+  touch-action: pan-y;
 }

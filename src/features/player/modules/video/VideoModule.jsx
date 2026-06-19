@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-// Delay before video.play() — must exceed slide-in animation duration (400ms)
-const PLAY_DELAY_MS = 420
+// autoPlay+muted+playsInline — единственная комбинация которую iOS разрешает без жеста пользователя.
+// Анимация slide-in держит элемент прозрачным 400мс (fill:'backwards'), поэтому видео играет
+// невидимо под анимацией и становится видимым уже в движении — это и есть «запуск после анимации».
 
 export default function VideoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
@@ -33,22 +34,6 @@ export default function VideoModule({ node, file, onDone }) {
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
-  // Start playback after slide-in animation finishes.
-  // muted first → onPlay unmutes: satisfies mobile autoplay policy.
-  useEffect(() => {
-    if (!src) return
-    const t = setTimeout(() => {
-      const v = videoRef.current
-      if (!v) return
-      pLog('VideoModule play attempt — readyState=', v.readyState, 'networkState=', v.networkState, 'paused=', v.paused, 'muted=', v.muted, 'src=', src)
-      v.play().then(() => {
-        pLog('VideoModule play() OK')
-      }).catch(err => {
-        pLog('VideoModule play() FAILED:', err.name, '—', err.message)
-      })
-    }, PLAY_DELAY_MS)
-    return () => clearTimeout(t)
-  }, [src])
 
   function getMediaStyle() {
     if (!intrinsic || !frameDims) return {
@@ -99,6 +84,7 @@ export default function VideoModule({ node, file, onDone }) {
                   className="playerVideoMedia"
                   style={getMediaStyle()}
                   playsInline
+                  autoPlay
                   muted
                   preload="auto"
                   onPlay={e => { e.currentTarget.muted = false }}
