@@ -20,7 +20,7 @@ function PauseIcon() {
   )
 }
 
-export default function AudioModule({ node, file }) {
+export default function AudioModule({ node, file, onDone }) {
   const [objectUrl,       setObjectUrl]       = useState(null)
   const [isPlaying,       setIsPlaying]       = useState(false)
   const [isFading,        setIsFading]        = useState(false)
@@ -211,7 +211,6 @@ export default function AudioModule({ node, file }) {
       stopRAF()
       setIsPlaying(false)
       if (capturedChars.length) setRevealedCharIdx(capturedChars.length)
-      // Smoothly fade green → gray, keep last-frame bar shapes
       barElsRef.current.forEach(bar => {
         if (!bar) return
         bar.style.transition = 'background 0.55s ease'
@@ -221,6 +220,7 @@ export default function AudioModule({ node, file }) {
         barElsRef.current.forEach(bar => { if (bar) bar.style.transition = '' })
       }, 650)
       if (timeRef.current) timeRef.current.textContent = fmtAudioTime(d)
+      onDone?.()
     }
 
     audio.addEventListener('ended', onEnded, { once: true })

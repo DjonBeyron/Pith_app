@@ -3,7 +3,7 @@ import WaitingDots from './waiting/WaitingDots.jsx'
 
 // Isolated scroll layer. Only this component may call scrollTop / scrollTo.
 // LessonPlayer passes children (already-mapped messages) and a ref for imperative control.
-export default function PlayerFeed({ children, ref }) {
+export default function PlayerFeed({ children, ref, showDots = false }) {
   const scrollRef = useRef(null)
   const lockedRef = useRef(true) // stays locked to bottom unless user scrolls up
 
@@ -37,7 +37,7 @@ export default function PlayerFeed({ children, ref }) {
     <div className="playerFeed" ref={scrollRef} onScroll={handleScroll}>
       <div className="playerFeedInner">
         {children}
-        <WaitingDots />
+        {showDots && <WaitingDots />}
       </div>
     </div>
   )

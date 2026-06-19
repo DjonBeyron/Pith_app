@@ -19,10 +19,8 @@
 }
 
 .canvasPageTitle {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 280px;
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -38,11 +36,46 @@
   text-overflow: ellipsis;
 }
 
+@media (min-width: 520px) {
+  .canvasPageTitle {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    flex: unset;
+    min-width: unset;
+  }
+}
+
 .canvasPageTitle:hover { border-color: #2a2c33; }
 .canvasPageTitle:focus { border-color: #444; color: #eee; }
 .canvasPageTitle::placeholder { color: #333; }
 
 .canvasPageSpacer { flex: 1; }
+
+@media (max-width: 519px) {
+  .canvasPageHeader {
+    padding: 6px 8px;
+    gap: 5px;
+  }
+  .canvasPageBack {
+    font-size: 0;   /* hide «← Назад» text */
+    padding: 6px 8px;
+  }
+  .canvasPageBack::before {
+    content: '←';
+    font-size: 16px;
+  }
+  .canvasPageSave {
+    font-size: 0;
+    padding: 6px 8px;
+  }
+  .canvasPageSave::before {
+    content: '💾';
+    font-size: 14px;
+  }
+  .canvasPageSave:disabled::before { content: '…'; }
+}
 
 .canvasSettingsBtnWrap {
   position: relative;

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 
-export default function StickerModule({ node, file }) {
+export default function StickerModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
+
+  useEffect(() => { onDone?.() }, []) // eslint-disable-line
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }

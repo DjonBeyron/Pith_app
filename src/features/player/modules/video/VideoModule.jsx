@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 
-export default function VideoModule({ node, file }) {
+export default function VideoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [intrinsic,  setIntrinsic]  = useState(null)
@@ -47,7 +47,9 @@ export default function VideoModule({ node, file }) {
     }
   }
 
+  const videoDoneFiredRef = useRef(false)
   function handleEnded() {
+    if (!videoDoneFiredRef.current) { videoDoneFiredRef.current = true; onDone?.() }
     const v = videoRef.current
     if (!v) return
     v.muted = true

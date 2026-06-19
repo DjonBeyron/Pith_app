@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 
-export default function PhotoModule({ node, file }) {
+export default function PhotoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [intrinsic,  setIntrinsic]  = useState(null)
@@ -9,6 +9,8 @@ export default function PhotoModule({ node, file }) {
   const frameRef = useRef(null)
 
   const crop = node.typeData?.photo?.crop ?? { x: 0, y: 0, scale: 1 }
+
+  useEffect(() => { onDone?.() }, []) // eslint-disable-line
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }

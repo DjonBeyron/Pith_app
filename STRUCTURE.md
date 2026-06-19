@@ -109,7 +109,8 @@
 | Файл | Зачем нужен |
 |------|-------------|
 | `MODULES.md` | Архитектурные правила плеера: изоляция скролла, структура модулей, правила панелей |
-| `LessonPlayer.jsx` | Оркестратор плеера: сортирует ноды, передаёт в PlayerFeed, держит ref на скролл |
+| `LessonPlayer.jsx` | Оркестратор плеера: использует useGraphPlayer, показывает ноды одну за другой по триггерам, управляет панелями |
+| `useGraphPlayer.js` | State machine плеера: находит точку входа графа, запускает триггеры (timer/played/photo_shown/timer_after_play), показывает WaitingDots между нодами |
 | `PlayerFeed.jsx` | Изолированный скролл-контейнер: auto-scroll при новом сообщении, lock/unlock, imperative ref |
 | `PlayerTopBar.jsx` | Шапка плеера: кнопка «←», аватар, «Учитель / онлайн», название урока |
 | `PlayerMessage.jsx` | Тонкая обёртка: `resolveModule(node.type)` → рендерит нужный модуль |
@@ -170,7 +171,7 @@
 | `debug.js` | Включает/выключает подробные логи в консоли браузера (кнопка «Активировать дебаг») |
 | `videoFrame.js` | Достаёт один кадр из видео как картинку — используется для превью выгруженного из памяти видео |
 | `version.js` | Номер версии приложения (`APP_VERSION`) — показывается мелко наверху экрана |
-| `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar`, `fmtAudioTime`, `probeAudioDuration` |
+| `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar` (рисует столбики волны на canvas), `fmtAudioTime`, `probeAudioDuration` |
 | `transcribeApi.js` | Клиентская обёртка для Edge Function `transcribe-audio`: отправляет файл или R2 URL, возвращает `wordTimings` |
 | `textHighlight.js` | Утилиты для работы с выделениями: `buildCharStyles` (карта символ→стиль) и `hexToRgba` |
 

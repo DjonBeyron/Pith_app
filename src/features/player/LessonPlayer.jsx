@@ -6,6 +6,7 @@ import ChooseWordPanel      from './panels/choose-word/ChooseWordPanel.jsx'
 import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.jsx'
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
+import { useGraphPlayer }  from './useGraphPlayer.js'
 
 export default function LessonPlayer({
   nodes = [], files = [], lessonTitle = '',
@@ -13,18 +14,20 @@ export default function LessonPlayer({
   onClose,
 }) {
   const feedRef = useRef(null)
-  const sorted  = [...nodes].sort((a, b) => a.seq - b.seq)
+  const { visibleNodes, isWaiting, onNodeDone } = useGraphPlayer(nodes)
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
+    onNodeDone(nodeId)
   }
 
-  // Show panel for the last node of each interactive type
-  const wcNode = sorted.filter(n => n.type === 'word_choice').at(-1)     ?? null
-  const paNode = sorted.filter(n => n.type === 'phrase_assembly').at(-1) ?? null
-  const pmNode = sorted.filter(n => n.type === 'pin_message').at(-1)     ?? null
-  const pcNode = sorted.filter(n => n.type === 'photo_choice').at(-1)   ?? null
+  // Show panel for the last VISIBLE node of each interactive type
+  const lastOf = (type) => [...visibleNodes].reverse().find(n => n.type === type) ?? null
+  const wcNode = lastOf('word_choice')
+  const paNode = lastOf('phrase_assembly')
+  const pmNode = lastOf('pin_message')
+  const pcNode = lastOf('photo_choice')
 
   return (
     <div className="lessonPlayer">
@@ -36,18 +39,27 @@ export default function LessonPlayer({
         teacherLogoCrop={teacherLogoCrop}
       />
       {pmNode && <PinMessageBanner content={pmNode.typeData?.pin_message?.content ?? ''} />}
-      <PlayerFeed ref={feedRef}>
-        {sorted.map(node => {
+      <PlayerFeed ref={feedRef} showDots={isWaiting}>
+        {visibleNodes.map(node => {
           const fileId = node.typeData?.[node.type]?.file_id ?? null
           const file   = files.find(f => f.id === fileId) ?? null
-          return <PlayerMessage key={node.id} node={node} file={file} teacherName={teacherName} photoChoiceState={photoChoiceStates[node.id] ?? null} />
+          return (
+            <PlayerMessage
+              key={node.id}
+              node={node}
+              file={file}
+              teacherName={teacherName}
+              photoChoiceState={photoChoiceStates[node.id] ?? null}
+              onDone={() => onNodeDone(node.id)}
+            />
+          )
         })}
-        {sorted.length === 0 && (
+        {visibleNodes.length === 0 && (
           <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
         )}
       </PlayerFeed>
-      {wcNode && <ChooseWordPanel node={wcNode} />}
-      {paNode && <PhraseAssemblyPanel node={paNode} />}
+      {wcNode && <ChooseWordPanel node={wcNode} onDone={() => onNodeDone(wcNode.id)} />}
+      {paNode && <PhraseAssemblyPanel node={paNode} onDone={() => onNodeDone(paNode.id)} />}
       {pcNode && !photoChoiceStates[pcNode.id] && (
         <PhotoChoicePanel
           node={pcNode}

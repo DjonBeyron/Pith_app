@@ -1,9 +1,14 @@
+import { useEffect } from 'react'
 import { useChooseWord } from './useChooseWord.js'
 import ChooseWordOption from './ChooseWordOption.jsx'
 import ChooseWordResponse from './ChooseWordResponse.jsx'
 
-export default function ChooseWordPanel({ node }) {
+export default function ChooseWordPanel({ node, onDone }) {
   const { options, selectedId, result, isAnswered, handlePick } = useChooseWord(node)
+
+  useEffect(() => {
+    if (isAnswered) onDone?.()
+  }, [isAnswered]) // eslint-disable-line
   const responseText = result === 'correct'
     ? (node.typeData?.word_choice?.responseCorrect ?? '')
     : (node.typeData?.word_choice?.responseWrong   ?? '')

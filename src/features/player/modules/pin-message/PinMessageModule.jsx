@@ -1,4 +1,7 @@
-export default function PinMessageModule({ teacherName }) {
+import { useEffect } from 'react'
+
+export default function PinMessageModule({ teacherName, onDone }) {
+  useEffect(() => { onDone?.() }, []) // eslint-disable-line
   const name = teacherName || 'Учитель'
   return (
     <div className="pinSystemRow">

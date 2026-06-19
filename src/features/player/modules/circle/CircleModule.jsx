@@ -20,7 +20,7 @@ function calcStyle(intrinsic, dims, crop) {
   }
 }
 
-export default function CircleModule({ node, file }) {
+export default function CircleModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intr,   setIntr]   = useState(null)
   const [dims,   setDims]   = useState(null)
@@ -56,8 +56,10 @@ export default function CircleModule({ node, file }) {
     setFdims({ w: el.clientWidth, h: el.clientHeight })
   }, [fs, src])
 
+  const circleDoneFiredRef = useRef(false)
   // Inline: first play with sound → silent infinite loop (no ring)
   function onEnd() {
+    if (!circleDoneFiredRef.current) { circleDoneFiredRef.current = true; onDone?.() }
     const v = vRef.current; if (!v) return
     v.muted = true
     v.loop  = true

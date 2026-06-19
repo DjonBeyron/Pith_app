@@ -1,10 +1,15 @@
+import { useEffect } from 'react'
 import { usePhraseAssembly } from './usePhraseAssembly.js'
 import PhraseWordChip from './PhraseWordChip.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 
-export default function PhraseAssemblyPanel({ node }) {
+export default function PhraseAssemblyPanel({ node, onDone }) {
   const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
     usePhraseAssembly(node)
+
+  useEffect(() => {
+    if (isAnswered) onDone?.()
+  }, [isAnswered]) // eslint-disable-line
 
   const responseText = result === 'correct'
     ? (node.typeData?.phrase_assembly?.responseCorrect ?? '')
