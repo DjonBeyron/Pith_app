@@ -11,7 +11,9 @@ export default function VideoModule({ node, file, onDone }) {
   const videoRef      = useRef(null)
   const fsVideoRef    = useRef(null)
   const frameRef      = useRef(null)
-  const progressRef   = useRef(null) // direct DOM for smooth progress
+  const progressRef   = useRef(null)
+  const rafRef        = useRef(null)
+  const touchStartY   = useRef(0)
   const doneFiredRef  = useRef(false)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
@@ -67,7 +69,24 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // Tap anywhere → fullscreen with audio
+  // rAF loop for smooth progress bar
+  function startRaf() {
+    const tick = () => {
+      const v = fsVideoRef.current
+      const bar = progressRef.current
+      if (v && bar && v.duration) {
+        bar.style.width = `${(v.currentTime / v.duration) * 100}%`
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+  }
+
+  function stopRaf() {
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+  }
+
+  // Tap → fullscreen with audio
   function handleTap() {
     videoRef.current?.pause()
     const fs = fsVideoRef.current
@@ -82,22 +101,17 @@ export default function VideoModule({ node, file, onDone }) {
         fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
       })
     }
+    startRaf()
     setFsVisible(true)
   }
 
   function closeFs() {
+    stopRaf()
     fsVideoRef.current?.pause()
     setFsVisible(false)
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
     if (v) { v.muted = true; v.play().catch(() => {}) }
-  }
-
-  function handleFsTimeUpdate(e) {
-    const v = e.currentTarget
-    if (v.duration && progressRef.current) {
-      progressRef.current.style.width = `${(v.currentTime / v.duration) * 100}%`
-    }
   }
 
   function handleFsEnded(e) {
@@ -108,19 +122,23 @@ export default function VideoModule({ node, file, onDone }) {
     v.play().catch(() => {})
   }
 
+  // Swipe down to close fullscreen
+  function onFsTouchStart(e) { touchStartY.current = e.touches[0].clientY }
+  function onFsTouchEnd(e) {
+    if (e.changedTouches[0].clientY - touchStartY.current > 80) closeFs()
+  }
+
+  useEffect(() => () => stopRaf(), [])
+
   return (
     <div className="playerMsgRow">
       <PlayerBubble className="playerMsgBubble playerMsgBubble--video">
         {src
           ? <>
-              {/* Inline: silent autoplay loop */}
               <div ref={frameRef} className="playerVideoCropFrame" onClick={handleTap}>
                 <video
-                  ref={videoRef}
-                  src={src}
-                  className="playerVideoMedia"
-                  style={getMediaStyle()}
-                  playsInline autoPlay muted loop preload="auto"
+                  ref={videoRef} src={src} className="playerVideoMedia"
+                  style={getMediaStyle()} playsInline autoPlay muted loop preload="auto"
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
@@ -132,13 +150,13 @@ export default function VideoModule({ node, file, onDone }) {
                 <MutedIcon />
               </div>
 
-              {/* Fullscreen — always in DOM, play() called in tap handler = gesture context */}
-              {fsVisible && <div className="videoFsBg" onClick={closeFs} />}
+              {fsVisible && (
+                <div className="videoFsBg" onClick={closeFs}
+                  onTouchStart={onFsTouchStart} onTouchEnd={onFsTouchEnd} />
+              )}
 
               <video
-                ref={fsVideoRef}
-                src={src}
-                playsInline preload="none"
+                ref={fsVideoRef} src={src} playsInline preload="none"
                 style={{
                   position: 'fixed', inset: 0, margin: 'auto',
                   zIndex: fsVisible ? 252 : -1,
@@ -148,16 +166,15 @@ export default function VideoModule({ node, file, onDone }) {
                   width: 'auto', height: 'auto', display: 'block',
                 }}
                 onCanPlay={() => setFsReady(true)}
-                onTimeUpdate={handleFsTimeUpdate}
                 onEnded={handleFsEnded}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
 
               {fsVisible && (
-                <div className="videoFsControls" style={{ zIndex: 253 }}>
+                <div className="videoFsControls" style={{ zIndex: 253 }}
+                  onTouchStart={onFsTouchStart} onTouchEnd={onFsTouchEnd}>
                   <button className="videoFullClose" onClick={closeFs}>×</button>
                   {!fsReady && <div className="videoFullSpinner" />}
-                  {/* Progress bar — updated via direct DOM ref for 60fps smoothness */}
                   <div className="videoFsProgressTrack">
                     <div ref={progressRef} className="videoFsProgressBar" style={{ width: '0%' }} />
                   </div>
@@ -174,7 +191,7 @@ export default function VideoModule({ node, file, onDone }) {
 function MutedIcon() {
   return (
     <div className="videoMutedIcon">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
         <path d="M11 5L6 9H2v6h4l5 4V5z" fill="white" fillOpacity="0.9"/>
         <line x1="23" y1="9" x2="17" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
         <line x1="17" y1="9" x2="23" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>

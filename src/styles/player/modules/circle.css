@@ -4,7 +4,15 @@
   background: #1a1d22;
   padding: 3px;
   overflow: visible;
-  border-radius: 20px 50% 50% 50%;  /* one small corner top-left, rest blend with circle */
+  border-radius: 20px 50% 50% 50%;
+  transition: background 0.35s ease, border-radius 0.35s ease, padding 0.35s ease;
+}
+
+/* Bubble becomes invisible when circle is expanded */
+.playerMsgBubble--circle--expanded {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 
 .circleWrap {
@@ -13,6 +21,9 @@
   height: min(50vw, 200px);
   flex-shrink: 0;
   cursor: pointer;
+  transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-left 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .circleFrame {
@@ -41,51 +52,19 @@
   overflow: visible;
 }
 
-/* ── Fullscreen ── */
-.circleFullOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 400;
-  background: rgba(0,0,0,.92);
+/* ── Muted icon — bottom center of inline circle ── */
+.circleMutedIcon {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
+  z-index: 2;
 }
-
-.circleFullWrap {
-  position: relative;
-  width: min(78vw, 78vh);
-  height: min(78vw, 78vh);
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity .25s;
-}
-.circleFullWrap.circleFullWrapOn { opacity: 1; }
-
-.circleFullFrame {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-.circleFullClose {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,.15);
-  color: #fff;
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background .15s;
-  z-index: 1;
-}
-.circleFullClose:hover { background: rgba(255,255,255,.28); }
