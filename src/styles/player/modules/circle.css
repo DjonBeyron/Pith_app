@@ -34,8 +34,8 @@
   border-radius: 50%;
   overflow: hidden;
   box-shadow: 0 0 0 2px #1a1d22;
-  /* GPU-слой изолирует video от перерисовки родителей (bubble transition) */
-  will-change: transform;
+  /* will-change: transform убран — на iOS блокирует hardware video overlay,
+     что само по себе вызывает подёргивание. Bubble transitions слабые (bg+radius). */
 }
 
 .circleMedia {

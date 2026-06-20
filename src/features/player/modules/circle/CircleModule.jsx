@@ -38,20 +38,24 @@ export default function CircleModule({ node, file, onDone }) {
   const [intr, setIntr] = useState(null)
   const [dims, setDims] = useState(null)
   const [expanded, setExpanded] = useState(false)
+  // collapsing: держит expandedVideoStyle пока анимация схлопывания не завершена
+  const [collapsing, setCollapsing] = useState(false)
   const [wrapStyle, setWrapStyle] = useState(() => {
     const s = getSmallPx()
     return { width: s + 'px', height: s + 'px', marginLeft: '0px' }
   })
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
-  const vRef         = useRef(null)
-  const wrapRef      = useRef(null)
-  const frRef        = useRef(null)
-  const arcRef       = useRef(null)
-  const rafRef       = useRef(null)
-  const touchStartY  = useRef(0)
-  const doneFiredRef = useRef(false)
-  const expandedRef  = useRef(false)
+  const vRef            = useRef(null)
+  const wrapRef         = useRef(null)
+  const frRef           = useRef(null)
+  const arcRef          = useRef(null)
+  const rafRef          = useRef(null)
+  const collapseTimer   = useRef(null)
+  const touchStartY     = useRef(0)
+  const doneFiredRef    = useRef(false)
+  const expandedRef     = useRef(false)
+  const lastRafTime     = useRef(0)
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -89,12 +93,19 @@ export default function CircleModule({ node, file, onDone }) {
     collapse()
   }
 
+  // Throttle SVG ring updates to 15fps max — иначе 60fps strokeDashoffset
+  // repaints на iOS конкурируют с video decoder и вызывают подёргивание
   function startRaf() {
-    const tick = () => {
-      const v = vRef.current
-      if (v && arcRef.current && v.duration) {
-        const p = v.currentTime / v.duration
-        arcRef.current.style.strokeDashoffset = String(RING_C * (1 - p))
+    const tick = (t) => {
+      if (t - lastRafTime.current >= 66) { // ~15fps
+        lastRafTime.current = t
+        const v = vRef.current
+        if (v && arcRef.current && v.duration) {
+          const p = v.currentTime / v.duration
+          arcRef.current.style.strokeDashoffset = String(RING_C * (1 - p))
+          if (t - lastRafTime.current < 200) { // лог раз в 200ms слишком часто — только пуск
+          }
+        }
       }
       rafRef.current = requestAnimationFrame(tick)
     }
@@ -124,20 +135,30 @@ export default function CircleModule({ node, file, onDone }) {
       v.loop = false
       v.muted = false
       v.currentTime = 0
-      v.play().catch(() => {
-        pLog('CircleModule: unmuted play failed → stay muted')
-        v.muted = true
-        v.loop = true
-        v.play().catch(() => {})
-      })
+      v.play()
+        .then(() => pLog('CircleModule: expanded play OK'))
+        .catch(err => {
+          pLog('CircleModule: unmuted play failed:', err.message, '→ stay muted')
+          v.muted = true
+          v.loop = true
+          v.play().catch(() => {})
+        })
     }
   }
 
   function collapse() {
-    pLog('CircleModule collapse')
+    pLog('CircleModule collapse: expanded=', expandedRef.current)
     stopRaf()
     expandedRef.current = false
     setExpanded(false)
+
+    // Держим expandedVideoStyle пока анимация схлопывания (0.38s) не завершится.
+    // Без этого videoStyle мгновенно переключается на calcStyle(dims 200px)
+    // пока circleWrap ещё 354px → видео "прыгает" в позицию для малого кружка.
+    setCollapsing(true)
+    if (collapseTimer.current) clearTimeout(collapseTimer.current)
+    collapseTimer.current = setTimeout(() => setCollapsing(false), 420)
+
     const s = getSmallPx()
     setWrapStyle({ width: s + 'px', height: s + 'px', marginLeft: '0px' })
     const v = vRef.current
@@ -153,9 +174,13 @@ export default function CircleModule({ node, file, onDone }) {
     if (e.changedTouches[0].clientY - touchStartY.current > 80) collapse()
   }
 
-  useEffect(() => () => stopRaf(), [])
+  useEffect(() => () => {
+    stopRaf()
+    if (collapseTimer.current) clearTimeout(collapseTimer.current)
+  }, [])
 
-  const videoStyle = expanded ? expandedVideoStyle : calcStyle(intr, dims, crop)
+  // collapsing: держим expandedVideoStyle пока circleWrap ещё анимирует к малому размеру
+  const videoStyle = (expanded || collapsing) ? expandedVideoStyle : calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
@@ -174,7 +199,14 @@ export default function CircleModule({ node, file, onDone }) {
                 ref={vRef} src={src} className="circleMedia"
                 style={videoStyle}
                 playsInline autoPlay muted loop preload="auto"
-                onLoadedMetadata={e => setIntr({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight })}
+                onLoadedMetadata={e => {
+                  const v = e.currentTarget
+                  setIntr({ w: v.videoWidth, h: v.videoHeight })
+                  pLog('CircleModule meta:', v.videoWidth, 'x', v.videoHeight, 'rs=', v.readyState)
+                }}
+                onCanPlay={() => pLog('CircleModule canPlay expanded=', expandedRef.current)}
+                onWaiting={() => pLog('CircleModule WAITING (buffering) expanded=', expandedRef.current)}
+                onStalled={() => pLog('CircleModule STALLED expanded=', expandedRef.current)}
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleEnded}
                 onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}
