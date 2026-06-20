@@ -36,13 +36,16 @@
 }
 
 .circleFrame {
+  /* Фиксированный размер задаётся через inline style (width/height = smallPx).
+     Масштабируется через scale() — видео внутри не меняется, нет десинхрона. */
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
   border-radius: 50%;
   overflow: hidden;
   box-shadow: 0 0 0 2px #1a1d22;
-  /* will-change: transform убран — на iOS блокирует hardware video overlay,
-     что само по себе вызывает подёргивание. Bubble transitions слабые (bg+radius). */
+  transform-origin: center center;
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .circleMedia {
@@ -51,9 +54,7 @@
   max-height: none;
   user-select: none;
   pointer-events: none;
-  /* Только scale меняется при expand/collapse — width/height остаются
-     размером малого кружка, масштабируется через transform */
-  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Видео не анимируется — circleFrame scale() делает всё */
 }
 
 /* Backdrop — перехватывает тап вне кружка в expanded режиме */

@@ -112,41 +112,19 @@ export default function CircleModule({ node, file, onDone }) {
     if (arcRef.current) arcRef.current.style.strokeDashoffset = String(RING_C)
   }
 
-  const debugRafRef = useRef(null)
-  const debugT0Ref = useRef(0)
-
-  function startDebugRaf(videoEl, wrapEl) {
-    debugT0Ref.current = performance.now()
-    const tick = () => {
-      const elapsed = Math.round(performance.now() - debugT0Ref.current)
-      if (elapsed > 500) { debugRafRef.current = null; return }
-      const vr = videoEl.getBoundingClientRect()
-      const wr = wrapEl.getBoundingClientRect()
-      // Позиция видео относительно wrap
-      const relTop = Math.round(vr.top - wr.top)
-      const relLeft = Math.round(vr.left - wr.left)
-      pLog(`DBG t=${elapsed}ms wrap=${Math.round(wr.width)}x${Math.round(wr.height)} vid=${Math.round(vr.width)}x${Math.round(vr.height)} rel=(${relLeft},${relTop})`)
-      debugRafRef.current = requestAnimationFrame(tick)
-    }
-    debugRafRef.current = requestAnimationFrame(tick)
-  }
-
   function handleTap() {
     if (expandedRef.current) { collapse(); return }
     const rect = wrapRef.current.getBoundingClientRect()
     const expandW = window.innerWidth - EDGE_GAP * 2
     const ml = -(rect.left - EDGE_GAP)
-    const v = vRef.current
     pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), w: Math.round(rect.width) }),
       '| innerWidth=', window.innerWidth, '| expandW=', expandW, '| ml=', Math.round(ml))
-    pLog('CircleModule expand videoStyle BEFORE:', JSON.stringify(smallVideoStyle))
 
     doneFiredRef.current = false
     setWrapStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
     setExpanded(true)
     expandedRef.current = true
     startRaf()
-    if (v && wrapRef.current) startDebugRaf(v, wrapRef.current)
 
     // Defer pause+seek+play на следующий кадр — даём браузеру сначала
     // начать CSS transition, иначе decode конкурирует с layout → микро-фриз
@@ -202,26 +180,22 @@ export default function CircleModule({ node, file, onDone }) {
 
   useEffect(() => () => {
     stopRaf()
-    if (debugRafRef.current) cancelAnimationFrame(debugRafRef.current)
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // Видео-элемент ВСЕГДА имеет размер малого кружка (dims) — width/height не меняются.
-  // При expand меняется только scale() в transform: scale(cropScale * expandRatio).
-  // Это устраняет десинхрон: left:50% + translate(-50%) всегда держат центр,
-  // а scale и circleWrap.width анимируются с одинаковым ratio → идеальный единый элемент.
-  const smallVideoStyle = calcStyle(intr, dims, crop)
-  const expandedVideoStyle = (() => {
-    if (!dims?.w || !intr) return { position: 'absolute', inset: 0, objectFit: 'cover' }
-    const expandW = window.innerWidth - EDGE_GAP * 2
-    const ratio = expandW / dims.w
-    const base = calcStyle(intr, dims, crop)
-    return {
-      ...base,
-      transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale * ratio})`,
-    }
-  })()
-  const videoStyle = expanded ? expandedVideoStyle : smallVideoStyle
+  // circleFrame остаётся фиксированного размера (smallPx × smallPx) и масштабируется
+  // через CSS transform: scale() от своего центра. Видео внутри — неизменный calcStyle.
+  // Так crop всегда корректный, а анимация — абсолютно синхронная (единый элемент).
+  const smallPx = dims?.w ?? getSmallPx()
+  const expandW = window.innerWidth - EDGE_GAP * 2
+  const frameStyle = {
+    width: smallPx + 'px',
+    height: smallPx + 'px',
+    transform: expanded
+      ? `translate(-50%, -50%) scale(${expandW / smallPx})`
+      : 'translate(-50%, -50%)',
+  }
+  const videoStyle = calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
@@ -242,7 +216,7 @@ export default function CircleModule({ node, file, onDone }) {
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            <div ref={frRef} className="circleFrame">
+            <div ref={frRef} className="circleFrame" style={frameStyle}>
               <video
                 ref={vRef} src={src} className="circleMedia"
                 style={videoStyle}
