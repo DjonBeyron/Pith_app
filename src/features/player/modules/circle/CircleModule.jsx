@@ -154,7 +154,10 @@ export default function CircleModule({ node, file, onDone }) {
     // пока circleWrap ещё 354px → видео "прыгает" в позицию для малого кружка.
     setCollapsing(true)
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
-    collapseTimer.current = setTimeout(() => setCollapsing(false), 420)
+    collapseTimer.current = setTimeout(() => {
+      pLog('CircleModule: collapsing timer done → setCollapsing(false)')
+      setCollapsing(false)
+    }, 420)
 
     const s = getSmallPx()
     setWrapStyle({ width: s + 'px', height: s + 'px', marginLeft: '0px' })
@@ -213,7 +216,8 @@ export default function CircleModule({ node, file, onDone }) {
             </div>
 
             {(expanded || collapsing) && (
-              <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true">
+              <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true"
+                style={{ opacity: collapsing ? 0 : 1, transition: 'opacity 0.2s ease' }}>
                 <circle cx="109" cy="109" r={RING_R} fill="none"
                   stroke="rgba(255,255,255,.12)" strokeWidth="1.5" />
                 <circle ref={arcRef} cx="109" cy="109" r={RING_R} fill="none"
