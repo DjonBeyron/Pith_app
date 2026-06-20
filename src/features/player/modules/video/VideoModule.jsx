@@ -122,7 +122,6 @@ export default function VideoModule({ node, file, onDone }) {
     const v = videoRef.current
     if (!v) return
     pLog('VideoModule: playWithAudio rs=', v.readyState, 'muted=', v.muted, 'paused=', v.paused)
-    setAfterCanPlay(true) // hide poster img immediately when play starts
     v.currentTime = 0
     v.muted = false
     const p = v.play()
@@ -222,6 +221,7 @@ export default function VideoModule({ node, file, onDone }) {
                   onLoadedData={handleLoadedData}
                   onCanPlay={handleCanPlay}
                   onSeeked={handleSeeked}
+                  onPlay={() => { pLog('VideoModule: onPlay → hide poster'); setAfterCanPlay(true) }}
                   onEnded={handleEnded}
                   onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
