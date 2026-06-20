@@ -30,7 +30,7 @@ export default function LessonPlayer({
     }).catch(e => pLog('LessonPlayer getFilesByIds ERROR:', e.message))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { blobMap, posterMap } = usePlayerPreload(nodes, files, visibleNodes)
+  const blobMap = usePlayerPreload(nodes, files, visibleNodes)
 
   // ── Panels ───────────────────────────────────────────────────────────────
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
@@ -61,9 +61,7 @@ export default function LessonPlayer({
           {visibleNodes.map(node => {
             const fileId = node.typeData?.[node.type]?.file_id ?? null
             const file   = files.find(f => f.id === fileId) ?? null
-            const fileWithBlob = file
-              ? { ...file, blobUrl: blobMap[file.id] ?? null, posterUrl: posterMap[file.id] ?? null }
-              : null
+            const fileWithBlob = file && blobMap[file.id] ? { ...file, blobUrl: blobMap[file.id] } : file
             return (
               <PlayerMessage
                 key={node.id}

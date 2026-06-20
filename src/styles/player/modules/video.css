@@ -24,19 +24,16 @@
   pointer-events: none;
 }
 
-/* ── Loading mask — hides black video until first frame decoded ── */
-.videoFrameMask {
+/* ── Muted icon — bottom center of inline video ── */
+.videoMutedIcon {
   position: absolute;
-  inset: 0;
-  background: #111;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* ── Play button overlay ── */
-.videoPlayBtn {
-  position: absolute;
-  inset: 0;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.38);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -44,20 +41,7 @@
   z-index: 2;
 }
 
-.videoPlayBtn svg {
-  width: 48px;
-  height: 48px;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
-  transition: transform .12s ease;
-}
-
-.playerVideoCropFrame:active .videoPlayBtn svg {
-  transform: scale(.9);
-}
-
-/* ── Fullscreen ── */
-
-/* Dark background layer */
+/* ── Fullscreen dark background ── */
 .videoFsBg {
   position: fixed;
   inset: 0;
@@ -65,7 +49,7 @@
   background: rgba(0, 0, 0, .92);
 }
 
-/* Close + spinner layer — above video */
+/* ── Fullscreen controls layer ── */
 .videoFsControls {
   position: fixed;
   inset: 0;
@@ -91,23 +75,26 @@
   justify-content: center;
   transition: background .15s;
 }
-
 .videoFullClose:hover { background: rgba(255, 255, 255, .28); }
 
-/* Play button inside fullscreen */
-.videoFsPlayBtn {
+/* ── Progress bar — bottom of fullscreen ── */
+.videoFsProgressTrack {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  pointer-events: all;
-  line-height: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, .12);
 }
 
+.videoFsProgressBar {
+  height: 100%;
+  background: #b5f542;
+  transition: width .1s linear;
+  min-width: 0;
+}
+
+/* ── Spinner ── */
 .videoFullSpinner {
   position: absolute;
   top: 50%;

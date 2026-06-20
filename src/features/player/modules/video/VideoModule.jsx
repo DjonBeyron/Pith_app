@@ -2,26 +2,16 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-const DBL_TAP_MS = 300
-
 export default function VideoModule({ node, file, onDone }) {
-  const [objectUrl,  setObjectUrl]  = useState(null)
-  const [intrinsic,  setIntrinsic]  = useState(null)
-  const [frameDims,  setFrameDims]  = useState(null)
-  const [fsVisible,        setFsVisible]       = useState(false)
-  const [fsReady,          setFsReady]         = useState(false)
-  const [showPlay,         setShowPlay]        = useState(true)
-  const [fsShowPlay,       setFsShowPlay]      = useState(false)
-  const [afterCanPlay,     setAfterCanPlay]    = useState(false) // true after canplay/seeked
-
-  // frameReady is derived directly from current prop — no closure issues
-  const posterUrl  = file?.posterUrl ?? null
-  const frameReady = !!posterUrl || afterCanPlay
-  const videoRef    = useRef(null)
-  const fsVideoRef  = useRef(null)
-  const frameRef    = useRef(null)
-  const tapTimerRef = useRef(null)
-  const tapCountRef = useRef(0)
+  const [objectUrl, setObjectUrl] = useState(null)
+  const [intrinsic, setIntrinsic] = useState(null)
+  const [frameDims, setFrameDims] = useState(null)
+  const [fsVisible, setFsVisible] = useState(false)
+  const [fsReady,   setFsReady]   = useState(false)
+  const [fsProgress, setFsProgress] = useState(0) // 0–1
+  const videoRef   = useRef(null)
+  const fsVideoRef = useRef(null)
+  const frameRef   = useRef(null)
   const doneFiredRef = useRef(false)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
@@ -39,9 +29,7 @@ export default function VideoModule({ node, file, onDone }) {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null')
     setIntrinsic(null)
     doneFiredRef.current = false
-    setShowPlay(true)
-    setFsShowPlay(false)
-    setAfterCanPlay(false) // reset; frameReady will come from posterUrl or canplay
+    setFsProgress(0)
   }, [src])
 
   useLayoutEffect(() => {
@@ -68,182 +56,83 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // ── First frame: seek after each load event ───────────────────────────────
-  function logV(label, v) {
-    pLog(`VideoModule [${label}] rs=${v.readyState} ns=${v.networkState} t=${v.currentTime.toFixed(3)} dur=${v.duration}`)
-  }
-
-  function handleMetadata(e) {
+  // Inline: silent loop, fire onDone at end of first play
+  function handleTimeUpdate(e) {
+    if (doneFiredRef.current) return
     const v = e.currentTarget
-    setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
-    logV('onLoadedMetadata', v)
-    // Skip seek if poster is available — seeking removes poster and causes black flash
-    if (!posterUrl) {
-      v.currentTime = 0.001
-      pLog('VideoModule: seek→0.001 after metadata (no poster)')
-    }
-  }
-
-  function handleLoadedData(e) {
-    const v = e.currentTarget
-    logV('onLoadedData', v)
-    if (!posterUrl && v.currentTime < 0.0005) {
-      v.currentTime = 0.001
-      pLog('VideoModule: seek→0.001 after loadeddata (no poster)')
-    }
-  }
-
-  function handleCanPlay(e) {
-    const v = e.currentTarget
-    logV('onCanPlay', v)
-    if (!posterUrl && v.currentTime < 0.0005) {
-      v.currentTime = 0.001
-      pLog('VideoModule: seek→0.001 after canplay (no poster)')
-    }
-    pLog('VideoModule: afterCanPlay=true posterUrl=', !!posterUrl)
-    setAfterCanPlay(true)
-  }
-
-  function handleSeeked(e) {
-    logV('onSeeked', e.currentTarget)
-    pLog('VideoModule: onSeeked → afterCanPlay=true')
-    setAfterCanPlay(true)
-  }
-
-  function seekToFirstFrame(v) {
-    const el = v ?? videoRef.current
-    if (!el) return
-    pLog('VideoModule: seekToFirstFrame t=', el.currentTime)
-    el.currentTime = 0.001
-  }
-
-  // ── Inline playback ───────────────────────────────────────────────────────
-  function playWithAudio() {
-    const v = videoRef.current
-    if (!v) return
-    pLog('VideoModule: playWithAudio rs=', v.readyState, 'muted=', v.muted, 'paused=', v.paused)
-    v.currentTime = 0
-    v.muted = false
-    const p = v.play()
-    pLog('VideoModule: play() called, promise=', p ? 'yes' : 'no')
-    p && p.then(() => {
-      pLog('VideoModule: play() resolved OK muted=', v.muted)
-    }).catch(err => {
-      pLog('VideoModule: play() rejected:', err.name, err.message, '→ muted fallback')
-      v.muted = true
-      v.play().then(() => pLog('VideoModule: muted fallback play OK')).catch(e => pLog('VideoModule: muted fallback FAILED:', e.message))
-    })
-    setShowPlay(false)
-  }
-
-  function handleEnded() {
-    pLog('VideoModule: INLINE ENDED — setShowPlay(true)')
-    setShowPlay(true)
-    seekToFirstFrame()
-    if (!doneFiredRef.current) {
+    if (v.duration && v.currentTime >= v.duration - 0.15) {
       doneFiredRef.current = true
+      pLog('VideoModule: first loop end → onDone()')
       onDone?.()
     }
   }
 
-  // ── Tap ──────────────────────────────────────────────────────────────────
+  // Tap anywhere → fullscreen with audio
   function handleTap() {
-    tapCountRef.current += 1
-    if (tapCountRef.current === 1) {
-      tapTimerRef.current = setTimeout(() => {
-        tapCountRef.current = 0
-        playWithAudio()
-      }, DBL_TAP_MS)
-    } else {
-      clearTimeout(tapTimerRef.current)
-      tapCountRef.current = 0
-      openFs()
-    }
-  }
-
-  // ── Fullscreen ───────────────────────────────────────────────────────────
-  function openFs() {
     videoRef.current?.pause()
     const fs = fsVideoRef.current
     if (fs) {
       setFsReady(false)
-      setFsShowPlay(false)
+      setFsProgress(0)
       fs.currentTime = 0
       fs.muted = false
       fs.play().catch(() => {
+        pLog('VideoModule: FS unmuted failed → muted')
         fs.muted = true
-        fs.play().catch(err => pLog('VideoModule FS play failed:', err.message))
+        fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
       })
     }
     setFsVisible(true)
   }
 
-  function handleFsEnded() {
-    pLog('VideoModule: FS ended → show FS play btn')
-    setFsShowPlay(true)
-  }
-
-  function handleFsPlayBtnTap() {
-    const fs = fsVideoRef.current
-    if (!fs) return
-    fs.currentTime = 0
-    fs.muted = false
-    fs.play().catch(() => {
-      fs.muted = true
-      fs.play().catch(err => pLog('VideoModule FS replay failed:', err.message))
-    })
-    setFsShowPlay(false)
-  }
-
   function closeFs() {
     fsVideoRef.current?.pause()
     setFsVisible(false)
-    setFsShowPlay(false)
-    setShowPlay(true)
-    seekToFirstFrame()
+    setFsProgress(0)
+    const v = videoRef.current
+    if (v) { v.muted = true; v.play().catch(() => {}) }
   }
 
-  useEffect(() => () => clearTimeout(tapTimerRef.current), [])
+  function handleFsTimeUpdate(e) {
+    const v = e.currentTarget
+    if (v.duration) setFsProgress(v.currentTime / v.duration)
+  }
+
+  function handleFsEnded(e) {
+    pLog('VideoModule: FS ended → loop with audio')
+    const v = e.currentTarget
+    v.currentTime = 0
+    v.play().catch(() => {})
+    setFsProgress(0)
+  }
 
   return (
     <div className="playerMsgRow">
       <PlayerBubble className="playerMsgBubble playerMsgBubble--video">
         {src
           ? <>
+              {/* Inline: silent autoplay loop */}
               <div ref={frameRef} className="playerVideoCropFrame" onClick={handleTap}>
                 <video
                   ref={videoRef}
                   src={src}
                   className="playerVideoMedia"
                   style={getMediaStyle()}
-                  playsInline preload="auto"
-                  onLoadedMetadata={handleMetadata}
-                  onLoadedData={handleLoadedData}
-                  onCanPlay={handleCanPlay}
-                  onSeeked={handleSeeked}
-                  onPlay={() => { pLog('VideoModule: onPlay → hide poster'); setAfterCanPlay(true) }}
-                  onEnded={handleEnded}
+                  playsInline autoPlay muted loop preload="auto"
+                  onLoadedMetadata={e => {
+                    const v = e.currentTarget
+                    setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
+                    pLog('VideoModule meta rs=', v.readyState)
+                  }}
+                  onTimeUpdate={handleTimeUpdate}
                   onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
-                {/* Poster img — same crop/scale transform as video.
-                    Shown until afterCanPlay (real frame decoded) or while playing. */}
-                {posterUrl && !afterCanPlay && (
-                  <img
-                    src={posterUrl}
-                    alt=""
-                    className="playerVideoMedia"
-                    style={{ ...getMediaStyle(), zIndex: 1, pointerEvents: 'none' }}
-                    draggable={false}
-                  />
-                )}
-                {/* Dark mask when no poster and frame not yet decoded */}
-                {!frameReady && <div className="videoFrameMask" />}
-                {showPlay && <PlayBtn />}
+                <MutedIcon />
               </div>
 
+              {/* Fullscreen — always in DOM, play() called in tap handler = gesture context */}
               {fsVisible && <div className="videoFsBg" onClick={closeFs} />}
 
-              {/* Always in DOM so play() is called synchronously inside gesture */}
               <video
                 ref={fsVideoRef}
                 src={src}
@@ -254,10 +143,10 @@ export default function VideoModule({ node, file, onDone }) {
                   opacity: fsVisible && fsReady ? 1 : 0,
                   pointerEvents: 'none',
                   maxWidth: '100vw', maxHeight: '100vh',
-                  width: 'auto', height: 'auto',
-                  display: 'block',
+                  width: 'auto', height: 'auto', display: 'block',
                 }}
                 onCanPlay={() => setFsReady(true)}
+                onTimeUpdate={handleFsTimeUpdate}
                 onEnded={handleFsEnded}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
@@ -266,11 +155,10 @@ export default function VideoModule({ node, file, onDone }) {
                 <div className="videoFsControls" style={{ zIndex: 253 }}>
                   <button className="videoFullClose" onClick={closeFs}>×</button>
                   {!fsReady && <div className="videoFullSpinner" />}
-                  {fsReady && fsShowPlay && (
-                    <button className="videoFsPlayBtn" onClick={handleFsPlayBtnTap}>
-                      <PlaySvg size={64} />
-                    </button>
-                  )}
+                  {/* Progress bar */}
+                  <div className="videoFsProgressTrack">
+                    <div className="videoFsProgressBar" style={{ width: `${fsProgress * 100}%` }} />
+                  </div>
                 </div>
               )}
             </>
@@ -281,30 +169,14 @@ export default function VideoModule({ node, file, onDone }) {
   )
 }
 
-// Inline play button — centered inside .playerVideoCropFrame via absolute positioning
-function PlayBtn() {
+function MutedIcon() {
   return (
-    <div className="videoPlayBtn" aria-label="Воспроизвести">
-      <PlaySvg size={48} />
+    <div className="videoMutedIcon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11 5L6 9H2v6h4l5 4V5z" fill="white" fillOpacity="0.9"/>
+        <line x1="23" y1="9" x2="17" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <line x1="17" y1="9" x2="23" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
     </div>
-  )
-}
-
-// Raw SVG — used both for inline overlay and FS button
-function PlaySvg({ size = 48 }) {
-  const s = size
-  const cx = s / 2, cy = s / 2, r = s / 2
-  const tr = r * 0.42
-  const pts = [
-    [cx - tr * 0.6, cy - tr],
-    [cx + tr,       cy      ],
-    [cx - tr * 0.6, cy + tr ],
-  ]
-  const d = `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} L ${pts[2][0]} ${pts[2][1]} Z`
-  return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx={cx} cy={cy} r={r} fill="rgba(0,0,0,0.45)" />
-      <path d={d} fill="white" stroke="white" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
   )
 }
