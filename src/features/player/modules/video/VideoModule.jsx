@@ -237,7 +237,7 @@ export default function VideoModule({ node, file, onDone }) {
                   {!fsReady && <div className="videoFullSpinner" />}
                   {fsReady && fsShowPlay && (
                     <button className="videoFsPlayBtn" onClick={handleFsPlayBtnTap}>
-                      <PlayBtn size={64} />
+                      <PlaySvg size={64} />
                     </button>
                   )}
                 </div>
@@ -250,10 +250,19 @@ export default function VideoModule({ node, file, onDone }) {
   )
 }
 
-function PlayBtn({ size = 48 }) {
+// Inline play button — centered inside .playerVideoCropFrame via absolute positioning
+function PlayBtn() {
+  return (
+    <div className="videoPlayBtn" aria-label="Воспроизвести">
+      <PlaySvg size={48} />
+    </div>
+  )
+}
+
+// Raw SVG — used both for inline overlay and FS button
+function PlaySvg({ size = 48 }) {
   const s = size
   const cx = s / 2, cy = s / 2, r = s / 2
-  // Smaller rounded triangle: 55% of radius, shifted slightly right
   const tr = r * 0.42
   const pts = [
     [cx - tr * 0.6, cy - tr],
@@ -262,11 +271,9 @@ function PlayBtn({ size = 48 }) {
   ]
   const d = `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} L ${pts[2][0]} ${pts[2][1]} Z`
   return (
-    <div className="videoPlayBtn" aria-label="Воспроизвести">
-      <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx={cx} cy={cy} r={r} fill="rgba(0,0,0,0.45)" />
-        <path d={d} fill="white" stroke="white" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-      </svg>
-    </div>
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx={cx} cy={cy} r={r} fill="rgba(0,0,0,0.45)" />
+      <path d={d} fill="white" stroke="white" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   )
 }
