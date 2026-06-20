@@ -11,7 +11,9 @@
   /* Только визуальные свойства (не layout). На expand: 0.38s плавно.
      На collapse: bubble прозрачен 420ms (class --expanded держится через collapsing),
      потом 0.15s быстрый snap — уже после окончания анимации кружка. */
-  transition: background 0.15s ease, border-radius 0.15s ease;
+  /* border-radius: без transition — мгновенный snap. Анимировать border-radius
+     при появлении фона нельзя: квадратные углы мелькают пока фон ещё прозрачный */
+  transition: background 0.15s ease;
 }
 
 .playerMsgBubble--circle--expanded {

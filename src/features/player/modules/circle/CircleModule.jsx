@@ -228,7 +228,7 @@ export default function CircleModule({ node, file, onDone }) {
               </svg>
             )}
 
-            {!expanded && <CircleMutedIcon />}
+            {!expanded && !collapsing && <CircleMutedIcon />}
           </div>
         ) : <div className="playerMediaPlaceholder">Кружок не загружен</div>}
       </div>
