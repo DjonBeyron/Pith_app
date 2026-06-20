@@ -60,26 +60,46 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // Seek to first frame only after actual video data is available (not just metadata).
-  // onLoadedData fires when the browser has data for the current playback position.
-  // We then seek to 0.001s; the `seeked` event confirms the frame is decoded and visible.
-  function handleLoadedData(e) {
-    const v = e.currentTarget
-    setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
-    pLog('VideoModule onLoadedData readyState=', v.readyState)
-    v.currentTime = 0.001
+  // ── First frame debug ────────────────────────────────────────────────────
+  function logState(label, v) {
+    pLog(`VideoModule [${label}] readyState=${v.readyState} networkState=${v.networkState} currentTime=${v.currentTime.toFixed(3)} duration=${v.duration} src=${v.src ? (v.src.startsWith('blob:') ? 'blob' : 'url') : 'none'}`)
   }
 
-  // Also capture dimensions from metadata (fires earlier, before data)
   function handleMetadata(e) {
     const v = e.currentTarget
-    if (v.videoWidth) setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
+    setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
+    logState('onLoadedMetadata', v)
+    // Try seek to first frame after metadata
+    v.currentTime = 0.001
+    pLog('VideoModule: set currentTime=0.001 after metadata')
+  }
+
+  function handleLoadedData(e) {
+    const v = e.currentTarget
+    logState('onLoadedData', v)
+  }
+
+  function handleCanPlay(e) {
+    const v = e.currentTarget
+    logState('onCanPlay', v)
+    // If seek to 0.001 didn't work yet, try again now
+    if (v.currentTime < 0.0005 && !v.paused === false) {
+      pLog('VideoModule: re-seek to 0.001 in onCanPlay')
+      v.currentTime = 0.001
+    }
+  }
+
+  function handleSeeked(e) {
+    const v = e.currentTarget
+    logState('onSeeked', v)
+    pLog('VideoModule: seeked → frame should be visible now')
   }
 
   function seekToFirstFrame() {
     const v = videoRef.current
-    if (v && !v.paused) return // don't interfere if playing
-    if (v) v.currentTime = 0.001
+    if (!v) return
+    pLog('VideoModule: seekToFirstFrame currentTime before=', v.currentTime)
+    v.currentTime = 0.001
   }
 
   function playWithAudio() {
@@ -105,7 +125,7 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // ── Tap: single = play with audio, double = fullscreen ───────────────────
+  // ── Tap ──────────────────────────────────────────────────────────────────
   function handleTap() {
     tapCountRef.current += 1
     if (tapCountRef.current === 1) {
@@ -139,7 +159,6 @@ export default function VideoModule({ node, file, onDone }) {
   function closeFs() {
     fsVideoRef.current?.pause()
     setFsVisible(false)
-    // Return inline video to first frame + show play button
     setShowPlay(true)
     seekToFirstFrame()
   }
@@ -160,18 +179,16 @@ export default function VideoModule({ node, file, onDone }) {
                   playsInline preload="auto"
                   onLoadedMetadata={handleMetadata}
                   onLoadedData={handleLoadedData}
+                  onCanPlay={handleCanPlay}
+                  onSeeked={handleSeeked}
                   onEnded={handleEnded}
                   onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
                 {showPlay && <PlayBtn />}
               </div>
 
-              {/* Dark bg — below video */}
-              {fsVisible && (
-                <div className="videoFsBg" onClick={closeFs} />
-              )}
+              {fsVisible && <div className="videoFsBg" onClick={closeFs} />}
 
-              {/* FS video always in DOM — play() inside gesture context */}
               <video
                 ref={fsVideoRef}
                 src={src}
@@ -207,9 +224,8 @@ function PlayBtn() {
   return (
     <div className="videoPlayBtn" aria-label="Воспроизвести">
       <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="24" cy="24" r="22" fill="rgba(0,0,0,0.50)" />
-        {/* Triangle shifted 2px right so visual centroid aligns with circle center */}
-        <polygon points="20,14 40,24 20,34" fill="white" />
+        <circle cx="24" cy="24" r="24" fill="rgba(0,0,0,0.45)" />
+        <polygon points="19,14 37,24 19,34" fill="white" />
       </svg>
     </div>
   )
