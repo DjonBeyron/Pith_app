@@ -25,6 +25,7 @@
   position: relative;
   flex-shrink: 0;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   /* Размер через inline style (явные px) — transition между двумя px-значениями */
   transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1),
               height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
