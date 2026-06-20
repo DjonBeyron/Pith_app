@@ -8,11 +8,11 @@ export default function VideoModule({ node, file, onDone }) {
   const [frameDims, setFrameDims] = useState(null)
   const [fsVisible, setFsVisible] = useState(false)
   const [fsReady,   setFsReady]   = useState(false)
-  const [fsProgress, setFsProgress] = useState(0) // 0–1
-  const videoRef   = useRef(null)
-  const fsVideoRef = useRef(null)
-  const frameRef   = useRef(null)
-  const doneFiredRef = useRef(false)
+  const videoRef      = useRef(null)
+  const fsVideoRef    = useRef(null)
+  const frameRef      = useRef(null)
+  const progressRef   = useRef(null) // direct DOM for smooth progress
+  const doneFiredRef  = useRef(false)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -73,7 +73,7 @@ export default function VideoModule({ node, file, onDone }) {
     const fs = fsVideoRef.current
     if (fs) {
       setFsReady(false)
-      setFsProgress(0)
+      if (progressRef.current) progressRef.current.style.width = '0%'
       fs.currentTime = 0
       fs.muted = false
       fs.play().catch(() => {
@@ -88,22 +88,24 @@ export default function VideoModule({ node, file, onDone }) {
   function closeFs() {
     fsVideoRef.current?.pause()
     setFsVisible(false)
-    setFsProgress(0)
+    if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
     if (v) { v.muted = true; v.play().catch(() => {}) }
   }
 
   function handleFsTimeUpdate(e) {
     const v = e.currentTarget
-    if (v.duration) setFsProgress(v.currentTime / v.duration)
+    if (v.duration && progressRef.current) {
+      progressRef.current.style.width = `${(v.currentTime / v.duration) * 100}%`
+    }
   }
 
   function handleFsEnded(e) {
     pLog('VideoModule: FS ended → loop with audio')
     const v = e.currentTarget
+    if (progressRef.current) progressRef.current.style.width = '0%'
     v.currentTime = 0
     v.play().catch(() => {})
-    setFsProgress(0)
   }
 
   return (
@@ -155,9 +157,9 @@ export default function VideoModule({ node, file, onDone }) {
                 <div className="videoFsControls" style={{ zIndex: 253 }}>
                   <button className="videoFullClose" onClick={closeFs}>×</button>
                   {!fsReady && <div className="videoFullSpinner" />}
-                  {/* Progress bar */}
+                  {/* Progress bar — updated via direct DOM ref for 60fps smoothness */}
                   <div className="videoFsProgressTrack">
-                    <div className="videoFsProgressBar" style={{ width: `${fsProgress * 100}%` }} />
+                    <div ref={progressRef} className="videoFsProgressBar" style={{ width: '0%' }} />
                   </div>
                 </div>
               )}
@@ -172,7 +174,7 @@ export default function VideoModule({ node, file, onDone }) {
 function MutedIcon() {
   return (
     <div className="videoMutedIcon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M11 5L6 9H2v6h4l5 4V5z" fill="white" fillOpacity="0.9"/>
         <line x1="23" y1="9" x2="17" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
         <line x1="17" y1="9" x2="23" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
