@@ -183,16 +183,22 @@ export default function CircleModule({ node, file, onDone }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // CSS transition на .circleMedia синхронизирует анимацию с circleWrap.
-  // expanded: calcStyle(expandDims, scaledCrop) — совпадает с редактором.
-  // !expanded: calcStyle(dims, crop) — CSS transition анимирует возврат автоматически.
+  // Видео-элемент ВСЕГДА имеет размер малого кружка (dims) — width/height не меняются.
+  // При expand меняется только scale() в transform: scale(cropScale * expandRatio).
+  // Это устраняет десинхрон: left:50% + translate(-50%) всегда держат центр,
+  // а scale и circleWrap.width анимируются с одинаковым ratio → идеальный единый элемент.
+  const smallVideoStyle = calcStyle(intr, dims, crop)
   const expandedVideoStyle = (() => {
     if (!dims?.w || !intr) return { position: 'absolute', inset: 0, objectFit: 'cover' }
     const expandW = window.innerWidth - EDGE_GAP * 2
     const ratio = expandW / dims.w
-    return calcStyle(intr, { w: expandW, h: expandW }, { x: crop.x * ratio, y: crop.y * ratio, scale: crop.scale })
+    const base = calcStyle(intr, dims, crop)
+    return {
+      ...base,
+      transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale * ratio})`,
+    }
   })()
-  const videoStyle = expanded ? expandedVideoStyle : calcStyle(intr, dims, crop)
+  const videoStyle = expanded ? expandedVideoStyle : smallVideoStyle
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
