@@ -12,7 +12,7 @@ export default function VideoModule({ node, file, onDone }) {
   const [fsReady,     setFsReady]    = useState(false)
   const [showPlay,    setShowPlay]   = useState(true)
   const [fsShowPlay,  setFsShowPlay] = useState(false)
-  const [frameReady,  setFrameReady] = useState(false) // hides black frame until first frame decoded
+  const [frameReady,  setFrameReady] = useState(false)
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
   const frameRef    = useRef(null)
@@ -37,7 +37,7 @@ export default function VideoModule({ node, file, onDone }) {
     doneFiredRef.current = false
     setShowPlay(true)
     setFsShowPlay(false)
-    setFrameReady(false)
+    setFrameReady(!!file?.posterUrl) // if poster available — frame is already ready
   }, [src])
 
   useLayoutEffect(() => {
@@ -209,8 +209,9 @@ export default function VideoModule({ node, file, onDone }) {
                   ref={videoRef}
                   src={src}
                   className="playerVideoMedia"
-                  style={{ ...getMediaStyle(), opacity: frameReady ? 1 : 0, transition: 'opacity .2s' }}
+                  style={{ ...getMediaStyle(), opacity: frameReady ? 1 : 0, transition: frameReady ? 'opacity .2s' : 'none' }}
                   playsInline preload="auto"
+                  poster={file?.posterUrl ?? undefined}
                   onLoadedMetadata={handleMetadata}
                   onLoadedData={handleLoadedData}
                   onCanPlay={handleCanPlay}

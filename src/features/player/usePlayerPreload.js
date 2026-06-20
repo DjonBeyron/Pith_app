@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
 
-// Preload blobs for currently visible nodes + next LOOKAHEAD nodes
-// so modules receive instant local blobUrl instead of a remote URL
 const LOOKAHEAD = 2
 const MEDIA_TYPES = new Set(['video', 'circle', 'photo', 'audio', 'voice_record', 'sticker'])
+const FRAME_TYPES = new Set(['video', 'circle']) // types that need first-frame capture
 
 export function usePlayerPreload(nodes, files, visibleNodes) {
-  const [blobMap, setBlobMap] = useState({})
+  const [blobMap,   setBlobMap]   = useState({})
+  const [posterMap, setPosterMap] = useState({}) // fileId → JPEG data URL of first frame
   const blobUrlsRef = useRef({})
   const loadingRef  = useRef(new Set())
 
@@ -17,7 +17,6 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     const lastSeq    = Math.max(...visibleNodes.map(n => n.seq ?? 0))
     const nodesBySeq = [...nodes].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
 
-    // Target: currently visible nodes + next LOOKAHEAD nodes
     const targets = nodesBySeq.filter(n => {
       if (!MEDIA_TYPES.has(n.type)) return false
       const s = n.seq ?? 0
@@ -45,6 +44,15 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
           loadingRef.current.delete(fileId)
           pLog('PlayerPreload ready: seq=', node.seq, Math.round(blob.size / 1024), 'KB')
           setBlobMap(prev => ({ ...prev, [fileId]: blobUrl }))
+
+          if (FRAME_TYPES.has(node.type)) {
+            captureFirstFrame(blobUrl, fileId, node.seq).then(posterUrl => {
+              if (posterUrl) {
+                pLog('PlayerPreload poster captured: seq=', node.seq)
+                setPosterMap(prev => ({ ...prev, [fileId]: posterUrl }))
+              }
+            })
+          }
         })
         .catch(e => {
           loadingRef.current.delete(fileId)
@@ -59,5 +67,56 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     }
   }, [])
 
-  return blobMap
+  return { blobMap, posterMap }
+}
+
+// Capture first frame from a video blob URL via offscreen <video> + <canvas>
+function captureFirstFrame(blobUrl, fileId, seq) {
+  return new Promise(resolve => {
+    const v = document.createElement('video')
+    v.muted = true
+    v.playsInline = true
+    v.preload = 'auto'
+    v.crossOrigin = 'anonymous'
+    v.src = blobUrl
+
+    let done = false
+    const finish = (result) => {
+      if (done) return
+      done = true
+      v.src = ''
+      try { v.load() } catch {}
+      resolve(result)
+    }
+
+    const timer = setTimeout(() => {
+      pLog('PlayerPreload: first frame timeout seq=', seq)
+      finish(null)
+    }, 6000)
+
+    v.addEventListener('canplay', () => {
+      v.currentTime = 0.001
+    })
+
+    v.addEventListener('seeked', () => {
+      clearTimeout(timer)
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width  = v.videoWidth  || 320
+        canvas.height = v.videoHeight || 240
+        canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+        finish(dataUrl)
+      } catch (e) {
+        pLog('PlayerPreload: canvas capture failed seq=', seq, e.message)
+        finish(null)
+      }
+    })
+
+    v.addEventListener('error', () => {
+      clearTimeout(timer)
+      pLog('PlayerPreload: offscreen video error seq=', seq, v.error?.code)
+      finish(null)
+    })
+  })
 }
