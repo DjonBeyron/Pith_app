@@ -50,7 +50,6 @@ export default function CircleModule({ node, file, onDone }) {
   const doneFiredRef    = useRef(false)  // защита от двойного срабатывания onDone
   const expandedRef     = useRef(false)
   const lastRafTime     = useRef(0)
-  const expandDimsRef   = useRef(null)  // dims кружка в expanded (для calcStyle с crop)
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -117,7 +116,6 @@ export default function CircleModule({ node, file, onDone }) {
       '| innerWidth=', window.innerWidth, '| expandW=', expandW, '| ml=', Math.round(ml))
 
     doneFiredRef.current = false
-    expandDimsRef.current = { w: expandW, h: expandW }
     setWrapStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
     setExpanded(true)
     expandedRef.current = true
@@ -180,18 +178,13 @@ export default function CircleModule({ node, file, onDone }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // expanding: держим малый стиль пока контейнер ещё анимирует 200→354px
-  // (иначе видео прыгает в позицию для большого размера раньше времени → мерцание)
-  // collapsing: держим большой стиль пока контейнер ещё анимирует 354→200px
-  const expandVideoStyle = (() => {
-    const ed = expandDimsRef.current
-    if (!ed || !dims?.w) return calcStyle(intr, ed, crop)
-    const ratio = ed.w / dims.w
-    return calcStyle(intr, ed, { x: crop.x * ratio, y: crop.y * ratio, scale: crop.scale })
-  })()
+  // expanded/collapsing: objectFit:cover — заполняет контейнер любого размера без explicit px.
+  // calcStyle даёт width/height в px → layout recalc при смене размера → микро-фриз.
+  // Малый кружок: calcStyle нужен чтобы совпасть с crop из редактора.
+  const expandedVideoStyle = { position: 'absolute', inset: 0, objectFit: 'cover' }
   const _vsMode = (expanded || collapsing) ? 'expand' : 'small'
   pLog('CircleModule RENDER: vsMode=', _vsMode, 'intr=', intr ? `${intr.w}x${intr.h}` : 'null', 'dims=', dims ? `${dims.w}x${dims.h}` : 'null')
-  const videoStyle = (expanded || collapsing) ? expandVideoStyle : calcStyle(intr, dims, crop)
+  const videoStyle = (expanded || collapsing) ? expandedVideoStyle : calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
