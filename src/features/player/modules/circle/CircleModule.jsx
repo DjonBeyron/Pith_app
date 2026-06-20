@@ -126,9 +126,12 @@ export default function CircleModule({ node, file, onDone }) {
 
     const v = vRef.current
     if (v) {
+      // pause+seek до unmute — иначе muted=false на текущей позиции
+      // даёт слышимый глюк пока seek ещё не выполнен
+      v.pause()
       v.loop = false
-      v.muted = false
       v.currentTime = 0
+      v.muted = false
       v.play()
         .then(() => pLog('CircleModule: expanded play OK'))
         .catch(err => {
