@@ -122,6 +122,7 @@ export default function VideoModule({ node, file, onDone }) {
     const v = videoRef.current
     if (!v) return
     pLog('VideoModule: playWithAudio rs=', v.readyState, 'muted=', v.muted, 'paused=', v.paused)
+    setAfterCanPlay(true) // hide poster img immediately when play starts
     v.currentTime = 0
     v.muted = false
     const p = v.play()
@@ -217,7 +218,6 @@ export default function VideoModule({ node, file, onDone }) {
                   className="playerVideoMedia"
                   style={getMediaStyle()}
                   playsInline preload="auto"
-                  poster={posterUrl ?? undefined}
                   onLoadedMetadata={handleMetadata}
                   onLoadedData={handleLoadedData}
                   onCanPlay={handleCanPlay}
@@ -225,7 +225,18 @@ export default function VideoModule({ node, file, onDone }) {
                   onEnded={handleEnded}
                   onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
-                {/* Dark mask while first frame not yet decoded — fades out when ready */}
+                {/* Poster img — same crop/scale transform as video.
+                    Shown until afterCanPlay (real frame decoded) or while playing. */}
+                {posterUrl && !afterCanPlay && (
+                  <img
+                    src={posterUrl}
+                    alt=""
+                    className="playerVideoMedia"
+                    style={{ ...getMediaStyle(), zIndex: 1, pointerEvents: 'none' }}
+                    draggable={false}
+                  />
+                )}
+                {/* Dark mask when no poster and frame not yet decoded */}
                 {!frameReady && <div className="videoFrameMask" />}
                 {showPlay && <PlayBtn />}
               </div>
