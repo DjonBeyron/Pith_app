@@ -101,14 +101,26 @@ function captureFirstFrame(blobUrl, fileId, seq) {
     v.addEventListener('seeked', () => {
       clearTimeout(timer)
       try {
+        const W = Math.min(v.videoWidth  || 320, 320)
+        const H = Math.min(v.videoHeight || 240, 240)
         const canvas = document.createElement('canvas')
-        canvas.width  = v.videoWidth  || 320
-        canvas.height = v.videoHeight || 240
-        canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+        canvas.width  = W
+        canvas.height = H
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(v, 0, 0, W, H)
+        // Check if canvas has real content (iOS often returns black pixels)
+        const sample = ctx.getImageData(W >> 1, H >> 1, 8, 8).data
+        const isBlank = Array.from(sample).every((v, i) => i % 4 === 3 || v < 8)
+        if (isBlank) {
+          pLog('PlayerPreload: canvas is blank/black seq=', seq, '→ skip poster')
+          finish(null)
+          return
+        }
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82)
+        pLog('PlayerPreload: poster OK seq=', seq, Math.round(dataUrl.length / 1024), 'KB')
         finish(dataUrl)
       } catch (e) {
-        pLog('PlayerPreload: canvas capture failed seq=', seq, e.message)
+        pLog('PlayerPreload: canvas error seq=', seq, e.message)
         finish(null)
       }
     })

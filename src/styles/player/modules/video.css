@@ -24,6 +24,15 @@
   pointer-events: none;
 }
 
+/* ── Loading mask — hides black video until first frame decoded ── */
+.videoFrameMask {
+  position: absolute;
+  inset: 0;
+  background: #111;
+  pointer-events: none;
+  z-index: 1;
+}
+
 /* ── Play button overlay ── */
 .videoPlayBtn {
   position: absolute;
@@ -32,6 +41,7 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  z-index: 2;
 }
 
 .videoPlayBtn svg {

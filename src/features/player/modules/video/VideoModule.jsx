@@ -212,9 +212,9 @@ export default function VideoModule({ node, file, onDone }) {
                   ref={videoRef}
                   src={src}
                   className="playerVideoMedia"
-                  style={{ ...getMediaStyle(), opacity: frameReady ? 1 : 0, transition: frameReady ? 'opacity .2s' : 'none' }}
+                  style={getMediaStyle()}
                   playsInline preload="auto"
-                  poster={file?.posterUrl ?? undefined}
+                  poster={posterUrl ?? undefined}
                   onLoadedMetadata={handleMetadata}
                   onLoadedData={handleLoadedData}
                   onCanPlay={handleCanPlay}
@@ -222,6 +222,8 @@ export default function VideoModule({ node, file, onDone }) {
                   onEnded={handleEnded}
                   onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
+                {/* Dark mask while first frame not yet decoded — fades out when ready */}
+                {!frameReady && <div className="videoFrameMask" />}
                 {showPlay && <PlayBtn />}
               </div>
 
