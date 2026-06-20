@@ -47,7 +47,7 @@ export default function CircleModule({ node, file, onDone }) {
   const rafRef          = useRef(null)
   const collapseTimer   = useRef(null)
   const touchStartY     = useRef(0)
-  const doneFiredRef    = useRef(false)
+  const doneFiredRef    = useRef(false)  // защита от двойного срабатывания onDone
   const expandedRef     = useRef(false)
   const lastRafTime     = useRef(0)
   const expandDimsRef   = useRef(null)  // dims кружка в expanded (для calcStyle с crop)
@@ -73,18 +73,12 @@ export default function CircleModule({ node, file, onDone }) {
     setDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
-  function handleTimeUpdate(e) {
-    if (doneFiredRef.current || expandedRef.current) return
-    const v = e.currentTarget
-    if (v.duration && v.currentTime >= v.duration - 0.15) {
-      doneFiredRef.current = true
-      pLog('CircleModule: first loop end → onDone()')
-      onDone?.()
-    }
-  }
-
   function handleEnded() {
-    pLog('CircleModule: video ended in expanded → auto-collapse')
+    if (!expandedRef.current) return  // малый кружок зациклен, ended не должен срабатывать
+    if (doneFiredRef.current) return
+    doneFiredRef.current = true
+    pLog('CircleModule: expanded video ended → onDone + collapse')
+    onDone?.()
     collapse()
   }
 
@@ -217,7 +211,6 @@ export default function CircleModule({ node, file, onDone }) {
                 onCanPlay={() => pLog('CircleModule canPlay expanded=', expandedRef.current)}
                 onWaiting={() => pLog('CircleModule WAITING (buffering) expanded=', expandedRef.current)}
                 onStalled={() => pLog('CircleModule STALLED expanded=', expandedRef.current)}
-                onTimeUpdate={handleTimeUpdate}
                 onEnded={handleEnded}
                 onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}
               />
