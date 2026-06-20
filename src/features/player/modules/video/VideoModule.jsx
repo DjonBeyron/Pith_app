@@ -77,27 +77,30 @@ export default function VideoModule({ node, file, onDone }) {
     const v = e.currentTarget
     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
     logV('onLoadedMetadata', v)
-    v.currentTime = 0.001
-    pLog('VideoModule: seek→0.001 after metadata')
+    // Skip seek if poster is available — seeking removes poster and causes black flash
+    if (!posterUrl) {
+      v.currentTime = 0.001
+      pLog('VideoModule: seek→0.001 after metadata (no poster)')
+    }
   }
 
   function handleLoadedData(e) {
     const v = e.currentTarget
     logV('onLoadedData', v)
-    if (v.currentTime < 0.0005) {
+    if (!posterUrl && v.currentTime < 0.0005) {
       v.currentTime = 0.001
-      pLog('VideoModule: seek→0.001 after loadeddata')
+      pLog('VideoModule: seek→0.001 after loadeddata (no poster)')
     }
   }
 
   function handleCanPlay(e) {
     const v = e.currentTarget
     logV('onCanPlay', v)
-    if (v.currentTime < 0.0005) {
+    if (!posterUrl && v.currentTime < 0.0005) {
       v.currentTime = 0.001
-      pLog('VideoModule: seek→0.001 after canplay')
+      pLog('VideoModule: seek→0.001 after canplay (no poster)')
     }
-    pLog('VideoModule: afterCanPlay=true (onCanPlay) posterUrl=', !!posterUrl)
+    pLog('VideoModule: afterCanPlay=true posterUrl=', !!posterUrl)
     setAfterCanPlay(true)
   }
 
