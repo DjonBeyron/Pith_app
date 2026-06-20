@@ -5,30 +5,27 @@
   padding: 3px;
   overflow: visible;
   border-radius: 20px 50% 50% 50%;
-  /* Только background + border-radius — не padding, он заложен в ml-расчёт */
+  /* max-width: none — убираем 78% от .playerMsgBubble, bubble не должен
+     зажимать circleWrap во время анимации (вызывал скачок при возврате) */
+  max-width: none;
+  /* Только визуальные свойства — не влияют на layout, не сбивают ml-расчёт */
   transition: background 0.38s cubic-bezier(0.4, 0, 0.2, 1),
               border-radius 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Bubble прозрачный в expanded — padding не меняем (заложен в ml-расчёт).
-   max-width: none — снимаем ограничение 78% чтобы bubble не зажимал circleWrap */
 .playerMsgBubble--circle--expanded {
   background: transparent;
   border-radius: 0;
-  max-width: none;
 }
 
 .circleWrap {
   position: relative;
-  /* Размер всегда через inline style (явные px) — CSS transition
-     между двумя inline-значениями надёжнее чем px → min(50vw,200px) */
   flex-shrink: 0;
   cursor: pointer;
+  /* Размер через inline style (явные px) — transition между двумя px-значениями */
   transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1),
               height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
               margin-left 0.38s cubic-bezier(0.4, 0, 0.2, 1);
-  /* overflow: visible — ring SVG (inset: -9px) виден снаружи кружка;
-     в expanded режиме ring вписывается в viewport без overflow:hidden */
 }
 
 .circleFrame {
@@ -37,6 +34,8 @@
   border-radius: 50%;
   overflow: hidden;
   box-shadow: 0 0 0 2px #1a1d22;
+  /* GPU-слой изолирует video от перерисовки родителей (bubble transition) */
+  will-change: transform;
 }
 
 .circleMedia {
@@ -47,8 +46,7 @@
   pointer-events: none;
 }
 
-/* Ring SVG выходит на 9px за кружок — при expanded тоже вписывается
-   т.к. expandW = viewport - 48px, ring = expandW + 18px < viewport */
+/* Ring extends 9px outside circle — при expanded (354px) ring=372px < viewport 402px */
 .circleRingSvg {
   position: absolute;
   inset: -9px;
@@ -58,7 +56,7 @@
   overflow: visible;
 }
 
-/* ── Muted icon — bottom center of inline circle ── */
+/* ── Muted icon ── */
 .circleMutedIcon {
   position: absolute;
   bottom: 8px;

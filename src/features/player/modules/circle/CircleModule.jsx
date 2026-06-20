@@ -1,19 +1,43 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
-const EDGE_GAP = 24 // px зазор от каждого края в expanded-режиме
+const EDGE_GAP = 24
 
 function getSmallPx() {
   return Math.min(window.innerWidth * 0.5, 200)
 }
 
+// Intrinsic-based positioning — совпадает с редактором.
+// В expanded используем objectFit (crop не нужен при просмотре).
+function calcStyle(intrinsic, dims, crop) {
+  if (!intrinsic || !dims) return {
+    position: 'absolute', inset: 0, objectFit: 'cover',
+    transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
+    transformOrigin: 'center center',
+  }
+  const ma = intrinsic.w / intrinsic.h, fa = dims.w / dims.h
+  const d = ma > fa ? { w: dims.h * ma, h: dims.h } : { w: dims.w, h: dims.w / ma }
+  return {
+    position: 'absolute', left: '50%', top: '50%',
+    width: d.w + 'px', height: d.h + 'px',
+    transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale})`,
+    transformOrigin: 'center center',
+  }
+}
+
+const expandedVideoStyle = {
+  position: 'absolute', inset: 0, objectFit: 'cover',
+  transformOrigin: 'center center',
+}
+
 export default function CircleModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
+  const [intr, setIntr] = useState(null)
+  const [dims, setDims] = useState(null)
   const [expanded, setExpanded] = useState(false)
-  // Всегда inline-пиксели — чтобы CSS transition шёл между двумя явными значениями
   const [wrapStyle, setWrapStyle] = useState(() => {
     const s = getSmallPx()
     return { width: s + 'px', height: s + 'px', marginLeft: '0px' }
@@ -22,6 +46,7 @@ export default function CircleModule({ node, file, onDone }) {
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
   const vRef         = useRef(null)
   const wrapRef      = useRef(null)
+  const frRef        = useRef(null)
   const arcRef       = useRef(null)
   const rafRef       = useRef(null)
   const touchStartY  = useRef(0)
@@ -40,10 +65,15 @@ export default function CircleModule({ node, file, onDone }) {
   useEffect(() => {
     pLog('CircleModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'NULL',
       '| blobUrl=', file?.blobUrl ? 'YES' : 'no')
+    setIntr(null)
     doneFiredRef.current = false
   }, [src]) // eslint-disable-line
 
-  // onDone: конец первого цикла через timeupdate (loop=true не даёт onEnded)
+  useLayoutEffect(() => {
+    const el = frRef.current; if (!el) return
+    setDims({ w: el.clientWidth, h: el.clientHeight })
+  }, [src])
+
   function handleTimeUpdate(e) {
     if (doneFiredRef.current || expandedRef.current) return
     const v = e.currentTarget
@@ -54,7 +84,6 @@ export default function CircleModule({ node, file, onDone }) {
     }
   }
 
-  // onEnded стреляет только в expanded (loop=false) → авто-закрытие
   function handleEnded() {
     pLog('CircleModule: video ended in expanded → auto-collapse')
     collapse()
@@ -126,14 +155,7 @@ export default function CircleModule({ node, file, onDone }) {
 
   useEffect(() => () => stopRaf(), [])
 
-  // Только inset: 0 — width/height избыточны при position: absolute + inset
-  const mediaStyle = {
-    position: 'absolute',
-    inset: 0,
-    objectFit: 'cover',
-    transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
-    transformOrigin: 'center center',
-  }
+  const videoStyle = expanded ? expandedVideoStyle : calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
@@ -147,11 +169,12 @@ export default function CircleModule({ node, file, onDone }) {
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            <div className="circleFrame">
+            <div ref={frRef} className="circleFrame">
               <video
                 ref={vRef} src={src} className="circleMedia"
-                style={mediaStyle}
+                style={videoStyle}
                 playsInline autoPlay muted loop preload="auto"
+                onLoadedMetadata={e => setIntr({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight })}
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleEnded}
                 onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}
