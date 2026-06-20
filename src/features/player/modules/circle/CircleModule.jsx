@@ -4,21 +4,12 @@ import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
-
-// objectFit: cover — video follows container CSS transition smoothly.
-// crop.x/y/scale applied as transform on top (admin-set pixel offsets).
-function videoStyle(crop) {
-  return {
-    width: '100%', height: '100%', objectFit: 'cover',
-    transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
-    transformOrigin: 'center center',
-  }
-}
+const EDGE_GAP = 24 // px отступ от каждого края в expanded-режиме
 
 export default function CircleModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [expanded, setExpanded] = useState(false)
-  const [expandLeft, setExpandLeft] = useState(0)
+  const [expandStyle, setExpandStyle] = useState({})
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
   const vRef         = useRef(null)
@@ -27,6 +18,7 @@ export default function CircleModule({ node, file, onDone }) {
   const rafRef       = useRef(null)
   const touchStartY  = useRef(0)
   const doneFiredRef = useRef(false)
+  const expandedRef  = useRef(false) // синхронная копия expanded для onEnded
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -43,9 +35,9 @@ export default function CircleModule({ node, file, onDone }) {
     doneFiredRef.current = false
   }, [src]) // eslint-disable-line
 
-  // onDone: fires at end of first loop (via timeupdate — loop attr prevents onEnded)
+  // onDone: конец первого цикла (loop=true → onEnded не стреляет, используем timeupdate)
   function handleTimeUpdate(e) {
-    if (doneFiredRef.current) return
+    if (doneFiredRef.current || expandedRef.current) return
     const v = e.currentTarget
     if (v.duration && v.currentTime >= v.duration - 0.15) {
       doneFiredRef.current = true
@@ -54,7 +46,13 @@ export default function CircleModule({ node, file, onDone }) {
     }
   }
 
-  // rAF loop for smooth ring progress
+  // onEnded стреляет только в expanded-режиме (там loop=false) → автозакрытие
+  function handleEnded() {
+    pLog('CircleModule: video ended in expanded → auto-collapse')
+    collapse()
+  }
+
+  // rAF для плавного кольца прогресса
   function startRaf() {
     const tick = () => {
       const v = vRef.current
@@ -73,33 +71,41 @@ export default function CircleModule({ node, file, onDone }) {
   }
 
   function handleTap() {
-    if (expanded) { collapse(); return }
+    if (expandedRef.current) { collapse(); return }
     const rect = wrapRef.current.getBoundingClientRect()
-    const ml = -rect.left
-    pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top), w: Math.round(rect.width), h: Math.round(rect.height) }),
-      '| window.innerWidth=', window.innerWidth, '| marginLeft=', Math.round(ml))
-    setExpandLeft(ml)
+    const expandW = window.innerWidth - EDGE_GAP * 2
+    const ml = -(rect.left - EDGE_GAP)
+    pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), w: Math.round(rect.width) }),
+      '| innerWidth=', window.innerWidth, '| expandW=', expandW, '| ml=', Math.round(ml))
+
+    setExpandStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
     setExpanded(true)
+    expandedRef.current = true
     startRaf()
+
     const v = vRef.current
     if (v) {
+      v.loop = false // чтобы onEnded стрелял — авто-выход после воспроизведения
       v.muted = false
       v.currentTime = 0
       v.play().catch(() => {
         pLog('CircleModule: unmuted play failed → stay muted')
         v.muted = true
+        v.loop = true
         v.play().catch(() => {})
       })
     }
   }
 
   function collapse() {
-    pLog('CircleModule collapse: expanded=', expanded, '| expandLeft=', expandLeft)
+    pLog('CircleModule collapse: expandedRef=', expandedRef.current)
     stopRaf()
+    expandedRef.current = false
     setExpanded(false)
-    setExpandLeft(0)
+    setExpandStyle({})
     const v = vRef.current
     if (v) {
+      v.loop = true
       v.muted = true
       v.play().catch(() => {})
     }
@@ -112,9 +118,15 @@ export default function CircleModule({ node, file, onDone }) {
 
   useEffect(() => () => stopRaf(), [])
 
-  const expandedStyle = expanded
-    ? { width: '100vw', height: '100vw', marginLeft: `${expandLeft}px`, zIndex: 10 }
-    : {}
+  // Стиль видео: position absolute, inset 0 — чтобы objectFit: cover корректно
+  // заполнял контейнер с position: absolute (circleFrame)
+  const mediaStyle = {
+    position: 'absolute', inset: 0,
+    width: '100%', height: '100%',
+    objectFit: 'cover',
+    transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
+    transformOrigin: 'center center',
+  }
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
@@ -123,7 +135,7 @@ export default function CircleModule({ node, file, onDone }) {
           <div
             ref={wrapRef}
             className={`circleWrap${expanded ? ' circleWrap--expanded' : ''}`}
-            style={expandedStyle}
+            style={expandStyle}
             onClick={handleTap}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
@@ -131,9 +143,10 @@ export default function CircleModule({ node, file, onDone }) {
             <div className="circleFrame">
               <video
                 ref={vRef} src={src} className="circleMedia"
-                style={videoStyle(crop)}
+                style={mediaStyle}
                 playsInline autoPlay muted loop preload="auto"
                 onTimeUpdate={handleTimeUpdate}
+                onEnded={handleEnded}
                 onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}
               />
             </div>
