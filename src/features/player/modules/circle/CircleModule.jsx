@@ -186,6 +186,9 @@ export default function CircleModule({ node, file, onDone }) {
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
+      {expanded && (
+        <div className="circleBackdrop" onClick={collapse} />
+      )}
       {/* plain div — не PlayerBubble: ResizeObserver внутри него ставит overflow:hidden
           при схлопывании, что обрезает кружок, и конкурирует с CSS transition → дёрганья */}
       <div className={`playerMsgBubble playerMsgBubble--circle${(expanded || collapsing) ? ' playerMsgBubble--circle--expanded' : ''}`}>
