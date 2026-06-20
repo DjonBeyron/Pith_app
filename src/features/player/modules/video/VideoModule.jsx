@@ -2,8 +2,7 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-// Tap detection thresholds
-const DBL_TAP_MS = 300 // two taps within this window = double tap
+const DBL_TAP_MS = 300
 
 export default function VideoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
@@ -11,11 +10,13 @@ export default function VideoModule({ node, file, onDone }) {
   const [frameDims,  setFrameDims]  = useState(null)
   const [fsVisible,  setFsVisible]  = useState(false)
   const [fsReady,    setFsReady]    = useState(false)
+  const [showPlay,   setShowPlay]   = useState(true)  // show play button overlay
   const videoRef   = useRef(null)
   const fsVideoRef = useRef(null)
   const frameRef   = useRef(null)
   const tapTimerRef = useRef(null)
   const tapCountRef = useRef(0)
+  const doneFiredRef = useRef(false)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -29,10 +30,12 @@ export default function VideoModule({ node, file, onDone }) {
   const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.video?.r2Url ?? null
 
   useEffect(() => {
-    pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null',
-      '| blobUrl=', file?.blobUrl ? 'YES' : 'no')
+    pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null')
     setIntrinsic(null)
     doneFiredRef.current = false
+    setShowPlay(true)
+    const v = videoRef.current
+    if (v) { v.pause(); v.currentTime = 0 }
   }, [src])
 
   useLayoutEffect(() => {
@@ -59,42 +62,39 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // ── Inline: muted autoloop, onDone near end of first play ────────────────
-  const doneFiredRef = useRef(false)
+  function playWithAudio() {
+    const v = videoRef.current
+    if (!v) return
+    v.muted = false
+    v.currentTime = 0
+    v.play().catch(err => {
+      pLog('VideoModule: play failed:', err.message, '→ muted fallback')
+      v.muted = true
+      v.play().catch(() => {})
+    })
+    setShowPlay(false)
+  }
 
-  function handleTimeUpdate(e) {
-    if (doneFiredRef.current) return
-    const v = e.currentTarget
-    if (v.duration && v.currentTime >= v.duration - 0.15) {
+  function handleEnded() {
+    pLog('VideoModule: ended → show play button again')
+    setShowPlay(true)
+    if (!doneFiredRef.current) {
       doneFiredRef.current = true
-      v.muted = true // ensure silent loop after first play
-      pLog('VideoModule: first play ending → onDone()')
       onDone?.()
     }
   }
 
-  // ── Tap handling: single = play with audio, double = fullscreen ──────────
+  // ── Tap: single = play, double = fullscreen ──────────────────────────────
   function handleTap() {
     tapCountRef.current += 1
 
     if (tapCountRef.current === 1) {
       tapTimerRef.current = setTimeout(() => {
-        // Single tap confirmed — play inline with audio from start
         tapCountRef.current = 0
-        const v = videoRef.current
-        if (!v) return
         pLog('VideoModule: single tap → play with audio')
-        v.pause()
-        v.muted = false
-        v.currentTime = 0
-        v.play().catch(err => {
-          pLog('VideoModule: tap play failed:', err.message, '→ muted fallback')
-          v.muted = true
-          v.play().catch(() => {})
-        })
+        playWithAudio()
       }, DBL_TAP_MS)
     } else {
-      // Double tap — cancel single-tap timer, open fullscreen
       clearTimeout(tapTimerRef.current)
       tapCountRef.current = 0
       pLog('VideoModule: double tap → fullscreen')
@@ -111,9 +111,8 @@ export default function VideoModule({ node, file, onDone }) {
       fs.currentTime = 0
       fs.muted = false
       fs.play().catch(() => {
-        pLog('VideoModule: FS unmuted failed → muted fallback')
         fs.muted = true
-        fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
+        fs.play().catch(err => pLog('VideoModule FS play failed:', err.message))
       })
     }
     setFsVisible(true)
@@ -122,8 +121,6 @@ export default function VideoModule({ node, file, onDone }) {
   function closeFs() {
     fsVideoRef.current?.pause()
     setFsVisible(false)
-    const v = videoRef.current
-    if (v) { v.muted = true; v.play().catch(() => {}) }
   }
 
   useEffect(() => () => clearTimeout(tapTimerRef.current), [])
@@ -139,23 +136,24 @@ export default function VideoModule({ node, file, onDone }) {
                   src={src}
                   className="playerVideoMedia"
                   style={getMediaStyle()}
-                  playsInline autoPlay muted loop preload="auto"
-                  onTimeUpdate={handleTimeUpdate}
+                  playsInline preload="auto"
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
-                    pLog('VideoModule onLoadedMetadata — readyState=', v.readyState, 'duration=', v.duration)
+                    pLog('VideoModule onLoadedMetadata readyState=', v.readyState)
                   }}
-                  onError={e => pLog('VideoModule onError —', e.currentTarget.error?.code, e.currentTarget.error?.message)}
+                  onEnded={handleEnded}
+                  onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
+                {showPlay && <PlayBtn />}
               </div>
 
-              {/* Fullscreen video always in DOM — play() in click handler = user gesture */}
+              {/* Fullscreen video always in DOM — play() is in click handler = user gesture */}
               <video
                 ref={fsVideoRef}
                 src={src}
                 className="videoFullPlayer"
-                playsInline loop preload="none"
+                playsInline preload="none"
                 style={{
                   position: 'fixed', inset: 0,
                   zIndex: fsVisible ? 250 : -1,
@@ -163,8 +161,8 @@ export default function VideoModule({ node, file, onDone }) {
                   pointerEvents: 'none',
                   width: '100%', height: '100%', objectFit: 'contain', background: '#000',
                 }}
-                onCanPlay={() => { pLog('VideoModule FS ready'); setFsReady(true) }}
-                onError={e => pLog('VideoModule FS onError —', e.currentTarget.error?.code)}
+                onCanPlay={() => setFsReady(true)}
+                onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
 
               {fsVisible && (
@@ -177,6 +175,17 @@ export default function VideoModule({ node, file, onDone }) {
           : <div className="playerMediaPlaceholder">Видео не загружено</div>
         }
       </PlayerBubble>
+    </div>
+  )
+}
+
+function PlayBtn() {
+  return (
+    <div className="videoPlayBtn" aria-label="Воспроизвести">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="rgba(0,0,0,0.45)" />
+        <polygon points="19,14 37,24 19,34" fill="white" />
+      </svg>
     </div>
   )
 }

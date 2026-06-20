@@ -24,6 +24,27 @@
   pointer-events: none;
 }
 
+/* ── Play button overlay ── */
+.videoPlayBtn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.videoPlayBtn svg {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
+  transition: transform .12s ease;
+}
+
+.playerVideoCropFrame:active .videoPlayBtn svg {
+  transform: scale(.9);
+}
+
 /* ── Fullscreen overlay ── */
 .videoFullOverlay {
   position: fixed;
