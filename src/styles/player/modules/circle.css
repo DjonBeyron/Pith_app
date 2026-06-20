@@ -13,7 +13,7 @@
      потом 0.15s быстрый snap — уже после окончания анимации кружка. */
   /* border-radius: без transition — мгновенный snap. Анимировать border-radius
      при появлении фона нельзя: квадратные углы мелькают пока фон ещё прозрачный */
-  transition: background 0.15s ease;
+  transition: background 0.35s ease;
 }
 
 .playerMsgBubble--circle--expanded {

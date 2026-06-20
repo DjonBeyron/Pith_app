@@ -10,7 +10,7 @@ function getSmallPx() {
 }
 
 // Intrinsic-based positioning — совпадает с редактором.
-// В expanded используем objectFit (crop не нужен при просмотре).
+// Используется и для малого кружка, и для expanded (с другими dims).
 function calcStyle(intrinsic, dims, crop) {
   if (!intrinsic || !dims) return {
     position: 'absolute', inset: 0, objectFit: 'cover',
@@ -25,11 +25,6 @@ function calcStyle(intrinsic, dims, crop) {
     transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale})`,
     transformOrigin: 'center center',
   }
-}
-
-const expandedVideoStyle = {
-  position: 'absolute', inset: 0, objectFit: 'cover',
-  transformOrigin: 'center center',
 }
 
 export default function CircleModule({ node, file, onDone }) {
@@ -55,6 +50,7 @@ export default function CircleModule({ node, file, onDone }) {
   const doneFiredRef    = useRef(false)
   const expandedRef     = useRef(false)
   const lastRafTime     = useRef(0)
+  const expandDimsRef   = useRef(null)  // dims кружка в expanded (для calcStyle с crop)
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -122,6 +118,7 @@ export default function CircleModule({ node, file, onDone }) {
     pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), w: Math.round(rect.width) }),
       '| innerWidth=', window.innerWidth, '| expandW=', expandW, '| ml=', Math.round(ml))
 
+    expandDimsRef.current = { w: expandW, h: expandW }
     setWrapStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
     setExpanded(true)
     expandedRef.current = true
@@ -157,7 +154,7 @@ export default function CircleModule({ node, file, onDone }) {
     collapseTimer.current = setTimeout(() => {
       pLog('CircleModule: collapsing timer done → setCollapsing(false)')
       setCollapsing(false)
-    }, 420)
+    }, 500)
 
     const s = getSmallPx()
     setWrapStyle({ width: s + 'px', height: s + 'px', marginLeft: '0px' })
@@ -179,8 +176,10 @@ export default function CircleModule({ node, file, onDone }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // collapsing: держим expandedVideoStyle пока circleWrap ещё анимирует к малому размеру
-  const videoStyle = (expanded || collapsing) ? expandedVideoStyle : calcStyle(intr, dims, crop)
+  // expanded/collapsing: calcStyle с expandDims сохраняет crop из ноды в обоих состояниях
+  const videoStyle = (expanded || collapsing)
+    ? calcStyle(intr, expandDimsRef.current, crop)
+    : calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
