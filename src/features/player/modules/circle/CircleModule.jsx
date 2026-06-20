@@ -184,7 +184,8 @@ export default function CircleModule({ node, file, onDone }) {
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
-      <PlayerBubble className={`playerMsgBubble playerMsgBubble--circle${expanded ? ' playerMsgBubble--circle--expanded' : ''}`}>
+      {/* collapsing: bubble остаётся transparent пока circleWrap ещё анимирует к 200px */}
+      <PlayerBubble className={`playerMsgBubble playerMsgBubble--circle${(expanded || collapsing) ? ' playerMsgBubble--circle--expanded' : ''}`}>
         {src ? (
           <div
             ref={wrapRef}

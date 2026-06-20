@@ -8,9 +8,10 @@
   /* max-width: none — убираем 78% от .playerMsgBubble, bubble не должен
      зажимать circleWrap во время анимации (вызывал скачок при возврате) */
   max-width: none;
-  /* Только визуальные свойства — не влияют на layout, не сбивают ml-расчёт */
-  transition: background 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              border-radius 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Только визуальные свойства (не layout). На expand: 0.38s плавно.
+     На collapse: bubble прозрачен 420ms (class --expanded держится через collapsing),
+     потом 0.15s быстрый snap — уже после окончания анимации кружка. */
+  transition: background 0.15s ease, border-radius 0.15s ease;
 }
 
 .playerMsgBubble--circle--expanded {
