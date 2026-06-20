@@ -34,6 +34,7 @@ export default function CircleModule({ node, file, onDone }) {
   const [expanded, setExpanded] = useState(false)
   // collapsing: держит expandedVideoStyle пока анимация схлопывания не завершена
   const [collapsing, setCollapsing] = useState(false)
+  const [expanding, setExpanding] = useState(false)  // держит малый videoStyle во время раскрытия
   const [wrapStyle, setWrapStyle] = useState(() => {
     const s = getSmallPx()
     return { width: s + 'px', height: s + 'px', marginLeft: '0px' }
@@ -112,9 +113,12 @@ export default function CircleModule({ node, file, onDone }) {
     pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), w: Math.round(rect.width) }),
       '| innerWidth=', window.innerWidth, '| expandW=', expandW, '| ml=', Math.round(ml))
 
+    doneFiredRef.current = false  // сброс чтобы повторный просмотр тоже мог завершиться
     expandDimsRef.current = { w: expandW, h: expandW }
     setWrapStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
     setExpanded(true)
+    setExpanding(true)
+    setTimeout(() => setExpanding(false), 420)  // после CSS transition 0.38s
     expandedRef.current = true
     startRaf()
 
@@ -174,15 +178,18 @@ export default function CircleModule({ node, file, onDone }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // crop.x/y заданы для малого кружка (dims.w пикс). В expanded видео физически
-  // больше в ratio раз — масштабируем x/y чтобы сдвиг выглядел одинаково.
+  // expanding: держим малый стиль пока контейнер ещё анимирует 200→354px
+  // (иначе видео прыгает в позицию для большого размера раньше времени → мерцание)
+  // collapsing: держим большой стиль пока контейнер ещё анимирует 354→200px
   const expandVideoStyle = (() => {
     const ed = expandDimsRef.current
     if (!ed || !dims?.w) return calcStyle(intr, ed, crop)
     const ratio = ed.w / dims.w
     return calcStyle(intr, ed, { x: crop.x * ratio, y: crop.y * ratio, scale: crop.scale })
   })()
-  const videoStyle = (expanded || collapsing) ? expandVideoStyle : calcStyle(intr, dims, crop)
+  const videoStyle = expanding
+    ? calcStyle(intr, dims, crop)
+    : (expanded || collapsing) ? expandVideoStyle : calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
