@@ -8,10 +8,11 @@ export default function VideoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
   const [intrinsic,  setIntrinsic]  = useState(null)
   const [frameDims,  setFrameDims]  = useState(null)
-  const [fsVisible,  setFsVisible]  = useState(false)
-  const [fsReady,    setFsReady]    = useState(false)
-  const [showPlay,   setShowPlay]   = useState(true)
-  const [fsShowPlay, setFsShowPlay] = useState(false)
+  const [fsVisible,   setFsVisible]  = useState(false)
+  const [fsReady,     setFsReady]    = useState(false)
+  const [showPlay,    setShowPlay]   = useState(true)
+  const [fsShowPlay,  setFsShowPlay] = useState(false)
+  const [frameReady,  setFrameReady] = useState(false) // hides black frame until first frame decoded
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
   const frameRef    = useRef(null)
@@ -36,6 +37,7 @@ export default function VideoModule({ node, file, onDone }) {
     doneFiredRef.current = false
     setShowPlay(true)
     setFsShowPlay(false)
+    setFrameReady(false)
   }, [src])
 
   useLayoutEffect(() => {
@@ -91,11 +93,15 @@ export default function VideoModule({ node, file, onDone }) {
       v.currentTime = 0.001
       pLog('VideoModule: seek→0.001 after canplay')
     }
+    // Frame is decoded and ready to display — reveal video
+    pLog('VideoModule: frameReady=true (onCanPlay)')
+    setFrameReady(true)
   }
 
   function handleSeeked(e) {
     logV('onSeeked', e.currentTarget)
-    pLog('VideoModule: seeked → first frame should render')
+    pLog('VideoModule: onSeeked → frameReady=true')
+    setFrameReady(true)
   }
 
   function seekToFirstFrame(v) {
@@ -109,18 +115,23 @@ export default function VideoModule({ node, file, onDone }) {
   function playWithAudio() {
     const v = videoRef.current
     if (!v) return
+    pLog('VideoModule: playWithAudio rs=', v.readyState, 'muted=', v.muted, 'paused=', v.paused)
     v.currentTime = 0
     v.muted = false
-    v.play().catch(err => {
-      pLog('VideoModule: play failed:', err.message, '→ muted fallback')
+    const p = v.play()
+    pLog('VideoModule: play() called, promise=', p ? 'yes' : 'no')
+    p && p.then(() => {
+      pLog('VideoModule: play() resolved OK muted=', v.muted)
+    }).catch(err => {
+      pLog('VideoModule: play() rejected:', err.name, err.message, '→ muted fallback')
       v.muted = true
-      v.play().catch(() => {})
+      v.play().then(() => pLog('VideoModule: muted fallback play OK')).catch(e => pLog('VideoModule: muted fallback FAILED:', e.message))
     })
     setShowPlay(false)
   }
 
   function handleEnded() {
-    pLog('VideoModule: inline ended')
+    pLog('VideoModule: INLINE ENDED — setShowPlay(true)')
     setShowPlay(true)
     seekToFirstFrame()
     if (!doneFiredRef.current) {
@@ -198,7 +209,7 @@ export default function VideoModule({ node, file, onDone }) {
                   ref={videoRef}
                   src={src}
                   className="playerVideoMedia"
-                  style={getMediaStyle()}
+                  style={{ ...getMediaStyle(), opacity: frameReady ? 1 : 0, transition: 'opacity .2s' }}
                   playsInline preload="auto"
                   onLoadedMetadata={handleMetadata}
                   onLoadedData={handleLoadedData}
