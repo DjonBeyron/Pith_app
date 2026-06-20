@@ -34,7 +34,6 @@ export default function CircleModule({ node, file, onDone }) {
   const [expanded, setExpanded] = useState(false)
   // collapsing: держит expandedVideoStyle пока анимация схлопывания не завершена
   const [collapsing, setCollapsing] = useState(false)
-  const [expanding, setExpanding] = useState(false)  // держит малый videoStyle во время раскрытия
   const [wrapStyle, setWrapStyle] = useState(() => {
     const s = getSmallPx()
     return { width: s + 'px', height: s + 'px', marginLeft: '0px' }
@@ -74,10 +73,9 @@ export default function CircleModule({ node, file, onDone }) {
     setDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
-  // Дебаг: логируем каждую смену визуального состояния
   useEffect(() => {
-    pLog('CircleModule STATE: expanded=', expanded, 'expanding=', expanding, 'collapsing=', collapsing)
-  }, [expanded, expanding, collapsing])
+    pLog('CircleModule STATE: expanded=', expanded, 'collapsing=', collapsing)
+  }, [expanded, collapsing])
 
   function handleEnded() {
     if (!expandedRef.current) return  // малый кружок зациклен, ended не должен срабатывать
@@ -122,8 +120,6 @@ export default function CircleModule({ node, file, onDone }) {
     expandDimsRef.current = { w: expandW, h: expandW }
     setWrapStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
     setExpanded(true)
-    setExpanding(true)
-    setTimeout(() => setExpanding(false), 420)
     expandedRef.current = true
     startRaf()
 
@@ -193,11 +189,9 @@ export default function CircleModule({ node, file, onDone }) {
     const ratio = ed.w / dims.w
     return calcStyle(intr, ed, { x: crop.x * ratio, y: crop.y * ratio, scale: crop.scale })
   })()
-  const _vsMode = expanding ? 'small(expanding)' : (expanded || collapsing) ? 'expand' : 'small'
+  const _vsMode = (expanded || collapsing) ? 'expand' : 'small'
   pLog('CircleModule RENDER: vsMode=', _vsMode, 'intr=', intr ? `${intr.w}x${intr.h}` : 'null', 'dims=', dims ? `${dims.w}x${dims.h}` : 'null')
-  const videoStyle = expanding
-    ? calcStyle(intr, dims, crop)
-    : (expanded || collapsing) ? expandVideoStyle : calcStyle(intr, dims, crop)
+  const videoStyle = (expanded || collapsing) ? expandVideoStyle : calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
