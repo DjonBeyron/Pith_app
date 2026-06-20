@@ -2,18 +2,15 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-// autoPlay+muted+playsInline — единственная комбинация которую iOS разрешает без жеста пользователя.
-// Анимация slide-in держит элемент прозрачным 400мс (fill:'backwards'), поэтому видео играет
-// невидимо под анимацией и становится видимым уже в движении — это и есть «запуск после анимации».
-
 export default function VideoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
-  const [fullscreen, setFullscreen] = useState(false)
   const [intrinsic,  setIntrinsic]  = useState(null)
   const [frameDims,  setFrameDims]  = useState(null)
-  const videoRef   = useRef(null)
-  const frameRef   = useRef(null)
-  const spinnerRef = useRef(null)
+  const [fsVisible,  setFsVisible]  = useState(false)
+  const [fsReady,    setFsReady]    = useState(false)
+  const videoRef  = useRef(null)
+  const fsVideoRef = useRef(null)
+  const frameRef  = useRef(null)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -28,7 +25,7 @@ export default function VideoModule({ node, file, onDone }) {
 
   useEffect(() => {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null',
-      '| blobUrl=', file?.blobUrl ? 'YES' : 'no', '| r2Url=', file?.r2Url ? 'YES' : 'no')
+      '| blobUrl=', file?.blobUrl ? 'YES' : 'no')
     setIntrinsic(null)
   }, [src])
 
@@ -37,7 +34,6 @@ export default function VideoModule({ node, file, onDone }) {
     if (!el) return
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
-
 
   function getMediaStyle() {
     if (!intrinsic || !frameDims) return {
@@ -57,9 +53,20 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  const videoDoneFiredRef = useRef(false)
-  function handleEnded() {
-    if (!videoDoneFiredRef.current) { videoDoneFiredRef.current = true; onDone?.() }
+  // ── Inline playback ──────────────────────────────────────────────────────
+  const doneFiredRef = useRef(false)
+
+  function handleInlinePlay(e) {
+    const v = e.currentTarget
+    pLog('VideoModule onPlay — readyState=', v.readyState, 'muted=', v.muted, 'currentTime=', v.currentTime)
+    if (!doneFiredRef.current) {
+      // First play: unmute. iOS allows muted→unmuted on already-playing video.
+      v.muted = false
+    }
+  }
+
+  function handleInlineEnded() {
+    if (!doneFiredRef.current) { doneFiredRef.current = true; onDone?.() }
     const v = videoRef.current
     if (!v) return
     v.muted = true
@@ -67,9 +74,32 @@ export default function VideoModule({ node, file, onDone }) {
     v.play()
   }
 
-  function handleCanPlay(e) {
-    e.currentTarget.style.opacity = '1'
-    if (spinnerRef.current) spinnerRef.current.style.display = 'none'
+  // ── Fullscreen ───────────────────────────────────────────────────────────
+  // fsVideoRef is always in DOM (hidden via CSS) so play() can be called
+  // synchronously inside the user-gesture click handler.
+  function openFs() {
+    const inline = videoRef.current
+    if (inline) inline.pause()
+    const fs = fsVideoRef.current
+    if (fs && src) {
+      setFsReady(false)
+      fs.currentTime = 0
+      fs.muted = false
+      // play() called synchronously in click handler = inside user gesture context
+      fs.play().catch(() => {
+        pLog('VideoModule FS play (unmuted) failed, retrying muted')
+        fs.muted = true
+        fs.play().catch(err => pLog('VideoModule FS play muted failed:', err.message))
+      })
+    }
+    setFsVisible(true)
+  }
+
+  function closeFs() {
+    const fs = fsVideoRef.current
+    if (fs) fs.pause()
+    setFsVisible(false)
+    videoRef.current?.play()
   }
 
   return (
@@ -77,58 +107,52 @@ export default function VideoModule({ node, file, onDone }) {
       <PlayerBubble className="playerMsgBubble playerMsgBubble--video">
         {src
           ? <>
-              <div
-                ref={frameRef}
-                className="playerVideoCropFrame"
-                onClick={() => setFullscreen(true)}
-              >
+              {/* ── Inline video ── */}
+              <div ref={frameRef} className="playerVideoCropFrame" onClick={openFs}>
                 <video
                   ref={videoRef}
                   src={src}
                   className="playerVideoMedia"
                   style={getMediaStyle()}
-                  playsInline
-                  autoPlay
-                  muted
-                  preload="auto"
-                  onPlay={e => {
-                    const v = e.currentTarget
-                    pLog('VideoModule onPlay — readyState=', v.readyState, 'muted=', v.muted, 'currentTime=', v.currentTime)
-                    // Unmuting here can cause iOS to PAUSE (unmuted audio = requires user gesture).
-                    // So we keep muted and add a tap-to-unmute button instead.
-                  }}
-                  onEnded={handleEnded}
-                  onCanPlay={e => {
-                    const v = e.currentTarget
-                    pLog('VideoModule onCanPlay — readyState=', v.readyState, 'paused=', v.paused)
-                  }}
+                  playsInline autoPlay muted preload="auto"
+                  onPlay={handleInlinePlay}
+                  onEnded={handleInlineEnded}
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
-                    pLog('VideoModule onLoadedMetadata — readyState=', v.readyState, 'networkState=', v.networkState, 'duration=', v.duration)
+                    pLog('VideoModule onLoadedMetadata — readyState=', v.readyState, 'duration=', v.duration)
                   }}
-                  onError={e => {
-                    const v = e.currentTarget
-                    pLog('VideoModule onError — error=', v.error?.code, v.error?.message, 'src=', src)
-                  }}
-                  onStalled={() => pLog('VideoModule onStalled')}
-                  onWaiting={() => pLog('VideoModule onWaiting — buffering')}
+                  onError={e => pLog('VideoModule onError —', e.currentTarget.error?.code, e.currentTarget.error?.message)}
                 />
               </div>
-              {fullscreen && (
-                <div className="videoFullOverlay" onClick={() => setFullscreen(false)}>
-                  <button className="videoFullClose" onClick={e => { e.stopPropagation(); setFullscreen(false) }}>×</button>
-                  <div ref={spinnerRef} className="videoFullSpinner" />
-                  <video
-                    src={src}
-                    className="videoFullPlayer"
-                    style={{ opacity: 0 }}
-                    autoPlay
-                    loop
-                    playsInline
-                    onCanPlay={handleCanPlay}
-                    onClick={e => e.stopPropagation()}
-                  />
+
+              {/* ── Fullscreen video — always in DOM so play() hits user-gesture window ── */}
+              <video
+                ref={fsVideoRef}
+                src={src}
+                className="videoFullPlayer"
+                playsInline loop preload="none"
+                style={{
+                  position: 'fixed', inset: 0, zIndex: fsVisible ? 250 : -1,
+                  opacity: fsVisible && fsReady ? 1 : 0,
+                  pointerEvents: 'none',
+                  width: '100%', height: '100%', objectFit: 'contain', background: '#000',
+                }}
+                onCanPlay={() => {
+                  pLog('VideoModule FS onCanPlay — ready')
+                  setFsReady(true)
+                }}
+                onError={e => pLog('VideoModule FS onError —', e.currentTarget.error?.code)}
+              />
+
+              {/* ── Fullscreen overlay (close button + spinner) ── */}
+              {fsVisible && (
+                <div className="videoFullOverlay" onClick={closeFs} style={{ zIndex: 251 }}>
+                  <button
+                    className="videoFullClose"
+                    onClick={e => { e.stopPropagation(); closeFs() }}
+                  >×</button>
+                  {!fsReady && <div className="videoFullSpinner" />}
                 </div>
               )}
             </>

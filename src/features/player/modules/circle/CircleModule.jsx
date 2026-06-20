@@ -116,6 +116,10 @@ export default function CircleModule({ node, file, onDone }) {
               <div ref={frRef} className="circleFrame">
                 <video ref={vRef} src={src} className="circleMedia" style={calcStyle(intr, dims, crop)}
                   playsInline autoPlay muted preload="auto" onEnded={onEnd}
+                  onPlay={e => {
+                    const v = e.currentTarget
+                    if (!circleDoneFiredRef.current) v.muted = false
+                  }}
                   onLoadedMetadata={e => setIntr({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight })}
                 />
               </div>
