@@ -118,19 +118,20 @@ export default function CircleModule({ node, file, onDone }) {
     pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), w: Math.round(rect.width) }),
       '| innerWidth=', window.innerWidth, '| expandW=', expandW, '| ml=', Math.round(ml))
 
-    doneFiredRef.current = false  // сброс чтобы повторный просмотр тоже мог завершиться
+    doneFiredRef.current = false
     expandDimsRef.current = { w: expandW, h: expandW }
     setWrapStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
     setExpanded(true)
     setExpanding(true)
-    setTimeout(() => setExpanding(false), 420)  // после CSS transition 0.38s
+    setTimeout(() => setExpanding(false), 420)
     expandedRef.current = true
     startRaf()
 
-    const v = vRef.current
-    if (v) {
-      // pause+seek до unmute — иначе muted=false на текущей позиции
-      // даёт слышимый глюк пока seek ещё не выполнен
+    // Defer pause+seek+play на следующий кадр — даём браузеру сначала
+    // начать CSS transition, иначе decode конкурирует с layout → микро-фриз
+    requestAnimationFrame(() => {
+      const v = vRef.current
+      if (!v || !expandedRef.current) return
       v.pause()
       v.loop = false
       v.currentTime = 0
@@ -143,7 +144,7 @@ export default function CircleModule({ node, file, onDone }) {
           v.loop = true
           v.play().catch(() => {})
         })
-    }
+    })
   }
 
   function collapse() {
@@ -200,9 +201,11 @@ export default function CircleModule({ node, file, onDone }) {
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
-      {expanded && (
-        <div className="circleBackdrop" onClick={collapse} />
-      )}
+      <div
+        className="circleBackdrop"
+        style={{ pointerEvents: expanded ? 'auto' : 'none' }}
+        onClick={collapse}
+      />
       {/* plain div — не PlayerBubble: ResizeObserver внутри него ставит overflow:hidden
           при схлопывании, что обрезает кружок, и конкурирует с CSS transition → дёрганья */}
       <div className={`playerMsgBubble playerMsgBubble--circle${(expanded || collapsing) ? ' playerMsgBubble--circle--expanded' : ''}`}>
