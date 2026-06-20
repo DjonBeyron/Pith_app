@@ -1,36 +1,27 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
 
-function calcStyle(intrinsic, dims, crop) {
-  if (!intrinsic || !dims) return {
+// objectFit: cover — video follows container CSS transition smoothly.
+// crop.x/y/scale applied as transform on top (admin-set pixel offsets).
+function videoStyle(crop) {
+  return {
     width: '100%', height: '100%', objectFit: 'cover',
     transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
-    transformOrigin: 'center center',
-  }
-  const ma = intrinsic.w / intrinsic.h, fa = dims.w / dims.h
-  const d = ma > fa ? { w: dims.h * ma, h: dims.h } : { w: dims.w, h: dims.w / ma }
-  return {
-    position: 'absolute', left: '50%', top: '50%',
-    width: d.w + 'px', height: d.h + 'px',
-    transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale})`,
     transformOrigin: 'center center',
   }
 }
 
 export default function CircleModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
-  const [intr, setIntr] = useState(null)
-  const [dims, setDims] = useState(null)
   const [expanded, setExpanded] = useState(false)
   const [expandLeft, setExpandLeft] = useState(0)
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
   const vRef         = useRef(null)
-  const frRef        = useRef(null)
   const wrapRef      = useRef(null)
   const arcRef       = useRef(null)
   const rafRef       = useRef(null)
@@ -49,16 +40,10 @@ export default function CircleModule({ node, file, onDone }) {
   useEffect(() => {
     pLog('CircleModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'NULL',
       '| blobUrl=', file?.blobUrl ? 'YES' : 'no')
-    setIntr(null)
     doneFiredRef.current = false
   }, [src]) // eslint-disable-line
 
-  useLayoutEffect(() => {
-    const el = frRef.current; if (!el) return
-    setDims({ w: el.clientWidth, h: el.clientHeight })
-  }, [src])
-
-  // onDone: fires at end of first loop (via timeupdate, not onEnded, because loop=true)
+  // onDone: fires at end of first loop (via timeupdate — loop attr prevents onEnded)
   function handleTimeUpdate(e) {
     if (doneFiredRef.current) return
     const v = e.currentTarget
@@ -96,7 +81,6 @@ export default function CircleModule({ node, file, onDone }) {
     setExpandLeft(ml)
     setExpanded(true)
     startRaf()
-    // Unmute + restart from beginning (user gesture context → iOS allows)
     const v = vRef.current
     if (v) {
       v.muted = false
@@ -110,8 +94,10 @@ export default function CircleModule({ node, file, onDone }) {
   }
 
   function collapse() {
+    pLog('CircleModule collapse: expanded=', expanded, '| expandLeft=', expandLeft)
     stopRaf()
     setExpanded(false)
+    setExpandLeft(0)
     const v = vRef.current
     if (v) {
       v.muted = true
@@ -119,16 +105,12 @@ export default function CircleModule({ node, file, onDone }) {
     }
   }
 
-  // Swipe down to collapse
   function onTouchStart(e) { touchStartY.current = e.touches[0].clientY }
   function onTouchEnd(e) {
     if (e.changedTouches[0].clientY - touchStartY.current > 80) collapse()
   }
 
   useEffect(() => () => stopRaf(), [])
-
-  // In expanded state use window dimensions (circle is 100vw × 100vw)
-  const activeDims = expanded ? { w: window.innerWidth, h: window.innerWidth } : dims
 
   const expandedStyle = expanded
     ? { width: '100vw', height: '100vw', marginLeft: `${expandLeft}px`, zIndex: 10 }
@@ -146,18 +128,16 @@ export default function CircleModule({ node, file, onDone }) {
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            <div ref={frRef} className="circleFrame">
+            <div className="circleFrame">
               <video
                 ref={vRef} src={src} className="circleMedia"
-                style={calcStyle(intr, activeDims, crop)}
+                style={videoStyle(crop)}
                 playsInline autoPlay muted loop preload="auto"
-                onLoadedMetadata={e => setIntr({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight })}
                 onTimeUpdate={handleTimeUpdate}
                 onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}
               />
             </div>
 
-            {/* Ring progress — visible only when expanded */}
             {expanded && (
               <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true">
                 <circle cx="109" cy="109" r={RING_R} fill="none"
@@ -170,7 +150,6 @@ export default function CircleModule({ node, file, onDone }) {
               </svg>
             )}
 
-            {/* Muted icon — visible only when not expanded */}
             {!expanded && <CircleMutedIcon />}
           </div>
         ) : <div className="playerMediaPlaceholder">Кружок не загружен</div>}
