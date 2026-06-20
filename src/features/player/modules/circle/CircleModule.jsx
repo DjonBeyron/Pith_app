@@ -76,6 +76,11 @@ export default function CircleModule({ node, file, onDone }) {
     pLog('CircleModule STATE: expanded=', expanded, 'collapsing=', collapsing)
   }, [expanded, collapsing])
 
+  useEffect(() => {
+    const mode = (expanded || collapsing) ? 'expand' : 'small'
+    pLog('CircleModule vsMode=', mode, 'intr=', intr ? `${intr.w}x${intr.h}` : 'null', 'dims=', dims ? `${dims.w}x${dims.h}` : 'null')
+  })
+
   function handleEnded() {
     if (!expandedRef.current) return  // малый кружок зациклен, ended не должен срабатывать
     if (doneFiredRef.current) return
@@ -182,8 +187,6 @@ export default function CircleModule({ node, file, onDone }) {
   // calcStyle даёт width/height в px → layout recalc при смене размера → микро-фриз.
   // Малый кружок: calcStyle нужен чтобы совпасть с crop из редактора.
   const expandedVideoStyle = { position: 'absolute', inset: 0, objectFit: 'cover' }
-  const _vsMode = (expanded || collapsing) ? 'expand' : 'small'
-  pLog('CircleModule RENDER: vsMode=', _vsMode, 'intr=', intr ? `${intr.w}x${intr.h}` : 'null', 'dims=', dims ? `${dims.w}x${dims.h}` : 'null')
   const videoStyle = (expanded || collapsing) ? expandedVideoStyle : calcStyle(intr, dims, crop)
 
   return (
