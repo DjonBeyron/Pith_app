@@ -74,6 +74,11 @@ export default function CircleModule({ node, file, onDone }) {
     setDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
+  // Дебаг: логируем каждую смену визуального состояния
+  useEffect(() => {
+    pLog('CircleModule STATE: expanded=', expanded, 'expanding=', expanding, 'collapsing=', collapsing)
+  }, [expanded, expanding, collapsing])
+
   function handleEnded() {
     if (!expandedRef.current) return  // малый кружок зациклен, ended не должен срабатывать
     if (doneFiredRef.current) return
@@ -187,6 +192,8 @@ export default function CircleModule({ node, file, onDone }) {
     const ratio = ed.w / dims.w
     return calcStyle(intr, ed, { x: crop.x * ratio, y: crop.y * ratio, scale: crop.scale })
   })()
+  const _vsMode = expanding ? 'small(expanding)' : (expanded || collapsing) ? 'expand' : 'small'
+  pLog('CircleModule RENDER: vsMode=', _vsMode, 'intr=', intr ? `${intr.w}x${intr.h}` : 'null', 'dims=', dims ? `${dims.w}x${dims.h}` : 'null')
   const videoStyle = expanding
     ? calcStyle(intr, dims, crop)
     : (expanded || collapsing) ? expandVideoStyle : calcStyle(intr, dims, crop)
