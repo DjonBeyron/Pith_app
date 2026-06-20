@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
-import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
@@ -184,8 +183,9 @@ export default function CircleModule({ node, file, onDone }) {
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
-      {/* collapsing: bubble остаётся transparent пока circleWrap ещё анимирует к 200px */}
-      <PlayerBubble className={`playerMsgBubble playerMsgBubble--circle${(expanded || collapsing) ? ' playerMsgBubble--circle--expanded' : ''}`}>
+      {/* plain div — не PlayerBubble: ResizeObserver внутри него ставит overflow:hidden
+          при схлопывании, что обрезает кружок, и конкурирует с CSS transition → дёрганья */}
+      <div className={`playerMsgBubble playerMsgBubble--circle${(expanded || collapsing) ? ' playerMsgBubble--circle--expanded' : ''}`}>
         {src ? (
           <div
             ref={wrapRef}
@@ -229,7 +229,7 @@ export default function CircleModule({ node, file, onDone }) {
             {!expanded && <CircleMutedIcon />}
           </div>
         ) : <div className="playerMediaPlaceholder">Кружок не загружен</div>}
-      </PlayerBubble>
+      </div>
     </div>
   )
 }
