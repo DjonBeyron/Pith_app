@@ -11,6 +11,7 @@ export default function VideoModule({ node, file, onDone }) {
   const [fsVisible,  setFsVisible]  = useState(false)
   const [fsReady,    setFsReady]    = useState(false)
   const [showPlay,   setShowPlay]   = useState(true)
+  const [fsShowPlay, setFsShowPlay] = useState(false)
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
   const frameRef    = useRef(null)
@@ -34,6 +35,7 @@ export default function VideoModule({ node, file, onDone }) {
     setIntrinsic(null)
     doneFiredRef.current = false
     setShowPlay(true)
+    setFsShowPlay(false)
   }, [src])
 
   useLayoutEffect(() => {
@@ -60,48 +62,50 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // ── First frame debug ────────────────────────────────────────────────────
-  function logState(label, v) {
-    pLog(`VideoModule [${label}] readyState=${v.readyState} networkState=${v.networkState} currentTime=${v.currentTime.toFixed(3)} duration=${v.duration} src=${v.src ? (v.src.startsWith('blob:') ? 'blob' : 'url') : 'none'}`)
+  // ── First frame: seek after each load event ───────────────────────────────
+  function logV(label, v) {
+    pLog(`VideoModule [${label}] rs=${v.readyState} ns=${v.networkState} t=${v.currentTime.toFixed(3)} dur=${v.duration}`)
   }
 
   function handleMetadata(e) {
     const v = e.currentTarget
     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
-    logState('onLoadedMetadata', v)
-    // Try seek to first frame after metadata
+    logV('onLoadedMetadata', v)
     v.currentTime = 0.001
-    pLog('VideoModule: set currentTime=0.001 after metadata')
+    pLog('VideoModule: seek→0.001 after metadata')
   }
 
   function handleLoadedData(e) {
     const v = e.currentTarget
-    logState('onLoadedData', v)
+    logV('onLoadedData', v)
+    if (v.currentTime < 0.0005) {
+      v.currentTime = 0.001
+      pLog('VideoModule: seek→0.001 after loadeddata')
+    }
   }
 
   function handleCanPlay(e) {
     const v = e.currentTarget
-    logState('onCanPlay', v)
-    // If seek to 0.001 didn't work yet, try again now
-    if (v.currentTime < 0.0005 && !v.paused === false) {
-      pLog('VideoModule: re-seek to 0.001 in onCanPlay')
+    logV('onCanPlay', v)
+    if (v.currentTime < 0.0005) {
       v.currentTime = 0.001
+      pLog('VideoModule: seek→0.001 after canplay')
     }
   }
 
   function handleSeeked(e) {
-    const v = e.currentTarget
-    logState('onSeeked', v)
-    pLog('VideoModule: seeked → frame should be visible now')
+    logV('onSeeked', e.currentTarget)
+    pLog('VideoModule: seeked → first frame should render')
   }
 
-  function seekToFirstFrame() {
-    const v = videoRef.current
-    if (!v) return
-    pLog('VideoModule: seekToFirstFrame currentTime before=', v.currentTime)
-    v.currentTime = 0.001
+  function seekToFirstFrame(v) {
+    const el = v ?? videoRef.current
+    if (!el) return
+    pLog('VideoModule: seekToFirstFrame t=', el.currentTime)
+    el.currentTime = 0.001
   }
 
+  // ── Inline playback ───────────────────────────────────────────────────────
   function playWithAudio() {
     const v = videoRef.current
     if (!v) return
@@ -116,7 +120,7 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function handleEnded() {
-    pLog('VideoModule: ended')
+    pLog('VideoModule: inline ended')
     setShowPlay(true)
     seekToFirstFrame()
     if (!doneFiredRef.current) {
@@ -146,6 +150,7 @@ export default function VideoModule({ node, file, onDone }) {
     const fs = fsVideoRef.current
     if (fs) {
       setFsReady(false)
+      setFsShowPlay(false)
       fs.currentTime = 0
       fs.muted = false
       fs.play().catch(() => {
@@ -156,9 +161,27 @@ export default function VideoModule({ node, file, onDone }) {
     setFsVisible(true)
   }
 
+  function handleFsEnded() {
+    pLog('VideoModule: FS ended → show FS play btn')
+    setFsShowPlay(true)
+  }
+
+  function handleFsPlayBtnTap() {
+    const fs = fsVideoRef.current
+    if (!fs) return
+    fs.currentTime = 0
+    fs.muted = false
+    fs.play().catch(() => {
+      fs.muted = true
+      fs.play().catch(err => pLog('VideoModule FS replay failed:', err.message))
+    })
+    setFsShowPlay(false)
+  }
+
   function closeFs() {
     fsVideoRef.current?.pause()
     setFsVisible(false)
+    setFsShowPlay(false)
     setShowPlay(true)
     seekToFirstFrame()
   }
@@ -189,6 +212,7 @@ export default function VideoModule({ node, file, onDone }) {
 
               {fsVisible && <div className="videoFsBg" onClick={closeFs} />}
 
+              {/* Always in DOM so play() is called synchronously inside gesture */}
               <video
                 ref={fsVideoRef}
                 src={src}
@@ -203,6 +227,7 @@ export default function VideoModule({ node, file, onDone }) {
                   display: 'block',
                 }}
                 onCanPlay={() => setFsReady(true)}
+                onEnded={handleFsEnded}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
 
@@ -210,6 +235,11 @@ export default function VideoModule({ node, file, onDone }) {
                 <div className="videoFsControls" style={{ zIndex: 253 }}>
                   <button className="videoFullClose" onClick={closeFs}>×</button>
                   {!fsReady && <div className="videoFullSpinner" />}
+                  {fsReady && fsShowPlay && (
+                    <button className="videoFsPlayBtn" onClick={handleFsPlayBtnTap}>
+                      <PlayBtn size={64} />
+                    </button>
+                  )}
                 </div>
               )}
             </>
@@ -220,12 +250,22 @@ export default function VideoModule({ node, file, onDone }) {
   )
 }
 
-function PlayBtn() {
+function PlayBtn({ size = 48 }) {
+  const s = size
+  const cx = s / 2, cy = s / 2, r = s / 2
+  // Smaller rounded triangle: 55% of radius, shifted slightly right
+  const tr = r * 0.42
+  const pts = [
+    [cx - tr * 0.6, cy - tr],
+    [cx + tr,       cy      ],
+    [cx - tr * 0.6, cy + tr ],
+  ]
+  const d = `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} L ${pts[2][0]} ${pts[2][1]} Z`
   return (
     <div className="videoPlayBtn" aria-label="Воспроизвести">
-      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="24" cy="24" r="24" fill="rgba(0,0,0,0.45)" />
-        <polygon points="19,14 37,24 19,34" fill="white" />
+      <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx={cx} cy={cy} r={r} fill="rgba(0,0,0,0.45)" />
+        <path d={d} fill="white" stroke="white" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
     </div>
   )

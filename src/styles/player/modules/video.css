@@ -84,6 +84,20 @@
 
 .videoFullClose:hover { background: rgba(255, 255, 255, .28); }
 
+/* Play button inside fullscreen */
+.videoFsPlayBtn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: all;
+  line-height: 0;
+}
+
 .videoFullSpinner {
   position: absolute;
   top: 50%;
