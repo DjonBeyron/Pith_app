@@ -34,8 +34,6 @@ export default function VideoModule({ node, file, onDone }) {
     setIntrinsic(null)
     doneFiredRef.current = false
     setShowPlay(true)
-    const v = videoRef.current
-    if (v) { v.pause(); v.currentTime = 0 }
   }, [src])
 
   useLayoutEffect(() => {
@@ -62,14 +60,26 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // Seek to first frame so browser decodes and renders it (fixes black poster)
-  function handleMetadata(e) {
+  // Seek to first frame only after actual video data is available (not just metadata).
+  // onLoadedData fires when the browser has data for the current playback position.
+  // We then seek to 0.001s; the `seeked` event confirms the frame is decoded and visible.
+  function handleLoadedData(e) {
     const v = e.currentTarget
     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
-    pLog('VideoModule onLoadedMetadata readyState=', v.readyState, 'duration=', v.duration)
-    if (v.readyState >= 1 && v.currentTime === 0) {
-      v.currentTime = 0.001 // trigger first-frame decode
-    }
+    pLog('VideoModule onLoadedData readyState=', v.readyState)
+    v.currentTime = 0.001
+  }
+
+  // Also capture dimensions from metadata (fires earlier, before data)
+  function handleMetadata(e) {
+    const v = e.currentTarget
+    if (v.videoWidth) setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
+  }
+
+  function seekToFirstFrame() {
+    const v = videoRef.current
+    if (v && !v.paused) return // don't interfere if playing
+    if (v) v.currentTime = 0.001
   }
 
   function playWithAudio() {
@@ -86,8 +96,9 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function handleEnded() {
-    pLog('VideoModule: ended → show play button')
+    pLog('VideoModule: ended')
     setShowPlay(true)
+    seekToFirstFrame()
     if (!doneFiredRef.current) {
       doneFiredRef.current = true
       onDone?.()
@@ -100,19 +111,16 @@ export default function VideoModule({ node, file, onDone }) {
     if (tapCountRef.current === 1) {
       tapTimerRef.current = setTimeout(() => {
         tapCountRef.current = 0
-        pLog('VideoModule: single tap → play with audio')
         playWithAudio()
       }, DBL_TAP_MS)
     } else {
       clearTimeout(tapTimerRef.current)
       tapCountRef.current = 0
-      pLog('VideoModule: double tap → fullscreen')
       openFs()
     }
   }
 
   // ── Fullscreen ───────────────────────────────────────────────────────────
-  // fsVideoRef always in DOM so play() is called synchronously inside gesture
   function openFs() {
     videoRef.current?.pause()
     const fs = fsVideoRef.current
@@ -131,6 +139,9 @@ export default function VideoModule({ node, file, onDone }) {
   function closeFs() {
     fsVideoRef.current?.pause()
     setFsVisible(false)
+    // Return inline video to first frame + show play button
+    setShowPlay(true)
+    seekToFirstFrame()
   }
 
   useEffect(() => () => clearTimeout(tapTimerRef.current), [])
@@ -148,18 +159,19 @@ export default function VideoModule({ node, file, onDone }) {
                   style={getMediaStyle()}
                   playsInline preload="auto"
                   onLoadedMetadata={handleMetadata}
+                  onLoadedData={handleLoadedData}
                   onEnded={handleEnded}
                   onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
                 {showPlay && <PlayBtn />}
               </div>
 
-              {/* Dark background — below the video */}
+              {/* Dark bg — below video */}
               {fsVisible && (
                 <div className="videoFsBg" onClick={closeFs} />
               )}
 
-              {/* Video always in DOM at fixed position — play() must be in gesture context */}
+              {/* FS video always in DOM — play() inside gesture context */}
               <video
                 ref={fsVideoRef}
                 src={src}
@@ -171,14 +183,12 @@ export default function VideoModule({ node, file, onDone }) {
                   pointerEvents: 'none',
                   maxWidth: '100vw', maxHeight: '100vh',
                   width: 'auto', height: 'auto',
-                  objectFit: 'contain',
                   display: 'block',
                 }}
                 onCanPlay={() => setFsReady(true)}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
 
-              {/* Close button + spinner above video */}
               {fsVisible && (
                 <div className="videoFsControls" style={{ zIndex: 253 }}>
                   <button className="videoFullClose" onClick={closeFs}>×</button>
@@ -197,8 +207,9 @@ function PlayBtn() {
   return (
     <div className="videoPlayBtn" aria-label="Воспроизвести">
       <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="24" cy="24" r="24" fill="rgba(0,0,0,0.45)" />
-        <polygon points="19,14 37,24 19,34" fill="white" />
+        <circle cx="24" cy="24" r="22" fill="rgba(0,0,0,0.50)" />
+        {/* Triangle shifted 2px right so visual centroid aligns with circle center */}
+        <polygon points="20,14 40,24 20,34" fill="white" />
       </svg>
     </div>
   )
