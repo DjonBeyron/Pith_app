@@ -162,7 +162,8 @@ export default function CircleModule({ node, file, onDone }) {
     if (v) {
       v.loop = true
       v.muted = true
-      v.play().catch(() => {})
+      v.currentTime = 0  // видео закончилось — перемотать в начало перед play()
+      v.play().catch(err => pLog('CircleModule collapse play failed:', err.message))
     }
   }
 
@@ -176,10 +177,15 @@ export default function CircleModule({ node, file, onDone }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // expanded/collapsing: calcStyle с expandDims сохраняет crop из ноды в обоих состояниях
-  const videoStyle = (expanded || collapsing)
-    ? calcStyle(intr, expandDimsRef.current, crop)
-    : calcStyle(intr, dims, crop)
+  // crop.x/y заданы для малого кружка (dims.w пикс). В expanded видео физически
+  // больше в ratio раз — масштабируем x/y чтобы сдвиг выглядел одинаково.
+  const expandVideoStyle = (() => {
+    const ed = expandDimsRef.current
+    if (!ed || !dims?.w) return calcStyle(intr, ed, crop)
+    const ratio = ed.w / dims.w
+    return calcStyle(intr, ed, { x: crop.x * ratio, y: crop.y * ratio, scale: crop.scale })
+  })()
+  const videoStyle = (expanded || collapsing) ? expandVideoStyle : calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
