@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
-import { useMediaUnlock } from '../../MediaUnlockContext.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+
+// Tap detection thresholds
+const DBL_TAP_MS = 300 // two taps within this window = double tap
 
 export default function VideoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
@@ -12,6 +14,8 @@ export default function VideoModule({ node, file, onDone }) {
   const videoRef   = useRef(null)
   const fsVideoRef = useRef(null)
   const frameRef   = useRef(null)
+  const tapTimerRef = useRef(null)
+  const tapCountRef = useRef(0)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -28,7 +32,7 @@ export default function VideoModule({ node, file, onDone }) {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null',
       '| blobUrl=', file?.blobUrl ? 'YES' : 'no')
     setIntrinsic(null)
-    doneFiredRef.current = false // reset on src change
+    doneFiredRef.current = false
   }, [src])
 
   useLayoutEffect(() => {
@@ -55,49 +59,50 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // ── Audio unlock via gesture ─────────────────────────────────────────────
-  // Register with LessonPlayer context. On first user tap anywhere on the
-  // player, our callback fires in gesture context → play unmuted is allowed.
-  const { registerForAudioUnlock } = useMediaUnlock() ?? {}
+  // ── Inline: muted autoloop, onDone near end of first play ────────────────
   const doneFiredRef = useRef(false)
 
-  useEffect(() => {
-    if (!src || !registerForAudioUnlock) return
-    const cleanup = registerForAudioUnlock(() => {
-      // Called synchronously inside iOS user gesture — audio allowed
-      const v = videoRef.current
-      if (!v || doneFiredRef.current) return
-      pLog('VideoModule: gesture unlock → restart with audio')
-      v.pause()
-      v.muted = false
-      v.currentTime = 0
-      v.play().catch(err => {
-        pLog('VideoModule: unlocked play failed:', err.message, '→ staying muted')
-        v.muted = true
-        v.play().catch(() => {})
-      })
-    })
-    return cleanup
-  }, [src]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Inline playback ──────────────────────────────────────────────────────
-  // Plays muted in loop by default (iOS autoplay constraint).
-  // Becomes unmuted when user gesture fires (see above).
-  // onTimeUpdate: fire onDone() when first play nears end, then loop silently.
   function handleTimeUpdate(e) {
     if (doneFiredRef.current) return
     const v = e.currentTarget
     if (v.duration && v.currentTime >= v.duration - 0.15) {
       doneFiredRef.current = true
-      if (!v.muted) v.muted = true // ensure silent loop after first play
+      v.muted = true // ensure silent loop after first play
       pLog('VideoModule: first play ending → onDone()')
       onDone?.()
     }
   }
 
+  // ── Tap handling: single = play with audio, double = fullscreen ──────────
+  function handleTap() {
+    tapCountRef.current += 1
+
+    if (tapCountRef.current === 1) {
+      tapTimerRef.current = setTimeout(() => {
+        // Single tap confirmed — play inline with audio from start
+        tapCountRef.current = 0
+        const v = videoRef.current
+        if (!v) return
+        pLog('VideoModule: single tap → play with audio')
+        v.pause()
+        v.muted = false
+        v.currentTime = 0
+        v.play().catch(err => {
+          pLog('VideoModule: tap play failed:', err.message, '→ muted fallback')
+          v.muted = true
+          v.play().catch(() => {})
+        })
+      }, DBL_TAP_MS)
+    } else {
+      // Double tap — cancel single-tap timer, open fullscreen
+      clearTimeout(tapTimerRef.current)
+      tapCountRef.current = 0
+      pLog('VideoModule: double tap → fullscreen')
+      openFs()
+    }
+  }
+
   // ── Fullscreen ───────────────────────────────────────────────────────────
-  // fsVideoRef always in DOM (hidden) so play() is synchronous in click handler
-  // = inside iOS user-gesture context → audio allowed.
   function openFs() {
     videoRef.current?.pause()
     const fs = fsVideoRef.current
@@ -106,9 +111,9 @@ export default function VideoModule({ node, file, onDone }) {
       fs.currentTime = 0
       fs.muted = false
       fs.play().catch(() => {
-        pLog('VideoModule FS unmuted play failed, retrying muted')
+        pLog('VideoModule: FS unmuted failed → muted fallback')
         fs.muted = true
-        fs.play().catch(err => pLog('VideoModule FS muted play failed:', err.message))
+        fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
       })
     }
     setFsVisible(true)
@@ -117,16 +122,18 @@ export default function VideoModule({ node, file, onDone }) {
   function closeFs() {
     fsVideoRef.current?.pause()
     setFsVisible(false)
-    videoRef.current?.play().catch(() => {})
+    const v = videoRef.current
+    if (v) { v.muted = true; v.play().catch(() => {}) }
   }
+
+  useEffect(() => () => clearTimeout(tapTimerRef.current), [])
 
   return (
     <div className="playerMsgRow">
       <PlayerBubble className="playerMsgBubble playerMsgBubble--video">
         {src
           ? <>
-              {/* ── Inline: muted loop, onDone via onTimeUpdate ── */}
-              <div ref={frameRef} className="playerVideoCropFrame" onClick={openFs}>
+              <div ref={frameRef} className="playerVideoCropFrame" onClick={handleTap}>
                 <video
                   ref={videoRef}
                   src={src}
@@ -143,7 +150,7 @@ export default function VideoModule({ node, file, onDone }) {
                 />
               </div>
 
-              {/* ── Fullscreen: always in DOM, play() called in click handler ── */}
+              {/* Fullscreen video always in DOM — play() in click handler = user gesture */}
               <video
                 ref={fsVideoRef}
                 src={src}
@@ -160,7 +167,6 @@ export default function VideoModule({ node, file, onDone }) {
                 onError={e => pLog('VideoModule FS onError —', e.currentTarget.error?.code)}
               />
 
-              {/* ── Fullscreen UI overlay ── */}
               {fsVisible && (
                 <div className="videoFullOverlay" onClick={closeFs} style={{ zIndex: 251 }}>
                   <button className="videoFullClose" onClick={e => { e.stopPropagation(); closeFs() }}>×</button>

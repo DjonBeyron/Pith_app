@@ -111,7 +111,6 @@
 | `MODULES.md` | Архитектурные правила плеера: изоляция скролла, структура модулей, правила панелей |
 | `LessonPlayer.jsx` | Оркестратор плеера: использует useGraphPlayer, показывает ноды одну за другой по триггерам, управляет панелями |
 | `useGraphPlayer.js` | State machine плеера: находит точку входа графа, запускает триггеры (timer/played/photo_shown/timer_after_play), показывает WaitingDots между нодами |
-| `MediaUnlockContext.js` | React-контекст для разблокировки звука видео на iOS: registerForAudioUnlock(cb) — LessonPlayer вызывает cb синхронно при первом жесте пользователя |
 | `PlayerFeed.jsx` | Изолированный скролл-контейнер: auto-scroll при новом сообщении, lock/unlock, imperative ref |
 | `PlayerTopBar.jsx` | Шапка плеера: кнопка «←», аватар, «Учитель / онлайн», название урока |
 | `PlayerMessage.jsx` | Тонкая обёртка: `resolveModule(node.type)` → рендерит нужный модуль |

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerMessage from './PlayerMessage.jsx'
@@ -8,7 +8,6 @@ import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
-import { MediaUnlockContext } from './MediaUnlockContext.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { pLog }          from '../../shared/lib/debug.js'
 
@@ -33,30 +32,6 @@ export default function LessonPlayer({
 
   const blobMap = usePlayerPreload(nodes, files, visibleNodes)
 
-  // ── Audio unlock via user gesture ────────────────────────────────────────
-  // iOS blocks unmuted autoplay. On the first tap anywhere on the player,
-  // we call all registered callbacks synchronously (while still in gesture
-  // context) so they can call video.play() with audio.
-  const unlockCallbacksRef = useRef([])
-  const isUnlockedRef      = useRef(false)
-
-  const registerForAudioUnlock = useCallback((cb) => {
-    if (isUnlockedRef.current) return // gesture already fired, can't unlock retroactively
-    unlockCallbacksRef.current.push(cb)
-    return () => {
-      unlockCallbacksRef.current = unlockCallbacksRef.current.filter(fn => fn !== cb)
-    }
-  }, [])
-
-  function handleGesture() {
-    if (isUnlockedRef.current) return
-    isUnlockedRef.current = true
-    pLog('LessonPlayer: first gesture → unlocking', unlockCallbacksRef.current.length, 'video(s)')
-    const cbs = unlockCallbacksRef.current
-    unlockCallbacksRef.current = []
-    cbs.forEach(cb => cb()) // synchronous — still in iOS gesture context
-  }
-
   // ── Panels ───────────────────────────────────────────────────────────────
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
 
@@ -72,8 +47,8 @@ export default function LessonPlayer({
   const pcNode = lastOf('photo_choice')
 
   return (
-    <MediaUnlockContext.Provider value={{ registerForAudioUnlock }}>
-      <div className="lessonPlayer" onClick={handleGesture}>
+    <>
+      <div className="lessonPlayer">
         <PlayerTopBar
           title={lessonTitle}
           onClose={onClose}
@@ -111,6 +86,6 @@ export default function LessonPlayer({
           />
         )}
       </div>
-    </MediaUnlockContext.Provider>
+    </>
   )
 }
