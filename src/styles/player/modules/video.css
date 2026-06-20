@@ -45,41 +45,21 @@
   transform: scale(.9);
 }
 
-/* ── Fullscreen overlay ── */
-.videoFullOverlay {
+/* ── Fullscreen ── */
+
+/* Dark background layer */
+.videoFsBg {
   position: fixed;
   inset: 0;
-  z-index: 400;
-  background: rgba(0,0,0,.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  box-sizing: border-box;
+  z-index: 251;
+  background: rgba(0, 0, 0, .92);
 }
 
-.videoFullSpinner {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 3px solid rgba(255,255,255,.15);
-  border-top-color: rgba(255,255,255,.75);
-  animation: videoSpin .7s linear infinite;
+/* Close + spinner layer — above video */
+.videoFsControls {
+  position: fixed;
+  inset: 0;
   pointer-events: none;
-}
-
-@keyframes videoSpin {
-  to { transform: rotate(360deg); }
-}
-
-.videoFullPlayer {
-  max-width: 100%;
-  max-height: 100%;
-  border-radius: 12px;
-  display: block;
-  outline: none;
-  transition: opacity .25s ease;
 }
 
 .videoFullClose {
@@ -90,15 +70,34 @@
   height: 36px;
   border-radius: 50%;
   border: none;
-  background: rgba(255,255,255,.15);
+  background: rgba(255, 255, 255, .15);
   color: #fff;
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
+  pointer-events: all;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background .15s;
-  z-index: 1;
 }
-.videoFullClose:hover { background: rgba(255,255,255,.28); }
+
+.videoFullClose:hover { background: rgba(255, 255, 255, .28); }
+
+.videoFullSpinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .15);
+  border-top-color: rgba(255, 255, 255, .75);
+  animation: videoSpin .7s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes videoSpin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}

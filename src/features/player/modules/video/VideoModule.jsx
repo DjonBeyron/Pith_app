@@ -10,10 +10,10 @@ export default function VideoModule({ node, file, onDone }) {
   const [frameDims,  setFrameDims]  = useState(null)
   const [fsVisible,  setFsVisible]  = useState(false)
   const [fsReady,    setFsReady]    = useState(false)
-  const [showPlay,   setShowPlay]   = useState(true)  // show play button overlay
-  const videoRef   = useRef(null)
-  const fsVideoRef = useRef(null)
-  const frameRef   = useRef(null)
+  const [showPlay,   setShowPlay]   = useState(true)
+  const videoRef    = useRef(null)
+  const fsVideoRef  = useRef(null)
+  const frameRef    = useRef(null)
   const tapTimerRef = useRef(null)
   const tapCountRef = useRef(0)
   const doneFiredRef = useRef(false)
@@ -62,11 +62,21 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
+  // Seek to first frame so browser decodes and renders it (fixes black poster)
+  function handleMetadata(e) {
+    const v = e.currentTarget
+    setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
+    pLog('VideoModule onLoadedMetadata readyState=', v.readyState, 'duration=', v.duration)
+    if (v.readyState >= 1 && v.currentTime === 0) {
+      v.currentTime = 0.001 // trigger first-frame decode
+    }
+  }
+
   function playWithAudio() {
     const v = videoRef.current
     if (!v) return
-    v.muted = false
     v.currentTime = 0
+    v.muted = false
     v.play().catch(err => {
       pLog('VideoModule: play failed:', err.message, '→ muted fallback')
       v.muted = true
@@ -76,7 +86,7 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function handleEnded() {
-    pLog('VideoModule: ended → show play button again')
+    pLog('VideoModule: ended → show play button')
     setShowPlay(true)
     if (!doneFiredRef.current) {
       doneFiredRef.current = true
@@ -84,10 +94,9 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // ── Tap: single = play, double = fullscreen ──────────────────────────────
+  // ── Tap: single = play with audio, double = fullscreen ───────────────────
   function handleTap() {
     tapCountRef.current += 1
-
     if (tapCountRef.current === 1) {
       tapTimerRef.current = setTimeout(() => {
         tapCountRef.current = 0
@@ -103,10 +112,11 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   // ── Fullscreen ───────────────────────────────────────────────────────────
+  // fsVideoRef always in DOM so play() is called synchronously inside gesture
   function openFs() {
     videoRef.current?.pause()
     const fs = fsVideoRef.current
-    if (fs && src) {
+    if (fs) {
       setFsReady(false)
       fs.currentTime = 0
       fs.muted = false
@@ -137,37 +147,41 @@ export default function VideoModule({ node, file, onDone }) {
                   className="playerVideoMedia"
                   style={getMediaStyle()}
                   playsInline preload="auto"
-                  onLoadedMetadata={e => {
-                    const v = e.currentTarget
-                    setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
-                    pLog('VideoModule onLoadedMetadata readyState=', v.readyState)
-                  }}
+                  onLoadedMetadata={handleMetadata}
                   onEnded={handleEnded}
                   onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
                 {showPlay && <PlayBtn />}
               </div>
 
-              {/* Fullscreen video always in DOM — play() is in click handler = user gesture */}
+              {/* Dark background — below the video */}
+              {fsVisible && (
+                <div className="videoFsBg" onClick={closeFs} />
+              )}
+
+              {/* Video always in DOM at fixed position — play() must be in gesture context */}
               <video
                 ref={fsVideoRef}
                 src={src}
-                className="videoFullPlayer"
                 playsInline preload="none"
                 style={{
-                  position: 'fixed', inset: 0,
-                  zIndex: fsVisible ? 250 : -1,
+                  position: 'fixed', inset: 0, margin: 'auto',
+                  zIndex: fsVisible ? 252 : -1,
                   opacity: fsVisible && fsReady ? 1 : 0,
                   pointerEvents: 'none',
-                  width: '100%', height: '100%', objectFit: 'contain', background: '#000',
+                  maxWidth: '100vw', maxHeight: '100vh',
+                  width: 'auto', height: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
                 }}
                 onCanPlay={() => setFsReady(true)}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
 
+              {/* Close button + spinner above video */}
               {fsVisible && (
-                <div className="videoFullOverlay" onClick={closeFs} style={{ zIndex: 251 }}>
-                  <button className="videoFullClose" onClick={e => { e.stopPropagation(); closeFs() }}>×</button>
+                <div className="videoFsControls" style={{ zIndex: 253 }}>
+                  <button className="videoFullClose" onClick={closeFs}>×</button>
                   {!fsReady && <div className="videoFullSpinner" />}
                 </div>
               )}
