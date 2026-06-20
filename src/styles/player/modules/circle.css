@@ -51,6 +51,10 @@
   max-height: none;
   user-select: none;
   pointer-events: none;
+  /* Синхронная анимация с circleWrap — одинаковый easing/timing */
+  transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Backdrop — перехватывает тап вне кружка в expanded режиме */

@@ -183,15 +183,16 @@ export default function CircleModule({ node, file, onDone }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // expanded/collapsing: calcStyle с масштабированными dims и crop.x/y
-  // чтобы скейл и позиция из редактора совпадали в большом кружке.
+  // CSS transition на .circleMedia синхронизирует анимацию с circleWrap.
+  // expanded: calcStyle(expandDims, scaledCrop) — совпадает с редактором.
+  // !expanded: calcStyle(dims, crop) — CSS transition анимирует возврат автоматически.
   const expandedVideoStyle = (() => {
     if (!dims?.w || !intr) return { position: 'absolute', inset: 0, objectFit: 'cover' }
     const expandW = window.innerWidth - EDGE_GAP * 2
     const ratio = expandW / dims.w
     return calcStyle(intr, { w: expandW, h: expandW }, { x: crop.x * ratio, y: crop.y * ratio, scale: crop.scale })
   })()
-  const videoStyle = (expanded || collapsing) ? expandedVideoStyle : calcStyle(intr, dims, crop)
+  const videoStyle = expanded ? expandedVideoStyle : calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
