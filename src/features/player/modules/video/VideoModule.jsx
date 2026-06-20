@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
+import { useMediaUnlock } from '../../MediaUnlockContext.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 export default function VideoModule({ node, file, onDone }) {
@@ -54,17 +55,41 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // ── Inline playback ──────────────────────────────────────────────────────
-  // iOS blocks unmuted autoplay without user gesture → inline always muted.
-  // loop=true: browser loops without manual play() calls.
-  // onTimeUpdate: fire onDone() when first play nears its end (0.15s before end).
+  // ── Audio unlock via gesture ─────────────────────────────────────────────
+  // Register with LessonPlayer context. On first user tap anywhere on the
+  // player, our callback fires in gesture context → play unmuted is allowed.
+  const { registerForAudioUnlock } = useMediaUnlock() ?? {}
   const doneFiredRef = useRef(false)
 
+  useEffect(() => {
+    if (!src || !registerForAudioUnlock) return
+    const cleanup = registerForAudioUnlock(() => {
+      // Called synchronously inside iOS user gesture — audio allowed
+      const v = videoRef.current
+      if (!v || doneFiredRef.current) return
+      pLog('VideoModule: gesture unlock → restart with audio')
+      v.pause()
+      v.muted = false
+      v.currentTime = 0
+      v.play().catch(err => {
+        pLog('VideoModule: unlocked play failed:', err.message, '→ staying muted')
+        v.muted = true
+        v.play().catch(() => {})
+      })
+    })
+    return cleanup
+  }, [src]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Inline playback ──────────────────────────────────────────────────────
+  // Plays muted in loop by default (iOS autoplay constraint).
+  // Becomes unmuted when user gesture fires (see above).
+  // onTimeUpdate: fire onDone() when first play nears end, then loop silently.
   function handleTimeUpdate(e) {
     if (doneFiredRef.current) return
     const v = e.currentTarget
     if (v.duration && v.currentTime >= v.duration - 0.15) {
       doneFiredRef.current = true
+      if (!v.muted) v.muted = true // ensure silent loop after first play
       pLog('VideoModule: first play ending → onDone()')
       onDone?.()
     }
