@@ -8,11 +8,15 @@ export default function VideoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
   const [intrinsic,  setIntrinsic]  = useState(null)
   const [frameDims,  setFrameDims]  = useState(null)
-  const [fsVisible,   setFsVisible]  = useState(false)
-  const [fsReady,     setFsReady]    = useState(false)
-  const [showPlay,    setShowPlay]   = useState(true)
-  const [fsShowPlay,  setFsShowPlay] = useState(false)
-  const [frameReady,  setFrameReady] = useState(false)
+  const [fsVisible,        setFsVisible]       = useState(false)
+  const [fsReady,          setFsReady]         = useState(false)
+  const [showPlay,         setShowPlay]        = useState(true)
+  const [fsShowPlay,       setFsShowPlay]      = useState(false)
+  const [afterCanPlay,     setAfterCanPlay]    = useState(false) // true after canplay/seeked
+
+  // frameReady is derived directly from current prop — no closure issues
+  const posterUrl  = file?.posterUrl ?? null
+  const frameReady = !!posterUrl || afterCanPlay
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
   const frameRef    = useRef(null)
@@ -37,7 +41,7 @@ export default function VideoModule({ node, file, onDone }) {
     doneFiredRef.current = false
     setShowPlay(true)
     setFsShowPlay(false)
-    setFrameReady(!!file?.posterUrl) // if poster available — frame is already ready
+    setAfterCanPlay(false) // reset; frameReady will come from posterUrl or canplay
   }, [src])
 
   useLayoutEffect(() => {
@@ -93,15 +97,14 @@ export default function VideoModule({ node, file, onDone }) {
       v.currentTime = 0.001
       pLog('VideoModule: seek→0.001 after canplay')
     }
-    // Frame is decoded and ready to display — reveal video
-    pLog('VideoModule: frameReady=true (onCanPlay)')
-    setFrameReady(true)
+    pLog('VideoModule: afterCanPlay=true (onCanPlay) posterUrl=', !!posterUrl)
+    setAfterCanPlay(true)
   }
 
   function handleSeeked(e) {
     logV('onSeeked', e.currentTarget)
-    pLog('VideoModule: onSeeked → frameReady=true')
-    setFrameReady(true)
+    pLog('VideoModule: onSeeked → afterCanPlay=true')
+    setAfterCanPlay(true)
   }
 
   function seekToFirstFrame(v) {
