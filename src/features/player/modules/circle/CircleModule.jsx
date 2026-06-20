@@ -183,16 +183,13 @@ export default function CircleModule({ node, file, onDone }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // expanded/collapsing: objectFit:cover без explicit px → нет layout recalc → нет фриза.
-  // crop.x/y заданы для dims.w (200px). В expanded ratio=expandW/dims.w → масштабируем.
+  // expanded/collapsing: calcStyle с масштабированными dims и crop.x/y
+  // чтобы скейл и позиция из редактора совпадали в большом кружке.
   const expandedVideoStyle = (() => {
+    if (!dims?.w || !intr) return { position: 'absolute', inset: 0, objectFit: 'cover' }
     const expandW = window.innerWidth - EDGE_GAP * 2
-    const ratio = dims?.w ? expandW / dims.w : 1
-    return {
-      position: 'absolute', inset: 0, objectFit: 'cover',
-      transform: `translate(${crop.x * ratio}px, ${crop.y * ratio}px) scale(${crop.scale})`,
-      transformOrigin: 'center center',
-    }
+    const ratio = expandW / dims.w
+    return calcStyle(intr, { w: expandW, h: expandW }, { x: crop.x * ratio, y: crop.y * ratio, scale: crop.scale })
   })()
   const videoStyle = (expanded || collapsing) ? expandedVideoStyle : calcStyle(intr, dims, crop)
 
