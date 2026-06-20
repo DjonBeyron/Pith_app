@@ -4,12 +4,20 @@ import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
-const EDGE_GAP = 24 // px отступ от каждого края в expanded-режиме
+const EDGE_GAP = 24 // px зазор от каждого края в expanded-режиме
+
+function getSmallPx() {
+  return Math.min(window.innerWidth * 0.5, 200)
+}
 
 export default function CircleModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [expanded, setExpanded] = useState(false)
-  const [expandStyle, setExpandStyle] = useState({})
+  // Всегда inline-пиксели — чтобы CSS transition шёл между двумя явными значениями
+  const [wrapStyle, setWrapStyle] = useState(() => {
+    const s = getSmallPx()
+    return { width: s + 'px', height: s + 'px', marginLeft: '0px' }
+  })
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
   const vRef         = useRef(null)
@@ -18,7 +26,7 @@ export default function CircleModule({ node, file, onDone }) {
   const rafRef       = useRef(null)
   const touchStartY  = useRef(0)
   const doneFiredRef = useRef(false)
-  const expandedRef  = useRef(false) // синхронная копия expanded для onEnded
+  const expandedRef  = useRef(false)
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -35,7 +43,7 @@ export default function CircleModule({ node, file, onDone }) {
     doneFiredRef.current = false
   }, [src]) // eslint-disable-line
 
-  // onDone: конец первого цикла (loop=true → onEnded не стреляет, используем timeupdate)
+  // onDone: конец первого цикла через timeupdate (loop=true не даёт onEnded)
   function handleTimeUpdate(e) {
     if (doneFiredRef.current || expandedRef.current) return
     const v = e.currentTarget
@@ -46,13 +54,12 @@ export default function CircleModule({ node, file, onDone }) {
     }
   }
 
-  // onEnded стреляет только в expanded-режиме (там loop=false) → автозакрытие
+  // onEnded стреляет только в expanded (loop=false) → авто-закрытие
   function handleEnded() {
     pLog('CircleModule: video ended in expanded → auto-collapse')
     collapse()
   }
 
-  // rAF для плавного кольца прогресса
   function startRaf() {
     const tick = () => {
       const v = vRef.current
@@ -78,14 +85,14 @@ export default function CircleModule({ node, file, onDone }) {
     pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), w: Math.round(rect.width) }),
       '| innerWidth=', window.innerWidth, '| expandW=', expandW, '| ml=', Math.round(ml))
 
-    setExpandStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
+    setWrapStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
     setExpanded(true)
     expandedRef.current = true
     startRaf()
 
     const v = vRef.current
     if (v) {
-      v.loop = false // чтобы onEnded стрелял — авто-выход после воспроизведения
+      v.loop = false
       v.muted = false
       v.currentTime = 0
       v.play().catch(() => {
@@ -98,11 +105,12 @@ export default function CircleModule({ node, file, onDone }) {
   }
 
   function collapse() {
-    pLog('CircleModule collapse: expandedRef=', expandedRef.current)
+    pLog('CircleModule collapse')
     stopRaf()
     expandedRef.current = false
     setExpanded(false)
-    setExpandStyle({})
+    const s = getSmallPx()
+    setWrapStyle({ width: s + 'px', height: s + 'px', marginLeft: '0px' })
     const v = vRef.current
     if (v) {
       v.loop = true
@@ -118,11 +126,10 @@ export default function CircleModule({ node, file, onDone }) {
 
   useEffect(() => () => stopRaf(), [])
 
-  // Стиль видео: position absolute, inset 0 — чтобы objectFit: cover корректно
-  // заполнял контейнер с position: absolute (circleFrame)
+  // Только inset: 0 — width/height избыточны при position: absolute + inset
   const mediaStyle = {
-    position: 'absolute', inset: 0,
-    width: '100%', height: '100%',
+    position: 'absolute',
+    inset: 0,
     objectFit: 'cover',
     transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
     transformOrigin: 'center center',
@@ -134,8 +141,8 @@ export default function CircleModule({ node, file, onDone }) {
         {src ? (
           <div
             ref={wrapRef}
-            className={`circleWrap${expanded ? ' circleWrap--expanded' : ''}`}
-            style={expandStyle}
+            className="circleWrap"
+            style={wrapStyle}
             onClick={handleTap}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}

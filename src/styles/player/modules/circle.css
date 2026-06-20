@@ -5,33 +5,30 @@
   padding: 3px;
   overflow: visible;
   border-radius: 20px 50% 50% 50%;
-  /* Нет transition — padding меняется мгновенно,
-     иначе сдвиг padding сбивает позицию circleWrap во время анимации */
+  /* Только background + border-radius — не padding, он заложен в ml-расчёт */
+  transition: background 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Bubble становится прозрачным когда кружок расширен.
-   Padding НЕ меняем — он заложен в расчёт margin-left, смена
-   во время анимации сдвинула бы базу и вызвала дёрганье. */
+/* Bubble прозрачный в expanded — padding не меняем (заложен в ml-расчёт).
+   max-width: none — снимаем ограничение 78% чтобы bubble не зажимал circleWrap */
 .playerMsgBubble--circle--expanded {
   background: transparent;
   border-radius: 0;
+  max-width: none;
 }
 
 .circleWrap {
   position: relative;
-  width: min(50vw, 200px);
-  height: min(50vw, 200px);
+  /* Размер всегда через inline style (явные px) — CSS transition
+     между двумя inline-значениями надёжнее чем px → min(50vw,200px) */
   flex-shrink: 0;
   cursor: pointer;
   transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1),
               height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
               margin-left 0.38s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* В расширенном режиме клипаем содержимое — иначе ring SVG (inset: -9px)
-   выходит за 100vw на 9px с каждой стороны */
-.circleWrap--expanded {
-  overflow: hidden;
+  /* overflow: visible — ring SVG (inset: -9px) виден снаружи кружка;
+     в expanded режиме ring вписывается в viewport без overflow:hidden */
 }
 
 .circleFrame {
@@ -50,7 +47,8 @@
   pointer-events: none;
 }
 
-/* Ring SVG extends 9px outside the circle on each side */
+/* Ring SVG выходит на 9px за кружок — при expanded тоже вписывается
+   т.к. expandW = viewport - 48px, ring = expandW + 18px < viewport */
 .circleRingSvg {
   position: absolute;
   inset: -9px;
