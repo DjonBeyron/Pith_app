@@ -96,14 +96,12 @@ export default function CircleModule({ node, file, onDone }) {
   // repaints на iOS конкурируют с video decoder и вызывают подёргивание
   function startRaf() {
     const tick = (t) => {
-      if (t - lastRafTime.current >= 66) { // ~15fps
+      if (t - lastRafTime.current >= 33) { // ~30fps
         lastRafTime.current = t
         const v = vRef.current
         if (v && arcRef.current && v.duration) {
           const p = v.currentTime / v.duration
           arcRef.current.style.strokeDashoffset = String(RING_C * (1 - p))
-          if (t - lastRafTime.current < 200) { // лог раз в 200ms слишком часто — только пуск
-          }
         }
       }
       rafRef.current = requestAnimationFrame(tick)
@@ -214,12 +212,12 @@ export default function CircleModule({ node, file, onDone }) {
               />
             </div>
 
-            {expanded && (
+            {(expanded || collapsing) && (
               <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true">
                 <circle cx="109" cy="109" r={RING_R} fill="none"
-                  stroke="rgba(255,255,255,.15)" strokeWidth="3" />
+                  stroke="rgba(255,255,255,.12)" strokeWidth="1.5" />
                 <circle ref={arcRef} cx="109" cy="109" r={RING_R} fill="none"
-                  stroke="#b6fe3b" strokeWidth="3" strokeLinecap="round"
+                  stroke="#b6fe3b" strokeWidth="1.5" strokeLinecap="round"
                   strokeDasharray={`${RING_C} 9999`} strokeDashoffset={String(RING_C)}
                   transform="rotate(-90 109 109)"
                 />
