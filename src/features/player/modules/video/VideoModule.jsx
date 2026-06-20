@@ -29,7 +29,7 @@ export default function VideoModule({ node, file, onDone }) {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null')
     setIntrinsic(null)
     doneFiredRef.current = false
-    setFsProgress(0)
+    if (progressRef.current) progressRef.current.style.width = '0%'
   }, [src])
 
   useLayoutEffect(() => {
