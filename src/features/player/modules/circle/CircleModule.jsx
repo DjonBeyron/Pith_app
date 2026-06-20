@@ -183,10 +183,17 @@ export default function CircleModule({ node, file, onDone }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // expanded/collapsing: objectFit:cover — заполняет контейнер любого размера без explicit px.
-  // calcStyle даёт width/height в px → layout recalc при смене размера → микро-фриз.
-  // Малый кружок: calcStyle нужен чтобы совпасть с crop из редактора.
-  const expandedVideoStyle = { position: 'absolute', inset: 0, objectFit: 'cover' }
+  // expanded/collapsing: objectFit:cover без explicit px → нет layout recalc → нет фриза.
+  // crop.x/y заданы для dims.w (200px). В expanded ratio=expandW/dims.w → масштабируем.
+  const expandedVideoStyle = (() => {
+    const expandW = window.innerWidth - EDGE_GAP * 2
+    const ratio = dims?.w ? expandW / dims.w : 1
+    return {
+      position: 'absolute', inset: 0, objectFit: 'cover',
+      transform: `translate(${crop.x * ratio}px, ${crop.y * ratio}px) scale(${crop.scale})`,
+      transformOrigin: 'center center',
+    }
+  })()
   const videoStyle = (expanded || collapsing) ? expandedVideoStyle : calcStyle(intr, dims, crop)
 
   return (
