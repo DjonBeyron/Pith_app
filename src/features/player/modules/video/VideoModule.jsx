@@ -54,24 +54,24 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   // ── Inline playback ──────────────────────────────────────────────────────
-  const doneFiredRef = useRef(false)
+  // loop=true from the start — browser handles looping without manual play().
+  // onPlay fires at the start of each loop iteration, so we use a play-count:
+  //   playCount=1: first play starts → unmute
+  //   playCount=2: first loop ended, second starts → call onDone() + re-mute
+  //   playCount≥3: stay muted
+  const playCountRef = useRef(0)
 
   function handleInlinePlay(e) {
+    playCountRef.current += 1
     const v = e.currentTarget
-    pLog('VideoModule onPlay — readyState=', v.readyState, 'muted=', v.muted, 'currentTime=', v.currentTime)
-    if (!doneFiredRef.current) {
-      // First play: unmute. iOS allows muted→unmuted on already-playing video.
-      v.muted = false
+    const count = playCountRef.current
+    pLog('VideoModule onPlay #', count, '— readyState=', v.readyState, 'muted=', v.muted)
+    if (count === 1) {
+      v.muted = false       // first play: with audio
+    } else if (count === 2) {
+      onDone?.()            // first loop ended → trigger next node
+      v.muted = true        // second+ loops: silent poster
     }
-  }
-
-  function handleInlineEnded() {
-    if (!doneFiredRef.current) { doneFiredRef.current = true; onDone?.() }
-    const v = videoRef.current
-    if (!v) return
-    v.muted = true
-    v.loop  = true
-    v.play()
   }
 
   // ── Fullscreen ───────────────────────────────────────────────────────────
@@ -114,9 +114,8 @@ export default function VideoModule({ node, file, onDone }) {
                   src={src}
                   className="playerVideoMedia"
                   style={getMediaStyle()}
-                  playsInline autoPlay muted preload="auto"
+                  playsInline autoPlay muted loop preload="auto"
                   onPlay={handleInlinePlay}
-                  onEnded={handleInlineEnded}
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
