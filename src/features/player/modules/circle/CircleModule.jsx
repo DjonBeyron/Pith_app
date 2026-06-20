@@ -90,7 +90,10 @@ export default function CircleModule({ node, file, onDone }) {
   function handleTap() {
     if (expanded) { collapse(); return }
     const rect = wrapRef.current.getBoundingClientRect()
-    setExpandLeft(-rect.left)
+    const ml = -rect.left
+    pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top), w: Math.round(rect.width), h: Math.round(rect.height) }),
+      '| window.innerWidth=', window.innerWidth, '| marginLeft=', Math.round(ml))
+    setExpandLeft(ml)
     setExpanded(true)
     startRaf()
     // Unmute + restart from beginning (user gesture context → iOS allows)
