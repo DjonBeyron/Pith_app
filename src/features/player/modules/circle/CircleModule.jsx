@@ -112,19 +112,41 @@ export default function CircleModule({ node, file, onDone }) {
     if (arcRef.current) arcRef.current.style.strokeDashoffset = String(RING_C)
   }
 
+  const debugRafRef = useRef(null)
+  const debugT0Ref = useRef(0)
+
+  function startDebugRaf(videoEl, wrapEl) {
+    debugT0Ref.current = performance.now()
+    const tick = () => {
+      const elapsed = Math.round(performance.now() - debugT0Ref.current)
+      if (elapsed > 500) { debugRafRef.current = null; return }
+      const vr = videoEl.getBoundingClientRect()
+      const wr = wrapEl.getBoundingClientRect()
+      // Позиция видео относительно wrap
+      const relTop = Math.round(vr.top - wr.top)
+      const relLeft = Math.round(vr.left - wr.left)
+      pLog(`DBG t=${elapsed}ms wrap=${Math.round(wr.width)}x${Math.round(wr.height)} vid=${Math.round(vr.width)}x${Math.round(vr.height)} rel=(${relLeft},${relTop})`)
+      debugRafRef.current = requestAnimationFrame(tick)
+    }
+    debugRafRef.current = requestAnimationFrame(tick)
+  }
+
   function handleTap() {
     if (expandedRef.current) { collapse(); return }
     const rect = wrapRef.current.getBoundingClientRect()
     const expandW = window.innerWidth - EDGE_GAP * 2
     const ml = -(rect.left - EDGE_GAP)
+    const v = vRef.current
     pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), w: Math.round(rect.width) }),
       '| innerWidth=', window.innerWidth, '| expandW=', expandW, '| ml=', Math.round(ml))
+    pLog('CircleModule expand videoStyle BEFORE:', JSON.stringify(smallVideoStyle))
 
     doneFiredRef.current = false
     setWrapStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
     setExpanded(true)
     expandedRef.current = true
     startRaf()
+    if (v && wrapRef.current) startDebugRaf(v, wrapRef.current)
 
     // Defer pause+seek+play на следующий кадр — даём браузеру сначала
     // начать CSS transition, иначе decode конкурирует с layout → микро-фриз
@@ -180,6 +202,7 @@ export default function CircleModule({ node, file, onDone }) {
 
   useEffect(() => () => {
     stopRaf()
+    if (debugRafRef.current) cancelAnimationFrame(debugRafRef.current)
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
