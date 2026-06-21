@@ -92,7 +92,7 @@ export default function LessonPlayer({
         position: 'fixed', top: 4, left: '50%', transform: 'translateX(-50%)',
         fontSize: 9, color: 'rgba(255,255,255,0.2)', pointerEvents: 'none',
         zIndex: 9999, userSelect: 'none', whiteSpace: 'nowrap',
-      }}>{APP_VERSION}</div>
+      }}>{APP_VERSION} {(() => { const d = new Date(); return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')}` })()}</div>
     </>
   )
 }

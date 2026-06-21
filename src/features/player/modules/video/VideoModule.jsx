@@ -140,11 +140,6 @@ export default function VideoModule({ node, file, onDone }) {
     setTimeout(closeFs, 300)
   }
 
-  function onFsTouchStart(e) { touchStartY.current = e.touches[0].clientY }
-  function onFsTouchEnd(e) {
-    if (e.changedTouches[0].clientY - touchStartY.current > 120) closeFs()
-  }
-
   useEffect(() => () => stopRaf(), [])
 
   return (
@@ -155,7 +150,8 @@ export default function VideoModule({ node, file, onDone }) {
               <div ref={frameRef} className="playerVideoCropFrame" onClick={handleTap}>
                 <video
                   ref={videoRef} src={src} className="playerVideoMedia"
-                  style={getMediaStyle()} playsInline autoPlay muted loop preload="auto"
+                  style={{ ...getMediaStyle(), pointerEvents: 'none' }}
+                  playsInline autoPlay muted loop preload="auto"
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
@@ -166,10 +162,7 @@ export default function VideoModule({ node, file, onDone }) {
                 <MutedIcon />
               </div>
 
-              {fsVisible && (
-                <div className="videoFsBg"
-                  onTouchStart={onFsTouchStart} onTouchEnd={onFsTouchEnd} />
-              )}
+              {fsVisible && <div className="videoFsBg" />}
 
               {/* opacity НЕ указан в JSX — управляется только через fsHide/fsShow (DOM) */}
               <video
@@ -187,8 +180,7 @@ export default function VideoModule({ node, file, onDone }) {
               />
 
               {fsVisible && (
-                <div className="videoFsControls" style={{ zIndex: 253 }}
-                  onTouchStart={onFsTouchStart} onTouchEnd={onFsTouchEnd}>
+                <div className="videoFsControls" style={{ zIndex: 253 }}>
                   <button className="videoFullClose" onClick={closeFs}>×</button>
                   {fsSpinner && <div className="videoFullSpinner" />}
                   <div className="videoFsProgressTrack">
