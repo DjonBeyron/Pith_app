@@ -235,6 +235,7 @@ export default function CircleModule({ node, file, onDone }) {
     setCollapsing(true)
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
     collapseTimer.current = setTimeout(() => {
+      collapseTimer.current = null
       pLog('CircleModule: collapsing timer done')
       setCollapsing(false)
       setExpandTransform(null)
