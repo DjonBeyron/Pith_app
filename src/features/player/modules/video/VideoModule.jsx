@@ -64,7 +64,23 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function getFsMediaStyle() {
-    return calcCropStyle(window.innerWidth, window.innerHeight)
+    // Масштабируем crop.x/y пропорционально — они заданы в пикселях инлайн-фрейма
+    const posScale = frameDims ? window.innerWidth / frameDims.w : 1
+    const fsCrop = { x: crop.x * posScale, y: crop.y * posScale, scale: crop.scale }
+    const fw = window.innerWidth, fh = window.innerHeight
+    if (!intrinsic) return {
+      width: '100%', height: '100%', objectFit: 'cover',
+      transform: `translate(${fsCrop.x}px,${fsCrop.y}px) scale(${fsCrop.scale})`,
+      transformOrigin: 'center center',
+    }
+    const ma = intrinsic.w / intrinsic.h, fa = fw / fh
+    const d = ma > fa ? { w: fh * ma, h: fh } : { w: fw, h: fw / ma }
+    return {
+      position: 'absolute', left: '50%', top: '50%',
+      width: d.w + 'px', height: d.h + 'px',
+      transform: `translate(calc(-50% + ${fsCrop.x}px), calc(-50% + ${fsCrop.y}px)) scale(${fsCrop.scale})`,
+      transformOrigin: 'center center',
+    }
   }
 
   function fireDone() {
