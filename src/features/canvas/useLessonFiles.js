@@ -13,8 +13,10 @@ const IDB_KEY = (lid, fid) => `lesson_blob_${lid}_${fid}`
 export function useLessonFiles(lessonId) {
   const [files, setFiles] = useState([])
   const [syncing, setSyncing] = useState(false)
-  // readyRef: true once initial load completes; guards autosave from firing before load.
   const readyRef = useRef(false)
+  // filesRef keeps current files without being a useCallback dependency
+  const filesRef = useRef(files)
+  useEffect(() => { filesRef.current = files }, [files])
 
   // ── Load on mount ──────────────────────────────────────────────
   useEffect(() => {
@@ -69,15 +71,13 @@ export function useLessonFiles(lessonId) {
   // ── Operations ─────────────────────────────────────────────────
   // Returns existing id if same name+size already in lesson (dedup guard).
   function pickFile(file) {
-    console.log('[useLessonFiles] pickFile called:', file?.name, file?.size, 'existing count=', files.length)
     const dup = files.find(f => f.name === file.name && f.size === file.size)
-    if (dup) { console.log('[useLessonFiles] dup found, return id=', dup.id); return dup.id }
+    if (dup) return dup.id
     const id = crypto.randomUUID()
-    setFiles(prev => {
-      const next = [...prev, { id, name: file.name, size: file.size, type: file.type, status: 'local', localFile: file, r2Url: null }]
-      console.log('[useLessonFiles] pickFile: added new file id=', id, 'total=', next.length)
-      return next
-    })
+    setFiles(prev => [...prev, {
+      id, name: file.name, size: file.size, type: file.type,
+      status: 'local', localFile: file, r2Url: null,
+    }])
     if (lessonId) lfSave(IDB_KEY(lessonId, id), file).catch(console.error)
     return id
   }
@@ -139,20 +139,16 @@ export function useLessonFiles(lessonId) {
   // Fetch from Supabase any file IDs not already known locally.
   // Call this when you have node file_ids but no local metadata (e.g. deployed version).
   const fetchMissingFiles = useCallback(async (fileIds) => {
-    pLog('fetchMissingFiles called, ids=', JSON.stringify(fileIds), 'known=', files.map(f => f.id).join(',') || 'none')
     if (!fileIds?.length) return
-    const missing = fileIds.filter(id => !files.some(f => f.id === id))
-    pLog('fetchMissingFiles missing=', JSON.stringify(missing))
+    const missing = fileIds.filter(id => !filesRef.current.some(f => f.id === id))
     if (!missing.length) return
     try {
       const fetched = await getFilesByIds(missing)
-      pLog('fetchMissingFiles fetched from server:', fetched.map(f => f.id + ':' + f.r2Url?.slice(0, 30)).join(', ') || 'none')
       if (fetched.length) setFiles(prev => [...prev, ...fetched])
     } catch (e) {
-      pLog('fetchMissingFiles ERROR:', e.message)
       console.warn('[lessonFiles] fetchMissingFiles error', e)
     }
-  }, [files])
+  }, []) // stable — reads files via ref, no deps
 
   return { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles }
 }
