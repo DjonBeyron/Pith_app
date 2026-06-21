@@ -16,6 +16,7 @@ export default function VideoModule({ node, file, onDone }) {
   const touchStartY   = useRef(0)
   const doneFiredRef  = useRef(false)
   const fsOpenRef     = useRef(false)  // fullscreen сейчас открыт
+  const tapCooldown   = useRef(false)  // защита от частых тапов (1 сек)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -87,6 +88,10 @@ export default function VideoModule({ node, file, onDone }) {
 
   // Tap → fullscreen with audio
   function handleTap() {
+    if (tapCooldown.current) return
+    tapCooldown.current = true
+    setTimeout(() => { tapCooldown.current = false }, 1000)
+
     videoRef.current?.pause()
     const fs = fsVideoRef.current
     if (fs) {
@@ -94,11 +99,15 @@ export default function VideoModule({ node, file, onDone }) {
       if (progressRef.current) progressRef.current.style.width = '0%'
       fs.currentTime = 0
       fs.muted = false
-      fs.play().catch(() => {
+      const playPromise = fs.play().catch(() => {
         pLog('VideoModule: FS unmuted failed → muted')
         fs.muted = true
-        fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
+        return fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
       })
+      // play() resolved = видео реально пошло; если onCanPlay не сработал (уже в буфере) — ставим ready
+      Promise.resolve(playPromise).then(() => {
+        if (fs.readyState >= 3) setFsReady(true)
+      }).catch(() => {})
     }
     fsOpenRef.current = true
     startRaf()
