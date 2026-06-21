@@ -44,6 +44,7 @@ export default function CircleModule({ node, file, onDone }) {
   const touchStartY   = useRef(0)
   const doneFiredRef  = useRef(false)
   const expandedRef   = useRef(false)
+  const animatingRef  = useRef(false)  // защита от частых тапов во время анимации
   const expandWRef    = useRef(0)
   const halfGrowRef   = useRef(0)
   const prevRowsRef   = useRef([])  // .playerMsgRow элементы выше кружка — сдвигаем translateY
@@ -109,6 +110,7 @@ export default function CircleModule({ node, file, onDone }) {
   function stopRaf() { stopRingAnimation() }
 
   function handleTap() {
+    if (animatingRef.current) return  // защита от частых тапов во время анимации
     if (expandedRef.current) { collapse(); return }
 
     const s = dims?.w ?? getSmallPx()
@@ -176,6 +178,8 @@ export default function CircleModule({ node, file, onDone }) {
       : `translateX(${tx}px) scale(${ratio})`)
     setExpanded(true)
     expandedRef.current = true
+    animatingRef.current = true
+    setTimeout(() => { animatingRef.current = false }, 300)  // анимация 0.24s + запас
 
     // Сразу: пауза + первый кадр — виден во время анимации расширения
     const v = vRef.current
@@ -205,12 +209,28 @@ export default function CircleModule({ node, file, onDone }) {
     pLog('CircleModule collapse: expanded=', expandedRef.current)
     stopRaf()
 
+    // Если пользователь вышел вручную (не по ended) — проверяем сколько посмотрел.
+    // >20% → считаем что досмотрел, сразу вызываем onDone.
+    if (!doneFiredRef.current) {
+      const v = vRef.current
+      const watched = v?.duration ? v.currentTime / v.duration : 0
+      pLog('CircleModule collapse: watched=', Math.round(watched * 100) + '%')
+      if (watched >= 0.2) {
+        doneFiredRef.current = true
+        pLog('CircleModule: watched >20% on manual collapse → onDone')
+        onDone?.()
+      }
+    }
+
     // Возвращаем предыдущие строки на место
     prevRowsRef.current.forEach(el => {
       el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1)'
       el.style.transform = ''
     })
     prevRowsRef.current = []
+
+    animatingRef.current = true
+    setTimeout(() => { animatingRef.current = false }, 300)
 
     expandedRef.current = false
     setExpanded(false)
