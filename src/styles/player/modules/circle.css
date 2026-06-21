@@ -1,5 +1,10 @@
 /* ── Circle (video note) module ──────────────────────────────────────── */
 
+@keyframes circleRingProgress {
+  from { stroke-dashoffset: 666.17; }
+  to   { stroke-dashoffset: 0; }
+}
+
 .playerMsgBubble--circle {
   background: #1a1d22;
   padding: 3px;

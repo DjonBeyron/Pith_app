@@ -39,7 +39,7 @@ export default function CircleModule({ node, file, onDone }) {
   const wrapRef       = useRef(null)
   const frRef         = useRef(null)
   const arcRef        = useRef(null)
-  const rafRef        = useRef(null)
+  const rafRef        = useRef(null)  // не используется, оставлен для stopRaf()
   const collapseTimer = useRef(null)
   const touchStartY   = useRef(0)
   const doneFiredRef  = useRef(false)
@@ -82,22 +82,19 @@ export default function CircleModule({ node, file, onDone }) {
     collapse()
   }
 
-  function startRaf() {
-    const tick = () => {
-      const v = vRef.current
-      if (v && arcRef.current && v.duration) {
-        const p = v.currentTime / v.duration
-        arcRef.current.style.strokeDashoffset = String(RING_C * (1 - p))
-      }
-      rafRef.current = requestAnimationFrame(tick)
-    }
-    rafRef.current = requestAnimationFrame(tick)
+  function startRingAnimation(duration) {
+    if (!arcRef.current) return
+    arcRef.current.style.animation = `circleRingProgress ${duration}s linear forwards`
   }
 
-  function stopRaf() {
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
-    if (arcRef.current) arcRef.current.style.strokeDashoffset = String(RING_C)
+  function stopRingAnimation() {
+    if (!arcRef.current) return
+    arcRef.current.style.animation = 'none'
+    arcRef.current.style.strokeDashoffset = String(RING_C)
   }
+
+  // stopRaf оставлен для совместимости с useEffect cleanup
+  function stopRaf() { stopRingAnimation() }
 
   function handleTap() {
     if (expandedRef.current) { collapse(); return }
@@ -176,11 +173,11 @@ export default function CircleModule({ node, file, onDone }) {
       v.currentTime = 0
     }
 
-    // После анимации: play + запуск rAF для кольца (не во время анимации — меньше нагрузки)
+    // После анимации expand: play + CSS-анимация кольца (compositor thread, без JS на кадр)
     setTimeout(() => {
       const v2 = vRef.current
       if (!v2 || !expandedRef.current) return
-      startRaf()
+      startRingAnimation(v2.duration || 10)
       v2.muted = false
       v2.play()
         .then(() => pLog('CircleModule: expanded play OK'))
