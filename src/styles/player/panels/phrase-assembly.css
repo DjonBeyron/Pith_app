@@ -39,6 +39,14 @@
   padding: 12px 16px 16px;
 }
 
+/* ── Counter ─────────────────────────────────────────────── */
+.phraseCounter {
+  font-size: 11px;
+  color: #555d72;
+  text-align: right;
+  letter-spacing: 0.02em;
+}
+
 /* ── Answer row (drop zone) ─────────────────────────────── */
 .phraseAnswerRow {
   min-height: 50px;

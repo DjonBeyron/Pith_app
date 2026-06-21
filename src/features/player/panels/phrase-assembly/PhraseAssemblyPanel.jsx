@@ -3,13 +3,16 @@ import { usePhraseAssembly } from './usePhraseAssembly.js'
 import PhraseWordChip from './PhraseWordChip.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 
-export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeightChange }) {
+export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, onHeightChange }) {
   const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
     usePhraseAssembly(node)
   const [show, setShow] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
-  const panelRef = useRef(null)
-  const wrongFiredRef = useRef(false) // первый неверный ответ уже отправлен в чат
+  const panelRef   = useRef(null)
+  const wrongCount = useRef(0)
+
+  const words      = node.typeData?.phrase_assembly?.words ?? []
+  const wordsTotal = words.length
 
   useEffect(() => {
     const h = panelRef.current?.offsetHeight ?? 0
@@ -22,16 +25,19 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
     return () => cancelAnimationFrame(id)
   }, [])
 
-  // Неверный ответ: отправить фразу в чат только первый раз, панель остаётся
+  // Неверный: 1-й → фраза в чат, 2-й → подсказка, дальше тихо, панель остаётся
   useEffect(() => {
     if (result !== 'wrong') return
-    if (wrongFiredRef.current) return
-    wrongFiredRef.current = true
+    wrongCount.current += 1
     const phrase = placed.map(p => p.word).join(' ')
-    onAnswered?.(phrase, 'wrong')
+    if (wrongCount.current === 1) {
+      onAnswered?.(phrase, 'wrong')
+    } else if (wrongCount.current === 2) {
+      onHint?.(`Собери фразу из ${wordsTotal} слов`)
+    }
   }, [result]) // eslint-disable-line
 
-  // Верный ответ: фраза в чат, задержка, slide-out
+  // Верный: фраза в чат, задержка, slide-out
   useEffect(() => {
     if (!isAnswered) return
     const phrase = placed.map(p => p.word).join(' ')
@@ -57,6 +63,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
         className={`phrasePanel${show ? ' phrasePanelVisible' : ''}`}
       >
         <div className="phraseInner">
+          <div className="phraseCounter">{placed.length} из {wordsTotal}</div>
           <PhraseAnswerRow placed={placed} result={result} onRemove={removePlaced} />
           <div className="phrasePool">
             {shuffled.map((word, i) => (

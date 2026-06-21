@@ -37,6 +37,7 @@ export default function LessonPlayer({
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
   const [wordChoiceStates, setWordChoiceStates]   = useState({})
   const [phraseStates, setPhraseStates]           = useState({})
+  const [phraseHints, setPhraseHints]             = useState({})
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
@@ -53,6 +54,10 @@ export default function LessonPlayer({
       if (result === 'wrong' && prev[nodeId]) return prev
       return { ...prev, [nodeId]: { text, result } }
     })
+  }
+
+  function handlePhraseHint(nodeId, text) {
+    setPhraseHints(prev => ({ ...prev, [nodeId]: text }))
   }
 
   const [wcPanelHeight, setWcPanelHeight] = useState(0)
@@ -89,6 +94,7 @@ export default function LessonPlayer({
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
                 wordChoiceState={wordChoiceStates[node.id] ?? null}
                 phraseState={phraseStates[node.id] ?? null}
+                phraseHint={phraseHints[node.id] ?? null}
                 bottomOffset={wcPanelHeight || paPanelHeight}
                 onDone={() => onNodeDone(node.id)}
               />
@@ -111,6 +117,7 @@ export default function LessonPlayer({
             node={paNode}
             onDone={() => { setPaPanelHeight(0); onNodeDone(paNode.id) }}
             onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
+            onHint={(text) => handlePhraseHint(paNode.id, text)}
             onHeightChange={setPaPanelHeight}
           />
         )}
