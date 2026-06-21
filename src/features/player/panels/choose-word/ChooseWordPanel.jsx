@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useChooseWord } from './useChooseWord.js'
 import ChooseWordOption from './ChooseWordOption.jsx'
 
-export default function ChooseWordPanel({ node, onDone, onAnswered }) {
+export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChange }) {
   const { options, selectedId, result, isAnswered, handlePick } = useChooseWord(node)
   const [show, setShow] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
@@ -12,11 +12,12 @@ export default function ChooseWordPanel({ node, onDone, onAnswered }) {
     ? (node.typeData?.word_choice?.responseCorrect ?? '')
     : (node.typeData?.word_choice?.responseWrong   ?? '')
 
-  // Измеряем высоту панели (она fixed — всегда в DOM, offsetHeight доступен)
+  // Измеряем высоту панели и сообщаем родителю для bottomOffset
   useEffect(() => {
     const h = panelRef.current?.offsetHeight ?? -1
     console.log('[CWP] measured panelHeight=', h, 'options=', options.length)
     setPanelHeight(h)
+    onHeightChange?.(h)
   }, [options.length])
 
   // Slide-in: один кадр после монтирования

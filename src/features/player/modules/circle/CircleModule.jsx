@@ -25,7 +25,7 @@ function calcStyle(intrinsic, dims, crop) {
   }
 }
 
-export default function CircleModule({ node, file, onDone }) {
+export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   const [objectUrl, setObjectUrl]   = useState(null)
   const [intr, setIntr]             = useState(null)
   const [dims, setDims]             = useState(null)
@@ -155,7 +155,7 @@ export default function CircleModule({ node, file, onDone }) {
         nextMsgTop = innerTop + nextRow.offsetTop
       }
     }
-    const bottomLimit = Math.min(window.innerHeight, nextMsgTop) - EDGE_GAP
+    const bottomLimit = Math.min(window.innerHeight - bottomOffset, nextMsgTop) - EDGE_GAP
 
     // Размер всегда полная ширина — кружок большой при любом положении
     const expandW = window.innerWidth - EDGE_GAP * 2

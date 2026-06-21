@@ -46,6 +46,8 @@ export default function LessonPlayer({
     setWordChoiceStates(prev => ({ ...prev, [nodeId]: { text, result } }))
   }
 
+  const [wcPanelHeight, setWcPanelHeight] = useState(0)
+
   const lastOf = (type) => [...visibleNodes].reverse().find(n => n.type === type) ?? null
   const wcNode = lastOf('word_choice')
   const paNode = lastOf('phrase_assembly')
@@ -76,6 +78,7 @@ export default function LessonPlayer({
                 teacherName={teacherName}
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
                 wordChoiceState={wordChoiceStates[node.id] ?? null}
+                bottomOffset={wcPanelHeight}
                 onDone={() => onNodeDone(node.id)}
               />
             )
@@ -87,8 +90,9 @@ export default function LessonPlayer({
         {wcNode && (
           <ChooseWordPanel
             node={wcNode}
-            onDone={() => onNodeDone(wcNode.id)}
+            onDone={() => { setWcPanelHeight(0); onNodeDone(wcNode.id) }}
             onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result)}
+            onHeightChange={setWcPanelHeight}
           />
         )}
         {paNode && <PhraseAssemblyPanel node={paNode} onDone={() => onNodeDone(paNode.id)} />}
