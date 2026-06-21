@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { usePhraseAssembly } from './usePhraseAssembly.js'
 import PhraseWordChip from './PhraseWordChip.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 function wordForm(n) {
   const m10 = n % 10, m100 = n % 100
@@ -30,7 +31,6 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
   const responseWrong   = pa.responseWrong   ?? ''
   const responseCorrect = pa.responseCorrect ?? ''
 
-  // Измеряем высоту один раз: счётчик всегда в DOM (reserved), высота стабильна
   useEffect(() => {
     const h = panelRef.current?.offsetHeight ?? 0
     setPanelHeight(h)
@@ -45,22 +45,32 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
   useEffect(() => {
     if (result !== 'wrong') return
     wrongCount.current += 1
-    if (wrongCount.current === 1) {
-      // 1-й неверный: responseWrong → правый пузырь в чат
+    const wc = wrongCount.current
+    pLog('[PhraseAssembly] wrong #', wc, 'placed=', placed.map(p => p.word).join(' '))
+
+    if (wc === 1) {
       onAnswered?.(responseWrong, 'wrong')
-    } else if (wrongCount.current === 2) {
-      // 2-й неверный: подсказка слева + показываем счётчик после небольшой задержки
+    } else if (wc === 2) {
       onHint?.(`Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`)
       setTimeout(() => setShowCounter(true), 350)
-    } else if (wrongCount.current >= 3) {
-      const slideOut = setTimeout(() => setShow(false), 400)
-      const done     = setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_wrong') }, 400 + 420)
+    } else if (wc >= 3) {
+      // 3-й неверный: собранная фраза в чат справа красным + триггер phrase_wrong
+      const phrase = placed.map(p => p.word).join(' ')
+      onAnswered?.(phrase, 'wrong_final')
+      const slideOut = setTimeout(() => setShow(false), 700)
+      const done     = setTimeout(() => {
+        onHeightChange?.(0)
+        pLog('[PhraseAssembly] onDone phrase_wrong, nodeId=', node.id)
+        onDone?.('phrase_wrong')
+      }, 700 + 420)
       return () => { clearTimeout(slideOut); clearTimeout(done) }
     }
   }, [result]) // eslint-disable-line
 
   useEffect(() => {
     if (!isAnswered) return
+    const phrase = placed.map(p => p.word).join(' ')
+    pLog('[PhraseAssembly] correct, onDone phrase_correct, nodeId=', node.id)
     const answer   = setTimeout(() => onAnswered?.(responseCorrect, 'correct'), 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
     const done     = setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_correct') }, 700 + 900 + 420)
@@ -83,7 +93,6 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
         className={`phrasePanel${show ? ' phrasePanelVisible' : ''}`}
       >
         <div className="phraseInner">
-          {/* Счётчик всегда в DOM — место зарезервировано. opacity 0→1 после 2-й ошибки */}
           <div className={`phraseCounter${showCounter ? ' phraseCounterVisible' : ''}`}>
             выбрано {placed.length} {wordForm(placed.length)} из {wordsTotal}
           </div>

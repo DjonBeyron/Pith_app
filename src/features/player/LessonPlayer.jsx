@@ -51,7 +51,6 @@ export default function LessonPlayer({
   function handlePhraseAnswer(nodeId, text, result) {
     setPhraseStates(prev => {
       const arr = prev[nodeId] ?? []
-      // Неверный: только один раз
       if (result === 'wrong' && arr.some(b => b.result === 'wrong')) return prev
       return { ...prev, [nodeId]: [...arr, { text, result }] }
     })

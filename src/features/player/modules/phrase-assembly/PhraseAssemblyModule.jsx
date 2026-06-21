@@ -6,22 +6,33 @@ export default function PhraseAssemblyModule({ phraseState, phraseHint }) {
   return (
     <>
       {bubbles.map((b, i) => {
-        const isCorrect = b.result === 'correct'
+        if (b.result === 'correct') return (
+          <div key={i} className="playerMsgRow playerMsgRowRight">
+            <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
+              {b.text}
+            </PlayerBubble>
+          </div>
+        )
+        if (b.result === 'wrong_final') return (
+          <div key={i} className="playerMsgRow playerMsgRowRight">
+            <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseErr">
+              {b.text}
+            </PlayerBubble>
+          </div>
+        )
+        // wrong → слева, красный (от учителя)
         return (
-          <div key={i} className={`playerMsgRow${isCorrect ? ' playerMsgRowRight' : ''}`}>
-            <PlayerBubble className={
-              isCorrect
-                ? 'playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk'
-                : 'playerMsgBubble playerMsgBubble--teacherErr'
-            }>
+          <div key={i} className="playerMsgRow">
+            <PlayerBubble className="playerMsgBubble playerMsgBubble--teacherErr">
               {b.text}
             </PlayerBubble>
           </div>
         )
       })}
+      {/* Подсказка (2-й неверный) — слева, дефолтный цвет как обычное сообщение */}
       {phraseHint && (
         <div className="playerMsgRow">
-          <PlayerBubble className="playerMsgBubble playerMsgBubble--teacherErr">
+          <PlayerBubble className="playerMsgBubble">
             {phraseHint}
           </PlayerBubble>
         </div>

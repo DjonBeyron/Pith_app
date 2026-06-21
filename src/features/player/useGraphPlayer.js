@@ -74,11 +74,13 @@ export function useGraphPlayer(nodes) {
     const node = nodeMapRef.current[nodeId]
     if (!node) return
     const triggers = node.triggers ?? []
-    pLog('[GraphPlayer] onNodeDone seq=', node.seq, 'result=', result, 'triggers=', triggers)
+    pLog('[GraphPlayer] onNodeDone seq=', node.seq, 'result=', result,
+      'triggers=', triggers.map(t => `${t.if}→${t.then ?? 'null'}`).join(', '))
 
     // Сначала ищем триггер по результату (correct/wrong для интерактивных модулей)
     if (result) {
       const t = triggers.find(tr => tr.if === result && tr.then)
+      pLog('[GraphPlayer] result trigger search: if=', result, '→', t ? `found then=${t.then}` : 'NOT FOUND')
       if (t) {
         const key = `${nodeId}:${result}`
         if (firedRef.current.has(key)) return
