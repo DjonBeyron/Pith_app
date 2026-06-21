@@ -7,7 +7,7 @@ export default function VideoModule({ node, file, onDone }) {
   const [intrinsic, setIntrinsic] = useState(null)
   const [frameDims, setFrameDims] = useState(null)
   const [fsVisible, setFsVisible] = useState(false)
-  const [fsReady,   setFsReady]   = useState(false)  // true когда первый кадр готов к показу
+  const [fsSpinner, setFsSpinner] = useState(false)
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
   const frameRef    = useRef(null)
@@ -41,7 +41,6 @@ export default function VideoModule({ node, file, onDone }) {
     if (!el) return
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
-
 
   function getMediaStyle() {
     if (!intrinsic || !frameDims) return {
@@ -82,11 +81,21 @@ export default function VideoModule({ node, file, onDone }) {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
   }
 
+  function fsHide() {
+    // Синхронное скрытие через DOM — React не может перезаписать, если opacity не в JSX style
+    if (fsVideoRef.current) fsVideoRef.current.style.opacity = '0'
+  }
+
+  function fsShow() {
+    if (fsVideoRef.current) fsVideoRef.current.style.opacity = '1'
+  }
+
   function handleTap() {
     if (tapCooldown.current) return
     tapCooldown.current = true
     setTimeout(() => { tapCooldown.current = false }, 1000)
 
+    fsHide()  // синхронно до play() — гарантирует opacity=0 до первого кадра
     videoRef.current?.pause()
     const fs = fsVideoRef.current
     if (fs) {
@@ -101,7 +110,8 @@ export default function VideoModule({ node, file, onDone }) {
     }
     fsOpenRef.current = true
     startRaf()
-    setFsVisible(true)  // fsReady уже false (сброшен в closeFs) → opacity=0 гарантировано
+    setFsSpinner(true)
+    setFsVisible(true)
   }
 
   function closeFs() {
@@ -111,11 +121,12 @@ export default function VideoModule({ node, file, onDone }) {
       pLog('VideoModule: closeFs watched=', Math.round(watched * 100) + '%')
       if (watched >= 0.2) fireDone()
     }
+    fsHide()  // синхронно скрываем до React-рендера
     fsOpenRef.current = false
     stopRaf()
     fsVideoRef.current?.pause()
-    setFsReady(false)   // сбрасываем здесь — до следующего open уже false в state
-    setFsVisible(false)  // useEffect сбросит fsReady=false
+    setFsSpinner(false)
+    setFsVisible(false)
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
     if (v) { v.muted = true; v.play().catch(() => {}) }
@@ -159,18 +170,17 @@ export default function VideoModule({ node, file, onDone }) {
                   onTouchStart={onFsTouchStart} onTouchEnd={onFsTouchEnd} />
               )}
 
+              {/* opacity НЕ указан в JSX — управляется только через fsHide/fsShow (DOM) */}
               <video
                 ref={fsVideoRef} src={src} playsInline preload="none"
                 style={{
                   position: 'fixed', inset: 0, margin: 'auto',
                   zIndex: fsVisible ? 252 : -1,
-                  opacity: fsVisible && fsReady ? 1 : 0,
                   pointerEvents: 'none',
                   maxWidth: '100vw', maxHeight: '100vh',
                   width: 'auto', height: 'auto', display: 'block',
                 }}
-                onCanPlay={() => setFsReady(true)}
-                onPlaying={() => setFsReady(true)}
+                onPlaying={() => { fsShow(); setFsSpinner(false) }}
                 onEnded={handleFsEnded}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
@@ -179,7 +189,7 @@ export default function VideoModule({ node, file, onDone }) {
                 <div className="videoFsControls" style={{ zIndex: 253 }}
                   onTouchStart={onFsTouchStart} onTouchEnd={onFsTouchEnd}>
                   <button className="videoFullClose" onClick={closeFs}>×</button>
-                  {!fsReady && <div className="videoFullSpinner" />}
+                  {fsSpinner && <div className="videoFullSpinner" />}
                   <div className="videoFsProgressTrack">
                     <div ref={progressRef} className="videoFsProgressBar" style={{ width: '0%' }} />
                   </div>
