@@ -249,18 +249,23 @@ export default function CircleModule({ node, file, onDone }) {
               />
             </div>
 
-            {(expanded || collapsing) && (
-              <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true"
-                style={{ opacity: collapsing ? 0 : 1, transition: 'opacity 0.2s ease' }}>
-                <circle cx="109" cy="109" r={RING_R} fill="none"
-                  stroke="rgba(255,255,255,.12)" strokeWidth="1.5" />
-                <circle ref={arcRef} cx="109" cy="109" r={RING_R} fill="none"
-                  stroke="#b6fe3b" strokeWidth="1.5" strokeLinecap="round"
-                  strokeDasharray={`${RING_C} 9999`} strokeDashoffset={String(RING_C)}
-                  transform="rotate(-90 109 109)"
-                />
-              </svg>
-            )}
+            {/* Кольцо всегда в DOM — без условного mount нет мерцания на старте.
+                На expand: появляется с задержкой 0.15s (уже во время анимации).
+                На collapse: мгновенно прячется (delay 0). */}
+            <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true"
+              style={{
+                opacity: (expanded && !collapsing) ? 1 : 0,
+                transition: 'opacity 0.15s ease',
+                transitionDelay: (expanded && !collapsing) ? '0.12s' : '0s',
+              }}>
+              <circle cx="109" cy="109" r={RING_R} fill="none"
+                stroke="rgba(255,255,255,.12)" strokeWidth="1.5" />
+              <circle ref={arcRef} cx="109" cy="109" r={RING_R} fill="none"
+                stroke="#b6fe3b" strokeWidth="1.5" strokeLinecap="round"
+                strokeDasharray={`${RING_C} 9999`} strokeDashoffset={String(RING_C)}
+                transform="rotate(-90 109 109)"
+              />
+            </svg>
 
             {!expanded && !collapsing && <CircleMutedIcon />}
           </div>

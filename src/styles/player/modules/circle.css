@@ -6,12 +6,15 @@
   overflow: visible;
   border-radius: 20px 50% 50% 50%;
   max-width: none;
-  /* background без transition — исчезает мгновенно при expand */
+  /* transition на collapse: когда --expanded снимается, браузер видит этот transition */
+  transition: background 0.3s ease;
 }
 
 .playerMsgBubble--circle--expanded {
   background: transparent;
   border-radius: 0;
+  /* transition:none на expand: мгновенное исчезновение подложки при нажатии */
+  transition: background 0s;
 }
 
 /* circleWrap: в потоке (position:relative), один элемент, один transform.
@@ -27,7 +30,7 @@
   -webkit-user-select: none;
   transform-origin: center center;
   transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-top 0.18s ease-out;
+              margin-top 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .circleFrame {
