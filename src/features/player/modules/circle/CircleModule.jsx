@@ -77,13 +77,24 @@ export default function CircleModule({ node, file, onDone }) {
 
   function handleEnded() {
     if (!expandedRef.current) return
-    // Повторный просмотр — зациклить, не выходить
+    // Повторный просмотр — плавно сбросить кольцо, затем зациклить
     if (doneFiredRef.current) {
-      pLog('CircleModule: expanded ended, revisit → loop from start')
+      pLog('CircleModule: expanded ended, revisit → fade ring + loop')
       const v = vRef.current
-      if (v) { v.currentTime = 0; v.play().catch(() => {}) }
-      stopRingAnimation()
-      if (v?.duration) startRingAnimation(v.duration)
+      const arc = arcRef.current
+      if (v) v.currentTime = 0  // позиция к началу, но не play — видео уже остановлено
+      // Плавно откатываем кольцо к пустому состоянию
+      if (arc) {
+        arc.style.animation = 'none'
+        arc.style.transition = 'stroke-dashoffset 0.3s ease'
+        arc.style.strokeDashoffset = String(RING_C)
+      }
+      setTimeout(() => {
+        if (!expandedRef.current) return  // пользователь уже вышел
+        if (arc) arc.style.transition = ''
+        if (v) v.play().catch(() => {})
+        // handlePlaying запустит startRingAnimation синхронно с воспроизведением
+      }, 350)
       return
     }
     doneFiredRef.current = true
