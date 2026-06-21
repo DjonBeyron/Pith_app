@@ -82,17 +82,22 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
       {galleryOpen && (
         <div className="pcGalleryOverlay" onClick={() => setGalleryOpen(false)}>
           <div className="pcGallery" onClick={e => e.stopPropagation()}>
-            <div className="pcGalleryTitle">Выбери фото</div>
-            <div className="pcGalleryGrid">
-              {photos.map((ph, i) => (
-                <GalleryTile
-                  key={ph.id}
-                  ph={ph}
-                  index={i}
-                  lessonFiles={lessonFiles}
-                  onClick={() => handlePick(i)}
-                />
-              ))}
+            <div className="pcGalleryHeader">
+              <span className="pcGalleryTitle">Выбери фото</span>
+              <button className="pcGalleryClose" onClick={() => setGalleryOpen(false)}>✕</button>
+            </div>
+            <div className="pcGalleryScroll">
+              <div className="pcGalleryGrid">
+                {photos.map((ph, i) => (
+                  <GalleryTile
+                    key={ph.id}
+                    ph={ph}
+                    index={i}
+                    lessonFiles={lessonFiles}
+                    onClick={() => handlePick(i)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>

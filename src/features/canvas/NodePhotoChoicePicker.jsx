@@ -79,8 +79,11 @@ export default function NodePhotoChoicePicker({
   }
 
   function uploadPhoto(idx, file) {
-    if (!file || !onPickFile) return
+    if (!file) { console.warn('[PC] uploadPhoto: no file'); return }
+    if (!onPickFile) { console.warn('[PC] uploadPhoto: onPickFile missing'); return }
+    console.log('[PC] uploadPhoto idx=', idx, 'file=', file.name, file.size)
     const fileId = onPickFile(file)
+    console.log('[PC] onPickFile returned fileId=', fileId)
     onPhotosChange(photos.map((p, j) => j === idx ? { ...p, fileId, photoUrl: null } : p))
   }
 

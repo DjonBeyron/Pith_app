@@ -91,29 +91,36 @@
   color: #888;
 }
 
-/* ── Gallery overlay — appears from bottom ── */
+/* ── Gallery overlay — full screen, iPhone style ── */
 
 .pcGalleryOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.6);
+  background: rgba(0,0,0,.75);
   display: flex;
-  align-items: flex-end;      /* gallery slides from bottom */
+  align-items: flex-end;
   justify-content: center;
   z-index: 300;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: pcOverlayIn 0.22s ease;
+}
+
+@keyframes pcOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .pcGallery {
-  background: #1a1d22;
+  background: #111317;
   border-radius: 22px 22px 0 0;
-  padding: 18px 16px calc(24px + env(safe-area-inset-bottom, 0px));
-  width: min(480px, 100vw);
+  width: 100%;
+  max-width: 600px;
+  height: 88dvh;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  animation: pcGalleryUp 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: pcGalleryUp 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
 }
 
 @keyframes pcGalleryUp {
@@ -121,56 +128,92 @@
   to   { transform: translateY(0);    }
 }
 
+.pcGalleryHeader {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
 .pcGalleryTitle {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: #666;
-  text-align: center;
+  color: #888;
   text-transform: uppercase;
   letter-spacing: .6px;
+}
+
+.pcGalleryClose {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.1);
+  border: none;
+  color: #ccc;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.pcGalleryClose:hover { background: rgba(255,255,255,.18); }
+
+.pcGalleryScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
 }
 
 .pcGalleryGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 3px;
 }
 
 .pcGalleryTile {
   aspect-ratio: 1;
-  border-radius: 12px;
-  border: 2.5px solid transparent;
+  border: none;
+  padding: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   cursor: pointer;
   overflow: hidden;
-  transition: transform .12s, border-color .15s;
+  border-radius: 4px;
+  position: relative;
+  transition: opacity .12s;
 }
-.pcGalleryTile:hover  { transform: scale(.96); border-color: rgba(255,255,255,.25); }
-.pcGalleryTile:active { transform: scale(.9); }
+.pcGalleryTile:active { opacity: 0.75; }
 
 .pcGalleryTileIdx {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
   color: rgba(255,255,255,.9);
 }
 
 .pcGalleryTileLabel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   font-size: 10px;
-  color: rgba(255,255,255,.75);
+  color: #fff;
+  background: linear-gradient(to top, rgba(0,0,0,.6) 0%, transparent 100%);
+  padding: 12px 4px 4px;
   text-align: center;
-  padding: 0 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
 }
 
 .pcGalleryImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }

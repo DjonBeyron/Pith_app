@@ -69,13 +69,15 @@ export function useLessonFiles(lessonId) {
   // ── Operations ─────────────────────────────────────────────────
   // Returns existing id if same name+size already in lesson (dedup guard).
   function pickFile(file) {
+    console.log('[useLessonFiles] pickFile called:', file?.name, file?.size, 'existing count=', files.length)
     const dup = files.find(f => f.name === file.name && f.size === file.size)
-    if (dup) return dup.id
+    if (dup) { console.log('[useLessonFiles] dup found, return id=', dup.id); return dup.id }
     const id = crypto.randomUUID()
-    setFiles(prev => [...prev, {
-      id, name: file.name, size: file.size, type: file.type,
-      status: 'local', localFile: file, r2Url: null,
-    }])
+    setFiles(prev => {
+      const next = [...prev, { id, name: file.name, size: file.size, type: file.type, status: 'local', localFile: file, r2Url: null }]
+      console.log('[useLessonFiles] pickFile: added new file id=', id, 'total=', next.length)
+      return next
+    })
     if (lessonId) lfSave(IDB_KEY(lessonId, id), file).catch(console.error)
     return id
   }

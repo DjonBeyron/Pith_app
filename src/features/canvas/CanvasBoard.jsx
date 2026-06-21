@@ -11,7 +11,7 @@ function makeNode(seq, x, y) {
     seq,
     x,
     y,
-    size: 'mini',
+    size: 'max',
     type: 'audio',
     triggers: [{ if: 'played', then: null }],
     typeData: {
@@ -89,7 +89,7 @@ export default function CanvasBoard({
     })
   }, [])
 
-  // JS hover with 150 ms delay so cursor can cross the gap between node and menu
+  // Hover with generous delay so cursor can cross the gap between node and menu
   function enterNode(nodeId) {
     clearTimeout(hoverTimer.current)
     setHoveredNodeId(nodeId)
@@ -97,11 +97,12 @@ export default function CanvasBoard({
   function leaveNode() {
     hoverTimer.current = setTimeout(() => {
       setHoveredNodeId(null)
-      setConfirmDeleteId(null)
-    }, 150)
+      // confirmDeleteId is only cleared by explicit "Нет" click or successful delete
+    }, 600)
   }
 
   function deleteNode(nodeId) {
+    clearTimeout(hoverTimer.current)
     setHoveredNodeId(null)
     setConfirmDeleteId(null)
     setNodes(prev => {

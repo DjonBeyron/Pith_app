@@ -134,7 +134,7 @@
 /* ── hover menu (JS-controlled, centered above node) ── */
 .nodeHoverMenu {
   position: absolute;
-  top: -34px;
+  top: -44px;           /* higher so buttons are easier to reach */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -143,6 +143,8 @@
   z-index: 10;
   white-space: nowrap;
   animation: menuFadeIn 0.1s ease;
+  /* invisible bottom padding = "bridge" so cursor doesn't exit between node and menu */
+  padding-bottom: 14px;
 }
 
 @keyframes menuFadeIn {
