@@ -141,7 +141,6 @@ export default function CircleModule({ node, file, onDone }) {
     halfGrowRef.current = halfGrow
 
     // Сдвигаем предыдущие строки чата вверх через GPU transform (синхронно с expand кружка)
-    const row = wrapRef.current.closest('.playerMsgRow')
     const inner = row?.parentElement
     if (inner) {
       const rows = [...inner.querySelectorAll('.playerMsgRow')]
