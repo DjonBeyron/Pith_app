@@ -33,8 +33,8 @@ export default function ChooseWordPanel({ node, onDone, onAnswered }) {
     if (!isAnswered) return
     console.log('[CWP] answered → slide-out in 700ms, panelHeight=', panelHeight)
     const answer   = setTimeout(() => onAnswered?.(responseText, result), 700)
-    const slideOut = setTimeout(() => { console.log('[CWP] show → false'); setShow(false) }, 700)
-    const done     = setTimeout(() => onDone?.(), 700 + 420)
+    const slideOut = setTimeout(() => { console.log('[CWP] show → false'); setShow(false) }, 700 + 900)
+    const done     = setTimeout(() => onDone?.(), 700 + 900 + 420)
     return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }
   }, [isAnswered]) // eslint-disable-line
 
