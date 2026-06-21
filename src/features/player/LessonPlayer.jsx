@@ -49,10 +49,11 @@ export default function LessonPlayer({
   }
 
   function handlePhraseAnswer(nodeId, text, result) {
-    // Верный ответ всегда обновляет; неверный — только если пузыря ещё нет
     setPhraseStates(prev => {
-      if (result === 'wrong' && prev[nodeId]) return prev
-      return { ...prev, [nodeId]: { text, result } }
+      const arr = prev[nodeId] ?? []
+      // Неверный: только один раз
+      if (result === 'wrong' && arr.some(b => b.result === 'wrong')) return prev
+      return { ...prev, [nodeId]: [...arr, { text, result }] }
     })
   }
 

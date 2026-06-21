@@ -3,6 +3,10 @@ import { usePhraseAssembly } from './usePhraseAssembly.js'
 import PhraseWordChip from './PhraseWordChip.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 
+function wordsSuffix(n) {
+  return n === 1 ? 'слова' : 'слов'
+}
+
 export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, onHeightChange }) {
   const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
     usePhraseAssembly(node)
@@ -11,8 +15,11 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
   const panelRef   = useRef(null)
   const wrongCount = useRef(0)
 
-  const words      = node.typeData?.phrase_assembly?.words ?? []
-  const wordsTotal = words.length
+  const pa          = node.typeData?.phrase_assembly ?? {}
+  const words       = pa.words ?? []
+  const wordsTotal  = words.length
+  const responseWrong   = pa.responseWrong   ?? ''
+  const responseCorrect = pa.responseCorrect ?? ''
 
   useEffect(() => {
     const h = panelRef.current?.offsetHeight ?? 0
@@ -25,23 +32,25 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
     return () => cancelAnimationFrame(id)
   }, [])
 
-  // Неверный: 1-й → фраза в чат, 2-й → подсказка, дальше тихо, панель остаётся
   useEffect(() => {
     if (result !== 'wrong') return
     wrongCount.current += 1
-    const phrase = placed.map(p => p.word).join(' ')
     if (wrongCount.current === 1) {
-      onAnswered?.(phrase, 'wrong')
+      onAnswered?.(responseWrong, 'wrong')
     } else if (wrongCount.current === 2) {
-      onHint?.(`Собери фразу из ${wordsTotal} слов`)
+      onHint?.(`Собери фразу из ${wordsTotal} ${wordsSuffix(wordsTotal)}`)
+    } else if (wrongCount.current >= 3) {
+      // 3-й неверный: панель уходит, триггер срабатывает
+      const slideOut = setTimeout(() => setShow(false), 400)
+      const done     = setTimeout(() => { onHeightChange?.(0); onDone?.() }, 400 + 420)
+      return () => { clearTimeout(slideOut); clearTimeout(done) }
     }
   }, [result]) // eslint-disable-line
 
-  // Верный: фраза в чат, задержка, slide-out
+  // Верный: responseCorrect в чат как новый пузырь, задержка, slide-out
   useEffect(() => {
     if (!isAnswered) return
-    const phrase = placed.map(p => p.word).join(' ')
-    const answer   = setTimeout(() => onAnswered?.(phrase, 'correct'), 700)
+    const answer   = setTimeout(() => onAnswered?.(responseCorrect, 'correct'), 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
     const done     = setTimeout(() => { onHeightChange?.(0); onDone?.() }, 700 + 900 + 420)
     return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }
