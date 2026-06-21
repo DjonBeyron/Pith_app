@@ -42,7 +42,7 @@
 /* ── Answer row (drop zone) ─────────────────────────────── */
 .phraseAnswerRow {
   min-height: 50px;
-  border: 2px dashed #2a2d35;
+  border: 1px dashed #3a3d47;
   border-radius: 14px;
   padding: 8px 12px;
   display: flex;

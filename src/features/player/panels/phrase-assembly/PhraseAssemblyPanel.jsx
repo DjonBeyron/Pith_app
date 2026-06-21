@@ -9,10 +9,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
   const [show, setShow] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
   const panelRef = useRef(null)
-
-  const responseText = result === 'correct'
-    ? (node.typeData?.phrase_assembly?.responseCorrect ?? '')
-    : (result === 'wrong' ? (node.typeData?.phrase_assembly?.responseWrong ?? '') : '')
+  const wrongFiredRef = useRef(false) // первый неверный ответ уже отправлен в чат
 
   useEffect(() => {
     const h = panelRef.current?.offsetHeight ?? 0
@@ -25,9 +22,20 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
     return () => cancelAnimationFrame(id)
   }, [])
 
+  // Неверный ответ: отправить фразу в чат только первый раз, панель остаётся
+  useEffect(() => {
+    if (result !== 'wrong') return
+    if (wrongFiredRef.current) return
+    wrongFiredRef.current = true
+    const phrase = placed.map(p => p.word).join(' ')
+    onAnswered?.(phrase, 'wrong')
+  }, [result]) // eslint-disable-line
+
+  // Верный ответ: фраза в чат, задержка, slide-out
   useEffect(() => {
     if (!isAnswered) return
-    const answer   = setTimeout(() => onAnswered?.(responseText, result), 700)
+    const phrase = placed.map(p => p.word).join(' ')
+    const answer   = setTimeout(() => onAnswered?.(phrase, 'correct'), 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
     const done     = setTimeout(() => { onHeightChange?.(0); onDone?.() }, 700 + 900 + 420)
     return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }

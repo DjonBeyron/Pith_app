@@ -48,7 +48,11 @@ export default function LessonPlayer({
   }
 
   function handlePhraseAnswer(nodeId, text, result) {
-    setPhraseStates(prev => ({ ...prev, [nodeId]: { text, result } }))
+    // Верный ответ всегда обновляет; неверный — только если пузыря ещё нет
+    setPhraseStates(prev => {
+      if (result === 'wrong' && prev[nodeId]) return prev
+      return { ...prev, [nodeId]: { text, result } }
+    })
   }
 
   const [wcPanelHeight, setWcPanelHeight] = useState(0)
