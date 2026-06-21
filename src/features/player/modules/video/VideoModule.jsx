@@ -8,12 +8,12 @@ export default function VideoModule({ node, file, onDone }) {
   const [frameDims, setFrameDims] = useState(null)
   const [fsVisible, setFsVisible] = useState(false)
   const [fsSpinner, setFsSpinner] = useState(false)
+  const [fsSrc, setFsSrc]     = useState(null)  // src для FS-видео — только когда открыто
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
   const frameRef    = useRef(null)
   const progressRef = useRef(null)
   const rafRef      = useRef(null)
-  const touchStartY = useRef(0)
   const doneFiredRef = useRef(false)
   const fsOpenRef   = useRef(false)
   const tapCooldown = useRef(false)
@@ -82,7 +82,6 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function fsHide() {
-    // Синхронное скрытие через DOM — React не может перезаписать, если opacity не в JSX style
     if (fsVideoRef.current) fsVideoRef.current.style.opacity = '0'
   }
 
@@ -95,49 +94,65 @@ export default function VideoModule({ node, file, onDone }) {
     tapCooldown.current = true
     setTimeout(() => { tapCooldown.current = false }, 1000)
 
-    fsHide()  // синхронно до play() — гарантирует opacity=0 до первого кадра
+    pLog('VideoModule: handleTap → open FS')
     videoRef.current?.pause()
-    const fs = fsVideoRef.current
-    if (fs) {
-      if (progressRef.current) progressRef.current.style.width = '0%'
-      fs.currentTime = 0
-      fs.muted = false
-      fs.play().catch(() => {
-        pLog('VideoModule: FS unmuted failed → muted')
-        fs.muted = true
-        fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
-      })
-    }
+    // Сначала ставим src — браузер начнёт загружать
+    setFsSrc(src)
     fsOpenRef.current = true
-    startRaf()
     setFsSpinner(true)
     setFsVisible(true)
+    // play() и fsHide вызываются после того как fsVideoRef получит src (в useEffect ниже)
   }
 
+  // Когда fsSrc появился → скрыть и воспроизвести
+  useEffect(() => {
+    if (!fsSrc) return
+    const fs = fsVideoRef.current
+    if (!fs) return
+    fsHide()
+    if (progressRef.current) progressRef.current.style.width = '0%'
+    fs.currentTime = 0
+    fs.muted = false
+    startRaf()
+    fs.play().catch(() => {
+      pLog('VideoModule: FS unmuted failed → muted')
+      fs.muted = true
+      fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
+    })
+  }, [fsSrc]) // eslint-disable-line
+
   function closeFs() {
-    if (!fsOpenRef.current) return  // защита от двойного вызова
+    if (!fsOpenRef.current) return
     const fs = fsVideoRef.current
     if (fs?.duration) {
       const watched = fs.currentTime / fs.duration
       pLog('VideoModule: closeFs watched=', Math.round(watched * 100) + '%')
       if (watched >= 0.2) fireDone()
     }
-    fsHide()  // синхронно скрываем до React-рендера
+    fsHide()
     fsOpenRef.current = false
     stopRaf()
     fsVideoRef.current?.pause()
     setFsSpinner(false)
     setFsVisible(false)
+    setFsSrc(null)  // убираем src — браузер больше не может его воспроизвести
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
     if (v) { v.muted = true; v.play().catch(() => {}) }
   }
 
   function handleFsEnded() {
+    if (!fsOpenRef.current) return  // FS не открыт — игнорируем
     pLog('VideoModule: FS ended → onDone + close')
     if (progressRef.current) progressRef.current.style.width = '100%'
     fireDone()
     setTimeout(closeFs, 300)
+  }
+
+  function handleFsPlaying() {
+    if (!fsOpenRef.current) return  // FS не открыт — игнорируем
+    fsShow()
+    setFsSpinner(false)
   }
 
   useEffect(() => () => stopRaf(), [])
@@ -164,9 +179,12 @@ export default function VideoModule({ node, file, onDone }) {
 
               {fsVisible && <div className="videoFsBg" />}
 
-              {/* opacity НЕ указан в JSX — управляется только через fsHide/fsShow (DOM) */}
+              {/* fsSrc=null пока FS закрыт — браузер не загружает и не играет */}
               <video
-                ref={fsVideoRef} src={src} playsInline preload="none"
+                ref={fsVideoRef}
+                src={fsSrc ?? undefined}
+                playsInline
+                preload="none"
                 style={{
                   position: 'fixed', inset: 0, margin: 'auto',
                   zIndex: fsVisible ? 252 : -1,
@@ -174,7 +192,7 @@ export default function VideoModule({ node, file, onDone }) {
                   maxWidth: '100vw', maxHeight: '100vh',
                   width: 'auto', height: 'auto', display: 'block',
                 }}
-                onPlaying={() => { fsShow(); setFsSpinner(false) }}
+                onPlaying={handleFsPlaying}
                 onEnded={handleFsEnded}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
