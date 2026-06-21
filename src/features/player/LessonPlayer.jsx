@@ -35,10 +35,15 @@ export default function LessonPlayer({
 
   // ── Panels ───────────────────────────────────────────────────────────────
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
+  const [wordChoiceStates, setWordChoiceStates]   = useState({})
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
     onNodeDone(nodeId)
+  }
+
+  function handleWordAnswer(nodeId, text, result) {
+    setWordChoiceStates(prev => ({ ...prev, [nodeId]: { text, result } }))
   }
 
   const lastOf = (type) => [...visibleNodes].reverse().find(n => n.type === type) ?? null
@@ -70,6 +75,7 @@ export default function LessonPlayer({
                 file={fileWithBlob}
                 teacherName={teacherName}
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
+                wordChoiceState={wordChoiceStates[node.id] ?? null}
                 onDone={() => onNodeDone(node.id)}
               />
             )
@@ -78,7 +84,13 @@ export default function LessonPlayer({
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}
         </PlayerFeed>
-        {wcNode && <ChooseWordPanel node={wcNode} onDone={() => onNodeDone(wcNode.id)} />}
+        {wcNode && (
+          <ChooseWordPanel
+            node={wcNode}
+            onDone={() => onNodeDone(wcNode.id)}
+            onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result)}
+          />
+        )}
         {paNode && <PhraseAssemblyPanel node={paNode} onDone={() => onNodeDone(paNode.id)} />}
         {pcNode && !photoChoiceStates[pcNode.id] && (
           <PhotoChoicePanel

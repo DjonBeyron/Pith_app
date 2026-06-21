@@ -1,30 +1,29 @@
 import { useEffect } from 'react'
 import { useChooseWord } from './useChooseWord.js'
 import ChooseWordOption from './ChooseWordOption.jsx'
-import ChooseWordResponse from './ChooseWordResponse.jsx'
 
-export default function ChooseWordPanel({ node, onDone }) {
+export default function ChooseWordPanel({ node, onDone, onAnswered }) {
   const { options, selectedId, result, isAnswered, handlePick } = useChooseWord(node)
 
-  useEffect(() => {
-    if (isAnswered) onDone?.()
-  }, [isAnswered]) // eslint-disable-line
   const responseText = result === 'correct'
     ? (node.typeData?.word_choice?.responseCorrect ?? '')
     : (node.typeData?.word_choice?.responseWrong   ?? '')
 
+  useEffect(() => {
+    if (!isAnswered) return
+    onAnswered?.(responseText, result)
+    onDone?.()
+  }, [isAnswered]) // eslint-disable-line
+
   function getState(opt) {
     if (!isAnswered) return 'default'
-    if (opt.id === selectedId) return result  // 'correct' | 'wrong'
+    if (opt.id === selectedId) return result
     return 'dimmed'
   }
 
   return (
     <div className="chooseWordPanel">
       <div className="chooseWordInner">
-        {isAnswered && responseText && (
-          <ChooseWordResponse text={responseText} result={result} />
-        )}
         {options.map(opt => (
           <ChooseWordOption
             key={opt.id}

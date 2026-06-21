@@ -1,5 +1,24 @@
 /* ── Text message module ──────────────────────────────────────────────── */
 
+/* Правый ряд — ответ пользователя (word_choice) */
+.playerMsgRowRight {
+  justify-content: flex-end;
+}
+
+.playerMsgBubble--response {
+  background: #1a1d22;
+  border-radius: 18px 18px 4px 18px;
+  padding: 6px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e0e0e0;
+  max-width: 80%;
+  word-break: break-word;
+}
+
+.playerMsgBubble--responseOk  { background: rgba(74,222,128,.10); color: #4ade80; }
+.playerMsgBubble--responseErr { background: rgba(248,113,113,.10); color: #f87171; }
+
 .playerMsgBubble--text {
   background: #1a1d22;
   padding: 6px 14px;
