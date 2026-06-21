@@ -27,7 +27,7 @@
   -webkit-user-select: none;
   transform-origin: center center;
   transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-top 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+              margin-top 0.28s ease-out;
 }
 
 .circleFrame {
