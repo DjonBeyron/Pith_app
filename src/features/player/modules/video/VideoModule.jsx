@@ -94,12 +94,7 @@ export default function VideoModule({ node, file, onDone }) {
     tapCooldown.current = true
     setTimeout(() => { tapCooldown.current = false }, 1000)
 
-    // Дебаг: трансформы рядов чата и circleBackdrop при открытии FS
-    const msgRows = [...document.querySelectorAll('.playerMsgRow')]
-    const backdropPE = document.querySelector('.circleBackdrop')?.style.pointerEvents ?? 'нет'
-    pLog('VideoModule: handleTap → open FS | rows transforms:',
-      msgRows.map((el, i) => `[${i}]${el.style.transform || 'none'}`).join(' '),
-      '| circleBackdrop PE:', backdropPE)
+    pLog('VideoModule: handleTap → open FS')
     videoRef.current?.pause()
     // Сначала ставим src — браузер начнёт загружать
     setFsSrc(src)

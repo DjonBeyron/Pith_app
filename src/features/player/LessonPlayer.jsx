@@ -70,10 +70,7 @@ export default function LessonPlayer({
                 file={fileWithBlob}
                 teacherName={teacherName}
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
-                onDone={() => {
-                  pLog('LessonPlayer: onDone node.id=', node.id, 'type=', node.type)
-                  onNodeDone(node.id)
-                }}
+                onDone={() => onNodeDone(node.id)}
               />
             )
           })}

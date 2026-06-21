@@ -241,19 +241,11 @@ export default function CircleModule({ node, file, onDone }) {
 
     // Возвращаем предыдущие строки на место
     if (flipObserver.current) { flipObserver.current.disconnect(); flipObserver.current = null }
-    const resetCount = prevRowsRef.current.length
-    prevRowsRef.current.forEach((el, i) => {
+    prevRowsRef.current.forEach(el => {
       el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1)'
       el.style.transform = ''
-      pLog(`CircleModule collapse: reset row[${i}] class=${el.className.split(' ').slice(-1)[0]}`)
     })
     prevRowsRef.current = []
-    pLog('CircleModule collapse: reset', resetCount, 'rows → checking all rows after 520ms')
-    setTimeout(() => {
-      const allRows = [...document.querySelectorAll('.playerMsgRow')]
-      pLog('CircleModule collapse+520ms: rows transforms=',
-        allRows.map((el, i) => `[${i}]${el.style.transform || 'none'}`).join(' '))
-    }, 520)
 
     expandedRef.current = false
     setExpanded(false)
@@ -300,11 +292,9 @@ export default function CircleModule({ node, file, onDone }) {
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
-      <div
-        className="circleBackdrop"
-        style={{ pointerEvents: expanded ? 'auto' : 'none' }}
-        onClick={collapse}
-      />
+      {expanded && (
+        <div className="circleBackdrop" onClick={collapse} />
+      )}
       <div className={`playerMsgBubble playerMsgBubble--circle${(expanded || collapsing) ? ' playerMsgBubble--circle--expanded' : ''}`}>
         {src ? (
           <div
