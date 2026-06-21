@@ -42,10 +42,6 @@ export default function VideoModule({ node, file, onDone }) {
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
-  // При закрытии сбрасываем fsReady — следующий open всегда начинается с opacity:0
-  useEffect(() => {
-    if (!fsVisible) setFsReady(false)
-  }, [fsVisible])
 
   function getMediaStyle() {
     if (!intrinsic || !frameDims) return {
@@ -105,8 +101,8 @@ export default function VideoModule({ node, file, onDone }) {
     }
     fsOpenRef.current = true
     startRaf()
+    setFsReady(false)   // сброс в том же батче — рендер: fsVisible=true, fsReady=false → opacity=0
     setFsVisible(true)
-    // fsReady остаётся false до onCanPlay — видео скрыто, показывается спиннер
   }
 
   function closeFs() {
