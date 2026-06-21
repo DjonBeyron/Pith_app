@@ -10,7 +10,6 @@ function getSmallPx() {
 }
 
 // Intrinsic-based positioning — совпадает с редактором.
-// Используется и для малого кружка, и для expanded (с другими dims).
 function calcStyle(intrinsic, dims, crop) {
   if (!intrinsic || !dims) return {
     position: 'absolute', inset: 0, objectFit: 'cover',
@@ -28,28 +27,26 @@ function calcStyle(intrinsic, dims, crop) {
 }
 
 export default function CircleModule({ node, file, onDone }) {
-  const [objectUrl, setObjectUrl] = useState(null)
-  const [intr, setIntr] = useState(null)
-  const [dims, setDims] = useState(null)
-  const [expanded, setExpanded] = useState(false)
-  // collapsing: держит expandedVideoStyle пока анимация схлопывания не завершена
-  const [collapsing, setCollapsing] = useState(false)
-  const [wrapStyle, setWrapStyle] = useState(() => {
-    const s = getSmallPx()
-    return { width: s + 'px', height: s + 'px', marginLeft: '0px' }
-  })
+  const [objectUrl, setObjectUrl]     = useState(null)
+  const [intr, setIntr]               = useState(null)
+  const [dims, setDims]               = useState(null)
+  const [expanded, setExpanded]       = useState(false)
+  const [collapsing, setCollapsing]   = useState(false)
+  // expandTransform: строка transform для circleWrap в expanded режиме
+  const [expandTransform, setExpandTransform] = useState(null)
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
-  const vRef            = useRef(null)
-  const wrapRef         = useRef(null)
-  const frRef           = useRef(null)
-  const arcRef          = useRef(null)
-  const rafRef          = useRef(null)
-  const collapseTimer   = useRef(null)
-  const touchStartY     = useRef(0)
-  const doneFiredRef    = useRef(false)  // защита от двойного срабатывания onDone
-  const expandedRef     = useRef(false)
-  const lastRafTime     = useRef(0)
+
+  const vRef          = useRef(null)
+  const wrapRef       = useRef(null)
+  const frRef         = useRef(null)
+  const arcRef        = useRef(null)
+  const rafRef        = useRef(null)
+  const collapseTimer = useRef(null)
+  const touchStartY   = useRef(0)
+  const doneFiredRef  = useRef(false)
+  const expandedRef   = useRef(false)
+  const lastRafTime   = useRef(0)
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -76,13 +73,8 @@ export default function CircleModule({ node, file, onDone }) {
     pLog('CircleModule STATE: expanded=', expanded, 'collapsing=', collapsing)
   }, [expanded, collapsing])
 
-  useEffect(() => {
-    const mode = (expanded || collapsing) ? 'expand' : 'small'
-    pLog('CircleModule vsMode=', mode, 'intr=', intr ? `${intr.w}x${intr.h}` : 'null', 'dims=', dims ? `${dims.w}x${dims.h}` : 'null')
-  })
-
   function handleEnded() {
-    if (!expandedRef.current) return  // малый кружок зациклен, ended не должен срабатывать
+    if (!expandedRef.current) return
     if (doneFiredRef.current) return
     doneFiredRef.current = true
     pLog('CircleModule: expanded video ended → onDone + collapse')
@@ -90,11 +82,9 @@ export default function CircleModule({ node, file, onDone }) {
     collapse()
   }
 
-  // Throttle SVG ring updates to 15fps max — иначе 60fps strokeDashoffset
-  // repaints на iOS конкурируют с video decoder и вызывают подёргивание
   function startRaf() {
     const tick = (t) => {
-      if (t - lastRafTime.current >= 33) { // ~30fps
+      if (t - lastRafTime.current >= 33) {
         lastRafTime.current = t
         const v = vRef.current
         if (v && arcRef.current && v.duration) {
@@ -114,20 +104,25 @@ export default function CircleModule({ node, file, onDone }) {
 
   function handleTap() {
     if (expandedRef.current) { collapse(); return }
+
+    // Вычисляем transform для circleWrap: translateX чтобы выровнять по EDGE_GAP
+    // + scale чтобы визуально расширить до expandW. circleWrap остаётся 200×200 в layout —
+    // всё внутри (видео, ring, иконка) масштабируется как единый запечённый элемент.
+    const s = dims?.w ?? getSmallPx()
     const rect = wrapRef.current.getBoundingClientRect()
     const expandW = window.innerWidth - EDGE_GAP * 2
-    const ml = -(rect.left - EDGE_GAP)
-    pLog('CircleModule expand: rect=', JSON.stringify({ left: Math.round(rect.left), w: Math.round(rect.width) }),
-      '| innerWidth=', window.innerWidth, '| expandW=', expandW, '| ml=', Math.round(ml))
+    const ratio = expandW / s
+    // Левый край после scale() от центра элемента
+    const visualLeft = rect.left - s * (ratio - 1) / 2
+    const tx = EDGE_GAP - visualLeft
+    pLog('CircleModule expand: s=', s, 'ratio=', ratio.toFixed(3), 'tx=', Math.round(tx))
 
     doneFiredRef.current = false
-    setWrapStyle({ width: expandW + 'px', height: expandW + 'px', marginLeft: ml + 'px', zIndex: 10 })
+    setExpandTransform(`translateX(${tx}px) scale(${ratio})`)
     setExpanded(true)
     expandedRef.current = true
     startRaf()
 
-    // Defer pause+seek+play на следующий кадр — даём браузеру сначала
-    // начать CSS transition, иначе decode конкурирует с layout → микро-фриз
     requestAnimationFrame(() => {
       const v = vRef.current
       if (!v || !expandedRef.current) return
@@ -151,24 +146,21 @@ export default function CircleModule({ node, file, onDone }) {
     stopRaf()
     expandedRef.current = false
     setExpanded(false)
-
-    // Держим expandedVideoStyle пока анимация схлопывания (0.38s) не завершится.
-    // Без этого videoStyle мгновенно переключается на calcStyle(dims 200px)
-    // пока circleWrap ещё 354px → видео "прыгает" в позицию для малого кружка.
+    // expandTransform НЕ сбрасываем сразу — браузер анимирует из текущего transform к none
+    // через CSS transition. Сброс в collapsing timer чтобы не мешать reverse-анимации.
     setCollapsing(true)
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
     collapseTimer.current = setTimeout(() => {
-      pLog('CircleModule: collapsing timer done → setCollapsing(false)')
+      pLog('CircleModule: collapsing timer done')
       setCollapsing(false)
+      setExpandTransform(null)
     }, 500)
 
-    const s = getSmallPx()
-    setWrapStyle({ width: s + 'px', height: s + 'px', marginLeft: '0px' })
     const v = vRef.current
     if (v) {
       v.loop = true
       v.muted = true
-      v.currentTime = 0  // видео закончилось — перемотать в начало перед play()
+      v.currentTime = 0
       v.play().catch(err => pLog('CircleModule collapse play failed:', err.message))
     }
   }
@@ -183,18 +175,16 @@ export default function CircleModule({ node, file, onDone }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
   }, [])
 
-  // circleFrame остаётся фиксированного размера (smallPx × smallPx) и масштабируется
-  // через CSS transform: scale() от своего центра. Видео внутри — неизменный calcStyle.
-  // Так crop всегда корректный, а анимация — абсолютно синхронная (единый элемент).
-  const smallPx = dims?.w ?? getSmallPx()
-  const expandW = window.innerWidth - EDGE_GAP * 2
-  const frameStyle = {
-    width: smallPx + 'px',
-    height: smallPx + 'px',
-    transform: expanded
-      ? `translate(-50%, -50%) scale(${expandW / smallPx})`
-      : 'translate(-50%, -50%)',
+  // circleWrap всегда фиксированного размера в layout.
+  // Расширение — через transform на ВСЁМ враппере (видео, ring, иконка — один элемент).
+  const s = dims?.w ?? getSmallPx()
+  const wrapStyle = {
+    width: s + 'px',
+    height: s + 'px',
+    ...(expanded ? { transform: expandTransform ?? undefined, zIndex: 10 } : {}),
+    ...(collapsing && !expanded ? { zIndex: 10 } : {}),
   }
+  // videoStyle НИКОГДА не меняется — видео зафиксировано внутри circleWrap
   const videoStyle = calcStyle(intr, dims, crop)
 
   return (
@@ -204,8 +194,6 @@ export default function CircleModule({ node, file, onDone }) {
         style={{ pointerEvents: expanded ? 'auto' : 'none' }}
         onClick={collapse}
       />
-      {/* plain div — не PlayerBubble: ResizeObserver внутри него ставит overflow:hidden
-          при схлопывании, что обрезает кружок, и конкурирует с CSS transition → дёрганья */}
       <div className={`playerMsgBubble playerMsgBubble--circle${(expanded || collapsing) ? ' playerMsgBubble--circle--expanded' : ''}`}>
         {src ? (
           <div
@@ -216,7 +204,7 @@ export default function CircleModule({ node, file, onDone }) {
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            <div ref={frRef} className="circleFrame" style={frameStyle}>
+            <div ref={frRef} className="circleFrame">
               <video
                 ref={vRef} src={src} className="circleMedia"
                 style={videoStyle}
@@ -224,10 +212,10 @@ export default function CircleModule({ node, file, onDone }) {
                 onLoadedMetadata={e => {
                   const v = e.currentTarget
                   setIntr({ w: v.videoWidth, h: v.videoHeight })
-                  pLog('CircleModule meta:', v.videoWidth, 'x', v.videoHeight, 'rs=', v.readyState)
+                  pLog('CircleModule meta:', v.videoWidth, 'x', v.videoHeight)
                 }}
                 onCanPlay={() => pLog('CircleModule canPlay expanded=', expandedRef.current)}
-                onWaiting={() => pLog('CircleModule WAITING (buffering) expanded=', expandedRef.current)}
+                onWaiting={() => pLog('CircleModule WAITING expanded=', expandedRef.current)}
                 onStalled={() => pLog('CircleModule STALLED expanded=', expandedRef.current)}
                 onEnded={handleEnded}
                 onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}

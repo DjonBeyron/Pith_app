@@ -5,14 +5,7 @@
   padding: 3px;
   overflow: visible;
   border-radius: 20px 50% 50% 50%;
-  /* max-width: none — убираем 78% от .playerMsgBubble, bubble не должен
-     зажимать circleWrap во время анимации (вызывал скачок при возврате) */
   max-width: none;
-  /* Только визуальные свойства (не layout). На expand: 0.38s плавно.
-     На collapse: bubble прозрачен 420ms (class --expanded держится через collapsing),
-     потом 0.15s быстрый snap — уже после окончания анимации кружка. */
-  /* border-radius: без transition — мгновенный snap. Анимировать border-radius
-     при появлении фона нельзя: квадратные углы мелькают пока фон ещё прозрачный */
   transition: background 0.35s ease;
 }
 
@@ -29,23 +22,18 @@
   outline: none;
   user-select: none;
   -webkit-user-select: none;
-  /* Размер через inline style (явные px) — transition между двумя px-значениями */
-  transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-left 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Весь кружок (видео + ring + иконка) — один элемент.
+     Анимация через transform: translateX() scale() на враппере целиком. */
+  transform-origin: center center;
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .circleFrame {
-  /* Фиксированный размер задаётся через inline style (width/height = smallPx).
-     Масштабируется через scale() — видео внутри не меняется, нет десинхрона. */
   position: absolute;
-  left: 50%;
-  top: 50%;
+  inset: 0;
   border-radius: 50%;
   overflow: hidden;
   box-shadow: 0 0 0 2px #1a1d22;
-  transform-origin: center center;
-  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .circleMedia {
@@ -54,7 +42,7 @@
   max-height: none;
   user-select: none;
   pointer-events: none;
-  /* Видео не анимируется — circleFrame scale() делает всё */
+  /* Нет transition — видео статично внутри circleWrap, анимирует только враппер */
 }
 
 /* Backdrop — перехватывает тап вне кружка в expanded режиме */
