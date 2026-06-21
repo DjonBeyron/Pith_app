@@ -124,7 +124,7 @@ export default function VideoModule({ node, file, onDone }) {
     }
     fsOpenRef.current = false
     stopRaf()
-    fs?.pause()
+    if (fs) { fs.pause(); fs.currentTime = 0 }  // сброс в 0 — при повторном открытии нет флеша старого кадра
     setFsVisible(false)
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
