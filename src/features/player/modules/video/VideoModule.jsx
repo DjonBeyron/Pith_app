@@ -122,8 +122,9 @@ export default function VideoModule({ node, file, onDone }) {
     }
     fsOpenRef.current = false
     stopRaf()
-    if (fs) { fs.pause() }
+    if (fs) { fs.pause(); fs.style.opacity = '0' }
     setFsVisible(false)
+    setFsBuffering(false)
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
     if (v) { v.muted = true; v.play().catch(() => {}) }
