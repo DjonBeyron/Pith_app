@@ -17,9 +17,8 @@
   transition: background 0s;
 }
 
-/* circleWrap: transition задаётся через inline style (разный для expand/collapse).
-   Expand: только transform (margin-top мгновенно → один reflow → чат сразу освобождает место).
-   Collapse: transform + margin-top анимируются вместе. */
+/* Предыдущие строки (.playerMsgRow) двигаются через el.style.transform напрямую.
+   circleWrap: только transform-анимация, никакого margin-top. */
 .circleWrap {
   position: relative;
   flex-shrink: 0;
@@ -29,6 +28,7 @@
   user-select: none;
   -webkit-user-select: none;
   transform-origin: center center;
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .circleFrame {

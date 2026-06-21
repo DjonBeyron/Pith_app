@@ -46,7 +46,8 @@ export default function CircleModule({ node, file, onDone }) {
   const expandedRef   = useRef(false)
   const lastRafTime   = useRef(0)
   const expandWRef    = useRef(0)
-  const halfGrowRef   = useRef(0)  // marginTop при expand — зависит от вертикального сдвига
+  const halfGrowRef   = useRef(0)
+  const prevRowsRef   = useRef([])  // .playerMsgRow элементы выше кружка — сдвигаем translateY
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -138,6 +139,21 @@ export default function CircleModule({ node, file, onDone }) {
     doneFiredRef.current = false
     expandWRef.current = expandW
     halfGrowRef.current = halfGrow
+
+    // Сдвигаем предыдущие строки чата вверх через GPU transform (синхронно с expand кружка)
+    const row = wrapRef.current.closest('.playerMsgRow')
+    const inner = row?.parentElement
+    if (inner) {
+      const rows = [...inner.querySelectorAll('.playerMsgRow')]
+      const idx = rows.indexOf(row)
+      const prev = rows.slice(0, idx)
+      prevRowsRef.current = prev
+      prev.forEach(el => {
+        el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1)'
+        el.style.transform = `translateY(-${halfGrow}px)`
+      })
+    }
+
     setExpandTransform(ty !== 0
       ? `translateX(${tx}px) translateY(${ty}px) scale(${ratio})`
       : `translateX(${tx}px) scale(${ratio})`)
@@ -172,6 +188,14 @@ export default function CircleModule({ node, file, onDone }) {
   function collapse() {
     pLog('CircleModule collapse: expanded=', expandedRef.current)
     stopRaf()
+
+    // Возвращаем предыдущие строки на место
+    prevRowsRef.current.forEach(el => {
+      el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1)'
+      el.style.transform = ''
+    })
+    prevRowsRef.current = []
+
     expandedRef.current = false
     setExpanded(false)
     setCollapsing(true)
@@ -202,14 +226,11 @@ export default function CircleModule({ node, file, onDone }) {
   }, [])
 
   const s = dims?.w ?? getSmallPx()
-  // margin-top и transform анимируются вместе — чат поднимается синхронно с кружком.
-  const halfGrow = (expanded || collapsing) ? halfGrowRef.current : 0
-  const wrapTransition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1), margin-top 0.24s cubic-bezier(0.4,0,0.2,1)'
+  // Предыдущие строки двигаются через translateY напрямую (GPU, синхронно с кружком).
+  // Кружок сам только transform + zIndex — никакого margin-top.
   const wrapStyle = {
     width: s + 'px',
     height: s + 'px',
-    marginTop: `${halfGrow}px`,
-    transition: wrapTransition,
     ...(expanded ? { transform: expandTransform ?? undefined, zIndex: 10 } : {}),
     ...(collapsing && !expanded ? { zIndex: 10 } : {}),
   }
