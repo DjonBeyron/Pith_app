@@ -1,23 +1,38 @@
 /* ── Choose-word panel ─────────────────────────────────────────────────
-   Bottom interactive panel — lives outside PlayerFeed, never scrolls.
-   Slide-in/out через max-height transition — физически вытесняет чат.
+   Панель вне flex-потока (position: fixed), анимируется translateY — GPU.
+   Пустой .chooseWordSpacer в потоке вытесняет чат (дёшево, без контента).
    ──────────────────────────────────────────────────────────────────── */
 
-.chooseWordPanel {
+/* Спейсер: пустой div в flex-потоке, синхронизирован с панелью */
+.chooseWordSpacer {
   flex-shrink: 0;
   width: 100%;
-  overflow: hidden;
-  max-height: 0;
+  transition: height 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Панель: fixed, translateY — GPU compositor, плавно на iOS/Android */
+.chooseWordPanel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   background: #0e1013;
   border-top: 1.5px solid transparent;
-  /* Slide-in: ease-out (быстро появляется), slide-out: ease-in (быстро уходит) */
-  transition: max-height 0.32s cubic-bezier(0, 0, 0.2, 1),
-              border-top-color 0.32s;
+  transform: translateY(100%);
+  /* Уход: быстрое ускорение вниз */
+  transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1),
+              border-top-color 0.28s ease-in;
+  will-change: transform;
+  z-index: 10;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .chooseWordPanelVisible {
-  max-height: 320px;
+  transform: translateY(0%);
   border-top-color: #2a2d35;
+  /* Появление: стартует быстро, плавно тормозит (spring-like) */
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+              border-top-color 0.38s ease-out;
 }
 
 .chooseWordInner {

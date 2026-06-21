@@ -1,28 +1,41 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useChooseWord } from './useChooseWord.js'
 import ChooseWordOption from './ChooseWordOption.jsx'
 
 export default function ChooseWordPanel({ node, onDone, onAnswered }) {
   const { options, selectedId, result, isAnswered, handlePick } = useChooseWord(node)
   const [show, setShow] = useState(false)
+  const [panelHeight, setPanelHeight] = useState(0)
+  const panelRef = useRef(null)
 
   const responseText = result === 'correct'
     ? (node.typeData?.word_choice?.responseCorrect ?? '')
     : (node.typeData?.word_choice?.responseWrong   ?? '')
 
-  // Slide-in: один кадр после монтирования → добавляем класс → max-height анимация
+  // Измеряем высоту панели (она fixed — всегда в DOM, offsetHeight доступен)
   useEffect(() => {
-    const id = requestAnimationFrame(() => setShow(true))
+    const h = panelRef.current?.offsetHeight ?? -1
+    console.log('[CWP] measured panelHeight=', h, 'options=', options.length)
+    setPanelHeight(h)
+  }, [options.length])
+
+  // Slide-in: один кадр после монтирования
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      console.log('[CWP] show → true, panelHeight=', panelRef.current?.offsetHeight)
+      setShow(true)
+    })
     return () => cancelAnimationFrame(id)
   }, [])
 
-  // После ответа: сообщаем родителю, затем задержка → slide-out → onDone
+  // onAnswered откладывается до slide-out — пузырь появляется из-за края панели
   useEffect(() => {
     if (!isAnswered) return
-    onAnswered?.(responseText, result)
-    const slideOut = setTimeout(() => setShow(false), 700)
-    const done     = setTimeout(() => onDone?.(), 700 + 380)
-    return () => { clearTimeout(slideOut); clearTimeout(done) }
+    console.log('[CWP] answered → slide-out in 700ms, panelHeight=', panelHeight)
+    const answer   = setTimeout(() => onAnswered?.(responseText, result), 700)
+    const slideOut = setTimeout(() => { console.log('[CWP] show → false'); setShow(false) }, 700)
+    const done     = setTimeout(() => onDone?.(), 700 + 420)
+    return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }
   }, [isAnswered]) // eslint-disable-line
 
   function getState(opt) {
@@ -32,18 +45,32 @@ export default function ChooseWordPanel({ node, onDone, onAnswered }) {
   }
 
   return (
-    <div className={`chooseWordPanel${show ? ' chooseWordPanelVisible' : ''}`}>
-      <div className="chooseWordInner">
-        {options.map(opt => (
-          <ChooseWordOption
-            key={opt.id}
-            text={opt.text}
-            state={getState(opt)}
-            onClick={() => handlePick(opt)}
-            disabled={isAnswered}
-          />
-        ))}
+    <>
+      {/* Пустой спейсер в flex-потоке — вытесняет чат вверх (дёшево, без контента) */}
+      <div
+        className="chooseWordSpacer"
+        style={{ height: show ? panelHeight : 0 }}
+      />
+      {/* Панель вне потока (fixed) — анимируется через translateY на GPU */}
+      <div
+        ref={panelRef}
+        className={`chooseWordPanel${show ? ' chooseWordPanelVisible' : ''}`}
+      >
+        <div className="chooseWordInner">
+          <div style={{fontSize:9,color:'rgba(255,255,255,0.3)',marginBottom:2}}>
+            h={panelHeight} show={String(show)}
+          </div>
+          {options.map(opt => (
+            <ChooseWordOption
+              key={opt.id}
+              text={opt.text}
+              state={getState(opt)}
+              onClick={() => handlePick(opt)}
+              disabled={isAnswered}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
