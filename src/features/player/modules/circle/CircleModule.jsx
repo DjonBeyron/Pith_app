@@ -118,22 +118,28 @@ export default function CircleModule({ node, file, onDone }) {
     expandedRef.current = true
     startRaf()
 
-    requestAnimationFrame(() => {
-      const v = vRef.current
-      if (!v || !expandedRef.current) return
+    // Сразу: пауза + первый кадр — виден во время анимации расширения
+    const v = vRef.current
+    if (v) {
       v.pause()
       v.loop = false
       v.currentTime = 0
-      v.muted = false
-      v.play()
+    }
+
+    // После анимации (~380ms): play со звуком
+    setTimeout(() => {
+      const v2 = vRef.current
+      if (!v2 || !expandedRef.current) return
+      v2.muted = false
+      v2.play()
         .then(() => pLog('CircleModule: expanded play OK'))
         .catch(err => {
           pLog('CircleModule: unmuted play failed:', err.message, '→ stay muted')
-          v.muted = true
-          v.loop = true
-          v.play().catch(() => {})
+          v2.muted = true
+          v2.loop = true
+          v2.play().catch(() => {})
         })
-    })
+    }, 400)
   }
 
   function collapse() {
