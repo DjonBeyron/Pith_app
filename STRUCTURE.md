@@ -133,7 +133,8 @@
 | `modules/photo-choice/PhotoChoiceModule.jsx` | Выбрать фото — возвращает null (панель снизу ведёт весь UI) |
 | `panels/photo-choice/usePhotoChoice.js` | Хук: photos, correctIndexes, selected, result, galleryOpen, handlePick |
 | `panels/photo-choice/PhotoChoicePanel.jsx` | Панель снизу: кнопка «Прикрепи фото», галерея-оверлей, выбранное фото |
-| `panels/PinMessageBanner.jsx` | Баннер под шапкой с текстом закреплённого сообщения |
+| `panels/PinMessageBanner.jsx` | Баннер под шапкой с текстом закреплённого сообщения; кнопка ✕ открывает диалог |
+| `panels/PinConfirmDialog.jsx` | Модальное окно подтверждения откреплення сообщения |
 | `waiting/WaitingDots.jsx` | Три точки «учитель печатает»: волна по Y, пузырь с фоном, всегда внизу ленты |
 | `panels/choose-word/useChooseWord.js` | Хук: выбранный вариант, результат (correct/wrong), флаг isAnswered |
 | `panels/choose-word/ChooseWordOption.jsx` | Одна кнопка-вариант: 4 состояния (default/correct/wrong/dimmed) |

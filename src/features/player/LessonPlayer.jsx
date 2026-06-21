@@ -55,6 +55,7 @@ export default function LessonPlayer({
     })
   }
 
+  const [pinVisible, setPinVisible]       = useState(true)
   const [wcPanelHeight, setWcPanelHeight] = useState(0)
   const [paPanelHeight, setPaPanelHeight] = useState(0)
 
@@ -74,7 +75,12 @@ export default function LessonPlayer({
           teacherLogo={teacherLogo}
           teacherLogoCrop={teacherLogoCrop}
         />
-        {pmNode && <PinMessageBanner content={pmNode.typeData?.pin_message?.content ?? ''} />}
+        {pmNode && pinVisible && (
+          <PinMessageBanner
+            content={pmNode.typeData?.pin_message?.content ?? ''}
+            onUnpin={() => setPinVisible(false)}
+          />
+        )}
         <PlayerFeed>
           {visibleNodes.map(node => {
             const fileId = node.typeData?.[node.type]?.file_id ?? null

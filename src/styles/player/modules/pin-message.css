@@ -1,9 +1,8 @@
 /* ── Pin message — system row in feed ─────────────────────────────── */
 
 .pinSystemRow {
-  display: flex;
-  justify-content: center;
-  padding: 4px 0;
+  justify-content: center !important;
+  padding: 4px 0 !important;
 }
 
 .pinSystemText {

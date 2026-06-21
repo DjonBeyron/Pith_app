@@ -1,20 +1,75 @@
 /* ── Pinned message banner — under top bar ────────────────────────── */
 
 .pinBanner {
+  position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   background: #1a1d22;
-  border-radius: 8px;
-  padding: 8px 14px;
+  border-radius: 10px;
+  padding: 8px 10px 8px 14px;
   margin: 0 12px 4px;
   flex-shrink: 0;
+  overflow: hidden; /* clips shimmer sweep */
 }
 
-.pinBannerLabel {
-  font-size: 13px;
-  flex-shrink: 0;
-  line-height: 1.5;
+/* ── Glass border ───────────────────────────────────────────────────
+   Имитация стекла: яркий блик сверху-слева (где падает свет),
+   быстрое затухание вдоль боков, почти невидимо снизу-справа,
+   маленький вторичный блик в правом нижнем углу.
+   Техника border-box + mask вырезает только 1px рамку.           */
+.pinBanner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: linear-gradient(
+    128deg,
+    rgba(255, 255, 255, 0.55) 0%,    /* яркий блик — верхний левый угол */
+    rgba(255, 255, 255, 0.22) 12%,   /* быстрое затухание вдоль верхней грани */
+    rgba(255, 255, 255, 0.07) 28%,   /* левая грань — полупрозрачно */
+    rgba(255, 255, 255, 0.02) 48%,   /* центр — почти невидимо */
+    rgba(255, 255, 255, 0.02) 62%,   /* нижняя грань — тёмная сторона */
+    rgba(255, 255, 255, 0.08) 80%,   /* правая грань — слабый рефлекс */
+    rgba(255, 255, 255, 0.20) 100%   /* вторичный блик — правый нижний угол */
+  ) border-box;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) padding-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) padding-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Shimmer sweep — plays twice on mount ───────────────────────── */
+.pinBanner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent        0%,
+    transparent       32%,
+    rgba(255,255,255,0.07) 44%,
+    rgba(255,255,255,0.13) 50%,
+    rgba(255,255,255,0.07) 56%,
+    transparent       68%,
+    transparent      100%
+  );
+  transform: translateX(-100%);
+  animation: pinShimmer 0.75s cubic-bezier(0.4, 0, 0.6, 1) 0.4s 2 forwards;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes pinShimmer {
+  0%   { transform: translateX(-100%) }
+  100% { transform: translateX(200%)  }
 }
 
 .pinBannerText {
@@ -23,4 +78,28 @@
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
+  flex: 1;
+  position: relative;
+  z-index: 3;
+}
+
+.pinBannerClose {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.30);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 4px;
+  border-radius: 4px;
+  transition: color 0.18s ease;
+  align-self: flex-start;
+  margin-top: 2px;
+  position: relative;
+  z-index: 3;
+}
+
+.pinBannerClose:hover {
+  color: rgba(255, 255, 255, 0.65);
 }

@@ -1,0 +1,110 @@
+/* ── Pin unpin confirmation dialog ─────────────────────────────────── */
+
+.pinDialog {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: pinDialogFadeIn 0.18s ease;
+}
+
+@keyframes pinDialogFadeIn {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+
+.pinDialogCard {
+  background: #1e2128;
+  border-radius: 16px;
+  padding: 24px 24px 20px;
+  width: min(300px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  animation: pinDialogSlideUp 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Glass border — same technique as banner */
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* Glass border via outline + pseudo-element */
+.pinDialogCard::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 17px;
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 35%,
+    rgba(255, 255, 255, 0.02) 60%,
+    rgba(255, 255, 255, 0.16) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  padding: 1px;
+  pointer-events: none;
+}
+
+@keyframes pinDialogSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.97) }
+  to   { opacity: 1; transform: translateY(0) scale(1) }
+}
+
+.pinDialogTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e8eaf0;
+  text-align: center;
+}
+
+.pinDialogSub {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #666c80;
+  text-align: center;
+}
+
+.pinDialogActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.pinDialogBtn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.pinDialogBtn:active { opacity: 0.75; }
+
+.pinDialogBtn--cancel {
+  background: #2a2e38;
+  color: #9aa0b4;
+}
+
+.pinDialogBtn--confirm {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
