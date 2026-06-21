@@ -6,8 +6,8 @@ export default function VideoModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
   const [frameDims, setFrameDims] = useState(null)
-  const [fsVisible, setFsVisible] = useState(false)
-  const [fsReady,   setFsReady]   = useState(false)
+  const [fsVisible,  setFsVisible]  = useState(false)
+  const [fsBuffering, setFsBuffering] = useState(false)  // показывает спиннер до готовности видео
   const videoRef      = useRef(null)
   const fsVideoRef    = useRef(null)
   const frameRef      = useRef(null)
@@ -95,19 +95,17 @@ export default function VideoModule({ node, file, onDone }) {
     videoRef.current?.pause()
     const fs = fsVideoRef.current
     if (fs) {
-      setFsReady(false)
+      // Скрываем синхронно через DOM — без задержки React-рендера, старый кадр не мелькнёт
+      fs.style.opacity = '0'
+      setFsBuffering(true)
       if (progressRef.current) progressRef.current.style.width = '0%'
       fs.currentTime = 0
       fs.muted = false
-      const playPromise = fs.play().catch(() => {
+      fs.play().catch(() => {
         pLog('VideoModule: FS unmuted failed → muted')
         fs.muted = true
-        return fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
+        fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
       })
-      // play() resolved = видео реально пошло; если onCanPlay не сработал (уже в буфере) — ставим ready
-      Promise.resolve(playPromise).then(() => {
-        if (fs.readyState >= 3) setFsReady(true)
-      }).catch(() => {})
     }
     fsOpenRef.current = true
     startRaf()
@@ -124,7 +122,7 @@ export default function VideoModule({ node, file, onDone }) {
     }
     fsOpenRef.current = false
     stopRaf()
-    if (fs) { fs.pause(); fs.currentTime = 0 }  // сброс в 0 — при повторном открытии нет флеша старого кадра
+    if (fs) { fs.pause() }
     setFsVisible(false)
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
@@ -176,12 +174,12 @@ export default function VideoModule({ node, file, onDone }) {
                 style={{
                   position: 'fixed', inset: 0, margin: 'auto',
                   zIndex: fsVisible ? 252 : -1,
-                  opacity: fsVisible && fsReady ? 1 : 0,
+                  opacity: 0,  // управляется через DOM в handleTap/onCanPlay
                   pointerEvents: 'none',
                   maxWidth: '100vw', maxHeight: '100vh',
                   width: 'auto', height: 'auto', display: 'block',
                 }}
-                onCanPlay={() => setFsReady(true)}
+                onCanPlay={e => { e.currentTarget.style.opacity = '1'; setFsBuffering(false) }}
                 onEnded={handleFsEnded}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
@@ -190,7 +188,7 @@ export default function VideoModule({ node, file, onDone }) {
                 <div className="videoFsControls" style={{ zIndex: 253 }}
                   onTouchStart={onFsTouchStart} onTouchEnd={onFsTouchEnd}>
                   <button className="videoFullClose" onClick={closeFs}>×</button>
-                  {!fsReady && <div className="videoFullSpinner" />}
+                  {fsBuffering && <div className="videoFullSpinner" />}
                   <div className="videoFsProgressTrack">
                     <div ref={progressRef} className="videoFsProgressBar" style={{ width: '0%' }} />
                   </div>
