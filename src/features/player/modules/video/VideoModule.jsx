@@ -115,6 +115,7 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function closeFs() {
+    if (!fsOpenRef.current) return  // защита от двойного вызова
     const fs = fsVideoRef.current
     if (fs?.duration) {
       const watched = fs.currentTime / fs.duration
@@ -141,7 +142,7 @@ export default function VideoModule({ node, file, onDone }) {
 
   function onFsTouchStart(e) { touchStartY.current = e.touches[0].clientY }
   function onFsTouchEnd(e) {
-    if (e.changedTouches[0].clientY - touchStartY.current > 80) closeFs()
+    if (e.changedTouches[0].clientY - touchStartY.current > 120) closeFs()
   }
 
   useEffect(() => () => stopRaf(), [])
@@ -166,7 +167,7 @@ export default function VideoModule({ node, file, onDone }) {
               </div>
 
               {fsVisible && (
-                <div className="videoFsBg" onClick={closeFs}
+                <div className="videoFsBg"
                   onTouchStart={onFsTouchStart} onTouchEnd={onFsTouchEnd} />
               )}
 
