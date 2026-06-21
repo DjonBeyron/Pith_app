@@ -94,7 +94,16 @@ export default function VideoModule({ node, file, onDone }) {
     tapCooldown.current = true
     setTimeout(() => { tapCooldown.current = false }, 1000)
 
-    pLog('VideoModule: handleTap → open FS')
+    // Дебаг: проверяем состояние DOM перед открытием FS
+    const allFixed = [...document.querySelectorAll('*')].filter(el => {
+      const s = getComputedStyle(el)
+      return (s.position === 'fixed' || s.position === 'absolute') && s.zIndex !== 'auto' && parseInt(s.zIndex) > 0
+    })
+    pLog('VideoModule: handleTap → open FS | fixed/abs elements z>0:',
+      allFixed.map(el => `${el.className.split(' ')[0] || el.tagName}(z=${getComputedStyle(el).zIndex},pe=${getComputedStyle(el).pointerEvents})`).join(', '))
+    const msgRows = document.querySelectorAll('.playerMsgRow')
+    pLog('VideoModule: playerMsgRow transforms:',
+      [...msgRows].map(el => el.style.transform || 'none').join(' | '))
     videoRef.current?.pause()
     // Сначала ставим src — браузер начнёт загружать
     setFsSrc(src)
