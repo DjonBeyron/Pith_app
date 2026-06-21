@@ -16,14 +16,16 @@ function wordFormGenitive(n) {
   return n === 1 ? 'слова' : 'слов'
 }
 
-export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, onHeightChange }) {
+export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeightChange }) {
   const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
     usePhraseAssembly(node)
   const [show, setShow]               = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
   const [showCounter, setShowCounter] = useState(false)
-  const panelRef   = useRef(null)
-  const wrongCount = useRef(0)
+  const panelRef    = useRef(null)
+  const wrongCount  = useRef(0)
+  // Refs for close timers so effect cleanup (result→null) can't cancel them
+  const closeTimers = useRef([])
 
   const pa              = node.typeData?.phrase_assembly ?? {}
   const words           = pa.words ?? []
@@ -51,19 +53,19 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
     if (wc === 1) {
       onAnswered?.(responseWrong, 'wrong')
     } else if (wc === 2) {
-      onHint?.(`Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`)
+      onAnswered?.(`Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`, 'hint')
       setTimeout(() => setShowCounter(true), 350)
     } else if (wc >= 3) {
-      // 3-й неверный: собранная фраза в чат справа красным + триггер phrase_wrong
+      // 3rd wrong: assembled phrase to chat + trigger phrase_wrong.
+      // Store timers in ref — effect cleanup (result→null at 700ms) must NOT cancel them.
       const phrase = placed.map(p => p.word).join(' ')
+      console.log('[PhraseAssembly] wc>=3, phrase=', phrase, 'nodeId=', node.id)
       onAnswered?.(phrase, 'wrong_final')
-      const slideOut = setTimeout(() => setShow(false), 700)
-      const done     = setTimeout(() => {
-        onHeightChange?.(0)
-        pLog('[PhraseAssembly] onDone phrase_wrong, nodeId=', node.id)
-        onDone?.('phrase_wrong')
-      }, 700 + 420)
-      return () => { clearTimeout(slideOut); clearTimeout(done) }
+      closeTimers.current.forEach(clearTimeout)
+      closeTimers.current = [
+        setTimeout(() => setShow(false), 700),
+        setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_wrong') }, 700 + 420),
+      ]
     }
   }, [result]) // eslint-disable-line
 

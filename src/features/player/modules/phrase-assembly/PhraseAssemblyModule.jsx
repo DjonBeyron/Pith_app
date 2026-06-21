@@ -1,8 +1,8 @@
 import PlayerBubble from '../../PlayerBubble.jsx'
 
-export default function PhraseAssemblyModule({ phraseState, phraseHint }) {
+export default function PhraseAssemblyModule({ phraseState }) {
   const bubbles = phraseState ?? []
-  if (!bubbles.length && !phraseHint) return null
+  if (!bubbles.length) return null
   return (
     <>
       {bubbles.map((b, i) => {
@@ -20,7 +20,12 @@ export default function PhraseAssemblyModule({ phraseState, phraseHint }) {
             </PlayerBubble>
           </div>
         )
-        // wrong → слева, красный (от учителя)
+        if (b.result === 'hint') return (
+          <div key={i} className="playerMsgRow">
+            <PlayerBubble className="playerMsgBubble">{b.text}</PlayerBubble>
+          </div>
+        )
+        // wrong → слева, красный
         return (
           <div key={i} className="playerMsgRow">
             <PlayerBubble className="playerMsgBubble playerMsgBubble--teacherErr">
@@ -29,14 +34,6 @@ export default function PhraseAssemblyModule({ phraseState, phraseHint }) {
           </div>
         )
       })}
-      {/* Подсказка (2-й неверный) — слева, дефолтный цвет как обычное сообщение */}
-      {phraseHint && (
-        <div className="playerMsgRow">
-          <PlayerBubble className="playerMsgBubble">
-            {phraseHint}
-          </PlayerBubble>
-        </div>
-      )}
     </>
   )
 }
