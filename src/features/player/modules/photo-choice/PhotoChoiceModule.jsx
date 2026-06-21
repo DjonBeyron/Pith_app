@@ -10,11 +10,14 @@ export default function PhotoChoiceModule({ node, photoChoiceState }) {
   const photos  = node.typeData?.photo_choice?.photos ?? []
   const { selected, result } = photoChoiceState
   const photo = photos[selected] ?? null
+  const isOk  = result === 'correct'
 
   return (
-    <div className="playerMsgRow pcAnswerRow">
-      <div className={`pcAnswerPhoto ${result === 'correct' ? 'pcAnswerPhotoOk' : 'pcAnswerPhotoErr'}`}
-        style={photo?.photoUrl ? {} : { background: PHOTO_COLORS[selected % PHOTO_COLORS.length] }}>
+    <div className="playerMsgRow playerMsgRowRight">
+      <div
+        className={`pcAnswerPhoto ${isOk ? 'pcAnswerPhotoOk' : 'pcAnswerPhotoErr'}`}
+        style={photo?.photoUrl ? {} : { background: PHOTO_COLORS[selected % PHOTO_COLORS.length] }}
+      >
         {photo?.photoUrl
           ? <img src={photo.photoUrl} className="pcAnswerImg" alt="" />
           : <span className="pcAnswerIdx">{selected + 1}</span>

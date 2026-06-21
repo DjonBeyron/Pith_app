@@ -277,12 +277,8 @@ export default function CanvasNode({
           <NodePhotoChoicePicker
             photos={tData.photos ?? []}
             correctIndexes={tData.correctIndexes ?? []}
-            responseCorrect={tData.responseCorrect ?? ''}
-            responseWrong={tData.responseWrong ?? ''}
             onPhotosChange={p => updateTypeData({ photos: p })}
             onCorrectIndexesChange={ci => updateTypeData({ correctIndexes: ci })}
-            onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
-            onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
             triggers={node.triggers ?? []}
             allNodes={allNodes}
             nodeId={node.id}

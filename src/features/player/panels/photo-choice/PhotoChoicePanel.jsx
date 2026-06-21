@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const PHOTO_COLORS = [
   '#6366f1','#ec4899','#f59e0b','#10b981',
@@ -6,10 +6,28 @@ const PHOTO_COLORS = [
   '#f97316','#06b6d4','#84cc16','#a855f7',
 ]
 
-export default function PhotoChoicePanel({ node, onPick }) {
+export default function PhotoChoicePanel({ node, onPick, onHeightChange }) {
   const [galleryOpen, setGalleryOpen] = useState(false)
+  const [show, setShow]               = useState(false)
+  const [panelHeight, setPanelHeight] = useState(0)
+  const panelRef = useRef(null)
+
   const photos         = node.typeData?.photo_choice?.photos         ?? []
   const correctIndexes = node.typeData?.photo_choice?.correctIndexes ?? []
+
+  useEffect(() => {
+    const h = panelRef.current?.offsetHeight ?? 0
+    setPanelHeight(h)
+    onHeightChange?.(h)
+  }, []) // eslint-disable-line
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShow(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  // Reset height on unmount (panel removed after pick)
+  useEffect(() => () => onHeightChange?.(0), []) // eslint-disable-line
 
   function handlePick(idx) {
     const isCorrect = correctIndexes.includes(idx)
@@ -19,6 +37,15 @@ export default function PhotoChoicePanel({ node, onPick }) {
 
   return (
     <>
+      <div
+        className="pcPanelSpacer"
+        style={{
+          height: show ? panelHeight : 0,
+          transition: show
+            ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
+            : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
+        }}
+      />
       {galleryOpen && (
         <div className="pcGalleryOverlay" onClick={() => setGalleryOpen(false)}>
           <div className="pcGallery" onClick={e => e.stopPropagation()}>
@@ -44,7 +71,10 @@ export default function PhotoChoicePanel({ node, onPick }) {
           </div>
         </div>
       )}
-      <div className="pcPanel">
+      <div
+        ref={panelRef}
+        className={`pcPanel${show ? ' pcPanelVisible' : ''}`}
+      >
         <button className="pcAttachBtn" onClick={() => setGalleryOpen(true)}>
           <span className="pcAttachIcon">📎</span>
           <span className="pcAttachLabel">Прикрепи фото</span>

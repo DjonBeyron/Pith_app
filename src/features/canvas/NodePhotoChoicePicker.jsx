@@ -8,9 +8,7 @@ const PHOTO_COLORS = [
 
 export default function NodePhotoChoicePicker({
   photos = [], correctIndexes = [],
-  responseCorrect = '', responseWrong = '',
   onPhotosChange, onCorrectIndexesChange,
-  onResponseCorrectChange, onResponseWrongChange,
   triggers = [], allNodes = [], nodeId,
   onTriggersChange, onTriggerMeasure,
 }) {
@@ -125,21 +123,6 @@ export default function NodePhotoChoicePicker({
           ))}
         </div>
       )}
-
-      <div className="nodeWcResponseWrap">
-        <div className="nodeWcResponseRow">
-          <span className="nodeWcResponseLabel nodeWcResponseLabelOk">✓</span>
-          <input className="nodeWcResponseInput" value={responseCorrect}
-            onChange={e => onResponseCorrectChange(e.target.value)}
-            placeholder="Текст верного ответа..." onClick={e => e.stopPropagation()} />
-        </div>
-        <div className="nodeWcResponseRow">
-          <span className="nodeWcResponseLabel nodeWcResponseLabelErr">✗</span>
-          <input className="nodeWcResponseInput" value={responseWrong}
-            onChange={e => onResponseWrongChange(e.target.value)}
-            placeholder="Текст неверного ответа..." onClick={e => e.stopPropagation()} />
-        </div>
-      </div>
 
       <div className="nodeWcTriggerWrap">
         <div className="nodeWcTriggerRow" ref={correctRowRef}>

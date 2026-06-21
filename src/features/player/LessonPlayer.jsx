@@ -37,7 +37,7 @@ export default function LessonPlayer({
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
-    onNodeDone(nodeId)
+    onNodeDone(nodeId, isCorrect ? 'photo_correct' : 'photo_wrong')
   }
 
   function handleWordAnswer(nodeId, text, result) {
@@ -55,6 +55,7 @@ export default function LessonPlayer({
   const [pinVisible, setPinVisible]       = useState(true)
   const [wcPanelHeight, setWcPanelHeight] = useState(0)
   const [paPanelHeight, setPaPanelHeight] = useState(0)
+  const [pcPanelHeight, setPcPanelHeight] = useState(0)
 
   const lastOf = (type) => [...visibleNodes].reverse().find(n => n.type === type) ?? null
   const wcNode = lastOf('word_choice')
@@ -92,7 +93,7 @@ export default function LessonPlayer({
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
                 wordChoiceState={wordChoiceStates[node.id] ?? null}
                 phraseState={phraseStates[node.id] ?? null}
-                bottomOffset={wcPanelHeight || paPanelHeight}
+                bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight}
                 onDone={() => onNodeDone(node.id)}
               />
             )
@@ -121,6 +122,7 @@ export default function LessonPlayer({
           <PhotoChoicePanel
             node={pcNode}
             onPick={(idx, isCorrect) => handlePhotoPick(pcNode.id, idx, isCorrect)}
+            onHeightChange={setPcPanelHeight}
           />
         )}
       </div>
