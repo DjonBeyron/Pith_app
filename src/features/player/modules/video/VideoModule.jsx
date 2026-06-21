@@ -15,6 +15,7 @@ export default function VideoModule({ node, file, onDone }) {
   const rafRef        = useRef(null)
   const touchStartY   = useRef(0)
   const doneFiredRef  = useRef(false)
+  const fsOpenRef     = useRef(false)  // fullscreen сейчас открыт
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -58,15 +59,13 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // Inline: silent loop, fire onDone at end of first play
-  function handleTimeUpdate(e) {
+  // onDone срабатывает только из fullscreen (не из тихого inline-цикла).
+  // Если пользователь досмотрел ≥20% и закрыл — считаем просмотренным.
+  function fireDone() {
     if (doneFiredRef.current) return
-    const v = e.currentTarget
-    if (v.duration && v.currentTime >= v.duration - 0.15) {
-      doneFiredRef.current = true
-      pLog('VideoModule: first loop end → onDone()')
-      onDone?.()
-    }
+    doneFiredRef.current = true
+    pLog('VideoModule: onDone()')
+    onDone?.()
   }
 
   // rAF loop for smooth progress bar
@@ -101,25 +100,34 @@ export default function VideoModule({ node, file, onDone }) {
         fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
       })
     }
+    fsOpenRef.current = true
     startRaf()
     setFsVisible(true)
   }
 
   function closeFs() {
+    // Если досмотрел ≥20% — считаем просмотренным
+    const fs = fsVideoRef.current
+    if (fs?.duration) {
+      const watched = fs.currentTime / fs.duration
+      pLog('VideoModule: closeFs watched=', Math.round(watched * 100) + '%')
+      if (watched >= 0.2) fireDone()
+    }
+    fsOpenRef.current = false
     stopRaf()
-    fsVideoRef.current?.pause()
+    fs?.pause()
     setFsVisible(false)
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
     if (v) { v.muted = true; v.play().catch(() => {}) }
   }
 
-  function handleFsEnded(e) {
-    pLog('VideoModule: FS ended → loop with audio')
-    const v = e.currentTarget
-    if (progressRef.current) progressRef.current.style.width = '0%'
-    v.currentTime = 0
-    v.play().catch(() => {})
+  function handleFsEnded() {
+    pLog('VideoModule: FS ended → onDone + close')
+    if (progressRef.current) progressRef.current.style.width = '100%'
+    fireDone()
+    // Небольшая задержка чтобы прогресс-бар дошёл до 100% перед закрытием
+    setTimeout(closeFs, 300)
   }
 
   // Swipe down to close fullscreen
@@ -144,7 +152,6 @@ export default function VideoModule({ node, file, onDone }) {
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
                     pLog('VideoModule meta rs=', v.readyState)
                   }}
-                  onTimeUpdate={handleTimeUpdate}
                   onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
                 <MutedIcon />

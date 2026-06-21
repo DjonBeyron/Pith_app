@@ -355,7 +355,18 @@ export default function CircleModule({ node, file, onDone }) {
               />
             </svg>
 
-            {!expanded && !collapsing && <CircleMutedIcon />}
+            {/* Значок без звука: всегда в DOM, плавно появляется после collapse */}
+            <div className="circleMutedIcon" style={{
+              opacity: (!expanded && !collapsing) ? 1 : 0,
+              transition: (!expanded && !collapsing) ? 'opacity 0.2s ease 0.1s' : 'opacity 0s',
+              pointerEvents: 'none',
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M11 5L6 9H2v6h4l5 4V5z" fill="white" fillOpacity="0.9"/>
+                <line x1="23" y1="9" x2="17" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="17" y1="9" x2="23" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
           </div>
         ) : <div className="playerMediaPlaceholder">Кружок не загружен</div>}
       </div>
@@ -363,14 +374,3 @@ export default function CircleModule({ node, file, onDone }) {
   )
 }
 
-function CircleMutedIcon() {
-  return (
-    <div className="circleMutedIcon">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <path d="M11 5L6 9H2v6h4l5 4V5z" fill="white" fillOpacity="0.9"/>
-        <line x1="23" y1="9" x2="17" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="17" y1="9" x2="23" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    </div>
-  )
-}
