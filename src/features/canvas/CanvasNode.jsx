@@ -277,6 +277,8 @@ export default function CanvasNode({
           <NodePhotoChoicePicker
             photos={tData.photos ?? []}
             correctIndexes={tData.correctIndexes ?? []}
+            lessonFiles={lessonFiles}
+            onPickFile={onPickLessonFile}
             onPhotosChange={p => updateTypeData({ photos: p })}
             onCorrectIndexesChange={ci => updateTypeData({ correctIndexes: ci })}
             triggers={node.triggers ?? []}

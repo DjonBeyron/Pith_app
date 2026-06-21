@@ -32,8 +32,11 @@ export default function CanvasPage({ lessonId, onBack }) {
   const handleNodesChange = useCallback(n => {
     nodesRef.current = n
     setPanelNodes(n)
-    const ids = [...new Set(n.map(nd => nd.typeData?.[nd.type]?.file_id).filter(Boolean))]
-    pLog('handleNodesChange: nodes=', n.length, 'fileIds=', JSON.stringify(ids))
+    const regular = n.map(nd => nd.typeData?.[nd.type]?.file_id).filter(Boolean)
+    const pcPhotos = n
+      .filter(nd => nd.type === 'photo_choice')
+      .flatMap(nd => (nd.typeData?.photo_choice?.photos ?? []).map(ph => ph.fileId).filter(Boolean))
+    const ids = [...new Set([...regular, ...pcPhotos])]
     if (ids.length) fetchMissingFiles(ids)
   }, [fetchMissingFiles])
 
@@ -57,6 +60,15 @@ export default function CanvasPage({ lessonId, onBack }) {
       const teacherData = await prepareForSave()
       // Inject r2Url into each node's typeData so the player can use it without Supabase lookup
       const nodesForSave = nodesRef.current.map(node => {
+        // photo_choice: inject r2Url into each photo object
+        if (node.type === 'photo_choice') {
+          const photos = (node.typeData?.photo_choice?.photos ?? []).map(ph => {
+            if (!ph.fileId) return ph
+            const f = files.find(fl => fl.id === ph.fileId)
+            return f?.r2Url ? { ...ph, photoUrl: f.r2Url } : ph
+          })
+          return { ...node, typeData: { ...node.typeData, photo_choice: { ...node.typeData.photo_choice, photos } } }
+        }
         const fileId = node.typeData?.[node.type]?.file_id
         if (!fileId) return node
         const f = files.find(fl => fl.id === fileId)

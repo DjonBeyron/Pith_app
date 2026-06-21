@@ -36,8 +36,9 @@ export default function LessonPlayer({
   const [phraseStates, setPhraseStates]           = useState({})
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
-    setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
-    onNodeDone(nodeId, isCorrect ? 'photo_correct' : 'photo_wrong')
+    const result = isCorrect ? 'photo_correct' : 'photo_wrong'
+setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
+    onNodeDone(nodeId, result)
   }
 
   function handleWordAnswer(nodeId, text, result) {
@@ -89,6 +90,7 @@ export default function LessonPlayer({
                 key={node.id}
                 node={node}
                 file={fileWithBlob}
+                lessonFiles={files}
                 teacherName={teacherName}
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
                 wordChoiceState={wordChoiceStates[node.id] ?? null}
@@ -121,6 +123,7 @@ export default function LessonPlayer({
         {pcNode && !photoChoiceStates[pcNode.id] && (
           <PhotoChoicePanel
             node={pcNode}
+            lessonFiles={files}
             onPick={(idx, isCorrect) => handlePhotoPick(pcNode.id, idx, isCorrect)}
             onHeightChange={setPcPanelHeight}
           />

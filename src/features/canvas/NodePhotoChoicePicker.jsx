@@ -6,8 +6,27 @@ const PHOTO_COLORS = [
   '#f97316','#06b6d4','#84cc16','#a855f7',
 ]
 
+function PhotoThumb({ ph, lessonFiles }) {
+  const [url, setUrl] = useState(null)
+  useEffect(() => {
+    if (!ph.fileId) { setUrl(ph.photoUrl ?? null); return }
+    const f = lessonFiles.find(lf => lf.id === ph.fileId)
+    if (!f) { setUrl(null); return }
+    if (f.r2Url) { setUrl(f.r2Url); return }
+    if (f.localFile) {
+      const u = URL.createObjectURL(f.localFile)
+      setUrl(u)
+      return () => URL.revokeObjectURL(u)
+    }
+    setUrl(null)
+  }, [ph.fileId, ph.photoUrl, lessonFiles])
+  if (!url) return null
+  return <img src={url} className="nodePcThumb" alt="" />
+}
+
 export default function NodePhotoChoicePicker({
   photos = [], correctIndexes = [],
+  lessonFiles = [], onPickFile,
   onPhotosChange, onCorrectIndexesChange,
   triggers = [], allNodes = [], nodeId,
   onTriggersChange, onTriggerMeasure,
@@ -60,12 +79,9 @@ export default function NodePhotoChoicePicker({
   }
 
   function uploadPhoto(idx, file) {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = ev => {
-      onPhotosChange(photos.map((p, j) => j === idx ? { ...p, photoUrl: ev.target.result } : p))
-    }
-    reader.readAsDataURL(file)
+    if (!file || !onPickFile) return
+    const fileId = onPickFile(file)
+    onPhotosChange(photos.map((p, j) => j === idx ? { ...p, fileId, photoUrl: null } : p))
   }
 
   const correctThen = (triggers.find(t => t.if === 'photo_correct') ?? triggers[0])?.then ?? ''
@@ -105,8 +121,8 @@ export default function NodePhotoChoicePicker({
           {photos.map((ph, i) => (
             <div key={ph.id} className={`nodePcItem ${correctIndexes.includes(i) ? 'nodePcItemCorrect' : ''}`}>
               <label className="nodePcThumbWrap" title="Загрузить фото" onClick={e => e.stopPropagation()}>
-                {ph.photoUrl
-                  ? <img src={ph.photoUrl} className="nodePcThumb" alt={ph.label} />
+                {(ph.fileId || ph.photoUrl)
+                  ? <PhotoThumb ph={ph} lessonFiles={lessonFiles} />
                   : <div className="nodePcSwatch" style={{ background: PHOTO_COLORS[i % PHOTO_COLORS.length] }}>{i + 1}</div>
                 }
                 <input type="file" accept="image/*" className="nodePcFileInput"

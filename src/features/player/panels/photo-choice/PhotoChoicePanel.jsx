@@ -6,7 +6,41 @@ const PHOTO_COLORS = [
   '#f97316','#06b6d4','#84cc16','#a855f7',
 ]
 
-export default function PhotoChoicePanel({ node, onPick, onHeightChange }) {
+function GalleryTile({ ph, index, lessonFiles, onClick }) {
+  const [src, setSrc] = useState(null)
+
+  useEffect(() => {
+    if (ph.photoUrl) { setSrc(ph.photoUrl); return }
+    if (ph.fileId) {
+      const f = lessonFiles.find(lf => lf.id === ph.fileId)
+      if (f?.r2Url) { setSrc(f.r2Url); return }
+      if (f?.localFile) {
+        const u = URL.createObjectURL(f.localFile)
+        setSrc(u)
+        return () => URL.revokeObjectURL(u)
+      }
+    }
+    setSrc(null)
+  }, [ph.fileId, ph.photoUrl, lessonFiles])
+
+  return (
+    <button
+      className="pcGalleryTile"
+      style={src ? {} : { background: PHOTO_COLORS[index % PHOTO_COLORS.length] }}
+      onClick={onClick}
+    >
+      {src
+        ? <img src={src} className="pcGalleryImg" alt={ph.label} />
+        : <>
+            <span className="pcGalleryTileIdx">{index + 1}</span>
+            {ph.label && <span className="pcGalleryTileLabel">{ph.label}</span>}
+          </>
+      }
+    </button>
+  )
+}
+
+export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHeightChange }) {
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [show, setShow]               = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
@@ -26,7 +60,6 @@ export default function PhotoChoicePanel({ node, onPick, onHeightChange }) {
     return () => cancelAnimationFrame(id)
   }, [])
 
-  // Reset height on unmount (panel removed after pick)
   useEffect(() => () => onHeightChange?.(0), []) // eslint-disable-line
 
   function handlePick(idx) {
@@ -52,20 +85,13 @@ export default function PhotoChoicePanel({ node, onPick, onHeightChange }) {
             <div className="pcGalleryTitle">Выбери фото</div>
             <div className="pcGalleryGrid">
               {photos.map((ph, i) => (
-                <button
+                <GalleryTile
                   key={ph.id}
-                  className="pcGalleryTile"
-                  style={ph.photoUrl ? {} : { background: PHOTO_COLORS[i % PHOTO_COLORS.length] }}
+                  ph={ph}
+                  index={i}
+                  lessonFiles={lessonFiles}
                   onClick={() => handlePick(i)}
-                >
-                  {ph.photoUrl
-                    ? <img src={ph.photoUrl} className="pcGalleryImg" alt={ph.label} />
-                    : <>
-                        <span className="pcGalleryTileIdx">{i + 1}</span>
-                        {ph.label && <span className="pcGalleryTileLabel">{ph.label}</span>}
-                      </>
-                  }
-                </button>
+                />
               ))}
             </div>
           </div>
