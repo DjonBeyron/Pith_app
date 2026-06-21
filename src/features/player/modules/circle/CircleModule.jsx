@@ -45,7 +45,8 @@ export default function CircleModule({ node, file, onDone }) {
   const doneFiredRef  = useRef(false)
   const expandedRef   = useRef(false)
   const lastRafTime   = useRef(0)
-  const expandWRef    = useRef(0)  // запоминаем expandW при тапе
+  const expandWRef    = useRef(0)
+  const halfGrowRef   = useRef(0)  // marginTop при expand — зависит от вертикального сдвига
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -108,29 +109,38 @@ export default function CircleModule({ node, file, onDone }) {
     const rect = wrapRef.current.getBoundingClientRect()
     const centerY = rect.top + s / 2
 
-    // Нижняя граница: минимум из дна экрана и верха следующего сообщения под кружком
+    // Нижняя граница: следующее сообщение под кружком или дно экрана
     const row = wrapRef.current.closest('.playerMsgRow')
     const nextRow = row?.nextElementSibling
     const nextMsgTop = nextRow ? nextRow.getBoundingClientRect().top : window.innerHeight
     const bottomLimit = Math.min(window.innerHeight, nextMsgTop) - EDGE_GAP
 
-    // Максимальный размер ограничен по горизонтали и вертикали
-    const maxFromWidth  = window.innerWidth - EDGE_GAP * 2
-    const maxFromBottom = 2 * (bottomLimit - centerY)   // расширяем вниз от центра
-    const maxFromTop    = 2 * (centerY - EDGE_GAP)      // расширяем вверх от центра
-    const expandW = Math.max(s, Math.min(maxFromWidth, maxFromBottom, maxFromTop))
-
+    // Размер всегда полная ширина — кружок большой при любом положении
+    const expandW = window.innerWidth - EDGE_GAP * 2
     const ratio = expandW / s
-    // translateX: сдвигаем circleWrap чтобы левый край лёг на EDGE_GAP
+
+    // Если кружок внизу и его визуальный низ выходит за bottomLimit →
+    // сдвигаем вверх через translateY (ty ≤ 0). Иначе ty = 0.
+    const ty = Math.min(0, bottomLimit - (centerY + expandW / 2))
+
+    // translateX: выравниваем левый край по EDGE_GAP
     const visualLeft = rect.left - s * (ratio - 1) / 2
     const tx = EDGE_GAP - visualLeft
+
+    // halfGrow: на сколько вырос верх кружка — нужно для margin-top чата
+    // (expandW-s)/2 — рост вверх от центра, -ty — дополнительный сдвиг вверх
+    const halfGrow = (expandW - s) / 2 - ty
+
     pLog('CircleModule expand: s=', s, 'expandW=', Math.round(expandW),
-      'bottomLimit=', Math.round(bottomLimit), 'nextMsgTop=', Math.round(nextMsgTop),
-      'ratio=', ratio.toFixed(3), 'tx=', Math.round(tx))
+      'ty=', Math.round(ty), 'halfGrow=', Math.round(halfGrow),
+      'bottomLimit=', Math.round(bottomLimit), 'ratio=', ratio.toFixed(3))
 
     doneFiredRef.current = false
     expandWRef.current = expandW
-    setExpandTransform(`translateX(${tx}px) scale(${ratio})`)
+    halfGrowRef.current = halfGrow
+    setExpandTransform(ty !== 0
+      ? `translateX(${tx}px) translateY(${ty}px) scale(${ratio})`
+      : `translateX(${tx}px) scale(${ratio})`)
     setExpanded(true)
     expandedRef.current = true
     startRaf()
@@ -192,9 +202,8 @@ export default function CircleModule({ node, file, onDone }) {
   }, [])
 
   const s = dims?.w ?? getSmallPx()
-  // expandW берём из ref (вычислен при тапе с учётом границ экрана и следующего сообщения)
-  const expandW = expanded || collapsing ? expandWRef.current : s
-  const halfGrow = (expandW - s) / 2
+  // halfGrow берём из ref — вычислен при тапе с учётом вертикального сдвига
+  const halfGrow = (expanded || collapsing) ? halfGrowRef.current : 0
   const wrapStyle = {
     width: s + 'px',
     height: s + 'px',
