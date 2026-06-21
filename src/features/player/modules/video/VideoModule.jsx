@@ -101,8 +101,7 @@ export default function VideoModule({ node, file, onDone }) {
     }
     fsOpenRef.current = true
     startRaf()
-    setFsReady(false)   // сброс в том же батче — рендер: fsVisible=true, fsReady=false → opacity=0
-    setFsVisible(true)
+    setFsVisible(true)  // fsReady уже false (сброшен в closeFs) → opacity=0 гарантировано
   }
 
   function closeFs() {
@@ -115,6 +114,7 @@ export default function VideoModule({ node, file, onDone }) {
     fsOpenRef.current = false
     stopRaf()
     fsVideoRef.current?.pause()
+    setFsReady(false)   // сбрасываем здесь — до следующего open уже false в state
     setFsVisible(false)  // useEffect сбросит fsReady=false
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
