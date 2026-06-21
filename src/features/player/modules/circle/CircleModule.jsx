@@ -77,9 +77,21 @@ export default function CircleModule({ node, file, onDone }) {
     if (!expandedRef.current) return
     if (doneFiredRef.current) return
     doneFiredRef.current = true
+    // Доводим кольцо до 100% принудительно — CSS animation может чуть не успеть
+    if (arcRef.current) {
+      arcRef.current.style.animation = 'none'
+      arcRef.current.style.strokeDashoffset = '0'
+    }
     pLog('CircleModule: expanded video ended → onDone + collapse')
     onDone?.()
     collapse()
+  }
+
+  function handlePlaying() {
+    // playing = видео реально пошло (после буферизации) — стартуем кольцо точно отсюда
+    if (!expandedRef.current) return
+    const v = vRef.current
+    if (v?.duration) startRingAnimation(v.duration - v.currentTime)
   }
 
   function startRingAnimation(duration) {
@@ -173,11 +185,10 @@ export default function CircleModule({ node, file, onDone }) {
       v.currentTime = 0
     }
 
-    // После анимации expand: play + CSS-анимация кольца (compositor thread, без JS на кадр)
+    // После анимации expand: play со звуком. Кольцо стартует по событию playing.
     setTimeout(() => {
       const v2 = vRef.current
       if (!v2 || !expandedRef.current) return
-      startRingAnimation(v2.duration || 10)
       v2.muted = false
       v2.play()
         .then(() => pLog('CircleModule: expanded play OK'))
@@ -272,6 +283,7 @@ export default function CircleModule({ node, file, onDone }) {
                 onCanPlay={() => pLog('CircleModule canPlay expanded=', expandedRef.current)}
                 onWaiting={() => pLog('CircleModule WAITING expanded=', expandedRef.current)}
                 onStalled={() => pLog('CircleModule STALLED expanded=', expandedRef.current)}
+                onPlaying={handlePlaying}
                 onEnded={handleEnded}
                 onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}
               />
