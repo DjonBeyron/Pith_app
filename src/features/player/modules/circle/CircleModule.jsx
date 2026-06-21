@@ -48,6 +48,7 @@ export default function CircleModule({ node, file, onDone }) {
   const expandWRef    = useRef(0)
   const halfGrowRef   = useRef(0)
   const prevRowsRef   = useRef([])  // .playerMsgRow элементы выше кружка — сдвигаем translateY
+  const flipObserver  = useRef(null) // MutationObserver: переприменяет lift после PlayerFeed FLIP
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -178,6 +179,23 @@ export default function CircleModule({ node, file, onDone }) {
         el.style.transform = `translateY(-${halfGrow}px)`
         pLog(`CircleModule lift row[${i}]: ${before} → translateY(-${halfGrow}px)`)
       })
+
+      // PlayerFeed FLIP (400ms анимация) сбрасывает el.style.transform на '' при новых сообщениях.
+      // MutationObserver перехватывает добавление строк и переприменяет lift после FLIP.
+      if (flipObserver.current) flipObserver.current.disconnect()
+      flipObserver.current = new MutationObserver(() => {
+        if (!expandedRef.current) return
+        pLog('CircleModule flipObserver: new row detected, re-apply lift after 420ms')
+        setTimeout(() => {
+          if (!expandedRef.current) return
+          prevRowsRef.current.forEach((el, i) => {
+            pLog(`CircleModule re-lift row[${i}]: current=`, el.style.transform || 'none')
+            el.style.transition = 'none'
+            el.style.transform = `translateY(-${halfGrowRef.current}px)`
+          })
+        }, 420)
+      })
+      flipObserver.current.observe(inner, { childList: true })
     }
 
     setExpandTransform(ty !== 0
@@ -230,6 +248,7 @@ export default function CircleModule({ node, file, onDone }) {
     }
 
     // Возвращаем предыдущие строки на место
+    if (flipObserver.current) { flipObserver.current.disconnect(); flipObserver.current = null }
     pLog('CircleModule collapse lift-reset: prevCount=', prevRowsRef.current.length)
     prevRowsRef.current.forEach((el, i) => {
       const before = el.style.transform || 'none'
@@ -267,6 +286,7 @@ export default function CircleModule({ node, file, onDone }) {
   useEffect(() => () => {
     stopRaf()
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
+    if (flipObserver.current) { flipObserver.current.disconnect(); flipObserver.current = null }
   }, [])
 
   const s = dims?.w ?? getSmallPx()
