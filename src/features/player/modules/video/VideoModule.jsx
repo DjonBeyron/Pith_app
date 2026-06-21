@@ -6,17 +6,17 @@ export default function VideoModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
   const [frameDims, setFrameDims] = useState(null)
-  const [fsVisible,  setFsVisible]  = useState(false)
-  const [fsBuffering, setFsBuffering] = useState(false)  // показывает спиннер до готовности видео
-  const videoRef      = useRef(null)
-  const fsVideoRef    = useRef(null)
-  const frameRef      = useRef(null)
-  const progressRef   = useRef(null)
-  const rafRef        = useRef(null)
-  const touchStartY   = useRef(0)
-  const doneFiredRef  = useRef(false)
-  const fsOpenRef     = useRef(false)  // fullscreen сейчас открыт
-  const tapCooldown   = useRef(false)  // защита от частых тапов (1 сек)
+  const [fsVisible, setFsVisible] = useState(false)
+  const [fsReady,   setFsReady]   = useState(false)  // true когда первый кадр готов к показу
+  const videoRef    = useRef(null)
+  const fsVideoRef  = useRef(null)
+  const frameRef    = useRef(null)
+  const progressRef = useRef(null)
+  const rafRef      = useRef(null)
+  const touchStartY = useRef(0)
+  const doneFiredRef = useRef(false)
+  const fsOpenRef   = useRef(false)
+  const tapCooldown = useRef(false)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -42,6 +42,11 @@ export default function VideoModule({ node, file, onDone }) {
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
+  // При закрытии сбрасываем fsReady — следующий open всегда начинается с opacity:0
+  useEffect(() => {
+    if (!fsVisible) setFsReady(false)
+  }, [fsVisible])
+
   function getMediaStyle() {
     if (!intrinsic || !frameDims) return {
       width: '100%', height: '100%', objectFit: 'cover',
@@ -60,8 +65,6 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // onDone срабатывает только из fullscreen (не из тихого inline-цикла).
-  // Если пользователь досмотрел ≥20% и закрыл — считаем просмотренным.
   function fireDone() {
     if (doneFiredRef.current) return
     doneFiredRef.current = true
@@ -69,14 +72,11 @@ export default function VideoModule({ node, file, onDone }) {
     onDone?.()
   }
 
-  // rAF loop for smooth progress bar
   function startRaf() {
     const tick = () => {
       const v = fsVideoRef.current
       const bar = progressRef.current
-      if (v && bar && v.duration) {
-        bar.style.width = `${(v.currentTime / v.duration) * 100}%`
-      }
+      if (v && bar && v.duration) bar.style.width = `${(v.currentTime / v.duration) * 100}%`
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
@@ -86,7 +86,6 @@ export default function VideoModule({ node, file, onDone }) {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
   }
 
-  // Tap → fullscreen with audio
   function handleTap() {
     if (tapCooldown.current) return
     tapCooldown.current = true
@@ -95,9 +94,6 @@ export default function VideoModule({ node, file, onDone }) {
     videoRef.current?.pause()
     const fs = fsVideoRef.current
     if (fs) {
-      // Скрываем синхронно через DOM — без задержки React-рендера, старый кадр не мелькнёт
-      fs.style.opacity = '0'
-      setFsBuffering(true)
       if (progressRef.current) progressRef.current.style.width = '0%'
       fs.currentTime = 0
       fs.muted = false
@@ -110,10 +106,10 @@ export default function VideoModule({ node, file, onDone }) {
     fsOpenRef.current = true
     startRaf()
     setFsVisible(true)
+    // fsReady остаётся false до onCanPlay — видео скрыто, показывается спиннер
   }
 
   function closeFs() {
-    // Если досмотрел ≥20% — считаем просмотренным
     const fs = fsVideoRef.current
     if (fs?.duration) {
       const watched = fs.currentTime / fs.duration
@@ -122,9 +118,8 @@ export default function VideoModule({ node, file, onDone }) {
     }
     fsOpenRef.current = false
     stopRaf()
-    if (fs) { fs.pause(); fs.style.opacity = '0' }
-    setFsVisible(false)
-    setFsBuffering(false)
+    fsVideoRef.current?.pause()
+    setFsVisible(false)  // useEffect сбросит fsReady=false
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
     if (v) { v.muted = true; v.play().catch(() => {}) }
@@ -134,11 +129,9 @@ export default function VideoModule({ node, file, onDone }) {
     pLog('VideoModule: FS ended → onDone + close')
     if (progressRef.current) progressRef.current.style.width = '100%'
     fireDone()
-    // Небольшая задержка чтобы прогресс-бар дошёл до 100% перед закрытием
     setTimeout(closeFs, 300)
   }
 
-  // Swipe down to close fullscreen
   function onFsTouchStart(e) { touchStartY.current = e.touches[0].clientY }
   function onFsTouchEnd(e) {
     if (e.changedTouches[0].clientY - touchStartY.current > 80) closeFs()
@@ -175,12 +168,12 @@ export default function VideoModule({ node, file, onDone }) {
                 style={{
                   position: 'fixed', inset: 0, margin: 'auto',
                   zIndex: fsVisible ? 252 : -1,
-                  opacity: 0,  // управляется через DOM в handleTap/onCanPlay
+                  opacity: fsVisible && fsReady ? 1 : 0,
                   pointerEvents: 'none',
                   maxWidth: '100vw', maxHeight: '100vh',
                   width: 'auto', height: 'auto', display: 'block',
                 }}
-                onCanPlay={e => { e.currentTarget.style.opacity = '1'; setFsBuffering(false) }}
+                onCanPlay={() => setFsReady(true)}
                 onEnded={handleFsEnded}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />
@@ -189,7 +182,7 @@ export default function VideoModule({ node, file, onDone }) {
                 <div className="videoFsControls" style={{ zIndex: 253 }}
                   onTouchStart={onFsTouchStart} onTouchEnd={onFsTouchEnd}>
                   <button className="videoFullClose" onClick={closeFs}>×</button>
-                  {fsBuffering && <div className="videoFullSpinner" />}
+                  {!fsReady && <div className="videoFullSpinner" />}
                   <div className="videoFsProgressTrack">
                     <div ref={progressRef} className="videoFsProgressBar" style={{ width: '0%' }} />
                   </div>

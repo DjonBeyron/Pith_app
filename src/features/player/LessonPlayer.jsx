@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { APP_VERSION } from '../../shared/lib/version.js'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerMessage from './PlayerMessage.jsx'
@@ -48,7 +49,7 @@ export default function LessonPlayer({
 
   return (
     <>
-      <div className="lessonPlayer">
+      <div className="lessonPlayer" style={{ position: 'relative' }}>
         <PlayerTopBar
           title={lessonTitle}
           onClose={onClose}
@@ -56,6 +57,12 @@ export default function LessonPlayer({
           teacherLogo={teacherLogo}
           teacherLogoCrop={teacherLogoCrop}
         />
+        {/* Версия для отслеживания деплоя — pointer-events:none, не влияет на layout */}
+        <div style={{
+          position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)',
+          fontSize: 9, color: 'rgba(255,255,255,0.25)', pointerEvents: 'none',
+          zIndex: 1, userSelect: 'none', whiteSpace: 'nowrap',
+        }}>{APP_VERSION}</div>
         {pmNode && <PinMessageBanner content={pmNode.typeData?.pin_message?.content ?? ''} />}
         <PlayerFeed>
           {visibleNodes.map(node => {
