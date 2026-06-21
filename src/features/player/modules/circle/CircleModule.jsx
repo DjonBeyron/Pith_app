@@ -202,12 +202,11 @@ export default function CircleModule({ node, file, onDone }) {
   }, [])
 
   const s = dims?.w ?? getSmallPx()
-  // halfGrow берём из ref — вычислен при тапе с учётом вертикального сдвига
-  const halfGrow = (expanded || collapsing) ? halfGrowRef.current : 0
+  // Нет margin-top: backdrop (z-index:9) закрывает контент выше кружка при expand,
+  // поэтому двигать layout не нужно. Анимация — чистый GPU transform без layout reflow.
   const wrapStyle = {
     width: s + 'px',
     height: s + 'px',
-    marginTop: expanded ? `${halfGrow}px` : '0px',
     ...(expanded ? { transform: expandTransform ?? undefined, zIndex: 10 } : {}),
     ...(collapsing && !expanded ? { zIndex: 10 } : {}),
   }
