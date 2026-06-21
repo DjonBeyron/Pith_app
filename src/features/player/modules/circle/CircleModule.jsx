@@ -139,7 +139,7 @@ export default function CircleModule({ node, file, onDone }) {
           v2.loop = true
           v2.play().catch(() => {})
         })
-    }, 400)
+    }, 260)
   }
 
   function collapse() {
