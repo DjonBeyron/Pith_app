@@ -166,7 +166,6 @@ export default function CircleModule({ node, file, onDone }) {
       'ty=', Math.round(ty), 'halfGrow=', Math.round(halfGrow),
       'bottomLimit=', Math.round(bottomLimit), 'ratio=', ratio.toFixed(3))
 
-    doneFiredRef.current = false
     expandWRef.current = expandW
     halfGrowRef.current = halfGrow
 
