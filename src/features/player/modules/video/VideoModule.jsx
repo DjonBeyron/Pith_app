@@ -174,6 +174,7 @@ export default function VideoModule({ node, file, onDone }) {
                   width: 'auto', height: 'auto', display: 'block',
                 }}
                 onCanPlay={() => setFsReady(true)}
+                onPlaying={() => setFsReady(true)}
                 onEnded={handleFsEnded}
                 onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
               />

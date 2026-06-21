@@ -49,7 +49,7 @@ export default function LessonPlayer({
 
   return (
     <>
-      <div className="lessonPlayer" style={{ position: 'relative' }}>
+      <div className="lessonPlayer">
         <PlayerTopBar
           title={lessonTitle}
           onClose={onClose}
@@ -57,12 +57,6 @@ export default function LessonPlayer({
           teacherLogo={teacherLogo}
           teacherLogoCrop={teacherLogoCrop}
         />
-        {/* Версия для отслеживания деплоя — pointer-events:none, не влияет на layout */}
-        <div style={{
-          position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)',
-          fontSize: 9, color: 'rgba(255,255,255,0.25)', pointerEvents: 'none',
-          zIndex: 1, userSelect: 'none', whiteSpace: 'nowrap',
-        }}>{APP_VERSION}</div>
         {pmNode && <PinMessageBanner content={pmNode.typeData?.pin_message?.content ?? ''} />}
         <PlayerFeed>
           {visibleNodes.map(node => {
@@ -93,6 +87,12 @@ export default function LessonPlayer({
           />
         )}
       </div>
+      {/* Версия для отслеживания деплоя — fixed, вне потока, pointer-events:none */}
+      <div style={{
+        position: 'fixed', top: 4, left: '50%', transform: 'translateX(-50%)',
+        fontSize: 9, color: 'rgba(255,255,255,0.2)', pointerEvents: 'none',
+        zIndex: 9999, userSelect: 'none', whiteSpace: 'nowrap',
+      }}>{APP_VERSION}</div>
     </>
   )
 }
