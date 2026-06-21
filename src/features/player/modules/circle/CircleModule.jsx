@@ -77,7 +77,15 @@ export default function CircleModule({ node, file, onDone }) {
 
   function handleEnded() {
     if (!expandedRef.current) return
-    if (doneFiredRef.current) return
+    // Повторный просмотр — зациклить, не выходить
+    if (doneFiredRef.current) {
+      pLog('CircleModule: expanded ended, revisit → loop from start')
+      const v = vRef.current
+      if (v) { v.currentTime = 0; v.play().catch(() => {}) }
+      stopRingAnimation()
+      if (v?.duration) startRingAnimation(v.duration)
+      return
+    }
     doneFiredRef.current = true
     // Доводим кольцо до 100% принудительно — CSS animation может чуть не успеть
     if (arcRef.current) {
