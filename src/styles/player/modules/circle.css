@@ -14,20 +14,12 @@
   border-radius: 0;
 }
 
-/* Layout-контейнер: меняет размер МГНОВЕННО (один reflow, не per-frame).
-   Анимировать width/height через CSS transition нельзя — вызывает reflow каждый кадр
-   и ломает GPU-анимацию transform внутри. Контент выше прыгает сразу, круг — плавно. */
-.circleLayoutBox {
+/* circleWrap: в потоке (position:relative), один элемент, один transform.
+   marginTop меняется мгновенно (один reflow) → чат узнаёт о размере.
+   transform: translateX() scale() — GPU, без reflow на каждом кадре → плавность. */
+.circleWrap {
   position: relative;
   flex-shrink: 0;
-}
-
-/* Визуальный контейнер: всегда 200×200 в layout, scale() делает его большим визуально.
-   Всё содержимое (видео, ring, иконка) — один запечённый элемент. */
-.circleWrap {
-  position: absolute;
-  top: 50%;
-  left: 50%;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   outline: none;
@@ -51,17 +43,14 @@
   max-height: none;
   user-select: none;
   pointer-events: none;
-  /* Нет transition — видео статично внутри circleWrap */
 }
 
-/* Backdrop — перехватывает тап вне кружка в expanded режиме */
 .circleBackdrop {
   position: fixed;
   inset: 0;
   z-index: 9;
 }
 
-/* Ring extends 5px outside circle */
 .circleRingSvg {
   position: absolute;
   inset: -5px;
@@ -71,7 +60,6 @@
   overflow: visible;
 }
 
-/* ── Muted icon ── */
 .circleMutedIcon {
   position: absolute;
   bottom: 8px;

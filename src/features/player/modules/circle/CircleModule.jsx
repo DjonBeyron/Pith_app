@@ -9,7 +9,6 @@ function getSmallPx() {
   return Math.min(window.innerWidth * 0.5, 200)
 }
 
-// Intrinsic-based positioning — совпадает с редактором.
 function calcStyle(intrinsic, dims, crop) {
   if (!intrinsic || !dims) return {
     position: 'absolute', inset: 0, objectFit: 'cover',
@@ -32,12 +31,12 @@ export default function CircleModule({ node, file, onDone }) {
   const [dims, setDims]             = useState(null)
   const [expanded, setExpanded]     = useState(false)
   const [collapsing, setCollapsing] = useState(false)
+  const [expandTransform, setExpandTransform] = useState(null)
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
 
   const vRef          = useRef(null)
-  const layoutRef     = useRef(null)  // внешний layout-контейнер
-  const wrapRef       = useRef(null)  // внутренний 200×200 с transform
+  const wrapRef       = useRef(null)
   const frRef         = useRef(null)
   const arcRef        = useRef(null)
   const rafRef        = useRef(null)
@@ -46,8 +45,6 @@ export default function CircleModule({ node, file, onDone }) {
   const doneFiredRef  = useRef(false)
   const expandedRef   = useRef(false)
   const lastRafTime   = useRef(0)
-  // rect.left в момент тапа — для вычисления marginLeft без сохранения в state
-  const expandLeftRef = useRef(0)
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -106,9 +103,17 @@ export default function CircleModule({ node, file, onDone }) {
   function handleTap() {
     if (expandedRef.current) { collapse(); return }
 
-    // Сохраняем left для вычисления marginLeft в render
-    expandLeftRef.current = layoutRef.current.getBoundingClientRect().left
+    const s = dims?.w ?? getSmallPx()
+    const rect = wrapRef.current.getBoundingClientRect()
+    const expandW = window.innerWidth - EDGE_GAP * 2
+    const ratio = expandW / s
+    // translateX: сдвигаем circleWrap чтобы левый край лёг на EDGE_GAP
+    const visualLeft = rect.left - s * (ratio - 1) / 2
+    const tx = EDGE_GAP - visualLeft
+    pLog('CircleModule expand: s=', s, 'ratio=', ratio.toFixed(3), 'tx=', Math.round(tx))
+
     doneFiredRef.current = false
+    setExpandTransform(`translateX(${tx}px) scale(${ratio})`)
     setExpanded(true)
     expandedRef.current = true
     startRaf()
@@ -141,6 +146,7 @@ export default function CircleModule({ node, file, onDone }) {
     collapseTimer.current = setTimeout(() => {
       pLog('CircleModule: collapsing timer done')
       setCollapsing(false)
+      setExpandTransform(null)
     }, 500)
 
     const v = vRef.current
@@ -164,29 +170,19 @@ export default function CircleModule({ node, file, onDone }) {
 
   const s = dims?.w ?? getSmallPx()
   const expandW = window.innerWidth - EDGE_GAP * 2
-  const ratio = expandW / s
 
-  // layoutBox: меняет размер в layout → чат видит реальный размер кружка.
-  // marginLeft корректирует позицию чтобы выровнять по EDGE_GAP.
-  const ml = expanded ? EDGE_GAP - expandLeftRef.current : 0
-  const layoutStyle = {
-    width: (expanded ? expandW : s) + 'px',
-    height: (expanded ? expandW : s) + 'px',
-    marginLeft: ml + 'px',
-  }
-
-  // circleWrap: всегда 200×200 в layout, position:absolute внутри layoutBox.
-  // scale() масштабирует всё содержимое (видео, ring, иконка) как единый элемент.
+  // marginTop: резервирует место выше кружка для чата — меняется мгновенно (один reflow).
+  // Это позволяет чату «знать» о расширении без CSS transition на layout-свойствах.
+  // transform-анимация на GPU запускается после этого одного reflow → плавность сохраняется.
+  const halfGrow = (expandW - s) / 2
   const wrapStyle = {
     width: s + 'px',
     height: s + 'px',
-    ...(expanded || collapsing ? { zIndex: 10 } : {}),
-    transform: expanded
-      ? `translate(-50%, -50%) scale(${ratio})`
-      : 'translate(-50%, -50%)',
+    marginTop: expanded ? `${halfGrow}px` : '0px',
+    ...(expanded ? { transform: expandTransform ?? undefined, zIndex: 10 } : {}),
+    ...(collapsing && !expanded ? { zIndex: 10 } : {}),
   }
 
-  // videoStyle НИКОГДА не меняется — запечено внутри circleWrap
   const videoStyle = calcStyle(intr, dims, crop)
 
   return (
@@ -198,50 +194,46 @@ export default function CircleModule({ node, file, onDone }) {
       />
       <div className={`playerMsgBubble playerMsgBubble--circle${(expanded || collapsing) ? ' playerMsgBubble--circle--expanded' : ''}`}>
         {src ? (
-          // layoutBox: layout-контейнер для чата (меняет размер → сдвигает контент выше)
-          <div ref={layoutRef} className="circleLayoutBox" style={layoutStyle}>
-            {/* circleWrap: визуальный контейнер — один элемент, один transform */}
-            <div
-              ref={wrapRef}
-              className="circleWrap"
-              style={wrapStyle}
-              onClick={handleTap}
-              onTouchStart={onTouchStart}
-              onTouchEnd={onTouchEnd}
-            >
-              <div ref={frRef} className="circleFrame">
-                <video
-                  ref={vRef} src={src} className="circleMedia"
-                  style={videoStyle}
-                  playsInline autoPlay muted loop preload="auto"
-                  onLoadedMetadata={e => {
-                    const v = e.currentTarget
-                    setIntr({ w: v.videoWidth, h: v.videoHeight })
-                    pLog('CircleModule meta:', v.videoWidth, 'x', v.videoHeight)
-                  }}
-                  onCanPlay={() => pLog('CircleModule canPlay expanded=', expandedRef.current)}
-                  onWaiting={() => pLog('CircleModule WAITING expanded=', expandedRef.current)}
-                  onStalled={() => pLog('CircleModule STALLED expanded=', expandedRef.current)}
-                  onEnded={handleEnded}
-                  onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}
-                />
-              </div>
-
-              {(expanded || collapsing) && (
-                <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true"
-                  style={{ opacity: collapsing ? 0 : 1, transition: 'opacity 0.2s ease' }}>
-                  <circle cx="109" cy="109" r={RING_R} fill="none"
-                    stroke="rgba(255,255,255,.12)" strokeWidth="1.5" />
-                  <circle ref={arcRef} cx="109" cy="109" r={RING_R} fill="none"
-                    stroke="#b6fe3b" strokeWidth="1.5" strokeLinecap="round"
-                    strokeDasharray={`${RING_C} 9999`} strokeDashoffset={String(RING_C)}
-                    transform="rotate(-90 109 109)"
-                  />
-                </svg>
-              )}
-
-              {!expanded && !collapsing && <CircleMutedIcon />}
+          <div
+            ref={wrapRef}
+            className="circleWrap"
+            style={wrapStyle}
+            onClick={handleTap}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+          >
+            <div ref={frRef} className="circleFrame">
+              <video
+                ref={vRef} src={src} className="circleMedia"
+                style={videoStyle}
+                playsInline autoPlay muted loop preload="auto"
+                onLoadedMetadata={e => {
+                  const v = e.currentTarget
+                  setIntr({ w: v.videoWidth, h: v.videoHeight })
+                  pLog('CircleModule meta:', v.videoWidth, 'x', v.videoHeight)
+                }}
+                onCanPlay={() => pLog('CircleModule canPlay expanded=', expandedRef.current)}
+                onWaiting={() => pLog('CircleModule WAITING expanded=', expandedRef.current)}
+                onStalled={() => pLog('CircleModule STALLED expanded=', expandedRef.current)}
+                onEnded={handleEnded}
+                onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}
+              />
             </div>
+
+            {(expanded || collapsing) && (
+              <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true"
+                style={{ opacity: collapsing ? 0 : 1, transition: 'opacity 0.2s ease' }}>
+                <circle cx="109" cy="109" r={RING_R} fill="none"
+                  stroke="rgba(255,255,255,.12)" strokeWidth="1.5" />
+                <circle ref={arcRef} cx="109" cy="109" r={RING_R} fill="none"
+                  stroke="#b6fe3b" strokeWidth="1.5" strokeLinecap="round"
+                  strokeDasharray={`${RING_C} 9999`} strokeDashoffset={String(RING_C)}
+                  transform="rotate(-90 109 109)"
+                />
+              </svg>
+            )}
+
+            {!expanded && !collapsing && <CircleMutedIcon />}
           </div>
         ) : <div className="playerMediaPlaceholder">Кружок не загружен</div>}
       </div>
