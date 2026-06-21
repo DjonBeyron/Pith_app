@@ -110,10 +110,17 @@ export default function CircleModule({ node, file, onDone }) {
     const rect = wrapRef.current.getBoundingClientRect()
     const centerY = rect.top + s / 2
 
-    // Нижняя граница: следующее сообщение под кружком или дно экрана
+    // Нижняя граница: следующее сообщение под кружком или дно экрана.
+    // Используем offsetTop (layout-позиция без transform-анимаций),
+    // чтобы не ошибиться когда nextRow ещё slide-in из-за экрана.
     const row = wrapRef.current.closest('.playerMsgRow')
     const nextRow = row?.nextElementSibling
-    const nextMsgTop = nextRow ? nextRow.getBoundingClientRect().top : window.innerHeight
+    let nextMsgTop = window.innerHeight
+    if (nextRow) {
+      const innerEl = row.parentElement
+      const innerTop = innerEl ? innerEl.getBoundingClientRect().top : 0
+      nextMsgTop = innerTop + nextRow.offsetTop
+    }
     const bottomLimit = Math.min(window.innerHeight, nextMsgTop) - EDGE_GAP
 
     // Размер всегда полная ширина — кружок большой при любом положении
@@ -158,7 +165,6 @@ export default function CircleModule({ node, file, onDone }) {
       : `translateX(${tx}px) scale(${ratio})`)
     setExpanded(true)
     expandedRef.current = true
-    startRaf()
 
     // Сразу: пауза + первый кадр — виден во время анимации расширения
     const v = vRef.current
@@ -168,10 +174,11 @@ export default function CircleModule({ node, file, onDone }) {
       v.currentTime = 0
     }
 
-    // После анимации (~380ms): play со звуком
+    // После анимации: play + запуск rAF для кольца (не во время анимации — меньше нагрузки)
     setTimeout(() => {
       const v2 = vRef.current
       if (!v2 || !expandedRef.current) return
+      startRaf()
       v2.muted = false
       v2.play()
         .then(() => pLog('CircleModule: expanded play OK'))
