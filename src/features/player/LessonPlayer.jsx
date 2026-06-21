@@ -36,6 +36,7 @@ export default function LessonPlayer({
   // ── Panels ───────────────────────────────────────────────────────────────
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
   const [wordChoiceStates, setWordChoiceStates]   = useState({})
+  const [phraseStates, setPhraseStates]           = useState({})
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
@@ -46,7 +47,12 @@ export default function LessonPlayer({
     setWordChoiceStates(prev => ({ ...prev, [nodeId]: { text, result } }))
   }
 
+  function handlePhraseAnswer(nodeId, text, result) {
+    setPhraseStates(prev => ({ ...prev, [nodeId]: { text, result } }))
+  }
+
   const [wcPanelHeight, setWcPanelHeight] = useState(0)
+  const [paPanelHeight, setPaPanelHeight] = useState(0)
 
   const lastOf = (type) => [...visibleNodes].reverse().find(n => n.type === type) ?? null
   const wcNode = lastOf('word_choice')
@@ -78,7 +84,8 @@ export default function LessonPlayer({
                 teacherName={teacherName}
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
                 wordChoiceState={wordChoiceStates[node.id] ?? null}
-                bottomOffset={wcPanelHeight}
+                phraseState={phraseStates[node.id] ?? null}
+                bottomOffset={wcPanelHeight || paPanelHeight}
                 onDone={() => onNodeDone(node.id)}
               />
             )
@@ -95,7 +102,14 @@ export default function LessonPlayer({
             onHeightChange={setWcPanelHeight}
           />
         )}
-        {paNode && <PhraseAssemblyPanel node={paNode} onDone={() => onNodeDone(paNode.id)} />}
+        {paNode && (
+          <PhraseAssemblyPanel
+            node={paNode}
+            onDone={() => { setPaPanelHeight(0); onNodeDone(paNode.id) }}
+            onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
+            onHeightChange={setPaPanelHeight}
+          />
+        )}
         {pcNode && !photoChoiceStates[pcNode.id] && (
           <PhotoChoicePanel
             node={pcNode}
