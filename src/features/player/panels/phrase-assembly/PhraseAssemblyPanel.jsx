@@ -11,7 +11,6 @@ function wordForm(n) {
   return 'слов'
 }
 
-// Для "собери фразу из N слов/слова": после "из" — родительный падеж
 function wordFormGenitive(n) {
   return n === 1 ? 'слова' : 'слов'
 }
@@ -19,23 +18,24 @@ function wordFormGenitive(n) {
 export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, onHeightChange }) {
   const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
     usePhraseAssembly(node)
-  const [show, setShow]           = useState(false)
+  const [show, setShow]               = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
   const [showCounter, setShowCounter] = useState(false)
   const panelRef   = useRef(null)
   const wrongCount = useRef(0)
 
-  const pa          = node.typeData?.phrase_assembly ?? {}
-  const words       = pa.words ?? []
-  const wordsTotal  = words.length
+  const pa              = node.typeData?.phrase_assembly ?? {}
+  const words           = pa.words ?? []
+  const wordsTotal      = words.length
   const responseWrong   = pa.responseWrong   ?? ''
   const responseCorrect = pa.responseCorrect ?? ''
 
+  // Измеряем высоту один раз: счётчик всегда в DOM (reserved), высота стабильна
   useEffect(() => {
     const h = panelRef.current?.offsetHeight ?? 0
     setPanelHeight(h)
     onHeightChange?.(h)
-  }, [shuffled.length, showCounter])
+  }, [shuffled.length])
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setShow(true))
@@ -46,10 +46,12 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
     if (result !== 'wrong') return
     wrongCount.current += 1
     if (wrongCount.current === 1) {
-      setShowCounter(true)
+      // 1-й неверный: responseWrong → правый пузырь в чат
       onAnswered?.(responseWrong, 'wrong')
     } else if (wrongCount.current === 2) {
+      // 2-й неверный: подсказка слева + показываем счётчик после небольшой задержки
       onHint?.(`Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`)
+      setTimeout(() => setShowCounter(true), 350)
     } else if (wrongCount.current >= 3) {
       const slideOut = setTimeout(() => setShow(false), 400)
       const done     = setTimeout(() => { onHeightChange?.(0); onDone?.() }, 400 + 420)
@@ -81,11 +83,10 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
         className={`phrasePanel${show ? ' phrasePanelVisible' : ''}`}
       >
         <div className="phraseInner">
-          {showCounter && (
-            <div className="phraseCounter">
-              выбрано {placed.length} {wordForm(placed.length)} из {wordsTotal}
-            </div>
-          )}
+          {/* Счётчик всегда в DOM — место зарезервировано. opacity 0→1 после 2-й ошибки */}
+          <div className={`phraseCounter${showCounter ? ' phraseCounterVisible' : ''}`}>
+            выбрано {placed.length} {wordForm(placed.length)} из {wordsTotal}
+          </div>
           <PhraseAnswerRow placed={placed} result={result} onRemove={removePlaced} />
           <div className="phrasePool">
             {shuffled.map((word, i) => (

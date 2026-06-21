@@ -40,11 +40,20 @@
 }
 
 /* ── Counter ─────────────────────────────────────────────── */
+/* Всегда в DOM — место зарезервировано, панель не прыгает при появлении */
 .phraseCounter {
   font-size: 11px;
   color: #555d72;
   text-align: right;
   letter-spacing: 0.02em;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  min-height: 16px;
+}
+.phraseCounterVisible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* ── Answer row (drop zone) ─────────────────────────────── */
