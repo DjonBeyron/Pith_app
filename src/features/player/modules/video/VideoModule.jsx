@@ -41,13 +41,12 @@ export default function VideoModule({ node, file, onDone }) {
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
-  function getMediaStyle() {
-    if (!intrinsic || !frameDims) return {
+  function calcCropStyle(fw, fh) {
+    if (!intrinsic) return {
       width: '100%', height: '100%', objectFit: 'cover',
       transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
       transformOrigin: 'center center',
     }
-    const { w: fw, h: fh } = frameDims
     const ma = intrinsic.w / intrinsic.h
     const fa = fw / fh
     const d = ma > fa ? { w: fh * ma, h: fh } : { w: fw, h: fw / ma }
@@ -57,6 +56,15 @@ export default function VideoModule({ node, file, onDone }) {
       transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale})`,
       transformOrigin: 'center center',
     }
+  }
+
+  function getMediaStyle() {
+    if (!frameDims) return calcCropStyle(0, 0)
+    return calcCropStyle(frameDims.w, frameDims.h)
+  }
+
+  function getFsMediaStyle() {
+    return calcCropStyle(window.innerWidth, window.innerHeight)
   }
 
   function fireDone() {
@@ -171,21 +179,23 @@ export default function VideoModule({ node, file, onDone }) {
               {fsVisible && <div className="videoFsBg" />}
 
               {/* fsSrc=null пока FS закрыт — браузер не играет */}
-              <video
-                ref={fsVideoRef}
-                src={fsSrc ?? undefined}
-                playsInline
-                preload="none"
-                style={{
-                  position: 'fixed', inset: 0, margin: 'auto',
-                  zIndex: fsVisible ? 252 : -1,
-                  pointerEvents: 'none',
-                  maxWidth: '100vw', maxHeight: '100vh',
-                  width: 'auto', height: 'auto', display: 'block',
-                }}
-                onEnded={handleFsEnded}
-                onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
-              />
+              {/* Контейнер клиппирует crop-overflow; opacity управляется через ref */}
+              <div style={{
+                position: 'fixed', inset: 0,
+                zIndex: fsVisible ? 252 : -1,
+                overflow: 'hidden',
+                pointerEvents: 'none',
+              }}>
+                <video
+                  ref={fsVideoRef}
+                  src={fsSrc ?? undefined}
+                  playsInline
+                  preload="none"
+                  style={getFsMediaStyle()}
+                  onEnded={handleFsEnded}
+                  onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
+                />
+              </div>
 
               {fsVisible && (
                 <div className="videoFsControls" style={{ zIndex: 253 }}>
