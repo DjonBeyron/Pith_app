@@ -87,6 +87,8 @@ export default function VideoModule({ node, file, onDone }) {
 
     pLog('VideoModule: handleTap → open FS, revisit=', doneFiredRef.current)
     videoRef.current?.pause()
+    // Синхронно показываем до React-рендера — чтобы не было мелькания
+    if (fsVideoRef.current) fsVideoRef.current.style.opacity = '1'
     setFsSrc(src)
     fsOpenRef.current = true
     setFsVisible(true)
@@ -116,6 +118,8 @@ export default function VideoModule({ node, file, onDone }) {
       pLog('VideoModule: closeFs watched=', Math.round(watched * 100) + '%')
       if (watched >= 0.2) fireDone()
     }
+    // Синхронно скрываем до React-рендера — иначе видео остаётся поверх чата
+    if (fsVideoRef.current) fsVideoRef.current.style.opacity = '0'
     fsOpenRef.current = false
     stopRaf()
     fsVideoRef.current?.pause()
