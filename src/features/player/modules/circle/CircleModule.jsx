@@ -110,7 +110,8 @@ export default function CircleModule({ node, file, onDone }) {
   function stopRaf() { stopRingAnimation() }
 
   function handleTap() {
-    if (animatingRef.current) return  // защита от частых тапов во время анимации
+    // Блокируем тап если идёт expand-анимация (animatingRef) ИЛИ collapse-анимация (collapseTimer)
+    if (animatingRef.current || collapseTimer.current) return
     if (expandedRef.current) { collapse(); return }
 
     const s = dims?.w ?? getSmallPx()
@@ -228,9 +229,6 @@ export default function CircleModule({ node, file, onDone }) {
       el.style.transform = ''
     })
     prevRowsRef.current = []
-
-    animatingRef.current = true
-    setTimeout(() => { animatingRef.current = false }, 300)
 
     expandedRef.current = false
     setExpanded(false)
