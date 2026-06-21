@@ -14,14 +14,12 @@
   border-radius: 0;
 }
 
-/* Layout-контейнер: участвует в потоке чата — сдвигает контент выше при расширении.
-   Переходы на size/margin синхронизированы с transform внутри (одинаковый easing). */
+/* Layout-контейнер: меняет размер МГНОВЕННО (один reflow, не per-frame).
+   Анимировать width/height через CSS transition нельзя — вызывает reflow каждый кадр
+   и ломает GPU-анимацию transform внутри. Контент выше прыгает сразу, круг — плавно. */
 .circleLayoutBox {
   position: relative;
   flex-shrink: 0;
-  transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-left 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Визуальный контейнер: всегда 200×200 в layout, scale() делает его большим визуально.
