@@ -16,8 +16,8 @@ export default function PhraseAssemblyModule({ phraseState, phraseHint }) {
         )
       })}
       {phraseHint && (
-        <div className="playerMsgRow playerMsgRowRight">
-          <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseErr">
+        <div className="playerMsgRow">
+          <PlayerBubble className="playerMsgBubble playerMsgBubble--teacherErr">
             {phraseHint}
           </PlayerBubble>
         </div>

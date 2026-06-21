@@ -3,15 +3,25 @@ import { usePhraseAssembly } from './usePhraseAssembly.js'
 import PhraseWordChip from './PhraseWordChip.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 
-function wordsSuffix(n) {
+function wordForm(n) {
+  const m10 = n % 10, m100 = n % 100
+  if (m100 >= 11 && m100 <= 14) return 'слов'
+  if (m10 === 1) return 'слово'
+  if (m10 >= 2 && m10 <= 4) return 'слова'
+  return 'слов'
+}
+
+// Для "собери фразу из N слов/слова": после "из" — родительный падеж
+function wordFormGenitive(n) {
   return n === 1 ? 'слова' : 'слов'
 }
 
 export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, onHeightChange }) {
   const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
     usePhraseAssembly(node)
-  const [show, setShow] = useState(false)
+  const [show, setShow]           = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
+  const [showCounter, setShowCounter] = useState(false)
   const panelRef   = useRef(null)
   const wrongCount = useRef(0)
 
@@ -25,7 +35,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
     const h = panelRef.current?.offsetHeight ?? 0
     setPanelHeight(h)
     onHeightChange?.(h)
-  }, [shuffled.length])
+  }, [shuffled.length, showCounter])
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setShow(true))
@@ -36,18 +46,17 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
     if (result !== 'wrong') return
     wrongCount.current += 1
     if (wrongCount.current === 1) {
+      setShowCounter(true)
       onAnswered?.(responseWrong, 'wrong')
     } else if (wrongCount.current === 2) {
-      onHint?.(`Собери фразу из ${wordsTotal} ${wordsSuffix(wordsTotal)}`)
+      onHint?.(`Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`)
     } else if (wrongCount.current >= 3) {
-      // 3-й неверный: панель уходит, триггер срабатывает
       const slideOut = setTimeout(() => setShow(false), 400)
       const done     = setTimeout(() => { onHeightChange?.(0); onDone?.() }, 400 + 420)
       return () => { clearTimeout(slideOut); clearTimeout(done) }
     }
   }, [result]) // eslint-disable-line
 
-  // Верный: responseCorrect в чат как новый пузырь, задержка, slide-out
   useEffect(() => {
     if (!isAnswered) return
     const answer   = setTimeout(() => onAnswered?.(responseCorrect, 'correct'), 700)
@@ -72,7 +81,11 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
         className={`phrasePanel${show ? ' phrasePanelVisible' : ''}`}
       >
         <div className="phraseInner">
-          <div className="phraseCounter">{placed.length} из {wordsTotal}</div>
+          {showCounter && (
+            <div className="phraseCounter">
+              выбрано {placed.length} {wordForm(placed.length)} из {wordsTotal}
+            </div>
+          )}
           <PhraseAnswerRow placed={placed} result={result} onRemove={removePlaced} />
           <div className="phrasePool">
             {shuffled.map((word, i) => (
