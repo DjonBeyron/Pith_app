@@ -14,16 +14,27 @@
   border-radius: 0;
 }
 
-.circleWrap {
+/* Layout-контейнер: участвует в потоке чата — сдвигает контент выше при расширении.
+   Переходы на size/margin синхронизированы с transform внутри (одинаковый easing). */
+.circleLayoutBox {
   position: relative;
   flex-shrink: 0;
+  transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-left 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Визуальный контейнер: всегда 200×200 в layout, scale() делает его большим визуально.
+   Всё содержимое (видео, ring, иконка) — один запечённый элемент. */
+.circleWrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   outline: none;
   user-select: none;
   -webkit-user-select: none;
-  /* Весь кружок (видео + ring + иконка) — один элемент.
-     Анимация через transform: translateX() scale() на враппере целиком. */
   transform-origin: center center;
   transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -42,7 +53,7 @@
   max-height: none;
   user-select: none;
   pointer-events: none;
-  /* Нет transition — видео статично внутри circleWrap, анимирует только враппер */
+  /* Нет transition — видео статично внутри circleWrap */
 }
 
 /* Backdrop — перехватывает тап вне кружка в expanded режиме */
