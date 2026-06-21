@@ -3,11 +3,10 @@
    Пустой .chooseWordSpacer в потоке вытесняет чат (дёшево, без контента).
    ──────────────────────────────────────────────────────────────────── */
 
-/* Спейсер: пустой div в flex-потоке, синхронизирован с панелью */
+/* Спейсер: пустой div в flex-потоке, transition задаётся inline (разный для enter/exit) */
 .chooseWordSpacer {
   flex-shrink: 0;
   width: 100%;
-  transition: height 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Панель: fixed, translateY — GPU compositor, плавно на iOS/Android */

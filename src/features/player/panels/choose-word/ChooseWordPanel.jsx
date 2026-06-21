@@ -46,10 +46,15 @@ export default function ChooseWordPanel({ node, onDone, onAnswered }) {
 
   return (
     <>
-      {/* Пустой спейсер в flex-потоке — вытесняет чат вверх (дёшево, без контента) */}
+      {/* Спейсер синхронизирован с панелью: вход — spring, уход — ускорение */}
       <div
         className="chooseWordSpacer"
-        style={{ height: show ? panelHeight : 0 }}
+        style={{
+          height: show ? panelHeight : 0,
+          transition: show
+            ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
+            : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
+        }}
       />
       {/* Панель вне потока (fixed) — анимируется через translateY на GPU */}
       <div
