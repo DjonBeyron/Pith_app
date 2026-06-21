@@ -163,14 +163,20 @@ export default function CircleModule({ node, file, onDone }) {
 
     // Сдвигаем предыдущие строки чата вверх через GPU transform (синхронно с expand кружка)
     const inner = row?.parentElement
+    pLog('CircleModule lift: row=', !!row, 'inner=', !!inner,
+      'innerClass=', inner?.className ?? 'none')
     if (inner) {
       const rows = [...inner.querySelectorAll('.playerMsgRow')]
       const idx = rows.indexOf(row)
       const prev = rows.slice(0, idx)
       prevRowsRef.current = prev
-      prev.forEach(el => {
+      pLog('CircleModule lift: totalRows=', rows.length, 'circleIdx=', idx,
+        'prevCount=', prev.length, 'halfGrow=', halfGrow)
+      prev.forEach((el, i) => {
+        const before = el.style.transform || 'none'
         el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1)'
         el.style.transform = `translateY(-${halfGrow}px)`
+        pLog(`CircleModule lift row[${i}]: ${before} → translateY(-${halfGrow}px)`)
       })
     }
 
@@ -224,9 +230,12 @@ export default function CircleModule({ node, file, onDone }) {
     }
 
     // Возвращаем предыдущие строки на место
-    prevRowsRef.current.forEach(el => {
+    pLog('CircleModule collapse lift-reset: prevCount=', prevRowsRef.current.length)
+    prevRowsRef.current.forEach((el, i) => {
+      const before = el.style.transform || 'none'
       el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1)'
       el.style.transform = ''
+      pLog(`CircleModule collapse row[${i}]: ${before} → ''`)
     })
     prevRowsRef.current = []
 
