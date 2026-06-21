@@ -44,7 +44,6 @@ export default function CircleModule({ node, file, onDone }) {
   const touchStartY   = useRef(0)
   const doneFiredRef  = useRef(false)
   const expandedRef   = useRef(false)
-  const lastRafTime   = useRef(0)
   const expandWRef    = useRef(0)
   const halfGrowRef   = useRef(0)
   const prevRowsRef   = useRef([])  // .playerMsgRow элементы выше кружка — сдвигаем translateY
@@ -84,14 +83,11 @@ export default function CircleModule({ node, file, onDone }) {
   }
 
   function startRaf() {
-    const tick = (t) => {
-      if (t - lastRafTime.current >= 33) {
-        lastRafTime.current = t
-        const v = vRef.current
-        if (v && arcRef.current && v.duration) {
-          const p = v.currentTime / v.duration
-          arcRef.current.style.strokeDashoffset = String(RING_C * (1 - p))
-        }
+    const tick = () => {
+      const v = vRef.current
+      if (v && arcRef.current && v.duration) {
+        const p = v.currentTime / v.duration
+        arcRef.current.style.strokeDashoffset = String(RING_C * (1 - p))
       }
       rafRef.current = requestAnimationFrame(tick)
     }
