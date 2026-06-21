@@ -108,7 +108,7 @@ export default function LessonPlayer({
         {wcNode && (
           <ChooseWordPanel
             node={wcNode}
-            onDone={() => { setWcPanelHeight(0); onNodeDone(wcNode.id) }}
+            onDone={(result) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result) }}
             onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result)}
             onHeightChange={setWcPanelHeight}
           />

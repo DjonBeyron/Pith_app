@@ -12,30 +12,24 @@ export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChan
     ? (node.typeData?.word_choice?.responseCorrect ?? '')
     : (node.typeData?.word_choice?.responseWrong   ?? '')
 
-  // Измеряем высоту панели и сообщаем родителю для bottomOffset
   useEffect(() => {
-    const h = panelRef.current?.offsetHeight ?? -1
-    console.log('[CWP] measured panelHeight=', h, 'options=', options.length)
+    const h = panelRef.current?.offsetHeight ?? 0
     setPanelHeight(h)
     onHeightChange?.(h)
   }, [options.length])
 
-  // Slide-in: один кадр после монтирования
   useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      console.log('[CWP] show → true, panelHeight=', panelRef.current?.offsetHeight)
-      setShow(true)
-    })
+    const id = requestAnimationFrame(() => setShow(true))
     return () => cancelAnimationFrame(id)
   }, [])
 
   // onAnswered откладывается до slide-out — пузырь появляется из-за края панели
   useEffect(() => {
     if (!isAnswered) return
-    console.log('[CWP] answered → slide-out in 700ms, panelHeight=', panelHeight)
+    const triggerResult = result === 'correct' ? 'word_correct' : 'word_wrong'
     const answer   = setTimeout(() => onAnswered?.(responseText, result), 700)
-    const slideOut = setTimeout(() => { console.log('[CWP] show → false'); setShow(false) }, 700 + 900)
-    const done     = setTimeout(() => onDone?.(), 700 + 900 + 420)
+    const slideOut = setTimeout(() => setShow(false), 700 + 900)
+    const done     = setTimeout(() => onDone?.(triggerResult), 700 + 900 + 420)
     return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }
   }, [isAnswered]) // eslint-disable-line
 
@@ -63,9 +57,6 @@ export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChan
         className={`chooseWordPanel${show ? ' chooseWordPanelVisible' : ''}`}
       >
         <div className="chooseWordInner">
-          <div style={{fontSize:9,color:'rgba(255,255,255,0.3)',marginBottom:2}}>
-            h={panelHeight} show={String(show)}
-          </div>
           {options.map(opt => (
             <ChooseWordOption
               key={opt.id}
