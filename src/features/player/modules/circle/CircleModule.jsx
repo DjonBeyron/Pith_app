@@ -45,6 +45,7 @@ export default function CircleModule({ node, file, onDone }) {
   const doneFiredRef  = useRef(false)
   const expandedRef   = useRef(false)
   const lastRafTime   = useRef(0)
+  const expandWRef    = useRef(0)  // запоминаем expandW при тапе
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -105,14 +106,30 @@ export default function CircleModule({ node, file, onDone }) {
 
     const s = dims?.w ?? getSmallPx()
     const rect = wrapRef.current.getBoundingClientRect()
-    const expandW = window.innerWidth - EDGE_GAP * 2
+    const centerY = rect.top + s / 2
+
+    // Нижняя граница: минимум из дна экрана и верха следующего сообщения под кружком
+    const row = wrapRef.current.closest('.playerMsgRow')
+    const nextRow = row?.nextElementSibling
+    const nextMsgTop = nextRow ? nextRow.getBoundingClientRect().top : window.innerHeight
+    const bottomLimit = Math.min(window.innerHeight, nextMsgTop) - EDGE_GAP
+
+    // Максимальный размер ограничен по горизонтали и вертикали
+    const maxFromWidth  = window.innerWidth - EDGE_GAP * 2
+    const maxFromBottom = 2 * (bottomLimit - centerY)   // расширяем вниз от центра
+    const maxFromTop    = 2 * (centerY - EDGE_GAP)      // расширяем вверх от центра
+    const expandW = Math.max(s, Math.min(maxFromWidth, maxFromBottom, maxFromTop))
+
     const ratio = expandW / s
     // translateX: сдвигаем circleWrap чтобы левый край лёг на EDGE_GAP
     const visualLeft = rect.left - s * (ratio - 1) / 2
     const tx = EDGE_GAP - visualLeft
-    pLog('CircleModule expand: s=', s, 'ratio=', ratio.toFixed(3), 'tx=', Math.round(tx))
+    pLog('CircleModule expand: s=', s, 'expandW=', Math.round(expandW),
+      'bottomLimit=', Math.round(bottomLimit), 'nextMsgTop=', Math.round(nextMsgTop),
+      'ratio=', ratio.toFixed(3), 'tx=', Math.round(tx))
 
     doneFiredRef.current = false
+    expandWRef.current = expandW
     setExpandTransform(`translateX(${tx}px) scale(${ratio})`)
     setExpanded(true)
     expandedRef.current = true
@@ -175,11 +192,8 @@ export default function CircleModule({ node, file, onDone }) {
   }, [])
 
   const s = dims?.w ?? getSmallPx()
-  const expandW = window.innerWidth - EDGE_GAP * 2
-
-  // marginTop: резервирует место выше кружка для чата — меняется мгновенно (один reflow).
-  // Это позволяет чату «знать» о расширении без CSS transition на layout-свойствах.
-  // transform-анимация на GPU запускается после этого одного reflow → плавность сохраняется.
+  // expandW берём из ref (вычислен при тапе с учётом границ экрана и следующего сообщения)
+  const expandW = expanded || collapsing ? expandWRef.current : s
   const halfGrow = (expandW - s) / 2
   const wrapStyle = {
     width: s + 'px',
