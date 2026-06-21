@@ -111,15 +111,21 @@ export default function CircleModule({ node, file, onDone }) {
     const centerY = rect.top + s / 2
 
     // Нижняя граница: следующее сообщение под кружком или дно экрана.
-    // Используем offsetTop (layout-позиция без transform-анимаций),
-    // чтобы не ошибиться когда nextRow ещё slide-in из-за экрана.
+    // Если nextRow уже на экране → берём визуальную позицию (getBoundingClientRect).
+    // Если nextRow ещё анимируется снизу (top > innerHeight) → берём layout-позицию
+    // (offsetTop + top контейнера) — финальное место куда приедет сообщение.
     const row = wrapRef.current.closest('.playerMsgRow')
     const nextRow = row?.nextElementSibling
     let nextMsgTop = window.innerHeight
     if (nextRow) {
-      const innerEl = row.parentElement
-      const innerTop = innerEl ? innerEl.getBoundingClientRect().top : 0
-      nextMsgTop = innerTop + nextRow.offsetTop
+      const visualTop = nextRow.getBoundingClientRect().top
+      if (visualTop <= window.innerHeight) {
+        nextMsgTop = visualTop
+      } else {
+        const innerEl = row.parentElement
+        const innerTop = innerEl ? innerEl.getBoundingClientRect().top : 0
+        nextMsgTop = innerTop + nextRow.offsetTop
+      }
     }
     const bottomLimit = Math.min(window.innerHeight, nextMsgTop) - EDGE_GAP
 
