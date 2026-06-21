@@ -116,7 +116,7 @@ export default function LessonPlayer({
         {paNode && (
           <PhraseAssemblyPanel
             node={paNode}
-            onDone={() => { setPaPanelHeight(0); onNodeDone(paNode.id) }}
+            onDone={(result) => { setPaPanelHeight(0); onNodeDone(paNode.id, result) }}
             onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
             onHint={(text) => handlePhraseHint(paNode.id, text)}
             onHeightChange={setPaPanelHeight}

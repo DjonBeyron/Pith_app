@@ -54,7 +54,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
       setTimeout(() => setShowCounter(true), 350)
     } else if (wrongCount.current >= 3) {
       const slideOut = setTimeout(() => setShow(false), 400)
-      const done     = setTimeout(() => { onHeightChange?.(0); onDone?.() }, 400 + 420)
+      const done     = setTimeout(() => { onHeightChange?.(0); onDone?.('wrong') }, 400 + 420)
       return () => { clearTimeout(slideOut); clearTimeout(done) }
     }
   }, [result]) // eslint-disable-line
@@ -63,7 +63,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHint, 
     if (!isAnswered) return
     const answer   = setTimeout(() => onAnswered?.(responseCorrect, 'correct'), 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
-    const done     = setTimeout(() => { onHeightChange?.(0); onDone?.() }, 700 + 900 + 420)
+    const done     = setTimeout(() => { onHeightChange?.(0); onDone?.('correct') }, 700 + 900 + 420)
     return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }
   }, [isAnswered]) // eslint-disable-line
 

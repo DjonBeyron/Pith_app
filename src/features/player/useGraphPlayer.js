@@ -69,12 +69,24 @@ export function useGraphPlayer(nodes) {
   }
 
   // Called by modules/panels when their primary action finishes.
-  // Checks triggers in order: played → photo_shown → timer_after_play
-  const onNodeDone = useCallback((nodeId) => {
+  // result: 'correct' | 'wrong' | null — для интерактивных модулей
+  const onNodeDone = useCallback((nodeId, result = null) => {
     const node = nodeMapRef.current[nodeId]
     if (!node) return
     const triggers = node.triggers ?? []
-    pLog('[GraphPlayer] onNodeDone seq=', node.seq, 'triggers=', triggers)
+    pLog('[GraphPlayer] onNodeDone seq=', node.seq, 'result=', result, 'triggers=', triggers)
+
+    // Сначала ищем триггер по результату (correct/wrong для интерактивных модулей)
+    if (result) {
+      const t = triggers.find(tr => tr.if === result && tr.then)
+      if (t) {
+        const key = `${nodeId}:${result}`
+        if (firedRef.current.has(key)) return
+        firedRef.current.add(key)
+        scheduleReveal.current(t.then)
+        return
+      }
+    }
 
     for (const ev of ['played', 'photo_shown']) {
       const t = triggers.find(tr => tr.if === ev && tr.then)

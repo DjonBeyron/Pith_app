@@ -6,10 +6,14 @@ export default function PhraseAssemblyModule({ phraseState, phraseHint }) {
   return (
     <>
       {bubbles.map((b, i) => {
-        const mod = b.result === 'correct' ? ' playerMsgBubble--responseOk' : ' playerMsgBubble--responseErr'
+        const isCorrect = b.result === 'correct'
         return (
-          <div key={i} className="playerMsgRow playerMsgRowRight">
-            <PlayerBubble className={`playerMsgBubble playerMsgBubble--response${mod}`}>
+          <div key={i} className={`playerMsgRow${isCorrect ? ' playerMsgRowRight' : ''}`}>
+            <PlayerBubble className={
+              isCorrect
+                ? 'playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk'
+                : 'playerMsgBubble playerMsgBubble--teacherErr'
+            }>
               {b.text}
             </PlayerBubble>
           </div>
