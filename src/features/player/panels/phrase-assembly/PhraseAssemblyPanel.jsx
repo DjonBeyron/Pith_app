@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { usePhraseAssembly } from './usePhraseAssembly.js'
 import PhraseWordChip from './PhraseWordChip.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
-import { pLog } from '../../../../shared/lib/debug.js'
 
 function wordForm(n) {
   const m10 = n % 10, m100 = n % 100
@@ -48,18 +47,13 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
     if (result !== 'wrong') return
     wrongCount.current += 1
     const wc = wrongCount.current
-    pLog('[PhraseAssembly] wrong #', wc, 'placed=', placed.map(p => p.word).join(' '))
-
     if (wc === 1) {
       onAnswered?.(responseWrong, 'wrong')
     } else if (wc === 2) {
       onAnswered?.(`Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`, 'hint')
       setTimeout(() => setShowCounter(true), 350)
     } else if (wc >= 3) {
-      // 3rd wrong: assembled phrase to chat + trigger phrase_wrong.
-      // Store timers in ref — effect cleanup (result→null at 700ms) must NOT cancel them.
       const phrase = placed.map(p => p.word).join(' ')
-      console.log('[PhraseAssembly] wc>=3, phrase=', phrase, 'nodeId=', node.id)
       onAnswered?.(phrase, 'wrong_final')
       closeTimers.current.forEach(clearTimeout)
       closeTimers.current = [
@@ -72,7 +66,6 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
   useEffect(() => {
     if (!isAnswered) return
     const phrase = placed.map(p => p.word).join(' ')
-    pLog('[PhraseAssembly] correct, onDone phrase_correct, nodeId=', node.id)
     const answer   = setTimeout(() => onAnswered?.(responseCorrect, 'correct'), 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
     const done     = setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_correct') }, 700 + 900 + 420)

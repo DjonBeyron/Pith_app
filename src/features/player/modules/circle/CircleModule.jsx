@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
-import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -39,16 +38,15 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   const wrapRef       = useRef(null)
   const frRef         = useRef(null)
   const arcRef        = useRef(null)
-  const rafRef        = useRef(null)  // не используется, оставлен для stopRaf()
   const collapseTimer = useRef(null)
   const touchStartY   = useRef(0)
   const doneFiredRef  = useRef(false)
   const expandedRef   = useRef(false)
-  const animatingRef  = useRef(false)  // защита от частых тапов во время анимации
+  const animatingRef  = useRef(false)
   const expandWRef    = useRef(0)
   const halfGrowRef   = useRef(0)
-  const prevRowsRef   = useRef([])  // .playerMsgRow элементы выше кружка — сдвигаем translateY
-  const flipObserver  = useRef(null) // MutationObserver: переприменяет lift после PlayerFeed FLIP
+  const prevRowsRef   = useRef([])
+  const flipObserver  = useRef(null)
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -60,8 +58,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
 
   useEffect(() => {
-    pLog('CircleModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'NULL',
-      '| blobUrl=', file?.blobUrl ? 'YES' : 'no')
     setIntr(null)
     doneFiredRef.current = false
   }, [src]) // eslint-disable-line
@@ -71,45 +67,34 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     setDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
-  useEffect(() => {
-    pLog('CircleModule STATE: expanded=', expanded, 'collapsing=', collapsing)
-  }, [expanded, collapsing])
-
   function handleEnded() {
     if (!expandedRef.current) return
-    // Повторный просмотр — плавно сбросить кольцо, затем зациклить
     if (doneFiredRef.current) {
-      pLog('CircleModule: expanded ended, revisit → fade ring + loop')
       const v = vRef.current
       const arc = arcRef.current
-      if (v) v.currentTime = 0  // позиция к началу, но не play — видео уже остановлено
-      // Плавно откатываем кольцо к пустому состоянию
+      if (v) v.currentTime = 0
       if (arc) {
         arc.style.animation = 'none'
         arc.style.transition = 'stroke-dashoffset 0.3s ease'
         arc.style.strokeDashoffset = String(RING_C)
       }
       setTimeout(() => {
-        if (!expandedRef.current) return  // пользователь уже вышел
+        if (!expandedRef.current) return
         if (arc) arc.style.transition = ''
         if (v) v.play().catch(() => {})
-        // handlePlaying запустит startRingAnimation синхронно с воспроизведением
       }, 350)
       return
     }
     doneFiredRef.current = true
-    // Доводим кольцо до 100% принудительно — CSS animation может чуть не успеть
     if (arcRef.current) {
       arcRef.current.style.animation = 'none'
       arcRef.current.style.strokeDashoffset = '0'
     }
-    pLog('CircleModule: expanded video ended → onDone + collapse')
     onDone?.()
     collapse()
   }
 
   function handlePlaying() {
-    // playing = видео реально пошло (после буферизации) — стартуем кольцо точно отсюда
     if (!expandedRef.current) return
     const v = vRef.current
     if (v?.duration) startRingAnimation(v.duration - v.currentTime)
@@ -126,11 +111,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     arcRef.current.style.strokeDashoffset = String(RING_C)
   }
 
-  // stopRaf оставлен для совместимости с useEffect cleanup
   function stopRaf() { stopRingAnimation() }
 
   function handleTap() {
-    // Блокируем тап если идёт expand-анимация (animatingRef) ИЛИ collapse-анимация (collapseTimer)
     if (animatingRef.current || collapseTimer.current) return
     if (expandedRef.current) { collapse(); return }
 
@@ -138,10 +121,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     const rect = wrapRef.current.getBoundingClientRect()
     const centerY = rect.top + s / 2
 
-    // Нижняя граница: следующее сообщение под кружком или дно экрана.
-    // Если nextRow уже на экране → берём визуальную позицию (getBoundingClientRect).
-    // Если nextRow ещё анимируется снизу (top > innerHeight) → берём layout-позицию
-    // (offsetTop + top контейнера) — финальное место куда приедет сообщение.
     const row = wrapRef.current.closest('.playerMsgRow')
     const nextRow = row?.nextElementSibling
     let nextMsgTop = window.innerHeight
@@ -157,30 +136,16 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     }
     const bottomLimit = Math.min(window.innerHeight - bottomOffset, nextMsgTop) - EDGE_GAP
 
-    // Размер всегда полная ширина — кружок большой при любом положении
     const expandW = window.innerWidth - EDGE_GAP * 2
     const ratio = expandW / s
-
-    // Если кружок внизу и его визуальный низ выходит за bottomLimit →
-    // сдвигаем вверх через translateY (ty ≤ 0). Иначе ty = 0.
     const ty = Math.min(0, bottomLimit - (centerY + expandW / 2))
-
-    // translateX: выравниваем левый край по EDGE_GAP
     const visualLeft = rect.left - s * (ratio - 1) / 2
     const tx = EDGE_GAP - visualLeft
-
-    // halfGrow: на сколько вырос верх кружка — нужно для margin-top чата
-    // (expandW-s)/2 — рост вверх от центра, -ty — дополнительный сдвиг вверх
     const halfGrow = (expandW - s) / 2 - ty
-
-    pLog('CircleModule expand: s=', s, 'expandW=', Math.round(expandW),
-      'ty=', Math.round(ty), 'halfGrow=', Math.round(halfGrow),
-      'bottomLimit=', Math.round(bottomLimit), 'ratio=', ratio.toFixed(3))
 
     expandWRef.current = expandW
     halfGrowRef.current = halfGrow
 
-    // Сдвигаем предыдущие строки чата вверх через GPU transform (синхронно с expand кружка)
     const inner = row?.parentElement
     if (inner) {
       const rows = [...inner.querySelectorAll('.playerMsgRow')]
@@ -192,8 +157,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
         el.style.transform = `translateY(-${halfGrow}px)`
       })
 
-      // PlayerFeed FLIP сбрасывает transforms при добавлении новых строк.
-      // MutationObserver переприменяет lift после FLIP (400ms).
       if (flipObserver.current) flipObserver.current.disconnect()
       flipObserver.current = new MutationObserver(() => {
         if (!expandedRef.current) return
@@ -214,9 +177,8 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     setExpanded(true)
     expandedRef.current = true
     animatingRef.current = true
-    setTimeout(() => { animatingRef.current = false }, 300)  // анимация 0.24s + запас
+    setTimeout(() => { animatingRef.current = false }, 300)
 
-    // Сразу: пауза + первый кадр — виден во время анимации расширения
     const v = vRef.current
     if (v) {
       v.pause()
@@ -224,15 +186,13 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
       v.currentTime = 0
     }
 
-    // После анимации expand: play со звуком. Кольцо стартует по событию playing.
     setTimeout(() => {
       const v2 = vRef.current
       if (!v2 || !expandedRef.current) return
       v2.muted = false
       v2.play()
-        .then(() => pLog('CircleModule: expanded play OK'))
         .catch(err => {
-          pLog('CircleModule: unmuted play failed:', err.message, '→ stay muted')
+          console.warn('CircleModule: unmuted play failed:', err.message)
           v2.muted = true
           v2.loop = true
           v2.play().catch(() => {})
@@ -241,23 +201,17 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   }
 
   function collapse() {
-    pLog('CircleModule collapse: expanded=', expandedRef.current)
     stopRaf()
 
-    // Если пользователь вышел вручную (не по ended) — проверяем сколько посмотрел.
-    // >20% → считаем что досмотрел, сразу вызываем onDone.
     if (!doneFiredRef.current) {
       const v = vRef.current
       const watched = v?.duration ? v.currentTime / v.duration : 0
-      pLog('CircleModule collapse: watched=', Math.round(watched * 100) + '%')
       if (watched >= 0.2) {
         doneFiredRef.current = true
-        pLog('CircleModule: watched >20% on manual collapse → onDone')
         onDone?.()
       }
     }
 
-    // Возвращаем предыдущие строки на место
     if (flipObserver.current) { flipObserver.current.disconnect(); flipObserver.current = null }
     prevRowsRef.current.forEach(el => {
       el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1)'
@@ -271,7 +225,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
     collapseTimer.current = setTimeout(() => {
       collapseTimer.current = null
-      pLog('CircleModule: collapsing timer done')
       setCollapsing(false)
       setExpandTransform(null)
     }, 500)
@@ -281,7 +234,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
       v.loop = true
       v.muted = true
       v.currentTime = 0
-      v.play().catch(err => pLog('CircleModule collapse play failed:', err.message))
+      v.play().catch(() => {})
     }
   }
 
@@ -297,8 +250,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   }, [])
 
   const s = dims?.w ?? getSmallPx()
-  // Предыдущие строки двигаются через translateY напрямую (GPU, синхронно с кружком).
-  // Кружок сам только transform + zIndex — никакого margin-top.
   const wrapStyle = {
     width: s + 'px',
     height: s + 'px',
@@ -331,20 +282,12 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
                 onLoadedMetadata={e => {
                   const v = e.currentTarget
                   setIntr({ w: v.videoWidth, h: v.videoHeight })
-                  pLog('CircleModule meta:', v.videoWidth, 'x', v.videoHeight)
                 }}
-                onCanPlay={() => pLog('CircleModule canPlay expanded=', expandedRef.current)}
-                onWaiting={() => pLog('CircleModule WAITING expanded=', expandedRef.current)}
-                onStalled={() => pLog('CircleModule STALLED expanded=', expandedRef.current)}
                 onPlaying={handlePlaying}
                 onEnded={handleEnded}
-                onError={e => pLog('CircleModule onError', e.currentTarget.error?.code)}
               />
             </div>
 
-            {/* Кольцо всегда в DOM — без условного mount нет мерцания на старте.
-                На expand: появляется с задержкой 0.15s (уже во время анимации).
-                На collapse: мгновенно прячется (delay 0). */}
             <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true"
               style={{
                 opacity: (expanded && !collapsing) ? 1 : 0,
@@ -360,7 +303,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
               />
             </svg>
 
-            {/* Значок без звука: всегда в DOM, плавно появляется после collapse */}
             <div className="circleMutedIcon" style={{
               opacity: (!expanded && !collapsing) ? 1 : 0,
               transition: (!expanded && !collapsing) ? 'opacity 0.2s ease 0.1s' : 'opacity 0s',
@@ -378,4 +320,3 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     </div>
   )
 }
-

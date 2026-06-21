@@ -10,7 +10,6 @@ import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
-import { pLog }          from '../../shared/lib/debug.js'
 
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',
@@ -23,12 +22,10 @@ export default function LessonPlayer({
   useEffect(() => {
     const allIds = [...new Set(nodes.map(n => n.typeData?.[n.type]?.file_id).filter(Boolean))]
     const missing = allIds.filter(id => !propFiles.some(f => f.id === id))
-    pLog('LessonPlayer mount: allFileIds=', JSON.stringify(allIds), 'missing=', JSON.stringify(missing))
     if (!missing.length) { setFiles(propFiles); return }
-    getFilesByIds(missing).then(fetched => {
-      pLog('LessonPlayer fetched from server:', fetched.map(f => f.id + ' r2=' + (f.r2Url ?? 'null')).join(' | ') || 'none')
-      setFiles([...propFiles, ...fetched])
-    }).catch(e => pLog('LessonPlayer getFilesByIds ERROR:', e.message))
+    getFilesByIds(missing)
+      .then(fetched => setFiles([...propFiles, ...fetched]))
+      .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const blobMap = usePlayerPreload(nodes, files, visibleNodes)
