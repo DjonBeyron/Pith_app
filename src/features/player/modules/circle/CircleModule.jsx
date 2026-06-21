@@ -202,11 +202,14 @@ export default function CircleModule({ node, file, onDone }) {
   }, [])
 
   const s = dims?.w ?? getSmallPx()
-  // Нет margin-top: backdrop (z-index:9) закрывает контент выше кружка при expand,
-  // поэтому двигать layout не нужно. Анимация — чистый GPU transform без layout reflow.
+  // margin-top и transform анимируются вместе — чат поднимается синхронно с кружком.
+  const halfGrow = (expanded || collapsing) ? halfGrowRef.current : 0
+  const wrapTransition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1), margin-top 0.24s cubic-bezier(0.4,0,0.2,1)'
   const wrapStyle = {
     width: s + 'px',
     height: s + 'px',
+    marginTop: `${halfGrow}px`,
+    transition: wrapTransition,
     ...(expanded ? { transform: expandTransform ?? undefined, zIndex: 10 } : {}),
     ...(collapsing && !expanded ? { zIndex: 10 } : {}),
   }

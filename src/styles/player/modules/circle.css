@@ -17,9 +17,9 @@
   transition: background 0s;
 }
 
-/* circleWrap: в потоке (position:relative), один элемент, один transform.
-   marginTop меняется мгновенно (один reflow) → чат узнаёт о размере.
-   transform: translateX() scale() — GPU, без reflow на каждом кадре → плавность. */
+/* circleWrap: transition задаётся через inline style (разный для expand/collapse).
+   Expand: только transform (margin-top мгновенно → один reflow → чат сразу освобождает место).
+   Collapse: transform + margin-top анимируются вместе. */
 .circleWrap {
   position: relative;
   flex-shrink: 0;
@@ -29,7 +29,6 @@
   user-select: none;
   -webkit-user-select: none;
   transform-origin: center center;
-  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .circleFrame {
