@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { APP_VERSION } from '../../shared/lib/version.js'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
@@ -33,6 +33,13 @@ export default function LessonPlayer({
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { blobMap, preloadLines } = usePlayerPreload(nodes, files, visibleNodes)
+
+  const openTimeRef = useRef(Date.now())
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - openTimeRef.current) / 1000)), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // Enrich every file with its preloaded blobUrl so all modules get it via lessonFiles
   const filesWithBlobs = useMemo(
@@ -152,6 +159,9 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
           maxWidth: 240, overflow: 'hidden',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
         }}>
+          <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+            {`урок: ${Math.floor(elapsed / 60).toString().padStart(2,'0')}:${(elapsed % 60).toString().padStart(2,'0')}`}
+          </div>
           {preloadLines.map((l, i) => <div key={i}>{l}</div>)}
         </div>
       )}

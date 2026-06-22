@@ -88,6 +88,12 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
   const allowUpToRef = useRef(LOOKAHEAD)
   const inFlightRef  = useRef(0)
   const byIdRef      = useRef({})
+  const startTimeRef = useRef(Date.now())
+
+  function ts() {
+    const s = (Date.now() - startTimeRef.current) / 1000
+    return `+${s.toFixed(1)}s`
+  }
 
   function addLine(text) {
     setPreloadLines(prev => {
@@ -125,6 +131,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     blobUrlsRef.current = {}
     setBlobMap({})
     setPreloadLines([])
+    startTimeRef.current = Date.now()
     byIdRef.current    = Object.fromEntries(nodes.map(n => [n.id, n]))
     queueRef.current   = buildItemQueue(nodes, files)
     cursorRef.current  = 0
@@ -136,8 +143,9 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     async function fetchOne(item) {
       const { id, url, nodeType, nodeSeq } = item
       const label = `seq=${nodeSeq} type=${nodeType}`
+      const startTs = ts()
       pLog('PlayerPreload start:', label)
-      addLine(`start ${label}`)
+      addLine(`start ${startTs} ${label}`)
       inFlightRef.current++
 
       let blobUrl = null
@@ -149,10 +157,10 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
         if (genRef.current !== gen) return
         blobUrl = URL.createObjectURL(blob)
         pLog('PlayerPreload ready:', label, Math.round(blob.size / 1024), 'KB')
-        addLine(`ready ${label} ${Math.round(blob.size / 1024)}KB`)
+        addLine(`ready ${ts()} ${label} ${Math.round(blob.size / 1024)}KB`)
       } catch (e) {
         pLog('PlayerPreload error:', label, e.message)
-        addLine(`error ${label} ${e.message}`)
+        addLine(`error ${ts()} ${label} ${e.message}`)
         inFlightRef.current--
         return
       }
