@@ -10,17 +10,17 @@ function GalleryTile({ ph, index, lessonFiles, onClick }) {
   const [src, setSrc] = useState(null)
 
   useEffect(() => {
-    if (ph.photoUrl) { setSrc(ph.photoUrl); return }
     if (ph.fileId) {
       const f = lessonFiles.find(lf => lf.id === ph.fileId)
       if (f?.blobUrl) { setSrc(f.blobUrl); return }
-      if (f?.r2Url)   { setSrc(f.r2Url);   return }
       if (f?.localFile) {
         const u = URL.createObjectURL(f.localFile)
         setSrc(u)
         return () => URL.revokeObjectURL(u)
       }
+      if (f?.r2Url)    { setSrc(f.r2Url);    return }
     }
+    if (ph.photoUrl) { setSrc(ph.photoUrl); return }
     setSrc(null)
   }, [ph.fileId, ph.photoUrl, lessonFiles])
 
