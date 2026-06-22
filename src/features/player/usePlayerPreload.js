@@ -152,6 +152,16 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     cursorRef.current  = 0
     inFlightRef.current  = 0
 
+    // If player starts with preloaded blobs, advance the gate past already-cached items
+    // so the queue immediately starts downloading what comes after the preloaded set.
+    if (Object.keys(initRef.current).length > 0) {
+      const maxPreloadedIdx = queueRef.current.reduce((max, item) =>
+        blobUrlsRef.current[item.id] ? Math.max(max, item.nodeIdx + 1) : max, 0)
+      if (maxPreloadedIdx + LOOKAHEAD > allowUpToRef.current) {
+        allowUpToRef.current = maxPreloadedIdx + LOOKAHEAD
+      }
+    }
+
     if (!queueRef.current.length || !files.length) return
 
     async function fetchOne(item) {
