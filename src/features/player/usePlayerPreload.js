@@ -78,8 +78,12 @@ function revokeEntry(entry) {
 }
 
 export function usePlayerPreload(nodes, files, visibleNodes) {
-  const [blobMap, setBlobMap]         = useState({})
-  const [preloadLines, setPreloadLines] = useState([])  // debug overlay
+  const [blobMap, setBlobMap] = useState({})
+
+  // Debug overlay: one item per download, updated in place
+  const debugItemsRef = useRef(new Map())  // key → item
+  const [debugTick, setDebugTick] = useState(0)
+  const tick = () => setDebugTick(t => t + 1)
 
   const blobUrlsRef  = useRef({})
   const genRef       = useRef(0)
@@ -92,14 +96,17 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
 
   function ts() {
     const s = (Date.now() - startTimeRef.current) / 1000
-    return `+${s.toFixed(1)}s`
+    return `+${s.toFixed(1)}`
   }
 
-  function addLine(text, type = 'info') {
-    setPreloadLines(prev => {
-      const next = [...prev, { text, type }]
-      return next.length > 40 ? next.slice(next.length - 40) : next
+  // Called from LessonPlayer when a node becomes visible in chat
+  function addMsgTs(seq, tsStr) {
+    debugItemsRef.current.forEach(item => {
+      if (item.seq === seq && !item.msgTs) {
+        item.msgTs = tsStr
+      }
     })
+    tick()
   }
 
   useEffect(() => {
@@ -130,8 +137,9 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     Object.values(blobUrlsRef.current).forEach(revokeEntry)
     blobUrlsRef.current = {}
     setBlobMap({})
-    setPreloadLines([])
+    debugItemsRef.current = new Map()
     startTimeRef.current = Date.now()
+    tick()
     byIdRef.current    = Object.fromEntries(nodes.map(n => [n.id, n]))
     queueRef.current   = buildItemQueue(nodes, files)
     cursorRef.current  = 0
@@ -144,8 +152,11 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
       const { id, url, nodeType, nodeSeq } = item
       const label = `seq=${nodeSeq} type=${nodeType}`
       const startTs = ts()
+      const key = `${nodeSeq}_${id}`
+      const debugItem = { key, seq: nodeSeq, type: nodeType, startTs, readyTs: null, sizeKb: null, msgTs: null, status: 'start', error: null }
+      debugItemsRef.current.set(key, debugItem)
       pLog('PlayerPreload start:', label)
-      addLine(`start ${startTs} ${label}`, 'start')
+      tick()
       inFlightRef.current++
 
       let blobUrl = null
@@ -156,11 +167,17 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
         const blob = await res.blob()
         if (genRef.current !== gen) return
         blobUrl = URL.createObjectURL(blob)
-        pLog('PlayerPreload ready:', label, Math.round(blob.size / 1024), 'KB')
-        addLine(`ready ${ts()} ${label} ${Math.round(blob.size / 1024)}KB`, 'ready')
+        debugItem.readyTs = ts()
+        debugItem.sizeKb  = Math.round(blob.size / 1024)
+        debugItem.status  = 'ready'
+        pLog('PlayerPreload ready:', label, debugItem.sizeKb, 'KB')
+        tick()
       } catch (e) {
+        debugItem.status = 'error'
+        debugItem.error  = e.message
+        debugItem.readyTs = ts()
         pLog('PlayerPreload error:', label, e.message)
-        addLine(`error ${ts()} ${label} ${e.message}`, 'error')
+        tick()
         inFlightRef.current--
         return
       }
@@ -214,5 +231,6 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     return () => { Object.values(blobUrlsRef.current).forEach(revokeEntry) }
   }, [])
 
-  return { blobMap, preloadLines, addDebugLine: addLine }
+  const debugItems = [...debugItemsRef.current.values()]
+  return { blobMap, debugItems, addMsgTs }
 }
