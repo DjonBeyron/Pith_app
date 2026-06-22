@@ -10,6 +10,7 @@ import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
+import { pLog } from '../../shared/lib/debug.js'
 
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',
@@ -39,6 +40,20 @@ export default function LessonPlayer({
   const prevVisibleRef = useRef([])
   const debugScrollRef = useRef(null)
   const [elapsed, setElapsed] = useState(0)
+
+  // Diagnostic: log what arrived from card and what photo IDs we need
+  useEffect(() => {
+    const blobKeys  = Object.keys(initialBlobMap ?? {})
+    const photoIds  = nodes
+      .filter(n => n.type === 'photo_choice')
+      .flatMap(n => (n.typeData?.photo_choice?.photos ?? []).map(p => p.fileId).filter(Boolean))
+    const matched   = photoIds.filter(id => blobKeys.includes(id))
+    const fileCount = files.length
+    pLog(`Player init: blobs=${blobKeys.length} files=${fileCount} photoIds=${photoIds.length} matched=${matched.length}`)
+    if (photoIds.length && matched.length < photoIds.length) {
+      pLog('Player MISSING photo blobs:', photoIds.filter(id => !blobKeys.includes(id)))
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - openTimeRef.current) / 1000)), 1000)
