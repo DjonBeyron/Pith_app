@@ -26,7 +26,8 @@ export default function VideoModule({ node, file, onDone }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.video?.r2Url ?? null
+  const src    = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.video?.r2Url ?? null
+  const poster = file?.posterUrl ?? undefined
 
   useEffect(() => {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null')
@@ -179,7 +180,7 @@ export default function VideoModule({ node, file, onDone }) {
           ? <>
               <div ref={frameRef} className="playerVideoCropFrame" onClick={handleTap}>
                 <video
-                  ref={videoRef} src={src} className="playerVideoMedia"
+                  ref={videoRef} src={src} poster={poster} className="playerVideoMedia"
                   style={{ ...getMediaStyle(), pointerEvents: 'none' }}
                   playsInline autoPlay muted loop preload="auto"
                   onLoadedMetadata={e => {

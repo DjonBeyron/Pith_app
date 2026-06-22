@@ -55,7 +55,8 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
+  const src    = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
+  const poster = file?.posterUrl ?? undefined
 
   useEffect(() => {
     setIntr(null)
@@ -276,7 +277,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
           >
             <div ref={frRef} className="circleFrame">
               <video
-                ref={vRef} src={src} className="circleMedia"
+                ref={vRef} src={src} poster={poster} className="circleMedia"
                 style={videoStyle}
                 playsInline autoPlay muted loop preload="auto"
                 onLoadedMetadata={e => {

@@ -1,23 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
+import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 
 const LOOKAHEAD    = 3   // preload this many media nodes ahead of last visible
 const CONCURRENCY  = 2   // parallel downloads at once
 const POLL_MS      = 200
 const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice'])
+const POSTER_TYPES = new Set(['video', 'circle', 'sticker'])
 
 function isValidUrl(url) {
   return typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))
 }
 
 // BFS from entry (seq=1), following ALL trigger branches simultaneously.
-// Both sides of every fork are enqueued — graph-distance order, not seq order.
 function bfsOrder(nodes) {
   if (!nodes.length) return []
   const byId  = Object.fromEntries(nodes.map(n => [n.id, n]))
   const entry = nodes.find(n => n.seq === 1)
     ?? nodes.slice().sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))[0]
-
   const visited = new Set()
   const queue   = [entry]
   const ordered = []
@@ -49,14 +49,14 @@ function forwardReachable(node, byId) {
   return reach
 }
 
-// Returns list of {id, url} pairs to fetch for a node (1 for media, N for photo_choice).
+// Returns {id, url, nodeType} pairs to download for a node.
 function nodeDownloads(node, files) {
   if (node.type === 'photo_choice') {
     return (node.typeData?.photo_choice?.photos ?? [])
       .map(ph => {
         const f   = files.find(fl => fl.id === ph.fileId)
         const url = f?.r2Url ?? ph.photoUrl ?? null
-        return isValidUrl(url) ? { id: ph.fileId, url } : null
+        return isValidUrl(url) ? { id: ph.fileId, url, nodeType: 'photo_choice' } : null
       })
       .filter(Boolean)
   }
@@ -64,18 +64,25 @@ function nodeDownloads(node, files) {
   if (!fileId) return []
   const f   = files.find(fl => fl.id === fileId)
   const url = f?.r2Url ?? node.typeData?.[node.type]?.r2Url ?? null
-  return isValidUrl(url) ? [{ id: fileId, url }] : []
+  return isValidUrl(url) ? [{ id: fileId, url, nodeType: node.type }] : []
+}
+
+function revokeEntry(entry) {
+  if (!entry) return
+  if (entry.blobUrl)   URL.revokeObjectURL(entry.blobUrl)
+  if (entry.posterUrl) URL.revokeObjectURL(entry.posterUrl)
 }
 
 export function usePlayerPreload(nodes, files, visibleNodes) {
   const [blobMap, setBlobMap] = useState({})
 
+  // blobUrlsRef stores { blobUrl, posterUrl } per fileId
   const blobUrlsRef  = useRef({})
   const genRef       = useRef(0)
   const queueRef     = useRef([])
   const cursorRef    = useRef(0)
   const allowUpToRef = useRef(LOOKAHEAD)
-  const inFlightRef  = useRef(0)   // active concurrent downloads
+  const inFlightRef  = useRef(0)
   const byIdRef      = useRef({})
 
   // When user advances: open lookahead window and reorder toward confirmed branch.
@@ -108,7 +115,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
   useEffect(() => {
     const gen = genRef.current
 
-    Object.values(blobUrlsRef.current).forEach(url => URL.revokeObjectURL(url))
+    Object.values(blobUrlsRef.current).forEach(revokeEntry)
     blobUrlsRef.current = {}
     setBlobMap({})
     byIdRef.current    = Object.fromEntries(nodes.map(n => [n.id, n]))
@@ -119,20 +126,34 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
 
     if (!queueRef.current.length || !files.length) return
 
-    // Fetch a single {id, url} download and store result.
-    async function fetchOne(id, url, label) {
+    // Download one file, capture poster frame for video types, store result.
+    async function fetchOne(id, url, nodeType, label) {
       pLog('PlayerPreload start:', label)
       inFlightRef.current++
       try {
         const res = await fetch(url)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         if (genRef.current !== gen) return
-        const blob   = await res.blob()
+        const blob    = await res.blob()
         if (genRef.current !== gen) return
         const blobUrl = URL.createObjectURL(blob)
-        blobUrlsRef.current[id] = blobUrl
         pLog('PlayerPreload ready:', label, Math.round(blob.size / 1024), 'KB')
-        setBlobMap(prev => ({ ...prev, [id]: blobUrl }))
+
+        let posterUrl = null
+        if (POSTER_TYPES.has(nodeType)) {
+          pLog('PlayerPreload poster start:', label)
+          posterUrl = await capturePosterFrame(blobUrl)
+          if (genRef.current !== gen) {
+            URL.revokeObjectURL(blobUrl)
+            if (posterUrl) URL.revokeObjectURL(posterUrl)
+            return
+          }
+          pLog('PlayerPreload poster:', posterUrl ? 'ok' : 'null (timeout)', label)
+        }
+
+        const entry = { blobUrl, posterUrl }
+        blobUrlsRef.current[id] = entry
+        setBlobMap(prev => ({ ...prev, [id]: entry }))
       } catch (e) {
         pLog('PlayerPreload error:', label, e.message)
       } finally {
@@ -140,13 +161,11 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
       }
     }
 
-    // Dispatcher: picks next node from queue, fires fetchOne() for each download,
-    // respects CONCURRENCY and allowUpTo window.
+    // Dispatcher: pick next node from queue, fire downloads, respect CONCURRENCY and allowUpTo.
     async function runQueue() {
       while (genRef.current === gen) {
         if (cursorRef.current >= queueRef.current.length && inFlightRef.current === 0) break
 
-        // Wait if too far ahead or at concurrency limit
         if (
           cursorRef.current >= allowUpToRef.current ||
           inFlightRef.current >= CONCURRENCY ||
@@ -159,10 +178,12 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
         const node = queueRef.current[cursorRef.current]
         cursorRef.current++
 
-        const downloads = nodeDownloads(node, files).filter(d => !blobUrlsRef.current[d.id])
-        for (const { id, url } of downloads) {
-          const label = `seq=${node.seq} type=${node.type}`
-          fetchOne(id, url, label)  // fire-and-forget — dispatcher continues
+        const downloads = nodeDownloads(node, files)
+          .filter(d => !blobUrlsRef.current[d.id])
+
+        for (const { id, url, nodeType } of downloads) {
+          const label = `seq=${node.seq} type=${nodeType}`
+          fetchOne(id, url, nodeType, label)  // fire-and-forget
         }
       }
     }
@@ -172,9 +193,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
   }, [nodes, files]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    return () => {
-      Object.values(blobUrlsRef.current).forEach(url => URL.revokeObjectURL(url))
-    }
+    return () => { Object.values(blobUrlsRef.current).forEach(revokeEntry) }
   }, [])
 
   return blobMap

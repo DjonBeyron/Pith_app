@@ -16,6 +16,7 @@ export default function StickerModule({ node, file, onDone }) {
   }, [file?.localFile])
 
   const src     = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.sticker?.r2Url ?? null
+  const poster  = file?.posterUrl ?? undefined
   const isVideo = node.typeData?.sticker?.isVideo ?? false
 
   // Play when BOTH are ready: animation done (420ms) AND video has first frame (canPlay).
@@ -50,6 +51,7 @@ export default function StickerModule({ node, file, onDone }) {
             ? <video
                 ref={videoRef}
                 src={src}
+                poster={poster}
                 className="stickerMedia"
                 loop
                 playsInline

@@ -36,7 +36,11 @@ export default function LessonPlayer({
 
   // Enrich every file with its preloaded blobUrl so all modules get it via lessonFiles
   const filesWithBlobs = useMemo(
-    () => files.map(f => blobMap[f.id] ? { ...f, blobUrl: blobMap[f.id] } : f),
+    () => files.map(f => {
+      const entry = blobMap[f.id]
+      if (!entry) return f
+      return { ...f, blobUrl: entry.blobUrl, posterUrl: entry.posterUrl ?? null }
+    }),
     [files, blobMap]
   )
 
