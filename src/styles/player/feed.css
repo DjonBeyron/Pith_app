@@ -8,10 +8,15 @@
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Flip Y axis: scrollTop=0 now means visual bottom of chat.
+     New messages at DOM end = visual bottom = always visible without JS scroll. */
+  transform: scaleY(-1);
   padding: 12px 0;
 }
 
 .playerFeedInner {
+  /* Re-flip content so messages appear right-side up */
+  transform: scaleY(-1);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -20,13 +25,6 @@
   width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
-  /* min-height: fill the feed so spacer pushes messages to bottom */
-  min-height: 100%;
-}
-
-/* Spacer pushes messages to bottom when few; shrinks as messages fill the container */
-.playerFeedSpacer {
-  flex: 1;
 }
 
 @media (max-width: 400px) {
