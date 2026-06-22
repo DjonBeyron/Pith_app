@@ -13,7 +13,8 @@ function GalleryTile({ ph, index, lessonFiles, onClick }) {
     if (ph.photoUrl) { setSrc(ph.photoUrl); return }
     if (ph.fileId) {
       const f = lessonFiles.find(lf => lf.id === ph.fileId)
-      if (f?.r2Url) { setSrc(f.r2Url); return }
+      if (f?.blobUrl) { setSrc(f.blobUrl); return }
+      if (f?.r2Url)   { setSrc(f.r2Url);   return }
       if (f?.localFile) {
         const u = URL.createObjectURL(f.localFile)
         setSrc(u)

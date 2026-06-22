@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { APP_VERSION } from '../../shared/lib/version.js'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
@@ -20,7 +20,11 @@ export default function LessonPlayer({
   const { visibleNodes, onNodeDone } = useGraphPlayer(nodes)
 
   useEffect(() => {
-    const allIds = [...new Set(nodes.map(n => n.typeData?.[n.type]?.file_id).filter(Boolean))]
+    const singleIds = nodes.map(n => n.typeData?.[n.type]?.file_id).filter(Boolean)
+    const photoIds  = nodes
+      .filter(n => n.type === 'photo_choice')
+      .flatMap(n => (n.typeData?.photo_choice?.photos ?? []).map(p => p.fileId).filter(Boolean))
+    const allIds = [...new Set([...singleIds, ...photoIds])]
     const missing = allIds.filter(id => !propFiles.some(f => f.id === id))
     if (!missing.length) { setFiles(propFiles); return }
     getFilesByIds(missing)
@@ -29,6 +33,12 @@ export default function LessonPlayer({
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const blobMap = usePlayerPreload(nodes, files, visibleNodes)
+
+  // Enrich every file with its preloaded blobUrl so all modules get it via lessonFiles
+  const filesWithBlobs = useMemo(
+    () => files.map(f => blobMap[f.id] ? { ...f, blobUrl: blobMap[f.id] } : f),
+    [files, blobMap]
+  )
 
   // ── Panels ───────────────────────────────────────────────────────────────
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
@@ -83,14 +93,13 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
         <PlayerFeed>
           {visibleNodes.map(node => {
             const fileId = node.typeData?.[node.type]?.file_id ?? null
-            const file   = files.find(f => f.id === fileId) ?? null
-            const fileWithBlob = file && blobMap[file.id] ? { ...file, blobUrl: blobMap[file.id] } : file
+            const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
             return (
               <PlayerMessage
                 key={node.id}
                 node={node}
-                file={fileWithBlob}
-                lessonFiles={files}
+                file={file}
+                lessonFiles={filesWithBlobs}
                 teacherName={teacherName}
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
                 wordChoiceState={wordChoiceStates[node.id] ?? null}
@@ -123,7 +132,7 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
         {pcNode && !photoChoiceStates[pcNode.id] && (
           <PhotoChoicePanel
             node={pcNode}
-            lessonFiles={files}
+            lessonFiles={filesWithBlobs}
             onPick={(idx, isCorrect) => handlePhotoPick(pcNode.id, idx, isCorrect)}
             onHeightChange={setPcPanelHeight}
           />

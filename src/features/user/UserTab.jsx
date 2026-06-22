@@ -98,7 +98,6 @@ export default function UserTab() {
     setVisibleCount(0)
     const t0 = performance.now()
     try {
-      dbg('[user] fetching files...')
       const data = await listFiles()
       dbg('[user] fetched', data.length, `${Math.round(performance.now() - t0)}ms`)
       // Sequence = upload order, oldest first — simulates the order messages would appear in a chat.

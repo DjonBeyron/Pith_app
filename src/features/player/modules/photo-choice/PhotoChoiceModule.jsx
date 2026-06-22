@@ -15,7 +15,8 @@ function usePhotoSrc(ph, lessonFiles = []) {
     // Local preview: resolve fileId via lessonFiles
     if (ph.fileId) {
       const f = lessonFiles.find(lf => lf.id === ph.fileId)
-      if (f?.r2Url) { setSrc(f.r2Url); return }
+      if (f?.blobUrl) { setSrc(f.blobUrl); return }
+      if (f?.r2Url)   { setSrc(f.r2Url);   return }
       if (f?.localFile) {
         const u = URL.createObjectURL(f.localFile)
         setSrc(u)
@@ -28,14 +29,15 @@ function usePhotoSrc(ph, lessonFiles = []) {
 }
 
 export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState }) {
-  if (!photoChoiceState || photoChoiceState.selected == null) return null
+  const photos   = node.typeData?.photo_choice?.photos ?? []
+  const selected = photoChoiceState?.selected ?? null
+  const photo    = selected != null ? (photos[selected] ?? null) : null
+  const src      = usePhotoSrc(photo, lessonFiles)  // must be before any early return
 
-  const photos  = node.typeData?.photo_choice?.photos ?? []
-  const { selected, result } = photoChoiceState
-  const photo = photos[selected] ?? null
+  if (!photoChoiceState || selected == null) return null
+
+  const { result } = photoChoiceState
   const isOk  = result === 'correct'
-
-  const src = usePhotoSrc(photo, lessonFiles)
 
   return (
     <div className="playerMsgRow playerMsgRowRight">

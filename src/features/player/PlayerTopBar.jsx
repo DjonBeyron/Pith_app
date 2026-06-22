@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { downloadPlayerLog, clearPlayerLog, pLog } from '../../shared/lib/debug.js'
+import { downloadPlayerLog, clearPlayerLog, pLog, setDebug } from '../../shared/lib/debug.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
@@ -12,6 +12,8 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
   useEffect(() => { setIntrinsic(null) }, [teacherLogo])
 
   useEffect(() => {
+    setDebug(true)
+    clearPlayerLog()
     pLog('=== Player opened ===', 'v' + APP_VERSION, 'ua:', navigator.userAgent)
   }, [])
 
