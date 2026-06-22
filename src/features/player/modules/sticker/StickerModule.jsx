@@ -23,7 +23,8 @@ export default function StickerModule({ node, file, onDone }) {
   // Whichever arrives later triggers actual playback.
   function tryPlay() {
     if (canPlayRef.current && animDoneRef.current) {
-      videoRef.current?.play().catch(() => {})
+      const v = videoRef.current
+      if (v) { v.muted = true; v.play().catch(() => {}) }
     }
   }
 

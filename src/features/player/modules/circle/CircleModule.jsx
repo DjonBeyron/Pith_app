@@ -31,6 +31,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   const [expanded, setExpanded]     = useState(false)
   const [collapsing, setCollapsing] = useState(false)
   const [expandTransform, setExpandTransform] = useState(null)
+  const [videoReady, setVideoReady] = useState(false)
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -60,6 +61,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
 
   useEffect(() => {
     setIntr(null)
+    setVideoReady(false)
     doneFiredRef.current = false
   }, [src]) // eslint-disable-line
 
@@ -96,6 +98,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   }
 
   function handlePlaying() {
+    setVideoReady(true)
     if (!expandedRef.current) return
     const v = vRef.current
     if (v?.duration) startRingAnimation(v.duration - v.currentTime)
@@ -277,7 +280,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
           >
             <div ref={frRef} className="circleFrame">
               <video
-                ref={vRef} src={src} poster={poster} className="circleMedia"
+                ref={vRef} src={src} className="circleMedia"
                 style={videoStyle}
                 playsInline autoPlay muted loop preload="auto"
                 onLoadedMetadata={e => {
@@ -287,6 +290,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
                 onPlaying={handlePlaying}
                 onEnded={handleEnded}
               />
+              {poster && !videoReady && (
+                <img src={poster} className="circleMedia" style={videoStyle} alt="" />
+              )}
             </div>
 
             <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true"

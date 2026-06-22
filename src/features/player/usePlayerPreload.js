@@ -49,7 +49,7 @@ function forwardReachable(node, byId) {
   return reach
 }
 
-// Returns {id, url, nodeType} pairs to download for a node.
+// Returns [{id, url, nodeType}] for a single node.
 function nodeDownloads(node, files) {
   if (node.type === 'photo_choice') {
     return (node.typeData?.photo_choice?.photos ?? [])
@@ -67,6 +67,15 @@ function nodeDownloads(node, files) {
   return isValidUrl(url) ? [{ id: fileId, url, nodeType: node.type }] : []
 }
 
+// Build a flat queue of individual download items (one per file, not per node).
+// Each item carries nodeIdx so allowUpTo gate works on node-count, not item-count.
+function buildItemQueue(nodes, files) {
+  const mediaNodes = bfsOrder(nodes).filter(n => MEDIA_TYPES.has(n.type))
+  return mediaNodes.flatMap((n, nodeIdx) =>
+    nodeDownloads(n, files).map(d => ({ ...d, nodeSeq: n.seq, nodeId: n.id, nodeIdx }))
+  )
+}
+
 function revokeEntry(entry) {
   if (!entry) return
   if (entry.blobUrl)   URL.revokeObjectURL(entry.blobUrl)
@@ -79,9 +88,10 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
   // blobUrlsRef stores { blobUrl, posterUrl } per fileId
   const blobUrlsRef  = useRef({})
   const genRef       = useRef(0)
+  // Flat queue: [{id, url, nodeType, nodeSeq, nodeId, nodeIdx}]
   const queueRef     = useRef([])
   const cursorRef    = useRef(0)
-  const allowUpToRef = useRef(LOOKAHEAD)
+  const allowUpToRef = useRef(LOOKAHEAD)  // in node-count units
   const inFlightRef  = useRef(0)
   const byIdRef      = useRef({})
 
@@ -98,8 +108,8 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     const reach     = forwardReachable(lastVisible, byIdRef.current)
     const loaded    = cursorRef.current
     const remaining = queueRef.current.slice(loaded)
-    const active      = remaining.filter(n =>  reach.has(n.id))
-    const speculative = remaining.filter(n => !reach.has(n.id))
+    const active      = remaining.filter(item =>  reach.has(item.nodeId))
+    const speculative = remaining.filter(item => !reach.has(item.nodeId))
 
     if (speculative.length > 0) {
       queueRef.current = [
@@ -107,8 +117,9 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
         ...active,
         ...speculative,
       ]
-      pLog('PlayerPreload reorder → active:', active.map(n => n.seq).join(','),
-           '/ speculative:', speculative.map(n => n.seq).join(','))
+      const activeSeqs = [...new Set(active.map(i => i.nodeSeq))].join(',')
+      const specSeqs   = [...new Set(speculative.map(i => i.nodeSeq))].join(',')
+      pLog('PlayerPreload reorder → active:', activeSeqs, '/ speculative:', specSeqs)
     }
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -119,7 +130,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     blobUrlsRef.current = {}
     setBlobMap({})
     byIdRef.current    = Object.fromEntries(nodes.map(n => [n.id, n]))
-    queueRef.current   = bfsOrder(nodes).filter(n => MEDIA_TYPES.has(n.type))
+    queueRef.current   = buildItemQueue(nodes, files)
     cursorRef.current  = 0
     allowUpToRef.current = LOOKAHEAD
     inFlightRef.current  = 0
@@ -127,7 +138,9 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     if (!queueRef.current.length || !files.length) return
 
     // Download one file, capture poster frame for video types, store result.
-    async function fetchOne(id, url, nodeType, label) {
+    async function fetchOne(item) {
+      const { id, url, nodeType, nodeSeq } = item
+      const label = `seq=${nodeSeq} type=${nodeType}`
       pLog('PlayerPreload start:', label)
       inFlightRef.current++
       try {
@@ -142,7 +155,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
         let posterUrl = null
         if (POSTER_TYPES.has(nodeType)) {
           pLog('PlayerPreload poster start:', label)
-          posterUrl = await capturePosterFrame(blobUrl)
+          posterUrl = await capturePosterFrame(blobUrl, 4000)
           if (genRef.current !== gen) {
             URL.revokeObjectURL(blobUrl)
             if (posterUrl) URL.revokeObjectURL(posterUrl)
@@ -161,30 +174,29 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
       }
     }
 
-    // Dispatcher: pick next node from queue, fire downloads, respect CONCURRENCY and allowUpTo.
+    // Dispatcher: picks one item at a time, respects CONCURRENCY and allowUpTo gate.
     async function runQueue() {
       while (genRef.current === gen) {
         if (cursorRef.current >= queueRef.current.length && inFlightRef.current === 0) break
 
+        const item = queueRef.current[cursorRef.current]
+        const done = cursorRef.current >= queueRef.current.length
+
         if (
-          cursorRef.current >= allowUpToRef.current ||
-          inFlightRef.current >= CONCURRENCY ||
-          cursorRef.current >= queueRef.current.length
+          done ||
+          (item && item.nodeIdx >= allowUpToRef.current) ||
+          inFlightRef.current >= CONCURRENCY
         ) {
           await new Promise(r => setTimeout(r, POLL_MS))
           continue
         }
 
-        const node = queueRef.current[cursorRef.current]
         cursorRef.current++
 
-        const downloads = nodeDownloads(node, files)
-          .filter(d => !blobUrlsRef.current[d.id])
+        // Skip if already downloaded (e.g. same file referenced twice)
+        if (blobUrlsRef.current[item.id]) continue
 
-        for (const { id, url, nodeType } of downloads) {
-          const label = `seq=${node.seq} type=${nodeType}`
-          fetchOne(id, url, nodeType, label)  // fire-and-forget
-        }
+        fetchOne(item)  // fire-and-forget; inFlightRef managed inside
       }
     }
 

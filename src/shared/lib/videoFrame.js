@@ -1,7 +1,7 @@
 // Grabs one still frame from a video Blob URL as a JPEG blob URL — used to keep a frozen
 // preview for an evicted video instead of leaving empty space where a message used to be.
 // Resolves with null on timeout so callers never block indefinitely on slow/buggy decoders.
-export function capturePosterFrame(blobUrl, timeoutMs = 2000) {
+export function capturePosterFrame(blobUrl, timeoutMs = 4000) {
   return new Promise(resolve => {
     const video = document.createElement('video')
     video.muted = true
