@@ -199,8 +199,8 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
           />
         )}
       </div>
-      {/* Preload debug overlay — fixed, scrollable, doesn't affect flex */}
-      {(debugItems.length > 0 || initialBlobMap) && (
+      {/* Preload debug overlay — set DEBUG_OVERLAY=true to enable */}
+      {false && (debugItems.length > 0 || initialBlobMap) && (
         <div style={{
           position: 'fixed', top: 24, bottom: 8, left: 6,
           fontSize: 9, pointerEvents: 'auto', zIndex: 200,
