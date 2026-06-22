@@ -145,11 +145,12 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
       {/* Preload debug overlay — fixed, doesn't affect flex */}
       {preloadLines.length > 0 && (
         <div style={{
-          position: 'fixed', bottom: 80, left: 6,
+          position: 'fixed', top: 24, bottom: 8, left: 6,
           fontSize: 9, color: 'rgba(255,255,255,0.45)',
           pointerEvents: 'none', zIndex: 200,
           fontFamily: 'monospace', lineHeight: 1.5,
-          maxWidth: 220,
+          maxWidth: 240, overflow: 'hidden',
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
         }}>
           {preloadLines.map((l, i) => <div key={i}>{l}</div>)}
         </div>

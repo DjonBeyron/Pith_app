@@ -92,7 +92,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
   function addLine(text) {
     setPreloadLines(prev => {
       const next = [...prev, text]
-      return next.length > 12 ? next.slice(next.length - 12) : next
+      return next.length > 40 ? next.slice(next.length - 40) : next
     })
   }
 
