@@ -95,9 +95,9 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     return `+${s.toFixed(1)}s`
   }
 
-  function addLine(text) {
+  function addLine(text, type = 'info') {
     setPreloadLines(prev => {
-      const next = [...prev, text]
+      const next = [...prev, { text, type }]
       return next.length > 40 ? next.slice(next.length - 40) : next
     })
   }
@@ -145,7 +145,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
       const label = `seq=${nodeSeq} type=${nodeType}`
       const startTs = ts()
       pLog('PlayerPreload start:', label)
-      addLine(`start ${startTs} ${label}`)
+      addLine(`start ${startTs} ${label}`, 'start')
       inFlightRef.current++
 
       let blobUrl = null
@@ -157,10 +157,10 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
         if (genRef.current !== gen) return
         blobUrl = URL.createObjectURL(blob)
         pLog('PlayerPreload ready:', label, Math.round(blob.size / 1024), 'KB')
-        addLine(`ready ${ts()} ${label} ${Math.round(blob.size / 1024)}KB`)
+        addLine(`ready ${ts()} ${label} ${Math.round(blob.size / 1024)}KB`, 'ready')
       } catch (e) {
         pLog('PlayerPreload error:', label, e.message)
-        addLine(`error ${ts()} ${label} ${e.message}`)
+        addLine(`error ${ts()} ${label} ${e.message}`, 'error')
         inFlightRef.current--
         return
       }
@@ -214,5 +214,5 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     return () => { Object.values(blobUrlsRef.current).forEach(revokeEntry) }
   }, [])
 
-  return { blobMap, preloadLines }
+  return { blobMap, preloadLines, addDebugLine: addLine }
 }

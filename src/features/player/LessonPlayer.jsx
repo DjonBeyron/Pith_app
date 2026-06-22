@@ -32,14 +32,27 @@ export default function LessonPlayer({
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { blobMap, preloadLines } = usePlayerPreload(nodes, files, visibleNodes)
+  const { blobMap, preloadLines, addDebugLine } = usePlayerPreload(nodes, files, visibleNodes)
 
-  const openTimeRef = useRef(Date.now())
+  const openTimeRef     = useRef(Date.now())
+  const prevVisibleRef  = useRef([])
   const [elapsed, setElapsed] = useState(0)
+
   useEffect(() => {
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - openTimeRef.current) / 1000)), 1000)
     return () => clearInterval(id)
   }, [])
+
+  // Log when each message first appears in chat
+  useEffect(() => {
+    const prevIds = new Set(prevVisibleRef.current.map(n => n.id))
+    const newNodes = visibleNodes.filter(n => !prevIds.has(n.id))
+    if (newNodes.length) {
+      const t = ((Date.now() - openTimeRef.current) / 1000).toFixed(1)
+      newNodes.forEach(n => addDebugLine(`msg +${t}s seq=${n.seq} ${n.type}`, 'msg'))
+    }
+    prevVisibleRef.current = visibleNodes
+  }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Enrich every file with its preloaded blobUrl so all modules get it via lessonFiles
   const filesWithBlobs = useMemo(
@@ -153,16 +166,22 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
       {preloadLines.length > 0 && (
         <div style={{
           position: 'fixed', top: 24, bottom: 8, left: 6,
-          fontSize: 9, color: 'rgba(255,255,255,0.45)',
-          pointerEvents: 'none', zIndex: 200,
-          fontFamily: 'monospace', lineHeight: 1.5,
-          maxWidth: 240, overflow: 'hidden',
+          fontSize: 9, pointerEvents: 'none', zIndex: 200,
+          fontFamily: 'monospace', lineHeight: 1.6,
+          maxWidth: 250, overflow: 'hidden',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+          background: 'rgba(0,0,0,0.55)', borderRadius: 6, padding: '4px 6px',
         }}>
-          <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+          <div style={{ color: '#ffe066', marginBottom: 3, fontWeight: 'bold' }}>
             {`урок: ${Math.floor(elapsed / 60).toString().padStart(2,'0')}:${(elapsed % 60).toString().padStart(2,'0')}`}
           </div>
-          {preloadLines.map((l, i) => <div key={i}>{l}</div>)}
+          {preloadLines.map((item, i) => {
+            const color = item.type === 'ready' ? '#7dff8a'
+              : item.type === 'error'  ? '#ff7070'
+              : item.type === 'msg'    ? '#7dd4ff'
+              : '#aaa'
+            return <div key={i} style={{ color }}>{item.text}</div>
+          })}
         </div>
       )}
       {/* Версия для отслеживания деплоя — fixed, вне потока, pointer-events:none */}
