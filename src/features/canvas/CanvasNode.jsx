@@ -18,6 +18,7 @@ const TYPE_COLOR = {
   word_choice:     '#b07030',
   phrase_assembly: '#2a8070',
   pin_message:     '#8b6914',
+  system:          '#4a5568',
   sticker:         '#c05830',
   photo_choice:    '#0e7490',
 }
@@ -149,6 +150,7 @@ export default function CanvasNode({
             <option value="word_choice">Выбор слова</option>
             <option value="phrase_assembly">Собрать фразу</option>
             <option value="pin_message">Закрепить сообщение</option>
+            <option value="system">Системное сообщение</option>
             <option value="sticker">Стикер</option>
             <option value="photo_choice">Выбрать фото</option>
           </select>
@@ -219,12 +221,16 @@ export default function CanvasNode({
             />
           </>
         )}
-        {(node.type === 'text' || node.type === 'pin_message') && (
+        {(node.type === 'text' || node.type === 'pin_message' || node.type === 'system') && (
           <textarea
             className="nodeTextInput"
             value={tData.content ?? ''}
             onChange={e => updateTypeData({ content: e.target.value })}
-            placeholder={node.type === 'pin_message' ? 'Текст закреплённого сообщения...' : 'Введи текст сообщения...'}
+            placeholder={
+              node.type === 'pin_message' ? 'Текст закреплённого сообщения...' :
+              node.type === 'system'      ? 'Системное сообщение...' :
+              'Введи текст сообщения...'
+            }
             onClick={e => e.stopPropagation()}
             onMouseDown={e => e.stopPropagation()}
             rows={4}
