@@ -14,6 +14,7 @@ import { getFilesByIds } from '../../shared/lib/filesApi.js'
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',
   teacherName, teacherLogo, teacherLogoCrop,
+  initialBlobMap = null,
   onClose,
 }) {
   const [files, setFiles] = useState(propFiles)
@@ -32,7 +33,7 @@ export default function LessonPlayer({
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { blobMap, debugItems, addMsgTs } = usePlayerPreload(nodes, files, visibleNodes)
+  const { blobMap, debugItems, addMsgTs } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
 
   const openTimeRef    = useRef(Date.now())
   const prevVisibleRef = useRef([])

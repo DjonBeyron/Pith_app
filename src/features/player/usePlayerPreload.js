@@ -77,19 +77,22 @@ function revokeEntry(entry) {
   if (entry.posterUrl) URL.revokeObjectURL(entry.posterUrl)
 }
 
-export function usePlayerPreload(nodes, files, visibleNodes) {
-  const [blobMap, setBlobMap] = useState({})
+export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
+  const { initialLookahead = LOOKAHEAD, initialBlobMap = null } = opts
+  const initRef = useRef(initialBlobMap ?? {})
+
+  const [blobMap, setBlobMap] = useState(() => ({ ...initRef.current }))
 
   // Debug overlay: one item per download, updated in place
-  const debugItemsRef = useRef(new Map())  // key → item
+  const debugItemsRef = useRef(new Map())
   const [debugTick, setDebugTick] = useState(0)
   const tick = () => setDebugTick(t => t + 1)
 
-  const blobUrlsRef  = useRef({})
+  const blobUrlsRef  = useRef({ ...initRef.current })
   const genRef       = useRef(0)
   const queueRef     = useRef([])
   const cursorRef    = useRef(0)
-  const allowUpToRef = useRef(LOOKAHEAD)
+  const allowUpToRef = useRef(initialLookahead)
   const inFlightRef  = useRef(0)
   const byIdRef      = useRef({})
   const startTimeRef = useRef(Date.now())
@@ -134,11 +137,15 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
   useEffect(() => {
     const gen = genRef.current
 
-    Object.values(blobUrlsRef.current).forEach(revokeEntry)
-    blobUrlsRef.current = {}
-    setBlobMap({})
+    // Revoke only entries this hook created — not ones from initialBlobMap
+    Object.entries(blobUrlsRef.current).forEach(([id, entry]) => {
+      if (!initRef.current[id]) revokeEntry(entry)
+    })
+    blobUrlsRef.current = { ...initRef.current }  // preserve pre-loaded blobs
+    setBlobMap({ ...initRef.current })
     debugItemsRef.current = new Map()
     startTimeRef.current = Date.now()
+    allowUpToRef.current = initialLookahead
     tick()
     byIdRef.current    = Object.fromEntries(nodes.map(n => [n.id, n]))
     queueRef.current   = buildItemQueue(nodes, files)
@@ -231,6 +238,10 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     return () => { Object.values(blobUrlsRef.current).forEach(revokeEntry) }
   }, [])
 
+  // Transfer ownership of all blob URLs to the caller (card → player handoff).
+  // After calling this, the hook's cleanup will revoke nothing.
+  function releaseBlobs() { blobUrlsRef.current = {} }
+
   const debugItems = [...debugItemsRef.current.values()]
-  return { blobMap, debugItems, addMsgTs }
+  return { blobMap, debugItems, addMsgTs, releaseBlobs }
 }

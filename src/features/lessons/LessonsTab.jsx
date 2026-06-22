@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { useLessons } from './useLessons.js'
+import LessonLaunchCard from './LessonLaunchCard.jsx'
+import LessonPlayer from '../player/LessonPlayer.jsx'
 
 function formatDate(ts) {
   return new Date(ts).toLocaleDateString('ru-RU', {
@@ -8,6 +11,29 @@ function formatDate(ts) {
 
 export default function LessonsTab({ onOpenCanvas }) {
   const { lessons, loading, creating, error, create, remove } = useLessons({ onOpenCanvas })
+
+  const [launchId,    setLaunchId]    = useState(null)  // which lesson is in the card
+  const [playerData,  setPlayerData]  = useState(null)  // data passed from card → player
+
+  function handleStartFromCard(data) {
+    setLaunchId(null)
+    setPlayerData(data)
+  }
+
+  if (playerData) {
+    return (
+      <LessonPlayer
+        nodes={playerData.nodes}
+        files={playerData.files}
+        lessonTitle={playerData.title}
+        teacherName={playerData.teacherName}
+        teacherLogo={playerData.teacherLogo}
+        teacherLogoCrop={playerData.teacherLogoCrop}
+        initialBlobMap={playerData.blobMap}
+        onClose={() => setPlayerData(null)}
+      />
+    )
+  }
 
   return (
     <div className="lessonsPanel">
@@ -32,6 +58,13 @@ export default function LessonsTab({ onOpenCanvas }) {
                 <span className="lessonDate">{formatDate(l.created_at)}</span>
               </div>
               <button
+                className="lessonPlayBtn"
+                title="Начать урок"
+                onClick={e => { e.stopPropagation(); setLaunchId(l.id) }}
+              >
+                ▶
+              </button>
+              <button
                 className="lessonDeleteBtn"
                 onClick={e => { e.stopPropagation(); remove(l.id) }}
               >
@@ -40,6 +73,14 @@ export default function LessonsTab({ onOpenCanvas }) {
             </div>
           ))}
         </div>
+      )}
+
+      {launchId && (
+        <LessonLaunchCard
+          lessonId={launchId}
+          onStart={handleStartFromCard}
+          onClose={() => setLaunchId(null)}
+        />
       )}
     </div>
   )

@@ -44,6 +44,21 @@
   color: #555;
 }
 
+.lessonPlayBtn {
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #b6fe3b;
+  border-color: #b6fe3b33;
+  background: transparent;
+  flex-shrink: 0;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.lessonPlayBtn:hover {
+  background: #b6fe3b22;
+}
+
 .lessonDeleteBtn {
   padding: 4px 8px;
   font-size: 12px;
