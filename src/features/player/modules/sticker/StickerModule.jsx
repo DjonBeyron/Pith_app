@@ -14,14 +14,13 @@ export default function StickerModule({ node, file, onDone }) {
 
   const src     = objectUrl ?? file?.r2Url ?? node.typeData?.sticker?.r2Url ?? null
   const isVideo = node.typeData?.sticker?.isVideo ?? false
-  const muted   = node.typeData?.sticker?.muted   ?? true
 
   return (
     <div className="playerMsgRow">
       <div className="stickerWrap">
         {src
           ? (isVideo
-            ? <video src={src} className="stickerMedia" autoPlay loop playsInline muted={muted} />
+            ? <video src={src} className="stickerMedia" autoPlay loop playsInline muted />
             : <img   src={src} className="stickerMedia" alt="" />)
           : <div className="stickerPlaceholder">Стикер не загружен</div>
         }

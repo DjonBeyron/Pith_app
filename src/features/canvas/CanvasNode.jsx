@@ -104,7 +104,7 @@ export default function CanvasNode({
     const id = onPickLessonFile(file)
     if (node.type === 'sticker') {
       const isVid = file.type?.startsWith('video/')
-      updateTypeData({ file_id: id, crop: DEFAULT_CROP, isVideo: isVid, muted: true })
+      updateTypeData({ file_id: id, crop: DEFAULT_CROP, isVideo: isVid })
     } else {
       updateTypeData({ file_id: id, crop: DEFAULT_CROP })
     }
@@ -217,17 +217,6 @@ export default function CanvasNode({
               onCropChange={newCrop => updateTypeData({ crop: newCrop })}
               shape={node.type === 'circle' ? 'circle' : node.type === 'sticker' ? 'square' : 'rect'}
             />
-            {node.type === 'sticker' && tData.isVideo && (
-              <label className="nodeStickerMuteRow" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
-                <input
-                  type="checkbox"
-                  checked={!tData.muted}
-                  onChange={e => updateTypeData({ muted: !e.target.checked })}
-                  onClick={e => e.stopPropagation()}
-                />
-                <span className="nodeStickerMuteLabel">Со звуком</span>
-              </label>
-            )}
           </>
         )}
         {(node.type === 'text' || node.type === 'pin_message') && (
