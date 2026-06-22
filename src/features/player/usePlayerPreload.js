@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 
-const LOOKAHEAD    = 3   // preload this many media nodes ahead of last visible
-const CONCURRENCY  = 2   // parallel downloads at once
+const LOOKAHEAD    = 3
+const CONCURRENCY  = 2
 const POLL_MS      = 200
 const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice'])
 const POSTER_TYPES = new Set(['video', 'circle', 'sticker'])
@@ -12,7 +12,6 @@ function isValidUrl(url) {
   return typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))
 }
 
-// BFS from entry (seq=1), following ALL trigger branches simultaneously.
 function bfsOrder(nodes) {
   if (!nodes.length) return []
   const byId  = Object.fromEntries(nodes.map(n => [n.id, n]))
@@ -34,7 +33,6 @@ function bfsOrder(nodes) {
   return ordered
 }
 
-// All nodes reachable forward from `node` via triggers (the confirmed branch).
 function forwardReachable(node, byId) {
   const reach = new Set()
   const q     = [node]
@@ -49,7 +47,6 @@ function forwardReachable(node, byId) {
   return reach
 }
 
-// Returns [{id, url, nodeType}] for a single node.
 function nodeDownloads(node, files) {
   if (node.type === 'photo_choice') {
     return (node.typeData?.photo_choice?.photos ?? [])
@@ -67,8 +64,6 @@ function nodeDownloads(node, files) {
   return isValidUrl(url) ? [{ id: fileId, url, nodeType: node.type }] : []
 }
 
-// Build a flat queue of individual download items (one per file, not per node).
-// Each item carries nodeIdx so allowUpTo gate works on node-count, not item-count.
 function buildItemQueue(nodes, files) {
   const mediaNodes = bfsOrder(nodes).filter(n => MEDIA_TYPES.has(n.type))
   return mediaNodes.flatMap((n, nodeIdx) =>
@@ -83,22 +78,26 @@ function revokeEntry(entry) {
 }
 
 export function usePlayerPreload(nodes, files, visibleNodes) {
-  const [blobMap, setBlobMap] = useState({})
+  const [blobMap, setBlobMap]         = useState({})
+  const [preloadLines, setPreloadLines] = useState([])  // debug overlay
 
-  // blobUrlsRef stores { blobUrl, posterUrl } per fileId
   const blobUrlsRef  = useRef({})
   const genRef       = useRef(0)
-  // Flat queue: [{id, url, nodeType, nodeSeq, nodeId, nodeIdx}]
   const queueRef     = useRef([])
   const cursorRef    = useRef(0)
-  const allowUpToRef = useRef(LOOKAHEAD)  // in node-count units
+  const allowUpToRef = useRef(LOOKAHEAD)
   const inFlightRef  = useRef(0)
   const byIdRef      = useRef({})
 
-  // When user advances: open lookahead window and reorder toward confirmed branch.
+  function addLine(text) {
+    setPreloadLines(prev => {
+      const next = [...prev, text]
+      return next.length > 12 ? next.slice(next.length - 12) : next
+    })
+  }
+
   useEffect(() => {
     if (!visibleNodes.length) return
-
     const visibleMediaCount = visibleNodes.filter(n => MEDIA_TYPES.has(n.type)).length
     const needed = visibleMediaCount + LOOKAHEAD
     if (needed > allowUpToRef.current) allowUpToRef.current = needed
@@ -112,11 +111,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     const speculative = remaining.filter(item => !reach.has(item.nodeId))
 
     if (speculative.length > 0) {
-      queueRef.current = [
-        ...queueRef.current.slice(0, loaded),
-        ...active,
-        ...speculative,
-      ]
+      queueRef.current = [...queueRef.current.slice(0, loaded), ...active, ...speculative]
       const activeSeqs = [...new Set(active.map(i => i.nodeSeq))].join(',')
       const specSeqs   = [...new Set(speculative.map(i => i.nodeSeq))].join(',')
       pLog('PlayerPreload reorder → active:', activeSeqs, '/ speculative:', specSeqs)
@@ -129,6 +124,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     Object.values(blobUrlsRef.current).forEach(revokeEntry)
     blobUrlsRef.current = {}
     setBlobMap({})
+    setPreloadLines([])
     byIdRef.current    = Object.fromEntries(nodes.map(n => [n.id, n]))
     queueRef.current   = buildItemQueue(nodes, files)
     cursorRef.current  = 0
@@ -137,44 +133,53 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
 
     if (!queueRef.current.length || !files.length) return
 
-    // Download one file, capture poster frame for video types, store result.
     async function fetchOne(item) {
       const { id, url, nodeType, nodeSeq } = item
       const label = `seq=${nodeSeq} type=${nodeType}`
       pLog('PlayerPreload start:', label)
+      addLine(`▶ ${label}`)
       inFlightRef.current++
+
+      let blobUrl = null
       try {
         const res = await fetch(url)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         if (genRef.current !== gen) return
-        const blob    = await res.blob()
+        const blob = await res.blob()
         if (genRef.current !== gen) return
-        const blobUrl = URL.createObjectURL(blob)
+        blobUrl = URL.createObjectURL(blob)
         pLog('PlayerPreload ready:', label, Math.round(blob.size / 1024), 'KB')
-
-        let posterUrl = null
-        if (POSTER_TYPES.has(nodeType)) {
-          pLog('PlayerPreload poster start:', label)
-          posterUrl = await capturePosterFrame(blobUrl, 4000)
-          if (genRef.current !== gen) {
-            URL.revokeObjectURL(blobUrl)
-            if (posterUrl) URL.revokeObjectURL(posterUrl)
-            return
-          }
-          pLog('PlayerPreload poster:', posterUrl ? 'ok' : 'null (timeout)', label)
-        }
-
-        const entry = { blobUrl, posterUrl }
-        blobUrlsRef.current[id] = entry
-        setBlobMap(prev => ({ ...prev, [id]: entry }))
+        addLine(`✓ ${label} ${Math.round(blob.size / 1024)}KB`)
       } catch (e) {
         pLog('PlayerPreload error:', label, e.message)
-      } finally {
+        addLine(`✗ ${label} ${e.message}`)
         inFlightRef.current--
+        return
+      }
+
+      // Release download slot immediately — poster runs in background, doesn't block queue
+      inFlightRef.current--
+
+      // Publish blobUrl right away so video module can start playing
+      blobUrlsRef.current[id] = { blobUrl, posterUrl: null }
+      setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
+
+      if (!POSTER_TYPES.has(nodeType)) return
+
+      pLog('PlayerPreload poster start:', label)
+      const posterUrl = await capturePosterFrame(blobUrl, 4000)
+      if (genRef.current !== gen) {
+        URL.revokeObjectURL(blobUrl)
+        if (posterUrl) URL.revokeObjectURL(posterUrl)
+        return
+      }
+      pLog('PlayerPreload poster:', posterUrl ? 'ok' : 'null (timeout)', label)
+      if (posterUrl) {
+        blobUrlsRef.current[id].posterUrl = posterUrl
+        setBlobMap(prev => ({ ...prev, [id]: { ...prev[id], posterUrl } }))
       }
     }
 
-    // Dispatcher: picks one item at a time, respects CONCURRENCY and allowUpTo gate.
     async function runQueue() {
       while (genRef.current === gen) {
         if (cursorRef.current >= queueRef.current.length && inFlightRef.current === 0) break
@@ -182,21 +187,14 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
         const item = queueRef.current[cursorRef.current]
         const done = cursorRef.current >= queueRef.current.length
 
-        if (
-          done ||
-          (item && item.nodeIdx >= allowUpToRef.current) ||
-          inFlightRef.current >= CONCURRENCY
-        ) {
+        if (done || (item && item.nodeIdx >= allowUpToRef.current) || inFlightRef.current >= CONCURRENCY) {
           await new Promise(r => setTimeout(r, POLL_MS))
           continue
         }
 
         cursorRef.current++
-
-        // Skip if already downloaded (e.g. same file referenced twice)
         if (blobUrlsRef.current[item.id]) continue
-
-        fetchOne(item)  // fire-and-forget; inFlightRef managed inside
+        fetchOne(item)
       }
     }
 
@@ -208,5 +206,5 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
     return () => { Object.values(blobUrlsRef.current).forEach(revokeEntry) }
   }, [])
 
-  return blobMap
+  return { blobMap, preloadLines }
 }

@@ -8,21 +8,32 @@ function getSmallPx() {
   return Math.min(window.innerWidth * 0.5, 200)
 }
 
-// Always objectFit:cover + crop transform — no jump when video metadata loads.
-function calcStyle(crop) {
-  return {
+function calcStyle(intrinsic, dims, crop) {
+  if (!intrinsic || !dims) return {
     position: 'absolute', inset: 0, objectFit: 'cover',
     transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
+    transformOrigin: 'center center',
+  }
+  const ma = intrinsic.w / intrinsic.h, fa = dims.w / dims.h
+  const d = ma > fa ? { w: dims.h * ma, h: dims.h } : { w: dims.w, h: dims.w / ma }
+  return {
+    position: 'absolute', left: '50%', top: '50%',
+    width: d.w + 'px', height: d.h + 'px',
+    transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale})`,
     transformOrigin: 'center center',
   }
 }
 
 export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   const [objectUrl, setObjectUrl]   = useState(null)
+  const [intr, setIntr]             = useState(null)
   const [dims, setDims]             = useState(null)
   const [expanded, setExpanded]     = useState(false)
   const [collapsing, setCollapsing] = useState(false)
   const [expandTransform, setExpandTransform] = useState(null)
+  // Hide video at opacity:0 until canPlay — so intr-based position jump is invisible.
+  // Poster (native attr) shows during this phase.
+  const [videoVisible, setVideoVisible] = useState(false)
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -47,25 +58,13 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  // Lock effective src — don't switch once video has started loading.
-  // This prevents re-loading (and jitter) when blobUrl arrives while r2Url is already playing.
-  const [activeSrc, setActiveSrc] = useState(
-    () => file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
-  )
-  const loadStartedRef = useRef(false)
-
-  useEffect(() => {
-    if (loadStartedRef.current) return
-    const s = file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
-    if (s) setActiveSrc(s)
-  }, [file?.blobUrl, file?.r2Url]) // eslint-disable-line
-
-  const src    = objectUrl ?? activeSrc
+  const src    = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
   const poster = file?.posterUrl ?? undefined
 
   useEffect(() => {
-    doneFiredRef.current  = false
-    loadStartedRef.current = false
+    setIntr(null)
+    setVideoVisible(false)
+    doneFiredRef.current = false
   }, [src]) // eslint-disable-line
 
   useLayoutEffect(() => {
@@ -263,7 +262,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     ...(collapsing && !expanded ? { zIndex: 10 } : {}),
   }
 
-  const videoStyle = calcStyle(crop)
+  const videoStyle = calcStyle(intr, dims, crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
@@ -283,9 +282,13 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
             <div ref={frRef} className="circleFrame">
               <video
                 ref={vRef} src={src} poster={poster} className="circleMedia"
-                style={videoStyle}
+                style={{ ...videoStyle, opacity: videoVisible ? 1 : 0 }}
                 playsInline autoPlay muted loop preload="auto"
-                onLoadStart={() => { loadStartedRef.current = true }}
+                onLoadedMetadata={e => {
+                  const v = e.currentTarget
+                  setIntr({ w: v.videoWidth, h: v.videoHeight })
+                }}
+                onCanPlay={() => setVideoVisible(true)}
                 onPlaying={handlePlaying}
                 onEnded={handleEnded}
               />

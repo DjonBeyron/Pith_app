@@ -32,7 +32,7 @@ export default function LessonPlayer({
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const blobMap = usePlayerPreload(nodes, files, visibleNodes)
+  const { blobMap, preloadLines } = usePlayerPreload(nodes, files, visibleNodes)
 
   // Enrich every file with its preloaded blobUrl so all modules get it via lessonFiles
   const filesWithBlobs = useMemo(
@@ -142,6 +142,18 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
           />
         )}
       </div>
+      {/* Preload debug overlay — fixed, doesn't affect flex */}
+      {preloadLines.length > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: 6,
+          fontSize: 9, color: 'rgba(255,255,255,0.45)',
+          pointerEvents: 'none', zIndex: 200,
+          fontFamily: 'monospace', lineHeight: 1.5,
+          maxWidth: 220,
+        }}>
+          {preloadLines.map((l, i) => <div key={i}>{l}</div>)}
+        </div>
+      )}
       {/* Версия для отслеживания деплоя — fixed, вне потока, pointer-events:none */}
       <div style={{
         position: 'fixed', top: 4, left: '50%', transform: 'translateX(-50%)',
