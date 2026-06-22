@@ -137,7 +137,7 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
       const { id, url, nodeType, nodeSeq } = item
       const label = `seq=${nodeSeq} type=${nodeType}`
       pLog('PlayerPreload start:', label)
-      addLine(`▶ ${label}`)
+      addLine(`start ${label}`)
       inFlightRef.current++
 
       let blobUrl = null
@@ -149,10 +149,10 @@ export function usePlayerPreload(nodes, files, visibleNodes) {
         if (genRef.current !== gen) return
         blobUrl = URL.createObjectURL(blob)
         pLog('PlayerPreload ready:', label, Math.round(blob.size / 1024), 'KB')
-        addLine(`✓ ${label} ${Math.round(blob.size / 1024)}KB`)
+        addLine(`ready ${label} ${Math.round(blob.size / 1024)}KB`)
       } catch (e) {
         pLog('PlayerPreload error:', label, e.message)
-        addLine(`✗ ${label} ${e.message}`)
+        addLine(`error ${label} ${e.message}`)
         inFlightRef.current--
         return
       }
