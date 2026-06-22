@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 
-export default function TextModule({ node, lessonNodes = [], onDone }) {
+export default function TextModule({ node, lessonNodes = [], teacherName, onDone }) {
   useEffect(() => { onDone?.() }, []) // eslint-disable-line
   const content     = node.typeData?.text?.content ?? ''
   const replyToSeq  = node.typeData?.text?.replyToSeq
@@ -13,6 +13,7 @@ export default function TextModule({ node, lessonNodes = [], onDone }) {
       <PlayerBubble className="playerMsgBubble playerMsgBubble--text">
         {replyNode && (
           <div className="playerReply">
+            <span className="playerReplyName">{teacherName || 'Учитель'}</span>
             <p className="playerReplyText">{replyText || `#${replyNode.seq}`}</p>
           </div>
         )}

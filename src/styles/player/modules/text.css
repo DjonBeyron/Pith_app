@@ -31,11 +31,20 @@
 }
 
 .playerReply {
-  border-left: 3px solid #b6fe3b;
+  border-left: 1.5px solid #b6fe3b;
   padding: 2px 8px;
   margin-bottom: 6px;
   border-radius: 0 4px 4px 0;
   background: rgba(182, 254, 59, 0.07);
+}
+
+.playerReplyName {
+  display: block;
+  font-size: 11px;
+  color: #b6fe3b;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 1px;
 }
 
 .playerReplyText {
