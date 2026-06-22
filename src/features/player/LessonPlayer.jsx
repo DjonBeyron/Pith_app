@@ -41,18 +41,10 @@ export default function LessonPlayer({
   const debugScrollRef = useRef(null)
   const [elapsed, setElapsed] = useState(0)
 
-  // Diagnostic: log what arrived from card and what photo IDs we need
+  // Log what arrived from card
   useEffect(() => {
-    const blobKeys  = Object.keys(initialBlobMap ?? {})
-    const photoIds  = nodes
-      .filter(n => n.type === 'photo_choice')
-      .flatMap(n => (n.typeData?.photo_choice?.photos ?? []).map(p => p.fileId).filter(Boolean))
-    const matched   = photoIds.filter(id => blobKeys.includes(id))
-    const fileCount = files.length
-    pLog(`Player init: blobs=${blobKeys.length} files=${fileCount} photoIds=${photoIds.length} matched=${matched.length}`)
-    if (photoIds.length && matched.length < photoIds.length) {
-      pLog('Player MISSING photo blobs:', photoIds.filter(id => !blobKeys.includes(id)))
-    }
+    const blobKeys = Object.keys(initialBlobMap ?? {})
+    pLog(`Player init: blobs=${blobKeys.length} files=${files.length}`)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

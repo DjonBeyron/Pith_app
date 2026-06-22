@@ -200,7 +200,9 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       pLog('PlayerPreload poster start:', label)
       const posterUrl = await capturePosterFrame(blobUrl, 4000)
       if (genRef.current !== gen) {
-        URL.revokeObjectURL(blobUrl)
+        // Only revoke if we still own the blob — if releaseBlobs() was called,
+        // blobUrlsRef is empty and the blobs belong to the player now.
+        if (blobUrlsRef.current[id]) URL.revokeObjectURL(blobUrl)
         if (posterUrl) URL.revokeObjectURL(posterUrl)
         return
       }
