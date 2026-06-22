@@ -150,7 +150,6 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     byIdRef.current    = Object.fromEntries(nodes.map(n => [n.id, n]))
     queueRef.current   = buildItemQueue(nodes, files)
     cursorRef.current  = 0
-    allowUpToRef.current = LOOKAHEAD
     inFlightRef.current  = 0
 
     if (!queueRef.current.length || !files.length) return

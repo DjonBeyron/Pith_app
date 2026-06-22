@@ -88,11 +88,15 @@ function LaunchPreloader({ lessonData, onStart }) {
     nodes, files, [], { initialLookahead: WARMUP_TARGET }
   )
 
-  const total    = Math.min(WARMUP_TARGET, countDownloads(nodes))
-  const ready    = Object.keys(blobMap).length
-  const clipped  = Math.min(ready, total)
-  const pct      = total > 0 ? Math.round(clipped / total * 100) : 100
-  const canStart = clipped >= total || total === 0
+  // Count ALL downloadable items for the first WARMUP_TARGET media nodes
+  // (not just min(5, total) — photo_choice has 4 files for 1 node)
+  const mediaNodes     = nodes.filter(n => MEDIA_TYPES.has(n.type))
+  const targetNodes    = mediaNodes.slice(0, WARMUP_TARGET)
+  const total          = countDownloads(targetNodes) || countDownloads(nodes)
+  const ready          = Object.keys(blobMap).length
+  const clipped        = Math.min(ready, total)
+  const pct            = total > 0 ? Math.round(clipped / total * 100) : 100
+  const canStart       = clipped >= total || total === 0
 
   function handleStart() {
     releaseBlobs()

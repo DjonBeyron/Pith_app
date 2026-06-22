@@ -37,12 +37,20 @@ export default function LessonPlayer({
 
   const openTimeRef    = useRef(Date.now())
   const prevVisibleRef = useRef([])
+  const debugScrollRef = useRef(null)
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - openTimeRef.current) / 1000)), 1000)
     return () => clearInterval(id)
   }, [])
+
+  // Auto-scroll debug overlay to bottom when new items arrive
+  useEffect(() => {
+    if (debugScrollRef.current) {
+      debugScrollRef.current.scrollTop = debugScrollRef.current.scrollHeight
+    }
+  }, [debugItems])
 
   // Record when each node first appears in chat
   useEffect(() => {
@@ -163,41 +171,47 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
           />
         )}
       </div>
-      {/* Preload debug overlay — fixed, doesn't affect flex */}
-      {debugItems.length > 0 && (
+      {/* Preload debug overlay — fixed, scrollable, doesn't affect flex */}
+      {(debugItems.length > 0 || initialBlobMap) && (
         <div style={{
           position: 'fixed', top: 24, bottom: 8, left: 6,
-          fontSize: 9, pointerEvents: 'none', zIndex: 200,
+          fontSize: 9, pointerEvents: 'auto', zIndex: 200,
           fontFamily: 'monospace', lineHeight: 1.6,
           maxWidth: 260, overflow: 'hidden',
-          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-          background: 'rgba(0,0,0,0.6)', borderRadius: 6, padding: '4px 6px',
+          display: 'flex', flexDirection: 'column',
+          background: 'rgba(0,0,0,0.72)', borderRadius: 6, padding: '4px 6px',
         }}>
-          <div style={{ color: '#ffe066', marginBottom: 3, fontWeight: 'bold' }}>
+          {/* Sticky header */}
+          <div style={{ color: '#ffe066', marginBottom: 3, fontWeight: 'bold', flexShrink: 0 }}>
             {`урок: ${Math.floor(elapsed / 60).toString().padStart(2,'0')}:${(elapsed % 60).toString().padStart(2,'0')}`}
           </div>
-          {debugItems.map(item => (
-            <div key={item.key} style={{ marginBottom: 3 }}>
-              {/* Line 1: download started (gray) */}
-              <div style={{ color: '#888' }}>
-                {`noda: ${item.seq} | download: ${item.startTs}s | ${item.type}`}
-              </div>
-              {/* Line 2: download finished (green/red) */}
-              {item.readyTs && (
-                <div style={{ color: item.status === 'error' ? '#ff7070' : '#7dff8a' }}>
-                  {item.status === 'error'
-                    ? `noda: ${item.seq} | download end: ${item.readyTs}s | ${item.error}`
-                    : `noda: ${item.seq} | download end: ${item.readyTs}s | ${item.sizeKb}KB`}
-                </div>
-              )}
-              {/* Line 3: ready time vs chat appear time (yellow) */}
-              {item.readyTs && item.msgTs && (
-                <div style={{ color: '#ffe066' }}>
-                  {`noda: ${item.seq} | ${item.readyTs}s <> chat: ${item.msgTs}s`}
-                </div>
-              )}
+          {initialBlobMap && (
+            <div style={{ color: '#56a0d3', marginBottom: 3, flexShrink: 0 }}>
+              {`preloaded: ${Object.keys(initialBlobMap).length} файлов из карточки`}
             </div>
-          ))}
+          )}
+          {/* Scrollable list */}
+          <div ref={debugScrollRef} style={{ overflowY: 'auto', flex: 1 }}>
+            {debugItems.map(item => (
+              <div key={item.key} style={{ marginBottom: 3 }}>
+                <div style={{ color: '#888' }}>
+                  {`noda: ${item.seq} | download: ${item.startTs}s | ${item.type}`}
+                </div>
+                {item.readyTs && (
+                  <div style={{ color: item.status === 'error' ? '#ff7070' : '#7dff8a' }}>
+                    {item.status === 'error'
+                      ? `noda: ${item.seq} | download end: ${item.readyTs}s | ${item.error}`
+                      : `noda: ${item.seq} | download end: ${item.readyTs}s | ${item.sizeKb}KB`}
+                  </div>
+                )}
+                {item.readyTs && item.msgTs && (
+                  <div style={{ color: '#ffe066' }}>
+                    {`noda: ${item.seq} | ${item.readyTs}s <> chat: ${item.msgTs}s`}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {/* Версия для отслеживания деплоя — fixed, вне потока, pointer-events:none */}
