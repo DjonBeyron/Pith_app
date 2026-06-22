@@ -4,31 +4,25 @@ function seededRand(str) {
   return Math.abs(Math.sin(h) * 43758.5453) % 1
 }
 
-// Adaptive bezier — three cases:
-//   1. dx > 100            → S-curve (target clearly to the right)
-//   2. |dy| ≤ 150          → arc UP above both nodes (avoids passing through node bodies)
-//   3. large vertical gap  → rightward bulge arc (one node much above/below the other)
+// Adaptive bezier — two cases based on canvas-space node direction.
+// Output port is +228px right of its node; input port is -8px left of its node.
+// So two max-nodes side by side will have port dx ≈ -236 + node_gap.
+// "Forward" (target node to the right): x2 > x1 - 240  → compact S-curve, shortest path.
+// "Backward" (target node clearly left):                → rightward loop.
 function neuronPath(x1, y1, x2, y2, seed) {
   const dx = x2 - x1, dy = y2 - y1
   const jit = (s, m) => (seededRand(s) - 0.5) * m
 
-  // 1. Target port clearly to the right → flowing S-curve
-  if (dx > 100) {
-    const h = dx * 0.45
-    return `M ${x1} ${y1} C ${x1+h+jit(seed+'a',16)} ${y1+dy*.25+jit(seed+'b',8)}, ${x2-h+jit(seed+'c',16)} ${y2-dy*.25+jit(seed+'d',8)}, ${x2} ${y2}`
+  if (x2 > x1 - 240) {
+    // Forward connection: S-curve scaled to actual port distance, minimum spread 40px.
+    // Keeps the line short — no unnecessary arcs when nodes are close.
+    const h = Math.max(Math.abs(dx) * 0.4, 40)
+    return `M ${x1} ${y1} C ${x1+h+jit(seed+'a',10)} ${y1+dy*.3+jit(seed+'b',8)}, ${x2-h+jit(seed+'c',10)} ${y2-dy*.3+jit(seed+'d',8)}, ${x2} ${y2}`
   }
 
-  // 2. Nodes roughly at same height (side-by-side or slightly offset) → arc above both.
-  // Nodes start at their y-coordinate and extend downward, so going UP clears all node bodies.
-  if (Math.abs(dy) <= 150) {
-    const rise = Math.max(70, (150 - Math.abs(dy)) * 0.55 + Math.abs(dx) * 0.15)
-    const topY = Math.min(y1, y2) - rise
-    return `M ${x1} ${y1} C ${x1+jit(seed+'a',14)} ${topY+jit(seed+'b',14)}, ${x2+jit(seed+'c',14)} ${topY+jit(seed+'d',14)}, ${x2} ${y2}`
-  }
-
-  // 3. Large vertical gap (one node much higher/lower) → rightward bulge
+  // Backward connection: loop rightward, size ∝ distance
   const dist = Math.sqrt(dx*dx + dy*dy)
-  const bulge = Math.max(dist * 0.5, 80)
+  const bulge = Math.max(dist * 0.5, 100)
   return `M ${x1} ${y1} C ${x1+bulge+jit(seed+'a',12)} ${y1+dy*.15+jit(seed+'b',8)}, ${x2+bulge+jit(seed+'c',12)} ${y2-dy*.15+jit(seed+'d',8)}, ${x2} ${y2}`
 }
 
