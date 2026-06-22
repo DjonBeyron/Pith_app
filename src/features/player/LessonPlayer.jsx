@@ -175,17 +175,28 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
           <div style={{ color: '#ffe066', marginBottom: 3, fontWeight: 'bold' }}>
             {`урок: ${Math.floor(elapsed / 60).toString().padStart(2,'0')}:${(elapsed % 60).toString().padStart(2,'0')}`}
           </div>
-          {debugItems.map(item => {
-            const color = item.status === 'ready' ? '#7dff8a' : item.status === 'error' ? '#ff7070' : '#888'
-            const time  = item.readyTs ? `${item.startTs}→${item.readyTs}` : item.startTs
-            const msg   = item.msgTs ? ` msg${item.msgTs}` : ''
-            const size  = item.sizeKb ? ` ${item.sizeKb}KB` : item.error ? ` ${item.error}` : ''
-            return (
-              <div key={item.key} style={{ color }}>
-                {`${item.status} ${time}s  seq=${item.seq}${msg}  ${item.type}${size}`}
+          {debugItems.map(item => (
+            <div key={item.key} style={{ marginBottom: 3 }}>
+              {/* Line 1: download started (gray) */}
+              <div style={{ color: '#888' }}>
+                {`noda: ${item.seq} | download: ${item.startTs}s | ${item.type}`}
               </div>
-            )
-          })}
+              {/* Line 2: download finished (green/red) */}
+              {item.readyTs && (
+                <div style={{ color: item.status === 'error' ? '#ff7070' : '#7dff8a' }}>
+                  {item.status === 'error'
+                    ? `noda: ${item.seq} | download end: ${item.readyTs}s | ${item.error}`
+                    : `noda: ${item.seq} | download end: ${item.readyTs}s | ${item.sizeKb}KB`}
+                </div>
+              )}
+              {/* Line 3: ready time vs chat appear time (yellow) */}
+              {item.readyTs && item.msgTs && (
+                <div style={{ color: '#ffe066' }}>
+                  {`noda: ${item.seq} | ${item.readyTs}s <> chat: ${item.msgTs}s`}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
       {/* Версия для отслеживания деплоя — fixed, вне потока, pointer-events:none */}
