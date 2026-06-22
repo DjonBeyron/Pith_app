@@ -191,6 +191,7 @@ export default function CanvasNode({
           <option value="word_choice">Выбор слова</option>
           <option value="phrase_assembly">Собрать фразу</option>
           <option value="pin_message">Закрепить сообщение</option>
+          <option value="system">Системное сообщение</option>
           <option value="sticker">Стикер</option>
           <option value="photo_choice">Выбрать фото</option>
         </select>
