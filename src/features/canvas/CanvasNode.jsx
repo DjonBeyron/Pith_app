@@ -230,6 +230,41 @@ export default function CanvasNode({
             rows={4}
           />
         )}
+        {node.type === 'text' && (
+          <div className="nodeReplySection">
+            <label className="nodeReplyLabel" onClick={e => e.stopPropagation()}>
+              <input
+                type="checkbox"
+                checked={tData.replyToSeq != null}
+                onChange={e => updateTypeData({ replyToSeq: e.target.checked ? 0 : null })}
+              />
+              В ответ на
+            </label>
+            {tData.replyToSeq != null && (
+              <select
+                className="nodeReplySelect"
+                value={tData.replyToSeq || ''}
+                onChange={e => updateTypeData({ replyToSeq: e.target.value ? Number(e.target.value) : 0 })}
+                onClick={e => e.stopPropagation()}
+              >
+                <option value="">— выбери сообщение —</option>
+                {[...allNodes]
+                  .filter(n => n.seq < node.seq)
+                  .sort((a, b) => a.seq - b.seq)
+                  .map(n => {
+                    const label = NODE_TYPES.find(t => t.value === n.type)?.label ?? n.type
+                    const preview = n.typeData?.[n.type]?.content?.slice(0, 28)
+                    return (
+                      <option key={n.id} value={n.seq}>
+                        {`#${n.seq} ${label}${preview ? ` — ${preview}` : ''}`}
+                      </option>
+                    )
+                  })
+                }
+              </select>
+            )}
+          </div>
+        )}
         {node.type === 'word_choice' && (
           <NodeWordChoicePicker
             options={tData.options ?? []}

@@ -212,3 +212,34 @@
 }
 .nodeTextInput:focus { border-color: #b6fe3b; }
 .nodeTextInput::placeholder { color: #444; }
+
+/* ── Reply-to section ── */
+.nodeReplySection {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.nodeReplyLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #9aa0b4;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nodeReplySelect {
+  width: 100%;
+  background: #0e1013;
+  border: 1.5px solid #2a2d35;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: #e0e0e0;
+  outline: none;
+  cursor: pointer;
+}
+.nodeReplySelect:focus { border-color: #b6fe3b; }

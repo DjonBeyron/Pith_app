@@ -117,6 +117,7 @@ export default function LessonPlayer({
                 node={node}
                 file={file}
                 lessonFiles={filesWithBlobs}
+                lessonNodes={nodes}
                 teacherName={teacherName}
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
                 wordChoiceState={wordChoiceStates[node.id] ?? null}
