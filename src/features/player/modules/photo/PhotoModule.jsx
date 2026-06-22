@@ -19,7 +19,7 @@ export default function PhotoModule({ node, file, onDone }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src = objectUrl ?? file?.r2Url ?? node.typeData?.photo?.r2Url ?? null
+  const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.photo?.r2Url ?? null
 
   useEffect(() => { setIntrinsic(null) }, [src])
 
