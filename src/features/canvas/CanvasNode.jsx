@@ -8,6 +8,21 @@ import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
+const NODE_TYPES = [
+  { value: 'audio',           label: 'Голосовое сообщение' },
+  { value: 'voice_record',    label: 'Запись голоса' },
+  { value: 'photo',           label: 'Фото сообщение' },
+  { value: 'video',           label: 'Видео сообщение' },
+  { value: 'circle',          label: 'Кружок' },
+  { value: 'text',            label: 'Текстовое сообщение' },
+  { value: 'word_choice',     label: 'Выбор слова' },
+  { value: 'phrase_assembly', label: 'Собрать фразу' },
+  { value: 'pin_message',     label: 'Закрепить сообщение' },
+  { value: 'system',          label: 'Системное сообщение' },
+  { value: 'sticker',         label: 'Стикер' },
+  { value: 'photo_choice',    label: 'Выбрать фото' },
+]
+
 const TYPE_COLOR = {
   audio:        '#4a7ca8',
   voice_record: '#8b3a6a',
@@ -141,18 +156,7 @@ export default function CanvasNode({
             onClick={e => e.stopPropagation()}
             onChange={changeType}
           >
-            <option value="audio">Голосовое</option>
-            <option value="voice_record">Запись голоса</option>
-            <option value="photo">Фото</option>
-            <option value="video">Видео</option>
-            <option value="circle">Кружок</option>
-            <option value="text">Текстовое</option>
-            <option value="word_choice">Выбор слова</option>
-            <option value="phrase_assembly">Собрать фразу</option>
-            <option value="pin_message">Закрепить сообщение</option>
-            <option value="system">Системное сообщение</option>
-            <option value="sticker">Стикер</option>
-            <option value="photo_choice">Выбрать фото</option>
+            {NODE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           {miniFile && (
             <span
@@ -182,18 +186,7 @@ export default function CanvasNode({
           onClick={e => e.stopPropagation()}
           onChange={changeType}
         >
-          <option value="audio">Голосовое сообщение</option>
-          <option value="voice_record">Запись голоса</option>
-          <option value="photo">Фото сообщение</option>
-          <option value="video">Видео сообщение</option>
-          <option value="circle">Кружок</option>
-          <option value="text">Текстовое сообщение</option>
-          <option value="word_choice">Выбор слова</option>
-          <option value="phrase_assembly">Собрать фразу</option>
-          <option value="pin_message">Закрепить сообщение</option>
-          <option value="system">Системное сообщение</option>
-          <option value="sticker">Стикер</option>
-          <option value="photo_choice">Выбрать фото</option>
+          {NODE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
         {node.type === 'audio' && (
           <NodeAudioPicker
