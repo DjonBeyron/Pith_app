@@ -1,20 +1,5 @@
 import { useRef, useLayoutEffect, useEffect } from 'react'
-
-// Плавный скролл с кастомным easing — синхронизирован с slide-in анимацией
-function smoothScrollToBottom(feed, duration = 380) {
-  const start = feed.scrollTop
-  const end   = feed.scrollHeight - feed.clientHeight
-  if (end <= start + 1) return
-  const diff      = end - start
-  const startTime = performance.now()
-  function step(now) {
-    const t    = Math.min((now - startTime) / duration, 1)
-    const ease = 1 - Math.pow(1 - t, 3) // cubic ease-out
-    feed.scrollTop = start + diff * ease
-    if (t < 1) requestAnimationFrame(step)
-  }
-  requestAnimationFrame(step)
-}
+import { pLog } from '../../shared/lib/debug.js'
 
 export default function PlayerFeed({ children }) {
   const feedRef        = useRef(null)
@@ -36,25 +21,33 @@ export default function PlayerFeed({ children }) {
 
   useLayoutEffect(() => {
     const inner = innerRef.current
-    if (!inner) return
+    const feed  = feedRef.current
+    if (!inner || !feed) return
 
     const rows     = inner.querySelectorAll('.playerMsgRow')
     const rowCount = rows.length
     if (rowCount === prevRowCount.current) return
 
-    const prevEls  = prevElsRef.current
-    const feed     = feedRef.current
-    const hasNew   = rowCount > prevRowCount.current
+    const prevEls = prevElsRef.current
+    const hasNew  = rowCount > prevRowCount.current
+
+    pLog(`[Feed] rowCount=${rowCount} prev=${prevRowCount.current}`)
+    pLog(`[Feed] feed: h=${feed.clientHeight} scrollTop=${feed.scrollTop.toFixed(0)} scrollH=${feed.scrollHeight}`)
+    pLog(`[Feed] inner: offsetH=${inner.offsetHeight} offsetTop=${inner.offsetTop}`)
+    pLog(`[Feed] feedRect: top=${feed.getBoundingClientRect().top.toFixed(0)} bottom=${feed.getBoundingClientRect().bottom.toFixed(0)}`)
 
     if (hasNew) {
-      const feedBottom = feed
-        ? feed.getBoundingClientRect().bottom
-        : window.innerHeight
+      const feedRect = feed.getBoundingClientRect()
 
       rows.forEach(el => {
         if (prevEls.has(el)) return
-        const rect   = el.getBoundingClientRect()
-        const startY = feedBottom - rect.top + rect.height + 16
+        const rect = el.getBoundingClientRect()
+        pLog(`[Feed] NEW row: rect.top=${rect.top.toFixed(0)} rect.bottom=${rect.bottom.toFixed(0)} h=${rect.height.toFixed(0)}`)
+        pLog(`[Feed] feedRect.bottom=${feedRect.bottom.toFixed(0)} window.innerH=${window.innerHeight}`)
+
+        const startY = feedRect.bottom - rect.top + rect.height + 16
+        pLog(`[Feed] startY=${startY.toFixed(0)} (feedBottom - rect.top + h + 16)`)
+
         el.animate(
           [
             { opacity: '0', transform: `translateY(${startY}px)` },
@@ -64,16 +57,16 @@ export default function PlayerFeed({ children }) {
         )
       })
 
-      // Плавный скролл синхронно со slide-in — старые сообщения уходят вверх
-      // без мгновенного прыжка
-      if (!userScrolledUp.current && feed) {
-        smoothScrollToBottom(feed, 380)
+      if (!userScrolledUp.current) {
+        const before = feed.scrollTop
+        feed.scrollTop = feed.scrollHeight
+        pLog(`[Feed] scroll: ${before.toFixed(0)} → ${feed.scrollTop.toFixed(0)} (scrollH=${feed.scrollHeight})`)
       }
     }
 
     const next = new Set()
     rows.forEach(el => next.add(el))
-    prevElsRef.current  = next
+    prevElsRef.current   = next
     prevRowCount.current = rowCount
   })
 
