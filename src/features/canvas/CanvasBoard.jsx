@@ -98,7 +98,7 @@ export default function CanvasBoard({
     hoverTimer.current = setTimeout(() => {
       setHoveredNodeId(null)
       // confirmDeleteId is only cleared by explicit "Нет" click or successful delete
-    }, 600)
+    }, 1200)
   }
 
   function deleteNode(nodeId) {
