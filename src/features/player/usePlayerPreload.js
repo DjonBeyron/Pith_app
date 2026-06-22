@@ -5,8 +5,11 @@ import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
 const POLL_MS      = 200
+export const CHAT_BUFFER_SIZE = 5
 const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice'])
 const POSTER_TYPES = new Set(['video', 'circle', 'sticker'])
+// Only heavy media is evicted — photos/stickers are small, photo_choice panels are special
+const EVICT_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle'])
 
 function isValidUrl(url) {
   return typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))
@@ -88,30 +91,160 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const [debugTick, setDebugTick] = useState(0)
   const tick = () => setDebugTick(t => t + 1)
 
-  const blobUrlsRef  = useRef({ ...initRef.current })
-  const genRef       = useRef(0)
-  const queueRef     = useRef([])
-  const cursorRef    = useRef(0)
-  const allowUpToRef = useRef(initialLookahead)
-  const inFlightRef  = useRef(0)
-  const byIdRef      = useRef({})
-  const startTimeRef = useRef(Date.now())
+  // Eviction
+  const [evictLog, setEvictLog] = useState([])
+  const evictLogRef     = useRef([])
+  const evictingIdsRef  = useRef(new Set())
+  const visibleNodesRef = useRef(visibleNodes)
+
+  const blobUrlsRef    = useRef({ ...initRef.current })
+  const genRef         = useRef(0)
+  const queueRef       = useRef([])
+  const cursorRef      = useRef(0)
+  const allowUpToRef   = useRef(initialLookahead)
+  const inFlightRef    = useRef(0)
+  const byIdRef        = useRef({})
+  const startTimeRef   = useRef(Date.now())
+
+  useEffect(() => { visibleNodesRef.current = visibleNodes }, [visibleNodes])
 
   function ts() {
     const s = (Date.now() - startTimeRef.current) / 1000
     return `+${s.toFixed(1)}`
   }
 
-  // Called from LessonPlayer when a node becomes visible in chat
   function addMsgTs(seq, tsStr) {
     debugItemsRef.current.forEach(item => {
-      if (item.seq === seq && !item.msgTs) {
-        item.msgTs = tsStr
-      }
+      if (item.seq === seq && !item.msgTs) item.msgTs = tsStr
     })
     tick()
   }
 
+  // ─── Eviction ────────────────────────────────────────────────────────────
+  // Counts only revealed (visible) evictable files against the buffer limit.
+  // Preloaded-ahead files are free — they only enter the count once revealed.
+
+  function revealedEvictableFids() {
+    const visNodeIds = new Set(visibleNodesRef.current.map(n => n.id))
+    return Object.entries(blobUrlsRef.current)
+      .filter(([id, entry]) => {
+        if (!entry?.blobUrl) return false
+        if (evictingIdsRef.current.has(id)) return false
+        const item = queueRef.current.find(i => i.id === id)
+        if (!item) return false
+        if (!EVICT_TYPES.has(item.nodeType)) return false
+        return visNodeIds.has(item.nodeId)
+      })
+      .map(([id]) => id)
+  }
+
+  async function evictFarthestIfNeeded(gen, justLoadedId) {
+    let revealed = revealedEvictableFids()
+    while (revealed.length > CHAT_BUFFER_SIZE) {
+      if (genRef.current !== gen) return
+      const candidates = justLoadedId ? revealed.filter(id => id !== justLoadedId) : revealed
+      if (!candidates.length) break
+      // Evict the file with the lowest nodeIdx (furthest back in history)
+      const evictId = candidates.reduce((minId, id) => {
+        const a = queueRef.current.find(i => i.id === id)?.nodeIdx ?? Infinity
+        const b = queueRef.current.find(i => i.id === minId)?.nodeIdx ?? Infinity
+        return a < b ? id : minId
+      }, candidates[0])
+      if (evictingIdsRef.current.has(evictId)) {
+        revealed = revealed.filter(id => id !== evictId)
+        continue
+      }
+      evictingIdsRef.current.add(evictId)
+      revealed = revealed.filter(id => id !== evictId)
+      const item  = queueRef.current.find(i => i.id === evictId)
+      const entry = blobUrlsRef.current[evictId]
+      if (!entry || !item) { evictingIdsRef.current.delete(evictId); continue }
+      const log = { ts: ts(), id: evictId, seq: item.nodeSeq, type: item.nodeType }
+      evictLogRef.current = [...evictLogRef.current, log]
+      setEvictLog([...evictLogRef.current])
+      pLog(`[evict] seq=${item.nodeSeq} ${item.nodeType} revealed=${revealed.length + 1}→${CHAT_BUFFER_SIZE}`)
+      if (POSTER_TYPES.has(item.nodeType)) {
+        let posterUrl = entry.posterUrl
+        if (!posterUrl) posterUrl = await capturePosterFrame(entry.blobUrl, 2000)
+        if (genRef.current !== gen) { evictingIdsRef.current.delete(evictId); return }
+        URL.revokeObjectURL(entry.blobUrl)
+        blobUrlsRef.current[evictId] = { blobUrl: null, posterUrl, evicted: true }
+      } else {
+        URL.revokeObjectURL(entry.blobUrl)
+        blobUrlsRef.current[evictId] = { blobUrl: null, evicted: true }
+      }
+      setBlobMap(prev => ({ ...prev, [evictId]: blobUrlsRef.current[evictId] }))
+      evictingIdsRef.current.delete(evictId)
+    }
+  }
+
+  // ─── Download ────────────────────────────────────────────────────────────
+
+  async function fetchOne(item, gen) {
+    const { id, url, nodeType, nodeSeq } = item
+    const label    = `seq=${nodeSeq} type=${nodeType}`
+    const startTs  = ts()
+    const key      = `${nodeSeq}_${id}`
+    const debugItem = {
+      key, seq: nodeSeq, type: nodeType, startTs,
+      readyTs: null, sizeKb: null, msgTs: null, status: 'start', error: null,
+    }
+    debugItemsRef.current.set(key, debugItem)
+    pLog('PlayerPreload start:', label)
+    tick()
+    inFlightRef.current++
+
+    let blobUrl = null
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (genRef.current !== gen) return
+      const blob = await res.blob()
+      if (genRef.current !== gen) return
+      blobUrl = URL.createObjectURL(blob)
+      debugItem.readyTs = ts()
+      debugItem.sizeKb  = Math.round(blob.size / 1024)
+      debugItem.status  = 'ready'
+      pLog('PlayerPreload ready:', label, debugItem.sizeKb, 'KB')
+      tick()
+    } catch (e) {
+      debugItem.status  = 'error'
+      debugItem.error   = e.message
+      debugItem.readyTs = ts()
+      pLog('PlayerPreload error:', label, e.message)
+      tick()
+      inFlightRef.current--
+      return
+    }
+
+    // Release download slot immediately — poster runs in background, doesn't block queue
+    inFlightRef.current--
+
+    // Publish blobUrl right away so modules can start playing
+    blobUrlsRef.current[id] = { blobUrl, posterUrl: null }
+    setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
+
+    // Evict if revealed buffer is over limit
+    if (EVICT_TYPES.has(nodeType)) await evictFarthestIfNeeded(gen, id)
+
+    if (!POSTER_TYPES.has(nodeType)) return
+
+    pLog('PlayerPreload poster start:', label)
+    const posterUrl = await capturePosterFrame(blobUrl, 4000)
+    if (genRef.current !== gen) {
+      // Only revoke if we still own the blob
+      if (blobUrlsRef.current[id]) URL.revokeObjectURL(blobUrl)
+      if (posterUrl) URL.revokeObjectURL(posterUrl)
+      return
+    }
+    pLog('PlayerPreload poster:', posterUrl ? 'ok' : 'null (timeout)', label)
+    if (posterUrl) {
+      blobUrlsRef.current[id].posterUrl = posterUrl
+      setBlobMap(prev => ({ ...prev, [id]: { ...prev[id], posterUrl } }))
+    }
+  }
+
+  // ─── visibleNodes: reorder queue + eviction check ────────────────────────
   useEffect(() => {
     if (!visibleNodes.length) return
     const visibleMediaCount = visibleNodes.filter(n => MEDIA_TYPES.has(n.type)).length
@@ -125,15 +258,16 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     const remaining = queueRef.current.slice(loaded)
     const active      = remaining.filter(item =>  reach.has(item.nodeId))
     const speculative = remaining.filter(item => !reach.has(item.nodeId))
-
     if (speculative.length > 0) {
       queueRef.current = [...queueRef.current.slice(0, loaded), ...active, ...speculative]
-      const activeSeqs = [...new Set(active.map(i => i.nodeSeq))].join(',')
-      const specSeqs   = [...new Set(speculative.map(i => i.nodeSeq))].join(',')
-      pLog('PlayerPreload reorder → active:', activeSeqs, '/ speculative:', specSeqs)
+      pLog('PlayerPreload reorder → active:', [...new Set(active.map(i => i.nodeSeq))].join(','),
+        '/ speculative:', [...new Set(speculative.map(i => i.nodeSeq))].join(','))
     }
+    // New nodes became revealed → re-check buffer (preloaded-ahead files now count)
+    evictFarthestIfNeeded(genRef.current, null).catch(console.error)
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── nodes/files: rebuild everything ─────────────────────────────────────
   useEffect(() => {
     const gen = genRef.current
 
@@ -141,19 +275,21 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     Object.entries(blobUrlsRef.current).forEach(([id, entry]) => {
       if (!initRef.current[id]) revokeEntry(entry)
     })
-    blobUrlsRef.current = { ...initRef.current }  // preserve pre-loaded blobs
+    blobUrlsRef.current = { ...initRef.current }
     setBlobMap({ ...initRef.current })
     debugItemsRef.current = new Map()
+    evictLogRef.current = []
+    setEvictLog([])
+    evictingIdsRef.current.clear()
     startTimeRef.current = Date.now()
     allowUpToRef.current = initialLookahead
     tick()
-    byIdRef.current    = Object.fromEntries(nodes.map(n => [n.id, n]))
-    queueRef.current   = buildItemQueue(nodes, files)
-    cursorRef.current  = 0
-    inFlightRef.current  = 0
+    byIdRef.current     = Object.fromEntries(nodes.map(n => [n.id, n]))
+    queueRef.current    = buildItemQueue(nodes, files)
+    cursorRef.current   = 0
+    inFlightRef.current = 0
 
-    // If player starts with preloaded blobs, advance the gate past already-cached items
-    // so the queue immediately starts downloading what comes after the preloaded set.
+    // If player starts with preloaded blobs, advance gate past already-cached items
     if (Object.keys(initRef.current).length > 0) {
       const maxPreloadedIdx = queueRef.current.reduce((max, item) =>
         blobUrlsRef.current[item.id] ? Math.max(max, item.nodeIdx + 1) : max, 0)
@@ -164,95 +300,37 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
 
     if (!queueRef.current.length || !files.length) return
 
-    async function fetchOne(item) {
-      const { id, url, nodeType, nodeSeq } = item
-      const label = `seq=${nodeSeq} type=${nodeType}`
-      const startTs = ts()
-      const key = `${nodeSeq}_${id}`
-      const debugItem = { key, seq: nodeSeq, type: nodeType, startTs, readyTs: null, sizeKb: null, msgTs: null, status: 'start', error: null }
-      debugItemsRef.current.set(key, debugItem)
-      pLog('PlayerPreload start:', label)
-      tick()
-      inFlightRef.current++
-
-      let blobUrl = null
-      try {
-        const res = await fetch(url)
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        if (genRef.current !== gen) return
-        const blob = await res.blob()
-        if (genRef.current !== gen) return
-        blobUrl = URL.createObjectURL(blob)
-        debugItem.readyTs = ts()
-        debugItem.sizeKb  = Math.round(blob.size / 1024)
-        debugItem.status  = 'ready'
-        pLog('PlayerPreload ready:', label, debugItem.sizeKb, 'KB')
-        tick()
-      } catch (e) {
-        debugItem.status = 'error'
-        debugItem.error  = e.message
-        debugItem.readyTs = ts()
-        pLog('PlayerPreload error:', label, e.message)
-        tick()
-        inFlightRef.current--
-        return
-      }
-
-      // Release download slot immediately — poster runs in background, doesn't block queue
-      inFlightRef.current--
-
-      // Publish blobUrl right away so video module can start playing
-      blobUrlsRef.current[id] = { blobUrl, posterUrl: null }
-      setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
-
-      if (!POSTER_TYPES.has(nodeType)) return
-
-      pLog('PlayerPreload poster start:', label)
-      const posterUrl = await capturePosterFrame(blobUrl, 4000)
-      if (genRef.current !== gen) {
-        // Only revoke if we still own the blob — if releaseBlobs() was called,
-        // blobUrlsRef is empty and the blobs belong to the player now.
-        if (blobUrlsRef.current[id]) URL.revokeObjectURL(blobUrl)
-        if (posterUrl) URL.revokeObjectURL(posterUrl)
-        return
-      }
-      pLog('PlayerPreload poster:', posterUrl ? 'ok' : 'null (timeout)', label)
-      if (posterUrl) {
-        blobUrlsRef.current[id].posterUrl = posterUrl
-        setBlobMap(prev => ({ ...prev, [id]: { ...prev[id], posterUrl } }))
-      }
-    }
-
     async function runQueue() {
       while (genRef.current === gen) {
         if (cursorRef.current >= queueRef.current.length && inFlightRef.current === 0) break
-
         const item = queueRef.current[cursorRef.current]
         const done = cursorRef.current >= queueRef.current.length
-
         if (done || (item && item.nodeIdx >= allowUpToRef.current) || inFlightRef.current >= CONCURRENCY) {
           await new Promise(r => setTimeout(r, POLL_MS))
           continue
         }
-
         cursorRef.current++
-        if (blobUrlsRef.current[item.id]) continue
-        fetchOne(item)
+        // Skip if blobUrl already present (evicted entries have blobUrl=null → re-download ok)
+        if (blobUrlsRef.current[item.id]?.blobUrl) continue
+        fetchOne(item, gen)
       }
     }
-
     runQueue()
     return () => { genRef.current++ }
   }, [nodes, files]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    return () => { Object.values(blobUrlsRef.current).forEach(revokeEntry) }
+    return () => {
+      Object.values(blobUrlsRef.current).forEach(revokeEntry)
+      // Clear refs so StrictMode remount doesn't reuse revoked blob URLs
+      blobUrlsRef.current = {}
+      initRef.current = {}
+    }
   }, [])
 
   // Transfer ownership of all blob URLs to the caller (card → player handoff).
-  // After calling this, the hook's cleanup will revoke nothing.
   function releaseBlobs() { blobUrlsRef.current = {} }
 
   const debugItems = [...debugItemsRef.current.values()]
-  return { blobMap, debugItems, addMsgTs, releaseBlobs }
+  return { blobMap, debugItems, addMsgTs, releaseBlobs, evictLog }
 }

@@ -8,9 +8,19 @@ import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.js
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
-import { usePlayerPreload } from './usePlayerPreload.js'
+import { usePlayerPreload, CHAT_BUFFER_SIZE } from './usePlayerPreload.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { pLog } from '../../shared/lib/debug.js'
+
+const OVERLAY_TYPES = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker'])
+const EVICT_TYPES   = new Set(['audio', 'voice_record', 'video', 'circle'])
+
+function overlayStatusColor(status) {
+  if (status === 'ready')   return '#7dff8a'
+  if (status === 'evicted') return '#888'
+  if (status === 'loading') return '#ffe066'
+  return '#444'
+}
 
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',
@@ -34,53 +44,22 @@ export default function LessonPlayer({
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { blobMap, debugItems, addMsgTs } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
+  const { blobMap, debugItems, addMsgTs, evictLog } =
+    usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
 
   const openTimeRef    = useRef(Date.now())
   const prevVisibleRef = useRef([])
-  const debugScrollRef = useRef(null)
   const [elapsed, setElapsed] = useState(0)
 
-  // Log what arrived from card
   useEffect(() => {
-    const blobKeys = Object.keys(initialBlobMap ?? {})
-    pLog(`Player init: blobs=${blobKeys.length} files=${files.length}`)
+    pLog(`Player init: blobs=${Object.keys(initialBlobMap ?? {}).length} files=${files.length}`)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Build preloaded rows for overlay: one row per preloaded file with seq + type
-  const preloadedRows = useMemo(() => {
-    if (!initialBlobMap) return []
-    const blobKeys = new Set(Object.keys(initialBlobMap))
-    const rows = []
-    for (const n of nodes) {
-      const MEDIA = new Set(['audio','voice_record','video','circle','photo','sticker','photo_choice'])
-      if (!MEDIA.has(n.type)) continue
-      if (n.type === 'photo_choice') {
-        const photos = n.typeData?.photo_choice?.photos ?? []
-        photos.forEach(ph => {
-          if (ph.fileId && blobKeys.has(ph.fileId)) rows.push({ seq: n.seq, type: 'photo_choice' })
-        })
-      } else {
-        const fid = n.typeData?.[n.type]?.file_id
-        if (fid && blobKeys.has(fid)) rows.push({ seq: n.seq, type: n.type })
-      }
-    }
-    return rows
-  }, [initialBlobMap, nodes])
 
   useEffect(() => {
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - openTimeRef.current) / 1000)), 1000)
     return () => clearInterval(id)
   }, [])
 
-  // Auto-scroll debug overlay to bottom when new items arrive
-  useEffect(() => {
-    if (debugScrollRef.current) {
-      debugScrollRef.current.scrollTop = debugScrollRef.current.scrollHeight
-    }
-  }, [debugItems])
-
-  // Record when each node first appears in chat
   useEffect(() => {
     const prevIds = new Set(prevVisibleRef.current.map(n => n.id))
     const newNodes = visibleNodes.filter(n => !prevIds.has(n.id))
@@ -101,6 +80,36 @@ export default function LessonPlayer({
     [files, blobMap]
   )
 
+  // Build overlay rows: one per media node, showing buffer/eviction state
+  const overlayRows = useMemo(() => {
+    const visIds = new Set(visibleNodes.map(n => n.id))
+    return [...nodes]
+      .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
+      .filter(n => OVERLAY_TYPES.has(n.type))
+      .map(n => {
+        const fileId = n.typeData?.[n.type]?.file_id
+        if (!fileId) return null
+        const entry = blobMap[fileId]
+        const di    = debugItems.find(d => d.seq === n.seq)
+        let status = 'queued'
+        if (entry?.blobUrl)   status = 'ready'
+        else if (entry?.evicted) status = 'evicted'
+        else if (di?.status === 'start') status = 'loading'
+        return {
+          seq: n.seq, type: n.type, fileId, status,
+          sizeKb: di?.sizeKb ?? null,
+          revealed: visIds.has(n.id),
+          evictable: EVICT_TYPES.has(n.type),
+        }
+      })
+      .filter(Boolean)
+  }, [nodes, blobMap, visibleNodes, debugItems])
+
+  const revealedInMem = overlayRows.filter(r => r.status === 'ready' && r.evictable && r.revealed).length
+  const totalInMem    = overlayRows.filter(r => r.status === 'ready' && r.evictable).length
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0')
+  const ss = String(elapsed % 60).padStart(2, '0')
+
   // ── Panels ───────────────────────────────────────────────────────────────
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
   const [wordChoiceStates, setWordChoiceStates]   = useState({})
@@ -108,7 +117,7 @@ export default function LessonPlayer({
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     const result = isCorrect ? 'photo_correct' : 'photo_wrong'
-setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
+    setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
     onNodeDone(nodeId, result)
   }
 
@@ -199,51 +208,55 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
           />
         )}
       </div>
-      {/* Preload debug overlay — set DEBUG_OVERLAY=true to enable */}
-      {false && (debugItems.length > 0 || initialBlobMap) && (
+
+      {/* Buffer debug overlay — visible in dev mode only */}
+      {import.meta.env.DEV && overlayRows.length > 0 && (
         <div style={{
-          position: 'fixed', top: 24, bottom: 8, left: 6,
-          fontSize: 9, pointerEvents: 'auto', zIndex: 200,
-          fontFamily: 'monospace', lineHeight: 1.6,
-          maxWidth: 260, overflow: 'hidden',
-          display: 'flex', flexDirection: 'column',
-          background: 'rgba(0,0,0,0.72)', borderRadius: 6, padding: '4px 6px',
+          position: 'fixed', top: 24, bottom: 8, right: 6,
+          width: 170, fontSize: 9, zIndex: 200,
+          fontFamily: 'monospace', lineHeight: 1.7,
+          background: 'rgba(0,0,0,0.78)', borderRadius: 6, padding: '5px 7px',
+          display: 'flex', flexDirection: 'column', gap: 0,
+          pointerEvents: 'none',
         }}>
-          {/* Sticky header */}
-          <div style={{ color: '#ffe066', marginBottom: 3, fontWeight: 'bold', flexShrink: 0 }}>
-            {`урок: ${Math.floor(elapsed / 60).toString().padStart(2,'0')}:${(elapsed % 60).toString().padStart(2,'0')}`}
+          {/* Header */}
+          <div style={{ color: '#ffe066', fontWeight: 'bold', marginBottom: 3, flexShrink: 0 }}>
+            {`${mm}:${ss}  буфер: ${revealedInMem}/${CHAT_BUFFER_SIZE}`}
+            {totalInMem > revealedInMem && (
+              <span style={{ color: '#56a0d3' }}>{` +${totalInMem - revealedInMem}↑`}</span>
+            )}
           </div>
-          {/* Scrollable list */}
-          <div ref={debugScrollRef} style={{ overflowY: 'auto', flex: 1 }}>
-            {preloadedRows.map((row, i) => (
-              <div key={`pre_${i}`} style={{ marginBottom: 3 }}>
-                <div style={{ color: '#56a0d3' }}>
-                  {`noda: ${row.seq} | pre-loaded | ${row.type}`}
-                </div>
+
+          {/* Per-file rows */}
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {overlayRows.map(row => (
+              <div key={row.fileId} style={{
+                color: overlayStatusColor(row.status),
+                opacity: row.revealed ? 1 : 0.45,
+              }}>
+                {row.revealed ? '▶' : '·'}
+                {` #${row.seq} ${row.type.slice(0, 3)}`}
+                {row.status === 'ready'   && row.sizeKb  && ` ${row.sizeKb}KB`}
+                {row.status === 'evicted' && ' [out]'}
+                {row.status === 'loading' && ' …'}
               </div>
             ))}
-            {debugItems.map(item => (
-              <div key={item.key} style={{ marginBottom: 3 }}>
-                <div style={{ color: '#888' }}>
-                  {`noda: ${item.seq} | download: ${item.startTs}s | ${item.type}`}
-                </div>
-                {item.readyTs && (
-                  <div style={{ color: item.status === 'error' ? '#ff7070' : '#7dff8a' }}>
-                    {item.status === 'error'
-                      ? `noda: ${item.seq} | download end: ${item.readyTs}s | ${item.error}`
-                      : `noda: ${item.seq} | download end: ${item.readyTs}s | ${item.sizeKb}KB`}
+
+            {/* Eviction log */}
+            {evictLog.length > 0 && (
+              <>
+                <div style={{ color: '#555', margin: '4px 0 2px' }}>── вытеснения ──</div>
+                {evictLog.slice(-6).map((e, i) => (
+                  <div key={i} style={{ color: '#ff9944' }}>
+                    {`${e.ts} #${e.seq} ${e.type.slice(0, 3)} OUT`}
                   </div>
-                )}
-                {item.readyTs && item.msgTs && (
-                  <div style={{ color: '#ffe066' }}>
-                    {`noda: ${item.seq} | ${item.readyTs}s <> chat: ${item.msgTs}s`}
-                  </div>
-                )}
-              </div>
-            ))}
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
+
       {/* Версия для отслеживания деплоя — fixed, вне потока, pointer-events:none */}
       <div style={{
         position: 'fixed', top: 4, left: '50%', transform: 'translateX(-50%)',
