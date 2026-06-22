@@ -8,30 +8,21 @@ function getSmallPx() {
   return Math.min(window.innerWidth * 0.5, 200)
 }
 
-function calcStyle(intrinsic, dims, crop) {
-  if (!intrinsic || !dims) return {
+// Always objectFit:cover + crop transform — no jump when video metadata loads.
+function calcStyle(crop) {
+  return {
     position: 'absolute', inset: 0, objectFit: 'cover',
     transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
-    transformOrigin: 'center center',
-  }
-  const ma = intrinsic.w / intrinsic.h, fa = dims.w / dims.h
-  const d = ma > fa ? { w: dims.h * ma, h: dims.h } : { w: dims.w, h: dims.w / ma }
-  return {
-    position: 'absolute', left: '50%', top: '50%',
-    width: d.w + 'px', height: d.h + 'px',
-    transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale})`,
     transformOrigin: 'center center',
   }
 }
 
 export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   const [objectUrl, setObjectUrl]   = useState(null)
-  const [intr, setIntr]             = useState(null)
   const [dims, setDims]             = useState(null)
   const [expanded, setExpanded]     = useState(false)
   const [collapsing, setCollapsing] = useState(false)
   const [expandTransform, setExpandTransform] = useState(null)
-  const [videoReady, setVideoReady] = useState(false)
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -56,13 +47,25 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src    = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
+  // Lock effective src — don't switch once video has started loading.
+  // This prevents re-loading (and jitter) when blobUrl arrives while r2Url is already playing.
+  const [activeSrc, setActiveSrc] = useState(
+    () => file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
+  )
+  const loadStartedRef = useRef(false)
+
+  useEffect(() => {
+    if (loadStartedRef.current) return
+    const s = file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
+    if (s) setActiveSrc(s)
+  }, [file?.blobUrl, file?.r2Url]) // eslint-disable-line
+
+  const src    = objectUrl ?? activeSrc
   const poster = file?.posterUrl ?? undefined
 
   useEffect(() => {
-    setIntr(null)
-    setVideoReady(false)
-    doneFiredRef.current = false
+    doneFiredRef.current  = false
+    loadStartedRef.current = false
   }, [src]) // eslint-disable-line
 
   useLayoutEffect(() => {
@@ -98,7 +101,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   }
 
   function handlePlaying() {
-    setVideoReady(true)
     if (!expandedRef.current) return
     const v = vRef.current
     if (v?.duration) startRingAnimation(v.duration - v.currentTime)
@@ -261,7 +263,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     ...(collapsing && !expanded ? { zIndex: 10 } : {}),
   }
 
-  const videoStyle = calcStyle(intr, dims, crop)
+  const videoStyle = calcStyle(crop)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
@@ -280,19 +282,13 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
           >
             <div ref={frRef} className="circleFrame">
               <video
-                ref={vRef} src={src} className="circleMedia"
+                ref={vRef} src={src} poster={poster} className="circleMedia"
                 style={videoStyle}
                 playsInline autoPlay muted loop preload="auto"
-                onLoadedMetadata={e => {
-                  const v = e.currentTarget
-                  setIntr({ w: v.videoWidth, h: v.videoHeight })
-                }}
+                onLoadStart={() => { loadStartedRef.current = true }}
                 onPlaying={handlePlaying}
                 onEnded={handleEnded}
               />
-              {poster && !videoReady && (
-                <img src={poster} className="circleMedia" style={videoStyle} alt="" />
-              )}
             </div>
 
             <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true"
