@@ -6,7 +6,7 @@ import CanvasPage from '../features/canvas/CanvasPage.jsx'
 import { APP_VERSION } from '../shared/lib/version.js'
 
 export default function App() {
-  const [tab, setTab] = useState('user')
+  const [tab, setTab] = useState('lessons')
   const [canvasLessonId, setCanvasLessonId] = useState(null)
 
   // Canvas editor replaces the entire layout — no tabs, full screen

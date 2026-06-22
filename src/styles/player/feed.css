@@ -5,34 +5,28 @@
 
 .playerFeed {
   flex: 1;
-  /* min-height: 0 обязателен: без него flex-item растёт под контент,
-     и дочерний .playerFeedInner тоже растёт вместе с ним. */
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  /* overflow visible: анимация slide-in стартует ниже нижнего края playerFeed */
-  overflow: visible;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 12px 0;
 }
 
 .playerFeedInner {
-  flex: 1;
-  /* min-height: 0 обязателен: без него flex-item имеет min-height: auto
-     (= размер контента), контейнер растёт вниз вместо того чтобы фиксироваться
-     на flex:1 значении и пропускать контент вверх. */
-  min-height: 0;
   display: flex;
   flex-direction: column;
-  /* flex-end: сообщения у нижнего края. При добавлении нового — flex реально
-     сдвигает старые вверх (overflow вверх, а не вниз), FLIP работает корректно. */
-  justify-content: flex-end;
   gap: 4px;
   padding: 0 12px;
   max-width: 600px;
   width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
-  overflow: visible;
+  /* min-height: fill the feed so spacer pushes messages to bottom */
+  min-height: 100%;
+}
+
+/* Spacer pushes messages to bottom when few; shrinks as messages fill the container */
+.playerFeedSpacer {
+  flex: 1;
 }
 
 @media (max-width: 400px) {

@@ -1,16 +1,29 @@
-import { useRef, useLayoutEffect } from 'react'
+import { useRef, useLayoutEffect, useEffect } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
 
 const CSS_GAP = 4 // должно совпадать с gap в .playerFeedInner
 
-// column-reverse + reversed DOM order: newest message first in DOM = visual bottom.
-// overflow: visible → msgSlideIn translateY может уйти за нижний край экрана.
-// FLIP: сдвиг считается из высоты новых элементов, а не из старых позиций
-// (старые позиции стали бы неверны если пузырь вырос во время воспроизведения).
+// Spacer сверху + overflow-y:auto на .playerFeed — вместо justify-content:flex-end.
+// Новые сообщения авто-скроллятся вниз если пользователь у дна.
+// Если пользователь скроллит вверх — авто-скролл не перебивает.
 export default function PlayerFeed({ children }) {
+  const feedRef     = useRef(null)
   const innerRef    = useRef(null)
-  const prevElsRef  = useRef(new Set()) // известные элементы строк
+  const prevElsRef  = useRef(new Set())
   const prevRowCount = useRef(0)
+  const userScrolledUp = useRef(false)
+
+  // Detect if user scrolled away from bottom
+  useEffect(() => {
+    const feed = feedRef.current
+    if (!feed) return
+    function onScroll() {
+      const atBottom = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 60
+      userScrolledUp.current = !atBottom
+    }
+    feed.addEventListener('scroll', onScroll, { passive: true })
+    return () => feed.removeEventListener('scroll', onScroll)
+  }, [])
 
   useLayoutEffect(() => {
     const inner = innerRef.current
@@ -19,7 +32,7 @@ export default function PlayerFeed({ children }) {
     const rows     = inner.querySelectorAll('.playerMsgRow')
     const rowCount = rows.length
 
-    if (rowCount === prevRowCount.current) return // ничего не изменилось
+    if (rowCount === prevRowCount.current) return
 
     const prevEls = prevElsRef.current
 
@@ -51,7 +64,12 @@ export default function PlayerFeed({ children }) {
       }
     }
 
-    // Обновляем набор известных элементов
+    // Auto-scroll to bottom on new message unless user scrolled up
+    if (!userScrolledUp.current) {
+      const feed = feedRef.current
+      if (feed) feed.scrollTop = feed.scrollHeight
+    }
+
     const next = new Set()
     rows.forEach(el => next.add(el))
     prevElsRef.current  = next
@@ -59,8 +77,9 @@ export default function PlayerFeed({ children }) {
   })
 
   return (
-    <div className="playerFeed">
+    <div className="playerFeed" ref={feedRef}>
       <div className="playerFeedInner" ref={innerRef}>
+        <div className="playerFeedSpacer" />
         {children}
       </div>
     </div>
