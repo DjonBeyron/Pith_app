@@ -4,24 +4,32 @@ function seededRand(str) {
   return Math.abs(Math.sin(h) * 43758.5453) % 1
 }
 
-// Adaptive bezier:
-//   target clearly to the right (dx > 60) → S-curve
-//   target left / above / close           → arc loops to the right, bulge ∝ distance
+// Adaptive bezier — three cases:
+//   1. dx > 100            → S-curve (target clearly to the right)
+//   2. |dy| ≤ 150          → arc UP above both nodes (avoids passing through node bodies)
+//   3. large vertical gap  → rightward bulge arc (one node much above/below the other)
 function neuronPath(x1, y1, x2, y2, seed) {
   const dx = x2 - x1, dy = y2 - y1
-  const jit = (s, mag) => (seededRand(s) - 0.5) * mag
+  const jit = (s, m) => (seededRand(s) - 0.5) * m
 
-  if (dx > 60) {
-    // Standard S-curve: control points pull horizontally toward each other
-    const h = dx * 0.5
-    return `M ${x1} ${y1} C ${x1 + h + jit(seed+'a', 16)} ${y1 + dy * 0.25 + jit(seed+'b', 8)}, ${x2 - h + jit(seed+'c', 16)} ${y2 - dy * 0.25 + jit(seed+'d', 8)}, ${x2} ${y2}`
+  // 1. Target port clearly to the right → flowing S-curve
+  if (dx > 100) {
+    const h = dx * 0.45
+    return `M ${x1} ${y1} C ${x1+h+jit(seed+'a',16)} ${y1+dy*.25+jit(seed+'b',8)}, ${x2-h+jit(seed+'c',16)} ${y2-dy*.25+jit(seed+'d',8)}, ${x2} ${y2}`
   }
 
-  // Target is to the left, above, or very close — loop rightward.
-  // Bulge scales with actual distance so nearby nodes get a small arc, not a 120px loop.
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  const bulge = Math.max(dist * 0.55, 50)
-  return `M ${x1} ${y1} C ${x1 + bulge + jit(seed+'a', 12)} ${y1 + dy * 0.15 + jit(seed+'b', 8)}, ${x2 + bulge + jit(seed+'c', 12)} ${y2 - dy * 0.15 + jit(seed+'d', 8)}, ${x2} ${y2}`
+  // 2. Nodes roughly at same height (side-by-side or slightly offset) → arc above both.
+  // Nodes start at their y-coordinate and extend downward, so going UP clears all node bodies.
+  if (Math.abs(dy) <= 150) {
+    const rise = Math.max(70, (150 - Math.abs(dy)) * 0.55 + Math.abs(dx) * 0.15)
+    const topY = Math.min(y1, y2) - rise
+    return `M ${x1} ${y1} C ${x1+jit(seed+'a',14)} ${topY+jit(seed+'b',14)}, ${x2+jit(seed+'c',14)} ${topY+jit(seed+'d',14)}, ${x2} ${y2}`
+  }
+
+  // 3. Large vertical gap (one node much higher/lower) → rightward bulge
+  const dist = Math.sqrt(dx*dx + dy*dy)
+  const bulge = Math.max(dist * 0.5, 80)
+  return `M ${x1} ${y1} C ${x1+bulge+jit(seed+'a',12)} ${y1+dy*.15+jit(seed+'b',8)}, ${x2+bulge+jit(seed+'c',12)} ${y2-dy*.15+jit(seed+'d',8)}, ${x2} ${y2}`
 }
 
 // CSS-fallback constants (used before first DOM measurement on max nodes)
