@@ -47,6 +47,27 @@ export default function LessonPlayer({
     pLog(`Player init: blobs=${blobKeys.length} files=${files.length}`)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Build preloaded rows for overlay: one row per preloaded file with seq + type
+  const preloadedRows = useMemo(() => {
+    if (!initialBlobMap) return []
+    const blobKeys = new Set(Object.keys(initialBlobMap))
+    const rows = []
+    for (const n of nodes) {
+      const MEDIA = new Set(['audio','voice_record','video','circle','photo','sticker','photo_choice'])
+      if (!MEDIA.has(n.type)) continue
+      if (n.type === 'photo_choice') {
+        const photos = n.typeData?.photo_choice?.photos ?? []
+        photos.forEach(ph => {
+          if (ph.fileId && blobKeys.has(ph.fileId)) rows.push({ seq: n.seq, type: 'photo_choice' })
+        })
+      } else {
+        const fid = n.typeData?.[n.type]?.file_id
+        if (fid && blobKeys.has(fid)) rows.push({ seq: n.seq, type: n.type })
+      }
+    }
+    return rows
+  }, [initialBlobMap, nodes])
+
   useEffect(() => {
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - openTimeRef.current) / 1000)), 1000)
     return () => clearInterval(id)
@@ -192,13 +213,15 @@ setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCo
           <div style={{ color: '#ffe066', marginBottom: 3, fontWeight: 'bold', flexShrink: 0 }}>
             {`урок: ${Math.floor(elapsed / 60).toString().padStart(2,'0')}:${(elapsed % 60).toString().padStart(2,'0')}`}
           </div>
-          {initialBlobMap && (
-            <div style={{ color: '#56a0d3', marginBottom: 3, flexShrink: 0 }}>
-              {`preloaded: ${Object.keys(initialBlobMap).length} файлов из карточки`}
-            </div>
-          )}
           {/* Scrollable list */}
           <div ref={debugScrollRef} style={{ overflowY: 'auto', flex: 1 }}>
+            {preloadedRows.map((row, i) => (
+              <div key={`pre_${i}`} style={{ marginBottom: 3 }}>
+                <div style={{ color: '#56a0d3' }}>
+                  {`noda: ${row.seq} | pre-loaded | ${row.type}`}
+                </div>
+              </div>
+            ))}
             {debugItems.map(item => (
               <div key={item.key} style={{ marginBottom: 3 }}>
                 <div style={{ color: '#888' }}>
