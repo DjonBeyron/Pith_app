@@ -95,10 +95,11 @@ export default function CanvasBoard({
     setHoveredNodeId(nodeId)
   }
   function leaveNode() {
+    // longer delay when confirm dialog is open so it doesn't vanish under the cursor
+    const delay = confirmDeleteId ? 3000 : 1200
     hoverTimer.current = setTimeout(() => {
       setHoveredNodeId(null)
-      // confirmDeleteId is only cleared by explicit "Нет" click or successful delete
-    }, 1200)
+    }, delay)
   }
 
   function deleteNode(nodeId) {

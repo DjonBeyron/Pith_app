@@ -143,9 +143,11 @@
   z-index: 10;
   white-space: nowrap;
   animation: menuFadeIn 0.1s ease;
-  /* invisible padding: top = extra hit zone above buttons, bottom = bridge to node */
+  /* invisible padding = extended hit zone on all sides */
   padding-top: 20px;
   padding-bottom: 14px;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 @keyframes menuFadeIn {
