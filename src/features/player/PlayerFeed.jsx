@@ -36,14 +36,13 @@ export default function PlayerFeed({ children }) {
 
     const prevEls = prevElsRef.current
 
-    if (rowCount > prevRowCount.current && prevEls.size > 0) {
-      let shift = 0
-
+    if (rowCount > prevRowCount.current) {
       rows.forEach(el => {
         if (prevEls.has(el)) return
+        const feed   = feedRef.current
+        const feedBottom = feed ? feed.getBoundingClientRect().bottom : window.innerHeight
         const rect   = el.getBoundingClientRect()
-        const startY = window.innerHeight - rect.top + rect.height + 24
-        shift += rect.height + CSS_GAP
+        const startY = feedBottom - rect.top + rect.height + 16
         el.animate(
           [
             { opacity: '0', transform: `translateY(${startY}px)` },
@@ -52,16 +51,6 @@ export default function PlayerFeed({ children }) {
           { duration: 400, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' },
         )
       })
-
-      if (shift > 0) {
-        prevEls.forEach(el => {
-          el.style.transition = 'none'
-          el.style.transform  = `translateY(${shift}px)`
-          void el.offsetHeight
-          el.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)'
-          el.style.transform  = ''
-        })
-      }
     }
 
     // Auto-scroll to bottom on new message unless user scrolled up
