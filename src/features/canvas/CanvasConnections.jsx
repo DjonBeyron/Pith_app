@@ -5,24 +5,23 @@ function seededRand(str) {
 }
 
 // Adaptive bezier:
-//   target to the right  → forward S-curve
-//   target left / same x → arc loops to the right side
+//   target clearly to the right (dx > 60) → S-curve
+//   target left / above / close           → arc loops to the right, bulge ∝ distance
 function neuronPath(x1, y1, x2, y2, seed) {
-  const dx = x2 - x1, dy = y2 - y1, w = 22
-  if (dx > 50) {
-    const h = Math.max(dx * 0.45, 60)
-    const cp1x = x1 + h + (seededRand(seed + 'a') - 0.5) * w
-    const cp1y = y1 + dy * 0.25 + (seededRand(seed + 'b') - 0.5) * w * 0.5
-    const cp2x = x2 - h + (seededRand(seed + 'c') - 0.5) * w
-    const cp2y = y2 - dy * 0.25 + (seededRand(seed + 'd') - 0.5) * w * 0.5
-    return `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`
+  const dx = x2 - x1, dy = y2 - y1
+  const jit = (s, mag) => (seededRand(s) - 0.5) * mag
+
+  if (dx > 60) {
+    // Standard S-curve: control points pull horizontally toward each other
+    const h = dx * 0.5
+    return `M ${x1} ${y1} C ${x1 + h + jit(seed+'a', 16)} ${y1 + dy * 0.25 + jit(seed+'b', 8)}, ${x2 - h + jit(seed+'c', 16)} ${y2 - dy * 0.25 + jit(seed+'d', 8)}, ${x2} ${y2}`
   }
-  const bulge = Math.max(120, Math.abs(dy) * 0.5)
-  const cp1x = x1 + bulge + (seededRand(seed + 'a') - 0.5) * w
-  const cp1y = y1 + dy * 0.2 + (seededRand(seed + 'b') - 0.5) * w * 0.5
-  const cp2x = x2 + bulge + (seededRand(seed + 'c') - 0.5) * w
-  const cp2y = y2 - dy * 0.2 + (seededRand(seed + 'd') - 0.5) * w * 0.5
-  return `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`
+
+  // Target is to the left, above, or very close — loop rightward.
+  // Bulge scales with actual distance so nearby nodes get a small arc, not a 120px loop.
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  const bulge = Math.max(dist * 0.55, 50)
+  return `M ${x1} ${y1} C ${x1 + bulge + jit(seed+'a', 12)} ${y1 + dy * 0.15 + jit(seed+'b', 8)}, ${x2 + bulge + jit(seed+'c', 12)} ${y2 - dy * 0.15 + jit(seed+'d', 8)}, ${x2} ${y2}`
 }
 
 // CSS-fallback constants (used before first DOM measurement on max nodes)
