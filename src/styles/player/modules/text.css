@@ -32,10 +32,18 @@
 
 .playerReply {
   border-left: 1.5px solid #b6fe3b;
-  padding: 2px 8px;
+  padding: 3px 8px;
   margin-bottom: 6px;
   border-radius: 0 4px 4px 0;
   background: rgba(182, 254, 59, 0.07);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.playerReplyContent {
+  flex: 1;
+  min-width: 0;
 }
 
 .playerReplyName {
@@ -54,9 +62,10 @@
   line-height: 1.4;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 }
+
 
 .playerText {
   margin: 0;

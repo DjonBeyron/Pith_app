@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import ReplyPreview from '../../ReplyPreview.jsx'
 
-export default function StickerModule({ node, file, onDone }) {
+export default function StickerModule({ node, file, lessonNodes = [], lessonFiles = [], teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const videoRef    = useRef(null)
   const canPlayRef  = useRef(false)
@@ -19,8 +20,6 @@ export default function StickerModule({ node, file, onDone }) {
   const poster  = file?.posterUrl ?? undefined
   const isVideo = node.typeData?.sticker?.isVideo ?? false
 
-  // Play when BOTH are ready: animation done (420ms) AND video has first frame (canPlay).
-  // Whichever arrives later triggers actual playback.
   function tryPlay() {
     if (canPlayRef.current && animDoneRef.current) {
       const v = videoRef.current
@@ -44,26 +43,32 @@ export default function StickerModule({ node, file, onDone }) {
     tryPlay()
   }
 
+  const replyToSeq = node.typeData?.sticker?.replyToSeq
+  const replyNode  = replyToSeq > 0 ? lessonNodes.find(n => n.seq === replyToSeq) : null
+
+  const media = src
+    ? (isVideo
+      ? <video ref={videoRef} src={src} poster={poster} className="stickerMedia" loop playsInline muted preload="auto" onCanPlay={handleCanPlay} />
+      : <img src={src} className="stickerMedia" alt="" />)
+    : <div className="stickerPlaceholder">Стикер не загружен</div>
+
   return (
     <div className="playerMsgRow">
-      <div className="stickerWrap">
-        {src
-          ? (isVideo
-            ? <video
-                ref={videoRef}
-                src={src}
-                poster={poster}
-                className="stickerMedia"
-                loop
-                playsInline
-                muted
-                preload="auto"
-                onCanPlay={handleCanPlay}
-              />
-            : <img src={src} className="stickerMedia" alt="" />)
-          : <div className="stickerPlaceholder">Стикер не загружен</div>
-        }
-      </div>
+      {replyNode ? (
+        <div className="stickerReplyWrap">
+          <ReplyPreview
+            replyNode={replyNode}
+            lessonFiles={lessonFiles}
+            teacherName={teacherName}
+            allWordChoiceStates={allWordChoiceStates}
+            allPhotoChoiceStates={allPhotoChoiceStates}
+            allPhraseStates={allPhraseStates}
+          />
+          <div className="stickerWrap">{media}</div>
+        </div>
+      ) : (
+        <div className="stickerWrap">{media}</div>
+      )}
     </div>
   )
 }

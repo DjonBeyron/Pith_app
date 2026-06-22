@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { formatBytes } from '../../shared/lib/filesApi.js'
 import LessonSettingsTab from './LessonSettingsTab.jsx'
 
-const TYPE_LABEL = { audio: 'Голос', photo: 'Фото', video: 'Видео', circle: 'Кружок', text: 'Текст' }
+const TYPE_LABEL = { audio: 'Голос', photo: 'Фото', video: 'Видео', circle: 'Видеосообщение', text: 'Текст' }
 
 function getNodeUsage(fileId, nodes) {
   return (nodes ?? []).filter(n => n.typeData?.[n.type]?.file_id === fileId)

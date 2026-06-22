@@ -13,7 +13,7 @@ const NODE_TYPES = [
   { value: 'voice_record',    label: 'Запись голоса' },
   { value: 'photo',           label: 'Фото сообщение' },
   { value: 'video',           label: 'Видео сообщение' },
-  { value: 'circle',          label: 'Кружок' },
+  { value: 'circle',          label: 'Видеосообщение' },
   { value: 'text',            label: 'Текстовое сообщение' },
   { value: 'word_choice',     label: 'Выбор слова' },
   { value: 'phrase_assembly', label: 'Собрать фразу' },
@@ -230,7 +230,7 @@ export default function CanvasNode({
             rows={4}
           />
         )}
-        {node.type === 'text' && (
+        {(node.type === 'text' || node.type === 'sticker') && (
           <div className="nodeReplySection">
             <label className="nodeReplyLabel" onClick={e => e.stopPropagation()}>
               <input

@@ -21,10 +21,10 @@ function makeNode(seq, x, y) {
       circle:      { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
       text:        { content: '', replyToSeq: null },
       word_choice:     { options: [], responseCorrect: '', responseWrong: '' },
-      phrase_assembly: { words: [], distractors: [], responseCorrect: '', responseWrong: '' },
+      phrase_assembly: { words: [], distractors: [], responseCorrect: '', responseWrong: '', replyToSeq: null },
       pin_message:     { content: '' },
       system:          { content: '' },
-      sticker:         { file_id: null, crop: { x: 0, y: 0, scale: 1 }, muted: true, isVideo: false },
+      sticker:         { file_id: null, crop: { x: 0, y: 0, scale: 1 }, muted: true, isVideo: false, replyToSeq: null },
       photo_choice:    { photos: [], correctIndexes: [], responseCorrect: '', responseWrong: '' },
     },
   }

@@ -114,6 +114,7 @@
 | `PlayerFeed.jsx` | Изолированный скролл-контейнер: auto-scroll при новом сообщении, lock/unlock, imperative ref |
 | `PlayerTopBar.jsx` | Шапка плеера: кнопка «←», аватар, «Учитель / онлайн», название урока |
 | `PlayerMessage.jsx` | Тонкая обёртка: `resolveModule(node.type)` → рендерит нужный модуль |
+| `ReplyPreview.jsx` | Общий компонент превью ответа (зелёная полоса слева): используется в TextModule и StickerModule; содержит ReplyThumb с intrinsic-кропом |
 | `PlayerBubble.jsx` | Обёртка-пузырь с анимацией высоты (ResizeObserver + cubic-bezier) — общий для модулей |
 | `PlayerTypingText.jsx` | Посимвольная анимация текста: каждый символ вспыхивает лаймовым; курсор — светящаяся линия |
 | `modules/index.js` | Роутер: `type → Module`; добавить новый тип = одна строка здесь |

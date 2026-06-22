@@ -321,7 +321,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
               </svg>
             </div>
           </div>
-        ) : <div className="playerMediaPlaceholder">Кружок не загружен</div>}
+        ) : <div className="playerMediaPlaceholder">Видеосообщение не загружено</div>}
       </div>
     </div>
   )

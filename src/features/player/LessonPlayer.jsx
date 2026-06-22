@@ -121,6 +121,9 @@ export default function LessonPlayer({
                 teacherName={teacherName}
                 photoChoiceState={photoChoiceStates[node.id] ?? null}
                 wordChoiceState={wordChoiceStates[node.id] ?? null}
+                allWordChoiceStates={wordChoiceStates}
+                allPhotoChoiceStates={photoChoiceStates}
+                allPhraseStates={phraseStates}
                 phraseState={phraseStates[node.id] ?? null}
                 bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight}
                 onDone={() => onNodeDone(node.id)}

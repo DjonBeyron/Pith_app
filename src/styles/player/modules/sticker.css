@@ -26,3 +26,22 @@
   font-size: 12px;
   border-radius: 10px;
 }
+
+/* Стикер с reply: единый пузырь, reply + медиа без зазора */
+.stickerReplyWrap {
+  background: #1a1d22;
+  border-radius: 4px 18px 18px 18px;
+  overflow: hidden;
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.stickerReplyWrap .playerReply {
+  margin: 6px 8px 4px;
+  border-radius: 0 4px 4px 0;
+}
+
+.stickerReplyWrap .stickerWrap {
+  border-radius: 0;
+  width: 160px;
+}
