@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import NodeAudioPicker from './NodeAudioPicker.jsx'
+import NodeTextHighlighter from './NodeTextHighlighter.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
 import NodeWordChoicePicker     from './NodeWordChoicePicker.jsx'
@@ -10,17 +11,22 @@ import NodeTypeSelect, { NODE_TYPES, TYPE_COLOR } from './NodeTypeSelect.jsx'
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 const NEXT_SIZE    = { nano: 'mini', mini: 'max', max: 'nano' }
 
+// Mix module color with the node dark base (#12141a) instead of rgba transparency,
+// so the node stays dark regardless of what's behind it.
 function colorBg(hex, alpha) {
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r},${g},${b},${alpha})`
+  const br = 18, bg = 20, bb = 26  // #12141a
+  return `rgb(${Math.round(br + (r - br) * alpha)},${Math.round(bg + (g - bg) * alpha)},${Math.round(bb + (b - bb) * alpha)})`
 }
 
 export default function CanvasNode({
   node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
 }) {
-  const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
+  const color   = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
+  const [hlRect, setHlRect] = useState(null)  // viewport rect of node when HL editor is open
+  const nodeRef = useRef(null)
 
   // When leaving max mode, clear stale trigger measurements so they don't
   // ghost onto the next max layout (e.g. after type switch or size cycle).
@@ -51,7 +57,6 @@ export default function CanvasNode({
   }
 
   function changeType(e) {
-    e.stopPropagation()
     const newType = e.target.value
     const update = { type: newType }
     // word_choice needs its own trigger format (word_correct / word_wrong).
@@ -122,7 +127,7 @@ export default function CanvasNode({
 
   if (node.size === 'mini') {
     return (
-      <div className="canvasNode canvasNodeMini" style={{ background: colorBg(color, 0.08) }} onMouseDown={onDragStart}>
+      <div className="canvasNode canvasNodeMini" style={{ background: colorBg(color, 0.07) }} onMouseDown={onDragStart}>
         <div className="canvasNodeTopBar" style={{ background: color }} />
         <div className="canvasNodeMiniBody">
           <button className="canvasNodeExpandBtn" onClick={expandClick}>›</button>
@@ -143,7 +148,7 @@ export default function CanvasNode({
 
   // ── max ─────────────────────────────────────────────────────────
   return (
-    <div className="canvasNode canvasNodeMax" style={{ background: colorBg(color, 0.08) }} onMouseDown={onDragStart}>
+    <div ref={nodeRef} className="canvasNode canvasNodeMax" style={{ background: colorBg(color, 0.07) }} onMouseDown={onDragStart}>
       <div className="canvasNodeTopBar" style={{ background: color }} />
       <div className="canvasNodeMaxBody">
         <div className="canvasNodeMaxTop">
@@ -192,6 +197,16 @@ export default function CanvasNode({
             onMouseDown={e => e.stopPropagation()}
             rows={4}
           />
+        )}
+        {node.type === 'text' && (
+          <button
+            className="nodeHLOpenBtn"
+            style={(tData.highlights?.length > 0) ? { borderColor: '#b6fe3b', color: '#b6fe3b' } : undefined}
+            onClick={e => { e.stopPropagation(); setHlRect(nodeRef.current?.getBoundingClientRect() ?? null) }}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            🎨
+          </button>
         )}
         {(node.type === 'text' || node.type === 'sticker') && (
           <div className="nodeReplySection">
@@ -285,6 +300,15 @@ export default function CanvasNode({
           />
         )}
       </div>
+      {hlRect && (
+        <NodeTextHighlighter
+          text={tData.content ?? ''}
+          highlights={tData.highlights ?? []}
+          anchorRect={hlRect}
+          onClose={() => setHlRect(null)}
+          onChange={hl => updateTypeData({ highlights: hl })}
+        />
+      )}
     </div>
   )
 }

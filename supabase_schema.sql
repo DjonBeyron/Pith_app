@@ -146,6 +146,21 @@ $$;
 -- Run this ALTER if the lessons table already exists from the old app.
 alter table public.lessons add column if not exists script jsonb not null default '{"nodes":[]}';
 
+-- ── Highlight color presets (global, singleton row) ──────────────
+-- Stores the user's favorite highlight colors, shared across all lessons.
+-- Single row with id='global', colors is a JSON array of hex strings.
+create table if not exists public.highlight_color_presets (
+  id     text primary key,
+  colors jsonb not null default '[]'
+);
+
+alter table public.highlight_color_presets enable row level security;
+
+create policy "hcp_all"
+  on public.highlight_color_presets for all
+  using (true)
+  with check (true);
+
 -- ── Lesson results ────────────────────────────
 create table if not exists public.lesson_results (
   id              uuid primary key default gen_random_uuid(),

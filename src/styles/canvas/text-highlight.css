@@ -1,0 +1,210 @@
+/* ── Modal overlay ──────────────────────────────────────────────── */
+.textHLOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.textHLModal {
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 12px;
+  padding: 14px 16px;
+  width: 380px;
+  max-width: 96vw;
+  max-height: 92vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.textHLModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ccc;
+}
+
+.textHLClose {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+.textHLClose:hover { color: #fff; }
+
+/* ── Interactive text area ──────────────────────────────────────── */
+.textHLTextArea {
+  background: #12151a;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  padding: 10px 12px;
+  line-height: 1.5;
+  font-size: 14px;
+  color: #d4d4d4;
+  min-height: 56px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.textHLTokenWord {
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.08s;
+}
+.textHLTokenWord:hover { background: rgba(255, 255, 255, 0.07); }
+.textHLTokenSel { background: rgba(99, 163, 255, 0.32) !important; }
+
+/* ── Mode toggle ────────────────────────────────────────────────── */
+.textHLModeToggle {
+  display: flex;
+  gap: 6px;
+}
+.textHLModeBtn {
+  flex: 1;
+  background: #12151a;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: #777;
+  cursor: pointer;
+}
+.textHLModeBtn.active {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+}
+
+/* ── Color + opacity row ────────────────────────────────────────── */
+.textHLColorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.textHLColorInput {
+  width: 34px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  padding: 0 2px;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+.textHLOpacityLabel {
+  font-size: 11px;
+  color: #555;
+  flex-shrink: 0;
+}
+.textHLOpacitySlider {
+  flex: 1;
+  accent-color: #b6fe3b;
+  cursor: pointer;
+}
+.textHLOpacityVal {
+  font-size: 12px;
+  color: #888;
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Swatches ───────────────────────────────────────────────────── */
+.textHLSwatchRow,
+.textHLFavRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.textHLFavLabel {
+  font-size: 11px;
+  color: #555;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+.textHLSwatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color 0.1s;
+}
+.textHLSwatch.active { border-color: #fff; }
+.textHLFavAddBtn {
+  background: none;
+  border: 1px solid #2a2d35;
+  border-radius: 4px;
+  color: #777;
+  font-size: 13px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+.textHLFavAddBtn:hover { color: #ffeb3b; border-color: #ffeb3b; }
+
+/* ── Preview ────────────────────────────────────────────────────── */
+.textHLPreviewLabel {
+  font-size: 11px;
+  color: #555;
+}
+.textHLPreview {
+  background: #12151a;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Clear button ───────────────────────────────────────────────── */
+.textHLClearBtn {
+  background: none;
+  border: 1px solid #3a2020;
+  border-radius: 6px;
+  color: #f87171;
+  font-size: 12px;
+  padding: 5px 10px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.textHLClearBtn:hover { background: rgba(248, 113, 113, 0.1); }
+
+/* ── Open button in node (textarea area) ────────────────────────── */
+.nodeHLOpenBtn {
+  font-size: 14px;
+  background: none;
+  border: 1px solid #2a2d35;
+  border-radius: 5px;
+  color: #888;
+  padding: 2px 6px;
+  cursor: pointer;
+  margin-top: 4px;
+  align-self: flex-start;
+  line-height: 1.4;
+}
+.nodeHLOpenBtn:hover { border-color: #b6fe3b; }
+
+.textHLHint {
+  font-size: 10px;
+  color: #444;
+  margin-top: -4px;
+}
