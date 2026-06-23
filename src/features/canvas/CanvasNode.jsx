@@ -5,40 +5,17 @@ import NodeTriggerEditor from './NodeTriggerEditor.jsx'
 import NodeWordChoicePicker     from './NodeWordChoicePicker.jsx'
 import NodePhraseAssemblyPicker from './NodePhraseAssemblyPicker.jsx'
 import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
+import NodeTypeSelect, { NODE_TYPES, TYPE_COLOR } from './NodeTypeSelect.jsx'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
+const NEXT_SIZE    = { nano: 'mini', mini: 'max', max: 'nano' }
 
-const NODE_TYPES = [
-  { value: 'audio',           label: 'Голосовое сообщение' },
-  { value: 'voice_record',    label: 'Запись голоса' },
-  { value: 'photo',           label: 'Фото сообщение' },
-  { value: 'video',           label: 'Видео сообщение' },
-  { value: 'circle',          label: 'Видеосообщение' },
-  { value: 'text',            label: 'Текстовое сообщение' },
-  { value: 'word_choice',     label: 'Выбор слова' },
-  { value: 'phrase_assembly', label: 'Собрать фразу' },
-  { value: 'pin_message',     label: 'Закрепить сообщение' },
-  { value: 'system',          label: 'Системное сообщение' },
-  { value: 'sticker',         label: 'Стикер' },
-  { value: 'photo_choice',    label: 'Выбрать фото' },
-]
-
-const TYPE_COLOR = {
-  audio:        '#4a7ca8',
-  voice_record: '#8b3a6a',
-  photo:       '#5a9a5a',
-  video:       '#7a5a9a',
-  circle:      '#c06a6a',
-  text:        '#55556a',
-  word_choice:     '#b07030',
-  phrase_assembly: '#2a8070',
-  pin_message:     '#8b6914',
-  system:          '#4a5568',
-  sticker:         '#c05830',
-  photo_choice:    '#0e7490',
+function colorBg(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
 }
-
-const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
 
 export default function CanvasNode({
   node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
@@ -145,19 +122,12 @@ export default function CanvasNode({
 
   if (node.size === 'mini') {
     return (
-      <div className="canvasNode canvasNodeMini" onMouseDown={onDragStart}>
+      <div className="canvasNode canvasNodeMini" style={{ background: colorBg(color, 0.08) }} onMouseDown={onDragStart}>
         <div className="canvasNodeTopBar" style={{ background: color }} />
         <div className="canvasNodeMiniBody">
           <button className="canvasNodeExpandBtn" onClick={expandClick}>›</button>
           <span className="canvasNodeSeq">#{node.seq}</span>
-          <select
-            className="canvasNodeTypeSelectSm"
-            value={node.type}
-            onClick={e => e.stopPropagation()}
-            onChange={changeType}
-          >
-            {NODE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          <NodeTypeSelect value={node.type} onChange={v => changeType({ target: { value: v } })} compact />
           {miniFile && (
             <span
               className={`nodeAudioStatus ${miniFile.status === 'synced' ? 'nodeAudioStatusSynced' : 'nodeAudioStatusLocal'}`}
@@ -173,21 +143,14 @@ export default function CanvasNode({
 
   // ── max ─────────────────────────────────────────────────────────
   return (
-    <div className="canvasNode canvasNodeMax" onMouseDown={onDragStart}>
+    <div className="canvasNode canvasNodeMax" style={{ background: colorBg(color, 0.08) }} onMouseDown={onDragStart}>
       <div className="canvasNodeTopBar" style={{ background: color }} />
       <div className="canvasNodeMaxBody">
         <div className="canvasNodeMaxTop">
           <button className="canvasNodeExpandBtn" onClick={expandClick}>‹</button>
           <span className="canvasNodeSeq">#{node.seq}</span>
         </div>
-        <select
-          className="canvasNodeTypeSelect"
-          value={node.type}
-          onClick={e => e.stopPropagation()}
-          onChange={changeType}
-        >
-          {NODE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
+        <NodeTypeSelect value={node.type} onChange={v => changeType({ target: { value: v } })} />
         {node.type === 'audio' && (
           <NodeAudioPicker
             fileId={fileId}

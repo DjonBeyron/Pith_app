@@ -213,6 +213,64 @@
 .nodeTextInput:focus { border-color: #b6fe3b; }
 .nodeTextInput::placeholder { color: #444; }
 
+/* ── Custom type select ── */
+.nodeTypeSelect { position: relative; width: 100%; }
+.nodeTypeSelectCompact { flex: 1; min-width: 0; }
+
+.nodeTypeSelectTrigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  background: #0a0c10;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.nodeTypeSelectCompact .nodeTypeSelectTrigger {
+  padding: 2px 5px;
+  font-size: 10px;
+  border-radius: 5px;
+}
+
+.nodeTypeSelectLabel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nodeTypeSelectArrow { font-size: 9px; flex-shrink: 0; }
+
+.nodeTypeSelectList {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  z-index: 200;
+  background: #0e1013;
+  border: 1px solid #2a2c33;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.7);
+  min-width: 180px;
+}
+
+.nodeTypeSelectListCompact { right: 0; left: auto; min-width: 200px; }
+
+.nodeTypeSelectItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+}
+.nodeTypeSelectItem:hover { filter: brightness(1.25); }
+.nodeTypeSelectItemActive { outline: 1px solid rgba(255,255,255,0.15) inset; }
+
 /* ── Reply-to section ── */
 .nodeReplySection {
   display: flex;
