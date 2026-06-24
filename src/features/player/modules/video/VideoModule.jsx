@@ -68,15 +68,18 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function getFsMediaStyle() {
-    // Fill the fixed container completely, then apply pan/zoom from crop.
-    // object-fit:cover handles aspect ratio; no need to compute exact pixel sizes.
+    // Element fills the entire viewport via inset:0.
+    // object-position pans the video *content* within the element — no element movement,
+    // so there's never empty space on any side.
+    // transform:scale zooms in from center (overflow clipped by parent).
     const scaleX = frameDims ? window.innerWidth  / frameDims.w : 1
     const scaleY = frameDims ? window.innerHeight / frameDims.h : 1
     return {
       position: 'absolute', inset: 0,
       width: '100%', height: '100%',
       objectFit: 'cover',
-      transform: `translate(${crop.x * scaleX}px, ${crop.y * scaleY}px) scale(${crop.scale})`,
+      objectPosition: `calc(50% + ${crop.x * scaleX}px) calc(50% + ${crop.y * scaleY}px)`,
+      transform: `scale(${crop.scale})`,
       transformOrigin: 'center center',
     }
   }
@@ -181,6 +184,7 @@ export default function VideoModule({ node, file, onDone }) {
         <video
           ref={fsVideoRef}
           src={fsSrc ?? undefined}
+          poster={poster}
           playsInline
           preload="none"
           style={getFsMediaStyle()}
