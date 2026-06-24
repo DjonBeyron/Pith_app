@@ -4,7 +4,6 @@ import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 
 const WARMUP_TARGET = 5
-const MEDIA_TYPES = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice'])
 
 function extractFileIds(nodes) {
   const single = nodes.map(n => n.typeData?.[n.type]?.file_id).filter(Boolean)
@@ -14,14 +13,16 @@ function extractFileIds(nodes) {
   return [...new Set([...single, ...photos])]
 }
 
-function countDownloads(nodes) {
-  return nodes.reduce((acc, n) => {
-    if (!MEDIA_TYPES.has(n.type)) return acc
-    if (n.type === 'photo_choice') {
-      return acc + (n.typeData?.photo_choice?.photos ?? []).filter(p => p.fileId).length
-    }
-    return n.typeData?.[n.type]?.file_id ? acc + 1 : acc
-  }, 0)
+// Detect slow/low-memory devices to use a smaller in-memory buffer.
+// Falls back to false on browsers that don't expose these APIs (e.g. iOS Safari).
+function isWeakDevice() {
+  const mem  = navigator.deviceMemory          // GB, Chrome/Android only
+  const cpu  = navigator.hardwareConcurrency
+  const conn = navigator.connection?.effectiveType  // '2g' | 'slow-3g' | '3g' | '4g'
+  if (mem  && mem  < 2)                        return true
+  if (cpu  && cpu  < 4)                        return true
+  if (conn && (conn === '2g' || conn === 'slow-3g')) return true
+  return false
 }
 
 export default function LessonLaunchCard({ lessonId, onStart, onClose }) {
@@ -84,34 +85,47 @@ export default function LessonLaunchCard({ lessonId, onStart, onClose }) {
 function LaunchPreloader({ lessonData, onStart }) {
   const { nodes, files, title, teacherName, teacherLogo, teacherLogoCrop } = lessonData
 
-  const { blobMap, releaseBlobs } = usePlayerPreload(
-    nodes, files, [], { initialLookahead: WARMUP_TARGET }
+  // Weak device → smaller in-memory buffer during lesson (2 past + 2 ahead vs 5 + 3)
+  const weak       = isWeakDevice()
+  const bufferSize = weak ? 3 : 5
+
+  const { blobMap, readyNodeIds, warmupNodeIds, initialized, debugItems, releaseBlobs } = usePlayerPreload(
+    nodes, files, [], { initialLookahead: WARMUP_TARGET, bufferSize }
   )
 
-  // Count ALL downloadable items for the first WARMUP_TARGET media nodes
-  // (not just min(5, total) — photo_choice has 4 files for 1 node)
-  const mediaNodes     = nodes.filter(n => MEDIA_TYPES.has(n.type))
-  const targetNodes    = mediaNodes.slice(0, WARMUP_TARGET)
-  const total          = countDownloads(targetNodes) || countDownloads(nodes)
-  const ready          = Object.keys(blobMap).length
-  const clipped        = Math.min(ready, total)
-  const pct            = total > 0 ? Math.round(clipped / total * 100) : 100
-  const canStart       = clipped >= total || total === 0
+  // Progress is counted in NODES (BFS order, same as preloader).
+  // initialized=false until the hook has built its queue — prevents false "ready" flash.
+  const total      = warmupNodeIds.length
+  const readyCount = warmupNodeIds.filter(id => readyNodeIds.has(id)).length
+  const pct        = total > 0 ? Math.round(readyCount / total * 100) : 0
+  const canStart   = initialized && (readyCount >= total || total === 0)
+
+  useEffect(() => {
+    console.log('[LAUNCH] прогресс:', { readyCount, total, canStart, weak, bufferSize })
+  }, [readyCount, total, canStart]) // eslint-disable-line
+
+  useEffect(() => {
+    console.log('[LAUNCH] урок:', {
+      warmupTarget: WARMUP_TARGET,
+      weak,
+      bufferSize,
+      files: files.map(f => ({ name: f.file_name, url: f.r2Url ? 'ok' : 'НЕТ URL' })),
+    })
+  }, []) // eslint-disable-line
 
   function handleStart() {
     releaseBlobs()
     onStart({ nodes, files, blobMap, title, teacherName, teacherLogo, teacherLogoCrop })
   }
 
+  const STATUS_COLOR = { start: '#b6fe3b', ready: '#4caf50', error: '#ff5252' }
+
   return (
     <>
       <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 600 }}>{title}</h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{
-          height: 6, borderRadius: 3,
-          background: '#333', overflow: 'hidden',
-        }}>
+        <div style={{ height: 6, borderRadius: 3, background: '#333', overflow: 'hidden' }}>
           <div style={{
             height: '100%', borderRadius: 3,
             width: pct + '%',
@@ -122,9 +136,42 @@ function LaunchPreloader({ lessonData, onStart }) {
         <span style={{ color: '#888', fontSize: 12 }}>
           {canStart
             ? 'Урок готов к запуску'
-            : `Подготовка: ${clipped} / ${total} файлов`}
+            : `Подготовка: ${readyCount} / ${total} нод`}
         </span>
+        {weak && (
+          <span style={{ color: '#666', fontSize: 11 }}>
+            Режим экономии памяти (буфер {bufferSize})
+          </span>
+        )}
       </div>
+
+      {/* Debug: per-file download status */}
+      {debugItems.length > 0 && (
+        <div style={{
+          background: '#111', borderRadius: 8, padding: '8px 10px',
+          display: 'flex', flexDirection: 'column', gap: 3,
+          maxHeight: 160, overflowY: 'auto', fontSize: 11,
+        }}>
+          {debugItems.map(item => (
+            <div key={item.key} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                background: STATUS_COLOR[item.status] ?? '#555',
+              }} />
+              <span style={{ color: '#aaa', flexShrink: 0 }}>#{item.seq} {item.type}</span>
+              <span style={{ color: STATUS_COLOR[item.status] ?? '#888', fontWeight: 600 }}>
+                {item.status === 'ready'
+                  ? `✓ ${item.sizeKb} KB`
+                  : item.status === 'error'
+                  ? `✗ ${item.error}`
+                  : item.progress > 0
+                  ? `↓ ${item.progress}%`
+                  : `↓ соединение...`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <button
         onClick={handleStart}

@@ -81,10 +81,12 @@ function revokeEntry(entry) {
 }
 
 export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
-  const { initialLookahead = LOOKAHEAD, initialBlobMap = null } = opts
+  const { initialLookahead = LOOKAHEAD, initialBlobMap = null, bufferSize = CHAT_BUFFER_SIZE } = opts
   const initRef = useRef(initialBlobMap ?? {})
 
   const [blobMap, setBlobMap] = useState(() => ({ ...initRef.current }))
+  const [queueTotal, setQueueTotal] = useState(0)
+  const [readyNodeIds, setReadyNodeIds] = useState(() => new Set())
 
   // Debug overlay: one item per download, updated in place
   const debugItemsRef = useRef(new Map())
@@ -105,6 +107,9 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const inFlightRef    = useRef(0)
   const byIdRef        = useRef({})
   const startTimeRef   = useRef(Date.now())
+
+  const [warmupNodeIds, setWarmupNodeIds] = useState([])
+  const [initialized, setInitialized]     = useState(false)
 
   useEffect(() => { visibleNodesRef.current = visibleNodes }, [visibleNodes])
 
@@ -138,9 +143,16 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       .map(([id]) => id)
   }
 
+  // Returns true when all queue items for this node have a blobUrl.
+  function checkNodeReady(nodeId) {
+    const items = queueRef.current.filter(i => i.nodeId === nodeId)
+    if (!items.length) return true  // no files needed — ready immediately
+    return items.every(i => blobUrlsRef.current[i.id]?.blobUrl)
+  }
+
   async function evictFarthestIfNeeded(gen, justLoadedId) {
     let revealed = revealedEvictableFids()
-    while (revealed.length > CHAT_BUFFER_SIZE) {
+    while (revealed.length > bufferSize) {
       if (genRef.current !== gen) return
       const candidates = justLoadedId ? revealed.filter(id => id !== justLoadedId) : revealed
       if (!candidates.length) break
@@ -181,7 +193,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // ─── Download ────────────────────────────────────────────────────────────
 
   async function fetchOne(item, gen) {
-    const { id, url, nodeType, nodeSeq } = item
+    const { id, url, nodeType, nodeSeq, nodeId } = item
     const label    = `seq=${nodeSeq} type=${nodeType}`
     const startTs  = ts()
     const key      = `${nodeSeq}_${id}`
@@ -191,20 +203,40 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     }
     debugItemsRef.current.set(key, debugItem)
     pLog('PlayerPreload start:', label)
+    console.log('[PRELOAD] start', label, url.slice(-40))
     tick()
     inFlightRef.current++
 
     let blobUrl = null
     try {
       const res = await fetch(url)
+      console.log('[PRELOAD] fetch ответ', label, res.status, res.ok ? 'ok' : 'ОШИБКА')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       if (genRef.current !== gen) return
-      const blob = await res.blob()
+
+      // Stream with progress so large files show % instead of hanging silently
+      const total = Number(res.headers.get('content-length')) || 0
+      const reader = res.body.getReader()
+      const chunks = []
+      let loaded = 0
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        if (genRef.current !== gen) return
+        chunks.push(value)
+        loaded += value.length
+        if (total) {
+          debugItem.progress = Math.round(loaded / total * 100)
+          tick()
+        }
+      }
+      const blob = new Blob(chunks)
       if (genRef.current !== gen) return
       blobUrl = URL.createObjectURL(blob)
       debugItem.readyTs = ts()
       debugItem.sizeKb  = Math.round(blob.size / 1024)
       debugItem.status  = 'ready'
+      debugItem.progress = 100
       pLog('PlayerPreload ready:', label, debugItem.sizeKb, 'KB')
       tick()
     } catch (e) {
@@ -212,6 +244,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       debugItem.error   = e.message
       debugItem.readyTs = ts()
       pLog('PlayerPreload error:', label, e.message)
+      console.error('[PRELOAD] ОШИБКА', label, e)
       tick()
       inFlightRef.current--
       return
@@ -223,6 +256,11 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     // Publish blobUrl right away so modules can start playing
     blobUrlsRef.current[id] = { blobUrl, posterUrl: null }
     setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
+
+    // Mark node as ready when all its files are downloaded
+    if (checkNodeReady(nodeId)) {
+      setReadyNodeIds(prev => { const s = new Set(prev); s.add(nodeId); return s })
+    }
 
     // Evict if revealed buffer is over limit
     if (EVICT_TYPES.has(nodeType)) await evictFarthestIfNeeded(gen, id)
@@ -277,6 +315,8 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     })
     blobUrlsRef.current = { ...initRef.current }
     setBlobMap({ ...initRef.current })
+    setInitialized(false)
+    setWarmupNodeIds([])
     debugItemsRef.current = new Map()
     evictLogRef.current = []
     setEvictLog([])
@@ -288,6 +328,21 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     queueRef.current    = buildItemQueue(nodes, files)
     cursorRef.current   = 0
     inFlightRef.current = 0
+    // Count only items within the warmup gate (nodeIdx < initialLookahead)
+    const warmup = queueRef.current.filter(item => item.nodeIdx < initialLookahead).length
+    setQueueTotal(warmup || queueRef.current.length)
+    // Expose the exact node IDs being warmed up (BFS order, ≤ initialLookahead nodes)
+    const warmupIds = [...new Set(
+      queueRef.current.filter(i => i.nodeIdx < initialLookahead).map(i => i.nodeId)
+    )]
+    setWarmupNodeIds(warmupIds)
+    setInitialized(true)
+    // Nodes with no downloadable files are ready immediately
+    const nodesWithDownloads = new Set(queueRef.current.map(i => i.nodeId))
+    const autoReady = new Set(
+      nodes.filter(n => MEDIA_TYPES.has(n.type) && !nodesWithDownloads.has(n.id)).map(n => n.id)
+    )
+    setReadyNodeIds(autoReady)
 
     // If player starts with preloaded blobs, advance gate past already-cached items
     if (Object.keys(initRef.current).length > 0) {
@@ -301,11 +356,32 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     if (!queueRef.current.length || !files.length) return
 
     async function runQueue() {
+      let lastBlockLog = 0
       while (genRef.current === gen) {
-        if (cursorRef.current >= queueRef.current.length && inFlightRef.current === 0) break
+        if (cursorRef.current >= queueRef.current.length && inFlightRef.current === 0) {
+          console.log('[PRELOAD] очередь завершена, cursor=' + cursorRef.current + ' len=' + queueRef.current.length)
+          break
+        }
         const item = queueRef.current[cursorRef.current]
         const done = cursorRef.current >= queueRef.current.length
+        const atGate = !done && item && item.nodeIdx >= allowUpToRef.current && inFlightRef.current === 0
         if (done || (item && item.nodeIdx >= allowUpToRef.current) || inFlightRef.current >= CONCURRENCY) {
+          // Only log when blocked on concurrency or done — not when silently waiting at the gate
+          if (!atGate) {
+            const now = Date.now()
+            if (now - lastBlockLog > 2000) {
+              lastBlockLog = now
+              console.log('[PRELOAD] ожидание:', {
+                done,
+                cursor: cursorRef.current,
+                queueLen: queueRef.current.length,
+                nodeIdx: item?.nodeIdx,
+                allowUpTo: allowUpToRef.current,
+                inFlight: inFlightRef.current,
+                CONCURRENCY,
+              })
+            }
+          }
           await new Promise(r => setTimeout(r, POLL_MS))
           continue
         }
@@ -332,5 +408,5 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   function releaseBlobs() { blobUrlsRef.current = {} }
 
   const debugItems = [...debugItemsRef.current.values()]
-  return { blobMap, debugItems, addMsgTs, releaseBlobs, evictLog }
+  return { blobMap, queueTotal, readyNodeIds, warmupNodeIds, initialized, debugItems, addMsgTs, releaseBlobs, evictLog }
 }
