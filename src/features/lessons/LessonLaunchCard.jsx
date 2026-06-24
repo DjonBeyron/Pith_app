@@ -118,6 +118,35 @@ function LaunchPreloader({ lessonData, onStart }) {
     onStart({ nodes, files, blobMap, title, teacherName, teacherLogo, teacherLogoCrop })
   }
 
+  function downloadDebugLog() {
+    const payload = {
+      ts: new Date().toISOString(),
+      ua: navigator.userAgent,
+      device: {
+        memory: navigator.deviceMemory ?? 'n/a',
+        cpu: navigator.hardwareConcurrency ?? 'n/a',
+        conn: navigator.connection?.effectiveType ?? 'n/a',
+      },
+      weak,
+      bufferSize,
+      warmupNodeIds,
+      files: files.map(f => ({ id: f.id, name: f.file_name, hasUrl: !!f.r2Url })),
+      downloads: debugItems.map(d => ({
+        seq: d.seq, type: d.type,
+        status: d.status, httpStatus: d.httpStatus,
+        error: d.error, sizeKb: d.sizeKb,
+        startTs: d.startTs, readyTs: d.readyTs,
+        url: d.url,
+      })),
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `preload-debug-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
   const STATUS_COLOR = { start: '#b6fe3b', ready: '#4caf50', error: '#ff5252' }
 
   return (
@@ -172,6 +201,17 @@ function LaunchPreloader({ lessonData, onStart }) {
           ))}
         </div>
       )}
+
+      <button
+        onClick={downloadDebugLog}
+        style={{
+          padding: '8px 0', borderRadius: 8, border: '1px solid #444',
+          fontSize: 12, cursor: 'pointer',
+          background: 'transparent', color: '#888',
+        }}
+      >
+        Скачать лог загрузки
+      </button>
 
       <button
         onClick={handleStart}

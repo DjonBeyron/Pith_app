@@ -198,8 +198,8 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     const startTs  = ts()
     const key      = `${nodeSeq}_${id}`
     const debugItem = {
-      key, seq: nodeSeq, type: nodeType, startTs,
-      readyTs: null, sizeKb: null, msgTs: null, status: 'start', error: null,
+      key, seq: nodeSeq, type: nodeType, url, startTs,
+      readyTs: null, sizeKb: null, msgTs: null, status: 'start', error: null, httpStatus: null,
     }
     debugItemsRef.current.set(key, debugItem)
     pLog('PlayerPreload start:', label)
@@ -210,6 +210,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     let blobUrl = null
     try {
       const res = await fetch(url)
+      debugItem.httpStatus = res.status
       console.log('[PRELOAD] fetch ответ', label, res.status, res.ok ? 'ok' : 'ОШИБКА')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       if (genRef.current !== gen) return
