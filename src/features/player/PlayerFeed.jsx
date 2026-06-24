@@ -43,21 +43,28 @@ export default function PlayerFeed({ children }) {
         const hasBubble   = !!(el.querySelector('.playerMsgBubble, .stickerWrap'))
         // .pcAnswerPhoto — photo-choice response: correct/wrong sound instead of message-in
         const photoAnswer = el.querySelector('.pcAnswerPhoto')
+
+        // Bubble sound fires 60ms before animation end (at 130ms of 190ms duration).
+        // Photo-choice answer sound fires at END — needs to wait for the photo to be visible.
+        if (hasBubble && !photoAnswer) {
+          setTimeout(() => {
+            pLog('[feed] sound message-in fired (-60ms)')
+            playSound('message-in')
+          }, 130)
+        }
+
         const anim = el.animate(
           [{ transform: 'translateY(200px)' }, { transform: 'translateY(0)' }],
           { duration: 190, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
         )
-        anim.finished.then(() => {
-          pLog(`[feed] slide-in END row+${i} — hasBubble=${hasBubble} photoAnswer=${!!photoAnswer}`)
-          if (photoAnswer) {
+        if (photoAnswer) {
+          anim.finished.then(() => {
+            pLog(`[feed] slide-in END row+${i} — photoAnswer=true`)
             const snd = photoAnswer.classList.contains('pcAnswerPhotoOk') ? 'answer-correct' : 'answer-wrong'
             pLog(`[feed] sound ${snd} fired (photo answer)`)
             playSound(snd)
-          } else if (hasBubble) {
-            pLog('[feed] sound message-in fired')
-            playSound('message-in')
-          }
-        }).catch(() => {})
+          }).catch(() => {})
+        }
       })
 
       // Existing rows: FLIP — instantly push back to where they were, animate up in sync.
