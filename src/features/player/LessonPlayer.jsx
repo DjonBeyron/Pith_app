@@ -33,20 +33,57 @@ export default function LessonPlayer({
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { blobMap, addMsgTs } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
+  const { blobMap, addMsgTs, debugItems } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
 
-  const openTimeRef    = useRef(Date.now())
-  const prevVisibleRef = useRef([])
+  const openTimeRef      = useRef(Date.now())
+  const prevVisibleRef   = useRef([])
+  const nodeAppearLogRef = useRef([])
 
   useEffect(() => {
     const prevIds = new Set(prevVisibleRef.current.map(n => n.id))
     const newNodes = visibleNodes.filter(n => !prevIds.has(n.id))
     if (newNodes.length) {
       const t = `+${((Date.now() - openTimeRef.current) / 1000).toFixed(1)}`
-      newNodes.forEach(n => addMsgTs(n.seq, t))
+      newNodes.forEach(n => {
+        addMsgTs(n.seq, t)
+        const fileId = n.typeData?.[n.type]?.file_id ?? null
+        const entry  = fileId ? blobMap[fileId] : null
+        nodeAppearLogRef.current.push({
+          seq: n.seq, type: n.type, appearTs: t,
+          blobReady:   !!entry?.blobUrl,
+          blobEvicted: !!entry?.evicted,
+          blobError:   !!entry?.error,
+          hadBlob:     !!entry,
+        })
+      })
     }
     prevVisibleRef.current = visibleNodes
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function downloadPlayerDebug() {
+    const payload = {
+      ts: new Date().toISOString(),
+      ua: navigator.userAgent,
+      device: {
+        memory: navigator.deviceMemory ?? 'n/a',
+        cpu: navigator.hardwareConcurrency ?? 'n/a',
+        conn: navigator.connection?.effectiveType ?? 'n/a',
+      },
+      nodeTimeline: nodeAppearLogRef.current,
+      downloads: debugItems.map(d => ({
+        seq: d.seq, type: d.type, status: d.status,
+        httpStatus: d.httpStatus, error: d.error,
+        sizeKb: d.sizeKb, startTs: d.startTs, readyTs: d.readyTs,
+        msgTs: d.msgTs, url: d.url,
+      })),
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `player-debug-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
 
   const filesWithBlobs = useMemo(
     () => files.map(f => {
@@ -166,6 +203,19 @@ export default function LessonPlayer({
         fontSize: 9, color: 'rgba(255,255,255,0.2)', pointerEvents: 'none',
         zIndex: 9999, userSelect: 'none', whiteSpace: 'nowrap',
       }}>{APP_VERSION}: {(() => { const d = new Date(__BUILD_TIME__); return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')}` })()}</div>
+
+      {/* Debug download — always visible for diagnostics */}
+      <button
+        onClick={downloadPlayerDebug}
+        style={{
+          position: 'fixed', bottom: 80, right: 12, zIndex: 9999,
+          padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)',
+          background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.4)',
+          fontSize: 10, cursor: 'pointer', backdropFilter: 'blur(4px)',
+        }}
+      >
+        debug↓
+      </button>
     </>
   )
 }

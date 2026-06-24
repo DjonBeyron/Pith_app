@@ -6,6 +6,7 @@ export default function PhotoModule({ node, file, onDone }) {
   const [fullscreen, setFullscreen] = useState(false)
   const [intrinsic,  setIntrinsic]  = useState(null)
   const [frameDims,  setFrameDims]  = useState(null)
+  const [imgReady,   setImgReady]   = useState(false)
   const frameRef = useRef(null)
 
   const crop = node.typeData?.photo?.crop ?? { x: 0, y: 0, scale: 1 }
@@ -21,7 +22,7 @@ export default function PhotoModule({ node, file, onDone }) {
 
   const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.photo?.r2Url ?? null
 
-  useEffect(() => { setIntrinsic(null) }, [src])
+  useEffect(() => { setIntrinsic(null); setImgReady(false) }, [src])
 
   useLayoutEffect(() => {
     const el = frameRef.current
@@ -60,10 +61,10 @@ export default function PhotoModule({ node, file, onDone }) {
                 <img
                   src={src}
                   className="playerPhotoMedia"
-                  style={getMediaStyle()}
+                  style={{ ...getMediaStyle(), opacity: imgReady ? 1 : 0, transition: 'opacity 0.15s ease' }}
                   alt=""
                   draggable={false}
-                  onLoad={e => setIntrinsic({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+                  onLoad={e => { setIntrinsic({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }); setImgReady(true) }}
                 />
               </div>
               {fullscreen && (
