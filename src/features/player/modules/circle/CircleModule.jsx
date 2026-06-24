@@ -282,13 +282,13 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
             <div ref={frRef} className="circleFrame">
               <video
                 ref={vRef} src={src} poster={poster} className="circleMedia"
-                style={{ ...videoStyle, opacity: videoVisible ? 1 : 0 }}
+                style={videoStyle}
                 playsInline autoPlay muted loop preload="auto"
                 onLoadedMetadata={e => {
                   const v = e.currentTarget
                   setIntr({ w: v.videoWidth, h: v.videoHeight })
+                  setVideoVisible(true)
                 }}
-                onCanPlay={() => setVideoVisible(true)}
                 onPlaying={handlePlaying}
                 onEnded={handleEnded}
               />

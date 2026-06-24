@@ -17,7 +17,6 @@ export default function VideoModule({ node, file, onDone }) {
   const fsOpenRef   = useRef(false)
   const tapCooldown = useRef(false)
 
-  const [videoReady, setVideoReady] = useState(false)
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
   useEffect(() => {
@@ -33,7 +32,6 @@ export default function VideoModule({ node, file, onDone }) {
   useEffect(() => {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null')
     setIntrinsic(null)
-    setVideoReady(false)
     doneFiredRef.current = false
     if (progressRef.current) progressRef.current.style.width = '0%'
   }, [src])
@@ -183,14 +181,13 @@ export default function VideoModule({ node, file, onDone }) {
               <div ref={frameRef} className="playerVideoCropFrame" onClick={handleTap}>
                 <video
                   ref={videoRef} src={src} poster={poster} className="playerVideoMedia"
-                  style={{ ...getMediaStyle(), pointerEvents: 'none', opacity: videoReady ? 1 : 0, transition: 'opacity 0.15s ease' }}
+                  style={{ ...getMediaStyle(), pointerEvents: 'none' }}
                   playsInline autoPlay muted loop preload="auto"
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
                     pLog('VideoModule meta rs=', v.readyState)
                   }}
-                  onCanPlay={() => setVideoReady(true)}
                   onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
                 />
                 <MutedIcon />

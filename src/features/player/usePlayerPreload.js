@@ -248,26 +248,28 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       return
     }
 
-    // Release download slot immediately — poster runs in background, doesn't block queue
+    // Release download slot — poster capture runs here but doesn't block the queue
     inFlightRef.current--
 
-    // Publish blobUrl right away so modules can start playing
+    // Publish blobUrl so already-visible modules can start using it immediately
     blobUrlsRef.current[id] = { blobUrl, posterUrl: null }
     setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
 
-    // Mark node as ready when all its files are downloaded
-    if (checkNodeReady(nodeId)) {
-      setReadyNodeIds(prev => { const s = new Set(prev); s.add(nodeId); return s })
-    }
-
-    // Evict if revealed buffer is over limit
     if (EVICT_TYPES.has(nodeType)) await evictFarthestIfNeeded(gen, id)
 
-    if (!POSTER_TYPES.has(nodeType)) return
+    if (!POSTER_TYPES.has(nodeType)) {
+      // Non-poster types: mark node ready immediately after blob
+      if (checkNodeReady(nodeId)) {
+        setReadyNodeIds(prev => { const s = new Set(prev); s.add(nodeId); return s })
+      }
+      return
+    }
 
+    // POSTER_TYPES (video, circle, sticker): capture still frame BEFORE marking node ready.
+    // This guarantees that when the node appears in chat, file.posterUrl is already set
+    // and the native <video poster=...> attribute shows a still frame during the slide-in animation.
     const posterUrl = await capturePosterFrame(blobUrl, 4000)
     if (genRef.current !== gen) {
-      // Only revoke if we still own the blob
       if (blobUrlsRef.current[id]) URL.revokeObjectURL(blobUrl)
       if (posterUrl) URL.revokeObjectURL(posterUrl)
       return
@@ -275,6 +277,10 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     if (posterUrl) {
       blobUrlsRef.current[id].posterUrl = posterUrl
       setBlobMap(prev => ({ ...prev, [id]: { ...prev[id], posterUrl } }))
+    }
+    // Now mark ready — poster is guaranteed to be in blobMap
+    if (checkNodeReady(nodeId)) {
+      setReadyNodeIds(prev => { const s = new Set(prev); s.add(nodeId); return s })
     }
   }
 
