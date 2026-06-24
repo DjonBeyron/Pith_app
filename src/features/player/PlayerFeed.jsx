@@ -38,7 +38,7 @@ export default function PlayerFeed({ children }) {
       newRows.forEach(el => {
         el.animate(
           [{ transform: 'translateY(200px)' }, { transform: 'translateY(0)' }],
-          { duration: 380, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
+          { duration: 190, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
         )
       })
 
@@ -48,7 +48,7 @@ export default function PlayerFeed({ children }) {
         existingRows.forEach(el => {
           el.animate(
             [{ transform: `translateY(${shiftPx}px)` }, { transform: 'translateY(0)' }],
-            { duration: 380, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
+            { duration: 190, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
           )
         })
       }
