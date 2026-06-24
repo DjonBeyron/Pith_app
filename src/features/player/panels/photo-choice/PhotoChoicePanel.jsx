@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { playSound } from '../../../../shared/lib/sounds.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 const PHOTO_COLORS = [
   '#6366f1','#ec4899','#f59e0b','#10b981',
@@ -57,6 +59,8 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
   }, []) // eslint-disable-line
 
   useEffect(() => {
+    pLog('[photo-choice] panel mount → sound message-in')
+    playSound('message-in')
     const id = requestAnimationFrame(() => setShow(true))
     return () => cancelAnimationFrame(id)
   }, [])

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { loadScript } from '../../shared/lib/lessonsApi.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
+import { unlockAudio } from '../../shared/lib/sounds.js'
 
 const WARMUP_TARGET = 5
 
@@ -130,6 +131,9 @@ function LaunchPreloader({ lessonData, onStart }) {
   const canStart    = initialized && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
 
   function handleStart() {
+    // Unlock iOS Safari audio decode synchronously in user gesture context.
+    // Without this, first playSound() from setTimeout has ~700ms latency on iOS.
+    unlockAudio()
     releaseBlobs()
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
     const logoForPlayer = logoBlobRef.current ?? teacherLogo
