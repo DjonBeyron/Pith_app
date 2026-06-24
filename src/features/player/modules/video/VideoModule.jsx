@@ -68,13 +68,17 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function getFsMediaStyle() {
-    const fw = window.innerWidth
-    const fh = window.innerHeight
-    // Scale crop offsets from inline-frame pixel space to fullscreen pixel space.
-    // x and y scale independently because the aspect ratios differ.
-    const scaleX = frameDims ? fw / frameDims.w : 1
-    const scaleY = frameDims ? fh / frameDims.h : 1
-    return calcCropStyle(fw, fh, crop.x * scaleX, crop.y * scaleY)
+    // Fill the fixed container completely, then apply pan/zoom from crop.
+    // object-fit:cover handles aspect ratio; no need to compute exact pixel sizes.
+    const scaleX = frameDims ? window.innerWidth  / frameDims.w : 1
+    const scaleY = frameDims ? window.innerHeight / frameDims.h : 1
+    return {
+      position: 'absolute', inset: 0,
+      width: '100%', height: '100%',
+      objectFit: 'cover',
+      transform: `translate(${crop.x * scaleX}px, ${crop.y * scaleY}px) scale(${crop.scale})`,
+      transformOrigin: 'center center',
+    }
   }
 
   function fireDone() {
@@ -104,7 +108,6 @@ export default function VideoModule({ node, file, onDone }) {
     setTimeout(() => { tapCooldown.current = false }, 1000)
 
     pLog('VideoModule: handleTap → open FS, revisit=', doneFiredRef.current)
-    videoRef.current?.pause()
     setFsSrc(src)
     fsOpenRef.current = true
     setFsVisible(true)
