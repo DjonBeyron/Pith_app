@@ -120,6 +120,13 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
 
   function handleTap() {
     if (animatingRef.current || collapseTimer.current) return
+    // Block tap while feed is animating new messages (190ms slide-in)
+    const feedInner = wrapRef.current?.closest('.playerFeedInner')
+    if (feedInner) {
+      const feedAnimating = [...feedInner.querySelectorAll('.playerMsgRow')]
+        .some(el => el.getAnimations().some(a => a.playState === 'running'))
+      if (feedAnimating) return
+    }
     if (expandedRef.current) { collapse(); return }
 
     const s = dims?.w ?? getSmallPx()
