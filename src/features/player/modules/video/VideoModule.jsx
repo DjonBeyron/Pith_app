@@ -8,7 +8,9 @@ export default function VideoModule({ node, file, onDone }) {
   const [intrinsic, setIntrinsic] = useState(null)
   const [frameDims, setFrameDims] = useState(null)
   const [fsVisible, setFsVisible] = useState(false)
-  const [fsSrc, setFsSrc]        = useState(null)
+  const [fsSrc, setFsSrc]         = useState(null)
+  const [fsThumb, setFsThumb]     = useState(null)  // canvas snapshot shown while FS video loads
+  const [fsReady, setFsReady]     = useState(false)
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
   const frameRef    = useRef(null)
@@ -91,6 +93,24 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
+  // Capture current frame of inline video as a JPEG data URL.
+  // Shows instantly as a cover while the FS video element loads.
+  function captureThumb() {
+    const v = videoRef.current
+    if (!v || !v.videoWidth) return null
+    try {
+      const c = document.createElement('canvas')
+      c.width = v.videoWidth; c.height = v.videoHeight
+      c.getContext('2d').drawImage(v, 0, 0)
+      const dataUrl = c.toDataURL('image/jpeg', 0.85)
+      pLog('VideoModule: thumb captured', v.videoWidth + 'x' + v.videoHeight)
+      return dataUrl
+    } catch (e) {
+      pLog('VideoModule: thumb capture failed', e.message)
+      return null
+    }
+  }
+
   function fireDone() {
     if (doneFiredRef.current) return
     doneFiredRef.current = true
@@ -117,14 +137,13 @@ export default function VideoModule({ node, file, onDone }) {
     tapCooldown.current = true
     setTimeout(() => { tapCooldown.current = false }, 1000)
 
-    const iv = videoRef.current
-    pLog('VideoModule: tap → open FS',
-      'revisit=', doneFiredRef.current,
-      'inline.paused=', iv?.paused,
-      'inline.readyState=', iv?.readyState,
+    pLog('VideoModule: tap → open FS revisit=', doneFiredRef.current,
+      'inline.readyState=', videoRef.current?.readyState,
       'poster=', poster ? 'yes' : 'no',
-      'src.type=', src?.startsWith('blob:') ? 'blob' : 'url',
     )
+    const thumb = captureThumb()
+    setFsThumb(thumb)
+    setFsReady(false)
     setFsSrc(src)
     fsOpenRef.current = true
     setFsVisible(true)
@@ -135,18 +154,22 @@ export default function VideoModule({ node, file, onDone }) {
     if (!fsSrc) return
     const fs = fsVideoRef.current
     if (!fs) return
-    pLog('VideoModule: fsSrc set → fs.readyState=', fs.readyState,
-      'fs.videoWidth=', fs.videoWidth, 'poster=', fs.poster ? 'yes' : 'no')
+    pLog('VideoModule: fsSrc set → fs.readyState=', fs.readyState)
     if (progressRef.current) progressRef.current.style.width = '0%'
     fs.currentTime = 0
     fs.muted = false
     startRaf()
     fs.play().catch(() => {
-      pLog('VideoModule: FS unmuted play failed → retry muted')
+      pLog('VideoModule: FS unmuted failed → muted')
       fs.muted = true
-      fs.play().catch(err => pLog('VideoModule: FS muted play failed:', err.message))
+      fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
     })
   }, [fsSrc]) // eslint-disable-line
+
+  function handleFsCanPlay() {
+    pLog('VideoModule: FS onCanPlay → show video, hide thumb')
+    setFsReady(true)
+  }
 
   function closeFs() {
     if (!fsOpenRef.current) return
@@ -161,6 +184,8 @@ export default function VideoModule({ node, file, onDone }) {
     fsVideoRef.current?.pause()
     setFsVisible(false)
     setFsSrc(null)
+    setFsThumb(null)
+    setFsReady(false)
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
     if (v) { v.muted = true; v.play().catch(() => {}) }
@@ -210,12 +235,20 @@ export default function VideoModule({ node, file, onDone }) {
           style={getFsMediaStyle()}
           onLoadStart={() => pLog('VideoModule: FS onLoadStart')}
           onLoadedData={() => pLog('VideoModule: FS onLoadedData rs=', fsVideoRef.current?.readyState)}
-          onCanPlay={() => pLog('VideoModule: FS onCanPlay')}
+          onCanPlay={handleFsCanPlay}
           onPlaying={() => pLog('VideoModule: FS onPlaying')}
           onWaiting={() => pLog('VideoModule: FS onWaiting')}
           onEnded={handleFsEnded}
           onError={e => pLog('VideoModule: FS onError code=', e.currentTarget.error?.code)}
         />
+        {/* Snapshot of inline video frame — covers the FS video until it's ready to play */}
+        {fsVisible && fsThumb && !fsReady && (
+          <img
+            src={fsThumb}
+            alt=""
+            style={getFsMediaStyle()}
+          />
+        )}
       </div>
       {fsVisible && (
         <div
