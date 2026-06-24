@@ -31,7 +31,7 @@ export default function PlayerFeed({ children }) {
         // As it animates to translateY(0) it enters from the bottom — always at opacity:1.
         el.animate(
           [{ transform: 'translateY(200px)' }, { transform: 'translateY(0)' }],
-          { duration: 400, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' },
+          { duration: 380, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
         )
       })
     }
