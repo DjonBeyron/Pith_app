@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { downloadPlayerLog, clearPlayerLog, pLog, setDebug } from '../../shared/lib/debug.js'
+import { clearPlayerLog, pLog, setDebug } from '../../shared/lib/debug.js'
+import { preloadSounds } from '../../shared/lib/sounds.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
 const CROP_FRAME  = 80
 const AVATAR_SIZE = 36
 
-export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo, teacherLogoCrop }) {
+export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo, teacherLogoCrop, onDownloadLog }) {
   const [intrinsic, setIntrinsic] = useState(null)
 
   useEffect(() => { setIntrinsic(null) }, [teacherLogo])
@@ -15,6 +16,7 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
     setDebug(true)
     clearPlayerLog()
     pLog('=== Player opened ===', 'v' + APP_VERSION, 'ua:', navigator.userAgent)
+    preloadSounds()
   }, [])
 
   const name    = teacherName || 'Учитель'
@@ -72,7 +74,7 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
       {title && <span className="playerTopBarLesson">{title}</span>}
       <button
         className="playerTopBarDebugBtn"
-        onClick={downloadPlayerLog}
+        onClick={onDownloadLog}
         title="Скачать лог"
         aria-label="Скачать лог"
       >⬇ лог</button>

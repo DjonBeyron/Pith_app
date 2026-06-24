@@ -10,6 +10,7 @@ import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
+import { getPlayerLines } from '../../shared/lib/debug.js'
 
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',
@@ -60,27 +61,31 @@ export default function LessonPlayer({
     prevVisibleRef.current = visibleNodes
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function downloadPlayerDebug() {
-    const payload = {
-      ts: new Date().toISOString(),
-      ua: navigator.userAgent,
-      device: {
-        memory: navigator.deviceMemory ?? 'n/a',
-        cpu: navigator.hardwareConcurrency ?? 'n/a',
-        conn: navigator.connection?.effectiveType ?? 'n/a',
-      },
-      nodeTimeline: nodeAppearLogRef.current,
-      downloads: debugItems.map(d => ({
-        seq: d.seq, type: d.type, status: d.status,
-        httpStatus: d.httpStatus, error: d.error,
-        sizeKb: d.sizeKb, startTs: d.startTs, readyTs: d.readyTs,
-        msgTs: d.msgTs, url: d.url,
-      })),
-    }
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  function downloadCombinedLog() {
+    const ts = new Date().toISOString()
+    const lines = [
+      `=== Pithy Player Debug Log ===`,
+      `ts: ${ts}`,
+      `ua: ${navigator.userAgent}`,
+      `device: memory=${navigator.deviceMemory ?? 'n/a'} cpu=${navigator.hardwareConcurrency ?? 'n/a'} conn=${navigator.connection?.effectiveType ?? 'n/a'}`,
+      ``,
+      `--- Player log (pLog) ---`,
+      ...getPlayerLines(),
+      ``,
+      `--- Node timeline ---`,
+      ...nodeAppearLogRef.current.map(n =>
+        `seq=${n.seq} type=${n.type} at=${n.appearTs} blobReady=${n.blobReady} evicted=${n.blobEvicted} error=${n.blobError}`
+      ),
+      ``,
+      `--- Downloads ---`,
+      ...debugItems.map(d =>
+        `#${d.seq} ${d.type} ${d.status} http=${d.httpStatus ?? '-'} ${d.sizeKb ?? '-'}KB start=${d.startTs} ready=${d.readyTs} msg=${d.msgTs ?? '-'} ${d.error ?? ''}`
+      ),
+    ]
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `player-debug-${Date.now()}.json`
+    a.download = `pithy-debug-${Date.now()}.txt`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -137,6 +142,7 @@ export default function LessonPlayer({
           teacherName={teacherName}
           teacherLogo={teacherLogo}
           teacherLogoCrop={teacherLogoCrop}
+          onDownloadLog={downloadCombinedLog}
         />
         {pmNode && pinVisible && (
           <PinMessageBanner
@@ -222,18 +228,6 @@ export default function LessonPlayer({
         zIndex: 9999, userSelect: 'none', whiteSpace: 'nowrap',
       }}>{APP_VERSION}: {(() => { const d = new Date(__BUILD_TIME__); return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')}` })()}</div>
 
-      {/* Debug download — always visible for diagnostics */}
-      <button
-        onClick={downloadPlayerDebug}
-        style={{
-          position: 'fixed', bottom: 80, right: 12, zIndex: 9999,
-          padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)',
-          background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.4)',
-          fontSize: 10, cursor: 'pointer', backdropFilter: 'blur(4px)',
-        }}
-      >
-        debug↓
-      </button>
     </>
   )
 }

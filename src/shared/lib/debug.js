@@ -60,6 +60,10 @@ export function clearPlayerLog() {
   playerLines.length = 0
 }
 
+export function getPlayerLines() {
+  return [...playerLines]
+}
+
 export function downloadPlayerLog() {
   const text = playerLines.length
     ? playerLines.join('\n')
