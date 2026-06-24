@@ -40,14 +40,20 @@ export default function PlayerFeed({ children }) {
       newRows.forEach((el, i) => {
         pLog(`[feed] slide-in START row+${i} (rowCount=${rowCount})`)
         // .stickerWrap — sticker module has no playerMsgBubble, uses its own container
-        const hasBubble = !!(el.querySelector('.playerMsgBubble, .stickerWrap'))
+        const hasBubble   = !!(el.querySelector('.playerMsgBubble, .stickerWrap'))
+        // .pcAnswerPhoto — photo-choice response: correct/wrong sound instead of message-in
+        const photoAnswer = el.querySelector('.pcAnswerPhoto')
         const anim = el.animate(
           [{ transform: 'translateY(200px)' }, { transform: 'translateY(0)' }],
           { duration: 190, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
         )
         anim.finished.then(() => {
-          pLog(`[feed] slide-in END row+${i} — hasBubble=${hasBubble}`)
-          if (hasBubble) {
+          pLog(`[feed] slide-in END row+${i} — hasBubble=${hasBubble} photoAnswer=${!!photoAnswer}`)
+          if (photoAnswer) {
+            const snd = photoAnswer.classList.contains('pcAnswerPhotoOk') ? 'answer-correct' : 'answer-wrong'
+            pLog(`[feed] sound ${snd} fired (photo answer)`)
+            playSound(snd)
+          } else if (hasBubble) {
             pLog('[feed] sound message-in fired')
             playSound('message-in')
           }
