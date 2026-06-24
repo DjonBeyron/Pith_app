@@ -143,11 +143,11 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       .map(([id]) => id)
   }
 
-  // Returns true when all queue items for this node have a blobUrl.
+  // Returns true when all queue items for this node have a blobUrl or errored out.
   function checkNodeReady(nodeId) {
     const items = queueRef.current.filter(i => i.nodeId === nodeId)
-    if (!items.length) return true  // no files needed — ready immediately
-    return items.every(i => blobUrlsRef.current[i.id]?.blobUrl)
+    if (!items.length) return true
+    return items.every(i => blobUrlsRef.current[i.id]?.blobUrl || blobUrlsRef.current[i.id]?.error)
   }
 
   async function evictFarthestIfNeeded(gen, justLoadedId) {
@@ -245,8 +245,13 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       debugItem.readyTs = ts()
       pLog('PlayerPreload error:', label, e.message)
       console.error('[PRELOAD] ОШИБКА', label, e)
+      blobUrlsRef.current[id] = { blobUrl: null, error: true }
       tick()
       inFlightRef.current--
+      // Mark node ready even on error so progress bar doesn't freeze
+      if (checkNodeReady(nodeId)) {
+        setReadyNodeIds(prev => { const s = new Set(prev); s.add(nodeId); return s })
+      }
       return
     }
 
