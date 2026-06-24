@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
@@ -42,10 +43,12 @@ export default function VideoModule({ node, file, onDone }) {
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
-  function calcCropStyle(fw, fh) {
+  function calcCropStyle(fw, fh, cx, cy) {
+    const ox = cx ?? crop.x
+    const oy = cy ?? crop.y
     if (!intrinsic) return {
       width: '100%', height: '100%', objectFit: 'cover',
-      transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
+      transform: `translate(${ox}px,${oy}px) scale(${crop.scale})`,
       transformOrigin: 'center center',
     }
     const ma = intrinsic.w / intrinsic.h
@@ -54,7 +57,7 @@ export default function VideoModule({ node, file, onDone }) {
     return {
       position: 'absolute', left: '50%', top: '50%',
       width: d.w + 'px', height: d.h + 'px',
-      transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale})`,
+      transform: `translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px)) scale(${crop.scale})`,
       transformOrigin: 'center center',
     }
   }
@@ -65,23 +68,13 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function getFsMediaStyle() {
-    // Масштабируем crop.x/y пропорционально — они заданы в пикселях инлайн-фрейма
-    const posScale = frameDims ? window.innerWidth / frameDims.w : 1
-    const fsCrop = { x: crop.x * posScale, y: crop.y * posScale, scale: crop.scale }
-    const fw = window.innerWidth, fh = window.innerHeight
-    if (!intrinsic) return {
-      width: '100%', height: '100%', objectFit: 'cover',
-      transform: `translate(${fsCrop.x}px,${fsCrop.y}px) scale(${fsCrop.scale})`,
-      transformOrigin: 'center center',
-    }
-    const ma = intrinsic.w / intrinsic.h, fa = fw / fh
-    const d = ma > fa ? { w: fh * ma, h: fh } : { w: fw, h: fw / ma }
-    return {
-      position: 'absolute', left: '50%', top: '50%',
-      width: d.w + 'px', height: d.h + 'px',
-      transform: `translate(calc(-50% + ${fsCrop.x}px), calc(-50% + ${fsCrop.y}px)) scale(${fsCrop.scale})`,
-      transformOrigin: 'center center',
-    }
+    const fw = window.innerWidth
+    const fh = window.innerHeight
+    // Scale crop offsets from inline-frame pixel space to fullscreen pixel space.
+    // x and y scale independently because the aspect ratios differ.
+    const scaleX = frameDims ? fw / frameDims.w : 1
+    const scaleY = frameDims ? fh / frameDims.h : 1
+    return calcCropStyle(fw, fh, crop.x * scaleX, crop.y * scaleY)
   }
 
   function fireDone() {
@@ -112,14 +105,12 @@ export default function VideoModule({ node, file, onDone }) {
 
     pLog('VideoModule: handleTap → open FS, revisit=', doneFiredRef.current)
     videoRef.current?.pause()
-    // Синхронно показываем до React-рендера — чтобы не было мелькания
-    if (fsVideoRef.current) fsVideoRef.current.style.opacity = '1'
     setFsSrc(src)
     fsOpenRef.current = true
     setFsVisible(true)
   }
 
-  // Когда fsSrc появился → воспроизвести (без скрытия — видео уже прогружено)
+  // Когда fsSrc появился → воспроизвести
   useEffect(() => {
     if (!fsSrc) return
     const fs = fsVideoRef.current
@@ -143,8 +134,6 @@ export default function VideoModule({ node, file, onDone }) {
       pLog('VideoModule: closeFs watched=', Math.round(watched * 100) + '%')
       if (watched >= 0.2) fireDone()
     }
-    // Синхронно скрываем до React-рендера — иначе видео остаётся поверх чата
-    if (fsVideoRef.current) fsVideoRef.current.style.opacity = '0'
     fsOpenRef.current = false
     stopRaf()
     fsVideoRef.current?.pause()
@@ -157,7 +146,6 @@ export default function VideoModule({ node, file, onDone }) {
 
   function handleFsEnded() {
     if (!fsOpenRef.current) return
-    // Повторный просмотр — зациклить, не закрывать
     if (doneFiredRef.current) {
       pLog('VideoModule: FS ended, revisit → loop from start')
       const fs = fsVideoRef.current
@@ -172,6 +160,42 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   useEffect(() => () => stopRaf(), [])
+
+  // Fullscreen overlay — portalled to document.body so that position:fixed is
+  // relative to the viewport, not the PlayerFeed's scaleY(-1) containing block.
+  const fsPortal = createPortal(
+    <>
+      {fsVisible && (
+        <div className="videoFsBg" onClick={closeFs} style={{ zIndex: 251 }} />
+      )}
+      {/* Video container always in DOM so fsVideoRef is always attached */}
+      <div style={{
+        position: 'fixed', inset: 0,
+        zIndex: fsVisible ? 252 : -1,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+      }}>
+        <video
+          ref={fsVideoRef}
+          src={fsSrc ?? undefined}
+          playsInline
+          preload="none"
+          style={getFsMediaStyle()}
+          onEnded={handleFsEnded}
+          onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
+        />
+      </div>
+      {fsVisible && (
+        <div className="videoFsControls" style={{ zIndex: 253 }}>
+          <button className="videoFullClose" onClick={closeFs}>×</button>
+          <div className="videoFsProgressTrack">
+            <div ref={progressRef} className="videoFsProgressBar" style={{ width: '0%' }} />
+          </div>
+        </div>
+      )}
+    </>,
+    document.body,
+  )
 
   return (
     <div className="playerMsgRow">
@@ -192,36 +216,7 @@ export default function VideoModule({ node, file, onDone }) {
                 />
                 <MutedIcon />
               </div>
-
-              {fsVisible && <div className="videoFsBg" />}
-
-              {/* fsSrc=null пока FS закрыт — браузер не играет */}
-              {/* Контейнер клиппирует crop-overflow; opacity управляется через ref */}
-              <div style={{
-                position: 'fixed', inset: 0,
-                zIndex: fsVisible ? 252 : -1,
-                overflow: 'hidden',
-                pointerEvents: 'none',
-              }}>
-                <video
-                  ref={fsVideoRef}
-                  src={fsSrc ?? undefined}
-                  playsInline
-                  preload="none"
-                  style={getFsMediaStyle()}
-                  onEnded={handleFsEnded}
-                  onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
-                />
-              </div>
-
-              {fsVisible && (
-                <div className="videoFsControls" style={{ zIndex: 253 }}>
-                  <button className="videoFullClose" onClick={closeFs}>×</button>
-                  <div className="videoFsProgressTrack">
-                    <div ref={progressRef} className="videoFsProgressBar" style={{ width: '0%' }} />
-                  </div>
-                </div>
-              )}
+              {fsPortal}
             </>
           : <div className="playerMediaPlaceholder">Видео не загружено</div>
         }
