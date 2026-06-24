@@ -15,13 +15,10 @@ export function capturePosterFrame(blobUrl, timeoutMs = 4000) {
       video.load()
     }
 
-    video.addEventListener('loadeddata', () => {
-      video.currentTime = Math.min(0.1, video.duration || 0.1)
-    })
-    video.addEventListener('seeked', () => {
+    function captureFrame() {
       try {
         const canvas = document.createElement('canvas')
-        canvas.width = video.videoWidth || 320
+        canvas.width  = video.videoWidth  || 320
         canvas.height = video.videoHeight || 240
         canvas.getContext('2d').drawImage(video, 0, 0)
         canvas.toBlob(blob => {
@@ -32,7 +29,19 @@ export function capturePosterFrame(blobUrl, timeoutMs = 4000) {
         cleanup()
         resolve(null)
       }
+    }
+
+    // Primary: draw frame directly at loadeddata — no seeking required.
+    // Seeking is unreliable on Android (seeked event may not fire).
+    video.addEventListener('loadeddata', () => {
+      if (video.videoWidth > 0) {
+        captureFrame()
+      } else {
+        // Dimensions not yet known — try a short seek to force decode
+        video.currentTime = Math.min(0.1, video.duration || 0.1)
+      }
     })
+    video.addEventListener('seeked', captureFrame)
     video.addEventListener('error', () => { cleanup(); resolve(null) })
     video.src = blobUrl
   })

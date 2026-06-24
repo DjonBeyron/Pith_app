@@ -352,6 +352,18 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       }
     }
 
+    // Safety net: if warmup nodes are still not ready after 10s, force-unblock the
+    // progress bar. Handles capturePosterFrame hangs, gen-mismatch early-returns, etc.
+    const SAFETY_MS = 10_000
+    const safetyTimer = setTimeout(() => {
+      if (genRef.current !== gen) return
+      setReadyNodeIds(prev => {
+        const next = new Set(prev)
+        warmupIds.forEach(id => next.add(id))
+        return next
+      })
+    }, SAFETY_MS)
+
     if (!queueRef.current.length || !files.length) return
 
     async function runQueue() {
@@ -372,7 +384,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       }
     }
     runQueue()
-    return () => { genRef.current++ }
+    return () => { genRef.current++; clearTimeout(safetyTimer) }
   }, [nodes, files]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
