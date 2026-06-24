@@ -26,7 +26,7 @@ export default function PlayerFeed({ children }) {
         const doAnimate = () => {
           el.style.opacity = ''
           el.animate(
-            [{ opacity: '0', transform: 'translateY(60px)' }, { opacity: '1', transform: 'translateY(0)' }],
+            [{ opacity: '1', transform: 'translateY(60px)' }, { opacity: '1', transform: 'translateY(0)' }],
             { duration: 400, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' },
           )
         }
