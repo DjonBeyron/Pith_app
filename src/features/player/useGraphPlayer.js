@@ -16,6 +16,7 @@ function findEntry(nodes) {
 
 export function useGraphPlayer(nodes) {
   const [visibleNodes, setVisibleNodes] = useState([])
+  const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
 
   const nodeMapRef = useRef({})
@@ -41,8 +42,10 @@ export function useGraphPlayer(nodes) {
   scheduleReveal.current = (nextNodeId) => {
     const next = nodeMapRef.current[nextNodeId]
     if (!next) return
+    setPendingNode(next)   // pre-render node off-screen so video can decode
     setIsWaiting(true)
     addTimer(() => {
+      setPendingNode(null)
       setVisibleNodes(prev =>
         prev.some(n => n.id === next.id) ? prev : [...prev, next]
       )
@@ -101,6 +104,7 @@ export function useGraphPlayer(nodes) {
   useEffect(() => {
     if (!nodes.length) {
       setVisibleNodes([])
+      setPendingNode(null)
       setIsWaiting(false)
       clearTimers()
       return
@@ -115,5 +119,5 @@ export function useGraphPlayer(nodes) {
     return clearTimers
   }, [nodesKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { visibleNodes, isWaiting, onNodeDone }
+  return { visibleNodes, pendingNode, isWaiting, onNodeDone }
 }

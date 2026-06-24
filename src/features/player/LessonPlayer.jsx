@@ -18,7 +18,7 @@ export default function LessonPlayer({
   onClose,
 }) {
   const [files, setFiles] = useState(propFiles)
-  const { visibleNodes, onNodeDone } = useGraphPlayer(nodes)
+  const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes)
 
   useEffect(() => {
     const singleIds = nodes.map(n => n.typeData?.[n.type]?.file_id).filter(Boolean)
@@ -145,28 +145,46 @@ export default function LessonPlayer({
           />
         )}
         <PlayerFeed>
-          {visibleNodes.map(node => {
-            const fileId = node.typeData?.[node.type]?.file_id ?? null
-            const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
-            return (
-              <PlayerMessage
-                key={node.id}
-                node={node}
-                file={file}
-                lessonFiles={filesWithBlobs}
-                lessonNodes={nodes}
-                teacherName={teacherName}
-                photoChoiceState={photoChoiceStates[node.id] ?? null}
-                wordChoiceState={wordChoiceStates[node.id] ?? null}
-                allWordChoiceStates={wordChoiceStates}
-                allPhotoChoiceStates={photoChoiceStates}
-                allPhraseStates={phraseStates}
-                phraseState={phraseStates[node.id] ?? null}
-                bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight}
-                onDone={() => onNodeDone(node.id)}
-              />
-            )
-          })}
+          {(() => {
+            // Pending node rendered with the same key in the feed so React preserves the
+            // DOM element (and its decoded video frame) when it transitions to active.
+            const feedNodes = [
+              ...visibleNodes,
+              ...(pendingNode && !visibleNodes.some(v => v.id === pendingNode.id)
+                ? [pendingNode] : []),
+            ]
+            return feedNodes.map(node => {
+              const isPending = pendingNode?.id === node.id && !visibleNodes.some(v => v.id === node.id)
+              const fileId = node.typeData?.[node.type]?.file_id ?? null
+              const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
+              return (
+                <div
+                  key={node.id}
+                  data-pending={isPending ? 'true' : undefined}
+                  style={isPending ? {
+                    position: 'fixed', bottom: '-100vh', left: 0, width: '100%',
+                    pointerEvents: 'none', visibility: 'hidden',
+                  } : undefined}
+                >
+                  <PlayerMessage
+                    node={node}
+                    file={file}
+                    lessonFiles={filesWithBlobs}
+                    lessonNodes={nodes}
+                    teacherName={teacherName}
+                    photoChoiceState={photoChoiceStates[node.id] ?? null}
+                    wordChoiceState={wordChoiceStates[node.id] ?? null}
+                    allWordChoiceStates={wordChoiceStates}
+                    allPhotoChoiceStates={photoChoiceStates}
+                    allPhraseStates={phraseStates}
+                    phraseState={phraseStates[node.id] ?? null}
+                    bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight}
+                    onDone={isPending ? () => {} : () => onNodeDone(node.id)}
+                  />
+                </div>
+              )
+            })
+          })()}
           {visibleNodes.length === 0 && (
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}

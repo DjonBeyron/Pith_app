@@ -13,7 +13,11 @@ export default function PlayerFeed({ children }) {
     const inner = innerRef.current
     if (!inner) return
 
-    const rows     = inner.querySelectorAll('.playerMsgRow')
+    // Exclude rows inside [data-pending] wrappers — they are pre-rendered off-screen.
+    // When a pending node becomes active its wrapper loses data-pending, and the same
+    // DOM element enters the active count for the first time → animation fires.
+    const rows = [...inner.querySelectorAll('.playerMsgRow')]
+      .filter(el => !el.closest('[data-pending]'))
     const rowCount = rows.length
     if (rowCount === prevRowCount.current) return
 
@@ -32,8 +36,7 @@ export default function PlayerFeed({ children }) {
       })
     }
 
-    const next = new Set()
-    rows.forEach(el => next.add(el))
+    const next = new Set(rows)
     prevElsRef.current   = next
     prevRowCount.current = rowCount
   })
