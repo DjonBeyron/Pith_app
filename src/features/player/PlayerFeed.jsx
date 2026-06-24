@@ -22,27 +22,13 @@ export default function PlayerFeed({ children }) {
     if (rowCount > prevRowCount.current) {
       rows.forEach(el => {
         if (prevEls.has(el)) return
-
-        const doAnimate = () => {
-          el.style.opacity = ''
-          el.animate(
-            [{ opacity: '1', transform: 'translateY(60px)' }, { opacity: '1', transform: 'translateY(0)' }],
-            { duration: 400, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' },
-          )
-        }
-
-        const video = el.querySelector('video')
-        // If a video element is present but its first frame isn't decoded yet,
-        // hold opacity:0 and wait for canplay before starting the slide-in animation.
-        // This prevents the empty-container flash during the 400ms slide.
-        // Fallback fires after 300ms so the row always appears even if canplay never fires.
-        if (video && video.src && video.readyState < 2) {
-          el.style.opacity = '0'
-          const timer = setTimeout(doAnimate, 300)
-          video.addEventListener('canplay', () => { clearTimeout(timer); doAnimate() }, { once: true })
-        } else {
-          doAnimate()
-        }
+        // 200px offset in double-flipped space = element starts below the feed viewport.
+        // fill:'backwards' holds it there from the very first paint (via useLayoutEffect).
+        // As it animates to translateY(0) it enters from the bottom — always at opacity:1.
+        el.animate(
+          [{ transform: 'translateY(200px)' }, { transform: 'translateY(0)' }],
+          { duration: 400, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' },
+        )
       })
     }
 
