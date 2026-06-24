@@ -68,18 +68,27 @@ export default function VideoModule({ node, file, onDone }) {
   }
 
   function getFsMediaStyle() {
-    // Element fills the entire viewport via inset:0.
-    // object-position pans the video *content* within the element — no element movement,
-    // so there's never empty space on any side.
-    // transform:scale zooms in from center (overflow clipped by parent).
-    const scaleX = frameDims ? window.innerWidth  / frameDims.w : 1
-    const scaleY = frameDims ? window.innerHeight / frameDims.h : 1
+    if (!intrinsic || !frameDims) {
+      return {
+        position: 'absolute', inset: 0,
+        width: '100%', height: '100%', objectFit: 'cover',
+      }
+    }
+    const sw = window.innerWidth
+    const sh = window.innerHeight
+    const ma = intrinsic.w / intrinsic.h
+    // Size the FS video element to cover the screen (same logic as calcCropStyle)
+    const faFs = sw / sh
+    const dFs = ma > faFs ? { w: sh * ma, h: sh } : { w: sw, h: sw / ma }
+    // Size the inline video element (to get the correct scale ratio)
+    const faIn = frameDims.w / frameDims.h
+    const dIn = ma > faIn ? { w: frameDims.h * ma, h: frameDims.h } : { w: frameDims.w, h: frameDims.w / ma }
+    const sx = dFs.w / dIn.w
+    const sy = dFs.h / dIn.h
     return {
-      position: 'absolute', inset: 0,
-      width: '100%', height: '100%',
-      objectFit: 'cover',
-      objectPosition: `calc(50% + ${crop.x * scaleX}px) calc(50% + ${crop.y * scaleY}px)`,
-      transform: `scale(${crop.scale})`,
+      position: 'absolute', left: '50%', top: '50%',
+      width: dFs.w + 'px', height: dFs.h + 'px',
+      transform: `translate(calc(-50% + ${crop.x * sx}px), calc(-50% + ${crop.y * sy}px)) scale(${crop.scale})`,
       transformOrigin: 'center center',
     }
   }
@@ -208,16 +217,26 @@ export default function VideoModule({ node, file, onDone }) {
           borderRadius: 6, fontFamily: 'monospace', maxWidth: 260,
           pointerEvents: 'none', whiteSpace: 'pre',
         }}>
-          {[
-            `screen: ${window.innerWidth}×${window.innerHeight}`,
-            `frameDims: ${frameDims ? `${frameDims.w}×${frameDims.h}` : 'null'}`,
-            `intrinsic: ${intrinsic ? `${intrinsic.w}×${intrinsic.h}` : 'null'}`,
-            `crop: x=${crop.x} y=${crop.y} s=${crop.scale}`,
-            `scaleX: ${frameDims ? (window.innerWidth/frameDims.w).toFixed(2) : '—'}`,
-            `scaleY: ${frameDims ? (window.innerHeight/frameDims.h).toFixed(2) : '—'}`,
-            `objPos: calc(50%+${frameDims?(crop.x*(window.innerWidth/frameDims.w)).toFixed(1):0}px)`,
-            `fsSrc: ${fsSrc ? 'set' : 'null'}`,
-          ].join('\n')}
+          {(() => {
+            const sw = window.innerWidth, sh = window.innerHeight
+            const ma = intrinsic ? intrinsic.w / intrinsic.h : null
+            const faFs = sw / sh
+            const dFs = ma ? (ma > faFs ? { w: sh * ma, h: sh } : { w: sw, h: sw / ma }) : null
+            const faIn = frameDims ? frameDims.w / frameDims.h : null
+            const dIn = (ma && frameDims) ? (ma > faIn ? { w: frameDims.h * ma, h: frameDims.h } : { w: frameDims.w, h: frameDims.w / ma }) : null
+            const sy = (dFs && dIn) ? (dFs.h / dIn.h).toFixed(3) : '—'
+            const tyPx = (dFs && dIn) ? (crop.y * dFs.h / dIn.h).toFixed(1) : '—'
+            return [
+              `screen: ${sw}×${sh}`,
+              `frameDims: ${frameDims ? `${frameDims.w}×${frameDims.h}` : 'null'}`,
+              `intrinsic: ${intrinsic ? `${intrinsic.w}×${intrinsic.h}` : 'null'}`,
+              `crop: x=${crop.x} y=${crop.y} s=${crop.scale}`,
+              `dFs: ${dFs ? `${dFs.w.toFixed(0)}×${dFs.h.toFixed(0)}` : '—'}`,
+              `dIn: ${dIn ? `${dIn.w.toFixed(0)}×${dIn.h.toFixed(0)}` : '—'}`,
+              `sy: ${sy}  ty: ${tyPx}px`,
+              `fsSrc: ${fsSrc ? 'set' : 'null'}`,
+            ].join('\n')
+          })()}
         </div>
       )}
     </>,
