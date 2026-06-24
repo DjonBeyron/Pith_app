@@ -24,16 +24,34 @@ export default function PlayerFeed({ children }) {
     const prevEls = prevElsRef.current
 
     if (rowCount > prevRowCount.current) {
-      rows.forEach(el => {
-        if (prevEls.has(el)) return
-        // 200px offset in double-flipped space = element starts below the feed viewport.
-        // fill:'backwards' holds it there from the very first paint (via useLayoutEffect).
-        // As it animates to translateY(0) it enters from the bottom — always at opacity:1.
+      const newRows      = rows.filter(el => !prevEls.has(el))
+      const existingRows = rows.filter(el =>  prevEls.has(el))
+
+      // Measure how far existing rows already jumped (layout reflow before this effect).
+      // wrapper div height + CSS gap (4px) = exact shift amount.
+      let shiftPx = 0
+      newRows.forEach(el => {
+        shiftPx += (el.parentElement?.offsetHeight ?? el.offsetHeight) + 4
+      })
+
+      // New rows: slide in from below.
+      newRows.forEach(el => {
         el.animate(
           [{ transform: 'translateY(200px)' }, { transform: 'translateY(0)' }],
           { duration: 380, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
         )
       })
+
+      // Existing rows: FLIP — instantly push back to where they were, animate up in sync.
+      // fill:'backwards' holds the start frame from first paint so there's no visible jump.
+      if (existingRows.length && shiftPx > 0) {
+        existingRows.forEach(el => {
+          el.animate(
+            [{ transform: `translateY(${shiftPx}px)` }, { transform: 'translateY(0)' }],
+            { duration: 380, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
+          )
+        })
+      }
     }
 
     const next = new Set(rows)
