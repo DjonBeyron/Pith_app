@@ -1,6 +1,7 @@
 import { pLog } from './debug.js'
 
 const cache = {}
+const skipNext = {}
 
 const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-message']
 
@@ -17,19 +18,26 @@ export function preloadSounds() {
   })
 }
 
-// Call synchronously inside a user-gesture handler (button click) to unlock iOS Safari
-// audio context. Uses throwaway Audio objects at volume=0 so cache objects are never
-// paused mid-play — avoids race where unlock's async pause() cuts off a real sound.
+// Call synchronously inside a user-gesture handler (button click) to unlock iOS Safari.
+// Plays message-in for real (volume=1) in gesture context — iOS only unlocks on audible play.
+// Sets skipNext so the first PlayerFeed message-in is suppressed (no duplicate sound).
 export function unlockAudio() {
-  ALL_SOUNDS.forEach(name => {
-    const tmp = new Audio(`/sounds/${name}.mp3`)
-    tmp.volume = 0
-    tmp.play().catch(() => {})
-  })
-  pLog('[sound] unlockAudio called')
+  if (!cache['message-in']) {
+    cache['message-in'] = new Audio('/sounds/message-in.mp3')
+    cache['message-in'].preload = 'auto'
+  }
+  cache['message-in'].currentTime = 0
+  cache['message-in'].play().catch(() => {})
+  skipNext['message-in'] = true
+  pLog('[sound] unlockAudio called — message-in pre-played, next suppressed')
 }
 
 export function playSound(name) {
+  if (skipNext[name]) {
+    delete skipNext[name]
+    pLog(`[sound] ${name} skipped (pre-played by unlock)`)
+    return
+  }
   let audio = cache[name]
   if (!audio) {
     audio = new Audio(`/sounds/${name}.mp3`)
