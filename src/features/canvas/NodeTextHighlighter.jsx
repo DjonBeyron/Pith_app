@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import { buildSpans, addHighlight, removeHighlightAt, highlightStyle } from '../../shared/lib/textHighlight.js'
 import HighlightedText from '../../shared/ui/HighlightedText.jsx'
 import { loadFavoriteColors, saveFavoriteColors } from '../../shared/api/highlightPresetsApi.js'
-import { pLog } from '../../shared/lib/debug.js'
 
 const PANEL_W    = 300
 const PRESET_COL = ['#ffeb3b', '#ff9800', '#ff5252', '#e91e63', '#b6fe3b', '#4caf50', '#00bcd4', '#2196f3', '#9c27b0']
@@ -53,8 +52,8 @@ export default function NodeTextHighlighter({ text, highlights, anchorRect, onCl
   const textRef = useRef(null)
 
   useEffect(() => {
-    loadFavoriteColors().then(list => { pLog('[TextHL] favs loaded:', list); setFavs(list) })
-  }, [])
+    loadFavoriteColors().then(setFavs)
+  }, []) // eslint-disable-line
 
   const spaceRight = window.innerWidth - anchorRect.right - 12
   const left = spaceRight >= PANEL_W ? anchorRect.right + 8 : anchorRect.left - PANEL_W - 8
@@ -85,7 +84,6 @@ export default function NodeTextHighlighter({ text, highlights, anchorRect, onCl
   }
 
   function commit(next) {
-    pLog('[TextHL] highlights updated, count=', next.length, JSON.stringify(next))
     setLocalHL(next)
     onChange(next)
   }
@@ -107,7 +105,6 @@ export default function NodeTextHighlighter({ text, highlights, anchorRect, onCl
     const next = favs.includes(c) ? favs.filter(x => x !== c) : [...favs, c]
     setFavs(next)
     await saveFavoriteColors(next)
-    pLog('[TextHL] favs saved:', next)
   }
 
 
