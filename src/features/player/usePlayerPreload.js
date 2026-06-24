@@ -203,9 +203,15 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     tick()
     inFlightRef.current++
 
+    // Abort fetch if it hangs longer than 15s — prevents blocking CONCURRENCY slots
+    // on flaky 3G connections where the browser may take 30s+ to time out on its own.
+    const controller  = new AbortController()
+    const fetchTimer  = setTimeout(() => controller.abort(), 15_000)
+
     let blobUrl = null
     try {
-      const res = await fetch(url)
+      const res = await fetch(url, { signal: controller.signal })
+      clearTimeout(fetchTimer)
       debugItem.httpStatus = res.status
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       if (genRef.current !== gen) return
@@ -235,6 +241,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       debugItem.progress = 100
       tick()
     } catch (e) {
+      clearTimeout(fetchTimer)
       debugItem.status  = 'error'
       debugItem.error   = e.message
       debugItem.readyTs = ts()
