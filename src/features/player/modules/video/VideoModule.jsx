@@ -3,8 +3,6 @@ import { createPortal } from 'react-dom'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-const FS_FADE_MS = 180
-
 export default function VideoModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
@@ -19,7 +17,6 @@ export default function VideoModule({ node, file, onDone }) {
   const doneFiredRef = useRef(false)
   const fsOpenRef   = useRef(false)
   const tapCooldown = useRef(false)
-  const fsSrcTimerRef = useRef(null)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -120,29 +117,34 @@ export default function VideoModule({ node, file, onDone }) {
     tapCooldown.current = true
     setTimeout(() => { tapCooldown.current = false }, 1000)
 
-    pLog('VideoModule: handleTap → open FS, revisit=', doneFiredRef.current)
-    // Pause inline video while fullscreen is open
-    videoRef.current?.pause()
+    const iv = videoRef.current
+    pLog('VideoModule: tap → open FS',
+      'revisit=', doneFiredRef.current,
+      'inline.paused=', iv?.paused,
+      'inline.readyState=', iv?.readyState,
+      'poster=', poster ? 'yes' : 'no',
+      'src.type=', src?.startsWith('blob:') ? 'blob' : 'url',
+    )
+    setFsSrc(src)
     fsOpenRef.current = true
     setFsVisible(true)
-    // Delay src assignment until fade-in completes → poster shown during transition, no black flash
-    clearTimeout(fsSrcTimerRef.current)
-    fsSrcTimerRef.current = setTimeout(() => { setFsSrc(src) }, FS_FADE_MS)
   }
 
-  // Когда fsSrc появился → воспроизвести с начала
+  // Когда fsSrc появился → воспроизвести
   useEffect(() => {
     if (!fsSrc) return
     const fs = fsVideoRef.current
     if (!fs) return
+    pLog('VideoModule: fsSrc set → fs.readyState=', fs.readyState,
+      'fs.videoWidth=', fs.videoWidth, 'poster=', fs.poster ? 'yes' : 'no')
     if (progressRef.current) progressRef.current.style.width = '0%'
     fs.currentTime = 0
     fs.muted = false
     startRaf()
     fs.play().catch(() => {
-      pLog('VideoModule: FS unmuted failed → muted')
+      pLog('VideoModule: FS unmuted play failed → retry muted')
       fs.muted = true
-      fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
+      fs.play().catch(err => pLog('VideoModule: FS muted play failed:', err.message))
     })
   }, [fsSrc]) // eslint-disable-line
 
@@ -154,7 +156,6 @@ export default function VideoModule({ node, file, onDone }) {
       pLog('VideoModule: closeFs watched=', Math.round(watched * 100) + '%')
       if (watched >= 0.2) fireDone()
     }
-    clearTimeout(fsSrcTimerRef.current)
     fsOpenRef.current = false
     stopRaf()
     fsVideoRef.current?.pause()
@@ -180,7 +181,7 @@ export default function VideoModule({ node, file, onDone }) {
     setTimeout(closeFs, 300)
   }
 
-  useEffect(() => () => { stopRaf(); clearTimeout(fsSrcTimerRef.current) }, [])
+  useEffect(() => () => stopRaf(), [])
 
   // Fullscreen overlay — portalled to document.body so that position:fixed is
   // relative to the viewport, not the PlayerFeed's scaleY(-1) containing block.
@@ -207,8 +208,13 @@ export default function VideoModule({ node, file, onDone }) {
           playsInline
           preload="none"
           style={getFsMediaStyle()}
+          onLoadStart={() => pLog('VideoModule: FS onLoadStart')}
+          onLoadedData={() => pLog('VideoModule: FS onLoadedData rs=', fsVideoRef.current?.readyState)}
+          onCanPlay={() => pLog('VideoModule: FS onCanPlay')}
+          onPlaying={() => pLog('VideoModule: FS onPlaying')}
+          onWaiting={() => pLog('VideoModule: FS onWaiting')}
           onEnded={handleFsEnded}
-          onError={e => pLog('VideoModule FS onError', e.currentTarget.error?.code)}
+          onError={e => pLog('VideoModule: FS onError code=', e.currentTarget.error?.code)}
         />
       </div>
       {fsVisible && (
@@ -239,9 +245,9 @@ export default function VideoModule({ node, file, onDone }) {
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
-                    pLog('VideoModule meta rs=', v.readyState)
+                    pLog('VideoModule: inline meta w=', v.videoWidth, 'h=', v.videoHeight, 'rs=', v.readyState)
                   }}
-                  onError={e => pLog('VideoModule onError', e.currentTarget.error?.code)}
+                  onError={e => pLog('VideoModule: inline onError code=', e.currentTarget.error?.code)}
                 />
                 <MutedIcon />
               </div>
