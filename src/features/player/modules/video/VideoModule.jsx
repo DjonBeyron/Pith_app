@@ -7,9 +7,9 @@ export default function VideoModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
   const [frameDims, setFrameDims] = useState(null)
+  const [frame0, setFrame0]       = useState(null)  // first frame captured at load, used as FS transition overlay
   const [fsVisible, setFsVisible] = useState(false)
   const [fsSrc, setFsSrc]         = useState(null)
-  const [fsThumb, setFsThumb]     = useState(null)  // canvas snapshot shown while FS video loads
   const [fsReady, setFsReady]     = useState(false)
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
@@ -29,12 +29,12 @@ export default function VideoModule({ node, file, onDone }) {
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src    = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.video?.r2Url ?? null
-  const poster = file?.posterUrl ?? undefined
+  const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.video?.r2Url ?? null
 
   useEffect(() => {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null')
     setIntrinsic(null)
+    setFrame0(null)
     doneFiredRef.current = false
     if (progressRef.current) progressRef.current.style.width = '0%'
   }, [src])
@@ -44,6 +44,23 @@ export default function VideoModule({ node, file, onDone }) {
     if (!el) return
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
+
+  // Capture frame 0 from the inline video right after first data loads (currentTime≈0).
+  // Used as the FS overlay during the ~90ms gap before the FS video is ready.
+  function captureFrame0(videoEl) {
+    if (!videoEl || !videoEl.videoWidth) return
+    try {
+      const c = document.createElement('canvas')
+      c.width = videoEl.videoWidth
+      c.height = videoEl.videoHeight
+      c.getContext('2d').drawImage(videoEl, 0, 0)
+      const dataUrl = c.toDataURL('image/jpeg', 0.85)
+      pLog('VideoModule: frame0 captured', videoEl.videoWidth + 'x' + videoEl.videoHeight)
+      setFrame0(dataUrl)
+    } catch (e) {
+      pLog('VideoModule: frame0 capture failed', e.message)
+    }
+  }
 
   function calcCropStyle(fw, fh, cx, cy) {
     const ox = cx ?? crop.x
@@ -93,24 +110,6 @@ export default function VideoModule({ node, file, onDone }) {
     }
   }
 
-  // Capture current frame of inline video as a JPEG data URL.
-  // Shows instantly as a cover while the FS video element loads.
-  function captureThumb() {
-    const v = videoRef.current
-    if (!v || !v.videoWidth) return null
-    try {
-      const c = document.createElement('canvas')
-      c.width = v.videoWidth; c.height = v.videoHeight
-      c.getContext('2d').drawImage(v, 0, 0)
-      const dataUrl = c.toDataURL('image/jpeg', 0.85)
-      pLog('VideoModule: thumb captured', v.videoWidth + 'x' + v.videoHeight)
-      return dataUrl
-    } catch (e) {
-      pLog('VideoModule: thumb capture failed', e.message)
-      return null
-    }
-  }
-
   function fireDone() {
     if (doneFiredRef.current) return
     doneFiredRef.current = true
@@ -138,18 +137,14 @@ export default function VideoModule({ node, file, onDone }) {
     setTimeout(() => { tapCooldown.current = false }, 1000)
 
     pLog('VideoModule: tap → open FS revisit=', doneFiredRef.current,
-      'inline.readyState=', videoRef.current?.readyState,
-      'poster=', poster ? 'yes' : 'no',
-    )
-    const thumb = captureThumb()
-    setFsThumb(thumb)
+      'frame0=', frame0 ? 'yes' : 'no')
     setFsReady(false)
     setFsSrc(src)
     fsOpenRef.current = true
     setFsVisible(true)
   }
 
-  // Когда fsSrc появился → воспроизвести
+  // Когда fsSrc появился → воспроизвести с начала
   useEffect(() => {
     if (!fsSrc) return
     const fs = fsVideoRef.current
@@ -167,7 +162,7 @@ export default function VideoModule({ node, file, onDone }) {
   }, [fsSrc]) // eslint-disable-line
 
   function handleFsCanPlay() {
-    pLog('VideoModule: FS onCanPlay → show video, hide thumb')
+    pLog('VideoModule: FS onCanPlay → show video, hide frame0 overlay')
     setFsReady(true)
   }
 
@@ -184,7 +179,6 @@ export default function VideoModule({ node, file, onDone }) {
     fsVideoRef.current?.pause()
     setFsVisible(false)
     setFsSrc(null)
-    setFsThumb(null)
     setFsReady(false)
     if (progressRef.current) progressRef.current.style.width = '0%'
     const v = videoRef.current
@@ -229,22 +223,19 @@ export default function VideoModule({ node, file, onDone }) {
         <video
           ref={fsVideoRef}
           src={fsSrc ?? undefined}
-          poster={poster}
           playsInline
           preload="none"
           style={getFsMediaStyle()}
-          onLoadStart={() => pLog('VideoModule: FS onLoadStart')}
-          onLoadedData={() => pLog('VideoModule: FS onLoadedData rs=', fsVideoRef.current?.readyState)}
           onCanPlay={handleFsCanPlay}
           onPlaying={() => pLog('VideoModule: FS onPlaying')}
           onWaiting={() => pLog('VideoModule: FS onWaiting')}
           onEnded={handleFsEnded}
           onError={e => pLog('VideoModule: FS onError code=', e.currentTarget.error?.code)}
         />
-        {/* Snapshot of inline video frame — covers the FS video until it's ready to play */}
-        {fsVisible && fsThumb && !fsReady && (
+        {/* Frame 0 overlay — shown until FS video fires onCanPlay, eliminates black flash */}
+        {fsVisible && frame0 && !fsReady && (
           <img
-            src={fsThumb}
+            src={frame0}
             alt=""
             style={getFsMediaStyle()}
           />
@@ -272,14 +263,15 @@ export default function VideoModule({ node, file, onDone }) {
           ? <>
               <div ref={frameRef} className="playerVideoCropFrame" onClick={handleTap}>
                 <video
-                  ref={videoRef} src={src} poster={poster} className="playerVideoMedia"
+                  ref={videoRef} src={src} className="playerVideoMedia"
                   style={{ ...getMediaStyle(), pointerEvents: 'none' }}
                   playsInline autoPlay muted loop preload="auto"
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
-                    pLog('VideoModule: inline meta w=', v.videoWidth, 'h=', v.videoHeight, 'rs=', v.readyState)
+                    pLog('VideoModule: inline meta w=', v.videoWidth, 'h=', v.videoHeight)
                   }}
+                  onLoadedData={e => captureFrame0(e.currentTarget)}
                   onError={e => pLog('VideoModule: inline onError code=', e.currentTarget.error?.code)}
                 />
                 <MutedIcon />
