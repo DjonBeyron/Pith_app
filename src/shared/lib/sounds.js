@@ -17,15 +17,14 @@ export function preloadSounds() {
   })
 }
 
-// Call synchronously inside a user-gesture handler (button click) to force iOS Safari
-// to decode all audio. Without this, the first play() from setTimeout has ~700ms latency
-// because iOS only decodes on first play() in a gesture context.
+// Call synchronously inside a user-gesture handler (button click) to unlock iOS Safari
+// audio context. Uses throwaway Audio objects at volume=0 so cache objects are never
+// paused mid-play — avoids race where unlock's async pause() cuts off a real sound.
 export function unlockAudio() {
   ALL_SOUNDS.forEach(name => {
-    const audio = cache[name]
-    if (!audio) return
-    const p = audio.play()
-    if (p) p.then(() => { audio.pause(); audio.currentTime = 0 }).catch(() => {})
+    const tmp = new Audio(`/sounds/${name}.mp3`)
+    tmp.volume = 0
+    tmp.play().catch(() => {})
   })
   pLog('[sound] unlockAudio called')
 }
