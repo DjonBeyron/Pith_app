@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useChooseWord } from './useChooseWord.js'
 import ChooseWordOption from './ChooseWordOption.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChange }) {
   const { options, selectedId, result, isAnswered, handlePick } = useChooseWord(node)
@@ -63,7 +64,12 @@ export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChan
               key={opt.id}
               text={opt.text}
               state={getState(opt)}
-              onClick={() => { playSound(opt.isCorrect ? 'answer-correct' : 'answer-wrong'); handlePick(opt) }}
+              onClick={() => {
+                const snd = opt.isCorrect ? 'answer-correct' : 'answer-wrong'
+                pLog(`[word-choice] tap isCorrect=${opt.isCorrect} → sound=${snd}`)
+                playSound(snd)
+                handlePick(opt)
+              }}
               disabled={isAnswered}
             />
           ))}

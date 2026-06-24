@@ -39,7 +39,8 @@ export default function PlayerFeed({ children }) {
       // New rows: slide in from below.
       newRows.forEach((el, i) => {
         pLog(`[feed] slide-in START row+${i} (rowCount=${rowCount})`)
-        const hasBubble = !!el.querySelector('.playerMsgBubble')
+        // .stickerWrap — sticker module has no playerMsgBubble, uses its own container
+        const hasBubble = !!(el.querySelector('.playerMsgBubble, .stickerWrap'))
         const anim = el.animate(
           [{ transform: 'translateY(200px)' }, { transform: 'translateY(0)' }],
           { duration: 190, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },

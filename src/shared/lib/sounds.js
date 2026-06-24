@@ -1,3 +1,5 @@
+import { pLog } from './debug.js'
+
 const cache = {}
 
 export function playSound(name) {
@@ -7,5 +9,7 @@ export function playSound(name) {
     cache[name] = audio
   }
   audio.currentTime = 0
-  audio.play().catch(() => {})
+  audio.play()
+    .then(() => pLog(`[sound] ${name} OK`))
+    .catch(e => pLog(`[sound] ${name} FAILED: ${e.message}`))
 }
