@@ -200,6 +200,26 @@ export default function VideoModule({ node, file, onDone }) {
           </div>
         </div>
       )}
+      {fsVisible && (
+        <div style={{
+          position: 'fixed', top: 60, left: 8, zIndex: 300,
+          background: 'rgba(0,0,0,0.75)', color: '#b6fe3b',
+          fontSize: 10, lineHeight: 1.5, padding: '6px 8px',
+          borderRadius: 6, fontFamily: 'monospace', maxWidth: 260,
+          pointerEvents: 'none', whiteSpace: 'pre',
+        }}>
+          {[
+            `screen: ${window.innerWidth}×${window.innerHeight}`,
+            `frameDims: ${frameDims ? `${frameDims.w}×${frameDims.h}` : 'null'}`,
+            `intrinsic: ${intrinsic ? `${intrinsic.w}×${intrinsic.h}` : 'null'}`,
+            `crop: x=${crop.x} y=${crop.y} s=${crop.scale}`,
+            `scaleX: ${frameDims ? (window.innerWidth/frameDims.w).toFixed(2) : '—'}`,
+            `scaleY: ${frameDims ? (window.innerHeight/frameDims.h).toFixed(2) : '—'}`,
+            `objPos: calc(50%+${frameDims?(crop.x*(window.innerWidth/frameDims.w)).toFixed(1):0}px)`,
+            `fsSrc: ${fsSrc ? 'set' : 'null'}`,
+          ].join('\n')}
+        </div>
+      )}
     </>,
     document.body,
   )
