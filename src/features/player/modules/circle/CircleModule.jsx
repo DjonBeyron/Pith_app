@@ -160,7 +160,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
       const prev = rows.slice(0, idx)
       prevRowsRef.current = prev
       prev.forEach(el => {
-        el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1)'
+        el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,1,1)'
         el.style.transform = `translateY(-${halfGrow}px)`
       })
 
@@ -221,7 +221,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
 
     if (flipObserver.current) { flipObserver.current.disconnect(); flipObserver.current = null }
     prevRowsRef.current.forEach(el => {
-      el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,0.2,1)'
+      el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,1,1)'
       el.style.transform = ''
     })
     prevRowsRef.current = []
