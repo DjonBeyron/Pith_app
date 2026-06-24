@@ -22,14 +22,27 @@ export default function PlayerFeed({ children }) {
     if (rowCount > prevRowCount.current) {
       rows.forEach(el => {
         if (prevEls.has(el)) return
-        // translateY(60px) in double-flipped space = slide in from below screen
-        el.animate(
-          [
-            { opacity: '0', transform: 'translateY(60px)' },
-            { opacity: '1', transform: 'translateY(0)' },
-          ],
-          { duration: 400, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' },
-        )
+
+        const doAnimate = () => {
+          el.style.opacity = ''
+          el.animate(
+            [{ opacity: '0', transform: 'translateY(60px)' }, { opacity: '1', transform: 'translateY(0)' }],
+            { duration: 400, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' },
+          )
+        }
+
+        const video = el.querySelector('video')
+        // If a video element is present but its first frame isn't decoded yet,
+        // hold opacity:0 and wait for canplay before starting the slide-in animation.
+        // This prevents the empty-container flash during the 400ms slide.
+        // Fallback fires after 300ms so the row always appears even if canplay never fires.
+        if (video && video.src && video.readyState < 2) {
+          el.style.opacity = '0'
+          const timer = setTimeout(doAnimate, 300)
+          video.addEventListener('canplay', () => { clearTimeout(timer); doAnimate() }, { once: true })
+        } else {
+          doAnimate()
+        }
       })
     }
 
