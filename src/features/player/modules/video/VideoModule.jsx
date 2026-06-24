@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
+const FS_FADE_MS = 180
+
 export default function VideoModule({ node, file, onDone }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
@@ -17,6 +19,7 @@ export default function VideoModule({ node, file, onDone }) {
   const doneFiredRef = useRef(false)
   const fsOpenRef   = useRef(false)
   const tapCooldown = useRef(false)
+  const fsSrcTimerRef = useRef(null)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -77,10 +80,8 @@ export default function VideoModule({ node, file, onDone }) {
     const sw = window.innerWidth
     const sh = window.innerHeight
     const ma = intrinsic.w / intrinsic.h
-    // Size the FS video element to cover the screen (same logic as calcCropStyle)
     const faFs = sw / sh
     const dFs = ma > faFs ? { w: sh * ma, h: sh } : { w: sw, h: sw / ma }
-    // Size the inline video element (to get the correct scale ratio)
     const faIn = frameDims.w / frameDims.h
     const dIn = ma > faIn ? { w: frameDims.h * ma, h: frameDims.h } : { w: frameDims.w, h: frameDims.w / ma }
     const sx = dFs.w / dIn.w
@@ -120,12 +121,16 @@ export default function VideoModule({ node, file, onDone }) {
     setTimeout(() => { tapCooldown.current = false }, 1000)
 
     pLog('VideoModule: handleTap → open FS, revisit=', doneFiredRef.current)
-    setFsSrc(src)
+    // Pause inline video while fullscreen is open
+    videoRef.current?.pause()
     fsOpenRef.current = true
     setFsVisible(true)
+    // Delay src assignment until fade-in completes → poster shown during transition, no black flash
+    clearTimeout(fsSrcTimerRef.current)
+    fsSrcTimerRef.current = setTimeout(() => { setFsSrc(src) }, FS_FADE_MS)
   }
 
-  // Когда fsSrc появился → воспроизвести
+  // Когда fsSrc появился → воспроизвести с начала
   useEffect(() => {
     if (!fsSrc) return
     const fs = fsVideoRef.current
@@ -149,6 +154,7 @@ export default function VideoModule({ node, file, onDone }) {
       pLog('VideoModule: closeFs watched=', Math.round(watched * 100) + '%')
       if (watched >= 0.2) fireDone()
     }
+    clearTimeout(fsSrcTimerRef.current)
     fsOpenRef.current = false
     stopRaf()
     fsVideoRef.current?.pause()
@@ -174,14 +180,18 @@ export default function VideoModule({ node, file, onDone }) {
     setTimeout(closeFs, 300)
   }
 
-  useEffect(() => () => stopRaf(), [])
+  useEffect(() => () => { stopRaf(); clearTimeout(fsSrcTimerRef.current) }, [])
 
   // Fullscreen overlay — portalled to document.body so that position:fixed is
   // relative to the viewport, not the PlayerFeed's scaleY(-1) containing block.
   const fsPortal = createPortal(
     <>
       {fsVisible && (
-        <div className="videoFsBg" onClick={closeFs} style={{ zIndex: 251 }} />
+        <div
+          className="videoFsBg"
+          onClick={closeFs}
+          style={{ zIndex: 251, WebkitTapHighlightColor: 'transparent' }}
+        />
       )}
       {/* Video container always in DOM so fsVideoRef is always attached */}
       <div style={{
@@ -202,41 +212,14 @@ export default function VideoModule({ node, file, onDone }) {
         />
       </div>
       {fsVisible && (
-        <div className="videoFsControls" style={{ zIndex: 253 }}>
+        <div
+          className="videoFsControls"
+          style={{ zIndex: 253, WebkitTapHighlightColor: 'transparent' }}
+        >
           <button className="videoFullClose" onClick={closeFs}>×</button>
           <div className="videoFsProgressTrack">
             <div ref={progressRef} className="videoFsProgressBar" style={{ width: '0%' }} />
           </div>
-        </div>
-      )}
-      {fsVisible && (
-        <div style={{
-          position: 'fixed', top: 60, left: 8, zIndex: 300,
-          background: 'rgba(0,0,0,0.75)', color: '#b6fe3b',
-          fontSize: 10, lineHeight: 1.5, padding: '6px 8px',
-          borderRadius: 6, fontFamily: 'monospace', maxWidth: 260,
-          pointerEvents: 'none', whiteSpace: 'pre',
-        }}>
-          {(() => {
-            const sw = window.innerWidth, sh = window.innerHeight
-            const ma = intrinsic ? intrinsic.w / intrinsic.h : null
-            const faFs = sw / sh
-            const dFs = ma ? (ma > faFs ? { w: sh * ma, h: sh } : { w: sw, h: sw / ma }) : null
-            const faIn = frameDims ? frameDims.w / frameDims.h : null
-            const dIn = (ma && frameDims) ? (ma > faIn ? { w: frameDims.h * ma, h: frameDims.h } : { w: frameDims.w, h: frameDims.w / ma }) : null
-            const sy = (dFs && dIn) ? (dFs.h / dIn.h).toFixed(3) : '—'
-            const tyPx = (dFs && dIn) ? (crop.y * dFs.h / dIn.h).toFixed(1) : '—'
-            return [
-              `screen: ${sw}×${sh}`,
-              `frameDims: ${frameDims ? `${frameDims.w}×${frameDims.h}` : 'null'}`,
-              `intrinsic: ${intrinsic ? `${intrinsic.w}×${intrinsic.h}` : 'null'}`,
-              `crop: x=${crop.x} y=${crop.y} s=${crop.scale}`,
-              `dFs: ${dFs ? `${dFs.w.toFixed(0)}×${dFs.h.toFixed(0)}` : '—'}`,
-              `dIn: ${dIn ? `${dIn.w.toFixed(0)}×${dIn.h.toFixed(0)}` : '—'}`,
-              `sy: ${sy}  ty: ${tyPx}px`,
-              `fsSrc: ${fsSrc ? 'set' : 'null'}`,
-            ].join('\n')
-          })()}
         </div>
       )}
     </>,
