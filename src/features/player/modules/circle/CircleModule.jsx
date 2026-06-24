@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
-import { playSound } from '../../../../shared/lib/sounds.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
@@ -54,9 +53,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   const flipObserver  = useRef(null)
 
   useEffect(() => {
-    pLog('[circle] mount — scheduling sound +190ms')
-    const t = setTimeout(() => { pLog('[circle] sound message-in fired'); playSound('message-in') }, 190)
-    return () => clearTimeout(t)
+    pLog('[circle] mount — sound handled by PlayerFeed slide-in')
   }, []) // eslint-disable-line
 
   useEffect(() => {

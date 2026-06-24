@@ -1,5 +1,4 @@
 import { useRef, useEffect } from 'react'
-import { playSound } from '../../shared/lib/sounds.js'
 import { pLog } from '../../shared/lib/debug.js'
 
 let bubbleSeq = 0
@@ -42,11 +41,6 @@ export default function PlayerBubble({ className, children }) {
 
     const id = ++bubbleSeq
     pLog(`[bubble#${id}] mount — className="${className}"`)
-    // Delay matches slide-in animation duration (190ms) so sound lands when message is visible
-    const soundTimer = setTimeout(() => {
-      pLog(`[bubble#${id}] sound message-in fired (+190ms)`)
-      playSound('message-in')
-    }, 190)
 
     st.prevH = el.getBoundingClientRect().height
     const unlock = setTimeout(() => {
@@ -69,7 +63,7 @@ export default function PlayerBubble({ className, children }) {
       }
     })
     ro.observe(el)
-    return () => { ro.disconnect(); clearTimeout(unlock); clearTimeout(st.tid); clearTimeout(soundTimer) }
+    return () => { ro.disconnect(); clearTimeout(unlock); clearTimeout(st.tid) }
   }, [])
 
   return <div ref={ref} className={className}>{children}</div>
