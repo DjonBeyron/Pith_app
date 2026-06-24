@@ -127,16 +127,19 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     const centerY = rect.top + s / 2
 
     const row = wrapRef.current.closest('.playerMsgRow')
-    const nextRow = row?.nextElementSibling
+    // Each .playerMsgRow is wrapped in a key-div; go up to playerFeedInner
+    const inner = row?.closest('.playerFeedInner')
+    const rowWrapper = row?.parentElement
+    const nextWrapper = rowWrapper?.nextElementSibling
+    const nextRow = nextWrapper?.querySelector('.playerMsgRow') ?? null
     let nextMsgTop = window.innerHeight
     if (nextRow) {
       const visualTop = nextRow.getBoundingClientRect().top
       if (visualTop <= window.innerHeight) {
         nextMsgTop = visualTop
       } else {
-        const innerEl = row.parentElement
-        const innerTop = innerEl ? innerEl.getBoundingClientRect().top : 0
-        nextMsgTop = innerTop + nextRow.offsetTop
+        const innerTop = inner ? inner.getBoundingClientRect().top : 0
+        nextMsgTop = innerTop + (nextWrapper?.offsetTop ?? 0)
       }
     }
     const bottomLimit = Math.min(window.innerHeight - bottomOffset, nextMsgTop) - EDGE_GAP
@@ -151,7 +154,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     expandWRef.current = expandW
     halfGrowRef.current = halfGrow
 
-    const inner = row?.parentElement
     if (inner) {
       const rows = [...inner.querySelectorAll('.playerMsgRow')]
       const idx = rows.indexOf(row)
