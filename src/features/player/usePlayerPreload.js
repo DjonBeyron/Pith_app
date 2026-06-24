@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { pLog } from '../../shared/lib/debug.js'
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 
 const LOOKAHEAD    = 3
@@ -174,7 +173,6 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       const log = { ts: ts(), id: evictId, seq: item.nodeSeq, type: item.nodeType }
       evictLogRef.current = [...evictLogRef.current, log]
       setEvictLog([...evictLogRef.current])
-      pLog(`[evict] seq=${item.nodeSeq} ${item.nodeType} revealed=${revealed.length + 1}→${CHAT_BUFFER_SIZE}`)
       if (POSTER_TYPES.has(item.nodeType)) {
         let posterUrl = entry.posterUrl
         if (!posterUrl) posterUrl = await capturePosterFrame(entry.blobUrl, 2000)
@@ -202,8 +200,6 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       readyTs: null, sizeKb: null, msgTs: null, status: 'start', error: null, httpStatus: null,
     }
     debugItemsRef.current.set(key, debugItem)
-    pLog('PlayerPreload start:', label)
-    console.log('[PRELOAD] start', label, url.slice(-40))
     tick()
     inFlightRef.current++
 
@@ -211,7 +207,6 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     try {
       const res = await fetch(url)
       debugItem.httpStatus = res.status
-      console.log('[PRELOAD] fetch ответ', label, res.status, res.ok ? 'ok' : 'ОШИБКА')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       if (genRef.current !== gen) return
 
@@ -238,14 +233,11 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       debugItem.sizeKb  = Math.round(blob.size / 1024)
       debugItem.status  = 'ready'
       debugItem.progress = 100
-      pLog('PlayerPreload ready:', label, debugItem.sizeKb, 'KB')
       tick()
     } catch (e) {
       debugItem.status  = 'error'
       debugItem.error   = e.message
       debugItem.readyTs = ts()
-      pLog('PlayerPreload error:', label, e.message)
-      console.error('[PRELOAD] ОШИБКА', label, e)
       blobUrlsRef.current[id] = { blobUrl: null, error: true }
       tick()
       inFlightRef.current--
@@ -273,7 +265,6 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
 
     if (!POSTER_TYPES.has(nodeType)) return
 
-    pLog('PlayerPreload poster start:', label)
     const posterUrl = await capturePosterFrame(blobUrl, 4000)
     if (genRef.current !== gen) {
       // Only revoke if we still own the blob
@@ -281,7 +272,6 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       if (posterUrl) URL.revokeObjectURL(posterUrl)
       return
     }
-    pLog('PlayerPreload poster:', posterUrl ? 'ok' : 'null (timeout)', label)
     if (posterUrl) {
       blobUrlsRef.current[id].posterUrl = posterUrl
       setBlobMap(prev => ({ ...prev, [id]: { ...prev[id], posterUrl } }))
@@ -304,11 +294,8 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     const speculative = remaining.filter(item => !reach.has(item.nodeId))
     if (speculative.length > 0) {
       queueRef.current = [...queueRef.current.slice(0, loaded), ...active, ...speculative]
-      pLog('PlayerPreload reorder → active:', [...new Set(active.map(i => i.nodeSeq))].join(','),
-        '/ speculative:', [...new Set(speculative.map(i => i.nodeSeq))].join(','))
     }
-    // New nodes became revealed → re-check buffer (preloaded-ahead files now count)
-    evictFarthestIfNeeded(genRef.current, null).catch(console.error)
+    evictFarthestIfNeeded(genRef.current, null).catch(() => {})
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── nodes/files: rebuild everything ─────────────────────────────────────
@@ -362,32 +349,13 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     if (!queueRef.current.length || !files.length) return
 
     async function runQueue() {
-      let lastBlockLog = 0
       while (genRef.current === gen) {
         if (cursorRef.current >= queueRef.current.length && inFlightRef.current === 0) {
-          console.log('[PRELOAD] очередь завершена, cursor=' + cursorRef.current + ' len=' + queueRef.current.length)
           break
         }
         const item = queueRef.current[cursorRef.current]
         const done = cursorRef.current >= queueRef.current.length
-        const atGate = !done && item && item.nodeIdx >= allowUpToRef.current && inFlightRef.current === 0
         if (done || (item && item.nodeIdx >= allowUpToRef.current) || inFlightRef.current >= CONCURRENCY) {
-          // Only log when blocked on concurrency or done — not when silently waiting at the gate
-          if (!atGate) {
-            const now = Date.now()
-            if (now - lastBlockLog > 2000) {
-              lastBlockLog = now
-              console.log('[PRELOAD] ожидание:', {
-                done,
-                cursor: cursorRef.current,
-                queueLen: queueRef.current.length,
-                nodeIdx: item?.nodeIdx,
-                allowUpTo: allowUpToRef.current,
-                inFlight: inFlightRef.current,
-                CONCURRENCY,
-              })
-            }
-          }
           await new Promise(r => setTimeout(r, POLL_MS))
           continue
         }

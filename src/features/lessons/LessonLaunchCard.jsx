@@ -100,19 +100,6 @@ function LaunchPreloader({ lessonData, onStart }) {
   const pct        = total > 0 ? Math.round(readyCount / total * 100) : 0
   const canStart   = initialized && (readyCount >= total || total === 0)
 
-  useEffect(() => {
-    console.log('[LAUNCH] прогресс:', { readyCount, total, canStart, weak, bufferSize })
-  }, [readyCount, total, canStart]) // eslint-disable-line
-
-  useEffect(() => {
-    console.log('[LAUNCH] урок:', {
-      warmupTarget: WARMUP_TARGET,
-      weak,
-      bufferSize,
-      files: files.map(f => ({ name: f.file_name, url: f.r2Url ? 'ok' : 'НЕТ URL' })),
-    })
-  }, []) // eslint-disable-line
-
   function handleStart() {
     releaseBlobs()
     onStart({ nodes, files, blobMap, title, teacherName, teacherLogo, teacherLogoCrop })
