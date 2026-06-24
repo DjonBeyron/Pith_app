@@ -1,0 +1,82 @@
+.settingsTab {
+  padding: 24px 20px;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.settingsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settingsSectionTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.settingsSectionNote {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.settingsSectionNote code {
+  color: #999;
+  background: #1e1e1e;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+}
+
+.settingsSoundList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settingsSoundRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #1a1a1a;
+}
+
+.settingsSoundLabel {
+  flex: 1;
+  font-size: 13px;
+  color: #ccc;
+}
+
+.settingsSoundFile {
+  font-size: 11px;
+  color: #555;
+  white-space: nowrap;
+}
+
+.settingsSoundPlay {
+  background: none;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #888;
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.settingsSoundPlay:hover {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+}

@@ -3,6 +3,7 @@ import AdminTab from '../features/admin/AdminTab.jsx'
 import UserTab from '../features/user/UserTab.jsx'
 import LessonsTab from '../features/lessons/LessonsTab.jsx'
 import CanvasPage from '../features/canvas/CanvasPage.jsx'
+import SettingsTab from '../features/settings/SettingsTab.jsx'
 import { APP_VERSION } from '../shared/lib/version.js'
 
 export default function App() {
@@ -36,10 +37,17 @@ export default function App() {
         >
           Админ
         </button>
+        <button
+          className={tab === 'settings' ? 'tabBtn tabBtnActive' : 'tabBtn'}
+          onClick={() => setTab('settings')}
+        >
+          Настройки
+        </button>
       </div>
-      {tab === 'user'    && <UserTab />}
-      {tab === 'lessons' && <LessonsTab onOpenCanvas={setCanvasLessonId} />}
-      {tab === 'admin'   && <AdminTab />}
+      {tab === 'user'     && <UserTab />}
+      {tab === 'lessons'  && <LessonsTab onOpenCanvas={setCanvasLessonId} />}
+      {tab === 'admin'    && <AdminTab />}
+      {tab === 'settings' && <SettingsTab />}
     </div>
   )
 }

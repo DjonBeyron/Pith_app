@@ -24,8 +24,10 @@ export default function CanvasPage({ lessonId, onBack }) {
     teacherName, setTeacherName,
     teacherLogoUrl,
     teacherLogoCrop, setTeacherLogoCrop,
+    hasUnsyncedLogo,
     handleLogoPick,
     applyServerData,
+    uploadLogoIfPending,
     prepareForSave,
   } = useTeacherSettings(lessonId)
 
@@ -89,7 +91,7 @@ export default function CanvasPage({ lessonId, onBack }) {
       <div className="canvasPageHeader">
         <div className="canvasSettingsBtnWrap">
           <button className="canvasSettingsBtn" onClick={() => setShowPanel(s => !s)}>⚙</button>
-          {hasUnsynced && <span className="canvasSettingsBadge" />}
+          {(hasUnsynced || hasUnsyncedLogo) && <span className="canvasSettingsBadge" />}
         </div>
         <input
           className="canvasPageTitle"
@@ -121,7 +123,8 @@ export default function CanvasPage({ lessonId, onBack }) {
           files={files}
           nodes={panelNodes}
           syncing={syncing}
-          onSync={syncToServer}
+          hasUnsyncedLogo={hasUnsyncedLogo}
+          onSync={() => { syncToServer(); uploadLogoIfPending() }}
           onRemove={removeFile}
           onClose={() => setShowPanel(false)}
           teacherName={teacherName}

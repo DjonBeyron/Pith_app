@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useChooseWord } from './useChooseWord.js'
 import ChooseWordOption from './ChooseWordOption.jsx'
+import { playSound } from '../../../../shared/lib/sounds.js'
 
 export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChange }) {
   const { options, selectedId, result, isAnswered, handlePick } = useChooseWord(node)
@@ -26,6 +27,7 @@ export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChan
   // onAnswered откладывается до slide-out — пузырь появляется из-за края панели
   useEffect(() => {
     if (!isAnswered) return
+    playSound(result === 'correct' ? 'answer-correct' : 'answer-wrong')
     const triggerResult = result === 'correct' ? 'word_correct' : 'word_wrong'
     const answer   = setTimeout(() => onAnswered?.(responseText, result), 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { loadScript } from '../../shared/lib/lessonsApi.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
@@ -93,16 +93,48 @@ function LaunchPreloader({ lessonData, onStart }) {
     nodes, files, [], { initialLookahead: WARMUP_TARGET, bufferSize }
   )
 
-  // Progress is counted in NODES (BFS order, same as preloader).
+  // Preload teacher logo separately (not part of the node graph)
+  const logoBlobRef             = useRef(null) // holds blob URL so cleanup can revoke it
+  const [logoBlobUrl, setLogoBlobUrl] = useState(null)
+  const [logoReady,   setLogoReady]   = useState(!teacherLogo) // no logo → already "ready"
+
+  useEffect(() => {
+    if (!teacherLogo) { setLogoReady(true); return }
+    let cancelled = false
+    const controller = new AbortController()
+    fetch(teacherLogo, { signal: controller.signal })
+      .then(r => r.blob())
+      .then(blob => {
+        if (cancelled) return
+        const url = URL.createObjectURL(blob)
+        logoBlobRef.current = url
+        setLogoBlobUrl(url)
+        setLogoReady(true)
+      })
+      .catch(() => { if (!cancelled) setLogoReady(true) }) // skip logo on error, don't block
+    return () => {
+      cancelled = true
+      controller.abort()
+      // revoke only if not yet handed off to the player (releaseLogo clears the ref)
+      if (logoBlobRef.current) { URL.revokeObjectURL(logoBlobRef.current); logoBlobRef.current = null }
+    }
+  }, [teacherLogo]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Progress is counted in NODES (BFS order, same as preloader) + 1 slot for logo if present.
   // initialized=false until the hook has built its queue — prevents false "ready" flash.
-  const total      = warmupNodeIds.length
-  const readyCount = warmupNodeIds.filter(id => readyNodeIds.has(id)).length
-  const pct        = total > 0 ? Math.round(readyCount / total * 100) : 0
-  const canStart   = initialized && (readyCount >= total || total === 0)
+  const nodeTotal   = warmupNodeIds.length
+  const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id)).length
+  const total       = nodeTotal + (teacherLogo ? 1 : 0)
+  const readyCount  = nodeReady  + (logoReady   ? (teacherLogo ? 1 : 0) : 0)
+  const pct         = total > 0 ? Math.round(readyCount / total * 100) : 0
+  const canStart    = initialized && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
 
   function handleStart() {
     releaseBlobs()
-    onStart({ nodes, files, blobMap, title, teacherName, teacherLogo, teacherLogoCrop })
+    // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
+    const logoForPlayer = logoBlobRef.current ?? teacherLogo
+    logoBlobRef.current = null
+    onStart({ nodes, files, blobMap, title, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop })
   }
 
   function downloadDebugLog() {

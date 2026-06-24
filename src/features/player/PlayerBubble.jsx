@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import { playSound } from '../../shared/lib/sounds.js'
 
 // Animated-height bubble wrapper. Smoothly grows as content is added (e.g. typing text).
 // Ported directly from MsgBubble in the old project (BlockEditorChat.jsx).
@@ -35,6 +36,8 @@ export default function PlayerBubble({ className, children }) {
       st.prevH = to
       scheduleCleanup(to)
     }
+
+    playSound('message-in')
 
     st.prevH = el.getBoundingClientRect().height
     const unlock = setTimeout(() => {

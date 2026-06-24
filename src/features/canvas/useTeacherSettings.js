@@ -88,6 +88,15 @@ export function useTeacherSettings(lessonId) {
     if (lessonId) lfSave(IDB_KEY(lessonId), file).catch(console.error)
   }
 
+  // Uploads logo if there's a pending File — used by both sync and save flows
+  async function uploadLogoIfPending() {
+    if (!teacherLogoFile) return
+    const logoUrl = await uploadToR2(teacherLogoFile)
+    setTeacherLogoUrl(logoUrl)
+    setTeacherLogoFile(null)
+    if (lessonId) lfDelete(IDB_KEY(lessonId)).catch(() => {})
+  }
+
   // Called from CanvasPage.handleSave — uploads if pending, returns script fields
   async function prepareForSave() {
     let logoUrl = teacherLogoFile ? null : teacherLogoUrl
@@ -108,8 +117,10 @@ export function useTeacherSettings(lessonId) {
     teacherName,     setTeacherName,
     teacherLogoUrl,
     teacherLogoCrop, setTeacherLogoCrop,
+    hasUnsyncedLogo: !!teacherLogoFile,
     handleLogoPick,
     applyServerData,
+    uploadLogoIfPending,
     prepareForSave,
   }
 }

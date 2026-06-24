@@ -9,12 +9,13 @@ function getNodeUsage(fileId, nodes) {
 }
 
 export default function LessonFilesPanel({
-  files, nodes, syncing, onSync, onRemove, onClose,
+  files, nodes, syncing, hasUnsyncedLogo, onSync, onRemove, onClose,
   teacherName, onNameChange, teacherLogoUrl, onLogoPick,
   teacherLogoCrop, onCropChange,
 }) {
   const [tab, setTab] = useState('files')
   const pendingCount = files.filter(f => f.status === 'local' || f.status === 'toDelete').length
+    + (hasUnsyncedLogo ? 1 : 0)
 
   return (
     <div className="lessonFilesPanel">
