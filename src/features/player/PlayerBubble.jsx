@@ -1,5 +1,8 @@
 import { useRef, useEffect } from 'react'
 import { playSound } from '../../shared/lib/sounds.js'
+import { pLog } from '../../shared/lib/debug.js'
+
+let bubbleSeq = 0
 
 // Animated-height bubble wrapper. Smoothly grows as content is added (e.g. typing text).
 // Ported directly from MsgBubble in the old project (BlockEditorChat.jsx).
@@ -37,7 +40,13 @@ export default function PlayerBubble({ className, children }) {
       scheduleCleanup(to)
     }
 
-    playSound('message-in')
+    const id = ++bubbleSeq
+    pLog(`[bubble#${id}] mount — className="${className}"`)
+    // Delay matches slide-in animation duration (190ms) so sound lands when message is visible
+    const soundTimer = setTimeout(() => {
+      pLog(`[bubble#${id}] sound message-in fired (+190ms)`)
+      playSound('message-in')
+    }, 190)
 
     st.prevH = el.getBoundingClientRect().height
     const unlock = setTimeout(() => {
@@ -60,7 +69,7 @@ export default function PlayerBubble({ className, children }) {
       }
     })
     ro.observe(el)
-    return () => { ro.disconnect(); clearTimeout(unlock); clearTimeout(st.tid) }
+    return () => { ro.disconnect(); clearTimeout(unlock); clearTimeout(st.tid); clearTimeout(soundTimer) }
   }, [])
 
   return <div ref={ref} className={className}>{children}</div>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { playSound } from '../../../../shared/lib/sounds.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -50,6 +52,12 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   const halfGrowRef   = useRef(0)
   const prevRowsRef   = useRef([])
   const flipObserver  = useRef(null)
+
+  useEffect(() => {
+    pLog('[circle] mount — scheduling sound +190ms')
+    const t = setTimeout(() => { pLog('[circle] sound message-in fired'); playSound('message-in') }, 190)
+    return () => clearTimeout(t)
+  }, []) // eslint-disable-line
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }

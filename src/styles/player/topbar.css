@@ -79,22 +79,21 @@
 
 .playerTopBarDebugBtn {
   background: none;
-  border: 1px solid #2a2d35;
-  color: #555;
-  font-size: 13px;
-  padding: 4px 7px;
+  border: 1px solid #3a3d45;
+  color: #888;
+  font-size: 11px;
+  padding: 5px 10px;
   border-radius: 6px;
   cursor: pointer;
   flex-shrink: 0;
   line-height: 1;
-  min-width: 32px;
   min-height: 32px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
   transition: border-color .15s, color .15s;
 }
-.playerTopBarDebugBtn:hover { border-color: #444; color: #999; }
+.playerTopBarDebugBtn:hover { border-color: #b6fe3b; color: #b6fe3b; }
 
 @media (max-width: 400px) {
   .playerTopBarLesson { display: none; }

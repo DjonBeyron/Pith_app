@@ -75,7 +75,7 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
         onClick={downloadPlayerLog}
         title="Скачать лог"
         aria-label="Скачать лог"
-      >⬇</button>
+      >⬇ лог</button>
     </div>
   )
 }

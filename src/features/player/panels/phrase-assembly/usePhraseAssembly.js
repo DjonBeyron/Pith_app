@@ -36,7 +36,7 @@ export function usePhraseAssembly(node) {
   }
 
   function checkAnswer() {
-    if (placed.length === 0 || isAnswered) return
+    if (placed.length === 0 || isAnswered) return null
     const placedWords = placed.map(p => p.word)
     const correct = placedWords.length === words.length &&
       words.every((w, i) => w.toLowerCase() === (placedWords[i] ?? '').toLowerCase())
@@ -47,6 +47,7 @@ export function usePhraseAssembly(node) {
         setResult(null)
       }, 700)
     }
+    return correct ? 'correct' : 'wrong'
   }
 
   return {

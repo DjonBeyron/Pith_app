@@ -1,4 +1,5 @@
 import { useRef, useLayoutEffect } from 'react'
+import { pLog } from '../../shared/lib/debug.js'
 
 // Double scaleY(-1) trick: outer container flipped → scrollTop=0 = visual bottom.
 // Inner content flipped back → messages appear normal.
@@ -35,11 +36,13 @@ export default function PlayerFeed({ children }) {
       })
 
       // New rows: slide in from below.
-      newRows.forEach(el => {
-        el.animate(
+      newRows.forEach((el, i) => {
+        pLog(`[feed] slide-in START row+${i} (rowCount=${rowCount})`)
+        const anim = el.animate(
           [{ transform: 'translateY(200px)' }, { transform: 'translateY(0)' }],
           { duration: 190, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
         )
+        anim.finished.then(() => pLog(`[feed] slide-in END row+${i} — animation done`)).catch(() => {})
       })
 
       // Existing rows: FLIP — instantly push back to where they were, animate up in sync.

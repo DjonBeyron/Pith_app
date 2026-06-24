@@ -46,7 +46,6 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
 
   useEffect(() => {
     if (result !== 'wrong') return
-    playSound('answer-wrong')
     wrongCount.current += 1
     const wc = wrongCount.current
     if (wc === 1) {
@@ -67,7 +66,6 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
 
   useEffect(() => {
     if (!isAnswered) return
-    playSound('answer-correct')
     const phrase = placed.map(p => p.word).join(' ')
     const answer   = setTimeout(() => onAnswered?.(responseCorrect, 'correct'), 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
@@ -108,7 +106,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
           </div>
           <button
             className="phraseCheckBtn"
-            onClick={checkAnswer}
+            onClick={() => { const r = checkAnswer(); if (r) playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong') }}
             disabled={placed.length === 0 || isAnswered}
           >
             Проверить
