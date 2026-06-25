@@ -25,16 +25,15 @@ function calcStyle(intrinsic, dims, crop) {
   }
 }
 
-export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
+export default function CircleModule({ node, file, onDone, bottomOffset = 0, videoAutoSound }) {
   const [objectUrl, setObjectUrl]   = useState(null)
   const [intr, setIntr]             = useState(null)
   const [dims, setDims]             = useState(null)
   const [expanded, setExpanded]     = useState(false)
   const [collapsing, setCollapsing] = useState(false)
   const [expandTransform, setExpandTransform] = useState(null)
-  // Hide video at opacity:0 until canPlay — so intr-based position jump is invisible.
-  // Poster (native attr) shows during this phase.
   const [videoVisible, setVideoVisible] = useState(false)
+  const [mutedLoop, setMutedLoop]   = useState(false)  // videoAutoSound: true after first play
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -44,17 +43,14 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   const arcRef        = useRef(null)
   const collapseTimer = useRef(null)
   const touchStartY   = useRef(0)
-  const doneFiredRef  = useRef(false)
+  const doneFiredRef      = useRef(false)
+  const firstPlayDoneRef  = useRef(false)  // videoAutoSound: true after first unmuted play ends
   const expandedRef   = useRef(false)
   const animatingRef  = useRef(false)
   const expandWRef    = useRef(0)
   const halfGrowRef   = useRef(0)
   const prevRowsRef   = useRef([])
   const flipObserver  = useRef(null)
-
-  useEffect(() => {
-    pLog('[circle] mount — sound handled by PlayerFeed slide-in')
-  }, []) // eslint-disable-line
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -69,7 +65,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
   useEffect(() => {
     setIntr(null)
     setVideoVisible(false)
+    setMutedLoop(false)
     doneFiredRef.current = false
+    firstPlayDoneRef.current = false
   }, [src]) // eslint-disable-line
 
   useLayoutEffect(() => {
@@ -77,7 +75,58 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
     setDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
+  // videoAutoSound: called on onLoadedData — sets up MutationObserver then unmuted play
+  function handleCircleLoaded() {
+    if (!videoAutoSound || firstPlayDoneRef.current) return
+    const v = vRef.current
+    if (!v) return
+    v.muted = false
+    v.loop  = false
+
+    function playAfterAnimation() {
+      setTimeout(() => {
+        if (firstPlayDoneRef.current) return
+        pLog('[circle] autoSound — play unmuted after animation')
+        v.play().catch(() => {
+          pLog('[circle] autoSound unmuted failed → muted fallback')
+          v.muted = true; v.loop = true
+          v.play().catch(() => {})
+          firstPlayDoneRef.current = true
+          setMutedLoop(true)
+          onDone?.()
+        })
+      }, 200)
+    }
+
+    const pendingWrapper = v.closest('[data-pending]')
+    if (!pendingWrapper) {
+      playAfterAnimation()
+    } else {
+      const observer = new MutationObserver(() => {
+        if (!pendingWrapper.hasAttribute('data-pending')) {
+          observer.disconnect()
+          pLog('[circle] autoSound — pending removed, starting countdown')
+          playAfterAnimation()
+        }
+      })
+      observer.observe(pendingWrapper, { attributes: true, attributeFilter: ['data-pending'] })
+    }
+  }
+
   function handleEnded() {
+    // videoAutoSound: first inline unmuted play ended → switch to muted loop
+    if (videoAutoSound && !firstPlayDoneRef.current && !expandedRef.current) {
+      firstPlayDoneRef.current = true
+      pLog('[circle] autoSound — first play ended → muted loop')
+      onDone?.()
+      const v = vRef.current
+      if (!v) return
+      v.muted = true; v.loop = true
+      v.currentTime = 0
+      v.play().catch(() => {})
+      setMutedLoop(true)
+      return
+    }
     if (!expandedRef.current) return
     if (doneFiredRef.current) {
       const v = vRef.current
@@ -297,12 +346,16 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
               <video
                 ref={vRef} src={src} poster={poster} className="circleMedia"
                 style={videoStyle}
-                playsInline autoPlay muted loop preload="auto"
+                playsInline preload="auto"
+                autoPlay={!videoAutoSound}
+                muted={!videoAutoSound}
+                loop={!videoAutoSound}
                 onLoadedMetadata={e => {
                   const v = e.currentTarget
                   setIntr({ w: v.videoWidth, h: v.videoHeight })
                   setVideoVisible(true)
                 }}
+                onLoadedData={videoAutoSound ? handleCircleLoaded : undefined}
                 onPlaying={handlePlaying}
                 onEnded={handleEnded}
               />
@@ -324,7 +377,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0 }) {
             </svg>
 
             <div className="circleMutedIcon" style={{
-              opacity: (!expanded && !collapsing) ? 1 : 0,
+              opacity: (!expanded && !collapsing && (!videoAutoSound || mutedLoop)) ? 1 : 0,
               transition: (!expanded && !collapsing) ? 'opacity 0.2s ease 0.1s' : 'opacity 0s',
               pointerEvents: 'none',
             }}>
