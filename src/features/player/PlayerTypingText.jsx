@@ -64,31 +64,30 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
       continue
     }
 
-    // bg mode — плашка проявляется вместе с текстом
+    // bg mode — плашка на самом span (без absolute) для синхронного рендера на iOS
     const prevSame  = sameStyle(spans[si - 1]?.h, s.h)
     const nextSame  = !isPartial && sameStyle(spans[si + 1]?.h, s.h)
-    const radius    = prevSame && nextSame ? 0
+    const radius    = prevSame && nextSame ? '0'
       : prevSame  ? '0 3px 3px 0'
       : nextSame  ? '3px 0 0 3px'
-      : 3
+      : '3px'
     const textColor = s.textUnder ? hexToRgba(s.textUnder.color, s.textUnder.opacity ?? 1) : null
     const bgColor   = hexToRgba(s.h.color, s.h.opacity ?? 1)
+    // box-shadow расширяет фон влево/вправо без влияния на layout
+    const shadowL   = !prevSame               ? `-1.5px 0 0 0 ${bgColor}` : null
+    const shadowR   = (!isPartial && !nextSame) ? `1.5px 0 0 0 ${bgColor}`  : null
+    const boxShadow = [shadowL, shadowR].filter(Boolean).join(', ') || undefined
 
     rendered.push(
-      <span key={si} style={{ position: 'relative' }}>
-        <span aria-hidden="true" data-hl-bg="true" style={{
-          position: 'absolute',
-          left:   !prevSame               ? '-1.5px' : 0,
-          right:  (!isPartial && !nextSame) ? '-1.5px' : 0,
-          top: '4px', bottom: '1px',
-          background: bgColor,
-          borderRadius: radius,
-          pointerEvents: 'none',
-          zIndex: 0,
-        }} />
-        <span style={{ position: 'relative', zIndex: 1, ...(textColor ? { color: textColor } : {}) }}>
-          {visible}{cursorHere && <span className="playerCursor" />}
-        </span>
+      <span key={si} style={{
+        background: bgColor,
+        borderRadius: radius,
+        boxShadow,
+        paddingTop: '2px',
+        paddingBottom: '1px',
+        ...(textColor ? { color: textColor } : {}),
+      }}>
+        {visible}{cursorHere && <span className="playerCursor" />}
       </span>
     )
   }
