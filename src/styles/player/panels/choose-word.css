@@ -15,12 +15,10 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: #0e1013;
-  border-top: 1.5px solid transparent;
+  background: #1a1d22;
   transform: translateY(100%);
   /* Уход: быстрое ускорение вниз */
-  transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1),
-              border-top-color 0.28s ease-in;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1);
   will-change: transform;
   z-index: 10;
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -28,10 +26,8 @@
 
 .chooseWordPanelVisible {
   transform: translateY(0%);
-  border-top-color: #2a2d35;
   /* Появление: стартует быстро, плавно тормозит (spring-like) */
-  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-              border-top-color 0.38s ease-out;
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .chooseWordInner {
