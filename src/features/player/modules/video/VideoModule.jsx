@@ -74,15 +74,19 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
     if (!v) return
     v.muted = false
     v.loop  = false
-    pLog('VideoModule: autoSound — play unmuted')
-    v.play().catch(() => {
-      pLog('VideoModule: autoSound unmuted failed → muted fallback')
-      v.muted = true; v.loop = true
-      v.play().catch(() => {})
-      firstPlayDoneRef.current = true
-      setMutedLoop(true)
-      fireDone()
-    })
+    // Wait for slide-in animation (190ms) before starting playback
+    setTimeout(() => {
+      if (firstPlayDoneRef.current) return
+      pLog('VideoModule: autoSound — play unmuted after animation')
+      v.play().catch(() => {
+        pLog('VideoModule: autoSound unmuted failed → muted fallback')
+        v.muted = true; v.loop = true
+        v.play().catch(() => {})
+        firstPlayDoneRef.current = true
+        setMutedLoop(true)
+        fireDone()
+      })
+    }, 200)
   }
 
   function handleInlineEnded() {
