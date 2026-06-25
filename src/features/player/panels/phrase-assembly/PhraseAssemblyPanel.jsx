@@ -49,7 +49,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
     wrongCount.current += 1
     const wc = wrongCount.current
     if (wc === 1) {
-      onAnswered?.(responseWrong, 'wrong')
+      if (responseWrong.trim()) onAnswered?.(responseWrong, 'wrong')
     } else if (wc === 2) {
       onAnswered?.(`Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`, 'hint')
       setTimeout(() => setShowCounter(true), 350)
@@ -67,7 +67,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
   useEffect(() => {
     if (!isAnswered) return
     const phrase = placed.map(p => p.word).join(' ')
-    const answer   = setTimeout(() => onAnswered?.(responseCorrect, 'correct'), 700)
+    const answer   = setTimeout(() => { if (responseCorrect.trim()) onAnswered?.(responseCorrect, 'correct') }, 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
     const done     = setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_correct') }, 700 + 900 + 420)
     return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }

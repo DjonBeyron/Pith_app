@@ -6,6 +6,7 @@ export default function PhraseAssemblyModule({ phraseState }) {
   return (
     <>
       {bubbles.map((b, i) => {
+        if (!b.text?.trim()) return null
         if (b.result === 'correct') return (
           <div key={i} className="playerMsgRow playerMsgRowRight">
             <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
