@@ -166,8 +166,6 @@ export default function CanvasNode({
             hasTimings={!!(tData.wordTimings?.length)}
             text={tData.text ?? ''}
             onTextChange={t => updateTypeData({ text: t })}
-            highlights={tData.highlights ?? []}
-            onHighlightsChange={hl => updateTypeData({ highlights: hl })}
           />
         )}
         {(node.type === 'photo' || node.type === 'video' || node.type === 'circle' || node.type === 'sticker') && (
@@ -198,7 +196,7 @@ export default function CanvasNode({
             rows={4}
           />
         )}
-        {node.type === 'text' && (
+        {(node.type === 'text' || (node.type === 'audio' && !!tData.text)) && (
           <button
             className="nodeHLOpenBtn"
             style={(tData.highlights?.length > 0) ? { borderColor: '#b6fe3b', color: '#b6fe3b' } : undefined}
@@ -302,7 +300,7 @@ export default function CanvasNode({
       </div>
       {hlRect && (
         <NodeTextHighlighter
-          text={tData.content ?? ''}
+          text={node.type === 'audio' ? (tData.text ?? '') : (tData.content ?? '')}
           highlights={tData.highlights ?? []}
           anchorRect={hlRect}
           onClose={() => setHlRect(null)}

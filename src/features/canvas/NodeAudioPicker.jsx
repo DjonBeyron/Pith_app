@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import NodeHighlightEditor from './NodeHighlightEditor.jsx'
 import { analyzeWaveform, probeAudioDuration } from '../../shared/lib/audioUtils.js'
 import { transcribeAudio } from '../../shared/lib/transcribeApi.js'
 
@@ -20,11 +19,8 @@ export default function NodeAudioPicker({
   fileId, lessonFiles, onPick, onAnalyzed,
   hasWaveform = false, hasTimings = false,
   text = '', onTextChange,
-  highlights = [], onHighlightsChange,
 }) {
   const file = lessonFiles.find(f => f.id === fileId) ?? null
-  const [selection,  setSelection]  = useState(null)
-  const [showEditor, setShowEditor] = useState(false)
   const [waveStatus, setWaveStatus] = useState('idle')
   const [txStatus,   setTxStatus]   = useState('idle')
 
@@ -58,12 +54,6 @@ export default function NodeAudioPicker({
         setTxStatus('done')
       })
       .catch(() => setTxStatus('error'))
-  }
-
-  function handleSelect(e) {
-    const ta  = e.currentTarget
-    const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd).trim()
-    setSelection(sel || null)
   }
 
   // Show stored state when status is idle (file loaded from server)
@@ -102,30 +92,8 @@ export default function NodeAudioPicker({
         onChange={e => onTextChange?.(e.target.value)}
         placeholder="Текст для печатания в плеере…"
         onClick={e => e.stopPropagation()}
-        onMouseUp={handleSelect}
-        onKeyUp={handleSelect}
         rows={3}
       />
-
-      {selection && !showEditor && (
-        <button
-          className="nodeAudioHighlightBtn"
-          onMouseDown={e => e.preventDefault()}
-          onClick={() => setShowEditor(true)}
-        >
-          Выделить «{selection.length > 18 ? selection.slice(0, 18) + '…' : selection}»
-        </button>
-      )}
-
-      {showEditor && (
-        <NodeHighlightEditor
-          text={text}
-          highlights={highlights}
-          onHighlightsChange={onHighlightsChange}
-          initialWord={selection}
-          onClose={() => setShowEditor(false)}
-        />
-      )}
     </div>
   )
 }
