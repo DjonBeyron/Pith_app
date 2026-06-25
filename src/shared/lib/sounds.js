@@ -18,17 +18,12 @@ export function preloadSounds() {
 }
 
 // Call synchronously inside a user-gesture handler (button click) to unlock iOS Safari.
-// Plays message-in for real (volume=1) in gesture context — iOS only unlocks on audible play.
-// The sound acts as button-tap feedback; the first in-chat message will play it again
-// instantly (~150ms later) since iOS audio is now unlocked for the page.
+// Uses a throwaway Audio object so the cache objects are never seeked mid-play.
+// Seeking currentTime=0 on a playing cache object causes ~600ms re-decode stall on iOS.
 export function unlockAudio() {
-  if (!cache['message-in']) {
-    cache['message-in'] = new Audio('/sounds/message-in.mp3')
-    cache['message-in'].preload = 'auto'
-  }
-  cache['message-in'].currentTime = 0
-  cache['message-in'].play().catch(() => {})
-  pLog('[sound] unlockAudio called — message-in pre-played as button feedback')
+  const tmp = new Audio('/sounds/message-in.mp3')
+  tmp.play().catch(() => {})
+  pLog('[sound] unlockAudio called — throwaway play for iOS gesture unlock')
 }
 
 export function playSound(name) {
@@ -37,7 +32,8 @@ export function playSound(name) {
     audio = new Audio(`/sounds/${name}.mp3`)
     cache[name] = audio
   }
-  audio.currentTime = 0
+  // Skip seek if already at start — avoids iOS re-decode stall on first play after unlock
+  if (audio.currentTime > 0) audio.currentTime = 0
   audio.play()
     .then(() => pLog(`[sound] ${name} OK`))
     .catch(e => pLog(`[sound] ${name} FAILED: ${e.message}`))
