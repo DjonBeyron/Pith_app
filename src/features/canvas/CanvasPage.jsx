@@ -24,6 +24,7 @@ export default function CanvasPage({ lessonId, onBack }) {
     teacherName, setTeacherName,
     teacherLogoUrl,
     teacherLogoCrop, setTeacherLogoCrop,
+    videoAutoSound, setVideoAutoSound,
     hasUnsyncedLogo,
     handleLogoPick,
     applyServerData,
@@ -114,6 +115,7 @@ export default function CanvasPage({ lessonId, onBack }) {
           teacherName={teacherName}
           teacherLogo={teacherLogoUrl}
           teacherLogoCrop={teacherLogoCrop}
+          videoAutoSound={videoAutoSound}
           onClose={() => setShowPlayer(false)}
         />
       )}
@@ -133,6 +135,8 @@ export default function CanvasPage({ lessonId, onBack }) {
           onLogoPick={handleLogoPick}
           teacherLogoCrop={teacherLogoCrop}
           onCropChange={setTeacherLogoCrop}
+          videoAutoSound={videoAutoSound}
+          onVideoAutoSoundChange={setVideoAutoSound}
         />
       )}
 

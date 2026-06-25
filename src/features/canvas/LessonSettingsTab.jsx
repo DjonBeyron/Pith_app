@@ -5,6 +5,7 @@ export default function LessonSettingsTab({
   teacherName, onNameChange,
   teacherLogoUrl, onLogoPick,
   teacherLogoCrop, onCropChange,
+  videoAutoSound, onVideoAutoSoundChange,
 }) {
   const fileInputRef = useRef(null)
 
@@ -54,6 +55,21 @@ export default function LessonSettingsTab({
         style={{ display: 'none' }}
         onChange={handleLogoChange}
       />
+
+      <div className="lessonSettingsRow">
+        <span className="lessonSettingsLabel">Видео со звуком</span>
+        <label className="lessonSettingsToggle">
+          <input
+            type="checkbox"
+            checked={!!videoAutoSound}
+            onChange={e => onVideoAutoSoundChange(e.target.checked)}
+          />
+          <span className="lessonSettingsToggleTrack" />
+        </label>
+      </div>
+      <p className="lessonSettingsSaveNote lessonSettingsHint">
+        Включено — видео автоматически воспроизводится со звуком один раз, затем без звука в цикле. Следующая нода появляется после первого просмотра.
+      </p>
 
       <p className="lessonSettingsSaveNote">Фото загружается на сервер при нажатии «Сохранить»</p>
     </div>

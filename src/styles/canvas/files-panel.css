@@ -244,6 +244,53 @@
   margin: 0;
 }
 
+.lessonSettingsHint {
+  color: #555;
+  line-height: 1.5;
+}
+
+.lessonSettingsToggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 8px;
+}
+
+.lessonSettingsToggle input {
+  display: none;
+}
+
+.lessonSettingsToggleTrack {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #333;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.lessonSettingsToggleTrack::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #666;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.lessonSettingsToggle input:checked + .lessonSettingsToggleTrack {
+  background: #2d5a1b;
+}
+
+.lessonSettingsToggle input:checked + .lessonSettingsToggleTrack::after {
+  transform: translateX(16px);
+  background: #b6fe3b;
+}
+
 .lessonSettingsLogoSection {
   display: flex;
   flex-direction: column;

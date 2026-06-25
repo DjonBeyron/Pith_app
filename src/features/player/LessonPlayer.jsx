@@ -15,6 +15,7 @@ import { getPlayerLines } from '../../shared/lib/debug.js'
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',
   teacherName, teacherLogo, teacherLogoCrop,
+  videoAutoSound = false,
   initialBlobMap = null,
   onClose,
 }) {
@@ -185,6 +186,7 @@ export default function LessonPlayer({
                     allPhraseStates={phraseStates}
                     phraseState={phraseStates[node.id] ?? null}
                     bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight}
+                    videoAutoSound={videoAutoSound}
                     onDone={isPending ? () => {} : () => onNodeDone(node.id)}
                   />
                 </div>

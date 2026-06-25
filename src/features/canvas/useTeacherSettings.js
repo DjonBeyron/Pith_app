@@ -13,6 +13,7 @@ export function useTeacherSettings(lessonId) {
   const [teacherLogoUrl,  setTeacherLogoUrl]  = useState(null)
   const [teacherLogoFile, setTeacherLogoFile] = useState(null) // File if not yet uploaded
   const [teacherLogoCrop, setTeacherLogoCrop] = useState({ x: 0, y: 0, scale: 1 })
+  const [videoAutoSound,  setVideoAutoSound]  = useState(false)
 
   const readyRef    = useRef(false) // true after local load finishes
   const hasLocalRef = useRef(false) // set synchronously when localStorage has data
@@ -37,6 +38,7 @@ export function useTeacherSettings(lessonId) {
       if (cancelled) return
       setTeacherName(saved.teacherName ?? '')
       setTeacherLogoCrop(saved.teacherLogoCrop ?? { x: 0, y: 0, scale: 1 })
+      setVideoAutoSound(saved.videoAutoSound ?? false)
       if (blob) {
         // Unsaved local file — recreate blob URL
         setTeacherLogoFile(blob)
@@ -64,12 +66,13 @@ export function useTeacherSettings(lessonId) {
       localStorage.setItem(LS_KEY(lessonId), JSON.stringify({
         teacherName,
         teacherLogoCrop,
+        videoAutoSound,
         // blob URL dies on reload — only persist server URL
         teacherLogoUrl: teacherLogoFile ? null : teacherLogoUrl,
       }))
     }, 400)
     return () => clearTimeout(t)
-  }, [lessonId, teacherName, teacherLogoCrop, teacherLogoUrl, teacherLogoFile])
+  }, [lessonId, teacherName, teacherLogoCrop, teacherLogoUrl, teacherLogoFile, videoAutoSound])
 
   // ── API ──────────────────────────────────────────────────────────
 
@@ -79,6 +82,7 @@ export function useTeacherSettings(lessonId) {
     setTeacherName(script?.teacherName ?? '')
     setTeacherLogoUrl(script?.teacherLogo ?? null)
     setTeacherLogoCrop(script?.teacherLogoCrop ?? { x: 0, y: 0, scale: 1 })
+    setVideoAutoSound(script?.videoAutoSound ?? false)
   }
 
   // User picked a new logo file
@@ -110,6 +114,7 @@ export function useTeacherSettings(lessonId) {
       teacherName:     teacherName     || undefined,
       teacherLogo:     logoUrl         || undefined,
       teacherLogoCrop: logoUrl         ? teacherLogoCrop : undefined,
+      videoAutoSound:  videoAutoSound  || undefined,
     }
   }
 
@@ -117,6 +122,7 @@ export function useTeacherSettings(lessonId) {
     teacherName,     setTeacherName,
     teacherLogoUrl,
     teacherLogoCrop, setTeacherLogoCrop,
+    videoAutoSound,  setVideoAutoSound,
     hasUnsyncedLogo: !!teacherLogoFile,
     handleLogoPick,
     applyServerData,

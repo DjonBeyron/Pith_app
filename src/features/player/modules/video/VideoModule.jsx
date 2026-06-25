@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-export default function VideoModule({ node, file, onDone }) {
+export default function VideoModule({ node, file, onDone, videoAutoSound }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
   const [frameDims, setFrameDims] = useState(null)
@@ -16,9 +16,11 @@ export default function VideoModule({ node, file, onDone }) {
   const frameRef    = useRef(null)
   const progressRef = useRef(null)
   const rafRef      = useRef(null)
-  const doneFiredRef = useRef(false)
-  const fsOpenRef   = useRef(false)
-  const tapCooldown = useRef(false)
+  const doneFiredRef      = useRef(false)
+  const fsOpenRef         = useRef(false)
+  const tapCooldown       = useRef(false)
+  const firstPlayDoneRef  = useRef(false)  // videoAutoSound: true after first unmuted play ends
+  const [mutedLoop, setMutedLoop] = useState(false)
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -35,7 +37,9 @@ export default function VideoModule({ node, file, onDone }) {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null')
     setIntrinsic(null)
     setFrame0(null)
+    setMutedLoop(false)
     doneFiredRef.current = false
+    firstPlayDoneRef.current = false
     if (progressRef.current) progressRef.current.style.width = '0%'
   }, [src])
 
@@ -60,6 +64,38 @@ export default function VideoModule({ node, file, onDone }) {
     } catch (e) {
       pLog('VideoModule: frame0 capture failed', e.message)
     }
+  }
+
+  // videoAutoSound mode: play unmuted once, then muted loop
+  function handleInlineLoaded(e) {
+    captureFrame0(e.currentTarget)
+    if (!videoAutoSound || firstPlayDoneRef.current) return
+    const v = videoRef.current
+    if (!v) return
+    v.muted = false
+    v.loop  = false
+    pLog('VideoModule: autoSound — play unmuted')
+    v.play().catch(() => {
+      pLog('VideoModule: autoSound unmuted failed → muted fallback')
+      v.muted = true; v.loop = true
+      v.play().catch(() => {})
+      firstPlayDoneRef.current = true
+      setMutedLoop(true)
+      fireDone()
+    })
+  }
+
+  function handleInlineEnded() {
+    if (!videoAutoSound || firstPlayDoneRef.current) return
+    firstPlayDoneRef.current = true
+    pLog('VideoModule: autoSound — first play ended → muted loop')
+    fireDone()
+    const v = videoRef.current
+    if (!v) return
+    v.muted = true; v.loop = true
+    v.currentTime = 0
+    v.play().catch(() => {})
+    setMutedLoop(true)
   }
 
   function calcCropStyle(fw, fh, cx, cy) {
@@ -265,16 +301,20 @@ export default function VideoModule({ node, file, onDone }) {
                 <video
                   ref={videoRef} src={src} className="playerVideoMedia"
                   style={{ ...getMediaStyle(), pointerEvents: 'none' }}
-                  playsInline autoPlay muted loop preload="auto"
+                  playsInline preload="auto"
+                  autoPlay={!videoAutoSound}
+                  muted={!videoAutoSound}
+                  loop={!videoAutoSound}
                   onLoadedMetadata={e => {
                     const v = e.currentTarget
                     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
                     pLog('VideoModule: inline meta w=', v.videoWidth, 'h=', v.videoHeight)
                   }}
-                  onLoadedData={e => captureFrame0(e.currentTarget)}
+                  onLoadedData={videoAutoSound ? handleInlineLoaded : e => captureFrame0(e.currentTarget)}
+                  onEnded={videoAutoSound ? handleInlineEnded : undefined}
                   onError={e => pLog('VideoModule: inline onError code=', e.currentTarget.error?.code)}
                 />
-                <MutedIcon />
+                {(!videoAutoSound || mutedLoop) && <MutedIcon />}
               </div>
               {fsPortal}
             </>

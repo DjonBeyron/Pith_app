@@ -43,6 +43,7 @@ export default function LessonLaunchCard({ lessonId, onStart, onClose }) {
           teacherName:     raw?.script?.teacherName ?? '',
           teacherLogo:     raw?.script?.teacherLogo ?? null,
           teacherLogoCrop: raw?.script?.teacherLogoCrop ?? null,
+          videoAutoSound:  raw?.script?.videoAutoSound ?? false,
         })
       })
       .catch(() => setError('Не удалось загрузить урок'))
@@ -84,7 +85,7 @@ export default function LessonLaunchCard({ lessonId, onStart, onClose }) {
 }
 
 function LaunchPreloader({ lessonData, onStart }) {
-  const { nodes, files, title, teacherName, teacherLogo, teacherLogoCrop } = lessonData
+  const { nodes, files, title, teacherName, teacherLogo, teacherLogoCrop, videoAutoSound } = lessonData
 
   // Weak device → smaller in-memory buffer during lesson (2 past + 2 ahead vs 5 + 3)
   const weak       = isWeakDevice()
@@ -144,7 +145,7 @@ function LaunchPreloader({ lessonData, onStart }) {
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
     const logoForPlayer = logoBlobRef.current ?? teacherLogo
     logoBlobRef.current = null
-    onStart({ nodes, files, blobMap, title, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop })
+    onStart({ nodes, files, blobMap, title, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound })
   }
 
   function downloadDebugLog() {
