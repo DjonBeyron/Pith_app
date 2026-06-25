@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { clearPlayerLog, pLog, setDebug } from '../../shared/lib/debug.js'
-import { preloadSounds } from '../../shared/lib/sounds.js'
+import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
@@ -16,6 +16,8 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
     setDebug(true)
     clearPlayerLog()
     pLog('=== Player opened ===', 'v' + APP_VERSION, 'ua:', navigator.userAgent)
+    // Fallback preload in case player opened without going through LaunchPreloader.
+    // If already decoded in LaunchPreloader, this is a no-op.
     preloadSounds()
   }, [])
 

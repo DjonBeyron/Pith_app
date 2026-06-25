@@ -94,6 +94,10 @@ function LaunchPreloader({ lessonData, onStart }) {
     nodes, files, [], { initialLookahead: WARMUP_TARGET, bufferSize }
   )
 
+  // Start decoding UI sounds while lesson files are loading — no gesture needed for decode.
+  // By the time the user taps "Start", AudioBuffers are ready and AudioContext just needs resume().
+  useEffect(() => { preloadSounds() }, [])
+
   // Preload teacher logo separately (not part of the node graph)
   const logoBlobRef             = useRef(null) // holds blob URL so cleanup can revoke it
   const [logoBlobUrl, setLogoBlobUrl] = useState(null)
