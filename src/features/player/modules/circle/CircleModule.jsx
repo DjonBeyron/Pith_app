@@ -33,6 +33,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   const [collapsing, setCollapsing] = useState(false)
   const [expandTransform, setExpandTransform] = useState(null)
   const [videoVisible, setVideoVisible] = useState(false)
+  const [frame0, setFrame0]         = useState(null)   // first frame for Android black-flash fix
   const [mutedLoop, setMutedLoop]   = useState(false)  // videoAutoSound: true after first play
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
@@ -65,6 +66,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   useEffect(() => {
     setIntr(null)
     setVideoVisible(false)
+    setFrame0(null)
     setMutedLoop(false)
     doneFiredRef.current = false
     firstPlayDoneRef.current = false
@@ -75,8 +77,14 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     setDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
-  // videoAutoSound: called on onLoadedData — sets up MutationObserver then unmuted play
-  function handleCircleLoaded() {
+  function handleCircleLoaded(e) {
+    const el = e.currentTarget
+    if (el?.videoWidth) try {
+      const c = document.createElement('canvas')
+      c.width = el.videoWidth; c.height = el.videoHeight
+      c.getContext('2d').drawImage(el, 0, 0)
+      setFrame0(c.toDataURL('image/jpeg', 0.85))
+    } catch (_) {}
     if (!videoAutoSound || firstPlayDoneRef.current) return
     const v = vRef.current
     if (!v) return
@@ -86,14 +94,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     function playAfterAnimation() {
       setTimeout(() => {
         if (firstPlayDoneRef.current) return
-        pLog('[circle] autoSound — play unmuted after animation')
         v.play().catch(() => {
-          pLog('[circle] autoSound unmuted failed → muted fallback')
-          v.muted = true; v.loop = true
-          v.play().catch(() => {})
-          firstPlayDoneRef.current = true
-          setMutedLoop(true)
-          onDone?.()
+          v.muted = true; v.loop = true; v.play().catch(() => {})
+          firstPlayDoneRef.current = true; setMutedLoop(true); onDone?.()
         })
       }, 200)
     }
@@ -102,14 +105,12 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     if (!pendingWrapper) {
       playAfterAnimation()
     } else {
-      const observer = new MutationObserver(() => {
+      const obs = new MutationObserver(() => {
         if (!pendingWrapper.hasAttribute('data-pending')) {
-          observer.disconnect()
-          pLog('[circle] autoSound — pending removed, starting countdown')
-          playAfterAnimation()
+          obs.disconnect(); playAfterAnimation()
         }
       })
-      observer.observe(pendingWrapper, { attributes: true, attributeFilter: ['data-pending'] })
+      obs.observe(pendingWrapper, { attributes: true, attributeFilter: ['data-pending'] })
     }
   }
 
@@ -343,6 +344,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
             onTouchEnd={onTouchEnd}
           >
             <div ref={frRef} className="circleFrame">
+              {frame0 && !videoVisible && (
+                <img src={frame0} alt="" className="circleMedia" style={videoStyle} />
+              )}
               <video
                 ref={vRef} src={src} poster={poster} className="circleMedia"
                 style={{ ...videoStyle, opacity: videoVisible ? 1 : 0 }}
@@ -355,7 +359,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
                   setIntr({ w: v.videoWidth, h: v.videoHeight })
                 }}
                 onCanPlay={() => setVideoVisible(true)}
-                onLoadedData={videoAutoSound ? handleCircleLoaded : undefined}
+                onLoadedData={handleCircleLoaded}
                 onPlaying={handlePlaying}
                 onEnded={handleEnded}
               />
