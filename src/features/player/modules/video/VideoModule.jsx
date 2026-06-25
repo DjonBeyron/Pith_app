@@ -74,19 +74,38 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
     if (!v) return
     v.muted = false
     v.loop  = false
-    // Wait for slide-in animation (190ms) before starting playback
-    setTimeout(() => {
-      if (firstPlayDoneRef.current) return
-      pLog('VideoModule: autoSound — play unmuted after animation')
-      v.play().catch(() => {
-        pLog('VideoModule: autoSound unmuted failed → muted fallback')
-        v.muted = true; v.loop = true
-        v.play().catch(() => {})
-        firstPlayDoneRef.current = true
-        setMutedLoop(true)
-        fireDone()
+
+    function playAfterAnimation() {
+      // 200ms after node becomes visible — slide-in animation (190ms) is done
+      setTimeout(() => {
+        if (firstPlayDoneRef.current) return
+        pLog('VideoModule: autoSound — play unmuted after animation')
+        v.play().catch(() => {
+          pLog('VideoModule: autoSound unmuted failed → muted fallback')
+          v.muted = true; v.loop = true
+          v.play().catch(() => {})
+          firstPlayDoneRef.current = true
+          setMutedLoop(true)
+          fireDone()
+        })
+      }, 200)
+    }
+
+    // Video may be preloaded while still pending (off-screen).
+    // Wait for data-pending removal before starting animation countdown.
+    const pendingWrapper = v.closest('[data-pending]')
+    if (!pendingWrapper) {
+      playAfterAnimation()
+    } else {
+      const observer = new MutationObserver(() => {
+        if (!pendingWrapper.hasAttribute('data-pending')) {
+          observer.disconnect()
+          pLog('VideoModule: autoSound — pending removed, starting countdown')
+          playAfterAnimation()
+        }
       })
-    }, 200)
+      observer.observe(pendingWrapper, { attributes: true, attributeFilter: ['data-pending'] })
+    }
   }
 
   function handleInlineEnded() {
