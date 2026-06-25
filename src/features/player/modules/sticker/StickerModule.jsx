@@ -23,14 +23,20 @@ function getStickerStyle(intrinsic, crop) {
   }
 }
 
-export default function StickerModule({ node, file, lessonNodes = [], lessonFiles = [], teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates, onDone }) {
+export default function StickerModule({ node, file, lessonNodes = [], lessonFiles = [], teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates, onDone, videoAutoSound }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
-  const videoRef    = useRef(null)
-  const canPlayRef  = useRef(false)
-  const animDoneRef = useRef(false)
+  const [mutedLoop, setMutedLoop] = useState(false)
+  const videoRef         = useRef(null)
+  const canPlayRef       = useRef(false)
+  const animDoneRef      = useRef(false)
+  const firstPlayDoneRef = useRef(false)
 
-  useEffect(() => { onDone?.() }, []) // eslint-disable-line
+  // onDone fires immediately unless videoAutoSound+isVideo (then after first play)
+  useEffect(() => {
+    const isVideo = node.typeData?.sticker?.isVideo ?? false
+    if (!videoAutoSound || !isVideo) onDone?.()
+  }, []) // eslint-disable-line
 
   useEffect(() => {
     if (!file?.localFile) { setObjectUrl(null); return }
@@ -44,8 +50,13 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
   const isVideo = node.typeData?.sticker?.isVideo ?? false
   const crop    = node.typeData?.sticker?.crop ?? { x: 0, y: 0, scale: 1 }
 
-  useEffect(() => { setIntrinsic(null) }, [src])
+  useEffect(() => {
+    setIntrinsic(null)
+    setMutedLoop(false)
+    firstPlayDoneRef.current = false
+  }, [src])
 
+  // Normal (non-autoSound) video start: wait for slide-in animation + canPlay
   function tryPlay() {
     if (canPlayRef.current && animDoneRef.current) {
       const v = videoRef.current
@@ -54,18 +65,60 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
   }
 
   useEffect(() => {
-    if (!isVideo || !src) return
+    if (!isVideo || !src || videoAutoSound) return
     canPlayRef.current  = false
     animDoneRef.current = false
     const t = setTimeout(() => { animDoneRef.current = true; tryPlay() }, 420)
     return () => clearTimeout(t)
   }, [isVideo, src]) // eslint-disable-line
 
-  function handleCanPlay() { canPlayRef.current = true; tryPlay() }
+  function handleCanPlay() {
+    if (!videoAutoSound) { canPlayRef.current = true; tryPlay() }
+  }
 
   function handleVideoMeta(e) {
     const v = e.target
     setIntrinsic({ w: v.videoWidth, h: v.videoHeight })
+  }
+
+  // videoAutoSound: onLoadedData — MutationObserver then unmuted play
+  function handleVideoLoaded() {
+    if (!videoAutoSound || firstPlayDoneRef.current) return
+    const v = videoRef.current
+    if (!v) return
+    v.muted = false; v.loop = false
+
+    function playAfterAnimation() {
+      setTimeout(() => {
+        if (firstPlayDoneRef.current) return
+        v.play().catch(() => {
+          v.muted = true; v.loop = true; v.play().catch(() => {})
+          firstPlayDoneRef.current = true; setMutedLoop(true); onDone?.()
+        })
+      }, 200)
+    }
+
+    const pendingWrapper = v.closest('[data-pending]')
+    if (!pendingWrapper) {
+      playAfterAnimation()
+    } else {
+      const obs = new MutationObserver(() => {
+        if (!pendingWrapper.hasAttribute('data-pending')) {
+          obs.disconnect(); playAfterAnimation()
+        }
+      })
+      obs.observe(pendingWrapper, { attributes: true, attributeFilter: ['data-pending'] })
+    }
+  }
+
+  function handleVideoEnded() {
+    if (!videoAutoSound || firstPlayDoneRef.current) return
+    firstPlayDoneRef.current = true
+    onDone?.()
+    const v = videoRef.current
+    if (!v) return
+    v.muted = true; v.loop = true; v.currentTime = 0
+    v.play().catch(() => {}); setMutedLoop(true)
   }
 
   const mediaStyle = getStickerStyle(intrinsic, crop)
@@ -77,9 +130,14 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
           src={src}
           poster={poster}
           style={mediaStyle}
-          loop playsInline muted preload="auto"
+          playsInline preload="auto"
+          autoPlay={!videoAutoSound}
+          muted={!videoAutoSound}
+          loop={!videoAutoSound && !mutedLoop}
           onCanPlay={handleCanPlay}
           onLoadedMetadata={handleVideoMeta}
+          onLoadedData={videoAutoSound ? handleVideoLoaded : undefined}
+          onEnded={videoAutoSound ? handleVideoEnded : undefined}
         />
       : <img
           src={src}
