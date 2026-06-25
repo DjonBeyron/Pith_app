@@ -29,6 +29,7 @@ export default function LessonsTab({ onOpenCanvas }) {
         teacherName={playerData.teacherName}
         teacherLogo={playerData.teacherLogo}
         teacherLogoCrop={playerData.teacherLogoCrop}
+        videoAutoSound={playerData.videoAutoSound ?? false}
         initialBlobMap={playerData.blobMap}
         onClose={() => setPlayerData(null)}
       />
