@@ -1,16 +1,4 @@
-import { buildSpans, hexToRgba } from '../lib/textHighlight.js'
-
-function sameStyle(a, b) {
-  return a && b && a.color === b.color && a.mode === b.mode && a.opacity === b.opacity
-}
-
-function bridgeSpans(spans) {
-  return spans.map((s, i) => {
-    if (!s.h && /^\s+$/.test(s.text) && sameStyle(spans[i - 1]?.h, spans[i + 1]?.h))
-      return { ...s, h: spans[i - 1].h }
-    return s
-  })
-}
+import { buildSpans, hexToRgba, sameStyle, bridgeSpans } from '../lib/textHighlight.js'
 
 function BgSpan({ color, opacity, radius, extLeft, extRight, textColor, children }) {
   const c = hexToRgba(color, opacity ?? 1)

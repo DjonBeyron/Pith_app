@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { buildCharStyles, hexToRgba } from '../../shared/lib/textHighlight.js'
+import { buildSpans, bridgeSpans, sameStyle, hexToRgba } from '../../shared/lib/textHighlight.js'
 
-// Посимвольная анимация с поддержкой выделений.
+// Посимвольная анимация с поддержкой выделений (та же система что TextModule).
 // revealedCharIdx — управляемый режим (синхронизация с аудио через Groq).
 // Без revealedCharIdx — автономный режим с внутренним таймером.
 export default function PlayerTypingText({ text, speed = 45, onTypingChange, highlights = [], revealedCharIdx }) {
@@ -11,12 +11,12 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
   const changeRef = useRef(onTypingChange)
   useEffect(() => { changeRef.current = onTypingChange }, [onTypingChange])
 
-  const charStyles = useMemo(() => buildCharStyles(text, highlights), [text, highlights])
+  const spans = useMemo(() => bridgeSpans(buildSpans(text, highlights ?? [])), [text, highlights])
 
-  // Auto-timer mode: runs only when not controlled externally
+  // Auto-timer mode
   useEffect(() => {
     if (isControlled) return
-    setCount(0)
+    setCount(0) // eslint-disable-line
     changeRef.current?.(true)
     let i = 0
     timerRef.current = setInterval(() => {
@@ -30,28 +30,68 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
     return () => { clearInterval(timerRef.current); changeRef.current?.(false) }
   }, [text, speed, isControlled])
 
-  // In controlled mode notify parent when at least one char is revealed
   useEffect(() => {
     if (!isControlled) return
     changeRef.current?.(revealedCharIdx >= 0)
   }, [revealedCharIdx, isControlled])
 
   const displayCount = isControlled ? Math.max(0, revealedCharIdx + 1) : count
+  const showCursor   = displayCount < text.length
 
-  return (
-    <span className="playerTypingText">
-      {text.slice(0, displayCount).split('').map((ch, i) => {
-        const h = charStyles?.[i]
-        const style = h ? {
-          color:        h.color   || undefined,
-          fontWeight:   h.bold    ? 700 : undefined,
-          background:   h.bgColor ? hexToRgba(h.bgColor, h.bgOpacity ?? 0.3) : undefined,
-          borderRadius: h.bgColor ? '3px' : undefined,
-          padding:      h.bgColor ? '0 2px' : undefined,
-        } : undefined
-        return <span key={i} className="playerTypingChar" style={style}>{ch}</span>
-      })}
-      {displayCount < text.length && <span className="playerCursor" />}
-    </span>
-  )
+  let charsLeft = displayCount
+  const rendered = []
+
+  for (let si = 0; si < spans.length; si++) {
+    if (charsLeft <= 0) break
+    const s = spans[si]
+    const visible   = s.text.slice(0, charsLeft)
+    const isPartial = visible.length < s.text.length
+    charsLeft -= visible.length
+    const cursorHere = showCursor && charsLeft === 0
+
+    if (!s.h) {
+      rendered.push(
+        <span key={si}>{visible}{cursorHere && <span className="playerCursor" />}</span>
+      )
+      continue
+    }
+
+    if (s.h.mode === 'text') {
+      const c = hexToRgba(s.h.color, s.h.opacity ?? 1)
+      rendered.push(
+        <span key={si} style={{ color: c }}>{visible}{cursorHere && <span className="playerCursor" />}</span>
+      )
+      continue
+    }
+
+    // bg mode — плашка проявляется вместе с текстом
+    const prevSame  = sameStyle(spans[si - 1]?.h, s.h)
+    const nextSame  = !isPartial && sameStyle(spans[si + 1]?.h, s.h)
+    const radius    = prevSame && nextSame ? 0
+      : prevSame  ? '0 3px 3px 0'
+      : nextSame  ? '3px 0 0 3px'
+      : 3
+    const textColor = s.textUnder ? hexToRgba(s.textUnder.color, s.textUnder.opacity ?? 1) : null
+    const bgColor   = hexToRgba(s.h.color, s.h.opacity ?? 1)
+
+    rendered.push(
+      <span key={si} style={{ position: 'relative' }}>
+        <span aria-hidden="true" data-hl-bg="true" style={{
+          position: 'absolute',
+          left:   !prevSame               ? '-1.5px' : 0,
+          right:  (!isPartial && !nextSame) ? '-1.5px' : 0,
+          top: '4px', bottom: '1px',
+          background: bgColor,
+          borderRadius: radius,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }} />
+        <span style={{ position: 'relative', zIndex: 1, ...(textColor ? { color: textColor } : {}) }}>
+          {visible}{cursorHere && <span className="playerCursor" />}
+        </span>
+      </span>
+    )
+  }
+
+  return <span className="playerTypingText">{rendered}</span>
 }

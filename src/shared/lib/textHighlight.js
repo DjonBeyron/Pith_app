@@ -10,6 +10,18 @@ export function hexToRgba(hex, opacity) {
   return `rgba(${r},${g},${b},${opacity})`
 }
 
+export function sameStyle(a, b) {
+  return a && b && a.color === b.color && a.mode === b.mode && a.opacity === b.opacity
+}
+
+export function bridgeSpans(spans) {
+  return spans.map((s, i) => {
+    if (!s.h && /^\s+$/.test(s.text) && sameStyle(spans[i - 1]?.h, spans[i + 1]?.h))
+      return { ...s, h: spans[i - 1].h }
+    return s
+  })
+}
+
 // Builds flat span array from text + highlights for rendering.
 // bg has display priority over text-color on the same position.
 // Returns [{ text, h: display_highlight|null }]
