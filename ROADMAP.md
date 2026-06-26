@@ -11,15 +11,18 @@
 НЕЗАРЕГИСТРИРОВАННЫЙ
   Ссылка / каталог → [Вводный урок] → диагностика слабых мест
                                             ↓
-                          [Граф модуля] → [Тренажёры] → [Босс]
-                                                             ↓
                                             Gate: зарегистрируйся
                                             чтобы сохранить прогресс
-                                                             ↓
-                                            (прогресс из localStorage
+                                             (прогресс из localStorage
                                              переносится в Supabase)
+                                            ↓
+                          [Граф модуля] → [Тренажёры] → [Босс]
+                                                             
+                                            
+                                                             
+                                           
 
-ЗАРЕГИСТРИРОВАННЫЙ
+ЗАРЕГИСТРИРОВАННЫЙ видит
   Вкладка [Все модули] → фильтр → выбирает любой → [Вводный] → ...
 ```
 
@@ -64,10 +67,11 @@
 Каждая фраза — это **модуль** из нескольких уроков:
 
 ```
-Глобальная карта (все фразы-модули)
+ карта модуля (все слова-модули)
   └── Модуль «I'm trying to please both»
         ├── Вводный урок       → +1 уровень, +1 unlock-очко
         ├── Тренажёр "trying"  → +XP, +1 уровень, +1 очко
+        ├── Тренажёр "to"  → +XP, +1 уровень, +1 очко
         ├── Тренажёр "please"  → +XP, +1 уровень, +1 очко
         ├── Тренажёр "both"    → +XP, +1 уровень, +1 очко
         └── Босс-урок          → большой XP, модуль завершён → глобальная карта
@@ -79,40 +83,128 @@
 
 ---
 
-## 🔄 Фаза 1 — Регистрация (В РАЗРАБОТКЕ)
+## 🔄 Фаза 1 — Роутинг + Регистрация (В РАЗРАБОТКЕ)
 
-Любой урок проходится без аккаунта. Прогресс живёт в localStorage.
+Любой урок проходится без аккаунта. Прогресс живёт в localStorage (`pithy_guest`).
 После вводного урока — gate «зарегистрируйся чтобы сохранить прогресс».
 Прогресс переносится в Supabase без повторного прохождения.
+Глобальный список доступен всем без регистрации.
 
-Глобальный список модулей доступен всем (без регистрации).
-Незарегистрированный видит свой прогресс из localStorage в списке.
+### Роль учителя
 
-**Задачи:**
-- [ ] Включить Email + Password (с подтверждением письма) в Supabase Auth
+Учитель — один hardcoded пользователь. Определяется через env:
+```
+VITE_TEACHER_EMAIL=teacher@pithy.app
+```
+```js
+export const isTeacher = (user) => user?.email === import.meta.env.VITE_TEACHER_EMAIL
+```
+Учитель видит Canvas / Admin, студент — нет. Никаких ролей в базе не нужно.
+
+### URL-роутинг
+
+Сейчас в `App.jsx` — только `useState('lessons')`, URL всегда `/`.
+Для работы ссылок нужен React Router v6:
+
+```bash
+npm install react-router-dom
+```
+
+Структура роутов:
+```
+/                    → ModuleList (глобальный список) — публичный
+/module/:moduleId    → ModuleMap (граф фразы) — публичный
+/lesson/:lessonId    → LessonPlayer — публичный
+/canvas/:lessonId    → CanvasPage — только isTeacher
+/admin               → AdminTab — только isTeacher
+/login               → LoginScreen — публичный
+```
+
+`vercel.json` — обязателен для SPA (иначе прямые ссылки дают 404):
+```json
+{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+```
+
+`App.jsx` переписывается с tab-state на `<BrowserRouter><Routes>`.
+Текущие вкладки Уроки / Админ / Настройки становятся роутами учителя.
+
+### localStorage — схема прогресса студента
+
+Существующие ключи (не трогаем): `lesson_teacher_{id}`, `lesson_files_{id}`,
+`hl_opacity`, `hl_recent`, `pithy_debug`.
+
+Новый ключ `pithy_guest`:
+```js
+{
+  completedNodes: {
+    // [lessonId]: { [nodeId]: { xp: 10, completedAt: timestamp } }
+    "lesson-abc": {
+      "node-1": { xp: 10, completedAt: 1719400000 }
+    }
+  },
+  diagnostics: {
+    // [lessonId]: { [nodeId]: { skipped, errorCount, timeSpent (ms) } }
+    "lesson-abc": {
+      "node-2": { skipped: true, errorCount: 0, timeSpent: 1200 },
+      "node-4": { skipped: false, errorCount: 2, timeSpent: 8400 }
+    }
+  },
+  moduleProgress: {
+    // [moduleId]: агрегированное состояние
+    "module-xyz": {
+      introCompleted: true,
+      xpEarned: 30,
+      unlockPoints: 1,
+      unlockedLessonIds: ["lesson-def"],
+      completedLessonIds: ["lesson-abc"]
+    }
+  }
+}
+```
+
+После регистрации: батч-INSERT `completedNodes` → `xp_events`,
+`moduleProgress` → `user_module_progress`, `diagnostics` → `lesson_events`.
+Ключ `pithy_guest` очищается.
+
+### Задачи
+
+- [ ] `npm install react-router-dom` + `vercel.json`
+- [ ] Переписать `App.jsx` на `<BrowserRouter><Routes>`
+- [ ] Роут `/lesson/:lessonId` — открывает LessonPlayer напрямую
+- [ ] Роут `/module/:moduleId` — открывает ModuleMap (заглушка до Фазы 5)
+- [ ] Guard для роутов учителя — редирект если `!isTeacher(user)`
+- [ ] Включить Email + Password (с подтверждением) в Supabase Auth
+  - Пока email не подтверждён: пользователь может пользоваться приложением,
+    но видит баннер «Подтверди email чтобы не потерять прогресс»
 - [ ] Включить Google OAuth в Supabase Auth
-- [ ] `useAuth` хук — `user`, `loading`, `signIn`, `signOut`, `signUp`
+- [ ] `useAuth` хук — `user`, `isTeacher`, `loading`, `signIn`, `signOut`, `signUp`
 - [ ] `RegistrationGate` — появляется после вводного урока если не залогинен
   - Форма: имя + email + пароль
   - Кнопка «Войти через Google»
   - Ссылка «Уже есть аккаунт — войти»
-  - Можно закрыть («продолжить без сохранения»)
+  - Кнопка «Продолжить без сохранения» (закрыть gate)
 - [ ] `LoginScreen` для возвращающихся пользователей
-- [ ] Миграция прогресса: localStorage → Supabase после регистрации/логина
-  - Пройденные ноды, заработанный XP, диагностика вводного — всё переносится
+- [ ] `migrateGuestProgress(user)` — переносит `pithy_guest` в Supabase после логина
   - Батч-INSERT `xp_events` с `ON CONFLICT DO NOTHING`
-- [ ] Глобальный список показывает прогресс из localStorage для незарег. пользователя
+  - Upsert `user_module_progress`
+  - INSERT `lesson_events`
+  - Очистить `pithy_guest` из localStorage
+- [ ] `ModuleList` показывает прогресс из `pithy_guest` для незарег. пользователя
 
 ---
 
-## Фаза 2 — XP визуально в уроке
+## Фаза 2 — XP визуально в уроке + диагностика скипов
 
 **Задачи:**
 - [ ] Счётчик XP в `PlayerTopBar` — `[⚡ 30 XP]` (только если урок имеет XP-ноды)
 - [ ] Анимация `+10 XP` при верном ответе в `word_choice` и `phrase_assembly`
-- [ ] Нода уже пройдена (localStorage) → анимации нет, XP не растёт (защита от фарма)
+- [ ] Нода уже пройдена (`pithy_guest`) → анимации нет, XP не растёт
 - [ ] Фраза-сборка 3-я попытка (ответ показан) → XP всё равно начисляется
 - [ ] Экран итогов урока: суммарный XP + количество пройденных нод
+- [ ] Таймер на нодах в `LessonPlayer` — фиксирует `timeSpent` (мс) при переходе
+  - Нужен для диагностики скипов: `timeSpent < 3000ms` → `skipped: true`
+  - Записывается в `pithy_guest.diagnostics[lessonId][nodeId]`
+- [ ] Счётчик ошибок в `word_choice` и `phrase_assembly` → `pithy_guest.diagnostics`
 
 ---
 
@@ -120,19 +212,57 @@
 
 **Supabase таблицы:**
 ```sql
-xp_events            -- лог: user_id, lesson_id, node_id, xp_earned
-                     -- UNIQUE(user_id, lesson_id, node_id) — защита от повторов
-user_module_progress -- user_id, module_id, xp_earned, intro_done, boss_done,
-                     -- unlock_points, unlocked_ids[], completed_ids[]
-user_global          -- user_id, level, completed_module_ids[]
+xp_events (
+  id, user_id, lesson_id, node_id, xp_earned, created_at,
+  UNIQUE(user_id, lesson_id, node_id)   -- защита от фарма
+)
+lesson_events (                          -- диагностика вводного урока
+  id, user_id, lesson_id, node_id,
+  skipped BOOLEAN, error_count INT, time_spent_ms INT,
+  created_at,
+  UNIQUE(user_id, lesson_id, node_id)
+)
+user_module_progress (
+  user_id, module_id,                   -- PK
+  xp_earned INT DEFAULT 0,              -- пересчитывается триггером
+  intro_done BOOLEAN DEFAULT FALSE,
+  boss_done BOOLEAN DEFAULT FALSE,
+  unlock_points INT DEFAULT 0,
+  unlocked_lesson_ids UUID[] DEFAULT '{}',
+  completed_lesson_ids UUID[] DEFAULT '{}'
+)
+user_global (
+  user_id PK,
+  level INT DEFAULT 0,                  -- пересчитывается триггером
+  completed_module_ids UUID[] DEFAULT '{}'
+)
+```
+
+**RLS-политики (Row Level Security):**
+```sql
+-- xp_events: юзер читает/пишет только свои
+-- lesson_events: то же
+-- user_module_progress: только свои строки
+-- phrase_modules: публичное чтение (SELECT), запись — только TEACHER_EMAIL через service role
+-- user_global: только своя строка
+```
+
+**Пересчёт XP — Supabase Trigger (не клиент):**
+```sql
+-- При INSERT в xp_events → обновить user_module_progress.xp_earned
+-- При обновлении user_module_progress.intro_done → +1 к user_global.level
+-- Клиент не считает XP — только пишет события
 ```
 
 **Задачи:**
-- [ ] Создать таблицы в Supabase
+- [ ] Создать все 4 таблицы в Supabase
+- [ ] Настроить RLS для каждой таблицы
+- [ ] Написать триггер пересчёта `xp_earned` и `level`
 - [ ] Батч-запись `xp_events` после завершения урока (`ON CONFLICT DO NOTHING`)
-- [ ] Пересчёт `user_module_progress.xp_earned` и `user_global.level`
-- [ ] Чтение прогресса при логине, синхронизация с localStorage
-- [ ] XP за удалённые учителем ноды — сохраняется (не пересчитывается)
+- [ ] Батч-запись `lesson_events` с диагностикой (из `pithy_guest.diagnostics`)
+- [ ] Чтение прогресса при логине → синхронизация с `pithy_guest`
+- [ ] XP за удалённые ноды сохраняется (триггер не пересчитывает ретроактивно)
+- [ ] Флаг `is_published` на `phrase_modules` — черновики не видны студентам
 
 ---
 
@@ -157,18 +287,25 @@ phrase_module_lessons  -- id, module_id, lesson_id, pos_x, pos_y
 
 ---
 
-## Фаза 5 — Карта для пользователя
+## Фаза 5 — Карта модуля для пользователя (роут `/module/:moduleId`)
 
-**Карта модуля (внутри фразы):**
-- [ ] Read-only граф того же стиля что и редактор
-- [ ] Статусы нод: заблокирован / доступен / пройден
-- [ ] Разблокировка тренажёра = тратит 1 unlock-очко (пользователь выбирает порядок)
-- [ ] Босс-нода: прогресс-бар XP с замком → при заполнении замок снимается
+Read-only граф внутри фразы. Глобального графа нет — его заменяет список (Фаза 6).
 
-**Глобальная карта (все модули):**
-- [ ] Сетка / граф всех фраз-модулей
-- [ ] Статус модуля: не начат / в процессе / завершён (после босса)
-- [ ] Переход внутрь модуля по тапу
+Визуально: три цветные вертикальные колонки (оранжевая / синяя / зелёная)
+с нодами-словами. Цвет определяется диагностикой вводного урока (`lesson_events`).
+Боссе — отдельная нода внизу с прогресс-баром и замком.
+
+**Задачи:**
+- [ ] Экран `ModuleMap` — read-only граф, роут `/module/:moduleId`
+- [ ] Три колонки по цвету диагностики (оранжевый / синий / зелёный / серый)
+- [ ] Нода-слово: название урока, статус (locked / available / done), XP заработан
+- [ ] Разблокировка тренажёра — тратит 1 unlock-очко, upsert в `user_module_progress`
+- [ ] Оранжевая нода авто-разблокируется первым очком после вводного урока
+- [ ] Босс-нода: прогресс-бар `xp_earned / boss_xp_required`, замок → разблокировка
+- [ ] Бонусный XP (+5) за прохождение зелёной ноды (уже знакомое слово)
+- [ ] Значок «рекомендуем» на синих нодах
+- [ ] Из нода → переход на `/lesson/:lessonId`
+- [ ] После прохождения босса → переход на `/` (ModuleList)
 
 ---
 
