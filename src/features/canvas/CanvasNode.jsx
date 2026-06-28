@@ -3,9 +3,10 @@ import NodeAudioPicker from './NodeAudioPicker.jsx'
 import NodeTextHighlighter from './NodeTextHighlighter.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
-import NodeWordChoicePicker     from './NodeWordChoicePicker.jsx'
-import NodePhraseAssemblyPicker from './NodePhraseAssemblyPicker.jsx'
-import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
+import NodeWordChoicePicker       from './NodeWordChoicePicker.jsx'
+import NodePhraseAssemblyPicker   from './NodePhraseAssemblyPicker.jsx'
+import NodePhotoChoicePicker      from './NodePhotoChoicePicker.jsx'
+import NodeRegistrationTriggers   from './NodeRegistrationTriggers.jsx'
 import NodeTypeSelect, { NODE_TYPES, TYPE_COLOR } from './NodeTypeSelect.jsx'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
@@ -86,6 +87,15 @@ export default function CanvasNode({
         update.triggers = [
           { id: crypto.randomUUID(), if: 'photo_correct', then: null },
           { id: crypto.randomUUID(), if: 'photo_wrong',   then: null },
+        ]
+      }
+    }
+    if (newType === 'registration') {
+      const hasReg = node.triggers?.some(t => t.if === 'reg_submit' || t.if === 'reg_cancel')
+      if (!hasReg) {
+        update.triggers = [
+          { id: crypto.randomUUID(), if: 'reg_submit', then: null },
+          { id: crypto.randomUUID(), if: 'reg_cancel', then: null },
         ]
       }
     }
@@ -241,6 +251,29 @@ export default function CanvasNode({
             )}
           </div>
         )}
+        {node.type === 'registration' && (
+          <>
+            <input
+              className="nodeTextInput"
+              style={{ padding: '8px 12px', borderRadius: 8, fontSize: 13 }}
+              value={tData.title ?? ''}
+              onChange={e => updateTypeData({ title: e.target.value })}
+              placeholder="Заголовок панели (по умолчанию: Регистрация)"
+              onClick={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
+            />
+            <textarea
+              className="nodeTextInput"
+              style={{ fontSize: 11, lineHeight: 1.5 }}
+              value={tData.policyText ?? ''}
+              onChange={e => updateTypeData({ policyText: e.target.value })}
+              placeholder="Текст политики конфиденциальности (если пусто — используется стандартный текст)"
+              onClick={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
+              rows={5}
+            />
+          </>
+        )}
         {node.type === 'word_choice' && (
           <NodeWordChoicePicker
             options={tData.options ?? []}
@@ -288,7 +321,10 @@ export default function CanvasNode({
             onTriggerMeasure={onTriggerMeasure}
           />
         )}
-        {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'photo_choice' && (
+        {node.type === 'registration' && (
+          <NodeRegistrationTriggers onTriggerMeasure={onTriggerMeasure} />
+        )}
+        {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'photo_choice' && node.type !== 'registration' && (
           <NodeTriggerEditor
             triggers={node.triggers}
             nodeId={node.id}

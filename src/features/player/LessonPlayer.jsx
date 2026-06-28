@@ -7,6 +7,7 @@ import ChooseWordPanel      from './panels/choose-word/ChooseWordPanel.jsx'
 import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.jsx'
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
+import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
@@ -104,6 +105,7 @@ export default function LessonPlayer({
   const [photoChoiceStates, setPhotoChoiceStates] = useState({})
   const [wordChoiceStates, setWordChoiceStates]   = useState({})
   const [phraseStates, setPhraseStates]           = useState({})
+  const [regStates, setRegStates]                 = useState({})
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     const result = isCorrect ? 'photo_correct' : 'photo_wrong'
@@ -123,16 +125,22 @@ export default function LessonPlayer({
     })
   }
 
+  function handleRegAnswer(nodeId, text, result) {
+    setRegStates(prev => ({ ...prev, [nodeId]: [...(prev[nodeId] ?? []), { text, result }] }))
+  }
+
   const [pinVisible, setPinVisible]       = useState(true)
   const [wcPanelHeight, setWcPanelHeight] = useState(0)
   const [paPanelHeight, setPaPanelHeight] = useState(0)
   const [pcPanelHeight, setPcPanelHeight] = useState(0)
+  const [regPanelHeight, setRegPanelHeight] = useState(0)
 
   const lastOf = (type) => [...visibleNodes].reverse().find(n => n.type === type) ?? null
-  const wcNode = lastOf('word_choice')
-  const paNode = lastOf('phrase_assembly')
-  const pmNode = lastOf('pin_message')
-  const pcNode = lastOf('photo_choice')
+  const wcNode  = lastOf('word_choice')
+  const paNode  = lastOf('phrase_assembly')
+  const pmNode  = lastOf('pin_message')
+  const pcNode  = lastOf('photo_choice')
+  const regNode = lastOf('registration')
 
   return (
     <>
@@ -185,7 +193,8 @@ export default function LessonPlayer({
                     allPhotoChoiceStates={photoChoiceStates}
                     allPhraseStates={phraseStates}
                     phraseState={phraseStates[node.id] ?? null}
-                    bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight}
+                    regState={regStates[node.id] ?? null}
+                    bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight || regPanelHeight}
                     videoAutoSound={videoAutoSound}
                     onDone={isPending ? () => {} : () => onNodeDone(node.id)}
                   />
@@ -219,6 +228,14 @@ export default function LessonPlayer({
             lessonFiles={filesWithBlobs}
             onPick={(idx, isCorrect) => handlePhotoPick(pcNode.id, idx, isCorrect)}
             onHeightChange={setPcPanelHeight}
+          />
+        )}
+        {regNode && (
+          <RegistrationPanel
+            node={regNode}
+            onDone={(trigger, data) => { setRegPanelHeight(0); onNodeDone(regNode.id, trigger, data) }}
+            onAnswered={(text, result) => handleRegAnswer(regNode.id, text, result)}
+            onHeightChange={setRegPanelHeight}
           />
         )}
       </div>

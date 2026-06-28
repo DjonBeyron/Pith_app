@@ -10,6 +10,7 @@ import WordChoiceModule     from './word-choice/WordChoiceModule.jsx'
 import PhraseAssemblyModule from './phrase-assembly/PhraseAssemblyModule.jsx'
 import PinMessageModule     from './pin-message/PinMessageModule.jsx'
 import PhotoChoiceModule    from './photo-choice/PhotoChoiceModule.jsx'
+import RegistrationModule   from './registration/RegistrationModule.jsx'
 
 const MODULE_MAP = {
   audio:        AudioModule,
@@ -24,6 +25,7 @@ const MODULE_MAP = {
   phrase_assembly: PhraseAssemblyModule,
   pin_message:     PinMessageModule,
   photo_choice:    PhotoChoiceModule,
+  registration:    RegistrationModule,
 }
 
 // Returns the component for a given node type, or null if unknown.

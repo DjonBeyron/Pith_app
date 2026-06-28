@@ -75,6 +75,7 @@
 | `canvas/phrase-assembly.css` | Редактор ноды «Собрать фразу»: инпут фразы, превью чипов, лишние слова |
 | `player/panels/choose-word.css` | Панель выбора слова в плеере: кнопки-варианты, анимации wcFlashGreen/wcFlashRed, пузырь-ответ |
 | `player/panels/phrase-assembly.css` | Панель сборки фразы: зона ответа (dashed border), пул чипов, кнопка «Проверить», анимация shake |
+| `player/panels/registration.css` | Панель регистрации в плеере: поля email/имя, кнопки «Зарегистрироваться» и «Отмена», та же slide-up анимация что choose-word |
 
 ### `src/app/` — общая сборка приложения
 | Файл | Зачем нужен |
@@ -133,6 +134,7 @@
 | `modules/sticker/StickerModule.jsx` | Стикер: квадрат 160px, поддерживает фото/gif/видео, muted по флагу isVideo |
 | `modules/system/SystemModule.jsx` | Системное сообщение без пузыря (заглушка) |
 | `modules/word-choice/WordChoiceModule.jsx` | Выбор слова — в ленте не рендерит ничего; панель снизу (`ChooseWordPanel`) |
+| `modules/registration/RegistrationModule.jsx` | Регистрация — в ленте не рендерит ничего; панель снизу (`RegistrationPanel`) |
 | `modules/phrase-assembly/PhraseAssemblyModule.jsx` | Собрать фразу — в ленте не рендерит ничего; панель снизу (`PhraseAssemblyPanel`) |
 | `modules/pin-message/PinMessageModule.jsx` | Закрепить сообщение — центрированная системная строка «[учитель] закрепил сообщение» |
 | `modules/photo-choice/PhotoChoiceModule.jsx` | Выбрать фото — возвращает null (панель снизу ведёт весь UI) |
@@ -145,6 +147,9 @@
 | `panels/choose-word/ChooseWordOption.jsx` | Одна кнопка-вариант: 4 состояния (default/correct/wrong/dimmed) |
 | `panels/choose-word/ChooseWordResponse.jsx` | Пузырь-ответ справа (зелёный / красный) после выбора |
 | `panels/choose-word/ChooseWordPanel.jsx` | Панель снизу плеера: варианты + ответ; показывается за пределами PlayerFeed |
+| `panels/registration/RegistrationPanel.jsx` | Панель регистрации снизу: email + имя + кнопки; триггеры reg_submit / reg_cancel |
+| `panels/registration/RegistrationConsent.jsx` | Модалка согласия с политикой конфиденциальности: скролл текста, чекбокс, кнопка Принять |
+| `canvas/NodeRegistrationTriggers.jsx` | Строки триггеров для ноды регистрации (reg_submit / reg_cancel) с измерением позиций через onTriggerMeasure |
 | `panels/phrase-assembly/usePhraseAssembly.js` | Хук: перемешанные чипы, placed[], usedIdxs, result (correct/wrong), checkAnswer |
 | `panels/phrase-assembly/PhraseWordChip.jsx` | Кнопка-чип из пула: состояния default/used/disabled |
 | `panels/phrase-assembly/PhraseAnswerRow.jsx` | Зона ответа: dashed border, placed chips, shake при ошибке |
@@ -172,6 +177,7 @@
 | Файл | Зачем нужен |
 |------|-------------|
 | `supabase.js` | Подключение к базе данных Supabase (по ключам из `.env.local`) |
+| `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth |
 | `highlightPresetsApi.js` | Загрузка и сохранение избранных цветов выделений (`highlight_color_presets`, singleton row 'global') |
 
 ### `src/shared/lib/` — вспомогательные функции без интерфейса

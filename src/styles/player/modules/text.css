@@ -25,6 +25,12 @@
   color: #f87171;
 }
 
+/* Левый зелёный пузырь — успешная регистрация */
+.playerMsgBubble--regOk {
+  background: rgba(182,254,59,.08);
+  color: #b6fe3b;
+}
+
 .playerMsgBubble--text {
   background: #1a1d22;
   padding: 6px 14px;

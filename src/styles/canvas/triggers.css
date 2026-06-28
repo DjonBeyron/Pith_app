@@ -85,3 +85,24 @@
 }
 
 .nodeTriggerAdd:hover { border-color: #b6fe3b; color: #b6fe3b; }
+
+/* ── Registration node trigger rows ─── */
+.nodeRegTriggers {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px solid #1a1c22;
+  padding-top: 6px;
+}
+
+.nodeRegTriggerRow {
+  background: #0d0f14;
+  border: 1px solid #1e2030;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 10px;
+  color: #555;
+}
+
+.nodeRegTriggerRowSubmit { color: #b6fe3b; border-color: #2a3a1a; }
+.nodeRegTriggerRowCancel { color: #888; }

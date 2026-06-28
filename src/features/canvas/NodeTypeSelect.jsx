@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
   MessageSquare, Mic, PlayCircle, Video, Image, Smile,
-  Info, Pin, SpellCheck, Layers, Images, MicVocal,
+  Info, Pin, SpellCheck, Layers, Images, MicVocal, UserPlus,
 } from 'lucide-react'
 
 export const NODE_TYPES = [
@@ -18,6 +18,7 @@ export const NODE_TYPES = [
   { value: 'phrase_assembly', label: 'Собери фразу',        icon: Layers,        color: '#3a9888' },
   { value: 'photo_choice',    label: 'Выбрать фото',        icon: Images,        color: '#2a94b4' },
   { value: 'voice_record',    label: 'Запись голоса',       icon: MicVocal,      color: '#a84a84' },
+  { value: 'registration',   label: 'Регистрация',          icon: UserPlus,      color: '#4a8ab4' },
 ]
 
 export const TYPE_COLOR = Object.fromEntries(NODE_TYPES.map(t => [t.value, t.color]))
