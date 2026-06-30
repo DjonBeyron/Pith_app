@@ -43,6 +43,16 @@ export function useCurricula() {
           createdAt:  r.created_at,
         }))
 
+        // Restore lesson_ids to localStorage — critical for fresh devices
+        fromServer.forEach(c => {
+          const lsKey = `curr_lessons_${c.id}`
+          const local = JSON.parse(localStorage.getItem(lsKey) ?? '[]')
+          if (c.lessonIds.length && !local.length) {
+            localStorage.setItem(lsKey, JSON.stringify(c.lessonIds))
+            dbg('[LOAD] restored lesson_ids for curriculum', c.id, '→', c.lessonIds.length, 'lessons')
+          }
+        })
+
         // Merge: server rows + any local-only items not yet saved
         const serverIds = new Set(fromServer.map(c => c.id))
         const localOnly = loadLocal().filter(c => !serverIds.has(c.id))
