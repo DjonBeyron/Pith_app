@@ -91,7 +91,7 @@ export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRenam
     return (
       <div className={`mgNodeBtns${show ? ' mgNodeBtns--vis' : ''}`}
         onClick={e => e.stopPropagation()}>
-        <button className="mgBtn mgBtnPlay" onClick={() => { onPlay(l.id); setTapped(null) }}>▶</button>
+        <button className="mgBtn" onClick={() => { onPlay(l.id); setTapped(null) }}>▶</button>
         <button className="mgBtn" onClick={() => { onEdit(l.id); setTapped(null) }}>⚙</button>
         <button className="mgBtn" onClick={e => { startRename(e, l.id, l.title); setTapped(null) }}>✎</button>
         <button className={`mgBtn mgBtnEye${l.published ? ' mgBtnEyeOn' : ''}`}

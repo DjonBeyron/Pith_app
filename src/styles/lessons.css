@@ -189,13 +189,14 @@
 /* ── Module graph ───────────────────────────────────────────── */
 .moduleGraphScroll {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   background: #0e1013;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;        /* Firefox */
-  -ms-overflow-style: none;     /* IE/Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-.moduleGraphScroll::-webkit-scrollbar { display: none; } /* Chrome/Safari/Mobile */
+.moduleGraphScroll::-webkit-scrollbar,
+.moduleGraphScroll::-webkit-scrollbar-track,
+.moduleGraphScroll::-webkit-scrollbar-thumb { display: none; width: 0; height: 0; }
 
 /* Flex column — CSS drives layout, JS only measures for SVG curves */
 .moduleGraphInner {
@@ -318,18 +319,19 @@
   text-align: center;
 }
 
-/* ── Buttons: absolute overlay, hidden by default ── */
+/* ── Buttons: centered overlay, hidden by default ── */
 .mgNodeBtns {
   display: none;
   position: absolute;
-  right: 8px;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
-  gap: 3px;
+  transform: translate(-50%, -50%);
+  gap: 4px;
   align-items: center;
+  justify-content: center;
   background: rgba(14, 16, 19, 0.88);
   border-radius: 6px;
-  padding: 3px 4px;
+  padding: 4px 6px;
   z-index: 4;
 }
 
@@ -338,38 +340,30 @@
 /* START and FINAL: centered below title */
 .mgNode--start .mgNodeBtns,
 .mgNode--final .mgNodeBtns {
-  position: absolute;
   top: auto;
-  bottom: 10px;
-  left: 50%;
-  right: auto;
+  bottom: 12px;
   transform: translateX(-50%);
-  justify-content: center;
-  gap: 4px;
 }
 
 .mgBtn {
-  padding: 2px 4px;
-  font-size: 11px;
+  padding: 3px 6px;
+  font-size: 12px;
   border-radius: 4px;
-  border: 1px solid #333;
+  border: 1px solid #444;
   background: transparent;
   cursor: pointer;
-  color: #888;
-  transition: color 0.15s, border-color 0.15s;
+  color: #aaa;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
   line-height: 1.4;
   flex-shrink: 0;
 }
 
-.mgBtn:hover { color: #e0e0e0; border-color: #555; }
-
-.mgBtnPlay  { color: #b6fe3b; border-color: #b6fe3b33; }
-.mgBtnPlay:hover { background: #b6fe3b18; border-color: #b6fe3b66; color: #b6fe3b; }
+.mgBtn:hover { color: #e0e0e0; border-color: #666; background: rgba(255,255,255,0.06); }
 
 .mgBtnDel:hover { color: #ff8080; border-color: #ff8080; }
 
-.mgBtnEye { color: #555; }
-.mgBtnEyeOn { color: #b6fe3b; border-color: #b6fe3b44; }
+.mgBtnEye { color: #555; border-color: #333; }
+.mgBtnEyeOn { color: #ccc; border-color: #555; }
 
 /* ── Rename input ──────────────────────────────────────────── */
 .mgRenameInput {
