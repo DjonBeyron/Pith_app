@@ -5,24 +5,35 @@ import CurriculaList from './CurriculaList.jsx'
 import ModuleGraph from './ModuleGraph.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
+import { isDebugOn } from '../../shared/lib/debug.js'
 
 function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
   const {
-    lessons, loading, creating, error,
-    bulkCreate, addBeforeFinal, renameLesson, removeLesson,
+    lessons, loading, creating, error, isDirty,
+    bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure,
   } = useCurriculumLessons(curriculumId)
 
   const [launchId,   setLaunchId]   = useState(null)
   const [playerData, setPlayerData] = useState(null)
+  const [saving,     setSaving]     = useState(false)
+  const [saveMsg,    setSaveMsg]    = useState('')
   const didInitRef = useRef(false)
 
-  // Auto-create 3 lessons for brand-new empty modules
   useEffect(() => {
     if (!loading && !creating && lessons.length === 0 && !didInitRef.current) {
       didInitRef.current = true
       bulkCreate(['Старт', 'Урок', 'Финал'])
     }
   }, [loading, creating, lessons.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSave() {
+    setSaving(true)
+    setSaveMsg('')
+    const result = await saveStructure(curriculumTitle)
+    setSaving(false)
+    setSaveMsg(result.ok ? '✓ Сохранено' : `Ошибка: ${result.error}`)
+    setTimeout(() => setSaveMsg(''), 3000)
+  }
 
   if (playerData) {
     return (
@@ -46,6 +57,12 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         <button className="lessonBackBtn" onClick={onBack}>← Модули</button>
         <span className="lessonMapTitle">{curriculumTitle}</span>
         {error && <span className="errorText">{error}</span>}
+        {saveMsg && <span className="dbSaveMsg">{saveMsg}</span>}
+        <button className={`saveBtn${isDirty ? ' saveBtn--dirty' : ''}`}
+          onClick={handleSave} disabled={saving || loading} title="Сохранить структуру на сервер">
+          {saving ? '...' : '💾'}
+          {isDirty && !saving && <span className="saveDirtyDot" />}
+        </button>
         <button className="primaryBtn" onClick={() => addBeforeFinal()} disabled={creating || loading}>
           {creating ? '...' : '+ Урок'}
         </button>
@@ -63,6 +80,10 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         />
       )}
 
+      {isDebugOn() && (
+        <DbDebugPanel curriculumId={curriculumId} lessons={lessons} />
+      )}
+
       {launchId && (
         <LessonLaunchCard
           lessonId={launchId}
@@ -70,6 +91,21 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           onClose={() => setLaunchId(null)}
         />
       )}
+    </div>
+  )
+}
+
+function DbDebugPanel({ curriculumId, lessons }) {
+  return (
+    <div className="dbDebugPanel">
+      <div className="dbDebugTitle">🗄 DB Debug</div>
+      <div className="dbDebugRow"><b>curriculum_id:</b> {curriculumId}</div>
+      <div className="dbDebugRow"><b>lessons ({lessons.length}):</b></div>
+      {lessons.map((l, i) => (
+        <div key={l.id} className="dbDebugRow dbDebugLesson">
+          [{i}] {l.id.slice(0, 8)}… — {l.title}
+        </div>
+      ))}
     </div>
   )
 }
@@ -84,13 +120,12 @@ function saveNav(val) {
 }
 
 export default function LessonsTab({ onOpenCanvas }) {
-  const { curricula, createCurriculum, deleteCurriculum, renameCurriculum } = useCurricula()
-  const [selected, setSelected] = useState(loadNav) // persisted across tab switches
+  const { curricula, createCurriculum, deleteCurriculum, renameCurriculum, saveCurriculumToServer } = useCurricula()
+  const [selected, setSelected] = useState(loadNav)
 
   function select(c) { setSelected(c); saveNav(c) }
   function deselect() { setSelected(null); saveNav(null) }
 
-  // If the saved curriculum was deleted while on another tab — go back to list
   const stillExists = selected && curricula.some(c => c.id === selected.id)
   if (selected && !stillExists && curricula.length > 0) {
     deselect()
@@ -115,6 +150,10 @@ export default function LessonsTab({ onOpenCanvas }) {
       onOpen={c => select({ id: c.id, title: c.title })}
       onDelete={id => { if (selected?.id === id) deselect(); deleteCurriculum(id) }}
       onRename={renameCurriculum}
+      onSave={(id, title) => {
+        const lessonIds = JSON.parse(localStorage.getItem(`curr_lessons_${id}`) ?? '[]')
+        return saveCurriculumToServer(id, title, lessonIds)
+      }}
     />
   )
 }

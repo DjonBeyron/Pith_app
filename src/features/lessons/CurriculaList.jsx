@@ -1,14 +1,28 @@
+import { useState } from 'react'
+
 function formatDate(ts) {
   return new Date(ts).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export default function CurriculaList({ curricula, onCreate, onOpen, onDelete, onRename }) {
+export default function CurriculaList({ curricula, onCreate, onOpen, onDelete, onRename, onSave }) {
+  const [savingId, setSavingId] = useState(null)
+  const [msgs,     setMsgs]    = useState({})
+
   function handleRename(e, id, currentTitle) {
     e.stopPropagation()
     const title = window.prompt('Название модуля:', currentTitle)
     if (title && title.trim() && title.trim() !== currentTitle) {
       onRename(id, title.trim())
     }
+  }
+
+  async function handleSave(e, c) {
+    e.stopPropagation()
+    setSavingId(c.id)
+    const result = await onSave(c.id, c.title)
+    setSavingId(null)
+    setMsgs(prev => ({ ...prev, [c.id]: result.ok ? '✓' : '✗' }))
+    setTimeout(() => setMsgs(prev => { const n = { ...prev }; delete n[c.id]; return n }), 2500)
   }
 
   return (
@@ -27,15 +41,16 @@ export default function CurriculaList({ curricula, onCreate, onOpen, onDelete, o
                 <span className="lessonTitle">{c.title}</span>
                 <span className="lessonDate">{formatDate(c.createdAt)}</span>
               </div>
+              {msgs[c.id] && <span className="dbSaveMsg">{msgs[c.id]}</span>}
+              <button className="saveBtn" title="Сохранить на сервер"
+                onClick={e => handleSave(e, c)} disabled={savingId === c.id}>
+                {savingId === c.id ? '...' : '💾'}
+              </button>
               <button className="lessonRenameBtn"
                 onClick={e => handleRename(e, c.id, c.title)}
-                title="Переименовать">
-                ✎
-              </button>
+                title="Переименовать">✎</button>
               <button className="lessonDeleteBtn"
-                onClick={e => { e.stopPropagation(); onDelete(c.id) }}>
-                ✕
-              </button>
+                onClick={e => { e.stopPropagation(); onDelete(c.id) }}>✕</button>
             </div>
           ))}
         </div>

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createLesson, deleteLesson } from '../../shared/lib/lessonsApi.js'
+import { saveCurriculum } from '../../shared/lib/curriculaApi.js'
 import { supabase } from '../../shared/api/supabase.js'
+import { dbg } from '../../shared/lib/debug.js'
 
 const lsKey = id => `curr_lessons_${id}`
 
@@ -18,6 +20,7 @@ export function useCurriculumLessons(curriculumId) {
   const [loading, setLoading]     = useState(false)
   const [creating, setCreating]   = useState(false)
   const [error, setError]         = useState('')
+  const [isDirty, setIsDirty]     = useState(false)
   const idsRef = useRef(lessonIds)
 
   useEffect(() => { idsRef.current = lessonIds }, [lessonIds])
@@ -51,6 +54,7 @@ export function useCurriculumLessons(curriculumId) {
         setLessonIds(ids)
         persistIds(curriculumId, ids)
         setLessons(created)
+        setIsDirty(true)
       }
     } catch {
       setError('Не удалось создать уроки')
@@ -75,6 +79,7 @@ export function useCurriculumLessons(curriculumId) {
         arr.splice(Math.max(0, arr.length - 1), 0, lesson)
         return arr
       })
+      setIsDirty(true)
     } catch {
       setError('Не удалось добавить урок')
     } finally {
@@ -87,6 +92,7 @@ export function useCurriculumLessons(curriculumId) {
     try {
       await supabase.from('lessons').update({ title }).eq('id', id)
       setLessons(prev => prev.map(l => l.id === id ? { ...l, title } : l))
+      setIsDirty(true)
     } catch {
       setError('Не удалось переименовать')
     }
@@ -95,15 +101,32 @@ export function useCurriculumLessons(curriculumId) {
   async function removeLesson(id) {
     setError('')
     try {
+      dbg('[DB DELETE] lesson', id)
       await deleteLesson(id)
       const next = idsRef.current.filter(lid => lid !== id)
       setLessonIds(next)
       persistIds(curriculumId, next)
       setLessons(prev => prev.filter(l => l.id !== id))
+      setIsDirty(true)
+      dbg('[DB OK] lesson deleted', id)
     } catch {
       setError('Не удалось удалить урок')
     }
   }
 
-  return { lessons, loading, creating, error, bulkCreate, addBeforeFinal, renameLesson, removeLesson }
+  // Saves curriculum structure (module + lesson order) to Supabase
+  async function saveStructure(curriculumTitle) {
+    try {
+      const ids = idsRef.current
+      dbg('[SAVE] curriculum structure', curriculumId, 'lessons:', ids)
+      await saveCurriculum(curriculumId, curriculumTitle, ids)
+      setIsDirty(false)
+      return { ok: true }
+    } catch (e) {
+      dbg('[SAVE ERROR]', e.message)
+      return { ok: false, error: e.message }
+    }
+  }
+
+  return { lessons, loading, creating, error, isDirty, bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure }
 }

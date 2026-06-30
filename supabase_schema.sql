@@ -3,6 +3,26 @@
 --  Run this once in: Supabase → SQL Editor → New query
 -- ─────────────────────────────────────────────
 
+-- ── Curricula (modules) ───────────────────────
+-- Stores module metadata + ordered lesson_ids array.
+-- lesson content lives in the `lessons` table separately.
+create table if not exists public.curricula (
+  id          text primary key,
+  title       text not null default '',
+  lesson_ids  jsonb not null default '[]',
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+-- RLS immediately after table creation (before any trigger that references other objects)
+alter table public.curricula enable row level security;
+
+create policy "curricula_select_all"
+  on public.curricula for select using (true);
+
+create policy "curricula_write_anon_temp"
+  on public.curricula for all using (true) with check (true);
+
 -- ── Files (ver 2.0 admin panel) ───────────────
 -- Generic registry of files uploaded to R2 — independent of lessons.
 -- A row only exists here once a file is actually on the server (post-sync).
@@ -54,6 +74,18 @@ drop trigger if exists lessons_updated_at on public.lessons;
 create trigger lessons_updated_at
   before update on public.lessons
   for each row execute function public.set_updated_at();
+
+-- Curricula trigger + policies (after set_updated_at function is defined)
+drop trigger if exists curricula_updated_at on public.curricula;
+create trigger curricula_updated_at
+  before update on public.curricula
+  for each row execute function public.set_updated_at();
+
+create policy "curricula_select_all"
+  on public.curricula for select using (true);
+
+create policy "curricula_write_anon_temp"
+  on public.curricula for all using (true) with check (true);
 
 -- ── RLS — Lessons ─────────────────────────────
 alter table public.lessons enable row level security;
