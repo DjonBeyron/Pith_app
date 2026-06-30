@@ -4,6 +4,9 @@ import { saveCurriculum, loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { supabase } from '../../shared/api/supabase.js'
 import { dbg } from '../../shared/lib/debug.js'
 
+// Module-level lock: prevents double bulkCreate in React StrictMode (mount→unmount→mount)
+const bulkCreateInProgress = new Set()
+
 const lsKey = id => `curr_lessons_${id}`
 
 function loadIds(curriculumId) {
@@ -38,7 +41,7 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
     dbg('[FETCH] loading', ids.length, 'lessons from DB:', ids)
     setLoading(true)
     const { data, error: e } = await supabase.from('lessons')
-      .select('id, title, created_at')
+      .select('id, title, created_at, published')
       .in('id', ids)
     setLoading(false)
     if (e) { dbg('[FETCH ERROR]', e.message); setError('Ошибка загрузки'); return }
@@ -51,7 +54,21 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
 
   useEffect(() => { fetchLessons(lessonIds) }, [lessonIds.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function togglePublished(id, currentValue) {
+    const next = !currentValue
+    dbg('[DB WRITE] lesson published', id, '→', next)
+    const { error: e } = await supabase.from('lessons').update({ published: next }).eq('id', id)
+    if (e) { dbg('[DB ERROR] togglePublished', e.message); return }
+    dbg('[DB OK] lesson published updated', id, next)
+    setLessons(prev => prev.map(l => l.id === id ? { ...l, published: next } : l))
+  }
+
   async function bulkCreate(titles) {
+    if (bulkCreateInProgress.has(curriculumId)) {
+      dbg('[bulkCreate] SKIP — already in progress for', curriculumId)
+      return
+    }
+    bulkCreateInProgress.add(curriculumId)
     // Check server first — prevent creating duplicates if lesson_ids already exist on server
     dbg('[bulkCreate] START — checking server for existing lesson_ids...')
     try {
@@ -94,6 +111,7 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
       setError('Не удалось создать уроки')
     } finally {
       setCreating(false)
+      bulkCreateInProgress.delete(curriculumId)
     }
   }
 
@@ -168,5 +186,5 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
     }
   }
 
-  return { lessons, loading, creating, error, isDirty, bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure }
+  return { lessons, loading, creating, error, isDirty, bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure, togglePublished }
 }

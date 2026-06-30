@@ -10,7 +10,7 @@ import { isDebugOn } from '../../shared/lib/debug.js'
 function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
   const {
     lessons, loading, creating, error, isDirty,
-    bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure,
+    bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure, togglePublished,
   } = useCurriculumLessons(curriculumId, curriculumTitle)
 
   const [launchId,   setLaunchId]   = useState(null)
@@ -77,6 +77,7 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           onEdit={onOpenCanvas}
           onDelete={removeLesson}
           onRename={renameLesson}
+          onTogglePublished={togglePublished}
         />
       )}
 

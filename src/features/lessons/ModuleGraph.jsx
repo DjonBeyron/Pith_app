@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRename }) {
+export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRename, onTogglePublished }) {
   const [hovered,  setHovered]  = useState(null)
   const [tapped,   setTapped]   = useState(null)
   const [renaming, setRenaming] = useState(null)
@@ -94,6 +94,11 @@ export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRenam
         <button className="mgBtn mgBtnPlay" onClick={() => { onPlay(l.id); setTapped(null) }}>▶</button>
         <button className="mgBtn" onClick={() => { onEdit(l.id); setTapped(null) }}>⚙</button>
         <button className="mgBtn" onClick={e => { startRename(e, l.id, l.title); setTapped(null) }}>✎</button>
+        <button className={`mgBtn mgBtnEye${l.published ? ' mgBtnEyeOn' : ''}`}
+          title={l.published ? 'Скрыть' : 'Показать'}
+          onClick={() => { onTogglePublished(l.id, l.published); setTapped(null) }}>
+          {l.published ? '👁' : '🚫'}
+        </button>
         {kind === 'lesson' && (
           <button className="mgBtn mgBtnDel" onClick={() => { onDelete(l.id); setTapped(null) }}>✕</button>
         )}

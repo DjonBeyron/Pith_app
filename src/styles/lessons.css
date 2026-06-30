@@ -368,6 +368,9 @@
 
 .mgBtnDel:hover { color: #ff8080; border-color: #ff8080; }
 
+.mgBtnEye { color: #555; }
+.mgBtnEyeOn { color: #b6fe3b; border-color: #b6fe3b44; }
+
 /* ── Rename input ──────────────────────────────────────────── */
 .mgRenameInput {
   flex: 1;
