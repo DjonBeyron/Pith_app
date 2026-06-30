@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { pLog } from '../../shared/lib/debug.js'
+import { pLog, dbg } from '../../shared/lib/debug.js'
 import CanvasBoard from './CanvasBoard.jsx'
 import LessonFilesPanel from './LessonFilesPanel.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
@@ -47,11 +47,14 @@ export default function CanvasPage({ lessonId, onBack }) {
     if (!lessonId) return
     loadScript(lessonId)
       .then(data => {
+        const nodes = data?.script?.nodes ?? []
+        dbg('[CANVAS] loaded lesson', lessonId, nodes.length, 'nodes, title:', data?.title)
+        if (nodes.length) dbg('[CANVAS] node types:', nodes.map(n => n.type).join(', '))
         setTitle(data?.title ?? '')
         applyServerData(data?.script)
-        if (data?.script?.nodes?.length) setServerNodes(data.script.nodes)
+        if (nodes.length) setServerNodes(nodes)
       })
-      .catch(() => {})
+      .catch(e => dbg('[CANVAS ERROR] loadScript', e?.message))
       .finally(() => setLoading(false))
   // applyServerData is stable (defined outside render), safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,10 +81,10 @@ export default function CanvasPage({ lessonId, onBack }) {
         if (!f?.r2Url) return node
         return { ...node, typeData: { ...node.typeData, [node.type]: { ...node.typeData[node.type], r2Url: f.r2Url } } }
       })
-      await saveLesson(lessonId, {
-        title,
-        script: { nodes: nodesForSave, ...teacherData },
-      })
+      const scriptToSave = { nodes: nodesForSave, ...teacherData }
+      dbg('[CANVAS] saving', nodesForSave.length, 'nodes to lesson', lessonId)
+      await saveLesson(lessonId, { title, script: scriptToSave })
+      dbg('[CANVAS] save complete')
     } finally {
       setIsSaving(false)
     }
