@@ -11,7 +11,7 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   const {
     lessons, loading, creating, error, isDirty,
     bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure,
-  } = useCurriculumLessons(curriculumId)
+  } = useCurriculumLessons(curriculumId, curriculumTitle)
 
   const [launchId,   setLaunchId]   = useState(null)
   const [playerData, setPlayerData] = useState(null)
@@ -29,7 +29,7 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   async function handleSave() {
     setSaving(true)
     setSaveMsg('')
-    const result = await saveStructure(curriculumTitle)
+    const result = await saveStructure()
     setSaving(false)
     setSaveMsg(result.ok ? '✓ Сохранено' : `Ошибка: ${result.error}`)
     setTimeout(() => setSaveMsg(''), 3000)

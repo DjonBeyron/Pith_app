@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createLesson, deleteLesson } from '../../shared/lib/lessonsApi.js'
-import { saveCurriculum } from '../../shared/lib/curriculaApi.js'
+import { saveCurriculum, loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { supabase } from '../../shared/api/supabase.js'
 import { dbg } from '../../shared/lib/debug.js'
 
@@ -14,16 +14,29 @@ function persistIds(curriculumId, ids) {
   localStorage.setItem(lsKey(curriculumId), JSON.stringify(ids))
 }
 
-export function useCurriculumLessons(curriculumId) {
+export function useCurriculumLessons(curriculumId, curriculumTitle) {
   const [lessonIds, setLessonIds] = useState(() => loadIds(curriculumId))
-  const [lessons, setLessons]     = useState([])
-  const [loading, setLoading]     = useState(false)
-  const [creating, setCreating]   = useState(false)
-  const [error, setError]         = useState('')
-  const [isDirty, setIsDirty]     = useState(false)
-  const idsRef = useRef(lessonIds)
+  const [lessons,   setLessons]   = useState([])
+  const [loading,   setLoading]   = useState(false)
+  const [creating,  setCreating]  = useState(false)
+  const [error,     setError]     = useState('')
+  const [isDirty,   setIsDirty]   = useState(false)
+  const idsRef      = useRef(lessonIds)
+  const titleRef    = useRef(curriculumTitle)
 
-  useEffect(() => { idsRef.current = lessonIds }, [lessonIds])
+  useEffect(() => { idsRef.current   = lessonIds      }, [lessonIds])
+  useEffect(() => { titleRef.current = curriculumTitle }, [curriculumTitle])
+
+  // Auto-save lesson_ids to server after every structural change
+  async function autoSave(ids) {
+    try {
+      await saveCurriculum(curriculumId, titleRef.current ?? '', ids)
+      dbg('[AUTO-SAVE] curriculum structure saved', curriculumId, ids.length, 'lessons')
+      setIsDirty(false)
+    } catch (e) {
+      dbg('[AUTO-SAVE ERROR]', e.message)
+    }
+  }
 
   const fetchLessons = useCallback(async (ids) => {
     if (!ids.length) { setLessons([]); return }
@@ -37,10 +50,26 @@ export function useCurriculumLessons(curriculumId) {
     setLessons(ids.map(id => byId[id]).filter(Boolean))
   }, [])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchLessons(lessonIds) }, [lessonIds.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function bulkCreate(titles) {
+    // Race condition guard: check server for existing lesson_ids before creating
+    dbg('[bulkCreate] checking server before creating...')
+    try {
+      const rows = await loadCurricula()
+      const curr = rows.find(r => r.id === curriculumId)
+      const serverIds = curr?.lesson_ids ?? []
+      if (serverIds.length) {
+        dbg('[bulkCreate] server already has', serverIds.length, 'lessons — restoring instead of creating')
+        setLessonIds(serverIds)
+        persistIds(curriculumId, serverIds)
+        await fetchLessons(serverIds)
+        return
+      }
+    } catch (e) {
+      dbg('[bulkCreate] server check failed, proceeding with create:', e.message)
+    }
+
     setCreating(true)
     setError('')
     try {
@@ -54,7 +83,8 @@ export function useCurriculumLessons(curriculumId) {
         setLessonIds(ids)
         persistIds(curriculumId, ids)
         setLessons(created)
-        setIsDirty(true)
+        setIsDirty(false)
+        await autoSave(ids)
       }
     } catch {
       setError('Не удалось создать уроки')
@@ -69,8 +99,8 @@ export function useCurriculumLessons(curriculumId) {
     try {
       const lesson = await createLesson(title)
       if (!lesson) return
-      const cur = idsRef.current
-      const at  = Math.max(0, cur.length - 1) // insert before last (FINAL)
+      const cur  = idsRef.current
+      const at   = Math.max(0, cur.length - 1)
       const next = [...cur.slice(0, at), lesson.id, ...cur.slice(at)]
       setLessonIds(next)
       persistIds(curriculumId, next)
@@ -80,6 +110,7 @@ export function useCurriculumLessons(curriculumId) {
         return arr
       })
       setIsDirty(true)
+      await autoSave(next)
     } catch {
       setError('Не удалось добавить урок')
     } finally {
@@ -107,19 +138,18 @@ export function useCurriculumLessons(curriculumId) {
       setLessonIds(next)
       persistIds(curriculumId, next)
       setLessons(prev => prev.filter(l => l.id !== id))
-      setIsDirty(true)
       dbg('[DB OK] lesson deleted', id)
+      await autoSave(next)
     } catch {
       setError('Не удалось удалить урок')
     }
   }
 
-  // Saves curriculum structure (module + lesson order) to Supabase
-  async function saveStructure(curriculumTitle) {
+  async function saveStructure() {
+    const ids = idsRef.current
+    dbg('[SAVE] curriculum structure', curriculumId, 'lessons:', ids)
     try {
-      const ids = idsRef.current
-      dbg('[SAVE] curriculum structure', curriculumId, 'lessons:', ids)
-      await saveCurriculum(curriculumId, curriculumTitle, ids)
+      await saveCurriculum(curriculumId, titleRef.current ?? '', ids)
       setIsDirty(false)
       return { ok: true }
     } catch (e) {
