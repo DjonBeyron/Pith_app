@@ -16,58 +16,46 @@ export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRenam
     const cont = containerRef.current
     if (!cont || !startRef.current || !finalRef.current) return
     const cr = cont.getBoundingClientRect()
-    const cw = cr.width
 
-    // Corner-anchored positions: left side attaches to top-left, right to bottom-right
-    const pos = (el, side, isLesson = false) => {
+    const mid = (el, side) => {
       const r = el.getBoundingClientRect()
       const x = r.left - cr.left
       const y = r.top  - cr.top
-      if (side === 'left')  return { x,            y: isLesson ? y + 12              : y + r.height / 2 }
-      return                       { x: x + r.width, y: isLesson ? y + r.height - 12 : y + r.height / 2 }
+      return side === 'left'
+        ? { x, y: y + r.height / 2 }
+        : { x: x + r.width, y: y + r.height / 2 }
     }
 
-    const pTop    = pos(startRef.current, 'left')
-    const pBottom = pos(finalRef.current, 'right')
+    const pTop    = mid(startRef.current, 'left')
+    const pBottom = mid(finalRef.current, 'right')
 
-    // Max safe horizontal excursion (5px gap from container edge)
-    const spacePerSide      = (cw - 170) / 2
-    const maxSafeExcursion  = Math.max(15, spacePerSide - 5)
+    // Adaptive offset: never exceeds available space on each side
+    const cw = cr.width
+    const leftSpace  = Math.min(pTop.x,    ...lessonRefs.current.filter(Boolean).map(el => mid(el,'left').x))
+    const rightSpace = cw - Math.max(pBottom.x, ...lessonRefs.current.filter(Boolean).map(el => mid(el,'right').x))
+    const offL = Math.max(10, Math.min(40, leftSpace  - 6))
+    const offR = Math.max(10, Math.min(40, rightSpace - 6))
 
-    // Pass 1: find max dy to compute a single global scale for the whole bundle
-    let maxDyL = 0, maxDyR = 0
-    const data = []
+    const orthPath = (x1, y1, x2, y2, isLeft) => {
+      const off = isLeft ? offL : offR
+      const r = Math.min(15, Math.abs(y2 - y1) / 2)
+      const d = y2 > y1 ? 1 : -1
+      if (isLeft) {
+        const mx = Math.min(x1, x2) - off
+        return `M ${x1} ${y1} L ${mx+r} ${y1} Q ${mx} ${y1} ${mx} ${y1+r*d} L ${mx} ${y2-r*d} Q ${mx} ${y2} ${mx+r} ${y2} L ${x2} ${y2}`
+      } else {
+        const mx = Math.max(x1, x2) + off
+        return `M ${x1} ${y1} L ${mx-r} ${y1} Q ${mx} ${y1} ${mx} ${y1+r*d} L ${mx} ${y2-r*d} Q ${mx} ${y2} ${mx-r} ${y2} L ${x2} ${y2}`
+      }
+    }
+
+    const newArcs = []
     lessonRefs.current.forEach(el => {
       if (!el) return
-      const pL = pos(el, 'left',  true)
-      const pR = pos(el, 'right', true)
-      const dyL = Math.abs(pL.y - pTop.y)
-      const dyR = Math.abs(pBottom.y - pR.y)
-      maxDyL = Math.max(maxDyL, dyL)
-      maxDyR = Math.max(maxDyR, dyR)
-      data.push({ pL, pR, dyL, dyR })
-    })
-
-    const globalScaleL = Math.min(1, maxSafeExcursion / (40 + maxDyL * 0.28))
-    const globalScaleR = Math.min(1, maxSafeExcursion / (40 + maxDyR * 0.28))
-
-    // Pass 2: draw with uniform global scale — bundle shape preserved
-    const newArcs = []
-    data.forEach(({ pL, pR, dyL, dyR }) => {
-      const exL  = (40 + dyL * 0.28) * globalScaleL
-      const lC1x = pTop.x - exL
-      const lC1y = pTop.y + 5 + dyL * 0.05
-      const lC2x = pL.x   - exL * 0.75
-      const lC2y = pL.y   - 5 - dyL * 0.1
-
-      const exR  = (40 + dyR * 0.28) * globalScaleR
-      const rC1x = pR.x      + exR * 0.75
-      const rC1y = pR.y      + 5 + dyR * 0.1
-      const rC2x = pBottom.x + exR
-      const rC2y = pBottom.y - 5 - dyR * 0.05
-
-      newArcs.push(`M ${pTop.x} ${pTop.y} C ${lC1x} ${lC1y} ${lC2x} ${lC2y} ${pL.x} ${pL.y}`)
-      newArcs.push(`M ${pR.x} ${pR.y} C ${rC1x} ${rC1y} ${rC2x} ${rC2y} ${pBottom.x} ${pBottom.y}`)
+      const pL = mid(el, 'left')
+      const pR = mid(el, 'right')
+      newArcs.push({ d: orthPath(pTop.x, pTop.y, pL.x, pL.y, true),  arrow: true })
+      newArcs.push({ d: orthPath(pR.x, pR.y, pBottom.x, pBottom.y, false), arrow: true })
     })
     setArcs(newArcs)
   }, [])
@@ -152,9 +140,16 @@ export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRenam
         </div>
 
         <svg className="moduleGraphSvg">
-          {arcs.map((d, i) => (
-            <path key={i} d={d} stroke="#c0c5d4" strokeWidth="1.3" fill="none" opacity="0.65"
-              strokeLinecap="round" />
+          <defs>
+            <marker id="mgArrow" viewBox="0 0 10 10" refX="8" refY="5"
+              markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 2 2 L 8 5 L 2 8" fill="none" stroke="#c0c5d4"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </marker>
+          </defs>
+          {arcs.map((arc, i) => (
+            <path key={i} d={arc.d} stroke="#c0c5d4" strokeWidth="1.5" fill="none"
+              opacity="0.7" strokeLinecap="round" markerEnd="url(#mgArrow)" />
           ))}
         </svg>
 
