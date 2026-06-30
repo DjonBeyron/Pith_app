@@ -4,6 +4,7 @@
   padding: 20px 0;
 }
 
+/* ── old list styles (kept for reference) ─────────────────── */
 .lessonsList {
   display: flex;
   flex-direction: column;
@@ -71,4 +72,249 @@
 .lessonDeleteBtn:hover {
   color: #ff8080;
   border-color: #ff8080;
+}
+
+/* ── lesson map canvas ──────────────────────────────────────── */
+.lessonsMapPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.lessonRenameBtn {
+  padding: 4px 8px;
+  font-size: 13px;
+  color: #888;
+  border-color: #333;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.lessonRenameBtn:hover {
+  color: #b6fe3b;
+  border-color: #b6fe3b44;
+}
+
+.lessonsMapToolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1e2028;
+  flex-shrink: 0;
+}
+
+.lessonBackBtn {
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #888;
+  border-color: #333;
+  background: transparent;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.lessonBackBtn:hover { color: #e8e8ea; }
+
+.lessonMapTitle {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #dde0ea;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Module graph ───────────────────────────────────────────── */
+.moduleGraphScroll {
+  flex: 1;
+  overflow-y: auto;
+  background: #0e1013;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Flex column — CSS drives layout, JS only measures for SVG curves */
+.moduleGraphInner {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding: 20px 10px 30px;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Lesson group: 60% width so curves have space on both sides */
+.mgLessonsGroup {
+  width: 60%;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* ── SVG overlay ────────────────────────────────────────────── */
+.moduleGraphSvg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ── Base node ──────────────────────────────────────────────── */
+.mgNode {
+  position: relative;
+  box-sizing: border-box;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  gap: 8px;
+  user-select: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.mgNode:hover { border-color: #3a3e4a; }
+
+/* Lesson node fills its group column */
+.mgNode--lesson {
+  width: 100%;
+  height: 54px;
+}
+
+/* START — rounded hexagon 90×90, r=25.
+   background = border colour; mgHexFill inside provides the fill + 1px gap = visible border */
+.mgNode--start {
+  width: 90px;
+  height: 90px;
+  border-radius: 0;
+  border: none;
+  padding: 0;
+  background: #2a2d35;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  clip-path: path('M 12.91 16.06 L 32.09 6.44 A 25 25 0 0 1 57.91 6.44 L 77.09 16.06 A 25 25 0 0 1 90 36.93 L 90 53.07 A 25 25 0 0 1 77.09 73.94 L 57.91 83.56 A 25 25 0 0 1 32.09 83.56 L 12.91 73.94 A 25 25 0 0 1 0 53.07 L 0 36.93 A 25 25 0 0 1 12.91 16.06 Z');
+}
+
+/* FINAL — rounded pentagon 135×135 (90×1.5), flat top, point at bottom */
+.mgNode--final {
+  width: 135px;
+  height: 135px;
+  border-radius: 0;
+  border: none;
+  padding: 0;
+  background: #2a2d35;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  clip-path: path('M 8.7 77.0 L 14.3 39.2 A 21.9 21.9 0 0 1 36.0 20.3 L 99.0 20.3 A 21.9 21.9 0 0 1 120.9 39.2 L 126.3 77.0 A 21.9 21.9 0 0 1 116.0 98.7 L 79.1 121.4 A 21.9 21.9 0 0 1 56.0 121.4 L 19.1 98.7 A 21.9 21.9 0 0 1 8.7 77.0 Z');
+}
+
+/* Inner fill — shrinks 1px on each side revealing parent border colour */
+.mgHexFill {
+  position: absolute;
+  inset: 0;
+  background: #1a1d22;
+  transform: scale(0.978);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* ── Node title ────────────────────────────────────────────── */
+.mgNodeTitle {
+  flex: 1;
+  font-size: 14px;
+  color: #e0e0e0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.mgNode--start .mgNodeTitle,
+.mgNode--final .mgNodeTitle {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9aa0b4;
+  text-align: center;
+}
+
+/* ── Buttons: absolute overlay, hidden by default ── */
+.mgNodeBtns {
+  display: none;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  gap: 3px;
+  align-items: center;
+  background: rgba(14, 16, 19, 0.88);
+  border-radius: 6px;
+  padding: 3px 4px;
+  z-index: 4;
+}
+
+.mgNodeBtns.mgNodeBtns--vis { display: flex; }
+
+/* START and FINAL: centered below title */
+.mgNode--start .mgNodeBtns,
+.mgNode--final .mgNodeBtns {
+  position: absolute;
+  top: auto;
+  bottom: 10px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  justify-content: center;
+  gap: 4px;
+}
+
+.mgBtn {
+  padding: 2px 4px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid #333;
+  background: transparent;
+  cursor: pointer;
+  color: #888;
+  transition: color 0.15s, border-color 0.15s;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.mgBtn:hover { color: #e0e0e0; border-color: #555; }
+
+.mgBtnPlay  { color: #b6fe3b; border-color: #b6fe3b33; }
+.mgBtnPlay:hover { background: #b6fe3b18; border-color: #b6fe3b66; color: #b6fe3b; }
+
+.mgBtnDel:hover { color: #ff8080; border-color: #ff8080; }
+
+/* ── Rename input ──────────────────────────────────────────── */
+.mgRenameInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #b6fe3b;
+  color: #e0e0e0;
+  font-size: 14px;
+  outline: none;
+  padding: 2px 0;
+  min-width: 0;
 }
