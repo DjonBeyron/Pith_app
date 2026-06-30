@@ -120,7 +120,7 @@ function saveNav(val) {
 }
 
 export default function LessonsTab({ onOpenCanvas }) {
-  const { curricula, createCurriculum, deleteCurriculum, renameCurriculum, saveCurriculumToServer } = useCurricula()
+  const { curricula, syncStatus, syncError, createCurriculum, deleteCurriculum, renameCurriculum, saveCurriculumToServer } = useCurricula()
   const [selected, setSelected] = useState(loadNav)
 
   function select(c) { setSelected(c); saveNav(c) }
@@ -146,6 +146,8 @@ export default function LessonsTab({ onOpenCanvas }) {
   return (
     <CurriculaList
       curricula={curricula}
+      syncStatus={syncStatus}
+      syncError={syncError}
       onCreate={() => { const c = createCurriculum(); select({ id: c.id, title: c.title }) }}
       onOpen={c => select({ id: c.id, title: c.title })}
       onDelete={id => { if (selected?.id === id) deselect(); deleteCurriculum(id) }}

@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { saveCurriculum, deleteCurriculumFromServer } from '../../shared/lib/curriculaApi.js'
+import { useState, useEffect } from 'react'
+import { saveCurriculum, deleteCurriculumFromServer, loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { dbg } from '../../shared/lib/debug.js'
 
 const LS_KEY = 'curricula_v1'
 
-function load() {
+function loadLocal() {
   try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '[]') } catch { return [] }
 }
 
@@ -13,7 +13,51 @@ function persist(arr) {
 }
 
 export function useCurricula() {
-  const [curricula, setCurricula] = useState(load)
+  const [curricula,   setCurricula]   = useState(loadLocal)
+  const [syncStatus,  setSyncStatus]  = useState('idle') // idle | loading | ok | error
+  const [syncError,   setSyncError]   = useState('')
+
+  // On mount: load from server and merge with local (server is authoritative)
+  useEffect(() => {
+    async function fetchFromServer() {
+      setSyncStatus('loading')
+      dbg('[LOAD] fetching curricula from server...')
+      try {
+        const rows = await loadCurricula()
+        dbg('[LOAD] server returned', rows.length, 'curricula:', rows.map(r => r.title))
+
+        if (rows.length === 0) {
+          dbg('[LOAD] server has 0 curricula — keeping local:', loadLocal().length, 'items')
+          setSyncStatus('ok')
+          return
+        }
+
+        // Map server rows to local format
+        const fromServer = rows.map(r => ({
+          id:         r.id,
+          title:      r.title,
+          lessonIds:  r.lesson_ids ?? [],
+          createdAt:  r.created_at,
+        }))
+
+        // Merge: server rows + any local-only items not yet saved
+        const serverIds = new Set(fromServer.map(c => c.id))
+        const localOnly = loadLocal().filter(c => !serverIds.has(c.id))
+        dbg('[LOAD] local-only (not on server):', localOnly.length)
+
+        const merged = [...fromServer, ...localOnly]
+        setCurricula(merged)
+        persist(merged)
+        dbg('[LOAD] merged total:', merged.length, 'curricula')
+        setSyncStatus('ok')
+      } catch (e) {
+        dbg('[LOAD ERROR] curricula from server:', e.message)
+        setSyncError(e.message)
+        setSyncStatus('error')
+      }
+    }
+    fetchFromServer()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function createCurriculum(title = 'Новый модуль') {
     const c = { id: crypto.randomUUID(), title, createdAt: new Date().toISOString() }
@@ -44,7 +88,6 @@ export function useCurricula() {
     dbg('[LOCAL] curriculum renamed', id, title)
   }
 
-  // Save a single curriculum with its lesson list to Supabase
   async function saveCurriculumToServer(id, title, lessonIds) {
     try {
       await saveCurriculum(id, title, lessonIds)
@@ -54,5 +97,5 @@ export function useCurricula() {
     }
   }
 
-  return { curricula, createCurriculum, deleteCurriculum, renameCurriculum, saveCurriculumToServer }
+  return { curricula, syncStatus, syncError, createCurriculum, deleteCurriculum, renameCurriculum, saveCurriculumToServer }
 }

@@ -126,6 +126,14 @@
   50%       { opacity: 0.4; transform: scale(0.7); }
 }
 
+.syncStatusBar {
+  font-size: 12px;
+  padding: 6px 16px;
+  border-bottom: 1px solid #1e2028;
+}
+.syncStatusBar--loading { color: #9aa0b4; }
+.syncStatusBar--error   { color: #ff8080; }
+
 .dbSaveMsg {
   font-size: 11px;
   color: #b6fe3b;
