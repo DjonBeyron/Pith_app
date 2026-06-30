@@ -15,40 +15,56 @@ export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRenam
   const drawLines = useCallback(() => {
     const cont = containerRef.current
     if (!cont || !startRef.current || !finalRef.current) return
-    const cr  = cont.getBoundingClientRect()
-    const cw  = cr.width
+    const cr = cont.getBoundingClientRect()
+    const cw = cr.width
 
-    const pos = (el, side) => {
+    // Corner-anchored positions: left side attaches to top-left, right to bottom-right
+    const pos = (el, side, isLesson = false) => {
       const r = el.getBoundingClientRect()
       const x = r.left - cr.left
       const y = r.top  - cr.top
-      return side === 'left'
-        ? { x, y: y + r.height / 2 }
-        : { x: x + r.width, y: y + r.height / 2 }
+      if (side === 'left')  return { x,            y: isLesson ? y + 12              : y + r.height / 2 }
+      return                       { x: x + r.width, y: isLesson ? y + r.height - 12 : y + r.height / 2 }
     }
 
     const pTop    = pos(startRef.current, 'left')
     const pBottom = pos(finalRef.current, 'right')
 
-    const newArcs = []
+    // Max safe horizontal excursion (5px gap from container edge)
+    const spacePerSide      = (cw - 170) / 2
+    const maxSafeExcursion  = Math.max(15, spacePerSide - 5)
+
+    // Pass 1: find max dy to compute a single global scale for the whole bundle
+    let maxDyL = 0, maxDyR = 0
+    const data = []
     lessonRefs.current.forEach(el => {
       if (!el) return
-      const pL  = pos(el, 'left')
-      const pR  = pos(el, 'right')
+      const pL = pos(el, 'left',  true)
+      const pR = pos(el, 'right', true)
       const dyL = Math.abs(pL.y - pTop.y)
       const dyR = Math.abs(pBottom.y - pR.y)
-      const hfL = Math.min(1, pL.x / 90)
-      const hfR = Math.min(1, (cw - pR.x) / 90)
+      maxDyL = Math.max(maxDyL, dyL)
+      maxDyR = Math.max(maxDyR, dyR)
+      data.push({ pL, pR, dyL, dyR })
+    })
 
-      const lC1x = pTop.x - (74 + dyL * 0.32) * hfL
-      const lC1y = pTop.y + 3 + dyL * 0.03
-      const lC2x = pL.x   - (3.4 + dyL * 0.36) * hfL
-      const lC2y = pL.y   - 1.1 - dyL * 0.22
+    const globalScaleL = Math.min(1, maxSafeExcursion / (40 + maxDyL * 0.28))
+    const globalScaleR = Math.min(1, maxSafeExcursion / (40 + maxDyR * 0.28))
 
-      const rC1x = pR.x     + (3.4 + dyR * 0.36) * hfR
-      const rC1y = pR.y     + 1.1 + dyR * 0.22
-      const rC2x = pBottom.x + (74 + dyR * 0.32) * hfR
-      const rC2y = pBottom.y - 3 - dyR * 0.03
+    // Pass 2: draw with uniform global scale — bundle shape preserved
+    const newArcs = []
+    data.forEach(({ pL, pR, dyL, dyR }) => {
+      const exL  = (40 + dyL * 0.28) * globalScaleL
+      const lC1x = pTop.x - exL
+      const lC1y = pTop.y + 5 + dyL * 0.05
+      const lC2x = pL.x   - exL * 0.75
+      const lC2y = pL.y   - 5 - dyL * 0.1
+
+      const exR  = (40 + dyR * 0.28) * globalScaleR
+      const rC1x = pR.x      + exR * 0.75
+      const rC1y = pR.y      + 5 + dyR * 0.1
+      const rC2x = pBottom.x + exR
+      const rC2y = pBottom.y - 5 - dyR * 0.05
 
       newArcs.push(`M ${pTop.x} ${pTop.y} C ${lC1x} ${lC1y} ${lC2x} ${lC2y} ${pL.x} ${pL.y}`)
       newArcs.push(`M ${pR.x} ${pR.y} C ${rC1x} ${rC1y} ${rC2x} ${rC2y} ${pBottom.x} ${pBottom.y}`)

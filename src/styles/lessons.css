@@ -145,15 +145,15 @@
   flex-direction: column;
   align-items: center;
   gap: 40px;
-  padding: 20px 10px 30px;
+  padding: 40px 10px 30px;
   position: relative;
   box-sizing: border-box;
 }
 
-/* Lesson group: 60% width so curves have space on both sides */
+/* Lesson group: 170px fixed — matches spacePerSide formula in drawLines */
 .mgLessonsGroup {
-  width: 60%;
-  max-width: 240px;
+  width: 45%;
+  max-width: 170px;
   display: flex;
   flex-direction: column;
   gap: 25px;
