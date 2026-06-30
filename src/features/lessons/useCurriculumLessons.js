@@ -7,11 +7,17 @@ import { dbg } from '../../shared/lib/debug.js'
 const lsKey = id => `curr_lessons_${id}`
 
 function loadIds(curriculumId) {
-  try { return JSON.parse(localStorage.getItem(lsKey(curriculumId)) ?? '[]') } catch { return [] }
+  try {
+    const raw = localStorage.getItem(lsKey(curriculumId)) ?? '[]'
+    const ids = JSON.parse(raw)
+    dbg('[LS READ] lesson_ids for', curriculumId, '→', ids.length, 'ids:', ids)
+    return ids
+  } catch { return [] }
 }
 
 function persistIds(curriculumId, ids) {
   localStorage.setItem(lsKey(curriculumId), JSON.stringify(ids))
+  dbg('[LS WRITE] lesson_ids for', curriculumId, '→', ids.length, 'ids')
 }
 
 export function useCurriculumLessons(curriculumId, curriculumTitle) {
@@ -21,53 +27,49 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
   const [creating,  setCreating]  = useState(false)
   const [error,     setError]     = useState('')
   const [isDirty,   setIsDirty]   = useState(false)
-  const idsRef      = useRef(lessonIds)
-  const titleRef    = useRef(curriculumTitle)
+  const idsRef   = useRef(lessonIds)
+  const titleRef = useRef(curriculumTitle)
 
   useEffect(() => { idsRef.current   = lessonIds      }, [lessonIds])
   useEffect(() => { titleRef.current = curriculumTitle }, [curriculumTitle])
 
-  // Auto-save lesson_ids to server after every structural change
-  async function autoSave(ids) {
-    try {
-      await saveCurriculum(curriculumId, titleRef.current ?? '', ids)
-      dbg('[AUTO-SAVE] curriculum structure saved', curriculumId, ids.length, 'lessons')
-      setIsDirty(false)
-    } catch (e) {
-      dbg('[AUTO-SAVE ERROR]', e.message)
-    }
-  }
-
   const fetchLessons = useCallback(async (ids) => {
     if (!ids.length) { setLessons([]); return }
+    dbg('[FETCH] loading', ids.length, 'lessons from DB:', ids)
     setLoading(true)
     const { data, error: e } = await supabase.from('lessons')
       .select('id, title, created_at')
       .in('id', ids)
     setLoading(false)
-    if (e) { setError('Ошибка загрузки'); return }
+    if (e) { dbg('[FETCH ERROR]', e.message); setError('Ошибка загрузки'); return }
+    dbg('[FETCH OK]', data?.length, 'lessons returned from DB')
     const byId = Object.fromEntries((data ?? []).map(l => [l.id, l]))
-    setLessons(ids.map(id => byId[id]).filter(Boolean))
+    const ordered = ids.map(id => byId[id]).filter(Boolean)
+    dbg('[FETCH] ordered result:', ordered.map(l => `${l.id.slice(0,6)} "${l.title}"`))
+    setLessons(ordered)
   }, [])
 
   useEffect(() => { fetchLessons(lessonIds) }, [lessonIds.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function bulkCreate(titles) {
-    // Race condition guard: check server for existing lesson_ids before creating
-    dbg('[bulkCreate] checking server before creating...')
+    // Check server first — prevent creating duplicates if lesson_ids already exist on server
+    dbg('[bulkCreate] START — checking server for existing lesson_ids...')
     try {
       const rows = await loadCurricula()
+      dbg('[bulkCreate] server curricula count:', rows.length)
       const curr = rows.find(r => r.id === curriculumId)
+      dbg('[bulkCreate] found curriculum on server:', !!curr, 'lesson_ids:', curr?.lesson_ids)
       const serverIds = curr?.lesson_ids ?? []
       if (serverIds.length) {
-        dbg('[bulkCreate] server already has', serverIds.length, 'lessons — restoring instead of creating')
+        dbg('[bulkCreate] ABORT — server already has', serverIds.length, 'lessons, restoring...')
         setLessonIds(serverIds)
         persistIds(curriculumId, serverIds)
         await fetchLessons(serverIds)
         return
       }
+      dbg('[bulkCreate] server has no lessons — will create:', titles)
     } catch (e) {
-      dbg('[bulkCreate] server check failed, proceeding with create:', e.message)
+      dbg('[bulkCreate] server check FAILED:', e.message, '— proceeding with local create')
     }
 
     setCreating(true)
@@ -75,18 +77,20 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
     try {
       const created = []
       for (const title of titles) {
+        dbg('[bulkCreate] creating lesson:', title)
         const lesson = await createLesson(title)
-        if (lesson) created.push(lesson)
+        if (lesson) { created.push(lesson); dbg('[bulkCreate] created:', lesson.id, lesson.title) }
       }
       if (created.length) {
         const ids = created.map(l => l.id)
         setLessonIds(ids)
         persistIds(curriculumId, ids)
         setLessons(created)
-        setIsDirty(false)
-        await autoSave(ids)
+        setIsDirty(true)
+        dbg('[bulkCreate] DONE — created', created.length, 'lessons, isDirty=true (press 💾 to save structure)')
       }
-    } catch {
+    } catch (e) {
+      dbg('[bulkCreate ERROR]', e.message)
       setError('Не удалось создать уроки')
     } finally {
       setCreating(false)
@@ -110,8 +114,9 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
         return arr
       })
       setIsDirty(true)
-      await autoSave(next)
-    } catch {
+      dbg('[addBeforeFinal] added lesson', lesson.id, '— isDirty=true (press 💾 to save structure)')
+    } catch (e) {
+      dbg('[addBeforeFinal ERROR]', e.message)
       setError('Не удалось добавить урок')
     } finally {
       setCreating(false)
@@ -124,7 +129,8 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
       await supabase.from('lessons').update({ title }).eq('id', id)
       setLessons(prev => prev.map(l => l.id === id ? { ...l, title } : l))
       setIsDirty(true)
-    } catch {
+    } catch (e) {
+      dbg('[renameLesson ERROR]', e.message)
       setError('Не удалось переименовать')
     }
   }
@@ -138,19 +144,23 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
       setLessonIds(next)
       persistIds(curriculumId, next)
       setLessons(prev => prev.filter(l => l.id !== id))
-      dbg('[DB OK] lesson deleted', id)
-      await autoSave(next)
-    } catch {
+      setIsDirty(true)
+      dbg('[DB OK] lesson deleted', id, '— isDirty=true (press 💾 to save structure)')
+    } catch (e) {
+      dbg('[removeLesson ERROR]', e.message)
       setError('Не удалось удалить урок')
     }
   }
 
+  // Manual save only — triggered by 💾 button
   async function saveStructure() {
     const ids = idsRef.current
-    dbg('[SAVE] curriculum structure', curriculumId, 'lessons:', ids)
+    const title = titleRef.current ?? ''
+    dbg('[SAVE] manual save — curriculum:', curriculumId, 'title:', title, 'lesson_ids:', ids)
     try {
-      await saveCurriculum(curriculumId, titleRef.current ?? '', ids)
+      await saveCurriculum(curriculumId, title, ids)
       setIsDirty(false)
+      dbg('[SAVE OK] structure saved to server')
       return { ok: true }
     } catch (e) {
       dbg('[SAVE ERROR]', e.message)
