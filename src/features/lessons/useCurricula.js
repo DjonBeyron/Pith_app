@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { saveCurriculum, deleteCurriculumFromServer, loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { dbg } from '../../shared/lib/debug.js'
 
@@ -16,9 +16,12 @@ export function useCurricula() {
   const [curricula,   setCurricula]   = useState(loadLocal)
   const [syncStatus,  setSyncStatus]  = useState('idle') // idle | loading | ok | error
   const [syncError,   setSyncError]   = useState('')
+  const fetchedRef = useRef(false) // prevent double-fetch in React StrictMode dev
 
   // On mount: load from server and merge with local (server is authoritative)
   useEffect(() => {
+    if (fetchedRef.current) return
+    fetchedRef.current = true
     async function fetchFromServer() {
       setSyncStatus('loading')
       dbg('[LOAD] fetching curricula from server...')
@@ -81,11 +84,18 @@ export function useCurricula() {
     }
   }
 
-  function renameCurriculum(id, title) {
+  async function renameCurriculum(id, title) {
     const next = curricula.map(c => c.id === id ? { ...c, title } : c)
     setCurricula(next)
     persist(next)
     dbg('[LOCAL] curriculum renamed', id, title)
+    // Auto-save renamed title to server
+    const lessonIds = JSON.parse(localStorage.getItem(`curr_lessons_${id}`) ?? '[]')
+    try {
+      await saveCurriculum(id, title, lessonIds)
+    } catch (e) {
+      dbg('[RENAME ERROR] save to server', e.message)
+    }
   }
 
   async function saveCurriculumToServer(id, title, lessonIds) {
