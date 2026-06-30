@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { saveCurriculum, deleteCurriculumFromServer, loadCurricula } from '../../shared/lib/curriculaApi.js'
+import { supabase } from '../../shared/api/supabase.js'
 import { dbg } from '../../shared/lib/debug.js'
 
 const LS_KEY = 'curricula_v1'
@@ -82,11 +83,24 @@ export function useCurricula() {
   }
 
   async function deleteCurriculum(id) {
+    // Read lesson_ids before clearing localStorage
+    let lessonIds = []
+    try { lessonIds = JSON.parse(localStorage.getItem(`curr_lessons_${id}`) ?? '[]') } catch {}
+
     const next = curricula.filter(c => c.id !== id)
     setCurricula(next)
     persist(next)
     localStorage.removeItem(`curr_lessons_${id}`)
     localStorage.removeItem(`curr_map_${id}`)
+
+    // Delete child lessons from DB
+    if (lessonIds.length) {
+      dbg('[DELETE] deleting', lessonIds.length, 'lessons for curriculum', id)
+      const { error: e } = await supabase.from('lessons').delete().in('id', lessonIds)
+      if (e) dbg('[DELETE ERROR] lessons', e.message)
+      else dbg('[DELETE OK] lessons deleted', lessonIds.length)
+    }
+
     try {
       await deleteCurriculumFromServer(id)
     } catch (e) {
