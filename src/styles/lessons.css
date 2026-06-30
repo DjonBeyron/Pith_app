@@ -192,7 +192,10 @@
   overflow-y: auto;
   background: #0e1013;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE/Edge */
 }
+.moduleGraphScroll::-webkit-scrollbar { display: none; } /* Chrome/Safari/Mobile */
 
 /* Flex column — CSS drives layout, JS only measures for SVG curves */
 .moduleGraphInner {
