@@ -1,24 +1,29 @@
+import { useEffect, useState } from 'react'
 import { LEVELS, getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
-
-const XP_TO_NEXT = 100
-
-// Stub data — replace with real API later
-const STUB = {
-  name: 'Пользователь',
-  xp: 0,
-  streak: 3,
-  lessonsCompleted: 0,
-}
+import { getLocalXp } from '../../shared/lib/localProfile.js'
+import { getProfile } from '../../shared/api/profileApi.js'
 
 export default function ProfileTab() {
-  const { name, xp, streak, lessonsCompleted } = STUB
-  const current = getCurrentLevel(xp)
-  const next = getNextLevel(xp)
+  const [xp,      setXp]      = useState(getLocalXp())
+  const [name,    setName]    = useState('Пользователь')
+  const [loading, setLoading] = useState(true)
 
-  const xpInLevel = next ? xp - current.xpNeeded : xp - current.xpNeeded
-  const xpNeededForNext = next ? next.xpNeeded - current.xpNeeded : XP_TO_NEXT
-  const progress = next ? Math.min(xpInLevel / xpNeededForNext, 1) : 1
-  const pct = Math.round(progress * 100)
+  useEffect(() => {
+    getProfile().then(profile => {
+      if (profile) {
+        setXp(profile.xp)
+      } else {
+        setXp(getLocalXp())
+      }
+      setLoading(false)
+    })
+  }, [])
+
+  const current         = getCurrentLevel(xp)
+  const next            = getNextLevel(xp)
+  const xpInLevel       = xp - current.xpNeeded
+  const xpNeededForNext = next ? next.xpNeeded - current.xpNeeded : 100
+  const pct = next ? Math.min(Math.round((xpInLevel / xpNeededForNext) * 100), 100) : 100
 
   return (
     <div className="profilePanel">
@@ -31,14 +36,12 @@ export default function ProfileTab() {
         <div className="profileLevelRow">
           <span className="profileLevelBadge">Ур. {current.level}</span>
           <span className="profileLevelLabel">{current.label}</span>
-          {next && (
-            <span className="profileLevelNext">→ {next.label} (Ур. {next.level})</span>
-          )}
+          {next && <span className="profileLevelNext">→ {next.label} (Ур. {next.level})</span>}
         </div>
 
         <div className="profileProgressWrap">
           <div className="profileProgressBar">
-            <div className="profileProgressFill" style={{ width: `${pct}%` }} />
+            <div className="profileProgressFill" style={{ width: loading ? '0%' : `${pct}%` }} />
           </div>
           <div className="profileProgressMeta">
             <span>{xp} XP</span>
@@ -47,7 +50,7 @@ export default function ProfileTab() {
         </div>
 
         <div className="profileXpHint">
-          {next
+          {loading ? 'Загрузка...' : next
             ? `До следующего уровня: ${next.xpNeeded - xp} XP`
             : 'Максимальный уровень достигнут'}
         </div>
@@ -59,23 +62,22 @@ export default function ProfileTab() {
           <div className="profileStatLabel">Всего XP</div>
         </div>
         <div className="profileStatCard">
-          <div className="profileStatValue">{streak}</div>
+          <div className="profileStatValue">—</div>
           <div className="profileStatLabel">Дней подряд</div>
         </div>
         <div className="profileStatCard">
-          <div className="profileStatValue">{lessonsCompleted}</div>
+          <div className="profileStatValue">—</div>
           <div className="profileStatLabel">Уроков пройдено</div>
         </div>
       </div>
 
       <div className="profileLevelMap">
         <div className="profileLevelMapTitle">Все уровни</div>
-        {LEVELS.map((lvl, i) => {
+        {LEVELS.map(lvl => {
           const isReached = xp >= lvl.xpNeeded
           const isCurrent = current.level === lvl.level
           return (
-            <div
-              key={lvl.level}
+            <div key={lvl.level}
               className={`profileLevelItem${isCurrent ? ' profileLevelItemActive' : ''}${isReached ? ' profileLevelItemReached' : ''}`}
             >
               <div className="profileLevelDot" />

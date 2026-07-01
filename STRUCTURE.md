@@ -62,6 +62,7 @@
 | `canvas/text-highlight.css` | Стили модального редактора выделений текстовой ноды: оверлей, токены, свотчи, кнопка открытия |
 | `settings.css` | Стили вкладки «Настройки»: секции, список звуков, кнопка воспроизведения |
 | `profile.css` | Стили вкладки «Профиль»: аватар, XP-карточка, прогресс-бар, статистика, карта уровней |
+| `auth.css` | Стили вкладки «Войти»: карточка формы, инпуты, кнопки, ошибка |
 | `xp.css` | Стили анимации всплывающего XP-числа и итогового экрана урока |
 | `player/layout.css` | CSS-переменные плеера + `.lessonPlayer` (полноэкранный контейнер) |
 | `player/topbar.css` | Шапка плеера: аватар, название, статус |
@@ -182,6 +183,11 @@
 |------|-------------|
 | `SettingsTab.jsx` | Вкладка «Настройки»: раздел «Аудио» со списком звуков интерфейса и кнопкой прослушать |
 
+### `src/features/auth/` — вкладка «Войти»
+| Файл | Зачем нужен |
+|------|-------------|
+| `AuthTab.jsx` | Форма входа (email + пароль) или экран «вы вошли» с кнопкой «Выйти»; после входа переключается на «Профиль» и переносит локальный XP в БД |
+
 ### `src/features/user/` — всё для вкладки «Пользователь»
 | Файл | Зачем нужен |
 |------|-------------|
@@ -194,6 +200,7 @@
 | `supabase.js` | Подключение к базе данных Supabase (по ключам из `.env.local`) |
 | `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth |
 | `highlightPresetsApi.js` | Загрузка и сохранение избранных цветов выделений (`highlight_color_presets`, singleton row 'global') |
+| `profileApi.js` | getProfile / addXp / syncLocalXpToServer — чтение и запись XP в Supabase (`user_profiles`) |
 
 ### `src/shared/lib/` — вспомогательные функции без интерфейса
 | Файл | Зачем нужен |
@@ -207,6 +214,8 @@
 | `version.js` | Номер версии приложения (`APP_VERSION`) — показывается мелко наверху экрана |
 | `sounds.js` | `playSound(name)` — воспроизводит `/sounds/<name>.mp3` с кэшированием Audio-объекта |
 | `xpLevels.js` | Таблица уровней XP (`LEVELS`), `getCurrentLevel(xp)`, `getNextLevel(xp)` — используется в ProfileTab и LessonSummary |
+| `localProfile.js` | Работа с XP в localStorage (`pithy_xp`): getLocalXp / addLocalXp / setLocalXp / clearLocalXp |
+| `useAuth.js` | React-хук `useAuth()`: подписка на `supabase.auth.onAuthStateChange`, возвращает `{ user, loading }` |
 | `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar` (рисует столбики волны на canvas), `fmtAudioTime`, `probeAudioDuration` |
 | `transcribeApi.js` | Клиентская обёртка для Edge Function `transcribe-audio`: отправляет файл или R2 URL, возвращает `wordTimings` |
 | `textHighlight.js` | Утилиты выделений: `buildSpans` (массив спанов по char-range), `addHighlight` (добавить с перекрытием), `highlightStyle` (CSS объект), `hexToRgba`; legacy `buildCharStyles` для аудио-ноды |

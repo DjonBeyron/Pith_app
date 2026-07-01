@@ -1,0 +1,102 @@
+import { useState } from 'react'
+import { loginUser, logoutUser } from '../../shared/api/auth.js'
+import { syncLocalXpToServer } from '../../shared/api/profileApi.js'
+import { useAuth } from '../../shared/lib/useAuth.js'
+
+function loginErrorToRu(error) {
+  const msg = (error?.message ?? '').toLowerCase()
+  if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('email not confirmed'))
+    return 'Неверный email или пароль'
+  if (msg.includes('too many') || msg.includes('rate limit'))
+    return 'Слишком много попыток — подожди немного'
+  if (msg.includes('network') || msg.includes('fetch'))
+    return 'Нет соединения с сервером'
+  return `Ошибка: ${error?.message ?? 'неизвестная'}`
+}
+
+export default function AuthTab({ onLoginSuccess }) {
+  const { user, loading } = useAuth()
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [err,      setErr]      = useState('')
+  const [busy,     setBusy]     = useState(false)
+
+  async function handleLogin() {
+    if (busy) return
+    setErr('')
+    setBusy(true)
+    const { error } = await loginUser({ email: email.trim(), password: password.trim() })
+    setBusy(false)
+    if (error) { setErr(loginErrorToRu(error)); return }
+    await syncLocalXpToServer()
+    onLoginSuccess?.()
+  }
+
+  async function handleLogout() {
+    if (busy) return
+    setBusy(true)
+    await logoutUser()
+    setBusy(false)
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter') handleLogin()
+  }
+
+  if (loading) {
+    return <div className="authPanel"><p className="authHint">Загрузка...</p></div>
+  }
+
+  if (user) {
+    return (
+      <div className="authPanel">
+        <div className="authCard">
+          <div className="authAvatar">{(user.email?.[0] ?? '?').toUpperCase()}</div>
+          <div className="authEmail">{user.email}</div>
+          <div className="authHint">Вы вошли в аккаунт</div>
+          <button className="authBtnSecondary" onClick={handleLogout} disabled={busy}>
+            {busy ? 'Выход...' : 'Выйти из аккаунта'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="authPanel">
+      <div className="authCard">
+        <div className="authTitle">Войти</div>
+        <div className="authSubtitle">Введи email и пароль от аккаунта Pithy</div>
+        <input
+          className="authInput"
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          onKeyDown={handleKey}
+          disabled={busy}
+          autoComplete="email"
+        />
+        <input
+          className="authInput"
+          type="password"
+          placeholder="Пароль"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          onKeyDown={handleKey}
+          disabled={busy}
+          autoComplete="current-password"
+        />
+        {err && <div className="authError">{err}</div>}
+        <button
+          className="authBtnPrimary"
+          onClick={handleLogin}
+          disabled={busy || !email.trim() || !password.trim()}
+        >
+          {busy ? 'Вход...' : 'Войти'}
+        </button>
+        <div className="authHint">Нет аккаунта? Зарегистрируйся в уроке</div>
+      </div>
+    </div>
+  )
+}

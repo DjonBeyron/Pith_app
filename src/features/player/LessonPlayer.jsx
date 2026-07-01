@@ -14,6 +14,8 @@ import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { getPlayerLines } from '../../shared/lib/debug.js'
 import XpFloat from './XpFloat.jsx'
 import LessonSummary from './LessonSummary.jsx'
+import { addLocalXp, getLocalXp } from '../../shared/lib/localProfile.js'
+import { addXp, getProfile } from '../../shared/api/profileApi.js'
 
 // Returns a Map<nodeId, xpAmount> for nodes with reward enabled.
 // If lessonXp=0 or no reward nodes, returns empty map.
@@ -39,17 +41,29 @@ export default function LessonPlayer({
   onSummaryClose,
 }) {
   const [files, setFiles] = useState(propFiles)
+  const earnedXpRef = useRef(0)
   const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes, {
-    onFinish: () => setTimeout(() => setShowSummary(true), 2000),
+    onFinish: () => setTimeout(async () => {
+      const earned = earnedXpRef.current
+      const profile  = await getProfile()
+      const xpBefore = profile ? profile.xp : getLocalXp()
+      setBaseXp(xpBefore)
+      if (earned > 0) {
+        addLocalXp(earned)
+        await addXp(earned)
+      }
+      setShowSummary(true)
+    }, 2000),
   })
 
   const xpMap     = useMemo(() => buildXpMap(nodes, lessonXp), [nodes, lessonXp]) // eslint-disable-line
   const [earnedXp,  setEarnedXp]  = useState(0)
+  const [baseXp,    setBaseXp]    = useState(0)
   const [xpEvents,  setXpEvents]  = useState([])   // [{id, amount, rect}] — triggers float anim
   const [showSummary, setShowSummary] = useState(false)
 
   function handleXpEarned(amount, rect) {
-    setEarnedXp(prev => prev + amount)
+    setEarnedXp(prev => { earnedXpRef.current = prev + amount; return prev + amount })
     setXpEvents(prev => [...prev, { id: Date.now() + Math.random(), amount, rect }])
   }
 
@@ -300,7 +314,7 @@ export default function LessonPlayer({
       {showSummary && (
         <LessonSummary
           earnedXp={earnedXp}
-          baseXp={0}
+          baseXp={baseXp}
           onClose={onSummaryClose ?? onClose}
         />
       )}

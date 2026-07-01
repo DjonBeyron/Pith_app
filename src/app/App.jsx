@@ -5,6 +5,7 @@ import LessonsTab from '../features/lessons/LessonsTab.jsx'
 import CanvasPage from '../features/canvas/CanvasPage.jsx'
 import SettingsTab from '../features/settings/SettingsTab.jsx'
 import ProfileTab from '../features/profile/ProfileTab.jsx'
+import AuthTab from '../features/auth/AuthTab.jsx'
 import { APP_VERSION } from '../shared/lib/version.js'
 
 export default function App() {
@@ -25,6 +26,12 @@ export default function App() {
           onClick={() => setTab('profile')}
         >
           Профиль
+        </button>
+        <button
+          className={tab === 'auth' ? 'tabBtn tabBtnActive' : 'tabBtn'}
+          onClick={() => setTab('auth')}
+        >
+          Войти
         </button>
         <button
           className={tab === 'user' ? 'tabBtn tabBtnActive' : 'tabBtn'}
@@ -52,6 +59,7 @@ export default function App() {
         </button>
       </div>
       {tab === 'profile'  && <ProfileTab />}
+      {tab === 'auth'     && <AuthTab onLoginSuccess={() => setTab('profile')} />}
       {tab === 'user'     && <UserTab />}
       {tab === 'lessons'  && <LessonsTab onOpenCanvas={setCanvasLessonId} />}
       {tab === 'admin'    && <AdminTab />}
