@@ -275,51 +275,96 @@ export default function CanvasNode({
           </>
         )}
         {node.type === 'word_choice' && (
-          <NodeWordChoicePicker
-            options={tData.options ?? []}
-            responseCorrect={tData.responseCorrect ?? ''}
-            responseWrong={tData.responseWrong ?? ''}
-            onOptionsChange={opts => updateTypeData({ options: opts })}
-            onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
-            onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
-            triggers={node.triggers ?? []}
-            allNodes={allNodes}
-            nodeId={node.id}
-            onTriggersChange={triggers => onUpdate({ triggers })}
-            onTriggerMeasure={onTriggerMeasure}
-          />
+          <>
+            <NodeWordChoicePicker
+              options={tData.options ?? []}
+              responseCorrect={tData.responseCorrect ?? ''}
+              responseWrong={tData.responseWrong ?? ''}
+              onOptionsChange={opts => updateTypeData({ options: opts })}
+              onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
+              onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+              triggers={node.triggers ?? []}
+              allNodes={allNodes}
+              nodeId={node.id}
+              onTriggersChange={triggers => onUpdate({ triggers })}
+              onTriggerMeasure={onTriggerMeasure}
+            />
+            <label
+              className="nodeRewardCheckbox"
+              onClick={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={tData.reward !== false}
+                onChange={e => updateTypeData({ reward: e.target.checked })}
+              />
+              <span className="nodeRewardLabel">Получить награду</span>
+              {tData.reward !== false && <span className="nodeRewardBadge">⭐ XP</span>}
+            </label>
+          </>
         )}
         {node.type === 'phrase_assembly' && (
-          <NodePhraseAssemblyPicker
-            words={tData.words ?? []}
-            distractors={tData.distractors ?? []}
-            responseCorrect={tData.responseCorrect ?? ''}
-            responseWrong={tData.responseWrong ?? ''}
-            onWordsChange={w => updateTypeData({ words: w })}
-            onDistractorsChange={d => updateTypeData({ distractors: d })}
-            onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
-            onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
-            triggers={node.triggers ?? []}
-            allNodes={allNodes}
-            nodeId={node.id}
-            onTriggersChange={triggers => onUpdate({ triggers })}
-            onTriggerMeasure={onTriggerMeasure}
-          />
+          <>
+            <NodePhraseAssemblyPicker
+              words={tData.words ?? []}
+              distractors={tData.distractors ?? []}
+              responseCorrect={tData.responseCorrect ?? ''}
+              responseWrong={tData.responseWrong ?? ''}
+              onWordsChange={w => updateTypeData({ words: w })}
+              onDistractorsChange={d => updateTypeData({ distractors: d })}
+              onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
+              onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+              triggers={node.triggers ?? []}
+              allNodes={allNodes}
+              nodeId={node.id}
+              onTriggersChange={triggers => onUpdate({ triggers })}
+              onTriggerMeasure={onTriggerMeasure}
+            />
+            <label
+              className="nodeRewardCheckbox"
+              onClick={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={tData.reward !== false}
+                onChange={e => updateTypeData({ reward: e.target.checked })}
+              />
+              <span className="nodeRewardLabel">Получить награду</span>
+              {tData.reward !== false && <span className="nodeRewardBadge">⭐ XP</span>}
+            </label>
+          </>
         )}
         {node.type === 'photo_choice' && (
-          <NodePhotoChoicePicker
-            photos={tData.photos ?? []}
-            correctIndexes={tData.correctIndexes ?? []}
-            lessonFiles={lessonFiles}
-            onPickFile={onPickLessonFile}
-            onPhotosChange={p => updateTypeData({ photos: p })}
-            onCorrectIndexesChange={ci => updateTypeData({ correctIndexes: ci })}
-            triggers={node.triggers ?? []}
-            allNodes={allNodes}
-            nodeId={node.id}
-            onTriggersChange={triggers => onUpdate({ triggers })}
-            onTriggerMeasure={onTriggerMeasure}
-          />
+          <>
+            <NodePhotoChoicePicker
+              photos={tData.photos ?? []}
+              correctIndexes={tData.correctIndexes ?? []}
+              lessonFiles={lessonFiles}
+              onPickFile={onPickLessonFile}
+              onPhotosChange={p => updateTypeData({ photos: p })}
+              onCorrectIndexesChange={ci => updateTypeData({ correctIndexes: ci })}
+              triggers={node.triggers ?? []}
+              allNodes={allNodes}
+              nodeId={node.id}
+              onTriggersChange={triggers => onUpdate({ triggers })}
+              onTriggerMeasure={onTriggerMeasure}
+            />
+            <label
+              className="nodeRewardCheckbox"
+              onClick={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={tData.reward !== false}
+                onChange={e => updateTypeData({ reward: e.target.checked })}
+              />
+              <span className="nodeRewardLabel">Получить награду</span>
+              {tData.reward !== false && <span className="nodeRewardBadge">⭐ XP</span>}
+            </label>
+          </>
         )}
         {node.type === 'registration' && (
           <NodeRegistrationTriggers onTriggerMeasure={onTriggerMeasure} />

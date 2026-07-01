@@ -16,14 +16,16 @@ function wordFormGenitive(n) {
   return n === 1 ? 'слова' : 'слов'
 }
 
-export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeightChange }) {
+export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeightChange, xpAmount = 0, onXpEarned }) {
   const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
     usePhraseAssembly(node)
   const [show, setShow]               = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
   const [showCounter, setShowCounter] = useState(false)
   const panelRef    = useRef(null)
+  const checkBtnRef = useRef(null)
   const wrongCount  = useRef(0)
+  const xpFiredRef  = useRef(false)
   // Refs for close timers so effect cleanup (result→null) can't cancel them
   const closeTimers = useRef([])
 
@@ -105,8 +107,18 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
             ))}
           </div>
           <button
+            ref={checkBtnRef}
             className="phraseCheckBtn"
-            onClick={() => { const r = checkAnswer(); if (r) playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong') }}
+            onClick={() => {
+              const r = checkAnswer()
+              if (!r) return
+              playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong')
+              if (r === 'correct' && xpAmount > 0 && !xpFiredRef.current) {
+                xpFiredRef.current = true
+                const rect = checkBtnRef.current?.getBoundingClientRect()
+                onXpEarned?.(xpAmount, rect)
+              }
+            }}
             disabled={placed.length === 0 || isAnswered}
           >
             Проверить

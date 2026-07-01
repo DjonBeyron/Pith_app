@@ -12,16 +12,50 @@ import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { getPlayerLines } from '../../shared/lib/debug.js'
+import XpFloat from './XpFloat.jsx'
+import LessonSummary from './LessonSummary.jsx'
+
+// Returns a Map<nodeId, xpAmount> for nodes with reward enabled.
+// If lessonXp=0 or no reward nodes, returns empty map.
+function buildXpMap(nodes, lessonXp) {
+  if (!lessonXp) return new Map()
+  const REWARD_TYPES = ['word_choice', 'phrase_assembly', 'photo_choice']
+  const rewardNodes = nodes.filter(n =>
+    REWARD_TYPES.includes(n.type) && n.typeData?.[n.type]?.reward !== false
+  )
+  if (!rewardNodes.length) return new Map()
+  const base      = Math.floor(lessonXp / rewardNodes.length)
+  const remainder = lessonXp % rewardNodes.length
+  return new Map(rewardNodes.map((n, i) => [n.id, base + (i < remainder ? 1 : 0)]))
+}
 
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',
   teacherName, teacherLogo, teacherLogoCrop,
   videoAutoSound = false,
   initialBlobMap = null,
+  lessonXp = 0,
   onClose,
+  onSummaryClose,
 }) {
   const [files, setFiles] = useState(propFiles)
-  const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes)
+  const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes, {
+    onFinish: () => setTimeout(() => setShowSummary(true), 2000),
+  })
+
+  const xpMap     = useMemo(() => buildXpMap(nodes, lessonXp), [nodes, lessonXp]) // eslint-disable-line
+  const [earnedXp,  setEarnedXp]  = useState(0)
+  const [xpEvents,  setXpEvents]  = useState([])   // [{id, amount, rect}] — triggers float anim
+  const [showSummary, setShowSummary] = useState(false)
+
+  function handleXpEarned(amount, rect) {
+    setEarnedXp(prev => prev + amount)
+    setXpEvents(prev => [...prev, { id: Date.now() + Math.random(), amount, rect }])
+  }
+
+  function dismissXpEvent(id) {
+    setXpEvents(prev => prev.filter(e => e.id !== id))
+  }
 
   useEffect(() => {
     const singleIds = nodes.map(n => n.typeData?.[n.type]?.file_id).filter(Boolean)
@@ -107,10 +141,24 @@ export default function LessonPlayer({
   const [phraseStates, setPhraseStates]           = useState({})
   const [regStates, setRegStates]                 = useState({})
 
+  // XP pending for photo_choice: fires when the correct photo bubble mounts in chat
+  const [pendingPhotoXp, setPendingPhotoXp] = useState({})
+
   function handlePhotoPick(nodeId, idx, isCorrect) {
     const result = isCorrect ? 'photo_correct' : 'photo_wrong'
     setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
+    if (isCorrect) {
+      const xp = xpMap.get(nodeId) ?? 0
+      if (xp > 0) setPendingPhotoXp(prev => ({ ...prev, [nodeId]: xp }))
+    }
     onNodeDone(nodeId, result)
+  }
+
+  function handlePhotoXpFired(nodeId, rect) {
+    const xp = pendingPhotoXp[nodeId]
+    if (!xp) return
+    setPendingPhotoXp(prev => { const n = { ...prev }; delete n[nodeId]; return n })
+    handleXpEarned(xp, rect)
   }
 
   function handleWordAnswer(nodeId, text, result) {
@@ -197,6 +245,9 @@ export default function LessonPlayer({
                     bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight || regPanelHeight}
                     videoAutoSound={videoAutoSound}
                     onDone={isPending ? () => {} : () => onNodeDone(node.id)}
+                    rewardXp={xpMap.get(node.id) ?? 0}
+                    photoXpPending={pendingPhotoXp[node.id] ?? 0}
+                    onPhotoXpFired={(rect) => handlePhotoXpFired(node.id, rect)}
                   />
                 </div>
               )
@@ -209,16 +260,20 @@ export default function LessonPlayer({
         {wcNode && (
           <ChooseWordPanel
             node={wcNode}
+            xpAmount={xpMap.get(wcNode.id) ?? 0}
             onDone={(result) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result) }}
             onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result)}
+            onXpEarned={handleXpEarned}
             onHeightChange={setWcPanelHeight}
           />
         )}
         {paNode && (
           <PhraseAssemblyPanel
             node={paNode}
+            xpAmount={xpMap.get(paNode.id) ?? 0}
             onDone={(result) => { setPaPanelHeight(0); onNodeDone(paNode.id, result) }}
             onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
+            onXpEarned={handleXpEarned}
             onHeightChange={setPaPanelHeight}
           />
         )}
@@ -239,6 +294,16 @@ export default function LessonPlayer({
           />
         )}
       </div>
+
+      <XpFloat events={xpEvents} onDismiss={dismissXpEvent} />
+
+      {showSummary && (
+        <LessonSummary
+          earnedXp={earnedXp}
+          baseXp={0}
+          onClose={onSummaryClose ?? onClose}
+        />
+      )}
 
       {/* Версия для отслеживания деплоя */}
       <div style={{

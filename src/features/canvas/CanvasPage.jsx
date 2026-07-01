@@ -15,6 +15,7 @@ export default function CanvasPage({ lessonId, onBack }) {
   const [isSaving,    setIsSaving]    = useState(false)
   const [serverNodes, setServerNodes] = useState(null)
   const [panelNodes,  setPanelNodes]  = useState([])
+  const [lessonXp,    setLessonXp]    = useState(0)
   const nodesRef = useRef([])
 
   const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles } =
@@ -51,6 +52,7 @@ export default function CanvasPage({ lessonId, onBack }) {
         dbg('[CANVAS] loaded lesson', lessonId, nodes.length, 'nodes, title:', data?.title)
         if (nodes.length) dbg('[CANVAS] node types:', nodes.map(n => n.type).join(', '))
         setTitle(data?.title ?? '')
+        setLessonXp(data?.script?.lessonXp ?? 0)
         applyServerData(data?.script)
         if (nodes.length) setServerNodes(nodes)
       })
@@ -81,7 +83,7 @@ export default function CanvasPage({ lessonId, onBack }) {
         if (!f?.r2Url) return node
         return { ...node, typeData: { ...node.typeData, [node.type]: { ...node.typeData[node.type], r2Url: f.r2Url } } }
       })
-      const scriptToSave = { nodes: nodesForSave, ...teacherData }
+      const scriptToSave = { nodes: nodesForSave, lessonXp, ...teacherData }
       dbg('[CANVAS] saving', nodesForSave.length, 'nodes to lesson', lessonId)
       await saveLesson(lessonId, { title, script: scriptToSave })
       dbg('[CANVAS] save complete')
@@ -108,6 +110,18 @@ export default function CanvasPage({ lessonId, onBack }) {
         <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
           {isSaving ? 'Сохраняю…' : 'Сохранить'}
         </button>
+        <div className="canvasXpField">
+          <input
+            className="canvasXpInput"
+            type="number"
+            min="0"
+            step="10"
+            value={lessonXp}
+            onChange={e => setLessonXp(Math.max(0, parseInt(e.target.value) || 0))}
+            onClick={e => e.stopPropagation()}
+          />
+          <span className="canvasXpLabel">XP</span>
+        </div>
       </div>
 
       {showPlayer && (
@@ -115,11 +129,13 @@ export default function CanvasPage({ lessonId, onBack }) {
           nodes={panelNodes}
           files={files}
           lessonTitle={title}
+          lessonXp={lessonXp}
           teacherName={teacherName}
           teacherLogo={teacherLogoUrl}
           teacherLogoCrop={teacherLogoCrop}
           videoAutoSound={videoAutoSound}
           onClose={() => setShowPlayer(false)}
+          onSummaryClose={onBack}
         />
       )}
 

@@ -14,14 +14,16 @@ function findEntry(nodes) {
   )
 }
 
-export function useGraphPlayer(nodes) {
+export function useGraphPlayer(nodes, { onFinish } = {}) {
   const [visibleNodes, setVisibleNodes] = useState([])
   const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
 
-  const nodeMapRef = useRef({})
-  const firedRef   = useRef(new Set())
-  const timersRef  = useRef([])
+  const nodeMapRef  = useRef({})
+  const firedRef    = useRef(new Set())
+  const timersRef   = useRef([])
+  const onFinishRef = useRef(onFinish)
+  onFinishRef.current = onFinish
 
   nodeMapRef.current = Object.fromEntries(nodes.map(n => [n.id, n]))
 
@@ -97,7 +99,11 @@ export function useGraphPlayer(nodes) {
       if (firedRef.current.has(key)) return
       firedRef.current.add(key)
       addTimer(() => scheduleReveal.current(tap.then), tap.ms ?? 3000)
+      return
     }
+
+    // Nothing left to schedule — lesson is finished
+    onFinishRef.current?.()
   }, []) // eslint-disable-line
 
   const nodesKey = nodes.map(n => n.id).join(',')

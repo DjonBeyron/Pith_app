@@ -4,6 +4,7 @@ import UserTab from '../features/user/UserTab.jsx'
 import LessonsTab from '../features/lessons/LessonsTab.jsx'
 import CanvasPage from '../features/canvas/CanvasPage.jsx'
 import SettingsTab from '../features/settings/SettingsTab.jsx'
+import ProfileTab from '../features/profile/ProfileTab.jsx'
 import { APP_VERSION } from '../shared/lib/version.js'
 
 export default function App() {
@@ -19,6 +20,12 @@ export default function App() {
     <div className="app">
       <div className="versionBadge">v{APP_VERSION}</div>
       <div className="tabs">
+        <button
+          className={tab === 'profile' ? 'tabBtn tabBtnActive' : 'tabBtn'}
+          onClick={() => setTab('profile')}
+        >
+          Профиль
+        </button>
         <button
           className={tab === 'user' ? 'tabBtn tabBtnActive' : 'tabBtn'}
           onClick={() => setTab('user')}
@@ -44,6 +51,7 @@ export default function App() {
           Настройки
         </button>
       </div>
+      {tab === 'profile'  && <ProfileTab />}
       {tab === 'user'     && <UserTab />}
       {tab === 'lessons'  && <LessonsTab onOpenCanvas={setCanvasLessonId} />}
       {tab === 'admin'    && <AdminTab />}

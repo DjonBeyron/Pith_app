@@ -4,11 +4,12 @@ import ChooseWordOption from './ChooseWordOption.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChange }) {
+export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChange, xpAmount = 0, onXpEarned }) {
   const { options, selectedId, result, isAnswered, handlePick } = useChooseWord(node)
   const [show, setShow] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
-  const panelRef = useRef(null)
+  const panelRef   = useRef(null)
+  const xpFiredRef = useRef(false)
 
   const responseText = result === 'correct'
     ? (node.typeData?.word_choice?.responseCorrect ?? '')
@@ -64,10 +65,15 @@ export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChan
               key={opt.id}
               text={opt.text}
               state={getState(opt)}
-              onClick={() => {
+              onClick={(e) => {
                 const snd = opt.isCorrect ? 'answer-correct' : 'answer-wrong'
                 pLog(`[word-choice] tap isCorrect=${opt.isCorrect} → sound=${snd}`)
                 playSound(snd)
+                if (opt.isCorrect && xpAmount > 0 && !xpFiredRef.current) {
+                  xpFiredRef.current = true
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  onXpEarned?.(xpAmount, rect)
+                }
                 handlePick(opt)
               }}
               disabled={isAnswered}

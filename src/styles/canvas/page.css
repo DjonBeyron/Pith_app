@@ -107,6 +107,37 @@
   pointer-events: none;
 }
 
+.canvasXpField {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.canvasXpInput {
+  width: 58px;
+  background: #0e1013;
+  border: 1px solid #2a2c33;
+  border-radius: 6px;
+  color: #b6fe3b;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 6px;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.canvasXpInput::-webkit-outer-spin-button,
+.canvasXpInput::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.canvasXpInput:focus { border-color: #b6fe3b55; }
+
+.canvasXpLabel {
+  font-size: 11px;
+  color: #666;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
 .canvasPageBack {
   background: transparent;
   border: 1px solid #2a2c33;
