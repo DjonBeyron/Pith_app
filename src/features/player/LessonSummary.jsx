@@ -67,6 +67,8 @@ function XpTransfer({ earnedXp, baseXp, onDone }) {
   const initPct    = Math.max(0, ((baseXp  - rangeStart) / rangeSize) * 100)
   const finalPct   = Math.min(((totalXp - rangeStart) / rangeSize) * 100, 100)
 
+
+
   // Bar width as React state — CSS transition handles smooth movement
   const [barPct, setBarPct] = useState(initPct)
 
