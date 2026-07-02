@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 import { enqueuePosterCapture } from './posterQueue.js'
+import { fetchBlobWithRetry } from './preloadFetch.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
-const POLL_MS      = 200
+const FALLBACK_SIZE = 500 * 1024 // вес файла с неизвестным размером в байтовом прогрессе
 export const CHAT_BUFFER_SIZE = 5
 const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice'])
 const POSTER_TYPES = new Set(['video', 'circle', 'sticker'])
@@ -56,7 +57,7 @@ function nodeDownloads(node, files) {
       .map(ph => {
         const f   = files.find(fl => fl.id === ph.fileId)
         const url = f?.r2Url ?? ph.photoUrl ?? null
-        return isValidUrl(url) ? { id: ph.fileId, url, nodeType: 'photo_choice' } : null
+        return isValidUrl(url) ? { id: ph.fileId, url, size: f?.size ?? 0, nodeType: 'photo_choice' } : null
       })
       .filter(Boolean)
   }
@@ -64,7 +65,7 @@ function nodeDownloads(node, files) {
   if (!fileId) return []
   const f   = files.find(fl => fl.id === fileId)
   const url = f?.r2Url ?? node.typeData?.[node.type]?.r2Url ?? null
-  return isValidUrl(url) ? [{ id: fileId, url, nodeType: node.type }] : []
+  return isValidUrl(url) ? [{ id: fileId, url, size: f?.size ?? 0, nodeType: node.type }] : []
 }
 
 function buildItemQueue(nodes, files) {
@@ -84,14 +85,13 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const { initialLookahead = LOOKAHEAD, initialBlobMap = null, bufferSize = CHAT_BUFFER_SIZE } = opts
   const initRef = useRef(initialBlobMap ?? {})
 
-  const [blobMap, setBlobMap] = useState(() => ({ ...initRef.current }))
+  const [blobMap, setBlobMap] = useState(() => ({ ...(initialBlobMap ?? {}) }))
   const [queueTotal, setQueueTotal] = useState(0)
   const [readyNodeIds, setReadyNodeIds] = useState(() => new Set())
 
   // Debug overlay: one item per download, updated in place
   const debugItemsRef = useRef(new Map())
-  const [debugTick, setDebugTick] = useState(0)
-  const tick = () => setDebugTick(t => t + 1)
+  const [, setDebugTick] = useState(0)
 
   // Eviction
   const [evictLog, setEvictLog] = useState([])
@@ -99,14 +99,54 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const evictingIdsRef  = useRef(new Set())
   const visibleNodesRef = useRef(visibleNodes)
 
-  const blobUrlsRef    = useRef({ ...initRef.current })
+  const blobUrlsRef    = useRef({ ...(initialBlobMap ?? {}) })
   const genRef         = useRef(0)
   const queueRef       = useRef([])
   const cursorRef      = useRef(0)
   const allowUpToRef   = useRef(initialLookahead)
   const inFlightRef    = useRef(0)
   const byIdRef        = useRef({})
-  const startTimeRef   = useRef(Date.now())
+  const startTimeRef   = useRef(0) // выставляется в Date.now() при rebuild-эффекте
+
+  // Байтовый прогресс warmup-файлов — для честного плавного бара на карточке запуска
+  const bytesTotalRef  = useRef(new Map())
+  const bytesLoadedRef = useRef(new Map())
+  const [warmupPct, setWarmupPct] = useState(0)
+  const lastFlushRef   = useRef(0)
+  const flushTimerRef  = useRef(null)
+
+  function computeWarmupPct() {
+    let loaded = 0
+    let total  = 0
+    for (const it of queueRef.current) {
+      if (it.nodeIdx >= initialLookahead) continue
+      const size = bytesTotalRef.current.get(it.id) || it.size || FALLBACK_SIZE
+      total  += size
+      loaded += Math.min(bytesLoadedRef.current.get(it.id) ?? 0, size)
+    }
+    return total ? Math.round(loaded / total * 100) : 100
+  }
+
+  const tick = () => {
+    setWarmupPct(computeWarmupPct())
+    setDebugTick(t => t + 1)
+  }
+
+  // Шторм чанков при скачивании → не чаще одного обновления state в 100 мс
+  function throttledTick() {
+    const now = Date.now()
+    if (now - lastFlushRef.current >= 100) {
+      lastFlushRef.current = now
+      tick()
+      return
+    }
+    if (flushTimerRef.current) return
+    flushTimerRef.current = setTimeout(() => {
+      flushTimerRef.current = null
+      lastFlushRef.current = Date.now()
+      tick()
+    }, 100)
+  }
 
   const [warmupNodeIds, setWarmupNodeIds] = useState([])
   const [initialized, setInitialized]     = useState(false)
@@ -190,78 +230,83 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   }
 
   // ─── Download ────────────────────────────────────────────────────────────
+  // Событийная очередь: pump добирает свободные слоты до CONCURRENCY. Вызывается
+  // при старте, после каждого завершённого скачивания и при сдвиге гейта — без таймеров.
+
+  function pump(gen) {
+    if (genRef.current !== gen) return
+    while (inFlightRef.current < CONCURRENCY && cursorRef.current < queueRef.current.length) {
+      const item = queueRef.current[cursorRef.current]
+      if (item.nodeIdx >= allowUpToRef.current) return
+      cursorRef.current++
+      // Skip if blobUrl already present (evicted entries have blobUrl=null → re-download ok)
+      if (blobUrlsRef.current[item.id]?.blobUrl) continue
+      fetchOne(item, gen)
+    }
+  }
 
   async function fetchOne(item, gen) {
     const { id, url, nodeType, nodeSeq, nodeId } = item
-    const label    = `seq=${nodeSeq} type=${nodeType}`
-    const startTs  = ts()
-    const key      = `${nodeSeq}_${id}`
+    const key = `${nodeSeq}_${id}`
     const debugItem = {
-      key, seq: nodeSeq, type: nodeType, url, startTs,
+      key, seq: nodeSeq, type: nodeType, url, startTs: ts(),
       readyTs: null, sizeKb: null, msgTs: null, status: 'start', error: null, httpStatus: null,
     }
     debugItemsRef.current.set(key, debugItem)
     tick()
     inFlightRef.current++
 
-    // Abort fetch if it hangs longer than 15s — prevents blocking CONCURRENCY slots
-    // on flaky 3G connections where the browser may take 30s+ to time out on its own.
-    const controller  = new AbortController()
-    const fetchTimer  = setTimeout(() => controller.abort(), 15_000)
-
-    let blobUrl = null
+    let result = null
     try {
-      const res = await fetch(url, { signal: controller.signal })
-      clearTimeout(fetchTimer)
-      debugItem.httpStatus = res.status
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      if (genRef.current !== gen) return
-
-      // Stream with progress so large files show % instead of hanging silently
-      const total = Number(res.headers.get('content-length')) || 0
-      const reader = res.body.getReader()
-      const chunks = []
-      let loaded = 0
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        if (genRef.current !== gen) return
-        chunks.push(value)
-        loaded += value.length
-        if (total) {
-          debugItem.progress = Math.round(loaded / total * 100)
-          tick()
-        }
-      }
-      const blob = new Blob(chunks)
-      if (genRef.current !== gen) return
-      blobUrl = URL.createObjectURL(blob)
-      debugItem.readyTs = ts()
-      debugItem.sizeKb  = Math.round(blob.size / 1024)
-      debugItem.status  = 'ready'
-      debugItem.progress = 100
-      tick()
+      result = await fetchBlobWithRetry(url, {
+        isAlive: () => genRef.current === gen,
+        onProgress: (loaded, total) => {
+          bytesLoadedRef.current.set(id, loaded)
+          if (total) {
+            bytesTotalRef.current.set(id, total)
+            debugItem.progress = Math.round(loaded / total * 100)
+          }
+          throttledTick()
+        },
+      })
     } catch (e) {
-      clearTimeout(fetchTimer)
-      debugItem.status  = 'error'
-      debugItem.error   = e.message
-      debugItem.readyTs = ts()
+      debugItem.status     = 'error'
+      debugItem.error      = e.message
+      debugItem.httpStatus = e.httpStatus ?? null
+      debugItem.readyTs    = ts()
+      // Файл не скачался после всех попыток — для бара считается «завершённым»
+      bytesLoadedRef.current.set(id, bytesTotalRef.current.get(id) || item.size || FALLBACK_SIZE)
       blobUrlsRef.current[id] = { blobUrl: null, error: true }
+      setBlobMap(prev => ({ ...prev, [id]: { blobUrl: null, error: true } }))
       tick()
       inFlightRef.current--
       // Mark node ready even on error so progress bar doesn't freeze
       if (checkNodeReady(nodeId)) {
         setReadyNodeIds(prev => { const s = new Set(prev); s.add(nodeId); return s })
       }
+      pump(gen)
       return
     }
+    if (!result || genRef.current !== gen) { inFlightRef.current--; return }
 
-    // Release download slot
+    const blob    = result.blob
+    const blobUrl = URL.createObjectURL(blob)
+    debugItem.httpStatus = result.httpStatus
+    debugItem.readyTs  = ts()
+    debugItem.sizeKb   = Math.round(blob.size / 1024)
+    debugItem.status   = 'ready'
+    debugItem.progress = 100
+    bytesTotalRef.current.set(id, blob.size)
+    bytesLoadedRef.current.set(id, blob.size)
+    tick()
+
+    // Release download slot and immediately start the next queued download
     inFlightRef.current--
 
     // Publish blobUrl so already-visible modules can start using it immediately
     blobUrlsRef.current[id] = { blobUrl, posterUrl: null }
     setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
+    pump(gen)
 
     if (EVICT_TYPES.has(nodeType)) await evictFarthestIfNeeded(gen, id)
 
@@ -304,6 +349,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       queueRef.current = [...queueRef.current.slice(0, loaded), ...active, ...speculative]
     }
     evictFarthestIfNeeded(genRef.current, null).catch(() => {})
+    pump(genRef.current)
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── nodes/files: rebuild everything ─────────────────────────────────────
@@ -324,11 +370,14 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     evictingIdsRef.current.clear()
     startTimeRef.current = Date.now()
     allowUpToRef.current = initialLookahead
-    tick()
     byIdRef.current     = Object.fromEntries(nodes.map(n => [n.id, n]))
     queueRef.current    = buildItemQueue(nodes, files)
     cursorRef.current   = 0
     inFlightRef.current = 0
+    // Ожидаемые размеры из метаданных files — бар честный с первого чанка
+    bytesTotalRef.current  = new Map(queueRef.current.filter(i => i.size).map(i => [i.id, i.size]))
+    bytesLoadedRef.current = new Map()
+    tick()
     // Count only items within the warmup gate (nodeIdx < initialLookahead)
     const warmup = queueRef.current.filter(item => item.nodeIdx < initialLookahead).length
     setQueueTotal(warmup || queueRef.current.length)
@@ -366,27 +415,12 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       })
     }, SAFETY_MS)
 
-    if (!queueRef.current.length || !files.length) return
-
-    async function runQueue() {
-      while (genRef.current === gen) {
-        if (cursorRef.current >= queueRef.current.length && inFlightRef.current === 0) {
-          break
-        }
-        const item = queueRef.current[cursorRef.current]
-        const done = cursorRef.current >= queueRef.current.length
-        if (done || (item && item.nodeIdx >= allowUpToRef.current) || inFlightRef.current >= CONCURRENCY) {
-          await new Promise(r => setTimeout(r, POLL_MS))
-          continue
-        }
-        cursorRef.current++
-        // Skip if blobUrl already present (evicted entries have blobUrl=null → re-download ok)
-        if (blobUrlsRef.current[item.id]?.blobUrl) continue
-        fetchOne(item, gen)
-      }
+    if (queueRef.current.length && files.length) pump(gen)
+    return () => {
+      genRef.current++
+      clearTimeout(safetyTimer)
+      if (flushTimerRef.current) { clearTimeout(flushTimerRef.current); flushTimerRef.current = null }
     }
-    runQueue()
-    return () => { genRef.current++; clearTimeout(safetyTimer) }
   }, [nodes, files]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -401,6 +435,8 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // Transfer ownership of all blob URLs to the caller (card → player handoff).
   function releaseBlobs() { blobUrlsRef.current = {} }
 
+  // Дебаг-оверлей живёт в ref и «дёргается» через setDebugTick — чтение при рендере намеренное
+  // eslint-disable-next-line react-hooks/refs
   const debugItems = [...debugItemsRef.current.values()]
-  return { blobMap, queueTotal, readyNodeIds, warmupNodeIds, initialized, debugItems, addMsgTs, releaseBlobs, evictLog }
+  return { blobMap, queueTotal, readyNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, addMsgTs, releaseBlobs, evictLog }
 }

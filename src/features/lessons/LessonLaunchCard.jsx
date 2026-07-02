@@ -92,7 +92,7 @@ function LaunchPreloader({ lessonData, onStart }) {
   const weak       = isWeakDevice()
   const bufferSize = weak ? 3 : 5
 
-  const { blobMap, readyNodeIds, warmupNodeIds, initialized, debugItems, releaseBlobs } = usePlayerPreload(
+  const { blobMap, readyNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, releaseBlobs } = usePlayerPreload(
     nodes, files, [], { initialLookahead: WARMUP_TARGET, bufferSize }
   )
 
@@ -127,14 +127,12 @@ function LaunchPreloader({ lessonData, onStart }) {
     }
   }, [teacherLogo]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Progress is counted in NODES (BFS order, same as preloader) + 1 slot for logo if present.
+  // Готовность — по нодам; бар — по скачанным байтам warmup-файлов (честный и плавный).
   // initialized=false until the hook has built its queue — prevents false "ready" flash.
   const nodeTotal   = warmupNodeIds.length
   const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id)).length
-  const total       = nodeTotal + (teacherLogo ? 1 : 0)
-  const readyCount  = nodeReady  + (logoReady   ? (teacherLogo ? 1 : 0) : 0)
-  const pct         = total > 0 ? Math.round(readyCount / total * 100) : 0
   const canStart    = initialized && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
+  const pct         = canStart ? 100 : Math.min(warmupPct, 99)
 
   function handleStart() {
     // Preload + unlock in the same gesture context so iOS Safari decodes audio immediately.
@@ -196,7 +194,7 @@ function LaunchPreloader({ lessonData, onStart }) {
         <span style={{ color: '#888', fontSize: 12 }}>
           {canStart
             ? 'Урок готов к запуску'
-            : `Подготовка: ${readyCount} / ${total} нод`}
+            : `Подготовка: ${pct}%`}
         </span>
         {weak && (
           <span style={{ color: '#666', fontSize: 11 }}>
