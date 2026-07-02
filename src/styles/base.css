@@ -2,6 +2,13 @@
   box-sizing: border-box;
 }
 
+/* Страница сама не скроллится никогда — iOS не рисует системный индикатор
+   скролла справа. Скроллятся только внутренние контейнеры со скрытыми барами. */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;

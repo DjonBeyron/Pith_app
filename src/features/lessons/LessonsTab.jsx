@@ -5,7 +5,6 @@ import CurriculaList from './CurriculaList.jsx'
 import ModuleGraph from './ModuleGraph.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
-import { isDebugOn } from '../../shared/lib/debug.js'
 import { getCompletedLessons, markLessonCompleted, unmarkLessons } from '../../shared/lib/completedLessons.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
@@ -129,10 +128,6 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         />
       )}
 
-      {isDebugOn() && (
-        <DbDebugPanel curriculumId={curriculumId} lessons={lessons} />
-      )}
-
       {launchId && (
         <LessonLaunchCard
           lessonId={launchId}
@@ -140,21 +135,6 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           onClose={() => setLaunchId(null)}
         />
       )}
-    </div>
-  )
-}
-
-function DbDebugPanel({ curriculumId, lessons }) {
-  return (
-    <div className="dbDebugPanel">
-      <div className="dbDebugTitle">🗄 DB Debug</div>
-      <div className="dbDebugRow"><b>curriculum_id:</b> {curriculumId}</div>
-      <div className="dbDebugRow"><b>lessons ({lessons.length}):</b></div>
-      {lessons.map((l, i) => (
-        <div key={l.id} className="dbDebugRow dbDebugLesson">
-          [{i}] {l.id.slice(0, 8)}… — {l.title}
-        </div>
-      ))}
     </div>
   )
 }

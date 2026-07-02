@@ -140,20 +140,6 @@
   flex-shrink: 0;
 }
 
-.dbDebugPanel {
-  margin: 12px 10px;
-  background: #0a0c10;
-  border: 1px solid #1e2a1e;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 11px;
-  color: #7a9a7a;
-  font-family: monospace;
-}
-.dbDebugTitle { color: #b6fe3b; font-weight: 600; margin-bottom: 6px; }
-.dbDebugRow { padding: 1px 0; }
-.dbDebugLesson { padding-left: 12px; color: #5a7a5a; }
-
 .lessonsMapToolbar {
   display: flex;
   align-items: center;

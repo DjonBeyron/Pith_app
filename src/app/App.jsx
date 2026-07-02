@@ -24,12 +24,14 @@ export default function App() {
     <div className="app">
       <div className="versionBadge">v{APP_VERSION}</div>
       <TabsNav tab={tab} onSelect={setTab} isAdmin={isAdmin} />
-      {tab === 'profile'  && <ProfileTab />}
-      {tab === 'auth'     && <AuthTab onLoginSuccess={() => setTab('profile')} />}
-      {tab === 'user'     && <UserTab />}
-      {tab === 'lessons'  && <LessonsTab onOpenCanvas={setCanvasLessonId} />}
-      {tab === 'admin'    && isAdmin && <AdminTab />}
-      {tab === 'settings' && <SettingsTab />}
+      <div className="tabContent">
+        {tab === 'profile'  && <ProfileTab />}
+        {tab === 'auth'     && <AuthTab onLoginSuccess={() => setTab('profile')} />}
+        {tab === 'user'     && <UserTab />}
+        {tab === 'lessons'  && <LessonsTab onOpenCanvas={setCanvasLessonId} />}
+        {tab === 'admin'    && isAdmin && <AdminTab />}
+        {tab === 'settings' && <SettingsTab />}
+      </div>
     </div>
   )
 }
