@@ -1,0 +1,372 @@
+/* ── Старт и Финал: обводка + свечение (по референсу) ────────
+   box-shadow не работает с clip-path, поэтому свечение — через
+   drop-shadow на обёртке .mgGlow, а «обводка» — фон родителя,
+   проглядывающий из-под уменьшенного .mgHexFill. */
+
+.mgGlow {
+  display: flex;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1; /* выше SVG-слоя линий: точки линий не должны перекрывать ноды */
+}
+
+.mgGlow--start        { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.10)); }
+.mgGlow--start--done  { filter: drop-shadow(0 0 18px rgba(182, 254, 59, 0.35)); }
+.mgGlow--final        { filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.30)); }
+.mgGlow--final--open  { filter: drop-shadow(0 0 22px rgba(167, 139, 250, 0.50)); }
+
+/* Контур нода — SVG-штрих поверх (ровная толщина по всему периметру) */
+.mgNodeOutline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.mgNodeOutline path {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+/* Цвет контура задаётся через color — его подхватывает currentColor
+   в градиенте штриха (яркий верх → прозрачный низ) */
+.mgGlow--start       .mgNodeOutline { color: #e8ecf4; }
+.mgGlow--start--done .mgNodeOutline { color: #b6fe3b; }
+.mgGlow--final       .mgNodeOutline { color: #8b5cf6; }
+.mgGlow--final--open .mgNodeOutline { color: #a78bfa; }
+
+/* Рамка-подложка больше не нужна — заливка занимает весь нод */
+.mgNode--start .mgHexFill,
+.mgNode--final .mgHexFill {
+  transform: none;
+}
+
+/* Админ-кнопки (▶ ⚙ ✎ 👁) в Старте и Финале — по центру нода */
+.mgNode--start .mgNodeBtns,
+.mgNode--final .mgNodeBtns {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+}
+
+/* ── Анимация прилёта XP ────────────────────────────────────── */
+@keyframes mgNodePulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03); }
+}
+
+/* Финал вспыхивает ярче в такт касанию каждого кружочка */
+@keyframes mgFinalFlash {
+  0%   { filter: brightness(1.9); }
+  100% { filter: brightness(1); }
+}
+
+.mgGlow--finalFlash .mgNode--final {
+  animation: mgFinalFlash 0.28s ease-out;
+}
+
+/* ── Церемония открытия финала ──────────────────────────────── */
+
+/* Замок: приближается к зрителю, трясётся 4 раза, замирает (открытие), возвращается */
+@keyframes mgLockUnlock {
+  0%   { transform: scale(1); }
+  12%  { transform: scale(1.7); }
+  18%  { transform: scale(1.7) translateX(-4px) rotate(-7deg); }
+  26%  { transform: scale(1.7) translateX(4px)  rotate(7deg); }
+  34%  { transform: scale(1.7) translateX(-4px) rotate(-7deg); }
+  42%  { transform: scale(1.7) translateX(4px)  rotate(7deg); }
+  50%  { transform: scale(1.7); }
+  68%  { transform: scale(1.85); }
+  100% { transform: scale(1); }
+}
+
+.mgIconBadge--unlocking {
+  animation: mgLockUnlock 2.2s ease-in-out forwards;
+  position: relative;
+  z-index: 3;
+}
+
+/* Вспышка блока: deep glow в сторону зрителя + неоновая обводка */
+@keyframes mgFinalBurst {
+  0%   { filter: brightness(1)   drop-shadow(0 0 0 rgba(167, 139, 250, 0)); }
+  18%  { filter: brightness(1.5) drop-shadow(0 0 34px rgba(167, 139, 250, 0.95)) drop-shadow(0 0 70px rgba(139, 92, 246, 0.55)); }
+  100% { filter: brightness(1)   drop-shadow(0 0 22px rgba(167, 139, 250, 0.5)); }
+}
+
+.mgGlow--finalBurst { animation: mgFinalBurst 2.1s ease-out forwards; }
+
+.mgGlow--finalBurst .mgNodeOutline {
+  color: #d9ccff;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.95));
+}
+
+/* Пульс Старта, когда он только что пройден */
+.mgGlow--justDone { animation: mgNodePulse 1s ease-in-out 2; }
+
+/* Слой кружочков XP — поверх нодов */
+.mgOrbsSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.mgOrb circle {
+  fill: #b6fe3b;
+  filter: drop-shadow(0 0 3px rgba(182, 254, 59, 0.9)) drop-shadow(0 0 8px rgba(182, 254, 59, 0.5));
+}
+
+.mgOrb text {
+  fill: #0e1013;
+  font-size: 6px;
+  font-weight: 800;
+}
+
+/* Зелёный «прогресс» правой линии пройденного урока */
+.mgRightFill {
+  fill: none;
+  stroke: #b6fe3b;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+/* Заголовки нодов — белые, крупнее (как на референсе) */
+.mgNode--start .mgNodeTitle,
+.mgNode--final .mgNodeTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── СТАРТ ──────────────────────────────────────────────────── */
+
+/* Не пройден: серая заливка (обводка — белый SVG-контур) */
+.mgNode--start--inactive {
+  background: #14161c;
+}
+
+.mgNode--start--inactive .mgHexFill {
+  background: #14161c;
+}
+
+/* Пройден: полупрозрачный зелёный градиент (обводка — зелёный SVG-контур) */
+.mgNode--start--done {
+  background: #10140c;
+}
+
+.mgNode--start--done .mgHexFill {
+  background:
+    linear-gradient(180deg, rgba(182, 254, 59, 0.20), rgba(182, 254, 59, 0.04)),
+    #10140c;
+}
+
+.mgHexFill--start {
+  gap: 6px;
+  padding-top: 8px; /* заголовок чуть ниже, звезда наверху не мешает */
+}
+
+/* Плашка с иконкой (звезда/замок) */
+.mgIconBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 34px;
+  border-radius: 11px;
+  font-size: 19px;
+  line-height: 1;
+}
+
+/* Звезда — на верхушке шестиугольника, поверх контура (вне clip-path) */
+.mgIconBadge--start {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  color: #b6fe3b;
+  font-size: 26px;
+  text-shadow: 0 0 12px rgba(182, 254, 59, 0.55);
+}
+
+.mgGlow--start .mgIconBadge--start {
+  color: #c8ccd8;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+}
+
+/* Подзаголовок Старта (не пройден) — та же позиция, что у пилла «пройдено» */
+.mgStartSub {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8ecf4;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.mgStartBadge {
+  margin-top: 8px;
+  font-size: 10px;
+  color: #b6fe3b;
+  background: rgba(182, 254, 59, 0.1);
+  border: 1px solid rgba(182, 254, 59, 0.25);
+  border-radius: 9px;
+  padding: 2px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mgStartBtn {
+  margin-top: 14px;
+  padding: 6px 20px;
+  background: #b6fe3b;
+  color: #0e1013;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.mgStartBtn:hover {
+  background: #d4ff5a;
+  transform: scale(1.03);
+}
+
+/* Пройден: вторичная кнопка «Пройти снова» — компактная */
+.mgStartBtn--again {
+  background: transparent;
+  color: #b6fe3b;
+  border: 1px solid rgba(182, 254, 59, 0.45);
+  padding: 3px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.mgStartBtn--again:hover {
+  background: rgba(182, 254, 59, 0.12);
+}
+
+/* ── ФИНАЛ ──────────────────────────────────────────────────── */
+
+/* Тёмная заливка с фиолетовым оттенком (обводка — фиолетовый SVG-контур) */
+.mgNode--final {
+  background: #12101a;
+}
+
+.mgNode--final .mgHexFill {
+  background:
+    linear-gradient(180deg, rgba(139, 92, 246, 0.14), rgba(139, 92, 246, 0.03)),
+    #12101a;
+}
+
+.mgNode--final--open {
+  background: #14101e;
+}
+
+.mgNode--final--open .mgHexFill {
+  background:
+    linear-gradient(180deg, rgba(139, 92, 246, 0.24), rgba(139, 92, 246, 0.06)),
+    #14101e;
+}
+
+.mgHexFill--final {
+  gap: 6px;
+  padding: 16px 20px;
+}
+
+/* Плашка с замком — чуть выше и крупнее */
+.mgIconBadge--final {
+  width: 42px;
+  height: 38px;
+  margin-top: -10px;
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: #a78bfa;
+}
+
+.mgNode--final--open .mgIconBadge--final {
+  color: #c4b5fd;
+}
+
+.mgFinalDesc {
+  font-size: 11px;
+  color: #6a7080;
+  text-align: center;
+  line-height: 1.4;
+  max-width: 160px;
+}
+
+.mgNode--final--open .mgFinalDesc {
+  color: #c4b5fd;
+}
+
+/* ── XP-прогресс финала ─────────────────────────────────────── */
+.mgFinalXpWrap {
+  width: 55%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.mgFinalXpLabel {
+  font-size: 11px;
+  color: #6a7080;
+  position: relative;
+  z-index: 2; /* поверх звезды-бегунка, чтобы она не перекрывала цифры */
+}
+
+.mgFinalXpNow {
+  color: #a78bfa;
+  font-weight: 700;
+}
+
+/* Бар + звезда-бегунок на краю заполнения (двигается вместе с прогрессом) */
+.mgFinalXpBarRow {
+  width: 100%;
+  position: relative;
+}
+
+.mgFinalXpKnob {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* linear и длительность = интервалу прилёта кружочков (ORB_GAP_MS в XpFlight.jsx):
+     бар и звёздочка растут непрерывно, без пауз между прилётами */
+  transition: left 0.3s linear;
+}
+
+.mgFinalXpBar {
+  width: 100%;
+  height: 6px;
+  background: #252830;
+  border-radius: 3px;
+}
+
+/* Растушёванный край: мягкое свечение вокруг заполнения */
+.mgFinalXpBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #a78bfa, #8b5cf6);
+  border-radius: 3px;
+  transition: width 0.3s linear;
+  box-shadow: 0 0 7px rgba(139, 92, 246, 0.65);
+}

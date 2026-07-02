@@ -20,6 +20,8 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   const [playerData,      setPlayerData]      = useState(null)
   const [playingLessonId, setPlayingLessonId] = useState(null)
   const [completedIds,    setCompletedIds]    = useState(() => getCompletedLessons())
+  // Только что пройденный урок — для анимации прилёта XP в графе модуля.
+  const [justCompleted,   setJustCompleted]   = useState(null)
   const [saving,          setSaving]          = useState(false)
   const [saveMsg,         setSaveMsg]         = useState('')
   const didInitRef = useRef(false)
@@ -71,8 +73,13 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         onClose={() => setPlayerData(null)}
         onSummaryClose={() => {
           if (playingLessonId) {
+            const wasDone = completedIds.has(playingLessonId)
             markLessonCompleted(playingLessonId)
             setCompletedIds(getCompletedLessons())
+            if (!wasDone) {
+              const l = lessons.find(x => x.id === playingLessonId)
+              if (l) setJustCompleted({ id: l.id, xp: l.lessonXp ?? 0 })
+            }
           }
           setPlayerData(null)
           setPlayingLessonId(null)
@@ -112,6 +119,8 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         <ModuleGraph
           lessons={lessons}
           completedIds={completedIds}
+          justCompleted={justCompleted}
+          onFlightDone={() => setJustCompleted(null)}
           onPlay={id => setLaunchId(id)}
           onEdit={onOpenCanvas}
           onDelete={removeLesson}
