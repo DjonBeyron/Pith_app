@@ -79,6 +79,29 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
 
   useEffect(() => () => onHeightChange?.(0), []) // eslint-disable-line
 
+  // Предекодирование фото при монтировании панели — до открытия галереи. img onLoad
+  // означает «байты пришли», но пиксели декодируются лишь при первой отрисовке, и на
+  // слабом устройстве грид секунду пустой. decode() заранее + живые ссылки на Image
+  // держат декодированные битмапы в кэше — галерея рисуется мгновенно.
+  const decodedRef = useRef([])
+  useEffect(() => {
+    let cancelled = false
+    decodedRef.current = photos.map((ph, i) => {
+      const f = ph.fileId ? lessonFiles.find(lf => lf.id === ph.fileId) : null
+      const url = f?.blobUrl ?? f?.r2Url ?? ph.photoUrl ?? null
+      if (!url) return null
+      const t0 = performance.now()
+      const img = new Image()
+      img.src = url
+      img.decode()
+        .then(() => { if (!cancelled) pLog(`[pc-gallery] предекод #${i + 1}: ${Math.round(performance.now() - t0)}мс`) })
+        .catch(e => { if (!cancelled) pLog(`[pc-gallery] предекод #${i + 1} ошибка: ${e.message}`) })
+      return img
+    })
+    return () => { cancelled = true; decodedRef.current = [] }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Диагностика в лог плеера: при открытии галереи — сколько фото готово из блобов,
   // а сколько пойдёт из сети (значит, предзагрузка их не успела/не покрыла)
   useEffect(() => {
