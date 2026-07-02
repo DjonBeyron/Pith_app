@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
+import { enqueuePosterCapture } from './posterQueue.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
@@ -255,7 +256,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       return
     }
 
-    // Release download slot — poster capture runs here but doesn't block the queue
+    // Release download slot
     inFlightRef.current--
 
     // Publish blobUrl so already-visible modules can start using it immediately
@@ -264,31 +265,25 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
 
     if (EVICT_TYPES.has(nodeType)) await evictFarthestIfNeeded(gen, id)
 
-    if (!POSTER_TYPES.has(nodeType)) {
-      // Non-poster types: mark node ready immediately after blob
-      if (checkNodeReady(nodeId)) {
-        setReadyNodeIds(prev => { const s = new Set(prev); s.add(nodeId); return s })
-      }
-      return
-    }
-
-    // POSTER_TYPES (video, circle, sticker): capture still frame BEFORE marking node ready.
-    // This guarantees that when the node appears in chat, file.posterUrl is already set
-    // and the native <video poster=...> attribute shows a still frame during the slide-in animation.
-    const posterUrl = await capturePosterFrame(blobUrl, 4000)
-    if (genRef.current !== gen) {
-      if (blobUrlsRef.current[id]) URL.revokeObjectURL(blobUrl)
-      if (posterUrl) URL.revokeObjectURL(posterUrl)
-      return
-    }
-    if (posterUrl) {
-      blobUrlsRef.current[id].posterUrl = posterUrl
-      setBlobMap(prev => ({ ...prev, [id]: { ...prev[id], posterUrl } }))
-    }
-    // Now mark ready — poster is guaranteed to be in blobMap
+    // Node is ready as soon as bytes are in memory. Poster capture must NOT gate
+    // readiness — slow Android decoders take seconds per file and froze the launch bar.
     if (checkNodeReady(nodeId)) {
       setReadyNodeIds(prev => { const s = new Set(prev); s.add(nodeId); return s })
     }
+    if (!POSTER_TYPES.has(nodeType)) return
+
+    // Background: still frame for <video poster> / eviction placeholder, one at a time.
+    enqueuePosterCapture(blobUrl, posterUrl => {
+      if (!posterUrl) return
+      const entry = blobUrlsRef.current[id]
+      if (genRef.current !== gen || !entry?.blobUrl || entry.posterUrl) {
+        // gen changed, file evicted (eviction captures its own poster), or poster already set
+        URL.revokeObjectURL(posterUrl)
+        return
+      }
+      entry.posterUrl = posterUrl
+      setBlobMap(prev => ({ ...prev, [id]: { ...prev[id], posterUrl } }))
+    })
   }
 
   // ─── visibleNodes: reorder queue + eviction check ────────────────────────
