@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { loginUser, logoutUser } from '../../shared/api/auth.js'
-import { syncLocalXpToServer } from '../../shared/api/profileApi.js'
+import { clearProfileCache, refreshProfile } from '../../shared/api/profileCache.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 
 function loginErrorToRu(error) {
@@ -28,7 +28,7 @@ export default function AuthTab({ onLoginSuccess }) {
     const { error } = await loginUser({ email: email.trim(), password: password.trim() })
     setBusy(false)
     if (error) { setErr(loginErrorToRu(error)); return }
-    await syncLocalXpToServer()
+    refreshProfile() // прогреваем кэш профиля фоном — «Профиль» откроется без мигания
     onLoginSuccess?.()
   }
 
@@ -36,6 +36,7 @@ export default function AuthTab({ onLoginSuccess }) {
     if (busy) return
     setBusy(true)
     await logoutUser()
+    clearProfileCache() // иначе следующий экран «Профиль» мигнёт XP прошлого аккаунта
     setBusy(false)
   }
 

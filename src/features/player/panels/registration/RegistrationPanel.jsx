@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { registerUser } from '../../../../shared/api/auth.js'
-import { syncLocalXpToServer } from '../../../../shared/api/profileApi.js'
 import RegistrationConsent from './RegistrationConsent.jsx'
 
 function supabaseErrorToRu(error) {
@@ -76,7 +75,6 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
     }
 
     onAnswered?.('Вы успешно зарегистрированы! Проверьте почту для подтверждения', 'success')
-    syncLocalXpToServer() // перенос локального XP в профиль
     setTimeout(() => setShow(false), 1200)
     setTimeout(() => onDone?.('reg_submit', { email: trimEmail, name: trimName, userId: user?.id }), 1200 + 420)
   }

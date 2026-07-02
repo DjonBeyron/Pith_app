@@ -201,7 +201,8 @@
 | `supabase.js` | Подключение к базе данных Supabase (по ключам из `.env.local`) |
 | `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth |
 | `highlightPresetsApi.js` | Загрузка и сохранение избранных цветов выделений (`highlight_color_presets`, singleton row 'global') |
-| `profileApi.js` | getProfile / addXp / syncLocalXpToServer — чтение и запись XP в Supabase (`user_profiles`) |
+| `profileApi.js` | getProfile (чтение профиля) / completeLesson(lessonId) — начисление XP за урок через серверный RPC `complete_lesson` (сумму считает сервер, ровно один раз за урок) |
+| `profileCache.js` | Кэш профиля в памяти + подписка: `getCachedProfile` / `refreshProfile` / `subscribeProfile` / `clearProfileCache`. Плеер после урока обновляет его фоном, чтобы вкладка «Профиль» открывалась сразу со свежим XP без мигания |
 
 ### `src/shared/lib/` — вспомогательные функции без интерфейса
 | Файл | Зачем нужен |

@@ -1,22 +1,24 @@
 import { useEffect, useState } from 'react'
 import { LEVELS, getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
 import { getLocalXp } from '../../shared/lib/localProfile.js'
-import { getProfile } from '../../shared/api/profileApi.js'
+import { getCachedProfile, refreshProfile, subscribeProfile } from '../../shared/api/profileCache.js'
 
 export default function ProfileTab() {
-  const [xp,      setXp]      = useState(getLocalXp())
-  const [name,    setName]    = useState('Пользователь')
-  const [loading, setLoading] = useState(true)
+  // Стартуем с кэша (свежий после урока — без мигания старых цифр); гость — локальный XP.
+  const cached = getCachedProfile()
+  const [xp,      setXp]      = useState(cached ? cached.xp : getLocalXp())
+  const [name]                = useState('Пользователь')
+  const [loading, setLoading] = useState(!cached)
 
   useEffect(() => {
-    getProfile().then(profile => {
-      if (profile) {
-        setXp(profile.xp)
-      } else {
-        setXp(getLocalXp())
-      }
+    let alive = true
+    const unsub = subscribeProfile(profile => {
+      if (!alive) return
+      setXp(profile ? profile.xp : getLocalXp())
       setLoading(false)
     })
+    refreshProfile()
+    return () => { alive = false; unsub() }
   }, [])
 
   const current         = getCurrentLevel(xp)

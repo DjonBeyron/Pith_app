@@ -1,5 +1,4 @@
 import { supabase } from './supabase.js'
-import { getLocalXp, clearLocalXp } from '../lib/localProfile.js'
 
 export async function getProfile() {
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
@@ -15,23 +14,13 @@ export async function getProfile() {
   return data
 }
 
-export async function addXp(amount) {
-  if (!amount) return
+// Начисляет XP за урок через серверный RPC. Клиент передаёт только id урока —
+// сумму награды считает сервер по своей копии урока, ровно один раз (повтор → 0).
+// Возвращает фактически начисленный XP.
+export async function completeLesson(lessonId) {
+  if (!lessonId) return 0
 
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) return
-
-  const { error } = await supabase.rpc('add_xp', { amount })
-  if (error) console.error('[XP] addXp RPC error:', error.message)
-}
-
-export async function syncLocalXpToServer() {
-  const localXp = getLocalXp()
-  if (!localXp) return
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
-
-  await addXp(localXp)
-  clearLocalXp()
+  const { data, error } = await supabase.rpc('complete_lesson', { p_lesson_id: lessonId })
+  if (error) { console.error('[XP] complete_lesson RPC error:', error.message); return 0 }
+  return data ?? 0
 }

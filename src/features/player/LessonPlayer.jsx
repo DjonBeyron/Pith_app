@@ -15,7 +15,8 @@ import { getPlayerLines } from '../../shared/lib/debug.js'
 import XpFloat from './XpFloat.jsx'
 import LessonSummary from './LessonSummary.jsx'
 import { addLocalXp, getLocalXp } from '../../shared/lib/localProfile.js'
-import { addXp, getProfile } from '../../shared/api/profileApi.js'
+import { completeLesson, getProfile } from '../../shared/api/profileApi.js'
+import { refreshProfile } from '../../shared/api/profileCache.js'
 
 // Returns a Map<nodeId, xpAmount> for nodes with reward enabled.
 // If lessonXp=0 or no reward nodes, returns empty map.
@@ -37,6 +38,7 @@ export default function LessonPlayer({
   videoAutoSound = false,
   initialBlobMap = null,
   lessonXp = 0,
+  lessonId = null,
   onClose,
   onSummaryClose,
 }) {
@@ -44,13 +46,20 @@ export default function LessonPlayer({
   const earnedXpRef = useRef(0)
   const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes, {
     onFinish: () => setTimeout(async () => {
-      const earned = earnedXpRef.current
-      const profile  = await getProfile()
-      const xpBefore = profile ? profile.xp : getLocalXp()
-      setBaseXp(xpBefore)
-      if (earned > 0) {
-        addLocalXp(earned)
-        await addXp(earned)
+      const profile = await getProfile()
+      if (profile) {
+        // Залогинен: XP начисляет сервер по своей копии урока, один раз за урок.
+        // Без lessonId (предпросмотр в редакторе) начисления нет.
+        setBaseXp(profile.xp)
+        const awarded = lessonId ? await completeLesson(lessonId) : 0
+        setEarnedXp(awarded)
+        refreshProfile() // фоном обновляем кэш — вкладка «Профиль» откроется уже со свежим XP
+      } else {
+        // Гость: локальный XP как демо (на сервер не влияет).
+        const earned = earnedXpRef.current
+        setBaseXp(getLocalXp())
+        if (earned > 0) addLocalXp(earned)
+        setEarnedXp(earned)
       }
       setShowSummary(true)
     }, 2000),

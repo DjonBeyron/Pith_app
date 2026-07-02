@@ -50,6 +50,7 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         files={playerData.files}
         lessonTitle={playerData.title}
         lessonXp={playerData.lessonXp ?? 0}
+        lessonId={playingLessonId}
         teacherName={playerData.teacherName}
         teacherLogo={playerData.teacherLogo}
         teacherLogoCrop={playerData.teacherLogoCrop}

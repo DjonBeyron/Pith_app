@@ -249,16 +249,53 @@ create policy "results_own"
   with check (auth.uid() = user_id);
 
 -- ── XP system (ver 2.0) ──────────────────────────────────────────
--- Run this in Supabase SQL Editor to add XP support:
-
 alter table public.user_profiles add column if not exists xp integer not null default 0;
 
--- RPC: safely add XP to current user (atomic increment)
-create or replace function public.add_xp(amount integer)
-returns void language plpgsql security definer as $$
+-- Один урок можно засчитать пользователю только один раз (защита от повторного XP).
+create unique index if not exists lesson_results_user_lesson_uniq
+  on public.lesson_results (user_id, lesson_id);
+
+-- ── Complete lesson RPC (Этап 1 безопасности) ────────────────────
+-- Единственный способ начислить XP. Клиент передаёт только id урока — сумму награды
+-- сервер берёт из СВОЕЙ копии урока (lessons.script->>'lessonXp'), клиент её подделать
+-- не может. Начисление ровно один раз на пользователя+урок (повтор → 0).
+-- Возвращает фактически начисленный XP (0 при повторе или если не залогинен).
+create or replace function public.complete_lesson(p_lesson_id text)
+returns integer language plpgsql security definer as $$
+declare
+  v_uid    uuid := auth.uid();
+  v_reward integer;
 begin
-  update public.user_profiles
-  set xp = xp + amount
-  where id = auth.uid();
+  if v_uid is null then
+    return 0;
+  end if;
+
+  -- Атомарно фиксируем прохождение. Если строка уже была — это повтор, XP не даём.
+  insert into public.lesson_results (user_id, lesson_id)
+  values (v_uid, p_lesson_id)
+  on conflict (user_id, lesson_id) do nothing;
+
+  if not found then
+    return 0;
+  end if;
+
+  -- Награда из серверной копии урока.
+  select coalesce((script->>'lessonXp')::int, 0)
+  into v_reward
+  from public.lessons
+  where id = p_lesson_id;
+
+  v_reward := coalesce(v_reward, 0);
+
+  if v_reward > 0 then
+    update public.user_profiles
+    set xp = xp + v_reward
+    where id = v_uid;
+  end if;
+
+  return v_reward;
 end;
 $$;
+
+-- Старый небезопасный RPC удалён: принимал произвольную сумму от клиента (накрутка XP).
+drop function if exists public.add_xp(integer);
