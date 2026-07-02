@@ -152,7 +152,8 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  overflow: hidden;
+  /* overflow:hidden здесь резал свечение цифры XP; для анимации схлопывания
+     его выставляет JS (LessonSummary) прямо перед сворачиванием блока */
 }
 
 .summaryRewardLabel {

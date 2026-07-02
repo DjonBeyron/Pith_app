@@ -3,6 +3,12 @@ import { useState, useEffect, useRef } from 'react'
 // Контур пятиугольника — тот же path, что в clip-path (lessons.css).
 const FINAL_PATH = 'M 17.4 154.0 L 28.6 78.4 A 43.8 43.8 0 0 1 72.0 40.6 L 198.0 40.6 A 43.8 43.8 0 0 1 241.8 78.4 L 252.6 154.0 A 43.8 43.8 0 0 1 232.0 197.4 L 158.2 242.8 A 43.8 43.8 0 0 1 112.0 242.8 L 38.2 197.4 A 43.8 43.8 0 0 1 17.4 154.0 Z'
 
+// Направления разлёта искр от замка (8 лучей по кругу).
+const SPARK_DIRS = Array.from({ length: 8 }, (_, i) => {
+  const a = (i / 8) * Math.PI * 2
+  return { '--dx': `${Math.round(Math.cos(a) * 46)}px`, '--dy': `${Math.round(Math.sin(a) * 46)}px` }
+})
+
 // Замок: детальный — дужка, корпус, замочная скважина. open — дужка откинута.
 function LockIcon({ open }) {
   return (
@@ -50,6 +56,7 @@ export default function MgFinalNode({
 
   return (
     <div className={glowCls}>
+      <div className="mgFinalHalo" />
       <div
         ref={nodeRef}
         className={`mgNode mgNode--final${finalOpen ? ' mgNode--final--open' : ''}`}
@@ -62,6 +69,13 @@ export default function MgFinalNode({
             <>
               <span className={`mgIconBadge mgIconBadge--final${unlockAnim ? ' mgIconBadge--unlocking' : ''}`}>
                 <LockIcon open={lockOpenShown} />
+                {burst && (
+                  <span className="mgLockSparks">
+                    {SPARK_DIRS.map((d, i) => (
+                      <span key={i} className="mgLockSpark" style={d} />
+                    ))}
+                  </span>
+                )}
               </span>
               <span className="mgNodeTitle">{lesson.title}</span>
               <span className="mgFinalDesc">

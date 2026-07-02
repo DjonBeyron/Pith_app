@@ -196,7 +196,7 @@
   flex-direction: column;
   align-items: center;
   gap: 40px;
-  padding: 40px 10px 30px;
+  padding: 32px 10px 12px; /* сверху чуть меньше воздуха, снизу — небольшой отступ от края */
   position: relative;
   box-sizing: border-box;
 }
