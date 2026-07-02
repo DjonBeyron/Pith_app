@@ -18,11 +18,17 @@ function splitXp(total, n) {
 const ORB_GAP_MS = 300
 const SPEED = 0.55      // px за миллисекунду
 
+// Задержка старта полёта после возврата из урока: сначала пауза, потом пульс
+// «урок пройден» (0.4s + 2×0.9s), потом кружки. Используется и в ModuleGraph
+// (отложенный setFlight), и в ChainLines (отложенная прорисовка зелёной линии).
+export const FLIGHT_DELAY_MS = 2400
+
 // Кружочки с XP летят по SVG-путям (paths — d-строки в координатах контейнера),
 // затем по прямой до звёздочки прогресс-бара. getTarget() запрашивается каждый кадр —
 // звёздочка едет вместе с баром, и кружок доводится точно в её актуальное положение.
+// onLaunch(durMs) — старт полёта (durMs — время до прилёта первого кружочка),
 // onArrive(value) — по прилёте каждого, onDone() — когда прилетели все.
-export default function XpFlight({ paths, getTarget, amount, onArrive, onDone }) {
+export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive, onDone }) {
   const pathRefs = useRef([])
   const orbRefs  = useRef([])
   const doneRef  = useRef(false)
@@ -39,6 +45,7 @@ export default function XpFlight({ paths, getTarget, amount, onArrive, onDone })
     const tail = initTarget ? Math.hypot(initTarget.x - end.x, initTarget.y - end.y) : 0
     const totalLen = pathLen + tail
     const dur = totalLen / SPEED
+    onLaunch?.(dur) // первый кружочек стартует без задержки и летит ровно dur
 
     const pointAt = (s) => {
       let acc = 0

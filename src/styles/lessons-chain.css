@@ -135,6 +135,7 @@
   50%      { box-shadow: 0 0 22px rgba(182, 254, 59, 0.45); }
 }
 
+/* Пауза 0.4s → два пульса по 0.9s → (после FLIGHT_DELAY_MS) полёт кружочков */
 .mgNode--justDone {
-  animation: mgJustDone 1s ease-in-out 2;
+  animation: mgJustDone 0.9s ease-in-out 0.4s 2;
 }

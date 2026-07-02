@@ -103,8 +103,8 @@
   filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.95));
 }
 
-/* Пульс Старта, когда он только что пройден */
-.mgGlow--justDone { animation: mgNodePulse 1s ease-in-out 2; }
+/* Пульс Старта, когда он только что пройден (с той же паузой 0.4s) */
+.mgGlow--justDone { animation: mgNodePulse 0.9s ease-in-out 0.4s 2; }
 
 /* Слой кружочков XP — поверх нодов */
 .mgOrbsSvg {

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAdmin } from '../../app/AdminContext.jsx'
-import XpFlight from './XpFlight.jsx'
+import XpFlight, { FLIGHT_DELAY_MS } from './XpFlight.jsx'
 import ChainLines from './ChainLines.jsx'
 import MgFinalNode from './MgFinalNode.jsx'
+import { useChainScroll } from './useChainScroll.js'
 
 // Контур старта — тот же path, что в clip-path (lessons.css). Рисуется SVG-штрихом
 // поверх нода: даёт ровную обводку, чего не добиться масштабированием заливки.
@@ -134,11 +135,12 @@ export default function ModuleGraph({
       flightPaths = rights[idx - 1] ? [rights[idx - 1].d] : []
     }
     if (!flightPaths.length) { onFlightDone?.(); return }
-    const raf = requestAnimationFrame(() => {
+    // Пауза перед полётом: сначала пульс «урок пройден», потом кружки.
+    const t = setTimeout(() => {
       setDelivered(0)
       setFlight({ paths: flightPaths, amount: justCompleted.xp })
-    })
-    return () => cancelAnimationFrame(raf)
+    }, FLIGHT_DELAY_MS)
+    return () => clearTimeout(t)
   }, [justCompleted, arcs]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Вспышка финала в такт касанию кружочка (снять класс → кадр → надеть заново,
@@ -150,20 +152,10 @@ export default function ModuleGraph({
     flashTimer.current = setTimeout(() => setFinalFlash(false), 300)
   }, [])
 
-  // Возврат из урока: подскроллить так, чтобы пройденный урок оказался сверху.
-  useEffect(() => {
-    if (!justCompleted) return
-    const raf = requestAnimationFrame(() => {
-      const idx = lessons.findIndex(l => l.id === justCompleted.id)
-      const el = idx === 0 ? startRef.current
-        : idx === lessons.length - 1 ? finalRef.current
-        : lessonRefs.current[idx - 1]
-      if (!el || !scrollRef.current || !containerRef.current) return
-      const top = el.getBoundingClientRect().top - containerRef.current.getBoundingClientRect().top
-      scrollRef.current.scrollTo({ top: Math.max(0, top - 12), behavior: 'smooth' })
-    })
-    return () => cancelAnimationFrame(raf)
-  }, [justCompleted]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Скролл после урока: урок к верху экрана + плавный проезд к финалу (useChainScroll).
+  const scrollToFinal = useChainScroll({
+    justCompleted, lessons, scrollRef, startRef, finalRef, lessonRefs,
+  })
 
   // Актуальное положение звёздочки прогресс-бара — кружочки доводятся точно в неё.
   const getKnobPoint = useCallback(() => {
@@ -352,6 +344,7 @@ export default function ModuleGraph({
             paths={flight.paths}
             getTarget={getKnobPoint}
             amount={flight.amount}
+            onLaunch={scrollToFinal}
             onArrive={val => { setDelivered(d => d + val); flashFinal() }}
             onDone={() => { setFlight(null); onFlightDone?.() }}
           />

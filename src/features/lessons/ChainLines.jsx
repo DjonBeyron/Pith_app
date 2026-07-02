@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
+import { FLIGHT_DELAY_MS } from './XpFlight.jsx'
 
 const ORB_SPEED = 0.55 // px/мс — как у кружочков XP (XpFlight.jsx), заполнение идёт с их скоростью
 
 // Зелёное заполнение правой линии. animate=true (урок только что пройден) —
-// линия «прорисовывается» от урока к стволу синхронно со стартом полёта кружочков.
+// линия «прорисовывается» от урока к стволу синхронно со стартом полёта кружочков
+// (после той же паузы FLIGHT_DELAY_MS, что и у полёта).
 function ProgressStroke({ d, animate }) {
   const ref = useRef(null)
 
@@ -13,11 +15,11 @@ function ProgressStroke({ d, animate }) {
     const len = el.getTotalLength()
     el.style.strokeDasharray  = `${len}`
     el.style.strokeDashoffset = `${len}`
-    el.style.transition = `stroke-dashoffset ${Math.round(len / ORB_SPEED)}ms linear`
-    // Два кадра: сначала применится скрытое состояние, потом стартует transition.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.style.strokeDashoffset = '0'
-    }))
+    const t = setTimeout(() => {
+      el.style.transition = `stroke-dashoffset ${Math.round(len / ORB_SPEED)}ms linear`
+      requestAnimationFrame(() => { el.style.strokeDashoffset = '0' })
+    }, FLIGHT_DELAY_MS)
+    return () => clearTimeout(t)
   }, [animate])
 
   return <path ref={ref} d={d} className="mgRightFill" />
