@@ -6,8 +6,8 @@ import ModuleGraph from './ModuleGraph.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { isDebugOn } from '../../shared/lib/debug.js'
-import { getCompletedLessons, markLessonCompleted } from '../../shared/lib/completedLessons.js'
-import { getLocalXp } from '../../shared/lib/localProfile.js'
+import { getCompletedLessons, markLessonCompleted, unmarkLessons } from '../../shared/lib/completedLessons.js'
+import { refreshProfile } from '../../shared/api/profileCache.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 
 function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
@@ -20,11 +20,15 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   const [playerData,      setPlayerData]      = useState(null)
   const [playingLessonId, setPlayingLessonId] = useState(null)
   const [completedIds,    setCompletedIds]    = useState(() => getCompletedLessons())
-  const [currentXp,       setCurrentXp]       = useState(() => getLocalXp())
   const [saving,          setSaving]          = useState(false)
   const [saveMsg,         setSaveMsg]         = useState('')
   const didInitRef = useRef(false)
   const { isAdmin } = useAdmin()
+
+  useEffect(() => {
+    // Прогрев кэша профиля: вкладка «Профиль» откроется сразу со свежим XP.
+    refreshProfile()
+  }, [])
 
   useEffect(() => {
     // Авто-создание уроков в пустом модуле — только у админа (запись в БД).
@@ -33,6 +37,14 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
       bulkCreate(['Старт', 'Урок', 'Финал'])
     }
   }, [isAdmin, loading, creating, lessons.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleResetProgress() {
+    // Локальный сброс: снимает галочки этого модуля (lesson_results на сервере не трогаем,
+    // чтобы повторные прохождения не накручивали XP).
+    if (!window.confirm('Сбросить прохождение уроков этого модуля?')) return
+    unmarkLessons(lessons.map(l => l.id))
+    setCompletedIds(getCompletedLessons())
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -61,7 +73,6 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           if (playingLessonId) {
             markLessonCompleted(playingLessonId)
             setCompletedIds(getCompletedLessons())
-            setCurrentXp(getLocalXp())
           }
           setPlayerData(null)
           setPlayingLessonId(null)
@@ -79,6 +90,10 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         {saveMsg && <span className="dbSaveMsg">{saveMsg}</span>}
         {isAdmin && (
           <>
+            <button className="saveBtn" onClick={handleResetProgress}
+              disabled={loading || !lessons.length} title="Сбросить прохождение уроков модуля (локально)">
+              ⟲
+            </button>
             <button className={`saveBtn${isDirty ? ' saveBtn--dirty' : ''}`}
               onClick={handleSave} disabled={saving || loading} title="Сохранить структуру на сервер">
               {saving ? '...' : '💾'}
@@ -97,7 +112,6 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         <ModuleGraph
           lessons={lessons}
           completedIds={completedIds}
-          currentXp={currentXp}
           onPlay={id => setLaunchId(id)}
           onEdit={onOpenCanvas}
           onDelete={removeLesson}

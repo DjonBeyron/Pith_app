@@ -51,7 +51,6 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
       ...l,
       lessonXp:  l.script?.lessonXp  ?? 0,
       priority:  l.script?.priority  ?? null,
-      xp_unlock: l.script?.xp_unlock ?? 0,
     }))
     dbg('[FETCH] ordered result:', ordered.map(l => `${l.id.slice(0,6)} "${l.title}"`))
     setLessons(ordered)

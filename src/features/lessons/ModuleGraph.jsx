@@ -10,7 +10,6 @@ const PRIORITY = {
 export default function ModuleGraph({
   lessons,
   completedIds = new Set(),
-  currentXp = 0,
   onPlay, onEdit, onDelete, onRename, onTogglePublished,
 }) {
   const { isAdmin } = useAdmin()
@@ -91,9 +90,14 @@ export default function ModuleGraph({
   lessonRefs.current = []
 
   const startDone  = completedIds.has(start.id)
-  const xpUnlock   = final_.xp_unlock ?? 0
-  const finalOpen  = xpUnlock > 0 ? currentXp >= xpUnlock : false
-  const xpPct      = xpUnlock > 0 ? Math.min(100, Math.round(currentXp / xpUnlock * 100)) : 0
+  // Порог открытия финала — сумма XP всех уроков модуля (старт + обычные).
+  // Прогресс — XP только за пройденные уроки этого модуля.
+  const nonFinal   = lessons.slice(0, n - 1)
+  const xpUnlock   = nonFinal.reduce((s, l) => s + (l.lessonXp ?? 0), 0)
+  const earnedXp   = nonFinal.reduce((s, l) => s + (completedIds.has(l.id) ? (l.lessonXp ?? 0) : 0), 0)
+  const allDone    = nonFinal.every(l => completedIds.has(l.id))
+  const finalOpen  = xpUnlock > 0 ? earnedXp >= xpUnlock : allDone
+  const xpPct      = xpUnlock > 0 ? Math.min(100, Math.round(earnedXp / xpUnlock * 100)) : (allDone ? 100 : 0)
 
   function startRename(e, id, title) { e.stopPropagation(); setRenaming(id); setDraft(title) }
   function commitRename() { if (renaming && draft.trim()) onRename(renaming, draft.trim()); setRenaming(null) }
@@ -229,7 +233,7 @@ export default function ModuleGraph({
                     </div>
                     <span className="mgFinalXpLabel">
                       <span className="mgFinalXpStar">⭐</span>
-                      {currentXp} / {xpUnlock} XP
+                      {earnedXp} / {xpUnlock} XP
                     </span>
                   </div>
                 )}
