@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ACCOUNT_ID = Deno.env.get("R2_ACCOUNT_ID")!;
 const ACCESS_KEY = Deno.env.get("R2_ACCESS_KEY_ID")!;
