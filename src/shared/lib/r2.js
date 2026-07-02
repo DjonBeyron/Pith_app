@@ -1,7 +1,21 @@
 import { dbg } from './debug.js'
+import { supabase } from '../api/supabase.js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Edge-функции R2 пускают только админа. В Authorization кладём access-token
+// залогиненного пользователя (не анонимный ключ) — по нему функция проверяет is_admin.
+// apikey остаётся анонимным ключом — он нужен шлюзу Supabase для маршрутизации.
+async function authHeaders() {
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token ?? SUPABASE_ANON_KEY
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    'apikey': SUPABASE_ANON_KEY,
+  }
+}
 
 // Chrome's fetch() drops the connection for large PUT bodies (ERR_CONNECTION_RESET).
 // XHR doesn't have this limitation — use it for the actual upload to R2.
@@ -30,11 +44,7 @@ export async function uploadToR2(file) {
 
   const fnRes = await fetch(`${SUPABASE_URL}/functions/v1/r2-upload-url`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'apikey': SUPABASE_ANON_KEY,
-    },
+    headers: await authHeaders(),
     body: JSON.stringify({ fileName: file.name, contentType }),
   });
 
@@ -60,11 +70,7 @@ export async function deleteFromR2(publicUrl) {
   dbg('[R2] deleteFromR2 called', publicUrl)
   const res = await fetch(`${SUPABASE_URL}/functions/v1/r2-delete`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'apikey': SUPABASE_ANON_KEY,
-    },
+    headers: await authHeaders(),
     body: JSON.stringify({ url: publicUrl }),
   })
   if (!res.ok) {

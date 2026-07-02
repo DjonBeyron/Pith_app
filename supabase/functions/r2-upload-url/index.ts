@@ -1,14 +1,44 @@
+import { createClient } from "@supabase/supabase-js";
+
 const ACCOUNT_ID = Deno.env.get("R2_ACCOUNT_ID")!;
 const ACCESS_KEY = Deno.env.get("R2_ACCESS_KEY_ID")!;
 const SECRET_KEY = Deno.env.get("R2_SECRET_ACCESS_KEY")!;
 const PUBLIC_BASE = Deno.env.get("R2_PUBLIC_BASE")!;
 const BUCKET = "pithy-files";
 
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
 };
+
+// Пускаем только залогиненного админа. Клиент шлёт в Authorization access-token
+// пользователя (не анонимный ключ). Проверяем валидность токена и флаг is_admin.
+// Возвращает Response при отказе, либо null если доступ разрешён.
+async function requireAdmin(req: Request): Promise<Response | null> {
+  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const deny = (status: number, msg: string) =>
+    new Response(JSON.stringify({ error: msg }), {
+      status, headers: { ...CORS, "Content-Type": "application/json" },
+    });
+
+  if (!token) return deny(401, "Unauthorized");
+
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  const { data: { user }, error } = await sb.auth.getUser();
+  if (error || !user) return deny(401, "Unauthorized");
+
+  const { data: profile } = await sb
+    .from("user_profiles").select("is_admin").eq("id", user.id).single();
+  if (!profile?.is_admin) return deny(403, "Forbidden: admin only");
+
+  return null;
+}
 
 function toHex(buf: ArrayBuffer) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
@@ -70,6 +100,9 @@ Deno.serve(async (req) => {
 
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
 
   const rawBody = await req.text();
   console.log("[r2-upload-url] raw body:", rawBody);
