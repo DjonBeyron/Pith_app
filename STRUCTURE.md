@@ -52,6 +52,7 @@
 | `admin.css` | Стили вкладки «Админ»: таблица файлов, форма пароля |
 | `user.css` | Стили вкладки «Пользователь»: сетка карточек, медиа, evicted-превью |
 | `lessons.css` | Стили вкладки «Уроки»: список уроков, строка урока |
+| `lessons-chain.css` | Стили новых нодов в цепочке уроков: карточка урока с приоритетом, кружок-номер, XP-бейдж, варианты старта и финала |
 | `canvas/page.css` | Canvas-страница: шапка, доска, кнопка «+ Нода», SVG-слой |
 | `canvas/files-panel.css` | Панель файлов урока в canvas-редакторе |
 | `canvas/audio.css` | Аудио-пикер ноды |
@@ -215,6 +216,7 @@
 | `sounds.js` | `playSound(name)` — воспроизводит `/sounds/<name>.mp3` с кэшированием Audio-объекта |
 | `xpLevels.js` | Таблица уровней XP (`LEVELS`), `getCurrentLevel(xp)`, `getNextLevel(xp)` — используется в ProfileTab и LessonSummary |
 | `localProfile.js` | Работа с XP в localStorage (`pithy_xp`): getLocalXp / addLocalXp / setLocalXp / clearLocalXp |
+| `completedLessons.js` | Трекинг пройденных уроков в localStorage (`pithy_completed_v1`): `getCompletedLessons()` → Set, `markLessonCompleted(id)` |
 | `useAuth.js` | React-хук `useAuth()`: подписка на `supabase.auth.onAuthStateChange`, возвращает `{ user, loading }` |
 | `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar` (рисует столбики волны на canvas), `fmtAudioTime`, `probeAudioDuration` |
 | `transcribeApi.js` | Клиентская обёртка для Edge Function `transcribe-audio`: отправляет файл или R2 URL, возвращает `wordTimings` |

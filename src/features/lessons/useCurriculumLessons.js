@@ -41,13 +41,18 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
     dbg('[FETCH] loading', ids.length, 'lessons from DB:', ids)
     setLoading(true)
     const { data, error: e } = await supabase.from('lessons')
-      .select('id, title, created_at, published')
+      .select('id, title, created_at, published, script')
       .in('id', ids)
     setLoading(false)
     if (e) { dbg('[FETCH ERROR]', e.message); setError('Ошибка загрузки'); return }
     dbg('[FETCH OK]', data?.length, 'lessons returned from DB')
     const byId = Object.fromEntries((data ?? []).map(l => [l.id, l]))
-    const ordered = ids.map(id => byId[id]).filter(Boolean)
+    const ordered = ids.map(id => byId[id]).filter(Boolean).map(l => ({
+      ...l,
+      lessonXp:  l.script?.lessonXp  ?? 0,
+      priority:  l.script?.priority  ?? null,
+      xp_unlock: l.script?.xp_unlock ?? 0,
+    }))
     dbg('[FETCH] ordered result:', ordered.map(l => `${l.id.slice(0,6)} "${l.title}"`))
     setLessons(ordered)
   }, [])

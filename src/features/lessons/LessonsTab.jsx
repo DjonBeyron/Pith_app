@@ -6,6 +6,8 @@ import ModuleGraph from './ModuleGraph.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { isDebugOn } from '../../shared/lib/debug.js'
+import { getCompletedLessons, markLessonCompleted } from '../../shared/lib/completedLessons.js'
+import { getLocalXp } from '../../shared/lib/localProfile.js'
 
 function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
   const {
@@ -13,10 +15,13 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
     bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure, togglePublished,
   } = useCurriculumLessons(curriculumId, curriculumTitle)
 
-  const [launchId,   setLaunchId]   = useState(null)
-  const [playerData, setPlayerData] = useState(null)
-  const [saving,     setSaving]     = useState(false)
-  const [saveMsg,    setSaveMsg]    = useState('')
+  const [launchId,        setLaunchId]        = useState(null)
+  const [playerData,      setPlayerData]      = useState(null)
+  const [playingLessonId, setPlayingLessonId] = useState(null)
+  const [completedIds,    setCompletedIds]    = useState(() => getCompletedLessons())
+  const [currentXp,       setCurrentXp]       = useState(() => getLocalXp())
+  const [saving,          setSaving]          = useState(false)
+  const [saveMsg,         setSaveMsg]         = useState('')
   const didInitRef = useRef(false)
 
   useEffect(() => {
@@ -41,12 +46,22 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         nodes={playerData.nodes}
         files={playerData.files}
         lessonTitle={playerData.title}
+        lessonXp={playerData.lessonXp ?? 0}
         teacherName={playerData.teacherName}
         teacherLogo={playerData.teacherLogo}
         teacherLogoCrop={playerData.teacherLogoCrop}
         videoAutoSound={playerData.videoAutoSound ?? false}
         initialBlobMap={playerData.blobMap}
         onClose={() => setPlayerData(null)}
+        onSummaryClose={() => {
+          if (playingLessonId) {
+            markLessonCompleted(playingLessonId)
+            setCompletedIds(getCompletedLessons())
+            setCurrentXp(getLocalXp())
+          }
+          setPlayerData(null)
+          setPlayingLessonId(null)
+        }}
       />
     )
   }
@@ -73,6 +88,8 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
       ) : (
         <ModuleGraph
           lessons={lessons}
+          completedIds={completedIds}
+          currentXp={currentXp}
           onPlay={id => setLaunchId(id)}
           onEdit={onOpenCanvas}
           onDelete={removeLesson}
@@ -88,7 +105,7 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
       {launchId && (
         <LessonLaunchCard
           lessonId={launchId}
-          onStart={data => { setLaunchId(null); setPlayerData(data) }}
+          onStart={data => { setPlayingLessonId(launchId); setLaunchId(null); setPlayerData(data) }}
           onClose={() => setLaunchId(null)}
         />
       )}

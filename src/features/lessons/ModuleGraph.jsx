@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRename, onTogglePublished }) {
+const PRIORITY = {
+  high:   { label: 'Высокий приоритет', icon: '📈', desc: 'Рекомендуется для развития' },
+  medium: { label: 'Средний приоритет', icon: '≡',  desc: 'Полезен для общего развития' },
+  low:    { label: 'Низкий приоритет',  icon: '↓',  desc: 'Можно изучить позже' },
+}
+
+export default function ModuleGraph({
+  lessons,
+  completedIds = new Set(),
+  currentXp = 0,
+  onPlay, onEdit, onDelete, onRename, onTogglePublished,
+}) {
   const [hovered,  setHovered]  = useState(null)
   const [tapped,   setTapped]   = useState(null)
   const [renaming, setRenaming] = useState(null)
@@ -29,7 +40,6 @@ export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRenam
     const pTop    = mid(startRef.current, 'left')
     const pBottom = mid(finalRef.current, 'right')
 
-    // Adaptive offset: never exceeds available space on each side
     const cw = cr.width
     const leftSpace  = Math.min(pTop.x,    ...lessonRefs.current.filter(Boolean).map(el => mid(el,'left').x))
     const rightSpace = cw - Math.max(pBottom.x, ...lessonRefs.current.filter(Boolean).map(el => mid(el,'right').x))
@@ -72,11 +82,16 @@ export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRenam
   }, [drawLines])
 
   if (!lessons.length) return null
-  const n      = lessons.length
-  const start  = lessons[0]
-  const final_ = lessons[n - 1]
-  const middle = lessons.slice(1, n - 1)
+  const n       = lessons.length
+  const start   = lessons[0]
+  const final_  = lessons[n - 1]
+  const middle  = lessons.slice(1, n - 1)
   lessonRefs.current = []
+
+  const startDone  = completedIds.has(start.id)
+  const xpUnlock   = final_.xp_unlock ?? 0
+  const finalOpen  = xpUnlock > 0 ? currentXp >= xpUnlock : false
+  const xpPct      = xpUnlock > 0 ? Math.min(100, Math.round(currentXp / xpUnlock * 100)) : 0
 
   function startRename(e, id, title) { e.stopPropagation(); setRenaming(id); setDraft(title) }
   function commitRename() { if (renaming && draft.trim()) onRename(renaming, draft.trim()); setRenaming(null) }
@@ -117,30 +132,101 @@ export default function ModuleGraph({ lessons, onPlay, onEdit, onDelete, onRenam
     <div className="moduleGraphScroll" onClick={() => setTapped(null)}>
       <div ref={containerRef} className="moduleGraphInner">
 
-        <div ref={startRef} className="mgNode mgNode--start"
-          onMouseEnter={() => setHovered(start.id)} onMouseLeave={() => setHovered(null)}
-          onClick={e => { e.stopPropagation(); handleClick(start.id) }}>
-          <div className="mgHexFill">
-            {renaming === start.id ? <RenameInput /> : <><span className="mgNodeTitle">{start.title}</span><Btns l={start} kind="start" /></>}
+        {/* ── START ── */}
+        <div
+          ref={startRef}
+          className={`mgNode mgNode--start${startDone ? ' mgNode--start--done' : ' mgNode--start--inactive'}`}
+          onMouseEnter={() => setHovered(start.id)}
+          onMouseLeave={() => setHovered(null)}
+          onClick={e => { e.stopPropagation(); handleClick(start.id) }}
+        >
+          <div className="mgHexFill mgHexFill--start">
+            {renaming === start.id ? <RenameInput /> : (
+              <>
+                <span className="mgStartIcon">⭐</span>
+                <span className="mgNodeTitle">{start.title}</span>
+                {startDone
+                  ? <span className="mgStartBadge">✓ {start.title} пройдено</span>
+                  : <button className="mgStartBtn" onClick={e => { e.stopPropagation(); onPlay(start.id) }}>Начать</button>
+                }
+                <Btns l={start} kind="start" />
+              </>
+            )}
           </div>
         </div>
 
+        {/* ── LESSONS ── */}
         <div className="mgLessonsGroup">
-          {middle.map((l, i) => (
-            <div key={l.id} ref={el => { lessonRefs.current[i] = el }}
-              className="mgNode mgNode--lesson"
-              onMouseEnter={() => setHovered(l.id)} onMouseLeave={() => setHovered(null)}
-              onClick={e => { e.stopPropagation(); handleClick(l.id) }}>
-              {renaming === l.id ? <RenameInput /> : <><span className="mgNodeTitle">{l.title}</span><Btns l={l} kind="lesson" /></>}
-            </div>
-          ))}
+          {middle.map((l, i) => {
+            const done  = completedIds.has(l.id)
+            const pKey  = l.priority ?? 'medium'
+            const pInfo = PRIORITY[pKey] ?? PRIORITY.medium
+            return (
+              <div
+                key={l.id}
+                ref={el => { lessonRefs.current[i] = el }}
+                className={`mgNode mgNode--lesson${done ? ' mgNode--lesson--done' : ''}`}
+                onMouseEnter={() => setHovered(l.id)}
+                onMouseLeave={() => setHovered(null)}
+                onClick={e => { e.stopPropagation(); handleClick(l.id) }}
+              >
+                <div className={`mgLessonNum${done ? ' mgLessonNum--done' : ''}`}>
+                  {done ? '✓' : i + 1}
+                </div>
+                <div className="mgLessonBody">
+                  <div className="mgLessonTop">
+                    <span className="mgNodeTitle">
+                      {renaming === l.id ? <RenameInput /> : l.title}
+                    </span>
+                    {l.lessonXp > 0 && (
+                      <span className="mgLessonXp">+{l.lessonXp} XP</span>
+                    )}
+                  </div>
+                  <span className="mgLessonSub">Пройдите и получите</span>
+                  <div className={`mgLessonPriority mgLessonPriority--${pKey}`}>
+                    <span className="mgLessonPriorityIcon">{pInfo.icon}</span>
+                    <div className="mgLessonPriorityText">
+                      <span className="mgLessonPriorityLabel">{pInfo.label}</span>
+                      <span className="mgLessonPriorityDesc">{pInfo.desc}</span>
+                    </div>
+                  </div>
+                </div>
+                <Btns l={l} kind="lesson" />
+              </div>
+            )
+          })}
         </div>
 
-        <div ref={finalRef} className="mgNode mgNode--final"
-          onMouseEnter={() => setHovered(final_.id)} onMouseLeave={() => setHovered(null)}
-          onClick={e => { e.stopPropagation(); handleClick(final_.id) }}>
-          <div className="mgHexFill">
-            {renaming === final_.id ? <RenameInput /> : <><span className="mgNodeTitle">{final_.title}</span><Btns l={final_} kind="final" /></>}
+        {/* ── FINAL ── */}
+        <div
+          ref={finalRef}
+          className={`mgNode mgNode--final${finalOpen ? ' mgNode--final--open' : ''}`}
+          onMouseEnter={() => setHovered(final_.id)}
+          onMouseLeave={() => setHovered(null)}
+          onClick={e => { e.stopPropagation(); handleClick(final_.id) }}
+        >
+          <div className="mgHexFill mgHexFill--final">
+            {renaming === final_.id ? <RenameInput /> : (
+              <>
+                <span className="mgFinalIcon">{finalOpen ? '🔓' : '🔒'}</span>
+                <span className="mgNodeTitle">{final_.title}</span>
+                <span className="mgFinalDesc">
+                  {finalOpen ? 'Финальный урок открыт!' : 'Завершите все уроки чтобы открыть'}
+                </span>
+                {xpUnlock > 0 && (
+                  <div className="mgFinalXpWrap">
+                    <div className="mgFinalXpBar">
+                      <div className="mgFinalXpBarFill" style={{ width: xpPct + '%' }} />
+                    </div>
+                    <span className="mgFinalXpLabel">
+                      <span className="mgFinalXpStar">⭐</span>
+                      {currentXp} / {xpUnlock} XP
+                    </span>
+                  </div>
+                )}
+                <Btns l={final_} kind="final" />
+              </>
+            )}
           </div>
         </div>
 

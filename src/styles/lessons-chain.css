@@ -1,0 +1,246 @@
+/* ── Lesson card redesign ───────────────────────────────────── */
+
+/* Override height — new cards are auto-height */
+.mgNode--lesson {
+  height: auto;
+  min-height: 60px;
+  align-items: flex-start;
+  padding: 14px 12px;
+  gap: 12px;
+}
+
+/* Number circle */
+.mgLessonNum {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid #3a4a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #9aa0b4;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.mgLessonNum--done {
+  border-color: #22c55e;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+/* Body column */
+.mgLessonBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* Top row: title + XP */
+.mgLessonTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* XP badge */
+.mgLessonXp {
+  background: rgba(182, 254, 59, 0.08);
+  border: 1px solid rgba(182, 254, 59, 0.2);
+  color: #b6fe3b;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+/* Subtitle */
+.mgLessonSub {
+  font-size: 11px;
+  color: #555;
+  margin-bottom: 2px;
+}
+
+/* Priority section */
+.mgLessonPriority {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.mgLessonPriorityIcon {
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  line-height: 1;
+}
+
+.mgLessonPriorityText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mgLessonPriorityLabel {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.mgLessonPriorityDesc {
+  font-size: 11px;
+  color: #666;
+  line-height: 1.3;
+}
+
+/* Priority color variants */
+.mgLessonPriority--high .mgLessonPriorityLabel  { color: #f97316; }
+.mgLessonPriority--medium .mgLessonPriorityLabel { color: #eab308; }
+.mgLessonPriority--low .mgLessonPriorityLabel    { color: #3b82f6; }
+
+/* Done lesson: green accent on card */
+.mgNode--lesson--done {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+/* ── Start node variants ────────────────────────────────────── */
+
+/* Not started: gray / inactive */
+.mgNode--start--inactive {
+  background: #161820;
+}
+
+.mgNode--start--inactive .mgHexFill {
+  background: #161820;
+}
+
+/* Completed: green accent ring */
+.mgNode--start--done {
+  background: #1a2e1a;
+}
+
+.mgNode--start--done .mgHexFill {
+  background: #1a2e1a;
+}
+
+/* Start inner layout */
+.mgHexFill--start {
+  gap: 6px;
+}
+
+.mgStartIcon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.mgStartBadge {
+  font-size: 11px;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 10px;
+  padding: 3px 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mgStartBtn {
+  margin-top: 4px;
+  padding: 6px 20px;
+  background: #b6fe3b;
+  color: #0e1013;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.mgStartBtn:hover {
+  background: #d4ff5a;
+  transform: scale(1.03);
+}
+
+/* ── Final node content ─────────────────────────────────────── */
+.mgHexFill--final {
+  gap: 6px;
+  padding: 16px 20px;
+}
+
+.mgFinalIcon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.mgFinalDesc {
+  font-size: 11px;
+  color: #6a7080;
+  text-align: center;
+  line-height: 1.4;
+  max-width: 160px;
+}
+
+/* XP progress bar */
+.mgFinalXpWrap {
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.mgFinalXpBar {
+  width: 100%;
+  height: 6px;
+  background: #252830;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mgFinalXpBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #b6fe3b, #7cdc20);
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mgFinalXpLabel {
+  font-size: 11px;
+  color: #6a7080;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mgFinalXpStar {
+  font-size: 12px;
+}
+
+/* Unlocked final: purple/gold accent */
+.mgNode--final--open {
+  background: #1e1a2e;
+}
+
+.mgNode--final--open .mgHexFill {
+  background: #1e1a2e;
+}
+
+.mgNode--final--open .mgFinalDesc {
+  color: #c77dff;
+}
+
+.mgNode--final--open .mgFinalXpBarFill {
+  background: linear-gradient(90deg, #c77dff, #9d4edd);
+}
