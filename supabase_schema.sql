@@ -3,6 +3,28 @@
 --  Run this once in: Supabase → SQL Editor → New query
 -- ─────────────────────────────────────────────
 
+-- ── Admin check helper (Этап 0 безопасности) ──
+-- Возвращает true, если текущий залогиненный пользователь — админ.
+-- SECURITY DEFINER: читает user_profiles в обход RLS (не создаёт рекурсию политик).
+-- Используется всеми политиками записи ниже — писать в контент могут только админы.
+-- plpgsql выбран специально: тело функции связывается с таблицей user_profiles лениво,
+-- в момент вызова, поэтому функцию можно создать даже до создания таблицы (ниже в файле).
+create or replace function public.is_admin()
+returns boolean
+language plpgsql
+security definer
+stable
+as $$
+declare
+  admin boolean;
+begin
+  select up.is_admin into admin
+  from public.user_profiles up
+  where up.id = auth.uid();
+  return coalesce(admin, false);
+end;
+$$;
+
 -- ── Curricula (modules) ───────────────────────
 -- Stores module metadata + ordered lesson_ids array.
 -- lesson content lives in the `lessons` table separately.
@@ -17,11 +39,17 @@ create table if not exists public.curricula (
 -- RLS immediately after table creation (before any trigger that references other objects)
 alter table public.curricula enable row level security;
 
+-- Читать модули может кто угодно (это контент). Писать — только админ.
+drop policy if exists "curricula_write_anon_temp" on public.curricula;
+drop policy if exists "curricula_select_all"      on public.curricula;
+drop policy if exists "curricula_write_admin"      on public.curricula;
+
 create policy "curricula_select_all"
   on public.curricula for select using (true);
 
-create policy "curricula_write_anon_temp"
-  on public.curricula for all using (true) with check (true);
+create policy "curricula_write_admin"
+  on public.curricula for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 
 -- ── Files (ver 2.0 admin panel) ───────────────
 -- Generic registry of files uploaded to R2 — independent of lessons.
@@ -37,16 +65,20 @@ create table if not exists public.files (
 
 alter table public.files enable row level security;
 
--- Anyone (including anon) can read the file list — same posture as lessons below.
+-- Читать список файлов может кто угодно (тот же принцип, что и у уроков ниже).
+drop policy if exists "files_write_anon_temp" on public.files;
+drop policy if exists "files_select_all"      on public.files;
+drop policy if exists "files_write_admin"      on public.files;
+
 create policy "files_select_all"
   on public.files for select
   using (true);
 
--- No auth yet: anon can also write. Replace with admin-only once auth is added.
-create policy "files_write_anon_temp"
-  on public.files for all
-  using (true)
-  with check (true);
+-- Писать (загружать/удалять записи о файлах) может только админ.
+create policy "files_write_admin"
+  on public.files for all to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- ── Lessons ──────────────────────────────────
 -- id is a text string (e.g. "lesson-1") to match the existing app format.
@@ -75,33 +107,30 @@ create trigger lessons_updated_at
   before update on public.lessons
   for each row execute function public.set_updated_at();
 
--- Curricula trigger + policies (after set_updated_at function is defined)
+-- Curricula trigger (after set_updated_at function is defined).
+-- Политики curricula определены выше, рядом с созданием таблицы.
 drop trigger if exists curricula_updated_at on public.curricula;
 create trigger curricula_updated_at
   before update on public.curricula
   for each row execute function public.set_updated_at();
 
-create policy "curricula_select_all"
-  on public.curricula for select using (true);
-
-create policy "curricula_write_anon_temp"
-  on public.curricula for all using (true) with check (true);
-
 -- ── RLS — Lessons ─────────────────────────────
 alter table public.lessons enable row level security;
 
--- Anyone (including anon) can read lessons.
--- This is intentional: published lessons are public content.
+-- Читать уроки может кто угодно — опубликованные уроки это публичный контент.
+drop policy if exists "lessons_write_anon_temp" on public.lessons;
+drop policy if exists "lessons_select_all"      on public.lessons;
+drop policy if exists "lessons_write_admin"      on public.lessons;
+
 create policy "lessons_select_all"
   on public.lessons for select
   using (true);
 
--- For now (no auth yet): anon can also write.
--- This policy will be replaced with admin-only once auth is added.
-create policy "lessons_write_anon_temp"
-  on public.lessons for all
-  using (true)
-  with check (true);
+-- Создавать/менять/удалять уроки может только админ.
+create policy "lessons_write_admin"
+  on public.lessons for all to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- ── User profiles ─────────────────────────────
 -- Created automatically on sign-up via trigger.
@@ -188,10 +217,19 @@ create table if not exists public.highlight_color_presets (
 
 alter table public.highlight_color_presets enable row level security;
 
-create policy "hcp_all"
-  on public.highlight_color_presets for all
-  using (true)
-  with check (true);
+-- Читать избранные цвета можно всем, менять — только админ (это часть редактора).
+drop policy if exists "hcp_all"          on public.highlight_color_presets;
+drop policy if exists "hcp_select_all"   on public.highlight_color_presets;
+drop policy if exists "hcp_write_admin"  on public.highlight_color_presets;
+
+create policy "hcp_select_all"
+  on public.highlight_color_presets for select
+  using (true);
+
+create policy "hcp_write_admin"
+  on public.highlight_color_presets for all to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- ── Lesson results ────────────────────────────
 create table if not exists public.lesson_results (
@@ -209,3 +247,18 @@ create policy "results_own"
   on public.lesson_results for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- ── XP system (ver 2.0) ──────────────────────────────────────────
+-- Run this in Supabase SQL Editor to add XP support:
+
+alter table public.user_profiles add column if not exists xp integer not null default 0;
+
+-- RPC: safely add XP to current user (atomic increment)
+create or replace function public.add_xp(amount integer)
+returns void language plpgsql security definer as $$
+begin
+  update public.user_profiles
+  set xp = xp + amount
+  where id = auth.uid();
+end;
+$$;

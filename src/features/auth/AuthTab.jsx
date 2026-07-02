@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { loginUser, logoutUser } from '../../shared/api/auth.js'
 import { syncLocalXpToServer } from '../../shared/api/profileApi.js'
-import { useAuth } from '../../shared/lib/useAuth.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
 
 function loginErrorToRu(error) {
   const msg = (error?.message ?? '').toLowerCase()
@@ -15,7 +15,7 @@ function loginErrorToRu(error) {
 }
 
 export default function AuthTab({ onLoginSuccess }) {
-  const { user, loading } = useAuth()
+  const { user, isAdmin, loading } = useAdmin()
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [err,      setErr]      = useState('')
@@ -53,6 +53,7 @@ export default function AuthTab({ onLoginSuccess }) {
         <div className="authCard">
           <div className="authAvatar">{(user.email?.[0] ?? '?').toUpperCase()}</div>
           <div className="authEmail">{user.email}</div>
+          {isAdmin && <div className="authAdminBadge">★ Администратор</div>}
           <div className="authHint">Вы вошли в аккаунт</div>
           <button className="authBtnSecondary" onClick={handleLogout} disabled={busy}>
             {busy ? 'Выход...' : 'Выйти из аккаунта'}

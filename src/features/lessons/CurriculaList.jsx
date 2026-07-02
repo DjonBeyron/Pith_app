@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useAdmin } from '../../app/AdminContext.jsx'
 
 function formatDate(ts) {
   return new Date(ts).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export default function CurriculaList({ curricula, syncStatus, syncError, onCreate, onOpen, onDelete, onRename, onSave }) {
+  const { isAdmin } = useAdmin()
   const [savingId, setSavingId] = useState(null)
   const [msgs,     setMsgs]    = useState({})
 
@@ -31,9 +33,11 @@ export default function CurriculaList({ curricula, syncStatus, syncError, onCrea
 
   return (
     <div className="lessonsPanel">
-      <div className="toolbar">
-        <button className="primaryBtn" onClick={onCreate}>+ Создать модуль</button>
-      </div>
+      {isAdmin && (
+        <div className="toolbar">
+          <button className="primaryBtn" onClick={onCreate}>+ Создать модуль</button>
+        </div>
+      )}
 
       {syncLabel && (
         <div className={`syncStatusBar syncStatusBar--${syncStatus}`}>{syncLabel}</div>
@@ -50,15 +54,19 @@ export default function CurriculaList({ curricula, syncStatus, syncError, onCrea
                 <span className="lessonDate">{formatDate(c.createdAt)}</span>
               </div>
               {msgs[c.id] && <span className="dbSaveMsg">{msgs[c.id]}</span>}
-              <button className="saveBtn" title="Сохранить на сервер"
-                onClick={e => handleSave(e, c)} disabled={savingId === c.id}>
-                {savingId === c.id ? '...' : '💾'}
-              </button>
-              <button className="lessonRenameBtn"
-                onClick={e => handleRename(e, c.id, c.title)}
-                title="Переименовать">✎</button>
-              <button className="lessonDeleteBtn"
-                onClick={e => { e.stopPropagation(); onDelete(c.id) }}>✕</button>
+              {isAdmin && (
+                <>
+                  <button className="saveBtn" title="Сохранить на сервер"
+                    onClick={e => handleSave(e, c)} disabled={savingId === c.id}>
+                    {savingId === c.id ? '...' : '💾'}
+                  </button>
+                  <button className="lessonRenameBtn"
+                    onClick={e => handleRename(e, c.id, c.title)}
+                    title="Переименовать">✎</button>
+                  <button className="lessonDeleteBtn"
+                    onClick={e => { e.stopPropagation(); onDelete(c.id) }}>✕</button>
+                </>
+              )}
             </div>
           ))}
         </div>

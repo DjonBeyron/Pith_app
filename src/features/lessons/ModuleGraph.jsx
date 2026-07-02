@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useAdmin } from '../../app/AdminContext.jsx'
 
 const PRIORITY = {
   high:   { label: 'Высокий приоритет', icon: '📈', desc: 'Рекомендуется для развития' },
@@ -12,6 +13,7 @@ export default function ModuleGraph({
   currentXp = 0,
   onPlay, onEdit, onDelete, onRename, onTogglePublished,
 }) {
+  const { isAdmin } = useAdmin()
   const [hovered,  setHovered]  = useState(null)
   const [tapped,   setTapped]   = useState(null)
   const [renaming, setRenaming] = useState(null)
@@ -97,6 +99,8 @@ export default function ModuleGraph({
   function commitRename() { if (renaming && draft.trim()) onRename(renaming, draft.trim()); setRenaming(null) }
   function handleClick(id) {
     if (renaming === id) return
+    // У не-админа нет управляющих кнопок — клик по блоку сразу запускает урок.
+    if (!isAdmin) { onPlay(id); return }
     if (window.matchMedia('(hover: none)').matches) setTapped(p => p === id ? null : id)
     else onPlay(id)
   }
@@ -107,15 +111,20 @@ export default function ModuleGraph({
       <div className={`mgNodeBtns${show ? ' mgNodeBtns--vis' : ''}`}
         onClick={e => e.stopPropagation()}>
         <button className="mgBtn" onClick={() => { onPlay(l.id); setTapped(null) }}>▶</button>
-        <button className="mgBtn" onClick={() => { onEdit(l.id); setTapped(null) }}>⚙</button>
-        <button className="mgBtn" onClick={e => { startRename(e, l.id, l.title); setTapped(null) }}>✎</button>
-        <button className={`mgBtn mgBtnEye${l.published ? ' mgBtnEyeOn' : ''}`}
-          title={l.published ? 'Скрыть' : 'Показать'}
-          onClick={() => { onTogglePublished(l.id, l.published); setTapped(null) }}>
-          {l.published ? '👁' : '🚫'}
-        </button>
-        {kind === 'lesson' && (
-          <button className="mgBtn mgBtnDel" onClick={() => { onDelete(l.id); setTapped(null) }}>✕</button>
+        {/* Управляющие кнопки — только админу. Запуск (▶) доступен всем. */}
+        {isAdmin && (
+          <>
+            <button className="mgBtn" onClick={() => { onEdit(l.id); setTapped(null) }}>⚙</button>
+            <button className="mgBtn" onClick={e => { startRename(e, l.id, l.title); setTapped(null) }}>✎</button>
+            <button className={`mgBtn mgBtnEye${l.published ? ' mgBtnEyeOn' : ''}`}
+              title={l.published ? 'Скрыть' : 'Показать'}
+              onClick={() => { onTogglePublished(l.id, l.published); setTapped(null) }}>
+              {l.published ? '👁' : '🚫'}
+            </button>
+            {kind === 'lesson' && (
+              <button className="mgBtn mgBtnDel" onClick={() => { onDelete(l.id); setTapped(null) }}>✕</button>
+            )}
+          </>
         )}
       </div>
     )

@@ -8,6 +8,7 @@ import LessonPlayer from '../player/LessonPlayer.jsx'
 import { isDebugOn } from '../../shared/lib/debug.js'
 import { getCompletedLessons, markLessonCompleted } from '../../shared/lib/completedLessons.js'
 import { getLocalXp } from '../../shared/lib/localProfile.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
 
 function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
   const {
@@ -23,13 +24,15 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   const [saving,          setSaving]          = useState(false)
   const [saveMsg,         setSaveMsg]         = useState('')
   const didInitRef = useRef(false)
+  const { isAdmin } = useAdmin()
 
   useEffect(() => {
-    if (!loading && !creating && lessons.length === 0 && !didInitRef.current) {
+    // Авто-создание уроков в пустом модуле — только у админа (запись в БД).
+    if (isAdmin && !loading && !creating && lessons.length === 0 && !didInitRef.current) {
       didInitRef.current = true
       bulkCreate(['Старт', 'Урок', 'Финал'])
     }
-  }, [loading, creating, lessons.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAdmin, loading, creating, lessons.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave() {
     setSaving(true)
@@ -73,14 +76,18 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         <span className="lessonMapTitle">{curriculumTitle}</span>
         {error && <span className="errorText">{error}</span>}
         {saveMsg && <span className="dbSaveMsg">{saveMsg}</span>}
-        <button className={`saveBtn${isDirty ? ' saveBtn--dirty' : ''}`}
-          onClick={handleSave} disabled={saving || loading} title="Сохранить структуру на сервер">
-          {saving ? '...' : '💾'}
-          {isDirty && !saving && <span className="saveDirtyDot" />}
-        </button>
-        <button className="primaryBtn" onClick={() => addBeforeFinal()} disabled={creating || loading}>
-          {creating ? '...' : '+ Урок'}
-        </button>
+        {isAdmin && (
+          <>
+            <button className={`saveBtn${isDirty ? ' saveBtn--dirty' : ''}`}
+              onClick={handleSave} disabled={saving || loading} title="Сохранить структуру на сервер">
+              {saving ? '...' : '💾'}
+              {isDirty && !saving && <span className="saveDirtyDot" />}
+            </button>
+            <button className="primaryBtn" onClick={() => addBeforeFinal()} disabled={creating || loading}>
+              {creating ? '...' : '+ Урок'}
+            </button>
+          </>
+        )}
       </div>
 
       {loading || (creating && lessons.length === 0) ? (

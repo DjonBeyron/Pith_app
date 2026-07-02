@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { uploadToR2, deleteFromR2 } from '../../shared/lib/r2.js'
 import { listFiles, insertFile, deleteFileRow, formatBytes } from '../../shared/lib/filesApi.js'
 import { isDebugOn, setDebug, dbg, downloadLog } from '../../shared/lib/debug.js'
-import PasswordForm, { ADMIN_AUTH_KEY } from './PasswordForm.jsx'
+import { useAdmin } from '../../app/AdminContext.jsx'
+import AuthTab from '../auth/AuthTab.jsx'
 
 function statusLabel(status) {
   switch (status) {
@@ -250,8 +251,28 @@ function AdminPanel() {
 }
 
 export default function AdminTab() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem(ADMIN_AUTH_KEY) === '1')
+  const { user, isAdmin, loading } = useAdmin()
 
-  if (!authed) return <PasswordForm onOk={() => setAuthed(true)} />
+  if (loading) return <div className="adminPanel"><div>Загрузка...</div></div>
+
+  // Не залогинен — показываем форму входа прямо здесь.
+  if (!user) {
+    return (
+      <div className="adminPanel">
+        <p className="authHint">Войдите в аккаунт администратора, чтобы управлять файлами.</p>
+        <AuthTab />
+      </div>
+    )
+  }
+
+  // Залогинен, но без прав — запись в БД всё равно закрыта политиками RLS.
+  if (!isAdmin) {
+    return (
+      <div className="adminPanel">
+        <p className="authHint">У этого аккаунта нет прав администратора.</p>
+      </div>
+    )
+  }
+
   return <AdminPanel />
 }

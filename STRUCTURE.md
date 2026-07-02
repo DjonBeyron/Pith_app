@@ -84,13 +84,13 @@
 ### `src/app/` — общая сборка приложения
 | Файл | Зачем нужен |
 |------|-------------|
-| `App.jsx` | Показывает две вкладки («Пользователь» / «Админ») и переключает их |
+| `App.jsx` | Показывает вкладки и переключает их; вкладка «Админ» видна только админу (см. `AdminContext.jsx`) |
+| `AdminContext.jsx` | React-контекст админ-статуса на всё приложение: `AdminProvider` (оборачивает `App` в `main.jsx`) + хук `useAdmin()` → `{ user, isAdmin, loading }`. Один запрос `getProfile` на всех потребителей |
 
 ### `src/features/admin/` — всё для вкладки «Админ»
 | Файл | Зачем нужен |
 |------|-------------|
-| `AdminTab.jsx` | Таблица файлов, кнопки «Добавить файл» / «Синхронизировать с сервером» / «Удалить» / «Повторить» (для упавших загрузок) / «Активировать дебаг» |
-| `PasswordForm.jsx` | Форма ввода пароля для входа в админ-панель |
+| `AdminTab.jsx` | Таблица файлов, кнопки «Добавить файл» / «Синхронизировать с сервером» / «Удалить» / «Повторить» (для упавших загрузок) / «Активировать дебаг». Доступ — только залогиненному пользователю с правом админа (см. `useIsAdmin.js`) |
 
 ### `src/features/canvas/` — canvas-редактор уроков (отдельная полноэкранная страница)
 | Файл | Зачем нужен |
@@ -218,6 +218,7 @@
 | `localProfile.js` | Работа с XP в localStorage (`pithy_xp`): getLocalXp / addLocalXp / setLocalXp / clearLocalXp |
 | `completedLessons.js` | Трекинг пройденных уроков в localStorage (`pithy_completed_v1`): `getCompletedLessons()` → Set, `markLessonCompleted(id)` |
 | `useAuth.js` | React-хук `useAuth()`: подписка на `supabase.auth.onAuthStateChange`, возвращает `{ user, loading }` |
+| `useIsAdmin.js` | React-хук `useIsAdmin()`: проверяет, что текущий пользователь залогинен и у него `is_admin=true` в `user_profiles`; возвращает `{ user, isAdmin, loading }`. Используется для показа/скрытия админского UI (реальная защита — RLS в БД) |
 | `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar` (рисует столбики волны на canvas), `fmtAudioTime`, `probeAudioDuration` |
 | `transcribeApi.js` | Клиентская обёртка для Edge Function `transcribe-audio`: отправляет файл или R2 URL, возвращает `wordTimings` |
 | `textHighlight.js` | Утилиты выделений: `buildSpans` (массив спанов по char-range), `addHighlight` (добавить с перекрытием), `highlightStyle` (CSS объект), `hexToRgba`; legacy `buildCharStyles` для аудио-ноды |
