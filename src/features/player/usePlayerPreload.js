@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 import { enqueuePosterCapture } from './posterQueue.js'
 import { fetchBlobWithRetry } from './preloadFetch.js'
+import { pLog } from '../../shared/lib/debug.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
@@ -387,6 +388,14 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     )]
     setWarmupNodeIds(warmupIds)
     setInitialized(true)
+    // Диагностика handoff: сколько файлов уже пришло с блобами из карточки запуска
+    const handoff = queueRef.current.filter(i => blobUrlsRef.current[i.id]?.blobUrl).length
+    pLog(`[preload] очередь: ${queueRef.current.length} файлов, с handoff-блобами: ${handoff}, warmup-нод: ${warmupIds.length}`)
+    const pcItems = queueRef.current.filter(i => i.nodeType === 'photo_choice')
+    if (pcItems.length) {
+      const pcBlobs = pcItems.filter(i => blobUrlsRef.current[i.id]?.blobUrl).length
+      pLog(`[preload] photo_choice: ${pcBlobs}/${pcItems.length} фото с блобами на старте`)
+    }
     // Nodes with no downloadable files are ready immediately
     const nodesWithDownloads = new Set(queueRef.current.map(i => i.nodeId))
     const autoReady = new Set(
