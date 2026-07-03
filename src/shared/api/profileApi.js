@@ -24,3 +24,21 @@ export async function completeLesson(lessonId) {
   if (error) { console.error('[XP] complete_lesson RPC error:', error.message); return 0 }
   return data ?? 0
 }
+
+// Сброс СВОЕГО прохождения уроков (тест-кнопки админа): сервер снимает флаг
+// «пройден» и отнимает начисленный XP; clearAnswers=true стирает и лог анализа.
+// Возвращает { refunded, error } — ошибку показываем админу, не глотаем
+// (типовой случай: RPC ещё не применён в Supabase).
+export async function resetLessonProgress(lessonIds, clearAnswers = false) {
+  if (!lessonIds?.length) return { refunded: 0, error: null }
+
+  const { data, error } = await supabase.rpc('reset_lesson_progress', {
+    p_lesson_ids: lessonIds,
+    p_clear_answers: clearAnswers,
+  })
+  if (error) {
+    console.error('[XP] reset_lesson_progress RPC error:', error.message)
+    return { refunded: 0, error: error.message }
+  }
+  return { refunded: data ?? 0, error: null }
+}

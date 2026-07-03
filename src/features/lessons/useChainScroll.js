@@ -36,7 +36,9 @@ export function useChainScroll({ justCompleted, lessons, scrollRef, startRef, fi
       : lessonRefs.current[idx - 1]
     if (!el) { dbg('[SCROLL] top: нет элемента урока, idx=', idx); return }
     const s = getScroller(scrollRef.current)
-    const target = Math.max(0, el.getBoundingClientRect().top + s.get() - s.base() - 12)
+    // Отступ 40px: зелёное свечение пройденного нода (drop-shadow ~30px) не
+    // должно резаться верхним краем скролл-контейнера
+    const target = Math.max(0, el.getBoundingClientRect().top + s.get() - s.base() - 40)
     dbg('[SCROLL] top:', s.kind, 'idx=', idx, 'target=', Math.round(target), 'до=', Math.round(s.get()))
     s.set(target)
     dbg('[SCROLL] top: после=', Math.round(s.get()))

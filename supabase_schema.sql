@@ -306,3 +306,84 @@ drop function if exists public.add_xp(integer);
 -- Пишется клиентом в конце урока (только своя строка — RLS results_own),
 -- читается для расчёта приоритетов уроков.
 alter table public.lesson_results add column if not exists answers jsonb;
+
+-- ── Сброс прохождения (тест-кнопки админа) ────────────────────────
+-- xp_awarded: за этот урок сейчас начислен XP. Сброс снимает флаг и отнимает
+-- XP; повторное прохождение снова ставит флаг и начисляет. Строка при сбросе
+-- НЕ удаляется — лог анализа (answers) переживает сброс урока.
+alter table public.lesson_results add column if not exists xp_awarded boolean not null default true;
+
+-- complete_lesson v2: начисляет XP, если урок не пройден ИЛИ прохождение
+-- было сброшено (xp_awarded=false). Остальная логика прежняя: сумму берёт
+-- сервер из своей копии урока, клиент подделать не может.
+create or replace function public.complete_lesson(p_lesson_id text)
+returns integer language plpgsql security definer as $$
+declare
+  v_uid    uuid := auth.uid();
+  v_reward integer;
+begin
+  if v_uid is null then
+    return 0;
+  end if;
+
+  insert into public.lesson_results (user_id, lesson_id, xp_awarded)
+  values (v_uid, p_lesson_id, true)
+  on conflict (user_id, lesson_id) do update
+    set xp_awarded = true, completed_at = now()
+    where lesson_results.xp_awarded = false;
+
+  -- Ни вставки, ни обновления — урок уже засчитан, повтор без XP.
+  if not found then
+    return 0;
+  end if;
+
+  select coalesce((script->>'lessonXp')::int, 0)
+  into v_reward
+  from public.lessons
+  where id = p_lesson_id;
+
+  v_reward := coalesce(v_reward, 0);
+
+  if v_reward > 0 then
+    update public.user_profiles
+    set xp = xp + v_reward
+    where id = v_uid;
+  end if;
+
+  return v_reward;
+end;
+$$;
+
+-- Сброс СВОЕГО прохождения уроков (тест-кнопки): снимает xp_awarded и отнимает
+-- ранее начисленный XP (не ниже нуля). p_clear_answers=true дополнительно
+-- стирает лог анализа этих уроков. Возвращает снятую сумму XP.
+create or replace function public.reset_lesson_progress(p_lesson_ids text[], p_clear_answers boolean default false)
+returns integer language plpgsql security definer as $$
+declare
+  v_uid    uuid := auth.uid();
+  v_refund integer := 0;
+begin
+  if v_uid is null then
+    return 0;
+  end if;
+
+  select coalesce(sum(coalesce((l.script->>'lessonXp')::int, 0)), 0)
+  into v_refund
+  from public.lesson_results r
+  join public.lessons l on l.id = r.lesson_id
+  where r.user_id = v_uid and r.lesson_id = any(p_lesson_ids) and r.xp_awarded;
+
+  update public.lesson_results
+  set xp_awarded = false,
+      answers = case when p_clear_answers then null else answers end
+  where user_id = v_uid and lesson_id = any(p_lesson_ids);
+
+  if v_refund > 0 then
+    update public.user_profiles
+    set xp = greatest(0, xp - v_refund)
+    where id = v_uid;
+  end if;
+
+  return v_refund;
+end;
+$$;

@@ -25,9 +25,18 @@ function ProgressStroke({ d, animate }) {
   return <path ref={ref} d={d} className="mgRightFill" />
 }
 
-// SVG-слой линий графа модуля: серые правые линии со стрелками, зелёные левые
-// с точками, и зелёный «прогресс» правых линий у пройденных уроков.
-export default function ChainLines({ arcs, middle, completedIds, justCompletedId }) {
+// SVG-слой линий графа модуля: серые правые линии со стрелками, левые линии
+// с точками (белые до прохождения диагностики, зелёные после; при только что
+// пройденном старте — плавно зеленеют со скоростью кружочков XP),
+// и зелёный «прогресс» правых линий у пройденных уроков.
+export default function ChainLines({
+  arcs, middle, completedIds, justCompletedId,
+  startDone = false, startJustDone = false, startHold = false,
+}) {
+  // Статичный зелёный — только если диагностика пройдена и это не текущее
+  // завершение (тогда зелень появляется анимацией-прорисовкой поверх белой).
+  // startHold: попап-легенда открыт — линии ждут белыми, анимация после закрытия.
+  const leftGreen = startDone && !startJustDone && !startHold
   return (
     <svg className="moduleGraphSvg">
       <defs>
@@ -40,14 +49,21 @@ export default function ChainLines({ arcs, middle, completedIds, justCompletedId
       {arcs.map((arc, i) => (
         <g key={i}>
           <path d={arc.d} fill="none" strokeLinecap="round"
-            stroke={arc.side === 'left' ? '#b6fe3b' : '#c0c5d4'}
+            stroke={arc.side === 'left' ? (leftGreen ? '#b6fe3b' : '#c0c5d4') : '#c0c5d4'}
             strokeWidth={arc.side === 'left' ? 2 : 1.5}
-            opacity={arc.side === 'left' ? 0.9 : 0.7}
+            opacity={arc.side === 'left' ? (leftGreen ? 0.9 : 0.7) : 0.7}
             markerEnd={arc.arrow ? 'url(#mgArrow)' : undefined} />
           {arc.dots?.map((p, j) => (
-            <circle key={j} cx={p.x} cy={p.y} r="3.5" fill="#b6fe3b" />
+            <circle key={j} cx={p.x} cy={p.y} r="3.5"
+              fill={((startDone || startJustDone) && !startHold) ? '#b6fe3b' : '#c0c5d4'} />
           ))}
         </g>
+      ))}
+      {/* Диагностика только что пройдена: левые линии прорисовываются зелёным
+          со скоростью кружочков — первый кружок касается первого урока ровно
+          когда его линия дозеленела */}
+      {startJustDone && arcs.filter(a => a.side === 'left').map((a, i) => (
+        <ProgressStroke key={`left-${i}`} d={a.d} animate />
       ))}
       {arcs.filter(a => a.side === 'right' && a.fillD).map(a => {
         const lesson = middle[a.lessonIndex]

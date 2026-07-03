@@ -7,9 +7,14 @@ import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { getCompletedLessons, markLessonCompleted, unmarkLessons } from '../../shared/lib/completedLessons.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
-import { loadAllEvents } from '../../shared/lib/skillStatsStore.js'
+import { resetLessonProgress } from '../../shared/api/profileApi.js'
+import { loadAllEvents, clearLocalEvents } from '../../shared/lib/skillStatsStore.js'
+import { dbg } from '../../shared/lib/debug.js'
+import PriorityLegend from './PriorityLegend.jsx'
 import { computeAllPriorities } from '../../shared/lib/skillScore.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
+
+const LEGEND_SEEN_KEY = 'pithy_priority_legend_seen_v1'
 
 function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
   const {
@@ -27,13 +32,26 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   const [saveMsg,         setSaveMsg]         = useState('')
   // Приоритеты уроков из анализа знаний: Map<lessonId, 'high'|'medium'|'low'>
   const [priorities,      setPriorities]      = useState(null)
+  // Легенда «Приоритеты уроков» поверх затемнённой схемы (этап 5)
+  const [showLegend,      setShowLegend]      = useState(false)
   const didInitRef = useRef(false)
   const { isAdmin } = useAdmin()
 
+  // Возвращает promise с картой приоритетов — вызывающий может дождаться
+  // пересчёта до показа графа и решить, показывать ли легенду
   function refreshPriorities() {
-    loadAllEvents()
-      .then(events => setPriorities(computeAllPriorities(events)))
-      .catch(() => {})
+    return loadAllEvents()
+      .then(events => {
+        const map = computeAllPriorities(events)
+        setPriorities(map)
+        return map
+      })
+      .catch(() => null)
+  }
+
+  function closeLegend() {
+    localStorage.setItem(LEGEND_SEEN_KEY, '1')
+    setShowLegend(false)
   }
 
   useEffect(() => {
@@ -50,12 +68,32 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
     }
   }, [isAdmin, loading, creating, lessons.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleResetProgress() {
-    // Локальный сброс: снимает галочки этого модуля (lesson_results на сервере не трогаем,
-    // чтобы повторные прохождения не накручивали XP).
-    if (!window.confirm('Сбросить прохождение уроков этого модуля?')) return
-    unmarkLessons(lessons.map(l => l.id))
+  // Полный сброс модуля (тест-кнопка ⟲): снимает «пройдено» локально и на
+  // сервере, отнимает начисленный за эти уроки XP и стирает анализ (события).
+  async function handleResetProgress() {
+    if (!window.confirm('Сбросить прохождение, XP и анализ уроков этого модуля?')) return
+    const ids = lessons.map(l => l.id)
+    unmarkLessons(ids)
     setCompletedIds(getCompletedLessons())
+    clearLocalEvents(ids)
+    // Полный сброс = «как новый пользователь»: легенда покажется снова
+    localStorage.removeItem(LEGEND_SEEN_KEY)
+    const { refunded, error } = await resetLessonProgress(ids, true) // true = стереть и анализ
+    dbg('[RESET] модуль:', ids.length, 'уроков, XP снято:', refunded, 'ошибка:', error)
+    if (error) { setSaveMsg(`Сброс на сервере не сработал: ${error}`); setTimeout(() => setSaveMsg(''), 6000) }
+    if (refunded > 0) refreshProfile()
+    await refreshPriorities()
+  }
+
+  // Сброс одного урока (кнопка ⟲ на уроке): снимает только «пройдено» и его XP,
+  // анализ (answers) не трогает.
+  async function handleResetLesson(id) {
+    unmarkLessons([id])
+    setCompletedIds(getCompletedLessons())
+    const { refunded, error } = await resetLessonProgress([id], false)
+    dbg('[RESET] урок:', id, 'XP снято:', refunded, 'ошибка:', error)
+    if (error) { setSaveMsg(`Сброс на сервере не сработал: ${error}`); setTimeout(() => setSaveMsg(''), 6000) }
+    if (refunded > 0) refreshProfile()
   }
 
   async function handleSave() {
@@ -81,7 +119,7 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         videoAutoSound={playerData.videoAutoSound ?? false}
         initialBlobMap={playerData.blobMap}
         onClose={() => setPlayerData(null)}
-        onSummaryClose={() => {
+        onSummaryClose={async () => {
           if (playingLessonId) {
             const wasDone = completedIds.has(playingLessonId)
             markLessonCompleted(playingLessonId)
@@ -91,7 +129,15 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
               if (l) setJustCompleted({ id: l.id, xp: l.lessonXp ?? 0 })
             }
           }
-          refreshPriorities() // полоски приоритетов обновляются по свежим событиям
+          // Ждём пересчёт приоритетов ДО закрытия плеера — граф отрисуется
+          // сразу с готовыми полосками, без скачка UI на глазах пользователя
+          const map = await refreshPriorities()
+          // Легенда — один раз, когда диагностика впервые дала приоритеты
+          const seen = !!localStorage.getItem(LEGEND_SEEN_KEY)
+          dbg('[LEGEND] приоритетов:', map?.size ?? 'null', 'уже видел:', seen)
+          if (map?.size > 0 && !seen) {
+            setShowLegend(true)
+          }
           setPlayerData(null)
           setPlayingLessonId(null)
         }}
@@ -131,8 +177,10 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           lessons={lessons}
           completedIds={completedIds}
           priorities={priorities}
+          animHold={showLegend} /* пока попап открыт — вся анимация графа на паузе */
           justCompleted={justCompleted}
           onFlightDone={() => setJustCompleted(null)}
+          onResetLesson={handleResetLesson}
           onPlay={id => setLaunchId(id)}
           onEdit={id => onOpenCanvas({
             id,
@@ -150,6 +198,10 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           onStart={data => { setPlayingLessonId(launchId); setLaunchId(null); setPlayerData(data) }}
           onClose={() => setLaunchId(null)}
         />
+      )}
+
+      {showLegend && (
+        <PriorityLegend lessons={lessons} priorities={priorities} onClose={closeLegend} />
       )}
     </div>
   )

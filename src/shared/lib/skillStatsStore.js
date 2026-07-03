@@ -17,6 +17,12 @@ export function appendLocalEvents(events) {
   localStorage.setItem(LS_KEY, JSON.stringify(merged))
 }
 
+// Стереть локальные события указанных уроков-источников (сброс анализа)
+export function clearLocalEvents(sourceLessonIds) {
+  const keep = loadLocalEvents().filter(e => !sourceLessonIds.includes(e.sourceLessonId))
+  localStorage.setItem(LS_KEY, JSON.stringify(keep))
+}
+
 // Дописывает события в lesson_results.answers. Строку создаёт complete_lesson,
 // поэтому вызывать строго ПОСЛЕ него. Фильтра по user_id нет намеренно —
 // RLS-политика results_own сама скоупит запрос до строк текущего пользователя.

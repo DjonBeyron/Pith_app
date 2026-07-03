@@ -10,6 +10,29 @@
   background: #12151c;
   border: 1px solid #23262f;
   border-radius: 14px;
+  position: relative;
+}
+
+/* Непройденный урок манит еле заметным бликом: диагональная полоска света
+   проезжает по карточке раз в ~6 секунд. Пройденные — спокойные. */
+.mgNode--lesson:not(.mgNode--lesson--done)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(115deg,
+    transparent 45%, rgba(255, 255, 255, 0.055) 50%, transparent 55%);
+  background-size: 300% 100%;
+  background-position: 150% 0;
+  /* linear + полёт «из-за края в за-край»: блик никогда не замирает на карточке,
+     на стыке цикла обе позиции за пределами — скачок невидим */
+  animation: mgLessonShine 5s linear infinite;
+}
+
+@keyframes mgLessonShine {
+  0%   { background-position: 150% 0; }
+  100% { background-position: -150% 0; }
 }
 
 /* Цветная полоса слева по приоритету */

@@ -1,0 +1,169 @@
+/* Попап-легенда «Приоритеты уроков» поверх затемнённой схемы модуля */
+
+.priorityLegendOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 6, 9, 0.66);
+  backdrop-filter: blur(2px);
+  animation: plFadeIn 0.22s ease;
+}
+
+@keyframes plFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.priorityLegendCard {
+  position: relative;
+  width: min(320px, calc(100vw - 48px));
+  padding: 22px 24px 20px;
+  background: #14171e;
+  border: 1px solid #262a35;
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  animation: plCardIn 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes plCardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.priorityLegendClose {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #7a8194;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.priorityLegendClose:hover { background: #21252f; color: #e8ecf4; }
+
+.priorityLegendTitle {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f2f3f7;
+}
+
+.priorityLegendIntro {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #a7aec2;
+}
+
+/* Мини-схема: уроки пользователя с их реальными приоритетами */
+.plMiniList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.plMiniCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #12151c;
+  border: 1px solid #23262f;
+  border-left: 3px solid #2e323d; /* нет данных — серая полоска */
+  border-radius: 10px;
+}
+
+.plMiniCard--high   { border-left-color: #f97316; }
+.plMiniCard--medium { border-left-color: #eab308; }
+.plMiniCard--low    { border-left-color: #3b82f6; }
+
+.plMiniTitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e8ecf4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plMiniStatus {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6a7080;
+}
+
+.plMiniStatus--high   { color: #f97316; }
+.plMiniStatus--medium { color: #eab308; }
+.plMiniStatus--low    { color: #3b82f6; }
+
+.priorityLegendRows {
+  border-top: 1px solid #22252e;
+  padding-top: 6px;
+}
+
+.priorityLegendOkBtn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 9px 0;
+  background: #b6fe3b;
+  color: #0e1013;
+  border: none;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.priorityLegendOkBtn:hover { background: #d4ff5a; }
+
+.priorityLegendRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 9px 0;
+}
+
+.priorityLegendIcon {
+  width: 24px;
+  font-size: 17px;
+  line-height: 1.2;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.priorityLegendText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.priorityLegendLabel {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.priorityLegendDesc {
+  font-size: 12.5px;
+  color: #8b93a7;
+  line-height: 1.4;
+}
+
+.priorityLegendRow--high   .priorityLegendLabel,
+.priorityLegendRow--high   .priorityLegendIcon  { color: #f97316; }
+.priorityLegendRow--medium .priorityLegendLabel,
+.priorityLegendRow--medium .priorityLegendIcon  { color: #eab308; }
+.priorityLegendRow--low    .priorityLegendLabel,
+.priorityLegendRow--low    .priorityLegendIcon  { color: #3b82f6; }

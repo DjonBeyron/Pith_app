@@ -20,8 +20,9 @@ export default function ModuleGraph({
   completedIds = new Set(),
   justCompleted = null,
   priorities = null, // Map<lessonId, 'high'|'medium'|'low'> из анализа знаний; null у урока = без полоски
+  animHold = false,  // true (попап-легенда открыт) — пульс/полёт XP/озеленение линий ждут закрытия
   onFlightDone,
-  onPlay, onEdit, onDelete, onRename, onTogglePublished,
+  onPlay, onEdit, onDelete, onRename, onTogglePublished, onResetLesson,
 }) {
   const { isAdmin } = useAdmin()
   const [hovered,  setHovered]  = useState(null)
@@ -119,8 +120,10 @@ export default function ModuleGraph({
   }, [drawLines])
 
   // Сборка полёта XP: маршрут по нарисованным линиям + цель (звёздочка бара).
+  // animHold: пока открыт попап-легенда, полёт не стартует — эффект перезапустится
+  // после закрытия (animHold в deps) и анимация пойдёт с начала.
   useEffect(() => {
-    if (!justCompleted || flight || !arcs.length) return
+    if (!justCompleted || flight || !arcs.length || animHold) return
     const idx = lessons.findIndex(l => l.id === justCompleted.id)
     if (idx === -1 || idx === lessons.length - 1 || justCompleted.xp <= 0) {
       onFlightDone?.()
@@ -142,7 +145,7 @@ export default function ModuleGraph({
       setFlight({ paths: flightPaths, amount: justCompleted.xp })
     }, FLIGHT_DELAY_MS)
     return () => clearTimeout(t)
-  }, [justCompleted, arcs]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [justCompleted, arcs, animHold]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Вспышка финала в такт касанию кружочка (снять класс → кадр → надеть заново,
   // чтобы CSS-анимация перезапускалась на каждом прилёте).
@@ -207,6 +210,8 @@ export default function ModuleGraph({
           <>
             <button className="mgBtn" onClick={() => { onEdit(l.id); setTapped(null) }}>⚙</button>
             <button className="mgBtn" onClick={e => { startRename(e, l.id, l.title); setTapped(null) }}>✎</button>
+            <button className="mgBtn" title="Сбросить прохождение этого урока (XP отнимется, анализ сохранится)"
+              onClick={() => { onResetLesson?.(l.id); setTapped(null) }}>⟲</button>
             <button className={`mgBtn mgBtnEye${l.published ? ' mgBtnEyeOn' : ''}`}
               title={l.published ? 'Скрыть' : 'Показать'}
               onClick={() => { onTogglePublished(l.id, l.published); setTapped(null) }}>
@@ -233,7 +238,7 @@ export default function ModuleGraph({
       <div ref={containerRef} className="moduleGraphInner">
 
         {/* ── START ── */}
-        <div className={`mgGlow ${startDone ? 'mgGlow--start--done' : 'mgGlow--start'}${justCompleted?.id === start.id ? ' mgGlow--justDone' : ''}`}>
+        <div className={`mgGlow ${startDone ? 'mgGlow--start--done' : 'mgGlow--start'}${justCompleted?.id === start.id && !animHold ? ' mgGlow--justDone' : ''}`}>
           <span className="mgIconBadge mgIconBadge--start">★</span>
           <div
             ref={startRef}
@@ -284,7 +289,7 @@ export default function ModuleGraph({
               <div
                 key={l.id}
                 ref={el => { lessonRefs.current[i] = el }}
-                className={`mgNode mgNode--lesson${pKey ? ` mgLesson--${pKey}` : ''}${done ? ' mgNode--lesson--done' : ''}${justCompleted?.id === l.id ? ' mgNode--justDone' : ''}`}
+                className={`mgNode mgNode--lesson${pKey ? ` mgLesson--${pKey}` : ''}${done ? ' mgNode--lesson--done' : ''}${justCompleted?.id === l.id && !animHold ? ' mgNode--justDone' : ''}`}
                 onMouseEnter={() => setHovered(l.id)}
                 onMouseLeave={() => setHovered(null)}
                 onClick={e => { e.stopPropagation(); handleClick(l.id) }}
@@ -341,6 +346,9 @@ export default function ModuleGraph({
           middle={middle}
           completedIds={completedIds}
           justCompletedId={justCompleted?.id ?? null}
+          startDone={startDone}
+          startJustDone={justCompleted?.id === start.id && !animHold}
+          startHold={justCompleted?.id === start.id && animHold}
         />
 
         {flight && (
