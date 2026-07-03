@@ -1,4 +1,5 @@
-import { useRef, useLayoutEffect, useEffect } from 'react'
+import { useRef, useState, useLayoutEffect, useEffect } from 'react'
+import NodeLessonLink from './NodeLessonLink.jsx'
 
 export default function NodeWordChoicePicker({
   options = [],
@@ -6,10 +7,12 @@ export default function NodeWordChoicePicker({
   onOptionsChange, onResponseCorrectChange, onResponseWrongChange,
   triggers = [], allNodes = [], nodeId,
   onTriggersChange, onTriggerMeasure,
+  statLessonId = null, onStatLessonChange, moduleLessons = [],
 }) {
   const inputRef      = useRef(null)
   const correctRowRef = useRef(null)
   const wrongRowRef   = useRef(null)
+  const [expandedId, setExpandedId] = useState(null) // вариант с раскрытыми настройками анализа
 
   // Normalize trigger format on mount.
   // CanvasBoard.handleMouseUp writes t.then by array INDEX, not by t.if.
@@ -20,10 +23,17 @@ export default function NodeWordChoicePicker({
   useEffect(() => {
     const hasCorrect = triggers.some(t => t.if === 'word_correct')
     const hasWrong   = triggers.some(t => t.if === 'word_wrong')
-    if (!hasCorrect || !hasWrong) {
+    // Чужие триггеры (например 'played', добавленный старой кнопкой «+») дают
+    // лишний порт на ноде — вычищаем, но их связь не теряем: отдаём её
+    // свободному word_correct.
+    const foreign = triggers.filter(t => t.if !== 'word_correct' && t.if !== 'word_wrong')
+    if (!hasCorrect || !hasWrong || foreign.length) {
+      const correct = triggers.find(t => t.if === 'word_correct') ?? triggers[0]
+      const wrong   = triggers.find(t => t.if === 'word_wrong')   ?? triggers[1]
+      const adopt   = foreign.find(t => t.then)?.then ?? null
       onTriggersChange([
-        { id: triggers[0]?.id ?? crypto.randomUUID(), if: 'word_correct', then: triggers[0]?.then ?? null },
-        { id: triggers[1]?.id ?? crypto.randomUUID(), if: 'word_wrong',   then: triggers[1]?.then ?? null },
+        { id: correct?.id ?? crypto.randomUUID(), if: 'word_correct', then: correct?.then ?? adopt },
+        { id: wrong?.id   ?? crypto.randomUUID(), if: 'word_wrong',   then: wrong?.then   ?? null },
       ])
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -55,6 +65,10 @@ export default function NodeWordChoicePicker({
     onOptionsChange(options.filter(o => o.id !== id))
   }
 
+  function patchOption(id, diff) {
+    onOptionsChange(options.map(o => o.id === id ? { ...o, ...diff } : o))
+  }
+
   // Display: find by if-field, fall back to array index for the first render
   // before normalization effect has run.
   const correctThen = (triggers.find(t => t.if === 'word_correct') ?? triggers[0])?.then ?? ''
@@ -77,17 +91,53 @@ export default function NodeWordChoicePicker({
 
   return (
     <div className="nodeWordChoiceWrap" onClick={e => e.stopPropagation()}>
+      {/* привязка ноды к уроку для анализа (наследуется вариантами) */}
+      <NodeLessonLink
+        value={statLessonId}
+        onChange={v => onStatLessonChange?.(v)}
+        moduleLessons={moduleLessons}
+      />
       {/* варианты */}
       <div className="nodeWordChoiceList">
         {options.map(o => (
-          <div key={o.id} className="nodeWordChoiceRow">
-            <button
-              className={`nodeWcCorrectBtn${o.isCorrect ? ' nodeWcCorrectBtnOn' : ''}`}
-              onClick={() => toggleCorrect(o.id)}
-              title="Верный ответ"
-            >✓</button>
-            <span className="nodeWcOptionText">{o.text}</span>
-            <button className="nodeWcDelBtn" onClick={() => removeOption(o.id)}>×</button>
+          <div key={o.id} className="nodeWcOptionWrap">
+            <div className="nodeWordChoiceRow">
+              <button
+                className={`nodeWcCorrectBtn${o.isCorrect ? ' nodeWcCorrectBtnOn' : ''}`}
+                onClick={() => toggleCorrect(o.id)}
+                title="Верный ответ"
+              >✓</button>
+              <span className="nodeWcOptionText">{o.text}</span>
+              <button
+                className={`nodeWcGearBtn${(o.statLessonId || o.signal) ? ' nodeWcGearBtnOn' : ''}`}
+                onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}
+                title="Анализ: свой урок / сигнал"
+              >⚙</button>
+              <button className="nodeWcDelBtn" onClick={() => removeOption(o.id)}>×</button>
+            </div>
+            {expandedId === o.id && (
+              <div className="nodeWcOptSettings">
+                <NodeLessonLink
+                  value={o.statLessonId ?? null}
+                  onChange={v => patchOption(o.id, { statLessonId: v })}
+                  moduleLessons={moduleLessons}
+                  emptyLabel="— как у ноды —"
+                />
+                <div className="nodeStatLinkRow">
+                  <span className="nodeStatLinkLabel">Сигнал</span>
+                  <select
+                    className={`nodeStatLinkSelect${o.signal ? ' nodeStatLinkSelectOn' : ''}`}
+                    value={o.signal ?? ''}
+                    onChange={e => patchOption(o.id, { signal: e.target.value || null })}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <option value="">— нет (по галочке ✓) —</option>
+                    <option value="know">знает (пропуск)</option>
+                    <option value="dont_know">не знает / хочет объяснение</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         ))}
         {options.length === 0 && <p className="nodeWcEmpty">Вариантов нет</p>}

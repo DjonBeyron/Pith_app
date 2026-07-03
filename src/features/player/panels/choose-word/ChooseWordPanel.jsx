@@ -4,7 +4,7 @@ import ChooseWordOption from './ChooseWordOption.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChange, xpAmount = 0, onXpEarned }) {
+export default function ChooseWordPanel({ node, onDone, onAnswered, onPicked, onHeightChange, xpAmount = 0, onXpEarned }) {
   const { options, selectedId, result, isAnswered, handlePick } = useChooseWord(node)
   const [show, setShow] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
@@ -74,6 +74,7 @@ export default function ChooseWordPanel({ node, onDone, onAnswered, onHeightChan
                   const rect = e.currentTarget.getBoundingClientRect()
                   onXpEarned?.(xpAmount, rect)
                 }
+                if (!isAnswered) onPicked?.(opt)
                 handlePick(opt)
               }}
               disabled={isAnswered}

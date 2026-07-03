@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { pLog, dbg } from '../../shared/lib/debug.js'
+import { dbg } from '../../shared/lib/debug.js'
 import CanvasBoard from './CanvasBoard.jsx'
 import LessonFilesPanel from './LessonFilesPanel.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
@@ -7,7 +7,9 @@ import { useLessonFiles } from './useLessonFiles.js'
 import { useTeacherSettings } from './useTeacherSettings.js'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 
-export default function CanvasPage({ lessonId, onBack }) {
+export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
+  // Уроки модуля для привязки ответов (анализ знаний) — без урока, который редактируем
+  const linkableLessons = moduleLessons.filter(l => l.id !== lessonId)
   const [showPanel,   setShowPanel]   = useState(false)
   const [showPlayer,  setShowPlayer]  = useState(false)
   const [title,       setTitle]       = useState('')
@@ -117,7 +119,12 @@ export default function CanvasPage({ lessonId, onBack }) {
             min="0"
             step="10"
             value={lessonXp}
-            onChange={e => setLessonXp(Math.max(0, parseInt(e.target.value) || 0))}
+            onChange={e => {
+              const n = Math.max(0, parseInt(e.target.value) || 0)
+              // number-input не чистит ведущий ноль сам («05») — приводим DOM к числу
+              e.target.value = String(n)
+              setLessonXp(n)
+            }}
             onClick={e => e.stopPropagation()}
           />
           <span className="canvasXpLabel">XP</span>
@@ -166,6 +173,7 @@ export default function CanvasPage({ lessonId, onBack }) {
           onPickLessonFile={pickFile}
           onNodesChange={handleNodesChange}
           initialNodes={serverNodes}
+          moduleLessons={linkableLessons}
         />
       )}
     </div>

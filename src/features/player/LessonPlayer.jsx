@@ -10,6 +10,7 @@ import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
+import { useAnswerStats, wordOptionEvent } from './useAnswerStats.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { getPlayerLines } from '../../shared/lib/debug.js'
 import XpFloat from './XpFloat.jsx'
@@ -17,6 +18,7 @@ import LessonSummary from './LessonSummary.jsx'
 import { addLocalXp, getLocalXp } from '../../shared/lib/localProfile.js'
 import { completeLesson, getProfile } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
+import { saveAnswerEvents } from '../../shared/lib/skillStatsStore.js'
 
 // Returns a Map<nodeId, xpAmount> for nodes with reward enabled.
 // If lessonXp=0 or no reward nodes, returns empty map.
@@ -44,6 +46,7 @@ export default function LessonPlayer({
 }) {
   const [files, setFiles] = useState(propFiles)
   const earnedXpRef = useRef(0)
+  const { panelShown, record, getEvents } = useAnswerStats({ sourceLessonId: lessonId })
   const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes, {
     onFinish: () => setTimeout(async () => {
       const profile = await getProfile()
@@ -52,6 +55,8 @@ export default function LessonPlayer({
         // Без lessonId (предпросмотр в редакторе) начисления нет.
         setBaseXp(profile.xp)
         const awarded = lessonId ? await completeLesson(lessonId) : 0
+        // События анализа — после completeLesson: он создаёт строку lesson_results
+        await saveAnswerEvents(getEvents(), { sourceLessonId: lessonId, isLoggedIn: true })
         setEarnedXp(awarded)
         refreshProfile() // фоном обновляем кэш — вкладка «Профиль» откроется уже со свежим XP
       } else {
@@ -59,6 +64,7 @@ export default function LessonPlayer({
         const earned = earnedXpRef.current
         setBaseXp(getLocalXp())
         if (earned > 0) addLocalXp(earned)
+        saveAnswerEvents(getEvents(), { sourceLessonId: lessonId, isLoggedIn: false })
         setEarnedXp(earned)
       }
       setShowSummary(true)
@@ -140,6 +146,11 @@ export default function LessonPlayer({
       ...debugItems.map(d =>
         `#${d.seq} ${d.type} ${d.status} http=${d.httpStatus ?? '-'} ${d.sizeKb ?? '-'}KB start=${d.startTs} ready=${d.readyTs} msg=${d.msgTs ?? '-'} ${d.error ?? ''}`
       ),
+      ``,
+      `--- Stats events (анализ знаний) ---`,
+      ...getEvents().map(e =>
+        `${e.type} урок=${e.lessonId} попытка=${e.attempt} время=${e.timeMs ?? '?'}мс «${e.option}» сессия=${e.sessionId}`
+      ),
     ]
     const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
     const a = document.createElement('a')
@@ -169,6 +180,13 @@ export default function LessonPlayer({
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     const result = isCorrect ? 'photo_correct' : 'photo_wrong'
+    const pcNode = nodes.find(n => n.id === nodeId)
+    record({
+      nodeId,
+      lessonId: pcNode?.typeData?.photo_choice?.statLessonId ?? null,
+      type: isCorrect ? 'correct' : 'wrong',
+      option: `фото #${idx + 1}`,
+    })
     setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
     if (isCorrect) {
       const xp = xpMap.get(nodeId) ?? 0
@@ -212,6 +230,11 @@ export default function LessonPlayer({
   const pmNode  = lastOf('pin_message')
   const pcNode  = lastOf('photo_choice')
   const regNode = lastOf('registration')
+
+  // Таймер ответа стартует с появления панели (SKILL_ANALYSIS.md §4)
+  useEffect(() => {
+    [wcNode, paNode, pcNode].forEach(n => { if (n) panelShown(n.id) })
+  }, [wcNode?.id, paNode?.id, pcNode?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -282,26 +305,36 @@ export default function LessonPlayer({
         </PlayerFeed>
         {wcNode && (
           <ChooseWordPanel
+            key={wcNode.id} /* вторая нода того же типа подряд = свежая панель */
             node={wcNode}
             xpAmount={xpMap.get(wcNode.id) ?? 0}
             onDone={(result) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result) }}
             onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result)}
+            onPicked={(opt) => record({ nodeId: wcNode.id, ...wordOptionEvent(wcNode, opt) })}
             onXpEarned={handleXpEarned}
             onHeightChange={setWcPanelHeight}
           />
         )}
         {paNode && (
           <PhraseAssemblyPanel
+            key={paNode.id}
             node={paNode}
             xpAmount={xpMap.get(paNode.id) ?? 0}
             onDone={(result) => { setPaPanelHeight(0); onNodeDone(paNode.id, result) }}
             onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
+            onChecked={(result, text) => record({
+              nodeId: paNode.id,
+              lessonId: paNode.typeData?.phrase_assembly?.statLessonId ?? null,
+              type: result,
+              option: text,
+            })}
             onXpEarned={handleXpEarned}
             onHeightChange={setPaPanelHeight}
           />
         )}
         {pcNode && !photoChoiceStates[pcNode.id] && (
           <PhotoChoicePanel
+            key={pcNode.id}
             node={pcNode}
             lessonFiles={filesWithBlobs}
             onPick={(idx, isCorrect) => handlePhotoPick(pcNode.id, idx, isCorrect)}
@@ -310,6 +343,7 @@ export default function LessonPlayer({
         )}
         {regNode && (
           <RegistrationPanel
+            key={regNode.id}
             node={regNode}
             onDone={(trigger, data) => { setRegPanelHeight(0); onNodeDone(regNode.id, trigger, data) }}
             onAnswered={(text, result) => handleRegAnswer(regNode.id, text, result)}

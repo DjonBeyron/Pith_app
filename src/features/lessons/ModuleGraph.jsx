@@ -10,8 +10,8 @@ import { useChainScroll } from './useChainScroll.js'
 const START_PATH = 'M 25.82 32.12 L 64.18 12.88 A 50 50 0 0 1 115.82 12.88 L 154.18 32.12 A 50 50 0 0 1 180 73.86 L 180 106.14 A 50 50 0 0 1 154.18 147.88 L 115.82 167.12 A 50 50 0 0 1 64.18 167.12 L 25.82 147.88 A 50 50 0 0 1 0 106.14 L 0 73.86 A 50 50 0 0 1 25.82 32.12 Z'
 
 const PRIORITY = {
-  high:   { label: 'Высокий приоритет', icon: '📈', desc: 'Рекомендуется для развития' },
-  medium: { label: 'Средний приоритет', icon: '≡',  desc: 'Полезен для общего развития' },
+  high:   { label: 'Высокий приоритет', icon: '📈', desc: 'Наиболее важен для вас' },
+  medium: { label: 'Средний приоритет', icon: '≡',  desc: 'Полезен для развития' },
   low:    { label: 'Низкий приоритет',  icon: '↓',  desc: 'Можно изучить позже' },
 }
 
@@ -19,6 +19,7 @@ export default function ModuleGraph({
   lessons,
   completedIds = new Set(),
   justCompleted = null,
+  priorities = null, // Map<lessonId, 'high'|'medium'|'low'> из анализа знаний; null у урока = без полоски
   onFlightDone,
   onPlay, onEdit, onDelete, onRename, onTogglePublished,
 }) {
@@ -277,13 +278,13 @@ export default function ModuleGraph({
         <div className="mgLessonsGroup">
           {middle.map((l, i) => {
             const done  = completedIds.has(l.id)
-            const pKey  = l.priority ?? 'medium'
-            const pInfo = PRIORITY[pKey] ?? PRIORITY.medium
+            const pKey  = priorities?.get(l.id) ?? null
+            const pInfo = pKey ? PRIORITY[pKey] : null
             return (
               <div
                 key={l.id}
                 ref={el => { lessonRefs.current[i] = el }}
-                className={`mgNode mgNode--lesson mgLesson--${pKey}${done ? ' mgNode--lesson--done' : ''}${justCompleted?.id === l.id ? ' mgNode--justDone' : ''}`}
+                className={`mgNode mgNode--lesson${pKey ? ` mgLesson--${pKey}` : ''}${done ? ' mgNode--lesson--done' : ''}${justCompleted?.id === l.id ? ' mgNode--justDone' : ''}`}
                 onMouseEnter={() => setHovered(l.id)}
                 onMouseLeave={() => setHovered(null)}
                 onClick={e => { e.stopPropagation(); handleClick(l.id) }}
@@ -296,18 +297,21 @@ export default function ModuleGraph({
                     <span className="mgNodeTitle">
                       {renaming === l.id ? <RenameInput /> : l.title}
                     </span>
-                    {l.lessonXp > 0 && (
+                    {/* при переименовании бейдж прячется — не наезжает на поле ввода */}
+                    {l.lessonXp > 0 && renaming !== l.id && (
                       <span className="mgLessonXp">+{l.lessonXp} XP</span>
                     )}
                   </div>
                   <span className="mgLessonSub">Пройдите и получите</span>
-                  <div className={`mgLessonPriority mgLessonPriority--${pKey}`}>
-                    <span className="mgLessonPriorityIcon">{pInfo.icon}</span>
-                    <div className="mgLessonPriorityText">
-                      <span className="mgLessonPriorityLabel">{pInfo.label}</span>
-                      <span className="mgLessonPriorityDesc">{pInfo.desc}</span>
+                  {pInfo && (
+                    <div className={`mgLessonPriority mgLessonPriority--${pKey}`}>
+                      <span className="mgLessonPriorityIcon">{pInfo.icon}</span>
+                      <div className="mgLessonPriorityText">
+                        <span className="mgLessonPriorityLabel">{pInfo.label}</span>
+                        <span className="mgLessonPriorityDesc">{pInfo.desc}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <Btns l={l} kind="lesson" />
               </div>

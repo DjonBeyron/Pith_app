@@ -16,7 +16,7 @@ function wordFormGenitive(n) {
   return n === 1 ? 'слова' : 'слов'
 }
 
-export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeightChange, xpAmount = 0, onXpEarned }) {
+export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecked, onHeightChange, xpAmount = 0, onXpEarned }) {
   const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
     usePhraseAssembly(node)
   const [show, setShow]               = useState(false)
@@ -68,7 +68,6 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
 
   useEffect(() => {
     if (!isAnswered) return
-    const phrase = placed.map(p => p.word).join(' ')
     const answer   = setTimeout(() => { if (responseCorrect.trim()) onAnswered?.(responseCorrect, 'correct') }, 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
     const done     = setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_correct') }, 700 + 900 + 420)
@@ -112,6 +111,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onHeight
             onClick={() => {
               const r = checkAnswer()
               if (!r) return
+              onChecked?.(r, placed.map(p => p.word).join(' '))
               playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong')
               if (r === 'correct' && xpAmount > 0 && !xpFiredRef.current) {
                 xpFiredRef.current = true

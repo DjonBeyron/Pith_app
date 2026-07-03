@@ -299,3 +299,10 @@ $$;
 
 -- Старый небезопасный RPC удалён: принимал произвольную сумму от клиента (накрутка XP).
 drop function if exists public.add_xp(integer);
+
+-- ── Анализ знаний (SKILL_ANALYSIS.md) ─────────────────────────────
+-- Лог событий ответов пользователя за прохождения урока: jsonb-массив
+-- [{ lessonId, type, attempt, timeMs, option, sessionId, sourceLessonId, at }].
+-- Пишется клиентом в конце урока (только своя строка — RLS results_own),
+-- читается для расчёта приоритетов уроков.
+alter table public.lesson_results add column if not exists answers jsonb;

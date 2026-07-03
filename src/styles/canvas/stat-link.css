@@ -1,0 +1,69 @@
+/* Привязка ответов к урокам для анализа знаний (SKILL_ANALYSIS.md §3):
+   строка «→ Урок» / «Сигнал» в нодах и раскрывающиеся настройки варианта ⚙ */
+
+.nodeStatLinkRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.nodeStatLinkLabel {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #8b93a7;
+  white-space: nowrap;
+}
+
+.nodeStatLinkSelect {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: #cdd3e0;
+  background: #1a1d26;
+  border: 1px solid #2a2f3d;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Привязка задана — подсветка брендовым цветом */
+.nodeStatLinkSelectOn {
+  border-color: rgba(182, 254, 59, 0.55);
+  color: #b6fe3b;
+}
+
+/* Кнопка ⚙ у варианта выбора слова */
+.nodeWcGearBtn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  color: #8b93a7;
+  background: transparent;
+  border: 1px solid #2a2f3d;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.nodeWcGearBtn:hover { color: #cdd3e0; }
+
+/* У варианта есть свой урок или сигнал */
+.nodeWcGearBtnOn {
+  color: #b6fe3b;
+  border-color: rgba(182, 254, 59, 0.55);
+}
+
+/* Раскрытые настройки варианта: свой урок + сигнал */
+.nodeWcOptSettings {
+  margin: 2px 0 6px 26px;
+  padding: 6px 8px;
+  background: rgba(182, 254, 59, 0.04);
+  border: 1px solid #232836;
+  border-radius: 8px;
+}
+
+.nodeWcOptSettings .nodeStatLinkRow { margin-top: 4px; }
+.nodeWcOptSettings .nodeStatLinkRow:first-child { margin-top: 0; }

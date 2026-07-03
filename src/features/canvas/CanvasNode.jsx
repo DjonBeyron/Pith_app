@@ -7,6 +7,9 @@ import NodeWordChoicePicker       from './NodeWordChoicePicker.jsx'
 import NodePhraseAssemblyPicker   from './NodePhraseAssemblyPicker.jsx'
 import NodePhotoChoicePicker      from './NodePhotoChoicePicker.jsx'
 import NodeRegistrationTriggers   from './NodeRegistrationTriggers.jsx'
+import NodeLessonLink     from './NodeLessonLink.jsx'
+import NodeRewardCheckbox from './NodeRewardCheckbox.jsx'
+import { makeDefaultTriggers, hasOwnTriggers, setLastNodeType } from './nodeDefaults.js'
 import NodeTypeSelect, { NODE_TYPES, TYPE_COLOR } from './NodeTypeSelect.jsx'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
@@ -24,6 +27,7 @@ function colorBg(hex, alpha) {
 
 export default function CanvasNode({
   node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
+  moduleLessons = [],
 }) {
   const color   = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
   const [hlRect, setHlRect] = useState(null)  // viewport rect of node when HL editor is open
@@ -57,49 +61,18 @@ export default function CanvasNode({
     onUpdate({ size: NEXT_SIZE[node.size] })
   }
 
+  // Смена типа пересобирает триггеры под дефолт нового типа (nodeDefaults.js) —
+  // старые строки не тянутся за нодой и не дублируются. Существующая связь
+  // (then) сохраняется в первом триггере. Тип запоминается для новых нод.
   function changeType(e) {
     const newType = e.target.value
-    const update = { type: newType }
-    // word_choice needs its own trigger format (word_correct / word_wrong).
-    // Initialize them when switching to this type if not already present,
-    // so drag-connect and the dropdown selects work from the first interaction.
-    if (newType === 'word_choice') {
-      const hasWc = node.triggers?.some(t => t.if === 'word_correct' || t.if === 'word_wrong')
-      if (!hasWc) {
-        update.triggers = [
-          { id: crypto.randomUUID(), if: 'word_correct', then: null },
-          { id: crypto.randomUUID(), if: 'word_wrong',   then: null },
-        ]
-      }
+    setLastNodeType(newType)
+    if (hasOwnTriggers(newType, node.triggers)) {
+      onUpdate({ type: newType }) // родная пара уже есть — не трогаем связи
+      return
     }
-    if (newType === 'phrase_assembly') {
-      const hasPa = node.triggers?.some(t => t.if === 'phrase_correct' || t.if === 'phrase_wrong')
-      if (!hasPa) {
-        update.triggers = [
-          { id: crypto.randomUUID(), if: 'phrase_correct', then: null },
-          { id: crypto.randomUUID(), if: 'phrase_wrong',   then: null },
-        ]
-      }
-    }
-    if (newType === 'photo_choice') {
-      const hasPc = node.triggers?.some(t => t.if === 'photo_correct' || t.if === 'photo_wrong')
-      if (!hasPc) {
-        update.triggers = [
-          { id: crypto.randomUUID(), if: 'photo_correct', then: null },
-          { id: crypto.randomUUID(), if: 'photo_wrong',   then: null },
-        ]
-      }
-    }
-    if (newType === 'registration') {
-      const hasReg = node.triggers?.some(t => t.if === 'reg_submit' || t.if === 'reg_cancel')
-      if (!hasReg) {
-        update.triggers = [
-          { id: crypto.randomUUID(), if: 'reg_submit', then: null },
-          { id: crypto.randomUUID(), if: 'reg_cancel', then: null },
-        ]
-      }
-    }
-    onUpdate(update)
+    const keepThen = node.triggers?.find(t => t.then)?.then ?? null
+    onUpdate({ type: newType, triggers: makeDefaultTriggers(newType, keepThen) })
   }
 
   function handleAudioPick(file) {
@@ -288,20 +261,14 @@ export default function CanvasNode({
               nodeId={node.id}
               onTriggersChange={triggers => onUpdate({ triggers })}
               onTriggerMeasure={onTriggerMeasure}
+              statLessonId={tData.statLessonId ?? null}
+              onStatLessonChange={v => updateTypeData({ statLessonId: v })}
+              moduleLessons={moduleLessons}
             />
-            <label
-              className="nodeRewardCheckbox"
-              onClick={e => e.stopPropagation()}
-              onMouseDown={e => e.stopPropagation()}
-            >
-              <input
-                type="checkbox"
-                checked={tData.reward !== false}
-                onChange={e => updateTypeData({ reward: e.target.checked })}
-              />
-              <span className="nodeRewardLabel">Получить награду</span>
-              {tData.reward !== false && <span className="nodeRewardBadge">⭐ XP</span>}
-            </label>
+            <NodeRewardCheckbox
+              checked={tData.reward !== false}
+              onChange={v => updateTypeData({ reward: v })}
+            />
           </>
         )}
         {node.type === 'phrase_assembly' && (
@@ -321,19 +288,15 @@ export default function CanvasNode({
               onTriggersChange={triggers => onUpdate({ triggers })}
               onTriggerMeasure={onTriggerMeasure}
             />
-            <label
-              className="nodeRewardCheckbox"
-              onClick={e => e.stopPropagation()}
-              onMouseDown={e => e.stopPropagation()}
-            >
-              <input
-                type="checkbox"
-                checked={tData.reward !== false}
-                onChange={e => updateTypeData({ reward: e.target.checked })}
-              />
-              <span className="nodeRewardLabel">Получить награду</span>
-              {tData.reward !== false && <span className="nodeRewardBadge">⭐ XP</span>}
-            </label>
+            <NodeLessonLink
+              value={tData.statLessonId ?? null}
+              onChange={v => updateTypeData({ statLessonId: v })}
+              moduleLessons={moduleLessons}
+            />
+            <NodeRewardCheckbox
+              checked={tData.reward !== false}
+              onChange={v => updateTypeData({ reward: v })}
+            />
           </>
         )}
         {node.type === 'photo_choice' && (
@@ -351,19 +314,15 @@ export default function CanvasNode({
               onTriggersChange={triggers => onUpdate({ triggers })}
               onTriggerMeasure={onTriggerMeasure}
             />
-            <label
-              className="nodeRewardCheckbox"
-              onClick={e => e.stopPropagation()}
-              onMouseDown={e => e.stopPropagation()}
-            >
-              <input
-                type="checkbox"
-                checked={tData.reward !== false}
-                onChange={e => updateTypeData({ reward: e.target.checked })}
-              />
-              <span className="nodeRewardLabel">Получить награду</span>
-              {tData.reward !== false && <span className="nodeRewardBadge">⭐ XP</span>}
-            </label>
+            <NodeLessonLink
+              value={tData.statLessonId ?? null}
+              onChange={v => updateTypeData({ statLessonId: v })}
+              moduleLessons={moduleLessons}
+            />
+            <NodeRewardCheckbox
+              checked={tData.reward !== false}
+              onChange={v => updateTypeData({ reward: v })}
+            />
           </>
         )}
         {node.type === 'registration' && (

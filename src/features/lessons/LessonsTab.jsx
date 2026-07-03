@@ -7,6 +7,8 @@ import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { getCompletedLessons, markLessonCompleted, unmarkLessons } from '../../shared/lib/completedLessons.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
+import { loadAllEvents } from '../../shared/lib/skillStatsStore.js'
+import { computeAllPriorities } from '../../shared/lib/skillScore.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 
 function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
@@ -23,12 +25,21 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   const [justCompleted,   setJustCompleted]   = useState(null)
   const [saving,          setSaving]          = useState(false)
   const [saveMsg,         setSaveMsg]         = useState('')
+  // Приоритеты уроков из анализа знаний: Map<lessonId, 'high'|'medium'|'low'>
+  const [priorities,      setPriorities]      = useState(null)
   const didInitRef = useRef(false)
   const { isAdmin } = useAdmin()
+
+  function refreshPriorities() {
+    loadAllEvents()
+      .then(events => setPriorities(computeAllPriorities(events)))
+      .catch(() => {})
+  }
 
   useEffect(() => {
     // Прогрев кэша профиля: вкладка «Профиль» откроется сразу со свежим XP.
     refreshProfile()
+    refreshPriorities()
   }, [])
 
   useEffect(() => {
@@ -80,6 +91,7 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
               if (l) setJustCompleted({ id: l.id, xp: l.lessonXp ?? 0 })
             }
           }
+          refreshPriorities() // полоски приоритетов обновляются по свежим событиям
           setPlayerData(null)
           setPlayingLessonId(null)
         }}
@@ -118,10 +130,14 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         <ModuleGraph
           lessons={lessons}
           completedIds={completedIds}
+          priorities={priorities}
           justCompleted={justCompleted}
           onFlightDone={() => setJustCompleted(null)}
           onPlay={id => setLaunchId(id)}
-          onEdit={onOpenCanvas}
+          onEdit={id => onOpenCanvas({
+            id,
+            moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
+          })}
           onDelete={removeLesson}
           onRename={renameLesson}
           onTogglePublished={togglePublished}

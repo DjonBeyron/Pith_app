@@ -1,19 +1,54 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import CanvasNode from './CanvasNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
+import { nodeEntry } from './canvasPorts.js'
+import { makeDefaultTriggers, getLastNodeType } from './nodeDefaults.js'
 import { useCanvasDrag } from './useCanvasDrag.js'
+
+// Радиус (в мировых координатах), в котором брошенный порт цепляется
+// к входной точке ноды.
+const SNAP_R = 40
+
+// Порядковые номера следуют порядку графа: вход (нода без входящих связей) = #1,
+// дальше — обход по триггерам. Несвязанные ноды идут после, в старом порядке.
+function computeSeqMap(nodes) {
+  const incoming = new Set()
+  nodes.forEach(n => (n.triggers ?? []).forEach(t => { if (t.then) incoming.add(t.then) }))
+  const byId  = Object.fromEntries(nodes.map(n => [n.id, n]))
+  const bySeq = nodes.slice().sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
+  const order = []
+  const seen  = new Set()
+  function visit(n) {
+    if (!n || seen.has(n.id)) return
+    seen.add(n.id)
+    order.push(n.id)
+    ;(n.triggers ?? []).forEach(t => visit(byId[t.then]))
+  }
+  bySeq.filter(n => !incoming.has(n.id)).forEach(visit) // корни графа
+  bySeq.forEach(visit)                                  // циклы и осколки
+  return new Map(order.map((id, i) => [id, i + 1]))
+}
+
+// Применяет перенумерацию к списку нод (без изменений — возвращает тот же массив)
+function renumber(list) {
+  const seqMap = computeSeqMap(list)
+  if (list.every(n => seqMap.get(n.id) === n.seq)) return list
+  return list.map(n => ({ ...n, seq: seqMap.get(n.id) }))
+}
 
 const CANVAS_LS = id => `lesson_canvas_${id}`
 
 function makeNode(seq, x, y) {
+  // Новая нода наследует последний выбранный тип и его дефолтный триггер
+  const type = getLastNodeType()
   return {
     id: crypto.randomUUID(),
     seq,
     x,
     y,
     size: 'max',
-    type: 'audio',
-    triggers: [{ if: 'played', then: null }],
+    type,
+    triggers: makeDefaultTriggers(type),
     typeData: {
       audio:       { file_id: null },
       photo:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
@@ -48,6 +83,7 @@ function nodeAtPos(nodeList, wx, wy, excludeId) {
 
 export default function CanvasBoard({
   initialNodes, lessonFiles = [], onPickLessonFile, lessonId, onNodesChange,
+  moduleLessons = [],
 }) {
   const [nodes, setNodes] = useState(() => {
     const s = loadSaved(lessonId)
@@ -67,10 +103,10 @@ export default function CanvasBoard({
   const portDragRef  = useRef(null)
   const boardRef     = useRef(null)
   const mountedRef   = useRef(false)
-  const hoverTimer   = useRef(null)
 
   const updateNode = useCallback((id, patch) =>
-    setNodes(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n)), [])
+    // renumber: патч мог изменить триггеры → порядок графа
+    setNodes(prev => renumber(prev.map(n => n.id === id ? { ...n, ...patch } : n))), [])
 
   const moveNode = useCallback((id, dx, dy) =>
     setNodes(prev => prev.map(n => n.id === id ? { ...n, x: n.x + dx, y: n.y + dy } : n)), [])
@@ -90,34 +126,69 @@ export default function CanvasBoard({
     })
   }, [])
 
-  // Hover with generous delay so cursor can cross the gap between node and menu
+  // Меню ноды — «липучка»: открывается по наведению и висит, пока не кликнут
+  // вне ноды/меню (закрытие — в onMouseDown доски) или не наведут другую ноду.
   function enterNode(nodeId) {
-    clearTimeout(hoverTimer.current)
+    // Вопрос «Удалить?» другой ноды сбрасывается при переходе на новую
+    if (confirmDeleteId && confirmDeleteId !== nodeId) setConfirmDeleteId(null)
     setHoveredNodeId(nodeId)
   }
-  function leaveNode() {
-    // longer delay when confirm dialog is open so it doesn't vanish under the cursor
-    const delay = confirmDeleteId ? 3000 : 1200
-    hoverTimer.current = setTimeout(() => {
-      setHoveredNodeId(null)
-    }, delay)
-  }
+
+  // Del на наведённой ноде открывает вопрос «Удалить?» (не в полях ввода)
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key !== 'Delete') return
+      const tag = e.target.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return
+      if (hoveredNodeId) setConfirmDeleteId(hoveredNodeId)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [hoveredNodeId])
+
 
   function deleteNode(nodeId) {
-    clearTimeout(hoverTimer.current)
     setHoveredNodeId(null)
     setConfirmDeleteId(null)
-    setNodes(prev => {
-      const node = prev.find(n => n.id === nodeId)
-      if (!node) return prev
-      const removedSeq = node.seq
-      return prev
+    setNodes(prev => renumber(
+      prev
         .filter(n => n.id !== nodeId)
         .map(n => ({
           ...n,
-          seq: n.seq > removedSeq ? n.seq - 1 : n.seq,
           triggers: n.triggers.map(t => ({ ...t, then: t.then === nodeId ? null : t.then })),
         }))
+    ))
+  }
+
+  // Шаг сетки: ширина max-ноды + зазор. Столько же занимает новая нода.
+  const NODE_SLOT = 260
+
+  // Освобождает место под новую ноду: всё, что правее x, уезжает на слот вправо
+  function shiftRight(list, x) {
+    return list.map(n => n.x > x ? { ...n, x: n.x + NODE_SLOT } : n)
+  }
+
+  // Дубликат встраивается в цепочку сразу после оригинала: все выходы оригинала
+  // переключаются на копию, копия наследует прежние выходы. Вход остаётся на
+  // оригинале: A → B → B' → C. Номера пересчитывает renumber, соседи справа
+  // сдвигаются, освобождая место.
+  function duplicateNode(nodeId) {
+    setNodes(prev => {
+      const node = prev.find(n => n.id === nodeId)
+      if (!node) return prev
+      const copy = {
+        ...node,
+        id: crypto.randomUUID(),
+        x: node.x + NODE_SLOT,
+        y: node.y,
+        typeData: structuredClone(node.typeData ?? {}),
+        triggers: (node.triggers ?? []).map(t => ({ ...t, id: crypto.randomUUID() })),
+      }
+      const updated = shiftRight(prev, node.x).map(n => n.id !== nodeId ? n : {
+        ...n,
+        triggers: n.triggers.map(t => t.then ? { ...t, then: copy.id } : t),
+      })
+      return renumber([...updated, copy])
     })
   }
 
@@ -127,9 +198,13 @@ export default function CanvasBoard({
       if (!node) return prev
       const insertSeq = node.seq + 1
       const nextNode  = prev.find(n => n.seq === insertSeq) ?? null
-      const newNode   = makeNode(insertSeq, node.x + 260, node.y)
-      if (nextNode) newNode.triggers = [{ if: 'played', then: nextNode.id }]
-      const updated = prev.map(n => {
+      const newNode   = makeNode(insertSeq, node.x + NODE_SLOT, node.y)
+      // middle insert: новая нода ведёт на следующую своим первым триггером
+      if (nextNode) {
+        newNode.triggers = newNode.triggers.map((t, ti) =>
+          ti === 0 ? { ...t, then: nextNode.id } : t)
+      }
+      const updated = shiftRight(prev, node.x).map(n => {
         let out = n.seq >= insertSeq ? { ...n, seq: n.seq + 1 } : n
         if (n.id === nodeId) {
           if (nextNode) {
@@ -138,13 +213,19 @@ export default function CanvasBoard({
               ...t, then: t.then === nextNode.id ? newNode.id : t.then,
             }))}
           } else {
-            // tail insert: add trigger from clicked node to new node
-            out = { ...out, triggers: [...out.triggers, { if: 'played', then: newNode.id }] }
+            // tail insert: заполняем первый свободный триггер ноды (у word_choice /
+            // phrase_assembly / photo_choice свои пары correct/wrong — чужой 'played'
+            // добавлял бы лишний порт). Только если все заняты — добавляем 'played'.
+            const freeIdx = out.triggers.findIndex(t => !t.then)
+            out = freeIdx >= 0
+              ? { ...out, triggers: out.triggers.map((t, ti) =>
+                  ti === freeIdx ? { ...t, then: newNode.id } : t) }
+              : { ...out, triggers: [...out.triggers, { if: 'played', then: newNode.id }] }
           }
         }
         return out
       })
-      return [...updated, newNode]
+      return renumber([...updated, newNode])
     })
   }
 
@@ -158,6 +239,7 @@ export default function CanvasBoard({
 
   function startPortDrag(fromNodeId, triggerIdx, e) {
     e.stopPropagation()
+    e.preventDefault() // не даём браузеру начать выделение текста при протяжке
     const pd = { fromNodeId, triggerIdx, ...toWorld(e.clientX, e.clientY) }
     portDragRef.current = pd
     setPortDrag(pd)
@@ -178,15 +260,21 @@ export default function CanvasBoard({
     if (portDragRef.current) {
       const { fromNodeId, triggerIdx } = portDragRef.current
       const { x, y } = toWorld(e.clientX, e.clientY)
-      const hit = nodeAtPos(nodes, x, y, fromNodeId)
-      setNodes(prev => prev.map(n =>
+      // Сначала ближайшая входная точка в радиусе SNAP_R, потом тело ноды
+      const snapped = nodes
+        .filter(n => n.id !== fromNodeId)
+        .map(n => { const p = nodeEntry(n, triggerMeasures); return { n, d: Math.hypot(x - p.x, y - p.y) } })
+        .filter(o => o.d <= SNAP_R)
+        .sort((a, b) => a.d - b.d)[0]?.n ?? null
+      const hit = snapped ?? nodeAtPos(nodes, x, y, fromNodeId)
+      setNodes(prev => renumber(prev.map(n =>
         n.id !== fromNodeId ? n : {
           ...n,
           triggers: n.triggers.map((t, i) =>
             i !== triggerIdx ? t : { ...t, then: hit ? hit.id : null }
           ),
         }
-      ))
+      )))
       portDragRef.current = null
       setPortDrag(null)
       return
@@ -233,7 +321,7 @@ export default function CanvasBoard({
     const rect = el ? el.getBoundingClientRect() : { width: 900, height: 600 }
     const cx = (rect.width  / 2 - offset.x) / scale - 91 + (Math.random() - 0.5) * 60
     const cy = (rect.height / 2 - offset.y) / scale - 20 + (Math.random() - 0.5) * 60
-    setNodes(prev => [...prev, makeNode(prev.length + 1, cx, cy)])
+    setNodes(prev => renumber([...prev, makeNode(prev.length + 1, cx, cy)]))
   }
 
   const svgTransform   = `translate(${offset.x},${offset.y}) scale(${scale})`
@@ -243,8 +331,15 @@ export default function CanvasBoard({
     <div
       ref={boardRef}
       className="canvasBoard"
-      style={{ cursor: portDrag ? 'crosshair' : undefined }}
-      onMouseDown={startCanvasDrag}
+      style={{ cursor: portDrag ? 'crosshair' : undefined, userSelect: portDrag ? 'none' : undefined }}
+      onMouseDown={e => {
+        // Клик вне ноды и меню закрывает меню-липучку (и вопрос «Удалить?»)
+        if (!e.target.closest?.('.canvasNodeWrapper')) {
+          setHoveredNodeId(null)
+          setConfirmDeleteId(null)
+        }
+        startCanvasDrag(e)
+      }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
@@ -265,7 +360,6 @@ export default function CanvasBoard({
             className="canvasNodeWrapper"
             style={{ left: node.x, top: node.y }}
             onMouseEnter={() => enterNode(node.id)}
-            onMouseLeave={leaveNode}
           >
             <CanvasNode
               node={node}
@@ -276,12 +370,11 @@ export default function CanvasBoard({
               lessonFiles={lessonFiles}
               onPickLessonFile={onPickLessonFile}
               onTriggerMeasure={offsets => handleTriggerMeasure(node.id, offsets)}
+              moduleLessons={moduleLessons}
             />
             {hoveredNodeId === node.id && (
               <div
                 className="nodeHoverMenu"
-                onMouseEnter={() => enterNode(node.id)}
-                onMouseLeave={leaveNode}
                 onMouseDown={e => e.stopPropagation()}
               >
                 {confirmDeleteId === node.id ? (
@@ -294,9 +387,11 @@ export default function CanvasBoard({
                   </>
                 ) : (
                   <>
-                    <button className="nodeHoverBtn nodeHoverBtnDel"
+                    <button className="nodeHoverBtn nodeHoverBtnDel" title="Удалить ноду"
                       onClick={e => { e.stopPropagation(); setConfirmDeleteId(node.id) }}>×</button>
-                    <button className="nodeHoverBtn nodeHoverBtnAdd"
+                    <button className="nodeHoverBtn nodeHoverBtnDup" title="Дублировать ноду"
+                      onClick={e => { e.stopPropagation(); duplicateNode(node.id) }}>⧉</button>
+                    <button className="nodeHoverBtn nodeHoverBtnAdd" title="Вставить ноду после"
                       onClick={e => { e.stopPropagation(); insertAfterNode(node.id) }}>+</button>
                   </>
                 )}

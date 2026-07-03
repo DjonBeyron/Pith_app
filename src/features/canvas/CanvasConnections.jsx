@@ -1,3 +1,5 @@
+import { triggerAnchor, nodeEntry } from './canvasPorts.js'
+
 function seededRand(str) {
   let h = 0
   for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0
@@ -26,44 +28,9 @@ function neuronPath(x1, y1, x2, y2, seed) {
   return `M ${x1} ${y1} C ${x1+bulge+jit(seed+'a',12)} ${y1+dy*.15+jit(seed+'b',8)}, ${x2+bulge+jit(seed+'c',12)} ${y2-dy*.15+jit(seed+'d',8)}, ${x2} ${y2}`
 }
 
-// CSS-fallback constants (used before first DOM measurement on max nodes)
-const TRIGGER_Y_BASE = { audio: 132, text: 102, photo: 352, video: 352, circle: 352 }
-const TRIGGER_ROW_STRIDE = 54
-const THEN_Y_FALLBACK = 28
-// Dot sits 8px outside node edge (max only); mini/nano lines go 5px inside the node body
-const PORT_OFFSET  = 8
-const INNER_OFFSET = 5
-const NODE_W = { nano: 42, mini: 182, max: 220 }
-
-// y-center of trigger i's "Тогда" line for MAX nodes only.
-// triggerMeasures is ignored for mini/nano to prevent stale data after size change.
-function getThenY(node, i, triggerMeasures) {
-  const m = triggerMeasures[node.id]
-  if (m?.[i] != null) return node.y + m[i]
-  const base = TRIGGER_Y_BASE[node.type] ?? TRIGGER_Y_BASE.audio
-  return node.y + base + i * TRIGGER_ROW_STRIDE + THEN_Y_FALLBACK
-}
-
-// Output: right side of node.
-//   max  → 8px outside right edge at exact "Тогда" y (dot visible)
-//   mini/nano → 5px inside right edge at node center (line hidden under node body)
-function triggerAnchor(node, i, triggerMeasures) {
-  const w = NODE_W[node.size] ?? 192
-  if (node.size !== 'max') {
-    return { x: node.x + w - INNER_OFFSET, y: node.y + 18 }
-  }
-  return { x: node.x + w + PORT_OFFSET, y: getThenY(node, i, triggerMeasures) }
-}
-
-// Input: left side of node.
-//   max  → 8px outside left edge at exact "Тогда" y of first trigger (dot visible)
-//   mini/nano → 5px inside left edge at node center (line hidden under node body)
-function nodeEntry(node, triggerMeasures) {
-  if (node.size !== 'max') {
-    return { x: node.x + INNER_OFFSET, y: node.y + 18 }
-  }
-  return { x: node.x - PORT_OFFSET, y: getThenY(node, 0, triggerMeasures) }
-}
+// Радиус зоны срабатывания входной точки при перетаскивании порта —
+// синхронизирован со SNAP_R в CanvasBoard.
+const DROP_R = 40
 
 // layer='back'  → lines only (behind nodes, z-index 0)
 // layer='front' → dots only (in front of nodes, z-index 2)
@@ -141,6 +108,23 @@ export default function CanvasConnections({
       )
     })
 
+  // Во время перетаскивания порта: входные точки всех нод-кандидатов
+  // пульсируют; та, что в радиусе броска, — крупнее и чаще (готова принять)
+  const dropTargets = portDrag ? nodes
+    .filter(n => n.id !== portDrag.fromNodeId)
+    .map(node => {
+      const pos  = nodeEntry(node, triggerMeasures)
+      const near = Math.hypot(portDrag.x - pos.x, portDrag.y - pos.y) <= DROP_R
+      return (
+        <circle
+          key={`drop:${node.id}`}
+          className={`portDropPulse${near ? ' portDropPulse--near' : ''}`}
+          cx={pos.x} cy={pos.y} r={near ? 11 : 6}
+          fill="#b6fe3b" stroke="#090b0e" strokeWidth="2"
+        />
+      )
+    }) : null
+
   // Draggable input dots per active connection — only shown on MAX targets (for reconnect)
   const connInDots = lines
     .filter(l => l.toSize === 'max')
@@ -158,6 +142,7 @@ export default function CanvasConnections({
       {inDots}
       {connInDots}
       {outDots}
+      {dropTargets}
     </>
   )
 }
