@@ -6,6 +6,17 @@ import { pLog } from '../../shared/lib/debug.js'
 // Таймер: от появления панели (panelShown) до ответа; после каждого ответа
 // таймер той же ноды перезапускается — следующая попытка меряется отдельно.
 
+// Есть ли в сценарии хоть одна привязка ответа к уроку-цели — по ней
+// LessonLaunchCard решает, показывать ли диалог пересдачи (RetakeDialog).
+export function hasStatBindings(nodes) {
+  return (nodes ?? []).some(n => {
+    const td = n.typeData ?? {}
+    if (td.phrase_assembly?.statLessonId || td.photo_choice?.statLessonId) return true
+    const wc = td.word_choice
+    return !!wc?.statLessonId || (wc?.options ?? []).some(o => o.statLessonId || o.signal)
+  })
+}
+
 // Событие из выбранного варианта ноды «Выбор слова»:
 // сигнал варианта → know/dont_know; иначе, если у ноды есть ✓-варианты —
 // correct/wrong по галочке; урок — свой у варианта или общий у ноды.

@@ -25,6 +25,9 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   const [launchId,        setLaunchId]        = useState(null)
   const [playerData,      setPlayerData]      = useState(null)
   const [playingLessonId, setPlayingLessonId] = useState(null)
+  // Режим пересдачи (RetakeDialog): null — первое прохождение,
+  // 'update' — новая диагностика поверх старой, 'silent' — без записи анализа
+  const [statsMode,       setStatsMode]       = useState(null)
   const [completedIds,    setCompletedIds]    = useState(() => getCompletedLessons())
   // Только что пройденный урок — для анимации прилёта XP в графе модуля.
   const [justCompleted,   setJustCompleted]   = useState(null)
@@ -121,6 +124,7 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         teacherLogoCrop={playerData.teacherLogoCrop}
         videoAutoSound={playerData.videoAutoSound ?? false}
         initialBlobMap={playerData.blobMap}
+        recordStats={statsMode !== 'silent'} /* «без записи» — анализ не пишется */
         onClose={() => setPlayerData(null)}
         onSummaryClose={async () => {
           if (playingLessonId) {
@@ -135,10 +139,11 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           // Ждём пересчёт приоритетов ДО закрытия плеера — граф отрисуется
           // сразу с готовыми полосками, без скачка UI на глазах пользователя
           const map = await refreshPriorities()
-          // Легенда — один раз, когда диагностика впервые дала приоритеты
+          // Легенда — когда диагностика впервые дала приоритеты, и снова
+          // после пересдачи «с обновлением» (карта знаний перезаписана)
           const seen = !!localStorage.getItem(LEGEND_SEEN_KEY)
-          dbg('[LEGEND] приоритетов:', map?.size ?? 'null', 'уже видел:', seen)
-          if (map?.size > 0 && !seen) {
+          dbg('[LEGEND] приоритетов:', map?.size ?? 'null', 'уже видел:', seen, 'режим:', statsMode)
+          if (map?.size > 0 && (!seen || statsMode === 'update')) {
             setShowLegend(true)
           }
           setPlayerData(null)
@@ -199,7 +204,13 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
       {launchId && (
         <LessonLaunchCard
           lessonId={launchId}
-          onStart={data => { setPlayingLessonId(launchId); setLaunchId(null); setPlayerData(data) }}
+          retake={completedIds.has(launchId)}
+          onStart={(data, mode) => {
+            setPlayingLessonId(launchId)
+            setLaunchId(null)
+            setStatsMode(mode ?? null)
+            setPlayerData(data)
+          }}
           onClose={() => setLaunchId(null)}
         />
       )}

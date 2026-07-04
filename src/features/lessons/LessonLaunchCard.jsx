@@ -3,6 +3,8 @@ import { loadScript } from '../../shared/lib/lessonsApi.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
+import RetakeDialog from './RetakeDialog.jsx'
+import { hasStatBindings } from '../player/useAnswerStats.js'
 
 const WARMUP_TARGET = 5
 
@@ -26,7 +28,9 @@ function isWeakDevice() {
   return false
 }
 
-export default function LessonLaunchCard({ lessonId, onStart, onClose }) {
+// retake=true (урок уже пройден): если в сценарии есть привязки «→ Урок»,
+// вместо кнопки старта — выбор режима пересдачи (RetakeDialog).
+export default function LessonLaunchCard({ lessonId, retake = false, onStart, onClose }) {
   const [lessonData, setLessonData] = useState(null)
   const [error, setError]           = useState(null)
 
@@ -78,14 +82,19 @@ export default function LessonLaunchCard({ lessonId, onStart, onClose }) {
         )}
 
         {lessonData && (
-          <LaunchPreloader lessonData={lessonData} onStart={onStart} />
+          <LaunchPreloader
+            lessonData={lessonData}
+            retakeChoice={retake && hasStatBindings(lessonData.nodes)}
+            onStart={onStart}
+            onClose={onClose}
+          />
         )}
       </div>
     </div>
   )
 }
 
-function LaunchPreloader({ lessonData, onStart }) {
+function LaunchPreloader({ lessonData, retakeChoice = false, onStart, onClose }) {
   const { nodes, files, title, teacherName, teacherLogo, teacherLogoCrop, videoAutoSound, lessonXp } = lessonData
 
   // Weak device → smaller in-memory buffer during lesson (2 past + 2 ahead vs 5 + 3)
@@ -134,7 +143,8 @@ function LaunchPreloader({ lessonData, onStart }) {
   const canStart    = initialized && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
   const pct         = canStart ? 100 : Math.min(warmupPct, 99)
 
-  function handleStart() {
+  // statsMode: null (первое прохождение) | 'update' | 'silent' (выбор пересдачи)
+  function handleStart(statsMode = null) {
     // Preload + unlock in the same gesture context so iOS Safari decodes audio immediately.
     // preloadSounds() creates Audio objects; unlockAudio() does play+pause on them.
     // Both must run here (not in useEffect) — iOS only allows audio decode within a gesture.
@@ -144,7 +154,7 @@ function LaunchPreloader({ lessonData, onStart }) {
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
     const logoForPlayer = logoBlobRef.current ?? teacherLogo
     logoBlobRef.current = null
-    onStart({ nodes, files, blobMap, title, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound, lessonXp })
+    onStart({ nodes, files, blobMap, title, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound, lessonXp }, statsMode)
   }
 
   function downloadDebugLog() {
@@ -242,19 +252,23 @@ function LaunchPreloader({ lessonData, onStart }) {
         Скачать лог загрузки
       </button>
 
-      <button
-        onClick={handleStart}
-        disabled={!canStart}
-        style={{
-          padding: '14px 0', borderRadius: 12, border: 'none',
-          fontSize: 16, fontWeight: 600, cursor: canStart ? 'pointer' : 'default',
-          background: canStart ? '#4caf50' : '#333',
-          color: canStart ? '#fff' : '#666',
-          transition: 'background 0.3s ease, color 0.3s ease',
-        }}
-      >
-        {canStart ? '▶ Начать урок' : 'Загрузка...'}
-      </button>
+      {retakeChoice ? (
+        <RetakeDialog canStart={canStart} onPick={handleStart} onCancel={onClose} />
+      ) : (
+        <button
+          onClick={() => handleStart()}
+          disabled={!canStart}
+          style={{
+            padding: '14px 0', borderRadius: 12, border: 'none',
+            fontSize: 16, fontWeight: 600, cursor: canStart ? 'pointer' : 'default',
+            background: canStart ? '#4caf50' : '#333',
+            color: canStart ? '#fff' : '#666',
+            transition: 'background 0.3s ease, color 0.3s ease',
+          }}
+        >
+          {canStart ? '▶ Начать урок' : 'Загрузка...'}
+        </button>
+      )}
     </>
   )
 }

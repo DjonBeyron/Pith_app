@@ -79,6 +79,23 @@
   border-color: rgba(139, 92, 246, 0.5);
 }
 
+/* Финал открыт, церемония отыграла (chromeGone): пилюля плавно тает и
+   схлопывается, освобождая место (max-height задан и в базе — для анимации) */
+.mgFinalPill { max-height: 120px; }
+
+.mgFinalPill--gone {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  border-color: transparent;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.7s ease,
+    max-height 0.7s ease 0.25s, padding 0.7s ease 0.25s, border-color 0.7s ease;
+}
+
 .mgFinalPillLock {
   position: relative; /* якорь для разлетающихся искр */
   display: flex;
@@ -143,8 +160,11 @@
   justify-content: center;
   /* linear и длительность = интервалу прилёта кружочков (ORB_GAP_MS в XpFlight.jsx):
      бар и ключ растут непрерывно, без пауз между прилётами */
-  transition: left 0.3s linear;
+  transition: left 0.3s linear, opacity 0.7s ease;
 }
+
+/* Финал открыт: ключ «использован» — плавно исчезает вместе с пилюлей */
+.mgFinalXpKnob--gone { opacity: 0; pointer-events: none; }
 
 /* Замок-цель (дужка всегда откинута): серый пока закрыт, фиолетовый после
    открытия финала. По наведению/тапу показывает подсказку про ключ. */
@@ -156,9 +176,13 @@
   display: flex;
   color: #6a7080;
   cursor: pointer;
+  transition: opacity 0.7s ease;
 }
 
 .mgFinalXpLock--open { color: #a78bfa; cursor: default; }
+
+/* Замок-цель после церемонии тоже исчезает */
+.mgFinalXpLock--gone { opacity: 0; pointer-events: none; }
 
 .mgFinalLockTip {
   position: absolute;

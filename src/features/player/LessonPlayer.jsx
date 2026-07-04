@@ -41,12 +41,13 @@ export default function LessonPlayer({
   initialBlobMap = null,
   lessonXp = 0,
   lessonId = null,
+  recordStats = true, // false (пересдача «без записи») — события анализа не пишутся
   onClose,
   onSummaryClose,
 }) {
   const [files, setFiles] = useState(propFiles)
   const earnedXpRef = useRef(0)
-  const { panelShown, record, getEvents } = useAnswerStats({ sourceLessonId: lessonId })
+  const { panelShown, record, getEvents } = useAnswerStats({ sourceLessonId: lessonId, enabled: recordStats })
   const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes, {
     onFinish: () => setTimeout(async () => {
       const profile = await getProfile()

@@ -40,6 +40,13 @@
 .mgLesson--medium { border-left: 3px solid #eab308; }
 .mgLesson--low    { border-left: 3px solid #3b82f6; }
 
+/* Тап/ховер (.mgNode:hover перекрашивает border-color целиком) не должен
+   гасить полоску приоритета — возвращаем левой границе её цвет.
+   На телефонах :hover «залипает» после тапа — без этого полоска исчезала. */
+.mgNode--lesson.mgLesson--high:hover   { border-left-color: #f97316; }
+.mgNode--lesson.mgLesson--medium:hover { border-left-color: #eab308; }
+.mgNode--lesson.mgLesson--low:hover    { border-left-color: #3b82f6; }
+
 /* Number circle */
 .mgLessonNum {
   width: 34px;

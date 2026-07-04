@@ -48,6 +48,9 @@ export default function MgFinalNode({
   const [unlockAnim,    setUnlockAnim]    = useState(false)
   const [burst,         setBurst]         = useState(false)
   const [lockOpenShown, setLockOpenShown] = useState(finalOpen)
+  // Финал открыт и церемония отыграла: пилюля, ключ-бегунок и замок-цель
+  // плавно исчезают (CSS --gone). При монтировании уже открытого — сразу true.
+  const [chromeGone,    setChromeGone]    = useState(finalOpen)
   // Подсказка у замка-цели: наведение или тап — «нужен ключ»
   const [lockHint,      setLockHint]      = useState(false)
   const prevOpenRef = useRef(finalOpen)
@@ -70,14 +73,15 @@ export default function MgFinalNode({
     prevOpenRef.current = finalOpen
     if (!finalOpen) {
       // Сброс прогресса — вернуть замок закрытым (асинхронно: правило хуков).
-      const t = setTimeout(() => setLockOpenShown(false), 0)
+      const t = setTimeout(() => { setLockOpenShown(false); setChromeGone(false) }, 0)
       return () => clearTimeout(t)
     }
     const t0 = setTimeout(() => setUnlockAnim(true), 0)
     const t1 = setTimeout(() => { setLockOpenShown(true); setBurst(true) }, 1300)
     const t2 = setTimeout(() => setUnlockAnim(false), 2200)
     const t3 = setTimeout(() => setBurst(false), 3400)
-    return () => { clearTimeout(t0); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    const t4 = setTimeout(() => setChromeGone(true), 3800) // церемония кончилась — прибрать
+    return () => { clearTimeout(t0); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
   }, [finalOpen])
 
   const glowCls = `mgGlow ${finalOpen ? 'mgGlow--final--open' : 'mgGlow--final'}` +
@@ -98,7 +102,7 @@ export default function MgFinalNode({
             <>
               <span className="mgNodeTitle">{lesson.title}</span>
               {/* Плашка-«пилюля»: замок церемонии + статус доступа */}
-              <div className={`mgFinalPill${finalOpen ? ' mgFinalPill--open' : ''}`}>
+              <div className={`mgFinalPill${finalOpen ? ' mgFinalPill--open' : ''}${chromeGone ? ' mgFinalPill--gone' : ''}`}>
                 <span className={`mgFinalPillLock${unlockAnim ? ' mgIconBadge--unlocking' : ''}`}>
                   <LockIcon open={lockOpenShown} size={36} />
                   {burst && (
@@ -124,12 +128,15 @@ export default function MgFinalNode({
                       <div className="mgFinalXpBar">
                         <div className="mgFinalXpBarFill" style={{ width: xpPct + '%' }} />
                       </div>
-                      <span ref={knobRef} className="mgFinalXpKnob" style={{ left: xpPct + '%' }}>
+                      {/* Ключ исчезает сразу, как бар дошёл до конца (finalOpen),
+                          не дожидаясь конца церемонии */}
+                      <span ref={knobRef} className={`mgFinalXpKnob${finalOpen ? ' mgFinalXpKnob--gone' : ''}`}
+                        style={{ left: xpPct + '%' }}>
                         <KeyIcon />
                       </span>
                     </div>
                     <span
-                      className={`mgFinalXpLock${finalOpen ? ' mgFinalXpLock--open' : ''}`}
+                      className={`mgFinalXpLock${finalOpen ? ' mgFinalXpLock--open' : ''}${chromeGone ? ' mgFinalXpLock--gone' : ''}`}
                       onMouseEnter={() => { if (!finalOpen) setLockHint(true) }}
                       onMouseLeave={() => setLockHint(false)}
                       onClick={pokeLock}
