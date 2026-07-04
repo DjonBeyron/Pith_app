@@ -4,9 +4,9 @@ import { FLIGHT_DELAY_MS } from './XpFlight.jsx'
 const ORB_SPEED = 0.55 // px/мс — как у кружочков XP (XpFlight.jsx), заполнение идёт с их скоростью
 
 // Зелёное заполнение линии. animate=true (урок только что пройден) —
-// линия «прорисовывается» синхронно со стартом полёта кружочков:
-// после той же паузы FLIGHT_DELAY_MS.
-function ProgressStroke({ d, animate }) {
+// линия «прорисовывается» синхронно со стартом полёта кружочков: после той же
+// паузы delayMs (по умолчанию FLIGHT_DELAY_MS; после попапа-легенды — вдвое короче).
+function ProgressStroke({ d, animate, delayMs = FLIGHT_DELAY_MS }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -18,9 +18,9 @@ function ProgressStroke({ d, animate }) {
     const t = setTimeout(() => {
       el.style.transition = `stroke-dashoffset ${Math.round(len / ORB_SPEED)}ms linear`
       requestAnimationFrame(() => { el.style.strokeDashoffset = '0' })
-    }, FLIGHT_DELAY_MS)
+    }, delayMs)
     return () => clearTimeout(t)
-  }, [animate])
+  }, [animate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <path ref={ref} d={d} className="mgRightFill" />
 }
@@ -32,6 +32,7 @@ function ProgressStroke({ d, animate }) {
 export default function ChainLines({
   arcs, middle, completedIds, justCompletedId,
   startDone = false, startJustDone = false, startHold = false,
+  lineDelayMs = FLIGHT_DELAY_MS,
 }) {
   // Статичный зелёный — только если диагностика пройдена и это не текущее
   // завершение (тогда зелень появляется анимацией-прорисовкой поверх белой).
@@ -63,14 +64,14 @@ export default function ChainLines({
           со скоростью кружочков — первый кружок касается первого урока ровно
           когда его линия дозеленела */}
       {startJustDone && arcs.filter(a => a.side === 'left').map((a, i) => (
-        <ProgressStroke key={`left-${i}`} d={a.d} animate />
+        <ProgressStroke key={`left-${i}`} d={a.d} animate delayMs={lineDelayMs} />
       ))}
       {arcs.filter(a => a.side === 'right' && a.fillD).map(a => {
         const lesson = middle[a.lessonIndex]
         if (!lesson || !completedIds.has(lesson.id)) return null
         return (
           <ProgressStroke key={lesson.id} d={a.fillD}
-            animate={lesson.id === justCompletedId} />
+            animate={lesson.id === justCompletedId} delayMs={lineDelayMs} />
         )
       })}
     </svg>

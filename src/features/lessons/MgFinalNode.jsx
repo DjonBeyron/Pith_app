@@ -100,7 +100,7 @@ export default function MgFinalNode({
               {/* Плашка-«пилюля»: замок церемонии + статус доступа */}
               <div className={`mgFinalPill${finalOpen ? ' mgFinalPill--open' : ''}`}>
                 <span className={`mgFinalPillLock${unlockAnim ? ' mgIconBadge--unlocking' : ''}`}>
-                  <LockIcon open={lockOpenShown} size={18} />
+                  <LockIcon open={lockOpenShown} size={36} />
                   {burst && (
                     <span className="mgLockSparks">
                       {SPARK_DIRS.map((d, i) => (

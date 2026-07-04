@@ -27,8 +27,10 @@ export const FLIGHT_DELAY_MS = 2400
 // затем по прямой до ключа-бегунка прогресс-бара. getTarget() запрашивается каждый кадр —
 // ключ едет вместе с баром, и кружок доводится точно в его актуальное положение.
 // onLaunch(durMs) — старт полёта (durMs — время до прилёта первого кружочка),
-// onArrive(value) — по прилёте каждого, onDone() — когда прилетели все.
-export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive, onDone }) {
+// onArrive(value) — за ORB_GAP_MS ДО касания (CSS-рост бара длится ровно ORB_GAP_MS —
+// бар доезжает до нового значения точно в момент касания), onTouch() — в момент
+// касания (вспышка финала), onDone() — когда прилетели все.
+export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive, onTouch, onDone }) {
   const pathRefs = useRef([])
   const orbRefs  = useRef([])
   const doneRef  = useRef(false)
@@ -62,18 +64,26 @@ export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive,
 
     let raf
     const t0 = performance.now()
-    const arrived = new Set()
+    const arrived  = new Set()
+    const credited = new Set() // XP уже отдан бару (за ORB_GAP_MS до касания)
     const tick = (now) => {
       let allDone = true
       parts.forEach((val, i) => {
         const el = orbRefs.current[i]
         if (!el || arrived.has(i)) return
-        const t = (now - t0 - i * ORB_GAP_MS) / dur
+        const elapsed = now - t0 - i * ORB_GAP_MS
+        // Рост бара стартует заранее: его CSS-transition (ORB_GAP_MS) закончится
+        // ровно в момент касания кружочка — бар и кружки идут синхронно
+        if (!credited.has(i) && elapsed + ORB_GAP_MS >= dur) {
+          credited.add(i)
+          onArrive?.(val)
+        }
+        const t = elapsed / dur
         if (t < 0) { allDone = false; return }
         if (t >= 1) {
           arrived.add(i)
           el.setAttribute('opacity', '0')
-          onArrive?.(val)
+          onTouch?.()
           return
         }
         allDone = false

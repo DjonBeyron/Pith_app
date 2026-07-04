@@ -102,6 +102,16 @@
 
 /* ── СТАРТ ──────────────────────────────────────────────────── */
 
+/* Превращение в «пройден» анимируется: фоны — сплошные цвета (transition),
+   зелёный градиент — отдельный слой ::before с opacity, свечение и контур —
+   transition на filter/color. Работает и после попапа, и при обычном выходе. */
+.mgNode--start { transition: background 0.9s ease; }
+.mgNode--start .mgHexFill { transition: background 0.9s ease; }
+.mgGlow--start,
+.mgGlow--start--done { transition: filter 0.9s ease; }
+.mgGlow--start .mgNodeOutline,
+.mgGlow--start--done .mgNodeOutline { transition: color 0.9s ease; }
+
 /* Не пройден: серая заливка (обводка — белый SVG-контур) */
 .mgNode--start--inactive {
   background: #14161c;
@@ -117,9 +127,21 @@
 }
 
 .mgNode--start--done .mgHexFill {
-  background:
-    linear-gradient(180deg, rgba(182, 254, 59, 0.20), rgba(182, 254, 59, 0.04)),
-    #10140c;
+  background: #10140c;
+}
+
+.mgHexFill--start::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(182, 254, 59, 0.20), rgba(182, 254, 59, 0.04));
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+
+.mgNode--start--done .mgHexFill--start::before {
+  opacity: 1;
 }
 
 .mgHexFill--start {
@@ -149,6 +171,7 @@
   color: #b6fe3b;
   font-size: 26px;
   text-shadow: 0 0 12px rgba(182, 254, 59, 0.55);
+  transition: color 0.9s ease, text-shadow 0.9s ease; /* озеленение в такт ноду */
 }
 
 .mgGlow--start .mgIconBadge--start {

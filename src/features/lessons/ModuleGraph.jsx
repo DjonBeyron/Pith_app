@@ -9,6 +9,10 @@ import { useChainScroll } from './useChainScroll.js'
 // поверх нода: даёт ровную обводку, чего не добиться масштабированием заливки.
 const START_PATH = 'M 25.82 32.12 L 64.18 12.88 A 50 50 0 0 1 115.82 12.88 L 154.18 32.12 A 50 50 0 0 1 180 73.86 L 180 106.14 A 50 50 0 0 1 154.18 147.88 L 115.82 167.12 A 50 50 0 0 1 64.18 167.12 L 25.82 147.88 A 50 50 0 0 1 0 106.14 L 0 73.86 A 50 50 0 0 1 25.82 32.12 Z'
 
+// Пауза «явного превращения» старта: столько он виден непройденным (серым)
+// после выхода из диагностики/попапа, потом плавно зеленеет.
+const START_REVEAL_MS = 800
+
 const PRIORITY = {
   high:   { label: 'Высокий приоритет', icon: '📈', desc: 'Наиболее важен для вас' },
   medium: { label: 'Средний приоритет', icon: '≡',  desc: 'Полезен для развития' },
@@ -21,6 +25,7 @@ export default function ModuleGraph({
   justCompleted = null,
   priorities = null, // Map<lessonId, 'high'|'medium'|'low'> из анализа знаний; null у урока = без полоски
   animHold = false,  // true (попап-легенда открыт) — пульс/полёт XP/озеленение линий ждут закрытия
+  animShort = false, // true (попап только что закрыт) — офсет анимации вдвое короче
   onFlightDone,
   onPlay, onEdit, onDelete, onRename, onTogglePublished, onResetLesson,
 }) {
@@ -140,12 +145,27 @@ export default function ModuleGraph({
     }
     if (!flightPaths.length) { onFlightDone?.(); return }
     // Пауза перед полётом: сначала пульс «урок пройден», потом кружки.
+    // После попапа-легенды пользователь уже подождал — офсет вдвое короче.
     const t = setTimeout(() => {
       setDelivered(0)
       setFlight({ paths: flightPaths, amount: justCompleted.xp })
-    }, FLIGHT_DELAY_MS)
+    }, animShort ? FLIGHT_DELAY_MS / 2 : FLIGHT_DELAY_MS)
     return () => clearTimeout(t)
   }, [justCompleted, arcs, animHold]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Явное превращение старта: пока false — старт (и его линии/точки) в исходном
+  // сером виде; через START_REVEAL_MS после снятия паузы попапа стартует
+  // озеленение (CSS-transition), пульс и прорисовка линий.
+  const [startReveal, setStartReveal] = useState(false)
+  const startJustId = !!justCompleted && lessons[0] && justCompleted.id === lessons[0].id
+  useEffect(() => {
+    if (!startJustId || animHold) {
+      const t = setTimeout(() => setStartReveal(false), 0)
+      return () => clearTimeout(t)
+    }
+    const t = setTimeout(() => setStartReveal(true), START_REVEAL_MS)
+    return () => clearTimeout(t)
+  }, [startJustId, animHold])
 
   // Вспышка финала в такт касанию кружочка (снять класс → кадр → надеть заново,
   // чтобы CSS-анимация перезапускалась на каждом прилёте).
@@ -177,6 +197,11 @@ export default function ModuleGraph({
   lessonRefs.current = []
 
   const startDone  = completedIds.has(start.id)
+  // Только что пройденный старт показывается НЕпройденным, пока попап открыт
+  // И ещё START_REVEAL_MS после — потом классы --done вешаются и озеленение
+  // проигрывается плавно (transition в CSS)
+  const startHold      = startJustId && animHold
+  const startDoneShown = startDone && (!startJustId || startReveal)
   // Порог открытия финала — сумма XP всех уроков модуля (старт + обычные).
   // Прогресс — XP только за пройденные уроки этого модуля.
   const nonFinal   = lessons.slice(0, n - 1)
@@ -241,11 +266,11 @@ export default function ModuleGraph({
       <div ref={containerRef} className="moduleGraphInner">
 
         {/* ── START ── */}
-        <div className={`mgGlow ${startDone ? 'mgGlow--start--done' : 'mgGlow--start'}${justCompleted?.id === start.id && !animHold ? ' mgGlow--justDone' : ''}`}>
+        <div className={`mgGlow ${startDoneShown ? 'mgGlow--start--done' : 'mgGlow--start'}${startJustId && !animHold && startReveal ? ' mgGlow--justDone' : ''}`}>
           <span className="mgIconBadge mgIconBadge--start">★</span>
           <div
             ref={startRef}
-            className={`mgNode mgNode--start${startDone ? ' mgNode--start--done' : ' mgNode--start--inactive'}`}
+            className={`mgNode mgNode--start${startDoneShown ? ' mgNode--start--done' : ' mgNode--start--inactive'}`}
             onMouseEnter={() => setHovered(start.id)}
             onMouseLeave={() => setHovered(null)}
             onClick={e => { e.stopPropagation(); handleClick(start.id) }}
@@ -254,15 +279,15 @@ export default function ModuleGraph({
               {renaming === start.id ? <RenameInput /> : (
                 <>
                   <span className="mgNodeTitle">{start.title}</span>
-                  {startDone
+                  {startDoneShown
                     ? <span className="mgStartBadge">✓ Диагностика пройдена</span>
                     : <span className="mgStartSub">Диагностика</span>
                   }
                   <button
-                    className={`mgStartBtn${startDone ? ' mgStartBtn--again' : ''}`}
+                    className={`mgStartBtn${startDoneShown ? ' mgStartBtn--again' : ''}`}
                     onClick={e => { e.stopPropagation(); onPlay(start.id) }}
                   >
-                    {startDone ? 'Пройти снова' : 'Начать'}
+                    {startDoneShown ? 'Пройти снова' : 'Начать'}
                   </button>
                   <Btns l={start} kind="start" />
                 </>
@@ -350,8 +375,9 @@ export default function ModuleGraph({
           completedIds={completedIds}
           justCompletedId={justCompleted?.id ?? null}
           startDone={startDone}
-          startJustDone={justCompleted?.id === start.id && !animHold}
-          startHold={justCompleted?.id === start.id && animHold}
+          startJustDone={startJustId && !animHold && startReveal}
+          startHold={startHold || (startJustId && !startReveal)}
+          lineDelayMs={animShort ? FLIGHT_DELAY_MS / 2 : FLIGHT_DELAY_MS}
         />
 
         {flight && (
@@ -360,7 +386,8 @@ export default function ModuleGraph({
             getTarget={getKnobPoint}
             amount={flight.amount}
             onLaunch={scrollToFinal}
-            onArrive={val => { setDelivered(d => d + val); flashFinal() }}
+            onArrive={val => setDelivered(d => d + val)}
+            onTouch={flashFinal}
             onDone={() => { setFlight(null); onFlightDone?.() }}
           />
         )}
