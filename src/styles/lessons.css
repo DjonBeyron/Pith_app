@@ -182,7 +182,12 @@
   background: #0e1013;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  transition: opacity 0.35s ease;
 }
+
+/* Попап-легенда открыт: граф невидим (успевает смонтироваться и дорисовать
+   линии за кадром), после закрытия попапа плавно проявляется */
+.moduleGraphScroll--held { opacity: 0; }
 .moduleGraphScroll::-webkit-scrollbar,
 .moduleGraphScroll::-webkit-scrollbar-track,
 .moduleGraphScroll::-webkit-scrollbar-thumb { display: none; width: 0; height: 0; }

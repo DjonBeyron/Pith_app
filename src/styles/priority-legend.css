@@ -7,19 +7,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 6, 9, 0.66);
-  backdrop-filter: blur(2px);
-  animation: plFadeIn 0.22s ease;
-}
-
-@keyframes plFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  /* Без backdrop-filter (blur мигал) и без fade-in: затемнение появляется сразу
+     непрозрачным, чтобы скрыть смену экрана плеер→схема под попапом. */
+  background: rgba(5, 6, 9, 0.72);
 }
 
 .priorityLegendCard {
   position: relative;
   width: min(320px, calc(100vw - 48px));
+  max-height: 84vh;      /* много уроков — карточка скроллится внутри */
+  overflow-y: auto;
+  scrollbar-width: none;
   padding: 22px 24px 20px;
   background: #14171e;
   border: 1px solid #262a35;
@@ -27,6 +25,8 @@
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
   animation: plCardIn 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+.priorityLegendCard::-webkit-scrollbar { display: none; width: 0; }
 
 @keyframes plCardIn {
   from { opacity: 0; transform: translateY(14px) scale(0.97); }
@@ -75,20 +75,30 @@
 .plMiniCard {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 12px;
   background: #12151c;
   border: 1px solid #23262f;
-  border-left: 3px solid #2e323d; /* нет данных — серая полоска */
+  border-left: 3px solid #2e323d;
   border-radius: 10px;
 }
+
+/* Однообразный значок урока — цветная точка в тон приоритета */
+.plMiniDot {
+  flex-shrink: 0;
+  font-size: 9px;
+  line-height: 1;
+}
+.plMiniDot--high   { color: #f97316; }
+.plMiniDot--medium { color: #eab308; }
+.plMiniDot--low    { color: #3b82f6; }
 
 .plMiniCard--high   { border-left-color: #f97316; }
 .plMiniCard--medium { border-left-color: #eab308; }
 .plMiniCard--low    { border-left-color: #3b82f6; }
 
 .plMiniTitle {
+  flex: 1;
   font-size: 12.5px;
   font-weight: 600;
   color: #e8ecf4;
@@ -101,7 +111,6 @@
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 700;
-  color: #6a7080;
 }
 
 .plMiniStatus--high   { color: #f97316; }
@@ -137,8 +146,8 @@
 
 .priorityLegendIcon {
   width: 24px;
-  font-size: 17px;
-  line-height: 1.2;
+  font-size: 11px;
+  line-height: 1.6;
   text-align: center;
   flex-shrink: 0;
 }

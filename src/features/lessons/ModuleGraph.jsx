@@ -21,6 +21,7 @@ export default function ModuleGraph({
   justCompleted = null,
   priorities = null, // Map<lessonId, 'high'|'medium'|'low'> из анализа знаний; null у урока = без полоски
   animHold = false,  // true (попап-легенда открыт) — пульс/полёт XP/озеленение линий ждут закрытия
+  animShort = false, // true (попап только что закрыт) — офсет анимации вдвое короче
   onFlightDone,
   onPlay, onEdit, onDelete, onRename, onTogglePublished, onResetLesson,
 }) {
@@ -140,10 +141,11 @@ export default function ModuleGraph({
     }
     if (!flightPaths.length) { onFlightDone?.(); return }
     // Пауза перед полётом: сначала пульс «урок пройден», потом кружки.
+    // После попапа-легенды пользователь уже подождал — офсет вдвое короче.
     const t = setTimeout(() => {
       setDelivered(0)
       setFlight({ paths: flightPaths, amount: justCompleted.xp })
-    }, FLIGHT_DELAY_MS)
+    }, animShort ? FLIGHT_DELAY_MS / 2 : FLIGHT_DELAY_MS)
     return () => clearTimeout(t)
   }, [justCompleted, arcs, animHold]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -233,8 +235,11 @@ export default function ModuleGraph({
       onClick={e => e.stopPropagation()} />
   )
 
+  // animHold (попап-легенда открыт): граф спрятан (--held) — попап появляется на
+  // ровном тёмном фоне без «моргания» перехода плеер→схема; после закрытия проявляется
   return (
-    <div ref={scrollRef} className="moduleGraphScroll" onClick={() => setTapped(null)}>
+    <div ref={scrollRef} className={`moduleGraphScroll${animHold ? ' moduleGraphScroll--held' : ''}`}
+      onClick={() => setTapped(null)}>
       <div ref={containerRef} className="moduleGraphInner">
 
         {/* ── START ── */}
@@ -349,6 +354,7 @@ export default function ModuleGraph({
           startDone={startDone}
           startJustDone={justCompleted?.id === start.id && !animHold}
           startHold={justCompleted?.id === start.id && animHold}
+          lineDelayMs={animShort ? FLIGHT_DELAY_MS / 2 : FLIGHT_DELAY_MS}
         />
 
         {flight && (
