@@ -2,16 +2,14 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import XpFlight, { FLIGHT_DELAY_MS } from './XpFlight.jsx'
 import ChainLines from './ChainLines.jsx'
-import MgFinalNode from './MgFinalNode.jsx'
+import MgFinalNode, { LockIcon } from './MgFinalNode.jsx'
+import MgStartNode from './MgStartNode.jsx'
 import { useChainScroll } from './useChainScroll.js'
-
-// Контур старта — тот же path, что в clip-path (lessons.css). Рисуется SVG-штрихом
-// поверх нода: даёт ровную обводку, чего не добиться масштабированием заливки.
-const START_PATH = 'M 25.82 32.12 L 64.18 12.88 A 50 50 0 0 1 115.82 12.88 L 154.18 32.12 A 50 50 0 0 1 180 73.86 L 180 106.14 A 50 50 0 0 1 154.18 147.88 L 115.82 167.12 A 50 50 0 0 1 64.18 167.12 L 25.82 147.88 A 50 50 0 0 1 0 106.14 L 0 73.86 A 50 50 0 0 1 25.82 32.12 Z'
 
 // Пауза «явного превращения» старта: столько он виден непройденным (серым)
 // после выхода из диагностики/попапа, потом плавно зеленеет.
-const START_REVEAL_MS = 800
+// Меньше FLIGHT_DELAY_MS/2 (попап-кейс): озеленение стартует до полёта кружков.
+const START_REVEAL_MS = 500
 
 const PRIORITY = {
   high:   { label: 'Высокий приоритет', icon: '📈', desc: 'Наиболее важен для вас' },
@@ -105,10 +103,14 @@ export default function ModuleGraph({
       })
       // Справа (урок → финал): серая линия со стрелкой + зелёное заполнение
       // до развилки следующего урока (у последнего — до самого финала).
+      // Точка на выходе из урока — как у левых линий на входе.
       const fullD  = orthPath(pR.x, pR.y, pBottom.x, pBottom.y, false)
       const nextEl = lessonRefs.current[i + 1]
       const fillD  = nextEl ? rightPartial(pR.x, pR.y, mid(nextEl, 'right').y) : fullD
-      newArcs.push({ d: fullD, side: 'right', arrow: true, fillD, lessonIndex: i })
+      newArcs.push({
+        d: fullD, side: 'right', arrow: true, fillD, lessonIndex: i,
+        dots: [{ x: pR.x, y: pR.y }],
+      })
     })
     setArcs(newArcs)
   }, [])
@@ -266,64 +268,38 @@ export default function ModuleGraph({
       <div ref={containerRef} className="moduleGraphInner">
 
         {/* ── START ── */}
-        <div className={`mgGlow ${startDoneShown ? 'mgGlow--start--done' : 'mgGlow--start'}${startJustId && !animHold && startReveal ? ' mgGlow--justDone' : ''}`}>
-          <span className="mgIconBadge mgIconBadge--start">★</span>
-          <div
-            ref={startRef}
-            className={`mgNode mgNode--start${startDoneShown ? ' mgNode--start--done' : ' mgNode--start--inactive'}`}
-            onMouseEnter={() => setHovered(start.id)}
-            onMouseLeave={() => setHovered(null)}
-            onClick={e => { e.stopPropagation(); handleClick(start.id) }}
-          >
-            <div className="mgHexFill mgHexFill--start">
-              {renaming === start.id ? <RenameInput /> : (
-                <>
-                  <span className="mgNodeTitle">{start.title}</span>
-                  {startDoneShown
-                    ? <span className="mgStartBadge">✓ Диагностика пройдена</span>
-                    : <span className="mgStartSub">Диагностика</span>
-                  }
-                  <button
-                    className={`mgStartBtn${startDoneShown ? ' mgStartBtn--again' : ''}`}
-                    onClick={e => { e.stopPropagation(); onPlay(start.id) }}
-                  >
-                    {startDoneShown ? 'Пройти снова' : 'Начать'}
-                  </button>
-                  <Btns l={start} kind="start" />
-                </>
-              )}
-            </div>
-          </div>
-          <svg className="mgNodeOutline" viewBox="0 0 180 180">
-            <defs>
-              {/* Обводка как в референсе: яркая сверху, к низу сходит в ноль */}
-              <linearGradient id="mgOutlineStart" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0"    stopColor="currentColor" stopOpacity="0.95" />
-                <stop offset="0.55" stopColor="currentColor" stopOpacity="0.35" />
-                <stop offset="1"    stopColor="currentColor" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path d={START_PATH} stroke="url(#mgOutlineStart)" />
-          </svg>
-        </div>
+        <MgStartNode
+          lesson={start}
+          done={startDoneShown}
+          pulse={startJustId && !animHold && startReveal}
+          renaming={renaming === start.id}
+          renameInput={<RenameInput />}
+          btns={<Btns l={start} kind="start" />}
+          nodeRef={startRef}
+          onHover={setHovered}
+          onClick={handleClick}
+          onPlay={onPlay}
+        />
 
         {/* ── LESSONS ── */}
         <div className="mgLessonsGroup">
           {middle.map((l, i) => {
-            const done  = completedIds.has(l.id)
+            const done   = completedIds.has(l.id)
+            // До диагностики уроки «под замком»: замок вместо номера, без блеска
+            const locked = !startDoneShown
             const pKey  = priorities?.get(l.id) ?? null
             const pInfo = pKey ? PRIORITY[pKey] : null
             return (
               <div
                 key={l.id}
                 ref={el => { lessonRefs.current[i] = el }}
-                className={`mgNode mgNode--lesson${pKey ? ` mgLesson--${pKey}` : ''}${done ? ' mgNode--lesson--done' : ''}${justCompleted?.id === l.id && !animHold ? ' mgNode--justDone' : ''}`}
+                className={`mgNode mgNode--lesson${pKey ? ` mgLesson--${pKey}` : ''}${done ? ' mgNode--lesson--done' : ''}${locked ? ' mgNode--locked' : ''}${justCompleted?.id === l.id && !animHold ? ' mgNode--justDone' : ''}`}
                 onMouseEnter={() => setHovered(l.id)}
                 onMouseLeave={() => setHovered(null)}
                 onClick={e => { e.stopPropagation(); handleClick(l.id) }}
               >
                 <div className={`mgLessonNum${done ? ' mgLessonNum--done' : ''}`}>
-                  {done ? '✓' : i + 1}
+                  {locked ? <LockIcon size={14} /> : done ? '✓' : i + 1}
                 </div>
                 <div className="mgLessonBody">
                   <div className="mgLessonTop">
@@ -356,6 +332,7 @@ export default function ModuleGraph({
         <MgFinalNode
           lesson={final_}
           finalOpen={finalOpen}
+          shine={startDoneShown && !finalOpen}
           finalFlash={finalFlash}
           xpUnlock={xpUnlock}
           earnedShow={earnedShow}

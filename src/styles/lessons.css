@@ -179,7 +179,9 @@
   overflow-x: hidden; /* никакого горизонтального скролла — окно ровно в ширину экрана */
   width: 100%;
   max-width: 100vw;
-  background: #0e1013;
+  /* Фон прозрачный: свой цвет (#0e1013) чуть отличался от фона приложения
+     (#0f1115) и рисовал еле заметную «рамку» с отступом от края экрана */
+  background: transparent;
   scrollbar-width: none;
   -ms-overflow-style: none;
   transition: opacity 0.35s ease;

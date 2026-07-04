@@ -14,8 +14,10 @@
 }
 
 /* Непройденный урок манит еле заметным бликом: диагональная полоска света
-   проезжает по карточке раз в ~6 секунд. Пройденные — спокойные. */
-.mgNode--lesson:not(.mgNode--lesson--done)::after {
+   проезжает по карточке раз в ~6 секунд. Пройденные — спокойные.
+   До диагностики (.mgNode--locked, замок вместо номера) блеска нет —
+   блестит только стартовый урок. */
+.mgNode--lesson:not(.mgNode--lesson--done):not(.mgNode--locked)::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -165,7 +167,8 @@
   50%      { box-shadow: 0 0 22px rgba(182, 254, 59, 0.45); }
 }
 
-/* Пауза 0.4s → два пульса по 0.9s → (после FLIGHT_DELAY_MS) полёт кружочков */
+/* Урок ненадолго «загорается» (0.2s + 0.9s), небольшое ожидание →
+   (после FLIGHT_DELAY_MS) полёт кружочков вместе со скроллом */
 .mgNode--justDone {
-  animation: mgJustDone 0.9s ease-in-out 0.4s 2;
+  animation: mgJustDone 0.9s ease-in-out 0.2s 1;
 }

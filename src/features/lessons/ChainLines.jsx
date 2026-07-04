@@ -54,10 +54,14 @@ export default function ChainLines({
             strokeWidth={arc.side === 'left' ? 2 : 1.5}
             opacity={arc.side === 'left' ? (leftGreen ? 0.9 : 0.7) : 0.7}
             markerEnd={arc.arrow ? 'url(#mgArrow)' : undefined} />
-          {arc.dots?.map((p, j) => (
-            <circle key={j} cx={p.x} cy={p.y} r="3.5"
-              fill={((startDone || startJustDone) && !startHold) ? '#b6fe3b' : '#c0c5d4'} />
-          ))}
+          {arc.dots?.map((p, j) => {
+            // Левые точки зеленеют с диагностикой, правые — с прохождением
+            // своего урока (в тон зелёному заполнению линии)
+            const green = arc.side === 'left'
+              ? ((startDone || startJustDone) && !startHold)
+              : !!(middle[arc.lessonIndex] && completedIds.has(middle[arc.lessonIndex].id))
+            return <circle key={j} cx={p.x} cy={p.y} r="3.5" fill={green ? '#b6fe3b' : '#c0c5d4'} />
+          })}
         </g>
       ))}
       {/* Диагностика только что пройдена: левые линии прорисовываются зелёным

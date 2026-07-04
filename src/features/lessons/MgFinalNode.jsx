@@ -13,7 +13,8 @@ const SPARK_DIRS = Array.from({ length: 8 }, (_, i) => {
 // open — та же дужка, сдвинута вправо: её левая нога в корпусе у правого
 // края, дуга и свободный конец висят в воздухе справа (как 🔓 в референсе).
 // overflow visible: открытая дужка выходит за viewBox справа — не режем её.
-function LockIcon({ open, size = 23 }) {
+// Экспорт: ModuleGraph рисует этот же замок на уроках до прохождения диагностики.
+export function LockIcon({ open, size = 23 }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} style={{ overflow: 'visible' }}>
       <path d={open ? 'M12 11 V6.5 a4.5 4.5 0 0 1 9 0 v1.6' : 'M6.6 11 V7.2 a3.2 3.2 0 0 1 6.4 0 V11'}
@@ -43,6 +44,7 @@ function KeyIcon() {
 // открывается со вспышкой deep-glow и неоновой обводкой, возвращается открытым.
 export default function MgFinalNode({
   lesson, finalOpen, finalFlash, xpUnlock, earnedShow, xpPct,
+  shine = false, // манящий блик: только после диагностики и пока финал закрыт
   renaming, renameInput, btns, nodeRef, knobRef, onHover, onClick,
 }) {
   const [unlockAnim,    setUnlockAnim]    = useState(false)
@@ -85,7 +87,8 @@ export default function MgFinalNode({
   }, [finalOpen])
 
   const glowCls = `mgGlow ${finalOpen ? 'mgGlow--final--open' : 'mgGlow--final'}` +
-    (finalFlash ? ' mgGlow--finalFlash' : '') + (burst ? ' mgGlow--finalBurst' : '')
+    (finalFlash ? ' mgGlow--finalFlash' : '') + (burst ? ' mgGlow--finalBurst' : '') +
+    (shine ? ' mgGlow--finalShine' : '')
 
   return (
     <div className={glowCls}>

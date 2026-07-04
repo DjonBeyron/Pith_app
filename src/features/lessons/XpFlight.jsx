@@ -13,23 +13,24 @@ function splitXp(total, n) {
   return parts
 }
 
-// Интервал между кружочками = длительности transition прогресс-бара (0.3s linear):
-// прилетают ровно с этим шагом, и бар растёт непрерывно от первого касания до последнего.
+// Интервал между кружочками. Бар после каждого касания доезжает до нового
+// значения быстро и плавно (CSS 0.25s ease-out) — успевает до следующего кружочка.
 const ORB_GAP_MS = 300
 const SPEED = 0.55      // px за миллисекунду
 
-// Задержка старта полёта после возврата из урока: сначала пауза, потом пульс
-// «урок пройден» (0.4s + 2×0.9s), потом кружки. Используется и в ModuleGraph
-// (отложенный setFlight), и в ChainLines (отложенная прорисовка зелёной линии).
-export const FLIGHT_DELAY_MS = 2400
+// Задержка старта полёта после возврата из урока: урок ненадолго «загорается»
+// (пульс 0.2s + 0.9s), небольшое ожидание — и кружки летят вместе со скроллом.
+// Используется и в ModuleGraph (отложенный setFlight), и в ChainLines
+// (отложенная прорисовка зелёной линии).
+export const FLIGHT_DELAY_MS = 1400
 
 // Кружочки с XP летят по SVG-путям (paths — d-строки в координатах контейнера),
 // затем по прямой до ключа-бегунка прогресс-бара. getTarget() запрашивается каждый кадр —
 // ключ едет вместе с баром, и кружок доводится точно в его актуальное положение.
 // onLaunch(durMs) — старт полёта (durMs — время до прилёта первого кружочка),
-// onArrive(value) — за ORB_GAP_MS ДО касания (CSS-рост бара длится ровно ORB_GAP_MS —
-// бар доезжает до нового значения точно в момент касания), onTouch() — в момент
-// касания (вспышка финала), onDone() — когда прилетели все.
+// onArrive(value) — в момент касания: бар быстро и плавно доезжает до нового
+// значения, пока летит следующий кружок; onTouch() — вспышка финала,
+// onDone() — когда прилетели все.
 export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive, onTouch, onDone }) {
   const pathRefs = useRef([])
   const orbRefs  = useRef([])
@@ -64,25 +65,18 @@ export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive,
 
     let raf
     const t0 = performance.now()
-    const arrived  = new Set()
-    const credited = new Set() // XP уже отдан бару (за ORB_GAP_MS до касания)
+    const arrived = new Set()
     const tick = (now) => {
       let allDone = true
       parts.forEach((val, i) => {
         const el = orbRefs.current[i]
         if (!el || arrived.has(i)) return
-        const elapsed = now - t0 - i * ORB_GAP_MS
-        // Рост бара стартует заранее: его CSS-transition (ORB_GAP_MS) закончится
-        // ровно в момент касания кружочка — бар и кружки идут синхронно
-        if (!credited.has(i) && elapsed + ORB_GAP_MS >= dur) {
-          credited.add(i)
-          onArrive?.(val)
-        }
-        const t = elapsed / dur
+        const t = (now - t0 - i * ORB_GAP_MS) / dur
         if (t < 0) { allDone = false; return }
         if (t >= 1) {
           arrived.add(i)
           el.setAttribute('opacity', '0')
+          onArrive?.(val)
           onTouch?.()
           return
         }
@@ -103,12 +97,19 @@ export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive,
 
   return (
     <svg className="mgOrbsSvg">
+      <defs>
+        {/* Широкая область фильтра: дефолтные 110% bbox обрезали свечение
+            кружочка квадратной рамкой — «свет с границами» */}
+        <filter id="mgOrbGlow" x="-250%" y="-250%" width="600%" height="600%">
+          <feDropShadow dx="0" dy="0" stdDeviation="3.5" floodColor="#b6fe3b" floodOpacity="0.85" />
+        </filter>
+      </defs>
       {paths.map((d, i) => (
         <path key={i} d={d} ref={el => { pathRefs.current[i] = el }} fill="none" stroke="none" />
       ))}
       {parts.map((val, i) => (
         <g key={i} ref={el => { orbRefs.current[i] = el }} opacity="0" className="mgOrb">
-          <circle r="5.5" />
+          <circle r="5.5" filter="url(#mgOrbGlow)" />
           <text y="2" textAnchor="middle">{val}</text>
         </g>
       ))}

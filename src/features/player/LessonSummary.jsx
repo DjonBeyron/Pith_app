@@ -102,8 +102,9 @@ function XpTransfer({ earnedXp, baseXp, onDone }) {
       const curXp   = Math.round(earnedXp * (1 - eased))
       const curPct  = initPct + (finalPct - initPct) * eased
 
-      // Direct DOM: number + small counter
-      if (numRef.current)   numRef.current.textContent   = '+' + curXp + ' XP'
+      // Direct DOM: number + small counter (numRef — только цифры, частицы
+      // стартуют из центра именно цифр, даже когда осталась одна)
+      if (numRef.current)   numRef.current.textContent   = curXp
       if (xpNumRef.current) xpNumRef.current.textContent = (baseXp + earnedXp - curXp) + ' XP'
 
       // Spawn particles
@@ -118,19 +119,22 @@ function XpTransfer({ earnedXp, baseXp, onDone }) {
       const numEl  = numRef.current
       const barBg  = barBgRef.current
       if (canvas && wrap && numEl && barBg) {
+        // Канвас шире зоны на BLEED с каждой стороны (inset: -40px в CSS) —
+        // свечение частиц у краёв не режется границей канваса
+        const BLEED = 40
         const wr = wrap.getBoundingClientRect()
-        canvas.width  = wr.width
-        canvas.height = wr.height
+        canvas.width  = wr.width  + BLEED * 2
+        canvas.height = wr.height + BLEED * 2
         const ctx = canvas.getContext('2d')
-        ctx.clearRect(0, 0, wr.width, wr.height)
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
 
         const nr = numEl.getBoundingClientRect()
-        const sx = nr.left - wr.left + nr.width  / 2
-        const sy = nr.top  - wr.top  + nr.height / 2
+        const sx = nr.left - wr.left + BLEED + nr.width  / 2
+        const sy = nr.top  - wr.top  + BLEED + nr.height / 2
 
         const br = barBg.getBoundingClientRect()
-        const tx = br.left - wr.left + br.width * (curPct / 100)
-        const ty = br.top  - wr.top  + br.height / 2
+        const tx = br.left - wr.left + BLEED + br.width * (curPct / 100)
+        const ty = br.top  - wr.top  + BLEED + br.height / 2
 
         for (const p of particles) {
           const pt = Math.min((now - p.born) / PARTICLE_FLY, 1)
@@ -156,7 +160,7 @@ function XpTransfer({ earnedXp, baseXp, onDone }) {
       if (t < 1) {
         raf = requestAnimationFrame(tick)
       } else {
-        if (numRef.current)   numRef.current.textContent   = '+0 XP'
+        if (numRef.current)   numRef.current.textContent   = '0'
         if (xpNumRef.current) xpNumRef.current.textContent = totalXp + ' XP'
         if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
         // Switch shimmer to slow after fill
@@ -193,7 +197,9 @@ function XpTransfer({ earnedXp, baseXp, onDone }) {
 
       <div ref={rewardRef} className="summaryRewardBlock">
         <div className="summaryRewardLabel">Награда за урок</div>
-        <div ref={numRef} className="summaryXpEarned">+{earnedXp} XP</div>
+        <div className="summaryXpEarned">
+          +<span ref={numRef}>{earnedXp}</span><span className="summaryXpUnit">XP</span>
+        </div>
       </div>
 
 <div className="summaryXpBarSection">

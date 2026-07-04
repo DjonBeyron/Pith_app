@@ -33,15 +33,25 @@
     #14101e;
 }
 
+/* Контент прижат к верху пятиугольника (видимая форма начинается на y≈41):
+   заголовок, пилюля и цифры над баром сидят выше, снизу остаётся воздух */
 .mgHexFill--final {
   gap: 6px;
-  padding: 16px 20px;
+  padding: 48px 20px 16px;
+  justify-content: flex-start;
 }
 
-/* Закрытый финал манит: фиолетовый блик проезжает по пятиугольнику раз в
-   ~6.5с (клип по форме нода — от родителя). Keyframes mgLessonShine — из
+/* База даёт заголовку flex:1 — при прижатом к верху контенте он растягивался
+   бы и уталкивал пилюлю с баром вниз */
+.mgNode--final .mgNodeTitle {
+  flex: 0 0 auto;
+}
+
+/* Финал манит фиолетовым бликом раз в ~6.5с только после диагностики и пока
+   закрыт (класс mgGlow--finalShine из ModuleGraph). До диагностики не блестит.
+   Клип по форме нода — от родителя; keyframes mgLessonShine — из
    lessons-chain.css; период другой, чтобы не совпадать с бликами уроков. */
-.mgNode--final:not(.mgNode--final--open) .mgHexFill--final::after {
+.mgGlow--finalShine .mgHexFill--final::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -158,9 +168,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* linear и длительность = интервалу прилёта кружочков (ORB_GAP_MS в XpFlight.jsx):
-     бар и ключ растут непрерывно, без пауз между прилётами */
-  transition: left 0.3s linear, opacity 0.7s ease;
+  /* Быстрый плавный доезд после каждого касания кружочка: ease-out за 0.25s —
+     бар успевает встать на место до прилёта следующего (ORB_GAP_MS = 300) */
+  transition: left 0.25s ease-out, opacity 0.7s ease;
 }
 
 /* Финал открыт: ключ «использован» — плавно исчезает вместе с пилюлей */
@@ -217,7 +227,7 @@
   height: 100%;
   background: linear-gradient(90deg, #a78bfa, #8b5cf6);
   border-radius: 3px;
-  transition: width 0.3s linear;
+  transition: width 0.25s ease-out; /* в такт ключу-бегунку */
   box-shadow: 0 0 7px rgba(139, 92, 246, 0.65);
 }
 
