@@ -9,17 +9,31 @@ const SPARK_DIRS = Array.from({ length: 8 }, (_, i) => {
   return { '--dx': `${Math.round(Math.cos(a) * 46)}px`, '--dy': `${Math.round(Math.sin(a) * 46)}px` }
 })
 
-// Замок: детальный — дужка, корпус, замочная скважина. open — дужка откинута.
-function LockIcon({ open }) {
+// Замок залитый цветом: сплошной корпус, скважина-прорезь, дужка штрихом.
+// open — та же дужка, сдвинута вправо: её левая нога в корпусе у правого
+// края, дуга и свободный конец висят в воздухе справа (как 🔓 в референсе).
+// overflow visible: открытая дужка выходит за viewBox справа — не режем её.
+function LockIcon({ open, size = 23 }) {
   return (
-    <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="11" width="16" height="9" rx="2" />
-      {open
-        ? <path d="M8 11 V7 a4 4 0 0 1 7.9 -0.8" />
-        : <path d="M8 11 V7 a4 4 0 0 1 8 0 v4" />}
-      <circle cx="12" cy="14.6" r="1.6" />
-      <path d="M12 16.2 v1.7" />
+    <svg viewBox="0 0 24 24" width={size} height={size} style={{ overflow: 'visible' }}>
+      <path d={open ? 'M12 11 V6.5 a4.5 4.5 0 0 1 9 0 v1.6' : 'M6.6 11 V7.2 a3.2 3.2 0 0 1 6.4 0 V11'}
+        fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+      <rect x="3.5" y="10.2" width="12.5" height="10.3" rx="2.6" fill="currentColor" />
+      <circle cx="9.75" cy="14.4" r="1.6" fill="#120f1a" />
+      <rect x="9" y="15.2" width="1.5" height="2.8" rx="0.75" fill="#120f1a" />
+    </svg>
+  )
+}
+
+// Классический ключ-бегунок прогресс-бара: круглая головка, стержень, две бородки.
+function KeyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
+      strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7" cy="12" r="3.2" />
+      <path d="M10.2 12 H21" />
+      <path d="M17.5 12 v3" />
+      <path d="M21 12 v3.6" />
     </svg>
   )
 }
@@ -34,7 +48,22 @@ export default function MgFinalNode({
   const [unlockAnim,    setUnlockAnim]    = useState(false)
   const [burst,         setBurst]         = useState(false)
   const [lockOpenShown, setLockOpenShown] = useState(finalOpen)
+  // Подсказка у замка-цели: наведение или тап — «нужен ключ»
+  const [lockHint,      setLockHint]      = useState(false)
   const prevOpenRef = useRef(finalOpen)
+  const hintTimer   = useRef(null)
+
+  useEffect(() => () => clearTimeout(hintTimer.current), [])
+
+  // Тап по замку: показать подсказку и спрятать через пару секунд
+  // (stopPropagation — чтобы тап не запускал финальный урок)
+  function pokeLock(e) {
+    e.stopPropagation()
+    if (finalOpen) return
+    setLockHint(true)
+    clearTimeout(hintTimer.current)
+    hintTimer.current = setTimeout(() => setLockHint(false), 2200)
+  }
 
   useEffect(() => {
     if (prevOpenRef.current === finalOpen) return
@@ -67,30 +96,49 @@ export default function MgFinalNode({
         <div className="mgHexFill mgHexFill--final">
           {renaming ? renameInput : (
             <>
-              <span className={`mgIconBadge mgIconBadge--final${unlockAnim ? ' mgIconBadge--unlocking' : ''}`}>
-                <LockIcon open={lockOpenShown} />
-                {burst && (
-                  <span className="mgLockSparks">
-                    {SPARK_DIRS.map((d, i) => (
-                      <span key={i} className="mgLockSpark" style={d} />
-                    ))}
-                  </span>
-                )}
-              </span>
               <span className="mgNodeTitle">{lesson.title}</span>
-              <span className="mgFinalDesc">
-                {finalOpen ? 'Финальный урок открыт!' : 'Завершите все уроки чтобы открыть'}
-              </span>
+              {/* Плашка-«пилюля»: замок церемонии + статус доступа */}
+              <div className={`mgFinalPill${finalOpen ? ' mgFinalPill--open' : ''}`}>
+                <span className={`mgFinalPillLock${unlockAnim ? ' mgIconBadge--unlocking' : ''}`}>
+                  <LockIcon open={lockOpenShown} size={18} />
+                  {burst && (
+                    <span className="mgLockSparks">
+                      {SPARK_DIRS.map((d, i) => (
+                        <span key={i} className="mgLockSpark" style={d} />
+                      ))}
+                    </span>
+                  )}
+                </span>
+                <span className="mgFinalPillText">
+                  {finalOpen ? 'Финальный урок открыт!' : 'Доступ закрыт'}
+                </span>
+              </div>
               {xpUnlock > 0 && (
                 <div className="mgFinalXpWrap">
                   <span className="mgFinalXpLabel">
                     <span className="mgFinalXpNow">{earnedShow}</span> / {xpUnlock} XP
                   </span>
+                  {/* Ключ едет по бару к замку у правого края; при открытии замок откинут */}
                   <div className="mgFinalXpBarRow">
-                    <div className="mgFinalXpBar">
-                      <div className="mgFinalXpBarFill" style={{ width: xpPct + '%' }} />
+                    <div className="mgFinalXpTrack">
+                      <div className="mgFinalXpBar">
+                        <div className="mgFinalXpBarFill" style={{ width: xpPct + '%' }} />
+                      </div>
+                      <span ref={knobRef} className="mgFinalXpKnob" style={{ left: xpPct + '%' }}>
+                        <KeyIcon />
+                      </span>
                     </div>
-                    <span ref={knobRef} className="mgFinalXpKnob" style={{ left: xpPct + '%' }}>★</span>
+                    <span
+                      className={`mgFinalXpLock${finalOpen ? ' mgFinalXpLock--open' : ''}`}
+                      onMouseEnter={() => { if (!finalOpen) setLockHint(true) }}
+                      onMouseLeave={() => setLockHint(false)}
+                      onClick={pokeLock}
+                    >
+                      <LockIcon open />
+                      {lockHint && (
+                        <span className="mgFinalLockTip">Нужен ключ, чтобы открыть</span>
+                      )}
+                    </span>
                   </div>
                 </div>
               )}

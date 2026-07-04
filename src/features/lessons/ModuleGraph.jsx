@@ -31,7 +31,7 @@ export default function ModuleGraph({
   const [renaming, setRenaming] = useState(null)
   const [draft,    setDraft]    = useState('')
   const [arcs,     setArcs]     = useState([])
-  // Полёт XP из только что пройденного урока к звёздочке финала.
+  // Полёт XP из только что пройденного урока к ключу-бегунку финала.
   const [flight,     setFlight]     = useState(null)
   const [delivered,  setDelivered]  = useState(0)
   const [finalFlash, setFinalFlash] = useState(false)
@@ -120,7 +120,7 @@ export default function ModuleGraph({
     return () => ro.disconnect()
   }, [drawLines])
 
-  // Сборка полёта XP: маршрут по нарисованным линиям + цель (звёздочка бара).
+  // Сборка полёта XP: маршрут по нарисованным линиям + цель (ключ-бегунок бара).
   // animHold: пока открыт попап-легенда, полёт не стартует — эффект перезапустится
   // после закрытия (animHold в deps) и анимация пойдёт с начала.
   useEffect(() => {
@@ -163,7 +163,7 @@ export default function ModuleGraph({
     justCompleted, lessons, scrollRef, startRef, finalRef, lessonRefs,
   })
 
-  // Актуальное положение звёздочки прогресс-бара — кружочки доводятся точно в неё.
+  // Актуальное положение ключа-бегунка прогресс-бара — кружочки доводятся точно в него.
   const getKnobPoint = useCallback(() => {
     if (!knobRef.current || !containerRef.current) return null
     const kr = knobRef.current.getBoundingClientRect()

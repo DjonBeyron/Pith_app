@@ -26,32 +26,47 @@
   padding: 16px 20px;
 }
 
-/* Плашка с замком — чуть выше и крупнее */
-.mgIconBadge--final {
+/* Плашка-«пилюля» под заголовком: замок церемонии + статус доступа.
+   Фон — фиолетовый тон с еле заметными диагональными полосами (как в референсе) */
+.mgFinalPill {
+  width: 86%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 14px;
+  margin-top: 2px;
+  background:
+    repeating-linear-gradient(115deg,
+      rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 9px),
+    rgba(139, 92, 246, 0.07);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 18px;
+}
+
+.mgFinalPill--open {
+  background:
+    repeating-linear-gradient(115deg,
+      rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 9px),
+    rgba(139, 92, 246, 0.14);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.mgFinalPillLock {
   position: relative; /* якорь для разлетающихся искр */
-  width: 42px;
-  height: 38px;
-  margin-top: -10px;
-  background: rgba(139, 92, 246, 0.18);
-  border: 1px solid rgba(139, 92, 246, 0.35);
+  display: flex;
+  color: #8b5cf6;
+}
+
+.mgFinalPill--open .mgFinalPillLock { color: #c4b5fd; }
+
+.mgFinalPillText {
+  font-size: 11.5px;
+  font-weight: 600;
   color: #a78bfa;
 }
 
-.mgNode--final--open .mgIconBadge--final {
-  color: #c4b5fd;
-}
-
-.mgFinalDesc {
-  font-size: 11px;
-  color: #6a7080;
-  text-align: center;
-  line-height: 1.4;
-  max-width: 160px;
-}
-
-.mgNode--final--open .mgFinalDesc {
-  color: #c4b5fd;
-}
+.mgFinalPill--open .mgFinalPillText { color: #c4b5fd; }
 
 /* ── XP-прогресс финала ─────────────────────────────────────── */
 .mgFinalXpWrap {
@@ -67,7 +82,7 @@
   font-size: 11px;
   color: #6a7080;
   position: relative;
-  z-index: 2; /* поверх звезды-бегунка, чтобы она не перекрывала цифры */
+  z-index: 2; /* поверх ключа-бегунка, чтобы он не перекрывал цифры */
 }
 
 .mgFinalXpNow {
@@ -75,9 +90,16 @@
   font-weight: 700;
 }
 
-/* Бар + звезда-бегунок на краю заполнения (двигается вместе с прогрессом) */
+/* Ряд прогресса: трек с ключом-бегунком + замок у правого края */
 .mgFinalXpBarRow {
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.mgFinalXpTrack {
+  flex: 1;
   position: relative;
 }
 
@@ -85,19 +107,50 @@
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: #8b5cf6;
   color: #fff;
-  font-size: 10px;
-  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   /* linear и длительность = интервалу прилёта кружочков (ORB_GAP_MS в XpFlight.jsx):
-     бар и звёздочка растут непрерывно, без пауз между прилётами */
+     бар и ключ растут непрерывно, без пауз между прилётами */
   transition: left 0.3s linear;
+}
+
+/* Замок-цель (дужка всегда откинута): серый пока закрыт, фиолетовый после
+   открытия финала. По наведению/тапу показывает подсказку про ключ. */
+.mgFinalXpLock {
+  flex-shrink: 0;
+  display: flex;
+  position: relative; /* якорь подсказки */
+  color: #6a7080;
+  cursor: pointer;
+}
+
+.mgFinalXpLock--open { color: #a78bfa; cursor: default; }
+
+.mgFinalLockTip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: -6px;
+  padding: 5px 10px;
+  background: #1b1626;
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #c4b5fd;
+  white-space: nowrap;
+  z-index: 4;
+  animation: mgLockTipIn 0.16s ease-out;
+}
+
+@keyframes mgLockTipIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .mgFinalXpBar {

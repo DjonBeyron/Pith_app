@@ -24,8 +24,8 @@ const SPEED = 0.55      // px за миллисекунду
 export const FLIGHT_DELAY_MS = 2400
 
 // Кружочки с XP летят по SVG-путям (paths — d-строки в координатах контейнера),
-// затем по прямой до звёздочки прогресс-бара. getTarget() запрашивается каждый кадр —
-// звёздочка едет вместе с баром, и кружок доводится точно в её актуальное положение.
+// затем по прямой до ключа-бегунка прогресс-бара. getTarget() запрашивается каждый кадр —
+// ключ едет вместе с баром, и кружок доводится точно в его актуальное положение.
 // onLaunch(durMs) — старт полёта (durMs — время до прилёта первого кружочка),
 // onArrive(value) — по прилёте каждого, onDone() — когда прилетели все.
 export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive, onDone }) {
@@ -53,7 +53,7 @@ export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive,
         if (s <= acc + lens[k]) return els[k].getPointAtLength(s - acc)
         acc += lens[k]
       }
-      // Хвост: доводка к актуальному положению звёздочки (она едет вместе с баром)
+      // Хвост: доводка к актуальному положению ключа-бегунка (он едет вместе с баром)
       const cur = getTarget?.() ?? initTarget
       if (!cur) return end
       const q = tail > 0 ? Math.min(1, (s - pathLen) / tail) : 1
