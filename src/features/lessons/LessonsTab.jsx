@@ -34,8 +34,6 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   const [priorities,      setPriorities]      = useState(null)
   // Легенда «Приоритеты уроков» поверх затемнённой схемы (этап 5)
   const [showLegend,      setShowLegend]      = useState(false)
-  // Попап только что закрыт — отложенная анимация графа идёт с половинным офсетом
-  const [postLegend,      setPostLegend]      = useState(false)
   const didInitRef = useRef(false)
   const { isAdmin } = useAdmin()
 
@@ -54,7 +52,9 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   function closeLegend() {
     localStorage.setItem(LEGEND_SEEN_KEY, '1')
     setShowLegend(false)
-    setPostLegend(true) // анимация после попапа — с половинным офсетом
+    // После попапа граф сразу в готовом виде: линии зелёные, XP-бар заполнен,
+    // без отложенной церемонии (пульс/полёт XP) — пользователь уже всё прочитал
+    setJustCompleted(null)
   }
 
   useEffect(() => {
@@ -181,9 +181,8 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           completedIds={completedIds}
           priorities={priorities}
           animHold={showLegend} /* пока попап открыт — вся анимация графа на паузе */
-          animShort={postLegend}
           justCompleted={justCompleted}
-          onFlightDone={() => { setJustCompleted(null); setPostLegend(false) }}
+          onFlightDone={() => setJustCompleted(null)}
           onResetLesson={handleResetLesson}
           onPlay={id => setLaunchId(id)}
           onEdit={id => onOpenCanvas({

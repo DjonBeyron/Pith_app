@@ -26,6 +26,21 @@
   padding: 16px 20px;
 }
 
+/* Закрытый финал манит: фиолетовый блик проезжает по пятиугольнику раз в
+   ~6.5с (клип по форме нода — от родителя). Keyframes mgLessonShine — из
+   lessons-chain.css; период другой, чтобы не совпадать с бликами уроков. */
+.mgNode--final:not(.mgNode--final--open) .mgHexFill--final::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg,
+    transparent 42%, rgba(196, 168, 255, 0.09) 50%, transparent 58%);
+  background-size: 300% 100%;
+  background-position: 150% 0;
+  animation: mgLessonShine 6.5s linear infinite;
+}
+
 /* Плашка-«пилюля» под заголовком: замок церемонии + статус доступа.
    Фон — фиолетовый тон с еле заметными диагональными полосами (как в референсе) */
 .mgFinalPill {

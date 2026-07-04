@@ -201,7 +201,8 @@
   flex-direction: column;
   align-items: center;
   gap: 40px;
-  padding: 32px 10px 12px; /* сверху чуть меньше воздуха, снизу — небольшой отступ от края */
+  padding: 44px 10px 12px; /* сверху запас под зелёное свечение старта (drop-shadow ~36px
+    + пульс) — иначе оно режется верхним краем скролл-контейнера */
   position: relative;
   box-sizing: border-box;
 }
