@@ -224,11 +224,13 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Трек — непрозрачный и с рамкой, тон как у пилюли (#1a1529) */
 .mgFinalXpBar {
   width: 100%;
-  height: 6px;
-  background: #252830;
-  border-radius: 3px;
+  height: 8px;
+  background: #1a1529;
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  border-radius: 4px;
 }
 
 /* Растушёванный край: мягкое свечение вокруг заполнения */
