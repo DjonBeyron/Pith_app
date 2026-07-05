@@ -94,7 +94,8 @@
 
 /* Кнопка перевода — РЯДОМ с пузырём (как в референсе): тёмный кружок с
    иконкой 文A, либо пилл с надписью, если она задана в редакторе.
-   При раскрытии перевода плавно тает; закрытие — тап по самому переводу. */
+   Тоггл: при открытом переводе подсвечена и тоже закрывает
+   (второй способ закрытия — тап по самому тексту перевода). */
 .playerTrBtn {
   align-self: flex-end;
   flex-shrink: 0;
@@ -142,7 +143,13 @@
   animation: trBtnShine 5s linear infinite;
 }
 
-.playerTrBtnGone::after { animation: none; }
+/* Открытый перевод: кнопка остаётся (тоже закрывает), подсвечена, без блеска */
+.playerTrBtnOn {
+  color: #b6fe3b;
+  background: rgba(182, 254, 59, 0.1);
+}
+
+.playerTrBtnOn::after { animation: none; }
 
 @keyframes trBtnShine {
   0%        { transform: translateX(-130%); }

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { pLog } from '../../../../shared/lib/debug.js'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import ReplyPreview from '../../ReplyPreview.jsx'
 import TranslationSection from '../../TranslationSection.jsx'
@@ -26,20 +27,38 @@ export default function TextModule({ node, lessonNodes = [], lessonFiles = [], t
   const [trOpen,    setTrOpen]    = useState(false)
   const [typingKey, setTypingKey] = useState(0) // растёт при каждом открытии — печать заново
 
-  // Открытие — кнопкой (она плавно тает), закрытие — тапом по самому переводу
+  // На время grid-перехода секции пузырь в режиме follow — его собственный
+  // аниматор высоты выключен (иначе два аниматора дерутся, закрытие дёргалось)
+  const [trAnim, setTrAnim] = useState(false)
+  const trAnimTimer = useRef(null)
+  useEffect(() => () => clearTimeout(trAnimTimer.current), [])
+  function pulseFollow() {
+    setTrAnim(true)
+    clearTimeout(trAnimTimer.current)
+    trAnimTimer.current = setTimeout(() => setTrAnim(false), 380) // transition 0.28s + запас
+  }
+
+  // Открытие — кнопкой; закрытие — и кнопкой (она остаётся, в активном
+  // состоянии), и тапом по самому тексту перевода
   function openTr(e) {
     e.stopPropagation()
+    pLog('[tr] открытие перевода')
+    pulseFollow()
     setTypingKey(k => k + 1)
     setTrOpen(true)
   }
-  function closeTr(e) {
+  function doClose(e, source) {
     e.stopPropagation()
+    pLog(`[tr] закрытие перевода (${source}) — дальше смотри [bubble#] строки`)
+    pulseFollow()
     setTrOpen(false)
   }
+  const closeByText = (e) => doClose(e, 'тап по тексту перевода')
+  const closeByBtn  = (e) => doClose(e, 'кнопка')
 
   return (
     <div className="playerMsgRow">
-      <PlayerBubble className="playerMsgBubble playerMsgBubble--text">
+      <PlayerBubble className="playerMsgBubble playerMsgBubble--text" follow={trAnim}>
         {replyNode && (
           <ReplyPreview
             replyNode={replyNode}
@@ -72,19 +91,19 @@ export default function TextModule({ node, lessonNodes = [], lessonFiles = [], t
             text={tData.proText}
             highlights={tData.proHighlights ?? []}
             reveal={tData.proReveal ?? 'type'}
-            onCollapse={closeTr}
+            onCollapse={closeByText}
           />
         )}
       </PlayerBubble>
       {pro && (() => {
         /* Кнопка перевода — РЯДОМ с пузырём: тёмный кружок с иконкой
-           перевода; если в редакторе задана надпись — пилл с текстом */
+           перевода; если в редакторе задана надпись — пилл с текстом.
+           Работает тогглом: при открытом переводе подсвечена и закрывает. */
         const trLabel = (tData.proLabel ?? '').trim()
         return (
           <button
-            className={`playerTrBtn${trLabel ? '' : ' playerTrBtn--icon'}${trOpen ? ' playerTrBtnGone' : ''}`}
-            onClick={openTr}
-            disabled={trOpen}
+            className={`playerTrBtn${trLabel ? '' : ' playerTrBtn--icon'}${trOpen ? ' playerTrBtnOn' : ''}`}
+            onClick={trOpen ? closeByBtn : openTr}
             aria-label="Перевести"
           >
             {trLabel || <TranslateIcon />}
