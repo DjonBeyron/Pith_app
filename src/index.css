@@ -37,6 +37,7 @@
 @import './styles/player/panels/registration.css';
 @import './styles/player/modules/voice-record.css';
 @import './styles/canvas/text-highlight.css';
+@import './styles/canvas/text-pro.css';
 @import './styles/canvas/stat-link.css';
 @import './styles/settings.css';
 @import './styles/profile.css';

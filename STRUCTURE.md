@@ -123,6 +123,7 @@
 | `NodeLessonLink.jsx` | Дропдаун «→ Урок»: привязка ответа интерактивной ноды к уроку-цели для анализа знаний (пишет `statLessonId`) |
 | `NodeRewardCheckbox.jsx` | Чекбокс «Получить награду» (⭐ XP) — общий для нод word_choice / phrase_assembly / photo_choice |
 | `NodeTextHighlighter.jsx` | Модальный редактор выделений текста: кликабельные токены, режимы «Плашка»/«Цвет текста», опакити, последние 5 цветов (localStorage), избранные (Supabase), предпросмотр в пузыре |
+| `NodeTextProEditor.jsx` | Про-режим текстовой ноды: тумблер, текст перевода, надпись кнопки (RU/EN...), способ появления («напечатать»/«показать сразу»), раскраска перевода |
 | `useLessonFiles.js` | Хук: список файлов урока (локальные + синхронизированные), дедупликация по имени+весу, синхронизация на сервер |
 | `LessonFilesPanel.jsx` | Панель «Файлы урока» под шапкой редактора: список файлов, кнопка «Синхронизировать», удаление |
 
@@ -145,6 +146,7 @@
 | `ReplyPreview.jsx` | Общий компонент превью ответа (зелёная полоса слева): используется в TextModule и StickerModule; содержит ReplyThumb с intrinsic-кропом |
 | `PlayerBubble.jsx` | Обёртка-пузырь с анимацией высоты (ResizeObserver + cubic-bezier) — общий для модулей |
 | `PlayerTypingText.jsx` | Посимвольная анимация текста: каждый символ вспыхивает лаймовым; курсор — светящаяся линия |
+| `TranslationSection.jsx` | Секция перевода (про-режим): плавное раскрытие/свёртка по высоте (ResizeObserver + transition), печать или мгновенный показ; переиспользуема для аудио |
 | `modules/index.js` | Роутер: `type → Module`; добавить новый тип = одна строка здесь |
 | `modules/audio/AudioModule.jsx` | Аудио: кнопка ▶/⏸, canvas-волна реальная из analyzeWaveform, печатание текста |
 | `modules/voice-record/VoiceRecordModule.jsx` | Оркестратор: idle → VoiceRecordBar; после отправки → VoiceRecordBubble |

@@ -80,9 +80,112 @@
   color: #e0e0e0;
   white-space: pre-wrap;
   word-break: break-word;
+  /* Montserrat загружен только latin — английский рисуется им (Regular),
+     кириллица посимвольно падает в Comfortaa (как в аудио-сообщении) */
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
 }
 
 .playerTextEmpty {
   color: #9aa0b4;
   font-style: italic;
+}
+
+/* ── Про-режим: перевод по кнопке (RU/EN/...) ───────────────── */
+
+/* Кнопка перевода — РЯДОМ с пузырём (как в референсе): тёмный кружок с
+   иконкой 文A, либо пилл с надписью, если она задана в редакторе.
+   При раскрытии перевода плавно тает; закрытие — тап по самому переводу. */
+.playerTrBtn {
+  align-self: flex-end;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 2px 6px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: none;
+  background: #22252d;
+  color: #cfd3dd;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: opacity 0.25s ease, transform 0.25s ease,
+    color 0.15s, background 0.15s;
+}
+
+.playerTrBtn--icon {
+  width: 30px;
+  padding: 0;
+}
+
+.playerTrBtn:hover { color: #fff; background: #2a2e38; }
+
+/* Небольшой блеск-приманка, пока перевод не раскрыт: полоса света пробегает
+   по кнопке раз в ~5с (композитно — transform, как блики нодов) */
+.playerTrBtn {
+  position: relative;
+  overflow: hidden;
+}
+
+.playerTrBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg,
+    transparent 40%, rgba(255, 255, 255, 0.22) 50%, transparent 60%);
+  transform: translateX(-130%);
+  animation: trBtnShine 5s linear infinite;
+}
+
+.playerTrBtnGone::after { animation: none; }
+
+@keyframes trBtnShine {
+  0%        { transform: translateX(-130%); }
+  18%, 100% { transform: translateX(130%); }
+}
+
+/* Секция перевода: раскрытие/свёртка чистым CSS (grid 0fr↔1fr) — контент
+   при закрытии остаётся в DOM и складывается плавно вместе с рамкой.
+   Тап по секции закрывает перевод. */
+.trSection {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.trSectionOpen {
+  grid-template-rows: 1fr;
+  cursor: pointer;
+}
+
+.trSectionInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Аккуратный разделитель между оригиналом и переводом (как в аудио) */
+.trDivider {
+  margin: 7px 0 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* «Призрак» перевода: задаёт пузырю итоговую ширину заранее,
+   по высоте места не занимает и не виден */
+.trGhost {
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+/* Перевод — второстепенный текст: чуть меньше и серее оригинала.
+   Призраку те же метрики — ширина меряется тем же кеглем. */
+.trSection .playerText,
+.trGhost .playerText {
+  font-size: 13px;
+  color: #a8aebb;
 }

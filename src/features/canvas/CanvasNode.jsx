@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import NodeAudioPicker from './NodeAudioPicker.jsx'
 import NodeTextHighlighter from './NodeTextHighlighter.jsx'
+import NodeTextProEditor from './NodeTextProEditor.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
 import NodeWordChoicePicker       from './NodeWordChoicePicker.jsx'
@@ -31,6 +32,7 @@ export default function CanvasNode({
 }) {
   const color   = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
   const [hlRect, setHlRect] = useState(null)  // viewport rect of node when HL editor is open
+  const [hlTarget, setHlTarget] = useState('main') // 'main' | 'pro' — какой текст красим
   const nodeRef = useRef(null)
 
   // When leaving max mode, clear stale trigger measurements so they don't
@@ -183,11 +185,25 @@ export default function CanvasNode({
           <button
             className="nodeHLOpenBtn"
             style={(tData.highlights?.length > 0) ? { borderColor: '#b6fe3b', color: '#b6fe3b' } : undefined}
-            onClick={e => { e.stopPropagation(); setHlRect(nodeRef.current?.getBoundingClientRect() ?? null) }}
+            onClick={e => {
+              e.stopPropagation()
+              setHlTarget('main')
+              setHlRect(nodeRef.current?.getBoundingClientRect() ?? null)
+            }}
             onMouseDown={e => e.stopPropagation()}
           >
             🎨
           </button>
+        )}
+        {node.type === 'text' && (
+          <NodeTextProEditor
+            tData={tData}
+            onChange={updateTypeData}
+            onOpenHl={() => {
+              setHlTarget('pro')
+              setHlRect(nodeRef.current?.getBoundingClientRect() ?? null)
+            }}
+          />
         )}
         {(node.type === 'text' || node.type === 'sticker') && (
           <div className="nodeReplySection">
@@ -340,11 +356,12 @@ export default function CanvasNode({
       </div>
       {hlRect && (
         <NodeTextHighlighter
-          text={node.type === 'audio' ? (tData.text ?? '') : (tData.content ?? '')}
-          highlights={tData.highlights ?? []}
+          text={hlTarget === 'pro' ? (tData.proText ?? '')
+            : node.type === 'audio' ? (tData.text ?? '') : (tData.content ?? '')}
+          highlights={(hlTarget === 'pro' ? tData.proHighlights : tData.highlights) ?? []}
           anchorRect={hlRect}
           onClose={() => setHlRect(null)}
-          onChange={hl => updateTypeData({ highlights: hl })}
+          onChange={hl => updateTypeData(hlTarget === 'pro' ? { proHighlights: hl } : { highlights: hl })}
         />
       )}
     </div>
