@@ -1,0 +1,112 @@
+/* ── Текстуры нодов схемы уроков ─────────────────────────────
+   Всегда видны (и в закрытом, и в открытом состоянии). Три рисунка в
+   скандинавском духе (руны/орнаменты) — см. блок :root ниже. Блеск (::after)
+   несёт ту же текстуру ярче под маской движущейся полосы света — блик
+   «подсвечивает» рисунок, а не просто заливает карточку. Файл подключается
+   ПОСЛЕ lessons-chain*.css и переопределяет их фоны/блики. */
+
+/* Узоры в скандинавском духе, плотные:
+   старт — россыпь рун (ансуз, райдо, манназ, туризас, альгиз, соулу, тиваз,
+   гебо, уруз, иса, кеназ, дагаз, хагалаз) + ромбы и зигзаг-кайма;
+   финал — орнамент из зигзаг-лент и рядов ромбов;
+   уроки — плотная тайловая решётка из ромбов и крестиков. */
+:root {
+  --mg-tex-start: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cg fill='none' stroke='white' stroke-opacity='.05' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M22 22 v18 M22 26 l7 5 M22 32 l7 5'/%3E%3Cpath d='M62 16 v18 M62 16 l8 5 -8 5 M62 26 l9 8'/%3E%3Cpath d='M100 20 v16 M113 20 v16 M100 20 l13 11 M113 20 l-13 11'/%3E%3Cpath d='M148 17 v18 M148 22 l8 4 -8 4'/%3E%3Cpath d='M34 88 v-18 M34 74 l-7 -6 M34 74 l7 -6'/%3E%3Cpath d='M74 64 l7 7 -7 7 7 7'/%3E%3Cpath d='M114 68 v18 M114 68 l-7 7 M114 68 l7 7'/%3E%3Cpath d='M152 70 l11 13 M163 70 l-11 13'/%3E%3Cpath d='M24 132 v-16 l10 5 v11'/%3E%3Cpath d='M60 116 v17'/%3E%3Cpath d='M88 116 l9 9 -9 9'/%3E%3Cpath d='M118 116 v15 M132 116 v15 M118 116 l14 15 M132 116 l-14 15'/%3E%3Cpath d='M158 116 v16 M170 116 v16 M158 120 l12 8'/%3E%3Cpath d='M14 168 l9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9'/%3E%3Cpath d='M50 152 l6 6 -6 6 -6 -6 z M90 152 l6 6 -6 6 -6 -6 z M130 152 l6 6 -6 6 -6 -6 z'/%3E%3C/g%3E%3C/svg%3E");
+  --mg-tex-start-bright: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cg fill='none' stroke='white' stroke-opacity='.2' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M22 22 v18 M22 26 l7 5 M22 32 l7 5'/%3E%3Cpath d='M62 16 v18 M62 16 l8 5 -8 5 M62 26 l9 8'/%3E%3Cpath d='M100 20 v16 M113 20 v16 M100 20 l13 11 M113 20 l-13 11'/%3E%3Cpath d='M148 17 v18 M148 22 l8 4 -8 4'/%3E%3Cpath d='M34 88 v-18 M34 74 l-7 -6 M34 74 l7 -6'/%3E%3Cpath d='M74 64 l7 7 -7 7 7 7'/%3E%3Cpath d='M114 68 v18 M114 68 l-7 7 M114 68 l7 7'/%3E%3Cpath d='M152 70 l11 13 M163 70 l-11 13'/%3E%3Cpath d='M24 132 v-16 l10 5 v11'/%3E%3Cpath d='M60 116 v17'/%3E%3Cpath d='M88 116 l9 9 -9 9'/%3E%3Cpath d='M118 116 v15 M132 116 v15 M118 116 l14 15 M132 116 l-14 15'/%3E%3Cpath d='M158 116 v16 M170 116 v16 M158 120 l12 8'/%3E%3Cpath d='M14 168 l9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9 9 -9 9 9'/%3E%3Cpath d='M50 152 l6 6 -6 6 -6 -6 z M90 152 l6 6 -6 6 -6 -6 z M130 152 l6 6 -6 6 -6 -6 z'/%3E%3C/g%3E%3C/svg%3E");
+
+  --mg-tex-final: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='270' height='270'%3E%3Cg fill='none' stroke='white' stroke-opacity='.045' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M-8 46 l13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13'/%3E%3Cpath d='M-8 58 l13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13'/%3E%3Cpath d='M36 92 l9 9 -9 9 -9 -9 z M86 92 l9 9 -9 9 -9 -9 z M136 92 l9 9 -9 9 -9 -9 z M186 92 l9 9 -9 9 -9 -9 z M236 92 l9 9 -9 9 -9 -9 z'/%3E%3Cpath d='M-8 150 l13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13'/%3E%3Cpath d='M36 186 l9 9 -9 9 -9 -9 z M86 186 l9 9 -9 9 -9 -9 z M136 186 l9 9 -9 9 -9 -9 z M186 186 l9 9 -9 9 -9 -9 z M236 186 l9 9 -9 9 -9 -9 z'/%3E%3Cpath d='M-8 242 l13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13'/%3E%3C/g%3E%3C/svg%3E");
+  --mg-tex-final-bright: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='270' height='270'%3E%3Cg fill='none' stroke='white' stroke-opacity='.18' stroke-width='1.1' stroke-linecap='round'%3E%3Cpath d='M-8 46 l13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13'/%3E%3Cpath d='M-8 58 l13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13'/%3E%3Cpath d='M36 92 l9 9 -9 9 -9 -9 z M86 92 l9 9 -9 9 -9 -9 z M136 92 l9 9 -9 9 -9 -9 z M186 92 l9 9 -9 9 -9 -9 z M236 92 l9 9 -9 9 -9 -9 z'/%3E%3Cpath d='M-8 150 l13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13'/%3E%3Cpath d='M36 186 l9 9 -9 9 -9 -9 z M86 186 l9 9 -9 9 -9 -9 z M136 186 l9 9 -9 9 -9 -9 z M186 186 l9 9 -9 9 -9 -9 z M236 186 l9 9 -9 9 -9 -9 z'/%3E%3Cpath d='M-8 242 l13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13 13 -13 13 13'/%3E%3C/g%3E%3C/svg%3E");
+
+  --mg-tex-lesson: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='36'%3E%3Cg fill='none' stroke='white' stroke-opacity='.04'%3E%3Cpath d='M14 4 l8 8 -8 8 -8 -8 z'/%3E%3Cpath d='M42 18 l8 8 -8 8 -8 -8 z'/%3E%3Cpath d='M36 4 l6 6 M48 4 l-6 6'/%3E%3Cpath d='M8 26 l6 6 M20 26 l-6 6'/%3E%3C/g%3E%3C/svg%3E");
+  --mg-tex-lesson-bright: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='36'%3E%3Cg fill='none' stroke='white' stroke-opacity='.15'%3E%3Cpath d='M14 4 l8 8 -8 8 -8 -8 z'/%3E%3Cpath d='M42 18 l8 8 -8 8 -8 -8 z'/%3E%3Cpath d='M36 4 l6 6 M48 4 l-6 6'/%3E%3Cpath d='M8 26 l6 6 M20 26 l-6 6'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ── Текстура всегда в фоне ─────────────────────────────────── */
+
+.mgNode--start--inactive .mgHexFill {
+  background: var(--mg-tex-start) center / 180px 180px no-repeat, #14161c;
+}
+
+.mgNode--start--done .mgHexFill {
+  background: var(--mg-tex-start) center / 180px 180px no-repeat, #10140c;
+}
+
+.mgNode--final .mgHexFill {
+  background:
+    var(--mg-tex-final) center / 270px 270px no-repeat,
+    linear-gradient(180deg, rgba(139, 92, 246, 0.14), rgba(139, 92, 246, 0.03)),
+    #12101a;
+}
+
+.mgNode--final--open .mgHexFill {
+  background:
+    var(--mg-tex-final) center / 270px 270px no-repeat,
+    linear-gradient(180deg, rgba(139, 92, 246, 0.24), rgba(139, 92, 246, 0.06)),
+    #14101e;
+}
+
+.mgNode--lesson {
+  background-image: var(--mg-tex-lesson);
+}
+
+.mgNode--lesson--done {
+  background:
+    var(--mg-tex-lesson),
+    linear-gradient(0deg, rgba(182, 254, 59, 0.06), rgba(182, 254, 59, 0.06)),
+    #12151c;
+}
+
+/* ── Блеск подсвечивает текстуру ────────────────────────────
+   ::after: яркая текстура + лёгкий свет, видимые только в полосе
+   движущейся маски. Полоса та же, что была бликом, но теперь под ней
+   «загораются» линии рисунка. */
+
+.mgNode--lesson:not(.mgNode--lesson--done):not(.mgNode--locked)::after,
+.mgNode--start--inactive .mgHexFill::after,
+.mgGlow--finalShine .mgHexFill--final::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(115deg, transparent 42%, #fff 50%, transparent 58%);
+  mask-image: linear-gradient(115deg, transparent 42%, #fff 50%, transparent 58%);
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.mgNode--lesson:not(.mgNode--lesson--done):not(.mgNode--locked)::after {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)),
+    var(--mg-tex-lesson-bright);
+  animation: mgTexShine 5s linear infinite;
+}
+
+.mgNode--start--inactive .mgHexFill::after {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06)),
+    var(--mg-tex-start-bright) center / 180px 180px no-repeat;
+  animation: mgTexShine 5.5s linear infinite;
+}
+
+.mgGlow--finalShine .mgHexFill--final::after {
+  background:
+    linear-gradient(rgba(196, 168, 255, 0.08), rgba(196, 168, 255, 0.08)),
+    var(--mg-tex-final-bright) center / 270px 270px no-repeat;
+  animation: mgTexShine 6.5s linear infinite;
+}
+
+/* Полоса света едет «из-за края в за-край» — на стыке цикла обе позиции
+   за пределами, скачок невидим (как в прежнем mgLessonShine) */
+@keyframes mgTexShine {
+  0% {
+    -webkit-mask-position: 150% 0;
+    mask-position: 150% 0;
+  }
+  100% {
+    -webkit-mask-position: -150% 0;
+    mask-position: -150% 0;
+  }
+}

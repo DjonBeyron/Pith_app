@@ -205,6 +205,7 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         <LessonLaunchCard
           lessonId={launchId}
           retake={completedIds.has(launchId)}
+          examIntro={lessons.length > 0 && launchId === lessons[lessons.length - 1].id}
           onStart={(data, mode) => {
             setPlayingLessonId(launchId)
             setLaunchId(null)

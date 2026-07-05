@@ -227,27 +227,25 @@ export default function ModuleGraph({
   }
 
   const Btns = ({ l, kind }) => {
+    // Обычный пользователь запускает урок тапом/кликом по карточке (handleClick) —
+    // кнопок у него нет вовсе, в том числе ▶.
+    if (!isAdmin) return null
     const show = hovered === l.id || tapped === l.id
     return (
       <div className={`mgNodeBtns${show ? ' mgNodeBtns--vis' : ''}`}
         onClick={e => e.stopPropagation()}>
         <button className="mgBtn" onClick={() => { onPlay(l.id); setTapped(null) }}>▶</button>
-        {/* Управляющие кнопки — только админу. Запуск (▶) доступен всем. */}
-        {isAdmin && (
-          <>
-            <button className="mgBtn" onClick={() => { onEdit(l.id); setTapped(null) }}>⚙</button>
-            <button className="mgBtn" onClick={e => { startRename(e, l.id, l.title); setTapped(null) }}>✎</button>
-            <button className="mgBtn" title="Сбросить прохождение этого урока (XP отнимется, анализ сохранится)"
-              onClick={() => { onResetLesson?.(l.id); setTapped(null) }}>⟲</button>
-            <button className={`mgBtn mgBtnEye${l.published ? ' mgBtnEyeOn' : ''}`}
-              title={l.published ? 'Скрыть' : 'Показать'}
-              onClick={() => { onTogglePublished(l.id, l.published); setTapped(null) }}>
-              {l.published ? '👁' : '🚫'}
-            </button>
-            {kind === 'lesson' && (
-              <button className="mgBtn mgBtnDel" onClick={() => { onDelete(l.id); setTapped(null) }}>✕</button>
-            )}
-          </>
+        <button className="mgBtn" onClick={() => { onEdit(l.id); setTapped(null) }}>⚙</button>
+        <button className="mgBtn" onClick={e => { startRename(e, l.id, l.title); setTapped(null) }}>✎</button>
+        <button className="mgBtn" title="Сбросить прохождение этого урока (XP отнимется, анализ сохранится)"
+          onClick={() => { onResetLesson?.(l.id); setTapped(null) }}>⟲</button>
+        <button className={`mgBtn mgBtnEye${l.published ? ' mgBtnEyeOn' : ''}`}
+          title={l.published ? 'Скрыть' : 'Показать'}
+          onClick={() => { onTogglePublished(l.id, l.published); setTapped(null) }}>
+          {l.published ? '👁' : '🚫'}
+        </button>
+        {kind === 'lesson' && (
+          <button className="mgBtn mgBtnDel" onClick={() => { onDelete(l.id); setTapped(null) }}>✕</button>
         )}
       </div>
     )
@@ -298,8 +296,20 @@ export default function ModuleGraph({
                 onMouseLeave={() => setHovered(null)}
                 onClick={e => { e.stopPropagation(); handleClick(l.id) }}
               >
+                {/* Мелкий порядковый номер — в левом верхнем углу карточки */}
+                <div className="mgLessonIdx">{i + 1}</div>
+                {/* Кружок — только статус: замок (до диагностики), серый ▶
+                    (не пройден) или зелёная галочка (пройден) */}
                 <div className={`mgLessonNum${done ? ' mgLessonNum--done' : ''}`}>
-                  {locked ? <LockIcon size={14} /> : done ? '✓' : i + 1}
+                  {locked
+                    ? <LockIcon size={14} />
+                    : done
+                    ? '✓'
+                    : (
+                      <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor">
+                        <path d="M8 5 L19 12 L8 19 Z" />
+                      </svg>
+                    )}
                 </div>
                 <div className="mgLessonBody">
                   <div className="mgLessonTop">
@@ -333,6 +343,7 @@ export default function ModuleGraph({
           lesson={final_}
           finalOpen={finalOpen}
           shine={startDoneShown && !finalOpen}
+          onPlay={onPlay}
           finalFlash={finalFlash}
           xpUnlock={xpUnlock}
           earnedShow={earnedShow}

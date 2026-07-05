@@ -80,6 +80,9 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  /* До краёв экрана: без этого нижний паддинг .app (16px) резал скролл выше
+     края — под финалом висела «граница», перекрывающая ноды при скролле */
+  margin: 0 -16px -16px;
 }
 
 .lessonRenameBtn {

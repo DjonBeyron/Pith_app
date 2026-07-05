@@ -4,6 +4,7 @@ import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
 import RetakeDialog from './RetakeDialog.jsx'
+import ExamIntroDialog from './ExamIntroDialog.jsx'
 import { hasStatBindings } from '../player/useAnswerStats.js'
 
 const WARMUP_TARGET = 5
@@ -30,7 +31,9 @@ function isWeakDevice() {
 
 // retake=true (урок уже пройден): если в сценарии есть привязки «→ Урок»,
 // вместо кнопки старта — выбор режима пересдачи (RetakeDialog).
-export default function LessonLaunchCard({ lessonId, retake = false, onStart, onClose }) {
+// examIntro=true (финальный урок): вместо кнопки старта — интро экзамена
+// (правила, 3 подсказки, ключ); имеет приоритет над retake.
+export default function LessonLaunchCard({ lessonId, retake = false, examIntro = false, onStart, onClose }) {
   const [lessonData, setLessonData] = useState(null)
   const [error, setError]           = useState(null)
 
@@ -85,6 +88,7 @@ export default function LessonLaunchCard({ lessonId, retake = false, onStart, on
           <LaunchPreloader
             lessonData={lessonData}
             retakeChoice={retake && hasStatBindings(lessonData.nodes)}
+            examIntro={examIntro}
             onStart={onStart}
             onClose={onClose}
           />
@@ -94,7 +98,7 @@ export default function LessonLaunchCard({ lessonId, retake = false, onStart, on
   )
 }
 
-function LaunchPreloader({ lessonData, retakeChoice = false, onStart, onClose }) {
+function LaunchPreloader({ lessonData, retakeChoice = false, examIntro = false, onStart, onClose }) {
   const { nodes, files, title, teacherName, teacherLogo, teacherLogoCrop, videoAutoSound, lessonXp } = lessonData
 
   // Weak device → smaller in-memory buffer during lesson (2 past + 2 ahead vs 5 + 3)
@@ -252,7 +256,9 @@ function LaunchPreloader({ lessonData, retakeChoice = false, onStart, onClose })
         Скачать лог загрузки
       </button>
 
-      {retakeChoice ? (
+      {examIntro ? (
+        <ExamIntroDialog canStart={canStart} onStart={() => handleStart()} />
+      ) : retakeChoice ? (
         <RetakeDialog canStart={canStart} onPick={handleStart} onCancel={onClose} />
       ) : (
         <button

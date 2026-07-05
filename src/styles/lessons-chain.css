@@ -13,29 +13,8 @@
   position: relative;
 }
 
-/* Непройденный урок манит еле заметным бликом: диагональная полоска света
-   проезжает по карточке раз в ~6 секунд. Пройденные — спокойные.
-   До диагностики (.mgNode--locked, замок вместо номера) блеска нет —
-   блестит только стартовый урок. */
-.mgNode--lesson:not(.mgNode--lesson--done):not(.mgNode--locked)::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(115deg,
-    transparent 45%, rgba(255, 255, 255, 0.055) 50%, transparent 55%);
-  background-size: 300% 100%;
-  background-position: 150% 0;
-  /* linear + полёт «из-за края в за-край»: блик никогда не замирает на карточке,
-     на стыке цикла обе позиции за пределами — скачок невидим */
-  animation: mgLessonShine 5s linear infinite;
-}
-
-@keyframes mgLessonShine {
-  0%   { background-position: 150% 0; }
-  100% { background-position: -150% 0; }
-}
+/* Блик непройденного урока (подсвечивает текстуру) — lessons-chain-textures.css.
+   До диагностики (.mgNode--locked) блеска нет — блестит только старт. */
 
 /* Цветная полоса слева по приоритету */
 .mgLesson--high   { border-left: 3px solid #f97316; }
@@ -49,7 +28,48 @@
 .mgNode--lesson.mgLesson--medium:hover { border-left-color: #eab308; }
 .mgNode--lesson.mgLesson--low:hover    { border-left-color: #3b82f6; }
 
-/* Number circle */
+/* Пучок света от полосы приоритета: тянется вправо на 60% ширины карточки.
+   z-index -1 внутри стекинг-контекста карточки (.mgNode z-index 1) —
+   свет поверх фона, но ПОД текстом и содержимым */
+.mgLesson--high::before,
+.mgLesson--medium::before,
+.mgLesson--low::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 60%;
+  z-index: -1;
+  pointer-events: none;
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+}
+
+.mgLesson--high::before   { background: linear-gradient(90deg, rgba(249, 115, 22, 0.16), transparent); }
+.mgLesson--medium::before { background: linear-gradient(90deg, rgba(234, 179, 8, 0.14), transparent); }
+.mgLesson--low::before    { background: linear-gradient(90deg, rgba(59, 130, 246, 0.14), transparent); }
+
+/* Пройденный урок: рамка и фон зеленеют (правила --done ниже), но полоска
+   приоритета остаётся цветной, а пучок света гаснет — остаётся только линия */
+.mgNode--lesson--done.mgLesson--high   { border-left-color: #f97316; }
+.mgNode--lesson--done.mgLesson--medium { border-left-color: #eab308; }
+.mgNode--lesson--done.mgLesson--low    { border-left-color: #3b82f6; }
+
+.mgNode--lesson--done::before { content: none; }
+
+/* Мелкий порядковый номер — левый верхний угол карточки */
+.mgLessonIdx {
+  position: absolute;
+  top: 5px;
+  left: 9px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #565c6b;
+  pointer-events: none;
+}
+
+/* Кружок статуса: замок / серый ▶ / зелёная ✓ */
 .mgLessonNum {
   width: 34px;
   height: 34px;

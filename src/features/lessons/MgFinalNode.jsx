@@ -17,11 +17,15 @@ const SPARK_DIRS = Array.from({ length: 8 }, (_, i) => {
 export function LockIcon({ open, size = 23 }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} style={{ overflow: 'visible' }}>
-      <path d={open ? 'M12 11 V6.5 a4.5 4.5 0 0 1 9 0 v1.6' : 'M6.6 11 V7.2 a3.2 3.2 0 0 1 6.4 0 V11'}
-        fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
-      <rect x="3.5" y="10.2" width="12.5" height="10.3" rx="2.6" fill="currentColor" />
-      <circle cx="9.75" cy="14.4" r="1.6" fill="#120f1a" />
-      <rect x="9" y="15.2" width="1.5" height="2.8" rx="0.75" fill="#120f1a" />
+      {/* Корпус сдвинут влево под открытую дужку — закрытый рисунок для
+          центровки в кружках/пилюле сдвигаем обратно вправо */}
+      <g transform={open ? undefined : 'translate(2.25 0)'}>
+        <path d={open ? 'M12 11 V6.5 a4.5 4.5 0 0 1 9 0 v1.6' : 'M6.6 11 V7.2 a3.2 3.2 0 0 1 6.4 0 V11'}
+          fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+        <rect x="3.5" y="10.2" width="12.5" height="10.3" rx="2.6" fill="currentColor" />
+        <circle cx="9.75" cy="14.4" r="1.6" fill="#120f1a" />
+        <rect x="9" y="15.2" width="1.5" height="2.8" rx="0.75" fill="#120f1a" />
+      </g>
     </svg>
   )
 }
@@ -45,13 +49,13 @@ function KeyIcon() {
 export default function MgFinalNode({
   lesson, finalOpen, finalFlash, xpUnlock, earnedShow, xpPct,
   shine = false, // манящий блик: только после диагностики и пока финал закрыт
-  renaming, renameInput, btns, nodeRef, knobRef, onHover, onClick,
+  renaming, renameInput, btns, nodeRef, knobRef, onHover, onClick, onPlay,
 }) {
   const [unlockAnim,    setUnlockAnim]    = useState(false)
   const [burst,         setBurst]         = useState(false)
   const [lockOpenShown, setLockOpenShown] = useState(finalOpen)
-  // Финал открыт и церемония отыграла: пилюля, ключ-бегунок и замок-цель
-  // плавно исчезают (CSS --gone). При монтировании уже открытого — сразу true.
+  // Финал открыт и церемония отыграла: замок-цель у бара исчезает, а в пилюле
+  // вместо замка появляется кнопка ▶. При монтировании уже открытого — сразу true.
   const [chromeGone,    setChromeGone]    = useState(finalOpen)
   // Подсказка у замка-цели: наведение или тап — «нужен ключ»
   const [lockHint,      setLockHint]      = useState(false)
@@ -103,11 +107,28 @@ export default function MgFinalNode({
         <div className="mgHexFill mgHexFill--final">
           {renaming ? renameInput : (
             <>
-              <span className="mgNodeTitle">{lesson.title}</span>
+              {/* У открытого финала заголовок сидит ниже — ближе к центру формы */}
+              <span className={`mgNodeTitle${chromeGone ? ' mgFinalTitleOpen' : ''}`}>{lesson.title}</span>
+              {chromeGone ? (
+                /* Церемония отыграла: пилюля и бар исчезли — кнопка запуска
+                   по центру формы, текст статуса на месте линии прогресса */
+                <>
+                  <button
+                    className="mgFinalPlayBtn"
+                    onClick={e => { e.stopPropagation(); onPlay?.(lesson.id) }}
+                  >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                      <path d="M8 5 L19 12 L8 19 Z" />
+                    </svg>
+                  </button>
+                  <span className="mgFinalOpenText">Финальный урок открыт!</span>
+                </>
+              ) : (
+              <>
               {/* Плашка-«пилюля»: замок церемонии + статус доступа */}
-              <div className={`mgFinalPill${finalOpen ? ' mgFinalPill--open' : ''}${chromeGone ? ' mgFinalPill--gone' : ''}`}>
+              <div className={`mgFinalPill${finalOpen ? ' mgFinalPill--open' : ''}`}>
                 <span className={`mgFinalPillLock${unlockAnim ? ' mgIconBadge--unlocking' : ''}`}>
-                  <LockIcon open={lockOpenShown} size={36} />
+                  <LockIcon open={lockOpenShown} size={30} />
                   {burst && (
                     <span className="mgLockSparks">
                       {SPARK_DIRS.map((d, i) => (
@@ -122,10 +143,8 @@ export default function MgFinalNode({
               </div>
               {xpUnlock > 0 && (
                 <div className="mgFinalXpWrap">
-                  <span className="mgFinalXpLabel">
-                    <span className="mgFinalXpNow">{earnedShow}</span> / {xpUnlock} XP
-                  </span>
-                  {/* Ключ едет по бару к замку у правого края; при открытии замок откинут */}
+                  {/* Ключ едет по бару к замку у правого края; при открытии замок
+                      откинут. Цифры — под баром. */}
                   <div className="mgFinalXpBarRow">
                     <div className="mgFinalXpTrack">
                       <div className="mgFinalXpBar">
@@ -139,7 +158,7 @@ export default function MgFinalNode({
                       </span>
                     </div>
                     <span
-                      className={`mgFinalXpLock${finalOpen ? ' mgFinalXpLock--open' : ''}${chromeGone ? ' mgFinalXpLock--gone' : ''}`}
+                      className={`mgFinalXpLock${finalOpen ? ' mgFinalXpLock--open' : ''}`}
                       onMouseEnter={() => { if (!finalOpen) setLockHint(true) }}
                       onMouseLeave={() => setLockHint(false)}
                       onClick={pokeLock}
@@ -150,7 +169,12 @@ export default function MgFinalNode({
                       )}
                     </span>
                   </div>
+                  <span className="mgFinalXpLabel">
+                    <span className="mgFinalXpNow">{earnedShow}</span> / {xpUnlock} XP
+                  </span>
                 </div>
+              )}
+              </>
               )}
               {btns}
             </>

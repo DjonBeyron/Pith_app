@@ -123,19 +123,8 @@
   background: #14161c;
 }
 
-/* До диагностики блестит ТОЛЬКО старт: белый блик по шестиугольнику
-   (keyframes mgLessonShine — из lessons-chain.css) */
-.mgNode--start--inactive .mgHexFill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(115deg,
-    transparent 42%, rgba(255, 255, 255, 0.07) 50%, transparent 58%);
-  background-size: 300% 100%;
-  background-position: 150% 0;
-  animation: mgLessonShine 5.5s linear infinite;
-}
+/* До диагностики блестит ТОЛЬКО старт — блик с подсветкой текстуры
+   в lessons-chain-textures.css */
 
 /* Пройден: полупрозрачный зелёный градиент (обводка — зелёный SVG-контур) */
 .mgNode--start--done {
