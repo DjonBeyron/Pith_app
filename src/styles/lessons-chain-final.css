@@ -59,17 +59,20 @@
   align-items: center;
   gap: 2px;
   padding: 4px 12px;
+  /* Фон непрозрачный (тот же тон, что rgba(139,92,246,.07) поверх нода) —
+     текстура нода не просвечивает сквозь пилюлю */
   background:
     repeating-linear-gradient(115deg,
       rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 9px),
-    rgba(139, 92, 246, 0.07);
+    #1a1529;
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 18px;
 }
 
-/* Открытая пилюля — без диагональных полос, чистый фиолетовый тон */
+/* Открытая пилюля — без диагональных полос, чистый фиолетовый тон
+   (непрозрачный — текстура нода не просвечивает) */
 .mgFinalPill--open {
-  background: rgba(139, 92, 246, 0.14);
+  background: #251b3c;
   border-color: rgba(139, 92, 246, 0.5);
 }
 
