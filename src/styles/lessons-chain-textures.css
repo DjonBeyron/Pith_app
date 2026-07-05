@@ -1,29 +1,20 @@
 /* ── Текстуры нодов схемы уроков ─────────────────────────────
-   Всегда видны (и в закрытом, и в открытом состоянии). Три рисунка в
-   скандинавском духе (руны/орнаменты) — см. блок :root ниже. Блеск (::after)
-   несёт ту же текстуру ярче под маской движущейся полосы света — блик
-   «подсвечивает» рисунок, а не просто заливает карточку. Файл подключается
+   Всегда видны (и в закрытом, и в открытом состоянии). Узоры: закрученные
+   топографические контуры (вложенные плавные петли, изолинии) с лёгкой
+   скандинавской примесью (ромбы, шевроны, пара засечек). Файл подключается
    ПОСЛЕ lessons-chain*.css и переопределяет их фоны/блики. */
 
-/* Узоры: закрученные топографические контуры (как на референсе — вложенные
-   плавные петли, изолинии) с лёгкой скандинавской примесью (ромбы, шевроны,
-   пара засечек). Все линии кругловатые, лишь редкие угловатые акценты. */
 :root {
   --mg-tex-start: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cg fill='none' stroke='white' stroke-opacity='.065' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M28 118 C34 92 66 82 92 94 C120 107 122 140 94 152 C64 165 34 146 28 118 Z'/%3E%3Cpath d='M44 118 C48 100 70 93 88 102 C107 112 106 134 86 142 C64 150 46 136 44 118 Z'/%3E%3Cpath d='M58 117 C61 106 74 101 85 107 C96 113 94 127 82 131 C69 136 59 128 58 117 Z'/%3E%3Cpath d='M120 12 C150 6 172 22 174 44 C175 60 160 70 146 63 C134 57 136 40 148 36'/%3E%3Cpath d='M132 22 C152 18 164 30 164 42'/%3E%3Cpath d='M4 60 C30 44 60 58 84 42 C102 30 96 14 78 12'/%3E%3Cpath d='M118 168 C140 158 158 164 176 150'/%3E%3Cpath d='M150 96 l6 6 -6 6 -6 -6 z'/%3E%3Cpath d='M22 150 l7 -7 7 7'/%3E%3Cpath d='M104 74 v12 M104 78 l6 5'/%3E%3C/g%3E%3C/svg%3E");
-  --mg-tex-start-bright: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cg fill='none' stroke='white' stroke-opacity='.22' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M28 118 C34 92 66 82 92 94 C120 107 122 140 94 152 C64 165 34 146 28 118 Z'/%3E%3Cpath d='M44 118 C48 100 70 93 88 102 C107 112 106 134 86 142 C64 150 46 136 44 118 Z'/%3E%3Cpath d='M58 117 C61 106 74 101 85 107 C96 113 94 127 82 131 C69 136 59 128 58 117 Z'/%3E%3Cpath d='M120 12 C150 6 172 22 174 44 C175 60 160 70 146 63 C134 57 136 40 148 36'/%3E%3Cpath d='M132 22 C152 18 164 30 164 42'/%3E%3Cpath d='M4 60 C30 44 60 58 84 42 C102 30 96 14 78 12'/%3E%3Cpath d='M118 168 C140 158 158 164 176 150'/%3E%3Cpath d='M150 96 l6 6 -6 6 -6 -6 z'/%3E%3Cpath d='M22 150 l7 -7 7 7'/%3E%3Cpath d='M104 74 v12 M104 78 l6 5'/%3E%3C/g%3E%3C/svg%3E");
 
   --mg-tex-final: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='270' height='270'%3E%3Cg fill='none' stroke='white' stroke-opacity='.06' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M40 150 C50 110 110 96 150 116 C192 137 194 186 148 202 C102 218 48 194 40 150 Z'/%3E%3Cpath d='M64 150 C71 122 112 112 140 126 C170 141 170 176 138 186 C104 197 70 180 64 150 Z'/%3E%3Cpath d='M88 150 C92 134 114 128 130 137 C146 146 144 166 126 172 C106 179 90 166 88 150 Z'/%3E%3Cpath d='M190 30 C224 24 250 44 250 72 C250 92 232 102 216 92 C202 84 206 62 222 60'/%3E%3Cpath d='M-8 60 C30 42 70 58 110 40 C138 28 132 6 108 6'/%3E%3Cpath d='M160 250 C190 236 220 244 252 228'/%3E%3Cpath d='M-6 220 C24 206 48 216 70 204'/%3E%3Cpath d='M196 140 l10 -9 10 9 10 -9 10 9'/%3E%3Cpath d='M226 190 l7 7 -7 7 -7 -7 z M40 60 l6 6 -6 6 -6 -6 z'/%3E%3Cpath d='M170 66 v14 M170 71 l7 5'/%3E%3C/g%3E%3C/svg%3E");
-  --mg-tex-final-bright: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='270' height='270'%3E%3Cg fill='none' stroke='white' stroke-opacity='.2' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M40 150 C50 110 110 96 150 116 C192 137 194 186 148 202 C102 218 48 194 40 150 Z'/%3E%3Cpath d='M64 150 C71 122 112 112 140 126 C170 141 170 176 138 186 C104 197 70 180 64 150 Z'/%3E%3Cpath d='M88 150 C92 134 114 128 130 137 C146 146 144 166 126 172 C106 179 90 166 88 150 Z'/%3E%3Cpath d='M190 30 C224 24 250 44 250 72 C250 92 232 102 216 92 C202 84 206 62 222 60'/%3E%3Cpath d='M-8 60 C30 42 70 58 110 40 C138 28 132 6 108 6'/%3E%3Cpath d='M160 250 C190 236 220 244 252 228'/%3E%3Cpath d='M-6 220 C24 206 48 216 70 204'/%3E%3Cpath d='M196 140 l10 -9 10 9 10 -9 10 9'/%3E%3Cpath d='M226 190 l7 7 -7 7 -7 -7 z M40 60 l6 6 -6 6 -6 -6 z'/%3E%3Cpath d='M170 66 v14 M170 71 l7 5'/%3E%3C/g%3E%3C/svg%3E");
 
   --mg-tex-lesson: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg fill='none' stroke='white' stroke-opacity='.055' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
-  --mg-tex-lesson-bright: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg fill='none' stroke='white' stroke-opacity='.18' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
 
   /* Зерно-шероховатость (feTurbulence), два слоя: крупное (0.9) и мелкая
      «пыль» (1.6, три октавы). Растеризуются один раз, тайлятся */
   --mg-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
-  --mg-grain-bright: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
   --mg-dust: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23d)'/%3E%3C/svg%3E");
-  --mg-dust-bright: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23d)'/%3E%3C/svg%3E");
 }
 
 /* ── Текстура всегда в фоне ─────────────────────────────────── */
@@ -67,16 +58,23 @@
     #12151c;
 }
 
-/* ── Блеск подсвечивает текстуру ────────────────────────────
-   ::after: яркая текстура + лёгкий свет, видимые только в полосе
-   движущейся маски. Полоса та же, что была бликом, но теперь под ней
-   «загораются» линии рисунка. */
+/* ── Блеск ──────────────────────────────────────────────────
+   Композитная полоса света: двигается transform'ом на своём GPU-слое —
+   БЕЗ покадровых перерисовок нода (анимация маски лагала на iPhone SE:
+   Safari перерисовывал SVG-слои каждый кадр). Полупрозрачный свет проходит
+   поверх текстуры и визуально подсвечивает её. */
 
 /* Слой блика — ПОД контентом нода (z -1): не перекрывает пилюлю финала,
    кнопки и текст. Для этого hexfill получает свой стекинг-контекст. */
 .mgHexFill--start,
 .mgHexFill--final {
   z-index: 0;
+}
+
+/* Карточке урока нужен overflow hidden: полоса режется её краями
+   (кнопки/контент центрированы внутри — не страдают) */
+.mgNode--lesson {
+  overflow: hidden;
 }
 
 .mgNode--lesson:not(.mgNode--lesson--done):not(.mgNode--locked)::after,
@@ -86,59 +84,42 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  border-radius: inherit;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(115deg, transparent 42%, #fff 50%, transparent 58%);
-  mask-image: linear-gradient(115deg, transparent 42%, #fff 50%, transparent 58%);
-  -webkit-mask-size: 300% 100%;
-  mask-size: 300% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-}
-
-.mgNode--lesson:not(.mgNode--lesson--done):not(.mgNode--locked)::after {
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)),
-    var(--mg-dust-bright),
-    var(--mg-grain-bright),
-    var(--mg-tex-lesson-bright);
-  animation: mgTexShine 5s linear infinite;
+  background: linear-gradient(115deg,
+    transparent 40%, rgba(255, 255, 255, 0.09) 50%, transparent 60%);
+  transform: translateX(-130%);
+  will-change: transform;
+  transition: opacity 0.25s ease; /* плавное затухание/возврат в «затишье» */
+  animation: mgTexShine 14s linear infinite;
 }
 
 .mgNode--start--inactive .mgHexFill::after {
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06)),
-    var(--mg-dust-bright),
-    var(--mg-grain-bright),
-    var(--mg-tex-start-bright) center / 180px 180px no-repeat;
-  animation: mgTexShine 5.5s linear infinite;
+  animation-duration: 16s;
 }
 
 .mgGlow--finalShine .mgHexFill--final::after {
-  background:
-    linear-gradient(rgba(196, 168, 255, 0.08), rgba(196, 168, 255, 0.08)),
-    var(--mg-dust-bright),
-    var(--mg-grain-bright),
-    var(--mg-tex-final-bright) center / 270px 270px no-repeat;
-  animation: mgTexShine 6.5s linear infinite;
+  background: linear-gradient(115deg,
+    transparent 40%, rgba(196, 168, 255, 0.11) 50%, transparent 60%);
+  animation-duration: 18s;
 }
 
-/* Полоса света едет «из-за края в за-край» — на стыке цикла обе позиции
-   за пределами, скачок невидим (как в прежнем mgLessonShine) */
+/* «Затишье» (скролл идёт или играет церемония с полётом кружков): блик
+   на паузе и погашен — не отвлекает от XP-анимации */
+.moduleGraphScroll--calm .mgNode--lesson::after,
+.moduleGraphScroll--calm .mgHexFill::after {
+  animation-play-state: paused;
+  opacity: 0;
+}
+
+/* Блеск редкий: полоса пробегает за первые 12% цикла (~1.7с), остальное
+   время стоит за краем — пауза 12–16с между проходами */
 @keyframes mgTexShine {
-  0% {
-    -webkit-mask-position: 150% 0;
-    mask-position: 150% 0;
-  }
-  100% {
-    -webkit-mask-position: -150% 0;
-    mask-position: -150% 0;
-  }
+  0%        { transform: translateX(-130%); }
+  12%, 100% { transform: translateX(130%); }
 }
 
-/* Анимация маски — не композитная (каждый кадр — перерисовка нода).
-   Область маленькая, но на слабых устройствах и при системной настройке
-   «уменьшить анимации» блеск отключаем целиком — остаётся тихая текстура. */
+/* Системная настройка «уменьшить анимации»: блеска нет совсем —
+   остаётся тихая статичная текстура */
 @media (prefers-reduced-motion: reduce) {
   .mgNode--lesson:not(.mgNode--lesson--done):not(.mgNode--locked)::after,
   .mgNode--start--inactive .mgHexFill::after,

@@ -179,7 +179,7 @@ export default function CanvasNode({
             rows={4}
           />
         )}
-        {(node.type === 'text' || (node.type === 'audio' && !!tData.text)) && (
+        {(node.type === 'text' || node.type === 'pin_message' || (node.type === 'audio' && !!tData.text)) && (
           <button
             className="nodeHLOpenBtn"
             style={(tData.highlights?.length > 0) ? { borderColor: '#b6fe3b', color: '#b6fe3b' } : undefined}

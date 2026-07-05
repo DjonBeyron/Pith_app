@@ -237,6 +237,22 @@ export default function LessonPlayer({
     [wcNode, paNode, pcNode].forEach(n => { if (n) panelShown(n.id) })
   }, [wcNode?.id, paNode?.id, pcNode?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // «Мгновенные» ноды зовут onDone в эффекте маунта, но монтируются они в
+  // pending-фазе с onDone-заглушкой (DOM сохраняется по key при активации,
+  // эффект не перезапускается) — их onNodeDone терялся, и ПОСЛЕДНЕЕ такое
+  // сообщение не завершало урок (итоги с XP не показывались). Дублируем
+  // onNodeDone при появлении ноды среди видимых; повторные вызовы безопасны
+  // (дедуп триггеров и финиша в useGraphPlayer).
+  const instantDoneRef = useRef(new Set())
+  useEffect(() => {
+    visibleNodes.forEach(n => {
+      if (!['text', 'pin_message', 'system', 'photo'].includes(n.type)) return
+      if (instantDoneRef.current.has(n.id)) return
+      instantDoneRef.current.add(n.id)
+      onNodeDone(n.id)
+    })
+  }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <div className="lessonPlayer">
@@ -251,6 +267,7 @@ export default function LessonPlayer({
         {pmNode && pinVisible && (
           <PinMessageBanner
             content={pmNode.typeData?.pin_message?.content ?? ''}
+            highlights={pmNode.typeData?.pin_message?.highlights ?? []}
             onUnpin={() => setPinVisible(false)}
           />
         )}

@@ -22,6 +22,7 @@ export function useGraphPlayer(nodes, { onFinish } = {}) {
   const nodeMapRef  = useRef({})
   const firedRef    = useRef(new Set())
   const timersRef   = useRef([])
+  const finishedRef = useRef(false) // финал урока срабатывает ровно один раз
   const onFinishRef = useRef(onFinish)
   onFinishRef.current = onFinish
 
@@ -102,7 +103,12 @@ export function useGraphPlayer(nodes, { onFinish } = {}) {
       return
     }
 
-    // Nothing left to schedule — lesson is finished
+    // Таймер-переход продолжит цепочку сам (activateTimerTrigger) — это не финиш
+    if (triggers.some(tr => tr.if === 'timer' && tr.then)) return
+
+    // Nothing left to schedule — lesson is finished (ровно один раз)
+    if (finishedRef.current) return
+    finishedRef.current = true
     onFinishRef.current?.()
   }, []) // eslint-disable-line
 
@@ -117,6 +123,7 @@ export function useGraphPlayer(nodes, { onFinish } = {}) {
     }
     clearTimers()
     firedRef.current = new Set()
+    finishedRef.current = false
     const entry = findEntry(nodes)
     if (!entry) return
     setVisibleNodes([entry])
