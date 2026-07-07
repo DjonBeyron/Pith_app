@@ -36,6 +36,18 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     if (on) localStorage.setItem('pithy_sound_v1', '1')
     else localStorage.removeItem('pithy_sound_v1')
   }
+  // Пользователь тапнул чип хотя бы раз — дальше автоблок звука на
+  // пересозданных <video> соседних слайдов (без прямого жеста) не должен
+  // откатывать его выбор, иначе звук гаснет сам через пару видео
+  const soundGestureRef = useRef(false)
+  function handleSoundOn() {
+    soundGestureRef.current = true
+    setSoundOn(true)
+  }
+  function handleSoundBlocked() {
+    if (soundGestureRef.current) return
+    setSoundOn(false)
+  }
   const [showDebug, setShowDebug] = useState(false)
   // Активный слайд считается из позиции скролла (не IntersectionObserver —
   // тот в webview-средах может молчать, и видео не монтировалось)
@@ -282,8 +294,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           visible={visible && view === 'mine'}
           modules={modules ?? []}
           soundOn={soundOn}
-          onSoundOn={() => setSoundOn(true)}
-          onSoundBlocked={() => setSoundOn(false)}
+          onSoundOn={handleSoundOn}
+          onSoundBlocked={handleSoundBlocked}
           onOpen={m => setOpenModule(m)}
           onGoFeed={() => setView('feed')}
         />
@@ -327,8 +339,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                       reaction={reactions[m.id]}
                       likeCount={social?.likeCount?.[m.id] ?? 0}
                       soundOn={soundOn}
-                      onSoundOn={() => setSoundOn(true)}
-                      onSoundBlocked={() => setSoundOn(false)}
+                      onSoundOn={handleSoundOn}
+                      onSoundBlocked={handleSoundBlocked}
                       onToggleLike={() => toggle(m.id, 'liked')}
                       onToggleSave={() => toggle(m.id, 'saved')}
                       onLearn={() => setOpenModule(m)}
