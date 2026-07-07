@@ -8,15 +8,35 @@
   min-height: 0;
 }
 
-/* Верхние вкладки поверх видео */
+/* Верхние вкладки поверх видео — выше, небольшой отступ от верха.
+   Только сами вкладки — центрированы по ПОЛНОЙ ширине экрана (X).
+   DBG (feed-media.css) и версия — отдельные абс. позиционированные
+   элементы, в flex-центровку вкладок не входят: DBG заметно ниже
+   (второй ряд, слева), версия — мельче, справа от вкладок. */
 .feedV2Tabs {
   position: absolute;
-  top: calc(16px + env(safe-area-inset-top, 0px));
+  top: calc(2px + env(safe-area-inset-top, 0px)); /* почти к самому краю */
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
+  align-items: baseline;
   gap: 26px;
+  z-index: 6;
+}
+
+.feedV2Version {
+  position: absolute;
+  top: calc(6px + env(safe-area-inset-top, 0px));
+  /* Запас от истинного края — под значок энергии (top:10px right:12px,
+     EnergyBadge.jsx, ~50px шириной) — иначе версия залезала бы под него
+     у залогиненных пользователей */
+  right: 70px;
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
   z-index: 6;
 }
 

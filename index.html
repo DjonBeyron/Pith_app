@@ -7,12 +7,15 @@
     <!-- Запуск с домашнего экрана как полноценное приложение (без UI браузера).
          iOS 26 всегда оставляет системную зону высотой со статус-бар — либо
          сверху (black), либо снизу (black-translucent), поделить нельзя.
-         Выбран black-translucent: чёлка заполнена контентом, а нижняя
-         системная зона красится fallback-фоном html (#0b0d10, base.css) —
-         выглядит полосой-продолжением приложения под нижней панелью -->
+         Зона рисуется самой iOS ВНЕ страницы — сплошным нативным чёрным,
+         никакой CSS внутри приложения её не красит и не растушёвывает.
+         Раньше был выбран black-translucent (зона внизу, под нижним баром) —
+         там она давала резкий нестыкующийся край. Теперь content=black:
+         зона наверху (над статус-баром/чёлкой, видео в ленте под ней уже не
+         заходит), а низ — целиком наш нижний бар без чужеродной полосы -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Pithy" />
     <meta name="theme-color" content="#0b0d10" />
     <link rel="preconnect" href="https://fonts.googleapis.com">

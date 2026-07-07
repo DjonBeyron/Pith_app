@@ -105,17 +105,17 @@
   .feedSkeleton::after { animation: none; }
 }
 
-/* ── Дебаг ленты (слева — правый верхний угол занят значком энергии) ── */
+/* ── Дебаг ленты — второй ряд, под вкладками/версией, слева, мельче ── */
 .feedDbgBtn {
   position: absolute;
   left: 14px;
-  top: 4px;
-  padding: 5px 9px;
-  border-radius: 8px;
+  top: calc(38px + env(safe-area-inset-top, 0px));
+  padding: 3px 7px;
+  border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.5);
   color: rgba(255, 255, 255, 0.6);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   cursor: pointer;
 }

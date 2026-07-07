@@ -7,7 +7,6 @@ import CanvasPage from '../features/canvas/CanvasPage.jsx'
 import EnergyBadge from './EnergyBadge.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
-import { APP_VERSION } from '../shared/lib/version.js'
 
 // Новая оболочка (ui v2, миграция по PROJECT.md): нижний бар Уроки/Профиль
 // (+Админ для is_admin). Пока: лента — заглушка (шаг 3 миграции),
@@ -29,7 +28,6 @@ export default function ShellV2() {
 
   return (
     <div className="shellV2">
-      <div className="shellV2Version">v{APP_VERSION} · ui2</div>
       <EnergyBadge hidden={tab === 'profile'} />
 
       {/* Все вкладки смонтированы всегда: переключение — только видимость.

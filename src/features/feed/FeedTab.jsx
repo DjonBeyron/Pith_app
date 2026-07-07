@@ -8,6 +8,7 @@ import MyLessons from './MyLessons.jsx'
 import DebugPanel from './DebugPanel.jsx'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
+import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Лента видео (новая оболочка, шаг 3 миграции): вертикальный scroll-snap
 // по модулям из curricula, бесконечная по кругу — список повторяется
@@ -260,7 +261,6 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   return (
     <div className="feedV2">
       <div className="feedV2Tabs">
-        <button className="feedDbgBtn" onClick={() => setShowDebug(true)}>DBG</button>
         <button
           className={view === 'feed' ? 'feedV2Tab feedV2TabActive' : 'feedV2Tab'}
           onClick={() => setView('feed')}>
@@ -272,6 +272,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           Мои уроки
         </button>
       </div>
+      <span className="feedV2Version">v{APP_VERSION}</span>
+      <button className="feedDbgBtn" onClick={() => setShowDebug(true)}>DBG</button>
 
       {/* Оба вида смонтированы всегда (как вкладки оболочки): переключение
           «Рекомендации» ↔ «Мои уроки» не сбрасывает ленту и её слайд */}

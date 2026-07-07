@@ -35,17 +35,6 @@
      полосы) — вниз на инсет сдвигаются только верхние оверлеи */
 }
 
-.shellV2Version {
-  position: absolute;
-  top: calc(6px + env(safe-area-inset-top, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
-  pointer-events: none;
-}
-
 /* Значок энергии — правый верхний угол, тап открывает мини-окно */
 .energyWrap {
   position: absolute;
@@ -161,12 +150,21 @@
 }
 
 /* ── Нижний бар ── */
-/* Бар ПОВЕРХ контента: компактный, сплошного цвета приложения (включая
-   системную зону снизу — она выглядит продолжением приложения, а не краем).
+/* Бар ПОВЕРХ контента: компактный, сплошного цвета приложения.
    Высота обрезана СВЕРХУ (--v2-nav-btn-h 40px вместо 48) — bottom:0
    зафиксирован, поэтому нижний край панели не сдвигается.
-   Текстура — на ::before (под кнопками); ::after поверх нижней части бара
-   растушёвывает её в сплошной цвет приложения, не затрагивая сами кнопки. */
+   ВАЖНО: padding-bottom здесь НЕ используется — он резервировал системную
+   зону строго ПОД кнопками (button height:100% считался от content-box,
+   из которого padding вычтен), поэтому на iPhone в standalone (где
+   env(safe-area-inset-bottom) большой, см. index.html) иконки прижимались
+   к верхней линии бара, а весь safe-инсет пустовал снизу. Теперь кнопка —
+   обычной высоты (по контенту), а align-items:center центрирует её across
+   ВСЮ высоту бара (включая safe-инсет) — иконка остаётся по центру и в
+   браузере (инсет=0), и в PWA (инсет большой).
+   Чёрная полоса под баром в standalone на iOS — резервированная системная
+   зона ВНЕ страницы (см. index.html), CSS её не достаёт: растушёвка
+   градиентом внутри .shellV2Nav не могла её смягчить, поэтому убрана.
+   Зона перенесена наверх сменой apple-mobile-web-app-status-bar-style. */
 .shellV2Nav {
   position: absolute;
   left: 0;
@@ -174,35 +172,18 @@
   bottom: 0;
   z-index: 20;
   display: flex;
-  align-items: center; /* иконки по оси Y — по центру уменьшенной высоты */
+  align-items: center;
   box-sizing: border-box;
   height: var(--v2-nav-h);
-  padding-bottom: calc(var(--v2-nav-strip) + env(safe-area-inset-bottom, 0px));
-}
-
-.shellV2Nav::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
   background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #0b0d10;
 }
 
-.shellV2Nav::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 60%;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(to bottom, transparent, #0b0d10 75%);
-}
-
 .shellV2NavBtn {
-  flex: 1;
-  height: 100%;
+  /* flex:1 растягивает по ширине (горизонтальные доли кнопок), а не по
+     высоте — высота кнопки берётся из контента (иконка+текст), не 100%
+     родителя: иначе она снова растянулась бы на весь бар, включая
+     safe-инест, и align-items:center у .shellV2Nav было бы нечего центрировать */
+  flex: 1 0 auto;
   padding: 0; /* иначе съедает высоту глобальный button{padding:8px 12px}
     (base.css) — иконке не хватало места, flex-shrink сминал её по высоте */
   display: flex;
