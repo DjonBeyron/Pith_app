@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Макет — Профиль</title>
+<link rel="stylesheet" href="proto.css">
+<style>
+  .screen { flex: 1; overflow-y: auto; padding: 18px 16px 20px; }
+  .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .head h1 { font-size: 19px; font-weight: 800; }
+  .gearBtn { background: none; border: none; color: var(--muted); }
+  .gearBtn svg { width: 22px; height: 22px; }
+  .who { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #6b9fd4, #23344d);
+    border: 2px solid var(--line);
+  }
+  .whoName { font-size: 17px; font-weight: 700; }
+  .lvlChip {
+    display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 999px;
+    background: rgba(182, 254, 59, 0.12); border: 1px solid rgba(182, 254, 59, 0.35);
+    color: var(--accent); font-size: 12px; font-weight: 700;
+  }
+  .xpCard, .enCard {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .xpTop { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .xpTop b { color: var(--text); }
+  .enRow { display: flex; align-items: center; gap: 10px; }
+  .bolt { width: 20px; height: 20px; color: var(--accent); }
+  .boltOff { color: #2c333d; }
+  .enTimer { margin-left: auto; font-size: 12px; color: var(--muted); }
+  .tabs { display: flex; gap: 6px; margin: 20px 0 14px; }
+  .ptab {
+    flex: 1; border: 1px solid var(--line); background: var(--panel);
+    color: var(--muted); border-radius: 999px; padding: 9px 4px;
+    font-size: 12.5px; font-weight: 600;
+  }
+  .ptabActive {
+    background: var(--dust-d), var(--grain-d), linear-gradient(180deg, #ceff73, #a9f335);
+    border-color: var(--accent); color: var(--on-accent);
+  }
+  .word {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; margin-bottom: 8px;
+    background: var(--dust), var(--grain), var(--tex) var(--panel);
+    border: 1px solid var(--line); border-radius: 14px;
+  }
+  .word:nth-child(3n+2) {
+    background: var(--dust), var(--grain), var(--tex-f) var(--panel);
+    background-position: 0 0, 0 0, 24px 12px;
+  }
+  .word:nth-child(3n) {
+    background: var(--dust), var(--grain), var(--tex-r) var(--panel);
+    background-position: 0 0, 0 0, 50px 28px;
+  }
+  .wEn { font-size: 15px; font-weight: 700; }
+  .wRu { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .wFrom { margin-left: auto; font-size: 11px; color: var(--dim); text-align: right; }
+  .backHub { top: auto; bottom: 74px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <a class="backHub" href="index.html">&larr; все макеты</a>
+  <div class="screen">
+    <div class="head">
+      <h1>Профиль</h1>
+      <button class="gearBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>
+      </button>
+    </div>
+
+    <div class="who">
+      <div class="avatar"></div>
+      <div>
+        <div class="whoName">Евгений</div>
+        <span class="lvlChip">4 уровень</span>
+      </div>
+    </div>
+
+    <div class="xpCard">
+      <div class="xpTop"><span>Опыт</span><b>1 240 / 2 000 XP</b></div>
+      <div class="track"><div class="fill" style="width:62%"></div></div>
+    </div>
+
+    <div class="enCard">
+      <div class="enRow">
+        <svg class="bolt" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        <svg class="bolt" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        <svg class="bolt" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        <svg class="bolt" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        <svg class="bolt boltOff" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        <span class="enTimer">+1 через 2:14</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="ptab">Сохранённые</button>
+      <button class="ptab">Пройденные</button>
+      <button class="ptab ptabActive">Копилка слов</button>
+    </div>
+
+    <div class="word">
+      <div><div class="wEn">up to</div><div class="wRu">зависеть от, решать</div></div>
+      <div class="wFrom">It&rsquo;s up to you</div>
+    </div>
+    <div class="word">
+      <div><div class="wEn">break</div><div class="wRu">ломать, нарушать</div></div>
+      <div class="wFrom">Break the ice</div>
+    </div>
+    <div class="word">
+      <div><div class="wEn">ice</div><div class="wRu">лёд</div></div>
+      <div class="wFrom">Break the ice</div>
+    </div>
+    <div class="word">
+      <div><div class="wEn">piece</div><div class="wRu">кусок, часть</div></div>
+      <div class="wFrom">Piece of cake</div>
+    </div>
+    <div class="word">
+      <div><div class="wEn">cake</div><div class="wRu">торт, пирог</div></div>
+      <div class="wFrom">Piece of cake</div>
+    </div>
+  </div>
+
+  <nav class="bottomNav">
+    <a class="navBtn" href="feed.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M10 9.5v5l4.5-2.5L10 9.5z" fill="currentColor"/></svg>
+      Уроки
+    </a>
+    <button class="navBtn navBtnActive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
+      Профиль
+    </button>
+  </nav>
+</div>
+</body>
+</html>

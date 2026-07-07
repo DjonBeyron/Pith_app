@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Макет — Лента «Рекомендации»</title>
+<link rel="stylesheet" href="proto.css">
+<style>
+  .videoArea { flex: 1; position: relative; overflow: hidden; }
+  .videoFake {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(120% 90% at 80% 10%, #24343f 0%, transparent 60%),
+      radial-gradient(110% 80% at 15% 85%, #1d2a1a 0%, transparent 55%),
+      linear-gradient(165deg, #12181f 0%, #0c1013 100%);
+  }
+  .videoHint {
+    position: absolute; top: 46%; left: 0; right: 0;
+    text-align: center; color: rgba(255,255,255,0.14);
+    font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+  }
+  .soundChip {
+    position: absolute; top: 64px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px; z-index: 5;
+    padding: 8px 14px; border-radius: 999px;
+    background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.14);
+    color: #fff; font-size: 13px; font-weight: 500;
+  }
+  .soundChip svg { width: 16px; height: 16px; }
+  .phraseBlock { position: absolute; left: 16px; right: 84px; bottom: 92px; z-index: 4; }
+  .phraseEn {
+    font-size: 28px; font-weight: 800; line-height: 1.15; color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.55);
+  }
+  .phraseEn mark { background: none; color: var(--accent); }
+  .phraseRu {
+    margin-top: 6px; font-size: 15px; color: rgba(255,255,255,0.75);
+    text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+  }
+  .hud {
+    position: absolute; right: 10px; bottom: 96px; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+  }
+  .hudBtn {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; color: #fff;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+  }
+  .hudBtn svg { width: 30px; height: 30px; }
+  .hudCount { font-size: 12px; font-weight: 600; }
+  .learnBtn {
+    position: absolute; left: 16px; right: 84px; bottom: 20px; z-index: 5;
+    width: auto;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 999px;
+    font-size: 16px; font-weight: 800;
+    box-shadow: 0 6px 24px rgba(182, 254, 59, 0.35);
+  }
+  .learnBtn svg { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <a class="backHub" href="index.html">&larr; все макеты</a>
+  <div class="videoArea">
+    <div class="videoFake"></div>
+    <div class="videoHint">здесь — видео фразы</div>
+
+    <div class="topTabs">
+      <button class="topTab topTabActive">Рекомендации</button>
+      <a class="topTab" href="my-lessons-video.html">Мои уроки</a>
+    </div>
+
+    <div class="soundChip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+      Включить звук
+    </div>
+
+    <div class="phraseBlock">
+      <div class="phraseEn">It&rsquo;s <mark>up to</mark> you</div>
+      <div class="phraseRu">5 слов в модуле</div>
+    </div>
+
+    <div class="hud">
+      <button class="hudBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.7-10-9.3C.4 8.6 2.4 5 6 5c2.2 0 3.6 1.2 6 3.7C14.4 6.2 15.8 5 18 5c3.6 0 5.6 3.6 4 6.7C19.5 16.3 12 21 12 21z"/></svg>
+        <span class="hudCount">1 284</span>
+      </button>
+      <button class="hudBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21V3z"/></svg>
+        <span class="hudCount">96</span>
+      </button>
+      <button class="hudBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5l7 7-7 7v-4C7 15 4 17 2 20c0-7 4-11 12-11V5z"/></svg>
+        <span class="hudCount">Репост</span>
+      </button>
+    </div>
+
+    <button class="btnPrimary learnBtn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+      Изучить фразу
+    </button>
+  </div>
+
+  <nav class="bottomNav">
+    <button class="navBtn navBtnActive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M10 9.5v5l4.5-2.5L10 9.5z" fill="currentColor"/></svg>
+      Уроки
+    </button>
+    <a class="navBtn" href="profile.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
+      Профиль
+    </a>
+  </nav>
+</div>
+</body>
+</html>

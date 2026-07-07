@@ -1,0 +1,322 @@
+/* ── Лента видео (новая оболочка, ui v2) — по макету public/design/feed.html ── */
+
+.feedV2 {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Верхние вкладки поверх видео */
+.feedV2Tabs {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  z-index: 6;
+}
+
+.feedV2Tab {
+  background: none;
+  border: none;
+  padding: 6px 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  position: relative;
+  cursor: pointer;
+}
+
+.feedV2TabActive { color: #fff; }
+
+.feedV2TabActive::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -2px;
+  height: 3px;
+  border-radius: 2px;
+  background: #b6fe3b;
+}
+
+/* Растушёвка верхней границы: контент плавно уходит в тёмное к статус-бару,
+   и системная чёрная полоса сверху читается как тень приложения, а не край */
+.feedV2::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(128px + env(safe-area-inset-top, 0px));
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(to bottom,
+    rgba(11, 13, 16, 1) 0%, rgba(11, 13, 16, 0.78) 28%,
+    rgba(11, 13, 16, 0.42) 56%, rgba(11, 13, 16, 0.16) 80%, transparent 100%);
+}
+
+/* Виды «Рекомендации»/«Мои уроки» лежат стопкой и живут постоянно —
+   переключение не сбрасывает ленту (тот же приём, что вкладки оболочки) */
+.feedViewStack {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.feedViewHidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Скролл-лента со снапом: один слайд = один экран */
+.feedV2Scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  /* Скрываем полоску скролла (как в плеере — сам скролл работает) */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.feedV2Scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.feedSlide {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Градиенты-заглушки вместо видео (4 варианта по кругу) */
+.feedGrad0 {
+  background:
+    radial-gradient(120% 90% at 80% 10%, #24343f 0%, transparent 60%),
+    radial-gradient(110% 80% at 15% 85%, #1d2a1a 0%, transparent 55%),
+    linear-gradient(165deg, #12181f 0%, #0c1013 100%);
+}
+
+.feedGrad1 {
+  background:
+    radial-gradient(120% 90% at 20% 15%, #3a2d3f 0%, transparent 60%),
+    radial-gradient(110% 80% at 85% 80%, #1a2a33 0%, transparent 55%),
+    linear-gradient(165deg, #171219 0%, #0c1013 100%);
+}
+
+.feedGrad2 {
+  background:
+    radial-gradient(120% 90% at 75% 20%, #1d3a2a 0%, transparent 60%),
+    radial-gradient(110% 80% at 20% 80%, #24343f 0%, transparent 55%),
+    linear-gradient(165deg, #101a12 0%, #0c1013 100%);
+}
+
+.feedGrad3 {
+  background:
+    radial-gradient(120% 90% at 25% 10%, #3f3524 0%, transparent 60%),
+    radial-gradient(110% 80% at 80% 85%, #1d2a1a 0%, transparent 55%),
+    linear-gradient(165deg, #1a150c 0%, #0c1013 100%);
+}
+
+.feedSlideHint {
+  position: absolute;
+  top: 46%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.14);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Фраза модуля слева над кнопкой — спойлер как в Telegram: по умолчанию
+   размыта под дрейфующим зерном, тап — плавное раскрытие (только в ленте) */
+.feedPhraseBlock {
+  position: absolute;
+  left: 16px;
+  right: 84px;
+  bottom: calc(92px + var(--v2-nav-h));
+  z-index: 4;
+  display: block;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.feedPhrase {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  filter: blur(9px);
+  transition: filter 0.5s ease;
+}
+
+.feedPhraseSub {
+  margin-top: 5px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  filter: blur(7px);
+  transition: filter 0.5s ease;
+}
+
+.feedPhraseOpen .feedPhrase,
+.feedPhraseOpen .feedPhraseSub { filter: blur(0); }
+
+/* Мерцающее зерно поверх скрытого текста; гаснет при раскрытии.
+   Анимация только transform — GPU-дружелюбно */
+.feedSpoilerNoise {
+  position: absolute;
+  inset: -18px -22px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+  /* Без границ: зерно плавно рассеивается к краям радиальной маской */
+  -webkit-mask-image: radial-gradient(ellipse 95% 90% at 50% 50%, #000 40%, transparent 76%);
+  mask-image: radial-gradient(ellipse 95% 90% at 50% 50%, #000 40%, transparent 76%);
+}
+
+.feedSpoilerNoise::before {
+  content: '';
+  position: absolute;
+  inset: -60px;
+  background: var(--v2-grain), var(--v2-dust);
+  animation: feedSpoilerDrift 2.6s linear infinite;
+}
+
+.feedPhraseOpen .feedSpoilerNoise { opacity: 0; }
+
+@keyframes feedSpoilerDrift {
+  to { transform: translate(-60px, -60px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedSpoilerNoise::before { animation: none; }
+}
+
+/* HUD справа: лайк, закладка, репост */
+.feedHud {
+  position: absolute;
+  right: 10px;
+  bottom: calc(150px + var(--v2-nav-h));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.feedHudBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+
+.feedHudBtn svg { width: 21px; height: 21px; }
+
+.feedHudBtnOn { color: #b6fe3b; }
+
+/* Кнопка «Изучить фразу»: градиент + текстура + редкий блик (как в макетах) */
+.feedLearnBtn {
+  position: absolute;
+  left: 16px;
+  right: 84px;
+  bottom: calc(20px + var(--v2-nav-h));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 999px;
+  padding: 15px;
+  overflow: hidden;
+  background:
+    var(--v2-dust-d), var(--v2-grain-d), var(--v2-tex-d),
+    linear-gradient(180deg, #ceff73 0%, #b6fe3b 45%, #9ce922 100%);
+  color: #0d1500;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(182, 254, 59, 0.35);
+}
+
+.feedLearnBtn svg { width: 20px; height: 20px; }
+
+.feedLearnBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg,
+    transparent 40%, rgba(255, 255, 255, 0.45) 50%, transparent 60%);
+  transform: translateX(-130%);
+  will-change: transform;
+  animation: feedShine 14s linear infinite;
+}
+
+@keyframes feedShine {
+  0%        { transform: translateX(-130%); }
+  12%, 100% { transform: translateX(130%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedLearnBtn::after { content: none; }
+}
+
+/* Тост поверх слайда */
+.feedToast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(88px + var(--v2-nav-h));
+  transform: translateX(-50%);
+  z-index: 7;
+  white-space: nowrap;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 13px;
+}
+
+/* Центрированные состояния: загрузка, пусто, заглушка «Мои уроки» */
+.feedV2Center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.feedV2CenterTitle { font-size: 21px; font-weight: 700; }
+
+.feedV2CenterSub { font-size: 13px; color: #9aa3ad; }

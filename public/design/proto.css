@@ -1,0 +1,231 @@
+/* Прототип интерфейса Pithy — общие токены и каркас «телефона».
+   Это НЕ код приложения: макеты для обсуждения перед вёрсткой. */
+
+/* Шрифты как в приложении (index.html): Montserrat только latin —
+   кириллица посимвольно падает в Comfortaa */
+@import url('https://fonts.googleapis.com/css?family=Montserrat:400,600,700,800&subset=latin');
+@import url('https://fonts.googleapis.com/css?family=Comfortaa:400,700');
+:root {
+  /* Текстура как в схеме уроков (lessons-chain-textures.css): топо-завитки +
+     зерно feTurbulence + мелкая пыль. Белые слои — для тёмных поверхностей,
+     тёмные (-d) — для лаймовых кнопок. Растеризуются один раз, тайлятся. */
+  --tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg fill='none' stroke='white' stroke-opacity='.055' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  --dust: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23d)'/%3E%3C/svg%3E");
+  --tex-f: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg transform='translate(90 0) scale(-1 1)' fill='none' stroke='white' stroke-opacity='.055' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
+  --tex-r: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg transform='rotate(180 45 30)' fill='none' stroke='white' stroke-opacity='.055' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
+  --tex-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg fill='none' stroke='black' stroke-opacity='.09' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
+  --grain-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  --dust-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23d)'/%3E%3C/svg%3E");
+
+  --bg: #0b0d10;
+  --panel: #14171c;
+  --panel2: #1c2027;
+  --line: #232932;
+  --text: #f2f5f7;
+  --muted: #9aa3ad;
+  --dim: #5c6570;
+  --accent: #b6fe3b;
+  --on-accent: #0d1500;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  background: #17191d;
+  color: var(--text);
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; cursor: pointer; }
+
+a { color: inherit; text-decoration: none; }
+
+a.btnPrimary, a.btnGhost { display: block; text-align: center; }
+
+/* Ссылка «все макеты» — на каждом экране прототипа */
+.backHub {
+  position: absolute;
+  top: 16px;
+  left: 12px;
+  z-index: 9;
+  padding: 4px 9px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+}
+
+/* ── Рама телефона: на ПК — центрированный «телефон», на смартфоне — весь экран ── */
+.phone {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  margin: 0 auto;
+  background: var(--bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 500px) {
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 0;
+  }
+  .phone {
+    width: 390px;
+    height: 844px;
+    border-radius: 28px;
+    border: 1px solid #2a2f36;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ── Верхние вкладки поверх видео ── */
+.topTabs {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  z-index: 6;
+}
+
+.topTab {
+  background: none;
+  border: none;
+  padding: 6px 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  position: relative;
+}
+
+.topTabActive { color: #fff; }
+
+.topTabActive::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -2px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* ── Нижний бар навигации ── */
+.bottomNav {
+  flex-shrink: 0;
+  display: flex;
+  height: 64px;
+  background: var(--dust), var(--grain), var(--tex) rgba(11, 13, 16, 0.94);
+  border-top: 1px solid var(--line);
+  z-index: 6;
+}
+
+.navBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.navBtn svg { width: 24px; height: 24px; }
+
+.navBtnActive { color: var(--accent); }
+
+/* ── Общие полосы прогресса ── */
+.track {
+  height: 8px;
+  border-radius: 4px;
+  background: #242a32;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+/* ── Общие кнопки ──
+   Градиент + редкий пробегающий блик — тот же приём, что у стартового нода
+   в приложении (lessons-chain-textures.css): только transform, GPU-дружелюбно. */
+.btnPrimary {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 15px;
+  position: relative;
+  overflow: hidden;
+  background:
+    var(--dust-d), var(--grain-d), var(--tex-d),
+    linear-gradient(180deg, #ceff73 0%, #b6fe3b 45%, #9ce922 100%);
+  color: var(--on-accent);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.btnPrimary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg,
+    transparent 40%, rgba(255, 255, 255, 0.45) 50%, transparent 60%);
+  transform: translateX(-130%);
+  will-change: transform;
+  animation: protoShine 14s linear infinite;
+}
+
+/* Блик редкий: полоса пробегает за первые 12% цикла, дальше пауза за краем */
+@keyframes protoShine {
+  0%        { transform: translateX(-130%); }
+  12%, 100% { transform: translateX(130%); }
+}
+
+.btnGhost {
+  width: 100%;
+  border: 1px solid #2a3038;
+  border-radius: 14px;
+  padding: 14px;
+  background:
+    var(--dust), var(--grain), var(--tex),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ── Плашка-подпись макета (что это за экран) ── */
+.mockTag {
+  position: absolute;
+  top: 16px;
+  left: 12px;
+  z-index: 9;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+}

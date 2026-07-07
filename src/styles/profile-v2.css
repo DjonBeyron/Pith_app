@@ -1,0 +1,209 @@
+/* ── Профиль (новая оболочка) — по макету public/design/profile.html ── */
+
+.pvScreen {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 16px calc(20px + var(--v2-nav-h));
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pvScreen::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+.pvHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.pvHead h1 { font-size: 19px; font-weight: 800; }
+
+.pvGear {
+  background: none;
+  border: none;
+  color: #9aa3ad;
+  cursor: pointer;
+}
+
+.pvGear svg { width: 22px; height: 22px; }
+
+/* ── Аватар и уровень ── */
+.pvWho {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.pvAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 30%, #6b9fd4, #23344d);
+  border: 2px solid #232932;
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.pvName { font-size: 17px; font-weight: 700; }
+
+.pvLvlChip {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(182, 254, 59, 0.12);
+  border: 1px solid rgba(182, 254, 59, 0.35);
+  color: #b6fe3b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── Карточки XP и энергии ── */
+.pvCard {
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid #232932;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.pvCardTop {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #9aa3ad;
+}
+
+.pvCardTop b { color: #f2f5f7; }
+
+/* Трек: чуть темнее фона приложения (#0b0d10), почти чёрный */
+.pvTrack {
+  height: 8px;
+  border-radius: 4px;
+  background: #07080b;
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  overflow: hidden;
+}
+
+.pvFill {
+  height: 100%;
+  border-radius: 4px;
+  background: #b6fe3b;
+}
+
+.pvEnergyRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pvBolt { width: 20px; height: 20px; color: #b6fe3b; }
+
+/* Пустые молнии — чуть темнее фона приложения, почти чёрные */
+.pvBoltOff { color: #07080b; }
+
+.pvEnergyLabel {
+  margin-left: auto;
+  font-size: 12px;
+  color: #9aa3ad;
+}
+
+/* ── Вкладки-таблетки ── */
+.pvTabs {
+  display: flex;
+  gap: 6px;
+  margin: 20px 0 14px;
+}
+
+.pvTab {
+  flex: 1;
+  border: 1px solid #232932;
+  background: #14171c;
+  color: #9aa3ad;
+  border-radius: 999px;
+  padding: 9px 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pvTabActive {
+  background: var(--v2-dust-d), var(--v2-grain-d), linear-gradient(180deg, #ceff73, #a9f335);
+  border-color: #b6fe3b;
+  color: #0d1500;
+}
+
+/* ── Строки: слова копилки и модули ── */
+.pvWord {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid #232932;
+  border-radius: 14px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.pvWord:nth-child(3n+2) {
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex-f) #14171c;
+  background-position: 0 0, 0 0, 24px 12px;
+}
+
+.pvWord:nth-child(3n) {
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex-r) #14171c;
+  background-position: 0 0, 0 0, 50px 28px;
+}
+
+.pvModRow { cursor: pointer; border: 1px solid #232932; }
+
+.pvWordText { font-size: 15px; font-weight: 700; }
+
+.pvWordFrom {
+  margin-left: auto;
+  font-size: 11px;
+  color: #5c6570;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.pvEmpty {
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #9aa3ad;
+}
+
+/* ── Экран настроек из профиля ── */
+.pvSettingsScreen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pvBack {
+  align-self: flex-start;
+  margin: calc(12px + env(safe-area-inset-top, 0px)) 16px 10px;
+  padding: 6px 12px;
+  border: 1px solid #232932;
+  border-radius: 10px;
+  background: #14171c;
+  color: #f2f5f7;
+  font-size: 13px;
+  cursor: pointer;
+}

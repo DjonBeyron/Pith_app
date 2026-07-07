@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Макет — Мои уроки (пусто)</title>
+<link rel="stylesheet" href="proto.css">
+<style>
+  .screen {
+    flex: 1; position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 96px 32px 40px; text-align: center;
+  }
+  .emptyArt {
+    width: 108px; height: 108px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--dust), var(--grain), var(--tex) var(--panel);
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .emptyArt svg { width: 44px; height: 44px; color: var(--accent); }
+  h1 { font-size: 21px; font-weight: 800; margin-bottom: 10px; }
+  .sub { font-size: 14px; line-height: 1.55; color: var(--muted); margin-bottom: 28px; }
+  .btnPrimary { max-width: 260px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <a class="backHub" href="index.html">&larr; все макеты</a>
+  <div class="topTabs">
+    <a class="topTab" href="feed.html">Рекомендации</a>
+    <button class="topTab topTabActive">Мои уроки</button>
+  </div>
+
+  <div class="screen">
+    <div class="emptyArt">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+    </div>
+    <h1>Здесь пока пусто</h1>
+    <div class="sub">Ты можешь начать обучение прямо сейчас —<br>выбери фразу в ленте и нажми «Изучить фразу»</div>
+    <a class="btnPrimary" href="feed.html">Смотреть ленту</a>
+  </div>
+
+  <nav class="bottomNav">
+    <button class="navBtn navBtnActive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M10 9.5v5l4.5-2.5L10 9.5z" fill="currentColor"/></svg>
+      Уроки
+    </button>
+    <a class="navBtn" href="profile.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
+      Профиль
+    </a>
+  </nav>
+</div>
+</body>
+</html>

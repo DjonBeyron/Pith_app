@@ -11,7 +11,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
+// Настройки auth заданы явно (это и так дефолты v2, но фиксируем контракт):
+// сессия хранится в localStorage и переживает перезапуск браузера,
+// access-token обновляется автоматически.
 export const supabase = createClient(
   supabaseUrl  ?? 'https://placeholder.supabase.co',
-  supabaseAnonKey ?? 'placeholder'
+  supabaseAnonKey ?? 'placeholder',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  }
 )

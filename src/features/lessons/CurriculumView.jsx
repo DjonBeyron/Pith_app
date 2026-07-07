@@ -1,22 +1,27 @@
 import { useState, useEffect, useRef } from 'react'
-import { useCurricula } from './useCurricula.js'
 import { useCurriculumLessons } from './useCurriculumLessons.js'
-import CurriculaList from './CurriculaList.jsx'
 import ModuleGraph from './ModuleGraph.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { getCompletedLessons, markLessonCompleted, unmarkLessons } from '../../shared/lib/completedLessons.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
-import { resetLessonProgress } from '../../shared/api/profileApi.js'
+import { resetLessonProgress, startLesson } from '../../shared/api/profileApi.js'
+import EnergyPaywall from './EnergyPaywall.jsx'
+import ModuleVideoPanel from './ModuleVideoPanel.jsx'
 import { loadAllEvents, clearLocalEvents } from '../../shared/lib/skillStatsStore.js'
+import { markModuleStarted, unmarkModuleStarted } from '../../shared/api/moduleSocialApi.js'
 import { dbg } from '../../shared/lib/debug.js'
 import PriorityLegend from './PriorityLegend.jsx'
 import { computeAllPriorities } from '../../shared/lib/skillScore.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
+import { useAuth } from '../../shared/lib/useAuth.js'
 
 const LEGEND_SEEN_KEY = 'pithy_priority_legend_seen_v1'
 
-function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
+// Экран одного модуля: схема Старт → уроки → Финал, запуск уроков через
+// карточку прогрева, плеер, приоритеты анализа знаний. Используется и во
+// вкладке «Уроки» (старая оболочка), и из ленты по «Изучить фразу» (ui v2).
+export default function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
   const {
     lessons, loading, creating, error, isDirty,
     bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure, togglePublished,
@@ -39,8 +44,22 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   const [showLegend,      setShowLegend]      = useState(false)
   // Попап только что закрыт — отложенная анимация графа идёт с половинным офсетом
   const [postLegend,      setPostLegend]      = useState(false)
+  // Отказ start_lesson: показать экран «Энергия закончилась» ({ nextAt })
+  const [noEnergy,        setNoEnergy]        = useState(null)
   const didInitRef = useRef(false)
   const { isAdmin } = useAdmin()
+  const { user } = useAuth()
+
+  // Регистрация посреди урока (нода в плеере): гостевая сессия start_lesson
+  // была пустой — без пересоздания под новым пользователем complete_lesson
+  // вернёт 0 XP, а модуль не попадёт в «Мои уроки»
+  useEffect(() => {
+    if (!user || !playingLessonId) return
+    startLesson(playingLessonId)
+    if (lessons.length > 0 && playingLessonId === lessons[0].id) {
+      markModuleStarted(curriculumId)
+    }
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Возвращает promise с картой приоритетов — вызывающий может дождаться
   // пересчёта до показа графа и решить, показывать ли легенду
@@ -84,6 +103,8 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
     clearLocalEvents(ids)
     // Полный сброс = «как новый пользователь»: легенда покажется снова
     localStorage.removeItem(LEGEND_SEEN_KEY)
+    // Модуль больше не «начат» — вернётся в рекомендации
+    unmarkModuleStarted(curriculumId)
     const { refunded, error } = await resetLessonProgress(ids, true) // true = стереть и анализ
     dbg('[RESET] модуль:', ids.length, 'уроков, XP снято:', refunded, 'ошибка:', error)
     if (error) { setSaveMsg(`Сброс на сервере не сработал: ${error}`); setTimeout(() => setSaveMsg(''), 6000) }
@@ -156,12 +177,13 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
   return (
     <div className="lessonsMapPanel">
       <div className="lessonsMapToolbar">
-        <button className="lessonBackBtn" onClick={onBack}>← Модули</button>
+        <button className="lessonBackBtn" onClick={onBack}>← Назад</button>
         <span className="lessonMapTitle">{curriculumTitle}</span>
         {error && <span className="errorText">{error}</span>}
         {saveMsg && <span className="dbSaveMsg">{saveMsg}</span>}
         {isAdmin && (
           <>
+            <ModuleVideoPanel curriculumId={curriculumId} />
             <button className="saveBtn" onClick={handleResetProgress}
               disabled={loading || !lessons.length} title="Сбросить прохождение уроков модуля (локально)">
               ⟲
@@ -206,7 +228,21 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           lessonId={launchId}
           retake={completedIds.has(launchId)}
           examIntro={lessons.length > 0 && launchId === lessons[lessons.length - 1].id}
-          onStart={(data, mode) => {
+          onStart={async (data, mode) => {
+            // Энергия: сервер решает, бесплатный урок или -1; при нуле —
+            // пейволл вместо плеера
+            const res = await startLesson(launchId)
+            if (res?.ok === false) {
+              setLaunchId(null)
+              setNoEnergy({ nextAt: res.next_at })
+              return
+            }
+            refreshProfile() // молнии в профиле — свежие
+            // «Начал модуль» для «Моих уроков»: только залогиненный и только
+            // при запуске стартового урока (первого в схеме)
+            if (lessons.length > 0 && launchId === lessons[0].id) {
+              markModuleStarted(curriculumId)
+            }
             setPlayingLessonId(launchId)
             setLaunchId(null)
             setStatsMode(mode ?? null)
@@ -214,6 +250,10 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
           }}
           onClose={() => setLaunchId(null)}
         />
+      )}
+
+      {noEnergy && (
+        <EnergyPaywall nextAt={noEnergy.nextAt} onClose={() => setNoEnergy(null)} />
       )}
 
       {showLegend && (
@@ -225,55 +265,5 @@ function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas })
         />
       )}
     </div>
-  )
-}
-
-const NAV_KEY = 'lessons_nav_v1'
-function loadNav() {
-  try { return JSON.parse(localStorage.getItem(NAV_KEY) ?? 'null') } catch { return null }
-}
-function saveNav(val) {
-  if (val) localStorage.setItem(NAV_KEY, JSON.stringify(val))
-  else localStorage.removeItem(NAV_KEY)
-}
-
-export default function LessonsTab({ onOpenCanvas }) {
-  const { curricula, syncStatus, syncError, createCurriculum, deleteCurriculum, renameCurriculum, saveCurriculumToServer } = useCurricula()
-  const [selected, setSelected] = useState(loadNav)
-
-  function select(c) { setSelected(c); saveNav(c) }
-  function deselect() { setSelected(null); saveNav(null) }
-
-  const stillExists = selected && curricula.some(c => c.id === selected.id)
-  if (selected && !stillExists && curricula.length > 0) {
-    deselect()
-    return null
-  }
-
-  if (selected && stillExists) {
-    return (
-      <CurriculumView
-        curriculumId={selected.id}
-        curriculumTitle={selected.title}
-        onBack={deselect}
-        onOpenCanvas={onOpenCanvas}
-      />
-    )
-  }
-
-  return (
-    <CurriculaList
-      curricula={curricula}
-      syncStatus={syncStatus}
-      syncError={syncError}
-      onCreate={() => { const c = createCurriculum(); select({ id: c.id, title: c.title }) }}
-      onOpen={c => select({ id: c.id, title: c.title })}
-      onDelete={id => { if (selected?.id === id) deselect(); deleteCurriculum(id) }}
-      onRename={renameCurriculum}
-      onSave={(id, title) => {
-        const lessonIds = JSON.parse(localStorage.getItem(`curr_lessons_${id}`) ?? '[]')
-        return saveCurriculumToServer(id, title, lessonIds)
-      }}
-    />
   )
 }

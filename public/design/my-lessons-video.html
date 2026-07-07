@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Макет — Мои уроки (видео)</title>
+<link rel="stylesheet" href="proto.css">
+<style>
+  .videoArea { flex: 1; position: relative; overflow: hidden; }
+  .videoFake {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(120% 90% at 20% 15%, #3a2d3f 0%, transparent 60%),
+      radial-gradient(110% 80% at 85% 80%, #1a2a33 0%, transparent 55%),
+      linear-gradient(165deg, #171219 0%, #0c1013 100%);
+  }
+  .videoHint {
+    position: absolute; top: 46%; left: 0; right: 0;
+    text-align: center; color: rgba(255,255,255,0.14);
+    font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+  }
+  .modeToggle {
+    position: absolute; top: 60px; right: 14px; z-index: 5;
+    display: flex; border-radius: 10px; overflow: hidden;
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.14);
+  }
+  .modeBtn {
+    border: none; background: none; padding: 7px 10px;
+    color: rgba(255,255,255,0.5);
+  }
+  .modeBtnActive { background: rgba(255,255,255,0.16); color: #fff; }
+  .modeBtn svg { width: 17px; height: 17px; display: block; }
+  .phraseBlock { position: absolute; left: 16px; right: 16px; bottom: 132px; z-index: 4; }
+  .phraseEn {
+    font-size: 28px; font-weight: 800; color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.55);
+  }
+  .continueBtn {
+    position: absolute; left: 16px; right: 16px; bottom: 64px; z-index: 5;
+    width: auto;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 999px; padding: 14px;
+    font-size: 15px; font-weight: 800;
+  }
+  .moduleProgress { position: absolute; left: 16px; right: 16px; bottom: 18px; z-index: 5; }
+  .mpLabel {
+    display: flex; justify-content: space-between; margin-bottom: 7px;
+    font-size: 12px; color: rgba(255,255,255,0.8);
+    text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  }
+  .mpLabel b { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="phone">
+  <a class="backHub" href="index.html">&larr; все макеты</a>
+  <div class="videoArea">
+    <div class="videoFake"></div>
+    <div class="videoHint">видео начатого модуля</div>
+
+    <div class="topTabs">
+      <a class="topTab" href="feed.html">Рекомендации</a>
+      <button class="topTab topTabActive">Мои уроки</button>
+    </div>
+
+    <div class="modeToggle">
+      <button class="modeBtn modeBtnActive" title="Видео">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="3"/></svg>
+      </button>
+      <a class="modeBtn" href="my-lessons-list.html" title="Список">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </a>
+    </div>
+
+    <div class="phraseBlock">
+      <div class="phraseEn">Break the ice</div>
+    </div>
+
+    <button class="btnPrimary continueBtn">Продолжить &middot; урок 4 из 5</button>
+
+    <div class="moduleProgress">
+      <div class="mpLabel"><span>Прогресс модуля</span><b>60%</b></div>
+      <div class="track" style="height:6px"><div class="fill" style="width:60%"></div></div>
+    </div>
+  </div>
+
+  <nav class="bottomNav">
+    <button class="navBtn navBtnActive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M10 9.5v5l4.5-2.5L10 9.5z" fill="currentColor"/></svg>
+      Уроки
+    </button>
+    <a class="navBtn" href="profile.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
+      Профиль
+    </a>
+  </nav>
+</div>
+</body>
+</html>

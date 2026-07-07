@@ -1,7 +1,14 @@
 @import './styles/base.css';
 @import './styles/layout.css';
 @import './styles/admin.css';
-@import './styles/user.css';
+@import './styles/shell-v2.css';
+@import './styles/feed-v2.css';
+@import './styles/feed-media.css';
+@import './styles/my-lessons-v2.css';
+@import './styles/profile-v2.css';
+@import './styles/energy-v2.css';
+@import './styles/module-video.css';
+@import './styles/admin-v2.css';
 @import './styles/lessons.css';
 @import './styles/lessons-chain.css';
 @import './styles/lessons-chain-nodes.css';
@@ -40,6 +47,5 @@
 @import './styles/canvas/text-pro.css';
 @import './styles/canvas/stat-link.css';
 @import './styles/settings.css';
-@import './styles/profile.css';
 @import './styles/auth.css';
 @import './styles/xp.css';

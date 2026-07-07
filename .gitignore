@@ -11,3 +11,10 @@ logs
 !.vscode/extensions.json
 .idea
 .DS_Store
+
+.claude/settings.local.json
+
+tools/ffmpeg/*.exe
+tools/ffmpeg/*.dll
+
+old/

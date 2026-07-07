@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Макет — Нет энергии</title>
+<link rel="stylesheet" href="proto.css">
+<style>
+  .backdrop {
+    flex: 1; position: relative;
+    background:
+      radial-gradient(120% 90% at 80% 10%, #24343f 0%, transparent 60%),
+      linear-gradient(165deg, #12181f 0%, #0c1013 100%);
+  }
+  .dim {
+    position: absolute; inset: 0; z-index: 5;
+    background: rgba(5, 6, 8, 0.72);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .card {
+    width: 100%; max-width: 330px; text-align: center;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 22px;
+    padding: 26px 20px 20px;
+  }
+  .boltRing {
+    width: 84px; height: 84px; margin: 0 auto 16px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(182, 254, 59, 0.08); border: 1px solid rgba(182, 254, 59, 0.3);
+  }
+  .boltRing svg { width: 36px; height: 36px; color: var(--accent); }
+  h1 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+  .sub { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-bottom: 6px; }
+  .timer { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 20px; }
+  .btnPrimary { margin-bottom: 10px; }
+  .free {
+    display: block; margin-top: 14px; background: none; border: none;
+    color: var(--muted); font-size: 13px; text-decoration: underline;
+    text-underline-offset: 3px; width: 100%;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <a class="backHub" href="index.html">&larr; все макеты</a>
+  <div class="backdrop">
+    <div class="dim">
+      <div class="card">
+        <div class="boltRing">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        </div>
+        <h1>Энергия закончилась</h1>
+        <div class="sub">Новый урок можно начать, когда<br>восстановится энергия</div>
+        <div class="timer">+1 энергия через 2:14</div>
+        <button class="btnPrimary">Подписка — безлимит уроков</button>
+        <button class="btnGhost">Повторять пройденное — бесплатно</button>
+        <a class="free" href="feed.html">Вернуться в ленту</a>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottomNav">
+    <button class="navBtn navBtnActive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M10 9.5v5l4.5-2.5L10 9.5z" fill="currentColor"/></svg>
+      Уроки
+    </button>
+    <a class="navBtn" href="profile.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
+      Профиль
+    </a>
+  </nav>
+</div>
+</body>
+</html>

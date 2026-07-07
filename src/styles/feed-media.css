@@ -1,0 +1,199 @@
+/* ── Медиа и виртуализация ленты (ui v2) ─────────────────────────
+   Виртуальный список TanStack: в DOM только видимый слайд + overscan. */
+
+.feedVirtualTotal {
+  position: relative;
+  width: 100%;
+}
+
+.feedVirtualItem {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Видео-слой слайда: на весь слайд, тап по нему — пауза/продолжить */
+.slideVideoRoot {
+  position: absolute;
+  inset: 0;
+}
+
+/* Значок паузы по центру (клики сквозь — снимается тапом по слою) */
+.slidePauseIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+}
+
+.slidePauseIcon svg {
+  width: 28px;
+  height: 28px;
+  color: #fff;
+  margin-left: 3px;
+}
+
+/* Медиа слайда: постер лежит под видео (виден мгновенно), видео поверх */
+.feedMedia {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Чип «Включить звук» — autoplay разрешён только беззвучным */
+.feedSoundChip {
+  position: absolute;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 5;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.feedSoundChip svg { width: 16px; height: 16px; }
+
+/* Скелетон медленной сети: тёмный контейнер с пробегающим бликом.
+   Анимация только transform — GPU-дружелюбно */
+.feedSkeleton {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #12151b;
+}
+
+.feedSkeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg,
+    transparent 35%, rgba(255, 255, 255, 0.04) 50%, transparent 65%);
+  /* Запас ±140%: у диагональной полосы не видно срезанных краёв на экране */
+  transform: translateX(-140%);
+  will-change: transform;
+  animation: feedSkelShine 1.6s ease-in-out infinite;
+}
+
+@keyframes feedSkelShine {
+  to { transform: translateX(140%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedSkeleton::after { animation: none; }
+}
+
+/* ── Дебаг ленты (слева — правый верхний угол занят значком энергии) ── */
+.feedDbgBtn {
+  position: absolute;
+  left: 14px;
+  top: 4px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fdbgOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(5, 6, 8, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.fdbgCard {
+  width: 100%;
+  max-width: 420px;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #14171c;
+  border: 1px solid #232932;
+  border-radius: 16px;
+  padding: 14px;
+  color: #f2f5f7;
+}
+
+.fdbgHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.fdbgClose {
+  background: none;
+  border: none;
+  color: #9aa3ad;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.fdbgText {
+  flex: 1;
+  min-height: 200px;
+  resize: none;
+  background: #0b0d10;
+  border: 1px solid #232932;
+  border-radius: 10px;
+  padding: 10px;
+  color: #b8c0c9;
+  font-family: monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.fdbgBtns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fdbgBtns button {
+  flex: 1;
+  padding: 9px 6px;
+  border: 1px solid #2a3038;
+  border-radius: 10px;
+  background: #1c2027;
+  color: #e8e8ea;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fdbgMsg {
+  font-size: 12px;
+  color: #b6fe3b;
+  text-align: center;
+}

@@ -354,6 +354,254 @@ begin
 end;
 $$;
 
+-- ── Новый интерфейс: видео-лента (2026-07-06) ─────────────────────
+-- Серверный этап миграции на новый UI (PROJECT.md → «Стратегия миграции»).
+
+-- 1. ДЫРА БЕЗОПАСНОСТИ: политика profiles_own разрешала UPDATE своей строки —
+-- залогиненный пользователь мог прямым запросом выставить себе xp, energy и
+-- has_subscription. Оставляем только чтение своей строки; ВСЕ изменения
+-- игровых полей — исключительно через SECURITY DEFINER RPC (complete_lesson,
+-- spend_energy, reset_lesson_progress). Клиент приложения и так только читал.
+drop policy if exists "profiles_own"        on public.user_profiles;
+drop policy if exists "profiles_select_own" on public.user_profiles;
+create policy "profiles_select_own"
+  on public.user_profiles for select
+  using (auth.uid() = id);
+
+-- 2. Видео фразы у модуля (лента): ссылка на ролик в R2 + постер-кадр
+-- для мгновенного показа при скролле. Заполняются из админки (этап позже).
+alter table public.curricula add column if not exists video_url  text;
+alter table public.curricula add column if not exists poster_url text;
+
+-- 3. Лайки модулей: свою строку пишем/удаляем, читать можно всем — из этой
+-- таблицы лента считает счётчики лайков.
+create table if not exists public.module_likes (
+  user_id    uuid not null references auth.users on delete cascade,
+  module_id  text not null references public.curricula on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, module_id)
+);
+
+alter table public.module_likes enable row level security;
+
+drop policy if exists "module_likes_select_all" on public.module_likes;
+drop policy if exists "module_likes_write_own"  on public.module_likes;
+
+create policy "module_likes_select_all"
+  on public.module_likes for select using (true);
+
+create policy "module_likes_write_own"
+  on public.module_likes for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 4. Закладки модулей: приватные — и читать, и писать только свои.
+create table if not exists public.module_bookmarks (
+  user_id    uuid not null references auth.users on delete cascade,
+  module_id  text not null references public.curricula on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, module_id)
+);
+
+alter table public.module_bookmarks enable row level security;
+
+drop policy if exists "module_bookmarks_own" on public.module_bookmarks;
+
+create policy "module_bookmarks_own"
+  on public.module_bookmarks for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 5. Прогресс модулей («Мои уроки»): факт «пользователь начал модуль».
+-- Пишется при первом запуске урока модуля. Только свои строки.
+create table if not exists public.user_module_progress (
+  user_id    uuid not null references auth.users on delete cascade,
+  module_id  text not null references public.curricula on delete cascade,
+  started_at timestamptz not null default now(),
+  primary key (user_id, module_id)
+);
+
+alter table public.user_module_progress enable row level security;
+
+drop policy if exists "user_module_progress_own" on public.user_module_progress;
+
+create policy "user_module_progress_own"
+  on public.user_module_progress for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ── Публикация модулей (2026-07-06) ──────────────────────────────
+-- Лента показывает только опубликованные модули; новые создаются черновиками.
+alter table public.curricula add column if not exists published boolean not null default false;
+-- Разово: всё, что создано до этой миграции, считаем опубликованным
+update public.curricula set published = true where created_at < '2026-07-07';
+
+-- ── Кадр мини-постера (2026-07-07) ────────────────────────────────
+-- Позиционирование постера в списке «Моих уроков»: { x, y, scale }
+-- (x/y — проценты сдвига, scale — зум). Настраивается админом в панели 🎬.
+alter table public.curricula add column if not exists poster_crop jsonb;
+
+-- ── Энергия v2 (2026-07-06): бонус 10, потолок 5, капельное восстановление ──
+-- Правила (PROJECT.md → «Энергия и монетизация»): лента/Старт/Финал/пересдачи
+-- бесплатны; -1 энергия только за старт НОВОГО обычного урока; +1 каждые
+-- 4 часа до потолка 5; подписка и админ — безлимит.
+
+-- Точность капли: колонка времени становится timestamptz (была date)
+alter table public.user_profiles
+  alter column energy_updated_at type timestamptz
+  using energy_updated_at::timestamptz;
+alter table public.user_profiles alter column energy_updated_at set default now();
+
+-- Бонус новичку: 10 энергии при регистрации (default подхватит handle_new_user)
+alter table public.user_profiles alter column energy set default 10;
+
+-- Ленивое капельное восстановление: +1 за каждые полные 4 часа, потолок 5.
+create or replace function public.apply_energy_regen(p_uid uuid)
+returns void language plpgsql security definer as $$
+declare
+  prof  public.user_profiles;
+  ticks int;
+begin
+  select * into prof from public.user_profiles where id = p_uid for update;
+  if not found then return; end if;
+  if prof.energy >= 5 then
+    -- Полный бак: часы капли стоят «на нуле», отсчёт начнётся с первой траты
+    update public.user_profiles set energy_updated_at = now() where id = p_uid;
+    return;
+  end if;
+  ticks := floor(extract(epoch from (now() - prof.energy_updated_at)) / 14400);
+  if ticks <= 0 then return; end if;
+  update public.user_profiles
+  set energy = least(5, prof.energy + ticks),
+      energy_updated_at = case
+        when prof.energy + ticks >= 5 then now()
+        else prof.energy_updated_at + (ticks * interval '4 hours')
+      end
+  where id = p_uid;
+end;
+$$;
+
+-- Сессии уроков: связка «энергия → XP». Пишет только сервер (security
+-- definer), клиенту доступно лишь чтение своих строк.
+create table if not exists public.lesson_sessions (
+  user_id    uuid not null references auth.users on delete cascade,
+  lesson_id  text not null references public.lessons on delete cascade,
+  started_at timestamptz not null default now(),
+  primary key (user_id, lesson_id)
+);
+
+alter table public.lesson_sessions enable row level security;
+
+drop policy if exists "lesson_sessions_select_own" on public.lesson_sessions;
+create policy "lesson_sessions_select_own"
+  on public.lesson_sessions for select using (auth.uid() = user_id);
+
+-- Старт урока. Возвращает jsonb: { ok, energy?, reason?, next_at? }.
+-- Бесплатно: гость, подписка, админ, пересдача засчитанного урока,
+-- Старт/Финал модуля (первый/последний id в curricula.lesson_ids —
+-- проверяется НА СЕРВЕРЕ, клиент подделать не может).
+create or replace function public.start_lesson(p_lesson_id text)
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid  uuid := auth.uid();
+  prof   public.user_profiles;
+  v_free boolean;
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', true, 'guest', true);
+  end if;
+
+  perform public.apply_energy_regen(v_uid);
+  select * into prof from public.user_profiles where id = v_uid for update;
+
+  -- Сессия — в любом случае: по ней complete_lesson начислит XP
+  insert into public.lesson_sessions (user_id, lesson_id)
+  values (v_uid, p_lesson_id)
+  on conflict (user_id, lesson_id) do update set started_at = now();
+
+  if prof.has_subscription or prof.is_admin then
+    return jsonb_build_object('ok', true, 'energy', prof.energy);
+  end if;
+
+  -- Пересдача засчитанного урока — бесплатно
+  select exists(
+    select 1 from public.lesson_results
+    where user_id = v_uid and lesson_id = p_lesson_id and xp_awarded
+  ) into v_free;
+  if not v_free then
+    -- Старт (диагностика) и Финал (экзамен) — бесплатно
+    select exists(
+      select 1 from public.curricula c
+      where c.lesson_ids->>0 = p_lesson_id
+         or c.lesson_ids->>(jsonb_array_length(c.lesson_ids) - 1) = p_lesson_id
+    ) into v_free;
+  end if;
+  if v_free then
+    return jsonb_build_object('ok', true, 'energy', prof.energy);
+  end if;
+
+  if prof.energy <= 0 then
+    delete from public.lesson_sessions
+    where user_id = v_uid and lesson_id = p_lesson_id;
+    return jsonb_build_object(
+      'ok', false, 'reason', 'no_energy',
+      'next_at', prof.energy_updated_at + interval '4 hours');
+  end if;
+
+  update public.user_profiles
+  set energy = prof.energy - 1,
+      energy_updated_at = case when prof.energy >= 5 then now() else energy_updated_at end
+  where id = v_uid;
+
+  return jsonb_build_object('ok', true, 'energy', prof.energy - 1);
+end;
+$$;
+
+-- complete_lesson v3: XP начисляется только если урок был начат через
+-- start_lesson (есть сессия) — иначе XP можно было фармить, не тратя энергию.
+create or replace function public.complete_lesson(p_lesson_id text)
+returns integer language plpgsql security definer as $$
+declare
+  v_uid    uuid := auth.uid();
+  v_reward integer;
+begin
+  if v_uid is null then
+    return 0;
+  end if;
+
+  if not exists(
+    select 1 from public.lesson_sessions
+    where user_id = v_uid and lesson_id = p_lesson_id
+  ) then
+    return 0;
+  end if;
+  delete from public.lesson_sessions
+  where user_id = v_uid and lesson_id = p_lesson_id;
+
+  insert into public.lesson_results (user_id, lesson_id, xp_awarded)
+  values (v_uid, p_lesson_id, true)
+  on conflict (user_id, lesson_id) do update
+    set xp_awarded = true, completed_at = now()
+    where lesson_results.xp_awarded = false;
+
+  if not found then
+    return 0;
+  end if;
+
+  select coalesce((script->>'lessonXp')::int, 0)
+  into v_reward
+  from public.lessons
+  where id = p_lesson_id;
+
+  v_reward := coalesce(v_reward, 0);
+
+  if v_reward > 0 then
+    update public.user_profiles
+    set xp = xp + v_reward
+    where id = v_uid;
+  end if;
+
+  return v_reward;
+end;
+$$;
+
 -- Сброс СВОЕГО прохождения уроков (тест-кнопки): снимает xp_awarded и отнимает
 -- ранее начисленный XP (не ниже нуля). p_clear_answers=true дополнительно
 -- стирает лог анализа этих уроков. Возвращает снятую сумму XP.

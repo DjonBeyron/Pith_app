@@ -9,6 +9,12 @@ html, body {
   overflow: hidden;
 }
 
+/* Fallback-цвет системных зон iOS (статус-бар/низ в standalone):
+   Safari красит их фоном html, а не body и не theme-color */
+html {
+  background: #0b0d10;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;

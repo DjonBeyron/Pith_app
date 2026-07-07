@@ -2,8 +2,19 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Pithy ver 2.0 — Files</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Pithy</title>
+    <!-- Запуск с домашнего экрана как полноценное приложение (без UI браузера).
+         iOS 26 всегда оставляет системную зону высотой со статус-бар — либо
+         сверху (black), либо снизу (black-translucent), поделить нельзя.
+         Выбран black-translucent: чёлка заполнена контентом, а нижняя
+         системная зона красится fallback-фоном html (#0b0d10, base.css) —
+         выглядит полосой-продолжением приложения под нижней панелью -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Pithy" />
+    <meta name="theme-color" content="#0b0d10" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Montserrat latin only — Cyrillic falls back to Comfortaa -->

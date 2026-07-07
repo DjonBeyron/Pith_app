@@ -1,0 +1,203 @@
+/* ── Новая оболочка (ui v2) — тёмная тема как в макетах public/design ── */
+
+/* Текстура как в схеме уроков (lessons-chain-textures.css): топо-завитки +
+   зерно + пыль. Белые слои для тёмных поверхностей, тёмные (-d) для лаймовых */
+:root {
+  /* Полная высота нижнего бара: кнопки 48px + системный отступ. Роль
+     «полосы-продолжения» под панелью играет нижняя системная зона iOS,
+     покрашенная фоном html (#0b0d10) — своя подложка не нужна */
+  --v2-nav-strip: 0px;
+  --v2-nav-h: calc(48px + var(--v2-nav-strip) + env(safe-area-inset-bottom, 0px));
+
+  --v2-tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg fill='none' stroke='white' stroke-opacity='.055' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
+  --v2-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  --v2-dust: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23d)'/%3E%3C/svg%3E");
+  --v2-tex-f: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg transform='translate(90 0) scale(-1 1)' fill='none' stroke='white' stroke-opacity='.055' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
+  --v2-tex-r: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg transform='rotate(180 45 30)' fill='none' stroke='white' stroke-opacity='.055' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
+  --v2-tex-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg fill='none' stroke='black' stroke-opacity='.09' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
+  --v2-grain-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  --v2-dust-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23d)'/%3E%3C/svg%3E");
+}
+
+.shellV2 {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: #0b0d10;
+  color: #f2f5f7;
+  /* Как в приложении: Montserrat только latin, кириллица падает в Comfortaa */
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  /* iPhone standalone: контент уходит ПОД часы (как TikTok, без чёрной
+     полосы) — вниз на инсет сдвигаются только верхние оверлеи */
+}
+
+.shellV2Version {
+  position: absolute;
+  top: calc(6px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+/* Значок энергии — правый верхний угол, тап открывает мини-окно */
+.energyWrap {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: 30;
+}
+
+.energyBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.energyBadge svg {
+  width: 13px;
+  height: 13px;
+  color: #b6fe3b;
+}
+
+.energyPopBackdrop {
+  position: fixed;
+  inset: 0;
+}
+
+.energyPop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 232px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid #232932;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: #9aa3ad;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.energyPop b {
+  display: block;
+  color: #f2f5f7;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.energyPopNext {
+  margin-top: 8px;
+  color: #b6fe3b;
+  font-weight: 700;
+}
+
+.shellV2Content {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* Вкладки лежат стопкой; скрытая невидима, но живёт (сохраняет скролл,
+   данные и прогретое видео) — visibility, а не display, чтобы не терять
+   размеры и позицию скролла */
+.shellV2Tab {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shellV2TabHidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Существующие вкладки (админ/вход/настройки) внутри новой оболочки:
+   их стили свёрстаны под тёмную тему старого приложения (#0f1115) */
+.shellV2Panel {
+  flex: 1;
+  min-height: 0;
+  background: #0f1115;
+  color: #e8e8ea;
+  overflow-y: auto;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(12px + var(--v2-nav-h));
+}
+
+/* Экран модуля из ленты: компенсирует отрицательные маржины .lessonsMapPanel
+   (они рассчитаны на паддинги старого .app) и красит фон как старая оболочка */
+.feedModuleScreen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px var(--v2-nav-h);
+  background: #0f1115;
+}
+
+/* Canvas-редактор поверх новой оболочки (админ) */
+.shellV2CanvasOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #0f1115;
+  overflow: auto;
+}
+
+/* ── Нижний бар ── */
+/* Бар ПОВЕРХ контента: компактный, сплошного цвета приложения (включая
+   системную зону снизу — она выглядит продолжением приложения, а не краем).
+   Верхний край растушёван градиентом — панель «вплавляется» в контент */
+.shellV2Nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  box-sizing: border-box;
+  height: var(--v2-nav-h);
+  padding-bottom: calc(var(--v2-nav-strip) + env(safe-area-inset-bottom, 0px));
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #0b0d10;
+}
+
+
+.shellV2NavBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: #8b95a1;
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  /* Кнопки читаемы прямо на видео (в ленте бар прозрачный) */
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.55));
+}
+
+.shellV2NavBtn svg {
+  width: 25px;
+  height: 25px;
+}
+
+.shellV2NavBtnActive {
+  color: #b6fe3b;
+}

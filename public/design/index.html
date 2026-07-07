@@ -1,0 +1,83 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pithy — прототип интерфейса</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #17191d; color: #f2f5f7; padding: 28px 20px 48px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  }
+  h1 { font-size: 22px; font-weight: 800; }
+  h1 span { color: #b6fe3b; }
+  .note { margin: 10px 0 28px; font-size: 13px; line-height: 1.6; color: #9aa3ad; max-width: 720px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 26px; }
+  .card { width: 214px; }
+  .frame {
+    width: 214px; height: 464px; overflow: hidden;
+    border-radius: 18px; border: 1px solid #2a2f36; background: #0b0d10;
+  }
+  .frame iframe {
+    width: 390px; height: 844px; border: 0;
+    transform: scale(0.549); transform-origin: top left;
+    pointer-events: none;
+  }
+  .cap { display: flex; justify-content: space-between; align-items: baseline; margin-top: 9px; }
+  .cap b { font-size: 13px; font-weight: 700; }
+  .cap a { font-size: 12px; color: #b6fe3b; text-decoration: none; }
+  .cap a:hover { text-decoration: underline; }
+  .cardWide { width: 448px; }
+  .frameWide { width: 448px; height: 287px; }
+  .frameWide iframe { width: 1280px; height: 820px; transform: scale(0.35); }
+</style>
+</head>
+<body>
+  <h1>Pithy<span>.</span> — прототип интерфейса</h1>
+  <div class="note">
+    Кликабельные макеты новых экранов перед вёрсткой. «Открыть» — экран в полный размер
+    (на телефоне открывай именно полные версии). Схема модуля и плеер урока здесь не
+    макетируются — они уже работают в приложении и остаются как есть.
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <a href="feed.html"><div class="frame"><iframe src="feed.html"></iframe></div></a>
+      <div class="cap"><b>Лента — Рекомендации</b><a href="feed.html">Открыть</a></div>
+    </div>
+    <div class="card">
+      <a href="my-lessons-video.html"><div class="frame"><iframe src="my-lessons-video.html"></iframe></div></a>
+      <div class="cap"><b>Мои уроки — видео</b><a href="my-lessons-video.html">Открыть</a></div>
+    </div>
+    <div class="card">
+      <a href="my-lessons-list.html"><div class="frame"><iframe src="my-lessons-list.html"></iframe></div></a>
+      <div class="cap"><b>Мои уроки — список</b><a href="my-lessons-list.html">Открыть</a></div>
+    </div>
+    <div class="card">
+      <a href="my-lessons-empty.html"><div class="frame"><iframe src="my-lessons-empty.html"></iframe></div></a>
+      <div class="cap"><b>Мои уроки — пусто</b><a href="my-lessons-empty.html">Открыть</a></div>
+    </div>
+    <div class="card">
+      <a href="profile.html"><div class="frame"><iframe src="profile.html"></iframe></div></a>
+      <div class="cap"><b>Профиль</b><a href="profile.html">Открыть</a></div>
+    </div>
+    <div class="card">
+      <a href="profile-guest.html"><div class="frame"><iframe src="profile-guest.html"></iframe></div></a>
+      <div class="cap"><b>Профиль — гость</b><a href="profile-guest.html">Открыть</a></div>
+    </div>
+    <div class="card">
+      <a href="energy.html"><div class="frame"><iframe src="energy.html"></iframe></div></a>
+      <div class="cap"><b>Нет энергии</b><a href="energy.html">Открыть</a></div>
+    </div>
+    <div class="card">
+      <a href="admin.html"><div class="frame"><iframe src="admin.html"></iframe></div></a>
+      <div class="cap"><b>Админ-панель</b><a href="admin.html">Открыть</a></div>
+    </div>
+    <div class="card cardWide">
+      <a href="feed-desktop.html"><div class="frame frameWide"><iframe src="feed-desktop.html"></iframe></div></a>
+      <div class="cap"><b>Лента — ПК-версия</b><a href="feed-desktop.html">Открыть</a></div>
+    </div>
+  </div>
+</body>
+</html>

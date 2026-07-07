@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Макет — Мои уроки (список)</title>
+<link rel="stylesheet" href="proto.css">
+<style>
+  .screen { flex: 1; position: relative; overflow-y: auto; padding: 104px 16px 20px; }
+  .topBar {
+    position: absolute; top: 0; left: 0; right: 0; height: 96px; z-index: 6;
+    background: linear-gradient(var(--bg) 70%, transparent);
+  }
+  .modeToggle {
+    position: absolute; top: 58px; right: 14px; z-index: 7;
+    display: flex; border-radius: 10px; overflow: hidden;
+    background: var(--panel); border: 1px solid var(--line);
+  }
+  .modeBtn { border: none; background: none; padding: 7px 10px; color: var(--dim); }
+  .modeBtnActive { background: var(--panel2); color: #fff; }
+  .modeBtn svg { width: 17px; height: 17px; display: block; }
+  .row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; margin-bottom: 10px;
+    background: var(--dust), var(--grain), var(--tex) var(--panel);
+    border: 1px solid var(--line); border-radius: 16px;
+  }
+  .row:nth-child(3n+2) {
+    background: var(--dust), var(--grain), var(--tex-f) var(--panel);
+    background-position: 0 0, 0 0, 24px 12px;
+  }
+  .row:nth-child(3n) {
+    background: var(--dust), var(--grain), var(--tex-r) var(--panel);
+    background-position: 0 0, 0 0, 50px 28px;
+  }
+  .thumb {
+    width: 56px; height: 74px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .thumb svg { width: 20px; height: 20px; color: rgba(255,255,255,0.85); }
+  .t1 { background: linear-gradient(160deg, #24343f, #121a1f); }
+  .t2 { background: linear-gradient(160deg, #3a2d3f, #171219); }
+  .t3 { background: linear-gradient(160deg, #1d3a2a, #101a12); }
+  .t4 { background: linear-gradient(160deg, #3f3524, #1a150c); }
+  .rowBody { flex: 1; min-width: 0; }
+  .rowTitle { font-size: 16px; font-weight: 700; }
+  .rowSub { margin: 3px 0 9px; font-size: 12px; color: var(--muted); }
+  .rowTrack { display: flex; align-items: center; gap: 10px; }
+  .rowTrack .track { flex: 1; height: 6px; }
+  .pct { font-size: 12px; font-weight: 700; color: var(--accent); width: 38px; text-align: right; }
+  .done .fill { background: var(--accent); }
+  .doneMark {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 700; color: var(--accent);
+  }
+  .doneMark svg { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <a class="backHub" href="index.html">&larr; все макеты</a>
+  <div class="topBar">
+    <div class="topTabs">
+      <a class="topTab" href="feed.html">Рекомендации</a>
+      <button class="topTab topTabActive">Мои уроки</button>
+    </div>
+  </div>
+  <div class="modeToggle">
+    <a class="modeBtn" href="my-lessons-video.html" title="Видео">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="3"/></svg>
+    </a>
+    <button class="modeBtn modeBtnActive" title="Список">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="screen">
+    <div class="row">
+      <div class="thumb t1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z"/></svg></div>
+      <div class="rowBody">
+        <div class="rowTitle">Break the ice</div>
+        <div class="rowSub">3 из 5 уроков &middot; начат 3 дня назад</div>
+        <div class="rowTrack"><div class="track"><div class="fill" style="width:60%"></div></div><span class="pct">60%</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="thumb t2"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z"/></svg></div>
+      <div class="rowBody">
+        <div class="rowTitle">It&rsquo;s up to you</div>
+        <div class="rowSub">1 из 5 уроков &middot; начат вчера</div>
+        <div class="rowTrack"><div class="track"><div class="fill" style="width:20%"></div></div><span class="pct">20%</span></div>
+      </div>
+    </div>
+
+    <div class="row done">
+      <div class="thumb t3"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z"/></svg></div>
+      <div class="rowBody">
+        <div class="rowTitle">Piece of cake</div>
+        <div class="rowSub">
+          <span class="doneMark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6"/></svg>
+            Модуль пройден
+          </span>
+        </div>
+        <div class="rowTrack"><div class="track"><div class="fill" style="width:100%"></div></div><span class="pct">100%</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="thumb t4"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z"/></svg></div>
+      <div class="rowBody">
+        <div class="rowTitle">Call it a day</div>
+        <div class="rowSub">2 из 6 уроков &middot; начат неделю назад</div>
+        <div class="rowTrack"><div class="track"><div class="fill" style="width:33%"></div></div><span class="pct">33%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottomNav">
+    <button class="navBtn navBtnActive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M10 9.5v5l4.5-2.5L10 9.5z" fill="currentColor"/></svg>
+      Уроки
+    </button>
+    <a class="navBtn" href="profile.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
+      Профиль
+    </a>
+  </nav>
+</div>
+</body>
+</html>

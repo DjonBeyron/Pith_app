@@ -1,17 +1,32 @@
 import { supabase } from './supabase.js'
 
 export async function getProfile() {
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) return null
+  // Локальная сессия вместо сетевого getUser — надёжнее на медленном старте
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return null
 
   const { data, error } = await supabase
     .from('user_profiles')
-    .select('xp, energy, has_subscription, is_admin')
+    .select('xp, energy, energy_updated_at, has_subscription, is_admin')
     .eq('id', user.id)
     .single()
 
   if (error) return null
   return data
+}
+
+// Старт урока: сервер сам решает, бесплатный он (гость/подписка/админ/
+// пересдача/Старт/Финал) или списать энергию. Возвращает jsonb
+// { ok, energy?, reason: 'no_energy', next_at? }. Если RPC ещё не применён
+// в Supabase — не блокируем прохождение (ok: true).
+export async function startLesson(lessonId) {
+  const { data, error } = await supabase.rpc('start_lesson', { p_lesson_id: lessonId })
+  if (error) {
+    console.error('[ENERGY] start_lesson RPC error:', error.message)
+    return { ok: true }
+  }
+  return data ?? { ok: true }
 }
 
 // Начисляет XP за урок через серверный RPC. Клиент передаёт только id урока —
