@@ -100,6 +100,13 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Только вертикальный скролл. Без этого overflow-x вычислялся в auto, и на
+     диагональном перетаскивании (палец чуть вбок) iOS медлил с выбором оси —
+     это и читалось как «дёрганье» видео (лог DBG: scrollLeftΔ=0, но
+     touch-action=auto). pan-y фиксирует ось мгновенно, overflow-x:hidden
+     страхует от любого бокового сдвига */
+  overflow-x: hidden;
+  touch-action: pan-y;
   scroll-snap-type: y mandatory;
   overscroll-behavior: contain;
   /* Скрываем полоску скролла (как в плеере — сам скролл работает) */
