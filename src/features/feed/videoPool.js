@@ -16,6 +16,8 @@
 // же ключ всегда получает тот же элемент (кадры сохраняются). Когда слайдов в
 // окне больше, чем элементов, переиспользуется самый давно не нужный (LRU).
 
+import { fdbg } from '../../shared/lib/feedDebug.js'
+
 const POOL_SIZE = 4
 const slots = [] // { el, key, used }
 let holder = null
@@ -57,6 +59,9 @@ export function leaseVideo(key) {
   let slot = slots.find(s => s.key === key)
   if (!slot) {
     slot = slots.find(s => s.key === null) || slots.reduce((a, b) => (a.used <= b.used ? a : b))
+    // Переиспользование слота (пул кончился) — редкое событие, полезно в логе:
+    // частый recycle при переключении вкладок = источник багов возврата
+    fdbg(`pool: recycle ${slot.key == null ? '(free)' : 'key#' + slot.key} → key#${key}`)
     slot.key = key
   }
   slot.used = ++tick
@@ -67,7 +72,10 @@ export function leaseVideo(key) {
 // слайд быстро вернётся, получит свой же элемент с уже загруженным видео.
 export function releaseVideo(key) {
   const slot = slots.find(s => s.key === key)
-  if (slot && slot.el.parentElement && slot.el.parentElement !== holder) parkEl(slot.el)
+  if (slot && slot.el.parentElement && slot.el.parentElement !== holder) {
+    fdbg(`pool: park key#${key} (${(slot.el.dataset.url || '').slice(-8)}) paused=${slot.el.paused}`)
+    parkEl(slot.el)
+  }
 }
 
 // Разблокировка звука на всех элементах пула — вызывать по жесту пользователя.
@@ -75,6 +83,7 @@ export function releaseVideo(key) {
 // разрешено играть со звуком без нового жеста.
 export function unlockAllForSound() {
   ensure()
+  fdbg('pool: unlock all (sound gesture)')
   for (const s of slots) {
     const el = s.el
     // Проигрыш в момент жеста «благословляет» элемент — дальше ему можно играть

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { leaseVideo, releaseVideo, unlockAllForSound } from './videoPool.js'
+import { fdbg } from '../../shared/lib/feedDebug.js'
 
 // Видео-слой слайда — общий для «Рекомендаций» и «Моих уроков».
 // Кто активен — решает родитель по позиции скролла (пропс active). Видео берётся
@@ -37,6 +38,22 @@ export default function SlideVideo({
     }
     return () => { releaseVideo(slideKey) }
   }, [hasVideo, tabVisible, inWindow, videoUrl, slideKey])
+
+  // Повторный приезд на слайд: короткое видео (< 10с) начинаем сначала, длинное
+  // — продолжаем с места (элемент пула хранит currentTime). Только в момент
+  // становления активным (deps без soundOn/paused), иначе тап звука/паузы
+  // перематывал бы в начало.
+  useEffect(() => {
+    if (!active || !hasVideo || !tabVisible) return
+    const v = leaseVideo(slideKey)
+    if (v.parentElement !== rootRef.current) return
+    const d = v.duration
+    const restart = !Number.isFinite(d) || d < 10
+    if (restart) {
+      try { v.currentTime = 0 } catch { /* не критично */ }
+    }
+    fdbg(`vid ${(videoUrl || '').slice(-8)} active dur=${Number.isFinite(d) ? d.toFixed(1) : '?'} rs=${v.readyState} → ${restart ? 'restart' : 'continue'}`)
+  }, [active, hasVideo, tabVisible, slideKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Активный слайд: звук + воспроизведение + плавное появление. Сосед: молча
   // прогревается (muted, пауза, первый кадр уже загружен). Позицию элемента в

@@ -67,6 +67,12 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   }
   useEffect(refreshStarted, [])
 
+  // Трекер переключения вкладок — для дебага «чёрной ленты»/«зависшего видео»
+  // при возврате: пишем в лог DBG смену видимости и текущего вида
+  useEffect(() => {
+    fdbg(`tab: visible=${visible} view=${view} → tabVisible(feed)=${visible && view === 'feed'}`)
+  }, [visible, view])
+
   useEffect(() => {
     let cancelled = false
     fetchFeedSocial()
@@ -273,21 +279,29 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     )
   }
 
-  // Снимок метрик ленты для дебаг-панели
+  // Снимок метрик ленты для дебаг-панели. Дампим ВСЕ элементы пула (и в ленте,
+  // и припаркованные) с их состоянием — по нему видно причины багов возврата
+  // на вкладку: чёрная лента (virtual ПУСТО / viewH=0), зависшая картинка при
+  // живом звуке (припаркованный элемент с paused=false, или активный paused=true
+  // при играющем другом). Жми «Обновить» дважды — если ct не растёт, видео стоит.
   function feedInfo() {
     const el = scrollRef.current
     const items = virtualizer.getVirtualItems()
-    // Видео теперь берутся из пула (videoPool). Показываем, сколько их сейчас
-    // в ленте и состояние активного (проигрывается ли, готовность буфера)
-    const vids = [...document.querySelectorAll('.feedV2Scroll .poolVideo')]
-    const playing = vids.filter(v => !v.paused).length
+    const all = [...document.querySelectorAll('.poolVideo')]
+    const dump = all.map(v => {
+      const inFeed = !!v.closest('.feedV2Scroll')
+      const r = v.getBoundingClientRect()
+      const where = inFeed ? `feed top=${r.top.toFixed(0)}` : 'PARKED'
+      return `  ${(v.dataset.url || '—').slice(-8)} [${where}] paused=${v.paused} muted=${v.muted} ct=${v.currentTime.toFixed(2)}/${(v.duration || 0).toFixed(1)} rs=${v.readyState} op=${v.style.opacity || '1'}`
+    })
     return [
       `view: ${view}, modules: ${len}, cycles: ${cycles}, viewH: ${viewH}, activeIdx: ${activeIdx}`,
-      `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} left=${el ? el.scrollLeft.toFixed(1) : '—'} clientW=${el?.clientWidth ?? '—'} overflowX=${el ? (el.scrollWidth - el.clientWidth).toFixed(1) : '—'}`,
-      `snapType: ${el ? getComputedStyle(el).scrollSnapType : '—'} touchAction=${el ? getComputedStyle(el).touchAction : '—'}`,
-      `virtual: ${items.map(i => `#${i.index}@${i.start}`).join(' ') || 'пусто'}`,
-      `sound: soundOn=${soundOn} gesture=${soundGestureRef.current} tabVisible=${visible && view === 'feed'}`,
-      `pool videos in feed: ${vids.length}, playing: ${playing}, opacity=[${vids.map(v => v.style.opacity || '1').join(',')}]`,
+      `tabVisible(feed): ${visible && view === 'feed'}  (app visible=${visible})`,
+      `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} clientH=${el?.clientHeight ?? '—'} scrollH=${el?.scrollHeight ?? '—'}`,
+      `virtual(${items.length}): ${items.map(i => `#${i.index}`).join(' ') || 'ПУСТО'}`,
+      `sound: soundOn=${soundOn} gesture=${soundGestureRef.current}`,
+      `pool videos (${all.length}):`,
+      ...dump,
     ].join('\n')
   }
 
