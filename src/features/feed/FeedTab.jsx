@@ -7,6 +7,7 @@ import FeedSlide from './FeedSlide.jsx'
 import MyLessons from './MyLessons.jsx'
 import DebugPanel from './DebugPanel.jsx'
 import { fdbg } from '../../shared/lib/feedDebug.js'
+import { useDragDebug } from './useDragDebug.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 
@@ -133,6 +134,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   // при обычном пролистывании
   const cycles = len > 0 ? Math.max(40, Math.ceil(120 / len)) : 0
   const settleTimer = useRef(null)
+  // Дебаг «дёрганья» ленты при перетаскивании: пишет смещения жеста в лог DBG
+  // (перевешиваем слушатели, когда контейнер ленты появляется — при len>0)
+  useDragDebug(scrollRef, len)
 
   // Высота вьюпорта ленты — размер каждого виртуального слайда
   const [viewH, setViewH] = useState(0)
@@ -276,18 +280,22 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   function feedInfo() {
     const el = scrollRef.current
     const items = virtualizer.getVirtualItems()
-    // Несколько <video> живут в DOM одновременно (near-префетч) — берём ту,
-    // что реально на экране (rect.top ближе к 0), а не первую по DOM-порядку
-    const videos = [...(el?.querySelectorAll('.feedSlide video') ?? [])]
-    const activeVideo = videos.sort((a, b) =>
-      Math.abs(a.getBoundingClientRect().top) - Math.abs(b.getBoundingClientRect().top))[0]
-    const rect = activeVideo?.getBoundingClientRect()
+    // Теперь <video> ровно один на всю ленту (sharedVideoElement) — он же
+    // активный. Смотрим его позицию и переполнение контейнера по горизонтали:
+    // паразитный горизонтальный скролл — вероятная причина «дёрганья» вбок
+    const v = document.querySelector('.sharedVideo')
+    const rect = v?.getBoundingClientRect()
+    const cs = v ? getComputedStyle(v) : null
+    const parentRow = el?.querySelector('.feedVirtualItem')
+    const rowCs = parentRow ? getComputedStyle(parentRow) : null
     return [
       `view: ${view}, modules: ${len}, cycles: ${cycles}, viewH: ${viewH}`,
-      `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} left=${el ? el.scrollLeft.toFixed(0) : '—'} height=${el?.scrollHeight ?? '—'} client=${el?.clientHeight ?? '—'}`,
+      `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} left=${el ? el.scrollLeft.toFixed(1) : '—'} scrollW=${el?.scrollWidth ?? '—'} clientW=${el?.clientWidth ?? '—'} overflowX=${el ? (el.scrollWidth - el.clientWidth).toFixed(1) : '—'}`,
+      `snapType: ${el ? getComputedStyle(el).scrollSnapType : '—'} overflowX-css=${el ? getComputedStyle(el).overflowX : '—'} touchAction=${el ? getComputedStyle(el).touchAction : '—'}`,
       `virtual: ${items.map(i => `#${i.index}@${i.start}`).join(' ') || 'пусто'}`,
+      `row transform: ${rowCs?.transform ?? 'нет'}`,
       `sound: soundOn=${soundOn} gesture=${soundGestureRef.current} tabVisible=${visible && view === 'feed'}`,
-      `active video: ${activeVideo ? `muted=${activeVideo.muted} paused=${activeVideo.paused} readyState=${activeVideo.readyState} error=${activeVideo.error?.code ?? 'нет'} rect.left=${rect.left.toFixed(1)} rect.width=${rect.width.toFixed(1)}` : 'нет в DOM'}`,
+      `shared video: ${v ? `muted=${v.muted} paused=${v.paused} readyState=${v.readyState} rect.left=${rect.left.toFixed(1)} rect.top=${rect.top.toFixed(1)} rect.w=${rect.width.toFixed(1)} transform=${cs.transform}` : 'нет в DOM'}`,
     ].join('\n')
   }
 

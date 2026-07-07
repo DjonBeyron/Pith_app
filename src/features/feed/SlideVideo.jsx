@@ -1,37 +1,53 @@
 import { useState, useRef, useEffect } from 'react'
-import { fdbg } from '../../shared/lib/feedDebug.js'
+import { getSharedVideo, parkSharedVideo } from './sharedVideoElement.js'
 
 // Видео-слой слайда — общий для «Рекомендаций» и «Моих уроков».
-// Кто активен/сосед — решает родитель по позиции скролла (пропсы active/near):
-// это надёжнее IntersectionObserver, который в webview-средах может молчать.
-// Постер мгновенно, видео монтируется у соседей (префетч), играет активный.
-// Тап по видео — пауза/продолжить (сбрасывается при уходе со слайда).
+// Кто активен — решает родитель по позиции скролла (пропс active): это
+// надёжнее IntersectionObserver, который в webview-средах может молчать.
+// Сам <video> — единый на всю ленту (sharedVideoElement): активный слайд
+// «забирает» его к себе, ставит свой src и играет; неактивные показывают
+// только постер. Так элемент не пересоздаётся при скролле — звук не гаснет
+// и нет дёрганья. Тап по видео — пауза/продолжить (сбрасывается при уходе).
 export default function SlideVideo({
-  videoUrl, posterUrl, active = false, near = false, tabVisible = true,
+  videoUrl, posterUrl, active = false, tabVisible = true,
   soundOn = false, onSoundOn, onSoundBlocked, fallback = null,
 }) {
-  const [mediaReady, setMediaReady] = useState(false)
-  const [userPaused, setUserPaused] = useState(false)
-  const videoRef = useRef(null)
-  const wasActiveRef = useRef(false)
+  const [paused, setPaused] = useState(false)
+  const rootRef = useRef(null)
   const hasVideo = !!videoUrl
 
+  // Пока слайд активен — держим общий <video> внутри себя и на своём src.
+  // Парковка в cleanup только при деактивации/смене src (soundOn/paused сюда
+  // не входят — иначе на каждый тап звука был бы перескок и мигание).
   useEffect(() => {
-    const v = videoRef.current
-    if (!v) return
-    // Синхронизируем muted с актуальным soundOn при каждом срабатывании —
-    // иначе после отката в catch (браузер заблокировал автозвук и код
-    // выставил v.muted=true напрямую) JSX-атрибут muted={false} не меняется
-    // между рендерами (soundOn остаётся true), React не видит разницы и не
-    // переписывает свойство обратно — видео так и остаётся немым молча
-    const wantMuted = !soundOn || !tabVisible
-    if (v.muted !== wantMuted) v.muted = wantMuted
-    if (active && !userPaused) {
-      if (!wasActiveRef.current) v.currentTime = 0
+    if (!active || !hasVideo || !tabVisible) return
+    const v = getSharedVideo()
+    const root = rootRef.current
+    if (!root) return
+    if (v.parentElement !== root) root.appendChild(v)
+    if (v.dataset.url !== videoUrl) {
+      v.dataset.url = videoUrl
+      v.src = videoUrl
+    } else {
+      try { v.currentTime = 0 } catch { /* не критично */ }
+    }
+    return () => {
+      const el = getSharedVideo()
+      if (el.parentElement === root) parkSharedVideo()
+    }
+  }, [active, hasVideo, tabVisible, videoUrl])
+
+  // Звук/воспроизведение отдельно — реагирует на soundOn и ручную паузу,
+  // не трогая позицию элемента в DOM
+  useEffect(() => {
+    if (!active || !hasVideo || !tabVisible) return
+    const v = getSharedVideo()
+    if (v.parentElement !== rootRef.current) return
+    v.muted = !soundOn
+    if (!paused) {
       v.play().catch(() => {
-        // iOS блокирует автозвук при холодном старте — играем без звука
+        // Свежий src ещё не «благословлён» звуком — играем без него
         if (!v.muted) {
-          fdbg('sound blocked:', videoUrl?.slice(-24), 'soundOn=', soundOn)
           v.muted = true
           v.play().catch(() => {})
           onSoundBlocked?.()
@@ -40,46 +56,40 @@ export default function SlideVideo({
     } else {
       v.pause()
     }
-    wasActiveRef.current = active
-  }, [active, near, userPaused, soundOn, tabVisible]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [active, hasVideo, tabVisible, soundOn, paused]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Свайпнул со слайда — пользовательская пауза сбрасывается
+  // Ушли со слайда — ручная пауза сбрасывается
   useEffect(() => {
-    if (active || !userPaused) return
+    if (active || !paused) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUserPaused(false)
-  }, [active, userPaused])
+    setPaused(false)
+  }, [active, paused])
+
+  // Тап по чипу — это жест пользователя: проигрываем общий элемент со звуком
+  // прямо здесь, чтобы браузер разблокировал его на всю сессию (дальше звук
+  // переживает смену слайдов и src)
+  function tapSound(e) {
+    e.stopPropagation()
+    const v = getSharedVideo()
+    v.muted = false
+    v.play().catch(() => {})
+    onSoundOn?.()
+  }
 
   if (!hasVideo) return fallback
 
   return (
-    <div className="slideVideoRoot" onClick={() => setUserPaused(p => !p)}>
-      {!mediaReady && <div className="feedSkeleton" />}
-      {posterUrl && (
-        <img className="feedMedia" src={posterUrl} alt="" onLoad={() => setMediaReady(true)} />
-      )}
-      {(near || active) && (
-        <video
-          ref={videoRef}
-          className="feedMedia"
-          src={videoUrl}
-          poster={posterUrl ?? undefined}
-          preload="auto"
-          muted={!soundOn || !tabVisible}
-          loop
-          playsInline
-          onLoadedData={() => setMediaReady(true)}
-        />
-      )}
-      {userPaused && (
+    <div className="slideVideoRoot" ref={rootRef} onClick={() => active && setPaused(p => !p)}>
+      {posterUrl
+        ? <img className="feedMedia feedPoster" src={posterUrl} alt="" />
+        : <div className="feedSkeleton" />}
+      {paused && active && (
         <div className="slidePauseIcon">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z" /></svg>
         </div>
       )}
       {!soundOn && active && (
-        <button
-          className="feedSoundChip"
-          onClick={e => { e.stopPropagation(); onSoundOn?.() }}>
+        <button className="feedSoundChip" onClick={tapSound}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z" /><line x1="22" y1="9" x2="16" y2="15" /><line x1="16" y1="9" x2="22" y2="15" /></svg>
           Включить звук
         </button>

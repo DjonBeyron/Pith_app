@@ -27,6 +27,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  z-index: 3;
   width: 64px;
   height: 64px;
   border-radius: 50%;
@@ -53,6 +54,12 @@
   height: 100%;
   object-fit: cover;
 }
+
+/* Единый <video> ленты добавляется в активный слайд последним (appendChild),
+   поэтому явным z-index держим порядок: постер снизу, видео над ним, а
+   иконка паузы/чип звука — над видео (иначе видео перекрыло бы их) */
+.feedPoster { z-index: 0; }
+.sharedVideo { z-index: 1; }
 
 /* Чип «Включить звук» — autoplay разрешён только беззвучным */
 .feedSoundChip {
