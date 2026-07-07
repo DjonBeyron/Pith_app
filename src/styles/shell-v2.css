@@ -3,11 +3,13 @@
 /* Текстура как в схеме уроков (lessons-chain-textures.css): топо-завитки +
    зерно + пыль. Белые слои для тёмных поверхностей, тёмные (-d) для лаймовых */
 :root {
-  /* Полная высота нижнего бара: кнопки 48px + системный отступ. Роль
-     «полосы-продолжения» под панелью играет нижняя системная зона iOS,
-     покрашенная фоном html (#0b0d10) — своя подложка не нужна */
+  /* Полная высота нижнего бара: кнопки 40px (было 48 — обрезано сверху,
+     нижний край бара на прежнем месте, см. --v2-nav-btn-h) + системный
+     отступ. Роль «полосы-продолжения» под панелью играет нижняя системная
+     зона iOS, покрашенная фоном html (#0b0d10) — своя подложка не нужна */
+  --v2-nav-btn-h: 40px;
   --v2-nav-strip: 0px;
-  --v2-nav-h: calc(48px + var(--v2-nav-strip) + env(safe-area-inset-bottom, 0px));
+  --v2-nav-h: calc(var(--v2-nav-btn-h) + var(--v2-nav-strip) + env(safe-area-inset-bottom, 0px));
 
   --v2-tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg fill='none' stroke='white' stroke-opacity='.055' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E");
   --v2-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -161,7 +163,10 @@
 /* ── Нижний бар ── */
 /* Бар ПОВЕРХ контента: компактный, сплошного цвета приложения (включая
    системную зону снизу — она выглядит продолжением приложения, а не краем).
-   Верхний край растушёван градиентом — панель «вплавляется» в контент */
+   Высота обрезана СВЕРХУ (--v2-nav-btn-h 40px вместо 48) — bottom:0
+   зафиксирован, поэтому нижний край панели не сдвигается.
+   Текстура — на ::before (под кнопками); ::after поверх нижней части бара
+   растушёвывает её в сплошной цвет приложения, не затрагивая сами кнопки. */
 .shellV2Nav {
   position: absolute;
   left: 0;
@@ -169,15 +174,37 @@
   bottom: 0;
   z-index: 20;
   display: flex;
+  align-items: center; /* иконки по оси Y — по центру уменьшенной высоты */
   box-sizing: border-box;
   height: var(--v2-nav-h);
   padding-bottom: calc(var(--v2-nav-strip) + env(safe-area-inset-bottom, 0px));
+}
+
+.shellV2Nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #0b0d10;
 }
 
+.shellV2Nav::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, #0b0d10 75%);
+}
 
 .shellV2NavBtn {
   flex: 1;
+  height: 100%;
+  padding: 0; /* иначе съедает высоту глобальный button{padding:8px 12px}
+    (base.css) — иконке не хватало места, flex-shrink сминал её по высоте */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -186,7 +213,7 @@
   background: none;
   border: none;
   color: #8b95a1;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 500;
   cursor: pointer;
   /* Кнопки читаемы прямо на видео (в ленте бар прозрачный) */
@@ -194,8 +221,8 @@
 }
 
 .shellV2NavBtn svg {
-  width: 25px;
-  height: 25px;
+  width: 22px;
+  height: 22px;
 }
 
 .shellV2NavBtnActive {
