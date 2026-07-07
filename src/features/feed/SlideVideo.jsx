@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { getSharedVideo, parkSharedVideo } from './sharedVideoElement.js'
+import { fdbg } from '../../shared/lib/feedDebug.js'
 
 // Видео-слой слайда — общий для «Рекомендаций» и «Моих уроков».
 // Кто активен — решает родитель по позиции скролла (пропс active): это
@@ -24,7 +25,11 @@ export default function SlideVideo({
     const v = getSharedVideo()
     const root = rootRef.current
     if (!root) return
-    if (v.parentElement !== root) root.appendChild(v)
+    if (v.parentElement !== root) {
+      const t = (performance.now() / 1000).toFixed(2)
+      fdbg(`REPARENT видео → слайд ...${videoUrl.slice(-14)} @${t}s`)
+      root.appendChild(v)
+    }
     if (v.dataset.url !== videoUrl) {
       v.dataset.url = videoUrl
       v.src = videoUrl
