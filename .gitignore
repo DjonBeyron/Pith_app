@@ -14,7 +14,7 @@ logs
 
 .claude/settings.local.json
 
-tools/ffmpeg/*.exe
-tools/ffmpeg/*.dll
+tools/*
+!tools/prepare-video.bat
 
 old/
