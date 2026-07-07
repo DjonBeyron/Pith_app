@@ -7,7 +7,6 @@ import FeedSlide from './FeedSlide.jsx'
 import MyLessons from './MyLessons.jsx'
 import DebugPanel from './DebugPanel.jsx'
 import { fdbg } from '../../shared/lib/feedDebug.js'
-import { useDragDebug } from './useDragDebug.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 
@@ -134,9 +133,6 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   // при обычном пролистывании
   const cycles = len > 0 ? Math.max(40, Math.ceil(120 / len)) : 0
   const settleTimer = useRef(null)
-  // Дебаг «дёрганья» ленты при перетаскивании: пишет смещения жеста в лог DBG
-  // (перевешиваем слушатели, когда контейнер ленты появляется — при len>0)
-  useDragDebug(scrollRef, len)
 
   // Высота вьюпорта ленты — размер каждого виртуального слайда
   const [viewH, setViewH] = useState(0)
@@ -217,11 +213,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
 
   useEffect(() => () => clearTimeout(settleTimer.current), [])
 
-  // Перецентровка редкая и только когда скролл успокоился: прыжок во время
-  // жеста дерётся с анимацией снапа, а частые прыжки пересоздают видимый
-  // слайд (спойлер закрывался бы на глазах). Переносимся, лишь когда реально
-  // додрейфовали к краю запаса
-  function maybeRecentre() {
+  // Доводка: скролл остановился — только перецентровка круга, если додрейфовали
+  // к краю запаса (teleport). Активный слайд считается в onScroll на лету.
+  function onSettle() {
     const el = scrollRef.current
     if (!el || !len) return
     const cycleH = el.scrollHeight / cycles
@@ -233,11 +227,14 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   function onScroll() {
     const el = scrollRef.current
     if (!el || !len) return
+    // Активный слайд — сразу из позиции скролла. Сосед (active±1) при этом
+    // считается near и заранее прогревает своё видео из пула, поэтому при
+    // приезде оно стартует мгновенно (см. SlideVideo/videoPool).
     if (viewH > 0) setActiveIdx(Math.round(el.scrollTop / viewH))
     // События, порождённые нашим же телепортом, не обрабатываем
     if (teleportingRef.current) return
     clearTimeout(settleTimer.current)
-    settleTimer.current = setTimeout(maybeRecentre, 140)
+    settleTimer.current = setTimeout(onSettle, 140)
     // Аварийный перенос прямо в полёте — лишь у самого края
     const cycleH = el.scrollHeight / cycles
     const maxTop = el.scrollHeight - el.clientHeight
@@ -280,22 +277,17 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   function feedInfo() {
     const el = scrollRef.current
     const items = virtualizer.getVirtualItems()
-    // Теперь <video> ровно один на всю ленту (sharedVideoElement) — он же
-    // активный. Смотрим его позицию и переполнение контейнера по горизонтали:
-    // паразитный горизонтальный скролл — вероятная причина «дёрганья» вбок
-    const v = document.querySelector('.sharedVideo')
-    const rect = v?.getBoundingClientRect()
-    const cs = v ? getComputedStyle(v) : null
-    const parentRow = el?.querySelector('.feedVirtualItem')
-    const rowCs = parentRow ? getComputedStyle(parentRow) : null
+    // Видео теперь берутся из пула (videoPool). Показываем, сколько их сейчас
+    // в ленте и состояние активного (проигрывается ли, готовность буфера)
+    const vids = [...document.querySelectorAll('.feedV2Scroll .poolVideo')]
+    const playing = vids.filter(v => !v.paused).length
     return [
-      `view: ${view}, modules: ${len}, cycles: ${cycles}, viewH: ${viewH}`,
-      `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} left=${el ? el.scrollLeft.toFixed(1) : '—'} scrollW=${el?.scrollWidth ?? '—'} clientW=${el?.clientWidth ?? '—'} overflowX=${el ? (el.scrollWidth - el.clientWidth).toFixed(1) : '—'}`,
-      `snapType: ${el ? getComputedStyle(el).scrollSnapType : '—'} overflowX-css=${el ? getComputedStyle(el).overflowX : '—'} touchAction=${el ? getComputedStyle(el).touchAction : '—'}`,
+      `view: ${view}, modules: ${len}, cycles: ${cycles}, viewH: ${viewH}, activeIdx: ${activeIdx}`,
+      `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} left=${el ? el.scrollLeft.toFixed(1) : '—'} clientW=${el?.clientWidth ?? '—'} overflowX=${el ? (el.scrollWidth - el.clientWidth).toFixed(1) : '—'}`,
+      `snapType: ${el ? getComputedStyle(el).scrollSnapType : '—'} touchAction=${el ? getComputedStyle(el).touchAction : '—'}`,
       `virtual: ${items.map(i => `#${i.index}@${i.start}`).join(' ') || 'пусто'}`,
-      `row transform: ${rowCs?.transform ?? 'нет'}`,
       `sound: soundOn=${soundOn} gesture=${soundGestureRef.current} tabVisible=${visible && view === 'feed'}`,
-      `shared video: ${v ? `muted=${v.muted} paused=${v.paused} readyState=${v.readyState} rect.left=${rect.left.toFixed(1)} rect.top=${rect.top.toFixed(1)} rect.w=${rect.width.toFixed(1)} transform=${cs.transform}` : 'нет в DOM'}`,
+      `pool videos in feed: ${vids.length}, playing: ${playing}, opacity=[${vids.map(v => v.style.opacity || '1').join(',')}]`,
     ].join('\n')
   }
 
@@ -361,6 +353,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                     style={{ height: vi.size, transform: `translateY(${vi.start}px)` }}>
                     <FeedSlide
                       module={m}
+                      slideKey={vi.index}
                       active={vi.index === activeIdx}
                       near={Math.abs(vi.index - activeIdx) <= 1}
                       tabVisible={visible && view === 'feed'}

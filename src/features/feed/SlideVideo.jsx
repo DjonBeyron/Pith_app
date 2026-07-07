@@ -1,52 +1,90 @@
 import { useState, useRef, useEffect } from 'react'
-import { getSharedVideo, parkSharedVideo } from './sharedVideoElement.js'
+import { leaseVideo, releaseVideo, unlockAllForSound } from './videoPool.js'
 
 // Видео-слой слайда — общий для «Рекомендаций» и «Моих уроков».
-// Кто активен — решает родитель по позиции скролла (пропс active): это
-// надёжнее IntersectionObserver, который в webview-средах может молчать.
-// Сам <video> — единый на всю ленту (sharedVideoElement): активный слайд
-// «забирает» его к себе, ставит свой src и играет; неактивные показывают
-// только постер. Так элемент не пересоздаётся при скролле — звук не гаснет
-// и нет дёрганья. Тап по видео — пауза/продолжить (сбрасывается при уходе).
+// Кто активен — решает родитель по позиции скролла (пропс active). Видео берётся
+// из пула (videoPool): активный слайд играет, сосед (near) заранее держит своё
+// видео загруженным и на первом кадре — поэтому при свайпе старт мгновенный,
+// без ожидания загрузки. Элементы пула не пересоздаются, звук не гаснет.
+// Тап по видео — пауза/продолжить (сбрасывается при уходе со слайда).
 export default function SlideVideo({
-  videoUrl, posterUrl, active = false, tabVisible = true,
+  videoUrl, posterUrl, slideKey, active = false, near = false, tabVisible = true,
   soundOn = false, onSoundOn, onSoundBlocked, fallback = null,
 }) {
   const [paused, setPaused] = useState(false)
   const rootRef = useRef(null)
   const hasVideo = !!videoUrl
+  // В «окне» = активный или сосед. Только для них держим элемент пула.
+  const inWindow = active || near
 
-  // Пока слайд активен — держим общий <video> внутри себя и на своём src.
-  // Парковка в cleanup только при деактивации/смене src (soundOn/paused сюда
-  // не входят — иначе на каждый тап звука был бы перескок и мигание).
+  // Аренда элемента пула и загрузка своего src. Пока слайд в окне — элемент
+  // живёт внутри него. Смена active↔near сюда не входит (inWindow один и тот
+  // же), поэтому элемент не дёргается туда-сюда. При новом src прячем видео
+  // (opacity:0) — иначе на переиспользованном элементе мелькнул бы чужой кадр;
+  // пока скрыто, виден постер, который лежит под видео.
   useEffect(() => {
-    if (!active || !hasVideo || !tabVisible) return
-    const v = getSharedVideo()
+    if (!hasVideo || !tabVisible || !inWindow) return
+    const v = leaseVideo(slideKey)
     const root = rootRef.current
     if (!root) return
     if (v.parentElement !== root) root.appendChild(v)
     if (v.dataset.url !== videoUrl) {
       v.dataset.url = videoUrl
       v.src = videoUrl
-    } else {
       try { v.currentTime = 0 } catch { /* не критично */ }
+      v.style.transition = 'none'
+      v.style.opacity = '0'
     }
-    return () => {
-      const el = getSharedVideo()
-      if (el.parentElement === root) parkSharedVideo()
-    }
-  }, [active, hasVideo, tabVisible, videoUrl])
+    return () => { releaseVideo(slideKey) }
+  }, [hasVideo, tabVisible, inWindow, videoUrl, slideKey])
 
-  // Звук/воспроизведение отдельно — реагирует на soundOn и ручную паузу,
-  // не трогая позицию элемента в DOM
+  // Активный слайд: звук + воспроизведение + плавное появление. Сосед: молча
+  // прогревается (muted, пауза, первый кадр уже загружен). Позицию элемента в
+  // DOM здесь не трогаем — только его состояние.
   useEffect(() => {
-    if (!active || !hasVideo || !tabVisible) return
-    const v = getSharedVideo()
+    if (!hasVideo || !tabVisible || !inWindow) return
+    const v = leaseVideo(slideKey)
     if (v.parentElement !== rootRef.current) return
+
+    if (!active) {
+      // Прогрев соседа: тихо, на паузе. opacity не трогаем — если элемент уже
+      // показывал кадр этого слайда, пусть остаётся показанным.
+      v.muted = true
+      v.pause()
+      return
+    }
+
     v.muted = !soundOn
-    if (!paused) {
+    // Появление: если видео скрыто (свежий/чужой кадр) — показываем не на
+    // нулевом кадре, а через пару реально показанных кадров (туда, где примерно
+    // постер) и плавным фейдом, чтобы не было отката «постер → кадр 0». Если
+    // элемент уже показан (сосед прогрелся) — сразу играем, без задержки.
+    let shown = v.style.opacity === '1'
+    let rvfc = 0
+    let frames = 0
+    const reveal = () => {
+      if (shown) return
+      shown = true
+      v.style.transition = 'opacity 140ms ease'
+      v.style.opacity = '1'
+    }
+    if (!shown) {
+      if (v.requestVideoFrameCallback) {
+        const onFrame = () => {
+          if (++frames >= 3) reveal()
+          else rvfc = v.requestVideoFrameCallback(onFrame)
+        }
+        rvfc = v.requestVideoFrameCallback(onFrame)
+      } else {
+        v.addEventListener('seeked', reveal, { once: true })
+        v.addEventListener('loadeddata', reveal, { once: true })
+      }
+    }
+    const safety = setTimeout(reveal, 500)
+
+    if (!paused && v.dataset.freeze !== '1') {
       v.play().catch(() => {
-        // Свежий src ещё не «благословлён» звуком — играем без него
+        // Элемент ещё не «благословлён» звуком — играем без него
         if (!v.muted) {
           v.muted = true
           v.play().catch(() => {})
@@ -56,7 +94,14 @@ export default function SlideVideo({
     } else {
       v.pause()
     }
-  }, [active, hasVideo, tabVisible, soundOn, paused]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    return () => {
+      clearTimeout(safety)
+      if (rvfc && v.cancelVideoFrameCallback) v.cancelVideoFrameCallback(rvfc)
+      v.removeEventListener('seeked', reveal)
+      v.removeEventListener('loadeddata', reveal)
+    }
+  }, [hasVideo, tabVisible, inWindow, active, soundOn, paused, slideKey, videoUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ушли со слайда — ручная пауза сбрасывается
   useEffect(() => {
@@ -65,23 +110,37 @@ export default function SlideVideo({
     setPaused(false)
   }, [active, paused])
 
-  // Тап по чипу — это жест пользователя: проигрываем общий элемент со звуком
-  // прямо здесь, чтобы браузер разблокировал его на всю сессию (дальше звук
-  // переживает смену слайдов и src)
+  // Включение звука по жесту: разблокируем звук на ВСём пуле (чтобы соседние
+  // видео тоже могли играть со звуком), затем включаем звук здесь
+  function activateSound() {
+    unlockAllForSound()
+    if (slideKey !== undefined) {
+      const v = leaseVideo(slideKey)
+      v.muted = false
+      v.play().catch(() => {})
+    }
+    onSoundOn?.()
+  }
+
   function tapSound(e) {
     e.stopPropagation()
-    const v = getSharedVideo()
-    v.muted = false
-    v.play().catch(() => {})
-    onSoundOn?.()
+    activateSound()
+  }
+
+  // Тап по видео: пока звук не включён — первый тап именно включает звук (а не
+  // ставит паузу), даже мимо чипа. Когда звук уже включён — тап это пауза/пуск.
+  function onRootClick() {
+    if (!active) return
+    if (!soundOn) { activateSound(); return }
+    setPaused(p => !p)
   }
 
   if (!hasVideo) return fallback
 
   return (
-    <div className="slideVideoRoot" ref={rootRef} onClick={() => active && setPaused(p => !p)}>
+    <div className="slideVideoRoot" ref={rootRef} onClick={onRootClick}>
       {posterUrl
-        ? <img className="feedMedia feedPoster" src={posterUrl} alt="" />
+        ? <div className="feedPosterBg" style={{ backgroundImage: `url("${posterUrl}")` }} />
         : <div className="feedSkeleton" />}
       {paused && active && (
         <div className="slidePauseIcon">

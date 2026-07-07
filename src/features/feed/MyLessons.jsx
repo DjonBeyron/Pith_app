@@ -3,7 +3,6 @@ import { fetchStartedModules } from '../../shared/api/moduleSocialApi.js'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { plural } from '../../shared/lib/plural.js'
 import SlideVideo from './SlideVideo.jsx'
-import { useDragDebug } from './useDragDebug.js'
 
 // «Мои уроки»: начатые модули (user_module_progress) в двух режимах —
 // видео-скролл (без HUD, прогресс-бар модуля снизу) и список с процентами.
@@ -23,8 +22,6 @@ export default function MyLessons({
   // Активный слайд видео-режима — из позиции скролла (без IntersectionObserver)
   const [activeIdx, setActiveIdx] = useState(0)
   const scrollRef = useRef(null)
-  // Дебаг «дёрганья» при перетаскивании — общий с лентой лог DBG
-  useDragDebug(scrollRef, `${mode}-${startedIds?.size ?? 0}`)
 
   function onScroll() {
     const el = scrollRef.current
@@ -89,6 +86,7 @@ export default function MyLessons({
               <SlideVideo
                 videoUrl={m.videoUrl}
                 posterUrl={m.posterUrl}
+                slideKey={`ml-${m.id}`}
                 active={i === activeIdx}
                 near={Math.abs(i - activeIdx) <= 1}
                 tabVisible={visible && mode === 'video'}

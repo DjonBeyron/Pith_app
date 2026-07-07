@@ -7,7 +7,7 @@ import SlideVideo from './SlideVideo.jsx'
 // в FeedTab, спойлер локален для каждой копии слайда в круге.
 export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, tabVisible = true,
-  active = false, near = false,
+  active = false, near = false, slideKey,
   soundOn, onSoundOn, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
 }) {
   const [toast, setToast] = useState('')
@@ -40,6 +40,7 @@ export default function FeedSlide({
       <SlideVideo
         videoUrl={mod.videoUrl}
         posterUrl={mod.posterUrl}
+        slideKey={slideKey}
         active={active}
         near={near}
         tabVisible={tabVisible}
