@@ -14,6 +14,7 @@ export default function SlideVideo({
 }) {
   const [paused, setPaused] = useState(false)
   const rootRef = useRef(null)
+  const kickRaf = useRef(0)
   const hasVideo = !!videoUrl
   // В «окне» = активный или сосед. Только для них держим элемент пула.
   const inWindow = active || near
@@ -28,7 +29,10 @@ export default function SlideVideo({
     const v = leaseVideo(slideKey)
     const root = rootRef.current
     if (!root) return
-    if (v.parentElement !== root) root.appendChild(v)
+    // Реальный перенос элемента в этот слайд помечаем: на iOS перенос <video>
+    // во время проигрывания застывает картинку (звук идёт) — активный слайд
+    // потом «пинает» поверхность pause→play (см. эффект воспроизведения)
+    if (v.parentElement !== root) { root.appendChild(v); v.dataset.needsKick = '1' }
     if (v.dataset.url !== videoUrl) {
       v.dataset.url = videoUrl
       v.src = videoUrl
@@ -108,12 +112,26 @@ export default function SlideVideo({
           onSoundBlocked?.()
         }
       })
+      // iOS: если элемент только что перенесли в этот слайд — на следующем
+      // кадре «пинаем» поверхность pause→play. Без этого перенос <video> во
+      // время проигрывания оставляет стоп-кадр при живом звуке (баг перехода
+      // между вкладками «Мои уроки» ↔ «Рекомендации»)
+      if (v.dataset.needsKick === '1') {
+        v.dataset.needsKick = ''
+        kickRaf.current = requestAnimationFrame(() => {
+          if (v.parentElement === rootRef.current && !v.paused && v.dataset.freeze !== '1') {
+            v.pause()
+            v.play().catch(() => {})
+          }
+        })
+      }
     } else {
       v.pause()
     }
 
     return () => {
       clearTimeout(safety)
+      cancelAnimationFrame(kickRaf.current)
       if (rvfc && v.cancelVideoFrameCallback) v.cancelVideoFrameCallback(rvfc)
       v.removeEventListener('seeked', reveal)
       v.removeEventListener('loadeddata', reveal)
