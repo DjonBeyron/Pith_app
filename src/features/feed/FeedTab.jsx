@@ -41,11 +41,16 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   // откатывать его выбор, иначе звук гаснет сам через пару видео
   const soundGestureRef = useRef(false)
   function handleSoundOn() {
+    fdbg('sound: user tapped chip')
     soundGestureRef.current = true
     setSoundOn(true)
   }
   function handleSoundBlocked() {
-    if (soundGestureRef.current) return
+    if (soundGestureRef.current) {
+      fdbg('sound: blocked ignored (gesture already given)')
+      return
+    }
+    fdbg('sound: blocked → откат soundOn=false')
     setSoundOn(false)
   }
   const [showDebug, setShowDebug] = useState(false)
@@ -116,9 +121,17 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   // Круг рекомендаций — только не начатые модули
   const feedModules = (modules ?? []).filter(m => !startedIds.has(m.id))
   const len = feedModules.length
-  // Запас: минимум 30 слайдов. Snap-stop пускает по слайду за жест, поэтому
-  // между перецентровками до реального края долистать нельзя
-  const cycles = len > 0 ? Math.max(5, Math.ceil(30 / len)) : 0
+  // Запас: минимум 40 циклов. Snap-stop пускает по слайду за жест, поэтому
+  // между перецентровками до реального края долистать нельзя.
+  // При маленьком len (мало модулей) перецентровка (teleport) раньше
+  // случалась через каждые ~len*3 слайдов — а она пересоздаёт DOM-узел
+  // активного <video> (новый ключ виртуализатора), что на iOS Safari рвёт
+  // разрешение на автовоспроизведение со звуком у свежего элемента (см.
+  // fdbg 'sound blocked' сразу за 'teleport settle' в реальном логе).
+  // Больший запас циклов не стоит ничего в DOM (рендерится только overscan),
+  // зато отодвигает перецентровку на порядок дальше — звук перестаёт рваться
+  // при обычном пролистывании
+  const cycles = len > 0 ? Math.max(40, Math.ceil(120 / len)) : 0
   const settleTimer = useRef(null)
 
   // Высота вьюпорта ленты — размер каждого виртуального слайда
@@ -263,10 +276,18 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   function feedInfo() {
     const el = scrollRef.current
     const items = virtualizer.getVirtualItems()
+    // Несколько <video> живут в DOM одновременно (near-префетч) — берём ту,
+    // что реально на экране (rect.top ближе к 0), а не первую по DOM-порядку
+    const videos = [...(el?.querySelectorAll('.feedSlide video') ?? [])]
+    const activeVideo = videos.sort((a, b) =>
+      Math.abs(a.getBoundingClientRect().top) - Math.abs(b.getBoundingClientRect().top))[0]
+    const rect = activeVideo?.getBoundingClientRect()
     return [
       `view: ${view}, modules: ${len}, cycles: ${cycles}, viewH: ${viewH}`,
-      `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} height=${el?.scrollHeight ?? '—'} client=${el?.clientHeight ?? '—'}`,
+      `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} left=${el ? el.scrollLeft.toFixed(0) : '—'} height=${el?.scrollHeight ?? '—'} client=${el?.clientHeight ?? '—'}`,
       `virtual: ${items.map(i => `#${i.index}@${i.start}`).join(' ') || 'пусто'}`,
+      `sound: soundOn=${soundOn} gesture=${soundGestureRef.current} tabVisible=${visible && view === 'feed'}`,
+      `active video: ${activeVideo ? `muted=${activeVideo.muted} paused=${activeVideo.paused} readyState=${activeVideo.readyState} error=${activeVideo.error?.code ?? 'нет'} rect.left=${rect.left.toFixed(1)} rect.width=${rect.width.toFixed(1)}` : 'нет в DOM'}`,
     ].join('\n')
   }
 

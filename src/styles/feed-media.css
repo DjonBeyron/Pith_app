@@ -110,6 +110,7 @@
   position: absolute;
   left: 14px;
   top: calc(38px + env(safe-area-inset-top, 0px));
+  z-index: 6;
   padding: 3px 7px;
   border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.2);
