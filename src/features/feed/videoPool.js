@@ -39,6 +39,16 @@ function makeVideo() {
     v.addEventListener(ev, () =>
       fdbg(`vid ${(v.dataset.url || '—').slice(-8)} ev:${ev} ct=${v.currentTime.toFixed(2)}`))
   }
+  // Парковка необратима: play(), вызванный до готовности данных, «висит» и
+  // воскрешает видео уже после парковки — элемент играл в холдере (звук без
+  // картинки / постер вместо видео на слайде). Любой play у припаркованного
+  // гасим немедленно.
+  v.addEventListener('play', () => {
+    if (v.dataset.parked === '1') {
+      fdbg(`vid ${(v.dataset.url || '—').slice(-8)} zombie-play в парковке → пауза`)
+      v.pause()
+    }
+  })
   return v
 }
 
@@ -68,17 +78,13 @@ function parkEl(el) {
     document.body.appendChild(holder)
   }
   el.pause()
-  // Перенос в холдер и подготовительный seek — на СЛЕДУЮЩЕМ кадре: перенос
-  // «горячего» (только что игравшего) <video> — источник iOS-стоп-кадра при
-  // живом звуке, а seek в момент свайпа дёргает скролл. Быстрый повторный
-  // lease видит флаг parkPending и тоже забирает элемент только остывшим.
-  el.dataset.parkPending = '1'
-  requestAnimationFrame(() => {
-    if (el.dataset.parkPending !== '1') return
-    el.dataset.parkPending = ''
-    if (el.parentElement !== holder) holder.appendChild(el)
-    prepareReturn(el)
-  })
+  // parked=1 держит элемент на паузе НЕОБРАТИМО (см. zombie-guard в makeVideo)
+  // до следующего leaseVideo — благодаря этому переносимый элемент всегда
+  // холодный, и переносы не оставляют iOS-стоп-кадров
+  el.dataset.parked = '1'
+  if (el.parentElement !== holder) holder.appendChild(el)
+  // Подготовительный seek — чуть позже: не во время свайпа (дёргает скролл)
+  setTimeout(() => { if (el.dataset.parked === '1') prepareReturn(el) }, 300)
 }
 
 // Взять элемент под слайд key. Тот же key → тот же элемент.
@@ -93,6 +99,7 @@ export function leaseVideo(key) {
     slot.key = key
   }
   slot.used = ++tick
+  slot.el.dataset.parked = '' // арендованный элемент снова можно играть
   return slot.el
 }
 
@@ -152,7 +159,7 @@ export function unlockAllForSound() {
     // со звуком без нового жеста. Элементы в слайдах доиграет/погасит их эффект
     // (по active/soundOn); а припаркованные запасные тут же снова на паузу,
     // чтобы не крутились беззвучно вхолостую.
-    const parked = (holder && el.parentElement === holder) || el.dataset.parkPending === '1'
+    const parked = (holder && el.parentElement === holder) || el.dataset.parked === '1'
     const p = el.play()
     if (p && p.catch) p.catch(() => {})
     if (parked) { try { el.pause() } catch { /* play прервётся паузой — ок */ } }

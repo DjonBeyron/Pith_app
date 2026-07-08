@@ -13,13 +13,7 @@ export default function SlideVideo({
   soundOn = false, onSoundOn, onSoundBlocked, fallback = null,
 }) {
   const [paused, setPaused] = useState(false)
-  // Тик реального прикрепления элемента к слайду: когда перенос отложен (см.
-  // ниже, «холодный» перенос), эффект воспроизведения должен перезапуститься
-  // после фактического appendChild
-  const [attachTick, setAttachTick] = useState(0)
   const rootRef = useRef(null)
-  const kickRaf = useRef(0)
-  const attachRaf = useRef(0)
   const hasVideo = !!videoUrl
   // В «окне» = активный или сосед. Только для них держим элемент пула.
   const inWindow = active || near
@@ -34,26 +28,13 @@ export default function SlideVideo({
     const v = leaseVideo(slideKey)
     const root = rootRef.current
     if (!root) return
-    // Реальный перенос элемента в этот слайд. Элемент, который прямо сейчас
-    // паркуется (parkPending — быстрый переход между вкладками), забираем
-    // только через кадр, ХОЛОДНЫМ: синхронный перенос только что игравшего
-    // <video> — источник iOS-стоп-кадра при живом звуке. needsKick — страховка
-    // поверх этого (пинок после переноса, см. эффект воспроизведения).
-    if (v.parentElement !== root) {
-      const attach = () => {
-        root.appendChild(v)
-        v.dataset.needsKick = '1'
-      }
-      if (v.dataset.parkPending === '1') {
-        attachRaf.current = requestAnimationFrame(() => requestAnimationFrame(() => {
-          if (!rootRef.current || v.parentElement === rootRef.current) return
-          attach()
-          setAttachTick(t => t + 1)
-        }))
-      } else {
-        attach()
-      }
-    }
+    // Реальный перенос элемента в этот слайд. Элемент всегда холодный: пул
+    // гарантирует паузу в парковке (zombie-guard в makeVideo гасит даже
+    // «зависшие» play(), воскресающие после загрузки данных) — поэтому перенос
+    // безопасен и синхронен. Пинать после переноса НЕ надо: seek сразу после
+    // appendChild сам вгонял iOS в ступор (~2с ct=0 до спасения сторожем) —
+    // холодному элементу хватает обычного play().
+    if (v.parentElement !== root) root.appendChild(v)
     if (v.dataset.url !== videoUrl) {
       v.dataset.url = videoUrl
       v.src = videoUrl
@@ -61,12 +42,9 @@ export default function SlideVideo({
       v.style.transition = 'none'
       v.style.opacity = '0'
     }
-    // Уход из окна/с вкладки: releaseVideo паркует (пауза сразу, перенос и
-    // подготовка возврата — кадром позже, на холодном элементе, см. videoPool)
-    return () => {
-      cancelAnimationFrame(attachRaf.current)
-      releaseVideo(slideKey)
-    }
+    // Уход из окна/с вкладки: releaseVideo паркует — пауза необратима до
+    // следующей аренды, подготовка возврата чуть позже (см. videoPool)
+    return () => { releaseVideo(slideKey) }
   }, [hasVideo, tabVisible, inWindow, videoUrl, slideKey])
 
   // Активный слайд: звук + воспроизведение + плавное появление. Сосед: молча
@@ -98,13 +76,15 @@ export default function SlideVideo({
     let rvfc = 0
     let frames = 0
     // real=true — на экране реальный кадр видео (не страховочный показ по
-    // таймеру): сигналим ленте, что стартовый сплэш может улетать
+    // таймеру): сигналим ленте, что стартовый сплэш может улетать. Сигнал —
+    // ДО проверки shown: страховка могла показать видео раньше кадров, и
+    // сигнал иначе терялся (сплэш висел до своей страховки 3.5с)
     const reveal = (real) => {
+      if (real) window.__pithyVideoShown?.()
       if (shown) return
       shown = true
       v.style.transition = 'opacity 140ms ease'
       v.style.opacity = '1'
-      if (real) window.__pithyVideoShown?.()
     }
     const revealReal = () => reveal(true)
     if (!shown) {
@@ -143,22 +123,6 @@ export default function SlideVideo({
         else if (v.readyState < 3) v.addEventListener('canplay', retryPlay, { once: true })
         else setPaused(true)
       })
-      // iOS: если элемент только что перенесли в этот слайд — на следующем
-      // кадре «пинаем» поверхность СИЛЬНЫМ пинком (pause→seek→play, см.
-      // kickSurface): перенос <video> во время проигрывания оставляет
-      // стоп-кадр при живом звуке, причём декодер работает (rvfc идёт) — без
-      // seek компоузер так и показывает старый кадр. Флаг needsKick снимаем
-      // только КОГДА пинок реально сделан: при частых переходах rAF отменялся
-      // очисткой эффекта, а флаг уже был снят — пинок терялся навсегда
-      if (v.dataset.needsKick === '1') {
-        kickRaf.current = requestAnimationFrame(() => {
-          if (v.parentElement === rootRef.current && !v.paused && v.dataset.freeze !== '1') {
-            v.dataset.needsKick = ''
-            fdbg(`vid ${(videoUrl || '').slice(-8)} kick после переноса (seek) ct=${v.currentTime.toFixed(2)}`)
-            kickSurface(v)
-          }
-        })
-      }
     } else {
       v.pause()
     }
@@ -177,6 +141,10 @@ export default function SlideVideo({
       wdRvfc = v.requestVideoFrameCallback(onWdFrame)
       wdTimer = setInterval(() => {
         if (document.hidden || v.paused || v.parentElement !== rootRef.current) { wdStall = 0; return }
+        // Нет данных (медленная сеть) — это загрузка, а не зависание
+        // поверхности: пинать нечего, ждём (на холодном старте сторож
+        // бессмысленно дошёл до пересборки на rs=0)
+        if (v.readyState < 3) { wdStall = 0; return }
         // Во время свайпа rvfc законно молчит (iOS душит колбэки при скролле),
         // а пинки-сики в этот момент ломают доводку снапа — молчим (флаг
         // scrolling ставит onScroll в FeedTab)
@@ -202,14 +170,13 @@ export default function SlideVideo({
     return () => {
       clearTimeout(safety)
       clearInterval(wdTimer)
-      cancelAnimationFrame(kickRaf.current)
       if (rvfc && v.cancelVideoFrameCallback) v.cancelVideoFrameCallback(rvfc)
       if (wdRvfc && v.cancelVideoFrameCallback) v.cancelVideoFrameCallback(wdRvfc)
       v.removeEventListener('seeked', revealReal)
       v.removeEventListener('loadeddata', revealReal)
       v.removeEventListener('canplay', retryPlay)
     }
-  }, [hasVideo, tabVisible, inWindow, active, soundOn, paused, slideKey, videoUrl, attachTick]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasVideo, tabVisible, inWindow, active, soundOn, paused, slideKey, videoUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ушли со слайда — ручная пауза сбрасывается
   useEffect(() => {
