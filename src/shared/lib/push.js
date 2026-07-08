@@ -47,13 +47,17 @@ export async function subscribePush() {
   })
   const json = sub.toJSON()
   const { data: { session } } = await supabase.auth.getSession()
-  const { error } = await supabase.from('push_subscriptions').upsert({
+  // Не upsert: ON CONFLICT требует SELECT-видимости существующей строки, а
+  // SELECT клиентам закрыт намеренно (политики RLS). Удалить-и-вставить по
+  // endpoint даёт тот же результат без чтения.
+  await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+  const { error } = await supabase.from('push_subscriptions').insert({
     endpoint: sub.endpoint,
     p256dh: json.keys.p256dh,
     auth: json.keys.auth,
     user_id: session?.user?.id ?? null,
     ua: navigator.userAgent.slice(0, 200),
-  }, { onConflict: 'endpoint' })
+  })
   if (error) {
     // Сервер не записал — откатываем подписку браузера, чтобы не было
     // «включено, но пуши не приходят»
