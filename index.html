@@ -75,9 +75,14 @@
     <script>
       /* Координация сплэша: показать лого сразу, убрать когда приложение готово,
          но не раньше минимума (иначе моргнёт) и не позже страховки (не зависаем
-         на лого, если данные тупят). */
+         на лого, если данные тупят). CSS бандла в сборке неблокирующий (см.
+         vite.config.js) — поэтому скрывать сплэш можно только когда стили
+         реально доехали (__pithyCssReady), иначе под ним голый HTML. В dev
+         помеченной ссылки [data-app-css] нет (стили приходят через JS) —
+         считаем CSS готовым сразу. HARD — потолок на случай зависшего CSS. */
       (function () {
-        var START = Date.now(), MIN = 600, CAP = 3000, done = false;
+        var START = Date.now(), MIN = 600, CAP = 3000, HARD = 8000, done = false;
+        var appReady = false, cssReady = !document.querySelector('link[data-app-css]');
         function hide() {
           if (done) return; done = true;
           var el = document.getElementById('splash');
@@ -85,10 +90,16 @@
           el.classList.add('splash-out');
           setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
         }
+        function maybeHide() { if (appReady && cssReady) hide(); }
+        window.__pithyCssReady = function () { cssReady = true; maybeHide(); };
+        var cssLink = document.querySelector('link[data-app-css]');
+        if (cssLink) cssLink.addEventListener('error', window.__pithyCssReady);
         window.__pithyReady = function () {
-          setTimeout(hide, Math.max(0, MIN - (Date.now() - START)));
+          setTimeout(function () { appReady = true; maybeHide(); },
+            Math.max(0, MIN - (Date.now() - START)));
         };
-        setTimeout(hide, CAP);
+        setTimeout(function () { appReady = true; maybeHide(); }, CAP);
+        setTimeout(hide, HARD);
       })();
     </script>
 
