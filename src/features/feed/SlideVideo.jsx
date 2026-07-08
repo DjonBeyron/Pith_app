@@ -19,6 +19,19 @@ export default function SlideVideo({
   // В «окне» = активный или сосед. Только для них держим элемент пула.
   const inWindow = active || near
 
+  // Подготовка возвращения — В МОМЕНТ УХОДА (со слайда или с вкладки), а не в
+  // момент возврата: перемотка при возврате выглядела как «старый кадр →
+  // скачок в начало». Правило: досмотреть осталось < 2с — начинаем сначала,
+  // иначе продолжим с места (элемент пула хранит currentTime). Пауза — тихая,
+  // HUD-иконку не показываем (React-state paused не трогаем).
+  function prepareReturn(v) {
+    const left = v.duration - v.currentTime
+    if (Number.isFinite(left) && left < 2 && v.currentTime > 0) {
+      fdbg(`vid ${(v.dataset.url || '').slice(-8)} уход: осталось ${left.toFixed(2)}с < 2 → на начало`)
+      try { v.currentTime = 0 } catch { /* не критично */ }
+    }
+  }
+
   // Аренда элемента пула и загрузка своего src. Пока слайд в окне — элемент
   // живёт внутри него. Смена active↔near сюда не входит (inWindow один и тот
   // же), поэтому элемент не дёргается туда-сюда. При новом src прячем видео
@@ -40,24 +53,10 @@ export default function SlideVideo({
       v.style.transition = 'none'
       v.style.opacity = '0'
     }
-    return () => { releaseVideo(slideKey) }
+    // Уход из окна/с вкладки: сразу готовим будущий возврат (см. prepareReturn),
+    // пауза случится в releaseVideo при парковке
+    return () => { prepareReturn(v); releaseVideo(slideKey) }
   }, [hasVideo, tabVisible, inWindow, videoUrl, slideKey])
-
-  // Повторный приезд на слайд: короткое видео (< 10с) начинаем сначала, длинное
-  // — продолжаем с места (элемент пула хранит currentTime). Только в момент
-  // становления активным (deps без soundOn/paused), иначе тап звука/паузы
-  // перематывал бы в начало.
-  useEffect(() => {
-    if (!active || !hasVideo || !tabVisible) return
-    const v = leaseVideo(slideKey)
-    if (v.parentElement !== rootRef.current) return
-    const d = v.duration
-    const restart = !Number.isFinite(d) || d < 10
-    if (restart) {
-      try { v.currentTime = 0 } catch { /* не критично */ }
-    }
-    fdbg(`vid ${(videoUrl || '').slice(-8)} active dur=${Number.isFinite(d) ? d.toFixed(1) : '?'} rs=${v.readyState} → ${restart ? 'restart' : 'continue'}`)
-  }, [active, hasVideo, tabVisible, slideKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Активный слайд: звук + воспроизведение + плавное появление. Сосед: молча
   // прогревается (muted, пауза, первый кадр уже загружен). Позицию элемента в
@@ -69,9 +68,12 @@ export default function SlideVideo({
 
     if (!active) {
       // Прогрев соседа: тихо, на паузе. opacity не трогаем — если элемент уже
-      // показывал кадр этого слайда, пусть остаётся показанным.
+      // показывал кадр этого слайда, пусть остаётся показанным. Слайд, с
+      // которого только что уехали (остался соседом, из окна не вышел) — тоже
+      // готовим к возврату сразу
       v.muted = true
       v.pause()
+      prepareReturn(v)
       return
     }
 
