@@ -20,14 +20,24 @@
     <meta name="theme-color" content="#0b0d10" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Montserrat latin only — Cyrillic falls back to Comfortaa -->
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:400&subset=latin" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Comfortaa:400" rel="stylesheet">
+    <!-- Montserrat latin only — Cyrillic falls back to Comfortaa.
+         Грузим НЕблокирующе (media=print → onload media=all): render-blocking
+         <link> ждал бы загрузки шрифтов перед самым первым кадром — и до лого
+         мелькала чернота. Сплэшу шрифты не нужны (system-ui), а контент ленты
+         догрузит их за анимацией сплэша. noscript — фолбэк без JS. -->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400&subset=latin" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://fonts.googleapis.com/css?family=Comfortaa:400" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+      <link href="https://fonts.googleapis.com/css?family=Montserrat:400&subset=latin" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css?family=Comfortaa:400" rel="stylesheet">
+    </noscript>
     <!-- Стартовый сплэш: инлайновый CSS/SVG, рисуется на первом же кадре (до
          скачивания JS-бандла) — вместо чёрного экрана сразу видно лого. React
          подаёт сигнал window.__pithyReady, когда лента готова, и сплэш «улетает»
          (масштаб+фейд), открывая Рекомендации. Логотип — заглушка, заменим. -->
     <style>
+      /* Тёмный фон с самого первого кадра — чтобы до сплэша не мелькнул белый */
+      html, body { margin: 0; background: #0b0d10; }
       #splash {
         position: fixed; inset: 0; z-index: 2147483000;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
