@@ -83,26 +83,34 @@ export default function SlideVideo({
     let shown = v.style.opacity === '1'
     let rvfc = 0
     let frames = 0
-    const reveal = () => {
+    // real=true — на экране реальный кадр видео (не страховочный показ по
+    // таймеру): сигналим ленте, что стартовый сплэш может улетать
+    const reveal = (real) => {
       if (shown) return
       shown = true
       v.style.transition = 'opacity 140ms ease'
       v.style.opacity = '1'
+      if (real) window.__pithyVideoShown?.()
     }
+    const revealReal = () => reveal(true)
     if (!shown) {
       if (v.requestVideoFrameCallback) {
         const onFrame = () => {
-          if (++frames >= 3) reveal()
+          if (++frames >= 3) revealReal()
           else rvfc = v.requestVideoFrameCallback(onFrame)
         }
         rvfc = v.requestVideoFrameCallback(onFrame)
       } else {
-        v.addEventListener('seeked', reveal, { once: true })
-        v.addEventListener('loadeddata', reveal, { once: true })
+        v.addEventListener('seeked', revealReal, { once: true })
+        v.addEventListener('loadeddata', revealReal, { once: true })
       }
     }
     const safety = setTimeout(reveal, 500)
 
+    // Заблокированный автоплей БЕЗ звука (iOS Low Power Mode, экономия
+    // трафика): пробуем ещё раз, когда данные доехали, а если снова нет —
+    // показываем кнопку Play вместо молча застывшего кадра
+    const retryPlay = () => { v.play().catch(() => setPaused(true)) }
     if (!paused && v.dataset.freeze !== '1') {
       v.play().catch((err) => {
         // AbortError — это наш же «пинок» (pause→play) прервал предыдущий
@@ -114,7 +122,12 @@ export default function SlideVideo({
           v.muted = true
           v.play().catch(() => {})
           onSoundBlocked?.()
+          return
         }
+        fdbg(`vid ${(videoUrl || '').slice(-8)} muted autoplay blocked (${err && err.name}) rs=${v.readyState}`)
+        if (err && err.name === 'NotAllowedError') setPaused(true)
+        else if (v.readyState < 3) v.addEventListener('canplay', retryPlay, { once: true })
+        else setPaused(true)
       })
       // iOS: если элемент только что перенесли в этот слайд — на следующем
       // кадре «пинаем» поверхность pause→play. Без этого перенос <video> во
@@ -137,8 +150,9 @@ export default function SlideVideo({
       clearTimeout(safety)
       cancelAnimationFrame(kickRaf.current)
       if (rvfc && v.cancelVideoFrameCallback) v.cancelVideoFrameCallback(rvfc)
-      v.removeEventListener('seeked', reveal)
-      v.removeEventListener('loadeddata', reveal)
+      v.removeEventListener('seeked', revealReal)
+      v.removeEventListener('loadeddata', revealReal)
+      v.removeEventListener('canplay', retryPlay)
     }
   }, [hasVideo, tabVisible, inWindow, active, soundOn, paused, slideKey, videoUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 

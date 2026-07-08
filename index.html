@@ -18,6 +18,23 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Pithy" />
     <meta name="theme-color" content="#0b0d10" />
+    <!-- Экран запуска iOS (пока качается HTML): без него система показывает
+         чёрный кадр перед сплэшем. PNG = фон сплэша + то же лого (генерятся
+         scripts/make-startup-images.ps1). iOS берёт картинку ТОЛЬКО при точном
+         совпадении размера с экраном — поэтому по ссылке на каждый iPhone -->
+    <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/splash/startup-640x1136.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/splash/startup-750x1334.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1242x2208.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1125x2436.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/splash/startup-828x1792.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1242x2688.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1170x2532.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1284x2778.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1179x2556.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1290x2796.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1206x2622.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1320x2868.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1260x2736.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Montserrat latin only — Cyrillic falls back to Comfortaa.
@@ -73,32 +90,46 @@
     </div>
 
     <script>
-      /* Координация сплэша: показать лого сразу, убрать когда приложение готово,
-         но не раньше минимума (иначе моргнёт) и не позже страховки (не зависаем
-         на лого, если данные тупят). CSS бандла в сборке неблокирующий (см.
-         vite.config.js) — поэтому скрывать сплэш можно только когда стили
-         реально доехали (__pithyCssReady), иначе под ним голый HTML. В dev
-         помеченной ссылки [data-app-css] нет (стили приходят через JS) —
-         считаем CSS готовым сразу. HARD — потолок на случай зависшего CSS. */
+      /* Координация сплэша: показать лого сразу, убрать когда приложение готово
+         (__pithyReady зовёт лента, дождавшись ПЕРВОГО РЕАЛЬНОГО КАДРА видео —
+         см. FeedTab), но не раньше минимума (иначе моргнёт) и не позже
+         страховки CAP (не зависаем на лого, если сеть тупит). CSS бандла в
+         сборке неблокирующий (см. vite.config.js) — поэтому скрывать сплэш
+         можно только когда стили реально доехали (__pithyCssReady), иначе под
+         ним голый HTML. В dev помеченной ссылки [data-app-css] нет — считаем
+         CSS готовым сразу. HARD — потолок на случай зависшего CSS.
+         Все события пишем в window.__splashLog — DBG-панель ленты их покажет. */
       (function () {
-        var START = Date.now(), MIN = 600, CAP = 3000, HARD = 8000, done = false;
+        var t0 = performance.now(), MIN = 600, CAP = 6000, HARD = 8000, done = false;
         var appReady = false, cssReady = !document.querySelector('link[data-app-css]');
+        var LOG = window.__splashLog = [];
+        function slog(m) { LOG.push('[' + (performance.now() / 1000).toFixed(2) + '] splash: ' + m); }
+        slog('первый кадр (HTML разобран, cssReady=' + cssReady + ')');
         function hide() {
           if (done) return; done = true;
+          slog('улетает');
           var el = document.getElementById('splash');
           if (!el) return;
           el.classList.add('splash-out');
           setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
         }
         function maybeHide() { if (appReady && cssReady) hide(); }
-        window.__pithyCssReady = function () { cssReady = true; maybeHide(); };
+        window.__pithyCssReady = function () {
+          if (!cssReady) slog('CSS бандла загружен');
+          cssReady = true; maybeHide();
+        };
         var cssLink = document.querySelector('link[data-app-css]');
         if (cssLink) cssLink.addEventListener('error', window.__pithyCssReady);
-        window.__pithyReady = function () {
+        window.__pithyReady = function (why) {
+          slog('приложение готово: ' + (why || '?'));
           setTimeout(function () { appReady = true; maybeHide(); },
-            Math.max(0, MIN - (Date.now() - START)));
+            Math.max(0, MIN - (performance.now() - t0)));
         };
-        setTimeout(function () { appReady = true; maybeHide(); }, CAP);
+        setTimeout(function () {
+          if (done || appReady) return;
+          slog('CAP ' + CAP + 'мс — не ждём дольше');
+          appReady = true; maybeHide();
+        }, CAP);
         setTimeout(hide, HARD);
       })();
     </script>

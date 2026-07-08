@@ -13,7 +13,11 @@ export function fdbg(...args) {
 }
 
 export function fdbgLog() {
-  return log.length ? log.join('\n') : '(лог пуст)'
+  // Лог стартового сплэша пишется ещё до загрузки бандла (index.html,
+  // window.__splashLog) — склеиваем его с обычным логом ленты
+  const boot = window.__splashLog ?? []
+  const all = [...boot, ...log]
+  return all.length ? all.join('\n') : '(лог пуст)'
 }
 
 // Реальные значения env(safe-area-inset-*) через элемент-зонд

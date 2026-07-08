@@ -142,15 +142,29 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     return () => { cancelled = true }
   }, [])
 
-  // Лента получила данные (успех или пусто/ошибка) — стартовый сплэш из
-  // index.html может улетать и открыть Рекомендации
-  useEffect(() => {
-    if (modules !== null) window.__pithyReady?.()
-  }, [modules])
-
   // Круг рекомендаций — только не начатые модули
   const feedModules = (modules ?? []).filter(m => !startedIds.has(m.id))
   const len = feedModules.length
+
+  // Отпускаем стартовый сплэш (index.html) не по приходу данных, а по ПЕРВОМУ
+  // РЕАЛЬНОМУ КАДРУ видео (сигнал __pithyVideoShown из SlideVideo) — иначе
+  // после улёта сплэша видна недогруженная лента. Если ждать нечего (пусто/
+  // ошибка/без видео) — сразу; при медленной сети — страховка (виден постер).
+  const splashDone = useRef(false)
+  useEffect(() => {
+    if (modules === null || splashDone.current) return
+    const fire = why => {
+      if (splashDone.current) return
+      splashDone.current = true
+      fdbg('splash release:', why)
+      window.__pithyReady?.(why)
+    }
+    if (len === 0) { fire(modules.length === 0 ? 'лента пуста' : 'все модули начаты'); return }
+    if (!feedModules.some(m => m.videoUrl)) { fire('слайды без видео'); return }
+    window.__pithyVideoShown = () => fire('первый кадр видео')
+    const t = setTimeout(() => fire('страховка 3500мс — кадра нет'), 3500)
+    return () => clearTimeout(t)
+  }, [modules, len]) // eslint-disable-line react-hooks/exhaustive-deps
   // Запас: минимум 40 циклов. Snap-stop пускает по слайду за жест, поэтому
   // между перецентровками до реального края долистать нельзя.
   // При маленьком len (мало модулей) перецентровка (teleport) раньше
