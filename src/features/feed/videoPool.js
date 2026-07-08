@@ -55,6 +55,31 @@ function makeVideo() {
 function ensure() {
   if (slots.length) return
   for (let i = 0; i < POOL_SIZE; i++) slots.push({ el: makeVideo(), key: null, used: 0 })
+
+  // Сворачивание приложения: iOS ещё ~секунду тянет звук видео после ухода в
+  // фон (пока сам не заморозит WebView) — глушим мгновенно по visibilitychange,
+  // а по возврату возобновляем те, что играли и не запаркованы. Ручную паузу
+  // и чужие элементы не трогаем.
+  let hiddenPaused = []
+  const onHide = () => {
+    hiddenPaused = slots.map(s => s.el).filter(el => !el.paused)
+    if (!hiddenPaused.length) return
+    fdbg(`pool: фон → пауза ${hiddenPaused.length} видео`)
+    for (const el of hiddenPaused) el.pause()
+  }
+  const onShow = () => {
+    for (const el of hiddenPaused) {
+      if (el.dataset.parked === '1' || !el.parentElement || el.parentElement === holder) continue
+      const p = el.play()
+      if (p && p.catch) p.catch(() => fdbg(`vid ${(el.dataset.url || '—').slice(-8)} возврат из фона: play заблокирован`))
+    }
+    hiddenPaused = []
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) onHide()
+    else onShow()
+  })
+  window.addEventListener('pagehide', onHide)
 }
 
 // Правило возвращения на слайд: досмотреть осталось < 2с — начинаем сначала.
