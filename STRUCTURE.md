@@ -55,7 +55,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 |------|-------------|
 | `public/sounds/*.mp3` | Звуки интерфейса (правильный/неправильный ответ, входящее сообщение, закрепление) — проигрываются через `sounds.js` |
 | `public/splash/startup-*.png` | Экраны запуска iOS (`apple-touch-startup-image`): тёмный фон + лого сплэша, по картинке на каждый размер iPhone — вместо чёрного системного кадра до загрузки HTML. Генерятся `scripts/make-startup-images.ps1` |
+| `public/manifest.webmanifest` | Web app manifest: имя, standalone, `background_color` (из него современный iOS строит стартовый экран PWA) и иконки |
+| `public/icons/icon-*.png` | Иконки приложения (180 — apple-touch-icon, 192/512 — manifest): лаймовый квадрат с молнией. Генерятся `scripts/make-icons.ps1` |
 | `scripts/make-startup-images.ps1` | Скрипт генерации `public/splash/*.png` (System.Drawing): рисует лого сплэша на фоне #0b0d10 под все размеры iPhone |
+| `scripts/make-icons.ps1` | Скрипт генерации `public/icons/icon-*.png` (System.Drawing): молния на лаймовом фоне |
 | `public/design/index.html` | Хаб прототипа интерфейса: все экраны-макеты в мини-рамах телефонов со ссылками на полные версии |
 | `public/design/proto.css` | Общие стили прототипа: тёмные токены, рама «телефона», верхние вкладки, нижний бар, кнопки, полосы прогресса |
 | `public/design/feed.html` | Макет ленты «Рекомендации»: видео-заглушка, HUD (лайк/закладка/репост), кнопка «Изучить фразу», чип «Включить звук» |

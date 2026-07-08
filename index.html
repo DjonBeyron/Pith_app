@@ -18,6 +18,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Pithy" />
     <meta name="theme-color" content="#0b0d10" />
+    <!-- Манифест — современный iOS строит стартовый экран веб-приложения из
+         background_color + иконки (apple-touch-startup-image ниже он может
+         игнорировать). После изменения нужно УДАЛИТЬ и заново добавить
+         приложение на домашний экран -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/icons/icon-180.png">
+    <link rel="icon" href="/icons/icon-192.png" type="image/png">
     <!-- Экран запуска iOS (пока качается HTML): без него система показывает
          чёрный кадр перед сплэшем. PNG = фон сплэша + то же лого (генерятся
          scripts/make-startup-images.ps1). iOS берёт картинку ТОЛЬКО при точном
@@ -53,12 +60,16 @@
          подаёт сигнал window.__pithyReady, когда лента готова, и сплэш «улетает»
          (масштаб+фейд), открывая Рекомендации. Логотип — заглушка, заменим. -->
     <style>
-      /* Тёмный фон с самого первого кадра — чтобы до сплэша не мелькнул белый */
-      html, body { margin: 0; background: #0b0d10; }
+      /* Чёрный фон первого кадра — в тон системному launch screen, чтобы не
+         было скачка; цвет приложения проявляется сплэшем (см. splashBgIn) */
+      html, body { margin: 0; background: #000; }
+      /* Появление в два шага, без скачка от чёрного: сначала плавно проявляется
+         фон приложения (opacity 0→1), затем — лого и слово */
       #splash {
         position: fixed; inset: 0; z-index: 2147483000;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         gap: 16px; background: #0b0d10;
+        opacity: 0; animation: splashBgIn 350ms ease forwards;
       }
       #splash .splash-logo {
         width: 92px; height: 92px;
@@ -68,12 +79,18 @@
         font: 700 22px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
         letter-spacing: 1px; color: #f2f5f7;
       }
-      /* Уход: фон растворяется, лого «наезжает» (масштаб вверх) — полёт в экран */
+      #splash .splash-logo,
+      #splash .splash-word { opacity: 0; animation: splashItemIn 300ms ease 300ms forwards; }
+      @keyframes splashBgIn { to { opacity: 1; } }
+      @keyframes splashItemIn { to { opacity: 1; } }
+      /* Уход: фон растворяется, лого «наезжает» (масштаб вверх) — полёт в экран.
+         splash-out переопределяет анимации появления, поэтому opacity лого в
+         splashZoom держим явно (иначе он мгновенно исчез бы, вернувшись к 0) */
       #splash.splash-out { animation: splashOut 350ms ease forwards; pointer-events: none; }
       #splash.splash-out .splash-logo,
       #splash.splash-out .splash-word { animation: splashZoom 350ms ease forwards; }
-      @keyframes splashOut { to { opacity: 0; } }
-      @keyframes splashZoom { to { transform: scale(1.6); } }
+      @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
+      @keyframes splashZoom { from { opacity: 1; } to { opacity: 1; transform: scale(1.6); } }
     </style>
   </head>
   <body>
@@ -100,7 +117,10 @@
          CSS готовым сразу. HARD — потолок на случай зависшего CSS.
          Все события пишем в window.__splashLog — DBG-панель ленты их покажет. */
       (function () {
-        var t0 = performance.now(), MIN = 600, CAP = 6000, HARD = 8000, done = false;
+        /* MIN: появление двухшаговое (фон 350мс, лого к 600мс) — держим лого
+           ещё ~300мс, иначе при быстрой готовности оно улетало бы, едва успев
+           проявиться */
+        var t0 = performance.now(), MIN = 900, CAP = 6000, HARD = 8000, done = false;
         var appReady = false, cssReady = !document.querySelector('link[data-app-css]');
         var LOG = window.__splashLog = [];
         function slog(m) { LOG.push('[' + (performance.now() / 1000).toFixed(2) + '] splash: ' + m); }
