@@ -67,10 +67,11 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   }
   useEffect(refreshStarted, [])
 
-  // Трекер переключения вкладок — для дебага «чёрной ленты»/«зависшего видео»
-  // при возврате: пишем в лог DBG смену видимости и текущего вида
+  // Трекер переключения вкладок (+ обновление «начатых» при открытии «Мои
+  // уроки», чтобы только что начатый модуль там появился сразу). Пишем в лог DBG
   useEffect(() => {
     fdbg(`tab: visible=${visible} view=${view} → tabVisible(feed)=${visible && view === 'feed'}`)
+    if (visible && view === 'mine') refreshStarted()
   }, [visible, view])
 
   useEffect(() => {
@@ -296,6 +297,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     })
     return [
       `view: ${view}, modules: ${len}, cycles: ${cycles}, viewH: ${viewH}, activeIdx: ${activeIdx}`,
+      `started: ${startedIds.size} [${[...startedIds].map(s => String(s).slice(-4)).join(',')}] allModules=${modules?.length ?? 0}`,
       `tabVisible(feed): ${visible && view === 'feed'}  (app visible=${visible})`,
       `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} clientH=${el?.clientHeight ?? '—'} scrollH=${el?.scrollHeight ?? '—'}`,
       `virtual(${items.length}): ${items.map(i => `#${i.index}`).join(' ') || 'ПУСТО'}`,
@@ -328,6 +330,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
         <MyLessons
           visible={visible && view === 'mine'}
           modules={modules ?? []}
+          startedIds={startedIds}
           soundOn={soundOn}
           onSoundOn={handleSoundOn}
           onSoundBlocked={handleSoundBlocked}

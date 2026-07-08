@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
-import { fetchStartedModules } from '../../shared/api/moduleSocialApi.js'
+import { useState, useRef } from 'react'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { plural } from '../../shared/lib/plural.js'
 import SlideVideo from './SlideVideo.jsx'
@@ -7,8 +6,11 @@ import SlideVideo from './SlideVideo.jsx'
 // «Мои уроки»: начатые модули (user_module_progress) в двух режимах —
 // видео-скролл (без HUD, прогресс-бар модуля снизу) и список с процентами.
 // Без спойлера: названия начатых модулей открыты. Гость видит пустое состояние.
+// startedIds приходит из FeedTab (единый источник) — обновляется при открытии
+// вкладки и при возврате из модуля, поэтому только что начатый урок появляется
+// здесь сразу (раньше был свой independent fetch, он рассинхронивался).
 export default function MyLessons({
-  visible = true, modules, onOpen, onGoFeed,
+  visible = true, modules, startedIds, onOpen, onGoFeed,
   soundOn, onSoundOn, onSoundBlocked,
 }) {
   // Режим (видео/список) запоминается между запусками
@@ -18,7 +20,6 @@ export default function MyLessons({
     setModeState(m)
     localStorage.setItem('pithy_ml_mode', m)
   }
-  const [startedIds, setStartedIds] = useState(null) // null = загрузка
   // Активный слайд видео-режима — из позиции скролла (без IntersectionObserver)
   const [activeIdx, setActiveIdx] = useState(0)
   const scrollRef = useRef(null)
@@ -27,21 +28,6 @@ export default function MyLessons({
     const el = scrollRef.current
     if (!el || !el.clientHeight) return
     setActiveIdx(Math.round(el.scrollTop / el.clientHeight))
-  }
-
-  // Первая загрузка + тихое фоновое обновление при каждом открытии вкладки
-  // (компонент живёт постоянно — новый начатый модуль должен появиться)
-  useEffect(() => {
-    if (!visible && startedIds !== null) return
-    let cancelled = false
-    fetchStartedModules()
-      .then(ids => { if (!cancelled) setStartedIds(ids) })
-      .catch(() => { if (!cancelled) setStartedIds(prev => prev ?? new Set()) })
-    return () => { cancelled = true }
-  }, [visible]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (startedIds === null) {
-    return <div className="feedV2Center"><div className="feedV2CenterSub">Загрузка...</div></div>
   }
 
   const completed = getCompletedLessons()

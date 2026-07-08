@@ -104,7 +104,11 @@ export default function SlideVideo({
     const safety = setTimeout(reveal, 500)
 
     if (!paused && v.dataset.freeze !== '1') {
-      v.play().catch(() => {
+      v.play().catch((err) => {
+        // AbortError — это наш же «пинок» (pause→play) прервал предыдущий
+        // play(); звук тут ни при чём, глушить нельзя (иначе видео немеет при
+        // переходе между вкладками)
+        if (err && err.name === 'AbortError') return
         // Элемент ещё не «благословлён» звуком — играем без него
         if (!v.muted) {
           v.muted = true
