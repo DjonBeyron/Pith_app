@@ -635,3 +635,26 @@ begin
   return v_refund;
 end;
 $$;
+
+-- ── Push-уведомления (Web Push) ─────────────────────────
+-- Подписки браузеров на пуши. endpoint — секретный URL, который выдаёт
+-- браузер: знание endpoint = владение подпиской, поэтому insert/update/delete
+-- открыты (и гостям тоже), а SELECT клиентам не дан вовсе — читает и рассылает
+-- только edge-функция push-send сервисным ключом (в обход RLS).
+create table if not exists public.push_subscriptions (
+  endpoint    text primary key,
+  p256dh      text not null,
+  auth        text not null,
+  user_id     uuid references auth.users (id) on delete cascade,
+  ua          text not null default '',
+  created_at  timestamptz not null default now()
+);
+
+alter table public.push_subscriptions enable row level security;
+
+create policy push_subs_insert on public.push_subscriptions
+  for insert to anon, authenticated with check (true);
+create policy push_subs_update on public.push_subscriptions
+  for update to anon, authenticated using (true) with check (true);
+create policy push_subs_delete on public.push_subscriptions
+  for delete to anon, authenticated using (true);

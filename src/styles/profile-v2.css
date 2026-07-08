@@ -207,3 +207,32 @@
   font-size: 13px;
   cursor: pointer;
 }
+
+/* ── Карточка «Уведомления» (PushToggle) ── */
+.pvPushRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pvPushRight { display: flex; align-items: center; gap: 10px; }
+
+.pvPushHint { color: #8b94a1; font-size: 12px; }
+
+.pvPushBtn {
+  padding: 7px 14px;
+  border: 1px solid #232932;
+  border-radius: 10px;
+  background: #14171c;
+  color: #f2f5f7;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pvPushBtnOn {
+  background: #b6fe3b;
+  border-color: #b6fe3b;
+  color: #0d1500;
+  font-weight: 700;
+}

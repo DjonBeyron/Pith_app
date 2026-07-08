@@ -3,6 +3,7 @@ import { useProfileV2Data } from './useProfileV2Data.js'
 import { getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import SettingsTab from '../settings/SettingsTab.jsx'
+import PushToggle from './PushToggle.jsx'
 
 const BOLT = 'M13 2 4 14h6l-1 8 9-12h-6l1-8z'
 
@@ -88,6 +89,8 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
           {profile?.has_subscription ? 'безлимит' : `энергия ${energy} из 5`}
         </span>
       </div>
+
+      <PushToggle />
 
       <div className="pvTabs">
         <button className={tab === 'saved' ? 'pvTab pvTabActive' : 'pvTab'} onClick={() => setTab('saved')}>Сохранённые</button>

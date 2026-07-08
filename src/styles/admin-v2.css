@@ -138,3 +138,31 @@
   font-size: 13px;
   color: #9aa3ad;
 }
+
+/* ── Вкладка «Пуши» (AdminNotificationsTab) ── */
+.anWrap { display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
+
+.anTitle { margin: 0; font-size: 16px; }
+
+.anHint, .anNote { color: #8b94a1; font-size: 13px; margin: 0; }
+
+.anLink {
+  background: none; border: none; padding: 0;
+  color: #b6fe3b; text-decoration: underline; cursor: pointer; font-size: 13px;
+}
+
+.anField { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #8b94a1; }
+
+.anField input, .anField textarea {
+  padding: 9px 12px;
+  border: 1px solid #232932;
+  border-radius: 10px;
+  background: #14171c;
+  color: #f2f5f7;
+  font: inherit;
+  resize: vertical;
+}
+
+.anCheck { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #f2f5f7; }
+
+.anResult { font-size: 13px; color: #b6fe3b; }

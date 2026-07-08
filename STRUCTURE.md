@@ -39,6 +39,7 @@
 | `supabase/functions/r2-upload-url/index.ts` | Серверная функция: выдаёт временную ссылку для загрузки файла в Cloudflare R2. Доступна только залогиненному админу (проверка токена + `is_admin` через `requireAdmin`) |
 | `supabase/functions/r2-upload-url/deno.json`, `.npmrc` | Технические настройки для этой функции |
 | `supabase/functions/r2-delete/index.ts` | Серверная функция: удаляет файл из R2 по ссылке. Доступна только залогиненному админу (`requireAdmin`) |
+| `supabase/functions/push-send/index.ts` | Серверная функция: рассылка Web Push по подпискам из `push_subscriptions` (только админ; VAPID-ключи в секретах; чистит протухшие подписки) |
 | `supabase/functions/r2-delete/deno.json` | Технические настройки для этой функции |
 | `supabase/functions/transcribe-audio/index.ts` | Серверная функция: принимает аудиофайл (или R2 URL), транскрибирует через Groq Whisper, возвращает тайминги слов. Ключ GROQ_API_KEY хранится только здесь |
 
@@ -56,6 +57,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `public/sounds/*.mp3` | Звуки интерфейса (правильный/неправильный ответ, входящее сообщение, закрепление) — проигрываются через `sounds.js` |
 | `public/splash/startup-*.png` | Экраны запуска iOS (`apple-touch-startup-image`): тёмный фон + лого сплэша, по картинке на каждый размер iPhone — вместо чёрного системного кадра до загрузки HTML. Генерятся `scripts/make-startup-images.ps1` |
 | `public/manifest.webmanifest` | Web app manifest: имя, standalone, `background_color` (из него современный iOS строит стартовый экран PWA) и иконки |
+| `public/push-sw.js` | Сервис-воркер ТОЛЬКО для push-уведомлений (показ пуша, тап по нему). Без fetch-кэширования — свежесть деплоя не страдает |
 | `public/icons/icon-*.png` | Иконки приложения (180 — apple-touch-icon, 192/512 — manifest): лаймовый квадрат с молнией. Генерятся `scripts/make-icons.ps1` |
 | `scripts/make-startup-images.ps1` | Скрипт генерации `public/splash/*.png` (System.Drawing): рисует лого сплэша на фоне #0b0d10 под все размеры iPhone |
 | `scripts/make-icons.ps1` | Скрипт генерации `public/icons/icon-*.png` (System.Drawing): молния на лаймовом фоне |
@@ -139,7 +141,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `AdminTab.jsx` | Таблица файлов, кнопки «Добавить файл» / «Синхронизировать с сервером» / «Удалить» / «Повторить» (для упавших загрузок) / «Активировать дебаг». Доступ — только залогиненному пользователю с правом админа (см. `useIsAdmin.js`) |
-| `AdminV2.jsx` | Админ-раздел новой оболочки: субвкладки «Модули» (AdminModulesTab) и «Файлы» (AdminTab) |
+| `AdminV2.jsx` | Админ-раздел новой оболочки: субвкладки «Модули» (AdminModulesTab), «Файлы» (AdminTab) и «Пуши» (AdminNotificationsTab) |
+| `AdminNotificationsTab.jsx` | Админ: ручная отправка push-уведомления (заголовок/текст, «только мне» для теста, отправка всем); задел под шаблоны с триггерами |
 | `AdminModulesTab.jsx` | Список модулей для админа (ui v2): чипы «видео есть/нет» и «опубликован/черновик» (тумблер), «+ Новый модуль», тап → схема модуля, ✕ — удаление с уроками |
 
 ### `src/features/canvas/` — canvas-редактор уроков (отдельная полноэкранная страница)
@@ -256,6 +259,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `ProfileV2.jsx` | Профиль (тёмный, по макету): уровень, XP-бар, энергия, вкладки Сохранённые/Пройденные/Копилка слов, шестерёнка → настройки, тап по модулю → его схема; тихое фоновое обновление |
+| `PushToggle.jsx` | Карточка «Уведомления» в профиле: включить/выключить пуши; подсказки «добавь на экран Домой» (iOS) и «запрещены в настройках» |
 | `useProfileV2Data.js` | Хук данных ProfileV2: профиль из кэша, модули с процентом, закладки, копилка слов (пройденные уроки между Стартом и Финалом) |
 
 ### `src/features/settings/` — глобальные настройки приложения
@@ -272,6 +276,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `supabase.js` | Подключение к базе данных Supabase (по ключам из `.env.local`) |
+| `pushApi.js` | Вызов edge-функции `push-send` (рассылка Web Push, только админ) |
 | `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth |
 | `highlightPresetsApi.js` | Загрузка и сохранение избранных цветов выделений (`highlight_color_presets`, singleton row 'global') |
 | `profileApi.js` | getProfile (чтение профиля) / startLesson — RPC `start_lesson` (энергия, бесплатные случаи решает сервер) / completeLesson — начисление XP через RPC `complete_lesson` / resetLessonProgress — сброс прохождения с возвратом XP (тест-кнопки админа) |
@@ -282,6 +287,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `r2.js` | Загрузить файл в облако (`uploadToR2`) и удалить файл из облака (`deleteFromR2`); шлёт в edge-функции access-token залогиненного пользователя (функции пускают только админа) |
+| `push.js` | Web Push на клиенте: поддержка/состояние, подписка (регистрация `push-sw.js`, разрешение, запись в `push_subscriptions`), отписка |
 | `filesApi.js` | Получить список файлов из базы (`listFiles`), добавить файл в базу (`insertFile`), удалить запись из базы (`deleteFileRow`), посчитать размер файла в КБ/МБ (`formatBytes`), определить тип файла — фото/видео/аудио (`getMediaKind`) |
 | `localFileStore.js` | Запасной локальный склад для файлов в браузере (IndexedDB) — пока не используется в интерфейсе, оставлен на будущее |
 | `lessonsApi.js` | CRUD уроков в Supabase: получить список, создать, удалить, сохранить/загрузить граф (`script`) |
