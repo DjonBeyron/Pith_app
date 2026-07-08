@@ -23,9 +23,65 @@
     <!-- Montserrat latin only — Cyrillic falls back to Comfortaa -->
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400&subset=latin" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Comfortaa:400" rel="stylesheet">
+    <!-- Стартовый сплэш: инлайновый CSS/SVG, рисуется на первом же кадре (до
+         скачивания JS-бандла) — вместо чёрного экрана сразу видно лого. React
+         подаёт сигнал window.__pithyReady, когда лента готова, и сплэш «улетает»
+         (масштаб+фейд), открывая Рекомендации. Логотип — заглушка, заменим. -->
+    <style>
+      #splash {
+        position: fixed; inset: 0; z-index: 2147483000;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 16px; background: #0b0d10;
+      }
+      #splash .splash-logo {
+        width: 92px; height: 92px;
+        filter: drop-shadow(0 10px 34px rgba(182, 254, 59, 0.22));
+      }
+      #splash .splash-word {
+        font: 700 22px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+        letter-spacing: 1px; color: #f2f5f7;
+      }
+      /* Уход: фон растворяется, лого «наезжает» (масштаб вверх) — полёт в экран */
+      #splash.splash-out { animation: splashOut 350ms ease forwards; pointer-events: none; }
+      #splash.splash-out .splash-logo,
+      #splash.splash-out .splash-word { animation: splashZoom 350ms ease forwards; }
+      @keyframes splashOut { to { opacity: 0; } }
+      @keyframes splashZoom { to { transform: scale(1.6); } }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+
+    <div id="splash" aria-hidden="true">
+      <svg class="splash-logo" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="6" width="84" height="84" rx="24" fill="#b6fe3b" />
+        <g transform="translate(24,20) scale(2)">
+          <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" fill="#0d1500" />
+        </g>
+      </svg>
+      <div class="splash-word">Pithy</div>
+    </div>
+
+    <script>
+      /* Координация сплэша: показать лого сразу, убрать когда приложение готово,
+         но не раньше минимума (иначе моргнёт) и не позже страховки (не зависаем
+         на лого, если данные тупят). */
+      (function () {
+        var START = Date.now(), MIN = 600, CAP = 3000, done = false;
+        function hide() {
+          if (done) return; done = true;
+          var el = document.getElementById('splash');
+          if (!el) return;
+          el.classList.add('splash-out');
+          setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
+        }
+        window.__pithyReady = function () {
+          setTimeout(hide, Math.max(0, MIN - (Date.now() - START)));
+        };
+        setTimeout(hide, CAP);
+      })();
+    </script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

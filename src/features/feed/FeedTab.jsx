@@ -39,10 +39,15 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   // Пользователь тапнул чип хотя бы раз — дальше автоблок звука на
   // пересозданных <video> соседних слайдов (без прямого жеста) не должен
   // откатывать его выбор, иначе звук гаснет сам через пару видео
+  // Ref — для мгновенной проверки в handleSoundBlocked (без ожидания ре-рендера);
+  // state — чтобы жест форсил ре-рендер и пересчёт soundReady (нужно, когда
+  // soundOn уже был true из localStorage: setSoundOn(true) тогда no-op)
   const soundGestureRef = useRef(false)
+  const [soundGesture, setSoundGesture] = useState(false)
   function handleSoundOn() {
     fdbg('sound: user tapped chip')
     soundGestureRef.current = true
+    setSoundGesture(true)
     setSoundOn(true)
   }
   function handleSoundBlocked() {
@@ -53,6 +58,13 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     fdbg('sound: blocked → откат soundOn=false')
     setSoundOn(false)
   }
+  // Реально играть со звуком можно только после жеста пользователя В ЭТОЙ сессии
+  // — иначе браузер блокирует play() и первое видео виснет стоп-кадром. Поэтому
+  // на холодном старте (жеста не было), даже если звук включён в настройках,
+  // ленте передаём «беззвучно»: видео автоматически играет muted, а на слайде
+  // виден чип «Включить звук». Первый тап по чипу/видео = жест → звук включается.
+  // Сохранённый выбор soundOn при этом не теряется (без блока откат не сработает).
+  const soundReady = soundOn && soundGesture
   const [showDebug, setShowDebug] = useState(false)
   // Активный слайд считается из позиции скролла (не IntersectionObserver —
   // тот в webview-средах может молчать, и видео не монтировалось)
@@ -108,7 +120,12 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           }
         })
         // Черновики в ленту не попадают (и у админа тоже — честное превью)
-        setModules(rows.filter(r => r.published).map(r => ({
+        const published = rows.filter(r => r.published)
+        // Приоритетно готовим первый кадр ленты: прелоадим постер первого
+        // модуля — чтобы за анимацией стартового сплэша уже был контент
+        const firstPoster = published.find(r => r.poster_url)?.poster_url
+        if (firstPoster) { const im = new Image(); im.src = firstPoster }
+        setModules(published.map(r => ({
           id: r.id,
           title: r.title,
           lessonIds: r.lesson_ids ?? [],
@@ -124,6 +141,12 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
       })
     return () => { cancelled = true }
   }, [])
+
+  // Лента получила данные (успех или пусто/ошибка) — стартовый сплэш из
+  // index.html может улетать и открыть Рекомендации
+  useEffect(() => {
+    if (modules !== null) window.__pithyReady?.()
+  }, [modules])
 
   // Круг рекомендаций — только не начатые модули
   const feedModules = (modules ?? []).filter(m => !startedIds.has(m.id))
@@ -331,7 +354,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           visible={visible && view === 'mine'}
           modules={modules ?? []}
           startedIds={startedIds}
-          soundOn={soundOn}
+          soundOn={soundReady}
           onSoundOn={handleSoundOn}
           onSoundBlocked={handleSoundBlocked}
           onOpen={m => setOpenModule(m)}
@@ -377,7 +400,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                       gradIdx={(vi.index % len) % 4}
                       reaction={reactions[m.id]}
                       likeCount={social?.likeCount?.[m.id] ?? 0}
-                      soundOn={soundOn}
+                      soundOn={soundReady}
                       onSoundOn={handleSoundOn}
                       onSoundBlocked={handleSoundBlocked}
                       onToggleLike={() => toggle(m.id, 'liked')}
