@@ -262,6 +262,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   function onSettle() {
     const el = scrollRef.current
     if (!el || !len) return
+    el.dataset.scrolling = '' // скролл затих — сторож стоп-кадра снова работает
     const cycleH = el.scrollHeight / cycles
     const mid = Math.floor(cycles / 2) * cycleH
     const threshold = cycleH * Math.max(1, Math.floor(cycles / 2) - 2)
@@ -277,6 +278,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     if (viewH > 0) setActiveIdx(Math.round(el.scrollTop / viewH))
     // События, порождённые нашим же телепортом, не обрабатываем
     if (teleportingRef.current) return
+    // Флаг для сторожа стоп-кадра (SlideVideo): во время свайпа не пинать
+    el.dataset.scrolling = '1'
     clearTimeout(settleTimer.current)
     settleTimer.current = setTimeout(onSettle, 140)
     // Аварийный перенос прямо в полёте — лишь у самого края

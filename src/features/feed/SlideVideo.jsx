@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface } from './videoPool.js'
+import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface, prepareReturn } from './videoPool.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
 // Видео-слой слайда — общий для «Рекомендаций» и «Моих уроков».
@@ -13,24 +13,16 @@ export default function SlideVideo({
   soundOn = false, onSoundOn, onSoundBlocked, fallback = null,
 }) {
   const [paused, setPaused] = useState(false)
+  // Тик реального прикрепления элемента к слайду: когда перенос отложен (см.
+  // ниже, «холодный» перенос), эффект воспроизведения должен перезапуститься
+  // после фактического appendChild
+  const [attachTick, setAttachTick] = useState(0)
   const rootRef = useRef(null)
   const kickRaf = useRef(0)
+  const attachRaf = useRef(0)
   const hasVideo = !!videoUrl
   // В «окне» = активный или сосед. Только для них держим элемент пула.
   const inWindow = active || near
-
-  // Подготовка возвращения — В МОМЕНТ УХОДА (со слайда или с вкладки), а не в
-  // момент возврата: перемотка при возврате выглядела как «старый кадр →
-  // скачок в начало». Правило: досмотреть осталось < 2с — начинаем сначала,
-  // иначе продолжим с места (элемент пула хранит currentTime). Пауза — тихая,
-  // HUD-иконку не показываем (React-state paused не трогаем).
-  function prepareReturn(v) {
-    const left = v.duration - v.currentTime
-    if (Number.isFinite(left) && left < 2 && v.currentTime > 0) {
-      fdbg(`vid ${(v.dataset.url || '').slice(-8)} уход: осталось ${left.toFixed(2)}с < 2 → на начало`)
-      try { v.currentTime = 0 } catch { /* не критично */ }
-    }
-  }
 
   // Аренда элемента пула и загрузка своего src. Пока слайд в окне — элемент
   // живёт внутри него. Смена active↔near сюда не входит (inWindow один и тот
@@ -42,10 +34,26 @@ export default function SlideVideo({
     const v = leaseVideo(slideKey)
     const root = rootRef.current
     if (!root) return
-    // Реальный перенос элемента в этот слайд помечаем: на iOS перенос <video>
-    // во время проигрывания застывает картинку (звук идёт) — активный слайд
-    // потом «пинает» поверхность pause→play (см. эффект воспроизведения)
-    if (v.parentElement !== root) { root.appendChild(v); v.dataset.needsKick = '1' }
+    // Реальный перенос элемента в этот слайд. Элемент, который прямо сейчас
+    // паркуется (parkPending — быстрый переход между вкладками), забираем
+    // только через кадр, ХОЛОДНЫМ: синхронный перенос только что игравшего
+    // <video> — источник iOS-стоп-кадра при живом звуке. needsKick — страховка
+    // поверх этого (пинок после переноса, см. эффект воспроизведения).
+    if (v.parentElement !== root) {
+      const attach = () => {
+        root.appendChild(v)
+        v.dataset.needsKick = '1'
+      }
+      if (v.dataset.parkPending === '1') {
+        attachRaf.current = requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (!rootRef.current || v.parentElement === rootRef.current) return
+          attach()
+          setAttachTick(t => t + 1)
+        }))
+      } else {
+        attach()
+      }
+    }
     if (v.dataset.url !== videoUrl) {
       v.dataset.url = videoUrl
       v.src = videoUrl
@@ -53,9 +61,12 @@ export default function SlideVideo({
       v.style.transition = 'none'
       v.style.opacity = '0'
     }
-    // Уход из окна/с вкладки: сразу готовим будущий возврат (см. prepareReturn),
-    // пауза случится в releaseVideo при парковке
-    return () => { prepareReturn(v); releaseVideo(slideKey) }
+    // Уход из окна/с вкладки: releaseVideo паркует (пауза сразу, перенос и
+    // подготовка возврата — кадром позже, на холодном элементе, см. videoPool)
+    return () => {
+      cancelAnimationFrame(attachRaf.current)
+      releaseVideo(slideKey)
+    }
   }, [hasVideo, tabVisible, inWindow, videoUrl, slideKey])
 
   // Активный слайд: звук + воспроизведение + плавное появление. Сосед: молча
@@ -69,12 +80,13 @@ export default function SlideVideo({
     if (!active) {
       // Прогрев соседа: тихо, на паузе. opacity не трогаем — если элемент уже
       // показывал кадр этого слайда, пусть остаётся показанным. Слайд, с
-      // которого только что уехали (остался соседом, из окна не вышел) — тоже
-      // готовим к возврату сразу
+      // которого только что уехали (остался соседом), тоже готовим к возврату,
+      // но с задержкой: seek прямо в момент свайпа дёргает iOS-скролл
+      // (свайп «не доводился» до снапа)
       v.muted = true
       v.pause()
-      prepareReturn(v)
-      return
+      const prep = setTimeout(() => prepareReturn(v), 400)
+      return () => clearTimeout(prep)
     }
 
     v.muted = !soundOn
@@ -158,13 +170,23 @@ export default function SlideVideo({
     let lastFrame = performance.now()
     let wdRvfc = 0
     let wdKicks = 0
+    let wdStall = 0
     let wdTimer = 0
     if (v.requestVideoFrameCallback && !paused) {
       const onWdFrame = () => { lastFrame = performance.now(); wdRvfc = v.requestVideoFrameCallback(onWdFrame) }
       wdRvfc = v.requestVideoFrameCallback(onWdFrame)
       wdTimer = setInterval(() => {
-        if (document.hidden || v.paused || v.parentElement !== rootRef.current) return
-        if (performance.now() - lastFrame < 450) return
+        if (document.hidden || v.paused || v.parentElement !== rootRef.current) { wdStall = 0; return }
+        // Во время свайпа rvfc законно молчит (iOS душит колбэки при скролле),
+        // а пинки-сики в этот момент ломают доводку снапа — молчим (флаг
+        // scrolling ставит onScroll в FeedTab)
+        const sc = rootRef.current.closest('.feedV2Scroll')
+        if (sc && sc.dataset.scrolling === '1') { wdStall = 0; return }
+        if (performance.now() - lastFrame < 450) { wdStall = 0; return }
+        // Пинаем только после двух «пустых» тиков подряд (~1с без кадров) —
+        // меньше ложных срабатываний сразу после скролла/переноса
+        if (++wdStall < 2) return
+        wdStall = 0
         wdKicks++
         if (wdKicks > 3) {
           fdbg(`vid ${(videoUrl || '').slice(-8)} watchdog: не помогло — сдаюсь`)
@@ -187,7 +209,7 @@ export default function SlideVideo({
       v.removeEventListener('loadeddata', revealReal)
       v.removeEventListener('canplay', retryPlay)
     }
-  }, [hasVideo, tabVisible, inWindow, active, soundOn, paused, slideKey, videoUrl]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasVideo, tabVisible, inWindow, active, soundOn, paused, slideKey, videoUrl, attachTick]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ушли со слайда — ручная пауза сбрасывается
   useEffect(() => {

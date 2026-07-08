@@ -47,6 +47,17 @@ function ensure() {
   for (let i = 0; i < POOL_SIZE; i++) slots.push({ el: makeVideo(), key: null, used: 0 })
 }
 
+// Правило возвращения на слайд: досмотреть осталось < 2с — начинаем сначала.
+// Выполняется заранее, в момент ухода (на холодном элементе), чтобы возврат
+// был без скачка «старый кадр → начало».
+export function prepareReturn(el) {
+  const left = el.duration - el.currentTime
+  if (Number.isFinite(left) && left < 2 && el.currentTime > 0) {
+    fdbg(`vid ${(el.dataset.url || '').slice(-8)} уход: осталось ${left.toFixed(2)}с < 2 → на начало`)
+    try { el.currentTime = 0 } catch { /* не критично */ }
+  }
+}
+
 // Скрытый контейнер вне слайдов: освобождённый элемент переезжает сюда, а не
 // уничтожается (иначе потеряли бы разблокировку звука).
 function parkEl(el) {
@@ -57,7 +68,17 @@ function parkEl(el) {
     document.body.appendChild(holder)
   }
   el.pause()
-  if (el.parentElement !== holder) holder.appendChild(el)
+  // Перенос в холдер и подготовительный seek — на СЛЕДУЮЩЕМ кадре: перенос
+  // «горячего» (только что игравшего) <video> — источник iOS-стоп-кадра при
+  // живом звуке, а seek в момент свайпа дёргает скролл. Быстрый повторный
+  // lease видит флаг parkPending и тоже забирает элемент только остывшим.
+  el.dataset.parkPending = '1'
+  requestAnimationFrame(() => {
+    if (el.dataset.parkPending !== '1') return
+    el.dataset.parkPending = ''
+    if (el.parentElement !== holder) holder.appendChild(el)
+    prepareReturn(el)
+  })
 }
 
 // Взять элемент под слайд key. Тот же key → тот же элемент.
@@ -131,7 +152,7 @@ export function unlockAllForSound() {
     // со звуком без нового жеста. Элементы в слайдах доиграет/погасит их эффект
     // (по active/soundOn); а припаркованные запасные тут же снова на паузу,
     // чтобы не крутились беззвучно вхолостую.
-    const parked = holder && el.parentElement === holder
+    const parked = (holder && el.parentElement === holder) || el.dataset.parkPending === '1'
     const p = el.play()
     if (p && p.catch) p.catch(() => {})
     if (parked) { try { el.pause() } catch { /* play прервётся паузой — ок */ } }
