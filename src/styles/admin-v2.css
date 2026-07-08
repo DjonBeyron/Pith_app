@@ -166,3 +166,38 @@
 .anCheck { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #f2f5f7; }
 
 .anResult { font-size: 13px; color: #b6fe3b; }
+
+/* ── Шаблоны пушей (AdminPushTemplates) ── */
+.aptWrap { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+
+.aptRow { border: 1px solid #232932; border-radius: 12px; background: #14171c; }
+
+.aptHead { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+
+.aptName {
+  flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: none; border: none; padding: 0; text-align: left;
+  color: #f2f5f7; font-size: 14px; cursor: pointer;
+}
+
+.aptTrig { color: #8b94a1; font-size: 12px; }
+
+.aptOn { white-space: nowrap; }
+
+.aptEdit {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 0 12px 12px; border-top: 1px solid #232932; padding-top: 10px;
+}
+
+.aptEdit select {
+  padding: 9px 12px; border: 1px solid #232932; border-radius: 10px;
+  background: #14171c; color: #f2f5f7; font: inherit;
+}
+
+.aptBtns { display: flex; gap: 10px; }
+
+.aptAdd {
+  align-self: flex-start; padding: 8px 14px;
+  border: 1px dashed #38414d; border-radius: 10px;
+  background: none; color: #8b94a1; font-size: 13px; cursor: pointer;
+}

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { loadCurricula, saveCurriculum, deleteCurriculumFromServer, updateCurriculumPublished } from '../../shared/lib/curriculaApi.js'
 import { supabase } from '../../shared/api/supabase.js'
+import { findEnabledTemplate } from '../../shared/api/pushTemplatesApi.js'
+import { sendPush } from '../../shared/api/pushApi.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import { dbg } from '../../shared/lib/debug.js'
 
@@ -30,7 +32,19 @@ export default function AdminModulesTab({ onOpenCanvas }) {
   async function handleTogglePublished(m) {
     // Оптимистично: чип переключается сразу, сервер — в фоне
     setRows(rs => rs.map(r => r.id === m.id ? { ...r, published: !m.published } : r))
-    try { await updateCurriculumPublished(m.id, !m.published) } catch { refresh() }
+    try { await updateCurriculumPublished(m.id, !m.published) } catch { refresh(); return }
+    // Триггер «публикация модуля»: если есть включённый шаблон — предлагаем
+    // разослать пуш всем подписчикам (с подтверждением, чтобы случайный тык
+    // по тумблеру не спамил)
+    if (!m.published) {
+      const t = await findEnabledTemplate('new_module')
+      if (t && window.confirm(`Модуль опубликован. Разослать пуш «${t.title}» всем подписчикам?`)) {
+        try {
+          const r = await sendPush({ title: t.title, body: t.body, url: t.url, onlyMine: false })
+          dbg('[push] new_module:', JSON.stringify(r))
+        } catch (e) { dbg('[push] new_module failed:', e.message) }
+      }
+    }
   }
 
   async function handleDelete(m) {

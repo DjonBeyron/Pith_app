@@ -22,3 +22,22 @@ export async function sendPush({ title, body, url = '/', onlyMine = true }) {
   }
   return res.json() // { total, sent, failed, removed }
 }
+
+// Пуш САМОМУ СЕБЕ по триггеру (level_up): функция push-trigger проверяет
+// личность по JWT и шлёт только на подписки этого пользователя. Тихий
+// fire-and-forget — сбой пуша не должен мешать прохождению урока.
+export async function sendSelfTrigger(kind, data = {}) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    await fetch(`${SUPABASE_URL}/functions/v1/push-trigger`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ kind, ...data }),
+    })
+  } catch { /* не критично */ }
+}

@@ -40,6 +40,7 @@
 | `supabase/functions/r2-upload-url/deno.json`, `.npmrc` | Технические настройки для этой функции |
 | `supabase/functions/r2-delete/index.ts` | Серверная функция: удаляет файл из R2 по ссылке. Доступна только залогиненному админу (`requireAdmin`) |
 | `supabase/functions/push-send/index.ts` | Серверная функция: рассылка Web Push по подпискам из `push_subscriptions` (только админ; VAPID-ключи в секретах; чистит протухшие подписки) |
+| `supabase/functions/push-trigger/index.ts` | Серверная функция автоматических пушей: cron-режимы evening (streak_risk + inactive_today) и energy_full (по x-cron-secret), self-режим level_up (по JWT, пуш только себе); расписания — pg_cron |
 | `supabase/functions/r2-delete/deno.json` | Технические настройки для этой функции |
 | `supabase/functions/transcribe-audio/index.ts` | Серверная функция: принимает аудиофайл (или R2 URL), транскрибирует через Groq Whisper, возвращает тайминги слов. Ключ GROQ_API_KEY хранится только здесь |
 
@@ -142,7 +143,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 |------|-------------|
 | `AdminTab.jsx` | Таблица файлов, кнопки «Добавить файл» / «Синхронизировать с сервером» / «Удалить» / «Повторить» (для упавших загрузок) / «Активировать дебаг». Доступ — только залогиненному пользователю с правом админа (см. `useIsAdmin.js`) |
 | `AdminV2.jsx` | Админ-раздел новой оболочки: субвкладки «Модули» (AdminModulesTab), «Файлы» (AdminTab) и «Пуши» (AdminNotificationsTab) |
-| `AdminNotificationsTab.jsx` | Админ: ручная отправка push-уведомления (заголовок/текст, «только мне» для теста, отправка всем); задел под шаблоны с триггерами |
+| `AdminNotificationsTab.jsx` | Админ: вкладка «Пуши» — разовая ручная отправка (заголовок/текст, «только мне») + список шаблонов (AdminPushTemplates) |
+| `AdminPushTemplates.jsx` | Админ: шаблоны пушей — редактирование имени/заголовка/текста, выбор триггера, вкл/выкл, отправка себе/всем, удаление, добавление |
 | `AdminModulesTab.jsx` | Список модулей для админа (ui v2): чипы «видео есть/нет» и «опубликован/черновик» (тумблер), «+ Новый модуль», тап → схема модуля, ✕ — удаление с уроками |
 
 ### `src/features/canvas/` — canvas-редактор уроков (отдельная полноэкранная страница)
@@ -277,6 +279,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 |------|-------------|
 | `supabase.js` | Подключение к базе данных Supabase (по ключам из `.env.local`) |
 | `pushApi.js` | Вызов edge-функции `push-send` (рассылка Web Push, только админ) |
+| `pushTemplatesApi.js` | CRUD шаблонов пушей (`push_templates`) + поиск включённого шаблона по триггеру (manual / new_module / inactive_today / energy_full) |
 | `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth |
 | `highlightPresetsApi.js` | Загрузка и сохранение избранных цветов выделений (`highlight_color_presets`, singleton row 'global') |
 | `profileApi.js` | getProfile (чтение профиля) / startLesson — RPC `start_lesson` (энергия, бесплатные случаи решает сервер) / completeLesson — начисление XP через RPC `complete_lesson` / resetLessonProgress — сброс прохождения с возвратом XP (тест-кнопки админа) |

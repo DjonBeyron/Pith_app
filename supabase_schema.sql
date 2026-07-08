@@ -658,3 +658,90 @@ create policy push_subs_update on public.push_subscriptions
   for update to anon, authenticated using (true) with check (true);
 create policy push_subs_delete on public.push_subscriptions
   for delete to anon, authenticated using (true);
+
+-- ── Шаблоны push-уведомлений (админка → Пуши) ─────────────
+-- Готовые тексты с триггерами: manual (ручная отправка), new_module
+-- (рассылается при публикации модуля), inactive_today / energy_full
+-- (зарезервированы под cron-этап). Правит только админ.
+create table if not exists public.push_templates (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null default '',
+  title        text not null default '',
+  body         text not null default '',
+  url          text not null default '/',
+  trigger_kind text not null default 'manual',
+  enabled      boolean not null default true,
+  created_at   timestamptz not null default now()
+);
+
+alter table public.push_templates enable row level security;
+
+create policy push_templates_admin on public.push_templates
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- ── Автоматические пуши: журнал и аудитории ─────────────
+-- Журнал отправок: дедупликация + история. Без политик — пишет только
+-- edge-функция push-trigger сервисным ключом.
+create table if not exists public.push_trigger_log (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid,
+  trigger_kind text not null,
+  sent_at      timestamptz not null default now()
+);
+alter table public.push_trigger_log enable row level security;
+create index if not exists push_trigger_log_user_kind
+  on public.push_trigger_log (user_id, trigger_kind, sent_at desc);
+
+-- Вечерняя аудитория (граница суток — Москва): streak_risk — вчера занимался,
+-- сегодня нет; inactive_today — ни вчера, ни сегодня. Только юзеры с подпиской
+-- на пуши, не более одного вечернего пуша в день.
+create or replace function public.push_audience_evening()
+returns table(uid uuid, kind text)
+language sql security definer as $$
+  with tz as (select (now() at time zone 'Europe/Moscow')::date as today),
+  users as (
+    select distinct s.user_id as uid
+    from public.push_subscriptions s
+    where s.user_id is not null
+  ),
+  done as (
+    select r.user_id as uid,
+           bool_or((r.completed_at at time zone 'Europe/Moscow')::date = (select today from tz)) as today_done,
+           bool_or((r.completed_at at time zone 'Europe/Moscow')::date = (select today from tz) - 1) as yesterday_done
+    from public.lesson_results r
+    group by r.user_id
+  )
+  select u.uid,
+         case when coalesce(d.yesterday_done, false) then 'streak_risk' else 'inactive_today' end
+  from users u
+  left join done d on d.uid = u.uid
+  where not coalesce(d.today_done, false)
+    and not exists (
+      select 1 from public.push_trigger_log l
+      where l.user_id = u.uid
+        and l.trigger_kind in ('streak_risk', 'inactive_today')
+        and (l.sent_at at time zone 'Europe/Moscow')::date = (select today from tz)
+    );
+$$;
+revoke execute on function public.push_audience_evening() from public, anon, authenticated;
+
+-- Энергия восстановилась: реген ленивый (1 заряд / 4 часа от energy_updated_at),
+-- полный запас = energy_updated_at + (5-energy)*4ч. Один пуш на цикл траты
+-- (лог свежее energy_updated_at = уже слали). Безлимитных не трогаем.
+create or replace function public.push_audience_energy_full()
+returns setof uuid
+language sql security definer as $$
+  select p.id
+  from public.user_profiles p
+  where exists (select 1 from public.push_subscriptions s where s.user_id = p.id)
+    and coalesce(p.has_subscription, false) = false
+    and p.energy < 5
+    and p.energy_updated_at + (5 - p.energy) * interval '4 hours' <= now()
+    and not exists (
+      select 1 from public.push_trigger_log l
+      where l.user_id = p.id
+        and l.trigger_kind = 'energy_full'
+        and l.sent_at >= p.energy_updated_at
+    );
+$$;
+revoke execute on function public.push_audience_energy_full() from public, anon, authenticated;

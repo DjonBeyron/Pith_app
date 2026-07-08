@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { sendPush } from '../../shared/api/pushApi.js'
 import { getPushState, subscribePush } from '../../shared/lib/push.js'
+import AdminPushTemplates from './AdminPushTemplates.jsx'
 
-// Админ: вкладка «Уведомления». Этап 1 — ручная отправка (тест на себя или
-// всем подписчикам). Этап 2 (задел): здесь появятся сохранённые шаблоны
-// с триггерами (энергия восстановилась, новый модуль, «сегодня не занимался»).
+// Админ: вкладка «Пуши» — разовая ручная отправка + шаблоны с триггерами
+// (AdminPushTemplates).
 export default function AdminNotificationsTab() {
   const [title, setTitle] = useState('Pithy')
   const [body, setBody] = useState('Тестовое уведомление 🎉')
@@ -70,10 +70,7 @@ export default function AdminNotificationsTab() {
 
       {result && <div className="anResult">{result}</div>}
 
-      <p className="anNote">
-        Дальше здесь появятся шаблоны с триггерами: «энергия восстановилась»,
-        «новый модуль», «сегодня не занимался».
-      </p>
+      <AdminPushTemplates />
     </div>
   )
 }

@@ -19,6 +19,8 @@ import { addLocalXp, getLocalXp } from '../../shared/lib/localProfile.js'
 import { completeLesson, getProfile } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { saveAnswerEvents } from '../../shared/lib/skillStatsStore.js'
+import { sendSelfTrigger } from '../../shared/api/pushApi.js'
+import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 
 // Returns a Map<nodeId, xpAmount> for nodes with reward enabled.
 // If lessonXp=0 or no reward nodes, returns empty map.
@@ -60,6 +62,12 @@ export default function LessonPlayer({
         await saveAnswerEvents(getEvents(), { sourceLessonId: lessonId, isLoggedIn: true })
         setEarnedXp(awarded)
         refreshProfile() // фоном обновляем кэш — вкладка «Профиль» откроется уже со свежим XP
+        // Пересечение уровня — системное пуш-поздравление самому себе
+        // (шаблон level_up в админке; без подписки функция просто ничего не шлёт)
+        if (awarded > 0) {
+          const lvl = getCurrentLevel(profile.xp + awarded).level
+          if (lvl > getCurrentLevel(profile.xp).level) sendSelfTrigger('level_up', { level: lvl })
+        }
       } else {
         // Гость: локальный XP как демо (на сервер не влияет).
         const earned = earnedXpRef.current
