@@ -32,6 +32,13 @@ function makeVideo() {
   v.setAttribute('playsinline', '') // iOS: не открывать нативный плеер
   v.playsInline = true
   v.style.opacity = '1'
+  // Дебаг жизни элемента в DBG-лог: по этим событиям видно, возобновился ли
+  // реальный показ после переноса между вкладками (ev:playing без последующих
+  // кадров = стоп-кадр при живом звуке, его ловит watchdog в SlideVideo)
+  for (const ev of ['playing', 'seeked', 'waiting', 'stalled', 'error']) {
+    v.addEventListener(ev, () =>
+      fdbg(`vid ${(v.dataset.url || '—').slice(-8)} ev:${ev} ct=${v.currentTime.toFixed(2)}`))
+  }
   return v
 }
 

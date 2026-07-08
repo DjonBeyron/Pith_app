@@ -134,11 +134,15 @@ export default function SlideVideo({
       // iOS: если элемент только что перенесли в этот слайд — на следующем
       // кадре «пинаем» поверхность pause→play. Без этого перенос <video> во
       // время проигрывания оставляет стоп-кадр при живом звуке (баг перехода
-      // между вкладками «Мои уроки» ↔ «Рекомендации»)
+      // между вкладками «Мои уроки» ↔ «Рекомендации»). Флаг needsKick снимаем
+      // только КОГДА пинок реально сделан: при частых переходах rAF отменялся
+      // очисткой эффекта, а флаг уже был снят — пинок терялся навсегда и
+      // видео замирало при живом звуке
       if (v.dataset.needsKick === '1') {
-        v.dataset.needsKick = ''
         kickRaf.current = requestAnimationFrame(() => {
           if (v.parentElement === rootRef.current && !v.paused && v.dataset.freeze !== '1') {
+            v.dataset.needsKick = ''
+            fdbg(`vid ${(videoUrl || '').slice(-8)} kick после переноса ct=${v.currentTime.toFixed(2)}`)
             v.pause()
             v.play().catch(() => {})
           }
@@ -148,10 +152,38 @@ export default function SlideVideo({
       v.pause()
     }
 
+    // Сторож стоп-кадра (страховка поверх пинка): видео «играет» (звук идёт),
+    // а новые кадры не приходят — известный iOS-эффект после переноса <video>.
+    // Считаем кадры через rvfc; если их нет 450мс+ при играющем видео —
+    // пинаем pause→play, максимум 3 раза (и честно пишем в DBG-лог)
+    let lastFrame = performance.now()
+    let wdRvfc = 0
+    let wdKicks = 0
+    let wdTimer = 0
+    if (v.requestVideoFrameCallback && !paused) {
+      const onWdFrame = () => { lastFrame = performance.now(); wdRvfc = v.requestVideoFrameCallback(onWdFrame) }
+      wdRvfc = v.requestVideoFrameCallback(onWdFrame)
+      wdTimer = setInterval(() => {
+        if (document.hidden || v.paused || v.parentElement !== rootRef.current) return
+        if (performance.now() - lastFrame < 450) return
+        if (wdKicks >= 3) {
+          fdbg(`vid ${(videoUrl || '').slice(-8)} watchdog: 3 пинка не помогли — сдаюсь`)
+          clearInterval(wdTimer)
+          return
+        }
+        wdKicks++
+        fdbg(`vid ${(videoUrl || '').slice(-8)} watchdog: кадры стоят при звуке, пинок №${wdKicks} ct=${v.currentTime.toFixed(2)} rs=${v.readyState}`)
+        v.pause()
+        v.play().catch(() => {})
+      }, 500)
+    }
+
     return () => {
       clearTimeout(safety)
+      clearInterval(wdTimer)
       cancelAnimationFrame(kickRaf.current)
       if (rvfc && v.cancelVideoFrameCallback) v.cancelVideoFrameCallback(rvfc)
+      if (wdRvfc && v.cancelVideoFrameCallback) v.cancelVideoFrameCallback(wdRvfc)
       v.removeEventListener('seeked', revealReal)
       v.removeEventListener('loadeddata', revealReal)
       v.removeEventListener('canplay', retryPlay)
