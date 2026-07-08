@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { leaseVideo, releaseVideo, unlockAllForSound } from './videoPool.js'
+import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface } from './videoPool.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
 // Видео-слой слайда — общий для «Рекомендаций» и «Моих уроков».
@@ -132,19 +132,18 @@ export default function SlideVideo({
         else setPaused(true)
       })
       // iOS: если элемент только что перенесли в этот слайд — на следующем
-      // кадре «пинаем» поверхность pause→play. Без этого перенос <video> во
-      // время проигрывания оставляет стоп-кадр при живом звуке (баг перехода
-      // между вкладками «Мои уроки» ↔ «Рекомендации»). Флаг needsKick снимаем
+      // кадре «пинаем» поверхность СИЛЬНЫМ пинком (pause→seek→play, см.
+      // kickSurface): перенос <video> во время проигрывания оставляет
+      // стоп-кадр при живом звуке, причём декодер работает (rvfc идёт) — без
+      // seek компоузер так и показывает старый кадр. Флаг needsKick снимаем
       // только КОГДА пинок реально сделан: при частых переходах rAF отменялся
-      // очисткой эффекта, а флаг уже был снят — пинок терялся навсегда и
-      // видео замирало при живом звуке
+      // очисткой эффекта, а флаг уже был снят — пинок терялся навсегда
       if (v.dataset.needsKick === '1') {
         kickRaf.current = requestAnimationFrame(() => {
           if (v.parentElement === rootRef.current && !v.paused && v.dataset.freeze !== '1') {
             v.dataset.needsKick = ''
-            fdbg(`vid ${(videoUrl || '').slice(-8)} kick после переноса ct=${v.currentTime.toFixed(2)}`)
-            v.pause()
-            v.play().catch(() => {})
+            fdbg(`vid ${(videoUrl || '').slice(-8)} kick после переноса (seek) ct=${v.currentTime.toFixed(2)}`)
+            kickSurface(v)
           }
         })
       }
@@ -166,15 +165,15 @@ export default function SlideVideo({
       wdTimer = setInterval(() => {
         if (document.hidden || v.paused || v.parentElement !== rootRef.current) return
         if (performance.now() - lastFrame < 450) return
-        if (wdKicks >= 3) {
-          fdbg(`vid ${(videoUrl || '').slice(-8)} watchdog: 3 пинка не помогли — сдаюсь`)
+        wdKicks++
+        if (wdKicks > 3) {
+          fdbg(`vid ${(videoUrl || '').slice(-8)} watchdog: не помогло — сдаюсь`)
           clearInterval(wdTimer)
           return
         }
-        wdKicks++
-        fdbg(`vid ${(videoUrl || '').slice(-8)} watchdog: кадры стоят при звуке, пинок №${wdKicks} ct=${v.currentTime.toFixed(2)} rs=${v.readyState}`)
-        v.pause()
-        v.play().catch(() => {})
+        fdbg(`vid ${(videoUrl || '').slice(-8)} watchdog: кадры стоят при звуке — ${wdKicks < 3 ? `пинок №${wdKicks} (seek)` : 'пересборка'} ct=${v.currentTime.toFixed(2)} rs=${v.readyState}`)
+        if (wdKicks < 3) kickSurface(v)
+        else rebuildSurface(v)
       }, 500)
     }
 

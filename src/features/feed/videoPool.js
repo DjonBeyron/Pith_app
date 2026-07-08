@@ -85,6 +85,40 @@ export function releaseVideo(key) {
   }
 }
 
+// «Сильный пинок» поверхности: pause → seek в ту же позицию → play. Обычного
+// pause→play на iOS не хватает: после переноса <video> в DOM декодер работает
+// (rvfc идёт, currentTime растёт), а компоузер продолжает показывать старый
+// кадр. Принудительный seek заставляет вывести текущий кадр заново.
+export function kickSurface(v) {
+  v.pause()
+  let resumed = false
+  const resume = () => {
+    if (resumed) return
+    resumed = true
+    v.removeEventListener('seeked', resume)
+    // Пока шёл seek, элемент могли запарковать (быстрый уход с вкладки) —
+    // припаркованного не будим, иначе звук «из-за кулис»
+    if (v.parentElement !== holder) v.play().catch(() => {})
+  }
+  v.addEventListener('seeked', resume, { once: true })
+  try { v.currentTime = Math.max(0, v.currentTime - 0.01) } catch { resume() }
+  setTimeout(resume, 250) // страховка, если seeked не придёт
+}
+
+// Тяжёлая артиллерия (если и seek не помог): пересборка поверхности — вынуть
+// элемент из DOM на паузе, форсировать reflow, вставить обратно и пнуть.
+// Перенос НЕ играющего видео стоп-кадр не вызывает, поэтому это безопасно.
+export function rebuildSurface(v) {
+  const parent = v.parentElement
+  if (!parent) return
+  v.pause()
+  const next = v.nextSibling
+  parent.removeChild(v)
+  void document.body.offsetHeight
+  parent.insertBefore(v, next)
+  kickSurface(v)
+}
+
 // Разблокировка звука на всех элементах пула — вызывать по жесту пользователя.
 // Проигрываем каждый (пока muted): этого достаточно, чтобы дальше элементу было
 // разрешено играть со звуком без нового жеста.
