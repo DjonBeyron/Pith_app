@@ -170,6 +170,50 @@
   animation: diffPanelIn 0.25s cubic-bezier(0.34, 1.25, 0.64, 1);
 }
 
+/* Интро первого раза (пока попап не закрыт): пульсирует иконка
+   голосования и подсвечивается панель — сам попап спокойный */
+.diffIconPulse {
+  animation: diffIconPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes diffIconPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: none;
+  }
+  50% {
+    transform: scale(1.28);
+    filter: drop-shadow(0 0 7px rgba(182, 254, 59, 0.8));
+  }
+}
+
+/* …и сама иконка моргает целиком залитая зелёным — все три полоски
+   заливаются брендовым лаймом на пике пульса и возвращаются обратно */
+.diffIconPulse .diffBars i {
+  animation: diffBarsBlink 1.4s ease-in-out infinite;
+}
+
+@keyframes diffBarsBlink {
+  50% { background: #b6fe3b; }
+}
+
+.diffPanelGlow {
+  animation:
+    diffPanelIn 0.3s cubic-bezier(0.34, 1.25, 0.64, 1),
+    diffPanelGlow 1.4s ease-in-out 0.35s infinite;
+}
+
+@keyframes diffPanelGlow {
+  0%, 100% {
+    border-color: rgba(255, 255, 255, 0.09);
+    box-shadow: 0 0 0 0 rgba(182, 254, 59, 0);
+  }
+  50% {
+    border-color: rgba(182, 254, 59, 0.5);
+    box-shadow: 0 0 18px 0 rgba(182, 254, 59, 0.22);
+  }
+}
+
 .diffHelpClose {
   position: absolute;
   top: 5px;

@@ -5,7 +5,9 @@ import { useState, useRef, useEffect } from 'react'
 // вопрос «Понял на слух?»: тап по варианту — мини-фейерверк искр на нём,
 // потом панель закрывается и иконка морфится в зелёную галочку («Учтено»).
 // Кнопка «?» — попап-пояснение; его закрытие (крестик или тап вне) НЕ
-// закрывает саму панель (свой backdrop поверх панельного).
+// закрывает саму панель (свой backdrop поверх панельного). При самом
+// первом открытии панели попап показывается сам; пока он не закрыт —
+// пульсирует иконка голосования и подсвечивается панель (не сам попап).
 const LEVELS = [
   { v: 1, label: 'Легко',  cls: 'diffEasy' },
   { v: 2, label: 'Средне', cls: 'diffMid' },
@@ -14,6 +16,7 @@ const LEVELS = [
 
 const CONFIRM_MS = 1300 // сколько висит галочка «Учтено»
 const BURST_MS   = 480  // сколько играют искры до закрытия панели
+const HELP_SEEN_KEY = 'pithy_diff_help_seen_v1' // попап-интро уже закрывали
 
 // 8 искр по кругу, чередуем два радиуса — «объёмный» разлёт
 const SPARKS = Array.from({ length: 8 }, (_, i) => {
@@ -25,15 +28,33 @@ const SPARKS = Array.from({ length: 8 }, (_, i) => {
 export default function DifficultyBadge({ level, myVote, onVote }) {
   const [open, setOpen] = useState(false)
   const [help, setHelp] = useState(false)
+  const [intro, setIntro] = useState(false) // авто-попап первого раза (пульсирует)
   const [burst, setBurst] = useState(null) // уровень, на котором играют искры
   const [confirmed, setConfirmed] = useState(false)
   const timers = useRef([])
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
+  function openPanel() {
+    setOpen(true)
+    let seen = true
+    try { seen = localStorage.getItem(HELP_SEEN_KEY) === '1' } catch { /* нет localStorage — без интро */ }
+    if (!seen) { setHelp(true); setIntro(true) }
+  }
+
+  // Закрытие попапа (крестик/тап вне). Первое закрытие запоминаем —
+  // авто-показ больше не повторится; пульсация гаснет вместе с попапом.
+  function closeHelp() {
+    setHelp(false)
+    if (intro) {
+      setIntro(false)
+      try { localStorage.setItem(HELP_SEEN_KEY, '1') } catch { /* некритично */ }
+    }
+  }
+
   function closePanel() {
     setOpen(false)
-    setHelp(false)
     setBurst(null)
+    closeHelp()
   }
 
   function pick(v) {
@@ -52,7 +73,7 @@ export default function DifficultyBadge({ level, myVote, onVote }) {
     <div className="diffWrap">
       {open && <div className="diffBackdrop" onClick={closePanel} />}
       {open && (
-        <div className="diffPanel">
+        <div className={intro ? 'diffPanel diffPanelGlow' : 'diffPanel'}>
           <div className="diffPanelHead">
             <span className="diffPanelTitle">Понял на слух?</span>
             <button className="diffHelpBtn" onClick={() => setHelp(true)}>?</button>
@@ -77,9 +98,9 @@ export default function DifficultyBadge({ level, myVote, onVote }) {
           </div>
           {help && (
             <>
-              <div className="diffHelpBackdrop" onClick={() => setHelp(false)} />
+              <div className="diffHelpBackdrop" onClick={closeHelp} />
               <div className="diffHelpPop">
-                <button className="diffHelpClose" onClick={() => setHelp(false)}>✕</button>
+                <button className="diffHelpClose" onClick={closeHelp}>✕</button>
                 Оцени, насколько фраза сложна на слух, — иконка у видео покажет
                 это другим ученикам ещё до просмотра. Голос можно изменить
                 в любой момент.
@@ -88,8 +109,8 @@ export default function DifficultyBadge({ level, myVote, onVote }) {
           )}
         </div>
       )}
-      <button className="feedHudBtn" onClick={() => (open ? closePanel() : setOpen(true))}>
-        <span className={`diffIcon${confirmed ? ' diffIconConfirm' : ''}`}>
+      <button className="feedHudBtn" onClick={() => (open ? closePanel() : openPanel())}>
+        <span className={`diffIcon${confirmed ? ' diffIconConfirm' : ''}${intro ? ' diffIconPulse' : ''}`}>
           <span className={`diffBars${level ? ` diffL${level}` : ''}`}>
             <i /><i /><i />
           </span>
