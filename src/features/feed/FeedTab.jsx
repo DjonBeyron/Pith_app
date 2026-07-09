@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fetchFeedSocial, setLike, setBookmark, fetchStartedModules } from '../../shared/api/moduleSocialApi.js'
+import { fetchMyDifficultyVotes, setDifficultyVote, displayDifficulty } from '../../shared/api/difficultyApi.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import FeedSlide from './FeedSlide.jsx'
 import MyLessons from './MyLessons.jsx'
@@ -23,6 +24,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   const [openModule, setOpenModule] = useState(null)
   // Лайки/закладки по id модуля — общие для всех копий слайда в круге
   const [reactions, setReactions] = useState({})
+  // Мои голоса сложности фразы: { moduleId: 1|2|3 } (перезаписываемые)
+  const [diffVotes, setDiffVotes] = useState({})
   // Начатые модули: в «Рекомендациях» их не показываем (они в «Моих уроках»)
   const [startedIds, setStartedIds] = useState(() => new Set())
   // Серверная соц-инфа: залогинен ли, счётчики лайков
@@ -106,6 +109,14 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
 
   useEffect(() => {
     let cancelled = false
+    fetchMyDifficultyVotes()
+      .then(v => { if (!cancelled) setDiffVotes(v) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
     loadCurricula()
       .then(rows => {
         if (cancelled) return
@@ -132,6 +143,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           videoUrl: r.video_url ?? null,
           posterUrl: r.poster_url ?? null,
           posterCrop: r.poster_crop ?? null,
+          difficulty: r.difficulty ?? null,
+          difficultyVotes: r.difficulty_votes ?? 0,
         })))
       })
       .catch(e => {
@@ -306,6 +319,18 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     }
   }
 
+  // Голос сложности: гостю — форма входа; юзеру — оптимистично + сервер.
+  // Общий итог (медиану) пересчитает триггер БД — иконка обновится при
+  // следующей загрузке ленты, свой голос виден сразу. Возвращает true,
+  // если голос учтён — бейдж играет морфинг-подтверждение (галочку).
+  function voteDifficulty(id, v) {
+    if (authLoading) return false
+    if (!user) { onRequireAuth?.(); return false }
+    setDiffVotes(d => ({ ...d, [id]: v }))
+    setDifficultyVote(id, v)
+    return true
+  }
+
   // «Изучить фразу» → готовый экран модуля (схема, карточка прогрева, плеер)
   if (openModule) {
     return (
@@ -371,6 +396,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           visible={visible && view === 'mine'}
           modules={modules ?? []}
           startedIds={startedIds}
+          diffVotes={diffVotes}
+          onVoteDifficulty={voteDifficulty}
           soundOn={soundReady}
           onSoundOn={handleSoundOn}
           onSoundBlocked={handleSoundBlocked}
@@ -417,6 +444,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                       gradIdx={(vi.index % len) % 4}
                       reaction={reactions[m.id]}
                       likeCount={social?.likeCount?.[m.id] ?? 0}
+                      difficulty={displayDifficulty(m, diffVotes[m.id])}
+                      myDifficulty={diffVotes[m.id]}
+                      onVoteDifficulty={v => voteDifficulty(m.id, v)}
                       soundOn={soundReady}
                       onSoundOn={handleSoundOn}
                       onSoundBlocked={handleSoundBlocked}

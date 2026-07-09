@@ -745,3 +745,68 @@ language sql security definer as $$
     );
 $$;
 revoke execute on function public.push_audience_energy_full() from public, anon, authenticated;
+
+-- ── Сложность фразы на слух (2026-07-09) ─────────────────────────
+-- Краудсорсинговая оценка сложности модуля-фразы: 1 легко (понял с
+-- первого раза) · 2 средне (переслушал/частично) · 3 сложно (открыл текст).
+-- Одна строка на пользователя+модуль, голос перезаписываемый бессрочно.
+create table if not exists public.module_difficulty_votes (
+  user_id    uuid not null references auth.users on delete cascade,
+  module_id  text not null references public.curricula on delete cascade,
+  vote       smallint not null check (vote between 1 and 3),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, module_id)
+);
+
+alter table public.module_difficulty_votes enable row level security;
+
+drop policy if exists mdv_select_all on public.module_difficulty_votes;
+drop policy if exists mdv_write_own  on public.module_difficulty_votes;
+
+-- Читать можно всем (для будущих агрегатов), писать — только свою строку.
+create policy mdv_select_all
+  on public.module_difficulty_votes for select using (true);
+
+create policy mdv_write_own
+  on public.module_difficulty_votes for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop trigger if exists mdv_updated_at on public.module_difficulty_votes;
+create trigger mdv_updated_at
+  before update on public.module_difficulty_votes
+  for each row execute function public.set_updated_at();
+
+-- Денормализованный итог на модуле: медиана голосов + их число. Лента и
+-- фильтр (этап 2) читают готовые поля, не агрегируя таблицу голосов на лету.
+-- Порог «мало оценок» (серая иконка до ~5 голосов) — на клиенте.
+alter table public.curricula add column if not exists difficulty smallint;
+alter table public.curricula add column if not exists difficulty_votes int not null default 0;
+
+-- Пересчёт итога при каждом голосе. SECURITY DEFINER: писать в curricula
+-- политика пускает только админа, а итог должен обновляться от имени
+-- любого проголосовавшего.
+create or replace function public.recalc_module_difficulty()
+returns trigger language plpgsql security definer as $$
+declare
+  v_module text := coalesce(new.module_id, old.module_id);
+  v_med    numeric;
+  v_cnt    int;
+begin
+  select percentile_cont(0.5) within group (order by vote), count(*)
+  into v_med, v_cnt
+  from public.module_difficulty_votes
+  where module_id = v_module;
+
+  update public.curricula
+  set difficulty       = case when v_cnt > 0 then round(v_med)::smallint else null end,
+      difficulty_votes = v_cnt
+  where id = v_module;
+  return null;
+end;
+$$;
+
+drop trigger if exists module_difficulty_recalc on public.module_difficulty_votes;
+create trigger module_difficulty_recalc
+  after insert or update or delete on public.module_difficulty_votes
+  for each row execute function public.recalc_module_difficulty();

@@ -1,0 +1,254 @@
+/* Сложность фразы на слух: иконка-«сигнал» в HUD ленты + панель голосования,
+   выезжающая от кнопки (scale от 0 + рост в ширину, origin у кнопки).
+   Панель компактная: должна целиком помещаться на экране 375px. */
+
+:root {
+  --diff-easy: #4ade80;
+  --diff-mid:  #facc15;
+  --diff-hard: #f87171;
+}
+
+.diffWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Слои иконки: полоски и галочка друг над другом — для морфинга */
+.diffIcon {
+  position: relative;
+  width: 21px;
+  height: 21px;
+}
+
+/* Иконка: три полоски-ступеньки; серые = нет оценок, цвет и число
+   закрашенных полосок = уровень сложности */
+.diffBars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  padding-bottom: 1px;
+  transition: transform 0.25s cubic-bezier(0.36, 0, 0.66, -0.3), opacity 0.2s;
+}
+
+.diffBars i {
+  width: 5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.diffBars i:nth-child(1) { height: 9px; }
+.diffBars i:nth-child(2) { height: 14px; }
+.diffBars i:nth-child(3) { height: 19px; }
+
+.diffL1 i:nth-child(1)    { background: var(--diff-easy); }
+.diffL2 i:nth-child(-n+2) { background: var(--diff-mid); }
+.diffL3 i                 { background: var(--diff-hard); }
+
+/* Галочка «голос учтён»: спрятана, ждёт морфинга */
+.diffCheck {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--diff-easy);
+  opacity: 0;
+  transform: scale(0) rotate(-45deg);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s;
+}
+
+/* Морфинг: полоски схлопываются, галочка выпрыгивает с overshoot и
+   дорисовывается штрихом; снятие класса плавно возвращает всё назад */
+.diffIconConfirm .diffBars {
+  transform: scale(0.2) rotate(45deg);
+  opacity: 0;
+}
+
+.diffIconConfirm .diffCheck {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  transition-delay: 0.12s;
+}
+
+.diffIconConfirm .diffCheck path {
+  stroke-dasharray: 26;
+  animation: diffCheckDraw 0.3s 0.12s both;
+}
+
+@keyframes diffCheckDraw {
+  from { stroke-dashoffset: 26; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* Прозрачная подложка: тап вне панели закрывает её */
+.diffBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+}
+
+.diffPanel {
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 9;
+  padding: 8px 10px 10px;
+  border-radius: 14px;
+  background: rgba(18, 21, 26, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  white-space: nowrap;
+  transform-origin: right center;
+  animation: diffPanelIn 0.3s cubic-bezier(0.34, 1.25, 0.64, 1);
+}
+
+@keyframes diffPanelIn {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.diffPanelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.diffPanelTitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Кнопка «?» — попап-пояснение, зачем голосовать */
+.diffHelpBtn {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: none;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Backdrop попапа ВЫШЕ панели и её backdrop-а: тап вне закрывает только
+   попап, панель голосования остаётся открытой */
+.diffHelpBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.diffHelpPop {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: -4px;
+  z-index: 11;
+  width: 216px;
+  white-space: normal;
+  padding: 10px 26px 10px 12px;
+  border-radius: 12px;
+  background: rgba(18, 21, 26, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.8);
+  transform-origin: bottom right;
+  animation: diffPanelIn 0.25s cubic-bezier(0.34, 1.25, 0.64, 1);
+}
+
+.diffHelpClose {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  padding: 3px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.diffPanelRow {
+  display: flex;
+  gap: 5px;
+}
+
+.diffOption {
+  position: relative; /* якорь для искр мини-фейерверка */
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.diffDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.diffEasy .diffDot { background: var(--diff-easy); }
+.diffMid  .diffDot { background: var(--diff-mid); }
+.diffHard .diffDot { background: var(--diff-hard); }
+
+/* Мини-фейерверк при выборе: 8 искр разлетаются из центра варианта.
+   Чётные искры — белые, нечётные — цвета уровня */
+.diffBurst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.diffBurst i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  animation: diffSpark 0.45s ease-out forwards;
+}
+
+.diffBurst i:nth-child(even) { background: #fff; width: 3px; height: 3px; }
+
+.diffEasy .diffBurst i:nth-child(odd) { background: var(--diff-easy); }
+.diffMid  .diffBurst i:nth-child(odd) { background: var(--diff-mid); }
+.diffHard .diffBurst i:nth-child(odd) { background: var(--diff-hard); }
+
+@keyframes diffSpark {
+  from {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.25);
+    opacity: 0;
+  }
+}
+
+/* Свой текущий голос подсвечен цветом уровня */
+.diffEasy.diffOptionOn { border-color: var(--diff-easy); background: rgba(74, 222, 128, 0.16); }
+.diffMid.diffOptionOn  { border-color: var(--diff-mid);  background: rgba(250, 204, 21, 0.16); }
+.diffHard.diffOptionOn { border-color: var(--diff-hard); background: rgba(248, 113, 113, 0.16); }

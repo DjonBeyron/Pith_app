@@ -69,7 +69,7 @@ export async function loadCurricula() {
   dbg('[DB READ] curricula list')
   const { data, error } = await supabase
     .from('curricula')
-    .select('id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published')
+    .select('id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, difficulty, difficulty_votes')
     .order('created_at', { ascending: false })
   if (error) {
     dbg('[DB ERROR] curricula load', error.message)

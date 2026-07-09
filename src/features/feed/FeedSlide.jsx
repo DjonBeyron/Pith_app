@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { plural } from '../../shared/lib/plural.js'
 import SlideVideo from './SlideVideo.jsx'
+import DifficultyBadge from './DifficultyBadge.jsx'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером, HUD
 // (лайк/закладка/репост), кнопка «Изучить фразу». Состояние лайков живёт
@@ -8,6 +9,7 @@ import SlideVideo from './SlideVideo.jsx'
 export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, tabVisible = true,
   active = false, near = false, slideKey,
+  difficulty, myDifficulty, onVoteDifficulty,
   soundOn, onSoundOn, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
 }) {
   const [toast, setToast] = useState('')
@@ -77,6 +79,10 @@ export default function FeedSlide({
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 5l7 7-7 7v-4C7 15 4 17 2 20c0-7 4-11 12-11V5z" /></svg>
           <span>Репост</span>
         </button>
+        <DifficultyBadge
+          level={difficulty}
+          myVote={myDifficulty}
+          onVote={onVoteDifficulty} />
       </div>
 
       <button className="feedLearnBtn" onClick={onLearn}>

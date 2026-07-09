@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { plural } from '../../shared/lib/plural.js'
+import { displayDifficulty } from '../../shared/api/difficultyApi.js'
 import SlideVideo from './SlideVideo.jsx'
+import DifficultyBadge from './DifficultyBadge.jsx'
 
 // «Мои уроки»: начатые модули (user_module_progress) в двух режимах —
 // видео-скролл (без HUD, прогресс-бар модуля снизу) и список с процентами.
@@ -11,6 +13,7 @@ import SlideVideo from './SlideVideo.jsx'
 // здесь сразу (раньше был свой independent fetch, он рассинхронивался).
 export default function MyLessons({
   visible = true, modules, startedIds, onOpen, onGoFeed,
+  diffVotes = {}, onVoteDifficulty,
   soundOn, onSoundOn, onSoundBlocked,
 }) {
   // Режим (видео/список) запоминается между запусками
@@ -82,6 +85,13 @@ export default function MyLessons({
                 fallback={<div className="feedSlideHint">видео начатого модуля</div>}
               />
               <div className="mlPhrase">{m.title}</div>
+              {/* Свой голос в приоритете: «мои сложные» = сложные для меня */}
+              <div className="feedHud">
+                <DifficultyBadge
+                  level={displayDifficulty(m, diffVotes[m.id], true)}
+                  myVote={diffVotes[m.id]}
+                  onVote={v => onVoteDifficulty?.(m.id, v)} />
+              </div>
               <button className="feedLearnBtn mlContinueBtn" onClick={() => onOpen(m)}>
                 {m.pct === 100 ? 'Повторить модуль' : 'Продолжить'}
               </button>
