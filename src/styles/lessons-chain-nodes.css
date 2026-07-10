@@ -238,3 +238,21 @@
 }
 
 /* Стили Финала (нод, замок, XP-бар, церемония) — lessons-chain-final.css */
+
+/* ── Звёзды пройденного урока (MgStars) — вместо подписи «Пройдите и получите» ── */
+.mgStars {
+  display: inline-flex;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.mgStar {
+  width: 13px;
+  height: 13px;
+  fill: rgba(255, 255, 255, 0.13);
+}
+
+.mgStarOn {
+  fill: #ffd257;
+  filter: drop-shadow(0 0 3px rgba(255, 210, 87, 0.45));
+}

@@ -1,0 +1,122 @@
+/* Панель подсказок Финала (HintBar) + блок билета в итогах урока */
+
+.hintBar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(255, 210, 87, 0.07);
+  border-bottom: 1px solid rgba(255, 210, 87, 0.18);
+  font-size: 12px;
+  color: #d7c58a;
+}
+
+.hintBarOver {
+  background: rgba(255, 107, 107, 0.08);
+  border-bottom-color: rgba(255, 107, 107, 0.22);
+  color: #d49a9a;
+}
+
+.hintBarLabel {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hintBarLights {
+  display: flex;
+  gap: 6px;
+}
+
+/* Огонёк: горит (доступен) → гаснет при трате */
+.hintLight {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffd257;
+  box-shadow: 0 0 6px rgba(255, 210, 87, 0.7);
+  transition: background 0.35s ease, box-shadow 0.35s ease;
+}
+
+.hintLightUsed {
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+
+.hintBarTicket {
+  font-size: 13px;
+  filter: drop-shadow(0 0 4px rgba(255, 210, 87, 0.5));
+}
+
+/* ── Итоги урока: результат по золотому билету ── */
+
+.summaryTicketBlock {
+  margin: 10px 0 4px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.summaryTicketWon {
+  background: linear-gradient(135deg, rgba(255, 210, 87, 0.16), rgba(255, 210, 87, 0.05));
+  border: 1px solid rgba(255, 210, 87, 0.35);
+  color: #ffd257;
+  font-weight: 700;
+}
+
+.summaryTicketLost {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9aa3ad;
+}
+
+.summaryTicketClean {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b6fe3b;
+}
+
+/* ── Итоги урока: звёзды обычного урока (StarsBlock) ── */
+
+.summaryStarsBlock {
+  margin: 10px 0 4px;
+  text-align: center;
+}
+
+.summaryStarsRow {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.summaryStar {
+  width: 30px;
+  height: 30px;
+  fill: rgba(255, 255, 255, 0.12);
+}
+
+.summaryStarOn {
+  fill: #ffd257;
+  filter: drop-shadow(0 0 6px rgba(255, 210, 87, 0.55));
+}
+
+.summaryStarsLabel {
+  font-size: 12px;
+  color: #9aa3ad;
+  line-height: 1.45;
+}
+
+.summaryStarsBest {
+  display: block;
+  margin-top: 2px;
+  font-weight: 600;
+  color: #d7c58a;
+}

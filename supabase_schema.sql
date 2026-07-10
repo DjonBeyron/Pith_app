@@ -1361,4 +1361,196 @@ language sql security definer as $$
   limit least(greatest(coalesce(p_limit, 100), 1), 200);
 $$;
 
+-- ═══════════════════════════════════════════════════════════════
+-- Золотые билеты + достижение «Чистый финал» (2026-07-11)
+-- ═══════════════════════════════════════════════════════════════
+-- Билет — топ-валюта: выдаётся за прохождение Финала модуля с ≤3
+-- подсказками (раскрытиями перевода), максимум один билет с модуля
+-- за всю жизнь (module_tickets). Тратится при старте супер-урока
+-- гонки (start_race, один раз на гонку — повторный вход после
+-- прерывания бесплатный). 0 подсказок = достижение clean_final →
+-- золотая подложка (cosmetics.bg2).
+
+alter table public.user_profiles add column if not exists tickets int not null default 0;
+
+-- Реестр «билет с этого модуля уже получен» — гарантия редкости.
+-- module_id — text: curricula.id текстовый (не uuid).
+create table if not exists public.module_tickets (
+  user_id   uuid not null references auth.users on delete cascade,
+  module_id text not null references public.curricula on delete cascade,
+  hints     int not null default 0,
+  earned_at timestamptz not null default now(),
+  primary key (user_id, module_id)
+);
+
+alter table public.module_tickets enable row level security;
+drop policy if exists module_tickets_select_own on public.module_tickets;
+create policy module_tickets_select_own
+  on public.module_tickets for select using (auth.uid() = user_id);
+
+-- Новый kind достижения: clean_final (Финал без единой подсказки).
+alter table public.user_achievements drop constraint if exists user_achievements_kind_check;
+alter table public.user_achievements add constraint user_achievements_kind_check
+  check (kind in ('level10', 'race_finisher', 'race_winner', 'clean_final'));
+
+-- Выдача билета: клиент зовёт после complete_lesson Финала, передаёт
+-- число подсказок (анти-чит v1: серверу приходится верить клиенту —
+-- тот же осознанный компромисс, что у времени/ошибок гонки).
+-- Сервер проверяет: Финал модуля реально пройден (lesson_results),
+-- модуль не про-модуль, билет с модуля ещё не выдавался.
+create or replace function public.award_module_ticket(p_module_id text, p_hints int)
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_hints   int  := greatest(0, coalesce(p_hints, 0));
+  v_final   text;
+  v_tickets int;
+begin
+  if v_uid is null then return jsonb_build_object('ok', false, 'reason', 'not_logged_in'); end if;
+
+  select c.lesson_ids->>(jsonb_array_length(c.lesson_ids) - 1)
+  into v_final
+  from public.curricula c
+  where c.id = p_module_id and coalesce(c.is_pro, false) = false;
+  if v_final is null then return jsonb_build_object('ok', false, 'reason', 'no_module'); end if;
+
+  if not exists(
+    select 1 from public.lesson_results
+    where user_id = v_uid and lesson_id = v_final and xp_awarded
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'final_not_done');
+  end if;
+
+  -- Идеальное прохождение: достижение выдаётся и при пересдаче,
+  -- независимо от того, получен ли билет с этого модуля раньше.
+  if v_hints = 0 then
+    insert into public.user_achievements (user_id, kind)
+    values (v_uid, 'clean_final')
+    on conflict do nothing;
+  end if;
+
+  if v_hints > 3 then
+    return jsonb_build_object('ok', false, 'reason', 'hints', 'clean', false);
+  end if;
+
+  insert into public.module_tickets (user_id, module_id, hints)
+  values (v_uid, p_module_id, v_hints)
+  on conflict do nothing;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'already', 'clean', v_hints = 0);
+  end if;
+
+  update public.user_profiles
+  set tickets = tickets + 1
+  where id = v_uid
+  returning tickets into v_tickets;
+
+  return jsonb_build_object('ok', true, 'tickets', v_tickets, 'clean', v_hints = 0);
+end;
+$$;
+
+-- Списания билетов по гонкам: одна строка = вход оплачен. Повторный
+-- start_race той же гонки (прерванная попытка) билет не списывает.
+create table if not exists public.race_ticket_spends (
+  race_id  uuid not null references public.races on delete cascade,
+  user_id  uuid not null references auth.users on delete cascade,
+  spent_at timestamptz not null default now(),
+  primary key (race_id, user_id)
+);
+
+alter table public.race_ticket_spends enable row level security;
+drop policy if exists race_ticket_spends_select_own on public.race_ticket_spends;
+create policy race_ticket_spends_select_own
+  on public.race_ticket_spends for select using (auth.uid() = user_id);
+
+-- Открытие доступа к гонке: списывает 1 билет атомарно (админ — бесплатно).
+-- Доступно с момента анонса и до конца гонки (не только в сб-вс): билет
+-- покупает вход на страницу гонки, супер-урок дальше без доплат.
+create or replace function public.start_race(p_race_id uuid)
+returns jsonb language plpgsql security definer as $$
+declare
+  r    public.races;
+  prof public.user_profiles;
+begin
+  if auth.uid() is null then return jsonb_build_object('ok', false, 'reason', 'not_logged_in'); end if;
+  select * into r from public.races where id = p_race_id;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no_race'); end if;
+  if r.ends_at is not null and now() > r.ends_at then
+    return jsonb_build_object('ok', false, 'reason', 'closed');
+  end if;
+
+  if exists(select 1 from public.race_ticket_spends
+            where race_id = p_race_id and user_id = auth.uid()) then
+    return jsonb_build_object('ok', true, 'already', true);
+  end if;
+
+  select * into prof from public.user_profiles where id = auth.uid() for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no_profile'); end if;
+
+  if not prof.is_admin then
+    if coalesce(prof.tickets, 0) <= 0 then
+      return jsonb_build_object('ok', false, 'reason', 'no_ticket');
+    end if;
+    update public.user_profiles set tickets = tickets - 1 where id = auth.uid();
+  end if;
+
+  insert into public.race_ticket_spends (race_id, user_id)
+  values (p_race_id, auth.uid())
+  on conflict do nothing;
+
+  return jsonb_build_object('ok', true, 'tickets', greatest(0, coalesce(prof.tickets, 0) - 1));
+end;
+$$;
+
+-- set_cosmetics v2: + золотая подложка bg2 (достижение clean_final).
+create or replace function public.set_cosmetics(p_cosmetics jsonb)
+returns jsonb language plpgsql security definer as $$
+declare v jsonb := '{}';
+begin
+  if auth.uid() is null then return null; end if;
+  if coalesce((p_cosmetics->>'bg')::boolean, false) and exists
+     (select 1 from public.user_achievements where user_id = auth.uid() and kind = 'level10')
+  then v := v || '{"bg":true}'::jsonb; end if;
+  if coalesce((p_cosmetics->>'bg2')::boolean, false) and exists
+     (select 1 from public.user_achievements where user_id = auth.uid() and kind = 'clean_final')
+  then v := v || '{"bg2":true}'::jsonb; end if;
+  if coalesce((p_cosmetics->>'frame')::boolean, false) and exists
+     (select 1 from public.user_achievements where user_id = auth.uid() and kind = 'race_finisher')
+  then v := v || '{"frame":true}'::jsonb; end if;
+  if coalesce((p_cosmetics->>'medal')::boolean, false) and exists
+     (select 1 from public.user_achievements where user_id = auth.uid() and kind = 'race_winner')
+  then v := v || '{"medal":true}'::jsonb; end if;
+  update public.user_profiles set cosmetics = v where id = auth.uid();
+  return v;
+end;
+$$;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Звёзды обычных уроков (2026-07-11)
+-- ═══════════════════════════════════════════════════════════════
+-- Чистая косметика на схеме модуля: 3★ — без ошибок, 2★ — 1–2 ошибки,
+-- 1★ — пройден. Хранится ЛУЧШИЙ результат (пересдача хуже не портит).
+-- Только уроки между Стартом и Финалом; звёзды считает клиент (анти-чит
+-- v1 — компромисс как у подсказок Финала, на игровой баланс не влияют).
+
+alter table public.lesson_results add column if not exists stars int not null default 0;
+
+-- Сохранить звёзды урока: кламп 1..3, только вверх (greatest). Требует
+-- существующую строку lesson_results (создаёт complete_lesson — RPC зовётся
+-- после него). Возвращает итоговые звёзды (0 — строки нет / не залогинен).
+create or replace function public.save_lesson_stars(p_lesson_id text, p_stars int)
+returns int language plpgsql security definer as $$
+declare
+  v_stars int := least(3, greatest(1, coalesce(p_stars, 1)));
+  v_out   int;
+begin
+  if auth.uid() is null then return 0; end if;
+  update public.lesson_results
+  set stars = greatest(stars, v_stars)
+  where user_id = auth.uid() and lesson_id = p_lesson_id
+  returning stars into v_out;
+  return coalesce(v_out, 0);
+end;
+$$;
+
 notify pgrst, 'reload schema';

@@ -11,6 +11,8 @@ import { resetLessonProgress, startLesson } from '../../shared/api/profileApi.js
 import EnergyPaywall from './EnergyPaywall.jsx'
 import ModuleVideoPanel from './ModuleVideoPanel.jsx'
 import { loadAllEvents, clearLocalEvents } from '../../shared/lib/skillStatsStore.js'
+import { getLocalStars } from '../../shared/lib/lessonStars.js'
+import { fetchMyLessonStars } from '../../shared/api/starsApi.js'
 import { markModuleStarted, unmarkModuleStarted } from '../../shared/api/moduleSocialApi.js'
 import { dbg } from '../../shared/lib/debug.js'
 import PriorityLegend from './PriorityLegend.jsx'
@@ -20,6 +22,18 @@ import { useAuth } from '../../shared/lib/useAuth.js'
 import { weekKey, MODULE_DONE_WEEK_KEY } from '../race/useRaceState.js'
 
 const LEGEND_SEEN_KEY = 'pithy_priority_legend_seen_v1'
+
+// Карта звёзд уроков: максимум локального стора (мгновенно, работает и гостю)
+// и сервера (переносится между устройствами). Чистый хелпер без setState —
+// компонент подписывает setStars через .then (react-hooks/set-state-in-effect).
+async function loadStarsMap(user, lessons) {
+  const merged = new Map(getLocalStars())
+  if (user && lessons.length > 2) {
+    const server = await fetchMyLessonStars(lessons.slice(1, -1).map(l => l.id))
+    server.forEach((v, id) => merged.set(id, Math.max(v, merged.get(id) ?? 0)))
+  }
+  return merged
+}
 
 // Экран одного модуля: схема Старт → уроки → Финал, запуск уроков через
 // карточку прогрева, плеер, приоритеты анализа знаний. Используется и во
@@ -49,6 +63,9 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const [showLegend,      setShowLegend]      = useState(false)
   // Попап только что закрыт — отложенная анимация графа идёт с половинным офсетом
   const [postLegend,      setPostLegend]      = useState(false)
+  // Звёзды уроков модуля: Map<lessonId, 1..3> — максимум из локального стора
+  // и сервера (lesson_results.stars), для отображения на карточках схемы
+  const [stars,           setStars]           = useState(null)
   // Отказ start_lesson: показать экран «Энергия закончилась» ({ nextAt })
   const [noEnergy,        setNoEnergy]        = useState(null)
   // Мягкое предложение Pro после первого прохождения Финала (момент успеха)
@@ -79,6 +96,14 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
       })
       .catch(() => null)
   }
+
+  // Звёзды: при загрузке уроков и после каждого прохождения (локальный стор
+  // уже обновлён плеером к моменту вызова).
+  const refreshStars = (ls = lessons) => loadStarsMap(user, ls).then(setStars)
+
+  useEffect(() => {
+    if (!isPro && lessons.length > 0) refreshStars(lessons)
+  }, [lessons, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function closeLegend() {
     localStorage.setItem(LEGEND_SEEN_KEY, '1')
@@ -154,6 +179,14 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
         videoAutoSound={playerData.videoAutoSound ?? false}
         initialBlobMap={playerData.blobMap}
         recordStats={statsMode !== 'silent'} /* «без записи» — анализ не пишется */
+        /* Финал модуля (залогинен, не про-модуль): панель подсказок + золотой билет */
+        finalTicket={!isPro && user && lessons.length > 0 &&
+          playingLessonId === lessons[lessons.length - 1].id
+          ? { moduleId: curriculumId } : null}
+        /* Обычный урок (между Стартом и Финалом): звёзды по ошибкам */
+        starsEligible={!isPro && lessons.length > 2 &&
+          playingLessonId !== lessons[0].id &&
+          playingLessonId !== lessons[lessons.length - 1].id}
         onClose={() => setPlayerData(null)}
         onSummaryClose={async () => {
           if (playingLessonId) {
@@ -174,6 +207,8 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
               if (!wasDone && p && !p.has_subscription && !p.is_admin) setProOffer(true)
             }
           }
+          // Звёзды: локальный стор уже обновлён плеером — пересобрать карту
+          refreshStars()
           // Ждём пересчёт приоритетов ДО закрытия плеера — граф отрисуется
           // сразу с готовыми полосками, без скачка UI на глазах пользователя
           const map = await refreshPriorities()
@@ -240,6 +275,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           lessons={lessons}
           completedIds={completedIds}
           priorities={priorities}
+          stars={stars}
           animHold={showLegend} /* пока попап открыт — вся анимация графа на паузе */
           animShort={postLegend}
           justCompleted={justCompleted}

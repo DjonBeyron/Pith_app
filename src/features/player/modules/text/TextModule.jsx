@@ -14,7 +14,7 @@ function TranslateIcon() {
   )
 }
 
-export default function TextModule({ node, lessonNodes = [], lessonFiles = [], teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates, onDone }) {
+export default function TextModule({ node, lessonNodes = [], lessonFiles = [], teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates, onDone, onTrReveal }) {
   useEffect(() => { onDone?.() }, []) // eslint-disable-line
   const tData      = node.typeData?.text ?? {}
   const content    = tData.content ?? ''
@@ -43,6 +43,7 @@ export default function TextModule({ node, lessonNodes = [], lessonFiles = [], t
   function openTr(e) {
     e.stopPropagation()
     pLog('[tr] открытие перевода')
+    onTrReveal?.() // Финал: тратит подсказку (повтор того же сообщения — нет)
     pulseFollow()
     setTypingKey(k => k + 1)
     setTrOpen(true)

@@ -35,15 +35,28 @@
      полосы) — вниз на инсет сдвигаются только верхние оверлеи */
 }
 
-/* Значок энергии — правый верхний угол, тап открывает мини-окно */
-.energyWrap {
+/* Верхняя панель игрока: уровень · золотые билеты · энергия.
+   Позиционируется панель целиком, значки внутри — обычный flex-ряд */
+.hudBar {
   position: absolute;
   top: calc(10px + env(safe-area-inset-top, 0px));
   right: 12px;
   z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.energyBadge {
+/* Каждый значок — якорь своего мини-окна (.energyPop) */
+.energyWrap,
+.ticketWrap,
+.levelWrap {
+  position: relative;
+}
+
+.energyBadge,
+.ticketBadge,
+.levelBadge {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -57,11 +70,17 @@
   cursor: pointer;
 }
 
-.energyBadge svg {
+.energyBadge svg,
+.ticketBadge svg,
+.levelBadge svg {
   width: 13px;
   height: 13px;
   color: #b6fe3b;
 }
+
+/* Билет — золотой, уровень — нейтрально-серебристый */
+.ticketBadge svg { color: #ffd257; }
+.levelBadge svg { color: #c9d3e0; }
 
 .energyPopBackdrop {
   position: fixed;

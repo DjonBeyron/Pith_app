@@ -92,8 +92,8 @@ export default function UserBadge({
         )}
       </span>
 
-      {/* Ник: с подложкой или без */}
-      <span className={`ubNick${cosmetics.bg ? ' ubNickBg' : ''}`}>
+      {/* Ник: золотая подложка (bg2, «Чистый финал») важнее лаймовой (bg) */}
+      <span className={`ubNick${cosmetics.bg2 ? ' ubNickBg ubNickBg2' : cosmetics.bg ? ' ubNickBg' : ''}`}>
         {nickname}
       </span>
 

@@ -1,12 +1,17 @@
 import UserBadge from '../../shared/ui/UserBadge.jsx'
 
-// Описания трёх достижений: какое условие и какую косметику открывает.
+// Описания достижений: какое условие и какую косметику открывает.
 // key косметики = поле в user_profiles.cosmetics.
 const ACH_DEFS = [
   {
     kind: 'level10', cosmeticKey: 'bg', icon: '⭐',
     name: '10-й уровень',
     desc: 'Достигни 10-го уровня («Легенда», 8000 XP). Открывает подложку под ник.',
+  },
+  {
+    kind: 'clean_final', cosmeticKey: 'bg2', icon: '🎟',
+    name: 'Чистый финал',
+    desc: 'Пройди Финал модуля без единой подсказки. Открывает золотую подложку под ник.',
   },
   {
     kind: 'race_finisher', cosmeticKey: 'frame', icon: '🏁',

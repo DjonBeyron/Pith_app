@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
+import { TicketBlock, StarsBlock } from './SummaryBadges.jsx'
 
 // ── Confetti canvas ────────────────────────────────────────────────────────
 const COLORS = ['#b6fe3b','#ff6b6b','#ffd93d','#6bcfff','#c77dff','#ff9f43','#ff6fd8']
@@ -223,7 +224,7 @@ function XpTransfer({ earnedXp, baseXp, onDone }) {
 }
 
 // ── Main component ─────────────────────────────────────────────────────────
-export default function LessonSummary({ earnedXp = 0, baseXp = 0, onClose }) {
+export default function LessonSummary({ earnedXp = 0, baseXp = 0, ticket = null, hintLimit = 3, stars = null, onClose }) {
   const totalXp   = baseXp + earnedXp
   const prevLevel = getCurrentLevel(baseXp)
   const newLevel  = getCurrentLevel(totalXp)
@@ -246,6 +247,9 @@ export default function LessonSummary({ earnedXp = 0, baseXp = 0, onClose }) {
           <div className="summaryTitle">Урок завершён</div>
 
           <XpTransfer baseXp={baseXp} earnedXp={earnedXp} onDone={() => setDone(true)} />
+
+          <StarsBlock stars={stars} />
+          <TicketBlock ticket={ticket} hintLimit={hintLimit} />
 
           {levelUp && (
             <div className={`summaryLevelUpBlock${done ? ' summaryLevelUpBlockVisible' : ''}`}>

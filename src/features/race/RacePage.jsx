@@ -4,6 +4,8 @@ import RaceCountdown from './RaceCountdown.jsx'
 import RaceRunner from './RaceRunner.jsx'
 import RaceSummary from './RaceSummary.jsx'
 import { finishRace, fetchMyRaceRank } from '../../shared/api/raceApi.js'
+import { startRace } from '../../shared/api/ticketApi.js'
+import { getCachedProfile, refreshProfile } from '../../shared/api/profileCache.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import PushToggle from '../profile/PushToggle.jsx'
 import CurriculumView from '../lessons/CurriculumView.jsx'
@@ -27,6 +29,24 @@ export default function RacePage({ onBack }) {
   const [summary,    setSummary]    = useState(null)  // итоги супер-урока { errors, timeMs, rank }
   const [notice,     setNotice]     = useState('')
   const { user } = useAuth()
+
+  // Обычно доступ уже оплачен билетом в попапе-шлагбауме (RaceTicketGate) —
+  // здесь start_race сработает как «уже оплачено». Страховка для путей в
+  // обход шлагбаума (попап-анонс недели): спишет билет при старте супер-урока.
+  async function enterRace() {
+    const res = await startRace(race.id)
+    if (res?.ok) {
+      // Если билет списался только что — обновляем кэш, чтобы счётчик 🎟
+      // в шапке не показывал старый баланс
+      if (!res.already) refreshProfile()
+      setRunRace(true)
+      return
+    }
+    setNotice(res?.reason === 'no_ticket'
+      ? 'Нужен золотой билет 🎟 — пройди Финал любого модуля максимум с 3 подсказками'
+      : res?.reason === 'closed' ? 'Гонка уже завершена'
+        : 'Не удалось войти в гонку')
+  }
 
   if (openModule) {
     return (
@@ -109,9 +129,19 @@ export default function RacePage({ onBack }) {
             </div>
           ) : phase === 'running' ? (
             raceModule?.lessons?.length
-              ? <button className="raceBigBtn raceBigBtnGo" onClick={() => setRunRace(true)}>
-                  🏁 Начать супергонку
-                </button>
+              ? (() => {
+                  const prof = getCachedProfile()
+                  return (
+                    <>
+                      <button className="raceBigBtn raceBigBtnGo" onClick={enterRace}>
+                        🏁 Начать супергонку
+                      </button>
+                      <div className="raceTicketHint">
+                        {prof?.is_admin ? 'Админ: вход свободный' : 'Доступ оплачен золотым билетом 🎟'}
+                      </div>
+                    </>
+                  )
+                })()
               : <div className="raceBigBtn raceBigBtnOff">Супер-урок ещё не назначен</div>
           ) : (
             <div className="raceBigBtn raceBigBtnReady">

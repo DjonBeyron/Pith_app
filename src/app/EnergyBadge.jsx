@@ -27,9 +27,10 @@ function fmtLeft(ms) {
   return h > 0 ? `через ${h}:${m}:${sec}` : `через ${m}:${sec}`
 }
 
-// Значок энергии в правом верхнем углу (везде, кроме профиля). Тап — мини-окно:
-// что такое энергия и живой таймер до следующей +1; тап вне окна закрывает.
-export default function EnergyBadge({ hidden }) {
+// Значок энергии в верхней панели (hudBar в ShellV2; видимостью управляет
+// оболочка). Тап — мини-окно: что такое энергия и живой таймер до следующей
+// +1; тап вне окна закрывает.
+export default function EnergyBadge() {
   const { user } = useAuth()
   const [profile, setProfile] = useState(getCachedProfile)
   const [open, setOpen] = useState(false)
@@ -47,7 +48,7 @@ export default function EnergyBadge({ hidden }) {
     return () => clearInterval(t)
   }, [open])
 
-  if (hidden || !user || !profile) return null
+  if (!user || !profile) return null
   const unlimited = profile.has_subscription || profile.is_admin
   const { value, nextAt } = calcEnergy(profile, now)
 

@@ -4,6 +4,7 @@ import XpFlight, { FLIGHT_DELAY_MS } from './XpFlight.jsx'
 import ChainLines from './ChainLines.jsx'
 import MgFinalNode, { LockIcon } from './MgFinalNode.jsx'
 import MgStartNode from './MgStartNode.jsx'
+import MgStars from './MgStars.jsx'
 import { useChainScroll } from './useChainScroll.js'
 import { useChainArcs } from './useChainArcs.js'
 
@@ -23,6 +24,7 @@ export default function ModuleGraph({
   completedIds = new Set(),
   justCompleted = null,
   priorities = null, // Map<lessonId, 'high'|'medium'|'low'> из анализа знаний; null у урока = без полоски
+  stars = null,      // Map<lessonId, 1..3> — звёзды пройденных обычных уроков (лучший результат)
   animHold = false,  // true (попап-легенда открыт) — пульс/полёт XP/озеленение линий ждут закрытия
   animShort = false, // true (попап только что закрыт) — офсет анимации вдвое короче
   onFlightDone,
@@ -230,6 +232,9 @@ export default function ModuleGraph({
             const locked = !startDoneShown
             const pKey  = priorities?.get(l.id) ?? null
             const pInfo = pKey ? PRIORITY[pKey] : null
+            // Звёзды показываются только на пройденном уроке; 0/нет записи
+            // (пройден до появления фичи) — остаётся обычная подпись
+            const st = done ? (stars?.get(l.id) ?? 0) : 0
             return (
               <div
                 key={l.id}
@@ -264,7 +269,9 @@ export default function ModuleGraph({
                       <span className="mgLessonXp">+{l.lessonXp} XP</span>
                     )}
                   </div>
-                  <span className="mgLessonSub">Пройдите и получите</span>
+                  {st > 0
+                    ? <MgStars value={st} />
+                    : <span className="mgLessonSub">Пройдите и получите</span>}
                   {pInfo && (
                     <div className={`mgLessonPriority mgLessonPriority--${pKey}`}>
                       <span className="mgLessonPriorityIcon">{pInfo.icon}</span>

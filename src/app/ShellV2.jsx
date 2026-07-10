@@ -7,6 +7,8 @@ import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
 import CanvasPage from '../features/canvas/CanvasPage.jsx'
 import EnergyBadge from './EnergyBadge.jsx'
+import TicketBadge from './TicketBadge.jsx'
+import LevelBadge from './LevelBadge.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
 
@@ -32,7 +34,14 @@ export default function ShellV2() {
 
   return (
     <div className="shellV2">
-      <EnergyBadge hidden={tab === 'profile'} />
+      {/* Верхняя панель игрока: уровень · золотые билеты · энергия */}
+      {tab !== 'profile' && (
+        <div className="hudBar">
+          <LevelBadge />
+          <TicketBadge />
+          <EnergyBadge />
+        </div>
+      )}
 
       {/* Все вкладки смонтированы всегда: переключение — только видимость.
           Нет перезагрузок и моргания, лента греет видео с самого старта,

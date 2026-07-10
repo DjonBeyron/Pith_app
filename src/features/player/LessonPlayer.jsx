@@ -12,9 +12,14 @@ import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { useAnswerStats, wordOptionEvent } from './useAnswerStats.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
-import { getPlayerLines } from '../../shared/lib/debug.js'
+import { downloadDebugLog } from './downloadDebugLog.js'
 import XpFloat from './XpFloat.jsx'
 import LessonSummary from './LessonSummary.jsx'
+import HintBar from './HintBar.jsx'
+import { useFinalHints, HINT_LIMIT } from './useFinalHints.js'
+import { awardModuleTicket } from '../../shared/api/ticketApi.js'
+import { starsFromErrors, setLocalStars } from '../../shared/lib/lessonStars.js'
+import { saveLessonStars } from '../../shared/api/starsApi.js'
 import { addLocalXp, getLocalXp } from '../../shared/lib/localProfile.js'
 import { completeLesson, getProfile } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
@@ -45,11 +50,20 @@ export default function LessonPlayer({
   lessonId = null,
   recordStats = true, // false (пересдача «без записи») — события анализа не пишутся
   onFinishStats = null, // супергонка: ({ errors, timeMs }) в момент финиша урока
+  finalTicket = null, // Финал модуля: { moduleId } — подсказки + золотой билет
+  starsEligible = false, // обычный урок модуля (не Старт/Финал): звёзды по ошибкам
   onClose,
   onSummaryClose,
 }) {
   const [files, setFiles] = useState(propFiles)
   const earnedXpRef = useRef(0)
+  // Золотой билет за Финал: счётчик подсказок (раскрытий перевода) и итог
+  const { count: hintCount, registerHint, getCount: getHintCount } = useFinalHints(!!finalTicket)
+  const [ticketRes, setTicketRes] = useState(null)
+  // Звёзды обычного урока: свой счётчик неверных ответов — независим от
+  // recordStats (пересдача «без записи» не должна дарить 3★ из-за пустых событий)
+  const wrongRef = useRef(0)
+  const [starsRes, setStarsRes] = useState(null)
   const { panelShown, record, getEvents } = useAnswerStats({ sourceLessonId: lessonId, enabled: recordStats })
   const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes, {
     onFinish: () => {
@@ -70,6 +84,13 @@ export default function LessonPlayer({
 
   function finishSummary() {
     setTimeout(async () => {
+      // Звёзды обычного урока: считаются и гостю, и залогиненному; локальный
+      // стор обновляется сразу (схема модуля покажет без похода на сервер)
+      let stars = null
+      if (starsEligible && lessonId) {
+        stars = { earned: starsFromErrors(wrongRef.current), best: 0 }
+        setLocalStars(lessonId, stars.earned)
+      }
       const profile = await getProfile()
       if (profile) {
         // Залогинен: XP начисляет сервер по своей копии урока, один раз за урок.
@@ -78,6 +99,16 @@ export default function LessonPlayer({
         const awarded = lessonId ? await completeLesson(lessonId) : 0
         // События анализа — после completeLesson: он создаёт строку lesson_results
         await saveAnswerEvents(getEvents(), { sourceLessonId: lessonId, isLoggedIn: true })
+        // Финал модуля: выдача золотого билета (после completeLesson — сервер
+        // проверяет lesson_results). Итог показывается в LessonSummary.
+        if (finalTicket?.moduleId) {
+          const hints = getHintCount()
+          const t = await awardModuleTicket(finalTicket.moduleId, hints)
+          if (t) setTicketRes({ ...t, hints })
+        }
+        // Звёзды на сервер — после completeLesson (он создаёт строку
+        // lesson_results); сервер вернёт лучший результат (только вверх)
+        if (stars) stars.best = await saveLessonStars(lessonId, stars.earned)
         setEarnedXp(awarded)
         refreshProfile() // фоном обновляем кэш — вкладка «Профиль» откроется уже со свежим XP
         // Пересечение уровня — системное пуш-поздравление самому себе
@@ -94,6 +125,7 @@ export default function LessonPlayer({
         saveAnswerEvents(getEvents(), { sourceLessonId: lessonId, isLoggedIn: false })
         setEarnedXp(earned)
       }
+      if (stars) setStarsRes(stars)
       setShowSummary(true)
     }, 2000)
   }
@@ -153,39 +185,9 @@ export default function LessonPlayer({
     prevVisibleRef.current = visibleNodes
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function downloadCombinedLog() {
-    const ts = new Date().toISOString()
-    const lines = [
-      `=== Pithy Player Debug Log ===`,
-      `ts: ${ts}`,
-      `ua: ${navigator.userAgent}`,
-      `device: memory=${navigator.deviceMemory ?? 'n/a'} cpu=${navigator.hardwareConcurrency ?? 'n/a'} conn=${navigator.connection?.effectiveType ?? 'n/a'}`,
-      ``,
-      `--- Player log (pLog) ---`,
-      ...getPlayerLines(),
-      ``,
-      `--- Node timeline ---`,
-      ...nodeAppearLogRef.current.map(n =>
-        `seq=${n.seq} type=${n.type} at=${n.appearTs} blobReady=${n.blobReady} evicted=${n.blobEvicted} error=${n.blobError}`
-      ),
-      ``,
-      `--- Downloads ---`,
-      ...debugItems.map(d =>
-        `#${d.seq} ${d.type} ${d.status} http=${d.httpStatus ?? '-'} ${d.sizeKb ?? '-'}KB start=${d.startTs} ready=${d.readyTs} msg=${d.msgTs ?? '-'} ${d.error ?? ''}`
-      ),
-      ``,
-      `--- Stats events (анализ знаний) ---`,
-      ...getEvents().map(e =>
-        `${e.type} урок=${e.lessonId} попытка=${e.attempt} время=${e.timeMs ?? '?'}мс «${e.option}» сессия=${e.sessionId}`
-      ),
-    ]
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `pithy-debug-${Date.now()}.txt`
-    a.click()
-    URL.revokeObjectURL(a.href)
-  }
+  const downloadCombinedLog = () => downloadDebugLog({
+    nodeAppearLog: nodeAppearLogRef.current, debugItems, events: getEvents(),
+  })
 
   const filesWithBlobs = useMemo(
     () => files.map(f => {
@@ -207,6 +209,7 @@ export default function LessonPlayer({
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     const result = isCorrect ? 'photo_correct' : 'photo_wrong'
+    if (!isCorrect) wrongRef.current += 1
     const pcNode = nodes.find(n => n.id === nodeId)
     record({
       nodeId,
@@ -290,6 +293,7 @@ export default function LessonPlayer({
           teacherLogoCrop={teacherLogoCrop}
           onDownloadLog={downloadCombinedLog}
         />
+        {finalTicket && <HintBar count={hintCount} />}
         {pmNode && pinVisible && (
           <PinMessageBanner
             content={pmNode.typeData?.pin_message?.content ?? ''}
@@ -335,6 +339,7 @@ export default function LessonPlayer({
                     bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight || regPanelHeight}
                     videoAutoSound={videoAutoSound}
                     onDone={isPending ? () => {} : () => onNodeDone(node.id)}
+                    onTrReveal={() => registerHint(node.id)}
                     rewardXp={xpMap.get(node.id) ?? 0}
                     photoXpPending={pendingPhotoXp[node.id] ?? 0}
                     onPhotoXpFired={(rect) => handlePhotoXpFired(node.id, rect)}
@@ -354,7 +359,11 @@ export default function LessonPlayer({
             xpAmount={xpMap.get(wcNode.id) ?? 0}
             onDone={(result) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result) }}
             onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result)}
-            onPicked={(opt) => record({ nodeId: wcNode.id, ...wordOptionEvent(wcNode, opt) })}
+            onPicked={(opt) => {
+              const ev = wordOptionEvent(wcNode, opt)
+              if (ev.type === 'wrong') wrongRef.current += 1
+              record({ nodeId: wcNode.id, ...ev })
+            }}
             onXpEarned={handleXpEarned}
             onHeightChange={setWcPanelHeight}
           />
@@ -366,12 +375,15 @@ export default function LessonPlayer({
             xpAmount={xpMap.get(paNode.id) ?? 0}
             onDone={(result) => { setPaPanelHeight(0); onNodeDone(paNode.id, result) }}
             onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
-            onChecked={(result, text) => record({
-              nodeId: paNode.id,
-              lessonId: paNode.typeData?.phrase_assembly?.statLessonId ?? null,
-              type: result,
-              option: text,
-            })}
+            onChecked={(result, text) => {
+              if (result === 'wrong') wrongRef.current += 1
+              record({
+                nodeId: paNode.id,
+                lessonId: paNode.typeData?.phrase_assembly?.statLessonId ?? null,
+                type: result,
+                option: text,
+              })
+            }}
             onXpEarned={handleXpEarned}
             onHeightChange={setPaPanelHeight}
           />
@@ -402,6 +414,9 @@ export default function LessonPlayer({
         <LessonSummary
           earnedXp={earnedXp}
           baseXp={baseXp}
+          ticket={ticketRes}
+          hintLimit={HINT_LIMIT}
+          stars={starsRes}
           onClose={onSummaryClose ?? onClose}
         />
       )}
