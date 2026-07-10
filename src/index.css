@@ -8,6 +8,7 @@
 @import './styles/my-lessons-v2.css';
 @import './styles/profile-v2.css';
 @import './styles/energy-v2.css';
+@import './styles/pro.css';
 @import './styles/module-video.css';
 @import './styles/admin-v2.css';
 @import './styles/admin-race.css';
@@ -49,6 +50,7 @@
 @import './styles/canvas/text-pro.css';
 @import './styles/canvas/stat-link.css';
 @import './styles/rating-v2.css';
+@import './styles/rating-podium.css';
 @import './styles/race-v2.css';
 @import './styles/settings.css';
 @import './styles/auth.css';

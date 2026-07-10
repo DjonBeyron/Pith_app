@@ -28,18 +28,23 @@ const MEDAL_COLORS = {
 
 /**
  * UserBadge — карточка участника рейтинга.
- * @param {string}      nickname   — ник пользователя
- * @param {string}      userId     — для детерминированного цвета аватара
- * @param {object}      cosmetics  — { bg, frame, medal } — что надето
- * @param {number|null} medalPlace — 1/2/3; если cosmetics.medal — показываем медаль
- * @param {number}      size       — диаметр аватара в px (по умолчанию 40)
+ * @param {string}      nickname    — ник пользователя
+ * @param {string}      userId      — для детерминированного цвета аватара
+ * @param {object}      cosmetics   — { bg, frame, medal } — что надето
+ * @param {number|null} medalPlace  — 1/2/3; если cosmetics.medal — показываем медаль
+ * @param {number|null} wreathPlace — 1/2/3: лавровый венок вокруг аватара
+ *                                    (топ-3 рейтинга; 2/3 перекрашены CSS-фильтром)
+ * @param {number}      size        — диаметр аватара в px (по умолчанию 40)
+ * @param {boolean}     pro         — подписчик Pithy Pro: золотой чип PRO у ника
  */
 export default function UserBadge({
   nickname = '?',
   userId = '',
   cosmetics = {},
   medalPlace = null,
+  wreathPlace = null,
   size = 40,
+  pro = false,
 }) {
   const color = hashColor(userId || nickname)
   const letter = (nickname[0] ?? '?').toUpperCase()
@@ -58,8 +63,16 @@ export default function UserBadge({
 
   return (
     <span className="ubWrap">
-      {/* Обёртка аватара — position:relative нужен для медали */}
+      {/* Обёртка аватара — position:relative нужен для медали и венка */}
       <span className="ubAvatarWrap" style={{ position: 'relative', flexShrink: 0 }}>
+        {/* Венок топ-3: форма 1/2 места — лавры с лучами, 3 — плотный венок */}
+        {wreathPlace >= 1 && wreathPlace <= 3 && (
+          <img
+            className={`ubWreath ubWreath${wreathPlace}`}
+            src={wreathPlace === 3 ? '/rating/wreath-dense.svg' : '/rating/wreath-laurel.svg'}
+            alt=""
+          />
+        )}
         <span
           className={`ubAvatar${cosmetics.frame ? ' ubAvatarFrame' : ''}`}
           style={avatarStyle}
@@ -83,6 +96,8 @@ export default function UserBadge({
       <span className={`ubNick${cosmetics.bg ? ' ubNickBg' : ''}`}>
         {nickname}
       </span>
+
+      {pro && <span className="ubPro">PRO</span>}
     </span>
   )
 }

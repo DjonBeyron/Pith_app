@@ -155,8 +155,31 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     return () => { cancelled = true }
   }, [])
 
+  // Deep-link репоста (/?m=<id>): лента начинается с расшаренной фразы.
+  // Круг бесконечный, поэтому просто поворачиваем список — фраза первой,
+  // остальное следом. Если модуль не в рекомендациях (начат/черновик) —
+  // лента обычная. Параметр убираем из адресной строки, но помним в ref.
+  const deepLinkRef = useRef(new URLSearchParams(location.search).get('m'))
+  useEffect(() => {
+    if (deepLinkRef.current) {
+      fdbg('deep-link: старт с модуля', deepLinkRef.current)
+      history.replaceState(null, '', location.pathname)
+    }
+  }, [])
+
   // Круг рекомендаций — только не начатые модули
-  const feedModules = (modules ?? []).filter(m => !startedIds.has(m.id))
+  let feedModules = (modules ?? []).filter(m => !startedIds.has(m.id))
+  if (deepLinkRef.current) {
+    const dlIdx = feedModules.findIndex(m => m.id === deepLinkRef.current)
+    if (dlIdx > 0) {
+      feedModules = [...feedModules.slice(dlIdx), ...feedModules.slice(0, dlIdx)]
+    } else if (dlIdx === -1) {
+      // Модуль начат (например, отправитель открыл свою же ссылку) — в
+      // рекомендациях его нет, но по прямой ссылке показываем всё равно
+      const dlMod = (modules ?? []).find(m => m.id === deepLinkRef.current)
+      if (dlMod) feedModules = [dlMod, ...feedModules]
+    }
+  }
   const len = feedModules.length
 
   // Отпускаем стартовый сплэш (index.html) не по приходу данных, а по ПЕРВОМУ

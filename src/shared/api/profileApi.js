@@ -8,7 +8,7 @@ export async function getProfile() {
 
   const { data, error } = await supabase
     .from('user_profiles')
-    .select('xp, energy, energy_updated_at, has_subscription, is_admin, nickname, cosmetics')
+    .select('xp, energy, energy_updated_at, has_subscription, subscription_until, is_admin, nickname, cosmetics')
     .eq('id', user.id)
     .single()
 

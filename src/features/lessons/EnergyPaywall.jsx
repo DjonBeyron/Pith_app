@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ProPaywall from '../pro/ProPaywall.jsx'
 
 function fmtLeft(ms) {
   if (ms <= 0) return 'уже доступна'
@@ -12,10 +13,11 @@ function fmtLeft(ms) {
 }
 
 // Экран «Энергия закончилась» (по макету energy.html): таймер до следующей
-// единицы, подписка (появится с этапом платежей), напоминание о бесплатных
-// повторах. Показывается поверх схемы модуля при отказе start_lesson.
+// единицы, кнопка подписки Pro (открывает ProPaywall), напоминание о
+// бесплатных повторах. Показывается поверх схемы модуля при отказе start_lesson.
 export default function EnergyPaywall({ nextAt, onClose }) {
   const [left, setLeft] = useState(() => new Date(nextAt) - Date.now())
+  const [showPro, setShowPro] = useState(false)
 
   useEffect(() => {
     const t = setInterval(() => setLeft(new Date(nextAt) - Date.now()), 1000)
@@ -31,14 +33,18 @@ export default function EnergyPaywall({ nextAt, onClose }) {
         <h1>Энергия закончилась</h1>
         <div className="epSub">Новый урок можно начать, когда<br />восстановится энергия</div>
         <div className="epTimer">+1 энергия {fmtLeft(left)}</div>
-        <button className="epBtnPrimary" disabled title="Появится с этапом платежей">
-          Подписка — безлимит (скоро)
+        <button className="epBtnPrimary" onClick={() => setShowPro(true)}>
+          Подписка Pro — безлимит энергии
         </button>
         <button className="epBtnGhost" onClick={onClose}>
           Повторять пройденное — бесплатно
         </button>
         <button className="epFree" onClick={onClose}>Вернуться</button>
       </div>
+
+      {showPro && (
+        <ProPaywall heading="Энергия закончилась?" onClose={() => setShowPro(false)} />
+      )}
     </div>
   )
 }

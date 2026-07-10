@@ -21,8 +21,14 @@ export function useProfileV2Data() {
     return unsubscribe
   }, [])
 
+  // Флаг «компонент жив» обязан взводиться заново при каждом монтировании:
+  // StrictMode монтирует → размонтирует → монтирует снова, и без сброса
+  // cancelled() навсегда true — вкладки профиля зависали на «Загрузка...»
   const aliveRef = useRef(true)
-  useEffect(() => () => { aliveRef.current = false }, [])
+  useEffect(() => {
+    aliveRef.current = true
+    return () => { aliveRef.current = false }
+  }, [])
 
   // load() вызывается на маунте и тихо (без флага loading) при каждом
   // возврате на вкладку — пользователь не видит перезагрузку

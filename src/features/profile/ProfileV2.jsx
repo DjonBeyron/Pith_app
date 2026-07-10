@@ -6,8 +6,12 @@ import SettingsTab from '../settings/SettingsTab.jsx'
 import PushToggle from './PushToggle.jsx'
 import NicknameCard from './NicknameCard.jsx'
 import CustomizationScreen from './CustomizationScreen.jsx'
+import ProPaywall from '../pro/ProPaywall.jsx'
+import { plural } from '../../shared/lib/plural.js'
 
 const BOLT = 'M13 2 4 14h6l-1 8 9-12h-6l1-8z'
+// Копилка слов: бесплатно видно первые 20, дальше — только с Pro
+const WORDS_FREE_CAP = 20
 
 // Профиль (ui v2, тёмная тема по макету profile.html): уровень, XP-бар,
 // энергия, вкладки Сохранённые / Пройденные / Копилка слов. Шестерёнка —
@@ -17,6 +21,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
   const [tab, setTab] = useState('words') // saved | done | words
   const [showSettings, setShowSettings] = useState(false)
   const [showCustomize, setShowCustomize] = useState(false)
+  const [showPro, setShowPro] = useState(false)
   const [openModule, setOpenModule] = useState(null)
 
   // Возврат на вкладку: тихое фоновое обновление (XP, копилка, закладки) —
@@ -99,6 +104,27 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
         </span>
       </div>
 
+      {/* Pithy Pro: статус подписки или ненавязчивое предложение.
+          Админ = Pro автоматически (безлимит и значок у него и так есть) */}
+      {profile?.has_subscription || profile?.is_admin ? (
+        <div className="pvCard pvProCard">
+          <span>👑 Pithy Pro</span>
+          <b className="pvProState">
+            {profile.is_admin
+              ? 'админ — безлимит'
+              : profile.subscription_until
+                ? `до ${new Date(profile.subscription_until).toLocaleDateString('ru', { day: 'numeric', month: 'long' })}`
+                : 'активна'}
+          </b>
+        </div>
+      ) : (
+        <button className="pvCard pvProCard" onClick={() => setShowPro(true)}>
+          <span>👑 Pithy Pro</span>
+          <b className="pvProState">безлимит энергии — 399 ₽/мес →</b>
+        </button>
+      )}
+      {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
+
       <PushToggle />
 
       {/* Кастомизация: достижения и косметика (подложка/рамка/медаль) */}
@@ -118,12 +144,11 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
       ) : tab === 'words' ? (
         words.length === 0
           ? <div className="pvEmpty">Проходи уроки — выученные слова будут копиться здесь</div>
-          : words.map(w => (
-            <div key={w.id} className="pvWord">
-              <span className="pvWordText">{w.word}</span>
-              <span className="pvWordFrom">{w.from}</span>
-            </div>
-          ))
+          : <WordsList
+              words={words}
+              unlimited={!!(profile?.has_subscription || profile?.is_admin)}
+              onWantPro={() => setShowPro(true)}
+            />
       ) : (
         (tab === 'saved' ? saved : doneMods).length === 0
           ? <div className="pvEmpty">
@@ -141,5 +166,34 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
           ))
       )}
     </div>
+  )
+}
+
+// Копилка слов: бесплатным видно первые WORDS_FREE_CAP слов + счётчик,
+// остальные — за строкой-замком, которая открывает экран Pro
+function WordsList({ words, unlimited, onWantPro }) {
+  const shown  = unlimited ? words : words.slice(0, WORDS_FREE_CAP)
+  const hidden = words.length - shown.length
+
+  return (
+    <>
+      <div className="pvWordsCount">
+        {unlimited
+          ? `${words.length} ${plural(words.length, 'слово', 'слова', 'слов')}`
+          : `${Math.min(words.length, WORDS_FREE_CAP)} из ${WORDS_FREE_CAP} бесплатных`}
+      </div>
+      {shown.map(w => (
+        <div key={w.id} className="pvWord">
+          <span className="pvWordText">{w.word}</span>
+          <span className="pvWordFrom">{w.from}</span>
+        </div>
+      ))}
+      {hidden > 0 && (
+        <button className="pvWord pvWordsLocked" onClick={onWantPro}>
+          <span className="pvWordText">🔒 ещё {hidden} {plural(hidden, 'слово', 'слова', 'слов')}</span>
+          <span className="pvWordFrom">открыть с Pro →</span>
+        </button>
+      )}
+    </>
   )
 }

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ВРЕМЕННЫЙ кубок-заглушка: замени этот файл своим CUP.svg (тот же путь
+     public/rating/cup.svg) — в коде ничего менять не нужно. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe98a"/>
+      <stop offset=".35" stop-color="#fdd551"/>
+      <stop offset=".65" stop-color="#dca93a"/>
+      <stop offset="1" stop-color="#b8842a"/>
+    </linearGradient>
+    <linearGradient id="goldD" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a611f"/>
+      <stop offset="1" stop-color="#3d2c10"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".45" r=".55">
+      <stop offset="0" stop-color="#ffe98a" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#ffe98a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="95" r="95" fill="url(#glow)"/>
+  <!-- лучи -->
+  <g stroke="#ffe98a" stroke-width="3" stroke-linecap="round" opacity=".8">
+    <path d="M100 6v16M40 26l9 13M160 26l-9 13M22 78l14 5M178 78l-14 5"/>
+  </g>
+  <!-- чаша -->
+  <path fill="url(#gold)" d="M58 38h84c0 34-8 62-24 74a34 34 0 0 1-36 0C66 100 58 72 58 38z"/>
+  <!-- ручки -->
+  <path fill="none" stroke="url(#gold)" stroke-width="9" d="M58 48c-19 0-26 8-24 20 2 13 14 22 30 24M142 48c19 0 26 8 24 20-2 13-14 22-30 24"/>
+  <!-- звезда -->
+  <path fill="#8a611f" d="M100 56l7 14 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2z"/>
+  <!-- ножка и постамент -->
+  <path fill="url(#gold)" d="M92 112h16l4 22H88z"/>
+  <path fill="url(#gold)" d="M76 136h48l6 14H70z"/>
+  <path fill="url(#goldD)" d="M64 152h72l8 20H56z"/>
+  <path fill="url(#gold)" d="M60 174h80v10H60z" opacity=".9"/>
+  <!-- блик -->
+  <path fill="#fff" opacity=".35" d="M70 44c2 26 8 47 18 58-14-8-22-32-22-58z"/>
+</svg>

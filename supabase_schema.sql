@@ -1223,4 +1223,142 @@ begin
 end;
 $$;
 
+-- ── Энергия v3 (2026-07-10): жёсткий потолок 5 всегда ─────────────────────
+-- Бонус новичку 10 отменён: профиль рисует 5 молний, а бейдж показывал 10.
+-- Теперь больше 5 энергии не бывает нигде: default 5, старые значения
+-- обрезаются, check-констрейнт запрещает выход за диапазон на уровне БД.
+alter table public.user_profiles alter column energy set default 5;
+update public.user_profiles set energy = 5 where energy > 5;
+alter table public.user_profiles drop constraint if exists user_profiles_energy_range;
+alter table public.user_profiles
+  add constraint user_profiles_energy_range check (energy between 0 and 5);
+
+-- ══════════════════════════════════════════════════════════════════
+-- ── Подписка Pithy Pro (2026-07-10): оболочка платежей ────────────
+-- ══════════════════════════════════════════════════════════════════
+-- Решения: 399 ₽/мес; Pro = безлимит энергии + значок PRO в рейтинге.
+-- has_subscription остаётся источником правды для всех проверок;
+-- subscription_until — срок действия. Выданный вручную безлимит
+-- (until is null) не истекает никогда. Платёж создаёт edge-функция
+-- create-payment, подтверждает payment-webhook (ЮKassa) — обе работают
+-- сервисной ролью; клиенту таблица payments доступна только на чтение своих.
+
+alter table public.user_profiles add column if not exists subscription_until timestamptz;
+
+create table if not exists public.payments (
+  id                  uuid primary key default gen_random_uuid(),
+  user_id             uuid not null references auth.users on delete cascade,
+  provider            text not null default 'yookassa',
+  provider_payment_id text unique,
+  amount              numeric(10,2) not null,
+  currency            text not null default 'RUB',
+  status              text not null default 'pending', -- pending | succeeded | canceled
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  raw                 jsonb
+);
+
+alter table public.payments enable row level security;
+drop policy if exists "payments_select_own" on public.payments;
+create policy "payments_select_own"
+  on public.payments for select using (auth.uid() = user_id);
+
+-- Активация/продление: +p_days от максимума(сейчас, текущий срок) — досрочная
+-- оплата не сжигает оплаченные дни. Только для сервисной роли (вебхук).
+create or replace function public.activate_subscription(p_user uuid, p_days int default 30)
+returns timestamptz language plpgsql security definer as $$
+declare v_until timestamptz;
+begin
+  update public.user_profiles
+  set subscription_until = greatest(coalesce(subscription_until, now()), now())
+                           + make_interval(days => p_days),
+      has_subscription   = true
+  where id = p_user
+  returning subscription_until into v_until;
+  return v_until;
+end;
+$$;
+revoke execute on function public.activate_subscription(uuid, int) from public, anon, authenticated;
+grant execute on function public.activate_subscription(uuid, int) to service_role;
+
+-- Ленивая проверка истечения (как реген энергии): зовётся из start_lesson.
+create or replace function public.expire_subscription(p_uid uuid)
+returns void language sql security definer as $$
+  update public.user_profiles
+  set has_subscription = false
+  where id = p_uid and has_subscription
+    and subscription_until is not null and subscription_until < now();
+$$;
+
+-- start_lesson v3: перед проверкой безлимита гасим истёкшую подписку
+create or replace function public.start_lesson(p_lesson_id text)
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid  uuid := auth.uid();
+  prof   public.user_profiles;
+  v_free boolean;
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', true, 'guest', true);
+  end if;
+
+  perform public.expire_subscription(v_uid);
+  perform public.apply_energy_regen(v_uid);
+  select * into prof from public.user_profiles where id = v_uid for update;
+
+  insert into public.lesson_sessions (user_id, lesson_id)
+  values (v_uid, p_lesson_id)
+  on conflict (user_id, lesson_id) do update set started_at = now();
+
+  if prof.has_subscription or prof.is_admin then
+    return jsonb_build_object('ok', true, 'energy', prof.energy);
+  end if;
+
+  select exists(
+    select 1 from public.lesson_results
+    where user_id = v_uid and lesson_id = p_lesson_id and xp_awarded
+  ) into v_free;
+  if not v_free then
+    select exists(
+      select 1 from public.curricula c
+      where c.lesson_ids->>0 = p_lesson_id
+         or c.lesson_ids->>(jsonb_array_length(c.lesson_ids) - 1) = p_lesson_id
+    ) into v_free;
+  end if;
+  if v_free then
+    return jsonb_build_object('ok', true, 'energy', prof.energy);
+  end if;
+
+  if prof.energy <= 0 then
+    delete from public.lesson_sessions
+    where user_id = v_uid and lesson_id = p_lesson_id;
+    return jsonb_build_object(
+      'ok', false, 'reason', 'no_energy',
+      'next_at', prof.energy_updated_at + interval '4 hours');
+  end if;
+
+  update public.user_profiles
+  set energy = prof.energy - 1,
+      energy_updated_at = case when prof.energy >= 5 then now() else energy_updated_at end
+  where id = v_uid;
+
+  return jsonb_build_object('ok', true, 'energy', prof.energy - 1);
+end;
+$$;
+
+-- Значок PRO в рейтинге: лидерборд отдаёт и флаг подписки. Админ считается
+-- Pro автоматически (у него и так безлимит — значок просто показывает это).
+-- drop обязателен: у create or replace нельзя менять состав колонок результата
+drop function if exists public.get_leaderboard(int);
+create function public.get_leaderboard(p_limit int default 100)
+returns table(user_id uuid, nickname text, xp int, cosmetics jsonb, medal_place int, is_pro boolean)
+language sql security definer as $$
+  select p.id, p.nickname, p.xp, p.cosmetics, (a.meta->>'place')::int,
+         (p.has_subscription or p.is_admin)
+  from public.user_profiles p
+  left join public.user_achievements a on a.user_id = p.id and a.kind = 'race_winner'
+  order by p.xp desc, p.created_at asc
+  limit least(greatest(coalesce(p_limit, 100), 1), 200);
+$$;
+
 notify pgrst, 'reload schema';

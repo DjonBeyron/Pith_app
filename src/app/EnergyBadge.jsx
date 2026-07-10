@@ -9,7 +9,8 @@ const CAP = 5
 // поэтому эффективное значение и время следующей +1 считаем от
 // energy_updated_at прямо на клиенте
 function calcEnergy(profile, now) {
-  const base = Math.max(0, profile.energy ?? 0)
+  // Жёсткий потолок: даже если в базе больше (старый бонус новичку) — показываем максимум 5
+  const base = Math.min(CAP, Math.max(0, profile.energy ?? 0))
   const t = profile.energy_updated_at ? new Date(profile.energy_updated_at).getTime() : null
   if (base >= CAP || !t) return { value: base, nextAt: null }
   const ticks = Math.floor((now - t) / FOUR_H)
@@ -62,9 +63,9 @@ export default function EnergyBadge({ hidden }) {
           <div className="energyPopBackdrop" onClick={() => setOpen(false)} />
           <div className="energyPop">
             <b>Энергия</b>
-            <div>−1 — старт нового урока</div>
-            <div>Бесплатно: диагностика, экзамен и повторение пройденного</div>
-            <div>+1 каждые 4 часа, максимум {CAP}</div>
+            <div>⚡ 1 новый урок = 1 энергия</div>
+            <div>🔄 Повторять пройденное — бесплатно</div>
+            <div>⏱ +1 каждые 4 часа (максимум {CAP})</div>
             <div className="energyPopNext">
               {unlimited
                 ? 'У тебя безлимит'

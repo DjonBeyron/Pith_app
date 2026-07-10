@@ -25,8 +25,14 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
     <div className="ratingWrap">
       <RaceBanner active={visible} onOpen={() => setShowRace(true)} />
 
-      <div className="ratingTabs">
-        <span className="ratingTab ratingTabActive">Рейтинг игроков</span>
+      {/* Плашка-заголовок (по макету): лаймовый бар с иконкой и штрихами */}
+      <div className="ratingHead">
+        <svg className="ratingHeadIcon" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="4" y="12" width="4" height="8" rx="1" />
+          <rect x="10" y="6" width="4" height="14" rx="1" />
+          <rect x="16" y="10" width="4" height="10" rx="1" />
+        </svg>
+        Рейтинг игроков
       </div>
 
       {/* Баннер и заголовок закреплены — скроллится только список */}
@@ -48,7 +54,9 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
                     userId={r.user_id}
                     cosmetics={r.cosmetics ?? {}}
                     medalPlace={r.medal_place}
-                    size={38}
+                    wreathPlace={place <= 3 ? place : null}
+                    size={place <= 3 ? 44 : 38}
+                    pro={!!r.is_pro}
                   />
                   <span className="ratingLevel">{lvl.level} ур</span>
                   <span className="ratingXp">{r.xp} XP</span>
@@ -67,6 +75,7 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
                     cosmetics={cosmetics}
                     medalPlace={achievements.find(a => a.kind === 'race_winner')?.meta?.place ?? null}
                     size={38}
+                    pro={!!(profile?.has_subscription || profile?.is_admin)}
                   />
                   <span className="ratingLevel">{getCurrentLevel(profile?.xp ?? 0).level} ур</span>
                   <span className="ratingXp">{profile?.xp ?? 0} XP</span>

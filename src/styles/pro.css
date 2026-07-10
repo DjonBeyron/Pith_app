@@ -1,0 +1,144 @@
+/* ── Подписка Pithy Pro: экран оплаты + карточка в профиле + значок PRO ── */
+
+.ppOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95; /* поверх .epOverlay (90): открывается из экрана энергии */
+  background: rgba(5, 6, 8, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.ppCard {
+  position: relative;
+  width: 100%;
+  max-width: 330px;
+  text-align: center;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid #2d2a1e;
+  border-radius: 22px;
+  padding: 26px 20px 18px;
+  color: #f2f5f7;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+}
+
+.ppClose {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #9aa3ad;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ppCrown { font-size: 44px; margin-bottom: 8px; }
+
+.ppCard h1 { font-size: 20px; font-weight: 800; margin: 0 0 14px; }
+
+.ppPerks {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ppPerks li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 14px;
+  color: #cfd6dd;
+}
+
+.ppPerks li span { flex-shrink: 0; }
+
+.ppBtnBuy {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 15px;
+  background:
+    var(--v2-dust-d), var(--v2-grain-d), var(--v2-tex-d),
+    linear-gradient(180deg, #ffe27a 0%, #ffd257 45%, #eab72e 100%);
+  color: #241a00;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ppBtnBuy:disabled { opacity: 0.55; cursor: default; }
+
+.ppMsg {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #ffd257;
+  line-height: 1.4;
+}
+
+.ppBtnLater {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: #9aa3ad;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ── Карточка Pro в профиле ── */
+.pvProCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pvProCard .pvProState { color: #ffd257; font-weight: 700; font-size: 13px; }
+
+/* ── Копилка слов: счётчик и строка-замок (лимит 20 бесплатно) ── */
+.pvWordsCount {
+  font-size: 12px;
+  color: #9aa3ad;
+  padding: 2px 4px 6px;
+}
+
+.pvWordsLocked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border: 1px dashed #4a4028;
+}
+
+.pvWordsLocked .pvWordFrom { color: #ffd257; }
+
+/* ── Значок PRO у ника (рейтинг, гонка) ── */
+.ubPro {
+  flex-shrink: 0;
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #ffe27a, #eab72e);
+  color: #241a00;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+}

@@ -5,7 +5,8 @@ import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { getCompletedLessons, markLessonCompleted, unmarkLessons } from '../../shared/lib/completedLessons.js'
-import { refreshProfile } from '../../shared/api/profileCache.js'
+import { refreshProfile, getCachedProfile } from '../../shared/api/profileCache.js'
+import ProPaywall from '../pro/ProPaywall.jsx'
 import { resetLessonProgress, startLesson } from '../../shared/api/profileApi.js'
 import EnergyPaywall from './EnergyPaywall.jsx'
 import ModuleVideoPanel from './ModuleVideoPanel.jsx'
@@ -50,6 +51,8 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const [postLegend,      setPostLegend]      = useState(false)
   // Отказ start_lesson: показать экран «Энергия закончилась» ({ nextAt })
   const [noEnergy,        setNoEnergy]        = useState(null)
+  // Мягкое предложение Pro после первого прохождения Финала (момент успеха)
+  const [proOffer,        setProOffer]        = useState(false)
   const didInitRef = useRef(false)
   const { isAdmin } = useAdmin()
   const { user } = useAuth()
@@ -165,6 +168,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             // «доступна супергонка». Про-модуль — не в счёт (он сам про гонку)
             if (!isPro && lessons.length > 0 && playingLessonId === lessons[lessons.length - 1].id) {
               localStorage.setItem(MODULE_DONE_WEEK_KEY, weekKey())
+              // Момент успеха: первое прохождение Финала → мягкое предложение
+              // Pro (только залогиненным без подписки и не админам)
+              const p = getCachedProfile()
+              if (!wasDone && p && !p.has_subscription && !p.is_admin) setProOffer(true)
             }
           }
           // Ждём пересчёт приоритетов ДО закрытия плеера — граф отрисуется
@@ -254,6 +261,9 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           lessonId={launchId}
           retake={completedIds.has(launchId)}
           examIntro={!isPro && lessons.length > 0 && launchId === lessons[lessons.length - 1].id}
+          /* Старт и Финал модуля сервер не тарифицирует — надпись о стоимости честная */
+          energyFree={lessons.length > 0 &&
+            (launchId === lessons[0].id || launchId === lessons[lessons.length - 1].id)}
           onStart={async (data, mode) => {
             // Энергия: сервер решает, бесплатный урок или -1; при нуле —
             // пейволл вместо плеера
@@ -280,6 +290,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
 
       {noEnergy && (
         <EnergyPaywall nextAt={noEnergy.nextAt} onClose={() => setNoEnergy(null)} />
+      )}
+
+      {proOffer && (
+        <ProPaywall heading="Модуль пройден! 🎉" onClose={() => setProOffer(false)} />
       )}
 
       {showLegend && (

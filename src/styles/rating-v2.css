@@ -152,21 +152,8 @@
 }
 
 /* Свою строку не выделяем — список для всех выглядит одинаково.
-   Топ-3 — оттенки золота / серебра / бронзы на всей строке. */
-.ratingRow[data-place='1'] {
-  border-color: rgba(255, 210, 87, 0.45);
-  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) rgba(255, 210, 87, 0.08);
-}
-
-.ratingRow[data-place='2'] {
-  border-color: rgba(201, 211, 224, 0.4);
-  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) rgba(201, 211, 224, 0.07);
-}
-
-.ratingRow[data-place='3'] {
-  border-color: rgba(210, 154, 107, 0.45);
-  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) rgba(210, 154, 107, 0.08);
-}
+   Металлические карточки топ-3 (золото/серебро/бронза) и венки —
+   в rating-podium.css. */
 
 /* Разделитель перед своей строкой вне топа */
 .ratingGap {

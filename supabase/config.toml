@@ -417,3 +417,17 @@ entrypoint = "./functions/r2-upload-url/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/r2-upload-url/*.html" ]
+
+# Платежи Pithy Pro: create-payment зовёт пользователь из приложения (JWT
+# обязателен), payment-webhook зовёт сервер ЮKassa (JWT нет — проверка платежа
+# внутри функции перезапросом к API кассы). Настройка здесь = флаг
+# --no-verify-jwt не нужно помнить при каждом деплое.
+[functions.create-payment]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/create-payment/index.ts"
+
+[functions.payment-webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/payment-webhook/index.ts"

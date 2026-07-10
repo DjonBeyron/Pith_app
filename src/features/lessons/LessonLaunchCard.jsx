@@ -3,8 +3,11 @@ import { loadScript } from '../../shared/lib/lessonsApi.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
+import { useIsAdmin } from '../../shared/lib/useIsAdmin.js'
+import { getCachedProfile } from '../../shared/api/profileCache.js'
 import RetakeDialog from './RetakeDialog.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
+import LaunchDebugPanel from './LaunchDebugPanel.jsx'
 import { hasStatBindings } from '../player/useAnswerStats.js'
 
 const WARMUP_TARGET = 5
@@ -33,7 +36,9 @@ function isWeakDevice() {
 // вместо кнопки старта — выбор режима пересдачи (RetakeDialog).
 // examIntro=true (финальный урок): вместо кнопки старта — интро экзамена
 // (правила, 3 подсказки, ключ); имеет приоритет над retake.
-export default function LessonLaunchCard({ lessonId, retake = false, examIntro = false, onStart, onClose }) {
+// energyFree=true — сервер не спишет энергию (Старт/Финал модуля); клиенту
+// нужно только для честной надписи о стоимости, решает всё равно сервер.
+export default function LessonLaunchCard({ lessonId, retake = false, examIntro = false, energyFree = false, onStart, onClose }) {
   const [lessonData, setLessonData] = useState(null)
   const [error, setError]           = useState(null)
 
@@ -88,7 +93,9 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
           <LaunchPreloader
             lessonData={lessonData}
             retakeChoice={retake && hasStatBindings(lessonData.nodes)}
+            retake={retake}
             examIntro={examIntro}
+            energyFree={energyFree}
             onStart={onStart}
             onClose={onClose}
           />
@@ -98,8 +105,23 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
   )
 }
 
-function LaunchPreloader({ lessonData, retakeChoice = false, examIntro = false, onStart, onClose }) {
+function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, examIntro = false, energyFree = false, onStart, onClose }) {
   const { nodes, files, title, teacherName, teacherLogo, teacherLogoCrop, videoAutoSound, lessonXp } = lessonData
+  const { isAdmin } = useIsAdmin()
+
+  // Надпись о стоимости — информационная, само списание решает сервер
+  // (start_lesson). Гость энергию не тратит — надпись ему не показываем.
+  const profile   = getCachedProfile()
+  const unlimited = profile?.has_subscription || profile?.is_admin
+  const costLabel = !profile
+    ? null
+    : unlimited
+      ? '⚡ Безлимит — энергия не тратится'
+      : retake
+        ? '🔄 Повторение пройденного — бесплатно'
+        : energyFree
+          ? '⚡ Этот урок бесплатный — энергия не тратится'
+          : '⚡ Урок спишет 1 энергию'
 
   // Weak device → smaller in-memory buffer during lesson (2 past + 2 ahead vs 5 + 3)
   const weak       = isWeakDevice()
@@ -115,7 +137,7 @@ function LaunchPreloader({ lessonData, retakeChoice = false, examIntro = false, 
 
   // Preload teacher logo separately (not part of the node graph)
   const logoBlobRef             = useRef(null) // holds blob URL so cleanup can revoke it
-  const [logoBlobUrl, setLogoBlobUrl] = useState(null)
+  const [, setLogoBlobUrl] = useState(null) // ре-рендер, когда лого докачалось
   const [logoReady,   setLogoReady]   = useState(!teacherLogo) // no logo → already "ready"
 
   useEffect(() => {
@@ -161,37 +183,6 @@ function LaunchPreloader({ lessonData, retakeChoice = false, examIntro = false, 
     onStart({ nodes, files, blobMap, title, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound, lessonXp }, statsMode)
   }
 
-  function downloadDebugLog() {
-    const payload = {
-      ts: new Date().toISOString(),
-      ua: navigator.userAgent,
-      device: {
-        memory: navigator.deviceMemory ?? 'n/a',
-        cpu: navigator.hardwareConcurrency ?? 'n/a',
-        conn: navigator.connection?.effectiveType ?? 'n/a',
-      },
-      weak,
-      bufferSize,
-      warmupNodeIds,
-      files: files.map(f => ({ id: f.id, name: f.file_name, hasUrl: !!f.r2Url })),
-      downloads: debugItems.map(d => ({
-        seq: d.seq, type: d.type,
-        status: d.status, httpStatus: d.httpStatus,
-        error: d.error, sizeKb: d.sizeKb,
-        startTs: d.startTs, readyTs: d.readyTs,
-        url: d.url,
-      })),
-    }
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `preload-debug-${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(a.href)
-  }
-
-  const STATUS_COLOR = { start: '#b6fe3b', ready: '#4caf50', error: '#ff5252' }
-
   return (
     <>
       <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 600 }}>{title}</h2>
@@ -210,51 +201,19 @@ function LaunchPreloader({ lessonData, retakeChoice = false, examIntro = false, 
             ? 'Урок готов к запуску'
             : `Подготовка: ${pct}%`}
         </span>
-        {weak && (
-          <span style={{ color: '#666', fontSize: 11 }}>
-            Режим экономии памяти (буфер {bufferSize})
-          </span>
-        )}
       </div>
 
-      {/* Debug: per-file download status */}
-      {debugItems.length > 0 && (
-        <div style={{
-          background: '#111', borderRadius: 8, padding: '8px 10px',
-          display: 'flex', flexDirection: 'column', gap: 3,
-          maxHeight: 160, overflowY: 'auto', fontSize: 11,
-        }}>
-          {debugItems.map(item => (
-            <div key={item.key} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                background: STATUS_COLOR[item.status] ?? '#555',
-              }} />
-              <span style={{ color: '#aaa', flexShrink: 0 }}>#{item.seq} {item.type}</span>
-              <span style={{ color: STATUS_COLOR[item.status] ?? '#888', fontWeight: 600 }}>
-                {item.status === 'ready'
-                  ? `✓ ${item.sizeKb} KB`
-                  : item.status === 'error'
-                  ? `✗ ${item.error}`
-                  : item.progress > 0
-                  ? `↓ ${item.progress}%`
-                  : `↓ соединение...`}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      {costLabel && <span style={{ color: '#bbb', fontSize: 13 }}>{costLabel}</span>}
 
-      <button
-        onClick={downloadDebugLog}
-        style={{
-          padding: '8px 0', borderRadius: 8, border: '1px solid #444',
-          fontSize: 12, cursor: 'pointer',
-          background: 'transparent', color: '#888',
-        }}
-      >
-        Скачать лог загрузки
-      </button>
+      {isAdmin && (
+        <LaunchDebugPanel
+          weak={weak}
+          bufferSize={bufferSize}
+          warmupNodeIds={warmupNodeIds}
+          files={files}
+          debugItems={debugItems}
+        />
+      )}
 
       {examIntro ? (
         <ExamIntroDialog canStart={canStart} onStart={() => handleStart()} />
