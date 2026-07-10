@@ -214,7 +214,11 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   const cycles = len > 0 ? Math.max(40, Math.ceil(120 / len)) : 0
   const settleTimer = useRef(null)
 
-  // Высота вьюпорта ленты — размер каждого виртуального слайда
+  // Высота вьюпорта ленты — размер каждого виртуального слайда.
+  // openModule в зависимостях обязателен: экран модуля РАЗМОНТИРУЕТ контейнер
+  // ленты (observer ловил его схлопывание → viewH=0), а при возврате контейнер
+  // уже новый — без перезапуска эффекта viewH оставался 0, виртуализатор
+  // рендерил ноль слайдов и лента была чёрной
   const [viewH, setViewH] = useState(0)
   useEffect(() => {
     const el = scrollRef.current
@@ -227,7 +231,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [len])
+  }, [len, openModule])
 
   // Виртуализация как в TikTok: в DOM живут только видимый слайд и запас
   // overscan сверху/снизу. Пока высота экрана не измерена (viewH=0) — список
@@ -273,7 +277,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   // экрана И контейнер реально растянут (iOS обрезал scrollTop, если ставить
   // его раньше, чем виртуализатор дорастил высоту)
   const initedRef = useRef(false)
-  useEffect(() => { initedRef.current = false }, [len])
+  // Сброс и по возврату из экрана модуля: контейнер пересоздан, скролл на нуле —
+  // круг нужно заново поставить на середину запаса циклов
+  useEffect(() => { initedRef.current = false }, [len, openModule])
   useEffect(() => {
     const el = scrollRef.current
     if (!el || !len || !viewH || initedRef.current) return
