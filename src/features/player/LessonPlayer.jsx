@@ -44,6 +44,7 @@ export default function LessonPlayer({
   lessonXp = 0,
   lessonId = null,
   recordStats = true, // false (пересдача «без записи») — события анализа не пишутся
+  onFinishStats = null, // супергонка: ({ errors, timeMs }) в момент финиша урока
   onClose,
   onSummaryClose,
 }) {
@@ -51,7 +52,24 @@ export default function LessonPlayer({
   const earnedXpRef = useRef(0)
   const { panelShown, record, getEvents } = useAnswerStats({ sourceLessonId: lessonId, enabled: recordStats })
   const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes, {
-    onFinish: () => setTimeout(async () => {
+    onFinish: () => {
+      if (onFinishStats) {
+        // Супергонка: отдаём счёт ошибок/времени и сразу выходим — XP и
+        // события анализа отложены до итогов гонки (completeLesson не зовём),
+        // обычный экран итогов не показывается (его заменяет RaceSummary)
+        onFinishStats({
+          errors: getEvents().filter(e => e.type === 'wrong').length,
+          timeMs: Date.now() - openTimeRef.current,
+        })
+        setTimeout(() => (onSummaryClose ?? onClose)?.(), 800)
+        return
+      }
+      finishSummary()
+    },
+  })
+
+  function finishSummary() {
+    setTimeout(async () => {
       const profile = await getProfile()
       if (profile) {
         // Залогинен: XP начисляет сервер по своей копии урока, один раз за урок.
@@ -77,8 +95,8 @@ export default function LessonPlayer({
         setEarnedXp(earned)
       }
       setShowSummary(true)
-    }, 2000),
-  })
+    }, 2000)
+  }
 
   const xpMap     = useMemo(() => buildXpMap(nodes, lessonXp), [nodes, lessonXp]) // eslint-disable-line
   const [earnedXp,  setEarnedXp]  = useState(0)

@@ -3,6 +3,8 @@ import FeedTab from '../features/feed/FeedTab.jsx'
 import ProfileV2 from '../features/profile/ProfileV2.jsx'
 import AuthTab from '../features/auth/AuthTab.jsx'
 import AdminV2 from '../features/admin/AdminV2.jsx'
+import RatingTab from '../features/rating/RatingTab.jsx'
+import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
 import CanvasPage from '../features/canvas/CanvasPage.jsx'
 import EnergyBadge from './EnergyBadge.jsx'
 import { useAdmin } from './AdminContext.jsx'
@@ -16,6 +18,8 @@ export default function ShellV2() {
   // Canvas-редактор урока (админ, «✎» на схеме модуля) — оверлеем поверх
   // оболочки: лента под ним не размонтируется и не теряет позицию
   const [canvasLesson, setCanvasLesson] = useState(null)
+  // Сигнал вкладке «Рейтинг» открыть страницу гонки (из попапа-анонса)
+  const [raceOpenTick, setRaceOpenTick] = useState(0)
   const { isAdmin } = useAdmin()
   const { user } = useAuth()
 
@@ -41,6 +45,9 @@ export default function ShellV2() {
             onRequireAuth={() => setTab('profile')}
           />
         </div>
+        <div className={tab === 'rating' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
+          <RatingTab visible={tab === 'rating'} openRaceTick={raceOpenTick} />
+        </div>
         <div className={tab === 'profile' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
           {user
             ? <ProfileV2 visible={tab === 'profile'} userEmail={user.email} onOpenCanvas={setCanvasLesson} />
@@ -61,6 +68,12 @@ export default function ShellV2() {
           Уроки
         </button>
         <button
+          className={tab === 'rating' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
+          onClick={() => setTab('rating')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17" /></svg>
+          Рейтинг
+        </button>
+        <button
           className={tab === 'profile' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
           onClick={() => setTab('profile')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" /></svg>
@@ -75,6 +88,9 @@ export default function ShellV2() {
           </button>
         )}
       </nav>
+
+      {/* Попапы супергонки: анонс недели и итоги — поверх любой вкладки */}
+      <RaceGlobalPopups onOpenRace={() => { setTab('rating'); setRaceOpenTick(t => t + 1) }} />
 
       {canvasLesson && (
         <div className="shellV2CanvasOverlay">

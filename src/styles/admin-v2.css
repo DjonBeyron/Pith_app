@@ -201,3 +201,14 @@
   border: 1px dashed #38414d; border-radius: 10px;
   background: none; color: #8b94a1; font-size: 13px; cursor: pointer;
 }
+
+/* Про-модуль: кнопка создания и чип PRO */
+.amCreatePro {
+  background: rgba(155, 127, 212, 0.12);
+  border: 1px solid rgba(155, 127, 212, 0.5);
+  color: #cdbcf0;
+}
+.amChipPro {
+  color: #9b7fd4; border-color: rgba(155, 127, 212, 0.5);
+  background: rgba(155, 127, 212, 0.12);
+}

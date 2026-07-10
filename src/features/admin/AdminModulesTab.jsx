@@ -19,12 +19,15 @@ export default function AdminModulesTab({ onOpenCanvas }) {
   }
   useEffect(refresh, [])
 
-  async function handleCreate() {
+  // isPro=true — про-модуль: без Старта/Финала, скрыт от пользователей,
+  // используется как супер-урок гонки (XP — после итогов гонки)
+  async function handleCreate(isPro = false) {
     setBusy(true)
     try {
       const id = crypto.randomUUID()
-      await saveCurriculum(id, 'Новый модуль', [])
-      setOpenModule({ id, title: 'Новый модуль' })
+      const title = isPro ? 'Про-модуль' : 'Новый модуль'
+      await saveCurriculum(id, title, [], isPro)
+      setOpenModule({ id, title, isPro })
       refresh()
     } finally { setBusy(false) }
   }
@@ -68,6 +71,7 @@ export default function AdminModulesTab({ onOpenCanvas }) {
         <CurriculumView
           curriculumId={openModule.id}
           curriculumTitle={openModule.title}
+          isPro={!!openModule.isPro}
           onBack={() => { setOpenModule(null); refresh() }}
           onOpenCanvas={onOpenCanvas}
         />
@@ -77,7 +81,10 @@ export default function AdminModulesTab({ onOpenCanvas }) {
 
   return (
     <div className="amScreen">
-      <button className="amCreateBtn" onClick={handleCreate} disabled={busy}>+ Новый модуль</button>
+      <button className="amCreateBtn" onClick={() => handleCreate(false)} disabled={busy}>+ Новый модуль</button>
+      <button className="amCreateBtn amCreatePro" onClick={() => handleCreate(true)} disabled={busy}>
+        + Про-модуль (супер-урок гонки)
+      </button>
 
       {rows === null ? (
         <div className="amEmpty">Загрузка...</div>
@@ -85,21 +92,28 @@ export default function AdminModulesTab({ onOpenCanvas }) {
         <div className="amEmpty">Модулей пока нет</div>
       ) : rows.map(m => (
         <div key={m.id} className="amRow">
-          <button className="amRowMain" onClick={() => setOpenModule({ id: m.id, title: m.title })}>
+          <button className="amRowMain" onClick={() => setOpenModule({ id: m.id, title: m.title, isPro: !!m.is_pro })}>
             <span className="amRowTitle">{m.title}</span>
-            <span className="amRowSub">{(m.lesson_ids ?? []).length} уроков · открыть схему</span>
+            <span className="amRowSub">
+              {(m.lesson_ids ?? []).length} уроков · {m.is_pro ? 'супер-урок гонки' : 'открыть схему'}
+            </span>
             <span className="amChips">
-              <span className={m.video_url ? 'amChip amChipOk' : 'amChip amChipWarn'}>
-                {m.video_url ? 'видео есть' : 'нет видео'}
-              </span>
+              {m.is_pro
+                ? <span className="amChip amChipPro">PRO</span>
+                : <span className={m.video_url ? 'amChip amChipOk' : 'amChip amChipWarn'}>
+                    {m.video_url ? 'видео есть' : 'нет видео'}
+                  </span>}
             </span>
           </button>
-          <button
-            className={m.published ? 'amChip amChipOk amChipBtn' : 'amChip amChipDim amChipBtn'}
-            onClick={() => handleTogglePublished(m)}
-            title="Переключить публикацию">
-            {m.published ? 'опубликован' : 'черновик'}
-          </button>
+          {/* Про-модуль не публикуется в ленту — тумблера у него нет */}
+          {!m.is_pro && (
+            <button
+              className={m.published ? 'amChip amChipOk amChipBtn' : 'amChip amChipDim amChipBtn'}
+              onClick={() => handleTogglePublished(m)}
+              title="Переключить публикацию">
+              {m.published ? 'опубликован' : 'черновик'}
+            </button>
+          )}
           <button className="amDel" onClick={() => handleDelete(m)} disabled={busy} title="Удалить модуль">✕</button>
         </div>
       ))}

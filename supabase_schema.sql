@@ -810,3 +810,417 @@ drop trigger if exists module_difficulty_recalc on public.module_difficulty_vote
 create trigger module_difficulty_recalc
   after insert or update or delete on public.module_difficulty_votes
   for each row execute function public.recalc_module_difficulty();
+
+-- ══════════════════════════════════════════════════════════════════
+-- ── Супергонка + Рейтинг + Достижения (2026-07-09) ────────────────
+-- ══════════════════════════════════════════════════════════════════
+
+-- 1. Ник и надетая косметика в профиле.
+-- cosmetics = {"bg":true,"frame":true,"medal":true} — что из открытого надето.
+alter table public.user_profiles add column if not exists nickname  text  not null default '';
+alter table public.user_profiles add column if not exists cosmetics jsonb not null default '{}';
+
+-- Дефолтный ник новичкам: имя из регистрации (metadata.name) или email до @.
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer as $$
+begin
+  insert into public.user_profiles (id, nickname)
+  values (
+    new.id,
+    left(coalesce(nullif(trim(new.raw_user_meta_data->>'name'), ''),
+                  split_part(coalesce(new.email, ''), '@', 1)), 20)
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+-- Разовый бэкфилл ников уже существующим пользователям.
+update public.user_profiles p
+set nickname = left(coalesce(nullif(trim(u.raw_user_meta_data->>'name'), ''),
+                             split_part(coalesce(u.email, ''), '@', 1)), 20)
+from auth.users u
+where u.id = p.id and p.nickname = '';
+
+-- Смена ника: только своя строка, 2–20 символов. UPDATE на user_profiles
+-- клиенту закрыт (см. «дыра безопасности» выше), поэтому RPC.
+create or replace function public.set_nickname(p_nick text)
+returns text language plpgsql security definer as $$
+declare
+  v text := left(trim(coalesce(p_nick, '')), 20);
+begin
+  if auth.uid() is null then return null; end if;
+  if char_length(v) < 2 then raise exception 'nickname_too_short'; end if;
+  update public.user_profiles set nickname = v where id = auth.uid();
+  return v;
+end;
+$$;
+
+-- 2. Достижения. Запись — только SECURITY DEFINER RPC (политик на запись нет),
+-- чтение всем: рейтинг показывает чужую косметику.
+-- kind: level10 (10-й уровень → подложка) · race_finisher (финишировал гонку →
+-- рамка) · race_winner (топ-3 гонки → медаль, meta = {"place":1|2|3}, хранится
+-- лучшее место за все гонки).
+create table if not exists public.user_achievements (
+  user_id     uuid not null references auth.users on delete cascade,
+  kind        text not null check (kind in ('level10', 'race_finisher', 'race_winner')),
+  meta        jsonb not null default '{}',
+  unlocked_at timestamptz not null default now(),
+  primary key (user_id, kind)
+);
+
+alter table public.user_achievements enable row level security;
+
+drop policy if exists ach_select_all on public.user_achievements;
+create policy ach_select_all
+  on public.user_achievements for select using (true);
+
+-- «10-й уровень»: клиент зовёт, когда видит нужный XP; сервер проверяет сам.
+-- Порог = xpLevels.js уровень 10 (8000 XP) — при изменении таблицы уровней
+-- поменять и здесь.
+create or replace function public.claim_level_achievement()
+returns boolean language plpgsql security definer as $$
+declare v_xp int;
+begin
+  if auth.uid() is null then return false; end if;
+  select xp into v_xp from public.user_profiles where id = auth.uid();
+  if coalesce(v_xp, 0) < 8000 then return false; end if;
+  insert into public.user_achievements (user_id, kind)
+  values (auth.uid(), 'level10')
+  on conflict do nothing;
+  return true;
+end;
+$$;
+
+-- Надеть/снять косметику: сервер пропускает только то, что реально открыто
+-- соответствующим достижением. Возвращает применённый набор.
+create or replace function public.set_cosmetics(p_cosmetics jsonb)
+returns jsonb language plpgsql security definer as $$
+declare v jsonb := '{}';
+begin
+  if auth.uid() is null then return null; end if;
+  if coalesce((p_cosmetics->>'bg')::boolean, false) and exists
+     (select 1 from public.user_achievements where user_id = auth.uid() and kind = 'level10')
+  then v := v || '{"bg":true}'::jsonb; end if;
+  if coalesce((p_cosmetics->>'frame')::boolean, false) and exists
+     (select 1 from public.user_achievements where user_id = auth.uid() and kind = 'race_finisher')
+  then v := v || '{"frame":true}'::jsonb; end if;
+  if coalesce((p_cosmetics->>'medal')::boolean, false) and exists
+     (select 1 from public.user_achievements where user_id = auth.uid() and kind = 'race_winner')
+  then v := v || '{"medal":true}'::jsonb; end if;
+  update public.user_profiles set cosmetics = v where id = auth.uid();
+  return v;
+end;
+$$;
+
+-- 3. Гонки. Страница гонки видна всем (анонс), правит только админ.
+-- race_lesson_id — сам супер-урок (чат-сценарий темы недели);
+-- prep_lesson_ids — упорядоченный список подготовительных уроков (ссылки на
+-- lessons.id); порог открытия = сумма их lessonXp, считается на клиенте.
+create table if not exists public.races (
+  id                uuid primary key default gen_random_uuid(),
+  title             text not null default '',
+  description       text not null default '',
+  race_lesson_id    text references public.lessons on delete set null,
+  prep_lesson_ids   jsonb not null default '[]',
+  starts_at         timestamptz,
+  ends_at           timestamptz,
+  results_published boolean not null default false,
+  created_at        timestamptz not null default now()
+);
+
+alter table public.races enable row level security;
+
+drop policy if exists races_select_all  on public.races;
+drop policy if exists races_write_admin on public.races;
+
+create policy races_select_all
+  on public.races for select using (true);
+
+create policy races_write_admin
+  on public.races for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+-- Результаты участников. Читать — только свою строку (чужие ошибки/время не
+-- публичны, итоги выдаёт get_race_results без деталей). Писать — только RPC.
+create table if not exists public.race_entries (
+  race_id     uuid not null references public.races on delete cascade,
+  user_id     uuid not null references auth.users on delete cascade,
+  errors      int not null default 0,
+  time_ms     bigint not null default 0,
+  finished_at timestamptz,
+  place       int,
+  primary key (race_id, user_id)
+);
+
+alter table public.race_entries enable row level security;
+
+drop policy if exists race_entries_select_own on public.race_entries;
+create policy race_entries_select_own
+  on public.race_entries for select using (auth.uid() = user_id);
+
+-- Финиш гонки: одна запись на пользователя (повтор → already). Ошибки и время
+-- присылает клиент (анти-чит — открытый вопрос v1, см. PROJECT.md). 10 минут
+-- форы после ends_at — тем, кто стартовал перед самым закрытием.
+create or replace function public.finish_race(p_race_id uuid, p_errors int, p_time_ms bigint)
+returns jsonb language plpgsql security definer as $$
+declare r public.races;
+begin
+  if auth.uid() is null then return jsonb_build_object('ok', false, 'reason', 'not_logged_in'); end if;
+  select * into r from public.races where id = p_race_id;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no_race'); end if;
+  if r.starts_at is null or now() < r.starts_at or now() > r.ends_at + interval '10 minutes' then
+    return jsonb_build_object('ok', false, 'reason', 'closed');
+  end if;
+  insert into public.race_entries (race_id, user_id, errors, time_ms, finished_at)
+  values (p_race_id, auth.uid(),
+          greatest(0, coalesce(p_errors, 0)), greatest(0, coalesce(p_time_ms, 0)), now())
+  on conflict (race_id, user_id) do nothing;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'already'); end if;
+  -- Достижение «Участник гонки» — за финиш.
+  insert into public.user_achievements (user_id, kind)
+  values (auth.uid(), 'race_finisher')
+  on conflict do nothing;
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+-- Подведение итогов: идемпотентно, зовёт первый же клиент после окончания
+-- (флаг results_published берётся атомарно). Места: меньше ошибок выше, при
+-- равенстве быстрее время. Топ-3 получают медаль, хранится лучшее место.
+create or replace function public.finalize_race(p_race_id uuid)
+returns boolean language plpgsql security definer as $$
+declare r public.races;
+begin
+  update public.races set results_published = true
+  where id = p_race_id and results_published = false
+    and ends_at is not null and ends_at + interval '10 minutes' < now()
+  returning * into r;
+  if not found then return false; end if; -- рано или уже подведено
+
+  update public.race_entries e
+  set place = ranked.rn
+  from (
+    select user_id,
+           row_number() over (order by errors asc, time_ms asc, finished_at asc) as rn
+    from public.race_entries
+    where race_id = p_race_id and finished_at is not null
+  ) ranked
+  where e.race_id = p_race_id and e.user_id = ranked.user_id;
+
+  insert into public.user_achievements (user_id, kind, meta)
+  select user_id, 'race_winner', jsonb_build_object('place', place)
+  from public.race_entries
+  where race_id = p_race_id and place between 1 and 3
+  on conflict (user_id, kind) do update
+    set meta = case
+      when (excluded.meta->>'place')::int < coalesce((user_achievements.meta->>'place')::int, 99)
+      then excluded.meta else user_achievements.meta end;
+  return true;
+end;
+$$;
+
+-- Итоговая таблица гонки: публично только место и очки (ошибки/время каждый
+-- видит лишь свои — через race_entries_select_own). Очки — лексикографическая
+-- свёртка (ошибки доминируют, время добивает), согласована с сортировкой мест.
+create or replace function public.get_race_results(p_race_id uuid)
+returns table(place int, user_id uuid, nickname text, cosmetics jsonb, medal_place int, score int)
+language sql security definer as $$
+  select e.place, e.user_id, p.nickname, p.cosmetics,
+         (a.meta->>'place')::int,
+         (greatest(0, 20 - e.errors) * 10000
+          + greatest(0, 9999 - (e.time_ms / 1000)::int))::int
+  from public.race_entries e
+  join public.races r on r.id = e.race_id
+  join public.user_profiles p on p.id = e.user_id
+  left join public.user_achievements a on a.user_id = e.user_id and a.kind = 'race_winner'
+  where e.race_id = p_race_id and r.results_published and e.place is not null
+  order by e.place;
+$$;
+
+-- 4. Глобальный рейтинг по XP за всё время. SECURITY DEFINER: профили чужих
+-- закрыты RLS, наружу отдаём только ник/XP/косметику. Админы скрыты — их XP
+-- нафармлен тест-кнопками.
+create or replace function public.get_leaderboard(p_limit int default 100)
+returns table(user_id uuid, nickname text, xp int, cosmetics jsonb, medal_place int)
+language sql security definer as $$
+  select p.id, p.nickname, p.xp, p.cosmetics, (a.meta->>'place')::int
+  from public.user_profiles p
+  left join public.user_achievements a on a.user_id = p.id and a.kind = 'race_winner'
+  where not p.is_admin
+  order by p.xp desc, p.created_at asc
+  limit least(greatest(coalesce(p_limit, 100), 1), 200);
+$$;
+
+-- Своё место в рейтинге (для строки «ты №N из M», если не попал в топ).
+create or replace function public.get_my_rank()
+returns jsonb language sql security definer as $$
+  select jsonb_build_object(
+    'rank',  (select count(*) + 1 from public.user_profiles q where not q.is_admin and q.xp > p.xp),
+    'total', (select count(*)     from public.user_profiles q where not q.is_admin))
+  from public.user_profiles p
+  where p.id = auth.uid() and not p.is_admin;
+$$;
+
+-- ══════════════════════════════════════════════════════════════════
+-- ── Правки супергонки и рейтинга по тесту (2026-07-10) ────────────
+-- ══════════════════════════════════════════════════════════════════
+
+-- 1. Админы показываются в рейтинге (решение после теста: для проверки и
+-- живости топа). Чтобы снова скрыть — вернуть «where not p.is_admin».
+create or replace function public.get_leaderboard(p_limit int default 100)
+returns table(user_id uuid, nickname text, xp int, cosmetics jsonb, medal_place int)
+language sql security definer as $$
+  select p.id, p.nickname, p.xp, p.cosmetics, (a.meta->>'place')::int
+  from public.user_profiles p
+  left join public.user_achievements a on a.user_id = p.id and a.kind = 'race_winner'
+  order by p.xp desc, p.created_at asc
+  limit least(greatest(coalesce(p_limit, 100), 1), 200);
+$$;
+
+create or replace function public.get_my_rank()
+returns jsonb language sql security definer as $$
+  select jsonb_build_object(
+    'rank',  (select count(*) + 1 from public.user_profiles q where q.xp > p.xp),
+    'total', (select count(*)     from public.user_profiles q))
+  from public.user_profiles p
+  where p.id = auth.uid();
+$$;
+
+-- 2. Лимиты смены ника: 1-я смена бесплатно, 2-я — через 7 дней после
+-- первой, 3-я и дальше — через 30 дней после предыдущей. Админ — всегда.
+-- Бэкфилл при установке фичи сменой не считается (changes=0).
+alter table public.user_profiles add column if not exists nickname_changed_at timestamptz;
+alter table public.user_profiles add column if not exists nickname_changes int not null default 0;
+
+-- Возврат теперь jsonb: { ok, nick?, reason?, next_at? }. Старая версия
+-- возвращала text — тип возврата менять нельзя, сначала удаляем.
+drop function if exists public.set_nickname(text);
+
+create or replace function public.set_nickname(p_nick text)
+returns jsonb language plpgsql security definer as $$
+declare
+  v    text := left(trim(coalesce(p_nick, '')), 20);
+  prof record;
+  next_at timestamptz;
+begin
+  if auth.uid() is null then return jsonb_build_object('ok', false, 'reason', 'not_logged_in'); end if;
+  if char_length(v) < 2 then return jsonb_build_object('ok', false, 'reason', 'too_short'); end if;
+
+  select nickname, nickname_changed_at, nickname_changes, is_admin
+  into prof from public.user_profiles where id = auth.uid();
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no_profile'); end if;
+
+  -- Тот же ник — не считаем сменой
+  if prof.nickname = v then return jsonb_build_object('ok', true, 'nick', v); end if;
+
+  if not prof.is_admin and prof.nickname_changes > 0 and prof.nickname_changed_at is not null then
+    next_at := prof.nickname_changed_at
+      + case when prof.nickname_changes = 1 then interval '7 days' else interval '30 days' end;
+    if now() < next_at then
+      return jsonb_build_object('ok', false, 'reason', 'too_soon', 'next_at', next_at);
+    end if;
+  end if;
+
+  update public.user_profiles
+  set nickname = v,
+      nickname_changed_at = case when prof.is_admin then nickname_changed_at else now() end,
+      nickname_changes    = case when prof.is_admin then nickname_changes else nickname_changes + 1 end
+  where id = auth.uid();
+  return jsonb_build_object('ok', true, 'nick', v);
+end;
+$$;
+
+-- 3. Задания подготовки гонки — теперь МОДУЛИ (curricula: Старт + уроки +
+-- Финал), порог открытия = 80% от суммы XP всех уроков этих модулей.
+-- prep_lesson_ids оставлен для совместимости, клиент его больше не читает.
+alter table public.races add column if not exists prep_module_ids jsonb not null default '[]';
+
+-- PostgREST кэширует схему — после ALTER просим перечитать сразу, иначе
+-- клиент какое-то время видит «Could not find the column ... in schema cache».
+notify pgrst, 'reload schema';
+
+-- ══════════════════════════════════════════════════════════════════
+-- ── Про-модули: супер-урок гонки (2026-07-10, вторая итерация) ────
+-- ══════════════════════════════════════════════════════════════════
+
+-- Про-модуль: как обычный, но без Старта/Финала — только уроки (может быть
+-- и один). Скрыт от пользователей (published не включается, в ленту/профиль
+-- не попадает); доступен только как супер-урок выбранной гонки. XP за его
+-- уроки начисляется НЕ сразу, а после подведения итогов гонки.
+alter table public.curricula add column if not exists is_pro boolean not null default false;
+
+-- Супер-урок гонки — про-модуль (поле race_lesson_id устарело, не читается).
+alter table public.races add column if not exists race_module_id text references public.curricula on delete set null;
+
+-- Временное место в гонке (среди уже финишировавших) — для экрана итогов
+-- супер-урока. Чужие строки закрыты RLS, поэтому SECURITY DEFINER RPC.
+create or replace function public.get_my_race_rank(p_race_id uuid)
+returns jsonb language sql security definer as $$
+  select jsonb_build_object(
+    'rank', (
+      select count(*) + 1 from public.race_entries q
+      where q.race_id = e.race_id and q.finished_at is not null
+        and (q.errors < e.errors
+             or (q.errors = e.errors and q.time_ms < e.time_ms)
+             or (q.errors = e.errors and q.time_ms = e.time_ms and q.finished_at < e.finished_at))),
+    'total', (
+      select count(*) from public.race_entries q
+      where q.race_id = e.race_id and q.finished_at is not null))
+  from public.race_entries e
+  where e.race_id = p_race_id and e.user_id = auth.uid() and e.finished_at is not null;
+$$;
+
+-- finalize_race v2: после расстановки мест начисляет всем финишировавшим
+-- отложенный XP супер-урока (сумма lessonXp уроков про-модуля). Во время
+-- гонки complete_lesson не вызывается (raceMode плеера) — XP только здесь.
+create or replace function public.finalize_race(p_race_id uuid)
+returns boolean language plpgsql security definer as $$
+declare
+  r    public.races;
+  v_xp int := 0;
+begin
+  update public.races set results_published = true
+  where id = p_race_id and results_published = false
+    and ends_at is not null and ends_at + interval '10 minutes' < now()
+  returning * into r;
+  if not found then return false; end if; -- рано или уже подведено
+
+  update public.race_entries e
+  set place = ranked.rn
+  from (
+    select user_id,
+           row_number() over (order by errors asc, time_ms asc, finished_at asc) as rn
+    from public.race_entries
+    where race_id = p_race_id and finished_at is not null
+  ) ranked
+  where e.race_id = p_race_id and e.user_id = ranked.user_id;
+
+  insert into public.user_achievements (user_id, kind, meta)
+  select user_id, 'race_winner', jsonb_build_object('place', place)
+  from public.race_entries
+  where race_id = p_race_id and place between 1 and 3
+  on conflict (user_id, kind) do update
+    set meta = case
+      when (excluded.meta->>'place')::int < coalesce((user_achievements.meta->>'place')::int, 99)
+      then excluded.meta else user_achievements.meta end;
+
+  -- Отложенный XP супер-урока всем финишировавшим
+  if r.race_module_id is not null then
+    select coalesce(sum(coalesce((l.script->>'lessonXp')::int, 0)), 0) into v_xp
+    from public.lessons l
+    where l.id in (
+      select jsonb_array_elements_text(c.lesson_ids)
+      from public.curricula c where c.id = r.race_module_id);
+    if v_xp > 0 then
+      update public.user_profiles p
+      set xp = p.xp + v_xp
+      from public.race_entries e
+      where e.race_id = p_race_id and e.finished_at is not null and p.id = e.user_id;
+    end if;
+  end if;
+  return true;
+end;
+$$;
+
+notify pgrst, 'reload schema';

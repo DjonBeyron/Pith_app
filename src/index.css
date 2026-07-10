@@ -10,6 +10,7 @@
 @import './styles/energy-v2.css';
 @import './styles/module-video.css';
 @import './styles/admin-v2.css';
+@import './styles/admin-race.css';
 @import './styles/lessons.css';
 @import './styles/lessons-chain.css';
 @import './styles/lessons-chain-nodes.css';
@@ -47,6 +48,8 @@
 @import './styles/canvas/text-highlight.css';
 @import './styles/canvas/text-pro.css';
 @import './styles/canvas/stat-link.css';
+@import './styles/rating-v2.css';
+@import './styles/race-v2.css';
 @import './styles/settings.css';
 @import './styles/auth.css';
 @import './styles/xp.css';

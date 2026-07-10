@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useCurriculumLessons } from './useCurriculumLessons.js'
 import ModuleGraph from './ModuleGraph.jsx'
+import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { getCompletedLessons, markLessonCompleted, unmarkLessons } from '../../shared/lib/completedLessons.js'
@@ -15,16 +16,19 @@ import PriorityLegend from './PriorityLegend.jsx'
 import { computeAllPriorities } from '../../shared/lib/skillScore.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
+import { weekKey, MODULE_DONE_WEEK_KEY } from '../race/useRaceState.js'
 
 const LEGEND_SEEN_KEY = 'pithy_priority_legend_seen_v1'
 
 // Экран одного модуля: схема Старт → уроки → Финал, запуск уроков через
 // карточку прогрева, плеер, приоритеты анализа знаний. Используется и во
 // вкладке «Уроки» (старая оболочка), и из ленты по «Изучить фразу» (ui v2).
-export default function CurriculumView({ curriculumId, curriculumTitle, onBack, onOpenCanvas }) {
+// isPro — про-модуль (супер-урок гонки): вместо графа простой список уроков,
+// без Старта/Финала, без экзамена и без маркера «модуль пройден».
+export default function CurriculumView({ curriculumId, curriculumTitle, isPro = false, onBack, onOpenCanvas }) {
   const {
     lessons, loading, creating, error, isDirty,
-    bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure, togglePublished,
+    bulkCreate, addBeforeFinal, addLast, renameLesson, removeLesson, saveStructure, togglePublished,
   } = useCurriculumLessons(curriculumId, curriculumTitle)
 
   const [launchId,        setLaunchId]        = useState(null)
@@ -87,9 +91,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, onBack, 
 
   useEffect(() => {
     // Авто-создание уроков в пустом модуле — только у админа (запись в БД).
+    // Про-модуль стартует с одного урока (Старта и Финала у него нет).
     if (isAdmin && !loading && !creating && lessons.length === 0 && !didInitRef.current) {
       didInitRef.current = true
-      bulkCreate(['Старт', 'Урок', 'Финал'])
+      bulkCreate(isPro ? ['Урок 1'] : ['Старт', 'Урок', 'Финал'])
     }
   }, [isAdmin, loading, creating, lessons.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -156,6 +161,11 @@ export default function CurriculumView({ curriculumId, curriculumTitle, onBack, 
               const l = lessons.find(x => x.id === playingLessonId)
               if (l) setJustCompleted({ id: l.id, xp: l.lessonXp ?? 0 })
             }
+            // Финальный урок = модуль пройден: пометка недели для попапа
+            // «доступна супергонка». Про-модуль — не в счёт (он сам про гонку)
+            if (!isPro && lessons.length > 0 && playingLessonId === lessons[lessons.length - 1].id) {
+              localStorage.setItem(MODULE_DONE_WEEK_KEY, weekKey())
+            }
           }
           // Ждём пересчёт приоритетов ДО закрытия плеера — граф отрисуется
           // сразу с готовыми полосками, без скачка UI на глазах пользователя
@@ -193,15 +203,31 @@ export default function CurriculumView({ curriculumId, curriculumTitle, onBack, 
               {saving ? '...' : '💾'}
               {isDirty && !saving && <span className="saveDirtyDot" />}
             </button>
-            <button className="primaryBtn" onClick={() => addBeforeFinal()} disabled={creating || loading}>
-              {creating ? '...' : '+ Урок'}
-            </button>
+            {!isPro && (
+              <button className="primaryBtn" onClick={() => addBeforeFinal()} disabled={creating || loading}>
+                {creating ? '...' : '+ Урок'}
+              </button>
+            )}
           </>
         )}
       </div>
 
       {loading || (creating && lessons.length === 0) ? (
         <div className="lessonsHint">Загрузка...</div>
+      ) : isPro ? (
+        <ProModuleLessons
+          lessons={lessons}
+          completedIds={completedIds}
+          creating={creating}
+          onPlay={id => setLaunchId(id)}
+          onEdit={id => onOpenCanvas({
+            id,
+            moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
+          })}
+          onDelete={removeLesson}
+          onRename={renameLesson}
+          onAdd={() => addLast(`Урок ${lessons.length + 1}`)}
+        />
       ) : (
         <ModuleGraph
           lessons={lessons}
@@ -227,7 +253,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, onBack, 
         <LessonLaunchCard
           lessonId={launchId}
           retake={completedIds.has(launchId)}
-          examIntro={lessons.length > 0 && launchId === lessons[lessons.length - 1].id}
+          examIntro={!isPro && lessons.length > 0 && launchId === lessons[lessons.length - 1].id}
           onStart={async (data, mode) => {
             // Энергия: сервер решает, бесплатный урок или -1; при нуле —
             // пейволл вместо плеера

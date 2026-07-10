@@ -1,0 +1,279 @@
+/* ── Супергонка (ui v2): страница, баннер в рейтинге, попапы ── */
+
+/* ══ Страница гонки ══ */
+.racePage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px calc(var(--v2-nav-h, 64px) + 24px);
+  overflow-y: auto;
+  height: 100%;
+}
+
+.raceHead { display: flex; align-items: center; }
+
+/* Карточка темы недели */
+.raceThemeCard {
+  border-radius: 16px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(182, 254, 59, 0.14) 0%, rgba(182, 254, 59, 0.03) 55%),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(182, 254, 59, 0.25);
+}
+
+.raceKicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b6fe3b;
+}
+
+.raceTitle { margin: 6px 0 0; font-size: 22px; color: #f2f5f7; }
+.raceDesc  { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: #aab3bd; }
+
+.raceWhen {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #aab3bd;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.raceTimer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: #b6fe3b;
+}
+
+.raceNotice {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #b6fe3b;
+  background: rgba(182, 254, 59, 0.1);
+  border: 1px solid rgba(182, 254, 59, 0.3);
+}
+
+/* Большая кнопка/статус входа в гонку */
+.raceBigBtn {
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  border: none;
+  color: #aab3bd;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.raceBigBtnGo {
+  background: #b6fe3b;
+  color: #0b0d10;
+  cursor: pointer;
+  box-shadow: 0 0 24px rgba(182, 254, 59, 0.35);
+}
+
+.raceBigBtnGo:active { transform: scale(0.98); }
+.raceBigBtnReady { color: #b6fe3b; border: 1px dashed rgba(182, 254, 59, 0.45); background: transparent; }
+.raceBigBtnDone  { color: #b6fe3b; background: rgba(182, 254, 59, 0.1); }
+.raceBigBtnOff   { opacity: 0.85; }
+
+/* Список заданий (как «Мои уроки» списком) */
+.raceLessons { display: flex; flex-direction: column; gap: 8px; }
+
+.raceLessonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  text-align: left;
+}
+
+.raceLessonNum {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #aab3bd;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.raceLessonNumDone {
+  color: #0b0d10;
+  background: #b6fe3b;
+  border-color: #b6fe3b;
+}
+
+.raceLessonTitle {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f2f5f7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.raceLessonXp { font-size: 12px; font-weight: 700; color: #b6fe3b; flex-shrink: 0; }
+
+/* Подстрока в задании-модуле: сколько уроков внутри пройдено */
+.raceLessonSub {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #78828c;
+  margin-top: 2px;
+}
+
+.racePushHint { display: flex; flex-direction: column; gap: 8px; }
+.racePushHintText { font-size: 12px; color: #aab3bd; padding: 0 2px; }
+
+/* ══ Баннер гонки во вкладке «Рейтинг» ══ */
+.raceBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border-radius: 16px;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  background:
+    linear-gradient(135deg, rgba(182, 254, 59, 0.16) 0%, rgba(182, 254, 59, 0.03) 60%),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(182, 254, 59, 0.3);
+}
+
+.raceBannerEmoji { font-size: 26px; flex-shrink: 0; }
+.raceBannerBody  { flex: 1; min-width: 0; }
+
+.raceBannerKicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b6fe3b;
+}
+
+.raceBannerTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f2f5f7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.raceBannerSub { font-size: 12px; color: #aab3bd; margin-top: 2px; }
+.raceBannerArrow { color: #b6fe3b; font-size: 18px; flex-shrink: 0; }
+
+/* ══ Попапы (анонс и итоги) ══ */
+.racePopupOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.racePopupCard {
+  width: 100%;
+  max-width: 360px;
+  border-radius: 20px;
+  padding: 24px 20px 16px;
+  text-align: center;
+  background: #14181d;
+  border: 1px solid rgba(182, 254, 59, 0.25);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.racePopupEmoji { font-size: 42px; line-height: 1; }
+.racePopupTitle { margin: 0; font-size: 20px; color: #f2f5f7; }
+.racePopupText  { margin: 0; font-size: 13px; line-height: 1.5; color: #aab3bd; }
+
+.racePopupBtn {
+  margin-top: 8px;
+  padding: 13px 0;
+  border-radius: 12px;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #b6fe3b;
+  color: #0b0d10;
+}
+
+.racePopupClose {
+  padding: 10px 0;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: #78828c;
+  cursor: pointer;
+}
+
+/* Подиум в попапе итогов */
+.racePodium {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  text-align: left;
+}
+
+.racePodiumRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.racePodiumRowMe {
+  border: 1px solid rgba(182, 254, 59, 0.45);
+  background: rgba(182, 254, 59, 0.08);
+}
+
+/* Не в тройке — своя строка ниже с разделителем-отступом */
+.racePodiumGap {
+  text-align: center;
+  color: #565f68;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  padding: 2px 0;
+}
+
+/* Подстрока в плашке «Ты финишировал» */
+.raceDoneSub { display: block; margin-top: 4px; font-size: 12px; font-weight: 600; color: #aab3bd; }
+
+/* Итоги супер-урока (RaceSummary): строки время/ошибки/временное место */
+.raceSumRows { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.raceSumRow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 12px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px; color: #aab3bd;
+}
+.raceSumRow b { color: #f2f5f7; font-size: 14px; }
+.raceSumRowRank { border: 1px solid rgba(182, 254, 59, 0.35); }
+.raceSumRowRank b { color: #b6fe3b; }

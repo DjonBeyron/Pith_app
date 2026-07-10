@@ -145,6 +145,27 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
     }
   }
 
+  // Добавление в конец списка — для про-модуля (там нет Финала,
+  // перед которым вставляет addBeforeFinal)
+  async function addLast(title = 'Урок') {
+    setCreating(true)
+    setError('')
+    try {
+      const lesson = await createLesson(title)
+      if (!lesson) return
+      const next = [...idsRef.current, lesson.id]
+      setLessonIds(next)
+      persistIds(curriculumId, next)
+      setLessons(prev => [...prev, lesson])
+      setIsDirty(true)
+    } catch (e) {
+      dbg('[addLast ERROR]', e.message)
+      setError('Не удалось добавить урок')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   async function renameLesson(id, title) {
     setError('')
     try {
@@ -190,5 +211,5 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
     }
   }
 
-  return { lessons, loading, creating, error, isDirty, bulkCreate, addBeforeFinal, renameLesson, removeLesson, saveStructure, togglePublished }
+  return { lessons, loading, creating, error, isDirty, bulkCreate, addBeforeFinal, addLast, renameLesson, removeLesson, saveStructure, togglePublished }
 }

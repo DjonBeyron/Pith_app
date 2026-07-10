@@ -4,6 +4,8 @@ import { getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import SettingsTab from '../settings/SettingsTab.jsx'
 import PushToggle from './PushToggle.jsx'
+import NicknameCard from './NicknameCard.jsx'
+import CustomizationScreen from './CustomizationScreen.jsx'
 
 const BOLT = 'M13 2 4 14h6l-1 8 9-12h-6l1-8z'
 
@@ -14,6 +16,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
   const { profile, modules, bookmarks, words, loading, reload } = useProfileV2Data()
   const [tab, setTab] = useState('words') // saved | done | words
   const [showSettings, setShowSettings] = useState(false)
+  const [showCustomize, setShowCustomize] = useState(false)
   const [openModule, setOpenModule] = useState(null)
 
   // Возврат на вкладку: тихое фоновое обновление (XP, копилка, закладки) —
@@ -35,10 +38,15 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
     )
   }
 
+  if (showCustomize) {
+    return <CustomizationScreen onBack={() => setShowCustomize(false)} />
+  }
+
   if (showSettings) {
     return (
       <div className="pvSettingsScreen">
         <button className="pvBack" onClick={() => setShowSettings(false)}>← Профиль</button>
+        <NicknameCard />
         <div className="shellV2Panel"><SettingsTab /></div>
       </div>
     )
@@ -51,7 +59,8 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
     ? Math.round(((xp - cur.xpNeeded) / (next.xpNeeded - cur.xpNeeded)) * 100)
     : 100
   const energy = Math.min(profile?.energy ?? 0, 5)
-  const name = userEmail?.split('@')[0] ?? 'Профиль'
+  // Ник из профиля (виден в рейтинге); до загрузки/без ника — часть email
+  const name = profile?.nickname || (userEmail?.split('@')[0] ?? 'Профиль')
 
   const saved    = modules.filter(m => bookmarks.has(m.id))
   const doneMods = modules.filter(m => m.total > 0 && m.pct === 100)
@@ -91,6 +100,12 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
       </div>
 
       <PushToggle />
+
+      {/* Кастомизация: достижения и косметика (подложка/рамка/медаль) */}
+      <button className="pvCard pvCustomizeBtn" onClick={() => setShowCustomize(true)}>
+        <span>🏆 Кастомизация</span>
+        <b>достижения и внешний вид →</b>
+      </button>
 
       <div className="pvTabs">
         <button className={tab === 'saved' ? 'pvTab pvTabActive' : 'pvTab'} onClick={() => setTab('saved')}>Сохранённые</button>

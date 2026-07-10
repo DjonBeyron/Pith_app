@@ -1,11 +1,15 @@
 import { supabase } from '../api/supabase.js'
 import { dbg } from './debug.js'
 
-export async function saveCurriculum(id, title, lessonIds) {
-  dbg('[DB WRITE] curricula upsert', { id, title, lessonIds })
+// isPro передаётся только при создании про-модуля (upsert не трогает
+// колонки, которых нет в объекте — существующим модулям флаг не сбросит).
+export async function saveCurriculum(id, title, lessonIds, isPro) {
+  dbg('[DB WRITE] curricula upsert', { id, title, lessonIds, isPro })
+  const row = { id, title, lesson_ids: lessonIds }
+  if (isPro !== undefined) row.is_pro = isPro
   const { error } = await supabase
     .from('curricula')
-    .upsert({ id, title, lesson_ids: lessonIds })
+    .upsert(row)
   if (error) {
     dbg('[DB ERROR] curricula upsert', error.message)
     throw error
@@ -69,7 +73,7 @@ export async function loadCurricula() {
   dbg('[DB READ] curricula list')
   const { data, error } = await supabase
     .from('curricula')
-    .select('id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, difficulty, difficulty_votes')
+    .select('id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, difficulty, difficulty_votes, is_pro')
     .order('created_at', { ascending: false })
   if (error) {
     dbg('[DB ERROR] curricula load', error.message)

@@ -1,0 +1,338 @@
+/* ── Рейтинг и достижения (ui v2, тёмная тема) ── */
+
+/* ══ UserBadge ══ */
+
+/* Flex-строка: аватар + ник рядом */
+.ubWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Круг с буквой */
+.ubAvatar {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+  border: 2px solid #232932;
+  /* width/height/font-size приходят inline (параметр size) */
+}
+
+/* Косметика: лаймовая светящаяся рамка */
+.ubAvatarFrame {
+  border-color: #b6fe3b;
+  box-shadow:
+    0 0 0 2px rgba(182, 254, 59, 0.35),
+    0 0 10px 2px rgba(182, 254, 59, 0.25);
+}
+
+/* Медаль — маленький кружок снизу-справа аватара */
+.ubMedal {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: #0b0d10;
+  border: 1.5px solid #0b0d10;
+  line-height: 1;
+}
+
+/* Цвета медалей применяются через inline style (см. компонент) */
+.ubMedal1 { color: #3a2600; }
+.ubMedal2 { color: #1a2030; }
+.ubMedal3 { color: #2a1800; }
+
+/* Ник */
+.ubNick {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f2f5f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* Косметика: полупрозрачная лаймовая подложка-пилюля под ником */
+.ubNickBg {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    135deg,
+    rgba(182, 254, 59, 0.18) 0%,
+    rgba(182, 254, 59, 0.08) 100%
+  );
+  border: 1px solid rgba(182, 254, 59, 0.25);
+}
+
+/* ══ Вкладка «Рейтинг» — контейнер ══ */
+
+/* Контейнер сам не скроллится: баннер супергонки и заголовок закреплены,
+   прокручивается только список (.ratingScroll) */
+.ratingWrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 0;
+}
+
+.ratingWrap .raceBanner { flex-shrink: 0; margin-bottom: 12px; }
+
+.ratingScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -16px;
+  padding: 0 16px calc(20px + var(--v2-nav-h));
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ratingScroll::-webkit-scrollbar { display: none; }
+
+/* ══ Субвкладки «Рейтинг / Достижения» — таблетки ══ */
+
+.ratingTabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.ratingTab {
+  flex: 1;
+  border: 1px solid #232932;
+  background: #14171c;
+  color: #9aa3ad;
+  border-radius: 999px;
+  padding: 9px 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Активная таблетка — лаймовый градиент (как pvTabActive в profile-v2.css) */
+.ratingTabActive {
+  background: var(--v2-dust-d), var(--v2-grain-d),
+    linear-gradient(180deg, #ceff73, #a9f335);
+  border-color: #b6fe3b;
+  color: #0d1500;
+}
+
+/* ══ Список лидеров ══ */
+
+.ratingList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Строка: место + UserBadge + уровень + XP */
+.ratingRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid #232932;
+  border-radius: 14px;
+}
+
+/* Свою строку не выделяем — список для всех выглядит одинаково.
+   Топ-3 — оттенки золота / серебра / бронзы на всей строке. */
+.ratingRow[data-place='1'] {
+  border-color: rgba(255, 210, 87, 0.45);
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) rgba(255, 210, 87, 0.08);
+}
+
+.ratingRow[data-place='2'] {
+  border-color: rgba(201, 211, 224, 0.4);
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) rgba(201, 211, 224, 0.07);
+}
+
+.ratingRow[data-place='3'] {
+  border-color: rgba(210, 154, 107, 0.45);
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) rgba(210, 154, 107, 0.08);
+}
+
+/* Разделитель перед своей строкой вне топа */
+.ratingGap {
+  text-align: center;
+  color: #565f68;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  padding: 2px 0;
+}
+
+/* Номер места */
+.ratingPlace {
+  width: 22px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5c6570;
+  flex-shrink: 0;
+}
+
+/* Цвета призовых мест */
+.ratingPlace[data-place='1'] { color: #ffd257; }
+.ratingPlace[data-place='2'] { color: #c9d3e0; }
+.ratingPlace[data-place='3'] { color: #d29a6b; }
+
+/* UserBadge занимает свободное место */
+.ratingRow .ubWrap {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Маленький чип уровня */
+.ratingLevel {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(182, 254, 59, 0.1);
+  border: 1px solid rgba(182, 254, 59, 0.25);
+  color: #b6fe3b;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* XP справа */
+.ratingXp {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9aa3ad;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Пустое состояние */
+.ratingEmpty {
+  padding: 40px 16px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #9aa3ad;
+}
+
+/* ══ Достижения ══ */
+
+.achList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Карточка достижения */
+.achCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid #232932;
+  border-radius: 14px;
+}
+
+/* Запертое достижение — приглушённое */
+.achCardLocked {
+  opacity: 0.45;
+}
+
+/* Круг с иконкой/эмодзи */
+.achIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #1e2228;
+  border: 1px solid #2e333b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* Текст достижения */
+.achName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f2f5f7;
+  margin-bottom: 2px;
+}
+
+.achDesc {
+  font-size: 11.5px;
+  color: #9aa3ad;
+  line-height: 1.4;
+}
+
+/* Колонка текста занимает свободное место */
+.achCard > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Кнопка «Надеть / Надето» */
+.achEquipBtn {
+  padding: 6px 12px;
+  border: 1px solid #232932;
+  border-radius: 10px;
+  background: #1e2228;
+  color: #9aa3ad;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+/* Надето — лаймовая подсветка */
+.achEquipBtnOn {
+  background: rgba(182, 254, 59, 0.12);
+  border-color: rgba(182, 254, 59, 0.4);
+  color: #b6fe3b;
+}
+
+/* ══ Предпросмотр «как я выгляжу в рейтинге» ══ */
+
+.achPreview {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid rgba(182, 254, 59, 0.3);
+  border-radius: 14px;
+}
+
+/* Подпись над образцом */
+.achPreview::before {
+  content: 'Предпросмотр';
+  display: block;
+  font-size: 11px;
+  color: #5c6570;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Строка-образец как .ratingRow, но без лишних отступов */
+.achPreview .ratingRow {
+  background: none;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+}

@@ -1,0 +1,87 @@
+/* ── Админ: конструктор супергонки (вкладка «Гонка») ── */
+
+/* Строка модуля в списке заданий */
+.arPrepRow {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 8px; background: #14171c;
+  border: 1px solid #232932; margin-top: 6px;
+}
+.arPrepRow button {
+  border: 1px solid #232932; border-radius: 6px; background: none;
+  color: #8b94a1; cursor: pointer; padding: 2px 7px; font-size: 12px;
+}
+.arPrepRow button:disabled { opacity: 0.3; cursor: default; }
+.arPrepNum { color: #8b94a1; font-size: 12px; width: 16px; flex-shrink: 0; }
+.arPrepTitle {
+  flex: 1; font-size: 13px; color: #f2f5f7;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.arPrepCount { color: #8b94a1; font-size: 12px; }
+.arPrepXp { font-size: 12px; color: #b6fe3b; flex-shrink: 0; }
+
+/* Кастомный выпадающий список (AdminRacePicker): ограниченная высота + скролл */
+.arpWrap { position: relative; margin-top: 6px; }
+
+.arpBtn {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 9px 12px; cursor: pointer;
+  border: 1px solid #232932; border-radius: 10px;
+  background: #14171c; color: #f2f5f7; font: inherit; text-align: left;
+}
+.arpBtnLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arpBtnCaret { color: #8b94a1; flex-shrink: 0; }
+
+.arpList {
+  position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 4px);
+  max-height: 240px; overflow-y: auto; /* длинный список скроллится внутри */
+  border: 1px solid #38414d; border-radius: 10px;
+  background: #14171c; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.arpItem {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; padding: 10px 12px; cursor: pointer;
+  background: none; border: none; border-bottom: 1px solid #1d232b;
+  color: #f2f5f7; font: inherit; text-align: left;
+}
+.arpItem:last-child { border-bottom: none; }
+.arpItem:hover, .arpItemActive { background: rgba(182, 254, 59, 0.08); }
+.arpItemLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arpItemHint { color: #b6fe3b; font-size: 12px; flex-shrink: 0; }
+
+.arpEmpty { padding: 12px; color: #8b94a1; font-size: 13px; }
+
+/* ── Про-модуль: список уроков (вместо графа) ── */
+.prList { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; }
+.prHint { font-size: 12px; line-height: 1.5; color: #8b94a1; padding: 4px 2px 8px; }
+.prRow {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 12px;
+  background: #14171c; border: 1px solid #232932;
+}
+.prNum {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: #8b94a1;
+  border: 1px solid #38414d;
+}
+.prNumDone { color: #0b0d10; background: #b6fe3b; border-color: #b6fe3b; }
+.prTitle {
+  flex: 1; text-align: left; background: none; border: none; cursor: pointer;
+  font-size: 14px; font-weight: 600; color: #f2f5f7;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.prRename {
+  flex: 1; padding: 6px 10px; border: 1px solid #38414d; border-radius: 8px;
+  background: #0f1216; color: #f2f5f7; font: inherit;
+}
+.prXp { font-size: 12px; font-weight: 700; color: #b6fe3b; flex-shrink: 0; }
+.prBtn {
+  border: 1px solid #232932; border-radius: 8px; background: none;
+  color: #8b94a1; cursor: pointer; padding: 4px 9px; font-size: 13px;
+}
+.prAdd {
+  align-self: flex-start; padding: 8px 14px; margin-top: 4px;
+  border: 1px dashed #38414d; border-radius: 10px;
+  background: none; color: #8b94a1; font-size: 13px; cursor: pointer;
+}

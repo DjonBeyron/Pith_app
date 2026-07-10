@@ -236,3 +236,12 @@
   color: #0d1500;
   font-weight: 700;
 }
+
+/* Кнопка-карточка «Кастомизация» (достижения и косметика) */
+.pvCustomizeBtn {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; cursor: pointer; text-align: left;
+  border: 1px solid rgba(182, 254, 59, 0.25);
+}
+.pvCustomizeBtn span { font-size: 14px; font-weight: 700; color: #f2f5f7; }
+.pvCustomizeBtn b { font-size: 12px; font-weight: 600; color: #b6fe3b; }
