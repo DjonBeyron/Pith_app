@@ -7,10 +7,13 @@ import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 
 // Вкладка «Рейтинг»: баннер супергонки и глобальный топ по XP за всё время.
 // Достижения и примерка косметики живут в Профиле → «Кастомизация».
-export default function RatingTab({ visible = true, openRaceTick = 0 }) {
+export default function RatingTab({ openRaceTick = 0 }) {
   const [showRace, setShowRace] = useState(false)
+  // Вкладка смонтирована всегда (см. ShellV2) — грузим данные сразу при
+  // старте приложения, не дожидаясь клика по табу, чтобы переход был
+  // мгновенным и без дёрганья вёрстки
   const { rows, myRank, achievements, cosmetics, profile, loading, myId } =
-    useRatingData(visible && !showRace)
+    useRatingData(!showRace)
 
   // Сигнал извне (попап-анонс): открыть страницу гонки
   useEffect(() => { if (openRaceTick > 0) setShowRace(true) }, [openRaceTick])
@@ -23,7 +26,7 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
 
   return (
     <div className="ratingWrap">
-      <RaceBanner active={visible} onOpen={() => setShowRace(true)} />
+      <RaceBanner onOpen={() => setShowRace(true)} />
 
       {/* Плашка-заголовок (по макету): лаймовый бар с иконкой и штрихами */}
       <div className="ratingHead">
@@ -38,7 +41,9 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
       {/* Баннер и заголовок закреплены — скроллится только список */}
       <div className="ratingScroll">
         {loading ? (
-          <div className="ratingEmpty">Загрузка...</div>
+          <div className="ratingList">
+            {[0, 1, 2, 3, 4, 5].map(i => <div key={i} className="ratingRow ratingRowSkeleton" />)}
+          </div>
         ) : rows.length === 0 ? (
           <div className="ratingEmpty">Пока пусто — проходи уроки и попади в топ первым</div>
         ) : (

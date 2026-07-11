@@ -216,6 +216,20 @@
   white-space: nowrap;
 }
 
+/* Скелетон строки на время первой загрузки — той же высоты, что и
+   реальная строка, чтобы список не «прыгал» когда придут данные */
+.ratingRowSkeleton {
+  height: 54px;
+  background: #14171c;
+  border-color: #1a1e24;
+  animation: ratingSkeletonPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ratingSkeletonPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+
 /* Пустое состояние */
 .ratingEmpty {
   padding: 40px 16px;
