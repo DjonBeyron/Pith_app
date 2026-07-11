@@ -4,21 +4,21 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: calc(18px + env(safe-area-inset-top, 0px)) 16px calc(20px + var(--v2-nav-h));
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px calc(20px + var(--v2-nav-h));
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
 .pvScreen::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
+/* Заголовка «Профиль» больше нет — строка держит только шестерёнку настроек
+   у правого края, отступ снизу минимальный, чтобы всё было выше */
 .pvHead {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
-
-.pvHead h1 { font-size: 19px; font-weight: 800; }
 
 .pvGear {
   background: none;
@@ -33,7 +33,7 @@
 .pvWho {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 20px;
   margin-bottom: 18px;
 }
 
@@ -46,10 +46,16 @@
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at 35% 30%, #6b9fd4, #23344d);
-  border: 2.5px solid #b6fe3b;
   font-size: 26px;
   font-weight: 800;
   color: #fff;
+}
+
+/* Картинка из пака DiceBear вместо буквы */
+.pvAvatarImg {
+  display: block;
+  object-fit: cover;
+  background: #14171c;
 }
 
 .pvNameRow { display: flex; align-items: center; gap: 8px; }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
+import { isHudPopupOpen, toggleHudPopup, closeHudPopup, subscribeHudPopup } from './hudPopupState.js'
 
 const FOUR_H = 4 * 3600 * 1000
 const CAP = 5
@@ -33,7 +34,9 @@ function fmtLeft(ms) {
 export default function EnergyBadge() {
   const { user } = useAuth()
   const [profile, setProfile] = useState(getCachedProfile)
-  const [open, setOpen] = useState(false)
+  // Открытое окошко общее на все три бейджа hudBar — клик по другому
+  // закрывает это, а не открывает поверх (см. hudPopupState.js)
+  const [open, setOpen] = useState(() => isHudPopupOpen('energy'))
   const [now, setNow] = useState(Date.now)
 
   useEffect(() => {
@@ -41,6 +44,8 @@ export default function EnergyBadge() {
     if (!getCachedProfile()) refreshProfile()
     return unsubscribe
   }, [])
+
+  useEffect(() => subscribeHudPopup(id => setOpen(id === 'energy')), [])
 
   // Открыто — тикаем каждую секунду (таймер), закрыто — раз в полминуты (значок)
   useEffect(() => {
@@ -54,15 +59,15 @@ export default function EnergyBadge() {
 
   return (
     <div className="energyWrap">
-      <button className="energyBadge" onClick={() => setOpen(o => !o)}>
+      <button className="energyBadge" onClick={() => toggleHudPopup('energy')}>
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
         <span>{unlimited ? '∞' : value}</span>
       </button>
 
       {open && (
         <>
-          <div className="energyPopBackdrop" onClick={() => setOpen(false)} />
-          <div className="energyPop">
+          <div className="energyPopBackdrop" onClick={closeHudPopup} />
+          <div className="energyPop" onClick={closeHudPopup}>
             <b>Энергия</b>
             <div>⚡ 1 новый урок = 1 энергия</div>
             <div>🔄 Повторять пройденное — бесплатно</div>

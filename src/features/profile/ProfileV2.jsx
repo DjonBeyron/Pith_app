@@ -5,8 +5,12 @@ import CurriculumView from '../lessons/CurriculumView.jsx'
 import SettingsTab from '../settings/SettingsTab.jsx'
 import NicknameCard from './NicknameCard.jsx'
 import CustomizationScreen from './CustomizationScreen.jsx'
+import AvatarPickerPopup from './AvatarPickerPopup.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
 import { plural } from '../../shared/lib/plural.js'
+import { avatarUrl } from '../../shared/lib/avatarPack.js'
+import { saveAvatar } from '../../shared/api/profileApi.js'
+import { refreshProfile } from '../../shared/api/profileCache.js'
 
 const BOLT = 'M13 2 4 14h6l-1 8 9-12h-6l1-8z'
 // Копилка слов: бесплатно видно первые 20, дальше — только с Pro
@@ -22,6 +26,15 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
   const [showCustomize, setShowCustomize] = useState(false)
   const [showPro, setShowPro] = useState(false)
   const [openModule, setOpenModule] = useState(null)
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
+  const [avatarBusy, setAvatarBusy] = useState(false)
+
+  async function changeAvatar(seed) {
+    setAvatarBusy(true)
+    await saveAvatar(seed)
+    await refreshProfile()
+    setAvatarBusy(false)
+  }
 
   // Возврат на вкладку: тихое фоновое обновление (XP, копилка, закладки) —
   // без «Загрузки...» и моргания, пользователь видит сразу свежие данные
@@ -72,14 +85,28 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
   return (
     <div className="pvScreen">
       <div className="pvHead">
-        <h1>Профиль</h1>
         <button className="pvGear" onClick={() => setShowSettings(true)} title="Настройки">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3.5" /><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" /></svg>
         </button>
       </div>
 
       <div className="pvWho">
-        <div className="pvAvatar">{name.slice(0, 1).toUpperCase()}</div>
+        <div className="pvAvatarSlot">
+          <button className="pvAvatarBtn" onClick={() => setShowAvatarPicker(true)} title="Сменить аватар">
+            {profile?.avatar_seed ? (
+              <img className="pvAvatar pvAvatarImg" src={avatarUrl(profile.avatar_seed)} alt="" />
+            ) : (
+              <div className="pvAvatar">{name.slice(0, 1).toUpperCase()}</div>
+            )}
+          </button>
+          {!profile?.avatar_seed && (
+            <button
+              className="pvAvatarAdd"
+              onClick={() => setShowAvatarPicker(true)}
+              title="Выбрать аватар"
+            >+</button>
+          )}
+        </div>
         <div>
           <div className="pvNameRow">
             <span className="pvName">{name}</span>
@@ -169,6 +196,15 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
               </span>
             </button>
           ))
+      )}
+
+      {showAvatarPicker && (
+        <AvatarPickerPopup
+          selected={profile?.avatar_seed}
+          busy={avatarBusy}
+          onSelect={changeAvatar}
+          onClose={() => setShowAvatarPicker(false)}
+        />
       )}
     </div>
   )

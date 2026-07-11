@@ -1,0 +1,119 @@
+/* ── Попап выбора аватара из пака DiceBear (тап по аватару в профиле) ── */
+
+.avpBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(5, 6, 8, 0.7);
+}
+
+.avpPopup {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 61;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid #232932;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+
+.avpPopupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.avpPopupHead b { font-size: 15px; color: #f2f5f7; }
+
+.avpClose {
+  background: none;
+  border: none;
+  color: #9aa3ad;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.avpGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.avpItem {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px solid #232932;
+  border-radius: 50%;
+  background: #0b0d10;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.avpItem img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.avpItemActive {
+  border-color: #b6fe3b;
+  box-shadow: 0 0 0 2px rgba(182, 254, 59, 0.35);
+}
+
+.avpDefault {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 13px;
+  font-weight: 800;
+  color: #9aa3ad;
+}
+
+/* ── Аватар в профиле: кликабелен, кнопка «+» рядом, если картинка не выбрана ── */
+.pvAvatarSlot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.pvAvatarBtn {
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.pvAvatarAdd {
+  position: absolute;
+  right: -6px;
+  bottom: -2px;
+  width: 20px;
+  height: 20px;
+  min-width: 0;
+  padding: 0;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid #0b0d10;
+  background: #b6fe3b;
+  color: #0d1500;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}

@@ -57,6 +57,7 @@ export default function RatingTab({ openRaceTick = 0 }) {
                   <UserBadge
                     nickname={r.nickname || 'Без имени'}
                     userId={r.user_id}
+                    avatarSeed={r.avatar_seed}
                     cosmetics={r.cosmetics ?? {}}
                     medalPlace={r.medal_place}
                     wreathPlace={place <= 3 ? place : null}
@@ -77,6 +78,7 @@ export default function RatingTab({ openRaceTick = 0 }) {
                   <UserBadge
                     nickname={profile?.nickname || 'Ты'}
                     userId={myId}
+                    avatarSeed={profile?.avatar_seed}
                     cosmetics={cosmetics}
                     medalPlace={achievements.find(a => a.kind === 'race_winner')?.meta?.place ?? null}
                     size={38}

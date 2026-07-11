@@ -4,6 +4,7 @@ import {
   saveCosmetics, claimLevelAchievement,
 } from '../../shared/api/ratingApi.js'
 import { getProfile } from '../../shared/api/profileApi.js'
+import { subscribeProfile } from '../../shared/api/profileCache.js'
 import { LEVELS } from '../../shared/lib/xpLevels.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
 
@@ -37,6 +38,21 @@ export function useRatingData(active = true) {
   }, [])
 
   useEffect(() => { if (active) reload() }, [active, reload])
+
+  // Аватар/ник/косметика меняются в Профиле (другая вкладка, этот компонент
+  // не размонтируется) — без этого обновление было видно только после
+  // перезагрузки приложения. Патчим свою строку в списке точечно, без
+  // повторного похода за всем топом.
+  useEffect(() => {
+    return subscribeProfile(p => {
+      if (!p) return
+      setProfile(p)
+      setCosmetics(p.cosmetics ?? {})
+      setRows(rs => rs.map(r => (user?.id && r.user_id === user.id)
+        ? { ...r, avatar_seed: p.avatar_seed, nickname: p.nickname, cosmetics: p.cosmetics }
+        : r))
+    })
+  }, [user?.id])
 
   // Надеть/снять: сервер вернёт то, что реально открыто достижениями
   async function equip(next) {

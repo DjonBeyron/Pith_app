@@ -35,16 +35,58 @@
      полосы) — вниз на инсет сдвигаются только верхние оверлеи */
 }
 
-/* Верхняя панель игрока: уровень · золотые билеты · энергия.
-   Позиционируется панель целиком, значки внутри — обычный flex-ряд */
-.hudBar {
+/* Верхняя панель игрока слева: уровень · золотые билеты — значки мельче.
+   translateZ(0) — на iPhone аппаратно декодируемое <video> ленты рисуется
+   в отдельном GPU-слое и может перекрывать соседний DOM поверх z-index;
+   принудительный композитный слой у самого hudBar чинит это на iOS */
+.hudBarLeft {
   position: absolute;
-  top: calc(10px + env(safe-area-inset-top, 0px));
-  right: 12px;
-  z-index: 30;
+  top: env(safe-area-inset-top, 0px);
+  left: 12px;
+  z-index: 40;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.hudBarLeft .levelBadge,
+.hudBarLeft .ticketBadge,
+.hudBarRight .energyBadge {
+  padding: 3px 7px;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.hudBarLeft .levelBadge svg,
+.hudBarLeft .ticketBadge svg,
+.hudBarRight .energyBadge svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* Справа: энергия на той же высоте, что и слева, версия — ниже.
+   translateZ(0) — та же причина, что и у hudBarLeft (см. выше) */
+.hudBarRight {
+  position: absolute;
+  top: env(safe-area-inset-top, 0px);
+  right: 12px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.hudVersion {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
 }
 
 /* Каждый значок — якорь своего мини-окна (.energyPop) */
@@ -100,6 +142,15 @@
   color: #9aa3ad;
   font-size: 12px;
   line-height: 1.55;
+  cursor: pointer;
+}
+
+/* Бейджи слева (уровень, билеты) стоят у левого края экрана — окошко,
+   растущее вправо от правого края бейджа (как справа у энергии), уезжало
+   бы за левую границу. Здесь якорим окошко на левый край бейджа. */
+.hudBarLeft .energyPop {
+  left: 0;
+  right: auto;
 }
 
 .energyPop b {
@@ -155,7 +206,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px var(--v2-nav-h);
+  /* Отступ сверху — под hudBar (уровень/билеты/энергия), название модуля
+     и кнопка «Назад» не наезжают, но без лишнего зазора */
+  padding: calc(30px + env(safe-area-inset-top, 0px)) 16px var(--v2-nav-h);
   background: #0f1115;
 }
 

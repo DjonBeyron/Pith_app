@@ -43,6 +43,7 @@ export default function AchievementsPanel({ achievements, cosmetics, equip, prof
         <UserBadge
           nickname={profile?.nickname || 'Ты'}
           userId={myId ?? ''}
+          avatarSeed={profile?.avatar_seed}
           cosmetics={cosmetics}
           medalPlace={medalPlace}
           size={38}

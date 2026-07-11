@@ -8,14 +8,12 @@
   min-height: 0;
 }
 
-/* Верхние вкладки поверх видео — выше, небольшой отступ от верха.
-   Только сами вкладки — центрированы по ПОЛНОЙ ширине экрана (X).
-   DBG (feed-media.css) и версия — отдельные абс. позиционированные
-   элементы, в flex-центровку вкладок не входят: DBG заметно ниже
-   (второй ряд, слева), версия — мельче, справа от вкладок. */
+/* Верхние вкладки поверх видео — центрированы по ПОЛНОЙ ширине экрана (X).
+   DBG (feed-media.css) — отдельный абс. позиционированный элемент второй
+   строкой ниже слева; версия приложения переехала в hudBar (shell-v2.css). */
 .feedV2Tabs {
   position: absolute;
-  top: calc(2px + env(safe-area-inset-top, 0px)); /* почти к самому краю */
+  top: calc(10px + env(safe-area-inset-top, 0px)); /* чуть ниже верхнего края */
   left: 0;
   right: 0;
   display: flex;
@@ -25,26 +23,11 @@
   z-index: 6;
 }
 
-.feedV2Version {
-  position: absolute;
-  top: calc(6px + env(safe-area-inset-top, 0px));
-  /* Запас от истинного края — под значок энергии (top:10px right:12px,
-     EnergyBadge.jsx, ~50px шириной) — иначе версия залезала бы под него
-     у залогиненных пользователей */
-  right: 70px;
-  font-size: 9px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
-  white-space: nowrap;
-  z-index: 6;
-}
-
 .feedV2Tab {
   background: none;
   border: none;
   padding: 6px 2px;
-  font-size: 15px;
+  font-size: 13.5px; /* чуть мельче */
   font-weight: 600;
   color: rgba(255, 255, 255, 0.55);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
@@ -54,11 +37,13 @@
 
 .feedV2TabActive { color: #fff; }
 
+/* Подчёркивание строго по ширине текста: инсет равен горизонтальному
+   паддингу кнопки (2px), а не проценту от её ширины */
 .feedV2TabActive::after {
   content: '';
   position: absolute;
-  left: 18%;
-  right: 18%;
+  left: 2px;
+  right: 2px;
   bottom: -2px;
   height: 3px;
   border-radius: 2px;

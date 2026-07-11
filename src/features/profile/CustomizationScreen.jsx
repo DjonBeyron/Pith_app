@@ -11,6 +11,7 @@ const LEVEL10_XP = LEVELS.find(l => l.level === 10)?.xpNeeded ?? 8000
 
 // Экран «Кастомизация» в профиле: три достижения, примерка косметики
 // (подложка/рамка/медаль) и предпросмотр своей строки в рейтинге.
+// Выбор аватара — отдельный попап по тапу на аватар в самом профиле.
 export default function CustomizationScreen({ onBack }) {
   const [achievements, setAchievements] = useState([])
   const [cosmetics,    setCosmetics]    = useState({})

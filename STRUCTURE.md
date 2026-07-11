@@ -101,6 +101,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `profile-v2.css` | Стили профиля (ui v2): аватар, чип уровня, карточка XP+энергия, кнопка покупки подписки, вкладки-сегменты |
 | `profile-v2-list.css` | Стили профиля: строки копилки/модулей, пустые состояния, экран настроек, кнопка кастомизации, карточка уведомлений |
 | `rating-v2.css` | Стили вкладки «Рейтинг» и UserBadge: строки топа, карточки достижений с кнопками «Надеть», предпросмотр |
+| `avatar-picker.css` | Стили попапа выбора аватара (тап по аватару в профиле) и кнопки «+» рядом с аватаром |
 | `rating-podium.css` | Подиум рейтинга по макету: венки топ-3 вокруг аватара (серебро/бронза фильтрами), металлические карточки мест 1-2-3, плашка «Рейтинг игроков», баннер супергонки с кубком и прогрессом |
 | `race-v2.css` | Стили супергонки: страница (карточка темы, таймер, список заданий, большая кнопка), баннер в рейтинге, попапы анонса/итогов с подиумом |
 | `admin-race.css` | Стили админ-конструктора гонки: строки модулей списка заданий, кастомный выпадающий список со скроллом |
@@ -154,6 +155,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `EnergyBadge.jsx` | Значок энергии в верхней панели (hudBar): молния + число или ∞ при подписке/админе; живёт на кэше профиля |
 | `TicketBadge.jsx` | Значок золотых билетов в hudBar: счётчик + мини-окно (как заработать билет и на что тратится) |
 | `LevelBadge.jsx` | Значок уровня персонажа в hudBar: номер уровня + мини-окно (название уровня, XP до следующего) |
+| `hudPopupState.js` | Общее состояние «какое окошко hudBar открыто» — клик по одному бейджу закрывает попап другого, вместо независимых `open` в каждом |
 
 ### `src/features/admin/` — всё для вкладки «Админ»
 | Файл | Зачем нужен |
@@ -293,6 +295,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `NicknameCard.jsx` | Карточка «Ник» в настройках профиля: смена ника для рейтинга (RPC set_nickname; лимиты: 1-я бесплатно, 2-я через 7 дней, дальше раз в месяц) |
 | `CustomizationScreen.jsx` | Экран «Кастомизация» из профиля: загружает достижения/косметику и рендерит AchievementsPanel; лениво выдаёт «10-й уровень» |
 | `AchievementsPanel.jsx` | Три карточки достижений (10-й уровень/участник/победитель гонки), кнопки «Надеть/Снять» косметику, предпросмотр своей строки рейтинга |
+| `AvatarPicker.jsx` | Сетка выбора аватара из пака DiceBear — свою картинку загрузить нельзя, только сид из пака; меняется без ограничений |
+| `AvatarPickerPopup.jsx` | Попап вокруг AvatarPicker: открывается тапом по аватару в профиле, закрывается тапом по фону/крестику/после выбора |
 
 ### `src/features/pro/` — подписка Pithy Pro
 | Файл | Зачем нужен |
@@ -337,7 +341,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `pushTemplatesApi.js` | CRUD шаблонов пушей (`push_templates`) + поиск включённого шаблона по триггеру (manual / new_module / inactive_today / energy_full) |
 | `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth |
 | `highlightPresetsApi.js` | Загрузка и сохранение избранных цветов выделений (`highlight_color_presets`, singleton row 'global') |
-| `profileApi.js` | getProfile (чтение профиля) / startLesson — RPC `start_lesson` (энергия, бесплатные случаи решает сервер) / completeLesson — начисление XP через RPC `complete_lesson` / resetLessonProgress — сброс прохождения с возвратом XP (тест-кнопки админа) |
+| `profileApi.js` | getProfile (чтение профиля, включая avatar_seed) / saveAvatar — RPC `set_avatar` (смена аватара из пака DiceBear) / startLesson — RPC `start_lesson` (энергия, бесплатные случаи решает сервер) / completeLesson — начисление XP через RPC `complete_lesson` / resetLessonProgress — сброс прохождения с возвратом XP (тест-кнопки админа) |
 | `subscriptionApi.js` | Платежи Pithy Pro: createSubscriptionPayment зовёт edge-функцию create-payment, возвращает ссылку на оплату ЮKassa или stub, пока касса не подключена |
 | `profileCache.js` | Кэш профиля в памяти + подписка: `getCachedProfile` / `refreshProfile` / `subscribeProfile` / `clearProfileCache`. Плеер после урока обновляет его фоном, чтобы вкладка «Профиль» открывалась сразу со свежим XP без мигания |
 | `moduleSocialApi.js` | Лайки/закладки/прогресс модулей (лента ui v2): `fetchFeedSocial` (счётчики + мои), `setLike`/`setBookmark`, `markModuleStarted` (гость — в localStorage) |
@@ -365,6 +369,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `completedLessons.js` | Трекинг пройденных уроков в localStorage (`pithy_completed_v1`): `getCompletedLessons()` → Set, `markLessonCompleted(id)` |
 | `lessonStars.js` | Звёзды уроков в localStorage (`pithy_lesson_stars_v1`): getLocalStars/setLocalStars (только вверх) + `starsFromErrors` (0 ошибок → 3★, 1–2 → 2★, дальше 1★) |
 | `plural.js` | Русское склонение: `plural(n, 'слово', 'слова', 'слов')` |
+| `avatarPack.js` | Готовый пак аватарок DiceBear (стиль adventurer, фиксированные сиды) + `avatarUrl(seed)` — единственный источник аватарок, свои картинки не поддерживаются |
 | `videoCheck.js` | Проверка MP4 перед загрузкой в ленту: `checkMp4Faststart(file)` — читает только заголовки атомов, определяет, в начале ли moov (быстрый старт) |
 | `feedDebug.js` | Дебаг ленты: кольцевой лог `fdbg()`, снимок окружения `collectEnv()` (размеры окна, safe-area через элемент-зонд, standalone, ректы оболочки/бара) |
 | `useAuth.js` | React-хук `useAuth()`: подписка на `supabase.auth.onAuthStateChange`, возвращает `{ user, loading }` |
@@ -381,4 +386,4 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `HighlightedText.jsx` | Рендер текста с выделениями: режим `bg` — абсолютно позиционированный дочерний спан для фона (обход ограничения font content area), режим `text` — цвет шрифта |
-| `UserBadge.jsx` | Пользователь в рейтинге/итогах гонки: буквенный аватар (цвет от id) + ник; косметика достижений — рамка, подложка ника, медаль 1/2/3 |
+| `UserBadge.jsx` | Пользователь в рейтинге/итогах гонки: буквенный аватар (цвет от id) или картинка из пака DiceBear (avatarSeed) + ник; косметика достижений — рамка, подложка ника, медаль 1/2/3 |

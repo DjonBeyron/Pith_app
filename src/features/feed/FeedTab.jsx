@@ -9,7 +9,6 @@ import MyLessons from './MyLessons.jsx'
 import DebugPanel from './DebugPanel.jsx'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
-import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Лента видео (новая оболочка, шаг 3 миграции): вертикальный scroll-snap
 // по модулям из curricula, бесконечная по кругу — список повторяется
@@ -415,7 +414,6 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           Мои уроки
         </button>
       </div>
-      <span className="feedV2Version">v{APP_VERSION}</span>
       <button className="feedDbgBtn" onClick={() => setShowDebug(true)}>DBG</button>
 
       {/* Оба вида смонтированы всегда (как вкладки оболочки): переключение

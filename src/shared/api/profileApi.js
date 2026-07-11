@@ -8,11 +8,20 @@ export async function getProfile() {
 
   const { data, error } = await supabase
     .from('user_profiles')
-    .select('xp, energy, energy_updated_at, tickets, has_subscription, subscription_until, is_admin, nickname, cosmetics')
+    .select('xp, energy, energy_updated_at, tickets, has_subscription, subscription_until, is_admin, nickname, cosmetics, avatar_seed')
     .eq('id', user.id)
     .single()
 
   if (error) return null
+  return data
+}
+
+// Смена аватара на один из пака DiceBear (см. shared/lib/avatarPack.js) —
+// menять можно сколько угодно раз, без лимитов (в отличие от ника).
+// seed=null — сброс на дефолтную букву-аватар. Возвращает применённый seed.
+export async function saveAvatar(seed) {
+  const { data, error } = await supabase.rpc('set_avatar', { p_seed: seed })
+  if (error) { console.error('[AVATAR] set_avatar:', error.message); return null }
   return data
 }
 

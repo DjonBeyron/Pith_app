@@ -11,6 +11,7 @@ import TicketBadge from './TicketBadge.jsx'
 import LevelBadge from './LevelBadge.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
+import { APP_VERSION } from '../shared/lib/version.js'
 
 // Новая оболочка (ui v2, миграция по PROJECT.md): нижний бар Уроки/Профиль
 // (+Админ для is_admin). Пока: лента — заглушка (шаг 3 миграции),
@@ -34,13 +35,19 @@ export default function ShellV2() {
 
   return (
     <div className="shellV2">
-      {/* Верхняя панель игрока: уровень · золотые билеты · энергия */}
+      {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
+          самого верха), справа энергия и под ней версия приложения */}
       {tab !== 'profile' && (
-        <div className="hudBar">
-          <LevelBadge />
-          <TicketBadge />
-          <EnergyBadge />
-        </div>
+        <>
+          <div className="hudBarLeft">
+            <LevelBadge />
+            <TicketBadge />
+          </div>
+          <div className="hudBarRight">
+            <EnergyBadge />
+            <span className="hudVersion">v{APP_VERSION}</span>
+          </div>
+        </>
       )}
 
       {/* Все вкладки смонтированы всегда: переключение — только видимость.

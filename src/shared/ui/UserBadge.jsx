@@ -1,3 +1,5 @@
+import { avatarUrl } from '../lib/avatarPack.js'
+
 // Компонент отображения пользователя в рейтинге: аватар + ник + косметика
 
 // Приглушённая палитра для тёмной темы — детерминированная по userId
@@ -30,6 +32,7 @@ const MEDAL_COLORS = {
  * UserBadge — карточка участника рейтинга.
  * @param {string}      nickname    — ник пользователя
  * @param {string}      userId      — для детерминированного цвета аватара
+ * @param {string|null} avatarSeed  — сид аватара из пака DiceBear (null — буква)
  * @param {object}      cosmetics   — { bg, frame, medal } — что надето
  * @param {number|null} medalPlace  — 1/2/3; если cosmetics.medal — показываем медаль
  * @param {number|null} wreathPlace — 1/2/3: лавровый венок вокруг аватара
@@ -40,6 +43,7 @@ const MEDAL_COLORS = {
 export default function UserBadge({
   nickname = '?',
   userId = '',
+  avatarSeed = null,
   cosmetics = {},
   medalPlace = null,
   wreathPlace = null,
@@ -73,12 +77,21 @@ export default function UserBadge({
             alt=""
           />
         )}
-        <span
-          className={`ubAvatar${cosmetics.frame ? ' ubAvatarFrame' : ''}`}
-          style={avatarStyle}
-        >
-          {letter}
-        </span>
+        {avatarSeed ? (
+          <img
+            className={`ubAvatar ubAvatarImg${cosmetics.frame ? ' ubAvatarFrame' : ''}`}
+            style={{ width: size, height: size }}
+            src={avatarUrl(avatarSeed)}
+            alt=""
+          />
+        ) : (
+          <span
+            className={`ubAvatar${cosmetics.frame ? ' ubAvatarFrame' : ''}`}
+            style={avatarStyle}
+          >
+            {letter}
+          </span>
+        )}
 
         {/* Медаль — маленький кружок снизу-справа аватара */}
         {showMedal && (

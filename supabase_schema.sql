@@ -1553,4 +1553,43 @@ begin
 end;
 $$;
 
+-- ═══════════════════════════════════════════════════════════════
+-- Аватары из пака DiceBear (2026-07-11)
+-- ═══════════════════════════════════════════════════════════════
+-- Пользователь не загружает свою картинку — только выбирает сид из
+-- фиксированного пака на клиенте (src/shared/lib/avatarPack.js, стиль
+-- adventurer). Менять можно без ограничений, в отличие от ника.
+-- set_avatar не сверяет сид с точным списком пака (список живёт в JS и
+-- может меняться без миграций) — проверяет только безопасный формат
+-- (латиница/цифры, до 40 символов), сама картинка всегда рисуется
+-- по фиксированному URL DiceBear на клиенте, поэтому подменить sid на
+-- чужой домен/скрипт нельзя.
+alter table public.user_profiles add column if not exists avatar_seed text;
+
+create or replace function public.set_avatar(p_seed text)
+returns text language plpgsql security definer as $$
+begin
+  if auth.uid() is null then return null; end if;
+  if p_seed is not null and p_seed !~ '^[A-Za-z0-9]{1,40}$' then
+    return null;
+  end if;
+  update public.user_profiles set avatar_seed = p_seed where id = auth.uid();
+  return p_seed;
+end;
+$$;
+
+-- Аватар в рейтинге: лидерборд отдаёт и сид. drop обязателен — у create or
+-- replace нельзя менять состав колонок результата.
+drop function if exists public.get_leaderboard(int);
+create function public.get_leaderboard(p_limit int default 100)
+returns table(user_id uuid, nickname text, xp int, cosmetics jsonb, medal_place int, is_pro boolean, avatar_seed text)
+language sql security definer as $$
+  select p.id, p.nickname, p.xp, p.cosmetics, (a.meta->>'place')::int,
+         (p.has_subscription or p.is_admin), p.avatar_seed
+  from public.user_profiles p
+  left join public.user_achievements a on a.user_id = p.id and a.kind = 'race_winner'
+  order by p.xp desc, p.created_at asc
+  limit least(greatest(coalesce(p_limit, 100), 1), 200);
+$$;
+
 notify pgrst, 'reload schema';
