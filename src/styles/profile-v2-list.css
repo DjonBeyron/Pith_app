@@ -1,0 +1,127 @@
+/* ── Профиль: списки (слова/модули), пустые состояния, доп. кнопки ── */
+
+/* ── Строки: слова копилки и модули ── */
+.pvWord {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid #232932;
+  border-radius: 14px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.pvWord:nth-child(3n+2) {
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex-f) #14171c;
+  background-position: 0 0, 0 0, 24px 12px;
+}
+
+.pvWord:nth-child(3n) {
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex-r) #14171c;
+  background-position: 0 0, 0 0, 50px 28px;
+}
+
+.pvModRow { cursor: pointer; border: 1px solid #232932; }
+
+.pvWordText { font-size: 15px; font-weight: 700; }
+
+.pvWordFrom {
+  margin-left: auto;
+  font-size: 11px;
+  color: #5c6570;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Карточка слова из копилки: слово сверху, перевод/источник строкой ниже */
+.pvWordCard {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 16px;
+}
+
+.pvWordCard .pvWordFrom {
+  margin-left: 0;
+  text-align: left;
+  font-size: 12.5px;
+  color: #9aa3ad;
+}
+
+.pvWordsCount {
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: #5c6570;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pvEmpty {
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #9aa3ad;
+}
+
+/* ── Экран настроек из профиля ── */
+.pvSettingsScreen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pvBack {
+  align-self: flex-start;
+  margin: calc(12px + env(safe-area-inset-top, 0px)) 16px 10px;
+  padding: 6px 12px;
+  border: 1px solid #232932;
+  border-radius: 10px;
+  background: #14171c;
+  color: #f2f5f7;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ── Карточка «Уведомления» (PushToggle, теперь во вкладке Настройки) ── */
+.pvPushRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pvPushRight { display: flex; align-items: center; gap: 10px; }
+
+.pvPushHint { color: #8b94a1; font-size: 12px; }
+
+.pvPushBtn {
+  padding: 7px 14px;
+  border: 1px solid #232932;
+  border-radius: 10px;
+  background: #14171c;
+  color: #f2f5f7;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pvPushBtnOn {
+  background: #b6fe3b;
+  border-color: #b6fe3b;
+  color: #0d1500;
+  font-weight: 700;
+}
+
+/* Кнопка-карточка «Кастомизация» (достижения и косметика) */
+.pvCustomizeBtn {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; cursor: pointer; text-align: center;
+  border: 1px solid #232932;
+}
+.pvCustomizeLabel { font-size: 14px; font-weight: 700; color: #f2f5f7; }

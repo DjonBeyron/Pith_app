@@ -46,13 +46,25 @@
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at 35% 30%, #6b9fd4, #23344d);
-  border: 2px solid #232932;
+  border: 2.5px solid #b6fe3b;
   font-size: 26px;
   font-weight: 800;
   color: #fff;
 }
 
+.pvNameRow { display: flex; align-items: center; gap: 8px; }
+
 .pvName { font-size: 17px; font-weight: 700; }
+
+.pvProBadge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #b6fe3b;
+  color: #0d1500;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
 
 .pvLvlChip {
   display: inline-block;
@@ -100,34 +112,82 @@
   background: #b6fe3b;
 }
 
-.pvEnergyRow {
+/* ── Карточка «Опыт + Энергия» (единая, двумя колонками) ── */
+.pvStatsCard {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 14px;
 }
 
-.pvBolt { width: 20px; height: 20px; color: #b6fe3b; }
+.pvStatCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.pvStatDivider {
+  width: 1px;
+  background: #232932;
+}
+
+.pvStatTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9aa3ad;
+}
+
+.pvStatTop b { color: #f2f5f7; font-size: 13px; text-transform: none; letter-spacing: normal; }
+
+.pvEnergyBolts { display: flex; align-items: center; gap: 6px; }
+
+.pvBolt { width: 18px; height: 18px; color: #b6fe3b; }
 
 /* Пустые молнии — чуть темнее фона приложения, почти чёрные */
 .pvBoltOff { color: #07080b; }
 
-.pvEnergyLabel {
-  margin-left: auto;
-  font-size: 12px;
-  color: #9aa3ad;
+/* ── Кнопка покупки подписки: крупная зелёная пилюля с подсветкой ── */
+.pvBuyBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #d4ff8a, #8fe62c);
+  box-shadow: 0 0 26px rgba(182, 254, 59, 0.35);
+  color: #0d1500;
+  cursor: pointer;
 }
 
-/* ── Вкладки-таблетки ── */
+.pvBuyIcon { font-size: 18px; line-height: 1; }
+.pvBuyText { font-size: 15px; font-weight: 800; }
+.pvBuyPrice { font-size: 13px; font-weight: 600; opacity: 0.72; }
+
+/* ── Вкладки-сегменты: единая тёмная капсула, активный сегмент — зелёный ── */
 .pvTabs {
   display: flex;
-  gap: 6px;
+  gap: 2px;
   margin: 20px 0 14px;
+  padding: 4px;
+  background: #14171c;
+  border: 1px solid #232932;
+  border-radius: 999px;
 }
 
 .pvTab {
   flex: 1;
-  border: 1px solid #232932;
-  background: #14171c;
+  border: none;
+  background: transparent;
   color: #9aa3ad;
   border-radius: 999px;
   padding: 9px 4px;
@@ -137,111 +197,7 @@
 }
 
 .pvTabActive {
-  background: var(--v2-dust-d), var(--v2-grain-d), linear-gradient(180deg, #ceff73, #a9f335);
-  border-color: #b6fe3b;
+  background: linear-gradient(180deg, #ceff73, #a9f335);
+  box-shadow: 0 4px 14px rgba(182, 254, 59, 0.35);
   color: #0d1500;
 }
-
-/* ── Строки: слова копилки и модули ── */
-.pvWord {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
-  border: 1px solid #232932;
-  border-radius: 14px;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-}
-
-.pvWord:nth-child(3n+2) {
-  background: var(--v2-dust), var(--v2-grain), var(--v2-tex-f) #14171c;
-  background-position: 0 0, 0 0, 24px 12px;
-}
-
-.pvWord:nth-child(3n) {
-  background: var(--v2-dust), var(--v2-grain), var(--v2-tex-r) #14171c;
-  background-position: 0 0, 0 0, 50px 28px;
-}
-
-.pvModRow { cursor: pointer; border: 1px solid #232932; }
-
-.pvWordText { font-size: 15px; font-weight: 700; }
-
-.pvWordFrom {
-  margin-left: auto;
-  font-size: 11px;
-  color: #5c6570;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.pvEmpty {
-  padding: 28px 16px;
-  text-align: center;
-  font-size: 13px;
-  line-height: 1.55;
-  color: #9aa3ad;
-}
-
-/* ── Экран настроек из профиля ── */
-.pvSettingsScreen {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.pvBack {
-  align-self: flex-start;
-  margin: calc(12px + env(safe-area-inset-top, 0px)) 16px 10px;
-  padding: 6px 12px;
-  border: 1px solid #232932;
-  border-radius: 10px;
-  background: #14171c;
-  color: #f2f5f7;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-/* ── Карточка «Уведомления» (PushToggle) ── */
-.pvPushRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.pvPushRight { display: flex; align-items: center; gap: 10px; }
-
-.pvPushHint { color: #8b94a1; font-size: 12px; }
-
-.pvPushBtn {
-  padding: 7px 14px;
-  border: 1px solid #232932;
-  border-radius: 10px;
-  background: #14171c;
-  color: #f2f5f7;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.pvPushBtnOn {
-  background: #b6fe3b;
-  border-color: #b6fe3b;
-  color: #0d1500;
-  font-weight: 700;
-}
-
-/* Кнопка-карточка «Кастомизация» (достижения и косметика) */
-.pvCustomizeBtn {
-  display: flex; align-items: center; justify-content: space-between;
-  width: 100%; cursor: pointer; text-align: left;
-  border: 1px solid rgba(182, 254, 59, 0.25);
-}
-.pvCustomizeBtn span { font-size: 14px; font-weight: 700; color: #f2f5f7; }
-.pvCustomizeBtn b { font-size: 12px; font-weight: 600; color: #b6fe3b; }

@@ -3,7 +3,6 @@ import { useProfileV2Data } from './useProfileV2Data.js'
 import { getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import SettingsTab from '../settings/SettingsTab.jsx'
-import PushToggle from './PushToggle.jsx'
 import NicknameCard from './NicknameCard.jsx'
 import CustomizationScreen from './CustomizationScreen.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
@@ -82,26 +81,34 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
       <div className="pvWho">
         <div className="pvAvatar">{name.slice(0, 1).toUpperCase()}</div>
         <div>
-          <div className="pvName">{name}</div>
-          <span className="pvLvlChip">{cur.level} уровень · {cur.label}</span>
+          <div className="pvNameRow">
+            <span className="pvName">{name}</span>
+            {(profile?.has_subscription || profile?.is_admin) && <span className="pvProBadge">PRO</span>}
+          </div>
+          <span className="pvLvlChip">★ {cur.level} уровень · {cur.label}</span>
         </div>
       </div>
 
-      <div className="pvCard">
-        <div className="pvCardTop">
-          <span>Опыт</span>
-          <b>{xp}{next ? ` / ${next.xpNeeded}` : ''} XP</b>
+      <div className="pvCard pvStatsCard">
+        <div className="pvStatCol">
+          <div className="pvStatTop">
+            <span>Опыт</span>
+            <b>{xp}{next ? ` / ${next.xpNeeded}` : ''}</b>
+          </div>
+          <div className="pvTrack"><div className="pvFill" style={{ width: `${xpPct}%` }} /></div>
         </div>
-        <div className="pvTrack"><div className="pvFill" style={{ width: `${xpPct}%` }} /></div>
-      </div>
-
-      <div className="pvCard pvEnergyRow">
-        {[0, 1, 2, 3, 4].map(i => (
-          <svg key={i} className={i < energy ? 'pvBolt' : 'pvBolt pvBoltOff'} viewBox="0 0 24 24" fill="currentColor"><path d={BOLT} /></svg>
-        ))}
-        <span className="pvEnergyLabel">
-          {profile?.has_subscription ? 'безлимит' : `энергия ${energy} из 5`}
-        </span>
+        <div className="pvStatDivider" />
+        <div className="pvStatCol">
+          <div className="pvStatTop">
+            <span>Энергия</span>
+            <b>{profile?.has_subscription ? '∞' : `${energy}/5`}</b>
+          </div>
+          <div className="pvEnergyBolts">
+            {[0, 1, 2, 3, 4].map(i => (
+              <svg key={i} className={i < energy ? 'pvBolt' : 'pvBolt pvBoltOff'} viewBox="0 0 24 24" fill="currentColor"><path d={BOLT} /></svg>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Pithy Pro: статус подписки или ненавязчивое предложение.
@@ -118,19 +125,17 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
           </b>
         </div>
       ) : (
-        <button className="pvCard pvProCard" onClick={() => setShowPro(true)}>
-          <span>👑 Pithy Pro</span>
-          <b className="pvProState">безлимит энергии — 399 ₽/мес →</b>
+        <button className="pvBuyBtn" onClick={() => setShowPro(true)}>
+          <span className="pvBuyIcon">🎖️</span>
+          <span className="pvBuyText">Купить подписку</span>
+          <span className="pvBuyPrice">399 ₽/мес</span>
         </button>
       )}
       {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
 
-      <PushToggle />
-
       {/* Кастомизация: достижения и косметика (подложка/рамка/медаль) */}
       <button className="pvCard pvCustomizeBtn" onClick={() => setShowCustomize(true)}>
-        <span>🏆 Кастомизация</span>
-        <b>достижения и внешний вид →</b>
+        <span className="pvCustomizeLabel">✨ Кастомизация</span>
       </button>
 
       <div className="pvTabs">
@@ -183,7 +188,7 @@ function WordsList({ words, unlimited, onWantPro }) {
           : `${Math.min(words.length, WORDS_FREE_CAP)} из ${WORDS_FREE_CAP} бесплатных`}
       </div>
       {shown.map(w => (
-        <div key={w.id} className="pvWord">
+        <div key={w.id} className="pvWord pvWordCard">
           <span className="pvWordText">{w.word}</span>
           <span className="pvWordFrom">{w.from}</span>
         </div>

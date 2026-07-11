@@ -1,6 +1,13 @@
+import PushToggle from '../profile/PushToggle.jsx'
+
 export default function SettingsTab() {
   return (
     <div className="settingsTab">
+      <section className="settingsSection">
+        <h2 className="settingsSectionTitle">Уведомления</h2>
+        <PushToggle />
+      </section>
+
       <section className="settingsSection">
         <h2 className="settingsSectionTitle">Аудио</h2>
         <p className="settingsSectionNote">
