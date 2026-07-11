@@ -4,6 +4,7 @@ import {
 } from '../../shared/api/raceApi.js'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { dbg } from '../../shared/lib/debug.js'
+import { subscribeRaceChanged } from './raceBus.js'
 
 // Ключ localStorage: CurriculumView пишет сюда неделю, на которой пользователь
 // прошёл модуль до конца — триггер попапа-анонса супергонки (RaceGlobalPopups).
@@ -73,6 +74,10 @@ export function useRaceState(active = true) {
   }, [])
 
   useEffect(() => { if (active) reload() }, [active, reload])
+
+  // Админ удалил/изменил гонку в другой вкладке — баннер обновляется сразу,
+  // без перезагрузки приложения (см. features/race/raceBus.js)
+  useEffect(() => subscribeRaceChanged(reload), [reload])
 
   const totalXp  = modules.reduce((s, m) => s + m.xp, 0)
   const earnedXp = modules.reduce((s, m) => s + m.earnedXp, 0)

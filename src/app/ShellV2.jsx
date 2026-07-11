@@ -37,7 +37,7 @@ export default function ShellV2() {
     <div className="shellV2">
       {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
           самого верха), справа энергия и под ней версия приложения */}
-      {tab !== 'profile' && (
+      {tab !== 'profile' && tab !== 'admin' && (
         <>
           <div className="hudBarLeft">
             <LevelBadge />

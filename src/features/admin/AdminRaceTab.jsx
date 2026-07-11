@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { loadRaces, saveRace, deleteRace, fetchRaceLessons } from '../../shared/api/raceApi.js'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
+import { notifyRaceChanged } from '../race/raceBus.js'
 import AdminRacePicker from './AdminRacePicker.jsx'
 
 const p2 = n => String(n).padStart(2, '0')
@@ -68,6 +69,7 @@ export default function AdminRaceTab() {
       starts_at: r.starts_at, ends_at: r.ends_at,
     })
     setMsg(error ? 'Не сохранилось: ' + error : '✓ Сохранено')
+    if (!error) notifyRaceChanged()
   }
 
   async function add() {
@@ -80,7 +82,11 @@ export default function AdminRaceTab() {
   async function remove(r) {
     if (!window.confirm(`Удалить гонку «${r.title}»?`)) return
     setRaces(rs => rs.filter(x => x.id !== r.id))
-    if (!(await deleteRace(r.id))) setMsg('Не удалилось — обнови страницу')
+    if (await deleteRace(r.id)) {
+      notifyRaceChanged()
+    } else {
+      setMsg('Не удалилось — обнови страницу')
+    }
   }
 
   function movePrep(r, i, dir) {

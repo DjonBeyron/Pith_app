@@ -82,7 +82,8 @@ export default function FeedSlide({
         <DifficultyBadge
           level={difficulty}
           myVote={myDifficulty}
-          onVote={onVoteDifficulty} />
+          onVote={onVoteDifficulty}
+          active={active} />
       </div>
 
       <button className="feedLearnBtn" onClick={onLearn}>

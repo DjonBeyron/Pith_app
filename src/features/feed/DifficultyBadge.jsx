@@ -25,7 +25,7 @@ const SPARKS = Array.from({ length: 8 }, (_, i) => {
   return { dx: Math.cos(a) * r, dy: Math.sin(a) * r }
 })
 
-export default function DifficultyBadge({ level, myVote, onVote }) {
+export default function DifficultyBadge({ level, myVote, onVote, active = true }) {
   const [open, setOpen] = useState(false)
   const [help, setHelp] = useState(false)
   const [intro, setIntro] = useState(false) // авто-попап первого раза (пульсирует)
@@ -33,6 +33,13 @@ export default function DifficultyBadge({ level, myVote, onVote }) {
   const [confirmed, setConfirmed] = useState(false)
   const timers = useRef([])
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
+
+  // Свайп на другое видео и обратно: слайд не размонтируется (виртуализация
+  // переиспользует DOM), поэтому без этого открытая панель голосования
+  // «прилипала» и была видна при возврате
+  useEffect(() => {
+    if (!active && open) closePanel()
+  }, [active]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function openPanel() {
     setOpen(true)

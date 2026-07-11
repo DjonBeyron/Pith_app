@@ -90,7 +90,8 @@ export default function MyLessons({
                 <DifficultyBadge
                   level={displayDifficulty(m, diffVotes[m.id], true)}
                   myVote={diffVotes[m.id]}
-                  onVote={v => onVoteDifficulty?.(m.id, v)} />
+                  onVote={v => onVoteDifficulty?.(m.id, v)}
+                  active={i === activeIdx} />
               </div>
               <button className="feedLearnBtn mlContinueBtn" onClick={() => onOpen(m)}>
                 {m.pct === 100 ? 'Повторить модуль' : 'Продолжить'}
