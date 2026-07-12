@@ -72,20 +72,44 @@ async function logSent(uids: string[], kind: string) {
     .insert(uids.map(u => ({ user_id: u, trigger_kind: kind })));
 }
 
-// Вечер: аудитория из SQL (push_audience_evening) делится на два шаблона
+// Вечер: аудитория из SQL (push_audience_evening) делится на два шаблона.
+// streak_risk теперь несёт реальное число дней серии (streak) — персонализируем
+// текст шаблона плейсхолдером {streak} вместо общей рассылки одним payload'ом.
 async function runEvening() {
   const { data, error } = await service.rpc("push_audience_evening");
   if (error) return json(500, { error: error.message });
-  const rows = (data ?? []) as { uid: string; kind: string }[];
+  const rows = (data ?? []) as { uid: string; kind: string; streak: number }[];
   const out: Record<string, unknown> = {};
-  for (const kind of ["streak_risk", "inactive_today"]) {
-    const uids = rows.filter(r => r.kind === kind).map(r => r.uid);
-    const tpl = uids.length ? await loadTemplate(kind) : null;
-    if (!tpl) { out[kind] = { audience: uids.length, skipped: true }; continue; }
-    const res = await sendAll(await subsForUsers(uids), tpl, {});
-    await logSent(uids, kind);
-    out[kind] = { audience: uids.length, ...res };
-  }
+
+  const inactiveUids = rows.filter(r => r.kind === "inactive_today").map(r => r.uid);
+  const inactiveTpl = inactiveUids.length ? await loadTemplate("inactive_today") : null;
+  if (inactiveTpl) {
+    const res = await sendAll(await subsForUsers(inactiveUids), inactiveTpl, {});
+    await logSent(inactiveUids, "inactive_today");
+    out.inactive_today = { audience: inactiveUids.length, ...res };
+  } else out.inactive_today = { audience: inactiveUids.length, skipped: true };
+
+  const streakRows = rows.filter(r => r.kind === "streak_risk");
+  const streakTpl = streakRows.length ? await loadTemplate("streak_risk") : null;
+  if (streakTpl) {
+    const subs = await subsForUsers(streakRows.map(r => r.uid));
+    const subsByUser = new Map<string, Sub[]>();
+    for (const s of subs) {
+      if (!s.user_id) continue;
+      if (!subsByUser.has(s.user_id)) subsByUser.set(s.user_id, []);
+      subsByUser.get(s.user_id)!.push(s);
+    }
+    let sent = 0, failed = 0;
+    await Promise.all(streakRows.map(async (r) => {
+      const mySubs = subsByUser.get(r.uid) ?? [];
+      if (!mySubs.length) return;
+      const res = await sendAll(mySubs, streakTpl, { streak: String(r.streak ?? 0) });
+      sent += res.sent; failed += res.failed;
+    }));
+    await logSent(streakRows.map(r => r.uid), "streak_risk");
+    out.streak_risk = { audience: streakRows.length, sent, failed };
+  } else out.streak_risk = { audience: streakRows.length, skipped: true };
+
   return json(200, out);
 }
 

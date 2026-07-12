@@ -67,6 +67,7 @@ export default function RatingTab({ openRaceTick = 0 }) {
                   <span className="ratingStats">
                     <span className="ratingStatsLvl">Ур.{lvl.level}</span>
                     <span className="ratingStatsXp">{r.xp}XP</span>
+                    {r.current_streak > 0 && <span className="ratingStatsStreak">🔥{r.current_streak}</span>}
                   </span>
                 </div>
               )
@@ -89,6 +90,7 @@ export default function RatingTab({ openRaceTick = 0 }) {
                   <span className="ratingStats">
                     <span className="ratingStatsLvl">Ур.{getCurrentLevel(profile?.xp ?? 0).level}</span>
                     <span className="ratingStatsXp">{profile?.xp ?? 0}XP</span>
+                    {profile?.current_streak > 0 && <span className="ratingStatsStreak">🔥{profile.current_streak}</span>}
                   </span>
                 </div>
               </>

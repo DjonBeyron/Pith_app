@@ -7,6 +7,7 @@ import NicknameCard from './NicknameCard.jsx'
 import CustomizationScreen from './CustomizationScreen.jsx'
 import AvatarPickerPopup from './AvatarPickerPopup.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
+import RewardsPopup from '../streak/RewardsPopup.jsx'
 import { plural } from '../../shared/lib/plural.js'
 import { avatarUrl } from '../../shared/lib/avatarPack.js'
 import { saveAvatar } from '../../shared/api/profileApi.js'
@@ -25,6 +26,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
   const [showSettings, setShowSettings] = useState(false)
   const [showCustomize, setShowCustomize] = useState(false)
   const [showPro, setShowPro] = useState(false)
+  const [showRewards, setShowRewards] = useState(false)
   const [openModule, setOpenModule] = useState(null)
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [avatarBusy, setAvatarBusy] = useState(false)
@@ -160,6 +162,12 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
       )}
       {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
 
+      {/* Ежедневный стрик: статус + ручной вход в окно наград */}
+      <button className="pvCard pvStreakBtn" onClick={() => setShowRewards(true)}>
+        <span>🔥 Ежедневные награды</span>
+        <span className="pvStreakVal">{profile?.current_streak ?? 0} {plural(profile?.current_streak ?? 0, 'день', 'дня', 'дней')}</span>
+      </button>
+
       {/* Кастомизация: достижения и косметика (подложка/рамка/медаль) */}
       <button className="pvCard pvCustomizeBtn" onClick={() => setShowCustomize(true)}>
         <span className="pvCustomizeLabel">✨ Кастомизация</span>
@@ -204,6 +212,14 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
           busy={avatarBusy}
           onSelect={changeAvatar}
           onClose={() => setShowAvatarPicker(false)}
+        />
+      )}
+
+      {showRewards && (
+        <RewardsPopup
+          profile={profile}
+          onClose={() => setShowRewards(false)}
+          onWantPro={() => { setShowRewards(false); setShowPro(true) }}
         />
       )}
     </div>

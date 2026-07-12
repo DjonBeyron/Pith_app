@@ -260,6 +260,13 @@
   white-space: nowrap;
 }
 
+.ratingStatsStreak {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff9d42;
+  white-space: nowrap;
+}
+
 /* Скелетон строки на время первой загрузки — той же высоты, что и
    реальная строка, чтобы список не «прыгал» когда придут данные */
 .ratingRowSkeleton {

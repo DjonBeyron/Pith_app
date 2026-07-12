@@ -1,0 +1,293 @@
+/* ── Ежедневный стрик: полноэкранное окно наград + блок в профиле ── */
+
+.rwOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  background: #0b0d10;
+  display: flex;
+  flex-direction: column;
+  color: #f2f5f7;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+}
+
+.rwHeader {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #1c2030;
+}
+
+.rwHeader h1 { font-size: 17px; font-weight: 700; margin: 0; }
+
+.rwBack {
+  background: none;
+  border: none;
+  color: #b6fe3b;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.rwScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px 12px;
+}
+
+.rwHero {
+  text-align: center;
+  background: #14171c;
+  border: 1px solid #232838;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.rwHeroIcon { font-size: 40px; margin-bottom: 6px; }
+.rwHero h2 { font-size: 20px; font-weight: 800; margin: 0 0 6px; }
+.rwHeroSub { font-size: 13px; color: #9aa3ad; margin: 0 0 14px; line-height: 1.4; }
+.rwHeroSub b { color: #b6fe3b; }
+
+.rwTrack {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #060a14;
+  overflow: hidden;
+}
+
+.rwFill {
+  height: 100%;
+  background: #b6fe3b;
+  box-shadow: 0 0 12px rgba(182, 254, 59, 0.5);
+  transition: width 0.6s ease;
+}
+
+.rwTrackLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+/* ── Путь дней ── */
+.rwPath { position: relative; }
+
+.rwPathList {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.rwPathRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Линия между нодами: зелёная — вход в следующий день уже совершён,
+   серая — день ещё не наступил */
+.rwConnector {
+  width: 3px;
+  height: 22px;
+  border-radius: 2px;
+  margin-bottom: 4px;
+}
+
+.rwConnectorGreen {
+  background: #b6fe3b;
+  box-shadow: 0 0 6px rgba(182, 254, 59, 0.5);
+}
+
+.rwConnectorGray { background: #2a3142; }
+
+.rwNode {
+  width: 104px;
+  padding: 10px;
+  border-radius: 12px;
+  text-align: center;
+  background: #14171c;
+  border: 2px solid #232838;
+}
+
+.rwNodeCurrent {
+  border-color: #b6fe3b;
+  box-shadow: 0 0 14px rgba(182, 254, 59, 0.35);
+}
+
+.rwNodeLocked { opacity: 0.55; }
+
+.rwNodeMilestone {
+  width: 168px;
+  border-color: #ffd257;
+  box-shadow: 0 0 18px rgba(255, 210, 87, 0.3);
+  padding: 14px 10px;
+}
+
+.rwNodeMilestone[data-current] { box-shadow: 0 0 26px rgba(255, 210, 87, 0.55); }
+
+.rwNodeIcon { font-size: 24px; }
+.rwNodeLock { font-size: 14px; opacity: 0.6; }
+.rwNodeDay { font-size: 11px; font-weight: 700; margin: 4px 0 2px; }
+.rwNodeReward { font-size: 10px; font-weight: 700; color: #b6fe3b; margin: 0; }
+.rwNodeMilestone .rwNodeReward { color: #ffd257; }
+
+/* ── Низ: заморозки + кнопка забрать ── */
+.rwBottom {
+  flex-shrink: 0;
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+  border-top: 1px solid #1c2030;
+  background: #0b0d10;
+}
+
+.rwMsg {
+  text-align: center;
+  font-size: 13px;
+  color: #b6fe3b;
+  margin-bottom: 8px;
+}
+
+.rwFreezeRow { display: flex; gap: 8px; margin-bottom: 10px; }
+
+.rwFreezeItem { flex: 1; display: flex; gap: 6px; }
+
+.rwFreezeBtn {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(182, 254, 59, 0.25);
+  background: #14171c;
+  color: #f2f5f7;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rwFreezeBtn:disabled { opacity: 0.6; cursor: default; }
+
+.rwFreezeBtnPro {
+  flex: 1;
+  background: linear-gradient(180deg, #ffe27a, #eab72e);
+  color: #241a00;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Кнопка «?» — компактная, квадратная, рядом с кнопкой заморозки */
+.rwInfoBtn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(182, 254, 59, 0.25);
+  background: #14171c;
+  color: #b6fe3b;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rwClaimBtn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 15px;
+  background: #b6fe3b;
+  color: #0b0d10;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rwClaimBtn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Шторка-объяснение авто заморозки ── */
+.rwInfoOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 97;
+  background: rgba(5, 6, 8, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.rwInfoCard {
+  width: 100%;
+  max-width: 320px;
+  background: #14171c;
+  border: 1px solid #232838;
+  border-radius: 18px;
+  padding: 20px;
+  color: #f2f5f7;
+  text-align: center;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+}
+
+.rwInfoCard h3 { margin: 0 0 10px; font-size: 16px; }
+.rwInfoCard p { font-size: 13px; color: #9aa3ad; line-height: 1.5; margin: 0 0 14px; }
+.rwInfoPro { color: #ffd257 !important; margin-top: 14px !important; }
+
+/* ── Блок «Ежедневные награды» в профиле ── */
+.pvStreakBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pvStreakBtn .pvStreakVal { color: #ff9d42; font-weight: 800; font-size: 15px; }
+
+/* ── Админ: редактор вех streak_milestones (AdminStreakTab) ── */
+.asAddForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #14171c;
+  border: 1px solid #232838;
+}
+
+.asRow { flex-wrap: wrap; gap: 8px; }
+
+.asInput {
+  flex: 1;
+  min-width: 90px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #2a3142;
+  background: #0b0d10;
+  color: #f2f5f7;
+  font-size: 13px;
+}
+
+.asInputSm { min-width: 56px; max-width: 70px; flex: none; }
+
+.asDayLabel { font-size: 13px; font-weight: 700; color: #b6fe3b; flex-shrink: 0; }
+
+.asSpecialLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #9aa3ad;
+  white-space: nowrap;
+}

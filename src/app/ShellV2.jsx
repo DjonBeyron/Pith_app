@@ -11,6 +11,8 @@ import TicketBadge from './TicketBadge.jsx'
 import LevelBadge from './LevelBadge.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
+import { useDailyLoginTouch } from '../features/streak/useDailyLoginTouch.js'
+import StreakRewardsGlobalPopup from '../features/streak/StreakRewardsGlobalPopup.jsx'
 import { APP_VERSION } from '../shared/lib/version.js'
 
 // Новая оболочка (ui v2, миграция по PROJECT.md): нижний бар Уроки/Профиль
@@ -25,6 +27,7 @@ export default function ShellV2() {
   const [raceOpenTick, setRaceOpenTick] = useState(0)
   const { isAdmin } = useAdmin()
   const { user } = useAuth()
+  useDailyLoginTouch()
 
   // На всякий случай: убираем возможный след старого фикса высоты
   // (iOS 26 рисует только 812px окна — растягивать DOM бесполезно,
@@ -107,6 +110,9 @@ export default function ShellV2() {
 
       {/* Попапы супергонки: анонс недели и итоги — поверх любой вкладки */}
       <RaceGlobalPopups onOpenRace={() => { setTab('rating'); setRaceOpenTick(t => t + 1) }} />
+
+      {/* Окно ежедневных наград: раз в день после первого урока — поверх любой вкладки */}
+      <StreakRewardsGlobalPopup onWantPro={() => setTab('profile')} />
 
       {canvasLesson && (
         <div className="shellV2CanvasOverlay">

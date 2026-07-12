@@ -26,6 +26,7 @@ import { refreshProfile } from '../../shared/api/profileCache.js'
 import { saveAnswerEvents } from '../../shared/lib/skillStatsStore.js'
 import { sendSelfTrigger } from '../../shared/api/pushApi.js'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
+import { signalLessonCompleted } from '../streak/streakPopupBus.js'
 
 // Returns a Map<nodeId, xpAmount> for nodes with reward enabled.
 // If lessonXp=0 or no reward nodes, returns empty map.
@@ -111,6 +112,7 @@ export default function LessonPlayer({
         if (stars) stars.best = await saveLessonStars(lessonId, stars.earned)
         setEarnedXp(awarded)
         refreshProfile() // фоном обновляем кэш — вкладка «Профиль» откроется уже со свежим XP
+        signalLessonCompleted() // окно ежедневных наград (раз в день, см. StreakRewardsGlobalPopup)
         // Пересечение уровня — системное пуш-поздравление самому себе
         // (шаблон level_up в админке; без подписки функция просто ничего не шлёт)
         if (awarded > 0) {

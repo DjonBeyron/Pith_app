@@ -1593,3 +1593,312 @@ language sql security definer as $$
 $$;
 
 notify pgrst, 'reload schema';
+
+-- ══════════════════════════════════════════════════════════════════
+-- ── Ежедневный стрик + окно наград (2026-07-12) ───────────────────
+-- ══════════════════════════════════════════════════════════════════
+-- См. PROJECT.md → «Ежедневный стрик + окно наград» для полного описания
+-- механики. Награда — только основной XP (+ билеты на вехах), получение
+-- вручную через claim_streak_reward. Заморозки списываются автоматически
+-- внутри touch_daily_login при обнаружении пропуска дня.
+
+alter table public.user_profiles add column if not exists current_streak int not null default 0;
+alter table public.user_profiles add column if not exists longest_streak int not null default 0;
+alter table public.user_profiles add column if not exists last_active_date date;
+alter table public.user_profiles add column if not exists last_claimed_streak_day int not null default 0;
+-- Заморозка: одна штука про запас, не стакается (флаг, не счётчик).
+alter table public.user_profiles add column if not exists has_freeze_charge boolean not null default false;
+-- Авто заморозка (обычный пользователь): пул защиты на N пропущенных дней
+-- (сейчас 2 при покупке); у PRO эта колонка не используется — там отдельное
+-- бесплатное правило внутри touch_daily_login.
+alter table public.user_profiles add column if not exists auto_freeze_charges_left int not null default 0;
+-- PRO: неделя (ISO, 'IYYY-IW'), в которую уже был прощён один будний день —
+-- защита от бесконечного использования бесплатного правила несколько раз в неделю.
+alter table public.user_profiles add column if not exists pro_weekday_forgiven_week text;
+
+-- Вехи наград — конфиг в БД, редактируется админом из приложения (этап 8),
+-- не кодом. День не из этой таблицы получает дефолт 5 XP (см. claim_streak_reward).
+create table if not exists public.streak_milestones (
+  day_number    int primary key,
+  xp_reward     int not null default 0,
+  ticket_reward int not null default 0,
+  special       boolean not null default false, -- «спецокно» вместо обычного попапа
+  label         text not null default ''
+);
+
+alter table public.streak_milestones enable row level security;
+
+drop policy if exists streak_milestones_select_all on public.streak_milestones;
+drop policy if exists streak_milestones_write_admin on public.streak_milestones;
+
+create policy streak_milestones_select_all
+  on public.streak_milestones for select using (true);
+
+create policy streak_milestones_write_admin
+  on public.streak_milestones for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+-- Начальные вехи (37/45 — награда-плейсхолдер, донабить точные числа через
+-- админку — этап 8; не блокирует остальную разработку).
+insert into public.streak_milestones (day_number, xp_reward, ticket_reward, special, label) values
+  (7,   150, 0, false, '7 дней'),
+  (15,  300, 0, false, '15 дней'),
+  (30,  500, 1, false, '30 дней'),
+  (37,  50,  0, false, '37 дней (уточнить награду)'),
+  (45,  75,  0, false, '45 дней (уточнить награду)'),
+  (182, 0,   2, true,  'Полгода'),
+  (365, 0,   3, true,  'Год')
+on conflict (day_number) do nothing;
+
+-- Раз при загрузке приложения: считает вход, продлевает/спасает/сбрасывает
+-- серию. Границы суток — Москва (тот же часовой пояс, что у вечернего
+-- пуша push_audience_evening).
+create or replace function public.touch_daily_login()
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid         uuid := auth.uid();
+  prof          public.user_profiles;
+  v_today       date;
+  v_gap         int;
+  v_missed_from date;
+  v_missed_to   date;
+  v_week        text;
+  v_is_pro      boolean;
+  v_saved       text := null;
+  v_new_streak  int;
+begin
+  if v_uid is null then return jsonb_build_object('ok', false); end if;
+
+  select * into prof from public.user_profiles where id = v_uid for update;
+  if not found then return jsonb_build_object('ok', false); end if;
+
+  v_today  := (now() at time zone 'Europe/Moscow')::date;
+  v_is_pro := prof.has_subscription or prof.is_admin;
+
+  if prof.last_active_date = v_today then
+    return jsonb_build_object('ok', true, 'streak', prof.current_streak,
+      'longest', prof.longest_streak, 'saved_by', null);
+  end if;
+
+  if prof.last_active_date is null then
+    update public.user_profiles
+    set current_streak = 1, longest_streak = greatest(prof.longest_streak, 1),
+        last_active_date = v_today
+    where id = v_uid;
+    return jsonb_build_object('ok', true, 'streak', 1,
+      'longest', greatest(prof.longest_streak, 1), 'saved_by', null);
+  end if;
+
+  v_gap := v_today - prof.last_active_date;
+
+  if v_gap = 1 then
+    v_new_streak := prof.current_streak + 1;
+    update public.user_profiles
+    set current_streak = v_new_streak,
+        longest_streak = greatest(longest_streak, v_new_streak),
+        last_active_date = v_today
+    where id = v_uid;
+    return jsonb_build_object('ok', true, 'streak', v_new_streak,
+      'longest', greatest(prof.longest_streak, v_new_streak), 'saved_by', null);
+  end if;
+
+  -- v_gap >= 2: пропущено (v_gap - 1) дней между последним визитом и сегодня.
+  v_missed_from := prof.last_active_date + 1;
+  v_missed_to   := v_today - 1;
+
+  -- PRO: пропущенный диапазон целиком суббота/воскресенье — прощается всегда,
+  -- без ограничения раз в неделю (это отдельная, «бесплатная», гарантия).
+  if v_is_pro and not exists (
+    select 1 from generate_series(v_missed_from, v_missed_to, interval '1 day') d
+    where extract(isodow from d) not in (6, 7)
+  ) then
+    v_saved := 'pro_weekend';
+  elsif v_is_pro and v_gap = 2 then
+    -- Один пропущенный будний день — прощается, но не чаще раза в неделю.
+    v_week := to_char(v_missed_from, 'IYYY-IW');
+    if prof.pro_weekday_forgiven_week is distinct from v_week then
+      v_saved := 'pro_weekday';
+      update public.user_profiles set pro_weekday_forgiven_week = v_week where id = v_uid;
+    end if;
+  end if;
+
+  -- Заморозка: одна штука, покрывает ровно один пропущенный день.
+  if v_saved is null and prof.has_freeze_charge and v_gap = 2 then
+    v_saved := 'freeze';
+    update public.user_profiles set has_freeze_charge = false where id = v_uid;
+  end if;
+
+  -- Авто заморозка: пул на несколько пропущенных дней разом.
+  if v_saved is null and prof.auto_freeze_charges_left >= (v_gap - 1) then
+    v_saved := 'auto_freeze';
+    update public.user_profiles
+    set auto_freeze_charges_left = auto_freeze_charges_left - (v_gap - 1)
+    where id = v_uid;
+  end if;
+
+  if v_saved is not null then
+    v_new_streak := prof.current_streak + 1;
+    update public.user_profiles
+    set current_streak = v_new_streak,
+        longest_streak = greatest(longest_streak, v_new_streak),
+        last_active_date = v_today
+    where id = v_uid;
+    return jsonb_build_object('ok', true, 'streak', v_new_streak,
+      'longest', greatest(prof.longest_streak, v_new_streak), 'saved_by', v_saved);
+  end if;
+
+  -- Ничего не спасло серию — сброс. Непроклеймленные награды сгорают
+  -- (last_claimed_streak_day обнуляется вместе со стриком).
+  update public.user_profiles
+  set current_streak = 1, last_claimed_streak_day = 0, last_active_date = v_today
+  where id = v_uid;
+  return jsonb_build_object('ok', true, 'streak', 1,
+    'longest', prof.longest_streak, 'saved_by', null, 'reset', true);
+end;
+$$;
+
+-- Забрать награду за следующий незабранный день серии (строго по порядку —
+-- нельзя забрать день 5, не забрав день 4). Награда — из streak_milestones,
+-- дефолт 5 XP для дней вне таблицы.
+create or replace function public.claim_streak_reward()
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid    uuid := auth.uid();
+  prof     public.user_profiles;
+  v_day    int;
+  v_xp     int;
+  v_tick   int;
+  v_special boolean;
+begin
+  if v_uid is null then return jsonb_build_object('ok', false, 'reason', 'not_logged_in'); end if;
+
+  select * into prof from public.user_profiles where id = v_uid for update;
+  if not found then return jsonb_build_object('ok', false); end if;
+
+  v_day := prof.last_claimed_streak_day + 1;
+  if v_day > prof.current_streak then
+    return jsonb_build_object('ok', false, 'reason', 'nothing_to_claim');
+  end if;
+
+  select xp_reward, ticket_reward, special into v_xp, v_tick, v_special
+  from public.streak_milestones where day_number = v_day;
+
+  if not found then
+    v_xp := 5; v_tick := 0; v_special := false;
+  end if;
+
+  update public.user_profiles
+  set xp = xp + v_xp, tickets = tickets + v_tick, last_claimed_streak_day = v_day
+  where id = v_uid;
+
+  return jsonb_build_object('ok', true, 'day', v_day, 'xp', v_xp,
+    'tickets', v_tick, 'special', coalesce(v_special, false));
+end;
+$$;
+
+-- Покупка «Заморозки» — не стакается, ровно одна про запас.
+create or replace function public.buy_streak_freeze()
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_cost int  := 2; -- билетов; потюнить после теста через админку/апдейт
+  prof   public.user_profiles;
+begin
+  if v_uid is null then return jsonb_build_object('ok', false, 'reason', 'not_logged_in'); end if;
+
+  select * into prof from public.user_profiles where id = v_uid for update;
+  if not found then return jsonb_build_object('ok', false); end if;
+
+  if prof.has_freeze_charge then
+    return jsonb_build_object('ok', false, 'reason', 'already_have');
+  end if;
+  if prof.tickets < v_cost then
+    return jsonb_build_object('ok', false, 'reason', 'not_enough_tickets');
+  end if;
+
+  update public.user_profiles
+  set tickets = tickets - v_cost, has_freeze_charge = true
+  where id = v_uid;
+
+  return jsonb_build_object('ok', true, 'tickets', prof.tickets - v_cost);
+end;
+$$;
+
+-- Покупка «Авто заморозки» — только обычным пользователям (PRO её получает
+-- бесплатно и автоматически, см. touch_daily_login); не стакается — пока
+-- пул не обнулится, повторная покупка недоступна.
+create or replace function public.buy_auto_freeze()
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_cost int  := 3; -- билетов; потюнить после теста
+  prof   public.user_profiles;
+begin
+  if v_uid is null then return jsonb_build_object('ok', false, 'reason', 'not_logged_in'); end if;
+
+  select * into prof from public.user_profiles where id = v_uid for update;
+  if not found then return jsonb_build_object('ok', false); end if;
+
+  if prof.has_subscription or prof.is_admin then
+    return jsonb_build_object('ok', false, 'reason', 'pro_has_it_free');
+  end if;
+  if prof.auto_freeze_charges_left > 0 then
+    return jsonb_build_object('ok', false, 'reason', 'already_have');
+  end if;
+  if prof.tickets < v_cost then
+    return jsonb_build_object('ok', false, 'reason', 'not_enough_tickets');
+  end if;
+
+  update public.user_profiles
+  set tickets = tickets - v_cost, auto_freeze_charges_left = 2
+  where id = v_uid;
+
+  return jsonb_build_object('ok', true, 'tickets', prof.tickets - v_cost);
+end;
+$$;
+
+-- Рейтинг: добавляем стрик в лидерборд (значок 🔥 у ника).
+drop function if exists public.get_leaderboard(int);
+create function public.get_leaderboard(p_limit int default 100)
+returns table(user_id uuid, nickname text, xp int, cosmetics jsonb, medal_place int, is_pro boolean, avatar_seed text, current_streak int)
+language sql security definer as $$
+  select p.id, p.nickname, p.xp, p.cosmetics, (a.meta->>'place')::int,
+         (p.has_subscription or p.is_admin), p.avatar_seed, p.current_streak
+  from public.user_profiles p
+  left join public.user_achievements a on a.user_id = p.id and a.kind = 'race_winner'
+  order by p.xp desc, p.created_at asc
+  limit least(greatest(coalesce(p_limit, 100), 1), 200);
+$$;
+
+-- Вечерняя аудитория пушей — переписана на реальный стрик вместо эвристики
+-- по lesson_results (этап 9 плана стрика). streak_risk — last_active_date
+-- был вчера и current_streak > 0 (серия жива, но под угрозой); иначе —
+-- inactive_today. Число дней (streak) прокидывается в текст шаблона
+-- (push-trigger/index.ts подставляет {streak}).
+drop function if exists public.push_audience_evening();
+create function public.push_audience_evening()
+returns table(uid uuid, kind text, streak int)
+language sql security definer as $$
+  with tz as (select (now() at time zone 'Europe/Moscow')::date as today),
+  users as (
+    select distinct s.user_id as uid
+    from public.push_subscriptions s
+    where s.user_id is not null
+  )
+  select u.uid,
+         case when p.last_active_date = (select today from tz) - 1 and coalesce(p.current_streak, 0) > 0
+              then 'streak_risk' else 'inactive_today' end,
+         coalesce(p.current_streak, 0)
+  from users u
+  join public.user_profiles p on p.id = u.uid
+  where coalesce(p.last_active_date, (select today from tz) - 2) < (select today from tz)
+    and not exists (
+      select 1 from public.push_trigger_log l
+      where l.user_id = u.uid
+        and l.trigger_kind in ('streak_risk', 'inactive_today')
+        and (l.sent_at at time zone 'Europe/Moscow')::date = (select today from tz)
+    );
+$$;
+revoke execute on function public.push_audience_evening() from public, anon, authenticated;
+
+notify pgrst, 'reload schema';
