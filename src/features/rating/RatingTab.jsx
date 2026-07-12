@@ -64,8 +64,10 @@ export default function RatingTab({ openRaceTick = 0 }) {
                     size={place <= 3 ? 44 : 38}
                     pro={!!r.is_pro}
                   />
-                  <span className="ratingLevel">{lvl.level} ур</span>
-                  <span className="ratingXp">{r.xp} XP</span>
+                  <span className="ratingStats">
+                    <span className="ratingStatsLvl">Ур.{lvl.level}</span>
+                    <span className="ratingStatsXp">{r.xp}XP</span>
+                  </span>
                 </div>
               )
             })}
@@ -84,8 +86,10 @@ export default function RatingTab({ openRaceTick = 0 }) {
                     size={38}
                     pro={!!(profile?.has_subscription || profile?.is_admin)}
                   />
-                  <span className="ratingLevel">{getCurrentLevel(profile?.xp ?? 0).level} ур</span>
-                  <span className="ratingXp">{profile?.xp ?? 0} XP</span>
+                  <span className="ratingStats">
+                    <span className="ratingStatsLvl">Ур.{getCurrentLevel(profile?.xp ?? 0).level}</span>
+                    <span className="ratingStatsXp">{profile?.xp ?? 0}XP</span>
+                  </span>
                 </div>
               </>
             )}

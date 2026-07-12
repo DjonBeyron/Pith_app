@@ -165,7 +165,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 10px 12px 10px 8px;
   background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
   border: 1px solid #232932;
   border-radius: 14px;
@@ -223,6 +223,40 @@
   font-weight: 700;
   color: #9aa3ad;
   flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ══ Компактный блок «уровень + XP» строкой рейтинга (вместо двух
+   отдельных чипов) — рамка с двумя строками текста внутри:
+   ┌──────┐
+   │ Lv.2 │
+   │340XP │
+   └──────┘ */
+.ratingStats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(182, 254, 59, 0.25);
+  background: rgba(182, 254, 59, 0.1);
+  flex-shrink: 0;
+  line-height: 1.15;
+}
+
+.ratingStatsLvl {
+  font-size: 11px;
+  font-weight: 700;
+  color: #b6fe3b;
+  white-space: nowrap;
+}
+
+.ratingStatsXp {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9aa3ad;
   white-space: nowrap;
 }
 

@@ -69,11 +69,12 @@ export default function UserBadge({
     <span className="ubWrap">
       {/* Обёртка аватара — position:relative нужен для медали и венка */}
       <span className="ubAvatarWrap" style={{ position: 'relative', flexShrink: 0 }}>
-        {/* Венок топ-3: форма 1/2 места — лавры с лучами, 3 — плотный венок */}
+        {/* Венок топ-3: одна и та же форма (венок 1 места) для всех трёх,
+            2 и 3 место — перекраска CSS-фильтром (см. rating-podium.css) */}
         {wreathPlace >= 1 && wreathPlace <= 3 && (
           <img
             className={`ubWreath ubWreath${wreathPlace}`}
-            src={wreathPlace === 3 ? '/rating/wreath-dense.svg' : '/rating/wreath-laurel.svg'}
+            src="/rating/wreath-laurel.svg"
             alt=""
           />
         )}
@@ -103,14 +104,15 @@ export default function UserBadge({
             {medalPlace}
           </span>
         )}
+
+        {/* PRO — чип под аватаром, перекрывает низ круга на 10% */}
+        {pro && <span className="ubPro">ПРО</span>}
       </span>
 
       {/* Ник: золотая подложка (bg2, «Чистый финал») важнее лаймовой (bg) */}
       <span className={`ubNick${cosmetics.bg2 ? ' ubNickBg ubNickBg2' : cosmetics.bg ? ' ubNickBg' : ''}`}>
         {nickname}
       </span>
-
-      {pro && <span className="ubPro">PRO</span>}
     </span>
   )
 }
