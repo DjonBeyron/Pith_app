@@ -12,7 +12,9 @@ import { useEffect, useRef, useState } from 'react'
 // gradient+arc на каждый шарик каждый кадр. Анимация идёт не только на
 // активном слайде, но и на ближайшем соседе (near, как в SlideVideo) — иначе
 // при перелистывании шарики на новом слайде видно с задержкой (первый кадр
-// на пустом холсте). Дальние слайды не анимируются вовсе.
+// на пустом холсте). Дальние слайды не анимируются вовсе, а «тёплый», но не
+// активный сосед перерисовывается через кадр (вполовину реже) — иначе при
+// быстром скролле ленты (до 3 тёплых слайдов разом) не укладывались в кадр.
 // Сетка шариков строится только по размеру текста (contentW/H), а холст
 // шире на MARGIN с каждой стороны — в этом запасе шарики у края успевают
 // полностью погаснуть (альфа спрайта уходит в 0 внутри радиуса), поэтому
@@ -123,8 +125,14 @@ export default function PhraseBubbleSpoiler({ active, near, children }) {
   const canvasRef = useRef(null)
   const bubblesRef = useRef([])
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 })
+  const lastBuiltRef = useRef({ w: -1, h: -1 })
   const rafRef = useRef(0)
   const explodingRef = useRef(false)
+  // active в ref — читается кадром rAF, который не пересоздаётся при каждой
+  // смене active (эффект анимации зависит только от warm, см. ниже), иначе
+  // значение внутри замыкания кадра было бы устаревшим
+  const activeRef = useRef(active)
+  useEffect(() => { activeRef.current = active }, [active])
   const [revealed, setRevealed] = useState(false)
   // Текст открывается в момент тапа (сразу вместе со стартом взрыва), а не
   // после того, как шарики долетят и погаснут — иначе раскрытие ощущается
@@ -142,14 +150,25 @@ export default function PhraseBubbleSpoiler({ active, near, children }) {
       const rect = wrap.getBoundingClientRect()
       const w = rect.width + MARGIN * 2
       const h = rect.height + MARGIN * 2
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
-      canvas.width = Math.round(w * dpr)
-      canvas.height = Math.round(h * dpr)
+      // Канвас маленький (только сам блок фразы), поэтому полный DPR экрана
+      // не бьёт по производительности — а вот занижать его нельзя: на
+      // Retina-экранах (DPR 3) шарики радиусом в 1-2px иначе получаются
+      // смазанными (апскейл малого канваса до реального размера на экране)
+      const dpr = Math.min(window.devicePixelRatio || 1, 3)
       canvas.style.width = w + 'px'
       canvas.style.height = h + 'px'
       canvas.style.left = -MARGIN + 'px'
       canvas.style.top = -MARGIN + 'px'
       sizeRef.current = { w, h, dpr }
+      canvas.width = Math.round(w * dpr)
+      canvas.height = Math.round(h * dpr)
+      // Ресайз-обсёрвер иногда шлёт субпиксельный шум (доли пикселя) — не
+      // пересобираем всю сетку заново, если размер по сути не изменился
+      // (это заметная синхронная работа при частой пересборке во время
+      // быстрого скролла ленты, когда много слайдов переиспользуются подряд)
+      const last = lastBuiltRef.current
+      if (Math.abs(last.w - rect.width) < 2 && Math.abs(last.h - rect.height) < 2) return
+      lastBuiltRef.current = { w: rect.width, h: rect.height }
       bubblesRef.current = buildGrid(rect.width, rect.height)
     }
     layout()
@@ -168,9 +187,18 @@ export default function PhraseBubbleSpoiler({ active, near, children }) {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     let last = performance.now()
+    let bgFrameSkip = 0
     function frame(now) {
       rafRef.current = requestAnimationFrame(frame)
       if (!warm && !explodingRef.current) return
+      // Тёплый, но не активный (сосед) — перерисовываем через кадр, а не
+      // каждый: при быстром скролле одновременно тёплыми могут быть до 3
+      // слайдов, и полная перерисовка каждого на каждом кадре — то, что не
+      // успевает уложиться в бюджет кадра. На фокусе (активный/взрыв) — без пропусков
+      if (!activeRef.current && !explodingRef.current) {
+        bgFrameSkip = (bgFrameSkip + 1) % 2
+        if (bgFrameSkip !== 0) return
+      }
       const dt = Math.min(32, now - last)
       last = now
       const { w, h, dpr } = sizeRef.current
