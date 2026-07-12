@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { plural } from '../../shared/lib/plural.js'
 import SlideVideo from './SlideVideo.jsx'
 import DifficultyBadge from './DifficultyBadge.jsx'
@@ -17,6 +17,15 @@ export default function FeedSlide({
   const toastTimer = useRef(null)
   const liked = !!reaction?.liked
   const saved = !!reaction?.saved
+  // Подпись «X уроков в модуле» спрятана за фразой и выкатывается из-под
+  // неё с небольшой задержкой после тапа — не одновременно с разлётом
+  // шариков, а чуть следом, отдельным движением
+  const [subOpen, setSubOpen] = useState(false)
+  const subTimer = useRef(null)
+  useEffect(() => () => clearTimeout(subTimer.current), [])
+  function unlockSub() {
+    subTimer.current = setTimeout(() => setSubOpen(true), 320)
+  }
 
   // Уроки контента = между Стартом и Финалом
   const lessonsCount = Math.max(0, mod.lessonIds.length - 2)
@@ -53,12 +62,17 @@ export default function FeedSlide({
       />
 
       <div className="feedPhraseBlock">
-        <PhraseBubbleSpoiler active={active} near={near}>
-          <div className="feedPhrase">{mod.title}</div>
-          <div className="feedPhraseSub">
+        {/* Шариками спойлера накрыта только сама фраза — подпись «X уроков»
+            не спойлер, ей не нужны шарики (меньше высота = меньше шариков).
+            Сама подпись спрятана за фразой и выкатывается из-под неё по тапу */}
+        <div className="feedPhraseStack">
+          <PhraseBubbleSpoiler active={active} near={near} onUnlock={unlockSub}>
+            <div className="feedPhrase">{mod.title}</div>
+          </PhraseBubbleSpoiler>
+          <div className={subOpen ? 'feedPhraseSub feedPhraseSubOpen' : 'feedPhraseSub'}>
             {lessonsCount} {plural(lessonsCount, 'урок', 'урока', 'уроков')} в модуле
           </div>
-        </PhraseBubbleSpoiler>
+        </div>
       </div>
 
       <div className="feedHud">
