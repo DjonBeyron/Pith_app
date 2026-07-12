@@ -1,0 +1,36 @@
+/* Спойлер фразы модуля: плотная сетка мягких шариков без чёткой границы
+   перекрывает текст и плавно колышется; тап — шарики разлетаются короткой
+   вспышкой, текст открыт навсегда. Логика и анимация — в
+   PhraseBubbleSpoiler.jsx, здесь только раскладка и текст под ними. */
+.phraseBubbleWrap {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.phraseBubbleCanvas {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* visibility (не opacity/display) — размер текста для раскладки шариков
+   остаётся прежним, а сам текст при этом не читается и недоступен a11y-дереву */
+.phraseBubbleTextHidden {
+  visibility: hidden;
+}
+
+.feedPhrase {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+.feedPhraseSub {
+  margin-top: 5px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { plural } from '../../shared/lib/plural.js'
 import SlideVideo from './SlideVideo.jsx'
 import DifficultyBadge from './DifficultyBadge.jsx'
+import PhraseBubbleSpoiler from './PhraseBubbleSpoiler.jsx'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером, HUD
 // (лайк/закладка/репост), кнопка «Изучить фразу». Состояние лайков живёт
@@ -13,7 +14,6 @@ export default function FeedSlide({
   soundOn, onSoundOn, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
 }) {
   const [toast, setToast] = useState('')
-  const [revealed, setRevealed] = useState(false)
   const toastTimer = useRef(null)
   const liked = !!reaction?.liked
   const saved = !!reaction?.saved
@@ -52,15 +52,14 @@ export default function FeedSlide({
         fallback={<div className="feedSlideHint">здесь будет видео фразы</div>}
       />
 
-      <button
-        className={revealed ? 'feedPhraseBlock feedPhraseOpen' : 'feedPhraseBlock'}
-        onClick={() => setRevealed(true)}>
-        <div className="feedPhrase">{mod.title}</div>
-        <div className="feedPhraseSub">
-          {lessonsCount} {plural(lessonsCount, 'урок', 'урока', 'уроков')} в модуле
-        </div>
-        <span className="feedSpoilerNoise" aria-hidden="true" />
-      </button>
+      <div className="feedPhraseBlock">
+        <PhraseBubbleSpoiler active={active} near={near}>
+          <div className="feedPhrase">{mod.title}</div>
+          <div className="feedPhraseSub">
+            {lessonsCount} {plural(lessonsCount, 'урок', 'урока', 'уроков')} в модуле
+          </div>
+        </PhraseBubbleSpoiler>
+      </div>
 
       <div className="feedHud">
         <button
