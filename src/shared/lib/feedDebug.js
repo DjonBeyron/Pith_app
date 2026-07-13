@@ -1,4 +1,5 @@
 import { APP_VERSION } from './version.js'
+import { isWeakDevice, markWeakDevice, probeGpu } from './deviceTier.js'
 
 // Дебаг ленты: кольцевой лог событий + снимок окружения (размеры окна,
 // безопасные зоны iPhone, standalone-режим). Открывается кнопкой DBG
@@ -33,6 +34,58 @@ function probeSafeArea() {
   return res
 }
 
+// Мощность устройства: ядра CPU, память (Chrome/Android — на iOS deviceMemory
+// нет вообще), тип сети. Это база для решения «стоит ли ориентироваться на
+// такие слабые устройства» — снимок сравнивают между жалующимися пользователями
+function probeDevice() {
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+  return [
+    `cores=${navigator.hardwareConcurrency ?? 'n/a'}`,
+    `mem=${navigator.deviceMemory ?? 'n/a'}GB`,
+    `net=${conn?.effectiveType ?? 'n/a'} downlink=${conn?.downlink ?? 'n/a'}Mbps rtt=${conn?.rtt ?? 'n/a'}ms saveData=${conn?.saveData ?? 'n/a'}`,
+    `gpu=${probeGpu()}`,
+  ].join(' ')
+}
+
+// ── Монитор FPS ленты ────────────────────────────────────────────────────
+// Лёгкий rAF-счётчик (только запись timestamp — сам не должен заметно грузить
+// даже слабое устройство). Копит окно 4с: из него считаем средний FPS и
+// худший межкадровый интервал (просадку), а не только среднее — среднее
+// прячет короткие подвисания. Порог в 5 сэмплов (не 10) — на предельно слабом
+// устройстве (реально ~3fps) за 4с наберётся только ~12 сэмплов, а 10 почти
+// не давало снимку собраться вовремя
+let fpsWindow = []
+let fpsRafId = 0
+let weakChecked = false
+
+function fpsTick(now) {
+  fpsRafId = requestAnimationFrame(fpsTick)
+  fpsWindow.push(now)
+  while (fpsWindow.length > 1 && now - fpsWindow[0] > 4000) fpsWindow.shift()
+  // Как только набралось достаточно данных — если лента реально тормозит,
+  // на будущее переключаем визуально дешёвые режимы анимаций (см. deviceTier.js)
+  if (!weakChecked && fpsWindow.length >= 15) {
+    weakChecked = true
+    const span = fpsWindow[fpsWindow.length - 1] - fpsWindow[0]
+    const avgFps = ((fpsWindow.length - 1) / span) * 1000
+    if (avgFps < 24) markWeakDevice()
+  }
+}
+
+export function startFpsMonitor() {
+  if (fpsRafId) return
+  fpsRafId = requestAnimationFrame(fpsTick)
+}
+
+export function fpsSnapshot() {
+  if (fpsWindow.length < 5) return 'n/a (монитор ещё копит данные)'
+  const span = fpsWindow[fpsWindow.length - 1] - fpsWindow[0]
+  const avgFps = ((fpsWindow.length - 1) / span) * 1000
+  let worst = 0
+  for (let i = 1; i < fpsWindow.length; i++) worst = Math.max(worst, fpsWindow[i] - fpsWindow[i - 1])
+  return `avg=${avgFps.toFixed(1)}fps худший кадр=${worst.toFixed(0)}мс (окно ${(span / 1000).toFixed(1)}с)`
+}
+
 export function collectEnv() {
   const vv = window.visualViewport
   const nav = document.querySelector('.shellV2Nav')?.getBoundingClientRect()
@@ -40,6 +93,9 @@ export function collectEnv() {
   return [
     `version: ${APP_VERSION}`,
     `time: ${new Date().toISOString()}`,
+    `device: ${probeDevice()}`,
+    `weakDevice: ${isWeakDevice()}`,
+    `fps: ${fpsSnapshot()}`,
     `ua: ${navigator.userAgent}`,
     `standalone: navigator=${String(window.navigator.standalone ?? 'n/a')} media=${window.matchMedia('(display-mode: standalone)').matches}`,
     `window.inner: ${window.innerWidth}x${window.innerHeight}`,

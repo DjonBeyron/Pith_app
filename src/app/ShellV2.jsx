@@ -6,6 +6,7 @@ import AdminV2 from '../features/admin/AdminV2.jsx'
 import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
 import CanvasPage from '../features/canvas/CanvasPage.jsx'
+import OrientationGuard from '../shared/ui/OrientationGuard.jsx'
 import EnergyBadge from './EnergyBadge.jsx'
 import TicketBadge from './TicketBadge.jsx'
 import LevelBadge from './LevelBadge.jsx'
@@ -38,6 +39,7 @@ export default function ShellV2() {
 
   return (
     <div className="shellV2">
+      <OrientationGuard />
       {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
           самого верха), справа энергия и под ней версия приложения */}
       {tab !== 'profile' && tab !== 'admin' && (

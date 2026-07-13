@@ -9,7 +9,7 @@ import PhraseBubbleSpoiler from './PhraseBubbleSpoiler.jsx'
 // в FeedTab, спойлер локален для каждой копии слайда в круге.
 export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, tabVisible = true,
-  active = false, near = false, slideKey,
+  active = false, near = false, spoilerNear = false, slideKey,
   difficulty, myDifficulty, onVoteDifficulty,
   soundOn, onSoundOn, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
 }) {
@@ -66,7 +66,7 @@ export default function FeedSlide({
             не спойлер, ей не нужны шарики (меньше высота = меньше шариков).
             Сама подпись спрятана за фразой и выкатывается из-под неё по тапу */}
         <div className="feedPhraseStack">
-          <PhraseBubbleSpoiler active={active} near={near} onUnlock={unlockSub}>
+          <PhraseBubbleSpoiler active={active} near={spoilerNear} onUnlock={unlockSub}>
             <div className="feedPhrase">{mod.title}</div>
           </PhraseBubbleSpoiler>
           <div className={subOpen ? 'feedPhraseSub feedPhraseSubOpen' : 'feedPhraseSub'}>

@@ -18,6 +18,26 @@
   cursor: pointer;
 }
 
+/* Заглушка для слабых устройств (PhraseBubbleStatic.jsx) — векторный
+   тайловый SVG-паттерн вместо canvas-анимации, ноль JS каждый кадр.
+   Тайл 6×6 с двумя точками по диагонали — при повторении даёт тот же
+   рассыпчатый «шарики» вид, что и живая сетка, но совершенно статично */
+.phraseBubbleStatic {
+  position: absolute;
+  inset: -6px;
+  z-index: 1;
+  pointer-events: auto;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Ccircle cx='1.5' cy='1.5' r='1' fill='%23f8fafc'/%3E%3Ccircle cx='4.5' cy='4.5' r='1' fill='%23f8fafc'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  opacity: 0.94;
+  transition: opacity 320ms ease;
+}
+
+.phraseBubbleStaticFading {
+  opacity: 0;
+}
+
 /* visibility (не opacity/display) — размер текста для раскладки шариков
    остаётся прежним, а сам текст при этом не читается и недоступен a11y-дереву */
 .phraseBubbleTextHidden {

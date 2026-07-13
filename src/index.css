@@ -1,4 +1,5 @@
 @import './styles/base.css';
+@import './styles/orientation-guard.css';
 @import './styles/layout.css';
 @import './styles/admin.css';
 @import './styles/shell-v2.css';

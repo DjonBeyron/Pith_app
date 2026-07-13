@@ -1,14 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
-import { useVirtualizer } from '@tanstack/react-virtual'
-import { loadCurricula } from '../../shared/lib/curriculaApi.js'
-import { fetchFeedSocial, setLike, setBookmark, fetchStartedModules } from '../../shared/api/moduleSocialApi.js'
-import { fetchMyDifficultyVotes, setDifficultyVote, displayDifficulty } from '../../shared/api/difficultyApi.js'
+import { useState } from 'react'
+import { displayDifficulty } from '../../shared/api/difficultyApi.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import FeedSlide from './FeedSlide.jsx'
 import MyLessons from './MyLessons.jsx'
 import DebugPanel from './DebugPanel.jsx'
-import { fdbg } from '../../shared/lib/feedDebug.js'
+import FeedTabsHeader from './FeedTabsHeader.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
+import { useFeedSound } from './useFeedSound.js'
+import { useFeedSocial } from './useFeedSocial.js'
+import { useFeedModules } from './useFeedModules.js'
+import { useFeedSplash } from './useFeedSplash.js'
+import { useFeedVirtualizer } from './useFeedVirtualizer.js'
+import { buildFeedInfo } from './feedDebugInfo.js'
 
 // Лента видео (новая оболочка, шаг 3 миграции): вертикальный scroll-snap
 // по модулям из curricula, бесконечная по кругу — список повторяется
@@ -16,348 +19,21 @@ import { useAuth } from '../../shared/lib/useAuth.js'
 // цикл внутрь (контент идентичен — скачка не видно). Вместо видео пока
 // градиент-заглушка — поле video_url появится на серверном этапе.
 export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth }) {
-  const [modules,   setModules]   = useState(null) // null = загрузка
-  const [error,     setError]     = useState('')
-  const [view,      setView]      = useState('feed') // feed | mine
+  const [view, setView] = useState('feed') // feed | mine
   // Открытый модуль (схема Старт → уроки → Финал) поверх ленты
   const [openModule, setOpenModule] = useState(null)
-  // Лайки/закладки по id модуля — общие для всех копий слайда в круге
-  const [reactions, setReactions] = useState({})
-  // Мои голоса сложности фразы: { moduleId: 1|2|3 } (перезаписываемые)
-  const [diffVotes, setDiffVotes] = useState({})
-  // Начатые модули: в «Рекомендациях» их не показываем (они в «Моих уроках»)
-  const [startedIds, setStartedIds] = useState(() => new Set())
-  // Серверная соц-инфа: залогинен ли, счётчики лайков
-  const [social,    setSocial]    = useState(null)
-  // Звук ленты: первый тап по чипу включает его для всех слайдов и
-  // запоминается между запусками. Если при холодном старте iOS заблокирует
-  // автозвук — слайд сообщит (onSoundBlocked), вернём чип
-  const [soundOn, setSoundOnState] = useState(() => localStorage.getItem('pithy_sound_v1') === '1')
-  function setSoundOn(on) {
-    setSoundOnState(on)
-    if (on) localStorage.setItem('pithy_sound_v1', '1')
-    else localStorage.removeItem('pithy_sound_v1')
-  }
-  // Пользователь тапнул чип хотя бы раз — дальше автоблок звука на
-  // пересозданных <video> соседних слайдов (без прямого жеста) не должен
-  // откатывать его выбор, иначе звук гаснет сам через пару видео
-  // Ref — для мгновенной проверки в handleSoundBlocked (без ожидания ре-рендера);
-  // state — чтобы жест форсил ре-рендер и пересчёт soundReady (нужно, когда
-  // soundOn уже был true из localStorage: setSoundOn(true) тогда no-op)
-  const soundGestureRef = useRef(false)
-  const [soundGesture, setSoundGesture] = useState(false)
-  function handleSoundOn() {
-    fdbg('sound: user tapped chip')
-    soundGestureRef.current = true
-    setSoundGesture(true)
-    setSoundOn(true)
-  }
-  function handleSoundBlocked() {
-    if (soundGestureRef.current) {
-      fdbg('sound: blocked ignored (gesture already given)')
-      return
-    }
-    fdbg('sound: blocked → откат soundOn=false')
-    setSoundOn(false)
-  }
-  // Реально играть со звуком можно только после жеста пользователя В ЭТОЙ сессии
-  // — иначе браузер блокирует play() и первое видео виснет стоп-кадром. Поэтому
-  // на холодном старте (жеста не было), даже если звук включён в настройках,
-  // ленте передаём «беззвучно»: видео автоматически играет muted, а на слайде
-  // виден чип «Включить звук». Первый тап по чипу/видео = жест → звук включается.
-  // Сохранённый выбор soundOn при этом не теряется (без блока откат не сработает).
-  const soundReady = soundOn && soundGesture
   const [showDebug, setShowDebug] = useState(false)
-  // Активный слайд считается из позиции скролла (не IntersectionObserver —
-  // тот в webview-средах может молчать, и видео не монтировалось)
-  const [activeIdx, setActiveIdx] = useState(-1)
-  const scrollRef = useRef(null)
   // Авторизация из локальной сессии — мгновенно, не ждём fetchFeedSocial
   // (раньше тап по лайку до его загрузки улетал в форму входа)
   const { user, loading: authLoading } = useAuth()
 
-  function refreshStarted() {
-    fetchStartedModules().then(setStartedIds).catch(() => {})
-  }
-  useEffect(refreshStarted, [])
-
-  // Трекер переключения вкладок (+ обновление «начатых» при открытии «Мои
-  // уроки», чтобы только что начатый модуль там появился сразу). Пишем в лог DBG
-  useEffect(() => {
-    fdbg(`tab: visible=${visible} view=${view} → tabVisible(feed)=${visible && view === 'feed'}`)
-    if (visible && view === 'mine') refreshStarted()
-  }, [visible, view])
-
-  useEffect(() => {
-    let cancelled = false
-    fetchFeedSocial()
-      .then(s => {
-        if (cancelled) return
-        setSocial(s)
-        // Мои лайки/закладки с сервера — стартовое состояние иконок
-        setReactions(prev => {
-          const next = { ...prev }
-          for (const id of s.myLikes)     next[id] = { ...next[id], liked: true }
-          for (const id of s.myBookmarks) next[id] = { ...next[id], saved: true }
-          return next
-        })
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    fetchMyDifficultyVotes()
-      .then(v => { if (!cancelled) setDiffVotes(v) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    loadCurricula()
-      .then(rows => {
-        if (cancelled) return
-        // Восстанавливаем lesson_ids в localStorage (как useCurricula в старой
-        // вкладке): CurriculumView читает уроки модуля именно оттуда — без
-        // этого «Изучить фразу» на свежем устройстве открывал пустую схему
-        rows.forEach(r => {
-          const key = `curr_lessons_${r.id}`
-          const local = JSON.parse(localStorage.getItem(key) ?? '[]')
-          if ((r.lesson_ids?.length ?? 0) > 0 && local.length === 0) {
-            localStorage.setItem(key, JSON.stringify(r.lesson_ids))
-          }
-        })
-        // Черновики в ленту не попадают (и у админа тоже — честное превью)
-        const published = rows.filter(r => r.published)
-        // Приоритетно готовим первый кадр ленты: прелоадим постер первого
-        // модуля — чтобы за анимацией стартового сплэша уже был контент
-        const firstPoster = published.find(r => r.poster_url)?.poster_url
-        if (firstPoster) { const im = new Image(); im.src = firstPoster }
-        setModules(published.map(r => ({
-          id: r.id,
-          title: r.title,
-          lessonIds: r.lesson_ids ?? [],
-          videoUrl: r.video_url ?? null,
-          posterUrl: r.poster_url ?? null,
-          posterCrop: r.poster_crop ?? null,
-          difficulty: r.difficulty ?? null,
-          difficultyVotes: r.difficulty_votes ?? 0,
-        })))
-      })
-      .catch(e => {
-        if (cancelled) return
-        setError(e.message)
-        setModules([])
-      })
-    return () => { cancelled = true }
-  }, [])
-
-  // Deep-link репоста (/?m=<id>): лента начинается с расшаренной фразы.
-  // Круг бесконечный, поэтому просто поворачиваем список — фраза первой,
-  // остальное следом. Если модуль не в рекомендациях (начат/черновик) —
-  // лента обычная. Параметр убираем из адресной строки, но помним в ref.
-  const deepLinkRef = useRef(new URLSearchParams(location.search).get('m'))
-  useEffect(() => {
-    if (deepLinkRef.current) {
-      fdbg('deep-link: старт с модуля', deepLinkRef.current)
-      history.replaceState(null, '', location.pathname)
-    }
-  }, [])
-
-  // Круг рекомендаций — только не начатые модули
-  let feedModules = (modules ?? []).filter(m => !startedIds.has(m.id))
-  if (deepLinkRef.current) {
-    const dlIdx = feedModules.findIndex(m => m.id === deepLinkRef.current)
-    if (dlIdx > 0) {
-      feedModules = [...feedModules.slice(dlIdx), ...feedModules.slice(0, dlIdx)]
-    } else if (dlIdx === -1) {
-      // Модуль начат (например, отправитель открыл свою же ссылку) — в
-      // рекомендациях его нет, но по прямой ссылке показываем всё равно
-      const dlMod = (modules ?? []).find(m => m.id === deepLinkRef.current)
-      if (dlMod) feedModules = [dlMod, ...feedModules]
-    }
-  }
-  const len = feedModules.length
-
-  // Отпускаем стартовый сплэш (index.html) не по приходу данных, а по ПЕРВОМУ
-  // РЕАЛЬНОМУ КАДРУ видео (сигнал __pithyVideoShown из SlideVideo) — иначе
-  // после улёта сплэша видна недогруженная лента. Если ждать нечего (пусто/
-  // ошибка/без видео) — сразу; при медленной сети — страховка (виден постер).
-  const splashDone = useRef(false)
-  useEffect(() => {
-    if (modules === null || splashDone.current) return
-    const fire = why => {
-      if (splashDone.current) return
-      splashDone.current = true
-      fdbg('splash release:', why)
-      window.__pithyReady?.(why)
-    }
-    if (len === 0) { fire(modules.length === 0 ? 'лента пуста' : 'все модули начаты'); return }
-    if (!feedModules.some(m => m.videoUrl)) { fire('слайды без видео'); return }
-    window.__pithyVideoShown = () => fire('первый кадр видео')
-    const t = setTimeout(() => fire('страховка 3500мс — кадра нет'), 3500)
-    return () => clearTimeout(t)
-  }, [modules, len]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Запас: минимум 40 циклов. Snap-stop пускает по слайду за жест, поэтому
-  // между перецентровками до реального края долистать нельзя.
-  // При маленьком len (мало модулей) перецентровка (teleport) раньше
-  // случалась через каждые ~len*3 слайдов — а она пересоздаёт DOM-узел
-  // активного <video> (новый ключ виртуализатора), что на iOS Safari рвёт
-  // разрешение на автовоспроизведение со звуком у свежего элемента (см.
-  // fdbg 'sound blocked' сразу за 'teleport settle' в реальном логе).
-  // Больший запас циклов не стоит ничего в DOM (рендерится только overscan),
-  // зато отодвигает перецентровку на порядок дальше — звук перестаёт рваться
-  // при обычном пролистывании
-  const cycles = len > 0 ? Math.max(40, Math.ceil(120 / len)) : 0
-  const settleTimer = useRef(null)
-
-  // Высота вьюпорта ленты — размер каждого виртуального слайда.
-  // openModule в зависимостях обязателен: экран модуля РАЗМОНТИРУЕТ контейнер
-  // ленты (observer ловил его схлопывание → viewH=0), а при возврате контейнер
-  // уже новый — без перезапуска эффекта viewH оставался 0, виртуализатор
-  // рендерил ноль слайдов и лента была чёрной
-  const [viewH, setViewH] = useState(0)
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const measure = () => {
-      fdbg('viewH:', el.clientHeight)
-      setViewH(el.clientHeight)
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [len, openModule])
-
-  // Виртуализация как в TikTok: в DOM живут только видимый слайд и запас
-  // overscan сверху/снизу. Пока высота экрана не измерена (viewH=0) — список
-  // пуст: рендер по «прикидочной» высоте с последующей перестройкой давал
-  // мигание нескольких слайдов при старте
-  const virtualizer = useVirtualizer({
-    count: len > 0 && viewH > 0 ? cycles * len : 0,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => viewH || 1,
-    overscan: 2,
-  })
-  useEffect(() => { virtualizer.measure() }, [viewH]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Телепорт scrollTop с ВЫКЛЮЧЕННЫМ snap: iOS Safari на программный
-  // scrollTop в snap-контейнере запускает «доснэпливание» и скролл улетает
-  // к краям — получалась вечная драка (мигание слайдов). События скролла от
-  // самого телепорта глушим флагом
-  const teleportingRef = useRef(false)
-  function teleport(el, target, why) {
-    fdbg('teleport', why + ':', el.scrollTop.toFixed(0), '→', target.toFixed(0))
-    teleportingRef.current = true
-    const prev = el.style.scrollSnapType
-    el.style.scrollSnapType = 'none'
-    el.scrollTop = target
-    if (viewH > 0) setActiveIdx(Math.round(target / viewH))
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.style.scrollSnapType = prev
-      teleportingRef.current = false
-    }))
-  }
-
-  // Перенос в середину круга с сохранением позиции внутри цикла: контент в
-  // точке переноса идентичен, поэтому скачка не видно
-  function recentre(why) {
-    const el = scrollRef.current
-    if (!el || !len) return
-    const cycleH = el.scrollHeight / cycles
-    const target = Math.floor(cycles / 2) * cycleH + (el.scrollTop % cycleH)
-    if (Math.abs(target - el.scrollTop) > 1) teleport(el, target, why)
-  }
-
-  // Старт с середины круга — один раз, когда известны список и высота
-  // экрана И контейнер реально растянут (iOS обрезал scrollTop, если ставить
-  // его раньше, чем виртуализатор дорастил высоту)
-  const initedRef = useRef(false)
-  // Сброс и по возврату из экрана модуля: контейнер пересоздан, скролл на нуле —
-  // круг нужно заново поставить на середину запаса циклов
-  useEffect(() => { initedRef.current = false }, [len, openModule])
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el || !len || !viewH || initedRef.current) return
-    initedRef.current = true
-    const want = cycles * len * viewH
-    let tries = 0
-    const apply = () => {
-      if (!scrollRef.current) return
-      if (scrollRef.current.scrollHeight >= want - 2 || tries++ > 60) {
-        teleport(scrollRef.current, len * viewH * Math.floor(cycles / 2), 'init')
-      } else {
-        requestAnimationFrame(apply)
-      }
-    }
-    apply()
-  }, [len, cycles, viewH])
-
-  useEffect(() => () => clearTimeout(settleTimer.current), [])
-
-  // Доводка: скролл остановился — только перецентровка круга, если додрейфовали
-  // к краю запаса (teleport). Активный слайд считается в onScroll на лету.
-  function onSettle() {
-    const el = scrollRef.current
-    if (!el || !len) return
-    el.dataset.scrolling = '' // скролл затих — сторож стоп-кадра снова работает
-    const cycleH = el.scrollHeight / cycles
-    const mid = Math.floor(cycles / 2) * cycleH
-    const threshold = cycleH * Math.max(1, Math.floor(cycles / 2) - 2)
-    if (Math.abs(el.scrollTop - mid) > threshold) recentre('settle')
-  }
-
-  function onScroll() {
-    const el = scrollRef.current
-    if (!el || !len) return
-    // Активный слайд — сразу из позиции скролла. Сосед (active±1) при этом
-    // считается near и заранее прогревает своё видео из пула, поэтому при
-    // приезде оно стартует мгновенно (см. SlideVideo/videoPool).
-    if (viewH > 0) setActiveIdx(Math.round(el.scrollTop / viewH))
-    // События, порождённые нашим же телепортом, не обрабатываем
-    if (teleportingRef.current) return
-    // Флаг для сторожа стоп-кадра (SlideVideo): во время свайпа не пинать
-    el.dataset.scrolling = '1'
-    clearTimeout(settleTimer.current)
-    settleTimer.current = setTimeout(onSettle, 140)
-    // Аварийный перенос прямо в полёте — лишь у самого края
-    const cycleH = el.scrollHeight / cycles
-    const maxTop = el.scrollHeight - el.clientHeight
-    if (el.scrollTop < cycleH * 0.5 || el.scrollTop > maxTop - cycleH * 0.5) recentre('edge')
-  }
-
-  // Лайк/закладка: гостю — форма входа; юзеру — оптимистичное переключение
-  // + запись на сервер в фоне
-  function toggle(id, key) {
-    if (authLoading) return
-    if (!user) { onRequireAuth?.(); return }
-    const on = !reactions[id]?.[key]
-    setReactions(r => ({ ...r, [id]: { ...r[id], [key]: on } }))
-    if (key === 'liked') {
-      setSocial(s => s && ({
-        ...s,
-        likeCount: { ...s.likeCount, [id]: Math.max(0, (s.likeCount[id] ?? 0) + (on ? 1 : -1)) },
-      }))
-      setLike(id, on)
-    } else {
-      setBookmark(id, on)
-    }
-  }
-
-  // Голос сложности: гостю — форма входа; юзеру — оптимистично + сервер.
-  // Общий итог (медиану) пересчитает триггер БД — иконка обновится при
-  // следующей загрузке ленты, свой голос виден сразу. Возвращает true,
-  // если голос учтён — бейдж играет морфинг-подтверждение (галочку).
-  function voteDifficulty(id, v) {
-    if (authLoading) return false
-    if (!user) { onRequireAuth?.(); return false }
-    setDiffVotes(d => ({ ...d, [id]: v }))
-    setDifficultyVote(id, v)
-    return true
-  }
+  const { soundOn, soundReady, soundGestureRef, handleSoundOn, handleSoundBlocked } = useFeedSound()
+  const {
+    reactions, diffVotes, startedIds, social, refreshStarted, toggle, voteDifficulty,
+  } = useFeedSocial({ visible, view, user, authLoading, onRequireAuth })
+  const { modules, error, feedModules, len } = useFeedModules(startedIds)
+  useFeedSplash(modules, len, feedModules)
+  const { scrollRef, virtualizer, viewH, cycles, activeIdx, onScroll, scrollDir } = useFeedVirtualizer(len, openModule)
 
   // «Изучить фразу» → готовый экран модуля (схема, карточка прогрева, плеер)
   if (openModule) {
@@ -373,48 +49,16 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     )
   }
 
-  // Снимок метрик ленты для дебаг-панели. Дампим ВСЕ элементы пула (и в ленте,
-  // и припаркованные) с их состоянием — по нему видно причины багов возврата
-  // на вкладку: чёрная лента (virtual ПУСТО / viewH=0), зависшая картинка при
-  // живом звуке (припаркованный элемент с paused=false, или активный paused=true
-  // при играющем другом). Жми «Обновить» дважды — если ct не растёт, видео стоит.
   function feedInfo() {
-    const el = scrollRef.current
-    const items = virtualizer.getVirtualItems()
-    const all = [...document.querySelectorAll('.poolVideo')]
-    const dump = all.map(v => {
-      const inFeed = !!v.closest('.feedV2Scroll')
-      const r = v.getBoundingClientRect()
-      const where = inFeed ? `feed top=${r.top.toFixed(0)}` : 'PARKED'
-      return `  ${(v.dataset.url || '—').slice(-8)} [${where}] paused=${v.paused} muted=${v.muted} ct=${v.currentTime.toFixed(2)}/${(v.duration || 0).toFixed(1)} rs=${v.readyState} op=${v.style.opacity || '1'}`
+    return buildFeedInfo({
+      view, len, cycles, viewH, activeIdx, startedIds, modules, visible,
+      scrollEl: scrollRef.current, virtualizer, soundOn, soundGestureRef,
     })
-    return [
-      `view: ${view}, modules: ${len}, cycles: ${cycles}, viewH: ${viewH}, activeIdx: ${activeIdx}`,
-      `started: ${startedIds.size} [${[...startedIds].map(s => String(s).slice(-4)).join(',')}] allModules=${modules?.length ?? 0}`,
-      `tabVisible(feed): ${visible && view === 'feed'}  (app visible=${visible})`,
-      `scroll: top=${el ? el.scrollTop.toFixed(0) : '—'} clientH=${el?.clientHeight ?? '—'} scrollH=${el?.scrollHeight ?? '—'}`,
-      `virtual(${items.length}): ${items.map(i => `#${i.index}`).join(' ') || 'ПУСТО'}`,
-      `sound: soundOn=${soundOn} gesture=${soundGestureRef.current}`,
-      `pool videos (${all.length}):`,
-      ...dump,
-    ].join('\n')
   }
 
   return (
     <div className="feedV2">
-      <div className="feedV2Tabs">
-        <button
-          className={view === 'feed' ? 'feedV2Tab feedV2TabActive' : 'feedV2Tab'}
-          onClick={() => setView('feed')}>
-          Рекомендации
-        </button>
-        <button
-          className={view === 'mine' ? 'feedV2Tab feedV2TabActive' : 'feedV2Tab'}
-          onClick={() => setView('mine')}>
-          Мои уроки
-        </button>
-      </div>
-      <button className="feedDbgBtn" onClick={() => setShowDebug(true)}>DBG</button>
+      <FeedTabsHeader view={view} onSetView={setView} onShowDebug={() => setShowDebug(true)} />
 
       {/* Оба вида смонтированы всегда (как вкладки оболочки): переключение
           «Рекомендации» ↔ «Мои уроки» не сбрасывает ленту и её слайд */}
@@ -457,6 +101,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
             <div className="feedVirtualTotal" style={{ height: virtualizer.getTotalSize() }}>
               {virtualizer.getVirtualItems().map(vi => {
                 const m = feedModules[vi.index % len]
+                const rel = vi.index - activeIdx
                 return (
                   <div
                     key={vi.key}
@@ -465,8 +110,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                     <FeedSlide
                       module={m}
                       slideKey={vi.index}
-                      active={vi.index === activeIdx}
-                      near={Math.abs(vi.index - activeIdx) <= 1}
+                      active={rel === 0}
+                      near={Math.abs(rel) <= 1}
+                      spoilerNear={rel !== 0 && Math.sign(rel) === scrollDir}
                       tabVisible={visible && view === 'feed'}
                       gradIdx={(vi.index % len) % 4}
                       reaction={reactions[m.id]}
