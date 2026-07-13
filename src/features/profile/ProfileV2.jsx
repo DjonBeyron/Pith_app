@@ -12,6 +12,7 @@ import { plural } from '../../shared/lib/plural.js'
 import { avatarUrl } from '../../shared/lib/avatarPack.js'
 import { saveAvatar } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
+import { GEAR_PATH } from '../../shared/ui/icons.js'
 
 const BOLT = 'M13 2 4 14h6l-1 8 9-12h-6l1-8z'
 // Копилка слов: бесплатно видно первые 20, дальше — только с Pro
@@ -88,7 +89,9 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
     <div className="pvScreen">
       <div className="pvHead">
         <button className="pvGear" onClick={() => setShowSettings(true)} title="Настройки">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3.5" /><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" /></svg>
+          {/* Грубая шестерёнка Android/Material — та же, что на финальном
+              слайде установки (см. shared/ui/icons.js) */}
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d={GEAR_PATH} /></svg>
         </button>
       </div>
 

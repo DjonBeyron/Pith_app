@@ -93,6 +93,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 |------|-------------|
 | `base.css` | Сброс и глобальные стили: `*`, `body`, `button`, глушим `-webkit-tap-highlight-color` глобально (синяя рамка тапа на Android) |
 | `orientation-guard.css` | Заглушка альбомной ориентации на телефонах — см. `shared/ui/OrientationGuard.jsx` |
+| `install-prompt.css` | Слайды «Установить приложение» — см. `shared/ui/InstallSlides.jsx`; текстура карточки — переменные `--v2-tex/--v2-grain/--v2-dust` из `shell-v2.css` |
 | `layout.css` | Каркас приложения: `.app`, вкладки, toolbar, общие кнопки и утилиты |
 | `admin.css` | Стили вкладки «Админ»: таблица файлов, форма пароля |
 | `shell-v2.css` | Стили оболочки: тёмный фон, шрифты Montserrat/Comfortaa, текстурные переменные --v2-*, вкладки-стопка, нижний бар с полосой-подложкой |
@@ -406,6 +407,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `skillScore.js` | Расчёт приоритетов уроков по логу событий ответов: каскад правил `computePriority`, замещение сессий `latestSessionEvents`, итоговый `computeAllPriorities` (см. SKILL_ANALYSIS.md) |
 | `skillStatsStore.js` | Хранение событий ответов: залогинен → `lesson_results.answers` (jsonb), гость → localStorage; `saveAnswerEvents` в конце урока, `loadAllEvents` для расчёта приоритетов |
 | `skillScore.test.js` | Юнит-тесты каскада правил расчёта приоритетов (Vitest, `npm run test`) |
+| `pwaInstall.js` | Установка PWA на телефон: ловит `beforeinstallprompt` максимально рано (глобально, вне React), `getInstallPrompt()`/`hasInstallPrompt()`, `isStandalone()`, `isMobile()`, `detectBrowser()` — точный браузер (chrome/samsung/yandex/firefox/edge/ios/other) под формулировку пункта меню |
 
 ### `src/shared/ui/` — общие кусочки интерфейса
 
@@ -414,3 +416,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `HighlightedText.jsx` | Рендер текста с выделениями: режим `bg` — абсолютно позиционированный дочерний спан для фона (обход ограничения font content area), режим `text` — цвет шрифта |
 | `UserBadge.jsx` | Пользователь в рейтинге/итогах гонки: буквенный аватар (цвет от id) или картинка из пака DiceBear (avatarSeed) + ник; косметика достижений — рамка, подложка ника, медаль 1/2/3 |
 | `OrientationGuard.jsx` | Жёсткий запрет альбомной ориентации на телефонах: пробует `screen.orientation.lock` (работает только в fullscreen/установленном PWA) + CSS-заглушка на весь экран, показывается в landscape только на touch-устройствах (см. `styles/orientation-guard.css`) |
+| `InstallPrompt.jsx` | Решает, показывать ли попап установки автоматом при старте (гость + телефон + не установлено + не закрывал раньше — `localStorage`), рисует `InstallSlides` |
+| `InstallSlides.jsx` | Слайды-инструкция «Установить приложение»: набор шагов подбирается по `detectBrowser()` (свои формулировки под Chrome/Samsung/Yandex/Firefox/Edge/iOS), фикс. размер карточки, текстура рейтинга, свайп + кнопки вперёд/назад по бокам сегментного прогресса. Открывается и автопопапом, и вручную из `SettingsTab.jsx` |
+| `installSlidesContent.js` | Тексты слайдов установки — отдельно от вёрстки (`InstallSlides.jsx`): `getSlides(browser, hasPrompt)` |
+| `icons.js` | Общие SVG-пути иконок, нужные в 2+ местах — сейчас только `GEAR_PATH` (грубая шестерёнка Android/Material: кнопка настроек профиля + финальный слайд установки) |

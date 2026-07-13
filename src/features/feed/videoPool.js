@@ -29,8 +29,17 @@ function makeVideo() {
   v.loop = true
   v.preload = 'auto'
   v.muted = true
+  v.controls = false
   v.setAttribute('playsinline', '') // iOS: не открывать нативный плеер
   v.playsInline = true
+  // Жёстко глушим весь нативный HUD браузера (Android/WebView иногда рисует
+  // свой оверлей — play-кнопку/спиннер/иконку каста — поверх видео на пару
+  // кадров при старте/буферизации, даже без атрибута controls). CSS в
+  // base.css добивает то же самое через ::-webkit-media-controls-*
+  v.setAttribute('disablepictureinpicture', '')
+  v.setAttribute('controlslist', 'nodownload noplaybackrate noremoteplayback nofullscreen')
+  v.disablePictureInPicture = true
+  v.disableRemotePlayback = true
   v.style.opacity = '1'
   // Дебаг жизни элемента в DBG-лог: по этим событиям видно, возобновился ли
   // реальный показ после переноса между вкладками (ev:playing без последующих

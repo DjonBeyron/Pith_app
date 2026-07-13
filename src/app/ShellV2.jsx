@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react'
 import FeedTab from '../features/feed/FeedTab.jsx'
 import ProfileV2 from '../features/profile/ProfileV2.jsx'
 import AuthTab from '../features/auth/AuthTab.jsx'
+import SettingsTab from '../features/settings/SettingsTab.jsx'
+import { GEAR_PATH } from '../shared/ui/icons.js'
 import AdminV2 from '../features/admin/AdminV2.jsx'
 import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
 import CanvasPage from '../features/canvas/CanvasPage.jsx'
 import OrientationGuard from '../shared/ui/OrientationGuard.jsx'
+import InstallPrompt from '../shared/ui/InstallPrompt.jsx'
 import EnergyBadge from './EnergyBadge.jsx'
 import TicketBadge from './TicketBadge.jsx'
 import LevelBadge from './LevelBadge.jsx'
@@ -26,6 +29,9 @@ export default function ShellV2() {
   const [canvasLesson, setCanvasLesson] = useState(null)
   // Сигнал вкладке «Рейтинг» открыть страницу гонки (из попапа-анонса)
   const [raceOpenTick, setRaceOpenTick] = useState(0)
+  // Настройки доступны и гостю (не только залогиненному, см. ProfileV2) —
+  // например, инструкция «Как установить» нужна ДО регистрации
+  const [guestSettings, setGuestSettings] = useState(false)
   const { isAdmin } = useAdmin()
   const { user } = useAuth()
   useDailyLoginTouch()
@@ -40,6 +46,7 @@ export default function ShellV2() {
   return (
     <div className="shellV2">
       <OrientationGuard />
+      <InstallPrompt />
       {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
           самого верха), справа энергия и под ней версия приложения */}
       {tab !== 'profile' && tab !== 'admin' && (
@@ -70,9 +77,23 @@ export default function ShellV2() {
           <RatingTab visible={tab === 'rating'} openRaceTick={raceOpenTick} />
         </div>
         <div className={tab === 'profile' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
-          {user
-            ? <ProfileV2 visible={tab === 'profile'} userEmail={user.email} onOpenCanvas={setCanvasLesson} />
-            : <div className="shellV2Panel"><AuthTab onLoginSuccess={() => {}} /></div>}
+          {user ? (
+            <ProfileV2 visible={tab === 'profile'} userEmail={user.email} onOpenCanvas={setCanvasLesson} />
+          ) : guestSettings ? (
+            <div className="pvSettingsScreen">
+              <button className="pvBack" onClick={() => setGuestSettings(false)}>← Профиль</button>
+              <div className="shellV2Panel"><SettingsTab /></div>
+            </div>
+          ) : (
+            <div className="shellV2Panel">
+              <div className="pvHead">
+                <button className="pvGear" onClick={() => setGuestSettings(true)} title="Настройки">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d={GEAR_PATH} /></svg>
+                </button>
+              </div>
+              <AuthTab onLoginSuccess={() => {}} />
+            </div>
+          )}
         </div>
         {isAdmin && (
           <div className={tab === 'admin' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>

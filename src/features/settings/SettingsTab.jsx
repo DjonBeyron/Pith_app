@@ -1,8 +1,23 @@
+import { useState } from 'react'
 import PushToggle from '../profile/PushToggle.jsx'
+import InstallSlides from '../../shared/ui/InstallSlides.jsx'
 
 export default function SettingsTab() {
+  // Та же инструкция, что при первом запуске (InstallPrompt.jsx), но
+  // открывается вручную в любой момент — без ограничений «раз за всё время»
+  const [showInstall, setShowInstall] = useState(false)
+
   return (
     <div className="settingsTab">
+      {showInstall && <InstallSlides onClose={() => setShowInstall(false)} />}
+
+      <section className="settingsSection">
+        <h2 className="settingsSectionTitle">Приложение</h2>
+        <button className="settingsInstallBtn" onClick={() => setShowInstall(true)}>
+          Как установить на телефон
+        </button>
+      </section>
+
       <section className="settingsSection">
         <h2 className="settingsSectionTitle">Уведомления</h2>
         <PushToggle />

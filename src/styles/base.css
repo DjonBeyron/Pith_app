@@ -40,3 +40,20 @@ button:disabled {
   opacity: 0.5;
   cursor: default;
 }
+
+/* Жёсткий нокаут нативного HUD видео (Android/WebView-браузеры рисуют свой
+   оверлей — play-кнопку/спиннер/иконку каста поверх <video> на пару кадров
+   при старте или буферизации, даже без атрибута controls). Атрибуты на самом
+   элементе (см. videoPool.js) решают это в большинстве случаев — эти правила
+   добивают то же самое визуально, во всех браузерах и на всех видео сайта */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  -webkit-appearance: none !important;
+}
