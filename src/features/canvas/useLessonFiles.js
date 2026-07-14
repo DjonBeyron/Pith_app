@@ -97,11 +97,18 @@ export function useLessonFiles(lessonId) {
     }
   }
 
+  // Возвращает АКТУАЛЬНЫЙ список файлов после синка (не полагаясь на state
+  // files, который в closure вызывающего кода — например CanvasPage.handleSave —
+  // остаётся старым до следующего рендера). Раньше handleSave не дожидался
+  // реального смысла синка и «запекал» в урок либо пустой, либо прошлый
+  // r2Url — отсюда расхождение данных на сервере с тем, что видно в редакторе.
   async function syncToServer() {
     const toUpload = files.filter(f => f.status === 'local' && f.localFile)
     const toDelete = files.filter(f => f.status === 'toDelete')
-    if (!toUpload.length && !toDelete.length) return
+    if (!toUpload.length && !toDelete.length) return files
     setSyncing(true)
+
+    let result = files
 
     for (const f of toUpload) {
       try {
@@ -109,9 +116,8 @@ export function useLessonFiles(lessonId) {
         pLog('syncToServer: uploadToR2 OK, r2Url=', r2Url?.slice(0, 50), 'clientId=', f.id)
         const inserted = await insertFile({ id: f.id, fileName: f.name, sizeBytes: f.size, contentType: f.type, r2Url })
         pLog('syncToServer: insertFile result id=', inserted?.id ?? 'null', 'expected=', f.id, 'match=', inserted?.id === f.id)
-        setFiles(prev => prev.map(x =>
-          x.id === f.id ? { ...x, status: 'synced', r2Url, localFile: null } : x
-        ))
+        result = result.map(x => x.id === f.id ? { ...x, status: 'synced', r2Url, localFile: null } : x)
+        setFiles(result)
         if (lessonId) lfDelete(IDB_KEY(lessonId, f.id)).catch(() => {})
       } catch (err) {
         pLog('syncToServer ERROR:', err.message)
@@ -125,13 +131,15 @@ export function useLessonFiles(lessonId) {
           await deleteFromR2(f.r2Url)
           await deleteFileByR2Url(f.r2Url)
         }
-        setFiles(prev => prev.filter(x => x.id !== f.id))
+        result = result.filter(x => x.id !== f.id)
+        setFiles(result)
       } catch (err) {
         console.error('[lessonFiles] delete failed', f.name, err)
       }
     }
 
     setSyncing(false)
+    return result
   }
 
   const hasUnsynced = files.some(f => f.status === 'local' || f.status === 'toDelete')

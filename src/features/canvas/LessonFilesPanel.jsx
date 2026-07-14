@@ -9,7 +9,7 @@ function getNodeUsage(fileId, nodes) {
 }
 
 export default function LessonFilesPanel({
-  files, nodes, syncing, hasUnsyncedLogo, onSync, onRemove, onClose,
+  files, nodes, syncing, hasUnsyncedLogo, onRemove, onClose,
   teacherName, onNameChange, teacherLogoUrl, onLogoPick,
   teacherLogoCrop, onCropChange,
   videoAutoSound, onVideoAutoSoundChange,
@@ -32,14 +32,14 @@ export default function LessonFilesPanel({
           >Настройки</button>
         </div>
 
-        {tab === 'files' && (
-          <button
-            className="lessonFilesSyncBtn"
-            onClick={onSync}
-            disabled={syncing || pendingCount === 0}
-          >
-            {syncing ? 'Синхронизирую…' : `Синхронизировать${pendingCount ? ` (${pendingCount})` : ''}`}
-          </button>
+        {/* Отдельной кнопки «Синхронизировать» больше нет — загрузка в R2
+            теперь встроена в «Сохранить» (CanvasPage.handleSave), чтобы
+            нельзя было случайно сохранить урок со старым/пустым r2Url файла.
+            syncing/pendingCount ниже — просто индикатор состояния */}
+        {tab === 'files' && pendingCount > 0 && (
+          <span className="lessonFilesPending">
+            {syncing ? 'Загружаю файлы…' : `Несохранённых файлов: ${pendingCount}`}
+          </span>
         )}
 
         <button className="lessonFilesPanelClose" onClick={onClose}>×</button>

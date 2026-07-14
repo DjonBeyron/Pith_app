@@ -24,18 +24,10 @@
   flex: 1;
 }
 
-.lessonFilesSyncBtn {
+/* Больше не кнопка — просто индикатор: загрузка в R2 встроена в «Сохранить» */
+.lessonFilesPending {
   font-size: 11px;
-  padding: 5px 12px;
-  background: #1a2e0a;
-  border: 1px solid #3a6010;
   color: #7acc30;
-  border-radius: 6px;
-}
-
-.lessonFilesSyncBtn:disabled {
-  opacity: 0.35;
-  cursor: default;
 }
 
 .lessonFilesPanelClose {

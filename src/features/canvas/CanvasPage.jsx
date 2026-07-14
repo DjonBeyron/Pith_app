@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { dbg } from '../../shared/lib/debug.js'
 import CanvasBoard from './CanvasBoard.jsx'
+import { canvasLsKey } from './canvasStorageKeys.js'
 import LessonFilesPanel from './LessonFilesPanel.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { useLessonFiles } from './useLessonFiles.js'
@@ -31,7 +32,6 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
     hasUnsyncedLogo,
     handleLogoPick,
     applyServerData,
-    uploadLogoIfPending,
     prepareForSave,
   } = useTeacherSettings(lessonId)
 
@@ -67,6 +67,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
   async function handleSave() {
     setIsSaving(true)
     try {
+      // Сначала догружаем в R2 всё, что ещё не синхронизировано (раньше это
+      // была ОТДЕЛЬНАЯ кнопка «Синхронизировать» — если её не нажать или не
+      // дождаться, Save «запекал» в урок старый/пустой r2Url). syncToServer
+      // возвращает АКТУАЛЬНЫЙ список файлов явно — не читаем состояние `files`
+      // из closure, оно бы осталось старым до следующего рендера
+      const currentFiles = hasUnsynced ? await syncToServer() : files
       const teacherData = await prepareForSave()
       // Inject r2Url into each node's typeData so the player can use it without Supabase lookup
       const nodesForSave = nodesRef.current.map(node => {
@@ -74,21 +80,42 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
         if (node.type === 'photo_choice') {
           const photos = (node.typeData?.photo_choice?.photos ?? []).map(ph => {
             if (!ph.fileId) return ph
-            const f = files.find(fl => fl.id === ph.fileId)
+            const f = currentFiles.find(fl => fl.id === ph.fileId)
             return f?.r2Url ? { ...ph, photoUrl: f.r2Url } : ph
           })
           return { ...node, typeData: { ...node.typeData, photo_choice: { ...node.typeData.photo_choice, photos } } }
         }
         const fileId = node.typeData?.[node.type]?.file_id
         if (!fileId) return node
-        const f = files.find(fl => fl.id === fileId)
+        const f = currentFiles.find(fl => fl.id === fileId)
         if (!f?.r2Url) return node
         return { ...node, typeData: { ...node.typeData, [node.type]: { ...node.typeData[node.type], r2Url: f.r2Url } } }
       })
       const scriptToSave = { nodes: nodesForSave, lessonXp, ...teacherData }
       dbg('[CANVAS] saving', nodesForSave.length, 'nodes to lesson', lessonId)
       await saveLesson(lessonId, { title, script: scriptToSave })
-      dbg('[CANVAS] save complete')
+      // Локальный черновик (CanvasBoard) свою задачу выполнил — он сохранён
+      // на сервере. Чистим его: иначе при следующем открытии урока редактор
+      // навсегда показывал бы этот черновик вместо настоящих данных сервера
+      // (даже если их поменяли откуда-то ещё), см. canvasLsKey/loadSaved()
+      localStorage.removeItem(canvasLsKey(lessonId))
+      dbg('[CANVAS] save complete — verifying round-trip...')
+      // Контрольное чтение сразу после сохранения — не доверяем «раз не было
+      // ошибки, значит записалось» (see lessonsApi.saveLesson: .select() уже
+      // ловит 0-строк, но это ещё одна независимая проверка того, что именно
+      // ЧИТАЕТ сервер после нашей записи — включая реальные r2Url по нодам)
+      try {
+        const check = await loadScript(lessonId)
+        const checkNodes = check?.script?.nodes ?? []
+        dbg('[CANVAS] verify: server now has', checkNodes.length, 'nodes (sent', nodesForSave.length, ')')
+        const checkFiles = checkNodes
+          .filter(n => n.typeData?.[n.type]?.file_id)
+          .map(n => `${n.type}#${n.seq}:${(n.typeData[n.type].file_id ?? '').slice(0, 8)}→${n.typeData[n.type].r2Url ? 'r2Url✓' : 'r2Url✗НЕТ'}`)
+          .join(', ')
+        if (checkFiles) dbg('[CANVAS] verify: server files:', checkFiles)
+      } catch (e) {
+        dbg('[CANVAS ERROR] post-save verify failed', e?.message)
+      }
     } finally {
       setIsSaving(false)
     }
@@ -152,7 +179,6 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
           nodes={panelNodes}
           syncing={syncing}
           hasUnsyncedLogo={hasUnsyncedLogo}
-          onSync={() => { syncToServer(); uploadLogoIfPending() }}
           onRemove={removeFile}
           onClose={() => setShowPanel(false)}
           teacherName={teacherName}

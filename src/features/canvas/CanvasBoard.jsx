@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { canvasLsKey } from './canvasStorageKeys.js'
 import CanvasNode from './CanvasNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
 import { nodeEntry } from './canvasPorts.js'
@@ -36,7 +37,14 @@ function renumber(list) {
   return list.map(n => ({ ...n, seq: seqMap.get(n.id) }))
 }
 
-const CANVAS_LS = id => `lesson_canvas_${id}`
+// Ключ черновика — в canvasStorageKeys.js (не здесь: этот файл не должен
+// экспортировать ничего, кроме компонента, иначе ломается Fast Refresh).
+// CanvasPage.handleSave чистит его сразу после успешного сохранения: черновик
+// нужен только чтобы не терять НЕсохранённые правки при случайной
+// перезагрузке страницы — s.nodes в loadSaved() ниже имеет приоритет над
+// initialNodes при каждом монтировании, поэтому несброшенный черновик
+// навсегда перекрывал бы настоящие данные с сервера
+const CANVAS_LS = canvasLsKey
 
 function makeNode(seq, x, y) {
   // Новая нода наследует последний выбранный тип и его дефолтный триггер
