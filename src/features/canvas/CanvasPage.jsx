@@ -19,6 +19,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
   const [serverNodes, setServerNodes] = useState(null)
   const [panelNodes,  setPanelNodes]  = useState([])
   const [lessonXp,    setLessonXp]    = useState(0)
+  // Меняется при «Обновить с сервера» — форсирует remount CanvasBoard (через
+  // key), чтобы он заново прочитал initialNodes вместо своего внутреннего
+  // localStorage-черновика (см. handleResetToServer)
+  const [resetTick,   setResetTick]   = useState(0)
   const nodesRef = useRef([])
 
   const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles } =
@@ -121,6 +125,18 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
     }
   }
 
+  // Кнопка на случай, когда локальный черновик застрял (например, урок
+  // поменяли не в этом браузере) — без консоли/DevTools, прямо из интерфейса.
+  // Стирает localStorage-черновик CanvasBoard и форсирует его remount, чтобы
+  // он заново прочитал initialNodes (уже загруженные с сервера в serverNodes),
+  // а не свой internal state
+  function handleResetToServer() {
+    if (!window.confirm('Отменить несохранённые локальные правки и показать данные с сервера?')) return
+    localStorage.removeItem(canvasLsKey(lessonId))
+    dbg('[CANVAS] reset to server — dropped local draft', lessonId)
+    setResetTick(t => t + 1)
+  }
+
   return (
     <div className="canvasPage">
       <div className="canvasPageHeader">
@@ -139,6 +155,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
         <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
           {isSaving ? 'Сохраняю…' : 'Сохранить'}
         </button>
+        <button
+          className="canvasPageReset"
+          onClick={handleResetToServer}
+          disabled={loading}
+          title="Отменить локальные правки и показать данные с сервера"
+        >↻ С сервера</button>
         <div className="canvasXpField">
           <input
             className="canvasXpInput"
@@ -194,6 +216,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
 
       {!loading && (
         <CanvasBoard
+          key={resetTick}
           lessonId={lessonId}
           lessonFiles={files}
           onPickLessonFile={pickFile}

@@ -165,6 +165,19 @@
   font-size: 13px;
 }
 
+/* Нейтральный цвет (не зелёный, как «Сохранить») — это разрушительное
+   действие (отменяет локальные правки), не должно выглядеть как безопасное */
+.canvasPageReset {
+  background: transparent;
+  border: 1px solid #2a2c33;
+  color: #aaa;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.canvasPageReset:disabled { opacity: 0.4; cursor: default; }
+
 .canvasBoard {
   flex: 1;
   position: relative;
