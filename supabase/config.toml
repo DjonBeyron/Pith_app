@@ -431,3 +431,17 @@ entrypoint = "./functions/create-payment/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/payment-webhook/index.ts"
+
+# Пуши: push-send зовёт админ из приложения (JWT есть), push-trigger зовёт
+# pg_cron без JWT (авторизация внутри — заголовок x-cron-secret), поэтому
+# входная проверка выключена. Настройка здесь = флаг --no-verify-jwt не нужно
+# помнить при каждом деплое.
+[functions.push-send]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/push-send/index.ts"
+
+[functions.push-trigger]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/push-trigger/index.ts"

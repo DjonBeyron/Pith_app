@@ -36,6 +36,39 @@
   padding: 20px 16px 12px;
 }
 
+/* ── Плашка автоклейма: серия прервалась, награды начислены сами ── */
+.rwResetNote {
+  position: relative;
+  background: #14171c;
+  border: 1px solid rgba(182, 254, 59, 0.3);
+  border-radius: 14px;
+  padding: 14px 34px 14px 16px;
+  margin-bottom: 16px;
+}
+
+.rwResetNote p {
+  margin: 0;
+  font-size: 13px;
+  color: #9aa3ad;
+  line-height: 1.5;
+}
+
+.rwResetNote b { color: #b6fe3b; }
+
+.rwResetNoteClose {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 .rwHero {
   text-align: center;
   background: #14171c;

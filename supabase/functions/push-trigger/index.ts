@@ -3,7 +3,13 @@ import webpush from "npm:web-push@3.6.7";
 
 // Автоматические пуши по триггерам. Два режима:
 // 1) Cron (pg_cron → net.http_post, заголовок x-cron-secret):
-//    POST { kind: "evening" }     — streak_risk + inactive_today (вечер, Москва)
+//    POST { kind: "evening" } — вызывается КАЖДЫЙ ЧАС (schedule '0 * * * *'):
+//    SQL-функция push_audience_evening() сама фильтрует «у кого сейчас 19:xx
+//    по его локальному часовому поясу» и отдаёт три группы (kind):
+//      - inactive_today       — не заходил сегодня, общий текст
+//      - streak_risk          — серия под угрозой, {streak}
+//      - streak_milestone_eve — сегодня уже заходил, завтра день-веха серии;
+//        плейсхолдеры {streak} {day} {xp} {tickets} (m_day/m_xp/m_tickets)
 //    POST { kind: "energy_full" } — энергия восстановилась (раз в час)
 // 2) Self (Authorization: JWT пользователя):
 //    POST { kind: "level_up", level } — пуш САМОМУ СЕБЕ о новом уровне
@@ -72,13 +78,41 @@ async function logSent(uids: string[], kind: string) {
     .insert(uids.map(u => ({ user_id: u, trigger_kind: kind })));
 }
 
-// Вечер: аудитория из SQL (push_audience_evening) делится на два шаблона.
-// streak_risk теперь несёт реальное число дней серии (streak) — персонализируем
-// текст шаблона плейсхолдером {streak} вместо общей рассылки одним payload'ом.
+// Персонализированная рассылка: каждому uid — свой набор плейсхолдеров (varsFor).
+// Общий код для streak_risk и streak_milestone_eve (раньше дублировался).
+async function sendPersonalized<T extends { uid: string }>(
+  rows: T[], tpl: Tpl, varsFor: (r: T) => Record<string, string>,
+) {
+  const subs = await subsForUsers(rows.map(r => r.uid));
+  const subsByUser = new Map<string, Sub[]>();
+  for (const s of subs) {
+    if (!s.user_id) continue;
+    if (!subsByUser.has(s.user_id)) subsByUser.set(s.user_id, []);
+    subsByUser.get(s.user_id)!.push(s);
+  }
+  let sent = 0, failed = 0;
+  await Promise.all(rows.map(async (r) => {
+    const mySubs = subsByUser.get(r.uid) ?? [];
+    if (!mySubs.length) return;
+    const res = await sendAll(mySubs, tpl, varsFor(r));
+    sent += res.sent; failed += res.failed;
+  }));
+  return { sent, failed };
+}
+
+type EveningRow = {
+  uid: string; kind: string; streak: number;
+  m_day: number | null; m_xp: number | null; m_tickets: number | null;
+};
+
+// Вечер: аудитория из SQL (push_audience_evening) делится на три шаблона.
+// streak_risk несёт число дней серии (streak) — плейсхолдер {streak}.
+// streak_milestone_eve — уже заходил сегодня, завтра день-веха серии:
+// плейсхолдеры {streak} {day} {xp} {tickets} (m_day/m_xp/m_tickets).
 async function runEvening() {
   const { data, error } = await service.rpc("push_audience_evening");
   if (error) return json(500, { error: error.message });
-  const rows = (data ?? []) as { uid: string; kind: string; streak: number }[];
+  const rows = (data ?? []) as EveningRow[];
   const out: Record<string, unknown> = {};
 
   const inactiveUids = rows.filter(r => r.kind === "inactive_today").map(r => r.uid);
@@ -92,23 +126,23 @@ async function runEvening() {
   const streakRows = rows.filter(r => r.kind === "streak_risk");
   const streakTpl = streakRows.length ? await loadTemplate("streak_risk") : null;
   if (streakTpl) {
-    const subs = await subsForUsers(streakRows.map(r => r.uid));
-    const subsByUser = new Map<string, Sub[]>();
-    for (const s of subs) {
-      if (!s.user_id) continue;
-      if (!subsByUser.has(s.user_id)) subsByUser.set(s.user_id, []);
-      subsByUser.get(s.user_id)!.push(s);
-    }
-    let sent = 0, failed = 0;
-    await Promise.all(streakRows.map(async (r) => {
-      const mySubs = subsByUser.get(r.uid) ?? [];
-      if (!mySubs.length) return;
-      const res = await sendAll(mySubs, streakTpl, { streak: String(r.streak ?? 0) });
-      sent += res.sent; failed += res.failed;
-    }));
+    const res = await sendPersonalized(streakRows, streakTpl, r => ({ streak: String(r.streak ?? 0) }));
     await logSent(streakRows.map(r => r.uid), "streak_risk");
-    out.streak_risk = { audience: streakRows.length, sent, failed };
+    out.streak_risk = { audience: streakRows.length, ...res };
   } else out.streak_risk = { audience: streakRows.length, skipped: true };
+
+  const milestoneRows = rows.filter(r => r.kind === "streak_milestone_eve");
+  const milestoneTpl = milestoneRows.length ? await loadTemplate("streak_milestone_eve") : null;
+  if (milestoneTpl) {
+    const res = await sendPersonalized(milestoneRows, milestoneTpl, r => ({
+      streak: String(r.streak ?? 0),
+      day: String(r.m_day ?? 0),
+      xp: String(r.m_xp ?? 0),
+      tickets: String(r.m_tickets ?? 0),
+    }));
+    await logSent(milestoneRows.map(r => r.uid), "streak_milestone_eve");
+    out.streak_milestone_eve = { audience: milestoneRows.length, ...res };
+  } else out.streak_milestone_eve = { audience: milestoneRows.length, skipped: true };
 
   return json(200, out);
 }

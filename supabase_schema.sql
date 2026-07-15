@@ -1902,3 +1902,266 @@ $$;
 revoke execute on function public.push_audience_evening() from public, anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ══════════════════════════════════════════════════════════════════
+-- ── Стрик v2: часовые пояса, автоклейм, «Забрать всё», пуш накануне
+-- ── вехи (решения 2026-07-16) ──────────────────────────────────────
+-- ══════════════════════════════════════════════════════════════════
+-- 1. Граница суток стрика — часовой пояс УСТРОЙСТВА пользователя
+--    (клиент передаёт Intl-пояс в touch_daily_login, храним в tz).
+--    VPN не влияет: пояс берётся из настроек телефона, не из IP.
+-- 2. Анти-накрутка поясом: новый день стрика засчитывается не чаще,
+--    чем раз в 12 РЕАЛЬНЫХ часов (last_streak_increment_at). «Слишком
+--    ранний» заход помечает день посещённым (серия не сгорает), но +1
+--    не даёт — придёт со следующим днём.
+-- 3. При сбросе серии незабранные награды НЕ сгорают — сервер
+--    автоматически начисляет их (автоклейм) и возвращает сумму клиенту
+--    для плашки «Серия прервалась, начислено +X XP».
+-- 4. claim_streak_rewards_all() — забрать все накопленные дни разом
+--    (кнопка «Забрать всё»).
+-- 5. push_audience_evening() переписана под ПОЧАСОВОЙ cron: каждому —
+--    в его локальные 19:00; добавлена аудитория streak_milestone_eve
+--    («завтра веха серии») для тех, кто сегодня уже заходил.
+--    ⚠ pg_cron: job «evening» перевести с «раз в день 19:00 МСК» на
+--    каждый час: schedule '0 * * * *' (тот же POST kind=evening).
+
+alter table public.user_profiles add column if not exists tz text not null default 'Europe/Moscow';
+alter table public.user_profiles add column if not exists last_streak_increment_at timestamptz;
+
+-- Сигнатура меняется (появился p_tz) — старую версию без аргументов убираем,
+-- иначе в БД останутся обе и PostgREST не сможет выбрать.
+drop function if exists public.touch_daily_login();
+
+create or replace function public.touch_daily_login(p_tz text default null)
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid         uuid := auth.uid();
+  prof          public.user_profiles;
+  v_tz          text;
+  v_today       date;
+  v_gap         int;
+  v_missed_from date;
+  v_missed_to   date;
+  v_week        text;
+  v_is_pro      boolean;
+  v_saved       text := null;
+  v_new_streak  int;
+  v_guarded     boolean;
+  v_ac_days     int := 0;
+  v_ac_xp       int := 0;
+  v_ac_tick     int := 0;
+begin
+  if v_uid is null then return jsonb_build_object('ok', false); end if;
+
+  select * into prof from public.user_profiles where id = v_uid for update;
+  if not found then return jsonb_build_object('ok', false); end if;
+
+  -- Пояс: валидируем присланный клиентом; мусор/подделка → остаёмся на сохранённом.
+  v_tz := coalesce(prof.tz, 'Europe/Moscow');
+  if p_tz is not null and p_tz is distinct from v_tz then
+    begin
+      perform now() at time zone p_tz;
+      v_tz := p_tz;
+    exception when others then null;
+    end;
+  end if;
+
+  v_today  := (now() at time zone v_tz)::date;
+  v_is_pro := prof.has_subscription or prof.is_admin;
+
+  -- Сегодня уже заходил (или пояс сдвинули назад и «сегодня» уехало в прошлое —
+  -- отрицательный gap не должен ронять серию).
+  if prof.last_active_date >= v_today then
+    if v_tz is distinct from prof.tz then
+      update public.user_profiles set tz = v_tz where id = v_uid;
+    end if;
+    return jsonb_build_object('ok', true, 'streak', prof.current_streak,
+      'longest', prof.longest_streak, 'saved_by', null);
+  end if;
+
+  if prof.last_active_date is null then
+    update public.user_profiles
+    set current_streak = 1, longest_streak = greatest(prof.longest_streak, 1),
+        last_active_date = v_today, tz = v_tz, last_streak_increment_at = now()
+    where id = v_uid;
+    return jsonb_build_object('ok', true, 'streak', 1,
+      'longest', greatest(prof.longest_streak, 1), 'saved_by', null);
+  end if;
+
+  -- Защита 12ч: календарный день сменился, но реальных часов с прошлого
+  -- засчитанного дня прошло слишком мало (манипуляция поясом / заход сразу
+  -- после полуночи). День помечаем посещённым — серия НЕ сгорает, +1 позже.
+  v_guarded := prof.last_streak_increment_at is not null
+    and now() - prof.last_streak_increment_at < interval '12 hours';
+  if v_guarded then
+    update public.user_profiles
+    set last_active_date = v_today, tz = v_tz
+    where id = v_uid;
+    return jsonb_build_object('ok', true, 'streak', prof.current_streak,
+      'longest', prof.longest_streak, 'saved_by', null, 'guarded', true);
+  end if;
+
+  v_gap := v_today - prof.last_active_date;
+
+  if v_gap = 1 then
+    v_new_streak := prof.current_streak + 1;
+    update public.user_profiles
+    set current_streak = v_new_streak,
+        longest_streak = greatest(longest_streak, v_new_streak),
+        last_active_date = v_today, tz = v_tz, last_streak_increment_at = now()
+    where id = v_uid;
+    return jsonb_build_object('ok', true, 'streak', v_new_streak,
+      'longest', greatest(prof.longest_streak, v_new_streak), 'saved_by', null);
+  end if;
+
+  -- v_gap >= 2: пропущено (v_gap - 1) дней между последним визитом и сегодня.
+  v_missed_from := prof.last_active_date + 1;
+  v_missed_to   := v_today - 1;
+
+  -- PRO: пропущенный диапазон целиком суббота/воскресенье — прощается всегда.
+  if v_is_pro and not exists (
+    select 1 from generate_series(v_missed_from, v_missed_to, interval '1 day') d
+    where extract(isodow from d) not in (6, 7)
+  ) then
+    v_saved := 'pro_weekend';
+  elsif v_is_pro and v_gap = 2 then
+    -- Один пропущенный будний день — прощается, но не чаще раза в неделю.
+    v_week := to_char(v_missed_from, 'IYYY-IW');
+    if prof.pro_weekday_forgiven_week is distinct from v_week then
+      v_saved := 'pro_weekday';
+      update public.user_profiles set pro_weekday_forgiven_week = v_week where id = v_uid;
+    end if;
+  end if;
+
+  if v_saved is null and prof.has_freeze_charge and v_gap = 2 then
+    v_saved := 'freeze';
+    update public.user_profiles set has_freeze_charge = false where id = v_uid;
+  end if;
+
+  if v_saved is null and prof.auto_freeze_charges_left >= (v_gap - 1) then
+    v_saved := 'auto_freeze';
+    update public.user_profiles
+    set auto_freeze_charges_left = auto_freeze_charges_left - (v_gap - 1)
+    where id = v_uid;
+  end if;
+
+  if v_saved is not null then
+    v_new_streak := prof.current_streak + 1;
+    update public.user_profiles
+    set current_streak = v_new_streak,
+        longest_streak = greatest(longest_streak, v_new_streak),
+        last_active_date = v_today, tz = v_tz, last_streak_increment_at = now()
+    where id = v_uid;
+    return jsonb_build_object('ok', true, 'streak', v_new_streak,
+      'longest', greatest(prof.longest_streak, v_new_streak), 'saved_by', v_saved);
+  end if;
+
+  -- Сброс. Незабранные награды НЕ сгорают: автоклейм — начисляем всё
+  -- накопленное (вехи из streak_milestones, остальные дни по 5 XP).
+  if prof.current_streak > prof.last_claimed_streak_day then
+    select count(*)::int,
+           coalesce(sum(coalesce(m.xp_reward, 5)), 0)::int,
+           coalesce(sum(coalesce(m.ticket_reward, 0)), 0)::int
+    into v_ac_days, v_ac_xp, v_ac_tick
+    from generate_series(prof.last_claimed_streak_day + 1, prof.current_streak) d
+    left join public.streak_milestones m on m.day_number = d;
+  end if;
+
+  update public.user_profiles
+  set current_streak = 1, last_claimed_streak_day = 0, last_active_date = v_today,
+      tz = v_tz, last_streak_increment_at = now(),
+      xp = xp + v_ac_xp, tickets = tickets + v_ac_tick
+  where id = v_uid;
+
+  return jsonb_build_object('ok', true, 'streak', 1,
+    'longest', prof.longest_streak, 'saved_by', null, 'reset', true,
+    'lost_streak', prof.current_streak,
+    'auto_claimed', jsonb_build_object('days', v_ac_days, 'xp', v_ac_xp, 'tickets', v_ac_tick));
+end;
+$$;
+
+-- «Забрать всё»: начисляет награды за ВСЕ накопленные незабранные дни серии
+-- одной операцией (вехи — из streak_milestones, остальные дни — 5 XP).
+create or replace function public.claim_streak_rewards_all()
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid     uuid := auth.uid();
+  prof      public.user_profiles;
+  v_days    int;
+  v_xp      int;
+  v_tick    int;
+  v_special boolean;
+begin
+  if v_uid is null then return jsonb_build_object('ok', false, 'reason', 'not_logged_in'); end if;
+
+  select * into prof from public.user_profiles where id = v_uid for update;
+  if not found then return jsonb_build_object('ok', false); end if;
+
+  if prof.last_claimed_streak_day >= prof.current_streak then
+    return jsonb_build_object('ok', false, 'reason', 'nothing_to_claim');
+  end if;
+
+  select count(*)::int,
+         coalesce(sum(coalesce(m.xp_reward, 5)), 0)::int,
+         coalesce(sum(coalesce(m.ticket_reward, 0)), 0)::int,
+         coalesce(bool_or(coalesce(m.special, false)), false)
+  into v_days, v_xp, v_tick, v_special
+  from generate_series(prof.last_claimed_streak_day + 1, prof.current_streak) d
+  left join public.streak_milestones m on m.day_number = d;
+
+  update public.user_profiles
+  set xp = xp + v_xp, tickets = tickets + v_tick,
+      last_claimed_streak_day = prof.current_streak
+  where id = v_uid;
+
+  return jsonb_build_object('ok', true, 'days', v_days, 'xp', v_xp,
+    'tickets', v_tick, 'special', v_special);
+end;
+$$;
+
+-- Вечерняя аудитория пушей v2 — под ПОЧАСОВОЙ cron. Выбираются только
+-- пользователи, у которых в ИХ поясе сейчас 19:xx. Три вида:
+--   streak_risk          — вчера заходил, сегодня ещё нет, серия жива;
+--   inactive_today       — сегодня не заходил (и серия не под угрозой);
+--   streak_milestone_eve — сегодня УЖЕ заходил и завтра день-веха
+--                          (мотивация не порвать серию перед наградой).
+-- Дедупликация — по локальной дате пользователя в push_trigger_log.
+drop function if exists public.push_audience_evening();
+create function public.push_audience_evening()
+returns table(uid uuid, kind text, streak int, m_day int, m_xp int, m_tickets int)
+language sql security definer as $$
+  with candidates as (
+    select p.id, coalesce(p.tz, 'Europe/Moscow') as tz,
+           p.last_active_date, coalesce(p.current_streak, 0) as streak,
+           (now() at time zone coalesce(p.tz, 'Europe/Moscow'))::date as local_today
+    from public.user_profiles p
+    where exists (select 1 from public.push_subscriptions s where s.user_id = p.id)
+      and extract(hour from now() at time zone coalesce(p.tz, 'Europe/Moscow')) = 19
+  )
+  select c.id,
+         case when c.last_active_date = c.local_today - 1 and c.streak > 0
+              then 'streak_risk' else 'inactive_today' end,
+         c.streak, null::int, null::int, null::int
+  from candidates c
+  where coalesce(c.last_active_date, c.local_today - 2) < c.local_today
+    and not exists (
+      select 1 from public.push_trigger_log l
+      where l.user_id = c.id
+        and l.trigger_kind in ('streak_risk', 'inactive_today')
+        and (l.sent_at at time zone c.tz)::date = c.local_today
+    )
+  union all
+  select c.id, 'streak_milestone_eve', c.streak, m.day_number, m.xp_reward, m.ticket_reward
+  from candidates c
+  join public.streak_milestones m on m.day_number = c.streak + 1
+  where c.last_active_date = c.local_today
+    and not exists (
+      select 1 from public.push_trigger_log l
+      where l.user_id = c.id
+        and l.trigger_kind = 'streak_milestone_eve'
+        and (l.sent_at at time zone c.tz)::date = c.local_today
+    );
+$$;
+revoke execute on function public.push_audience_evening() from public, anon, authenticated;
+
+notify pgrst, 'reload schema';

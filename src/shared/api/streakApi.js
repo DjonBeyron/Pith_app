@@ -6,10 +6,16 @@ import { dbg } from '../lib/debug.js'
 // сервере — клиент не передаёт суммы.
 
 // Вызывается раз при загрузке приложения (useDailyLoginTouch). Считает
-// вход, продлевает/спасает/сбрасывает серию. { ok, streak, longest,
-// saved_by: 'freeze'|'auto_freeze'|'pro_weekday'|'pro_weekend'|null, reset? }.
+// вход, продлевает/спасает/сбрасывает серию (часовой пояс устройства —
+// граница суток теперь считается локально, а не по МСК).
+// { ok, streak, longest, saved_by: 'freeze'|'auto_freeze'|'pro_weekday'|
+// 'pro_weekend'|null, reset?, lost_streak?, auto_claimed?: { days, xp,
+// tickets }, guarded? }.
 export async function touchDailyLogin() {
-  const { data, error } = await supabase.rpc('touch_daily_login')
+  const tz = (() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null } catch { return null }
+  })()
+  const { data, error } = await supabase.rpc('touch_daily_login', { p_tz: tz })
   if (error) { console.error('[STREAK] touch_daily_login:', error.message); return null }
   dbg('[STREAK] touch_daily_login →', data)
   return data ?? null
@@ -21,6 +27,15 @@ export async function claimStreakReward() {
   const { data, error } = await supabase.rpc('claim_streak_reward')
   if (error) { console.error('[STREAK] claim_streak_reward:', error.message); return { ok: false } }
   dbg('[STREAK] claim_streak_reward →', data)
+  return data ?? { ok: false }
+}
+
+// Забрать разом все накопленные незабранные дни серии.
+// { ok, days, xp, tickets, special, reason?: 'nothing_to_claim' }.
+export async function claimAllStreakRewards() {
+  const { data, error } = await supabase.rpc('claim_streak_rewards_all')
+  if (error) { console.error('[STREAK] claim_streak_rewards_all:', error.message); return { ok: false } }
+  dbg('[STREAK] claim_streak_rewards_all →', data)
   return data ?? { ok: false }
 }
 

@@ -1,9 +1,18 @@
 import { useState, useEffect } from 'react'
 import RewardsPath from './RewardsPath.jsx'
 import {
-  claimStreakReward, buyStreakFreeze, buyAutoFreeze, fetchStreakMilestones,
+  claimAllStreakRewards, buyStreakFreeze, buyAutoFreeze, fetchStreakMilestones,
 } from '../../shared/api/streakApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
+
+const RESET_INFO_KEY = 'pithy_streak_reset_info'
+
+function readResetInfo() {
+  try {
+    const raw = localStorage.getItem(RESET_INFO_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
 
 const WINDOW_SIZE = 7 // сколько дней вперёд рисуем в пути, если веха дальше
 
@@ -16,13 +25,20 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [infoKind, setInfoKind] = useState(null) // null | 'freeze' | 'auto'
+  const [resetInfo, setResetInfo] = useState(() => readResetInfo())
 
   useEffect(() => { fetchStreakMilestones().then(setMilestones) }, [])
+
+  function closeResetNote() {
+    try { localStorage.removeItem(RESET_INFO_KEY) } catch { /* ignore */ }
+    setResetInfo(null)
+  }
 
   const streak       = profile?.current_streak ?? 0
   const lastClaimed   = profile?.last_claimed_streak_day ?? 0
   const nextClaimDay  = lastClaimed + 1
   const claimable     = nextClaimDay <= streak
+  const unclaimed     = Math.max(0, streak - lastClaimed)
   const isPro         = !!(profile?.has_subscription || profile?.is_admin)
 
   const nextMilestone = milestones.find(m => m.day_number > streak) ?? null
@@ -52,10 +68,13 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
   async function handleClaim() {
     setBusy(true)
     setMsg('')
-    const res = await claimStreakReward()
+    const res = await claimAllStreakRewards()
     if (res.ok) {
       await refreshProfile()
-      setMsg(res.tickets > 0 ? `+${res.xp} XP и ${res.tickets} 🎟!` : `+${res.xp} XP!`)
+      const forDays = res.days >= 2 ? ` за ${res.days} дн.` : ''
+      setMsg(res.tickets > 0
+        ? `+${res.xp} XP и ${res.tickets} 🎟${forDays}!`
+        : `+${res.xp} XP${forDays}!`)
     } else {
       setMsg('Не получилось забрать награду')
     }
@@ -86,6 +105,16 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
       </header>
 
       <div className="rwScroll">
+        {resetInfo && (
+          <div className="rwResetNote">
+            <button className="rwResetNoteClose" onClick={closeResetNote}>✕</button>
+            <p>
+              Серия {resetInfo.lost} дн. прервалась 😔 Награды за неё начислены
+              автоматически: <b>+{resetInfo.xp} XP{resetInfo.tickets > 0 ? ` и ${resetInfo.tickets} 🎟` : ''}</b>
+            </p>
+          </div>
+        )}
+
         <section className="rwHero">
           <div className="rwHeroIcon">🏆</div>
           <h2>Серия {streak} {streak === 1 ? 'день' : 'дней'}</h2>
@@ -130,7 +159,7 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
         </div>
 
         <button className="rwClaimBtn" disabled={busy || !claimable} onClick={handleClaim}>
-          🎁 {claimable ? 'Забрать награду' : 'Приходи завтра'}
+          {unclaimed >= 2 ? `🎁 Забрать всё · ${unclaimed} дн.` : claimable ? '🎁 Забрать награду' : '🎁 Приходи завтра'}
         </button>
       </div>
 

@@ -17,6 +17,17 @@ export function useDailyLoginTouch() {
     ;(async () => {
       const res = await touchDailyLogin()
       if (res?.ok) await refreshProfile()
+      // Серия сорвалась и сервер сам начислил награды за незабранные дни —
+      // сохраняем инфо для плашки; показывает и удаляет ключ RewardsPopup.
+      if (res?.reset && res?.auto_claimed && (res.auto_claimed.xp > 0 || res.auto_claimed.tickets > 0)) {
+        try {
+          localStorage.setItem('pithy_streak_reset_info', JSON.stringify({
+            lost: res.lost_streak ?? 0,
+            xp: res.auto_claimed.xp,
+            tickets: res.auto_claimed.tickets,
+          }))
+        } catch { /* ignore */ }
+      }
     })()
   }, [user])
 }
