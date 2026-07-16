@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import RewardsPopup from './RewardsPopup.jsx'
 import { subscribeLessonCompleted } from './streakPopupBus.js'
-import { getCachedProfile } from '../../shared/api/profileCache.js'
+import { getCachedProfile, subscribeProfile } from '../../shared/api/profileCache.js'
 
 const SHOWN_KEY = 'pithy_streak_popup_shown_v1'
 
@@ -12,8 +12,14 @@ function today() {
 // Раз в день, после первого пройденного урока за этот день — показываем
 // окно наград поверх любой вкладки. Сигнал шлёт LessonPlayer.finishSummary
 // через streakPopupBus (компонент живёт в другом дереве — см. ShellV2).
+// Profile подписан на кэш (subscribeProfile), поэтому забор наград внутри
+// RewardsPopup (refreshProfile) сразу обновляет и эту копию — карта дней
+// и hero-прогресс не отстают от реального состояния.
 export default function StreakRewardsGlobalPopup({ onWantPro }) {
+  const [open, setOpen] = useState(false)
   const [profile, setProfile] = useState(null)
+
+  useEffect(() => subscribeProfile(setProfile), [])
 
   useEffect(() => {
     return subscribeLessonCompleted(() => {
@@ -22,15 +28,16 @@ export default function StreakRewardsGlobalPopup({ onWantPro }) {
       if (!p || (p.current_streak ?? 0) < 1) return
       localStorage.setItem(SHOWN_KEY, today())
       setProfile(p)
+      setOpen(true)
     })
   }, [])
 
-  if (!profile) return null
+  if (!open || !profile) return null
   return (
     <RewardsPopup
       profile={profile}
-      onClose={() => setProfile(null)}
-      onWantPro={() => { setProfile(null); onWantPro?.() }}
+      onClose={() => setOpen(false)}
+      onWantPro={() => { setOpen(false); onWantPro?.() }}
     />
   )
 }

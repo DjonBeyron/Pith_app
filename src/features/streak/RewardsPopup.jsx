@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import RewardsPath from './RewardsPath.jsx'
+import RewardClaimPopup from './RewardClaimPopup.jsx'
 import {
   claimAllStreakRewards, buyStreakFreeze, buyAutoFreeze, fetchStreakMilestones,
 } from '../../shared/api/streakApi.js'
@@ -26,8 +27,12 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
   const [msg, setMsg] = useState('')
   const [infoKind, setInfoKind] = useState(null) // null | 'freeze' | 'auto'
   const [resetInfo, setResetInfo] = useState(() => readResetInfo())
+  const [claimResult, setClaimResult] = useState(null) // { xp, tickets, days, xpBefore } | null
 
-  useEffect(() => { fetchStreakMilestones().then(setMilestones) }, [])
+  useEffect(() => {
+    fetchStreakMilestones().then(setMilestones)
+    refreshProfile() // окно открыто — подтянуть самый свежий профиль (стрик мог обновиться сервером)
+  }, [])
 
   function closeResetNote() {
     try { localStorage.removeItem(RESET_INFO_KEY) } catch { /* ignore */ }
@@ -49,18 +54,19 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
     ? Math.round(((streak - prevMilestoneDay) / (nextMilestone.day_number - prevMilestoneDay)) * 100)
     : 100
 
+  const windowStart = Math.max(1, nextClaimDay - 3) // до 3 уже забранных дней видны сверху карты
   const windowEnd = nextMilestone
     ? Math.min(nextMilestone.day_number, nextClaimDay + WINDOW_SIZE - 1)
     : nextClaimDay + WINDOW_SIZE - 1
   const days = []
-  for (let day = nextClaimDay; day <= windowEnd; day++) {
+  for (let day = windowStart; day <= windowEnd; day++) {
     const m = milestones.find(x => x.day_number === day)
     days.push({
       day,
       xp: m ? m.xp_reward : 5,
       tickets: m ? m.ticket_reward : 0,
       milestone: !!m,
-      status: day === nextClaimDay ? 'current' : 'locked',
+      status: day < nextClaimDay ? 'done' : day === nextClaimDay ? 'current' : 'locked',
       visited: day <= streak, // вход в этот день уже был совершён — красит линию перед нодой
     })
   }
@@ -68,13 +74,11 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
   async function handleClaim() {
     setBusy(true)
     setMsg('')
+    const xpBefore = profile?.xp ?? 0
     const res = await claimAllStreakRewards()
     if (res.ok) {
       await refreshProfile()
-      const forDays = res.days >= 2 ? ` за ${res.days} дн.` : ''
-      setMsg(res.tickets > 0
-        ? `+${res.xp} XP и ${res.tickets} 🎟${forDays}!`
-        : `+${res.xp} XP${forDays}!`)
+      setClaimResult({ xp: res.xp, tickets: res.tickets, days: res.days, xpBefore })
     } else {
       setMsg('Не получилось забрать награду')
     }
@@ -196,6 +200,16 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
             )}
           </div>
         </div>
+      )}
+
+      {claimResult && (
+        <RewardClaimPopup
+          xp={claimResult.xp}
+          tickets={claimResult.tickets}
+          days={claimResult.days}
+          xpBefore={claimResult.xpBefore}
+          onClose={() => setClaimResult(null)}
+        />
       )}
     </div>
   )

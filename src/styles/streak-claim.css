@@ -1,0 +1,104 @@
+/* ── Праздничное окно «Награда получена!» после «Забрать всё» ── */
+
+.rcOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 98;
+  background: rgba(5, 6, 8, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: rcOverlayIn 0.25s ease;
+}
+
+@keyframes rcOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.rcCard {
+  width: 100%;
+  max-width: 320px;
+  background: #14171c;
+  border: 1px solid #232838;
+  border-radius: 20px;
+  padding: 26px 22px;
+  text-align: center;
+  color: #f2f5f7;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  animation: rcCardIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes rcCardIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.rcIcon { font-size: 44px; margin-bottom: 8px; }
+.rcTitle { font-size: 17px; font-weight: 800; margin: 0 0 14px; }
+
+.rcXp {
+  font-size: 30px;
+  font-weight: 900;
+  color: #b6fe3b;
+  text-shadow: 0 0 18px rgba(182, 254, 59, 0.45);
+}
+
+.rcTickets { font-size: 15px; font-weight: 800; color: #ffd257; margin-top: 4px; }
+.rcSub { font-size: 12px; color: #9aa3ad; margin: 6px 0 0; }
+
+.rcBarSection { margin-top: 20px; }
+
+.rcBarLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.rcBar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #060a14;
+  overflow: hidden;
+}
+
+.rcBarFill {
+  height: 100%;
+  background: #b6fe3b;
+  box-shadow: 0 0 12px rgba(182, 254, 59, 0.5);
+}
+
+.rcLevelUp {
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffd257;
+}
+
+.rcCloseBtn {
+  width: 100%;
+  margin-top: 22px;
+  border: none;
+  border-radius: 14px;
+  padding: 14px;
+  background: #b6fe3b;
+  color: #0b0d10;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* ── Дни-«done» на карте пути (уже забраны, до 3 видны сверху) ── */
+.rwNodeDone { opacity: 0.45; }
+.rwNodeDone .rwNodeLock { color: #b6fe3b; font-size: 15px; opacity: 1; }
+
+.rwNodeMilestoneDone {
+  opacity: 0.55;
+  box-shadow: none;
+  filter: grayscale(0.4);
+}
