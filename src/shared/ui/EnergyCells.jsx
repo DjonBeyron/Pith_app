@@ -11,18 +11,18 @@ function BoltSvg({ color }) {
   )
 }
 
-// Ряд из 5 ячеек энергии — переиспользуемый индикатор (карточка запуска
-// урока, попап энергии в hud-баре). Заполнено value штук цветом energyColor,
-// пустые — тёмные. Режимы через пропсы:
-// - shape: 'cell' (скруглённый сегмент, по умолчанию) | 'bolt' (заряд-молния)
-// - blinkLast — последняя заполненная ячейка мягко пульсирует (её спишут)
-// - dissolving — последняя заполненная растворяется (fade+scale), one-shot
-// - fillingNext + fillProgress (0..1) — следующая ПУСТАЯ ячейка заполняется
-//   как прогресс-бар и мягко мигает (до следующего восстановления +1)
-// - unlimited — все 5 ячеек лаймовые + значок «∞» (подписка/админ)
+// Ряд из 5 зарядов-молний — переиспользуемый индикатор энергии (карточка
+// запуска урока, попап энергии в hud-баре). Каждый заряд — тёмная
+// молния-подложка + цветная молния поверх: анимации (мигание, растворение,
+// частичное заполнение) живут на цветном слое, тёмная форма всегда остаётся
+// видна под ним. Режимы:
+// - blinkLast — последний заполненный заряд мягко пульсирует (его спишут)
+// - dissolving — последний заполненный растворяется (остаётся тёмная форма)
+// - fillingNext + fillProgress (0..1) — следующий ПУСТОЙ заряд заполняется
+//   слева как прогресс-бар и мигает (до следующего восстановления +1)
+// - unlimited — все 5 лаймовые + значок «∞» (подписка/админ)
 export default function EnergyCells({
   value = 0,
-  shape = 'cell',
   unlimited = false,
   blinkLast = false,
   dissolving = false,
@@ -30,60 +30,36 @@ export default function EnergyCells({
   fillProgress = 0,
 }) {
   const v = Math.max(0, Math.min(CAP, value))
-  const bolt = shape === 'bolt'
-  const rowCls = bolt ? 'enCells enCellsBolts' : 'enCells'
-
-  if (unlimited) {
-    return (
-      <div className={`${rowCls} enCellsUnlimited`}>
-        {Array.from({ length: CAP }).map((_, i) => bolt
-          ? <span key={i} className="enBolt"><BoltSvg color={energyColor(CAP)} /></span>
-          : <div key={i} className="enCell enCellFilled" style={{ backgroundColor: energyColor(CAP) }} />)}
-        <span className="enCellsInf">∞</span>
-      </div>
-    )
-  }
-
   const pct = Math.round(Math.max(0, Math.min(1, fillProgress)) * 100)
 
   return (
-    <div className={rowCls}>
+    <div className={`enCells${unlimited ? ' enCellsUnlimited' : ''}`}>
       {Array.from({ length: CAP }).map((_, i) => {
-        const filled = i < v
-        const isLast = filled && i === v - 1
-        const isNext = !filled && i === v
-        const anim = (isLast && dissolving) ? ' enCellDissolve'
-          : (isLast && blinkLast) ? ' enCellBlink' : ''
+        const filled = unlimited || i < v
+        const isLast = !unlimited && filled && i === v - 1
+        const isNext = !unlimited && !filled && i === v && fillingNext
 
-        if (bolt) {
-          return (
-            <span key={i} className={`enBolt${anim}`}>
-              <BoltSvg color={filled ? energyColor(v) : '#1c2028'} />
-              {/* Частичное заполнение: цветная молния поверх тёмной, обрезана по ширине */}
-              {isNext && fillingNext && (
-                <span className="enBoltFill enCellBlink" style={{ width: `${pct}%` }}>
-                  <BoltSvg color={energyColor(Math.min(CAP, v + 1))} />
-                </span>
-              )}
-            </span>
-          )
-        }
+        // Ширина цветного слоя: полный заряд — 100%, частичный — прогресс
+        const width = filled ? 100 : isNext ? pct : 0
+        const cls = 'enBoltFill' + (
+          isLast && dissolving ? ' enCellDissolve'
+            : (isLast && blinkLast) || isNext ? ' enCellBlink' : ''
+        )
+        const color = unlimited ? energyColor(CAP)
+          : energyColor(Math.min(CAP, filled ? v : v + 1))
 
         return (
-          <div
-            key={i}
-            className={`enCell${filled ? ' enCellFilled' : ''}${anim}`}
-            style={filled ? { backgroundColor: energyColor(v) } : undefined}
-          >
-            {isNext && fillingNext && (
-              <div
-                className="enCellProgress enCellBlink"
-                style={{ width: `${pct}%`, backgroundColor: energyColor(Math.min(CAP, v + 1)) }}
-              />
+          <span key={i} className="enBolt">
+            <BoltSvg color="#1c2028" />
+            {width > 0 && (
+              <span className={cls} style={{ width: `${width}%` }}>
+                <BoltSvg color={color} />
+              </span>
             )}
-          </div>
+          </span>
         )
       })}
+      {unlimited && <span className="enCellsInf">∞</span>}
     </div>
   )
 }

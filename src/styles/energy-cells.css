@@ -1,60 +1,13 @@
-/* ── Ряд ячеек энергии (EnergyCells) — переиспользуемый индикатор ── */
+/* ── Ряд зарядов-молний энергии (EnergyCells) — переиспользуемый индикатор ──
+   Каждый заряд: тёмная молния-подложка + цветная молния поверх (.enBoltFill).
+   Анимации (мигание/растворение/частичное заполнение) — на цветном слое,
+   тёмная форма пустой ячейки всегда остаётся видна под ним. */
 
 .enCells {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
 }
-
-.enCell {
-  position: relative;
-  width: 22px;
-  height: 9px;
-  border-radius: 4px;
-  background: #1c2028;
-  overflow: hidden;
-  transition: background-color 0.3s ease;
-}
-
-.enCellsUnlimited {
-  padding-right: 20px;
-}
-
-.enCellsInf {
-  margin-left: 6px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #b6fe3b;
-}
-
-/* Мигающая ячейка — та, что спишется следующей (или следующая к пополнению) */
-@keyframes enPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.enCellBlink {
-  animation: enPulse 1.2s ease-in-out infinite;
-}
-
-/* Растворение при старте платного урока — one-shot, ~0.5s */
-@keyframes enDissolve {
-  0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.35); }
-}
-
-.enCellDissolve {
-  animation: enDissolve 0.5s ease forwards;
-}
-
-.enCellProgress {
-  position: absolute;
-  inset: 0;
-  border-radius: 4px;
-}
-
-/* ── Вариант «заряды-молнии» (shape="bolt", попап энергии) ── */
-.enCellsBolts { gap: 3px; }
 
 .enBolt {
   position: relative;
@@ -70,9 +23,37 @@
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
 }
 
-/* Частичный заряд: цветная молния поверх тёмной, обрезается по ширине слева */
+/* Цветной слой поверх тёмной молнии; частичный заряд обрезается по ширине */
 .enBoltFill {
   position: absolute;
   inset: 0;
   overflow: hidden;
+}
+
+.enCellsInf {
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #b6fe3b;
+}
+
+/* Мигающий заряд — тот, что спишется следующим (или следующий к пополнению) */
+@keyframes enPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.enCellBlink {
+  animation: enPulse 1.2s ease-in-out infinite;
+}
+
+/* Растворение при старте платного урока — one-shot, ~0.5s; тает только
+   цветной слой, тёмная подложка остаётся */
+@keyframes enDissolve {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.35); }
+}
+
+.enCellDissolve {
+  animation: enDissolve 0.5s ease forwards;
 }

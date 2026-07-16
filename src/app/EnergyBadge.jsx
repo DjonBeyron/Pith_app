@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { calcEnergy, ENERGY_CAP, ENERGY_TICK_MS } from '../shared/lib/energyCalc.js'
 import { energyColor } from '../shared/lib/energyColors.js'
 import EnergyCells from '../shared/ui/EnergyCells.jsx'
-import { isHudPopupOpen, toggleHudPopup, closeHudPopup, subscribeHudPopup } from './hudPopupState.js'
+import { isHudPopupOpen, toggleHudPopup, subscribeHudPopup, useHudOutsideDismiss } from './hudPopupState.js'
 
 function fmtLeft(ms) {
   if (ms <= 0) return 'уже доступна'
@@ -47,6 +47,9 @@ export default function EnergyBadge() {
     return () => clearInterval(t)
   }, [open])
 
+  const wrapRef = useRef(null)
+  useHudOutsideDismiss(wrapRef, open)
+
   if (!user || !profile) return null
   const unlimited = profile.has_subscription || profile.is_admin
   const { value, nextAt } = calcEnergy(profile, now)
@@ -54,7 +57,7 @@ export default function EnergyBadge() {
   const fillProgress = !unlimited && nextAt ? 1 - (nextAt - now) / ENERGY_TICK_MS : 0
 
   return (
-    <div className="energyWrap">
+    <div className="energyWrap" ref={wrapRef}>
       <button className="energyBadge" onClick={() => toggleHudPopup('energy')}>
         <svg viewBox="0 0 24 24" fill="currentColor" style={color ? { color } : undefined}>
           <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" />
@@ -64,11 +67,12 @@ export default function EnergyBadge() {
 
       {open && (
         <>
-          <div className="energyPopBackdrop" onClick={closeHudPopup} />
-          <div className="energyPop" onClick={closeHudPopup}>
-            <div className="energyPopHead" onClick={e => e.stopPropagation()}>
+          {/* Закрытие — только тапом ВНЕ окна (useHudOutsideDismiss глушит
+              этот тап, чтобы он не долетел до видео ленты), само окно
+              кликабельно безопасно */}
+          <div className="energyPop">
+            <div className="energyPopHead">
               <EnergyCells
-                shape="bolt"
                 value={unlimited ? ENERGY_CAP : value}
                 unlimited={unlimited}
                 fillingNext={!unlimited && value < ENERGY_CAP}
@@ -86,7 +90,7 @@ export default function EnergyBadge() {
             </div>
 
             {showHelp && (
-              <div className="energyPopHelpBlock" onClick={e => e.stopPropagation()}>
+              <div className="energyPopHelpBlock">
                 <div>⚡ 1 новый урок = 1 энергия</div>
                 <div>🔄 Повторять пройденное — бесплатно</div>
                 <div>⏱ +1 каждые 4 часа (максимум {ENERGY_CAP})</div>
