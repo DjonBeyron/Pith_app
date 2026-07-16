@@ -185,51 +185,8 @@
   margin-bottom: 8px;
 }
 
-.rwFreezeRow { display: flex; gap: 8px; margin-bottom: 10px; }
-
-.rwFreezeItem { flex: 1; display: flex; gap: 6px; }
-
-.rwFreezeBtn {
-  flex: 1;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(182, 254, 59, 0.25);
-  background: #14171c;
-  color: #f2f5f7;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.rwFreezeBtn:disabled { opacity: 0.6; cursor: default; }
-
-.rwFreezeBtnPro {
-  flex: 1;
-  background: linear-gradient(180deg, #ffe27a, #eab72e);
-  color: #241a00;
-  border: none;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-size: 11px;
-  font-weight: 800;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-/* Кнопка «?» — компактная, квадратная, рядом с кнопкой заморозки */
-.rwInfoBtn {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  border: 1px solid rgba(182, 254, 59, 0.25);
-  background: #14171c;
-  color: #b6fe3b;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-}
+/* rwFreezeRow и карточки заморозок — перенесены в streak-popup.css
+   (тапабельная карточка целиком вместо пары «кнопка + кнопка ?») */
 
 .rwClaimBtn {
   width: 100%;

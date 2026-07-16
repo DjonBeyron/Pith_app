@@ -1,0 +1,208 @@
+/* ── Окно «Ежедневные награды»: скелетон загрузки + карточки заморозок ──
+   Дополняет streak.css (базовая раскладка окна) и streak-claim.css
+   (праздничное окно после «Забрать всё»). Сюда — только то, что появилось
+   при доводке окна: shimmer-заглушки на время загрузки вех, плавное
+   появление контента, и новый вид карточек заморозок (целиком тапабельны,
+   кнопка покупки живёт в шторке rwInfoOverlay). */
+
+/* ── Скелетон (.rwGhost): та же реальная разметка окна (.rwHero/.rwNode/
+   .rwFreezeCard/.rwClaimBtn — см. RewardsPopup.jsx, RewardsPath.jsx), просто
+   текст/иконки спрятаны (visibility: hidden — бокс остаётся на месте, не
+   display: none), а поверх того же бокса лежит ::after с бегущим бликом
+   (visibility: visible переопределяет родителя). Поэтому блестят силуэты
+   настоящих элементов, а не отдельная скелетон-вёрстка, и раскладка не
+   прыгает при появлении данных — это один и тот же DOM. */
+@keyframes rwShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.rwGhost h2,
+.rwGhost .rwHeroSub,
+.rwGhost .rwHeroIcon,
+.rwGhost .rwTrackLabels span,
+.rwGhost .rwNodeDay,
+.rwGhost .rwNodeReward,
+.rwGhost .rwNodeIcon,
+.rwGhost .rwNodeLock,
+.rwGhost .rwFreezeCardName,
+.rwGhost .rwFreezeCardStatus,
+.rwGhost .rwFreezeCardIcon,
+.rwGhost .rwClaimBtnLabel {
+  visibility: hidden;
+  position: relative;
+}
+
+.rwGhost h2::after,
+.rwGhost .rwHeroSub::after,
+.rwGhost .rwHeroIcon::after,
+.rwGhost .rwTrackLabels span::after,
+.rwGhost .rwNodeDay::after,
+.rwGhost .rwNodeReward::after,
+.rwGhost .rwNodeIcon::after,
+.rwGhost .rwNodeLock::after,
+.rwGhost .rwFreezeCardName::after,
+.rwGhost .rwFreezeCardStatus::after,
+.rwGhost .rwFreezeCardIcon::after,
+.rwGhost .rwClaimBtnLabel::after {
+  content: '';
+  visibility: visible;
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(100deg, #1a1e26 30%, #262d3a 50%, #1a1e26 70%);
+  background-size: 250% 100%;
+  animation: rwShimmer 1.4s ease-in-out infinite;
+}
+
+/* Иконки (🏆 в hero, 🎫/🔒 в нодах) — блик небольшим кругом по центру бокса:
+   сам бокс у них блочный/широкий, и inset: 0 с radius 50% растягивал блик
+   в странный эллипс на всю ширину блока. */
+.rwGhost .rwHeroIcon::after,
+.rwGhost .rwNodeIcon::after,
+.rwGhost .rwNodeLock::after {
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+}
+
+.rwGhost .rwNodeIcon::after,
+.rwGhost .rwNodeLock::after { width: 20px; height: 20px; }
+
+.rwGhost .rwTrack {
+  background: linear-gradient(100deg, #1a1e26 30%, #262d3a 50%, #1a1e26 70%);
+  background-size: 250% 100%;
+  animation: rwShimmer 1.4s ease-in-out infinite;
+}
+
+.rwGhost .rwFill { visibility: hidden; }
+
+/* ── Появление реального контента после скелетона ── */
+.rwFadeIn { animation: rwFadeIn 0.28s ease; }
+
+@keyframes rwFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Ошибка загрузки вех — под скелетоном, с кнопкой «Повторить» ── */
+.rwLoadError {
+  text-align: center;
+  margin-top: 14px;
+}
+
+.rwLoadErrorText {
+  font-size: 13px;
+  color: #ff8a7a;
+  margin: 0 0 10px;
+}
+
+.rwRetryBtn {
+  border: 1px solid rgba(182, 254, 59, 0.35);
+  border-radius: 10px;
+  background: #14171c;
+  color: #b6fe3b;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 18px;
+  cursor: pointer;
+}
+
+/* ── Карточки заморозок: целиком тапабельны, открывают rwInfoOverlay ── */
+.rwFreezeRow { display: flex; gap: 8px; margin-bottom: 10px; }
+
+.rwFreezeCard {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(182, 254, 59, 0.22);
+  background: #14171c;
+  color: #f2f5f7;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.rwFreezeCard:disabled { cursor: default; }
+
+.rwFreezeCardIcon { font-size: 20px; flex-shrink: 0; }
+
+.rwFreezeCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rwFreezeCardName {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rwFreezeCardStatus { font-size: 11px; font-weight: 700; color: #b6fe3b; }
+.rwFreezeCardStatus.rwFreezeCardStatusOn { color: #ffd257; }
+
+/* ── Кнопки действия внутри шторки (перенесены из карточек) ── */
+.rwSheetStatus {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8fd94a;
+  margin: 0 0 4px !important;
+}
+
+.rwSheetBuyBtn {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  background: #b6fe3b;
+  color: #0b0d10;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rwSheetBuyBtn:disabled { opacity: 0.5; cursor: default; }
+
+.rwSheetProBtn {
+  width: 100%;
+  margin-top: 10px;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  background: linear-gradient(180deg, #ffe27a, #eab72e);
+  color: #241a00;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* ── Скелетон: гасим цветные обводки и свечения ──
+   Золотая рамка/свечение вехи и лаймовые рамки заморозок не должны «гореть»
+   на заглушках — в ghost-режиме всё нейтральное, цвет приходит с данными.
+   Блок в конце файла намеренно: побеждает более ранние правила при равной
+   специфичности (.rwFreezeCard объявлен выше в этом же файле). */
+.rwGhost,
+.rwGhost .rwNode,
+.rwGhost .rwNodeMilestone {
+  border-color: #232838;
+  box-shadow: none;
+}
+
+/* Кнопка забора в скелетоне — тёмный силуэт вместо яркого лайма */
+.rwClaimBtn.rwGhost {
+  background: #14171c;
+  border: 1px solid #232838;
+  opacity: 1;
+}

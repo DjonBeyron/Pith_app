@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import RewardsPath from './RewardsPath.jsx'
 import RewardClaimPopup from './RewardClaimPopup.jsx'
+import FreezeSheet from './FreezeSheet.jsx'
 import {
   claimAllStreakRewards, buyStreakFreeze, buyAutoFreeze, fetchStreakMilestones,
 } from '../../shared/api/streakApi.js'
@@ -21,18 +22,37 @@ const WINDOW_SIZE = 7 // сколько дней вперёд рисуем в п
 // следующей вехи, путь дней, заморозки, кнопка «Забрать награду».
 // Показывается вручную (блок в профиле) или один раз в день после урока
 // (useStreakPopupTrigger.js).
+//
+// Вехи (fetchStreakMilestones) грузятся отдельно от профиля — пока их нет,
+// рендерится ТА ЖЕ реальная разметка (hero/путь/карточки заморозок/кнопка),
+// просто с модификатором .rwGhost (см. streak-popup.css): текст и иконки
+// прячутся, а на их месте — те же самые силуэты с бегущим бликом. Поэтому
+// раскладка не прыгает при переходе скелетон → данные — это один и тот же
+// DOM. Профиль обычно уже в кэше, поэтому именно вехи — основной источник
+// задержки.
 export default function RewardsPopup({ profile, onClose, onWantPro }) {
-  const [milestones, setMilestones] = useState([])
+  const [milestones, setMilestones] = useState(null) // null — ещё не загружено
+  const [loadError, setLoadError] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [infoKind, setInfoKind] = useState(null) // null | 'freeze' | 'auto'
   const [resetInfo, setResetInfo] = useState(() => readResetInfo())
   const [claimResult, setClaimResult] = useState(null) // { xp, tickets, days, xpBefore } | null
 
+  function loadMilestones() {
+    fetchStreakMilestones().then(list => {
+      if (list === null) setLoadError(true)
+      else { setMilestones(list); setLoadError(false) }
+    })
+  }
+
   useEffect(() => {
-    fetchStreakMilestones().then(setMilestones)
+    loadMilestones()
     refreshProfile() // окно открыто — подтянуть самый свежий профиль (стрик мог обновиться сервером)
   }, [])
+
+  const loading = milestones === null
+  const milestonesList = milestones ?? []
 
   function closeResetNote() {
     try { localStorage.removeItem(RESET_INFO_KEY) } catch { /* ignore */ }
@@ -46,8 +66,8 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
   const unclaimed     = Math.max(0, streak - lastClaimed)
   const isPro         = !!(profile?.has_subscription || profile?.is_admin)
 
-  const nextMilestone = milestones.find(m => m.day_number > streak) ?? null
-  const prevMilestoneDay = milestones
+  const nextMilestone = milestonesList.find(m => m.day_number > streak) ?? null
+  const prevMilestoneDay = milestonesList
     .filter(m => m.day_number <= streak)
     .reduce((max, m) => Math.max(max, m.day_number), 0)
   const progressPct = nextMilestone
@@ -60,16 +80,25 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
     : nextClaimDay + WINDOW_SIZE - 1
   const days = []
   for (let day = windowStart; day <= windowEnd; day++) {
-    const m = milestones.find(x => x.day_number === day)
+    const m = milestonesList.find(x => x.day_number === day)
     days.push({
       day,
       xp: m ? m.xp_reward : 5,
       tickets: m ? m.ticket_reward : 0,
       milestone: !!m,
-      status: day < nextClaimDay ? 'done' : day === nextClaimDay ? 'current' : 'locked',
+      // 'done' — уже забран; 'ready' — прожит и ждёт забора (может быть
+      // несколько таких дней сразу); 'locked' — день ещё не наступил
+      status: day < nextClaimDay ? 'done' : day <= streak ? 'ready' : 'locked',
       visited: day <= streak, // вход в этот день уже был совершён — красит линию перед нодой
     })
   }
+
+  // Куда автоскроллить путь при открытии: на «текущий» день серии, а если
+  // окно его не показывает — на последний ready-день в окне.
+  const readyDays = days.filter(d => d.status === 'ready')
+  const focusDay = days.some(d => d.day === streak)
+    ? streak
+    : (readyDays.length ? readyDays[readyDays.length - 1].day : null)
 
   async function handleClaim() {
     setBusy(true)
@@ -119,88 +148,91 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
           </div>
         )}
 
-        <section className="rwHero">
-          <div className="rwHeroIcon">🏆</div>
-          <h2>Серия {streak} {streak === 1 ? 'день' : 'дней'}</h2>
-          {nextMilestone ? (
-            <>
-              <p className="rwHeroSub">
-                Ещё {nextMilestone.day_number - streak} и получишь{' '}
-                <b>{nextMilestone.xp_reward} XP{nextMilestone.ticket_reward > 0 ? ` + ${nextMilestone.ticket_reward} 🎟` : ''}</b>
-              </p>
-              <div className="rwTrack"><div className="rwFill" style={{ width: `${progressPct}%` }} /></div>
-              <div className="rwTrackLabels">
-                <span>День {prevMilestoneDay}</span>
-                <span>День {nextMilestone.day_number}</span>
-              </div>
-            </>
-          ) : <p className="rwHeroSub">Ты прошёл все известные вехи — так держать!</p>}
-        </section>
+        <div className={loading ? undefined : 'rwFadeIn'}>
+          <section className={`rwHero${loading ? ' rwGhost' : ''}`}>
+            <div className="rwHeroIcon">🏆</div>
+            <h2>Серия {streak} {streak === 1 ? 'день' : 'дней'}</h2>
+            {loading || nextMilestone ? (
+              <>
+                <p className="rwHeroSub">
+                  {loading ? (
+                    <>Ещё 3 и получишь <b>10 XP</b></>
+                  ) : (
+                    <>
+                      Ещё {nextMilestone.day_number - streak} и получишь{' '}
+                      <b>{nextMilestone.xp_reward} XP{nextMilestone.ticket_reward > 0 ? ` + ${nextMilestone.ticket_reward} 🎟` : ''}</b>
+                    </>
+                  )}
+                </p>
+                <div className="rwTrack"><div className="rwFill" style={{ width: `${loading ? 0 : progressPct}%` }} /></div>
+                <div className="rwTrackLabels">
+                  <span>День {loading ? 1 : prevMilestoneDay}</span>
+                  <span>День {loading ? 7 : nextMilestone.day_number}</span>
+                </div>
+              </>
+            ) : <p className="rwHeroSub">Ты прошёл все известные вехи — так держать!</p>}
+          </section>
 
-        <RewardsPath days={days} />
+          <RewardsPath key={loading ? 'ghost' : 'real'} ghost={loading} days={days} focusDay={focusDay} />
+        </div>
+
+        {loading && loadError && (
+          <div className="rwLoadError">
+            <p className="rwLoadErrorText">Не удалось загрузить</p>
+            <button className="rwRetryBtn" onClick={loadMilestones}>Повторить</button>
+          </div>
+        )}
       </div>
 
       <div className="rwBottom">
         {msg && <div className="rwMsg">{msg}</div>}
         <div className="rwFreezeRow">
-          <div className="rwFreezeItem">
-            <button className="rwFreezeBtn" disabled={busy || profile?.has_freeze_charge} onClick={handleBuyFreeze}>
-              🧊 {profile?.has_freeze_charge ? 'Есть' : 'Купить · 2 🎟'}
-            </button>
-            <button className="rwInfoBtn" onClick={() => setInfoKind('freeze')} title="Как это работает">?</button>
-          </div>
+          <button
+            className={`rwFreezeCard${loading ? ' rwGhost' : ''}`}
+            disabled={loading}
+            onClick={() => setInfoKind('freeze')}
+          >
+            <span className="rwFreezeCardIcon">🧊</span>
+            <span className="rwFreezeCardBody">
+              <span className="rwFreezeCardName">Заморозка</span>
+              <span className={`rwFreezeCardStatus${profile?.has_freeze_charge ? ' rwFreezeCardStatusOn' : ''}`}>
+                {profile?.has_freeze_charge ? 'Есть' : '2 🎟'}
+              </span>
+            </span>
+          </button>
 
-          <div className="rwFreezeItem">
-            {isPro ? (
-              <button className="rwFreezeBtn rwFreezeBtnPro" disabled>♾️ Активна</button>
-            ) : profile?.auto_freeze_charges_left > 0 ? (
-              <button className="rwFreezeBtn" disabled>♾️ Осталось {profile.auto_freeze_charges_left}</button>
-            ) : (
-              <button className="rwFreezeBtn" disabled={busy} onClick={handleBuyAutoFreeze}>♾️ Купить · 3 🎟</button>
-            )}
-            <button className="rwInfoBtn" onClick={() => setInfoKind('auto')} title="Как это работает">?</button>
-          </div>
+          <button
+            className={`rwFreezeCard${loading ? ' rwGhost' : ''}`}
+            disabled={loading}
+            onClick={() => setInfoKind('auto')}
+          >
+            <span className="rwFreezeCardIcon">♾️</span>
+            <span className="rwFreezeCardBody">
+              <span className="rwFreezeCardName">Авто заморозка</span>
+              <span className={`rwFreezeCardStatus${(isPro || profile?.auto_freeze_charges_left > 0) ? ' rwFreezeCardStatusOn' : ''}`}>
+                {isPro ? 'PRO' : profile?.auto_freeze_charges_left > 0 ? `Осталось ${profile.auto_freeze_charges_left}` : '3 🎟'}
+              </span>
+            </span>
+          </button>
         </div>
 
-        <button className="rwClaimBtn" disabled={busy || !claimable} onClick={handleClaim}>
-          {unclaimed >= 2 ? `🎁 Забрать всё · ${unclaimed} дн.` : claimable ? '🎁 Забрать награду' : '🎁 Приходи завтра'}
+        <button className={`rwClaimBtn${loading ? ' rwGhost' : ''}`} disabled={busy || loading || !claimable} onClick={handleClaim}>
+          <span className="rwClaimBtnLabel">
+            {unclaimed >= 2 ? `🎁 Забрать всё · ${unclaimed} дн.` : claimable ? '🎁 Забрать награду' : '🎁 Приходи завтра'}
+          </span>
         </button>
       </div>
 
-      {infoKind && (
-        <div className="rwInfoOverlay" onClick={() => setInfoKind(null)}>
-          <div className="rwInfoCard" onClick={e => e.stopPropagation()}>
-            {infoKind === 'freeze' ? (
-              <>
-                <h3>🧊 Заморозка</h3>
-                <p>Покупается заранее, не стакается — можно накопить-купить
-                  только одну про запас. Если пропустишь день, она сработает
-                  сама и спасёт серию, без твоего участия. Стоит 2 🎟.</p>
-              </>
-            ) : isPro ? (
-              <>
-                <h3>♾️ Авто заморозка</h3>
-                <p>С твоей подпиской PRO серия защищена всегда и бесплатно:
-                  суббота и воскресенье прощаются в любом случае, плюс один
-                  будний день в неделю — автоматически, покупать не нужно.</p>
-              </>
-            ) : (
-              <>
-                <h3>♾️ Авто заморозка</h3>
-                <p>Покупка защищает серию на 2 пропущенных дня подряд —
-                  сработает сама, без твоего участия. Повторная покупка
-                  недоступна, пока защита не закончится. Стоит 3 🎟.</p>
-                <p className="rwInfoPro">С подпиской PRO это работает всегда и
-                  бесплатно — суббота и воскресенье прощаются в любом случае,
-                  плюс один будний день в неделю.</p>
-                <button className="rwFreezeBtnPro" onClick={() => { setInfoKind(null); onWantPro?.() }}>
-                  👑 Оформить PRO
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <FreezeSheet
+        kind={infoKind}
+        profile={profile}
+        isPro={isPro}
+        busy={busy}
+        onBuyFreeze={handleBuyFreeze}
+        onBuyAutoFreeze={handleBuyAutoFreeze}
+        onWantPro={onWantPro}
+        onClose={() => setInfoKind(null)}
+      />
 
       {claimResult && (
         <RewardClaimPopup

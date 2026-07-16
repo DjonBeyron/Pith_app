@@ -57,12 +57,14 @@ export async function buyAutoFreeze() {
 }
 
 // Вехи наград для окна («путь дней») — публичное чтение, пишет только админ
-// (см. streakMilestonesApi.js для CRUD).
+// (см. streakMilestonesApi.js для CRUD). Возвращает null при сетевой ошибке
+// (не []), чтобы RewardsPopup мог отличить «пусто» от «не загрузилось» и
+// показать кнопку «Повторить».
 export async function fetchStreakMilestones() {
   const { data, error } = await supabase
     .from('streak_milestones')
     .select('day_number, xp_reward, ticket_reward, special, label')
     .order('day_number', { ascending: true })
-  if (error) { console.error('[STREAK] fetchStreakMilestones:', error.message); return [] }
+  if (error) { console.error('[STREAK] fetchStreakMilestones:', error.message); return null }
   return data ?? []
 }
