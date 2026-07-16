@@ -4,6 +4,7 @@ import { getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import SettingsTab from '../settings/SettingsTab.jsx'
 import NicknameCard from './NicknameCard.jsx'
+import LogoutSheet from './LogoutSheet.jsx'
 import CustomizationScreen from './CustomizationScreen.jsx'
 import AvatarPickerPopup from './AvatarPickerPopup.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
@@ -31,6 +32,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
   const [openModule, setOpenModule] = useState(null)
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [avatarBusy, setAvatarBusy] = useState(false)
+  const [showLogout, setShowLogout] = useState(false)
 
   async function changeAvatar(seed) {
     setAvatarBusy(true)
@@ -114,7 +116,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
         </div>
         <div>
           <div className="pvNameRow">
-            <span className="pvName">{name}</span>
+            <button className="pvName pvNameBtn" onClick={() => setShowLogout(true)} title="Выйти из аккаунта">{name}</button>
             {(profile?.has_subscription || profile?.is_admin) && <span className="pvProBadge">PRO</span>}
           </div>
           <span className="pvLvlChip">★ {cur.level} уровень · {cur.label}</span>
@@ -224,6 +226,10 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
           onClose={() => setShowRewards(false)}
           onWantPro={() => { setShowRewards(false); setShowPro(true) }}
         />
+      )}
+
+      {showLogout && (
+        <LogoutSheet email={userEmail} onClose={() => setShowLogout(false)} />
       )}
     </div>
   )
