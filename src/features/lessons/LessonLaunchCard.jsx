@@ -5,6 +5,8 @@ import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
 import { useIsAdmin } from '../../shared/lib/useIsAdmin.js'
 import { getCachedProfile } from '../../shared/api/profileCache.js'
+import { calcEnergy } from '../../shared/lib/energyCalc.js'
+import EnergyCells from '../../shared/ui/EnergyCells.jsx'
 import RetakeDialog from './RetakeDialog.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
 import LaunchDebugPanel from './LaunchDebugPanel.jsx'
@@ -123,6 +125,16 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
           ? '⚡ Этот урок бесплатный — энергия не тратится'
           : '⚡ Урок спишет 1 энергию'
 
+  // Платный случай (не гость, не безлимит, не пересдача, не Старт/Финал) —
+  // вместо текстовой строки показываем ряд ячеек энергии с мигающей
+  // последней (её спишет сервер при старте)
+  const payingCase = !!profile && !unlimited && !retake && !energyFree
+  // Date.now() — импьюрный вызов, только один раз через ленивый инициализатор
+  // (карточка живёт недолго, живой тикающий таймер здесь не нужен)
+  const [openedAt] = useState(() => Date.now())
+  const energyValue = profile ? calcEnergy(profile, openedAt).value : 0
+  const [dissolving, setDissolving] = useState(false)
+
   // Weak device → smaller in-memory buffer during lesson (2 past + 2 ahead vs 5 + 3)
   const weak       = isWeakDevice()
   const bufferSize = weak ? 3 : 5
@@ -180,7 +192,17 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
     const logoForPlayer = logoBlobRef.current ?? teacherLogo
     logoBlobRef.current = null
-    onStart({ nodes, files, blobMap, title, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound, lessonXp }, statsMode)
+    const payload = { nodes, files, blobMap, title, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound, lessonXp }
+
+    if (payingCase) {
+      // Платный случай: сперва показываем растворение мигающей ячейки —
+      // пользователь видит, что энергия израсходована — и только потом
+      // запускаем плеер. Реальное списание всё равно решает сервер (onStart→startLesson)
+      setDissolving(true)
+      setTimeout(() => onStart(payload, statsMode), 600)
+    } else {
+      onStart(payload, statsMode)
+    }
   }
 
   return (
@@ -203,7 +225,15 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
         </span>
       </div>
 
-      {costLabel && <span style={{ color: '#bbb', fontSize: 13 }}>{costLabel}</span>}
+      {payingCase ? (
+        <EnergyCells value={energyValue} blinkLast={!dissolving} dissolving={dissolving} />
+      ) : unlimited ? (
+        /* Безлимит (админ/подписка): тот же ряд ячеек, но полный и с «∞» —
+           чтобы новый UI был виден и здесь, а не только текст */
+        <EnergyCells unlimited />
+      ) : (
+        costLabel && <span style={{ color: '#bbb', fontSize: 13 }}>{costLabel}</span>
+      )}
 
       {isAdmin && (
         <LaunchDebugPanel
@@ -222,10 +252,10 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
       ) : (
         <button
           onClick={() => handleStart()}
-          disabled={!canStart}
+          disabled={!canStart || dissolving}
           style={{
             padding: '14px 0', borderRadius: 12, border: 'none',
-            fontSize: 16, fontWeight: 600, cursor: canStart ? 'pointer' : 'default',
+            fontSize: 16, fontWeight: 600, cursor: canStart && !dissolving ? 'pointer' : 'default',
             background: canStart ? '#4caf50' : '#333',
             color: canStart ? '#fff' : '#666',
             transition: 'background 0.3s ease, color 0.3s ease',

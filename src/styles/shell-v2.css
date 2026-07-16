@@ -162,6 +162,39 @@
   margin-bottom: 6px;
 }
 
+.energyPopHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: default;
+}
+
+.energyPopHelpBtn {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #2a3038;
+  background: rgba(255, 255, 255, 0.04);
+  color: #9aa3ad;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.energyPopHelpBlock {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #232932;
+  cursor: default;
+}
+
+.energyPopHelpBlock div + div {
+  margin-top: 4px;
+}
+
 .energyPopNext {
   margin-top: 8px;
   color: #b6fe3b;

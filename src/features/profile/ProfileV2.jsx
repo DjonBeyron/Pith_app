@@ -14,6 +14,7 @@ import { avatarUrl } from '../../shared/lib/avatarPack.js'
 import { saveAvatar } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { GEAR_PATH } from '../../shared/ui/icons.js'
+import { energyColor } from '../../shared/lib/energyColors.js'
 
 const BOLT = 'M13 2 4 14h6l-1 8 9-12h-6l1-8z'
 // Копилка слов: бесплатно видно первые 20, дальше — только с Pro
@@ -135,11 +136,18 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
         <div className="pvStatCol">
           <div className="pvStatTop">
             <span>Энергия</span>
-            <b>{profile?.has_subscription ? '∞' : `${energy}/5`}</b>
+            <b style={profile?.has_subscription ? undefined : { color: energyColor(energy) }}>
+              {profile?.has_subscription ? '∞' : `${energy}/5`}
+            </b>
           </div>
           <div className="pvEnergyBolts">
             {[0, 1, 2, 3, 4].map(i => (
-              <svg key={i} className={i < energy ? 'pvBolt' : 'pvBolt pvBoltOff'} viewBox="0 0 24 24" fill="currentColor"><path d={BOLT} /></svg>
+              <svg
+                key={i}
+                className={i < energy ? 'pvBolt' : 'pvBolt pvBoltOff'}
+                style={i < energy ? { color: energyColor(energy) } : undefined}
+                viewBox="0 0 24 24" fill="currentColor"
+              ><path d={BOLT} /></svg>
             ))}
           </div>
         </div>

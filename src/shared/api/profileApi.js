@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { dbg } from '../lib/debug.js'
 
 export async function getProfile() {
   // Локальная сессия вместо сетевого getUser — надёжнее на медленном старте
@@ -35,6 +36,7 @@ export async function startLesson(lessonId) {
     console.error('[ENERGY] start_lesson RPC error:', error.message)
     return { ok: true }
   }
+  dbg('[ENERGY] start_lesson →', lessonId, data)
   return data ?? { ok: true }
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import ProPaywall from '../pro/ProPaywall.jsx'
+import { energyColor } from '../../shared/lib/energyColors.js'
 
 function fmtLeft(ms) {
   if (ms <= 0) return 'уже доступна'
@@ -28,11 +29,11 @@ export default function EnergyPaywall({ nextAt, onClose }) {
     <div className="epOverlay" onClick={onClose}>
       <div className="epCard" onClick={e => e.stopPropagation()}>
         <div className="epBoltRing">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor" style={{ color: energyColor(0) }}><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
         </div>
         <h1>Энергия закончилась</h1>
         <div className="epSub">Новый урок можно начать, когда<br />восстановится энергия</div>
-        <div className="epTimer">+1 энергия {fmtLeft(left)}</div>
+        <div className="epTimer" style={{ color: energyColor(0) }}>+1 энергия {fmtLeft(left)}</div>
         <button className="epBtnPrimary" onClick={() => setShowPro(true)}>
           Подписка Pro — безлимит энергии
         </button>

@@ -2165,3 +2165,102 @@ $$;
 revoke execute on function public.push_audience_evening() from public, anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ══════════════════════════════════════════════════════════════════
+-- ── Энергия v3: гонка бесплатна + первый перезапуск прерванного
+-- ── урока бесплатен (решения 2026-07-16) ───────────────────────────
+-- ══════════════════════════════════════════════════════════════════
+-- 1. Уроки про-модулей (curricula.is_pro — супер-уроки гонки) энергию НЕ
+--    списывают: вход в гонку уже оплачен золотым билетом (start_race).
+-- 2. Прерванный урок (сессия в lesson_sessions есть, завершения нет —
+--    complete_lesson удаляет сессию) можно перезапустить ОДИН раз
+--    бесплатно; второй и последующие перезапуски — платные.
+--    Флаг free_restart_used живёт в самой сессии и умирает вместе с ней
+--    при завершении урока — у каждой новой попытки свой один бесплатный
+--    перезапуск.
+
+alter table public.lesson_sessions
+  add column if not exists free_restart_used boolean not null default false;
+
+-- start_lesson v4: + бесплатная гонка, + один бесплатный перезапуск.
+create or replace function public.start_lesson(p_lesson_id text)
+returns jsonb language plpgsql security definer as $$
+declare
+  v_uid  uuid := auth.uid();
+  prof   public.user_profiles;
+  sess   public.lesson_sessions;
+  v_free boolean;
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', true, 'guest', true);
+  end if;
+
+  perform public.expire_subscription(v_uid);
+  perform public.apply_energy_regen(v_uid);
+  select * into prof from public.user_profiles where id = v_uid for update;
+  select * into sess from public.lesson_sessions
+  where user_id = v_uid and lesson_id = p_lesson_id;
+
+  -- Безлимит: подписка/админ
+  v_free := prof.has_subscription or prof.is_admin;
+
+  -- Пересдача засчитанного урока — бесплатно
+  if not v_free then
+    select exists(
+      select 1 from public.lesson_results
+      where user_id = v_uid and lesson_id = p_lesson_id and xp_awarded
+    ) into v_free;
+  end if;
+
+  -- Старт (диагностика) и Финал (экзамен) модуля — бесплатно
+  if not v_free then
+    select exists(
+      select 1 from public.curricula c
+      where c.lesson_ids->>0 = p_lesson_id
+         or c.lesson_ids->>(jsonb_array_length(c.lesson_ids) - 1) = p_lesson_id
+    ) into v_free;
+  end if;
+
+  -- Гонка: уроки про-модуля бесплатны (вход уже оплачен билетом)
+  if not v_free then
+    select exists(
+      select 1 from public.curricula c
+      where c.is_pro and c.lesson_ids ? p_lesson_id
+    ) into v_free;
+  end if;
+
+  if v_free then
+    insert into public.lesson_sessions (user_id, lesson_id)
+    values (v_uid, p_lesson_id)
+    on conflict (user_id, lesson_id) do update set started_at = now();
+    return jsonb_build_object('ok', true, 'energy', prof.energy);
+  end if;
+
+  -- Прерванный урок (незавершённая сессия): первый перезапуск бесплатен
+  if sess.user_id is not null and not sess.free_restart_used then
+    update public.lesson_sessions
+    set started_at = now(), free_restart_used = true
+    where user_id = v_uid and lesson_id = p_lesson_id;
+    return jsonb_build_object('ok', true, 'energy', prof.energy, 'free_restart', true);
+  end if;
+
+  if prof.energy <= 0 then
+    return jsonb_build_object(
+      'ok', false, 'reason', 'no_energy',
+      'next_at', prof.energy_updated_at + interval '4 hours');
+  end if;
+
+  update public.user_profiles
+  set energy = prof.energy - 1,
+      energy_updated_at = case when prof.energy >= 5 then now() else energy_updated_at end
+  where id = v_uid;
+
+  insert into public.lesson_sessions (user_id, lesson_id)
+  values (v_uid, p_lesson_id)
+  on conflict (user_id, lesson_id) do update set started_at = now();
+
+  return jsonb_build_object('ok', true, 'energy', prof.energy - 1);
+end;
+$$;
+
+notify pgrst, 'reload schema';

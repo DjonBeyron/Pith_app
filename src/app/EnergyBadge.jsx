@@ -1,23 +1,10 @@
 import { useState, useEffect } from 'react'
 import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
+import { calcEnergy, ENERGY_CAP, ENERGY_TICK_MS } from '../shared/lib/energyCalc.js'
+import { energyColor } from '../shared/lib/energyColors.js'
+import EnergyCells from '../shared/ui/EnergyCells.jsx'
 import { isHudPopupOpen, toggleHudPopup, closeHudPopup, subscribeHudPopup } from './hudPopupState.js'
-
-const FOUR_H = 4 * 3600 * 1000
-const CAP = 5
-
-// Реальный счётчик: сервер начисляет каплю лениво (при старте урока),
-// поэтому эффективное значение и время следующей +1 считаем от
-// energy_updated_at прямо на клиенте
-function calcEnergy(profile, now) {
-  // Жёсткий потолок: даже если в базе больше (старый бонус новичку) — показываем максимум 5
-  const base = Math.min(CAP, Math.max(0, profile.energy ?? 0))
-  const t = profile.energy_updated_at ? new Date(profile.energy_updated_at).getTime() : null
-  if (base >= CAP || !t) return { value: base, nextAt: null }
-  const ticks = Math.floor((now - t) / FOUR_H)
-  const value = Math.min(CAP, base + ticks)
-  return { value, nextAt: value >= CAP ? null : t + (ticks + 1) * FOUR_H }
-}
 
 function fmtLeft(ms) {
   if (ms <= 0) return 'уже доступна'
@@ -29,8 +16,9 @@ function fmtLeft(ms) {
 }
 
 // Значок энергии в верхней панели (hudBar в ShellV2; видимостью управляет
-// оболочка). Тап — мини-окно: что такое энергия и живой таймер до следующей
-// +1; тап вне окна закрывает.
+// оболочка). Тап — мини-окно: ряд ячеек энергии (следующая — прогресс-бар
+// до пополнения) + живой таймер; описание механики спрятано за кнопкой «?».
+// Тап вне окна закрывает.
 export default function EnergyBadge() {
   const { user } = useAuth()
   const [profile, setProfile] = useState(getCachedProfile)
@@ -38,6 +26,7 @@ export default function EnergyBadge() {
   // закрывает это, а не открывает поверх (см. hudPopupState.js)
   const [open, setOpen] = useState(() => isHudPopupOpen('energy'))
   const [now, setNow] = useState(Date.now)
+  const [showHelp, setShowHelp] = useState(false)
 
   useEffect(() => {
     const unsubscribe = subscribeProfile(setProfile)
@@ -45,7 +34,12 @@ export default function EnergyBadge() {
     return unsubscribe
   }, [])
 
-  useEffect(() => subscribeHudPopup(id => setOpen(id === 'energy')), [])
+  useEffect(() => subscribeHudPopup(id => {
+    const isOpen = id === 'energy'
+    setOpen(isOpen)
+    // Окно закрыли (в т.ч. открыли другой бейдж) — в следующий раз открывается снова свёрнутым
+    if (!isOpen) setShowHelp(false)
+  }), [])
 
   // Открыто — тикаем каждую секунду (таймер), закрыто — раз в полминуты (значок)
   useEffect(() => {
@@ -56,22 +50,33 @@ export default function EnergyBadge() {
   if (!user || !profile) return null
   const unlimited = profile.has_subscription || profile.is_admin
   const { value, nextAt } = calcEnergy(profile, now)
+  const color = unlimited ? null : energyColor(value)
+  const fillProgress = !unlimited && nextAt ? 1 - (nextAt - now) / ENERGY_TICK_MS : 0
 
   return (
     <div className="energyWrap">
       <button className="energyBadge" onClick={() => toggleHudPopup('energy')}>
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
-        <span>{unlimited ? '∞' : value}</span>
+        <svg viewBox="0 0 24 24" fill="currentColor" style={color ? { color } : undefined}>
+          <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" />
+        </svg>
+        <span style={color ? { color } : undefined}>{unlimited ? '∞' : value}</span>
       </button>
 
       {open && (
         <>
           <div className="energyPopBackdrop" onClick={closeHudPopup} />
           <div className="energyPop" onClick={closeHudPopup}>
-            <b>Энергия</b>
-            <div>⚡ 1 новый урок = 1 энергия</div>
-            <div>🔄 Повторять пройденное — бесплатно</div>
-            <div>⏱ +1 каждые 4 часа (максимум {CAP})</div>
+            <div className="energyPopHead" onClick={e => e.stopPropagation()}>
+              <EnergyCells
+                shape="bolt"
+                value={unlimited ? ENERGY_CAP : value}
+                unlimited={unlimited}
+                fillingNext={!unlimited && value < ENERGY_CAP}
+                fillProgress={fillProgress}
+              />
+              <button className="energyPopHelpBtn" onClick={() => setShowHelp(s => !s)}>?</button>
+            </div>
+
             <div className="energyPopNext">
               {unlimited
                 ? 'У тебя безлимит'
@@ -79,6 +84,14 @@ export default function EnergyBadge() {
                   ? `Следующая +1 ${fmtLeft(nextAt - now)}`
                   : 'Энергия полная'}
             </div>
+
+            {showHelp && (
+              <div className="energyPopHelpBlock" onClick={e => e.stopPropagation()}>
+                <div>⚡ 1 новый урок = 1 энергия</div>
+                <div>🔄 Повторять пройденное — бесплатно</div>
+                <div>⏱ +1 каждые 4 часа (максимум {ENERGY_CAP})</div>
+              </div>
+            )}
           </div>
         </>
       )}
