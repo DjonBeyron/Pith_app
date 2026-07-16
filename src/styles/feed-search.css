@@ -8,7 +8,8 @@
 .feedSearchBtn {
   position: absolute;
   right: 14px;
-  top: calc(10px + env(safe-area-inset-top, 0px));
+  /* Второй ряд, ниже энергии и номера версии (симметрично DBG слева, 38px) */
+  top: calc(40px + env(safe-area-inset-top, 0px));
   z-index: 6;
   padding: 4px;
   border: none;
@@ -19,8 +20,8 @@
 }
 
 .feedSearchBtn svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
 }
 
