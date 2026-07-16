@@ -1,27 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { registerUser } from '../../../../shared/api/auth.js'
-import RegistrationConsent from './RegistrationConsent.jsx'
-
-function supabaseErrorToRu(error) {
-  const msg    = (error?.message ?? '').toLowerCase()
-  const code   = error?.code ?? ''
-  const status = error?.status ?? 0
-  if (code === 'user_already_exists' || msg.includes('already registered') || msg.includes('already exists'))
-    return { text: 'Пользователь с таким email уже существует', result: 'error' }
-  if (msg.includes('invalid email') || msg.includes('unable to validate email'))
-    return { text: 'Неверный формат email', result: 'error' }
-  if (msg.includes('password') && (msg.includes('short') || msg.includes('characters') || msg.includes('6')))
-    return { text: 'Пароль слишком короткий — минимум 6 символов', result: 'error' }
-  if (msg.includes('password') && msg.includes('weak'))
-    return { text: 'Пароль слишком простой — добавь цифры или символы', result: 'error' }
-  if (msg.includes('rate limit') || msg.includes('too many'))
-    return { text: 'Слишком много попыток — подожди немного', result: 'error' }
-  if (status === 500)
-    return { text: 'Ошибка сервера — попробуй позже', result: 'error' }
-  if (msg.includes('network') || msg.includes('fetch'))
-    return { text: 'Нет соединения с сервером — проверь интернет', result: 'error' }
-  return { text: `Ошибка: ${error.message || 'неизвестная ошибка'}`, result: 'error' }
-}
+import { supabaseErrorToRu } from '../../../../shared/lib/authErrorsRu.js'
+import RegistrationConsent from '../../../../shared/ui/RegistrationConsent.jsx'
 
 export default function RegistrationPanel({ node, onDone, onAnswered, onHeightChange }) {
   const [show, setShow]         = useState(false)
@@ -61,8 +41,7 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
     const { data, error } = await registerUser({ email: trimEmail, password: trimPass, name: trimName })
 
     if (error) {
-      const bubble = supabaseErrorToRu(error)
-      onAnswered?.(bubble.text, bubble.result)
+      onAnswered?.(supabaseErrorToRu(error), 'error')
       setLoading(false)
       return
     }

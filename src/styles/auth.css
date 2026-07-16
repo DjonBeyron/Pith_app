@@ -137,3 +137,31 @@
   color: #555;
   text-align: center;
 }
+
+/* Переключатель «Войти» | «Зарегистрироваться» наверху карточки */
+.authTabs {
+  display: flex;
+  gap: 4px;
+  background: #12141a;
+  border: 1px solid #2a2c33;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.authTabBtn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.authTabBtnActive {
+  background: #2a3a1a;
+  color: #b6fe3b;
+}

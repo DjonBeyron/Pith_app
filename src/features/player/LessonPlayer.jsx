@@ -9,6 +9,7 @@ import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
+import { useRegistrationSkip } from './useRegistrationSkip.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { useAnswerStats, wordOptionEvent } from './useAnswerStats.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
@@ -263,6 +264,9 @@ export default function LessonPlayer({
   const pcNode  = lastOf('photo_choice')
   const regNode = lastOf('registration')
 
+  // Залогинен → рег-нода скипается (сразу reg_submit), панель не рендерится
+  const showRegPanel = useRegistrationSkip(regNode, onNodeDone)
+
   // Таймер ответа стартует с появления панели (SKILL_ANALYSIS.md §4)
   useEffect(() => {
     [wcNode, paNode, pcNode].forEach(n => { if (n) panelShown(n.id) })
@@ -399,7 +403,7 @@ export default function LessonPlayer({
             onHeightChange={setPcPanelHeight}
           />
         )}
-        {regNode && (
+        {regNode && showRegPanel && (
           <RegistrationPanel
             key={regNode.id}
             node={regNode}

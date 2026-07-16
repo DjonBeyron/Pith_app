@@ -217,6 +217,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `SummaryBadges.jsx` | Блоки наград в итогах урока: TicketBlock (золотой билет за Финал) и StarsBlock (звёзды обычного урока по ошибкам) |
 | `downloadDebugLog.js` | Сборка и скачивание общего дебаг-лога плеера (pLog, таймлайн нод, загрузки, события анализа) — вынесено из LessonPlayer ради лимита 400 строк |
 | `useGraphPlayer.js` | State machine плеера: находит точку входа графа, запускает триггеры (timer/played/photo_shown/timer_after_play), показывает WaitingDots между нодами |
+| `useRegistrationSkip.js` | Авто-пропуск ноды «Регистрация» для залогиненного: панель не рендерится, сразу срабатывает reg_submit; решение фиксируется по ноде один раз (гость в панели не увидит её исчезновения) |
 | `useAnswerStats.js` | Сбор событий ответов для анализа знаний: таймер от появления панели, попытки по урокам, лог в pLog; `wordOptionEvent` — событие из варианта выбора слова |
 | `usePlayerPreload.js` | Предзагрузка медиа урока: BFS-очередь, 2 параллельных скачивания, буфер с вытеснением, готовность нод для прогресс-бара |
 | `posterQueue.js` | Фоновая очередь захвата постер-кадров видео (строго по одному — параллельные декодеры душат Android); не блокирует готовность нод |
@@ -253,8 +254,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `panels/choose-word/ChooseWordOption.jsx` | Одна кнопка-вариант: 4 состояния (default/correct/wrong/dimmed) |
 | `panels/choose-word/ChooseWordResponse.jsx` | Пузырь-ответ справа (зелёный / красный) после выбора |
 | `panels/choose-word/ChooseWordPanel.jsx` | Панель снизу плеера: варианты + ответ; показывается за пределами PlayerFeed |
-| `panels/registration/RegistrationPanel.jsx` | Панель регистрации снизу: email + имя + кнопки; триггеры reg_submit / reg_cancel |
-| `panels/registration/RegistrationConsent.jsx` | Модалка согласия с политикой конфиденциальности: скролл текста, чекбокс, кнопка Принять |
+| `panels/registration/RegistrationPanel.jsx` | Панель регистрации снизу: email + имя + кнопки; триггеры reg_submit / reg_cancel; модалка согласия — из `shared/ui/RegistrationConsent.jsx` |
 | `canvas/NodeRegistrationTriggers.jsx` | Строки триггеров для ноды регистрации (reg_submit / reg_cancel) с измерением позиций через onTriggerMeasure |
 | `panels/phrase-assembly/usePhraseAssembly.js` | Хук: перемешанные чипы, placed[], usedIdxs, result (correct/wrong), checkAnswer |
 | `panels/phrase-assembly/PhraseWordChip.jsx` | Кнопка-чип из пула: состояния default/used/disabled |
@@ -365,7 +365,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 ### `src/features/auth/` — вкладка «Войти»
 | Файл | Зачем нужен |
 |------|-------------|
-| `AuthTab.jsx` | Форма входа (email + пароль) или экран «вы вошли» с кнопкой «Выйти»; после входа переключается на «Профиль» и переносит локальный XP в БД |
+| `AuthTab.jsx` | Вкладка «Войти»: переключатель «Войти» \| «Зарегистрироваться» (форма входа или `RegisterForm`), либо экран «вы вошли» с кнопкой «Выйти»; после входа переключается на «Профиль» и переносит локальный XP в БД |
+| `RegisterForm.jsx` | Форма регистрации на вкладке «Войти»: Email + Имя + Пароль, окно согласия с политикой перед отправкой, ошибки по-русски; после успеха — refreshProfile и onLoginSuccess |
 
 ### `src/shared/api/` — связь с сервером
 | Файл | Зачем нужен |
@@ -402,6 +403,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `energyCalc.js` | `calcEnergy(profile, now)` — эффективное значение энергии и время следующей +1 (тиками по `energy_updated_at`); `ENERGY_CAP`/`ENERGY_TICK_MS`. Общее для `EnergyBadge` и `LessonLaunchCard` |
 | `energyColors.js` | `energyColor(value)` — цвет энергии по текущему количеству (0/1 красный → 5 фирменный лайм); используется везде, где показывается число/индикатор энергии |
 | `sounds.js` | `playSound(name)` — воспроизводит `/sounds/<name>.mp3` с кэшированием Audio-объекта |
+| `authErrorsRu.js` | `supabaseErrorToRu(error)` — перевод ошибок Supabase Auth на русский; общий для панели регистрации урока и `RegisterForm` вкладки «Войти» |
 | `xpLevels.js` | Таблица уровней XP (`LEVELS`), `getCurrentLevel(xp)`, `getNextLevel(xp)` — используется в ProfileTab и LessonSummary |
 | `localProfile.js` | Работа с XP в localStorage (`pithy_xp`): getLocalXp / addLocalXp / setLocalXp / clearLocalXp |
 | `completedLessons.js` | Трекинг пройденных уроков в localStorage (`pithy_completed_v1`): `getCompletedLessons()` → Set, `markLessonCompleted(id)` |
@@ -426,6 +428,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `HighlightedText.jsx` | Рендер текста с выделениями: режим `bg` — абсолютно позиционированный дочерний спан для фона (обход ограничения font content area), режим `text` — цвет шрифта |
+| `RegistrationConsent.jsx` | Модалка согласия с политикой конфиденциальности (скролл текста, чекбоксы, кнопка Принять); дефолтный текст политики внутри; используется в панели регистрации урока и на вкладке «Войти» |
 | `UserBadge.jsx` | Пользователь в рейтинге/итогах гонки: буквенный аватар (цвет от id) или картинка из пака DiceBear (avatarSeed) + ник; косметика достижений — рамка, подложка ника, медаль 1/2/3 |
 | `OrientationGuard.jsx` | Жёсткий запрет альбомной ориентации на телефонах: пробует `screen.orientation.lock` (работает только в fullscreen/установленном PWA) + CSS-заглушка на весь экран, показывается в landscape только на touch-устройствах (см. `styles/orientation-guard.css`) |
 | `InstallPrompt.jsx` | Решает, показывать ли попап установки автоматом при старте (гость + телефон + не установлено + не закрывал раньше — `localStorage`), рисует `InstallSlides` |
