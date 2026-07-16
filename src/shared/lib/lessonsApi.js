@@ -76,6 +76,19 @@ export async function saveLesson(id, { title, script }) {
   dbg('[DB OK] lesson saved', id)
 }
 
+// Заголовки уроков по списку id — минимальный select для текстового поиска
+// фразы по слову внутри её уроков (лента: FeedSearchPanel). Кэшируется на
+// сессию на стороне вызывающего кода, здесь — просто один лёгкий запрос.
+export async function fetchLessonTitles(ids) {
+  if (!ids.length) return {}
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('id, title')
+    .in('id', ids)
+  if (error) { dbg('[DB ERROR] lesson titles', error.message); return {} }
+  return Object.fromEntries((data ?? []).map(l => [l.id, l.title]))
+}
+
 export async function loadScript(id) {
   dbg('[DB READ] lesson script', id)
   const { data, error } = await supabase

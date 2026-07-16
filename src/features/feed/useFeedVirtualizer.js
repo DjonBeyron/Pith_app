@@ -5,7 +5,7 @@ import { fdbg } from '../../shared/lib/feedDebug.js'
 // Виртуализация бесконечного круга ленты (как в TikTok): в DOM живут только
 // видимый слайд и запас overscan сверху/снизу, круг «телепортируется»
 // незаметно при подходе к краю запаса циклов (контент идентичен — скачка не видно)
-export function useFeedVirtualizer(len, openModule) {
+export function useFeedVirtualizer(len, openModule, pinnedId) {
   const scrollRef = useRef(null)
   const [activeIdx, setActiveIdx] = useState(-1)
   // Направление последнего скролла (1 — вниз/вперёд, -1 — вверх). Спойлер
@@ -98,8 +98,10 @@ export function useFeedVirtualizer(len, openModule) {
   // его раньше, чем виртуализатор дорастил высоту)
   const initedRef = useRef(false)
   // Сброс и по возврату из экрана модуля: контейнер пересоздан, скролл на нуле —
-  // круг нужно заново поставить на середину запаса циклов
-  useEffect(() => { initedRef.current = false }, [len, openModule])
+  // круг нужно заново поставить на середину запаса циклов. pinnedId в зависимостях —
+  // поворот из поиска (jumpTo) переставляет фразу в начало круга (см.
+  // useFeedModules), и круг нужно заново отцентровать на неё же
+  useEffect(() => { initedRef.current = false }, [len, openModule, pinnedId])
   useEffect(() => {
     const el = scrollRef.current
     if (!el || !len || !viewH || initedRef.current) return
@@ -115,7 +117,7 @@ export function useFeedVirtualizer(len, openModule) {
       }
     }
     apply()
-  }, [len, cycles, viewH])
+  }, [len, cycles, viewH, pinnedId])
 
   useEffect(() => () => clearTimeout(settleTimer.current), [])
 

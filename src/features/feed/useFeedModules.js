@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
-// Загрузка модулей (curricula) + deep-link репоста (/?m=<id>) + расчёт
-// круга рекомендаций (не начатые модули, повёрнутые к расшаренной фразе)
+// Загрузка модулей (curricula) + «пин» на фразу (deep-link репоста /?m=<id>,
+// либо программный поворот из поиска — см. jumpTo) + расчёт круга
+// рекомендаций (не начатые модули, повёрнутые к закреплённой фразе)
 export function useFeedModules(startedIds) {
   const [modules, setModules] = useState(null) // null = загрузка
   const [error, setError] = useState('')
@@ -48,31 +49,36 @@ export function useFeedModules(startedIds) {
     return () => { cancelled = true }
   }, [])
 
-  // Deep-link репоста (/?m=<id>): лента начинается с расшаренной фразы.
-  // Круг бесконечный, поэтому просто поворачиваем список — фраза первой,
+  // Закреплённая фраза: изначально из deep-link репоста (/?m=<id>), потом
+  // может меняться программно — тап по результату поиска (jumpTo). Круг
+  // бесконечный, поэтому просто поворачиваем список — фраза первой,
   // остальное следом. Если модуль не в рекомендациях (начат/черновик) —
-  // лента обычная. Параметр убираем из адресной строки, но помним в ref.
-  const deepLinkRef = useRef(new URLSearchParams(location.search).get('m'))
+  // всё равно показываем её (как и с репостом). State (не ref!): смена
+  // должна вызвать перерисовку и реальный поворот ленты (см. useFeedVirtualizer)
+  const [pinnedId, setPinnedId] = useState(() => new URLSearchParams(location.search).get('m'))
   useEffect(() => {
-    if (deepLinkRef.current) {
-      fdbg('deep-link: старт с модуля', deepLinkRef.current)
+    if (pinnedId) {
+      fdbg('deep-link: старт с модуля', pinnedId)
       history.replaceState(null, '', location.pathname)
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Поворот ленты к фразе (используется поиском): просто меняем закреплённый id
+  function jumpTo(id) { setPinnedId(id) }
 
   // Круг рекомендаций — только не начатые модули
   let feedModules = (modules ?? []).filter(m => !startedIds.has(m.id))
-  if (deepLinkRef.current) {
-    const dlIdx = feedModules.findIndex(m => m.id === deepLinkRef.current)
+  if (pinnedId) {
+    const dlIdx = feedModules.findIndex(m => m.id === pinnedId)
     if (dlIdx > 0) {
       feedModules = [...feedModules.slice(dlIdx), ...feedModules.slice(0, dlIdx)]
     } else if (dlIdx === -1) {
       // Модуль начат (например, отправитель открыл свою же ссылку) — в
-      // рекомендациях его нет, но по прямой ссылке показываем всё равно
-      const dlMod = (modules ?? []).find(m => m.id === deepLinkRef.current)
+      // рекомендациях его нет, но по прямой ссылке (или из поиска) показываем всё равно
+      const dlMod = (modules ?? []).find(m => m.id === pinnedId)
       if (dlMod) feedModules = [dlMod, ...feedModules]
     }
   }
 
-  return { modules, error, feedModules, len: feedModules.length }
+  return { modules, error, feedModules, len: feedModules.length, pinnedId, jumpTo }
 }

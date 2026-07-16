@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { displayDifficulty } from '../../shared/api/difficultyApi.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import FeedSlide from './FeedSlide.jsx'
 import MyLessons from './MyLessons.jsx'
 import DebugPanel from './DebugPanel.jsx'
 import FeedTabsHeader from './FeedTabsHeader.jsx'
+import FeedSearchPanel from './FeedSearchPanel.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import { useFeedSound } from './useFeedSound.js'
 import { useFeedSocial } from './useFeedSocial.js'
 import { useFeedModules } from './useFeedModules.js'
+import { useFeedFilter } from './useFeedFilter.js'
 import { useFeedSplash } from './useFeedSplash.js'
 import { useFeedVirtualizer } from './useFeedVirtualizer.js'
 import { buildFeedInfo } from './feedDebugInfo.js'
@@ -23,6 +25,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   // Открытый модуль (схема Старт → уроки → Финал) поверх ленты
   const [openModule, setOpenModule] = useState(null)
   const [showDebug, setShowDebug] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   // Авторизация из локальной сессии — мгновенно, не ждём fetchFeedSocial
   // (раньше тап по лайку до его загрузки улетал в форму входа)
   const { user, loading: authLoading } = useAuth()
@@ -31,9 +34,34 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   const {
     reactions, diffVotes, startedIds, social, refreshStarted, toggle, voteDifficulty,
   } = useFeedSocial({ visible, view, user, authLoading, onRequireAuth })
-  const { modules, error, feedModules, len } = useFeedModules(startedIds)
+  const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds)
+  const { selected: diffSelected, toggle: toggleDiff, reset: resetDiffFilter, active: filterActive, passesFeed, passesMine } = useFeedFilter()
+
+  // Позиция модуля в общем списке — стабильная опора для детерминированного
+  // подмешивания серых фраз (~1 из 6) в useFeedFilter.passesFeed
+  const overallIdx = useMemo(() => {
+    const map = new Map()
+    ;(modules ?? []).forEach((m, i) => map.set(m.id, i))
+    return map
+  }, [modules])
+
+  // Фильтр сложности применяется ДО виртуализатора: сужает саму ленту.
+  // Закреплённая фраза (deep-link/поворот из поиска) видна всегда — фильтр
+  // её не прячет, как и настоящий deep-link
+  const feedModules = useMemo(
+    () => circleModules.filter(m => m.id === pinnedId || passesFeed(m, overallIdx.get(m.id) ?? 0)),
+    [circleModules, pinnedId, passesFeed, overallIdx],
+  )
+  const len = feedModules.length
+
   useFeedSplash(modules, len, feedModules)
-  const { scrollRef, virtualizer, viewH, cycles, activeIdx, onScroll, scrollDir } = useFeedVirtualizer(len, openModule)
+  const { scrollRef, virtualizer, viewH, cycles, activeIdx, onScroll, scrollDir } = useFeedVirtualizer(len, openModule, pinnedId)
+
+  function jumpToModule(id) {
+    jumpTo(id)
+    setView('feed')
+    setShowSearch(false)
+  }
 
   // «Изучить фразу» → готовый экран модуля (схема, карточка прогрева, плеер)
   if (openModule) {
@@ -58,7 +86,10 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
 
   return (
     <div className="feedV2">
-      <FeedTabsHeader view={view} onSetView={setView} onShowDebug={() => setShowDebug(true)} />
+      <FeedTabsHeader
+        view={view} onSetView={setView} onShowDebug={() => setShowDebug(true)}
+        onOpenSearch={() => setShowSearch(true)} filterActive={filterActive}
+      />
 
       {/* Оба вида смонтированы всегда (как вкладки оболочки): переключение
           «Рекомендации» ↔ «Мои уроки» не сбрасывает ленту и её слайд */}
@@ -69,6 +100,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           startedIds={startedIds}
           diffVotes={diffVotes}
           onVoteDifficulty={voteDifficulty}
+          filterActive={filterActive}
+          passesFilter={passesMine}
+          onResetFilter={resetDiffFilter}
           soundOn={soundReady}
           onSoundOn={handleSoundOn}
           onSoundBlocked={handleSoundBlocked}
@@ -83,7 +117,13 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           </div>
         ) : len === 0 ? (
           <div className="feedV2Center">
-            {modules.length > 0 ? (
+            {filterActive && circleLen > 0 ? (
+              <>
+                <div className="feedV2CenterTitle">Ничего не подошло</div>
+                <div className="feedV2CenterSub">Ни одна фраза не попала под фильтр сложности</div>
+                <button className="mlGoFeedBtn" onClick={resetDiffFilter}>Сбросить фильтр</button>
+              </>
+            ) : modules.length > 0 ? (
               <>
                 <div className="feedV2CenterTitle">Все уроки начаты</div>
                 <div className="feedV2CenterSub">Продолжай обучение во вкладке «Мои уроки»</div>
@@ -136,6 +176,15 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
       </div>
 
       {showDebug && <DebugPanel getFeedInfo={feedInfo} onClose={() => setShowDebug(false)} />}
+      {showSearch && (
+        <FeedSearchPanel
+          modules={modules ?? []}
+          diffSelected={diffSelected}
+          onToggleDiff={toggleDiff}
+          onClose={() => setShowSearch(false)}
+          onJumpToModule={jumpToModule}
+        />
+      )}
     </div>
   )
 }

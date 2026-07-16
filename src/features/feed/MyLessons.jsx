@@ -14,6 +14,7 @@ import DifficultyBadge from './DifficultyBadge.jsx'
 export default function MyLessons({
   visible = true, modules, startedIds, onOpen, onGoFeed,
   diffVotes = {}, onVoteDifficulty,
+  filterActive = false, passesFilter, onResetFilter,
   soundOn, onSoundOn, onSoundBlocked,
 }) {
   // Режим (видео/список) запоминается между запусками
@@ -34,15 +35,19 @@ export default function MyLessons({
   }
 
   const completed = getCompletedLessons()
-  const started = modules
+  const startedAll = modules
     .filter(m => startedIds.has(m.id))
     .map(m => {
       const total = m.lessonIds.length
       const done  = m.lessonIds.filter(id => completed.has(id)).length
       return { ...m, total, done, pct: total ? Math.round((done / total) * 100) : 0 }
     })
+  // Фильтр сложности: свой голос в приоритете (иначе общий); серые видны всегда
+  const started = filterActive && passesFilter
+    ? startedAll.filter(m => passesFilter(m, diffVotes[m.id]))
+    : startedAll
 
-  if (started.length === 0) {
+  if (startedAll.length === 0) {
     return (
       <div className="feedV2Center">
         <div className="mlEmptyArt">
@@ -51,6 +56,16 @@ export default function MyLessons({
         <div className="feedV2CenterTitle">Здесь пока пусто</div>
         <div className="feedV2CenterSub">Начни обучение — выбери фразу в ленте<br />и нажми «Изучить фразу»</div>
         <button className="mlGoFeedBtn" onClick={onGoFeed}>Смотреть ленту</button>
+      </div>
+    )
+  }
+
+  if (started.length === 0) {
+    return (
+      <div className="feedV2Center">
+        <div className="feedV2CenterTitle">Ничего не подошло</div>
+        <div className="feedV2CenterSub">Ни одна фраза не попала под фильтр сложности</div>
+        <button className="mlGoFeedBtn" onClick={onResetFilter}>Сбросить фильтр</button>
       </div>
     )
   }
