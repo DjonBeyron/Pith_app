@@ -136,6 +136,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `streak.css` | Стили ежедневного стрика: полноэкранное окно наград (hero-прогресс, путь дней, заморозки), блок в профиле, форма редактора вех в админке |
 | `streak-claim.css` | Стили праздничного окна «Награда получена!» (RewardClaimPopup): карточка, билеты, блок нового уровня; плюс приглушённые done-ноды пути дней (rwNodeDone/rwNodeMilestoneDone) |
 | `streak-popup.css` | Стили редизайна окна наград: скелетон с бегущим бликом (rwSkeleton/rwShimmer), плавное появление контента, карточки заморозок, шторка FreezeSheet, ready-ноды пути |
+| `streak-toast.css` | Плашка «Серия X дней» в схеме уроков (StreakDailyToast): съезд сверху, кнопка «Забрать», крестик |
 | `player/layout.css` | CSS-переменные плеера + `.lessonPlayer` (полноэкранный контейнер) |
 | `player/topbar.css` | Шапка плеера: аватар, название, статус |
 | `player/feed.css` | Изолированная лента чата: скролл, анимация появления, «три точки» ожидания |
@@ -152,6 +153,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/panels/choose-word.css` | Панель выбора слова в плеере: кнопки-варианты, анимации wcFlashGreen/wcFlashRed, пузырь-ответ |
 | `player/panels/phrase-assembly.css` | Панель сборки фразы: зона ответа (dashed border), пул чипов, кнопка «Проверить», анимация shake |
 | `player/panels/registration.css` | Панель регистрации в плеере: поля email/имя, кнопки «Зарегистрироваться» и «Отмена», та же slide-up анимация что choose-word |
+| `player/panels/push-prompt.css` | Попап «Включи уведомления» после регистрации в уроке: оверлей поверх итогов урока, карточка с кнопками «Разрешить» / «Не сейчас» |
 
 ### `src/app/` — общая сборка приложения
 | Файл | Зачем нужен |
@@ -254,7 +256,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `panels/choose-word/ChooseWordOption.jsx` | Одна кнопка-вариант: 4 состояния (default/correct/wrong/dimmed) |
 | `panels/choose-word/ChooseWordResponse.jsx` | Пузырь-ответ справа (зелёный / красный) после выбора |
 | `panels/choose-word/ChooseWordPanel.jsx` | Панель снизу плеера: варианты + ответ; показывается за пределами PlayerFeed |
-| `panels/registration/RegistrationPanel.jsx` | Панель регистрации снизу: email + имя + кнопки; триггеры reg_submit / reg_cancel; модалка согласия — из `shared/ui/RegistrationConsent.jsx` |
+| `panels/registration/RegistrationPanel.jsx` | Панель регистрации снизу: email + имя + кнопки; триггеры reg_submit / reg_cancel; модалка согласия — из `shared/ui/RegistrationConsent.jsx`; после успеха зовёт попап уведомлений |
+| `panels/registration/PushPromptPopup.jsx` | Попап «Включи уведомления» после успешной регистрации в уроке: subscribePush из тапа (iOS), кнопки «Разрешить» / «Не сейчас» |
 | `canvas/NodeRegistrationTriggers.jsx` | Строки триггеров для ноды регистрации (reg_submit / reg_cancel) с измерением позиций через onTriggerMeasure |
 | `panels/phrase-assembly/usePhraseAssembly.js` | Хук: перемешанные чипы, placed[], usedIdxs, result (correct/wrong), checkAnswer |
 | `panels/phrase-assembly/PhraseWordChip.jsx` | Кнопка-чип из пула: состояния default/used/disabled |
@@ -335,9 +338,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `useDailyLoginTouch.js` | Хук: раз за сессию приложения (не при каждом рендере) зовёт `touchDailyLogin` и обновляет кэш профиля — монтируется в `ShellV2.jsx` |
-| `streakPopupBus.js` | Сигнал «урок пройден» (тот же паттерн, что `raceBus.js`) — `LessonPlayer` шлёт, `StreakRewardsGlobalPopup` слушает из другого дерева компонентов |
-| `StreakRewardsGlobalPopup.jsx` | Раз в день после первого урока показывает `RewardsPopup` поверх любой вкладки (флаг «уже показан сегодня» — localStorage); монтируется в `ShellV2.jsx` |
-| `RewardsPopup.jsx` | Полноэкранное окно наград по макету: hero-прогресс до следующей вехи, путь дней, карточки заморозок (тап → FreezeSheet), «Забрать всё»; скелетон при загрузке, автоскролл к текущему дню; открывается и вручную из профиля |
+| `StreakDailyToast.jsx` | Плашка «🔥 Серия X дней» в схеме уроков: раз в день (localStorage), ждёт конец анимаций графа; при незабранных наградах — кнопка «Забрать» → `RewardsPopup`; заменила авто-открытие окна наград после урока |
+| `RewardsPopup.jsx` | Полноэкранное окно наград по макету: hero-прогресс до следующей вехи, путь дней, карточки заморозок (тап → FreezeSheet), «Забрать всё»; скелетон при загрузке, автоскролл к текущему дню; открывается из профиля и из плашки `StreakDailyToast` |
 | `RewardsPath.jsx` | Вертикальный путь дней окна наград: забранные (done, ✓), прожитые-незабранные (ready, зелёные), будущие (locked, 🔒), веха — золотая карточка; автоскролл к focusDay |
 | `RewardClaimPopup.jsx` | Праздничный оверлей после «Забрать всё»: анимация начисления через общий `shared/ui/XpTransfer.jsx` (тикающий счётчик, частицы, бар), блок нового уровня, кнопка «Закрыть» |
 | `FreezeSheet.jsx` | Шторка заморозки/автозаморозки: описание механики + кнопка действия («Купить · N 🎟» / «Оформить PRO») — открывается тапом по карточке заморозки в RewardsPopup |

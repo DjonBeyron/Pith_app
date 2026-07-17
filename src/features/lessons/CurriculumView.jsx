@@ -16,6 +16,7 @@ import { fetchMyLessonStars } from '../../shared/api/starsApi.js'
 import { markModuleStarted, unmarkModuleStarted } from '../../shared/api/moduleSocialApi.js'
 import { dbg } from '../../shared/lib/debug.js'
 import PriorityLegend from './PriorityLegend.jsx'
+import StreakDailyToast from '../streak/StreakDailyToast.jsx'
 import { computeAllPriorities } from '../../shared/lib/skillScore.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
@@ -340,6 +341,11 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           onClose={closeLegend}
         />
       )}
+
+      {/* Плашка «Серия X дней»: раз в день, ждёт конец анимаций графа
+          (прилёт XP / легенда приоритетов) — см. StreakDailyToast */}
+      <StreakDailyToast waiting={!!justCompleted || showLegend || !!launchId} />
+
     </div>
   )
 }

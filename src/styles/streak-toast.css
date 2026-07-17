@@ -1,0 +1,83 @@
+/* ── Streak daily toast ────────────────────────────────────────────────
+   Плашка «🔥 Серия X дней» в схеме уроков (StreakDailyToast.jsx):
+   появляется раз в день после анимаций графа, съезжает сверху.
+   ──────────────────────────────────────────────────────────────────── */
+
+.streakToast {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900; /* ниже полноэкранных окон (RewardsPopup/пейволлы), выше графа */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  padding: 10px 12px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  animation: streakToastIn 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes streakToastIn {
+  from { transform: translate(-50%, calc(-100% - 20px)); opacity: 0; }
+  to   { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.streakToastIcon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.streakToastBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.streakToastTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e0e0e0;
+  white-space: nowrap;
+}
+
+.streakToastSub {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+}
+
+.streakToastBtn {
+  background: #b6fe3b;
+  border: none;
+  border-radius: 9px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0d0f14;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: filter .15s;
+}
+
+.streakToastBtn:hover { filter: brightness(1.08); }
+
+.streakToastClose {
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+  transition: color .15s;
+}
+
+.streakToastClose:hover { color: #aaa; }
