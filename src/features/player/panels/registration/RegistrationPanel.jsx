@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { registerUser } from '../../../../shared/api/auth.js'
 import { supabaseErrorToRu } from '../../../../shared/lib/authErrorsRu.js'
+import { getPushState } from '../../../../shared/lib/push.js'
 import RegistrationConsent from '../../../../shared/ui/RegistrationConsent.jsx'
+import PushPromptPopup from './PushPromptPopup.jsx'
 
 export default function RegistrationPanel({ node, onDone, onAnswered, onHeightChange }) {
   const [show, setShow]         = useState(false)
@@ -10,6 +12,7 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
   const [password, setPassword] = useState('')
   const [loading, setLoading]     = useState(false)
   const [showConsent, setShowConsent] = useState(false)
+  const [showPushPrompt, setShowPushPrompt] = useState(false)
   const panelRef = useRef(null)
 
   useEffect(() => {
@@ -56,6 +59,11 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
     onAnswered?.('Вы успешно зарегистрированы! Проверьте почту для подтверждения', 'success')
     setTimeout(() => setShow(false), 1200)
     setTimeout(() => onDone?.('reg_submit', { email: trimEmail, name: trimName, userId: user?.id }), 1200 + 420)
+    // Попап «включи уведомления» — после того как панель уехала; только если
+    // пуши поддерживаются и ещё не включены/не запрещены
+    getPushState().then(s => {
+      if (s === 'off') setTimeout(() => setShowPushPrompt(true), 1400)
+    }).catch(() => {})
   }
 
   function handleCancel() {
@@ -76,6 +84,9 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
           onAccept={handleConsentAccept}
           onClose={() => setShowConsent(false)}
         />
+      )}
+      {showPushPrompt && (
+        <PushPromptPopup onClose={() => setShowPushPrompt(false)} />
       )}
       <div
         className="regPanelSpacer"
