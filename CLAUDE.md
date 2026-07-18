@@ -80,4 +80,20 @@
 
 ## Стек
 React 19 + Vite 8, Supabase JS v2 (база данных + edge functions), Cloudflare R2 (файлы).
-Подробности по бэкенду — в `PROJECT.md` и `supabase_schema.sql`.
+Подробности по бэкенду — в `PROJECT.md`.
+
+## Изменения БД — только миграциями (с этапа 4, 2026-07-17)
+Источник правды о схеме БД — снимок `supabase/migrations/20260717120000_baseline.sql`
+(снят с боевого проекта, каждая функция в одном экземпляре). Файл
+`supabase_schema.sql` теперь **АРХИВ** — история решений с комментариями, но не
+актуальное состояние (в нём функции по 3-4 версии подряд).
+
+- **Любое изменение БД** (новая таблица/колонка/функция/политика) — это **новый
+  файл** `supabase/migrations/<timestamp>_<короткое_имя>.sql` (timestamp формата
+  `YYYYMMDDHHMMSS`), а НЕ дописывание в `supabase_schema.sql`.
+- Применяется через `supabase db push` либо вставкой файла целиком в Supabase →
+  SQL Editor. Прямое подключение к БД у проекта отключено — CLI ходит через
+  Session Pooler (`aws-1-eu-central-1.pooler.supabase.com:5432`, юзер
+  `postgres.<ref>`), нужен пароль БД (percent-кодировать спецсимволы в URL).
+- Миграция должна быть идемпотентной, где возможно (`create table if not exists`,
+  `create or replace function`, `drop policy if exists` перед `create policy`).
