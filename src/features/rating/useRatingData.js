@@ -37,7 +37,8 @@ export function useRatingData(active = true) {
     setLoading(false)
   }, [])
 
-  useEffect(() => { if (active) reload() }, [active, reload])
+  // reload ставит setLoading синхронно в начале загрузки — осознанно
+  useEffect(() => { if (active) reload() }, [active, reload]) // eslint-disable-line react-hooks/set-state-in-effect
 
   // Аватар/ник/косметика меняются в Профиле (другая вкладка, этот компонент
   // не размонтируется) — без этого обновление было видно только после

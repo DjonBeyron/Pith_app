@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRatingData } from './useRatingData.js'
 import RaceBanner from '../race/RaceBanner.jsx'
 import RacePage from '../race/RacePage.jsx'
@@ -15,8 +15,13 @@ export default function RatingTab({ openRaceTick = 0 }) {
   const { rows, myRank, achievements, cosmetics, profile, loading, myId } =
     useRatingData(!showRace)
 
-  // Сигнал извне (попап-анонс): открыть страницу гонки
-  useEffect(() => { if (openRaceTick > 0) setShowRace(true) }, [openRaceTick])
+  // Сигнал извне (попап-анонс): открыть страницу гонки. Подстройка состояния
+  // прямо в рендере при смене пропа — паттерн из доков React (без эффекта)
+  const [prevTick, setPrevTick] = useState(openRaceTick)
+  if (openRaceTick !== prevTick) {
+    setPrevTick(openRaceTick)
+    if (openRaceTick > 0) setShowRace(true)
+  }
 
   if (showRace) {
     return <RacePage onBack={() => setShowRace(false)} />

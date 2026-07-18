@@ -88,6 +88,9 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
       {showPushPrompt && (
         <PushPromptPopup onClose={() => setShowPushPrompt(false)} />
       )}
+      {/* Высота спейсера — из панели, измеренной прошлым коммитом; общий
+          паттерн нижних панелей плеера (см. choose-word) */}
+      {/* eslint-disable react-hooks/refs */}
       <div
         className="regPanelSpacer"
         style={{
@@ -97,6 +100,7 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
             : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
         }}
       />
+      {/* eslint-enable react-hooks/refs */}
       <div ref={panelRef} className={`regPanel${show ? ' regPanelVisible' : ''}`}>
         <div className="regPanelInner">
           <p className="regPanelTitle">{title}</p>

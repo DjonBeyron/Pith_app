@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/static-components --
+   Module берётся из СТАТИЧНОЙ карты modules/index.js по типу ноды: ссылка
+   стабильна между рендерами, это не создание компонента в рендере */
 import { resolveModule } from './modules/index.js'
 
 export default function PlayerMessage({ node, file, lessonFiles, lessonNodes, teacherName, photoChoiceState, wordChoiceState, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates, phraseState, regState, bottomOffset, videoAutoSound, onDone, onTrReveal, photoXpPending, onPhotoXpFired, rewardXp }) {

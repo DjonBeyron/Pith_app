@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { buildSpans, addHighlight, removeHighlightAt, highlightStyle } from '../../shared/lib/textHighlight.js'
+import { addHighlight, removeHighlightAt } from '../../shared/lib/textHighlight.js'
 import HighlightedText from '../../shared/ui/HighlightedText.jsx'
 import { loadFavoriteColors, saveFavoriteColors } from '../../shared/api/highlightPresetsApi.js'
 
 const PANEL_W    = 300
 const PRESET_COL = ['#ffeb3b', '#ff9800', '#ff5252', '#e91e63', '#b6fe3b', '#4caf50', '#00bcd4', '#2196f3', '#9c27b0']
-const MAX_RECENT = 5
 
 function domToStr(container, node, off) {
   const w = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
@@ -45,7 +44,7 @@ export default function NodeTextHighlighter({ text, highlights, anchorRect, onCl
   const [opacity, setOpacity] = useState(() => {
     try { return parseFloat(localStorage.getItem('hl_opacity') ?? '0.5') } catch { return 0.5 }
   })
-  const [recent, setRecent] = useState(() => {
+  const [recent] = useState(() => {
     try { return JSON.parse(localStorage.getItem('hl_recent') ?? '[]') } catch { return [] }
   })
   const [favs, setFavs] = useState([])
@@ -53,7 +52,7 @@ export default function NodeTextHighlighter({ text, highlights, anchorRect, onCl
 
   useEffect(() => {
     loadFavoriteColors().then(setFavs)
-  }, []) // eslint-disable-line
+  }, [])  
 
   const spaceRight = window.innerWidth - anchorRect.right - 12
   const left = spaceRight >= PANEL_W ? anchorRect.right + 8 : anchorRect.left - PANEL_W - 8
@@ -93,14 +92,6 @@ export default function NodeTextHighlighter({ text, highlights, anchorRect, onCl
     localStorage.setItem('hl_opacity', String(v))
   }
 
-  function addRecent(c) {
-    setRecent(prev => {
-      const next = [c, ...prev.filter(x => x !== c)].slice(0, MAX_RECENT)
-      localStorage.setItem('hl_recent', JSON.stringify(next))
-      return next
-    })
-  }
-
   async function toggleFav(c) {
     const next = favs.includes(c) ? favs.filter(x => x !== c) : [...favs, c]
     setFavs(next)
@@ -108,7 +99,6 @@ export default function NodeTextHighlighter({ text, highlights, anchorRect, onCl
   }
 
 
-  const spans    = buildSpans(text, localHL)
   const swatches = [...new Set([...PRESET_COL, ...recent])]
 
   return createPortal(

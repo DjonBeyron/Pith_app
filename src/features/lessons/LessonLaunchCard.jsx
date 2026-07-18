@@ -62,7 +62,7 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
         })
       })
       .catch(() => setError('Не удалось загрузить урок'))
-  }, [lessonId]) // eslint-disable-line
+  }, [lessonId])  
 
   return (
     <div style={{
@@ -153,6 +153,8 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
   const [logoReady,   setLogoReady]   = useState(!teacherLogo) // no logo → already "ready"
 
   useEffect(() => {
+    // Нет лого → сразу «готово»; осознанный setState в эффекте загрузки
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!teacherLogo) { setLogoReady(true); return }
     let cancelled = false
     const controller = new AbortController()
@@ -172,7 +174,7 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
       // revoke only if not yet handed off to the player (releaseLogo clears the ref)
       if (logoBlobRef.current) { URL.revokeObjectURL(logoBlobRef.current); logoBlobRef.current = null }
     }
-  }, [teacherLogo]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [teacherLogo])  
 
   // Готовность — по нодам; бар — по скачанным байтам warmup-файлов (честный и плавный).
   // initialized=false until the hook has built its queue — prevents false "ready" flash.

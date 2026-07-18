@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ReplyPreview from '../../ReplyPreview.jsx'
 
 // Canvas sticker crop is set in a 200×200 frame; player stickerWrap is 160×160
@@ -39,6 +39,8 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
   }, []) // eslint-disable-line
 
   useEffect(() => {
+    // Синхронный setState осознан: blob-URL живёт строго вместе с file.localFile
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!file?.localFile) { setObjectUrl(null); return }
     const url = URL.createObjectURL(file.localFile)
     setObjectUrl(url)
@@ -51,6 +53,8 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
   const crop    = node.typeData?.sticker?.crop ?? { x: 0, y: 0, scale: 1 }
 
   useEffect(() => {
+    // Сброс медиасостояния при смене src — осознанный setState в эффекте
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIntrinsic(null)
     setMutedLoop(false)
     firstPlayDoneRef.current = false

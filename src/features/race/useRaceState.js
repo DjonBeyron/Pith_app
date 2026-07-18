@@ -73,7 +73,8 @@ export function useRaceState(active = true) {
     setLoading(false)
   }, [])
 
-  useEffect(() => { if (active) reload() }, [active, reload])
+  // reload ставит setLoading синхронно в начале загрузки — осознанно
+  useEffect(() => { if (active) reload() }, [active, reload]) // eslint-disable-line react-hooks/set-state-in-effect
 
   // Админ удалил/изменил гонку в другой вкладке — баннер обновляется сразу,
   // без перезагрузки приложения (см. features/race/raceBus.js)

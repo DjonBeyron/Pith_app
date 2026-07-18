@@ -30,6 +30,8 @@ function GalleryTile({ ph, index, lessonFiles, onClick }) {
     }
     kindRef.current   = kind
     pickTsRef.current = performance.now()
+    // Синхронизация src галереи с источником файла — осознанный setState
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSrc(url)
     return revoke ? () => URL.revokeObjectURL(revoke) : undefined
   }, [ph.fileId, ph.photoUrl, lessonFiles, index])

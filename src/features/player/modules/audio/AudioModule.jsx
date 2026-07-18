@@ -68,6 +68,8 @@ export default function AudioModule({ node, file, onDone }) {
     ), [barCount])
 
   useEffect(() => {
+    // Синхронный setState осознан: blob-URL живёт строго вместе с file.localFile
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!file?.localFile) { setObjectUrl(null); return }
     const url = URL.createObjectURL(file.localFile)
     setObjectUrl(url)
@@ -80,6 +82,8 @@ export default function AudioModule({ node, file, onDone }) {
     pLog('AudioModule mount/src change — r2Url=', file?.r2Url ?? 'null', 'objectUrl=', objectUrl ?? 'null', 'src=', src ?? 'NULL')
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0 }
+    // Сброс медиасостояния при смене src — осознанный setState в эффекте
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsPlaying(false)
     setTextStarted(false)
     setRevealedCharIdx(-1)
@@ -135,7 +139,7 @@ export default function AudioModule({ node, file, onDone }) {
   }
 
   // Show first frame before first play so there's no visual jump on start
-  useLayoutEffect(() => { applyFirstFrame(waveData) }, [waveData, barCount]) // eslint-disable-line
+  useLayoutEffect(() => { applyFirstFrame(waveData) }, [waveData, barCount])  
 
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)

@@ -2264,3 +2264,38 @@ end;
 $$;
 
 notify pgrst, 'reload schema';
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- Наблюдаемость: ошибки клиента (этап 3 плана стабилизации, 2026-07-17)
+-- Клиент (errorReport.js) пишет сюда ошибки ErrorBoundary и window.onerror/
+-- unhandledrejection: дедуп раз в минуту, потолок 20 за сессию — защита от
+-- бесконечного цикла ошибок. Просмотр — Админ → Ошибки (AdminErrorsTab).
+-- ═══════════════════════════════════════════════════════════════════════
+
+create table if not exists public.client_errors (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references auth.users(id) on delete set null,
+  message     text not null,
+  stack       text,
+  source      text,            -- 'boundary' | 'onerror' | 'rejection'
+  ua          text,
+  app_version text,
+  created_at  timestamptz not null default now()
+);
+
+alter table public.client_errors enable row level security;
+
+-- Писать могут все, включая гостей — иначе ошибки до логина потеряются
+drop policy if exists client_errors_insert_all on public.client_errors;
+create policy client_errors_insert_all on public.client_errors
+  for insert with check (true);
+
+-- Читать — только админ
+drop policy if exists client_errors_select_admin on public.client_errors;
+create policy client_errors_select_admin on public.client_errors
+  for select using (public.is_admin());
+
+create index if not exists client_errors_created_idx
+  on public.client_errors (created_at desc);
+
+notify pgrst, 'reload schema';

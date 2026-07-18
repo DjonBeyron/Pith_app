@@ -115,17 +115,6 @@
   color: #b6fe3b;
 }
 
-.nodeFileSelect {
-  width: 100%;
-  padding: 4px 8px;
-  background: #0a0c10;
-  border: 1px solid #242630;
-  border-radius: 6px;
-  color: #777;
-  font-size: 10px;
-  cursor: pointer;
-}
-
 .portDot { cursor: grab; pointer-events: all; }
 .portDot:active { cursor: grabbing; }
 .portDotInner { transition: r 0.12s, opacity 0.12s; }

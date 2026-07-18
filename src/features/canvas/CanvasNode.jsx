@@ -11,7 +11,8 @@ import NodeRegistrationTriggers   from './NodeRegistrationTriggers.jsx'
 import NodeLessonLink     from './NodeLessonLink.jsx'
 import NodeRewardCheckbox from './NodeRewardCheckbox.jsx'
 import { makeDefaultTriggers, hasOwnTriggers, setLastNodeType } from './nodeDefaults.js'
-import NodeTypeSelect, { NODE_TYPES, TYPE_COLOR } from './NodeTypeSelect.jsx'
+import NodeTypeSelect from './NodeTypeSelect.jsx'
+import { NODE_TYPES, TYPE_COLOR } from './nodeTypes.js'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 const NEXT_SIZE    = { nano: 'mini', mini: 'max', max: 'nano' }

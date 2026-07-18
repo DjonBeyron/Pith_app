@@ -25,6 +25,8 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
   useEffect(() => {
+    // Синхронный setState осознан: blob-URL живёт строго вместе с file.localFile
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!file?.localFile) { setObjectUrl(null); return }
     const url = URL.createObjectURL(file.localFile)
     setObjectUrl(url)
@@ -35,6 +37,8 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
 
   useEffect(() => {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null')
+    // Сброс медиасостояния при смене src — осознанный setState в эффекте
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIntrinsic(null)
     setFrame0(null)
     setMutedLoop(false)
@@ -218,7 +222,7 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
       fs.muted = true
       fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
     })
-  }, [fsSrc]) // eslint-disable-line
+  }, [fsSrc])  
 
   function handleFsCanPlay() {
     pLog('VideoModule: FS onCanPlay → show video, hide frame0 overlay')

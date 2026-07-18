@@ -40,7 +40,6 @@
 @import './styles/player/modules/text.css';
 @import './styles/player/modules/photo.css';
 @import './styles/player/modules/video.css';
-@import './styles/canvas/highlights.css';
 @import './styles/player/modules/pin-message.css';
 @import './styles/player/modules/sticker.css';
 @import './styles/player/panels/pin-message-banner.css';
@@ -68,3 +67,5 @@
 @import './styles/streak-claim.css';
 @import './styles/streak-popup.css';
 @import './styles/streak-toast.css';
+@import './styles/update-toast.css';
+@import './styles/admin-errors.css';

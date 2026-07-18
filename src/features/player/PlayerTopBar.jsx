@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { clearPlayerLog, pLog, setDebug } from '../../shared/lib/debug.js'
-import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
+import { preloadSounds } from '../../shared/lib/sounds.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
@@ -10,7 +10,13 @@ const AVATAR_SIZE = 36
 export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo, teacherLogoCrop, onDownloadLog }) {
   const [intrinsic, setIntrinsic] = useState(null)
 
-  useEffect(() => { setIntrinsic(null) }, [teacherLogo])
+  // Сброс размеров при смене лого — подстройка состояния прямо в рендере
+  // (паттерн из доков React вместо setState в эффекте)
+  const [prevLogo, setPrevLogo] = useState(teacherLogo)
+  if (prevLogo !== teacherLogo) {
+    setPrevLogo(teacherLogo)
+    setIntrinsic(null)
+  }
 
   useEffect(() => {
     setDebug(true)

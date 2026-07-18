@@ -7,6 +7,7 @@ import MgStartNode from './MgStartNode.jsx'
 import MgStars from './MgStars.jsx'
 import { useChainScroll } from './useChainScroll.js'
 import { useChainArcs } from './useChainArcs.js'
+import { MgBtns, MgRenameInput } from './MgControls.jsx'
 
 // Пауза «явного превращения» старта: столько он виден непройденным (серым)
 // после выхода из диагностики/попапа, потом плавно зеленеет.
@@ -139,6 +140,9 @@ export default function ModuleGraph({
   const start   = lessons[0]
   const final_  = lessons[n - 1]
   const middle  = lessons.slice(1, n - 1)
+  // Сброс ref-коллекции карточек перед рендером: сами ref'ы пишутся в
+  // ref-коллбэках при коммите — это сбор ссылок, а не чтение в рендере
+  // eslint-disable-next-line react-hooks/refs
   lessonRefs.current = []
 
   const startDone  = completedIds.has(start.id)
@@ -169,36 +173,18 @@ export default function ModuleGraph({
     else onPlay(id)
   }
 
-  const Btns = ({ l, kind }) => {
-    // Обычный пользователь запускает урок тапом/кликом по карточке (handleClick) —
-    // кнопок у него нет вовсе, в том числе ▶.
-    if (!isAdmin) return null
-    const show = hovered === l.id || tapped === l.id
-    return (
-      <div className={`mgNodeBtns${show ? ' mgNodeBtns--vis' : ''}`}
-        onClick={e => e.stopPropagation()}>
-        <button className="mgBtn" onClick={() => { onPlay(l.id); setTapped(null) }}>▶</button>
-        <button className="mgBtn" onClick={() => { onEdit(l.id); setTapped(null) }}>⚙</button>
-        <button className="mgBtn" onClick={e => { startRename(e, l.id, l.title); setTapped(null) }}>✎</button>
-        <button className="mgBtn" title="Сбросить прохождение этого урока (XP отнимется, анализ сохранится)"
-          onClick={() => { onResetLesson?.(l.id); setTapped(null) }}>⟲</button>
-        <button className={`mgBtn mgBtnEye${l.published ? ' mgBtnEyeOn' : ''}`}
-          title={l.published ? 'Скрыть' : 'Показать'}
-          onClick={() => { onTogglePublished(l.id, l.published); setTapped(null) }}>
-          {l.published ? '👁' : '🚫'}
-        </button>
-        {kind === 'lesson' && (
-          <button className="mgBtn mgBtnDel" onClick={() => { onDelete(l.id); setTapped(null) }}>✕</button>
-        )}
-      </div>
-    )
-  }
-
-  const RenameInput = () => (
-    <input className="mgRenameInput" autoFocus value={draft}
-      onChange={e => setDraft(e.target.value)} onBlur={commitRename}
-      onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenaming(null) }}
-      onClick={e => e.stopPropagation()} />
+  // Элементы (не компоненты!) — сами MgBtns/MgRenameInput вынесены в
+  // MgControls.jsx (react-hooks/static-components)
+  const renameInputEl = (
+    <MgRenameInput draft={draft} onDraft={setDraft}
+      onCommit={commitRename} onCancel={() => setRenaming(null)} />
+  )
+  const btnsFor = (l, kind) => (
+    <MgBtns l={l} kind={kind} isAdmin={isAdmin}
+      show={hovered === l.id || tapped === l.id}
+      onPlay={onPlay} onEdit={onEdit} onRenameStart={startRename}
+      onResetLesson={onResetLesson} onTogglePublished={onTogglePublished}
+      onDelete={onDelete} clearTap={() => setTapped(null)} />
   )
 
   // animHold (попап-легенда открыт): граф спрятан (--held) — попап появляется на
@@ -216,8 +202,8 @@ export default function ModuleGraph({
           done={startDoneShown}
           pulse={startJustId && !animHold && startReveal}
           renaming={renaming === start.id}
-          renameInput={<RenameInput />}
-          btns={<Btns l={start} kind="start" />}
+          renameInput={renameInputEl}
+          btns={btnsFor(start, 'start')}
           nodeRef={startRef}
           onHover={setHovered}
           onClick={handleClick}
@@ -262,7 +248,7 @@ export default function ModuleGraph({
                 <div className="mgLessonBody">
                   <div className="mgLessonTop">
                     <span className="mgNodeTitle">
-                      {renaming === l.id ? <RenameInput /> : l.title}
+                      {renaming === l.id ? renameInputEl : l.title}
                     </span>
                     {/* при переименовании бейдж прячется — не наезжает на поле ввода */}
                     {l.lessonXp > 0 && renaming !== l.id && (
@@ -282,7 +268,7 @@ export default function ModuleGraph({
                     </div>
                   )}
                 </div>
-                <Btns l={l} kind="lesson" />
+                {btnsFor(l, 'lesson')}
               </div>
             )
           })}
@@ -299,8 +285,8 @@ export default function ModuleGraph({
           earnedShow={earnedShow}
           xpPct={xpPct}
           renaming={renaming === final_.id}
-          renameInput={<RenameInput />}
-          btns={<Btns l={final_} kind="final" />}
+          renameInput={renameInputEl}
+          btns={btnsFor(final_, 'final')}
           nodeRef={finalRef}
           knobRef={knobRef}
           onHover={setHovered}

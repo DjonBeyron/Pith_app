@@ -110,7 +110,7 @@ export function useGraphPlayer(nodes, { onFinish } = {}) {
     if (finishedRef.current) return
     finishedRef.current = true
     onFinishRef.current?.()
-  }, []) // eslint-disable-line
+  }, [])  
 
   const nodesKey = nodes.map(n => n.id).join(',')
   useEffect(() => {

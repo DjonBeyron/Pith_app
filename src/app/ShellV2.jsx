@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import FeedTab from '../features/feed/FeedTab.jsx'
 import ProfileV2 from '../features/profile/ProfileV2.jsx'
 import AuthTab from '../features/auth/AuthTab.jsx'
 import SettingsTab from '../features/settings/SettingsTab.jsx'
 import { GEAR_PATH } from '../shared/ui/icons.js'
-import AdminV2 from '../features/admin/AdminV2.jsx'
 import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
-import CanvasPage from '../features/canvas/CanvasPage.jsx'
 import OrientationGuard from '../shared/ui/OrientationGuard.jsx'
+import UpdateToast from './UpdateToast.jsx'
+import { lazyRetry } from '../shared/lib/lazyRetry.js'
 import InstallPrompt from '../shared/ui/InstallPrompt.jsx'
 import EnergyBadge from './EnergyBadge.jsx'
 import TicketBadge from './TicketBadge.jsx'
@@ -17,6 +17,11 @@ import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { useDailyLoginTouch } from '../features/streak/useDailyLoginTouch.js'
 import { APP_VERSION } from '../shared/lib/version.js'
+
+// Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
+// пользователь эти chunk'и даже не скачивает (см. PROJECT.md, этап 2)
+const AdminV2    = lazy(() => lazyRetry(() => import('../features/admin/AdminV2.jsx'), 'admin'))
+const CanvasPage = lazy(() => lazyRetry(() => import('../features/canvas/CanvasPage.jsx'), 'canvas'))
 
 // Новая оболочка (ui v2, миграция по PROJECT.md): нижний бар Уроки/Профиль
 // (+Админ для is_admin). Пока: лента — заглушка (шаг 3 миграции),
@@ -46,6 +51,7 @@ export default function ShellV2() {
     <div className="shellV2">
       <OrientationGuard />
       <InstallPrompt />
+      <UpdateToast />
       {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
           самого верха), справа энергия и под ней версия приложения */}
       {tab !== 'profile' && tab !== 'admin' && (
@@ -96,7 +102,9 @@ export default function ShellV2() {
         </div>
         {isAdmin && (
           <div className={tab === 'admin' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
-            <AdminV2 onOpenCanvas={setCanvasLesson} />
+            <Suspense fallback={<div className="shellV2Panel">Загрузка…</div>}>
+              <AdminV2 onOpenCanvas={setCanvasLesson} />
+            </Suspense>
           </div>
         )}
       </div>
@@ -135,11 +143,13 @@ export default function ShellV2() {
 
       {canvasLesson && (
         <div className="shellV2CanvasOverlay">
-          <CanvasPage
-            lessonId={canvasLesson.id}
-            moduleLessons={canvasLesson.moduleLessons ?? []}
-            onBack={() => setCanvasLesson(null)}
-          />
+          <Suspense fallback={<div className="shellV2Panel">Загрузка редактора…</div>}>
+            <CanvasPage
+              lessonId={canvasLesson.id}
+              moduleLessons={canvasLesson.moduleLessons ?? []}
+              onBack={() => setCanvasLesson(null)}
+            />
+          </Suspense>
         </div>
       )}
     </div>

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 
-export const MEDIA_LABEL = {
+// Не экспортируется: используется только внутри этого файла (react-refresh
+// требует, чтобы файл компонента экспортировал только компоненты)
+const MEDIA_LABEL = {
   photo:            'Фото',
   video:            'Видео',
   circle:           'Видеосообщение',
@@ -84,7 +86,7 @@ function resolvePhraseAttempt(attempts) {
 }
 
 // Resolves display properties for a reply block given the target node and choice states.
-export function resolveReply(replyNode, teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates) {
+function resolveReply(replyNode, teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates) {
   if (!replyNode) return null
   const rType = replyNode.type
   if (rType === 'word_choice') {

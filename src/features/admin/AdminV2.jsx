@@ -4,12 +4,13 @@ import AdminTab from './AdminTab.jsx'
 import AdminNotificationsTab from './AdminNotificationsTab.jsx'
 import AdminRaceTab from './AdminRaceTab.jsx'
 import AdminStreakTab from './AdminStreakTab.jsx'
+import AdminErrorsTab from './AdminErrorsTab.jsx'
 
 // Админ-раздел новой оболочки: субвкладки «Модули» (список с публикацией),
-// «Файлы» (таблица файлов R2), «Пуши» (рассылка), «Гонка» (супергонка) и
-// «Стрик» (вехи наград ежедневного стрика).
+// «Файлы» (таблица файлов R2), «Пуши» (рассылка), «Гонка» (супергонка),
+// «Стрик» (вехи наград) и «Ошибки» (ошибки клиентов из client_errors).
 export default function AdminV2({ onOpenCanvas }) {
-  const [sub, setSub] = useState('modules') // modules | files | push | race | streak
+  const [sub, setSub] = useState('modules') // modules | files | push | race | streak | errors
 
   return (
     <div className="avWrap">
@@ -29,12 +30,16 @@ export default function AdminV2({ onOpenCanvas }) {
         <button className={sub === 'streak' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('streak')}>
           Стрик
         </button>
+        <button className={sub === 'errors' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('errors')}>
+          Ошибки
+        </button>
       </div>
       {sub === 'modules' && <AdminModulesTab onOpenCanvas={onOpenCanvas} />}
       {sub === 'files' && <div className="shellV2Panel"><AdminTab /></div>}
       {sub === 'push' && <div className="shellV2Panel"><AdminNotificationsTab /></div>}
       {sub === 'race' && <div className="shellV2Panel"><AdminRaceTab /></div>}
       {sub === 'streak' && <AdminStreakTab />}
+      {sub === 'errors' && <div className="shellV2Panel"><AdminErrorsTab /></div>}
     </div>
   )
 }

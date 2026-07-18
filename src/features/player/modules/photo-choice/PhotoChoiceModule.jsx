@@ -10,6 +10,8 @@ const PHOTO_COLORS = [
 function usePhotoSrc(ph, lessonFiles = []) {
   const [src, setSrc] = useState(null)
   useEffect(() => {
+    // Синхронизация src с файлом/blob-URL — осознанный setState в эффекте
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!ph) { setSrc(null); return }
     if (ph.fileId) {
       const f = lessonFiles.find(lf => lf.id === ph.fileId)

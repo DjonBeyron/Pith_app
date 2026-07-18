@@ -14,7 +14,8 @@ function fmt(ms) {
 // Тикающий таймер до даты (старт/конец гонки). onZero — когда время вышло.
 export default function RaceCountdown({ to, onZero }) {
   const target = new Date(to).getTime()
-  const [left, setLeft] = useState(target - Date.now())
+  // Ленивый инициализатор: Date.now один раз при маунте, не в каждом рендере
+  const [left, setLeft] = useState(() => target - Date.now())
 
   useEffect(() => {
     const t = setInterval(() => {

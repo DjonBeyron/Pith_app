@@ -56,7 +56,8 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
     setLessons(ordered)
   }, [])
 
-  useEffect(() => { fetchLessons(lessonIds) }, [lessonIds.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
+  // fetchLessons ставит setLoading синхронно в начале загрузки — осознанно
+  useEffect(() => { fetchLessons(lessonIds) }, [lessonIds.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
 
   async function togglePublished(id, currentValue) {
     const next = !currentValue

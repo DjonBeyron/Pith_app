@@ -26,6 +26,8 @@
 | `package.json` | Список программ-зависимостей и команды для запуска проекта (`npm run dev` и т.д.) |
 | `package-lock.json` | Точные версии всех зависимостей — создаётся автоматически, не трогаем руками |
 | `vite.config.js` | Настройки сборщика Vite (как собирать и запускать сайт) |
+| `vercel.json` | Заголовки безопасности для прода: nosniff, Referrer-Policy, CSP frame-ancestors (Telegram-friendly) + полный CSP в режиме Report-Only |
+| `.github/workflows/ci.yml` | CI на GitHub Actions: build + lint + тесты на каждый push/PR в main |
 | `eslint.config.js` | Правила проверки кода — в т.ч. ограничение на длину файла |
 | `index.html` | Самая первая HTML-страница, в которую подключается приложение |
 | `start-dev.bat` | Двойной клик запускает сервер разработки (`npm run dev`) без открытия терминала вручную |
@@ -127,7 +129,6 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `canvas/crop.css` | Кроп-редактор медиа (фото/видео) |
 | `canvas/nodes.css` | Узлы канваса: nano, mini, max, селекторы |
 | `canvas/triggers.css` | Редактор триггеров ноды |
-| `canvas/highlights.css` | Редактор выделений текста в аудио-ноде и кнопка «Выделить» |
 | `canvas/text-highlight.css` | Стили модального редактора выделений текстовой ноды: оверлей, токены, свотчи, кнопка открытия |
 | `canvas/stat-link.css` | Стили привязки ответов к урокам (анализ знаний): строка «→ Урок»/«Сигнал», кнопка ⚙ варианта, панель настроек варианта |
 | `settings.css` | Стили вкладки «Настройки»: секции, список звуков, кнопка воспроизведения |
@@ -137,6 +138,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `streak-claim.css` | Стили праздничного окна «Награда получена!» (RewardClaimPopup): карточка, билеты, блок нового уровня; плюс приглушённые done-ноды пути дней (rwNodeDone/rwNodeMilestoneDone) |
 | `streak-popup.css` | Стили редизайна окна наград: скелетон с бегущим бликом (rwSkeleton/rwShimmer), плавное появление контента, карточки заморозок, шторка FreezeSheet, ready-ноды пути |
 | `streak-toast.css` | Плашка «Серия X дней» в схеме уроков (StreakDailyToast): съезд сверху, кнопка «Забрать», крестик |
+| `update-toast.css` | Плашка «Доступна новая версия» (UpdateToast): над нижней навигацией, кнопка «Обновить» |
+| `admin-errors.css` | Админ → Ошибки (AdminErrorsTab): строки ошибок клиентов, раскрытие ua и stack по тапу |
 | `player/layout.css` | CSS-переменные плеера + `.lessonPlayer` (полноэкранный контейнер) |
 | `player/topbar.css` | Шапка плеера: аватар, название, статус |
 | `player/feed.css` | Изолированная лента чата: скролл, анимация появления, «три точки» ожидания |
@@ -159,6 +162,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `App.jsx` | Точка сборки: просто рендерит ShellV2 (старая оболочка вынесена в `old/`) |
+| `ErrorBoundary.jsx` | Классовый ErrorBoundary вокруг `<App>`: вместо белого экрана при ошибке рендера — тёмный экран «Что-то пошло не так» с кнопками «Перезагрузить» и «Скачать отчёт» (stack + буфер errorTrap); ошибка также уходит в client_errors |
+| `UpdateToast.jsx` | Плашка «Доступна новая версия»: сравнивает /version.json (генерируется при сборке) со своей APP_VERSION раз в 10 мин и при фокусе вкладки; кнопка «Обновить» перезагружает страницу |
 | `AdminContext.jsx` | React-контекст админ-статуса на всё приложение: `AdminProvider` (оборачивает `App` в `main.jsx`) + хук `useAdmin()` → `{ user, isAdmin, loading }`. Один запрос `getProfile` на всех потребителей |
 | `ShellV2.jsx` | Оболочка приложения: вкладки-стопка (лента/профиль/админ живут постоянно), нижний бар, canvas-редактор оверлеем, фикс системных зон iPhone |
 | `EnergyBadge.jsx` | Значок энергии в верхней панели (hudBar): молния + число (цвет по `energyColor`) или ∞ при подписке/админе; тап — попап с рядом `EnergyCells` (прогресс до пополнения) и кнопкой «?» (описание механики); живёт на кэше профиля |
@@ -177,6 +182,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `AdminRaceTab.jsx` | Админ: конструктор супергонки — тема/описание, супер-урок (про-модуль), задания-модули (порядок ↑↓, XP = сумма уроков, порог 80%), окно старт/конец с тёмным пикером и подписью даты словами |
 | `AdminRacePicker.jsx` | Кастомный выпадающий список конструктора гонки: ограниченная высота со скроллом, пункты с подсказкой XP |
 | `AdminStreakTab.jsx` | Админ-вкладка «Стрик»: CRUD вех наград (streak_milestones) — день/XP/билеты/спецокно/подпись, прямо из приложения |
+| `AdminErrorsTab.jsx` | Админ-вкладка «Ошибки»: последние 50 ошибок клиентов из client_errors, тап раскрывает ua и stack; подсказка, если SQL-блок ещё не применён |
 
 ### `src/features/canvas/` — canvas-редактор уроков (отдельная полноэкранная страница)
 | Файл | Зачем нужен |
@@ -189,15 +195,14 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `canvasPorts.js` | Геометрия портов нод: `triggerAnchor` (выходная точка триггера), `nodeEntry` (входная точка ноды) — общие для CanvasConnections и CanvasBoard |
 | `nodeDefaults.js` | Дефолты нод: триггер по типу (played для звука/видео, таймер 2с для статики), пары триггеров интерактивных типов, память последнего выбранного типа |
 | `useCanvasDrag.js` | Логика перетаскивания нод и пана холста; `wasDragged()` отличает клик от drag |
-| `NodeFileSelect.jsx` | Дропдаун для выбора файла из уже загруженных на сервер (`files`); пока не подключён к UI, оставлен для Stage 4 |
 | `NodeTriggerEditor.jsx` | Редактор триггеров ноды: строки «Если [событие] → Тогда [нода]»; для таймера — поле ввода секунд |
 | `LessonSettingsTab.jsx` | Вкладка «Настройки» в панели урока: имя учителя + фото с кроп-редактором |
 | `useTeacherSettings.js` | Хук: имя/фото/кроп учителя с локальным хранением (localStorage + IDB), загрузка в R2 при сохранении |
 | `AvatarCrop.jsx` | Круговой кроп-редактор для аватара учителя: drag-pan, scroll-zoom, ±кнопки |
-| `NodeAudioPicker.jsx` | Кнопка выбора аудиофайла + textarea для текста; при выделении слова появляется кнопка «Выделить» → открывает NodeHighlightEditor |
-| `NodeHighlightEditor.jsx` | Редактор выделений: список слов с цветом/жирным/подложкой, предпросмотр всего текста с применёнными выделениями |
+| `NodeAudioPicker.jsx` | Кнопка выбора аудиофайла + textarea для текста; при выделении слова появляется кнопка «Выделить» → открывает NodeTextHighlighter (через CanvasNode) |
 | `NodeMediaCrop.jsx` | Пикер + inline кроп-редактор 4:5 для фото/видео-нод; drag-панорама, зум колёсиком и кнопками ±; сохраняет `{ x, y, scale }` в ноде |
-| `NodeTypeSelect.jsx` | Кастомный дропдаун выбора типа ноды: иконки Lucide, цветной полупрозрачный фон каждой строки; экспортирует NODE_TYPES и TYPE_COLOR |
+| `NodeTypeSelect.jsx` | Кастомный дропдаун выбора типа ноды: иконки Lucide, цветной полупрозрачный фон каждой строки |
+| `nodeTypes.js` | Справочник NODE_TYPES и TYPE_COLOR (вынесен из NodeTypeSelect: react-refresh требует в файле компонента только компоненты) |
 | `NodeWordChoicePicker.jsx` | Редактор ноды «Выбор слова»: список вариантов с ✓-кнопкой, добавление/удаление, поле ответного пузыря; привязка ноды/варианта к уроку и сигнал (⚙) для анализа знаний |
 | `NodeLessonLink.jsx` | Дропдаун «→ Урок»: привязка ответа интерактивной ноды к уроку-цели для анализа знаний (пишет `statLessonId`) |
 | `NodeRewardCheckbox.jsx` | Чекбокс «Получить награду» (⭐ XP) — общий для нод word_choice / phrase_assembly / photo_choice |
@@ -218,7 +223,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `useFinalHints.js` | Хук подсчёта подсказок Финала: 1 сообщение = 1 подсказка (повторное раскрытие того же — бесплатно), HINT_LIMIT = 3 |
 | `SummaryBadges.jsx` | Блоки наград в итогах урока: TicketBlock (золотой билет за Финал) и StarsBlock (звёзды обычного урока по ошибкам) |
 | `downloadDebugLog.js` | Сборка и скачивание общего дебаг-лога плеера (pLog, таймлайн нод, загрузки, события анализа) — вынесено из LessonPlayer ради лимита 400 строк |
-| `useGraphPlayer.js` | State machine плеера: находит точку входа графа, запускает триггеры (timer/played/photo_shown/timer_after_play), показывает WaitingDots между нодами |
+| `useGraphPlayer.js` | State machine плеера: находит точку входа графа, запускает триггеры (timer/played/photo_shown/timer_after_play), пауза «печатает» между нодами |
 | `useRegistrationSkip.js` | Авто-пропуск ноды «Регистрация» для залогиненного: панель не рендерится, сразу срабатывает reg_submit; решение фиксируется по ноде один раз (гость в панели не увидит её исчезновения) |
 | `useAnswerStats.js` | Сбор событий ответов для анализа знаний: таймер от появления панели, попытки по урокам, лог в pLog; `wordOptionEvent` — событие из варианта выбора слова |
 | `usePlayerPreload.js` | Предзагрузка медиа урока: BFS-очередь, 2 параллельных скачивания, буфер с вытеснением, готовность нод для прогресс-бара |
@@ -247,14 +252,11 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/phrase-assembly/PhraseAssemblyModule.jsx` | Собрать фразу — в ленте не рендерит ничего; панель снизу (`PhraseAssemblyPanel`) |
 | `modules/pin-message/PinMessageModule.jsx` | Закрепить сообщение — центрированная системная строка «[учитель] закрепил сообщение» |
 | `modules/photo-choice/PhotoChoiceModule.jsx` | Выбрать фото — возвращает null (панель снизу ведёт весь UI) |
-| `panels/photo-choice/usePhotoChoice.js` | Хук: photos, correctIndexes, selected, result, galleryOpen, handlePick |
 | `panels/photo-choice/PhotoChoicePanel.jsx` | Панель снизу: кнопка «Прикрепи фото», галерея-оверлей, выбранное фото |
 | `panels/PinMessageBanner.jsx` | Баннер под шапкой с текстом закреплённого сообщения; кнопка ✕ открывает диалог |
 | `panels/PinConfirmDialog.jsx` | Модальное окно подтверждения откреплення сообщения |
-| `waiting/WaitingDots.jsx` | Три точки «учитель печатает»: волна по Y, пузырь с фоном, всегда внизу ленты |
 | `panels/choose-word/useChooseWord.js` | Хук: выбранный вариант, результат (correct/wrong), флаг isAnswered |
 | `panels/choose-word/ChooseWordOption.jsx` | Одна кнопка-вариант: 4 состояния (default/correct/wrong/dimmed) |
-| `panels/choose-word/ChooseWordResponse.jsx` | Пузырь-ответ справа (зелёный / красный) после выбора |
 | `panels/choose-word/ChooseWordPanel.jsx` | Панель снизу плеера: варианты + ответ; показывается за пределами PlayerFeed |
 | `panels/registration/RegistrationPanel.jsx` | Панель регистрации снизу: email + имя + кнопки; триггеры reg_submit / reg_cancel; модалка согласия — из `shared/ui/RegistrationConsent.jsx`; после успеха зовёт попап уведомлений |
 | `panels/registration/PushPromptPopup.jsx` | Попап «Включи уведомления» после успешной регистрации в уроке: subscribePush из тапа (iOS), кнопки «Разрешить» / «Не сейчас» |
@@ -274,6 +276,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `ChainLines.jsx` | SVG-слой линий графа модуля: серые правые со стрелками; левые — белые до прохождения диагностики, зеленеют анимацией со скоростью кружочков XP при её завершении; зелёное заполнение правых линий у пройденных уроков |
 | `MgFinalNode.jsx` | Нод «Финал»: пятиугольник с детальным замком, XP-прогрессом и церемонией открытия (замок трясётся, открывается, блок вспыхивает deep-glow); экспортирует `LockIcon` |
 | `MgStars.jsx` | Ряд из трёх звёзд на карточке пройденного урока схемы: заработанные золотые, остальные — тусклый контур |
+| `MgControls.jsx` | Кнопки карточки схемы (▶/⚙/✎/⟲/👁/✕, только админ) и поле переименования — вынесены из ModuleGraph (компоненты нельзя объявлять в рендере) |
 | `MgStartNode.jsx` | Нод «Старт» (диагностика): шестиугольник со звездой, кнопкой запуска и SVG-контуром; зелёное «пройдено» и пульс управляются пропсами из ModuleGraph |
 | `useChainScroll.js` | Скролл графа после урока: пройденный урок к верху экрана + плавный проезд к финалу за время полёта первого кружочка; фолбэк на window-скролл, dbg-лог |
 | `useChainArcs.js` | Геометрия линий графа: меряет ректы нодов, строит SVG-пути (левые с точками, правые со стрелкой и клэмпом к краю экрана), пересчёт по ресайзу |
@@ -348,6 +351,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `useRaceState.js` | Хук состояния гонки: актуальная гонка, задания-МОДУЛИ с прогрессом, ПРО-модуль (супер-урок), моя запись, фаза, порог 80% XP; + weekKey и ключ «модуль пройден на неделе»; подписан на raceBus — обновляется сразу после изменений в AdminRaceTab |
+| `raceLogic.test.js` | Юнит-тесты чистой логики гонки: weekKey (границы недели/года), racePhase (upcoming/running/ended, включительные границы), порог 80% |
 | `raceBus.js` | Сигнал «гонка изменилась» (админ сохранил/удалил) — баннер в Рейтинге живёт в другом дереве компонентов, без этого обновлялся только после перезагрузки |
 | `RacePage.jsx` | Страница гонки: тема недели, таймер, XP-прогресс (порог 80%), задания-модули (тап → схема), кнопка супер-урока, RaceSummary после финиша, свой результат в плашке |
 | `RaceRunner.jsx` | Прохождение супер-урока: уроки про-модуля цепочкой (прогрев → плеер → следующий), сумма ошибок/времени; XP и обычные итоги отключены (raceMode плеера) |
@@ -400,6 +404,9 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `lessonsApi.js` | CRUD уроков в Supabase: получить список, создать, удалить, сохранить/загрузить граф (`script`); `fetchLessonTitles(ids)` — минимальный select id+title для текстового поиска фразы по словам её уроков (FeedSearchPanel) |
 | `curriculaApi.js` | CRUD модулей в Supabase: `loadCurricula` (video/poster/crop/published), `saveCurriculum`, `deleteCurriculumFromServer`, `updateCurriculumVideo`, `updateCurriculumPublished`, `updateCurriculumPosterCrop` |
 | `debug.js` | Включает/выключает подробные логи в консоли браузера (кнопка «Активировать дебаг») |
+| `errorTrap.js` | Глобальный перехват window.onerror/unhandledrejection в кольцевой буфер — идёт в отчёт ErrorBoundary; каждая ошибка также шлётся в client_errors через errorReport |
+| `errorReport.js` | Отправка ошибок клиента в таблицу client_errors (Supabase): дедуп раз в минуту, потолок 20 за сессию, сбои отправки глотаются |
+| `lazyRetry.js` | Обёртка React.lazy: 404 старого chunk'а после деплоя лечится одной перезагрузкой (флаг в sessionStorage против зацикливания) |
 | `videoFrame.js` | Достаёт один кадр из видео как картинку — используется для превью выгруженного из памяти видео |
 | `version.js` | Номер версии приложения (`APP_VERSION`) — показывается мелко наверху экрана |
 | `energyCalc.js` | `calcEnergy(profile, now)` — эффективное значение энергии и время следующей +1 (тиками по `energy_updated_at`); `ENERGY_CAP`/`ENERGY_TICK_MS`. Общее для `EnergyBadge` и `LessonLaunchCard` |
@@ -423,6 +430,9 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `skillScore.js` | Расчёт приоритетов уроков по логу событий ответов: каскад правил `computePriority`, замещение сессий `latestSessionEvents`, итоговый `computeAllPriorities` (см. SKILL_ANALYSIS.md) |
 | `skillStatsStore.js` | Хранение событий ответов: залогинен → `lesson_results.answers` (jsonb), гость → localStorage; `saveAnswerEvents` в конце урока, `loadAllEvents` для расчёта приоритетов |
 | `skillScore.test.js` | Юнит-тесты каскада правил расчёта приоритетов (Vitest, `npm run test`) |
+| `energyCalc.test.js` | Юнит-тесты энергии: потолок 5, тики по 4 часа, nextAt, кламп легаси-значений |
+| `xpLevels.test.js` | Юнит-тесты уровней: границы порогов 0..10, getNextLevel, санити таблицы LEVELS |
+| `lessonStars.test.js` | Юнит-тесты звёзд: starsFromErrors (0→3★, 1–2→2★, 3+→1★) и локальный стор «только вверх» (стаб localStorage) |
 | `pwaInstall.js` | Установка PWA на телефон: ловит `beforeinstallprompt` максимально рано (глобально, вне React), `getInstallPrompt()`/`hasInstallPrompt()`, `isStandalone()`, `isMobile()`, `detectBrowser()` — точный браузер (chrome/samsung/yandex/firefox/edge/ios/other) под формулировку пункта меню |
 
 ### `src/shared/ui/` — общие кусочки интерфейса

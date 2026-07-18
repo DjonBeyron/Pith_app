@@ -74,6 +74,8 @@ export default function LessonPlayer({
         // обычный экран итогов не показывается (его заменяет RaceSummary)
         onFinishStats({
           errors: getEvents().filter(e => e.type === 'wrong').length,
+          // Date.now в коллбэке финиша, а не в рендере — ложное срабатывание
+          // eslint-disable-next-line react-hooks/purity
           timeMs: Date.now() - openTimeRef.current,
         })
         setTimeout(() => (onSummaryClose ?? onClose)?.(), 800)
@@ -131,7 +133,7 @@ export default function LessonPlayer({
     }, 2000)
   }
 
-  const xpMap     = useMemo(() => buildXpMap(nodes, lessonXp), [nodes, lessonXp]) // eslint-disable-line
+  const xpMap     = useMemo(() => buildXpMap(nodes, lessonXp), [nodes, lessonXp])  
   const [earnedXp,  setEarnedXp]  = useState(0)
   const [baseXp,    setBaseXp]    = useState(0)
   const [xpEvents,  setXpEvents]  = useState([])   // [{id, amount, rect}] — triggers float anim
@@ -153,7 +155,8 @@ export default function LessonPlayer({
       .flatMap(n => (n.typeData?.photo_choice?.photos ?? []).map(p => p.fileId).filter(Boolean))
     const allIds = [...new Set([...singleIds, ...photoIds])]
     const missing = allIds.filter(id => !propFiles.some(f => f.id === id))
-    if (!missing.length) { setFiles(propFiles); return }
+    // Ничего не докачивать: files уже = propFiles из useState-инициализатора
+    if (!missing.length) return
     getFilesByIds(missing)
       .then(fetched => setFiles([...propFiles, ...fetched]))
       .catch(() => {})
@@ -161,7 +164,10 @@ export default function LessonPlayer({
 
   const { blobMap, addMsgTs, debugItems } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
 
-  const openTimeRef      = useRef(Date.now())
+  // Момент открытия урока: инициализация в эффекте (Date.now в рендере
+  // запрещён react-hooks/purity); все потребители читают ref после маунта
+  const openTimeRef      = useRef(0)
+  useEffect(() => { if (!openTimeRef.current) openTimeRef.current = Date.now() }, [])
   const prevVisibleRef   = useRef([])
   const nodeAppearLogRef = useRef([])
 
@@ -346,6 +352,8 @@ export default function LessonPlayer({
                     onTrReveal={() => registerHint(node.id)}
                     rewardXp={xpMap.get(node.id) ?? 0}
                     photoXpPending={pendingPhotoXp[node.id] ?? 0}
+                    /* коллбэк дергается по событию XP-анимации, не в рендере */
+                    /* eslint-disable-next-line react-hooks/refs */
                     onPhotoXpFired={(rect) => handlePhotoXpFired(node.id, rect)}
                   />
                 </div>

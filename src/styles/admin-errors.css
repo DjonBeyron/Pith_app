@@ -1,0 +1,85 @@
+/* ── Admin → Ошибки ────────────────────────────────────────────────────
+   Список ошибок клиентов (AdminErrorsTab.jsx): строка = время + версия +
+   источник + пользователь + сообщение; тап раскрывает ua и stack.
+   ──────────────────────────────────────────────────────────────────── */
+
+.aeWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 24px;
+}
+
+.aeHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.aeTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.aeRefresh {
+  background: transparent;
+  border: 1px solid #2a2d35;
+  border-radius: 9px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #aaa;
+  cursor: pointer;
+  font-family: inherit;
+}
+.aeRefresh:hover { border-color: #555; color: #ddd; }
+
+.aeHint  { font-size: 13px; color: #888; }
+.aeError { font-size: 12px; color: #f87171; }
+
+.aeRow {
+  background: #14161b;
+  border: 1px solid #23262d;
+  border-radius: 11px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.aeRowTop {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: #777;
+  margin-bottom: 3px;
+}
+
+.aeVer    { color: #b6fe3b; }
+.aeSource { color: #7ab0e0; }
+
+.aeMsg {
+  font-size: 12px;
+  color: #ddd;
+  word-break: break-word;
+}
+
+.aeUa {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #666;
+  word-break: break-all;
+}
+
+.aeStack {
+  margin: 6px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #999;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #0d0f14;
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}

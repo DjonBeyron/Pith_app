@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { APP_VERSION } from './src/shared/lib/version.js'
 
 // Собранный CSS (~115 КБ) Vite вставляет в <head> как render-blocking <link> —
 // браузер не рисует ни одного кадра (включая инлайновый сплэш), пока файл не
@@ -22,8 +23,19 @@ const nonBlockingCss = {
   },
 }
 
+// version.json в корне сборки — клиент (UpdateToast) сравнивает его со своей
+// APP_VERSION раз в ~10 минут и предлагает обновиться: лечит вечную проблему
+// «кэш браузера показывает старую версию» (этап 3 плана стабилизации)
+const emitVersionJson = {
+  name: 'pithy-version-json',
+  apply: 'build',
+  generateBundle() {
+    this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ v: APP_VERSION }) })
+  },
+}
+
 export default defineConfig({
-  plugins: [react(), nonBlockingCss],
+  plugins: [react(), nonBlockingCss, emitVersionJson],
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },

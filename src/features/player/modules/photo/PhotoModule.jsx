@@ -14,6 +14,8 @@ export default function PhotoModule({ node, file, onDone }) {
   useEffect(() => { onDone?.() }, []) // eslint-disable-line
 
   useEffect(() => {
+    // Синхронный setState осознан: blob-URL живёт строго вместе с file.localFile
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!file?.localFile) { setObjectUrl(null); return }
     const url = URL.createObjectURL(file.localFile)
     setObjectUrl(url)
@@ -22,6 +24,8 @@ export default function PhotoModule({ node, file, onDone }) {
 
   const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.photo?.r2Url ?? null
 
+  // Сброс медиасостояния при смене src — осознанный setState в эффекте
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setIntrinsic(null); setImgReady(false) }, [src])
 
   useLayoutEffect(() => {

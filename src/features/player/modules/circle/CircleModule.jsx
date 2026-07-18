@@ -32,7 +32,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   const [expanded, setExpanded]     = useState(false)
   const [collapsing, setCollapsing] = useState(false)
   const [expandTransform, setExpandTransform] = useState(null)
-  const [videoVisible, setVideoVisible] = useState(false)
   const [mutedLoop, setMutedLoop]   = useState(false)  // videoAutoSound: true after first play
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
@@ -54,6 +53,8 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   const flipObserver  = useRef(null)
 
   useEffect(() => {
+    // Синхронный setState осознан: blob-URL живёт строго вместе с file.localFile
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!file?.localFile) { setObjectUrl(null); return }
     const url = URL.createObjectURL(file.localFile)
     setObjectUrl(url)
@@ -64,12 +65,13 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   const poster = file?.posterUrl ?? undefined
 
   useEffect(() => {
+    // Сброс медиасостояния при смене src — осознанный setState в эффекте
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIntr(null)
-    setVideoVisible(false)
     setMutedLoop(false)
     doneFiredRef.current = false
     firstPlayDoneRef.current = false
-  }, [src]) // eslint-disable-line
+  }, [src])  
 
   useLayoutEffect(() => {
     const el = frRef.current; if (!el) return
@@ -356,7 +358,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
                 onLoadedMetadata={e => {
                   const v = e.currentTarget
                   setIntr({ w: v.videoWidth, h: v.videoHeight })
-                  setVideoVisible(true)
                 }}
                 onLoadedData={videoAutoSound ? handleCircleLoaded : undefined}
                 onPlaying={handlePlaying}

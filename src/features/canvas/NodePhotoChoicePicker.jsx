@@ -9,6 +9,8 @@ const PHOTO_COLORS = [
 function PhotoThumb({ ph, lessonFiles }) {
   const [url, setUrl] = useState(null)
   useEffect(() => {
+    // Синхронизация превью с файлом/blob-URL — осознанный setState в эффекте
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!ph.fileId) { setUrl(ph.photoUrl ?? null); return }
     const f = lessonFiles.find(lf => lf.id === ph.fileId)
     if (!f) { setUrl(null); return }

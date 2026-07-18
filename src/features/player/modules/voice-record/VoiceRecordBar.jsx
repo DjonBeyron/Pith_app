@@ -117,6 +117,8 @@ export default function VoiceRecordBar({ onSend }) {
     recorder.onstop = handleRecordStop
     recorder.start(100)
     recorderRef.current = recorder
+    // Date.now в обработчике нажатия записи, не в рендере — ложное срабатывание
+    // eslint-disable-next-line react-hooks/purity
     recStartRef.current = Date.now()
     pLog('recording started, recorder.state=', recorder.state)
     setPhase('recording')
