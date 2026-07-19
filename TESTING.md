@@ -71,6 +71,15 @@
 **Готово, когда**: `npm run e2e` зелёный, отчёт открывается
 (`npx playwright show-report`).
 
+**✅ ВЫПОЛНЕНО 2026-07-18.** Установлены @playwright/test + Chromium.
+`playwright.config.js`, скрипты `e2e`/`e2e:ui`, папка `e2e/`, `.gitignore`
+пополнен (`.env.test`, `playwright-report/`, `test-results/`). Смуук зелёный
+на mobile+desktop. Нюансы: (1) проект `mobile` = iPhone-вьюпорт на **Chromium**
+(не webkit — план/CI ставят только chromium); (2) в `vite.config.js` добавлен
+`test.include: src/**` — иначе vitest цеплял e2e-спеки и падал (заодно
+вычистился левый дубль skillScore из `.claude/worktrees/`: реальных юнитов 58);
+(3) в `eslint.config.js` — блок globals для `e2e/**` и игнор `old/`.
+
 ## Этап B — система ловли багов (ядро, 1 сессия)
 
 Смысл: сценарий может «пройти», но если в консоли была ошибка — это баг,
@@ -117,6 +126,14 @@
 (`page.evaluate(() => { throw new Error('test') })` не подходит — он
 падает сам; проверить через `page.evaluate(() => console.error('x'))`),
 падает с текстом «Ошибки консоли/сети».
+
+**✅ ВЫПОЛНЕНО 2026-07-18.** `e2e/fixtures.js` (расширенный test, валит при
+ошибке консоли/сети) + `e2e/helpers/network.js` (3G через CDP). Проверено
+селф-тестом: нарочная `console.error` роняет тест, а транспортный шум сети
+(сбросы к Supabase/Google Fonts на сети РФ) — игнорируется. IGNORE-список
+строго транспортный (ERR_CONNECTION_RESET/TIMED_OUT, Failed to fetch, font-CDN,
+автоплей, 401 гостя); настоящие баги ловятся: JS-исключения (pageerror),
+HTTP 5xx, битые ассеты (404-текст в консоли по URL).
 
 ## Этап C — гостевые сценарии + тест-модуль (1–2 сессии)
 

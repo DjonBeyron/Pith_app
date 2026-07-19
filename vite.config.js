@@ -44,4 +44,9 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  // Vitest (npm run test): только юниты в src/. Иначе он подхватывает
+  // e2e/*.spec.js (Playwright) и падает — их гоняет отдельный `npm run e2e`.
+  test: {
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+  },
 })

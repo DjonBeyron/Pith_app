@@ -5,8 +5,10 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  // .claude — служебные worktree/файлы Claude Code, это не код приложения
-  globalIgnores(['dist', '.claude']),
+  // dist/.claude — не код приложения; old/ — легаси-оболочка вне git и сборки
+  // (в CI её нет; игнор нужен чтобы локальный `eslint .` совпадал с CI);
+  // e2e-артефакты Playwright — сгенерированное
+  globalIgnores(['dist', '.claude', 'old', 'playwright-report', 'test-results']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -30,6 +32,18 @@ export default defineConfig([
       // grew to thousands of lines over time). Soft target is 250 lines (see CLAUDE.md) —
       // this is the hard limit that actually fails `npm run lint`.
       'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    // E2E-тесты Playwright (этап 5.5): бегут в node, читают process.env; внутри
+    // page.evaluate — браузерные globals. React-правила тут не нужны.
+    files: ['e2e/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])
