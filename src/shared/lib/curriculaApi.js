@@ -43,6 +43,19 @@ export async function updateCurriculumPublished(id, published) {
   }
 }
 
+// Переименование модуля (админ): меняет только title
+export async function renameCurriculum(id, title) {
+  dbg('[DB WRITE] curricula rename', id, title)
+  const { error } = await supabase
+    .from('curricula')
+    .update({ title })
+    .eq('id', id)
+  if (error) {
+    dbg('[DB ERROR] curricula rename', error.message)
+    throw error
+  }
+}
+
 // Кадр мини-постера списка «Моих уроков»: { x, y, scale }
 export async function updateCurriculumPosterCrop(id, crop) {
   dbg('[DB WRITE] curricula poster_crop', id, crop)

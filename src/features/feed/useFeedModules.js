@@ -1,19 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
 // Загрузка модулей (curricula) + «пин» на фразу (deep-link репоста /?m=<id>,
 // либо программный поворот из поиска — см. jumpTo) + расчёт круга
 // рекомендаций (не начатые модули, повёрнутые к закреплённой фразе)
-export function useFeedModules(startedIds) {
+export function useFeedModules(startedIds, visible = true) {
   const [modules, setModules] = useState(null) // null = загрузка
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    let cancelled = false
-    loadCurricula()
+  const load = useCallback(() => {
+    return loadCurricula()
       .then(rows => {
-        if (cancelled) return
         // Восстанавливаем lesson_ids в localStorage (как useCurricula в старой
         // вкладке): CurriculumView читает уроки модуля именно оттуда — без
         // этого «Изучить фразу» на свежем устройстве открывал пустую схему
@@ -41,13 +39,29 @@ export function useFeedModules(startedIds) {
           difficultyVotes: r.difficulty_votes ?? 0,
         })))
       })
-      .catch(e => {
-        if (cancelled) return
-        setError(e.message)
-        setModules([])
-      })
-    return () => { cancelled = true }
+      // Сбой перезагрузки (сеть) — существующий список НЕ стираем
+      .catch(e => { setError(e.message); setModules(prev => prev ?? []) })
   }, [])
+
+  // Начальная загрузка
+  useEffect(() => { load() }, [load])
+
+  // Бэкграунд-обновление (баг: опубликованный модуль не появлялся до
+  // перезагрузки приложения): тихо перечитываем список без скелетона —
+  // (1) при возврате в ленту (visible false→true: админ опубликовал в
+  // «Админ» и вернулся; пользователь переключил вкладку), (2) когда
+  // приложение выходит из фона (тап по пушу «новый модуль» → foreground).
+  const prevVisible = useRef(visible)
+  useEffect(() => {
+    if (visible && !prevVisible.current) load()
+    prevVisible.current = visible
+  }, [visible, load])
+
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'visible' && visible) load() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [visible, load])
 
   // Закреплённая фраза: изначально из deep-link репоста (/?m=<id>), потом
   // может меняться программно — тап по результату поиска (jumpTo). Круг

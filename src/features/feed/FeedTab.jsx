@@ -34,7 +34,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   const {
     reactions, diffVotes, startedIds, social, refreshStarted, toggle, voteDifficulty,
   } = useFeedSocial({ visible, view, user, authLoading, onRequireAuth })
-  const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds)
+  const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds, visible)
   const { selected: diffSelected, toggle: toggleDiff, reset: resetDiffFilter, active: filterActive, passesFeed, passesMine } = useFeedFilter()
 
   // Позиция модуля в общем списке — стабильная опора для детерминированного

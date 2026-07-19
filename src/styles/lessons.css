@@ -176,6 +176,17 @@
   white-space: nowrap;
 }
 
+/* Поле переименования модуля в тулбаре схемы (клик по названию у админа) */
+.lessonMapTitleInput {
+  min-width: 0;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid #3a4048;
+  background: #0e1116;
+  outline: none;
+}
+.lessonMapTitleInput:focus { border-color: #b6fe3b; }
+
 /* ── Module graph ───────────────────────────────────────────── */
 .moduleGraphScroll {
   flex: 1;

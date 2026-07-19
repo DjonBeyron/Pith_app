@@ -84,6 +84,18 @@
 
 .amRowTitle { display: block; font-size: 15px; font-weight: 700; }
 
+/* Поле переименования модуля (кнопка ✎ в строке) */
+.amRenameInput {
+  font-size: 15px;
+  font-weight: 700;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #3a4048;
+  background: #0e1116;
+  outline: none;
+}
+.amRenameInput:focus { border-color: #b6fe3b; }
+
 .amRowSub {
   display: block;
   margin: 3px 0 8px;
