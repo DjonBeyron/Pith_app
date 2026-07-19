@@ -46,7 +46,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const {
     lessons, loading, creating, error, isDirty,
     bulkCreate, addBeforeFinal, addLast, renameLesson, removeLesson, saveStructure, togglePublished,
-  } = useCurriculumLessons(curriculumId, curriculumTitle)
+  } = useCurriculumLessons(curriculumId)
 
   // Название модуля наверху схемы: локальная копия (админ может
   // переименовать прямо здесь; родитель перечитает при выходе)

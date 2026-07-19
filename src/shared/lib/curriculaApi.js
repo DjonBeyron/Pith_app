@@ -43,6 +43,21 @@ export async function updateCurriculumPublished(id, published) {
   }
 }
 
+// Сохранение структуры модуля — только список уроков. Заголовок НЕ трогаем
+// (им владеет renameCurriculum): иначе 💾 затирал бы переименование модуля
+// значением из устаревшего пропа.
+export async function saveCurriculumLessons(id, lessonIds) {
+  dbg('[DB WRITE] curricula lesson_ids', id, lessonIds.length)
+  const { error } = await supabase
+    .from('curricula')
+    .update({ lesson_ids: lessonIds })
+    .eq('id', id)
+  if (error) {
+    dbg('[DB ERROR] curricula lesson_ids', error.message)
+    throw error
+  }
+}
+
 // Переименование модуля (админ): меняет только title
 export async function renameCurriculum(id, title) {
   dbg('[DB WRITE] curricula rename', id, title)

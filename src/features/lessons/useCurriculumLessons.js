@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createLesson, deleteLesson } from '../../shared/lib/lessonsApi.js'
-import { saveCurriculum, loadCurricula } from '../../shared/lib/curriculaApi.js'
+import { saveCurriculumLessons, loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { supabase } from '../../shared/api/supabase.js'
 import { dbg } from '../../shared/lib/debug.js'
 
@@ -23,7 +23,9 @@ function persistIds(curriculumId, ids) {
   dbg('[LS WRITE] lesson_ids for', curriculumId, '→', ids.length, 'ids')
 }
 
-export function useCurriculumLessons(curriculumId, curriculumTitle) {
+// Заголовок модуля больше не параметр: 💾 сохраняет только структуру уроков,
+// а переименованием владеет renameCurriculum (см. CurriculumView).
+export function useCurriculumLessons(curriculumId) {
   const [lessonIds, setLessonIds] = useState(() => loadIds(curriculumId))
   const [lessons,   setLessons]   = useState([])
   const [loading,   setLoading]   = useState(false)
@@ -31,10 +33,8 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
   const [error,     setError]     = useState('')
   const [isDirty,   setIsDirty]   = useState(false)
   const idsRef   = useRef(lessonIds)
-  const titleRef = useRef(curriculumTitle)
 
-  useEffect(() => { idsRef.current   = lessonIds      }, [lessonIds])
-  useEffect(() => { titleRef.current = curriculumTitle }, [curriculumTitle])
+  useEffect(() => { idsRef.current = lessonIds }, [lessonIds])
 
   const fetchLessons = useCallback(async (ids) => {
     if (!ids.length) { setLessons([]); return }
@@ -196,13 +196,13 @@ export function useCurriculumLessons(curriculumId, curriculumTitle) {
     }
   }
 
-  // Manual save only — triggered by 💾 button
+  // Manual save only — triggered by 💾 button. Сохраняет ТОЛЬКО список
+  // уроков; заголовок отдельно через renameCurriculum (иначе затирался бы).
   async function saveStructure() {
     const ids = idsRef.current
-    const title = titleRef.current ?? ''
-    dbg('[SAVE] manual save — curriculum:', curriculumId, 'title:', title, 'lesson_ids:', ids)
+    dbg('[SAVE] manual save — curriculum:', curriculumId, 'lesson_ids:', ids)
     try {
-      await saveCurriculum(curriculumId, title, ids)
+      await saveCurriculumLessons(curriculumId, ids)
       setIsDirty(false)
       dbg('[SAVE OK] structure saved to server')
       return { ok: true }
