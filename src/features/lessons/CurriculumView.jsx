@@ -164,6 +164,15 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   }
 
   async function handleSave() {
+    // Защита от ложного «✓ Сохранено»: у обычного модуля всегда есть
+    // Старт/Финал. Пустой список = уроки не создались (сбой сети в bulkCreate) —
+    // сохранять пустую структуру и рапортовать успех нельзя (так модуль
+    // уходил в ленту с «0 уроков»).
+    if (!isPro && lessons.length === 0) {
+      setSaveMsg('Уроки не созданы (сбой сети?) — обнови страницу и открой модуль заново')
+      setTimeout(() => setSaveMsg(''), 6000)
+      return
+    }
     setSaving(true)
     setSaveMsg('')
     const result = await saveStructure()
