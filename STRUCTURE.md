@@ -28,7 +28,8 @@
 | `package-lock.json` | Точные версии всех зависимостей — создаётся автоматически, не трогаем руками |
 | `vite.config.js` | Настройки сборщика Vite (сборка, define, version.json); в конце — `test.include` для vitest (только юниты в `src/`, чтобы он не цеплял e2e-спеки) |
 | `vercel.json` | Заголовки безопасности для прода: nosniff, Referrer-Policy, CSP frame-ancestors (Telegram-friendly) + полный CSP в режиме Report-Only |
-| `playwright.config.js` | Конфиг E2E-тестов (этап 5.5): проекты mobile (iPhone-вьюпорт на Chromium) и desktop, авто-запуск dev-сервера на 5199, трейс/видео/скриншот при падении |
+| `playwright.config.js` | Конфиг E2E-тестов (этап 5.5): проекты mobile/desktop (гостевые) + setup/mobile-auth (под логином, только при кредах в .env.test); грузит .env.test; авто-запуск dev-сервера на 5199 |
+| `.env.test.example` | Шаблон тест-аккаунтов для этапа D (скопировать в .env.test, вписать пароли); сам `.env.test` — в .gitignore |
 | `.github/workflows/ci.yml` | CI на GitHub Actions: build + lint + тесты на каждый push/PR в main |
 | `eslint.config.js` | Правила проверки кода (лимит длины файла); игнор `old/`+артефактов; отдельный блок globals для `e2e/**` |
 | `index.html` | Самая первая HTML-страница, в которую подключается приложение |
@@ -46,6 +47,8 @@
 | `e2e/helpers/network.js` | Эмуляция медленной сети (3G) через CDP — для этапов C/E (тайминги, стоп-кадры) |
 | `e2e/smoke.spec.js` | Дымовой тест: приложение стартует, нижний бар и версия видны |
 | `e2e/guest.spec.js` | Гостевые сценарии: лента грузится, deep-link `/?m=<id>` на тест-модуль, «Изучить фразу» → схема |
+| `e2e/auth.setup.js` | Логин-setup (этап D): вход обычным юзером и админом через форму, сохранение storageState в test-results/.auth/*.json |
+| `e2e/user.spec.js` | Сценарии под логином: стартуют залогиненными (storageState); пока — проверка входа, дальше энергия/билеты/звёзды |
 
 ## `supabase/` — настройки серверной части
 
