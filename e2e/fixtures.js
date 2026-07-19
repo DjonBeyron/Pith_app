@@ -17,6 +17,7 @@ const IGNORE = [
   // а в CI (GitHub, США) их не будет. Настоящие баги остаются ловимыми:
   // JS-исключения → pageerror; серверные → HTTP 5xx; битые ассеты → 404-текст.
   /net::ERR_(CONNECTION_RESET|CONNECTION_CLOSED|CONNECTION_TIMED_OUT|TIMED_OUT|NETWORK_CHANGED|INTERNET_DISCONNECTED)/i,
+  /net::ERR_ABORTED/i,                     // видео ленты отменяются при скролле — норма
   /Failed to fetch/i,                      // fetch API: транспортный сбой/CORS, не логика
 ]
 
@@ -24,6 +25,13 @@ const ignored = text => IGNORE.some(r => r.test(text))
 
 export const test = base.extend({
   page: async ({ page }, use) => {
+    // Гасим одноразовый попап «Установить приложение» (гость+мобила): его
+    // оверлей installSlidesOverlay перехватывает клики. Флаг ставится ДО
+    // загрузки страницы, поэтому попап не всплывает ни в одном тесте.
+    await page.addInitScript(() => {
+      try { localStorage.setItem('pithy_install_dismissed', '1') } catch { /* приватный режим */ }
+    })
+
     const bugs = []
     page.on('console', m => {
       if (m.type() !== 'error') return
@@ -35,7 +43,9 @@ export const test = base.extend({
     })
     page.on('pageerror', e => bugs.push(`pageerror: ${e.message}`))
     page.on('requestfailed', r => {
-      if (!ignored(r.url())) bugs.push(`requestfailed: ${r.url()} ${r.failure()?.errorText}`)
+      // Причина сбоя (net::ERR_*) лежит в errorText, не в URL — проверяем обе части
+      const msg = `${r.url()} ${r.failure()?.errorText ?? ''}`
+      if (!ignored(msg)) bugs.push(`requestfailed: ${msg}`)
     })
     page.on('response', r => {
       if (r.status() >= 500 && !ignored(r.url())) bugs.push(`http ${r.status()}: ${r.url()}`)
