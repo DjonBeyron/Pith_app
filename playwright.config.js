@@ -23,6 +23,8 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
   retries: 1,
+  // html — артефакт CI (загружается в e2e.yml); list — читаемый лог прогона
+  reporter: [['html', { open: 'never' }], ['list']],
   webServer: {
     command: 'npm run dev -- --port 5199',
     port: 5199,

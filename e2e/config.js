@@ -2,7 +2,7 @@
 // публичного модуля, не секрет, поэтому лежит здесь (а не в .env.test).
 // Заполнится автоматически после того, как ты создашь модуль (см. инструкцию):
 // я подставлю сюда реальный id. Можно переопределить через env E2E_MODULE_ID.
-export const MODULE_ID = process.env.E2E_MODULE_ID || '5f6ac6a5-a49b-432e-bc44-840a0452e18b'
+export const MODULE_ID = process.env.E2E_MODULE_ID || '0f906879-117a-43e7-8c1d-d4e0f2ee1012'
 
 // Есть ли валидный id тест-модуля — тесты, которым он нужен, иначе skip.
 export const hasTestModule = /^[0-9a-f-]{36}$/i.test(MODULE_ID)

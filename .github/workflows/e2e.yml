@@ -1,0 +1,73 @@
+# E2E (этап 5.5-F): Playwright в CI.
+# - pull_request → job "guest": только гостевые (smoke + guest), без кредов
+#   аккаунтов. Быстро, гоняется на каждый PR.
+# - schedule (ночью) + workflow_dispatch (вручную) → job "full": весь пакет
+#   под логином и с полным прогоном плеера (E2E_PLAYER=1) — «пользователь
+#   активно пользуется приложением каждый день». Сеть в CI стабильная,
+#   поэтому player-тесты, флакающие локально, тут проходят.
+name: E2E
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *' # каждую ночь 02:00 UTC
+  pull_request:
+    branches: [main]
+
+jobs:
+  guest:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: E2E (гостевые)
+        run: npx playwright test --project=mobile --project=desktop
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-guest
+          path: playwright-report/
+          retention-days: 14
+
+  full:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: E2E (полный, под логином + плеер)
+        run: npx playwright test
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_PLAYER: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-full
+          path: playwright-report/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results-full
+          path: test-results/
+          retention-days: 14
