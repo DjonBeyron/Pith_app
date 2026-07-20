@@ -11,6 +11,11 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 2 * * *' # каждую ночь 02:00 UTC
+  # push в main → полный прогон (job "full"): надёжный запуск без кнопки
+  # «Run workflow». Если CI-минут станет жалко — убрать push, оставить
+  # schedule + workflow_dispatch (полный прогон только ночью/вручную).
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 
