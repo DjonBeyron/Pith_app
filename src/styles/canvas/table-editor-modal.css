@@ -1,0 +1,72 @@
+/* ── TableEditorModal — оверлей полноэкранного редактора таблицы ───── */
+
+.tableEditorOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 5, 8, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.tableEditorModal {
+  width: 100%;
+  height: 100%;
+  max-width: 1280px;
+  background: #101216;
+  border: 1px solid #2a2d35;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tableEditorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #2a2d35;
+}
+
+.tableEditorTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.tableEditorHeaderActions {
+  display: flex;
+  gap: 8px;
+}
+
+.tableEditorBtnGhost,
+.tableEditorBtnPrimary {
+  padding: 7px 16px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.tableEditorBtnGhost {
+  background: transparent;
+  border-color: #2a2d35;
+  color: #9aa0b4;
+}
+.tableEditorBtnGhost:hover { border-color: #555; color: #e0e0e0; }
+
+.tableEditorBtnPrimary {
+  background: #b6fe3b;
+  color: #0e1013;
+}
+.tableEditorBtnPrimary:hover { filter: brightness(1.08); }
+
+.tableEditorBody {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}

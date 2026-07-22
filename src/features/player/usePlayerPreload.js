@@ -8,10 +8,10 @@ const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
 const FALLBACK_SIZE = 500 * 1024 // вес файла с неизвестным размером в байтовом прогрессе
 export const CHAT_BUFFER_SIZE = 5
-const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice'])
+const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice', 'table'])
 const POSTER_TYPES = new Set(['video', 'circle', 'sticker'])
 // Only heavy media is evicted — photos/stickers are small, photo_choice panels are special
-const EVICT_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle'])
+const EVICT_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'table'])
 
 function isValidUrl(url) {
   return typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))

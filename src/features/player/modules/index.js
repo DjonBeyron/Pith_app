@@ -6,11 +6,12 @@ import PhotoModule      from './photo/PhotoModule.jsx'
 import VideoModule      from './video/VideoModule.jsx'
 import StickerModule    from './sticker/StickerModule.jsx'
 import SystemModule     from './system/SystemModule.jsx'
-import WordChoiceModule     from './word-choice/WordChoiceModule.jsx'
-import PhraseAssemblyModule from './phrase-assembly/PhraseAssemblyModule.jsx'
-import PinMessageModule     from './pin-message/PinMessageModule.jsx'
-import PhotoChoiceModule    from './photo-choice/PhotoChoiceModule.jsx'
-import RegistrationModule   from './registration/RegistrationModule.jsx'
+import WordChoiceModule      from './word-choice/WordChoiceModule.jsx'
+import PhraseAssemblyModule  from './phrase-assembly/PhraseAssemblyModule.jsx'
+import PinMessageModule      from './pin-message/PinMessageModule.jsx'
+import PhotoChoiceModule     from './photo-choice/PhotoChoiceModule.jsx'
+import RegistrationModule    from './registration/RegistrationModule.jsx'
+import TableDictatorModule   from './table/TableDictatorModule.jsx'
 
 const MODULE_MAP = {
   audio:        AudioModule,
@@ -26,6 +27,7 @@ const MODULE_MAP = {
   pin_message:     PinMessageModule,
   photo_choice:    PhotoChoiceModule,
   registration:    RegistrationModule,
+  table:           TableDictatorModule,
 }
 
 // Returns the component for a given node type, or null if unknown.

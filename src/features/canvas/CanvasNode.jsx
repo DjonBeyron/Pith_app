@@ -6,6 +6,7 @@ import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
 import NodeWordChoicePicker       from './NodeWordChoicePicker.jsx'
 import NodePhraseAssemblyPicker   from './NodePhraseAssemblyPicker.jsx'
+import NodeTablePicker            from './NodeTablePicker.jsx'
 import NodePhotoChoicePicker      from './NodePhotoChoicePicker.jsx'
 import NodeRegistrationTriggers   from './NodeRegistrationTriggers.jsx'
 import NodeLessonLink     from './NodeLessonLink.jsx'
@@ -315,6 +316,14 @@ export default function CanvasNode({
               onChange={v => updateTypeData({ reward: v })}
             />
           </>
+        )}
+        {node.type === 'table' && (
+          <NodeTablePicker
+            tData={tData}
+            onDataChange={patch => updateTypeData(patch)}
+            lessonFiles={lessonFiles}
+            onPickFile={f => onPickLessonFile(f)}
+          />
         )}
         {node.type === 'photo_choice' && (
           <>

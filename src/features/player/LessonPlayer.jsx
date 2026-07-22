@@ -8,6 +8,7 @@ import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.js
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
+import TableDictatorPanel  from './panels/table-dictator/TableDictatorPanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { useRegistrationSkip } from './useRegistrationSkip.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
@@ -255,18 +256,20 @@ export default function LessonPlayer({
     setRegStates(prev => ({ ...prev, [nodeId]: [...(prev[nodeId] ?? []), { text, result }] }))
   }
 
-  const [pinVisible, setPinVisible]       = useState(true)
-  const [wcPanelHeight, setWcPanelHeight] = useState(0)
-  const [paPanelHeight, setPaPanelHeight] = useState(0)
-  const [pcPanelHeight, setPcPanelHeight] = useState(0)
-  const [regPanelHeight, setRegPanelHeight] = useState(0)
+  const [pinVisible, setPinVisible]           = useState(true)
+  const [wcPanelHeight, setWcPanelHeight]     = useState(0)
+  const [paPanelHeight, setPaPanelHeight]     = useState(0)
+  const [pcPanelHeight, setPcPanelHeight]     = useState(0)
+  const [regPanelHeight, setRegPanelHeight]   = useState(0)
+  const [tablePanelHeight, setTablePanelHeight] = useState(0)
 
-  const lastOf = (type) => [...visibleNodes].reverse().find(n => n.type === type) ?? null
-  const wcNode  = lastOf('word_choice')
-  const paNode  = lastOf('phrase_assembly')
-  const pmNode  = lastOf('pin_message')
-  const pcNode  = lastOf('photo_choice')
-  const regNode = lastOf('registration')
+  const lastOf   = (type) => [...visibleNodes].reverse().find(n => n.type === type) ?? null
+  const wcNode   = lastOf('word_choice')
+  const paNode   = lastOf('phrase_assembly')
+  const pmNode   = lastOf('pin_message')
+  const pcNode   = lastOf('photo_choice')
+  const regNode  = lastOf('registration')
+  const tableNode = lastOf('table')
 
   // Залогинен → рег-нода скипается (сразу reg_submit), панель не рендерится
   const showRegPanel = useRegistrationSkip(regNode, onNodeDone)
@@ -346,7 +349,7 @@ export default function LessonPlayer({
                     allPhraseStates={phraseStates}
                     phraseState={phraseStates[node.id] ?? null}
                     regState={regStates[node.id] ?? null}
-                    bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight || regPanelHeight}
+                    bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight || regPanelHeight || tablePanelHeight}
                     videoAutoSound={videoAutoSound}
                     onDone={isPending ? () => {} : () => onNodeDone(node.id)}
                     onTrReveal={() => registerHint(node.id)}
@@ -416,6 +419,15 @@ export default function LessonPlayer({
             onDone={(trigger, data) => { setRegPanelHeight(0); onNodeDone(regNode.id, trigger, data) }}
             onAnswered={(text, result) => handleRegAnswer(regNode.id, text, result)}
             onHeightChange={setRegPanelHeight}
+          />
+        )}
+        {tableNode && tableNode.typeData?.table?.table && (
+          <TableDictatorPanel
+            key={tableNode.id}
+            node={tableNode}
+            file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}
+            onDone={() => { setTablePanelHeight(0); onNodeDone(tableNode.id) }}
+            onHeightChange={setTablePanelHeight}
           />
         )}
       </div>

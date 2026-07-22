@@ -1,0 +1,161 @@
+/* ── TableGridBuilder — левая панель: тулбар + редактируемая сетка ─── */
+
+.tableBuilderWrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  overflow: auto;
+  border-right: 1px solid #2a2d35;
+}
+
+.tableBuilderToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tableBuilderToolbar button {
+  padding: 6px 10px;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tableBuilderToolbar button:hover:not(:disabled) {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+}
+
+.tableBuilderToolbar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tableBuilderGridWrap {
+  position: relative;
+}
+
+.tableBuilderGrid {
+  display: grid;
+  gap: 2px;
+  background: #2a2d35;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  overflow: hidden;
+  user-select: none;
+}
+
+.tableBuilderCell {
+  background: #1a1d22;
+  cursor: cell;
+  display: flex;
+}
+
+.tableBuilderCellSelected {
+  background: rgba(182, 254, 59, 0.12);
+  outline: 1.5px solid #b6fe3b;
+  outline-offset: -1.5px;
+}
+
+.tableBuilderCellInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  color: #e0e0e0;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 6px;
+  text-align: center;
+}
+
+/* ── Ручки изменения ширины колонок / высоты строк ─────────────────── */
+
+.tableResizeHandles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tableResizeHandleCol {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  margin-left: -5px;
+  cursor: col-resize;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.tableResizeHandleRow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  margin-top: -5px;
+  cursor: row-resize;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.tableResizeHandleCol:hover,
+.tableResizeHandleRow:hover {
+  background: rgba(182, 254, 59, 0.35);
+}
+
+/* ── Режим выделения для объединения ячеек ──────────────────────────── */
+
+.tableBuilderToolbarDivider {
+  width: 1px;
+  background: #2a2d35;
+  align-self: stretch;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.tableBuilderBtnSelect {
+  padding: 6px 10px;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tableBuilderBtnSelect:hover {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+}
+
+.tableBuilderBtnSelectActive {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+  background: rgba(182, 254, 59, 0.08);
+}
+
+.tableBuilderSelectHint {
+  font-size: 11px;
+  color: #b6fe3b;
+  background: rgba(182, 254, 59, 0.06);
+  border: 1px solid rgba(182, 254, 59, 0.2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  line-height: 1.4;
+}
+
+.tableBuilderGridSelectMode {
+  cursor: crosshair;
+}
+
+.tableBuilderGridSelectMode .tableBuilderCell {
+  cursor: crosshair;
+}

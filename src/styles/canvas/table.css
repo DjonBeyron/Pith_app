@@ -1,0 +1,32 @@
+/* ── NodeTablePicker — canvas node editor ──────────────────────────── */
+
+.nodeTablePickerRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nodeTablePickerBtn {
+  flex: 1;
+  padding: 6px 10px;
+  background: #0a0c10;
+  border: 1px dashed #2a3040;
+  border-radius: 6px;
+  color: #888;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nodeTablePickerBtn:hover {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+}
+
+.nodeTableAudioBadge {
+  font-size: 13px;
+  color: #b6fe3b;
+  flex-shrink: 0;
+}

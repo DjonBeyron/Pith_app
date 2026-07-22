@@ -127,6 +127,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `admin-race.css` | Стили админ-конструктора гонки: строки модулей списка заданий, кастомный выпадающий список со скроллом |
 | `energy-v2.css` | Стили экрана «Энергия закончилась»: оверлей, карточка с кольцом-молнией, таймер, кнопки |
 | `energy-cells.css` | Стили ряда ячеек энергии (`shared/ui/EnergyCells.jsx`): сегменты, мигание (списание/пополнение), растворение при старте платного урока, прогресс-бар следующей ячейки |
+| `table-grid.css` | Стили `shared/ui/TableGrid.jsx`: сетка, базовая ячейка, состояния клика/выделения/подсветки |
 | `pro.css` | Стили подписки Pithy Pro: экран оплаты (карточка с короной, список преимуществ, золотая кнопка), карточка Pro в профиле, чип PRO у ника в рейтинге |
 | `module-video.css` | Стили панели «Видео фразы» в тулбаре схемы модуля: выпадающая карточка, постер, кнопки заменить/удалить |
 | `admin-v2.css` | Стили админ-раздела ui v2: субвкладки, «+ Новый модуль», строки модулей с чипами |
@@ -169,6 +170,14 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/modules/video.css` | Видео-сообщение |
 | `canvas/word-choice.css` | Редактор ноды «Выбор слова»: список вариантов, кнопка ✓, поле ответа |
 | `canvas/phrase-assembly.css` | Редактор ноды «Собрать фразу»: инпут фразы, превью чипов, лишние слова |
+| `canvas/table.css` | Кнопка «Создать/редактировать таблицу» в `NodeTablePicker.jsx` |
+| `canvas/table-editor-modal.css` | Оверлей и шапка `TableEditorModal.jsx`: fixed-фон, окно, кнопки Сохранить/Отмена |
+| `canvas/table-editor-builder.css` | Левая панель `TableGridBuilder.jsx`: тулбар, редактируемая сетка, drag-выделение |
+| `canvas/table-editor-preview.css` | Правая панель `TablePhonePreview.jsx`: рамка iPhone SE 2020, экран превью |
+| `canvas/table-editor-templates.css` | Полоса шаблонов `TableTemplatesBar.jsx`: чипы, кнопки применить/переименовать/удалить |
+| `canvas/table-editor-timeline.css` | Редактор таймлайна `TableTimelineEditor.jsx`: шапка, аудио-секция, дорожки с клипами (ручки resize, drag тела, глазик, удаление), секция «+ Дорожка» |
+| `player/modules/table.css` | Плеер ноды «Таблица»: минимальный (основной UI — в `TableDictatorPanel`) |
+| `player/panels/table-dictator.css` | Панель таблицы-диктора в плеере: спейсер, slide-up/down анимация, HUD — 3 пульсирующих бара во время воспроизведения |
 | `player/panels/choose-word.css` | Панель выбора слова в плеере: кнопки-варианты, анимации wcFlashGreen/wcFlashRed, пузырь-ответ |
 | `player/panels/phrase-assembly.css` | Панель сборки фразы: зона ответа (dashed border), пул чипов, кнопка «Проверить», анимация shake |
 | `player/panels/registration.css` | Панель регистрации в плеере: поля email/имя, кнопки «Зарегистрироваться» и «Отмена», та же slide-up анимация что choose-word |
@@ -222,10 +231,26 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `NodeWordChoicePicker.jsx` | Редактор ноды «Выбор слова»: список вариантов с ✓-кнопкой, добавление/удаление, поле ответного пузыря; привязка ноды/варианта к уроку и сигнал (⚙) для анализа знаний |
 | `NodeLessonLink.jsx` | Дропдаун «→ Урок»: привязка ответа интерактивной ноды к уроку-цели для анализа знаний (пишет `statLessonId`) |
 | `NodeRewardCheckbox.jsx` | Чекбокс «Получить награду» (⭐ XP) — общий для нод word_choice / phrase_assembly / photo_choice |
+| `NodeTablePicker.jsx` | Редактор ноды «Таблица»: кнопка «Создать/редактировать таблицу» → открывает `table-editor/TableEditorModal.jsx` |
 | `NodeTextHighlighter.jsx` | Модальный редактор выделений текста: кликабельные токены, режимы «Плашка»/«Цвет текста», опакити, последние 5 цветов (localStorage), избранные (Supabase), предпросмотр в пузыре |
 | `NodeTextProEditor.jsx` | Про-режим текстовой ноды: тумблер, текст перевода, надпись кнопки (RU/EN...), способ появления («напечатать»/«показать сразу»), раскраска перевода |
 | `useLessonFiles.js` | Хук: список файлов урока (локальные + синхронизированные), дедупликация по имени+весу, синхронизация на сервер |
 | `LessonFilesPanel.jsx` | Панель «Файлы урока» под шапкой редактора: список файлов, кнопка «Синхронизировать», удаление |
+
+### `src/features/canvas/table-editor/` — полноэкранный конструктор ноды «Таблица»
+| Файл | Зачем нужен |
+|------|-------------|
+| `tableGridUtils.js` | Чистая математика сетки (без React): создание, объединение/разбиение ячеек, добавление/удаление строк-колонок, пропорции ширины колонок |
+| `useTableGrid.js` | Состояние конструктора: таблица + drag-выделение диапазона ячеек для объединения; коммитит наружу только по «Сохранить» |
+| `TableGridBuilder.jsx` | Левая панель: тулбар (+/− строка/колонка, объединить/разбить) + редактируемая сетка с drag-выделением и ручками изменения размера |
+| `TableResizeHandles.jsx` | Невидимые полосы поверх границ колонок/строк — тянуть мышью, отдельно от ячеек (чтобы не попадать в textarea) |
+| `TablePhonePreview.jsx` | Правая панель: рамка iPhone SE 2020 (375×667 — авторский минимум), живой превью через общий `shared/ui/TableGrid.jsx` |
+| `TableEditorModal.jsx` | Полноэкранное окно редактора (портал): конструктор сетки + кнопка «Таймлайн» переключает вид на редактор таймлайна; onSave отдаёт полный объект {table, file_id, waveformData, duration, timeline} |
+| `tableTemplates.js` | CRUD шаблонов сетки в localStorage (список/сохранить/переименовать/удалить) — авторский инструмент, не часть данных урока |
+| `TableTemplatesBar.jsx` | Полоса шаблонов в шапке редактора: сохранить текущую сетку как шаблон, применить/переименовать/удалить сохранённые |
+| `useTableTimelineEdit.js` | Состояние редактора таймлайна: layers (по одной на ячейку + доп.), initClips/toggleVisible/updateClip/addLayer/removeLayer, getTimeline → `{layers}` для сохранения |
+| `TableTimelineTrack.jsx` | Одна дорожка: глазик (скрыть), метка, полоса с клипом (ручки resize по краям, тело — drag для сдвига), курсор, кнопка удаления (только для доп. дорожек) |
+| `TableTimelineEditor.jsx` | Редактор таймлайна внутри TableEditorModal: RAF-loop волны, загрузка аудио, дорожки всех ячеек, секция «+ Дорожка», «← Назад» / «Сохранить» |
 
 ### `src/features/player/` — плеер урока (чат-интерфейс просмотра)
 | Файл | Зачем нужен |
@@ -268,6 +293,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/phrase-assembly/PhraseAssemblyModule.jsx` | Собрать фразу — в ленте не рендерит ничего; панель снизу (`PhraseAssemblyPanel`) |
 | `modules/pin-message/PinMessageModule.jsx` | Закрепить сообщение — центрированная системная строка «[учитель] закрепил сообщение» |
 | `modules/photo-choice/PhotoChoiceModule.jsx` | Выбрать фото — возвращает null (панель снизу ведёт весь UI) |
+| `modules/table/TableDictatorModule.jsx` | Нода «Таблица» в ленте чата: возвращает null — весь UI в `TableDictatorPanel`, монтируемой из `LessonPlayer` (как word_choice/phrase_assembly) |
+| `panels/table-dictator/TableDictatorPanel.jsx` | Панель таблицы-диктора: выезжает снизу с анимацией, авто-старт аудио через 800 мс, RAF-подсветка ячеек по таймлайну, HUD 3 пульсирующих бара, сдвигает чат вверх через спейсер |
 | `panels/photo-choice/PhotoChoicePanel.jsx` | Панель снизу: кнопка «Прикрепи фото», галерея-оверлей, выбранное фото |
 | `panels/PinMessageBanner.jsx` | Баннер под шапкой с текстом закреплённого сообщения; кнопка ✕ открывает диалог |
 | `panels/PinConfirmDialog.jsx` | Модальное окно подтверждения откреплення сообщения |
@@ -465,3 +492,4 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `icons.js` | Общие SVG-пути иконок, нужные в 2+ местах — сейчас только `GEAR_PATH` (грубая шестерёнка Android/Material: кнопка настроек профиля + финальный слайд установки) |
 | `XpTransfer.jsx` | Анимация начисления XP: тикающий счётчик «+N XP», canvas-частицы, летящие в бар, shimmer-заполнение, схлопывание блока награды, onDone — используется в итогах урока (LessonSummary) и попапе награды стрика (RewardClaimPopup) |
 | `EnergyCells.jsx` | Ряд из 5 ячеек энергии (переиспользуемый индикатор): заполнено цветом `energyColor(value)`, пустые — тёмные; режимы `blinkLast` (спишется), `dissolving` (растворение при старте платного урока), `fillingNext`+`fillProgress` (прогресс-бар до пополнения), `unlimited` (все лаймовые + «∞») — используется в `LessonLaunchCard` и `EnergyBadge` |
+| `TableGrid.jsx` | Чистый рендер сетки ноды «Таблица»: raw grid-разметка с учётом rowspan/colspan, опциональные подсветка/клик по ячейке — общий для превью в конструкторе канваса и плеера урока |

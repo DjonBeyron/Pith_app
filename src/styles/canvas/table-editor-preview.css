@@ -1,0 +1,88 @@
+/* ── TablePhonePreview — рамка iPhone SE 2020 (375×667), живой превью ─ */
+
+/* Панель расширена до 560px — телефон дышит (по 80px отступ с каждой стороны) */
+.tablePreviewWrap {
+  width: 560px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 20px;
+  overflow: auto;
+  background: #0a0c10;
+}
+
+/* iPhone SE 2020: корпус 375×772px (соотношение 2.06:1) */
+.tablePreviewPhone {
+  position: relative;
+  width: 375px;
+  height: 772px;
+  background: #101216;
+  border-radius: 44px;
+  box-shadow: 0 0 0 2px #2a2d35, 0 0 0 6px #0a0c10, 0 8px 40px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+}
+
+.tablePreviewSpeaker {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 5px;
+  background: #2a2d35;
+  border-radius: 3px;
+  z-index: 1;
+}
+
+/* Экран: фиксирован, overflow:hidden — никаких скроллов внутри телефона.
+   Flex-колонка с justify-content:flex-end → контент прилипает ко дну. */
+.tablePreviewScreen {
+  position: absolute;
+  top: 52px;
+  left: 0;
+  width: 100%;
+  height: 667px;
+  background: #081425;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* Заглушка «лента урока» над таблицей — показывает контекст: таблица
+   появляется как карточка в ленте, не одна на пустом экране */
+.tablePreviewFeed {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 14px 14px;
+  overflow: hidden;
+}
+
+.tablePreviewBubble {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* Карточка таблицы — padding + небольшие отступы от краёв */
+.tablePreviewCard {
+  flex-shrink: 0;
+  padding: 0 10px 16px;
+}
+
+/* Home-кнопка SE */
+.tablePreviewHomeBtn {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #2a2d35;
+}

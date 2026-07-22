@@ -1,0 +1,47 @@
+/* ── TableDictatorModule — таблица + аудиоплейер в чате урока ────────── */
+
+.tableDictatorWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.tableDictatorBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+}
+
+.tableDictatorPlayBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #b6fe3b;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tableDictatorPlayBtn:disabled { opacity: 0.4; cursor: default; }
+.tableDictatorPlayBtn:not(:disabled):hover { filter: brightness(1.1); }
+
+.tableDictatorWave {
+  flex: 1;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.tableDictatorTime {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}

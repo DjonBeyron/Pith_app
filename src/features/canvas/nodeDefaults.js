@@ -31,6 +31,8 @@ const DEFAULT_TRIGGER = {
   sticker:     { if: 'timer', ms: 2000 },
   system:      { if: 'timer', ms: 2000 },
   pin_message: { if: 'timer', ms: 2000 },
+  // Этап C: при добавлении режима «Клик» триггер поменяется на пару correct/wrong.
+  table:       { if: 'played' },
 }
 
 // Триггеры для ноды типа type; keepThen — существующая связь, которую надо

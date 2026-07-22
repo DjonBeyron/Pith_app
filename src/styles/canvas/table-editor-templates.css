@@ -1,0 +1,47 @@
+/* ── TableTemplatesBar — сохранённые шаблоны сетки ──────────────────── */
+
+.tableTemplatesBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-bottom: 1px solid #2a2d35;
+}
+
+.tableTemplateChip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 7px;
+  padding: 2px 2px 2px 4px;
+}
+
+.tableTemplateApply {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 11px;
+  padding: 4px 4px;
+  cursor: pointer;
+}
+
+.tableTemplateApply:hover { color: #b6fe3b; }
+
+.tableTemplateAction {
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 11px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.tableTemplateAction:hover {
+  color: #e0e0e0;
+  background: #2a2d35;
+}

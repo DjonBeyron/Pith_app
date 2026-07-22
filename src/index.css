@@ -48,6 +48,15 @@
 @import './styles/player/panels/photo-choice.css';
 @import './styles/canvas/word-choice.css';
 @import './styles/canvas/phrase-assembly.css';
+@import './styles/canvas/table.css';
+@import './styles/canvas/table-editor-modal.css';
+@import './styles/canvas/table-editor-builder.css';
+@import './styles/canvas/table-editor-preview.css';
+@import './styles/canvas/table-editor-templates.css';
+@import './styles/canvas/table-editor-timeline.css';
+@import './styles/table-grid.css';
+@import './styles/player/modules/table.css';
+@import './styles/player/panels/table-dictator.css';
 @import './styles/player/panels/choose-word.css';
 @import './styles/player/panels/phrase-assembly.css';
 @import './styles/player/panels/registration.css';

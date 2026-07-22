@@ -1,0 +1,44 @@
+/* ── TableGrid — общий рендер сетки (canvas-превью + плеер урока) ──── */
+
+.tableGrid {
+  display: grid;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tableGridCell {
+  background: #1a1d22;
+  color: #e0e0e0;
+  padding: 8px 6px;
+  font-size: 13px;
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 32px;
+  word-break: break-word;
+}
+
+.tableGridCellClickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tableGridCellClickable:hover {
+  background: #23262d;
+}
+
+.tableGridCellSelected {
+  background: #2a2d35;
+  color: #666;
+}
+
+/* Свечение при подсветке диктором — доработается на этапе B (таймлайн) */
+.tableGridCellHighlighted {
+  background: rgba(182, 254, 59, 0.18);
+  box-shadow: inset 0 0 0 1.5px #b6fe3b;
+}

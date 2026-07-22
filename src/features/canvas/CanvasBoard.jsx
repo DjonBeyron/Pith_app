@@ -314,7 +314,7 @@ export default function CanvasBoard({
     if (!lessonId) return
     if (!mountedRef.current) { mountedRef.current = true; return }
     const t = setTimeout(() =>
-      localStorage.setItem(CANVAS_LS(lessonId), JSON.stringify({ nodes, offset, scale })), 400)
+      localStorage.setItem(CANVAS_LS(lessonId), JSON.stringify({ nodes, offset, scale })), 80)
     return () => clearTimeout(t)
   }, [lessonId, nodes, offset, scale])
 

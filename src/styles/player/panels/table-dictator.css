@@ -1,0 +1,75 @@
+/* ── TableDictatorPanel — таблица-диктор, выезжает снизу (как ChooseWordPanel) ── */
+
+.tdSpacer { flex-shrink: 0; width: 100%; }
+
+.tdPanel {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: #1a1d22;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1);
+  will-change: transform;
+  z-index: 10;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.tdPanelVisible {
+  transform: translateY(0);
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* HUD — position:absolute, выходит за верхний край панели; лишний padding не нужен */
+.tdPanelInner { max-width: 600px; margin: 0 auto; padding: 6px 16px 16px; }
+
+/* position:relative — якорь для HUD, который плавает выше таблицы */
+.tdGridBox { position: relative; }
+
+/* HUD: position:absolute, bottom над таблицей, не расширяет её фон.
+   По умолчанию scale(0) — невидим, появляется через .tdHudVisible. */
+.tdHud {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 7px;
+  background: rgba(14, 16, 19, 0.84);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: 16px;
+  pointer-events: none;
+  /* исходное состояние: невидим; transform-origin снизу — растёт от края таблицы */
+  transform: translateX(-50%) scale(0);
+  transform-origin: center bottom;
+  /* исчезновение: быстрое */
+  transition: transform 0.14s ease-in;
+}
+
+/* появление: bounce вверх */
+.tdHudVisible {
+  transform: translateX(-50%) scale(1);
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Бары: JS управляет scaleY через waveformData */
+.tdHudBar {
+  width: 2px; height: 11px;
+  border-radius: 1.5px;
+  background: #b6fe3b;
+  transform-origin: center;
+  transform: scaleY(0.15);
+  will-change: transform;
+}
+
+/* Фолбэк (нет waveformData): CSS-пульсация */
+.tdHudPulse .tdHudBar {
+  transform: scaleY(1);
+  animation: tdBarPulse 0.7s ease-in-out infinite;
+}
+.tdHudPulse .tdHudBar:nth-child(1) { animation-delay: 0s; }
+.tdHudPulse .tdHudBar:nth-child(2) { animation-delay: 0.23s; }
+.tdHudPulse .tdHudBar:nth-child(3) { animation-delay: 0.46s; }
+
+@keyframes tdBarPulse {
+  0%, 100% { height: 2px;  opacity: 0.5; }
+  50%       { height: 11px; opacity: 1; }
+}
