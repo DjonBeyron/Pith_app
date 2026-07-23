@@ -109,7 +109,7 @@
 }
 
 .tmExtraChip {
-  width: 100%; max-width: 320px; flex-shrink: 0; position: relative;
+  width: 100%; flex-shrink: 0; position: relative;
   padding: 12px 8px;
   background: transparent;
   border: none; border-radius: 8px;
@@ -121,10 +121,10 @@
   transition: color 0.15s, background 0.15s;
   animation: tmChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-/* Разделитель — короткая линия со скруглёнными краями по центру, не сплошная
-   во всю ширину (та же логика, что и в режиме диктора) */
+/* Разделитель — во всю ширину экрана приложения (не короткий по центру),
+   но со скруглёнными краями (та же логика, что и в режиме диктора) */
 .tmExtrasSection > .tmExtraChip:not(:last-child)::after {
-  content: ''; position: absolute; left: 25%; right: 25%; bottom: 0;
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
   height: 2px; border-radius: 2px; background: rgba(255,255,255,0.12);
 }
 .tmExtraChip:not(:disabled):hover  { color: #b6fe3b; }

@@ -164,10 +164,15 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
     return () => clearTimeout(id)
   }, []) // eslint-disable-line
 
-  // Авто-сборка + авто-проверка для режима «без checkAt» (после окончания аудио)
+  // Авто-сборка + авто-проверка для режима «совсем без таймлайна у слов» (легаси).
+  // Если у слов ЕСТЬ свои word-слои (hasExtraLayers) — RAF уже собирает их поштучно
+  // по своему времени; это было пропущено раньше при checkAt==null и приводило к
+  // двойной сборке (эта функция разом переписывала extrasAssembled поверх RAF) —
+  // именно это и «дёргало» интерфейс на последнем слове.
   useEffect(() => {
     if (!chipsVisible) return
-    if (checkAt != null) return  // RAF управляет сборкой
+    if (checkAt != null) return  // RAF управляет сборкой (checkAt-режим)
+    if (hasExtraLayers) return   // RAF уже собирает слова поштучно по их word-слоям
 
     // Ждём окончания анимации чипов, потом собираем слова
     const staggerEnd = shuffledExtras.length * 50 + 350

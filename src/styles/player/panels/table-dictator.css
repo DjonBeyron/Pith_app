@@ -99,7 +99,7 @@
 }
 
 .tdExtraChip {
-  width: 100%; max-width: 320px; flex-shrink: 0;
+  width: 100%; flex-shrink: 0;
   padding: 12px 8px; background: transparent; position: relative;
   border: none; border-radius: 8px;
   color: #ccc; font-size: 14px;
@@ -108,10 +108,10 @@
   animation: tdChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   pointer-events: none;   /* авто-режим: без кликов и hover */
 }
-/* Разделитель — не сплошная линия во всю ширину, а короткая линия со
-   скруглёнными краями по центру (как «пилюля»), не задевает последний пункт */
+/* Разделитель — во всю ширину экрана приложения (не короткий по центру),
+   но со скруглёнными краями — не задевает последний пункт */
 .tdExtrasSection > .tdExtraChip:not(:last-child)::after {
-  content: ''; position: absolute; left: 25%; right: 25%; bottom: 0;
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
   height: 2px; border-radius: 2px; background: rgba(255,255,255,0.12);
 }
 /* Пока выбирается — горит зелёным: слово + его прямоугольный фон, та же
