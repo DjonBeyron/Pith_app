@@ -286,8 +286,6 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
     result === 'wrong'   ? 'tdAssemblyBoxErr' : '',
   ].filter(Boolean).join(' ')
 
-  const canCheck = chipsVisible && extrasAssembled.length > 0 && !result
-
   return (
     <>
       <div className="tdSpacer" style={{
@@ -351,11 +349,6 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
               </div>
             )}
           </div>
-
-          {/* Всегда в потоке (место зарезервировано) — панель не прыгает при появлении */}
-          <button className={`tdCheckBtn${chipsVisible ? '' : ' tdCheckBtnHidden'}`} disabled={!canCheck}>
-            Проверить
-          </button>
 
           {audioSrc && (
             <audio

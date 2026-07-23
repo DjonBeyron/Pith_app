@@ -81,7 +81,6 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
   )
 
   const allCellsDone = answerCellIds.size > 0 && [...answerCellIds].every(id => assembledCellIds.has(id))
-  const canCheck     = allCellsDone && (!hasExtras || assembled.some(t => t.type === 'extra'))
   // Фаза полностью производная: extra только когда все ячейки выбраны и есть слова-ловушки
   const phase        = (allCellsDone && hasExtras) ? 'extra' : 'table'
 
@@ -132,6 +131,17 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
       timers.current.push(id)
     }
   }
+
+  // Кнопки «Проверить» нет: как только слов собрано столько же, сколько в ответе — проверяем сами
+  // (небольшая задержка — чтобы было видно, как встало последнее слово, и чтобы setState не
+  // вызывался синхронно в теле эффекта)
+  useEffect(() => {
+    if (result) return
+    if (tokens.length === 0 || assembled.length !== tokens.length) return
+    const id = setTimeout(() => check(), 300)
+    timers.current.push(id)
+    return () => clearTimeout(id)
+  }, [assembled]) // eslint-disable-line
 
   if (!table) return null
 
@@ -201,12 +211,6 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
               </div>
             )}
           </div>
-
-          <button
-            className="tmCheckBtn"
-            onClick={check}
-            disabled={!canCheck || !!result}
-          >Проверить</button>
 
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { pLog } from '../../../../shared/lib/debug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
-import { EXTRA_LEAD_IN_S } from '../../../../shared/lib/tableDictatorTiming.js'
+import { EXTRA_LEAD_IN_S, EXTRA_LEAD_IN_LAST_S, findLastWordLayerId } from '../../../../shared/lib/tableDictatorTiming.js'
 
 // Клип слова/ячейки может стоять ПОСЛЕ конца аудио (10с-хвост таймлайна) — целиком
 // (слово, которого физически нет в записи) или НАПОЛОВИНУ (начался во время игры,
@@ -8,14 +8,16 @@ import { EXTRA_LEAD_IN_S } from '../../../../shared/lib/tableDictatorTiming.js'
 // остановлен (ended) и сам такие клипы не гасит — ON и OFF планируем раздельно
 // таймерами от момента окончания аудио, иначе конец свечения (длина слоя) теряется.
 function scheduleLayer(layer, {
-  cells, shuffledExtras, tEnd, timers, addedCellsRef, assembledRef,
+  cells, shuffledExtras, tEnd, timers, addedCellsRef, assembledRef, isLastWord,
   setAssembled, setExtrasAssembled, setHighlighted, setUsedCells, setActiveExtraKeys,
 }) {
   const clip = layer.clips?.[0]
   if (!clip) return
   // Для слова зелёный стартует не в начале клипа, а после лид-ина (анимация+буфер) —
-  // клип начинается с анимации, реальный «выбор» (зелёный) сдвинут на EXTRA_LEAD_IN_S.
-  const greenAt   = layer.word ? clip.start + EXTRA_LEAD_IN_S : clip.start
+  // клип начинается с анимации, реальный «выбор» (зелёный) сдвинут на лид-ин. У
+  // последнего по времени word-слоя лид-ин длиннее — ждёт ещё и отъезд таблицы.
+  const leadIn    = isLastWord ? EXTRA_LEAD_IN_LAST_S : EXTRA_LEAD_IN_S
+  const greenAt   = layer.word ? clip.start + leadIn : clip.start
   const onDelay   = greenAt   - tEnd
   const offDelay  = clip.end  - tEnd
   const cellKey   = layer.cellId ? `cell-${layer.cellId}` : null
@@ -87,12 +89,14 @@ export function schedulePostAudioCheck({
 }) {
   if (!rfxChipsRef.current) { rfxChipsRef.current = true; setPhase('extras'); setChipsVisible(true) }
   const tEnd = Number.isFinite(audioRef.current?.duration) ? audioRef.current.duration : checkAt
+  const lastWordLayerId = findLastWordLayerId(timeline?.layers)
 
   for (const layer of timeline?.layers ?? []) {
     if (layer.visible === false || layer.isCheck) continue
     if (!layer.cellId && !layer.word) continue
     scheduleLayer(layer, {
       cells, shuffledExtras, tEnd, timers, addedCellsRef, assembledRef,
+      isLastWord: layer.id === lastWordLayerId,
       setAssembled, setExtrasAssembled, setHighlighted, setUsedCells, setActiveExtraKeys,
     })
   }

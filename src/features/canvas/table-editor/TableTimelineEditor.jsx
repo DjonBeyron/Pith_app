@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { analyzeWaveform, probeAudioDuration, drawWaveBar, fmtAudioTime } from '../../../shared/lib/audioUtils.js'
+import { findLastWordLayerId } from '../../../shared/lib/tableDictatorTiming.js'
 import { useTableTimelineEdit } from './useTableTimelineEdit.js'
 import TableTimelineTrack from './TableTimelineTrack.jsx'
 import TableTimelineRuler from './TableTimelineRuler.jsx'
@@ -25,6 +26,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   const ownedRef = useRef(null)
 
   const { layers, initClips, toggleVisible, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, getTimeline } = useTableTimelineEdit(timeline, cells)
+  const lastWordLayerId = findLastWordLayerId(layers)
 
   function syncWordLayers() {
     const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
@@ -180,6 +182,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
             duration={timelineDur}
             currentTime={currentTime}
             stripPx={stripPx}
+            isLastWord={layer.id === lastWordLayerId}
             onToggleVisible={() => toggleVisible(layer.id)}
             onUpdateClip={clip => updateClip(layer.id, clip)}
             onRemove={() => removeLayer(layer.id)}

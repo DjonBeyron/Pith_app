@@ -30,7 +30,7 @@
   border-radius: 14px;
   transition: border-color 0.2s, background 0.2s;
 }
-.tdAssemblyBoxFilled { border-color: rgba(182,254,59,0.28); }
+.tdAssemblyBoxFilled { border-color: rgba(255,255,255,0.22); }
 .tdAssemblyBoxOk     { border-color: #b6fe3b; background: rgba(182,254,59,0.07); }
 .tdAssemblyBoxErr    { border-color: #f87171; animation: tdShake 0.42s ease; }
 
@@ -74,13 +74,21 @@
   pointer-events: none;
 }
 
-/* Слова — столбик по центру; чипы выезжают снизу (см. tdChipIn) */
+/* Список слов — вертикальный, без обводки у пунктов, разделитель — тонкая
+   серая линия. Если пунктов больше, чем помещается в tdStage — список
+   скроллится (тонкий тёмный скролл). */
 .tdExtrasSection {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 8px; padding: 12px;
+  padding: 12px 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
 }
+.tdExtrasSection::-webkit-scrollbar { width: 4px; }
+.tdExtrasSection::-webkit-scrollbar-track { background: transparent; }
+.tdExtrasSection::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
 
 @keyframes tdChipIn {
   from { opacity: 0; transform: translateY(18px); }
@@ -88,37 +96,19 @@
 }
 
 .tdExtraChip {
-  padding: 10px 20px; background: #12151c;
-  border: 1px solid #2a3040; border-radius: 22px;
-  color: #ccc; font-size: 14px; font-family: inherit;
-  transition: border-color 0.15s, color 0.25s, background 0.25s;
-  width: 100%; max-width: 260px; text-align: center;
+  width: 100%; max-width: 320px; flex-shrink: 0;
+  padding: 12px 8px; background: transparent;
+  border: none; border-bottom: 1px solid rgba(255,255,255,0.10);
+  color: #ccc; font-size: 14px; font-family: inherit; text-align: center;
+  transition: color 0.25s;
   animation: tdChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   pointer-events: none;   /* авто-режим: без кликов и hover */
 }
+.tdExtrasSection > .tdExtraChip:last-child { border-bottom: none; }
 /* Пока выбирается — горит зелёным (видно выбор) */
-.tdExtraChipUsed {
-  background: rgba(182,254,59,0.12);
-  border-color: rgba(182,254,59,0.65);
-  color: #b6fe3b;
-}
+.tdExtraChipUsed { color: #b6fe3b; }
 /* Уже в боксе — текст тускнеет до 40% */
-.tdExtraChipDone { color: rgba(204,204,204,0.4); border-color: #232833; }
-
-/* ── Кнопка проверки (фаза extras) ──────────────────────────── */
-
-.tdCheckBtn {
-  width: 100%; padding: 13px;
-  background: transparent; border: 1.5px solid #b6fe3b;
-  border-radius: 14px; color: #b6fe3b;
-  font-size: 15px; font-family: inherit; font-weight: 600;
-  transition: opacity 0.25s;
-  pointer-events: none;   /* авто-режим: кнопка не кликается */
-}
-/* После проверки (result → disabled) — тусклая */
-.tdCheckBtn:disabled { opacity: 0.3; }
-/* До появления чипов кнопка невидима, но МЕСТО занимает (панель не прыгает) */
-.tdCheckBtnHidden { visibility: hidden; }
+.tdExtraChipDone { color: rgba(204,204,204,0.4); }
 
 /* ── HUD (осциллограф) ──────────────────────────────────────── */
 /* Плавает НАД панелью (position:absolute относительно .tdPanel, bottom:100%):

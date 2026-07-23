@@ -1,9 +1,9 @@
 import { useRef, useCallback } from 'react'
-import { EXTRA_LEAD_IN_S } from '../../../shared/lib/tableDictatorTiming.js'
+import { EXTRA_LEAD_IN_S, EXTRA_LEAD_IN_LAST_S } from '../../../shared/lib/tableDictatorTiming.js'
 
 // Одна дорожка таймлайна. Один клип с ручками ресайза и перетаскиванием тела.
 // isDefault-слои не имеют кнопки удаления.
-export default function TableTimelineTrack({ layer, cells, duration, currentTime, stripPx, onToggleVisible, onUpdateClip, onRemove }) {
+export default function TableTimelineTrack({ layer, cells, duration, currentTime, stripPx, isLastWord, onToggleVisible, onUpdateClip, onRemove }) {
   const cell  = cells.find(c => c.id === layer.cellId)
   const clip  = layer.clips[0] ?? null
   const stripRef = useRef(null)
@@ -53,14 +53,17 @@ export default function TableTimelineTrack({ layer, cells, duration, currentTime
   const isOrphan = !layer.word && !cell && !layer.isCheck
 
   // Для word-слоя: начало клипа = старт анимации (слайд+список), реальный «выбор»
-  // (зелёный) — только после EXTRA_LEAD_IN_S. Показываем этот кусок другим цветом —
-  // длина куска фиксирована, растягивание/сужение клипа её не меняет, только сдвигает
-  // во времени (клип короче лид-ина — кусок просто займёт клип целиком).
+  // (зелёный) — только после лид-ина. Показываем этот кусок другим цветом — длина
+  // куска фиксирована, растягивание/сужение клипа её не меняет, только сдвигает во
+  // времени (клип короче лид-ина — кусок просто займёт клип целиком).
+  // У последнего по времени word-слоя лид-ин длиннее (EXTRA_LEAD_IN_LAST_S) — он
+  // дополнительно ждёт конец отъезда таблицы влево (TABLE_SLIDE_S), см. tableDictatorTiming.js.
   let leadInPct = null
   if (layer.word && clip) {
     const clipDur = clip.end - clip.start
     if (clipDur > 0) {
-      const leadInEnd = Math.min(clip.end, clip.start + EXTRA_LEAD_IN_S)
+      const leadIn = isLastWord ? EXTRA_LEAD_IN_LAST_S : EXTRA_LEAD_IN_S
+      const leadInEnd = Math.min(clip.end, clip.start + leadIn)
       leadInPct = Math.min(100, (leadInEnd - clip.start) / clipDur * 100)
     }
   }
@@ -84,7 +87,11 @@ export default function TableTimelineTrack({ layer, cells, duration, currentTime
             style={{ left: `${timeToPct(clip.start)}%`, width: `${timeToPct(clip.end) - timeToPct(clip.start)}%` }}
           >
             {leadInPct != null && (
-              <div className="tlClipLeadIn" style={{ width: `${leadInPct}%` }} title="Анимация + пауза перед выбором слова" />
+              <div
+                className="tlClipLeadIn"
+                style={{ width: `${leadInPct}%` }}
+                title={isLastWord ? 'Анимация + пауза + отъезд таблицы перед выбором последнего слова' : 'Анимация + пауза перед выбором слова'}
+              />
             )}
             <div className="tlClipHandleL" onMouseDown={e => onHandleDown(e, 'left')} />
             <div className="tlClipBody"    onMouseDown={onBodyDown} />

@@ -3,7 +3,7 @@ import { WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { logHudState } from './dictatorDebug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
-import { EXTRA_LEAD_IN_S } from '../../../../shared/lib/tableDictatorTiming.js'
+import { EXTRA_LEAD_IN_S, EXTRA_LEAD_IN_LAST_S, findLastWordLayerId } from '../../../../shared/lib/tableDictatorTiming.js'
 
 const HUD_OFFSETS    = [-1, 0, 1]
 const HUD_ALPHA_UP   = [0.60, 0.75, 0.50]
@@ -32,6 +32,8 @@ export function useTableDictatorRaf({
       const s = l.clips[0].start
       if (firstExtraStart == null || s < firstExtraStart) firstExtraStart = s
     }
+    // Последний по времени word-слой ждёт ещё и конец отъезда таблицы (см. tableDictatorTiming.js)
+    const lastWordLayerId = findLastWordLayerId(timeline?.layers)
 
     const tick = () => {
       const t      = audioRef.current?.currentTime ?? 0
@@ -117,7 +119,7 @@ export function useTableDictatorRaf({
           for (const l of timeline?.layers ?? []) {
             if (l.visible === false || !l.word || !l.clips?.length) continue
             const clip = l.clips[0]
-            const greenFrom = clip.start + EXTRA_LEAD_IN_S
+            const greenFrom = clip.start + (l.id === lastWordLayerId ? EXTRA_LEAD_IN_LAST_S : EXTRA_LEAD_IN_S)
             if (t >= greenFrom && t < clip.end) {
               const idx = shuffledExtras.indexOf(l.word)
               if (idx === -1) continue

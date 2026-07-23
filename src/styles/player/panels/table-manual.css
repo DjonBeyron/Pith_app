@@ -34,7 +34,7 @@
   transition: border-color 0.2s, background 0.2s;
 }
 
-.tmAnswerBoxFilled { border-style: solid; border-color: rgba(182, 254, 59, 0.35); }
+.tmAnswerBoxFilled { border-style: solid; border-color: rgba(255, 255, 255, 0.22); }
 .tmAnswerBoxOk     { border-color: #b6fe3b; background: rgba(182, 254, 59, 0.07); }
 .tmAnswerBoxErr    { border-color: #f87171; animation: tmShake 0.42s ease; }
 
@@ -80,7 +80,9 @@
   pointer-events: none;
 }
 
-/* Слова — столбик по центру, чипы выезжают снизу (tmChipIn) */
+/* Слова — вертикальный список без обводки у пунктов, разделитель — тонкая
+   серая линия. Если слов больше, чем помещается в tmStage — список скроллится
+   (тонкий тёмный скролл). */
 .tmExtrasSection {
   position: absolute;
   inset: 0;
@@ -88,9 +90,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px;
+  padding: 12px 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
 }
+.tmExtrasSection::-webkit-scrollbar { width: 4px; }
+.tmExtrasSection::-webkit-scrollbar-track { background: transparent; }
+.tmExtrasSection::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
 
 @keyframes tmChipIn {
   from { opacity: 0; transform: translateY(18px); }
@@ -98,37 +105,19 @@
 }
 
 .tmExtraChip {
-  padding: 10px 20px;
-  background: #12151c;
-  border: 1px solid #2a3040;
-  border-radius: 22px;
+  width: 100%; max-width: 320px; flex-shrink: 0;
+  padding: 12px 8px;
+  background: transparent;
+  border: none; border-bottom: 1px solid rgba(255,255,255,0.10);
   color: #ccc;
   font-size: 14px;
   font-family: inherit;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-  width: 100%; max-width: 260px; text-align: center;
+  text-align: center;
+  transition: color 0.15s;
   animation: tmChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.tmExtraChip:not(:disabled):hover  { border-color: #b6fe3b; color: #b6fe3b; }
-.tmExtraChip:not(:disabled):active { background: rgba(182, 254, 59, 0.06); }
+.tmExtrasSection > .tmExtraChip:last-child { border-bottom: none; }
+.tmExtraChip:not(:disabled):hover  { color: #b6fe3b; }
+.tmExtraChip:not(:disabled):active { color: #9ee62f; }
 .tmExtraChipUsed { opacity: 0.25; cursor: default; pointer-events: none; }
-
-/* ── Кнопка проверки ─────────────────────────────────────────────── */
-
-.tmCheckBtn {
-  width: 100%;
-  padding: 13px;
-  background: transparent;
-  border: 1.5px solid #b6fe3b;
-  border-radius: 14px;
-  color: #b6fe3b;
-  font-size: 15px;
-  font-family: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
-}
-.tmCheckBtn:not(:disabled):hover  { background: rgba(182, 254, 59, 0.08); }
-.tmCheckBtn:not(:disabled):active { background: rgba(182, 254, 59, 0.14); }
-.tmCheckBtn:disabled { opacity: 0.35; cursor: default; }
