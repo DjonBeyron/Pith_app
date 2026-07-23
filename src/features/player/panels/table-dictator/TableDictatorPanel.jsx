@@ -213,6 +213,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
   function slideDown(trigger) {
     pLog(`[td-auto] slideDown trigger=${trigger}`)
     setShow(false)
+    setHudVisible(false)   // панель уезжает вниз — спектр сразу схлопывается (scale к 0), не ждёт onEnded
     setHighlighted(new Set())
     onHeightChange?.(0)
     const id = setTimeout(() => onDone?.(trigger ?? 'table_correct'), 420)

@@ -34,7 +34,7 @@ import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 // If lessonXp=0 or no reward nodes, returns empty map.
 function buildXpMap(nodes, lessonXp) {
   if (!lessonXp) return new Map()
-  const REWARD_TYPES = ['word_choice', 'phrase_assembly', 'photo_choice']
+  const REWARD_TYPES = ['word_choice', 'phrase_assembly', 'photo_choice', 'table']
   const rewardNodes = nodes.filter(n =>
     REWARD_TYPES.includes(n.type) && n.typeData?.[n.type]?.reward !== false
   )

@@ -93,9 +93,14 @@
 .tdExtrasSection::-webkit-scrollbar-track { background: transparent; }
 .tdExtrasSection::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
 
+/* Только opacity, без transform: если у слова class сменится на tdExtraChipUsed
+   (см. ниже) раньше, чем эта анимация доиграет свои 0.3с, свойство animation
+   у элемента переключается на tableGridCellFlash — старая анимация обрывается
+   ДО того, как translateY доехал до 0, и слово/список видимо «дёргаются» вниз-вверх.
+   На чистом opacity такого разрыва не видно (нечему «долетать» по позиции). */
 @keyframes tdChipIn {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .tdExtraChip {

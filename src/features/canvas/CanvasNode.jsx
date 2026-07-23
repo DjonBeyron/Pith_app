@@ -318,17 +318,28 @@ export default function CanvasNode({
           </>
         )}
         {node.type === 'table' && (
-          <NodeTablePicker
-            tData={tData}
-            onDataChange={patch => updateTypeData(patch)}
-            lessonFiles={lessonFiles}
-            onPickFile={f => onPickLessonFile(f)}
-            triggers={node.triggers ?? []}
-            allNodes={allNodes}
-            nodeId={node.id}
-            onTriggersChange={triggers => onUpdate({ triggers })}
-            onTriggerMeasure={onTriggerMeasure}
-          />
+          <>
+            <NodeTablePicker
+              tData={tData}
+              onDataChange={patch => updateTypeData(patch)}
+              lessonFiles={lessonFiles}
+              onPickFile={f => onPickLessonFile(f)}
+              triggers={node.triggers ?? []}
+              allNodes={allNodes}
+              nodeId={node.id}
+              onTriggersChange={triggers => onUpdate({ triggers })}
+              onTriggerMeasure={onTriggerMeasure}
+            />
+            <NodeLessonLink
+              value={tData.statLessonId ?? null}
+              onChange={v => updateTypeData({ statLessonId: v })}
+              moduleLessons={moduleLessons}
+            />
+            <NodeRewardCheckbox
+              checked={tData.reward !== false}
+              onChange={v => updateTypeData({ reward: v })}
+            />
+          </>
         )}
         {node.type === 'photo_choice' && (
           <>
