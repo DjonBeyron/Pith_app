@@ -14,6 +14,7 @@
   color: #e0e0e0;
   padding: 8px 6px;
   font-size: 13px;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
   line-height: 1.3;
   display: flex;
   align-items: center;
@@ -37,10 +38,32 @@
   color: #666;
 }
 
-/* Свечение при подсветке диктором — доработается на этапе B (таймлайн) */
+/* Заголовок — назначается в конструкторе (не по времени, навсегда): текст
+   жирнее, фон чуть темнее базового #1a1d22 */
+.tableGridCellHeader { background: #131519; }
+.tableGridCellHeader .tableGridCellText { font-weight: 700; }
+
+/* Свечение при подсветке диктором: фон слегка зеленеет и сам текст зеленеет —
+   обводка (рамка) ячейки остаётся нейтральной, не зеленеет.
+   При появлении — плавное тройное микро-мигание (см. keyframes ниже, общий для
+   ячейки таблицы и слова-кандидата из списка — .tdExtraChipUsed), затем без
+   скачка устаканивается в статичные значения этого же правила. */
 .tableGridCellHighlighted {
   background: rgba(182, 254, 59, 0.18);
-  box-shadow: inset 0 0 0 1.5px #b6fe3b;
+  color: #b6fe3b;
+  animation: tableGridCellFlash 0.6s ease-in-out;
+}
+
+/* Плавные, не слишком яркие переходы (без резких «скачков» между кадрами) —
+   пик фона снижен с 0.45 до 0.28. */
+@keyframes tableGridCellFlash {
+  0%   { background: rgba(182, 254, 59, 0.18); color: #b6fe3b; }
+  16%  { background: rgba(182, 254, 59, 0.28); color: #b6fe3b; }
+  33%  { background: rgba(182, 254, 59, 0.08); color: #dfe2e6; }
+  50%  { background: rgba(182, 254, 59, 0.28); color: #b6fe3b; }
+  66%  { background: rgba(182, 254, 59, 0.08); color: #dfe2e6; }
+  83%  { background: rgba(182, 254, 59, 0.28); color: #b6fe3b; }
+  100% { background: rgba(182, 254, 59, 0.18); color: #b6fe3b; }
 }
 
 /* Уже отыграла в дикторе: фон ячейки возвращается к обычному (подсветка снята),
@@ -49,3 +72,10 @@
   color: rgba(224, 224, 224, 0.4);
   transition: color 0.25s ease;
 }
+
+/* Проявление текста ячейки (независимо от подсветки) — по клипу-«проявлению»
+   на таймлайне диктора. Скрывается только текст, фон/рамка ячейки на месте. */
+.tableGridCellText {
+  transition: opacity 0.15s ease;
+}
+.tableGridCellTextHidden { opacity: 0; }

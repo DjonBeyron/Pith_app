@@ -18,6 +18,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   const [currentTime, setCurrentTime] = useState(0)
 
   const cells       = table?.cells ?? []
+  const cellById    = new Map(cells.map(c => [c.id, c]))
   const sortedCells = [...cells].sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col)
   const [newCellId, setNewCellId] = useState(sortedCells[0]?.id ?? null)
 
@@ -25,8 +26,21 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   const waveRef  = useRef(null)
   const ownedRef = useRef(null)
 
-  const { layers, initClips, toggleVisible, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, getTimeline } = useTableTimelineEdit(timeline, cells)
+  const { layers, initClips, toggleVisible, toggleHighlight, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, getTimeline } = useTableTimelineEdit(timeline, cells)
   const lastWordLayerId = findLastWordLayerId(layers)
+  // Таймлайн всегда на 10с длиннее аудио — есть куда поставить проверку ПОСЛЕ конца аудио.
+  // Нужен и здесь (не только ниже, для вёрстки): дефолтная длина клипа-проявления ячейки.
+  const timelineDur = localDuration ? localDuration + 10 : 0
+
+  // Порядок дорожек: сначала все cell-слои по столбцам (весь столбец 1 сверху вниз,
+  // потом столбец 2, ...), word/check-слои — после них, в своём обычном порядке.
+  const sortedLayers = [...layers].sort((a, b) => {
+    const ca = cellById.get(a.cellId), cb = cellById.get(b.cellId)
+    if (ca && cb) return ca.col !== cb.col ? ca.col - cb.col : ca.row - cb.row
+    if (ca && !cb) return -1
+    if (!ca && cb) return 1
+    return 0
+  })
 
   function syncWordLayers() {
     const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
@@ -50,7 +64,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   }, []) // eslint-disable-line
 
   useEffect(() => {
-    initClips(localDuration)
+    initClips(localDuration, timelineDur)
     if (!localDuration || !answer?.trim()) return
     // Авто-добавление word-слоёв для слов вне таблицы
     const words = answer.trim().split(/\s+/).filter(Boolean)
@@ -117,8 +131,13 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     if (isPlaying) { a.pause() } else { a.play().catch(() => {}) }
   }
 
-  // Таймлайн всегда на 10с длиннее аудио — есть куда поставить проверку ПОСЛЕ конца аудио.
-  const timelineDur = localDuration ? localDuration + 10 : 0
+  // Клик/протяжка по линейке (как в Premiere) — ставит плейхед; play/пробел продолжат
+  // именно отсюда, т.к. это просто currentTime самого <audio>.
+  function handleSeek(t) {
+    if (audioRef.current) audioRef.current.currentTime = t
+    setCurrentTime(t)
+  }
+
   const stripPx = Math.max(200, Math.round(timelineDur * 80))
   // Канвас волны занимает только аудио-часть таймлайна (первую), дальше — пусто.
   const wavePx  = timelineDur ? Math.round(stripPx * localDuration / timelineDur) : stripPx
@@ -162,8 +181,11 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
       </div>
 
       <div className="tlTracks">
-        {/* Линейка времени (засечки 0.1с + подписи секунд) — над всеми дорожками */}
-        {timelineDur ? <TableTimelineRuler duration={timelineDur} stripPx={stripPx} /> : null}
+        {/* Линейка времени (засечки 0.1с + подписи секунд) — над всеми дорожками.
+            Клик/протяжка по ней ставит плейхед (синяя линия) — play/пробел играют оттуда. */}
+        {timelineDur ? (
+          <TableTimelineRuler duration={timelineDur} stripPx={stripPx} currentTime={currentTime} onSeek={handleSeek} />
+        ) : null}
         {/* Спектр — только аудио-часть (слева); справа пустой хвост таймлайна */}
         {localBlobUrl && (
           <div className="tlWaveTrack">
@@ -174,7 +196,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
             <div className="tlWaveSpacerR" />
           </div>
         )}
-        {layers.map(layer => (
+        {sortedLayers.map(layer => (
           <TableTimelineTrack
             key={layer.id}
             layer={layer}
@@ -184,7 +206,9 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
             stripPx={stripPx}
             isLastWord={layer.id === lastWordLayerId}
             onToggleVisible={() => toggleVisible(layer.id)}
-            onUpdateClip={clip => updateClip(layer.id, clip)}
+            onToggleHighlight={() => toggleHighlight(layer.id)}
+            onUpdateClip={clip => updateClip(layer.id, clip, 0)}
+            onUpdateReveal={clip => updateClip(layer.id, clip, 1)}
             onRemove={() => removeLayer(layer.id)}
           />
         ))}
@@ -199,7 +223,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
               </option>
             ))}
           </select>
-          <button className="tlAddTrackBtn" onClick={() => addLayer(newCellId, localDuration)}>
+          <button className="tlAddTrackBtn" onClick={() => addLayer(newCellId, localDuration, timelineDur)}>
             + Дорожка
           </button>
         </div>

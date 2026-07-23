@@ -46,8 +46,12 @@
   80%       { transform: translateX(3px); }
 }
 
-.tmAnswerPlaceholder { color: #3a4050; font-size: 14px; }
+.tmAnswerPlaceholder {
+  color: #3a4050; font-size: 14px;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+}
 
+/* Собранное (уже выбранное) слово — как заголовок: жирный шрифт */
 .tmAnswerChip {
   padding: 5px 11px;
   background: rgba(182, 254, 59, 0.10);
@@ -55,7 +59,7 @@
   border-radius: 20px;
   color: #b6fe3b;
   font-size: 14px;
-  font-family: inherit;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif; font-weight: 700;
   cursor: pointer;
   transition: background 0.15s, opacity 0.15s;
 }
@@ -105,19 +109,24 @@
 }
 
 .tmExtraChip {
-  width: 100%; max-width: 320px; flex-shrink: 0;
+  width: 100%; max-width: 320px; flex-shrink: 0; position: relative;
   padding: 12px 8px;
   background: transparent;
-  border: none; border-bottom: 1px solid rgba(255,255,255,0.10);
+  border: none; border-radius: 8px;
   color: #ccc;
   font-size: 14px;
-  font-family: inherit;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
   cursor: pointer;
   text-align: center;
-  transition: color 0.15s;
+  transition: color 0.15s, background 0.15s;
   animation: tmChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.tmExtrasSection > .tmExtraChip:last-child { border-bottom: none; }
+/* Разделитель — короткая линия со скруглёнными краями по центру, не сплошная
+   во всю ширину (та же логика, что и в режиме диктора) */
+.tmExtrasSection > .tmExtraChip:not(:last-child)::after {
+  content: ''; position: absolute; left: 25%; right: 25%; bottom: 0;
+  height: 2px; border-radius: 2px; background: rgba(255,255,255,0.12);
+}
 .tmExtraChip:not(:disabled):hover  { color: #b6fe3b; }
 .tmExtraChip:not(:disabled):active { color: #9ee62f; }
 .tmExtraChipUsed { opacity: 0.25; cursor: default; pointer-events: none; }

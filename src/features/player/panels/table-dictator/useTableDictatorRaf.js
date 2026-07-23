@@ -3,7 +3,7 @@ import { WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { logHudState } from './dictatorDebug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
-import { EXTRA_LEAD_IN_S, EXTRA_LEAD_IN_LAST_S, findLastWordLayerId } from '../../../../shared/lib/tableDictatorTiming.js'
+import { EXTRA_LEAD_IN_S, EXTRA_LEAD_IN_LAST_S, findLastWordLayerId, computeRevealedCellIds, sameIdSet } from '../../../../shared/lib/tableDictatorTiming.js'
 
 const HUD_OFFSETS    = [-1, 0, 1]
 const HUD_ALPHA_UP   = [0.60, 0.75, 0.50]
@@ -15,6 +15,7 @@ export function useTableDictatorRaf({
   barElsRef, barSmoothRef, rfxPhaseRef, rfxChipsRef, rfxAssembRef, rfxCheckRef, rfxCloseRef, timers,
   extraFromAnswer, shuffledExtras, checkRef, closeRef,
   setAssembled, setExtrasAssembled, setHighlighted, setUsedCells, setActiveExtraKeys, setPhase, setChipsVisible,
+  setRevealedIds,
 }) {
   useEffect(() => {
     if (!playing) { cancelAnimationFrame(rafRef.current); return }
@@ -22,6 +23,7 @@ export function useTableDictatorRaf({
     // Heartbeat: раз в ~0.5с пишем время аудио + активные ячейки/фазу (throttle, не спамим кадрами)
     let lastHb = -1
     let hudLogged = false
+    let prevReveal = null   // последний посчитанный набор проявленных ячеек (не дёргать setState зря)
     const greenedKeys = new Set()   // какие word-чипы уже загорались зелёным (чтобы 1 раз)
     const cellVal = id => cells.find(c => c.id === id)?.value?.trim() ?? `id=${id}`
 
@@ -46,9 +48,12 @@ export function useTableDictatorRaf({
       }
 
       for (const layer of timeline?.layers ?? []) {
-        if (layer.visible === false) continue
-        if (!layer.clips?.some(c => t >= c.start && t < c.end)) continue
         if (!layer.cellId) continue
+        if (layer.visible === false || layer.highlightOn === false) continue
+        // clips[0] — подсветка (clips[1], если есть, — независимое проявление текста,
+        // на неё здесь не смотрим, у неё своя логика в computeRevealedCellIds)
+        const hlClip = layer.clips?.[0]
+        if (!hlClip || t < hlClip.start || t >= hlClip.end) continue
         active.add(layer.cellId)
         const key = `cell-${layer.cellId}`
         if (!addedCellsRef.current.has(key)) {
@@ -57,8 +62,7 @@ export function useTableDictatorRaf({
           if (val) {
             // По требованию: слово падает в бокс через 0.3с ПОСЛЕ начала подсветки ячейки
             pLog(`[td-raf] ЯЧЕЙКА-ON "${val}" t=${t.toFixed(3)}s → в бокс через 0.3с`)
-            const cfgClip = layer.clips?.[0]
-            glowOn(key, `ЯЧЕЙКА "${val}"`, cfgClip ? cfgClip.end - cfgClip.start : 0)
+            glowOn(key, `ЯЧЕЙКА "${val}"`, hlClip.end - hlClip.start)
             const id = setTimeout(() => {
               assembledRef.current.push(val)
               setAssembled(prev => [...prev, val])
@@ -97,6 +101,15 @@ export function useTableDictatorRaf({
         setHighlighted(new Set(active))
         // Отыгравшие ячейки затемняем до 40% (по требованию: «выбранный текст → opacity 40%»)
         if (exited.length) setUsedCells(prev => new Set([...prev, ...exited]))
+      }
+
+      // Проявление текста ячеек (независимо от подсветки) — по clips[1] cell-слоя.
+      // По умолчанию клип во всю длину таймлайна (текст виден всегда), но автор мог
+      // подрезать его — тогда текст появляется/исчезает по opacity в нужный момент.
+      const revealedNow = computeRevealedCellIds(timeline?.layers, t)
+      if (!prevReveal || !sameIdSet(revealedNow, prevReveal)) {
+        prevReveal = revealedNow
+        setRevealedIds(revealedNow)
       }
 
       // ── Extras (слова вне таблицы) при наличии word-слоёв ──

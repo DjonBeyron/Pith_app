@@ -4,8 +4,11 @@ function uid() { return crypto.randomUUID() }
 
 // Один слой = одна ячейка + один клип [{start, end}] + visible.
 // Дефолтные слои (isDefault=true) нельзя удалить; extra-слои — можно.
+// highlightOn — независимый от visible переключатель ТОЛЬКО зелёного клипа
+// (подсветка+выбор ячейки в ответ): выключен — ячейка не подсвечивается и не
+// падает в собранную фразу, но проявление текста (второй клип) работает как обычно.
 function buildDefaultLayers(cells) {
-  return cells.map(c => ({ id: uid(), cellId: c.id, visible: true, clips: [], isDefault: true }))
+  return cells.map(c => ({ id: uid(), cellId: c.id, visible: true, highlightOn: true, clips: [], isDefault: true }))
 }
 
 function restoreLayers(saved, cells) {
@@ -16,6 +19,7 @@ function restoreLayers(saved, cells) {
     word: l.word,
     isCheck: l.isCheck ?? false,
     visible: l.visible !== false,
+    highlightOn: l.highlightOn !== false,
     clips: l.clips ?? [],
     isDefault: !!l.cellId && cellIdSet.has(l.cellId),
   }))
@@ -23,7 +27,7 @@ function restoreLayers(saved, cells) {
   const existingCellIds = new Set(restored.filter(l => l.isDefault).map(l => l.cellId))
   cells.forEach(c => {
     if (!existingCellIds.has(c.id)) {
-      restored.push({ id: uid(), cellId: c.id, visible: true, clips: [], isDefault: true })
+      restored.push({ id: uid(), cellId: c.id, visible: true, highlightOn: true, clips: [], isDefault: true })
     }
   })
   return restored
@@ -36,28 +40,51 @@ export function useTableTimelineEdit(initialTimeline, cells) {
       : buildDefaultLayers(cells),
   )
 
-  // Заполнить пустые клипы: ширина 1 с (или полная длина, если аудио короче)
-  const initClips = useCallback((dur) => {
+  // У cell-слоя (не word, не check) — два клипа: [0] подсветка (как раньше),
+  // [1] проявление — серый, независимый, по умолчанию во всю длину таймлайна
+  // (текст ячейки виден весь ролик, пока автор не подрежет).
+  const isCellOnly = (l) => !!l.cellId && !l.word && !l.isCheck
+
+  // Заполнить пустые клипы: подсветка — 1с (или полная длина, если аудио короче);
+  // проявление (только у cell-слоёв) — весь таймлайн. Старые сохранённые cell-слои
+  // с одним клипом (до появления проявления) — дополняем вторым дефолтным клипом.
+  const initClips = useCallback((dur, timelineDur) => {
     if (!dur) return
-    setLayers(prev => prev.map(l =>
-      l.clips.length === 0 ? { ...l, clips: [{ start: 0, end: Math.min(1, dur) }] } : l,
-    ))
+    setLayers(prev => prev.map(l => {
+      if (l.clips.length === 0) {
+        const highlight = { start: 0, end: Math.min(1, dur) }
+        return { ...l, clips: isCellOnly(l) ? [highlight, { start: 0, end: timelineDur ?? dur }] : [highlight] }
+      }
+      if (isCellOnly(l) && l.clips.length === 1) {
+        return { ...l, clips: [...l.clips, { start: 0, end: timelineDur ?? dur }] }
+      }
+      return l
+    }))
   }, [])
 
   const toggleVisible = useCallback((id) => {
     setLayers(prev => prev.map(l => l.id === id ? { ...l, visible: !l.visible } : l))
   }, [])
 
-  const updateClip = useCallback((id, clip) => {
-    setLayers(prev => prev.map(l =>
-      l.id === id ? { ...l, clips: [{ start: clip.start, end: clip.end }] } : l,
-    ))
+  // Независимый глазик самого зелёного (подсветка+выбор) клипа — только у cell-слоя.
+  const toggleHighlight = useCallback((id) => {
+    setLayers(prev => prev.map(l => l.id === id ? { ...l, highlightOn: !(l.highlightOn !== false) } : l))
   }, [])
 
-  const addLayer = useCallback((cellId, dur) => {
+  // clipIndex: 0 = подсветка (по умолчанию), 1 = проявление (только у cell-слоёв)
+  const updateClip = useCallback((id, clip, clipIndex = 0) => {
+    setLayers(prev => prev.map(l => {
+      if (l.id !== id) return l
+      const clips = [...l.clips]
+      clips[clipIndex] = { start: clip.start, end: clip.end }
+      return { ...l, clips }
+    }))
+  }, [])
+
+  const addLayer = useCallback((cellId, dur, timelineDur) => {
     setLayers(prev => [...prev, {
-      id: uid(), cellId, visible: true,
-      clips: dur ? [{ start: 0, end: Math.min(1, dur) }] : [],
+      id: uid(), cellId, visible: true, highlightOn: true,
+      clips: dur ? [{ start: 0, end: Math.min(1, dur) }, { start: 0, end: timelineDur ?? dur }] : [],
       isDefault: false,
     }])
   }, [])
@@ -102,9 +129,9 @@ export function useTableTimelineEdit(initialTimeline, cells) {
       // Плеер проверяет layer.visible сам и игнорирует скрытые.
       layers: layers
         .filter(l => l.clips.length > 0)
-        .map(({ id, cellId, word, isCheck, visible, clips }) => ({ id, cellId, word, isCheck, visible, clips })),
+        .map(({ id, cellId, word, isCheck, visible, highlightOn, clips }) => ({ id, cellId, word, isCheck, visible, highlightOn, clips })),
     }
   }
 
-  return { layers, initClips, toggleVisible, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, getTimeline }
+  return { layers, initClips, toggleVisible, toggleHighlight, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, getTimeline }
 }

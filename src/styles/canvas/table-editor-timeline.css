@@ -65,10 +65,18 @@
 .tlTracks::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
 .tlTracks::-webkit-scrollbar-corner { background: transparent; }
 
-/* Одна дорожка */
-.tlTrack { display: flex; align-items: center; gap: 6px; height: 34px; }
+/* Одна дорожка. Тонкая граница снизу — чтобы соседние дорожки отчётливо читались
+   как отдельные строки, а не сливались в один блок. */
+.tlTrack {
+  display: flex; align-items: center; gap: 6px; height: 34px;
+  border-bottom: 1px solid rgba(255,255,255,0.09);
+}
 .tlTrackHidden .tlTrackStrip,
 .tlTrackHidden .tlTrackLabel { opacity: 0.28; }
+
+/* Дорожка ячейки — выше обычной: в одной строке два независимых клипа
+   (подсветка сверху, проявление снизу), см. .tlTrackStripDual. */
+.tlTrackCell { height: 46px; }
 
 .tlEye {
   width: 22px; height: 22px; flex-shrink: 0; border: none;
@@ -86,6 +94,8 @@
   flex: 1; height: 26px; background: rgba(255,255,255,0.05);
   border-radius: 5px; position: relative; overflow: hidden; user-select: none;
 }
+/* Строка ячейки — выше, чтобы вместить два клипа лентами друг под другом */
+.tlTrackStripDual { height: 38px; }
 
 /* Клип с ручками ресайза */
 .tlClip {
@@ -93,6 +103,30 @@
   background: rgba(182,254,59,0.35); border: 1px solid #b6fe3b;
   border-radius: 4px; display: flex; align-items: stretch; min-width: 8px;
 }
+/* В дорожке ячейки клип подсветки — верхняя лента (нижняя — проявление, .tlClipReveal) */
+.tlClipHighlight { top: 2px; height: 16px; bottom: auto; }
+/* Подсветка+выбор выключены собственным 👁 клипа (независимо от 👁 всей дорожки) —
+   остаётся зелёным, но тускло, чтобы не путать с обычной серой orphan/reveal-лентой */
+.tlClipHighlightOff { background: rgba(182,254,59,0.08); border-color: rgba(182,254,59,0.22); }
+.tlClipHighlightOff .tlClipHandleL,
+.tlClipHighlightOff .tlClipHandleR { background: rgba(182,254,59,0.22); }
+
+/* Мини-глазик прямо на клипе подсветки — гасит только его, не весь ряд */
+.tlClipEye {
+  position: absolute; z-index: 2; right: 2px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; padding: 0; border: none; border-radius: 3px;
+  background: rgba(0,0,0,0.35); color: #b6fe3b; font-size: 9px; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.tlClipEye:hover { background: rgba(0,0,0,0.6); }
+/* Проявление — серый, нижняя лента: когда текст ячейки виден (появляется/исчезает
+   по краям клипа). Независим от подсветки — тот же смысл клипа/ручек, другой слой. */
+.tlClipReveal {
+  top: auto; bottom: 2px; height: 16px;
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.4);
+}
+.tlClipReveal .tlClipHandleL,
+.tlClipReveal .tlClipHandleR { background: rgba(255,255,255,0.55); }
 .tlClipHandleL, .tlClipHandleR {
   width: 8px; flex-shrink: 0;
   background: rgba(182,254,59,0.6); cursor: ew-resize;
@@ -102,9 +136,13 @@
 .tlClipBody { flex: 1; cursor: grab; }
 .tlClipBody:active { cursor: grabbing; }
 
+/* Плейхед (как в Premiere) — ставится кликом/протяжкой по линейке (TableTimelineRuler),
+   показывается тут же и на каждой дорожке (currentTime общий). Play/пробел играют отсюда.
+   z-index выше, чем у .tlClipLeadIn (1) и .tlClipEye (2) — иначе штриховка лид-ина
+   перекрывает линию местами, и она выглядит пунктирной вместо сплошной. */
 .tlCursor {
-  position: absolute; top: 0; bottom: 0; width: 2px;
-  background: rgba(255,255,255,0.55); pointer-events: none; transform: translateX(-50%);
+  position: absolute; top: 0; bottom: 0; width: 2px; z-index: 5;
+  background: #4da3ff; pointer-events: none; transform: translateX(-50%);
 }
 
 .tlRemoveLayer {
@@ -193,7 +231,8 @@
   display: flex; align-items: flex-end; gap: 6px;
   height: 20px; flex-shrink: 0; margin-bottom: 2px;
 }
-.tlRulerStrip { flex: 1; position: relative; height: 100%; }
+/* cursor:pointer — намёк, что по линейке можно кликать/тащить, ставя плейхед */
+.tlRulerStrip { flex: 1; position: relative; height: 100%; cursor: pointer; user-select: none; }
 .tlTick {
   position: absolute; bottom: 0; width: 1px; height: 4px;
   background: rgba(255,255,255,0.16); transform: translateX(-50%);

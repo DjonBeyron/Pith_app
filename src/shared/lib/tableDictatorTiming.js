@@ -31,3 +31,25 @@ export function findLastWordLayerId(layers) {
   }
   return lastId
 }
+
+// Проявление текста ячейки — независимый от подсветки clips[1] у cell-слоя
+// (серый клип на таймлайне, по умолчанию во всю его длину). Возвращает id ячеек,
+// чей текст виден в момент t. Слой без второго клипа (старые данные) или
+// скрытый (visible:false) — текст всегда виден (без гейтинга, как раньше).
+export function computeRevealedCellIds(layers, t) {
+  const revealed = new Set()
+  for (const l of layers ?? []) {
+    if (!l.cellId || l.word || l.isCheck) continue
+    const reveal = l.clips?.[1]
+    if (l.visible === false || !reveal) { revealed.add(l.cellId); continue }
+    if (t >= reveal.start && t < reveal.end) revealed.add(l.cellId)
+  }
+  return revealed
+}
+
+// Сравнение двух Set — чтобы не дёргать setState, если состав не изменился.
+export function sameIdSet(a, b) {
+  if (a.size !== b.size) return false
+  for (const id of a) if (!b.has(id)) return false
+  return true
+}

@@ -38,16 +38,23 @@ export function useTableGrid(initialTable) {
   const clearSelection = useCallback(() => setSelection(null), [])
 
   const canMerge = !!selection && G.canMergeSelection(table.cells, selection.r1, selection.c1, selection.r2, selection.c2)
+  const isHeaderSelected = !!selection &&
+    G.isHeaderSelection(table.cells, table.rowCount, table.colCount, selection.r1, selection.c1, selection.r2, selection.c2)
 
   const mergeSelected = useCallback(() => {
     setTable(t => (selection ? G.mergeSelection(t, selection.r1, selection.c1, selection.r2, selection.c2) : t))
     setSelection(null)
   }, [selection])
 
+  // Ставит/снимает isHeader сразу у всех ячеек выделения (см. tableGridUtils.js:toggleHeaderSelection)
+  const toggleHeaderSelected = useCallback(() => {
+    setTable(t => (selection ? G.toggleHeaderSelection(t, selection.r1, selection.c1, selection.r2, selection.c2) : t))
+  }, [selection])
+
   return {
-    table, selection, canMerge,
+    table, selection, canMerge, isHeaderSelected,
     addRow, addColumn, removeRow, removeColumn,
     setCellValue, setColumnWidth, setRowHeight, splitCell, loadTable,
-    startSelect, extendSelect, endSelect, clearSelection, mergeSelected,
+    startSelect, extendSelect, endSelect, clearSelection, mergeSelected, toggleHeaderSelected,
   }
 }

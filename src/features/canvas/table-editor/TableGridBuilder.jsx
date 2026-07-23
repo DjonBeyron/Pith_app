@@ -7,9 +7,9 @@ import TableResizeHandles from './TableResizeHandles.jsx'
 // Два режима: «редактирование» (дефолт, клики = ввод текста) и «выделение»
 // (все клики идут в drag-выделение → можно объединять/разбивать).
 export default function TableGridBuilder({ grid }) {
-  const { table, selection, canMerge, addRow, addColumn, removeRow, removeColumn,
+  const { table, selection, canMerge, isHeaderSelected, addRow, addColumn, removeRow, removeColumn,
     setCellValue, setColumnWidth, setRowHeight, startSelect, extendSelect, endSelect,
-    clearSelection, mergeSelected, splitCell } = grid
+    clearSelection, mergeSelected, splitCell, toggleHeaderSelected } = grid
 
   const draggingRef = useRef(false)
   const gridRef = useRef(null)
@@ -76,6 +76,11 @@ export default function TableGridBuilder({ grid }) {
           <>
             <button onClick={handleMerge} disabled={!canMerge}>Объединить</button>
             <button onClick={handleSplit} disabled={!singleSelectedCell}>Разбить</button>
+            <button
+              onClick={toggleHeaderSelected}
+              disabled={!selection}
+              title="Заголовок: текст жирнее, фон ячейки чуть темнее — навсегда, не по времени"
+            >{isHeaderSelected ? '✓ Заголовок' : 'Заголовок'}</button>
             <button onClick={clearSelection} disabled={!selection}>Сбросить</button>
           </>
         )}
@@ -99,7 +104,7 @@ export default function TableGridBuilder({ grid }) {
           {table.cells.map(cell => (
             <div
               key={cell.id}
-              className={`tableBuilderCell${inSelection(cell) ? ' tableBuilderCellSelected' : ''}`}
+              className={`tableBuilderCell${cell.isHeader ? ' tableBuilderCellHeader' : ''}${inSelection(cell) ? ' tableBuilderCellSelected' : ''}`}
               style={{
                 gridColumn: `${cell.col + 1} / span ${cell.colspan}`,
                 gridRow: `${cell.row + 1} / span ${cell.rowspan}`,

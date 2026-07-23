@@ -63,6 +63,11 @@
   outline-offset: -1.5px;
 }
 
+/* Заголовок — навсегда (не по времени, в отличие от подсветки диктора):
+   текст жирнее, фон чуть темнее базового #1a1d22 */
+.tableBuilderCellHeader { background: #131519; }
+.tableBuilderCellHeader .tableBuilderCellInput { font-weight: 700; }
+
 .tableBuilderCellInput {
   flex: 1;
   background: transparent;

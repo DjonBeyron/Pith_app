@@ -5,6 +5,7 @@ import { useTableDictatorRaf } from './useTableDictatorRaf.js'
 import { logDictatorConfig, logFileResolution, logAudioPlayRejected, logAudioError } from './dictatorDebug.js'
 import { evaluateDictator } from './dictatorCheck.js'
 import { schedulePostAudioCheck } from './dictatorPostAudio.js'
+import { computeRevealedCellIds } from '../../../../shared/lib/tableDictatorTiming.js'
 
 function deriveTokens(answer, cells) {
   const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
@@ -65,6 +66,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
   const [hudVisible,      setHudVisible]      = useState(false)
   const [highlighted,     setHighlighted]     = useState(new Set())
   const [usedCells,       setUsedCells]       = useState(new Set())
+  const [revealedIds,     setRevealedIds]     = useState(() => computeRevealedCellIds(timeline?.layers, 0))
   const [assembled,       setAssembled]       = useState([])
   const [extrasAssembled, setExtrasAssembled] = useState([])
   const [activeExtraKeys, setActiveExtraKeys] = useState(new Set())
@@ -200,6 +202,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
     barElsRef, barSmoothRef, rfxPhaseRef, rfxChipsRef, rfxAssembRef, rfxCheckRef, rfxCloseRef, timers,
     extraFromAnswer, shuffledExtras, checkRef, closeRef,
     setAssembled, setExtrasAssembled, setHighlighted, setUsedCells, setActiveExtraKeys, setPhase, setChipsVisible,
+    setRevealedIds,
   })
 
   function slideDown(trigger) {
@@ -229,7 +232,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
         timeline, cells, shuffledExtras, checkAt, checkOut, audioRef, timers,
         rfxChipsRef, rfxCheckRef, rfxCloseRef, addedCellsRef, assembledRef,
         setPhase, setChipsVisible, setAssembled, setExtrasAssembled,
-        setHighlighted, setUsedCells, setActiveExtraKeys, checkRef, closeRef,
+        setHighlighted, setUsedCells, setActiveExtraKeys, setRevealedIds, checkRef, closeRef,
       })
       return
     }
@@ -324,6 +327,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
                   rowCount={table.rowCount}
                   highlightedIds={highlighted}
                   dimmedIds={usedCells}
+                  revealedIds={revealedIds}
                 />
               </div>
             </div>
@@ -380,6 +384,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
                 closeTriggerRef.current   = null
                 setHighlighted(new Set()); setUsedCells(new Set())
                 setActiveExtraKeys(new Set())
+                setRevealedIds(computeRevealedCellIds(timeline?.layers, 0))
               }}
               onPause={() => setPlaying(false)}
               onEnded={handleEnded}

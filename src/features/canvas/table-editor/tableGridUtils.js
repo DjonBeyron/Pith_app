@@ -119,6 +119,23 @@ export function setCellValue(table, cellId, value) {
   return { ...table, cells: table.cells.map(c => (c.id === cellId ? { ...c, value } : c)) }
 }
 
+// true, только если ВСЕ ячейки в выделении уже заголовки — используется, чтобы
+// решить, что делает toggleHeaderSelection дальше (снять со всех / поставить всем).
+export function isHeaderSelection(cells, rowCount, colCount, r1, c1, r2, c2) {
+  const occ = buildOccupancy(cells, rowCount, colCount)
+  const ids = new Set()
+  for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) ids.add(occ[r][c])
+  return ids.size > 0 && [...ids].every(id => cells.find(c => c.id === id)?.isHeader)
+}
+
+export function toggleHeaderSelection(table, r1, c1, r2, c2) {
+  const allHeader = isHeaderSelection(table.cells, table.rowCount, table.colCount, r1, c1, r2, c2)
+  const occ = buildOccupancy(table.cells, table.rowCount, table.colCount)
+  const ids = new Set()
+  for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) ids.add(occ[r][c])
+  return { ...table, cells: table.cells.map(c => (ids.has(c.id) ? { ...c, isHeader: !allHeader } : c)) }
+}
+
 export function addRow(table) {
   const row = table.rowCount
   const newCells = Array.from({ length: table.colCount }, (_, c) => ({
