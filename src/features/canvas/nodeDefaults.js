@@ -18,6 +18,7 @@ const TYPED_PAIRS = {
   phrase_assembly: ['phrase_correct', 'phrase_wrong'],
   photo_choice:    ['photo_correct',  'photo_wrong'],
   registration:    ['reg_submit',     'reg_cancel'],
+  table:           ['table_correct',  'table_wrong'],
 }
 
 // Дефолтный триггер обычных типов: медиа со звуком — «воспроизведено до конца»,
@@ -31,8 +32,6 @@ const DEFAULT_TRIGGER = {
   sticker:     { if: 'timer', ms: 2000 },
   system:      { if: 'timer', ms: 2000 },
   pin_message: { if: 'timer', ms: 2000 },
-  // Этап C: при добавлении режима «Клик» триггер поменяется на пару correct/wrong.
-  table:       { if: 'played' },
 }
 
 // Триггеры для ноды типа type; keepThen — существующая связь, которую надо

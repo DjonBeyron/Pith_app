@@ -9,13 +9,15 @@ function buildDefaultLayers(cells) {
 }
 
 function restoreLayers(saved, cells) {
-  const defaultIds = cells.map(c => c.id)
-  const restored = saved.map((l, i) => ({
+  const cellIdSet = new Set(cells.map(c => c.id))
+  const restored = saved.map(l => ({
     id: l.id ?? uid(),
     cellId: l.cellId,
+    word: l.word,
+    isCheck: l.isCheck ?? false,
     visible: l.visible !== false,
     clips: l.clips ?? [],
-    isDefault: i < defaultIds.length,
+    isDefault: !!l.cellId && cellIdSet.has(l.cellId),
   }))
   // Если ячеек стало больше — добавить недостающие дефолтные слои
   const existingCellIds = new Set(restored.filter(l => l.isDefault).map(l => l.cellId))
@@ -60,17 +62,49 @@ export function useTableTimelineEdit(initialTimeline, cells) {
     }])
   }, [])
 
+  // Дорожка для слова вне таблицы (авто-режим: слово появляется в боксе по таймлайну)
+  // Дедуплицирует: если дорожка для этого слова уже есть — ничего не делает.
+  const addWordLayer = useCallback((word, dur) => {
+    setLayers(prev => {
+      if (prev.some(l => l.word?.toLowerCase() === word.toLowerCase())) return prev
+      return [...prev, {
+        id: uid(), word, visible: true,
+        clips: dur ? [{ start: 0, end: Math.min(1, dur) }] : [],
+        isDefault: false,
+      }]
+    })
+  }, [])
+
+  // Дорожка «Проверить» — плеер запускает проверку когда достигает начала клипа.
+  // force=true (по умолчанию): заменяет существующую. force=false: добавляет только если нет.
+  const addCheckLayer = useCallback((dur, force = true) => {
+    setLayers(prev => {
+      if (!force && prev.some(l => l.isCheck)) return prev
+      const without = prev.filter(l => !l.isCheck)
+      const start = Math.max(0, (dur ?? 0) - 0.3)
+      return [...without, {
+        id: uid(), isCheck: true, visible: true,
+        clips: dur ? [{ start, end: dur }] : [],
+        isDefault: false,
+      }]
+    })
+  }, [])
+
+  // Word и check слои нельзя удалить — только скрыть.
   const removeLayer = useCallback((id) => {
-    setLayers(prev => prev.filter(l => l.id !== id || l.isDefault))
+    setLayers(prev => prev.filter(l => l.id !== id || l.isDefault || l.word || l.isCheck))
   }, [])
 
   function getTimeline() {
     return {
+      // Сохраняем ВСЕ слои с клипами (включая скрытые) — чтобы состояние
+      // visible и позиции клипов не терялись при повторном открытии редактора.
+      // Плеер проверяет layer.visible сам и игнорирует скрытые.
       layers: layers
-        .filter(l => l.visible && l.clips.length > 0)
-        .map(({ id, cellId, visible, clips }) => ({ id, cellId, visible, clips })),
+        .filter(l => l.clips.length > 0)
+        .map(({ id, cellId, word, isCheck, visible, clips }) => ({ id, cellId, word, isCheck, visible, clips })),
     }
   }
 
-  return { layers, initClips, toggleVisible, updateClip, addLayer, removeLayer, getTimeline }
+  return { layers, initClips, toggleVisible, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, getTimeline }
 }

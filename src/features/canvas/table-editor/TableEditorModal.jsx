@@ -11,6 +11,7 @@ import TableTimelineEditor from './TableTimelineEditor.jsx'
 // Правки локальны до нажатия «Сохранить»; onSave получает полный объект tData.
 export default function TableEditorModal({
   initialTable, initialFileId, initialWaveformData, initialDuration, initialTimeline,
+  initialAnswer,
   lessonFiles, onPickFile, onSave, onClose,
 }) {
   const grid = useTableGrid(initialTable)
@@ -43,10 +44,11 @@ export default function TableEditorModal({
             waveformData={waveformData}
             duration={duration}
             timeline={timeline}
+            answer={initialAnswer ?? ''}
             lessonFiles={lessonFiles}
             onPickFile={onPickFile}
             onSave={handleTimelineSave}
-            onBack={() => setShowTimeline(false)}
+            onBack={data => { handleTimelineSave(data); setShowTimeline(false) }}
           />
         ) : (
           <>

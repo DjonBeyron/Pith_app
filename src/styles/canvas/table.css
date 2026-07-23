@@ -30,3 +30,98 @@
   color: #b6fe3b;
   flex-shrink: 0;
 }
+
+/* ── Переключатель режима: Авто / Ручной ─────────────────────────── */
+
+.nodeTableModeRow {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.nodeTableModeBtn {
+  flex: 1;
+  padding: 5px 8px;
+  background: #0a0c10;
+  border: 1px solid #2a3040;
+  border-radius: 6px;
+  color: #555;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.nodeTableModeBtnActive {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+}
+
+/* ── Поля ручного режима ─────────────────────────────────────────── */
+
+.nodeTableManualFields {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.nodeTableManualInput {
+  width: 100%;
+  padding: 5px 9px;
+  background: #0a0c10;
+  border: 1px solid #2a3040;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 11px;
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.nodeTableManualInput:focus { border-color: #b6fe3b; }
+.nodeTableManualInput::placeholder { color: #3a4050; }
+
+.nodeTableDRow { display: flex; gap: 4px; }
+
+.nodeTableDAdd {
+  padding: 0 11px;
+  background: #0a0c10;
+  border: 1px solid #2a3040;
+  border-radius: 6px;
+  color: #b6fe3b;
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+
+.nodeTableDAdd:hover { border-color: #b6fe3b; }
+
+.nodeTableDList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.nodeTableDChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  background: #12141a;
+  border: 1px solid #2a3040;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #aaa;
+}
+
+.nodeTableDChip button {
+  background: none;
+  border: none;
+  color: #f87171;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+}

@@ -7,7 +7,7 @@
 // Берём rowCount * ROW_UNIT_PX как разумный дефолт высоты одной «единицы» строки.
 export const ROW_UNIT_PX = 44
 
-export default function TableGrid({ columns, rows, cells, rowCount, highlightedIds, selectedIds, onCellClick }) {
+export default function TableGrid({ columns, rows, cells, rowCount, highlightedIds, selectedIds, dimmedIds, onCellClick }) {
   if (!columns?.length || !cells?.length) return null
 
   const gridTemplateColumns = columns.map(c => `${c.widthPct}%`).join(' ')
@@ -21,6 +21,7 @@ export default function TableGrid({ columns, rows, cells, rowCount, highlightedI
           'tableGridCell',
           highlightedIds?.has(cell.id) ? 'tableGridCellHighlighted' : '',
           selectedIds?.has(cell.id) ? 'tableGridCellSelected' : '',
+          dimmedIds?.has(cell.id) ? 'tableGridCellDimmed' : '',
           onCellClick ? 'tableGridCellClickable' : '',
         ].filter(Boolean).join(' ')
         return (

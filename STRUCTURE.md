@@ -177,7 +177,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `canvas/table-editor-templates.css` | Полоса шаблонов `TableTemplatesBar.jsx`: чипы, кнопки применить/переименовать/удалить |
 | `canvas/table-editor-timeline.css` | Редактор таймлайна `TableTimelineEditor.jsx`: шапка, аудио-секция, дорожки с клипами (ручки resize, drag тела, глазик, удаление), секция «+ Дорожка» |
 | `player/modules/table.css` | Плеер ноды «Таблица»: минимальный (основной UI — в `TableDictatorPanel`) |
-| `player/panels/table-dictator.css` | Панель таблицы-диктора в плеере: спейсер, slide-up/down анимация, HUD — 3 пульсирующих бара во время воспроизведения |
+| `player/panels/table-dictator.css` | Панель таблицы-диктора в плеере: спейсер, slide-up/down анимация, HUD — 3 пульсирующих бара, бокс сборки фразы |
+| `player/panels/table-manual.css` | Панель ручной сборки фразы в плеере: бокс ответа с состояниями ok/err, slide-анимация таблицы −80%, слова-ловушки с анимацией, кнопка «Проверить» |
 | `player/panels/choose-word.css` | Панель выбора слова в плеере: кнопки-варианты, анимации wcFlashGreen/wcFlashRed, пузырь-ответ |
 | `player/panels/phrase-assembly.css` | Панель сборки фразы: зона ответа (dashed border), пул чипов, кнопка «Проверить», анимация shake |
 | `player/panels/registration.css` | Панель регистрации в плеере: поля email/имя, кнопки «Зарегистрироваться» и «Отмена», та же slide-up анимация что choose-word |
@@ -231,7 +232,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `NodeWordChoicePicker.jsx` | Редактор ноды «Выбор слова»: список вариантов с ✓-кнопкой, добавление/удаление, поле ответного пузыря; привязка ноды/варианта к уроку и сигнал (⚙) для анализа знаний |
 | `NodeLessonLink.jsx` | Дропдаун «→ Урок»: привязка ответа интерактивной ноды к уроку-цели для анализа знаний (пишет `statLessonId`) |
 | `NodeRewardCheckbox.jsx` | Чекбокс «Получить награду» (⭐ XP) — общий для нод word_choice / phrase_assembly / photo_choice |
-| `NodeTablePicker.jsx` | Редактор ноды «Таблица»: кнопка «Создать/редактировать таблицу» → открывает `table-editor/TableEditorModal.jsx` |
+| `NodeTablePicker.jsx` | Редактор ноды «Таблица»: кнопка конструктора → `TableEditorModal`, переключатель режима Авто/Ручной, поля ручного режима (answer, distractors, responseCorrect/Wrong) |
 | `NodeTextHighlighter.jsx` | Модальный редактор выделений текста: кликабельные токены, режимы «Плашка»/«Цвет текста», опакити, последние 5 цветов (localStorage), избранные (Supabase), предпросмотр в пузыре |
 | `NodeTextProEditor.jsx` | Про-режим текстовой ноды: тумблер, текст перевода, надпись кнопки (RU/EN...), способ появления («напечатать»/«показать сразу»), раскраска перевода |
 | `useLessonFiles.js` | Хук: список файлов урока (локальные + синхронизированные), дедупликация по имени+весу, синхронизация на сервер |
@@ -248,9 +249,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `TableEditorModal.jsx` | Полноэкранное окно редактора (портал): конструктор сетки + кнопка «Таймлайн» переключает вид на редактор таймлайна; onSave отдаёт полный объект {table, file_id, waveformData, duration, timeline} |
 | `tableTemplates.js` | CRUD шаблонов сетки в localStorage (список/сохранить/переименовать/удалить) — авторский инструмент, не часть данных урока |
 | `TableTemplatesBar.jsx` | Полоса шаблонов в шапке редактора: сохранить текущую сетку как шаблон, применить/переименовать/удалить сохранённые |
-| `useTableTimelineEdit.js` | Состояние редактора таймлайна: layers (по одной на ячейку + доп.), initClips/toggleVisible/updateClip/addLayer/removeLayer, getTimeline → `{layers}` для сохранения |
-| `TableTimelineTrack.jsx` | Одна дорожка: глазик (скрыть), метка, полоса с клипом (ручки resize по краям, тело — drag для сдвига), курсор, кнопка удаления (только для доп. дорожек) |
-| `TableTimelineEditor.jsx` | Редактор таймлайна внутри TableEditorModal: RAF-loop волны, загрузка аудио, дорожки всех ячеек, секция «+ Дорожка», «← Назад» / «Сохранить» |
+| `useTableTimelineEdit.js` | Состояние редактора таймлайна: layers + initClips/toggleVisible/updateClip/addLayer/addWordLayer/addCheckLayer/removeLayer, getTimeline; `isCheck`-слой хранит момент запуска проверки |
+| `TableTimelineTrack.jsx` | Одна дорожка: глазик, метка, полоса с клипом (обе ручки resize/drag, включая isCheck); на word-слое в начале клипа — заштрихованный кусок `.tlClipLeadIn` (длина=`EXTRA_LEAD_IN_S`, фикс.) — превью анимации+буфера перед реальным зелёным; кнопка удаления для не-дефолтных |
+| `TableTimelineEditor.jsx` | Редактор таймлайна: RAF-loop волны, кнопки «⟳ Слова из ответа» и «✓ Проверить» (добавляет/перемещает isCheck-слой в конец аудио) |
+| `TableTimelineRuler.jsx` | Линейка времени над дорожками (Premiere-style): крупные засечки с подписью на секундах, средние на 0.5с, мелкие каждые 0.1с; выровнена по стрипу теми же спейсерами, что и спектр |
 
 ### `src/features/player/` — плеер урока (чат-интерфейс просмотра)
 | Файл | Зачем нужен |
@@ -294,7 +296,13 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/pin-message/PinMessageModule.jsx` | Закрепить сообщение — центрированная системная строка «[учитель] закрепил сообщение» |
 | `modules/photo-choice/PhotoChoiceModule.jsx` | Выбрать фото — возвращает null (панель снизу ведёт весь UI) |
 | `modules/table/TableDictatorModule.jsx` | Нода «Таблица» в ленте чата: возвращает null — весь UI в `TableDictatorPanel`, монтируемой из `LessonPlayer` (как word_choice/phrase_assembly) |
-| `panels/table-dictator/TableDictatorPanel.jsx` | Панель таблицы-диктора: выезжает снизу с анимацией, авто-старт аудио через 800 мс, RAF-подсветка ячеек по таймлайну, HUD 3 пульсирующих бара, сдвигает чат вверх через спейсер |
+| `panels/table-dictator/TableDictatorPanel.jsx` | Панель таблицы-диктора: авто-старт аудио через 800 мс, RAF-подсветка ячеек по таймлайну, HUD 3 пульсирующих бара, бокс сборки фразы (авто-заполнение словами подсвеченных ячеек) |
+| `panels/table-dictator/useTableDictatorRaf.js` | RAF-хук панели диктора: tick-цикл подсветки ячеек (слово в бокс через 0.3с после подсветки, отыгравшая ячейка → 40% opacity), extra-word слоёв (extraIdx → зелёный чип по клипу), checkAt-сценарий (фаза/чипы/сборка по времени аудио), waveform-HUD. Пишет в pLog heartbeat времени аудио + ENTER/EXIT по каждой ячейке |
+| `panels/table-dictator/dictatorCheck.js` | Сборка итоговой фразы (ячейки + extra-слова по порядку токенов) и сверка с ответом; вынесено из панели ради лимита 400 строк |
+| `panels/table-dictator/dictatorPostAudio.js` | Планирует слои (слово/ячейка/проверка), чей клип стоит ПОСЛЕ конца аудио (10с-хвост таймлайна) или пересекает его границу: ON и OFF свечения — раздельными таймерами (иначе длина слоя, начавшегося до конца аудио, но кончающегося после, терялась), запуск проверки (in) и обратной анимации закрытия (out) — от момента 'ended' |
+| `panels/table-dictator/dictatorGlowDebug.js` | Дебаг: сверяет длину клипа по таймлайну с реальным временем свечения ячейки/слова в браузере (ON→OFF, ON→уход в бокс) в мс — чтобы расхождение (напр. чип-слово гаснет в боксе раньше out-point) было видно в логе как числа |
+| `panels/table-dictator/dictatorDebug.js` | Дамп конфигурации таблицы-диктора в pLog при старте аудио: разбор ответа на токены, полный список слоёв с клипами (in/out), ожидаемая последовательность событий по времени + диагностика мини-спектра HUD (обрезан ли overflow:hidden у .tdStage); `logFileResolution`/`logAudioPlayRejected`/`logAudioError` — почему аудио не проигрывается (файл не найден в files[]/blobUrl-r2Url пустые/play() отклонён/onError у `<audio>`) |
+| `panels/table-manual/TableManualPanel.jsx` | Панель ручной сборки фразы: бокс ответа сверху, тапы по ячейкам таблицы, слайд таблицы −80% влево при переходе к словам-ловушкам, кнопка «Проверить» |
 | `panels/photo-choice/PhotoChoicePanel.jsx` | Панель снизу: кнопка «Прикрепи фото», галерея-оверлей, выбранное фото |
 | `panels/PinMessageBanner.jsx` | Баннер под шапкой с текстом закреплённого сообщения; кнопка ✕ открывает диалог |
 | `panels/PinConfirmDialog.jsx` | Модальное окно подтверждения откреплення сообщения |
@@ -468,6 +476,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `useAuth.js` | React-хук `useAuth()`: подписка на `supabase.auth.onAuthStateChange`, возвращает `{ user, loading }` |
 | `useIsAdmin.js` | React-хук `useIsAdmin()`: проверяет, что текущий пользователь залогинен и у него `is_admin=true` в `user_profiles`; возвращает `{ user, isAdmin, loading }`. Используется для показа/скрытия админского UI (реальная защита — RLS в БД) |
 | `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar` (рисует столбики волны на canvas), `fmtAudioTime`, `probeAudioDuration` |
+| `tableDictatorTiming.js` | Константы тайминга word-слоя в режиме диктора: `EXTRA_ANIM_S`(0.6)+`EXTRA_BUFFER_S`(0.3)=`EXTRA_LEAD_IN_S`(0.9) — с начала клипа сперва анимация (слайд+список), потом буфер, и только потом слово реально загорается зелёным. Общие для плеера (useTableDictatorRaf/dictatorPostAudio) и редактора таймлайна (TableTimelineTrack — превью куска на слое) |
 | `transcribeApi.js` | Клиентская обёртка для Edge Function `transcribe-audio`: отправляет файл или R2 URL, возвращает `wordTimings` |
 | `textHighlight.js` | Утилиты выделений: `buildSpans` (массив спанов по char-range), `addHighlight` (добавить с перекрытием), `highlightStyle` (CSS объект), `hexToRgba`; legacy `buildCharStyles` для аудио-ноды |
 | `skillScore.js` | Расчёт приоритетов уроков по логу событий ответов: каскад правил `computePriority`, замещение сессий `latestSessionEvents`, итоговый `computeAllPriorities` (см. SKILL_ANALYSIS.md) |

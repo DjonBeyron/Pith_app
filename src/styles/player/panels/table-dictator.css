@@ -1,4 +1,4 @@
-/* ── TableDictatorPanel — таблица-диктор, выезжает снизу (как ChooseWordPanel) ── */
+/* ── TableDictatorPanel — таблица-диктор, выезжает снизу ── */
 
 .tdSpacer { flex-shrink: 0; width: 100%; }
 
@@ -16,51 +16,138 @@
   transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* HUD — position:absolute, выходит за верхний край панели; лишний padding не нужен */
 .tdPanelInner { max-width: 600px; margin: 0 auto; padding: 6px 16px 16px; }
 
-/* position:relative — якорь для HUD, который плавает выше таблицы */
-.tdGridBox { position: relative; }
+/* ── Бокс сборки фразы ───────────────────────────────────────── */
 
-/* HUD: position:absolute, bottom над таблицей, не расширяет её фон.
-   По умолчанию scale(0) — невидим, появляется через .tdHudVisible. */
-.tdHud {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 7px;
-  background: rgba(14, 16, 19, 0.84);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border-radius: 16px;
-  pointer-events: none;
-  /* исходное состояние: невидим; transform-origin снизу — растёт от края таблицы */
-  transform: translateX(-50%) scale(0);
-  transform-origin: center bottom;
-  /* исчезновение: быстрое */
-  transition: transform 0.14s ease-in;
+.tdAssemblyBox {
+  display: flex; flex-wrap: wrap;
+  align-items: center; justify-content: center;
+  gap: 2px; min-height: 44px;
+  padding: 8px 12px; margin-bottom: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.tdAssemblyBoxFilled { border-color: rgba(182,254,59,0.28); }
+.tdAssemblyBoxOk     { border-color: #b6fe3b; background: rgba(182,254,59,0.07); }
+.tdAssemblyBoxErr    { border-color: #f87171; animation: tdShake 0.42s ease; }
+
+@keyframes tdShake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-5px); }
+  40%      { transform: translateX(5px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
 }
 
-/* появление: bounce вверх */
+.tdAssemblyPlaceholder { color: #444; font-size: 13px; }
+
+@keyframes tdWordIn {
+  from { opacity: 0; transform: scale(0.80); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Слово в боксе: без своего фона/обводки, нейтральный цвет, Montserrat Bold.
+   Красным/зелёным становится ТОЛЬКО по итогу проверки (класс на боксе). */
+.tdAssemblyWord {
+  padding: 2px 2px;
+  color: #cfd3da; font-size: 15px;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif; font-weight: 700;
+  animation: tdWordIn 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: color 0.25s;
+}
+.tdAssemblyBoxOk  .tdAssemblyWord { color: #b6fe3b; }
+.tdAssemblyBoxErr .tdAssemblyWord { color: #f87171; }
+
+/* ── Сцена: таблица едет влево, справа появляется выбор слов ── */
+
+.tdStage { position: relative; overflow: hidden; margin-bottom: 10px; }
+
+.tdTableSection {
+  width: 100%;
+  transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tdTableSectionSlid {
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+/* Слова — столбик по центру; чипы выезжают снизу (см. tdChipIn) */
+.tdExtrasSection {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; padding: 12px;
+}
+
+@keyframes tdChipIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tdExtraChip {
+  padding: 10px 20px; background: #12151c;
+  border: 1px solid #2a3040; border-radius: 22px;
+  color: #ccc; font-size: 14px; font-family: inherit;
+  transition: border-color 0.15s, color 0.25s, background 0.25s;
+  width: 100%; max-width: 260px; text-align: center;
+  animation: tdChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;   /* авто-режим: без кликов и hover */
+}
+/* Пока выбирается — горит зелёным (видно выбор) */
+.tdExtraChipUsed {
+  background: rgba(182,254,59,0.12);
+  border-color: rgba(182,254,59,0.65);
+  color: #b6fe3b;
+}
+/* Уже в боксе — текст тускнеет до 40% */
+.tdExtraChipDone { color: rgba(204,204,204,0.4); border-color: #232833; }
+
+/* ── Кнопка проверки (фаза extras) ──────────────────────────── */
+
+.tdCheckBtn {
+  width: 100%; padding: 13px;
+  background: transparent; border: 1.5px solid #b6fe3b;
+  border-radius: 14px; color: #b6fe3b;
+  font-size: 15px; font-family: inherit; font-weight: 600;
+  transition: opacity 0.25s;
+  pointer-events: none;   /* авто-режим: кнопка не кликается */
+}
+/* После проверки (result → disabled) — тусклая */
+.tdCheckBtn:disabled { opacity: 0.3; }
+/* До появления чипов кнопка невидима, но МЕСТО занимает (панель не прыгает) */
+.tdCheckBtnHidden { visibility: hidden; }
+
+/* ── HUD (осциллограф) ──────────────────────────────────────── */
+/* Плавает НАД панелью (position:absolute относительно .tdPanel, bottom:100%):
+   не входит в поток → не расширяет фон панели и не растягивает её по высоте. */
+
+.tdGridBox { position: relative; }
+
+.tdHud {
+  position: absolute; bottom: calc(100% + 4px); left: 50%;
+  display: flex; align-items: center; gap: 2px;
+  padding: 4px 7px;
+  background: rgba(14,16,19,0.84);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border-radius: 16px; pointer-events: none;
+  transform: translateX(-50%) scale(0);
+  transform-origin: center bottom;
+  transition: transform 0.14s ease-in;
+}
 .tdHudVisible {
   transform: translateX(-50%) scale(1);
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Бары: JS управляет scaleY через waveformData */
 .tdHudBar {
-  width: 2px; height: 11px;
-  border-radius: 1.5px;
-  background: #b6fe3b;
-  transform-origin: center;
-  transform: scaleY(0.15);
-  will-change: transform;
+  width: 2px; height: 11px; border-radius: 1.5px;
+  background: #b6fe3b; transform-origin: center;
+  transform: scaleY(0.15); will-change: transform;
 }
 
-/* Фолбэк (нет waveformData): CSS-пульсация */
 .tdHudPulse .tdHudBar {
   transform: scaleY(1);
   animation: tdBarPulse 0.7s ease-in-out infinite;
@@ -70,6 +157,6 @@
 .tdHudPulse .tdHudBar:nth-child(3) { animation-delay: 0.46s; }
 
 @keyframes tdBarPulse {
-  0%, 100% { height: 2px;  opacity: 0.5; }
-  50%       { height: 11px; opacity: 1; }
+  0%,100% { height: 2px;  opacity: 0.5; }
+  50%      { height: 11px; opacity: 1; }
 }

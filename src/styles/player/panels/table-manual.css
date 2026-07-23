@@ -1,0 +1,134 @@
+/* ── TableManualPanel — ручная сборка фразы из таблицы ─────────────── */
+
+.tmSpacer { flex-shrink: 0; width: 100%; }
+
+.tmPanel {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: #1a1d22;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1);
+  will-change: transform;
+  z-index: 10;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.tmPanelVisible {
+  transform: translateY(0);
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tmPanelInner { max-width: 600px; margin: 0 auto; padding: 12px 16px 16px; }
+
+/* ── Бокс сборки фразы ───────────────────────────────────────────── */
+
+.tmAnswerBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border: 1.5px dashed #252830;
+  border-radius: 14px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.tmAnswerBoxFilled { border-style: solid; border-color: rgba(182, 254, 59, 0.35); }
+.tmAnswerBoxOk     { border-color: #b6fe3b; background: rgba(182, 254, 59, 0.07); }
+.tmAnswerBoxErr    { border-color: #f87171; animation: tmShake 0.42s ease; }
+
+@keyframes tmShake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-5px); }
+  40%       { transform: translateX(5px); }
+  60%       { transform: translateX(-3px); }
+  80%       { transform: translateX(3px); }
+}
+
+.tmAnswerPlaceholder { color: #3a4050; font-size: 14px; }
+
+.tmAnswerChip {
+  padding: 5px 11px;
+  background: rgba(182, 254, 59, 0.10);
+  border: 1px solid rgba(182, 254, 59, 0.32);
+  border-radius: 20px;
+  color: #b6fe3b;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.tmAnswerChip:not(:disabled):active { background: rgba(182, 254, 59, 0.18); }
+.tmAnswerChip:disabled { opacity: 0.7; cursor: default; }
+
+/* ── Сцена: таблица (слайд влево) + слова ────────────────────────── */
+
+.tmStage {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+/* Таблица уезжает полностью за левый край */
+.tmTableSection {
+  width: 100%;
+  transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tmTableSectionSlid {
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+/* Слова — столбик по центру, чипы выезжают снизу (tmChipIn) */
+.tmExtrasSection {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+@keyframes tmChipIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tmExtraChip {
+  padding: 10px 20px;
+  background: #12151c;
+  border: 1px solid #2a3040;
+  border-radius: 22px;
+  color: #ccc;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  width: 100%; max-width: 260px; text-align: center;
+  animation: tmChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.tmExtraChip:not(:disabled):hover  { border-color: #b6fe3b; color: #b6fe3b; }
+.tmExtraChip:not(:disabled):active { background: rgba(182, 254, 59, 0.06); }
+.tmExtraChipUsed { opacity: 0.25; cursor: default; pointer-events: none; }
+
+/* ── Кнопка проверки ─────────────────────────────────────────────── */
+
+.tmCheckBtn {
+  width: 100%;
+  padding: 13px;
+  background: transparent;
+  border: 1.5px solid #b6fe3b;
+  border-radius: 14px;
+  color: #b6fe3b;
+  font-size: 15px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.tmCheckBtn:not(:disabled):hover  { background: rgba(182, 254, 59, 0.08); }
+.tmCheckBtn:not(:disabled):active { background: rgba(182, 254, 59, 0.14); }
+.tmCheckBtn:disabled { opacity: 0.35; cursor: default; }

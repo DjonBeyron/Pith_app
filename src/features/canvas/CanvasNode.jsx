@@ -323,6 +323,11 @@ export default function CanvasNode({
             onDataChange={patch => updateTypeData(patch)}
             lessonFiles={lessonFiles}
             onPickFile={f => onPickLessonFile(f)}
+            triggers={node.triggers ?? []}
+            allNodes={allNodes}
+            nodeId={node.id}
+            onTriggersChange={triggers => onUpdate({ triggers })}
+            onTriggerMeasure={onTriggerMeasure}
           />
         )}
         {node.type === 'photo_choice' && (
@@ -354,7 +359,7 @@ export default function CanvasNode({
         {node.type === 'registration' && (
           <NodeRegistrationTriggers onTriggerMeasure={onTriggerMeasure} />
         )}
-        {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'photo_choice' && node.type !== 'registration' && (
+        {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'photo_choice' && node.type !== 'registration' && node.type !== 'table' && (
           <NodeTriggerEditor
             triggers={node.triggers}
             nodeId={node.id}

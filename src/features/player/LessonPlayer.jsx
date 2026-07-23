@@ -9,6 +9,7 @@ import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
 import TableDictatorPanel  from './panels/table-dictator/TableDictatorPanel.jsx'
+import TableManualPanel    from './panels/table-manual/TableManualPanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { useRegistrationSkip } from './useRegistrationSkip.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
@@ -422,13 +423,23 @@ export default function LessonPlayer({
           />
         )}
         {tableNode && tableNode.typeData?.table?.table && (
-          <TableDictatorPanel
-            key={tableNode.id}
-            node={tableNode}
-            file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}
-            onDone={() => { setTablePanelHeight(0); onNodeDone(tableNode.id) }}
-            onHeightChange={setTablePanelHeight}
-          />
+          tableNode.typeData.table.mode === 'manual' ? (
+            <TableManualPanel
+              key={tableNode.id}
+              node={tableNode}
+              onDone={trigger => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger) }}
+              onAnswered={() => {}}
+              onHeightChange={setTablePanelHeight}
+            />
+          ) : (
+            <TableDictatorPanel
+              key={tableNode.id}
+              node={tableNode}
+              file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}
+              onDone={trigger => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger) }}
+              onHeightChange={setTablePanelHeight}
+            />
+          )
         )}
       </div>
 
