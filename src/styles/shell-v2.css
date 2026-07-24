@@ -81,6 +81,10 @@
   -webkit-transform: translateZ(0);
 }
 
+/* В ленте — сдвинута левее, чтобы значок энергии встал по левому краю
+   вровень с иконкой поиска (feedSearchBtn, feed-search.css) */
+.hudBarRightFeed { right: 20px; }
+
 .hudVersion {
   margin-top: 2px; /* чуть ниже энергии — не наезжает на кнопку поиска ленты */
   font-size: 9px;

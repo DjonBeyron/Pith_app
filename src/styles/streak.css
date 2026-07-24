@@ -22,14 +22,6 @@
 
 .rwHeader h1 { font-size: 17px; font-weight: 700; margin: 0; }
 
-.rwBack {
-  background: none;
-  border: none;
-  color: #b6fe3b;
-  font-size: 20px;
-  cursor: pointer;
-}
-
 .rwScroll {
   flex: 1;
   overflow-y: auto;

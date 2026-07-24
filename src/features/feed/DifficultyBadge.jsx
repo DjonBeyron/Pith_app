@@ -116,7 +116,7 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
           )}
         </div>
       )}
-      <button className="feedHudBtn" onClick={() => (open ? closePanel() : openPanel())}>
+      <button className="feedHudBtn" onClick={() => (open ? closePanel() : openPanel())} aria-label="Сложность фразы">
         <span className={`diffIcon${confirmed ? ' diffIconConfirm' : ''}${intro ? ' diffIconPulse' : ''}`}>
           <span className={`diffBars${level ? ` diffL${level}` : ''}`}>
             <i /><i /><i />
@@ -125,7 +125,6 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
             <path d="M4 12.5l5.5 5.5L20 6.5" />
           </svg>
         </span>
-        <span>{confirmed ? 'Учтено' : level ? LEVELS[level - 1].label : 'Сложность'}</span>
       </button>
     </div>
   )

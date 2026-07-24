@@ -7,11 +7,6 @@
   padding: 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0;
 }
 .tlTitle { flex: 1; font-size: 14px; font-weight: 600; color: #e0e0e0; text-align: center; }
-.tlBtnBack {
-  background: rgba(255,255,255,0.08); border: none; border-radius: 8px;
-  padding: 6px 14px; font-size: 12px; color: #c0c0c0; cursor: pointer;
-}
-.tlBtnBack:hover { background: rgba(255,255,255,0.14); }
 .tlBtnSave {
   background: #b6fe3b; border: none; border-radius: 8px;
   padding: 6px 14px; font-size: 12px; font-weight: 700; color: #0e1013; cursor: pointer;

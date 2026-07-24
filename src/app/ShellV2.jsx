@@ -4,6 +4,7 @@ import ProfileV2 from '../features/profile/ProfileV2.jsx'
 import AuthTab from '../features/auth/AuthTab.jsx'
 import SettingsTab from '../features/settings/SettingsTab.jsx'
 import { GEAR_PATH } from '../shared/ui/icons.js'
+import BackButton from '../shared/ui/BackButton.jsx'
 import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
 import OrientationGuard from '../shared/ui/OrientationGuard.jsx'
@@ -60,7 +61,7 @@ export default function ShellV2() {
             <LevelBadge />
             <TicketBadge />
           </div>
-          <div className="hudBarRight">
+          <div className={tab === 'feed' ? 'hudBarRight hudBarRightFeed' : 'hudBarRight'}>
             <EnergyBadge />
             <span className="hudVersion">v{APP_VERSION}</span>
           </div>
@@ -86,7 +87,7 @@ export default function ShellV2() {
             <ProfileV2 visible={tab === 'profile'} userEmail={user.email} onOpenCanvas={setCanvasLesson} />
           ) : guestSettings ? (
             <div className="pvSettingsScreen">
-              <button className="pvBack" onClick={() => setGuestSettings(false)}>← Профиль</button>
+              <BackButton onClick={() => setGuestSettings(false)} label="Профиль" className="pvBack" />
               <div className="shellV2Panel"><SettingsTab /></div>
             </div>
           ) : (

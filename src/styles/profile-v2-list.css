@@ -77,16 +77,10 @@
   flex-direction: column;
 }
 
+/* Отступ сверху/по бокам под safe-area — сама кнопка теперь общий .backBtn */
 .pvBack {
   align-self: flex-start;
   margin: calc(12px + env(safe-area-inset-top, 0px)) 16px 10px;
-  padding: 6px 12px;
-  border: 1px solid #232932;
-  border-radius: 10px;
-  background: #14171c;
-  color: #f2f5f7;
-  font-size: 13px;
-  cursor: pointer;
 }
 
 /* ── Карточка «Уведомления» (PushToggle, теперь во вкладке Настройки) ── */

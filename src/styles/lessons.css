@@ -153,19 +153,6 @@
   flex-shrink: 0;
 }
 
-.lessonBackBtn {
-  padding: 4px 10px;
-  font-size: 13px;
-  color: #888;
-  border-color: #333;
-  background: transparent;
-  border-radius: 6px;
-  flex-shrink: 0;
-  transition: color 0.15s;
-}
-
-.lessonBackBtn:hover { color: #e8e8ea; }
-
 .lessonMapTitle {
   flex: 1;
   font-size: 14px;

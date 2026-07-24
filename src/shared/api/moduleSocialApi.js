@@ -52,6 +52,16 @@ async function setRow(table, moduleId, on) {
 export const setLike     = (moduleId, on) => setRow('module_likes', moduleId, on)
 export const setBookmark = (moduleId, on) => setRow('module_bookmarks', moduleId, on)
 
+// Событие «Репост» — счётчик кликов, не тумблер (можно репостнуть не один
+// раз); агрегат repost_count на curricula пересчитывает триггер в БД.
+// Гость может делиться ссылкой локально — в счётчик это не попадает.
+export async function logRepost(moduleId) {
+  const user = await currentUser()
+  if (!user) return
+  const { error } = await supabase.from('module_reposts').insert({ user_id: user.id, module_id: moduleId })
+  if (error) console.error('[SOCIAL] module_reposts insert:', error.message)
+}
+
 // Начатые модули текущего пользователя («Мои уроки»). Гость → пустой Set.
 // Перед чтением переносит на сервер всё, что гость успел начать до входа.
 export async function fetchStartedModules() {

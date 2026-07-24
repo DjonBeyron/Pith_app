@@ -20,8 +20,9 @@
 }
 
 .feedSearchBtn svg {
-  width: 18px;
-  height: 18px;
+  /* Иконка шире квадрата (лупа + ползунки), viewBox 38x24 */
+  width: 27px;
+  height: 17px;
   filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
 }
 

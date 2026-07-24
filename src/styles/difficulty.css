@@ -18,8 +18,8 @@
 /* Слои иконки: полоски и галочка друг над другом — для морфинга */
 .diffIcon {
   position: relative;
-  width: 21px;
-  height: 21px;
+  width: 25px;
+  height: 25px;
 }
 
 /* Иконка: три полоски-ступеньки; серые = нет оценок, цвет и число
@@ -36,14 +36,14 @@
 }
 
 .diffBars i {
-  width: 5px;
+  width: 6px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.35);
 }
 
-.diffBars i:nth-child(1) { height: 9px; }
-.diffBars i:nth-child(2) { height: 14px; }
-.diffBars i:nth-child(3) { height: 19px; }
+.diffBars i:nth-child(1) { height: 11px; }
+.diffBars i:nth-child(2) { height: 17px; }
+.diffBars i:nth-child(3) { height: 23px; }
 
 .diffL1 i:nth-child(1)    { background: var(--diff-easy); }
 .diffL2 i:nth-child(-n+2) { background: var(--diff-mid); }

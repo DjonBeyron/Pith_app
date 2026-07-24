@@ -58,14 +58,6 @@
     padding: 6px 8px;
     gap: 5px;
   }
-  .canvasPageBack {
-    font-size: 0;   /* hide «← Назад» text */
-    padding: 6px 8px;
-  }
-  .canvasPageBack::before {
-    content: '←';
-    font-size: 16px;
-  }
   .canvasPageSave {
     font-size: 0;
     padding: 6px 8px;
@@ -136,13 +128,6 @@
   color: #666;
   font-weight: 600;
   letter-spacing: 0.05em;
-}
-
-.canvasPageBack {
-  background: transparent;
-  border: 1px solid #2a2c33;
-  color: #aaa;
-  font-size: 13px;
 }
 
 .canvasPagePlay {

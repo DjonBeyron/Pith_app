@@ -9,6 +9,7 @@ import { getCachedProfile, refreshProfile } from '../../shared/api/profileCache.
 import { useAuth } from '../../shared/lib/useAuth.js'
 import PushToggle from '../profile/PushToggle.jsx'
 import CurriculumView from '../lessons/CurriculumView.jsx'
+import BackButton from '../../shared/ui/BackButton.jsx'
 
 function fmtMs(ms) {
   const s = Math.round((ms ?? 0) / 1000)
@@ -90,7 +91,7 @@ export default function RacePage({ onBack }) {
   return (
     <div className="racePage">
       <div className="raceHead">
-        <button className="pvBack" onClick={onBack}>← Рейтинг</button>
+        <BackButton onClick={onBack} label="Рейтинг" className="pvBack" />
       </div>
 
       {loading ? <div className="pvEmpty">Загрузка...</div> : !race ? (

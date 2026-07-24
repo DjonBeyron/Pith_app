@@ -157,6 +157,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                       gradIdx={(vi.index % len) % 4}
                       reaction={reactions[m.id]}
                       likeCount={social?.likeCount?.[m.id] ?? 0}
+                      saveCount={m.saveCount}
+                      repostCount={m.repostCount}
                       difficulty={displayDifficulty(m, diffVotes[m.id])}
                       myDifficulty={diffVotes[m.id]}
                       onVoteDifficulty={v => voteDifficulty(m.id, v)}

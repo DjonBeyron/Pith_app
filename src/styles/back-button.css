@@ -1,0 +1,20 @@
+/* Единая кнопка «назад»/«закрыть» (BackButton.jsx) — во всех шапках экранов
+   и попапов приложения: голая иконка стрелки, без фона и без подписи. */
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #e8e8ea;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.backBtn:hover { color: #fff; }
+
+.backBtn svg { width: 9px; height: 9px; }

@@ -14,6 +14,7 @@ import { avatarUrl } from '../../shared/lib/avatarPack.js'
 import { saveAvatar } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { GEAR_PATH } from '../../shared/ui/icons.js'
+import BackButton from '../../shared/ui/BackButton.jsx'
 import { energyColor } from '../../shared/lib/energyColors.js'
 
 const BOLT = 'M13 2 4 14h6l-1 8 9-12h-6l1-8z'
@@ -68,7 +69,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
   if (showSettings) {
     return (
       <div className="pvSettingsScreen">
-        <button className="pvBack" onClick={() => setShowSettings(false)}>← Профиль</button>
+        <BackButton onClick={() => setShowSettings(false)} label="Профиль" className="pvBack" />
         <NicknameCard />
         <div className="shellV2Panel"><SettingsTab /></div>
       </div>

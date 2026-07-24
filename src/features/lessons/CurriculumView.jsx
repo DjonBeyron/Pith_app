@@ -18,6 +18,7 @@ import { markModuleStarted, unmarkModuleStarted } from '../../shared/api/moduleS
 import { dbg } from '../../shared/lib/debug.js'
 import PriorityLegend from './PriorityLegend.jsx'
 import StreakDailyToast from '../streak/StreakDailyToast.jsx'
+import BackButton from '../../shared/ui/BackButton.jsx'
 import { computeAllPriorities } from '../../shared/lib/skillScore.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
@@ -254,7 +255,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   return (
     <div className="lessonsMapPanel">
       <div className="lessonsMapToolbar">
-        <button className="lessonBackBtn" onClick={onBack}>← Назад</button>
+        <BackButton onClick={onBack} />
         {titleEditing ? (
           <input
             className="lessonMapTitle lessonMapTitleInput" autoFocus value={titleDraft}

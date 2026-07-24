@@ -6,6 +6,7 @@ import {
 import { getProfile } from '../../shared/api/profileApi.js'
 import { LEVELS } from '../../shared/lib/xpLevels.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
+import BackButton from '../../shared/ui/BackButton.jsx'
 
 const LEVEL10_XP = LEVELS.find(l => l.level === 10)?.xpNeeded ?? 8000
 
@@ -41,7 +42,7 @@ export default function CustomizationScreen({ onBack }) {
 
   return (
     <div className="pvSettingsScreen">
-      <button className="pvBack" onClick={onBack}>← Профиль</button>
+      <BackButton onClick={onBack} label="Профиль" className="pvBack" />
       {loading ? (
         <div className="pvEmpty">Загрузка...</div>
       ) : (

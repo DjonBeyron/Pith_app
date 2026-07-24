@@ -22,6 +22,7 @@
 | `README.md` | Создан автоматически при создании репозитория на GitHub, содержимого пока почти нет |
 | `supabase_schema.sql` | **АРХИВ** истории решений по БД (с этапа 4) — не источник правды; актуальная схема в `supabase/migrations/` |
 | `supabase/migrations/20260717120000_baseline.sql` | Снимок реальной схемы public на 2026-07-17 (источник правды): 22 таблицы, 31 функция, каждая в одном экземпляре |
+| `supabase/migrations/20260724130000_reaction_counters_and_difficulty_default.sql` | `curricula.save_count`/`repost_count` (триггеры от `module_bookmarks`/новой `module_reposts`) + дефолт `difficulty = 1` вместо NULL. **Ещё не применена на реальной БД** — см. предупреждение в PROJECT.md |
 | `.env.local` | Секретные ключи (пароли, токены) — здесь, чтобы их не было видно в коде |
 | `.gitignore` | Список того, что не нужно сохранять в git (например, `.env.local`, `node_modules`) |
 | `package.json` | Список программ-зависимостей и команды для запуска проекта (`npm run dev` и т.д.) |
@@ -110,12 +111,14 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `base.css` | Сброс и глобальные стили: `*`, `body`, `button`, глушим `-webkit-tap-highlight-color` глобально (синяя рамка тапа на Android) |
+| `back-button.css` | Единая кнопка «назад»/«закрыть» (`shared/ui/BackButton.jsx`): кружок с иконкой стрелки, без подписи — общий стиль для всех экранов |
 | `orientation-guard.css` | Заглушка альбомной ориентации на телефонах — см. `shared/ui/OrientationGuard.jsx` |
 | `install-prompt.css` | Слайды «Установить приложение» — см. `shared/ui/InstallSlides.jsx`; текстура карточки — переменные `--v2-tex/--v2-grain/--v2-dust` из `shell-v2.css` |
 | `layout.css` | Каркас приложения: `.app`, вкладки, toolbar, общие кнопки и утилиты |
 | `admin.css` | Стили вкладки «Админ»: таблица файлов, форма пароля |
 | `shell-v2.css` | Стили оболочки: тёмный фон, шрифты Montserrat/Comfortaa, текстурные переменные --v2-*, вкладки-стопка, нижний бар с полосой-подложкой |
 | `feed-v2.css` | Стили ленты видео (ui v2): scroll-snap слайды, градиенты-заглушки, верхние вкладки, HUD, кнопка «Изучить фразу» с бликом, тост |
+| `feed-reactions-fx.css` | Импакт-эффекты HUD ленты (`FeedSlide.jsx`): разлёт зелёных сердечек по лайку, иконка галочки в тосте «Сохранено в закладки» |
 | `feed-bubble-spoiler.css` | Стили спойлера-шариков фразы: обёртка, канвас шариков (`PhraseBubbleAnimated.jsx`), векторная SVG-заглушка для слабых устройств (`PhraseBubbleStatic.jsx`), текст фразы под ними |
 | `my-lessons-v2.css` | Стили «Моих уроков» (ui v2): переключатель видео/список, прогресс-бар модуля, строки списка с текстурой, пустое состояние |
 | `profile-v2.css` | Стили профиля (ui v2): аватар, чип уровня, карточка XP+энергия, кнопка покупки подписки, вкладки-сегменты |
@@ -503,3 +506,4 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `XpTransfer.jsx` | Анимация начисления XP: тикающий счётчик «+N XP», canvas-частицы, летящие в бар, shimmer-заполнение, схлопывание блока награды, onDone — используется в итогах урока (LessonSummary) и попапе награды стрика (RewardClaimPopup) |
 | `EnergyCells.jsx` | Ряд из 5 ячеек энергии (переиспользуемый индикатор): заполнено цветом `energyColor(value)`, пустые — тёмные; режимы `blinkLast` (спишется), `dissolving` (растворение при старте платного урока), `fillingNext`+`fillProgress` (прогресс-бар до пополнения), `unlimited` (все лаймовые + «∞») — используется в `LessonLaunchCard` и `EnergyBadge` |
 | `TableGrid.jsx` | Чистый рендер сетки ноды «Таблица»: raw grid-разметка с учётом rowspan/colspan, опциональные подсветка/клик по ячейке — общий для превью в конструкторе канваса и плеера урока |
+| `BackButton.jsx` | Единая кнопка «назад»/«закрыть» для всего приложения: кружок с иконкой стрелки, без текстовой подписи (стили — `styles/back-button.css`); используется в шапках Profile/CustomizationScreen/RacePage/CurriculumView/TableTimelineEditor/CanvasPage/RewardsPopup/PlayerTopBar |

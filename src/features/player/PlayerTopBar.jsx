@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { clearPlayerLog, pLog, setDebug } from '../../shared/lib/debug.js'
 import { preloadSounds } from '../../shared/lib/sounds.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
+import BackButton from '../../shared/ui/BackButton.jsx'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
 const CROP_FRAME  = 80
@@ -62,7 +63,7 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
 
   return (
     <div className="playerTopBar">
-      <button className="playerTopBarBack" onClick={onClose}>←</button>
+      <BackButton onClick={onClose} label="Закрыть" />
       <div className="playerTopBarAvatar">
         {teacherLogo
           ? <img

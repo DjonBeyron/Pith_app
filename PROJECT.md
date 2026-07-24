@@ -1390,3 +1390,13 @@ label) — день не из таблицы получает дефолт 5 XP.
                 вкладки: Сохранённые · Пройденные · Копилка слов
                 ⚙ настройки (правый верхний угол)
 ```
+
+## ⚠️ Не задеплоено: счётчики сохранений/репостов + дефолт сложности (2026-07-24)
+Код ленты уже читает `curricula.save_count`/`repost_count` (клиент —
+`loadCurricula()` в `curriculaApi.js`) — **пока миграция не накатана, лента
+падает** с `column curricula.save_count does not exist` (проверено в
+`pithy-dev`). Нужно применить
+`supabase/migrations/20260724130000_reaction_counters_and_difficulty_default.sql`
+(через `supabase db push` либо целиком вставить в Supabase → SQL Editor)
+**до следующего деплоя**. Она же чинит дефолт сложности (1/«Легко» вместо
+NULL) и добавляет таблицу `module_reposts`.

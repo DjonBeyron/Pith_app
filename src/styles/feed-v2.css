@@ -164,10 +164,11 @@
   z-index: 4;
 }
 
-/* HUD справа: лайк, закладка, репост */
+/* HUD справа: лайк, закладка, репост, сложность — только иконки, без
+   подписей, прижаты к правому краю */
 .feedHud {
   position: absolute;
-  right: 10px;
+  right: 6px;
   bottom: calc(150px + var(--v2-nav-h));
   z-index: 5;
   display: flex;
@@ -177,6 +178,7 @@
 }
 
 .feedHudBtn {
+  position: relative; /* якорь для разлёта сердечек лайка, feed-reactions-fx.css */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -190,7 +192,7 @@
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
 }
 
-.feedHudBtn svg { width: 21px; height: 21px; }
+.feedHudBtn svg { width: 25px; height: 25px; }
 
 .feedHudBtnOn { color: #b6fe3b; }
 
@@ -242,13 +244,16 @@
   .feedLearnBtn::after { content: none; }
 }
 
-/* Тост поверх слайда */
+/* Тост поверх слайда (иконка галочки — feed-reactions-fx.css) */
 .feedToast {
   position: absolute;
   left: 50%;
   bottom: calc(88px + var(--v2-nav-h));
   transform: translateX(-50%);
   z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   white-space: nowrap;
   padding: 9px 16px;
   border-radius: 999px;

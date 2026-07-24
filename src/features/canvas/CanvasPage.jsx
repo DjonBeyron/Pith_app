@@ -7,6 +7,7 @@ import LessonPlayer from '../player/LessonPlayer.jsx'
 import { useLessonFiles } from './useLessonFiles.js'
 import { useTeacherSettings } from './useTeacherSettings.js'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
+import BackButton from '../../shared/ui/BackButton.jsx'
 
 export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
   // Уроки модуля для привязки ответов (анализ знаний) — без урока, который редактируем
@@ -150,7 +151,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
           onChange={e => setTitle(e.target.value)}
           placeholder="Название урока"
         />
-        <button className="canvasPageBack" onClick={onBack}>← Назад</button>
+        <BackButton onClick={onBack} />
         <button className="canvasPagePlay" onClick={() => setShowPlayer(true)}>▶</button>
         <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
           {isSaving ? 'Сохраняю…' : 'Сохранить'}

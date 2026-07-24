@@ -1,0 +1,44 @@
+/* Импакт-эффекты реакций ленты (FeedSlide.jsx): разлёт зелёных сердечек по
+   лайку и иконка галочки в тосте «Сохранено в закладки». Вынесено отдельно
+   от feed-v2.css (та уже за мягким лимитом строк). */
+
+.likeBurst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.likeBurstHeart {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  color: #b6fe3b;
+  opacity: 0;
+  transform: translate(-50%, 0) scale(0.4);
+  animation: likeBurstFly 0.7s ease-out forwards;
+}
+
+.likeBurstHeart:nth-child(1) { --tx: -16px; --ty: -30px; --rot: -20deg; width: 10px; height: 10px; animation-delay: 0s; }
+.likeBurstHeart:nth-child(2) { --tx: -7px;  --ty: -40px; --rot: -8deg;  width: 12px; height: 12px; animation-delay: 0.04s; }
+.likeBurstHeart:nth-child(3) { --tx: 2px;   --ty: -44px; --rot: 4deg;   width: 14px; height: 14px; animation-delay: 0.08s; }
+.likeBurstHeart:nth-child(4) { --tx: 11px;  --ty: -38px; --rot: 14deg;  width: 9px;  height: 9px;  animation-delay: 0.02s; }
+.likeBurstHeart:nth-child(5) { --tx: 18px;  --ty: -26px; --rot: 22deg;  width: 11px; height: 11px; animation-delay: 0.1s; }
+
+@keyframes likeBurstFly {
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(0.4) rotate(0deg); }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), var(--ty)) scale(1) rotate(var(--rot)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .likeBurstHeart { animation: none; opacity: 0; }
+}
+
+.feedToastIcon {
+  width: 14px;
+  height: 14px;
+  color: #b6fe3b;
+  flex-shrink: 0;
+}

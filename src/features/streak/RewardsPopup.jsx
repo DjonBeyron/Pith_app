@@ -6,6 +6,7 @@ import {
   claimAllStreakRewards, buyStreakFreeze, buyAutoFreeze, fetchStreakMilestones,
 } from '../../shared/api/streakApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
+import BackButton from '../../shared/ui/BackButton.jsx'
 
 const RESET_INFO_KEY = 'pithy_streak_reset_info'
 
@@ -133,7 +134,7 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
   return (
     <div className="rwOverlay">
       <header className="rwHeader">
-        <button className="rwBack" onClick={onClose}>←</button>
+        <BackButton onClick={onClose} label="Закрыть" />
         <h1>Ежедневные награды</h1>
       </header>
 

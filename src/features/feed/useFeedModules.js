@@ -37,6 +37,8 @@ export function useFeedModules(startedIds, visible = true) {
           posterCrop: r.poster_crop ?? null,
           difficulty: r.difficulty ?? null,
           difficultyVotes: r.difficulty_votes ?? 0,
+          saveCount: r.save_count ?? 0,
+          repostCount: r.repost_count ?? 0,
         })))
       })
       // Сбой перезагрузки (сеть) — существующий список НЕ стираем

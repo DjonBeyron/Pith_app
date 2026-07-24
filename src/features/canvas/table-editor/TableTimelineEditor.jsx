@@ -4,6 +4,7 @@ import { findLastWordLayerId } from '../../../shared/lib/tableDictatorTiming.js'
 import { useTableTimelineEdit } from './useTableTimelineEdit.js'
 import TableTimelineTrack from './TableTimelineTrack.jsx'
 import TableTimelineRuler from './TableTimelineRuler.jsx'
+import BackButton from '../../../shared/ui/BackButton.jsx'
 
 export default function TableTimelineEditor({ table, fileId, waveformData, duration, timeline, answer, lessonFiles, onPickFile, onBack }) {
   const [localFileId,   setLocalFileId]   = useState(fileId)
@@ -146,7 +147,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
       {/* Только «Назад» — она же сохраняет (onBack в TableEditorModal сам коммитит
           изменения перед закрытием таймлайна), отдельная «Сохранить» была дублем. */}
       <div className="tlHeader">
-        <button className="tlBtnBack" onClick={() => onBack({ file_id: localFileId, waveformData: localWave, duration: localDuration, timeline: getTimeline() })}>← Назад</button>
+        <BackButton onClick={() => onBack({ file_id: localFileId, waveformData: localWave, duration: localDuration, timeline: getTimeline() })} />
         <span className="tlTitle">Таймлайн</span>
       </div>
 

@@ -11,24 +11,6 @@
   min-height: 52px;
 }
 
-.playerTopBarBack {
-  background: none;
-  border: none;
-  color: #9aa0b4;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 8px 10px;
-  border-radius: 6px;
-  flex-shrink: 0;
-  line-height: 1;
-  min-width: 40px;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.playerTopBarBack:hover { background: #2a2f3e; color: #e0e0e0; }
-
 .playerTopBarAvatar {
   width: 36px;
   height: 36px;
