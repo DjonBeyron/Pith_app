@@ -1,6 +1,7 @@
-// Верхние вкладки ленты («Рекомендации»/«Мои уроки») + кнопка DBG + кнопка
-// 🔍 (поиск фразы + фильтр сложности, справа); точка на ней — фильтр активен
-export default function FeedTabsHeader({ view, onSetView, onShowDebug, onOpenSearch, filterActive }) {
+// Верхние вкладки ленты («Рекомендации»/«Мои уроки») + кнопка DBG (только
+// админу) + кнопка 🔍 (поиск фразы + фильтр сложности, справа); точка на
+// ней — фильтр активен
+export default function FeedTabsHeader({ view, onSetView, onShowDebug, onOpenSearch, filterActive, isAdmin }) {
   return (
     <>
       <div className="feedV2Tabs">
@@ -15,7 +16,7 @@ export default function FeedTabsHeader({ view, onSetView, onShowDebug, onOpenSea
           Мои уроки
         </button>
       </div>
-      <button className="feedDbgBtn" onClick={onShowDebug}>DBG</button>
+      {isAdmin && <button className="feedDbgBtn" onClick={onShowDebug}>DBG</button>}
       {/* Лупа + ползунки фильтра (в стиле иконок нижней панели: без фона, с тенью) */}
       <button className="feedSearchBtn" onClick={onOpenSearch} aria-label="Поиск и фильтр сложности">
         <svg viewBox="0 0 38 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

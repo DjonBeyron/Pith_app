@@ -7,6 +7,7 @@ import DebugPanel from './DebugPanel.jsx'
 import FeedTabsHeader from './FeedTabsHeader.jsx'
 import FeedSearchPanel from './FeedSearchPanel.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
 import { useFeedSound } from './useFeedSound.js'
 import { useFeedSocial } from './useFeedSocial.js'
 import { useFeedModules } from './useFeedModules.js'
@@ -29,6 +30,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   // Авторизация из локальной сессии — мгновенно, не ждём fetchFeedSocial
   // (раньше тап по лайку до его загрузки улетал в форму входа)
   const { user, loading: authLoading } = useAuth()
+  const { isAdmin } = useAdmin()
 
   const { soundOn, soundReady, soundGestureRef, handleSoundOn, handleSoundBlocked } = useFeedSound()
   const {
@@ -89,6 +91,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
       <FeedTabsHeader
         view={view} onSetView={setView} onShowDebug={() => setShowDebug(true)}
         onOpenSearch={() => setShowSearch(true)} filterActive={filterActive}
+        isAdmin={isAdmin}
       />
 
       {/* Оба вида смонтированы всегда (как вкладки оболочки): переключение

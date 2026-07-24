@@ -31,6 +31,14 @@
   color: #0d1500;
 }
 
+.avVersion {
+  padding: 4px 16px 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #5a6270;
+  text-align: right;
+}
+
 /* ── Список модулей ── */
 .amScreen {
   flex: 1;

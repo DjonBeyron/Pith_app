@@ -81,6 +81,15 @@
       }
       #splash .splash-logo,
       #splash .splash-word { opacity: 0; animation: splashItemIn 300ms ease 300ms forwards; }
+      /* Версия — внизу по центру, тише слова/лого (маленькая и приглушённая,
+         чтобы не спорить с логотипом за внимание) */
+      #splash .splash-version {
+        position: absolute; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%);
+        font: 600 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: rgba(242, 245, 247, 0.4);
+        opacity: 0; animation: splashItemIn 300ms ease 300ms forwards;
+      }
       @keyframes splashBgIn { to { opacity: 1; } }
       @keyframes splashItemIn { to { opacity: 1; } }
       /* Уход: фон растворяется, лого «наезжает» (масштаб вверх) — полёт в экран.
@@ -89,6 +98,7 @@
       #splash.splash-out { animation: splashOut 350ms ease forwards; pointer-events: none; }
       #splash.splash-out .splash-logo,
       #splash.splash-out .splash-word { animation: splashZoom 350ms ease forwards; }
+      #splash.splash-out .splash-version { animation: splashOut 350ms ease forwards; }
       @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
       @keyframes splashZoom { from { opacity: 1; } to { opacity: 1; transform: scale(1.6); } }
     </style>
@@ -104,7 +114,16 @@
         </g>
       </svg>
       <div class="splash-word">Pithy</div>
+      <div class="splash-version" id="splash-version"></div>
     </div>
+
+    <script type="module">
+      // Версия — из единого источника правды (src/shared/lib/version.js),
+      // Vite бандлит этот импорт вместе с остальным модульным графом
+      import { APP_VERSION } from '/src/shared/lib/version.js'
+      var el = document.getElementById('splash-version')
+      if (el) el.textContent = 'v' + APP_VERSION
+    </script>
 
     <script>
       /* Координация сплэша: показать лого сразу, убрать когда приложение готово

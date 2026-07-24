@@ -1,9 +1,7 @@
 import { useState, useRef } from 'react'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { plural } from '../../shared/lib/plural.js'
-import { displayDifficulty } from '../../shared/api/difficultyApi.js'
-import SlideVideo from './SlideVideo.jsx'
-import DifficultyBadge from './DifficultyBadge.jsx'
+import MyLessonSlide from './MyLessonSlide.jsx'
 
 // «Мои уроки»: начатые модули (user_module_progress) в двух режимах —
 // видео-скролл (без HUD, прогресс-бар модуля снизу) и список с процентами.
@@ -86,43 +84,20 @@ export default function MyLessons({
       {mode === 'video' ? (
         <div className="feedV2Scroll" ref={scrollRef} onScroll={onScroll}>
           {started.map((m, i) => (
-            <section key={m.id} className={`feedSlide feedGrad${i % 4}`}>
-              <SlideVideo
-                videoUrl={m.videoUrl}
-                posterUrl={m.posterUrl}
-                slideKey={`ml-${m.id}`}
-                active={i === activeIdx}
-                near={Math.abs(i - activeIdx) <= 1}
-                tabVisible={visible && mode === 'video'}
-                soundOn={soundOn}
-                onSoundOn={onSoundOn}
-                onSoundBlocked={onSoundBlocked}
-                fallback={<div className="feedSlideHint">видео начатого модуля</div>}
-              />
-              <div className="mlPhrase">{m.title}</div>
-              {/* Свой голос в приоритете: «мои сложные» = сложные для меня */}
-              <div className="feedHud">
-                <DifficultyBadge
-                  level={displayDifficulty(m, diffVotes[m.id], true)}
-                  myVote={diffVotes[m.id]}
-                  onVote={v => onVoteDifficulty?.(m.id, v)}
-                  active={i === activeIdx} />
-              </div>
-              <button className="feedLearnBtn mlContinueBtn" onClick={() => onOpen(m)}>
-                {m.pct === 100 ? 'Повторить модуль' : 'Продолжить'}
-              </button>
-              <div className="mlProgress">
-                <div className="mlProgressLabel">
-                  <span>
-                    {m.pct === 100
-                      ? 'Модуль пройден'
-                      : `Пройдено ${m.done} из ${m.total} · осталось ${m.total - m.done}`}
-                  </span>
-                  <b>{m.pct}%</b>
-                </div>
-                <div className="mlTrack"><div className="mlFill" style={{ width: `${m.pct}%` }} /></div>
-              </div>
-            </section>
+            <MyLessonSlide
+              key={m.id}
+              module={m}
+              gradIdx={i % 4}
+              active={i === activeIdx}
+              near={Math.abs(i - activeIdx) <= 1}
+              tabVisible={visible && mode === 'video'}
+              soundOn={soundOn}
+              onSoundOn={onSoundOn}
+              onSoundBlocked={onSoundBlocked}
+              myDifficulty={diffVotes[m.id]}
+              onVoteDifficulty={onVoteDifficulty}
+              onOpen={onOpen}
+            />
           ))}
         </div>
       ) : (

@@ -200,7 +200,7 @@
 .feedLearnBtn {
   position: absolute;
   left: 16px;
-  right: 84px;
+  right: 16px;
   bottom: calc(20px + var(--v2-nav-h));
   z-index: 5;
   display: flex;

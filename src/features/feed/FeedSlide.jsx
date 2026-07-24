@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { plural } from '../../shared/lib/plural.js'
 import { logRepost } from '../../shared/api/moduleSocialApi.js'
-import { leaseVideo } from './videoPool.js'
+import { useSlowMotion } from './useSlowMotion.js'
 import SlideVideo from './SlideVideo.jsx'
 import DifficultyBadge from './DifficultyBadge.jsx'
 import PhraseBubbleSpoiler from './PhraseBubbleSpoiler.jsx'
@@ -23,36 +23,9 @@ export default function FeedSlide({
   const liked = !!reaction?.liked
   const saved = !!reaction?.saved
 
-  // Замедленное воспроизведение: держим палец в зоне над лайком — играет на
-  // 0.5x (preservesPitch сам держит высоту голоса нормальной), отпустили —
-  // обратно на обычную скорость. Второй файл не нужен, всё через сам браузер.
-  const [slowMotion, setSlowMotion] = useState(false)
-  function startSlowMotion(e) {
-    // Без звука эффект бессмысленен (нечего замедлять на слух) — жест
-    // включает только замедление, звук по нему не активируем
-    if (!active || !soundOn) return
-    e.preventDefault()
-    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* не критично */ }
-    const v = leaseVideo(slideKey)
-    v.playbackRate = 0.5
-    v.preservesPitch = true
-    v.webkitPreservesPitch = true
-    setSlowMotion(true)
-  }
-  function stopSlowMotion() {
-    const v = leaseVideo(slideKey)
-    v.playbackRate = 1
-    setSlowMotion(false)
-  }
-  // Ушли со слайда, пока держали палец (свайп) — сбрасываем скорость, иначе
-  // видео так и останется замедленным при возврате на слайд
-  useEffect(() => {
-    if (active || !slowMotion) return
-    const v = leaseVideo(slideKey)
-    v.playbackRate = 1
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSlowMotion(false)
-  }, [active, slowMotion, slideKey])
+  // Замедленное воспроизведение (0.5x, только при звуке) — общий хук с
+  // «Моими уроками» (MyLessonSlide), см. useSlowMotion.js
+  const { slowMotion, startSlowMotion, stopSlowMotion } = useSlowMotion(slideKey, active, soundOn)
   // Подпись «X уроков в модуле» спрятана за фразой и выкатывается из-под
   // неё с небольшой задержкой после тапа — не одновременно с разлётом
   // шариков, а чуть следом, отдельным движением

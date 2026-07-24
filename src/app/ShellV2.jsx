@@ -17,7 +17,6 @@ import LevelBadge from './LevelBadge.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { useDailyLoginTouch } from '../features/streak/useDailyLoginTouch.js'
-import { APP_VERSION } from '../shared/lib/version.js'
 
 // Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
 // пользователь эти chunk'и даже не скачивает (см. PROJECT.md, этап 2)
@@ -54,7 +53,8 @@ export default function ShellV2() {
       <InstallPrompt />
       <UpdateToast />
       {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
-          самого верха), справа энергия и под ней версия приложения */}
+          самого верха), справа энергия. Версия приложения — в админке
+          (AdminV2) и на стартовом сплэше (index.html), не в ленте */}
       {tab !== 'profile' && tab !== 'admin' && (
         <>
           <div className="hudBarLeft">
@@ -63,7 +63,6 @@ export default function ShellV2() {
           </div>
           <div className={tab === 'feed' ? 'hudBarRight hudBarRightFeed' : 'hudBarRight'}>
             <EnergyBadge />
-            <span className="hudVersion">v{APP_VERSION}</span>
           </div>
         </>
       )}
@@ -133,7 +132,7 @@ export default function ShellV2() {
           <button
             className={tab === 'admin' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
             onClick={() => setTab('admin')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3.5" /><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" /></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d={GEAR_PATH} /></svg>
             Админ
           </button>
         )}

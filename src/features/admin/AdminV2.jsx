@@ -5,6 +5,7 @@ import AdminNotificationsTab from './AdminNotificationsTab.jsx'
 import AdminRaceTab from './AdminRaceTab.jsx'
 import AdminStreakTab from './AdminStreakTab.jsx'
 import AdminErrorsTab from './AdminErrorsTab.jsx'
+import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Админ-раздел новой оболочки: субвкладки «Модули» (список с публикацией),
 // «Файлы» (таблица файлов R2), «Пуши» (рассылка), «Гонка» (супергонка),
@@ -34,6 +35,7 @@ export default function AdminV2({ onOpenCanvas }) {
           Ошибки
         </button>
       </div>
+      <div className="avVersion">v{APP_VERSION}</div>
       {sub === 'modules' && <AdminModulesTab onOpenCanvas={onOpenCanvas} />}
       {sub === 'files' && <div className="shellV2Panel"><AdminTab /></div>}
       {sub === 'push' && <div className="shellV2Panel"><AdminNotificationsTab /></div>}
