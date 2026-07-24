@@ -95,6 +95,37 @@
 
 .feedSoundChip svg { width: 16px; height: 16px; }
 
+/* Зона нажатия для замедленного воспроизведения — над кнопкой лайка в HUD
+   (feedHud), touch-action:none чтобы жест не воровала прокрутка ленты */
+.feedSlowZone {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  touch-action: none;
+}
+
+/* Плашка «0.5x» — тот же уровень, что чип «Включить звук» (feedSoundChip),
+   пока палец держит зону над лайком */
+.feedSlowLabel {
+  position: absolute;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 /* Скелетон медленной сети: тёмный контейнер с пробегающим бликом.
    Анимация только transform — GPU-дружелюбно */
 .feedSkeleton {

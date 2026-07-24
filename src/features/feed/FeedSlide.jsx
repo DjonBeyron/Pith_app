@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { plural } from '../../shared/lib/plural.js'
 import { logRepost } from '../../shared/api/moduleSocialApi.js'
+import { leaseVideo } from './videoPool.js'
 import SlideVideo from './SlideVideo.jsx'
 import DifficultyBadge from './DifficultyBadge.jsx'
 import PhraseBubbleSpoiler from './PhraseBubbleSpoiler.jsx'
@@ -21,6 +22,37 @@ export default function FeedSlide({
   useEffect(() => () => clearTimeout(burstTimer.current), [])
   const liked = !!reaction?.liked
   const saved = !!reaction?.saved
+
+  // Замедленное воспроизведение: держим палец в зоне над лайком — играет на
+  // 0.5x (preservesPitch сам держит высоту голоса нормальной), отпустили —
+  // обратно на обычную скорость. Второй файл не нужен, всё через сам браузер.
+  const [slowMotion, setSlowMotion] = useState(false)
+  function startSlowMotion(e) {
+    // Без звука эффект бессмысленен (нечего замедлять на слух) — жест
+    // включает только замедление, звук по нему не активируем
+    if (!active || !soundOn) return
+    e.preventDefault()
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* не критично */ }
+    const v = leaseVideo(slideKey)
+    v.playbackRate = 0.5
+    v.preservesPitch = true
+    v.webkitPreservesPitch = true
+    setSlowMotion(true)
+  }
+  function stopSlowMotion() {
+    const v = leaseVideo(slideKey)
+    v.playbackRate = 1
+    setSlowMotion(false)
+  }
+  // Ушли со слайда, пока держали палец (свайп) — сбрасываем скорость, иначе
+  // видео так и останется замедленным при возврате на слайд
+  useEffect(() => {
+    if (active || !slowMotion) return
+    const v = leaseVideo(slideKey)
+    v.playbackRate = 1
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSlowMotion(false)
+  }, [active, slowMotion, slideKey])
   // Подпись «X уроков в модуле» спрятана за фразой и выкатывается из-под
   // неё с небольшой задержкой после тапа — не одновременно с разлётом
   // шариков, а чуть следом, отдельным движением
@@ -97,6 +129,13 @@ export default function FeedSlide({
       </div>
 
       <div className="feedHud">
+        <div
+          className="feedSlowZone"
+          onPointerDown={startSlowMotion}
+          onPointerUp={stopSlowMotion}
+          onPointerCancel={stopSlowMotion}
+          aria-hidden="true"
+        />
         <button
           className={liked ? 'feedHudBtn feedHudBtnOn' : 'feedHudBtn'}
           onClick={handleLike}>
@@ -133,6 +172,8 @@ export default function FeedSlide({
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
         Изучить фразу
       </button>
+
+      {slowMotion && <div className="feedSlowLabel">0.5x</div>}
 
       {toast && (
         <div className="feedToast">
