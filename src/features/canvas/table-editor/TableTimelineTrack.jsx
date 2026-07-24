@@ -4,7 +4,7 @@ import { EXTRA_LEAD_IN_S, EXTRA_LEAD_IN_LAST_S } from '../../../shared/lib/table
 // Одна дорожка таймлайна. У cell-слоя — два независимых клипа в одной строке:
 // подсветка (как раньше) и проявление (серый, когда текст ячейки виден/скрыт).
 // У word/check-слоя — как раньше, один клип. isDefault-слои без кнопки удаления.
-export default function TableTimelineTrack({ layer, cells, duration, currentTime, stripPx, isLastWord, onToggleVisible, onToggleHighlight, onUpdateClip, onUpdateReveal, onRemove }) {
+export default function TableTimelineTrack({ layer, cells, duration, stripPx, isLastWord, onToggleVisible, onToggleHighlight, onUpdateClip, onUpdateReveal, onRemove }) {
   const cell  = cells.find(c => c.id === layer.cellId)
   const isCellOnly  = !!layer.cellId && !layer.word && !layer.isCheck
   const clip        = layer.clips[0] ?? null
@@ -76,7 +76,6 @@ export default function TableTimelineTrack({ layer, cells, duration, currentTime
     : layer.word
       ? `"${layer.word}"`
       : cell?.value?.trim() || (cell ? `${cell.row + 1}×${cell.col + 1}` : '⚠ удали')
-  const cursorPct = timeToPct(currentTime ?? 0)
 
   return (
     <div className={`tlTrack${!layer.visible ? ' tlTrackHidden' : ''}${layer.word ? ' tlTrackWord' : ''}${layer.isCheck ? ' tlTrackCheck' : ''}${isCellOnly ? ' tlTrackCell' : ''}${isOrphan ? ' tlTrackOrphan' : ''}`}>
@@ -124,7 +123,6 @@ export default function TableTimelineTrack({ layer, cells, duration, currentTime
             <div className="tlClipHandleR" onMouseDown={e => onHandleDown(e, 'right', revealClip, onUpdateReveal)} />
           </div>
         )}
-        <div className="tlCursor" style={{ left: `${cursorPct}%` }} />
       </div>
       {!layer.isDefault && (
         (!layer.word && !layer.isCheck)

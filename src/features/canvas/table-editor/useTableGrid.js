@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import * as G from './tableGridUtils.js'
+import { autoFitTableText } from './tableAutoFitText.js'
 
 // Состояние конструктора сетки: сама таблица + drag-выделение диапазона ячеек
 // для объединения. Ничего не отправляет наружу автоматически — коммит наружу
@@ -14,6 +15,7 @@ export function useTableGrid(initialTable) {
   const removeRow    = useCallback(() => setTable(t => G.removeLastRow(t)), [])
   const removeColumn = useCallback(() => setTable(t => G.removeLastColumn(t)), [])
   const setCellValue  = useCallback((id, value) => setTable(t => G.setCellValue(t, id, value)), [])
+  const setCellFontSize = useCallback((id, size) => setTable(t => G.setCellFontSize(t, id, size)), [])
   const setColumnWidth = useCallback((idx, pct) => setTable(t => G.setColumnWidth(t, idx, pct)), [])
   const setRowHeight   = useCallback((idx, pct) => setTable(t => G.setRowHeight(t, idx, pct)), [])
   const splitCell = useCallback(id => { setTable(t => G.splitCell(t, id)); setSelection(null) }, [])
@@ -51,10 +53,15 @@ export function useTableGrid(initialTable) {
     setTable(t => (selection ? G.toggleHeaderSelection(t, selection.r1, selection.c1, selection.r2, selection.c2) : t))
   }, [selection])
 
+  // Подгоняет размер текста под ячейку на ширине iPhone SE — см. tableAutoFitText.js
+  const autoFitText = useCallback(() => {
+    setTable(t => autoFitTableText(t))
+  }, [])
+
   return {
     table, selection, canMerge, isHeaderSelected,
     addRow, addColumn, removeRow, removeColumn,
-    setCellValue, setColumnWidth, setRowHeight, splitCell, loadTable,
-    startSelect, extendSelect, endSelect, clearSelection, mergeSelected, toggleHeaderSelected,
+    setCellValue, setCellFontSize, setColumnWidth, setRowHeight, splitCell, loadTable,
+    startSelect, extendSelect, endSelect, clearSelection, mergeSelected, toggleHeaderSelected, autoFitText,
   }
 }

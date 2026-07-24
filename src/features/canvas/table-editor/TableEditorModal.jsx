@@ -47,8 +47,7 @@ export default function TableEditorModal({
             answer={initialAnswer ?? ''}
             lessonFiles={lessonFiles}
             onPickFile={onPickFile}
-            onSave={handleTimelineSave}
-            onBack={data => { handleTimelineSave(data); setShowTimeline(false) }}
+            onBack={handleTimelineSave}
           />
         ) : (
           <>

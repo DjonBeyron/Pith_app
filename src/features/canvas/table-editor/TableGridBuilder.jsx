@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { ROW_UNIT_PX } from '../../../shared/ui/TableGrid.jsx'
+import { FONT_MIN, FONT_MAX } from './tableAutoFitText.js'
 import TableResizeHandles from './TableResizeHandles.jsx'
+
+const DEFAULT_FONT_SIZE = 13 // .tableGridCell { font-size: 13px } — table-grid.css
 
 // Левая панель конструктора: тулбар (+строка/+колонка) + переключатель режима
 // выделения для объединения ячеек + редактируемая сетка.
 // Два режима: «редактирование» (дефолт, клики = ввод текста) и «выделение»
-// (все клики идут в drag-выделение → можно объединять/разбивать).
+// (все клики идут в drag-выделение → можно объединять/разбивать/менять размер текста).
 export default function TableGridBuilder({ grid }) {
   const { table, selection, canMerge, isHeaderSelected, addRow, addColumn, removeRow, removeColumn,
-    setCellValue, setColumnWidth, setRowHeight, startSelect, extendSelect, endSelect,
-    clearSelection, mergeSelected, splitCell, toggleHeaderSelected } = grid
+    setCellValue, setCellFontSize, setColumnWidth, setRowHeight, startSelect, extendSelect, endSelect,
+    clearSelection, mergeSelected, splitCell, toggleHeaderSelected, autoFitText } = grid
 
   const draggingRef = useRef(false)
   const gridRef = useRef(null)
@@ -31,6 +34,14 @@ export default function TableGridBuilder({ grid }) {
   const singleSelectedCell = cellsInSelection.length === 1 && (cellsInSelection[0].rowspan > 1 || cellsInSelection[0].colspan > 1)
     ? cellsInSelection[0]
     : null
+  // Для ручного размера текста — любая одна выделенная ячейка (без ограничения на объединённость)
+  const singleCell = cellsInSelection.length === 1 ? cellsInSelection[0] : null
+
+  function bumpFontSize(delta) {
+    if (!singleCell) return
+    const next = Math.max(FONT_MIN, Math.min(FONT_MAX, (singleCell.fontSize ?? DEFAULT_FONT_SIZE) + delta))
+    setCellFontSize(singleCell.id, next)
+  }
 
   // Подсветка только в режиме выделения
   function inSelection(cell) {
@@ -67,9 +78,9 @@ export default function TableGridBuilder({ grid }) {
         <button
           className={`tableBuilderBtnSelect${selectMode ? ' tableBuilderBtnSelectActive' : ''}`}
           onClick={toggleSelectMode}
-          title="Переключить режим: выделение ячеек для объединения / ввод текста"
+          title="Переключить режим: выделение ячеек — объединить/разбить/сделать заголовком"
         >
-          {selectMode ? '✓ Режим выделения' : 'Объединить ячейки…'}
+          {selectMode ? '✓ Режим редактирования' : 'Редактировать'}
         </button>
 
         {selectMode && (
@@ -82,13 +93,28 @@ export default function TableGridBuilder({ grid }) {
               title="Заголовок: текст жирнее, фон ячейки чуть темнее — навсегда, не по времени"
             >{isHeaderSelected ? '✓ Заголовок' : 'Заголовок'}</button>
             <button onClick={clearSelection} disabled={!selection}>Сбросить</button>
+
+            {singleCell && (
+              <div className="tableBuilderFontSize" title="Размер текста этой ячейки">
+                <button onClick={() => bumpFontSize(-1)} disabled={(singleCell.fontSize ?? DEFAULT_FONT_SIZE) <= FONT_MIN}>A−</button>
+                <span>{singleCell.fontSize ?? DEFAULT_FONT_SIZE}px</span>
+                <button onClick={() => bumpFontSize(1)} disabled={(singleCell.fontSize ?? DEFAULT_FONT_SIZE) >= FONT_MAX}>A+</button>
+              </div>
+            )}
           </>
         )}
+
+        <div className="tableBuilderToolbarDivider" />
+
+        <button
+          onClick={autoFitText}
+          title="Подобрать размер текста под каждую ячейку так, чтобы он помещался даже на маленьком iPhone SE"
+        >🔤 Авто-размер текста</button>
       </div>
 
       {selectMode && (
         <div className="tableBuilderSelectHint">
-          Зажмите кнопку мыши и протащите по ячейкам, которые нужно объединить → нажмите «Объединить»
+          Зажмите кнопку мыши и протащите по ячейкам, которые нужно объединить/разбить/сделать заголовком
         </div>
       )}
 
@@ -124,7 +150,10 @@ export default function TableGridBuilder({ grid }) {
                 value={cell.value}
                 onChange={e => setCellValue(cell.id, e.target.value)}
                 onMouseDown={e => { if (!selectMode) e.stopPropagation() }}
-                style={{ pointerEvents: selectMode ? 'none' : 'auto', cursor: selectMode ? 'crosshair' : 'text' }}
+                style={{
+                  pointerEvents: selectMode ? 'none' : 'auto', cursor: selectMode ? 'crosshair' : 'text',
+                  fontSize: cell.fontSize ? `${cell.fontSize}px` : undefined,
+                }}
                 placeholder="…"
               />
             </div>

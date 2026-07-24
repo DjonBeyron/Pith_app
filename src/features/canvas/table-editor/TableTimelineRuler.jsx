@@ -2,10 +2,13 @@ import { useRef, useCallback } from 'react'
 
 // Линейка времени над дорожками таймлайна (как в Premiere Pro):
 // крупная засечка с подписью на каждой секунде, средняя на 0.5с, мелкие каждые 0.1с.
-// Клик/протяжка по линейке двигает плейхед (синяя линия, .tlCursor) — ставит
-// currentTime самого <audio>, поэтому play/пробел продолжат ровно с этого места.
-// Выровнена по стрипу дорожек теми же спейсерами (88px слева, 20px справа), что и спектр.
-export default function TableTimelineRuler({ duration, stripPx, currentTime, onSeek }) {
+// Клик/протяжка по линейке двигает плейхед — ставит currentTime самого <audio>,
+// поэтому play/пробел продолжат ровно с этого места. Сама линия плейхеда (синяя,
+// .tlCursor) рисуется ОДИН раз в TableTimelineEditor поверх линейки+дорожек —
+// не здесь: если рисовать её в каждой дорожке отдельно, она рвётся на отступах
+// между дорожками (у каждой свой кусок, обрезанный по высоте её строки).
+// Выровнена по стрипу дорожек теми же спейсерами, что и спектр (см. tlWaveSpacer).
+export default function TableTimelineRuler({ duration, stripPx, onSeek }) {
   const stripRef = useRef(null)
 
   const getTime = useCallback((e) => {
@@ -32,8 +35,6 @@ export default function TableTimelineRuler({ duration, stripPx, currentTime, onS
     const isHalf = !isSec && Math.abs((Math.round(t * 10) % 5)) < 1e-3
     ticks.push({ t, pct: (t / duration) * 100, isSec, isHalf })
   }
-  const cursorPct = duration ? (currentTime ?? 0) / duration * 100 : 0
-
   return (
     <div className="tlRuler">
       <div className="tlWaveSpacer" />
@@ -47,7 +48,6 @@ export default function TableTimelineRuler({ duration, stripPx, currentTime, onS
             {tk.isSec && <span className="tlTickLabel">{Math.round(tk.t)}s</span>}
           </div>
         ))}
-        <div className="tlCursor" style={{ left: `${cursorPct}%` }} />
       </div>
       <div className="tlWaveSpacerR" />
     </div>

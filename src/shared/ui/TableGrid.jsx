@@ -39,7 +39,10 @@ export default function TableGrid({ columns, rows, cells, rowCount, highlightedI
             }}
             onClick={onCellClick ? () => onCellClick(cell) : undefined}
           >
-            <span className={`tableGridCellText${revealed ? '' : ' tableGridCellTextHidden'}`}>{cell.value}</span>
+            <span
+              className={`tableGridCellText${revealed ? '' : ' tableGridCellTextHidden'}`}
+              style={cell.fontSize ? { fontSize: `${cell.fontSize}px` } : undefined}
+            >{cell.value}</span>
           </div>
         )
       })}

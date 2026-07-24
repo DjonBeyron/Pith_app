@@ -5,7 +5,7 @@ import { useTableTimelineEdit } from './useTableTimelineEdit.js'
 import TableTimelineTrack from './TableTimelineTrack.jsx'
 import TableTimelineRuler from './TableTimelineRuler.jsx'
 
-export default function TableTimelineEditor({ table, fileId, waveformData, duration, timeline, answer, lessonFiles, onPickFile, onSave, onBack }) {
+export default function TableTimelineEditor({ table, fileId, waveformData, duration, timeline, answer, lessonFiles, onPickFile, onBack }) {
   const [localFileId,   setLocalFileId]   = useState(fileId)
   const [localWave,     setLocalWave]     = useState(waveformData)
   const [localDuration, setLocalDuration] = useState(duration)
@@ -42,17 +42,6 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     return 0
   })
 
-  function syncWordLayers() {
-    const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
-    const usedIds = new Set()
-    words.forEach(word => {
-      const cell = cells.find(c => c.value?.trim().toLowerCase() === word.toLowerCase() && !usedIds.has(c.id))
-      if (cell) { usedIds.add(cell.id); return }
-      const exists = layers.some(l => l.word?.toLowerCase() === word.toLowerCase())
-      if (!exists) addWordLayer(word, localDuration)
-    })
-  }
-
   useEffect(() => {
     if (localBlobUrl || !fileId) return
     const f = lessonFiles?.find(lf => lf.id === fileId)
@@ -77,13 +66,18 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     addCheckLayer(localDuration, false)  // добавляет только если нет
   }, [localDuration]) // eslint-disable-line
 
-  // RAF-цикл для волны
+  // Волна на паузе: перерисовать при любой смене currentTime (клик/протяжка по
+  // линейке-плейхеду) — раньше это было в одном эффекте с RAF-циклом ниже и не
+  // зависело от currentTime, поэтому клик по линейке не красил волну зелёным,
+  // пока не нажат play.
   useEffect(() => {
-    if (!localDuration) return
-    if (!isPlaying) {
-      drawWaveBar(waveRef.current, localWave, currentTime / localDuration)
-      return
-    }
+    if (!localDuration || isPlaying) return
+    drawWaveBar(waveRef.current, localWave, currentTime / localDuration)
+  }, [currentTime, isPlaying, localWave, localDuration])
+
+  // RAF-цикл волны во время игры — отдельно, чтобы не перезапускаться на каждый currentTime
+  useEffect(() => {
+    if (!localDuration || !isPlaying) return
     let rafId
     const tick = () => {
       const t = audioRef.current?.currentTime ?? 0
@@ -93,7 +87,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     }
     rafId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId)
-  }, [isPlaying, localWave, localDuration]) // eslint-disable-line
+  }, [isPlaying, localWave, localDuration])
 
   // Пробел = play/pause (пока этот редактор открыт)
   useEffect(() => {
@@ -141,15 +135,19 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   const stripPx = Math.max(200, Math.round(timelineDur * 80))
   // Канвас волны занимает только аудио-часть таймлайна (первую), дальше — пусто.
   const wavePx  = timelineDur ? Math.round(stripPx * localDuration / timelineDur) : stripPx
+  // Отступ слева до начала стрипа = 👁(22) + gap(6) + метка(92) — держим тем же
+  // числом, что и в CSS (.tlWaveSpacer/.tlTrackLabel), иначе плейхед разъедется
+  // с линейкой/клипами.
+  const TRACK_LABEL_OFFSET_PX = 120
+  const cursorLeftPx = timelineDur ? TRACK_LABEL_OFFSET_PX + (currentTime / timelineDur) * stripPx : 0
 
   return (
     <div className="tlEditor">
+      {/* Только «Назад» — она же сохраняет (onBack в TableEditorModal сам коммитит
+          изменения перед закрытием таймлайна), отдельная «Сохранить» была дублем. */}
       <div className="tlHeader">
         <button className="tlBtnBack" onClick={() => onBack({ file_id: localFileId, waveformData: localWave, duration: localDuration, timeline: getTimeline() })}>← Назад</button>
         <span className="tlTitle">Таймлайн</span>
-        <button className="tlBtnSave" onClick={() => onSave({ file_id: localFileId, waveformData: localWave, duration: localDuration, timeline: getTimeline() })}>
-          Сохранить
-        </button>
       </div>
 
       {/* Управление аудио — только кнопки, без спектра */}
@@ -166,52 +164,50 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
         )}
       </div>
 
+      {/* Слои для слов ответа и «Проверить» появляются сами (см. эффект выше на
+          localDuration) — отдельных кнопок для этого больше нет, только подсказка. */}
       <div className="tlHint">
         {localDuration ? 'Тяните ручки клипа — задайте начало/конец. Тяните тело — двигайте. 👁 — скрыть.' : 'Сначала добавьте аудио.'}
-        {answer?.trim() && (
-          <button className="tlSyncBtn" onClick={syncWordLayers} title="Добавить дорожки для слов из ответа, которых нет в таблице">
-            ⟳ Слова из ответа
-          </button>
-        )}
-        <button
-          className="tlCheckLayerBtn"
-          onClick={() => addCheckLayer(localDuration)}
-          title="Добавить/переставить дорожку 'Проверить' — плеер запустит проверку в момент начала клипа"
-        >✓ Проверить</button>
       </div>
 
       <div className="tlTracks">
-        {/* Линейка времени (засечки 0.1с + подписи секунд) — над всеми дорожками.
-            Клик/протяжка по ней ставит плейхед (синяя линия) — play/пробел играют оттуда. */}
-        {timelineDur ? (
-          <TableTimelineRuler duration={timelineDur} stripPx={stripPx} currentTime={currentTime} onSeek={handleSeek} />
-        ) : null}
-        {/* Спектр — только аудио-часть (слева); справа пустой хвост таймлайна */}
-        {localBlobUrl && (
-          <div className="tlWaveTrack">
-            <div className="tlWaveSpacer" />
-            <div style={{ flex: 1, minWidth: `${stripPx}px` }}>
-              <canvas className="tlWaveTrackCanvas" ref={waveRef} style={{ width: `${wavePx}px` }} />
+        {/* Обёртка натуральной высоты (= вся прокручиваемая высота содержимого) —
+            плейхед внутри неё растягивается на 100% этой высоты одним куском,
+            а не по кускам на дорожку (иначе рвётся в отступах между дорожками). */}
+        <div className="tlTracksInner">
+          {/* Линейка времени (засечки 0.1с + подписи секунд) — над всеми дорожками.
+              Клик/протяжка по ней ставит плейхед — play/пробел играют оттуда. */}
+          {timelineDur ? (
+            <TableTimelineRuler duration={timelineDur} stripPx={stripPx} onSeek={handleSeek} />
+          ) : null}
+          {/* Спектр — только аудио-часть (слева); справа пустой хвост таймлайна */}
+          {localBlobUrl && (
+            <div className="tlWaveTrack">
+              <div className="tlWaveSpacer" />
+              <div style={{ flex: 1, minWidth: `${stripPx}px` }}>
+                <canvas className="tlWaveTrackCanvas" ref={waveRef} style={{ width: `${wavePx}px` }} />
+              </div>
+              <div className="tlWaveSpacerR" />
             </div>
-            <div className="tlWaveSpacerR" />
-          </div>
-        )}
-        {sortedLayers.map(layer => (
-          <TableTimelineTrack
-            key={layer.id}
-            layer={layer}
-            cells={cells}
-            duration={timelineDur}
-            currentTime={currentTime}
-            stripPx={stripPx}
-            isLastWord={layer.id === lastWordLayerId}
-            onToggleVisible={() => toggleVisible(layer.id)}
-            onToggleHighlight={() => toggleHighlight(layer.id)}
-            onUpdateClip={clip => updateClip(layer.id, clip, 0)}
-            onUpdateReveal={clip => updateClip(layer.id, clip, 1)}
-            onRemove={() => removeLayer(layer.id)}
-          />
-        ))}
+          )}
+          {sortedLayers.map(layer => (
+            <TableTimelineTrack
+              key={layer.id}
+              layer={layer}
+              cells={cells}
+              duration={timelineDur}
+              stripPx={stripPx}
+              isLastWord={layer.id === lastWordLayerId}
+              onToggleVisible={() => toggleVisible(layer.id)}
+              onToggleHighlight={() => toggleHighlight(layer.id)}
+              onUpdateClip={clip => updateClip(layer.id, clip, 0)}
+              onUpdateReveal={clip => updateClip(layer.id, clip, 1)}
+              onRemove={() => removeLayer(layer.id)}
+            />
+          ))}
+          {/* Единственный сквозной плейхед — цельная линия через линейку и все дорожки */}
+          {timelineDur ? <div className="tlCursorLine" style={{ left: `${cursorLeftPx}px` }} /> : null}
+        </div>
       </div>
 
       {sortedCells.length > 0 && (

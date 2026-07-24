@@ -45,8 +45,9 @@
   height: 38px; flex-shrink: 0; padding: 0 0 4px;
   border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 2px;
 }
-/* Левый спейсер: 👁(22) + gap(6) + метка(60) = 88px → canvas начнётся на 94px, как стрип */
-.tlWaveSpacer  { width: 88px; flex-shrink: 0; }
+/* Левый спейсер: 👁(22) + gap(6) + метка(92) = 120px — держим тем же числом,
+   что и .tlTrackLabel ниже и TRACK_LABEL_OFFSET_PX в TableTimelineEditor.jsx */
+.tlWaveSpacer  { width: 120px; flex-shrink: 0; }
 /* Правый спейсер: кнопка × (20px) */
 .tlWaveSpacerR { width: 20px; flex-shrink: 0; }
 .tlWaveTrackCanvas {
@@ -57,7 +58,6 @@
 
 .tlTracks {
   flex: 1; overflow-y: auto; overflow-x: auto; padding: 6px 18px 8px;
-  display: flex; flex-direction: column; gap: 4px;
   scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent;
 }
 .tlTracks::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -65,11 +65,16 @@
 .tlTracks::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
 .tlTracks::-webkit-scrollbar-corner { background: transparent; }
 
-/* Одна дорожка. Тонкая граница снизу — чтобы соседние дорожки отчётливо читались
-   как отдельные строки, а не сливались в один блок. */
+/* Натуральная высота = высота всего содержимого (не обрезана вьюпортом .tlTracks) —
+   нужно, чтобы .tlCursorLine (position:absolute внутри) растягивался на 100% ВСЕЙ
+   прокручиваемой высоты одним куском, а не только видимой части. */
+.tlTracksInner { position: relative; display: flex; flex-direction: column; gap: 9px; }
+
+/* Одна дорожка. Тёмная граница снизу (не светлая) — читается как выемка/паз между
+   дорожками, а не тонкая светлая линия, соседние строки отчётливо разделены. */
 .tlTrack {
   display: flex; align-items: center; gap: 6px; height: 34px;
-  border-bottom: 1px solid rgba(255,255,255,0.09);
+  border-bottom: 2px solid rgba(0,0,0,0.4);
 }
 .tlTrackHidden .tlTrackStrip,
 .tlTrackHidden .tlTrackLabel { opacity: 0.28; }
@@ -86,7 +91,7 @@
 .tlEye:hover { color: #b6fe3b; }
 
 .tlTrackLabel {
-  width: 60px; flex-shrink: 0; font-size: 11px; color: rgba(255,255,255,0.45);
+  width: 92px; flex-shrink: 0; font-size: 11px; color: rgba(255,255,255,0.45);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;
 }
 
@@ -136,12 +141,13 @@
 .tlClipBody { flex: 1; cursor: grab; }
 .tlClipBody:active { cursor: grabbing; }
 
-/* Плейхед (как в Premiere) — ставится кликом/протяжкой по линейке (TableTimelineRuler),
-   показывается тут же и на каждой дорожке (currentTime общий). Play/пробел играют отсюда.
-   z-index выше, чем у .tlClipLeadIn (1) и .tlClipEye (2) — иначе штриховка лид-ина
-   перекрывает линию местами, и она выглядит пунктирной вместо сплошной. */
-.tlCursor {
-  position: absolute; top: 0; bottom: 0; width: 2px; z-index: 5;
+/* Плейхед (как в Premiere) — ставится кликом/протяжкой по линейке (TableTimelineRuler).
+   ОДИН элемент на весь .tlTracksInner (не по одному на дорожку — иначе рвётся в
+   отступах между дорожками, где никакой линии физически нет). left в px, а не %,
+   потому что считается от общего TRACK_LABEL_OFFSET_PX в TableTimelineEditor.jsx,
+   а не от ширины самого .tlTracksInner. z-index выше .tlClipLeadIn(1)/.tlClipEye(2). */
+.tlCursorLine {
+  position: absolute; top: 0; bottom: 0; width: 2px; z-index: 20;
   background: #4da3ff; pointer-events: none; transform: translateX(-50%);
 }
 
@@ -168,24 +174,10 @@
   padding: 4px 12px; cursor: pointer; white-space: nowrap;
 }
 
-/* Кнопка «Синхронизировать слова» — добавляет дорожки для слов вне таблицы */
-.tlSyncBtn {
-  margin-left: 8px;
-  background: rgba(182, 254, 59, 0.08);
-  border: 1px solid rgba(182, 254, 59, 0.28);
-  border-radius: 6px;
-  color: #b6fe3b;
-  font-size: 11px;
-  padding: 3px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-.tlSyncBtn:hover { background: rgba(182, 254, 59, 0.15); }
-
-/* Дорожка для слова вне таблицы — слегка отличается по цвету клипа */
+/* Дорожка для слова вне таблицы — слегка отличается по цвету клипа.
+   Название дорожки везде одного серого стиля (.tlTrackLabel) — тип дорожки
+   и так виден по цвету клипа, дублировать его в подписи не нужно. */
 .tlTrackWord .tlClip { background: rgba(182, 254, 59, 0.20); border-color: rgba(182, 254, 59, 0.50); }
-.tlTrackWord .tlTrackLabel { font-style: italic; color: rgba(182, 254, 59, 0.75); }
 
 /* Кусок в начале word-клипа = анимация (слайд+список) + пауза перед реальным
    выбором (загорается зелёным только после этого). Длина фиксирована по времени —
@@ -198,38 +190,26 @@
 }
 .tlAddTrackBtn:hover { border-color: #b6fe3b; color: #b6fe3b; }
 
-/* Orphan-дорожка (старые данные без word/cellId): красный акцент, есть кнопка × */
-.tlTrackOrphan .tlTrackLabel { color: rgba(248, 113, 113, 0.8); font-style: italic; }
+/* Orphan-дорожка (старые данные без word/cellId): красный акцент клипа, есть кнопка × */
 .tlTrackOrphan .tlClip { background: rgba(248, 113, 113, 0.18); border-color: rgba(248, 113, 113, 0.5); }
 
-/* Дорожка «Проверить» (isCheck): лаймовый клип, жирная метка.
+/* Дорожка «Проверить» (isCheck): лаймовый клип.
    Левая ручка = inpoint (запуск проверки), правая = outpoint (обратная анимация закрытия). */
 .tlTrackCheck .tlClip { background: rgba(182, 254, 59, 0.30); border-color: #b6fe3b; }
 .tlTrackCheck .tlClipHandleL,
 .tlTrackCheck .tlClipHandleR { background: #b6fe3b; width: 10px; }
 .tlTrackCheck .tlClipBody { background: repeating-linear-gradient(90deg, transparent 0 4px, rgba(182,254,59,0.25) 4px 5px); }
-.tlTrackCheck .tlTrackLabel { color: #b6fe3b; font-weight: 700; font-style: normal; font-size: 10px; }
-
-/* Кнопка «✓ Проверить» в подсказке редактора */
-.tlCheckLayerBtn {
-  margin-left: 8px;
-  background: rgba(182, 254, 59, 0.12);
-  border: 1px solid #b6fe3b;
-  border-radius: 6px;
-  color: #b6fe3b;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-.tlCheckLayerBtn:hover { background: rgba(182, 254, 59, 0.22); }
 
 /* ── Линейка времени (Premiere-style): секунды с подписью + тики 0.1с ── */
+/* sticky — линейка остаётся видна наверху при вертикальном скролле дорожек
+   (она внутри того же .tlTracks, скроллящегося и горизонтально, и вертикально —
+   sticky top держит её только по Y, по X она по-прежнему едет вместе со стрипом).
+   Свой непрозрачный фон — иначе сквозь неё будут видны проезжающие дорожки. */
 .tlRuler {
   display: flex; align-items: flex-end; gap: 6px;
   height: 20px; flex-shrink: 0; margin-bottom: 2px;
+  position: sticky; top: 0; z-index: 10;
+  background: #101216;
 }
 /* cursor:pointer — намёк, что по линейке можно кликать/тащить, ставя плейхед */
 .tlRulerStrip { flex: 1; position: relative; height: 100%; cursor: pointer; user-select: none; }

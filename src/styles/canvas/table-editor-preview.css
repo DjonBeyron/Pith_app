@@ -1,6 +1,7 @@
 /* ── TablePhonePreview — рамка iPhone SE 2020 (375×667), живой превью ─ */
 
-/* Панель расширена до 560px — телефон дышит (по 80px отступ с каждой стороны) */
+/* Панель расширена до 560px — телефон дышит (по 80px отступ с каждой стороны).
+   Если телефон не помещается по высоте — скроллится, тонкий тёмный скролл. */
 .tablePreviewWrap {
   width: 560px;
   flex-shrink: 0;
@@ -10,7 +11,12 @@
   padding: 28px 20px;
   overflow: auto;
   background: #0a0c10;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
 }
+.tablePreviewWrap::-webkit-scrollbar { width: 6px; }
+.tablePreviewWrap::-webkit-scrollbar-track { background: transparent; }
+.tablePreviewWrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
 
 /* iPhone SE 2020: корпус 375×772px (соотношение 2.06:1) */
 .tablePreviewPhone {
@@ -67,6 +73,25 @@
   background: rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   flex-shrink: 0;
+}
+
+/* Заглушка аудио-сообщения (тёмные тона) — таблица в реальном уроке чаще
+   всего идёт после диктора, показываем это в контексте превью */
+.tablePreviewBubbleAudio {
+  height: 32px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 10px;
+  background: #0d0f12;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+}
+.tablePreviewAudioDot {
+  width: 18px; height: 18px; flex-shrink: 0; border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+}
+.tablePreviewAudioBar {
+  flex: 1; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.10);
 }
 
 /* Карточка таблицы — padding + небольшие отступы от краёв */

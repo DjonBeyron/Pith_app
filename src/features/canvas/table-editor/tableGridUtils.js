@@ -119,6 +119,12 @@ export function setCellValue(table, cellId, value) {
   return { ...table, cells: table.cells.map(c => (c.id === cellId ? { ...c, value } : c)) }
 }
 
+// Ручное изменение размера текста одной ячейки (независимо от авто-подгонки —
+// см. tableAutoFitText.js; оба пишут в одно и то же поле cell.fontSize).
+export function setCellFontSize(table, cellId, fontSize) {
+  return { ...table, cells: table.cells.map(c => (c.id === cellId ? { ...c, fontSize } : c)) }
+}
+
 // true, только если ВСЕ ячейки в выделении уже заголовки — используется, чтобы
 // решить, что делает toggleHeaderSelection дальше (снять со всех / поставить всем).
 export function isHeaderSelection(cells, rowCount, colCount, r1, c1, r2, c2) {
