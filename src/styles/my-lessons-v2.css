@@ -8,14 +8,16 @@
   flex-direction: column;
 }
 
-/* Переключатель видео/список под верхними вкладками */
+/* Переключатель видео/список — слева, тем же рядом и уровнем, что кнопка
+   фильтра (feedSearchBtn) справа. DBG (feed-media.css) — временная кнопка,
+   опущена ниже, чтобы не мешать. */
 .mlModeToggle {
   position: absolute;
-  top: calc(58px + env(safe-area-inset-top, 0px));
-  right: 14px;
+  top: calc(40px + env(safe-area-inset-top, 0px));
+  left: 14px;
   z-index: 6;
   display: flex;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -24,12 +26,12 @@
 .mlModeBtn {
   border: none;
   background: none;
-  padding: 7px 10px;
+  padding: 4px 6px;
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
 }
 
-.mlModeBtn svg { width: 17px; height: 17px; display: block; }
+.mlModeBtn svg { width: 13px; height: 13px; display: block; }
 
 .mlModeBtnActive {
   background: rgba(255, 255, 255, 0.16);

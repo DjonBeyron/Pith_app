@@ -124,11 +124,13 @@
   .feedSkeleton::after { animation: none; }
 }
 
-/* ── Дебаг ленты — второй ряд, под вкладками/версией, слева, мельче ── */
+/* ── Дебаг ленты (временная кнопка) — слева, ниже переключателя
+   видео/список (my-lessons-v2.css, mlModeToggle, top 40px), чтобы не
+   мешать ему */
 .feedDbgBtn {
   position: absolute;
   left: 14px;
-  top: calc(38px + env(safe-area-inset-top, 0px));
+  top: calc(70px + env(safe-area-inset-top, 0px));
   z-index: 6;
   padding: 3px 7px;
   border-radius: 7px;
