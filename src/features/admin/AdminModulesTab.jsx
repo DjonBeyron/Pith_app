@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { loadCurricula, saveCurriculum, deleteCurriculumFromServer, updateCurriculumPublished, renameCurriculum } from '../../shared/lib/curriculaApi.js'
+import { loadCurricula, saveCurriculum, deleteCurriculumFromServer, updateCurriculumStatus, renameCurriculum } from '../../shared/lib/curriculaApi.js'
 import { supabase } from '../../shared/api/supabase.js'
 import { findEnabledTemplate } from '../../shared/api/pushTemplatesApi.js'
 import { sendPush } from '../../shared/api/pushApi.js'
@@ -7,8 +7,9 @@ import CurriculumView from '../lessons/CurriculumView.jsx'
 import { dbg } from '../../shared/lib/debug.js'
 
 // Админ-вкладка «Модули» (ui v2, по макету admin.html): список модулей с
-// чипами «видео есть/нет» и «опубликован/черновик» (чип публикации — тумблер),
-// «+ Новый модуль», тап по строке — схема модуля, ✕ — удаление.
+// чипами «видео есть/нет» и статусом публикации (чип-циклер: черновик →
+// превью → опубликован → черновик, см. handleCycleStatus), «+ Новый модуль»,
+// тап по строке — схема модуля, ✕ — удаление.
 export default function AdminModulesTab({ onOpenCanvas }) {
   const [rows, setRows] = useState(null) // null = загрузка
   const [openModule, setOpenModule] = useState(null)
@@ -34,14 +35,25 @@ export default function AdminModulesTab({ onOpenCanvas }) {
     } finally { setBusy(false) }
   }
 
-  async function handleTogglePublished(m) {
+  // Черновик → превью (виден в ленте, без кнопки «Изучить фразу») →
+  // опубликован (полностью живой) → снова черновик
+  function nextStatus(m) {
+    if (!m.published) return { published: true, previewOnly: true }
+    if (m.preview_only) return { published: true, previewOnly: false }
+    return { published: false, previewOnly: false }
+  }
+
+  async function handleCycleStatus(m) {
+    const wasLive = m.published && !m.preview_only
+    const next = nextStatus(m)
     // Оптимистично: чип переключается сразу, сервер — в фоне
-    setRows(rs => rs.map(r => r.id === m.id ? { ...r, published: !m.published } : r))
-    try { await updateCurriculumPublished(m.id, !m.published) } catch { refresh(); return }
-    // Триггер «публикация модуля»: если есть включённый шаблон — предлагаем
-    // разослать пуш всем подписчикам (с подтверждением, чтобы случайный тык
-    // по тумблеру не спамил)
-    if (!m.published) {
+    setRows(rs => rs.map(r => r.id === m.id ? { ...r, published: next.published, preview_only: next.previewOnly } : r))
+    try { await updateCurriculumStatus(m.id, next) } catch { refresh(); return }
+    // Триггер «публикация модуля» — именно переход В «опубликован» (а не в
+    // превью): если есть включённый шаблон, предлагаем разослать пуш всем
+    // подписчикам (с подтверждением, чтобы случайный тык не спамил)
+    const nowLive = next.published && !next.previewOnly
+    if (nowLive && !wasLive) {
       const t = await findEnabledTemplate('new_module')
       if (t && window.confirm(`Модуль опубликован. Разослать пуш «${t.title}» всем подписчикам?`)) {
         try {
@@ -128,13 +140,17 @@ export default function AdminModulesTab({ onOpenCanvas }) {
             </button>
           )}
           <button className="amChip amChipDim amChipBtn" onClick={() => startRename(m)} title="Переименовать">✎</button>
-          {/* Про-модуль не публикуется в ленту — тумблера у него нет */}
+          {/* Про-модуль не публикуется в ленту — переключателя статуса у него нет */}
           {!m.is_pro && (
             <button
-              className={m.published ? 'amChip amChipOk amChipBtn' : 'amChip amChipDim amChipBtn'}
-              onClick={() => handleTogglePublished(m)}
-              title="Переключить публикацию">
-              {m.published ? 'опубликован' : 'черновик'}
+              className={
+                !m.published ? 'amChip amChipDim amChipBtn'
+                  : m.preview_only ? 'amChip amChipWarn amChipBtn'
+                    : 'amChip amChipOk amChipBtn'
+              }
+              onClick={() => handleCycleStatus(m)}
+              title="Переключить статус: черновик → превью → опубликован">
+              {!m.published ? 'черновик' : m.preview_only ? 'превью' : 'опубликован'}
             </button>
           )}
           <button className="amDel" onClick={() => handleDelete(m)} disabled={busy} title="Удалить модуль">✕</button>

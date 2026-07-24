@@ -141,10 +141,13 @@ export default function FeedSlide({
           active={active} />
       </div>
 
-      <button className="feedLearnBtn" onClick={onLearn}>
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
-        Изучить фразу
-      </button>
+      {/* Превью-статус модуля: виден в ленте, но учить пока нельзя (см. useFeedModules) */}
+      {!mod.previewOnly && (
+        <button className="feedLearnBtn" onClick={onLearn}>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
+          Изучить фразу
+        </button>
+      )}
 
       {slowMotion && <div className="feedSlowLabel">0.5x</div>}
 

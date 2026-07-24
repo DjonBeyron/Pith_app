@@ -39,6 +39,8 @@ export function useFeedModules(startedIds, visible = true) {
           difficultyVotes: r.difficulty_votes ?? 0,
           saveCount: r.save_count ?? 0,
           repostCount: r.repost_count ?? 0,
+          // Превью-статус: виден в ленте, но «Изучить фразу» скрыта (см. FeedSlide)
+          previewOnly: !!r.preview_only,
         })))
       })
       // Сбой перезагрузки (сеть) — существующий список НЕ стираем

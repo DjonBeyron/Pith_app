@@ -30,15 +30,17 @@ export async function deleteCurriculumFromServer(id) {
   dbg('[DB OK] curricula deleted', id)
 }
 
-// Публикация модуля: черновики в ленту не попадают
-export async function updateCurriculumPublished(id, published) {
-  dbg('[DB WRITE] curricula published', id, published)
+// Статус модуля — три состояния: черновик (published=false), превью
+// (published=true, preview_only=true — виден в ленте, но без кнопки
+// «Изучить фразу»), опубликован (published=true, preview_only=false)
+export async function updateCurriculumStatus(id, { published, previewOnly }) {
+  dbg('[DB WRITE] curricula status', id, { published, previewOnly })
   const { error } = await supabase
     .from('curricula')
-    .update({ published })
+    .update({ published, preview_only: previewOnly })
     .eq('id', id)
   if (error) {
-    dbg('[DB ERROR] curricula published', error.message)
+    dbg('[DB ERROR] curricula status', error.message)
     throw error
   }
 }
@@ -101,7 +103,7 @@ export async function loadCurricula() {
   dbg('[DB READ] curricula list')
   const { data, error } = await supabase
     .from('curricula')
-    .select('id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, difficulty, difficulty_votes, save_count, repost_count, is_pro')
+    .select('id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, preview_only, difficulty, difficulty_votes, save_count, repost_count, is_pro')
     .order('created_at', { ascending: false })
   if (error) {
     dbg('[DB ERROR] curricula load', error.message)
