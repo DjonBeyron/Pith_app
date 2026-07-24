@@ -84,16 +84,25 @@ export function startFpsMonitor() {
 // 50мс; если реальный зазор между тиками намного больше — где-то на
 // главном потоке было длинное синхронное дело. Каждая запись держит
 // «через сколько мс после последнего visibilitychange» — по этому видно,
-// совпадает ли лаг с уходом в фон или это что-то другое. Обычный
-// многосекундный зазор ПОСЛЕ ухода в фон (документ уже hidden, троттлинг
-// таймеров — не баг) отфильтровываем, иначе лог тонет в шуме
+// совпадает ли лаг с уходом в фон или это что-то другое.
+//
+// Первый живой лог показал: пока страница continuously hidden, спека
+// клэмпит фоновые таймеры примерно до 1 раза в секунду — сам этот клэмп
+// давал ложные «stall: ~1000мс» на каждом тике, топя реальный сигнал в
+// шуме. Логика ниже пропускает НЕ БОЛЬШЕ ОДНОЙ записи за время нахождения
+// в фоне (первый тик сразу после ухода — это ещё может быть реальным
+// подвисанием; дальше — гарантированно троттлинг). На переднем плане
+// (hidden=false, в т.ч. сам момент возврата) ограничений нет — там любой
+// зазор уже настоящий, не троттлинг
 const STALL_TICK_MS = 50
 const STALL_THRESHOLD_MS = 150
 let lastVisChangeAt = 0
+let loggedThisHiddenSpan = false
 
 export function startStallWatch() {
   document.addEventListener('visibilitychange', () => {
     lastVisChangeAt = performance.now()
+    if (!document.hidden) loggedThisHiddenSpan = false
     fdbg(`visibilitychange → hidden=${document.hidden}`)
   })
   window.addEventListener('pagehide', () => fdbg('pagehide'))
@@ -104,7 +113,10 @@ export function startStallWatch() {
     const gap = now - last
     last = now
     if (gap <= STALL_THRESHOLD_MS) return
-    if (document.hidden && gap > 2000) return // штатный троттлинг таймеров в фоне
+    if (document.hidden) {
+      if (loggedThisHiddenSpan) return // дальше по фону — штатный троттлинг таймеров, не сигнал
+      loggedThisHiddenSpan = true
+    }
     const sinceVis = lastVisChangeAt ? (now - lastVisChangeAt).toFixed(0) : 'n/a'
     fdbg(`stall: главный поток встал на ${gap.toFixed(0)}мс (через ${sinceVis}мс после visibilitychange, hidden=${document.hidden})`)
   }, STALL_TICK_MS)

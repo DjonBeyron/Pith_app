@@ -95,10 +95,46 @@ function ensure() {
     if (!hiddenPaused.length) return
     for (const el of hiddenPaused) el.pause()
     fdbg(`pool: фон → пауза ${hiddenPaused.length} видео (${(performance.now() - t0).toFixed(1)}мс)`)
+
+    // Эксперимент: живой DBG-лог показал лаг всего телефона именно в момент
+    // сворачивания и ТОЛЬКО когда звук активен — и он совпадал по времени с
+    // visibilitychange, а не с нашей же паузой (пауза в тот раз вообще не
+    // сработала — нечего было ставить). Похоже, дело в аудио-сессии iOS
+    // (категория playback), которую держит активным именно озвученный элемент
+    // (см. переписку про Now Playing/Dynamic Island). Выгружаем src ТОЛЬКО у
+    // него (muted=false среди только что поставленных на паузу) — соседей
+    // (тёплые muted-элементы для мгновенного старта при свайпе) не трогаем
+    const audible = hiddenPaused.find(el => !el.muted)
+    if (audible) {
+      audible.dataset.unloaded = '1'
+      audible.dataset.resumeCt = String(audible.currentTime)
+      audible.removeAttribute('src')
+      audible.load()
+      fdbg(`vid ${(audible.dataset.url || '—').slice(-8)} фон: src выгружен (был озвучен)`)
+    }
   }
   const onShow = () => {
     for (const el of hiddenPaused) {
       if (el.dataset.parked === '1' || !el.parentElement || el.parentElement === holder) continue
+      if (el.dataset.unloaded === '1') {
+        el.dataset.unloaded = ''
+        const t0 = performance.now()
+        const resumeCt = parseFloat(el.dataset.resumeCt || '0')
+        const onLoaded = () => {
+          el.removeEventListener('loadedmetadata', onLoaded)
+          clearTimeout(safety)
+          try { el.currentTime = resumeCt } catch { /* не критично */ }
+          fdbg(`vid ${(el.dataset.url || '—').slice(-8)} возврат из фона: src перезагружен (${(performance.now() - t0).toFixed(0)}мс)`)
+          const p = el.play()
+          if (p && p.catch) p.catch(() => fdbg(`vid ${(el.dataset.url || '—').slice(-8)} возврат из фона: play заблокирован`))
+        }
+        el.addEventListener('loadedmetadata', onLoaded)
+        // Страховка: если метаданные почему-то не пришли (сеть/кэш) — не
+        // виснем молча, пробуем play() как есть через 3с
+        const safety = setTimeout(onLoaded, 3000)
+        el.src = el.dataset.url
+        continue
+      }
       const p = el.play()
       if (p && p.catch) p.catch(() => fdbg(`vid ${(el.dataset.url || '—').slice(-8)} возврат из фона: play заблокирован`))
     }
@@ -132,6 +168,14 @@ function parkEl(el) {
     document.body.appendChild(holder)
   }
   el.pause()
+  // Редкая гонка с экспериментом выгрузки src в фоне (onHide/onShow выше):
+  // если слайд покинули раньше, чем onShow успел перезагрузить src, элемент
+  // паркуется «пустым» под старым dataset.url — следующая аренда решит, что
+  // src уже тот, и не тронет его (см. SlideVideo). Восстанавливаем сразу
+  if (el.dataset.unloaded === '1') {
+    el.dataset.unloaded = ''
+    if (el.dataset.url) el.src = el.dataset.url
+  }
   // parked=1 держит элемент на паузе НЕОБРАТИМО (см. zombie-guard в makeVideo)
   // до следующего leaseVideo — благодаря этому переносимый элемент всегда
   // холодный, и переносы не оставляют iOS-стоп-кадров
