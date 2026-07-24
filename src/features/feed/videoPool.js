@@ -61,9 +61,25 @@ function makeVideo() {
   return v
 }
 
+// Виджет Now Playing на экране блокировки/в Пункте управления iOS появляется
+// сам по себе, как только видео играет со звуком (WebKit переводит аудио-сессию
+// в категорию playback) — публичного способа убрать сам виджет у веб-страниц
+// нет. Но раз mediaSession в приложении никогда не настраивался, кнопки на
+// виджете достаются автозаглушке iOS с прямым доступом к нашему <video> —
+// пустые обработчики обезвреживают именно это: виджет остаётся видимым, но
+// плей/пауза/перемотка с него больше не трогают video в приложении.
+function disableMediaSessionControls() {
+  if (!('mediaSession' in navigator)) return
+  const noop = () => {}
+  for (const action of ['play', 'pause', 'stop', 'seekbackward', 'seekforward', 'seekto', 'previoustrack', 'nexttrack']) {
+    try { navigator.mediaSession.setActionHandler(action, noop) } catch { /* action не поддержан этим браузером — не критично */ }
+  }
+}
+
 function ensure() {
   if (slots.length) return
   for (let i = 0; i < POOL_SIZE; i++) slots.push({ el: makeVideo(), key: null, used: 0 })
+  disableMediaSessionControls()
 
   // Сворачивание приложения: iOS ещё ~секунду тянет звук видео после ухода в
   // фон (пока сам не заморозит WebView) — глушим мгновенно по visibilitychange,
@@ -71,10 +87,14 @@ function ensure() {
   // и чужие элементы не трогаем.
   let hiddenPaused = []
   const onHide = () => {
+    // Засекаем время: жалоба на подтормаживание всего телефона при
+    // сворачивании — если пауза 4 видео сама по себе долгая (не должна
+    // быть), это будет видно здесь, а не только в общем стороже stallWatch
+    const t0 = performance.now()
     hiddenPaused = slots.map(s => s.el).filter(el => !el.paused)
     if (!hiddenPaused.length) return
-    fdbg(`pool: фон → пауза ${hiddenPaused.length} видео`)
     for (const el of hiddenPaused) el.pause()
+    fdbg(`pool: фон → пауза ${hiddenPaused.length} видео (${(performance.now() - t0).toFixed(1)}мс)`)
   }
   const onShow = () => {
     for (const el of hiddenPaused) {

@@ -4,6 +4,7 @@ import App from './app/App.jsx'
 import ErrorBoundary from './app/ErrorBoundary.jsx'
 import { AdminProvider } from './app/AdminContext.jsx'
 import { initErrorTrap } from './shared/lib/errorTrap.js'
+import { startStallWatch } from './shared/lib/feedDebug.js'
 import './index.css'
 // Побочный эффект: вешает слушатель beforeinstallprompt как можно раньше
 // (см. pwaInstall.js) — событие приходит один раз за загрузку, ловить надо
@@ -22,6 +23,9 @@ if ('serviceWorker' in navigator) {
 
 // Глобальный перехват ошибок — до рендера, чтобы поймать и ошибки старта
 initErrorTrap()
+// Сторож подвисаний главного потока (лаг всего телефона при сворачивании
+// на iPhone) — пишет в DBG-лог ленты, см. feedDebug.js
+startStallWatch()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

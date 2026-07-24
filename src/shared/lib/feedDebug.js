@@ -77,6 +77,39 @@ export function startFpsMonitor() {
   fpsRafId = requestAnimationFrame(fpsTick)
 }
 
+// ── Сторож подвисаний главного потока ───────────────────────────────────
+// Жалоба: весь iPhone (даже мощный) на секунду-другую лагает кадрами
+// именно в момент сворачивания приложения. setInterval, не rAF — rAF
+// замирает в фоне и не покажет сам момент сворачивания. Тикаем каждые
+// 50мс; если реальный зазор между тиками намного больше — где-то на
+// главном потоке было длинное синхронное дело. Каждая запись держит
+// «через сколько мс после последнего visibilitychange» — по этому видно,
+// совпадает ли лаг с уходом в фон или это что-то другое. Обычный
+// многосекундный зазор ПОСЛЕ ухода в фон (документ уже hidden, троттлинг
+// таймеров — не баг) отфильтровываем, иначе лог тонет в шуме
+const STALL_TICK_MS = 50
+const STALL_THRESHOLD_MS = 150
+let lastVisChangeAt = 0
+
+export function startStallWatch() {
+  document.addEventListener('visibilitychange', () => {
+    lastVisChangeAt = performance.now()
+    fdbg(`visibilitychange → hidden=${document.hidden}`)
+  })
+  window.addEventListener('pagehide', () => fdbg('pagehide'))
+
+  let last = performance.now()
+  setInterval(() => {
+    const now = performance.now()
+    const gap = now - last
+    last = now
+    if (gap <= STALL_THRESHOLD_MS) return
+    if (document.hidden && gap > 2000) return // штатный троттлинг таймеров в фоне
+    const sinceVis = lastVisChangeAt ? (now - lastVisChangeAt).toFixed(0) : 'n/a'
+    fdbg(`stall: главный поток встал на ${gap.toFixed(0)}мс (через ${sinceVis}мс после visibilitychange, hidden=${document.hidden})`)
+  }, STALL_TICK_MS)
+}
+
 export function fpsSnapshot() {
   if (fpsWindow.length < 5) return 'n/a (монитор ещё копит данные)'
   const span = fpsWindow[fpsWindow.length - 1] - fpsWindow[0]

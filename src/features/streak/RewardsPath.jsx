@@ -16,10 +16,11 @@ const GHOST_DAYS = [
 // Вертикальный путь дней окна наград: окно начинается с
 // max(1, nextClaimDay - 3), поэтому сверху видны до 3 уже забранных дней.
 // Статус каждого дня (см. расчёт в RewardsPopup):
-//   'done'   — day < nextClaimDay: награда уже забрана (✓, приглушённый вид)
+//   'done'   — day < nextClaimDay: награда уже забрана — серая обесцвеченная
+//              карточка со крупной полупрозрачной галочкой-штампом на весь блок
 //   'ready'  — nextClaimDay <= day <= current_streak: день уже прожит и
-//              ждёт забора — зелёная подсветка, БЕЗ замка (может быть
-//              несколько ready-дней сразу, если пользователь не заходил
+//              ждёт забора — зелёная подсветка + иконка подарка в углу (может
+//              быть несколько ready-дней сразу, если пользователь не заходил
 //              забирать несколько дней подряд)
 //   'locked' — day > current_streak: день ещё не наступил (🔒)
 // Веха (day_number из streak_milestones) рисуется крупной карточкой с
@@ -72,7 +73,12 @@ export default function RewardsPath({ days, focusDay, ghost = false }) {
             ) : (
               <div className={`rwNode rwNode${d.status === 'ready' ? 'Current' : d.status === 'done' ? 'Done' : 'Locked'}`}>
                 {d.status === 'locked' && <span className="rwNodeLock">🔒</span>}
-                {d.status === 'done' && <span className="rwNodeLock">✓</span>}
+                {d.status === 'done' && (
+                  <svg className="rwNodeDoneMark" viewBox="0 0 24 24" fill="none" stroke="#b6fe3b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                )}
+                {d.status === 'ready' && <span className="rwNodeGift" aria-hidden="true">🎁</span>}
                 <p className="rwNodeDay">День {d.day}</p>
                 <p className="rwNodeReward">+{d.xp} XP</p>
               </div>
