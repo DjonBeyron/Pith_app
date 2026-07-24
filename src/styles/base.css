@@ -24,6 +24,21 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
   background: #0f1115;
   color: #e8e8ea;
+  /* Глобально запрещаем выделение текста (случайное выделение при тапах —
+     см. update-toast.css). Поля ввода — всегда исключение (иначе не
+     скопировать/не отредактировать свой текст); админ-панель, конструктор
+     урока (canvas) и редактор таблиц — тоже исключение, там выделение
+     текста часто нужно по работе (правки, отладка) */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea, [contenteditable="true"],
+.avWrap, .avWrap *,
+.canvasPage, .canvasPage *,
+.tableEditorOverlay, .tableEditorOverlay * {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 button {

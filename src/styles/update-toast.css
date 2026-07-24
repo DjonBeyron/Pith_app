@@ -43,6 +43,9 @@
   font-family: inherit;
   flex-shrink: 0;
   transition: filter .15s;
+  /* Быстрые повторные тапы иначе триггерят выделение текста кнопки */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .updateToastBtn:hover { filter: brightness(1.08); }

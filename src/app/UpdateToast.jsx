@@ -8,6 +8,14 @@ const CHECK_MS = 10 * 60 * 1000 // раз в 10 минут + при возвра
 // fetch тихо падает, плашка не показывается.
 export default function UpdateToast() {
   const [available, setAvailable] = useState(false)
+  const [offline, setOffline] = useState(false)
+
+  // Сеть вернулась — прячем предупреждение, следующий тап снова пробует reload
+  useEffect(() => {
+    function onOnline() { setOffline(false) }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [])
 
   useEffect(() => {
     let stopped = false
@@ -30,11 +38,20 @@ export default function UpdateToast() {
     }
   }, [])
 
+  // Без сети reload() либо зависает, либо кидает в браузерную страницу
+  // «нет соединения» — вместо этого явно предупреждаем и не трогаем страницу
+  function handleClick() {
+    if (!navigator.onLine) { setOffline(true); return }
+    window.location.reload()
+  }
+
   if (!available) return null
   return (
     <div className="updateToast">
-      <span className="updateToastText">Доступна новая версия</span>
-      <button className="updateToastBtn" onClick={() => window.location.reload()}>
+      <span className="updateToastText">
+        {offline ? 'Нет сети — обновление недоступно' : 'Доступна новая версия'}
+      </span>
+      <button className="updateToastBtn" onClick={handleClick}>
         Обновить
       </button>
     </div>
