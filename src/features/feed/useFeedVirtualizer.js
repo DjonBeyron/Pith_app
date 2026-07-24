@@ -77,10 +77,22 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
     el.style.scrollSnapType = 'none'
     el.scrollTop = target
     if (viewH > 0) setActiveIdx(Math.round(target / viewH))
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    // Восстановление snap — двойной rAF (обычный путь) ИЛИ таймер-страховка:
+    // если между этим кадром и rAF приложение надолго ушло в фон (реальный
+    // случай — юзер свайпнул у края круга и в этот же миг заблокировал
+    // телефон/ушёл в другую вкладку на несколько минут), у iOS очередь rAF
+    // не переживает долгую заморозку — snap так и оставался бы выключенным
+    // навсегда, лента листалась бы «свободным» скроллом без фиксации на
+    // видео. setTimeout переживает заморозку надёжнее (просто откладывается)
+    let restored = false
+    const restore = () => {
+      if (restored) return
+      restored = true
       el.style.scrollSnapType = prev
       teleportingRef.current = false
-    }))
+    }
+    requestAnimationFrame(() => requestAnimationFrame(restore))
+    setTimeout(restore, 500)
   }
 
   // Перенос в середину круга с сохранением позиции внутри цикла: контент в
@@ -120,6 +132,26 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
   }, [len, cycles, viewH, pinnedId])
 
   useEffect(() => () => clearTimeout(settleTimer.current), [])
+
+  // Вторая страховка (см. teleport выше): document.hidden — именно тот
+  // сигнал, из-за которого у iOS замирает очередь rAF (свайп у края круга
+  // случился прямо перед тем, как экран заблокировали/ушли из вкладки
+  // браузера на несколько минут). Возврат из фона — момент, когда
+  // пользователь и замечает залипший scroll-snap-type:none (лента листается
+  // «свободным» скроллом без фиксации на видео). Даже если обе восстановки
+  // в teleport() почему-то не сработали — чиним здесь
+  useEffect(() => {
+    function onVisible() {
+      if (document.hidden) return
+      const el = scrollRef.current
+      if (!el || el.style.scrollSnapType !== 'none') return
+      fdbg('окно вернулось из фона: snap залип на none — восстанавливаю')
+      el.style.scrollSnapType = ''
+      teleportingRef.current = false
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
 
   // Доводка: скролл остановился — только перецентровка круга, если додрейфовали
   // к краю запаса (teleport). Активный слайд считается в onScroll на лету.
