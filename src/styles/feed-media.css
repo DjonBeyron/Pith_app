@@ -46,7 +46,9 @@
   width: 28px;
   height: 28px;
   color: #fff;
-  margin-left: 3px;
+  /* Сам треугольник (M8 5v14l11-7L8 5z) уже смещён вправо внутри своего
+     viewBox 24x24 — margin-left вправо только усиливал перекос */
+  margin-left: -2px;
 }
 
 /* Видео слайда: элемент из пула (videoPool), кладётся поверх постера */

@@ -7,13 +7,14 @@ import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 
 // Вкладка «Рейтинг»: баннер супергонки и глобальный топ по XP за всё время.
 // Достижения и примерка косметики живут в Профиле → «Кастомизация».
-export default function RatingTab({ openRaceTick = 0 }) {
+export default function RatingTab({ visible = true, openRaceTick = 0 }) {
   const [showRace, setShowRace] = useState(false)
   // Вкладка смонтирована всегда (см. ShellV2) — грузим данные сразу при
   // старте приложения, не дожидаясь клика по табу, чтобы переход был
-  // мгновенным и без дёрганья вёрстки
+  // мгновенным и без дёрганья вёрстки. visible нужен отдельно — для повторной
+  // попытки, если самая первая загрузка попала на сбой сети (см. useRatingData)
   const { rows, myRank, achievements, cosmetics, profile, loading, myId } =
-    useRatingData(!showRace)
+    useRatingData(!showRace, visible)
 
   // Сигнал извне (попап-анонс): открыть страницу гонки. Подстройка состояния
   // прямо в рендере при смене пропа — паттерн из доков React (без эффекта)
