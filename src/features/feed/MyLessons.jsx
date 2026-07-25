@@ -15,6 +15,7 @@ export default function MyLessons({
   diffVotes = {}, onVoteDifficulty,
   filterActive = false, passesFilter, onResetFilter,
   soundOn, onSoundOn, onSoundBlocked,
+  reactions = {}, likeCounts = {}, onToggle,
 }) {
   // Режим (видео/список) запоминается между запусками
   const [mode, setModeState] = useState(() =>
@@ -95,6 +96,10 @@ export default function MyLessons({
               soundOn={soundOn}
               onSoundOn={onSoundOn}
               onSoundBlocked={onSoundBlocked}
+              reaction={reactions[m.id]}
+              likeCount={likeCounts[m.id] ?? 0}
+              onToggleLike={() => onToggle(m.id, 'liked')}
+              onToggleSave={() => onToggle(m.id, 'saved')}
               myDifficulty={diffVotes[m.id]}
               onVoteDifficulty={onVoteDifficulty}
               onOpen={onOpen}

@@ -3,7 +3,7 @@
    Панель компактная: должна целиком помещаться на экране 375px. */
 
 :root {
-  --diff-easy: #4ade80;
+  --diff-easy: #b6fe3b; /* лаймовый — тот же оттенок, что у активного лайка (feedHudBtnOn) */
   --diff-mid:  #facc15;
   --diff-hard: #f87171;
 }
@@ -22,32 +22,19 @@
   height: 25px;
 }
 
-/* Иконка: три полоски-ступеньки; серые = нет оценок, цвет и число
-   закрашенных полосок = уровень сложности */
-.diffBars {
+/* Иконка «ухо»: белая = нет оценок, цвет = уровень сложности на слух */
+.diffEarIcon {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 2px;
-  padding-bottom: 1px;
-  transition: transform 0.25s cubic-bezier(0.36, 0, 0.66, -0.3), opacity 0.2s;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  transition: transform 0.25s cubic-bezier(0.36, 0, 0.66, -0.3), opacity 0.2s, color 0.2s;
 }
 
-.diffBars i {
-  width: 6px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.35);
-}
-
-.diffBars i:nth-child(1) { height: 11px; }
-.diffBars i:nth-child(2) { height: 17px; }
-.diffBars i:nth-child(3) { height: 23px; }
-
-.diffL1 i:nth-child(1)    { background: var(--diff-easy); }
-.diffL2 i:nth-child(-n+2) { background: var(--diff-mid); }
-.diffL3 i                 { background: var(--diff-hard); }
+.diffL1 { color: var(--diff-easy); }
+.diffL2 { color: var(--diff-mid); }
+.diffL3 { color: var(--diff-hard); }
 
 /* Галочка «голос учтён»: спрятана, ждёт морфинга */
 .diffCheck {
@@ -61,9 +48,9 @@
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s;
 }
 
-/* Морфинг: полоски схлопываются, галочка выпрыгивает с overshoot и
+/* Морфинг: ухо схлопывается, галочка выпрыгивает с overshoot и
    дорисовывается штрихом; снятие класса плавно возвращает всё назад */
-.diffIconConfirm .diffBars {
+.diffIconConfirm .diffEarIcon {
   transform: scale(0.2) rotate(45deg);
   opacity: 0;
 }
@@ -187,14 +174,14 @@
   }
 }
 
-/* …и сама иконка моргает целиком залитая зелёным — все три полоски
-   заливаются брендовым лаймом на пике пульса и возвращаются обратно */
-.diffIconPulse .diffBars i {
-  animation: diffBarsBlink 1.4s ease-in-out infinite;
+/* …и сама иконка моргает целиком залитая лаймом на пике пульса и
+   возвращается обратно */
+.diffIconPulse .diffEarIcon {
+  animation: diffEarBlink 1.4s ease-in-out infinite;
 }
 
-@keyframes diffBarsBlink {
-  50% { background: #b6fe3b; }
+@keyframes diffEarBlink {
+  50% { color: #b6fe3b; }
 }
 
 .diffPanelGlow {
@@ -293,6 +280,6 @@
 }
 
 /* Свой текущий голос подсвечен цветом уровня */
-.diffEasy.diffOptionOn { border-color: var(--diff-easy); background: rgba(74, 222, 128, 0.16); }
+.diffEasy.diffOptionOn { border-color: var(--diff-easy); background: rgba(182, 254, 59, 0.16); }
 .diffMid.diffOptionOn  { border-color: var(--diff-mid);  background: rgba(250, 204, 21, 0.16); }
 .diffHard.diffOptionOn { border-color: var(--diff-hard); background: rgba(248, 113, 113, 0.16); }

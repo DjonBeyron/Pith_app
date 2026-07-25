@@ -109,6 +109,75 @@
   touch-action: none;
 }
 
+/* Обучающая подсказка «Зажми, чтобы замедлить» — полупрозрачный пульсирующий
+   отпечаток пальца ровно над кнопкой лайка (feedHud центрирует детей —
+   left:50%/translateX(-50%) от той же оси, а не right:0 от края блока,
+   который шире самой кнопки), текст — плашкой слева от него. Появление
+   двухступенчатое: сперва отпечаток (поп-ин), потом плашка с текстом —
+   с той же анимацией, что и попап сложности (diffPanelIn). pointer-events:none
+   — не мешает самому жесту зоны под собой. Гаснет не по тапу, а когда
+   замедление реально успело подействовать (см. FeedSlide.jsx) */
+.feedSlowHint {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  margin-bottom: 6px;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.feedSlowHintIcon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.65);
+  animation:
+    feedSlowHintPop 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) both,
+    feedSlowHintPulse 1.6s ease-in-out 0.3s infinite;
+}
+
+@keyframes feedSlowHintPop {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes feedSlowHintPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 0.95; transform: scale(1.15); }
+}
+
+/* Плашка с текстом — вырастает следом за отпечатком (delay 0.28s), от его
+   левого края, тем же приёмом что diffPanelIn (попап сложности) */
+.feedSlowHintText {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 8px);
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0;
+  transform-origin: right center;
+  animation: feedSlowHintTextIn 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) 0.28s both;
+}
+
+@keyframes feedSlowHintTextIn {
+  from { opacity: 0; transform: translateY(-50%) scale(0); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedSlowHintIcon, .feedSlowHintText { animation: none; opacity: 1; }
+  .feedSlowHintText { transform: translateY(-50%); }
+}
+
 /* Плашка «0.5x» — тот же уровень, что чип «Включить звук» (feedSoundChip),
    пока палец держит зону над лайком */
 .feedSlowLabel {

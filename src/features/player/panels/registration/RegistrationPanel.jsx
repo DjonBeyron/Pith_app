@@ -3,6 +3,7 @@ import { registerUser } from '../../../../shared/api/auth.js'
 import { supabaseErrorToRu } from '../../../../shared/lib/authErrorsRu.js'
 import { getPushState } from '../../../../shared/lib/push.js'
 import RegistrationConsent from '../../../../shared/ui/RegistrationConsent.jsx'
+import { transferSlowMotionHintOnRegister } from '../../../feed/useSlowMotionHint.js'
 import PushPromptPopup from './PushPromptPopup.jsx'
 
 export default function RegistrationPanel({ node, onDone, onAnswered, onHeightChange }) {
@@ -56,6 +57,7 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
       return
     }
 
+    transferSlowMotionHintOnRegister() // гость уже видел подсказку о замедлении — переносим флаг на сервер
     onAnswered?.('Вы успешно зарегистрированы! Проверьте почту для подтверждения', 'success')
     setTimeout(() => setShow(false), 1200)
     setTimeout(() => onDone?.('reg_submit', { email: trimEmail, name: trimName, userId: user?.id }), 1200 + 420)

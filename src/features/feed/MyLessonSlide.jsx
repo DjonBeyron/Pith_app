@@ -1,18 +1,17 @@
 import { displayDifficulty } from '../../shared/api/difficultyApi.js'
-import { useSlowMotion } from './useSlowMotion.js'
 import SlideVideo from './SlideVideo.jsx'
-import DifficultyBadge from './DifficultyBadge.jsx'
+import FeedHud from './FeedHud.jsx'
 
-// Один слайд видео-режима «Моих уроков»: та же зона замедления (0.5x над
-// зоной HUD), что и в ленте (FeedSlide) — вынесен из MyLessons.jsx, чтобы
-// useSlowMotion жил в своём компоненте на каждый слайд цикла .map()
+// Один слайд видео-режима «Моих уроков»: тот же HUD (лайк/закладка/репост/
+// сложность/замедление 0.5x), что и в ленте (FeedSlide) — общий FeedHud.jsx.
+// Обучающей подсказки про замедление здесь нет (showSlowHint не передаём) —
+// она только в «Рекомендациях», см. useSlowMotionHint.js.
 export default function MyLessonSlide({
   module: m, gradIdx, active, near, tabVisible,
   soundOn, onSoundOn, onSoundBlocked,
+  reaction, likeCount, onToggleLike, onToggleSave,
   myDifficulty, onVoteDifficulty, onOpen,
 }) {
-  const { slowMotion, startSlowMotion, stopSlowMotion } = useSlowMotion(`ml-${m.id}`, active, soundOn)
-
   return (
     <section className={`feedSlide feedGrad${gradIdx}`}>
       <SlideVideo
@@ -29,21 +28,21 @@ export default function MyLessonSlide({
       />
       <div className="mlPhrase">{m.title}</div>
       {/* Свой голос в приоритете: «мои сложные» = сложные для меня */}
-      <div className="feedHud">
-        <div
-          className="feedSlowZone"
-          onPointerDown={startSlowMotion}
-          onPointerUp={stopSlowMotion}
-          onPointerCancel={stopSlowMotion}
-          aria-hidden="true"
-        />
-        <DifficultyBadge
-          level={displayDifficulty(m, myDifficulty, true)}
-          myVote={myDifficulty}
-          onVote={v => onVoteDifficulty?.(m.id, v)}
-          active={active} />
-      </div>
-      {slowMotion && <div className="feedSlowLabel">0.5x</div>}
+      <FeedHud
+        module={m}
+        slideKey={`ml-${m.id}`}
+        active={active}
+        soundOn={soundOn}
+        reaction={reaction}
+        likeCount={likeCount}
+        saveCount={m.saveCount}
+        repostCount={m.repostCount}
+        onToggleLike={onToggleLike}
+        onToggleSave={onToggleSave}
+        difficulty={displayDifficulty(m, myDifficulty, true)}
+        myDifficulty={myDifficulty}
+        onVoteDifficulty={v => onVoteDifficulty?.(m.id, v)}
+      />
       <button className="feedLearnBtn mlContinueBtn" onClick={() => onOpen(m)}>
         {m.pct === 100 ? 'Повторить модуль' : 'Продолжить'}
       </button>

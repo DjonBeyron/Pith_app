@@ -14,6 +14,7 @@ import { useFeedModules } from './useFeedModules.js'
 import { useFeedFilter } from './useFeedFilter.js'
 import { useFeedSplash } from './useFeedSplash.js'
 import { useFeedVirtualizer } from './useFeedVirtualizer.js'
+import { useSlowMotionHint } from './useSlowMotionHint.js'
 import { buildFeedInfo } from './feedDebugInfo.js'
 
 // Лента видео (новая оболочка, шаг 3 миграции): вертикальный scroll-snap
@@ -58,6 +59,10 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
 
   useFeedSplash(modules, len, feedModules)
   const { scrollRef, virtualizer, viewH, cycles, activeIdx, onScroll, scrollDir } = useFeedVirtualizer(len, openModule, pinnedId)
+  // Обучающая подсказка «зажми лайк — замедли»: взводится, когда пользователь
+  // включил звук и затем свайпнул на следующее видео; активна только в
+  // «Рекомендациях» (тут же живёт activeIdx) — «Мои уроки» её не показывают.
+  const { showHint: showSlowHint, markSeenNow: markSlowHintSeen } = useSlowMotionHint(activeIdx, soundReady)
 
   function jumpToModule(id) {
     jumpTo(id)
@@ -109,6 +114,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           soundOn={soundReady}
           onSoundOn={handleSoundOn}
           onSoundBlocked={handleSoundBlocked}
+          reactions={reactions}
+          likeCounts={social?.likeCount}
+          onToggle={toggle}
           onOpen={m => setOpenModule(m)}
           onGoFeed={() => setView('feed')}
         />
@@ -168,6 +176,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                       soundOn={soundReady}
                       onSoundOn={handleSoundOn}
                       onSoundBlocked={handleSoundBlocked}
+                      showSlowHint={showSlowHint && rel === 0}
+                      onSlowHintSeen={markSlowHintSeen}
                       onToggleLike={() => toggle(m.id, 'liked')}
                       onToggleSave={() => toggle(m.id, 'saved')}
                       onLearn={() => setOpenModule(m)}

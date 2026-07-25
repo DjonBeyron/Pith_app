@@ -1,0 +1,88 @@
+/* Короткий попап «Урок закрыт» — тап по заблокированному уроку в схеме модуля,
+   до прохождения диагностики (см. LessonLockedHint.jsx) */
+
+.lessonLockedOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 6, 9, 0.72);
+}
+
+.lessonLockedCard {
+  position: relative;
+  width: min(300px, calc(100vw - 48px));
+  padding: 26px 22px 20px;
+  background: #14171e;
+  border: 1px solid #262a35;
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  text-align: center;
+  animation: lessonLockedIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes lessonLockedIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.lessonLockedClose {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #7a8194;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lessonLockedClose:hover { background: #21252f; color: #e8ecf4; }
+
+.lessonLockedIcon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(182, 254, 59, 0.1);
+  color: #b6fe3b;
+}
+
+.lessonLockedTitle {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f2f3f7;
+}
+
+.lessonLockedText {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #a7aec2;
+}
+
+.lessonLockedOkBtn {
+  width: 100%;
+  padding: 10px 0;
+  background: #b6fe3b;
+  color: #0e1013;
+  border: none;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lessonLockedOkBtn:hover { background: #d4ff5a; }

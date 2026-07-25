@@ -9,7 +9,7 @@ export async function getProfile() {
 
   const { data, error } = await supabase
     .from('user_profiles')
-    .select('xp, energy, energy_updated_at, tickets, has_subscription, subscription_until, is_admin, nickname, cosmetics, avatar_seed, current_streak, longest_streak, last_claimed_streak_day, has_freeze_charge, auto_freeze_charges_left')
+    .select('xp, energy, energy_updated_at, tickets, has_subscription, subscription_until, is_admin, nickname, cosmetics, avatar_seed, current_streak, longest_streak, last_claimed_streak_day, has_freeze_charge, auto_freeze_charges_left, slowmo_hint_seen')
     .eq('id', user.id)
     .single()
 
@@ -49,6 +49,15 @@ export async function completeLesson(lessonId) {
   const { data, error } = await supabase.rpc('complete_lesson', { p_lesson_id: lessonId })
   if (error) { console.error('[XP] complete_lesson RPC error:', error.message); return 0 }
   return data ?? 0
+}
+
+// Помечает на сервере, что пользователь уже увидел и опробовал подсказку
+// про замедление видео (см. useSlowMotionHint.js) — чтобы она не показалась
+// снова на другом устройстве. Не критично — ошибку молча глотаем (тот же
+// приём, что и для остальных необязательных RPC в этом файле).
+export async function markSlowmoHintSeen() {
+  const { error } = await supabase.rpc('mark_slowmo_hint_seen')
+  if (error) console.error('[SLOWMO-HINT] mark_slowmo_hint_seen RPC error:', error.message)
 }
 
 // Сброс СВОЕГО прохождения уроков (тест-кнопки админа): сервер снимает флаг

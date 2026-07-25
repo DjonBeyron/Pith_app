@@ -6,6 +6,7 @@ import ChainLines from './ChainLines.jsx'
 import MgFinalNode, { LockIcon } from './MgFinalNode.jsx'
 import MgStartNode from './MgStartNode.jsx'
 import MgStars from './MgStars.jsx'
+import LessonLockedHint from './LessonLockedHint.jsx'
 import { useChainScroll } from './useChainScroll.js'
 import { useChainArcs } from './useChainArcs.js'
 import { MgBtns, MgRenameInput } from './MgControls.jsx'
@@ -37,6 +38,7 @@ export default function ModuleGraph({
   const [tapped,   setTapped]   = useState(null)
   const [renaming, setRenaming] = useState(null)
   const [draft,    setDraft]    = useState('')
+  const [lockedHint, setLockedHint] = useState(false)
   // Полёт XP из только что пройденного урока к ключу-бегунку финала.
   const [flight,     setFlight]     = useState(null)
   const [delivered,  setDelivered]  = useState(0)
@@ -170,8 +172,8 @@ export default function ModuleGraph({
     if (renaming === id) return
     // Не-админ: пока диагностика (Старт) не пройдена, остальные уроки
     // визуально «под замком» (locked выше) — раньше замок был декорацией,
-    // сам клик всё равно запускал урок. Теперь блокируем по-настоящему.
-    if (!isAdmin && id !== start.id && !startDoneShown) return
+    // сам клик всё равно запускал урок. Теперь блокируем и объясняем почему.
+    if (!isAdmin && id !== start.id && !startDoneShown) { setLockedHint(true); return }
     // У не-админа нет управляющих кнопок — клик по блоку сразу запускает урок.
     if (!isAdmin) { onPlay(id); return }
     if (window.matchMedia('(hover: none)').matches) setTapped(p => p === id ? null : id)
@@ -320,6 +322,8 @@ export default function ModuleGraph({
             onDone={() => { setFlight(null); onFlightDone?.() }}
           />
         )}
+
+        {lockedHint && <LessonLockedHint onClose={() => setLockedHint(false)} />}
 
       </div>
     </div>

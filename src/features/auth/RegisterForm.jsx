@@ -3,6 +3,7 @@ import { registerUser } from '../../shared/api/auth.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { supabaseErrorToRu } from '../../shared/lib/authErrorsRu.js'
 import RegistrationConsent from '../../shared/ui/RegistrationConsent.jsx'
+import { transferSlowMotionHintOnRegister } from '../feed/useSlowMotionHint.js'
 
 export default function RegisterForm({ onLoginSuccess }) {
   const [email,    setEmail]    = useState('')
@@ -40,6 +41,7 @@ export default function RegisterForm({ onLoginSuccess }) {
       return
     }
     refreshProfile() // прогреваем кэш профиля фоном — «Профиль» откроется без мигания
+    transferSlowMotionHintOnRegister() // гость уже видел подсказку о замедлении — переносим флаг на сервер
     setBusy(false)
     onLoginSuccess?.()
   }

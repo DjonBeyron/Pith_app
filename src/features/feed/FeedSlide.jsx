@@ -1,32 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
-import { Zap, Check, Heart, Bookmark } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
-import { logRepost } from '../../shared/api/moduleSocialApi.js'
-import { useSlowMotion } from './useSlowMotion.js'
 import SlideVideo from './SlideVideo.jsx'
-import DifficultyBadge from './DifficultyBadge.jsx'
 import PhraseBubbleSpoiler from './PhraseBubbleSpoiler.jsx'
+import FeedHud from './FeedHud.jsx'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером, HUD
-// (лайк/закладка/репост), кнопка «Изучить фразу». Состояние лайков живёт
-// в FeedTab, спойлер локален для каждой копии слайда в круге.
+// (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
+// Состояние лайков живёт в FeedTab, спойлер локален для каждой копии
+// слайда в круге.
 export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, saveCount = 0, repostCount = 0, tabVisible = true,
   active = false, near = false, spoilerNear = false, slideKey,
   difficulty, myDifficulty, onVoteDifficulty,
   soundOn, onSoundOn, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
+  showSlowHint = false, onSlowHintSeen,
 }) {
-  const [toast, setToast] = useState(null)
-  const toastTimer = useRef(null)
-  const [likeBurst, setLikeBurst] = useState(false)
-  const burstTimer = useRef(null)
-  useEffect(() => () => clearTimeout(burstTimer.current), [])
-  const liked = !!reaction?.liked
-  const saved = !!reaction?.saved
-
-  // Замедленное воспроизведение (0.5x, только при звуке) — общий хук с
-  // «Моими уроками» (MyLessonSlide), см. useSlowMotion.js
-  const { slowMotion, startSlowMotion, stopSlowMotion } = useSlowMotion(slideKey, active, soundOn)
   // Подпись «X уроков в модуле» спрятана за фразой и выкатывается из-под
   // неё с небольшой задержкой после тапа — не одновременно с разлётом
   // шариков, а чуть следом, отдельным движением
@@ -39,39 +28,6 @@ export default function FeedSlide({
 
   // Уроки контента = между Стартом и Финалом
   const lessonsCount = Math.max(0, mod.lessonIds.length - 2)
-
-  function showToast(text, icon) {
-    setToast({ text, icon })
-    clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(null), 2200)
-  }
-
-  function share() {
-    const url = `${location.origin}/?m=${mod.id}`
-    logRepost(mod.id)
-    if (navigator.share) {
-      navigator.share({ title: mod.title, url }).catch(() => {})
-    } else {
-      navigator.clipboard?.writeText(url)
-      showToast('Ссылка скопирована')
-    }
-  }
-
-  // Разлёт зелёных сердечек — только на постановку лайка, не на снятие
-  function handleLike() {
-    if (!liked) {
-      setLikeBurst(true)
-      clearTimeout(burstTimer.current)
-      burstTimer.current = setTimeout(() => setLikeBurst(false), 750)
-    }
-    onToggleLike()
-  }
-
-  // Тост с галочкой — только когда фраза действительно сохраняется
-  function handleSave() {
-    if (!saved) showToast('Сохранено в закладки', 'check')
-    onToggleSave()
-  }
 
   return (
     <section className={`feedSlide feedGrad${gradIdx}`}>
@@ -102,43 +58,23 @@ export default function FeedSlide({
         </div>
       </div>
 
-      <div className="feedHud">
-        <div
-          className="feedSlowZone"
-          onPointerDown={startSlowMotion}
-          onPointerUp={stopSlowMotion}
-          onPointerCancel={stopSlowMotion}
-          aria-hidden="true"
-        />
-        <button
-          className={liked ? 'feedHudBtn feedHudBtnOn' : 'feedHudBtn'}
-          onClick={handleLike}>
-          <Heart fill={liked ? 'currentColor' : 'none'} />
-          <span>{likeCount > 0 ? likeCount : 'Лайк'}</span>
-          {likeBurst && (
-            <span className="likeBurst" aria-hidden="true">
-              {[0, 1, 2, 3, 4].map(i => (
-                <Heart key={i} className="likeBurstHeart" fill="currentColor" />
-              ))}
-            </span>
-          )}
-        </button>
-        <button
-          className={saved ? 'feedHudBtn feedHudBtnOn' : 'feedHudBtn'}
-          onClick={handleSave} aria-label="Сохранить в закладки">
-          <Bookmark fill={saved ? 'currentColor' : 'none'} />
-          {saveCount > 0 && <span>{saveCount}</span>}
-        </button>
-        <button className="feedHudBtn" onClick={share} aria-label="Репост">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 5l7 7-7 7v-4C7 15 4 17 2 20c0-7 4-11 12-11V5z" /></svg>
-          {repostCount > 0 && <span>{repostCount}</span>}
-        </button>
-        <DifficultyBadge
-          level={difficulty}
-          myVote={myDifficulty}
-          onVote={onVoteDifficulty}
-          active={active} />
-      </div>
+      <FeedHud
+        module={mod}
+        slideKey={slideKey}
+        active={active}
+        soundOn={soundOn}
+        reaction={reaction}
+        likeCount={likeCount}
+        saveCount={saveCount}
+        repostCount={repostCount}
+        onToggleLike={onToggleLike}
+        onToggleSave={onToggleSave}
+        difficulty={difficulty}
+        myDifficulty={myDifficulty}
+        onVoteDifficulty={onVoteDifficulty}
+        showSlowHint={showSlowHint}
+        onSlowHintSeen={onSlowHintSeen}
+      />
 
       {/* Превью-статус модуля: виден в ленте, но учить пока нельзя (см. useFeedModules) */}
       {!mod.previewOnly && (
@@ -146,15 +82,6 @@ export default function FeedSlide({
           <Zap fill="currentColor" />
           Изучить фразу
         </button>
-      )}
-
-      {slowMotion && <div className="feedSlowLabel">0.5x</div>}
-
-      {toast && (
-        <div className="feedToast">
-          {toast.icon === 'check' && <Check className="feedToastIcon" strokeWidth={2.5} />}
-          <span>{toast.text}</span>
-        </div>
       )}
     </section>
   )

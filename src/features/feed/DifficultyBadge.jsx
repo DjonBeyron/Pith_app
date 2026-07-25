@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { X, Check } from 'lucide-react'
+import { X, Check, Ear } from 'lucide-react'
 
 // Иконка сложности фразы (три полоски-«сигнал») = кнопка голосования.
 // Тап → панель выезжает от кнопки (scale от 0, origin у кнопки). Один
@@ -119,9 +119,7 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
       )}
       <button className="feedHudBtn" onClick={() => (open ? closePanel() : openPanel())} aria-label="Сложность фразы">
         <span className={`diffIcon${confirmed ? ' diffIconConfirm' : ''}${intro ? ' diffIconPulse' : ''}`}>
-          <span className={`diffBars${level ? ` diffL${level}` : ''}`}>
-            <i /><i /><i />
-          </span>
+          <Ear className={`diffEarIcon${level ? ` diffL${level}` : ''}`} />
           <Check className="diffCheck" strokeWidth={3} />
         </span>
       </button>
