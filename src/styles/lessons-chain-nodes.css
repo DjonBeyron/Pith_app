@@ -173,11 +173,13 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
+  display: flex;
   color: #b6fe3b;
-  font-size: 26px;
-  text-shadow: 0 0 12px rgba(182, 254, 59, 0.55);
-  transition: color 0.9s ease, text-shadow 0.9s ease; /* озеленение в такт ноду */
+  filter: drop-shadow(0 0 6px rgba(182, 254, 59, 0.55));
+  transition: color 0.9s ease, filter 0.9s ease; /* озеленение в такт ноду */
 }
+
+.mgIconBadge--start svg { width: 22px; height: 22px; }
 
 .mgGlow--start .mgIconBadge--start {
   color: #c8ccd8;
@@ -201,9 +203,13 @@
   border: 1px solid rgba(182, 254, 59, 0.25);
   border-radius: 9px;
   padding: 2px 8px;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   white-space: nowrap;
 }
+
+.mgStartBadgeIcon { flex-shrink: 0; }
 
 .mgStartBtn {
   margin-top: 14px;

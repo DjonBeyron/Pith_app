@@ -86,7 +86,9 @@
 }
 
 .pvLvlChip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 6px;
   padding: 3px 10px;
   border-radius: 999px;
@@ -96,6 +98,12 @@
   font-size: 12px;
   font-weight: 700;
 }
+
+.pvLvlChipIcon { width: 12px; height: 12px; }
+
+/* Иконка + текст в один ряд — карточка Pro, кнопка стрика, замок копилки слов */
+.pvIconLabel { display: inline-flex; align-items: center; gap: 6px; }
+.pvIconLabel svg { flex-shrink: 0; }
 
 /* ── Карточки XP и энергии ── */
 .pvCard {
@@ -188,7 +196,7 @@
   cursor: pointer;
 }
 
-.pvBuyIcon { font-size: 18px; line-height: 1; }
+.pvBuyIcon { display: flex; align-items: center; }
 .pvBuyText { font-size: 15px; font-weight: 800; }
 .pvBuyPrice { font-size: 13px; font-weight: 600; opacity: 0.72; }
 

@@ -3,7 +3,7 @@ import FeedTab from '../features/feed/FeedTab.jsx'
 import ProfileV2 from '../features/profile/ProfileV2.jsx'
 import AuthTab from '../features/auth/AuthTab.jsx'
 import SettingsTab from '../features/settings/SettingsTab.jsx'
-import { GEAR_PATH } from '../shared/ui/icons.js'
+import { Cog, Video, UserRound, Trophy } from 'lucide-react'
 import BackButton from '../shared/ui/BackButton.jsx'
 import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
@@ -93,7 +93,7 @@ export default function ShellV2() {
             <div className="shellV2Panel">
               <div className="pvHead">
                 <button className="pvGear" onClick={() => setGuestSettings(true)} title="Настройки">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d={GEAR_PATH} /></svg>
+                  <Cog />
                 </button>
               </div>
               <AuthTab onLoginSuccess={() => {}} />
@@ -113,26 +113,26 @@ export default function ShellV2() {
         <button
           className={tab === 'feed' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
           onClick={() => setTab('feed')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="4" /><path d="M10 9.5v5l4.5-2.5L10 9.5z" fill="currentColor" /></svg>
+          <Video />
           Уроки
         </button>
         <button
           className={tab === 'profile' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
           onClick={() => setTab('profile')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" /></svg>
+          <UserRound />
           Профиль
         </button>
         <button
           className={tab === 'rating' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
           onClick={() => setTab('rating')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17" /></svg>
+          <Trophy />
           Рейтинг
         </button>
         {isAdmin && (
           <button
             className={tab === 'admin' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
             onClick={() => setTab('admin')}>
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d={GEAR_PATH} /></svg>
+            <Cog />
             Админ
           </button>
         )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Check } from 'lucide-react'
 import { saveNickname } from '../../shared/api/ratingApi.js'
 import { getProfile } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
@@ -8,6 +9,7 @@ import { refreshProfile } from '../../shared/api/profileCache.js'
 export default function NicknameCard() {
   const [nick, setNick] = useState('')
   const [msg,  setMsg]  = useState('')
+  const [ok,   setOk]   = useState(false)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -18,11 +20,13 @@ export default function NicknameCard() {
     if (busy) return
     setBusy(true)
     setMsg('')
+    setOk(false)
     const { nick: saved, error } = await saveNickname(nick)
     setBusy(false)
     if (error) { setMsg(error); return }
     setNick(saved)
-    setMsg('✓ Сохранено')
+    setOk(true)
+    setMsg('Сохранено')
     refreshProfile() // имя в шапке профиля обновится без перезахода
     setTimeout(() => setMsg(''), 3000)
   }
@@ -31,7 +35,7 @@ export default function NicknameCard() {
     <div className="pvCard">
       <div className="pvCardTop">
         <span>Ник в рейтинге</span>
-        {msg && <b>{msg}</b>}
+        {msg && <b className={ok ? 'pvIconLabel' : undefined}>{ok && <Check size={13} />}{msg}</b>}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
         <input

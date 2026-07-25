@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { ChevronsUp, ChevronsDown, Check, Play } from 'lucide-react'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import XpFlight, { FLIGHT_DELAY_MS } from './XpFlight.jsx'
 import ChainLines from './ChainLines.jsx'
@@ -15,9 +16,9 @@ import { MgBtns, MgRenameInput } from './MgControls.jsx'
 const START_REVEAL_MS = 500
 
 const PRIORITY = {
-  high:   { label: 'Высокий приоритет', icon: '📈', desc: 'Наиболее важен для вас' },
-  medium: { label: 'Средний приоритет', icon: '≡',  desc: 'Полезен для развития' },
-  low:    { label: 'Низкий приоритет',  icon: '↓',  desc: 'Можно изучить позже' },
+  high:   { label: 'Высокий приоритет', icon: ChevronsUp,   desc: 'Наиболее важен для вас' },
+  medium: { label: 'Средний приоритет', icon: '≡',          desc: 'Полезен для развития' },
+  low:    { label: 'Низкий приоритет',  icon: ChevronsDown, desc: 'Можно изучить позже' },
 }
 
 export default function ModuleGraph({
@@ -167,6 +168,10 @@ export default function ModuleGraph({
   function commitRename() { if (renaming && draft.trim()) onRename(renaming, draft.trim()); setRenaming(null) }
   function handleClick(id) {
     if (renaming === id) return
+    // Не-админ: пока диагностика (Старт) не пройдена, остальные уроки
+    // визуально «под замком» (locked выше) — раньше замок был декорацией,
+    // сам клик всё равно запускал урок. Теперь блокируем по-настоящему.
+    if (!isAdmin && id !== start.id && !startDoneShown) return
     // У не-админа нет управляющих кнопок — клик по блоку сразу запускает урок.
     if (!isAdmin) { onPlay(id); return }
     if (window.matchMedia('(hover: none)').matches) setTapped(p => p === id ? null : id)
@@ -238,12 +243,8 @@ export default function ModuleGraph({
                   {locked
                     ? <LockIcon size={14} />
                     : done
-                    ? '✓'
-                    : (
-                      <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor">
-                        <path d="M8 5 L19 12 L8 19 Z" />
-                      </svg>
-                    )}
+                    ? <Check size={13} />
+                    : <Play size={11} fill="currentColor" />}
                 </div>
                 <div className="mgLessonBody">
                   <div className="mgLessonTop">
@@ -257,10 +258,14 @@ export default function ModuleGraph({
                   </div>
                   {st > 0
                     ? <MgStars value={st} />
-                    : <span className="mgLessonSub">Пройдите и получите</span>}
+                    : locked
+                      ? <span className="mgLessonSub">Сначала пройди диагностику</span>
+                      : <span className="mgLessonSub">Пройдите и получите</span>}
                   {pInfo && (
                     <div className={`mgLessonPriority mgLessonPriority--${pKey}`}>
-                      <span className="mgLessonPriorityIcon">{pInfo.icon}</span>
+                      <span className="mgLessonPriorityIcon">
+                        {typeof pInfo.icon === 'string' ? pInfo.icon : <pInfo.icon size={14} />}
+                      </span>
                       <div className="mgLessonPriorityText">
                         <span className="mgLessonPriorityLabel">{pInfo.label}</span>
                         <span className="mgLessonPriorityDesc">{pInfo.desc}</span>

@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import AvatarPicker from './AvatarPicker.jsx'
 
 // Попап выбора аватара — открывается тапом по аватару в профиле. Закрытие:
@@ -9,7 +10,7 @@ export default function AvatarPickerPopup({ selected, onSelect, busy, onClose })
       <div className="avpPopup">
         <div className="avpPopupHead">
           <b>Выбери аватар</b>
-          <button className="avpClose" onClick={onClose}>✕</button>
+          <button className="avpClose" onClick={onClose}><X size={16} /></button>
         </div>
         <AvatarPicker
           selected={selected}

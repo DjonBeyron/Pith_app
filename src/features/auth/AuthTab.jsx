@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ShieldCheck } from 'lucide-react'
 import { loginUser, logoutUser } from '../../shared/api/auth.js'
 import { clearProfileCache, refreshProfile } from '../../shared/api/profileCache.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
@@ -56,7 +57,7 @@ export default function AuthTab({ onLoginSuccess }) {
         <div className="authCard">
           <div className="authAvatar">{(user.email?.[0] ?? '?').toUpperCase()}</div>
           <div className="authEmail">{user.email}</div>
-          {isAdmin && <div className="authAdminBadge">★ Администратор</div>}
+          {isAdmin && <div className="authAdminBadge"><ShieldCheck size={13} /> Администратор</div>}
           <div className="authHint">Вы вошли в аккаунт</div>
           <button className="authBtnSecondary" onClick={handleLogout} disabled={busy}>
             {busy ? 'Выход...' : 'Выйти из аккаунта'}

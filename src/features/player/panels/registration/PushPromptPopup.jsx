@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BellRing } from 'lucide-react'
 import { subscribePush } from '../../../../shared/lib/push.js'
 
 // Попап после успешной регистрации в уроке: предложение включить уведомления.
@@ -27,7 +28,7 @@ export default function PushPromptPopup({ onClose }) {
   return (
     <div className="pushPromptOverlay" onClick={() => { if (!busy) onClose?.() }}>
       <div className="pushPromptCard" onClick={e => e.stopPropagation()}>
-        <div className="pushPromptIcon">🔔</div>
+        <div className="pushPromptIcon"><BellRing /></div>
         <div className="pushPromptTitle">Включи уведомления</div>
         <div className="pushPromptText">
           Будем напоминать о занятиях и сообщать о наградах — без спама

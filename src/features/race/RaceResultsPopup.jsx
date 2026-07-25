@@ -1,3 +1,4 @@
+import { Flag } from 'lucide-react'
 import UserBadge from '../../shared/ui/UserBadge.jsx'
 
 // Попап итогов супергонки: подиум 1-2-3; если пользователь не в тройке —
@@ -24,7 +25,7 @@ export default function RaceResultsPopup({ race, results, myUserId, onClose }) {
   return (
     <div className="racePopupOverlay" onClick={onClose}>
       <div className="racePopupCard" onClick={e => e.stopPropagation()}>
-        <div className="racePopupEmoji">🏁</div>
+        <div className="racePopupEmoji"><Flag /></div>
         <h3 className="racePopupTitle">Итоги супергонки</h3>
         {race?.title && <p className="racePopupText">«{race.title}»</p>}
 

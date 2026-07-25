@@ -70,12 +70,13 @@
 .pcAttachBtn:active { background: rgba(182,254,59,.10); }
 
 .pcAttachIcon {
-  font-size: 24px;
   flex-shrink: 0;
-  display: inline-block;
+  display: inline-flex;
   transform-origin: center;
   animation: pcPaperclip 2.4s ease-in-out .6s infinite;
 }
+
+.pcAttachIcon svg { width: 22px; height: 22px; }
 
 @keyframes pcPaperclip {
   0%, 55%, 100% { transform: rotate(0deg) scale(1); }

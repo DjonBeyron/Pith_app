@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react'
+import { Lock, Check, Gift } from 'lucide-react'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 
 // Фиксированный набор дней для скелетона (ghost=true): пока вехи (milestones)
 // не пришли с сервера, реальный статус дней посчитать нельзя — рисуем
@@ -62,23 +64,23 @@ export default function RewardsPath({ days, focusDay, ghost = false }) {
                 className={`rwNode rwNodeMilestone${d.status === 'done' ? ' rwNodeMilestoneDone' : ''}`}
                 data-current={d.status === 'ready' || undefined}
               >
-                <span className="rwNodeIcon">🎫</span>
+                <TicketIcon className="rwNodeIcon" />
                 <p className="rwNodeDay">День {d.day}</p>
                 <p className="rwNodeReward">
                   {d.xp > 0 && `${d.xp} XP`}
                   {d.xp > 0 && d.tickets > 0 && ' · '}
-                  {d.tickets > 0 && `${d.tickets} 🎟`}
+                  {d.tickets > 0 && (
+                    <>{d.tickets} <TicketIcon style={{ width: 10, height: 10, verticalAlign: '-1px' }} /></>
+                  )}
                 </p>
               </div>
             ) : (
               <div className={`rwNode rwNode${d.status === 'ready' ? 'Current' : d.status === 'done' ? 'Done' : 'Locked'}`}>
-                {d.status === 'locked' && <span className="rwNodeLock">🔒</span>}
+                {d.status === 'locked' && <Lock className="rwNodeLock" size={14} />}
                 {d.status === 'done' && (
-                  <svg className="rwNodeDoneMark" viewBox="0 0 24 24" fill="none" stroke="#b6fe3b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
+                  <Check className="rwNodeDoneMark" color="#b6fe3b" strokeWidth={2.5} aria-hidden="true" />
                 )}
-                {d.status === 'ready' && <span className="rwNodeGift" aria-hidden="true">🎁</span>}
+                {d.status === 'ready' && <Gift className="rwNodeGift" aria-hidden="true" />}
                 <p className="rwNodeDay">День {d.day}</p>
                 <p className="rwNodeReward">+{d.xp} XP</p>
               </div>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Zap, Check, Heart, Bookmark } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
 import { logRepost } from '../../shared/api/moduleSocialApi.js'
 import { useSlowMotion } from './useSlowMotion.js'
@@ -112,14 +113,12 @@ export default function FeedSlide({
         <button
           className={liked ? 'feedHudBtn feedHudBtnOn' : 'feedHudBtn'}
           onClick={handleLike}>
-          <svg viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+          <Heart fill={liked ? 'currentColor' : 'none'} />
           <span>{likeCount > 0 ? likeCount : 'Лайк'}</span>
           {likeBurst && (
             <span className="likeBurst" aria-hidden="true">
               {[0, 1, 2, 3, 4].map(i => (
-                <svg key={i} className="likeBurstHeart" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
+                <Heart key={i} className="likeBurstHeart" fill="currentColor" />
               ))}
             </span>
           )}
@@ -127,7 +126,7 @@ export default function FeedSlide({
         <button
           className={saved ? 'feedHudBtn feedHudBtnOn' : 'feedHudBtn'}
           onClick={handleSave} aria-label="Сохранить в закладки">
-          <svg viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M6 3h12v18l-6-4.5L6 21V3z" /></svg>
+          <Bookmark fill={saved ? 'currentColor' : 'none'} />
           {saveCount > 0 && <span>{saveCount}</span>}
         </button>
         <button className="feedHudBtn" onClick={share} aria-label="Репост">
@@ -144,7 +143,7 @@ export default function FeedSlide({
       {/* Превью-статус модуля: виден в ленте, но учить пока нельзя (см. useFeedModules) */}
       {!mod.previewOnly && (
         <button className="feedLearnBtn" onClick={onLearn}>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
+          <Zap fill="currentColor" />
           Изучить фразу
         </button>
       )}
@@ -153,11 +152,7 @@ export default function FeedSlide({
 
       {toast && (
         <div className="feedToast">
-          {toast.icon === 'check' && (
-            <svg className="feedToastIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
-          )}
+          {toast.icon === 'check' && <Check className="feedToastIcon" strokeWidth={2.5} />}
           <span>{toast.text}</span>
         </div>
       )}

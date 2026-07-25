@@ -44,8 +44,10 @@
   border-radius: 50%;
   background: transparent;
   color: #7a8194;
-  font-size: 13px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .priorityLegendClose:hover { background: #21252f; color: #e8ecf4; }
@@ -55,7 +57,12 @@
   font-size: 16px;
   font-weight: 700;
   color: #f2f3f7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+
+.priorityLegendTitleIcon { color: #ffd93d; flex-shrink: 0; }
 
 .priorityLegendIntro {
   margin: 0 0 14px;

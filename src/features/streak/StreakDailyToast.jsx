@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Sparkles, X } from 'lucide-react'
 import RewardsPopup from './RewardsPopup.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
 import { getCachedProfile, subscribeProfile } from '../../shared/api/profileCache.js'
@@ -60,7 +61,7 @@ export default function StreakDailyToast({ waiting = false }) {
     <>
       {visible && (
         <div className="streakToast" onClick={claimable ? openRewards : dismiss}>
-          <span className="streakToastIcon">🔥</span>
+          <Sparkles className="streakToastIcon" size={22} />
           <span className="streakToastBody">
             <span className="streakToastTitle">
               Серия {streak} {streak === 1 ? 'день' : streak < 5 ? 'дня' : 'дней'}
@@ -72,7 +73,7 @@ export default function StreakDailyToast({ waiting = false }) {
               Забрать
             </button>
           )}
-          <button className="streakToastClose" onClick={e => { e.stopPropagation(); dismiss() }}>✕</button>
+          <button className="streakToastClose" onClick={e => { e.stopPropagation(); dismiss() }}><X size={14} /></button>
         </div>
       )}
       {rewardsOpen && profile && (

@@ -1,4 +1,5 @@
 import { HINT_LIMIT } from './useFinalHints.js'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 
 // Панель подсказок Финала: три огонька под шапкой плеера. Раскрыл перевод
 // сообщения — огонёк гаснет. Потратил больше трёх — панель переключается
@@ -17,7 +18,7 @@ export default function HintBar({ count }) {
           ))}
         </span>
       )}
-      {!over && <span className="hintBarTicket">🎟</span>}
+      {!over && <TicketIcon className="hintBarTicket" />}
     </div>
   )
 }

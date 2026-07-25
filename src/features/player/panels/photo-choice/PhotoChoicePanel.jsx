@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { X, Paperclip } from 'lucide-react'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
@@ -139,7 +140,7 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
           <div className="pcGallery" onClick={e => e.stopPropagation()}>
             <div className="pcGalleryHeader">
               <span className="pcGalleryTitle">Выбери фото</span>
-              <button className="pcGalleryClose" onClick={() => setGalleryOpen(false)}>✕</button>
+              <button className="pcGalleryClose" onClick={() => setGalleryOpen(false)}><X size={16} /></button>
             </div>
             <div className="pcGalleryScroll">
               <div className="pcGalleryGrid">
@@ -162,7 +163,7 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
         className={`pcPanel${show ? ' pcPanelVisible' : ''}`}
       >
         <button className="pcAttachBtn" onClick={() => setGalleryOpen(true)}>
-          <span className="pcAttachIcon">📎</span>
+          <span className="pcAttachIcon"><Paperclip size={16} /></span>
           <span className="pcAttachLabel">Прикрепи фото</span>
         </button>
       </div>

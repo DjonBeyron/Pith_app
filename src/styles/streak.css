@@ -53,11 +53,13 @@
   right: 10px;
   width: 22px;
   height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 8px;
   border: none;
   background: transparent;
   color: #6b7280;
-  font-size: 13px;
   cursor: pointer;
 }
 
@@ -70,7 +72,7 @@
   margin-bottom: 24px;
 }
 
-.rwHeroIcon { font-size: 40px; margin-bottom: 6px; }
+.rwHeroIcon { display: flex; justify-content: center; color: #ffd257; margin-bottom: 6px; }
 .rwHero h2 { font-size: 20px; font-weight: 800; margin: 0 0 6px; }
 .rwHeroSub { font-size: 13px; color: #9aa3ad; margin: 0 0 14px; line-height: 1.4; }
 .rwHeroSub b { color: #b6fe3b; }
@@ -154,7 +156,9 @@
   position: absolute;
   top: 4px;
   right: 4px;
-  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: #ffd257;
   filter: drop-shadow(0 0 4px rgba(255, 210, 87, 0.5));
 }
 
@@ -169,8 +173,8 @@
 
 .rwNodeMilestone[data-current] { box-shadow: 0 0 26px rgba(255, 210, 87, 0.55); }
 
-.rwNodeIcon { font-size: 24px; }
-.rwNodeLock { font-size: 14px; opacity: 0.6; }
+.rwNodeIcon { width: 24px; height: 24px; }
+.rwNodeLock { opacity: 0.6; }
 /* position/z-index — чтобы текст оставался поверх водяного знака rwNodeDoneMark
    (абсолютные элементы иначе красятся поверх статичных вне зависимости от DOM-порядка) */
 .rwNodeDay { position: relative; z-index: 1; font-size: 11px; font-weight: 700; margin: 4px 0 2px; }
@@ -207,6 +211,8 @@
   cursor: pointer;
 }
 
+.rwClaimBtnLabel { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+
 .rwClaimBtn:disabled { opacity: 0.4; cursor: default; }
 
 /* ── Шторка-объяснение авто заморозки ── */
@@ -234,6 +240,7 @@
 }
 
 .rwInfoCard h3 { margin: 0 0 10px; font-size: 16px; }
+.rwSheetTitle { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .rwInfoCard p { font-size: 13px; color: #9aa3ad; line-height: 1.5; margin: 0 0 14px; }
 .rwInfoPro { color: #ffd257 !important; margin-top: 14px !important; }
 

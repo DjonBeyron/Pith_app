@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Sparkles } from 'lucide-react'
 import { useCurriculumLessons } from './useCurriculumLessons.js'
 import { renameCurriculum } from '../../shared/lib/curriculaApi.js'
 import ModuleGraph from './ModuleGraph.jsx'
@@ -239,10 +240,13 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           // сразу с готовыми полосками, без скачка UI на глазах пользователя
           const map = await refreshPriorities()
           // Легенда — когда диагностика впервые дала приоритеты, и снова
-          // после пересдачи «с обновлением» (карта знаний перезаписана)
+          // после пересдачи «с обновлением» (карта знаний перезаписана).
+          // «Без записи» (silent) — явно исключаем: раньше !seen срабатывал
+          // даже в этом режиме (если легенду ещё не видел), хотя пользователь
+          // прямо выбрал «не обновлять» — попап всё равно вылезал
           const seen = !!localStorage.getItem(LEGEND_SEEN_KEY)
           dbg('[LEGEND] приоритетов:', map?.size ?? 'null', 'уже видел:', seen, 'режим:', statsMode)
-          if (map?.size > 0 && (!seen || statsMode === 'update')) {
+          if (map?.size > 0 && statsMode !== 'silent' && (!seen || statsMode === 'update')) {
             setShowLegend(true)
           }
           setPlayerData(null)
@@ -370,7 +374,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
       )}
 
       {proOffer && (
-        <ProPaywall heading="Модуль пройден! 🎉" onClose={() => setProOffer(false)} />
+        <ProPaywall heading={<>Модуль пройден! <Sparkles size={20} style={{ verticalAlign: '-3px' }} /></>} onClose={() => setProOffer(false)} />
       )}
 
       {showLegend && (

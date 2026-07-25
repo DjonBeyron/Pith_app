@@ -20,10 +20,15 @@
 }
 
 .vrTimerText {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 13px;
   color: #ff5064;
   font-variant-numeric: tabular-nums;
 }
+
+.vrTimerIcon { flex-shrink: 0; }
 
 .vrListenHint {
   font-size: 12px;
@@ -83,7 +88,8 @@
   background: none;
   border: none;
   color: #555;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
   cursor: pointer;
   padding: 4px;
   flex-shrink: 0;

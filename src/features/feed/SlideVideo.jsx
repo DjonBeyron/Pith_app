@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Play, VolumeX } from 'lucide-react'
 import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface, prepareReturn } from './videoPool.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
@@ -219,12 +220,12 @@ export default function SlideVideo({
         : <div className="feedSkeleton" />}
       {paused && active && (
         <div className="slidePauseIcon">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z" /></svg>
+          <Play fill="currentColor" />
         </div>
       )}
       {!soundOn && active && (
         <button className="feedSoundChip" onClick={tapSound}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z" /><line x1="22" y1="9" x2="16" y2="15" /><line x1="16" y1="9" x2="22" y2="15" /></svg>
+          <VolumeX />
           Включить звук
         </button>
       )}

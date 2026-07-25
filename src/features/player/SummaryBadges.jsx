@@ -1,3 +1,6 @@
+import { Star, Sparkles } from 'lucide-react'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
+
 // Награды на экране итогов урока: золотой билет (Финал) и звёзды (обычный
 // урок). Оба блока опциональны — LessonSummary рендерит их между XP-баром
 // и блоком нового уровня.
@@ -7,11 +10,11 @@
 export function TicketBlock({ ticket, hintLimit }) {
   if (!ticket) return null
   const clean = ticket.clean
-    && <span className="summaryTicketClean">✨ Идеально — без подсказок! Достижение «Чистый финал»</span>
+    && <span className="summaryTicketClean"><Sparkles size={13} /> Идеально — без подсказок! Достижение «Чистый финал»</span>
   if (ticket.ok) {
     return (
       <div className="summaryTicketBlock summaryTicketWon">
-        🎟 Золотой билет получен!{clean}
+        <TicketIcon className="summaryTicketIcon" /> Золотой билет получен!{clean}
       </div>
     )
   }
@@ -43,10 +46,7 @@ export function StarsBlock({ stars }) {
     <div className="summaryStarsBlock">
       <div className="summaryStarsRow">
         {[1, 2, 3].map(i => (
-          <svg key={i} viewBox="0 0 24 24"
-            className={`summaryStar${i <= stars.earned ? ' summaryStarOn' : ''}`}>
-            <path d="M12 2.5 14.9 8.6 21.5 9.5 16.7 14.1 17.9 20.7 12 17.5 6.1 20.7 7.3 14.1 2.5 9.5 9.1 8.6Z" />
-          </svg>
+          <Star key={i} className={`summaryStar${i <= stars.earned ? ' summaryStarOn' : ''}`} />
         ))}
       </div>
       <div className="summaryStarsLabel">

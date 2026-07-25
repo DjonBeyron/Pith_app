@@ -1,3 +1,5 @@
+import { Flag } from 'lucide-react'
+
 function fmtTime(ms) {
   const s = Math.round(ms / 1000)
   const m = Math.floor(s / 60)
@@ -11,7 +13,7 @@ export default function RaceSummary({ errors, timeMs, rank, onClose }) {
   return (
     <div className="racePopupOverlay">
       <div className="racePopupCard">
-        <div className="racePopupEmoji">🏁</div>
+        <div className="racePopupEmoji"><Flag /></div>
         <h3 className="racePopupTitle">Супер-урок пройден!</h3>
 
         <div className="raceSumRows">

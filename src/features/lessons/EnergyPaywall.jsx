@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Zap } from 'lucide-react'
 import ProPaywall from '../pro/ProPaywall.jsx'
 import { energyColor } from '../../shared/lib/energyColors.js'
 
@@ -29,7 +30,7 @@ export default function EnergyPaywall({ nextAt, onClose }) {
     <div className="epOverlay" onClick={onClose}>
       <div className="epCard" onClick={e => e.stopPropagation()}>
         <div className="epBoltRing">
-          <svg viewBox="0 0 24 24" fill="currentColor" style={{ color: energyColor(0) }}><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
+          <Zap fill="currentColor" style={{ color: energyColor(0) }} />
         </div>
         <h1>Энергия закончилась</h1>
         <div className="epSub">Новый урок можно начать, когда<br />восстановится энергия</div>

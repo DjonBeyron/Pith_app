@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react'
+import { Play, Pause } from 'lucide-react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
@@ -10,15 +11,10 @@ const ACCENT = '#b6fe3b'
 const WHISPER_ADVANCE = 0.08
 
 function PlayTriangle() {
-  return <svg width="9" height="9" viewBox="0 0 10 10"><polygon points="1,0 10,5 1,10" fill="#0e1013" /></svg>
+  return <Play size={10} fill="#0e1013" color="#0e1013" />
 }
 function PauseIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10">
-      <rect x="1" y="0" width="3" height="10" fill="#0e1013" rx="1" />
-      <rect x="6" y="0" width="3" height="10" fill="#0e1013" rx="1" />
-    </svg>
-  )
+  return <Pause size={10} fill="#0e1013" color="#0e1013" />
 }
 
 export default function AudioModule({ node, file, onDone }) {

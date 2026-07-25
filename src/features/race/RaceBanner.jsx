@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useRaceState } from './useRaceState.js'
 import RaceTicketGate from './RaceTicketGate.jsx'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 
 const PHASE_SUB = {
   upcoming: 'Готовься — старт в субботу',
@@ -36,7 +37,7 @@ export default function RaceBanner({ active = true, onOpen }) {
           </span>
           {/* Стоимость входа — пока гонка не завершена и участник не финишировал */}
           {phase !== 'ended' && !finished && (
-            <span className="raceBannerTicket">🎟 Вход: 1 золотой билет</span>
+            <span className="raceBannerTicket"><TicketIcon className="raceBannerTicketIcon" /> Вход: 1 золотой билет</span>
           )}
           {modules.length > 0 && phase !== 'ended' && (
             <span className="raceBannerPrep">

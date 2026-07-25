@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
+import { Play, Pause, Mic, Timer, X } from 'lucide-react'
 import { analyzeWaveform, drawWaveBar, fmtAudioTime, probeAudioDuration } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-function PlayIcon()  { return <svg width="9"  height="9"  viewBox="0 0 10 10"><polygon points="1,0 10,5 1,10" fill="currentColor" /></svg> }
-function PauseIcon() { return <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="0" width="3" height="10" fill="currentColor" rx="1" /><rect x="6" y="0" width="3" height="10" fill="currentColor" rx="1" /></svg> }
+function PlayIcon()  { return <Play size={10} fill="currentColor" /> }
+function PauseIcon() { return <Pause size={10} fill="currentColor" /> }
 
 // Probe supported MIME type once at module level (not inside render)
 const RECORD_MIME = typeof MediaRecorder !== 'undefined'
@@ -125,7 +126,7 @@ export default function VoiceRecordBar({ onSend }) {
     recTimerRef.current = setInterval(() => {
       if (!timerRef.current) return
       const s = Math.floor((Date.now() - recStartRef.current) / 1000)
-      timerRef.current.textContent = `⏺ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+      timerRef.current.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
     }, 200)
   }
 
@@ -212,7 +213,9 @@ export default function VoiceRecordBar({ onSend }) {
   return (
     <div className="vrWrap">
       <div className="vrTimerRow" style={{ visibility: phase === 'recording' ? 'visible' : 'hidden' }}>
-        <span ref={timerRef} className="vrTimerText">⏺ 0:00</span>
+        <span className="vrTimerText">
+          <Timer size={12} className="vrTimerIcon" /> <span ref={timerRef}>0:00</span>
+        </span>
       </div>
       <div className="vrListenHint" style={{ visibility: isRecorded ? 'visible' : 'hidden' }}>
         Прослушай перед отправкой
@@ -223,7 +226,7 @@ export default function VoiceRecordBar({ onSend }) {
         </button>
         <canvas ref={waveCanvasRef} className="vrWaveCanvas" width={180} height={28} />
         <span ref={timeRef} className="vrWaveTime">0:00</span>
-        <button className="vrWaveDelete" onClick={handleDelete} aria-label="Удалить">✕</button>
+        <button className="vrWaveDelete" onClick={handleDelete} aria-label="Удалить"><X size={13} /></button>
       </div>
       <div className="vrMicArea">
         <canvas ref={ringsCanvasRef} className="vrRingsCanvas" width={240} height={240} style={{ pointerEvents: 'none' }} />
@@ -233,12 +236,7 @@ export default function VoiceRecordBar({ onSend }) {
           onPointerLeave={handlePressEnd}  onPointerCancel={handlePressEnd}
           style={{ touchAction: 'none' }} aria-label="Записать голос"
         >
-          <svg width="26" height="34" viewBox="0 0 26 34" fill="none">
-            <rect x="7" y="1" width="12" height="18" rx="6" stroke="white" strokeWidth="2.2" fill="none"/>
-            <path d="M2 17C2 23.627 7 29 13 29C19 29 24 23.627 24 17" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
-            <line x1="13" y1="29" x2="13" y2="33" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-            <line x1="7" y1="33" x2="19" y2="33" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-          </svg>
+          <Mic size={26} color="white" strokeWidth={2.2} />
         </button>
       </div>
       <div className="vrActions" style={{ visibility: isRecorded ? 'visible' : 'hidden' }}>

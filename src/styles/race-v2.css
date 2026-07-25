@@ -83,6 +83,8 @@
 .raceBigBtnDone  { color: #b6fe3b; background: rgba(182, 254, 59, 0.1); }
 .raceBigBtnOff   { opacity: 0.85; }
 
+.raceBtnIcon { vertical-align: -3px; margin-right: 2px; }
+
 /* Список заданий (как «Мои уроки» списком) */
 .raceLessons { display: flex; flex-direction: column; gap: 8px; }
 
@@ -207,11 +209,16 @@
   gap: 10px;
 }
 
-.racePopupEmoji { font-size: 42px; line-height: 1; }
+.racePopupEmoji { display: flex; justify-content: center; }
+.racePopupEmoji svg { width: 42px; height: 42px; }
 .racePopupTitle { margin: 0; font-size: 20px; color: #f2f5f7; }
 .racePopupText  { margin: 0; font-size: 13px; line-height: 1.5; color: #aab3bd; }
 
 .racePopupBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   margin-top: 8px;
   padding: 13px 0;
   border-radius: 12px;
@@ -222,6 +229,8 @@
   background: #b6fe3b;
   color: #0b0d10;
 }
+
+.racePopupBtnIcon { width: 15px; height: 15px; }
 
 .racePopupClose {
   padding: 10px 0;
@@ -285,17 +294,21 @@
   margin: -6px 0 4px;
   font-size: 12px;
   font-weight: 600;
-  color: #d7c58a;
+  color: #ffd257;
 }
 
 /* Строка стоимости входа в баннере гонки */
 .raceBannerTicket {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 3px;
   margin-top: 3px;
   font-size: 11.5px;
   font-weight: 700;
-  color: #d7c58a;
+  color: #ffd257;
 }
+
+.raceBannerTicketIcon { width: 12px; height: 12px; flex-shrink: 0; }
 
 /* Попап-шлагбаум (RaceTicketGate): строка статуса и «как заработать» */
 .rtGateStatus {

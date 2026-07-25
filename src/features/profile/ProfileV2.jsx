@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Cog, Zap, Crown, Sparkles, Paintbrush, Star, Lock } from 'lucide-react'
 import { useProfileV2Data } from './useProfileV2Data.js'
 import { getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
@@ -13,11 +14,9 @@ import { plural } from '../../shared/lib/plural.js'
 import { avatarUrl } from '../../shared/lib/avatarPack.js'
 import { saveAvatar } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
-import { GEAR_PATH } from '../../shared/ui/icons.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import { energyColor } from '../../shared/lib/energyColors.js'
 
-const BOLT = 'M13 2 4 14h6l-1 8 9-12h-6l1-8z'
 // Копилка слов: бесплатно видно первые 20, дальше — только с Pro
 const WORDS_FREE_CAP = 20
 
@@ -93,9 +92,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
     <div className="pvScreen">
       <div className="pvHead">
         <button className="pvGear" onClick={() => setShowSettings(true)} title="Настройки">
-          {/* Грубая шестерёнка Android/Material — та же, что на финальном
-              слайде установки (см. shared/ui/icons.js) */}
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d={GEAR_PATH} /></svg>
+          <Cog />
         </button>
       </div>
 
@@ -121,7 +118,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
             <button className="pvName pvNameBtn" onClick={() => setShowLogout(true)} title="Выйти из аккаунта">{name}</button>
             {(profile?.has_subscription || profile?.is_admin) && <span className="pvProBadge">PRO</span>}
           </div>
-          <span className="pvLvlChip">★ {cur.level} уровень · {cur.label}</span>
+          <span className="pvLvlChip"><Star className="pvLvlChipIcon" /> {cur.level} уровень · {cur.label}</span>
         </div>
       </div>
 
@@ -143,12 +140,12 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
           </div>
           <div className="pvEnergyBolts">
             {[0, 1, 2, 3, 4].map(i => (
-              <svg
+              <Zap
                 key={i}
                 className={i < energy ? 'pvBolt' : 'pvBolt pvBoltOff'}
                 style={i < energy ? { color: energyColor(energy) } : undefined}
-                viewBox="0 0 24 24" fill="currentColor"
-              ><path d={BOLT} /></svg>
+                fill="currentColor" stroke="none"
+              />
             ))}
           </div>
         </div>
@@ -158,7 +155,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
           Админ = Pro автоматически (безлимит и значок у него и так есть) */}
       {profile?.has_subscription || profile?.is_admin ? (
         <div className="pvCard pvProCard">
-          <span>👑 Pithy Pro</span>
+          <span className="pvIconLabel"><Crown size={16} /> Pithy Pro</span>
           <b className="pvProState">
             {profile.is_admin
               ? 'админ — безлимит'
@@ -169,7 +166,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
         </div>
       ) : (
         <button className="pvBuyBtn" onClick={() => setShowPro(true)}>
-          <span className="pvBuyIcon">🎖️</span>
+          <span className="pvBuyIcon"><Crown size={18} /></span>
           <span className="pvBuyText">Купить подписку</span>
           <span className="pvBuyPrice">399 ₽/мес</span>
         </button>
@@ -178,13 +175,13 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
 
       {/* Ежедневный стрик: статус + ручной вход в окно наград */}
       <button className="pvCard pvStreakBtn" onClick={() => setShowRewards(true)}>
-        <span>🔥 Ежедневные награды</span>
+        <span className="pvIconLabel"><Sparkles size={16} /> Ежедневные награды</span>
         <span className="pvStreakVal">{profile?.current_streak ?? 0} {plural(profile?.current_streak ?? 0, 'день', 'дня', 'дней')}</span>
       </button>
 
       {/* Кастомизация: достижения и косметика (подложка/рамка/медаль) */}
       <button className="pvCard pvCustomizeBtn" onClick={() => setShowCustomize(true)}>
-        <span className="pvCustomizeLabel">✨ Кастомизация</span>
+        <span className="pvCustomizeLabel"><Paintbrush size={16} /> Кастомизация</span>
       </button>
 
       <div className="pvTabs">
@@ -265,7 +262,7 @@ function WordsList({ words, unlimited, onWantPro }) {
       ))}
       {hidden > 0 && (
         <button className="pvWord pvWordsLocked" onClick={onWantPro}>
-          <span className="pvWordText">🔒 ещё {hidden} {plural(hidden, 'слово', 'слова', 'слов')}</span>
+          <span className="pvWordText pvIconLabel"><Lock size={13} /> ещё {hidden} {plural(hidden, 'слово', 'слова', 'слов')}</span>
           <span className="pvWordFrom">открыть с Pro →</span>
         </button>
       )}

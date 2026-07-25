@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
+import { Play, Pause } from 'lucide-react'
 import { drawWaveBar, fmtAudioTime } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-function PlayIcon()  { return <svg width="9"  height="9"  viewBox="0 0 10 10"><polygon points="1,0 10,5 1,10" fill="currentColor" /></svg> }
-function PauseIcon() { return <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="0" width="3" height="10" fill="currentColor" rx="1" /><rect x="6" y="0" width="3" height="10" fill="currentColor" rx="1" /></svg> }
+function PlayIcon()  { return <Play size={10} fill="currentColor" /> }
+function PauseIcon() { return <Pause size={10} fill="currentColor" /> }
 
 export default function VoiceRecordBubble({ url, dur, waveData }) {
   const [isPlaying, setIsPlaying] = useState(false)

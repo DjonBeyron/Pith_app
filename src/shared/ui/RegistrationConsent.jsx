@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 
 const DEFAULT_POLICY = `ПОЛИТИКА ОБРАБОТКИ ПЕРСОНАЛЬНЫХ ДАННЫХ
 
@@ -77,7 +78,7 @@ export default function RegistrationConsent({ policyText, onAccept, onClose }) {
       <div className="regConsentModal" onClick={e => e.stopPropagation()}>
         <div className="regConsentHeader">
           <span className="regConsentTitle">Политика конфиденциальности</span>
-          <button className="regConsentClose" onClick={onClose}>✕</button>
+          <button className="regConsentClose" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="regConsentBody">
           <pre className="regConsentText">{text}</pre>

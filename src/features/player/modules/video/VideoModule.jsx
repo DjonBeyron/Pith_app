@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { VolumeX } from 'lucide-react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 
@@ -355,11 +356,7 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
 function MutedIcon() {
   return (
     <div className="videoMutedIcon">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <path d="M11 5L6 9H2v6h4l5 4V5z" fill="white" fillOpacity="0.9"/>
-        <line x1="23" y1="9" x2="17" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="17" y1="9" x2="23" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
+      <VolumeX size={14} color="white" />
     </div>
   )
 }

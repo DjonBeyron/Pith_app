@@ -1,3 +1,5 @@
+import { RefreshCw, EyeOff } from 'lucide-react'
+
 // Выбор режима пересдачи (SKILL_ANALYSIS.md §2, план — этап 6): если урок уже
 // пройден и в его сценарии есть привязки «→ Урок» (hasStatBindings из
 // useAnswerStats.js), перед стартом пользователь решает, писать ли новую
@@ -20,8 +22,8 @@ export default function RetakeDialog({ canStart, onPick, onCancel }) {
       </span>
 
       <button disabled={!canStart} style={modeBtn(canStart)} onClick={() => onPick('update')}>
-        <span style={{ color: '#b6fe3b', fontSize: 14, fontWeight: 600 }}>
-          🔄 Пройти с обновлением анализа
+        <span style={{ color: '#b6fe3b', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <RefreshCw size={15} /> Пройти с обновлением анализа
         </span>
         <span style={{ color: '#888', fontSize: 12, lineHeight: 1.35 }}>
           Ответы перезапишут карту знаний, статусы уроков пересчитаются
@@ -29,8 +31,8 @@ export default function RetakeDialog({ canStart, onPick, onCancel }) {
       </button>
 
       <button disabled={!canStart} style={modeBtn(canStart)} onClick={() => onPick('silent')}>
-        <span style={{ color: '#e8ecf4', fontSize: 14, fontWeight: 600 }}>
-          👁 Пройти без записи
+        <span style={{ color: '#e8ecf4', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <EyeOff size={15} /> Пройти без записи
         </span>
         <span style={{ color: '#888', fontSize: 12, lineHeight: 1.35 }}>
           Просто повторить, анализ не изменится

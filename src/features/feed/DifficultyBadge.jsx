@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { X, Check } from 'lucide-react'
 
 // Иконка сложности фразы (три полоски-«сигнал») = кнопка голосования.
 // Тап → панель выезжает от кнопки (scale от 0, origin у кнопки). Один
@@ -107,7 +108,7 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
             <>
               <div className="diffHelpBackdrop" onClick={closeHelp} />
               <div className="diffHelpPop">
-                <button className="diffHelpClose" onClick={closeHelp}>✕</button>
+                <button className="diffHelpClose" onClick={closeHelp}><X size={14} /></button>
                 Оцени, насколько фраза сложна на слух, — иконка у видео покажет
                 это другим ученикам ещё до просмотра. Голос можно изменить
                 в любой момент.
@@ -121,9 +122,7 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
           <span className={`diffBars${level ? ` diffL${level}` : ''}`}>
             <i /><i /><i />
           </span>
-          <svg className="diffCheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 12.5l5.5 5.5L20 6.5" />
-          </svg>
+          <Check className="diffCheck" strokeWidth={3} />
         </span>
       </button>
     </div>

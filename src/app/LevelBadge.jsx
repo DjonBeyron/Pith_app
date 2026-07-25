@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Layers, Zap } from 'lucide-react'
 import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { getCurrentLevel, getNextLevel } from '../shared/lib/xpLevels.js'
@@ -30,7 +31,7 @@ export default function LevelBadge() {
   return (
     <div className="levelWrap" ref={wrapRef}>
       <button className="levelBadge" onClick={() => toggleHudPopup('level')}>
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 3 7l9 5 9-5-9-5zM3 12l9 5 9-5M3 17l9 5 9-5" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round" /></svg>
+        <Layers />
         <span>{level.level}</span>
       </button>
 
@@ -38,7 +39,7 @@ export default function LevelBadge() {
         <>
           <div className="energyPop levelPop">
             <b>Уровень {level.level} — {level.label}</b>
-            <div>⚡ Всего: {xp} XP</div>
+            <div className="energyPopHelpRow"><Zap size={13} /> Всего: {xp} XP</div>
             <div className="energyPopNext">
               {next ? `До «${next.label}» осталось ${next.xpNeeded - xp} XP` : 'Максимальный уровень!'}
             </div>

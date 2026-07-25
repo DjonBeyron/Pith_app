@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { X, Frown, Trophy, Snowflake, ShieldCheck, Gift } from 'lucide-react'
 import RewardsPath from './RewardsPath.jsx'
 import RewardClaimPopup from './RewardClaimPopup.jsx'
 import FreezeSheet from './FreezeSheet.jsx'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 import {
   claimAllStreakRewards, buyStreakFreeze, buyAutoFreeze, fetchStreakMilestones,
 } from '../../shared/api/streakApi.js'
@@ -141,17 +143,23 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
       <div className="rwScroll">
         {resetInfo && (
           <div className="rwResetNote">
-            <button className="rwResetNoteClose" onClick={closeResetNote}>✕</button>
+            <button className="rwResetNoteClose" onClick={closeResetNote}><X size={14} /></button>
             <p>
-              Серия {resetInfo.lost} дн. прервалась 😔 Награды за неё начислены
-              автоматически: <b>+{resetInfo.xp} XP{resetInfo.tickets > 0 ? ` и ${resetInfo.tickets} 🎟` : ''}</b>
+              Серия {resetInfo.lost} дн. прервалась{' '}
+              <Frown size={14} style={{ verticalAlign: '-2px' }} /> Награды за неё начислены
+              автоматически: <b>
+                +{resetInfo.xp} XP
+                {resetInfo.tickets > 0 && (
+                  <> и {resetInfo.tickets} <TicketIcon style={{ width: 14, height: 14, verticalAlign: '-2px' }} /></>
+                )}
+              </b>
             </p>
           </div>
         )}
 
         <div className={loading ? undefined : 'rwFadeIn'}>
           <section className={`rwHero${loading ? ' rwGhost' : ''}`}>
-            <div className="rwHeroIcon">🏆</div>
+            <div className="rwHeroIcon"><Trophy size={40} /></div>
             <h2>Серия {streak} {streak === 1 ? 'день' : 'дней'}</h2>
             {loading || nextMilestone ? (
               <>
@@ -161,7 +169,12 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
                   ) : (
                     <>
                       Ещё {nextMilestone.day_number - streak} и получишь{' '}
-                      <b>{nextMilestone.xp_reward} XP{nextMilestone.ticket_reward > 0 ? ` + ${nextMilestone.ticket_reward} 🎟` : ''}</b>
+                      <b>
+                        {nextMilestone.xp_reward} XP
+                        {nextMilestone.ticket_reward > 0 && (
+                          <> + {nextMilestone.ticket_reward} <TicketIcon style={{ width: 14, height: 14, verticalAlign: '-2px' }} /></>
+                        )}
+                      </b>
                     </>
                   )}
                 </p>
@@ -193,11 +206,11 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
             disabled={loading}
             onClick={() => setInfoKind('freeze')}
           >
-            <span className="rwFreezeCardIcon">🧊</span>
+            <span className="rwFreezeCardIcon"><Snowflake size={20} /></span>
             <span className="rwFreezeCardBody">
               <span className="rwFreezeCardName">Заморозка</span>
               <span className={`rwFreezeCardStatus${profile?.has_freeze_charge ? ' rwFreezeCardStatusOn' : ''}`}>
-                {profile?.has_freeze_charge ? 'Есть' : '2 🎟'}
+                {profile?.has_freeze_charge ? 'Есть' : <>2 <TicketIcon className="rwFreezeCardStatusIcon" /></>}
               </span>
             </span>
           </button>
@@ -207,11 +220,13 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
             disabled={loading}
             onClick={() => setInfoKind('auto')}
           >
-            <span className="rwFreezeCardIcon">♾️</span>
+            <span className="rwFreezeCardIcon"><ShieldCheck size={20} /></span>
             <span className="rwFreezeCardBody">
               <span className="rwFreezeCardName">Авто заморозка</span>
               <span className={`rwFreezeCardStatus${(isPro || profile?.auto_freeze_charges_left > 0) ? ' rwFreezeCardStatusOn' : ''}`}>
-                {isPro ? 'PRO' : profile?.auto_freeze_charges_left > 0 ? `Осталось ${profile.auto_freeze_charges_left}` : '3 🎟'}
+                {isPro ? 'PRO' : profile?.auto_freeze_charges_left > 0
+                  ? `Осталось ${profile.auto_freeze_charges_left}`
+                  : <>3 <TicketIcon className="rwFreezeCardStatusIcon" /></>}
               </span>
             </span>
           </button>
@@ -219,7 +234,8 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
 
         <button className={`rwClaimBtn${loading ? ' rwGhost' : ''}`} disabled={busy || loading || !claimable} onClick={handleClaim}>
           <span className="rwClaimBtnLabel">
-            {unclaimed >= 2 ? `🎁 Забрать всё · ${unclaimed} дн.` : claimable ? '🎁 Забрать награду' : '🎁 Приходи завтра'}
+            <Gift size={16} />
+            {unclaimed >= 2 ? `Забрать всё · ${unclaimed} дн.` : claimable ? 'Забрать награду' : 'Приходи завтра'}
           </span>
         </button>
       </div>

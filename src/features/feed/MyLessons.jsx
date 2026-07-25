@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { Zap, Video, List, Play } from 'lucide-react'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { plural } from '../../shared/lib/plural.js'
 import MyLessonSlide from './MyLessonSlide.jsx'
@@ -49,7 +50,7 @@ export default function MyLessons({
     return (
       <div className="feedV2Center">
         <div className="mlEmptyArt">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" /></svg>
+          <Zap fill="currentColor" />
         </div>
         <div className="feedV2CenterTitle">Здесь пока пусто</div>
         <div className="feedV2CenterSub">Начни обучение — выбери фразу в ленте<br />и нажми «Изучить фразу»</div>
@@ -73,11 +74,11 @@ export default function MyLessons({
       <div className="mlModeToggle">
         <button className={mode === 'video' ? 'mlModeBtn mlModeBtnActive' : 'mlModeBtn'}
           onClick={() => setMode('video')} title="Видео">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="3" width="16" height="18" rx="3" /></svg>
+          <Video />
         </button>
         <button className={mode === 'list' ? 'mlModeBtn mlModeBtnActive' : 'mlModeBtn'}
           onClick={() => setMode('list')} title="Список">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" /></svg>
+          <List />
         </button>
       </div>
 
@@ -118,7 +119,7 @@ export default function MyLessons({
                     preload="metadata" muted playsInline
                     onLoadedMetadata={e => { try { e.currentTarget.currentTime = 0.1 } catch { /* не критично */ } }} />
                 ) : (
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z" /></svg>
+                  <Play fill="currentColor" />
                 )}
               </span>
               <span className="mlRowBody">

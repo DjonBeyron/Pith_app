@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getCachedProfile, refreshProfile } from '../../shared/api/profileCache.js'
 import { fetchMyRaceSpend, startRace } from '../../shared/api/ticketApi.js'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 
 // Попап-«шлагбаум» супергонки: тап по баннеру → окно с правилами входа.
 // Кнопка «Открыть доступ» списывает 1 золотой билет ПРЯМО ЗДЕСЬ (RPC
@@ -38,29 +39,27 @@ export default function RaceTicketGate({ race, phase, myEntry, onEnter, onClose 
     : finished ? 'Ты уже финишировал — вход на страницу результата свободный'
     : phase === 'ended' ? 'Гонка завершена — итоги открыты для всех'
     : spent ? 'Доступ к этой гонке уже оплачен — входи'
-    : tickets > 0 ? `У тебя ${tickets} 🎟 — билет спишется сейчас, при открытии доступа`
+    : tickets > 0 ? <>У тебя {tickets} <TicketIcon style={{ width: 14, height: 14, display: 'inline', verticalAlign: '-2px' }} /> — билет спишется сейчас, при открытии доступа</>
     : 'У тебя нет билетов — вход закрыт'
 
   return (
     <div className="racePopupOverlay" onClick={onClose}>
       <div className="racePopupCard" onClick={e => e.stopPropagation()}>
-        <div className="racePopupEmoji">🎟</div>
-        <h3 className="racePopupTitle">Вход — 1 золотой билет</h3>
+        <div className="racePopupEmoji"><TicketIcon /></div>
+        <h3 className="racePopupTitle">{race?.title || 'Тема недели'}</h3>
         <p className="racePopupText">
-          Участие в супергонке{race?.title ? <> «<b>{race.title}</b>»</> : null} стоит
-          один золотой билет. Он спишется при открытии доступа — дальше вся
-          гонка без доплат.
+          Раз в неделю — гонка на скорость по урокам модуля. Один вход стоит
+          1 золотой билет, дальше вся гонка бесплатно.
         </p>
         <p className={`racePopupText rtGateStatus${allowed ? '' : ' rtGateStatusOff'}`}>{status}</p>
         <p className="racePopupText rtGateHow">
-          <b>Как заработать:</b> пройди Финал любого модуля, раскрыв не больше
-          3 переводов. Билет одноразовый, а с одного модуля его можно получить
-          только один раз — береги для гонки.
+          <b>Как получить билет:</b> пройди Финал любого модуля, используя не
+          больше 3 подсказок. С одного модуля — только один билет.
         </p>
         {err && <p className="racePopupText rtGateStatusOff">{err}</p>}
         {allowed && (
           <button className="racePopupBtn" onClick={open} disabled={busy}>
-            {busy ? '...' : free ? 'Войти →' : 'Открыть доступ'}
+            {busy ? '...' : free ? 'Войти →' : <>Открыть · 1 <TicketIcon className="racePopupBtnIcon" /></>}
           </button>
         )}
         <button className="racePopupClose" onClick={onClose}>{allowed ? 'Позже' : 'Понятно'}</button>

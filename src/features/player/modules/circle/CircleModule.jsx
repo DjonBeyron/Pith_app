@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { VolumeX } from 'lucide-react'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 const RING_R = 106
@@ -385,11 +386,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
               transition: (!expanded && !collapsing) ? 'opacity 0.2s ease 0.1s' : 'opacity 0s',
               pointerEvents: 'none',
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M11 5L6 9H2v6h4l5 4V5z" fill="white" fillOpacity="0.9"/>
-                <line x1="23" y1="9" x2="17" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                <line x1="17" y1="9" x2="23" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
+              <VolumeX size={14} color="white" />
             </div>
           </div>
         ) : <div className="playerMediaPlaceholder">Видеосообщение не загружено</div>}

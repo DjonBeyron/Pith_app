@@ -1,3 +1,6 @@
+import { Snowflake, ShieldCheck, Crown } from 'lucide-react'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
+
 // Шторка-объяснение для карточек заморозок (RewardsPopup → rwFreezeRow).
 // Карточка целиком тапабельна и просто открывает эту шторку с описанием
 // механики; кнопка покупки/оформления PRO живёт здесь же, а не рядом с
@@ -16,23 +19,24 @@ export default function FreezeSheet({
       <div className="rwInfoCard" onClick={e => e.stopPropagation()}>
         {kind === 'freeze' ? (
           <>
-            <h3>🧊 Заморозка</h3>
+            <h3 className="rwSheetTitle"><Snowflake size={18} /> Заморозка</h3>
             <p>
               Покупается заранее, не стакается — можно накопить-купить
               только одну про запас. Если пропустишь день, она сработает
-              сама и спасёт серию, без твоего участия. Стоит 2 🎟.
+              сама и спасёт серию, без твоего участия. Стоит 2{' '}
+              <TicketIcon style={{ width: 13, height: 13, verticalAlign: '-2px' }} />.
             </p>
             {hasFreeze ? (
               <p className="rwSheetStatus">Уже куплена — сработает сама, если пропустишь день.</p>
             ) : (
               <button className="rwSheetBuyBtn" disabled={busy} onClick={() => { onBuyFreeze(); onClose() }}>
-                Купить · 2 🎟
+                Купить · 2 <TicketIcon className="rwSheetBuyBtnIcon" />
               </button>
             )}
           </>
         ) : (
           <>
-            <h3>♾️ Авто заморозка</h3>
+            <h3 className="rwSheetTitle"><ShieldCheck size={18} /> Авто заморозка</h3>
             {isPro ? (
               <p>
                 С твоей подпиской PRO серия защищена всегда и бесплатно:
@@ -44,7 +48,8 @@ export default function FreezeSheet({
                 <p>
                   Покупка защищает серию на 2 пропущенных дня подряд —
                   сработает сама, без твоего участия. Повторная покупка
-                  недоступна, пока защита не закончится. Стоит 3 🎟.
+                  недоступна, пока защита не закончится. Стоит 3{' '}
+                  <TicketIcon style={{ width: 13, height: 13, verticalAlign: '-2px' }} />.
                 </p>
                 <p className="rwInfoPro">
                   С подпиской PRO это работает всегда и бесплатно — суббота
@@ -59,12 +64,12 @@ export default function FreezeSheet({
               </p>
             ) : (
               <button className="rwSheetBuyBtn" disabled={busy} onClick={() => { onBuyAutoFreeze(); onClose() }}>
-                Купить · 3 🎟
+                Купить · 3 <TicketIcon className="rwSheetBuyBtnIcon" />
               </button>
             )}
             {!isPro && (
               <button className="rwSheetProBtn" onClick={() => { onClose(); onWantPro?.() }}>
-                👑 Оформить PRO
+                <Crown size={15} /> Оформить PRO
               </button>
             )}
           </>

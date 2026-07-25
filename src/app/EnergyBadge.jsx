@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Zap, RefreshCw, Clock } from 'lucide-react'
 import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { calcEnergy, ENERGY_CAP, ENERGY_TICK_MS } from '../shared/lib/energyCalc.js'
@@ -59,9 +60,7 @@ export default function EnergyBadge() {
   return (
     <div className="energyWrap" ref={wrapRef}>
       <button className="energyBadge" onClick={() => toggleHudPopup('energy')}>
-        <svg viewBox="0 0 24 24" fill="currentColor" style={color ? { color } : undefined}>
-          <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" />
-        </svg>
+        <Zap fill="currentColor" stroke="none" style={color ? { color } : undefined} />
         <span style={color ? { color } : undefined}>{unlimited ? '∞' : value}</span>
       </button>
 
@@ -91,9 +90,9 @@ export default function EnergyBadge() {
 
             {showHelp && (
               <div className="energyPopHelpBlock">
-                <div>⚡ 1 новый урок = 1 энергия</div>
-                <div>🔄 Повторять пройденное — бесплатно</div>
-                <div>⏱ +1 каждые 4 часа (максимум {ENERGY_CAP})</div>
+                <div className="energyPopHelpRow"><Zap size={13} /> 1 новый урок = 1 энергия</div>
+                <div className="energyPopHelpRow"><RefreshCw size={13} /> Повторять пройденное — бесплатно</div>
+                <div className="energyPopHelpRow"><Clock size={13} /> +1 каждые 4 часа (максимум {ENERGY_CAP})</div>
               </div>
             )}
           </div>

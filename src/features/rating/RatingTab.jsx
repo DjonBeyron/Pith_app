@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Sparkles } from 'lucide-react'
 import { useRatingData } from './useRatingData.js'
 import RaceBanner from '../race/RaceBanner.jsx'
 import RacePage from '../race/RacePage.jsx'
@@ -73,7 +74,11 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
                   <span className="ratingStats">
                     <span className="ratingStatsLvl">Ур.{lvl.level}</span>
                     <span className="ratingStatsXp">{r.xp}XP</span>
-                    {r.current_streak > 0 && <span className="ratingStatsStreak">🔥{r.current_streak}</span>}
+                    {r.current_streak > 0 && (
+                      <span className="ratingStatsStreak">
+                        <Sparkles className="ratingStatsStreakIcon" />{r.current_streak}
+                      </span>
+                    )}
                   </span>
                 </div>
               )
@@ -96,7 +101,11 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
                   <span className="ratingStats">
                     <span className="ratingStatsLvl">Ур.{getCurrentLevel(profile?.xp ?? 0).level}</span>
                     <span className="ratingStatsXp">{profile?.xp ?? 0}XP</span>
-                    {profile?.current_streak > 0 && <span className="ratingStatsStreak">🔥{profile.current_streak}</span>}
+                    {profile?.current_streak > 0 && (
+                      <span className="ratingStatsStreak">
+                        <Sparkles className="ratingStatsStreakIcon" />{profile.current_streak}
+                      </span>
+                    )}
                   </span>
                 </div>
               </>

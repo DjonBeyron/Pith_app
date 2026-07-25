@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Gift, Trophy } from 'lucide-react'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 import XpTransfer from '../../shared/ui/XpTransfer.jsx'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 
 // Праздничное окно после «Забрать всё» в стрике — построено на тех же
 // компонентах, что и итоги урока (LessonSummary): тикающий счётчик XP,
@@ -24,7 +26,7 @@ export default function RewardClaimPopup({ xp, tickets, days, xpBefore, onClose 
   return (
     <div className="rcOverlay" onClick={onClose}>
       <div className="rcCard" onClick={e => e.stopPropagation()}>
-        <div className="rcIcon">🎁</div>
+        <div className="rcIcon"><Gift size={44} /></div>
         <h3 className="rcTitle">Награда получена!</h3>
         {days >= 2 && <p className="rcSub">за {days} дн. серии</p>}
 
@@ -37,13 +39,13 @@ export default function RewardClaimPopup({ xp, tickets, days, xpBefore, onClose 
 
         {tickets > 0 && (
           <div className={`rcTickets${showTickets ? ' rcTicketsVisible' : ''}`}>
-            +{tickets} 🎟
+            +{tickets} <TicketIcon className="rcTicketsIcon" />
           </div>
         )}
 
         {levelUp && (
           <div className={`rcLevelUpBlock${done ? ' rcLevelUpBlockVisible' : ''}`}>
-            <div className="rcLevelUpLabel">🏆 Новый уровень!</div>
+            <div className="rcLevelUpLabel"><Trophy size={14} /> Новый уровень!</div>
             <div className="rcLevelUpNum">Уровень {newLevel.level}</div>
             <div className="rcLevelUpName">{newLevel.label}</div>
           </div>

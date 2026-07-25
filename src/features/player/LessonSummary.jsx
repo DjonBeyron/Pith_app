@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Trophy } from 'lucide-react'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 import { TicketBlock, StarsBlock } from './SummaryBadges.jsx'
 import XpTransfer from '../../shared/ui/XpTransfer.jsx'
@@ -80,7 +81,7 @@ export default function LessonSummary({ earnedXp = 0, baseXp = 0, ticket = null,
 
           {levelUp && (
             <div className={`summaryLevelUpBlock${done ? ' summaryLevelUpBlockVisible' : ''}`}>
-              <div className="summaryLevelUpLabel">🏆 Новый уровень!</div>
+              <div className="summaryLevelUpLabel"><Trophy size={16} className="summaryLevelUpIcon" /> Новый уровень!</div>
               <div className="summaryLevelUpNum">Уровень {newLevel.level}</div>
               <div className="summaryLevelUpName">{newLevel.label}</div>
             </div>

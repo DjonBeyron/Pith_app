@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Heart } from 'lucide-react'
 
 // Angles (degrees) and distances for each flying particle
 const PARTICLES = [
@@ -42,10 +43,10 @@ export default function HeartReaction({ variant = '' }) {
           ref={el => { particleRefs.current[i] = el }}
           className="heartParticle"
         >
-          🩷
+          <Heart fill="currentColor" />
         </span>
       ))}
-      <span className="heartPermanent">❤️</span>
+      <span className="heartPermanent"><Heart fill="currentColor" /></span>
     </div>
   )
 }

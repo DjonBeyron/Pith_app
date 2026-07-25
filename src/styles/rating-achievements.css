@@ -1,0 +1,109 @@
+/* ── Вкладка «Достижения» внутри рейтинга (вынесено из rating-v2.css,
+   т.к. тот перешёл потолок в 400 строк) ── */
+
+.achList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Карточка достижения */
+.achCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid #232932;
+  border-radius: 14px;
+}
+
+/* Запертое достижение — приглушённое */
+.achCardLocked {
+  opacity: 0.45;
+}
+
+/* Круг с иконкой/эмодзи */
+.achIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #1e2228;
+  border: 1px solid #2e333b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* Текст достижения */
+.achName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f2f5f7;
+  margin-bottom: 2px;
+}
+
+.achDesc {
+  font-size: 11.5px;
+  color: #9aa3ad;
+  line-height: 1.4;
+}
+
+/* Колонка текста занимает свободное место */
+.achCard > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Кнопка «Надеть / Надето» */
+.achEquipBtn {
+  padding: 6px 12px;
+  border: 1px solid #232932;
+  border-radius: 10px;
+  background: #1e2228;
+  color: #9aa3ad;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+/* Надето — лаймовая подсветка */
+.achEquipBtnOn {
+  background: rgba(182, 254, 59, 0.12);
+  border-color: rgba(182, 254, 59, 0.4);
+  color: #b6fe3b;
+}
+
+/* ══ Предпросмотр «как я выгляжу в рейтинге» ══ */
+
+.achPreview {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  border: 1px solid rgba(182, 254, 59, 0.3);
+  border-radius: 14px;
+}
+
+/* Подпись над образцом */
+.achPreview::before {
+  content: 'Предпросмотр';
+  display: block;
+  font-size: 11px;
+  color: #5c6570;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Строка-образец как .ratingRow, но без лишних отступов */
+.achPreview .ratingRow {
+  background: none;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+}

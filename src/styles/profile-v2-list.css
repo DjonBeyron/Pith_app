@@ -118,4 +118,7 @@
   width: 100%; cursor: pointer; text-align: center;
   border: 1px solid #232932;
 }
-.pvCustomizeLabel { font-size: 14px; font-weight: 700; color: #f2f5f7; }
+.pvCustomizeLabel {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 700; color: #f2f5f7;
+}

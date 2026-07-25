@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
+import { Gem, GraduationCap } from 'lucide-react'
 import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { isHudPopupOpen, toggleHudPopup, subscribeHudPopup, useHudOutsideDismiss } from './hudPopupState.js'
+import TicketIcon from '../shared/ui/TicketIcon.jsx'
 
 // Значок золотых билетов в верхней панели (рядом с энергией). Тап — мини-окно:
 // что такое билет, как заработать и на что тратится.
@@ -27,9 +29,7 @@ export default function TicketBadge() {
   return (
     <div className="ticketWrap" ref={wrapRef}>
       <button className="ticketBadge" onClick={() => toggleHudPopup('ticket')}>
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M4 6a2 2 0 0 0-2 2v2.5a1.5 1.5 0 0 1 0 3V16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2.5a1.5 1.5 0 0 1 0-3V8a2 2 0 0 0-2-2H4zm10 2v1.5h-1.5V8H14zm0 3v2h-1.5v-2H14zm0 3.5V16h-1.5v-1.5H14z" />
-        </svg>
+        <TicketIcon />
         <span>{count}</span>
       </button>
 
@@ -37,9 +37,9 @@ export default function TicketBadge() {
         <>
           <div className="energyPop ticketPop">
             <b>Золотой билет</b>
-            <div>🎟 Доступ к супергонке = 1 билет (списывается при открытии)</div>
-            <div>🎓 Получить: пройди Финал модуля, раскрыв не больше 3 переводов</div>
-            <div>💎 С одного модуля билет дают только один раз</div>
+            <div className="energyPopHelpRow"><TicketIcon style={{ width: 13, height: 13 }} /> Доступ к супергонке = 1 билет (списывается при открытии)</div>
+            <div className="energyPopHelpRow"><GraduationCap size={13} /> Получить: пройди Финал модуля, раскрыв не больше 3 переводов</div>
+            <div className="energyPopHelpRow"><Gem size={13} /> С одного модуля билет дают только один раз</div>
             <div className="energyPopNext">У тебя: {count}</div>
           </div>
         </>

@@ -1,25 +1,27 @@
+import { Star, Trophy, Lock, Flag } from 'lucide-react'
 import UserBadge from '../../shared/ui/UserBadge.jsx'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 
 // Описания достижений: какое условие и какую косметику открывает.
-// key косметики = поле в user_profiles.cosmetics.
+// key косметики = поле в user_profiles.cosmetics. icon — компонент.
 const ACH_DEFS = [
   {
-    kind: 'level10', cosmeticKey: 'bg', icon: '⭐',
+    kind: 'level10', cosmeticKey: 'bg', icon: <Star size={20} />,
     name: '10-й уровень',
     desc: 'Достигни 10-го уровня («Легенда», 8000 XP). Открывает подложку под ник.',
   },
   {
-    kind: 'clean_final', cosmeticKey: 'bg2', icon: '🎟',
+    kind: 'clean_final', cosmeticKey: 'bg2', icon: <TicketIcon style={{ width: 20, height: 20 }} />,
     name: 'Чистый финал',
     desc: 'Пройди Финал модуля без единой подсказки. Открывает золотую подложку под ник.',
   },
   {
-    kind: 'race_finisher', cosmeticKey: 'frame', icon: '🏁',
+    kind: 'race_finisher', cosmeticKey: 'frame', icon: <Flag size={20} />,
     name: 'Участник гонки',
     desc: 'Финишируй еженедельную супергонку. Открывает рамку вокруг аватара.',
   },
   {
-    kind: 'race_winner', cosmeticKey: 'medal', icon: '🏆',
+    kind: 'race_winner', cosmeticKey: 'medal', icon: <Trophy size={20} />,
     name: 'Победитель гонки',
     desc: 'Попади в тройку призёров супергонки. Открывает медаль с твоим местом.',
   },
@@ -56,7 +58,7 @@ export default function AchievementsPanel({ achievements, cosmetics, equip, prof
         const worn     = !!cosmetics[def.cosmeticKey]
         return (
           <div key={def.kind} className={unlocked ? 'achCard' : 'achCard achCardLocked'}>
-            <div className="achIcon">{unlocked ? def.icon : '🔒'}</div>
+            <div className="achIcon">{unlocked ? def.icon : <Lock size={20} />}</div>
             <div>
               <div className="achName">
                 {def.name}

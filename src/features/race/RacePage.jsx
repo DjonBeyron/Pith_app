@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Flag, Lock, Check } from 'lucide-react'
 import { useRaceState } from './useRaceState.js'
 import RaceCountdown from './RaceCountdown.jsx'
 import RaceRunner from './RaceRunner.jsx'
@@ -10,6 +11,7 @@ import { useAuth } from '../../shared/lib/useAuth.js'
 import PushToggle from '../profile/PushToggle.jsx'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import BackButton from '../../shared/ui/BackButton.jsx'
+import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 
 function fmtMs(ms) {
   const s = Math.round((ms ?? 0) / 1000)
@@ -44,7 +46,7 @@ export default function RacePage({ onBack }) {
       return
     }
     setNotice(res?.reason === 'no_ticket'
-      ? 'Нужен золотой билет 🎟 — пройди Финал любого модуля максимум с 3 подсказками'
+      ? 'Нужен золотой билет — пройди Финал любого модуля максимум с 3 подсказками'
       : res?.reason === 'closed' ? 'Гонка уже завершена'
         : 'Не удалось войти в гонку')
   }
@@ -115,7 +117,7 @@ export default function RacePage({ onBack }) {
               (без временного места — оно было в итогах супер-урока) */}
           {finished ? (
             <div className="raceBigBtn raceBigBtnDone">
-              🏁 Ты финишировал! Ошибок {myEntry.errors} · {fmtMs(myEntry.time_ms)}
+              <Flag size={16} className="raceBtnIcon" /> Ты финишировал! Ошибок {myEntry.errors} · {fmtMs(myEntry.time_ms)}
               <span className="raceDoneSub">
                 {phase === 'ended' && myEntry?.place ? `Место: ${myEntry.place}` : 'Финальные места и XP — в понедельник'}
               </span>
@@ -126,7 +128,7 @@ export default function RacePage({ onBack }) {
             <div className="raceBigBtn raceBigBtnOff">Войди в аккаунт, чтобы участвовать</div>
           ) : !unlocked ? (
             <div className="raceBigBtn raceBigBtnOff">
-              🔒 Открой гонку — набери {neededXp} XP (80%) уроками ниже
+              <Lock size={16} className="raceBtnIcon" /> Открой гонку — набери {neededXp} XP (80%) уроками ниже
             </div>
           ) : phase === 'running' ? (
             raceModule?.lessons?.length
@@ -135,10 +137,12 @@ export default function RacePage({ onBack }) {
                   return (
                     <>
                       <button className="raceBigBtn raceBigBtnGo" onClick={enterRace}>
-                        🏁 Начать супергонку
+                        <Flag size={16} className="raceBtnIcon" /> Начать супергонку
                       </button>
                       <div className="raceTicketHint">
-                        {prof?.is_admin ? 'Админ: вход свободный' : 'Доступ оплачен золотым билетом 🎟'}
+                        {prof?.is_admin
+                          ? 'Админ: вход свободный'
+                          : <>Доступ оплачен золотым билетом <TicketIcon style={{ width: 14, height: 14, display: 'inline', verticalAlign: '-2px' }} /></>}
                       </div>
                     </>
                   )
@@ -146,7 +150,7 @@ export default function RacePage({ onBack }) {
               : <div className="raceBigBtn raceBigBtnOff">Супер-урок ещё не назначен</div>
           ) : (
             <div className="raceBigBtn raceBigBtnReady">
-              ✓ Ты готов! Жди старта в субботу
+              <Check size={16} className="raceBtnIcon" /> Ты готов! Жди старта в субботу
             </div>
           )}
 
@@ -164,7 +168,7 @@ export default function RacePage({ onBack }) {
             {modules.map((m, i) => (
               <button key={m.id} className="raceLessonRow" onClick={() => setOpenModule(m)}>
                 <span className={m.done ? 'raceLessonNum raceLessonNumDone' : 'raceLessonNum'}>
-                  {m.done ? '✓' : i + 1}
+                  {m.done ? <Check size={13} /> : i + 1}
                 </span>
                 <span className="raceLessonTitle">
                   {m.title}

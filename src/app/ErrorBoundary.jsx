@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { TriangleAlert } from 'lucide-react'
 import { APP_VERSION } from '../shared/lib/version.js'
 import { getErrorLines } from '../shared/lib/errorTrap.js'
 import { reportError } from '../shared/lib/errorReport.js'
@@ -13,7 +14,7 @@ const S = {
     justifyContent: 'center', gap: 14, padding: 24, textAlign: 'center',
     fontFamily: 'inherit', zIndex: 99999,
   },
-  icon:  { fontSize: 44, lineHeight: 1 },
+  icon:  { width: 44, height: 44, color: '#e0e0e0' },
   title: { fontSize: 18, fontWeight: 700, margin: 0 },
   text:  { fontSize: 13, color: '#888', margin: 0, maxWidth: 340 },
   btn: {
@@ -76,7 +77,7 @@ export default class ErrorBoundary extends Component {
     if (!this.state.error) return this.props.children
     return (
       <div style={S.wrap}>
-        <div style={S.icon}>😵</div>
+        <TriangleAlert style={S.icon} />
         <h1 style={S.title}>Что-то пошло не так</h1>
         <p style={S.text}>
           Приложение столкнулось с ошибкой. Перезагрузка обычно помогает —

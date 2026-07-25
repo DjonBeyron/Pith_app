@@ -1,3 +1,5 @@
+import { Star, Check } from 'lucide-react'
+
 // Нод «Старт» (диагностика): шестиугольник со звездой, кнопкой запуска и
 // SVG-контуром. done — зелёный «пройден» (плавное озеленение — transition в
 // lessons-chain-nodes.css), pulse — вспышка «только что пройден».
@@ -12,7 +14,7 @@ export default function MgStartNode({
 }) {
   return (
     <div className={`mgGlow ${done ? 'mgGlow--start--done' : 'mgGlow--start'}${pulse ? ' mgGlow--justDone' : ''}`}>
-      <span className="mgIconBadge mgIconBadge--start">★</span>
+      <span className="mgIconBadge mgIconBadge--start"><Star size={13} fill="currentColor" /></span>
       <div
         ref={nodeRef}
         className={`mgNode mgNode--start${done ? ' mgNode--start--done' : ' mgNode--start--inactive'}`}
@@ -25,7 +27,7 @@ export default function MgStartNode({
             <>
               <span className="mgNodeTitle">{lesson.title}</span>
               {done
-                ? <span className="mgStartBadge">✓ Диагностика пройдена</span>
+                ? <span className="mgStartBadge"><Check size={12} className="mgStartBadgeIcon" /> Диагностика пройдена</span>
                 : <span className="mgStartSub">Диагностика</span>
               }
               <button

@@ -1,12 +1,11 @@
 import { useRef, useState } from 'react'
+import { Cog, X } from 'lucide-react'
 import { getSlides } from './installSlidesContent.js'
 import { getInstallPrompt, hasInstallPrompt, detectBrowser } from '../lib/pwaInstall.js'
-import { GEAR_PATH } from './icons.js'
 
 // Иконки слайдов — простые линии (stroke 1.8), тот же стиль, что и остальной
-// интерфейс. settings — исключение: грубая шестерёнка Android/Material
-// (заливка, не линия, см. icons.js) — тонкая line-шестерёнка на маленьком
-// размере не читалась как шестерёнка вовсе
+// интерфейс. settings — исключение: иконка Cog (заливка, не линия) — тонкая
+// line-шестерёнка на маленьком размере не читалась как шестерёнка вовсе
 const ICON_PATHS = {
   phone: <><rect x="5" y="2" width="14" height="20" rx="3" /><path d="M10 18h4" /></>,
   install: <><path d="M12 4v12M7 11l5 5 5-5" /><path d="M5 20h14" /></>,
@@ -18,7 +17,7 @@ const ICON_PATHS = {
 
 function SlideIcon({ name }) {
   if (name === 'settings') {
-    return <svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d={GEAR_PATH} /></svg>
+    return <Cog width={40} height={40} strokeWidth={1.8} />
   }
   return (
     <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -86,7 +85,7 @@ export default function InstallSlides({ onClose }) {
   return (
     <div className="installSlidesOverlay">
       <div className="installSlidesCard" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        <button className="installSlidesClose" onClick={onClose} aria-label="Закрыть">✕</button>
+        <button className="installSlidesClose" onClick={onClose} aria-label="Закрыть"><X size={14} /></button>
 
         <div className="installSlidesBody">
           <div className="installSlidesIcon"><SlideIcon name={slide.icon} /></div>

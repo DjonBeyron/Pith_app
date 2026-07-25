@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 import { collectEnv, fdbgLog } from '../../shared/lib/feedDebug.js'
 
 // Панель дебага ленты: собирает отчёт (окружение + метрики ленты + лог
@@ -39,7 +40,7 @@ export default function DebugPanel({ getFeedInfo, onClose }) {
       <div className="fdbgCard">
         <div className="fdbgHead">
           <b>Дебаг ленты</b>
-          <button className="fdbgClose" onClick={onClose}>✕</button>
+          <button className="fdbgClose" onClick={onClose}><X size={16} /></button>
         </div>
         <textarea className="fdbgText" readOnly value={report} />
         <div className="fdbgBtns">

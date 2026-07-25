@@ -47,7 +47,9 @@
 }
 
 .hintBarTicket {
-  font-size: 13px;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
   filter: drop-shadow(0 0 4px rgba(255, 210, 87, 0.5));
 }
 
@@ -61,6 +63,8 @@
   line-height: 1.45;
   text-align: center;
 }
+
+.summaryTicketIcon { width: 13px; height: 13px; vertical-align: -2px; }
 
 .summaryTicketWon {
   background: linear-gradient(135deg, rgba(255, 210, 87, 0.16), rgba(255, 210, 87, 0.05));
@@ -76,7 +80,9 @@
 }
 
 .summaryTicketClean {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 4px;
   font-size: 12px;
   font-weight: 600;

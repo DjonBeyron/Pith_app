@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Lock, LockOpen, KeyRound, Play } from 'lucide-react'
 
 // Контур пятиугольника — тот же path, что в clip-path (lessons.css).
 const FINAL_PATH = 'M 17.4 154.0 L 28.6 78.4 A 43.8 43.8 0 0 1 72.0 40.6 L 198.0 40.6 A 43.8 43.8 0 0 1 241.8 78.4 L 252.6 154.0 A 43.8 43.8 0 0 1 232.0 197.4 L 158.2 242.8 A 43.8 43.8 0 0 1 112.0 242.8 L 38.2 197.4 A 43.8 43.8 0 0 1 17.4 154.0 Z'
@@ -15,32 +16,12 @@ const SPARK_DIRS = Array.from({ length: 8 }, (_, i) => {
 // overflow visible: открытая дужка выходит за viewBox справа — не режем её.
 // Экспорт: ModuleGraph рисует этот же замок на уроках до прохождения диагностики.
 export function LockIcon({ open, size = 23 }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} style={{ overflow: 'visible' }}>
-      {/* Корпус сдвинут влево под открытую дужку — закрытый рисунок для
-          центровки в кружках/пилюле сдвигаем обратно вправо */}
-      <g transform={open ? undefined : 'translate(2.25 0)'}>
-        <path d={open ? 'M12 11 V6.5 a4.5 4.5 0 0 1 9 0 v1.6' : 'M6.6 11 V7.2 a3.2 3.2 0 0 1 6.4 0 V11'}
-          fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
-        <rect x="3.5" y="10.2" width="12.5" height="10.3" rx="2.6" fill="currentColor" />
-        <circle cx="9.75" cy="14.4" r="1.6" fill="#120f1a" />
-        <rect x="9" y="15.2" width="1.5" height="2.8" rx="0.75" fill="#120f1a" />
-      </g>
-    </svg>
-  )
+  return open ? <LockOpen size={size} /> : <Lock size={size} />
 }
 
-// Классический ключ-бегунок прогресс-бара: круглая головка, стержень, две бородки.
+// Классический ключ-бегунок прогресс-бара
 function KeyIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
-      strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="7" cy="12" r="3.2" />
-      <path d="M10.2 12 H21" />
-      <path d="M17.5 12 v3" />
-      <path d="M21 12 v3.6" />
-    </svg>
-  )
+  return <KeyRound size={12} />
 }
 
 // Нод «Финал»: фиолетовый пятиугольник с замком и XP-прогрессом.
@@ -117,9 +98,7 @@ export default function MgFinalNode({
                     className="mgFinalPlayBtn"
                     onClick={e => { e.stopPropagation(); onPlay?.(lesson.id) }}
                   >
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                      <path d="M8 5 L19 12 L8 19 Z" />
-                    </svg>
+                    <Play size={16} fill="currentColor" />
                   </button>
                   <span className="mgFinalOpenText">Финальный урок открыт!</span>
                 </>

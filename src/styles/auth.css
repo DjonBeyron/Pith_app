@@ -40,6 +40,9 @@
 }
 
 .authAdminBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   align-self: center;
   font-size: 12px;
   font-weight: 700;

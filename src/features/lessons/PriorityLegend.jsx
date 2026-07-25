@@ -1,3 +1,5 @@
+import { Sparkles, X } from 'lucide-react'
+
 // Попап после диагностики: объясняет новичку, что произошло, показывает
 // мини-схему ЕГО уроков с полученными приоритетами и легенду цветов.
 // Пока открыт — граф спрятан, его анимации на паузе (animHold в ModuleGraph).
@@ -20,8 +22,8 @@ export default function PriorityLegend({ lessons = [], priorities = null, module
   return (
     <div className="priorityLegendOverlay" onClick={onClose}>
       <div className="priorityLegendCard" onClick={e => e.stopPropagation()}>
-        <button className="priorityLegendClose" onClick={onClose}>✕</button>
-        <h3 className="priorityLegendTitle">Диагностика пройдена! 🎉</h3>
+        <button className="priorityLegendClose" onClick={onClose}><X size={16} /></button>
+        <h3 className="priorityLegendTitle">Диагностика пройдена! <Sparkles size={18} className="priorityLegendTitleIcon" /></h3>
         <p className="priorityLegendIntro">
           Мы составили для тебя персональную карту обучения
           {moduleTitle ? <> по фразе «<b>{moduleTitle}</b>»</> : null}.
