@@ -22,6 +22,7 @@
 | `README.md` | Создан автоматически при создании репозитория на GitHub, содержимого пока почти нет |
 | `supabase_schema.sql` | **АРХИВ** истории решений по БД (с этапа 4) — не источник правды; актуальная схема в `supabase/migrations/` |
 | `supabase/migrations/20260717120000_baseline.sql` | Снимок реальной схемы public на 2026-07-17 (источник правды): 22 таблицы, 31 функция, каждая в одном экземпляре |
+| `supabase/migrations/20260726110000_security_hardening.sql` | Безопасность: закрывает прямую запись в `push_subscriptions` (было `using(true)` — любой мог стереть подписки всех) — вместо неё RPC `save_push_subscription`/`delete_push_subscription`; INSERT в `client_errors` только со своим `user_id`. **Применить до деплоя** |
 | `supabase/migrations/20260725120000_app_settings_teacher.sql` | Таблица `app_settings` (ключ → jsonb) + RLS (читают все, пишет админ) и заготовка строки `teacher_default` — общий учитель всех уроков. **Применить до деплоя** |
 | `supabase/migrations/20260725130000_slowmo_hint.sql` | `user_profiles.slowmo_hint_seen` (boolean) + RPC `mark_slowmo_hint_seen()` — флаг «видел подсказку про замедление видео» для useSlowMotionHint.js. **Применить до деплоя — иначе getProfile() упадёт** (новое поле уже в select) |
 | `supabase/migrations/20260724130000_reaction_counters_and_difficulty_default.sql` | `curricula.save_count`/`repost_count` (триггеры от `module_bookmarks`/новой `module_reposts`) + дефолт `difficulty = 1` вместо NULL. **Ещё не применена на реальной БД** — см. предупреждение в PROJECT.md |
@@ -158,7 +159,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `canvas/text-highlight.css` | Стили модального редактора выделений текстовой ноды: оверлей, токены, свотчи, кнопка открытия |
 | `canvas/stat-link.css` | Стили привязки ответов к урокам (анализ знаний): строка «→ Урок»/«Сигнал», кнопка ⚙ варианта, панель настроек варианта |
 | `settings.css` | Стили вкладки «Настройки»: секции, список звуков, кнопка воспроизведения |
-| `auth.css` | Стили вкладки «Войти»: карточка формы, инпуты, кнопки, ошибка |
+| `auth.css` | Стили вкладки «Войти»: карточка формы, инпуты, кнопки, ошибка, контейнер капчи |
 | `xp.css` | Стили анимации всплывающего XP-числа и итогового экрана урока |
 | `streak.css` | Стили ежедневного стрика: полноэкранное окно наград (hero-прогресс, путь дней, заморозки), блок в профиле, форма редактора вех в админке |
 | `streak-claim.css` | Стили праздничного окна «Награда получена!» (RewardClaimPopup): карточка, билеты, блок нового уровня; плюс приглушённые done-ноды пути дней (rwNodeDone/rwNodeMilestoneDone) |
@@ -437,8 +438,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 ### `src/features/auth/` — вкладка «Войти»
 | Файл | Зачем нужен |
 |------|-------------|
-| `AuthTab.jsx` | Вкладка «Войти»: переключатель «Войти» \| «Зарегистрироваться» (форма входа или `RegisterForm`), либо экран «вы вошли» с кнопкой «Выйти»; после входа переключается на «Профиль» и переносит локальный XP в БД |
-| `RegisterForm.jsx` | Форма регистрации на вкладке «Войти»: Email + Имя + Пароль, окно согласия с политикой перед отправкой, ошибки по-русски; после успеха — refreshProfile и onLoginSuccess |
+| `AuthTab.jsx` | Вкладка «Войти»: переключатель «Войти» \| «Зарегистрироваться» (форма входа или `RegisterForm`), либо экран «вы вошли» с кнопкой «Выйти»; после входа переключается на «Профиль» и переносит локальный XP в БД. Защита от перебора: обратный отсчёт из `loginThrottle.js` + капча из `useCaptcha.js` |
+| `RegisterForm.jsx` | Форма регистрации на вкладке «Войти»: Email + Имя + Пароль (минимум 8 символов), капча (если включена), окно согласия с политикой перед отправкой, ошибки по-русски; после успеха — refreshProfile и onLoginSuccess |
 
 ### `src/shared/api/` — связь с сервером
 | Файл | Зачем нужен |
@@ -447,7 +448,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `appSettingsApi.js` | Глобальные настройки приложения (таблица `app_settings`): чтение/запись «учителя по умолчанию» (`teacher_default`) с кэшем на сессию; писать может только админ (RLS) |
 | `pushApi.js` | Вызов edge-функции `push-send` (рассылка Web Push, только админ) |
 | `pushTemplatesApi.js` | CRUD шаблонов пушей (`push_templates`) + поиск включённого шаблона по триггеру (manual / new_module / inactive_today / energy_full) |
-| `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth |
+| `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth; принимают `captchaToken` (Turnstile), если капча включена |
 | `highlightPresetsApi.js` | Загрузка и сохранение избранных цветов выделений (`highlight_color_presets`, singleton row 'global') |
 | `profileApi.js` | getProfile (чтение профиля, включая avatar_seed) / saveAvatar — RPC `set_avatar` (смена аватара из пака DiceBear) / startLesson — RPC `start_lesson` (энергия, бесплатные случаи решает сервер) / completeLesson — начисление XP через RPC `complete_lesson` / resetLessonProgress — сброс прохождения с возвратом XP (тест-кнопки админа) |
 | `subscriptionApi.js` | Платежи Pithy Pro: createSubscriptionPayment зовёт edge-функцию create-payment, возвращает ссылку на оплату ЮKassa или stub, пока касса не подключена |
@@ -465,7 +466,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `r2.js` | Загрузить файл в облако (`uploadToR2`) и удалить файл из облака (`deleteFromR2`); шлёт в edge-функции access-token залогиненного пользователя (функции пускают только админа) |
-| `push.js` | Web Push на клиенте: поддержка/состояние, подписка (регистрация `push-sw.js`, разрешение, запись в `push_subscriptions`), отписка |
+| `push.js` | Web Push на клиенте: поддержка/состояние, подписка (регистрация `push-sw.js`, разрешение, запись через RPC `save_push_subscription`), отписка (`delete_push_subscription`) — прямой доступ к таблице закрыт политиками |
 | `filesApi.js` | Получить список файлов из базы (`listFiles`), добавить файл в базу (`insertFile`), удалить запись из базы (`deleteFileRow`), посчитать размер файла в КБ/МБ (`formatBytes`), определить тип файла — фото/видео/аудио (`getMediaKind`) |
 | `localFileStore.js` | Запасной локальный склад для файлов в браузере (IndexedDB) — пока не используется в интерфейсе, оставлен на будущее |
 | `lessonsApi.js` | CRUD уроков в Supabase: получить список, создать, удалить, сохранить/загрузить граф (`script`); `fetchLessonTitles(ids)` — минимальный select id+title для текстового поиска фразы по словам её уроков (FeedSearchPanel) |
@@ -479,6 +480,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `energyCalc.js` | `calcEnergy(profile, now)` — эффективное значение энергии и время следующей +1 (тиками по `energy_updated_at`); `ENERGY_CAP`/`ENERGY_TICK_MS`. Общее для `EnergyBadge` и `LessonLaunchCard` |
 | `energyColors.js` | `energyColor(value)` — цвет энергии по текущему количеству (0/1 красный → 5 фирменный лайм); используется везде, где показывается число/индикатор энергии |
 | `sounds.js` | `playSound(name)` — воспроизводит `/sounds/<name>.mp3` с кэшированием Audio-объекта |
+| `loginThrottle.js` | Локальный тормоз перебора пароля: считает неудачные входы (по email и по устройству) в localStorage и запирает форму на растущее время — 1 мин / 5 мин / 30 мин / 2 часа |
+| `useCaptcha.js` | Хук капчи Cloudflare Turnstile для форм входа/регистрации: грузит скрипт и рисует виджет, отдаёт одноразовый токен. Полностью выключен, пока не задан `VITE_TURNSTILE_SITE_KEY` |
 | `authErrorsRu.js` | `supabaseErrorToRu(error)` — перевод ошибок Supabase Auth на русский; общий для панели регистрации урока и `RegisterForm` вкладки «Войти» |
 | `teacherResolve.js` | Кто говорит в чате урока: `teacherModeOf(script)` (у старых уроков без поля — по наличию своего имени/лого) и `resolveTeacher(script, global)` — один источник правды для плеера, карточки запуска и превью в редакторе |
 | `xpLevels.js` | Таблица уровней XP (`LEVELS`), `getCurrentLevel(xp)`, `getNextLevel(xp)` — используется в ProfileTab и LessonSummary |

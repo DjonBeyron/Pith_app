@@ -46,17 +46,14 @@ export async function subscribePush() {
     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
   })
   const json = sub.toJSON()
-  const { data: { session } } = await supabase.auth.getSession()
-  // Не upsert: ON CONFLICT требует SELECT-видимости существующей строки, а
-  // SELECT клиентам закрыт намеренно (политики RLS). Удалить-и-вставить по
-  // endpoint даёт тот же результат без чтения.
-  await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
-  const { error } = await supabase.from('push_subscriptions').insert({
-    endpoint: sub.endpoint,
-    p256dh: json.keys.p256dh,
-    auth: json.keys.auth,
-    user_id: session?.user?.id ?? null,
-    ua: navigator.userAgent.slice(0, 200),
+  // Прямой доступ к таблице push_subscriptions клиенту закрыт (иначе один
+  // DELETE без WHERE стирал подписки всех) — пишем через функцию, она сама
+  // ставит user_id из токена. См. миграцию 20260726110000_security_hardening.
+  const { error } = await supabase.rpc('save_push_subscription', {
+    p_endpoint: sub.endpoint,
+    p_p256dh:   json.keys.p256dh,
+    p_auth:     json.keys.auth,
+    p_ua:       navigator.userAgent.slice(0, 200),
   })
   if (error) {
     // Сервер не записал — откатываем подписку браузера, чтобы не было
@@ -74,5 +71,5 @@ export async function unsubscribePush() {
   if (!sub) return
   const endpoint = sub.endpoint
   await sub.unsubscribe().catch(() => {})
-  await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+  await supabase.rpc('delete_push_subscription', { p_endpoint: endpoint })
 }

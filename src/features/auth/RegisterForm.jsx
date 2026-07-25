@@ -4,6 +4,11 @@ import { refreshProfile } from '../../shared/api/profileCache.js'
 import { supabaseErrorToRu } from '../../shared/lib/authErrorsRu.js'
 import RegistrationConsent from '../../shared/ui/RegistrationConsent.jsx'
 import { transferSlowMotionHintOnRegister } from '../feed/useSlowMotionHint.js'
+import { useCaptcha } from '../../shared/lib/useCaptcha.js'
+
+// Минимальная длина пароля. Такой же минимум надо выставить в Supabase →
+// Authentication → Policies, иначе правило легко обойти в обход формы.
+const MIN_PASSWORD = 8
 
 export default function RegisterForm({ onLoginSuccess }) {
   const [email,    setEmail]    = useState('')
@@ -13,10 +18,22 @@ export default function RegisterForm({ onLoginSuccess }) {
   const [busy,     setBusy]     = useState(false)
   const [showConsent, setShowConsent] = useState(false)
 
+  const {
+    boxRef: captchaBoxRef, token: captchaToken,
+    reset: resetCaptcha, enabled: captchaOn,
+  } = useCaptcha()
   const canSubmit = email.trim() && name.trim() && password.trim() && !busy
 
   function handleSubmit() {
     if (!canSubmit) return
+    if (password.trim().length < MIN_PASSWORD) {
+      setErr(`Пароль должен быть не короче ${MIN_PASSWORD} символов`)
+      return
+    }
+    if (captchaOn && !captchaToken) {
+      setErr('Подтверди, что ты не робот')
+      return
+    }
     setErr('')
     setShowConsent(true)
   }
@@ -28,8 +45,10 @@ export default function RegisterForm({ onLoginSuccess }) {
       email:    email.trim(),
       password: password.trim(),
       name:     name.trim(),
+      captchaToken,
     })
     if (error) {
+      resetCaptcha() // токен одноразовый — после ошибки нужен новый
       setErr(supabaseErrorToRu(error))
       setBusy(false)
       return
@@ -84,13 +103,14 @@ export default function RegisterForm({ onLoginSuccess }) {
       <input
         className="authInput"
         type="password"
-        placeholder="Пароль (минимум 6 символов)"
+        placeholder={`Пароль (минимум ${MIN_PASSWORD} символов)`}
         value={password}
         onChange={e => setPassword(e.target.value)}
         onKeyDown={handleKey}
         disabled={busy}
         autoComplete="new-password"
       />
+      {captchaOn && <div className="authCaptcha" ref={captchaBoxRef} />}
       {err && <div className="authError">{err}</div>}
       <button className="authBtnPrimary" onClick={handleSubmit} disabled={!canSubmit}>
         {busy ? 'Регистрация...' : 'Зарегистрироваться'}

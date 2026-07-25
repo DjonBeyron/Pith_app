@@ -4,6 +4,7 @@ import { supabaseErrorToRu } from '../../../../shared/lib/authErrorsRu.js'
 import { getPushState } from '../../../../shared/lib/push.js'
 import RegistrationConsent from '../../../../shared/ui/RegistrationConsent.jsx'
 import { transferSlowMotionHintOnRegister } from '../../../feed/useSlowMotionHint.js'
+import { useCaptcha } from '../../../../shared/lib/useCaptcha.js'
 import PushPromptPopup from './PushPromptPopup.jsx'
 
 export default function RegistrationPanel({ node, onDone, onAnswered, onHeightChange }) {
@@ -15,6 +16,10 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
   const [showConsent, setShowConsent] = useState(false)
   const [showPushPrompt, setShowPushPrompt] = useState(false)
   const panelRef = useRef(null)
+  const {
+    boxRef: captchaBoxRef, token: captchaToken,
+    reset: resetCaptcha, enabled: captchaOn,
+  } = useCaptcha()
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setShow(true))
@@ -32,6 +37,11 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
     const trimName  = name.trim()
     const trimPass  = password.trim()
     if (!trimEmail || !trimName || !trimPass) return
+    // Капча (если включена) обязательна и здесь — иначе Supabase отобьёт signUp
+    if (captchaOn && !captchaToken) {
+      onAnswered?.('Подтверди, что ты не робот', 'error')
+      return
+    }
     setShowConsent(true)
   }
 
@@ -42,9 +52,12 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
     const trimPass  = password.trim()
 
     setLoading(true)
-    const { data, error } = await registerUser({ email: trimEmail, password: trimPass, name: trimName })
+    const { data, error } = await registerUser({
+      email: trimEmail, password: trimPass, name: trimName, captchaToken,
+    })
 
     if (error) {
+      resetCaptcha() // токен одноразовый — после ошибки нужен новый
       onAnswered?.(supabaseErrorToRu(error), 'error')
       setLoading(false)
       return
@@ -133,6 +146,7 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
             disabled={loading}
             autoComplete="new-password"
           />
+          {captchaOn && <div className="regPanelCaptcha" ref={captchaBoxRef} />}
           <button className="regPanelBtnPrimary" onClick={handleSubmit} disabled={!canSubmit}>
             {loading ? 'Отправка...' : 'Зарегистрироваться'}
           </button>

@@ -60,6 +60,13 @@
 .regPanelInput:focus { border-color: #3b82f6; }
 .regPanelInput:disabled { opacity: 0.4; cursor: default; }
 
+/* Виджет капчи в панели регистрации урока (появляется только если включена) */
+.regPanelCaptcha {
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+}
+
 .regPanelBtnPrimary {
   background: #b6fe3b;
   border: none;

@@ -99,6 +99,13 @@
   padding: 8px 12px;
 }
 
+/* Контейнер виджета капчи (Turnstile рисует туда iframe фиксированной ширины) */
+.authCaptcha {
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+}
+
 .authBtnPrimary {
   width: 100%;
   background: #b6fe3b;

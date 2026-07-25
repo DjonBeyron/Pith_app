@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ShieldCheck } from 'lucide-react'
 import { loginUser, logoutUser } from '../../shared/api/auth.js'
 import { clearProfileCache, refreshProfile } from '../../shared/api/profileCache.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import RegisterForm from './RegisterForm.jsx'
+import { useCaptcha } from '../../shared/lib/useCaptcha.js'
+import {
+  getLoginLockSeconds, registerLoginFailure, clearLoginFailures, formatLockLeft,
+} from '../../shared/lib/loginThrottle.js'
 
 function loginErrorToRu(error) {
   const msg = (error?.message ?? '').toLowerCase()
@@ -23,14 +27,48 @@ export default function AuthTab({ onLoginSuccess }) {
   const [password, setPassword] = useState('')
   const [err,      setErr]      = useState('')
   const [busy,     setBusy]     = useState(false)
+  const [, tick]                = useState(0) // тикает раз в секунду, пока идёт блокировка
+  const {
+    boxRef: captchaBoxRef, token: captchaToken,
+    reset: resetCaptcha, failed: captchaFailed, enabled: captchaOn,
+  } = useCaptcha()
+
+  // Сколько ещё ждать после серии неудачных попыток (0 — можно пробовать)
+  const lockLeft = getLoginLockSeconds(email)
+
+  useEffect(() => {
+    if (!lockLeft) return
+    const t = setInterval(() => tick(n => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [lockLeft])
 
   async function handleLogin() {
     if (busy) return
+    const left = getLoginLockSeconds(email)
+    if (left) {
+      setErr(`Слишком много попыток входа. Повтори через ${formatLockLeft(left)}`)
+      tick(n => n + 1)
+      return
+    }
+    if (captchaOn && !captchaToken) {
+      setErr('Подтверди, что ты не робот')
+      return
+    }
     setErr('')
     setBusy(true)
-    const { error } = await loginUser({ email: email.trim(), password: password.trim() })
+    const { error } = await loginUser({
+      email: email.trim(), password: password.trim(), captchaToken,
+    })
     setBusy(false)
-    if (error) { setErr(loginErrorToRu(error)); return }
+    if (error) {
+      resetCaptcha() // токен капчи одноразовый — нужен новый раунд
+      const secs = registerLoginFailure(email)
+      setErr(secs
+        ? `Слишком много попыток входа. Повтори через ${formatLockLeft(secs)}`
+        : loginErrorToRu(error))
+      return
+    }
+    clearLoginFailures(email)
     refreshProfile() // прогреваем кэш профиля фоном — «Профиль» откроется без мигания
     onLoginSuccess?.()
   }
@@ -110,13 +148,17 @@ export default function AuthTab({ onLoginSuccess }) {
               disabled={busy}
               autoComplete="current-password"
             />
+            {captchaOn && <div className="authCaptcha" ref={captchaBoxRef} />}
+            {captchaOn && captchaFailed && (
+              <div className="authError">Проверка «я не робот» не загрузилась — обнови страницу</div>
+            )}
             {err && <div className="authError">{err}</div>}
             <button
               className="authBtnPrimary"
               onClick={handleLogin}
-              disabled={busy || !email.trim() || !password.trim()}
+              disabled={busy || !!lockLeft || !email.trim() || !password.trim()}
             >
-              {busy ? 'Вход...' : 'Войти'}
+              {busy ? 'Вход...' : lockLeft ? `Подожди ${formatLockLeft(lockLeft)}` : 'Войти'}
             </button>
           </>
         )}
