@@ -15,8 +15,9 @@ import { useEffect, useRef, useState } from 'react'
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? ''
 export const captchaEnabled = !!SITE_KEY
 
-// Сколько ждём токен, прежде чем считать капчу неработающей
-const SOLVE_TIMEOUT_MS = 25_000
+// Сколько ждём токен, прежде чем считать капчу неработающей. Если человек решает
+// её дольше — не страшно: пришедший позже токен всё равно подхватится
+const SOLVE_TIMEOUT_MS = 12_000
 
 let scriptPromise = null
 function loadTurnstile() {
