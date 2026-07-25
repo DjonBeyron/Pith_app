@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Zap, RefreshCw } from 'lucide-react'
 import { loadScript } from '../../shared/lib/lessonsApi.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
@@ -119,15 +120,16 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
   // (start_lesson). Гость энергию не тратит — надпись ему не показываем.
   const profile   = getCachedProfile()
   const unlimited = profile?.has_subscription || profile?.is_admin
+  const CostIcon = !unlimited && retake ? RefreshCw : Zap
   const costLabel = !profile
     ? null
     : unlimited
-      ? '⚡ Безлимит — энергия не тратится'
+      ? 'Безлимит — энергия не тратится'
       : retake
-        ? '🔄 Повторение пройденного — бесплатно'
+        ? 'Повторение пройденного — бесплатно'
         : energyFree
-          ? '⚡ Этот урок бесплатный — энергия не тратится'
-          : '⚡ Урок спишет 1 энергию'
+          ? 'Этот урок бесплатный — энергия не тратится'
+          : 'Урок спишет 1 энергию'
 
   // Платный случай (не гость, не безлимит, не пересдача, не Старт/Финал) —
   // вместо текстовой строки показываем ряд ячеек энергии с мигающей
@@ -238,7 +240,11 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
            чтобы новый UI был виден и здесь, а не только текст */
         <EnergyCells unlimited />
       ) : (
-        costLabel && <span style={{ color: '#bbb', fontSize: 13 }}>{costLabel}</span>
+        costLabel && (
+          <span style={{ color: '#bbb', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <CostIcon size={13} />{costLabel}
+          </span>
+        )
       )}
 
       {isAdmin && (
