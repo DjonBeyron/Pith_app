@@ -24,7 +24,7 @@ function persistIds(curriculumId, ids) {
 }
 
 // Заголовок модуля больше не параметр: 💾 сохраняет только структуру уроков,
-// а переименованием владеет renameCurriculum (см. CurriculumView).
+// а заголовком владеет saveCurriculumTitleData (см. ModuleTitleEditor).
 export function useCurriculumLessons(curriculumId) {
   const [lessonIds, setLessonIds] = useState(() => loadIds(curriculumId))
   const [lessons,   setLessons]   = useState([])
@@ -197,7 +197,7 @@ export function useCurriculumLessons(curriculumId) {
   }
 
   // Manual save only — triggered by 💾 button. Сохраняет ТОЛЬКО список
-  // уроков; заголовок отдельно через renameCurriculum (иначе затирался бы).
+  // уроков; заголовок отдельно через saveCurriculumTitleData (иначе затирался бы).
   async function saveStructure() {
     const ids = idsRef.current
     dbg('[SAVE] manual save — curriculum:', curriculumId, 'lesson_ids:', ids)

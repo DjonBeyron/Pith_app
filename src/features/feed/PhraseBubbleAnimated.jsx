@@ -254,6 +254,11 @@ export default function PhraseBubbleAnimated({ active, near, onUnlock, children 
     if (!wrap || !canvas || revealed) return
 
     function layout() {
+      // Во время взрыва канвас уже переразмечен под разлёт (см. explode) и
+      // частицы летят — пересчёт здесь стёр бы холст и пересобрал сетку
+      // заново, оборвав вспышку. Ресайз в этот момент реален: по тапу слова
+      // фразы становятся кликабельными и текст чуть меняет ширину
+      if (explodingRef.current) return
       const rect = wrap.getBoundingClientRect()
       const w = rect.width + MARGIN_X * 2
       const h = rect.height + MARGIN_Y * 2

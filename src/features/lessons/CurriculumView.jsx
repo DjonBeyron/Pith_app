@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useCurriculumLessons } from './useCurriculumLessons.js'
-import { renameCurriculum } from '../../shared/lib/curriculaApi.js'
+import ModuleTitleEditor from '../admin/ModuleTitleEditor.jsx'
 import ModuleGraph from './ModuleGraph.jsx'
 import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
@@ -51,10 +51,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   } = useCurriculumLessons(curriculumId)
 
   // Название модуля наверху схемы: локальная копия (админ может
-  // переименовать прямо здесь; родитель перечитает при выходе)
+  // переименовать прямо здесь; родитель перечитает при выходе). Правка — в
+  // попапе ModuleTitleEditor: название + полный перевод + перевод по словам
   const [title,        setTitle]        = useState(curriculumTitle)
   const [titleEditing, setTitleEditing] = useState(false)
-  const [titleDraft,   setTitleDraft]   = useState('')
   const [launchId,        setLaunchId]        = useState(null)
   const [playerData,      setPlayerData]      = useState(null)
   const [playingLessonId, setPlayingLessonId] = useState(null)
@@ -183,15 +183,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
     setTimeout(() => setSaveMsg(''), 3000)
   }
 
-  async function commitTitle() {
-    const v = titleDraft.trim()
-    setTitleEditing(false)
-    if (!v || v === title) return
-    setTitle(v) // оптимистично
-    try { await renameCurriculum(curriculumId, v) }
-    catch { setSaveMsg('Не удалось переименовать'); setTimeout(() => setSaveMsg(''), 3000) }
-  }
-
   if (playerData) {
     return (
       <LessonPlayer
@@ -260,21 +251,20 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
     <div className="lessonsMapPanel">
       <div className="lessonsMapToolbar">
         <BackButton onClick={onBack} />
-        {titleEditing ? (
-          <input
-            className="lessonMapTitle lessonMapTitleInput" autoFocus value={titleDraft}
-            onChange={e => setTitleDraft(e.target.value)}
-            onBlur={commitTitle}
-            onKeyDown={e => { if (e.key === 'Enter') commitTitle(); if (e.key === 'Escape') setTitleEditing(false) }}
+        <span
+          className="lessonMapTitle"
+          onClick={isAdmin ? () => setTitleEditing(true) : undefined}
+          style={isAdmin ? { cursor: 'pointer' } : undefined}
+          title={isAdmin ? 'Название и перевод модуля' : undefined}>
+          {title}{isAdmin && ' ✎'}
+        </span>
+        {titleEditing && (
+          <ModuleTitleEditor
+            moduleId={curriculumId}
+            initialTitle={title}
+            onClose={() => setTitleEditing(false)}
+            onSaved={setTitle}
           />
-        ) : (
-          <span
-            className="lessonMapTitle"
-            onClick={isAdmin ? () => { setTitleDraft(title); setTitleEditing(true) } : undefined}
-            style={isAdmin ? { cursor: 'pointer' } : undefined}
-            title={isAdmin ? 'Переименовать модуль' : undefined}>
-            {title}{isAdmin && ' ✎'}
-          </span>
         )}
         {error && <span className="errorText">{error}</span>}
         {saveMsg && <span className="dbSaveMsg">{saveMsg}</span>}

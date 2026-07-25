@@ -8,6 +8,7 @@
 @import './styles/feed-v2.css';
 @import './styles/feed-reactions-fx.css';
 @import './styles/feed-bubble-spoiler.css';
+@import './styles/feed-word-translate.css';
 @import './styles/feed-media.css';
 @import './styles/difficulty.css';
 @import './styles/feed-search.css';
@@ -20,6 +21,7 @@
 @import './styles/pro.css';
 @import './styles/module-video.css';
 @import './styles/admin-v2.css';
+@import './styles/admin-title-editor.css';
 @import './styles/admin-race.css';
 @import './styles/admin-teacher.css';
 @import './styles/lessons.css';

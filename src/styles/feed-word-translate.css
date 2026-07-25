@@ -1,0 +1,163 @@
+/* Пословный перевод названия модуля в ленте: подсветка слова, линия под 45°
+   с переломом в горизонталь и подложка с переводом над ней.
+   Логика и геометрия — PhraseWords.jsx / WordTranslateLine.jsx. */
+
+/* Слово с переводом: до тапа выглядит как обычный текст фразы, по тапу —
+   лаймовая подложка, тёмный текст и короткий «поп» (слово чуть подрастает).
+   inline-block нужен ради transform (у inline-элементов он игнорируется). */
+.fwWord {
+  display: inline-block;
+  padding: 0 3px;
+  margin: 0 -2px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.fwWordOn {
+  background: #b6fe3b;
+  color: #0d1500;
+  text-shadow: none;
+  box-shadow: 0 0 0 2px rgba(182, 254, 59, 0.55), 0 6px 18px rgba(182, 254, 59, 0.35);
+  animation: fwWordPop 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fwWordPop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.09); }
+  100% { transform: scale(1); }
+}
+
+/* Слой подсказки на весь слайд: сам кликов не ловит (pointer-events: none),
+   ловит только подложка с переводом. Исчезновение — фейд всего слоя разом,
+   чтобы не спорить с анимациями появления у детей */
+.wtLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 120ms ease;
+}
+
+.wtLayerClosing { opacity: 0; }
+
+/* Кривая от слова к подложке (геометрия — neuronPath в
+   WordTranslateLine.jsx). Рисуется как «выбегающая» из слова линия: у путей
+   pathLength="1", поэтому dashoffset считается в долях длины и одна и та же
+   анимация подходит кривой любой формы */
+.wtSvg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  filter: drop-shadow(0 0 5px rgba(182, 254, 59, 0.35));
+}
+
+.wtPath,
+.wtPathGlow {
+  fill: none;
+  stroke: #b6fe3b;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: wtDraw 300ms ease-out 40ms both;
+}
+
+.wtPath { stroke-width: 1.5; }
+
+.wtPathGlow {
+  stroke-width: 7;
+  opacity: 0.1;
+}
+
+@keyframes wtDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Подложка с переводом: всегда по центру экрана по X и на одной высоте по Y
+   (top приходит из JS). Её нижняя граница — продолжение той же линии под
+   текстом, поэтому линия читается как одна непрерывная */
+.wtPlate {
+  position: absolute;
+  left: 50%;
+  /* Запас по бокам — чтобы длинный перевод не наезжал на колонку HUD справа */
+  max-width: calc(100% - 96px);
+  padding: 6px 12px;
+  border-radius: 10px 10px 3px 3px;
+  background: rgba(10, 14, 4, 0.96);
+  border-bottom: 1.5px solid #b6fe3b;
+  color: #eaffc4;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transform-origin: 50% 100%;
+  transform: translate(-50%, -100%);
+  animation: wtPlateIn 160ms cubic-bezier(0.22, 1, 0.36, 1) 230ms both;
+}
+
+@keyframes wtPlateIn {
+  from { opacity: 0; transform: translate(-50%, -100%) scale(0.7, 0.75); }
+  to   { opacity: 1; transform: translate(-50%, -100%) scale(1, 1); }
+}
+
+/* Строка «раскрыть перевод ⌄» под фразой (PhraseTranslationRow.jsx) */
+.feedTrToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+.feedTrChev {
+  width: 14px;
+  height: 14px;
+  transition: transform 180ms ease;
+}
+
+.feedTrChevOpen { transform: rotate(180deg); }
+
+/* Место под перевод занято всегда: текст отрисован в потоке с самого начала и
+   только гасится прозрачностью. Раскрытие через max-height раздвигало блок и
+   толкало саму фразу вверх — теперь она стоит на месте */
+.feedTrText {
+  margin-top: 4px;
+  opacity: 0;
+  visibility: hidden;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  transition: opacity 180ms ease, visibility 180ms;
+}
+
+.feedTrTextOpen {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Число уроков переехало сюда из подписи под фразой */
+.feedLearnCount {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(13, 21, 0, 0.14);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fwWordOn { animation: none; }
+  .wtPath, .wtPathGlow { stroke-dashoffset: 0; animation: none; }
+  .wtPlate { animation: none; }
+}

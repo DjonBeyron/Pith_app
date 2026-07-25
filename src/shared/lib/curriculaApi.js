@@ -46,8 +46,8 @@ export async function updateCurriculumStatus(id, { published, previewOnly }) {
 }
 
 // Сохранение структуры модуля — только список уроков. Заголовок НЕ трогаем
-// (им владеет renameCurriculum): иначе 💾 затирал бы переименование модуля
-// значением из устаревшего пропа.
+// (им владеет saveCurriculumTitleData): иначе 💾 затирал бы переименование
+// модуля значением из устаревшего пропа.
 export async function saveCurriculumLessons(id, lessonIds) {
   dbg('[DB WRITE] curricula lesson_ids', id, lessonIds.length)
   const { error } = await supabase
@@ -60,15 +60,39 @@ export async function saveCurriculumLessons(id, lessonIds) {
   }
 }
 
-// Переименование модуля (админ): меняет только title
-export async function renameCurriculum(id, title) {
-  dbg('[DB WRITE] curricula rename', id, title)
+// Название и переводы одного модуля (для редактора названия): читаем прямо
+// перед открытием, чтобы не тащить их через пропы из разных экранов
+export async function loadCurriculumTitleData(id) {
+  dbg('[DB READ] curricula title data', id)
+  const { data, error } = await supabase
+    .from('curricula')
+    .select('title, title_translation, word_translations')
+    .eq('id', id)
+    .single()
+  if (error) {
+    dbg('[DB ERROR] curricula title data', error.message)
+    throw error
+  }
+  return data
+}
+
+// Название + переводы одним сохранением (редактор названия модуля, админ):
+// title, полный перевод фразы и пословный перевод [{ w, t }] в порядке слов.
+// Пустые переводы слов не храним — массив остаётся коротким.
+export async function saveCurriculumTitleData(id, { title, titleTranslation, wordTranslations }) {
+  const words = (wordTranslations ?? []).filter(e => (e?.t ?? '').trim() !== '')
+    .map(e => ({ w: e.w, t: e.t.trim() }))
+  dbg('[DB WRITE] curricula title+translations', id, title, words.length)
   const { error } = await supabase
     .from('curricula')
-    .update({ title })
+    .update({
+      title,
+      title_translation: (titleTranslation ?? '').trim() || null,
+      word_translations: words,
+    })
     .eq('id', id)
   if (error) {
-    dbg('[DB ERROR] curricula rename', error.message)
+    dbg('[DB ERROR] curricula title+translations', error.message)
     throw error
   }
 }
@@ -99,12 +123,24 @@ export async function updateCurriculumVideo(id, videoUrl, posterUrl) {
   }
 }
 
+const CURRICULA_COLS = 'id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, preview_only, difficulty, difficulty_votes, save_count, repost_count, is_pro'
+// Колонки переводов названия появляются миграцией 20260725140000 — пока она не
+// применена, читаем список без них (иначе вся лента падала бы на 400)
+const CURRICULA_COLS_TR = `${CURRICULA_COLS}, title_translation, word_translations`
+
 export async function loadCurricula() {
   dbg('[DB READ] curricula list')
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('curricula')
-    .select('id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, preview_only, difficulty, difficulty_votes, save_count, repost_count, is_pro')
+    .select(CURRICULA_COLS_TR)
     .order('created_at', { ascending: false })
+  if (error && /title_translation|word_translations/.test(error.message)) {
+    dbg('[DB WARN] нет колонок переводов — применить миграцию 20260725140000_module_translations.sql')
+    ;({ data, error } = await supabase
+      .from('curricula')
+      .select(CURRICULA_COLS)
+      .order('created_at', { ascending: false }))
+  }
   if (error) {
     dbg('[DB ERROR] curricula load', error.message)
     throw error

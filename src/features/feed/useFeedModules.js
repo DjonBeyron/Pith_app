@@ -31,6 +31,10 @@ export function useFeedModules(startedIds, visible = true) {
         setModules(published.map(r => ({
           id: r.id,
           title: r.title,
+          // Переводы названия: полный (раскрывается под фразой) и пословный
+          // ([{ w, t }] — тап по слову, см. WordTranslateLine)
+          titleTranslation: r.title_translation ?? '',
+          wordTranslations: r.word_translations ?? [],
           lessonIds: r.lesson_ids ?? [],
           videoUrl: r.video_url ?? null,
           posterUrl: r.poster_url ?? null,
