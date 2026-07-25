@@ -4,12 +4,26 @@ import { fdbg } from '../../shared/lib/feedDebug.js'
 // Звук ленты: первый тап по чипу включает его для всех слайдов и
 // запоминается между запусками. Если при холодном старте iOS заблокирует
 // автозвук — слайд сообщит (onSoundBlocked), вернём чип
+const EVER_KEY = 'pithy_sound_ever_v1' // включал ли звук хоть раз за всё время (не сбрасывается при выключении)
+
 export function useFeedSound() {
   const [soundOn, setSoundOnState] = useState(() => localStorage.getItem('pithy_sound_v1') === '1')
+  // Новый пользователь (звук не включал ни разу) — чип «Включить звук» висит
+  // постоянно, пока звук выключен, чтобы точно заметили. Как только включил
+  // хоть раз — дальше он «в курсе» фичи, и чип всплывает только на паузе
+  // (см. условие рендера ниже), не мешая обычному просмотру
+  const [soundEverOn, setSoundEverOn] = useState(() => localStorage.getItem(EVER_KEY) === '1')
   function setSoundOn(on) {
     setSoundOnState(on)
-    if (on) localStorage.setItem('pithy_sound_v1', '1')
-    else localStorage.removeItem('pithy_sound_v1')
+    if (on) {
+      localStorage.setItem('pithy_sound_v1', '1')
+      if (!soundEverOn) {
+        setSoundEverOn(true)
+        localStorage.setItem(EVER_KEY, '1')
+      }
+    } else {
+      localStorage.removeItem('pithy_sound_v1')
+    }
   }
   // Пользователь тапнул чип хотя бы раз — дальше автоблок звука на
   // пересозданных <video> соседних слайдов (без прямого жеста) не должен
@@ -24,6 +38,12 @@ export function useFeedSound() {
     soundGestureRef.current = true
     setSoundGesture(true)
     setSoundOn(true)
+  }
+  // Тап по чипу «Выключить звук», который показывается поверх паузы —
+  // жест уже был дан раньше (soundGestureRef не трогаем), просто гасим звук
+  function handleSoundOff() {
+    fdbg('sound: user muted from pause overlay')
+    setSoundOn(false)
   }
   function handleSoundBlocked() {
     if (soundGestureRef.current) {
@@ -41,5 +61,5 @@ export function useFeedSound() {
   // Сохранённый выбор soundOn при этом не теряется (без блока откат не сработает).
   const soundReady = soundOn && soundGesture
 
-  return { soundOn, soundReady, soundGestureRef, handleSoundOn, handleSoundBlocked }
+  return { soundOn, soundReady, soundEverOn, soundGestureRef, handleSoundOn, handleSoundOff, handleSoundBlocked }
 }

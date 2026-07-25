@@ -8,7 +8,7 @@ import FeedHud from './FeedHud.jsx'
 // она только в «Рекомендациях», см. useSlowMotionHint.js.
 export default function MyLessonSlide({
   module: m, gradIdx, active, near, tabVisible,
-  soundOn, onSoundOn, onSoundBlocked,
+  soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked,
   reaction, likeCount, onToggleLike, onToggleSave,
   myDifficulty, onVoteDifficulty, onOpen,
 }) {
@@ -22,7 +22,9 @@ export default function MyLessonSlide({
         near={near}
         tabVisible={tabVisible}
         soundOn={soundOn}
+        soundEverOn={soundEverOn}
         onSoundOn={onSoundOn}
+        onSoundOff={onSoundOff}
         onSoundBlocked={onSoundBlocked}
         fallback={<div className="feedSlideHint">видео начатого модуля</div>}
       />

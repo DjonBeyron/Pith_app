@@ -14,7 +14,7 @@ export default function MyLessons({
   visible = true, modules, startedIds, onOpen, onGoFeed,
   diffVotes = {}, onVoteDifficulty,
   filterActive = false, passesFilter, onResetFilter,
-  soundOn, onSoundOn, onSoundBlocked,
+  soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked,
   reactions = {}, likeCounts = {}, onToggle,
 }) {
   // Режим (видео/список) запоминается между запусками
@@ -94,7 +94,9 @@ export default function MyLessons({
               near={Math.abs(i - activeIdx) <= 1}
               tabVisible={visible && mode === 'video'}
               soundOn={soundOn}
+              soundEverOn={soundEverOn}
               onSoundOn={onSoundOn}
+              onSoundOff={onSoundOff}
               onSoundBlocked={onSoundBlocked}
               reaction={reactions[m.id]}
               likeCount={likeCounts[m.id] ?? 0}

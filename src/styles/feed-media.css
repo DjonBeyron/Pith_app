@@ -75,12 +75,15 @@
 
 .poolVideo { z-index: 1; }
 
-/* Чип «Включить звук» — autoplay разрешён только беззвучным */
+/* Чип «Включить звук» / «Выключить звук» (при паузе) — сидит прямо над
+   иконкой play (.slidePauseIcon: 64px, центр экрана): translateY(-100%)
+   ставит нижний край чипа на линию центра, -46px = половина высоты play
+   (32px) + отступ (14px) */
 .feedSoundChip {
   position: absolute;
-  top: calc(64px + env(safe-area-inset-top, 0px));
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, calc(-100% - 46px));
   display: flex;
   align-items: center;
   gap: 8px;

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Play, VolumeX } from 'lucide-react'
+import { Play, VolumeX, Volume2 } from 'lucide-react'
 import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface, prepareReturn } from './videoPool.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
@@ -11,7 +11,7 @@ import { fdbg } from '../../shared/lib/feedDebug.js'
 // Тап по видео — пауза/продолжить (сбрасывается при уходе со слайда).
 export default function SlideVideo({
   videoUrl, posterUrl, slideKey, active = false, near = false, tabVisible = true,
-  soundOn = false, onSoundOn, onSoundBlocked, fallback = null,
+  soundOn = false, soundEverOn = false, onSoundOn, onSoundOff, onSoundBlocked, fallback = null,
 }) {
   const [paused, setPaused] = useState(false)
   const rootRef = useRef(null)
@@ -187,13 +187,18 @@ export default function SlideVideo({
   }, [active, paused])
 
   // Включение звука по жесту: разблокируем звук на ВСём пуле (чтобы соседние
-  // видео тоже могли играть со звуком), затем включаем звук здесь
+  // видео тоже могли играть со звуком), затем включаем звук здесь. Если
+  // пользователь держит видео на явной паузе — unlockAllForSound всё равно
+  // на миг проигрывает элемент (иначе браузер не благословит его на звук),
+  // но мы тут же возвращаем паузу, чтобы кадр не уехал вперёд (баг: кадр
+  // «плыл» при многократном тапе вкл/выкл звука на паузе)
   function activateSound() {
     unlockAllForSound()
     if (slideKey !== undefined) {
       const v = leaseVideo(slideKey)
       v.muted = false
-      v.play().catch(() => {})
+      if (paused) v.pause()
+      else v.play().catch(() => {})
     }
     onSoundOn?.()
   }
@@ -203,11 +208,20 @@ export default function SlideVideo({
     activateSound()
   }
 
-  // Тап по видео: пока звук не включён — первый тап именно включает звук (а не
-  // ставит паузу), даже мимо чипа. Когда звук уже включён — тап это пауза/пуск.
+  // Чип «Выключить звук» поверх паузы — зеркало activateSound: гасим звук
+  // только у этого элемента (звук глобальный на всю ленту — soundOn выше)
+  function muteSound(e) {
+    e.stopPropagation()
+    if (slideKey !== undefined) leaseVideo(slideKey).muted = true
+    onSoundOff?.()
+  }
+
+  // Тап по видео — всегда пауза/пуск. Звук включается/выключается только
+  // явным тапом по своему чипу (иначе зона «включения звука» была бы во
+  // всё видео, и «выключил звук на паузе → нажал play» включало бы звук
+  // обратно тем же тапом — путаница, которую и убрали).
   function onRootClick() {
     if (!active) return
-    if (!soundOn) { activateSound(); return }
     setPaused(p => !p)
   }
 
@@ -223,10 +237,19 @@ export default function SlideVideo({
           <Play fill="currentColor" />
         </div>
       )}
-      {!soundOn && active && (
+      {/* Новый пользователь (звук не включал ни разу) — чип виден постоянно,
+          пока звук выключен. Уже включал раньше хоть раз — чип не мешает
+          обычному просмотру, всплывает только на паузе (см. soundEverOn) */}
+      {!soundOn && active && (soundEverOn ? paused : true) && (
         <button className="feedSoundChip" onClick={tapSound}>
           <VolumeX />
           Включить звук
+        </button>
+      )}
+      {paused && active && soundOn && (
+        <button className="feedSoundChip" onClick={muteSound}>
+          <Volume2 />
+          Выключить звук
         </button>
       )}
     </div>

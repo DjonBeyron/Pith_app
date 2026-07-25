@@ -33,7 +33,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   const { user, loading: authLoading } = useAuth()
   const { isAdmin } = useAdmin()
 
-  const { soundOn, soundReady, soundGestureRef, handleSoundOn, handleSoundBlocked } = useFeedSound()
+  const { soundOn, soundReady, soundEverOn, soundGestureRef, handleSoundOn, handleSoundOff, handleSoundBlocked } = useFeedSound()
   const {
     reactions, diffVotes, startedIds, social, refreshStarted, toggle, voteDifficulty,
   } = useFeedSocial({ visible, view, user, authLoading, onRequireAuth })
@@ -112,7 +112,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           passesFilter={passesMine}
           onResetFilter={resetDiffFilter}
           soundOn={soundReady}
+          soundEverOn={soundEverOn}
           onSoundOn={handleSoundOn}
+          onSoundOff={handleSoundOff}
           onSoundBlocked={handleSoundBlocked}
           reactions={reactions}
           likeCounts={social?.likeCount}
@@ -174,7 +176,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                       myDifficulty={diffVotes[m.id]}
                       onVoteDifficulty={v => voteDifficulty(m.id, v)}
                       soundOn={soundReady}
+                      soundEverOn={soundEverOn}
                       onSoundOn={handleSoundOn}
+                      onSoundOff={handleSoundOff}
                       onSoundBlocked={handleSoundBlocked}
                       showSlowHint={showSlowHint && rel === 0}
                       onSlowHintSeen={markSlowHintSeen}

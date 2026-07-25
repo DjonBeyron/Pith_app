@@ -17,7 +17,7 @@ export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, saveCount = 0, repostCount = 0, tabVisible = true,
   active = false, near = false, spoilerNear = false, slideKey,
   difficulty, myDifficulty, onVoteDifficulty,
-  soundOn, onSoundOn, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
+  soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
   showSlowHint = false, onSlowHintSeen,
 }) {
   // Строка «раскрыть перевод» спрятана за фразой и выкатывается из-под неё с
@@ -57,7 +57,9 @@ export default function FeedSlide({
         near={near}
         tabVisible={tabVisible}
         soundOn={soundOn}
+        soundEverOn={soundEverOn}
         onSoundOn={onSoundOn}
+        onSoundOff={onSoundOff}
         onSoundBlocked={onSoundBlocked}
         fallback={<div className="feedSlideHint">здесь будет видео фразы</div>}
       />
