@@ -50,7 +50,9 @@ export default function AuthTab({ onLoginSuccess }) {
       tick(n => n + 1)
       return
     }
-    if (captchaOn && !captchaToken) {
+    // Ждём токен, только пока капча жива. Не загрузилась/зависла (captchaFailed)
+    // — пускаем: настоящую проверку всё равно делает сервер
+    if (captchaOn && !captchaToken && !captchaFailed) {
       setErr('Подтверди, что ты не робот')
       return
     }
@@ -150,7 +152,7 @@ export default function AuthTab({ onLoginSuccess }) {
             />
             {captchaOn && <div className="authCaptcha" ref={captchaBoxRef} />}
             {captchaOn && captchaFailed && (
-              <div className="authError">Проверка «я не робот» не загрузилась — обнови страницу</div>
+              <div className="authHint">Проверка «я не робот» не отвечает — входим без неё</div>
             )}
             {err && <div className="authError">{err}</div>}
             <button

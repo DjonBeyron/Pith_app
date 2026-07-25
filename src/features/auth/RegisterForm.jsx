@@ -20,7 +20,7 @@ export default function RegisterForm({ onLoginSuccess }) {
 
   const {
     boxRef: captchaBoxRef, token: captchaToken,
-    reset: resetCaptcha, enabled: captchaOn,
+    reset: resetCaptcha, failed: captchaFailed, enabled: captchaOn,
   } = useCaptcha()
   const canSubmit = email.trim() && name.trim() && password.trim() && !busy
 
@@ -30,7 +30,8 @@ export default function RegisterForm({ onLoginSuccess }) {
       setErr(`Пароль должен быть не короче ${MIN_PASSWORD} символов`)
       return
     }
-    if (captchaOn && !captchaToken) {
+    // Капча не отвечает — не запираем регистрацию, решает сервер
+    if (captchaOn && !captchaToken && !captchaFailed) {
       setErr('Подтверди, что ты не робот')
       return
     }

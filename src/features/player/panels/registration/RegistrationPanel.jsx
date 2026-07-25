@@ -18,7 +18,7 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
   const panelRef = useRef(null)
   const {
     boxRef: captchaBoxRef, token: captchaToken,
-    reset: resetCaptcha, enabled: captchaOn,
+    reset: resetCaptcha, failed: captchaFailed, enabled: captchaOn,
   } = useCaptcha()
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
     const trimPass  = password.trim()
     if (!trimEmail || !trimName || !trimPass) return
     // Капча (если включена) обязательна и здесь — иначе Supabase отобьёт signUp
-    if (captchaOn && !captchaToken) {
+    if (captchaOn && !captchaToken && !captchaFailed) {
       onAnswered?.('Подтверди, что ты не робот', 'error')
       return
     }
