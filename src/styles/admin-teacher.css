@@ -1,0 +1,100 @@
+/* Админ-вкладка «Учитель» — общий учитель всех уроков (AdminTeacherTab.jsx) */
+
+.atTeacher {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 340px;
+}
+
+.atTeacherHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #7c7f88;
+}
+
+.atTeacherField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.atTeacherLabel {
+  font-size: 12px;
+  color: #9a9da6;
+}
+
+.atTeacherInput {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #2a2c33;
+  background: #14161a;
+  color: #e6e8ec;
+  font-size: 14px;
+}
+
+.atTeacherInput:focus { outline: none; border-color: #4a4c55; }
+
+.atTeacherLogoHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.atTeacherLogoActions {
+  display: flex;
+  gap: 10px;
+}
+
+.atTeacherLinkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: #8a8d96;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.atTeacherLinkBtn:hover { color: #b6fe3b; }
+
+.atTeacherLogoEmpty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px dashed #2f323a;
+  border-radius: 10px;
+  color: #7c7f88;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.atTeacherLogoEmpty:hover { border-color: #4a4c55; }
+
+.atTeacherLogoInitial {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #23262c;
+  color: #b6fe3b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.atTeacherFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.atTeacherStatus {
+  font-size: 12px;
+  color: #9a9da6;
+}

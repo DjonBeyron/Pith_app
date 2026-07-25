@@ -12,6 +12,7 @@ export default function LessonFilesPanel({
   files, nodes, syncing, hasUnsyncedLogo, onRemove, onClose,
   teacherName, onNameChange, teacherLogoUrl, onLogoPick,
   teacherLogoCrop, onCropChange,
+  teacherMode, onTeacherModeChange, globalTeacher,
   videoAutoSound, onVideoAutoSoundChange,
 }) {
   const [tab, setTab] = useState('files')
@@ -87,6 +88,9 @@ export default function LessonFilesPanel({
           onLogoPick={onLogoPick}
           teacherLogoCrop={teacherLogoCrop}
           onCropChange={onCropChange}
+          teacherMode={teacherMode}
+          onTeacherModeChange={onTeacherModeChange}
+          globalTeacher={globalTeacher}
           videoAutoSound={videoAutoSound}
           onVideoAutoSoundChange={onVideoAutoSoundChange}
         />

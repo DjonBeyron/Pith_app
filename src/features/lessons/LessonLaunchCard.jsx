@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { loadScript } from '../../shared/lib/lessonsApi.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
+import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
+import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
 import { useIsAdmin } from '../../shared/lib/useIsAdmin.js'
@@ -50,13 +52,15 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
         const nodes = raw?.script?.nodes ?? []
         const ids   = extractFileIds(nodes)
         const files = ids.length ? await getFilesByIds(ids) : []
+        // Учитель: свой у урока либо общий из app_settings (кэш на сессию)
+        const teacher = resolveTeacher(raw?.script, await getDefaultTeacher())
         setLessonData({
           nodes,
           files,
           title:           raw?.title ?? '',
-          teacherName:     raw?.script?.teacherName ?? '',
-          teacherLogo:     raw?.script?.teacherLogo ?? null,
-          teacherLogoCrop: raw?.script?.teacherLogoCrop ?? null,
+          teacherName:     teacher.name,
+          teacherLogo:     teacher.logo,
+          teacherLogoCrop: teacher.crop,
           videoAutoSound:  raw?.script?.videoAutoSound ?? false,
           lessonXp:        raw?.script?.lessonXp ?? 0,
         })

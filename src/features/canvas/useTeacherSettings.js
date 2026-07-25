@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { lfSave, lfGet, lfDelete } from '../../shared/lib/localFileStore.js'
 import { uploadToR2 } from '../../shared/lib/r2.js'
+import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
+import { EMPTY_TEACHER, teacherModeOf } from '../../shared/lib/teacherResolve.js'
 
 const LS_KEY  = id => `lesson_teacher_${id}`        // name + crop + server URL
 const IDB_KEY = id => `lesson_teacher_logo_${id}`   // File blob (unsaved pick)
@@ -14,6 +16,16 @@ export function useTeacherSettings(lessonId) {
   const [teacherLogoFile, setTeacherLogoFile] = useState(null) // File if not yet uploaded
   const [teacherLogoCrop, setTeacherLogoCrop] = useState({ x: 0, y: 0, scale: 1 })
   const [videoAutoSound,  setVideoAutoSound]  = useState(false)
+  // 'global' — общий учитель из app_settings, 'custom' — свой для этого урока
+  const [teacherMode,     setTeacherMode]     = useState('global')
+  const [globalTeacher,   setGlobalTeacher]   = useState(EMPTY_TEACHER)
+
+  // Общий учитель нужен и для превью в настройках, и для плеера из редактора
+  useEffect(() => {
+    let cancelled = false
+    getDefaultTeacher().then(t => { if (!cancelled) setGlobalTeacher(t) })
+    return () => { cancelled = true }
+  }, [])
 
   const readyRef    = useRef(false) // true after local load finishes
   const hasLocalRef = useRef(false) // set synchronously when localStorage has data
@@ -39,6 +51,7 @@ export function useTeacherSettings(lessonId) {
       setTeacherName(saved.teacherName ?? '')
       setTeacherLogoCrop(saved.teacherLogoCrop ?? { x: 0, y: 0, scale: 1 })
       setVideoAutoSound(saved.videoAutoSound ?? false)
+      setTeacherMode(saved.teacherMode === 'custom' ? 'custom' : 'global')
       if (blob) {
         // Unsaved local file — recreate blob URL
         setTeacherLogoFile(blob)
@@ -51,6 +64,7 @@ export function useTeacherSettings(lessonId) {
     }).catch(() => {
       if (!cancelled) {
         setTeacherName(saved.teacherName ?? '')
+        setTeacherMode(saved.teacherMode === 'custom' ? 'custom' : 'global')
         if (saved.teacherLogoUrl) setTeacherLogoUrl(saved.teacherLogoUrl)
         readyRef.current = true
       }
@@ -67,12 +81,13 @@ export function useTeacherSettings(lessonId) {
         teacherName,
         teacherLogoCrop,
         videoAutoSound,
+        teacherMode,
         // blob URL dies on reload — only persist server URL
         teacherLogoUrl: teacherLogoFile ? null : teacherLogoUrl,
       }))
     }, 400)
     return () => clearTimeout(t)
-  }, [lessonId, teacherName, teacherLogoCrop, teacherLogoUrl, teacherLogoFile, videoAutoSound])
+  }, [lessonId, teacherName, teacherLogoCrop, teacherLogoUrl, teacherLogoFile, videoAutoSound, teacherMode])
 
   // ── API ──────────────────────────────────────────────────────────
 
@@ -83,6 +98,9 @@ export function useTeacherSettings(lessonId) {
     setTeacherLogoUrl(script?.teacherLogo ?? null)
     setTeacherLogoCrop(script?.teacherLogoCrop ?? { x: 0, y: 0, scale: 1 })
     setVideoAutoSound(script?.videoAutoSound ?? false)
+    // Старые уроки поля teacherMode не имеют — режим выводится из наличия
+    // своего имени/лого, чтобы у них ничего не поменялось (см. teacherResolve)
+    setTeacherMode(teacherModeOf(script))
   }
 
   // User picked a new logo file
@@ -110,7 +128,12 @@ export function useTeacherSettings(lessonId) {
       setTeacherLogoFile(null)
       if (lessonId) lfDelete(IDB_KEY(lessonId)).catch(() => {})
     }
+    // teacherMode пишем всегда: без него урок со «своим» пустым учителем
+    // при следующей загрузке был бы принят за 'global' (см. teacherModeOf).
+    // Имя/лого сохраняем и в режиме 'global' — чтобы возврат к «своему»
+    // учителю не терял уже настроенное.
     return {
+      teacherMode,
       teacherName:     teacherName     || undefined,
       teacherLogo:     logoUrl         || undefined,
       teacherLogoCrop: logoUrl         ? teacherLogoCrop : undefined,
@@ -118,11 +141,19 @@ export function useTeacherSettings(lessonId) {
     }
   }
 
+  // Кто реально будет в шапке плеера при текущем режиме — для превью урока
+  const effectiveTeacher = teacherMode === 'custom'
+    ? { name: teacherName, logo: teacherLogoUrl, crop: teacherLogoCrop }
+    : globalTeacher
+
   return {
     teacherName,     setTeacherName,
     teacherLogoUrl,
     teacherLogoCrop, setTeacherLogoCrop,
     videoAutoSound,  setVideoAutoSound,
+    teacherMode,     setTeacherMode,
+    globalTeacher,
+    effectiveTeacher,
     hasUnsyncedLogo: !!teacherLogoFile,
     handleLogoPick,
     applyServerData,

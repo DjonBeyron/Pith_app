@@ -22,6 +22,7 @@
 | `README.md` | Создан автоматически при создании репозитория на GitHub, содержимого пока почти нет |
 | `supabase_schema.sql` | **АРХИВ** истории решений по БД (с этапа 4) — не источник правды; актуальная схема в `supabase/migrations/` |
 | `supabase/migrations/20260717120000_baseline.sql` | Снимок реальной схемы public на 2026-07-17 (источник правды): 22 таблицы, 31 функция, каждая в одном экземпляре |
+| `supabase/migrations/20260725120000_app_settings_teacher.sql` | Таблица `app_settings` (ключ → jsonb) + RLS (читают все, пишет админ) и заготовка строки `teacher_default` — общий учитель всех уроков. **Применить до деплоя** |
 | `supabase/migrations/20260724130000_reaction_counters_and_difficulty_default.sql` | `curricula.save_count`/`repost_count` (триггеры от `module_bookmarks`/новой `module_reposts`) + дефолт `difficulty = 1` вместо NULL. **Ещё не применена на реальной БД** — см. предупреждение в PROJECT.md |
 | `.env.local` | Секретные ключи (пароли, токены) — здесь, чтобы их не было видно в коде |
 | `.gitignore` | Список того, что не нужно сохранять в git (например, `.env.local`, `node_modules`) |
@@ -129,6 +130,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `rating-podium.css` | Подиум рейтинга по макету: венки топ-3 вокруг аватара (серебро/бронза фильтрами), металлические карточки мест 1-2-3, плашка «Рейтинг игроков», баннер супергонки с кубком и прогрессом |
 | `race-v2.css` | Стили супергонки: страница (карточка темы, таймер, список заданий, большая кнопка), баннер в рейтинге, попапы анонса/итогов с подиумом |
 | `admin-race.css` | Стили админ-конструктора гонки: строки модулей списка заданий, кастомный выпадающий список со скроллом |
+| `admin-teacher.css` | Стили админ-вкладки «Учитель» (`AdminTeacherTab.jsx`): поле имени, блок аватара с кроп-редактором, кнопка сохранения и строка статуса |
 | `energy-v2.css` | Стили экрана «Энергия закончилась»: оверлей, карточка с кольцом-молнией, таймер, кнопки |
 | `energy-cells.css` | Стили ряда ячеек энергии (`shared/ui/EnergyCells.jsx`): сегменты, мигание (списание/пополнение), растворение при старте платного урока, прогресс-бар следующей ячейки |
 | `table-grid.css` | Стили `shared/ui/TableGrid.jsx`: сетка, базовая ячейка, состояния клика/выделения/подсветки |
@@ -146,6 +148,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `priority-legend.css` | Стили попап-легенды «Приоритеты уроков»: затемняющий оверлей, карточка, три цветные строки приоритетов |
 | `canvas/page.css` | Canvas-страница: шапка, доска, кнопка «+ Нода», SVG-слой |
 | `canvas/files-panel.css` | Панель файлов урока в canvas-редакторе |
+| `canvas/lesson-settings.css` | Стили вкладки «Настройки» урока (`LessonSettingsTab.jsx`): переключатель «Общий/Свой учитель», превью общего учителя, поле имени, блок фото, тумблер звука — вынесены из `canvas/files-panel.css`, когда тот подошёл к лимиту |
 | `canvas/audio.css` | Аудио-пикер ноды |
 | `canvas/crop.css` | Кроп-редактор медиа (фото/видео) |
 | `canvas/nodes.css` | Узлы канваса: nano, mini, max, селекторы |
@@ -212,6 +215,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `AdminRaceTab.jsx` | Админ: конструктор супергонки — тема/описание, супер-урок (про-модуль), задания-модули (порядок ↑↓, XP = сумма уроков, порог 80%), окно старт/конец с тёмным пикером и подписью даты словами |
 | `AdminRacePicker.jsx` | Кастомный выпадающий список конструктора гонки: ограниченная высота со скроллом, пункты с подсказкой XP |
 | `AdminStreakTab.jsx` | Админ-вкладка «Стрик»: CRUD вех наград (streak_milestones) — день/XP/билеты/спецокно/подпись, прямо из приложения |
+| `AdminTeacherTab.jsx` | Админ-вкладка «Учитель»: общий учитель всех уроков (имя + аватар с кроп-редактором) — пишется в `app_settings.teacher_default`, фото уходит в R2 |
 | `AdminErrorsTab.jsx` | Админ-вкладка «Ошибки»: последние 50 ошибок клиентов из client_errors, тап раскрывает ua и stack; подсказка, если SQL-блок ещё не применён |
 
 ### `src/features/canvas/` — canvas-редактор уроков (отдельная полноэкранная страница)
@@ -226,9 +230,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `nodeDefaults.js` | Дефолты нод: триггер по типу (played для звука/видео, таймер 2с для статики), пары триггеров интерактивных типов, память последнего выбранного типа |
 | `useCanvasDrag.js` | Логика перетаскивания нод и пана холста; `wasDragged()` отличает клик от drag |
 | `NodeTriggerEditor.jsx` | Редактор триггеров ноды: строки «Если [событие] → Тогда [нода]»; для таймера — поле ввода секунд |
-| `LessonSettingsTab.jsx` | Вкладка «Настройки» в панели урока: имя учителя + фото с кроп-редактором |
-| `useTeacherSettings.js` | Хук: имя/фото/кроп учителя с локальным хранением (localStorage + IDB), загрузка в R2 при сохранении |
-| `AvatarCrop.jsx` | Круговой кроп-редактор для аватара учителя: drag-pan, scroll-zoom, ±кнопки |
+| `LessonSettingsTab.jsx` | Вкладка «Настройки» в панели урока: переключатель «Общий учитель / Свой учитель» (общий — превью из админки, свой — имя + фото с кроп-редактором), тумблер «Видео со звуком» |
+| `useTeacherSettings.js` | Хук: режим учителя (`global`/`custom`), имя/фото/кроп с локальным хранением (localStorage + IDB), подгрузка общего учителя из `app_settings`, загрузка фото в R2 при сохранении |
 | `NodeAudioPicker.jsx` | Кнопка выбора аудиофайла + textarea для текста; при выделении слова появляется кнопка «Выделить» → открывает NodeTextHighlighter (через CanvasNode) |
 | `NodeMediaCrop.jsx` | Пикер + inline кроп-редактор 4:5 для фото/видео-нод; drag-панорама, зум колёсиком и кнопками ±; сохраняет `{ x, y, scale }` в ноде |
 | `NodeTypeSelect.jsx` | Кастомный дропдаун выбора типа ноды: иконки Lucide, цветной полупрозрачный фон каждой строки |
@@ -436,6 +439,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `supabase.js` | Подключение к базе данных Supabase (по ключам из `.env.local`) |
+| `appSettingsApi.js` | Глобальные настройки приложения (таблица `app_settings`): чтение/запись «учителя по умолчанию» (`teacher_default`) с кэшем на сессию; писать может только админ (RLS) |
 | `pushApi.js` | Вызов edge-функции `push-send` (рассылка Web Push, только админ) |
 | `pushTemplatesApi.js` | CRUD шаблонов пушей (`push_templates`) + поиск включённого шаблона по триггеру (manual / new_module / inactive_today / energy_full) |
 | `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth |
@@ -471,6 +475,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `energyColors.js` | `energyColor(value)` — цвет энергии по текущему количеству (0/1 красный → 5 фирменный лайм); используется везде, где показывается число/индикатор энергии |
 | `sounds.js` | `playSound(name)` — воспроизводит `/sounds/<name>.mp3` с кэшированием Audio-объекта |
 | `authErrorsRu.js` | `supabaseErrorToRu(error)` — перевод ошибок Supabase Auth на русский; общий для панели регистрации урока и `RegisterForm` вкладки «Войти» |
+| `teacherResolve.js` | Кто говорит в чате урока: `teacherModeOf(script)` (у старых уроков без поля — по наличию своего имени/лого) и `resolveTeacher(script, global)` — один источник правды для плеера, карточки запуска и превью в редакторе |
 | `xpLevels.js` | Таблица уровней XP (`LEVELS`), `getCurrentLevel(xp)`, `getNextLevel(xp)` — используется в ProfileTab и LessonSummary |
 | `localProfile.js` | Работа с XP в localStorage (`pithy_xp`): getLocalXp / addLocalXp / setLocalXp / clearLocalXp |
 | `completedLessons.js` | Трекинг пройденных уроков в localStorage (`pithy_completed_v1`): `getCompletedLessons()` → Set, `markLessonCompleted(id)` |
@@ -510,4 +515,5 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `XpTransfer.jsx` | Анимация начисления XP: тикающий счётчик «+N XP», canvas-частицы, летящие в бар, shimmer-заполнение, схлопывание блока награды, onDone — используется в итогах урока (LessonSummary) и попапе награды стрика (RewardClaimPopup) |
 | `EnergyCells.jsx` | Ряд из 5 ячеек энергии (переиспользуемый индикатор): заполнено цветом `energyColor(value)`, пустые — тёмные; режимы `blinkLast` (спишется), `dissolving` (растворение при старте платного урока), `fillingNext`+`fillProgress` (прогресс-бар до пополнения), `unlimited` (все лаймовые + «∞») — используется в `LessonLaunchCard` и `EnergyBadge` |
 | `TableGrid.jsx` | Чистый рендер сетки ноды «Таблица»: raw grid-разметка с учётом rowspan/colspan, опциональные подсветка/клик по ячейке — общий для превью в конструкторе канваса и плеера урока |
+| `AvatarCrop.jsx` | Круговой кроп-редактор аватара: drag-pan, scroll-zoom, ±кнопки — общий для настроек урока (`LessonSettingsTab`) и админ-вкладки «Учитель» |
 | `BackButton.jsx` | Единая кнопка «назад»/«закрыть» для всего приложения: кружок с иконкой стрелки, без текстовой подписи (стили — `styles/back-button.css`); используется в шапках Profile/CustomizationScreen/RacePage/CurriculumView/TableTimelineEditor/CanvasPage/RewardsPopup/PlayerTopBar |

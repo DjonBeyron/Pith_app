@@ -21,6 +21,7 @@
 @import './styles/module-video.css';
 @import './styles/admin-v2.css';
 @import './styles/admin-race.css';
+@import './styles/admin-teacher.css';
 @import './styles/lessons.css';
 @import './styles/lessons-chain.css';
 @import './styles/lessons-chain-nodes.css';
@@ -29,6 +30,7 @@
 @import './styles/priority-legend.css';
 @import './styles/canvas/page.css';
 @import './styles/canvas/files-panel.css';
+@import './styles/canvas/lesson-settings.css';
 @import './styles/canvas/audio.css';
 @import './styles/canvas/crop.css';
 @import './styles/canvas/nodes.css';

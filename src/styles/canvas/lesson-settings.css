@@ -1,0 +1,222 @@
+/* ── Settings tab ────────────────────────────────────────────────────── */
+
+.lessonSettings {
+  padding: 12px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lessonSettingsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Переключатель «Общий учитель / Свой учитель» */
+.lessonSettingsModes {
+  display: flex;
+  gap: 6px;
+}
+
+.lessonSettingsMode {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #2a2c33;
+  background: #12141d;
+  color: #7c7f88;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.lessonSettingsModeActive {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+}
+
+.lessonSettingsGlobal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lessonSettingsGlobalAvatar {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #23262c;
+  color: #b6fe3b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.lessonSettingsGlobalAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lessonSettingsGlobalInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lessonSettingsGlobalName {
+  font-size: 13px;
+  color: #ddd;
+}
+
+.lessonSettingsLabel {
+  font-size: 11px;
+  color: #666;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.lessonSettingsInput {
+  flex: 1;
+  background: #12141d;
+  border: 1px solid #2a2c33;
+  border-radius: 6px;
+  color: #ddd;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.lessonSettingsInput:focus { outline: none; border-color: #4a4c55; }
+
+.lessonSettingsLogo {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #4caf82;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lessonSettingsLogoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lessonSettingsLogoPlaceholder {
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.lessonSettingsLogoHint {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.15s;
+  border-radius: 50%;
+}
+
+.lessonSettingsLogo:hover .lessonSettingsLogoHint { opacity: 1; }
+
+.lessonSettingsSaveNote {
+  font-size: 10px;
+  color: #444;
+  margin: 0;
+}
+
+.lessonSettingsHint {
+  color: #555;
+  line-height: 1.5;
+}
+
+.lessonSettingsToggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 8px;
+}
+
+.lessonSettingsToggle input {
+  display: none;
+}
+
+.lessonSettingsToggleTrack {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #333;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.lessonSettingsToggleTrack::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #666;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.lessonSettingsToggle input:checked + .lessonSettingsToggleTrack {
+  background: #2d5a1b;
+}
+
+.lessonSettingsToggle input:checked + .lessonSettingsToggleTrack::after {
+  transform: translateX(16px);
+  background: #b6fe3b;
+}
+
+.lessonSettingsLogoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lessonSettingsLogoHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lessonSettingsLogoChangeBtn {
+  font-size: 10px;
+  color: #555;
+  background: transparent;
+  border: 1px dashed #2a2c33;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.lessonSettingsLogoChangeBtn:hover { border-color: #888; color: #aaa; }
+
+/* ── PlayerTopBar avatar with photo ─────────────────────────────────── */
+
+.playerTopBarAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
