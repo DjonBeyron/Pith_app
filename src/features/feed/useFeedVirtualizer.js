@@ -70,10 +70,17 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
   // к краям — получалась вечная драка (мигание слайдов). События скролла от
   // самого телепорта глушим флагом
   const teleportingRef = useRef(false)
+  // Номер последнего телепорта: восстанавливать snap имеет право только он.
+  // Иначе два телепорта подряд (реальный случай при старте: len меняется с 4
+  // на 3, пока догружаются начатые модули, и init срабатывает дважды с
+  // разницей ~30мс) дрались друг с другом — раньше каждый запоминал ЖИВОЕ
+  // значение scrollSnapType, и второй запоминал уже выставленное первым
+  // 'none', а потом честно его «восстанавливал». Snap оставался выключен
+  // навсегда — лента листалась свободным скроллом без фиксации на видео.
+  const snapTokenRef = useRef(0)
   function teleport(el, target, why) {
     fdbg('teleport', why + ':', el.scrollTop.toFixed(0), '→', target.toFixed(0))
     teleportingRef.current = true
-    const prev = el.style.scrollSnapType
     el.style.scrollSnapType = 'none'
     el.scrollTop = target
     if (viewH > 0) setActiveIdx(Math.round(target / viewH))
@@ -82,13 +89,13 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
     // случай — юзер свайпнул у края круга и в этот же миг заблокировал
     // телефон/ушёл в другую вкладку на несколько минут), у iOS очередь rAF
     // не переживает долгую заморозку — snap так и оставался бы выключенным
-    // навсегда, лента листалась бы «свободным» скроллом без фиксации на
-    // видео. setTimeout переживает заморозку надёжнее (просто откладывается)
-    let restored = false
+    // навсегда. setTimeout переживает заморозку надёжнее (просто откладывается).
+    // Возвращаем всегда в '' — значение snap живёт только в CSS (feed-v2.css),
+    // инлайном его выставляет исключительно этот код
+    const token = ++snapTokenRef.current
     const restore = () => {
-      if (restored) return
-      restored = true
-      el.style.scrollSnapType = prev
+      if (token !== snapTokenRef.current) return // нас обогнал более поздний телепорт
+      el.style.scrollSnapType = ''
       teleportingRef.current = false
     }
     requestAnimationFrame(() => requestAnimationFrame(restore))
@@ -184,6 +191,13 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
     lastScrollTopRef.current = el.scrollTop
     // События, порождённые нашим же телепортом, не обрабатываем
     if (teleportingRef.current) return
+    // Самопочинка: телепорта нет, а snap выключен — значит его восстановление
+    // где-то потерялось (заморозка rAF в фоне, гонка двух телепортов). Чиним
+    // при первом же движении пальца, не дожидаясь ухода в фон и обратно
+    if (el.style.scrollSnapType === 'none') {
+      fdbg('snap залип на none без телепорта — восстанавливаю')
+      el.style.scrollSnapType = ''
+    }
     // Флаг для сторожа стоп-кадра (SlideVideo): во время свайпа не пинать
     el.dataset.scrolling = '1'
     clearTimeout(settleTimer.current)
