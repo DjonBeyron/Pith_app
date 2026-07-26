@@ -51,7 +51,7 @@ export default function ShellV2() {
     <div className="shellV2">
       <OrientationGuard />
       <InstallPrompt />
-      <UpdateToast />
+      <UpdateToast tab={tab} />
       {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
           самого верха), справа энергия. Версия приложения — в админке
           (AdminV2) и на стартовом сплэше (index.html), не в ленте */}

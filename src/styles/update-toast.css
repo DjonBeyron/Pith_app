@@ -11,11 +11,13 @@
   z-index: 950;
   display: flex;
   align-items: center;
-  gap: 12px;
+  /* Плашка не переносится по строкам (всё nowrap), поэтому отступы скупые:
+     с двумя строками текста и двумя кнопками она должна влезать и в 375px */
+  gap: 10px;
   background: #1a1d22;
   border: 1px solid #2a2d35;
   border-radius: 13px;
-  padding: 9px 10px 9px 14px;
+  padding: 9px 8px 9px 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   animation: updateToastIn 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -25,27 +27,68 @@
   to   { transform: translate(-50%, 0); opacity: 1; }
 }
 
+/* Две строки текста слева: что случилось и что будет по нажатию */
+.updateToastCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .updateToastText {
-  font-size: 13px;
+  font-size: 12px;
   color: #e0e0e0;
   white-space: nowrap;
 }
+
+/* Именно эта строка задаёт ширину всей плашки (она длиннее заголовка) —
+   потому и мельче него */
+.updateToastSub {
+  font-size: 10px;
+  color: #8b8f99;
+  white-space: nowrap;
+}
+
+/* «Позже» — тихая кнопка: плашка уходит, но вернётся на следующей вкладке */
+.updateToastLater {
+  background: none;
+  border: none;
+  padding: 8px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b8f99;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: color .15s, transform .09s;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.updateToastLater:active { color: #c8ccd4; transform: scale(0.94); }
 
 .updateToastBtn {
   background: #b6fe3b;
   border: none;
   border-radius: 9px;
-  padding: 8px 14px;
+  padding: 8px 11px;
   font-size: 12px;
   font-weight: 700;
   color: #0d0f14;
   cursor: pointer;
   font-family: inherit;
   flex-shrink: 0;
-  transition: filter .15s;
+  transition: filter .15s, transform .09s;
+  /* Синяя подсветка тапа iOS поверх собственного нажатия — лишняя */
+  -webkit-tap-highlight-color: transparent;
   /* Быстрые повторные тапы иначе триггерят выделение текста кнопки */
   -webkit-user-select: none;
   user-select: none;
 }
 
 .updateToastBtn:hover { filter: brightness(1.08); }
+
+/* Видимая часть «импакта»: кнопка проседает под пальцем ровно в тот момент,
+   когда система даёт тактильный отклик (haptics.js) */
+.updateToastBtn:active { transform: scale(0.94); filter: brightness(0.94); }
