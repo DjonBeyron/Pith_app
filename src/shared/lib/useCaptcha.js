@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // Капча Cloudflare Turnstile перед входом/регистрацией — главный барьер против
 // перебора пароля (локальный тормоз в loginThrottle.js обходится очисткой
@@ -8,16 +8,25 @@ import { useEffect, useRef, useState } from 'react'
 // грузит и не рисует, формы работают как раньше. Порядок включения — в
 // PROJECT.md, раздел «Защита входа».
 //
-// Важно: виджет НЕ должен запирать вход. Если скрипт не загрузился, виджет
-// упал с ошибкой или завис (у Cloudflare бывает недоступен CDN), хук выставит
-// failed — формы в этом случае дают войти без токена. Настоящая проверка всё
-// равно на сервере: при включённой капче Supabase сам отобьёт запрос.
+// Виджет НЕ рисуется при открытии формы: он поднимается только когда человек
+// нажал «Войти»/«Зарегистрироваться» — то есть через guard(). Так убрана
+// ситуация, когда форма молча требует «подтверди, что ты не робот», а самой
+// капчи на экране нет (виджет не успевал нарисоваться, если форма открывалась
+// не сразу — например переходом из ленты по тапу на лайк).
+//
+// Виджет НЕ запирает вход. Сломался (нет связи с Cloudflare, код ошибки) —
+// пробуем поднять заново до MAX_AUTO_RETRIES раз, потом пускаем без токена и
+// оставляем человеку кнопку «Повторить». Настоящая проверка всё равно на
+// сервере: при включённой капче Supabase сам отобьёт запрос.
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? ''
 export const captchaEnabled = !!SITE_KEY
 
-// Сколько ждём токен, прежде чем считать капчу неработающей. Если человек решает
-// её дольше — не страшно: пришедший позже токен всё равно подхватится
+// Сколько ждём токен у живого виджета, прежде чем перестать держать форму.
+// Виджет при этом остаётся на экране: решит человек позже — токен подхватится
 const SOLVE_TIMEOUT_MS = 12_000
+// Пауза перед автоматической попыткой поднять сломавшийся виджет заново
+const RETRY_DELAY_MS   = 1_500
+const MAX_AUTO_RETRIES = 2
 
 let scriptPromise = null
 function loadTurnstile() {
@@ -27,77 +36,127 @@ function loadTurnstile() {
     s.src   = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
     s.async = true
     s.onload  = resolve
-    s.onerror = () => reject(new Error('turnstile script failed'))
+    // Обнуляем промис: иначе повторная попытка получит тот же отказ навсегда
+    s.onerror = () => { scriptPromise = null; reject(new Error('turnstile script failed')) }
     document.head.appendChild(s)
   })
   return scriptPromise
 }
 
-// { boxRef, token, reset, failed, enabled }
-// boxRef вешается на пустой <div> — туда Turnstile рисует виджет.
 export function useCaptcha() {
-  const boxRef    = useRef(null)
-  const widgetRef = useRef(null)
-  const timerRef  = useRef(null)
-  const [token,  setToken]  = useState(null)
-  const [failed, setFailed] = useState(false)
+  // Узел под виджет держим в состоянии, а не в ref: эффект должен ждать, пока
+  // <div> реально появится в DOM (раньше при null-ref виджет не рисовался
+  // вообще и хук молча зависал)
+  const [box,      setBox]      = useState(null)
+  const [active,   setActive]   = useState(false) // форма попросила токен
+  const [token,    setToken]    = useState(null)
+  const [failed,   setFailed]   = useState(false) // пускаем без капчи
+  const [retrying, setRetrying] = useState(false)
+  const [attempt,  setAttempt]  = useState(0)
+  const widgetRef  = useRef(null)
+  const timerRef   = useRef(null)
+  const retryRef   = useRef(null)
+  const pendingRef = useRef(null) // что выполнить, когда придёт токен
 
   useEffect(() => {
-    if (!captchaEnabled) return
+    if (!captchaEnabled || !active || !box) return
     let cancelled = false
 
-    const startTimeout = () => {
+    // Виджет не поднялся: нет сети, 600010, домен не разрешён в Cloudflare.
+    // Чаще всего это разовый обрыв — пробуем заново с нуля
+    const onBroken = code => {
+      if (cancelled) return
       clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => {
-        if (cancelled) return
-        console.warn('[captcha] токен не получен за', SOLVE_TIMEOUT_MS / 1000, 'с — пускаем без капчи')
-        setFailed(true)
-      }, SOLVE_TIMEOUT_MS)
+      setToken(null)
+      if (attempt < MAX_AUTO_RETRIES) {
+        setRetrying(true)
+        retryRef.current = setTimeout(() => setAttempt(a => a + 1), RETRY_DELAY_MS)
+        return
+      }
+      console.warn('[captcha] не поднялась за', attempt + 1, 'попыток, код', code)
+      setRetrying(false)
+      setFailed(true)
     }
 
     loadTurnstile()
       .then(() => {
-        if (cancelled || !window.turnstile || !boxRef.current) return
-        widgetRef.current = window.turnstile.render(boxRef.current, {
+        if (cancelled || !window.turnstile) return
+        setRetrying(false)
+        widgetRef.current = window.turnstile.render(box, {
           sitekey: SITE_KEY,
           theme: 'dark',
           callback: t => {
             clearTimeout(timerRef.current)
+            setRetrying(false)
             setFailed(false)
             setToken(t)
           },
-          'expired-callback': () => { setToken(null); startTimeout() },
-          // Turnstile передаёт код ошибки (300xxx — проблема виджета,
-          // 110200 — домен не разрешён в настройках виджета)
-          'error-callback': code => {
-            console.warn('[captcha] Turnstile error', code)
-            clearTimeout(timerRef.current)
-            setToken(null)
-            setFailed(true)
-          },
+          'expired-callback': () => setToken(null),
+          // Turnstile передаёт код: 110200 — домен не разрешён в настройках
+          // виджета, 600010 — челлендж не смог выполниться, 300xxx — сбой
+          'error-callback': onBroken,
         })
-        startTimeout()
+        // Виджет нарисовался, но токена нет (медленная сеть, человек ещё
+        // решает) — перестаём держать форму, сам виджет не трогаем
+        timerRef.current = setTimeout(() => {
+          if (cancelled) return
+          console.warn('[captcha] токен не получен за', SOLVE_TIMEOUT_MS / 1000, 'с')
+          setFailed(true)
+        }, SOLVE_TIMEOUT_MS)
       })
       .catch(e => {
         console.warn('[captcha] скрипт не загрузился:', e?.message)
-        if (!cancelled) setFailed(true)
+        onBroken('script')
       })
 
     return () => {
       cancelled = true
       clearTimeout(timerRef.current)
+      clearTimeout(retryRef.current)
       if (widgetRef.current && window.turnstile) {
         window.turnstile.remove(widgetRef.current)
         widgetRef.current = null
       }
     }
+  }, [active, box, attempt])
+
+  // Пришёл токен (или стало ясно, что капчи не будет) — доводим отложенную
+  // отправку формы до конца сами, повторно нажимать кнопку не нужно
+  useEffect(() => {
+    if (!pendingRef.current || (!token && !failed)) return
+    const run = pendingRef.current
+    pendingRef.current = null
+    run(token)
+  }, [token, failed])
+
+  // Вызывать из обработчика отправки формы вместо прямой отправки: токен уже
+  // есть или капча не поднялась — run выполнится сразу, иначе покажем виджет
+  // и выполним run, как только он отдаст токен
+  const guard = useCallback(run => {
+    if (!captchaEnabled || token || failed) { run(token); return }
+    pendingRef.current = run
+    setActive(true)
+  }, [token, failed])
+
+  // Кнопка «Повторить» — поднять виджет заново, счётчик автопопыток с нуля
+  const retry = useCallback(() => {
+    clearTimeout(retryRef.current)
+    setToken(null)
+    setFailed(false)
+    setRetrying(false)
+    setActive(true)
+    setAttempt(a => a + 1)
   }, [])
 
-  // После неудачной попытки токен уже сгорел — виджету нужен новый раунд
-  function reset() {
+  // После ошибки сервера токен уже сгорел — виджету нужен новый раунд
+  const reset = useCallback(() => {
     setToken(null)
     if (widgetRef.current && window.turnstile) window.turnstile.reset(widgetRef.current)
-  }
+  }, [])
 
-  return { boxRef, token, reset, failed, enabled: captchaEnabled }
+  return {
+    boxRef: setBox, enabled: captchaEnabled, active, token, failed, retrying,
+    waiting: captchaEnabled && active && !token && !failed, // форма ждёт токен
+    guard, retry, reset,
+  }
 }

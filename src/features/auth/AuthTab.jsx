@@ -5,6 +5,7 @@ import { clearProfileCache, refreshProfile } from '../../shared/api/profileCache
 import { useAdmin } from '../../app/AdminContext.jsx'
 import RegisterForm from './RegisterForm.jsx'
 import { useCaptcha } from '../../shared/lib/useCaptcha.js'
+import CaptchaBox from '../../shared/ui/CaptchaBox.jsx'
 import {
   getLoginLockSeconds, registerLoginFailure, clearLoginFailures, formatLockLeft,
 } from '../../shared/lib/loginThrottle.js'
@@ -13,6 +14,8 @@ function loginErrorToRu(error) {
   const msg = (error?.message ?? '').toLowerCase()
   if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('email not confirmed'))
     return 'Неверный email или пароль'
+  if (msg.includes('captcha'))
+    return 'Проверка «я не робот» не прошла — нажми «Повторить» и попробуй снова'
   if (msg.includes('too many') || msg.includes('rate limit'))
     return 'Слишком много попыток — подожди немного'
   if (msg.includes('network') || msg.includes('fetch'))
@@ -28,10 +31,7 @@ export default function AuthTab({ onLoginSuccess }) {
   const [err,      setErr]      = useState('')
   const [busy,     setBusy]     = useState(false)
   const [, tick]                = useState(0) // тикает раз в секунду, пока идёт блокировка
-  const {
-    boxRef: captchaBoxRef, token: captchaToken,
-    reset: resetCaptcha, failed: captchaFailed, enabled: captchaOn,
-  } = useCaptcha()
+  const captcha = useCaptcha()
 
   // Сколько ещё ждать после серии неудачных попыток (0 — можно пробовать)
   const lockLeft = getLoginLockSeconds(email)
@@ -42,28 +42,29 @@ export default function AuthTab({ onLoginSuccess }) {
     return () => clearInterval(t)
   }, [lockLeft])
 
-  async function handleLogin() {
-    if (busy) return
+  function handleLogin() {
+    if (busy || captcha.waiting) return
     const left = getLoginLockSeconds(email)
     if (left) {
       setErr(`Слишком много попыток входа. Повтори через ${formatLockLeft(left)}`)
       tick(n => n + 1)
       return
     }
-    // Ждём токен, только пока капча жива. Не загрузилась/зависла (captchaFailed)
-    // — пускаем: настоящую проверку всё равно делает сервер
-    if (captchaOn && !captchaToken && !captchaFailed) {
-      setErr('Подтверди, что ты не робот')
-      return
-    }
     setErr('')
+    // Капча поднимается ровно здесь — до нажатия «Войти» её на экране нет.
+    // guard сам доведёт вход до конца, когда придёт токен (или когда станет
+    // ясно, что капча не отвечает — тогда решает сервер)
+    captcha.guard(doLogin)
+  }
+
+  async function doLogin(captchaToken) {
     setBusy(true)
     const { error } = await loginUser({
       email: email.trim(), password: password.trim(), captchaToken,
     })
     setBusy(false)
     if (error) {
-      resetCaptcha() // токен капчи одноразовый — нужен новый раунд
+      captcha.reset() // токен капчи одноразовый — нужен новый раунд
       const secs = registerLoginFailure(email)
       setErr(secs
         ? `Слишком много попыток входа. Повтори через ${formatLockLeft(secs)}`
@@ -137,7 +138,7 @@ export default function AuthTab({ onLoginSuccess }) {
               value={email}
               onChange={e => setEmail(e.target.value)}
               onKeyDown={handleKey}
-              disabled={busy}
+              disabled={busy || captcha.waiting}
               autoComplete="email"
             />
             <input
@@ -147,20 +148,19 @@ export default function AuthTab({ onLoginSuccess }) {
               value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={handleKey}
-              disabled={busy}
+              disabled={busy || captcha.waiting}
               autoComplete="current-password"
             />
-            {captchaOn && <div className="authCaptcha" ref={captchaBoxRef} />}
-            {captchaOn && captchaFailed && (
-              <div className="authHint">Проверка «я не робот» не отвечает — входим без неё</div>
-            )}
+            <CaptchaBox captcha={captcha} />
             {err && <div className="authError">{err}</div>}
             <button
               className="authBtnPrimary"
               onClick={handleLogin}
-              disabled={busy || !!lockLeft || !email.trim() || !password.trim()}
+              disabled={busy || captcha.waiting || !!lockLeft || !email.trim() || !password.trim()}
             >
-              {busy ? 'Вход...' : lockLeft ? `Подожди ${formatLockLeft(lockLeft)}` : 'Войти'}
+              {busy ? 'Вход...'
+                : captcha.waiting ? 'Проверка...'
+                : lockLeft ? `Подожди ${formatLockLeft(lockLeft)}` : 'Войти'}
             </button>
           </>
         )}

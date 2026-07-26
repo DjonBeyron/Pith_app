@@ -5,6 +5,7 @@ import { supabaseErrorToRu } from '../../shared/lib/authErrorsRu.js'
 import RegistrationConsent from '../../shared/ui/RegistrationConsent.jsx'
 import { transferSlowMotionHintOnRegister } from '../feed/useSlowMotionHint.js'
 import { useCaptcha } from '../../shared/lib/useCaptcha.js'
+import CaptchaBox from '../../shared/ui/CaptchaBox.jsx'
 
 // Минимальная длина пароля. Такой же минимум надо выставить в Supabase →
 // Authentication → Policies, иначе правило легко обойти в обход формы.
@@ -18,11 +19,8 @@ export default function RegisterForm({ onLoginSuccess }) {
   const [busy,     setBusy]     = useState(false)
   const [showConsent, setShowConsent] = useState(false)
 
-  const {
-    boxRef: captchaBoxRef, token: captchaToken,
-    reset: resetCaptcha, failed: captchaFailed, enabled: captchaOn,
-  } = useCaptcha()
-  const canSubmit = email.trim() && name.trim() && password.trim() && !busy
+  const captcha = useCaptcha()
+  const canSubmit = email.trim() && name.trim() && password.trim() && !busy && !captcha.waiting
 
   function handleSubmit() {
     if (!canSubmit) return
@@ -30,13 +28,11 @@ export default function RegisterForm({ onLoginSuccess }) {
       setErr(`Пароль должен быть не короче ${MIN_PASSWORD} символов`)
       return
     }
-    // Капча не отвечает — не запираем регистрацию, решает сервер
-    if (captchaOn && !captchaToken && !captchaFailed) {
-      setErr('Подтверди, что ты не робот')
-      return
-    }
     setErr('')
-    setShowConsent(true)
+    // Капча поднимается только сейчас, по нажатию кнопки. Согласие покажем,
+    // когда придёт токен (или когда станет ясно, что капча не отвечает —
+    // тогда регистрацию не запираем, решает сервер)
+    captcha.guard(() => setShowConsent(true))
   }
 
   async function handleConsentAccept() {
@@ -46,10 +42,10 @@ export default function RegisterForm({ onLoginSuccess }) {
       email:    email.trim(),
       password: password.trim(),
       name:     name.trim(),
-      captchaToken,
+      captchaToken: captcha.token,
     })
     if (error) {
-      resetCaptcha() // токен одноразовый — после ошибки нужен новый
+      captcha.reset() // токен одноразовый — после ошибки нужен новый
       setErr(supabaseErrorToRu(error))
       setBusy(false)
       return
@@ -111,10 +107,10 @@ export default function RegisterForm({ onLoginSuccess }) {
         disabled={busy}
         autoComplete="new-password"
       />
-      {captchaOn && <div className="authCaptcha" ref={captchaBoxRef} />}
+      <CaptchaBox captcha={captcha} />
       {err && <div className="authError">{err}</div>}
       <button className="authBtnPrimary" onClick={handleSubmit} disabled={!canSubmit}>
-        {busy ? 'Регистрация...' : 'Зарегистрироваться'}
+        {busy ? 'Регистрация...' : captcha.waiting ? 'Проверка...' : 'Зарегистрироваться'}
       </button>
     </>
   )

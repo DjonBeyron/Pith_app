@@ -5,6 +5,7 @@ import { getPushState } from '../../../../shared/lib/push.js'
 import RegistrationConsent from '../../../../shared/ui/RegistrationConsent.jsx'
 import { transferSlowMotionHintOnRegister } from '../../../feed/useSlowMotionHint.js'
 import { useCaptcha } from '../../../../shared/lib/useCaptcha.js'
+import CaptchaBox from '../../../../shared/ui/CaptchaBox.jsx'
 import PushPromptPopup from './PushPromptPopup.jsx'
 
 export default function RegistrationPanel({ node, onDone, onAnswered, onHeightChange }) {
@@ -16,10 +17,7 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
   const [showConsent, setShowConsent] = useState(false)
   const [showPushPrompt, setShowPushPrompt] = useState(false)
   const panelRef = useRef(null)
-  const {
-    boxRef: captchaBoxRef, token: captchaToken,
-    reset: resetCaptcha, failed: captchaFailed, enabled: captchaOn,
-  } = useCaptcha()
+  const captcha = useCaptcha()
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setShow(true))
@@ -32,17 +30,11 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
   })
 
   function handleSubmit() {
-    if (loading) return
-    const trimEmail = email.trim()
-    const trimName  = name.trim()
-    const trimPass  = password.trim()
-    if (!trimEmail || !trimName || !trimPass) return
-    // Капча (если включена) обязательна и здесь — иначе Supabase отобьёт signUp
-    if (captchaOn && !captchaToken && !captchaFailed) {
-      onAnswered?.('Подтверди, что ты не робот', 'error')
-      return
-    }
-    setShowConsent(true)
+    if (loading || captcha.waiting) return
+    if (!email.trim() || !name.trim() || !password.trim()) return
+    // Капча поднимается только по нажатию кнопки; согласие покажем, когда
+    // придёт токен (или когда станет ясно, что капча не отвечает)
+    captcha.guard(() => setShowConsent(true))
   }
 
   async function handleConsentAccept() {
@@ -53,11 +45,11 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
 
     setLoading(true)
     const { data, error } = await registerUser({
-      email: trimEmail, password: trimPass, name: trimName, captchaToken,
+      email: trimEmail, password: trimPass, name: trimName, captchaToken: captcha.token,
     })
 
     if (error) {
-      resetCaptcha() // токен одноразовый — после ошибки нужен новый
+      captcha.reset() // токен одноразовый — после ошибки нужен новый
       onAnswered?.(supabaseErrorToRu(error), 'error')
       setLoading(false)
       return
@@ -87,7 +79,7 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
     setTimeout(() => onDone?.('reg_cancel', null), 300 + 420)
   }
 
-  const canSubmit  = email.trim() && name.trim() && password.trim() && !loading
+  const canSubmit  = email.trim() && name.trim() && password.trim() && !loading && !captcha.waiting
   const title      = node?.typeData?.registration?.title      ?? 'Регистрация'
   const policyText = node?.typeData?.registration?.policyText ?? ''
 
@@ -146,9 +138,9 @@ export default function RegistrationPanel({ node, onDone, onAnswered, onHeightCh
             disabled={loading}
             autoComplete="new-password"
           />
-          {captchaOn && <div className="regPanelCaptcha" ref={captchaBoxRef} />}
+          <CaptchaBox captcha={captcha} />
           <button className="regPanelBtnPrimary" onClick={handleSubmit} disabled={!canSubmit}>
-            {loading ? 'Отправка...' : 'Зарегистрироваться'}
+            {loading ? 'Отправка...' : captcha.waiting ? 'Проверка...' : 'Зарегистрироваться'}
           </button>
           <button className="regPanelBtnCancel" onClick={handleCancel} disabled={loading}>
             Отмена

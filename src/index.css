@@ -2,6 +2,7 @@
 @import './styles/back-button.css';
 @import './styles/orientation-guard.css';
 @import './styles/install-prompt.css';
+@import './styles/captcha.css';
 @import './styles/layout.css';
 @import './styles/admin.css';
 @import './styles/shell-v2.css';
