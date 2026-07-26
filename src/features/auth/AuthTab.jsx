@@ -33,8 +33,14 @@ export default function AuthTab({ onLoginSuccess }) {
   const [, tick]                = useState(0) // тикает раз в секунду, пока идёт блокировка
   const captcha = useCaptcha()
 
-  // Сколько ещё ждать после серии неудачных попыток (0 — можно пробовать)
+  // Сколько ещё ждать после серии неудачных попыток (0 — можно пробовать).
+  // Текст блокировки НЕ храним в err: он считается отсюда на каждом рендере,
+  // поэтому сам тикает и сам исчезает, когда кулдаун кончился (раньше
+  // сообщение оставалось висеть, хотя кнопка уже разблокировалась)
   const lockLeft = getLoginLockSeconds(email)
+  const shownErr = lockLeft
+    ? `Слишком много попыток входа. Повтори через ${formatLockLeft(lockLeft)}`
+    : err
 
   useEffect(() => {
     if (!lockLeft) return
@@ -44,9 +50,7 @@ export default function AuthTab({ onLoginSuccess }) {
 
   function handleLogin() {
     if (busy || captcha.waiting) return
-    const left = getLoginLockSeconds(email)
-    if (left) {
-      setErr(`Слишком много попыток входа. Повтори через ${formatLockLeft(left)}`)
+    if (lockLeft) {
       tick(n => n + 1)
       return
     }
@@ -59,16 +63,18 @@ export default function AuthTab({ onLoginSuccess }) {
 
   async function doLogin(captchaToken) {
     setBusy(true)
+    console.log('[auth] отправляю вход, токен капчи:', captchaToken ? `есть (${captchaToken.length})` : 'НЕТ')
     const { error } = await loginUser({
       email: email.trim(), password: password.trim(), captchaToken,
     })
     setBusy(false)
+    console.log('[auth] ответ сервера:', error ? error.message : 'успех')
     if (error) {
       captcha.reset() // токен капчи одноразовый — нужен новый раунд
+      // Пошла блокировка — её текст соберёт shownErr из lockLeft и сам погасит,
+      // когда время выйдет; в err кладём только обычные ошибки
       const secs = registerLoginFailure(email)
-      setErr(secs
-        ? `Слишком много попыток входа. Повтори через ${formatLockLeft(secs)}`
-        : loginErrorToRu(error))
+      setErr(secs ? '' : loginErrorToRu(error))
       return
     }
     clearLoginFailures(email)
@@ -152,7 +158,7 @@ export default function AuthTab({ onLoginSuccess }) {
               autoComplete="current-password"
             />
             <CaptchaBox captcha={captcha} />
-            {err && <div className="authError">{err}</div>}
+            {shownErr && <div className="authError">{shownErr}</div>}
             <button
               className="authBtnPrimary"
               onClick={handleLogin}

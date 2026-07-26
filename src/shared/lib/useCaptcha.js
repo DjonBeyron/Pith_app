@@ -33,6 +33,11 @@ const SOLVE_TIMEOUT_MS = 12_000
 const RETRY_DELAY_MS   = 1_500
 const MAX_AUTO_RETRIES = 2
 
+// Лог капчи идёт в консоль всегда, не под флагом debug: разбирать её приходится
+// на боевом сайте у живого человека, где дебаг не включён. Строк мало, только
+// по нажатию кнопки — консоль не засоряют
+const log = (...a) => console.log('[captcha]', ...a)
+
 let scriptPromise = null
 function loadTurnstile() {
   if (scriptPromise) return scriptPromise
@@ -40,7 +45,7 @@ function loadTurnstile() {
     const s = document.createElement('script')
     s.src   = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
     s.async = true
-    s.onload  = resolve
+    s.onload  = () => { log('скрипт Turnstile загружен'); resolve() }
     // Обнуляем промис: иначе повторная попытка получит тот же отказ навсегда
     s.onerror = () => { scriptPromise = null; reject(new Error('turnstile script failed')) }
     document.head.appendChild(s)
@@ -74,6 +79,7 @@ export function useCaptcha() {
       if (cancelled) return
       setToken(null)
       if (attempt < MAX_AUTO_RETRIES) {
+        log('ошибка виджета, код', code, '→ перезапуск через', RETRY_DELAY_MS / 1000, 'с')
         setRetrying(true)
         retryRef.current = setTimeout(() => setAttempt(a => a + 1), RETRY_DELAY_MS)
         return
@@ -86,21 +92,26 @@ export function useCaptcha() {
     loadTurnstile()
       .then(() => {
         if (cancelled || !window.turnstile) return
+        log('рисую виджет, попытка', attempt + 1)
         setRetrying(false)
         widgetRef.current = window.turnstile.render(box, {
           sitekey: SITE_KEY,
           theme: 'dark',
           callback: t => {
+            log('токен получен, длина', t?.length ?? 0)
             setRetrying(false)
             setAsking(false)
             setFailed(false)
             setToken(t)
           },
-          'expired-callback': () => setToken(null),
+          'expired-callback': () => { log('токен просрочен'); setToken(null) },
           // Капча решила спросить человека (галочка «я не робот»). Значит
           // виджет жив — ждём человека сколько нужно, таймаут снимается:
           // отправить форму без токена сейчас = гарантированный отказ сервера
-          'before-interactive-callback': () => setAsking(true),
+          'before-interactive-callback': () => {
+            log('просит галочку — таймаут снят, ждём человека')
+            setAsking(true)
+          },
           // Turnstile передаёт код: 110200 — домен не разрешён в настройках
           // виджета, 600010 — челлендж не смог выполниться, 300xxx — сбой
           'error-callback': onBroken,
@@ -140,6 +151,7 @@ export function useCaptcha() {
     const run = pendingRef.current
     pendingRef.current = null
     setPending(false)
+    log('отправляю форму, токен:', token ? `есть (${token.length})` : 'НЕТ (капча не поднялась)')
     run(token)
   }, [token, failed])
 
@@ -147,7 +159,10 @@ export function useCaptcha() {
   // есть или капча не поднялась — run выполнится сразу, иначе покажем виджет
   // и выполним run, как только он отдаст токен
   const guard = useCallback(run => {
-    if (!captchaEnabled || token || failed) { run(token); return }
+    if (!captchaEnabled) { log('капча выключена (нет VITE_TURNSTILE_SITE_KEY)'); run(null); return }
+    if (token)  { log('токен уже есть — отправляю сразу'); run(token); return }
+    if (failed) { log('капча не поднялась — отправляю без токена, решает сервер'); run(null); return }
+    log('нажата кнопка — поднимаю виджет и жду токен')
     pendingRef.current = run
     setPending(true)
     setActive(true)
@@ -155,6 +170,7 @@ export function useCaptcha() {
 
   // Кнопка «Повторить» — поднять виджет заново, счётчик автопопыток с нуля
   const retry = useCallback(() => {
+    log('ручной повтор — поднимаю виджет заново')
     clearTimeout(retryRef.current)
     setToken(null)
     setFailed(false)
@@ -168,6 +184,7 @@ export function useCaptcha() {
   // failed тоже снимаем: иначе следующее нажатие кнопки ушло бы на сервер
   // сразу без токена и получило бы ту же ошибку по кругу
   const reset = useCallback(() => {
+    log('сброс после ответа сервера — новый раунд капчи')
     setToken(null)
     setAsking(false)
     setFailed(false)
