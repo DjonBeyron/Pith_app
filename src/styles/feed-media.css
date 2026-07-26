@@ -229,13 +229,36 @@
   .feedSkeleton::after { animation: none; }
 }
 
-/* ── Дебаг ленты (временная кнопка) — слева, ниже переключателя
-   видео/список (my-lessons-v2.css, mlModeToggle, top 40px), чтобы не
-   мешать ему */
+/* Иконка звука в шапке — только для тех, кто уже включал звук раньше (не
+   новичок, см. soundEverOn): пока звук выключен, торчит слева постоянно,
+   не только на паузе, как чип на самом видео. Тот же ряд, что у лупы
+   справа (feedSearchBtn, top 40px) — симметрично */
+.feedHeaderSoundBtn {
+  position: absolute;
+  left: 14px;
+  top: calc(40px + env(safe-area-inset-top, 0px));
+  z-index: 6;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 0;
+  cursor: pointer;
+}
+
+.feedHeaderSoundBtn svg {
+  width: 21px;
+  height: 21px;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
+}
+
+/* ── Дебаг ленты (временная кнопка) — слева, ниже иконки звука и
+   переключателя видео/список (my-lessons-v2.css, mlModeToggle, top 40px),
+   чтобы никому не мешать */
 .feedDbgBtn {
   position: absolute;
   left: 14px;
-  top: calc(70px + env(safe-area-inset-top, 0px));
+  top: calc(100px + env(safe-area-inset-top, 0px));
   z-index: 6;
   padding: 3px 7px;
   border-radius: 7px;

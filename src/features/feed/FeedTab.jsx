@@ -97,6 +97,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
         view={view} onSetView={setView} onShowDebug={() => setShowDebug(true)}
         onOpenSearch={() => setShowSearch(true)} filterActive={filterActive}
         isAdmin={isAdmin}
+        soundOn={soundReady} soundEverOn={soundEverOn} onSoundOn={handleSoundOn}
       />
 
       {/* Оба вида смонтированы всегда (как вкладки оболочки): переключение

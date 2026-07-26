@@ -3,6 +3,8 @@ import { Play, VolumeX, Volume2 } from 'lucide-react'
 import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface, prepareReturn } from './videoPool.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
+const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга при частых тапах по чипу звука
+
 // Видео-слой слайда — общий для «Рекомендаций» и «Моих уроков».
 // Кто активен — решает родитель по позиции скролла (пропс active). Видео берётся
 // из пула (videoPool): активный слайд играет, сосед (near) заранее держит своё
@@ -15,6 +17,11 @@ export default function SlideVideo({
 }) {
   const [paused, setPaused] = useState(false)
   const rootRef = useRef(null)
+  // Защита от дребезга: на реальных телефонах быстрые повторные тапы по чипу
+  // звука (вкл/выкл подряд) успевают дёрнуть play()/pause() чаще, чем
+  // устройство успевает вернуть кадр на место — он «плывёт». Один тап
+  // проходит, следующие в течение SOUND_TOGGLE_COOLDOWN_MS игнорируются
+  const lastSoundToggleRef = useRef(0)
   const hasVideo = !!videoUrl
   // В «окне» = активный или сосед. Только для них держим элемент пула.
   const inWindow = active || near
@@ -203,8 +210,18 @@ export default function SlideVideo({
     onSoundOn?.()
   }
 
+  // Общий стражник обоих чипов звука — первый тап проходит, следующие в
+  // течение SOUND_TOGGLE_COOLDOWN_MS игнорируются (см. lastSoundToggleRef выше)
+  function soundToggleAllowed() {
+    const now = Date.now()
+    if (now - lastSoundToggleRef.current < SOUND_TOGGLE_COOLDOWN_MS) return false
+    lastSoundToggleRef.current = now
+    return true
+  }
+
   function tapSound(e) {
     e.stopPropagation()
+    if (!soundToggleAllowed()) return
     activateSound()
   }
 
@@ -212,6 +229,7 @@ export default function SlideVideo({
   // только у этого элемента (звук глобальный на всю ленту — soundOn выше)
   function muteSound(e) {
     e.stopPropagation()
+    if (!soundToggleAllowed()) return
     if (slideKey !== undefined) leaseVideo(slideKey).muted = true
     onSoundOff?.()
   }
