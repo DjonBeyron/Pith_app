@@ -14,7 +14,7 @@ const NATURAL_H = 65
 const MAX_SCALE = 0.9
 
 export default function CaptchaBox({ captcha }) {
-  const { enabled, active, boxRef, token, failed, retrying, retry } = captcha
+  const { enabled, active, boxRef, token, failed, retrying, asking, retry } = captcha
   const [wrap,  setWrap]  = useState(null)
   const [scale, setScale] = useState(MAX_SCALE)
 
@@ -44,10 +44,13 @@ export default function CaptchaBox({ captcha }) {
       {retrying && (
         <div className="captchaHint">Проверка не загрузилась — пробуем ещё раз...</div>
       )}
-      {!token && !retrying && !failed && (
-        <div className="captchaHint">Подтверди, что ты не робот</div>
+      {!token && !retrying && asking && (
+        <div className="captchaHint">Поставь галочку — и вход продолжится сам</div>
       )}
-      {!token && failed && (
+      {!token && !retrying && !asking && !failed && (
+        <div className="captchaHint">Проверяем, что ты не робот...</div>
+      )}
+      {!token && !asking && failed && (
         <div className="captchaHint">
           Проверка «я не робот» не отвечает — продолжаем без неё.
           <button type="button" className="captchaRetry" onClick={retry}>Повторить</button>
