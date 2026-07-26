@@ -205,8 +205,14 @@
   flex-direction: column;
   align-items: center;
   gap: 40px;
-  padding: 44px 10px 12px; /* сверху запас под зелёное свечение старта (drop-shadow ~36px
-    + пульс) — иначе оно режется верхним краем скролл-контейнера */
+  /* Запас сверху и снизу — под свечение Старта и Финала. Контейнер режет по
+     обеим осям (overflow-x: hidden + overflow-y: scroll), а тулбар над ним
+     ПРОЗРАЧНЫЙ — обрезанное свечение не прячется за шапкой, а видно как
+     ровную линию поперёк ореола.
+     Снизу нужно больше: у Финала margin-bottom -24px (см. lessons-chain-final.css)
+     съедает запас, а его ореол-burst (mgHaloBurst, scale до 1.18) уходит за
+     нижнюю грань нода на ~36px. 68 - 24 = 44px реального места. */
+  padding: 56px 10px 68px;
   position: relative;
   box-sizing: border-box;
 }

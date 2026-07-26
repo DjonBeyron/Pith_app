@@ -36,9 +36,11 @@ export function useChainScroll({ justCompleted, lessons, scrollRef, startRef, fi
       : lessonRefs.current[idx - 1]
     if (!el) { dbg('[SCROLL] top: нет элемента урока, idx=', idx); return }
     const s = getScroller(scrollRef.current)
-    // Отступ 40px: зелёное свечение пройденного нода (drop-shadow ~30px) не
-    // должно резаться верхним краем скролл-контейнера
-    const target = Math.max(0, el.getBoundingClientRect().top + s.get() - s.base() - 40)
+    // Отступ 56px: зелёное свечение пройденного нода (drop-shadow 18px ≈ 27px
+    // видимого рассеивания + пульс scale 1.03) не должно резаться верхним краем
+    // скролл-контейнера. Тулбар над ним прозрачный — срез было бы отлично видно.
+    // Для Старта (idx 0) упирается в 0 и он встаёт на padding-top контента
+    const target = Math.max(0, el.getBoundingClientRect().top + s.get() - s.base() - 56)
     dbg('[SCROLL] top:', s.kind, 'idx=', idx, 'target=', Math.round(target), 'до=', Math.round(s.get()))
     s.set(target)
     dbg('[SCROLL] top: после=', Math.round(s.get()))
@@ -52,7 +54,10 @@ export function useChainScroll({ justCompleted, lessons, scrollRef, startRef, fi
     if (!finalEl) { dbg('[SCROLL] к финалу: нет финала'); return }
     const s = getScroller(scrollRef.current)
     const r = finalEl.getBoundingClientRect()
-    const target = Math.max(0, r.top + s.get() - s.base() + r.height - s.view + 16)
+    // 44px под нижней гранью нода: там разворачивается церемония открытия
+    // (mgFinalBurst + ореол mgHaloBurst) — с прежними 16px её рассеивание
+    // срезалось нижним краем контейнера ровной линией
+    const target = Math.max(0, r.top + s.get() - s.base() + r.height - s.view + 44)
     const from = s.get()
     dbg('[SCROLL] к финалу:', s.kind, 'dur=', Math.round(durMs),
       'from=', Math.round(from), 'target=', Math.round(target))
