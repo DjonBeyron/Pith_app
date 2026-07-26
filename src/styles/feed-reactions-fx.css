@@ -1,4 +1,4 @@
-/* Импакт-эффекты реакций ленты (FeedSlide.jsx): разлёт зелёных сердечек по
+/* Импакт-эффекты реакций ленты (FeedSlide.jsx): разлёт красных сердечек по
    лайку и иконка галочки в тосте «Сохранено в закладки». Вынесено отдельно
    от feed-v2.css (та уже за мягким лимитом строк). */
 
@@ -14,7 +14,7 @@
   top: 2px;
   width: 12px;
   height: 12px;
-  color: #b6fe3b;
+  color: #ff6a6a;
   opacity: 0;
   transform: translate(-50%, 0) scale(0.4);
   animation: likeBurstFly 0.7s ease-out forwards;

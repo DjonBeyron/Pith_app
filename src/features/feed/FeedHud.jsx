@@ -93,7 +93,7 @@ export default function FeedHud({
           </div>
         )}
         <button
-          className={liked ? 'feedHudBtn feedHudBtnOn' : 'feedHudBtn'}
+          className={liked ? `feedHudBtn feedHudBtnLikeOn${likeBurst ? ' feedHudBtnLikePulse' : ''}` : 'feedHudBtn'}
           onClick={handleLike}>
           <Heart fill={liked ? 'currentColor' : 'none'} />
           <span>{likeCount > 0 ? likeCount : 'Лайк'}</span>
@@ -106,7 +106,7 @@ export default function FeedHud({
           )}
         </button>
         <button
-          className={saved ? 'feedHudBtn feedHudBtnOn' : 'feedHudBtn'}
+          className={saved ? 'feedHudBtn feedHudBtnSaveOn' : 'feedHudBtn'}
           onClick={handleSave} aria-label="Сохранить в закладки">
           <Bookmark fill={saved ? 'currentColor' : 'none'} />
           {saveCount > 0 && <span>{saveCount}</span>}
