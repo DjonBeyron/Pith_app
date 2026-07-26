@@ -1,0 +1,55 @@
+/* Кружок загрузки видео в ленте. Показывается, когда данные реально не едут
+   (см. useVideoStall.js) — поверх постера, по центру слайда. Лежит ниже чипов
+   звука (z-index 5) и не перехватывает тапы: пауза/пуск по видео должны
+   работать и во время загрузки. */
+.feedVideoLoader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  /* Мягкое появление: короткие подвисания (<1с) не должны бить по глазам */
+  animation: feedLoaderIn 260ms ease both;
+}
+
+@keyframes feedLoaderIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Кольцо: анимируем только transform (GPU), без перерисовки layout */
+.feedVideoSpinner {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.22);
+  border-top-color: rgba(255, 255, 255, 0.92);
+  will-change: transform;
+  animation: feedSpin 780ms linear infinite;
+}
+
+@keyframes feedSpin {
+  to { transform: rotate(360deg); }
+}
+
+.feedVideoLoaderText {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Без анимаций — кольцо остаётся статичной меткой «идёт загрузка» */
+@media (prefers-reduced-motion: reduce) {
+  .feedVideoSpinner { animation-duration: 2.4s; }
+  .feedVideoLoader { animation: none; }
+}

@@ -211,6 +211,30 @@ export function releaseVideo(key) {
   }
 }
 
+// Перезапуск загрузки: сеть отвалилась или запрос завис — сам по себе <video>
+// из этого не выходит (readyState так и остаётся 0, кадров нет). Переустановка
+// src запускает запрос заново; позицию восстанавливаем по метаданным (раньше
+// метаданных присвоение currentTime бросает исключение).
+export function reloadVideo(el) {
+  const url = el.dataset.url
+  if (!url) return
+  const resumeCt = el.currentTime
+  const t0 = performance.now()
+  const onLoaded = () => {
+    el.removeEventListener('loadedmetadata', onLoaded)
+    if (resumeCt > 0) { try { el.currentTime = resumeCt } catch { /* не критично */ } }
+    fdbg(`vid ${(url || '').slice(-8)} перезапуск: данные пошли (${(performance.now() - t0).toFixed(0)}мс)`)
+    // Пока тянулись данные, слайд могли покинуть — припаркованного не будим
+    if (el.dataset.parked === '1' || el.parentElement === holder) return
+    const p = el.play()
+    if (p && p.catch) p.catch(() => {})
+  }
+  el.addEventListener('loadedmetadata', onLoaded)
+  el.dataset.unloaded = ''
+  el.src = url // присвоение src перезапускает выбор ресурса даже тем же адресом
+  el.load()
+}
+
 // «Сильный пинок» поверхности: pause → seek в ту же позицию → play. Обычного
 // pause→play на iOS не хватает: после переноса <video> в DOM декодер работает
 // (rvfc идёт, currentTime растёт), а компоузер продолжает показывать старый

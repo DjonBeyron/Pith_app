@@ -16,7 +16,12 @@ export function buildFeedInfo({
     const inFeed = !!v.closest('.feedV2Scroll')
     const r = v.getBoundingClientRect()
     const where = inFeed ? `feed top=${r.top.toFixed(0)}` : 'PARKED'
-    return `  ${(v.dataset.url || '—').slice(-8)} [${where}] paused=${v.paused} muted=${v.muted} ct=${v.currentTime.toFixed(2)}/${(v.duration || 0).toFixed(1)} rs=${v.readyState} op=${v.style.opacity || '1'}`
+    // buf/err — сетевая половина картины: rs=0 при buf=0 = данные не доехали
+    // (сеть), а err=2/4 = браузер уже отказался грузить (см. useVideoStall)
+    let buf = 0
+    try { buf = v.buffered.length ? v.buffered.end(v.buffered.length - 1) : 0 } catch { /* нет данных */ }
+    const err = v.error ? ` err=${v.error.code}` : ''
+    return `  ${(v.dataset.url || '—').slice(-8)} [${where}] paused=${v.paused} muted=${v.muted} ct=${v.currentTime.toFixed(2)}/${(v.duration || 0).toFixed(1)} rs=${v.readyState} buf=${buf.toFixed(1)}${err} op=${v.style.opacity || '1'}`
   })
   return [
     `fps: ${fpsSnapshot()}`,
@@ -27,6 +32,7 @@ export function buildFeedInfo({
     `scroll: top=${scrollEl ? scrollEl.scrollTop.toFixed(0) : '—'} clientH=${scrollEl?.clientHeight ?? '—'} scrollH=${scrollEl?.scrollHeight ?? '—'}`,
     `virtual(${items.length}): ${items.map(i => `#${i.index}`).join(' ') || 'ПУСТО'}`,
     `sound: soundOn=${soundOn} gesture=${soundGestureRef.current}`,
+    `net: online=${navigator.onLine}`,
     `pool videos (${all.length}):`,
     ...dump,
   ].join('\n')

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Play, VolumeX, Volume2 } from 'lucide-react'
 import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface, prepareReturn } from './videoPool.js'
+import { useVideoStall } from './useVideoStall.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
 const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга при частых тапах по чипу звука
@@ -43,7 +44,12 @@ export default function SlideVideo({
     // appendChild сам вгонял iOS в ступор (~2с ct=0 до спасения сторожем) —
     // холодному элементу хватает обычного play().
     if (v.parentElement !== root) root.appendChild(v)
-    if (v.dataset.url !== videoUrl) {
+    // readyState 0 при том же URL = элемент считается «тёплым», но данных в нём
+    // уже нет: iOS выбрасывает загруженное видео у невидимых элементов под
+    // нехваткой памяти (в DBG-логе — активный слайд с rs=0 и duration=0). Тогда
+    // это ровно тот же случай, что и новый URL: грузим заново и прячем пустой
+    // элемент, чтобы не закрывал постер чёрным.
+    if (v.dataset.url !== videoUrl || v.readyState === 0) {
       v.dataset.url = videoUrl
       v.src = videoUrl
       try { v.currentTime = 0 } catch { /* не критично */ }
@@ -107,7 +113,15 @@ export default function SlideVideo({
         v.addEventListener('loadeddata', revealReal, { once: true })
       }
     }
-    const safety = setTimeout(reveal, 500)
+    // Страховка на случай, если кадры не отсчитались (rvfc душится при скролле),
+    // но показывать элемент можно только когда в нём реально есть кадр
+    // (readyState >= 2). Иначе при отвалившейся сети мы закрывали живой постер
+    // пустым видео — пользователь видел чёрный экран вместо картинки. Нет
+    // данных — ждём их и проявляемся по loadeddata.
+    const safety = setTimeout(() => {
+      if (v.readyState >= 2) reveal(false)
+      else v.addEventListener('loadeddata', revealReal, { once: true })
+    }, 500)
 
     // Заблокированный автоплей БЕЗ звука (iOS Low Power Mode, экономия
     // трафика): пробуем ещё раз, когда данные доехали, а если снова нет —
@@ -186,6 +200,10 @@ export default function SlideVideo({
     }
   }, [hasVideo, tabVisible, inWindow, active, soundOn, paused, slideKey, videoUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Кружок загрузки: только для активного слайда и только когда данные реально
+  // не едут (см. useVideoStall — он же перезапускает загрузку сам)
+  const stall = useVideoStall(rootRef, hasVideo && active && tabVisible && !paused)
+
   // Ушли со слайда — ручная пауза сбрасывается
   useEffect(() => {
     if (active || !paused) return
@@ -253,6 +271,12 @@ export default function SlideVideo({
       {paused && active && (
         <div className="slidePauseIcon">
           <Play fill="currentColor" />
+        </div>
+      )}
+      {stall && (
+        <div className="feedVideoLoader">
+          <div className="feedVideoSpinner" />
+          {stall === 'offline' && <div className="feedVideoLoaderText">Нет соединения</div>}
         </div>
       )}
       {/* Новый пользователь (звук не включал ни разу) — чип виден постоянно,
