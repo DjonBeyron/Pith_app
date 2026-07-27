@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { alog } from './authLog.js'
 
 // Капча Cloudflare Turnstile перед входом/регистрацией — главный барьер против
 // перебора пароля (локальный тормоз в loginThrottle.js обходится очисткой
@@ -38,8 +39,9 @@ const MAX_AUTO_RETRIES = 2
 
 // Лог капчи идёт в консоль всегда, не под флагом debug: разбирать её приходится
 // на боевом сайте у живого человека, где дебаг не включён. Строк мало, только
-// по нажатию кнопки — консоль не засоряют
-const log = (...a) => console.log('[captcha]', ...a)
+// по нажатию кнопки — консоль не засоряют. Параллельно всё копится в буфер
+// authLog.js: разлогиненный человек забирает лог кнопкой в окне входа
+const log = (...a) => alog('[captcha]', ...a)
 
 let scriptPromise = null
 function loadTurnstile() {
@@ -93,7 +95,7 @@ export function useCaptcha() {
         retryRef.current = setTimeout(() => setAttempt(a => a + 1), RETRY_DELAY_MS)
         return
       }
-      console.warn('[captcha] не поднялась за', attempt + 1, 'попыток, код', errCode)
+      log('не поднялась за', attempt + 1, 'попыток, код', errCode)
       setRetrying(false)
       setFailed(true)
     }
@@ -127,7 +129,7 @@ export function useCaptcha() {
         })
       })
       .catch(e => {
-        console.warn('[captcha] скрипт не загрузился:', e?.message)
+        log('скрипт не загрузился:', e?.message)
         onBroken('script')
       })
 
@@ -147,7 +149,7 @@ export function useCaptcha() {
   useEffect(() => {
     if (!pending || asking || token || failed) return
     const t = setTimeout(() => {
-      console.warn('[captcha] тишина', SOLVE_TIMEOUT_MS / 1000, 'с — пускаем без капчи')
+      log('тишина', SOLVE_TIMEOUT_MS / 1000, 'с — виджет считаем сломанным')
       setFailed(true)
     }, SOLVE_TIMEOUT_MS)
     return () => clearTimeout(t)

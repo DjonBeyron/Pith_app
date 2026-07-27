@@ -4,6 +4,7 @@ import { loginUser, logoutUser } from '../../shared/api/auth.js'
 import { clearProfileCache, refreshProfile } from '../../shared/api/profileCache.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import RegisterForm from './RegisterForm.jsx'
+import AuthLogButton from './AuthLogButton.jsx'
 import { useCaptcha } from '../../shared/lib/useCaptcha.js'
 import CaptchaBox from '../../shared/ui/CaptchaBox.jsx'
 import {
@@ -63,12 +64,12 @@ export default function AuthTab({ onLoginSuccess }) {
 
   async function doLogin(captchaToken) {
     setBusy(true)
-    console.log('[auth] отправляю вход, токен капчи:', captchaToken ? `есть (${captchaToken.length})` : 'НЕТ')
+    // Сам запрос и ответ пишет loginUser (shared/api/auth.js) — там же лог для
+    // регистрации, чтобы кнопка «Скачать лог» видела все три формы разом
     const { error } = await loginUser({
       email: email.trim(), password: password.trim(), captchaToken,
     })
     setBusy(false)
-    console.log('[auth] ответ сервера:', error ? error.message : 'успех')
     if (error) {
       captcha.reset() // токен капчи одноразовый — нужен новый раунд
       // Пошла блокировка — её текст соберёт shownErr из lockLeft и сам погасит,
@@ -170,6 +171,9 @@ export default function AuthTab({ onLoginSuccess }) {
             </button>
           </>
         )}
+        {/* Лог входа доступен и гостю: разбирать отказы капчи приходится
+            именно у тех, кто внутрь не попал */}
+        <AuthLogButton />
       </div>
     </div>
   )

@@ -1,8 +1,14 @@
 import { supabase } from './supabase.js'
+import { alog, describeAuthError } from '../lib/authLog.js'
+
+// Как выглядит токен в логе: длина и начало. Целиком не пишем — он одноразовый
+// и живёт 5 минут, но лог человек отправляет в поддержку, лишнего там не надо
+const tokenInfo = t => (t ? `есть (${t.length} симв., ${t.slice(0, 10)}…)` : 'НЕТ')
 
 // captchaToken — токен Turnstile (см. shared/lib/useCaptcha.js). Если капча в
 // Supabase не включена, параметр просто не используется.
 export async function registerUser({ email, password, name, captchaToken }) {
+  alog('[auth] регистрация, токен капчи:', tokenInfo(captchaToken))
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -11,6 +17,7 @@ export async function registerUser({ email, password, name, captchaToken }) {
       ...(captchaToken ? { captchaToken } : {}),
     },
   })
+  alog('[auth] ответ на регистрацию:', describeAuthError(error))
   if (error) return { data, error }
   // При включённом подтверждении email signUp НЕ создаёт сессию — пользователь
   // оставался гостем (терялись XP и «Мои уроки»). Если сессии нет — сразу
@@ -26,11 +33,13 @@ export async function registerUser({ email, password, name, captchaToken }) {
 }
 
 export async function loginUser({ email, password, captchaToken }) {
+  alog('[auth] вход, токен капчи:', tokenInfo(captchaToken))
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
     ...(captchaToken ? { options: { captchaToken } } : {}),
   })
+  alog('[auth] ответ сервера:', describeAuthError(error))
   return { data, error }
 }
 
