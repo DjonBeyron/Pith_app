@@ -14,12 +14,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 // капчи на экране нет (виджет не успевал нарисоваться, если форма открывалась
 // не сразу — например переходом из ленты по тапу на лайк).
 //
-// Виджет НЕ запирает вход. Сломался (нет связи с Cloudflare, код ошибки) —
-// пробуем поднять заново до MAX_AUTO_RETRIES раз, потом пускаем без токена и
-// оставляем человеку кнопку «Повторить». Настоящая проверка всё равно на
-// сервере: при включённой капче Supabase сам отобьёт запрос.
+// Сломался виджет (нет связи с Cloudflare, код ошибки) — пробуем поднять
+// заново до MAX_AUTO_RETRIES раз. Не вышло — форму НЕ отправляем: капча в
+// Supabase включена, токен обязателен, и запрос без него гарантированно
+// вернёт «captcha protection: request disallowed». Раньше в этом случае форма
+// всё же уходила на сервер, и человек видел непонятную ошибку про вход вместо
+// правды «проверка не работает». Теперь показываем код ошибки Turnstile и
+// кнопку «Повторить», а следующее нажатие кнопки формы поднимает виджет заново.
 //
-// Но если капча ЖИВА и просит галочку (before-interactive-callback) — ждём
+// Если капча ЖИВА и просит галочку (before-interactive-callback) — ждём
 // человека сколько нужно и таймаут не применяем. Иначе получалось так: через
 // 12 секунд форма уходила на сервер без токена, ловила «captcha protection:
 // request disallowed», а галочка в этот момент как раз загоралась зелёным.
@@ -60,11 +63,13 @@ export function useCaptcha() {
   const [box,      setBox]      = useState(null)
   const [active,   setActive]   = useState(false) // форма попросила токен
   const [token,    setToken]    = useState(null)
-  const [failed,   setFailed]   = useState(false) // пускаем без капчи
+  const [failed,   setFailed]   = useState(false) // виджет не поднялся, отправка отменена
   const [retrying, setRetrying] = useState(false)
-  const [attempt,  setAttempt]  = useState(0)
+  const [attempt,  setAttempt]  = useState(0)     // автопопытки внутри одного раунда
+  const [round,    setRound]    = useState(0)     // ручной перезапуск: счётчик автопопыток с нуля
   const [asking,   setAsking]   = useState(false) // виджет ждёт галочку
   const [pending,  setPending]  = useState(false) // форма ждёт токен
+  const [code,     setCode]     = useState(null)  // код ошибки Turnstile для подсказки
   const widgetRef  = useRef(null)
   const retryRef   = useRef(null)
   const pendingRef = useRef(null) // что выполнить, когда придёт токен
@@ -75,16 +80,20 @@ export function useCaptcha() {
 
     // Виджет не поднялся: нет сети, 600010, домен не разрешён в Cloudflare.
     // Чаще всего это разовый обрыв — пробуем заново с нуля
-    const onBroken = code => {
+    const onBroken = errCode => {
       if (cancelled) return
       setToken(null)
+      setCode(errCode)
+      // Виджет умер — галочки на экране больше нет. Без этого подсказка
+      // продолжала врать «поставь галочку», а таймаут молчания оставался снят
+      setAsking(false)
       if (attempt < MAX_AUTO_RETRIES) {
-        log('ошибка виджета, код', code, '→ перезапуск через', RETRY_DELAY_MS / 1000, 'с')
+        log('ошибка виджета, код', errCode, '→ перезапуск через', RETRY_DELAY_MS / 1000, 'с')
         setRetrying(true)
         retryRef.current = setTimeout(() => setAttempt(a => a + 1), RETRY_DELAY_MS)
         return
       }
-      console.warn('[captcha] не поднялась за', attempt + 1, 'попыток, код', code)
+      console.warn('[captcha] не поднялась за', attempt + 1, 'попыток, код', errCode)
       setRetrying(false)
       setFailed(true)
     }
@@ -130,7 +139,7 @@ export function useCaptcha() {
         widgetRef.current = null
       }
     }
-  }, [active, box, attempt])
+  }, [active, box, attempt, round])
 
   // Форма ждёт токен, а виджет молчит: ни токена, ни ошибки, ни просьбы
   // поставить галочку. Считаем зависшим и отпускаем форму (решает сервер).
@@ -144,14 +153,17 @@ export function useCaptcha() {
     return () => clearTimeout(t)
   }, [pending, asking, token, failed])
 
-  // Пришёл токен (или стало ясно, что капчи не будет) — доводим отложенную
-  // отправку формы до конца сами, повторно нажимать кнопку не нужно
+  // Пришёл токен — доводим отложенную отправку формы до конца сами, повторно
+  // нажимать кнопку не нужно. Капча не поднялась — отложенную отправку
+  // отменяем: без токена сервер всё равно откажет, а человек получит
+  // невнятную ошибку вместо честного «проверка не работает»
   useEffect(() => {
     if (!pendingRef.current || (!token && !failed)) return
     const run = pendingRef.current
     pendingRef.current = null
     setPending(false)
-    log('отправляю форму, токен:', token ? `есть (${token.length})` : 'НЕТ (капча не поднялась)')
+    if (!token) { log('капча не поднялась — форму не отправляю, жду «Повторить»'); return }
+    log(`отправляю форму, токен есть (${token.length})`)
     run(token)
   }, [token, failed])
 
@@ -160,12 +172,21 @@ export function useCaptcha() {
   // и выполним run, как только он отдаст токен
   const guard = useCallback(run => {
     if (!captchaEnabled) { log('капча выключена (нет VITE_TURNSTILE_SITE_KEY)'); run(null); return }
-    if (token)  { log('токен уже есть — отправляю сразу'); run(token); return }
-    if (failed) { log('капча не поднялась — отправляю без токена, решает сервер'); run(null); return }
-    log('нажата кнопка — поднимаю виджет и жду токен')
+    if (token) { log('токен уже есть — отправляю сразу'); run(token); return }
     pendingRef.current = run
     setPending(true)
     setActive(true)
+    // Прошлый раунд сломался: не шлём форму без токена (сервер откажет), а
+    // поднимаем виджет заново — счётчик автопопыток начинается с нуля
+    if (failed) {
+      log('прошлый раунд не удался — поднимаю виджет заново')
+      setFailed(false)
+      setCode(null)
+      setAttempt(0)
+      setRound(r => r + 1)
+      return
+    }
+    log('нажата кнопка — поднимаю виджет и жду токен')
   }, [token, failed])
 
   // Кнопка «Повторить» — поднять виджет заново, счётчик автопопыток с нуля
@@ -177,7 +198,9 @@ export function useCaptcha() {
     setRetrying(false)
     setAsking(false)
     setActive(true)
-    setAttempt(a => a + 1)
+    setCode(null)
+    setAttempt(0)
+    setRound(r => r + 1)
   }, [])
 
   // После ошибки сервера токен уже сгорел — виджету нужен новый раунд.
@@ -193,6 +216,7 @@ export function useCaptcha() {
 
   return {
     boxRef: setBox, enabled: captchaEnabled, active, token, failed, retrying, asking,
+    code,             // код ошибки Turnstile: показываем в подсказке
     waiting: pending, // форма ждёт токен: кнопка в «Проверка...»
     guard, retry, reset,
   }
