@@ -1,7 +1,26 @@
-.lessonsHint {
-  color: #666;
-  font-size: 13px;
-  padding: 20px 0;
+/* Загрузка схемы модуля: кружок по центру вместо текста */
+.lessonsMapLoader {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lessonsMapSpinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #b6fe3b;
+  animation: lessonsMapSpin 780ms linear infinite;
+}
+
+@keyframes lessonsMapSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lessonsMapSpinner { animation-duration: 2.4s; }
 }
 
 /* ── old list styles (kept for reference) ─────────────────── */

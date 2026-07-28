@@ -290,7 +290,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
       </div>
 
       {loading || (creating && lessons.length === 0) ? (
-        <div className="lessonsHint">Загрузка...</div>
+        <div className="lessonsMapLoader"><span className="lessonsMapSpinner" /></div>
       ) : isPro ? (
         <ProModuleLessons
           lessons={lessons}
