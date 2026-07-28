@@ -4,6 +4,7 @@ import PlayerBubble from '../../PlayerBubble.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 
 const WAVE_H_BASE = [7,11,16,22,14,19,24,17,10,20,13,22,18,11,25,21,15,9,18,24,16,12,21,14,19,10,17,23,15,9,13,19,21,14,17,24,11,18,22,15,10,19,13,25,16,9,20,23,12,17]
 const BAR_W = 2, BAR_GAP = 2
@@ -18,6 +19,7 @@ function PauseIcon() {
 }
 
 export default function AudioModule({ node, file, onDone }) {
+  const [weakDevice] = useState(() => isWeakDevice())
   const [objectUrl,       setObjectUrl]       = useState(null)
   const [isPlaying,       setIsPlaying]       = useState(false)
   const [isFading,        setIsFading]        = useState(false)
@@ -183,7 +185,7 @@ export default function AudioModule({ node, file, onDone }) {
       const bars      = barElsRef.current
       const greenUpTo = progress * bars.length
       const center    = (bars.length - 1) / 2
-      const fi        = capturedWave?.length ? Math.floor(ct * WAVEFORM_FPS) : -1
+      const fi        = !weakDevice && capturedWave?.length ? Math.floor(ct * WAVEFORM_FPS) : -1
 
       bars.forEach((bar, i) => {
         if (!bar) return
@@ -267,7 +269,8 @@ export default function AudioModule({ node, file, onDone }) {
                     ref={el => { barElsRef.current[i] = el }}
                     className={[
                       'playerAudioBar',
-                      isPlaying && waveData ? 'playerAudioBarLive' : isPlaying ? 'playerAudioBarPlaying' : '',
+                      isPlaying && waveData ? 'playerAudioBarLive'
+                        : isPlaying && !weakDevice ? 'playerAudioBarPlaying' : '',
                     ].filter(Boolean).join(' ')}
                     style={{ '--bar-h': h + 'px', '--delay': `${i * 0.07}s` }}
                   />
