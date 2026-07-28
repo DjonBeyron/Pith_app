@@ -92,23 +92,6 @@
   border-color: rgba(255, 210, 87, 0.35);
 }
 
-/* Ник + подпись (уровень/XP/стрик) друг под другом — длинный ник никогда
-   не наезжает на статистику, она просто на своей строке ниже */
-.ubTextCol {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0; /* даёт .ubNick внутри реально сжиматься и обрезаться */
-}
-
-.ubSubtitle {
-  font-size: 11px;
-  color: #9aa3ad;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* ══ Вкладка «Рейтинг» — контейнер ══ */
 
 /* Контейнер сам не скроллится: баннер супергонки и заголовок закреплены,
@@ -186,6 +169,7 @@
   background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
   border: 1px solid #232932;
   border-radius: 14px;
+  position: relative; /* якорь для .ratingStats — правый нижний угол строки */
 }
 
 /* Свою строку не выделяем — список для всех выглядит одинаково.
@@ -243,9 +227,13 @@
   white-space: nowrap;
 }
 
-/* ══ Уровень · XP · стрик — подпись под ником (UserBadge subtitle), одной
-   строкой через точки, без рамки: Ур.2 · 340 XP · 🔥1 */
+/* ══ Уровень · XP · стрик — правый нижний угол строки, без фона/рамки:
+   Ур.2 · 340 XP · 🔥1. Абсолютная позиция — не зависит от длины ника
+   и никогда с ним не пересекается (см. .ratingRow position: relative). */
 .ratingStats {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
   display: inline-flex;
   align-items: center;
   gap: 4px;

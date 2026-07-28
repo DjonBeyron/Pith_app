@@ -90,8 +90,8 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
                     wreathPlace={place <= 3 ? place : null}
                     size={place <= 3 ? 44 : 38}
                     pro={!!r.is_pro}
-                    subtitle={<RatingStats level={lvl.level} xp={r.xp} streak={r.current_streak} />}
                   />
+                  <RatingStats level={lvl.level} xp={r.xp} streak={r.current_streak} />
                 </div>
               )
             })}
@@ -109,13 +109,11 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
                     medalPlace={achievements.find(a => a.kind === 'race_winner')?.meta?.place ?? null}
                     size={38}
                     pro={!!(profile?.has_subscription || profile?.is_admin)}
-                    subtitle={
-                      <RatingStats
-                        level={getCurrentLevel(profile?.xp ?? 0).level}
-                        xp={profile?.xp ?? 0}
-                        streak={profile?.current_streak ?? 0}
-                      />
-                    }
+                  />
+                  <RatingStats
+                    level={getCurrentLevel(profile?.xp ?? 0).level}
+                    xp={profile?.xp ?? 0}
+                    streak={profile?.current_streak ?? 0}
                   />
                 </div>
               </>
