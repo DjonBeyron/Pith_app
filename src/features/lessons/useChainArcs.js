@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 // Геометрия линий графа модуля: меряет реальные ректы нодов и строит
 // SVG-пути (левые старт→урок с точками, правые урок→финал со стрелкой и
@@ -80,11 +80,9 @@ export function useChainArcs({ containerRef, startRef, finalRef, lessonRefs, les
     setArcs(newArcs)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // useLayoutEffect, не useEffect+rAF: меряет DOM ДО отрисовки кадра
-  // браузером — линии появляются в ТОМ ЖЕ кадре, что и узлы, без
-  // видимого кадра-другого, где узлы уже есть, а линий ещё нет.
-  useLayoutEffect(() => {
-    drawLines()
+  useEffect(() => {
+    const id = requestAnimationFrame(drawLines)
+    return () => cancelAnimationFrame(id)
   }, [lessons, drawLines])
 
   useEffect(() => {

@@ -75,12 +75,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   // Звёзды уроков модуля: Map<lessonId, 1..3> — максимум из локального стора
   // и сервера (lesson_results.stars), для отображения на карточках схемы
   const [stars,           setStars]           = useState(null)
-  // Готовность приоритетов/звёзд — граф ждёт оба перед первым показом:
-  // иначе полоска приоритета / звёзды подъезжают позже отдельным рендером
-  // и меняют высоту карточек уроков, а вслед за ней дёргаются SVG-линии
-  // графа (useChainArcs пересчитывает пути на любой ResizeObserver).
-  const [prioritiesReady, setPrioritiesReady] = useState(false)
-  const [starsReady,      setStarsReady]      = useState(false)
   // Отказ start_lesson: показать экран «Энергия закончилась» ({ nextAt })
   const [noEnergy,        setNoEnergy]        = useState(null)
   // Мягкое предложение Pro после первого прохождения Финала (момент успеха)
@@ -110,13 +104,11 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
         return map
       })
       .catch(() => null)
-      .finally(() => setPrioritiesReady(true))
   }
 
   // Звёзды: при загрузке уроков и после каждого прохождения (локальный стор
   // уже обновлён плеером к моменту вызова).
-  const refreshStars = (ls = lessons) =>
-    loadStarsMap(user, ls).then(setStars).finally(() => setStarsReady(true))
+  const refreshStars = (ls = lessons) => loadStarsMap(user, ls).then(setStars)
 
   useEffect(() => {
     if (!isPro && lessons.length > 0) refreshStars(lessons)
@@ -297,8 +289,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
         )}
       </div>
 
-      {loading || (creating && lessons.length === 0) ||
-        (!isPro && lessons.length > 0 && (!prioritiesReady || !starsReady)) ? (
+      {loading || (creating && lessons.length === 0) ? (
         <div className="lessonsHint">Загрузка...</div>
       ) : isPro ? (
         <ProModuleLessons
