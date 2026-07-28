@@ -53,7 +53,9 @@ export default function ModuleGraph({
   const lessonRefs   = useRef([])
 
   // Геометрия линий (пути для ChainLines и маршруты полёта XP) — useChainArcs.js
-  const arcs = useChainArcs({ containerRef, startRef, finalRef, lessonRefs, lessons })
+  // arcsReady — было ли уже хоть одно измерение: пока false, схема скрыта
+  // (opacity), чтобы узлы не появлялись раньше соединяющих их линий.
+  const { arcs, ready: arcsReady } = useChainArcs({ containerRef, startRef, finalRef, lessonRefs, lessons })
 
   // Сборка полёта XP: маршрут по нарисованным линиям + цель (ключ-бегунок бара).
   // animHold: пока открыт попап-легенда, полёт не стартует — эффект перезапустится
@@ -198,7 +200,7 @@ export default function ModuleGraph({
   // ровном тёмном фоне без «моргания» перехода плеер→схема; после закрытия проявляется
   return (
     <div ref={scrollRef}
-      className={`moduleGraphScroll${animHold ? ' moduleGraphScroll--held' : ''}${calm || justCompleted ? ' moduleGraphScroll--calm' : ''}${flight ? ' moduleGraphScroll--flying' : ''}`}
+      className={`moduleGraphScroll${animHold || !arcsReady ? ' moduleGraphScroll--held' : ''}${calm || justCompleted ? ' moduleGraphScroll--calm' : ''}${flight ? ' moduleGraphScroll--flying' : ''}`}
       onScroll={handleScroll}
       onClick={() => setTapped(null)}>
       <div ref={containerRef} className="moduleGraphInner">

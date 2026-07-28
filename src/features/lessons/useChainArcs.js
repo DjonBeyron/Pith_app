@@ -6,6 +6,10 @@ import { useState, useEffect, useCallback } from 'react'
 // каждом ресайзе контейнера. Возвращает массив arcs для ChainLines/XpFlight.
 export function useChainArcs({ containerRef, startRef, finalRef, lessonRefs, lessons }) {
   const [arcs, setArcs] = useState([])
+  // true после первого УСПЕШНОГО замера (не сбрасывается обратно) — ModuleGraph
+  // держит схему невидимой (opacity, без смены layout/измерений), пока линии
+  // не посчитаны ни разу: раньше узлы появлялись, а линии — кадром позже.
+  const [ready, setReady] = useState(false)
 
   const drawLines = useCallback(() => {
     const cont = containerRef.current
@@ -78,6 +82,7 @@ export function useChainArcs({ containerRef, startRef, finalRef, lessonRefs, les
       })
     })
     setArcs(newArcs)
+    setReady(true)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -91,5 +96,5 @@ export function useChainArcs({ containerRef, startRef, finalRef, lessonRefs, les
     return () => ro.disconnect()
   }, [drawLines]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return arcs
+  return { arcs, ready }
 }
