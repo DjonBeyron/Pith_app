@@ -22,6 +22,7 @@ supabase/.temp/
 
 # E2E (Playwright) — этап 5.5
 .env.test
+.env.test.example
 playwright-report/
 test-results/
 /playwright/.cache/
