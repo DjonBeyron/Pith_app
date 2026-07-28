@@ -60,7 +60,13 @@ export default function MgFinalNode({
     prevOpenRef.current = finalOpen
     if (!finalOpen) {
       // Сброс прогресса — вернуть замок закрытым (асинхронно: правило хуков).
-      const t = setTimeout(() => { setLockOpenShown(false); setChromeGone(false) }, 0)
+      // unlockAnim/burst гасим тоже: если сброс пришёл посреди церемонии
+      // открытия, cleanup ниже отменит t2/t3, и без этой строки вспышка
+      // "прилипала" бы навсегда (mgGlow--finalBurst никогда не снимался).
+      const t = setTimeout(() => {
+        setLockOpenShown(false); setChromeGone(false)
+        setUnlockAnim(false); setBurst(false)
+      }, 0)
       return () => clearTimeout(t)
     }
     const t0 = setTimeout(() => setUnlockAnim(true), 0)
