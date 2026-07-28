@@ -39,6 +39,8 @@ const MEDAL_COLORS = {
  *                                    (топ-3 рейтинга; 2/3 перекрашены CSS-фильтром)
  * @param {number}      size        — диаметр аватара в px (по умолчанию 40)
  * @param {boolean}     pro         — подписчик Pithy Pro: золотой чип PRO у ника
+ * @param {node}        subtitle    — если задан, рисуется строкой НИЖЕ ника
+ *                                    (а не рядом) — длинный ник не наезжает
  */
 export default function UserBadge({
   nickname = '?',
@@ -49,6 +51,7 @@ export default function UserBadge({
   wreathPlace = null,
   size = 40,
   pro = false,
+  subtitle = null,
 }) {
   const color = hashColor(userId || nickname)
   const letter = (nickname[0] ?? '?').toUpperCase()
@@ -110,9 +113,18 @@ export default function UserBadge({
       </span>
 
       {/* Ник: золотая подложка (bg2, «Чистый финал») важнее лаймовой (bg) */}
-      <span className={`ubNick${cosmetics.bg2 ? ' ubNickBg ubNickBg2' : cosmetics.bg ? ' ubNickBg' : ''}`}>
-        {nickname}
-      </span>
+      {subtitle ? (
+        <span className="ubTextCol">
+          <span className={`ubNick${cosmetics.bg2 ? ' ubNickBg ubNickBg2' : cosmetics.bg ? ' ubNickBg' : ''}`}>
+            {nickname}
+          </span>
+          <span className="ubSubtitle">{subtitle}</span>
+        </span>
+      ) : (
+        <span className={`ubNick${cosmetics.bg2 ? ' ubNickBg ubNickBg2' : cosmetics.bg ? ' ubNickBg' : ''}`}>
+          {nickname}
+        </span>
+      )}
     </span>
   )
 }

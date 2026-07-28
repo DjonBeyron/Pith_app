@@ -6,6 +6,26 @@ import RacePage from '../race/RacePage.jsx'
 import UserBadge from '../../shared/ui/UserBadge.jsx'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 
+// Уровень · XP · стрик — строкой, подписью под ником (UserBadge subtitle).
+// Порядок фиксирован: уровень, потом XP, потом дни подряд.
+function RatingStats({ level, xp, streak }) {
+  return (
+    <span className="ratingStats">
+      <span className="ratingStatsLvl">Ур.{level}</span>
+      <span className="ratingStatsDot">·</span>
+      <span className="ratingStatsXp">{xp} XP</span>
+      {streak > 0 && (
+        <>
+          <span className="ratingStatsDot">·</span>
+          <span className="ratingStatsStreak">
+            <Sparkles className="ratingStatsStreakIcon" />{streak}
+          </span>
+        </>
+      )}
+    </span>
+  )
+}
+
 // Вкладка «Рейтинг»: баннер супергонки и глобальный топ по XP за всё время.
 // Достижения и примерка косметики живут в Профиле → «Кастомизация».
 export default function RatingTab({ visible = true, openRaceTick = 0 }) {
@@ -70,16 +90,8 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
                     wreathPlace={place <= 3 ? place : null}
                     size={place <= 3 ? 44 : 38}
                     pro={!!r.is_pro}
+                    subtitle={<RatingStats level={lvl.level} xp={r.xp} streak={r.current_streak} />}
                   />
-                  <span className="ratingStats">
-                    <span className="ratingStatsLvl">Ур.{lvl.level}</span>
-                    <span className="ratingStatsXp">{r.xp}XP</span>
-                    {r.current_streak > 0 && (
-                      <span className="ratingStatsStreak">
-                        <Sparkles className="ratingStatsStreakIcon" />{r.current_streak}
-                      </span>
-                    )}
-                  </span>
                 </div>
               )
             })}
@@ -97,16 +109,14 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
                     medalPlace={achievements.find(a => a.kind === 'race_winner')?.meta?.place ?? null}
                     size={38}
                     pro={!!(profile?.has_subscription || profile?.is_admin)}
+                    subtitle={
+                      <RatingStats
+                        level={getCurrentLevel(profile?.xp ?? 0).level}
+                        xp={profile?.xp ?? 0}
+                        streak={profile?.current_streak ?? 0}
+                      />
+                    }
                   />
-                  <span className="ratingStats">
-                    <span className="ratingStatsLvl">Ур.{getCurrentLevel(profile?.xp ?? 0).level}</span>
-                    <span className="ratingStatsXp">{profile?.xp ?? 0}XP</span>
-                    {profile?.current_streak > 0 && (
-                      <span className="ratingStatsStreak">
-                        <Sparkles className="ratingStatsStreakIcon" />{profile.current_streak}
-                      </span>
-                    )}
-                  </span>
                 </div>
               </>
             )}

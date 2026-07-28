@@ -92,6 +92,23 @@
   border-color: rgba(255, 210, 87, 0.35);
 }
 
+/* Ник + подпись (уровень/XP/стрик) друг под другом — длинный ник никогда
+   не наезжает на статистику, она просто на своей строке ниже */
+.ubTextCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* даёт .ubNick внутри реально сжиматься и обрезаться */
+}
+
+.ubSubtitle {
+  font-size: 11px;
+  color: #9aa3ad;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ══ Вкладка «Рейтинг» — контейнер ══ */
 
 /* Контейнер сам не скроллится: баннер супергонки и заголовок закреплены,
@@ -226,24 +243,13 @@
   white-space: nowrap;
 }
 
-/* ══ Компактный блок «уровень + XP» строкой рейтинга (вместо двух
-   отдельных чипов) — рамка с двумя строками текста внутри:
-   ┌──────┐
-   │ Lv.2 │
-   │340XP │
-   └──────┘ */
+/* ══ Уровень · XP · стрик — подпись под ником (UserBadge subtitle), одной
+   строкой через точки, без рамки: Ур.2 · 340 XP · 🔥1 */
 .ratingStats {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 3px 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(182, 254, 59, 0.25);
-  background: rgba(182, 254, 59, 0.1);
-  flex-shrink: 0;
-  line-height: 1.15;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .ratingStatsLvl {
@@ -253,8 +259,13 @@
   white-space: nowrap;
 }
 
+.ratingStatsDot {
+  font-size: 11px;
+  color: #565f68;
+}
+
 .ratingStatsXp {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: #9aa3ad;
   white-space: nowrap;
