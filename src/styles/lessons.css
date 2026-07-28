@@ -192,6 +192,17 @@
 /* Попап-легенда открыт: граф невидим (успевает смонтироваться и дорисовать
    линии за кадром), после закрытия попапа плавно проявляется */
 .moduleGraphScroll--held { opacity: 0; }
+
+/* Пока летят кружки XP (Старт → Финал), контейнер сам едет автоскроллом
+   (useChainScroll.scrollToFinal) — свечение Старта, уезжающее вверх за край,
+   и свечение Финала, въезжающее снизу, в движении режутся overflow РОВНОЙ
+   ЛИНИЕЙ (padding-буфер выше спасает только статичный, уже устоявшийся
+   кадр — не кадры самого проезда). Маска повторяет те же 56/68px буфера
+   и плавно гасит всё, что заходит в эту зону, вместо жёсткого среза. */
+.moduleGraphScroll--flying {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 68px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 68px), transparent 100%);
+}
 .moduleGraphScroll::-webkit-scrollbar,
 .moduleGraphScroll::-webkit-scrollbar-track,
 .moduleGraphScroll::-webkit-scrollbar-thumb { display: none; width: 0; height: 0; }

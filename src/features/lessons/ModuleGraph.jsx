@@ -198,7 +198,7 @@ export default function ModuleGraph({
   // ровном тёмном фоне без «моргания» перехода плеер→схема; после закрытия проявляется
   return (
     <div ref={scrollRef}
-      className={`moduleGraphScroll${animHold ? ' moduleGraphScroll--held' : ''}${calm || justCompleted ? ' moduleGraphScroll--calm' : ''}`}
+      className={`moduleGraphScroll${animHold ? ' moduleGraphScroll--held' : ''}${calm || justCompleted ? ' moduleGraphScroll--calm' : ''}${flight ? ' moduleGraphScroll--flying' : ''}`}
       onScroll={handleScroll}
       onClick={() => setTapped(null)}>
       <div ref={containerRef} className="moduleGraphInner">
