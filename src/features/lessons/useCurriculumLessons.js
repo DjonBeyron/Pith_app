@@ -28,7 +28,11 @@ function persistIds(curriculumId, ids) {
 export function useCurriculumLessons(curriculumId) {
   const [lessonIds, setLessonIds] = useState(() => loadIds(curriculumId))
   const [lessons,   setLessons]   = useState([])
-  const [loading,   setLoading]   = useState(false)
+  // Если id уроков уже есть в кэше — с первого кадра loading=true, а не
+  // false: иначе до первого useEffect (fetchLessons) есть один пустой тик
+  // (loading=false, lessons=[]), на котором CurriculumView не показывает
+  // "Загрузка..." и ModuleGraph рендерит null — видимая вспышка пустоты.
+  const [loading,   setLoading]   = useState(() => lessonIds.length > 0)
   const [creating,  setCreating]  = useState(false)
   const [error,     setError]     = useState('')
   const [isDirty,   setIsDirty]   = useState(false)
