@@ -59,13 +59,8 @@
 }
 
 /* Пульс Старта, когда он только что пройден: короткая вспышка, потом пауза
-   до полёта кружочков (FLIGHT_DELAY_MS). Анимация — на ВНУТРЕННЕМ узле, не
-   на .mgGlow: у .mgGlow в этот же момент ещё и transition: filter (озеленение,
-   см. ниже) — filter и transform, меняющиеся ОДНОВРЕМЕННО на одном элементе,
-   ловят баг Chromium/WebView (область смазанного drop-shadow считается по
-   устаревшим границам слоя и режется ровным прямоугольником). Раздельные
-   элементы — раздельные слои, баг не ловится. */
-.mgGlow--justDone .mgNode--start { animation: mgNodePulse 0.9s ease-in-out 0.2s 1; }
+   до полёта кружочков (FLIGHT_DELAY_MS) */
+.mgGlow--justDone { animation: mgNodePulse 0.9s ease-in-out 0.2s 1; }
 
 /* Слой кружочков XP — поверх нодов */
 .mgOrbsSvg {
