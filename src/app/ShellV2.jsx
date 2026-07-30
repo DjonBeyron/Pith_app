@@ -152,6 +152,10 @@ export default function ShellV2() {
               lessonId={canvasLesson.id}
               moduleLessons={canvasLesson.moduleLessons ?? []}
               onBack={() => setCanvasLesson(null)}
+              onOpenProduction={id => {
+                setCanvasLesson(null)
+                setProductionLesson({ id, moduleLessons: canvasLesson.moduleLessons ?? [] })
+              }}
             />
           </Suspense>
         </div>

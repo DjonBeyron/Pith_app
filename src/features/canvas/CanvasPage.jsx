@@ -9,7 +9,7 @@ import { useTeacherSettings } from './useTeacherSettings.js'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
-export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
+export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpenProduction }) {
   // Уроки модуля для привязки ответов (анализ знаний) — без урока, который редактируем
   const linkableLessons = moduleLessons.filter(l => l.id !== lessonId)
   const [showPanel,   setShowPanel]   = useState(false)
@@ -154,6 +154,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack }) {
           placeholder="Название урока"
         />
         <BackButton onClick={onBack} />
+        <button className="canvasPageProduction" onClick={() => onOpenProduction(lessonId)} title="Открыть в продакшен-списке">
+          📝
+        </button>
         <button className="canvasPagePlay" onClick={() => setShowPlayer(true)}>▶</button>
         <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
           {isSaving ? 'Сохраняю…' : 'Сохранить'}
