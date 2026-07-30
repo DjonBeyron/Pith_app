@@ -142,17 +142,36 @@
 }
 .canvasPagePlay:hover { background: #1a2a10; }
 
+/* Вся правая группа (Back/Play/Save/Reset/XP/Продакшен) — одним блоком у
+   правого края: margin-left:auto держит её там независимо от того, в
+   flex-потоке ли .canvasPageTitle сейчас (на широких экранах она
+   abs-позиционирована и сама уже не выталкивает соседей вправо) */
+.canvasPageActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* На узких экранах сумма кнопок шире вьюпорта — скролл внутри панели,
+     а не обрезание «Продакшен» за край (было бы невидимо и недостижимо) */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.canvasPageActions::-webkit-scrollbar { display: none; }
+.canvasPageActions > * { flex-shrink: 0; }
+
 .canvasPageProduction {
   background: transparent;
   border: 1px solid #2a2c33;
   color: #aaa;
-  font-size: 14px;
-  padding: 5px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
-  line-height: 1;
+  white-space: nowrap;
 }
 .canvasPageProduction:hover { background: #1a1c22; }
+.canvasPageProduction:disabled { opacity: 0.5; cursor: default; }
 
 .canvasPageSave {
   background: #1e2e10;

@@ -33,19 +33,24 @@
 .productionPageTitle:focus { border-color: #444; color: #eee; }
 .productionPageTitle::placeholder { color: #333; }
 
-.productionPageCanvasBtn {
+.productionPageGraphBtn {
   background: transparent;
   border: 1px solid #2a2c33;
   color: #aaa;
   font-size: 13px;
-  padding: 5px 10px;
+  font-weight: 500;
+  padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
 }
-.productionPageCanvasBtn:hover { background: #1a1c22; }
+.productionPageGraphBtn:hover { background: #1a1c22; }
+.productionPageGraphBtn:disabled { opacity: 0.5; cursor: default; }
 
+/* Сохранить+Граф — правая группа: margin-left:auto на первой держит обе
+   у правого края (title и так flex:1, но так это не завязано на его стиль) */
 .productionPageSave {
+  margin-left: auto;
   background: #1e2e10;
   border: 1px solid #4a6a20;
   color: #7aaa30;
@@ -80,6 +85,20 @@
   overflow: hidden;
 }
 .productionRowDragging { opacity: 0.4; }
+
+.productionDropLine {
+  height: 3px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: #b6fe3b;
+  box-shadow: 0 0 6px rgba(182, 254, 59, 0.6);
+}
+
+.productionListEndZone {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+}
 
 .productionRowBar {
   height: 4px;

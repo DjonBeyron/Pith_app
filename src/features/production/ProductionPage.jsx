@@ -50,6 +50,14 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
     }
   }
 
+  // Переход в canvas («Граф») — сохраняем перед переключением, как по кнопке
+  // «Сохранить»: иначе canvas открыл бы прошлую версию урока с сервера, а
+  // правки, сделанные в списке, остались бы только здесь
+  async function switchToCanvas() {
+    await handleSave()
+    onOpenCanvas(lessonId)
+  }
+
   return (
     <div className="productionPage">
       <div className="productionPageHeader">
@@ -60,11 +68,11 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
           onChange={e => setTitle(e.target.value)}
           placeholder="Название урока"
         />
-        <button className="productionPageCanvasBtn" onClick={() => onOpenCanvas(lessonId)}>
-          🗺 Сформировать урок
-        </button>
         <button className="productionPageSave" onClick={handleSave} disabled={isSaving || loading}>
           {isSaving ? 'Сохраняю…' : 'Сохранить'}
+        </button>
+        <button className="productionPageGraphBtn" onClick={switchToCanvas} disabled={isSaving || loading}>
+          Граф
         </button>
       </div>
 

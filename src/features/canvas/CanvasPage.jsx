@@ -128,6 +128,15 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
     }
   }
 
+  // Переход в продакшен-список — те же данные, другой вид: сохраняем перед
+  // переключением (как по кнопке «Сохранить»), иначе список открыл бы
+  // прошлую версию урока с сервера, а несохранённые правки остались бы
+  // только в этом (сейчас закрываемом) редакторе
+  async function switchToProduction() {
+    await handleSave()
+    onOpenProduction(lessonId)
+  }
+
   // Кнопка на случай, когда локальный черновик застрял (например, урок
   // поменяли не в этом браузере) — без консоли/DevTools, прямо из интерфейса.
   // Стирает localStorage-черновик CanvasBoard и форсирует его remount, чтобы
@@ -153,36 +162,42 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           onChange={e => setTitle(e.target.value)}
           placeholder="Название урока"
         />
-        <BackButton onClick={onBack} />
-        <button className="canvasPageProduction" onClick={() => onOpenProduction(lessonId)} title="Открыть в продакшен-списке">
-          📝
-        </button>
-        <button className="canvasPagePlay" onClick={() => setShowPlayer(true)}>▶</button>
-        <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
-          {isSaving ? 'Сохраняю…' : 'Сохранить'}
-        </button>
-        <button
-          className="canvasPageReset"
-          onClick={handleResetToServer}
-          disabled={loading}
-          title="Отменить локальные правки и показать данные с сервера"
-        >↻ С сервера</button>
-        <div className="canvasXpField">
-          <input
-            className="canvasXpInput"
-            type="number"
-            min="0"
-            step="10"
-            value={lessonXp}
-            onChange={e => {
-              const n = Math.max(0, parseInt(e.target.value) || 0)
-              // number-input не чистит ведущий ноль сам («05») — приводим DOM к числу
-              e.target.value = String(n)
-              setLessonXp(n)
-            }}
-            onClick={e => e.stopPropagation()}
-          />
-          <span className="canvasXpLabel">XP</span>
+        {/* Правая группа целиком: margin-left:auto держит её у правого края
+            и на мобильном (где title flex:1 и без того всё выталкивает), и
+            на широких экранах (там title уходит в absolute — без этой
+            обёртки кнопки съезжали бы к ⚙ левым краем, см. page.css) */}
+        <div className="canvasPageActions">
+          <BackButton onClick={onBack} />
+          <button className="canvasPagePlay" onClick={() => setShowPlayer(true)}>▶</button>
+          <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
+            {isSaving ? 'Сохраняю…' : 'Сохранить'}
+          </button>
+          <button
+            className="canvasPageReset"
+            onClick={handleResetToServer}
+            disabled={loading}
+            title="Отменить локальные правки и показать данные с сервера"
+          >↻ С сервера</button>
+          <div className="canvasXpField">
+            <input
+              className="canvasXpInput"
+              type="number"
+              min="0"
+              step="10"
+              value={lessonXp}
+              onChange={e => {
+                const n = Math.max(0, parseInt(e.target.value) || 0)
+                // number-input не чистит ведущий ноль сам («05») — приводим DOM к числу
+                e.target.value = String(n)
+                setLessonXp(n)
+              }}
+              onClick={e => e.stopPropagation()}
+            />
+            <span className="canvasXpLabel">XP</span>
+          </div>
+          <button className="canvasPageProduction" onClick={switchToProduction} disabled={isSaving || loading}>
+            Продакшен
+          </button>
         </div>
       </div>
 

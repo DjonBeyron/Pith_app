@@ -15,6 +15,8 @@ import { relinkPrimaryChain } from './nodeGraphPrimary.js'
 export default function ProductionList({ nodes, onNodesChange, lessonFiles = [], onPickLessonFile, moduleLessons = [] }) {
   const sorted = nodes.slice().sort((a, b) => a.seq - b.seq)
   const [dragId, setDragId] = useState(null)
+  // Куда встанет нода при отпускании: { id: <nodeId>|'END', position: 'before'|'after' }
+  const [dropTarget, setDropTarget] = useState(null)
   const listRef = useRef(null)
 
   // Фокус в текстовое поле только что созданной строки (Ctrl+Enter / «+») —
@@ -63,15 +65,31 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
     onNodesChange(renumber(filtered))
   }
 
-  function reorder(fromId, toId) {
-    if (!fromId || fromId === toId) return
-    const ordered = sorted.slice()
-    const fromIdx = ordered.findIndex(n => n.id === fromId)
-    const toIdx   = ordered.findIndex(n => n.id === toId)
-    if (fromIdx < 0 || toIdx < 0) return
-    const [moved] = ordered.splice(fromIdx, 1)
-    ordered.splice(toIdx, 0, moved)
-    onNodesChange(relinkPrimaryChain(ordered))
+  // Наведение во время перетаскивания: верхняя половина строки — «вставить
+  // перед ней», нижняя — «после» (см. handleDrop). Пересчитывается на каждый
+  // dragover, поэтому линия-индикатор всегда точно под курсором.
+  function handleDragOver(e, node) {
+    e.preventDefault()
+    if (!dragId || dragId === node.id) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const position = e.clientY - rect.top < rect.height / 2 ? 'before' : 'after'
+    setDropTarget(prev => (prev?.id === node.id && prev.position === position ? prev : { id: node.id, position }))
+  }
+
+  function handleDrop() {
+    if (dragId && dropTarget) {
+      const ordered = sorted.slice()
+      const fromIdx = ordered.findIndex(n => n.id === dragId)
+      if (fromIdx >= 0) {
+        const [moved] = ordered.splice(fromIdx, 1)
+        let toIdx = dropTarget.id === 'END' ? ordered.length : ordered.findIndex(n => n.id === dropTarget.id)
+        if (dropTarget.id !== 'END' && dropTarget.position === 'after') toIdx += 1
+        ordered.splice(Math.max(0, toIdx), 0, moved)
+        onNodesChange(relinkPrimaryChain(ordered))
+      }
+    }
+    setDragId(null)
+    setDropTarget(null)
   }
 
   return (
@@ -83,9 +101,10 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
           key={node.id}
           data-node-id={node.id}
           className={'productionRow' + (dragId === node.id ? ' productionRowDragging' : '')}
-          onDragOver={e => e.preventDefault()}
-          onDrop={e => { e.preventDefault(); reorder(dragId, node.id); setDragId(null) }}
+          onDragOver={e => handleDragOver(e, node)}
+          onDrop={e => { e.preventDefault(); handleDrop() }}
         >
+          {dropTarget?.id === node.id && dropTarget.position === 'before' && <div className="productionDropLine" />}
           <div className="productionRowBar" style={{ background: TYPE_COLOR[node.type] }} />
           <div className="productionRowHead">
             <span
@@ -93,7 +112,7 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
               title="Перетащить для смены порядка"
               draggable
               onDragStart={() => setDragId(node.id)}
-              onDragEnd={() => setDragId(null)}
+              onDragEnd={() => { setDragId(null); setDropTarget(null) }}
             >⠿</span>
             <span className="productionRowSeq">#{node.seq}</span>
             <NodeTypeSelect value={node.type} onChange={v => updateNode(node.id, applyTypeChange(node, v))} compact />
@@ -119,9 +138,20 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
               showTypeSelect={false}
             />
           </div>
+          {dropTarget?.id === node.id && dropTarget.position === 'after' && <div className="productionDropLine" />}
           <button className="productionInsertBtn" onClick={() => insertAt(i + 1)}>+ Добавить ноду ниже (Ctrl+Enter)</button>
         </div>
       ))}
+
+      {sorted.length > 0 && (
+        <div
+          className="productionListEndZone"
+          onDragOver={e => { e.preventDefault(); if (dragId) setDropTarget({ id: 'END', position: 'after' }) }}
+          onDrop={e => { e.preventDefault(); handleDrop() }}
+        >
+          {dropTarget?.id === 'END' && <div className="productionDropLine" />}
+        </div>
+      )}
 
       {sorted.length === 0 && (
         <button className="productionInsertBtn productionInsertBtnEmpty" onClick={() => insertAt(0)}>
