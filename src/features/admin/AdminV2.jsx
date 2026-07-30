@@ -12,7 +12,7 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 // «Файлы» (таблица файлов R2), «Пуши» (рассылка), «Гонка» (супергонка),
 // «Стрик» (вехи наград), «Учитель» (общий учитель всех уроков) и «Ошибки»
 // (ошибки клиентов из client_errors).
-export default function AdminV2({ onOpenCanvas }) {
+export default function AdminV2({ onOpenCanvas, onOpenProduction }) {
   const [sub, setSub] = useState('modules') // modules | files | push | race | streak | teacher | errors
 
   return (
@@ -41,7 +41,7 @@ export default function AdminV2({ onOpenCanvas }) {
         </button>
       </div>
       <div className="avVersion">v{APP_VERSION}</div>
-      {sub === 'modules' && <AdminModulesTab onOpenCanvas={onOpenCanvas} />}
+      {sub === 'modules' && <AdminModulesTab onOpenCanvas={onOpenCanvas} onOpenProduction={onOpenProduction} />}
       {sub === 'files' && <div className="shellV2Panel"><AdminTab /></div>}
       {sub === 'push' && <div className="shellV2Panel"><AdminNotificationsTab /></div>}
       {sub === 'race' && <div className="shellV2Panel"><AdminRaceTab /></div>}

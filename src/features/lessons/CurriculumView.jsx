@@ -44,7 +44,7 @@ async function loadStarsMap(user, lessons) {
 // вкладке «Уроки» (старая оболочка), и из ленты по «Изучить фразу» (ui v2).
 // isPro — про-модуль (супер-урок гонки): вместо графа простой список уроков,
 // без Старта/Финала, без экзамена и без маркера «модуль пройден».
-export default function CurriculumView({ curriculumId, curriculumTitle, isPro = false, onBack, onOpenCanvas }) {
+export default function CurriculumView({ curriculumId, curriculumTitle, isPro = false, onBack, onOpenCanvas, onOpenProduction }) {
   const {
     lessons, loading, creating, error, isDirty,
     bulkCreate, addBeforeFinal, addLast, renameLesson, removeLesson, saveStructure, togglePublished,
@@ -319,6 +319,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             id,
             moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
           })}
+          onEditProduction={id => onOpenProduction({
+            id,
+            moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
+          })}
           onDelete={removeLesson}
           onRename={renameLesson}
           onAdd={() => addLast(`Урок ${lessons.length + 1}`)}
@@ -336,6 +340,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           onResetLesson={handleResetLesson}
           onPlay={id => setLaunchId(id)}
           onEdit={id => onOpenCanvas({
+            id,
+            moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
+          })}
+          onEditProduction={id => onOpenProduction({
             id,
             moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
           })}

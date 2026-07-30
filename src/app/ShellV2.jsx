@@ -20,8 +20,9 @@ import { useDailyLoginTouch } from '../features/streak/useDailyLoginTouch.js'
 
 // Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
 // пользователь эти chunk'и даже не скачивает (см. PROJECT.md, этап 2)
-const AdminV2    = lazy(() => lazyRetry(() => import('../features/admin/AdminV2.jsx'), 'admin'))
-const CanvasPage = lazy(() => lazyRetry(() => import('../features/canvas/CanvasPage.jsx'), 'canvas'))
+const AdminV2         = lazy(() => lazyRetry(() => import('../features/admin/AdminV2.jsx'), 'admin'))
+const CanvasPage      = lazy(() => lazyRetry(() => import('../features/canvas/CanvasPage.jsx'), 'canvas'))
+const ProductionPage  = lazy(() => lazyRetry(() => import('../features/production/ProductionPage.jsx'), 'production'))
 
 // Новая оболочка (ui v2, миграция по PROJECT.md): нижний бар Уроки/Профиль
 // (+Админ для is_admin). Пока: лента — заглушка (шаг 3 миграции),
@@ -31,6 +32,9 @@ export default function ShellV2() {
   // Canvas-редактор урока (админ, «✎» на схеме модуля) — оверлеем поверх
   // оболочки: лента под ним не размонтируется и не теряет позицию
   const [canvasLesson, setCanvasLesson] = useState(null)
+  // Продакшен-редактор (линейный список сообщений) — тот же оверлей-паттерн,
+  // над теми же данными урока, что и canvas (см. PROJECT.md)
+  const [productionLesson, setProductionLesson] = useState(null)
   // Сигнал вкладке «Рейтинг» открыть страницу гонки (из попапа-анонса)
   const [raceOpenTick, setRaceOpenTick] = useState(0)
   // Настройки доступны и гостю (не только залогиненному, см. ProfileV2) —
@@ -103,7 +107,7 @@ export default function ShellV2() {
         {isAdmin && (
           <div className={tab === 'admin' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
             <Suspense fallback={<div className="shellV2Panel">Загрузка…</div>}>
-              <AdminV2 onOpenCanvas={setCanvasLesson} />
+              <AdminV2 onOpenCanvas={setCanvasLesson} onOpenProduction={setProductionLesson} />
             </Suspense>
           </div>
         )}
@@ -148,6 +152,22 @@ export default function ShellV2() {
               lessonId={canvasLesson.id}
               moduleLessons={canvasLesson.moduleLessons ?? []}
               onBack={() => setCanvasLesson(null)}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {productionLesson && (
+        <div className="shellV2CanvasOverlay">
+          <Suspense fallback={<div className="shellV2Panel">Загрузка продакшена…</div>}>
+            <ProductionPage
+              lessonId={productionLesson.id}
+              moduleLessons={productionLesson.moduleLessons ?? []}
+              onBack={() => setProductionLesson(null)}
+              onOpenCanvas={id => {
+                setProductionLesson(null)
+                setCanvasLesson({ id, moduleLessons: productionLesson.moduleLessons ?? [] })
+              }}
             />
           </Suspense>
         </div>

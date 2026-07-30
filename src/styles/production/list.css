@@ -1,0 +1,147 @@
+.productionPage {
+  position: fixed;
+  inset: 0;
+  background: #090b0e;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.productionPageHeader {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  background: rgba(9, 11, 14, 0.97);
+  border-bottom: 1px solid #1a1c22;
+  flex-shrink: 0;
+}
+
+.productionPageTitle {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 10px;
+  outline: none;
+}
+.productionPageTitle:hover { border-color: #2a2c33; }
+.productionPageTitle:focus { border-color: #444; color: #eee; }
+.productionPageTitle::placeholder { color: #333; }
+
+.productionPageCanvasBtn {
+  background: transparent;
+  border: 1px solid #2a2c33;
+  color: #aaa;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.productionPageCanvasBtn:hover { background: #1a1c22; }
+
+.productionPageSave {
+  background: #1e2e10;
+  border: 1px solid #4a6a20;
+  color: #7aaa30;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.productionPageSave:disabled { opacity: 0.5; cursor: default; }
+
+.productionList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.productionRow {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #12141a;
+  border: 1px solid #1e2027;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.productionRowDragging { opacity: 0.4; }
+
+.productionRowBar {
+  height: 4px;
+  width: 100%;
+}
+
+.productionRowHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.productionRowHandle {
+  cursor: grab;
+  color: #555;
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+}
+.productionRowHandle:active { cursor: grabbing; }
+
+.productionRowSeq {
+  color: #666;
+  font-size: 12px;
+  font-family: monospace;
+  min-width: 28px;
+}
+
+.productionRowBtn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid #2a2c33;
+  color: #999;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.productionRowBtn:hover { background: #1a1c22; }
+.productionRowBtn + .productionRowBtn { margin-left: 4px; }
+.productionRowBtnDel { color: #c47e7e; border-color: #3a2222; }
+
+.productionRowContent {
+  padding: 0 12px 12px;
+}
+
+.productionInsertBtn {
+  background: transparent;
+  border: 1px dashed #2a2c33;
+  color: #666;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 10px;
+}
+.productionInsertBtn:hover { background: #14161c; color: #999; border-color: #444; }
+.productionInsertBtnEmpty { padding: 20px; font-size: 14px; }
+
+.nodePlannedFileInput {
+  font-size: 12px;
+  opacity: 0.8;
+}

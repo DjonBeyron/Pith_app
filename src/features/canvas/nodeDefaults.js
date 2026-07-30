@@ -12,8 +12,10 @@ export function setLastNodeType(type) {
   localStorage.setItem(LAST_TYPE_KEY, type)
 }
 
-// Интерактивные типы со своей парой триггеров (порядок = порядок портов)
-const TYPED_PAIRS = {
+// Интерактивные типы со своей парой триггеров (порядок = порядок портов).
+// Экспортирован: nodeGraphPrimary.js использует тот же порядок, чтобы знать,
+// какой из двух триггеров — «основной путь» (correct/submit), а какой — ветка.
+export const TYPED_PAIRS = {
   word_choice:     ['word_correct',   'word_wrong'],
   phrase_assembly: ['phrase_correct', 'phrase_wrong'],
   photo_choice:    ['photo_correct',  'photo_wrong'],
@@ -56,4 +58,15 @@ export function hasOwnTriggers(type, triggers = []) {
   const pair = TYPED_PAIRS[type]
   if (!pair) return false
   return triggers.some(t => pair.includes(t.if))
+}
+
+// Патч { type, triggers? } для смены типа ноды: пересобирает триггеры под
+// дефолт нового типа, сохраняя единственную существующую связь (then) в
+// первом триггере — если у нового типа нет родной пары. Общая логика для
+// CanvasNode (mini/max) и ProductionList (строка списка).
+export function applyTypeChange(node, newType) {
+  setLastNodeType(newType)
+  if (hasOwnTriggers(newType, node.triggers)) return { type: newType }
+  const keepThen = node.triggers?.find(t => t.then)?.then ?? null
+  return { type: newType, triggers: makeDefaultTriggers(newType, keepThen) }
 }

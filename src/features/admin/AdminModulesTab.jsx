@@ -11,7 +11,7 @@ import { dbg } from '../../shared/lib/debug.js'
 // чипами «видео есть/нет» и статусом публикации (чип-циклер: черновик →
 // превью → опубликован → черновик, см. handleCycleStatus), «+ Новый модуль»,
 // тап по строке — схема модуля, ✕ — удаление.
-export default function AdminModulesTab({ onOpenCanvas }) {
+export default function AdminModulesTab({ onOpenCanvas, onOpenProduction }) {
   const [rows, setRows] = useState(null) // null = загрузка
   const [openModule, setOpenModule] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -89,6 +89,7 @@ export default function AdminModulesTab({ onOpenCanvas }) {
           isPro={!!openModule.isPro}
           onBack={() => { setOpenModule(null); refresh() }}
           onOpenCanvas={onOpenCanvas}
+          onOpenProduction={onOpenProduction}
         />
       </div>
     )

@@ -16,7 +16,7 @@ export function MgRenameInput({ draft, onDraft, onCommit, onCancel }) {
 // ⟲ сброс урока, 👁 публикация, ✕ удалить (только у обычных уроков)
 export function MgBtns({
   l, kind, isAdmin, show,
-  onPlay, onEdit, onRenameStart, onResetLesson, onTogglePublished, onDelete, clearTap,
+  onPlay, onEdit, onEditProduction, onRenameStart, onResetLesson, onTogglePublished, onDelete, clearTap,
 }) {
   // Обычный пользователь запускает урок тапом/кликом по карточке (handleClick) —
   // кнопок у него нет вовсе, в том числе ▶.
@@ -26,6 +26,8 @@ export function MgBtns({
       onClick={e => e.stopPropagation()}>
       <button className="mgBtn" onClick={() => { onPlay(l.id); clearTap() }}>▶</button>
       <button className="mgBtn" onClick={() => { onEdit(l.id); clearTap() }}>⚙</button>
+      <button className="mgBtn" title="Продакшен (линейный список)"
+        onClick={() => { onEditProduction(l.id); clearTap() }}>📝</button>
       <button className="mgBtn" onClick={e => { onRenameStart(e, l.id, l.title); clearTap() }}>✎</button>
       <button className="mgBtn" title="Сбросить прохождение этого урока (XP отнимется, анализ сохранится)"
         onClick={() => { onResetLesson?.(l.id); clearTap() }}>⟲</button>

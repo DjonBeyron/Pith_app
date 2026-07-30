@@ -40,6 +40,7 @@
 @import './styles/canvas/crop.css';
 @import './styles/canvas/nodes.css';
 @import './styles/canvas/triggers.css';
+@import './styles/production/list.css';
 @import './styles/player/layout.css';
 @import './styles/player/topbar.css';
 @import './styles/player/feed.css';
