@@ -1,5 +1,5 @@
 import { TYPED_PAIRS } from '../canvas/nodeDefaults.js'
-import { renumber } from '../canvas/nodeGraph.js'
+import { renumber, NODE_SLOT } from '../canvas/nodeGraph.js'
 
 // «Основной» триггер ноды — тот, что список продакшена считает «следующая
 // нода по умолчанию» при перетаскивании строки. Для типов со своей парой
@@ -21,12 +21,18 @@ export function getPrimaryTriggerIndex(node) {
 // (последняя — на null). Ветки (второй триггер пары) не трогает. orderedNodes
 // должен содержать РОВНО тот же набор нод, что и исходный список (просто в
 // новом порядке) — иначе часть нод потеряет seq при renumber.
+//
+// Заодно переставляет x/y нод в одну строку по этому же порядку (y=0,
+// x=i*NODE_SLOT) — если менять только связи, не трогая позиции, в canvas
+// линии-стрелки начинают крест-накрест бегать между старыми местами нод, и
+// новый порядок визуально не читается. Меняем порядок из Продакшена — значит
+// приоритет у линейного чтения графа, а не у ручной 2D-раскладки в canvas.
 export function relinkPrimaryChain(orderedNodes) {
   const relinked = orderedNodes.map((node, i) => {
     const nextId = i < orderedNodes.length - 1 ? orderedNodes[i + 1].id : null
     const idx = getPrimaryTriggerIndex(node)
     const triggers = (node.triggers ?? []).map((t, ti) => (ti === idx ? { ...t, then: nextId } : t))
-    return { ...node, triggers }
+    return { ...node, triggers, x: i * NODE_SLOT, y: 0 }
   })
   return renumber(relinked)
 }
