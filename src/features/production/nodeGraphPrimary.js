@@ -78,6 +78,21 @@ export function getBranchTarget(node, allNodes) {
   return { target, label: BRANCH_LABEL[branch.if] ?? '↳ Ветка' }
 }
 
+// Варианты «к какому исходу присоединить» для кнопки «Добавить ноду ниже» —
+// по ТИПУ ноды (TYPED_PAIRS), а не по тому, заполнены ли уже обе связи.
+// Иначе у только что созданного модуля (обе связи ещё null, пары снизу нет)
+// кнопка молча цепляла бы к «верно», не спросив — сюрприз для админа.
+// null — у типа нет своей пары (played/timer), спрашивать нечего.
+export function getBranchChoices(node) {
+  const pair = TYPED_PAIRS[node.type]
+  if (!pair) return null
+  const primaryIdx = getPrimaryTriggerIndex(node)
+  const branchIdx = getBranchTriggerIndex(node)
+  const primaryLabel = PRIMARY_LABEL[node.triggers?.[primaryIdx]?.if] ?? '✓ Далее'
+  const branchLabel = BRANCH_LABEL[node.triggers?.[branchIdx]?.if] ?? '↳ Ветка'
+  return [{ value: 'primary', label: primaryLabel }, { value: 'branch', label: branchLabel }]
+}
+
 // Строит план рендера списка: обычно каждая нода — своя строка («single»),
 // но у ноды с развилкой (getBranchTarget) следующая по основному пути и
 // нода-цель ветки идут ПАРОЙ («pair», делят экран пополам) сразу под ней —
@@ -91,20 +106,17 @@ export function buildRenderPlan(sorted, allNodes) {
     const branch = getBranchTarget(node, allNodes)
     const primary = branch ? getPrimaryTarget(node, allNodes) : null
     if (branch && primary && primary.id !== node.id && !visited.has(primary.id) && !visited.has(branch.target.id)) {
-      const primaryIfIdx = getPrimaryTriggerIndex(node)
-      const primaryLabel = PRIMARY_LABEL[node.triggers?.[primaryIfIdx]?.if] ?? '✓ Далее'
-      // Кнопка «ниже» этой (ветвящейся) строки не может молча выбирать за
-      // админа, к какому исходу цепляется новая нода — предлагаем выбор
-      plan.push({
-        type: 'single', node,
-        branchChoices: [{ value: 'primary', label: primaryLabel }, { value: 'branch', label: branch.label }],
-      })
-      plan.push({ type: 'pair', left: primary, leftLabel: primaryLabel, right: branch.target, rightLabel: branch.label })
+      const choices = getBranchChoices(node)
+      plan.push({ type: 'single', node, branchChoices: choices })
+      plan.push({ type: 'pair', left: primary, leftLabel: choices[0].label, right: branch.target, rightLabel: branch.label })
       visited.add(primary.id)
       visited.add(branch.target.id)
       return
     }
-    plan.push({ type: 'single', node })
+    // Пары снизу ещё нет (одна или обе связи не заданы), но у типа своя пара
+    // исходов (TYPED_PAIRS) — кнопка «ниже» всё равно должна спросить, а не
+    // молча цеплять к «верно»
+    plan.push({ type: 'single', node, branchChoices: getBranchChoices(node) })
   })
   return plan
 }
