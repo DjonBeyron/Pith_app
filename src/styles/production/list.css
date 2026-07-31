@@ -126,8 +126,11 @@
   gap: 2px;
 }
 
-/* Одиночная нода (без развилки) — по центру, уже, чем полная ширина списка */
-.productionSingleWrap { max-width: 640px; width: 100%; margin: 0 auto 10px; }
+/* Одиночная нода (без развилки) — по центру, уже, чем полная ширина списка.
+   ...Wide — раскрыт блок «Если/Тогда» (см. triggerCollapse ниже): даёт ему
+   больше воздуха, чем тесные 640px, не выходя за .productionList (980px) */
+.productionSingleWrap { max-width: 640px; width: 100%; margin: 0 auto 10px; transition: max-width 0.15s; }
+.productionSingleWrapWide { max-width: 860px; }
 
 /* Развилка: следующая по «верно» и цель ветки — рядом, делят экран пополам.
    На узких экранах одна под другой, иначе не влезают */
@@ -239,4 +242,36 @@
 .nodePlannedFileInput {
   font-size: 12px;
   opacity: 0.8;
+}
+
+/* Блок «Если/Тогда» (простые типы — не word_choice и т.п.) в продакшене
+   свёрнут по умолчанию, чтобы не отвлекать от текста ноды — технические
+   детали графа нужны редко. Раскрывается треугольником, см. .productionSingleWrapWide */
+.triggerCollapse { margin-top: 6px; }
+.triggerCollapseToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+.triggerCollapseToggle:hover { color: #999; }
+.triggerCollapseArrow {
+  display: inline-block;
+  font-size: 9px;
+  transition: transform 0.15s;
+}
+.triggerCollapseArrowOpen { transform: rotate(90deg); }
+
+/* Второй шаг меню InsertNodeButton (выбор «к какому ответу присоединить») */
+.insertBranchHint {
+  padding: 6px 10px 4px;
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }

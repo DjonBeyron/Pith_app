@@ -3,7 +3,9 @@ import ProductionRow from './ProductionRow.jsx'
 import InsertNodeButton from './InsertNodeButton.jsx'
 import { applyTypeChange, setLastNodeType } from '../canvas/nodeDefaults.js'
 import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
-import { relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAtStart } from './nodeGraphPrimary.js'
+import {
+  relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAtStart, getBranchTriggerIndex,
+} from './nodeGraphPrimary.js'
 
 // Линейный список сообщений урока сверху вниз — альтернатива canvas-редактору
 // для быстрого набора большой цепочки. Порядок строк = seq (тот же, что
@@ -22,6 +24,8 @@ export default function ProductionList({
   const [dragId, setDragId] = useState(null)
   // Куда встанет нода при отпускании: { id: <nodeId>|'END', position: 'before'|'after' }
   const [dropTarget, setDropTarget] = useState(null)
+  // Блок «Если/Тогда» свёрнут по умолчанию у каждой ноды — id тех, что раскрыли
+  const [expandedTriggerIds, setExpandedTriggerIds] = useState(() => new Set())
   // scrollRef — снаружи (ProductionPage, кнопка «В начало»), если не передан
   // (например изолированный дебаг-рендер) — используем свой собственный
   const internalRef = useRef(null)
@@ -49,14 +53,27 @@ export default function ProductionList({
     onNodesChange(nodes.map(n => (n.id === id ? { ...n, ...patch } : n)))
   }
 
-  // Вставляет новую ноду СРАЗУ ПОСЛЕ afterId — патчит только основной триггер
-  // этой конкретной ноды (insertNodeAfter), не весь список. Это и есть выбор
-  // «к какой ветке цепляем»: кнопка под «Верно» вызывает insertAfterNode(left.id),
-  // кнопка под «Неверно» — insertAfterNode(right.id).
-  function insertAfterNode(afterId, type) {
+  // Вставляет новую ноду СРАЗУ ПОСЛЕ afterId — патчит только один триггер
+  // этой конкретной ноды (insertNodeAfter), не весь список. Обычно основной
+  // (для пар-колонок это однозначно «верно» или «неверно» — кнопка под
+  // «Верно» вызывает insertAfterNode(left.id), под «Неверно» — insertAfterNode
+  // (right.id)). У самой ветвящейся ноды это неоднозначно — branch='branch'
+  // приходит из второго шага меню (branchChoices, см. plan.branchChoices)
+  function insertAfterNode(afterId, type, branch) {
     const node = createNode(type)
-    onNodesChange(insertNodeAfter(nodes, afterId, node))
+    const afterNode = nodes.find(n => n.id === afterId)
+    const triggerIdx = branch === 'branch' ? getBranchTriggerIndex(afterNode) : undefined
+    onNodesChange(insertNodeAfter(nodes, afterId, node, triggerIdx))
     focusRowSoon(node.id)
+  }
+
+  function toggleTriggers(id) {
+    setExpandedTriggerIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   function insertAtStart(type) {
@@ -143,6 +160,8 @@ export default function ProductionList({
       lessonFiles,
       onPickLessonFile,
       moduleLessons,
+      triggersExpanded: expandedTriggerIds.has(node.id),
+      onToggleTriggers: () => toggleTriggers(node.id),
     }
   }
 
@@ -153,12 +172,13 @@ export default function ProductionList({
 
         {plan.map(item => item.type === 'single' ? (
           <Fragment key={item.node.id}>
-            <div className="productionSingleWrap">
+            <div className={'productionSingleWrap' + (expandedTriggerIds.has(item.node.id) ? ' productionSingleWrapWide' : '')}>
               <ProductionRow {...rowProps(item.node)} />
             </div>
             <InsertNodeButton
               label="+ Добавить ноду ниже (Ctrl+Enter)"
-              onInsert={type => insertAfterNode(item.node.id, type)}
+              branchChoices={item.branchChoices}
+              onInsert={(type, branch) => insertAfterNode(item.node.id, type, branch)}
             />
           </Fragment>
         ) : (

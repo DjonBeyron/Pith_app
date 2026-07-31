@@ -24,6 +24,10 @@ const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 export default function NodeContentEditor({
   node, onUpdate, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure, moduleLessons = [],
   showTypeSelect = true,
+  // Продакшен: блок «Если/Тогда» (простые типы — не word_choice и т.п. со
+  // своей парой) по умолчанию свёрнут — за раскрытие/ширину строки отвечает
+  // ProductionList.jsx (там же и хранится состояние per-node)
+  collapsibleTriggers = false, triggersExpanded = false, onToggleTriggers,
 }) {
   const [hlRect, setHlRect] = useState(null)
   const [hlTarget, setHlTarget] = useState('main') // 'main' | 'pro' — какой текст красим
@@ -286,13 +290,35 @@ export default function NodeContentEditor({
         <NodeRegistrationTriggers onTriggerMeasure={onTriggerMeasure} />
       )}
       {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'photo_choice' && node.type !== 'registration' && node.type !== 'table' && (
-        <NodeTriggerEditor
-          triggers={node.triggers}
-          nodeId={node.id}
-          nodes={allNodes}
-          onChange={triggers => onUpdate({ triggers })}
-          onMeasure={onTriggerMeasure}
-        />
+        collapsibleTriggers ? (
+          <div className="triggerCollapse">
+            <button
+              type="button"
+              className="triggerCollapseToggle"
+              onClick={e => { e.stopPropagation(); onToggleTriggers?.() }}
+            >
+              <span className={'triggerCollapseArrow' + (triggersExpanded ? ' triggerCollapseArrowOpen' : '')}>▸</span>
+              Если / Тогда
+            </button>
+            {triggersExpanded && (
+              <NodeTriggerEditor
+                triggers={node.triggers}
+                nodeId={node.id}
+                nodes={allNodes}
+                onChange={triggers => onUpdate({ triggers })}
+                onMeasure={onTriggerMeasure}
+              />
+            )}
+          </div>
+        ) : (
+          <NodeTriggerEditor
+            triggers={node.triggers}
+            nodeId={node.id}
+            nodes={allNodes}
+            onChange={triggers => onUpdate({ triggers })}
+            onMeasure={onTriggerMeasure}
+          />
+        )
       )}
       {hlRect && (
         <NodeTextHighlighter

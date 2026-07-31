@@ -60,6 +60,13 @@ export function getPrimaryTarget(node, allNodes) {
   return allNodes.find(n => n.id === then) ?? null
 }
 
+// Индекс «неосновного» триггера (пара с getPrimaryTriggerIndex) — тот, что
+// не совпадает с основным. -1, если у ноды всего один триггер (нет развилки).
+export function getBranchTriggerIndex(node) {
+  const primaryIdx = getPrimaryTriggerIndex(node)
+  return (node.triggers ?? []).findIndex((t, i) => i !== primaryIdx)
+}
+
 // Ветка ноды — «неосновной» триггер с указанной целью (например «неверно»
 // у word_choice). Возвращает null, если ветки нет или она никуда не указывает.
 export function getBranchTarget(node, allNodes) {
@@ -84,9 +91,14 @@ export function buildRenderPlan(sorted, allNodes) {
     const branch = getBranchTarget(node, allNodes)
     const primary = branch ? getPrimaryTarget(node, allNodes) : null
     if (branch && primary && primary.id !== node.id && !visited.has(primary.id) && !visited.has(branch.target.id)) {
-      plan.push({ type: 'single', node })
       const primaryIfIdx = getPrimaryTriggerIndex(node)
       const primaryLabel = PRIMARY_LABEL[node.triggers?.[primaryIfIdx]?.if] ?? '✓ Далее'
+      // Кнопка «ниже» этой (ветвящейся) строки не может молча выбирать за
+      // админа, к какому исходу цепляется новая нода — предлагаем выбор
+      plan.push({
+        type: 'single', node,
+        branchChoices: [{ value: 'primary', label: primaryLabel }, { value: 'branch', label: branch.label }],
+      })
       plan.push({ type: 'pair', left: primary, leftLabel: primaryLabel, right: branch.target, rightLabel: branch.label })
       visited.add(primary.id)
       visited.add(branch.target.id)
@@ -97,16 +109,17 @@ export function buildRenderPlan(sorted, allNodes) {
   return plan
 }
 
-// Вставляет newNode СРАЗУ ПОСЛЕ конкретной ноды afterId — патчит только
-// основной триггер этой ноды, ничего больше. Не пересобирает связи всего
-// массива (в отличие от relinkPrimaryChain): у ноды с развилкой соседние по
-// seq ноды могут принадлежать СОВСЕМ другой ветке (DFS сначала обходит весь
-// путь «верно», потом «неверно») — relinkPrimaryChain по всему списку в
-// этом случае перепутал бы, к какой ветке цепляется новая нода.
-export function insertNodeAfter(nodes, afterId, newNode) {
+// Вставляет newNode СРАЗУ ПОСЛЕ конкретной ноды afterId — патчит только один
+// триггер этой ноды (по умолчанию основной, но можно явно указать triggerIdx —
+// например «ветку», см. getBranchTriggerIndex), ничего больше. Не пересобирает
+// связи всего массива (в отличие от relinkPrimaryChain): у ноды с развилкой
+// соседние по seq ноды могут принадлежать СОВСЕМ другой ветке (DFS сначала
+// обходит весь путь «верно», потом «неверно») — relinkPrimaryChain по всему
+// списку в этом случае перепутал бы, к какой ветке цепляется новая нода.
+export function insertNodeAfter(nodes, afterId, newNode, triggerIdx) {
   const afterNode = nodes.find(n => n.id === afterId)
   if (!afterNode) return nodes
-  const afterIdx = getPrimaryTriggerIndex(afterNode)
+  const afterIdx = triggerIdx ?? getPrimaryTriggerIndex(afterNode)
   const prevNext = afterNode.triggers?.[afterIdx]?.then ?? null
   const newIdx = getPrimaryTriggerIndex(newNode)
   const patchedNew = {

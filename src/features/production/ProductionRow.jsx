@@ -10,6 +10,7 @@ export default function ProductionRow({
   onDragOver, onDrop, onHandleDragStart, onHandleDragEnd,
   onUpdate, onTypeChange, onDuplicate, onDelete, onInsertBelow,
   allNodes, lessonFiles, onPickLessonFile, moduleLessons,
+  triggersExpanded, onToggleTriggers,
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
 
@@ -53,6 +54,9 @@ export default function ProductionRow({
           onPickLessonFile={onPickLessonFile}
           moduleLessons={moduleLessons}
           showTypeSelect={false}
+          collapsibleTriggers
+          triggersExpanded={triggersExpanded}
+          onToggleTriggers={onToggleTriggers}
         />
       </div>
       {dropLineAfter && <div className="productionDropLine" />}
