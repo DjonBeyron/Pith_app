@@ -1,6 +1,6 @@
 import NodeContentEditor from '../canvas/NodeContentEditor.jsx'
 import NodeTypeSelect from '../canvas/NodeTypeSelect.jsx'
-import { TYPE_COLOR } from '../canvas/nodeTypes.js'
+import { TYPE_COLOR, colorBg } from '../canvas/nodeTypes.js'
 
 // Одна карточка ноды — переиспользуется и для обычной строки списка, и для
 // каждой из двух колонок при развилке (ProductionList.jsx), чтобы не
@@ -11,15 +11,18 @@ export default function ProductionRow({
   onUpdate, onTypeChange, onDuplicate, onDelete, onInsertBelow,
   allNodes, lessonFiles, onPickLessonFile, moduleLessons,
 }) {
+  const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
+
   return (
     <div
       data-node-id={node.id}
       className={'productionRow' + (isDragging ? ' productionRowDragging' : '')}
+      style={{ background: colorBg(color, 0.07) }}
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
       {dropLineBefore && <div className="productionDropLine" />}
-      <div className="productionRowBar" style={{ background: TYPE_COLOR[node.type] }} />
+      <div className="productionRowBar" style={{ background: color }} />
       <div className="productionRowHead">
         <span
           className="productionRowHandle"

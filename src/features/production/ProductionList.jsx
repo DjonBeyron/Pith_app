@@ -1,6 +1,7 @@
 import { Fragment, useState, useRef } from 'react'
 import ProductionRow from './ProductionRow.jsx'
-import { applyTypeChange } from '../canvas/nodeDefaults.js'
+import InsertNodeButton from './InsertNodeButton.jsx'
+import { applyTypeChange, setLastNodeType } from '../canvas/nodeDefaults.js'
 import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
 import { relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAtStart } from './nodeGraphPrimary.js'
 
@@ -10,7 +11,9 @@ import { relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAtStart
 // основному пути и цель ветки показываются ПАРОЙ, делят экран пополам
 // (buildRenderPlan) — у каждой колонки своя кнопка «Добавить ноду ниже»,
 // чтобы новая нода цеплялась именно к «верно» или именно к «неверно», а не
-// к случайному соседу по общему списку (см. insertNodeAfter).
+// к случайному соседу по общему списку (см. insertNodeAfter). Кнопки «+»
+// открывают компактное меню выбора типа (InsertNodeButton) вместо того,
+// чтобы молча создавать ноду прошлого выбранного типа.
 export default function ProductionList({ nodes, onNodesChange, lessonFiles = [], onPickLessonFile, moduleLessons = [] }) {
   const sorted = nodes.slice().sort((a, b) => a.seq - b.seq)
   const plan = buildRenderPlan(sorted, nodes)
@@ -19,14 +22,22 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
   const [dropTarget, setDropTarget] = useState(null)
   const listRef = useRef(null)
 
-  // Фокус в текстовое поле только что созданной строки (Ctrl+Enter / «+») —
-  // не через эффект: узел появляется в DOM уже после этого коммита, поэтому
-  // ждём следующий кадр прямо из обработчика клика/клавиши.
+  // Фокус в текстовое поле только что созданной строки — не через эффект:
+  // узел появляется в DOM уже после этого коммита, поэтому ждём следующий
+  // кадр прямо из обработчика клика/клавиши.
   function focusRowSoon(nodeId) {
     requestAnimationFrame(() => {
       const row = listRef.current?.querySelector(`[data-node-id="${nodeId}"]`)
       row?.querySelector('textarea, input[type="text"], input:not([type])')?.focus()
     })
+  }
+
+  // type не задан — берётся последний выбранный (для Ctrl+Enter и старого
+  // поведения); задан явно — из меню InsertNodeButton
+  function createNode(type) {
+    if (type) setLastNodeType(type)
+    const maxX = nodes.reduce((m, n) => Math.max(m, n.x ?? 0), 0)
+    return makeNode(0, maxX + NODE_SLOT, 0)
   }
 
   function updateNode(id, patch) {
@@ -37,21 +48,20 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
   // этой конкретной ноды (insertNodeAfter), не весь список. Это и есть выбор
   // «к какой ветке цепляем»: кнопка под «Верно» вызывает insertAfterNode(left.id),
   // кнопка под «Неверно» — insertAfterNode(right.id).
-  function insertAfterNode(afterId) {
-    const maxX = nodes.reduce((m, n) => Math.max(m, n.x ?? 0), 0)
-    const node = makeNode(0, maxX + NODE_SLOT, 0)
+  function insertAfterNode(afterId, type) {
+    const node = createNode(type)
     onNodesChange(insertNodeAfter(nodes, afterId, node))
     focusRowSoon(node.id)
   }
 
-  function insertAtStart() {
-    const maxX = nodes.reduce((m, n) => Math.max(m, n.x ?? 0), 0)
-    const node = makeNode(0, maxX + NODE_SLOT, 0)
+  function insertAtStart(type) {
+    const node = createNode(type)
     onNodesChange(insertNodeAtStart(nodes, node))
     focusRowSoon(node.id)
   }
 
-  function insertFirstNode() {
+  function insertFirstNode(type) {
+    if (type) setLastNodeType(type)
     const node = makeNode(1, 0, 0)
     onNodesChange([node])
     focusRowSoon(node.id)
@@ -133,16 +143,17 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
 
   return (
     <div className="productionList" ref={listRef}>
-      <button className="productionInsertBtn" onClick={insertAtStart}>+ Добавить в начало</button>
+      <InsertNodeButton label="+ Добавить в начало" onInsert={type => insertAtStart(type)} />
 
       {plan.map(item => item.type === 'single' ? (
         <Fragment key={item.node.id}>
           <div className="productionSingleWrap">
             <ProductionRow {...rowProps(item.node)} />
           </div>
-          <button className="productionInsertBtn" onClick={() => insertAfterNode(item.node.id)}>
-            + Добавить ноду ниже (Ctrl+Enter)
-          </button>
+          <InsertNodeButton
+            label="+ Добавить ноду ниже (Ctrl+Enter)"
+            onInsert={type => insertAfterNode(item.node.id, type)}
+          />
         </Fragment>
       ) : (
         <Fragment key={`${item.left.id}-${item.right.id}`}>
@@ -150,16 +161,18 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
             <div className="productionPairCol">
               <span className="productionPairLabel productionPairLabelOk">{item.leftLabel}</span>
               <ProductionRow {...rowProps(item.left)} />
-              <button className="productionInsertBtn" onClick={() => insertAfterNode(item.left.id)}>
-                + Добавить ноду ниже (Ctrl+Enter)
-              </button>
+              <InsertNodeButton
+                label="+ Добавить ноду ниже (Ctrl+Enter)"
+                onInsert={type => insertAfterNode(item.left.id, type)}
+              />
             </div>
             <div className="productionPairCol">
               <span className="productionPairLabel productionPairLabelErr">{item.rightLabel}</span>
               <ProductionRow {...rowProps(item.right)} />
-              <button className="productionInsertBtn" onClick={() => insertAfterNode(item.right.id)}>
-                + Добавить ноду ниже (Ctrl+Enter)
-              </button>
+              <InsertNodeButton
+                label="+ Добавить ноду ниже (Ctrl+Enter)"
+                onInsert={type => insertAfterNode(item.right.id, type)}
+              />
             </div>
           </div>
         </Fragment>
@@ -176,9 +189,11 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
       )}
 
       {sorted.length === 0 && (
-        <button className="productionInsertBtn productionInsertBtnEmpty" onClick={insertFirstNode}>
-          + Добавить первую ноду
-        </button>
+        <InsertNodeButton
+          label="+ Добавить первую ноду"
+          className="productionInsertBtn productionInsertBtnEmpty"
+          onInsert={type => insertFirstNode(type)}
+        />
       )}
     </div>
   )

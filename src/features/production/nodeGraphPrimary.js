@@ -119,6 +119,24 @@ export function insertNodeAfter(nodes, afterId, newNode) {
   return renumber([...patchedNodes, patchedNew])
 }
 
+// Вставляет newNode СРАЗУ ПЕРЕД конкретной нодой beforeId: у newNode основной
+// триггер указывает на beforeId, а все триггеры графа, которые раньше вели
+// на beforeId (обычно один — родитель), теперь ведут на newNode. Если ни
+// один триггер на beforeId не вёл (она была корнем) — newNode сама станет
+// новым корнем, ничего больше патчить не нужно.
+export function insertNodeBefore(nodes, beforeId, newNode) {
+  const newIdx = getPrimaryTriggerIndex(newNode)
+  const patchedNew = {
+    ...newNode,
+    triggers: (newNode.triggers ?? []).map((t, i) => (i === newIdx ? { ...t, then: beforeId } : t)),
+  }
+  const patchedNodes = nodes.map(n => ({
+    ...n,
+    triggers: n.triggers.map(t => (t.then === beforeId ? { ...t, then: patchedNew.id } : t)),
+  }))
+  return renumber([...patchedNodes, patchedNew])
+}
+
 // Вставляет newNode самым первым (новым корнем графа): текущий корень
 // (нода без входящих триггеров) становится вторым — на него указывает
 // основной триггер newNode.

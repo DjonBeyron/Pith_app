@@ -2,19 +2,9 @@ import { useEffect } from 'react'
 import NodeContentEditor from './NodeContentEditor.jsx'
 import { applyTypeChange } from './nodeDefaults.js'
 import NodeTypeSelect from './NodeTypeSelect.jsx'
-import { TYPE_COLOR } from './nodeTypes.js'
+import { TYPE_COLOR, colorBg } from './nodeTypes.js'
 
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
-
-// Mix module color with the node dark base (#12141a) instead of rgba transparency,
-// so the node stays dark regardless of what's behind it.
-function colorBg(hex, alpha) {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  const br = 18, bg = 20, bb = 26  // #12141a
-  return `rgb(${Math.round(br + (r - br) * alpha)},${Math.round(bg + (g - bg) * alpha)},${Math.round(bb + (b - bb) * alpha)})`
-}
 
 export default function CanvasNode({
   node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
