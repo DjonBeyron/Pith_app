@@ -1,20 +1,19 @@
 import { Fragment, useState, useRef } from 'react'
-import NodeContentEditor from '../canvas/NodeContentEditor.jsx'
-import NodeTypeSelect from '../canvas/NodeTypeSelect.jsx'
-import BranchPreview from './BranchPreview.jsx'
+import ProductionRow from './ProductionRow.jsx'
 import { applyTypeChange } from '../canvas/nodeDefaults.js'
-import { TYPE_COLOR } from '../canvas/nodeTypes.js'
 import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
-import { relinkPrimaryChain, getBranchTarget } from './nodeGraphPrimary.js'
+import { relinkPrimaryChain, buildRenderPlan } from './nodeGraphPrimary.js'
 
 // Линейный список сообщений урока сверху вниз — альтернатива canvas-редактору
 // для быстрого набора большой цепочки. Порядок строк = seq (тот же, что
 // показывает canvas), а не отдельное поле: перетаскивание строки просто
-// переставляет «основной» триггер (см. nodeGraphPrimary.js), ветки
-// (верно/неверно) остаются на месте — их меняют только дропдауны внутри
-// NodeContentEditor.
+// переставляет «основной» триггер (см. nodeGraphPrimary.js). У ноды с
+// развилкой (например word_choice) следующая по основному пути и цель ветки
+// показываются ПАРОЙ, делят экран пополам (buildRenderPlan) — следующая за
+// ними одиночная нода снова идёт по центру.
 export default function ProductionList({ nodes, onNodesChange, lessonFiles = [], onPickLessonFile, moduleLessons = [] }) {
   const sorted = nodes.slice().sort((a, b) => a.seq - b.seq)
+  const plan = buildRenderPlan(sorted, nodes)
   const [dragId, setDragId] = useState(null)
   // Куда встанет нода при отпускании: { id: <nodeId>|'END', position: 'before'|'after' }
   const [dropTarget, setDropTarget] = useState(null)
@@ -28,16 +27,6 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
       const row = listRef.current?.querySelector(`[data-node-id="${nodeId}"]`)
       row?.querySelector('textarea, input[type="text"], input:not([type])')?.focus()
     })
-  }
-
-  // Прыжок к ноде-цели ветки: она уже есть где-то в этом же списке (по seq),
-  // отдельно её не редактируем — просто подсвечиваем и скроллим к ней
-  function jumpToNode(id) {
-    const row = listRef.current?.querySelector(`[data-node-id="${id}"]`)
-    if (!row) return
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    row.classList.add('productionRowFlash')
-    setTimeout(() => row.classList.remove('productionRowFlash'), 900)
   }
 
   function updateNode(id, patch) {
@@ -103,65 +92,59 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
     setDropTarget(null)
   }
 
+  // Общие пропсы ProductionRow для конкретной ноды — единая точка, чтобы не
+  // повторять один и тот же список из 12 полей в single- и pair-ветках рендера.
+  function rowProps(node) {
+    return {
+      node,
+      isDragging: dragId === node.id,
+      dropLineBefore: dropTarget?.id === node.id && dropTarget.position === 'before',
+      dropLineAfter: dropTarget?.id === node.id && dropTarget.position === 'after',
+      onDragOver: e => handleDragOver(e, node),
+      onDrop: e => { e.preventDefault(); handleDrop() },
+      onHandleDragStart: () => setDragId(node.id),
+      onHandleDragEnd: () => { setDragId(null); setDropTarget(null) },
+      onUpdate: patch => updateNode(node.id, patch),
+      onTypeChange: v => updateNode(node.id, applyTypeChange(node, v)),
+      onDuplicate: () => duplicateNode(node.id),
+      onDelete: () => deleteNode(node.id),
+      allNodes: nodes,
+      lessonFiles,
+      onPickLessonFile,
+      moduleLessons,
+    }
+  }
+
   return (
     <div className="productionList" ref={listRef}>
       <button className="productionInsertBtn" onClick={() => insertAt(0)}>+ Добавить в начало</button>
 
-      {sorted.map((node, i) => {
-        const branch = getBranchTarget(node, nodes)
-        return (
-          <Fragment key={node.id}>
-            <div className={branch ? 'productionRowGrid productionRowGridBranch' : 'productionRowGrid'}>
-              <div
-                data-node-id={node.id}
-                className={'productionRow' + (dragId === node.id ? ' productionRowDragging' : '')}
-                onDragOver={e => handleDragOver(e, node)}
-                onDrop={e => { e.preventDefault(); handleDrop() }}
-              >
-                {dropTarget?.id === node.id && dropTarget.position === 'before' && <div className="productionDropLine" />}
-                <div className="productionRowBar" style={{ background: TYPE_COLOR[node.type] }} />
-                <div className="productionRowHead">
-                  <span
-                    className="productionRowHandle"
-                    title="Перетащить для смены порядка"
-                    draggable
-                    onDragStart={() => setDragId(node.id)}
-                    onDragEnd={() => { setDragId(null); setDropTarget(null) }}
-                  >⠿</span>
-                  <span className="productionRowSeq">#{node.seq}</span>
-                  <NodeTypeSelect value={node.type} onChange={v => updateNode(node.id, applyTypeChange(node, v))} compact />
-                  <button className="productionRowBtn" title="Дублировать" onClick={() => duplicateNode(node.id)}>⧉</button>
-                  <button className="productionRowBtn productionRowBtnDel" title="Удалить" onClick={() => deleteNode(node.id)}>×</button>
-                </div>
-                <div
-                  className="productionRowContent"
-                  onKeyDown={e => {
-                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                      e.preventDefault()
-                      insertAt(i + 1)
-                    }
-                  }}
-                >
-                  <NodeContentEditor
-                    node={node}
-                    onUpdate={patch => updateNode(node.id, patch)}
-                    allNodes={nodes}
-                    lessonFiles={lessonFiles}
-                    onPickLessonFile={onPickLessonFile}
-                    moduleLessons={moduleLessons}
-                    showTypeSelect={false}
-                  />
-                </div>
-                {dropTarget?.id === node.id && dropTarget.position === 'after' && <div className="productionDropLine" />}
-              </div>
-              {branch && (
-                <BranchPreview label={branch.label} node={branch.target} onJump={() => jumpToNode(branch.target.id)} />
-              )}
+      {plan.map(item => item.type === 'single' ? (
+        <Fragment key={item.node.id}>
+          <div className="productionSingleWrap">
+            <ProductionRow {...rowProps(item.node)} onInsertBelow={() => insertAt(item.index + 1)} />
+          </div>
+          <button className="productionInsertBtn" onClick={() => insertAt(item.index + 1)}>
+            + Добавить ноду ниже (Ctrl+Enter)
+          </button>
+        </Fragment>
+      ) : (
+        <Fragment key={`${item.left.id}-${item.right.id}`}>
+          <div className="productionPairGrid">
+            <div className="productionPairCol">
+              <span className="productionPairLabel productionPairLabelOk">{item.leftLabel}</span>
+              <ProductionRow {...rowProps(item.left)} onInsertBelow={() => insertAt(item.leftIndex + 1)} />
             </div>
-            <button className="productionInsertBtn" onClick={() => insertAt(i + 1)}>+ Добавить ноду ниже (Ctrl+Enter)</button>
-          </Fragment>
-        )
-      })}
+            <div className="productionPairCol">
+              <span className="productionPairLabel productionPairLabelErr">{item.rightLabel}</span>
+              <ProductionRow {...rowProps(item.right)} onInsertBelow={() => insertAt(item.rightIndex + 1)} />
+            </div>
+          </div>
+          <button className="productionInsertBtn" onClick={() => insertAt(item.leftIndex + 1)}>
+            + Добавить ноду ниже (Ctrl+Enter)
+          </button>
+        </Fragment>
+      ))}
 
       {sorted.length > 0 && (
         <div

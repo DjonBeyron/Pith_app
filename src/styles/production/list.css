@@ -85,30 +85,42 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  /* Шире, чем было (720px): полноэкранный режим — можно выделить место под
-     вторую колонку (карточку ветки) рядом с нодой-развилкой */
+  /* Шире, чем узкая одиночная колонка (см. .productionSingleWrap): полно-
+     экранный режим — под пару нод развилки нужно место на весь экран */
   max-width: 980px;
   margin: 0 auto;
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* Тонкий скроллбар в тон тёмной теме вместо системного чёрного во всю
+     толщину впритык к краю окна (тот же приём, что в table-editor-preview.css) */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
+.productionList::-webkit-scrollbar { width: 6px; }
+.productionList::-webkit-scrollbar-track { background: transparent; }
+.productionList::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 3px; }
 
-/* Строка + (если есть развилка) колонка ветки — рядом, на одной высоте.
-   Кнопка «+ вставить» — отдельным элементом ПОСЛЕ этого блока (не внутри
-   .productionRow), чтобы визуально не выглядеть частью карточки ноды */
-.productionRowGrid {
+/* Одиночная нода (без развилки) — по центру, уже, чем полная ширина списка */
+.productionSingleWrap { max-width: 640px; width: 100%; margin: 0 auto 10px; }
+
+/* Развилка: следующая по «верно» и цель ветки — рядом, делят экран пополам.
+   На узких экранах одна под другой, иначе не влезают */
+.productionPairGrid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
   align-items: start;
   margin-bottom: 10px;
 }
-.productionRowGridBranch { grid-template-columns: 1fr 260px; }
-@media (max-width: 760px) {
-  .productionRowGridBranch { grid-template-columns: 1fr; }
+@media (max-width: 640px) {
+  .productionPairGrid { grid-template-columns: 1fr; }
 }
+.productionPairCol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.productionPairLabel { font-size: 12px; font-weight: 600; padding-left: 2px; }
+.productionPairLabelOk { color: #7aaa30; }
+.productionPairLabelErr { color: #c47e7e; }
 
 .productionRow {
   position: relative;
@@ -121,9 +133,6 @@
   overflow: hidden;
 }
 .productionRowDragging { opacity: 0.4; }
-
-/* Короткая вспышка при переходе к ноде-цели ветки (BranchPreview → «перейти») */
-.productionRowFlash { border-color: #b6fe3b; box-shadow: 0 0 0 2px rgba(182, 254, 59, 0.35); }
 
 .productionDropLine {
   height: 3px;
@@ -193,8 +202,12 @@
   padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
+  /* Такой же ширины, как одиночная нода — во всю ширину списка (как раньше)
+     смотрелось бы шире окружающих карточек */
+  max-width: 640px;
   width: 100%;
-  margin-bottom: 10px;
+  margin: 0 auto 10px;
+  display: block;
 }
 .productionInsertBtn:hover { background: #14161c; color: #999; border-color: #444; }
 .productionInsertBtnEmpty { padding: 20px; font-size: 14px; }
@@ -203,53 +216,3 @@
   font-size: 12px;
   opacity: 0.8;
 }
-
-/* ── Колонка ветки (BranchPreview.jsx) ── */
-.branchCol {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-.branchColLabel {
-  font-size: 11px;
-  font-weight: 600;
-  color: #999;
-  padding-left: 2px;
-}
-
-.branchPreview {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  width: 100%;
-  background: #12141a;
-  border: 1px dashed #2a2c33;
-  border-radius: 10px;
-  padding: 10px 12px;
-  cursor: pointer;
-  text-align: left;
-}
-.branchPreview:hover { background: #16181e; }
-
-.branchPreviewBar {
-  height: 3px;
-  width: 100%;
-  border-radius: 2px;
-  margin-bottom: 2px;
-}
-.branchPreviewHead { display: flex; align-items: center; gap: 6px; }
-.branchPreviewSeq { color: #666; font-size: 11px; font-family: monospace; }
-.branchPreviewType { color: #ccc; font-size: 12px; font-weight: 500; }
-.branchPreviewText {
-  color: #888;
-  font-size: 11px;
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-.branchPreviewJump { color: #6a9ec4; font-size: 10px; margin-top: 2px; }

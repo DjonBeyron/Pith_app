@@ -44,12 +44,24 @@ const BRANCH_LABEL = {
   table_wrong: '✗ Неверно',
   reg_cancel: '✕ Отмена',
 }
+const PRIMARY_LABEL = {
+  word_correct: '✓ Верно',
+  phrase_correct: '✓ Верно',
+  photo_correct: '✓ Верно',
+  table_correct: '✓ Верно',
+  reg_submit: '✓ Отправить',
+}
+
+// Нода, на которую ведёт основной триггер (следующая по умолчанию).
+export function getPrimaryTarget(node, allNodes) {
+  const idx = getPrimaryTriggerIndex(node)
+  const then = node.triggers?.[idx]?.then
+  if (!then) return null
+  return allNodes.find(n => n.id === then) ?? null
+}
 
 // Ветка ноды — «неосновной» триггер с указанной целью (например «неверно»
-// у word_choice). Список показывает её как отдельную колонку сбоку от
-// основной строки — полноэкранный режим позволяет видеть развилку сразу,
-// не переключаясь на canvas. Возвращает null, если ветки нет или она никуда
-// не указывает.
+// у word_choice). Возвращает null, если ветки нет или она никуда не указывает.
 export function getBranchTarget(node, allNodes) {
   const primaryIdx = getPrimaryTriggerIndex(node)
   const branch = (node.triggers ?? []).find((t, i) => i !== primaryIdx && t.then)
@@ -59,10 +71,33 @@ export function getBranchTarget(node, allNodes) {
   return { target, label: BRANCH_LABEL[branch.if] ?? '↳ Ветка' }
 }
 
-// Короткий текстовый превью содержимого ноды — для карточки ветки (не для
-// редактирования, только чтобы узнать ноду не открывая её).
-export function previewNodeText(node) {
-  const tData = node?.typeData?.[node.type] ?? {}
-  const raw = tData.content ?? tData.text ?? ''
-  return raw ? raw.slice(0, 60) : ''
+// Строит план рендера списка: обычно каждая нода — своя строка («single»),
+// но у ноды с развилкой (getBranchTarget) следующая по основному пути и
+// нода-цель ветки идут ПАРОЙ («pair», делят экран пополам) сразу под ней —
+// каждая нода рисуется РОВНО один раз, поэтому цель ветки, показанная в
+// паре, дальше по списку пропускается (visited).
+export function buildRenderPlan(sorted, allNodes) {
+  const visited = new Set()
+  const plan = []
+  sorted.forEach((node, index) => {
+    if (visited.has(node.id)) return
+    const branch = getBranchTarget(node, allNodes)
+    const primary = branch ? getPrimaryTarget(node, allNodes) : null
+    if (branch && primary && primary.id !== node.id && !visited.has(primary.id) && !visited.has(branch.target.id)) {
+      plan.push({ type: 'single', node, index })
+      const primaryIdx = sorted.findIndex(n => n.id === primary.id)
+      const primaryIfIdx = getPrimaryTriggerIndex(node)
+      const primaryLabel = PRIMARY_LABEL[node.triggers?.[primaryIfIdx]?.if] ?? '✓ Далее'
+      plan.push({
+        type: 'pair',
+        left: primary, leftIndex: primaryIdx, leftLabel: primaryLabel,
+        right: branch.target, rightIndex: sorted.findIndex(n => n.id === branch.target.id), rightLabel: branch.label,
+      })
+      visited.add(primary.id)
+      visited.add(branch.target.id)
+      return
+    }
+    plan.push({ type: 'single', node, index })
+  })
+  return plan
 }
