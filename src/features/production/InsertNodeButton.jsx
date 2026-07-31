@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { NODE_TYPES } from '../canvas/nodeTypes.js'
+import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 
 // Кнопка «+ Добавить ноду выше/ниже» — вместо того чтобы молча создавать
 // ноду прошлого выбранного типа, открывает компактное меню выбора типа
@@ -19,7 +20,9 @@ export default function InsertNodeButton({ label, onInsert, className = 'product
     e.stopPropagation()
     const r = btnRef.current?.getBoundingClientRect()
     if (!r) return
-    setPos({ top: r.bottom + 3, left: r.left, width: Math.max(r.width, 200) })
+    // Кнопка внизу экрана — меню открывается вверх, а не за нижний край
+    // (computeMenuPos), высота ограничена доступным местом, со скроллом
+    setPos(computeMenuPos(r))
     setPickedType(null)
   }
 
@@ -47,7 +50,15 @@ export default function InsertNodeButton({ label, onInsert, className = 'product
           <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onMouseDown={e => { e.stopPropagation(); closeMenu() }} />
           <div
             className="nodeTypeSelectList"
-            style={{ position: 'fixed', top: pos.top, left: pos.left, minWidth: pos.width, zIndex: 9999 }}
+            style={{
+              position: 'fixed',
+              ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }),
+              left: pos.left,
+              minWidth: pos.width,
+              maxHeight: pos.maxHeight,
+              overflowY: 'auto',
+              zIndex: 9999,
+            }}
             onMouseDown={e => e.stopPropagation()}
           >
             {pickedType ? (

@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { NODE_TYPES } from './nodeTypes.js'
+import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 
 export default function NodeTypeSelect({ value, onChange, compact = false }) {
   const [pos, setPos] = useState(null)
@@ -12,7 +13,8 @@ export default function NodeTypeSelect({ value, onChange, compact = false }) {
     e.stopPropagation()
     const r = triggerRef.current?.getBoundingClientRect()
     if (!r) return
-    setPos({ top: r.bottom + 3, left: r.left, width: Math.max(r.width, 200) })
+    // Триггер внизу экрана — список открывается вверх, а не за нижний край
+    setPos(computeMenuPos(r))
   }
 
   function closeList() { setPos(null) }
@@ -52,7 +54,15 @@ export default function NodeTypeSelect({ value, onChange, compact = false }) {
           />
           <div
             className="nodeTypeSelectList"
-            style={{ position: 'fixed', top: pos.top, left: pos.left, minWidth: pos.width, zIndex: 9999 }}
+            style={{
+              position: 'fixed',
+              ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }),
+              left: pos.left,
+              minWidth: pos.width,
+              maxHeight: pos.maxHeight,
+              overflowY: 'auto',
+              zIndex: 9999,
+            }}
             onMouseDown={e => e.stopPropagation()}
           >
             {NODE_TYPES.map(t => {

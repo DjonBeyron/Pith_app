@@ -253,10 +253,10 @@
 .nodeTypeSelectLabel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .nodeTypeSelectArrow { font-size: 9px; flex-shrink: 0; }
 
+/* Позиция (position/top/bottom/left) — только инлайн, из computeMenuPos.js
+   (JS решает, открыть вниз или вверх, чтобы не вылезти за край окна);
+   здесь только внешний вид */
 .nodeTypeSelectList {
-  position: absolute;
-  top: calc(100% + 3px);
-  left: 0;
   z-index: 200;
   background: #0e1013;
   border: 1px solid #2a2c33;
@@ -265,8 +265,6 @@
   box-shadow: 0 6px 24px rgba(0,0,0,0.7);
   min-width: 180px;
 }
-
-.nodeTypeSelectListCompact { right: 0; left: auto; min-width: 200px; }
 
 .nodeTypeSelectItem {
   width: 100%;
