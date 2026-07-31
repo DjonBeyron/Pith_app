@@ -149,6 +149,30 @@
 .productionPairLabelOk { color: #7aaa30; }
 .productionPairLabelErr { color: #c47e7e; }
 
+/* Кнопки «ниже» обеих колонок + маленькая «в обе ветки» между ними —
+   в один ряд под парой, а не внутри каждой колонки: иначе при разной
+   высоте карточек середина между ними «плавала» бы по высоте */
+.productionPairInsertRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.productionPairInsertRow .productionInsertBtn { max-width: none; margin: 0; }
+.productionInsertBtnMerge {
+  background: transparent;
+  border: 1px dashed #3a3a2a;
+  color: #8a8a50;
+  border-radius: 8px;
+  width: 32px;
+  height: 28px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.productionInsertBtnMerge:hover { background: #1c1c14; color: #b6b070; }
+
 .productionRow {
   position: relative;
   display: flex;

@@ -4,7 +4,8 @@ import InsertNodeButton from './InsertNodeButton.jsx'
 import { applyTypeChange, setLastNodeType } from '../canvas/nodeDefaults.js'
 import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
 import {
-  relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAtStart, getBranchTriggerIndex,
+  relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAfterBoth, insertNodeAtStart,
+  getBranchTriggerIndex,
 } from './nodeGraphPrimary.js'
 
 // Линейный список сообщений урока сверху вниз — альтернатива canvas-редактору
@@ -66,6 +67,15 @@ export default function ProductionList({
     const afterNode = nodes.find(n => n.id === afterId)
     const triggerIdx = branch === 'branch' ? getBranchTriggerIndex(afterNode) : undefined
     onNodesChange(insertNodeAfter(nodes, afterId, node, triggerIdx))
+    focusRowSoon(node.id)
+  }
+
+  // Точка схождения: новая нода становится продолжением ОБЕИХ веток сразу
+  // (кнопка между «Верно» и «Неверно» — независимо от ответа урок продолжает
+  // одно и то же сообщение).
+  function insertBetweenBoth(leftId, rightId, type) {
+    const node = createNode(type)
+    onNodesChange(insertNodeAfterBoth(nodes, leftId, rightId, node))
     focusRowSoon(node.id)
   }
 
@@ -200,19 +210,27 @@ export default function ProductionList({
               <div className="productionPairCol">
                 <span className="productionPairLabel productionPairLabelOk">{item.leftLabel}</span>
                 <ProductionRow {...rowProps(item.left)} />
-                <InsertNodeButton
-                  label="+ Добавить ноду ниже (Ctrl+Enter)"
-                  onInsert={type => insertAfterNode(item.left.id, type)}
-                />
               </div>
               <div className="productionPairCol">
                 <span className="productionPairLabel productionPairLabelErr">{item.rightLabel}</span>
                 <ProductionRow {...rowProps(item.right)} />
-                <InsertNodeButton
-                  label="+ Добавить ноду ниже (Ctrl+Enter)"
-                  onInsert={type => insertAfterNode(item.right.id, type)}
-                />
               </div>
+            </div>
+            <div className="productionPairInsertRow">
+              <InsertNodeButton
+                label="+ Добавить ноду ниже (Ctrl+Enter)"
+                onInsert={type => insertAfterNode(item.left.id, type)}
+              />
+              <InsertNodeButton
+                label="+"
+                className="productionInsertBtnMerge"
+                title="Добавить ноду ниже в ОБЕ ветки — урок продолжится ею независимо от ответа"
+                onInsert={type => insertBetweenBoth(item.left.id, item.right.id, type)}
+              />
+              <InsertNodeButton
+                label="+ Добавить ноду ниже (Ctrl+Enter)"
+                onInsert={type => insertAfterNode(item.right.id, type)}
+              />
             </div>
           </Fragment>
         ))}

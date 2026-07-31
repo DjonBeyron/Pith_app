@@ -144,6 +144,26 @@ export function insertNodeAfter(nodes, afterId, newNode, triggerIdx) {
   return renumber([...patchedNodes, patchedNew])
 }
 
+// Вставляет newNode как точку схождения ДВУХ веток: основной триггер и
+// leftId, и rightId начинает указывать на неё (кнопка «между Верно и
+// Неверно» — независимо от ответа урок продолжается одним и тем же
+// сообщением). Прежние цели leftId/rightId (если были) осиротеют — как и у
+// insertNodeAfter, единого «куда» у слияния двух путей нет, так что дальше
+// новую ноду соединяют вручную, если нужно.
+export function insertNodeAfterBoth(nodes, leftId, rightId, newNode) {
+  const leftNode  = nodes.find(n => n.id === leftId)
+  const rightNode = nodes.find(n => n.id === rightId)
+  if (!leftNode || !rightNode) return nodes
+  const leftIdx  = getPrimaryTriggerIndex(leftNode)
+  const rightIdx = getPrimaryTriggerIndex(rightNode)
+  const patchedNodes = nodes.map(n => {
+    if (n.id === leftId) return { ...n, triggers: n.triggers.map((t, i) => (i === leftIdx ? { ...t, then: newNode.id } : t)) }
+    if (n.id === rightId) return { ...n, triggers: n.triggers.map((t, i) => (i === rightIdx ? { ...t, then: newNode.id } : t)) }
+    return n
+  })
+  return renumber([...patchedNodes, newNode])
+}
+
 // Вставляет newNode СРАЗУ ПЕРЕД конкретной нодой beforeId: у newNode основной
 // триггер указывает на beforeId, а все триггеры графа, которые раньше вели
 // на beforeId (обычно один — родитель), теперь ведут на newNode. Если ни

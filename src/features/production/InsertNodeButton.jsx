@@ -11,7 +11,7 @@ import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 // «ниже» иначе молча цепляла бы новую ноду только к «верно»: если задан,
 // после выбора типа показывается второй шаг — к какому исходу присоединить
 // новую ноду, onInsert(type, choiceValue) вызывается уже с обоими значениями.
-export default function InsertNodeButton({ label, onInsert, className = 'productionInsertBtn', branchChoices }) {
+export default function InsertNodeButton({ label, onInsert, className = 'productionInsertBtn', branchChoices, title }) {
   const [pos, setPos] = useState(null)
   const [pickedType, setPickedType] = useState(null)
   const btnRef = useRef(null)
@@ -44,7 +44,7 @@ export default function InsertNodeButton({ label, onInsert, className = 'product
 
   return (
     <>
-      <button ref={btnRef} className={className} onClick={openMenu}>{label}</button>
+      <button ref={btnRef} className={className} title={title} onClick={openMenu}>{label}</button>
       {pos && createPortal(
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onMouseDown={e => { e.stopPropagation(); closeMenu() }} />
