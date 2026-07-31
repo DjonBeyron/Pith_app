@@ -68,11 +68,16 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
           onChange={e => setTitle(e.target.value)}
           placeholder="Название урока"
         />
+        {/* Тройка всегда в этом порядке: Сохранить → Граф → Продакшен.
+            «Продакшен» — текущая страница (подсвечена), клик просто сохраняет */}
         <button className="productionPageSave" onClick={handleSave} disabled={isSaving || loading}>
           {isSaving ? 'Сохраняю…' : 'Сохранить'}
         </button>
-        <button className="productionPageGraphBtn" onClick={switchToCanvas} disabled={isSaving || loading}>
+        <button className="pageTabBtn" onClick={switchToCanvas} disabled={isSaving || loading}>
           Граф
+        </button>
+        <button className="pageTabBtn pageTabBtnActive" onClick={handleSave} disabled={isSaving || loading}>
+          Продакшен
         </button>
       </div>
 

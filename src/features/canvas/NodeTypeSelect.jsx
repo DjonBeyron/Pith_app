@@ -32,7 +32,10 @@ export default function NodeTypeSelect({ value, onChange, compact = false }) {
       <button
         ref={triggerRef}
         className="nodeTypeSelectTrigger"
-        style={{ borderColor: current.color, color: current.color }}
+        // Обводка — приглушённая (смешана с тёмным фоном, как colorBg в
+        // CanvasNode.jsx), иначе чистый цвет типа на 1px рамке слепит;
+        // текст/иконка остаются полным цветом — по ним тип и различаем
+        style={{ borderColor: `color-mix(in srgb, ${current.color} 40%, #0a0c10)`, color: current.color }}
         onClick={openList}
       >
         <Icon size={compact ? 10 : 12} />

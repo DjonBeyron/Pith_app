@@ -169,9 +169,6 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
         <div className="canvasPageActions">
           <BackButton onClick={onBack} />
           <button className="canvasPagePlay" onClick={() => setShowPlayer(true)}>▶</button>
-          <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
-            {isSaving ? 'Сохраняю…' : 'Сохранить'}
-          </button>
           <button
             className="canvasPageReset"
             onClick={handleResetToServer}
@@ -195,7 +192,16 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
             />
             <span className="canvasXpLabel">XP</span>
           </div>
-          <button className="canvasPageProduction" onClick={switchToProduction} disabled={isSaving || loading}>
+          {/* Финальная тройка, всегда в этом порядке: Сохранить → Граф → Продакшен.
+              «Граф» — текущая страница (подсвечена, как активная вкладка нижнего
+              навбара), клик всё равно работает — просто сохраняет */}
+          <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
+            {isSaving ? 'Сохраняю…' : 'Сохранить'}
+          </button>
+          <button className="pageTabBtn pageTabBtnActive" onClick={handleSave} disabled={isSaving || loading}>
+            Граф
+          </button>
+          <button className="pageTabBtn" onClick={switchToProduction} disabled={isSaving || loading}>
             Продакшен
           </button>
         </div>

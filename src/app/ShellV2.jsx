@@ -17,6 +17,7 @@ import LevelBadge from './LevelBadge.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { useDailyLoginTouch } from '../features/streak/useDailyLoginTouch.js'
+import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
 
 // Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
 // пользователь эти chunk'и даже не скачивает (см. PROJECT.md, этап 2)
@@ -169,6 +170,14 @@ export default function ShellV2() {
               moduleLessons={productionLesson.moduleLessons ?? []}
               onBack={() => setProductionLesson(null)}
               onOpenCanvas={id => {
+                // Продакшен только что сохранил на сервер (см. ProductionPage.
+                // switchToCanvas) — это самая свежая версия урока. Но у
+                // CanvasBoard есть СВОЙ localStorage-черновик (canvasLsKey),
+                // который при монтировании имеет приоритет над initialNodes —
+                // если он остался от прошлой, незакрытой через «Сохранить»/
+                // «Продакшен» сессии канваса, он перекрыл бы то, что только
+                // что поменяли в списке, и порядок «не долетал» бы до графа
+                localStorage.removeItem(canvasLsKey(id))
                 setProductionLesson(null)
                 setCanvasLesson({ id, moduleLessons: productionLesson.moduleLessons ?? [] })
               }}

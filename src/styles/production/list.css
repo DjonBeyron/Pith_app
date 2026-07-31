@@ -33,7 +33,12 @@
 .productionPageTitle:focus { border-color: #444; color: #eee; }
 .productionPageTitle::placeholder { color: #333; }
 
-.productionPageGraphBtn {
+/* Общий вид переключателя Граф/Продакшен — используется и здесь, и в
+   CanvasPage.jsx (page.css), чтобы тройка «Сохранить → Граф → Продакшен»
+   выглядела и вела себя одинаково в обоих окнах. Активная (текущая)
+   страница подсвечена, но всё равно кликабельна — как активная вкладка
+   нижнего навбара приложения (ShellV2), клик на ней просто сохраняет */
+.pageTabBtn {
   background: transparent;
   border: 1px solid #2a2c33;
   color: #aaa;
@@ -43,14 +48,28 @@
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
-.productionPageGraphBtn:hover { background: #1a1c22; }
-.productionPageGraphBtn:disabled { opacity: 0.5; cursor: default; }
+.pageTabBtn:hover { background: #1a1c22; }
+.pageTabBtn:disabled { opacity: 0.5; cursor: default; }
+.pageTabBtnActive {
+  background: #182818;
+  border-color: #3a5a2a;
+  color: #b6fe3b;
+}
 
-/* Сохранить+Граф — правая группа: margin-left:auto на первой держит обе
-   у правого края (title и так flex:1, но так это не завязано на его стиль) */
+/* Сохранить+Граф+Продакшен — правая группа: margin-left:auto на первой
+   держит всю тройку у правого края (title и так flex:1, но так это не
+   завязано на его стиле). overflow-x на шапке — страховка от обрезания
+   на узких экранах, как в CanvasPage (page.css) */
+.productionPageHeader {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.productionPageHeader::-webkit-scrollbar { display: none; }
 .productionPageSave {
   margin-left: auto;
+  flex-shrink: 0;
   background: #1e2e10;
   border: 1px solid #4a6a20;
   color: #7aaa30;
