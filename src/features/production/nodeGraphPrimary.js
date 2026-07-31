@@ -95,9 +95,15 @@ export function getBranchChoices(node) {
 
 // Строит план рендера списка: обычно каждая нода — своя строка («single»),
 // но у ноды с развилкой (getBranchTarget) следующая по основному пути и
-// нода-цель ветки идут ПАРОЙ («pair», делят экран пополам) сразу под ней —
-// каждая нода рисуется РОВНО один раз, поэтому цель ветки, показанная в
-// паре, дальше по списку пропускается (visited).
+// нода-цель ветки идут ПАРОЙ («pair», делят экран пополам) сразу под ней.
+// Пока у ОБЕИХ сторон есть собственное продолжение (обычный триггер, не
+// развилка) — пара продолжается вниз ещё одним рядом («Верно» и «Неверно»
+// растут двумя параллельными колонками, а не разъезжаются в общий список
+// после первого шага). Останавливается, когда: одна из сторон дошла до
+// тупика; обе стороны сошлись в одну и ту же ноду (insertNodeAfterBoth —
+// дальше это уже общий single); либо сама сторона — ещё одна развилка
+// (вложенные развилки не разворачиваем автоматически, ограничение v1, её
+// обработает обычный проход по sorted). Каждая нода рисуется РОВНО один раз.
 export function buildRenderPlan(sorted, allNodes) {
   const visited = new Set()
   const plan = []
@@ -108,9 +114,24 @@ export function buildRenderPlan(sorted, allNodes) {
     if (branch && primary && primary.id !== node.id && !visited.has(primary.id) && !visited.has(branch.target.id)) {
       const choices = getBranchChoices(node)
       plan.push({ type: 'single', node, branchChoices: choices })
-      plan.push({ type: 'pair', left: primary, leftLabel: choices[0].label, right: branch.target, rightLabel: branch.label })
       visited.add(primary.id)
       visited.add(branch.target.id)
+
+      let left = primary
+      let right = branch.target
+      while (true) {
+        plan.push({ type: 'pair', left, leftLabel: choices[0].label, right, rightLabel: branch.label })
+        if (getBranchChoices(left) || getBranchChoices(right)) break
+        const leftNext = getPrimaryTarget(left, allNodes)
+        const rightNext = getPrimaryTarget(right, allNodes)
+        if (!leftNext || !rightNext) break
+        if (leftNext.id === rightNext.id) break
+        if (visited.has(leftNext.id) || visited.has(rightNext.id)) break
+        visited.add(leftNext.id)
+        visited.add(rightNext.id)
+        left = leftNext
+        right = rightNext
+      }
       return
     }
     // Пары снизу ещё нет (одна или обе связи не заданы), но у типа своя пара
