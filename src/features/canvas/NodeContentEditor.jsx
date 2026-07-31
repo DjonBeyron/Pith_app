@@ -28,6 +28,9 @@ export default function NodeContentEditor({
   // своей парой) по умолчанию свёрнут — за раскрытие/ширину строки отвечает
   // ProductionList.jsx (там же и хранится состояние per-node)
   collapsibleTriggers = false, triggersExpanded = false, onToggleTriggers,
+  // Продакшен: рамка позиционирования/масштаба файла (фото/видео/кружок/
+  // стикер) тоже свёрнута по умолчанию — то же состояние, тот же приём
+  collapsibleMedia = false, mediaExpanded = false, onToggleMedia,
 }) {
   const [hlRect, setHlRect] = useState(null)
   const [hlTarget, setHlTarget] = useState('main') // 'main' | 'pro' — какой текст красим
@@ -87,6 +90,9 @@ export default function NodeContentEditor({
           onPickFile={handleMediaPick}
           onCropChange={newCrop => updateTypeData({ crop: newCrop })}
           shape={node.type === 'circle' ? 'circle' : node.type === 'sticker' ? 'square' : 'rect'}
+          collapsible={collapsibleMedia}
+          expanded={mediaExpanded}
+          onToggleExpand={onToggleMedia}
         />
       )}
       {isFileType && !fileId && (

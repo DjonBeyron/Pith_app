@@ -10,6 +10,10 @@ function truncate(name, max = 20) {
 // At scale=1 media just covers the frame. Below scale=1 real edges are visible.
 export default function NodeMediaCrop({
   type, fileId, crop, lessonFiles, onPickFile, onCropChange, shape = 'rect',
+  // Продакшен: рамка позиционирования/масштаба свёрнута по умолчанию — она
+  // нужна для точной подгонки, а не при каждом наборе цепочки; раскрывается
+  // треугольником (тот же приём, что у блока «Если/Тогда»)
+  collapsible = false, expanded = false, onToggleExpand,
 }) {
   const file = lessonFiles.find(f => f.id === fileId) ?? null
   const [objectUrl,  setObjectUrl]  = useState(null)
@@ -45,6 +49,10 @@ export default function NodeMediaCrop({
     : '+ Выбрать видео'
   const src      = file?.r2Url ?? objectUrl
   const frameClass = `mediaCropFrame${shape === 'circle' ? ' mediaCropFrameCircle' : shape === 'square' ? ' mediaCropFrameSquare' : ''}`
+  // Рамка реально в DOM, только когда есть файл И (не свёрнута ИЛИ раскрыта) —
+  // эффекты ниже должны знать об этом, иначе после раскрытия свёрнутой рамки
+  // frameDims/wheel-листенер не переустановятся (зависели только от src)
+  const frameVisible = !collapsible || expanded
 
   // Measure frame dimensions after it appears (src-gated render).
   // Stored in state so it's safe to read during render.
@@ -52,7 +60,7 @@ export default function NodeMediaCrop({
     const el = frameRef.current
     if (!el) return
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
-  }, [src])
+  }, [src, frameVisible])
 
   // Reset intrinsic size when source changes so fallback style is used during load
   useEffect(() => {
@@ -61,7 +69,7 @@ export default function NodeMediaCrop({
   }, [src])
 
   // Scroll-wheel zoom — passive:false required for preventDefault.
-  // Depends on src so the listener re-attaches when frame becomes visible.
+  // Depends on src/frameVisible so the listener re-attaches when frame appears.
   useEffect(() => {
     const el = frameRef.current
     if (!el) return
@@ -73,7 +81,7 @@ export default function NodeMediaCrop({
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [src])
+  }, [src, frameVisible])
 
   // Compute pixel size so media just covers the frame at scale=1.
   // Uses frameDims (state, safe to read in render) and intrinsic media size.
@@ -158,7 +166,17 @@ export default function NodeMediaCrop({
         )}
       </div>
 
-      {src && (
+      {src && collapsible && (
+        <button
+          type="button"
+          className="triggerCollapseToggle"
+          onClick={e => { e.stopPropagation(); onToggleExpand?.() }}
+        >
+          <span className={'triggerCollapseArrow' + (expanded ? ' triggerCollapseArrowOpen' : '')}>▸</span>
+          Позиция / масштаб
+        </button>
+      )}
+      {src && frameVisible && (
         <>
           <div
             ref={frameRef}

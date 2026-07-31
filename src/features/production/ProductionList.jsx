@@ -26,6 +26,8 @@ export default function ProductionList({
   const [dropTarget, setDropTarget] = useState(null)
   // Блок «Если/Тогда» свёрнут по умолчанию у каждой ноды — id тех, что раскрыли
   const [expandedTriggerIds, setExpandedTriggerIds] = useState(() => new Set())
+  // Рамка позиционирования/масштаба файла — тоже свёрнута по умолчанию
+  const [expandedMediaIds, setExpandedMediaIds] = useState(() => new Set())
   // scrollRef — снаружи (ProductionPage, кнопка «В начало»), если не передан
   // (например изолированный дебаг-рендер) — используем свой собственный
   const internalRef = useRef(null)
@@ -69,6 +71,15 @@ export default function ProductionList({
 
   function toggleTriggers(id) {
     setExpandedTriggerIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleMedia(id) {
+    setExpandedMediaIds(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
@@ -162,6 +173,8 @@ export default function ProductionList({
       moduleLessons,
       triggersExpanded: expandedTriggerIds.has(node.id),
       onToggleTriggers: () => toggleTriggers(node.id),
+      mediaExpanded: expandedMediaIds.has(node.id),
+      onToggleMedia: () => toggleMedia(node.id),
     }
   }
 
