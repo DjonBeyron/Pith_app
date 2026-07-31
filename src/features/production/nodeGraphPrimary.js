@@ -79,25 +79,56 @@ export function getBranchTarget(node, allNodes) {
 export function buildRenderPlan(sorted, allNodes) {
   const visited = new Set()
   const plan = []
-  sorted.forEach((node, index) => {
+  sorted.forEach(node => {
     if (visited.has(node.id)) return
     const branch = getBranchTarget(node, allNodes)
     const primary = branch ? getPrimaryTarget(node, allNodes) : null
     if (branch && primary && primary.id !== node.id && !visited.has(primary.id) && !visited.has(branch.target.id)) {
-      plan.push({ type: 'single', node, index })
-      const primaryIdx = sorted.findIndex(n => n.id === primary.id)
+      plan.push({ type: 'single', node })
       const primaryIfIdx = getPrimaryTriggerIndex(node)
       const primaryLabel = PRIMARY_LABEL[node.triggers?.[primaryIfIdx]?.if] ?? '✓ Далее'
-      plan.push({
-        type: 'pair',
-        left: primary, leftIndex: primaryIdx, leftLabel: primaryLabel,
-        right: branch.target, rightIndex: sorted.findIndex(n => n.id === branch.target.id), rightLabel: branch.label,
-      })
+      plan.push({ type: 'pair', left: primary, leftLabel: primaryLabel, right: branch.target, rightLabel: branch.label })
       visited.add(primary.id)
       visited.add(branch.target.id)
       return
     }
-    plan.push({ type: 'single', node, index })
+    plan.push({ type: 'single', node })
   })
   return plan
+}
+
+// Вставляет newNode СРАЗУ ПОСЛЕ конкретной ноды afterId — патчит только
+// основной триггер этой ноды, ничего больше. Не пересобирает связи всего
+// массива (в отличие от relinkPrimaryChain): у ноды с развилкой соседние по
+// seq ноды могут принадлежать СОВСЕМ другой ветке (DFS сначала обходит весь
+// путь «верно», потом «неверно») — relinkPrimaryChain по всему списку в
+// этом случае перепутал бы, к какой ветке цепляется новая нода.
+export function insertNodeAfter(nodes, afterId, newNode) {
+  const afterNode = nodes.find(n => n.id === afterId)
+  if (!afterNode) return nodes
+  const afterIdx = getPrimaryTriggerIndex(afterNode)
+  const prevNext = afterNode.triggers?.[afterIdx]?.then ?? null
+  const newIdx = getPrimaryTriggerIndex(newNode)
+  const patchedNew = {
+    ...newNode,
+    triggers: (newNode.triggers ?? []).map((t, i) => (i === newIdx ? { ...t, then: prevNext } : t)),
+  }
+  const patchedNodes = nodes.map(n => (n.id === afterId
+    ? { ...n, triggers: n.triggers.map((t, i) => (i === afterIdx ? { ...t, then: patchedNew.id } : t)) }
+    : n))
+  return renumber([...patchedNodes, patchedNew])
+}
+
+// Вставляет newNode самым первым (новым корнем графа): текущий корень
+// (нода без входящих триггеров) становится вторым — на него указывает
+// основной триггер newNode.
+export function insertNodeAtStart(nodes, newNode) {
+  const incoming = new Set()
+  nodes.forEach(n => (n.triggers ?? []).forEach(t => { if (t.then) incoming.add(t.then) }))
+  const root = nodes.find(n => !incoming.has(n.id))
+  const newIdx = getPrimaryTriggerIndex(newNode)
+  const patchedNew = root
+    ? { ...newNode, triggers: newNode.triggers.map((t, i) => (i === newIdx ? { ...t, then: root.id } : t)) }
+    : newNode
+  return renumber([...nodes, patchedNew])
 }

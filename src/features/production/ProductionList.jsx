@@ -2,15 +2,15 @@ import { Fragment, useState, useRef } from 'react'
 import ProductionRow from './ProductionRow.jsx'
 import { applyTypeChange } from '../canvas/nodeDefaults.js'
 import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
-import { relinkPrimaryChain, buildRenderPlan } from './nodeGraphPrimary.js'
+import { relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAtStart } from './nodeGraphPrimary.js'
 
 // Линейный список сообщений урока сверху вниз — альтернатива canvas-редактору
 // для быстрого набора большой цепочки. Порядок строк = seq (тот же, что
-// показывает canvas), а не отдельное поле: перетаскивание строки просто
-// переставляет «основной» триггер (см. nodeGraphPrimary.js). У ноды с
-// развилкой (например word_choice) следующая по основному пути и цель ветки
-// показываются ПАРОЙ, делят экран пополам (buildRenderPlan) — следующая за
-// ними одиночная нода снова идёт по центру.
+// показывает canvas). У ноды с развилкой (например word_choice) следующая по
+// основному пути и цель ветки показываются ПАРОЙ, делят экран пополам
+// (buildRenderPlan) — у каждой колонки своя кнопка «Добавить ноду ниже»,
+// чтобы новая нода цеплялась именно к «верно» или именно к «неверно», а не
+// к случайному соседу по общему списку (см. insertNodeAfter).
 export default function ProductionList({ nodes, onNodesChange, lessonFiles = [], onPickLessonFile, moduleLessons = [] }) {
   const sorted = nodes.slice().sort((a, b) => a.seq - b.seq)
   const plan = buildRenderPlan(sorted, nodes)
@@ -33,12 +33,27 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
     onNodesChange(nodes.map(n => (n.id === id ? { ...n, ...patch } : n)))
   }
 
-  function insertAt(index) {
+  // Вставляет новую ноду СРАЗУ ПОСЛЕ afterId — патчит только основной триггер
+  // этой конкретной ноды (insertNodeAfter), не весь список. Это и есть выбор
+  // «к какой ветке цепляем»: кнопка под «Верно» вызывает insertAfterNode(left.id),
+  // кнопка под «Неверно» — insertAfterNode(right.id).
+  function insertAfterNode(afterId) {
     const maxX = nodes.reduce((m, n) => Math.max(m, n.x ?? 0), 0)
     const node = makeNode(0, maxX + NODE_SLOT, 0)
-    const ordered = sorted.slice()
-    ordered.splice(index, 0, node)
-    onNodesChange(relinkPrimaryChain(ordered))
+    onNodesChange(insertNodeAfter(nodes, afterId, node))
+    focusRowSoon(node.id)
+  }
+
+  function insertAtStart() {
+    const maxX = nodes.reduce((m, n) => Math.max(m, n.x ?? 0), 0)
+    const node = makeNode(0, maxX + NODE_SLOT, 0)
+    onNodesChange(insertNodeAtStart(nodes, node))
+    focusRowSoon(node.id)
+  }
+
+  function insertFirstNode() {
+    const node = makeNode(1, 0, 0)
+    onNodesChange([node])
     focusRowSoon(node.id)
   }
 
@@ -51,10 +66,7 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
       typeData: structuredClone(node.typeData ?? {}),
       triggers: (node.triggers ?? []).map(t => ({ ...t, id: crypto.randomUUID() })),
     }
-    const idx = sorted.findIndex(n => n.id === id)
-    const ordered = sorted.slice()
-    ordered.splice(idx + 1, 0, copy)
-    onNodesChange(relinkPrimaryChain(ordered))
+    onNodesChange(insertNodeAfter(nodes, id, copy))
   }
 
   function deleteNode(id) {
@@ -76,6 +88,9 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
     setDropTarget(prev => (prev?.id === node.id && prev.position === position ? prev : { id: node.id, position }))
   }
 
+  // Перетаскивание меняет порядок В ПРЕДЕЛАХ плоского списка по seq — при
+  // сложных развилках (см. insertNodeAfter выше) это не так безопасно, как
+  // точечная вставка, но это отдельная, более крупная задача
   function handleDrop() {
     if (dragId && dropTarget) {
       const ordered = sorted.slice()
@@ -108,6 +123,7 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
       onTypeChange: v => updateNode(node.id, applyTypeChange(node, v)),
       onDuplicate: () => duplicateNode(node.id),
       onDelete: () => deleteNode(node.id),
+      onInsertBelow: () => insertAfterNode(node.id),
       allNodes: nodes,
       lessonFiles,
       onPickLessonFile,
@@ -117,14 +133,14 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
 
   return (
     <div className="productionList" ref={listRef}>
-      <button className="productionInsertBtn" onClick={() => insertAt(0)}>+ Добавить в начало</button>
+      <button className="productionInsertBtn" onClick={insertAtStart}>+ Добавить в начало</button>
 
       {plan.map(item => item.type === 'single' ? (
         <Fragment key={item.node.id}>
           <div className="productionSingleWrap">
-            <ProductionRow {...rowProps(item.node)} onInsertBelow={() => insertAt(item.index + 1)} />
+            <ProductionRow {...rowProps(item.node)} />
           </div>
-          <button className="productionInsertBtn" onClick={() => insertAt(item.index + 1)}>
+          <button className="productionInsertBtn" onClick={() => insertAfterNode(item.node.id)}>
             + Добавить ноду ниже (Ctrl+Enter)
           </button>
         </Fragment>
@@ -133,16 +149,19 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
           <div className="productionPairGrid">
             <div className="productionPairCol">
               <span className="productionPairLabel productionPairLabelOk">{item.leftLabel}</span>
-              <ProductionRow {...rowProps(item.left)} onInsertBelow={() => insertAt(item.leftIndex + 1)} />
+              <ProductionRow {...rowProps(item.left)} />
+              <button className="productionInsertBtn" onClick={() => insertAfterNode(item.left.id)}>
+                + Добавить ноду ниже (Ctrl+Enter)
+              </button>
             </div>
             <div className="productionPairCol">
               <span className="productionPairLabel productionPairLabelErr">{item.rightLabel}</span>
-              <ProductionRow {...rowProps(item.right)} onInsertBelow={() => insertAt(item.rightIndex + 1)} />
+              <ProductionRow {...rowProps(item.right)} />
+              <button className="productionInsertBtn" onClick={() => insertAfterNode(item.right.id)}>
+                + Добавить ноду ниже (Ctrl+Enter)
+              </button>
             </div>
           </div>
-          <button className="productionInsertBtn" onClick={() => insertAt(item.leftIndex + 1)}>
-            + Добавить ноду ниже (Ctrl+Enter)
-          </button>
         </Fragment>
       ))}
 
@@ -157,7 +176,7 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
       )}
 
       {sorted.length === 0 && (
-        <button className="productionInsertBtn productionInsertBtnEmpty" onClick={() => insertAt(0)}>
+        <button className="productionInsertBtn productionInsertBtnEmpty" onClick={insertFirstNode}>
           + Добавить первую ноду
         </button>
       )}
