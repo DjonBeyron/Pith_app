@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 import { useLessonFiles } from '../canvas/useLessonFiles.js'
+import { canvasLsKey } from '../canvas/canvasStorageKeys.js'
 import { dbg } from '../../shared/lib/debug.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import ProductionList from './ProductionList.jsx'
@@ -45,6 +46,13 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
     setIsSaving(true)
     try {
       await saveLesson(lessonId, { title, script: { ...scriptExtraRef.current, nodes } })
+      // У canvas-редактора свой localStorage-черновик этого урока (canvasLsKey) —
+      // при следующем открытии он имеет приоритет над данными сервера (см.
+      // CanvasBoard.jsx). Без этой строки canvas показал бы старый черновик
+      // вместо только что сохранённого отсюда порядка/правок — независимо от
+      // того, каким путём его потом откроют (кнопка «Граф» здесь, либо ⚙ из
+      // схемы модуля напрямую)
+      localStorage.removeItem(canvasLsKey(lessonId))
     } finally {
       setIsSaving(false)
     }
