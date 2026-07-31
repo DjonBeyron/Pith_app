@@ -24,6 +24,7 @@ import { computeAllPriorities } from '../../shared/lib/skillScore.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import { weekKey, MODULE_DONE_WEEK_KEY } from '../race/useRaceState.js'
+import { getLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 
 const LEGEND_SEEN_KEY = 'pithy_priority_legend_seen_v1'
 
@@ -49,6 +50,16 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
     lessons, loading, creating, error, isDirty,
     bulkCreate, addBeforeFinal, addLast, renameLesson, removeLesson, saveStructure, togglePublished,
   } = useCurriculumLessons(curriculumId)
+
+  // ⚙ открывает граф или продакшен — какой использовали последним
+  // (lastEditorMode.js). Оба редактора работают над одними и теми же
+  // данными урока — это не переключатель «навсегда», просто открывается то,
+  // чем пользовались только что
+  function openEditor(id) {
+    const payload = { id, moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })) }
+    if (getLastEditorMode() === 'production') onOpenProduction(payload)
+    else onOpenCanvas(payload)
+  }
 
   // Название модуля наверху схемы: локальная копия (админ может
   // переименовать прямо здесь; родитель перечитает при выходе). Правка — в
@@ -315,14 +326,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           completedIds={completedIds}
           creating={creating}
           onPlay={id => setLaunchId(id)}
-          onEdit={id => onOpenCanvas({
-            id,
-            moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
-          })}
-          onEditProduction={id => onOpenProduction({
-            id,
-            moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
-          })}
+          onEdit={openEditor}
           onDelete={removeLesson}
           onRename={renameLesson}
           onAdd={() => addLast(`Урок ${lessons.length + 1}`)}
@@ -339,14 +343,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           onFlightDone={() => { setJustCompleted(null); setPostLegend(false) }}
           onResetLesson={handleResetLesson}
           onPlay={id => setLaunchId(id)}
-          onEdit={id => onOpenCanvas({
-            id,
-            moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
-          })}
-          onEditProduction={id => onOpenProduction({
-            id,
-            moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
-          })}
+          onEdit={openEditor}
           onDelete={removeLesson}
           onRename={renameLesson}
           onTogglePublished={togglePublished}

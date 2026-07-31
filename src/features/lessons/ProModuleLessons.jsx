@@ -4,7 +4,7 @@ import { useState } from 'react'
 // графа — просто нумерованные строки. ▶ запуск · ✎ канвас · ✕ удалить,
 // тап по названию — переименование. Только для админа (про-модуль скрыт).
 export default function ProModuleLessons({
-  lessons, completedIds, onPlay, onEdit, onEditProduction, onDelete, onRename, onAdd, creating,
+  lessons, completedIds, onPlay, onEdit, onDelete, onRename, onAdd, creating,
 }) {
   const [renaming, setRenaming] = useState(null) // id урока
   const [draft,    setDraft]    = useState('')
@@ -42,7 +42,6 @@ export default function ProModuleLessons({
           <span className="prXp">{l.lessonXp ?? 0} XP</span>
           <button className="prBtn" onClick={() => onPlay(l.id)} title="Запустить урок">▶</button>
           <button className="prBtn" onClick={() => onEdit(l.id)} title="Редактировать сценарий">✎</button>
-          <button className="prBtn" onClick={() => onEditProduction(l.id)} title="Продакшен (линейный список)">📝</button>
           <button className="prBtn amDel" onClick={() => onDelete(l.id)} title="Удалить урок">✕</button>
         </div>
       ))}

@@ -3,6 +3,7 @@ import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 import { useLessonFiles } from '../canvas/useLessonFiles.js'
 import { canvasLsKey } from '../canvas/canvasStorageKeys.js'
 import { dbg } from '../../shared/lib/debug.js'
+import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import ProductionList from './ProductionList.jsx'
 
@@ -11,6 +12,9 @@ import ProductionList from './ProductionList.jsx'
 // для быстрого набора большой цепочки сообщений подряд. См. PROJECT.md.
 export default function ProductionPage({ lessonId, moduleLessons = [], onBack, onOpenCanvas }) {
   const linkableLessons = moduleLessons.filter(l => l.id !== lessonId)
+  // ⚙ в схеме модуля запоминает, каким редактором пользовались последним,
+  // и в следующий раз открывает сразу его (см. lastEditorMode.js)
+  useEffect(() => { setLastEditorMode('production') }, [])
   const [title,   setTitle]   = useState('')
   const [loading, setLoading] = useState(!!lessonId)
   const [isSaving, setIsSaving] = useState(false)

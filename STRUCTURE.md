@@ -501,6 +501,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `lazyRetry.js` | Обёртка React.lazy: 404 старого chunk'а после деплоя лечится одной перезагрузкой (флаг в sessionStorage против зацикливания) |
 | `videoFrame.js` | Достаёт один кадр из видео как картинку — используется для превью выгруженного из памяти видео |
 | `version.js` | Номер версии приложения (`APP_VERSION`) — показывается мелко наверху экрана |
+| `lastEditorMode.js` | `getLastEditorMode`/`setLastEditorMode` (localStorage) — какой редактор урока (canvas/production) открывать по ⚙ в схеме модуля: запоминается при каждом заходе на CanvasPage.jsx/ProductionPage.jsx, читается в CurriculumView.openEditor |
 | `haptics.js` | Тактильный отклик по тапу (`haptic()`): Android — `navigator.vibrate`, iOS — скрытый системный переключатель `<input type="checkbox" switch>` (Safari 17.4+), единственный способ получить импакт на айфоне без Vibration API. Вызывать синхронно из обработчика жеста |
 | `energyCalc.js` | `calcEnergy(profile, now)` — эффективное значение энергии и время следующей +1 (тиками по `energy_updated_at`); `ENERGY_CAP`/`ENERGY_TICK_MS`. Общее для `EnergyBadge` и `LessonLaunchCard` |
 | `energyColors.js` | `energyColor(value)` — цвет энергии по текущему количеству (0/1 красный → 5 фирменный лайм); используется везде, где показывается число/индикатор энергии |

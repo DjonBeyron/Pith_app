@@ -7,11 +7,15 @@ import LessonPlayer from '../player/LessonPlayer.jsx'
 import { useLessonFiles } from './useLessonFiles.js'
 import { useTeacherSettings } from './useTeacherSettings.js'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
+import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
 export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpenProduction }) {
   // Уроки модуля для привязки ответов (анализ знаний) — без урока, который редактируем
   const linkableLessons = moduleLessons.filter(l => l.id !== lessonId)
+  // ⚙ в схеме модуля запоминает, каким редактором пользовались последним,
+  // и в следующий раз открывает сразу его (см. lastEditorMode.js)
+  useEffect(() => { setLastEditorMode('canvas') }, [])
   const [showPanel,   setShowPanel]   = useState(false)
   const [showPlayer,  setShowPlayer]  = useState(false)
   const [title,       setTitle]       = useState('')
