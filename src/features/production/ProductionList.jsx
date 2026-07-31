@@ -142,59 +142,61 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
   }
 
   return (
-    <div className="productionList" ref={listRef}>
-      <InsertNodeButton label="+ Добавить в начало" onInsert={type => insertAtStart(type)} />
+    <div className="productionListScroll" ref={listRef}>
+      <div className="productionList">
+        <InsertNodeButton label="+ Добавить в начало" onInsert={type => insertAtStart(type)} />
 
-      {plan.map(item => item.type === 'single' ? (
-        <Fragment key={item.node.id}>
-          <div className="productionSingleWrap">
-            <ProductionRow {...rowProps(item.node)} />
+        {plan.map(item => item.type === 'single' ? (
+          <Fragment key={item.node.id}>
+            <div className="productionSingleWrap">
+              <ProductionRow {...rowProps(item.node)} />
+            </div>
+            <InsertNodeButton
+              label="+ Добавить ноду ниже (Ctrl+Enter)"
+              onInsert={type => insertAfterNode(item.node.id, type)}
+            />
+          </Fragment>
+        ) : (
+          <Fragment key={`${item.left.id}-${item.right.id}`}>
+            <div className="productionPairGrid">
+              <div className="productionPairCol">
+                <span className="productionPairLabel productionPairLabelOk">{item.leftLabel}</span>
+                <ProductionRow {...rowProps(item.left)} />
+                <InsertNodeButton
+                  label="+ Добавить ноду ниже (Ctrl+Enter)"
+                  onInsert={type => insertAfterNode(item.left.id, type)}
+                />
+              </div>
+              <div className="productionPairCol">
+                <span className="productionPairLabel productionPairLabelErr">{item.rightLabel}</span>
+                <ProductionRow {...rowProps(item.right)} />
+                <InsertNodeButton
+                  label="+ Добавить ноду ниже (Ctrl+Enter)"
+                  onInsert={type => insertAfterNode(item.right.id, type)}
+                />
+              </div>
+            </div>
+          </Fragment>
+        ))}
+
+        {sorted.length > 0 && (
+          <div
+            className="productionListEndZone"
+            onDragOver={e => { e.preventDefault(); if (dragId) setDropTarget({ id: 'END', position: 'after' }) }}
+            onDrop={e => { e.preventDefault(); handleDrop() }}
+          >
+            {dropTarget?.id === 'END' && <div className="productionDropLine" />}
           </div>
+        )}
+
+        {sorted.length === 0 && (
           <InsertNodeButton
-            label="+ Добавить ноду ниже (Ctrl+Enter)"
-            onInsert={type => insertAfterNode(item.node.id, type)}
+            label="+ Добавить первую ноду"
+            className="productionInsertBtn productionInsertBtnEmpty"
+            onInsert={type => insertFirstNode(type)}
           />
-        </Fragment>
-      ) : (
-        <Fragment key={`${item.left.id}-${item.right.id}`}>
-          <div className="productionPairGrid">
-            <div className="productionPairCol">
-              <span className="productionPairLabel productionPairLabelOk">{item.leftLabel}</span>
-              <ProductionRow {...rowProps(item.left)} />
-              <InsertNodeButton
-                label="+ Добавить ноду ниже (Ctrl+Enter)"
-                onInsert={type => insertAfterNode(item.left.id, type)}
-              />
-            </div>
-            <div className="productionPairCol">
-              <span className="productionPairLabel productionPairLabelErr">{item.rightLabel}</span>
-              <ProductionRow {...rowProps(item.right)} />
-              <InsertNodeButton
-                label="+ Добавить ноду ниже (Ctrl+Enter)"
-                onInsert={type => insertAfterNode(item.right.id, type)}
-              />
-            </div>
-          </div>
-        </Fragment>
-      ))}
-
-      {sorted.length > 0 && (
-        <div
-          className="productionListEndZone"
-          onDragOver={e => { e.preventDefault(); if (dragId) setDropTarget({ id: 'END', position: 'after' }) }}
-          onDrop={e => { e.preventDefault(); handleDrop() }}
-        >
-          {dropTarget?.id === 'END' && <div className="productionDropLine" />}
-        </div>
-      )}
-
-      {sorted.length === 0 && (
-        <InsertNodeButton
-          label="+ Добавить первую ноду"
-          className="productionInsertBtn productionInsertBtnEmpty"
-          onInsert={type => insertFirstNode(type)}
-        />
-      )}
+        )}
+      </div>
     </div>
   )
 }
