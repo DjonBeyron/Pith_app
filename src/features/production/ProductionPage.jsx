@@ -18,6 +18,8 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
   // Всё, что лежит в script кроме nodes (lessonXp, настройки учителя...) —
   // сохраняем как есть, чтобы «Сохранить» из списка их не стёрло
   const scriptExtraRef = useRef({})
+  // Скролл-контейнер списка (ProductionList) — кнопка «В начало» скроллит его наверх
+  const scrollRef = useRef(null)
 
   const { files, pickFile, fetchMissingFiles } = useLessonFiles(lessonId)
 
@@ -66,6 +68,15 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
     onOpenCanvas(lessonId)
   }
 
+  function clearAll() {
+    if (!window.confirm('Удалить ВСЕ ноды урока? Это нельзя отменить.')) return
+    handleNodesChange([])
+  }
+
+  function scrollToTop() {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <div className="productionPage">
       <div className="productionPageHeader">
@@ -76,6 +87,18 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
           onChange={e => setTitle(e.target.value)}
           placeholder="Название урока"
         />
+        <button
+          className="pageDangerBtn"
+          onClick={clearAll}
+          disabled={isSaving || loading}
+          title="Удалить все ноды урока"
+        >Очистить</button>
+        <button
+          className="pageTabBtn"
+          onClick={scrollToTop}
+          disabled={isSaving || loading}
+          title="Прокрутить список к первой ноде"
+        >В начало</button>
         {/* Тройка всегда в этом порядке: Сохранить → Граф → Продакшен.
             «Продакшен» — текущая страница (подсвечена), клик просто сохраняет */}
         <button className="productionPageSave" onClick={handleSave} disabled={isSaving || loading}>
@@ -96,6 +119,7 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
           lessonFiles={files}
           onPickLessonFile={pickFile}
           moduleLessons={linkableLessons}
+          scrollRef={scrollRef}
         />
       )}
     </div>

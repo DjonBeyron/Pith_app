@@ -58,6 +58,24 @@
   color: #b6fe3b;
 }
 
+/* «Очистить» — общая для обоих окон (CanvasPage.jsx и ProductionPage.jsx),
+   явно красная: удаляет ВСЕ ноды урока, самое разрушительное действие в
+   обоих редакторах */
+.pageDangerBtn {
+  background: transparent;
+  border: 1px solid #3a2222;
+  color: #c47e7e;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pageDangerBtn:hover { background: #241414; }
+.pageDangerBtn:disabled { opacity: 0.5; cursor: default; }
+
 /* Сохранить+Граф+Продакшен — правая группа: margin-left:auto на первой
    держит всю тройку у правого края (title и так flex:1, но так это не
    завязано на его стиле). overflow-x на шапке — страховка от обрезания

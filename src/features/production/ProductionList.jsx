@@ -14,13 +14,18 @@ import { relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAtStart
 // к случайному соседу по общему списку (см. insertNodeAfter). Кнопки «+»
 // открывают компактное меню выбора типа (InsertNodeButton) вместо того,
 // чтобы молча создавать ноду прошлого выбранного типа.
-export default function ProductionList({ nodes, onNodesChange, lessonFiles = [], onPickLessonFile, moduleLessons = [] }) {
+export default function ProductionList({
+  nodes, onNodesChange, lessonFiles = [], onPickLessonFile, moduleLessons = [], scrollRef,
+}) {
   const sorted = nodes.slice().sort((a, b) => a.seq - b.seq)
   const plan = buildRenderPlan(sorted, nodes)
   const [dragId, setDragId] = useState(null)
   // Куда встанет нода при отпускании: { id: <nodeId>|'END', position: 'before'|'after' }
   const [dropTarget, setDropTarget] = useState(null)
-  const listRef = useRef(null)
+  // scrollRef — снаружи (ProductionPage, кнопка «В начало»), если не передан
+  // (например изолированный дебаг-рендер) — используем свой собственный
+  const internalRef = useRef(null)
+  const listRef = scrollRef ?? internalRef
 
   // Фокус в текстовое поле только что созданной строки — не через эффект:
   // узел появляется в DOM уже после этого коммита, поэтому ждём следующий

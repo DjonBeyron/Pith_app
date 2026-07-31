@@ -25,6 +25,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   // localStorage-черновика (см. handleResetToServer)
   const [resetTick,   setResetTick]   = useState(0)
   const nodesRef = useRef([])
+  // nodes/offset/scale живут внутри CanvasBoard — «Очистить»/«В начало» дотягиваются
+  // туда через imperative handle (см. useImperativeHandle в CanvasBoard.jsx)
+  const boardApiRef = useRef(null)
 
   const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles } =
     useLessonFiles(lessonId)
@@ -175,6 +178,18 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
             disabled={loading}
             title="Отменить локальные правки и показать данные с сервера"
           >↻ С сервера</button>
+          <button
+            className="pageDangerBtn"
+            onClick={() => boardApiRef.current?.clearAll()}
+            disabled={loading}
+            title="Удалить все ноды урока"
+          >Очистить</button>
+          <button
+            className="pageTabBtn"
+            onClick={() => boardApiRef.current?.focusStart()}
+            disabled={loading}
+            title="Прокрутить холст к первой ноде"
+          >В начало</button>
           <div className="canvasXpField">
             <input
               className="canvasXpInput"
@@ -247,6 +262,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
       {!loading && (
         <CanvasBoard
           key={resetTick}
+          ref={boardApiRef}
           lessonId={lessonId}
           lessonFiles={files}
           onPickLessonFile={pickFile}

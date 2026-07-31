@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { canvasLsKey } from './canvasStorageKeys.js'
 import CanvasNode from './CanvasNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
@@ -35,10 +35,10 @@ function nodeAtPos(nodeList, wx, wy, excludeId) {
   })
 }
 
-export default function CanvasBoard({
+const CanvasBoard = forwardRef(function CanvasBoard({
   initialNodes, lessonFiles = [], onPickLessonFile, lessonId, onNodesChange,
   moduleLessons = [],
-}) {
+}, ref) {
   const [nodes, setNodes] = useState(() => {
     const s = loadSaved(lessonId)
     return s.nodes?.length ? s.nodes : (initialNodes?.length ? initialNodes : [makeNode(1, 120, 80)])
@@ -275,6 +275,24 @@ export default function CanvasBoard({
     setNodes(prev => renumber([...prev, makeNode(prev.length + 1, cx, cy)]))
   }
 
+  // Кнопки шапки (CanvasPage) дотягиваются сюда через ref — nodes/offset/scale
+  // живут в этом компоненте, поднимать их в CanvasPage ради двух кнопок смысла нет
+  useImperativeHandle(ref, () => ({
+    clearAll() {
+      if (!window.confirm('Удалить ВСЕ ноды урока? Это нельзя отменить.')) return
+      setNodes([])
+    },
+    focusStart() {
+      const first = nodes.slice().sort((a, b) => a.seq - b.seq)[0]
+      if (!first) return
+      const el = boardRef.current
+      const rect = el ? el.getBoundingClientRect() : { width: 900, height: 600 }
+      scaleRef.current = 1
+      setScale(1)
+      setOffset({ x: rect.width / 2 - first.x - 91, y: rect.height / 2 - first.y - 20 })
+    },
+  }), [nodes])
+
   const svgTransform   = `translate(${offset.x},${offset.y}) scale(${scale})`
   const worldTransform = `translate(${offset.x}px,${offset.y}px) scale(${scale})`
 
@@ -364,4 +382,6 @@ export default function CanvasBoard({
       <button className="canvasAddBtn" onClick={addNode}>+ Нода</button>
     </div>
   )
-}
+})
+
+export default CanvasBoard
