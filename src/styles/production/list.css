@@ -85,7 +85,9 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  max-width: 720px;
+  /* Шире, чем было (720px): полноэкранный режим — можно выделить место под
+     вторую колонку (карточку ветки) рядом с нодой-развилкой */
+  max-width: 980px;
   margin: 0 auto;
   width: 100%;
   display: flex;
@@ -93,17 +95,35 @@
   gap: 2px;
 }
 
+/* Строка + (если есть развилка) колонка ветки — рядом, на одной высоте.
+   Кнопка «+ вставить» — отдельным элементом ПОСЛЕ этого блока (не внутри
+   .productionRow), чтобы визуально не выглядеть частью карточки ноды */
+.productionRowGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+.productionRowGridBranch { grid-template-columns: 1fr 260px; }
+@media (max-width: 760px) {
+  .productionRowGridBranch { grid-template-columns: 1fr; }
+}
+
 .productionRow {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   background: #12141a;
   border: 1px solid #1e2027;
   border-radius: 10px;
-  margin-bottom: 10px;
   overflow: hidden;
 }
 .productionRowDragging { opacity: 0.4; }
+
+/* Короткая вспышка при переходе к ноде-цели ветки (BranchPreview → «перейти») */
+.productionRowFlash { border-color: #b6fe3b; box-shadow: 0 0 0 2px rgba(182, 254, 59, 0.35); }
 
 .productionDropLine {
   height: 3px;
@@ -183,3 +203,53 @@
   font-size: 12px;
   opacity: 0.8;
 }
+
+/* ── Колонка ветки (BranchPreview.jsx) ── */
+.branchCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.branchColLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  padding-left: 2px;
+}
+
+.branchPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  background: #12141a;
+  border: 1px dashed #2a2c33;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.branchPreview:hover { background: #16181e; }
+
+.branchPreviewBar {
+  height: 3px;
+  width: 100%;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+.branchPreviewHead { display: flex; align-items: center; gap: 6px; }
+.branchPreviewSeq { color: #666; font-size: 11px; font-family: monospace; }
+.branchPreviewType { color: #ccc; font-size: 12px; font-weight: 500; }
+.branchPreviewText {
+  color: #888;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.branchPreviewJump { color: #6a9ec4; font-size: 10px; margin-top: 2px; }

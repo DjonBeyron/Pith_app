@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react'
+import { Fragment, useState, useRef } from 'react'
 import NodeContentEditor from '../canvas/NodeContentEditor.jsx'
 import NodeTypeSelect from '../canvas/NodeTypeSelect.jsx'
+import BranchPreview from './BranchPreview.jsx'
 import { applyTypeChange } from '../canvas/nodeDefaults.js'
 import { TYPE_COLOR } from '../canvas/nodeTypes.js'
 import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
-import { relinkPrimaryChain } from './nodeGraphPrimary.js'
+import { relinkPrimaryChain, getBranchTarget } from './nodeGraphPrimary.js'
 
 // Линейный список сообщений урока сверху вниз — альтернатива canvas-редактору
 // для быстрого набора большой цепочки. Порядок строк = seq (тот же, что
@@ -27,6 +28,16 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
       const row = listRef.current?.querySelector(`[data-node-id="${nodeId}"]`)
       row?.querySelector('textarea, input[type="text"], input:not([type])')?.focus()
     })
+  }
+
+  // Прыжок к ноде-цели ветки: она уже есть где-то в этом же списке (по seq),
+  // отдельно её не редактируем — просто подсвечиваем и скроллим к ней
+  function jumpToNode(id) {
+    const row = listRef.current?.querySelector(`[data-node-id="${id}"]`)
+    if (!row) return
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    row.classList.add('productionRowFlash')
+    setTimeout(() => row.classList.remove('productionRowFlash'), 900)
   }
 
   function updateNode(id, patch) {
@@ -96,52 +107,61 @@ export default function ProductionList({ nodes, onNodesChange, lessonFiles = [],
     <div className="productionList" ref={listRef}>
       <button className="productionInsertBtn" onClick={() => insertAt(0)}>+ Добавить в начало</button>
 
-      {sorted.map((node, i) => (
-        <div
-          key={node.id}
-          data-node-id={node.id}
-          className={'productionRow' + (dragId === node.id ? ' productionRowDragging' : '')}
-          onDragOver={e => handleDragOver(e, node)}
-          onDrop={e => { e.preventDefault(); handleDrop() }}
-        >
-          {dropTarget?.id === node.id && dropTarget.position === 'before' && <div className="productionDropLine" />}
-          <div className="productionRowBar" style={{ background: TYPE_COLOR[node.type] }} />
-          <div className="productionRowHead">
-            <span
-              className="productionRowHandle"
-              title="Перетащить для смены порядка"
-              draggable
-              onDragStart={() => setDragId(node.id)}
-              onDragEnd={() => { setDragId(null); setDropTarget(null) }}
-            >⠿</span>
-            <span className="productionRowSeq">#{node.seq}</span>
-            <NodeTypeSelect value={node.type} onChange={v => updateNode(node.id, applyTypeChange(node, v))} compact />
-            <button className="productionRowBtn" title="Дублировать" onClick={() => duplicateNode(node.id)}>⧉</button>
-            <button className="productionRowBtn productionRowBtnDel" title="Удалить" onClick={() => deleteNode(node.id)}>×</button>
-          </div>
-          <div
-            className="productionRowContent"
-            onKeyDown={e => {
-              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                e.preventDefault()
-                insertAt(i + 1)
-              }
-            }}
-          >
-            <NodeContentEditor
-              node={node}
-              onUpdate={patch => updateNode(node.id, patch)}
-              allNodes={nodes}
-              lessonFiles={lessonFiles}
-              onPickLessonFile={onPickLessonFile}
-              moduleLessons={moduleLessons}
-              showTypeSelect={false}
-            />
-          </div>
-          {dropTarget?.id === node.id && dropTarget.position === 'after' && <div className="productionDropLine" />}
-          <button className="productionInsertBtn" onClick={() => insertAt(i + 1)}>+ Добавить ноду ниже (Ctrl+Enter)</button>
-        </div>
-      ))}
+      {sorted.map((node, i) => {
+        const branch = getBranchTarget(node, nodes)
+        return (
+          <Fragment key={node.id}>
+            <div className={branch ? 'productionRowGrid productionRowGridBranch' : 'productionRowGrid'}>
+              <div
+                data-node-id={node.id}
+                className={'productionRow' + (dragId === node.id ? ' productionRowDragging' : '')}
+                onDragOver={e => handleDragOver(e, node)}
+                onDrop={e => { e.preventDefault(); handleDrop() }}
+              >
+                {dropTarget?.id === node.id && dropTarget.position === 'before' && <div className="productionDropLine" />}
+                <div className="productionRowBar" style={{ background: TYPE_COLOR[node.type] }} />
+                <div className="productionRowHead">
+                  <span
+                    className="productionRowHandle"
+                    title="Перетащить для смены порядка"
+                    draggable
+                    onDragStart={() => setDragId(node.id)}
+                    onDragEnd={() => { setDragId(null); setDropTarget(null) }}
+                  >⠿</span>
+                  <span className="productionRowSeq">#{node.seq}</span>
+                  <NodeTypeSelect value={node.type} onChange={v => updateNode(node.id, applyTypeChange(node, v))} compact />
+                  <button className="productionRowBtn" title="Дублировать" onClick={() => duplicateNode(node.id)}>⧉</button>
+                  <button className="productionRowBtn productionRowBtnDel" title="Удалить" onClick={() => deleteNode(node.id)}>×</button>
+                </div>
+                <div
+                  className="productionRowContent"
+                  onKeyDown={e => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                      e.preventDefault()
+                      insertAt(i + 1)
+                    }
+                  }}
+                >
+                  <NodeContentEditor
+                    node={node}
+                    onUpdate={patch => updateNode(node.id, patch)}
+                    allNodes={nodes}
+                    lessonFiles={lessonFiles}
+                    onPickLessonFile={onPickLessonFile}
+                    moduleLessons={moduleLessons}
+                    showTypeSelect={false}
+                  />
+                </div>
+                {dropTarget?.id === node.id && dropTarget.position === 'after' && <div className="productionDropLine" />}
+              </div>
+              {branch && (
+                <BranchPreview label={branch.label} node={branch.target} onJump={() => jumpToNode(branch.target.id)} />
+              )}
+            </div>
+            <button className="productionInsertBtn" onClick={() => insertAt(i + 1)}>+ Добавить ноду ниже (Ctrl+Enter)</button>
+          </Fragment>
+        )
+      })}
 
       {sorted.length > 0 && (
         <div

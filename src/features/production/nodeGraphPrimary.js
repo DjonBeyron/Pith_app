@@ -36,3 +36,33 @@ export function relinkPrimaryChain(orderedNodes) {
   })
   return renumber(relinked)
 }
+
+const BRANCH_LABEL = {
+  word_wrong: '✗ Неверно',
+  phrase_wrong: '✗ Неверно',
+  photo_wrong: '✗ Неверно',
+  table_wrong: '✗ Неверно',
+  reg_cancel: '✕ Отмена',
+}
+
+// Ветка ноды — «неосновной» триггер с указанной целью (например «неверно»
+// у word_choice). Список показывает её как отдельную колонку сбоку от
+// основной строки — полноэкранный режим позволяет видеть развилку сразу,
+// не переключаясь на canvas. Возвращает null, если ветки нет или она никуда
+// не указывает.
+export function getBranchTarget(node, allNodes) {
+  const primaryIdx = getPrimaryTriggerIndex(node)
+  const branch = (node.triggers ?? []).find((t, i) => i !== primaryIdx && t.then)
+  if (!branch) return null
+  const target = allNodes.find(n => n.id === branch.then)
+  if (!target) return null
+  return { target, label: BRANCH_LABEL[branch.if] ?? '↳ Ветка' }
+}
+
+// Короткий текстовый превью содержимого ноды — для карточки ветки (не для
+// редактирования, только чтобы узнать ноду не открывая её).
+export function previewNodeText(node) {
+  const tData = node?.typeData?.[node.type] ?? {}
+  const raw = tData.content ?? tData.text ?? ''
+  return raw ? raw.slice(0, 60) : ''
+}
