@@ -28,6 +28,11 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   // key), чтобы он заново прочитал initialNodes вместо своего внутреннего
   // localStorage-черновика (см. handleResetToServer)
   const [resetTick,   setResetTick]   = useState(0)
+  // Видимая на любом устройстве строка статуса синхронизации (без включения
+  // «Активировать дебаг» — на свежем компьютере без кэша дебаг тоже выключен
+  // по умолчанию). Помогает увидеть расхождение id/числа нод между
+  // компьютерами прямо в интерфейсе, без консоли разработчика
+  const [syncStatus,  setSyncStatus]  = useState('')
   const nodesRef = useRef([])
   // nodes/offset/scale живут внутри CanvasBoard — «Очистить»/«В начало» дотягиваются
   // туда через imperative handle (см. useImperativeHandle в CanvasBoard.jsx)
@@ -71,8 +76,13 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
         setLessonXp(data?.script?.lessonXp ?? 0)
         applyServerData(data?.script)
         if (nodes.length) setServerNodes(nodes)
+        const stamp = new Date().toTimeString().slice(0, 8)
+        setSyncStatus(`Загружено с сервера: ${nodes.length} нод · id ${lessonId.slice(0, 8)} · ${stamp}`)
       })
-      .catch(e => dbg('[CANVAS ERROR] loadScript', e?.message))
+      .catch(e => {
+        dbg('[CANVAS ERROR] loadScript', e?.message)
+        setSyncStatus('✗ Ошибка загрузки: ' + (e?.message ?? '?'))
+      })
       .finally(() => setLoading(false))
   // applyServerData is stable (defined outside render), safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,7 +127,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
       // Контрольное чтение сразу после сохранения — не доверяем «раз не было
       // ошибки, значит записалось» (see lessonsApi.saveLesson: .select() уже
       // ловит 0-строк, но это ещё одна независимая проверка того, что именно
-      // ЧИТАЕТ сервер после нашей записи — включая реальные r2Url по нодам)
+      // ЧИТАЕТ сервер после нашей записи — включая реальные r2Url по нодам).
+      // Статус виден в интерфейсе на любом устройстве, без включения дебага
+      const stamp = new Date().toTimeString().slice(0, 8)
       try {
         const check = await loadScript(lessonId)
         const checkNodes = check?.script?.nodes ?? []
@@ -127,8 +139,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           .map(n => `${n.type}#${n.seq}:${(n.typeData[n.type].file_id ?? '').slice(0, 8)}→${n.typeData[n.type].r2Url ? 'r2Url✓' : 'r2Url✗НЕТ'}`)
           .join(', ')
         if (checkFiles) dbg('[CANVAS] verify: server files:', checkFiles)
+        setSyncStatus(checkNodes.length !== nodesForSave.length
+          ? `⚠ Сохранено ${nodesForSave.length}, но сервер вернул ${checkNodes.length} — id ${lessonId.slice(0, 8)} · ${stamp}`
+          : `✓ Сохранено и проверено: ${checkNodes.length} нод · id ${lessonId.slice(0, 8)} · ${stamp}`)
       } catch (e) {
         dbg('[CANVAS ERROR] post-save verify failed', e?.message)
+        setSyncStatus(`Сохранено (без проверки — ${e?.message ?? '?'}) · ${stamp}`)
       }
     } catch (e) {
       // Раньше ошибка (RLS, сеть, 0 строк изменено) уходила в необработанный
@@ -138,6 +154,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
       // switchToProduction ждёт handleSave() и не должен переключать экран,
       // будто всё в порядке
       dbg('[CANVAS ERROR] save failed', e?.message)
+      setSyncStatus('✗ Ошибка сохранения: ' + (e?.message ?? '?'))
       window.alert('Не удалось сохранить урок: ' + (e?.message ?? 'неизвестная ошибка') +
         '\n\nПравки остались только у вас в браузере — попробуйте сохранить ещё раз.')
       throw e
@@ -241,6 +258,8 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           </button>
         </div>
       </div>
+
+      {syncStatus && <div className="canvasSyncStatus">{syncStatus}</div>}
 
       {showPlayer && (
         <LessonPlayer

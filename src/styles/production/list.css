@@ -33,6 +33,18 @@
 .productionPageTitle:focus { border-color: #444; color: #eee; }
 .productionPageTitle::placeholder { color: #333; }
 
+/* Статус синхронизации после сохранения/загрузки — виден всегда, без
+   включения дебага, чтобы на любом (в т.ч. свежем) компьютере сразу было
+   видно число нод/id урока и есть ли расхождение с сервером */
+.productionSyncStatus {
+  padding: 3px 16px;
+  font-size: 11px;
+  color: #666;
+  background: rgba(9, 11, 14, 0.97);
+  border-bottom: 1px solid #1a1c22;
+  flex-shrink: 0;
+}
+
 /* Общий вид переключателя Граф/Продакшен — используется и здесь, и в
    CanvasPage.jsx (page.css), чтобы тройка «Сохранить → Граф → Продакшен»
    выглядела и вела себя одинаково в обоих окнах. Активная (текущая)

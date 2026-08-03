@@ -19,6 +19,11 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
   const [loading, setLoading] = useState(!!lessonId)
   const [isSaving, setIsSaving] = useState(false)
   const [nodes, setNodes] = useState([])
+  // Видимая на любом устройстве строка статуса синхронизации (без включения
+  // «Активировать дебаг» — на свежем компьютере без кэша дебаг тоже выключен
+  // по умолчанию). Помогает быстро увидеть расхождение id/числа нод между
+  // компьютерами прямо в интерфейсе, без консоли разработчика
+  const [syncStatus, setSyncStatus] = useState('')
   // Всё, что лежит в script кроме nodes (lessonXp, настройки учителя...) —
   // сохраняем как есть, чтобы «Сохранить» из списка их не стёрло
   const scriptExtraRef = useRef({})
@@ -41,8 +46,15 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
         scriptExtraRef.current = extra
         setTitle(data?.title ?? '')
         handleNodesChange(loadedNodes ?? [])
+        const stamp = new Date().toTimeString().slice(0, 8)
+        setSyncStatus(`Загружено с сервера: ${(loadedNodes ?? []).length} нод · id ${lessonId.slice(0, 8)} · ${stamp}`)
+        dbg('[PRODUCTION] loaded', lessonId, (loadedNodes ?? []).length, 'nodes, types:',
+          (loadedNodes ?? []).map(n => n.type).join(', '))
       })
-      .catch(e => dbg('[PRODUCTION ERROR] loadScript', e?.message))
+      .catch(e => {
+        dbg('[PRODUCTION ERROR] loadScript', e?.message)
+        setSyncStatus('✗ Ошибка загрузки: ' + (e?.message ?? '?'))
+      })
       .finally(() => setLoading(false))
   // handleNodesChange меняется только при смене fetchMissingFiles (стабилен по lessonId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,6 +63,8 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
   async function handleSave() {
     setIsSaving(true)
     try {
+      dbg('[PRODUCTION] saving', nodes.length, 'nodes to lesson', lessonId, 'types:',
+        nodes.map(n => n.type).join(', '))
       await saveLesson(lessonId, { title, script: { ...scriptExtraRef.current, nodes } })
       // У canvas-редактора свой localStorage-черновик этого урока (canvasLsKey) —
       // при следующем открытии он имеет приоритет над данными сервера (см.
@@ -59,6 +73,25 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
       // того, каким путём его потом откроют (кнопка «Граф» здесь, либо ⚙ из
       // схемы модуля напрямую)
       localStorage.removeItem(canvasLsKey(lessonId))
+      // Контрольное чтение сразу после сохранения — не доверяем «раз не было
+      // ошибки, значит записалось» (см. lessonsApi.saveLesson: .select() уже
+      // ловит 0 строк, но это независимая проверка того, что СЕРВЕР реально
+      // отдаёт по этому id — та самая проблема с другим компьютером). Статус
+      // виден в интерфейсе на любом устройстве, без включения дебага
+      const stamp = new Date().toTimeString().slice(0, 8)
+      try {
+        const check = await loadScript(lessonId)
+        const checkCount = check?.script?.nodes?.length ?? 0
+        dbg('[PRODUCTION] verify: server now has', checkCount, 'nodes (sent', nodes.length, ')')
+        if (checkCount !== nodes.length) {
+          setSyncStatus(`⚠ Сохранено ${nodes.length}, но сервер вернул ${checkCount} — id ${lessonId.slice(0, 8)} · ${stamp}`)
+        } else {
+          setSyncStatus(`✓ Сохранено и проверено: ${checkCount} нод · id ${lessonId.slice(0, 8)} · ${stamp}`)
+        }
+      } catch (e) {
+        dbg('[PRODUCTION ERROR] post-save verify failed', e?.message)
+        setSyncStatus(`Сохранено (без проверки — ${e?.message ?? '?'}) · ${stamp}`)
+      }
     } catch (e) {
       // Раньше ошибка сохранения (RLS, сеть, 0 строк изменено) молча уходила
       // в необработанный reject — кнопка просто возвращалась в норму, админ
@@ -67,6 +100,7 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
       // сообщаем и НЕ глотаем ошибку — switchToCanvas ждёт handleSave() и не
       // должен переключать экран, будто всё в порядке
       dbg('[PRODUCTION ERROR] save failed', e?.message)
+      setSyncStatus('✗ Ошибка сохранения: ' + (e?.message ?? '?'))
       window.alert('Не удалось сохранить урок: ' + (e?.message ?? 'неизвестная ошибка') +
         '\n\nПравки остались только у вас в браузере — попробуйте сохранить ещё раз.')
       throw e
@@ -132,6 +166,8 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
           Продакшен
         </button>
       </div>
+
+      {syncStatus && <div className="productionSyncStatus">{syncStatus}</div>}
 
       {!loading && (
         <ProductionList
