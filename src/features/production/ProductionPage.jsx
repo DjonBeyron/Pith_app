@@ -59,6 +59,17 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
       // того, каким путём его потом откроют (кнопка «Граф» здесь, либо ⚙ из
       // схемы модуля напрямую)
       localStorage.removeItem(canvasLsKey(lessonId))
+    } catch (e) {
+      // Раньше ошибка сохранения (RLS, сеть, 0 строк изменено) молча уходила
+      // в необработанный reject — кнопка просто возвращалась в норму, админ
+      // думал, что сохранил, а на сервере ничего не менялось: с другого
+      // компьютера тот же урок выглядел «не синхронизированным». Явно
+      // сообщаем и НЕ глотаем ошибку — switchToCanvas ждёт handleSave() и не
+      // должен переключать экран, будто всё в порядке
+      dbg('[PRODUCTION ERROR] save failed', e?.message)
+      window.alert('Не удалось сохранить урок: ' + (e?.message ?? 'неизвестная ошибка') +
+        '\n\nПравки остались только у вас в браузере — попробуйте сохранить ещё раз.')
+      throw e
     } finally {
       setIsSaving(false)
     }
@@ -66,9 +77,15 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
 
   // Переход в canvas («Граф») — сохраняем перед переключением, как по кнопке
   // «Сохранить»: иначе canvas открыл бы прошлую версию урока с сервера, а
-  // правки, сделанные в списке, остались бы только здесь
+  // правки, сделанные в списке, остались бы только здесь. Если сохранение
+  // не удалось — handleSave уже показал алерт, здесь просто не переключаем
+  // экран (иначе admin решил бы, что урок сохранён и ушёл дальше)
   async function switchToCanvas() {
-    await handleSave()
+    try {
+      await handleSave()
+    } catch {
+      return
+    }
     onOpenCanvas(lessonId)
   }
 

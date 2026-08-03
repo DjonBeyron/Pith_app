@@ -60,6 +60,7 @@ export default function ProductionRow({
           collapsibleMedia
           mediaExpanded={mediaExpanded}
           onToggleMedia={onToggleMedia}
+          growTextareas
         />
       </div>
       {dropLineAfter && <div className="productionDropLine" />}

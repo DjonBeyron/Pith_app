@@ -130,6 +130,17 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
       } catch (e) {
         dbg('[CANVAS ERROR] post-save verify failed', e?.message)
       }
+    } catch (e) {
+      // Раньше ошибка (RLS, сеть, 0 строк изменено) уходила в необработанный
+      // reject молча — кнопка просто возвращалась в норму, будто сохранено,
+      // хотя на сервере ничего не менялось: с другого компьютера тот же урок
+      // выглядел «не синхронизированным». Явно сообщаем и не глотаем ошибку —
+      // switchToProduction ждёт handleSave() и не должен переключать экран,
+      // будто всё в порядке
+      dbg('[CANVAS ERROR] save failed', e?.message)
+      window.alert('Не удалось сохранить урок: ' + (e?.message ?? 'неизвестная ошибка') +
+        '\n\nПравки остались только у вас в браузере — попробуйте сохранить ещё раз.')
+      throw e
     } finally {
       setIsSaving(false)
     }
@@ -138,9 +149,14 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   // Переход в продакшен-список — те же данные, другой вид: сохраняем перед
   // переключением (как по кнопке «Сохранить»), иначе список открыл бы
   // прошлую версию урока с сервера, а несохранённые правки остались бы
-  // только в этом (сейчас закрываемом) редакторе
+  // только в этом (сейчас закрываемом) редакторе. Если сохранение не
+  // удалось — handleSave уже показал алерт, просто не переключаем экран
   async function switchToProduction() {
-    await handleSave()
+    try {
+      await handleSave()
+    } catch {
+      return
+    }
     onOpenProduction(lessonId)
   }
 

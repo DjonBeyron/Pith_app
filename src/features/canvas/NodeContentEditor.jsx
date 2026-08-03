@@ -14,6 +14,7 @@ import NodeRewardCheckbox from './NodeRewardCheckbox.jsx'
 import NodeTypeSelect from './NodeTypeSelect.jsx'
 import { applyTypeChange } from './nodeDefaults.js'
 import { NODE_TYPES } from './nodeTypes.js'
+import { autoGrowTextarea } from '../../shared/lib/autoGrowTextarea.js'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
@@ -31,6 +32,9 @@ export default function NodeContentEditor({
   // Продакшен: рамка позиционирования/масштаба файла (фото/видео/кружок/
   // стикер) тоже свёрнута по умолчанию — то же состояние, тот же приём
   collapsibleMedia = false, mediaExpanded = false, onToggleMedia,
+  // Продакшен: текстовые поля растут по высоте — весь текст виден без
+  // скролла внутри узкой рамки, даже длинный (переносом на новую строку)
+  growTextareas = false,
 }) {
   const [hlRect, setHlRect] = useState(null)
   const [hlTarget, setHlTarget] = useState('main') // 'main' | 'pro' — какой текст красим
@@ -79,6 +83,7 @@ export default function NodeContentEditor({
           hasTimings={!!(tData.wordTimings?.length)}
           text={tData.text ?? ''}
           onTextChange={t => updateTypeData({ text: t })}
+          growText={growTextareas}
         />
       )}
       {(node.type === 'photo' || node.type === 'video' || node.type === 'circle' || node.type === 'sticker') && (
@@ -118,6 +123,8 @@ export default function NodeContentEditor({
           onClick={e => e.stopPropagation()}
           onMouseDown={e => e.stopPropagation()}
           rows={4}
+          ref={growTextareas ? autoGrowTextarea : undefined}
+          onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
         />
       )}
       {(node.type === 'text' || node.type === 'pin_message' || (node.type === 'audio' && !!tData.text)) && (
@@ -199,6 +206,8 @@ export default function NodeContentEditor({
             onClick={e => e.stopPropagation()}
             onMouseDown={e => e.stopPropagation()}
             rows={5}
+            ref={growTextareas ? autoGrowTextarea : undefined}
+            onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
           />
         </>
       )}
