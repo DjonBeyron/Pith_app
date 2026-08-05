@@ -4,7 +4,9 @@ import CanvasNode from './CanvasNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
 import { nodeEntry } from './canvasPorts.js'
 import { useCanvasDrag } from './useCanvasDrag.js'
-import { renumber, makeNode, NODE_SLOT } from './nodeGraph.js'
+import { useCanvasSelection } from './useCanvasSelection.js'
+import { useCanvasNodeOps } from './useCanvasNodeOps.js'
+import { renumber, makeNode } from './nodeGraph.js'
 
 // Радиус (в мировых координатах), в котором брошенный порт цепляется
 // к входной точке ноды.
@@ -58,12 +60,24 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const boardRef     = useRef(null)
   const mountedRef   = useRef(false)
 
+  // Выделение нескольких нод (рамкой по левой кнопке или Shift+клик) —
+  // протяжка за любую из выделенных двигает всю группу разом (moveNode)
+  const {
+    selectedIds, marquee, moveGroup,
+    onNodeMouseDown: onSelectionMouseDown, startMarquee, updateMarquee, endMarquee, collapseIfClick,
+  } = useCanvasSelection()
+
   const updateNode = useCallback((id, patch) =>
     // renumber: патч мог изменить триггеры → порядок графа
     setNodes(prev => renumber(prev.map(n => n.id === id ? { ...n, ...patch } : n))), [])
 
+  // Тянем одну ноду — двигается она одна; тянем ноду из группового выделения
+  // (2+ нод) — двигается вся группа на тот же dx/dy
   const moveNode = useCallback((id, dx, dy) =>
-    setNodes(prev => prev.map(n => n.id === id ? { ...n, x: n.x + dx, y: n.y + dy } : n)), [])
+    setNodes(prev => {
+      const group = moveGroup(id)
+      return prev.map(n => group.has(n.id) ? { ...n, x: n.x + dx, y: n.y + dy } : n)
+    }), [moveGroup])
 
   const pan = useCallback((dx, dy) =>
     setOffset(o => ({ x: o.x + dx, y: o.y + dy })), [])
@@ -101,83 +115,16 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   }, [hoveredNodeId])
 
 
+  const { deleteNode: deleteNodeOp, duplicateNode, insertAfterNode } = useCanvasNodeOps(setNodes)
+
   function deleteNode(nodeId) {
     setHoveredNodeId(null)
     setConfirmDeleteId(null)
-    setNodes(prev => renumber(
-      prev
-        .filter(n => n.id !== nodeId)
-        .map(n => ({
-          ...n,
-          triggers: n.triggers.map(t => ({ ...t, then: t.then === nodeId ? null : t.then })),
-        }))
-    ))
+    deleteNodeOp(nodeId)
   }
 
-  // Освобождает место под новую ноду: всё, что правее x, уезжает на слот вправо
-  function shiftRight(list, x) {
-    return list.map(n => n.x > x ? { ...n, x: n.x + NODE_SLOT } : n)
-  }
-
-  // Дубликат встраивается в цепочку сразу после оригинала: все выходы оригинала
-  // переключаются на копию, копия наследует прежние выходы. Вход остаётся на
-  // оригинале: A → B → B' → C. Номера пересчитывает renumber, соседи справа
-  // сдвигаются, освобождая место.
-  function duplicateNode(nodeId) {
-    setNodes(prev => {
-      const node = prev.find(n => n.id === nodeId)
-      if (!node) return prev
-      const copy = {
-        ...node,
-        id: crypto.randomUUID(),
-        x: node.x + NODE_SLOT,
-        y: node.y,
-        typeData: structuredClone(node.typeData ?? {}),
-        triggers: (node.triggers ?? []).map(t => ({ ...t, id: crypto.randomUUID() })),
-      }
-      const updated = shiftRight(prev, node.x).map(n => n.id !== nodeId ? n : {
-        ...n,
-        triggers: n.triggers.map(t => t.then ? { ...t, then: copy.id } : t),
-      })
-      return renumber([...updated, copy])
-    })
-  }
-
-  function insertAfterNode(nodeId) {
-    setNodes(prev => {
-      const node = prev.find(n => n.id === nodeId)
-      if (!node) return prev
-      const insertSeq = node.seq + 1
-      const nextNode  = prev.find(n => n.seq === insertSeq) ?? null
-      const newNode   = makeNode(insertSeq, node.x + NODE_SLOT, node.y)
-      // middle insert: новая нода ведёт на следующую своим первым триггером
-      if (nextNode) {
-        newNode.triggers = newNode.triggers.map((t, ti) =>
-          ti === 0 ? { ...t, then: nextNode.id } : t)
-      }
-      const updated = shiftRight(prev, node.x).map(n => {
-        let out = n.seq >= insertSeq ? { ...n, seq: n.seq + 1 } : n
-        if (n.id === nodeId) {
-          if (nextNode) {
-            // middle insert: rewire existing trigger A→B to A→new→B
-            out = { ...out, triggers: out.triggers.map(t => ({
-              ...t, then: t.then === nextNode.id ? newNode.id : t.then,
-            }))}
-          } else {
-            // tail insert: заполняем первый свободный триггер ноды (у word_choice /
-            // phrase_assembly / photo_choice свои пары correct/wrong — чужой 'played'
-            // добавлял бы лишний порт). Только если все заняты — добавляем 'played'.
-            const freeIdx = out.triggers.findIndex(t => !t.then)
-            out = freeIdx >= 0
-              ? { ...out, triggers: out.triggers.map((t, ti) =>
-                  ti === freeIdx ? { ...t, then: newNode.id } : t) }
-              : { ...out, triggers: [...out.triggers, { if: 'played', then: newNode.id }] }
-          }
-        }
-        return out
-      })
-      return renumber([...updated, newNode])
-    })
+  function handleNodeMouseDown(nodeId, e) {
+    onSelectionMouseDown(nodeId, e, { startNodeDrag, startCanvasDrag })
   }
 
   function toWorld(clientX, clientY) {
@@ -204,10 +151,13 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       setPortDrag(pd)
       return
     }
+    const hitSize = n => ({ w: NODE_HIT_W[n.size] ?? 158, h: NODE_HIT_H[n.size] ?? 200 })
+    if (updateMarquee(e, boardRef, toWorld, nodes, hitSize)) return
     onMouseMove(e)
   }
 
   function handleMouseUp(e) {
+    if (endMarquee()) return
     if (portDragRef.current) {
       const { fromNodeId, triggerIdx } = portDragRef.current
       const { x, y } = toWorld(e.clientX, e.clientY)
@@ -231,6 +181,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       return
     }
     endDrag()
+    collapseIfClick(wasDragged)
   }
 
   useEffect(() => {
@@ -307,7 +258,17 @@ const CanvasBoard = forwardRef(function CanvasBoard({
           setHoveredNodeId(null)
           setConfirmDeleteId(null)
         }
-        startCanvasDrag(e)
+        // Средняя кнопка — панорамирование холста (в т.ч. начатое над нодой,
+        // см. handleNodeMouseDown). Левая по пустому месту — рамка выделения,
+        // а не панорамирование (клики по нодам сюда не долетают — там
+        // stopPropagation в handleNodeMouseDown)
+        if (e.button === 1) {
+          e.preventDefault()
+          startCanvasDrag(e)
+          return
+        }
+        if (e.button !== 0) return
+        startMarquee(e, boardRef)
       }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -333,7 +294,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
             <CanvasNode
               node={node}
               onUpdate={patch => updateNode(node.id, patch)}
-              onDragStart={e => startNodeDrag(node.id, e)}
+              onDragStart={e => handleNodeMouseDown(node.id, e)}
+              selected={selectedIds.has(node.id)}
               wasDragged={wasDragged}
               allNodes={nodes}
               lessonFiles={lessonFiles}
@@ -378,6 +340,18 @@ const CanvasBoard = forwardRef(function CanvasBoard({
           />
         </g>
       </svg>
+
+      {marquee && (
+        <div
+          className="canvasMarquee"
+          style={{
+            left: Math.min(marquee.x0, marquee.x1),
+            top: Math.min(marquee.y0, marquee.y1),
+            width: Math.abs(marquee.x1 - marquee.x0),
+            height: Math.abs(marquee.y1 - marquee.y0),
+          }}
+        />
+      )}
 
       <button className="canvasAddBtn" onClick={addNode}>+ Нода</button>
     </div>

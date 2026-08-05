@@ -11,15 +11,24 @@ export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
   const dragRef  = useRef(null)
   const movedRef = useRef(false)
 
+  // .canvasNode сам по себе user-select:none, но это не спасает от нативного
+  // выделения текста, если протяжка началась внутри textarea (у него своё
+  // выделение, не подчиняется user-select родителя) — при быстрой протяжке
+  // мышь уходит далеко за пределы textarea, и браузер продолжает тянуть
+  // выделение по всей странице, задевая текст других нод. На время ЛЮБОЙ
+  // протяжки (нода или холст) глушим выделение на всей странице — так же,
+  // как уже сделано для протяжки порта (см. CanvasBoard.jsx, portDrag).
   const startNodeDrag = useCallback((nodeId, e) => {
     e.stopPropagation()
     movedRef.current = false
     dragRef.current = { type: 'node', nodeId, startX: e.clientX, startY: e.clientY }
+    document.body.style.userSelect = 'none'
   }, [])
 
   const startCanvasDrag = useCallback((e) => {
     movedRef.current = false
     dragRef.current = { type: 'canvas', startX: e.clientX, startY: e.clientY }
+    document.body.style.userSelect = 'none'
   }, [])
 
   const onMouseMove = useCallback((e) => {
@@ -40,6 +49,7 @@ export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
 
   const endDrag = useCallback(() => {
     dragRef.current = null
+    document.body.style.userSelect = ''
   }, [])
 
   function wasDragged() { return movedRef.current }

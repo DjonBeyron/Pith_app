@@ -7,7 +7,7 @@ import { TYPE_COLOR, colorBg } from './nodeTypes.js'
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
 
 export default function CanvasNode({
-  node, onUpdate, onDragStart, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
+  node, onUpdate, onDragStart, selected = false, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
   moduleLessons = [],
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
@@ -37,7 +37,7 @@ export default function CanvasNode({
   if (node.size === 'nano') {
     return (
       <div
-        className="canvasNode canvasNodeNano"
+        className={`canvasNode canvasNodeNano${selected ? ' canvasNodeSelected' : ''}`}
         style={{ background: color }}
         onMouseDown={onDragStart}
         onClick={expandClick}
@@ -52,7 +52,7 @@ export default function CanvasNode({
 
   if (node.size === 'mini') {
     return (
-      <div className="canvasNode canvasNodeMini" style={{ background: colorBg(color, 0.07) }} onMouseDown={onDragStart}>
+      <div className={`canvasNode canvasNodeMini${selected ? ' canvasNodeSelected' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={onDragStart}>
         <div className="canvasNodeTopBar" style={{ background: color }} />
         <div className="canvasNodeMiniBody">
           <button className="canvasNodeExpandBtn" onClick={expandClick}>›</button>
@@ -73,7 +73,7 @@ export default function CanvasNode({
 
   // ── max ─────────────────────────────────────────────────────────
   return (
-    <div className="canvasNode canvasNodeMax" style={{ background: colorBg(color, 0.07) }} onMouseDown={onDragStart}>
+    <div className={`canvasNode canvasNodeMax${selected ? ' canvasNodeSelected' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={onDragStart}>
       <div className="canvasNodeTopBar" style={{ background: color }} />
       <div className="canvasNodeMaxBody">
         <div className="canvasNodeMaxTop">

@@ -5,6 +5,23 @@
 
 .canvasNode:active { cursor: grabbing; }
 
+/* Выделена рамкой (левая кнопка по пустому месту) или Shift+клик — протяжка
+   любой из выделенных нод двигает всю группу (см. CanvasBoard.jsx moveNode) */
+.canvasNodeSelected {
+  outline: 2px solid #b6fe3b;
+  outline-offset: 2px;
+}
+
+/* Рамка выделения (тянется по пустому месту левой кнопкой) — экранные
+   координаты, поверх мира нод, без масштаба/офсета холста */
+.canvasMarquee {
+  position: absolute;
+  border: 1px solid #b6fe3b;
+  background: rgba(182, 254, 59, 0.08);
+  pointer-events: none;
+  z-index: 50;
+}
+
 .canvasNodeNano {
   width: 42px;
   height: 42px;

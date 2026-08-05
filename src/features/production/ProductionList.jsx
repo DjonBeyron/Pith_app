@@ -4,10 +4,17 @@ import ProductionFanRow from './ProductionFanRow.jsx'
 import InsertNodeButton from './InsertNodeButton.jsx'
 import { applyTypeChange, setLastNodeType } from '../canvas/nodeDefaults.js'
 import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
+import { getVariantList } from '../canvas/nodeVariants.js'
 import {
   relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAfterBoth, insertNodeAtStart,
   getBranchTriggerIndex,
 } from './nodeGraphPrimary.js'
+
+// Шаг по Y между параллельными ветками в canvas — чтобы «верно»/«неверно»/
+// особые переходы, созданные из продакшена, ложились разными строками
+// холста, а не одной горизонтальной линией (там было не видно, какая нода
+// какой ветке принадлежит)
+const NODE_SLOT_Y = 260
 
 // branch: undefined — основной; 'branch' — ветка «неверно»; 'variant:<id>' —
 // особый переход конкретного варианта ответа (nodeVariants.js)
@@ -18,6 +25,17 @@ function resolveTriggerIdx(afterNode, branch) {
     return afterNode.triggers.findIndex(t => t.if === variantId)
   }
   return undefined
+}
+
+// Номер «дорожки» (0,1,2...) ветки для Y-смещения в canvas: верно — 0,
+// неверно — 1, особые переходы вариантов — по порядку после них
+function branchTrackIndex(node, branch) {
+  if (!branch || branch === 'primary') return 0
+  if (branch === 'branch') return 1
+  const variantId = branch.slice('variant:'.length)
+  const variantList = getVariantList(node.type, node.typeData?.[node.type] ?? {})
+  const idx = variantList.findIndex(v => v.id === variantId)
+  return idx >= 0 ? idx + 2 : 2
 }
 
 // Линейный список сообщений урока сверху вниз — альтернатива canvas-редактору
@@ -57,11 +75,12 @@ export default function ProductionList({
   }
 
   // type не задан — берётся последний выбранный (для Ctrl+Enter и старого
-  // поведения); задан явно — из меню InsertNodeButton
-  function createNode(type) {
+  // поведения); задан явно — из меню InsertNodeButton. y — своя строка в
+  // canvas (по умолчанию 0, см. insertAfterNode/insertBetweenBoth)
+  function createNode(type, y = 0) {
     if (type) setLastNodeType(type)
     const maxX = nodes.reduce((m, n) => Math.max(m, n.x ?? 0), 0)
-    return makeNode(0, maxX + NODE_SLOT, 0)
+    return makeNode(0, maxX + NODE_SLOT, y)
   }
 
   function updateNode(id, patch) {
@@ -73,19 +92,27 @@ export default function ProductionList({
   // (для пар-колонок это однозначно «верно» или «неверно» — кнопка под
   // «Верно» вызывает insertAfterNode(left.id), под «Неверно» — insertAfterNode
   // (right.id)). У самой ветвящейся ноды это неоднозначно — branch='branch'
-  // приходит из второго шага меню (branchChoices, см. plan.branchChoices)
+  // приходит из второго шага меню (branchChoices, см. plan.branchChoices) —
+  // именно в этой точке ветка получает СВОЙ Y (branchTrackIndex), дальше
+  // кнопки колонок (branch не передан) просто наследуют Y родителя — вся
+  // цепочка ветки остаётся в одной строке canvas, а не съезжает в общую
   function insertAfterNode(afterId, type, branch) {
-    const node = createNode(type)
     const afterNode = nodes.find(n => n.id === afterId)
+    const y = branch !== undefined
+      ? (afterNode?.y ?? 0) + branchTrackIndex(afterNode, branch) * NODE_SLOT_Y
+      : (afterNode?.y ?? 0)
+    const node = createNode(type, y)
     onNodesChange(insertNodeAfter(nodes, afterId, node, resolveTriggerIdx(afterNode, branch)))
     focusRowSoon(node.id)
   }
 
   // Точка схождения: новая нода становится продолжением ОБЕИХ веток сразу
   // (кнопка между «Верно» и «Неверно» — независимо от ответа урок продолжает
-  // одно и то же сообщение).
+  // одно и то же сообщение). Y — посередине между строками обеих веток
   function insertBetweenBoth(leftId, rightId, type) {
-    const node = createNode(type)
+    const leftY  = nodes.find(n => n.id === leftId)?.y ?? 0
+    const rightY = nodes.find(n => n.id === rightId)?.y ?? 0
+    const node = createNode(type, (leftY + rightY) / 2)
     onNodesChange(insertNodeAfterBoth(nodes, leftId, rightId, node))
     focusRowSoon(node.id)
   }
