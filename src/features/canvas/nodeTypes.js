@@ -5,24 +5,34 @@ import {
 
 // Справочник типов нод канваса (вынесен из NodeTypeSelect.jsx: react-refresh
 // требует, чтобы файл компонента экспортировал только компоненты).
+// group — для группировки в выпадающем меню выбора типа (см. isGroupStart
+// ниже): 'content' — обычная доставка сообщения, 'interactive' — нода с
+// проверкой ответа пользователя.
 export const NODE_TYPES = [
-  { value: 'text',            label: 'Текстовое сообщение', icon: MessageSquare, color: '#7a7a96' },
-  { value: 'audio',           label: 'Голосовое сообщение', icon: Mic,           color: '#6a9ec4' },
-  { value: 'circle',          label: 'Видеосообщение',      icon: PlayCircle,    color: '#c47e7e' },
-  { value: 'video',           label: 'Видео',               icon: Video,         color: '#9a7abc' },
-  { value: 'photo',           label: 'Фото',                icon: Image,         color: '#6aaa6a' },
-  { value: 'sticker',         label: 'Стикер',              icon: Smile,         color: '#c87850' },
-  { value: 'system',          label: 'Системное сообщение', icon: Info,          color: '#6a7a8a' },
-  { value: 'pin_message',     label: 'Закрепить сообщение', icon: Pin,           color: '#aa8830' },
-  { value: 'word_choice',     label: 'Выбери слово',        icon: SpellCheck,    color: '#c89050' },
-  { value: 'phrase_assembly', label: 'Собери фразу',        icon: Layers,        color: '#3a9888' },
-  { value: 'table',           label: 'Таблица',             icon: Table2,        color: '#8a6fd4' },
-  { value: 'photo_choice',    label: 'Выбрать фото',        icon: Images,        color: '#2a94b4' },
-  { value: 'voice_record',    label: 'Запись голоса',       icon: MicVocal,      color: '#a84a84' },
-  { value: 'registration',   label: 'Регистрация',          icon: UserPlus,      color: '#4a8ab4' },
+  { value: 'text',            label: 'Текстовое сообщение', icon: MessageSquare, color: '#7a7a96', group: 'content' },
+  { value: 'audio',           label: 'Голосовое сообщение', icon: Mic,           color: '#6a9ec4', group: 'content' },
+  { value: 'circle',          label: 'Видеосообщение',      icon: PlayCircle,    color: '#c47e7e', group: 'content' },
+  { value: 'video',           label: 'Видео',               icon: Video,         color: '#9a7abc', group: 'content' },
+  { value: 'photo',           label: 'Фото',                icon: Image,         color: '#6aaa6a', group: 'content' },
+  { value: 'sticker',         label: 'Стикер',              icon: Smile,         color: '#c87850', group: 'content' },
+  { value: 'system',          label: 'Системное сообщение', icon: Info,          color: '#6a7a8a', group: 'content' },
+  { value: 'pin_message',     label: 'Закрепить сообщение', icon: Pin,           color: '#aa8830', group: 'content' },
+  { value: 'word_choice',     label: 'Выбери слово',        icon: SpellCheck,    color: '#c89050', group: 'interactive' },
+  { value: 'phrase_assembly', label: 'Собери фразу',        icon: Layers,        color: '#3a9888', group: 'interactive' },
+  { value: 'table',           label: 'Таблица',             icon: Table2,        color: '#8a6fd4', group: 'interactive' },
+  { value: 'photo_choice',    label: 'Выбрать фото',        icon: Images,        color: '#2a94b4', group: 'interactive' },
+  { value: 'voice_record',    label: 'Запись голоса',       icon: MicVocal,      color: '#a84a84', group: 'interactive' },
+  { value: 'registration',   label: 'Регистрация',          icon: UserPlus,      color: '#4a8ab4', group: 'interactive' },
 ]
 
 export const TYPE_COLOR = Object.fromEntries(NODE_TYPES.map(t => [t.value, t.color]))
+
+// true для первого элемента новой группы (кроме самой первой) — используется
+// в NodeTypeSelect.jsx/InsertNodeButton.jsx, чтобы отделить группы отступом
+// в выпадающем меню выбора типа
+export function isGroupStart(index) {
+  return index > 0 && NODE_TYPES[index].group !== NODE_TYPES[index - 1].group
+}
 
 // Смешивает цвет типа с тёмной базой ноды (#12141a) вместо rgba-прозрачности,
 // чтобы фон оставался тёмным независимо от того, что под ним. Общая для

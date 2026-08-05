@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { NODE_TYPES } from './nodeTypes.js'
+import { NODE_TYPES, isGroupStart } from './nodeTypes.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 
 export default function NodeTypeSelect({ value, onChange, compact = false }) {
@@ -65,13 +65,16 @@ export default function NodeTypeSelect({ value, onChange, compact = false }) {
             }}
             onMouseDown={e => e.stopPropagation()}
           >
-            {NODE_TYPES.map(t => {
+            {NODE_TYPES.map((t, i) => {
               const TIcon = t.icon
               const active = t.value === value
+              const cls = 'nodeTypeSelectItem'
+                + (active ? ' nodeTypeSelectItemActive' : '')
+                + (isGroupStart(i) ? ' nodeTypeSelectItemGroupStart' : '')
               return (
                 <button
                   key={t.value}
-                  className={'nodeTypeSelectItem' + (active ? ' nodeTypeSelectItemActive' : '')}
+                  className={cls}
                   style={{ background: `${t.color}26` }}
                   onMouseDown={e => e.stopPropagation()}
                   onClick={e => pick(t.value, e)}

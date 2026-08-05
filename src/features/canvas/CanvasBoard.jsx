@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
-import { canvasLsKey } from './canvasStorageKeys.js'
+import { canvasLsKey, canvasViewKey } from './canvasStorageKeys.js'
 import CanvasNode from './CanvasNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
 import { nodeEntry } from './canvasPorts.js'
@@ -26,6 +26,14 @@ function loadSaved(lessonId) {
   try { return JSON.parse(localStorage.getItem(CANVAS_LS(lessonId)) ?? '{}') } catch { return {} }
 }
 
+// Позиция обзора (offset/scale) — отдельный ключ (canvasViewKey), переживает
+// сохранение урока: черновик нод (loadSaved выше) стирается в
+// CanvasPage.handleSave, а «где мы были» должно помниться всегда
+function loadView(lessonId) {
+  if (!lessonId) return {}
+  try { return JSON.parse(localStorage.getItem(canvasViewKey(lessonId)) ?? '{}') } catch { return {} }
+}
+
 const NODE_HIT_W = { nano: 42, mini: 182, max: 220 }
 const NODE_HIT_H = { nano: 36, mini: 55,  max: 500 }
 function nodeAtPos(nodeList, wx, wy, excludeId) {
@@ -45,10 +53,10 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     const s = loadSaved(lessonId)
     return s.nodes?.length ? s.nodes : (initialNodes?.length ? initialNodes : [makeNode(1, 120, 80)])
   })
-  const [offset, setOffset] = useState(() => loadSaved(lessonId).offset ?? { x: 0, y: 0 })
+  const [offset, setOffset] = useState(() => loadView(lessonId).offset ?? { x: 0, y: 0 })
   const [scale, setScale]   = useState(() => {
-    const s = loadSaved(lessonId)
-    return typeof s.scale === 'number' ? s.scale : 1
+    const v = loadView(lessonId)
+    return typeof v.scale === 'number' ? v.scale : 1
   })
   const [portDrag,       setPortDrag]       = useState(null)
   const [triggerMeasures, setTriggerMeasures] = useState({})
@@ -204,13 +212,25 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
 
+  // Черновик несохранённых правок нод — стирается после успешного
+  // сохранения (CanvasPage.handleSave)
   useEffect(() => {
     if (!lessonId) return
     if (!mountedRef.current) { mountedRef.current = true; return }
     const t = setTimeout(() =>
-      localStorage.setItem(CANVAS_LS(lessonId), JSON.stringify({ nodes, offset, scale })), 80)
+      localStorage.setItem(CANVAS_LS(lessonId), JSON.stringify({ nodes })), 80)
     return () => clearTimeout(t)
-  }, [lessonId, nodes, offset, scale])
+  }, [lessonId, nodes])
+
+  // Позиция обзора (offset/scale) — отдельная, независимая память: не
+  // привязана к черновику и не стирается после сохранения, чтобы при
+  // следующем открытии урока камера была там же, где её оставили
+  useEffect(() => {
+    if (!lessonId) return
+    const t = setTimeout(() =>
+      localStorage.setItem(canvasViewKey(lessonId), JSON.stringify({ offset, scale })), 200)
+    return () => clearTimeout(t)
+  }, [lessonId, offset, scale])
 
   useEffect(() => {
     if (!onNodesChange) return

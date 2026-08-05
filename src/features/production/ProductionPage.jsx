@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 import { useLessonFiles } from '../canvas/useLessonFiles.js'
 import { canvasLsKey } from '../canvas/canvasStorageKeys.js'
+import { productionScrollKey } from './productionStorageKeys.js'
 import { dbg } from '../../shared/lib/debug.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
@@ -59,6 +60,25 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
   // handleNodesChange меняется только при смене fetchMissingFiles (стабилен по lessonId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId])
+
+  // Память позиции скролла — независимо от канваса (там своя, по offset/
+  // scale холста, см. CanvasBoard.jsx canvasViewKey): список появляется в
+  // DOM только после загрузки, поэтому восстанавливаем здесь же, а не в
+  // ленивом useState. Сохраняется на каждый скролл (с задержкой)
+  useEffect(() => {
+    if (loading || !lessonId) return
+    const el = scrollRef.current
+    if (!el) return
+    const saved = Number(localStorage.getItem(productionScrollKey(lessonId)))
+    if (saved > 0) el.scrollTop = saved
+    let t
+    function onScroll() {
+      clearTimeout(t)
+      t = setTimeout(() => localStorage.setItem(productionScrollKey(lessonId), String(el.scrollTop)), 200)
+    }
+    el.addEventListener('scroll', onScroll)
+    return () => { clearTimeout(t); el.removeEventListener('scroll', onScroll) }
+  }, [loading, lessonId])
 
   async function handleSave() {
     setIsSaving(true)

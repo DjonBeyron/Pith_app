@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { NODE_TYPES } from '../canvas/nodeTypes.js'
+import { NODE_TYPES, isGroupStart } from '../canvas/nodeTypes.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 
 // Кнопка «+ Добавить ноду выше/ниже» — вместо того чтобы молча создавать
@@ -101,12 +101,12 @@ export default function InsertNodeButton({ label, onInsert, className = 'product
                 )}
               </>
             ) : (
-              NODE_TYPES.map(t => {
+              NODE_TYPES.map((t, i) => {
                 const Icon = t.icon
                 return (
                   <button
                     key={t.value}
-                    className="nodeTypeSelectItem"
+                    className={'nodeTypeSelectItem' + (isGroupStart(i) ? ' nodeTypeSelectItemGroupStart' : '')}
                     style={{ background: `${t.color}26` }}
                     onMouseDown={e => e.stopPropagation()}
                     onClick={e => pickType(t.value, e)}

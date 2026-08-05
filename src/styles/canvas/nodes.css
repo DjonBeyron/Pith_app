@@ -297,6 +297,14 @@
 .nodeTypeSelectItem:hover { filter: brightness(1.25); }
 .nodeTypeSelectItemActive { outline: 1px solid rgba(255,255,255,0.15) inset; }
 
+/* Начало новой группы типов (content/interactive, см. nodeTypes.js) —
+   отступ + тонкая линия, чтобы длинный список читался по смыслу */
+.nodeTypeSelectItemGroupStart {
+  margin-top: 6px;
+  border-top: 1px solid #2a2c33;
+  padding-top: 8px;
+}
+
 /* ── Reply-to section ── */
 .nodeReplySection {
   display: flex;
