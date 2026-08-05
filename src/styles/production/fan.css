@@ -1,0 +1,36 @@
+/* Ряд с 3+ параллельными колонками (ProductionFanRow.jsx) — появляется,
+   когда у ноды-развилки помимо Верно/Неверно есть особые переходы по
+   вариантам ответа (nodeVariants.js) с уже заданной целью. Фиксированная
+   ширина колонки + горизонтальный скролл — иначе колонки сжимались бы до
+   нечитаемой узкой полосы вместо того, чтобы просто прокрутиться вбок. */
+.productionFanScroll {
+  overflow-x: auto;
+  margin-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.productionFanScroll::-webkit-scrollbar { height: 6px; }
+.productionFanScroll::-webkit-scrollbar-track { background: transparent; }
+.productionFanScroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 3px; }
+
+.productionFanGrid {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+.productionFanCol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.productionFanInsertRow {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+}
+.productionFanInsertRow .productionInsertBtn { max-width: none; margin: 0; }
+
+/* Особый переход варианта ответа — нейтральный цвет (не верно/неверно) */
+.productionPairLabelVariant { color: #8b93a7; }
+
+/* Второй шаг меню InsertNodeButton: сворачиваемый список особых переходов */
+.insertVariantsToggle { opacity: 0.85; }
+.insertVariantItem { padding-left: 18px; }

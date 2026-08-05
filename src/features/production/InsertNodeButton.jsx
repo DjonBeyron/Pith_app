@@ -14,6 +14,7 @@ import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 export default function InsertNodeButton({ label, onInsert, className = 'productionInsertBtn', branchChoices, title }) {
   const [pos, setPos] = useState(null)
   const [pickedType, setPickedType] = useState(null)
+  const [variantsOpen, setVariantsOpen] = useState(false)
   const btnRef = useRef(null)
 
   function openMenu(e) {
@@ -24,13 +25,14 @@ export default function InsertNodeButton({ label, onInsert, className = 'product
     // (computeMenuPos), высота ограничена доступным местом, со скроллом
     setPos(computeMenuPos(r))
     setPickedType(null)
+    setVariantsOpen(false)
   }
 
-  function closeMenu() { setPos(null); setPickedType(null) }
+  function closeMenu() { setPos(null); setPickedType(null); setVariantsOpen(false) }
 
   function pickType(type, e) {
     e.stopPropagation()
-    if (branchChoices?.length) { setPickedType(type); return }
+    if (branchChoices) { setPickedType(type); return }
     closeMenu()
     onInsert(type)
   }
@@ -64,7 +66,7 @@ export default function InsertNodeButton({ label, onInsert, className = 'product
             {pickedType ? (
               <>
                 <div className="insertBranchHint">К какому ответу присоединить?</div>
-                {branchChoices.map(c => (
+                {[branchChoices.primary, branchChoices.branch].map(c => (
                   <button
                     key={c.value}
                     className="nodeTypeSelectItem"
@@ -74,6 +76,29 @@ export default function InsertNodeButton({ label, onInsert, className = 'product
                     <span style={{ color: '#ccc' }}>{c.label}</span>
                   </button>
                 ))}
+                {branchChoices.variants.length > 0 && (
+                  <>
+                    <button
+                      className="nodeTypeSelectItem insertVariantsToggle"
+                      onMouseDown={e => e.stopPropagation()}
+                      onClick={e => { e.stopPropagation(); setVariantsOpen(v => !v) }}
+                    >
+                      <span style={{ color: '#8b93a7' }}>
+                        {variantsOpen ? '▾' : '▸'} Особые переходы ({branchChoices.variants.length})
+                      </span>
+                    </button>
+                    {variantsOpen && branchChoices.variants.map(c => (
+                      <button
+                        key={c.value}
+                        className="nodeTypeSelectItem insertVariantItem"
+                        onMouseDown={e => e.stopPropagation()}
+                        onClick={e => pickBranch(c.value, e)}
+                      >
+                        <span style={{ color: '#ccc' }}>{c.label}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
               </>
             ) : (
               NODE_TYPES.map(t => {

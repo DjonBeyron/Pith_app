@@ -1,5 +1,8 @@
 import { useRef, useState, useLayoutEffect, useEffect } from 'react'
 import NodeLessonLink from './NodeLessonLink.jsx'
+import { getVariantList, syncTriggers, triggersNeedSync } from './nodeVariants.js'
+
+const BASE_PAIR = ['word_correct', 'word_wrong']
 
 export default function NodeWordChoicePicker({
   options = [],
@@ -9,45 +12,56 @@ export default function NodeWordChoicePicker({
   onTriggersChange, onTriggerMeasure,
   statLessonId = null, onStatLessonChange, moduleLessons = [],
 }) {
-  const inputRef      = useRef(null)
-  const correctRowRef = useRef(null)
-  const wrongRowRef   = useRef(null)
+  const inputRef = useRef(null)
+  // Y-координаты портов: базовая пара + по одному на вариант — Map, а не
+  // фиксированные refs, т.к. число вариантов произвольное
+  const rowRefs = useRef(new Map())
   const [expandedId, setExpandedId] = useState(null) // вариант с раскрытыми настройками анализа
+  // Варианты с раскрытым «особым переходом» — отдельно от expandedId
+  // (аналитика и особый переход — разные панели одной строки)
+  const [variantOpenIds, setVariantOpenIds] = useState(() => new Set())
 
-  // Normalize trigger format on mount.
-  // CanvasBoard.handleMouseUp writes t.then by array INDEX, not by t.if.
-  // If the node was saved before changeType initialized the format, triggers
-  // may still be [{ if:'played', then: null }]. After normalization every drag
-  // correctly maps to word_correct (index 0) / word_wrong (index 1).
-  // Existing t.then connections are preserved during normalization.
+  const variantList = getVariantList('word_choice', { options })
+
+  // Нормализация триггеров: базовая пара word_correct/word_wrong + по одному
+  // триггеру на вариант (id варианта — ключ). CanvasBoard.handleMouseUp пишет
+  // t.then по индексу массива, поэтому порядок здесь должен совпадать с
+  // порядком строк — держит canonicalIfs внутри syncTriggers.
   useEffect(() => {
-    const hasCorrect = triggers.some(t => t.if === 'word_correct')
-    const hasWrong   = triggers.some(t => t.if === 'word_wrong')
-    // Чужие триггеры (например 'played', добавленный старой кнопкой «+») дают
-    // лишний порт на ноде — вычищаем, но их связь не теряем: отдаём её
-    // свободному word_correct.
-    const foreign = triggers.filter(t => t.if !== 'word_correct' && t.if !== 'word_wrong')
-    if (!hasCorrect || !hasWrong || foreign.length) {
-      const correct = triggers.find(t => t.if === 'word_correct') ?? triggers[0]
-      const wrong   = triggers.find(t => t.if === 'word_wrong')   ?? triggers[1]
-      const adopt   = foreign.find(t => t.then)?.then ?? null
-      onTriggersChange([
-        { id: correct?.id ?? crypto.randomUUID(), if: 'word_correct', then: correct?.then ?? adopt },
-        { id: wrong?.id   ?? crypto.randomUUID(), if: 'word_wrong',   then: wrong?.then   ?? null },
-      ])
+    if (triggersNeedSync(BASE_PAIR, variantList, triggers)) {
+      onTriggersChange(syncTriggers(BASE_PAIR, variantList, triggers))
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variantList.map(v => v.id).join(','), triggers.map(t => t.if).join(',')])
 
   // Measure y-center of each trigger row for CanvasConnections port positions
   useLayoutEffect(() => {
     if (!onTriggerMeasure) return
-    const offsets = [correctRowRef, wrongRowRef].map(r => {
-      const el = r.current
+    const keys = [...BASE_PAIR, ...variantList.map(v => v.id)]
+    const offsets = keys.map(k => {
+      const el = rowRefs.current.get(k)
       if (!el) return 0
       return el.offsetTop + el.offsetHeight / 2
     })
     onTriggerMeasure(offsets)
   })
+
+  function toggleVariantOpen(id) {
+    setVariantOpenIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function variantThen(id) {
+    return triggers.find(t => t.if === id)?.then ?? ''
+  }
+
+  function setVariantThen(id, then) {
+    onTriggersChange(triggers.map(t => (t.if === id ? { ...t, then: then || null } : t)))
+  }
 
   function addOption() {
     const text = inputRef.current?.value.trim()
@@ -100,7 +114,7 @@ export default function NodeWordChoicePicker({
       {/* варианты */}
       <div className="nodeWordChoiceList">
         {options.map(o => (
-          <div key={o.id} className="nodeWcOptionWrap">
+          <div key={o.id} className="nodeWcOptionWrap" ref={el => rowRefs.current.set(o.id, el)}>
             <div className="nodeWordChoiceRow">
               <button
                 className={`nodeWcCorrectBtn${o.isCorrect ? ' nodeWcCorrectBtnOn' : ''}`}
@@ -109,12 +123,33 @@ export default function NodeWordChoicePicker({
               >✓</button>
               <span className="nodeWcOptionText">{o.text}</span>
               <button
+                className={`nodeWcGearBtn${variantThen(o.id) ? ' nodeWcGearBtnOn' : ''}`}
+                onClick={() => toggleVariantOpen(o.id)}
+                title="Особый переход для этого варианта (замещает верно/неверно)"
+              >{variantOpenIds.has(o.id) ? '▾' : '▸'}</button>
+              <button
                 className={`nodeWcGearBtn${(o.statLessonId || o.signal) ? ' nodeWcGearBtnOn' : ''}`}
                 onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}
                 title="Анализ: свой урок / сигнал"
               >⚙</button>
               <button className="nodeWcDelBtn" onClick={() => removeOption(o.id)}>×</button>
             </div>
+            {variantOpenIds.has(o.id) && (
+              <div className="nodeWcTriggerRow nodeWcVariantRow">
+                <span className="nodeWcTriggerLabel">↳ Особый переход →</span>
+                <select
+                  className="nodeWcTriggerSelect"
+                  value={variantThen(o.id)}
+                  onChange={e => setVariantThen(o.id, e.target.value)}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <option value="">— как верно/неверно —</option>
+                  {otherNodes.map(n => (
+                    <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             {expandedId === o.id && (
               <div className="nodeWcOptSettings">
                 <NodeLessonLink
@@ -178,7 +213,7 @@ export default function NodeWordChoicePicker({
       </div>
       {/* триггеры */}
       <div className="nodeWcTriggerWrap">
-        <div className="nodeWcTriggerRow" ref={correctRowRef}>
+        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('word_correct', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
           <select
             className="nodeWcTriggerSelect"
@@ -192,7 +227,7 @@ export default function NodeWordChoicePicker({
             ))}
           </select>
         </div>
-        <div className="nodeWcTriggerRow" ref={wrongRowRef}>
+        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('word_wrong', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">✗ Неверно →</span>
           <select
             className="nodeWcTriggerSelect"

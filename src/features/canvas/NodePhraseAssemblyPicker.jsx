@@ -1,4 +1,7 @@
 import { useRef, useState, useLayoutEffect, useEffect } from 'react'
+import { getVariantList, syncTriggers, triggersNeedSync, migrateDistractors } from './nodeVariants.js'
+
+const BASE_PAIR = ['phrase_correct', 'phrase_wrong']
 
 export default function NodePhraseAssemblyPicker({
   words = [], distractors = [],
@@ -8,33 +11,56 @@ export default function NodePhraseAssemblyPicker({
   triggers = [], allNodes = [], nodeId,
   onTriggersChange, onTriggerMeasure,
 }) {
-  const wordInputRef  = useRef(null)
-  const distInputRef  = useRef(null)
-  const correctRowRef = useRef(null)
-  const wrongRowRef   = useRef(null)
+  const wordInputRef = useRef(null)
+  const distInputRef = useRef(null)
+  const rowRefs = useRef(new Map())
   const [wordText, setWordText] = useState('')
+  const [variantOpenIds, setVariantOpenIds] = useState(() => new Set())
 
-  // Normalize trigger format on mount (same pattern as NodeWordChoicePicker)
+  // Раньше distractors — массив голых строк, без id не к чему привязать
+  // особый триггер варианта. Переводим на {id, text} при первом обращении.
   useEffect(() => {
-    const hasCorrect = triggers.some(t => t.if === 'phrase_correct')
-    const hasWrong   = triggers.some(t => t.if === 'phrase_wrong')
-    if (!hasCorrect || !hasWrong) {
-      onTriggersChange([
-        { id: triggers[0]?.id ?? crypto.randomUUID(), if: 'phrase_correct', then: triggers[0]?.then ?? null },
-        { id: triggers[1]?.id ?? crypto.randomUUID(), if: 'phrase_wrong',   then: triggers[1]?.then ?? null },
-      ])
+    const migrated = migrateDistractors(distractors)
+    if (migrated !== distractors) onDistractorsChange(migrated)
+  }, [distractors]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const variantList = getVariantList('phrase_assembly', { distractors })
+
+  // Normalize trigger format: базовая пара + по одному триггеру на distractor
+  useEffect(() => {
+    if (triggersNeedSync(BASE_PAIR, variantList, triggers)) {
+      onTriggersChange(syncTriggers(BASE_PAIR, variantList, triggers))
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variantList.map(v => v.id).join(','), triggers.map(t => t.if).join(',')])
 
   useLayoutEffect(() => {
     if (!onTriggerMeasure) return
-    const offsets = [correctRowRef, wrongRowRef].map(r => {
-      const el = r.current
+    const keys = [...BASE_PAIR, ...variantList.map(v => v.id)]
+    const offsets = keys.map(k => {
+      const el = rowRefs.current.get(k)
       if (!el) return 0
       return el.offsetTop + el.offsetHeight / 2
     })
     onTriggerMeasure(offsets)
   })
+
+  function toggleVariantOpen(id) {
+    setVariantOpenIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function variantThen(id) {
+    return triggers.find(t => t.if === id)?.then ?? ''
+  }
+
+  function setVariantThen(id, then) {
+    onTriggersChange(triggers.map(t => (t.if === id ? { ...t, then: then || null } : t)))
+  }
 
   function commitWords() {
     const newWords = wordText.split(/\s+/).filter(Boolean)
@@ -50,10 +76,14 @@ export default function NodePhraseAssemblyPicker({
 
   function addDistractor() {
     const text = distInputRef.current?.value.trim()
-    if (!text || distractors.includes(text)) return
-    onDistractorsChange([...distractors, text])
+    if (!text || distractors.some(d => d.text === text)) return
+    onDistractorsChange([...distractors, { id: crypto.randomUUID(), text }])
     distInputRef.current.value = ''
     distInputRef.current.focus()
+  }
+
+  function removeDistractor(id) {
+    onDistractorsChange(distractors.filter(d => d.id !== id))
   }
 
   // Display: find by if-field, fallback to index for pre-normalization render
@@ -102,11 +132,34 @@ export default function NodePhraseAssemblyPicker({
       {/* лишние слова */}
       <p className="nodePaLabel">Лишние слова</p>
       <div className="nodePaDistractors">
-        {distractors.map((d, i) => (
-          <span key={i} className="nodePaDistractorChip">
-            {d}
-            <button className="nodePaDistractorDel" onClick={() => onDistractorsChange(distractors.filter((_, j) => j !== i))}>×</button>
-          </span>
+        {distractors.map(d => (
+          <div key={d.id} className="nodePaDistractorRow" ref={el => rowRefs.current.set(d.id, el)}>
+            <span className="nodePaDistractorChip">
+              {d.text}
+              <button
+                className={`nodeWcGearBtn nodePaVariantBtn${variantThen(d.id) ? ' nodeWcGearBtnOn' : ''}`}
+                onClick={() => toggleVariantOpen(d.id)}
+                title="Особый переход для этого слова (замещает верно/неверно)"
+              >{variantOpenIds.has(d.id) ? '▾' : '▸'}</button>
+              <button className="nodePaDistractorDel" onClick={() => removeDistractor(d.id)}>×</button>
+            </span>
+            {variantOpenIds.has(d.id) && (
+              <div className="nodeWcTriggerRow nodeWcVariantRow">
+                <span className="nodeWcTriggerLabel">↳ Особый переход →</span>
+                <select
+                  className="nodeWcTriggerSelect"
+                  value={variantThen(d.id)}
+                  onChange={e => setVariantThen(d.id, e.target.value)}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <option value="">— как верно/неверно —</option>
+                  {otherNodes.map(n => (
+                    <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         ))}
       </div>
       <div className="nodeWcAddRow">
@@ -144,7 +197,7 @@ export default function NodePhraseAssemblyPicker({
       </div>
       {/* триггеры */}
       <div className="nodeWcTriggerWrap">
-        <div className="nodeWcTriggerRow" ref={correctRowRef}>
+        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('phrase_correct', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
           <select
             className="nodeWcTriggerSelect"
@@ -158,7 +211,7 @@ export default function NodePhraseAssemblyPicker({
             ))}
           </select>
         </div>
-        <div className="nodeWcTriggerRow" ref={wrongRowRef}>
+        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('phrase_wrong', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">✗ Неверно →</span>
           <select
             className="nodeWcTriggerSelect"

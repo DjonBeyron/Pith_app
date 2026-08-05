@@ -190,3 +190,10 @@
   font-family: inherit;
 }
 .nodeWcTriggerSelect:focus { border-color: #b6fe3b; }
+
+/* Особый переход одного варианта ответа (word_choice/photo_choice/
+   phrase_assembly/table) — раскрывается треугольником у самого варианта,
+   замещает общий верно/неверно для него */
+.nodeWcVariantRow {
+  margin: 2px 0 6px 26px;
+}

@@ -83,3 +83,14 @@
   transition: color .15s;
 }
 .nodePaDistractorDel:hover { color: #f87171; }
+
+/* Каждый дистрактор — своя строка (а не просто чип в общем flex-wrap ряду):
+   нужно место под раскрывающийся особый переход конкретно этого слова */
+.nodePaDistractorRow { flex: 1 1 100%; }
+
+.nodePaVariantBtn {
+  width: 16px;
+  height: 16px;
+  font-size: 9px;
+  border-radius: 4px;
+}

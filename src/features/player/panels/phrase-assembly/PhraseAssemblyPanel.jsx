@@ -57,11 +57,14 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
       setTimeout(() => setShowCounter(true), 350)
     } else if (wc >= 3) {
       const phrase = placed.map(p => p.word).join(' ')
+      // Особый переход конкретного слова-ловушки (nodeVariants.js) — если в
+      // собранной фразе есть распознанный distractor, берём первый
+      const variantId = placed.find(p => p.distractorId)?.distractorId ?? null
       onAnswered?.(phrase, 'wrong_final')
       closeTimers.current.forEach(clearTimeout)
       closeTimers.current = [
         setTimeout(() => setShow(false), 700),
-        setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_wrong') }, 700 + 420),
+        setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_wrong', variantId) }, 700 + 420),
       ]
     }
   }, [result]) // eslint-disable-line
@@ -95,10 +98,10 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
           </div>
           <PhraseAnswerRow placed={placed} result={result} onRemove={removePlaced} />
           <div className="phrasePool">
-            {shuffled.map((word, i) => (
+            {shuffled.map((chip, i) => (
               <PhraseWordChip
                 key={i}
-                word={word}
+                word={chip.text}
                 used={usedIdxs.has(i)}
                 disabled={isAnswered}
                 onClick={() => pickChip(i)}

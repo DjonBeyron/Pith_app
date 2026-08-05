@@ -32,7 +32,7 @@ export default function ChooseWordPanel({ node, onDone, onAnswered, onPicked, on
     const triggerResult = result === 'correct' ? 'word_correct' : 'word_wrong'
     const answer   = setTimeout(() => onAnswered?.(responseText, result), 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
-    const done     = setTimeout(() => onDone?.(triggerResult), 700 + 900 + 420)
+    const done     = setTimeout(() => onDone?.(triggerResult, selectedId), 700 + 900 + 420)
     return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }
   }, [isAnswered]) // eslint-disable-line
 

@@ -52,7 +52,11 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
   )
   const hasExtras = extraFromAnswer.length > 0
 
-  const [shuffledExtras] = useState(() => shuffle([...extraFromAnswer, ...distractors]))
+  // Только текст — весь RAF/timeline-код ниже (useTableDictatorRaf,
+  // dictatorPostAudio.js, dictatorCheck.js) сопоставляет chips по строкам;
+  // id варианта (для особого перехода, nodeVariants.js) резолвится отдельно
+  // в check() по distractors.find(d => d.text === ...), не меняя эту форму
+  const [shuffledExtras] = useState(() => shuffle([...extraFromAnswer, ...distractors.map(d => d.text)]))
   // Стабильные объекты стилей — новый объект каждый рендер перезапускает CSS-анимацию
   const chipStyles = useMemo(
     () => shuffledExtras.map((_, i) => ({ animationDelay: `${i * 50}ms` })),
@@ -82,6 +86,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
   const checkRef          = useRef(null)
   const closeRef          = useRef(null)
   const closeTriggerRef   = useRef(null)    // 'table_correct'/'table_wrong' — итог проверки
+  const closeVariantRef   = useRef(null)    // id варианта (особый переход distractor'а), если сработал
   // Рефы для RAF-управляемого сценария (checkAt-режим)
   const rfxPhaseRef       = useRef(false)   // таблица уехала
   const rfxChipsRef       = useRef(false)   // чипы появились
@@ -210,13 +215,13 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
     setRevealedIds,
   })
 
-  function slideDown(trigger) {
+  function slideDown(trigger, variantId) {
     pLog(`[td-auto] slideDown trigger=${trigger}`)
     setShow(false)
     setHudVisible(false)   // панель уезжает вниз — спектр сразу схлопывается (scale к 0), не ждёт onEnded
     setHighlighted(new Set())
     onHeightChange?.(0)
-    const id = setTimeout(() => onDone?.(trigger ?? 'table_correct'), 420)
+    const id = setTimeout(() => onDone?.(trigger ?? 'table_correct', variantId), 420)
     timers.current.push(id)
   }
 
@@ -270,6 +275,11 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
     const { isCorrect } = evaluateDictator({ tokens, assembled, extrasAssembled, answer })
     const trigger = isCorrect ? 'table_correct' : 'table_wrong'
     closeTriggerRef.current = trigger
+    // Особый переход конкретного слова-ловушки (nodeVariants.js) — если в
+    // собранном ответе есть распознанный distractor
+    closeVariantRef.current = isCorrect
+      ? null
+      : distractors.find(d => extrasAssembled.some(t => t.value === d.text))?.id ?? null
     setResult(isCorrect ? 'correct' : 'wrong')
     // Легаси (нет out-point у слоя проверки) — закрываем по задержке
     if (checkOut == null) timers.current.push(setTimeout(() => closeModule(), checkDelay))
@@ -280,7 +290,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
     if (closedRef.current) return
     closedRef.current = true
     pLog(`[td-auto] CLOSE (обратная анимация) trigger=${closeTriggerRef.current}`)
-    slideDown(closeTriggerRef.current ?? 'table_correct')
+    slideDown(closeTriggerRef.current ?? 'table_correct', closeVariantRef.current)
   }
 
   if (!table) return null
@@ -388,6 +398,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
                 rfxCloseRef.current       = false
                 closedRef.current         = false
                 closeTriggerRef.current   = null
+                closeVariantRef.current   = null
                 setHighlighted(new Set()); setUsedCells(new Set())
                 setActiveExtraKeys(new Set())
                 setRevealedIds(computeRevealedCellIds(timeline?.layers, 0))

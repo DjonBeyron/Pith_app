@@ -46,8 +46,14 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
   )
   const hasExtras = extraFromAnswer.length > 0 || distractors.length > 0
 
-  // Список слов вне таблицы перемешивается один раз при маунте (lazy useState)
-  const [shuffledExtras] = useState(() => shuffle([...extraFromAnswer, ...distractors]))
+  // Список слов вне таблицы перемешивается один раз при маунте (lazy useState).
+  // distractorId нужен, чтобы при неверном ответе понять, какое именно
+  // слово-ловушка попало в собранную фразу (особый переход варианта,
+  // nodeVariants.js) — у настоящих «лишних» слов из ответа его нет
+  const [shuffledExtras] = useState(() => shuffle([
+    ...extraFromAnswer.map(w => ({ text: w, distractorId: null })),
+    ...distractors.map(d => ({ text: d.text, distractorId: d.id })),
+  ]))
 
   const [show,      setShow]      = useState(false)
   const [assembled, setAssembled] = useState([])
@@ -90,10 +96,10 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
     setAssembled(prev => [...prev, { type: 'cell', cellId, value: val, key: `cell-${cellId}` }])
   }
 
-  function tapExtra(word, idx) {
+  function tapExtra(chip, idx) {
     const key = `extra-${idx}`
     if (assembledExtraKeys.has(key) || result) return
-    setAssembled(prev => [...prev, { type: 'extra', value: word, key }])
+    setAssembled(prev => [...prev, { type: 'extra', value: chip.text, key, distractorId: chip.distractorId }])
   }
 
   function removeFromBox(i) {
@@ -102,9 +108,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
     // фаза пересчитается автоматически (производная от allCellsDone + hasExtras)
   }
 
-  function closePanelWith(trigger) {
+  function closePanelWith(trigger, variantId) {
     setShow(false)
-    const id = setTimeout(() => { onHeightChange?.(0); onDone?.(trigger) }, 420)
+    const id = setTimeout(() => { onHeightChange?.(0); onDone?.(trigger, variantId) }, 420)
     timers.current.push(id)
   }
 
@@ -123,7 +129,8 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
       }
       if (wrongCount.current >= 3) {
         if (answer.trim()) onAnswered?.(answer, 'wrong_final')
-        const id = setTimeout(() => closePanelWith('table_wrong'), 800)
+        const variantId = assembled.find(t => t.distractorId)?.distractorId ?? null
+        const id = setTimeout(() => closePanelWith('table_wrong', variantId), 800)
         timers.current.push(id)
         return
       }
@@ -196,16 +203,16 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
 
             {phase === 'extra' && (
               <div className="tmExtrasSection">
-                {shuffledExtras.map((word, i) => {
+                {shuffledExtras.map((chip, i) => {
                   const used = assembledExtraKeys.has(`extra-${i}`)
                   return (
                     <button
                       key={i}
                       style={{ animationDelay: `${i * 50}ms` }}
                       className={`tmExtraChip${used ? ' tmExtraChipUsed' : ''}`}
-                      onClick={() => tapExtra(word, i)}
+                      onClick={() => tapExtra(chip, i)}
                       disabled={used || !!result}
-                    >{word}</button>
+                    >{chip.text}</button>
                   )
                 })}
               </div>

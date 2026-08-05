@@ -1,5 +1,6 @@
 import { TYPED_PAIRS } from '../canvas/nodeDefaults.js'
 import { renumber, NODE_SLOT } from '../canvas/nodeGraph.js'
+import { getVariantList } from '../canvas/nodeVariants.js'
 
 // «Основной» триггер ноды — тот, что список продакшена считает «следующая
 // нода по умолчанию» при перетаскивании строки. Для типов со своей парой
@@ -60,22 +61,18 @@ export function getPrimaryTarget(node, allNodes) {
   return allNodes.find(n => n.id === then) ?? null
 }
 
-// Индекс «неосновного» триггера (пара с getPrimaryTriggerIndex) — тот, что
-// не совпадает с основным. -1, если у ноды всего один триггер (нет развилки).
+// Индекс «неосновного» (ветка «неверно»/«отмена») триггера пары — явный
+// поиск по if, а не «первый не по основному индексу»: с особыми триггерами
+// вариантов ответа (nodeVariants.js) в массиве triggers может быть 3+
+// записей, «первый не primary» мог бы случайно попасть на вариант.
 export function getBranchTriggerIndex(node) {
-  const primaryIdx = getPrimaryTriggerIndex(node)
-  return (node.triggers ?? []).findIndex((t, i) => i !== primaryIdx)
-}
-
-// Ветка ноды — «неосновной» триггер с указанной целью (например «неверно»
-// у word_choice). Возвращает null, если ветки нет или она никуда не указывает.
-export function getBranchTarget(node, allNodes) {
-  const primaryIdx = getPrimaryTriggerIndex(node)
-  const branch = (node.triggers ?? []).find((t, i) => i !== primaryIdx && t.then)
-  if (!branch) return null
-  const target = allNodes.find(n => n.id === branch.then)
-  if (!target) return null
-  return { target, label: BRANCH_LABEL[branch.if] ?? '↳ Ветка' }
+  const pair = TYPED_PAIRS[node.type]
+  const triggers = node.triggers ?? []
+  if (pair) {
+    const idx = triggers.findIndex(t => t.if === pair[1])
+    return idx >= 0 ? idx : 1
+  }
+  return -1
 }
 
 // Варианты «к какому исходу присоединить» для кнопки «Добавить ноду ниже» —
@@ -83,6 +80,10 @@ export function getBranchTarget(node, allNodes) {
 // Иначе у только что созданного модуля (обе связи ещё null, пары снизу нет)
 // кнопка молча цепляла бы к «верно», не спросив — сюрприз для админа.
 // null — у типа нет своей пары (played/timer), спрашивать нечего.
+// variants — варианты ответа (word_choice/photo_choice/phrase_assembly/table)
+// БЕЗ уже заданного особого перехода: у них есть свой персональный триггер
+// (nodeVariants.js), который замещает верно/неверно именно для этого
+// варианта — кнопка «ниже» может присоединить новую ноду прямо к нему.
 export function getBranchChoices(node) {
   const pair = TYPED_PAIRS[node.type]
   if (!pair) return null
@@ -90,51 +91,86 @@ export function getBranchChoices(node) {
   const branchIdx = getBranchTriggerIndex(node)
   const primaryLabel = PRIMARY_LABEL[node.triggers?.[primaryIdx]?.if] ?? '✓ Далее'
   const branchLabel = BRANCH_LABEL[node.triggers?.[branchIdx]?.if] ?? '↳ Ветка'
-  return [{ value: 'primary', label: primaryLabel }, { value: 'branch', label: branchLabel }]
+  const variantList = getVariantList(node.type, node.typeData?.[node.type] ?? {})
+  const variants = variantList
+    .filter(v => !(node.triggers ?? []).find(t => t.if === v.id)?.then)
+    .map(v => ({ value: `variant:${v.id}`, label: `↳ ${v.label}` }))
+  return {
+    primary: { value: 'primary', label: primaryLabel },
+    branch: { value: 'branch', label: branchLabel },
+    variants,
+  }
+}
+
+// Живые продолжения ноды с развилкой (верно/неверно/особые переходы
+// вариантов, у каждого из которых УЖЕ задана цель) — колонки для fan-рендера
+// в продакшене. null, если у типа нет своей пары исходов или живых
+// продолжений меньше двух (тогда рисуем обычную одиночную строку).
+export function getFanColumns(node, allNodes) {
+  const pair = TYPED_PAIRS[node.type]
+  if (!pair) return null
+  const cols = []
+  const primaryIdx = getPrimaryTriggerIndex(node)
+  const primaryThen = node.triggers?.[primaryIdx]?.then
+  if (primaryThen) {
+    const target = allNodes.find(n => n.id === primaryThen)
+    if (target) cols.push({ key: 'primary', node: target, label: PRIMARY_LABEL[node.triggers[primaryIdx].if] ?? '✓ Далее' })
+  }
+  const branchIdx = getBranchTriggerIndex(node)
+  const branchThen = branchIdx >= 0 ? node.triggers?.[branchIdx]?.then : null
+  if (branchThen) {
+    const target = allNodes.find(n => n.id === branchThen)
+    if (target) cols.push({ key: 'branch', node: target, label: BRANCH_LABEL[node.triggers[branchIdx].if] ?? '↳ Ветка' })
+  }
+  const variantList = getVariantList(node.type, node.typeData?.[node.type] ?? {})
+  variantList.forEach(v => {
+    const then = (node.triggers ?? []).find(t => t.if === v.id)?.then
+    if (!then) return
+    const target = allNodes.find(n => n.id === then)
+    if (target) cols.push({ key: v.id, node: target, label: `↳ ${v.label}` })
+  })
+  const ids = cols.map(c => c.node.id)
+  if (cols.length < 2 || new Set(ids).size !== ids.length || ids.includes(node.id)) return null
+  return cols
 }
 
 // Строит план рендера списка: обычно каждая нода — своя строка («single»),
-// но у ноды с развилкой (getBranchTarget) следующая по основному пути и
-// нода-цель ветки идут ПАРОЙ («pair», делят экран пополам) сразу под ней.
-// Пока у ОБЕИХ сторон есть собственное продолжение (обычный триггер, не
-// развилка) — пара продолжается вниз ещё одним рядом («Верно» и «Неверно»
-// растут двумя параллельными колонками, а не разъезжаются в общий список
-// после первого шага). Останавливается, когда: одна из сторон дошла до
-// тупика; обе стороны сошлись в одну и ту же ноду (insertNodeAfterBoth —
-// дальше это уже общий single); либо сама сторона — ещё одна развилка
-// (вложенные развилки не разворачиваем автоматически, ограничение v1, её
-// обработает обычный проход по sorted). Каждая нода рисуется РОВНО один раз.
+// но у ноды с развилкой (getFanColumns) все живые исходы (верно/неверно и
+// особые переходы вариантов с уже заданной целью) идут В РЯД («fan», N
+// колонок) сразу под ней. Пока у ВСЕХ колонок есть простое продолжение (не
+// ещё одна развилка) — ряд продолжается вниз ещё одним рядом колонок
+// (каждая колонка растёт своей веткой на всю длину цепочки, а не разъезжается
+// в общий список после первого шага). Останавливается, когда: у какой-то
+// колонки нет продолжения; несколько колонок сошлись в одну и ту же ноду
+// (insertNodeAfterBoth — дальше это уже общий single); либо сама колонка —
+// ещё одна развилка (вложенные развилки не разворачиваем автоматически,
+// ограничение v1, её обработает обычный проход по sorted). Каждая нода
+// рисуется РОВНО один раз.
 export function buildRenderPlan(sorted, allNodes) {
   const visited = new Set()
   const plan = []
   sorted.forEach(node => {
     if (visited.has(node.id)) return
-    const branch = getBranchTarget(node, allNodes)
-    const primary = branch ? getPrimaryTarget(node, allNodes) : null
-    if (branch && primary && primary.id !== node.id && !visited.has(primary.id) && !visited.has(branch.target.id)) {
-      const choices = getBranchChoices(node)
-      plan.push({ type: 'single', node, branchChoices: choices })
-      visited.add(primary.id)
-      visited.add(branch.target.id)
+    const cols = getFanColumns(node, allNodes)
+    if (cols && cols.every(c => !visited.has(c.node.id))) {
+      plan.push({ type: 'single', node, branchChoices: getBranchChoices(node) })
+      cols.forEach(c => visited.add(c.node.id))
 
-      let left = primary
-      let right = branch.target
+      let current = cols
       while (true) {
-        plan.push({ type: 'pair', left, leftLabel: choices[0].label, right, rightLabel: branch.label })
-        if (getBranchChoices(left) || getBranchChoices(right)) break
-        const leftNext = getPrimaryTarget(left, allNodes)
-        const rightNext = getPrimaryTarget(right, allNodes)
-        if (!leftNext || !rightNext) break
-        if (leftNext.id === rightNext.id) break
-        if (visited.has(leftNext.id) || visited.has(rightNext.id)) break
-        visited.add(leftNext.id)
-        visited.add(rightNext.id)
-        left = leftNext
-        right = rightNext
+        plan.push({ type: 'fan', columns: current })
+        if (current.some(c => getBranchChoices(c.node))) break
+        const nextCols = current.map(c => ({ ...c, node: getPrimaryTarget(c.node, allNodes) }))
+        if (nextCols.some(c => !c.node)) break
+        const nextIds = nextCols.map(c => c.node.id)
+        if (new Set(nextIds).size !== nextIds.length) break
+        if (nextIds.some(id => visited.has(id))) break
+        nextCols.forEach(c => visited.add(c.node.id))
+        current = nextCols
       }
       return
     }
-    // Пары снизу ещё нет (одна или обе связи не заданы), но у типа своя пара
+    // Fan снизу ещё нет (живых исходов меньше двух), но у типа своя пара
     // исходов (TYPED_PAIRS) — кнопка «ниже» всё равно должна спросить, а не
     // молча цеплять к «верно»
     plan.push({ type: 'single', node, branchChoices: getBranchChoices(node) })

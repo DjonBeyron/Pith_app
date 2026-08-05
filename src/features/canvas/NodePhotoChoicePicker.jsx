@@ -1,4 +1,7 @@
 import { useRef, useState, useLayoutEffect, useEffect } from 'react'
+import { getVariantList, syncTriggers, triggersNeedSync } from './nodeVariants.js'
+
+const BASE_PAIR = ['photo_correct', 'photo_wrong']
 
 const PHOTO_COLORS = [
   '#6366f1','#ec4899','#f59e0b','#10b981',
@@ -34,30 +37,46 @@ export default function NodePhotoChoicePicker({
   onTriggersChange, onTriggerMeasure,
 }) {
   const labelInputRef = useRef(null)
-  const correctRowRef = useRef(null)
-  const wrongRowRef   = useRef(null)
+  const rowRefs = useRef(new Map())
   const [labelText, setLabelText] = useState('')
+  const [variantOpenIds, setVariantOpenIds] = useState(() => new Set())
+
+  const variantList = getVariantList('photo_choice', { photos })
 
   useEffect(() => {
-    const hasCorrect = triggers.some(t => t.if === 'photo_correct')
-    const hasWrong   = triggers.some(t => t.if === 'photo_wrong')
-    if (!hasCorrect || !hasWrong) {
-      onTriggersChange([
-        { id: triggers[0]?.id ?? crypto.randomUUID(), if: 'photo_correct', then: triggers[0]?.then ?? null },
-        { id: triggers[1]?.id ?? crypto.randomUUID(), if: 'photo_wrong',   then: triggers[1]?.then ?? null },
-      ])
+    if (triggersNeedSync(BASE_PAIR, variantList, triggers)) {
+      onTriggersChange(syncTriggers(BASE_PAIR, variantList, triggers))
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variantList.map(v => v.id).join(','), triggers.map(t => t.if).join(',')])
 
   useLayoutEffect(() => {
     if (!onTriggerMeasure) return
-    const offsets = [correctRowRef, wrongRowRef].map(r => {
-      const el = r.current
+    const keys = [...BASE_PAIR, ...variantList.map(v => v.id)]
+    const offsets = keys.map(k => {
+      const el = rowRefs.current.get(k)
       if (!el) return 0
       return el.offsetTop + el.offsetHeight / 2
     })
     onTriggerMeasure(offsets)
   })
+
+  function toggleVariantOpen(id) {
+    setVariantOpenIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function variantThen(id) {
+    return triggers.find(t => t.if === id)?.then ?? ''
+  }
+
+  function setVariantThen(id, then) {
+    onTriggersChange(triggers.map(t => (t.if === id ? { ...t, then: then || null } : t)))
+  }
 
   function addPhoto() {
     const label = labelText.trim() || `Фото ${photos.length + 1}`
@@ -121,29 +140,52 @@ export default function NodePhotoChoicePicker({
       {photos.length > 0 && (
         <div className="nodePcList">
           {photos.map((ph, i) => (
-            <div key={ph.id} className={`nodePcItem ${correctIndexes.includes(i) ? 'nodePcItemCorrect' : ''}`}>
-              <label className="nodePcThumbWrap" title="Загрузить фото" onClick={e => e.stopPropagation()}>
-                {(ph.fileId || ph.photoUrl)
-                  ? <PhotoThumb ph={ph} lessonFiles={lessonFiles} />
-                  : <div className="nodePcSwatch" style={{ background: PHOTO_COLORS[i % PHOTO_COLORS.length] }}>{i + 1}</div>
-                }
-                <input type="file" accept="image/*" className="nodePcFileInput"
-                  onChange={e => { uploadPhoto(i, e.target.files[0]); e.target.value = '' }} />
-              </label>
-              <span className="nodePcLabel">{ph.label}</span>
-              <button
-                className={`nodeWcCorrectBtn ${correctIndexes.includes(i) ? 'nodeWcCorrectBtnOn' : ''}`}
-                onClick={() => toggleCorrect(i)}
-                title={correctIndexes.includes(i) ? 'Снять' : 'Верный'}
-              >✓</button>
-              <button className="nodePcDel" onClick={() => removePhoto(i)}>×</button>
+            <div key={ph.id} ref={el => rowRefs.current.set(ph.id, el)}>
+              <div className={`nodePcItem ${correctIndexes.includes(i) ? 'nodePcItemCorrect' : ''}`}>
+                <label className="nodePcThumbWrap" title="Загрузить фото" onClick={e => e.stopPropagation()}>
+                  {(ph.fileId || ph.photoUrl)
+                    ? <PhotoThumb ph={ph} lessonFiles={lessonFiles} />
+                    : <div className="nodePcSwatch" style={{ background: PHOTO_COLORS[i % PHOTO_COLORS.length] }}>{i + 1}</div>
+                  }
+                  <input type="file" accept="image/*" className="nodePcFileInput"
+                    onChange={e => { uploadPhoto(i, e.target.files[0]); e.target.value = '' }} />
+                </label>
+                <span className="nodePcLabel">{ph.label}</span>
+                <button
+                  className={`nodeWcCorrectBtn ${correctIndexes.includes(i) ? 'nodeWcCorrectBtnOn' : ''}`}
+                  onClick={() => toggleCorrect(i)}
+                  title={correctIndexes.includes(i) ? 'Снять' : 'Верный'}
+                >✓</button>
+                <button
+                  className={`nodeWcGearBtn${variantThen(ph.id) ? ' nodeWcGearBtnOn' : ''}`}
+                  onClick={() => toggleVariantOpen(ph.id)}
+                  title="Особый переход для этого фото (замещает верно/неверно)"
+                >{variantOpenIds.has(ph.id) ? '▾' : '▸'}</button>
+                <button className="nodePcDel" onClick={() => removePhoto(i)}>×</button>
+              </div>
+              {variantOpenIds.has(ph.id) && (
+                <div className="nodeWcTriggerRow nodeWcVariantRow">
+                  <span className="nodeWcTriggerLabel">↳ Особый переход →</span>
+                  <select
+                    className="nodeWcTriggerSelect"
+                    value={variantThen(ph.id)}
+                    onChange={e => setVariantThen(ph.id, e.target.value)}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <option value="">— как верно/неверно —</option>
+                    {otherNodes.map(n => (
+                      <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
       <div className="nodeWcTriggerWrap">
-        <div className="nodeWcTriggerRow" ref={correctRowRef}>
+        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('photo_correct', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
           <select className="nodeWcTriggerSelect" value={correctThen}
             onChange={e => setTrigger('photo_correct', e.target.value)}
@@ -152,7 +194,7 @@ export default function NodePhotoChoicePicker({
             {otherNodes.map(n => <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>)}
           </select>
         </div>
-        <div className="nodeWcTriggerRow" ref={wrongRowRef}>
+        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('photo_wrong', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">✗ Неверно →</span>
           <select className="nodeWcTriggerSelect" value={wrongThen}
             onChange={e => setTrigger('photo_wrong', e.target.value)}

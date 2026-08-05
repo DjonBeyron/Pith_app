@@ -68,10 +68,23 @@ export function useGraphPlayer(nodes, { onFinish } = {}) {
     }, t.ms ?? 3000)
   }
 
-  const onNodeDone = useCallback((nodeId, result = null) => {
+  const onNodeDone = useCallback((nodeId, result = null, variantId = null) => {
     const node = nodeMapRef.current[nodeId]
     if (!node) return
     const triggers = node.triggers ?? []
+
+    // Особый переход конкретного варианта ответа (nodeVariants.js) — если
+    // задан, замещает собой обычный верно/неверно именно для этого варианта
+    if (variantId) {
+      const vt = triggers.find(tr => tr.if === variantId && tr.then)
+      if (vt) {
+        const key = `${nodeId}:${variantId}`
+        if (firedRef.current.has(key)) return
+        firedRef.current.add(key)
+        scheduleReveal.current(vt.then)
+        return
+      }
+    }
 
     if (result) {
       const t = triggers.find(tr => tr.if === result && tr.then)

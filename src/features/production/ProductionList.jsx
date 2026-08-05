@@ -1,5 +1,6 @@
 import { Fragment, useState, useRef } from 'react'
 import ProductionRow from './ProductionRow.jsx'
+import ProductionFanRow from './ProductionFanRow.jsx'
 import InsertNodeButton from './InsertNodeButton.jsx'
 import { applyTypeChange, setLastNodeType } from '../canvas/nodeDefaults.js'
 import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
@@ -7,6 +8,17 @@ import {
   relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAfterBoth, insertNodeAtStart,
   getBranchTriggerIndex,
 } from './nodeGraphPrimary.js'
+
+// branch: undefined — основной; 'branch' — ветка «неверно»; 'variant:<id>' —
+// особый переход конкретного варианта ответа (nodeVariants.js)
+function resolveTriggerIdx(afterNode, branch) {
+  if (branch === 'branch') return getBranchTriggerIndex(afterNode)
+  if (branch?.startsWith('variant:')) {
+    const variantId = branch.slice('variant:'.length)
+    return afterNode.triggers.findIndex(t => t.if === variantId)
+  }
+  return undefined
+}
 
 // Линейный список сообщений урока сверху вниз — альтернатива canvas-редактору
 // для быстрого набора большой цепочки. Порядок строк = seq (тот же, что
@@ -65,8 +77,7 @@ export default function ProductionList({
   function insertAfterNode(afterId, type, branch) {
     const node = createNode(type)
     const afterNode = nodes.find(n => n.id === afterId)
-    const triggerIdx = branch === 'branch' ? getBranchTriggerIndex(afterNode) : undefined
-    onNodesChange(insertNodeAfter(nodes, afterId, node, triggerIdx))
+    onNodesChange(insertNodeAfter(nodes, afterId, node, resolveTriggerIdx(afterNode, branch)))
     focusRowSoon(node.id)
   }
 
@@ -205,34 +216,13 @@ export default function ProductionList({
             />
           </Fragment>
         ) : (
-          <Fragment key={`${item.left.id}-${item.right.id}`}>
-            <div className="productionPairGrid">
-              <div className="productionPairCol">
-                <span className="productionPairLabel productionPairLabelOk">{item.leftLabel}</span>
-                <ProductionRow {...rowProps(item.left)} />
-              </div>
-              <div className="productionPairCol">
-                <span className="productionPairLabel productionPairLabelErr">{item.rightLabel}</span>
-                <ProductionRow {...rowProps(item.right)} />
-              </div>
-            </div>
-            <div className="productionPairInsertRow">
-              <InsertNodeButton
-                label="+ Добавить ноду ниже (Ctrl+Enter)"
-                onInsert={type => insertAfterNode(item.left.id, type)}
-              />
-              <InsertNodeButton
-                label="+"
-                className="productionInsertBtnMerge"
-                title="Добавить ноду ниже в ОБЕ ветки — урок продолжится ею независимо от ответа"
-                onInsert={type => insertBetweenBoth(item.left.id, item.right.id, type)}
-              />
-              <InsertNodeButton
-                label="+ Добавить ноду ниже (Ctrl+Enter)"
-                onInsert={type => insertAfterNode(item.right.id, type)}
-              />
-            </div>
-          </Fragment>
+          <ProductionFanRow
+            key={item.columns.map(c => c.node.id).join('-')}
+            columns={item.columns}
+            rowProps={rowProps}
+            insertAfterNode={insertAfterNode}
+            insertBetweenBoth={insertBetweenBoth}
+          />
         ))}
 
         {sorted.length > 0 && (

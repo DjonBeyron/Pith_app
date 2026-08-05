@@ -41,6 +41,7 @@
 @import './styles/canvas/nodes.css';
 @import './styles/canvas/triggers.css';
 @import './styles/production/list.css';
+@import './styles/production/fan.css';
 @import './styles/player/layout.css';
 @import './styles/player/topbar.css';
 @import './styles/player/feed.css';

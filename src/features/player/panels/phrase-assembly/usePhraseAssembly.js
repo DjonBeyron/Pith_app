@@ -13,10 +13,16 @@ export function usePhraseAssembly(node) {
   const words       = node.typeData?.phrase_assembly?.words       ?? []
   const distractors = node.typeData?.phrase_assembly?.distractors ?? []
 
-  // Shuffle once on mount (all chips: correct words + distractors)
-  const [shuffled] = useState(() => shuffle([...words, ...distractors]))
+  // Shuffle once on mount (all chips: correct words + distractors) — единая
+  // форма {text, distractorId}: distractorId нужен, чтобы при неверном
+  // ответе понять, какое именно слово-ловушка попало в фразу (особый
+  // переход конкретного варианта, nodeVariants.js), null у настоящих слов
+  const [shuffled] = useState(() => shuffle([
+    ...words.map(w => ({ text: w, distractorId: null })),
+    ...distractors.map(d => ({ text: d.text, distractorId: d.id })),
+  ]))
 
-  // placed: [{ shuffleIdx, word }, ...]
+  // placed: [{ shuffleIdx, word, distractorId }, ...]
   const [placed, setPlaced] = useState([])
   const [result, setResult] = useState(null) // 'correct' | 'wrong' | null
 
@@ -25,7 +31,8 @@ export function usePhraseAssembly(node) {
 
   function pickChip(shuffleIdx) {
     if (usedIdxs.has(shuffleIdx) || isAnswered) return
-    setPlaced(p => [...p, { shuffleIdx, word: shuffled[shuffleIdx] }])
+    const chip = shuffled[shuffleIdx]
+    setPlaced(p => [...p, { shuffleIdx, word: chip.text, distractorId: chip.distractorId }])
     if (result === 'wrong') setResult(null)
   }
 

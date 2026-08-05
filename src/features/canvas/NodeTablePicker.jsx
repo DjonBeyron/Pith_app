@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import TableEditorModal from './table-editor/TableEditorModal.jsx'
+import { getVariantList, syncTriggers, triggersNeedSync, migrateDistractors } from './nodeVariants.js'
+
+const BASE_PAIR = ['table_correct', 'table_wrong']
 
 // Управление нодой «Таблица»:
 // — кнопка конструктора (открывает TableEditorModal)
@@ -14,50 +17,70 @@ export default function NodeTablePicker({
 }) {
   const [open, setOpen] = useState(false)
   const [newD,  setNewD] = useState('')
+  const [variantOpenIds, setVariantOpenIds] = useState(() => new Set())
 
-  const correctRowRef = useRef(null)
-  const wrongRowRef   = useRef(null)
+  const rowRefs = useRef(new Map())
 
   const tableData   = tData.table       ?? null
   const mode        = tData.mode        ?? 'dictator'
   const distractors = tData.distractors ?? []
 
-  // Нормализация триггеров: гарантируем пару table_correct / table_wrong
+  // Раньше distractors — массив голых строк, без id не к чему привязать
+  // особый триггер варианта. Переводим на {id, text} при первом обращении.
   useEffect(() => {
-    const hasCorrect = triggers.some(t => t.if === 'table_correct')
-    const hasWrong   = triggers.some(t => t.if === 'table_wrong')
-    const foreign    = triggers.filter(t => t.if !== 'table_correct' && t.if !== 'table_wrong')
-    if (!hasCorrect || !hasWrong || foreign.length) {
-      const correct = triggers.find(t => t.if === 'table_correct') ?? triggers[0]
-      const wrong   = triggers.find(t => t.if === 'table_wrong')   ?? triggers[1]
-      const adopt   = foreign.find(t => t.then)?.then ?? null
-      onTriggersChange?.([
-        { id: correct?.id ?? crypto.randomUUID(), if: 'table_correct', then: correct?.then ?? adopt },
-        { id: wrong?.id   ?? crypto.randomUUID(), if: 'table_wrong',   then: wrong?.then   ?? null },
-      ])
+    const migrated = migrateDistractors(distractors)
+    if (migrated !== distractors) onDataChange({ distractors: migrated })
+  }, [distractors]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const variantList = getVariantList('table', { distractors })
+
+  // Нормализация триггеров: базовая пара table_correct/table_wrong + по
+  // одному триггеру на distractor
+  useEffect(() => {
+    if (triggersNeedSync(BASE_PAIR, variantList, triggers)) {
+      onTriggersChange?.(syncTriggers(BASE_PAIR, variantList, triggers))
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variantList.map(v => v.id).join(','), triggers.map(t => t.if).join(',')])
 
   // Измерение Y-центров строк триггеров для рисования проводов
   useLayoutEffect(() => {
     if (!onTriggerMeasure) return
-    const offsets = [correctRowRef, wrongRowRef].map(r => {
-      const el = r.current
+    const keys = [...BASE_PAIR, ...variantList.map(v => v.id)]
+    const offsets = keys.map(k => {
+      const el = rowRefs.current.get(k)
       if (!el) return 0
       return el.offsetTop + el.offsetHeight / 2
     })
     onTriggerMeasure(offsets)
   })
 
+  function toggleVariantOpen(id) {
+    setVariantOpenIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function variantThen(id) {
+    return triggers.find(t => t.if === id)?.then ?? ''
+  }
+
+  function setVariantThen(id, then) {
+    onTriggersChange?.(triggers.map(t => (t.if === id ? { ...t, then: then || null } : t)))
+  }
+
   function addDistractor() {
     const w = newD.trim()
-    if (!w) return
-    onDataChange({ distractors: [...distractors, w] })
+    if (!w || distractors.some(d => d.text === w)) return
+    onDataChange({ distractors: [...distractors, { id: crypto.randomUUID(), text: w }] })
     setNewD('')
   }
 
-  function removeDistractor(i) {
-    onDataChange({ distractors: distractors.filter((_, j) => j !== i) })
+  function removeDistractor(id) {
+    onDataChange({ distractors: distractors.filter(d => d.id !== id) })
   }
 
   const correctThen = (triggers.find(t => t.if === 'table_correct') ?? triggers[0])?.then ?? ''
@@ -129,10 +152,34 @@ export default function NodeTablePicker({
             </div>
             {distractors.length > 0 && (
               <div className="nodeTableDList">
-                {distractors.map((w, i) => (
-                  <span key={i} className="nodeTableDChip">
-                    {w}<button onClick={() => removeDistractor(i)}>×</button>
-                  </span>
+                {distractors.map(d => (
+                  <div key={d.id} className="nodePaDistractorRow" ref={el => rowRefs.current.set(d.id, el)}>
+                    <span className="nodeTableDChip">
+                      {d.text}
+                      <button
+                        className={`nodeWcGearBtn nodePaVariantBtn${variantThen(d.id) ? ' nodeWcGearBtnOn' : ''}`}
+                        onClick={() => toggleVariantOpen(d.id)}
+                        title="Особый переход для этого слова (замещает верно/неверно)"
+                      >{variantOpenIds.has(d.id) ? '▾' : '▸'}</button>
+                      <button onClick={() => removeDistractor(d.id)}>×</button>
+                    </span>
+                    {variantOpenIds.has(d.id) && (
+                      <div className="nodeWcTriggerRow nodeWcVariantRow">
+                        <span className="nodeWcTriggerLabel">↳ Особый переход →</span>
+                        <select
+                          className="nodeWcTriggerSelect"
+                          value={variantThen(d.id)}
+                          onChange={e => setVariantThen(d.id, e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <option value="">— как верно/неверно —</option>
+                          {otherNodes.map(n => (
+                            <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -158,7 +205,7 @@ export default function NodeTablePicker({
 
       {/* Триггеры: два выхода — верно / неверно */}
       <div className="nodeWcTriggerWrap">
-        <div className="nodeWcTriggerRow" ref={correctRowRef}>
+        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('table_correct', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
           <select
             className="nodeWcTriggerSelect"
@@ -172,7 +219,7 @@ export default function NodeTablePicker({
             ))}
           </select>
         </div>
-        <div className="nodeWcTriggerRow" ref={wrongRowRef}>
+        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('table_wrong', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">✗ Неверно →</span>
           <select
             className="nodeWcTriggerSelect"

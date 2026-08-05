@@ -220,6 +220,9 @@ export default function LessonPlayer({
     const result = isCorrect ? 'photo_correct' : 'photo_wrong'
     if (!isCorrect) wrongRef.current += 1
     const pcNode = nodes.find(n => n.id === nodeId)
+    // Особый переход этого конкретного фото (nodeVariants.js), если задан —
+    // проверяется раньше общего верно/неверно (useGraphPlayer.onNodeDone)
+    const variantId = pcNode?.typeData?.photo_choice?.photos?.[idx]?.id ?? null
     record({
       nodeId,
       lessonId: pcNode?.typeData?.photo_choice?.statLessonId ?? null,
@@ -231,7 +234,7 @@ export default function LessonPlayer({
       const xp = xpMap.get(nodeId) ?? 0
       if (xp > 0) setPendingPhotoXp(prev => ({ ...prev, [nodeId]: xp }))
     }
-    onNodeDone(nodeId, result)
+    onNodeDone(nodeId, result, variantId)
   }
 
   function handlePhotoXpFired(nodeId, rect) {
@@ -373,7 +376,7 @@ export default function LessonPlayer({
             key={wcNode.id} /* вторая нода того же типа подряд = свежая панель */
             node={wcNode}
             xpAmount={xpMap.get(wcNode.id) ?? 0}
-            onDone={(result) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result) }}
+            onDone={(result, variantId) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result, variantId) }}
             onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result)}
             onPicked={(opt) => {
               const ev = wordOptionEvent(wcNode, opt)
@@ -389,7 +392,7 @@ export default function LessonPlayer({
             key={paNode.id}
             node={paNode}
             xpAmount={xpMap.get(paNode.id) ?? 0}
-            onDone={(result) => { setPaPanelHeight(0); onNodeDone(paNode.id, result) }}
+            onDone={(result, variantId) => { setPaPanelHeight(0); onNodeDone(paNode.id, result, variantId) }}
             onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
             onChecked={(result, text) => {
               if (result === 'wrong') wrongRef.current += 1
@@ -427,7 +430,7 @@ export default function LessonPlayer({
             <TableManualPanel
               key={tableNode.id}
               node={tableNode}
-              onDone={trigger => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger) }}
+              onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
               onAnswered={() => {}}
               onHeightChange={setTablePanelHeight}
             />
@@ -436,7 +439,7 @@ export default function LessonPlayer({
               key={tableNode.id}
               node={tableNode}
               file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}
-              onDone={trigger => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger) }}
+              onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
               onHeightChange={setTablePanelHeight}
             />
           )
