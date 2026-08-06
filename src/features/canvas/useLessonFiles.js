@@ -70,8 +70,12 @@ export function useLessonFiles(lessonId) {
 
   // ── Operations ─────────────────────────────────────────────────
   // Returns existing id if same name+size already in lesson (dedup guard).
-  function pickFile(file) {
-    const dup = files.find(f => f.name === file.name && f.size === file.size)
+  // useCallback + filesRef (не files) — эта функция идёт пропом
+  // (onPickLessonFile) до каждой CanvasNode.jsx (React.memo, canvas/CanvasNode.jsx):
+  // нестабильная ссылка на каждый рендер CanvasPage срывала бы мемоизацию у
+  // всех нод разом, как раньше срывал moduleLessons (см. CanvasPage.jsx)
+  const pickFile = useCallback((file) => {
+    const dup = filesRef.current.find(f => f.name === file.name && f.size === file.size)
     if (dup) return dup.id
     const id = crypto.randomUUID()
     setFiles(prev => [...prev, {
@@ -80,7 +84,7 @@ export function useLessonFiles(lessonId) {
     }])
     if (lessonId) lfSave(IDB_KEY(lessonId, id), file).catch(console.error)
     return id
-  }
+  }, [lessonId])
 
   // Local files: removed immediately. Synced files: marked toDelete, removed on next sync.
   // Clicking × on a toDelete file cancels the pending deletion.

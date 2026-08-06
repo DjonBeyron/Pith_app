@@ -52,7 +52,9 @@ export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
     document.body.style.userSelect = ''
   }, [])
 
-  function wasDragged() { return movedRef.current }
+  // useCallback — проп до CanvasNode.jsx (мемоизирован React.memo);
+  // нестабильная ссылка срывала бы мемоизацию каждый рендер
+  const wasDragged = useCallback(() => movedRef.current, [])
 
   return { startNodeDrag, startCanvasDrag, onMouseMove, endDrag, wasDragged }
 }

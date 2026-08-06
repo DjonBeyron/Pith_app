@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { dbg } from '../../shared/lib/debug.js'
 import CanvasBoard from './CanvasBoard.jsx'
 import { canvasLsKey } from './canvasStorageKeys.js'
@@ -11,8 +11,14 @@ import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
 export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpenProduction }) {
-  // Уроки модуля для привязки ответов (анализ знаний) — без урока, который редактируем
-  const linkableLessons = moduleLessons.filter(l => l.id !== lessonId)
+  // Уроки модуля для привязки ответов (анализ знаний) — без урока, который редактируем.
+  // useMemo — иначе новый массив на КАЖДЫЙ рендер CanvasPage (клик по XP-полю,
+  // обновление syncStatus и т.п.) срывал бы React.memo у всех CanvasNode
+  // разом (moduleLessons — их проп), сводя мемоизацию на нет
+  const linkableLessons = useMemo(
+    () => moduleLessons.filter(l => l.id !== lessonId),
+    [moduleLessons, lessonId],
+  )
   // ⚙ в схеме модуля запоминает, каким редактором пользовались последним,
   // и в следующий раз открывает сразу его (см. lastEditorMode.js)
   useEffect(() => { setLastEditorMode('canvas') }, [])

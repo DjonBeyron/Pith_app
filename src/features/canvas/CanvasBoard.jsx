@@ -34,6 +34,14 @@ function loadView(lessonId) {
   try { return JSON.parse(localStorage.getItem(canvasViewKey(lessonId)) ?? '{}') } catch { return {} }
 }
 
+// Стабильная ссылка для allNodes у mini/nano нод (см. рендер ниже) — тем,
+// у кого нет дропдаунов со списком других нод, не нужен реальный список.
+// Если передавать им {nodes} напрямую, React.memo на CanvasNode срывался бы
+// при любой правке ЛЮБОЙ ноды урока (новый массив — новая ссылка), даже
+// когда рядом просто печатают текст в другой ноде — именно это и вызывало
+// подтормаживание на нагруженных графах.
+const EMPTY_NODES = []
+
 const NODE_HIT_W = { nano: 42, mini: 182, max: 220 }
 const NODE_HIT_H = { nano: 36, mini: 55,  max: 500 }
 function nodeAtPos(nodeList, wx, wy, excludeId) {
@@ -67,6 +75,25 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const portDragRef  = useRef(null)
   const boardRef     = useRef(null)
   const mountedRef   = useRef(false)
+  // Кэш getBoundingClientRect() холста — сам вызов синхронно форсирует layout
+  // браузера; на колесе мыши/протяжке порта он летел на КАЖДОЕ событие
+  // (зум трекпадом — десятки-сотни событий подряд), что и давало рваное,
+  // дёрганое движение. Меряем один раз и обновляем только когда РЕАЛЬНО
+  // может измениться геометрия — на resize и когда меняется высота/позиция
+  // самого холста (ResizeObserver — например когда над ним появляется/
+  // исчезает строка синхронизации в CanvasPage.jsx)
+  const boardRectRef = useRef({ left: 0, top: 0 })
+
+  useEffect(() => {
+    const el = boardRef.current
+    if (!el) return
+    function measure() { boardRectRef.current = el.getBoundingClientRect() }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, [])
 
   // Выделение нескольких нод (рамкой по левой кнопке или Shift+клик) —
   // протяжка за любую из выделенных двигает всю группу разом (moveNode)
@@ -131,25 +158,30 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     deleteNodeOp(nodeId)
   }
 
-  function handleNodeMouseDown(nodeId, e) {
+  // useCallback — проп до CanvasNode.jsx (React.memo)
+  const handleNodeMouseDown = useCallback((nodeId, e) => {
     onSelectionMouseDown(nodeId, e, { startNodeDrag, startCanvasDrag })
-  }
+  }, [onSelectionMouseDown, startNodeDrag, startCanvasDrag])
 
-  function toWorld(clientX, clientY) {
-    const rect = boardRef.current.getBoundingClientRect()
+  // useCallback — startPortDrag от неё зависит, а он проп CanvasConnections
+  // (React.memo): без этого наведение на любую ноду (hoveredNodeId) заново
+  // пересчитывало бы ВСЕ бэзье-линии графа, а не только то, что реально
+  // изменилось
+  const toWorld = useCallback((clientX, clientY) => {
+    const rect = boardRectRef.current
     return {
       x: (clientX - rect.left - offset.x) / scale,
       y: (clientY - rect.top  - offset.y) / scale,
     }
-  }
+  }, [offset, scale])
 
-  function startPortDrag(fromNodeId, triggerIdx, e) {
+  const startPortDrag = useCallback((fromNodeId, triggerIdx, e) => {
     e.stopPropagation()
     e.preventDefault() // не даём браузеру начать выделение текста при протяжке
     const pd = { fromNodeId, triggerIdx, ...toWorld(e.clientX, e.clientY) }
     portDragRef.current = pd
     setPortDrag(pd)
-  }
+  }, [toWorld])
 
   function handleMouseMove(e) {
     if (portDragRef.current) {
@@ -160,7 +192,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       return
     }
     const hitSize = n => ({ w: NODE_HIT_W[n.size] ?? 158, h: NODE_HIT_H[n.size] ?? 200 })
-    if (updateMarquee(e, boardRef, toWorld, nodes, hitSize)) return
+    if (updateMarquee(e, () => boardRectRef.current, toWorld, nodes, hitSize)) return
     onMouseMove(e)
   }
 
@@ -200,7 +232,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       const factor = e.deltaY > 0 ? 0.9 : 1.1
       const cur = scaleRef.current
       const next = Math.min(2.5, Math.max(0.25, cur * factor))
-      const rect = el.getBoundingClientRect()
+      const rect = boardRectRef.current
       scaleRef.current = next
       setScale(next)
       setOffset(o => ({
@@ -288,7 +320,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
           return
         }
         if (e.button !== 0) return
-        startMarquee(e, boardRef)
+        startMarquee(e, () => boardRectRef.current)
       }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -313,14 +345,14 @@ const CanvasBoard = forwardRef(function CanvasBoard({
           >
             <CanvasNode
               node={node}
-              onUpdate={patch => updateNode(node.id, patch)}
-              onDragStart={e => handleNodeMouseDown(node.id, e)}
+              onUpdate={updateNode}
+              onDragStart={handleNodeMouseDown}
               selected={selectedIds.has(node.id)}
               wasDragged={wasDragged}
-              allNodes={nodes}
+              allNodes={node.size === 'max' ? nodes : EMPTY_NODES}
               lessonFiles={lessonFiles}
               onPickLessonFile={onPickLessonFile}
-              onTriggerMeasure={offsets => handleTriggerMeasure(node.id, offsets)}
+              onTriggerMeasure={handleTriggerMeasure}
               moduleLessons={moduleLessons}
             />
             {hoveredNodeId === node.id && (

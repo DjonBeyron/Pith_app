@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
 // Выделение нескольких нод в canvas: рамкой по левой кнопке над пустым
 // местом, или Shift+клик по одной ноде за раз. Протяжка любой ноды из
@@ -17,14 +17,18 @@ export function useCanvasSelection() {
   // ДОБАВЛЯЕТ пересечённые ноды к нему, а не заменяет выделение целиком
   const marqueeBaseRef = useRef(new Set())
 
-  function moveGroup(id) {
-    return selectedIds.has(id) && selectedIds.size > 1 ? selectedIds : new Set([id])
-  }
+  // useCallback — эти две функции идут пропсами вплоть до CanvasNode.jsx
+  // (через CanvasBoard.jsx), который мемоизирован (React.memo): нестабильная
+  // ссылка на проп-функцию срывает мемоизацию КАЖДЫЙ рендер, а не только
+  // когда реально меняется выделение (см. CanvasNode.jsx, CanvasBoard.jsx)
+  const moveGroup = useCallback(id =>
+    selectedIds.has(id) && selectedIds.size > 1 ? selectedIds : new Set([id]),
+  [selectedIds])
 
   // Средняя кнопка мыши — всегда панорамирование, даже если начали над
   // нодой. Левая: Shift+клик добавляет/убирает ноду из выделения; клик по
   // уже выделенной ноде откладывает схлопывание до mouseup (collapseIfClick)
-  function onNodeMouseDown(nodeId, e, { startNodeDrag, startCanvasDrag }) {
+  const onNodeMouseDown = useCallback((nodeId, e, { startNodeDrag, startCanvasDrag }) => {
     if (e.button === 1) {
       e.preventDefault()
       e.stopPropagation()
@@ -49,10 +53,13 @@ export function useCanvasSelection() {
       setSelectedIds(new Set([nodeId]))
     }
     startNodeDrag(nodeId, e)
-  }
+  }, [selectedIds])
 
-  function startMarquee(e, boardRef) {
-    const rect = boardRef.current.getBoundingClientRect()
+  // getRect() — кэшированный getBoundingClientRect холста (CanvasBoard.jsx,
+  // boardRectRef), не сам вызов: он форсирует синхронный layout, на потоке
+  // mousemove-событий протяжки рамки это и давало рваное движение
+  function startMarquee(e, getRect) {
+    const rect = getRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     marqueeBaseRef.current = e.shiftKey ? new Set(selectedIds) : new Set()
@@ -62,9 +69,9 @@ export function useCanvasSelection() {
 
   // toWorld(clientX, clientY) — из CanvasBoard (учитывает offset/scale).
   // hitSize(node) → {w,h} — хит-бокс ноды (NODE_HIT_W/H в CanvasBoard.jsx)
-  function updateMarquee(e, boardRef, toWorld, nodes, hitSize) {
+  function updateMarquee(e, getRect, toWorld, nodes, hitSize) {
     if (!marquee) return false
-    const rect = boardRef.current.getBoundingClientRect()
+    const rect = getRect()
     const x1 = e.clientX - rect.left
     const y1 = e.clientY - rect.top
     setMarquee(m => ({ ...m, x1, y1 }))

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { triggerAnchor, nodeEntry } from './canvasPorts.js'
 
 function seededRand(str) {
@@ -34,7 +35,14 @@ const DROP_R = 40
 
 // layer='back'  → lines only (behind nodes, z-index 0)
 // layer='front' → dots only (in front of nodes, z-index 2)
-export default function CanvasConnections({
+//
+// memo — эта функция сама по себе пересчитывает бэзье для КАЖДОЙ связи
+// (тригонометрия + строки) на КАЖДЫЙ рендер CanvasBoard.jsx — а он
+// перерисовывается на любое hover/selection состояние, не только на
+// движение нод. Без memo (и без стабильных nodes/onPortDragStart —
+// см. CanvasBoard.jsx) наведение мышью на ноду пересчитывало бы линии
+// всего графа заново.
+function CanvasConnections({
   nodes, portDrag, onPortDragStart, triggerMeasures = {}, layer,
 }) {
   const byId = Object.fromEntries(nodes.map(n => [n.id, n]))
@@ -146,3 +154,5 @@ export default function CanvasConnections({
     </>
   )
 }
+
+export default memo(CanvasConnections)
