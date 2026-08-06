@@ -5,6 +5,7 @@ import InsertNodeButton from './InsertNodeButton.jsx'
 import { applyTypeChange, setLastNodeType } from '../canvas/nodeDefaults.js'
 import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
 import { getVariantList } from '../canvas/nodeVariants.js'
+import { dbg } from '../../shared/lib/debug.js'
 import {
   relinkPrimaryChain, buildRenderPlan, insertNodeAfter, insertNodeAfterBoth, insertNodeAtStart,
   getBranchTriggerIndex,
@@ -191,7 +192,15 @@ export default function ProductionList({
         let toIdx = dropTarget.id === 'END' ? ordered.length : ordered.findIndex(n => n.id === dropTarget.id)
         if (dropTarget.id !== 'END' && dropTarget.position === 'after') toIdx += 1
         ordered.splice(Math.max(0, toIdx), 0, moved)
-        onNodesChange(relinkPrimaryChain(ordered))
+        // Без try/catch ошибка внутри relinkPrimaryChain обрывала бы
+        // handleDrop до setDragId(null)/setDropTarget(null) — точка вставки
+        // застревала бы навсегда, и снаружи это выглядело бы как «ничего не
+        // происходит» при каждой следующей попытке перетащить любую ноду
+        try {
+          onNodesChange(relinkPrimaryChain(ordered))
+        } catch (e) {
+          dbg('[PRODUCTION ERROR] relinkPrimaryChain failed', e?.message)
+        }
       }
     }
     setDragId(null)
