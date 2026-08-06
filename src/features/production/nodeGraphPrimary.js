@@ -17,49 +17,119 @@ export function getPrimaryTriggerIndex(node) {
   return 0
 }
 
+// Ключ «ветки» ноды — по НАСТОЯЩЕЙ топологии графа (обход через
+// getFanColumns/getPrimaryTarget, ниже), а не по Y на холсте: Y ненадёжен —
+// старые ноды, созданные до появления branchTrackIndex в ProductionList.jsx
+// (или просто раздвинутые вручную в canvas), вполне могут стоять на одной
+// высоте, ничего не сообщая о том, к какой ветке относятся. Все ноды одного
+// линейного отрезка (до следующей развилки) получают одинаковый ключ; за
+// развилкой у каждой колонки — свой (ключ родителя + ключ колонки, poэтому
+// уникален даже если та же 'primary'/'branch' встречается в другой развилке
+// дальше по графу). guard по keys.has — не даёт зациклиться и не даёт узлу
+// слияния двух веток задваиваться (достаётся тому, кто пришёл первым).
+function computeChainKeys(allNodes) {
+  const incoming = new Set()
+  allNodes.forEach(n => (n.triggers ?? []).forEach(t => { if (t.then) incoming.add(t.then) }))
+  const roots = allNodes.filter(n => !incoming.has(n.id))
+  const keys = new Map()
+  function walk(node, key) {
+    if (keys.has(node.id)) return
+    keys.set(node.id, key)
+    const cols = getFanColumns(node, allNodes)
+    if (cols) {
+      cols.forEach(c => walk(c.node, `${key}>${c.key}`))
+    } else {
+      const next = getPrimaryTarget(node, allNodes)
+      if (next) walk(next, key)
+    }
+  }
+  roots.forEach((r, i) => walk(r, `r${i}`))
+  return keys
+}
+
 // Перестраивает основной путь цепочки под переданный порядок нод — ОТДЕЛЬНО
-// для каждой строки (Y — та же дорожка, что у веток при создании через
-// продакшен, см. ProductionList.jsx branchTrackIndex/NODE_SLOT_Y). Раньше
-// relinkPrimaryChain связывал ВСЕ ноды одной прямой линией и валил всех на
-// y=0 — реордер внутри одной ветки (например поменять местами два сообщения
-// в «Неверно») склеивал её с «Верно» в одну строку и портил весь граф.
-// Теперь связи и позиция каждой строки трогаются независимо от остальных.
+// для каждой ветки (см. computeChainKeys выше). Раньше relinkPrimaryChain
+// связывал ВСЕ ноды одной прямой линией — реордер внутри одной ветки
+// (например поменять местами два сообщения в «Неверно») склеивал её с
+// «Верно» в одну строку и портил весь граф. Теперь связи и x каждой ветки
+// трогаются независимо от остальных (y не трогаем вообще — у веток может не
+// быть согласованной высоты на старых данных, лучше оставить как есть, чем
+// угадывать).
 //
-// У последней ноды строки основной триггер получает не null, а exitTarget —
-// куда строка вела ДО реордера. Ищем его как триггер, который СЕЙЧАС (до
-// перелинковки) ведёт КУДА-ТО ЗА ПРЕДЕЛЫ этой же строки — это и есть
-// настоящий «выход» ветки, независимо от того, кто из нод окажется
-// последним после перетаскивания. Брать значение буквально «у той ноды, что
-// теперь последняя» — ошибка: если местами поменяли именно её с соседкой,
-// у неё в триггере всё ещё лежит СТАРАЯ внутренняя связь (на бывшую
-// соседку), и назначение этого значения «выходом» замкнуло бы строку в
-// цикл сама на себя.
+// У последней ноды ветки основной триггер получает не null, а exitTarget —
+// куда ветка вела ДО реордера. Ищем его как триггер, который СЕЙЧАС (до
+// перелинковки) ведёт КУДА-ТО ЗА ПРЕДЕЛЫ этой же ветки — это и есть
+// настоящий «выход», независимо от того, кто из нод окажется последним
+// после перетаскивания. Брать значение буквально «у той ноды, что теперь
+// последняя» — ошибка: если местами поменяли именно её с соседкой, у неё в
+// триггере всё ещё лежит СТАРАЯ внутренняя связь (на бывшую соседку), и
+// назначение этого значения «выходом» замкнуло бы ветку в цикл сама на себя.
 //
 // orderedNodes должен содержать РОВНО тот же набор нод, что и исходный
 // список (просто в новом порядке) — иначе часть нод потеряет seq при renumber.
+//
+// Реордер может поменять, КАКАЯ нода ветки теперь первая — а на первую ноду
+// обычно ведёт один внешний триггер (у ноды-развилки, откуда эта ветка
+// начинается). Второй проход ниже чинит такие входы: если в ветку ведёт
+// РОВНО один внешний триггер — переставляет его на новую первую ноду.
+// Если внешних входов несколько (узел слияния двух веток, insertNodeAfterBoth,
+// которого одна из веток «застолбила» не первым своим членом при обходе
+// computeChainKeys) — не трогаем: разрулить неоднозначность правильно не
+// получится, безопаснее оставить как было, чем гадать.
 export function relinkPrimaryChain(orderedNodes) {
-  const rows = new Map()
+  const chainKeys = computeChainKeys(orderedNodes)
+  const chains = new Map()
   orderedNodes.forEach(node => {
-    const y = node.y ?? 0
-    if (!rows.has(y)) rows.set(y, [])
-    rows.get(y).push(node)
+    const key = chainKeys.get(node.id) ?? node.id
+    if (!chains.has(key)) chains.set(key, [])
+    chains.get(key).push(node)
   })
+
   const patched = new Map()
-  for (const rowNodes of rows.values()) {
-    const rowIds = new Set(rowNodes.map(n => n.id))
+  const headByKey = new Map()
+  for (const [key, chainNodes] of chains) {
+    const chainIds = new Set(chainNodes.map(n => n.id))
+    headByKey.set(key, chainNodes[0].id)
     let exitTarget = null
-    for (const n of rowNodes) {
+    for (const n of chainNodes) {
       const then = n.triggers?.[getPrimaryTriggerIndex(n)]?.then ?? null
-      if (then && !rowIds.has(then)) { exitTarget = then; break }
+      if (then && !chainIds.has(then)) { exitTarget = then; break }
     }
-    const baseX = Math.min(...rowNodes.map(n => n.x ?? 0))
-    rowNodes.forEach((node, i) => {
-      const nextId = i < rowNodes.length - 1 ? rowNodes[i + 1].id : exitTarget
+    const baseX = Math.min(...chainNodes.map(n => n.x ?? 0))
+    chainNodes.forEach((node, i) => {
+      const nextId = i < chainNodes.length - 1 ? chainNodes[i + 1].id : exitTarget
       const idx = getPrimaryTriggerIndex(node)
       const triggers = (node.triggers ?? []).map((t, ti) => (ti === idx ? { ...t, then: nextId } : t))
       patched.set(node.id, { ...node, triggers, x: baseX + i * NODE_SLOT })
     })
   }
+
+  // Внешние входы в каждую ветку — откуда угодно, любым триггером (не
+  // обязательно primary: ветка-развилка ведёт в свою цепочку тоже не
+  // primary-триггером родителя)
+  const externalEntries = new Map() // key ветки → [{ nodeId, triggerIdx, target }]
+  for (const node of orderedNodes) {
+    const ownKey = chainKeys.get(node.id)
+    ;(node.triggers ?? []).forEach((t, ti) => {
+      if (!t.then) return
+      const targetKey = chainKeys.get(t.then)
+      if (!targetKey || targetKey === ownKey) return
+      if (!externalEntries.has(targetKey)) externalEntries.set(targetKey, [])
+      externalEntries.get(targetKey).push({ nodeId: node.id, triggerIdx: ti })
+    })
+  }
+  for (const [key, entries] of externalEntries) {
+    if (entries.length !== 1) continue
+    const head = headByKey.get(key)
+    const { nodeId, triggerIdx } = entries[0]
+    const owner = patched.get(nodeId)
+    if (owner.triggers[triggerIdx]?.then === head) continue
+    patched.set(nodeId, {
+      ...owner,
+      triggers: owner.triggers.map((t, ti) => (ti === triggerIdx ? { ...t, then: head } : t)),
+    })
+  }
+
   return renumber(orderedNodes.map(n => patched.get(n.id)))
 }
 
