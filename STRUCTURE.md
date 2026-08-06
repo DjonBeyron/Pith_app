@@ -293,6 +293,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 |------|-------------|
 | `MODULES.md` | Архитектурные правила плеера: изоляция скролла, структура модулей, правила панелей |
 | `LessonPlayer.jsx` | Оркестратор плеера: useGraphPlayer, панели, расчёт XP на ноду, earnedXp |
+| `usePlayerAnswers.js` | Локальное состояние ответов игрока по типам нод (photoChoiceStates/wordChoiceStates/phraseStates/regStates, pendingPhotoXp) — вынесено из LessonPlayer.jsx, чтобы не упираться в потолок 400 строк |
 | `XpFloat.jsx` | Анимация всплывающего «+N XP»: rAF-driven, волна по X, bell-кривая opacity/scale |
 | `HeartReaction.jsx` | Реакция ❤️ на пузырь верного ответа: постоянное сердечко + 7 частиц разлетаются через Web Animations API |
 | `LessonSummary.jsx` | Экран итогов урока: анимированный XP-прогресс-бар, canvas-конфетти при повышении уровня, блок «золотой билет получен/не получен» для Финала, кнопка закрыть |

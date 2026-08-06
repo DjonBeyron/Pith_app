@@ -146,9 +146,14 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
 
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
-  slideDownRef.current = slideDown
-  checkRef.current     = check
-  closeRef.current     = closeModule
+  // useLayoutEffect (не присваивание прямо в теле рендера) — «всегда
+  // свежий» коллбэк для таймеров/RAF без чтения ref во время рендера;
+  // без зависимостей — синхронно после КАЖДОГО рендера, как и раньше
+  useLayoutEffect(() => {
+    slideDownRef.current = slideDown
+    checkRef.current     = check
+    closeRef.current     = closeModule
+  })
 
   // Полный лог состояний для отладки (захватывается кнопкой «Скачать лог»)
   useEffect(() => { pLog(`[td-state] playing=${playing} phase=${phase} chips=${chipsVisible} result=${result} asm=${assembled.length} ext=${extrasAssembled.length} activeExt=${activeExtraKeys.size} checkAt=${checkAt} hasExtraL=${hasExtraLayers}`) }, [playing, phase, chipsVisible, result, assembled, extrasAssembled, activeExtraKeys]) // eslint-disable-line
@@ -167,7 +172,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
   useEffect(() => {
     const id = setTimeout(() => { if (!autoPlayFired.current) slideDownRef.current?.() }, 3000)
     return () => clearTimeout(id)
-  }, []) // eslint-disable-line
+  }, [])
 
   // Авто-сборка + авто-проверка для режима «совсем без таймлайна у слов» (легаси).
   // Если у слов ЕСТЬ свои word-слои (hasExtraLayers) — RAF уже собирает их поштучно

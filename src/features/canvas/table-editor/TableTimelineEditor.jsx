@@ -50,6 +50,8 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     const url = URL.createObjectURL(f.localFile)
     if (ownedRef.current) URL.revokeObjectURL(ownedRef.current)
     ownedRef.current = url
+    // Один раз на маунт синхронизируем локальный blob-URL с внешним File
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalBlobUrl(url)
   }, []) // eslint-disable-line
 

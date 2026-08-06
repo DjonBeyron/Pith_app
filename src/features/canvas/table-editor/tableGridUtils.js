@@ -25,16 +25,6 @@ function removeLastAndRenormalize(list, sizeKey) {
   return rest.map(x => ({ ...x, [sizeKey]: x[sizeKey] * factor }))
 }
 
-function setProportion(list, idx, newPct, sizeKey) {
-  if (list.length < 2) return list
-  const clamped = Math.max(5, Math.min(90, newPct))
-  if (list[idx][sizeKey] === clamped) return list
-  const others = list.filter((_, i) => i !== idx)
-  const othersSum = others.reduce((s, x) => s + x[sizeKey], 0) || 1
-  const factor = (100 - clamped) / othersSum
-  return list.map((x, i) => (i === idx ? { ...x, [sizeKey]: clamped } : { ...x, [sizeKey]: x[sizeKey] * factor }))
-}
-
 // Таблицы, сохранённые до появления настраиваемой высоты строк, не имеют
 // table.rows — достраиваем его дефолтом при загрузке, чтобы билдер не падал.
 export function normalizeTable(table) {

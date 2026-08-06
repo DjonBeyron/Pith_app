@@ -29,6 +29,7 @@ import { refreshProfile } from '../../shared/api/profileCache.js'
 import { saveAnswerEvents } from '../../shared/lib/skillStatsStore.js'
 import { sendSelfTrigger } from '../../shared/api/pushApi.js'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
+import { usePlayerAnswers } from './usePlayerAnswers.js'
 
 // Returns a Map<nodeId, xpAmount> for nodes with reward enabled.
 // If lessonXp=0 or no reward nodes, returns empty map.
@@ -208,13 +209,13 @@ export default function LessonPlayer({
   )
 
   // ── Panels ───────────────────────────────────────────────────────────────
-  const [photoChoiceStates, setPhotoChoiceStates] = useState({})
-  const [wordChoiceStates, setWordChoiceStates]   = useState({})
-  const [phraseStates, setPhraseStates]           = useState({})
-  const [regStates, setRegStates]                 = useState({})
-
-  // XP pending for photo_choice: fires when the correct photo bubble mounts in chat
-  const [pendingPhotoXp, setPendingPhotoXp] = useState({})
+  const {
+    photoChoiceStates, setPhotoChoiceStates,
+    wordChoiceStates, handleWordAnswer,
+    phraseStates, handlePhraseAnswer,
+    regStates, handleRegAnswer,
+    pendingPhotoXp, setPendingPhotoXp,
+  } = usePlayerAnswers()
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     const result = isCorrect ? 'photo_correct' : 'photo_wrong'
@@ -242,22 +243,6 @@ export default function LessonPlayer({
     if (!xp) return
     setPendingPhotoXp(prev => { const n = { ...prev }; delete n[nodeId]; return n })
     handleXpEarned(xp, rect)
-  }
-
-  function handleWordAnswer(nodeId, text, result) {
-    setWordChoiceStates(prev => ({ ...prev, [nodeId]: { text, result } }))
-  }
-
-  function handlePhraseAnswer(nodeId, text, result) {
-    setPhraseStates(prev => {
-      const arr = prev[nodeId] ?? []
-      if (result === 'wrong' && arr.some(b => b.result === 'wrong')) return prev
-      return { ...prev, [nodeId]: [...arr, { text, result }] }
-    })
-  }
-
-  function handleRegAnswer(nodeId, text, result) {
-    setRegStates(prev => ({ ...prev, [nodeId]: [...(prev[nodeId] ?? []), { text, result }] }))
   }
 
   const [pinVisible, setPinVisible]           = useState(true)

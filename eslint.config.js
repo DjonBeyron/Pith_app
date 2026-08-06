@@ -46,4 +46,12 @@ export default defineConfig([
       'react-refresh/only-export-components': 'off',
     },
   },
+  {
+    // Конфиг-файлы в корне (playwright.config.js читает process.env для
+    // .env.test) — тоже node, не браузер
+    files: ['playwright.config.js', 'vite.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])
