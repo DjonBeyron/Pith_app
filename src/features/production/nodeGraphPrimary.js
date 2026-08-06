@@ -17,25 +17,50 @@ export function getPrimaryTriggerIndex(node) {
   return 0
 }
 
-// Перестраивает основной путь цепочки под переданный порядок нод: у каждой
-// ноды её основной триггер начинает указывать на следующую в этом порядке
-// (последняя — на null). Ветки (второй триггер пары) не трогает. orderedNodes
-// должен содержать РОВНО тот же набор нод, что и исходный список (просто в
-// новом порядке) — иначе часть нод потеряет seq при renumber.
+// Перестраивает основной путь цепочки под переданный порядок нод — ОТДЕЛЬНО
+// для каждой строки (Y — та же дорожка, что у веток при создании через
+// продакшен, см. ProductionList.jsx branchTrackIndex/NODE_SLOT_Y). Раньше
+// relinkPrimaryChain связывал ВСЕ ноды одной прямой линией и валил всех на
+// y=0 — реордер внутри одной ветки (например поменять местами два сообщения
+// в «Неверно») склеивал её с «Верно» в одну строку и портил весь граф.
+// Теперь связи и позиция каждой строки трогаются независимо от остальных.
 //
-// Заодно переставляет x/y нод в одну строку по этому же порядку (y=0,
-// x=i*NODE_SLOT) — если менять только связи, не трогая позиции, в canvas
-// линии-стрелки начинают крест-накрест бегать между старыми местами нод, и
-// новый порядок визуально не читается. Меняем порядок из Продакшена — значит
-// приоритет у линейного чтения графа, а не у ручной 2D-раскладки в canvas.
+// У последней ноды строки основной триггер получает не null, а exitTarget —
+// куда строка вела ДО реордера. Ищем его как триггер, который СЕЙЧАС (до
+// перелинковки) ведёт КУДА-ТО ЗА ПРЕДЕЛЫ этой же строки — это и есть
+// настоящий «выход» ветки, независимо от того, кто из нод окажется
+// последним после перетаскивания. Брать значение буквально «у той ноды, что
+// теперь последняя» — ошибка: если местами поменяли именно её с соседкой,
+// у неё в триггере всё ещё лежит СТАРАЯ внутренняя связь (на бывшую
+// соседку), и назначение этого значения «выходом» замкнуло бы строку в
+// цикл сама на себя.
+//
+// orderedNodes должен содержать РОВНО тот же набор нод, что и исходный
+// список (просто в новом порядке) — иначе часть нод потеряет seq при renumber.
 export function relinkPrimaryChain(orderedNodes) {
-  const relinked = orderedNodes.map((node, i) => {
-    const nextId = i < orderedNodes.length - 1 ? orderedNodes[i + 1].id : null
-    const idx = getPrimaryTriggerIndex(node)
-    const triggers = (node.triggers ?? []).map((t, ti) => (ti === idx ? { ...t, then: nextId } : t))
-    return { ...node, triggers, x: i * NODE_SLOT, y: 0 }
+  const rows = new Map()
+  orderedNodes.forEach(node => {
+    const y = node.y ?? 0
+    if (!rows.has(y)) rows.set(y, [])
+    rows.get(y).push(node)
   })
-  return renumber(relinked)
+  const patched = new Map()
+  for (const rowNodes of rows.values()) {
+    const rowIds = new Set(rowNodes.map(n => n.id))
+    let exitTarget = null
+    for (const n of rowNodes) {
+      const then = n.triggers?.[getPrimaryTriggerIndex(n)]?.then ?? null
+      if (then && !rowIds.has(then)) { exitTarget = then; break }
+    }
+    const baseX = Math.min(...rowNodes.map(n => n.x ?? 0))
+    rowNodes.forEach((node, i) => {
+      const nextId = i < rowNodes.length - 1 ? rowNodes[i + 1].id : exitTarget
+      const idx = getPrimaryTriggerIndex(node)
+      const triggers = (node.triggers ?? []).map((t, ti) => (ti === idx ? { ...t, then: nextId } : t))
+      patched.set(node.id, { ...node, triggers, x: baseX + i * NODE_SLOT })
+    })
+  }
+  return renumber(orderedNodes.map(n => patched.get(n.id)))
 }
 
 const BRANCH_LABEL = {
