@@ -36,7 +36,11 @@
   text-overflow: ellipsis;
 }
 
-@media (min-width: 520px) {
+/* Центрирование названия — только когда шапка реально широкая: абсолютное
+   поле шириной 280px лежит поверх потока и своей прозрачной частью
+   перехватывало клики по кнопкам (▶ не нажимался на десктопе). Ниже 1280px
+   название остаётся в потоке слева и никому не мешает. */
+@media (min-width: 1280px) {
   .canvasPageTitle {
     position: absolute;
     left: 50%;
@@ -44,7 +48,16 @@
     width: 280px;
     flex: unset;
     min-width: unset;
+    z-index: 0;
   }
+}
+
+/* Страховка на любой ширине: кнопки лежат выше названия по слоям, поэтому
+   даже при наложении клик достаётся кнопке, а не полю ввода */
+.canvasSettingsBtnWrap,
+.canvasPageActions {
+  position: relative;
+  z-index: 1;
 }
 
 .canvasPageTitle:hover { border-color: #2a2c33; }
@@ -79,10 +92,6 @@
     font-size: 14px;
   }
   .canvasPageSave:disabled::before { content: '…'; }
-}
-
-.canvasSettingsBtnWrap {
-  position: relative;
 }
 
 .canvasSettingsBtn {

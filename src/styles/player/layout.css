@@ -7,6 +7,38 @@
   --player-muted:   #888;
 }
 
+/* На мобильном обёрток как будто нет — плеер занимает весь экран, как раньше */
+.playerStage,
+.playerPhone {
+  display: contents;
+}
+
+/* Десктоп: плеер живёт в «телефоне» по центру экрана (как Shorts/Reels).
+   transform на .playerPhone делает её containing block для position:fixed
+   внутри — панели ответов, полноэкранные фото/видео и итоги урока сами
+   вписываются в рамку, без правок в каждом из этих стилей. */
+@media (min-width: 900px) {
+  .playerStage {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.86);
+  }
+
+  .playerPhone {
+    display: block;
+    position: relative;
+    width: 420px;
+    height: min(92vh, 920px);
+    overflow: hidden;
+    transform: translateZ(0);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
+  }
+}
+
 /* Full-screen overlay container */
 .lessonPlayer {
   position: fixed;

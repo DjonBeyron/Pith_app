@@ -43,10 +43,13 @@ export default function PlayerFeed({ children }) {
         const hasBubble   = !!(el.querySelector('.playerMsgBubble, .stickerWrap'))
         // .pcAnswerPhoto — photo-choice response: correct/wrong sound instead of message-in
         const photoAnswer = el.querySelector('.pcAnswerPhoto')
+        // .playerMsgBubble--pick — выбранное слово, улетевшее в чат: звук уже
+        // сыграл тап по варианту, message-in поверх него звучит грязно
+        const pickBubble  = el.querySelector('.playerMsgBubble--pick')
 
         // Bubble sound fires 60ms before animation end (at 130ms of 190ms duration).
         // Photo-choice answer sound fires at END — needs to wait for the photo to be visible.
-        if (hasBubble && !photoAnswer) {
+        if (hasBubble && !photoAnswer && !pickBubble) {
           setTimeout(() => {
             pLog('[feed] sound message-in fired (-60ms)')
             playSound('message-in')

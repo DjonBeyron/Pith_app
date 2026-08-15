@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { VolumeX } from 'lucide-react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 
 export default function VideoModule({ node, file, onDone, videoAutoSound }) {
   const [objectUrl, setObjectUrl] = useState(null)
@@ -11,6 +12,7 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
   const [frame0, setFrame0]       = useState(null)  // first frame captured at load, used as FS transition overlay
   const [fsVisible, setFsVisible] = useState(false)
   const [fsSrc, setFsSrc]         = useState(null)
+  const [stageDims, setStageDims] = useState(null)  // размеры рамки плеера для FS
   const [fsReady, setFsReady]     = useState(false)
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
@@ -22,6 +24,14 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
   const tapCooldown       = useRef(false)
   const firstPlayDoneRef  = useRef(false)  // videoAutoSound: true after first unmuted play ends
   const [mutedLoop, setMutedLoop] = useState(false)
+
+  // Отрицательный офсет триггера played — следующая нода стартует до конца
+  // видео; смотрим оба элемента, ролик может играть и в полном экране
+  usePlayedOffset(
+    playedOffsetMs(node),
+    () => [videoRef.current, fsVideoRef.current],
+    () => fireDone(),
+  )
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -157,8 +167,8 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
         width: '100%', height: '100%', objectFit: 'cover',
       }
     }
-    const sw = window.innerWidth
-    const sh = window.innerHeight
+    const sw = stageDims?.w ?? window.innerWidth
+    const sh = stageDims?.h ?? window.innerHeight
     const ma = intrinsic.w / intrinsic.h
     const faFs = sw / sh
     const dFs = ma > faFs ? { w: sh * ma, h: sh } : { w: sw, h: sw / ma }
@@ -206,6 +216,10 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
     setFsSrc(src)
     fsOpenRef.current = true
     setFsVisible(true)
+    // Полный экран = рамка плеера. На телефоне она равна окну (цифры прежние),
+    // на десктопе плеер шириной 420px, и по окну видео уезжало за края
+    const box = frameRef.current?.closest('.lessonPlayer')?.getBoundingClientRect()
+    setStageDims(box ? { w: box.width, h: box.height } : null)
   }
 
   // Когда fsSrc появился → воспроизвести с начала

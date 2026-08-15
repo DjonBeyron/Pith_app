@@ -13,7 +13,14 @@ export function usePlayerAnswers() {
   const [pendingPhotoXp, setPendingPhotoXp] = useState({})
 
   function handleWordAnswer(nodeId, text, result) {
-    setWordChoiceStates(prev => ({ ...prev, [nodeId]: { text, result } }))
+    setWordChoiceStates(prev => ({ ...prev, [nodeId]: { ...prev[nodeId], text, result } }))
+  }
+
+  // Выбранный вариант как реплика ученика — прилетает в чат сразу по тапу,
+  // раньше текста реакции (тот приходит через handleWordAnswer с задержкой).
+  // Только если у ноды включена галочка «Отправлять выбранное в чат».
+  function handleWordPick(nodeId, pickText) {
+    setWordChoiceStates(prev => ({ ...prev, [nodeId]: { ...prev[nodeId], pickText } }))
   }
 
   function handlePhraseAnswer(nodeId, text, result) {
@@ -30,7 +37,7 @@ export function usePlayerAnswers() {
 
   return {
     photoChoiceStates, setPhotoChoiceStates,
-    wordChoiceStates, handleWordAnswer,
+    wordChoiceStates, handleWordAnswer, handleWordPick,
     phraseStates, handlePhraseAnswer,
     regStates, handleRegAnswer,
     pendingPhotoXp, setPendingPhotoXp,

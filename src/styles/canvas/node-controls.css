@@ -1,0 +1,107 @@
+/* ── Общий вид контролов внутри нод канваса и продакшен-строк ──────────
+   Одно место на все ноды: нативные чекбоксы/списки/скроллбары браузер рисует
+   светлыми, на тёмной ноде они бьют по глазам. Частные стили отдельных
+   чекбоксов (награда, звук стикера, офсет триггера) специфичнее и остаются
+   как есть — здесь только база для всех остальных. */
+
+/* Тёмная схема: выпадающие списки select, каретка, автозаполнение */
+.canvasNode,
+.nodeContentEditor {
+  color-scheme: dark;
+}
+
+/* ── Чекбоксы ── */
+.canvasNode input[type="checkbox"],
+.nodeContentEditor input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  border-radius: 4px;
+  border: 1.5px solid #2a2d35;
+  background: #0e1013;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.canvasNode input[type="checkbox"]:hover,
+.nodeContentEditor input[type="checkbox"]:hover {
+  border-color: #3a3f4a;
+}
+
+.canvasNode input[type="checkbox"]:checked,
+.nodeContentEditor input[type="checkbox"]:checked {
+  background: #b6fe3b;
+  border-color: #b6fe3b;
+}
+
+.canvasNode input[type="checkbox"]:checked::after,
+.nodeContentEditor input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 4px;
+  height: 7px;
+  border: 2px solid #0e1013;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+/* ── Выпадающие списки ── */
+.canvasNode select,
+.nodeContentEditor select {
+  background-color: #0a0c10;
+  color: #b8bdc9;
+  border-color: #1e2030;
+}
+
+/* ── Скроллбары: тонкие и тёмные, без светлой полосы вдоль текста ── */
+.canvasNode,
+.canvasNode *,
+.nodeContentEditor,
+.nodeContentEditor * {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2d35 transparent;
+}
+
+.canvasNode::-webkit-scrollbar,
+.canvasNode *::-webkit-scrollbar,
+.nodeContentEditor::-webkit-scrollbar,
+.nodeContentEditor *::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.canvasNode::-webkit-scrollbar-track,
+.canvasNode *::-webkit-scrollbar-track,
+.nodeContentEditor::-webkit-scrollbar-track,
+.nodeContentEditor *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.canvasNode::-webkit-scrollbar-thumb,
+.canvasNode *::-webkit-scrollbar-thumb,
+.nodeContentEditor::-webkit-scrollbar-thumb,
+.nodeContentEditor *::-webkit-scrollbar-thumb {
+  background: #2a2d35;
+  border-radius: 3px;
+}
+
+.canvasNode::-webkit-scrollbar-thumb:hover,
+.canvasNode *::-webkit-scrollbar-thumb:hover,
+.nodeContentEditor::-webkit-scrollbar-thumb:hover,
+.nodeContentEditor *::-webkit-scrollbar-thumb:hover {
+  background: #3a3f4a;
+}
+
+.canvasNode::-webkit-scrollbar-corner,
+.canvasNode *::-webkit-scrollbar-corner,
+.nodeContentEditor::-webkit-scrollbar-corner,
+.nodeContentEditor *::-webkit-scrollbar-corner {
+  background: transparent;
+}

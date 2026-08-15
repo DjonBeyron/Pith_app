@@ -1,0 +1,23 @@
+/* ── Состояние «тянем ноду или холст» ─────────────────────────────────────
+   Класс вешается на body из useCanvasDrag.js на время протяжки. Задача —
+   чтобы браузер не занимался ничем лишним, пока мышь ездит: ни выделением
+   текста (оно подсвечивало текст во всех нодах и съедало кадры), ни
+   наведением на содержимое нод. */
+
+body.canvasDragging,
+body.canvasDragging * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Содержимое нод на время протяжки не участвует в наведении и попадании
+   мышью: браузеру не нужно проверять десятки полей, кнопок и списков на
+   каждое движение. Сама нода и холст события получают как обычно. */
+body.canvasDragging .canvasNodeMaxBody,
+body.canvasDragging .canvasNodeMiniBody {
+  pointer-events: none;
+}
+
+body.canvasDragging {
+  cursor: grabbing;
+}

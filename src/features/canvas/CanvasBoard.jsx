@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { canvasLsKey, canvasViewKey } from './canvasStorageKeys.js'
 import CanvasNode from './CanvasNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
 import { nodeEntry } from './canvasPorts.js'
+import { nodeOptionsSignature, pickNodeOptions } from './canvasNodeOptions.js'
+import { suppressTextSelection, releaseTextSelection } from './canvasDragGuard.js'
 import { useCanvasDrag } from './useCanvasDrag.js'
 import { useCanvasSelection } from './useCanvasSelection.js'
 import { useCanvasNodeOps } from './useCanvasNodeOps.js'
@@ -117,8 +119,20 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const pan = useCallback((dx, dy) =>
     setOffset(o => ({ x: o.x + dx, y: o.y + dy })), [])
 
-  const { startNodeDrag, startCanvasDrag, onMouseMove, endDrag, wasDragged } =
+  const { startNodeDrag, startCanvasDrag, onMouseMove, endDrag, wasDragged, nodeDragging } =
     useCanvasDrag({ onNodeMove: moveNode, onPan: pan, scaleRef })
+
+  // Список нод для дропдаунов внутри max-нод («Тогда → нода #N», «В ответ
+  // на»). Им нужны только id/seq/type/typeData, но не координаты — а раньше
+  // сюда шёл сам массив nodes, который при протяжке пересоздаётся каждый
+  // кадр. Из-за этого React.memo срывался у ВСЕХ max-нод разом, и на каждое
+  // движение мыши перерисовывались все поля, списки и триггеры графа.
+  // Ссылка меняется только когда реально поменялся состав или содержимое.
+  const optionsSig = nodeOptionsSignature(nodes)
+  const nodeOptions = useMemo(
+    () => pickNodeOptions(nodes),
+    [optionsSig], // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const handleTriggerMeasure = useCallback((nodeId, offsets) => {
     setTriggerMeasures(prev => {
@@ -132,6 +146,9 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Меню ноды — «липучка»: открывается по наведению и висит, пока не кликнут
   // вне ноды/меню (закрытие — в onMouseDown доски) или не наведут другую ноду.
   function enterNode(nodeId) {
+    // Во время протяжки нода проезжает под курсором мимо соседей — их меню
+    // не должны мигать, а лишний setState на каждом кадре ни к чему
+    if (nodeDragging) return
     // Вопрос «Удалить?» другой ноды сбрасывается при переходе на новую
     if (confirmDeleteId && confirmDeleteId !== nodeId) setConfirmDeleteId(null)
     setHoveredNodeId(nodeId)
@@ -177,7 +194,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
 
   const startPortDrag = useCallback((fromNodeId, triggerIdx, e) => {
     e.stopPropagation()
-    e.preventDefault() // не даём браузеру начать выделение текста при протяжке
+    suppressTextSelection(e) // протяжка порта тоже не должна тянуть выделение
     const pd = { fromNodeId, triggerIdx, ...toWorld(e.clientX, e.clientY) }
     portDragRef.current = pd
     setPortDrag(pd)
@@ -197,6 +214,10 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   }
 
   function handleMouseUp(e) {
+    // Снимаем запрет выделения ЗДЕСЬ, а не в endDrag: у рамки и у протяжки
+    // порта свои ранние выходы ниже, и класс на body остался бы висеть после
+    // них навсегда — текст в нодах перестал бы выделяться вообще
+    releaseTextSelection()
     if (endMarquee()) return
     if (portDragRef.current) {
       const { fromNodeId, triggerIdx } = portDragRef.current
@@ -349,7 +370,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
               onDragStart={handleNodeMouseDown}
               selected={selectedIds.has(node.id)}
               wasDragged={wasDragged}
-              allNodes={node.size === 'max' ? nodes : EMPTY_NODES}
+              allNodes={node.size === 'max' ? nodeOptions : EMPTY_NODES}
               lessonFiles={lessonFiles}
               onPickLessonFile={onPickLessonFile}
               onTriggerMeasure={handleTriggerMeasure}

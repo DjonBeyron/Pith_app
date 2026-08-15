@@ -185,6 +185,9 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/modules/photo.css` | Фото-сообщение |
 | `player/modules/video.css` | Видео-сообщение |
 | `canvas/word-choice.css` | Редактор ноды «Выбор слова»: список вариантов, кнопка ✓, поле ответа |
+| `canvas/sticker.css` | Редактор ноды «Стикер»: галочка «Со звуком» |
+| `canvas/drag.css` | Состояние протяжки (класс `canvasDragging` на body): глушит выделение текста и наведение на содержимое нод, пока тянут ноду или холст |
+| `canvas/node-controls.css` | База контролов внутри нод: тёмные чекбоксы и списки (`color-scheme: dark`), тонкие тёмные скроллбары. Импортируется раньше частных стилей нод |
 | `canvas/phrase-assembly.css` | Редактор ноды «Собрать фразу»: инпут фразы, превью чипов, лишние слова |
 | `canvas/table.css` | Кнопка «Создать/редактировать таблицу» в `NodeTablePicker.jsx` |
 | `canvas/table-editor-modal.css` | Оверлей и шапка `TableEditorModal.jsx`: fixed-фон, окно, кнопки Сохранить/Отмена |
@@ -238,7 +241,11 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `useCanvasNodeOps.js` | Мутации массива нод для hover-меню канваса: `deleteNode`/`duplicateNode`/`insertAfterNode` — вынесены из CanvasBoard.jsx (нужен только setNodes) |
 | `CanvasNode.jsx` | Одна нода в трёх размерах: nano (цветной квадрат), mini (бар + тип), max (тип + привязка файла + триггеры). `selected` — рамка-подсветка (useCanvasSelection.js). Обёрнута в `React.memo` (на нагруженном графе правка одной ноды раньше перерисовывала все) — `onUpdate`/`onDragStart`/`onTriggerMeasure` приходят пропом как стабильные `(id, ...) => void` из CanvasBoard.jsx, оборачиваются в `(...) => void` локально внутри компонента; `allNodes` — реальный список только для max (у mini/nano — стабильная пустая ссылка, см. EMPTY_NODES в CanvasBoard.jsx) |
 | `CanvasConnections.jsx` | SVG bezier-линии между нодами (neuronPath — детерминированный органический wobble из старого проекта); при перетаскивании порта показывает пульсирующие входные точки-кандидаты. Обёрнута в `React.memo` — без этого пересчитывала бы бэзье всех линий графа на любой hover/selection-рендер CanvasBoard.jsx, не только на реальное движение нод |
-| `canvasPorts.js` | Геометрия портов нод: `triggerAnchor` (выходная точка триггера), `nodeEntry` (входная точка ноды) — общие для CanvasConnections и CanvasBoard |
+| `canvasPorts.js` | Геометрия портов нод: `triggerAnchor` (выходная точка триггера), `nodeEntry` (входная точка ноды, всегда снаружи тела), `nodeBox` (прямоугольник ноды как препятствие для линий) — общие для CanvasConnections и CanvasBoard |
+| `canvasLinePath.js` | Путь связи между нодами: обычная кривая, проверка «ныряет ли она под тело ноды» и подбор прогиба в обход препятствия (+ `canvasLinePath.test.js` — форма, обход, плавность, бюджет времени) |
+| `canvasSelectionOps.js` | Чистые операции выделения нод: Shift-переключение, «кого тянем за ноду» (одна или группа), попадание в рамку (+ `canvasSelectionOps.test.js`) |
+| `canvasDragGuard.js` | Глушение нативного выделения текста на время протяжек канваса (нода, холст, рамка, Shift+клик, порт): preventDefault, снятие выделения, класс `canvasDragging` на body (+ `canvasDragGuard.test.js`) |
+| `canvasNodeOptions.js` | Срез нод для дропдаунов внутри max-нод (id/seq/type/typeData без координат) и его отпечаток: держит ссылку стабильной, чтобы протяжка не перерисовывала все ноды графа (+ `canvasNodeOptions.test.js`) |
 | `nodeDefaults.js` | Дефолты нод: триггер по типу (played для звука/видео, таймер 2с для статики), пары триггеров интерактивных типов, память последнего выбранного типа |
 | `useCanvasDrag.js` | Логика перетаскивания нод и пана холста; `wasDragged()` отличает клик от drag. На время любой протяжки глушит `user-select` на `<body>` — иначе быстрая протяжка, начатая в textarea, тянет нативное выделение текста по всей странице |
 | `NodeTriggerEditor.jsx` | Редактор триггеров ноды: строки «Если [событие] → Тогда [нода]»; для таймера — поле ввода секунд |
@@ -252,6 +259,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `NodeTypeSelect.jsx` | Кастомный дропдаун выбора типа ноды: иконки Lucide, цветной полупрозрачный фон каждой строки; позиция — computeMenuPos (menuPosition.js), открывается вверх, если снизу не хватает места |
 | `nodeTypes.js` | Справочник NODE_TYPES и TYPE_COLOR (вынесен из NodeTypeSelect: react-refresh требует в файле компонента только компоненты); `colorBg()` — смешивает цвет типа с тёмной базой ноды, общая для CanvasNode.jsx и ProductionRow.jsx. У каждого типа `group` ('content'/'interactive') + `isGroupStart(i)` — группировка выпадающего меню выбора типа (NodeTypeSelect.jsx, InsertNodeButton.jsx) отступом |
 | `NodeWordChoicePicker.jsx` | Редактор ноды «Выбор слова»: список вариантов с ✓-кнопкой, добавление/удаление, поле ответного пузыря; привязка ноды/варианта к уроку и сигнал (⚙) для анализа знаний |
+| `NodeWordChoiceResponses.jsx` | Блок «что уходит в чат» ноды «Выбор слова»: галочка «Отправлять выбранное в чат» (`sendPickToChat`) + поля текстов реакции на верно/неверно |
 | `NodeLessonLink.jsx` | Дропдаун «→ Урок»: привязка ответа интерактивной ноды к уроку-цели для анализа знаний (пишет `statLessonId`) |
 | `NodeRewardCheckbox.jsx` | Чекбокс «Получить награду» (⭐ XP) — общий для нод word_choice / phrase_assembly / photo_choice |
 | `NodeTablePicker.jsx` | Редактор ноды «Таблица»: кнопка конструктора → `TableEditorModal`, переключатель режима Авто/Ручной, поля ручного режима (answer, distractors, responseCorrect/Wrong) |
@@ -301,7 +309,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `useFinalHints.js` | Хук подсчёта подсказок Финала: 1 сообщение = 1 подсказка (повторное раскрытие того же — бесплатно), HINT_LIMIT = 3 |
 | `SummaryBadges.jsx` | Блоки наград в итогах урока: TicketBlock (золотой билет за Финал) и StarsBlock (звёзды обычного урока по ошибкам) |
 | `downloadDebugLog.js` | Сборка и скачивание общего дебаг-лога плеера (pLog, таймлайн нод, загрузки, события анализа) — вынесено из LessonPlayer ради лимита 400 строк |
-| `useGraphPlayer.js` | State machine плеера: находит точку входа графа, запускает триггеры (timer/played/photo_shown/timer_after_play), пауза «печатает» между нодами |
+| `useGraphPlayer.js` | State machine плеера: находит точку входа графа, запускает триггеры (timer/played/photo_shown/timer_after_play), пауза «печатает» между нодами; положительный офсет played = дополнительная пауза после конца медиа |
+| `usePlayedOffset.js` | Офсет триггера «Воспроизведено до конца»: `playedOffsetMs(node)` читает значение из триггера, хук `usePlayedOffset` зовёт onDone за N мс ДО конца медиа (отрицательный офсет) — используется аудио/видео/кружком |
 | `useRegistrationSkip.js` | Авто-пропуск ноды «Регистрация» для залогиненного: панель не рендерится, сразу срабатывает reg_submit; решение фиксируется по ноде один раз (гость в панели не увидит её исчезновения) |
 | `useAnswerStats.js` | Сбор событий ответов для анализа знаний: таймер от появления панели, попытки по урокам, лог в pLog; `wordOptionEvent` — событие из варианта выбора слова |
 | `usePlayerPreload.js` | Предзагрузка медиа урока: BFS-очередь, 2 параллельных скачивания, буфер с вытеснением, готовность нод для прогресс-бара |
@@ -323,7 +332,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/text/TextModule.jsx` | Текстовое сообщение |
 | `modules/photo/PhotoModule.jsx` | Фото-сообщение |
 | `modules/video/VideoModule.jsx` | Видео-сообщение с controls |
-| `modules/sticker/StickerModule.jsx` | Стикер: квадрат 160px, поддерживает фото/gif/видео, muted по флагу isVideo |
+| `modules/sticker/StickerModule.jsx` | Стикер: квадрат 160px, поддерживает фото/gif/видео, muted по флагу isVideo; при заданной подписи (`caption`) и/или ответе стикер и текст показываются одним пузырём; галочка `autoSound` — первый проход со звуком, дальше беззвучная петля, тап по стикеру включает/выключает звук |
 | `modules/system/SystemModule.jsx` | Системное сообщение без пузыря (заглушка) |
 | `modules/word-choice/WordChoiceModule.jsx` | Выбор слова — в ленте не рендерит ничего; панель снизу (`ChooseWordPanel`) |
 | `modules/registration/RegistrationModule.jsx` | Регистрация — в ленте не рендерит ничего; панель снизу (`RegistrationPanel`) |

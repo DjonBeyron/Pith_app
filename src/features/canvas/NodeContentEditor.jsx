@@ -127,6 +127,33 @@ export default function NodeContentEditor({
           onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
         />
       )}
+      {node.type === 'sticker' && (
+        <label
+          className="nodeStickerSound"
+          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={tData.autoSound === true}
+            onChange={e => updateTypeData({ autoSound: e.target.checked })}
+          />
+          <span className="nodeStickerSoundLabel">Со звуком: первый раз со звуком, дальше петля без него</span>
+        </label>
+      )}
+      {node.type === 'sticker' && (
+        <textarea
+          className="nodeTextInput"
+          value={tData.caption ?? ''}
+          onChange={e => updateTypeData({ caption: e.target.value })}
+          placeholder="Текст под стикером (в том же пузыре)..."
+          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+          rows={2}
+          ref={growTextareas ? autoGrowTextarea : undefined}
+          onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
+        />
+      )}
       {(node.type === 'text' || node.type === 'pin_message' || (node.type === 'audio' && !!tData.text)) && (
         <button
           className="nodeHLOpenBtn"
@@ -220,6 +247,8 @@ export default function NodeContentEditor({
             onOptionsChange={opts => updateTypeData({ options: opts })}
             onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
             onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+            sendPickToChat={tData.sendPickToChat === true}
+            onSendPickChange={v => updateTypeData({ sendPickToChat: v })}
             triggers={node.triggers ?? []}
             allNodes={allNodes}
             nodeId={node.id}

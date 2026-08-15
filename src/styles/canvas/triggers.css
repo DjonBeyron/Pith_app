@@ -55,6 +55,70 @@
   flex-shrink: 0;
 }
 
+/* ── Офсет триггера «Воспроизведено до конца» ── */
+.nodeTriggerOffsetChk {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.nodeTriggerOffsetChk input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  margin: 0;
+  border-radius: 3px;
+  border: 1px solid #2a3a20;
+  background: #0a0c10;
+  cursor: pointer;
+  position: relative;
+}
+
+.nodeTriggerOffsetChk input[type="checkbox"]:checked {
+  background: #b6fe3b;
+  border-color: #b6fe3b;
+}
+
+.nodeTriggerOffsetChk input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 3px;
+  height: 6px;
+  border: 1.5px solid #0e1013;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.nodeTriggerOffsetTgl {
+  background: transparent;
+  border: none;
+  color: #444;
+  font-size: 8px;
+  padding: 0 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.nodeTriggerOffsetTgl:hover { color: #b6fe3b; }
+
+.nodeTriggerOffsetRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 32px;
+}
+
+.nodeTriggerOffsetHint {
+  font-size: 8px;
+  color: #444;
+}
+
 .nodeTriggerDel {
   width: 16px;
   height: 16px;

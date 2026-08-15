@@ -38,8 +38,13 @@
 @import './styles/canvas/lesson-settings.css';
 @import './styles/canvas/audio.css';
 @import './styles/canvas/crop.css';
+/* База контролов нод — раньше частных стилей: при равной специфичности
+   выигрывает конкретный чекбокс (награда, звук стикера, офсет), а общий
+   остаётся для всех остальных */
+@import './styles/canvas/node-controls.css';
 @import './styles/canvas/nodes.css';
 @import './styles/canvas/triggers.css';
+@import './styles/canvas/drag.css';
 @import './styles/production/list.css';
 @import './styles/production/fan.css';
 @import './styles/player/layout.css';
@@ -58,6 +63,7 @@
 @import './styles/canvas/photo-choice.css';
 @import './styles/player/panels/photo-choice.css';
 @import './styles/canvas/word-choice.css';
+@import './styles/canvas/sticker.css';
 @import './styles/canvas/phrase-assembly.css';
 @import './styles/canvas/table.css';
 @import './styles/canvas/table-editor-modal.css';

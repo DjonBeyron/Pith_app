@@ -1,33 +1,6 @@
 import { memo } from 'react'
-import { triggerAnchor, nodeEntry } from './canvasPorts.js'
-
-function seededRand(str) {
-  let h = 0
-  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0
-  return Math.abs(Math.sin(h) * 43758.5453) % 1
-}
-
-// Adaptive bezier — two cases based on canvas-space node direction.
-// Output port is +228px right of its node; input port is -8px left of its node.
-// So two max-nodes side by side will have port dx ≈ -236 + node_gap.
-// "Forward" (target node to the right): x2 > x1 - 240  → compact S-curve, shortest path.
-// "Backward" (target node clearly left):                → rightward loop.
-function neuronPath(x1, y1, x2, y2, seed) {
-  const dx = x2 - x1, dy = y2 - y1
-  const jit = (s, m) => (seededRand(s) - 0.5) * m
-
-  if (x2 > x1 - 240) {
-    // Forward connection: S-curve scaled to actual port distance, minimum spread 40px.
-    // Keeps the line short — no unnecessary arcs when nodes are close.
-    const h = Math.max(Math.abs(dx) * 0.4, 40)
-    return `M ${x1} ${y1} C ${x1+h+jit(seed+'a',10)} ${y1+dy*.3+jit(seed+'b',8)}, ${x2-h+jit(seed+'c',10)} ${y2-dy*.3+jit(seed+'d',8)}, ${x2} ${y2}`
-  }
-
-  // Backward connection: loop rightward, size ∝ distance
-  const dist = Math.sqrt(dx*dx + dy*dy)
-  const bulge = Math.max(dist * 0.5, 100)
-  return `M ${x1} ${y1} C ${x1+bulge+jit(seed+'a',12)} ${y1+dy*.15+jit(seed+'b',8)}, ${x2+bulge+jit(seed+'c',12)} ${y2-dy*.15+jit(seed+'d',8)}, ${x2} ${y2}`
-}
+import { triggerAnchor, nodeEntry, nodeBox } from './canvasPorts.js'
+import { connectionPath } from './canvasLinePath.js'
 
 // Радиус зоны срабатывания входной точки при перетаскивании порта —
 // синхронизирован со SNAP_R в CanvasBoard.
@@ -46,6 +19,12 @@ function CanvasConnections({
   nodes, portDrag, onPortDragStart, triggerMeasures = {}, layer,
 }) {
   const byId = Object.fromEntries(nodes.map(n => [n.id, n]))
+  // Тела нод — препятствия: линия под ними невидима (слой back), поэтому
+  // маршрут обходит их, а не ныряет. Считается и во время протяжки тоже —
+  // иначе линия на время драга спрямлялась и «перещёлкивала» изгиб на месте.
+  // Бюджет держится за счёт быстрой отбраковки соседей в canvasLinePath.js.
+  const boxes = new Map(nodes.map(n => [n.id, nodeBox(n, triggerMeasures)]))
+  const allBoxes = [...boxes.values()]
 
   const lines = nodes.flatMap(node =>
     (node.triggers ?? []).map((t, i) => {
@@ -56,7 +35,9 @@ function CanvasConnections({
       const from = triggerAnchor(node, i, triggerMeasures)
       const to   = nodeEntry(toNode, triggerMeasures)
       const key  = `${node.id}:${i}`
-      return { key, d: neuronPath(from.x, from.y, to.x, to.y, key), to, toSize: toNode.size, fromNodeId: node.id, triggerIdx: i }
+      const d = connectionPath(from.x, from.y, to.x, to.y, key,
+        boxes.get(toNode.id), allBoxes, boxes.get(node.id))
+      return { key, d, to, toSize: toNode.size, fromNodeId: node.id, triggerIdx: i }
     }).filter(Boolean)
   )
 
@@ -65,7 +46,8 @@ function CanvasConnections({
     const fromNode = byId[portDrag.fromNodeId]
     if (!fromNode) return null
     const from = triggerAnchor(fromNode, portDrag.triggerIdx, triggerMeasures)
-    return neuronPath(from.x, from.y, portDrag.x, portDrag.y, 'ghost')
+    // Тянущаяся линия — без обхода: цель ещё не выбрана
+    return connectionPath(from.x, from.y, portDrag.x, portDrag.y, 'ghost', null)
   })()
 
   // ── back layer: only lines ─────────────────────────────────────────

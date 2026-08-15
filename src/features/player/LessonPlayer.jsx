@@ -211,7 +211,7 @@ export default function LessonPlayer({
   // ── Panels ───────────────────────────────────────────────────────────────
   const {
     photoChoiceStates, setPhotoChoiceStates,
-    wordChoiceStates, handleWordAnswer,
+    wordChoiceStates, handleWordAnswer, handleWordPick,
     phraseStates, handlePhraseAnswer,
     regStates, handleRegAnswer,
     pendingPhotoXp, setPendingPhotoXp,
@@ -285,7 +285,12 @@ export default function LessonPlayer({
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <>
+    /* На десктопе playerStage/playerPhone превращают плеер в «телефон» по
+       центру экрана (styles/player/layout.css). playerPhone с transform —
+       containing block для всех fixed внутри: панели, оверлеи, итоги урока
+       сами ложатся в рамку. На мобильном обе обёртки display:contents. */
+    <div className="playerStage">
+     <div className="playerPhone">
       <div className="lessonPlayer">
         <PlayerTopBar
           title={lessonTitle}
@@ -367,6 +372,11 @@ export default function LessonPlayer({
               const ev = wordOptionEvent(wcNode, opt)
               if (ev.type === 'wrong') wrongRef.current += 1
               record({ nodeId: wcNode.id, ...ev })
+              // Галочка в редакторе ноды: выбранный вариант уходит в чат
+              // отдельным пузырём справа — раньше текста реакции
+              if (wcNode.typeData?.word_choice?.sendPickToChat === true) {
+                handleWordPick(wcNode.id, opt.text)
+              }
             }}
             onXpEarned={handleXpEarned}
             onHeightChange={setWcPanelHeight}
@@ -451,6 +461,7 @@ export default function LessonPlayer({
         zIndex: 9999, userSelect: 'none', whiteSpace: 'nowrap',
       }}>{APP_VERSION}: {(() => { const d = new Date(__BUILD_TIME__); return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')}` })()}</div>
 
-    </>
+     </div>
+    </div>
   )
 }

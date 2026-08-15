@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { VolumeX } from 'lucide-react'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -37,6 +38,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
   const isAndroid = /android/i.test(navigator.userAgent)
+
+  // Отрицательный офсет триггера played — следующая нода стартует до конца кружка
+  usePlayedOffset(playedOffsetMs(node), () => vRef.current, () => onDone?.())
 
   const vRef          = useRef(null)
   const wrapRef       = useRef(null)
@@ -191,29 +195,38 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     const rect = wrapRef.current.getBoundingClientRect()
     const centerY = rect.top + s / 2
 
+    // Границы раскрытия — рамка плеера, а не окно: на телефоне .lessonPlayer
+    // и так во весь экран (цифры те же, что были), на десктопе плеер живёт в
+    // «телефоне» 420px, и по окну кружок раздувался на весь монитор
+    const stage = wrapRef.current.closest('.lessonPlayer')
+    const box = stage ? stage.getBoundingClientRect() : null
+    const boxLeft   = box?.left   ?? 0
+    const boxBottom = box?.bottom ?? window.innerHeight
+    const boxWidth  = box?.width  ?? window.innerWidth
+
     const row = wrapRef.current.closest('.playerMsgRow')
     // Each .playerMsgRow is wrapped in a key-div; go up to playerFeedInner
     const inner = row?.closest('.playerFeedInner')
     const rowWrapper = row?.parentElement
     const nextWrapper = rowWrapper?.nextElementSibling
     const nextRow = nextWrapper?.querySelector('.playerMsgRow') ?? null
-    let nextMsgTop = window.innerHeight
+    let nextMsgTop = boxBottom
     if (nextRow) {
       const visualTop = nextRow.getBoundingClientRect().top
-      if (visualTop <= window.innerHeight) {
+      if (visualTop <= boxBottom) {
         nextMsgTop = visualTop
       } else {
         const innerTop = inner ? inner.getBoundingClientRect().top : 0
         nextMsgTop = innerTop + (nextWrapper?.offsetTop ?? 0)
       }
     }
-    const bottomLimit = Math.min(window.innerHeight - bottomOffset, nextMsgTop) - EDGE_GAP
+    const bottomLimit = Math.min(boxBottom - bottomOffset, nextMsgTop) - EDGE_GAP
 
-    const expandW = window.innerWidth - EDGE_GAP * 2
+    const expandW = boxWidth - EDGE_GAP * 2
     const ratio = expandW / s
     const ty = Math.min(0, bottomLimit - (centerY + expandW / 2))
     const visualLeft = rect.left - s * (ratio - 1) / 2
-    const tx = EDGE_GAP - visualLeft
+    const tx = boxLeft + EDGE_GAP - visualLeft
     const halfGrow = (expandW - s) / 2 - ty
 
     expandWRef.current = expandW

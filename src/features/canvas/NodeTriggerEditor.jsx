@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { DEFAULT_PLAYED_OFFSET_MS } from '../player/usePlayedOffset.js'
 
 const IF_OPTIONS = [
   { value: 'played',           label: 'Воспроизведено до конца' },
@@ -13,6 +14,17 @@ function newTrigger() {
 
 export default function NodeTriggerEditor({ triggers, nodeId, nodes, onChange, onMeasure }) {
   const thenRefs = useRef([])
+  // Строки, где раскрыто поле офсета (по треугольнику) — только вид, не данные
+  const [openOffsets, setOpenOffsets] = useState(() => new Set())
+
+  function toggleOffset(i) {
+    setOpenOffsets(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
+  }
 
   // After every render, measure the y-center of each "Тогда" line relative to
   // .canvasNodeWrapper (which is the nearest positioned ancestor / offsetParent).
@@ -68,7 +80,42 @@ export default function NodeTriggerEditor({ triggers, nodeId, nodes, onChange, o
                 onChange={e => patch(i, { ms: Number(e.target.value) * 1000 })}
               />
             )}
+            {t.if === 'played' && (
+              <>
+                <label
+                  className="nodeTriggerOffsetChk"
+                  title="Офсет: сдвинуть запуск следующей ноды относительно конца медиа"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={t.offsetOn === true}
+                    onChange={e => patch(i, {
+                      offsetOn: e.target.checked,
+                      offsetMs: t.offsetMs ?? DEFAULT_PLAYED_OFFSET_MS,
+                    })}
+                  />
+                </label>
+                <button
+                  className="nodeTriggerOffsetTgl"
+                  title="Значение офсета"
+                  onClick={e => { e.stopPropagation(); toggleOffset(i) }}
+                >{openOffsets.has(i) ? '▾' : '▸'}</button>
+              </>
+            )}
           </div>
+          {t.if === 'played' && openOffsets.has(i) && (
+            <div className="nodeTriggerOffsetRow" onClick={e => e.stopPropagation()}>
+              <input
+                className="nodeTriggerMsInput"
+                type="number"
+                step="0.1"
+                value={(t.offsetMs ?? DEFAULT_PLAYED_OFFSET_MS) / 1000}
+                onChange={e => patch(i, { offsetMs: Math.round(Number(e.target.value) * 1000) })}
+              />
+              <span className="nodeTriggerOffsetHint">сек: − раньше конца, + пауза после</span>
+            </div>
+          )}
           <div
             className="nodeTriggerLine"
             ref={el => { thenRefs.current[i] = el }}

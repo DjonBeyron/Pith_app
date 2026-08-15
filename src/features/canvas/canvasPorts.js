@@ -6,9 +6,8 @@
 const TRIGGER_Y_BASE = { audio: 132, text: 102, photo: 352, video: 352, circle: 352 }
 const TRIGGER_ROW_STRIDE = 54
 const THEN_Y_FALLBACK = 28
-// Dot sits 8px outside node edge (max only); mini/nano lines go 5px inside the node body
-const PORT_OFFSET  = 8
-const INNER_OFFSET = 5
+// Порты — на 8px снаружи от края ноды (для всех размеров)
+const PORT_OFFSET = 8
 const NODE_W = { nano: 42, mini: 182, max: 220 }
 
 // y-center of trigger i's "Тогда" line for MAX nodes only.
@@ -20,23 +19,46 @@ function getThenY(node, i, triggerMeasures) {
   return node.y + base + i * TRIGGER_ROW_STRIDE + THEN_Y_FALLBACK
 }
 
-// Output: right side of node.
-//   max  → 8px outside right edge at exact "Тогда" y (dot visible)
-//   mini/nano → 5px inside right edge at node center (line hidden under node body)
+// Высоты свёрнутых нод (CSS) и запас под шапку/низ max-ноды
+const NODE_H = { nano: 42, mini: 52 }
+const MAX_TAIL = 46
+
+// Output: right side of node, 8px outside the edge.
+//   max  → at exact "Тогда" y (dot visible)
+//   mini/nano → at node center; конец линии виден снаружи, а не под телом
 export function triggerAnchor(node, i, triggerMeasures) {
   const w = NODE_W[node.size] ?? 192
   if (node.size !== 'max') {
-    return { x: node.x + w - INNER_OFFSET, y: node.y + 18 }
+    return { x: node.x + w + PORT_OFFSET, y: node.y + 18 }
   }
   return { x: node.x + w + PORT_OFFSET, y: getThenY(node, i, triggerMeasures) }
 }
 
-// Input: left side of node.
-//   max  → 8px outside left edge at exact "Тогда" y of first trigger (dot visible)
-//   mini/nano → 5px inside left edge at node center (line hidden under node body)
+// Input: left side of node, 8px outside the edge — точка входа всегда снаружи,
+// иначе конец связи прячется под телом ноды и не видно, куда она приходит
 export function nodeEntry(node, triggerMeasures) {
   if (node.size !== 'max') {
-    return { x: node.x + INNER_OFFSET, y: node.y + 18 }
+    return { x: node.x - PORT_OFFSET, y: node.y + 18 }
   }
   return { x: node.x - PORT_OFFSET, y: getThenY(node, 0, triggerMeasures) }
+}
+
+// Прямоугольник тела ноды в координатах холста — препятствие для линий.
+// Высота max-ноды переменная: берём последнюю измеренную строку «Тогда»
+// плюс хвост, до первого замера — расчёт по тем же CSS-константам.
+export function nodeBox(node, triggerMeasures = {}) {
+  const w = NODE_W[node.size] ?? 192
+  let h = NODE_H[node.size]
+  if (h == null) {
+    const m = triggerMeasures[node.id]
+    const last = m?.length ? m[m.length - 1] : null
+    if (last != null) {
+      h = last + MAX_TAIL
+    } else {
+      const n = node.triggers?.length ?? 1
+      const base = TRIGGER_Y_BASE[node.type] ?? TRIGGER_Y_BASE.audio
+      h = base + (n - 1) * TRIGGER_ROW_STRIDE + THEN_Y_FALLBACK + MAX_TAIL
+    }
+  }
+  return { left: node.x, top: node.y, right: node.x + w, bottom: node.y + h }
 }

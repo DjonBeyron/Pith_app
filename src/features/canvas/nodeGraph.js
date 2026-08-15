@@ -50,11 +50,11 @@ export function makeNode(seq, x, y) {
       video:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
       circle:      { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
       text:        { content: '', replyToSeq: null },
-      word_choice:     { options: [], responseCorrect: '', responseWrong: '' },
+      word_choice:     { options: [], responseCorrect: '', responseWrong: '', sendPickToChat: false },
       phrase_assembly: { words: [], distractors: [], responseCorrect: '', responseWrong: '', replyToSeq: null },
       pin_message:     { content: '' },
       system:          { content: '' },
-      sticker:         { file_id: null, crop: { x: 0, y: 0, scale: 1 }, muted: true, isVideo: false, replyToSeq: null },
+      sticker:         { file_id: null, crop: { x: 0, y: 0, scale: 1 }, muted: true, isVideo: false, replyToSeq: null, caption: '', autoSound: false },
       photo_choice:    { photos: [], correctIndexes: [], responseCorrect: '', responseWrong: '' },
     },
   }

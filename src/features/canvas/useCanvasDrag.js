@@ -1,4 +1,5 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useState, useCallback } from 'react'
+import { suppressTextSelection, releaseTextSelection } from './canvasDragGuard.js'
 
 // Handles two kinds of drag on the canvas:
 //   'node'   — user grabbed a node; fires onNodeMove(id, dx, dy) on each move
@@ -10,6 +11,10 @@ import { useRef, useCallback } from 'react'
 export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
   const dragRef  = useRef(null)
   const movedRef = useRef(false)
+  // Тянут ноду прямо сейчас. Меняется только на границах протяжки (не на
+  // каждое движение мыши), зато позволяет отключить на это время тяжёлые
+  // пересчёты — подбор обходных маршрутов линий в CanvasConnections
+  const [nodeDragging, setNodeDragging] = useState(false)
 
   // .canvasNode сам по себе user-select:none, но это не спасает от нативного
   // выделения текста, если протяжка началась внутри textarea (у него своё
@@ -22,13 +27,14 @@ export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
     e.stopPropagation()
     movedRef.current = false
     dragRef.current = { type: 'node', nodeId, startX: e.clientX, startY: e.clientY }
-    document.body.style.userSelect = 'none'
+    setNodeDragging(true)
+    suppressTextSelection(e)
   }, [])
 
   const startCanvasDrag = useCallback((e) => {
     movedRef.current = false
     dragRef.current = { type: 'canvas', startX: e.clientX, startY: e.clientY }
-    document.body.style.userSelect = 'none'
+    suppressTextSelection(e)
   }, [])
 
   const onMouseMove = useCallback((e) => {
@@ -49,12 +55,13 @@ export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
 
   const endDrag = useCallback(() => {
     dragRef.current = null
-    document.body.style.userSelect = ''
+    setNodeDragging(false)
+    releaseTextSelection()
   }, [])
 
   // useCallback — проп до CanvasNode.jsx (мемоизирован React.memo);
   // нестабильная ссылка срывала бы мемоизацию каждый рендер
   const wasDragged = useCallback(() => movedRef.current, [])
 
-  return { startNodeDrag, startCanvasDrag, onMouseMove, endDrag, wasDragged }
+  return { startNodeDrag, startCanvasDrag, onMouseMove, endDrag, wasDragged, nodeDragging }
 }

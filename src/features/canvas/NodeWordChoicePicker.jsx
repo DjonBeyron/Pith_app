@@ -1,5 +1,6 @@
 import { useRef, useState, useLayoutEffect, useEffect } from 'react'
 import NodeLessonLink from './NodeLessonLink.jsx'
+import NodeWordChoiceResponses from './NodeWordChoiceResponses.jsx'
 import { getVariantList, syncTriggers, triggersNeedSync } from './nodeVariants.js'
 
 const BASE_PAIR = ['word_correct', 'word_wrong']
@@ -7,6 +8,7 @@ const BASE_PAIR = ['word_correct', 'word_wrong']
 export default function NodeWordChoicePicker({
   options = [],
   responseCorrect = '', responseWrong = '',
+  sendPickToChat = false, onSendPickChange,
   onOptionsChange, onResponseCorrectChange, onResponseWrongChange,
   triggers = [], allNodes = [], nodeId,
   onTriggersChange, onTriggerMeasure,
@@ -188,29 +190,15 @@ export default function NodeWordChoicePicker({
         />
         <button className="nodeWcAddBtn" onClick={addOption}>+</button>
       </div>
-      {/* тексты ответов */}
-      <div className="nodeWcResponseWrap">
-        <div className="nodeWcResponseRow">
-          <span className="nodeWcResponseLabel nodeWcResponseLabelOk">✓</span>
-          <input
-            className="nodeWcResponseInput"
-            value={responseCorrect}
-            onChange={e => onResponseCorrectChange(e.target.value)}
-            placeholder="Текст верного ответа..."
-            onClick={e => e.stopPropagation()}
-          />
-        </div>
-        <div className="nodeWcResponseRow">
-          <span className="nodeWcResponseLabel nodeWcResponseLabelErr">✗</span>
-          <input
-            className="nodeWcResponseInput"
-            value={responseWrong}
-            onChange={e => onResponseWrongChange(e.target.value)}
-            placeholder="Текст неверного ответа..."
-            onClick={e => e.stopPropagation()}
-          />
-        </div>
-      </div>
+      {/* что уходит в чат после ответа */}
+      <NodeWordChoiceResponses
+        responseCorrect={responseCorrect}
+        responseWrong={responseWrong}
+        onResponseCorrectChange={onResponseCorrectChange}
+        onResponseWrongChange={onResponseWrongChange}
+        sendPickToChat={sendPickToChat}
+        onSendPickChange={onSendPickChange}
+      />
       {/* триггеры */}
       <div className="nodeWcTriggerWrap">
         <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('word_correct', el)}>

@@ -103,7 +103,12 @@ export function useGraphPlayer(nodes, { onFinish } = {}) {
       const key = `${nodeId}:${ev}`
       if (firedRef.current.has(key)) return
       firedRef.current.add(key)
-      scheduleReveal.current(t.then)
+      // Положительный офсет played = пауза после конца медиа. Отрицательный
+      // отрабатывает сам модуль (usePlayedOffset) — сюда приходит уже раньше
+      // времени, добавлять нечего.
+      const offset = ev === 'played' && t.offsetOn ? (t.offsetMs ?? 0) : 0
+      if (offset > 0) addTimer(() => scheduleReveal.current(t.then), offset)
+      else scheduleReveal.current(t.then)
       return
     }
 
