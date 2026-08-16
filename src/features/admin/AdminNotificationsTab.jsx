@@ -6,7 +6,7 @@ import AdminPushTemplates from './AdminPushTemplates.jsx'
 // Админ: вкладка «Пуши» — разовая ручная отправка + шаблоны с триггерами
 // (AdminPushTemplates).
 export default function AdminNotificationsTab() {
-  const [title, setTitle] = useState('Pithy')
+  const [title, setTitle] = useState('HETA')
   const [body, setBody] = useState('Тестовое уведомление 🎉')
   const [onlyMine, setOnlyMine] = useState(true)
   const [busy, setBusy] = useState(false)

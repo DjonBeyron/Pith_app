@@ -67,7 +67,7 @@ export function authLogText() {
   const body = lines.length
     ? lines.join('\n')
     : '(пусто — нажми «Войти», дождись ответа и собери лог заново)'
-  return `--- Pithy: лог входа ---\n${envBlock()}\n\n--- события ---\n${body}\n`
+  return `--- HETA: лог входа ---\n${envBlock()}\n\n--- события ---\n${body}\n`
 }
 
 export function downloadAuthLog() {

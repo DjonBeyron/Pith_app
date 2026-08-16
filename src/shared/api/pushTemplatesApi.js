@@ -29,7 +29,7 @@ export async function listTemplates() {
 export async function createTemplate() {
   const { data, error } = await supabase
     .from('push_templates')
-    .insert({ name: 'Новый шаблон', title: 'Pithy', body: '' })
+    .insert({ name: 'Новый шаблон', title: 'HETA', body: '' })
     .select().single()
   if (error) throw new Error(error.message)
   return data

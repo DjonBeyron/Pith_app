@@ -84,12 +84,15 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `public/sounds/*.mp3` | Звуки интерфейса (правильный/неправильный ответ, входящее сообщение, закрепление) — проигрываются через `sounds.js` |
-| `public/splash/startup-*.png` | Экраны запуска iOS (`apple-touch-startup-image`): тёмный фон + лого сплэша, по картинке на каждый размер iPhone — вместо чёрного системного кадра до загрузки HTML. Генерятся `scripts/make-startup-images.ps1` |
+| `public/splash/startup-*.png` | Экраны запуска iOS (`apple-touch-startup-image`): тёмный фон + знак HETA без подложки, по картинке на каждый размер iPhone — вместо чёрного системного кадра до загрузки HTML. Генерятся `scripts/make-brand-assets.mjs` |
 | `public/manifest.webmanifest` | Web app manifest: имя, standalone, `background_color` (из него современный iOS строит стартовый экран PWA) и иконки |
 | `public/push-sw.js` | Сервис-воркер ТОЛЬКО для push-уведомлений (показ пуша, тап по нему). Без fetch-кэширования — свежесть деплоя не страдает |
-| `public/icons/icon-*.png` | Иконки приложения (180 — apple-touch-icon, 192/512 — manifest): лаймовый квадрат с молнией. Генерятся `scripts/make-icons.ps1` |
-| `scripts/make-startup-images.ps1` | Скрипт генерации `public/splash/*.png` (System.Drawing): рисует лого сплэша на фоне #0b0d10 под все размеры iPhone |
-| `scripts/make-icons.ps1` | Скрипт генерации `public/icons/icon-*.png` (System.Drawing): молния на лаймовом фоне |
+| `public/icons/icon-*.png` | Иконки приложения (180 — apple-touch-icon, 192/512 — manifest): знак HETA на тёмной подложке. Генерятся `scripts/make-brand-assets.mjs` |
+| `public/logo.svg` | Логотип HETA со скруглённой подложкой — источник для иконок приложения |
+| `public/logo-plain.svg` | Тот же знак без подложки — для стартового экрана (инлайн-копия лежит в `index.html`) |
+| `public/favicon.svg` | Иконка вкладки браузера: знак без подложки, буквы перекрашиваются под тему браузера (media prefers-color-scheme) |
+| `public/icons/favicon-*.png` | Запаска иконки вкладки для старых браузеров — те же буквы, но всегда тёмные |
+| `scripts/make-brand-assets.mjs` | Перерисовка иконок и стартовых экранов из `public/logo.svg` (headless Edge/Chrome): `node scripts/make-brand-assets.mjs` — запускать после смены логотипа |
 | `public/design/index.html` | Хаб прототипа интерфейса: все экраны-макеты в мини-рамах телефонов со ссылками на полные версии |
 | `public/design/proto.css` | Общие стили прототипа: тёмные токены, рама «телефона», верхние вкладки, нижний бар, кнопки, полосы прогресса |
 | `public/design/feed.html` | Макет ленты «Рекомендации»: видео-заглушка, HUD (лайк/закладка/репост), кнопка «Изучить фразу», чип «Включить звук» |

@@ -38,7 +38,7 @@ const MEDAL_COLORS = {
  * @param {number|null} wreathPlace — 1/2/3: лавровый венок вокруг аватара
  *                                    (топ-3 рейтинга; 2/3 перекрашены CSS-фильтром)
  * @param {number}      size        — диаметр аватара в px (по умолчанию 40)
- * @param {boolean}     pro         — подписчик Pithy Pro: золотой чип PRO у ника
+ * @param {boolean}     pro         — подписчик HETA Pro: золотой чип PRO у ника
  */
 export default function UserBadge({
   nickname = '?',

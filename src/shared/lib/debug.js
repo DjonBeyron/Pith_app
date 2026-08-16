@@ -44,7 +44,7 @@ function toText(arg) {
 
 export function dbg(...args) {
   if (!enabled) return
-  console.log('[PITHY]', ...args)
+  console.log('[HETA]', ...args)
   logLines.push(`[${stamp()}] ${args.map(toText).join(' ')}`)
 }
 

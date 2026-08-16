@@ -151,11 +151,11 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
         </div>
       </div>
 
-      {/* Pithy Pro: статус подписки или ненавязчивое предложение.
+      {/* HETA Pro: статус подписки или ненавязчивое предложение.
           Админ = Pro автоматически (безлимит и значок у него и так есть) */}
       {profile?.has_subscription || profile?.is_admin ? (
         <div className="pvCard pvProCard">
-          <span className="pvIconLabel"><Crown size={16} /> Pithy Pro</span>
+          <span className="pvIconLabel"><Crown size={16} /> HETA Pro</span>
           <b className="pvProState">
             {profile.is_admin
               ? 'админ — безлимит'

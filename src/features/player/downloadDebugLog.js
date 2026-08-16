@@ -6,7 +6,7 @@ import { getPlayerLines } from '../../shared/lib/debug.js'
 export function downloadDebugLog({ nodeAppearLog, debugItems, events }) {
   const ts = new Date().toISOString()
   const lines = [
-    `=== Pithy Player Debug Log ===`,
+    `=== HETA Player Debug Log ===`,
     `ts: ${ts}`,
     `ua: ${navigator.userAgent}`,
     `device: memory=${navigator.deviceMemory ?? 'n/a'} cpu=${navigator.hardwareConcurrency ?? 'n/a'} conn=${navigator.connection?.effectiveType ?? 'n/a'}`,

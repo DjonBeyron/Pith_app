@@ -9,7 +9,7 @@ self.addEventListener('activate', e => e.waitUntil(self.clients.claim()))
 self.addEventListener('push', e => {
   let data = {}
   try { data = e.data ? e.data.json() : {} } catch { /* нет payload — покажем дефолт */ }
-  const title = data.title || 'Pithy'
+  const title = data.title || 'HETA'
   e.waitUntil(self.registration.showNotification(title, {
     body: data.body || '',
     icon: '/icons/icon-192.png',

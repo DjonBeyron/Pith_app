@@ -51,7 +51,7 @@ export default class ErrorBoundary extends Component {
   downloadReport = () => {
     const { error, info } = this.state
     const lines = [
-      '=== Pithy Error Report ===',
+      '=== HETA Error Report ===',
       `version: ${APP_VERSION}`,
       `ts: ${new Date().toISOString()}`,
       `ua: ${navigator.userAgent}`,

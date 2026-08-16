@@ -14,7 +14,7 @@ export default function DebugPanel({ getFeedInfo, onClose }) {
 
   function share() {
     if (navigator.share) {
-      navigator.share({ title: 'Pithy debug', text: report }).catch(() => {})
+      navigator.share({ title: 'HETA debug', text: report }).catch(() => {})
     } else {
       setMsg('share недоступен — копируй')
     }

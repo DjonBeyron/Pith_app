@@ -76,7 +76,7 @@ export default function RegisterForm({ onLoginSuccess }) {
         />
       )}
       <div className="authTitle">Регистрация</div>
-      <div className="authSubtitle">Создай аккаунт Pithy — прогресс сохранится</div>
+      <div className="authSubtitle">Создай аккаунт HETA — прогресс сохранится</div>
       <input
         className="authInput"
         type="email"

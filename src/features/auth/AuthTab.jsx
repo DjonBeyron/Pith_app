@@ -137,7 +137,7 @@ export default function AuthTab({ onLoginSuccess }) {
         ) : (
           <>
             <div className="authTitle">Войти</div>
-            <div className="authSubtitle">Введи email и пароль от аккаунта Pithy</div>
+            <div className="authSubtitle">Введи email и пароль от аккаунта HETA</div>
             <input
               className="authInput"
               type="email"

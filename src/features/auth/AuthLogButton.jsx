@@ -17,7 +17,7 @@ export default function AuthLogButton() {
   }
 
   function share() {
-    navigator.share({ title: 'Pithy: лог входа', text: authLogText() })
+    navigator.share({ title: 'HETA: лог входа', text: authLogText() })
       .catch(() => { /* человек закрыл share sheet — молча */ })
   }
 

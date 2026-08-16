@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Pithy</title>
+    <title>HETA</title>
     <!-- Запуск с домашнего экрана как полноценное приложение (без UI браузера).
          iOS 26 всегда оставляет системную зону высотой со статус-бар — либо
          сверху (black), либо снизу (black-translucent), поделить нельзя.
@@ -16,7 +16,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="apple-mobile-web-app-title" content="Pithy" />
+    <meta name="apple-mobile-web-app-title" content="HETA" />
     <meta name="theme-color" content="#0b0d10" />
     <!-- Манифест — современный iOS строит стартовый экран веб-приложения из
          background_color + иконки (apple-touch-startup-image ниже он может
@@ -24,7 +24,11 @@
          приложение на домашний экран -->
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/icons/icon-180.png">
-    <link rel="icon" href="/icons/icon-192.png" type="image/png">
+    <!-- Вкладка браузера: знак без подложки. SVG — основной (масштабируется и
+         не тащит фон), PNG — запасной для старых браузеров -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="/icons/favicon-64.png" type="image/png" sizes="64x64">
+    <link rel="alternate icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32">
     <!-- Экран запуска iOS (пока качается HTML): без него система показывает
          чёрный кадр перед сплэшем. PNG = фон сплэша + то же лого (генерятся
          scripts/make-startup-images.ps1). iOS берёт картинку ТОЛЬКО при точном
@@ -72,15 +76,10 @@
         opacity: 0; animation: splashBgIn 350ms ease forwards;
       }
       #splash .splash-logo {
-        width: 92px; height: 92px;
-        filter: drop-shadow(0 10px 34px rgba(182, 254, 59, 0.22));
+        width: 148px; height: 148px;
+        filter: drop-shadow(0 10px 34px rgba(158, 118, 255, 0.25));
       }
-      #splash .splash-word {
-        font: 700 22px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
-        letter-spacing: 1px; color: #f2f5f7;
-      }
-      #splash .splash-logo,
-      #splash .splash-word { opacity: 0; animation: splashItemIn 300ms ease 300ms forwards; }
+      #splash .splash-logo { opacity: 0; animation: splashItemIn 300ms ease 300ms forwards; }
       /* Версия — внизу по центру, тише слова/лого (маленькая и приглушённая,
          чтобы не спорить с логотипом за внимание) */
       #splash .splash-version {
@@ -96,8 +95,7 @@
          splash-out переопределяет анимации появления, поэтому opacity лого в
          splashZoom держим явно (иначе он мгновенно исчез бы, вернувшись к 0) */
       #splash.splash-out { animation: splashOut 350ms ease forwards; pointer-events: none; }
-      #splash.splash-out .splash-logo,
-      #splash.splash-out .splash-word { animation: splashZoom 350ms ease forwards; }
+      #splash.splash-out .splash-logo { animation: splashZoom 350ms ease forwards; }
       #splash.splash-out .splash-version { animation: splashOut 350ms ease forwards; }
       @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
       @keyframes splashZoom { from { opacity: 1; } to { opacity: 1; transform: scale(1.6); } }
@@ -107,13 +105,22 @@
     <div id="root"></div>
 
     <div id="splash" aria-hidden="true">
-      <svg class="splash-logo" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
-        <rect x="6" y="6" width="84" height="84" rx="24" fill="#b6fe3b" />
-        <g transform="translate(24,20) scale(2)">
-          <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" fill="#0d1500" />
-        </g>
+      <svg class="splash-logo" viewBox="28 20 255 255" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g id="Frame 1">
+      <g id="Group 11">
+      <g id="Group 2">
+      <path id="Vector" d="M207.812 89.4452C257.092 129.527 238.629 214.164 173.757 222.662C155.26 225.049 136.362 220.692 120.754 211.343C136.913 219.69 155.711 222.645 173.206 219.239C209.298 213.029 231.818 176.52 225.39 141.513C223.905 133.183 220.85 125.187 216.426 118.108C212.019 111.014 206.243 104.854 199.582 99.9622C192.454 94.3531 200.617 83.8527 207.812 89.4452Z" fill="#BFABFF" fill-opacity="0.29"/>
+      <path id="Vector_2" d="M108.584 209.857C55.214 168.841 74.0946 83.9028 141.955 73.8866C160.619 71.0653 180.935 74.3039 196.176 85.7725C180.534 75.389 160.568 73.3858 142.573 77.1919C115.262 82.751 93.3259 103.218 88.2343 130.812C84.8621 148.024 88.5682 166.47 98.3173 180.944C103.108 188.122 109.302 194.265 116.397 199.023C123.759 204.315 116.046 215.166 108.617 209.874L108.584 209.857Z" fill="#9E76FF" fill-opacity="0.25"/>
+      </g>
+      <g id="HETA">
+      <path id="Vector_3" d="M206.711 173.02C205.255 172.729 204.114 172.122 203.288 171.199C202.463 170.228 202.05 169.063 202.05 167.703C202.05 166.781 202.269 165.809 202.706 164.79L220.113 122.91C220.696 121.453 221.812 120.725 223.463 120.725C225.017 120.725 226.11 121.453 226.741 122.91L244.148 164.79C244.585 165.809 244.804 166.781 244.804 167.703C244.804 169.014 244.391 170.155 243.566 171.126C242.74 172.098 241.599 172.729 240.142 173.02L233.879 157.798H212.975L206.711 173.02ZM231.766 151.898L223.304 131.562H223.075L215.087 151.898H231.766Z" fill="white"/>
+      <path id="Vector_4" d="M179.333 127.426H161.561C161.561 123.396 163.455 121.381 167.243 121.381H203.878C203.878 125.411 201.985 127.426 198.197 127.426H186.179V167.339C186.179 169.184 185.597 170.592 184.431 171.563C183.266 172.535 181.567 173.02 179.333 173.02V127.426Z" fill="white"/>
+      <path id="Vector_5" d="M118.518 124.585C118.518 123.663 118.858 122.91 119.538 122.327C120.217 121.696 121.043 121.381 122.014 121.381H154.28C154.28 123.42 153.867 124.925 153.042 125.896C152.216 126.867 150.929 127.353 149.181 127.353H125.364V143.668H145.758C145.758 145.707 145.345 147.212 144.52 148.184C143.694 149.155 142.432 149.64 140.733 149.64H125.364V166.392H150.711C152.41 166.392 153.673 166.878 154.498 167.849C155.324 168.82 155.736 170.325 155.736 172.365H122.014C121.043 172.365 120.217 172.073 119.538 171.491C118.858 170.859 118.518 170.082 118.518 169.16V124.585Z" fill="#BE74FF" fill-opacity="0.53"/>
+      <path id="Vector_6" d="M68.8 126.406C68.8 124.561 69.3827 123.153 70.548 122.182C71.7134 121.211 73.4128 120.725 75.6464 120.725V143.668H101.503V126.406C101.503 124.561 102.085 123.153 103.251 122.182C104.416 121.211 106.115 120.725 108.349 120.725V167.339C108.349 169.184 107.766 170.592 106.601 171.563C105.436 172.535 103.736 173.02 101.503 173.02V149.713H75.6464V167.339C75.6464 169.184 75.0638 170.592 73.8984 171.563C72.7331 172.535 71.0336 173.02 68.8 173.02V126.406Z" fill="white"/>
+      </g>
+      </g>
+      </g>
       </svg>
-      <div class="splash-word">Pithy</div>
       <div class="splash-version" id="splash-version"></div>
     </div>
 
