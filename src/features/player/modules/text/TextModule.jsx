@@ -56,7 +56,12 @@ export default function TextModule({ node, lessonNodes = [], lessonFiles = [], t
 
   return (
     <div className="playerMsgRow">
-      <PlayerBubble className="playerMsgBubble playerMsgBubble--text" follow={trAnim}>
+      {/* hardWrap — автор сам разбил текст на строки в окне «Свои переносы»:
+          пузырь верстается по самой длинной из них, а не тянется во всю ширину */}
+      <PlayerBubble
+        className={`playerMsgBubble playerMsgBubble--text${tData.hardWrap ? ' playerMsgBubble--hardWrap' : ''}`}
+        follow={trAnim}
+      >
         {replyNode && (
           <ReplyPreview
             replyNode={replyNode}

@@ -211,6 +211,13 @@
 }
 .nodeHoverBtnDup:hover { background: #101c2a; color: #6db3ff; border-color: #6db3ff; }
 
+/* «Пройти с этой ноды» — админский прогон сценария с середины */
+.nodeHoverBtnPlay {
+  font-size: 9px;
+  padding: 0 7px;
+}
+.nodeHoverBtnPlay:hover { background: #1a2a10; color: #b6fe3b; border-color: #b6fe3b; }
+
 /* ── Sticker mute checkbox ── */
 .nodeStickerMuteRow {
   display: flex;

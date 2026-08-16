@@ -1,0 +1,110 @@
+/* ── Окно «Свои переносы» (NodeTextWrapModal) ──────────────────────────── */
+
+.textWrapModal {
+  background: #12141a;
+  border: 1px solid #2a2d35;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color-scheme: dark;
+}
+
+.textWrapHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #9aa0b4;
+}
+
+.textWrapClose {
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.textWrapClose:hover { color: #ff6060; }
+
+.textWrapToggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #9aa0b4;
+  cursor: pointer;
+  user-select: none;
+}
+
+.textWrapToggle input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  border-radius: 4px;
+  border: 1.5px solid #444;
+  background: #0e1013;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.textWrapToggle input[type="checkbox"]:checked {
+  background: #b6fe3b;
+  border-color: #b6fe3b;
+}
+
+.textWrapToggle input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 4px;
+  height: 7px;
+  border: 2px solid #0e1013;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.textWrapToggle:has(input:checked) { color: #c8e880; }
+
+.textWrapInput {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0a0c10;
+  border: 1.5px solid #2a2d35;
+  border-radius: 7px;
+  padding: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e0e0e0;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+}
+.textWrapInput:focus { border-color: #b6fe3b; }
+.textWrapInput::placeholder { color: #444; }
+
+.textWrapPreviewLabel {
+  font-size: 10px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Сцена предпросмотра шириной с ленту чата — пузырь внутри ведёт себя ровно
+   так же, как в уроке: те же 80% ширины, тот же шрифт и межстрочный */
+.textWrapStage {
+  background: #0e1013;
+  border: 1px solid #1e2030;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+}

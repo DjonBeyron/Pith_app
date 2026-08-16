@@ -49,18 +49,34 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
     charsLeft -= visible.length
     const cursorHere = showCursor && charsLeft === 0
 
+    // Печатаемый кусок может содержать переносы: строки рисуются по
+    // отдельности, между ними <br>. Курсор всегда на последней строке —
+    // анимация печати идёт как обычно, просто перескакивает на новую строку.
+    const lines = visible.split('\n')
+    const lastLine = lines.length - 1
+
+    const weight = s.bold ? { fontWeight: 700 } : null
+
     if (!s.h) {
-      rendered.push(
-        <span key={si}>{visible}{cursorHere && <span className="playerCursor" />}</span>
-      )
+      lines.forEach((line, k) => {
+        if (k > 0) rendered.push(<br key={`${si}-br-${k}`} />)
+        if (!line && k !== lastLine) return
+        rendered.push(
+          <span key={`${si}-${k}`} style={weight ?? undefined}>{line}{cursorHere && k === lastLine && <span className="playerCursor" />}</span>
+        )
+      })
       continue
     }
 
     if (s.h.mode === 'text') {
       const c = hexToRgba(s.h.color, s.h.opacity ?? 1)
-      rendered.push(
-        <span key={si} style={{ color: c }}>{visible}{cursorHere && <span className="playerCursor" />}</span>
-      )
+      lines.forEach((line, k) => {
+        if (k > 0) rendered.push(<br key={`${si}-br-${k}`} />)
+        if (!line && k !== lastLine) return
+        rendered.push(
+          <span key={`${si}-${k}`} style={{ color: c, ...weight }}>{line}{cursorHere && k === lastLine && <span className="playerCursor" />}</span>
+        )
+      })
       continue
     }
 
@@ -78,18 +94,28 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
     const shadowR   = (!isPartial && !nextSame) ? `1.5px 0 0 0 ${bgColor}`  : null
     const boxShadow = [shadowL, shadowR].filter(Boolean).join(', ') || undefined
 
-    rendered.push(
-      <span key={si} style={{
-        background: bgColor,
-        borderRadius: radius,
-        boxShadow,
-        paddingTop: '2px',
-        paddingBottom: '1px',
-        ...(textColor ? { color: textColor } : {}),
-      }}>
-        {visible}{cursorHere && <span className="playerCursor" />}
-      </span>
-    )
+    lines.forEach((line, k) => {
+      if (k > 0) rendered.push(<br key={`${si}-br-${k}`} />)
+      if (!line && k !== lastLine) return
+      rendered.push(
+        <span key={`${si}-${k}`} style={{
+          background: bgColor,
+          borderRadius: radius,
+          // «Вылет» плашки — только на настоящих краях выделения, а не на
+          // месте переноса: иначе на каждой строке торчал бы лишний хвост
+          boxShadow: k === 0 && k === lastLine ? boxShadow
+            : k === 0 ? shadowL ?? undefined
+            : k === lastLine ? shadowR ?? undefined
+            : undefined,
+          paddingTop: '2px',
+          paddingBottom: '1px',
+          ...(textColor ? { color: textColor } : {}),
+          ...(weight ?? {}),
+        }}>
+          {line}{cursorHere && k === lastLine && <span className="playerCursor" />}
+        </span>
+      )
+    })
   }
 
   return <span className="playerTypingText">{rendered}</span>

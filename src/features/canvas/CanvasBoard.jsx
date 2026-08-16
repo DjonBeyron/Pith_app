@@ -5,6 +5,7 @@ import CanvasConnections from './CanvasConnections.jsx'
 import { nodeEntry } from './canvasPorts.js'
 import { nodeOptionsSignature, pickNodeOptions } from './canvasNodeOptions.js'
 import { suppressTextSelection, releaseTextSelection } from './canvasDragGuard.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
 import { useCanvasDrag } from './useCanvasDrag.js'
 import { useCanvasSelection } from './useCanvasSelection.js'
 import { useCanvasNodeOps } from './useCanvasNodeOps.js'
@@ -58,6 +59,7 @@ function nodeAtPos(nodeList, wx, wy, excludeId) {
 const CanvasBoard = forwardRef(function CanvasBoard({
   initialNodes, lessonFiles = [], onPickLessonFile, lessonId, onNodesChange,
   moduleLessons = [],
+  onPlayFrom, // админ: прогнать сценарий начиная с этой ноды
 }, ref) {
   const [nodes, setNodes] = useState(() => {
     const s = loadSaved(lessonId)
@@ -70,6 +72,9 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   })
   const [portDrag,       setPortDrag]       = useState(null)
   const [triggerMeasures, setTriggerMeasures] = useState({})
+  // Кнопка «пройти с этой ноды» в меню ноды — только для админа, это
+  // инструмент проверки сценария, а не часть урока
+  const { isAdmin } = useAdmin()
   const [hoveredNodeId,  setHoveredNodeId]  = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
@@ -391,12 +396,16 @@ const CanvasBoard = forwardRef(function CanvasBoard({
                   </>
                 ) : (
                   <>
-                    <button className="nodeHoverBtn nodeHoverBtnDel" title="Удалить ноду"
-                      onClick={e => { e.stopPropagation(); setConfirmDeleteId(node.id) }}>×</button>
-                    <button className="nodeHoverBtn nodeHoverBtnDup" title="Дублировать ноду"
-                      onClick={e => { e.stopPropagation(); duplicateNode(node.id) }}>⧉</button>
+                    {isAdmin && onPlayFrom && (
+                      <button className="nodeHoverBtn nodeHoverBtnPlay" title="Пройти сценарий с этой ноды"
+                        onClick={e => { e.stopPropagation(); onPlayFrom(node.id) }}>▶</button>
+                    )}
                     <button className="nodeHoverBtn nodeHoverBtnAdd" title="Вставить ноду после"
                       onClick={e => { e.stopPropagation(); insertAfterNode(node.id) }}>+</button>
+                    <button className="nodeHoverBtn nodeHoverBtnDup" title="Дублировать ноду"
+                      onClick={e => { e.stopPropagation(); duplicateNode(node.id) }}>⧉</button>
+                    <button className="nodeHoverBtn nodeHoverBtnDel" title="Удалить ноду"
+                      onClick={e => { e.stopPropagation(); setConfirmDeleteId(node.id) }}>×</button>
                   </>
                 )}
               </div>

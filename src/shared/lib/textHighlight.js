@@ -16,22 +16,36 @@ export function sameStyle(a, b) {
 
 export function bridgeSpans(spans) {
   return spans.map((s, i) => {
-    if (!s.h && /^\s+$/.test(s.text) && sameStyle(spans[i - 1]?.h, spans[i + 1]?.h))
+    // Перенос строки не «мостим»: подсветка, натянутая через \n, залила бы
+    // прямоугольник от конца одной строки до начала другой
+    if (!s.h && /^[^\S\n]+$/.test(s.text) && sameStyle(spans[i - 1]?.h, spans[i + 1]?.h))
       return { ...s, h: spans[i - 1].h }
     return s
   })
+}
+
+// Делит текст спана на строки. Фон выделения рисуется абсолютным слоем внутри
+// строчного элемента, а у многострочного элемента этот слой охватывает обе
+// строки разом — заливка уезжает через весь пузырь. Поэтому каждая строка
+// получает свой спан, а переносы выносятся между ними отдельными <br>.
+export function splitLines(text) {
+  return text.split('\n')
 }
 
 // Builds flat span array from text + highlights for rendering.
 // bg has display priority over text-color on the same position.
 // Returns [{ text, h: display_highlight|null }]
 export function buildSpans(text, highlights = []) {
-  if (!highlights.length) return [{ text, h: null }]
+  if (!highlights.length) return [{ text, h: null, bold: false }]
   const bgMap   = new Array(text.length).fill(null)
   const textMap = new Array(text.length).fill(null)
+  // Жирность — отдельный слой: она сочетается и с плашкой, и с цветом текста,
+  // поэтому не спорит с ними за отображение, а просто накладывается сверху
+  const boldMap = new Array(text.length).fill(false)
   for (const h of highlights) {
     for (let i = h.start; i < h.end && i < text.length; i++) {
-      if (h.mode === 'bg') bgMap[i] = h
+      if (h.mode === 'bold') boldMap[i] = true
+      else if (h.mode === 'bg') bgMap[i] = h
       else textMap[i] = h
     }
   }
@@ -42,9 +56,10 @@ export function buildSpans(text, highlights = []) {
   while (i < text.length) {
     const h = dispMap[i]
     let j = i + 1
-    while (j < text.length && dispMap[j] === h && textMap[j] === textMap[i]) j++
+    while (j < text.length && dispMap[j] === h && textMap[j] === textMap[i] &&
+           boldMap[j] === boldMap[i]) j++
     const textUnder = h?.mode === 'bg' ? textMap[i] : null
-    spans.push({ text: text.slice(i, j), h, textUnder })
+    spans.push({ text: text.slice(i, j), h, textUnder, bold: boldMap[i] })
     i = j
   }
   return spans
@@ -67,12 +82,38 @@ export function addHighlight(prev, newH) {
   return result.sort((a, b) => a.start - b.start)
 }
 
+// Полностью ли участок уже закрашен выделением этого режима (и, если задан,
+// именно этим цветом). По этому признаку повторное выделение того же слова
+// снимает раскраску, а не красит поверх.
+export function rangeHasStyle(highlights, start, end, mode, color) {
+  for (let i = start; i < end; i++) {
+    const covers = highlights.some(h =>
+      h.mode === mode && h.start <= i && h.end > i &&
+      (color == null || h.color === color))
+    if (!covers) return false
+  }
+  return true
+}
+
+// Вырезает выделения указанного режима из участка, оставляя хвосты снаружи
+export function removeRange(highlights, start, end, mode) {
+  const out = []
+  for (const h of highlights) {
+    if (h.mode !== mode || h.end <= start || h.start >= end) { out.push(h); continue }
+    if (h.start < start) out.push({ ...h, end: start })
+    if (h.end > end) out.push({ ...h, start: end })
+  }
+  return out.sort((a, b) => a.start - b.start)
+}
+
 // Right-click removal: removes highest-priority highlight at position.
-// bg is removed first; text-color removed on next click.
+// Порядок снятия: плашка → цвет текста → жирность, по клику за раз.
 export function removeHighlightAt(highlights, pos) {
   const atPos = highlights.filter(h => h.start <= pos && h.end > pos)
   if (!atPos.length) return highlights
-  const toRemove = atPos.find(h => h.mode === 'bg') ?? atPos[0]
+  const toRemove = atPos.find(h => h.mode === 'bg')
+    ?? atPos.find(h => h.mode === 'text')
+    ?? atPos[0]
   return highlights.filter(h => h !== toRemove)
 }
 

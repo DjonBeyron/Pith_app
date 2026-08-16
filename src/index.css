@@ -83,6 +83,7 @@
 @import './styles/player/hints.css';
 @import './styles/canvas/text-highlight.css';
 @import './styles/canvas/text-pro.css';
+@import './styles/canvas/text-wrap.css';
 @import './styles/canvas/stat-link.css';
 @import './styles/rating-v2.css';
 @import './styles/rating-achievements.css';

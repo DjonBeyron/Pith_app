@@ -85,6 +85,14 @@
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
 }
 
+/* Автор сам разбил текст на строки: пузырь ровно по самой длинной из них,
+   лишние переносы браузер уже не добавляет (max-width страхует от длинной
+   строки, которая не влезла бы в экран) */
+.playerMsgBubble--hardWrap {
+  width: max-content;
+  max-width: 80%;
+}
+
 .playerTextEmpty {
   color: #9aa0b4;
   font-style: italic;

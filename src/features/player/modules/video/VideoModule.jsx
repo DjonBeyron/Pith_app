@@ -4,8 +4,9 @@ import { VolumeX } from 'lucide-react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
+import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 
-export default function VideoModule({ node, file, onDone, videoAutoSound }) {
+export default function VideoModule({ node, file, onDone, videoAutoSound, adminPreview = false, pending = false }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
   const [frameDims, setFrameDims] = useState(null)
@@ -45,6 +46,9 @@ export default function VideoModule({ node, file, onDone, videoAutoSound }) {
   }, [file?.localFile])
 
   const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.video?.r2Url ?? null
+
+  // Видео ещё не загружено, смотрит админ — держим сценарий живым
+  useMissingMediaFallback(adminPreview && !src && !pending, onDone)
 
   useEffect(() => {
     pLog('VideoModule src=', src ? (src.startsWith('blob:') ? 'blob:...' : src) : 'null')

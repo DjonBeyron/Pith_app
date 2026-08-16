@@ -24,6 +24,8 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   useEffect(() => { setLastEditorMode('canvas') }, [])
   const [showPanel,   setShowPanel]   = useState(false)
   const [showPlayer,  setShowPlayer]  = useState(false)
+  // Админский прогон с середины: id ноды, с которой начать сценарий
+  const [playFrom,    setPlayFrom]    = useState(null)
   const [title,       setTitle]       = useState('')
   const [loading,     setLoading]     = useState(!!lessonId)
   const [isSaving,    setIsSaving]    = useState(false)
@@ -214,7 +216,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
             обёртки кнопки съезжали бы к ⚙ левым краем, см. page.css) */}
         <div className="canvasPageActions">
           <BackButton onClick={onBack} />
-          <button className="canvasPagePlay" onClick={() => setShowPlayer(true)}>▶</button>
+          <button className="canvasPagePlay" onClick={() => { setPlayFrom(null); setShowPlayer(true) }}>▶</button>
           <button
             className="canvasPageReset"
             onClick={handleResetToServer}
@@ -277,7 +279,8 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           teacherLogo={effectiveTeacher.logo}
           teacherLogoCrop={effectiveTeacher.crop}
           videoAutoSound={videoAutoSound}
-          onClose={() => setShowPlayer(false)}
+          startNodeId={playFrom}
+          onClose={() => { setShowPlayer(false); setPlayFrom(null) }}
           onSummaryClose={onBack}
         />
       )}
@@ -314,6 +317,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           onNodesChange={handleNodesChange}
           initialNodes={serverNodes}
           moduleLessons={linkableLessons}
+          onPlayFrom={id => { setPlayFrom(id); setShowPlayer(true) }}
         />
       )}
     </div>

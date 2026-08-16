@@ -5,16 +5,18 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
 
-// Start from seq=1; fallback to lowest seq if seq=1 not found
-function findEntry(nodes) {
+// Start from seq=1; fallback to lowest seq if seq=1 not found.
+// startNodeId — админский прогон с середины сценария («играть отсюда»).
+function findEntry(nodes, startNodeId) {
   return (
+    (startNodeId ? nodes.find(n => n.id === startNodeId) : null) ??
     nodes.find(n => n.seq === 1) ??
     nodes.slice().sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))[0] ??
     null
   )
 }
 
-export function useGraphPlayer(nodes, { onFinish } = {}) {
+export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
   const [visibleNodes, setVisibleNodes] = useState([])
   const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
@@ -142,13 +144,13 @@ export function useGraphPlayer(nodes, { onFinish } = {}) {
     clearTimers()
     firedRef.current = new Set()
     finishedRef.current = false
-    const entry = findEntry(nodes)
+    const entry = findEntry(nodes, startNodeId)
     if (!entry) return
     setVisibleNodes([entry])
     setIsWaiting(false)
     activateTimerTrigger.current(entry)
     return clearTimers
-  }, [nodesKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nodesKey, startNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return { visibleNodes, pendingNode, isWaiting, onNodeDone }
 }

@@ -49,7 +49,7 @@ export function makeNode(seq, x, y) {
       photo:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
       video:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
       circle:      { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
-      text:        { content: '', replyToSeq: null },
+      text:        { content: '', replyToSeq: null, hardWrap: false },
       word_choice:     { options: [], responseCorrect: '', responseWrong: '', sendPickToChat: false },
       phrase_assembly: { words: [], distractors: [], responseCorrect: '', responseWrong: '', replyToSeq: null },
       pin_message:     { content: '' },

@@ -6,6 +6,7 @@ import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from 
 import { pLog } from '../../../../shared/lib/debug.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
+import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 
 const WAVE_H_BASE = [7,11,16,22,14,19,24,17,10,20,13,22,18,11,25,21,15,9,18,24,16,12,21,14,19,10,17,23,15,9,13,19,21,14,17,24,11,18,22,15,10,19,13,25,16,9,20,23,12,17]
 const BAR_W = 2, BAR_GAP = 2
@@ -19,7 +20,7 @@ function PauseIcon() {
   return <Pause size={10} fill="#0e1013" color="#0e1013" />
 }
 
-export default function AudioModule({ node, file, onDone }) {
+export default function AudioModule({ node, file, onDone, adminPreview = false, pending = false }) {
   const [weakDevice] = useState(() => isWeakDevice())
   const [objectUrl,       setObjectUrl]       = useState(null)
   const [isPlaying,       setIsPlaying]       = useState(false)
@@ -79,6 +80,18 @@ export default function AudioModule({ node, file, onDone }) {
   }, [file?.localFile])
 
   const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.audio?.r2Url ?? null
+
+  // Аудио ещё не загружено, а сценарий смотрит админ: показываем текст, будто
+  // сообщение звучит, и по окончании заглушки отпускаем цепочку дальше
+  const stubMode = adminPreview && !src
+  // Текст начинает печататься не сразу, а когда пузырь доехал до места
+  useMissingMediaFallback(stubMode && !pending, onDone, {
+    onStart: () => setTextStarted(true),
+  })
+  // Печать растягивается ровно на длительность заглушки: длинный текст не
+  // обрывается на середине, короткий не «выстреливает» мгновенно — выглядит
+  // так, будто его в этот момент озвучивают
+  const stubSpeed = Math.max(12, Math.round(FALLBACK_MS / Math.max(1, text.length)))
 
   useEffect(() => {
     pLog('AudioModule mount/src change — r2Url=', file?.r2Url ?? 'null', 'objectUrl=', objectUrl ?? 'null', 'src=', src ?? 'NULL')
@@ -289,7 +302,10 @@ export default function AudioModule({ node, file, onDone }) {
               <PlayerTypingText
                 text={text}
                 highlights={highlights}
-                revealedCharIdx={charTimings.length ? revealedCharIdx : undefined}
+                /* в заглушке таймингов нет — печатаем ровно за её длительность,
+                   чтобы текст закончился к моменту перехода к следующей ноде */
+                revealedCharIdx={!stubMode && charTimings.length ? revealedCharIdx : undefined}
+                speed={stubMode ? stubSpeed : undefined}
                 onTypingChange={active => { if (active) setIsFading(true) }}
               />
             </div>

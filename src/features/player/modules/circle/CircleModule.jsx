@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { VolumeX } from 'lucide-react'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
+import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -27,7 +28,7 @@ function calcStyle(intrinsic, dims, crop) {
   }
 }
 
-export default function CircleModule({ node, file, onDone, bottomOffset = 0, videoAutoSound }) {
+export default function CircleModule({ node, file, onDone, bottomOffset = 0, videoAutoSound, adminPreview = false, pending = false }) {
   const [objectUrl, setObjectUrl]   = useState(null)
   const [intr, setIntr]             = useState(null)
   const [dims, setDims]             = useState(null)
@@ -67,6 +68,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   }, [file?.localFile])
 
   const src    = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
+
+  // Кружок ещё не загружен, смотрит админ — держим сценарий живым
+  useMissingMediaFallback(adminPreview && !src && !pending, onDone)
   const poster = file?.posterUrl ?? undefined
 
   useEffect(() => {

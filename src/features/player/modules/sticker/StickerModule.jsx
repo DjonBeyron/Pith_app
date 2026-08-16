@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { VolumeX } from 'lucide-react'
 import ReplyPreview from '../../ReplyPreview.jsx'
+import HighlightedText from '../../../../shared/ui/HighlightedText.jsx'
+import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 
 // Canvas sticker crop is set in a 200×200 frame; player stickerWrap is 160×160
 const CROP_K = 160 / 200  // 0.8
@@ -24,7 +26,7 @@ function getStickerStyle(intrinsic, crop) {
   }
 }
 
-export default function StickerModule({ node, file, lessonNodes = [], lessonFiles = [], teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates, onDone, videoAutoSound }) {
+export default function StickerModule({ node, file, lessonNodes = [], lessonFiles = [], teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates, onDone, videoAutoSound, adminPreview = false, pending = false }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
   const [mutedLoop, setMutedLoop] = useState(false)
@@ -53,6 +55,10 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
   }, [file?.localFile])
 
   const src     = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.sticker?.r2Url ?? null
+
+  // Стикер со звуком ждёт конца первого проигрывания — без файла этого не
+  // случится, поэтому админу отпускаем цепочку по таймеру
+  useMissingMediaFallback(adminPreview && !src && !pending, onDone)
   const poster  = file?.posterUrl ?? undefined
   const isVideo = node.typeData?.sticker?.isVideo ?? false
   const crop    = node.typeData?.sticker?.crop ?? { x: 0, y: 0, scale: 1 }
@@ -172,7 +178,10 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
 
   const replyToSeq = node.typeData?.sticker?.replyToSeq
   const replyNode  = replyToSeq > 0 ? lessonNodes.find(n => n.seq === replyToSeq) : null
-  const caption    = (node.typeData?.sticker?.caption ?? '').trim()
+  // Рисуем подпись как есть: выделения хранятся позициями в исходной строке,
+  // и обрезка пробелов сдвинула бы их. trim только решает, показывать ли блок.
+  const captionRaw = node.typeData?.sticker?.caption ?? ''
+  const caption    = captionRaw.trim()
 
   // Ответ и/или подпись — стикер и текст живут в одном пузыре, как одно
   // сообщение. Без них стикер остаётся «голым», без фона.
@@ -209,7 +218,11 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
             />
           )}
           {stickerBox}
-          {caption && <div className="stickerCaption">{caption}</div>}
+          {caption && (
+            <div className="stickerCaption">
+              <HighlightedText text={captionRaw} highlights={node.typeData?.sticker?.highlights ?? []} />
+            </div>
+          )}
         </div>
       ) : stickerBox}
     </div>

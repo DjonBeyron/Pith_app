@@ -2,25 +2,57 @@
 // участок, попавший на тело ноды, исчезает — вместе с ним и место входа связи.
 //
 // Форма всегда одна и та же — кубическая кривая, как было изначально: у неё
-// нет изломов в принципе. Если кривая ныряет под ноду, меняется не форма, а
-// прогиб: контрольные точки отводятся выше или ниже (а у связей «назад» ещё
-// и заход к порту переносится влево), пока путь не перестанет задевать тела
-// нод. Получается та же плавная линия, просто обогнувшая препятствие.
+// нет изломов в принципе. Если кривая ныряет под ноду, подбирается другая
+// пара касательных: куда линия выходит из порта и с какой стороны заходит в
+// следующий. Перебор идёт от привычных форм к смелым, побеждает самый
+// короткий чистый вариант — линия огибает ноду, оставаясь плавной.
 
 const SAMPLES  = 26    // точек кривой для проверки пересечений
-const PAD      = 8     // запас вокруг тела ноды
-const APPROACH = 70    // насколько левее точки входа уводится заход в порт
-// Ступени прогиба: пробуем от лёгкого отклонения к широкой дуге
-const LIFTS = [40, 70, 110, 160, 220, 300, 400, 520, 660]
-// Растяжение контрольных точек по горизонтали — на случай препятствия
-// вплотную к порту, когда одного вертикального прогиба мало
-const SPREADS = [1, 1.7, 2.6]
+const PAD      = 2     // запас вокруг тела ноды: только само тело, без полей —
+                       // иначе линия в узком зазоре между соседними нодами
+                       // считалась «ныряющей» и уходила в бессмысленный крюк
+// Прямая связь короче этого — обход не нужен: ноды стоят рядом, линия и так
+// вся на виду
+const SHORT_LINK = 90
+// Насколько обход вправе быть длиннее прямой линии. Выше потолка петля
+// становится нечитаемой — лучше оставить короткую линию как есть
+const MAX_DETOUR = 2.5
 
-// Все сочетания, отсортированные по силе искажения: растяжение меняет форму
-// заметнее подъёма, поэтому в цене оно дороже
-const VARIANTS = LIFTS
-  .flatMap(lift => SPREADS.map(spread => ({ lift, spread, cost: lift + (spread - 1) * 260 })))
-  .sort((a, b) => a.cost - b.cost)
+// Обход задаётся касательными: в какую сторону линия выходит из порта и с
+// какой стороны заходит в следующий, и как далеко тянется эта касательная.
+// Так выражается любой разумный объезд — дуга, буква S, спуск по коридору
+// между нодами. Смещать заранее заданную форму по одной оси, как раньше, для
+// последнего случая просто не хватало.
+const K = 0.7071
+const DIRS8 = [
+  [1, 0], [K, K], [0, 1], [-K, K],
+  [-1, 0], [-K, -K], [0, -1], [K, -K],
+]
+// Длина касательной — доля расстояния между портами, а не фиксированные
+// пиксели: форма кривой должна масштабироваться со связью, иначе для длинных
+// связей нужные варианты оказываются в самом конце очереди перебора.
+const FACTORS = [0.22, 0.4, 0.65, 1.0]
+// Грубее по длине, зато все направления — второй проход для тесных мест
+const FACTORS_WIDE = [0.4, 0.7, 1.0]
+
+function build(dirs1, dirs2, factors) {
+  return factors
+    .flatMap(f1 => factors.flatMap(f2 =>
+      dirs1.flatMap(d1 => dirs2.map(d2 => ({
+        f1, f2, d1, d2,
+        cost: (f1 + f2) * 220 + (1 - d1[0]) * 240 + (1 + d2[0]) * 240,
+      })))))
+    .sort((a, b) => a.cost - b.cost)
+}
+
+// Привычный вид связи: из порта вправо, в следующий порт слева. Первый проход
+// перебирает только такие формы — этого хватает почти всегда. Второй нужен
+// для тесных расстановок, где выйти приходится вниз, а зайти сверху: там
+// линия идёт по коридору между нодами.
+const RIGHTISH = DIRS8.filter(d => d[0] > 0.5)
+const LEFTISH = DIRS8.filter(d => d[0] < -0.5)
+const VARIANTS_MAIN = build(RIGHTISH, LEFTISH, FACTORS)
+const VARIANTS_WIDE = build(DIRS8, DIRS8, FACTORS_WIDE)
 
 function seededRand(str) {
   let h = 0
@@ -40,10 +72,17 @@ function cubicAt(p, t) {
 // Сколько сэмплов кривой попало в тела нод. Для ноды-цели крайние сэмплы не
 // в счёт: линия подходит к её порту вплотную к краю, это не «нырок». Для
 // чужих нод проверяется вся длина — там задевать нельзя нигде.
-function hits(ctrl, boxes, from, to) {
+// skipNear — радиус вокруг порта, в котором касание не в счёт. Считаем именно
+// в пикселях, а не «первые N сэмплов»: у длинной кривой три сэмпла — это
+// десятки пикселей пути, и заход под ноду на подлёте оставался незамеченным.
+function hits(ctrl, boxes, skipStart = 0, skipEnd = 0, stopAtFirst = false) {
+  const p0 = ctrl[0], p1 = ctrl[3]
   let n = 0
-  for (let i = from; i <= to; i++) {
+  for (let i = 1; i < SAMPLES; i++) {
+    if (stopAtFirst && n) break
     const pt = cubicAt(ctrl, i / SAMPLES)
+    if (skipStart && Math.hypot(pt.x - p0.x, pt.y - p0.y) < skipStart) continue
+    if (skipEnd && Math.hypot(pt.x - p1.x, pt.y - p1.y) < skipEnd) continue
     for (const b of boxes) {
       if (pt.x > b.left - PAD && pt.x < b.right + PAD &&
           pt.y > b.top - PAD  && pt.y < b.bottom + PAD) { n++; break }
@@ -52,10 +91,23 @@ function hits(ctrl, boxes, from, to) {
   return n
 }
 
-// Полная оценка варианта: цель — без крайних сэмплов, остальные — целиком
-function scoreCtrl(ctrl, toBox, others) {
-  return hits(ctrl, [toBox], 3, SAMPLES - 3) +
-    (others.length ? hits(ctrl, others, 1, SAMPLES - 1) : 0)
+// Полная оценка варианта. Цель и источник проверяются не целиком: у портов
+// линия идёт вплотную к краю своей ноды, это не «нырок». Но уже со второго
+// сэмпла заезд под источник считается — именно так линия и уходила назад
+// под собственную ноду, вылезая с другой стороны.
+const PORT_SKIP = 26
+
+// quick — нужно только «чисто/не чисто»: считать все касания незачем, а
+// перебор вариантов на большом графе идёт тысячами вызовов
+function scoreCtrl(ctrl, toBox, others, fromBox, quick = false) {
+  let n = hits(ctrl, [toBox], 0, PORT_SKIP, quick)
+  if (quick && n) return n
+  if (fromBox) {
+    n += hits(ctrl, [fromBox], PORT_SKIP, 0, quick)
+    if (quick && n) return n
+  }
+  if (others.length) n += hits(ctrl, others, 0, 0, quick)
+  return n
 }
 
 // Длина кривой и её самый крутой поворот (радиан на пиксель). Кривизна
@@ -85,7 +137,7 @@ const MAX_CURVE = 0.06
 // Потолок перебора на одну связь: если за столько попыток чистый маршрут не
 // нашёлся, ноды стоят слишком тесно — дальше перебирать бессмысленно, а на
 // большом графе это заметное время каждого пересчёта
-const MAX_TRIES = 22
+const MAX_TRIES = 140
 
 function toD(p) {
   return `M ${p[0].x} ${p[0].y} C ${p[1].x} ${p[1].y}, ${p[2].x} ${p[2].y}, ${p[3].x} ${p[3].y}`
@@ -98,7 +150,13 @@ function neuronCtrl(x1, y1, x2, y2, seed) {
   const back = x2 <= x1 - 240
 
   if (!back) {
-    const h = Math.max(Math.abs(dx) * 0.4, 40)
+    // Вынос контрольных точек: линия выходит из порта горизонтально. Минимум
+    // 40px хорош на обычных дистанциях, но когда ноды стоят вплотную и между
+    // портами считаные пиксели, он длиннее самого пролёта — кривая
+    // складывается сама в себя и выглядит петлёй. Ограничиваем половиной
+    // расстояния.
+    const adx = Math.abs(dx)
+    const h = Math.max(Math.min(40, adx * 0.5), adx * 0.4, 8)
     return [
       { x: x1, y: y1 },
       { x: x1 + h + jit(seed + 'a', 10), y: y1 + dy * 0.3 + jit(seed + 'b', 8) },
@@ -117,18 +175,16 @@ function neuronCtrl(x1, y1, x2, y2, seed) {
   ]
 }
 
-// Та же кривая, но отведённая от препятствия: обе контрольные точки уходят
-// вверх или вниз на lift, а spread растягивает их по горизонтали (дуга шире
-// и обходит то, что стоит вплотную к порту). У связи «назад» вторая точка
-// вдобавок переносится левее входа — иначе линия приходит в порт сквозь тело
-// своей же ноды.
-function liftedCtrl(base, lift, up, back, x1, x2, spread) {
-  const dy = up ? -lift : lift
-  const c1 = { x: x1 + (base[1].x - x1) * spread, y: base[1].y + dy }
-  const c2 = back
-    ? { x: x2 - APPROACH * spread, y: base[3].y + dy }
-    : { x: x2 - (x2 - base[2].x) * spread, y: base[2].y + dy }
-  return [base[0], c1, c2, base[3]]
+// Кривая по касательным: выходит из порта в сторону d1 на r1, входит в
+// следующий порт со стороны d2 с расстояния r2
+function tangentCtrl(p0, p1, { f1, f2, d1, d2 }, dist) {
+  const r1 = f1 * dist, r2 = f2 * dist
+  return [
+    p0,
+    { x: p0.x + d1[0] * r1, y: p0.y + d1[1] * r1 },
+    { x: p1.x + d2[0] * r2, y: p1.y + d2[1] * r2 },
+    p1,
+  ]
 }
 
 // Путь связи. toBox — тело ноды-цели, obstacles — тела всех нод, кроме
@@ -136,6 +192,10 @@ function liftedCtrl(base, lift, up, back, x1, x2, spread) {
 export function connectionPath(x1, y1, x2, y2, seed, toBox, obstacles = [], fromBox = null) {
   const base = neuronCtrl(x1, y1, x2, y2, seed)
   if (!toBox || !obstacles.length) return toD(base)
+
+  // Соседние ноды: порты почти касаются, линия короткая и целиком видна —
+  // обходить нечего
+  if (Math.hypot(x2 - x1, y2 - y1) < SHORT_LINK) return toD(base)
 
   // Быстрая отбраковка: кривая Безье целиком лежит в оболочке своих
   // контрольных точек, поэтому бокс вне этого прямоугольника задеть нельзя.
@@ -150,57 +210,58 @@ export function connectionPath(x1, y1, x2, y2, seed, toBox, obstacles = [], from
   }
   const touching = []
   for (const b of obstacles) {
-    if (b === fromBox) continue
     if (b.right + PAD < bLo.x || b.left - PAD > bHi.x) continue
     if (b.bottom + PAD < bLo.y || b.top - PAD > bHi.y) continue
     touching.push(b)
   }
   if (!touching.length) return toD(base)
 
-  let bestHits = scoreCtrl(base, toBox, touching.filter(b => b !== toBox))
-  if (bestHits === 0) return toD(base)
+  const baseClean = scoreCtrl(base, toBox, touching.filter(b => b !== toBox && b !== fromBox), fromBox, true) === 0
+  if (baseClean) return toD(base)
 
   // Дальше идёт перебор вариантов — только для реально мешающих соседей
   const loX = Math.min(x1, x2) - 260, hiX = Math.max(x1, x2) + 900
   const loY = Math.min(y1, y2) - 900, hiY = Math.max(y1, y2) + 900
-  const near = obstacles.filter(b => b !== fromBox &&
+  const near = obstacles.filter(b =>
     b.right > loX && b.left < hiX && b.bottom > loY && b.top < hiY)
-  const others = near.filter(b => b !== toBox)
-
-  const back = x2 <= x1 - 240
-  // Первой пробуем сторону, к которой линия и так ближе — крюк меньше
-  const mid = (toBox.top + toBox.bottom) / 2
-  const sides = Math.min(y1, y2) <= mid ? [true, false] : [false, true]
+  const others = near.filter(b => b !== toBox && b !== fromBox)
 
   // Среди вариантов, никого не задевающих, берётся САМЫЙ КОРОТКИЙ из тех,
   // что не заламываются: линия идёт впритирку к ноде, а у входа сохраняет
   // живой изгиб. Широкая дуга через пол-холста проигрывает по длине. Нет
   // чистых (ноды вплотную) — тот, что задевает меньше; все с заломом —
   // самый спокойный.
+  const baseLen = measure(base).length
   let best = base, bestLen = Infinity, bestCurve = Infinity, found = false
-  // Кандидаты идут от слабого искажения к сильному, поэтому после первого
-  // подходящего смотрим ещё несколько и останавливаемся: дальше маршруты
-  // только длиннее, а перебор всех вариантов стоит заметного времени
+  let clean = null
+  // Кандидаты идут от привычных форм к смелым, поэтому после первого
+  // подходящего смотрим ещё немного и останавливаемся: дальше маршруты
+  // только длиннее, а перебор целиком стоит заметного времени
   let left = Infinity
   let budget = MAX_TRIES
-  for (const { lift, spread } of VARIANTS) {
+  const dist = Math.hypot(x2 - x1, y2 - y1)
+  for (const variant of VARIANTS_MAIN.concat(VARIANTS_WIDE)) {
     if (left-- <= 0 || budget <= 0) break
-    for (const up of sides) {
-      budget--
-      const ctrl = liftedCtrl(base, lift, up, back, x1, x2, spread)
-      const n = scoreCtrl(ctrl, toBox, others)
-      if (n > 0) {
-        if (!found && bestCurve === Infinity && n < bestHits) { bestHits = n; best = ctrl }
-        continue
-      }
-      const { length, curve } = measure(ctrl)
-      if (curve <= MAX_CURVE) {
-        if (!found || length < bestLen) { bestLen = length; best = ctrl; found = true }
-        if (left === Infinity) left = 3
-      } else if (!found && curve < bestCurve) {
-        bestCurve = curve; best = ctrl
-      }
+    budget--
+    const ctrl = tangentCtrl(base[0], base[3], variant, dist)
+    const n = scoreCtrl(ctrl, toBox, others, fromBox, true)
+    if (n > 0) continue
+    const { length, curve } = measure(ctrl)
+    // Первый чистый вариант запоминаем всегда — даже если он длиннее
+    // разумного. Пусть лучше длинная линия, чем нырок под ноду: если в
+    // пределах лимита ничего не найдётся, возьмём его.
+    if (!clean) clean = ctrl
+    // Крюк во много раз длиннее прямой читается хуже, чем сама прямая
+    if (length > baseLen * MAX_DETOUR) continue
+    if (curve <= MAX_CURVE) {
+      if (!found || length < bestLen) { bestLen = length; best = ctrl; found = true }
+      if (left === Infinity) left = 10
+    } else if (!found && curve < bestCurve) {
+      bestCurve = curve; best = ctrl
     }
   }
+  // Ничего в пределах лимитов, но чистый вариант был — он лучше короткой
+  // линии, ныряющей под ноду. Совсем ничего — остаётся привычная форма.
+  if (!found && bestCurve === Infinity && clean) return toD(clean)
   return toD(best)
 }

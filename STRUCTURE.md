@@ -186,6 +186,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/modules/video.css` | Видео-сообщение |
 | `canvas/word-choice.css` | Редактор ноды «Выбор слова»: список вариантов, кнопка ✓, поле ответа |
 | `canvas/sticker.css` | Редактор ноды «Стикер»: галочка «Со звуком» |
+| `canvas/text-wrap.css` | Окно «Свои переносы»: галочка, поле текста, сцена предпросмотра пузыря |
 | `canvas/drag.css` | Состояние протяжки (класс `canvasDragging` на body): глушит выделение текста и наведение на содержимое нод, пока тянут ноду или холст |
 | `canvas/node-controls.css` | База контролов внутри нод: тёмные чекбоксы и списки (`color-scheme: dark`), тонкие тёмные скроллбары. Импортируется раньше частных стилей нод |
 | `canvas/phrase-assembly.css` | Редактор ноды «Собрать фразу»: инпут фразы, превью чипов, лишние слова |
@@ -264,6 +265,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `NodeRewardCheckbox.jsx` | Чекбокс «Получить награду» (⭐ XP) — общий для нод word_choice / phrase_assembly / photo_choice |
 | `NodeTablePicker.jsx` | Редактор ноды «Таблица»: кнопка конструктора → `TableEditorModal`, переключатель режима Авто/Ручной, поля ручного режима (answer, distractors, responseCorrect/Wrong) |
 | `NodeTextHighlighter.jsx` | Модальный редактор выделений текста: кликабельные токены, режимы «Плашка»/«Цвет текста», опакити, последние 5 цветов (localStorage), избранные (Supabase), предпросмотр в пузыре |
+| `ChatBubblePreview.jsx` | Пузырь «как придёт в чат» — общий предпросмотр для окон раскраски и переносов: те же классы плеера, учитывает `hardWrap` |
+| `NodeTextWrapModal.jsx` | Окно «Свои переносы» (текст / закреп / текст аудио): поле с текстом (Enter = перенос), предпросмотр настоящего пузыря чата, у текстовой ноды — галочка `hardWrap` (пузырь по строкам автора) |
 | `NodeTextProEditor.jsx` | Про-режим текстовой ноды: тумблер, текст перевода, надпись кнопки (RU/EN...), способ появления («напечатать»/«показать сразу»), раскраска перевода |
 | `useLessonFiles.js` | Хук: список файлов урока (локальные + синхронизированные), дедупликация по имени+весу, синхронизация на сервер. `pickFile` — `useCallback` (не пересоздаётся каждый рендер) — идёт пропом до каждой CanvasNode.jsx (React.memo), нестабильная ссылка срывала бы мемоизацию у всех нод |
 | `LessonFilesPanel.jsx` | Панель «Файлы урока» под шапкой редактора: список файлов, кнопка «Синхронизировать», удаление |
@@ -310,6 +313,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `SummaryBadges.jsx` | Блоки наград в итогах урока: TicketBlock (золотой билет за Финал) и StarsBlock (звёзды обычного урока по ошибкам) |
 | `downloadDebugLog.js` | Сборка и скачивание общего дебаг-лога плеера (pLog, таймлайн нод, загрузки, события анализа) — вынесено из LessonPlayer ради лимита 400 строк |
 | `useGraphPlayer.js` | State machine плеера: находит точку входа графа, запускает триггеры (timer/played/photo_shown/timer_after_play), пауза «печатает» между нодами; положительный офсет played = дополнительная пауза после конца медиа |
+| `PlayerPanels.jsx` | Нижние панели ответов (выбор слова, сборка фразы, выбор фото, регистрация, таблица) — вынесены из LessonPlayer.jsx, чтобы тот не упирался в потолок размера |
+| `useMissingMediaFallback.js` | Заглушка нод без файла для админа: аудио/видео/кружок/стикер «отыгрывают» пустышку за 1 сек и отпускают цепочку дальше, чтобы сценарий можно было пройти до загрузки медиа |
 | `usePlayedOffset.js` | Офсет триггера «Воспроизведено до конца»: `playedOffsetMs(node)` читает значение из триггера, хук `usePlayedOffset` зовёт onDone за N мс ДО конца медиа (отрицательный офсет) — используется аудио/видео/кружком |
 | `useRegistrationSkip.js` | Авто-пропуск ноды «Регистрация» для залогиненного: панель не рендерится, сразу срабатывает reg_submit; решение фиксируется по ноде один раз (гость в панели не увидит её исчезновения) |
 | `useAnswerStats.js` | Сбор событий ответов для анализа знаний: таймер от появления панели, попытки по урокам, лог в pLog; `wordOptionEvent` — событие из варианта выбора слова |
@@ -544,7 +549,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar` (рисует столбики волны на canvas), `fmtAudioTime`, `probeAudioDuration` |
 | `tableDictatorTiming.js` | Константы тайминга word-слоя в режиме диктора: `EXTRA_ANIM_S`(0.6)+`EXTRA_BUFFER_S`(0.3)=`EXTRA_LEAD_IN_S`(0.9) — с начала клипа сперва анимация (слайд+список), потом буфер, и только потом слово реально загорается зелёным. Общие для плеера (useTableDictatorRaf/dictatorPostAudio) и редактора таймлайна (TableTimelineTrack — превью куска на слое) |
 | `transcribeApi.js` | Клиентская обёртка для Edge Function `transcribe-audio`: отправляет файл или R2 URL, возвращает `wordTimings` |
-| `textHighlight.js` | Утилиты выделений: `buildSpans` (массив спанов по char-range), `addHighlight` (добавить с перекрытием), `highlightStyle` (CSS объект), `hexToRgba`; legacy `buildCharStyles` для аудио-ноды |
+| `textHighlight.js` | Утилиты выделений: `buildSpans` (массив спанов по char-range), `addHighlight` (добавить с перекрытием), `bridgeSpans` (склейка соседних, но не через перенос строки), `splitLines` (кусок по строкам — фон рисуется построчно), `hexToRgba`; legacy `buildCharStyles` для аудио-ноды (+ `textHighlight.test.js`) |
 | `skillScore.js` | Расчёт приоритетов уроков по логу событий ответов: каскад правил `computePriority`, замещение сессий `latestSessionEvents`, итоговый `computeAllPriorities` (см. SKILL_ANALYSIS.md) |
 | `skillStatsStore.js` | Хранение событий ответов: залогинен → `lesson_results.answers` (jsonb), гость → localStorage; `saveAnswerEvents` в конце урока, `loadAllEvents` для расчёта приоритетов |
 | `skillScore.test.js` | Юнит-тесты каскада правил расчёта приоритетов (Vitest, `npm run test`) |

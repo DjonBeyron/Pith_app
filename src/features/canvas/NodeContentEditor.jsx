@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import NodeAudioPicker from './NodeAudioPicker.jsx'
 import NodeTextHighlighter from './NodeTextHighlighter.jsx'
+import NodeTextWrapModal from './NodeTextWrapModal.jsx'
 import NodeTextProEditor from './NodeTextProEditor.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
@@ -37,6 +38,7 @@ export default function NodeContentEditor({
   growTextareas = false,
 }) {
   const [hlRect, setHlRect] = useState(null)
+  const [wrapRect, setWrapRect] = useState(null) // окно «свои переносы»
   const [hlTarget, setHlTarget] = useState('main') // 'main' | 'pro' — какой текст красим
   const wrapRef = useRef(null)
 
@@ -66,6 +68,14 @@ export default function NodeContentEditor({
       updateTypeData({ file_id: id, crop: DEFAULT_CROP })
     }
   }
+
+  // Текст ноды, который правят кистью и окном переносов (у аудио он свой)
+  const mainText = node.type === 'audio' ? (tData.text ?? '')
+    : node.type === 'sticker' ? (tData.caption ?? '')
+    : (tData.content ?? '')
+  // Свои переносы в ноде есть — либо стоят прямо в тексте, либо включён режим
+  // «пузырь по моим строкам»
+  const wrapActive = !!tData.hardWrap || mainText.includes('\n')
 
   const isFileType = node.type === 'audio' || node.type === 'photo' || node.type === 'video' ||
     node.type === 'circle' || node.type === 'sticker'
@@ -154,7 +164,7 @@ export default function NodeContentEditor({
           onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
         />
       )}
-      {(node.type === 'text' || node.type === 'pin_message' || (node.type === 'audio' && !!tData.text)) && (
+      {(node.type === 'text' || node.type === 'pin_message' || (node.type === 'audio' && !!tData.text) || (node.type === 'sticker' && !!tData.caption)) && (
         <button
           className="nodeHLOpenBtn"
           style={(tData.highlights?.length > 0) ? { borderColor: '#b6fe3b', color: '#b6fe3b' } : undefined}
@@ -166,6 +176,22 @@ export default function NodeContentEditor({
           onMouseDown={e => e.stopPropagation()}
         >
           🎨
+        </button>
+      )}
+      {(node.type === 'text' || node.type === 'pin_message' || (node.type === 'audio' && !!tData.text) || (node.type === 'sticker' && !!tData.caption)) && (
+        <button
+          className="nodeHLOpenBtn"
+          title="Свои переносы строк"
+          /* зелёная обводка — как у палитры: в ноде есть свои переносы либо
+             включён режим «пузырь по моим строкам» */
+          style={wrapActive ? { borderColor: '#b6fe3b', color: '#b6fe3b' } : undefined}
+          onClick={e => {
+            e.stopPropagation()
+            setWrapRect(wrapRef.current?.getBoundingClientRect() ?? null)
+          }}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          ↵
         </button>
       )}
       {node.type === 'text' && (
@@ -366,12 +392,28 @@ export default function NodeContentEditor({
       )}
       {hlRect && (
         <NodeTextHighlighter
-          text={hlTarget === 'pro' ? (tData.proText ?? '')
-            : node.type === 'audio' ? (tData.text ?? '') : (tData.content ?? '')}
+          text={hlTarget === 'pro' ? (tData.proText ?? '') : mainText}
           highlights={(hlTarget === 'pro' ? tData.proHighlights : tData.highlights) ?? []}
+          /* предпросмотр в раскраске должен совпадать с уроком, в том числе
+             когда автор задал свои переносы */
+          hardWrap={node.type === 'text' && hlTarget !== 'pro' && !!tData.hardWrap}
           anchorRect={hlRect}
           onClose={() => setHlRect(null)}
           onChange={hl => updateTypeData(hlTarget === 'pro' ? { proHighlights: hl } : { highlights: hl })}
+        />
+      )}
+      {wrapRect && (
+        <NodeTextWrapModal
+          text={mainText}
+          highlights={tData.highlights ?? []}
+          hardWrap={!!tData.hardWrap}
+          field={node.type === 'audio' ? 'text' : node.type === 'sticker' ? 'caption' : 'content'}
+          /* ширина пузыря по строкам осмысленна только у текстовой ноды:
+             у аудио пузырь держит волна, у закрепа — вся ширина экрана */
+          widthToggle={node.type === 'text'}
+          anchorRect={wrapRect}
+          onClose={() => setWrapRect(null)}
+          onChange={patch => updateTypeData(patch)}
         />
       )}
     </div>

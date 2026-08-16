@@ -3,18 +3,14 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerMessage from './PlayerMessage.jsx'
-import ChooseWordPanel      from './panels/choose-word/ChooseWordPanel.jsx'
-import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.jsx'
+import PlayerPanels from './PlayerPanels.jsx'
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
-import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
-import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
-import TableDictatorPanel  from './panels/table-dictator/TableDictatorPanel.jsx'
-import TableManualPanel    from './panels/table-manual/TableManualPanel.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { useRegistrationSkip } from './useRegistrationSkip.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
-import { useAnswerStats, wordOptionEvent } from './useAnswerStats.js'
+import { useAnswerStats } from './useAnswerStats.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
 import { downloadDebugLog } from './downloadDebugLog.js'
 import XpFloat from './XpFloat.jsx'
 import LessonSummary from './LessonSummary.jsx'
@@ -52,6 +48,7 @@ export default function LessonPlayer({
   initialBlobMap = null,
   lessonXp = 0,
   lessonId = null,
+  startNodeId = null, // админский прогон с середины: «играть с этой ноды»
   recordStats = true, // false (пересдача «без записи») — события анализа не пишутся
   onFinishStats = null, // супергонка: ({ errors, timeMs }) в момент финиша урока
   finalTicket = null, // Финал модуля: { moduleId } — подсказки + золотой билет
@@ -69,7 +66,11 @@ export default function LessonPlayer({
   const wrongRef = useRef(0)
   const [starsRes, setStarsRes] = useState(null)
   const { panelShown, record, getEvents } = useAnswerStats({ sourceLessonId: lessonId, enabled: recordStats })
+  // Админ проходит сценарий до загрузки медиа: ноды без файла не стопорят
+  // цепочку, а отыгрывают заглушку (см. useMissingMediaFallback.js)
+  const { isAdmin } = useAdmin()
   const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes, {
+    startNodeId,
     onFinish: () => {
       if (onFinishStats) {
         // Супергонка: отдаём счёт ошибок/времени и сразу выходим — XP и
@@ -345,6 +346,8 @@ export default function LessonPlayer({
                     regState={regStates[node.id] ?? null}
                     bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight || regPanelHeight || tablePanelHeight}
                     videoAutoSound={videoAutoSound}
+                    adminPreview={isAdmin}
+                    pending={isPending}
                     onDone={isPending ? () => {} : () => onNodeDone(node.id)}
                     onTrReveal={() => registerHint(node.id)}
                     rewardXp={xpMap.get(node.id) ?? 0}
@@ -361,84 +364,28 @@ export default function LessonPlayer({
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}
         </PlayerFeed>
-        {wcNode && (
-          <ChooseWordPanel
-            key={wcNode.id} /* вторая нода того же типа подряд = свежая панель */
-            node={wcNode}
-            xpAmount={xpMap.get(wcNode.id) ?? 0}
-            onDone={(result, variantId) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result, variantId) }}
-            onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result)}
-            onPicked={(opt) => {
-              const ev = wordOptionEvent(wcNode, opt)
-              if (ev.type === 'wrong') wrongRef.current += 1
-              record({ nodeId: wcNode.id, ...ev })
-              // Галочка в редакторе ноды: выбранный вариант уходит в чат
-              // отдельным пузырём справа — раньше текста реакции
-              if (wcNode.typeData?.word_choice?.sendPickToChat === true) {
-                handleWordPick(wcNode.id, opt.text)
-              }
-            }}
-            onXpEarned={handleXpEarned}
-            onHeightChange={setWcPanelHeight}
-          />
-        )}
-        {paNode && (
-          <PhraseAssemblyPanel
-            key={paNode.id}
-            node={paNode}
-            xpAmount={xpMap.get(paNode.id) ?? 0}
-            onDone={(result, variantId) => { setPaPanelHeight(0); onNodeDone(paNode.id, result, variantId) }}
-            onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
-            onChecked={(result, text) => {
-              if (result === 'wrong') wrongRef.current += 1
-              record({
-                nodeId: paNode.id,
-                lessonId: paNode.typeData?.phrase_assembly?.statLessonId ?? null,
-                type: result,
-                option: text,
-              })
-            }}
-            onXpEarned={handleXpEarned}
-            onHeightChange={setPaPanelHeight}
-          />
-        )}
-        {pcNode && !photoChoiceStates[pcNode.id] && (
-          <PhotoChoicePanel
-            key={pcNode.id}
-            node={pcNode}
-            lessonFiles={filesWithBlobs}
-            onPick={(idx, isCorrect) => handlePhotoPick(pcNode.id, idx, isCorrect)}
-            onHeightChange={setPcPanelHeight}
-          />
-        )}
-        {regNode && showRegPanel && (
-          <RegistrationPanel
-            key={regNode.id}
-            node={regNode}
-            onDone={(trigger, data) => { setRegPanelHeight(0); onNodeDone(regNode.id, trigger, data) }}
-            onAnswered={(text, result) => handleRegAnswer(regNode.id, text, result)}
-            onHeightChange={setRegPanelHeight}
-          />
-        )}
-        {tableNode && tableNode.typeData?.table?.table && (
-          tableNode.typeData.table.mode === 'manual' ? (
-            <TableManualPanel
-              key={tableNode.id}
-              node={tableNode}
-              onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
-              onAnswered={() => {}}
-              onHeightChange={setTablePanelHeight}
-            />
-          ) : (
-            <TableDictatorPanel
-              key={tableNode.id}
-              node={tableNode}
-              file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}
-              onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
-              onHeightChange={setTablePanelHeight}
-            />
-          )
-        )}
+        <PlayerPanels
+          wcNode={wcNode} paNode={paNode} pcNode={pcNode}
+          regNode={regNode} tableNode={tableNode}
+          showRegPanel={showRegPanel}
+          photoChoiceStates={photoChoiceStates}
+          filesWithBlobs={filesWithBlobs}
+          xpMap={xpMap}
+          onNodeDone={onNodeDone}
+          record={record}
+          wrongRef={wrongRef}
+          handleWordAnswer={handleWordAnswer}
+          handleWordPick={handleWordPick}
+          handlePhraseAnswer={handlePhraseAnswer}
+          handleRegAnswer={handleRegAnswer}
+          handlePhotoPick={handlePhotoPick}
+          handleXpEarned={handleXpEarned}
+          setWcPanelHeight={setWcPanelHeight}
+          setPaPanelHeight={setPaPanelHeight}
+          setPcPanelHeight={setPcPanelHeight}
+          setRegPanelHeight={setRegPanelHeight}
+          setTablePanelHeight={setTablePanelHeight}
+        />
       </div>
 
       <XpFloat events={xpEvents} onDismiss={dismissXpEvent} />
