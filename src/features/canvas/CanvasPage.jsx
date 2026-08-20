@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { dbg } from '../../shared/lib/debug.js'
 import CanvasBoard from './CanvasBoard.jsx'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
+import CanvasToolsMenu from './CanvasToolsMenu.jsx'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { canvasLsKey } from './canvasStorageKeys.js'
@@ -34,6 +35,11 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   // остальные ноды притухают, оставаясь на своих местах со связями
   const [filterTypes, setFilterTypes] = useState(() => new Set())
   const [filterPos,   setFilterPos]   = useState(null)
+  const [toolsPos,    setToolsPos]    = useState(null)
+  // Оверлей открытого меню закрывает его по нажатию — в том числе когда
+  // нажали по самой кнопке. Без отметки времени следом идущий клик тут же
+  // открывал бы меню заново, и повторное нажатие ничего не закрывало
+  const menuClosedAt = useRef(0)
   const { isAdmin } = useAdmin()
   const [title,       setTitle]       = useState('')
   const [loading,     setLoading]     = useState(!!lessonId)
@@ -231,34 +237,22 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
               title={filterTypes.size
                 ? `Показаны только: ${filterTypes.size} тип(ов) — нажми, чтобы изменить`
                 : 'Фильтр по типам нод'}
-              onClick={e => setFilterPos(computeMenuPos(e.currentTarget.getBoundingClientRect()))}
+              onClick={e => {
+                if (Date.now() - menuClosedAt.current < 250) return
+                setFilterPos(computeMenuPos(e.currentTarget.getBoundingClientRect()))
+              }}
             >⛃{filterTypes.size ? ` ${filterTypes.size}` : ''}</button>
           )}
           <button className="canvasPagePlay" onClick={() => { setPlayFrom(null); setShowPlayer(true) }}>▶</button>
           <button
-            className="canvasPageReset"
-            onClick={handleResetToServer}
+            className="canvasPageTools"
+            title="Ещё действия с холстом"
             disabled={loading}
-            title="Отменить локальные правки и показать данные с сервера"
-          >↻ С сервера</button>
-          <button
-            className="pageDangerBtn"
-            onClick={() => boardApiRef.current?.clearAll()}
-            disabled={loading}
-            title="Удалить все ноды урока"
-          >Очистить</button>
-          <button
-            className="pageTabBtn"
-            onClick={() => boardApiRef.current?.focusStart()}
-            disabled={loading}
-            title="Прокрутить холст к первой ноде"
-          >В начало</button>
-          <button
-            className="pageTabBtn"
-            onClick={() => boardApiRef.current?.spreadNodes()}
-            disabled={loading}
-            title="Развести ноды по горизонтали, если они наехали друг на друга"
-          >Раздвинуть</button>
+            onClick={e => {
+              if (Date.now() - menuClosedAt.current < 250) return
+              setToolsPos(computeMenuPos(e.currentTarget.getBoundingClientRect()))
+            }}
+          >⋯</button>
           <div className="canvasXpField">
             <input
               className="canvasXpInput"
@@ -293,11 +287,32 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
 
       {syncStatus && <div className="canvasSyncStatus">{syncStatus}</div>}
 
+      <CanvasToolsMenu
+        pos={toolsPos}
+        onClose={() => { menuClosedAt.current = Date.now(); setToolsPos(null) }}
+        items={[
+          ...(filterTypes.size
+            ? [{ label: `Сбросить фильтры (${filterTypes.size})`,
+                 title: 'Показать ноды всех типов',
+                 onClick: () => setFilterTypes(new Set()) }]
+            : []),
+          { label: 'В начало', title: 'Прокрутить холст к первой ноде',
+            onClick: () => boardApiRef.current?.focusStart() },
+          { label: 'Раздвинуть', title: 'Развести ноды, если они наехали друг на друга',
+            onClick: () => boardApiRef.current?.spreadNodes() },
+          { label: '↻ Вернуть данные с сервера', title: 'Отменить несохранённые локальные правки',
+            onClick: handleResetToServer },
+          { label: 'Очистить все ноды', danger: true, title: 'Удалить все ноды урока',
+            onClick: () => boardApiRef.current?.clearAll() },
+        ]}
+      />
+
       <NodeTypeMenu
         pos={filterPos}
         multi
         selected={filterTypes}
-        onClose={() => setFilterPos(null)}
+        onReset={() => setFilterTypes(new Set())}
+        onClose={() => { menuClosedAt.current = Date.now(); setFilterPos(null) }}
         onPick={type => setFilterTypes(prev => {
           const next = new Set(prev)
           if (next.has(type)) next.delete(type)

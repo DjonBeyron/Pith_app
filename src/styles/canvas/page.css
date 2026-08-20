@@ -36,28 +36,26 @@
   text-overflow: ellipsis;
 }
 
-/* Центрирование названия — только когда шапка реально широкая: абсолютное
-   поле шириной 280px лежит поверх потока и своей прозрачной частью
-   перехватывало клики по кнопкам (▶ не нажимался на десктопе). Ниже 1280px
-   название остаётся в потоке слева и никому не мешает. */
-@media (min-width: 1280px) {
-  .canvasPageTitle {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 280px;
-    flex: unset;
-    min-width: unset;
-    z-index: 0;
-  }
+/* Название живёт в общем потоке и сжимается первым: раньше на широких
+   экранах оно было абсолютным по центру и наезжало на кнопки — кнопок в
+   шапке стало много, и наложения пошли уже на обычных экранах */
+.canvasPageTitle {
+  flex: 1 1 120px;
+  min-width: 60px;
+  max-width: 320px;
 }
 
-/* Страховка на любой ширине: кнопки лежат выше названия по слоям, поэтому
-   даже при наложении клик достаётся кнопке, а не полю ввода */
 .canvasSettingsBtnWrap,
 .canvasPageActions {
   position: relative;
   z-index: 1;
+}
+
+/* Кнопки шапки не выделяются текстом: двойной клик по ним подсвечивал
+   надпись, и кнопка выглядела «затухшей» */
+.canvasPageHeader button {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .canvasPageTitle:hover { border-color: #2a2c33; }
@@ -150,6 +148,64 @@
   font-weight: 600;
   letter-spacing: 0.05em;
 }
+
+/* «Сбросить фильтры» — первая строка меню фильтра, отделена от списка типов */
+.nodeTypeSelectReset {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #2a2c33;
+  color: #b6fe3b;
+  font-size: 11px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.nodeTypeSelectReset:hover { background: #1a1d24; }
+.nodeTypeSelectReset:disabled { color: #4a4f58; cursor: default; background: transparent; }
+
+/* Меню редких действий холста («⋯») */
+.canvasPageTools {
+  background: transparent;
+  border: 1px solid #2a2c33;
+  color: #888;
+  font-size: 14px;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.canvasPageTools:hover { border-color: #b6fe3b; color: #b6fe3b; }
+.canvasPageTools:disabled { opacity: 0.4; cursor: default; }
+
+.canvasToolsMenu {
+  min-width: 220px;
+  background: #0e1013;
+  border: 1px solid #2a2c33;
+  border-radius: 8px;
+  overflow: hidden auto;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 2px;
+}
+
+.canvasToolsItem {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.canvasToolsItem:hover { background: #1a1d24; }
+.canvasToolsItem:disabled { opacity: 0.4; cursor: default; }
+.canvasToolsItemDanger { color: #f87171; }
+.canvasToolsItemDanger:hover { background: #2a1010; }
 
 /* Фильтр по типам нод (только админ): рядом с ▶, включённый подсвечен и
    показывает число выбранных типов */

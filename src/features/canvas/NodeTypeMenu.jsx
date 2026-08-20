@@ -7,7 +7,7 @@ import { NODE_TYPES, isGroupStart } from './nodeTypes.js'
 //
 // selected + multi — режим фильтра в шапке канваса: типы отмечаются галочками,
 // меню при выборе не закрывается.
-export default function NodeTypeMenu({ pos, onPick, onClose, selected, multi = false }) {
+export default function NodeTypeMenu({ pos, onPick, onClose, selected, multi = false, onReset }) {
   if (!pos) return null
   return createPortal(
     <>
@@ -28,6 +28,14 @@ export default function NodeTypeMenu({ pos, onPick, onClose, selected, multi = f
         }}
         onMouseDown={e => e.stopPropagation()}
       >
+        {multi && onReset && (
+          <button
+            className="nodeTypeSelectReset"
+            disabled={!selected?.size}
+            onMouseDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onReset() }}
+          >Сбросить фильтры</button>
+        )}
         {NODE_TYPES.map((t, i) => {
           const Icon = t.icon
           return (
