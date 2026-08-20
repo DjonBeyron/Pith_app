@@ -1,267 +1,211 @@
-// Геометрия линий между нодами. Линии лежат в слое ПОД нодами, поэтому
-// участок, попавший на тело ноды, исчезает — вместе с ним и место входа связи.
+// Геометрия линий между нодами — схемная разводка: линия идёт горизонталями и
+// вертикалями, углы скруглены. Такой вид принят в потоковых редакторах (n8n,
+// Node-RED, плагин BlueLine для Unreal): на пересечении сразу видно, что это
+// две отдельные линии, а не развилка, и глаз ведёт связь по прямым участкам.
 //
-// Форма всегда одна и та же — кубическая кривая, как было изначально: у неё
-// нет изломов в принципе. Если кривая ныряет под ноду, подбирается другая
-// пара касательных: куда линия выходит из порта и с какой стороны заходит в
-// следующий. Перебор идёт от привычных форм к смелым, побеждает самый
-// короткий чистый вариант — линия огибает ноду, оставаясь плавной.
+// Линии лежат в слое ПОД нодами, поэтому участок, попавший на тело ноды,
+// исчезает — вместе с ним и место входа связи. Маршрут это учитывает:
+// перебираются варианты разводки, побеждает самый короткий, который никого не
+// задевает.
 
-const SAMPLES  = 26    // точек кривой для проверки пересечений
-const PAD      = 2     // запас вокруг тела ноды: только само тело, без полей —
-                       // иначе линия в узком зазоре между соседними нодами
-                       // считалась «ныряющей» и уходила в бессмысленный крюк
-// Прямая связь короче этого — обход не нужен: ноды стоят рядом, линия и так
-// вся на виду
-const SHORT_LINK = 90
-// Насколько обход вправе быть длиннее прямой линии. Выше потолка петля
-// становится нечитаемой — лучше оставить короткую линию как есть
-const MAX_DETOUR = 2.5
+const R = 14            // радиус скругления углов
+const STUB = 26         // прямой хвостик у портов, чтобы связь читалась у ноды
+const PAD = 2           // запас вокруг тела ноды
+const CLEAR = 26        // на сколько маршрут отходит от края ноды при обходе
+const SHORT_LINK = 90   // совсем короткая связь — рисуем напрямую
+const SAMPLE_STEP = 12  // шаг проверки пересечений вдоль сегмента
 
-// Обход задаётся касательными: в какую сторону линия выходит из порта и с
-// какой стороны заходит в следующий, и как далеко тянется эта касательная.
-// Так выражается любой разумный объезд — дуга, буква S, спуск по коридору
-// между нодами. Смещать заранее заданную форму по одной оси, как раньше, для
-// последнего случая просто не хватало.
-const K = 0.7071
-const DIRS8 = [
-  [1, 0], [K, K], [0, 1], [-K, K],
-  [-1, 0], [-K, -K], [0, -1], [K, -K],
-]
-// Длина касательной — доля расстояния между портами, а не фиксированные
-// пиксели: форма кривой должна масштабироваться со связью, иначе для длинных
-// связей нужные варианты оказываются в самом конце очереди перебора.
-const FACTORS = [0.22, 0.4, 0.65, 1.0]
-// Грубее по длине, зато все направления — второй проход для тесных мест
-const FACTORS_WIDE = [0.4, 0.7, 1.0]
+// ── Построение пути ──────────────────────────────────────────────────────
 
-function build(dirs1, dirs2, factors) {
-  return factors
-    .flatMap(f1 => factors.flatMap(f2 =>
-      dirs1.flatMap(d1 => dirs2.map(d2 => ({
-        f1, f2, d1, d2,
-        cost: (f1 + f2) * 220 + (1 - d1[0]) * 240 + (1 + d2[0]) * 240,
-      })))))
-    .sort((a, b) => a.cost - b.cost)
+function round(v) { return Math.round(v * 10) / 10 }
+function dist(a, b) { return Math.hypot(b.x - a.x, b.y - a.y) }
+
+function towards(from, to, len) {
+  const d = dist(from, to) || 1
+  return { x: from.x + (to.x - from.x) * (len / d), y: from.y + (to.y - from.y) * (len / d) }
 }
 
-// Привычный вид связи: из порта вправо, в следующий порт слева. Первый проход
-// перебирает только такие формы — этого хватает почти всегда. Второй нужен
-// для тесных расстановок, где выйти приходится вниз, а зайти сверху: там
-// линия идёт по коридору между нодами.
-const RIGHTISH = DIRS8.filter(d => d[0] > 0.5)
-const LEFTISH = DIRS8.filter(d => d[0] < -0.5)
-const VARIANTS_MAIN = build(RIGHTISH, LEFTISH, FACTORS)
-const VARIANTS_WIDE = build(DIRS8, DIRS8, FACTORS_WIDE)
-
-function seededRand(str) {
-  let h = 0
-  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0
-  return Math.abs(Math.sin(h) * 43758.5453) % 1
-}
-
-function cubicAt(p, t) {
-  const u = 1 - t
-  const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t
-  return {
-    x: a * p[0].x + b * p[1].x + c * p[2].x + d * p[3].x,
-    y: a * p[0].y + b * p[1].y + c * p[2].y + d * p[3].y,
+// Точки на одном месте ломают скругление — схлопываем
+function dedupe(pts) {
+  const out = []
+  for (const p of pts) {
+    const last = out[out.length - 1]
+    if (!last || Math.abs(last.x - p.x) > 0.5 || Math.abs(last.y - p.y) > 0.5) out.push(p)
   }
+  return out
 }
 
-// Сколько сэмплов кривой попало в тела нод. Для ноды-цели крайние сэмплы не
-// в счёт: линия подходит к её порту вплотную к краю, это не «нырок». Для
-// чужих нод проверяется вся длина — там задевать нельзя нигде.
-// skipNear — радиус вокруг порта, в котором касание не в счёт. Считаем именно
-// в пикселях, а не «первые N сэмплов»: у длинной кривой три сэмпла — это
-// десятки пикселей пути, и заход под ноду на подлёте оставался незамеченным.
-function hits(ctrl, boxes, skipStart = 0, skipEnd = 0, stopAtFirst = false) {
-  const p0 = ctrl[0], p1 = ctrl[3]
+// Ломаная → путь со скруглёнными углами. Радиус ужимается под короткие
+// сегменты, поэтому мелкие ступеньки не превращаются в петли.
+export function roundedPath(pts) {
+  const p = dedupe(pts)
+  if (p.length < 2) return ''
+  let d = `M ${round(p[0].x)} ${round(p[0].y)}`
+  for (let i = 1; i < p.length - 1; i++) {
+    const prev = p[i - 1], cur = p[i], next = p[i + 1]
+    const r = Math.max(2, Math.min(R, dist(prev, cur) / 2, dist(cur, next) / 2))
+    const a = towards(cur, prev, r)
+    const b = towards(cur, next, r)
+    d += ` L ${round(a.x)} ${round(a.y)} Q ${round(cur.x)} ${round(cur.y)} ${round(b.x)} ${round(b.y)}`
+  }
+  const last = p[p.length - 1]
+  return d + ` L ${round(last.x)} ${round(last.y)}`
+}
+
+// ── Проверка на пересечение с телами нод ─────────────────────────────────
+
+function hitsBox(a, b, box) {
+  const steps = Math.max(2, Math.ceil(dist(a, b) / SAMPLE_STEP))
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    const x = a.x + (b.x - a.x) * t
+    const y = a.y + (b.y - a.y) * t
+    if (x > box.left - PAD && x < box.right + PAD &&
+        y > box.top - PAD && y < box.bottom + PAD) return true
+  }
+  return false
+}
+
+// Сколько сегментов маршрута задевает тела нод. Куски у самых портов не в
+// счёт: там линия и так идёт вплотную к своей ноде.
+export function routeHits(pts, boxes, fromBox, toBox) {
   let n = 0
-  for (let i = 1; i < SAMPLES; i++) {
-    if (stopAtFirst && n) break
-    const pt = cubicAt(ctrl, i / SAMPLES)
-    if (skipStart && Math.hypot(pt.x - p0.x, pt.y - p0.y) < skipStart) continue
-    if (skipEnd && Math.hypot(pt.x - p1.x, pt.y - p1.y) < skipEnd) continue
-    for (const b of boxes) {
-      if (pt.x > b.left - PAD && pt.x < b.right + PAD &&
-          pt.y > b.top - PAD  && pt.y < b.bottom + PAD) { n++; break }
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1]
+    for (const box of boxes) {
+      if (box === fromBox && i === 0) continue
+      if (box === toBox && i === pts.length - 2) continue
+      if (hitsBox(a, b, box)) { n++; break }
     }
   }
   return n
 }
 
-// Полная оценка варианта. Цель и источник проверяются не целиком: у портов
-// линия идёт вплотную к краю своей ноды, это не «нырок». Но уже со второго
-// сэмпла заезд под источник считается — именно так линия и уходила назад
-// под собственную ноду, вылезая с другой стороны.
-const PORT_SKIP = 26
-
-// quick — нужно только «чисто/не чисто»: считать все касания незачем, а
-// перебор вариантов на большом графе идёт тысячами вызовов
-function scoreCtrl(ctrl, toBox, others, fromBox, quick = false) {
-  let n = hits(ctrl, [toBox], 0, PORT_SKIP, quick)
-  if (quick && n) return n
-  if (fromBox) {
-    n += hits(ctrl, [fromBox], PORT_SKIP, 0, quick)
-    if (quick && n) return n
-  }
-  if (others.length) n += hits(ctrl, others, 0, 0, quick)
-  return n
+export function routeLength(pts) {
+  let len = 0
+  for (let i = 0; i < pts.length - 1; i++) len += dist(pts[i], pts[i + 1])
+  return len
 }
 
-// Длина кривой и её самый крутой поворот (радиан на пиксель). Кривизна
-// нормирована по длине, поэтому сравнима у вариантов разного размера:
-// 0.06 ≈ поворот радиусом 17px — заметный изгиб, но ещё не залом.
-function measure(ctrl) {
-  let prev = null, curve = 0, length = 0
-  let a = cubicAt(ctrl, 0)
-  for (let i = 1; i <= SAMPLES; i++) {
-    const b = cubicAt(ctrl, i / SAMPLES)
-    const len = Math.hypot(b.x - a.x, b.y - a.y)
-    length += len
-    if (len > 0.5) {
-      const dir = { x: (b.x - a.x) / len, y: (b.y - a.y) / len }
-      if (prev) {
-        const cos = Math.min(1, Math.max(-1, prev.x * dir.x + prev.y * dir.y))
-        curve = Math.max(curve, Math.acos(cos) / len)
+// ── Варианты разводки ────────────────────────────────────────────────────
+
+// Цель правее источника — «ступенька»: вправо, вертикаль, вправо. Место
+// перелома пробуем в разных долях пролёта, чтобы обойти то, что стоит между.
+function stepRoutes(p0, p1) {
+  return [0.5, 0.32, 0.68, 0.16, 0.84].map(f => {
+    const midX = p0.x + (p1.x - p0.x) * f
+    return [p0, { x: midX, y: p0.y }, { x: midX, y: p1.y }, p1]
+  })
+}
+
+// Цель левее (связь «назад») — линия выходит вправо, идёт по свободной
+// горизонтали и заходит в порт слева.
+//
+// Вариантов много намеренно: обходить обе ноды целиком нужно далеко не
+// всегда. Если между ними есть просвет или цель стоит выше/ниже, короткий
+// путь идёт рядом, а не вокруг всего. Негодные отсеет проверка пересечений,
+// из оставшихся победит самый короткий.
+function backRoutes(p0, p1, fromBox, toBox) {
+  const fb = fromBox, tb = toBox
+  const rights = uniq([
+    Math.max(p0.x, fb?.right ?? p0.x) + STUB,
+    Math.max(p0.x, fb?.right ?? p0.x, tb?.right ?? p0.x) + STUB,
+  ])
+  const lefts = uniq([
+    Math.min(p1.x, tb?.left ?? p1.x) - STUB,
+    Math.min(p1.x, tb?.left ?? p1.x, fb?.left ?? p1.x) - STUB,
+  ])
+  const lanes = uniq([
+    // рядом с источником
+    (fb?.bottom ?? p0.y) + CLEAR,
+    (fb?.top ?? p0.y) - CLEAR,
+    // рядом с целью
+    (tb?.bottom ?? p1.y) + CLEAR,
+    (tb?.top ?? p1.y) - CLEAR,
+    // в просвете между нодами, если они не перекрываются по вертикали
+    fb && tb && tb.top > fb.bottom ? (fb.bottom + tb.top) / 2 : null,
+    fb && tb && fb.top > tb.bottom ? (tb.bottom + fb.top) / 2 : null,
+    // вокруг обеих — запасной вариант, когда рядом не пройти
+    Math.min(fb?.top ?? p0.y, tb?.top ?? p1.y) - CLEAR,
+    Math.max(fb?.bottom ?? p0.y, tb?.bottom ?? p1.y) + CLEAR,
+  ])
+
+  const out = []
+  for (const right of rights) {
+    for (const left of lefts) {
+      for (const lane of lanes) {
+        out.push([
+          p0,
+          { x: right, y: p0.y },
+          { x: right, y: lane },
+          { x: left, y: lane },
+          { x: left, y: p1.y },
+          p1,
+        ])
       }
-      prev = dir
     }
-    a = b
   }
-  return { length, curve }
+  return out
 }
 
-const MAX_CURVE = 0.06
-// Потолок перебора на одну связь: если за столько попыток чистый маршрут не
-// нашёлся, ноды стоят слишком тесно — дальше перебирать бессмысленно, а на
-// большом графе это заметное время каждого пересчёта
-const MAX_TRIES = 140
-
-function toD(p) {
-  return `M ${p[0].x} ${p[0].y} C ${p[1].x} ${p[1].y}, ${p[2].x} ${p[2].y}, ${p[3].x} ${p[3].y}`
+function uniq(list) {
+  return [...new Set(list.filter(v => v != null))]
 }
 
-// Исходная органическая кривая: короткая S вперёд либо петля вправо назад
-function neuronCtrl(x1, y1, x2, y2, seed) {
-  const dx = x2 - x1, dy = y2 - y1
-  const jit = (s, m) => (seededRand(s) - 0.5) * m
-  const back = x2 <= x1 - 240
-
-  if (!back) {
-    // Вынос контрольных точек: линия выходит из порта горизонтально. Минимум
-    // 40px хорош на обычных дистанциях, но когда ноды стоят вплотную и между
-    // портами считаные пиксели, он длиннее самого пролёта — кривая
-    // складывается сама в себя и выглядит петлёй. Ограничиваем половиной
-    // расстояния.
-    const adx = Math.abs(dx)
-    const h = Math.max(Math.min(40, adx * 0.5), adx * 0.4, 8)
-    return [
-      { x: x1, y: y1 },
-      { x: x1 + h + jit(seed + 'a', 10), y: y1 + dy * 0.3 + jit(seed + 'b', 8) },
-      { x: x2 - h + jit(seed + 'c', 10), y: y2 - dy * 0.3 + jit(seed + 'd', 8) },
-      { x: x2, y: y2 },
-    ]
-  }
-
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  const bulge = Math.max(dist * 0.5, 100)
-  return [
-    { x: x1, y: y1 },
-    { x: x1 + bulge + jit(seed + 'a', 12), y: y1 + dy * 0.15 + jit(seed + 'b', 8) },
-    { x: x2 + bulge + jit(seed + 'c', 12), y: y2 - dy * 0.15 + jit(seed + 'd', 8) },
-    { x: x2, y: y2 },
+// Обход по коридору сверху/снизу, когда «ступенька» упирается в ноду
+function laneRoutes(p0, p1, boxes) {
+  if (!boxes.length) return []
+  const lanes = [
+    Math.min(...boxes.map(b => b.top)) - CLEAR,
+    Math.max(...boxes.map(b => b.bottom)) + CLEAR,
   ]
-}
-
-// Кривая по касательным: выходит из порта в сторону d1 на r1, входит в
-// следующий порт со стороны d2 с расстояния r2
-function tangentCtrl(p0, p1, { f1, f2, d1, d2 }, dist) {
-  const r1 = f1 * dist, r2 = f2 * dist
-  return [
+  const outX = p0.x + STUB
+  const inX = p1.x - STUB
+  return lanes.map(lane => ([
     p0,
-    { x: p0.x + d1[0] * r1, y: p0.y + d1[1] * r1 },
-    { x: p1.x + d2[0] * r2, y: p1.y + d2[1] * r2 },
+    { x: outX, y: p0.y },
+    { x: outX, y: lane },
+    { x: inX, y: lane },
+    { x: inX, y: p1.y },
     p1,
-  ]
+  ]))
 }
 
-// Путь связи. toBox — тело ноды-цели, obstacles — тела всех нод, кроме
-// источника (цель входит в список: под неё нырять тоже нельзя).
+// Путь связи. toBox — тело ноды-цели, obstacles — тела всех нод, fromBox —
+// тело ноды-источника (под неё нырять тоже нельзя, кроме выхода из порта).
 export function connectionPath(x1, y1, x2, y2, seed, toBox, obstacles = [], fromBox = null) {
-  const base = neuronCtrl(x1, y1, x2, y2, seed)
-  if (!toBox || !obstacles.length) return toD(base)
+  const p0 = { x: x1, y: y1 }
+  const p1 = { x: x2, y: y2 }
+  // «Назад» — только когда цель реально левее: у соседних нод порты почти
+  // касаются, и там нужна короткая перемычка, а не обход по коридору
+  const back = x2 < x1
 
-  // Соседние ноды: порты почти касаются, линия короткая и целиком видна —
-  // обходить нечего
-  if (Math.hypot(x2 - x1, y2 - y1) < SHORT_LINK) return toD(base)
+  const direct = back
+    ? backRoutes(p0, p1, fromBox, toBox)[0]
+    : stepRoutes(p0, p1)[0]
 
-  // Быстрая отбраковка: кривая Безье целиком лежит в оболочке своих
-  // контрольных точек, поэтому бокс вне этого прямоугольника задеть нельзя.
-  // Подавляющее большинство связей ни с кем не пересекается и уходит отсюда,
-  // сверившись с одним-двумя соседями, а не со всем графом.
-  let bLo = { x: Infinity, y: Infinity }, bHi = { x: -Infinity, y: -Infinity }
-  for (const p of base) {
-    if (p.x < bLo.x) bLo.x = p.x
-    if (p.y < bLo.y) bLo.y = p.y
-    if (p.x > bHi.x) bHi.x = p.x
-    if (p.y > bHi.y) bHi.y = p.y
-  }
-  const touching = []
-  for (const b of obstacles) {
-    if (b.right + PAD < bLo.x || b.left - PAD > bHi.x) continue
-    if (b.bottom + PAD < bLo.y || b.top - PAD > bHi.y) continue
-    touching.push(b)
-  }
-  if (!touching.length) return toD(base)
+  if (!toBox || !obstacles.length) return roundedPath(direct)
+  if (!back && dist(p0, p1) < SHORT_LINK) return roundedPath(direct)
 
-  const baseClean = scoreCtrl(base, toBox, touching.filter(b => b !== toBox && b !== fromBox), fromBox, true) === 0
-  if (baseClean) return toD(base)
-
-  // Дальше идёт перебор вариантов — только для реально мешающих соседей
-  const loX = Math.min(x1, x2) - 260, hiX = Math.max(x1, x2) + 900
-  const loY = Math.min(y1, y2) - 900, hiY = Math.max(y1, y2) + 900
+  // Сверяемся только с теми, кто вообще рядом с маршрутом
   const near = obstacles.filter(b =>
-    b.right > loX && b.left < hiX && b.bottom > loY && b.top < hiY)
-  const others = near.filter(b => b !== toBox && b !== fromBox)
+    b.right > Math.min(x1, x2) - 400 && b.left < Math.max(x1, x2) + 400 &&
+    b.bottom > Math.min(y1, y2) - 600 && b.top < Math.max(y1, y2) + 600)
 
-  // Среди вариантов, никого не задевающих, берётся САМЫЙ КОРОТКИЙ из тех,
-  // что не заламываются: линия идёт впритирку к ноде, а у входа сохраняет
-  // живой изгиб. Широкая дуга через пол-холста проигрывает по длине. Нет
-  // чистых (ноды вплотную) — тот, что задевает меньше; все с заломом —
-  // самый спокойный.
-  const baseLen = measure(base).length
-  let best = base, bestLen = Infinity, bestCurve = Infinity, found = false
-  let clean = null
-  // Кандидаты идут от привычных форм к смелым, поэтому после первого
-  // подходящего смотрим ещё немного и останавливаемся: дальше маршруты
-  // только длиннее, а перебор целиком стоит заметного времени
-  let left = Infinity
-  let budget = MAX_TRIES
-  const dist = Math.hypot(x2 - x1, y2 - y1)
-  for (const variant of VARIANTS_MAIN.concat(VARIANTS_WIDE)) {
-    if (left-- <= 0 || budget <= 0) break
-    budget--
-    const ctrl = tangentCtrl(base[0], base[3], variant, dist)
-    const n = scoreCtrl(ctrl, toBox, others, fromBox, true)
-    if (n > 0) continue
-    const { length, curve } = measure(ctrl)
-    // Первый чистый вариант запоминаем всегда — даже если он длиннее
-    // разумного. Пусть лучше длинная линия, чем нырок под ноду: если в
-    // пределах лимита ничего не найдётся, возьмём его.
-    if (!clean) clean = ctrl
-    // Крюк во много раз длиннее прямой читается хуже, чем сама прямая
-    if (length > baseLen * MAX_DETOUR) continue
-    if (curve <= MAX_CURVE) {
-      if (!found || length < bestLen) { bestLen = length; best = ctrl; found = true }
-      if (left === Infinity) left = 10
-    } else if (!found && curve < bestCurve) {
-      bestCurve = curve; best = ctrl
-    }
+  const candidates = back
+    ? backRoutes(p0, p1, fromBox, toBox)
+    : [...stepRoutes(p0, p1), ...laneRoutes(p0, p1, near)]
+
+  // Побеждает самый короткий чистый маршрут; если чистых нет — тот, что
+  // задевает меньше всего
+  let best = null
+  for (const pts of candidates) {
+    const hits = routeHits(pts, near, fromBox, toBox)
+    const len = routeLength(pts)
+    const better = !best
+      || (hits < best.hits)
+      || (hits === best.hits && len < best.len)
+    if (better) best = { pts, hits, len }
   }
-  // Ничего в пределах лимитов, но чистый вариант был — он лучше короткой
-  // линии, ныряющей под ноду. Совсем ничего — остаётся привычная форма.
-  if (!found && bestCurve === Infinity && clean) return toD(clean)
-  return toD(best)
+  return roundedPath(best?.pts ?? direct)
 }

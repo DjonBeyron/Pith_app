@@ -20,7 +20,7 @@ describe('порты нод — всегда снаружи тела', () => {
   })
 
   it('выход правее правого края при любом размере', () => {
-    const widths = { nano: 42, mini: 182, max: 220 }
+    const widths = { nano: 42, mini: 255, max: 308 }
     for (const [size, w] of Object.entries(widths)) {
       const n = maxNode({ size })
       expect(triggerAnchor(n, 0, {}).x, size).toBeGreaterThan(n.x + w)
@@ -47,14 +47,14 @@ describe('nodeBox — тело ноды как препятствие для л�
     expect(nano.bottom - nano.top).toBe(42)
 
     const mini = nodeBox(maxNode({ size: 'mini' }))
-    expect(mini.right - mini.left).toBe(182)
+    expect(mini.right - mini.left).toBe(255)
   })
 
   it('высота max-ноды считается по последней замеренной строке', () => {
     const n = maxNode({ triggers: [{ if: 'played' }, { if: 'timer' }] })
     const box = nodeBox(n, { a: [100, 300] })
     expect(box.bottom).toBeGreaterThan(n.y + 300)
-    expect(box.right - box.left).toBe(220)
+    expect(box.right - box.left).toBe(308)
   })
 
   it('без замеров высота берётся из расчёта — бокс не схлопывается', () => {

@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react'
-import { suppressTextSelection, releaseTextSelection } from './canvasDragGuard.js'
+import { suppressTextSelection, markDragging, releaseTextSelection } from './canvasDragGuard.js'
 
 // Handles two kinds of drag on the canvas:
 //   'node'   — user grabbed a node; fires onNodeMove(id, dx, dy) on each move
@@ -43,6 +43,10 @@ export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
     const dx = e.clientX - d.startX
     const dy = e.clientY - d.startY
     if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return
+    // Протяжка реально началась — только теперь гасим наведение и клики по
+    // содержимому нод. Раньше это делалось по нажатию, и обычный клик по
+    // кнопке внутри ноды (например «верный ответ») не доходил до неё.
+    if (!movedRef.current) markDragging()
     movedRef.current = true
     if (d.type === 'node') {
       const s = scaleRef?.current ?? 1

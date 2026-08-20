@@ -123,7 +123,16 @@ export default function NodeWordChoicePicker({
                 onClick={() => toggleCorrect(o.id)}
                 title="Верный ответ"
               >✓</button>
-              <span className="nodeWcOptionText">{o.text}</span>
+              {/* Текст варианта правится прямо здесь: id не меняется, поэтому
+                  особый переход и привязка к уроку остаются на месте */}
+              <input
+                className="nodeWcOptionText nodeWcOptionInput"
+                value={o.text}
+                onChange={e => patchOption(o.id, { text: e.target.value })}
+                onClick={e => e.stopPropagation()}
+                onMouseDown={e => e.stopPropagation()}
+                placeholder="Вариант…"
+              />
               <button
                 className={`nodeWcGearBtn${variantThen(o.id) ? ' nodeWcGearBtnOn' : ''}`}
                 onClick={() => toggleVariantOpen(o.id)}

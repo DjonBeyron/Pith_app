@@ -44,6 +44,22 @@
 .nodeWcCorrectBtn:hover { border-color: #4ade80; color: #4ade80; }
 .nodeWcCorrectBtnOn     { border-color: #4ade80; background: rgba(74,222,128,.2); color: #4ade80; }
 
+/* Поле переименования варианта: выглядит как обычный текст, рамка появляется
+   только при наведении и правке — список остаётся спокойным на вид */
+.nodeWcOptionInput {
+  min-width: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 2px 4px;
+  font-family: inherit;
+  outline: none;
+  cursor: text;
+}
+.nodeWcOptionInput:hover { border-color: #2a2d35; }
+.nodeWcOptionInput:focus { border-color: #b6fe3b; background: #0e1013; }
+.nodeWcOptionInput::placeholder { color: #444; }
+
 .nodeWcOptionText {
   flex: 1;
   font-size: 12px;

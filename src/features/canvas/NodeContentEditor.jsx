@@ -16,6 +16,7 @@ import NodeTypeSelect from './NodeTypeSelect.jsx'
 import { applyTypeChange } from './nodeDefaults.js'
 import { NODE_TYPES } from './nodeTypes.js'
 import { autoGrowTextarea } from '../../shared/lib/autoGrowTextarea.js'
+import { useTextareaHeight } from './useTextareaHeight.js'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
@@ -37,6 +38,11 @@ export default function NodeContentEditor({
   // скролла внутри узкой рамки, даже длинный (переносом на новую строку)
   growTextareas = false,
 }) {
+  // Высота текстовых полей, растянутых уголком, помнится между сессиями
+  const contentRef = useTextareaHeight(`${node.id}:content`, !growTextareas)
+  const captionRef = useTextareaHeight(`${node.id}:caption`, !growTextareas)
+  const policyRef  = useTextareaHeight(`${node.id}:policy`, !growTextareas)
+
   const [hlRect, setHlRect] = useState(null)
   const [wrapRect, setWrapRect] = useState(null) // окно «свои переносы»
   const [hlTarget, setHlTarget] = useState('main') // 'main' | 'pro' — какой текст красим
@@ -85,6 +91,7 @@ export default function NodeContentEditor({
       {showTypeSelect && <NodeTypeSelect value={node.type} onChange={changeType} />}
       {node.type === 'audio' && (
         <NodeAudioPicker
+          nodeId={node.id}
           fileId={fileId}
           lessonFiles={lessonFiles}
           onPick={handleAudioPick}
@@ -132,8 +139,8 @@ export default function NodeContentEditor({
           }
           onClick={e => e.stopPropagation()}
           onMouseDown={e => e.stopPropagation()}
-          rows={4}
-          ref={growTextareas ? autoGrowTextarea : undefined}
+          rows={8}
+          ref={growTextareas ? autoGrowTextarea : contentRef}
           onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
         />
       )}
@@ -159,8 +166,8 @@ export default function NodeContentEditor({
           placeholder="Текст под стикером (в том же пузыре)..."
           onClick={e => e.stopPropagation()}
           onMouseDown={e => e.stopPropagation()}
-          rows={2}
-          ref={growTextareas ? autoGrowTextarea : undefined}
+          rows={4}
+          ref={growTextareas ? autoGrowTextarea : captionRef}
           onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
         />
       )}
@@ -196,6 +203,7 @@ export default function NodeContentEditor({
       )}
       {node.type === 'text' && (
         <NodeTextProEditor
+          nodeId={node.id}
           tData={tData}
           onChange={updateTypeData}
           onOpenHl={() => {
@@ -258,8 +266,8 @@ export default function NodeContentEditor({
             placeholder="Текст политики конфиденциальности (если пусто — используется стандартный текст)"
             onClick={e => e.stopPropagation()}
             onMouseDown={e => e.stopPropagation()}
-            rows={5}
-            ref={growTextareas ? autoGrowTextarea : undefined}
+            rows={10}
+            ref={growTextareas ? autoGrowTextarea : policyRef}
             onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
           />
         </>

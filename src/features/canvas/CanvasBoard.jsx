@@ -10,6 +10,9 @@ import { useCanvasDrag } from './useCanvasDrag.js'
 import { useCanvasSelection } from './useCanvasSelection.js'
 import { useCanvasNodeOps } from './useCanvasNodeOps.js'
 import { renumber, makeNode } from './nodeGraph.js'
+import { spreadNodes } from './canvasSpread.js'
+import NodeTypeMenu from './NodeTypeMenu.jsx'
+import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 
 // Радиус (в мировых координатах), в котором брошенный порт цепляется
 // к входной точке ноды.
@@ -45,8 +48,10 @@ function loadView(lessonId) {
 // подтормаживание на нагруженных графах.
 const EMPTY_NODES = []
 
-const NODE_HIT_W = { nano: 42, mini: 182, max: 220 }
-const NODE_HIT_H = { nano: 36, mini: 55,  max: 500 }
+const NODE_HIT_W = { nano: 42, mini: 255, max: 308 }
+// max — прикидка высоты развёрнутой ноды для попадания при броске порта
+// и рамке выделения; после увеличения текстовых полей ноды стали выше
+const NODE_HIT_H = { nano: 36, mini: 55,  max: 700 }
 function nodeAtPos(nodeList, wx, wy, excludeId) {
   return nodeList.find(n => {
     if (n.id === excludeId) return false
@@ -60,6 +65,9 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   initialNodes, lessonFiles = [], onPickLessonFile, lessonId, onNodesChange,
   moduleLessons = [],
   onPlayFrom, // админ: прогнать сценарий начиная с этой ноды
+  // Фильтр в шапке (админ): типы, которые показываем в полную силу.
+  // Пустой набор — фильтр выключен, видно всё
+  visibleTypes = null,
 }, ref) {
   const [nodes, setNodes] = useState(() => {
     const s = loadSaved(lessonId)
@@ -77,6 +85,10 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const { isAdmin } = useAdmin()
   const [hoveredNodeId,  setHoveredNodeId]  = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  // Меню выбора типа при создании ноды: открывается по «+» в меню ноды и по
+  // клику на выходной кружок. { pos, nodeId, triggerIdx } — triggerIdx задан,
+  // когда создаём с конкретного выхода развилки
+  const [typeMenu, setTypeMenu] = useState(null)
 
   const scaleRef     = useRef(scale)
   const portDragRef  = useRef(null)
@@ -90,6 +102,17 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // самого холста (ResizeObserver — например когда над ним появляется/
   // исчезает строка синхронизации в CanvasPage.jsx)
   const boardRectRef = useRef({ left: 0, top: 0 })
+
+  // Мышь могли отпустить за пределами холста — тогда handleMouseUp доски не
+  // сработает, а запрет наведения/кликов остался бы висеть на body
+  useEffect(() => {
+    window.addEventListener('mouseup', releaseTextSelection)
+    window.addEventListener('blur', releaseTextSelection)
+    return () => {
+      window.removeEventListener('mouseup', releaseTextSelection)
+      window.removeEventListener('blur', releaseTextSelection)
+    }
+  }, [])
 
   useEffect(() => {
     const el = boardRef.current
@@ -172,7 +195,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   }, [hoveredNodeId])
 
 
-  const { deleteNode: deleteNodeOp, duplicateNode, insertAfterNode } = useCanvasNodeOps(setNodes)
+  const { deleteNode: deleteNodeOp, duplicateNode, insertAfterNode, insertFromPort } = useCanvasNodeOps(setNodes)
 
   function deleteNode(nodeId) {
     setHoveredNodeId(null)
@@ -200,7 +223,13 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const startPortDrag = useCallback((fromNodeId, triggerIdx, e) => {
     e.stopPropagation()
     suppressTextSelection(e) // протяжка порта тоже не должна тянуть выделение
-    const pd = { fromNodeId, triggerIdx, ...toWorld(e.clientX, e.clientY) }
+    const pd = {
+      fromNodeId, triggerIdx,
+      // экранная точка нажатия: если мышь так и не поехала, это был клик —
+      // открываем меню создания ноды вместо соединения
+      downX: e.clientX, downY: e.clientY,
+      ...toWorld(e.clientX, e.clientY),
+    }
     portDragRef.current = pd
     setPortDrag(pd)
   }, [toWorld])
@@ -225,7 +254,16 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     releaseTextSelection()
     if (endMarquee()) return
     if (portDragRef.current) {
-      const { fromNodeId, triggerIdx } = portDragRef.current
+      const { fromNodeId, triggerIdx, downX, downY } = portDragRef.current
+      // Кружок нажали и отпустили на месте — это клик, а не соединение:
+      // предлагаем создать новую ноду и сразу привязать её к этому выходу
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) < 5) {
+        const r = { left: e.clientX, right: e.clientX, top: e.clientY, bottom: e.clientY, width: 0 }
+        setTypeMenu({ pos: computeMenuPos(r), nodeId: fromNodeId, triggerIdx })
+        portDragRef.current = null
+        setPortDrag(null)
+        return
+      }
       const { x, y } = toWorld(e.clientX, e.clientY)
       // Сначала ближайшая входная точка в радиусе SNAP_R, потом тело ноды
       const snapped = nodes
@@ -311,6 +349,9 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       if (!window.confirm('Удалить ВСЕ ноды урока? Это нельзя отменить.')) return
       setNodes([])
     },
+    spreadNodes() {
+      setNodes(prev => spreadNodes(prev))
+    },
     focusStart() {
       const first = nodes.slice().sort((a, b) => a.seq - b.seq)[0]
       if (!first) return
@@ -357,6 +398,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
           <CanvasConnections
             nodes={nodes} portDrag={portDrag} onPortDragStart={startPortDrag}
             triggerMeasures={triggerMeasures} layer="back"
+            hoveredNodeId={nodeDragging ? null : hoveredNodeId}
           />
         </g>
       </svg>
@@ -380,6 +422,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
               onPickLessonFile={onPickLessonFile}
               onTriggerMeasure={handleTriggerMeasure}
               moduleLessons={moduleLessons}
+              dimmed={!!visibleTypes?.size && !visibleTypes.has(node.type)}
             />
             {hoveredNodeId === node.id && (
               <div
@@ -401,7 +444,13 @@ const CanvasBoard = forwardRef(function CanvasBoard({
                         onClick={e => { e.stopPropagation(); onPlayFrom(node.id) }}>▶</button>
                     )}
                     <button className="nodeHoverBtn nodeHoverBtnAdd" title="Вставить ноду после"
-                      onClick={e => { e.stopPropagation(); insertAfterNode(node.id) }}>+</button>
+                      onClick={e => {
+                        e.stopPropagation()
+                        setTypeMenu({
+                          pos: computeMenuPos(e.currentTarget.getBoundingClientRect()),
+                          nodeId: node.id,
+                        })
+                      }}>+</button>
                     <button className="nodeHoverBtn nodeHoverBtnDup" title="Дублировать ноду"
                       onClick={e => { e.stopPropagation(); duplicateNode(node.id) }}>⧉</button>
                     <button className="nodeHoverBtn nodeHoverBtnDel" title="Удалить ноду"
@@ -419,9 +468,21 @@ const CanvasBoard = forwardRef(function CanvasBoard({
           <CanvasConnections
             nodes={nodes} portDrag={portDrag} onPortDragStart={startPortDrag}
             triggerMeasures={triggerMeasures} layer="front"
+            hoveredNodeId={nodeDragging ? null : hoveredNodeId}
           />
         </g>
       </svg>
+
+      <NodeTypeMenu
+        pos={typeMenu?.pos}
+        onClose={() => setTypeMenu(null)}
+        onPick={type => {
+          if (!typeMenu) return
+          if (typeMenu.triggerIdx != null) insertFromPort(typeMenu.nodeId, typeMenu.triggerIdx, type)
+          else insertAfterNode(typeMenu.nodeId, type)
+          setTypeMenu(null)
+        }}
+      />
 
       {marquee && (
         <div

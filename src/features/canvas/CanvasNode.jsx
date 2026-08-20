@@ -17,6 +17,9 @@ const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
 function CanvasNode({
   node, onUpdate, onDragStart, selected = false, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
   moduleLessons = [],
+  // Фильтр в шапке канваса: тип не отмечен — нода приглушается, но остаётся
+  // на месте и со своими связями
+  dimmed = false,
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
   const handleUpdate = patch => onUpdate(node.id, patch)
@@ -49,7 +52,7 @@ function CanvasNode({
   if (node.size === 'nano') {
     return (
       <div
-        className={`canvasNode canvasNodeNano${selected ? ' canvasNodeSelected' : ''}`}
+        className={`canvasNode canvasNodeNano${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`}
         style={{ background: color }}
         onMouseDown={handleDragStart}
         onClick={expandClick}
@@ -64,7 +67,7 @@ function CanvasNode({
 
   if (node.size === 'mini') {
     return (
-      <div className={`canvasNode canvasNodeMini${selected ? ' canvasNodeSelected' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={handleDragStart}>
+      <div className={`canvasNode canvasNodeMini${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={handleDragStart}>
         <div className="canvasNodeTopBar" style={{ background: color }} />
         <div className="canvasNodeMiniBody">
           <button className="canvasNodeExpandBtn" onClick={expandClick}>›</button>
@@ -85,7 +88,7 @@ function CanvasNode({
 
   // ── max ─────────────────────────────────────────────────────────
   return (
-    <div className={`canvasNode canvasNodeMax${selected ? ' canvasNodeSelected' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={handleDragStart}>
+    <div className={`canvasNode canvasNodeMax${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={handleDragStart}>
       <div className="canvasNodeTopBar" style={{ background: color }} />
       <div className="canvasNodeMaxBody">
         <div className="canvasNodeMaxTop">

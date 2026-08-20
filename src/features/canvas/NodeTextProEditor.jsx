@@ -1,8 +1,10 @@
+import { useTextareaHeight } from './useTextareaHeight.js'
 // Про-режим текстовой ноды: второй текст (перевод), который пользователь
 // раскрывает в чате кнопкой на пузыре. Настройки: текст, надпись кнопки
 // (RU/EN/...), способ появления («напечатать» / «показать сразу»), раскраска
 // перевода (открывает общий NodeTextHighlighter через onOpenHl).
-export default function NodeTextProEditor({ tData, onChange, onOpenHl }) {
+export default function NodeTextProEditor({ tData, onChange, onOpenHl, nodeId }) {
+  const proRef = useTextareaHeight(`${nodeId}:proText`)
   const pro = !!tData.pro
   return (
     <div className="nodeProSection" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
@@ -48,7 +50,8 @@ export default function NodeTextProEditor({ tData, onChange, onOpenHl }) {
             value={tData.proText ?? ''}
             onChange={e => onChange({ proText: e.target.value })}
             placeholder="Текст перевода..."
-            rows={3}
+            rows={6}
+            ref={proRef}
           />
         </>
       )}

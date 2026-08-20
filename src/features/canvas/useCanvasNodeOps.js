@@ -1,4 +1,4 @@
-import { renumber, makeNode, NODE_SLOT } from './nodeGraph.js'
+import { renumber, makeNode, NODE_SLOT, NODE_ROW } from './nodeGraph.js'
 
 // Мутации массива нод для hover-меню канваса (удалить/дублировать/вставить
 // после) — вынесены из CanvasBoard.jsx (только setNodes как зависимость,
@@ -44,13 +44,13 @@ export function useCanvasNodeOps(setNodes) {
     })
   }
 
-  function insertAfterNode(nodeId) {
+  function insertAfterNode(nodeId, type) {
     setNodes(prev => {
       const node = prev.find(n => n.id === nodeId)
       if (!node) return prev
       const insertSeq = node.seq + 1
       const nextNode  = prev.find(n => n.seq === insertSeq) ?? null
-      const newNode   = makeNode(insertSeq, node.x + NODE_SLOT, node.y)
+      const newNode   = makeNode(insertSeq, node.x + NODE_SLOT, node.y, type)
       // middle insert: новая нода ведёт на следующую своим первым триггером
       if (nextNode) {
         newNode.triggers = newNode.triggers.map((t, ti) =>
@@ -81,5 +81,35 @@ export function useCanvasNodeOps(setNodes) {
     })
   }
 
-  return { deleteNode, duplicateNode, insertAfterNode }
+  // Клик по выходному кружку: создаём ноду выбранного типа и вешаем её
+  // именно на этот триггер (у развилки важно, на какой из выходов).
+  //
+  // Место освобождаем только для ПЕРВОЙ ветки ноды: у «выбери слово» выходов
+  // много, и если расталкивать граф на каждый, соседи уезжали бы всё дальше
+  // вправо. Вторая и следующие ветки встают в ту же колонку, но ниже.
+  function insertFromPort(nodeId, triggerIdx, type) {
+    setNodes(prev => {
+      const node = prev.find(n => n.id === nodeId)
+      if (!node) return prev
+      const insertSeq = node.seq + 1
+      const linked = (node.triggers ?? [])
+        .filter(t => t.then)
+        .map(t => prev.find(n => n.id === t.then))
+        .filter(Boolean)
+      const first = linked.length === 0
+      const y = first ? node.y : Math.max(...linked.map(n => n.y)) + NODE_ROW
+      const newNode = makeNode(insertSeq, node.x + NODE_SLOT, y, type)
+      const updated = (first ? shiftRight(prev, node.x) : prev).map(n => {
+        let out = n.seq >= insertSeq ? { ...n, seq: n.seq + 1 } : n
+        if (n.id === nodeId) {
+          out = { ...out, triggers: out.triggers.map((t, ti) =>
+            ti === triggerIdx ? { ...t, then: newNode.id } : t) }
+        }
+        return out
+      })
+      return renumber([...updated, newNode])
+    })
+  }
+
+  return { deleteNode, duplicateNode, insertAfterNode, insertFromPort }
 }

@@ -8,7 +8,7 @@ const TRIGGER_ROW_STRIDE = 54
 const THEN_Y_FALLBACK = 28
 // Порты — на 8px снаружи от края ноды (для всех размеров)
 const PORT_OFFSET = 8
-const NODE_W = { nano: 42, mini: 182, max: 220 }
+const NODE_W = { nano: 42, mini: 255, max: 308 }
 
 // y-center of trigger i's "Тогда" line for MAX nodes only.
 // triggerMeasures is ignored for mini/nano to prevent stale data after size change.

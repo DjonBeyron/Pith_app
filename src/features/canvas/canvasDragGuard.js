@@ -4,8 +4,7 @@
 // Одного user-select мало: поля ввода внутри нод ему не подчиняются, и
 // браузер продолжает тянуть выделение по всему документу — отсюда и
 // подсвеченный текст сразу во всех нодах, и просадка кадров (каждое движение
-// мыши = пересчёт выделения по DOM). Нужны три вещи разом: не дать событию
-// начать выделение, снять уже стоящее и пометить body классом (drag.css).
+// мыши = пересчёт выделения по DOM).
 
 const DRAG_CLASS = 'canvasDragging'
 
@@ -22,8 +21,15 @@ export function suppressTextSelection(e) {
     const sel = window.getSelection?.()
     if (sel && !sel.isCollapsed) sel.removeAllRanges()
   }
-  document.body.classList.add(DRAG_CLASS)
   document.body.style.userSelect = 'none'
+}
+
+// Класс на body вешается только когда протяжка ПОШЛА (мышь реально поехала),
+// а не по нажатию. Он гасит наведение и клики по содержимому нод (drag.css) —
+// поставь его сразу, и обычное нажатие на кнопку внутри ноды перестало бы
+// засчитываться: к моменту отпускания цель уже не принимает события.
+export function markDragging() {
+  document.body.classList.add(DRAG_CLASS)
 }
 
 export function releaseTextSelection() {

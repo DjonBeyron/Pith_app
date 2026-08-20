@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { triggerAnchor, nodeEntry, nodeBox } from './canvasPorts.js'
 import { connectionPath } from './canvasLinePath.js'
+import { linkColor } from './canvasLineStyle.js'
 
 // Радиус зоны срабатывания входной точки при перетаскивании порта —
 // синхронизирован со SNAP_R в CanvasBoard.
@@ -17,6 +18,9 @@ const DROP_R = 40
 // всего графа заново.
 function CanvasConnections({
   nodes, portDrag, onPortDragStart, triggerMeasures = {}, layer,
+  // Нода под курсором: её связи рисуются ярче и поверх нод, остальные
+  // притухают — так в плотном графе видно, что куда ведёт
+  hoveredNodeId = null,
 }) {
   const byId = Object.fromEntries(nodes.map(n => [n.id, n]))
   // Тела нод — препятствия: линия под ними невидима (слой back), поэтому
@@ -37,7 +41,11 @@ function CanvasConnections({
       const key  = `${node.id}:${i}`
       const d = connectionPath(from.x, from.y, to.x, to.y, key,
         boxes.get(toNode.id), allBoxes, boxes.get(node.id))
-      return { key, d, to, toSize: toNode.size, fromNodeId: node.id, triggerIdx: i }
+      const hot = !!hoveredNodeId && (node.id === hoveredNodeId || toNode.id === hoveredNodeId)
+      return {
+        key, d, to, toSize: toNode.size, fromNodeId: node.id, triggerIdx: i,
+        color: linkColor(t.if), hot,
+      }
     }).filter(Boolean)
   )
 
@@ -52,12 +60,14 @@ function CanvasConnections({
 
   // ── back layer: only lines ─────────────────────────────────────────
   if (layer === 'back') {
+    // Пока курсор на ноде, чужие связи уходят на второй план
+    const dim = hoveredNodeId ? 0.22 : 1
     return (
       <>
-        {lines.map(({ key, d }) => (
-          <g key={key}>
-            <path d={d} stroke="#b6fe3b" strokeWidth="7" fill="none" opacity="0.08" />
-            <path d={d} stroke="#b6fe3b" strokeWidth="1.5" fill="none" opacity="0.75" />
+        {lines.map(({ key, d, color, hot }) => (
+          <g key={key} opacity={hot ? 1 : dim}>
+            <path d={d} stroke={color} strokeWidth="7" fill="none" opacity="0.08" />
+            <path d={d} stroke={color} strokeWidth="1.5" fill="none" opacity="0.75" />
           </g>
         ))}
         {ghost && (
@@ -68,7 +78,20 @@ function CanvasConnections({
     )
   }
 
-  // ── front layer: dots only ─────────────────────────────────────────
+  // ── front layer: подсвеченные связи + точки портов ─────────────────
+  // Линии лежат под нодами и в плотных местах просто пропадают. Связи
+  // наведённой ноды рисуем ещё раз здесь, поверх всего — видно целиком,
+  // включая участки, которые проходят под соседями.
+  const hotLines = hoveredNodeId
+    ? lines.filter(l => l.hot).map(({ key, d, color }) => (
+        <g key={`hot:${key}`} style={{ pointerEvents: 'none' }}>
+          <path d={d} stroke="#0b0d10" strokeWidth="6" fill="none" opacity="0.85" />
+          <path d={d} stroke={color} strokeWidth="2.5" fill="none" />
+        </g>
+      ))
+    : null
+
+  // ── front layer: dots ──────────────────────────────────────────────
   // Output dots: right of each trigger row in MAX nodes (always visible)
   const outDots = nodes.flatMap(node =>
     node.size !== 'max' ? [] :
@@ -129,6 +152,7 @@ function CanvasConnections({
 
   return (
     <>
+      {hotLines}
       {inDots}
       {connInDots}
       {outDots}

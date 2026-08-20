@@ -151,6 +151,26 @@
   letter-spacing: 0.05em;
 }
 
+/* Фильтр по типам нод (только админ): рядом с ▶, включённый подсвечен и
+   показывает число выбранных типов */
+.canvasPageFilter {
+  background: transparent;
+  border: 1px solid #2a2c33;
+  color: #888;
+  font-size: 12px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1;
+  white-space: nowrap;
+}
+.canvasPageFilter:hover { border-color: #6db3ff; color: #6db3ff; }
+.canvasPageFilterOn {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+  background: #1a2210;
+}
+
 .canvasPagePlay {
   background: transparent;
   border: 1px solid #2a3a20;

@@ -9,6 +9,13 @@
    любой из выделенных нод двигает всю группу (см. CanvasBoard.jsx moveNode) */
 /* Тонкая приглушённая обводка: при захвате группы она загорается сразу на
    нескольких нодах, и в полную яркость это перебивало сам граф */
+/* Отфильтрованная нода: видно, что она есть и где стоит, но внимание на ней
+   не задерживается. Позиция и связи не меняются — фильтр только про показ */
+.canvasNodeDimmed {
+  opacity: 0.2;
+  transition: opacity 0.15s;
+}
+
 .canvasNodeSelected {
   outline: 1px solid rgba(182, 254, 59, 0.5);
   outline-offset: 2px;
@@ -35,7 +42,7 @@
 }
 
 .canvasNodeMini {
-  width: 182px;
+  width: 255px;
   background: #12141a;
   border: 1px solid #242630;
   border-radius: 10px;
@@ -59,7 +66,7 @@
 }
 
 .canvasNodeMax {
-  width: 220px;
+  width: 308px;
   background: #12141a;
   border: 1px solid #242630;
   border-radius: 10px;

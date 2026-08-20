@@ -1,8 +1,11 @@
 import { makeDefaultTriggers, getLastNodeType } from './nodeDefaults.js'
 
-// Шаг сетки: ширина max-ноды + зазор. Столько же занимает новая нода.
-// Общий для CanvasBoard (drag/insert) и ProductionList (новые ноды из списка).
-export const NODE_SLOT = 260
+// Шаг сетки — ровно ширина max-ноды, без зазора: новая нода встаёт вплотную
+// к предыдущей. Общий для CanvasBoard (drag/insert) и ProductionList.
+export const NODE_SLOT = 308
+// Вертикальный шаг между ветками одной ноды: вторая и следующая связи
+// уходят вниз, а не расталкивают граф вправо
+export const NODE_ROW = 420
 
 // Порядковые номера следуют порядку графа: вход (нода без входящих связей) = #1,
 // дальше — обход по триггерам. Несвязанные ноды идут после, в старом порядке.
@@ -33,9 +36,10 @@ export function renumber(list) {
   return list.map(n => ({ ...n, seq: seqMap.get(n.id) }))
 }
 
-export function makeNode(seq, x, y) {
-  // Новая нода наследует последний выбранный тип и его дефолтный триггер
-  const type = getLastNodeType()
+// wantType — тип выбран в меню создания; без него берётся последний
+// использованный
+export function makeNode(seq, x, y, wantType) {
+  const type = wantType ?? getLastNodeType()
   return {
     id: crypto.randomUUID(),
     seq,

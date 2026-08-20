@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { dbg } from '../../shared/lib/debug.js'
 import CanvasBoard from './CanvasBoard.jsx'
+import NodeTypeMenu from './NodeTypeMenu.jsx'
+import { computeMenuPos } from '../../shared/lib/menuPosition.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
 import { canvasLsKey } from './canvasStorageKeys.js'
 import LessonFilesPanel from './LessonFilesPanel.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
@@ -26,6 +29,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   const [showPlayer,  setShowPlayer]  = useState(false)
   // Админский прогон с середины: id ноды, с которой начать сценарий
   const [playFrom,    setPlayFrom]    = useState(null)
+  // Фильтр по типам нод — инструмент поиска на большом графе, только админу.
+  // Пустой набор = фильтр выключен; отмеченные типы видны в полную силу,
+  // остальные ноды притухают, оставаясь на своих местах со связями
+  const [filterTypes, setFilterTypes] = useState(() => new Set())
+  const [filterPos,   setFilterPos]   = useState(null)
+  const { isAdmin } = useAdmin()
   const [title,       setTitle]       = useState('')
   const [loading,     setLoading]     = useState(!!lessonId)
   const [isSaving,    setIsSaving]    = useState(false)
@@ -216,6 +225,15 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
             обёртки кнопки съезжали бы к ⚙ левым краем, см. page.css) */}
         <div className="canvasPageActions">
           <BackButton onClick={onBack} />
+          {isAdmin && (
+            <button
+              className={`canvasPageFilter${filterTypes.size ? ' canvasPageFilterOn' : ''}`}
+              title={filterTypes.size
+                ? `Показаны только: ${filterTypes.size} тип(ов) — нажми, чтобы изменить`
+                : 'Фильтр по типам нод'}
+              onClick={e => setFilterPos(computeMenuPos(e.currentTarget.getBoundingClientRect()))}
+            >⛃{filterTypes.size ? ` ${filterTypes.size}` : ''}</button>
+          )}
           <button className="canvasPagePlay" onClick={() => { setPlayFrom(null); setShowPlayer(true) }}>▶</button>
           <button
             className="canvasPageReset"
@@ -235,6 +253,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
             disabled={loading}
             title="Прокрутить холст к первой ноде"
           >В начало</button>
+          <button
+            className="pageTabBtn"
+            onClick={() => boardApiRef.current?.spreadNodes()}
+            disabled={loading}
+            title="Развести ноды по горизонтали, если они наехали друг на друга"
+          >Раздвинуть</button>
           <div className="canvasXpField">
             <input
               className="canvasXpInput"
@@ -268,6 +292,19 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
       </div>
 
       {syncStatus && <div className="canvasSyncStatus">{syncStatus}</div>}
+
+      <NodeTypeMenu
+        pos={filterPos}
+        multi
+        selected={filterTypes}
+        onClose={() => setFilterPos(null)}
+        onPick={type => setFilterTypes(prev => {
+          const next = new Set(prev)
+          if (next.has(type)) next.delete(type)
+          else next.add(type)
+          return next
+        })}
+      />
 
       {showPlayer && (
         <LessonPlayer
@@ -318,6 +355,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           initialNodes={serverNodes}
           moduleLessons={linkableLessons}
           onPlayFrom={id => { setPlayFrom(id); setShowPlayer(true) }}
+          visibleTypes={filterTypes}
         />
       )}
     </div>

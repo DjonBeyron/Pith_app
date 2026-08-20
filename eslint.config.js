@@ -35,6 +35,17 @@ export default defineConfig([
     },
   },
   {
+    // Юнит-тесты: проверяют чистую логику, в том числе вызывая хуки напрямую
+    // с подставленным setState — правила React-хуков тут не к месту
+    files: ['**/*.test.js', '**/*.test.jsx'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/set-state-in-render': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/immutability': 'off',
+    },
+  },
+  {
     // E2E-тесты Playwright (этап 5.5): бегут в node, читают process.env; внутри
     // page.evaluate — браузерные globals. React-правила тут не нужны.
     files: ['e2e/**/*.js'],

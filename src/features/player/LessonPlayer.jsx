@@ -26,20 +26,7 @@ import { saveAnswerEvents } from '../../shared/lib/skillStatsStore.js'
 import { sendSelfTrigger } from '../../shared/api/pushApi.js'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 import { usePlayerAnswers } from './usePlayerAnswers.js'
-
-// Returns a Map<nodeId, xpAmount> for nodes with reward enabled.
-// If lessonXp=0 or no reward nodes, returns empty map.
-function buildXpMap(nodes, lessonXp) {
-  if (!lessonXp) return new Map()
-  const REWARD_TYPES = ['word_choice', 'phrase_assembly', 'photo_choice', 'table']
-  const rewardNodes = nodes.filter(n =>
-    REWARD_TYPES.includes(n.type) && n.typeData?.[n.type]?.reward !== false
-  )
-  if (!rewardNodes.length) return new Map()
-  const base      = Math.floor(lessonXp / rewardNodes.length)
-  const remainder = lessonXp % rewardNodes.length
-  return new Map(rewardNodes.map((n, i) => [n.id, base + (i < remainder ? 1 : 0)]))
-}
+import { buildXpMap } from './lessonXp.js'
 
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',

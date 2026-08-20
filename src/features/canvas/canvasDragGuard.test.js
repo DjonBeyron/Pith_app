@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { suppressTextSelection, releaseTextSelection } from './canvasDragGuard.js'
+import { suppressTextSelection, markDragging, releaseTextSelection } from './canvasDragGuard.js'
 
 // Минимальные заглушки DOM: тесты идут в node-окружении, полноценный документ
 // не нужен — важна сама логика «когда гасим выделение, а когда нет»
@@ -35,12 +35,24 @@ describe('suppressTextSelection — что происходит на старт�
     selection = { isCollapsed: true, removeAllRanges: vi.fn() }
   })
 
-  it('на теле ноды выделение не начинается: preventDefault + класс на body', () => {
+  it('на теле ноды выделение не начинается: preventDefault + запрет user-select', () => {
     const e = mouseEvent('DIV')
     suppressTextSelection(e)
     expect(e.preventDefault).toHaveBeenCalled()
-    expect(classes.has('canvasDragging')).toBe(true)
     expect(document.body.style.userSelect).toBe('none')
+  })
+
+  // Тот самый баг: класс гасит клики по содержимому ноды, и если вешать его
+  // по нажатию, кнопка внутри ноды («верный ответ») перестаёт нажиматься
+  it('по одному нажатию клики внутри ноды НЕ блокируются', () => {
+    suppressTextSelection(mouseEvent('DIV'))
+    expect(classes.has('canvasDragging')).toBe(false)
+  })
+
+  it('блокировка включается только когда протяжка пошла', () => {
+    suppressTextSelection(mouseEvent('DIV'))
+    markDragging()
+    expect(classes.has('canvasDragging')).toBe(true)
   })
 
   it('уже стоящее выделение снимается — иначе оно тянется по всем нодам', () => {
@@ -60,14 +72,15 @@ describe('suppressTextSelection — что происходит на старт�
     expect(editable.preventDefault).not.toHaveBeenCalled()
   })
 
-  it('но класс на body ставится даже при старте из поля ввода', () => {
+  it('старт из поля ввода: запрет выделения ставится, клики не блокируются', () => {
     suppressTextSelection(mouseEvent('TEXTAREA'))
-    expect(classes.has('canvasDragging')).toBe(true)
+    expect(document.body.style.userSelect).toBe('none')
+    expect(classes.has('canvasDragging')).toBe(false)
   })
 
   it('без события не падает (страховка на вызовы из кода)', () => {
     expect(() => suppressTextSelection(undefined)).not.toThrow()
-    expect(classes.has('canvasDragging')).toBe(true)
+    expect(document.body.style.userSelect).toBe('none')
   })
 })
 
@@ -76,6 +89,7 @@ describe('releaseTextSelection — возврат в обычное состоя
     const classes = setupDom()
     selection = { isCollapsed: true, removeAllRanges: vi.fn() }
     suppressTextSelection(mouseEvent('DIV'))
+    markDragging()
     releaseTextSelection()
     expect(classes.has('canvasDragging')).toBe(false)
     expect(document.body.style.userSelect).toBe('')

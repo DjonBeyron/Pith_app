@@ -60,13 +60,49 @@ export function hasOwnTriggers(type, triggers = []) {
   return triggers.some(t => pair.includes(t.if))
 }
 
-// Патч { type, triggers? } для смены типа ноды: пересобирает триггеры под
-// дефолт нового типа, сохраняя единственную существующую связь (then) в
-// первом триггере — если у нового типа нет родной пары. Общая логика для
+// В каком поле у типа лежит текст сообщения. Названия исторически разные:
+// у голосового это подпись к аудио, у стикера — подпись под картинкой.
+const TEXT_FIELD = {
+  text: 'content',
+  pin_message: 'content',
+  system: 'content',
+  audio: 'text',
+  sticker: 'caption',
+}
+
+// Переносит написанный текст (и его раскраску) в поле нового типа: автор
+// набрал реплику в голосовом, передумал и сделал её текстовой — перепечатывать
+// заново незачем. Позиции выделений считаются по той же строке, поэтому
+// переезжают вместе с ней.
+function carryText(node, newType) {
+  const from = TEXT_FIELD[node.type]
+  const to = TEXT_FIELD[newType]
+  if (!from || !to) return null
+
+  const oldData = node.typeData?.[node.type] ?? {}
+  const text = oldData[from]
+  if (typeof text !== 'string' || !text.trim()) return null
+
+  const newData = node.typeData?.[newType] ?? {}
+  // Уже написанный текст нового типа не затираем
+  if (typeof newData[to] === 'string' && newData[to].trim()) return null
+
+  const patch = { ...newData, [to]: text }
+  if (oldData.highlights?.length) patch.highlights = oldData.highlights
+  if (typeof oldData.hardWrap === 'boolean') patch.hardWrap = oldData.hardWrap
+  return { ...node.typeData, [newType]: patch }
+}
+
+// Патч { type, triggers?, typeData? } для смены типа ноды: пересобирает
+// триггеры под дефолт нового типа, сохраняя единственную существующую связь
+// (then) в первом триггере — если у нового типа нет родной пары, — и
+// перетаскивает текст сообщения между текстовыми типами. Общая логика для
 // CanvasNode (mini/max) и ProductionList (строка списка).
 export function applyTypeChange(node, newType) {
   setLastNodeType(newType)
-  if (hasOwnTriggers(newType, node.triggers)) return { type: newType }
+  const typeData = carryText(node, newType)
+  const patch = { type: newType, ...(typeData ? { typeData } : {}) }
+  if (hasOwnTriggers(newType, node.triggers)) return patch
   const keepThen = node.triggers?.find(t => t.then)?.then ?? null
-  return { type: newType, triggers: makeDefaultTriggers(newType, keepThen) }
+  return { ...patch, triggers: makeDefaultTriggers(newType, keepThen) }
 }

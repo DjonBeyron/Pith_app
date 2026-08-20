@@ -39,12 +39,6 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
   // Галочка «Со звуком» на самой ноде; не задана — как в настройках урока
   const autoSound = node.typeData?.sticker?.autoSound ?? videoAutoSound
 
-  // onDone fires immediately unless autoSound+isVideo (then after first play)
-  useEffect(() => {
-    const isVideo = node.typeData?.sticker?.isVideo ?? false
-    if (!autoSound || !isVideo) onDone?.()
-  }, []) // eslint-disable-line
-
   useEffect(() => {
     // Синхронный setState осознан: blob-URL живёт строго вместе с file.localFile
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -62,6 +56,18 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
   const poster  = file?.posterUrl ?? undefined
   const isVideo = node.typeData?.sticker?.isVideo ?? false
   const crop    = node.typeData?.sticker?.crop ?? { x: 0, y: 0, scale: 1 }
+
+  // Триггер «Воспроизведено до конца» у стикера: ждём, пока ролик доиграет
+  // первый раз. Стикер играет сам, без тапа — в отличие от видео, которое
+  // пользователь открывает вручную. Ждём и при включённом звуке (первый
+  // проход со звуком), и когда автор повесил переход на «доиграло».
+  const wantsPlayed = (node.triggers ?? []).some(t => t.if === 'played' && t.then)
+  const waitPlay = isVideo && (autoSound || wantsPlayed)
+
+  // Картинка и стикер без ожидания отпускают цепочку сразу, как раньше
+  useEffect(() => {
+    if (!waitPlay) onDone?.()
+  }, []) // eslint-disable-line
 
   useEffect(() => {
     // Сброс медиасостояния при смене src — осознанный setState в эффекте
@@ -138,10 +144,10 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
     }
   }
 
-  // Первый проход со звуком доиграл → дальше беззвучная петля (звук
-  // возвращается тапом по стикеру)
+  // Первый проход доиграл → отпускаем цепочку и уходим в беззвучную петлю
+  // (если звук был — он выключается, вернуть можно тапом по стикеру)
   function handleVideoEnded() {
-    if (!autoSound || firstPlayDoneRef.current) return
+    if (!waitPlay || firstPlayDoneRef.current) return
     firstPlayDoneRef.current = true
     onDone?.()
     const v = videoRef.current
@@ -162,11 +168,12 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
           playsInline preload="auto"
           autoPlay={!autoSound}
           muted={!autoSound}
-          loop={!autoSound && !mutedLoop}
+          /* пока ждём «доиграло» — крутить нельзя, иначе конца не наступит */
+          loop={waitPlay ? mutedLoop : true}
           onCanPlay={handleCanPlay}
           onLoadedMetadata={handleVideoMeta}
           onLoadedData={autoSound ? handleVideoLoaded : undefined}
-          onEnded={autoSound ? handleVideoEnded : undefined}
+          onEnded={waitPlay ? handleVideoEnded : undefined}
         />
       : <img
           src={src}
