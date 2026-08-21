@@ -313,6 +313,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `MODULES.md` | Архитектурные правила плеера: изоляция скролла, структура модулей, правила панелей |
 | `LessonPlayer.jsx` | Оркестратор плеера: useGraphPlayer, панели, расчёт XP на ноду, earnedXp |
 | `lessonXp.js` | Раздача XP урока по нодам с галочкой «Получить награду»: поровну + остаток по одному, минимум 1 XP каждой (+ `lessonXp.test.js`) |
+| `posterTestDom.js` | Тестовый подменный DOM (video/canvas/URL.createObjectURL) для прогона настоящего `capturePosterFrame` в node-окружении + сценарии декодера и детерминированный ГПСЧ |
+| `posterPipeline.test.js` | Диагностика превью: реальные `posterQueue.js` + `videoFrame.js` под сотнями случайных сочетаний скоростей декодера — очередь строго последовательная, зависший ролик тормозит все следующие |
+| `videoPreviewWiring.test.js` | Диагностика превью: фиксирует по живому коду, какие модули отдают `poster` в `<video>` и в какой момент постер вообще появляется |
+| `previewTimingModel.test.js` | Диагностика превью: сетка сценариев (сеть × декодер × прогрев), по 150 прогонов на ячейку — успевает ли постер раньше показа сообщения |
 | `usePlayerAnswers.js` | Локальное состояние ответов игрока по типам нод (photoChoiceStates/wordChoiceStates/phraseStates/regStates, pendingPhotoXp) — вынесено из LessonPlayer.jsx, чтобы не упираться в потолок 400 строк |
 | `XpFloat.jsx` | Анимация всплывающего «+N XP»: rAF-driven, волна по X, bell-кривая opacity/scale |
 | `HeartReaction.jsx` | Реакция ❤️ на пузырь верного ответа: постоянное сердечко + 7 частиц разлетаются через Web Animations API |
