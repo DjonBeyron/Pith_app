@@ -51,7 +51,8 @@
 .tableGridCellHighlighted {
   background: rgba(182, 254, 59, 0.18);
   color: #b6fe3b;
-  animation: tableGridCellFlash 0.6s ease-in-out;
+  /* Длительность — из длины слоя на таймлайне (--td-flash); без неё прежние 0.6с */
+  animation: tableGridCellFlash var(--td-flash, 0.6s) ease-in-out;
 }
 
 /* Плавные, не слишком яркие переходы (без резких «скачков» между кадрами) —

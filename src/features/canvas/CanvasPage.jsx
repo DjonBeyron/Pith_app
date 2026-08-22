@@ -9,9 +9,11 @@ import { canvasLsKey } from './canvasStorageKeys.js'
 import LessonFilesPanel from './LessonFilesPanel.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { useLessonFiles } from './useLessonFiles.js'
+import { useCanvasFilter } from './useCanvasFilter.js'
 import { useTeacherSettings } from './useTeacherSettings.js'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
+import { setLastEditedLesson } from '../../shared/lib/lastEditedLesson.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
 export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpenProduction }) {
@@ -30,10 +32,6 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   const [showPlayer,  setShowPlayer]  = useState(false)
   // Админский прогон с середины: id ноды, с которой начать сценарий
   const [playFrom,    setPlayFrom]    = useState(null)
-  // Фильтр по типам нод — инструмент поиска на большом графе, только админу.
-  // Пустой набор = фильтр выключен; отмеченные типы видны в полную силу,
-  // остальные ноды притухают, оставаясь на своих местах со связями
-  const [filterTypes, setFilterTypes] = useState(() => new Set())
   const [filterPos,   setFilterPos]   = useState(null)
   const [toolsPos,    setToolsPos]    = useState(null)
   // Оверлей открытого меню закрывает его по нажатию — в том числе когда
@@ -46,6 +44,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   const [isSaving,    setIsSaving]    = useState(false)
   const [serverNodes, setServerNodes] = useState(null)
   const [panelNodes,  setPanelNodes]  = useState([])
+  // Фильтр в шапке — инструмент поиска на большом графе, только админу:
+  // отмеченные типы плюс особый режим «не загруженные». Что не проходит
+  // фильтр — притухает, оставаясь на своём месте со связями
+  const filter = useCanvasFilter(panelNodes)
   const [lessonXp,    setLessonXp]    = useState(0)
   // Меняется при «Обновить с сервера» — форсирует remount CanvasBoard (через
   // key), чтобы он заново прочитал initialNodes вместо своего внутреннего
@@ -77,6 +79,20 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
     prepareForSave,
   } = useTeacherSettings(lessonId)
 
+  // Правка ноды из правой панели плеера (только админ, только прогон из
+  // канваса): ноды живут внутри CanvasBoard, поэтому идём туда через ref —
+  // второго источника правды не заводим. На сервер уходит по «Сохранить»
+  const handleEditNode = useCallback(
+    (id, patch) => boardApiRef.current?.updateNode(id, patch), [])
+
+  // «К ноде» из правой панели плеера: закрываем прогон и показываем на холсте
+  // ту ноду, которую правили
+  const handleExitToNode = useCallback(id => {
+    setShowPlayer(false)
+    setPlayFrom(null)
+    boardApiRef.current?.focusNode(id)
+  }, [])
+
   const handleNodesChange = useCallback(n => {
     nodesRef.current = n
     setPanelNodes(n)
@@ -96,6 +112,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
         dbg('[CANVAS] loaded lesson', lessonId, nodes.length, 'nodes, title:', data?.title)
         if (nodes.length) dbg('[CANVAS] node types:', nodes.map(n => n.type).join(', '))
         setTitle(data?.title ?? '')
+        // Запоминаем урок для всплывашки «продолжить редактирование» при
+        // следующем запуске приложения (ResumeEditingToast.jsx)
+        setLastEditedLesson({ id: lessonId, title: data?.title })
         setLessonXp(data?.script?.lessonXp ?? 0)
         applyServerData(data?.script)
         if (nodes.length) setServerNodes(nodes)
@@ -233,15 +252,15 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           <BackButton onClick={onBack} />
           {isAdmin && (
             <button
-              className={`canvasPageFilter${filterTypes.size ? ' canvasPageFilterOn' : ''}`}
-              title={filterTypes.size
-                ? `Показаны только: ${filterTypes.size} тип(ов) — нажми, чтобы изменить`
-                : 'Фильтр по типам нод'}
+              className={`canvasPageFilter${filter.activeCount ? ' canvasPageFilterOn' : ''}`}
+              title={filter.activeCount
+                ? `Фильтр включён (${filter.activeCount}) — нажми, чтобы изменить`
+                : 'Фильтр по типам нод и по незагруженным файлам'}
               onClick={e => {
                 if (Date.now() - menuClosedAt.current < 250) return
                 setFilterPos(computeMenuPos(e.currentTarget.getBoundingClientRect()))
               }}
-            >⛃{filterTypes.size ? ` ${filterTypes.size}` : ''}</button>
+            >⛃{filter.activeCount ? ` ${filter.activeCount}` : ''}</button>
           )}
           <button className="canvasPagePlay" onClick={() => { setPlayFrom(null); setShowPlayer(true) }}>▶</button>
           <button
@@ -291,10 +310,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
         pos={toolsPos}
         onClose={() => { menuClosedAt.current = Date.now(); setToolsPos(null) }}
         items={[
-          ...(filterTypes.size
-            ? [{ label: `Сбросить фильтры (${filterTypes.size})`,
-                 title: 'Показать ноды всех типов',
-                 onClick: () => setFilterTypes(new Set()) }]
+          ...(filter.activeCount
+            ? [{ label: `Сбросить фильтры (${filter.activeCount})`,
+                 title: 'Показать все ноды',
+                 onClick: filter.reset }]
             : []),
           { label: 'В начало', title: 'Прокрутить холст к первой ноде',
             onClick: () => boardApiRef.current?.focusStart() },
@@ -310,15 +329,13 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
       <NodeTypeMenu
         pos={filterPos}
         multi
-        selected={filterTypes}
-        onReset={() => setFilterTypes(new Set())}
+        selected={filter.types}
+        missingMedia={filter.onlyMissingMedia}
+        missingMediaCount={filter.missingCount}
+        onToggleMissingMedia={filter.toggleMissingMedia}
+        onReset={filter.reset}
         onClose={() => { menuClosedAt.current = Date.now(); setFilterPos(null) }}
-        onPick={type => setFilterTypes(prev => {
-          const next = new Set(prev)
-          if (next.has(type)) next.delete(type)
-          else next.add(type)
-          return next
-        })}
+        onPick={filter.toggleType}
       />
 
       {showPlayer && (
@@ -332,6 +349,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           teacherLogoCrop={effectiveTeacher.crop}
           videoAutoSound={videoAutoSound}
           startNodeId={playFrom}
+          edit={isAdmin ? {
+            onUpdateNode: handleEditNode,
+            onPickLessonFile: pickFile,
+            moduleLessons: linkableLessons,
+            onExitToNode: handleExitToNode,
+          } : null}
           onClose={() => { setShowPlayer(false); setPlayFrom(null) }}
           onSummaryClose={onBack}
         />
@@ -370,7 +393,8 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           initialNodes={serverNodes}
           moduleLessons={linkableLessons}
           onPlayFrom={id => { setPlayFrom(id); setShowPlayer(true) }}
-          visibleTypes={filterTypes}
+          visibleTypes={filter.types}
+          onlyMissingMedia={filter.onlyMissingMedia}
         />
       )}
     </div>

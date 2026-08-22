@@ -2,10 +2,12 @@ import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { useTableDictatorRaf } from './useTableDictatorRaf.js'
+import { createSilentClock } from '../../../../shared/lib/silentClock.js'
 import { logDictatorConfig, logFileResolution, logAudioPlayRejected, logAudioError } from './dictatorDebug.js'
 import { evaluateDictator } from './dictatorCheck.js'
+import TableExtraChips from './TableExtraChips.jsx'
 import { schedulePostAudioCheck } from './dictatorPostAudio.js'
-import { computeRevealedCellIds } from '../../../../shared/lib/tableDictatorTiming.js'
+import { computeRevealedCellIds, timelineEndSec, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
 
 function deriveTokens(answer, cells) {
   const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
@@ -28,7 +30,7 @@ function shuffle(arr) {
   return a
 }
 
-export default function TableDictatorPanel({ node, file, onDone, onHeightChange }) {
+export default function TableDictatorPanel({ node, file, onDone, onHeightChange, onSendToChat }) {
   const tData        = node.typeData?.table ?? {}
   const table        = tData.table         ?? null
   const timeline     = tData.timeline      ?? null
@@ -36,7 +38,19 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
   const answer       = (tData.answer       ?? '').trim()
   const distractors  = tData.distractors   ?? []
   const cells        = table?.cells        ?? []
-  const blobUrl      = file?.blobUrl ?? file?.r2Url ?? null
+  // Локальный файл (урок ещё не синхронизирован — обычное дело при прогоне из
+  // канваса) играется прямо из File: без этого аудио таблицы не монтировалось
+  // вовсе, и таймлайн стоял на месте — так же, как это давно умеет AudioModule
+  const [objectUrl, setObjectUrl] = useState(null)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!file?.localFile) { setObjectUrl(null); return }
+    const url = URL.createObjectURL(file.localFile)
+    setObjectUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file?.localFile])
+
+  const blobUrl = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? tData.r2Url ?? null
 
   // checkAt = начало клипа проверки (запуск проверки), checkOut = конец клипа (обратная анимация).
   // Клип может стоять ПОСЛЕ конца аудио — тогда события планируются таймерами в handleEnded.
@@ -101,6 +115,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
   const prevActiveRef        = useRef(new Set())
   const prevExtraRef         = useRef(new Set())
   const timers               = useRef([])
+  // Старт/финиш прогона для режима без озвучки — те же функции, что дергает <audio>
+  const endedRef             = useRef(null)
+  const startedRef           = useRef(null)
 
   const extrasAssembledKeys = useMemo(
     () => new Set(extrasAssembled.map(t => t.key)),
@@ -110,6 +127,13 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
   const hasExtraLayers = useMemo(
     () => !!timeline?.layers?.some(l => l.word),
     [timeline],
+  )
+
+  // Сколько мигает выбор: ровно столько, сколько светится слой — и у ячеек
+  // таблицы, и у слов вне её (tableDictatorTiming.buildFlashDurations)
+  const flashDur = useMemo(
+    () => buildFlashDurations(timeline?.layers, shuffledExtras),
+    [timeline, shuffledExtras],
   )
 
   // Дебаг разрешения файла: почему аудио не проигрывается — см. dictatorDebug.js:logFileResolution
@@ -153,26 +177,82 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
     slideDownRef.current = slideDown
     checkRef.current     = check
     closeRef.current     = closeModule
+    endedRef.current     = handleEnded
+    startedRef.current   = startRun
   })
 
   // Полный лог состояний для отладки (захватывается кнопкой «Скачать лог»)
   useEffect(() => { pLog(`[td-state] playing=${playing} phase=${phase} chips=${chipsVisible} result=${result} asm=${assembled.length} ext=${extrasAssembled.length} activeExt=${activeExtraKeys.size} checkAt=${checkAt} hasExtraL=${hasExtraLayers}`) }, [playing, phase, chipsVisible, result, assembled, extrasAssembled, activeExtraKeys]) // eslint-disable-line
 
+  // Длительность прогона: длина композиции из таймлайна → аудио + 10с → как
+  // крайний случай конец самого позднего клипа с небольшим запасом. Что-то из
+  // этого есть всегда, если таймлайн вообще смонтирован
+  const silentDur = tData.timelineLen
+    ?? (tData.duration ? tData.duration + 10 : Math.ceil(timelineEndSec(timeline?.layers) + 2))
+  const canRunClock = silentDur > 0 && !!timeline?.layers?.length
+  const silentMode  = !audioSrc && canRunClock
+
+  // Прогон по часам (silentClock.js) вместо аудио: весь RAF-код читает
+  // audioRef.current.currentTime и подмены не замечает.
+  //
+  // Включается в любом случае, когда аудио не отыгрывает, а анимация есть:
+  //   — таблицу смонтировали вовсе без озвучки;
+  //   — файл не смонтировался (не подгрузился, лежит только локально);
+  //   — браузер не дал автозапуск (не было жеста пользователя);
+  //   — <audio> споткнулся на загрузке или декодировании;
+  //   — аудио молча не стартовало за 3 секунды.
+  const clockRef = useRef(null)
+
+  function runWithClock() {
+    if (clockRef.current || !canRunClock) return
+    hasPlayedRef.current = true
+    const clock = createSilentClock(silentDur, { onEnded: () => endedRef.current?.() })
+    clockRef.current = clock
+    audioRef.current = clock
+    clock.play()
+    startedRef.current?.()
+  }
+
   useEffect(() => {
     if (!audioSrc || autoPlayFired.current) return
     autoPlayFired.current = true
     const hudId   = setTimeout(() => setHudVisible(true), 400)
-    const audioId = setTimeout(() => audioRef.current?.play().catch(e => logAudioPlayRejected(e, audioSrc)), 800)
+    const audioId = setTimeout(() => audioRef.current?.play().catch(e => {
+      logAudioPlayRejected(e, audioSrc)
+      pLog('[td-auto] автозапуск отклонён — крутим таймлайн часами, без звука')
+      runWithClock()
+    }), 800)
     return () => {
       clearTimeout(hudId); clearTimeout(audioId)
       if (!hasPlayedRef.current) autoPlayFired.current = false
     }
-  }, [audioSrc])
+  }, [audioSrc]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const id = setTimeout(() => { if (!autoPlayFired.current) slideDownRef.current?.() }, 3000)
+    if (!silentMode || autoPlayFired.current) return
+    autoPlayFired.current = true
+    const startId = setTimeout(runWithClock, 800)
+    return () => clearTimeout(startId)
+  }, [silentMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => () => clockRef.current?.stop?.(), [])
+
+  // Последняя страховка: аудио так и не заиграло за 3 секунды — файл не
+  // подгрузился, декодер споткнулся, вкладка была скрыта. Прогон всё равно
+  // должен состояться: крутим таймлайн часами. Уезжаем вниз молча только если
+  // крутить нечего (таймлайна у ноды нет вовсе).
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (hasPlayedRef.current) return
+      if (canRunClock) {
+        pLog('[td-auto] аудио не стартовало за 3с — крутим таймлайн часами')
+        runWithClock()
+        return
+      }
+      slideDownRef.current?.()
+    }, 3000)
     return () => clearTimeout(id)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Авто-сборка + авто-проверка для режима «совсем без таймлайна у слов» (легаси).
   // Если у слов ЕСТЬ свои word-слои (hasExtraLayers) — RAF уже собирает их поштучно
@@ -220,8 +300,42 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
     setRevealedIds,
   })
 
+  // Старт прогона: одно и то же для аудио (onPlay) и для часов без озвучки
+  function startRun() {
+    hasPlayedRef.current = true
+    pLog(`[td-auto] onPlay answer="${answer}" cells=${cells.length} extras=${extraFromAnswer.length}`)
+    logDictatorConfig({
+      answer, cells, timeline, checkAt, checkDelay, duration: tData.duration,
+      tokens, extraFromAnswer, distractors, shuffledExtras, hasExtraLayers,
+    })
+    setPlaying(true)
+    setAssembled([])
+    setExtrasAssembled([])
+    setResult(null)
+    setPhase(null)
+    setChipsVisible(false)
+    addedCellsRef.current = new Set()
+    assembledRef.current  = []
+    prevActiveRef.current = new Set()
+    prevExtraRef.current  = new Set()
+    rfxPhaseRef.current       = false
+    rfxChipsRef.current       = false
+    rfxAssembRef.current      = false
+    rfxCheckRef.current       = false
+    rfxCloseRef.current       = false
+    closedRef.current         = false
+    closeTriggerRef.current   = null
+    closeVariantRef.current   = null
+    setHighlighted(new Set()); setUsedCells(new Set())
+    setActiveExtraKeys(new Set())
+    setRevealedIds(computeRevealedCellIds(timeline?.layers, 0))
+  }
+
   function slideDown(trigger, variantId) {
     pLog(`[td-auto] slideDown trigger=${trigger}`)
+    // Галочка «отправить таблицу в чат»: таблица уходит сообщением следом за
+    // разбором — с небольшой паузой, чтобы не наехать на уезжающую панель
+    if (onSendToChat) timers.current.push(setTimeout(onSendToChat, 600))
     setShow(false)
     setHudVisible(false)   // панель уезжает вниз — спектр сразу схлопывается (scale к 0), не ждёт onEnded
     setHighlighted(new Set())
@@ -245,7 +359,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
     // дособираем их и планируем проверку (in) + закрытие (out) таймерами от конца аудио.
     if (checkAt != null) {
       schedulePostAudioCheck({
-        timeline, cells, shuffledExtras, checkAt, checkOut, audioRef, timers,
+        timeline, cells, shuffledExtras, extraFromAnswer, checkAt, checkOut, audioRef, timers,
         rfxChipsRef, rfxCheckRef, rfxCloseRef, addedCellsRef, assembledRef,
         setPhase, setChipsVisible, setAssembled, setExtrasAssembled,
         setHighlighted, setUsedCells, setActiveExtraKeys, setRevealedIds, checkRef, closeRef,
@@ -330,7 +444,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
 
           <div className={boxCls}>
             {assembled.length === 0 && extrasAssembled.length === 0
-              ? <span className="tdAssemblyPlaceholder">Слушай диктора…</span>
+              ? <span className="tdAssemblyPlaceholder">{audioSrc ? 'Слушай диктора…' : 'Смотри на таблицу…'}</span>
               : <>
                   {assembled.map((w, i) => <span key={`c${i}`} className="tdAssemblyWord">{w}</span>)}
                   {extrasAssembled.map(t => <span key={t.key} className="tdAssemblyWord">{t.value}</span>)}
@@ -349,29 +463,20 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
                   highlightedIds={highlighted}
                   dimmedIds={usedCells}
                   revealedIds={revealedIds}
+                  flashDurations={flashDur.cells}
                 />
               </div>
             </div>
 
             {chipsVisible && (
-              <div className="tdExtrasSection">
-                {shuffledExtras.map((word, i) => {
-                  const key   = `extra-${i}`
-                  const inBox = extrasAssembledKeys.has(key)
-                  // В timeline-режиме (checkAt) зелёный держится до OFF слоя (его длины),
-                  // а не гаснет сразу при падении в бокс — так же, как подсветка ячеек в таблице.
-                  // В авто-режиме (без таймлайна) зелёной фазы нет вообще — сразу done.
-                  const green = hasExtraLayers && activeExtraKeys.has(key)
-                  const done  = inBox && !green                        // уже в боксе и отсветил → 40%
-                  return (
-                    <button
-                      key={i}
-                      style={chipStyles[i]}
-                      className={`tdExtraChip${green ? ' tdExtraChipUsed' : ''}${done ? ' tdExtraChipDone' : ''}`}
-                    >{word}</button>
-                  )
-                })}
-              </div>
+              <TableExtraChips
+                words={shuffledExtras}
+                chipStyles={chipStyles}
+                assembledKeys={extrasAssembledKeys}
+                activeKeys={activeExtraKeys}
+                hasExtraLayers={hasExtraLayers}
+                flashDurations={flashDur.chips}
+              />
             )}
           </div>
 
@@ -379,38 +484,14 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange 
             <audio
               ref={audioRef}
               src={audioSrc}
-              onPlay={() => {
-                hasPlayedRef.current = true
-                pLog(`[td-auto] onPlay answer="${answer}" cells=${cells.length} extras=${extraFromAnswer.length}`)
-                logDictatorConfig({
-                  answer, cells, timeline, checkAt, checkDelay, duration: tData.duration,
-                  tokens, extraFromAnswer, distractors, shuffledExtras, hasExtraLayers,
-                })
-                setPlaying(true)
-                setAssembled([])
-                setExtrasAssembled([])
-                setResult(null)
-                setPhase(null)
-                setChipsVisible(false)
-                addedCellsRef.current = new Set()
-                assembledRef.current  = []
-                prevActiveRef.current = new Set()
-                prevExtraRef.current  = new Set()
-                rfxPhaseRef.current       = false
-                rfxChipsRef.current       = false
-                rfxAssembRef.current      = false
-                rfxCheckRef.current       = false
-                rfxCloseRef.current       = false
-                closedRef.current         = false
-                closeTriggerRef.current   = null
-                closeVariantRef.current   = null
-                setHighlighted(new Set()); setUsedCells(new Set())
-                setActiveExtraKeys(new Set())
-                setRevealedIds(computeRevealedCellIds(timeline?.layers, 0))
-              }}
+              onPlay={startRun}
               onPause={() => setPlaying(false)}
               onEnded={handleEnded}
-              onError={(e) => logAudioError(e.currentTarget.error, e.currentTarget.currentSrc || audioSrc)}
+              onError={(e) => {
+                logAudioError(e.currentTarget.error, e.currentTarget.currentSrc || audioSrc)
+                // Файл не открылся — прогон продолжаем по часам, без звука
+                runWithClock()
+              }}
             />
           )}
         </div>

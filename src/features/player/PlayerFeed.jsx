@@ -1,15 +1,34 @@
-import { useRef, useLayoutEffect } from 'react'
+import { useRef, useLayoutEffect, useEffect } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
 import { playSound } from '../../shared/lib/sounds.js'
+import { wheelScrollShift } from './feedWheel.js'
 
 // Double scaleY(-1) trick: outer container flipped → scrollTop=0 = visual bottom.
 // Inner content flipped back → messages appear normal.
 // No JS scroll management needed — new messages always at bottom automatically.
 // Works on iOS Safari (unlike flex column-reverse negative scrollTop).
 export default function PlayerFeed({ children }) {
+  const outerRef     = useRef(null)
   const innerRef     = useRef(null)
   const prevElsRef   = useRef(new Set())
   const prevRowCount = useRef(0)
+
+  // Колесо мыши в перевёрнутом контейнере крутило ленту в обратную сторону:
+  // браузер прибавляет deltaY к scrollTop, не зная про scaleY(-1), и «вниз»
+  // уезжало вверх. Пальцем этого не видно (жест переворачивается вместе с
+  // картинкой), поэтому баг жил только на десктопе. Скроллим сами, вычитая
+  // дельту. passive:false — иначе preventDefault игнорируется.
+  useEffect(() => {
+    const el = outerRef.current
+    if (!el) return
+    const onWheel = e => {
+      if (!e.deltaY) return
+      e.preventDefault()
+      el.scrollTop += wheelScrollShift(e.deltaY, e.deltaMode, el.clientHeight)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
 
   useLayoutEffect(() => {
     const inner = innerRef.current
@@ -88,7 +107,7 @@ export default function PlayerFeed({ children }) {
   })
 
   return (
-    <div className="playerFeed">
+    <div className="playerFeed" ref={outerRef}>
       <div className="playerFeedInner" ref={innerRef}>
         {children}
       </div>

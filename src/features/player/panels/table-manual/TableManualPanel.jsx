@@ -27,7 +27,7 @@ function shuffle(arr) {
   return a
 }
 
-export default function TableManualPanel({ node, onDone, onAnswered, onHeightChange }) {
+export default function TableManualPanel({ node, onDone, onAnswered, onHeightChange, onSendToChat }) {
   const tData       = node.typeData?.table ?? {}
   const table       = tData.table          ?? null
   const answer      = tData.answer         ?? ''
@@ -109,6 +109,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
   }
 
   function closePanelWith(trigger, variantId) {
+    // Галочка «отправить таблицу в чат»: таблица уходит сообщением следом за
+    // разбором — с небольшой паузой, чтобы не наехать на уезжающую панель
+    if (onSendToChat) timers.current.push(setTimeout(onSendToChat, 600))
     setShow(false)
     const id = setTimeout(() => { onHeightChange?.(0); onDone?.(trigger, variantId) }, 420)
     timers.current.push(id)

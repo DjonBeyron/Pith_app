@@ -8,8 +8,11 @@ import { useRef, useCallback } from 'react'
 // не здесь: если рисовать её в каждой дорожке отдельно, она рвётся на отступах
 // между дорожками (у каждой свой кусок, обрезанный по высоте её строки).
 // Выровнена по стрипу дорожек теми же спейсерами, что и спектр (см. tlWaveSpacer).
-export default function TableTimelineRuler({ duration, stripPx, onSeek }) {
-  const stripRef = useRef(null)
+export default function TableTimelineRuler({ duration, stripPx, onSeek, stripRef: outerRef }) {
+  const innerRef = useRef(null)
+  // Полосу линейки знает и редактор — по ней он считает время при протяжке
+  // за сам плейхед (иначе пришлось бы дублировать пересчёт координат)
+  const stripRef = outerRef ?? innerRef
 
   const getTime = useCallback((e) => {
     const rect = stripRef.current?.getBoundingClientRect()

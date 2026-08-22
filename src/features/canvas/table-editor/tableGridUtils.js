@@ -196,3 +196,42 @@ export function setRowHeight(table, idx, newPct) {
   const rows = resizeBetween(table.rows, idx, newPct, 'heightPct')
   return rows === table.rows ? table : { ...table, rows }
 }
+
+// Слова ответа, которых нет в ячейках таблицы: именно для них в таймлайне
+// заводятся отдельные дорожки-слова. Та же логика, что у плеера
+// (deriveTokens в TableDictatorPanel) — иначе редактор и урок разойдутся:
+// каждое слово занимает свою ячейку, повторы не съедают одну и ту же.
+export function answerWordsOutsideTable(answer, cells) {
+  const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
+  const used = new Set()
+  const outside = []
+  for (const word of words) {
+    const cell = (cells ?? []).find(
+      c => c.value?.trim().toLowerCase() === word.toLowerCase() && !used.has(c.id),
+    )
+    if (cell) used.add(cell.id)
+    else outside.push(word)
+  }
+  return outside
+}
+
+// Порядок дорожек таймлайна:
+//   1) ячейки таблицы — по столбцам (весь столбец 1 сверху вниз, потом 2, ...),
+//   2) слова вне таблицы — в порядке добавления,
+//   3) «Проверить» — ВСЕГДА последней, когда бы её ни добавили: проверка идёт
+//      после всего собранного, и снизу её место читается само собой.
+// Сортировка стабильная (Array.prototype.sort в JS гарантирует это), поэтому
+// слова между собой порядок не меняют.
+export function sortTimelineLayers(layers, cellById) {
+  const rank = l => {
+    if (l.isCheck) return 2
+    return cellById.get(l.cellId) ? 0 : 1
+  }
+  return [...(layers ?? [])].sort((a, b) => {
+    const ra = rank(a), rb = rank(b)
+    if (ra !== rb) return ra - rb
+    if (ra !== 0) return 0
+    const ca = cellById.get(a.cellId), cb = cellById.get(b.cellId)
+    return ca.col !== cb.col ? ca.col - cb.col : ca.row - cb.row
+  })
+}

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/refs */
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
@@ -16,12 +16,16 @@ function findEntry(nodes, startNodeId) {
   )
 }
 
-export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
+// paused — шаговый режим админа (правка из канваса): переходы замирают.
+// Запланированный переход не теряется: он запоминается и отыгрывается, когда
+// паузу снимут или нажмут «вперёд».
+export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = false } = {}) {
   const [visibleNodes, setVisibleNodes] = useState([])
   const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
 
   const nodeMapRef  = useRef({})
+  const visibleRef  = useRef([])
   const firedRef    = useRef(new Set())
   const timersRef   = useRef([])
   const finishedRef = useRef(false) // финал урока срабатывает ровно один раз
@@ -29,6 +33,7 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
   onFinishRef.current = onFinish
 
   nodeMapRef.current = Object.fromEntries(nodes.map(n => [n.id, n]))
+  visibleRef.current = visibleNodes
 
   function addTimer(fn, ms) {
     const id = setTimeout(fn, ms)
@@ -42,35 +47,86 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
   }
 
   const scheduleReveal = useRef(null)
+  const scheduleAfter  = useRef(null)
   const activateTimerTrigger = useRef(null)
+  // Что сейчас запланировано (тикает таймер) либо отложено паузой. Ровно одно
+  // действие за раз — цепочка линейна: либо ждём показа следующей ноды, либо
+  // тикает таймер-триггер текущей
+  const scheduledRef = useRef(null)
+  const pausedRef = useRef(paused)
 
-  scheduleReveal.current = (nextNodeId) => {
-    const next = nodeMapRef.current[nextNodeId]
-    if (!next) return
-    setPendingNode(next)   // pre-render node off-screen so video can decode
-    setIsWaiting(true)
-    addTimer(() => {
-      setPendingNode(null)
-      setVisibleNodes(prev =>
-        prev.some(n => n.id === next.id) ? prev : [...prev, next]
-      )
-      setIsWaiting(false)
-      activateTimerTrigger.current(next)
-    }, TYPING_DELAY_MS)
+  function revealNode(next) {
+    scheduledRef.current = null
+    setPendingNode(null)
+    setVisibleNodes(prev => (prev.some(n => n.id === next.id) ? prev : [...prev, next]))
+    setIsWaiting(false)
+    activateTimerTrigger.current(next)
   }
 
-  activateTimerTrigger.current = (node) => {
+  // force — шаг «вперёд» админа: показать не дожидаясь «печатает…» и не
+  // спрашивая паузу
+  scheduleReveal.current = (nextNodeId, force = false) => {
+    const next = nodeMapRef.current[nextNodeId]
+    if (!next) return
+    if (pausedRef.current && !force) {
+      scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
+      return
+    }
+    setPendingNode(next)   // pre-render node off-screen so video can decode
+    setIsWaiting(true)
+    if (force) { revealNode(next); return }
+    scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
+    addTimer(() => revealNode(next), TYPING_DELAY_MS)
+  }
+
+  // Переход с задержкой: пауза после конца медиа (offsetMs) и «таймер после
+  // показа». Помечаем его запланированным ДО таймера — иначе пауза, пришедшая
+  // в эти миллисекунды, убила бы таймер вместе с переходом, и цепочка встала
+  // бы навсегда: повторного «доиграло» от модуля уже не будет
+  scheduleAfter.current = (ms, nextNodeId) => {
+    scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
+    if (pausedRef.current) return
+    addTimer(() => {
+      scheduledRef.current = null
+      scheduleReveal.current(nextNodeId)
+    }, ms)
+  }
+
+  activateTimerTrigger.current = (node, force = false) => {
     const t = (node.triggers ?? []).find(tr => tr.if === 'timer' && tr.then)
     if (!t) return
     const key = `${node.id}:timer`
+    if (pausedRef.current && !force) {
+      scheduledRef.current = { type: 'timer', nodeId: node.id }
+      return
+    }
+    scheduledRef.current = { type: 'timer', nodeId: node.id }
     addTimer(() => {
+      scheduledRef.current = null
       if (firedRef.current.has(key)) return
       firedRef.current.add(key)
       scheduleReveal.current(t.then)
     }, t.ms ?? 3000)
   }
 
-  const onNodeDone = useCallback((nodeId, result = null, variantId = null) => {
+  // Пауза: останавливаем тикающие таймеры, но помним, что было запланировано
+  // (scheduledRef). Снятие паузы — запускаем это заново с начала: доигрывать
+  // остаток миллисекунд ради отладочного режима не стоит усложнения
+  useEffect(() => {
+    pausedRef.current = paused
+    if (paused) { clearTimers(); return }
+    const planned = scheduledRef.current
+    if (!planned) return
+    scheduledRef.current = null
+    if (planned.type === 'reveal') scheduleReveal.current(planned.nodeId)
+    else {
+      const n = nodeMapRef.current[planned.nodeId]
+      if (n) activateTimerTrigger.current(n)
+    }
+  }, [paused])
+
+  // force — шаг «вперёд»: переход отыгрывается сразу, даже если стоит пауза
+  const onNodeDone = useCallback((nodeId, result = null, variantId = null, force = false) => {
     const node = nodeMapRef.current[nodeId]
     if (!node) return
     const triggers = node.triggers ?? []
@@ -83,7 +139,7 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
         const key = `${nodeId}:${variantId}`
         if (firedRef.current.has(key)) return
         firedRef.current.add(key)
-        scheduleReveal.current(vt.then)
+        scheduleReveal.current(vt.then, force)
         return
       }
     }
@@ -94,7 +150,7 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
         const key = `${nodeId}:${result}`
         if (firedRef.current.has(key)) return
         firedRef.current.add(key)
-        scheduleReveal.current(t.then)
+        scheduleReveal.current(t.then, force)
         return
       }
     }
@@ -109,8 +165,8 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
       // отрабатывает сам модуль (usePlayedOffset) — сюда приходит уже раньше
       // времени, добавлять нечего.
       const offset = ev === 'played' && t.offsetOn ? (t.offsetMs ?? 0) : 0
-      if (offset > 0) addTimer(() => scheduleReveal.current(t.then), offset)
-      else scheduleReveal.current(t.then)
+      if (offset > 0 && !force) scheduleAfter.current(offset, t.then)
+      else scheduleReveal.current(t.then, force)
       return
     }
 
@@ -119,7 +175,8 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
       const key = `${nodeId}:timer_after_play`
       if (firedRef.current.has(key)) return
       firedRef.current.add(key)
-      addTimer(() => scheduleReveal.current(tap.then), tap.ms ?? 3000)
+      if (force) scheduleReveal.current(tap.then, true)
+      else scheduleAfter.current(tap.ms ?? 3000, tap.then)
       return
     }
 
@@ -131,6 +188,50 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
     finishedRef.current = true
     onFinishRef.current?.()
   }, [])  
+
+  // Шаг «вперёд», когда переход уже назначен (тикает «печатает…» или лежит
+  // отложенным из-за паузы) — показываем следующее сообщение сейчас же.
+  // Возвращает true, если было что показать
+  const revealNow = useCallback(() => {
+    const planned = scheduledRef.current
+    if (!planned) return false
+    clearTimers()
+    scheduledRef.current = null
+    if (planned.type === 'reveal') {
+      const next = nodeMapRef.current[planned.nodeId]
+      if (next) revealNode(next)
+      return !!next
+    }
+    const n = nodeMapRef.current[planned.nodeId]
+    const t = (n?.triggers ?? []).find(tr => tr.if === 'timer' && tr.then)
+    if (!t) return false
+    const key = `${n.id}:timer`
+    if (firedRef.current.has(key)) return false
+    firedRef.current.add(key)
+    scheduleReveal.current(t.then, true)
+    return true
+  }, [])
+
+  // Шаг «назад»: снимаем последнее сообщение и разрешаем пройти этот кусок
+  // заново — забываем сработавшие триггеры снятой ноды И той, что снова стала
+  // последней (иначе её нельзя было бы «ответить» ещё раз, дедуп firedRef не
+  // пустил бы). Возвращает обе ноды: вызывающий откатывает по ним ответы и XP
+  const stepBack = useCallback(() => {
+    const prev = visibleRef.current
+    if (prev.length <= 1) return null
+    const removed = prev[prev.length - 1]
+    const last    = prev[prev.length - 2]
+    clearTimers()
+    scheduledRef.current = null
+    finishedRef.current = false
+    for (const key of [...firedRef.current]) {
+      if (key.startsWith(`${removed.id}:`) || key.startsWith(`${last.id}:`)) firedRef.current.delete(key)
+    }
+    setPendingNode(null)
+    setIsWaiting(false)
+    setVisibleNodes(p => p.slice(0, -1))
+    return { removed, last }
+  }, [])
 
   const nodesKey = nodes.map(n => n.id).join(',')
   useEffect(() => {
@@ -152,5 +253,18 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null } = {}) {
     return clearTimers
   }, [nodesKey, startNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { visibleNodes, pendingNode, isWaiting, onNodeDone }
+  // visibleNodes/pendingNode хранят СНИМКИ нод на момент показа. Админ правит
+  // урок прямо из плеера (правая панель редактора), и пузырь должен меняться
+  // на месте — отдаём наружу всегда свежий объект ноды по id. Порядок показа
+  // и прогресс при этом не трогаются: сам список остаётся тем же.
+  const freshVisible = useMemo(
+    () => visibleNodes.map(n => nodeMapRef.current[n.id] ?? n),
+    [visibleNodes, nodes], // eslint-disable-line react-hooks/exhaustive-deps
+  )
+  const freshPending = pendingNode ? (nodeMapRef.current[pendingNode.id] ?? pendingNode) : null
+
+  return {
+    visibleNodes: freshVisible, pendingNode: freshPending, isWaiting, onNodeDone,
+    revealNow, stepBack, canStepBack: visibleNodes.length > 1,
+  }
 }

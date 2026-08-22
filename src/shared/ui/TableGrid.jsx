@@ -10,7 +10,9 @@ export const ROW_UNIT_PX = 44
 // revealedIds: если передан — ячейки, которых нет в наборе, показывают текст с
 // opacity:0 (сама сетка/фон ячейки остаются на месте, скрывается только текст).
 // Не передан — обратная совместимость: текст виден всегда (как раньше).
-export default function TableGrid({ columns, rows, cells, rowCount, highlightedIds, selectedIds, dimmedIds, revealedIds, onCellClick }) {
+// flashDurations — Map(cellId → секунды): сколько мигает подсветка ячейки.
+// Берётся из длины её слоя на таймлайне, поэтому длинный клип мигает дольше.
+export default function TableGrid({ columns, rows, cells, rowCount, highlightedIds, selectedIds, dimmedIds, revealedIds, flashDurations, onCellClick }) {
   if (!columns?.length || !cells?.length) return null
 
   const gridTemplateColumns = columns.map(c => `${c.widthPct}%`).join(' ')
@@ -36,6 +38,7 @@ export default function TableGrid({ columns, rows, cells, rowCount, highlightedI
             style={{
               gridColumn: `${cell.col + 1} / span ${cell.colspan}`,
               gridRow: `${cell.row + 1} / span ${cell.rowspan}`,
+              ...(flashDurations?.get(cell.id) ? { '--td-flash': `${flashDurations.get(cell.id)}s` } : {}),
             }}
             onClick={onCellClick ? () => onCellClick(cell) : undefined}
           >

@@ -1,0 +1,41 @@
+/* Метка «загружен ли файл» в правом верхнем углу ноды (NodeMediaBadge.jsx).
+   nodes.css уже у потолка 400 строк — стили метки живут отдельным файлом. */
+
+/* Якорь для метки: сама нода. В nodes.css у .canvasNode позиции нет —
+   ставим здесь, рядом с тем, ради чего она нужна */
+.canvasNode { position: relative; }
+
+.nodeMediaBadge {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  font-size: 9px;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Файл на месте — метка почти незаметна: взгляд должен цепляться
+   за недостающее, а не за готовое */
+.nodeMediaBadge_ok      { color: #3f6a3f; }
+/* Фото есть не у всех вариантов photo_choice */
+.nodeMediaBadge_partial { color: #e8b84b; }
+/* Файла нет — самое заметное состояние */
+.nodeMediaBadge_missing { color: #ff8040; }
+
+/* nano — квадратик 42px целиком залит цветом типа, метку прижимаем плотнее
+   к углу и делаем чуть контрастнее на цветном фоне */
+.canvasNodeNano .nodeMediaBadge {
+  top: 3px;
+  right: 4px;
+  font-size: 8px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.canvasNodeNano .nodeMediaBadge_ok { color: rgba(255, 255, 255, 0.45); }
+
+/* Пункт «Не загруженные» в меню фильтра — отделён от списка типов линией:
+   он фильтрует по другому признаку, чем типы под ним */
+.nodeTypeSelectItemMissing {
+  border-bottom: 1px solid #242630 !important;
+  background: transparent !important;
+}

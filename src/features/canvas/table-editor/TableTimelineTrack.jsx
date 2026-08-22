@@ -1,10 +1,10 @@
 import { useRef, useCallback } from 'react'
-import { EXTRA_LEAD_IN_S, EXTRA_LEAD_IN_LAST_S } from '../../../shared/lib/tableDictatorTiming.js'
+import { wordGreenAt } from '../../../shared/lib/tableDictatorTiming.js'
 
 // Одна дорожка таймлайна. У cell-слоя — два независимых клипа в одной строке:
 // подсветка (как раньше) и проявление (серый, когда текст ячейки виден/скрыт).
 // У word/check-слоя — как раньше, один клип. isDefault-слои без кнопки удаления.
-export default function TableTimelineTrack({ layer, cells, duration, stripPx, isLastWord, onToggleVisible, onToggleHighlight, onUpdateClip, onUpdateReveal, onRemove }) {
+export default function TableTimelineTrack({ layer, cells, duration, stripPx, extrasStart, onToggleVisible, onToggleHighlight, onUpdateClip, onUpdateReveal, onRemove }) {
   const cell  = cells.find(c => c.id === layer.cellId)
   const isCellOnly  = !!layer.cellId && !layer.word && !layer.isCheck
   const clip        = layer.clips[0] ?? null
@@ -60,14 +60,15 @@ export default function TableTimelineTrack({ layer, cells, duration, stripPx, is
   // (зелёный) — только после лид-ина. Показываем этот кусок другим цветом — длина
   // куска фиксирована, растягивание/сужение клипа её не меняет, только сдвигает во
   // времени (клип короче лид-ина — кусок просто займёт клип целиком).
-  // У последнего по времени word-слоя лид-ин длиннее (EXTRA_LEAD_IN_LAST_S) — он
+  // Лид-ин слова упирается в конец отъезда таблицы и в конец клипа — он
   // дополнительно ждёт конец отъезда таблицы влево (TABLE_SLIDE_S), см. tableDictatorTiming.js.
   let leadInPct = null
   if (layer.word && clip) {
     const clipDur = clip.end - clip.start
     if (clipDur > 0) {
-      const leadIn = isLastWord ? EXTRA_LEAD_IN_LAST_S : EXTRA_LEAD_IN_S
-      const leadInEnd = Math.min(clip.end, clip.start + leadIn)
+      // Ровно та же формула, что и в плеере: лид-ин упирается в конец клипа,
+      // оставляя слову минимум свечения (wordGreenAt)
+      const leadInEnd = wordGreenAt(clip, extrasStart)
       leadInPct = Math.min(100, (leadInEnd - clip.start) / clipDur * 100)
     }
   }
@@ -94,7 +95,7 @@ export default function TableTimelineTrack({ layer, cells, duration, stripPx, is
               <div
                 className="tlClipLeadIn"
                 style={{ width: `${leadInPct}%` }}
-                title={isLastWord ? 'Анимация + пауза + отъезд таблицы перед выбором последнего слова' : 'Анимация + пауза перед выбором слова'}
+                title="Анимация + пауза перед выбором слова (не раньше, чем уедет таблица)"
               />
             )}
             {isCellOnly && (
@@ -124,11 +125,12 @@ export default function TableTimelineTrack({ layer, cells, duration, stripPx, is
           </div>
         )}
       </div>
-      {!layer.isDefault && (
-        (!layer.word && !layer.isCheck)
-          ? <button className="tlRemoveLayer" onClick={onRemove} title="Удалить дорожку">×</button>
-          : <div className="tlRemovePlaceholder" />
-      )}
+      {/* Правая колонка есть у КАЖДОЙ дорожки, даже когда удалять нечего:
+          без неё полоса такой дорожки была на 26px шире остальных, и её клипы
+          стояли в другом масштабе — плейхед и линейка с ними не совпадали */}
+      {!layer.isDefault && !layer.word && !layer.isCheck
+        ? <button className="tlRemoveLayer" onClick={onRemove} title="Удалить дорожку">×</button>
+        : <div className="tlRemovePlaceholder" />}
     </div>
   )
 }

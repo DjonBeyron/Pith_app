@@ -70,7 +70,8 @@ export function logDictatorConfig({
 // проигрывается: файл не найден в files[], не докачался (blobUrl/r2Url пустые).
 export function logFileResolution(fileIdCfg, file, blobUrl) {
   pLog(`[td-file] file_id(нода)=${fileIdCfg ?? '—'} file=${file ? 'найден' : '⚠ НЕ НАЙДЕН в files[]'} `
-    + `blobUrl=${file?.blobUrl ?? '—'} r2Url=${file?.r2Url ?? '—'} error=${file?.error ?? false} → итог src=${blobUrl ?? '⚠ NULL (аудио не смонтируется)'}`)
+    + `blobUrl=${file?.blobUrl ?? '—'} r2Url=${file?.r2Url ?? '—'} localFile=${file?.localFile ? 'есть' : '—'} `
+    + `error=${file?.error ?? false} → итог src=${blobUrl ?? '⚠ NULL (аудио не смонтируется)'}`)
 }
 
 export function logAudioPlayRejected(e, blobUrl) {

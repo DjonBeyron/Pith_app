@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { usePlayerFrozen } from './playerFrozen.js'
 
 // Заглушка для нод без файла — только для админа.
 //
@@ -19,6 +20,9 @@ const APPEAR_MS = 280
 // (LessonPlayer), и сработавший там таймер просто пропал бы вникуда —
 // следующее сообщение не появлялось бы вовсе.
 export function useMissingMediaFallback(active, onDone, { onStart } = {}) {
+  // Шаговый режим админа: на заморозке заглушка не «доигрывает» и цепочку не
+  // отпускает — иначе пауза не держала бы ноды без файла
+  const frozen = usePlayerFrozen()
   const onDoneRef = useRef(onDone)
   const onStartRef = useRef(onStart)
   const firedRef = useRef(false)
@@ -29,7 +33,7 @@ export function useMissingMediaFallback(active, onDone, { onStart } = {}) {
   })
 
   useEffect(() => {
-    if (!active || firedRef.current) return
+    if (!active || frozen || firedRef.current) return
     // Сначала даём пузырю доехать, потом «воспроизводим» и отпускаем цепочку
     const start = setTimeout(() => onStartRef.current?.(), APPEAR_MS)
     const done = setTimeout(() => {
@@ -37,5 +41,5 @@ export function useMissingMediaFallback(active, onDone, { onStart } = {}) {
       onDoneRef.current?.()
     }, APPEAR_MS + FALLBACK_MS)
     return () => { clearTimeout(start); clearTimeout(done) }
-  }, [active])
+  }, [active, frozen])
 }

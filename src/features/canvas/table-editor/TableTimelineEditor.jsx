@@ -1,12 +1,15 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { analyzeWaveform, probeAudioDuration, drawWaveBar, fmtAudioTime } from '../../../shared/lib/audioUtils.js'
-import { findLastWordLayerId } from '../../../shared/lib/tableDictatorTiming.js'
+import { extrasStartSec } from '../../../shared/lib/tableDictatorTiming.js'
 import { useTableTimelineEdit } from './useTableTimelineEdit.js'
+import { answerWordsOutsideTable, sortTimelineLayers } from './tableGridUtils.js'
 import TableTimelineTrack from './TableTimelineTrack.jsx'
 import TableTimelineRuler from './TableTimelineRuler.jsx'
+import TableTimelinePreview from './TableTimelinePreview.jsx'
+import { createSilentClock } from '../../../shared/lib/silentClock.js'
 import BackButton from '../../../shared/ui/BackButton.jsx'
 
-export default function TableTimelineEditor({ table, fileId, waveformData, duration, timeline, answer, lessonFiles, onPickFile, onBack }) {
+export default function TableTimelineEditor({ table, fileId, waveformData, duration, timelineLen, timeline, answer, lessonFiles, onPickFile, onBack }) {
   const [localFileId,   setLocalFileId]   = useState(fileId)
   const [localWave,     setLocalWave]     = useState(waveformData)
   const [localDuration, setLocalDuration] = useState(duration)
@@ -26,22 +29,24 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   const audioRef = useRef(null)
   const waveRef  = useRef(null)
   const ownedRef = useRef(null)
+  // Монтаж без озвучки: время крутят часы (silentClock.js) — интерфейс тот же,
+  // что у <audio>, поэтому весь код ниже про currentTime/play/pause не меняется
+  const clockRef = useRef(null)
+  const silent   = !localBlobUrl
 
-  const { layers, initClips, toggleVisible, toggleHighlight, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, getTimeline } = useTableTimelineEdit(timeline, cells)
-  const lastWordLayerId = findLastWordLayerId(layers)
-  // Таймлайн всегда на 10с длиннее аудио — есть куда поставить проверку ПОСЛЕ конца аудио.
-  // Нужен и здесь (не только ниже, для вёрстки): дефолтная длина клипа-проявления ячейки.
-  const timelineDur = localDuration ? localDuration + 10 : 0
+  const { layers, initClips, toggleVisible, toggleHighlight, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, pruneLayers, getTimeline } = useTableTimelineEdit(timeline, cells)
+  // С этого момента уезжает таблица — раньше её отъезда слова не зажигаются
+  const extrasStart = extrasStartSec(layers)
+  // Длина композиции задаётся автором и живёт отдельно от аудио: таблицу можно
+  // монтировать и вовсе без озвучки. По умолчанию — аудио плюс 10с (есть куда
+  // поставить проверку ПОСЛЕ конца записи), без аудио — 15с.
+  const [localLen, setLocalLen] = useState(
+    () => timelineLen ?? (duration ? Math.round(duration + 10) : 15),
+  )
+  const timelineDur = Math.max(1, localLen)
 
-  // Порядок дорожек: сначала все cell-слои по столбцам (весь столбец 1 сверху вниз,
-  // потом столбец 2, ...), word/check-слои — после них, в своём обычном порядке.
-  const sortedLayers = [...layers].sort((a, b) => {
-    const ca = cellById.get(a.cellId), cb = cellById.get(b.cellId)
-    if (ca && cb) return ca.col !== cb.col ? ca.col - cb.col : ca.row - cb.row
-    if (ca && !cb) return -1
-    if (!ca && cb) return 1
-    return 0
-  })
+  // Порядок дорожек: ячейки → слова → «Проверить» всегда снизу (tableGridUtils)
+  const sortedLayers = sortTimelineLayers(layers, cellById)
 
   useEffect(() => {
     if (localBlobUrl || !fileId) return
@@ -56,18 +61,27 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   }, []) // eslint-disable-line
 
   useEffect(() => {
-    initClips(localDuration, timelineDur)
-    if (!localDuration || !answer?.trim()) return
+    initClips(localDuration || timelineDur, timelineDur)
+    if (!answer?.trim()) return
     // Авто-добавление word-слоёв для слов вне таблицы
-    const words = answer.trim().split(/\s+/).filter(Boolean)
-    const usedIds = new Set()
-    words.forEach(word => {
-      const cell = cells.find(c => c.value?.trim().toLowerCase() === word.toLowerCase() && !usedIds.has(c.id))
-      if (cell) { usedIds.add(cell.id); return }
-      addWordLayer(word, localDuration)  // дедуплицирует сам
+    answerWordsOutsideTable(answer, cells).forEach(word => {
+      addWordLayer(word, localDuration || timelineDur)  // дедуплицирует сам
     })
-    addCheckLayer(localDuration, false)  // добавляет только если нет
-  }, [localDuration]) // eslint-disable-line
+    addCheckLayer(localDuration || timelineDur, false)  // добавляет только если нет
+  }, [localDuration, timelineDur]) // eslint-disable-line
+
+  // Автор правит «правильный ответ» или текст ячейки — таймлайн подстраивается
+  // на лету: для новых слов вне таблицы появляются дорожки, для исчезнувших
+  // слов и удалённых ячеек — пропадают
+  useEffect(() => {
+    if (!cells.length) return
+    const outside = answerWordsOutsideTable(answer, cells)
+    outside.forEach(word => addWordLayer(word, localDuration || timelineDur))
+    pruneLayers(
+      new Set(outside.map(w => w.toLowerCase())),
+      new Set(cells.map(c => c.id)),
+    )
+  }, [answer, cells]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Волна на паузе: перерисовать при любой смене currentTime (клик/протяжка по
   // линейке-плейхеду) — раньше это было в одном эффекте с RAF-циклом ниже и не
@@ -83,7 +97,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     if (!localDuration || !isPlaying) return
     let rafId
     const tick = () => {
-      const t = audioRef.current?.currentTime ?? 0
+      const t = (localBlobUrl ? audioRef.current : clockRef.current)?.currentTime ?? 0
       setCurrentTime(t)
       drawWaveBar(waveRef.current, localWave, localDuration ? t / localDuration : 0)
       rafId = requestAnimationFrame(tick)
@@ -99,15 +113,17 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
       const tag = document.activeElement?.tagName
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
       e.preventDefault()
-      const a = audioRef.current
-      if (!a || !localBlobUrl) return
-      if (a.paused) { a.play().catch(() => {}) } else { a.pause() }
+      togglePlay()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [localBlobUrl])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localBlobUrl, localDuration, isPlaying])
 
-  useEffect(() => () => { if (ownedRef.current) URL.revokeObjectURL(ownedRef.current) }, [])
+  useEffect(() => () => {
+    if (ownedRef.current) URL.revokeObjectURL(ownedRef.current)
+    clockRef.current?.stop?.()
+  }, [])
 
   async function handleFileChange(e) {
     const f = e.target.files?.[0]
@@ -119,38 +135,129 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     ownedRef.current = url
     const [wave, dur] = await Promise.all([analyzeWaveform(url), probeAudioDuration(url)])
     setLocalFileId(id); setLocalWave(wave); setLocalDuration(dur); setLocalBlobUrl(url)
+    // Композиция должна вмещать новую запись — растягиваем, если она короче
+    setLocalLen(prev => (dur && prev < dur + 10 ? Math.round(dur + 10) : prev))
     setCurrentTime(0); setAnalyzing(false)
   }
 
+  // Источник времени: аудио, если оно есть, иначе часы
+  function timeSource() {
+    if (localBlobUrl) return audioRef.current
+    if (!localDuration) return null
+    if (!clockRef.current || clockRef.current.duration !== timelineDur) {
+      clockRef.current?.stop?.()
+      clockRef.current = createSilentClock(timelineDur, { onEnded: () => { setIsPlaying(false); setCurrentTime(0) } })
+    }
+    return clockRef.current
+  }
+
+  // Убрать озвучку: аудио уходит и из таймлайна, и из самой ноды (file_id
+  // сохранится пустым при выходе). Монтаж при этом никуда не девается —
+  // таймлайн продолжает жить по длине композиции
+  function removeAudio() {
+    if (!window.confirm('Убрать аудио из таблицы? Разметка таймлайна останется.')) return
+    audioRef.current?.pause?.()
+    if (ownedRef.current) { URL.revokeObjectURL(ownedRef.current); ownedRef.current = null }
+    setLocalFileId(null)
+    setLocalWave(null)
+    setLocalDuration(null)
+    setLocalBlobUrl(null)
+    setIsPlaying(false)
+    setCurrentTime(0)
+  }
+
   function togglePlay() {
-    const a = audioRef.current
+    const a = timeSource()
     if (!a) return
-    if (isPlaying) { a.pause() } else { a.play().catch(() => {}) }
+    if (isPlaying) { a.pause(); setIsPlaying(false) } else { a.play()?.catch?.(() => {}); if (silent) setIsPlaying(true) }
   }
 
   // Клик/протяжка по линейке (как в Premiere) — ставит плейхед; play/пробел продолжат
   // именно отсюда, т.к. это просто currentTime самого <audio>.
   function handleSeek(t) {
-    if (audioRef.current) audioRef.current.currentTime = t
+    const a = timeSource()
+    if (a) a.currentTime = t
     setCurrentTime(t)
   }
 
+  // Ширина полосы дорожек: секунда композиции = 80px, но не уже 200px
   const stripPx = Math.max(200, Math.round(timelineDur * 80))
-  // Канвас волны занимает только аудио-часть таймлайна (первую), дальше — пусто.
-  const wavePx  = timelineDur ? Math.round(stripPx * localDuration / timelineDur) : stripPx
-  // Отступ слева до начала стрипа = 👁(22) + gap(6) + метка(92) — держим тем же
-  // числом, что и в CSS (.tlWaveSpacer/.tlTrackLabel), иначе плейхед разъедется
-  // с линейкой/клипами.
-  const TRACK_LABEL_OFFSET_PX = 120
-  const cursorLeftPx = timelineDur ? TRACK_LABEL_OFFSET_PX + (currentTime / timelineDur) * stripPx : 0
+
+  // Протяжка за сам плейхед — считаем время по той же полосе, что и линейка
+  const stripRef = useRef(null)
+  const innerRef = useRef(null)
+  // Полоса дорожек тянется по свободному месту (flex:1 при min-width), поэтому
+  // её реальная ширина бывает больше stripPx. Раньше линия рисовалась по
+  // stripPx, а время при протяжке считалось по фактической ширине — из-за
+  // расхождения плейхед убегал от курсора и не вставал туда, куда его тянут.
+  // Меряем полосу и рисуем линию ровно по ней.
+  const [strip, setStrip] = useState({ left: 120, width: 0 })
+
+  useLayoutEffect(() => {
+    const s = stripRef.current
+    const inner = innerRef.current
+    if (!s || !inner) return
+    const measure = () => {
+      const sb = s.getBoundingClientRect()
+      const ib = inner.getBoundingClientRect()
+      const next = { left: sb.left - ib.left, width: sb.width }
+      setStrip(prev => (prev.left === next.left && prev.width === next.width ? prev : next))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(s)
+    ro.observe(inner)
+    return () => ro.disconnect()
+  }, [stripPx])
+  function timeAtX(clientX) {
+    const rect = stripRef.current?.getBoundingClientRect()
+    if (!rect?.width) return 0
+    return Math.max(0, Math.min(timelineDur, ((clientX - rect.left) / rect.width) * timelineDur))
+  }
+
+  function startCursorDrag(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    const move = mv => handleSeek(timeAtX(mv.clientX))
+    const up = () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
+
+  // Канвас волны занимает только аудио-часть композиции (первую), дальше пусто.
+  // В процентах, а не в пикселях: полоса тянется по свободному месту, и от
+  // пиксельной ширины волна разъезжалась бы с линейкой на широком окне
+  const wavePct = localDuration ? (localDuration / timelineDur) * 100 : 0
+  // Плейхед — по измеренной полосе (см. strip выше): так он всегда совпадает
+  // и с засечками линейки, и с клипами дорожек
+  const cursorLeftPx = strip.width
+    ? strip.left + (currentTime / timelineDur) * strip.width
+    : 0
 
   return (
     <div className="tlEditor">
       {/* Только «Назад» — она же сохраняет (onBack в TableEditorModal сам коммитит
           изменения перед закрытием таймлайна), отдельная «Сохранить» была дублем. */}
       <div className="tlHeader">
-        <BackButton onClick={() => onBack({ file_id: localFileId, waveformData: localWave, duration: localDuration, timeline: getTimeline() })} />
+        <BackButton onClick={() => onBack({
+          file_id: localFileId, waveformData: localWave, duration: localDuration,
+          timelineLen: timelineDur, timeline: getTimeline(),
+        })} />
         <span className="tlTitle">Таймлайн</span>
+        {/* Длина композиции — в углу, как в монтажной программе: работает и с
+            озвучкой, и без неё */}
+        <label className="tlLenField">
+          Длина
+          <input
+            type="number" min="1" max="600" step="1"
+            value={localLen}
+            onChange={e => setLocalLen(Math.max(1, Number(e.target.value) || 1))}
+          />
+          с
+        </label>
       </div>
 
       {/* Управление аудио — только кнопки, без спектра */}
@@ -159,10 +266,22 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
           {analyzing ? 'Анализ…' : localFileId ? '↺ Заменить аудио' : '+ Добавить аудио'}
           <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleFileChange} />
         </label>
-        {localBlobUrl && (
+        {localFileId && (
+          <button className="tlRemoveAudio" title="Убрать аудио из таблицы" onClick={removeAudio}>
+            ✕ Убрать аудио
+          </button>
+        )}
+        {localBlobUrl ? (
           <>
             <button className="tlPlayBtn" onClick={togglePlay}>{isPlaying ? '❚❚' : '▶'}</button>
             <span className="tlTime">{fmtAudioTime(currentTime)} / {fmtAudioTime(localDuration)}</span>
+          </>
+        ) : (
+          /* Без озвучки время крутят часы (silentClock.js) — монтаж такой же */
+          <>
+            <button className="tlPlayBtn" onClick={togglePlay}>{isPlaying ? '❚❚' : '▶'}</button>
+            <span className="tlTime">{fmtAudioTime(currentTime)} / {fmtAudioTime(timelineDur)}</span>
+            <span className="tlSilentMark">без звука</span>
           </>
         )}
       </div>
@@ -170,25 +289,33 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
       {/* Слои для слов ответа и «Проверить» появляются сами (см. эффект выше на
           localDuration) — отдельных кнопок для этого больше нет, только подсказка. */}
       <div className="tlHint">
-        {localDuration ? 'Тяните ручки клипа — задайте начало/конец. Тяните тело — двигайте. 👁 — скрыть.' : 'Сначала добавьте аудио.'}
+        Тяните ручки клипа — задайте начало/конец. Тяните тело — двигайте. 👁 — скрыть.
+        Длина композиции — в шапке, аудио для монтажа не обязательно.
       </div>
+
+      {(
+        <TableTimelinePreview
+          table={table}
+          layers={layers}
+          currentTime={currentTime}
+          duration={timelineDur}
+        />
+      )}
 
       <div className="tlTracks">
         {/* Обёртка натуральной высоты (= вся прокручиваемая высота содержимого) —
             плейхед внутри неё растягивается на 100% этой высоты одним куском,
             а не по кускам на дорожку (иначе рвётся в отступах между дорожками). */}
-        <div className="tlTracksInner">
+        <div className="tlTracksInner" ref={innerRef}>
           {/* Линейка времени (засечки 0.1с + подписи секунд) — над всеми дорожками.
               Клик/протяжка по ней ставит плейхед — play/пробел играют оттуда. */}
-          {timelineDur ? (
-            <TableTimelineRuler duration={timelineDur} stripPx={stripPx} onSeek={handleSeek} />
-          ) : null}
+          <TableTimelineRuler duration={timelineDur} stripPx={stripPx} onSeek={handleSeek} stripRef={stripRef} />
           {/* Спектр — только аудио-часть (слева); справа пустой хвост таймлайна */}
           {localBlobUrl && (
             <div className="tlWaveTrack">
               <div className="tlWaveSpacer" />
               <div style={{ flex: 1, minWidth: `${stripPx}px` }}>
-                <canvas className="tlWaveTrackCanvas" ref={waveRef} style={{ width: `${wavePx}px` }} />
+                <canvas className="tlWaveTrackCanvas" ref={waveRef} style={{ width: `${wavePct}%` }} />
               </div>
               <div className="tlWaveSpacerR" />
             </div>
@@ -200,7 +327,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
               cells={cells}
               duration={timelineDur}
               stripPx={stripPx}
-              isLastWord={layer.id === lastWordLayerId}
+              extrasStart={extrasStart}
               onToggleVisible={() => toggleVisible(layer.id)}
               onToggleHighlight={() => toggleHighlight(layer.id)}
               onUpdateClip={clip => updateClip(layer.id, clip, 0)}
@@ -209,7 +336,17 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
             />
           ))}
           {/* Единственный сквозной плейхед — цельная линия через линейку и все дорожки */}
-          {timelineDur ? <div className="tlCursorLine" style={{ left: `${cursorLeftPx}px` }} /> : null}
+          {/* Флажок плейхеда: тащить можно и за него, и за линию — зона
+              захвата шире самой линии (см. .tlCursorGrab), иначе попасть
+              мышью в 2px непросто */}
+          <div
+            className="tlCursorLine"
+            style={{ left: `${cursorLeftPx}px` }}
+            onMouseDown={startCursorDrag}
+          >
+            <span className="tlCursorGrab" />
+            <span className="tlCursorFlag" />
+          </div>
         </div>
       </div>
 

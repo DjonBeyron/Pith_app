@@ -3,7 +3,7 @@ import { WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { logHudState } from './dictatorDebug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
-import { EXTRA_LEAD_IN_S, EXTRA_LEAD_IN_LAST_S, findLastWordLayerId, computeRevealedCellIds, sameIdSet } from '../../../../shared/lib/tableDictatorTiming.js'
+import { EXTRA_LEAD_IN_S, mapWordLayersToChips, answerOrderOf, wordGreenAt, lastWordClipEnd, computeRevealedCellIds, sameIdSet, resultHoldSec } from '../../../../shared/lib/tableDictatorTiming.js'
 
 const HUD_OFFSETS    = [-1, 0, 1]
 const HUD_ALPHA_UP   = [0.60, 0.75, 0.50]
@@ -34,8 +34,10 @@ export function useTableDictatorRaf({
       const s = l.clips[0].start
       if (firstExtraStart == null || s < firstExtraStart) firstExtraStart = s
     }
-    // Последний по времени word-слой ждёт ещё и конец отъезда таблицы (см. tableDictatorTiming.js)
-    const lastWordLayerId = findLastWordLayerId(timeline?.layers)
+    // Каждому слою — свой чип: два одинаковых слова в ответе больше не делят один
+    const chipByLayer = mapWordLayersToChips(timeline?.layers, shuffledExtras)
+    // Докуда идут клипы слов — после этого ждать сборку больше нечего
+    const wordsEnd = lastWordClipEnd(timeline?.layers)
 
     const tick = () => {
       const t      = audioRef.current?.currentTime ?? 0
@@ -129,22 +131,25 @@ export function useTableDictatorRaf({
         if (rfxChipsRef.current) {
           const ea = new Set()
           const eaDur = new Map()
+          const fresh = []   // загоревшиеся именно сейчас — их порядок важен
           for (const l of timeline?.layers ?? []) {
             if (l.visible === false || !l.word || !l.clips?.length) continue
             const clip = l.clips[0]
-            const greenFrom = clip.start + (l.id === lastWordLayerId ? EXTRA_LEAD_IN_LAST_S : EXTRA_LEAD_IN_S)
+            const greenFrom = wordGreenAt(clip, firstExtraStart)
             if (t >= greenFrom && t < clip.end) {
-              const idx = shuffledExtras.indexOf(l.word)
-              if (idx === -1) continue
-              const k = `extra-${idx}`
+              const k = chipByLayer.get(l.id)
+              if (!k) continue
               ea.add(k)
               eaDur.set(k, clip.end - greenFrom)
+              if (!greenedKeys.has(k)) fresh.push({ k, word: l.word })
             }
           }
-          for (const k of ea) {
-            if (greenedKeys.has(k)) continue
+          // Слова, загоревшиеся в одном кадре, падают в бокс в порядке ответа,
+          // а не в порядке слоёв на таймлайне — иначе фраза собиралась бы
+          // задом наперёд и верный ответ считался ошибкой
+          fresh.sort((a, b) => answerOrderOf(a.word, extraFromAnswer) - answerOrderOf(b.word, extraFromAnswer))
+          for (const { k, word } of fresh) {
             greenedKeys.add(k)
-            const word = shuffledExtras[+k.split('-')[1]]
             pLog(`[td-raf] СЛОВО-ON "${word}" ${k} t=${t.toFixed(3)}s → зелёный (совпал с таймлайном), в бокс через 0.3с`)
             glowOn(k, `СЛОВО "${word}"`, eaDur.get(k) ?? 0)
             const id = setTimeout(() => {
@@ -189,16 +194,22 @@ export function useTableDictatorRaf({
         }
         const noExtras = extraFromAnswer.length === 0
         // in-point: запускаем проверку (показ результата)
-        if (t >= checkAt && (rfxAssembRef.current || noExtras) && !rfxCheckRef.current) {
+        // Слова не собрались, а их клипы уже прошли — проверяем как есть,
+        // иначе панель висела бы до самого конца прогона
+        const nothingLeftToWait = wordsEnd > 0 && t >= wordsEnd + 0.5
+        if (t >= checkAt && (rfxAssembRef.current || noExtras || nothingLeftToWait) && !rfxCheckRef.current) {
           rfxCheckRef.current = true
           pLog(`[td-raf] CHECK (in) t=${t.toFixed(3)} checkAt=${checkAt} assembled=[${assembledRef.current.join('|')}]`)
           checkRef.current?.()
-        }
-        // out-point: обратная анимация (модуль уезжает вниз)
-        if (checkOut != null && t >= checkOut && rfxCheckRef.current && !rfxCloseRef.current) {
-          rfxCloseRef.current = true
-          pLog(`[td-raf] CLOSE (out) t=${t.toFixed(3)} checkOut=${checkOut}`)
-          closeRef.current?.()
+          // Результат виден ровно длину клипа «Проверить» — растянул слой,
+          // значит момент держится дольше. Отсчёт от самой проверки, а не по
+          // абсолютной метке конца: проверка могла сдвинуться, ожидая слова
+          const hold = resultHoldSec(checkAt, checkOut)
+          if (hold != null && !rfxCloseRef.current) {
+            rfxCloseRef.current = true
+            pLog(`[td-raf] закрытие через ${hold.toFixed(2)}s (длина клипа проверки)`)
+            timers.current.push(setTimeout(() => closeRef.current?.(), hold * 1000))
+          }
         }
       }
 

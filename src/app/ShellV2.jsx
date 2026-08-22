@@ -18,6 +18,7 @@ import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { useDailyLoginTouch } from '../features/streak/useDailyLoginTouch.js'
 import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
+import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
 
 // Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
 // пользователь эти chunk'и даже не скачивает (см. PROJECT.md, этап 2)
@@ -142,6 +143,11 @@ export default function ShellV2() {
           </button>
         )}
       </nav>
+
+      {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}
+      {isAdmin && !canvasLesson && !productionLesson && (
+        <ResumeEditingToast onOpen={lesson => setCanvasLesson({ id: lesson.id, moduleLessons: [] })} />
+      )}
 
       {/* Попапы супергонки: анонс недели и итоги — поверх любой вкладки */}
       <RaceGlobalPopups onOpenRace={() => { setTab('rating'); setRaceOpenTick(t => t + 1) }} />

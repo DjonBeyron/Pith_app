@@ -72,3 +72,23 @@ video::-webkit-media-controls-overlay-play-button {
   pointer-events: none !important;
   -webkit-appearance: none !important;
 }
+
+/* Источник кадров для canvas-зеркала (videoMirror.js): сам <video> не виден,
+   но остаётся в потоке и в пределах экрана — из display:none браузер может
+   не декодировать кадры вовсе. Панели браузера над видео такого размера
+   не появляются, а показывает картинку canvas поверх. */
+.videoMirrorSource {
+  position: absolute !important;
+  left: 0;
+  top: 0;
+  width: 2px !important;
+  height: 2px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 2px !important;
+  max-height: 2px !important;
+  opacity: 0.01 !important;
+  pointer-events: none !important;
+  transform: none !important;
+  z-index: 0;
+}

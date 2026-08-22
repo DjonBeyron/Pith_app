@@ -5,6 +5,8 @@ import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
+import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
+import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
 
 export default function VideoModule({ node, file, onDone, videoAutoSound, adminPreview = false, pending = false }) {
   const [objectUrl, setObjectUrl] = useState(null)
@@ -17,6 +19,9 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
   const [fsReady, setFsReady]     = useState(false)
   const videoRef    = useRef(null)
   const fsVideoRef  = useRef(null)
+  // canvas-зеркала кадров (десктоп): показывают картинку вместо самого <video>
+  const mirrorRef   = useRef(null)
+  const fsMirrorRef = useRef(null)
   const frameRef    = useRef(null)
   const progressRef = useRef(null)
   const rafRef      = useRef(null)
@@ -158,6 +163,12 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
       transformOrigin: 'center center',
     }
   }
+
+  // На десктопе кадры показывает canvas, а сам <video> прячется: иначе
+  // Яндекс.Браузер вешает поверх видео свою панель (см. videoMirror.js)
+  const mirror = useWideScreen()
+  useVideoMirror(videoRef, mirrorRef, mirror && !!src, frame0)
+  useVideoMirror(fsVideoRef, fsMirrorRef, mirror && fsVisible && !!fsSrc, frame0)
 
   function getMediaStyle() {
     if (!frameDims) return calcCropStyle(0, 0)
@@ -303,17 +314,22 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
         pointerEvents: 'none',
       }}>
         <video
+          {...VIDEO_GUARD}
           ref={fsVideoRef}
           src={fsSrc ?? undefined}
           playsInline
           preload="none"
-          style={getFsMediaStyle()}
+          className={mirror ? 'videoMirrorSource' : undefined}
+          style={mirror ? undefined : getFsMediaStyle()}
           onCanPlay={handleFsCanPlay}
           onPlaying={() => pLog('VideoModule: FS onPlaying')}
           onWaiting={() => pLog('VideoModule: FS onWaiting')}
           onEnded={handleFsEnded}
           onError={e => pLog('VideoModule: FS onError code=', e.currentTarget.error?.code)}
         />
+        {mirror && fsVisible && (
+          <canvas ref={fsMirrorRef} style={getFsMediaStyle()} aria-hidden="true" />
+        )}
         {/* Frame 0 overlay — shown until FS video fires onCanPlay, eliminates black flash */}
         {fsVisible && frame0 && !fsReady && (
           <img
@@ -345,8 +361,10 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
           ? <>
               <div ref={frameRef} className="playerVideoCropFrame" onClick={handleTap}>
                 <video
-                  ref={videoRef} src={src} className="playerVideoMedia"
-                  style={{ ...getMediaStyle(), pointerEvents: 'none' }}
+                  {...VIDEO_GUARD}
+                  ref={videoRef} src={src}
+                  className={`playerVideoMedia${mirror ? ' videoMirrorSource' : ''}`}
+                  style={mirror ? VIDEO_GUARD_STYLE : { ...getMediaStyle(), ...VIDEO_GUARD_STYLE }}
                   playsInline preload="auto"
                   autoPlay={!videoAutoSound}
                   muted={!videoAutoSound}
@@ -360,6 +378,9 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
                   onEnded={videoAutoSound ? handleInlineEnded : undefined}
                   onError={e => pLog('VideoModule: inline onError code=', e.currentTarget.error?.code)}
                 />
+                {mirror && (
+                  <canvas ref={mirrorRef} className="playerVideoMedia" style={getMediaStyle()} aria-hidden="true" />
+                )}
                 {(!videoAutoSound || mutedLoop) && <MutedIcon />}
               </div>
               {fsPortal}

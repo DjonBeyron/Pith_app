@@ -11,7 +11,7 @@ import TableTimelineEditor from './TableTimelineEditor.jsx'
 // Правки локальны до нажатия «Сохранить»; onSave получает полный объект tData.
 export default function TableEditorModal({
   initialTable, initialFileId, initialWaveformData, initialDuration, initialTimeline,
-  initialAnswer,
+  initialTimelineLen, initialAnswer,
   lessonFiles, onPickFile, onSave, onClose,
 }) {
   const grid = useTableGrid(initialTable)
@@ -20,6 +20,8 @@ export default function TableEditorModal({
   const [waveformData, setWaveformData]     = useState(initialWaveformData ?? null)
   const [duration,     setDuration]         = useState(initialDuration ?? null)
   const [timeline,     setTimeline]         = useState(initialTimeline ?? null)
+  // Длина композиции таймлайна — задаётся автором, от аудио не зависит
+  const [timelineLen,  setTimelineLen]      = useState(initialTimelineLen ?? null)
 
   function applyTemplate(t) {
     if (!window.confirm('Заменить текущую сетку шаблоном? Несохранённые правки будут потеряны.')) return
@@ -30,6 +32,7 @@ export default function TableEditorModal({
     setFileId(data.file_id)
     setWaveformData(data.waveformData)
     setDuration(data.duration)
+    setTimelineLen(data.timelineLen)
     setTimeline(data.timeline)
     setShowTimeline(false)
   }
@@ -43,6 +46,7 @@ export default function TableEditorModal({
             fileId={fileId}
             waveformData={waveformData}
             duration={duration}
+            timelineLen={timelineLen}
             timeline={timeline}
             answer={initialAnswer ?? ''}
             lessonFiles={lessonFiles}
@@ -55,10 +59,10 @@ export default function TableEditorModal({
               <span className="tableEditorTitle">Конструктор таблицы</span>
               <div className="tableEditorHeaderActions">
                 <button className="tableEditorBtnGhost" onClick={() => setShowTimeline(true)}>
-                  {fileId ? '♪ Таймлайн' : '♪ Монтаж'}
+                  ♪ Таймлайн
                 </button>
                 <button className="tableEditorBtnGhost" onClick={onClose}>Отмена</button>
-                <button className="tableEditorBtnPrimary" onClick={() => onSave({ table: grid.table, file_id: fileId, waveformData, duration, timeline })}>
+                <button className="tableEditorBtnPrimary" onClick={() => onSave({ table: grid.table, file_id: fileId, waveformData, duration, timelineLen, timeline })}>
                   Сохранить
                 </button>
               </div>

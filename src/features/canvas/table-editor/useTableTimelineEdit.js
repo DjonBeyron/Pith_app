@@ -122,6 +122,23 @@ export function useTableTimelineEdit(initialTimeline, cells) {
     setLayers(prev => prev.filter(l => l.id !== id || l.isDefault || l.word || l.isCheck))
   }, [])
 
+  // Автоуборка: автор поменял «правильный ответ» или текст ячейки — дорожки
+  // для слов, которых в ответе больше нет, и для исчезнувших ячеек только
+  // мешают (и продолжали бы играть в уроке). Убираем их молча.
+  // removeLayer сюда не годится: он намеренно не даёт удалять слова и ячейки
+  // руками, чтобы автор не снёс дорожку случайным кликом.
+  const pruneLayers = useCallback((wordSet, cellIdSet) => {
+    setLayers(prev => {
+      const next = prev.filter(l => {
+        if (l.isCheck) return true
+        if (l.word)   return wordSet.has(l.word.toLowerCase())
+        if (l.cellId) return cellIdSet.has(l.cellId)
+        return true
+      })
+      return next.length === prev.length ? prev : next
+    })
+  }, [])
+
   function getTimeline() {
     return {
       // Сохраняем ВСЕ слои с клипами (включая скрытые) — чтобы состояние
@@ -133,5 +150,5 @@ export function useTableTimelineEdit(initialTimeline, cells) {
     }
   }
 
-  return { layers, initClips, toggleVisible, toggleHighlight, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, getTimeline }
+  return { layers, initClips, toggleVisible, toggleHighlight, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, pruneLayers, getTimeline }
 }

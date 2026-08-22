@@ -1,0 +1,223 @@
+/* Правка урока прямо из плеера: карандаш у сообщения и правая панель
+   редактора (features/player/admin/). Включается только для админа,
+   запустившего урок из канваса, и только на десктопе — на узком экране
+   панели негде стоять, поэтому она там скрыта. */
+
+.playerMsgSlot { position: relative; }
+
+/* Сообщение, открытое в правой панели. Раньше его карандаш оставался
+   подсвеченным и ВИДИМЫМ — вместе с карандашом наведённого сообщения на
+   экране висели сразу две одинаковые кнопки. Теперь выбор показывает сама
+   полоска слева, а карандаш всегда ровно один: под курсором */
+.playerMsgSlotActive::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--player-accent, #b6fe3b);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.nodeEditPencil {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 30;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: none;               /* мобильный — режима правки нет */
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  background: rgba(14, 16, 19, 0.9);
+  color: #8a8f99;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;                  /* проявляется при наведении на сообщение */
+  transition: opacity 0.12s, color 0.12s;
+}
+
+@media (min-width: 900px) {
+  .nodeEditPencil { display: flex; }
+}
+
+.playerMsgSlot:hover .nodeEditPencil,
+.nodeEditPencil:focus-visible { opacity: 1; }
+
+.nodeEditPencil:hover { color: var(--player-accent, #b6fe3b); border-color: #3a4050; }
+/* Карандаш ноды, открытой в панели — зелёный, но проявляется так же по наведению */
+.nodeEditPencilOn { color: var(--player-accent, #b6fe3b); border-color: var(--player-accent, #b6fe3b); }
+
+/* Карандаш нижней панели ответа (выбери слово, собери фразу, таблица…):
+   наводить там не на что, поэтому кнопка видна всегда и сидит над панелью.
+   position:fixed внутри .playerPhone — она containing block (layout.css) */
+.nodeEditPencil--panel {
+  position: fixed;
+  top: auto;
+  right: 10px;
+  opacity: 1;
+  z-index: 210;
+}
+
+/* ── Правая панель редактора ────────────────────────────────────────── */
+.playerEditPanel { display: none; }
+
+@media (min-width: 900px) {
+  .playerEditPanel {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 201;
+    width: 360px;
+    /* Ровно по высоте «телефона» (layout.css) — редактору нужно место,
+       длинные формы скроллятся внутри .playerEditPanelBody */
+    height: min(92vh, 920px);
+    margin-left: 16px;
+    background: #12141a;
+    border: 1px solid #242630;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
+    color: #ccc;
+    font-size: 12px;
+  }
+}
+
+/* Обе строки шапки (выбор ноды и шаги) живут по одной метрике: высота 28,
+   скругление 7, тот же зазор — иначе ряд выглядит разнобоем */
+.playerEditPanelHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 6px;
+  flex-shrink: 0;
+}
+
+.playerEditPanelSelect {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 6px;
+  background: #0a0c10;
+  border: 1px solid #1e2030;
+  border-radius: 7px;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.playerEditPanelBtn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0c10;
+  border: 1px solid #1e2030;
+  border-radius: 7px;
+  color: #8a8f99;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.playerEditPanelBtn:hover:not(:disabled) { color: var(--player-accent, #b6fe3b); }
+.playerEditPanelBtn:disabled { opacity: 0.4; cursor: default; }
+
+.playerEditPanelBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.playerEditPanelHint {
+  margin: 0;
+  color: #6a6f78;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* ── Пошаговое управление прогоном (PlayerStepBar) ──────────────────── */
+.playerStepBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid #242630;
+  flex-shrink: 0;
+}
+
+/* Три кнопки шага — одним сегментом: общая рамка, разделители внутри.
+   Так ряд читается как один орган управления, а не три случайные кнопки */
+.playerStepGroup {
+  display: flex;
+  border: 1px solid #1e2030;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #0a0c10;
+}
+
+.playerStepBtn {
+  width: 34px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid #1e2030;
+  color: #9aa0b4;
+  cursor: pointer;
+}
+
+.playerStepBtn:first-child { border-left: 0; }
+
+/* Кнопка вне сегмента (выход к ноде) — своя рамка и скругление */
+.playerStepBtnSolo {
+  border: 1px solid #1e2030;
+  border-radius: 7px;
+  background: #0a0c10;
+  width: 30px;
+}
+.playerStepBtn:hover:not(:disabled) { color: var(--player-accent, #b6fe3b); background: #12141a; }
+.playerStepBtn:disabled { opacity: 0.3; cursor: default; }
+/* Пауза висит — кнопка горит, чтобы не искать, почему чат замер */
+.playerStepBtnOn { color: #ffb340; }
+
+/* Каким ответом шаг отвечает за ученика на вопросах. Ширина фиксирована:
+   «верно» и «неверно» разной длины, кнопка не должна прыгать при переключении */
+.playerStepAnswer {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 92px;
+  height: 28px;
+  padding: 0;
+  border-radius: 7px;
+  background: #0a0c10;
+  border: 1px solid #1e2030;
+  color: #9aa0b4;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.playerStepDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6ac46a;
+  flex-shrink: 0;
+}
+
+.playerStepAnswerBad .playerStepDot { background: #ff8040; }
+.playerStepAnswer:hover { border-color: #3a4050; }

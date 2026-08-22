@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback, forwardRef } from 'react'
 import { canvasLsKey, canvasViewKey } from './canvasStorageKeys.js'
 import CanvasNode from './CanvasNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
@@ -10,9 +10,10 @@ import { useCanvasDrag } from './useCanvasDrag.js'
 import { useCanvasSelection } from './useCanvasSelection.js'
 import { useCanvasNodeOps } from './useCanvasNodeOps.js'
 import { renumber, makeNode } from './nodeGraph.js'
-import { spreadNodes } from './canvasSpread.js'
+import { useCanvasBoardApi } from './useCanvasBoardApi.js'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
+import { isNodeDimmed } from './nodeMediaStatus.js'
 
 // Радиус (в мировых координатах), в котором брошенный порт цепляется
 // к входной точке ноды.
@@ -68,6 +69,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Фильтр в шапке (админ): типы, которые показываем в полную силу.
   // Пустой набор — фильтр выключен, видно всё
   visibleTypes = null,
+  // Особый фильтр: в полную силу только ноды, которым ещё не загрузили файл
+  onlyMissingMedia = false,
 }, ref) {
   const [nodes, setNodes] = useState(() => {
     const s = loadSaved(lessonId)
@@ -128,7 +131,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Выделение нескольких нод (рамкой по левой кнопке или Shift+клик) —
   // протяжка за любую из выделенных двигает всю группу разом (moveNode)
   const {
-    selectedIds, marquee, moveGroup,
+    selectedIds, marquee, moveGroup, selectOnly,
     onNodeMouseDown: onSelectionMouseDown, startMarquee, updateMarquee, endMarquee, collapseIfClick,
   } = useCanvasSelection()
 
@@ -342,26 +345,11 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     setNodes(prev => renumber([...prev, makeNode(prev.length + 1, cx, cy)]))
   }
 
-  // Кнопки шапки (CanvasPage) дотягиваются сюда через ref — nodes/offset/scale
-  // живут в этом компоненте, поднимать их в CanvasPage ради двух кнопок смысла нет
-  useImperativeHandle(ref, () => ({
-    clearAll() {
-      if (!window.confirm('Удалить ВСЕ ноды урока? Это нельзя отменить.')) return
-      setNodes([])
-    },
-    spreadNodes() {
-      setNodes(prev => spreadNodes(prev))
-    },
-    focusStart() {
-      const first = nodes.slice().sort((a, b) => a.seq - b.seq)[0]
-      if (!first) return
-      const el = boardRef.current
-      const rect = el ? el.getBoundingClientRect() : { width: 900, height: 600 }
-      scaleRef.current = 1
-      setScale(1)
-      setOffset({ x: rect.width / 2 - first.x - 91, y: rect.height / 2 - first.y - 20 })
-    },
-  }), [nodes])
+  // Команды холсту снаружи (кнопки шапки, правая панель плеера) + «прожектор»
+  // на ноде, к которой перешли из плеера
+  const spotlightId = useCanvasBoardApi(ref, {
+    nodes, setNodes, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset,
+  })
 
   const svgTransform   = `translate(${offset.x},${offset.y}) scale(${scale})`
   const worldTransform = `translate(${offset.x}px,${offset.y}px) scale(${scale})`
@@ -369,7 +357,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   return (
     <div
       ref={boardRef}
-      className="canvasBoard"
+      className={`canvasBoard${spotlightId ? ' canvasSpotlight' : ''}`}
       style={{ cursor: portDrag ? 'crosshair' : undefined, userSelect: portDrag ? 'none' : undefined }}
       onMouseDown={e => {
         // Клик вне ноды и меню закрывает меню-липучку (и вопрос «Удалить?»)
@@ -407,7 +395,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
         {nodes.map(node => (
           <div
             key={node.id}
-            className="canvasNodeWrapper"
+            className={`canvasNodeWrapper${spotlightId === node.id ? ' canvasNodeWrapperSpot' : ''}`}
             style={{ left: node.x, top: node.y }}
             onMouseEnter={() => enterNode(node.id)}
           >
@@ -422,7 +410,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
               onPickLessonFile={onPickLessonFile}
               onTriggerMeasure={handleTriggerMeasure}
               moduleLessons={moduleLessons}
-              dimmed={!!visibleTypes?.size && !visibleTypes.has(node.type)}
+              dimmed={isNodeDimmed(node, visibleTypes, onlyMissingMedia)}
             />
             {hoveredNodeId === node.id && (
               <div

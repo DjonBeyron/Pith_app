@@ -13,16 +13,19 @@ import { wordOptionEvent } from './useAnswerStats.js'
 export default function PlayerPanels({
   wcNode, paNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
+  // Шаг «назад» админа: растёт при откате и пересобирает панель — иначе она
+  // осталась бы в состоянии «уже отвечено» и вопрос заново не показала бы
+  epoch = 0,
   onNodeDone, record, wrongRef,
   handleWordAnswer, handleWordPick, handlePhraseAnswer, handleRegAnswer,
-  handlePhotoPick, handleXpEarned,
+  handlePhotoPick, handleXpEarned, onTableToChat,
   setWcPanelHeight, setPaPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
 }) {
   return (
     <>
       {wcNode && (
         <ChooseWordPanel
-          key={wcNode.id} /* вторая нода того же типа подряд = свежая панель */
+          key={`${wcNode.id}:${epoch}`} /* вторая нода того же типа подряд = свежая панель */
           node={wcNode}
           xpAmount={xpMap.get(wcNode.id) ?? 0}
           onDone={(result, variantId) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result, variantId) }}
@@ -43,7 +46,7 @@ export default function PlayerPanels({
       )}
       {paNode && (
         <PhraseAssemblyPanel
-          key={paNode.id}
+          key={`${paNode.id}:${epoch}`}
           node={paNode}
           xpAmount={xpMap.get(paNode.id) ?? 0}
           onDone={(result, variantId) => { setPaPanelHeight(0); onNodeDone(paNode.id, result, variantId) }}
@@ -63,7 +66,7 @@ export default function PlayerPanels({
       )}
       {pcNode && !photoChoiceStates[pcNode.id] && (
         <PhotoChoicePanel
-          key={pcNode.id}
+          key={`${pcNode.id}:${epoch}`}
           node={pcNode}
           lessonFiles={filesWithBlobs}
           onPick={(idx, isCorrect) => handlePhotoPick(pcNode.id, idx, isCorrect)}
@@ -72,7 +75,7 @@ export default function PlayerPanels({
       )}
       {regNode && showRegPanel && (
         <RegistrationPanel
-          key={regNode.id}
+          key={`${regNode.id}:${epoch}`}
           node={regNode}
           onDone={(trigger, data) => { setRegPanelHeight(0); onNodeDone(regNode.id, trigger, data) }}
           onAnswered={(text, result) => handleRegAnswer(regNode.id, text, result)}
@@ -82,7 +85,8 @@ export default function PlayerPanels({
       {tableNode && tableNode.typeData?.table?.table && (
         tableNode.typeData.table.mode === 'manual' ? (
           <TableManualPanel
-            key={tableNode.id}
+            key={`${tableNode.id}:${epoch}`}
+            onSendToChat={tableNode.typeData?.table?.sendToChat ? () => onTableToChat?.(tableNode.id) : undefined}
             node={tableNode}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
             onAnswered={() => {}}
@@ -90,7 +94,8 @@ export default function PlayerPanels({
           />
         ) : (
           <TableDictatorPanel
-            key={tableNode.id}
+            key={`${tableNode.id}:${epoch}`}
+            onSendToChat={tableNode.typeData?.table?.sendToChat ? () => onTableToChat?.(tableNode.id) : undefined}
             node={tableNode}
             file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}

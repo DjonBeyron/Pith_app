@@ -68,3 +68,16 @@
   display: flex;
   overflow: hidden;
 }
+
+/* Протяжка плейхеда/клипов не должна выделять подписи дорожек и цифры линейки —
+   в редакторе таблицы выделять текст нечего, кроме полей ввода */
+.tableEditorModal {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tableEditorModal input,
+.tableEditorModal textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}

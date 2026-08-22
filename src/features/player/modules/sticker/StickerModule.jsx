@@ -3,6 +3,8 @@ import { VolumeX } from 'lucide-react'
 import ReplyPreview from '../../ReplyPreview.jsx'
 import HighlightedText from '../../../../shared/ui/HighlightedText.jsx'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
+import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
+import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
 
 // Canvas sticker crop is set in a 200×200 frame; player stickerWrap is 160×160
 const CROP_K = 160 / 200  // 0.8
@@ -32,6 +34,7 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
   const [mutedLoop, setMutedLoop] = useState(false)
   const [soundOn,   setSoundOn]   = useState(false)  // звук сейчас слышен (для иконки)
   const videoRef         = useRef(null)
+  const mirrorRef        = useRef(null)   // canvas-зеркало кадров (десктоп)
   const canPlayRef       = useRef(false)
   const animDoneRef      = useRef(false)
   const firstPlayDoneRef = useRef(false)
@@ -158,13 +161,20 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
 
   const mediaStyle = getStickerStyle(intrinsic, crop)
 
+  // На десктопе кадры показывает canvas, а сам <video> прячется (videoMirror.js)
+  const mirror = useWideScreen()
+  useVideoMirror(videoRef, mirrorRef, mirror && isVideo && !!src, poster)
+
   const media = src
     ? (isVideo
-      ? <video
+      ? <>
+        <video
+          {...VIDEO_GUARD}
           ref={videoRef}
           src={src}
           poster={poster}
-          style={mediaStyle}
+          className={mirror ? 'videoMirrorSource' : undefined}
+          style={mirror ? VIDEO_GUARD_STYLE : { ...mediaStyle, ...VIDEO_GUARD_STYLE }}
           playsInline preload="auto"
           autoPlay={!autoSound}
           muted={!autoSound}
@@ -175,6 +185,8 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
           onLoadedData={autoSound ? handleVideoLoaded : undefined}
           onEnded={waitPlay ? handleVideoEnded : undefined}
         />
+        {mirror && <canvas ref={mirrorRef} style={mediaStyle} aria-hidden="true" />}
+        </>
       : <img
           src={src}
           alt=""

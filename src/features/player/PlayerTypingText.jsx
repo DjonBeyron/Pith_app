@@ -1,34 +1,45 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { buildSpans, bridgeSpans, sameStyle, hexToRgba } from '../../shared/lib/textHighlight.js'
+import { usePlayerFrozen } from './playerFrozen.js'
 
 // Посимвольная анимация с поддержкой выделений (та же система что TextModule).
 // revealedCharIdx — управляемый режим (синхронизация с аудио через Groq).
 // Без revealedCharIdx — автономный режим с внутренним таймером.
 export default function PlayerTypingText({ text, speed = 45, onTypingChange, highlights = [], revealedCharIdx }) {
   const isControlled = revealedCharIdx !== undefined
+  // Шаговый режим админа: на заморозке печать замирает на месте и продолжается
+  // с той же буквы. Управляемый режим (синхронизация с аудио) замирает сам —
+  // вместе с остановленным звуком
+  const frozen = usePlayerFrozen()
   const [count, setCount] = useState(0)
+  const charRef   = useRef(0)
   const timerRef  = useRef(null)
   const changeRef = useRef(onTypingChange)
   useEffect(() => { changeRef.current = onTypingChange }, [onTypingChange])
 
   const spans = useMemo(() => bridgeSpans(buildSpans(text, highlights ?? [])), [text, highlights])
 
-  // Auto-timer mode
+  // Новый текст — печатаем с начала
   useEffect(() => {
     if (isControlled) return
+    charRef.current = 0
     setCount(0) // eslint-disable-line
+  }, [text, speed, isControlled])
+
+  // Auto-timer mode
+  useEffect(() => {
+    if (isControlled || frozen) return
     changeRef.current?.(true)
-    let i = 0
     timerRef.current = setInterval(() => {
-      i++
-      setCount(i)
-      if (i >= text.length) {
+      charRef.current += 1
+      setCount(charRef.current)
+      if (charRef.current >= text.length) {
         clearInterval(timerRef.current)
         changeRef.current?.(false)
       }
     }, speed)
     return () => { clearInterval(timerRef.current); changeRef.current?.(false) }
-  }, [text, speed, isControlled])
+  }, [text, speed, isControlled, frozen])
 
   useEffect(() => {
     if (!isControlled) return

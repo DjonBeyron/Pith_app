@@ -1,21 +1,25 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { APP_VERSION } from '../../shared/lib/version.js'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
-import PlayerMessage from './PlayerMessage.jsx'
+import PlayerFeedNodes from './PlayerFeedNodes.jsx'
+import PlayerAdminPanel from './admin/PlayerAdminPanel.jsx'
+import NodeEditPencil from './admin/NodeEditPencil.jsx'
+import { usePlayerAdminEdit } from './admin/usePlayerAdminEdit.js'
+import { usePlayerStepState, buildStep } from './admin/usePlayerStepControl.js'
+import { PlayerFrozenContext } from './playerFrozen.js'
+import { useMediaPause, pauseAllMedia } from './useMediaPause.js'
 import PlayerPanels from './PlayerPanels.jsx'
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import { useGraphPlayer }  from './useGraphPlayer.js'
-import { useRegistrationSkip } from './useRegistrationSkip.js'
+import { usePlayerPanelNodes } from './usePlayerPanelNodes.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
+import { usePlayerFiles } from './usePlayerFiles.js'
 import { useAnswerStats } from './useAnswerStats.js'
-import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { downloadDebugLog } from './downloadDebugLog.js'
-import XpFloat from './XpFloat.jsx'
-import LessonSummary from './LessonSummary.jsx'
+import PlayerOverlays from './PlayerOverlays.jsx'
 import HintBar from './HintBar.jsx'
-import { useFinalHints, HINT_LIMIT } from './useFinalHints.js'
+import { useFinalHints } from './useFinalHints.js'
 import { awardModuleTicket } from '../../shared/api/ticketApi.js'
 import { starsFromErrors, setLocalStars } from '../../shared/lib/lessonStars.js'
 import { saveLessonStars } from '../../shared/api/starsApi.js'
@@ -40,11 +44,19 @@ export default function LessonPlayer({
   onFinishStats = null, // супергонка: ({ errors, timeMs }) в момент финиша урока
   finalTicket = null, // Финал модуля: { moduleId } — подсказки + золотой билет
   starsEligible = false, // обычный урок модуля (не Старт/Финал): звёзды по ошибкам
+  // Правка урока прямо из плеера — только когда его запустил админ из канваса
+  // (CanvasPage передаёт { onUpdateNode, onPickLessonFile, moduleLessons }).
+  // В ленте, уроках и гонке проп не передаётся — режима нет вовсе
+  edit = null,
   onClose,
   onSummaryClose,
 }) {
-  const [files, setFiles] = useState(propFiles)
+  // Файлы урока: проп + догруженное с сервера. В режиме правки из канваса
+  // список живой — админ может подложить медиа прямо во время прохождения
+  const files = usePlayerFiles(nodes, propFiles, !!edit)
   const earnedXpRef = useRef(0)
+  // Контейнер плеера — по нему пауза находит всё звучащее (useMediaPause)
+  const playerRef = useRef(null)
   // Золотой билет за Финал: счётчик подсказок (раскрытий перевода) и итог
   const { count: hintCount, registerHint, getCount: getHintCount } = useFinalHints(!!finalTicket)
   const [ticketRes, setTicketRes] = useState(null)
@@ -56,8 +68,12 @@ export default function LessonPlayer({
   // Админ проходит сценарий до загрузки медиа: ноды без файла не стопорят
   // цепочку, а отыгрывают заглушку (см. useMissingMediaFallback.js)
   const { isAdmin } = useAdmin()
-  const { visibleNodes, pendingNode, onNodeDone } = useGraphPlayer(nodes, {
+  // Пошаговое управление (пауза/вперёд/назад) — работает только в режиме
+  // правки из канваса, но состояние живёт всегда: пауза по умолчанию снята
+  const stepState = usePlayerStepState()
+  const graph = useGraphPlayer(nodes, {
     startNodeId,
+    paused: stepState.paused,
     onFinish: () => {
       if (onFinishStats) {
         // Супергонка: отдаём счёт ошибок/времени и сразу выходим — XP и
@@ -75,6 +91,7 @@ export default function LessonPlayer({
       finishSummary()
     },
   })
+  const { visibleNodes, pendingNode, onNodeDone } = graph
 
   function finishSummary() {
     setTimeout(async () => {
@@ -139,20 +156,6 @@ export default function LessonPlayer({
     setXpEvents(prev => prev.filter(e => e.id !== id))
   }
 
-  useEffect(() => {
-    const singleIds = nodes.map(n => n.typeData?.[n.type]?.file_id).filter(Boolean)
-    const photoIds  = nodes
-      .filter(n => n.type === 'photo_choice')
-      .flatMap(n => (n.typeData?.photo_choice?.photos ?? []).map(p => p.fileId).filter(Boolean))
-    const allIds = [...new Set([...singleIds, ...photoIds])]
-    const missing = allIds.filter(id => !propFiles.some(f => f.id === id))
-    // Ничего не докачивать: files уже = propFiles из useState-инициализатора
-    if (!missing.length) return
-    getFilesByIds(missing)
-      .then(fetched => setFiles([...propFiles, ...fetched]))
-      .catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   const { blobMap, addMsgTs, debugItems } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
 
   // Момент открытия урока: инициализация в эффекте (Date.now в рендере
@@ -197,13 +200,14 @@ export default function LessonPlayer({
   )
 
   // ── Panels ───────────────────────────────────────────────────────────────
+  const answers = usePlayerAnswers()
   const {
     photoChoiceStates, setPhotoChoiceStates,
     wordChoiceStates, handleWordAnswer, handleWordPick,
     phraseStates, handlePhraseAnswer,
     regStates, handleRegAnswer,
     pendingPhotoXp, setPendingPhotoXp,
-  } = usePlayerAnswers()
+  } = answers
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
     const result = isCorrect ? 'photo_correct' : 'photo_wrong'
@@ -233,29 +237,13 @@ export default function LessonPlayer({
     handleXpEarned(xp, rect)
   }
 
-  const [pinVisible, setPinVisible]           = useState(true)
-  const [wcPanelHeight, setWcPanelHeight]     = useState(0)
-  const [paPanelHeight, setPaPanelHeight]     = useState(0)
-  const [pcPanelHeight, setPcPanelHeight]     = useState(0)
-  const [regPanelHeight, setRegPanelHeight]   = useState(0)
-  const [tablePanelHeight, setTablePanelHeight] = useState(0)
+  const [pinVisible, setPinVisible] = useState(true)
+  // Нижние панели ответа: их ноды, высоты и что скипнуть залогиненному
+  const panels = usePlayerPanelNodes(visibleNodes, { onNodeDone, panelShown })
+  const pmNode = panels.node.pin
 
-  const lastOf   = (type) => [...visibleNodes].reverse().find(n => n.type === type) ?? null
-  const wcNode   = lastOf('word_choice')
-  const paNode   = lastOf('phrase_assembly')
-  const pmNode   = lastOf('pin_message')
-  const pcNode   = lastOf('photo_choice')
-  const regNode  = lastOf('registration')
-  const tableNode = lastOf('table')
-
-  // Залогинен → рег-нода скипается (сразу reg_submit), панель не рендерится
-  const showRegPanel = useRegistrationSkip(regNode, onNodeDone)
-
-  // Таймер ответа стартует с появления панели (SKILL_ANALYSIS.md §4)
-  useEffect(() => {
-    [wcNode, paNode, pcNode].forEach(n => { if (n) panelShown(n.id) })
-  }, [wcNode?.id, paNode?.id, pcNode?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
+  // Правка урока из плеера (только запуск из канваса админом)
+  const adminEdit = usePlayerAdminEdit(edit, nodes, visibleNodes)
   // «Мгновенные» ноды зовут onDone в эффекте маунта, но монтируются они в
   // pending-фазе с onDone-заглушкой (DOM сохраняется по key при активации,
   // эффект не перезапускается) — их onNodeDone терялся, и ПОСЛЕДНЕЕ такое
@@ -272,14 +260,38 @@ export default function LessonPlayer({
     })
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Шаг назад откатывает и то, что живёт в рефах: отметку «мгновенная нода
+  // отыграла» и начисленный за ноду XP
+  function rollbackNode(nodeId, wasWrong) {
+    instantDoneRef.current.delete(nodeId)
+    const xp = xpMap.get(nodeId) ?? 0
+    if (xp > 0) earnedXpRef.current = Math.max(0, earnedXpRef.current - xp)
+    if (wasWrong) wrongRef.current = Math.max(0, wrongRef.current - 1)
+  }
+  const { forgetPaused } = useMediaPause(playerRef, stepState.frozen, stepState.paused)
+  // Действия шага собираются в момент нажатия, а не в рендере: они читают
+  // рефы (XP, отметки отыгранных нод), а рендеру это знать незачем
+  const stepCtx = () => ({
+    state: stepState, graph, answers,
+    onRollbackNode: rollbackNode, onPhotoPick: handlePhotoPick,
+    onCountWrong: () => { wrongRef.current += 1 },
+    // Пропуская сообщение, глушим его звук — иначе голос предыдущей ноды
+    // накладывается на следующую, а «продолжить» потом воскресило бы её
+    onSkipMedia: () => { pauseAllMedia(playerRef.current); forgetPaused() },
+    // Откат за финиш урока: экран итогов убираем, дальше идём шагами
+    onHideSummary: () => setShowSummary(false),
+  })
+  const step = buildStep({ state: stepState, graph, ctx: stepCtx })
+
   return (
     /* На десктопе playerStage/playerPhone превращают плеер в «телефон» по
        центру экрана (styles/player/layout.css). playerPhone с transform —
        containing block для всех fixed внутри: панели, оверлеи, итоги урока
        сами ложатся в рамку. На мобильном обе обёртки display:contents. */
+    <PlayerFrozenContext.Provider value={stepState.frozen}>
     <div className="playerStage">
      <div className="playerPhone">
-      <div className="lessonPlayer">
+      <div className="lessonPlayer" ref={playerRef}>
         <PlayerTopBar
           title={lessonTitle}
           onClose={onClose}
@@ -297,64 +309,32 @@ export default function LessonPlayer({
           />
         )}
         <PlayerFeed>
-          {(() => {
-            // Pending node rendered with the same key in the feed so React preserves the
-            // DOM element (and its decoded video frame) when it transitions to active.
-            const feedNodes = [
-              ...visibleNodes,
-              ...(pendingNode && !visibleNodes.some(v => v.id === pendingNode.id)
-                ? [pendingNode] : []),
-            ]
-            return feedNodes.map(node => {
-              const isPending = pendingNode?.id === node.id && !visibleNodes.some(v => v.id === node.id)
-              const fileId = node.typeData?.[node.type]?.file_id ?? null
-              const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
-              return (
-                <div
-                  key={node.id}
-                  data-pending={isPending ? 'true' : undefined}
-                  style={isPending ? {
-                    position: 'fixed', bottom: '-100vh', left: 0, width: '100%',
-                    pointerEvents: 'none', visibility: 'hidden',
-                  } : undefined}
-                >
-                  <PlayerMessage
-                    node={node}
-                    file={file}
-                    lessonFiles={filesWithBlobs}
-                    lessonNodes={nodes}
-                    teacherName={teacherName}
-                    photoChoiceState={photoChoiceStates[node.id] ?? null}
-                    wordChoiceState={wordChoiceStates[node.id] ?? null}
-                    allWordChoiceStates={wordChoiceStates}
-                    allPhotoChoiceStates={photoChoiceStates}
-                    allPhraseStates={phraseStates}
-                    phraseState={phraseStates[node.id] ?? null}
-                    regState={regStates[node.id] ?? null}
-                    bottomOffset={wcPanelHeight || paPanelHeight || pcPanelHeight || regPanelHeight || tablePanelHeight}
-                    videoAutoSound={videoAutoSound}
-                    adminPreview={isAdmin}
-                    pending={isPending}
-                    onDone={isPending ? () => {} : () => onNodeDone(node.id)}
-                    onTrReveal={() => registerHint(node.id)}
-                    rewardXp={xpMap.get(node.id) ?? 0}
-                    photoXpPending={pendingPhotoXp[node.id] ?? 0}
-                    /* коллбэк дергается по событию XP-анимации, не в рендере */
-                    /* eslint-disable-next-line react-hooks/refs */
-                    onPhotoXpFired={(rect) => handlePhotoXpFired(node.id, rect)}
-                  />
-                </div>
-              )
-            })
-          })()}
+          <PlayerFeedNodes
+            visibleNodes={visibleNodes}
+            pendingNode={pendingNode}
+            nodes={nodes}
+            filesWithBlobs={filesWithBlobs}
+            teacherName={teacherName}
+            states={{ photoChoiceStates, wordChoiceStates, phraseStates, regStates, tableSent: answers.tableSent }}
+            xpMap={xpMap}
+            pendingPhotoXp={pendingPhotoXp}
+            bottomOffset={panels.offset}
+            videoAutoSound={videoAutoSound}
+            isAdmin={isAdmin}
+            onNodeDone={onNodeDone}
+            onTrReveal={registerHint}
+            onPhotoXpFired={handlePhotoXpFired}
+            adminEdit={adminEdit}
+          />
           {visibleNodes.length === 0 && (
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}
         </PlayerFeed>
         <PlayerPanels
-          wcNode={wcNode} paNode={paNode} pcNode={pcNode}
-          regNode={regNode} tableNode={tableNode}
-          showRegPanel={showRegPanel}
+          wcNode={panels.node.wc} paNode={panels.node.pa} pcNode={panels.node.pc}
+          regNode={panels.node.reg} tableNode={panels.node.table}
+          showRegPanel={panels.showRegPanel}
+          epoch={step.epoch}
           photoChoiceStates={photoChoiceStates}
           filesWithBlobs={filesWithBlobs}
           xpMap={xpMap}
@@ -366,36 +346,53 @@ export default function LessonPlayer({
           handlePhraseAnswer={handlePhraseAnswer}
           handleRegAnswer={handleRegAnswer}
           handlePhotoPick={handlePhotoPick}
+          onTableToChat={answers.markTableSent}
           handleXpEarned={handleXpEarned}
-          setWcPanelHeight={setWcPanelHeight}
-          setPaPanelHeight={setPaPanelHeight}
-          setPcPanelHeight={setPcPanelHeight}
-          setRegPanelHeight={setRegPanelHeight}
-          setTablePanelHeight={setTablePanelHeight}
+          setWcPanelHeight={panels.setHeight('wc')}
+          setPaPanelHeight={panels.setHeight('pa')}
+          setPcPanelHeight={panels.setHeight('pc')}
+          setRegPanelHeight={panels.setHeight('reg')}
+          setTablePanelHeight={panels.setHeight('table')}
         />
+        {adminEdit.enabled && panels.editNode && (
+          <NodeEditPencil
+            variant="panel"
+            bottom={panels.offset}
+            onClick={() => adminEdit.open(panels.editNode.id)}
+            active={adminEdit.editId === panels.editNode.id}
+          />
+        )}
       </div>
 
-      <XpFloat events={xpEvents} onDismiss={dismissXpEvent} />
-
-      {showSummary && (
-        <LessonSummary
-          earnedXp={earnedXp}
-          baseXp={baseXp}
-          ticket={ticketRes}
-          hintLimit={HINT_LIMIT}
-          stars={starsRes}
-          onClose={onSummaryClose ?? onClose}
-        />
-      )}
-
-      {/* Версия для отслеживания деплоя */}
-      <div style={{
-        position: 'fixed', top: 4, left: '50%', transform: 'translateX(-50%)',
-        fontSize: 9, color: 'rgba(255,255,255,0.2)', pointerEvents: 'none',
-        zIndex: 9999, userSelect: 'none', whiteSpace: 'nowrap',
-      }}>{APP_VERSION}: {(() => { const d = new Date(__BUILD_TIME__); return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')}` })()}</div>
+      <PlayerOverlays
+        xpEvents={xpEvents}
+        onDismissXp={dismissXpEvent}
+        showSummary={showSummary}
+        earnedXp={earnedXp}
+        baseXp={baseXp}
+        ticket={ticketRes}
+        stars={starsRes}
+        onSummaryClose={onSummaryClose ?? onClose}
+      />
 
      </div>
+
+     {adminEdit.enabled && (
+       <PlayerAdminPanel
+         node={adminEdit.editNode}
+         nodes={nodes}
+         currentId={adminEdit.currentId}
+         onPick={adminEdit.open}
+         onClose={adminEdit.close}
+         onUpdate={edit.onUpdateNode}
+         lessonFiles={files}
+         onPickLessonFile={edit.onPickLessonFile}
+         moduleLessons={edit.moduleLessons ?? []}
+         step={step}
+         onExitToNode={edit.onExitToNode}
+       />
+     )}
     </div>
+    </PlayerFrozenContext.Provider>
   )
 }

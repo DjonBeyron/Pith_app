@@ -3,6 +3,8 @@ import { VolumeX } from 'lucide-react'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
+import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
+import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -44,6 +46,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   usePlayedOffset(playedOffsetMs(node), () => vRef.current, () => onDone?.())
 
   const vRef          = useRef(null)
+  const mirrorRef     = useRef(null)   // canvas-зеркало кадров (десктоп)
   const wrapRef       = useRef(null)
   const frRef         = useRef(null)
   const arcRef        = useRef(null)
@@ -347,6 +350,10 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   }
 
   const videoStyle = calcStyle(intr, dims, crop)
+  // На десктопе кадры показывает canvas, а сам <video> прячется: иначе
+  // Яндекс.Браузер вешает поверх кружка свою панель (см. videoMirror.js)
+  const mirror = useWideScreen()
+  useVideoMirror(vRef, mirrorRef, mirror && !!src, poster)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
@@ -367,8 +374,10 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
               style={isAndroid && poster ? { backgroundImage: `url(${poster})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
             >
               <video
-                ref={vRef} src={src} poster={poster} className="circleMedia"
-                style={videoStyle}
+                {...VIDEO_GUARD}
+                ref={vRef} src={src} poster={poster}
+                className={`circleMedia${mirror ? ' videoMirrorSource' : ''}`}
+                style={mirror ? VIDEO_GUARD_STYLE : { ...videoStyle, ...VIDEO_GUARD_STYLE }}
                 playsInline preload="auto"
                 autoPlay={!videoAutoSound}
                 muted={!videoAutoSound}
@@ -381,6 +390,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
                 onPlaying={handlePlaying}
                 onEnded={handleEnded}
               />
+              {mirror && (
+                <canvas ref={mirrorRef} className="circleMedia" style={videoStyle} aria-hidden="true" />
+              )}
             </div>
 
             <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true"

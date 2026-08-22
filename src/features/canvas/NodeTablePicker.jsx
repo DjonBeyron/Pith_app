@@ -4,12 +4,23 @@ import { getVariantList, syncTriggers, triggersNeedSync, migrateDistractors } fr
 
 const BASE_PAIR = ['table_correct', 'table_wrong']
 
+// Переход ноды в режиме показа — ровно как у обычного сообщения
+function demoTriggers(hasAudio, keepThen) {
+  return [hasAudio
+    ? { id: crypto.randomUUID(), if: 'played', then: keepThen }
+    : { id: crypto.randomUUID(), if: 'timer', ms: 3000, then: keepThen }]
+}
+
 // Управление нодой «Таблица»:
 // — кнопка конструктора (открывает TableEditorModal)
-// — переключатель режима: Авто (диктор) / Ручной (сборка фразы)
-// — поле ответа: в ОБОИХ режимах (нужно для проверки correct/wrong)
+// — переключатель режима: Авто (диктор) / Ручной (сборка фразы) / Показ
+// — поле ответа: в обоих отвечающих режимах (нужно для проверки correct/wrong)
 // — поля ручного режима: distractors, responseCorrect/Wrong
 // — два порта триггеров: table_correct / table_wrong
+//
+// «Показ» — таблица без вопроса: приходит в чат обычным сообщением от учителя
+// (TableDemoModule), ученик ничего не отвечает. Поэтому и переход у неё один,
+// как у текста/голосового: «доиграло» при озвучке или таймер без неё.
 export default function NodeTablePicker({
   tData, onDataChange, lessonFiles, onPickFile,
   triggers = [], allNodes = [], nodeId,
@@ -33,15 +44,28 @@ export default function NodeTablePicker({
   }, [distractors]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const variantList = getVariantList('table', { distractors })
+  const isDemo = mode === 'demo'
 
   // Нормализация триггеров: базовая пара table_correct/table_wrong + по
-  // одному триггеру на distractor
+  // одному триггеру на distractor. В режиме показа пары нет — там один
+  // обычный переход, его нормализовать нечем
   useEffect(() => {
+    if (isDemo) return
     if (triggersNeedSync(BASE_PAIR, variantList, triggers)) {
       onTriggersChange?.(syncTriggers(BASE_PAIR, variantList, triggers))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [variantList.map(v => v.id).join(','), triggers.map(t => t.if).join(',')])
+  }, [isDemo, variantList.map(v => v.id).join(','), triggers.map(t => t.if).join(',')])
+
+  // Показ: озвучку могли приложить или убрать уже после выбора режима —
+  // держим переход в соответствии («доиграло» с аудио, таймер без него)
+  useEffect(() => {
+    if (!isDemo) return
+    const want = tData.file_id ? 'played' : 'timer'
+    if (triggers.length === 1 && triggers[0].if === want) return
+    onTriggersChange?.(demoTriggers(!!tData.file_id, triggers.find(t => t.then)?.then ?? null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo, tData.file_id, triggers.map(t => t.if).join(',')])
 
   // Измерение Y-центров строк триггеров для рисования проводов
   useLayoutEffect(() => {
@@ -109,7 +133,20 @@ export default function NodeTablePicker({
             ? `Редактировать таблицу (${tableData.rowCount}×${tableData.colCount})`
             : '+ Создать таблицу'}
         </button>
-        {tData.file_id && <span className="nodeTableAudioBadge">♪</span>}
+        {tData.file_id && (
+          <span className="nodeTableAudioBadge">
+            ♪
+            <button
+              className="nodeTableAudioDel"
+              title="Убрать аудио из ноды (разметка таймлайна останется)"
+              onClick={e => {
+                e.stopPropagation()
+                if (!window.confirm('Убрать аудио из таблицы? Разметка таймлайна останется.')) return
+                onDataChange({ file_id: null, waveformData: null, duration: null })
+              }}
+            >×</button>
+          </span>
+        )}
       </div>
 
       {/* Режим */}
@@ -122,9 +159,33 @@ export default function NodeTablePicker({
           className={`nodeTableModeBtn${mode === 'manual' ? ' nodeTableModeBtnActive' : ''}`}
           onClick={() => onDataChange({ mode: 'manual' })}
         >✍ Ручной</button>
+        <button
+          className={`nodeTableModeBtn${isDemo ? ' nodeTableModeBtnActive' : ''}`}
+          title="Таблица уходит в чат обычным сообщением, ученик ничего не отвечает"
+          onClick={() => onDataChange({ mode: 'demo' })}
+        >👁 Показ</button>
       </div>
 
-      {/* Правильный ответ — для ОБОИХ режимов (нужен для проверки и дорожек таймлайна) */}
+      {!isDemo && (
+        <label className="nodeTableSendChat" onClick={e => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={tData.sendToChat === true}
+            onChange={e => onDataChange({ sendToChat: e.target.checked })}
+          />
+          Отправить таблицу в чат после ответа
+        </label>
+      )}
+
+      {isDemo && (
+        <p className="nodeTableDemoHint">
+          Таблица придёт в чат сообщением от учителя, во всю ширину.
+          Ответа не ждём: с озвучкой переход по её окончании, без неё — по таймеру.
+        </p>
+      )}
+
+      {/* Правильный ответ — для отвечающих режимов (проверка + дорожки таймлайна) */}
+      {!isDemo && (
       <div className="nodeTableManualFields">
         <input
           className="nodeTableManualInput"
@@ -202,8 +263,11 @@ export default function NodeTablePicker({
           </>
         )}
       </div>
+      )}
 
-      {/* Триггеры: два выхода — верно / неверно */}
+      {/* Триггеры: два выхода — верно / неверно. В режиме показа выход один
+          и рисует его общий блок «Если/Тогда» (NodeTriggerEditor) */}
+      {!isDemo && (
       <div className="nodeWcTriggerWrap">
         <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('table_correct', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
@@ -234,6 +298,7 @@ export default function NodeTablePicker({
           </select>
         </div>
       </div>
+      )}
 
       {open && (
         <TableEditorModal
@@ -242,6 +307,7 @@ export default function NodeTablePicker({
           initialWaveformData={tData.waveformData ?? null}
           initialDuration={tData.duration ?? null}
           initialTimeline={tData.timeline ?? null}
+          initialTimelineLen={tData.timelineLen ?? null}
           initialAnswer={tData.answer ?? ''}
           lessonFiles={lessonFiles}
           onPickFile={onPickFile}

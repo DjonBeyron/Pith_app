@@ -141,9 +141,27 @@
    отступах между дорожками, где никакой линии физически нет). left в px, а не %,
    потому что считается от общего TRACK_LABEL_OFFSET_PX в TableTimelineEditor.jsx,
    а не от ширины самого .tlTracksInner. z-index выше .tlClipLeadIn(1)/.tlClipEye(2). */
+/* Плейхед. Сама линия тонкая, но тащить её можно за широкую прозрачную зону
+   (.tlCursorGrab) и за флажок сверху — в 2px мышью не попасть. */
 .tlCursorLine {
   position: absolute; top: 0; bottom: 0; width: 2px; z-index: 20;
-  background: #4da3ff; pointer-events: none; transform: translateX(-50%);
+  background: #4da3ff; transform: translateX(-50%);
+  cursor: ew-resize;
+}
+
+.tlCursorGrab {
+  position: absolute; top: 0; bottom: 0; left: 50%;
+  width: 16px; transform: translateX(-50%);
+  cursor: ew-resize;
+}
+
+/* Флажок-ручка сверху — за него удобнее всего браться */
+.tlCursorFlag {
+  position: absolute; top: 0; left: 50%;
+  width: 13px; height: 13px; transform: translateX(-50%);
+  background: #4da3ff;
+  border-radius: 3px 3px 3px 0;
+  cursor: ew-resize;
 }
 
 .tlRemoveLayer {
@@ -159,10 +177,14 @@
   display: flex; align-items: center; gap: 8px;
   padding: 8px 18px 12px; border-top: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
 }
+/* Тёмный, как остальные поля редактора: белесый select выбивался из окна,
+   а раскрытый список рисовался светлым (color-scheme) */
 .tlCellSelect {
-  flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 6px; color: rgba(255,255,255,0.7); font-size: 12px; padding: 4px 6px;
+  flex: 1; background: #0a0c10; border: 1px solid #1e2030;
+  border-radius: 6px; color: #ccc; font-size: 12px; padding: 5px 6px;
+  color-scheme: dark;
 }
+.tlCellSelect option { background: #0e1013; color: #ccc; }
 .tlAddTrackBtn {
   background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
   border-radius: 6px; color: rgba(255,255,255,0.6); font-size: 12px;
@@ -219,3 +241,84 @@
   font-size: 9px; line-height: 1; color: rgba(255,255,255,0.42);
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
+
+/* ── Предпросмотр над дорожками ────────────────────────────────────────
+   Показывает состояние таблицы в точке плейхеда — как окно программы
+   монтажа. Живёт над дорожками и не скроллится вместе с ними. */
+.tlPreview {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid #242630;
+  background: #0e1013;
+}
+
+.tlPreviewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.tlPreviewTitle {
+  color: #7a808c;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tlPreviewTime {
+  color: #b6fe3b;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Карточка таблицы — той же ширины, что и в чате урока, чтобы монтаж
+   показывал реальные пропорции */
+.tlPreviewCard {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 8px;
+  background: #1a1d22;
+  border-radius: 4px 18px 18px 18px;
+}
+
+
+/* Длина композиции — в углу шапки таймлайна, как в монтажной программе */
+.tlLenField {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: #7a808c;
+  font-size: 11px;
+}
+
+.tlLenField input {
+  width: 56px;
+  padding: 4px 6px;
+  background: #0a0c10;
+  border: 1px solid #1e2030;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 11px;
+}
+
+.tlSilentMark {
+  color: #6a6f78;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Убрать озвучку из таблицы (разметка таймлайна остаётся) */
+.tlRemoveAudio {
+  background: #0a0c10;
+  border: 1px solid #4a302a;
+  border-radius: 6px;
+  color: #ff8040;
+  font-size: 11px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.tlRemoveAudio:hover { border-color: #ff8040; }

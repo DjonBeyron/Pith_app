@@ -9,6 +9,9 @@ export function usePlayerAnswers() {
   const [wordChoiceStates, setWordChoiceStates]   = useState({})
   const [phraseStates, setPhraseStates]           = useState({})
   const [regStates, setRegStates]                 = useState({})
+  // Галочка «отправить таблицу в чат»: после разбора таблица остаётся
+  // в переписке отдельным сообщением (TableModule рисует пузырь)
+  const [tableSent, setTableSent]                 = useState({})
   // XP pending for photo_choice: fires when the correct photo bubble mounts in chat
   const [pendingPhotoXp, setPendingPhotoXp] = useState({})
 
@@ -31,15 +34,33 @@ export function usePlayerAnswers() {
     })
   }
 
+  function markTableSent(nodeId) {
+    setTableSent(prev => (prev[nodeId] ? prev : { ...prev, [nodeId]: true }))
+  }
+
   function handleRegAnswer(nodeId, text, result) {
     setRegStates(prev => ({ ...prev, [nodeId]: [...(prev[nodeId] ?? []), { text, result }] }))
   }
 
+  // Шаг «назад» в админском прогоне: нода снимается с ленты и должна снова
+  // спрашивать — забываем всё, что по ней уже ответили
+  function resetNode(nodeId) {
+    const drop = prev => { const n = { ...prev }; delete n[nodeId]; return n }
+    setWordChoiceStates(drop)
+    setPhraseStates(drop)
+    setPhotoChoiceStates(drop)
+    setRegStates(drop)
+    setTableSent(drop)
+    setPendingPhotoXp(drop)
+  }
+
   return {
+    resetNode,
     photoChoiceStates, setPhotoChoiceStates,
     wordChoiceStates, handleWordAnswer, handleWordPick,
     phraseStates, handlePhraseAnswer,
     regStates, handleRegAnswer,
+    tableSent, markTableSent,
     pendingPhotoXp, setPendingPhotoXp,
   }
 }

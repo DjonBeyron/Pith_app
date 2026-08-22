@@ -112,8 +112,12 @@ export function useCanvasSelection() {
     pendingCollapseRef.current = null
   }
 
+  // Выделить ровно одну ноду — «перейти к ноде» из плеера (правая панель
+  // редактора: закрыть прогон и показать на холсте ту ноду, что правил)
+  const selectOnly = useCallback(id => applySelection(new Set([id])), [applySelection])
+
   return {
-    selectedIds, marquee, moveGroup,
+    selectedIds, marquee, moveGroup, selectOnly,
     onNodeMouseDown, startMarquee, updateMarquee, endMarquee, collapseIfClick,
   }
 }

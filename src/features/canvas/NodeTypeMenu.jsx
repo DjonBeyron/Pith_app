@@ -6,8 +6,12 @@ import { NODE_TYPES, isGroupStart } from './nodeTypes.js'
 // pos — результат computeMenuPos (сам решает, вниз или вверх открывать).
 //
 // selected + multi — режим фильтра в шапке канваса: типы отмечаются галочками,
-// меню при выборе не закрывается.
-export default function NodeTypeMenu({ pos, onPick, onClose, selected, multi = false, onReset }) {
+// меню при выборе не закрывается. Особый пункт «не загруженные» (missingMedia)
+// живёт рядом с типами, но фильтрует по другому признаку — приложен ли файл.
+export default function NodeTypeMenu({
+  pos, onPick, onClose, selected, multi = false, onReset,
+  missingMedia = false, missingMediaCount = 0, onToggleMissingMedia,
+}) {
   if (!pos) return null
   return createPortal(
     <>
@@ -35,6 +39,20 @@ export default function NodeTypeMenu({ pos, onPick, onClose, selected, multi = f
             onMouseDown={e => e.stopPropagation()}
             onClick={e => { e.stopPropagation(); onReset() }}
           >Сбросить фильтры</button>
+        )}
+        {multi && onToggleMissingMedia && (
+          <button
+            className="nodeTypeSelectItem nodeTypeSelectItemMissing"
+            title="Показать только ноды, в которые ещё не загружен файл"
+            onMouseDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onToggleMissingMedia() }}
+          >
+            <span className="nodeMediaBadge nodeMediaBadge_missing" style={{ position: 'static' }}>○</span>
+            <span style={{ color: '#ccc', flex: 1 }}>Не загруженные ({missingMediaCount})</span>
+            <span style={{ color: missingMedia ? '#b6fe3b' : '#3a3f4a', fontSize: 11 }}>
+              {missingMedia ? '✓' : '○'}
+            </span>
+          </button>
         )}
         {NODE_TYPES.map((t, i) => {
           const Icon = t.icon

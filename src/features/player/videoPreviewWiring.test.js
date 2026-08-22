@@ -12,6 +12,9 @@ const CIRCLE  = read('./modules/circle/CircleModule.jsx')
 const STICKER = read('./modules/sticker/StickerModule.jsx')
 const PRELOAD = read('./usePlayerPreload.js')
 const PLAYER  = read('./LessonPlayer.jsx')
+// Разметка сообщений ленты живёт отдельно от оркестратора (вынесена из
+// LessonPlayer.jsx, когда тот упёрся в потолок размера файла)
+const FEED_NODES = read('./PlayerFeedNodes.jsx')
 const GRAPH   = read('./useGraphPlayer.js')
 
 // Все <video …/> в файле как отдельные куски текста
@@ -93,16 +96,18 @@ describe('когда постер вообще появляется относи
 
 describe('сколько времени у элемента есть на декодирование до показа', () => {
   it('нода предрисовывается заранее, но скрыто и за экраном', () => {
-    expect(PLAYER).toContain("data-pending={isPending ? 'true' : undefined}")
-    expect(PLAYER).toContain("visibility: 'hidden'")
-    expect(PLAYER).toContain("bottom: '-100vh'")
+    expect(FEED_NODES).toContain("data-pending={isPending ? 'true' : undefined}")
+    expect(FEED_NODES).toContain("visibility: 'hidden'")
+    expect(FEED_NODES).toContain("bottom: '-100vh'")
   })
 
   it('запас времени на предрисовку — ровно задержка «печатает»', () => {
     const delay = Number(GRAPH.match(/const TYPING_DELAY_MS = (\d+)/)?.[1])
     expect(delay).toBeGreaterThan(0)
     expect(GRAPH).toContain('setPendingNode(next)')
-    expect(GRAPH).toContain('}, TYPING_DELAY_MS)')
+    // показ ноды отложен ровно на задержку «печатает…» (шаг «вперёд» админа
+    // раскрывает её раньше — это отдельная ветка revealNode)
+    expect(GRAPH).toContain('addTimer(() => revealNode(next), TYPING_DELAY_MS)')
     console.log(`[preRenderBudget] на декодирование до показа: ${delay} мс`)
   })
 

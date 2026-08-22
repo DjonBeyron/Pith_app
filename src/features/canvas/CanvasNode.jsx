@@ -2,6 +2,7 @@ import { useEffect, memo } from 'react'
 import NodeContentEditor from './NodeContentEditor.jsx'
 import { applyTypeChange } from './nodeDefaults.js'
 import NodeTypeSelect from './NodeTypeSelect.jsx'
+import NodeMediaBadge from './NodeMediaBadge.jsx'
 import { TYPE_COLOR, colorBg } from './nodeTypes.js'
 
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
@@ -58,6 +59,7 @@ function CanvasNode({
         onClick={expandClick}
       >
         <span className="canvasNodeSeq">{node.seq}</span>
+        <NodeMediaBadge node={node} />
       </div>
     )
   }
@@ -69,6 +71,7 @@ function CanvasNode({
     return (
       <div className={`canvasNode canvasNodeMini${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={handleDragStart}>
         <div className="canvasNodeTopBar" style={{ background: color }} />
+        <NodeMediaBadge node={node} />
         <div className="canvasNodeMiniBody">
           <button className="canvasNodeExpandBtn" onClick={expandClick}>›</button>
           <span className="canvasNodeSeq">#{node.seq}</span>
@@ -90,6 +93,7 @@ function CanvasNode({
   return (
     <div className={`canvasNode canvasNodeMax${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={handleDragStart}>
       <div className="canvasNodeTopBar" style={{ background: color }} />
+      <NodeMediaBadge node={node} />
       <div className="canvasNodeMaxBody">
         <div className="canvasNodeMaxTop">
           <button className="canvasNodeExpandBtn" onClick={expandClick}>‹</button>

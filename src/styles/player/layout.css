@@ -55,3 +55,18 @@
   /* Запрет pinch-zoom только в плеере; pan-y оставляет вертикальный скролл */
   touch-action: pan-y;
 }
+
+/* Штамп версии поверх плеера (PlayerOverlays.jsx): видно, что открыт свежий
+   код, а не кэш браузера после деплоя */
+.playerVersionStamp {
+  position: fixed;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  z-index: 9999;
+  user-select: none;
+  white-space: nowrap;
+}
