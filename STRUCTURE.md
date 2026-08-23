@@ -120,6 +120,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 |------|-------------|
 | `base.css` | Сброс и глобальные стили: `*`, `body`, `button`, глушим `-webkit-tap-highlight-color` глобально (синяя рамка тапа на Android) |
 | `resume-toast.css` | Стили всплывашки «продолжить редактирование» |
+| `emoji-picker.css` | Стили окна смайликов |
 | `back-button.css` | Единая кнопка «назад»/«закрыть» (`shared/ui/BackButton.jsx`): кружок с иконкой стрелки, без подписи — общий стиль для всех экранов |
 | `orientation-guard.css` | Заглушка альбомной ориентации на телефонах — см. `shared/ui/OrientationGuard.jsx` |
 | `install-prompt.css` | Слайды «Установить приложение» — см. `shared/ui/InstallSlides.jsx`; текстура карточки — переменные `--v2-tex/--v2-grain/--v2-dust` из `shell-v2.css` |
@@ -202,6 +203,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `canvas/table-editor-builder.css` | Левая панель `TableGridBuilder.jsx`: тулбар, редактируемая сетка, drag-выделение |
 | `canvas/table-editor-preview.css` | Правая панель `TablePhonePreview.jsx`: рамка iPhone SE 2020, экран превью |
 | `canvas/table-editor-templates.css` | Полоса шаблонов `TableTemplatesBar.jsx`: чипы, кнопки применить/переименовать/удалить |
+| `canvas/table-editor-controls.css` | Шапка редактора таймлайна: кнопки аудио, длина композиции, общая галочка «в сборку», подсказка, окно предпросмотра |
 | `canvas/table-editor-timeline.css` | Редактор таймлайна `TableTimelineEditor.jsx`: шапка, аудио-секция, дорожки с клипами (ручки resize, drag тела, глазик, удаление), секция «+ Дорожка» |
 | `player/modules/table.css` | Плеер ноды «Таблица»: минимальный (основной UI — в `TableDictatorPanel`) |
 | `player/panels/table-dictator.css` | Панель таблицы-диктора в плеере: спейсер, slide-up/down анимация, HUD — 3 пульсирующих бара, бокс сборки фразы |
@@ -261,6 +263,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `useCanvasDrag.js` | Логика перетаскивания нод и пана холста; `wasDragged()` отличает клик от drag. На время любой протяжки глушит `user-select` на `<body>` — иначе быстрая протяжка, начатая в textarea, тянет нативное выделение текста по всей странице |
 | `NodeTriggerEditor.jsx` | Редактор триггеров ноды: строки «Если [событие] → Тогда [нода]»; для таймера — поле ввода секунд |
 | `nodeGraph.js` | Общая графовая логика ноды: `computeSeqMap`/`renumber` (нумерация обходом триггеров), `makeNode`, `NODE_SLOT` — вынесены из CanvasBoard.jsx, чтобы `src/features/production/` нумеровала ноды идентично канвасу |
+| `nodePlacement.test.js` | Куда встаёт новая нода: рядом с исходной, при занятом месте — ниже; соседи не двигаются |
 | `nodeVariants.js` | Особые триггеры по вариантам ответа (word_choice/phrase_assembly/photo_choice/table): `getVariantList` (список вариантов ноды), `syncTriggers`/`triggersNeedSync` (канонический массив triggers = базовая пара + один триггер на вариант, ключ — id варианта), `migrateDistractors` (distractors: строки → {id,text}) |
 | `NodeContentEditor.jsx` | Форма содержимого ноды по типу (файл/текст/варианты + триггеры) — вынесена из max-режима CanvasNode.jsx, переиспользуется и в canvas, и в строке продакшен-списка; здесь же поле «плановое имя файла». `collapsibleTriggers`/`collapsibleMedia` (используются только в продакшене) — блок «Если/Тогда» и рамка позиционирования файла свёрнуты по умолчанию, раскрываются треугольником. `growTextareas` (продакшен) — textarea растут по высоте (autoGrowTextarea.js) |
 | `LessonSettingsTab.jsx` | Вкладка «Настройки» в панели урока: переключатель «Общий учитель / Свой учитель» (общий — превью из админки, свой — имя + фото с кроп-редактором), тумблер «Видео со звуком» |
@@ -282,6 +285,9 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `NodeTablePicker.jsx` | Редактор ноды «Таблица»: кнопка конструктора → `TableEditorModal`, переключатель режима Авто/Ручной, поля ручного режима (answer, distractors, responseCorrect/Wrong) |
 | `NodeTextHighlighter.jsx` | Модальный редактор выделений текста: кликабельные токены, режимы «Плашка»/«Цвет текста», опакити, последние 5 цветов (localStorage), избранные (Supabase), предпросмотр в пузыре |
 | `ChatBubblePreview.jsx` | Пузырь «как придёт в чат» — общий предпросмотр для окон раскраски и переносов: те же классы плеера, учитывает `hardWrap` |
+| `NodeTextTools.jsx` | Кнопки над текстом ноды: смайлики (у любого типа с текстом), раскраска слов и свои переносы (когда текст написан) |
+| `NodeTextModals.jsx` | Окна над текстом ноды: раскраска, переносы, смайлики — вынесены из NodeContentEditor.jsx (потолок размера) |
+| `useNodeEmoji.js` | Вставка смайлика в позицию курсора со сдвигом раскраски текста |
 | `NodeTextWrapModal.jsx` | Окно «Свои переносы» (текст / закреп / текст аудио): поле с текстом (Enter = перенос), предпросмотр настоящего пузыря чата, у текстовой ноды — галочка `hardWrap` (пузырь по строкам автора) |
 | `NodeTextProEditor.jsx` | Про-режим текстовой ноды: тумблер, текст перевода, надпись кнопки (RU/EN...), способ появления («напечатать»/«показать сразу»), раскраска перевода |
 | `useLessonFiles.js` | Хук: список файлов урока (локальные + синхронизированные), дедупликация по имени+весу, синхронизация на сервер. `pickFile` — `useCallback` (не пересоздаётся каждый рендер) — идёт пропом до каждой CanvasNode.jsx (React.memo), нестабильная ссылка срывала бы мемоизацию у всех нод |
@@ -311,8 +317,13 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `tableTemplates.js` | CRUD шаблонов сетки в localStorage (список/сохранить/переименовать/удалить) — авторский инструмент, не часть данных урока |
 | `TableTemplatesBar.jsx` | Полоса шаблонов в шапке редактора: сохранить текущую сетку как шаблон, применить/переименовать/удалить сохранённые |
 | `useTableTimelineEdit.js` | Состояние редактора таймлайна: layers + initClips/toggleVisible/updateClip/addLayer/addWordLayer/addCheckLayer/removeLayer, getTimeline; `isCheck`-слой хранит момент запуска проверки |
+| `ClipMenu.jsx` | Меню клипа на дорожке (кнопка ▾): идёт ли в сборку фразы, дублировать клип, поставить очистку собранного |
+| `clipMenu.test.js` | Меню клипа, повторы клипа и очистка собранной фразы — от модели до поведения плеера |
 | `TableTimelineTrack.jsx` | Одна дорожка: глазик, метка (везде нейтрально-серая, шире — 92px), полоса с клипом (обе ручки resize/drag, включая isCheck); на word-слое в начале клипа — заштрихованный кусок `.tlClipLeadIn` (длина=`EXTRA_LEAD_IN_S`, фикс.) — превью анимации+буфера перед реальным зелёным; кнопка удаления для не-дефолтных. Плейхед сюда не рисует — см. `.tlCursorLine` в TableTimelineEditor |
 | `panels/table-dictator/TableExtraChips.jsx` | Слова вне таблицы в плеере: чипы с зелёной подсветкой по таймлайну; длительность мерцания — по длине слоя (`--td-flash`) |
+| `CellOptionsPopover.jsx` | Окно «особые значения ячейки» в конструкторе: список вариантов по строке, пусто — обычная ячейка |
+| `cellOptions.test.js` | Особые значения: хранение в ячейке, выбор варианта автором на клипе (авто-режим) и меню в уроке (ручной) |
+| `tableCollect.test.js` | Галочка «идёт в сборку» на клипе: дефолт, сохранение, поведение плеера (подсветка есть, в бокс не падает) |
 | `tableTimelineSync.test.js` | Слова ответа вне таблицы, автоуборка дорожек при правке ответа/ячеек и длительность показа результата по длине клипа «Проверить» |
 | `TableTimelinePreview.jsx` | Предпросмотр над дорожками: таблица в том виде, в каком она будет в точке плейхеда (считается теми же функциями, что и плеер) |
 | `TableTimelineEditor.jsx` | Редактор таймлайна: RAF-loop волны (перерисовывается и на паузе при seek), слои для слов/проверки добавляются сами (без отдельных кнопок); только «← Назад» — сама сохраняет и закрывает. Один сквозной `.tlCursorLine` (position:absolute внутри `.tlTracksInner`, left в px) — не по одному на дорожку, иначе рвётся в отступах между дорожками |
@@ -327,6 +338,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `PlayerOverlays.jsx` | Слои поверх чата: «+N XP», итоги урока, штамп версии — вынесено из LessonPlayer.jsx |
 | `usePlayerPanelNodes.js` | Нижние панели ответа: панель живёт, пока её нода последняя в ленте (иначе шаговый ответ оставлял её висеть), высота открытой панели, скип рег-ноды залогиненному (+ `usePlayerPanelNodes.test.js`) |
 | `panels/table-dictator/dictatorCheck.js` (тест) | `dictatorCheck.test.js` — сборка фразы по токенам и сверка с эталоном (апострофы/пробелы/регистр не считаются ошибкой) |
+| `tableCellMatch.js` | Связь слова из ответа с ячейкой (учитывая особые значения) и разбор ответа на токены — общий для обеих панелей плеера и редактора таймлайна (+ `tableCellMatch.test.js`) |
 | `tableDictatorTiming.js` (тест) | `tableDictatorTiming.test.js` — конец таймлайна, подсветка и проявление ячеек в момент t |
 | `silentClock.js` | Часы вместо `<audio>` (тот же кусок интерфейса: currentTime/play/pause): таймлайн таблицы монтируется и проигрывается без озвучки; конец прогона по таймеру, а не по кадрам |
 | `videoMirror.js` | Обход панели Яндекс.Браузера над видео: на широких экранах сам `<video>` сжимается до 2px и прячется (класс `videoMirrorSource` в base.css), а кадры рисуются в `<canvas>` через requestVideoFrameCallback; до первого кадра — постер (+ `videoHudGuard.test.js`) |
@@ -378,7 +390,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/voice-record/VoiceRecordBubble.jsx` | Пузырь отправленного голоса: canvas waveform, ▶/⏸, таймер |
 | `modules/circle/CircleModule.jsx` | Видео-кружок: круглый контейнер 200×200, autoplay muted loop |
 | `modules/text/TextModule.jsx` | Текстовое сообщение |
-| `modules/photo/PhotoModule.jsx` | Фото-сообщение |
+| `modules/photo/photoCaption.test.js` | Подпись у фото: рендер в том же пузыре, поля редактора, переезд текста между фото/стикером/текстом |
+| `modules/photo/PhotoModule.jsx` | Фото-сообщение: кроп, полноэкранный просмотр по тапу и подпись в том же пузыре (как у стикера) |
 | `modules/video/VideoModule.jsx` | Видео-сообщение с controls |
 | `modules/sticker/StickerModule.jsx` | Стикер: квадрат 160px, поддерживает фото/gif/видео, muted по флагу isVideo; при заданной подписи (`caption`) и/или ответе стикер и текст показываются одним пузырём; галочка `autoSound` — первый проход со звуком, дальше беззвучная петля, тап по стикеру включает/выключает звук; с триггером «Воспроизведено до конца» ролик сам проигрывается один раз и только потом отпускает цепочку |
 | `modules/system/SystemModule.jsx` | Системное сообщение без пузыря (заглушка) |
@@ -396,6 +409,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `panels/table-dictator/dictatorPostAudio.js` | Планирует слои (слово/ячейка/проверка), чей клип стоит ПОСЛЕ конца аудио (10с-хвост таймлайна) или пересекает его границу: ON и OFF свечения — раздельными таймерами (иначе длина слоя, начавшегося до конца аудио, но кончающегося после, терялась), запуск проверки (in) и обратной анимации закрытия (out) — от момента 'ended' |
 | `panels/table-dictator/dictatorGlowDebug.js` | Дебаг: сверяет длину клипа по таймлайну с реальным временем свечения ячейки/слова в браузере (ON→OFF, ON→уход в бокс) в мс — чтобы расхождение (напр. чип-слово гаснет в боксе раньше out-point) было видно в логе как числа |
 | `panels/table-dictator/dictatorDebug.js` | Дамп конфигурации таблицы-диктора в pLog при старте аудио: разбор ответа на токены, полный список слоёв с клипами (in/out), ожидаемая последовательность событий по времени + диагностика мини-спектра HUD (обрезан ли overflow:hidden у .tdStage); `logFileResolution`/`logAudioPlayRejected`/`logAudioError` — почему аудио не проигрывается (файл не найден в files[]/blobUrl-r2Url пустые/play() отклонён/onError у `<audio>`) |
+| `panels/table-manual/CellOptionsMenu.jsx` | Выпадающее меню особой ячейки в уроке: тёмное, с узкой полосой прокрутки; выбранное значение уходит в сборку |
 | `panels/table-manual/TableManualPanel.jsx` | Панель ручной сборки фразы: бокс ответа сверху, тапы по ячейкам таблицы, слайд таблицы −80% влево при переходе к словам-ловушкам, кнопка «Проверить» |
 | `panels/photo-choice/PhotoChoicePanel.jsx` | Панель снизу: кнопка «Прикрепи фото», галерея-оверлей, выбранное фото |
 | `panels/PinMessageBanner.jsx` | Баннер под шапкой с текстом закреплённого сообщения; кнопка ✕ открывает диалог |
@@ -569,6 +583,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `version.js` | Номер версии приложения (`APP_VERSION`) — показывается мелко наверху экрана |
 | `autoGrowTextarea.js` | `autoGrowTextarea(el)` — растягивает textarea по высоте контента (ref-колбэк + onInput); используется в продакшене (NodeAudioPicker.jsx, NodeContentEditor.jsx), чтобы длинный текст был виден целиком без внутреннего скролла |
 | `menuPosition.js` | `computeMenuPos` — позиция всплывающего меню (fixed, portal) рядом с кнопкой-триггером: снизу, если влезает, иначе сверху, высота ограничена доступным местом со скроллом — общая для InsertNodeButton.jsx (продакшен) и NodeTypeSelect.jsx (canvas) |
+| `lessonSavedBus.js` | Оповещение «урок сохранён»: редактор сообщает новое название/XP, схема модуля под ним обновляет их у себя — иначе переименование доходило только после перезагрузки (+ `lessonSavedBus.test.js`) |
 | `lastEditedLesson.js` | Последний урок, открытый админом в канвасе (localStorage, переживает перезагрузку) — для всплывашки «продолжить редактирование» (+ `resumeEditing.test.js` в shared/ui) |
 | `lastEditorMode.js` | `getLastEditorMode`/`setLastEditorMode` (localStorage) — какой редактор урока (canvas/production) открывать по ⚙ в схеме модуля: запоминается при каждом заходе на CanvasPage.jsx/ProductionPage.jsx, читается в CurriculumView.openEditor |
 | `haptics.js` | Тактильный отклик по тапу (`haptic()`): Android — `navigator.vibrate`, iOS — скрытый системный переключатель `<input type="checkbox" switch>` (Safari 17.4+), единственный способ получить импакт на айфоне без Vibration API. Вызывать синхронно из обработчика жеста |
@@ -596,6 +611,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar` (рисует столбики волны на canvas), `fmtAudioTime`, `probeAudioDuration` |
 | `tableDictatorTiming.js` | Константы тайминга word-слоя в режиме диктора: `EXTRA_ANIM_S`(0.6)+`EXTRA_BUFFER_S`(0.3)=`EXTRA_LEAD_IN_S`(0.9) — с начала клипа сперва анимация (слайд+список), потом буфер, и только потом слово реально загорается зелёным. Общие для плеера (useTableDictatorRaf/dictatorPostAudio) и редактора таймлайна (TableTimelineTrack — превью куска на слое) |
 | `transcribeApi.js` | Клиентская обёртка для Edge Function `transcribe-audio`: отправляет файл или R2 URL, возвращает `wordTimings` |
+| `emojiSet.js` | Набор смайликов по группам — стандартный Unicode, без внешних картинок и библиотек |
 | `textHighlight.js` | Утилиты выделений: `buildSpans` (массив спанов по char-range), `addHighlight` (добавить с перекрытием), `bridgeSpans` (склейка соседних, но не через перенос строки), `splitLines` (кусок по строкам — фон рисуется построчно), `hexToRgba`; legacy `buildCharStyles` для аудио-ноды (+ `textHighlight.test.js`) |
 | `skillScore.js` | Расчёт приоритетов уроков по логу событий ответов: каскад правил `computePriority`, замещение сессий `latestSessionEvents`, итоговый `computeAllPriorities` (см. SKILL_ANALYSIS.md) |
 | `skillStatsStore.js` | Хранение событий ответов: залогинен → `lesson_results.answers` (jsonb), гость → localStorage; `saveAnswerEvents` в конце урока, `loadAllEvents` для расчёта приоритетов |
@@ -625,3 +641,4 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `AvatarCrop.jsx` | Круговой кроп-редактор аватара: drag-pan, scroll-zoom, ±кнопки — общий для настроек урока (`LessonSettingsTab`) и админ-вкладки «Учитель» |
 | `BackButton.jsx` | Единая кнопка «назад»/«закрыть» для всего приложения: кружок с иконкой стрелки, без текстовой подписи (стили — `styles/back-button.css`); используется в шапках Profile/CustomizationScreen/RacePage/CurriculumView/TableTimelineEditor/CanvasPage/RewardsPopup/PlayerTopBar |
 | `ResumeEditingToast.jsx` | Всплывашка при запуске (только админу): вернуться в канвас последнего правленого урока; «Перейти», крестик, авто-скрытие через 12с |
+| `EmojiPicker.jsx` | Окно смайликов: вкладки групп, сетка 8 колонок с прокруткой; рисуется порталом (+ `emojiInsert.test.js`) |

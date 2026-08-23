@@ -38,20 +38,26 @@ const forkGraph = () => [
   node('far', 2, 1000, 0, [{ id: 't', if: 'timer', then: null }]),
 ]
 
-describe('insertFromPort — ветки не расталкивают граф вправо', () => {
-  it('первая ветка освобождает место: соседи справа сдвигаются', () => {
+describe('insertFromPort — ветки не расталкивают граф', () => {
+  it('соседи остаются на своих местах — раскладку автора не перекраиваем', () => {
     const { ops, get } = useOps(forkGraph())
     ops.insertFromPort('a', 0, 'text')
-    const far = get().find(n => n.id === 'far')
-    expect(far.x).toBe(1000 + NODE_SLOT)
+    expect(get().find(n => n.id === 'far').x).toBe(1000)
   })
 
-  it('вторая ветка граф уже не двигает', () => {
+  it('вторая ветка граф тоже не двигает', () => {
     const { ops, get } = useOps(forkGraph())
     ops.insertFromPort('a', 0, 'text')
-    const afterFirst = get().find(n => n.id === 'far').x
     ops.insertFromPort('a', 1, 'text')
-    expect(get().find(n => n.id === 'far').x).toBe(afterFirst)
+    expect(get().find(n => n.id === 'far').x).toBe(1000)
+  })
+
+  it('новая нода встаёт рядом с исходной, с отступом вправо', () => {
+    const { ops, get } = useOps(forkGraph())
+    ops.insertFromPort('a', 0, 'text')
+    const a = get().find(n => n.id === 'a')
+    const added = get().find(n => n.id === a.triggers[0].then)
+    expect(added.x).toBe(a.x + NODE_SLOT)
   })
 
   it('вторая ветка встаёт ниже первой, в той же колонке', () => {
@@ -86,10 +92,15 @@ describe('insertFromPort — ветки не расталкивают граф �
 })
 
 describe('insertAfterNode — «+» вставляет в цепочку', () => {
-  it('освобождает место: соседи справа сдвигаются', () => {
+  it('соседи остаются на местах, новая нода — рядом с исходной', () => {
     const { ops, get } = useOps(forkGraph())
+    const before = new Set(get().map(n => n.id))
     ops.insertAfterNode('a', 'text')
-    expect(get().find(n => n.id === 'far').x).toBe(1000 + NODE_SLOT)
+    expect(get().find(n => n.id === 'far').x).toBe(1000)
+    const added = get().find(n => !before.has(n.id))
+    const a = get().find(n => n.id === 'a')
+    expect(added.x).toBe(a.x + NODE_SLOT)
+    expect(added.y).toBe(a.y)
   })
 
   it('вставка в середину перецепляет связь A → новая → B', () => {

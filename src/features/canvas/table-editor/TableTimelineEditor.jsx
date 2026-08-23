@@ -34,9 +34,15 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   const clockRef = useRef(null)
   const silent   = !localBlobUrl
 
-  const { layers, initClips, toggleVisible, toggleHighlight, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, pruneLayers, getTimeline } = useTableTimelineEdit(timeline, cells)
+  const { layers, initClips, toggleVisible, toggleHighlight, toggleCollect, setAllCollect, setLayerPick, updateClip, updateExtraClip, duplicateClip, addClearClip, removeExtraClip, addLayer, addWordLayer, addCheckLayer, addClearLayer, removeLayer, pruneLayers, getTimeline } = useTableTimelineEdit(timeline, cells)
   // С этого момента уезжает таблица — раньше её отъезда слова не зажигаются
   const extrasStart = extrasStartSec(layers)
+
+  // Общая галочка «в сборку»: показывает состояние всех слоёв разом (кроме
+  // «Проверить» — у него своей галочки нет) и переключает их одним кликом
+  const collectable = layers.filter(l => !l.isCheck)
+  const allCollect  = collectable.length > 0 && collectable.every(l => l.collect !== false)
+  const someCollect = collectable.some(l => l.collect !== false)
   // Длина композиции задаётся автором и живёт отдельно от аудио: таблицу можно
   // монтировать и вовсе без озвучки. По умолчанию — аудио плюс 10с (есть куда
   // поставить проверку ПОСЛЕ конца записи), без аудио — 15с.
@@ -247,6 +253,18 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
           timelineLen: timelineDur, timeline: getTimeline(),
         })} />
         <span className="tlTitle">Таймлайн</span>
+        <button
+          className={`tlAllCollect${allCollect ? ' tlAllCollectOn' : someCollect ? ' tlAllCollectSome' : ''}`}
+          title={allCollect
+            ? 'Все слои идут в сборку фразы — выключить все'
+            : 'Включить сборку у всех слоёв'}
+          disabled={!collectable.length}
+          onClick={() => setAllCollect(!allCollect)}
+        >
+          <span className="tlAllCollectBox">{allCollect ? '✓' : someCollect ? '–' : ''}</span>
+          В сборку
+        </button>
+
         {/* Длина композиции — в углу, как в монтажной программе: работает и с
             озвучкой, и без неё */}
         <label className="tlLenField">
@@ -309,7 +327,13 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
         <div className="tlTracksInner" ref={innerRef}>
           {/* Линейка времени (засечки 0.1с + подписи секунд) — над всеми дорожками.
               Клик/протяжка по ней ставит плейхед — play/пробел играют оттуда. */}
-          <TableTimelineRuler duration={timelineDur} stripPx={stripPx} onSeek={handleSeek} stripRef={stripRef} />
+          <TableTimelineRuler
+            duration={timelineDur}
+            stripPx={stripPx}
+            onSeek={handleSeek}
+            onResize={setLocalLen}
+            stripRef={stripRef}
+          />
           {/* Спектр — только аудио-часть (слева); справа пустой хвост таймлайна */}
           {localBlobUrl && (
             <div className="tlWaveTrack">
@@ -330,6 +354,12 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
               extrasStart={extrasStart}
               onToggleVisible={() => toggleVisible(layer.id)}
               onToggleHighlight={() => toggleHighlight(layer.id)}
+              onToggleCollect={() => toggleCollect(layer.id)}
+              onPick={value => setLayerPick(layer.id, value)}
+              onUpdateExtra={(kind, i, clip) => updateExtraClip(layer.id, kind, i, clip)}
+              onDuplicate={() => duplicateClip(layer.id, timelineDur)}
+              onAddClear={() => addClearClip(layer.id, timelineDur)}
+              onRemoveExtra={(kind, i) => removeExtraClip(layer.id, kind, i)}
               onUpdateClip={clip => updateClip(layer.id, clip, 0)}
               onUpdateReveal={clip => updateClip(layer.id, clip, 1)}
               onRemove={() => removeLayer(layer.id)}
@@ -361,6 +391,13 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
           </select>
           <button className="tlAddTrackBtn" onClick={() => addLayer(newCellId, localDuration, timelineDur)}>
             + Дорожка
+          </button>
+          <button
+            className="tlAddTrackBtn"
+            title="Отдельная дорожка: в её начале собранная фраза очищается"
+            onClick={() => addClearLayer(timelineDur)}
+          >
+            + Очистить
           </button>
         </div>
       )}

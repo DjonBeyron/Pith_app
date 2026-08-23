@@ -126,13 +126,19 @@ export function answerOrderOf(word, extraFromAnswer) {
 // скрытый (visible:false) — текст всегда виден (без гейтинга, как раньше).
 export function computeRevealedCellIds(layers, t) {
   const revealed = new Set()
+  let hasCellLayers = false
   for (const l of layers ?? []) {
     if (!l.cellId || l.word || l.isCheck) continue
+    hasCellLayers = true
     const reveal = l.clips?.[1]
     if (l.visible === false || !reveal) { revealed.add(l.cellId); continue }
     if (t >= reveal.start && t < reveal.end) revealed.add(l.cellId)
   }
-  return revealed
+  // Таймлайна у таблицы нет вовсе (или в нём нет дорожек ячеек) — гейтить
+  // нечем: null означает «показывать весь текст». Пустой набор здесь был бы
+  // прочитан как «не проявлена ни одна ячейка», и таблица выглядела пустой:
+  // сетка на месте, а текста нет.
+  return hasCellLayers ? revealed : null
 }
 
 // Ячейки, подсвеченные (зелёные) в момент t — clips[0] cell-слоёв. Общая с
@@ -174,8 +180,11 @@ export function timelineEndSec(layers) {
   return end
 }
 
-// Сравнение двух Set — чтобы не дёргать setState, если состав не изменился.
+// Сравнение двух наборов — чтобы не дёргать setState, если состав не менялся.
+// null (гейта нет вовсе) — полноправное значение и сравнивается как значение.
 export function sameIdSet(a, b) {
+  if (a === b) return true
+  if (!a || !b) return false
   if (a.size !== b.size) return false
   for (const id of a) if (!b.has(id)) return false
   return true

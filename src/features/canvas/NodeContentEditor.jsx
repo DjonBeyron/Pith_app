@@ -1,7 +1,5 @@
 import { useState, useRef } from 'react'
 import NodeAudioPicker from './NodeAudioPicker.jsx'
-import NodeTextHighlighter from './NodeTextHighlighter.jsx'
-import NodeTextWrapModal from './NodeTextWrapModal.jsx'
 import NodeTextProEditor from './NodeTextProEditor.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
@@ -13,12 +11,18 @@ import NodeRegistrationTriggers   from './NodeRegistrationTriggers.jsx'
 import NodeLessonLink     from './NodeLessonLink.jsx'
 import NodeRewardCheckbox from './NodeRewardCheckbox.jsx'
 import NodeTypeSelect from './NodeTypeSelect.jsx'
+import { useNodeEmoji } from './useNodeEmoji.js'
+import NodeTextModals from './NodeTextModals.jsx'
+import NodeTextTools from './NodeTextTools.jsx'
 import { applyTypeChange } from './nodeDefaults.js'
 import { NODE_TYPES } from './nodeTypes.js'
 import { autoGrowTextarea } from '../../shared/lib/autoGrowTextarea.js'
 import { useTextareaHeight } from './useTextareaHeight.js'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
+
+// Типы нод со своим текстом сообщения — им нужна кнопка смайликов
+const HAS_TEXT_TYPES = new Set(['text', 'pin_message', 'system', 'audio', 'sticker', 'photo'])
 
 // Форма редактирования содержимого ноды по её типу: файл/текст/варианты
 // ответов + блок триггеров. Общая для max-ноды канваса (CanvasNode) и строки
@@ -46,6 +50,7 @@ export default function NodeContentEditor({
   const [hlRect, setHlRect] = useState(null)
   const [wrapRect, setWrapRect] = useState(null) // окно «свои переносы»
   const [hlTarget, setHlTarget] = useState('main') // 'main' | 'pro' — какой текст красим
+
   const wrapRef = useRef(null)
 
   const tData  = node.typeData?.[node.type] ?? {}
@@ -77,8 +82,18 @@ export default function NodeContentEditor({
 
   // Текст ноды, который правят кистью и окном переносов (у аудио он свой)
   const mainText = node.type === 'audio' ? (tData.text ?? '')
-    : node.type === 'sticker' ? (tData.caption ?? '')
+    : (node.type === 'sticker' || node.type === 'photo') ? (tData.caption ?? '')
     : (tData.content ?? '')
+  // В каком поле typeData лежит основной текст этой ноды
+  const mainField = node.type === 'audio' ? 'text'
+    : (node.type === 'sticker' || node.type === 'photo') ? 'caption'
+    : 'content'
+
+  const emoji = useNodeEmoji({
+    wrapRef, text: mainText, field: mainField,
+    highlights: tData.highlights, onUpdate: updateTypeData,
+  })
+
   // Свои переносы в ноде есть — либо стоят прямо в тексте, либо включён режим
   // «пузырь по моим строкам»
   const wrapActive = !!tData.hardWrap || mainText.includes('\n')
@@ -158,12 +173,14 @@ export default function NodeContentEditor({
           <span className="nodeStickerSoundLabel">Со звуком: первый раз со звуком, дальше петля без него</span>
         </label>
       )}
-      {node.type === 'sticker' && (
+      {(node.type === 'sticker' || node.type === 'photo') && (
         <textarea
           className="nodeTextInput"
           value={tData.caption ?? ''}
           onChange={e => updateTypeData({ caption: e.target.value })}
-          placeholder="Текст под стикером (в том же пузыре)..."
+          placeholder={node.type === 'photo'
+            ? 'Текст под фото (в том же пузыре)...'
+            : 'Текст под стикером (в том же пузыре)...'}
           onClick={e => e.stopPropagation()}
           onMouseDown={e => e.stopPropagation()}
           rows={4}
@@ -171,36 +188,22 @@ export default function NodeContentEditor({
           onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
         />
       )}
-      {(node.type === 'text' || node.type === 'pin_message' || (node.type === 'audio' && !!tData.text) || (node.type === 'sticker' && !!tData.caption)) && (
-        <button
-          className="nodeHLOpenBtn"
-          style={(tData.highlights?.length > 0) ? { borderColor: '#b6fe3b', color: '#b6fe3b' } : undefined}
-          onClick={e => {
-            e.stopPropagation()
-            setHlTarget('main')
-            setHlRect(wrapRef.current?.getBoundingClientRect() ?? null)
-          }}
-          onMouseDown={e => e.stopPropagation()}
-        >
-          🎨
-        </button>
-      )}
-      {(node.type === 'text' || node.type === 'pin_message' || (node.type === 'audio' && !!tData.text) || (node.type === 'sticker' && !!tData.caption)) && (
-        <button
-          className="nodeHLOpenBtn"
-          title="Свои переносы строк"
-          /* зелёная обводка — как у палитры: в ноде есть свои переносы либо
-             включён режим «пузырь по моим строкам» */
-          style={wrapActive ? { borderColor: '#b6fe3b', color: '#b6fe3b' } : undefined}
-          onClick={e => {
-            e.stopPropagation()
-            setWrapRect(wrapRef.current?.getBoundingClientRect() ?? null)
-          }}
-          onMouseDown={e => e.stopPropagation()}
-        >
-          ↵
-        </button>
-      )}
+      <NodeTextTools
+        hasText={HAS_TEXT_TYPES.has(node.type)}
+        textWritten={!!mainText.trim()}
+        hasHighlights={tData.highlights?.length > 0}
+        wrapActive={wrapActive}
+        onEmoji={emoji.open}
+        onPaint={e => {
+          e.stopPropagation()
+          setHlTarget('main')
+          setHlRect(wrapRef.current?.getBoundingClientRect() ?? null)
+        }}
+        onWrap={e => {
+          e.stopPropagation()
+          setWrapRect(wrapRef.current?.getBoundingClientRect() ?? null)
+        }}
+      />
       {node.type === 'text' && (
         <NodeTextProEditor
           nodeId={node.id}
@@ -398,32 +401,20 @@ export default function NodeContentEditor({
           />
         )
       )}
-      {hlRect && (
-        <NodeTextHighlighter
-          text={hlTarget === 'pro' ? (tData.proText ?? '') : mainText}
-          highlights={(hlTarget === 'pro' ? tData.proHighlights : tData.highlights) ?? []}
-          /* предпросмотр в раскраске должен совпадать с уроком, в том числе
-             когда автор задал свои переносы */
-          hardWrap={node.type === 'text' && hlTarget !== 'pro' && !!tData.hardWrap}
-          anchorRect={hlRect}
-          onClose={() => setHlRect(null)}
-          onChange={hl => updateTypeData(hlTarget === 'pro' ? { proHighlights: hl } : { highlights: hl })}
-        />
-      )}
-      {wrapRect && (
-        <NodeTextWrapModal
-          text={mainText}
-          highlights={tData.highlights ?? []}
-          hardWrap={!!tData.hardWrap}
-          field={node.type === 'audio' ? 'text' : node.type === 'sticker' ? 'caption' : 'content'}
-          /* ширина пузыря по строкам осмысленна только у текстовой ноды:
-             у аудио пузырь держит волна, у закрепа — вся ширина экрана */
-          widthToggle={node.type === 'text'}
-          anchorRect={wrapRect}
-          onClose={() => setWrapRect(null)}
-          onChange={patch => updateTypeData(patch)}
-        />
-      )}
+      <NodeTextModals
+        node={node}
+        tData={tData}
+        mainText={mainText}
+        mainField={mainField}
+        hlRect={hlRect}
+        hlTarget={hlTarget}
+        onHlClose={() => setHlRect(null)}
+        onHighlightsChange={updateTypeData}
+        wrapRect={wrapRect}
+        onWrapClose={() => setWrapRect(null)}
+        onWrapChange={patch => updateTypeData(patch)}
+        emoji={emoji}
+      />
     </div>
   )
 }

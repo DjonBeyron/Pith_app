@@ -17,6 +17,7 @@ import { usePlayerFiles } from './usePlayerFiles.js'
 import { useAnswerStats } from './useAnswerStats.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { downloadDebugLog } from './downloadDebugLog.js'
+import { pLog } from '../../shared/lib/debug.js'
 import PlayerOverlays from './PlayerOverlays.jsx'
 import HintBar from './HintBar.jsx'
 import { useFinalHints } from './useFinalHints.js'
@@ -94,6 +95,14 @@ export default function LessonPlayer({
   const { visibleNodes, pendingNode, onNodeDone } = graph
 
   function finishSummary() {
+    // Прогон из канваса — инструмент автора, а не прохождение урока: ни экрана
+    // итогов, ни начислений (XP, звёзды, золотой билет), ни записи в анализ
+    // знаний, ни выхода в схему модуля. Плеер просто остаётся открытым —
+    // закроет его сам админ, когда досмотрит
+    if (edit) {
+      pLog('[player] конец урока в режиме правки из канваса — итоги не показываем')
+      return
+    }
     setTimeout(async () => {
       // Звёзды обычного урока: считаются и гостю, и залогиненному; локальный
       // стор обновляется сразу (схема модуля покажет без похода на сервер)

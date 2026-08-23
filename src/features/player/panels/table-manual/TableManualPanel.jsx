@@ -1,22 +1,8 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
+import CellOptionsMenu from './CellOptionsMenu.jsx'
+import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 
-// Разбить фразу ответа по словам, сопоставить с ячейками таблицы.
-// Слова, найденные в таблице → type:'cell'; остальные → type:'extra'
-function deriveTokens(answer, cells) {
-  const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
-  const usedIds = new Set()
-  return words.map(word => {
-    const cell = cells.find(
-      c => c.value?.trim().toLowerCase() === word.toLowerCase() && !usedIds.has(c.id)
-    )
-    if (cell) {
-      usedIds.add(cell.id)
-      return { type: 'cell', cellId: cell.id, value: cell.value.trim() }
-    }
-    return { type: 'extra', value: word }
-  })
-}
 
 function shuffle(arr) {
   const a = [...arr]
@@ -34,7 +20,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
   const distractors = tData.distractors    ?? []
   const cells       = table?.cells         ?? []
 
-  const tokens = useMemo(() => deriveTokens(answer, cells), [answer, cells])
+  const tokens = useMemo(() => deriveAnswerTokens(answer, cells), [answer, cells])
 
   const answerCellIds = useMemo(
     () => new Set(tokens.filter(t => t.type === 'cell').map(t => t.cellId)),
@@ -90,10 +76,21 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
   // Фаза полностью производная: extra только когда все ячейки выбраны и есть слова-ловушки
   const phase        = (allCellsDone && hasExtras) ? 'extra' : 'table'
 
-  function tapCell(cellId) {
+  // Особая ячейка: вместо того чтобы сразу уйти в фразу, открывает меню
+  // своих вариантов — какое значение выбрал ученик, то и соберётся
+  const [cellMenu, setCellMenu] = useState(null)   // { cellId, options, rect }
+
+  function tapCell(cellId, rect) {
     if (!answerCellIds.has(cellId) || assembledCellIds.has(cellId) || result) return
-    const val = cells.find(c => c.id === cellId)?.value?.trim() ?? ''
-    setAssembled(prev => [...prev, { type: 'cell', cellId, value: val, key: `cell-${cellId}` }])
+    const cell = cells.find(c => c.id === cellId)
+    const options = cell?.options ?? []
+    if (options.length) { setCellMenu({ cellId, options, rect }); return }
+    pickCell(cellId, cell?.value?.trim() ?? '')
+  }
+
+  function pickCell(cellId, value) {
+    setCellMenu(null)
+    setAssembled(prev => [...prev, { type: 'cell', cellId, value, key: `cell-${cellId}` }])
   }
 
   function tapExtra(chip, idx) {
@@ -118,6 +115,8 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
   }
 
   function check() {
+    // Разбор закончен — открытое меню ячейки уже ни к чему
+    setCellMenu(null)
     const phrase = assembled.map(t => t.value).join(' ')
     if (phrase.trim().toLowerCase() === answer.trim().toLowerCase()) {
       setResult('correct')
@@ -200,7 +199,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
                 cells={table.cells}
                 rowCount={table.rowCount}
                 selectedIds={assembledCellIds}
-                onCellClick={phase === 'table' && !result ? cell => tapCell(cell.id) : undefined}
+                onCellClick={phase === 'table' && !result
+                  ? (cell, e) => tapCell(cell.id, e?.currentTarget?.getBoundingClientRect?.())
+                  : undefined}
               />
             </div>
 
@@ -224,6 +225,14 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
 
         </div>
       </div>
+      {cellMenu && (
+        <CellOptionsMenu
+          options={cellMenu.options}
+          anchorRect={cellMenu.rect}
+          onPick={value => pickCell(cellMenu.cellId, value)}
+          onClose={() => setCellMenu(null)}
+        />
+      )}
     </>
   )
 }

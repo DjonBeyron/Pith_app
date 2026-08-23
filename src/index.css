@@ -46,6 +46,7 @@
 @import './styles/canvas/node-media-badge.css';
 @import './styles/canvas/spotlight.css';
 @import './styles/resume-toast.css';
+@import './styles/emoji-picker.css';
 @import './styles/canvas/triggers.css';
 @import './styles/canvas/drag.css';
 @import './styles/production/list.css';
@@ -75,6 +76,7 @@
 @import './styles/canvas/table-editor-preview.css';
 @import './styles/canvas/table-editor-templates.css';
 @import './styles/canvas/table-editor-timeline.css';
+@import './styles/canvas/table-editor-controls.css';
 @import './styles/table-grid.css';
 @import './styles/player/modules/table.css';
 @import './styles/player/panels/table-dictator.css';

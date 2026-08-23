@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
+import { notifyLessonSaved } from '../../shared/lib/lessonSavedBus.js'
 import { useLessonFiles } from '../canvas/useLessonFiles.js'
 import { canvasLsKey } from '../canvas/canvasStorageKeys.js'
 import { productionScrollKey } from './productionStorageKeys.js'
@@ -86,6 +87,8 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
       dbg('[PRODUCTION] saving', nodes.length, 'nodes to lesson', lessonId, 'types:',
         nodes.map(n => n.type).join(', '))
       await saveLesson(lessonId, { title, script: { ...scriptExtraRef.current, nodes } })
+      // См. CanvasPage: схема модуля под редактором обновит название сама
+      notifyLessonSaved({ id: lessonId, title, lessonXp: scriptExtraRef.current?.lessonXp })
       // У canvas-редактора свой localStorage-черновик этого урока (canvasLsKey) —
       // при следующем открытии он имеет приоритет над данными сервера (см.
       // CanvasBoard.jsx). Без этой строки canvas показал бы старый черновик

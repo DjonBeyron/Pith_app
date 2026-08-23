@@ -32,10 +32,18 @@ function scheduleLayer(layer, {
         if (layer.cellId) {
           addedCellsRef.current.add(cellKey)
           setHighlighted(prev => new Set([...prev, layer.cellId]))
-          const val = cells.find(c => c.id === layer.cellId)?.value?.trim() ?? ''
+          // См. useTableDictatorRaf: у особой ячейки в фразу идёт вариант,
+          // выбранный автором на таймлайне
+          const cellObj = cells.find(c => c.id === layer.cellId)
+          const val = (layer.pick ?? cellObj?.value)?.trim() ?? ''
           if (!val) return
-          pLog(`[td-post] ЯЧЕЙКА-ON "${val}" после конца аудио → в бокс через 0.3с`)
           glowOn(cellKey, `ЯЧЕЙКА "${val}"`, cfgDur)
+          // Галочка на клипе снята — только подсветка, в сборку не идёт
+          if (layer.collect === false) {
+            pLog(`[td-post] ЯЧЕЙКА "${val}" горит, но в сборку не идёт (галочка снята)`)
+            return
+          }
+          pLog(`[td-post] ЯЧЕЙКА-ON "${val}" после конца аудио → в бокс через 0.3с`)
           const id = setTimeout(() => {
             assembledRef.current.push(val)
             setAssembled(prev => [...prev, val])
@@ -46,8 +54,12 @@ function scheduleLayer(layer, {
           const key = chipKey ?? null
           if (!key) return
           setActiveExtraKeys(prev => new Set([...prev, key]))
-          pLog(`[td-post] СЛОВО-ON "${layer.word}" после конца аудио → в бокс через ${inBoxDelayMs}мс`)
           glowOn(key, `СЛОВО "${layer.word}"`, cfgDur)
+          if (layer.collect === false) {
+            pLog(`[td-post] СЛОВО "${layer.word}" горит, но в сборку не идёт (галочка снята)`)
+            return
+          }
+          pLog(`[td-post] СЛОВО-ON "${layer.word}" после конца аудио → в бокс через ${inBoxDelayMs}мс`)
           const id = setTimeout(() => {
             setExtrasAssembled(prev => [...prev, { value: layer.word, key }])
             glowAssembled(key, `СЛОВО "${layer.word}"`)
@@ -84,12 +96,12 @@ function scheduleLayer(layer, {
     const revealOffDelay = reveal.end   - tEnd
     if (revealOnDelay >= -0.02) {
       timers.current.push(setTimeout(() => {
-        setRevealedIds(prev => new Set(prev).add(layer.cellId))
+        setRevealedIds(prev => new Set(prev ?? []).add(layer.cellId))
       }, Math.max(0, revealOnDelay) * 1000))
     }
     if (revealOffDelay > 0.02) {
       timers.current.push(setTimeout(() => {
-        setRevealedIds(prev => { const s = new Set(prev); s.delete(layer.cellId); return s })
+        setRevealedIds(prev => { const s = new Set(prev ?? []); s.delete(layer.cellId); return s })
       }, revealOffDelay * 1000))
     }
   }
@@ -108,6 +120,7 @@ function pendingAssembleEnd(layers, extrasStart, addedCellsRef) {
     if (l.visible === false || l.isCheck || l.highlightOn === false) continue
     const clip = l.clips?.[0]
     if (!clip) continue
+    if (l.collect === false) continue
     if (l.cellId && addedCellsRef.current.has(`cell-${l.cellId}`)) continue
     const inBox = (l.word ? wordGreenAt(clip, extrasStart) : clip.start) + IN_BOX_S
     if (inBox > latest) latest = inBox

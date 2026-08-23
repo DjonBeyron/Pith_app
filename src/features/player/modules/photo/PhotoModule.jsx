@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
+import HighlightedText from '../../../../shared/ui/HighlightedText.jsx'
 
 export default function PhotoModule({ node, file, onDone }) {
   const [objectUrl,  setObjectUrl]  = useState(null)
@@ -10,6 +11,11 @@ export default function PhotoModule({ node, file, onDone }) {
   const frameRef = useRef(null)
 
   const crop = node.typeData?.photo?.crop ?? { x: 0, y: 0, scale: 1 }
+  // Подпись живёт в ОДНОМ пузыре с фото — как у стикера. Рисуем как есть:
+  // выделения хранятся позициями в исходной строке, и обрезка пробелов
+  // сдвинула бы их; trim только решает, показывать ли блок
+  const captionRaw = node.typeData?.photo?.caption ?? ''
+  const caption    = captionRaw.trim()
 
   useEffect(() => { onDone?.() }, []) // eslint-disable-line
 
@@ -71,6 +77,11 @@ export default function PhotoModule({ node, file, onDone }) {
                   onLoad={e => { setIntrinsic({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }); setImgReady(true) }}
                 />
               </div>
+              {caption && (
+                <div className="playerPhotoCaption">
+                  <HighlightedText text={captionRaw} highlights={node.typeData?.photo?.highlights ?? []} />
+                </div>
+              )}
               {fullscreen && (
                 <div className="photoFullOverlay" onClick={() => setFullscreen(false)}>
                   <button className="photoFullClose" onClick={e => { e.stopPropagation(); setFullscreen(false) }}>×</button>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createLesson, deleteLesson } from '../../shared/lib/lessonsApi.js'
 import { saveCurriculumLessons, loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { supabase } from '../../shared/api/supabase.js'
+import { onLessonSaved } from '../../shared/lib/lessonSavedBus.js'
 import { dbg } from '../../shared/lib/debug.js'
 
 // Module-level lock: prevents double bulkCreate in React StrictMode (mount→unmount→mount)
@@ -62,6 +63,18 @@ export function useCurriculumLessons(curriculumId) {
 
   // fetchLessons ставит setLoading синхронно в начале загрузки — осознанно
   useEffect(() => { fetchLessons(lessonIds) }, [lessonIds.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
+
+  // Урок сохранили в редакторе (он открыт поверх этой схемы) — забираем новое
+  // название и XP сразу, не дожидаясь перезагрузки приложения
+  useEffect(() => onLessonSaved(saved => {
+    setLessons(prev => prev.map(l => (l.id === saved.id
+      ? {
+        ...l,
+        title: saved.title ?? l.title,
+        lessonXp: saved.lessonXp ?? l.lessonXp,
+      }
+      : l)))
+  }), [])
 
   async function togglePublished(id, currentValue) {
     const next = !currentValue

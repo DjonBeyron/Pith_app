@@ -68,6 +68,7 @@ const TEXT_FIELD = {
   system: 'content',
   audio: 'text',
   sticker: 'caption',
+  photo: 'caption',
 }
 
 // Переносит написанный текст (и его раскраску) в поле нового типа: автор

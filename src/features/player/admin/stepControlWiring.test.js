@@ -101,6 +101,29 @@ describe('шаг вперёд', () => {
   })
 })
 
+describe('конец урока в прогоне из канваса', () => {
+  it('итоги не показываются и в схему модуля не выкидывает', () => {
+    const fn = PLAYER.slice(PLAYER.indexOf('function finishSummary()'))
+    const guard = fn.slice(0, fn.indexOf('setTimeout('))
+    expect(guard).toContain('if (edit) {')
+    expect(guard).toContain('return')
+  })
+
+  it('заодно ничего не начисляется — прогон автора не трогает прогресс', () => {
+    const fn = PLAYER.slice(PLAYER.indexOf('function finishSummary()'))
+    const guard = fn.slice(0, fn.indexOf('setTimeout('))
+    // выход из функции стоит ДО начислений и записи статистики
+    expect(guard).not.toContain('completeLesson')
+    expect(guard).not.toContain('saveAnswerEvents')
+    expect(guard).not.toContain('setShowSummary')
+  })
+
+  it('обычное прохождение итоги показывает как раньше', () => {
+    expect(PLAYER).toContain('setShowSummary(true)')
+    expect(PLAYER).toContain('onSummaryClose ?? onClose')
+  })
+})
+
 describe('выход к ноде и вид панели', () => {
   const PANEL = read('./PlayerAdminPanel.jsx')
   const BAR   = read('./PlayerStepBar.jsx')

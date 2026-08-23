@@ -7,8 +7,12 @@ function uid() { return crypto.randomUUID() }
 // highlightOn — независимый от visible переключатель ТОЛЬКО зелёного клипа
 // (подсветка+выбор ячейки в ответ): выключен — ячейка не подсвечивается и не
 // падает в собранную фразу, но проявление текста (второй клип) работает как обычно.
+// collect — галочка прямо на зелёном клипе: идёт ли значение в собираемую фразу.
+// Выключена — подсветка и анимация отрабатывают как обычно, но слово/ячейка в
+// бокс не падает (нужно, когда автор хочет показать ячейку, не вставляя её в
+// ответ). По умолчанию включена у всех слоёв.
 function buildDefaultLayers(cells) {
-  return cells.map(c => ({ id: uid(), cellId: c.id, visible: true, highlightOn: true, clips: [], isDefault: true }))
+  return cells.map(c => ({ id: uid(), cellId: c.id, visible: true, highlightOn: true, collect: true, clips: [], isDefault: true }))
 }
 
 function restoreLayers(saved, cells) {
@@ -20,6 +24,12 @@ function restoreLayers(saved, cells) {
     isCheck: l.isCheck ?? false,
     visible: l.visible !== false,
     highlightOn: l.highlightOn !== false,
+    collect: l.collect !== false,
+    pick: l.pick,
+    // Повторы той же анимации и моменты очистки собранной фразы
+    repeats: l.repeats,
+    clears: l.clears,
+    isClear: l.isClear ?? false,
     clips: l.clips ?? [],
     isDefault: !!l.cellId && cellIdSet.has(l.cellId),
   }))
@@ -27,7 +37,7 @@ function restoreLayers(saved, cells) {
   const existingCellIds = new Set(restored.filter(l => l.isDefault).map(l => l.cellId))
   cells.forEach(c => {
     if (!existingCellIds.has(c.id)) {
-      restored.push({ id: uid(), cellId: c.id, visible: true, highlightOn: true, clips: [], isDefault: true })
+      restored.push({ id: uid(), cellId: c.id, visible: true, highlightOn: true, collect: true, clips: [], isDefault: true })
     }
   })
   return restored
@@ -62,6 +72,25 @@ export function useTableTimelineEdit(initialTimeline, cells) {
     }))
   }, [])
 
+  // Галочка «идёт в сборку» на зелёном клипе
+  const toggleCollect = useCallback((id) => {
+    setLayers(prev => prev.map(l => l.id === id ? { ...l, collect: !(l.collect !== false) } : l))
+  }, [])
+
+  // Особая ячейка (со списком вариантов): какой из них уходит в собранную
+  // фразу в авто-режиме. В уроке меню при этом не показывается — выбор уже
+  // сделан здесь, автором
+  const setLayerPick = useCallback((id, pick) => {
+    setLayers(prev => prev.map(l => (l.id === id ? { ...l, pick: pick || undefined } : l)))
+  }, [])
+
+  // Тот же переключатель, но сразу для всех слоёв: у длинного таймлайна
+  // щёлкать по каждому клипу долго. Слой «Проверить» не трогаем — у него
+  // собирать нечего и своей галочки нет
+  const setAllCollect = useCallback((value) => {
+    setLayers(prev => prev.map(l => (l.isCheck ? l : { ...l, collect: value })))
+  }, [])
+
   const toggleVisible = useCallback((id) => {
     setLayers(prev => prev.map(l => l.id === id ? { ...l, visible: !l.visible } : l))
   }, [])
@@ -69,6 +98,54 @@ export function useTableTimelineEdit(initialTimeline, cells) {
   // Независимый глазик самого зелёного (подсветка+выбор) клипа — только у cell-слоя.
   const toggleHighlight = useCallback((id) => {
     setLayers(prev => prev.map(l => l.id === id ? { ...l, highlightOn: !(l.highlightOn !== false) } : l))
+  }, [])
+
+  // Повтор клипа: та же дорожка, та же анимация, другое время. Нужен, когда
+  // ячейка звучит в записи дважды — раньше пришлось бы заводить вторую дорожку
+  // на ту же ячейку, и в списке было бы не разобрать, где какая.
+  const duplicateClip = useCallback((id, timelineDur) => {
+    setLayers(prev => prev.map(l => {
+      if (l.id !== id) return l
+      const base = l.clips?.[0]
+      if (!base) return l
+      const len = Math.max(0.2, base.end - base.start)
+      const all = [base, ...(l.repeats ?? [])]
+      const lastEnd = Math.max(...all.map(c => c.end))
+      // Ставим следом за последним, но не вываливаемся за конец композиции
+      const start = Math.min(lastEnd + 0.2, Math.max(0, (timelineDur ?? lastEnd + len) - len))
+      return { ...l, repeats: [...(l.repeats ?? []), { start, end: start + len }] }
+    }))
+  }, [])
+
+  // Клип очистки на дорожке слоя: в его начале собранная фраза стирается —
+  // так автор показывает «а теперь соберём заново».
+  const addClearClip = useCallback((id, timelineDur) => {
+    setLayers(prev => prev.map(l => {
+      if (l.id !== id) return l
+      const base = l.clips?.[0]
+      const from = base ? base.end + 0.2 : 0
+      const start = Math.min(from, Math.max(0, (timelineDur ?? from + 0.5) - 0.5))
+      return { ...l, clears: [...(l.clears ?? []), { start, end: start + 0.5 }] }
+    }))
+  }, [])
+
+  const removeExtraClip = useCallback((id, kind, index) => {
+    setLayers(prev => prev.map(l => {
+      if (l.id !== id) return l
+      const list = [...(l[kind] ?? [])]
+      list.splice(index, 1)
+      return { ...l, [kind]: list.length ? list : undefined }
+    }))
+  }, [])
+
+  // Правка повтора/очистки — у них своя нумерация внутри своего массива
+  const updateExtraClip = useCallback((id, kind, index, clip) => {
+    setLayers(prev => prev.map(l => {
+      if (l.id !== id) return l
+      const list = [...(l[kind] ?? [])]
+      list[index] = { start: clip.start, end: clip.end }
+      return { ...l, [kind]: list }
+    }))
   }, [])
 
   // clipIndex: 0 = подсветка (по умолчанию), 1 = проявление (только у cell-слоёв)
@@ -83,7 +160,7 @@ export function useTableTimelineEdit(initialTimeline, cells) {
 
   const addLayer = useCallback((cellId, dur, timelineDur) => {
     setLayers(prev => [...prev, {
-      id: uid(), cellId, visible: true, highlightOn: true,
+      id: uid(), cellId, visible: true, highlightOn: true, collect: true,
       clips: dur ? [{ start: 0, end: Math.min(1, dur) }, { start: 0, end: timelineDur ?? dur }] : [],
       isDefault: false,
     }])
@@ -95,7 +172,7 @@ export function useTableTimelineEdit(initialTimeline, cells) {
     setLayers(prev => {
       if (prev.some(l => l.word?.toLowerCase() === word.toLowerCase())) return prev
       return [...prev, {
-        id: uid(), word, visible: true,
+        id: uid(), word, visible: true, collect: true,
         clips: dur ? [{ start: 0, end: Math.min(1, dur) }] : [],
         isDefault: false,
       }]
@@ -112,6 +189,20 @@ export function useTableTimelineEdit(initialTimeline, cells) {
       return [...without, {
         id: uid(), isCheck: true, visible: true,
         clips: dur ? [{ start, end: dur }] : [],
+        isDefault: false,
+      }]
+    })
+  }, [])
+
+  // Отдельная дорожка «Очистить»: доходит до неё прогон — собранная фраза
+  // стирается целиком. В отличие от клипа очистки на дорожке слоя, эта живёт
+  // сама по себе, её удобно двигать и видно в общем списке.
+  const addClearLayer = useCallback((dur) => {
+    setLayers(prev => {
+      const start = Math.max(0, (dur ?? 1) / 2)
+      return [...prev, {
+        id: uid(), isClear: true, visible: true,
+        clips: [{ start, end: start + 0.5 }],
         isDefault: false,
       }]
     })
@@ -146,9 +237,10 @@ export function useTableTimelineEdit(initialTimeline, cells) {
       // Плеер проверяет layer.visible сам и игнорирует скрытые.
       layers: layers
         .filter(l => l.clips.length > 0)
-        .map(({ id, cellId, word, isCheck, visible, highlightOn, clips }) => ({ id, cellId, word, isCheck, visible, highlightOn, clips })),
+        .map(({ id, cellId, word, isCheck, isClear, visible, highlightOn, collect, pick, clips, repeats, clears }) =>
+          ({ id, cellId, word, isCheck, isClear, visible, highlightOn, collect, pick, clips, repeats, clears })),
     }
   }
 
-  return { layers, initClips, toggleVisible, toggleHighlight, updateClip, addLayer, addWordLayer, addCheckLayer, removeLayer, pruneLayers, getTimeline }
+  return { layers, initClips, toggleVisible, toggleHighlight, toggleCollect, setAllCollect, setLayerPick, updateClip, updateExtraClip, duplicateClip, addClearClip, removeExtraClip, addLayer, addWordLayer, addCheckLayer, addClearLayer, removeLayer, pruneLayers, getTimeline }
 }

@@ -14,6 +14,7 @@ import { useTeacherSettings } from './useTeacherSettings.js'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import { setLastEditedLesson } from '../../shared/lib/lastEditedLesson.js'
+import { notifyLessonSaved } from '../../shared/lib/lessonSavedBus.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
 export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpenProduction }) {
@@ -160,6 +161,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
       const scriptToSave = { nodes: nodesForSave, lessonXp, ...teacherData }
       dbg('[CANVAS] saving', nodesForSave.length, 'nodes to lesson', lessonId)
       await saveLesson(lessonId, { title, script: scriptToSave })
+      // Схема модуля открыта под редактором и сама в базу больше не ходит —
+      // сообщаем ей новое название и XP, иначе они обновились бы только после
+      // перезагрузки приложения
+      notifyLessonSaved({ id: lessonId, title, lessonXp })
       // Локальный черновик (CanvasBoard) свою задачу выполнил — он сохранён
       // на сервере. Чистим его: иначе при следующем открытии урока редактор
       // навсегда показывал бы этот черновик вместо настоящих данных сервера

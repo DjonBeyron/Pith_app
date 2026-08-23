@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ROW_UNIT_PX } from '../../../shared/ui/TableGrid.jsx'
 import { FONT_MIN, FONT_MAX } from './tableAutoFitText.js'
 import TableResizeHandles from './TableResizeHandles.jsx'
+import CellOptionsPopover from './CellOptionsPopover.jsx'
 
 const DEFAULT_FONT_SIZE = 13 // .tableGridCell { font-size: 13px } — table-grid.css
 
@@ -11,12 +12,15 @@ const DEFAULT_FONT_SIZE = 13 // .tableGridCell { font-size: 13px } — table-gri
 // (все клики идут в drag-выделение → можно объединять/разбивать/менять размер текста).
 export default function TableGridBuilder({ grid }) {
   const { table, selection, canMerge, isHeaderSelected, addRow, addColumn, removeRow, removeColumn,
-    setCellValue, setCellFontSize, setColumnWidth, setRowHeight, startSelect, extendSelect, endSelect,
+    setCellValue, setCellFontSize, setCellOptions, setColumnWidth, setRowHeight, startSelect, extendSelect, endSelect,
     clearSelection, mergeSelected, splitCell, toggleHeaderSelected, autoFitText } = grid
 
   const draggingRef = useRef(false)
   const gridRef = useRef(null)
   const [selectMode, setSelectMode] = useState(false)
+  // Ячейка, которой сейчас задают особые значения (выпадающее меню в уроке)
+  const [optsCellId, setOptsCellId] = useState(null)
+  const optsCell = optsCellId ? table.cells.find(c => c.id === optsCellId) : null
 
   useEffect(() => {
     function onUp() { draggingRef.current = false; endSelect() }
@@ -145,6 +149,20 @@ export default function TableGridBuilder({ grid }) {
                   extendSelect(cell.row, cell.col, cell.row + cell.rowspan - 1, cell.col + cell.colspan - 1)
               }}
             >
+              {/* Особые значения: ячейка выглядит как обычно, но в уроке из
+                  неё выпадает меню выбора. Кнопка не мешает вводу текста —
+                  она в углу и появляется по наведению (кроме ячеек, где
+                  варианты уже заданы: там она видна всегда) */}
+              {!selectMode && (
+                <button
+                  className={`tableBuilderOptsBtn${cell.options?.length ? ' tableBuilderOptsBtnOn' : ''}`}
+                  title={cell.options?.length
+                    ? `Особые значения (${cell.options.length}) — изменить`
+                    : 'Задать особые значения (выпадающее меню в уроке)'}
+                  onMouseDown={e => e.stopPropagation()}
+                  onClick={() => setOptsCellId(cell.id)}
+                >☰</button>
+              )}
               <textarea
                 className="tableBuilderCellInput"
                 value={cell.value}
@@ -160,6 +178,13 @@ export default function TableGridBuilder({ grid }) {
           ))}
         </div>
         <TableResizeHandles table={table} gridRef={gridRef} setColumnWidth={setColumnWidth} setRowHeight={setRowHeight} />
+        {optsCell && (
+          <CellOptionsPopover
+            cell={optsCell}
+            onSave={options => setCellOptions(optsCell.id, options)}
+            onClose={() => setOptsCellId(null)}
+          />
+        )}
       </div>
     </div>
   )

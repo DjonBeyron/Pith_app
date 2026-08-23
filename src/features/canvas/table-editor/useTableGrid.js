@@ -16,6 +16,7 @@ export function useTableGrid(initialTable) {
   const removeColumn = useCallback(() => setTable(t => G.removeLastColumn(t)), [])
   const setCellValue  = useCallback((id, value) => setTable(t => G.setCellValue(t, id, value)), [])
   const setCellFontSize = useCallback((id, size) => setTable(t => G.setCellFontSize(t, id, size)), [])
+  const setCellOptions  = useCallback((id, options) => setTable(t => G.setCellOptions(t, id, options)), [])
   const setColumnWidth = useCallback((idx, pct) => setTable(t => G.setColumnWidth(t, idx, pct)), [])
   const setRowHeight   = useCallback((idx, pct) => setTable(t => G.setRowHeight(t, idx, pct)), [])
   const splitCell = useCallback(id => { setTable(t => G.splitCell(t, id)); setSelection(null) }, [])
@@ -61,7 +62,7 @@ export function useTableGrid(initialTable) {
   return {
     table, selection, canMerge, isHeaderSelected,
     addRow, addColumn, removeRow, removeColumn,
-    setCellValue, setCellFontSize, setColumnWidth, setRowHeight, splitCell, loadTable,
+    setCellValue, setCellFontSize, setCellOptions, setColumnWidth, setRowHeight, splitCell, loadTable,
     startSelect, extendSelect, endSelect, clearSelection, mergeSelected, toggleHeaderSelected, autoFitText,
   }
 }

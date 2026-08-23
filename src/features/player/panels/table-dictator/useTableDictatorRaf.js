@@ -11,7 +11,7 @@ const HUD_ALPHA_DOWN = [0.15, 0.28, 0.18]
 
 export function useTableDictatorRaf({
   playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers,
-  audioRef, rafRef, prevActiveRef, prevExtraRef, addedCellsRef, assembledRef,
+  audioRef, rafRef, prevActiveRef, prevExtraRef, addedCellsRef, assembledRef, clearedRef,
   barElsRef, barSmoothRef, rfxPhaseRef, rfxChipsRef, rfxAssembRef, rfxCheckRef, rfxCloseRef, timers,
   extraFromAnswer, shuffledExtras, checkRef, closeRef,
   setAssembled, setExtrasAssembled, setHighlighted, setUsedCells, setActiveExtraKeys, setPhase, setChipsVisible,
@@ -23,7 +23,9 @@ export function useTableDictatorRaf({
     // Heartbeat: раз в ~0.5с пишем время аудио + активные ячейки/фазу (throttle, не спамим кадрами)
     let lastHb = -1
     let hudLogged = false
-    let prevReveal = null   // последний посчитанный набор проявленных ячеек (не дёргать setState зря)
+    // Последний посчитанный набор проявленных ячеек (чтобы не дёргать setState
+    // зря). undefined — «ещё не считали»: сам набор может быть и null
+    let prevReveal
     const greenedKeys = new Set()   // какие word-чипы уже загорались зелёным (чтобы 1 раз)
     const cellVal = id => cells.find(c => c.id === id)?.value?.trim() ?? `id=${id}`
 
@@ -52,16 +54,29 @@ export function useTableDictatorRaf({
       for (const layer of timeline?.layers ?? []) {
         if (!layer.cellId) continue
         if (layer.visible === false || layer.highlightOn === false) continue
-        // clips[0] — подсветка (clips[1], если есть, — независимое проявление текста,
-        // на неё здесь не смотрим, у неё своя логика в computeRevealedCellIds)
-        const hlClip = layer.clips?.[0]
-        if (!hlClip || t < hlClip.start || t >= hlClip.end) continue
+        // clips[0] — подсветка, дальше её повторы (repeats): та же анимация в
+        // другое время. clips[1] — независимое проявление текста, у него своя
+        // логика в computeRevealedCellIds.
+        const shots = [layer.clips?.[0], ...(layer.repeats ?? [])].filter(Boolean)
+        const idx = shots.findIndex(c => t >= c.start && t < c.end)
+        if (idx === -1) continue
+        const hlClip = shots[idx]
         active.add(layer.cellId)
-        const key = `cell-${layer.cellId}`
+        // Ключ с номером клипа: повтор должен отработать своим чередом, а не
+        // считаться уже сыгравшим
+        const key = `cell-${layer.cellId}#${idx}`
         if (!addedCellsRef.current.has(key)) {
           addedCellsRef.current.add(key)
-          const val = cells.find(c => c.id === layer.cellId)?.value?.trim() ?? ''
-          if (val) {
+          // У особой ячейки в фразу уходит вариант, выбранный автором на
+          // таймлайне (меню в авто-режиме не показывается)
+          const cellObj = cells.find(c => c.id === layer.cellId)
+          const val = (layer.pick ?? cellObj?.value)?.trim() ?? ''
+          // Галочка на клипе снята — ячейка подсвечивается и анимируется как
+          // обычно, но в собираемую фразу не идёт
+          if (val && layer.collect === false) {
+            pLog(`[td-raf] ЯЧЕЙКА "${val}" горит, но в сборку не идёт (галочка снята)`)
+            glowOn(key, `ЯЧЕЙКА "${val}"`, hlClip.end - hlClip.start)
+          } else if (val) {
             // По требованию: слово падает в бокс через 0.3с ПОСЛЕ начала подсветки ячейки
             pLog(`[td-raf] ЯЧЕЙКА-ON "${val}" t=${t.toFixed(3)}s → в бокс через 0.3с`)
             glowOn(key, `ЯЧЕЙКА "${val}"`, hlClip.end - hlClip.start)
@@ -74,6 +89,32 @@ export function useTableDictatorRaf({
             timers.current.push(id)
           }
         }
+      }
+
+      // Очистка собранного: отдельная дорожка «Очистить» и клипы очистки на
+      // дорожках слоёв. Срабатывает один раз на клип — по его началу.
+      for (const layer of timeline?.layers ?? []) {
+        if (layer.visible === false) continue
+        const spots = [
+          ...(layer.isClear ? [layer.clips?.[0]] : []),
+          ...(layer.clears ?? []),
+        ].filter(Boolean)
+        spots.forEach((c, ci) => {
+          if (t < c.start || t >= c.end) return
+          const key = `clear-${layer.id}#${ci}`
+          if (clearedRef.current.has(key)) return
+          clearedRef.current.add(key)
+          pLog(`[td-raf] ОЧИСТКА собранной фразы t=${t.toFixed(3)}s`)
+          assembledRef.current = []
+          setAssembled([])
+          setExtrasAssembled([])
+          // Забываем, что уже отыграло: после очистки те же ячейки и слова
+          // должны иметь возможность упасть в бокс заново
+          addedCellsRef.current = new Set()
+          greenedKeys.clear()
+          setActiveExtraKeys(new Set())
+          prevExtraRef.current = new Set()
+        })
       }
 
       // Heartbeat времени аудио (для сверки: докуда доиграло + что горит)
@@ -109,7 +150,7 @@ export function useTableDictatorRaf({
       // По умолчанию клип во всю длину таймлайна (текст виден всегда), но автор мог
       // подрезать его — тогда текст появляется/исчезает по opacity в нужный момент.
       const revealedNow = computeRevealedCellIds(timeline?.layers, t)
-      if (!prevReveal || !sameIdSet(revealedNow, prevReveal)) {
+      if (prevReveal === undefined || !sameIdSet(revealedNow, prevReveal)) {
         prevReveal = revealedNow
         setRevealedIds(revealedNow)
       }
@@ -141,15 +182,20 @@ export function useTableDictatorRaf({
               if (!k) continue
               ea.add(k)
               eaDur.set(k, clip.end - greenFrom)
-              if (!greenedKeys.has(k)) fresh.push({ k, word: l.word })
+              if (!greenedKeys.has(k)) fresh.push({ k, word: l.word, collect: l.collect })
             }
           }
           // Слова, загоревшиеся в одном кадре, падают в бокс в порядке ответа,
           // а не в порядке слоёв на таймлайне — иначе фраза собиралась бы
           // задом наперёд и верный ответ считался ошибкой
           fresh.sort((a, b) => answerOrderOf(a.word, extraFromAnswer) - answerOrderOf(b.word, extraFromAnswer))
-          for (const { k, word } of fresh) {
+          for (const { k, word, collect } of fresh) {
             greenedKeys.add(k)
+            if (collect === false) {
+              pLog(`[td-raf] СЛОВО "${word}" горит, но в сборку не идёт (галочка снята)`)
+              glowOn(k, `СЛОВО "${word}"`, eaDur.get(k) ?? 0)
+              continue
+            }
             pLog(`[td-raf] СЛОВО-ON "${word}" ${k} t=${t.toFixed(3)}s → зелёный (совпал с таймлайном), в бокс через 0.3с`)
             glowOn(k, `СЛОВО "${word}"`, eaDur.get(k) ?? 0)
             const id = setTimeout(() => {

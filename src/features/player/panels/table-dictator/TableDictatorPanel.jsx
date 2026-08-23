@@ -8,18 +8,8 @@ import { evaluateDictator } from './dictatorCheck.js'
 import TableExtraChips from './TableExtraChips.jsx'
 import { schedulePostAudioCheck } from './dictatorPostAudio.js'
 import { computeRevealedCellIds, timelineEndSec, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
+import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 
-function deriveTokens(answer, cells) {
-  const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
-  const usedIds = new Set()
-  return words.map(word => {
-    const cell = cells.find(
-      c => c.value?.trim().toLowerCase() === word.toLowerCase() && !usedIds.has(c.id),
-    )
-    if (cell) { usedIds.add(cell.id); return { type: 'cell' } }
-    return { type: 'extra', value: word }
-  })
-}
 
 function shuffle(arr) {
   const a = [...arr]
@@ -59,7 +49,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   const checkOut = checkLayer ? checkLayer.clips[0].end : null
   const checkDelay = tData.checkDelay ?? 1500
 
-  const tokens = useMemo(() => deriveTokens(answer, cells), [answer, cells])
+  const tokens = useMemo(() => deriveAnswerTokens(answer, cells), [answer, cells])
   const extraFromAnswer = useMemo(
     () => tokens.filter(t => t.type === 'extra').map(t => t.value),
     [tokens],
@@ -114,6 +104,8 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   const assembledRef         = useRef([])
   const prevActiveRef        = useRef(new Set())
   const prevExtraRef         = useRef(new Set())
+  // Какие клипы очистки уже сработали — каждый срабатывает один раз за прогон
+  const clearedRef           = useRef(new Set())
   const timers               = useRef([])
   // Старт/финиш прогона для режима без озвучки — те же функции, что дергает <audio>
   const endedRef             = useRef(null)
@@ -293,7 +285,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
 
   useTableDictatorRaf({
     playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers,
-    audioRef, rafRef, prevActiveRef, prevExtraRef, addedCellsRef, assembledRef,
+    audioRef, rafRef, prevActiveRef, prevExtraRef, addedCellsRef, assembledRef, clearedRef,
     barElsRef, barSmoothRef, rfxPhaseRef, rfxChipsRef, rfxAssembRef, rfxCheckRef, rfxCloseRef, timers,
     extraFromAnswer, shuffledExtras, checkRef, closeRef,
     setAssembled, setExtrasAssembled, setHighlighted, setUsedCells, setActiveExtraKeys, setPhase, setChipsVisible,
@@ -315,6 +307,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
     setPhase(null)
     setChipsVisible(false)
     addedCellsRef.current = new Set()
+    clearedRef.current    = new Set()
     assembledRef.current  = []
     prevActiveRef.current = new Set()
     prevExtraRef.current  = new Set()

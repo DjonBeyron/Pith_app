@@ -1,14 +1,6 @@
 import { pLog } from '../../../../shared/lib/debug.js'
+import { normalizeAnswerText as normalize } from '../../../../shared/lib/tableCellMatch.js'
 
-// Сверяем по смыслу, а не по кодам символов: типографский апостроф (I’m),
-// лишние пробелы и регистр не должны превращать верный ответ в ошибку
-function normalize(text) {
-  return (text ?? '')
-    .replace(/[‘’ʼ´`]/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
-}
 
 // Сборка итоговой фразы из собранных ячеек + extra-слов по порядку токенов ответа
 // и сверка с эталоном. Вынесено из TableDictatorPanel ради лимита 400 строк.

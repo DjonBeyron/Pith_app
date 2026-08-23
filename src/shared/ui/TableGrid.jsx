@@ -25,6 +25,8 @@ export default function TableGrid({ columns, rows, cells, rowCount, highlightedI
         const classes = [
           'tableGridCell',
           cell.isHeader ? 'tableGridCellHeader' : '',
+          // Особая ячейка: по тапу в уроке из неё выпадает меню вариантов
+          cell.options?.length ? 'tableGridCellOptions' : '',
           highlightedIds?.has(cell.id) ? 'tableGridCellHighlighted' : '',
           selectedIds?.has(cell.id) ? 'tableGridCellSelected' : '',
           dimmedIds?.has(cell.id) ? 'tableGridCellDimmed' : '',
@@ -40,7 +42,7 @@ export default function TableGrid({ columns, rows, cells, rowCount, highlightedI
               gridRow: `${cell.row + 1} / span ${cell.rowspan}`,
               ...(flashDurations?.get(cell.id) ? { '--td-flash': `${flashDurations.get(cell.id)}s` } : {}),
             }}
-            onClick={onCellClick ? () => onCellClick(cell) : undefined}
+            onClick={onCellClick ? e => onCellClick(cell, e) : undefined}
           >
             <span
               className={`tableGridCellText${revealed ? '' : ' tableGridCellTextHidden'}`}

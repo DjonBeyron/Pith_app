@@ -143,3 +143,21 @@ export function buildCharStyles(text, highlights = []) {
   }
   return styles
 }
+
+// Текст правят не только набором с клавиатуры: смайлик из окна вставляется
+// прямо в позицию курсора. Выделения хранятся позициями в строке, поэтому
+// после вставки их нужно сдвинуть — иначе раскраска «съезжает» на соседние
+// буквы. Кусок, попавший под замену (выделенный текст), схлопывается.
+export function shiftHighlights(highlights, start, end, insertedLength) {
+  const delta = insertedLength - (end - start)
+  if (!highlights?.length || !delta) return highlights ?? []
+  const moved = highlights.map(h => {
+    // целиком до места вставки — не двигается
+    if (h.end <= start) return h
+    // целиком после — едет на дельту
+    if (h.start >= end) return { ...h, start: h.start + delta, end: h.end + delta }
+    // вставка внутри выделения — оно растягивается на новую длину
+    return { ...h, end: Math.max(h.start, h.end + delta) }
+  })
+  return moved.filter(h => h.end > h.start)
+}

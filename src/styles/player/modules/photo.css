@@ -1,13 +1,20 @@
 /* ── Photo message module ─────────────────────────────────────────────── */
 
+/* Ширина кадра — одним числом на пузырь и подпись: без этого длинный текст
+   растягивал пузырь шире самой фотографии (см. .playerPhotoCaption) */
 .playerMsgBubble--photo {
+  --photo-w: min(50vw, 200px);
   background: #1a1d22;
   padding: 2px;
   overflow: visible;
+  /* по содержимому, но не шире фотографии: 2px паддинга с каждой стороны */
+  width: max-content;
+  max-width: calc(var(--photo-w) + 4px);
+  box-sizing: border-box;
 }
 
 .playerPhotoCropFrame {
-  width: min(50vw, 200px);
+  width: var(--photo-w);
   aspect-ratio: 9 / 12;
   border-radius: 4px 14px 14px 14px;
   overflow: hidden;
@@ -67,3 +74,17 @@
   z-index: 1;
 }
 .photoFullClose:hover { background: rgba(255,255,255,.28); }
+
+/* Подпись под фото — в том же пузыре, как у стикера. Те же метрики текста,
+   чтобы сообщения с фото и со стикером читались одинаково. */
+.playerPhotoCaption {
+  /* не шире фотографии — текст переносится, пузырь не «выезжает» вбок */
+  max-width: var(--photo-w);
+  box-sizing: border-box;
+  padding: 7px 10px 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #e0e0e0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

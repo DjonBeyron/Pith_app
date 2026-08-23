@@ -59,9 +59,15 @@ describe('applyTypeChange — текст переезжает между тип�
     expect(patch.typeData).toBeUndefined()
   })
 
-  it('на нетекстовых типах перенос не срабатывает', () => {
+  it('на типах без своего текста перенос не срабатывает', () => {
+    // у видео и кружка текстового поля нет — переносить некуда
+    expect(applyTypeChange(node('text', { content: 'привет' }), 'video').typeData).toBeUndefined()
+    expect(applyTypeChange(node('text', { content: 'привет' }), 'circle').typeData).toBeUndefined()
+  })
+
+  it('фото держит текст в подписи — как стикер, поэтому текст переезжает', () => {
     const patch = applyTypeChange(node('text', { content: 'привет' }), 'photo')
-    expect(patch.typeData).toBeUndefined()
+    expect(patch.typeData.photo.caption).toBe('привет')
   })
 
   it('прочие настройки нового типа сохраняются', () => {

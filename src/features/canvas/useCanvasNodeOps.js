@@ -1,4 +1,4 @@
-import { renumber, makeNode, NODE_SLOT, NODE_ROW } from './nodeGraph.js'
+import { renumber, makeNode, findFreeSpot, NODE_SLOT, NODE_ROW } from './nodeGraph.js'
 
 // Мутации массива нод для hover-меню канваса (удалить/дублировать/вставить
 // после) — вынесены из CanvasBoard.jsx (только setNodes как зависимость,
@@ -15,7 +15,9 @@ export function useCanvasNodeOps(setNodes) {
     ))
   }
 
-  // Освобождает место под новую ноду: всё, что правее x, уезжает на слот вправо
+  // Освобождает место под дубликат: всё, что правее x, уезжает на слот вправо.
+  // Вставка новой ноды («+» и точка на порте) соседей НЕ двигает — она ищет
+  // свободное место рядом (findFreeSpot в nodeGraph.js)
   function shiftRight(list, x) {
     return list.map(n => n.x > x ? { ...n, x: n.x + NODE_SLOT } : n)
   }
@@ -50,13 +52,15 @@ export function useCanvasNodeOps(setNodes) {
       if (!node) return prev
       const insertSeq = node.seq + 1
       const nextNode  = prev.find(n => n.seq === insertSeq) ?? null
-      const newNode   = makeNode(insertSeq, node.x + NODE_SLOT, node.y, type)
+      // Рядом с исходной, с отступом вправо; занято — ниже. Соседей не трогаем
+      const spot      = findFreeSpot(prev, node.x + NODE_SLOT, node.y)
+      const newNode   = makeNode(insertSeq, spot.x, spot.y, type)
       // middle insert: новая нода ведёт на следующую своим первым триггером
       if (nextNode) {
         newNode.triggers = newNode.triggers.map((t, ti) =>
           ti === 0 ? { ...t, then: nextNode.id } : t)
       }
-      const updated = shiftRight(prev, node.x).map(n => {
+      const updated = prev.map(n => {
         let out = n.seq >= insertSeq ? { ...n, seq: n.seq + 1 } : n
         if (n.id === nodeId) {
           if (nextNode) {
@@ -98,8 +102,9 @@ export function useCanvasNodeOps(setNodes) {
         .filter(Boolean)
       const first = linked.length === 0
       const y = first ? node.y : Math.max(...linked.map(n => n.y)) + NODE_ROW
-      const newNode = makeNode(insertSeq, node.x + NODE_SLOT, y, type)
-      const updated = (first ? shiftRight(prev, node.x) : prev).map(n => {
+      const spot = findFreeSpot(prev, node.x + NODE_SLOT, y)
+      const newNode = makeNode(insertSeq, spot.x, spot.y, type)
+      const updated = prev.map(n => {
         let out = n.seq >= insertSeq ? { ...n, seq: n.seq + 1 } : n
         if (n.id === nodeId) {
           out = { ...out, triggers: out.triggers.map((t, ti) =>

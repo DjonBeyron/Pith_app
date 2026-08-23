@@ -1,3 +1,4 @@
+import { deriveAnswerTokens } from '../../../shared/lib/tableCellMatch.js'
 // Чистая математика сетки таблицы (без React) — создание, объединение/разбиение
 // ячеек, добавление/удаление строк-колонок, пропорции ширины колонок и
 // высоты строк (widthPct/heightPct — сумма всегда 100, чтобы баланс
@@ -111,6 +112,27 @@ export function setCellValue(table, cellId, value) {
 
 // Ручное изменение размера текста одной ячейки (независимо от авто-подгонки —
 // см. tableAutoFitText.js; оба пишут в одно и то же поле cell.fontSize).
+// Особые значения ячейки: список вариантов, из которых выбирают в уроке.
+// Сама ячейка выглядит как прежде («he/she/it»), но по тапу в чате из неё
+// выпадает меню, а в авто-режиме нужное значение выбирает автор на таймлайне.
+// Пустой список = обычная ячейка, поэтому поле просто убирается.
+export function setCellOptions(table, cellId, options) {
+  const clean = (options ?? []).map(o => o.trim()).filter(Boolean)
+  return {
+    ...table,
+    cells: table.cells.map(c => {
+      if (c.id !== cellId) return c
+      if (!clean.length) { const { options: _drop, ...rest } = c; return rest }
+      return { ...c, options: clean }
+    }),
+  }
+}
+
+// Варианты ячейки (пустой массив, если это обычная ячейка)
+export function cellOptions(cell) {
+  return cell?.options?.length ? cell.options : []
+}
+
 export function setCellFontSize(table, cellId, fontSize) {
   return { ...table, cells: table.cells.map(c => (c.id === cellId ? { ...c, fontSize } : c)) }
 }
@@ -197,22 +219,15 @@ export function setRowHeight(table, idx, newPct) {
   return rows === table.rows ? table : { ...table, rows }
 }
 
-// Слова ответа, которых нет в ячейках таблицы: именно для них в таймлайне
+// Слова ответа, которых нет в ячейках таблицы (особые значения тоже считаются
+// «в таблице» — за связь отвечает общий разбор, tableCellMatch.js): именно для них в таймлайне
 // заводятся отдельные дорожки-слова. Та же логика, что у плеера
 // (deriveTokens в TableDictatorPanel) — иначе редактор и урок разойдутся:
 // каждое слово занимает свою ячейку, повторы не съедают одну и ту же.
 export function answerWordsOutsideTable(answer, cells) {
-  const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
-  const used = new Set()
-  const outside = []
-  for (const word of words) {
-    const cell = (cells ?? []).find(
-      c => c.value?.trim().toLowerCase() === word.toLowerCase() && !used.has(c.id),
-    )
-    if (cell) used.add(cell.id)
-    else outside.push(word)
-  }
-  return outside
+  return deriveAnswerTokens(answer, cells)
+    .filter(tok => tok.type === 'extra')
+    .map(tok => tok.value)
 }
 
 // Порядок дорожек таймлайна:

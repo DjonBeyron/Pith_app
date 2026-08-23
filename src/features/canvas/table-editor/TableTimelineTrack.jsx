@@ -1,12 +1,19 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
 import { wordGreenAt } from '../../../shared/lib/tableDictatorTiming.js'
+import ClipMenu from './ClipMenu.jsx'
 
 // Одна дорожка таймлайна. У cell-слоя — два независимых клипа в одной строке:
 // подсветка (как раньше) и проявление (серый, когда текст ячейки виден/скрыт).
 // У word/check-слоя — как раньше, один клип. isDefault-слои без кнопки удаления.
-export default function TableTimelineTrack({ layer, cells, duration, stripPx, extrasStart, onToggleVisible, onToggleHighlight, onUpdateClip, onUpdateReveal, onRemove }) {
+export default function TableTimelineTrack({
+  layer, cells, duration, stripPx, extrasStart,
+  onToggleVisible, onToggleHighlight, onToggleCollect, onPick,
+  onUpdateClip, onUpdateReveal, onUpdateExtra, onDuplicate, onAddClear, onRemoveExtra, onRemove,
+}) {
+  // Меню клипа: одна кнопка ▾ вместо россыпи иконок на самом клипе
+  const [menuRect, setMenuRect] = useState(null)
   const cell  = cells.find(c => c.id === layer.cellId)
-  const isCellOnly  = !!layer.cellId && !layer.word && !layer.isCheck
+  const isCellOnly  = !!layer.cellId && !layer.word && !layer.isCheck && !layer.isClear
   const clip        = layer.clips[0] ?? null
   const revealClip  = isCellOnly ? (layer.clips[1] ?? null) : null
   const highlightOn = layer.highlightOn !== false
@@ -54,7 +61,11 @@ export default function TableTimelineTrack({ layer, cells, duration, stripPx, ex
   }
 
   const timeToPct = useCallback(t => (duration ? t / duration * 100 : 0), [duration])
-  const isOrphan = !layer.word && !cell && !layer.isCheck
+  const isOrphan = !layer.word && !cell && !layer.isCheck && !layer.isClear
+  const collect  = layer.collect !== false
+  // Особая ячейка: в уроке из неё выпадает меню, а в авто-режиме нужный
+  // вариант выбирает автор — прямо здесь, на зелёном клипе
+  const options  = cell?.options ?? []
 
   // Для word-слоя: начало клипа = старт анимации (слайд+список), реальный «выбор»
   // (зелёный) — только после лид-ина. Показываем этот кусок другим цветом — длина
@@ -72,14 +83,16 @@ export default function TableTimelineTrack({ layer, cells, duration, stripPx, ex
       leadInPct = Math.min(100, (leadInEnd - clip.start) / clipDur * 100)
     }
   }
-  const label = layer.isCheck
+  const label = layer.isClear
+    ? '⌫ Очистить'
+    : layer.isCheck
     ? '✓ Проверить'
     : layer.word
       ? `"${layer.word}"`
       : cell?.value?.trim() || (cell ? `${cell.row + 1}×${cell.col + 1}` : '⚠ удали')
 
   return (
-    <div className={`tlTrack${!layer.visible ? ' tlTrackHidden' : ''}${layer.word ? ' tlTrackWord' : ''}${layer.isCheck ? ' tlTrackCheck' : ''}${isCellOnly ? ' tlTrackCell' : ''}${isOrphan ? ' tlTrackOrphan' : ''}`}>
+    <div className={`tlTrack${!layer.visible ? ' tlTrackHidden' : ''}${layer.word ? ' tlTrackWord' : ''}${layer.isCheck ? ' tlTrackCheck' : ''}${layer.isClear ? ' tlTrackClear' : ''}${isCellOnly ? ' tlTrackCell' : ''}${isOrphan ? ' tlTrackOrphan' : ''}`}>
       <button className="tlEye" onClick={onToggleVisible} title={layer.visible ? 'Скрыть' : 'Показать'}>
         {layer.visible ? '👁' : '○'}
       </button>
@@ -87,9 +100,10 @@ export default function TableTimelineTrack({ layer, cells, duration, stripPx, ex
       <div className={`tlTrackStrip${isCellOnly ? ' tlTrackStripDual' : ''}`} ref={stripRef} style={stripPx ? { minWidth: `${stripPx}px` } : undefined}>
         {clip && (
           <div
-            className={`tlClip${isCellOnly ? ' tlClipHighlight' : ''}${isCellOnly && !highlightOn ? ' tlClipHighlightOff' : ''}`}
+            className={`tlClip${isCellOnly ? ' tlClipHighlight' : ''}${isCellOnly && !highlightOn ? ' tlClipHighlightOff' : ''}${layer.isClear ? ' tlClipClear' : ''}`}
             style={{ left: `${timeToPct(clip.start)}%`, width: `${timeToPct(clip.end) - timeToPct(clip.start)}%` }}
-            title={isCellOnly ? 'Подсветка зелёным + выбор ячейки в ответ' : undefined}
+            title={layer.isClear ? 'Здесь собранная фраза очищается'
+              : isCellOnly ? 'Подсветка зелёным + выбор ячейки в ответ' : undefined}
           >
             {leadInPct != null && (
               <div
@@ -97,6 +111,15 @@ export default function TableTimelineTrack({ layer, cells, duration, stripPx, ex
                 style={{ width: `${leadInPct}%` }}
                 title="Анимация + пауза перед выбором слова (не раньше, чем уедет таблица)"
               />
+            )}
+            {/* Одна кнопка на клип: сборка фразы, повтор анимации, очистка */}
+            {!layer.isClear && (
+              <button
+                className={`tlClipMenuBtn${!layer.isCheck && !collect ? ' tlClipMenuBtnOff' : ''}`}
+                onMouseDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); setMenuRect(e.currentTarget.getBoundingClientRect()) }}
+                title="Что делать с этим слоем"
+              >▾</button>
             )}
             {isCellOnly && (
               // Независимый от общего 👁 дорожки — гасит ТОЛЬКО подсветку+выбор этого клипа,
@@ -108,11 +131,61 @@ export default function TableTimelineTrack({ layer, cells, duration, stripPx, ex
                 title={highlightOn ? 'Выключить подсветку и выбор ячейки' : 'Включить подсветку и выбор ячейки'}
               >{highlightOn ? '👁' : '○'}</button>
             )}
+            {options.length > 0 && (
+              <select
+                className="tlClipPick"
+                value={layer.pick ?? ''}
+                title="Что из особых значений уйдёт в собранную фразу"
+                onMouseDown={e => e.stopPropagation()}
+                onChange={e => onPick?.(e.target.value)}
+              >
+                <option value="">— вариант —</option>
+                {options.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            )}
             <div className="tlClipHandleL" onMouseDown={e => onHandleDown(e, 'left', clip, onUpdateClip)} />
             <div className="tlClipBody"    onMouseDown={e => onBodyDown(e, clip, onUpdateClip)} />
             <div className="tlClipHandleR" onMouseDown={e => onHandleDown(e, 'right', clip, onUpdateClip)} />
           </div>
         )}
+        {(layer.repeats ?? []).map((rep, i) => (
+          <div
+            key={`rep-${i}`}
+            className={`tlClip${isCellOnly ? ' tlClipHighlight' : ''} tlClipRepeat`}
+            style={{ left: `${timeToPct(rep.start)}%`, width: `${timeToPct(rep.end) - timeToPct(rep.start)}%` }}
+            title="Повтор той же анимации"
+          >
+            <button
+              className="tlClipDrop"
+              onMouseDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); onRemoveExtra?.('repeats', i) }}
+              title="Убрать повтор"
+            >×</button>
+            <div className="tlClipHandleL" onMouseDown={e => onHandleDown(e, 'left', rep, c => onUpdateExtra?.('repeats', i, c))} />
+            <div className="tlClipBody"    onMouseDown={e => onBodyDown(e, rep, c => onUpdateExtra?.('repeats', i, c))} />
+            <div className="tlClipHandleR" onMouseDown={e => onHandleDown(e, 'right', rep, c => onUpdateExtra?.('repeats', i, c))} />
+          </div>
+        ))}
+
+        {(layer.clears ?? []).map((cl, i) => (
+          <div
+            key={`clr-${i}`}
+            className="tlClip tlClipClear"
+            style={{ left: `${timeToPct(cl.start)}%`, width: `${timeToPct(cl.end) - timeToPct(cl.start)}%` }}
+            title="В начале этого клипа собранная фраза очищается"
+          >
+            <button
+              className="tlClipDrop"
+              onMouseDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); onRemoveExtra?.('clears', i) }}
+              title="Убрать очистку"
+            >×</button>
+            <div className="tlClipHandleL" onMouseDown={e => onHandleDown(e, 'left', cl, c => onUpdateExtra?.('clears', i, c))} />
+            <div className="tlClipBody"    onMouseDown={e => onBodyDown(e, cl, c => onUpdateExtra?.('clears', i, c))} />
+            <div className="tlClipHandleR" onMouseDown={e => onHandleDown(e, 'right', cl, c => onUpdateExtra?.('clears', i, c))} />
+          </div>
+        ))}
+
         {revealClip && (
           <div
             className="tlClip tlClipReveal"
@@ -125,6 +198,15 @@ export default function TableTimelineTrack({ layer, cells, duration, stripPx, ex
           </div>
         )}
       </div>
+      <ClipMenu
+        rect={menuRect}
+        collect={collect}
+        canCollect={!layer.isCheck && !layer.isClear}
+        onToggleCollect={onToggleCollect}
+        onDuplicate={onDuplicate}
+        onClear={onAddClear}
+        onClose={() => setMenuRect(null)}
+      />
       {/* Правая колонка есть у КАЖДОЙ дорожки, даже когда удалять нечего:
           без неё полоса такой дорожки была на 26px шире остальных, и её клипы
           стояли в другом масштабе — плейхед и линейка с ними не совпадали */}

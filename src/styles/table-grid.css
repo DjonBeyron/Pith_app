@@ -22,6 +22,8 @@
   text-align: center;
   min-height: 32px;
   word-break: break-word;
+  /* якорь для уголка особой ячейки (см. .tableGridCellOptions) */
+  position: relative;
 }
 
 .tableGridCellClickable {
@@ -80,3 +82,14 @@
   transition: opacity 0.15s ease;
 }
 .tableGridCellTextHidden { opacity: 0; }
+
+/* Особая ячейка (со списком вариантов): по тапу в уроке из неё выпадает меню.
+   Уголок-подсказка, чтобы ученик видел, где есть выбор. */
+.tableGridCellOptions::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  border-left: 4px solid transparent;
+  border-bottom: 4px solid rgba(182, 254, 59, 0.65);
+}

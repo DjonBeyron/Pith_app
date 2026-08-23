@@ -30,6 +30,32 @@ describe('какие слова ответа живут вне таблицы', 
   })
 })
 
+describe('длину композиции можно подрезать на линейке', () => {
+  const ruler  = read('./TableTimelineRuler.jsx')
+  const editor = read('./TableTimelineEditor.jsx')
+
+  it('за конец линейки можно тянуть, как за край клипа', () => {
+    expect(ruler).toContain('className="tlRulerEnd"')
+    expect(ruler).toContain('onMouseDown={startResize}')
+    expect(editor).toContain('onResize={setLocalLen}')
+  })
+
+  it('масштаб фиксируется на момент захвата — длина не убегает от курсора', () => {
+    const fn = ruler.slice(ruler.indexOf('function startResize'))
+    expect(fn).toContain('const pxPerSec = rect.width / duration')
+    expect(fn).toContain('(mv.clientX - rect.left) / pxPerSec')
+  })
+
+  it('длина не выходит за разумные границы', () => {
+    expect(ruler).toContain('Math.max(1, Math.min(600, sec))')
+  })
+
+  it('то же значение правится числом в шапке — источник один', () => {
+    expect(editor).toContain('const [localLen, setLocalLen]')
+    expect(editor).toContain('const timelineDur = Math.max(1, localLen)')
+  })
+})
+
 describe('порядок дорожек', () => {
   const cells = [
     { id: 'c1', col: 0, row: 0 }, { id: 'c2', col: 0, row: 1 },
@@ -83,6 +109,106 @@ describe('таймлайн подстраивается под правки ав
 
   it('пустая таблица уборку не запускает — иначе снесло бы всё при загрузке', () => {
     expect(editor).toContain('if (!cells.length) return')
+  })
+})
+
+describe('слова, поставленные на одно время', () => {
+  it('одинаковые клипы дают одинаковый момент загорания', () => {
+    expect(wordGreenAt({ start: 3.41, end: 4.41 }, 3.41))
+      .toBe(wordGreenAt({ start: 3.41, end: 4.41 }, 3.41))
+  })
+
+  it('промах мышью на пару кадров почти не расходится по времени', () => {
+    // раньше один слой попадал в «последние», другой нет — разница была 0.42с
+    const a = wordGreenAt({ start: 3.41, end: 4.41 }, 3.41)
+    const b = wordGreenAt({ start: 3.44, end: 4.44 }, 3.41)
+    expect(Math.abs(a - b)).toBeLessThan(0.05)
+  })
+
+  it('слово не зажигается раньше, чем уедет таблица', () => {
+    expect(wordGreenAt({ start: 2, end: 8 }, 2)).toBeGreaterThanOrEqual(2 + EXTRA_AFTER_SLIDE_S - 1e-9)
+    expect(wordGreenAt({ start: 5, end: 9 }, 2)).toBeCloseTo(5 + EXTRA_LEAD_IN_S, 5)
+  })
+
+  it('лид-ин не вылезает за клип — иначе слово не загорится вообще', () => {
+    const clip = { start: 3.41, end: 4.41 }
+    expect(clip.end - wordGreenAt(clip, 3.41)).toBeGreaterThanOrEqual(MIN_GLOW_S - 1e-9)
+  })
+
+  it('одинаковые слова получают разные чипы', () => {
+    const layers = [
+      { id: 'w1', word: 'a', clips: [{ start: 1, end: 2 }] },
+      { id: 'w2', word: 'a', clips: [{ start: 1, end: 2 }] },
+    ]
+    const map = mapWordLayersToChips(layers, ['a', 'a'])
+    expect(map.get('w1')).toBe('extra-0')
+    expect(map.get('w2')).toBe('extra-1')
+  })
+
+  it('очередь падения в бокс — по порядку слов в ответе', () => {
+    const order = ['not', 'a']
+    expect(answerOrderOf('not', order)).toBeLessThan(answerOrderOf('a', order))
+    expect(answerOrderOf('never', order)).toBeGreaterThan(answerOrderOf('a', order))
+  })
+
+  it('начало отъезда таблицы — самый ранний клип слова', () => {
+    expect(extrasStartSec([
+      { id: 'w1', word: 'a', clips: [{ start: 4, end: 5 }] },
+      { id: 'w2', word: 'b', clips: [{ start: 2.5, end: 3 }] },
+      { id: 'c1', cellId: 'c1', clips: [{ start: 0.2, end: 1 }] },
+    ])).toBe(2.5)
+    expect(extrasStartSec([])).toBe(null)
+  })
+
+  it('конец клипов слов известен — после него проверку можно не ждать', () => {
+    expect(lastWordClipEnd([
+      { id: 'w1', word: 'a', clips: [{ start: 1, end: 2 }] },
+      { id: 'w2', word: 'b', clips: [{ start: 3, end: 4.5 }] },
+      { id: 'w3', word: 'c', visible: false, clips: [{ start: 9, end: 10 }] },
+    ])).toBe(4.5)
+    expect(lastWordClipEnd([])).toBe(0)
+  })
+
+  it('плеер применяет эти правила и в прогоне, и после его конца', () => {
+    const raf  = read('../../player/panels/table-dictator/useTableDictatorRaf.js')
+    const post = read('../../player/panels/table-dictator/dictatorPostAudio.js')
+    expect(raf).toContain('wordGreenAt(clip, firstExtraStart)')
+    expect(raf).toContain('const nothingLeftToWait = wordsEnd > 0 && t >= wordsEnd + 0.5')
+    expect(post).toContain('wordGreenAt(clip, extrasStart)')
+    expect(post).toContain('answerOrderOf(a.word, extraFromAnswer)')
+  })
+})
+
+describe('мерцание выбора идёт по длине слоя', () => {
+  it('длиннее клип — дольше мигание, с разумными границами', () => {
+    expect(flashDurationSec(1, 2.5)).toBe(1.5)
+    // короткое свечение мигает ровно столько, сколько светится: иначе анимация
+    // обрывалась на середине и выглядела рваной
+    expect(flashDurationSec(1, 1.25)).toBeCloseTo(0.25, 5)
+    expect(flashDurationSec(1, 1.01)).toBe(FLASH_MIN_S)
+    expect(flashDurationSec(0, 30)).toBe(FLASH_MAX_S)
+  })
+
+  it('считается и для ячеек, и для слов, слой проверки не в счёт', () => {
+    const { cells, chips } = buildFlashDurations([
+      { id: 'c1', cellId: 'cell-1', clips: [{ start: 0, end: 1.4 }] },
+      { id: 'w1', word: 'a', clips: [{ start: 3, end: 6 }] },
+      { id: 'chk', isCheck: true, clips: [{ start: 7, end: 9 }] },
+    ], ['a'])
+    expect(cells.get('cell-1')).toBe(1.4)
+    expect(chips.get('extra-0')).toBeCloseTo(6 - wordGreenAt({ start: 3, end: 6 }, 3), 5)
+    expect(cells.size + chips.size).toBe(2)
+  })
+
+  it('задержка выезда чипов не сдвигает мерцание', () => {
+    const chips = read('../../player/panels/table-dictator/TableExtraChips.jsx')
+    expect(chips).toContain('...(green ? {} : chipStyles[i])')
+  })
+
+  it('разметка отдаёт длительность через переменную --td-flash', () => {
+    expect(read('../../../shared/ui/TableGrid.jsx')).toContain("'--td-flash'")
+    expect(read('../../../styles/table-grid.css')).toContain('animation: tableGridCellFlash var(--td-flash, 0.6s)')
+    expect(read('../../../styles/player/panels/table-dictator.css')).toContain('animation: tableGridCellFlash var(--td-flash, 0.6s)')
   })
 })
 

@@ -1,0 +1,69 @@
+/* Окно смайликов (EmojiPicker.jsx) — открывается из текстовых полей ноды.
+   Тёмное, как остальной редактор; сетка прокручивается внутри себя, чтобы
+   окно не росло на пол-экрана. */
+.emojiOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+
+.emojiPicker {
+  position: fixed;
+  z-index: 501;
+  display: flex;
+  flex-direction: column;
+  background: #12141a;
+  border: 1px solid #242630;
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.emojiTabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 6px 4px;
+  border-bottom: 1px solid #242630;
+}
+
+.emojiTab {
+  flex: 1;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.emojiTab:hover { opacity: 1; background: #1a1d22; }
+.emojiTabOn { opacity: 1; background: #1a2210; }
+
+.emojiGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  padding: 6px;
+  max-height: 190px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.emojiGrid::-webkit-scrollbar { width: 3px; }
+.emojiGrid::-webkit-scrollbar-track { background: transparent; }
+.emojiGrid::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 2px; }
+
+.emojiItem {
+  aspect-ratio: 1;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.emojiItem:hover { background: #1a2210; }

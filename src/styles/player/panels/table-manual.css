@@ -130,3 +130,47 @@
 .tmExtraChip:not(:disabled):hover  { color: #b6fe3b; }
 .tmExtraChip:not(:disabled):active { color: #9ee62f; }
 .tmExtraChipUsed { opacity: 0.25; cursor: default; pointer-events: none; }
+
+/* ── Выпадающее меню особой ячейки ─────────────────────────────────────
+   Тап по ячейке со списком вариантов («he/she/it») открывает выбор. Тёмное,
+   узкое, с тонкой полосой прокрутки — длинный список не занимает пол-экрана. */
+.cellMenuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+}
+
+.cellMenu {
+  position: fixed;
+  z-index: 241;
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 4px;
+  background: #12141a;
+  border: 1px solid #2a2d35;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.cellMenu::-webkit-scrollbar { width: 3px; }
+.cellMenu::-webkit-scrollbar-track { background: transparent; }
+.cellMenu::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 2px; }
+
+.cellMenuItem {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cellMenuItem:hover,
+.cellMenuItem:active { background: rgba(182, 254, 59, 0.14); color: #b6fe3b; }
