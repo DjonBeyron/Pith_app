@@ -1,38 +1,33 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react'
-import { analyzeWaveform, probeAudioDuration, drawWaveBar, fmtAudioTime } from '../../../shared/lib/audioUtils.js'
+import { fmtAudioTime } from '../../../shared/lib/audioUtils.js'
 import { extrasStartSec } from '../../../shared/lib/tableDictatorTiming.js'
 import { useTableTimelineEdit } from './useTableTimelineEdit.js'
+import { useTimelineAudioSource } from './useTimelineAudioSource.js'
 import { answerWordsOutsideTable, sortTimelineLayers } from './tableGridUtils.js'
 import TableTimelineTrack from './TableTimelineTrack.jsx'
 import TableTimelineRuler from './TableTimelineRuler.jsx'
 import TableTimelinePreview from './TableTimelinePreview.jsx'
-import { createSilentClock } from '../../../shared/lib/silentClock.js'
 import BackButton from '../../../shared/ui/BackButton.jsx'
 
 export default function TableTimelineEditor({ table, fileId, waveformData, duration, timelineLen, timeline, answer, lessonFiles, onPickFile, onBack }) {
-  const [localFileId,   setLocalFileId]   = useState(fileId)
-  const [localWave,     setLocalWave]     = useState(waveformData)
-  const [localDuration, setLocalDuration] = useState(duration)
-  const [localBlobUrl,  setLocalBlobUrl]  = useState(() => {
-    const f = lessonFiles?.find(lf => lf.id === fileId)
-    return f?.r2Url ?? null
-  })
-  const [analyzing, setAnalyzing]     = useState(false)
-  const [isPlaying, setIsPlaying]     = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-
   const cells       = table?.cells ?? []
   const cellById    = new Map(cells.map(c => [c.id, c]))
   const sortedCells = [...cells].sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col)
   const [newCellId, setNewCellId] = useState(sortedCells[0]?.id ?? null)
 
-  const audioRef = useRef(null)
-  const waveRef  = useRef(null)
-  const ownedRef = useRef(null)
-  // Монтаж без озвучки: время крутят часы (silentClock.js) — интерфейс тот же,
-  // что у <audio>, поэтому весь код ниже про currentTime/play/pause не меняется
-  const clockRef = useRef(null)
-  const silent   = !localBlobUrl
+  // Длина композиции задаётся автором и живёт отдельно от аудио: таблицу можно
+  // монтировать и вовсе без озвучки. По умолчанию — аудио плюс 10с (есть куда
+  // поставить проверку ПОСЛЕ конца записи), без аудио — 15с.
+  const [localLen, setLocalLen] = useState(
+    () => timelineLen ?? (duration ? Math.round(duration + 10) : 15),
+  )
+  const timelineDur = Math.max(1, localLen)
+
+  // Аудио-источник (файл/волна/воспроизведение) — useTimelineAudioSource.js
+  const {
+    localFileId, localWave, localDuration, localBlobUrl, analyzing, isPlaying, currentTime,
+    audioRef, waveRef, audioElProps, handleFileChange, removeAudio, togglePlay, handleSeek,
+  } = useTimelineAudioSource({ fileId, waveformData, duration, lessonFiles, onPickFile, timelineDur, setLocalLen })
 
   const { layers, initClips, toggleVisible, toggleHighlight, toggleCollect, setAllCollect, setLayerPick, updateClip, updateExtraClip, duplicateClip, addClearClip, removeExtraClip, addLayer, addWordLayer, addCheckLayer, addClearLayer, removeLayer, pruneLayers, getTimeline } = useTableTimelineEdit(timeline, cells)
   // С этого момента уезжает таблица — раньше её отъезда слова не зажигаются
@@ -43,28 +38,9 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   const collectable = layers.filter(l => !l.isCheck)
   const allCollect  = collectable.length > 0 && collectable.every(l => l.collect !== false)
   const someCollect = collectable.some(l => l.collect !== false)
-  // Длина композиции задаётся автором и живёт отдельно от аудио: таблицу можно
-  // монтировать и вовсе без озвучки. По умолчанию — аудио плюс 10с (есть куда
-  // поставить проверку ПОСЛЕ конца записи), без аудио — 15с.
-  const [localLen, setLocalLen] = useState(
-    () => timelineLen ?? (duration ? Math.round(duration + 10) : 15),
-  )
-  const timelineDur = Math.max(1, localLen)
 
   // Порядок дорожек: ячейки → слова → «Проверить» всегда снизу (tableGridUtils)
   const sortedLayers = sortTimelineLayers(layers, cellById)
-
-  useEffect(() => {
-    if (localBlobUrl || !fileId) return
-    const f = lessonFiles?.find(lf => lf.id === fileId)
-    if (!f?.localFile) return
-    const url = URL.createObjectURL(f.localFile)
-    if (ownedRef.current) URL.revokeObjectURL(ownedRef.current)
-    ownedRef.current = url
-    // Один раз на маунт синхронизируем локальный blob-URL с внешним File
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalBlobUrl(url)
-  }, []) // eslint-disable-line
 
   useEffect(() => {
     initClips(localDuration || timelineDur, timelineDur)
@@ -88,103 +64,6 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
       new Set(cells.map(c => c.id)),
     )
   }, [answer, cells]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Волна на паузе: перерисовать при любой смене currentTime (клик/протяжка по
-  // линейке-плейхеду) — раньше это было в одном эффекте с RAF-циклом ниже и не
-  // зависело от currentTime, поэтому клик по линейке не красил волну зелёным,
-  // пока не нажат play.
-  useEffect(() => {
-    if (!localDuration || isPlaying) return
-    drawWaveBar(waveRef.current, localWave, currentTime / localDuration)
-  }, [currentTime, isPlaying, localWave, localDuration])
-
-  // RAF-цикл волны во время игры — отдельно, чтобы не перезапускаться на каждый currentTime
-  useEffect(() => {
-    if (!localDuration || !isPlaying) return
-    let rafId
-    const tick = () => {
-      const t = (localBlobUrl ? audioRef.current : clockRef.current)?.currentTime ?? 0
-      setCurrentTime(t)
-      drawWaveBar(waveRef.current, localWave, localDuration ? t / localDuration : 0)
-      rafId = requestAnimationFrame(tick)
-    }
-    rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
-  }, [isPlaying, localWave, localDuration])
-
-  // Пробел = play/pause (пока этот редактор открыт)
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.code !== 'Space') return
-      const tag = document.activeElement?.tagName
-      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
-      e.preventDefault()
-      togglePlay()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localBlobUrl, localDuration, isPlaying])
-
-  useEffect(() => () => {
-    if (ownedRef.current) URL.revokeObjectURL(ownedRef.current)
-    clockRef.current?.stop?.()
-  }, [])
-
-  async function handleFileChange(e) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    setAnalyzing(true)
-    const id  = onPickFile(f)
-    if (ownedRef.current) URL.revokeObjectURL(ownedRef.current)
-    const url = URL.createObjectURL(f)
-    ownedRef.current = url
-    const [wave, dur] = await Promise.all([analyzeWaveform(url), probeAudioDuration(url)])
-    setLocalFileId(id); setLocalWave(wave); setLocalDuration(dur); setLocalBlobUrl(url)
-    // Композиция должна вмещать новую запись — растягиваем, если она короче
-    setLocalLen(prev => (dur && prev < dur + 10 ? Math.round(dur + 10) : prev))
-    setCurrentTime(0); setAnalyzing(false)
-  }
-
-  // Источник времени: аудио, если оно есть, иначе часы
-  function timeSource() {
-    if (localBlobUrl) return audioRef.current
-    if (!localDuration) return null
-    if (!clockRef.current || clockRef.current.duration !== timelineDur) {
-      clockRef.current?.stop?.()
-      clockRef.current = createSilentClock(timelineDur, { onEnded: () => { setIsPlaying(false); setCurrentTime(0) } })
-    }
-    return clockRef.current
-  }
-
-  // Убрать озвучку: аудио уходит и из таймлайна, и из самой ноды (file_id
-  // сохранится пустым при выходе). Монтаж при этом никуда не девается —
-  // таймлайн продолжает жить по длине композиции
-  function removeAudio() {
-    if (!window.confirm('Убрать аудио из таблицы? Разметка таймлайна останется.')) return
-    audioRef.current?.pause?.()
-    if (ownedRef.current) { URL.revokeObjectURL(ownedRef.current); ownedRef.current = null }
-    setLocalFileId(null)
-    setLocalWave(null)
-    setLocalDuration(null)
-    setLocalBlobUrl(null)
-    setIsPlaying(false)
-    setCurrentTime(0)
-  }
-
-  function togglePlay() {
-    const a = timeSource()
-    if (!a) return
-    if (isPlaying) { a.pause(); setIsPlaying(false) } else { a.play()?.catch?.(() => {}); if (silent) setIsPlaying(true) }
-  }
-
-  // Клик/протяжка по линейке (как в Premiere) — ставит плейхед; play/пробел продолжат
-  // именно отсюда, т.к. это просто currentTime самого <audio>.
-  function handleSeek(t) {
-    const a = timeSource()
-    if (a) a.currentTime = t
-    setCurrentTime(t)
-  }
 
   // Ширина полосы дорожек: секунда композиции = 80px, но не уже 200px
   const stripPx = Math.max(200, Math.round(timelineDur * 80))
@@ -403,11 +282,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
       )}
 
       {localBlobUrl && (
-        <audio ref={audioRef} src={localBlobUrl}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onEnded={() => { setIsPlaying(false); setCurrentTime(0) }}
-        />
+        <audio ref={audioRef} src={localBlobUrl} {...audioElProps} />
       )}
     </div>
   )
