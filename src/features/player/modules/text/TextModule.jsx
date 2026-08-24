@@ -5,6 +5,7 @@ import PlayerBubble from '../../PlayerBubble.jsx'
 import ReplyPreview from '../../ReplyPreview.jsx'
 import TranslationSection from '../../TranslationSection.jsx'
 import HighlightedText from '../../../../shared/ui/HighlightedText.jsx'
+import { emojiOnlyInfo } from '../../../../shared/lib/emojiOnly.js'
 
 // Иконка перевода — когда надпись не задана
 function TranslateIcon() {
@@ -21,6 +22,10 @@ export default function TextModule({ node, lessonNodes = [], lessonFiles = [], t
 
   // Про-режим: перевод по кнопке на пузыре (RU/EN/...)
   const pro = !!tData.pro && !!(tData.proText ?? '').trim()
+
+  // Сообщение только из смайликов (как в Телеграме) — без ответа и перевода,
+  // иначе им самим нужен фон пузыря
+  const emoji = !replyNode && !pro && !highlights.length ? emojiOnlyInfo(content) : { only: false, size: null }
   const [trOpen,    setTrOpen]    = useState(false)
   const [typingKey, setTypingKey] = useState(0) // растёт при каждом открытии — печать заново
 
@@ -59,7 +64,7 @@ export default function TextModule({ node, lessonNodes = [], lessonFiles = [], t
       {/* hardWrap — автор сам разбил текст на строки в окне «Свои переносы»:
           пузырь верстается по самой длинной из них, а не тянется во всю ширину */}
       <PlayerBubble
-        className={`playerMsgBubble playerMsgBubble--text${tData.hardWrap ? ' playerMsgBubble--hardWrap' : ''}`}
+        className={`playerMsgBubble playerMsgBubble--text${tData.hardWrap ? ' playerMsgBubble--hardWrap' : ''}${emoji.only ? ' playerMsgBubble--emojiOnly' : ''}`}
         follow={trAnim}
       >
         {replyNode && (
@@ -72,7 +77,7 @@ export default function TextModule({ node, lessonNodes = [], lessonFiles = [], t
             allPhraseStates={allPhraseStates}
           />
         )}
-        <p className="playerText">
+        <p className="playerText" style={emoji.size ? { fontSize: emoji.size, lineHeight: 1.2 } : undefined}>
           {content
             ? <HighlightedText text={content} highlights={highlights} />
             : <span className="playerTextEmpty">Пустой текст</span>

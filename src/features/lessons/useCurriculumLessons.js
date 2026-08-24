@@ -41,6 +41,34 @@ export function useCurriculumLessons(curriculumId) {
 
   useEffect(() => { idsRef.current = lessonIds }, [lessonIds])
 
+  // localStorage — это «последний известный на этом устройстве список», а
+  // не источник истины: если структуру модуля сохранили с другого
+  // устройства/вкладки (💾 в saveStructure ниже), это устройство о новых/
+  // удалённых уроках не узнает никогда — до сих пор ничего не сверяло кэш
+  // с сервером. Из-за этого один браузер мог год за годом показывать
+  // урезанный список, а нажатие «Сохранить» там же затирало сервер этим
+  // урезанным списком. Сверяем один раз при открытии модуля, ДО того как
+  // пользователь мог сам что-то поправить (reconciledRef — не трогаем кэш
+  // повторно в этом же монтировании, чтобы не затереть свежие локальные правки)
+  const reconciledRef = useRef(false)
+  useEffect(() => {
+    if (reconciledRef.current) return
+    reconciledRef.current = true
+    if (!curriculumId) return
+    supabase.from('curricula').select('lesson_ids').eq('id', curriculumId).single()
+      .then(({ data, error: e }) => {
+        if (e || !data) return
+        const serverIds = data.lesson_ids ?? []
+        if (!serverIds.length) return
+        if (JSON.stringify(serverIds) === JSON.stringify(idsRef.current)) return
+        dbg('[SYNC] локальный список уроков модуля отличается от сервера — обновляем',
+          'local:', idsRef.current.length, 'server:', serverIds.length)
+        setLessonIds(serverIds)
+        persistIds(curriculumId, serverIds)
+      })
+      .catch(e => dbg('[SYNC ERROR] сверка lesson_ids с сервером не удалась', e.message))
+  }, [curriculumId])
+
   const fetchLessons = useCallback(async (ids) => {
     if (!ids.length) { setLessons([]); return }
     dbg('[FETCH] loading', ids.length, 'lessons from DB:', ids)

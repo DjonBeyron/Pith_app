@@ -72,10 +72,39 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Особый фильтр: в полную силу только ноды, которым ещё не загрузили файл
   onlyMissingMedia = false,
 }, ref) {
+  // true, если начальные ноды взяты из локального черновика — он может
+  // оказаться СТАРЕЕ того, что реально лежит на сервере (правки с другого
+  // устройства/вкладки, о которых этот браузер не знает); проверяем это
+  // сразу после монтирования (см. эффект ниже)
+  const draftFallbackRef = useRef(false)
   const [nodes, setNodes] = useState(() => {
     const s = loadSaved(lessonId)
-    return s.nodes?.length ? s.nodes : (initialNodes?.length ? initialNodes : [makeNode(1, 120, 80)])
+    if (s.nodes?.length) { draftFallbackRef.current = true; return s.nodes }
+    return initialNodes?.length ? initialNodes : [makeNode(1, 120, 80)]
   })
+  // Если начальный выбор пал на локальный черновик, а он короче того, что
+  // реально только что пришло с сервера (initialNodes уже свежие — доска
+  // монтируется только после загрузки, см. CanvasPage) — молчать нельзя:
+  // следующее «Сохранить» затрёт более полную серверную версию черновиком
+  // из другого, более раннего состояния этого браузера. Спрашиваем, как в
+  // handleResetToServer (CanvasPage.jsx) — это тот же случай, но обнаруженный
+  // автоматически, а не руками через кнопку
+  useEffect(() => {
+    if (!draftFallbackRef.current) return
+    draftFallbackRef.current = false
+    if (!lessonId || !initialNodes?.length || initialNodes.length <= nodes.length) return
+    const useServer = window.confirm(
+      `В этом браузере сохранён черновик урока короче, чем версия на сервере ` +
+      `(${nodes.length} нод здесь, ${initialNodes.length} нод на сервере) — похоже, урок правили в ` +
+      `другом месте. Загрузить версию с сервера вместо черновика?`
+    )
+    if (useServer) {
+      localStorage.removeItem(CANVAS_LS(lessonId))
+      setNodes(initialNodes)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [offset, setOffset] = useState(() => loadView(lessonId).offset ?? { x: 0, y: 0 })
   const [scale, setScale]   = useState(() => {
     const v = loadView(lessonId)

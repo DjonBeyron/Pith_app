@@ -93,6 +93,13 @@
   max-width: 80%;
 }
 
+/* Сообщение только из смайликов — как в Телеграме: без фона пузыря,
+   крупнее (размер задаётся инлайн в зависимости от числа смайликов) */
+.playerMsgBubble--emojiOnly {
+  background: transparent;
+  padding: 0;
+}
+
 .playerTextEmpty {
   color: #9aa0b4;
   font-style: italic;
