@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { VolumeX } from 'lucide-react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -7,37 +6,20 @@ import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
 import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
+import { useVideoFullscreen } from './useVideoFullscreen.jsx'
 
 export default function VideoModule({ node, file, onDone, videoAutoSound, adminPreview = false, pending = false }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [intrinsic, setIntrinsic] = useState(null)
   const [frameDims, setFrameDims] = useState(null)
   const [frame0, setFrame0]       = useState(null)  // first frame captured at load, used as FS transition overlay
-  const [fsVisible, setFsVisible] = useState(false)
-  const [fsSrc, setFsSrc]         = useState(null)
-  const [stageDims, setStageDims] = useState(null)  // размеры рамки плеера для FS
-  const [fsReady, setFsReady]     = useState(false)
   const videoRef    = useRef(null)
-  const fsVideoRef  = useRef(null)
-  // canvas-зеркала кадров (десктоп): показывают картинку вместо самого <video>
+  // canvas-зеркало кадров (десктоп): показывает картинку вместо самого <video>
   const mirrorRef   = useRef(null)
-  const fsMirrorRef = useRef(null)
   const frameRef    = useRef(null)
-  const progressRef = useRef(null)
-  const rafRef      = useRef(null)
   const doneFiredRef      = useRef(false)
-  const fsOpenRef         = useRef(false)
-  const tapCooldown       = useRef(false)
   const firstPlayDoneRef  = useRef(false)  // videoAutoSound: true after first unmuted play ends
   const [mutedLoop, setMutedLoop] = useState(false)
-
-  // Отрицательный офсет триггера played — следующая нода стартует до конца
-  // видео; смотрим оба элемента, ролик может играть и в полном экране
-  usePlayedOffset(
-    playedOffsetMs(node),
-    () => [videoRef.current, fsVideoRef.current],
-    () => fireDone(),
-  )
 
   const crop = node.typeData?.video?.crop ?? { x: 0, y: 0, scale: 1 }
 
@@ -64,7 +46,6 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
     setMutedLoop(false)
     doneFiredRef.current = false
     firstPlayDoneRef.current = false
-    if (progressRef.current) progressRef.current.style.width = '0%'
   }, [src])
 
   useLayoutEffect(() => {
@@ -72,6 +53,30 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
     if (!el) return
     setFrameDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
+
+  function fireDone() {
+    if (doneFiredRef.current) return
+    doneFiredRef.current = true
+    pLog('VideoModule: onDone()')
+    onDone?.()
+  }
+
+  // На десктопе кадры показывает canvas, а сам <video> прячется: иначе
+  // Яндекс.Браузер вешает поверх видео свою панель (см. videoMirror.js)
+  const mirror = useWideScreen()
+
+  // Полноэкранный просмотр по тапу — useVideoFullscreen.jsx
+  const { fsPortal, handleTap, fsVideoRef } = useVideoFullscreen({
+    src, frame0, crop, intrinsic, frameDims, mirror, doneFiredRef, fireDone, frameRef, videoRef,
+  })
+
+  // Отрицательный офсет триггера played — следующая нода стартует до конца
+  // видео; смотрим оба элемента, ролик может играть и в полном экране
+  usePlayedOffset(
+    playedOffsetMs(node),
+    () => [videoRef.current, fsVideoRef.current],
+    () => fireDone(),
+  )
 
   // Capture frame 0 from the inline video right after first data loads (currentTime≈0).
   // Used as the FS overlay during the ~90ms gap before the FS video is ready.
@@ -164,195 +169,12 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
     }
   }
 
-  // На десктопе кадры показывает canvas, а сам <video> прячется: иначе
-  // Яндекс.Браузер вешает поверх видео свою панель (см. videoMirror.js)
-  const mirror = useWideScreen()
   useVideoMirror(videoRef, mirrorRef, mirror && !!src, frame0)
-  useVideoMirror(fsVideoRef, fsMirrorRef, mirror && fsVisible && !!fsSrc, frame0)
 
   function getMediaStyle() {
     if (!frameDims) return calcCropStyle(0, 0)
     return calcCropStyle(frameDims.w, frameDims.h)
   }
-
-  function getFsMediaStyle() {
-    if (!intrinsic || !frameDims) {
-      return {
-        position: 'absolute', inset: 0,
-        width: '100%', height: '100%', objectFit: 'cover',
-      }
-    }
-    const sw = stageDims?.w ?? window.innerWidth
-    const sh = stageDims?.h ?? window.innerHeight
-    const ma = intrinsic.w / intrinsic.h
-    const faFs = sw / sh
-    const dFs = ma > faFs ? { w: sh * ma, h: sh } : { w: sw, h: sw / ma }
-    const faIn = frameDims.w / frameDims.h
-    const dIn = ma > faIn ? { w: frameDims.h * ma, h: frameDims.h } : { w: frameDims.w, h: frameDims.w / ma }
-    const sx = dFs.w / dIn.w
-    const sy = dFs.h / dIn.h
-    return {
-      position: 'absolute', left: '50%', top: '50%',
-      width: dFs.w + 'px', height: dFs.h + 'px',
-      transform: `translate(calc(-50% + ${crop.x * sx}px), calc(-50% + ${crop.y * sy}px)) scale(${crop.scale})`,
-      transformOrigin: 'center center',
-    }
-  }
-
-  function fireDone() {
-    if (doneFiredRef.current) return
-    doneFiredRef.current = true
-    pLog('VideoModule: onDone()')
-    onDone?.()
-  }
-
-  function startRaf() {
-    const tick = () => {
-      const v = fsVideoRef.current
-      const bar = progressRef.current
-      if (v && bar && v.duration) bar.style.width = `${(v.currentTime / v.duration) * 100}%`
-      rafRef.current = requestAnimationFrame(tick)
-    }
-    rafRef.current = requestAnimationFrame(tick)
-  }
-
-  function stopRaf() {
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
-  }
-
-  function handleTap() {
-    if (tapCooldown.current) return
-    tapCooldown.current = true
-    setTimeout(() => { tapCooldown.current = false }, 1000)
-
-    pLog('VideoModule: tap → open FS revisit=', doneFiredRef.current,
-      'frame0=', frame0 ? 'yes' : 'no')
-    setFsReady(false)
-    setFsSrc(src)
-    fsOpenRef.current = true
-    setFsVisible(true)
-    // Полный экран = рамка плеера. На телефоне она равна окну (цифры прежние),
-    // на десктопе плеер шириной 420px, и по окну видео уезжало за края
-    const box = frameRef.current?.closest('.lessonPlayer')?.getBoundingClientRect()
-    setStageDims(box ? { w: box.width, h: box.height } : null)
-  }
-
-  // Когда fsSrc появился → воспроизвести с начала
-  useEffect(() => {
-    if (!fsSrc) return
-    const fs = fsVideoRef.current
-    if (!fs) return
-    pLog('VideoModule: fsSrc set → fs.readyState=', fs.readyState)
-    if (progressRef.current) progressRef.current.style.width = '0%'
-    fs.currentTime = 0
-    fs.muted = false
-    startRaf()
-    fs.play().catch(() => {
-      pLog('VideoModule: FS unmuted failed → muted')
-      fs.muted = true
-      fs.play().catch(err => pLog('VideoModule: FS muted failed:', err.message))
-    })
-  }, [fsSrc])  
-
-  function handleFsCanPlay() {
-    pLog('VideoModule: FS onCanPlay → show video, hide frame0 overlay')
-    setFsReady(true)
-  }
-
-  function closeFs() {
-    if (!fsOpenRef.current) return
-    const fs = fsVideoRef.current
-    if (fs?.duration) {
-      const watched = fs.currentTime / fs.duration
-      pLog('VideoModule: closeFs watched=', Math.round(watched * 100) + '%')
-      if (watched >= 0.2) fireDone()
-    }
-    fsOpenRef.current = false
-    stopRaf()
-    fsVideoRef.current?.pause()
-    setFsVisible(false)
-    setFsSrc(null)
-    setFsReady(false)
-    if (progressRef.current) progressRef.current.style.width = '0%'
-    const v = videoRef.current
-    if (v) { v.muted = true; v.play().catch(() => {}) }
-  }
-
-  function handleFsEnded() {
-    if (!fsOpenRef.current) return
-    if (doneFiredRef.current) {
-      pLog('VideoModule: FS ended, revisit → loop from start')
-      const fs = fsVideoRef.current
-      if (fs) { fs.currentTime = 0; fs.play().catch(() => {}) }
-      if (progressRef.current) progressRef.current.style.width = '0%'
-      return
-    }
-    pLog('VideoModule: FS ended → onDone + close')
-    if (progressRef.current) progressRef.current.style.width = '100%'
-    fireDone()
-    setTimeout(closeFs, 300)
-  }
-
-  useEffect(() => () => stopRaf(), [])
-
-  // Fullscreen overlay — portalled to document.body so that position:fixed is
-  // relative to the viewport, not the PlayerFeed's scaleY(-1) containing block.
-  const fsPortal = createPortal(
-    <>
-      {fsVisible && (
-        <div
-          className="videoFsBg"
-          onClick={closeFs}
-          style={{ zIndex: 251, WebkitTapHighlightColor: 'transparent' }}
-        />
-      )}
-      {/* Video container always in DOM so fsVideoRef is always attached */}
-      <div style={{
-        position: 'fixed', inset: 0,
-        zIndex: fsVisible ? 252 : -1,
-        overflow: 'hidden',
-        pointerEvents: 'none',
-      }}>
-        <video
-          {...VIDEO_GUARD}
-          ref={fsVideoRef}
-          src={fsSrc ?? undefined}
-          playsInline
-          preload="none"
-          className={mirror ? 'videoMirrorSource' : undefined}
-          style={mirror ? undefined : getFsMediaStyle()}
-          onCanPlay={handleFsCanPlay}
-          onPlaying={() => pLog('VideoModule: FS onPlaying')}
-          onWaiting={() => pLog('VideoModule: FS onWaiting')}
-          onEnded={handleFsEnded}
-          onError={e => pLog('VideoModule: FS onError code=', e.currentTarget.error?.code)}
-        />
-        {mirror && fsVisible && (
-          <canvas ref={fsMirrorRef} style={getFsMediaStyle()} aria-hidden="true" />
-        )}
-        {/* Frame 0 overlay — shown until FS video fires onCanPlay, eliminates black flash */}
-        {fsVisible && frame0 && !fsReady && (
-          <img
-            src={frame0}
-            alt=""
-            style={getFsMediaStyle()}
-          />
-        )}
-      </div>
-      {fsVisible && (
-        <div
-          className="videoFsControls"
-          style={{ zIndex: 253, WebkitTapHighlightColor: 'transparent' }}
-        >
-          <button className="videoFullClose" onClick={closeFs}>×</button>
-          <div className="videoFsProgressTrack">
-            <div ref={progressRef} className="videoFsProgressBar" style={{ width: '0%' }} />
-          </div>
-        </div>
-      )}
-    </>,
-    document.body,
-  )
 
   return (
     <div className="playerMsgRow">

@@ -210,7 +210,9 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `canvas/table-editor-preview.css` | Правая панель `TablePhonePreview.jsx`: рамка iPhone SE 2020, экран превью |
 | `canvas/table-editor-templates.css` | Полоса шаблонов `TableTemplatesBar.jsx`: чипы, кнопки применить/переименовать/удалить |
 | `canvas/table-editor-controls.css` | Шапка редактора таймлайна: кнопки аудио, длина композиции, общая галочка «в сборку», подсказка, окно предпросмотра |
-| `canvas/table-editor-timeline.css` | Редактор таймлайна `TableTimelineEditor.jsx`: шапка, аудио-секция, дорожки с клипами (ручки resize, drag тела, глазик, удаление), секция «+ Дорожка» |
+| `canvas/table-editor-timeline.css` | Редактор таймлайна `TableTimelineEditor.jsx`: спектр, дорожки, базовый клип (ручки resize, drag тела, глазик), плейхед, линейка времени. Действия на клипе (меню, выбор варианта, конец линейки, повтор/очистка) — `table-editor-clip-actions.css`; попап меню клипа (ClipMenu.jsx) — `clip-menu.css` |
+| `canvas/table-editor-clip-actions.css` | Действия на клипе таймлайна: кнопка меню (▾), выбор варианта ячейки, конец композиции на линейке, повтор/очистка. Вынесено из table-editor-timeline.css |
+| `canvas/clip-menu.css` | Всплывающее меню клипа (ClipMenu.jsx): сборка фразы/повтор анимации/очистка. Вынесено из table-editor-timeline.css |
 | `player/modules/table.css` | Плеер ноды «Таблица»: минимальный (основной UI — в `TableDictatorPanel`) |
 | `player/panels/table-dictator.css` | Панель таблицы-диктора в плеере: спейсер, slide-up/down анимация, HUD — 3 пульсирующих бара, бокс сборки фразы |
 | `player/panels/table-manual.css` | Панель ручной сборки фразы в плеере: бокс ответа с состояниями ok/err, slide-анимация таблицы −80%, слова-ловушки с анимацией, кнопка «Проверить» |
@@ -407,7 +409,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/text/TextModule.jsx` | Текстовое сообщение |
 | `modules/photo/photoCaption.test.js` | Подпись у фото: рендер в том же пузыре, поля редактора, переезд текста между фото/стикером/текстом |
 | `modules/photo/PhotoModule.jsx` | Фото-сообщение: кроп, полноэкранный просмотр по тапу и подпись в том же пузыре (как у стикера) |
-| `modules/video/VideoModule.jsx` | Видео-сообщение с controls |
+| `modules/video/VideoModule.jsx` | Видео-сообщение в пузыре: инлайн-воспроизведение, videoAutoSound (первый раз со звуком, дальше петля без него), захват frame0, кроп-стиль. Полноэкранный просмотр по тапу — `useVideoFullscreen.jsx` |
+| `modules/video/useVideoFullscreen.jsx` | Полноэкранный просмотр видео по тапу — портал в document.body (position:fixed от вьюпорта, не от containing block PlayerFeed's scaleY(-1)); RAF-прогресс-бар, досмотр ≥20% засчитывает onDone. Вынесено из VideoModule.jsx |
 | `modules/sticker/StickerModule.jsx` | Стикер: квадрат 160px, поддерживает фото/gif/видео, muted по флагу isVideo; при заданной подписи (`caption`) и/или ответе стикер и текст показываются одним пузырём; галочка `autoSound` — первый проход со звуком, дальше беззвучная петля, тап по стикеру включает/выключает звук; с триггером «Воспроизведено до конца» ролик сам проигрывается один раз и только потом отпускает цепочку |
 | `modules/system/SystemModule.jsx` | Системное сообщение без пузыря (заглушка) |
 | `modules/word-choice/WordChoiceModule.jsx` | Выбор слова — в ленте не рендерит ничего; панель снизу (`ChooseWordPanel`) |

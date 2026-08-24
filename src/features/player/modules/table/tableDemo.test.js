@@ -105,16 +105,19 @@ describe('плейхед совпадает с линейкой и клипам�
 
 describe('удаление аудио из таблицы', () => {
   it('кнопка есть и в таймлайне, и в самой ноде', () => {
+    // Сама функция — в аудио-источнике таймлайна (useTimelineAudioSource.js),
+    // кнопка с этим классом — в разметке редактора (TableTimelineEditor.jsx)
+    const audioSrc = read('../../../canvas/table-editor/useTimelineAudioSource.js')
+    expect(audioSrc).toContain('function removeAudio()')
     const editor = read('../../../canvas/table-editor/TableTimelineEditor.jsx')
-    expect(editor).toContain('function removeAudio()')
     expect(editor).toContain('className="tlRemoveAudio"')
     const node = read('../../../canvas/NodeTablePicker.jsx')
     expect(node).toContain('onDataChange({ file_id: null, waveformData: null, duration: null })')
   })
 
   it('разметка таймлайна при этом не трогается', () => {
-    const editor = read('../../../canvas/table-editor/TableTimelineEditor.jsx')
-    const fn = editor.slice(editor.indexOf('function removeAudio()'), editor.indexOf('function togglePlay()'))
+    const audioSrc = read('../../../canvas/table-editor/useTimelineAudioSource.js')
+    const fn = audioSrc.slice(audioSrc.indexOf('function removeAudio()'), audioSrc.indexOf('function handleSeek('))
     expect(fn).not.toContain('setTimeline')
     expect(fn).not.toContain('initClips')
   })
@@ -132,9 +135,10 @@ describe('таймлайн без озвучки', () => {
     const clock = read('../../../../shared/lib/silentClock.js')
     expect(clock).toContain('get paused()')
     expect(clock).toContain("Object.defineProperty(clock, 'currentTime'")
-    const panel = read('../../panels/table-dictator/TableDictatorPanel.jsx')
-    expect(panel).toContain('createSilentClock(silentDur')
-    expect(panel).toContain('audioRef.current = clock')
+    // Автостарт (часы вместо звука) — в useTableDictatorAutostart.js
+    const autostart = read('../../panels/table-dictator/useTableDictatorAutostart.js')
+    expect(autostart).toContain('createSilentClock(silentDur')
+    expect(autostart).toContain('audioRef.current = clock')
   })
 
   it('локальный файл (урок не синхронизирован) тоже играет', () => {
@@ -144,30 +148,31 @@ describe('таймлайн без озвучки', () => {
   })
 
   it('длительность прогона есть всегда: длина композиции → аудио → конец клипов', () => {
-    const panel = read('../../panels/table-dictator/TableDictatorPanel.jsx')
-    expect(panel).toContain('timelineEndSec(timeline?.layers)')
+    const autostart = read('../../panels/table-dictator/useTableDictatorAutostart.js')
+    expect(autostart).toContain('timelineEndSec(timeline?.layers)')
   })
 
   it('анимация идёт в любом случае: нет аудио, отказ автозапуска, ошибка, тишина', () => {
-    const panel = read('../../panels/table-dictator/TableDictatorPanel.jsx')
+    const autostart = read('../../panels/table-dictator/useTableDictatorAutostart.js')
     // отказ автозапуска
-    const rejected = panel.slice(panel.indexOf('logAudioPlayRejected(e, audioSrc)'))
+    const rejected = autostart.slice(autostart.indexOf('logAudioPlayRejected(e, audioSrc)'))
     expect(rejected.slice(0, 260)).toContain('runWithClock()')
-    // ошибка загрузки/декодирования файла
-    const onError = panel.slice(panel.indexOf('logAudioError('))
-    expect(onError.slice(0, 300)).toContain('runWithClock()')
     // аудио молча не стартовало
-    const silence = panel.slice(panel.indexOf('if (hasPlayedRef.current) return'))
+    const silence = autostart.slice(autostart.indexOf('if (hasPlayedRef.current) return'))
     expect(silence.slice(0, 300)).toContain('runWithClock()')
     // и вовсе без озвучки
-    expect(panel).toContain('const silentMode  = !audioSrc && canRunClock')
+    expect(autostart).toContain('const silentMode  = !audioSrc && canRunClock')
     // крутить есть что только со смонтированным таймлайном
-    expect(panel).toContain("const canRunClock = silentDur > 0 && !!timeline?.layers?.length")
+    expect(autostart).toContain("const canRunClock = silentDur > 0 && !!timeline?.layers?.length")
+    // ошибка загрузки/декодирования файла — обработчик остался в самой панели
+    const panel = read('../../panels/table-dictator/TableDictatorPanel.jsx')
+    const onError = panel.slice(panel.indexOf('logAudioError('))
+    expect(onError.slice(0, 300)).toContain('runWithClock()')
   })
 
   it('без озвучки подпись в боксе не зовёт слушать диктора', () => {
-    const panel = read('../../panels/table-dictator/TableDictatorPanel.jsx')
-    expect(panel).toContain("{audioSrc ? 'Слушай диктора…' : 'Смотри на таблицу…'}")
+    const view = read('../../panels/table-dictator/TableDictatorView.jsx')
+    expect(view).toContain("{audioSrc ? 'Слушай диктора…' : 'Смотри на таблицу…'}")
   })
 
   it('плейхед можно взять за широкую зону и за флажок', () => {

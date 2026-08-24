@@ -36,7 +36,8 @@ describe('оповещение «урок сохранён»', () => {
 
 describe('редакторы и список уроков связаны', () => {
   it('оба редактора сообщают о сохранении', () => {
-    expect(read('../../features/canvas/CanvasPage.jsx'))
+    // Канвас: само сохранение вынесено в useCanvasSave.js
+    expect(read('../../features/canvas/useCanvasSave.js'))
       .toContain('notifyLessonSaved({ id: lessonId, title, lessonXp })')
     expect(read('../../features/production/ProductionPage.jsx'))
       .toContain('notifyLessonSaved({ id: lessonId, title')

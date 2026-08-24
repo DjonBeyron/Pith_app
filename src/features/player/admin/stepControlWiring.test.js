@@ -11,6 +11,8 @@ const FROZEN = read('../playerFrozen.js')
 const TYPING = read('../PlayerTypingText.jsx')
 const STUB   = read('../useMissingMediaFallback.js')
 const PLAYER = read('../LessonPlayer.jsx')
+// Конец урока (finishSummary) — вынесен из LessonPlayer.jsx
+const FINISH = read('../useLessonFinish.js')
 
 // Пошаговый режим держится на нескольких связях в разных файлах. Тест
 // фиксирует их по живому коду: если связь порвётся при рефакторинге, пауза
@@ -103,14 +105,14 @@ describe('шаг вперёд', () => {
 
 describe('конец урока в прогоне из канваса', () => {
   it('итоги не показываются и в схему модуля не выкидывает', () => {
-    const fn = PLAYER.slice(PLAYER.indexOf('function finishSummary()'))
+    const fn = FINISH.slice(FINISH.indexOf('function finishSummary()'))
     const guard = fn.slice(0, fn.indexOf('setTimeout('))
     expect(guard).toContain('if (edit) {')
     expect(guard).toContain('return')
   })
 
   it('заодно ничего не начисляется — прогон автора не трогает прогресс', () => {
-    const fn = PLAYER.slice(PLAYER.indexOf('function finishSummary()'))
+    const fn = FINISH.slice(FINISH.indexOf('function finishSummary()'))
     const guard = fn.slice(0, fn.indexOf('setTimeout('))
     // выход из функции стоит ДО начислений и записи статистики
     expect(guard).not.toContain('completeLesson')
@@ -119,7 +121,7 @@ describe('конец урока в прогоне из канваса', () => {
   })
 
   it('обычное прохождение итоги показывает как раньше', () => {
-    expect(PLAYER).toContain('setShowSummary(true)')
+    expect(FINISH).toContain('setShowSummary(true)')
     expect(PLAYER).toContain('onSummaryClose ?? onClose')
   })
 })

@@ -81,6 +81,8 @@
 @import './styles/canvas/table-editor-preview.css';
 @import './styles/canvas/table-editor-templates.css';
 @import './styles/canvas/table-editor-timeline.css';
+@import './styles/canvas/table-editor-clip-actions.css';
+@import './styles/canvas/clip-menu.css';
 @import './styles/canvas/table-editor-controls.css';
 @import './styles/table-grid.css';
 @import './styles/player/modules/table.css';

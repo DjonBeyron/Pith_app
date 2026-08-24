@@ -8,6 +8,8 @@ import { readFileSync } from 'node:fs'
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 
 const VIDEO   = read('./modules/video/VideoModule.jsx')
+// Полноэкранный просмотр (портал) — вынесен из VideoModule.jsx
+const VIDEO_FS = read('./modules/video/useVideoFullscreen.jsx')
 const CIRCLE  = read('./modules/circle/CircleModule.jsx')
 const STICKER = read('./modules/sticker/StickerModule.jsx')
 const PRELOAD = read('./usePlayerPreload.js')
@@ -123,6 +125,6 @@ describe('сколько времени у элемента есть на дек
     expect(inline).not.toContain('poster')
     // frame0 снимается уже ИЗ этого элемента и только для полноэкранного слоя
     expect(VIDEO).toContain('onLoadedData')
-    expect(VIDEO).toContain('{fsVisible && frame0 && !fsReady && (')
+    expect(VIDEO_FS).toContain('{fsVisible && frame0 && !fsReady && (')
   })
 })
