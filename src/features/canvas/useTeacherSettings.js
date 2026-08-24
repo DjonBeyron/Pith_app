@@ -9,7 +9,10 @@ const IDB_KEY = id => `lesson_teacher_logo_${id}`   // File blob (unsaved pick)
 
 // Persists teacher name, logo file and crop across page reloads.
 // Pattern matches useLessonFiles: metadata in localStorage, File blobs in IndexedDB.
-// Local data always wins over server data — applyServerData() is skipped when local exists.
+// Локальный черновик побеждает сервер по умолчанию (защита от потери
+// несохранённых правок при случайной перезагрузке), но если он расходится
+// с тем, что реально на сервере — applyServerData() спрашивает, а не молчит
+// (см. differs ниже); clearDraft() чистит его после успешного сохранения.
 export function useTeacherSettings(lessonId) {
   const [teacherName,     setTeacherName]     = useState('')
   const [teacherLogoUrl,  setTeacherLogoUrl]  = useState(null)
@@ -27,13 +30,20 @@ export function useTeacherSettings(lessonId) {
     return () => { cancelled = true }
   }, [])
 
-  const readyRef    = useRef(false) // true after local load finishes
-  const hasLocalRef = useRef(false) // set synchronously when localStorage has data
+  const readyRef      = useRef(false) // true after local load finishes
+  const hasLocalRef    = useRef(false) // set synchronously when localStorage has data
+  // Сырое содержимое черновика на момент монтирования — используется для
+  // сверки с сервером в applyServerData ниже. Реальный React state (teacherName
+  // и т.п.) заполняется асинхронно (после lfGet), поэтому сравнивать нужно
+  // именно с этим снимком, а не с state, который к моменту вызова
+  // applyServerData ещё может быть пустым
+  const localDraftRef = useRef(null)
 
   // ── Load on mount ────────────────────────────────────────────────
   useEffect(() => {
     readyRef.current = false
     hasLocalRef.current = false
+    localDraftRef.current = null
     if (!lessonId) { readyRef.current = true; return }
     let cancelled = false
 
@@ -45,6 +55,7 @@ export function useTeacherSettings(lessonId) {
 
     // Mark synchronously so applyServerData() called from loadScript sees this first
     hasLocalRef.current = true
+    localDraftRef.current = saved
 
     lfGet(IDB_KEY(lessonId)).then(blob => {
       if (cancelled) return
@@ -91,16 +102,62 @@ export function useTeacherSettings(lessonId) {
 
   // ── API ──────────────────────────────────────────────────────────
 
-  // Called from CanvasPage after loadScript. Ignored if local data exists.
+  // Called from CanvasPage after loadScript.
   function applyServerData(script) {
-    if (hasLocalRef.current) return
-    setTeacherName(script?.teacherName ?? '')
-    setTeacherLogoUrl(script?.teacherLogo ?? null)
-    setTeacherLogoCrop(script?.teacherLogoCrop ?? { x: 0, y: 0, scale: 1 })
-    setVideoAutoSound(script?.videoAutoSound ?? false)
+    const serverName = script?.teacherName ?? ''
+    const serverLogo = script?.teacherLogo ?? null
+    const serverCrop = script?.teacherLogoCrop ?? { x: 0, y: 0, scale: 1 }
+    const serverSound = script?.videoAutoSound ?? false
     // Старые уроки поля teacherMode не имеют — режим выводится из наличия
     // своего имени/лого, чтобы у них ничего не поменялось (см. teacherResolve)
-    setTeacherMode(teacherModeOf(script))
+    const serverMode = teacherModeOf(script)
+
+    if (!hasLocalRef.current) {
+      setTeacherName(serverName)
+      setTeacherLogoUrl(serverLogo)
+      setTeacherLogoCrop(serverCrop)
+      setVideoAutoSound(serverSound)
+      setTeacherMode(serverMode)
+      return
+    }
+
+    // Черновик в этом браузере есть — но он мог остаться от прошлой правки
+    // (черновик никогда не чистился сам собой) и теперь молча прятать
+    // изменения, сделанные с другого устройства. Сверяем со СНИМКОМ
+    // черновика на момент монтирования (localDraftRef), а не с state —
+    // state может быть ещё не заполнен (см. localDraftRef выше)
+    const draft = localDraftRef.current ?? {}
+    const draftMode = draft.teacherMode === 'custom' ? 'custom' : 'global'
+    const differs = serverName !== (draft.teacherName ?? '')
+      || serverLogo !== (draft.teacherLogoUrl ?? null)
+      || serverMode !== draftMode
+    if (!differs) return
+
+    const useServer = window.confirm(
+      'Настройки учителя на сервере отличаются от черновика в этом браузере ' +
+      '(похоже, их поменяли в другом месте). Загрузить версию с сервера?'
+    )
+    if (!useServer) return
+    setTeacherName(serverName)
+    setTeacherLogoUrl(serverLogo)
+    setTeacherLogoCrop(serverCrop)
+    setVideoAutoSound(serverSound)
+    setTeacherMode(serverMode)
+    hasLocalRef.current = false
+    localDraftRef.current = null
+    localStorage.removeItem(LS_KEY(lessonId))
+    lfDelete(IDB_KEY(lessonId)).catch(() => {})
+  }
+
+  // Черновик сделал своё дело — сохранён на сервере. Чистим, иначе он
+  // навсегда прячет серверные правки, сделанные позже откуда-то ещё
+  // (тот же самый баг, что был у ноды урока и у списка уроков модуля)
+  function clearDraft() {
+    if (!lessonId) return
+    hasLocalRef.current = false
+    localDraftRef.current = null
+    localStorage.removeItem(LS_KEY(lessonId))
+    lfDelete(IDB_KEY(lessonId)).catch(() => {})
   }
 
   // User picked a new logo file
@@ -159,5 +216,6 @@ export function useTeacherSettings(lessonId) {
     applyServerData,
     uploadLogoIfPending,
     prepareForSave,
+    clearDraft,
   }
 }

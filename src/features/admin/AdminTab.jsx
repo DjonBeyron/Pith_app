@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { uploadToR2, deleteFromR2 } from '../../shared/lib/r2.js'
-import { listFiles, insertFile, deleteFileRow, formatBytes } from '../../shared/lib/filesApi.js'
+import { listFiles, insertFile, deleteFileRow, otherRowsShareR2Url, findFileByHash, formatBytes } from '../../shared/lib/filesApi.js'
+import { hashFile } from '../../shared/lib/fileHash.js'
 import { isDebugOn, setDebug, dbg, downloadLog } from '../../shared/lib/debug.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import AuthTab from '../auth/AuthTab.jsx'
@@ -122,12 +123,18 @@ function AdminPanel() {
         const tStart = performance.now()
         try {
           dbg('[sync] uploading', row.fileName, formatBytes(row.sizeBytes))
-          const r2Url = await uploadToR2(row.file)
+          // Дедуп: такой же файл (по содержимому) уже мог быть загружен из
+          // урока или отсюда же раньше — переиспользуем r2Url без повторной загрузки
+          const contentHash = await hashFile(row.file)
+          const existing = await findFileByHash(contentHash)
+          const r2Url = existing ? existing.r2Url : await uploadToR2(row.file)
+          if (existing) dbg('[sync] dedup hit — reuse r2Url from file', existing.id, 'skip upload for', row.fileName)
           const dbRow = await insertFile({
             fileName: row.fileName,
             sizeBytes: row.sizeBytes,
             contentType: row.contentType,
             r2Url,
+            contentHash,
           })
           dbg('[sync] uploaded', row.fileName, `${Math.round(performance.now() - tStart)}ms`)
           next[i] = {
@@ -150,7 +157,11 @@ function AdminPanel() {
         setRows([...next])
         try {
           dbg('[sync] deleting', row.fileName)
-          await deleteFromR2(row.r2Url)
+          // Дедуп мог оставить на этот r2Url ещё чужие строки files (тот же
+          // файл используется в уроке) — сам объект в R2 трогаем, только
+          // если больше никто на него не ссылается
+          const shared = await otherRowsShareR2Url(row.r2Url, row.dbId)
+          if (!shared) await deleteFromR2(row.r2Url)
           await deleteFileRow(row.dbId)
           dbg('[sync] deleted', row.fileName)
           next[i] = null

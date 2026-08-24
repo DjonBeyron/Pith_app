@@ -78,6 +78,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
     handleLogoPick,
     applyServerData,
     prepareForSave,
+    clearDraft: clearTeacherDraft,
   } = useTeacherSettings(lessonId)
 
   // Правка ноды из правой панели плеера (только админ, только прогон из
@@ -170,6 +171,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
       // навсегда показывал бы этот черновик вместо настоящих данных сервера
       // (даже если их поменяли откуда-то ещё), см. canvasLsKey/loadSaved()
       localStorage.removeItem(canvasLsKey(lessonId))
+      // Тот же принцип для черновика настроек учителя (useTeacherSettings) —
+      // он раньше не чистился вообще и навсегда прятал бы правки учителя,
+      // сделанные позже с другого устройства
+      clearTeacherDraft()
       dbg('[CANVAS] save complete — verifying round-trip...')
       // Контрольное чтение сразу после сохранения — не доверяем «раз не было
       // ошибки, значит записалось» (see lessonsApi.saveLesson: .select() уже

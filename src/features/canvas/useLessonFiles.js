@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { uploadToR2, deleteFromR2 } from '../../shared/lib/r2.js'
-import { insertFile, deleteFileByR2Url, getFilesByIds } from '../../shared/lib/filesApi.js'
+import { insertFile, deleteFileRow, otherRowsShareR2Url, findFileByHash, getFilesByIds } from '../../shared/lib/filesApi.js'
 import { lfSave, lfGet, lfDelete } from '../../shared/lib/localFileStore.js'
+import { hashFile } from '../../shared/lib/fileHash.js'
 import { pLog } from '../../shared/lib/debug.js'
 
 const LS_KEY  = id => `lesson_files_${id}`
@@ -18,6 +19,36 @@ export function useLessonFiles(lessonId) {
   const filesRef = useRef(files)
   useEffect(() => { filesRef.current = files }, [files])
 
+  // Фоновая сверка synced-файлов с сервером (вызывается из эффекта загрузки
+  // ниже) — не блокирует первый кадр (рисуем сразу из кэша), молча
+  // поправляет расхождения: файл удалили в другом месте — убираем повисшую
+  // ссылку; r2Url/имя изменились — подтягиваем актуальные
+  function reconcileSynced(cachedRest) {
+    const syncedIds = cachedRest.filter(f => f.status === 'synced').map(f => f.id)
+    if (!syncedIds.length) return
+    getFilesByIds(syncedIds).then(serverFiles => {
+      const byId = Object.fromEntries(serverFiles.map(f => [f.id, f]))
+      setFiles(prev => {
+        let changed = false
+        const next = prev
+          .filter(f => {
+            if (f.status !== 'synced' || !syncedIds.includes(f.id)) return true
+            if (byId[f.id]) return true
+            changed = true
+            return false // удалили на сервере в другом месте — не тащим висячую ссылку
+          })
+          .map(f => {
+            if (f.status !== 'synced' || !byId[f.id]) return f
+            const s = byId[f.id]
+            if (s.r2Url === f.r2Url && s.name === f.name) return f
+            changed = true
+            return { ...f, r2Url: s.r2Url, name: s.name, size: s.size, type: s.type }
+          })
+        return changed ? next : prev
+      })
+    }).catch(() => {})
+  }
+
   // ── Load on mount ──────────────────────────────────────────────
   useEffect(() => {
     readyRef.current = false
@@ -33,6 +64,13 @@ export function useLessonFiles(lessonId) {
 
     const localMeta = saved.filter(f => f.status === 'local')
     const rest      = saved.filter(f => f.status !== 'local')  // synced + toDelete
+
+    // Кэш synced-записей мог отстать от сервера (файл удалили/переоформили
+    // в другом месте) — этот ключ никогда сам не чистится, поэтому сверяем
+    // при каждом открытии урока. В отличие от нод/структуры — у уже
+    // синхронизированных файлов легитимных локальных правок не бывает,
+    // сервер тут безусловная истина, спрашивать не нужно
+    reconcileSynced(rest)
 
     if (localMeta.length === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -116,9 +154,20 @@ export function useLessonFiles(lessonId) {
 
     for (const f of toUpload) {
       try {
-        const r2Url = await uploadToR2(f.localFile)
-        pLog('syncToServer: uploadToR2 OK, r2Url=', r2Url?.slice(0, 50), 'clientId=', f.id)
-        const inserted = await insertFile({ id: f.id, fileName: f.name, sizeBytes: f.size, contentType: f.type, r2Url })
+        // Дедуп: файл с таким же содержимым (SHA-256) уже лежит в R2 —
+        // переиспользуем его r2Url вместо повторной загрузки байт (та же
+        // картинка/видео учителя часто ставится в несколько уроков подряд)
+        const contentHash = await hashFile(f.localFile)
+        const existing = await findFileByHash(contentHash)
+        let r2Url
+        if (existing) {
+          r2Url = existing.r2Url
+          pLog('syncToServer: dedup hit — reuse r2Url from file', existing.id, 'skip upload for', f.name)
+        } else {
+          r2Url = await uploadToR2(f.localFile)
+          pLog('syncToServer: uploadToR2 OK, r2Url=', r2Url?.slice(0, 50), 'clientId=', f.id)
+        }
+        const inserted = await insertFile({ id: f.id, fileName: f.name, sizeBytes: f.size, contentType: f.type, r2Url, contentHash })
         pLog('syncToServer: insertFile result id=', inserted?.id ?? 'null', 'expected=', f.id, 'match=', inserted?.id === f.id)
         result = result.map(x => x.id === f.id ? { ...x, status: 'synced', r2Url, localFile: null } : x)
         setFiles(result)
@@ -132,8 +181,13 @@ export function useLessonFiles(lessonId) {
     for (const f of toDelete) {
       try {
         if (f.r2Url) {
-          await deleteFromR2(f.r2Url)
-          await deleteFileByR2Url(f.r2Url)
+          // Дедуп мог оставить на этот r2Url ещё чьи-то строки files (тот
+          // же файл использован в другом уроке) — сам объект в R2 трогаем,
+          // только если больше никто на него не ссылается; свою же строку
+          // удаляем по id (не по r2Url — тот теперь может быть общим)
+          const shared = await otherRowsShareR2Url(f.r2Url, f.id)
+          if (!shared) await deleteFromR2(f.r2Url)
+          await deleteFileRow(f.id)
         }
         result = result.filter(x => x.id !== f.id)
         setFiles(result)
