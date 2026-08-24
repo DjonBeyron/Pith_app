@@ -43,6 +43,9 @@
    остаётся для всех остальных */
 @import './styles/canvas/node-controls.css';
 @import './styles/canvas/nodes.css';
+@import './styles/canvas/node-hover-menu.css';
+@import './styles/canvas/node-fields.css';
+@import './styles/canvas/node-reply-reward.css';
 @import './styles/canvas/node-media-badge.css';
 @import './styles/canvas/spotlight.css';
 @import './styles/resume-toast.css';

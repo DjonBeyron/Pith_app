@@ -165,7 +165,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `canvas/lesson-settings.css` | Стили вкладки «Настройки» урока (`LessonSettingsTab.jsx`): переключатель «Общий/Свой учитель», превью общего учителя, поле имени, блок фото, тумблер звука — вынесены из `canvas/files-panel.css`, когда тот подошёл к лимиту |
 | `canvas/audio.css` | Аудио-пикер ноды |
 | `canvas/crop.css` | Кроп-редактор медиа (фото/видео) |
-| `canvas/nodes.css` | Узлы канваса: nano, mini, max, селекторы |
+| `canvas/nodes.css` | Узлы канваса: nano, mini, max, порты, рамка выделения, приглушение фильтром |
+| `canvas/node-hover-menu.css` | Меню-липучка над нодой (JS-позиционирование): кнопки удалить/добавить/дублировать/пройти сценарий. Вынесено из nodes.css |
+| `canvas/node-fields.css` | Поля внутри max-ноды: чекбокс «без звука» стикера, текстовое поле, кастомный select типа ноды. Вынесено из nodes.css |
+| `canvas/node-reply-reward.css` | Секция «ответ на» и чекбокс награды (XP) внутри max-ноды. Вынесено из nodes.css |
 | `canvas/node-media-badge.css` | Метка «загружен ли файл» в углу ноды (три состояния) + пункт «Не загруженные» в меню фильтра |
 | `canvas/spotlight.css` | «Прожектор» на ноде, к которой перешли из плеера: остальные на секунду тускнеют и плавно возвращаются |
 | `canvas/triggers.css` | Редактор триггеров ноды |
@@ -393,7 +396,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/voice-record/VoiceRecordModule.jsx` | Оркестратор: idle → VoiceRecordBar; после отправки → VoiceRecordBubble |
 | `modules/voice-record/VoiceRecordBar.jsx` | UI записи: удерживай кнопку, rings-canvas, waveform-preview, отправить/перезаписать |
 | `modules/voice-record/VoiceRecordBubble.jsx` | Пузырь отправленного голоса: canvas waveform, ▶/⏸, таймер |
-| `modules/circle/CircleModule.jsx` | Видео-кружок: круглый контейнер 200×200, autoplay muted loop |
+| `modules/circle/CircleModule.jsx` | Видео-кружок: круглый контейнер 200×200, autoplay muted loop, звуковая логика (videoAutoSound). Раскрытие на весь экран по тапу/свайпу — `useCircleExpand.js` |
+| `modules/circle/useCircleExpand.js` | Раскрытие видео-кружка на весь экран: геометрия анимации (куда расти, FLIP-сдвиг соседних сообщений через MutationObserver), свайп вниз/тап по фону — закрытие. Вынесено из CircleModule.jsx |
 | `modules/text/TextModule.jsx` | Текстовое сообщение |
 | `modules/photo/photoCaption.test.js` | Подпись у фото: рендер в том же пузыре, поля редактора, переезд текста между фото/стикером/текстом |
 | `modules/photo/PhotoModule.jsx` | Фото-сообщение: кроп, полноэкранный просмотр по тапу и подпись в том же пузыре (как у стикера) |

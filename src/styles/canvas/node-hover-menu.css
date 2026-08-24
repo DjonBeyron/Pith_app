@@ -1,0 +1,64 @@
+/* ── hover menu (JS-controlled, centered above node) ── */
+.nodeHoverMenu {
+  position: absolute;
+  top: -52px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 10;
+  white-space: nowrap;
+  animation: menuFadeIn 0.1s ease;
+  padding: 16px 28px;
+  /* padding is a hit-zone extension but must NOT block node mousedown below */
+  pointer-events: none;
+}
+
+.nodeHoverMenu .nodeHoverBtn,
+.nodeHoverMenu .nodeHoverConfirm {
+  pointer-events: auto;
+}
+
+@keyframes menuFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.nodeHoverConfirm {
+  font-size: 10px;
+  color: #888;
+  padding: 0 4px;
+}
+
+.nodeHoverBtn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid #2a2c33;
+  background: #12141a;
+  color: #888;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.nodeHoverBtnDel:hover { background: #2a1010; color: #ff6060; border-color: #ff6060; }
+.nodeHoverBtnAdd:hover { background: #1a2a10; color: #b6fe3b; border-color: #b6fe3b; }
+
+/* Кнопка «Дублировать»: глиф ⧉ крупный сам по себе — уменьшаем и центрируем */
+.nodeHoverBtnDup {
+  font-size: 10px;
+  font-weight: 400;
+  padding: 0 6px;
+}
+.nodeHoverBtnDup:hover { background: #101c2a; color: #6db3ff; border-color: #6db3ff; }
+
+/* «Пройти с этой ноды» — админский прогон сценария с середины */
+.nodeHoverBtnPlay {
+  font-size: 9px;
+  padding: 0 7px;
+}
+.nodeHoverBtnPlay:hover { background: #1a2a10; color: #b6fe3b; border-color: #b6fe3b; }
