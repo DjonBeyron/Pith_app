@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useCurriculumLessons } from './useCurriculumLessons.js'
+import { useModuleAnalysis } from './useModuleAnalysis.js'
 import ModuleTitleEditor from '../admin/ModuleTitleEditor.jsx'
 import ModuleGraph from './ModuleGraph.jsx'
 import ProModuleLessons from './ProModuleLessons.jsx'
@@ -12,33 +13,18 @@ import ProPaywall from '../pro/ProPaywall.jsx'
 import { resetLessonProgress, startLesson } from '../../shared/api/profileApi.js'
 import EnergyPaywall from './EnergyPaywall.jsx'
 import ModuleVideoPanel from './ModuleVideoPanel.jsx'
-import { loadAllEvents, clearLocalEvents } from '../../shared/lib/skillStatsStore.js'
-import { getLocalStars } from '../../shared/lib/lessonStars.js'
-import { fetchMyLessonStars } from '../../shared/api/starsApi.js'
+import { clearLocalEvents } from '../../shared/lib/skillStatsStore.js'
 import { markModuleStarted, unmarkModuleStarted } from '../../shared/api/moduleSocialApi.js'
 import { dbg } from '../../shared/lib/debug.js'
 import PriorityLegend from './PriorityLegend.jsx'
 import StreakDailyToast from '../streak/StreakDailyToast.jsx'
 import BackButton from '../../shared/ui/BackButton.jsx'
-import { computeAllPriorities } from '../../shared/lib/skillScore.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import { weekKey, MODULE_DONE_WEEK_KEY } from '../race/useRaceState.js'
 import { getLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 
 const LEGEND_SEEN_KEY = 'pithy_priority_legend_seen_v1'
-
-// Карта звёзд уроков: максимум локального стора (мгновенно, работает и гостю)
-// и сервера (переносится между устройствами). Чистый хелпер без setState —
-// компонент подписывает setStars через .then (react-hooks/set-state-in-effect).
-async function loadStarsMap(user, lessons) {
-  const merged = new Map(getLocalStars())
-  if (user && lessons.length > 2) {
-    const server = await fetchMyLessonStars(lessons.slice(1, -1).map(l => l.id))
-    server.forEach((v, id) => merged.set(id, Math.max(v, merged.get(id) ?? 0)))
-  }
-  return merged
-}
 
 // Экран одного модуля: схема Старт → уроки → Финал, запуск уроков через
 // карточку прогрева, плеер, приоритеты анализа знаний. Используется и во
@@ -77,24 +63,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const [justCompleted,   setJustCompleted]   = useState(null)
   const [saving,          setSaving]          = useState(false)
   const [saveMsg,         setSaveMsg]         = useState('')
-  // Приоритеты уроков из анализа знаний: Map<lessonId, 'high'|'medium'|'low'>
-  const [priorities,      setPriorities]      = useState(null)
   // Легенда «Приоритеты уроков» поверх затемнённой схемы (этап 5)
   const [showLegend,      setShowLegend]      = useState(false)
   // Попап только что закрыт — отложенная анимация графа идёт с половинным офсетом
   const [postLegend,      setPostLegend]      = useState(false)
-  // Звёзды уроков модуля: Map<lessonId, 1..3> — максимум из локального стора
-  // и сервера (lesson_results.stars), для отображения на карточках схемы
-  const [stars,           setStars]           = useState(null)
-  // Готовность приоритетов/звёзд — граф ждёт оба перед первым показом, иначе
-  // полоска приоритета / звёзды подъезжают отдельным рендером уже поверх
-  // видимой схемы и меняют высоту карточек — заметный скачок интерфейса.
-  // readyTimeout — страховка: оба грузятся с сервера, на плохой сети не
-  // должны блокировать вход в модуль навсегда — через паузу граф всё равно
-  // покажется (полоска приоритета может ещё секунду подъехать).
-  const [prioritiesReady, setPrioritiesReady] = useState(false)
-  const [starsReady,      setStarsReady]      = useState(false)
-  const [readyTimeout,    setReadyTimeout]    = useState(false)
   // Отказ start_lesson: показать экран «Энергия закончилась» ({ nextAt })
   const [noEnergy,        setNoEnergy]        = useState(null)
   // Мягкое предложение Pro после первого прохождения Финала (момент успеха)
@@ -102,6 +74,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const didInitRef = useRef(false)
   const { isAdmin } = useAdmin()
   const { user } = useAuth()
+
+  // Приоритеты уроков (анализ знаний) + звёзды — useModuleAnalysis.js
+  const { priorities, stars, prioritiesReady, starsReady, readyTimeout, refreshPriorities, refreshStars } =
+    useModuleAnalysis({ isPro, lessons, user })
 
   // Регистрация посреди урока (нода в плеере): гостевая сессия start_lesson
   // была пустой — без пересоздания под новым пользователем complete_lesson
@@ -116,26 +92,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
 
   // Возвращает promise с картой приоритетов — вызывающий может дождаться
   // пересчёта до показа графа и решить, показывать ли легенду
-  function refreshPriorities() {
-    return loadAllEvents()
-      .then(events => {
-        const map = computeAllPriorities(events)
-        setPriorities(map)
-        return map
-      })
-      .catch(() => null)
-      .finally(() => setPrioritiesReady(true))
-  }
-
-  // Звёзды: при загрузке уроков и после каждого прохождения (локальный стор
-  // уже обновлён плеером к моменту вызова).
-  const refreshStars = (ls = lessons) =>
-    loadStarsMap(user, ls).then(setStars).finally(() => setStarsReady(true))
-
-  useEffect(() => {
-    if (!isPro && lessons.length > 0) refreshStars(lessons)
-  }, [lessons, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
   function closeLegend() {
     localStorage.setItem(LEGEND_SEEN_KEY, '1')
     setShowLegend(false)
@@ -145,14 +101,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   useEffect(() => {
     // Прогрев кэша профиля: вкладка «Профиль» откроется сразу со свежим XP.
     refreshProfile()
-    refreshPriorities()
   }, [])
-
-  useEffect(() => {
-    if (isPro) return
-    const t = setTimeout(() => setReadyTimeout(true), 1500)
-    return () => clearTimeout(t)
-  }, [isPro])
 
   useEffect(() => {
     // Авто-создание уроков в пустом модуле — только у админа (запись в БД).
