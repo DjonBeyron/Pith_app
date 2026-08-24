@@ -1,0 +1,72 @@
+/* ── Module graph: scroll container + SVG overlay + layout ──────────── */
+.moduleGraphScroll {
+  flex: 1;
+  overflow-y: scroll;
+  overflow-x: hidden; /* никакого горизонтального скролла — окно ровно в ширину экрана */
+  width: 100%;
+  max-width: 100vw;
+  /* Фон прозрачный: свой цвет (#0e1013) чуть отличался от фона приложения
+     (#0f1115) и рисовал еле заметную «рамку» с отступом от края экрана */
+  background: transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  transition: opacity 0.35s ease;
+}
+
+/* Попап-легенда открыт: граф невидим (успевает смонтироваться и дорисовать
+   линии за кадром), после закрытия попапа плавно проявляется */
+.moduleGraphScroll--held { opacity: 0; }
+
+/* Пока летят кружки XP (Старт → Финал), контейнер сам едет автоскроллом
+   (useChainScroll.scrollToFinal) — свечение Старта, уезжающее вверх за край,
+   и свечение Финала, въезжающее снизу, в движении режутся overflow РОВНОЙ
+   ЛИНИЕЙ (padding-буфер выше спасает только статичный, уже устоявшийся
+   кадр — не кадры самого проезда). Маска повторяет те же 56/68px буфера
+   и плавно гасит всё, что заходит в эту зону, вместо жёсткого среза. */
+.moduleGraphScroll--flying {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 68px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 68px), transparent 100%);
+}
+.moduleGraphScroll::-webkit-scrollbar,
+.moduleGraphScroll::-webkit-scrollbar-track,
+.moduleGraphScroll::-webkit-scrollbar-thumb { display: none; width: 0; height: 0; }
+
+/* Flex column — CSS drives layout, JS only measures for SVG curves */
+.moduleGraphInner {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  /* Запас сверху и снизу — под свечение Старта и Финала. Контейнер режет по
+     обеим осям (overflow-x: hidden + overflow-y: scroll), а тулбар над ним
+     ПРОЗРАЧНЫЙ — обрезанное свечение не прячется за шапкой, а видно как
+     ровную линию поперёк ореола.
+     Снизу нужно больше: у Финала margin-bottom -24px (см. lessons-chain-final.css)
+     съедает запас, а его ореол-burst (mgHaloBurst, scale до 1.18) уходит за
+     нижнюю грань нода на ~36px. 68 - 24 = 44px реального места. */
+  padding: 56px 10px 68px;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Lesson group: 260px (+30%), adaptive offset keeps lines on-screen */
+.mgLessonsGroup {
+  width: 70%;
+  max-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* ── SVG overlay ────────────────────────────────────────────── */
+.moduleGraphSvg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 0;
+}

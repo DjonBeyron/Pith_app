@@ -1,0 +1,146 @@
+/* ── Module graph: node shapes (lesson/start/final), title, buttons ─── */
+.mgNode {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  gap: 8px;
+  user-select: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.mgNode:hover { border-color: #3a3e4a; }
+
+/* Lesson node fills its group column */
+.mgNode--lesson {
+  width: 100%;
+  height: 54px;
+}
+
+/* START — rounded hexagon 180×180 (90×2), r=50 */
+.mgNode--start {
+  width: 180px;
+  height: 180px;
+  border-radius: 0;
+  border: none;
+  padding: 0;
+  background: #2a2d35;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  clip-path: path('M 25.82 32.12 L 64.18 12.88 A 50 50 0 0 1 115.82 12.88 L 154.18 32.12 A 50 50 0 0 1 180 73.86 L 180 106.14 A 50 50 0 0 1 154.18 147.88 L 115.82 167.12 A 50 50 0 0 1 64.18 167.12 L 25.82 147.88 A 50 50 0 0 1 0 106.14 L 0 73.86 A 50 50 0 0 1 25.82 32.12 Z');
+}
+
+/* FINAL — rounded pentagon 270×270 (135×2), r=43.8 */
+.mgNode--final {
+  width: 270px;
+  height: 270px;
+  border-radius: 0;
+  border: none;
+  padding: 0;
+  background: #2a2d35;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  clip-path: path('M 17.4 154.0 L 28.6 78.4 A 43.8 43.8 0 0 1 72.0 40.6 L 198.0 40.6 A 43.8 43.8 0 0 1 241.8 78.4 L 252.6 154.0 A 43.8 43.8 0 0 1 232.0 197.4 L 158.2 242.8 A 43.8 43.8 0 0 1 112.0 242.8 L 38.2 197.4 A 43.8 43.8 0 0 1 17.4 154.0 Z');
+}
+
+/* Inner fill — shrinks 1px on each side revealing parent border colour */
+.mgHexFill {
+  position: absolute;
+  inset: 0;
+  background: #1a1d22;
+  transform: scale(0.978);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* ── Node title ────────────────────────────────────────────── */
+.mgNodeTitle {
+  flex: 1;
+  font-size: 14px;
+  color: #e0e0e0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.mgNode--start .mgNodeTitle,
+.mgNode--final .mgNodeTitle {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9aa0b4;
+  text-align: center;
+}
+
+/* ── Buttons: centered overlay, hidden by default ── */
+.mgNodeBtns {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 16, 19, 0.88);
+  border-radius: 6px;
+  padding: 4px 6px;
+  z-index: 4;
+}
+
+.mgNodeBtns.mgNodeBtns--vis { display: flex; }
+
+/* START and FINAL: centered below title */
+.mgNode--start .mgNodeBtns,
+.mgNode--final .mgNodeBtns {
+  top: auto;
+  bottom: 12px;
+  transform: translateX(-50%);
+}
+
+.mgBtn {
+  padding: 3px 6px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: transparent;
+  cursor: pointer;
+  color: #aaa;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.mgBtn:hover { color: #e0e0e0; border-color: #666; background: rgba(255,255,255,0.06); }
+
+.mgBtnDel:hover { color: #ff8080; border-color: #ff8080; }
+
+.mgBtnEye { color: #555; border-color: #333; }
+.mgBtnEyeOn { color: #ccc; border-color: #555; }
+
+/* ── Rename input ──────────────────────────────────────────── */
+.mgRenameInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #b6fe3b;
+  color: #e0e0e0;
+  font-size: 14px;
+  outline: none;
+  padding: 2px 0;
+  min-width: 0;
+}

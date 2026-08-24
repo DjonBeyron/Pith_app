@@ -27,6 +27,8 @@
 @import './styles/admin-race.css';
 @import './styles/admin-teacher.css';
 @import './styles/lessons.css';
+@import './styles/module-graph-layout.css';
+@import './styles/module-graph-node.css';
 @import './styles/lessons-chain.css';
 @import './styles/lessons-chain-nodes.css';
 @import './styles/lessons-chain-final.css';

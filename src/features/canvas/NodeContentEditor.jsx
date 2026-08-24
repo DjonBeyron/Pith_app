@@ -3,13 +3,8 @@ import NodeAudioPicker from './NodeAudioPicker.jsx'
 import NodeTextProEditor from './NodeTextProEditor.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
-import NodeWordChoicePicker       from './NodeWordChoicePicker.jsx'
-import NodePhraseAssemblyPicker   from './NodePhraseAssemblyPicker.jsx'
-import NodeTablePicker            from './NodeTablePicker.jsx'
-import NodePhotoChoicePicker      from './NodePhotoChoicePicker.jsx'
+import NodeAnswerFields           from './NodeAnswerFields.jsx'
 import NodeRegistrationTriggers   from './NodeRegistrationTriggers.jsx'
-import NodeLessonLink     from './NodeLessonLink.jsx'
-import NodeRewardCheckbox from './NodeRewardCheckbox.jsx'
 import NodeTypeSelect from './NodeTypeSelect.jsx'
 import { useNodeEmoji } from './useNodeEmoji.js'
 import NodeTextModals from './NodeTextModals.jsx'
@@ -275,98 +270,11 @@ export default function NodeContentEditor({
           />
         </>
       )}
-      {node.type === 'word_choice' && (
-        <>
-          <NodeWordChoicePicker
-            options={tData.options ?? []}
-            responseCorrect={tData.responseCorrect ?? ''}
-            responseWrong={tData.responseWrong ?? ''}
-            onOptionsChange={opts => updateTypeData({ options: opts })}
-            onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
-            onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
-            sendPickToChat={tData.sendPickToChat === true}
-            onSendPickChange={v => updateTypeData({ sendPickToChat: v })}
-            triggers={node.triggers ?? []}
-            allNodes={allNodes}
-            nodeId={node.id}
-            onTriggersChange={triggers => onUpdate({ triggers })}
-            onTriggerMeasure={onTriggerMeasure}
-            statLessonId={tData.statLessonId ?? null}
-            onStatLessonChange={v => updateTypeData({ statLessonId: v })}
-            moduleLessons={moduleLessons}
-          />
-          <NodeRewardCheckbox checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
-        </>
-      )}
-      {node.type === 'phrase_assembly' && (
-        <>
-          <NodePhraseAssemblyPicker
-            words={tData.words ?? []}
-            distractors={tData.distractors ?? []}
-            responseCorrect={tData.responseCorrect ?? ''}
-            responseWrong={tData.responseWrong ?? ''}
-            onWordsChange={w => updateTypeData({ words: w })}
-            onDistractorsChange={d => updateTypeData({ distractors: d })}
-            onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
-            onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
-            triggers={node.triggers ?? []}
-            allNodes={allNodes}
-            nodeId={node.id}
-            onTriggersChange={triggers => onUpdate({ triggers })}
-            onTriggerMeasure={onTriggerMeasure}
-          />
-          <NodeLessonLink
-            value={tData.statLessonId ?? null}
-            onChange={v => updateTypeData({ statLessonId: v })}
-            moduleLessons={moduleLessons}
-          />
-          <NodeRewardCheckbox checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
-        </>
-      )}
-      {node.type === 'table' && (
-        <>
-          <NodeTablePicker
-            tData={tData}
-            onDataChange={patch => updateTypeData(patch)}
-            lessonFiles={lessonFiles}
-            onPickFile={f => onPickLessonFile(f)}
-            triggers={node.triggers ?? []}
-            allNodes={allNodes}
-            nodeId={node.id}
-            onTriggersChange={triggers => onUpdate({ triggers })}
-            onTriggerMeasure={onTriggerMeasure}
-          />
-          <NodeLessonLink
-            value={tData.statLessonId ?? null}
-            onChange={v => updateTypeData({ statLessonId: v })}
-            moduleLessons={moduleLessons}
-          />
-          <NodeRewardCheckbox checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
-        </>
-      )}
-      {node.type === 'photo_choice' && (
-        <>
-          <NodePhotoChoicePicker
-            photos={tData.photos ?? []}
-            correctIndexes={tData.correctIndexes ?? []}
-            lessonFiles={lessonFiles}
-            onPickFile={onPickLessonFile}
-            onPhotosChange={p => updateTypeData({ photos: p })}
-            onCorrectIndexesChange={ci => updateTypeData({ correctIndexes: ci })}
-            triggers={node.triggers ?? []}
-            allNodes={allNodes}
-            nodeId={node.id}
-            onTriggersChange={triggers => onUpdate({ triggers })}
-            onTriggerMeasure={onTriggerMeasure}
-          />
-          <NodeLessonLink
-            value={tData.statLessonId ?? null}
-            onChange={v => updateTypeData({ statLessonId: v })}
-            moduleLessons={moduleLessons}
-          />
-          <NodeRewardCheckbox checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
-        </>
-      )}
+      <NodeAnswerFields
+        node={node} tData={tData} updateTypeData={updateTypeData} onUpdate={onUpdate}
+        allNodes={allNodes} lessonFiles={lessonFiles} onPickLessonFile={onPickLessonFile}
+        onTriggerMeasure={onTriggerMeasure} moduleLessons={moduleLessons}
+      />
       {node.type === 'registration' && (
         <NodeRegistrationTriggers onTriggerMeasure={onTriggerMeasure} />
       )}
