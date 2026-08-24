@@ -7,7 +7,11 @@ import { wheelScrollShift } from './feedWheel.js'
 // Inner content flipped back → messages appear normal.
 // No JS scroll management needed — new messages always at bottom automatically.
 // Works on iOS Safari (unlike flex column-reverse negative scrollTop).
-export default function PlayerFeed({ children }) {
+// panelOpen — снизу открыта панель ответа (выбор слова, сборка фразы и
+// т.п.): край ленты в этот момент касается верха панели, а не физического
+// низа экрана, и панель уже сама учитывает safe-area у своего низа (см.
+// choose-word.css) — лишний отступ тут был бы просто съеденным местом.
+export default function PlayerFeed({ children, panelOpen = false }) {
   const outerRef     = useRef(null)
   const innerRef     = useRef(null)
   const prevElsRef   = useRef(new Set())
@@ -107,7 +111,7 @@ export default function PlayerFeed({ children }) {
   })
 
   return (
-    <div className="playerFeed" ref={outerRef}>
+    <div className={`playerFeed${panelOpen ? ' playerFeed--panelOpen' : ''}`} ref={outerRef}>
       <div className="playerFeedInner" ref={innerRef}>
         {children}
       </div>

@@ -317,7 +317,7 @@ export default function LessonPlayer({
             onUnpin={() => setPinVisible(false)}
           />
         )}
-        <PlayerFeed>
+        <PlayerFeed panelOpen={panels.offset > 0}>
           <PlayerFeedNodes
             visibleNodes={visibleNodes}
             pendingNode={pendingNode}

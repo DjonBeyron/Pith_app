@@ -11,10 +11,20 @@
   /* Flip Y axis: scrollTop=0 now means visual bottom of chat.
      New messages at DOM end = visual bottom = always visible without JS scroll. */
   transform: scaleY(-1);
-  padding: 12px 0;
+  /* padding-top визуально оказывается ВНИЗУ экрана (контейнер перевёрнут
+     через scaleY выше) — там нужен запас под скругление корпуса/home
+     indicator iPhone, иначе последнее сообщение утыкается прямо в него.
+     Модификатор ниже отключает запас, когда снизу открыта панель ответа —
+     тогда край ленты касается не экрана, а верха панели, а safe-area у
+     своего низа панель уже учитывает сама (см. choose-word.css и т.п.) */
+  padding: calc(12px + env(safe-area-inset-bottom, 0px)) 0 12px;
   /* Скрываем полоску скролла (сам скролл работает как раньше) */
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+.playerFeed--panelOpen {
+  padding-top: 12px;
 }
 
 .playerFeed::-webkit-scrollbar {

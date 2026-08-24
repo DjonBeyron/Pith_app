@@ -184,7 +184,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/layout.css` | CSS-переменные плеера + `.lessonPlayer` (полноэкранный контейнер), «телефон» на десктопе, штамп версии |
 | `player/admin-edit.css` | Правка урока из плеера: карандаш у сообщения/панели ответа и правая панель редактора (только десктоп) |
 | `player/topbar.css` | Шапка плеера: аватар, название, статус |
-| `player/feed.css` | Изолированная лента чата: скролл, анимация появления, «три точки» ожидания |
+| `player/feed.css` | Изолированная лента чата: скролл, анимация появления, «три точки» ожидания. Нижний отступ учитывает `env(safe-area-inset-bottom)` (скругление/home indicator iPhone) — но только когда снизу нет открытой панели ответа (`.playerFeed--panelOpen` отключает добавку, панель уже сама учитывает safe-area у своего низа) |
 | `player/message.css` | Базовый пузырь — только общие стили, без типов |
 | `player/modules/audio.css` | Аудио-модуль: ::before-маска, canvas-волна, печатание текста |
 | `player/modules/voice-record.css` | Запись голоса: кнопка-микрофон, rings-canvas, waveform-strip, sent-пузырь |
@@ -377,7 +377,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `usePlayerPreload.js` | Предзагрузка медиа урока: BFS-очередь, 2 параллельных скачивания, буфер с вытеснением, готовность нод для прогресс-бара |
 | `posterQueue.js` | Фоновая очередь захвата постер-кадров видео (строго по одному — параллельные декодеры душат Android); не блокирует готовность нод |
 | `preloadFetch.js` | Скачивание файла в Blob: прогресс по чанкам, 3 попытки с растущей задержкой, watchdog обрывает зависший стрим (15 с без байтов) |
-| `PlayerFeed.jsx` | Изолированный скролл-контейнер: auto-scroll при новом сообщении, lock/unlock, imperative ref |
+| `PlayerFeed.jsx` | Изолированный скролл-контейнер: auto-scroll при новом сообщении, lock/unlock, imperative ref. Проп `panelOpen` (из `panels.offset > 0` в LessonPlayer.jsx) переключает класс `playerFeed--panelOpen` — отключает safe-area-отступ снизу ленты, когда его уже отрабатывает открытая панель ответа |
 | `PlayerTopBar.jsx` | Шапка плеера: кнопка «←», аватар, «Учитель / онлайн», название урока |
 | `PlayerMessage.jsx` | Тонкая обёртка: `resolveModule(node.type)` → рендерит нужный модуль |
 | `ReplyPreview.jsx` | Общий компонент превью ответа (зелёная полоса слева): используется в TextModule и StickerModule; содержит ReplyThumb с intrinsic-кропом |
