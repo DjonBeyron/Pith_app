@@ -1,45 +1,20 @@
 import { useState, useRef, useEffect, useMemo, useCallback, forwardRef } from 'react'
-import { canvasLsKey, canvasViewKey } from './canvasStorageKeys.js'
 import CanvasNode from './CanvasNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
-import { nodeEntry } from './canvasPorts.js'
 import { nodeOptionsSignature, pickNodeOptions } from './canvasNodeOptions.js'
-import { suppressTextSelection, releaseTextSelection } from './canvasDragGuard.js'
+import { releaseTextSelection } from './canvasDragGuard.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useCanvasDrag } from './useCanvasDrag.js'
 import { useCanvasSelection } from './useCanvasSelection.js'
 import { useCanvasNodeOps } from './useCanvasNodeOps.js'
+import { useCanvasBoardState } from './useCanvasBoardState.js'
+import { useCanvasPortDrag } from './useCanvasPortDrag.js'
 import { renumber, makeNode } from './nodeGraph.js'
 import { useCanvasBoardApi } from './useCanvasBoardApi.js'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { isNodeDimmed } from './nodeMediaStatus.js'
-
-// Радиус (в мировых координатах), в котором брошенный порт цепляется
-// к входной точке ноды.
-const SNAP_R = 40
-
-// Ключ черновика — в canvasStorageKeys.js (не здесь: этот файл не должен
-// экспортировать ничего, кроме компонента, иначе ломается Fast Refresh).
-// CanvasPage.handleSave чистит его сразу после успешного сохранения: черновик
-// нужен только чтобы не терять НЕсохранённые правки при случайной
-// перезагрузке страницы — s.nodes в loadSaved() ниже имеет приоритет над
-// initialNodes при каждом монтировании, поэтому несброшенный черновик
-// навсегда перекрывал бы настоящие данные с сервера
-const CANVAS_LS = canvasLsKey
-
-function loadSaved(lessonId) {
-  if (!lessonId) return {}
-  try { return JSON.parse(localStorage.getItem(CANVAS_LS(lessonId)) ?? '{}') } catch { return {} }
-}
-
-// Позиция обзора (offset/scale) — отдельный ключ (canvasViewKey), переживает
-// сохранение урока: черновик нод (loadSaved выше) стирается в
-// CanvasPage.handleSave, а «где мы были» должно помниться всегда
-function loadView(lessonId) {
-  if (!lessonId) return {}
-  try { return JSON.parse(localStorage.getItem(canvasViewKey(lessonId)) ?? '{}') } catch { return {} }
-}
+import { NODE_HIT_W, NODE_HIT_H } from './canvasHitTest.js'
 
 // Стабильная ссылка для allNodes у mini/nano нод (см. рендер ниже) — тем,
 // у кого нет дропдаунов со списком других нод, не нужен реальный список.
@@ -48,19 +23,6 @@ function loadView(lessonId) {
 // когда рядом просто печатают текст в другой ноде — именно это и вызывало
 // подтормаживание на нагруженных графах.
 const EMPTY_NODES = []
-
-const NODE_HIT_W = { nano: 42, mini: 255, max: 308 }
-// max — прикидка высоты развёрнутой ноды для попадания при броске порта
-// и рамке выделения; после увеличения текстовых полей ноды стали выше
-const NODE_HIT_H = { nano: 36, mini: 55,  max: 700 }
-function nodeAtPos(nodeList, wx, wy, excludeId) {
-  return nodeList.find(n => {
-    if (n.id === excludeId) return false
-    const w = NODE_HIT_W[n.size] ?? 158
-    const h = NODE_HIT_H[n.size] ?? 200
-    return wx >= n.x && wx <= n.x + w && wy >= n.y && wy <= n.y + h
-  })
-}
 
 const CanvasBoard = forwardRef(function CanvasBoard({
   initialNodes, lessonFiles = [], onPickLessonFile, lessonId, onNodesChange,
@@ -72,45 +34,11 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Особый фильтр: в полную силу только ноды, которым ещё не загрузили файл
   onlyMissingMedia = false,
 }, ref) {
-  // true, если начальные ноды взяты из локального черновика — он может
-  // оказаться СТАРЕЕ того, что реально лежит на сервере (правки с другого
-  // устройства/вкладки, о которых этот браузер не знает); проверяем это
-  // сразу после монтирования (см. эффект ниже)
-  const draftFallbackRef = useRef(false)
-  const [nodes, setNodes] = useState(() => {
-    const s = loadSaved(lessonId)
-    if (s.nodes?.length) { draftFallbackRef.current = true; return s.nodes }
-    return initialNodes?.length ? initialNodes : [makeNode(1, 120, 80)]
-  })
-  // Если начальный выбор пал на локальный черновик, а он короче того, что
-  // реально только что пришло с сервера (initialNodes уже свежие — доска
-  // монтируется только после загрузки, см. CanvasPage) — молчать нельзя:
-  // следующее «Сохранить» затрёт более полную серверную версию черновиком
-  // из другого, более раннего состояния этого браузера. Спрашиваем, как в
-  // handleResetToServer (CanvasPage.jsx) — это тот же случай, но обнаруженный
-  // автоматически, а не руками через кнопку
-  useEffect(() => {
-    if (!draftFallbackRef.current) return
-    draftFallbackRef.current = false
-    if (!lessonId || !initialNodes?.length || initialNodes.length <= nodes.length) return
-    const useServer = window.confirm(
-      `В этом браузере сохранён черновик урока короче, чем версия на сервере ` +
-      `(${nodes.length} нод здесь, ${initialNodes.length} нод на сервере) — похоже, урок правили в ` +
-      `другом месте. Загрузить версию с сервера вместо черновика?`
-    )
-    if (useServer) {
-      localStorage.removeItem(CANVAS_LS(lessonId))
-      setNodes(initialNodes)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Ноды/offset/scale + вся локальная персистентность (черновик, сверка
+  // с сервером, память позиции обзора) — useCanvasBoardState.js
+  const { nodes, setNodes, offset, setOffset, scale, setScale, scaleRef } =
+    useCanvasBoardState(lessonId, initialNodes, onNodesChange)
 
-  const [offset, setOffset] = useState(() => loadView(lessonId).offset ?? { x: 0, y: 0 })
-  const [scale, setScale]   = useState(() => {
-    const v = loadView(lessonId)
-    return typeof v.scale === 'number' ? v.scale : 1
-  })
-  const [portDrag,       setPortDrag]       = useState(null)
   const [triggerMeasures, setTriggerMeasures] = useState({})
   // Кнопка «пройти с этой ноды» в меню ноды — только для админа, это
   // инструмент проверки сценария, а не часть урока
@@ -122,10 +50,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // когда создаём с конкретного выхода развилки
   const [typeMenu, setTypeMenu] = useState(null)
 
-  const scaleRef     = useRef(scale)
-  const portDragRef  = useRef(null)
   const boardRef     = useRef(null)
-  const mountedRef   = useRef(false)
   // Кэш getBoundingClientRect() холста — сам вызов синхронно форсирует layout
   // браузера; на колесе мыши/протяжке порта он летел на КАЖДОЕ событие
   // (зум трекпадом — десятки-сотни событий подряд), что и давало рваное,
@@ -166,7 +91,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
 
   const updateNode = useCallback((id, patch) =>
     // renumber: патч мог изменить триггеры → порядок графа
-    setNodes(prev => renumber(prev.map(n => n.id === id ? { ...n, ...patch } : n))), [])
+    setNodes(prev => renumber(prev.map(n => n.id === id ? { ...n, ...patch } : n))), [setNodes])
 
   // Тянем одну ноду — двигается она одна; тянем ноду из группового выделения
   // (2+ нод) — двигается вся группа на тот же dx/dy
@@ -174,10 +99,10 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     setNodes(prev => {
       const group = moveGroup(id)
       return prev.map(n => group.has(n.id) ? { ...n, x: n.x + dx, y: n.y + dy } : n)
-    }), [moveGroup])
+    }), [moveGroup, setNodes])
 
   const pan = useCallback((dx, dy) =>
-    setOffset(o => ({ x: o.x + dx, y: o.y + dy })), [])
+    setOffset(o => ({ x: o.x + dx, y: o.y + dy })), [setOffset])
 
   const { startNodeDrag, startCanvasDrag, onMouseMove, endDrag, wasDragged, nodeDragging } =
     useCanvasDrag({ onNodeMove: moveNode, onPan: pan, scaleRef })
@@ -252,28 +177,12 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     }
   }, [offset, scale])
 
-  const startPortDrag = useCallback((fromNodeId, triggerIdx, e) => {
-    e.stopPropagation()
-    suppressTextSelection(e) // протяжка порта тоже не должна тянуть выделение
-    const pd = {
-      fromNodeId, triggerIdx,
-      // экранная точка нажатия: если мышь так и не поехала, это был клик —
-      // открываем меню создания ноды вместо соединения
-      downX: e.clientX, downY: e.clientY,
-      ...toWorld(e.clientX, e.clientY),
-    }
-    portDragRef.current = pd
-    setPortDrag(pd)
-  }, [toWorld])
+  // Протяжка соединения от выходного кружка ноды — useCanvasPortDrag.js
+  const { portDrag, startPortDrag, handlePortMouseMove, handlePortMouseUp } =
+    useCanvasPortDrag({ nodes, triggerMeasures, toWorld, setNodes, setTypeMenu })
 
   function handleMouseMove(e) {
-    if (portDragRef.current) {
-      const pos = toWorld(e.clientX, e.clientY)
-      const pd = { ...portDragRef.current, ...pos }
-      portDragRef.current = pd
-      setPortDrag(pd)
-      return
-    }
+    if (handlePortMouseMove(e)) return
     const hitSize = n => ({ w: NODE_HIT_W[n.size] ?? 158, h: NODE_HIT_H[n.size] ?? 200 })
     if (updateMarquee(e, () => boardRectRef.current, toWorld, nodes, hitSize)) return
     onMouseMove(e)
@@ -285,37 +194,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     // них навсегда — текст в нодах перестал бы выделяться вообще
     releaseTextSelection()
     if (endMarquee()) return
-    if (portDragRef.current) {
-      const { fromNodeId, triggerIdx, downX, downY } = portDragRef.current
-      // Кружок нажали и отпустили на месте — это клик, а не соединение:
-      // предлагаем создать новую ноду и сразу привязать её к этому выходу
-      if (Math.hypot(e.clientX - downX, e.clientY - downY) < 5) {
-        const r = { left: e.clientX, right: e.clientX, top: e.clientY, bottom: e.clientY, width: 0 }
-        setTypeMenu({ pos: computeMenuPos(r), nodeId: fromNodeId, triggerIdx })
-        portDragRef.current = null
-        setPortDrag(null)
-        return
-      }
-      const { x, y } = toWorld(e.clientX, e.clientY)
-      // Сначала ближайшая входная точка в радиусе SNAP_R, потом тело ноды
-      const snapped = nodes
-        .filter(n => n.id !== fromNodeId)
-        .map(n => { const p = nodeEntry(n, triggerMeasures); return { n, d: Math.hypot(x - p.x, y - p.y) } })
-        .filter(o => o.d <= SNAP_R)
-        .sort((a, b) => a.d - b.d)[0]?.n ?? null
-      const hit = snapped ?? nodeAtPos(nodes, x, y, fromNodeId)
-      setNodes(prev => renumber(prev.map(n =>
-        n.id !== fromNodeId ? n : {
-          ...n,
-          triggers: n.triggers.map((t, i) =>
-            i !== triggerIdx ? t : { ...t, then: hit ? hit.id : null }
-          ),
-        }
-      )))
-      portDragRef.current = null
-      setPortDrag(null)
-      return
-    }
+    if (handlePortMouseUp(e)) return
     endDrag()
     collapseIfClick(wasDragged)
   }
@@ -338,33 +217,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // Черновик несохранённых правок нод — стирается после успешного
-  // сохранения (CanvasPage.handleSave)
-  useEffect(() => {
-    if (!lessonId) return
-    if (!mountedRef.current) { mountedRef.current = true; return }
-    const t = setTimeout(() =>
-      localStorage.setItem(CANVAS_LS(lessonId), JSON.stringify({ nodes })), 80)
-    return () => clearTimeout(t)
-  }, [lessonId, nodes])
-
-  // Позиция обзора (offset/scale) — отдельная, независимая память: не
-  // привязана к черновику и не стирается после сохранения, чтобы при
-  // следующем открытии урока камера была там же, где её оставили
-  useEffect(() => {
-    if (!lessonId) return
-    const t = setTimeout(() =>
-      localStorage.setItem(canvasViewKey(lessonId), JSON.stringify({ offset, scale })), 200)
-    return () => clearTimeout(t)
-  }, [lessonId, offset, scale])
-
-  useEffect(() => {
-    if (!onNodesChange) return
-    const t = setTimeout(() => onNodesChange(nodes), 500)
-    return () => clearTimeout(t)
-  }, [nodes, onNodesChange])
 
   function addNode() {
     const el = boardRef.current

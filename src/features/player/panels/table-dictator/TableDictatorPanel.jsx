@@ -1,13 +1,12 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
-import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { useTableDictatorRaf } from './useTableDictatorRaf.js'
-import { createSilentClock } from '../../../../shared/lib/silentClock.js'
-import { logDictatorConfig, logFileResolution, logAudioPlayRejected, logAudioError } from './dictatorDebug.js'
+import { useTableDictatorAutostart } from './useTableDictatorAutostart.js'
+import TableDictatorView from './TableDictatorView.jsx'
+import { logDictatorConfig, logFileResolution, logAudioError } from './dictatorDebug.js'
 import { evaluateDictator } from './dictatorCheck.js'
-import TableExtraChips from './TableExtraChips.jsx'
 import { schedulePostAudioCheck } from './dictatorPostAudio.js'
-import { computeRevealedCellIds, timelineEndSec, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
+import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 
 
@@ -84,7 +83,6 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   const audioRef          = useRef(null)
   const rafRef            = useRef(null)
   const panelRef          = useRef(null)
-  const autoPlayFired     = useRef(false)
   const hasPlayedRef      = useRef(false)
   const slideDownRef      = useRef(null)
   const checkRef          = useRef(null)
@@ -176,75 +174,10 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   // Полный лог состояний для отладки (захватывается кнопкой «Скачать лог»)
   useEffect(() => { pLog(`[td-state] playing=${playing} phase=${phase} chips=${chipsVisible} result=${result} asm=${assembled.length} ext=${extrasAssembled.length} activeExt=${activeExtraKeys.size} checkAt=${checkAt} hasExtraL=${hasExtraLayers}`) }, [playing, phase, chipsVisible, result, assembled, extrasAssembled, activeExtraKeys]) // eslint-disable-line
 
-  // Длительность прогона: длина композиции из таймлайна → аудио + 10с → как
-  // крайний случай конец самого позднего клипа с небольшим запасом. Что-то из
-  // этого есть всегда, если таймлайн вообще смонтирован
-  const silentDur = tData.timelineLen
-    ?? (tData.duration ? tData.duration + 10 : Math.ceil(timelineEndSec(timeline?.layers) + 2))
-  const canRunClock = silentDur > 0 && !!timeline?.layers?.length
-  const silentMode  = !audioSrc && canRunClock
-
-  // Прогон по часам (silentClock.js) вместо аудио: весь RAF-код читает
-  // audioRef.current.currentTime и подмены не замечает.
-  //
-  // Включается в любом случае, когда аудио не отыгрывает, а анимация есть:
-  //   — таблицу смонтировали вовсе без озвучки;
-  //   — файл не смонтировался (не подгрузился, лежит только локально);
-  //   — браузер не дал автозапуск (не было жеста пользователя);
-  //   — <audio> споткнулся на загрузке или декодировании;
-  //   — аудио молча не стартовало за 3 секунды.
-  const clockRef = useRef(null)
-
-  function runWithClock() {
-    if (clockRef.current || !canRunClock) return
-    hasPlayedRef.current = true
-    const clock = createSilentClock(silentDur, { onEnded: () => endedRef.current?.() })
-    clockRef.current = clock
-    audioRef.current = clock
-    clock.play()
-    startedRef.current?.()
-  }
-
-  useEffect(() => {
-    if (!audioSrc || autoPlayFired.current) return
-    autoPlayFired.current = true
-    const hudId   = setTimeout(() => setHudVisible(true), 400)
-    const audioId = setTimeout(() => audioRef.current?.play().catch(e => {
-      logAudioPlayRejected(e, audioSrc)
-      pLog('[td-auto] автозапуск отклонён — крутим таймлайн часами, без звука')
-      runWithClock()
-    }), 800)
-    return () => {
-      clearTimeout(hudId); clearTimeout(audioId)
-      if (!hasPlayedRef.current) autoPlayFired.current = false
-    }
-  }, [audioSrc]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!silentMode || autoPlayFired.current) return
-    autoPlayFired.current = true
-    const startId = setTimeout(runWithClock, 800)
-    return () => clearTimeout(startId)
-  }, [silentMode]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => () => clockRef.current?.stop?.(), [])
-
-  // Последняя страховка: аудио так и не заиграло за 3 секунды — файл не
-  // подгрузился, декодер споткнулся, вкладка была скрыта. Прогон всё равно
-  // должен состояться: крутим таймлайн часами. Уезжаем вниз молча только если
-  // крутить нечего (таймлайна у ноды нет вовсе).
-  useEffect(() => {
-    const id = setTimeout(() => {
-      if (hasPlayedRef.current) return
-      if (canRunClock) {
-        pLog('[td-auto] аудио не стартовало за 3с — крутим таймлайн часами')
-        runWithClock()
-        return
-      }
-      slideDownRef.current?.()
-    }, 3000)
-    return () => clearTimeout(id)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Как прогон стартует без тапа (автозапуск/подстраховка часами без звука) — useTableDictatorAutostart.js
+  const { runWithClock } = useTableDictatorAutostart({
+    audioSrc, timeline, tData, audioRef, hasPlayedRef, endedRef, startedRef, slideDownRef, setHudVisible,
+  })
 
   // Авто-сборка + авто-проверка для режима «совсем без таймлайна у слов» (легаси).
   // Если у слов ЕСТЬ свои word-слои (hasExtraLayers) — RAF уже собирает их поштучно
@@ -407,88 +340,25 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
 
   if (!table) return null
 
-  const hudClass = ['tdHud', !waveformData && 'tdHudPulse', hudVisible && 'tdHudVisible']
-    .filter(Boolean).join(' ')
-
-  const boxCls = [
-    'tdAssemblyBox',
-    (assembled.length > 0 || extrasAssembled.length > 0) ? 'tdAssemblyBoxFilled' : '',
-    result === 'correct' ? 'tdAssemblyBoxOk'  : '',
-    result === 'wrong'   ? 'tdAssemblyBoxErr' : '',
-  ].filter(Boolean).join(' ')
-
   return (
-    <>
-      <div className="tdSpacer" style={{
-        height: show ? panelH : 0,
-        transition: show
-          ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
-          : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
-      }} />
-      <div ref={panelRef} className={`tdPanel${show ? ' tdPanelVisible' : ''}`}>
-        <div className="tdPanelInner">
-
-          {/* HUD-спектр — САМЫЙ ВЕРХ: над боксом сборки и над таблицей */}
-          <div className={hudClass}>
-            {[0, 1, 2].map(i => (
-              <div key={i} ref={el => { barElsRef.current[i] = el }} className="tdHudBar" />
-            ))}
-          </div>
-
-          <div className={boxCls}>
-            {assembled.length === 0 && extrasAssembled.length === 0
-              ? <span className="tdAssemblyPlaceholder">{audioSrc ? 'Слушай диктора…' : 'Смотри на таблицу…'}</span>
-              : <>
-                  {assembled.map((w, i) => <span key={`c${i}`} className="tdAssemblyWord">{w}</span>)}
-                  {extrasAssembled.map(t => <span key={t.key} className="tdAssemblyWord">{t.value}</span>)}
-                </>
-            }
-          </div>
-
-          <div className="tdStage">
-            <div className={`tdTableSection${phase === 'extras' ? ' tdTableSectionSlid' : ''}`}>
-              <div className="tdGridBox">
-                <TableGrid
-                  columns={table.columns}
-                  rows={table.rows}
-                  cells={table.cells}
-                  rowCount={table.rowCount}
-                  highlightedIds={highlighted}
-                  dimmedIds={usedCells}
-                  revealedIds={revealedIds}
-                  flashDurations={flashDur.cells}
-                />
-              </div>
-            </div>
-
-            {chipsVisible && (
-              <TableExtraChips
-                words={shuffledExtras}
-                chipStyles={chipStyles}
-                assembledKeys={extrasAssembledKeys}
-                activeKeys={activeExtraKeys}
-                hasExtraLayers={hasExtraLayers}
-                flashDurations={flashDur.chips}
-              />
-            )}
-          </div>
-
-          {audioSrc && (
-            <audio
-              ref={audioRef}
-              src={audioSrc}
-              onPlay={startRun}
-              onPause={() => setPlaying(false)}
-              onEnded={handleEnded}
-              onError={(e) => {
-                logAudioError(e.currentTarget.error, e.currentTarget.currentSrc || audioSrc)
-                // Файл не открылся — прогон продолжаем по часам, без звука
-                runWithClock()
-              }}
-            />
-          )}
-        </div>
-      </div>
-    </>
+    <TableDictatorView
+      show={show} panelH={panelH} panelRef={panelRef} barElsRef={barElsRef}
+      waveformData={waveformData} hudVisible={hudVisible}
+      assembled={assembled} extrasAssembled={extrasAssembled} result={result}
+      audioSrc={audioSrc} phase={phase} table={table}
+      highlighted={highlighted} usedCells={usedCells} revealedIds={revealedIds}
+      flashDur={flashDur} chipsVisible={chipsVisible}
+      shuffledExtras={shuffledExtras} chipStyles={chipStyles}
+      extrasAssembledKeys={extrasAssembledKeys} activeExtraKeys={activeExtraKeys} hasExtraLayers={hasExtraLayers}
+      audioRef={audioRef}
+      onPlay={startRun}
+      onPause={() => setPlaying(false)}
+      onEnded={handleEnded}
+      onError={(e) => {
+        logAudioError(e.currentTarget.error, e.currentTarget.currentSrc || audioSrc)
+        // Файл не открылся — прогон продолжаем по часам, без звука
+        runWithClock()
+      }}
+    />
   )
 }
