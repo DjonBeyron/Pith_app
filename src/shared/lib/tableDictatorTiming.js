@@ -40,6 +40,15 @@ export function wordGreenAt(clip, extrasStart = null) {
   return Math.min(wanted, latest)
 }
 
+// Все «выстрелы» слоя: основной клип плюс его повторы («Дублировать клип» в
+// меню клипа — та же анимация в другое время). Повторы долго читал только
+// RAF и только у ячеек, поэтому дубль не отыгрывал ни у слов вне таблицы, ни
+// в досборке после конца аудио, ни в предпросмотре редактора.
+export function layerShots(layer) {
+  const base = layer?.clips?.[0]
+  return [...(base ? [base] : []), ...(layer?.repeats ?? [])].filter(Boolean)
+}
+
 // Начало самого раннего клипа слова вне таблицы (момент отъезда таблицы)
 export function extrasStartSec(layers) {
   let start = null
@@ -90,8 +99,8 @@ export function buildFlashDurations(layers, chipWords) {
 export function lastWordClipEnd(layers) {
   let end = 0
   for (const l of layers ?? []) {
-    if (l.visible === false || !l.word || !l.clips?.length) continue
-    if (l.clips[0].end > end) end = l.clips[0].end
+    if (l.visible === false || !l.word) continue
+    for (const shot of layerShots(l)) if (shot.end > end) end = shot.end
   }
   return end
 }
@@ -149,8 +158,8 @@ export function computeHighlightedCellIds(layers, t) {
   for (const l of layers ?? []) {
     if (!l.cellId || l.word || l.isCheck) continue
     if (l.visible === false || l.highlightOn === false) continue
-    const hl = l.clips?.[0]
-    if (hl && t >= hl.start && t < hl.end) active.add(l.cellId)
+    // Повтор клипа подсвечивает ту же ячейку своим чередом — как в плеере
+    if (layerShots(l).some(hl => t >= hl.start && t < hl.end)) active.add(l.cellId)
   }
   return active
 }
@@ -173,7 +182,7 @@ export function resultHoldSec(checkAt, checkOut) {
 export function timelineEndSec(layers) {
   let end = 0
   for (const l of layers ?? []) {
-    for (const c of l.clips ?? []) {
+    for (const c of [...(l.clips ?? []), ...(l.repeats ?? []), ...(l.clears ?? [])]) {
       if (c?.end > end) end = c.end
     }
   }

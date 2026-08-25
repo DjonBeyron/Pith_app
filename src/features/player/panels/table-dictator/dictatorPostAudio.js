@@ -1,6 +1,6 @@
 import { pLog } from '../../../../shared/lib/debug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
-import { mapWordLayersToChips, answerOrderOf, wordGreenAt, extrasStartSec, resultHoldSec } from '../../../../shared/lib/tableDictatorTiming.js'
+import { mapWordLayersToChips, answerOrderOf, wordGreenAt, extrasStartSec, resultHoldSec, layerShots } from '../../../../shared/lib/tableDictatorTiming.js'
 
 // Клип слова/ячейки может стоять ПОСЛЕ конца аудио (10с-хвост таймлайна) — целиком
 // (слово, которого физически нет в записи) или НАПОЛОВИНУ (начался во время игры,
@@ -11,17 +11,21 @@ function scheduleLayer(layer, {
   cells, chipKey, tEnd, timers, addedCellsRef, assembledRef, extrasStart, inBoxDelayMs = 300,
   setAssembled, setExtrasAssembled, setHighlighted, setUsedCells, setActiveExtraKeys, setRevealedIds,
 }) {
-  const clip = layer.clips?.[0]
   // Собственный 👁 клипа подсветки (только у cell-слоя) выключен — подсветка+выбор
   // не планируем вообще, но проявление текста (ниже) от этого не зависит.
-  if (clip && layer.highlightOn !== false) {
+  // Выстрелов у слоя может быть несколько: основной клип и его повторы
+  // («Дублировать клип») — каждый планируем отдельно, иначе дубль, попавший
+  // в хвост после конца аудио, не отыгрывал бы совсем.
+  const shots = layer.highlightOn !== false ? layerShots(layer) : []
+  shots.forEach((clip, shotIdx) => {
     // Для слова зелёный стартует не в начале клипа, а после лид-ина (анимация+буфер) —
     // клип начинается с анимации, реальный «выбор» (зелёный) сдвинут на лид-ин. У
     // последнего по времени word-слоя лид-ин длиннее — ждёт ещё и отъезд таблицы.
     const greenAt   = layer.word ? wordGreenAt(clip, extrasStart) : clip.start
     const onDelay   = greenAt   - tEnd
     const offDelay  = clip.end  - tEnd
-    const cellKey   = layer.cellId ? `cell-${layer.cellId}` : null
+    // Ключ с номером выстрела — тот же, что в RAF (useTableDictatorRaf.js)
+    const cellKey   = layer.cellId ? `cell-${layer.cellId}#${shotIdx}` : null
     const alreadyOn = cellKey ? addedCellsRef.current.has(cellKey) : false
 
     const cfgDur = clip.end - greenAt
@@ -86,7 +90,7 @@ function scheduleLayer(layer, {
         }
       }, offDelay * 1000))
     }
-  }
+  })
 
   // Проявление текста ячейки (clips[1], независимо от подсветки) — если появление
   // и/или исчезновение приходятся на хвост после конца аудио, RAF их уже не отследит.
@@ -118,12 +122,13 @@ function pendingAssembleEnd(layers, extrasStart, addedCellsRef) {
   let latest = 0
   for (const l of layers ?? []) {
     if (l.visible === false || l.isCheck || l.highlightOn === false) continue
-    const clip = l.clips?.[0]
-    if (!clip) continue
     if (l.collect === false) continue
-    if (l.cellId && addedCellsRef.current.has(`cell-${l.cellId}`)) continue
-    const inBox = (l.word ? wordGreenAt(clip, extrasStart) : clip.start) + IN_BOX_S
-    if (inBox > latest) latest = inBox
+    // Повторы клипа тоже кладут значение в бокс — проверка ждёт последний из них
+    layerShots(l).forEach((clip, shotIdx) => {
+      if (l.cellId && addedCellsRef.current.has(`cell-${l.cellId}#${shotIdx}`)) return
+      const inBox = (l.word ? wordGreenAt(clip, extrasStart) : clip.start) + IN_BOX_S
+      if (inBox > latest) latest = inBox
+    })
   }
   return latest
 }

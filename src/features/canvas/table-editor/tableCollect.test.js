@@ -76,7 +76,7 @@ describe('плеер уважает галочку', () => {
 
   it('слово со снятой галочкой тоже только подсвечивается', () => {
     expect(raf).toContain('if (collect === false) {')
-    expect(raf).toContain('fresh.push({ k, word: l.word, collect: l.collect })')
+    expect(raf).toContain('fresh.push({ k, shotKey, word: l.word, collect: l.collect })')
   })
 
   it('проверка не ждёт то, что в сборку не идёт', () => {

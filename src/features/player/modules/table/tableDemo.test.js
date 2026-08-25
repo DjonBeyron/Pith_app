@@ -69,7 +69,8 @@ describe('проверка фразы ждёт досборку', () => {
 
   it('уже собранные ячейки досборку не удлиняют', () => {
     const post = read('../../panels/table-dictator/dictatorPostAudio.js')
-    expect(post).toContain('addedCellsRef.current.has(`cell-${l.cellId}`)')
+    // ключ с номером выстрела: повтор клипа — отдельная сборка (см. layerShots)
+    expect(post).toContain('addedCellsRef.current.has(`cell-${l.cellId}#${shotIdx}`)')
   })
 })
 

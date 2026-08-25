@@ -3,7 +3,7 @@ import { WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { logHudState } from './dictatorDebug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
-import { EXTRA_LEAD_IN_S, mapWordLayersToChips, answerOrderOf, wordGreenAt, lastWordClipEnd, computeRevealedCellIds, sameIdSet, resultHoldSec } from '../../../../shared/lib/tableDictatorTiming.js'
+import { EXTRA_LEAD_IN_S, mapWordLayersToChips, answerOrderOf, wordGreenAt, lastWordClipEnd, computeRevealedCellIds, sameIdSet, resultHoldSec, layerShots } from '../../../../shared/lib/tableDictatorTiming.js'
 
 const HUD_OFFSETS    = [-1, 0, 1]
 const HUD_ALPHA_UP   = [0.60, 0.75, 0.50]
@@ -57,7 +57,7 @@ export function useTableDictatorRaf({
         // clips[0] — подсветка, дальше её повторы (repeats): та же анимация в
         // другое время. clips[1] — независимое проявление текста, у него своя
         // логика в computeRevealedCellIds.
-        const shots = [layer.clips?.[0], ...(layer.repeats ?? [])].filter(Boolean)
+        const shots = layerShots(layer)
         const idx = shots.findIndex(c => t >= c.start && t < c.end)
         if (idx === -1) continue
         const hlClip = shots[idx]
@@ -174,23 +174,29 @@ export function useTableDictatorRaf({
           const eaDur = new Map()
           const fresh = []   // загоревшиеся именно сейчас — их порядок важен
           for (const l of timeline?.layers ?? []) {
-            if (l.visible === false || !l.word || !l.clips?.length) continue
-            const clip = l.clips[0]
+            if (l.visible === false || !l.word) continue
+            // Как у ячеек: основной клип и его повторы («Дублировать клип») —
+            // каждый выстрел зажигает слово своим чередом
+            const shots = layerShots(l)
+            const idx = shots.findIndex(c => t >= wordGreenAt(c, firstExtraStart) && t < c.end)
+            if (idx === -1) continue
+            const clip = shots[idx]
             const greenFrom = wordGreenAt(clip, firstExtraStart)
-            if (t >= greenFrom && t < clip.end) {
-              const k = chipByLayer.get(l.id)
-              if (!k) continue
-              ea.add(k)
-              eaDur.set(k, clip.end - greenFrom)
-              if (!greenedKeys.has(k)) fresh.push({ k, word: l.word, collect: l.collect })
-            }
+            const k = chipByLayer.get(l.id)
+            if (!k) continue
+            ea.add(k)
+            eaDur.set(k, clip.end - greenFrom)
+            // Ключ с номером выстрела: повтор отрабатывает заново, а не
+            // считается уже сыгравшим
+            const shotKey = `${k}#${idx}`
+            if (!greenedKeys.has(shotKey)) fresh.push({ k, shotKey, word: l.word, collect: l.collect })
           }
           // Слова, загоревшиеся в одном кадре, падают в бокс в порядке ответа,
           // а не в порядке слоёв на таймлайне — иначе фраза собиралась бы
           // задом наперёд и верный ответ считался ошибкой
           fresh.sort((a, b) => answerOrderOf(a.word, extraFromAnswer) - answerOrderOf(b.word, extraFromAnswer))
-          for (const { k, word, collect } of fresh) {
-            greenedKeys.add(k)
+          for (const { k, shotKey, word, collect } of fresh) {
+            greenedKeys.add(shotKey)
             if (collect === false) {
               pLog(`[td-raf] СЛОВО "${word}" горит, но в сборку не идёт (галочка снята)`)
               glowOn(k, `СЛОВО "${word}"`, eaDur.get(k) ?? 0)

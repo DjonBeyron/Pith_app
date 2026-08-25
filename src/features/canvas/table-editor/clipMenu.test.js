@@ -47,7 +47,8 @@ describe('повтор клипа', () => {
   })
 
   it('в плеере повтор отыгрывает своим чередом, а не считается сыгравшим', () => {
-    expect(raf).toContain('const shots = [layer.clips?.[0], ...(layer.repeats ?? [])].filter(Boolean)')
+    // выстрелы слоя (основной клип + повторы) — общий layerShots в tableDictatorTiming.js
+    expect(raf).toContain('const shots = layerShots(layer)')
     expect(raf).toContain('const key = `cell-${layer.cellId}#${idx}`')
   })
 })
