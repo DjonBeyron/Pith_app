@@ -24,17 +24,49 @@ export function cellMatchesWord(cell, word) {
   return (cell?.options ?? []).some(o => normalizeAnswerText(o) === w)
 }
 
-// Разбор ответа на токены: слова, найденные в таблице → cell, остальные →
+// Из скольких слов состоит самая «длинная» ячейка таблицы: дальше этой длины
+// фразу в ответе искать незачем
+function maxCellWords(cells) {
+  let max = 1
+  for (const c of cells ?? []) {
+    for (const text of [c?.value, ...(c?.options ?? [])]) {
+      const n = normalizeAnswerText(text).split(' ').filter(Boolean).length
+      if (n > max) max = n
+    }
+  }
+  return max
+}
+
+// Разбор ответа на токены: куски, найденные в таблице → cell, остальные →
 // extra. Каждая ячейка занимается один раз (повтор слова требует второй
-// ячейки или уходит в extra). У токена ячейки value — слово ИЗ ОТВЕТА: для
+// ячейки или уходит в extra). У токена ячейки value — текст ИЗ ОТВЕТА: для
 // особой ячейки это конкретный вариант, а не весь её текст.
+//
+// Ячейка может содержать НЕСКОЛЬКО слов («will try»). Раньше ответ резался
+// строго по словам, такая ячейка не находилась ни для «will», ни для «try», и
+// оба слова уезжали в чипы: в ручном режиме таблица уходила с экрана сразу
+// после первой ячейки, а собрать «will try» было негде. Поэтому идём жадно —
+// сначала пробуем самую длинную фразу, потом всё более короткую.
 export function deriveAnswerTokens(answer, cells) {
   const words = (answer ?? '').trim().split(/\s+/).filter(Boolean)
   const usedIds = new Set()
-  return words.map(word => {
-    const cell = (cells ?? []).find(c => !usedIds.has(c.id) && cellMatchesWord(c, word))
-    if (!cell) return { type: 'extra', value: word }
-    usedIds.add(cell.id)
-    return { type: 'cell', cellId: cell.id, value: word }
-  })
+  const maxLen = maxCellWords(cells)
+  const tokens = []
+  for (let i = 0; i < words.length;) {
+    let found = null
+    for (let len = Math.min(maxLen, words.length - i); len >= 1 && !found; len--) {
+      const phrase = words.slice(i, i + len).join(' ')
+      const cell = (cells ?? []).find(c => !usedIds.has(c.id) && cellMatchesWord(c, phrase))
+      if (cell) found = { cell, len, phrase }
+    }
+    if (!found) {
+      tokens.push({ type: 'extra', value: words[i] })
+      i += 1
+      continue
+    }
+    usedIds.add(found.cell.id)
+    tokens.push({ type: 'cell', cellId: found.cell.id, value: found.phrase })
+    i += found.len
+  }
+  return tokens
 }

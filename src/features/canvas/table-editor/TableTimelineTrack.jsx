@@ -1,12 +1,16 @@
 import { useRef, useCallback, useState } from 'react'
 import { wordGreenAt } from '../../../shared/lib/tableDictatorTiming.js'
+import { snapPoint, snapMove } from './timelineSnap.js'
+import { startDragSession } from './timelineDrag.js'
 import ClipMenu from './ClipMenu.jsx'
 
 // Одна дорожка таймлайна. У cell-слоя — два независимых клипа в одной строке:
 // подсветка (как раньше) и проявление (серый, когда текст ячейки виден/скрыт).
 // У word/check-слоя — как раньше, один клип. isDefault-слои без кнопки удаления.
 export default function TableTimelineTrack({
-  layer, cells, duration, stripPx, extrasStart,
+  // snapAt — время плейхеда, к которому липнут края клипов (магнит в шапке
+  // включён). null — магнит выключен, клипы двигаются свободно
+  layer, cells, duration, stripPx, extrasStart, snapAt = null,
   onToggleVisible, onToggleHighlight, onToggleCollect, onPick,
   onUpdateClip, onUpdateReveal, onUpdateExtra, onDuplicate, onAddClear, onRemoveExtra, onRemove,
 }) {
@@ -25,39 +29,41 @@ export default function TableTimelineTrack({
     return Math.max(0, Math.min(duration, ((e.clientX - rect.left) / rect.width) * duration))
   }, [duration])
 
+  // Ширина полосы нужна магниту: порог примагничивания задан в пикселях
+  const stripWidth = () => stripRef.current?.getBoundingClientRect().width ?? 0
+  const snap = t => snapPoint(t, { playhead: snapAt, duration, stripWidth: stripWidth() })
+
   function onHandleDown(e, side, targetClip, onUpdate) {
+    e.preventDefault()   // без этого браузер начинает своё выделение/drag, и mouseup теряется
     e.stopPropagation()
     if (!targetClip || !duration) return
     const init = { ...targetClip }
-    const onMove = mv => {
-      const t = getTime(mv)
+    startDragSession(mv => {
+      const t = snap(getTime(mv))
       if (side === 'left') {
         onUpdate({ start: Math.max(0, Math.min(t, init.end - 0.05)), end: init.end })
       } else {
         onUpdate({ start: init.start, end: Math.min(duration, Math.max(t, init.start + 0.05)) })
       }
-    }
-    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
+    })
   }
 
   function onBodyDown(e, targetClip, onUpdate) {
+    e.preventDefault()
     e.stopPropagation()
     if (!targetClip || !duration) return
     const startX = e.clientX
     const init = { ...targetClip }
     const clipDur = init.end - init.start
-    const onMove = mv => {
+    startDragSession(mv => {
       const rect = stripRef.current?.getBoundingClientRect()
       if (!rect) return
       const dx = ((mv.clientX - startX) / rect.width) * duration
-      const s = Math.max(0, Math.min(duration - clipDur, init.start + dx))
+      const free = Math.max(0, Math.min(duration - clipDur, init.start + dx))
+      // Магнит: к флажку липнет тот край клипа, который к нему ближе
+      const s = snapMove(free, clipDur, { playhead: snapAt, duration, stripWidth: rect.width })
       onUpdate({ start: s, end: s + clipDur })
-    }
-    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
+    })
   }
 
   const timeToPct = useCallback(t => (duration ? t / duration * 100 : 0), [duration])

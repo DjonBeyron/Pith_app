@@ -73,3 +73,44 @@ describe('разбор один на всех', () => {
     }
   })
 })
+
+describe('ячейка из нескольких слов', () => {
+  const me    = { id: 'm', value: 'I' }
+  const will  = { id: 'w', value: 'will try' }
+  const cells = [me, will]
+
+  it('«I will try again»: обе ячейки найдены, вне таблицы только «again»', () => {
+    expect(deriveAnswerTokens('I will try again', cells)).toEqual([
+      { type: 'cell', cellId: 'm', value: 'I' },
+      { type: 'cell', cellId: 'w', value: 'will try' },
+      { type: 'extra', value: 'again' },
+    ])
+  })
+
+  it('регистр не мешает: «i WILL TRY» — те же две ячейки', () => {
+    const tokens = deriveAnswerTokens('i WILL TRY', cells)
+    expect(tokens.map(t => t.cellId)).toEqual(['m', 'w'])
+  })
+
+  it('жадно: длинная ячейка побеждает короткую с тем же началом', () => {
+    const short = { id: 's', value: 'will' }
+    const tokens = deriveAnswerTokens('will try', [short, will])
+    expect(tokens).toEqual([{ type: 'cell', cellId: 'w', value: 'will try' }])
+  })
+
+  it('длинная занята — разбор падает до короткой', () => {
+    const short = { id: 's', value: 'will' }
+    const tokens = deriveAnswerTokens('will try will', [short, will])
+    expect(tokens).toEqual([
+      { type: 'cell', cellId: 'w', value: 'will try' },
+      { type: 'cell', cellId: 's', value: 'will' },
+    ])
+  })
+
+  it('многословный вариант особой ячейки тоже находится', () => {
+    const opt = { id: 'o', value: '…', options: ['will try', 'will go'] }
+    expect(deriveAnswerTokens('will go', [opt])).toEqual([
+      { type: 'cell', cellId: 'o', value: 'will go' },
+    ])
+  })
+})

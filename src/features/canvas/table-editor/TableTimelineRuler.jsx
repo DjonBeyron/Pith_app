@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react'
+import { startDragSession } from './timelineDrag.js'
 
 // Линейка времени над дорожками таймлайна (как в Premiere Pro):
 // крупная засечка с подписью на каждой секунде, средняя на 0.5с, мелкие каждые 0.1с.
@@ -8,7 +9,7 @@ import { useRef, useCallback } from 'react'
 // не здесь: если рисовать её в каждой дорожке отдельно, она рвётся на отступах
 // между дорожками (у каждой свой кусок, обрезанный по высоте её строки).
 // Выровнена по стрипу дорожек теми же спейсерами, что и спектр (см. tlWaveSpacer).
-export default function TableTimelineRuler({ duration, stripPx, onSeek, onResize, stripRef: outerRef }) {
+export default function TableTimelineRuler({ duration, stripPx, onSeek, onResize, stripRef: outerRef, snapOn, onToggleSnap }) {
   const innerRef = useRef(null)
   // Полосу линейки знает и редактор — по ней он считает время при протяжке
   // за сам плейхед (иначе пришлось бы дублировать пересчёт координат)
@@ -30,24 +31,17 @@ export default function TableTimelineRuler({ duration, stripPx, onSeek, onResize
     const rect = stripRef.current?.getBoundingClientRect()
     if (!rect?.width || !duration || !onResize) return
     const pxPerSec = rect.width / duration
-    const move = mv => {
+    startDragSession(mv => {
       const sec = Math.round((mv.clientX - rect.left) / pxPerSec)
       onResize(Math.max(1, Math.min(600, sec)))
-    }
-    const up = () => {
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-    }
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
+    })
   }
 
   function onDown(e) {
+    // preventDefault — иначе протяжка по линейке тянет выделение её подписей
+    e.preventDefault()
     onSeek?.(getTime(e))
-    const onMove = mv => onSeek?.(getTime(mv))
-    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
+    startDragSession(mv => onSeek?.(getTime(mv)))
   }
 
   if (!duration) return null
@@ -62,7 +56,19 @@ export default function TableTimelineRuler({ duration, stripPx, onSeek, onResize
   }
   return (
     <div className="tlRuler">
-      <div className="tlWaveSpacer" />
+      {/* Левый спейсер линейки стоит ровно над колонкой названий дорожек —
+          сюда и просится магнит: он про клипы всех дорожек сразу */}
+      <div className="tlWaveSpacer tlRulerCorner">
+        {onToggleSnap && (
+          <button
+            className={`tlSnapBtn${snapOn ? ' tlSnapBtnOn' : ''}`}
+            onClick={onToggleSnap}
+            title={snapOn
+              ? 'Магнит включён: края клипов липнут к синему флажку'
+              : 'Магнит выключен: клипы двигаются свободно'}
+          >🧲</button>
+        )}
+      </div>
       <div className="tlRulerStrip" ref={stripRef} onMouseDown={onDown} style={{ minWidth: `${stripPx}px` }}>
         {ticks.map((tk, i) => (
           <div

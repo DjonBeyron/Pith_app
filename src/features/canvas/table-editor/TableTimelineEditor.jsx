@@ -7,6 +7,7 @@ import { answerWordsOutsideTable, sortTimelineLayers } from './tableGridUtils.js
 import TableTimelineTrack from './TableTimelineTrack.jsx'
 import TableTimelineRuler from './TableTimelineRuler.jsx'
 import TableTimelinePreview from './TableTimelinePreview.jsx'
+import { startDragSession } from './timelineDrag.js'
 import BackButton from '../../../shared/ui/BackButton.jsx'
 
 export default function TableTimelineEditor({ table, fileId, waveformData, duration, timelineLen, timeline, answer, lessonFiles, onPickFile, onBack }) {
@@ -14,6 +15,9 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   const cellById    = new Map(cells.map(c => [c.id, c]))
   const sortedCells = [...cells].sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col)
   const [newCellId, setNewCellId] = useState(sortedCells[0]?.id ?? null)
+  // Магнит (кнопка 🧲 над колонкой названий): края клипов липнут к плейхеду.
+  // Включён по умолчанию — монтаж «в стык» с флажком нужен чаще, чем свободный
+  const [snapOn, setSnapOn] = useState(true)
 
   // Длина композиции задаётся автором и живёт отдельно от аудио: таблицу можно
   // монтировать и вовсе без озвучки. По умолчанию — аудио плюс 10с (есть куда
@@ -103,13 +107,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   function startCursorDrag(e) {
     e.preventDefault()
     e.stopPropagation()
-    const move = mv => handleSeek(timeAtX(mv.clientX))
-    const up = () => {
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-    }
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
+    startDragSession(mv => handleSeek(timeAtX(mv.clientX)))
   }
 
   // Канвас волны занимает только аудио-часть композиции (первую), дальше пусто.
@@ -212,6 +210,8 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
             onSeek={handleSeek}
             onResize={setLocalLen}
             stripRef={stripRef}
+            snapOn={snapOn}
+            onToggleSnap={() => setSnapOn(v => !v)}
           />
           {/* Спектр — только аудио-часть (слева); справа пустой хвост таймлайна */}
           {localBlobUrl && (
@@ -231,6 +231,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
               duration={timelineDur}
               stripPx={stripPx}
               extrasStart={extrasStart}
+              snapAt={snapOn ? currentTime : null}
               onToggleVisible={() => toggleVisible(layer.id)}
               onToggleHighlight={() => toggleHighlight(layer.id)}
               onToggleCollect={() => toggleCollect(layer.id)}

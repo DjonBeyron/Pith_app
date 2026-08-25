@@ -1,3 +1,5 @@
+import { normalizeAnswerText } from './tableCellMatch.js'
+
 // Тайминг реакции на word-слой (слово вне таблицы) в режиме диктора:
 // с начала клипа сперва идёт анимация (слайд таблицы + появление списка слов),
 // затем ещё небольшая пауза — и только после этого слово реально становится
@@ -113,7 +115,9 @@ export function mapWordLayersToChips(layers, chipWords) {
   const map = new Map()
   for (const l of layers ?? []) {
     if (!l.word) continue
-    const idx = (chipWords ?? []).findIndex((w, i) => !used.has(i) && w === l.word)
+    // Сверяем по смыслу, а не посимвольно: автор поправил в ответе «Again» на
+    // «again» — дорожка остаётся той же самой, чип для неё должен найтись
+    const idx = (chipWords ?? []).findIndex((w, i) => !used.has(i) && normalizeAnswerText(w) === normalizeAnswerText(l.word))
     if (idx === -1) continue
     used.add(idx)
     map.set(l.id, `extra-${idx}`)
@@ -125,7 +129,8 @@ export function mapWordLayersToChips(layers, chipWords) {
 // когда несколько слов загораются одновременно — очередь их прилёта иначе
 // зависела бы от порядка слоёв в таймлайне, и фраза собиралась бы неверной.
 export function answerOrderOf(word, extraFromAnswer) {
-  const i = (extraFromAnswer ?? []).indexOf(word)
+  const target = normalizeAnswerText(word)
+  const i = (extraFromAnswer ?? []).findIndex(w => normalizeAnswerText(w) === target)
   return i === -1 ? Number.MAX_SAFE_INTEGER : i
 }
 

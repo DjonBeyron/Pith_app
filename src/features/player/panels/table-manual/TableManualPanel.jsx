@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
-import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
+import { deriveAnswerTokens, normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 
 
 function shuffle(arr) {
@@ -118,7 +118,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
     // Разбор закончен — открытое меню ячейки уже ни к чему
     setCellMenu(null)
     const phrase = assembled.map(t => t.value).join(' ')
-    if (phrase.trim().toLowerCase() === answer.trim().toLowerCase()) {
+    // Сверяем по смыслу (тот же normalizeAnswerText, что и в дикторе): регистр,
+    // лишние пробелы/переносы из ячейки и вид апострофа значения не имеют
+    if (normalizeAnswerText(phrase) === normalizeAnswerText(answer)) {
       setResult('correct')
       if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'correct')
       const id = setTimeout(() => closePanelWith('table_correct'), 800)
