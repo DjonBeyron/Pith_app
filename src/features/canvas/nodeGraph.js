@@ -1,8 +1,13 @@
 import { makeDefaultTriggers, getLastNodeType } from './nodeDefaults.js'
 
-// Шаг сетки — ровно ширина max-ноды, без зазора: новая нода встаёт вплотную
-// к предыдущей. Общий для CanvasBoard (drag/insert) и ProductionList.
-export const NODE_SLOT = 308
+// Ширина развёрнутой (max) ноды — см. .canvasNodeMax в src/styles/canvas/nodes.css
+export const NODE_W = 308
+// Зазор между соседними нодами — 20% ширины ноды: новая нода встаёт рядом,
+// но не вплотную, чтобы связь между ними была видна
+export const NODE_GAP = Math.round(NODE_W * 0.2)
+// Шаг сетки по горизонтали = нода + зазор. Общий для CanvasBoard
+// (drag/insert) и ProductionList.
+export const NODE_SLOT = NODE_W + NODE_GAP
 // Вертикальный шаг между ветками одной ноды: вторая и следующая связи
 // уходят вниз, а не расталкивают граф вправо
 export const NODE_ROW = 420

@@ -104,8 +104,20 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const pan = useCallback((dx, dy) =>
     setOffset(o => ({ x: o.x + dx, y: o.y + dy })), [setOffset])
 
+  const { deleteNode: deleteNodeOp, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort } =
+    useCanvasNodeOps(setNodes)
+
+  // Shift+протяжка ноды за шапку — копия ноды «без связей» отрывается от
+  // оригинала и едет за курсором (как копирование файла протяжкой в
+  // проводнике). Выделяем сразу её: тянуть должна копия, а не старая группа
+  function duplicateForDrag(nodeId) {
+    const copyId = duplicateDetached(nodeId)
+    selectOnly(copyId)
+    return copyId
+  }
+
   const { startNodeDrag, startCanvasDrag, onMouseMove, endDrag, wasDragged, nodeDragging } =
-    useCanvasDrag({ onNodeMove: moveNode, onPan: pan, scaleRef })
+    useCanvasDrag({ onNodeMove: moveNode, onNodeDuplicate: duplicateForDrag, onPan: pan, scaleRef })
 
   // Список нод для дропдаунов внутри max-нод («Тогда → нода #N», «В ответ
   // на»). Им нужны только id/seq/type/typeData, но не координаты — а раньше
@@ -151,8 +163,6 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     return () => window.removeEventListener('keydown', onKey)
   }, [hoveredNodeId])
 
-
-  const { deleteNode: deleteNodeOp, duplicateNode, insertAfterNode, insertFromPort } = useCanvasNodeOps(setNodes)
 
   function deleteNode(nodeId) {
     setHoveredNodeId(null)

@@ -46,6 +46,27 @@ export function useCanvasNodeOps(setNodes) {
     })
   }
 
+  // Shift+протяжка ноды за шапку (см. useCanvasDrag.js): копия «сама по себе» —
+  // ни на кого не ссылается и на неё никто не ссылается (все then обнулены,
+  // входящие связи оригинала не копируются). Отличается от duplicateNode,
+  // который наоборот встраивает копию в цепочку. Возвращает id копии сразу,
+  // синхронно — протяжка тут же продолжается уже за неё.
+  function duplicateDetached(nodeId) {
+    const copyId = crypto.randomUUID()
+    setNodes(prev => {
+      const node = prev.find(n => n.id === nodeId)
+      if (!node) return prev
+      const copy = {
+        ...node,
+        id: copyId,
+        typeData: structuredClone(node.typeData ?? {}),
+        triggers: (node.triggers ?? []).map(t => ({ ...t, id: crypto.randomUUID(), then: null })),
+      }
+      return renumber([...prev, copy])
+    })
+    return copyId
+  }
+
   function insertAfterNode(nodeId, type) {
     setNodes(prev => {
       const node = prev.find(n => n.id === nodeId)
@@ -88,22 +109,30 @@ export function useCanvasNodeOps(setNodes) {
   // Клик по выходному кружку: создаём ноду выбранного типа и вешаем её
   // именно на этот триггер (у развилки важно, на какой из выходов).
   //
-  // Место освобождаем только для ПЕРВОЙ ветки ноды: у «выбери слово» выходов
-  // много, и если расталкивать граф на каждый, соседи уезжали бы всё дальше
-  // вправо. Вторая и следующие ветки встают в ту же колонку, но ниже.
+  // Если этот выход УЖЕ ведёт на ноду (A → B), новая встраивается между ними:
+  // A → new → B, связь A → B не теряется. Место при этом ищется посередине
+  // между A и B, а если там тесно — ниже: соседей не двигаем никогда.
+  //
+  // Для свободного выхода место освобождается только для ПЕРВОЙ ветки ноды:
+  // у «выбери слово» выходов много, и если расталкивать граф на каждый,
+  // соседи уезжали бы всё дальше вправо. Вторая и следующие ветки встают в
+  // ту же колонку, но ниже.
   function insertFromPort(nodeId, triggerIdx, type) {
     setNodes(prev => {
       const node = prev.find(n => n.id === nodeId)
       if (!node) return prev
       const insertSeq = node.seq + 1
-      const linked = (node.triggers ?? [])
-        .filter(t => t.then)
-        .map(t => prev.find(n => n.id === t.then))
-        .filter(Boolean)
-      const first = linked.length === 0
-      const y = first ? node.y : Math.max(...linked.map(n => n.y)) + NODE_ROW
-      const spot = findFreeSpot(prev, node.x + NODE_SLOT, y)
+      const nextNode = prev.find(n => n.id === node.triggers?.[triggerIdx]?.then) ?? null
+      const spot = nextNode
+        ? findFreeSpot(prev, Math.round((node.x + nextNode.x) / 2),
+                             Math.round((node.y + nextNode.y) / 2))
+        : freeSpotForBranch(prev, node)
       const newNode = makeNode(insertSeq, spot.x, spot.y, type)
+      // Вставка в середину: новая нода ведёт на прежнюю цель этого выхода
+      if (nextNode) {
+        newNode.triggers = newNode.triggers.map((t, ti) =>
+          ti === 0 ? { ...t, then: nextNode.id } : t)
+      }
       const updated = prev.map(n => {
         let out = n.seq >= insertSeq ? { ...n, seq: n.seq + 1 } : n
         if (n.id === nodeId) {
@@ -116,5 +145,16 @@ export function useCanvasNodeOps(setNodes) {
     })
   }
 
-  return { deleteNode, duplicateNode, insertAfterNode, insertFromPort }
+  // Место под ноду на СВОБОДНОМ выходе: первая ветка — справа от исходной,
+  // следующие — в той же колонке под самой нижней из уже привязанных
+  function freeSpotForBranch(list, node) {
+    const linked = (node.triggers ?? [])
+      .filter(t => t.then)
+      .map(t => list.find(n => n.id === t.then))
+      .filter(Boolean)
+    const y = linked.length === 0 ? node.y : Math.max(...linked.map(n => n.y)) + NODE_ROW
+    return findFreeSpot(list, node.x + NODE_SLOT, y)
+  }
+
+  return { deleteNode, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort }
 }

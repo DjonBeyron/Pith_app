@@ -44,7 +44,10 @@ describe('соседи остаются на своих местах', () => {
 
   it('вставка с порта (точки) — тоже', () => {
     const fn = ops.slice(ops.indexOf('function insertFromPort'))
-    expect(fn).toContain('findFreeSpot(prev, node.x + NODE_SLOT, y)')
+    // свободный выход — справа от исходной (freeSpotForBranch),
+    // занятый — посередине между исходной и той, на которую он ведёт
+    expect(fn).toContain('findFreeSpot(list, node.x + NODE_SLOT, y)')
+    expect(fn).toContain('(node.x + nextNode.x) / 2')
     expect(fn).not.toContain('shiftRight(')
   })
 })

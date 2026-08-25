@@ -3,7 +3,8 @@ import { suppressTextSelection } from './canvasDragGuard.js'
 import { toggleSelection, moveGroupFor, nodesInMarquee } from './canvasSelectionOps.js'
 
 // Выделение нескольких нод в canvas: рамкой по левой кнопке над пустым
-// местом, или Shift+клик по одной ноде за раз. Протяжка любой ноды из
+// местом, или Shift+клик по одной ноде за раз (Shift+ПРОТЯЖКА той же ноды —
+// уже не выделение, а дублирование, см. onNodeMouseDown). Протяжка любой ноды из
 // текущего выделения (2+) двигает всю группу — см. moveGroup, используется
 // в CanvasBoard.jsx moveNode. Вынесено из CanvasBoard.jsx отдельным хуком —
 // логика самодостаточна и в основном файле только раздувала бы размер.
@@ -34,6 +35,10 @@ export function useCanvasSelection() {
   // Снимок выделения на момент начала протяжки рамки — Shift+рамка
   // ДОБАВЛЯЕТ пересечённые ноды к нему, а не заменяет выделение целиком
   const marqueeBaseRef = useRef(new Set())
+  const pendingToggleRef = useRef(null)
+  // Нода, по которой нажали с Shift: сам toggle выделения откладываем до
+  // mouseup — если между нажатием и отпусканием была протяжка, значит это
+  // было не «добавить в выделение», а Shift+протяжка = дублирование ноды
 
   // useCallback — эти две функции идут пропсами вплоть до CanvasNode.jsx
   // (через CanvasBoard.jsx), который мемоизирован (React.memo): нестабильная
@@ -57,9 +62,13 @@ export function useCanvasSelection() {
     // тянул выделение от места первого клика через все ноды подряд
     suppressTextSelection(e)
     if (e.shiftKey) {
-      applySelection(prev => toggleSelection(prev, nodeId))
+      pendingToggleRef.current = nodeId
+      pendingCollapseRef.current = null
+      // duplicate: копия появится только если реально потянули (useCanvasDrag)
+      startNodeDrag(nodeId, e, { duplicate: true })
       return
     }
+    pendingToggleRef.current = null
     if (selectedRef.current.has(nodeId)) {
       pendingCollapseRef.current = nodeId
     } else {
@@ -106,7 +115,16 @@ export function useCanvasSelection() {
   // Клик (без протяжки) по уже выделенной группе — схлопываем выделение до
   // этой одной ноды; если была протяжка — группа двигалась, оставляем как есть
   function collapseIfClick(wasDragged) {
-    if (pendingCollapseRef.current && !wasDragged()) {
+    const dragged = wasDragged()
+    // Shift+клик без протяжки — обычное добавление/убирание из выделения
+    const toggleId = pendingToggleRef.current
+    pendingToggleRef.current = null
+    if (toggleId) {
+      if (!dragged) applySelection(prev => toggleSelection(prev, toggleId))
+      pendingCollapseRef.current = null
+      return
+    }
+    if (pendingCollapseRef.current && !dragged) {
       applySelection(new Set([pendingCollapseRef.current]))
     }
     pendingCollapseRef.current = null

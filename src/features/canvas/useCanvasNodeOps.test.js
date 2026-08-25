@@ -115,3 +115,98 @@ describe('insertAfterNode — «+» вставляет в цепочку', () =>
     expect(mid.triggers.some(t => t.then === bId)).toBe(true)
   })
 })
+
+describe('duplicateDetached — Shift+протяжка ноды', () => {
+  const linked = () => [
+    node('a', 1, 0, 0, [{ id: 't1', if: 'played', then: 'b' }]),
+    node('b', 2, NODE_SLOT, 0, [{ id: 't2', if: 'played', then: null }]),
+  ]
+
+  it('копия ни на кого не ссылается', () => {
+    const { ops, get } = useOps(linked())
+    const copyId = ops.duplicateDetached('a')
+    const copy = get().find(n => n.id === copyId)
+    expect(copy.triggers.every(t => !t.then)).toBe(true)
+  })
+
+  it('на копию никто не ссылается — оригинальные связи не тронуты', () => {
+    const { ops, get } = useOps(linked())
+    const copyId = ops.duplicateDetached('a')
+    expect(get().find(n => n.id === 'a').triggers[0].then).toBe('b')
+    expect(get().some(n => n.triggers.some(t => t.then === copyId))).toBe(false)
+  })
+
+  it('соседей не двигает — копия появляется на месте оригинала', () => {
+    const { ops, get } = useOps(linked())
+    const copyId = ops.duplicateDetached('a')
+    expect(get().find(n => n.id === 'b').x).toBe(NODE_SLOT)
+    const copy = get().find(n => n.id === copyId)
+    expect([copy.x, copy.y]).toEqual([0, 0])
+  })
+
+  it('typeData копируется, а не разделяется с оригиналом', () => {
+    const { ops, get } = useOps(linked())
+    const copyId = ops.duplicateDetached('a')
+    const copy = get().find(n => n.id === copyId)
+    copy.typeData.text.content = 'изменено'
+    expect(get().find(n => n.id === 'a').typeData.text.content).toBe('')
+  })
+})
+
+describe('insertFromPort — клик по ЗАНЯТОМУ выходу вставляет ноду между', () => {
+  // A → B, плюс дальний сосед, который двигаться не должен
+  const chain = () => [
+    node('a', 1, 0, 0, [{ id: 't1', if: 'played', then: 'b' }]),
+    node('b', 2, NODE_SLOT * 4, 0, [{ id: 't2', if: 'played', then: null }]),
+    node('far', 3, 2000, 0, [{ id: 't3', if: 'timer', then: null }]),
+  ]
+
+  it('A → new → B: связь A → B не теряется', () => {
+    const { ops, get } = useOps(chain())
+    ops.insertFromPort('a', 0, 'text')
+    const a = get().find(n => n.id === 'a')
+    const added = get().find(n => n.id === a.triggers[0].then)
+    expect(added.id).not.toBe('b')
+    expect(added.triggers[0].then).toBe('b')
+  })
+
+  it('никого не сдвигает', () => {
+    const { ops, get } = useOps(chain())
+    ops.insertFromPort('a', 0, 'text')
+    expect(get().find(n => n.id === 'b').x).toBe(NODE_SLOT * 4)
+    expect(get().find(n => n.id === 'far').x).toBe(2000)
+  })
+
+  it('встаёт посередине между A и B', () => {
+    const { ops, get } = useOps(chain())
+    ops.insertFromPort('a', 0, 'text')
+    const a = get().find(n => n.id === 'a')
+    const added = get().find(n => n.id === a.triggers[0].then)
+    expect(added.x).toBe(NODE_SLOT * 2)
+    expect(added.y).toBe(0)
+  })
+
+  it('номера пересчитываются по цепочке: A=1, new=2, B=3', () => {
+    const { ops, get } = useOps(chain())
+    ops.insertFromPort('a', 0, 'text')
+    const a = get().find(n => n.id === 'a')
+    const added = get().find(n => n.id === a.triggers[0].then)
+    expect([a.seq, added.seq, get().find(n => n.id === 'b').seq]).toEqual([1, 2, 3])
+  })
+
+  it('у развилки вставка идёт только в ту ветку, по которой кликнули', () => {
+    const { ops, get } = useOps([
+      node('a', 1, 0, 0, [
+        { id: 't1', if: 'word_correct', then: 'b' },
+        { id: 't2', if: 'word_wrong', then: 'c' },
+      ]),
+      node('b', 2, NODE_SLOT * 4, 0, [{ id: 'tb', if: 'played', then: null }]),
+      node('c', 3, NODE_SLOT * 4, NODE_ROW, [{ id: 'tc', if: 'played', then: null }]),
+    ])
+    ops.insertFromPort('a', 1, 'text')
+    const a = get().find(n => n.id === 'a')
+    expect(a.triggers[0].then).toBe('b')
+    const added = get().find(n => n.id === a.triggers[1].then)
+    expect(added.triggers[0].then).toBe('c')
+  })
+})

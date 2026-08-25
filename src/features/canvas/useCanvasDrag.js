@@ -8,7 +8,7 @@ import { suppressTextSelection, markDragging, releaseTextSelection } from './can
 // scaleRef: ref to current zoom scale — node dx/dy are divided by it so movement
 // stays correct at any zoom level. wasDragged() returns true if meaningful movement
 // occurred since the last mousedown; node click handlers use it to skip size-cycling.
-export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
+export function useCanvasDrag({ onNodeMove, onNodeDuplicate, onPan, scaleRef }) {
   const dragRef  = useRef(null)
   const movedRef = useRef(false)
   // Тянут ноду прямо сейчас. Меняется только на границах протяжки (не на
@@ -23,10 +23,16 @@ export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
   // выделение по всей странице, задевая текст других нод. На время ЛЮБОЙ
   // протяжки (нода или холст) глушим выделение на всей странице — так же,
   // как уже сделано для протяжки порта (см. CanvasBoard.jsx, portDrag).
-  const startNodeDrag = useCallback((nodeId, e) => {
+  // opts.duplicate — начали протяжку с зажатым Shift: на первом же реальном
+  // движении вместо оригинала под курсором окажется его копия (onNodeDuplicate),
+  // как копирование файла протяжкой в проводнике
+  const startNodeDrag = useCallback((nodeId, e, opts) => {
     e.stopPropagation()
     movedRef.current = false
-    dragRef.current = { type: 'node', nodeId, startX: e.clientX, startY: e.clientY }
+    dragRef.current = {
+      type: 'node', nodeId, duplicate: !!opts?.duplicate,
+      startX: e.clientX, startY: e.clientY,
+    }
     setNodeDragging(true)
     suppressTextSelection(e)
   }, [])
@@ -38,7 +44,7 @@ export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
   }, [])
 
   const onMouseMove = useCallback((e) => {
-    const d = dragRef.current
+    let d = dragRef.current
     if (!d) return
     const dx = e.clientX - d.startX
     const dy = e.clientY - d.startY
@@ -49,13 +55,19 @@ export function useCanvasDrag({ onNodeMove, onPan, scaleRef }) {
     if (!movedRef.current) markDragging()
     movedRef.current = true
     if (d.type === 'node') {
+      // Копию делаем один раз, на старте движения, и дальше тянем именно её —
+      // оригинал остаётся на своём месте
+      if (d.duplicate) {
+        const copyId = onNodeDuplicate?.(d.nodeId)
+        d = { ...d, duplicate: false, nodeId: copyId ?? d.nodeId }
+      }
       const s = scaleRef?.current ?? 1
       onNodeMove(d.nodeId, dx / s, dy / s)
     } else {
       onPan(dx, dy)
     }
     dragRef.current = { ...d, startX: e.clientX, startY: e.clientY }
-  }, [onNodeMove, onPan, scaleRef])
+  }, [onNodeMove, onNodeDuplicate, onPan, scaleRef])
 
   const endDrag = useCallback(() => {
     dragRef.current = null
