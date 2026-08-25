@@ -1,13 +1,17 @@
 /* ── Меню клипа (ClipMenu.jsx) ─────────────────────────────────────────── */
+/* z-index ВЫШЕ .tableEditorOverlay (1000, table-editor-modal.css): меню
+   рендерится порталом в body, то есть спорит за слои не с клипом внутри
+   редактора, а с самим полноэкранным окном редактора. При z-index 420 оно
+   открывалось ПОД окном — со стороны выглядело так, будто кнопка ▾ мёртвая. */
 .clipMenuOverlay {
   position: fixed;
   inset: 0;
-  z-index: 420;
+  z-index: 1200;
 }
 
 .clipMenu {
   position: fixed;
-  z-index: 421;
+  z-index: 1201;
   padding: 4px;
   background: #12141a;
   border: 1px solid #242630;

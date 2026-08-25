@@ -3,6 +3,7 @@ import { ROW_UNIT_PX } from '../../../shared/ui/TableGrid.jsx'
 import { FONT_MIN, FONT_MAX } from './tableAutoFitText.js'
 import TableResizeHandles from './TableResizeHandles.jsx'
 import CellOptionsPopover from './CellOptionsPopover.jsx'
+import TableBuilderCell from './TableBuilderCell.jsx'
 
 const DEFAULT_FONT_SIZE = 13 // .tableGridCell { font-size: 13px } — table-grid.css
 
@@ -132,13 +133,13 @@ export default function TableGridBuilder({ grid }) {
           }}
         >
           {table.cells.map(cell => (
-            <div
+            <TableBuilderCell
               key={cell.id}
-              className={`tableBuilderCell${cell.isHeader ? ' tableBuilderCellHeader' : ''}${inSelection(cell) ? ' tableBuilderCellSelected' : ''}`}
-              style={{
-                gridColumn: `${cell.col + 1} / span ${cell.colspan}`,
-                gridRow: `${cell.row + 1} / span ${cell.rowspan}`,
-              }}
+              cell={cell}
+              selectMode={selectMode}
+              selected={inSelection(cell)}
+              onValueChange={value => setCellValue(cell.id, value)}
+              onOpenOptions={() => setOptsCellId(cell.id)}
               onMouseDown={() => {
                 if (!selectMode) return
                 draggingRef.current = true
@@ -148,33 +149,7 @@ export default function TableGridBuilder({ grid }) {
                 if (draggingRef.current && selectMode)
                   extendSelect(cell.row, cell.col, cell.row + cell.rowspan - 1, cell.col + cell.colspan - 1)
               }}
-            >
-              {/* Особые значения: ячейка выглядит как обычно, но в уроке из
-                  неё выпадает меню выбора. Кнопка не мешает вводу текста —
-                  она в углу и появляется по наведению (кроме ячеек, где
-                  варианты уже заданы: там она видна всегда) */}
-              {!selectMode && (
-                <button
-                  className={`tableBuilderOptsBtn${cell.options?.length ? ' tableBuilderOptsBtnOn' : ''}`}
-                  title={cell.options?.length
-                    ? `Особые значения (${cell.options.length}) — изменить`
-                    : 'Задать особые значения (выпадающее меню в уроке)'}
-                  onMouseDown={e => e.stopPropagation()}
-                  onClick={() => setOptsCellId(cell.id)}
-                >☰</button>
-              )}
-              <textarea
-                className="tableBuilderCellInput"
-                value={cell.value}
-                onChange={e => setCellValue(cell.id, e.target.value)}
-                onMouseDown={e => { if (!selectMode) e.stopPropagation() }}
-                style={{
-                  pointerEvents: selectMode ? 'none' : 'auto', cursor: selectMode ? 'crosshair' : 'text',
-                  fontSize: cell.fontSize ? `${cell.fontSize}px` : undefined,
-                }}
-                placeholder="…"
-              />
-            </div>
+            />
           ))}
         </div>
         <TableResizeHandles table={table} gridRef={gridRef} setColumnWidth={setColumnWidth} setRowHeight={setRowHeight} />

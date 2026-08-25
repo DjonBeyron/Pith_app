@@ -41,9 +41,8 @@ describe('особые значения ячейки', () => {
 
 describe('где особые значения работают', () => {
   it('задаются в конструкторе кнопкой на ячейке', () => {
-    const builder = read('./TableGridBuilder.jsx')
-    expect(builder).toContain('className={`tableBuilderOptsBtn')
-    expect(builder).toContain('<CellOptionsPopover')
+    expect(read('./TableBuilderCell.jsx')).toContain('className={`tableBuilderOptsBtn')
+    expect(read('./TableGridBuilder.jsx')).toContain('<CellOptionsPopover')
     expect(read('./CellOptionsPopover.jsx')).toContain('.map(s => s.trim()).filter(Boolean)')
   })
 

@@ -45,3 +45,11 @@
   color: #e0e0e0;
   background: #2a2d35;
 }
+
+/* Состояние загрузки/ошибки связи с сервером — шаблоны лежат в Supabase */
+.tableTemplatesNote {
+  color: #6a6f78;
+  font-size: 11px;
+}
+
+.tableTemplatesNoteErr { color: #f87171; }

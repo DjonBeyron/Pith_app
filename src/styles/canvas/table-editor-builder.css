@@ -55,6 +55,12 @@
   background: #1a1d22;
   cursor: cell;
   display: flex;
+  /* Текст стоит по центру ячейки — как в уроке (TableGrid.jsx). Высоту самого
+     поля под текст подгоняет TableBuilderCell.jsx: <textarea> рисует строки
+     только сверху вниз, и растянутое на всю объединённую ячейку поле держало
+     бы текст у её потолка */
+  align-items: center;
+  justify-content: center;
   /* якорь для кнопки особых значений в углу */
   position: relative;
 }
@@ -71,7 +77,10 @@
 .tableBuilderCellHeader .tableBuilderCellInput { font-weight: 700; }
 
 .tableBuilderCellInput {
-  flex: 1;
+  /* Ширина — вся ячейка, высота — по тексту (ставится из JS), поэтому не flex: 1 */
+  flex: 0 1 auto;
+  width: 100%;
+  overflow: auto;
   background: transparent;
   border: none;
   outline: none;

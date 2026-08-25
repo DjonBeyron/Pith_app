@@ -28,6 +28,7 @@
 | `supabase/migrations/20260725140000_module_translations.sql` | `curricula.title_translation` (полный перевод названия) + `curricula.word_translations` (jsonb `[{w,t}]` — перевод по словам). **Применить до деплоя** — иначе редактор названия ругается, а переводы в ленте не показываются (список модулей читается по запасному запросу без этих колонок) |
 | `supabase/migrations/20260724130000_reaction_counters_and_difficulty_default.sql` | `curricula.save_count`/`repost_count` (триггеры от `module_bookmarks`/новой `module_reposts`) + дефолт `difficulty = 1` вместо NULL. **Ещё не применена на реальной БД** — см. предупреждение в PROJECT.md |
 | `supabase/migrations/20260729120000_fix_content_paywall_and_race_time.sql` | Security review: `curricula_select_all`/`lessons_select_all` теперь фильтруют по `published`/`is_pro` (был `USING(true)` — платный/черновой контент читался в обход paywall) + новая `has_pro_access()`; `finish_race` считает `time_ms` от серверной `race_ticket_spends.spent_at`, а не из клиента (нельзя было заявить время=1мс и гарантировать 1 место). **Применить до деплоя** |
+| `supabase/migrations/20260825120000_table_templates.sql` | Таблица `table_templates` (name + data jsonb) — шаблоны сетки конструктора, общие для всех уроков и машин; RLS: читает и пишет только админ (`is_admin()`). **Пока не применена** — до применения полоса шаблонов покажет ошибку загрузки |
 | `supabase/migrations/20260824224341_files_content_hash.sql` | `files.content_hash` (text, nullable) + индекс — хэш содержимого файла (SHA-256) для дедупликации загрузок (см. `fileHash.js`/`useLessonFiles.js`): если файл с таким же хэшем уже есть в R2, повторно не грузим. Пока не применена — `filesApi.insertFile`/`findFileByHash` деградируют мягко (пишут без хэша, дедуп просто не работает), загрузка файлов не ломается. **Применить до деплоя**, чтобы дедуп заработал |
 | `.env.local` | Секретные ключи (пароли, токены) — здесь, чтобы их не было видно в коде |
 | `.gitignore` | Список того, что не нужно сохранять в git (например, `.env.local`, `node_modules`) |
@@ -323,12 +324,14 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `tableGridUtils.js` | Чистая математика сетки (без React): создание, объединение/разбиение ячеек, заголовки, добавление/удаление строк-колонок, пропорции ширины колонок |
 | `tableAutoFitText.js` | Авто-подгонка размера текста под ячейку: пробный DOM-элемент офскрином меряет перенос строк на ширине iPhone SE (355px), подбирает `cell.fontSize` от 15 до 9px (`FONT_MIN`/`FONT_MAX` — общие с ручным +/-) |
 | `useTableGrid.js` | Состояние конструктора: таблица + drag-выделение диапазона ячеек + `autoFitText` + `setCellFontSize`; коммитит наружу только по «Сохранить» |
+| `TableBuilderCell.jsx` | Одна ячейка конструктора: поле ввода + кнопка особых значений; подгоняет высоту поля под текст, чтобы в объединённой ячейке текст стоял по центру, как в уроке |
 | `TableGridBuilder.jsx` | Левая панель: тулбар (+/− строка/колонка, «Редактировать» — режим выделения для объединить/разбить/заголовок/ручной +/- размер текста одной ячейки, «Авто-размер текста») + редактируемая сетка с drag-выделением и ручками изменения размера |
 | `TableResizeHandles.jsx` | Невидимые полосы поверх границ колонок/строк — тянуть мышью, отдельно от ячеек (чтобы не попадать в textarea) |
 | `TablePhonePreview.jsx` | Правая панель: рамка iPhone SE 2020 (375×667 — авторский минимум), живой превью через общий `shared/ui/TableGrid.jsx`; авто-скролл к низу (там таблица), тонкий тёмный скролл |
 | `TableEditorModal.jsx` | Окно редактора на весь экран (портал, без max-width/попапа): конструктор сетки + кнопка «Таймлайн» переключает вид на редактор таймлайна; onSave отдаёт полный объект {table, file_id, waveformData, duration, timeline} |
-| `tableTemplates.js` | CRUD шаблонов сетки в localStorage (список/сохранить/переименовать/удалить) — авторский инструмент, не часть данных урока |
-| `TableTemplatesBar.jsx` | Полоса шаблонов в шапке редактора: сохранить текущую сетку как шаблон, применить/переименовать/удалить сохранённые |
+| `tableTemplates.js` | Мост со старым локальным хранилищем шаблонов: читает шаблоны из `localStorage` и стирает их после разового переезда на сервер (сами шаблоны теперь в Supabase, см. `useTableTemplates.js`) |
+| `useTableTemplates.js` | Список шаблонов таблиц с сервера + сохранить/переименовать/удалить (`tableTemplatesApi.js`), плюс разовый переезд старых локальных шаблонов |
+| `TableTemplatesBar.jsx` | Полоса шаблонов в шапке редактора: сохранить текущую сетку как шаблон, применить/переименовать/удалить сохранённые (шаблоны общие для всех уроков, лежат на сервере) |
 | `useTableTimelineEdit.js` | Состояние редактора таймлайна: layers + initClips/toggleVisible/updateClip/addLayer/addWordLayer/addCheckLayer/removeLayer, getTimeline; `isCheck`-слой хранит момент запуска проверки |
 | `ClipMenu.jsx` | Меню клипа на дорожке (кнопка ▾): идёт ли в сборку фразы, дублировать клип, поставить очистку собранного |
 | `clipMenu.test.js` | Меню клипа, повторы клипа и очистка собранной фразы — от модели до поведения плеера |
@@ -573,6 +576,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `pushApi.js` | Вызов edge-функции `push-send` (рассылка Web Push, только админ) |
 | `pushTemplatesApi.js` | CRUD шаблонов пушей (`push_templates`) + поиск включённого шаблона по триггеру (manual / new_module / inactive_today / energy_full) |
 | `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth; принимают `captchaToken` (Turnstile), если капча включена |
+| `tableTemplatesApi.js` | Шаблоны таблиц конструктора (`table_templates`): список/создать/переименовать/удалить; общие для всех уроков, доступ только админу |
 | `highlightPresetsApi.js` | Загрузка и сохранение избранных цветов выделений (`highlight_color_presets`, singleton row 'global') |
 | `profileApi.js` | getProfile (чтение профиля, включая avatar_seed) / saveAvatar — RPC `set_avatar` (смена аватара из пака DiceBear) / startLesson — RPC `start_lesson` (энергия, бесплатные случаи решает сервер) / completeLesson — начисление XP через RPC `complete_lesson` / resetLessonProgress — сброс прохождения с возвратом XP (тест-кнопки админа) |
 | `subscriptionApi.js` | Платежи Pithy Pro: createSubscriptionPayment зовёт edge-функцию create-payment, возвращает ссылку на оплату ЮKassa или stub, пока касса не подключена |
