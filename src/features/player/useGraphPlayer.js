@@ -2,6 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { appendVisit, forgetNodeKeys } from './graphPlayerVisits.js'
+import { pLog } from '../../shared/lib/debug.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
@@ -77,7 +78,12 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
   // спрашивая паузу
   scheduleReveal.current = (nextNodeId, force = false) => {
     const next = nodeMapRef.current[nextNodeId]
-    if (!next) return
+    // Переход ведёт на ноду, которой в уроке нет — сценарий на этом встаёт.
+    // Молча выходить нельзя: со стороны это выглядит как «плеер завис»
+    if (!next) {
+      pLog(`[graph] ⚠ переход в никуда: нет ноды ${String(nextNodeId).slice(0, 8)} — сценарий остановился`)
+      return
+    }
     if (pausedRef.current && !force) {
       scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
       return
@@ -257,6 +263,11 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
     visitsRef.current = new Map()
     finishedRef.current = false
     const entry = findEntry(nodes, startNodeId)
+    const ids = new Set(nodes.map(n => n.id))
+    const broken = nodes.reduce((sum, n) =>
+      sum + (n.triggers ?? []).filter(t => t.then && !ids.has(t.then)).length, 0)
+    pLog(`[graph] старт: ${nodes.length} нод, вход #${entry?.seq ?? '—'}` +
+      (broken ? `, СВЯЗЕЙ В НИКУДА: ${broken}` : ''))
     if (!entry) return
     setVisibleNodes([entry])
     setIsWaiting(false)

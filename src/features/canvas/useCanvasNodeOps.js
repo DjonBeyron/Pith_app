@@ -1,3 +1,4 @@
+import { dbg } from '../../shared/lib/debug.js'
 import { renumber, makeNode, findFreeSpot, NODE_SLOT, NODE_ROW } from './nodeGraph.js'
 
 // Мутации массива нод для hover-меню канваса (удалить/дублировать/вставить
@@ -76,6 +77,9 @@ export function useCanvasNodeOps(setNodes) {
       // Рядом с исходной, с отступом вправо; занято — ниже. Соседей не трогаем
       const spot      = findFreeSpot(prev, node.x + NODE_SLOT, node.y)
       const newNode   = makeNode(insertSeq, spot.x, spot.y, type)
+      dbg('[NODE] вставка после #' + node.seq + ':', type,
+        `в ${Math.round(spot.x)},${Math.round(spot.y)}`,
+        `размер ${newNode.size}`, `триггеров ${newNode.triggers.length}`)
       // middle insert: новая нода ведёт на следующую своим первым триггером
       if (nextNode) {
         newNode.triggers = newNode.triggers.map((t, ti) =>
@@ -128,6 +132,10 @@ export function useCanvasNodeOps(setNodes) {
                              Math.round((node.y + nextNode.y) / 2))
         : freeSpotForBranch(prev, node)
       const newNode = makeNode(insertSeq, spot.x, spot.y, type)
+      dbg('[NODE] с порта #' + node.seq + ' (триггер ' + triggerIdx + '):', type,
+        `в ${Math.round(spot.x)},${Math.round(spot.y)}`,
+        nextNode ? 'вставлена между' : 'в конец ветки',
+        `размер ${newNode.size}`, `триггеров ${newNode.triggers.length}`)
       // Вставка в середину: новая нода ведёт на прежнюю цель этого выхода
       if (nextNode) {
         newNode.triggers = newNode.triggers.map((t, ti) =>

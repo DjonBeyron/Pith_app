@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect, useCallback, useImperativeHandle } from 'react'
+import { dbg } from '../../shared/lib/debug.js'
+import { checkNodes, formatIntegrity } from './canvasIntegrity.js'
 import { spreadNodes } from './canvasSpread.js'
+import { compactLayout, graphSize } from './canvasCompact.js'
+import { renumber, NODE_SLOT } from './nodeGraph.js'
 
 // Сколько держится «прожектор» на ноде, к которой перешли из плеера
 // (возврат остальных — плавный, за счёт CSS-перехода, см. spotlight.css)
@@ -38,12 +42,49 @@ export function useCanvasBoardApi(ref, {
     // из канваса (LessonPlayer → CanvasPage). Ноды живут здесь, поэтому и
     // правка идёт сюда же — второго источника правды не появляется
     updateNode,
+    // Обмен уроком в JSON (панель «Поделиться / Импорт», lesson-io/):
+    // снимок нод наружу и приём готового сценария обратно
+    getNodes() { return nodes },
+    importNodes(list, mode) {
+      dbg('[IMPORT] на холст:', mode, `${list.length} нод`, `было ${nodes.length}`)
+      // Показываем первую импортированную ноду: при «добавить» пачка встаёт
+      // правее всего графа, и без этого автор смотрел бы на старый кусок
+      // урока, не понимая, приехало что-нибудь или нет
+      if (list[0]) setTimeout(() => centerOn(list[0], true), 0)
+      setNodes(prev => {
+        if (mode === 'replace') {
+          const next = renumber(list)
+          dbg('[IMPORT] заменил урок:', formatIntegrity(checkNodes(next)))
+          return next
+        }
+        // Дописываем справа от того, что уже есть, — чтобы импорт не лёг
+        // поверх существующего графа
+        const maxX = prev.reduce((m, n) => Math.max(m, n.x ?? 0), 0)
+        const minX = list.reduce((m, n) => Math.min(m, n.x ?? 0), Infinity)
+        const shift = prev.length ? maxX + NODE_SLOT - (Number.isFinite(minX) ? minX : 0) : 0
+        const merged = renumber([...prev, ...list.map(n => ({ ...n, x: (n.x ?? 0) + shift }))])
+        dbg('[IMPORT] дописал к уроку:', formatIntegrity(checkNodes(merged)))
+        return merged
+      })
+    },
     clearAll() {
       if (!window.confirm('Удалить ВСЕ ноды урока? Это нельзя отменить.')) return
       setNodes([])
     },
     spreadNodes() {
       setNodes(prev => spreadNodes(prev))
+    },
+    // Сжать раскладку: длинную ленту нод собираем «змейкой» в несколько рядов.
+    // Сам сценарий не меняется — только координаты на холсте
+    compactLayout() {
+      setNodes(prev => {
+        const before = graphSize(prev)
+        const next = compactLayout(prev)
+        const after = graphSize(next)
+        dbg('[LAYOUT] сжатие:', `${Math.round(before.w)}×${Math.round(before.h)}`,
+          '→', `${Math.round(after.w)}×${Math.round(after.h)}`, `нод ${prev.length}`)
+        return next
+      })
     },
     focusStart() {
       const first = nodes.slice().sort((a, b) => a.seq - b.seq)[0]

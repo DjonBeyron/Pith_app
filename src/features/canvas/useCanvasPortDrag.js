@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { dbg } from '../../shared/lib/debug.js'
 import { nodeEntry } from './canvasPorts.js'
 import { suppressTextSelection } from './canvasDragGuard.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
@@ -16,23 +17,30 @@ const SNAP_R = 40
 // handleMove/handleUp возвращают true, если событие «съедено» портом,
 // чтобы вызывающий код (общие обработчики мыши доски) не обрабатывал его
 // повторно как рамку выделения/панорамирование.
-export function useCanvasPortDrag({ nodes, triggerMeasures, toWorld, setNodes, setTypeMenu }) {
+export function useCanvasPortDrag({ nodes, triggerMeasures, toWorld, setNodes, setTypeMenu, measureBoard }) {
   const [portDrag, setPortDrag] = useState(null)
   const portDragRef = useRef(null)
 
   const startPortDrag = useCallback((fromNodeId, triggerIdx, e) => {
     e.stopPropagation()
     suppressTextSelection(e) // протяжка порта тоже не должна тянуть выделение
+    // Доска могла сдвинуться с прошлого замера — иначе тянущаяся линия считает
+    // мировые координаты от старого положения и уходит мимо курсора
+    measureBoard?.()
+    const world = toWorld(e.clientX, e.clientY)
+    dbg('[LINK] взял порт:', `триггер ${triggerIdx}`,
+      `курсор ${Math.round(e.clientX)},${Math.round(e.clientY)}`,
+      `→ мир ${Math.round(world.x)},${Math.round(world.y)}`)
     const pd = {
       fromNodeId, triggerIdx,
       // экранная точка нажатия: если мышь так и не поехала, это был клик —
       // открываем меню создания ноды вместо соединения
       downX: e.clientX, downY: e.clientY,
-      ...toWorld(e.clientX, e.clientY),
+      ...world,
     }
     portDragRef.current = pd
     setPortDrag(pd)
-  }, [toWorld])
+  }, [toWorld, measureBoard])
 
   function handlePortMouseMove(e) {
     if (!portDragRef.current) return false
@@ -63,6 +71,9 @@ export function useCanvasPortDrag({ nodes, triggerMeasures, toWorld, setNodes, s
       .filter(o => o.d <= SNAP_R)
       .sort((a, b) => a.d - b.d)[0]?.n ?? null
     const hit = snapped ?? nodeAtPos(nodes, x, y, fromNodeId)
+    const from = nodes.find(n => n.id === fromNodeId)
+    dbg('[LINK] протяжка порта:', `#${from?.seq ?? '?'} триггер ${triggerIdx}`,
+      hit ? `→ #${hit.seq}` : '→ пусто (связь снята)', `бросок в ${Math.round(x)},${Math.round(y)}`)
     setNodes(prev => renumber(prev.map(n =>
       n.id !== fromNodeId ? n : {
         ...n,

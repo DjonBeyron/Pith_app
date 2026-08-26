@@ -279,6 +279,12 @@
 
 .canvasBoard {
   flex: 1;
+  /* Схлопнуться доска не должна ни при каких размерах окна: слои связей и
+     портов — это SVG с overflow:hidden ровно по её размеру, и при нулевой
+     высоте линии с кружками обрезаются в ноль. Ноды при этом остаются видны
+     (они в обычном HTML-слое и вылезают за границы), и выглядит это как
+     «связи пропали». */
+  min-height: 240px;
   position: relative;
   overflow: hidden;
   cursor: default;
@@ -325,4 +331,61 @@
   padding: 10px 18px;
   border-radius: 8px;
   box-shadow: 0 2px 14px rgba(182,254,59,0.3);
+}
+
+/* ── Отладка связей (меню «⋯» → «Отладка связей») ───────────────────── */
+/* Прямые отрезки поверх графа: видно, строятся ли связи вообще, и куда они
+   идут, даже если обычные линии по какой-то причине не видны. */
+.canvasLinkDebugBadge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 30;
+  padding: 6px 10px;
+  background: rgba(10, 12, 16, 0.92);
+  border: 1px solid #ff3b3b;
+  border-radius: 8px;
+  color: #ffb3b3;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Очистка урока — рядом с ⇄, красная на наведении: действие разрушительное */
+.canvasPageClear:hover:not(:disabled) { border-color: #ff6060; color: #ff6060; }
+
+/* Отладочные HTML-метки портов: рисуются мимо SVG — если видны они, а кружков
+   нет, значит не отрисовывается сам SVG-слой связей */
+.canvasLinkDebugHtml {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.canvasLinkDebugMark {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: #ff3b3b;
+  border: 1px solid #fff;
+  border-radius: 2px;
+}
+
+/* Проба SVG поверх холста: четыре линии, нарисованные разными способами.
+   Нужна, чтобы отличить «SVG не рисуется вовсе» от «ломается именно наш слой
+   связей с его трансформацией». */
+.canvasSvgProbe {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 360px;
+  height: 120px;
+  z-index: 26;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid #ff3b3b;
+  border-radius: 6px;
 }

@@ -1,0 +1,126 @@
+/* ── Панель «Поделиться / Импорт» (lesson-io/LessonIoPanel.jsx) ───────── */
+/* Урок целиком в JSON: логика сценария без единого байта медиа. */
+
+.lioOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(4, 5, 8, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.lioModal {
+  width: min(760px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  background: #101216;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.lioHeader { display: flex; align-items: center; justify-content: space-between; }
+.lioTabs { display: flex; gap: 6px; }
+
+.lioTab {
+  padding: 6px 14px;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  color: #9aa0b4;
+  font-size: 12px;
+  cursor: pointer;
+}
+.lioTab:hover { border-color: #3a4050; color: #ccc; }
+.lioTabOn { border-color: #b6fe3b; color: #b6fe3b; background: #1a2210; }
+
+.lioClose {
+  width: 26px; height: 26px; padding: 0;
+  background: transparent; border: none; border-radius: 6px;
+  color: #6a6f78; font-size: 18px; line-height: 1; cursor: pointer;
+}
+.lioClose:hover { color: #e0e0e0; background: #1a1d22; }
+
+.lioHint { color: #9aa0b4; font-size: 11px; line-height: 1.5; }
+.lioHint code { color: #b6fe3b; font-size: 11px; }
+
+.lioCheck {
+  display: flex; align-items: center; gap: 6px;
+  color: #9aa0b4; font-size: 11px; cursor: pointer;
+}
+
+/* Скролл текста — тёмный, в тон окну */
+.lioText {
+  flex: 1;
+  min-height: 260px;
+  padding: 10px;
+  background: #0a0c10;
+  border: 1px solid #1e2030;
+  border-radius: 10px;
+  color: #cfd3dd;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  resize: vertical;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2d35 #0a0c10;
+}
+.lioText:focus { outline: none; border-color: #3a4050; }
+.lioText::-webkit-scrollbar { width: 8px; }
+.lioText::-webkit-scrollbar-track { background: #0a0c10; }
+.lioText::-webkit-scrollbar-thumb { background: #2a2d35; border-radius: 4px; }
+.lioText::-webkit-scrollbar-thumb:hover { background: #3a4050; }
+
+.lioActions { display: flex; align-items: center; gap: 8px; }
+.lioMeta { flex: 1; color: #6a6f78; font-size: 11px; }
+
+.lioBtn {
+  padding: 7px 14px;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+}
+.lioBtn:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.lioBtn:disabled { opacity: 0.35; cursor: default; }
+
+.lioBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
+.lioBtnPrimary:hover:not(:disabled) { background: #c6ff5b; color: #0e1013; }
+
+.lioError { color: #f87171; font-size: 11px; }
+
+.lioWarn {
+  margin: 0;
+  padding: 8px 10px 8px 24px;
+  background: #1d1a0c;
+  border: 1px solid #4a4218;
+  border-radius: 8px;
+  color: #ece3b8;
+  font-size: 11px;
+  line-height: 1.5;
+  max-height: 120px;
+  overflow: auto;
+}
+
+/* Кнопка в шапке холста — в ряд с ⋯ */
+.canvasPageShare {
+  width: 30px; height: 28px; padding: 0;
+  background: #1a1d22; border: 1px solid #2a2d35; border-radius: 7px;
+  color: #9aa0b4; font-size: 13px; line-height: 1; cursor: pointer;
+}
+.canvasPageShare:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.canvasPageShare:disabled { opacity: 0.35; cursor: default; }
+
+/* Файл тянут в окно — подсвечиваем зону приёма */
+.lioModalDrop {
+  border-color: #b6fe3b;
+  box-shadow: 0 0 0 1px #b6fe3b, 0 20px 60px rgba(0, 0, 0, 0.6);
+}

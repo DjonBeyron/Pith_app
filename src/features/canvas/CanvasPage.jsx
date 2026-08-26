@@ -3,6 +3,8 @@ import { dbg } from '../../shared/lib/debug.js'
 import CanvasBoard from './CanvasBoard.jsx'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import CanvasToolsMenu from './CanvasToolsMenu.jsx'
+import LessonIoPanel from './lesson-io/LessonIoPanel.jsx'
+import { checkNodes, formatIntegrity } from './canvasIntegrity.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { canvasLsKey } from './canvasStorageKeys.js'
@@ -62,6 +64,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   // nodes/offset/scale живут внутри CanvasBoard — «Очистить»/«В начало» дотягиваются
   // туда через imperative handle (см. useImperativeHandle в CanvasBoard.jsx)
   const boardApiRef = useRef(null)
+  // Панель обмена уроком: снимок нод берём в момент открытия (сами ноды живут
+  // в CanvasBoard, наружу они отдаются через boardApi)
+  const [ioNodes, setIoNodes] = useState(null)
+  // Отладка связей: прямые отрезки поверх графа + сводка. Нужна, когда линий
+  // «нет» — сразу видно, строятся они вообще или дело в отображении
+  const [debugLinks, setDebugLinks] = useState(false)
 
   const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles } =
     useLessonFiles(lessonId)
@@ -103,6 +111,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   const handleNodesChange = useCallback(n => {
     nodesRef.current = n
     setPanelNodes(n)
+    // Ровно эти ноды уйдут и в плеер, и в сохранение — если граф битый здесь,
+    // урок не поедет ни там, ни там
+    const health = checkNodes(n)
+    if (!health.ok) dbg('[GRAPH] ⚠ наружу уходит', formatIntegrity(health))
     const regular = n.map(nd => nd.typeData?.[nd.type]?.file_id).filter(Boolean)
     const pcPhotos = n
       .filter(nd => nd.type === 'photo_choice')
@@ -196,6 +208,20 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           )}
           <button className="canvasPagePlay" onClick={() => { setPlayFrom(null); setShowPlayer(true) }}>▶</button>
           <button
+            className="canvasPageShare"
+            title="Поделиться уроком в JSON и импортировать готовый сценарий"
+            disabled={loading}
+            onClick={() => setIoNodes(boardApiRef.current?.getNodes() ?? [])}
+          >⇄</button>
+          {/* Очистка урока — прямо в шапке: после неудачного импорта нужна
+              сразу, а не через меню «ещё действия» */}
+          <button
+            className="canvasPageShare canvasPageClear"
+            title="Очистить урок: удалить все ноды"
+            disabled={loading}
+            onClick={() => boardApiRef.current?.clearAll()}
+          >🗑</button>
+          <button
             className="canvasPageTools"
             title="Ещё действия с холстом"
             disabled={loading}
@@ -251,12 +277,32 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
             onClick: () => boardApiRef.current?.focusStart() },
           { label: 'Раздвинуть', title: 'Развести ноды, если они наехали друг на друга',
             onClick: () => boardApiRef.current?.spreadNodes() },
+          { label: 'Сжать раскладку', title: 'Собрать длинную ленту нод в несколько рядов — по сценарию, слева направо',
+            onClick: () => boardApiRef.current?.compactLayout() },
+          { label: debugLinks ? '✓ Отладка связей' : 'Отладка связей',
+            title: 'Показать связи прямыми линиями поверх графа и сводку по ним',
+            onClick: () => setDebugLinks(v => !v) },
           { label: '↻ Вернуть данные с сервера', title: 'Отменить несохранённые локальные правки',
             onClick: handleResetToServer },
           { label: 'Очистить все ноды', danger: true, title: 'Удалить все ноды урока',
             onClick: () => boardApiRef.current?.clearAll() },
         ]}
       />
+
+      {ioNodes && (
+        <LessonIoPanel
+          nodes={ioNodes}
+          title={title}
+          lessonId={lessonId}
+          onImport={(nodes, mode, links) => {
+            boardApiRef.current?.importNodes(nodes, mode)
+            // Итог виден и после закрытия окна: если связей 0 — это сразу видно,
+            // а не выясняется по пустому холсту
+            setSyncStatus(`Импортировано: ${nodes.length} нод · ${links} связей`)
+          }}
+          onClose={() => setIoNodes(null)}
+        />
+      )}
 
       <NodeTypeMenu
         pos={filterPos}
@@ -327,6 +373,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
           onPlayFrom={id => { setPlayFrom(id); setShowPlayer(true) }}
           visibleTypes={filter.types}
           onlyMissingMedia={filter.onlyMissingMedia}
+          debugLinks={debugLinks}
         />
       )}
     </div>

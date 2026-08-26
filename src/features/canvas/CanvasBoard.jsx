@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useMemo, useCallback, forwardRef } from 'react'
+import { dbg } from '../../shared/lib/debug.js'
 import CanvasNode from './CanvasNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
 import { nodeOptionsSignature, pickNodeOptions } from './canvasNodeOptions.js'
 import { releaseTextSelection } from './canvasDragGuard.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useCanvasDrag } from './useCanvasDrag.js'
+import { useCanvasHover } from './useCanvasHover.js'
 import { useCanvasSelection } from './useCanvasSelection.js'
 import { useCanvasNodeOps } from './useCanvasNodeOps.js'
 import { useCanvasBoardState } from './useCanvasBoardState.js'
@@ -14,6 +16,9 @@ import { useCanvasBoardApi } from './useCanvasBoardApi.js'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import NodeHoverMenu from './NodeHoverMenu.jsx'
 import NodeNoteLayer from './NodeNoteLayer.jsx'
+import CanvasLinkDebug, { CanvasDebugOverlay } from './CanvasLinkDebug.jsx'
+import { linkDiagnostics } from './canvasLinkDebug.js'
+import { useLinkDebugLog } from './useLinkDebugLog.js'
 import { useNodeNotes } from './useNodeNotes.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { isNodeDimmed } from './nodeMediaStatus.js'
@@ -36,6 +41,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   visibleTypes = null,
   // Особый фильтр: в полную силу только ноды, которым ещё не загрузили файл
   onlyMissingMedia = false,
+  // Отладка связей (меню «⋯»): прямые отрезки поверх всего + сводка
+  debugLinks = false,
 }, ref) {
   // Ноды/offset/scale + вся локальная персистентность (черновик, сверка
   // с сервером, память позиции обзора) — useCanvasBoardState.js
@@ -46,21 +53,15 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Кнопка «пройти с этой ноды» в меню ноды — только для админа, это
   // инструмент проверки сценария, а не часть урока
   const { isAdmin } = useAdmin()
-  const [hoveredNodeId,  setHoveredNodeId]  = useState(null)
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   // Меню выбора типа при создании ноды: открывается по «+» в меню ноды и по
   // клику на выходной кружок. { pos, nodeId, triggerIdx } — triggerIdx задан,
   // когда создаём с конкретного выхода развилки
   const [typeMenu, setTypeMenu] = useState(null)
 
   const boardRef     = useRef(null)
-  // Кэш getBoundingClientRect() холста — сам вызов синхронно форсирует layout
-  // браузера; на колесе мыши/протяжке порта он летел на КАЖДОЕ событие
-  // (зум трекпадом — десятки-сотни событий подряд), что и давало рваное,
-  // дёрганое движение. Меряем один раз и обновляем только когда РЕАЛЬНО
-  // может измениться геометрия — на resize и когда меняется высота/позиция
-  // самого холста (ResizeObserver — например когда над ним появляется/
-  // исчезает строка синхронизации в CanvasPage.jsx)
+  // Кэш getBoundingClientRect() холста: сам вызов форсирует layout, а на
+  // колесе и протяжке он летел бы на каждое событие. Обновляется на resize,
+  // и дополнительно перед каждой протяжкой — см. measureBoard ниже
   const boardRectRef = useRef({ left: 0, top: 0 })
 
   // Мышь могли отпустить за пределами холста — тогда handleMouseUp доски не
@@ -72,6 +73,15 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       window.removeEventListener('mouseup', releaseTextSelection)
       window.removeEventListener('blur', releaseTextSelection)
     }
+  }, [])
+
+  // Пересчёт кэша прямоугольника доски. Нужен не только на resize: доска
+  // может СДВИНУТЬСЯ без изменения размера (появилась строка статуса,
+  // страница прокрутилась) — ResizeObserver такого не замечает, а координаты
+  // мыши считаются именно от него, и протяжка порта уезжает мимо курсора
+  const measureBoard = useCallback(() => {
+    const el = boardRef.current
+    if (el) boardRectRef.current = el.getBoundingClientRect()
   }, [])
 
   useEffect(() => {
@@ -125,6 +135,10 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const { startNodeDrag, startCanvasDrag, onMouseMove, endDrag, wasDragged, nodeDragging } =
     useCanvasDrag({ onNodeMove: moveNode, onNodeDuplicate: duplicateForDrag, onPan: pan, scaleRef })
 
+  // Наведение на ноду, липучее меню и вопрос «Удалить?» — useCanvasHover.js
+  const { hoveredNodeId, setHoveredNodeId, confirmDeleteId, setConfirmDeleteId, enterNode } =
+    useCanvasHover(nodeDragging)
+
   // Список нод для дропдаунов внутри max-нод («Тогда → нода #N», «В ответ
   // на»). Им нужны только id/seq/type/typeData, но не координаты — а раньше
   // сюда шёл сам массив nodes, который при протяжке пересоздаётся каждый
@@ -146,28 +160,6 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     })
   }, [])
 
-  // Меню ноды — «липучка»: открывается по наведению и висит, пока не кликнут
-  // вне ноды/меню (закрытие — в onMouseDown доски) или не наведут другую ноду.
-  function enterNode(nodeId) {
-    // Во время протяжки нода проезжает под курсором мимо соседей — их меню
-    // не должны мигать, а лишний setState на каждом кадре ни к чему
-    if (nodeDragging) return
-    // Вопрос «Удалить?» другой ноды сбрасывается при переходе на новую
-    if (confirmDeleteId && confirmDeleteId !== nodeId) setConfirmDeleteId(null)
-    setHoveredNodeId(nodeId)
-  }
-
-  // Del на наведённой ноде открывает вопрос «Удалить?» (не в полях ввода)
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key !== 'Delete') return
-      const tag = e.target.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return
-      if (hoveredNodeId) setConfirmDeleteId(hoveredNodeId)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [hoveredNodeId])
 
 
   function deleteNode(nodeId) {
@@ -195,7 +187,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
 
   // Протяжка соединения от выходного кружка ноды — useCanvasPortDrag.js
   const { portDrag, startPortDrag, handlePortMouseMove, handlePortMouseUp } =
-    useCanvasPortDrag({ nodes, triggerMeasures, toWorld, setNodes, setTypeMenu })
+    useCanvasPortDrag({ nodes, triggerMeasures, toWorld, setNodes, setTypeMenu, measureBoard })
 
   function handleMouseMove(e) {
     if (handlePortMouseMove(e)) return
@@ -241,7 +233,12 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     const rect = el ? el.getBoundingClientRect() : { width: 900, height: 600 }
     const cx = (rect.width  / 2 - offset.x) / scale - 91 + (Math.random() - 0.5) * 60
     const cy = (rect.height / 2 - offset.y) / scale - 20 + (Math.random() - 0.5) * 60
-    setNodes(prev => renumber([...prev, makeNode(prev.length + 1, cx, cy)]))
+    setNodes(prev => {
+      const created = makeNode(prev.length + 1, cx, cy)
+      dbg('[NODE] кнопка «+ Нода»:', created.type, `в ${Math.round(cx)},${Math.round(cy)}`,
+        `размер ${created.size}`, `триггеров ${created.triggers.length}`, `было нод ${prev.length}`)
+      return renumber([...prev, created])
+    })
   }
 
   // Команды холсту снаружи (кнопки шапки, правая панель плеера) + «прожектор»
@@ -249,6 +246,12 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const spotlightId = useCanvasBoardApi(ref, {
     nodes, setNodes, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset,
   })
+
+  // Считается только когда отладка включена — на обычной работе холста ноль
+  // Сводка по связям уходит в лог сама — см. useLinkDebugLog.js
+  useLinkDebugLog(nodes, triggerMeasures, scaleRef, debugLinks)
+
+  const linkDebug = debugLinks ? linkDiagnostics(nodes, triggerMeasures) : null
 
   const svgTransform   = `translate(${offset.x},${offset.y}) scale(${scale})`
   const worldTransform = `translate(${offset.x}px,${offset.y}px) scale(${scale})`
@@ -259,6 +262,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       className={`canvasBoard${spotlightId ? ' canvasSpotlight' : ''}`}
       style={{ cursor: portDrag ? 'crosshair' : undefined, userSelect: portDrag ? 'none' : undefined }}
       onMouseDown={e => {
+        // Перед любой протяжкой сверяем, где сейчас доска на экране
+        measureBoard()
         // Клик вне ноды и меню закрывает меню-липучку (и вопрос «Удалить?»)
         if (!e.target.closest?.('.canvasNodeWrapper')) {
           setHoveredNodeId(null)
@@ -355,8 +360,13 @@ const CanvasBoard = forwardRef(function CanvasBoard({
             triggerMeasures={triggerMeasures} layer="front"
             hoveredNodeId={nodeDragging ? null : hoveredNodeId}
           />
+          {linkDebug && <CanvasLinkDebug segments={linkDebug.segments} />}
         </g>
       </svg>
+
+      {linkDebug && (
+        <CanvasDebugOverlay debug={linkDebug} scale={scale} offset={offset} />
+      )}
 
       <NodeTypeMenu
         pos={typeMenu?.pos}
