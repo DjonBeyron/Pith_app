@@ -11,32 +11,6 @@
   border-right: 1px solid #2a2d35;
 }
 
-.tableBuilderToolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tableBuilderToolbar button {
-  padding: 6px 10px;
-  background: #1a1d22;
-  border: 1px solid #2a2d35;
-  border-radius: 6px;
-  color: #ccc;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.tableBuilderToolbar button:hover:not(:disabled) {
-  border-color: #b6fe3b;
-  color: #b6fe3b;
-}
-
-.tableBuilderToolbar button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
 .tableBuilderGridWrap {
   position: relative;
 }
@@ -127,37 +101,6 @@
   background: rgba(182, 254, 59, 0.35);
 }
 
-/* ── Режим выделения для объединения ячеек ──────────────────────────── */
-
-.tableBuilderToolbarDivider {
-  width: 1px;
-  background: #2a2d35;
-  align-self: stretch;
-  margin: 0 2px;
-  flex-shrink: 0;
-}
-
-.tableBuilderBtnSelect {
-  padding: 6px 10px;
-  background: #1a1d22;
-  border: 1px solid #2a2d35;
-  border-radius: 6px;
-  color: #ccc;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.tableBuilderBtnSelect:hover {
-  border-color: #b6fe3b;
-  color: #b6fe3b;
-}
-
-.tableBuilderBtnSelectActive {
-  border-color: #b6fe3b;
-  color: #b6fe3b;
-  background: rgba(182, 254, 59, 0.08);
-}
-
 .tableBuilderSelectHint {
   font-size: 11px;
   color: #b6fe3b;
@@ -175,21 +118,6 @@
 .tableBuilderGridSelectMode .tableBuilderCell {
   cursor: crosshair;
 }
-
-/* Ручной размер текста выделенной ячейки — рядом с «Заголовок» в режиме выделения */
-.tableBuilderFontSize {
-  display: flex; align-items: center; gap: 4px;
-  padding: 2px 6px;
-  background: #1a1d22; border: 1px solid #2a2d35; border-radius: 6px;
-  font-size: 11px; color: #ccc; font-variant-numeric: tabular-nums;
-}
-.tableBuilderFontSize button {
-  padding: 4px 8px;
-  background: transparent; border: 1px solid #2a2d35; border-radius: 5px;
-  color: #ccc; font-size: 11px; cursor: pointer;
-}
-.tableBuilderFontSize button:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
-.tableBuilderFontSize button:disabled { opacity: 0.35; cursor: default; }
 
 /* ── Особые значения ячейки (выпадающее меню в уроке) ─────────────────── */
 /* Кнопка в углу ячейки конструктора: не мешает вводу текста, проявляется по

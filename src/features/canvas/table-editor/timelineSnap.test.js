@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { snapPoint, snapMove, SNAP_PX } from './timelineSnap.js'
+import { collectSnapEdges } from './timelineSnapEdges.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
 // 10с композиции на полосе 1000px: 1px = 0.01с, порог магнита = SNAP_PX * 0.01с
-const box = { playhead: 5, duration: 10, stripWidth: 1000 }
+const box = { targets: [5], duration: 10, stripWidth: 1000 }
 const thr = SNAP_PX / 100
 
 describe('магнит к плейхеду', () => {
@@ -20,8 +21,8 @@ describe('магнит к плейхеду', () => {
     expect(snapPoint(far, box)).toBe(far)
   })
 
-  it('магнит выключен — время не меняется вообще', () => {
-    expect(snapPoint(5.01, { ...box, playhead: null })).toBe(5.01)
+  it('магнит выключен (целей нет) — время не меняется вообще', () => {
+    expect(snapPoint(5.01, { ...box, targets: [] })).toBe(5.01)
   })
 
   it('при перетаскивании липнет ближний край: начало', () => {
@@ -35,8 +36,8 @@ describe('магнит к плейхеду', () => {
 
   it('клип не выталкивается за границы композиции', () => {
     // флажок в самом конце: клип целиком остаётся внутри композиции
-    expect(snapMove(9 + thr / 2, 1, { ...box, playhead: 10 })).toBeCloseTo(9, 6)
-    expect(snapMove(thr / 2, 1, { ...box, playhead: 0 })).toBe(0)
+    expect(snapMove(9 + thr / 2, 1, { ...box, targets: [10] })).toBeCloseTo(9, 6)
+    expect(snapMove(thr / 2, 1, { ...box, targets: [0] })).toBe(0)
   })
 
   it('оба края далеко — клип стоит там, куда его тянут', () => {
@@ -55,7 +56,7 @@ describe('магнит и протяжки в интерфейсе таймла�
   it('клип и его ручки спрашивают магнит', () => {
     const track = read('./TableTimelineTrack.jsx')
     expect(track).toContain('const t = snap(getTime(mv))')
-    expect(track).toContain('snapMove(free, clipDur, { playhead: snapAt, duration, stripWidth: rect.width })')
+    expect(track).toContain('snapMove(free, clipDur, { targets: snapTargets(), duration, stripWidth: rect.width })')
   })
 
   it('протяжка закрывается не только по mouseup — клип не залипает', () => {
@@ -76,5 +77,47 @@ describe('магнит и протяжки в интерфейсе таймла�
     const block = css.slice(css.indexOf('.tlEditor {'), css.indexOf('.tlRulerCorner'))
     expect(block).toContain('user-select: none')
     expect(css).toContain('.tlEditor input, .tlEditor textarea, .tlEditor select {')
+  })
+})
+
+describe('магнит к краям клипов на других дорожках', () => {
+  const layers = [
+    { id: 'l1', clips: [{ start: 1, end: 2 }, { start: 0, end: 8 }], repeats: [{ start: 4, end: 5 }] },
+    { id: 'l2', clips: [{ start: 3, end: 3.5 }], clears: [{ start: 6, end: 6.5 }] },
+  ]
+
+  it('в цели идут все клипы слоя: подсветка, проявление, повторы, очистки', () => {
+    const edges = collectSnapEdges(layers)
+    expect(edges.filter(e => e.layerId === 'l1').map(e => e.t)).toEqual([1, 2, 0, 8, 4, 5])
+    expect(edges.filter(e => e.layerId === 'l2').map(e => e.t)).toEqual([3, 3.5, 6, 6.5])
+  })
+
+  it('край клипа прилипает к краю соседнего слоя', () => {
+    const targets = collectSnapEdges(layers).filter(e => e.layerId !== 'l1').map(e => e.t)
+    expect(snapPoint(3 + thr / 2, { targets, duration: 10, stripWidth: 1000 })).toBe(3)
+  })
+
+  it('при равном расстоянии побеждает плейхед — он в списке первый', () => {
+    const targets = [5, 5 + thr]
+    expect(snapPoint(5 + thr / 2, { targets, duration: 10, stripWidth: 1000 })).toBe(5)
+  })
+
+  it('перетаскивание тоже липнет к соседям — тем краем, что ближе', () => {
+    const targets = [3]
+    // конец клипа почти на 3 → начало уезжает на 3 - длина
+    expect(snapMove(2 + thr / 2, 1, { targets, duration: 10, stripWidth: 1000 })).toBeCloseTo(2, 6)
+  })
+
+  it('дорожка не липнет к собственным клипам (иначе клип не сдвинуть)', () => {
+    const track = readFileSync(fileURLToPath(new URL('./TableTimelineTrack.jsx', import.meta.url)), 'utf8')
+    expect(track).toContain('snapEdges.filter(e => e.layerId !== layer.id)')
+  })
+
+  it('выделение текста на странице таймлайна рубится на selectstart', () => {
+    const hook = readFileSync(fileURLToPath(new URL('./useNoTextSelection.js', import.meta.url)), 'utf8')
+    expect(hook).toContain("addEventListener('selectstart'")
+    expect(hook).toContain("tag === 'INPUT'")
+    const editor = readFileSync(fileURLToPath(new URL('./TableTimelineEditor.jsx', import.meta.url)), 'utf8')
+    expect(editor).toContain('useNoTextSelection(rootRef)')
   })
 })

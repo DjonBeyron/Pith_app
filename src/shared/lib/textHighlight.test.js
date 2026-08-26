@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildSpans, bridgeSpans, splitLines, addHighlight, removeHighlightAt, rangeHasStyle, removeRange } from './textHighlight.js'
+import { buildSpans, bridgeSpans, splitLines, addHighlight, removeHighlightAt, rangeHasStyle, removeRange, decorStyle, highlightStyle, sameStyle } from './textHighlight.js'
 
 const hl = (start, end, over = {}) => ({ start, end, color: '#ffeb3b', mode: 'bg', opacity: 0.5, ...over })
 
@@ -152,5 +152,97 @@ describe('addHighlight — выделения не путаются от пер�
     const spans = buildSpans(text, [hl(4, 7)])
     const marked = spans.filter(s => s.h).map(s => s.text).join('')
     expect(marked).toBe('два')
+  })
+})
+
+describe('подчёркивание, зачёркивание и плашка-обводка', () => {
+  const at = (spans, i) => spans[i]
+
+  it('декорации накладываются поверх цвета текста, не споря с ним', () => {
+    const hl = [
+      { start: 0, end: 4, color: '#ff0000', mode: 'text', opacity: 1 },
+      { start: 0, end: 4, color: '#00ff00', mode: 'underline', opacity: 1 },
+      { start: 0, end: 4, mode: 'strike', color: '#0000ff', opacity: 1 },
+    ]
+    const spans = buildSpans('тест', hl)
+    expect(at(spans, 0).h.mode).toBe('text')
+    expect(at(spans, 0).underline.color).toBe('#00ff00')
+    expect(at(spans, 0).strike.color).toBe('#0000ff')
+  })
+
+  it('стиль декораций: обе линии разом, своим цветом', () => {
+    const style = decorStyle({
+      bold: true,
+      underline: { color: '#ffffff', opacity: 1 },
+      strike: { color: '#000000', opacity: 1 },
+    })
+    expect(style.fontWeight).toBe(700)
+    expect(style.textDecorationLine).toBe('underline line-through')
+    expect(style.textDecorationColor).toBe('rgba(255,255,255,1)')
+  })
+
+  it('без декораций стиль пустой — лишних свойств не появляется', () => {
+    expect(decorStyle({ bold: false, underline: null, strike: null })).toEqual({})
+    expect(decorStyle(null)).toEqual({})
+  })
+
+  it('плашка-обводка рисует рамку вместо заливки', () => {
+    const fill    = highlightStyle({ mode: 'bg', color: '#ffeb3b', opacity: 0.5 })
+    const outline = highlightStyle({ mode: 'bg', color: '#ffeb3b', opacity: 0.5, outline: true })
+    expect(fill.background).toBe('rgba(255,235,59,0.5)')
+    expect(fill.boxShadow).toBeUndefined()
+    expect(outline.background).toBeUndefined()
+    expect(outline.boxShadow).toContain('inset')
+  })
+
+  it('заливка и обводка — разные стили, соседние спаны не склеиваются', () => {
+    const a = { start: 0, end: 2, color: '#ffeb3b', mode: 'bg', opacity: 1 }
+    const b = { start: 2, end: 4, color: '#ffeb3b', mode: 'bg', opacity: 1, outline: true }
+    expect(sameStyle(a, b)).toBe(false)
+    expect(sameStyle(a, { ...a })).toBe(true)
+  })
+
+  it('участок делится там, где меняется декорация', () => {
+    const spans = buildSpans('абвг', [{ start: 2, end: 4, mode: 'underline', color: '#fff', opacity: 1 }])
+    expect(spans.map(s => s.text)).toEqual(['аб', 'вг'])
+    expect(spans[0].underline).toBe(null)
+    expect(spans[1].underline).not.toBe(null)
+  })
+})
+
+describe('панель красок предлагает все виды выделения', () => {
+  const read = async rel => {
+    const { readFileSync } = await import('node:fs')
+    const { fileURLToPath } = await import('node:url')
+    return readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
+  }
+
+  it('в панели есть B, U, S и переключатель заливка/обводка', async () => {
+    const panel = await read('../../features/canvas/NodeTextHighlighter.jsx')
+    expect(panel).toContain("setDecor('bold'")
+    expect(panel).toContain("setDecor('underline'")
+    expect(panel).toContain("setDecor('strike'")
+    expect(panel).toContain('onClick={() => setOutline(true)}')
+    expect(panel).toContain('onClick={() => setOutline(false)}')
+    // обводка — только у плашки, у цвета текста её нет
+    expect(panel).toContain("{mode === 'bg' && (")
+  })
+
+  it('все три места рендера берут стиль декораций из одного источника', async () => {
+    for (const f of [
+      '../ui/HighlightedText.jsx',
+      '../../features/player/PlayerTypingText.jsx',
+    ]) {
+      const src = await read(f)
+      expect(src).toContain('decorStyle(s)')
+      expect(src).not.toContain('s.bold ? { fontWeight: 700 }')
+    }
+  })
+
+  it('плеер знает про плашку-обводку', async () => {
+    const typing = await read('../../features/player/PlayerTypingText.jsx')
+    expect(typing).toContain('s.h.outline')
+    const chat = await read('../ui/HighlightedText.jsx')
+    expect(chat).toContain('outline={s.h.outline}')
   })
 })

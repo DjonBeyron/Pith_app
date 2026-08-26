@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/refs */
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { appendVisit, forgetNodeKeys } from './graphPlayerVisits.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
@@ -25,6 +26,10 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
   const [isWaiting,   setIsWaiting]   = useState(false)
 
   const nodeMapRef  = useRef({})
+  // Сколько раз каждая нода уже показывалась. Сценарий бывает цикличным
+  // («ошибся — подсказка — снова тот же вопрос»), и номер показа нужен, чтобы
+  // панель ответа пересобралась заново, а не осталась в состоянии «отвечено»
+  const visitsRef   = useRef(new Map())
   const visibleRef  = useRef([])
   const firedRef    = useRef(new Set())
   const timersRef   = useRef([])
@@ -58,8 +63,13 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
   function revealNode(next) {
     scheduledRef.current = null
     setPendingNode(null)
-    setVisibleNodes(prev => (prev.some(n => n.id === next.id) ? prev : [...prev, next]))
+    const visit = (visitsRef.current.get(next.id) ?? 0) + 1
+    visitsRef.current.set(next.id, visit)
+    // Возврат на уже показанную ноду и сброс её сработавших триггеров —
+    // graphPlayerVisits.js
+    setVisibleNodes(prev => appendVisit(prev, next, visit))
     setIsWaiting(false)
+    firedRef.current = forgetNodeKeys(firedRef.current, next.id)
     activateTimerTrigger.current(next)
   }
 
@@ -244,6 +254,7 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
     }
     clearTimers()
     firedRef.current = new Set()
+    visitsRef.current = new Map()
     finishedRef.current = false
     const entry = findEntry(nodes, startNodeId)
     if (!entry) return
@@ -258,7 +269,8 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
   // на месте — отдаём наружу всегда свежий объект ноды по id. Порядок показа
   // и прогресс при этом не трогаются: сам список остаётся тем же.
   const freshVisible = useMemo(
-    () => visibleNodes.map(n => nodeMapRef.current[n.id] ?? n),
+    // visit — номер показа этой ноды, он живёт в снимке, а не в самой ноде
+    () => visibleNodes.map(n => ({ ...(nodeMapRef.current[n.id] ?? n), visit: n.visit })),
     [visibleNodes, nodes], // eslint-disable-line react-hooks/exhaustive-deps
   )
   const freshPending = pendingNode ? (nodeMapRef.current[pendingNode.id] ?? pendingNode) : null

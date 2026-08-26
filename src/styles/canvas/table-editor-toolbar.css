@@ -1,0 +1,83 @@
+/* ── TableBuilderToolbar — иконочный тулбар конструктора сетки ────────── */
+/* Кнопки квадратные и одинаковые: подписи ушли в title (подсказка по
+   наведению), иначе тулбар занимал две строки и в нём терялись действия. */
+
+.tblToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Смысловая группа кнопок стоит вплотную, между группами — разделитель */
+.tblGroup {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tblDivider {
+  width: 1px;
+  height: 20px;
+  background: #2a2d35;
+  margin: 0 2px;
+}
+
+.tblBtn {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tblBtn:hover:not(:disabled) {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+}
+
+.tblBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Единственная кнопка с подписью — переключатель режима: от него зависит,
+   что вообще делает клик по ячейке, и угадывать это по иконке не стоит */
+.tblBtnWide {
+  min-width: auto;
+  gap: 5px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+/* Включённое состояние: режим выделения, ячейка-заголовок */
+.tblBtnOn {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
+  background: rgba(182, 254, 59, 0.12);
+}
+
+.tblFontSize {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+}
+
+.tblFontVal {
+  min-width: 18px;
+  text-align: center;
+  color: #ccc;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}

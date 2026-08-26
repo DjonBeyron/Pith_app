@@ -1,7 +1,15 @@
 // Shared highlight utilities for canvas editor and player.
-// Highlight format: { start, end, color, mode: 'text'|'bg', opacity }
-// Highlights stack: bg has display priority over text-color on the same chars.
-// Both can coexist — right-click removes them one at a time (bg first).
+// Highlight format: { start, end, color, mode, opacity }
+//
+// Режимы делятся на два вида:
+//   'text' | 'bg'                     — как красим сам текст: цветом букв или
+//                                       плашкой (у плашки outline: true —
+//                                       только рамка, без заливки);
+//   'bold' | 'underline' | 'strike'   — ДЕКОРАЦИИ: накладываются поверх любого
+//                                       из первых двух и друг на друга.
+// bg имеет приоритет отображения над цветом текста на одних и тех же буквах.
+// Оба могут сосуществовать — ПКМ снимает их по одному (сначала плашку).
+export const DECOR_MODES = ['bold', 'underline', 'strike']
 
 export function hexToRgba(hex, opacity) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -11,7 +19,8 @@ export function hexToRgba(hex, opacity) {
 }
 
 export function sameStyle(a, b) {
-  return a && b && a.color === b.color && a.mode === b.mode && a.opacity === b.opacity
+  return a && b && a.color === b.color && a.mode === b.mode && a.opacity === b.opacity &&
+    !!a.outline === !!b.outline
 }
 
 export function bridgeSpans(spans) {
@@ -36,15 +45,17 @@ export function splitLines(text) {
 // bg has display priority over text-color on the same position.
 // Returns [{ text, h: display_highlight|null }]
 export function buildSpans(text, highlights = []) {
-  if (!highlights.length) return [{ text, h: null, bold: false }]
+  if (!highlights.length) return [{ text, h: null, bold: false, underline: null, strike: null }]
   const bgMap   = new Array(text.length).fill(null)
   const textMap = new Array(text.length).fill(null)
-  // Жирность — отдельный слой: она сочетается и с плашкой, и с цветом текста,
-  // поэтому не спорит с ними за отображение, а просто накладывается сверху
-  const boldMap = new Array(text.length).fill(false)
+  // Декорации — отдельные слои: они сочетаются и с плашкой, и с цветом текста,
+  // поэтому не спорят с ними за отображение, а просто накладываются сверху.
+  // Храним само выделение, а не флаг: у подчёркивания и зачёркивания свой цвет
+  const decorMaps = Object.fromEntries(
+    DECOR_MODES.map(m => [m, new Array(text.length).fill(null)]))
   for (const h of highlights) {
     for (let i = h.start; i < h.end && i < text.length; i++) {
-      if (h.mode === 'bold') boldMap[i] = true
+      if (decorMaps[h.mode]) decorMaps[h.mode][i] = h
       else if (h.mode === 'bg') bgMap[i] = h
       else textMap[i] = h
     }
@@ -57,12 +68,36 @@ export function buildSpans(text, highlights = []) {
     const h = dispMap[i]
     let j = i + 1
     while (j < text.length && dispMap[j] === h && textMap[j] === textMap[i] &&
-           boldMap[j] === boldMap[i]) j++
+           DECOR_MODES.every(m => decorMaps[m][j] === decorMaps[m][i])) j++
     const textUnder = h?.mode === 'bg' ? textMap[i] : null
-    spans.push({ text: text.slice(i, j), h, textUnder, bold: boldMap[i] })
+    spans.push({
+      text: text.slice(i, j), h, textUnder,
+      bold: !!decorMaps.bold[i],
+      underline: decorMaps.underline[i],
+      strike: decorMaps.strike[i],
+    })
     i = j
   }
   return spans
+}
+
+// Стиль декораций спана — общий для всех трёх мест рендера (канвас-редактор,
+// пузырь чата, печатающийся текст плеера), чтобы они не разъезжались.
+// Подчёркивание и зачёркивание красятся своим цветом, а не цветом букв.
+export function decorStyle(span) {
+  const lines = []
+  if (span?.underline) lines.push('underline')
+  if (span?.strike)    lines.push('line-through')
+  const src = span?.underline ?? span?.strike
+  return {
+    ...(span?.bold ? { fontWeight: 700 } : {}),
+    ...(lines.length ? {
+      textDecorationLine: lines.join(' '),
+      ...(src?.color ? { textDecorationColor: hexToRgba(src.color, src.opacity ?? 1) } : {}),
+      textDecorationThickness: '2px',
+      textUnderlineOffset: '2px',
+    } : {}),
+  }
 }
 
 // Adds a new highlight. Same-mode overlaps are trimmed; different-mode overlaps are kept (stacking).
@@ -107,7 +142,7 @@ export function removeRange(highlights, start, end, mode) {
 }
 
 // Right-click removal: removes highest-priority highlight at position.
-// Порядок снятия: плашка → цвет текста → жирность, по клику за раз.
+// Порядок снятия: плашка → цвет текста → декорации, по клику за раз.
 export function removeHighlightAt(highlights, pos) {
   const atPos = highlights.filter(h => h.start <= pos && h.end > pos)
   if (!atPos.length) return highlights
@@ -121,9 +156,12 @@ export function removeHighlightAt(highlights, pos) {
 export function highlightStyle(h) {
   if (!h) return {}
   const c = hexToRgba(h.color, h.opacity ?? 1)
-  return h.mode === 'bg'
-    ? { background: c, borderRadius: 3, padding: '1px 3px', lineHeight: 1, display: 'inline', verticalAlign: 'baseline' }
-    : { color: c }
+  if (h.mode !== 'bg') return { color: c }
+  const box = { borderRadius: 3, padding: '1px 3px', lineHeight: 1, display: 'inline', verticalAlign: 'baseline' }
+  // Плашка-обводка: рамка цветом, внутри ничего не заливаем
+  return h.outline
+    ? { ...box, boxShadow: `inset 0 0 0 1.5px ${c}` }
+    : { ...box, background: c }
 }
 
 // Legacy: word-based char map used by audio module.

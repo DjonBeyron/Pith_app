@@ -14,6 +14,8 @@ const SE_TABLE_WIDTH_PX = 355
 // авто-подгонка и ручные +/- ходили по одному и тому же диапазону.
 export const FONT_MAX = 15
 export const FONT_MIN = 9
+// Базовый размер текста ячейки — .tableGridCell { font-size: 13px } (table-grid.css)
+export const DEFAULT_FONT_SIZE = 13
 const CELL_PAD_X = 6   // .tableGridCell { padding: 8px 6px } — table-grid.css
 const CELL_PAD_Y = 8
 const FONT_FAMILY = "'Montserrat', 'Comfortaa', sans-serif"

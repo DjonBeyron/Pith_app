@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { buildSpans, bridgeSpans, sameStyle, hexToRgba } from '../../shared/lib/textHighlight.js'
+import { buildSpans, bridgeSpans, sameStyle, hexToRgba, decorStyle } from '../../shared/lib/textHighlight.js'
 import { usePlayerFrozen } from './playerFrozen.js'
 
 // Посимвольная анимация с поддержкой выделений (та же система что TextModule).
@@ -66,14 +66,15 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
     const lines = visible.split('\n')
     const lastLine = lines.length - 1
 
-    const weight = s.bold ? { fontWeight: 700 } : null
+    // Жирность, подчёркивание, зачёркивание — общий стиль (textHighlight.js)
+    const decor = decorStyle(s)
 
     if (!s.h) {
       lines.forEach((line, k) => {
         if (k > 0) rendered.push(<br key={`${si}-br-${k}`} />)
         if (!line && k !== lastLine) return
         rendered.push(
-          <span key={`${si}-${k}`} style={weight ?? undefined}>{line}{cursorHere && k === lastLine && <span className="playerCursor" />}</span>
+          <span key={`${si}-${k}`} style={decor}>{line}{cursorHere && k === lastLine && <span className="playerCursor" />}</span>
         )
       })
       continue
@@ -85,7 +86,7 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
         if (k > 0) rendered.push(<br key={`${si}-br-${k}`} />)
         if (!line && k !== lastLine) return
         rendered.push(
-          <span key={`${si}-${k}`} style={{ color: c, ...weight }}>{line}{cursorHere && k === lastLine && <span className="playerCursor" />}</span>
+          <span key={`${si}-${k}`} style={{ color: c, ...decor }}>{line}{cursorHere && k === lastLine && <span className="playerCursor" />}</span>
         )
       })
       continue
@@ -100,6 +101,8 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
       : '3px'
     const textColor = s.textUnder ? hexToRgba(s.textUnder.color, s.textUnder.opacity ?? 1) : null
     const bgColor   = hexToRgba(s.h.color, s.h.opacity ?? 1)
+    // Плашка-обводка: рамка внутренней тенью — border сдвинул бы буквы
+    const outlineShadow = s.h.outline ? `inset 0 0 0 1.5px ${bgColor}` : null
     // box-shadow расширяет фон влево/вправо без влияния на layout
     const shadowL   = !prevSame               ? `-1.5px 0 0 0 ${bgColor}` : null
     const shadowR   = (!isPartial && !nextSame) ? `1.5px 0 0 0 ${bgColor}`  : null
@@ -110,18 +113,19 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
       if (!line && k !== lastLine) return
       rendered.push(
         <span key={`${si}-${k}`} style={{
-          background: bgColor,
+          ...(s.h.outline ? {} : { background: bgColor }),
           borderRadius: radius,
           // «Вылет» плашки — только на настоящих краях выделения, а не на
           // месте переноса: иначе на каждой строке торчал бы лишний хвост
-          boxShadow: k === 0 && k === lastLine ? boxShadow
+          boxShadow: s.h.outline ? outlineShadow
+            : k === 0 && k === lastLine ? boxShadow
             : k === 0 ? shadowL ?? undefined
             : k === lastLine ? shadowR ?? undefined
             : undefined,
           paddingTop: '2px',
           paddingBottom: '1px',
           ...(textColor ? { color: textColor } : {}),
-          ...(weight ?? {}),
+          ...decor,
         }}>
           {line}{cursorHere && k === lastLine && <span className="playerCursor" />}
         </span>

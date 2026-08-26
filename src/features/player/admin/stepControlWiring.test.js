@@ -181,10 +181,10 @@ describe('шаг назад', () => {
 
   it('панель ответа пересобирается по epoch — иначе вопрос второй раз не покажется', () => {
     expect(PANELS).toContain('epoch = 0,')
-    expect(PANELS).toContain('key={`${wcNode.id}:${epoch}`}')
-    expect(PANELS).toContain('key={`${paNode.id}:${epoch}`}')
-    expect(PANELS).toContain('key={`${pcNode.id}:${epoch}`}')
-    expect(PANELS).toContain('key={`${tableNode.id}:${epoch}`}')
+    expect(PANELS).toContain('key={`${wcNode.id}:${epoch}:${wcNode.visit ?? 0}`}')
+    expect(PANELS).toContain('key={`${paNode.id}:${epoch}:${paNode.visit ?? 0}`}')
+    expect(PANELS).toContain('key={`${pcNode.id}:${epoch}:${pcNode.visit ?? 0}`}')
+    expect(PANELS).toContain('key={`${tableNode.id}:${epoch}:${tableNode.visit ?? 0}`}')
   })
 
   it('откат за финиш урока убирает экран итогов', () => {

@@ -19,13 +19,6 @@ function scaledAppend(list, sizeKey) {
   return [...list.map(x => ({ ...x, [sizeKey]: x[sizeKey] * shrink })), { id: uid(), [sizeKey]: newSize }]
 }
 
-function removeLastAndRenormalize(list, sizeKey) {
-  const removed = list[list.length - 1]?.[sizeKey] ?? 0
-  const rest = list.slice(0, -1)
-  const factor = rest.length ? 100 / (100 - removed) : 1
-  return rest.map(x => ({ ...x, [sizeKey]: x[sizeKey] * factor }))
-}
-
 // Таблицы, сохранённые до появления настраиваемой высоты строк, не имеют
 // table.rows — достраиваем его дефолтом при загрузке, чтобы билдер не падал.
 export function normalizeTable(table) {
@@ -106,12 +99,40 @@ export function splitCell(table, cellId) {
   return { ...table, cells }
 }
 
+// Обратная операция к объединению для целого выделения: разбиваем ВСЕ
+// объединённые ячейки, попавшие в рамку. Раньше разбить можно было только
+// одну ячейку за раз — после сборки сложной шапки это было долго.
+export function mergedCellsInSelection(cells, r1, c1, r2, c2) {
+  return (cells ?? []).filter(c =>
+    c.row <= r2 && c.row + c.rowspan - 1 >= r1 &&
+    c.col <= c2 && c.col + c.colspan - 1 >= c1 &&
+    (c.rowspan > 1 || c.colspan > 1))
+}
+
+export function splitSelection(table, r1, c1, r2, c2) {
+  return mergedCellsInSelection(table.cells, r1, c1, r2, c2)
+    .reduce((t, cell) => splitCell(t, cell.id), table)
+}
+
 export function setCellValue(table, cellId, value) {
   return { ...table, cells: table.cells.map(c => (c.id === cellId ? { ...c, value } : c)) }
 }
 
 // Ручное изменение размера текста одной ячейки (независимо от авто-подгонки —
 // см. tableAutoFitText.js; оба пишут в одно и то же поле cell.fontSize).
+// Размер текста сразу для нескольких ячеек: A−/A+ в тулбаре работают и по
+// одной ячейке, и по целому выделению. Границы (min/max/def) приходят из
+// tableAutoFitText.js — здесь их не знаем, чтобы не заводить лишнюю связь.
+export function bumpCellsFontSize(table, ids, delta, { min, max, def }) {
+  const set = new Set(ids)
+  return {
+    ...table,
+    cells: table.cells.map(c => set.has(c.id)
+      ? { ...c, fontSize: Math.max(min, Math.min(max, (c.fontSize ?? def) + delta)) }
+      : c),
+  }
+}
+
 // Особые значения ячейки: список вариантов, из которых выбирают в уроке.
 // Сама ячейка выглядит как прежде («he/she/it»), но по тапу в чате из неё
 // выпадает меню, а в авто-режиме нужное значение выбирает автор на таймлайне.
@@ -172,26 +193,60 @@ export function addColumn(table) {
   return { ...table, colCount: table.colCount + 1, columns, cells: [...table.cells, ...newCells] }
 }
 
-// Удаляет только последнюю строку/колонку — ячейки, целиком лежавшие в ней,
-// исчезают; ячейки, свисавшие в неё (span>1), теряют одну клетку размера.
+// Пропорции после удаления произвольных полос: остаток растягиваем обратно
+// до 100%, сохраняя соотношение между оставшимися
+function renormalize(list, sizeKey) {
+  const total = list.reduce((sum, x) => sum + (x[sizeKey] ?? 0), 0)
+  if (!list.length) return list
+  if (!total) return list.map(x => ({ ...x, [sizeKey]: 100 / list.length }))
+  return list.map(x => ({ ...x, [sizeKey]: (x[sizeKey] ?? 0) * 100 / total }))
+}
+
+// Удаление ЛЮБЫХ строк/колонок (не только последних): ячейки, целиком лежавшие
+// внутри удаляемых полос, исчезают; ячейки, задевавшие их объединением
+// (span > 1), теряют ровно столько клеток, сколько попало под нож; всё, что
+// стояло дальше, съезжает на освободившееся место.
+//
+// removeRows/removeCols — общая математика для обеих осей: разница только в
+// именах полей, поэтому написана один раз и параметризована.
+function removeBand(table, from, to, axis) {
+  const isRow    = axis === 'row'
+  const countKey = isRow ? 'rowCount'  : 'colCount'
+  const spanKey  = isRow ? 'rowspan'   : 'colspan'
+  const posKey   = isRow ? 'row'       : 'col'
+  const listKey  = isRow ? 'rows'      : 'columns'
+  const sizeKey  = isRow ? 'heightPct' : 'widthPct'
+
+  const total = table[countKey]
+  const a = Math.max(0, Math.min(from, to))
+  const b = Math.min(total - 1, Math.max(from, to))
+  const n = b - a + 1
+  // Пустая таблица никому не нужна — хотя бы одна полоса остаётся
+  if (n <= 0 || n >= total) return table
+
+  const cells = []
+  for (const c of table.cells) {
+    const start = c[posKey]
+    const end   = start + c[spanKey] - 1
+    const overlap = Math.min(end, b) - Math.max(start, a) + 1
+    if (overlap >= c[spanKey]) continue           // ячейка целиком под ножом
+    const span = c[spanKey] - Math.max(0, overlap)
+    const pos  = start > b ? start - n : (start >= a ? a : start)
+    cells.push({ ...c, [posKey]: pos, [spanKey]: span })
+  }
+  const list = renormalize(table[listKey].filter((_, i) => i < a || i > b), sizeKey)
+  return { ...table, [countKey]: total - n, [listKey]: list, cells }
+}
+
+export function removeRows(table, from, to = from) { return removeBand(table, from, to, 'row') }
+export function removeCols(table, from, to = from) { return removeBand(table, from, to, 'col') }
+
 export function removeLastRow(table) {
-  if (table.rowCount <= 1) return table
-  const lastRow = table.rowCount - 1
-  const cells = table.cells
-    .filter(c => c.row !== lastRow || c.row + c.rowspan - 1 !== lastRow)
-    .map(c => (c.row + c.rowspan - 1 === lastRow ? { ...c, rowspan: c.rowspan - 1 } : c))
-  const rows = removeLastAndRenormalize(table.rows, 'heightPct')
-  return { ...table, rowCount: table.rowCount - 1, rows, cells }
+  return removeRows(table, table.rowCount - 1)
 }
 
 export function removeLastColumn(table) {
-  if (table.colCount <= 1) return table
-  const lastCol = table.colCount - 1
-  const cells = table.cells
-    .filter(c => c.col !== lastCol || c.col + c.colspan - 1 !== lastCol)
-    .map(c => (c.col + c.colspan - 1 === lastCol ? { ...c, colspan: c.colspan - 1 } : c))
-  const columns = removeLastAndRenormalize(table.columns, 'widthPct')
-  return { ...table, colCount: table.colCount - 1, columns, cells }
+  return removeCols(table, table.colCount - 1)
 }
 
 // Тянем границу МЕЖДУ дорожкой idx и idx+1 — меняются только эти две,
@@ -231,7 +286,8 @@ export function answerWordsOutsideTable(answer, cells) {
 }
 
 // Порядок дорожек таймлайна:
-//   1) ячейки таблицы — по столбцам (весь столбец 1 сверху вниз, потом 2, ...),
+//   1) ячейки таблицы — ПО СТРОКАМ (вся строка 1 слева направо, потом 2, ...):
+//      так же, как таблицу читают глазами и как её обычно надиктовывают,
 //   2) слова вне таблицы — в порядке добавления,
 //   3) «Проверить» — ВСЕГДА последней, когда бы её ни добавили: проверка идёт
 //      после всего собранного, и снизу её место читается само собой.
@@ -247,6 +303,6 @@ export function sortTimelineLayers(layers, cellById) {
     if (ra !== rb) return ra - rb
     if (ra !== 0) return 0
     const ca = cellById.get(a.cellId), cb = cellById.get(b.cellId)
-    return ca.col !== cb.col ? ca.col - cb.col : ca.row - cb.row
+    return ca.row !== cb.row ? ca.row - cb.row : ca.col - cb.col
   })
 }

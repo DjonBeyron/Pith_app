@@ -177,6 +177,17 @@ export default function NodeTablePicker({
         </label>
       )}
 
+      {!isDemo && (
+        <label className="nodeTableSendChat" onClick={e => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={tData.sendAnswerToChat === true}
+            onChange={e => onDataChange({ sendAnswerToChat: e.target.checked })}
+          />
+          Отправить ответ ученика в чат после проверки
+        </label>
+      )}
+
       {isDemo && (
         <p className="nodeTableDemoHint">
           Таблица придёт в чат сообщением от учителя, во всю ширину.

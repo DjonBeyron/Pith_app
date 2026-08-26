@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import { fmtAudioTime } from '../../../shared/lib/audioUtils.js'
 import { extrasStartSec } from '../../../shared/lib/tableDictatorTiming.js'
 import { useTableTimelineEdit } from './useTableTimelineEdit.js'
@@ -8,6 +8,8 @@ import TableTimelineTrack from './TableTimelineTrack.jsx'
 import TableTimelineRuler from './TableTimelineRuler.jsx'
 import TableTimelinePreview from './TableTimelinePreview.jsx'
 import { startDragSession } from './timelineDrag.js'
+import { collectSnapEdges } from './timelineSnapEdges.js'
+import { useNoTextSelection } from './useNoTextSelection.js'
 import BackButton from '../../../shared/ui/BackButton.jsx'
 
 export default function TableTimelineEditor({ table, fileId, waveformData, duration, timelineLen, timeline, answer, lessonFiles, onPickFile, onBack }) {
@@ -72,7 +74,12 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   // Ширина полосы дорожек: секунда композиции = 80px, но не уже 200px
   const stripPx = Math.max(200, Math.round(timelineDur * 80))
 
+  // Куда липнут края клипов кроме плейхеда: границы клипов всех дорожек
+  // (свои клип отфильтрует сам, см. TableTimelineTrack)
+  const snapEdges = useMemo(() => collectSnapEdges(layers), [layers])
+
   // Протяжка за сам плейхед — считаем время по той же полосе, что и линейка
+  const rootRef = useRef(null)
   const stripRef = useRef(null)
   const innerRef = useRef(null)
   // Полоса дорожек тянется по свободному месту (flex:1 при min-width), поэтому
@@ -98,6 +105,9 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     ro.observe(inner)
     return () => ro.disconnect()
   }, [stripPx])
+  // Выделение текста на всей странице таймлайна запрещено (кроме полей ввода)
+  useNoTextSelection(rootRef)
+
   function timeAtX(clientX) {
     const rect = stripRef.current?.getBoundingClientRect()
     if (!rect?.width) return 0
@@ -121,7 +131,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     : 0
 
   return (
-    <div className="tlEditor">
+    <div className="tlEditor" ref={rootRef}>
       {/* Только «Назад» — она же сохраняет (onBack в TableEditorModal сам коммитит
           изменения перед закрытием таймлайна), отдельная «Сохранить» была дублем. */}
       <div className="tlHeader">
@@ -232,6 +242,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
               stripPx={stripPx}
               extrasStart={extrasStart}
               snapAt={snapOn ? currentTime : null}
+              snapEdges={snapEdges}
               onToggleVisible={() => toggleVisible(layer.id)}
               onToggleHighlight={() => toggleHighlight(layer.id)}
               onToggleCollect={() => toggleCollect(layer.id)}

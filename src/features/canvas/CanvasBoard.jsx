@@ -12,6 +12,9 @@ import { useCanvasPortDrag } from './useCanvasPortDrag.js'
 import { renumber, makeNode } from './nodeGraph.js'
 import { useCanvasBoardApi } from './useCanvasBoardApi.js'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
+import NodeHoverMenu from './NodeHoverMenu.jsx'
+import NodeNoteBox from './NodeNoteBox.jsx'
+import { useNodeNotes } from './useNodeNotes.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { isNodeDimmed } from './nodeMediaStatus.js'
 import { NODE_HIT_W, NODE_HIT_H } from './canvasHitTest.js'
@@ -100,6 +103,9 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       const group = moveGroup(id)
       return prev.map(n => group.has(n.id) ? { ...n, x: n.x + dx, y: n.y + dy } : n)
     }), [moveGroup, setNodes])
+
+  // Комментарии продакшена: что свёрнуто — useNodeNotes.js
+  const { toggleNote, isNoteOpen, isNoteFolded } = useNodeNotes(updateNode)
 
   const pan = useCallback((dx, dy) =>
     setOffset(o => ({ x: o.x + dx, y: o.y + dy })), [setOffset])
@@ -305,40 +311,33 @@ const CanvasBoard = forwardRef(function CanvasBoard({
               moduleLessons={moduleLessons}
               dimmed={isNodeDimmed(node, visibleTypes, onlyMissingMedia)}
             />
+            {isAdmin && isNoteOpen(node) && (
+              <NodeNoteBox
+                note={node.note}
+                onChange={value => updateNode(node.id, { note: value })}
+                onRemove={() => updateNode(node.id, { note: undefined })}
+              />
+            )}
+            {isAdmin && isNoteFolded(node) && (
+              <span className="nodeNoteDot" title="У ноды есть комментарий продакшена (свёрнут)">📝</span>
+            )}
             {hoveredNodeId === node.id && (
-              <div
-                className="nodeHoverMenu"
-                onMouseDown={e => e.stopPropagation()}
-              >
-                {confirmDeleteId === node.id ? (
-                  <>
-                    <span className="nodeHoverConfirm">Удалить?</span>
-                    <button className="nodeHoverBtn nodeHoverBtnDel"
-                      onClick={e => { e.stopPropagation(); deleteNode(node.id) }}>Да</button>
-                    <button className="nodeHoverBtn"
-                      onClick={e => { e.stopPropagation(); setConfirmDeleteId(null) }}>Нет</button>
-                  </>
-                ) : (
-                  <>
-                    {isAdmin && onPlayFrom && (
-                      <button className="nodeHoverBtn nodeHoverBtnPlay" title="Пройти сценарий с этой ноды"
-                        onClick={e => { e.stopPropagation(); onPlayFrom(node.id) }}>▶</button>
-                    )}
-                    <button className="nodeHoverBtn nodeHoverBtnAdd" title="Вставить ноду после"
-                      onClick={e => {
-                        e.stopPropagation()
-                        setTypeMenu({
-                          pos: computeMenuPos(e.currentTarget.getBoundingClientRect()),
-                          nodeId: node.id,
-                        })
-                      }}>+</button>
-                    <button className="nodeHoverBtn nodeHoverBtnDup" title="Дублировать ноду"
-                      onClick={e => { e.stopPropagation(); duplicateNode(node.id) }}>⧉</button>
-                    <button className="nodeHoverBtn nodeHoverBtnDel" title="Удалить ноду"
-                      onClick={e => { e.stopPropagation(); setConfirmDeleteId(node.id) }}>×</button>
-                  </>
-                )}
-              </div>
+              <NodeHoverMenu
+                isAdmin={isAdmin}
+                confirmDelete={confirmDeleteId === node.id}
+                hasNote={node.note != null}
+                noteOpen={isNoteOpen(node)}
+                onPlayFrom={onPlayFrom ? () => onPlayFrom(node.id) : null}
+                onAdd={e => setTypeMenu({
+                  pos: computeMenuPos(e.currentTarget.getBoundingClientRect()),
+                  nodeId: node.id,
+                })}
+                onToggleNote={() => toggleNote(node.id, node.note != null)}
+                onDuplicate={() => duplicateNode(node.id)}
+                onAskDelete={() => setConfirmDeleteId(node.id)}
+                onDelete={() => deleteNode(node.id)}
+                onCancelDelete={() => setConfirmDeleteId(null)}
+              />
             )}
           </div>
         ))}

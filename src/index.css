@@ -46,6 +46,7 @@
 @import './styles/canvas/node-controls.css';
 @import './styles/canvas/nodes.css';
 @import './styles/canvas/node-hover-menu.css';
+@import './styles/canvas/node-note.css';
 @import './styles/canvas/node-fields.css';
 @import './styles/canvas/node-reply-reward.css';
 @import './styles/canvas/node-media-badge.css';
@@ -78,6 +79,7 @@
 @import './styles/canvas/table.css';
 @import './styles/canvas/table-editor-modal.css';
 @import './styles/canvas/table-editor-builder.css';
+@import './styles/canvas/table-editor-toolbar.css';
 @import './styles/canvas/table-editor-preview.css';
 @import './styles/canvas/table-editor-templates.css';
 @import './styles/canvas/table-editor-timeline.css';

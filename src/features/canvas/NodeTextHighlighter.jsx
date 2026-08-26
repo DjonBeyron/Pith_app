@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { addHighlight, removeHighlightAt, rangeHasStyle, removeRange } from '../../shared/lib/textHighlight.js'
+import { addHighlight, removeHighlightAt, rangeHasStyle, removeRange, DECOR_MODES } from '../../shared/lib/textHighlight.js'
+import { useHighlightPrefs } from './useHighlightPrefs.js'
 import HighlightedText from '../../shared/ui/HighlightedText.jsx'
 import ChatBubblePreview from './ChatBubblePreview.jsx'
 import { loadFavoriteColors, saveFavoriteColors } from '../../shared/api/highlightPresetsApi.js'
@@ -45,59 +46,10 @@ function charFromPoint(container, x, y) {
 
 export default function NodeTextHighlighter({ text, highlights, hardWrap = false, anchorRect, onClose, onChange }) {
   const [localHL, setLocalHL] = useState(highlights ?? [])
-  // Выбранный цвет — общий для всего приложения и живёт между сессиями:
-  // отметил нужный (обычно из избранных) — и дальше просто выделяешь текст,
-  // он красится сразу им, в любой ноде и после перезагрузки
-  const [color, setColorState] = useState(() => {
-    try { return localStorage.getItem('hl_color') ?? '#ffeb3b' } catch { return '#ffeb3b' }
-  })
-  function setColor(c) {
-    setColorState(c)
-    try { localStorage.setItem('hl_color', c) } catch { /* приватный режим */ }
-  }
-  // Выбранная вкладка живёт между открытиями окна и между нодами: красят
-  // обычно подряд одним способом
-  const [mode, setModeState] = useState(() => {
-    try { return localStorage.getItem('hl_mode') === 'bg' ? 'bg' : 'text' } catch { return 'text' }
-  })
-  function setMode(m) {
-    setModeState(m)
-    try { localStorage.setItem('hl_mode', m) } catch { /* приватный режим */ }
-  }
-  // Прозрачность своя у каждой вкладки: плашке идёт полупрозрачная заливка,
-  // а цвету текста — обычно полная непрозрачность, и таскать одно значение
-  // туда-сюда неудобно. Старый общий ключ подхватывается для плашки.
-  const [opacityByMode, setOpacityByMode] = useState(() => {
-    const read = (key, fallback) => {
-      try {
-        const v = parseFloat(localStorage.getItem(key))
-        return Number.isFinite(v) ? v : fallback
-      } catch { return fallback }
-    }
-    let legacy = 0.5
-    try { legacy = read('hl_opacity', 0.5) } catch { /* приватный режим */ }
-    return { text: read('hl_opacity_text', 1), bg: read('hl_opacity_bg', legacy) }
-  })
-  const opacity = opacityByMode[mode] ?? 1
-  // Жирность — не режим, а тумблер, и своя у каждой вкладки: цветной текст
-  // часто хочется жирным, а плашку — обычной. Запоминается глобально, как
-  // цвет, вкладка и прозрачность.
-  const [boldByMode, setBoldByMode] = useState(() => {
-    const read = (key, fallback) => {
-      try {
-        const v = localStorage.getItem(key)
-        return v === null ? fallback : v === '1'
-      } catch { return fallback }
-    }
-    let legacy = false
-    try { legacy = read('hl_bold', false) } catch { /* приватный режим */ }
-    return { text: read('hl_bold_text', legacy), bg: read('hl_bold_bg', legacy) }
-  })
-  const boldOn = boldByMode[mode] ?? false
-  function setBoldOn(v) {
-    setBoldByMode(prev => ({ ...prev, [mode]: v }))
-    try { localStorage.setItem(`hl_bold_${mode}`, v ? '1' : '0') } catch { /* приватный режим */ }
-  }
+  // Чем и как красим (цвет, вкладка, прозрачность, декорации, вид плашки) —
+  // useHighlightPrefs.js: всё запоминается между нодами и перезагрузками
+  const { color, setColor, mode, setMode, outline, setOutline, opacity, setOpacity, decor, setDecor } =
+    useHighlightPrefs()
   const [recent] = useState(() => {
     try { return JSON.parse(localStorage.getItem('hl_recent') ?? '[]') } catch { return [] }
   })
@@ -125,12 +77,18 @@ export default function NodeTextHighlighter({ text, highlights, hardWrap = false
     const painted = rangeHasStyle(localHL, start, end, mode, color)
     let next = painted
       ? removeRange(localHL, start, end, mode)
-      : addHighlight(localHL, { start, end, color, mode, opacity })
-    // Жирность — отдельный слой: тумблер включён, значит участок жирный;
-    // выключен — снимаем жирность, если она там была
-    next = boldOn
-      ? addHighlight(removeRange(next, start, end, 'bold'), { start, end, mode: 'bold' })
-      : removeRange(next, start, end, 'bold')
+      : addHighlight(localHL, {
+          start, end, color, mode, opacity,
+          // Плашка-обводка: рамка вместо заливки
+          ...(mode === 'bg' && outline ? { outline: true } : {}),
+        })
+    // Декорации — отдельные слои поверх: тумблер включён, значит участок
+    // получает её; выключен — снимаем, если она там была
+    for (const m of DECOR_MODES) {
+      next = decor[m]
+        ? addHighlight(removeRange(next, start, end, m), { start, end, mode: m, color, opacity })
+        : removeRange(next, start, end, m)
+    }
     commit(next)
     window.getSelection()?.removeAllRanges()
   }
@@ -149,11 +107,6 @@ export default function NodeTextHighlighter({ text, highlights, hardWrap = false
   function commit(next) {
     setLocalHL(next)
     onChange(next)
-  }
-
-  function changeOpacity(v) {
-    setOpacityByMode(prev => ({ ...prev, [mode]: v }))
-    try { localStorage.setItem(`hl_opacity_${mode}`, String(v)) } catch { /* приватный режим */ }
   }
 
   async function toggleFav(c) {
@@ -195,16 +148,38 @@ export default function NodeTextHighlighter({ text, highlights, hardWrap = false
           <button className={`textHLModeBtn${mode === 'text' ? ' active' : ''}`} onClick={() => setMode('text')}>Цвет текста</button>
           <button className={`textHLModeBtn${mode === 'bg'   ? ' active' : ''}`} onClick={() => setMode('bg')}>Плашка</button>
           <button
-            className={`textHLBoldBtn${boldOn ? ' active' : ''}`}
-            title={boldOn ? 'Жирный включён — выделение будет жирным' : 'Сделать выделение жирным'}
-            onClick={() => setBoldOn(!boldOn)}
+            className={`textHLDecorBtn${decor.bold ? ' active' : ''}`}
+            title={decor.bold ? 'Жирный включён — выделение будет жирным' : 'Сделать выделение жирным'}
+            onClick={() => setDecor('bold', !decor.bold)}
           ><b>B</b></button>
+          <button
+            className={`textHLDecorBtn${decor.underline ? ' active' : ''}`}
+            title={decor.underline ? 'Подчёркивание включено' : 'Подчеркнуть выделение'}
+            onClick={() => setDecor('underline', !decor.underline)}
+          ><u>U</u></button>
+          <button
+            className={`textHLDecorBtn${decor.strike ? ' active' : ''}`}
+            title={decor.strike ? 'Зачёркивание включено' : 'Зачеркнуть выделение'}
+            onClick={() => setDecor('strike', !decor.strike)}
+          ><s>S</s></button>
         </div>
+
+        {/* Плашка бывает двух видов: залитая цветом и одна рамка без заливки */}
+        {mode === 'bg' && (
+          <div className="textHLFillToggle">
+            <button className={`textHLFillBtn${!outline ? ' active' : ''}`}
+              title="Плашка с заливкой цветом"
+              onClick={() => setOutline(false)}>■ Заливка</button>
+            <button className={`textHLFillBtn${outline ? ' active' : ''}`}
+              title="Плашка без заливки — только обводка цветом"
+              onClick={() => setOutline(true)}>▢ Обводка</button>
+          </div>
+        )}
         <div className="textHLColorRow">
           <input type="color" value={color} onChange={e => setColor(e.target.value)} className="textHLColorInput" />
           <span className="textHLOpacityLabel">Прозр.:</span>
           <input type="range" min="0.1" max="1" step="0.05" value={opacity}
-            onChange={e => changeOpacity(+e.target.value)} className="textHLOpacitySlider" />
+            onChange={e => setOpacity(+e.target.value)} className="textHLOpacitySlider" />
           <span className="textHLOpacityVal">{Math.round(opacity * 100)}%</span>
         </div>
 

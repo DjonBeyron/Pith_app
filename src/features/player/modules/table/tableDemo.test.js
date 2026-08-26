@@ -28,7 +28,9 @@ describe('таблица в режиме «Показ»', () => {
   it('в ленте показ рисует пузырь во всю ширину, остальные режимы — ничего', () => {
     const router = read('./TableModule.jsx')
     expect(router).toContain("if (mode === 'demo') return <TableDemoModule {...props} />")
-    expect(router).toContain('if (props.tableSent) return <TableChatBubble')
+    expect(router).toContain('{props.tableSent && <TableChatBubble')
+    // без галочек в ленте от таблицы не остаётся ничего
+    expect(router).toContain('if (!props.tableSent && !answers.length) return null')
     const demo = read('./TableDemoModule.jsx')
     expect(demo).toContain('<TableChatBubble')
     const bubble = read('./TableChatBubble.jsx')
@@ -218,5 +220,34 @@ describe('переход у ноды показа — как у обычного
     const demo = read('./TableDemoModule.jsx')
     expect(demo).toContain('if (src || adminPreview || pending) return')
     expect(demo).toContain('onDone?.()')
+  })
+})
+
+describe('кнопка «Проверить» в ручной таблице', () => {
+  const panel = read('../../panels/table-manual/TableManualPanel.jsx')
+
+  it('появляется вместе со списком слов вне таблицы', () => {
+    const btn = panel.slice(panel.indexOf('className="tmCheckBtn"'))
+    expect(panel).toMatch(/\{phase === 'extra' && \(\s*<button/)
+    expect(btn).toContain('onClick={check}')
+  })
+
+  it('нажать нечего, пока ничего не собрано или разбор уже показан', () => {
+    expect(panel).toContain('disabled={assembled.length === 0 || !!result}')
+  })
+
+  it('автопроверка по полному набору слов никуда не делась', () => {
+    expect(panel).toContain('if (tokens.length === 0 || assembled.length !== tokens.length) return')
+  })
+
+  it('выглядит как кнопка «собери фразу», только компактнее', () => {
+    const css   = read('../../../../styles/player/panels/table-manual.css')
+    const phrase = read('../../../../styles/player/panels/phrase-assembly.css')
+    const block = css.slice(css.indexOf('.tmCheckBtn {'), css.indexOf('.tmCheckBtn:hover'))
+    expect(block).toContain('border: 2px solid #b6fe3b')
+    expect(block).toContain('color: #b6fe3b')
+    expect(phrase).toContain('border: 2px solid #b6fe3b')
+    // компактнее: меньше внутренний отступ, чем у полноразмерной
+    expect(block).toContain('padding: 7px 22px')
   })
 })

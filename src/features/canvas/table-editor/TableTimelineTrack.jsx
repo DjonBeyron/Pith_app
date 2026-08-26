@@ -9,8 +9,10 @@ import ClipMenu from './ClipMenu.jsx'
 // У word/check-слоя — как раньше, один клип. isDefault-слои без кнопки удаления.
 export default function TableTimelineTrack({
   // snapAt — время плейхеда, к которому липнут края клипов (магнит в шапке
-  // включён). null — магнит выключен, клипы двигаются свободно
-  layer, cells, duration, stripPx, extrasStart, snapAt = null,
+  // включён). null — магнит выключен, клипы двигаются свободно.
+  // snapEdges — границы клипов ВСЕХ дорожек: [{ t, layerId }]; свои
+  // отфильтровываем, иначе клип липнет сам к себе и не сдвигается
+  layer, cells, duration, stripPx, extrasStart, snapAt = null, snapEdges = [],
   onToggleVisible, onToggleHighlight, onToggleCollect, onPick,
   onUpdateClip, onUpdateReveal, onUpdateExtra, onDuplicate, onAddClear, onRemoveExtra, onRemove,
 }) {
@@ -31,7 +33,11 @@ export default function TableTimelineTrack({
 
   // Ширина полосы нужна магниту: порог примагничивания задан в пикселях
   const stripWidth = () => stripRef.current?.getBoundingClientRect().width ?? 0
-  const snap = t => snapPoint(t, { playhead: snapAt, duration, stripWidth: stripWidth() })
+  // Плейхед первым — при равном расстоянии он важнее краёв соседних клипов
+  const snapTargets = () => (snapAt == null
+    ? []
+    : [snapAt, ...snapEdges.filter(e => e.layerId !== layer.id).map(e => e.t)])
+  const snap = t => snapPoint(t, { targets: snapTargets(), duration, stripWidth: stripWidth() })
 
   function onHandleDown(e, side, targetClip, onUpdate) {
     e.preventDefault()   // без этого браузер начинает своё выделение/drag, и mouseup теряется
@@ -61,7 +67,7 @@ export default function TableTimelineTrack({
       const dx = ((mv.clientX - startX) / rect.width) * duration
       const free = Math.max(0, Math.min(duration - clipDur, init.start + dx))
       // Магнит: к флажку липнет тот край клипа, который к нему ближе
-      const s = snapMove(free, clipDur, { playhead: snapAt, duration, stripWidth: rect.width })
+      const s = snapMove(free, clipDur, { targets: snapTargets(), duration, stripWidth: rect.width })
       onUpdate({ start: s, end: s + clipDur })
     })
   }

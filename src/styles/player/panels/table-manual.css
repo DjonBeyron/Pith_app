@@ -174,3 +174,25 @@
 
 .cellMenuItem:hover,
 .cellMenuItem:active { background: rgba(182, 254, 59, 0.14); color: #b6fe3b; }
+
+/* ── Кнопка «Проверить» ──────────────────────────────────────────── */
+/* Тот же вид, что у «собери фразу» (.phraseCheckBtn), только компактнее:
+   под таблицей места меньше, а панель и так высокая. Показывается вместе
+   со списком слов вне таблицы. */
+.tmCheckBtn {
+  display: block;
+  margin: 0 auto;
+  padding: 7px 22px;
+  background: #12141d;
+  border: 2px solid #b6fe3b;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b6fe3b;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+.tmCheckBtn:hover:not(:disabled) { background: #b6fe3b; color: #000; }
+.tmCheckBtn:disabled { opacity: .35; cursor: default; }

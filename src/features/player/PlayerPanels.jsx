@@ -14,7 +14,10 @@ export default function PlayerPanels({
   wcNode, paNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
   // Шаг «назад» админа: растёт при откате и пересобирает панель — иначе она
-  // осталась бы в состоянии «уже отвечено» и вопрос заново не показала бы
+  // осталась бы в состоянии «уже отвечено» и вопрос заново не показала бы.
+  // node.visit — то же самое для обычного игрока: сценарий вернул его на ту же
+  // ноду (цикл «ошибся → подсказка → снова вопрос»), и панель должна открыться
+  // с чистого листа, а не с показанным разбором прошлой попытки
   epoch = 0,
   onNodeDone, record, wrongRef,
   handleWordAnswer, handleWordPick, handlePhraseAnswer, handleRegAnswer,
@@ -25,7 +28,7 @@ export default function PlayerPanels({
     <>
       {wcNode && (
         <ChooseWordPanel
-          key={`${wcNode.id}:${epoch}`} /* вторая нода того же типа подряд = свежая панель */
+          key={`${wcNode.id}:${epoch}:${wcNode.visit ?? 0}`} /* вторая нода того же типа подряд = свежая панель */
           node={wcNode}
           xpAmount={xpMap.get(wcNode.id) ?? 0}
           onDone={(result, variantId) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result, variantId) }}
@@ -46,7 +49,7 @@ export default function PlayerPanels({
       )}
       {paNode && (
         <PhraseAssemblyPanel
-          key={`${paNode.id}:${epoch}`}
+          key={`${paNode.id}:${epoch}:${paNode.visit ?? 0}`}
           node={paNode}
           xpAmount={xpMap.get(paNode.id) ?? 0}
           onDone={(result, variantId) => { setPaPanelHeight(0); onNodeDone(paNode.id, result, variantId) }}
@@ -66,7 +69,7 @@ export default function PlayerPanels({
       )}
       {pcNode && !photoChoiceStates[pcNode.id] && (
         <PhotoChoicePanel
-          key={`${pcNode.id}:${epoch}`}
+          key={`${pcNode.id}:${epoch}:${pcNode.visit ?? 0}`}
           node={pcNode}
           lessonFiles={filesWithBlobs}
           onPick={(idx, isCorrect) => handlePhotoPick(pcNode.id, idx, isCorrect)}
@@ -75,7 +78,7 @@ export default function PlayerPanels({
       )}
       {regNode && showRegPanel && (
         <RegistrationPanel
-          key={`${regNode.id}:${epoch}`}
+          key={`${regNode.id}:${epoch}:${regNode.visit ?? 0}`}
           node={regNode}
           onDone={(trigger, data) => { setRegPanelHeight(0); onNodeDone(regNode.id, trigger, data) }}
           onAnswered={(text, result) => handleRegAnswer(regNode.id, text, result)}
@@ -85,16 +88,21 @@ export default function PlayerPanels({
       {tableNode && tableNode.typeData?.table?.table && (
         tableNode.typeData.table.mode === 'manual' ? (
           <TableManualPanel
-            key={`${tableNode.id}:${epoch}`}
+            key={`${tableNode.id}:${epoch}:${tableNode.visit ?? 0}`}
             onSendToChat={tableNode.typeData?.table?.sendToChat ? () => onTableToChat?.(tableNode.id) : undefined}
             node={tableNode}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
             onAnswered={() => {}}
+            /* Галочка «отправить ответ ученика в чат»: собранная фраза уходит
+               пузырём справа (верная — сразу, неверная — последняя из трёх) */
+            onAnswerToChat={tableNode.typeData?.table?.sendAnswerToChat
+              ? (text, result) => handlePhraseAnswer(tableNode.id, text, result)
+              : undefined}
             onHeightChange={setTablePanelHeight}
           />
         ) : (
           <TableDictatorPanel
-            key={`${tableNode.id}:${epoch}`}
+            key={`${tableNode.id}:${epoch}:${tableNode.visit ?? 0}`}
             onSendToChat={tableNode.typeData?.table?.sendToChat ? () => onTableToChat?.(tableNode.id) : undefined}
             node={tableNode}
             file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}

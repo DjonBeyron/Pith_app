@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
 import { deriveAnswerTokens, normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
+import { cellIsPickable, allCellsPicked } from './manualCellPick.js'
 
 
 function shuffle(arr) {
@@ -13,7 +14,10 @@ function shuffle(arr) {
   return a
 }
 
-export default function TableManualPanel({ node, onDone, onAnswered, onHeightChange, onSendToChat }) {
+// onAnswerToChat(text, result) — галочка «отправить ответ ученика в чат»:
+// собранная фраза уходит пузырём справа. Верная — сразу; неверная — ОДИН раз,
+// последней (третьей) попыткой: промежуточные варианты в переписке не нужны.
+export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat }) {
   const tData       = node.typeData?.table ?? {}
   const table       = tData.table          ?? null
   const answer      = tData.answer         ?? ''
@@ -22,10 +26,10 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
 
   const tokens = useMemo(() => deriveAnswerTokens(answer, cells), [answer, cells])
 
-  const answerCellIds = useMemo(
-    () => new Set(tokens.filter(t => t.type === 'cell').map(t => t.cellId)),
-    [tokens]
-  )
+  // Куски ответа, которые собираются из таблицы. Работаем со ЗНАЧЕНИЯМИ, а не
+  // с id ячеек: одно и то же слово стоит в таблице в нескольких местах
+  // (manualCellPick.js)
+  const cellTokens = useMemo(() => tokens.filter(t => t.type === 'cell'), [tokens])
   const extraFromAnswer = useMemo(
     () => tokens.filter(t => t.type === 'extra').map(t => t.value),
     [tokens]
@@ -72,7 +76,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
     [assembled]
   )
 
-  const allCellsDone = answerCellIds.size > 0 && [...answerCellIds].every(id => assembledCellIds.has(id))
+  const allCellsDone = allCellsPicked(cellTokens, assembled)
   // Фаза полностью производная: extra только когда все ячейки выбраны и есть слова-ловушки
   const phase        = (allCellsDone && hasExtras) ? 'extra' : 'table'
 
@@ -81,8 +85,11 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
   const [cellMenu, setCellMenu] = useState(null)   // { cellId, options, rect }
 
   function tapCell(cellId, rect) {
-    if (!answerCellIds.has(cellId) || assembledCellIds.has(cellId) || result) return
+    if (assembledCellIds.has(cellId) || result) return
     const cell = cells.find(c => c.id === cellId)
+    // Нажать можно любую ячейку, чьё значение ещё нужно ответу — не важно, в
+    // какой она строке (в таблице «to be» одно «was» стоит в нескольких)
+    if (!cellIsPickable(cell, cellTokens, assembled)) return
     const options = cell?.options ?? []
     if (options.length) { setCellMenu({ cellId, options, rect }); return }
     pickCell(cellId, cell?.value?.trim() ?? '')
@@ -122,6 +129,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
     // лишние пробелы/переносы из ячейки и вид апострофа значения не имеют
     if (normalizeAnswerText(phrase) === normalizeAnswerText(answer)) {
       setResult('correct')
+      if (phrase.trim()) onAnswerToChat?.(phrase, 'correct')
       if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'correct')
       const id = setTimeout(() => closePanelWith('table_correct'), 800)
       timers.current.push(id)
@@ -132,6 +140,8 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
         onAnswered?.(tData.responseWrong, 'wrong')
       }
       if (wrongCount.current >= 3) {
+        // Именно последняя попытка — её ученик и видит в переписке
+        if (phrase.trim()) onAnswerToChat?.(phrase, 'wrong_final')
         if (answer.trim()) onAnswered?.(answer, 'wrong_final')
         const variantId = assembled.find(t => t.distractorId)?.distractorId ?? null
         const id = setTimeout(() => closePanelWith('table_wrong', variantId), 800)
@@ -224,6 +234,19 @@ export default function TableManualPanel({ node, onDone, onAnswered, onHeightCha
               </div>
             )}
           </div>
+
+          {/* Кнопка «Проверить» — как в «собери фразу», только компактнее.
+              Появляется вместе со списком слов вне таблицы: до этого ученик
+              ещё выбирает ячейки, проверять нечего. Автопроверка по полному
+              набору слов остаётся — кнопка нужна, когда собрано не всё или
+              в бокс попало лишнее слово-ловушка. */}
+          {phase === 'extra' && (
+            <button
+              className="tmCheckBtn"
+              onClick={check}
+              disabled={assembled.length === 0 || !!result}
+            >Проверить</button>
+          )}
 
         </div>
       </div>

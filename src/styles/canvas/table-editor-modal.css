@@ -12,7 +12,12 @@
   z-index: 1000;
 }
 
+/* Выделение текста в редакторе запрещено: протяжка мышью тут — это выделение
+   ЯЧЕЕК (и монтаж на таймлайне), а браузер попутно тянул выделение подписей и
+   текста соседних ячеек. Поля ввода — исключение: в них текст выделяется. */
 .tableEditorModal {
+  user-select: none;
+  -webkit-user-select: none;
   width: 100%;
   height: 100%;
   background: #101216;
@@ -78,6 +83,13 @@
 
 .tableEditorModal input,
 .tableEditorModal textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.tableEditorModal input,
+.tableEditorModal textarea,
+.tableEditorModal select {
   user-select: text;
   -webkit-user-select: text;
 }

@@ -85,10 +85,10 @@
   color: #b6fe3b;
 }
 
-/* Жирный — не вкладка, а тумблер: работает вместе с любой из них, поэтому и
-   выглядит как отдельная иконка, а не как третий режим */
-.textHLBoldBtn {
-  width: 30px;
+/* Жирный, подчёркивание, зачёркивание — не вкладки, а тумблеры: работают
+   вместе с любой из них, поэтому и выглядят как отдельные иконки */
+.textHLDecorBtn {
+  width: 28px;
   flex-shrink: 0;
   background: #12151a;
   border: 1px solid #2a2d35;
@@ -98,10 +98,30 @@
   color: #777;
   cursor: pointer;
 }
-.textHLBoldBtn.active {
+.textHLDecorBtn.active {
   border-color: #b6fe3b;
   color: #b6fe3b;
   background: #1a2210;
+}
+
+/* Вид плашки: залитая цветом или одна обводка */
+.textHLFillToggle {
+  display: flex;
+  gap: 6px;
+}
+.textHLFillBtn {
+  flex: 1;
+  background: #12151a;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #777;
+  cursor: pointer;
+}
+.textHLFillBtn.active {
+  border-color: #b6fe3b;
+  color: #b6fe3b;
 }
 
 /* ── Color + opacity row ────────────────────────────────────────── */

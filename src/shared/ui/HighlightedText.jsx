@@ -1,6 +1,6 @@
-import { buildSpans, hexToRgba, sameStyle, bridgeSpans, splitLines } from '../lib/textHighlight.js'
+import { buildSpans, hexToRgba, sameStyle, bridgeSpans, splitLines, decorStyle } from '../lib/textHighlight.js'
 
-function BgSpan({ color, opacity, radius, extLeft, extRight, textColor, bold, children }) {
+function BgSpan({ color, opacity, radius, extLeft, extRight, textColor, outline, decor, children }) {
   const c = hexToRgba(color, opacity ?? 1)
   return (
     <span style={{ position: 'relative' }}>
@@ -12,7 +12,8 @@ function BgSpan({ color, opacity, radius, extLeft, extRight, textColor, bold, ch
           left:  extLeft  ? '-1.5px' : 0,
           right: extRight ? '-1.5px' : 0,
           top: '4px', bottom: '1px',
-          background: c,
+          // Плашка-обводка: только рамка, без заливки
+          ...(outline ? { border: `1.5px solid ${c}` } : { background: c }),
           borderRadius: radius,
           pointerEvents: 'none',
           zIndex: 0,
@@ -21,7 +22,7 @@ function BgSpan({ color, opacity, radius, extLeft, extRight, textColor, bold, ch
       <span style={{
         position: 'relative', zIndex: 1,
         ...(textColor ? { color: textColor } : {}),
-        ...(bold ? { fontWeight: 700 } : {}),
+        ...decor,
       }}>
         {children}
       </span>
@@ -50,13 +51,14 @@ export default function HighlightedText({ text, highlights }) {
       const openLeft = prevSame || k > 0
       const openRight = nextSame || k < arr.length - 1
 
-      const weight = s.bold ? { fontWeight: 700 } : null
+      // Жирность, подчёркивание, зачёркивание — общий стиль (textHighlight.js)
+      const decor = decorStyle(s)
 
       if (!s.h) {
-        out.push(<span key={key} style={weight ?? undefined}>{line}</span>)
+        out.push(<span key={key} style={decor}>{line}</span>)
       } else if (s.h.mode === 'text') {
         out.push(
-          <span key={key} style={{ color: hexToRgba(s.h.color, s.h.opacity ?? 1), ...weight }}>{line}</span>
+          <span key={key} style={{ color: hexToRgba(s.h.color, s.h.opacity ?? 1), ...decor }}>{line}</span>
         )
       } else {
         const radius = openLeft && openRight ? 0
@@ -65,7 +67,8 @@ export default function HighlightedText({ text, highlights }) {
           : 3
         out.push(
           <BgSpan key={key} color={s.h.color} opacity={s.h.opacity} radius={radius}
-            extLeft={!openLeft} extRight={!openRight} textColor={textColor} bold={s.bold}>
+            extLeft={!openLeft} extRight={!openRight} textColor={textColor}
+            outline={s.h.outline} decor={decor}>
             {line}
           </BgSpan>
         )
