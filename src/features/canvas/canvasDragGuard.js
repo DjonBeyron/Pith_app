@@ -13,6 +13,14 @@ function isEditable(el) {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!el?.isContentEditable
 }
 
+// Текстовая зона ноды: поле ввода, список, редактируемый блок. Нажатие в
+// такую зону — работа с текстом (поставить курсор, выделить мышью), а не
+// захват ноды: протяжка внутри поля больше не таскает ноду по холсту
+// (см. CanvasNode.jsx). Всё остальное тело ноды тянется как раньше.
+export function isTextZone(el) {
+  return isEditable(el)
+}
+
 // e — mousedown. Клики в поля ввода не трогаем: там курсор и выделение
 // текста пользователю как раз нужны.
 export function suppressTextSelection(e) {

@@ -4,6 +4,7 @@ import { applyTypeChange } from './nodeDefaults.js'
 import NodeTypeSelect from './NodeTypeSelect.jsx'
 import NodeMediaBadge from './NodeMediaBadge.jsx'
 import { TYPE_COLOR, colorBg } from './nodeTypes.js'
+import { isTextZone } from './canvasDragGuard.js'
 
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
 
@@ -24,7 +25,15 @@ function CanvasNode({
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
   const handleUpdate = patch => onUpdate(node.id, patch)
-  const handleDragStart = e => onDragStart(node.id, e)
+  // Нажали ЛЕВОЙ в поле ввода/список — это работа с текстом: ноду не тащим и
+  // курсор с выделением не отбираем. Всплытие всё равно гасим, иначе доска
+  // приняла бы это за начало рамки выделения по пустому месту (CanvasBoard.jsx).
+  // Средняя кнопка (панорама холста) и Shift (выделение группы, Shift+протяжка
+  // = дубль ноды) работают и над полями — там текст ни при чём.
+  const handleDragStart = e => {
+    if (e.button === 0 && !e.shiftKey && isTextZone(e.target)) { e.stopPropagation(); return }
+    onDragStart(node.id, e)
+  }
   const handleTriggerMeasure = offsets => onTriggerMeasure?.(node.id, offsets)
 
   // When leaving max mode, clear stale trigger measurements so they don't

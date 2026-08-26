@@ -13,7 +13,7 @@ import { renumber, makeNode } from './nodeGraph.js'
 import { useCanvasBoardApi } from './useCanvasBoardApi.js'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import NodeHoverMenu from './NodeHoverMenu.jsx'
-import NodeNoteBox from './NodeNoteBox.jsx'
+import NodeNoteLayer from './NodeNoteLayer.jsx'
 import { useNodeNotes } from './useNodeNotes.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { isNodeDimmed } from './nodeMediaStatus.js'
@@ -311,15 +311,20 @@ const CanvasBoard = forwardRef(function CanvasBoard({
               moduleLessons={moduleLessons}
               dimmed={isNodeDimmed(node, visibleTypes, onlyMissingMedia)}
             />
-            {isAdmin && isNoteOpen(node) && (
-              <NodeNoteBox
-                note={node.note}
+            {isAdmin && node.note != null && (
+              <NodeNoteLayer
+                node={node}
+                scaleRef={scaleRef}
+                folded={isNoteFolded(node)}
                 onChange={value => updateNode(node.id, { note: value })}
-                onRemove={() => updateNode(node.id, { note: undefined })}
+                onBoxChange={box => updateNode(node.id, { noteBox: box })}
+                onFold={() => toggleNote(node.id, true)}
+                onRemove={() => {
+                  // Заметку с текстом просто так не теряем — рядом есть «свернуть»
+                  if (node.note?.trim() && !window.confirm('Удалить комментарий продакшена?')) return
+                  updateNode(node.id, { note: undefined, noteBox: undefined })
+                }}
               />
-            )}
-            {isAdmin && isNoteFolded(node) && (
-              <span className="nodeNoteDot" title="У ноды есть комментарий продакшена (свёрнут)">📝</span>
             )}
             {hoveredNodeId === node.id && (
               <NodeHoverMenu

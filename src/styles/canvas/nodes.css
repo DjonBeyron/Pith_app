@@ -5,6 +5,21 @@
 
 .canvasNode:active { cursor: grabbing; }
 
+/* Поля ноды — обычные текстовые зоны: каретка вместо «руки», выделение мышью
+   работает, ноду за них не таскают (см. CanvasNode.jsx, isTextZone) */
+.canvasNode input,
+.canvasNode textarea,
+.canvasNode select,
+.canvasNode [contenteditable='true'] {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: auto;
+}
+
+.canvasNode input,
+.canvasNode textarea,
+.canvasNode [contenteditable='true'] { cursor: text; }
+
 /* Выделена рамкой (левая кнопка по пустому месту) или Shift+клик — протяжка
    любой из выделенных нод двигает всю группу (см. CanvasBoard.jsx moveNode) */
 /* Тонкая приглушённая обводка: при захвате группы она загорается сразу на

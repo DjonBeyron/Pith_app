@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { useCanvasNodeOps } from './useCanvasNodeOps.js'
+import { applyMove, applyResize, linkLine, MIN_W, MIN_H } from './noteBoxGeom.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
@@ -54,9 +55,10 @@ describe('комментарий не виден никому, кроме адм
 
   it('стикер и метка на холсте рендерятся только под isAdmin', () => {
     const board = read('./CanvasBoard.jsx')
-    expect(board).toContain('{isAdmin && isNoteOpen(node) && (')
-    expect(board).toContain('{isAdmin && isNoteFolded(node) && (')
-    expect(board).toContain('<NodeNoteBox')
+    expect(board).toContain('{isAdmin && node.note != null && (')
+    expect(board).toContain('<NodeNoteLayer')
+    expect(read('./NodeNoteLayer.jsx')).toContain('if (folded) {')
+    expect(read('./NodeNoteLayer.jsx')).toContain('<NodeNoteBox')
   })
 
   it('кнопка 📝 в меню ноды — тоже только для админа', () => {
@@ -76,6 +78,66 @@ describe('комментарий не виден никому, кроме адм
   })
 
   it('удаление комментария стирает поле у ноды', () => {
-    expect(read('./CanvasBoard.jsx')).toContain('updateNode(node.id, { note: undefined })')
+    expect(read('./CanvasBoard.jsx')).toContain('updateNode(node.id, { note: undefined, noteBox: undefined })')
+  })
+
+  it('свернуть и удалить — разные кнопки: сворачивание текст не теряет', () => {
+    const box = read('./NodeNoteBox.jsx')
+    expect(box).toContain('onClick={onFold}')
+    expect(box).toContain('onClick={onRemove}')
+    expect(read('./CanvasBoard.jsx')).toContain('onFold={() => toggleNote(node.id, true)}')
+  })
+
+  it('иконка в меню — глиф, как у соседних кнопок, и желтеет, когда заметка есть', () => {
+    const menu = read('./NodeHoverMenu.jsx')
+    expect(menu).toContain('>✎</button>')
+    expect(menu).not.toContain('📝')
+    expect(menu).toContain("hasNote ? ' nodeHoverBtnNoteOn' : ''")
+  })
+})
+
+describe('стикер можно двигать и растягивать', () => {
+  const box = { x: 100, y: 40, w: 200, h: 120 }
+
+  it('перетаскивание сдвигает стикер на пройденное расстояние', () => {
+    expect(applyMove(box, 30, -10)).toEqual({ x: 130, y: 30, w: 200, h: 120 })
+  })
+
+  it('тянем правый низ — растёт размер, угол на месте', () => {
+    expect(applyResize(box, 'se', 40, 25)).toEqual({ x: 100, y: 40, w: 240, h: 145 })
+  })
+
+  it('тянем левый верх — вместе с размером едет и сам угол', () => {
+    expect(applyResize(box, 'nw', -20, -15)).toEqual({ x: 80, y: 25, w: 220, h: 135 })
+  })
+
+  it('меньше минимума не ужимается, и угол при этом не уезжает дальше', () => {
+    const tiny = applyResize(box, 'nw', 500, 500)
+    expect([tiny.w, tiny.h]).toEqual([MIN_W, MIN_H])
+    expect(tiny.x).toBe(box.x + box.w - MIN_W)
+  })
+
+  it('линия связи идёт от центра ноды к центру стикера', () => {
+    expect(linkLine({ w: 308, h: 48 }, box)).toEqual({ x1: 154, y1: 24, x2: 200, y2: 100 })
+  })
+
+  it('масштаб холста учитывается — стикер не убегает от курсора на зуме', () => {
+    const hook = read('./useNoteBoxDrag.js')
+    expect(hook).toContain('const s = scaleRef?.current ?? 1')
+    expect(hook).toContain('(mv.clientX - startX) / s')
+  })
+
+  it('ручки есть со всех восьми сторон', () => {
+    expect(read('./NodeNoteBox.jsx')).toContain("const DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']")
+    const css = read('../../styles/canvas/node-note.css')
+    for (const d of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) {
+      expect(css).toContain(`.nodeNoteGrip-${d}`)
+    }
+  })
+
+  it('скролл заметки тёмный, а не системный белый', () => {
+    const css = read('../../styles/canvas/node-note.css')
+    expect(css).toContain('scrollbar-color: #6b5f1e #1d1a0c')
+    expect(css).toContain('.nodeNoteInput::-webkit-scrollbar-thumb')
   })
 })

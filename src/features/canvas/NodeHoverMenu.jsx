@@ -2,7 +2,7 @@
 // вне ноды. Вынесено из CanvasBoard.jsx — там оно занимало треть разметки.
 //
 // Кнопки: ▶ прогнать сценарий с этой ноды (только админ), + вставить ноду
-// после, 📝 комментарий продакшена (только админ — ученик его не видит
+// после, ✎ комментарий продакшена (только админ — ученик его не видит
 // нигде), ⧉ дублировать, × удалить (с подтверждением прямо в меню).
 export default function NodeHoverMenu({
   isAdmin, confirmDelete, hasNote, noteOpen,
@@ -33,7 +33,7 @@ export default function NodeHoverMenu({
                 ? 'Комментарий продакшена: заметка к ноде, видна только админу в канвасе'
                 : noteOpen ? 'Скрыть комментарий продакшена' : 'Показать комментарий продакшена'}
               onClick={e => { e.stopPropagation(); onToggleNote() }}
-            >📝</button>
+            >✎</button>
           )}
           <button className="nodeHoverBtn nodeHoverBtnDup" title="Дублировать ноду"
             onClick={e => { e.stopPropagation(); onDuplicate() }}>⧉</button>

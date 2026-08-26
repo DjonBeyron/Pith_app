@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { suppressTextSelection, markDragging, releaseTextSelection } from './canvasDragGuard.js'
+import { suppressTextSelection, markDragging, releaseTextSelection, isTextZone } from './canvasDragGuard.js'
 
 // Минимальные заглушки DOM: тесты идут в node-окружении, полноценный документ
 // не нужен — важна сама логика «когда гасим выделение, а когда нет»
@@ -98,5 +98,45 @@ describe('releaseTextSelection — возврат в обычное состоя
   it('повторный вызов безопасен — mouseup приходит и без начатой протяжки', () => {
     setupDom()
     expect(() => { releaseTextSelection(); releaseTextSelection() }).not.toThrow()
+  })
+})
+
+describe('текстовые зоны ноды не тащат её за собой', () => {
+  const read = async rel => {
+    const { readFileSync } = await import('node:fs')
+    const { fileURLToPath } = await import('node:url')
+    return readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
+  }
+
+  it('поле ввода, список и contenteditable считаются текстовой зоной', () => {
+    expect(isTextZone({ tagName: 'TEXTAREA' })).toBe(true)
+    expect(isTextZone({ tagName: 'INPUT' })).toBe(true)
+    expect(isTextZone({ tagName: 'SELECT' })).toBe(true)
+    expect(isTextZone({ isContentEditable: true })).toBe(true)
+  })
+
+  it('тело ноды и кнопки текстовой зоной не считаются — за них тянут как раньше', () => {
+    expect(isTextZone({ tagName: 'DIV' })).toBe(false)
+    expect(isTextZone({ tagName: 'BUTTON' })).toBe(false)
+    expect(isTextZone(null)).toBe(false)
+  })
+
+  it('нажатие в текст не начинает протяжку, но и рамку выделения не запускает', async () => {
+    const node = await read('./CanvasNode.jsx')
+    expect(node).toContain("if (e.button === 0 && !e.shiftKey && isTextZone(e.target)) { e.stopPropagation(); return }")
+    expect(node).toContain('onDragStart(node.id, e)')
+  })
+
+  it('средняя кнопка и Shift над полем работают как обычно', async () => {
+    const node = await read('./CanvasNode.jsx')
+    // условие выхода срабатывает только для левой кнопки без Shift
+    expect(node).toContain('e.button === 0 && !e.shiftKey')
+  })
+
+  it('в полях ноды выделение текста разрешено стилями', async () => {
+    const css = await read('../../styles/canvas/nodes.css')
+    const block = css.slice(css.indexOf('.canvasNode input,'))
+    expect(block).toContain('user-select: text')
+    expect(block).toContain('cursor: text')
   })
 })
