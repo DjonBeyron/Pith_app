@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { clampScale } from './canvasZoom.js'
 import { canvasLsKey, canvasViewKey } from './canvasStorageKeys.js'
 import { makeNode } from './nodeGraph.js'
 
@@ -73,14 +74,14 @@ export function useCanvasBoardState(lessonId, initialNodes, onNodesChange) {
   const [offset, setOffset] = useState(() => loadView(lessonId).offset ?? { x: 0, y: 0 })
   const [scale, setScale]   = useState(() => {
     const v = loadView(lessonId)
-    // Диапазон здесь и в CanvasBoard.jsx (onWheel) должен совпадать: колесо
+    // Диапазон общий с колесом (canvasZoom.js): колесо
     // клампит scale только по СВОЕМУ следующему шагу, а сохранённое здесь
     // значение подставляется на старте БЕЗ клампа — если оно когда-то было
     // записано вне диапазона (например, при пробном расширении зума, потом
     // откаченном), при следующей загрузке страница взяла бы его как есть, и
     // холст открывался бы в состоянии «вне спеки» (на таком масштабе линии
     // связей визуально пропадают — толщина обводки в SVG умножается на scale)
-    return typeof v.scale === 'number' ? Math.min(2.5, Math.max(0.25, v.scale)) : 1
+    return typeof v.scale === 'number' ? clampScale(v.scale) : 1
   })
   const scaleRef   = useRef(scale)
   const mountedRef = useRef(false)

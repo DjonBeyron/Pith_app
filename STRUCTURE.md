@@ -176,6 +176,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `canvas/node-reply-reward.css` | Секция «ответ на» и чекбокс награды (XP) внутри max-ноды. Вынесено из nodes.css |
 | `canvas/node-media-badge.css` | Метка «загружен ли файл» в углу ноды (три состояния) + пункт «Не загруженные» в меню фильтра |
 | `canvas/spotlight.css` | «Прожектор» на ноде, к которой перешли из плеера: остальные на секунду тускнеют и плавно возвращаются |
+| `canvas/zoom-badge.css` | Надпись с масштабом холста в левом нижнем углу доски (подсвечивается, когда масштаб не 100%) |
 | `canvas/triggers.css` | Редактор триггеров ноды |
 | `canvas/text-highlight.css` | Классы, общие для `RichTextToolbar` (`.textHLColorInput`/`.textHLOpacitySlider`/`.textHLSwatch`/`.textHLFillBtn`) и кнопок над текстом ноды (`.nodeHLOpenBtn` — смайлики/переносы); модальный редактор выделений, которому эти стили изначально принадлежали (NodeTextHighlighter.jsx), снят — все текстовые поля с раскраской теперь на RichTextField |
 | `canvas/rich-text-field.css` | Стили инлайн-поля content (RichTextField — визуально повторяет `.nodeTextInput`, placeholder через `data-empty`, `::selection` — своя полупрозрачная подсветка выделения вместо нативной синей) и плавающего тулбара покраски (RichTextToolbar — иконки-кнопки с белым активным состоянием, миниатюры избранного, шапка-хват для ручного перетаскивания, компактная кнопка прозрачности) |
@@ -315,6 +316,9 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `nodeMediaStatus.js` | Кому из типов нужен файл и загружен ли он: `getNodeMediaState`, `nodeMissesMedia`, `isNodeDimmed` (общее правило приглушения — типы И «не загруженные») (+ `nodeMediaStatus.test.js`) |
 | `useCanvasBoardApi.js` | Команды холсту снаружи (ref): правка ноды, «В начало», «Раздвинуть», «Очистить», «К ноде» с центрированием, выделением и «прожектором» — вынесено из CanvasBoard.jsx |
 | `useBoardScrollGuard.js` | Сторож прокрутки доски: `.canvasBoard` никогда не должна быть прокручена внутри себя — иначе SVG-слои связей уезжают за экран и линии пропадают целиком. Сбрасывает скролл, проверяет совпадение слоя связей с доской (в т.ч. после импорта урока) |
+| `canvasZoom.js` | Арифметика зума колесом: шаг масштаба по дельте события (мышь/трекпад/пинч), общий диапазон 0.25–2.5 и удержание точки под курсором на месте (+ `canvasZoom.test.js`) |
+| `useCanvasZoom.js` | Подписка холста на колесо/пинч поверх canvasZoom.js + сброс масштаба в 100% с сохранением центра доски |
+| `CanvasZoomBadge.jsx` | Надпись с текущим масштабом в углу доски; клик возвращает 100% |
 | `useCanvasFilter.js` | Состояние фильтра шапки канваса: отмеченные типы + режим «не загруженные», счётчик ждущих файл нод, сброс — вынесено из CanvasPage.jsx |
 | `NodeTypeSelect.jsx` | Кастомный дропдаун выбора типа ноды: иконки Lucide, цветной полупрозрачный фон каждой строки; позиция — computeMenuPos (menuPosition.js), открывается вверх, если снизу не хватает места |
 | `nodeTypes.js` | Справочник NODE_TYPES и TYPE_COLOR (вынесен из NodeTypeSelect: react-refresh требует в файле компонента только компоненты); `colorBg()` — смешивает цвет типа с тёмной базой ноды, общая для CanvasNode.jsx и ProductionRow.jsx. У каждого типа `group` ('content'/'interactive') + `isGroupStart(i)` — группировка выпадающего меню выбора типа (NodeTypeSelect.jsx, InsertNodeButton.jsx) отступом |

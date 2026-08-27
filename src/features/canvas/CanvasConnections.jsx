@@ -18,6 +18,9 @@ const DROP_R = 40
 // всего графа заново.
 function CanvasConnections({
   nodes, portDrag, onPortDragStart, triggerMeasures = {}, layer,
+  // Дальний зум (scale < FAR_ZOOM): рисуем только ядра линий, без ореола
+  // и без слоя точек — на таком масштабе это невидимая работа
+  far = false,
   // Нода под курсором: её связи рисуются ярче и поверх нод, остальные
   // притухают — так в плотном графе видно, что куда ведёт
   hoveredNodeId = null,
@@ -66,8 +69,12 @@ function CanvasConnections({
       <>
         {lines.map(({ key, d, color, hot }) => (
           <g key={key} opacity={hot ? 1 : dim}>
-            <path d={d} stroke={color} strokeWidth="7" fill="none" opacity="0.08" />
-            <path d={d} stroke={color} strokeWidth="1.5" fill="none" opacity="0.75" />
+            {!far && <path d={d} stroke={color} strokeWidth="7" fill="none" opacity="0.08" />}
+            {/* vectorEffect — толщина в пикселях ЭКРАНА, а не мира: иначе на
+                отдалении 1.5px умножались на масштаб и связи истончались до
+                невидимости раньше, чем граф успевал поместиться в экран */}
+            <path d={d} stroke={color} strokeWidth="1.5" fill="none" opacity="0.75"
+              vectorEffect="non-scaling-stroke" />
           </g>
         ))}
         {ghost && (
@@ -77,6 +84,10 @@ function CanvasConnections({
       </>
     )
   }
+
+  // На дальнем зуме точки портов — доли пикселя: считать и рисовать их
+  // (у каждой ноды по точке на триггер) незачем
+  if (far) return null
 
   // ── front layer: подсвеченные связи + точки портов ─────────────────
   // Линии лежат под нодами и в плотных местах просто пропадают. Связи

@@ -178,10 +178,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   return (
     <div className="canvasPage">
       <div className="canvasPageHeader">
-        <div className="canvasSettingsBtnWrap">
-          <button className="canvasSettingsBtn" onClick={() => setShowPanel(s => !s)}>⚙</button>
-          {(hasUnsynced || hasUnsyncedLogo) && <span className="canvasSettingsBadge" />}
-        </div>
+        <BackButton onClick={onBack} />
         <input
           className="canvasPageTitle"
           value={title}
@@ -191,9 +188,14 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
         {/* Правая группа целиком: margin-left:auto держит её у правого края
             и на мобильном (где title flex:1 и без того всё выталкивает), и
             на широких экранах (там title уходит в absolute — без этой
-            обёртки кнопки съезжали бы к ⚙ левым краем, см. page.css) */}
+            обёртки кнопки съезжали бы к названию левым краем, см. page.css) */}
         <div className="canvasPageActions">
-          <BackButton onClick={onBack} />
+          <button
+            className="canvasPageSave"
+            title="Сохранить урок"
+            onClick={handleSave}
+            disabled={isSaving || loading}
+          >{isSaving ? '…' : '💾'}</button>
           {isAdmin && (
             <button
               className={`canvasPageFilter${filter.activeCount ? ' canvasPageFilterOn' : ''}`}
@@ -247,18 +249,20 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
             />
             <span className="canvasXpLabel">XP</span>
           </div>
-          {/* Финальная тройка, всегда в этом порядке: Сохранить → Граф → Продакшен.
-              «Граф» — текущая страница (подсвечена, как активная вкладка нижнего
-              навбара), клик всё равно работает — просто сохраняет */}
-          <button className="canvasPageSave" onClick={handleSave} disabled={isSaving || loading}>
-            {isSaving ? 'Сохраняю…' : 'Сохранить'}
-          </button>
+          {/* «Граф» — текущая страница (подсвечена, как активная вкладка
+              нижнего навбара), клик всё равно работает — просто сохраняет */}
           <button className="pageTabBtn pageTabBtnActive" onClick={handleSave} disabled={isSaving || loading}>
             Граф
           </button>
           <button className="pageTabBtn" onClick={switchToProduction} disabled={isSaving || loading}>
             Продакшен
           </button>
+          {/* Настройки урока — в самом правом краю шапки: заходят туда редко,
+              а слева их место занял «назад» */}
+          <div className="canvasSettingsBtnWrap">
+            <button className="canvasSettingsBtn" onClick={() => setShowPanel(s => !s)}>⚙</button>
+            {(hasUnsynced || hasUnsyncedLogo) && <span className="canvasSettingsBadge" />}
+          </div>
         </div>
       </div>
 

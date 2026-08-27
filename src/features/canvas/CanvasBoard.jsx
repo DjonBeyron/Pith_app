@@ -13,7 +13,10 @@ import { useCanvasBoardState } from './useCanvasBoardState.js'
 import { useCanvasPortDrag } from './useCanvasPortDrag.js'
 import { renumber, makeNode } from './nodeGraph.js'
 import { useCanvasBoardApi } from './useCanvasBoardApi.js'
+import { useCanvasZoom } from './useCanvasZoom.js'
+import { FAR_ZOOM } from './canvasZoom.js'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
+import CanvasZoomBadge from './CanvasZoomBadge.jsx'
 import NodeHoverMenu from './NodeHoverMenu.jsx'
 import NodeNoteLayer from './NodeNoteLayer.jsx'
 import CanvasLinkDebug, { CanvasDebugOverlay } from './CanvasLinkDebug.jsx'
@@ -207,26 +210,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     collapseIfClick(wasDragged)
   }
 
-  useEffect(() => {
-    const el = boardRef.current
-    if (!el) return
-    function onWheel(e) {
-      e.preventDefault()
-      const factor = e.deltaY > 0 ? 0.9 : 1.1
-      const cur = scaleRef.current
-      const next = Math.min(2.5, Math.max(0.25, cur * factor))
-      const rect = boardRectRef.current
-      scaleRef.current = next
-      setScale(next)
-      setOffset(o => ({
-        x: (e.clientX - rect.left) - (next / cur) * ((e.clientX - rect.left) - o.x),
-        y: (e.clientY - rect.top)  - (next / cur) * ((e.clientY - rect.top)  - o.y),
-      }))
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Зум колесом/пинчем — точка под курсором остаётся под курсором
+  const resetZoom = useCanvasZoom(boardRef, boardRectRef, scaleRef, setScale, setOffset)
 
   function addNode() {
     const el = boardRef.current
@@ -253,6 +238,9 @@ const CanvasBoard = forwardRef(function CanvasBoard({
 
   const linkDebug = debugLinks ? linkDiagnostics(nodes, triggerMeasures) : null
 
+  // Дальний зум: содержимое нод и точки портов не рисуем — подробности
+  // у FAR_ZOOM в canvasZoom.js
+  const far = scale < FAR_ZOOM
   const svgTransform   = `translate(${offset.x},${offset.y}) scale(${scale})`
   const worldTransform = `translate(${offset.x}px,${offset.y}px) scale(${scale})`
 
@@ -289,13 +277,14 @@ const CanvasBoard = forwardRef(function CanvasBoard({
         <g transform={svgTransform}>
           <CanvasConnections
             nodes={nodes} portDrag={portDrag} onPortDragStart={startPortDrag}
-            triggerMeasures={triggerMeasures} layer="back"
+            triggerMeasures={triggerMeasures} layer="back" far={far}
             hoveredNodeId={nodeDragging ? null : hoveredNodeId}
           />
         </g>
       </svg>
 
-      <div className="canvasBoardWorld" style={{ transform: worldTransform, transformOrigin: '0 0' }}>
+      <div className={`canvasBoardWorld${far ? ' canvasBoardWorldFar' : ''}`}
+        style={{ transform: worldTransform, transformOrigin: '0 0' }}>
         {nodes.map(node => (
           <div
             key={node.id}
@@ -357,7 +346,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
         <g transform={svgTransform}>
           <CanvasConnections
             nodes={nodes} portDrag={portDrag} onPortDragStart={startPortDrag}
-            triggerMeasures={triggerMeasures} layer="front"
+            triggerMeasures={triggerMeasures} layer="front" far={far}
             hoveredNodeId={nodeDragging ? null : hoveredNodeId}
           />
           {linkDebug && <CanvasLinkDebug segments={linkDebug.segments} />}
@@ -367,6 +356,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       {linkDebug && (
         <CanvasDebugOverlay debug={linkDebug} scale={scale} offset={offset} />
       )}
+
+      <CanvasZoomBadge scale={scale} onReset={resetZoom} />
 
       <NodeTypeMenu
         pos={typeMenu?.pos}
