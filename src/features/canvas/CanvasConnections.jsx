@@ -161,4 +161,30 @@ function CanvasConnections({
   )
 }
 
-export default memo(CanvasConnections)
+// Раскладка (линии/точки) зависит только от геометрии: позиция, размер, тип
+// (fallback-высота до первого замера) и сам массив триггеров. Правка текста в
+// typeData ноды создаёт новый объект node на каждую напечатанную букву — без
+// этого сравнения React.memo видел бы новый nodes[] и заново гонял обход
+// препятствий по ВСЕМ 70+ нодам на каждый символ (тормозило набор текста).
+function sameGeometry(a, b) {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    const na = a[i], nb = b[i]
+    if (na === nb) continue
+    if (na.id !== nb.id || na.x !== nb.x || na.y !== nb.y ||
+        na.size !== nb.size || na.type !== nb.type || na.triggers !== nb.triggers) return false
+  }
+  return true
+}
+
+function areEqual(prev, next) {
+  return prev.layer === next.layer &&
+    prev.portDrag === next.portDrag &&
+    prev.onPortDragStart === next.onPortDragStart &&
+    prev.triggerMeasures === next.triggerMeasures &&
+    prev.hoveredNodeId === next.hoveredNodeId &&
+    sameGeometry(prev.nodes, next.nodes)
+}
+
+export default memo(CanvasConnections, areEqual)

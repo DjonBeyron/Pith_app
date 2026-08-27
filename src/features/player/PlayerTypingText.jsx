@@ -12,6 +12,7 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
   // вместе с остановленным звуком
   const frozen = usePlayerFrozen()
   const [count, setCount] = useState(0)
+  const [edited, setEdited] = useState(false)
   const charRef   = useRef(0)
   const timerRef  = useRef(null)
   const changeRef = useRef(onTypingChange)
@@ -19,11 +20,38 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
 
   const spans = useMemo(() => bridgeSpans(buildSpans(text, highlights ?? [])), [text, highlights])
 
-  // Новый текст — печатаем с начала
+  // Первый показ — печатаем с начала (или ждём revealedCharIdx от аудио в
+  // управляемом режиме). А вот ПРАВКА текста уже показанного сообщения (админ
+  // правит ноду из плеера) печать не перезапускает и не ждёт аудио: на паузе
+  // и до начала воспроизведения revealedCharIdx стоит на месте (часто -1), и
+  // сообщение просто исчезало — автор не видел, что набрал. Правку показываем
+  // целиком и сразу, в обоих режимах.
+  const startedRef  = useRef(false)
+  const prevTextRef = useRef(text)
   useEffect(() => {
-    if (isControlled) return
-    charRef.current = 0
-    setCount(0) // eslint-disable-line
+    // Синхронный setState осознан: первый показ vs правка текста различаются
+    // только тут, до первого рендера с новым text не разобраться
+    if (!startedRef.current) {
+      startedRef.current = true
+      prevTextRef.current = text
+      if (!isControlled) {
+        charRef.current = 0
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCount(0)
+      }
+      return
+    }
+    // isControlled/speed тоже в зависимостях эффекта (тело их читает), но
+    // сами по себе они не правка — например, isControlled может переключиться
+    // уже ПОСЛЕ первого рендера, когда транскрипция аудио доедет асинхронно.
+    // Настоящая правка текста — только когда изменился сам text
+    if (prevTextRef.current === text) return
+    prevTextRef.current = text
+    setEdited(true)
+    if (!isControlled) {
+      charRef.current = text.length
+      setCount(text.length)
+    }
   }, [text, speed, isControlled])
 
   // Auto-timer mode
@@ -46,7 +74,8 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
     changeRef.current?.(revealedCharIdx >= 0)
   }, [revealedCharIdx, isControlled])
 
-  const displayCount = isControlled ? Math.max(0, revealedCharIdx + 1) : count
+  const displayCount = edited ? text.length
+    : isControlled ? Math.max(0, revealedCharIdx + 1) : count
   const showCursor   = displayCount < text.length
 
   let charsLeft = displayCount

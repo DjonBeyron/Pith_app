@@ -20,6 +20,22 @@ export default function PlayerAdminPanel({
   // и медиа. Рамка позиционирования медиа при этом раскрыта, как в ноде
   const [trOpen, setTrOpen] = useState(false)
 
+  // Ноду для полей держим локально. Правка уходит на холст сразу, но обратно
+  // в плеер нода возвращается с задержкой (лента обновляется раз в 500 мс) —
+  // и поле, читая ноду из пропа, отставало от набора: каретка прыгала, буквы
+  // «проглатывались». Черновик показывает то, что набрано, не дожидаясь круга.
+  // Черновик помечен id ноды: выбрали другое сообщение — он просто перестаёт
+  // подходить, и поля снова читают ноду из пропа. Отдельный сброс не нужен
+  const [draft, setDraft] = useState(null)
+
+  const shownNode = draft?.id && draft.id === node?.id ? draft.node : node
+
+  function handleUpdate(patch) {
+    if (!shownNode) return
+    setDraft({ id: shownNode.id, node: { ...shownNode, ...patch } })
+    onUpdate(shownNode.id, patch)
+  }
+
   const ordered = [...nodes].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
 
   return (
@@ -58,11 +74,11 @@ export default function PlayerAdminPanel({
       />
 
       <div className="playerEditPanelBody">
-        {node ? (
+        {shownNode ? (
           <NodeContentEditor
-            key={node.id}
-            node={node}
-            onUpdate={patch => onUpdate(node.id, patch)}
+            key={shownNode.id}
+            node={shownNode}
+            onUpdate={handleUpdate}
             allNodes={ordered}
             lessonFiles={lessonFiles}
             onPickLessonFile={onPickLessonFile}
