@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildSpans, bridgeSpans, splitLines, addHighlight, removeHighlightAt, rangeHasStyle, removeRange, decorStyle, highlightStyle, sameStyle } from './textHighlight.js'
+import { buildSpans, bridgeSpans, splitLines, addHighlight, removeHighlightAt, rangeHasStyle, removeRange, decorStyle, highlightStyle, sameStyle, shiftHighlightsForEdit, clearRange } from './textHighlight.js'
 
 const hl = (start, end, over = {}) => ({ start, end, color: '#ffeb3b', mode: 'bg', opacity: 0.5, ...over })
 
@@ -181,6 +181,13 @@ describe('подчёркивание, зачёркивание и плашка-�
     expect(style.textDecorationColor).toBe('rgba(255,255,255,1)')
   })
 
+  it('курсив — отдельная декорация, сочетается с остальными', () => {
+    expect(decorStyle({ italic: true }).fontStyle).toBe('italic')
+    const spans = buildSpans('текст', [{ start: 0, end: 5, mode: 'italic' }])
+    expect(spans[0].italic).toBe(true)
+    expect(decorStyle(spans[0]).fontStyle).toBe('italic')
+  })
+
   it('без декораций стиль пустой — лишних свойств не появляется', () => {
     expect(decorStyle({ bold: false, underline: null, strike: null })).toEqual({})
     expect(decorStyle(null)).toEqual({})
@@ -210,6 +217,56 @@ describe('подчёркивание, зачёркивание и плашка-�
   })
 })
 
+describe('clearRange — «очистить формат» снимает всё разом', () => {
+  it('снимает цвет, плашку и все декорации с диапазона за один вызов', () => {
+    const list = [
+      { start: 0, end: 5, mode: 'text', color: '#fff', opacity: 1 },
+      { start: 0, end: 5, mode: 'bg', color: '#000', opacity: 1 },
+      { start: 0, end: 5, mode: 'bold' },
+      { start: 0, end: 5, mode: 'underline', color: '#fff', opacity: 1 },
+      { start: 0, end: 5, mode: 'strike', color: '#fff', opacity: 1 },
+    ]
+    expect(clearRange(list, 0, 5)).toEqual([])
+  })
+
+  it('оставляет хвосты снаружи диапазона', () => {
+    const list = [{ start: 0, end: 10, mode: 'text', color: '#fff', opacity: 1 }]
+    const next = clearRange(list, 3, 6)
+    expect(next.map(h => [h.start, h.end])).toEqual([[0, 3], [6, 10]])
+  })
+
+  it('не трогает выделения вне диапазона', () => {
+    const list = [{ start: 10, end: 15, mode: 'bold' }]
+    expect(clearRange(list, 0, 5)).toEqual(list)
+  })
+})
+
+describe('shiftHighlightsForEdit — раскраска едет вместе с обычным вводом текста', () => {
+  it('без раскраски ничего не считает — просто пусто', () => {
+    expect(shiftHighlightsForEdit([], 'раз', 'раз два', 7)).toEqual([])
+    expect(shiftHighlightsForEdit(null, 'раз', 'раз два', 7)).toEqual([])
+  })
+
+  it('вставка перед выделением сдвигает его целиком', () => {
+    // "два" была раскрашена (4-7), перед ней вставили "не " -> едет на 3
+    const next = shiftHighlightsForEdit([hl(4, 7)], 'раз два', 'раз не два', 6)
+    expect(next).toEqual([hl(7, 10)])
+  })
+
+  it('удаление пробела перед выделением не рвёт и не красит соседей', () => {
+    // "раз  два" (двойной пробел) -> "раз два", раскраска на "два" (5-8) должна
+    // остаться на "два" в новой строке (4-7), а не съехать на "два" целиком включая пробел
+    const next = shiftHighlightsForEdit([hl(5, 8)], 'раз  два', 'раз два', 4)
+    expect(next).toEqual([hl(4, 7)])
+  })
+
+  it('удаление слова внутри выделения — участок сжимается, не пропадая совсем', () => {
+    // "раз два три" c раскраской на "два три" (4-11), стёрли "два " целиком
+    const next = shiftHighlightsForEdit([hl(4, 11)], 'раз два три', 'раз три', 4)
+    expect(next).toEqual([hl(4, 7)])
+  })
+})
+
 describe('панель красок предлагает все виды выделения', () => {
   const read = async rel => {
     const { readFileSync } = await import('node:fs')
@@ -217,11 +274,11 @@ describe('панель красок предлагает все виды выд�
     return readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
   }
 
-  it('в панели есть B, U, S и переключатель заливка/обводка', async () => {
-    const panel = await read('../../features/canvas/NodeTextHighlighter.jsx')
-    expect(panel).toContain("setDecor('bold'")
-    expect(panel).toContain("setDecor('underline'")
-    expect(panel).toContain("setDecor('strike'")
+  it('в тулбаре есть B, U, S и переключатель заливка/обводка', async () => {
+    const panel = await read('../../features/canvas/rich-text/RichTextToolbar.jsx')
+    expect(panel).toContain("toggleDecor('bold')")
+    expect(panel).toContain("toggleDecor('underline')")
+    expect(panel).toContain("toggleDecor('strike')")
     expect(panel).toContain('onClick={() => setOutline(true)}')
     expect(panel).toContain('onClick={() => setOutline(false)}')
     // обводка — только у плашки, у цвета текста её нет

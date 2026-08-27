@@ -69,9 +69,9 @@ describe('кнопка смайликов в редакторе ноды', () =>
 
   it('вставка идёт в позицию курсора, снятую при открытии окна', () => {
     const hook = read('../../features/canvas/useNodeEmoji.js')
-    expect(hook).toContain('el.selectionStart')
-    expect(hook).toContain('targetRef.current = (el && el.selectionStart != null)')
-    expect(hook).toContain('setSelectionRange(caret, caret)')
+    expect(hook).toContain('readCaretIndex(editable)')
+    expect(hook).toContain('readSelectionRange(editable)')
+    expect(hook).toContain('setCaretIndex(t.el, caret)')
     expect(hook).toContain('shiftHighlights(highlights, start, end, ch.length)')
   })
 

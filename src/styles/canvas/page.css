@@ -286,7 +286,11 @@
      «связи пропали». */
   min-height: 240px;
   position: relative;
-  overflow: hidden;
+  /* Именно clip, а не hidden: hidden оставляет доску scroll-контейнером, и
+     браузер при фокусе поля далеко отстоящей ноды сам проматывал её на
+     тысячи пикселей — SVG-слои уезжали за экран и связи пропадали все
+     разом (подробности и страховка — useBoardScrollGuard.js) */
+  overflow: clip;
   cursor: default;
   background-color: #090b0e;
   background-image: radial-gradient(circle, rgba(255,255,255,0.10) 1px, transparent 1px);

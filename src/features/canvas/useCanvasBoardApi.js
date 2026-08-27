@@ -4,6 +4,7 @@ import { checkNodes, formatIntegrity } from './canvasIntegrity.js'
 import { spreadNodes } from './canvasSpread.js'
 import { compactLayout, graphSize } from './canvasCompact.js'
 import { renumber, NODE_SLOT } from './nodeGraph.js'
+import { useBoardScrollGuard, checkBoardLayers } from './useBoardScrollGuard.js'
 
 // Сколько держится «прожектор» на ноде, к которой перешли из плеера
 // (возврат остальных — плавный, за счёт CSS-перехода, см. spotlight.css)
@@ -21,6 +22,11 @@ export function useCanvasBoardApi(ref, {
   const [spotlightId, setSpotlightId] = useState(null)
   const spotTimerRef = useRef(null)
   useEffect(() => () => clearTimeout(spotTimerRef.current), [])
+
+  // Доска не должна быть прокручена внутри себя — иначе пропадают ВСЕ связи
+  // (подробности в useBoardScrollGuard.js). Слои перепроверяются заново, когда
+  // набор нод сменился целиком — прежде всего после импорта урока
+  useBoardScrollGuard(boardRef, nodes.length)
 
   // Поставить ноду в центр холста (масштаб 1); select — заодно выделить её
   // и на секунду притушить всё остальное
@@ -51,6 +57,12 @@ export function useCanvasBoardApi(ref, {
       // правее всего графа, и без этого автор смотрел бы на старый кусок
       // урока, не понимая, приехало что-нибудь или нет
       if (list[0]) setTimeout(() => centerOn(list[0], true), 0)
+      // Импорт — самый частый путь к «урок открылся, а связей не видно»:
+      // сразу после отрисовки сверяем, что слой связей стоит ровно на доске
+      setTimeout(() => {
+        const problem = checkBoardLayers(boardRef.current)
+        if (problem) dbg('[IMPORT] холст:', problem)
+      }, 60)
       setNodes(prev => {
         if (mode === 'replace') {
           const next = renumber(list)
@@ -96,7 +108,7 @@ export function useCanvasBoardApi(ref, {
       const n = nodes.find(x => x.id === nodeId)
       if (n) centerOn(n, true)
     },
-  }), [nodes, setNodes, updateNode, centerOn])
+  }), [nodes, setNodes, updateNode, centerOn, boardRef])
 
   return spotlightId
 }

@@ -1,0 +1,207 @@
+/* ── Поле ввода (RichTextField) ─────────────────────────────────── */
+/* Визуально повторяет .nodeTextInput (node-fields.css) — замена textarea на
+   contenteditable должна быть незаметна глазу */
+.richTextField {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0e1013;
+  border: 1.5px solid #2a2d35;
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #e0e0e0;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  overflow: auto;
+  outline: none;
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 96px;
+}
+.richTextField:focus { border-color: #b6fe3b; }
+
+/* Нативная синяя подсветка выделения браузера/системы плохо видна на тёмном
+   фоне — заменяем полупрозрачной, свой цвет читается лучше */
+.richTextField ::selection { background: rgba(33, 150, 243, 0.35); }
+
+/* contenteditable не умеет в атрибут placeholder — рисуем его сами, пока
+   value === '' (RichTextField выставляет data-empty явно из React-состояния,
+   а не через :empty — так не путаемся в браузерном «одиноком <br>») */
+.richTextField[data-empty='true']::before {
+  content: attr(data-placeholder);
+  color: #444;
+  pointer-events: none;
+}
+
+/* ── Плавающий тулбар (RichTextToolbar) ─────────────────────────── */
+.richTextToolbar {
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.richTextToolbarRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.richTextToolbarSwatches { flex-wrap: wrap; }
+
+/* Квадратные иконки-кнопки тулбара (Lucide): T/плашка, B/I/U/S, ластик */
+.richTextIconBtn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  background: #12151a;
+  border: 1.5px solid #2a2d35;
+  border-radius: 7px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.richTextIconBtn:hover { border-color: #444; }
+/* Активный — белое свечение рамкой */
+.richTextIconBtn.active {
+  border-color: #fff;
+  color: #fff;
+  background: #23262c;
+}
+.richTextIconBtnDanger { color: #f87171; margin-left: auto; }
+.richTextIconBtnDanger:hover { border-color: #f87171; background: rgba(248, 113, 113, 0.1); }
+.richTextIconBtnClose {
+  width: 20px;
+  height: 20px;
+  color: #666;
+  background: none;
+  border: none;
+}
+.richTextIconBtnClose:hover { color: #ccc; }
+
+/* Буквенные иконки T/▧ — тот же квадрат, что и Lucide-кнопки, но текстовый
+   символ вместо svg (плашка — «в клеточку», её просили вернуть как было) */
+.richTextIconLetter { font-size: 14px; font-weight: 700; line-height: 1; }
+
+/* Шапка-хват: перетаскивает всю панель вручную, если авто-позиция сбоку от
+   выделения не устраивает. Сама панель — position:fixed, шапка просто меняет
+   inline top/left через JS (onHandleMouseDown в RichTextToolbar) */
+.richTextToolbarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #555;
+  cursor: grab;
+  margin: -8px -8px 2px;
+  padding: 3px 6px;
+  border-radius: 10px 10px 0 0;
+}
+.richTextToolbarHeader:hover { background: #20232a; color: #888; }
+.richTextToolbarHeader:active { cursor: grabbing; }
+
+/* Прозрачность — не слайдер на всю ширину, а компактная кнопка-процент;
+   слайдер выезжает отдельной строкой по клику */
+.richTextOpacityBtn {
+  background: #12151a;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  color: #999;
+  font-size: 11px;
+  padding: 4px 7px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.richTextOpacityBtn.active { border-color: #fff; color: #fff; }
+
+/* Точный цвет по hex-коду — рядом с нативным свотчем, для тех, кому нужно
+   ввести конкретное значение, а не крутить пипетку */
+.richTextHexInput {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #12151a;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  padding: 0 6px;
+  color: #666;
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.richTextHexInput:focus-within { border-color: #b6fe3b; }
+.richTextHexInput input {
+  background: none;
+  border: none;
+  outline: none;
+  color: #e0e0e0;
+  font-size: 12px;
+  font-family: monospace;
+  padding: 5px 0;
+  width: 100%;
+  min-width: 0;
+  text-transform: lowercase;
+}
+.richTextHexInput input::placeholder { color: #3a3d45; }
+
+/* Кнопка очистки истории — та же ячейка, что и свотчи истории, в конце ряда */
+.richTextHistoryClear { width: 22px; height: 22px; margin-left: 4px; }
+
+.richTextToolbarDivider {
+  width: 1px;
+  align-self: stretch;
+  background: #2a2d35;
+  margin: 2px 1px;
+  flex-shrink: 0;
+}
+
+.richTextToolbarFavToggle {
+  background: none;
+  border: 1px solid #2a2d35;
+  border-radius: 4px;
+  color: #777;
+  font-size: 13px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+.richTextToolbarFavToggle:hover { color: #ffeb3b; border-color: #ffeb3b; }
+
+/* Миниатюра избранного стиля: буква "А" самим цветом/декорациями пресета —
+   сразу видно жирность/подчёркивание/зачёркивание, а не только цвет */
+.richTextFavSwatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: none;
+  background: #12151a;
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+/* Активный — не обводкой (лишний контур на маленькой кнопке), а чуть крупнее
+   на месте, аккуратно внутри своей ячейки */
+.richTextFavSwatch.active,
+.richTextToolbar .textHLSwatch.active {
+  transform: scale(1.2);
+  border-color: transparent;
+}

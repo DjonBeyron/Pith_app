@@ -13,11 +13,20 @@ import { applyTypeChange } from './nodeDefaults.js'
 import { NODE_TYPES } from './nodeTypes.js'
 import { autoGrowTextarea } from '../../shared/lib/autoGrowTextarea.js'
 import { useTextareaHeight } from './useTextareaHeight.js'
+import RichTextField from './rich-text/RichTextField.jsx'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
 // Типы нод со своим текстом сообщения — им нужна кнопка смайликов
 const HAS_TEXT_TYPES = new Set(['text', 'pin_message', 'system', 'audio', 'sticker', 'photo'])
+
+function mainFieldPlaceholder(type) {
+  if (type === 'pin_message') return 'Текст закреплённого сообщения...'
+  if (type === 'system')      return 'Системное сообщение...'
+  if (type === 'photo')       return 'Текст под фото (в том же пузыре)...'
+  if (type === 'sticker')     return 'Текст под стикером (в том же пузыре)...'
+  return 'Введи текст сообщения...'
+}
 
 // Форма редактирования содержимого ноды по её типу: файл/текст/варианты
 // ответов + блок триггеров. Общая для max-ноды канваса (CanvasNode) и строки
@@ -37,14 +46,10 @@ export default function NodeContentEditor({
   // скролла внутри узкой рамки, даже длинный (переносом на новую строку)
   growTextareas = false,
 }) {
-  // Высота текстовых полей, растянутых уголком, помнится между сессиями
-  const contentRef = useTextareaHeight(`${node.id}:content`, !growTextareas)
-  const captionRef = useTextareaHeight(`${node.id}:caption`, !growTextareas)
-  const policyRef  = useTextareaHeight(`${node.id}:policy`, !growTextareas)
+  // Высота textarea без раскраски (policyText — единственная оставшаяся)
+  const policyRef = useTextareaHeight(`${node.id}:policy`, !growTextareas)
 
-  const [hlRect, setHlRect] = useState(null)
   const [wrapRect, setWrapRect] = useState(null) // окно «свои переносы»
-  const [hlTarget, setHlTarget] = useState('main') // 'main' | 'pro' — какой текст красим
 
   const wrapRef = useRef(null)
 
@@ -109,7 +114,8 @@ export default function NodeContentEditor({
           hasWaveform={!!(tData.waveformData?.length)}
           hasTimings={!!(tData.wordTimings?.length)}
           text={tData.text ?? ''}
-          onTextChange={t => updateTypeData({ text: t })}
+          highlights={tData.highlights ?? []}
+          onTextChange={updateTypeData}
           growText={growTextareas}
         />
       )}
@@ -138,20 +144,14 @@ export default function NodeContentEditor({
         />
       )}
       {(node.type === 'text' || node.type === 'pin_message' || node.type === 'system') && (
-        <textarea
-          className="nodeTextInput"
+        <RichTextField
+          field="content"
           value={tData.content ?? ''}
-          onChange={e => updateTypeData({ content: e.target.value })}
-          placeholder={
-            node.type === 'pin_message' ? 'Текст закреплённого сообщения...' :
-            node.type === 'system'      ? 'Системное сообщение...' :
-            'Введи текст сообщения...'
-          }
-          onClick={e => e.stopPropagation()}
-          onMouseDown={e => e.stopPropagation()}
-          rows={8}
-          ref={growTextareas ? autoGrowTextarea : contentRef}
-          onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
+          highlights={tData.highlights ?? []}
+          onChange={updateTypeData}
+          placeholder={mainFieldPlaceholder(node.type)}
+          growTextarea={growTextareas}
+          heightKey={`${node.id}:content`}
         />
       )}
       {node.type === 'sticker' && (
@@ -169,31 +169,21 @@ export default function NodeContentEditor({
         </label>
       )}
       {(node.type === 'sticker' || node.type === 'photo') && (
-        <textarea
-          className="nodeTextInput"
+        <RichTextField
+          field="caption"
           value={tData.caption ?? ''}
-          onChange={e => updateTypeData({ caption: e.target.value })}
-          placeholder={node.type === 'photo'
-            ? 'Текст под фото (в том же пузыре)...'
-            : 'Текст под стикером (в том же пузыре)...'}
-          onClick={e => e.stopPropagation()}
-          onMouseDown={e => e.stopPropagation()}
-          rows={4}
-          ref={growTextareas ? autoGrowTextarea : captionRef}
-          onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
+          highlights={tData.highlights ?? []}
+          onChange={updateTypeData}
+          placeholder={mainFieldPlaceholder(node.type)}
+          growTextarea={growTextareas}
+          heightKey={`${node.id}:caption`}
         />
       )}
       <NodeTextTools
         hasText={HAS_TEXT_TYPES.has(node.type)}
         textWritten={!!mainText.trim()}
-        hasHighlights={tData.highlights?.length > 0}
         wrapActive={wrapActive}
         onEmoji={emoji.open}
-        onPaint={e => {
-          e.stopPropagation()
-          setHlTarget('main')
-          setHlRect(wrapRef.current?.getBoundingClientRect() ?? null)
-        }}
         onWrap={e => {
           e.stopPropagation()
           setWrapRect(wrapRef.current?.getBoundingClientRect() ?? null)
@@ -204,10 +194,6 @@ export default function NodeContentEditor({
           nodeId={node.id}
           tData={tData}
           onChange={updateTypeData}
-          onOpenHl={() => {
-            setHlTarget('pro')
-            setHlRect(wrapRef.current?.getBoundingClientRect() ?? null)
-          }}
         />
       )}
       {(node.type === 'text' || node.type === 'sticker') && (
@@ -314,10 +300,6 @@ export default function NodeContentEditor({
         tData={tData}
         mainText={mainText}
         mainField={mainField}
-        hlRect={hlRect}
-        hlTarget={hlTarget}
-        onHlClose={() => setHlRect(null)}
-        onHighlightsChange={updateTypeData}
         wrapRect={wrapRect}
         onWrapClose={() => setWrapRect(null)}
         onWrapChange={patch => updateTypeData(patch)}

@@ -1,3 +1,5 @@
+import { diffTextEdit } from './textEditDiff.js'
+
 // Shared highlight utilities for canvas editor and player.
 // Highlight format: { start, end, color, mode, opacity }
 //
@@ -5,11 +7,12 @@
 //   'text' | 'bg'                     — как красим сам текст: цветом букв или
 //                                       плашкой (у плашки outline: true —
 //                                       только рамка, без заливки);
-//   'bold' | 'underline' | 'strike'   — ДЕКОРАЦИИ: накладываются поверх любого
-//                                       из первых двух и друг на друга.
+//   'bold' | 'italic' | 'underline' | 'strike' — ДЕКОРАЦИИ: накладываются
+//                                       поверх любого из первых двух и друг
+//                                       на друга.
 // bg имеет приоритет отображения над цветом текста на одних и тех же буквах.
 // Оба могут сосуществовать — ПКМ снимает их по одному (сначала плашку).
-export const DECOR_MODES = ['bold', 'underline', 'strike']
+export const DECOR_MODES = ['bold', 'italic', 'underline', 'strike']
 
 export function hexToRgba(hex, opacity) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -45,7 +48,7 @@ export function splitLines(text) {
 // bg has display priority over text-color on the same position.
 // Returns [{ text, h: display_highlight|null }]
 export function buildSpans(text, highlights = []) {
-  if (!highlights.length) return [{ text, h: null, bold: false, underline: null, strike: null }]
+  if (!highlights.length) return [{ text, h: null, bold: false, italic: false, underline: null, strike: null }]
   const bgMap   = new Array(text.length).fill(null)
   const textMap = new Array(text.length).fill(null)
   // Декорации — отдельные слои: они сочетаются и с плашкой, и с цветом текста,
@@ -73,6 +76,7 @@ export function buildSpans(text, highlights = []) {
     spans.push({
       text: text.slice(i, j), h, textUnder,
       bold: !!decorMaps.bold[i],
+      italic: !!decorMaps.italic[i],
       underline: decorMaps.underline[i],
       strike: decorMaps.strike[i],
     })
@@ -91,11 +95,16 @@ export function decorStyle(span) {
   const src = span?.underline ?? span?.strike
   return {
     ...(span?.bold ? { fontWeight: 700 } : {}),
+    ...(span?.italic ? { fontStyle: 'italic' } : {}),
     ...(lines.length ? {
       textDecorationLine: lines.join(' '),
       ...(src?.color ? { textDecorationColor: hexToRgba(src.color, src.opacity ?? 1) } : {}),
-      textDecorationThickness: '2px',
-      textUnderlineOffset: '2px',
+      // Em-относительные (не px): фиксированный офсет был одинаково мал и в
+      // мелком чат-пузыре, и в крупном превью — на жирных буквах с засечкой
+      // (например «р») линия оказывалась впритык и визуально их перечёркивала.
+      textDecorationThickness: '0.08em',
+      textUnderlineOffset: '0.15em',
+      textDecorationSkipInk: 'auto',
     } : {}),
   }
 }
@@ -139,6 +148,13 @@ export function removeRange(highlights, start, end, mode) {
     if (h.end > end) out.push({ ...h, start: end })
   }
   return out.sort((a, b) => a.start - b.start)
+}
+
+// Снимает ВСЕ виды выделения (цвет, плашку, декорации) с диапазона разом —
+// кнопка «очистить формат» в плавающем тулбаре. removeRange/removeHighlightAt
+// снимают по одному слою за раз, это для полного сброса одним действием.
+export function clearRange(highlights, start, end) {
+  return [...DECOR_MODES, 'text', 'bg'].reduce((hl, mode) => removeRange(hl, start, end, mode), highlights)
 }
 
 // Right-click removal: removes highest-priority highlight at position.
@@ -198,4 +214,14 @@ export function shiftHighlights(highlights, start, end, insertedLength) {
     return { ...h, end: Math.max(h.start, h.end + delta) }
   })
   return moved.filter(h => h.end > h.start)
+}
+
+// То же самое, но для обычного набора текста (печать/Backspace/Delete/paste
+// в textarea), где нет готового {start,end,insertedLength} — есть только
+// текст до и после правки. diffTextEdit восстанавливает эту тройку по разнице
+// строк и текущей каретке, дальше работает как обычный shiftHighlights.
+export function shiftHighlightsForEdit(highlights, oldText, newText, postCaret) {
+  if (!highlights?.length) return highlights ?? []
+  const { start, end, insertedLength } = diffTextEdit(oldText, newText, postCaret)
+  return shiftHighlights(highlights, start, end, insertedLength)
 }

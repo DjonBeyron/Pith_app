@@ -48,25 +48,23 @@
   gap: 6px;
 }
 
-/* Text that will be printed character-by-character in the player */
-.nodeAudioText {
-  width: 100%;
-  box-sizing: border-box;
+/* Text that will be printed character-by-character in the player.
+   Двойной класс (не одиночный .nodeAudioText) — перебивает специфичностью
+   .richTextField из rich-text-field.css независимо от порядка импорта CSS */
+.richTextField.nodeAudioText {
   background: #0a0c10;
   border: 1px dashed #2a3a50;
   border-radius: 6px;
   color: #b0c4d8;
   font-size: 11px;
-  font-family: inherit;
   line-height: 1.55;
   padding: 6px 8px;
-  resize: vertical;
 }
-.nodeAudioText:focus {
+.richTextField.nodeAudioText:focus {
   outline: none;
   border-color: #4a7ca8;
 }
-.nodeAudioText::placeholder { color: #334; }
+.richTextField.nodeAudioText[data-empty='true']::before { color: #334; }
 
 /* Analysis status tags */
 .nodeAudioTagRow {

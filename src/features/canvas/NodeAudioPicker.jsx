@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { analyzeWaveform, probeAudioDuration } from '../../shared/lib/audioUtils.js'
 import { transcribeAudio } from '../../shared/lib/transcribeApi.js'
-import { autoGrowTextarea } from '../../shared/lib/autoGrowTextarea.js'
-import { useTextareaHeight } from './useTextareaHeight.js'
+import RichTextField from './rich-text/RichTextField.jsx'
 
 function truncate(name, max = 20) {
   return name.length > max ? name.slice(0, max - 1) + '…' : name
@@ -21,11 +20,10 @@ export default function NodeAudioPicker({
   nodeId,
   fileId, lessonFiles, onPick, onAnalyzed,
   hasWaveform = false, hasTimings = false,
-  text = '', onTextChange,
+  text = '', highlights = [], onTextChange,
   // Продакшен: текст растёт по высоте, весь виден без скролла внутри поля
   growText = false,
 }) {
-  const textRef = useTextareaHeight(`${nodeId}:audioText`, !growText)
   const file = lessonFiles.find(f => f.id === fileId) ?? null
   const [waveStatus, setWaveStatus] = useState('idle')
   const [txStatus,   setTxStatus]   = useState('idle')
@@ -92,15 +90,15 @@ export default function NodeAudioPicker({
         </div>
       )}
 
-      <textarea
-        className="nodeAudioText"
+      <RichTextField
+        field="text"
         value={text}
-        onChange={e => onTextChange?.(e.target.value)}
+        highlights={highlights}
+        onChange={onTextChange}
         placeholder="Текст для печатания в плеере…"
-        onClick={e => e.stopPropagation()}
-        rows={6}
-        ref={growText ? autoGrowTextarea : textRef}
-        onInput={growText ? e => autoGrowTextarea(e.target) : undefined}
+        growTextarea={growText}
+        heightKey={`${nodeId}:audioText`}
+        className="nodeAudioText"
       />
     </div>
   )

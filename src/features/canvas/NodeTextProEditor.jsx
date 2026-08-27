@@ -1,10 +1,9 @@
-import { useTextareaHeight } from './useTextareaHeight.js'
+import RichTextField from './rich-text/RichTextField.jsx'
 // Про-режим текстовой ноды: второй текст (перевод), который пользователь
 // раскрывает в чате кнопкой на пузыре. Настройки: текст, надпись кнопки
 // (RU/EN/...), способ появления («напечатать» / «показать сразу»), раскраска
-// перевода (открывает общий NodeTextHighlighter через onOpenHl).
-export default function NodeTextProEditor({ tData, onChange, onOpenHl, nodeId }) {
-  const proRef = useTextareaHeight(`${nodeId}:proText`)
+// перевода — прямо в поле (RichTextField), как и у основного текста.
+export default function NodeTextProEditor({ tData, onChange, nodeId }) {
   const pro = !!tData.pro
   return (
     <div className="nodeProSection" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
@@ -36,22 +35,15 @@ export default function NodeTextProEditor({ tData, onChange, onOpenHl, nodeId })
               <option value="type">Напечатать</option>
               <option value="instant">Показать сразу</option>
             </select>
-            <button
-              className="nodeHLOpenBtn nodeProHlBtn"
-              style={(tData.proHighlights?.length > 0) ? { borderColor: '#b6fe3b', color: '#b6fe3b' } : undefined}
-              onClick={onOpenHl}
-              title="Раскрасить перевод"
-            >
-              🎨
-            </button>
           </div>
-          <textarea
-            className="nodeTextInput"
+          <RichTextField
+            field="proText"
+            highlightsField="proHighlights"
             value={tData.proText ?? ''}
-            onChange={e => onChange({ proText: e.target.value })}
+            highlights={tData.proHighlights ?? []}
+            onChange={onChange}
             placeholder="Текст перевода..."
-            rows={6}
-            ref={proRef}
+            heightKey={`${nodeId}:proText`}
           />
         </>
       )}

@@ -67,7 +67,7 @@ export default function NodePhraseAssemblyPicker({
     if (!newWords.length) return
     onWordsChange([...words, ...newWords])
     setWordText('')
-    wordInputRef.current?.focus()
+    wordInputRef.current?.focus({ preventScroll: true })
   }
 
   function removeWord(idx) {
@@ -79,7 +79,7 @@ export default function NodePhraseAssemblyPicker({
     if (!text || distractors.some(d => d.text === text)) return
     onDistractorsChange([...distractors, { id: crypto.randomUUID(), text }])
     distInputRef.current.value = ''
-    distInputRef.current.focus()
+    distInputRef.current.focus({ preventScroll: true })
   }
 
   function removeDistractor(id) {

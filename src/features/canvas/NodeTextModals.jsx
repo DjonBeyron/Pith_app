@@ -1,32 +1,16 @@
-import NodeTextHighlighter from './NodeTextHighlighter.jsx'
 import NodeTextWrapModal from './NodeTextWrapModal.jsx'
 import EmojiPicker from '../../shared/ui/EmojiPicker.jsx'
 
-// Три окна над текстом ноды: раскраска слов, свои переносы и смайлики.
-// Вынесены из NodeContentEditor.jsx — он у потолка размера файла.
+// Окна над текстом ноды: свои переносы и смайлики — вынесены из
+// NodeContentEditor.jsx (потолок размера). Раскраска слов больше не окно —
+// она инлайн в самом текстовом поле (RichTextField/RichTextToolbar).
 export default function NodeTextModals({
   node, tData, mainText, mainField,
-  hlRect, hlTarget, onHlClose, onHighlightsChange,
   wrapRect, onWrapClose, onWrapChange,
   emoji,
 }) {
-  const isPro = hlTarget === 'pro'
-
   return (
     <>
-      {hlRect && (
-        <NodeTextHighlighter
-          text={isPro ? (tData.proText ?? '') : mainText}
-          highlights={(isPro ? tData.proHighlights : tData.highlights) ?? []}
-          /* предпросмотр в раскраске должен совпадать с уроком, в том числе
-             когда автор задал свои переносы */
-          hardWrap={node.type === 'text' && !isPro && !!tData.hardWrap}
-          anchorRect={hlRect}
-          onClose={onHlClose}
-          onChange={hl => onHighlightsChange(isPro ? { proHighlights: hl } : { highlights: hl })}
-        />
-      )}
-
       {wrapRect && (
         <NodeTextWrapModal
           text={mainText}

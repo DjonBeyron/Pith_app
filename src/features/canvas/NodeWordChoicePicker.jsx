@@ -70,7 +70,7 @@ export default function NodeWordChoicePicker({
     if (!text) return
     onOptionsChange([...options, { id: crypto.randomUUID(), text, isCorrect: false }])
     inputRef.current.value = ''
-    inputRef.current.focus()
+    inputRef.current.focus({ preventScroll: true })
   }
 
   function toggleCorrect(id) {

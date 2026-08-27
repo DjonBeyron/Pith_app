@@ -82,7 +82,7 @@ export default function NodePhotoChoicePicker({
     const label = labelText.trim() || `Фото ${photos.length + 1}`
     onPhotosChange([...photos, { id: crypto.randomUUID(), label, photoUrl: null }])
     setLabelText('')
-    labelInputRef.current?.focus()
+    labelInputRef.current?.focus({ preventScroll: true })
   }
 
   function removePhoto(idx) {

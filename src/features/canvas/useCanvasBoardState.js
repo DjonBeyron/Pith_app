@@ -73,7 +73,14 @@ export function useCanvasBoardState(lessonId, initialNodes, onNodesChange) {
   const [offset, setOffset] = useState(() => loadView(lessonId).offset ?? { x: 0, y: 0 })
   const [scale, setScale]   = useState(() => {
     const v = loadView(lessonId)
-    return typeof v.scale === 'number' ? v.scale : 1
+    // Диапазон здесь и в CanvasBoard.jsx (onWheel) должен совпадать: колесо
+    // клампит scale только по СВОЕМУ следующему шагу, а сохранённое здесь
+    // значение подставляется на старте БЕЗ клампа — если оно когда-то было
+    // записано вне диапазона (например, при пробном расширении зума, потом
+    // откаченном), при следующей загрузке страница взяла бы его как есть, и
+    // холст открывался бы в состоянии «вне спеки» (на таком масштабе линии
+    // связей визуально пропадают — толщина обводки в SVG умножается на scale)
+    return typeof v.scale === 'number' ? Math.min(2.5, Math.max(0.25, v.scale)) : 1
   })
   const scaleRef   = useRef(scale)
   const mountedRef = useRef(false)
