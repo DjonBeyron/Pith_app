@@ -3,6 +3,7 @@ import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
 import { deriveAnswerTokens, normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 import { cellIsPickable, allCellsPicked } from './manualCellPick.js'
+import { flyPanelToChat } from '../flyPanelToChat.js'
 
 
 function shuffle(arr) {
@@ -17,7 +18,7 @@ function shuffle(arr) {
 // onAnswerToChat(text, result) — галочка «отправить ответ ученика в чат»:
 // собранная фраза уходит пузырём справа. Верная — сразу; неверная — ОДИН раз,
 // последней (третьей) попыткой: промежуточные варианты в переписке не нужны.
-export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat }) {
+export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat, onLandedInChat }) {
   const tData       = node.typeData?.table ?? {}
   const table       = tData.table          ?? null
   const answer      = tData.answer         ?? ''
@@ -46,6 +47,8 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   ]))
 
   const [show,      setShow]      = useState(false)
+  // Уход «в чат» — панель поднимается и тает, см. table-manual.css
+  const [toChat,    setToChat]    = useState(false)
   const [assembled, setAssembled] = useState([])
   const [result,    setResult]    = useState(null)       // null | 'correct' | 'wrong'
   const [panelH,    setPanelH]    = useState(0)
@@ -113,12 +116,25 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   }
 
   function closePanelWith(trigger, variantId) {
-    // Галочка «отправить таблицу в чат»: таблица уходит сообщением следом за
-    // разбором — с небольшой паузой, чтобы не наехать на уезжающую панель
-    if (onSendToChat) timers.current.push(setTimeout(onSendToChat, 600))
+    const done = () => { onHeightChange?.(0); onDone?.(trigger, variantId) }
+    // Галочка «отправить таблицу в чат»: панель летит на место своего
+    // сообщения в переписке, а не гаснет здесь (flyPanelToChat.js)
+    if (onSendToChat) {
+      setToChat(true)
+      // Та же собранная фраза и итог проверки уезжают в пузырь — чтобы после
+      // посадки таблица в переписке выглядела как только что в панели
+      const sent = { words: assembled.map(t => t.value), result }
+      flyPanelToChat(panelRef.current, node.id, {
+        send: arriving => onSendToChat(arriving, sent),
+        reveal: onLandedInChat,
+        onLanded: done,
+        // фразы нет — в пузыре бокса не будет, сворачиваем его заранее
+        dropAssembly: !sent.words.length,
+      })
+    } else {
+      timers.current.push(setTimeout(done, 420))
+    }
     setShow(false)
-    const id = setTimeout(() => { onHeightChange?.(0); onDone?.(trigger, variantId) }, 420)
-    timers.current.push(id)
   }
 
   function check() {
@@ -184,7 +200,8 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
             : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
         }}
       />
-      <div ref={panelRef} className={`tmPanel${show ? ' tmPanelVisible' : ''}`}>
+      <div ref={panelRef}
+        className={`tmPanel${show ? ' tmPanelVisible' : ''}${!show && toChat ? ' tmPanelToChat' : ''}`}>
         <div className="tmPanelInner">
 
           {/* Бокс сборки: нажимая на чип — удаляем его из ответа */}

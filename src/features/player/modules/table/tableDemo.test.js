@@ -28,7 +28,8 @@ describe('таблица в режиме «Показ»', () => {
   it('в ленте показ рисует пузырь во всю ширину, остальные режимы — ничего', () => {
     const router = read('./TableModule.jsx')
     expect(router).toContain("if (mode === 'demo') return <TableDemoModule {...props} />")
-    expect(router).toContain('{props.tableSent && <TableChatBubble')
+    expect(router).toContain('{props.tableSent && (')
+    expect(router).toContain('<TableChatBubble')
     // без галочек в ленте от таблицы не остаётся ничего
     expect(router).toContain('if (!props.tableSent && !answers.length) return null')
     const demo = read('./TableDemoModule.jsx')
@@ -43,16 +44,53 @@ describe('таблица в режиме «Показ»', () => {
 })
 
 describe('таблица уходит в чат после ответа (галочка у авто/ручного)', () => {
-  it('панель сообщает об этом с небольшой задержкой', () => {
+  // Панель не гаснет, чтобы «заново появиться» пузырём: её клон летит на
+  // место сообщения в переписке и там садится (flyPanelToChat.js)
+  it('панель улетает в чат, а не исчезает', () => {
     for (const f of ['../../panels/table-dictator/TableDictatorPanel.jsx',
       '../../panels/table-manual/TableManualPanel.jsx']) {
-      expect(read(f)).toContain('setTimeout(onSendToChat, 600)')
+      const src = read(f)
+      expect(src).toContain('flyPanelToChat(panelRef.current, node.id')
+      expect(src).toContain('send: arriving => onSendToChat(arriving, sent)')
+      // в чат уезжает то же, что было в панели: собранная фраза и итог
+      expect(src).toMatch(/words:/)
+      // следующая нода стартует только после посадки — иначе её сообщение
+      // встанет в переписке раньше самой таблицы
+      expect(src).toContain('onLanded: done')
+      // пустой бокс сборки («Смотри на таблицу…») в пузырь не едет — клон
+      // сворачивает его до полёта, иначе посадка идёт рывком
+      expect(src).toContain('dropAssembly: !sent.words.length')
+    }
+  })
+
+  it('полёту есть куда садиться: у пузыря в чате своя метка', () => {
+    expect(read('./TableChatBubble.jsx')).toContain('data-table-bubble={nodeId}')
+    expect(read('./TableModule.jsx')).toContain('nodeId={props.node.id}')
+    const fly = read('../../panels/flyPanelToChat.js')
+    expect(fly).toContain('[data-table-bubble="${nodeId}"]')
+    // Пузырь встаёт в ленту сразу (держит место под посадку), но невидимым:
+    // иначе таблица секунду видна разом и в панели, и в переписке
+    expect(fly).toContain('send?.(true)')
+    expect(fly).toContain('collapseAssembly(ghost)')
+    expect(read('./TableChatBubble.jsx')).toContain("visibility: 'hidden'")
+    expect(read('../../usePlayerAnswers.js')).toContain('markTableLanded')
+  })
+
+  it('настоящая панель гаснет мгновенно — визуал несёт клон', () => {
+    for (const [css, pref] of [
+      ['../../../../styles/player/panels/table-dictator.css', 'td'],
+      ['../../../../styles/player/panels/table-manual.css', 'tm'],
+    ]) {
+      const block = read(css)
+      expect(block).toContain(`.${pref}Panel.${pref}PanelToChat`)
+      expect(block).toContain('transition: none')
     }
   })
 
   it('колбэк даётся панели только когда галочка включена', () => {
     const panels = read('../../PlayerPanels.jsx')
-    expect(panels).toContain('tableNode.typeData?.table?.sendToChat ? () => onTableToChat?.(tableNode.id) : undefined')
+    expect(panels).toContain('tableNode.typeData?.table?.sendToChat')
+    expect(panels).toContain('(arriving, sent) => onTableToChat?.(tableNode.id, arriving, sent) : undefined')
   })
 
   it('отправленная таблица переживает шаг назад — состояние сбрасывается', () => {

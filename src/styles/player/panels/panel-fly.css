@@ -1,0 +1,15 @@
+/* Клон панели, летящий в чат (flyPanelToChat.js). Габариты и позиция
+   ставятся инлайном по замеру настоящей панели; здесь — только то, что
+   выдёргивает клон из потока и кладёт поверх всего */
+/* Двойной класс — чтобы перебить .tdPanel/.tmPanel: у них transform:
+   translateY(100%) и свои переходы, и клон стартовал бы уехавшим вниз */
+.panelFlyGhost.panelFlyGhost {
+  position: fixed;
+  margin: 0;
+  z-index: 60;
+  pointer-events: none;
+  transform: none;
+  transform-origin: top left;
+  transition: none;
+  overflow: hidden;
+}

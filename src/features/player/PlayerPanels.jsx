@@ -21,7 +21,7 @@ export default function PlayerPanels({
   epoch = 0,
   onNodeDone, record, wrongRef,
   handleWordAnswer, handleWordPick, handlePhraseAnswer, handleRegAnswer,
-  handlePhotoPick, handleXpEarned, onTableToChat,
+  handlePhotoPick, handleXpEarned, onTableToChat, onTableLanded,
   setWcPanelHeight, setPaPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
 }) {
   return (
@@ -89,7 +89,9 @@ export default function PlayerPanels({
         tableNode.typeData.table.mode === 'manual' ? (
           <TableManualPanel
             key={`${tableNode.id}:${epoch}:${tableNode.visit ?? 0}`}
-            onSendToChat={tableNode.typeData?.table?.sendToChat ? () => onTableToChat?.(tableNode.id) : undefined}
+            onSendToChat={tableNode.typeData?.table?.sendToChat
+              ? (arriving, sent) => onTableToChat?.(tableNode.id, arriving, sent) : undefined}
+            onLandedInChat={() => onTableLanded?.(tableNode.id)}
             node={tableNode}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
             onAnswered={() => {}}
@@ -103,7 +105,9 @@ export default function PlayerPanels({
         ) : (
           <TableDictatorPanel
             key={`${tableNode.id}:${epoch}:${tableNode.visit ?? 0}`}
-            onSendToChat={tableNode.typeData?.table?.sendToChat ? () => onTableToChat?.(tableNode.id) : undefined}
+            onSendToChat={tableNode.typeData?.table?.sendToChat
+              ? (arriving, sent) => onTableToChat?.(tableNode.id, arriving, sent) : undefined}
+            onLandedInChat={() => onTableLanded?.(tableNode.id)}
             node={tableNode}
             file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}

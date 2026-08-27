@@ -5,6 +5,7 @@ import { useTableDictatorAutostart } from './useTableDictatorAutostart.js'
 import TableDictatorView from './TableDictatorView.jsx'
 import { logDictatorConfig, logFileResolution, logAudioError } from './dictatorDebug.js'
 import { evaluateDictator } from './dictatorCheck.js'
+import { flyPanelToChat } from '../flyPanelToChat.js'
 import { schedulePostAudioCheck } from './dictatorPostAudio.js'
 import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
@@ -19,7 +20,7 @@ function shuffle(arr) {
   return a
 }
 
-export default function TableDictatorPanel({ node, file, onDone, onHeightChange, onSendToChat }) {
+export default function TableDictatorPanel({ node, file, onDone, onHeightChange, onSendToChat, onLandedInChat }) {
   const tData        = node.typeData?.table ?? {}
   const table        = tData.table         ?? null
   const timeline     = tData.timeline      ?? null
@@ -67,6 +68,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   )
 
   const [show,            setShow]            = useState(false)
+  // Уходим «в чат» (галочка «Отправить таблицу в чат») — панель не уезжает
+  // вниз, а приподнимается и растворяется, см. table-dictator.css
+  const [toChat,          setToChat]          = useState(false)
   const [phase,           setPhase]           = useState(null)
   const [chipsVisible,    setChipsVisible]    = useState(false)
   const [playing,         setPlaying]         = useState(false)
@@ -250,6 +254,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
     rfxCheckRef.current       = false
     rfxCloseRef.current       = false
     closedRef.current         = false
+    setToChat(false)
     closeTriggerRef.current   = null
     closeVariantRef.current   = null
     setHighlighted(new Set()); setUsedCells(new Set())
@@ -259,15 +264,34 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
 
   function slideDown(trigger, variantId) {
     pLog(`[td-auto] slideDown trigger=${trigger}`)
-    // Галочка «отправить таблицу в чат»: таблица уходит сообщением следом за
-    // разбором — с небольшой паузой, чтобы не наехать на уезжающую панель
-    if (onSendToChat) timers.current.push(setTimeout(onSendToChat, 600))
+    const done = () => onDone?.(trigger ?? 'table_correct', variantId)
+    // Галочка «отправить таблицу в чат»: панель не уезжает вниз, а летит на
+    // место своего сообщения в переписке (flyPanelToChat.js). Настоящая
+    // панель гаснет сразу — дальше видно её клон, — а следующая нода
+    // запускается только после посадки, чтобы её сообщение не обогнало таблицу
+    if (onSendToChat) {
+      setToChat(true)
+      // Пузырь в чате повторяет вид панели: та же собранная фраза и тот же
+      // итог проверки. Подсказку «Слушай диктора…» не отдаём — она не часть
+      // ответа, только приглашение по ходу разбора
+      const sent = {
+        words: [...assembled, ...extrasAssembled.map(t => t.value)],
+        result,
+      }
+      flyPanelToChat(panelRef.current, node.id, {
+        send: arriving => onSendToChat(arriving, sent),
+        reveal: onLandedInChat,
+        onLanded: done,
+        // фразы нет — в пузыре бокса не будет, сворачиваем его заранее
+        dropAssembly: !sent.words.length,
+      })
+    } else {
+      timers.current.push(setTimeout(done, 420))
+    }
     setShow(false)
     setHudVisible(false)   // панель уезжает вниз — спектр сразу схлопывается (scale к 0), не ждёт onEnded
     setHighlighted(new Set())
     onHeightChange?.(0)
-    const id = setTimeout(() => onDone?.(trigger ?? 'table_correct', variantId), 420)
-    timers.current.push(id)
   }
 
   function handleEnded() {
@@ -342,7 +366,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
 
   return (
     <TableDictatorView
-      show={show} panelH={panelH} panelRef={panelRef} barElsRef={barElsRef}
+      show={show} toChat={toChat} panelH={panelH} panelRef={panelRef} barElsRef={barElsRef}
       waveformData={waveformData} hudVisible={hudVisible}
       assembled={assembled} extrasAssembled={extrasAssembled} result={result}
       audioSrc={audioSrc} phase={phase} table={table}

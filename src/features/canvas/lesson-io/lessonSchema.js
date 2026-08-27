@@ -120,7 +120,7 @@ export const NODE_DOCS = {
       distractors: 'Слова-ловушки вне таблицы: [{text}]',
       responseCorrect: 'Реплика при верном ответе',
       responseWrong: 'Реплика при неверном',
-      sendToChat: 'Отправить саму таблицу в чат после ответа',
+      sendToChat: 'Отправить саму таблицу в чат по окончании: после ответа, а если проверки нет — после конца таймлайна',
       sendAnswerToChat: 'Отправить ответ ученика в чат (верный сразу, неверный — последний из трёх попыток)',
       timeline: 'Монтаж для режима dictator: {layers:[{cellId|word|isCheck|isClear, clips:[{start,end}], repeats, clears, visible, collect, pick}]} — секунды от начала аудио',
       timelineLen: 'Длина композиции в секундах',

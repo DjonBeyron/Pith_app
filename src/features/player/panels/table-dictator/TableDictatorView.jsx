@@ -6,7 +6,7 @@ import TableExtraChips from './TableExtraChips.jsx'
 // значения состояния и колбэки на <audio>. Вынесено, чтобы не раздувать
 // файл с состоянием: сам рендер не завязан ни на таймеры, ни на refs сценария.
 export default function TableDictatorView({
-  show, panelH, panelRef, barElsRef, waveformData, hudVisible,
+  show, toChat, panelH, panelRef, barElsRef, waveformData, hudVisible,
   assembled, extrasAssembled, result, audioSrc, phase, table,
   highlighted, usedCells, revealedIds, flashDur, chipsVisible,
   shuffledExtras, chipStyles, extrasAssembledKeys, activeExtraKeys, hasExtraLayers,
@@ -30,7 +30,8 @@ export default function TableDictatorView({
           ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
           : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
       }} />
-      <div ref={panelRef} className={`tdPanel${show ? ' tdPanelVisible' : ''}`}>
+      <div ref={panelRef}
+        className={`tdPanel${show ? ' tdPanelVisible' : ''}${!show && toChat ? ' tdPanelToChat' : ''}`}>
         <div className="tdPanelInner">
 
           {/* HUD-спектр — САМЫЙ ВЕРХ: над боксом сборки и над таблицей */}

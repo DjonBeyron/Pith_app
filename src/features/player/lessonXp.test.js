@@ -14,10 +14,24 @@ describe('buildXpMap — кому достаётся XP урока', () => {
   it('все наградные типы участвуют', () => {
     const nodes = [
       node('w', 'word_choice'), node('p', 'phrase_assembly'),
-      node('f', 'photo_choice'), node('t', 'table'),
+      node('f', 'photo_choice'), node('t', 'table', { mode: 'manual' }),
     ]
     const map = buildXpMap(nodes, 40)
     expect([...map.values()]).toEqual([10, 10, 10, 10])
+  })
+
+  // Таблица «Авто» собирается сама — награда там по умолчанию снята
+  // (см. shared/lib/nodeReward.js), но включается галочкой
+  it('таблица в режиме «Авто» по умолчанию XP не делит', () => {
+    const map = buildXpMap([node('p', 'phrase_assembly'), node('t', 'table')], 20)
+    expect(map.get('p')).toBe(20)
+    expect(map.has('t')).toBe(false)
+  })
+
+  it('таблица «Авто» с включённой галочкой XP делит', () => {
+    const nodes = [node('p', 'phrase_assembly'), node('t', 'table', { reward: true })]
+    const map = buildXpMap(nodes, 20)
+    expect(map.get('t')).toBe(10)
   })
 
   it('обычные ноды награды не получают', () => {

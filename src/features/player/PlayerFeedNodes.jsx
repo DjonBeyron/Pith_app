@@ -52,7 +52,8 @@ export default function PlayerFeedNodes({
           allPhraseStates={states.phraseStates}
           phraseState={states.phraseStates[node.id] ?? null}
           regState={states.regStates[node.id] ?? null}
-          tableSent={!!states.tableSent[node.id]}
+          tableSent={states.tableSent[node.id] ?? null}
+          tableArriving={!!states.tableArriving?.[node.id]}
           bottomOffset={bottomOffset}
           videoAutoSound={videoAutoSound}
           adminPreview={isAdmin}

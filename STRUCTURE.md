@@ -222,6 +222,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/modules/table.css` | Плеер ноды «Таблица»: минимальный (основной UI — в `TableDictatorPanel`) |
 | `player/panels/table-dictator.css` | Панель таблицы-диктора в плеере: спейсер, slide-up/down анимация, HUD — 3 пульсирующих бара, бокс сборки фразы |
 | `player/panels/table-manual.css` | Панель ручной сборки фразы в плеере: бокс ответа с состояниями ok/err, slide-анимация таблицы −80%, слова-ловушки с анимацией, кнопка «Проверить» |
+| `player/panels/panel-fly.css` | Летящий клон панели (flyPanelToChat.js): fixed поверх всего, габариты ставятся инлайном по замеру настоящей панели |
 | `player/panels/choose-word.css` | Панель выбора слова в плеере: кнопки-варианты, анимации wcFlashGreen/wcFlashRed, пузырь-ответ |
 | `player/panels/phrase-assembly.css` | Панель сборки фразы: зона ответа (dashed border), пул чипов, кнопка «Проверить», анимация shake |
 | `player/panels/registration.css` | Панель регистрации в плеере: поля email/имя, кнопки «Зарегистрироваться» и «Отмена», та же slide-up анимация что choose-word |
@@ -476,6 +477,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/table/TableChatBubble.jsx` | Таблица как сообщение в чате: пузырь во всю ширину ленты с уголком слева — общий для режима «Показ» и отправки после ответа |
 | `modules/table/TableDemoModule.jsx` | Режим «Показ»: таблица приходит сообщением от учителя — пузырь во всю ширину чата с уголком слева; озвучка необязательна (есть — переход по её окончании, нет — по таймеру) (+ `tableDemo.test.js`) |
 | `panels/table-dictator/TableDictatorPanel.jsx` | Панель таблицы-диктора: состояние прогона, RAF-подсветка ячеек по таймлайну (useTableDictatorRaf.js), проверка ответа, авто-сборка легаси-режима. Авто-старт аудио/часов без звука — `useTableDictatorAutostart.js`; сама разметка — `TableDictatorView.jsx` |
+| `panels/flyPanelToChat.js` | Полёт панели с таблицей в чат: клон панели летит на место своего пузыря в переписке и садится на него (галочка «отправить таблицу в чат») — вместо «погасла тут, появилась там». Общий для авто- и ручного режимов |
 | `panels/table-dictator/useTableDictatorAutostart.js` | Как прогон стартует без тапа: автозапуск `<audio>` через 800мс, подстраховка часами (silentClock.js) без звука — когда таймлайн без озвучки, автозапуск браузер не дал, файл не подгрузился/не декодировался, либо аудио молча не стартовало за 3с. Вынесено из TableDictatorPanel.jsx |
 | `panels/table-dictator/TableDictatorView.jsx` | Чистая разметка панели диктора (HUD-спектр, бокс сборки, таблица, чипы, `<audio>`) — без состояния и таймеров, только пропы. Вынесено из TableDictatorPanel.jsx |
 | `panels/table-dictator/useTableDictatorRaf.js` | RAF-хук панели диктора: tick-цикл подсветки ячеек (слово в бокс через 0.3с после подсветки, отыгравшая ячейка → 40% opacity), extra-word слоёв (extraIdx → зелёный чип по клипу), checkAt-сценарий (фаза/чипы/сборка по времени аудио), waveform-HUD. Пишет в pLog heartbeat времени аудио + ENTER/EXIT по каждой ячейке |
@@ -662,6 +664,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `version.js` | Номер версии приложения (`APP_VERSION`) — показывается мелко наверху экрана |
 | `autoGrowTextarea.js` | `autoGrowTextarea(el)` — растягивает textarea по высоте контента (ref-колбэк + onInput); используется в продакшене (NodeAudioPicker.jsx, NodeContentEditor.jsx), чтобы длинный текст был виден целиком без внутреннего скролла |
 | `menuPosition.js` | `computeMenuPos` — позиция всплывающего меню (fixed, portal) рядом с кнопкой-триггером: снизу, если влезает, иначе сверху, высота ограничена доступным местом со скроллом — общая для InsertNodeButton.jsx (продакшен) и NodeTypeSelect.jsx (canvas) |
+| `nodeReward.js` | Одно правило на весь проект: включена ли у ноды награда ⭐XP. Обычные типы-ответов — по умолчанию да; таблица в режиме «Авто» — по умолчанию нет (собирается сама), но галочкой включается (+ `nodeReward.test.js`) |
 | `lessonSavedBus.js` | Оповещение «урок сохранён»: редактор сообщает новое название/XP, схема модуля под ним обновляет их у себя — иначе переименование доходило только после перезагрузки (+ `lessonSavedBus.test.js`) |
 | `lastEditedLesson.js` | Последний урок, открытый админом в канвасе (localStorage, переживает перезагрузку) — для всплывашки «продолжить редактирование» (+ `resumeEditing.test.js` в shared/ui) |
 | `lastEditorMode.js` | `getLastEditorMode`/`setLastEditorMode` (localStorage) — какой редактор урока (canvas/production) открывать по ⚙ в схеме модуля: запоминается при каждом заходе на CanvasPage.jsx/ProductionPage.jsx, читается в CurriculumView.openEditor |

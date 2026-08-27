@@ -12,6 +12,10 @@ export function usePlayerAnswers() {
   // Галочка «отправить таблицу в чат»: после разбора таблица остаётся
   // в переписке отдельным сообщением (TableModule рисует пузырь)
   const [tableSent, setTableSent]                 = useState({})
+  // Пока панель летит в чат (flyPanelToChat.js), пузырь уже стоит в ленте и
+  // держит место под посадку — но видимым быть не должен: иначе таблица
+  // разом видна и в панели, и в переписке
+  const [tableArriving, setTableArriving]         = useState({})
   // XP pending for photo_choice: fires when the correct photo bubble mounts in chat
   const [pendingPhotoXp, setPendingPhotoXp] = useState({})
 
@@ -34,8 +38,22 @@ export function usePlayerAnswers() {
     })
   }
 
-  function markTableSent(nodeId) {
-    setTableSent(prev => (prev[nodeId] ? prev : { ...prev, [nodeId]: true }))
+  // arriving — таблицу несёт полёт панели: пузырь монтируем невидимым и
+  // показываем только по markTableLanded. Без полёта (нет Web Animations)
+  // приходит false, и пузырь виден сразу
+  // sent — как таблица выглядела в панели на момент отправки:
+  // { words, result }. Пузырь в чате повторяет этот вид, чтобы посадка
+  // панели не превращалась в подмену на что-то другое
+  function markTableSent(nodeId, arriving = false, sent = null) {
+    setTableSent(prev => (prev[nodeId] ? prev : { ...prev, [nodeId]: sent ?? true }))
+    if (arriving) setTableArriving(prev => ({ ...prev, [nodeId]: true }))
+  }
+
+  function markTableLanded(nodeId) {
+    setTableArriving(prev => {
+      if (!prev[nodeId]) return prev
+      const n = { ...prev }; delete n[nodeId]; return n
+    })
   }
 
   function handleRegAnswer(nodeId, text, result) {
@@ -51,6 +69,7 @@ export function usePlayerAnswers() {
     setPhotoChoiceStates(drop)
     setRegStates(drop)
     setTableSent(drop)
+    setTableArriving(drop)
     setPendingPhotoXp(drop)
   }
 
@@ -61,6 +80,7 @@ export function usePlayerAnswers() {
     phraseStates, handlePhraseAnswer,
     regStates, handleRegAnswer,
     tableSent, markTableSent,
+    tableArriving, markTableLanded,
     pendingPhotoXp, setPendingPhotoXp,
   }
 }

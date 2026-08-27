@@ -61,3 +61,14 @@
 .playerMsgBubble--table .tableGrid {
   width: 100%;
 }
+
+/* Таблица, оставшаяся в переписке, повторяет вид панели: тот же бокс сборки
+   с собранной фразой (классы tdAssembly* живут в table-dictator.css).
+   Анимации здесь не нужны — слова не набираются заново, а тряски за неверный
+   ответ хватило один раз в панели */
+.tdAssemblyBoxStatic,
+.tdAssemblyBoxStatic .tdAssemblyWord {
+  animation: none;
+  transition: none;
+}
+.tdAssemblyBoxStatic { margin-bottom: 8px; }

@@ -3,11 +3,13 @@
 // XP урока делится поровну между всеми нодами, где включена галочка
 // «Получить награду». Остаток от деления раздаётся первым нодам по одному —
 // иначе часть XP просто терялась бы.
+import { isRewardOn } from '../../shared/lib/nodeReward.js'
+
 export const REWARD_TYPES = ['word_choice', 'phrase_assembly', 'photo_choice', 'table']
 
 export function rewardNodes(nodes) {
   return nodes.filter(n =>
-    REWARD_TYPES.includes(n.type) && n.typeData?.[n.type]?.reward !== false
+    REWARD_TYPES.includes(n.type) && isRewardOn(n.type, n.typeData?.[n.type])
   )
 }
 

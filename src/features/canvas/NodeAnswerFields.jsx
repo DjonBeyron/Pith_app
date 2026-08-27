@@ -4,6 +4,7 @@ import NodeTablePicker          from './NodeTablePicker.jsx'
 import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
 import NodeLessonLink           from './NodeLessonLink.jsx'
 import NodeRewardCheckbox       from './NodeRewardCheckbox.jsx'
+import { isRewardOn }           from '../../shared/lib/nodeReward.js'
 
 // Поля интерактивных типов-ответов (word_choice/phrase_assembly/table/
 // photo_choice): каждый — свой пикер вариантов + привязка к уроку для
@@ -87,7 +88,12 @@ export default function NodeAnswerFields({
           onChange={v => updateTypeData({ statLessonId: v })}
           moduleLessons={moduleLessons}
         />
-        <NodeRewardCheckbox checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
+        {/* В режиме «Авто» галочка снята по умолчанию (таблица собирается
+            сама, ученик не отвечает), но включить награду можно */}
+        <NodeRewardCheckbox
+          checked={isRewardOn('table', tData)}
+          onChange={v => updateTypeData({ reward: v })}
+        />
       </>
     )
   }

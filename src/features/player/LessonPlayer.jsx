@@ -265,7 +265,7 @@ export default function LessonPlayer({
             nodes={nodes}
             filesWithBlobs={filesWithBlobs}
             teacherName={teacherName}
-            states={{ photoChoiceStates, wordChoiceStates, phraseStates, regStates, tableSent: answers.tableSent }}
+            states={{ photoChoiceStates, wordChoiceStates, phraseStates, regStates, tableSent: answers.tableSent, tableArriving: answers.tableArriving }}
             xpMap={xpMap}
             pendingPhotoXp={pendingPhotoXp}
             bottomOffset={panels.offset}
@@ -297,6 +297,7 @@ export default function LessonPlayer({
           handleRegAnswer={handleRegAnswer}
           handlePhotoPick={handlePhotoPick}
           onTableToChat={answers.markTableSent}
+          onTableLanded={answers.markTableLanded}
           handleXpEarned={handleXpEarned}
           setWcPanelHeight={panels.setHeight('wc')}
           setPaPanelHeight={panels.setHeight('pa')}

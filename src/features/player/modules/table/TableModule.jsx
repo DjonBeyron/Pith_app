@@ -21,7 +21,16 @@ export default function TableModule(props) {
   return (
     <>
       <AnswerBubbles bubbles={answers} rewardXp={props.rewardXp ?? 0} />
-      {props.tableSent && <TableChatBubble table={tData.table ?? null} />}
+      {props.tableSent && (
+        <TableChatBubble
+          table={tData.table ?? null}
+          nodeId={props.node.id}
+          /* пузырь держит место, но невидим, пока на него не села панель */
+          arriving={props.tableArriving}
+          /* как таблица выглядела в панели: собранная фраза и итог проверки */
+          sent={typeof props.tableSent === 'object' ? props.tableSent : null}
+        />
+      )}
     </>
   )
 }

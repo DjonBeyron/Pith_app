@@ -167,13 +167,17 @@ export default function NodeTablePicker({
       </div>
 
       {!isDemo && (
-        <label className="nodeTableSendChat" onClick={e => e.stopPropagation()}>
+        <label
+          className="nodeTableSendChat"
+          title="После ответа ученика. Если проверки нет (нечего проверять) — сразу по окончании таймлайна"
+          onClick={e => e.stopPropagation()}
+        >
           <input
             type="checkbox"
             checked={tData.sendToChat === true}
             onChange={e => onDataChange({ sendToChat: e.target.checked })}
           />
-          Отправить таблицу в чат после ответа
+          Отправить таблицу в чат по окончании
         </label>
       )}
 
