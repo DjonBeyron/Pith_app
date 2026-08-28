@@ -1,9 +1,10 @@
-import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
 import { deriveAnswerTokens, normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 import { cellIsPickable, allCellsPicked } from './manualCellPick.js'
 import { flyPanelToChat } from '../flyPanelToChat.js'
+import { usePanelHeight } from '../usePanelHeight.js'
 
 
 function shuffle(arr) {
@@ -51,16 +52,12 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   const [toChat,    setToChat]    = useState(false)
   const [assembled, setAssembled] = useState([])
   const [result,    setResult]    = useState(null)       // null | 'correct' | 'wrong'
-  const [panelH,    setPanelH]    = useState(0)
 
   const panelRef   = useRef(null)
   const wrongCount = useRef(0)
   const timers     = useRef([])
 
-  useLayoutEffect(() => {
-    const h = panelRef.current?.offsetHeight ?? 0
-    setPanelH(h); onHeightChange?.(h)
-  }, []) // eslint-disable-line
+  const panelH = usePanelHeight(panelRef, onHeightChange)
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setShow(true))

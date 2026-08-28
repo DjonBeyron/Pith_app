@@ -62,8 +62,8 @@
 
 /* Flash: correct answer */
 @keyframes wcFlashGreen {
-  0%   { border-color: #4ade80; background: rgba(74,222,128,.28); color: #4ade80; opacity: 1; }
-  55%  { border-color: #4ade80; background: rgba(74,222,128,.18); color: #4ade80; opacity: 1; }
+  0%   { border-color: #b6fe3b; background: rgb(182 254 59 / 24%); color: #b6fe3b; opacity: 1; }
+  55%  { border-color: #b6fe3b; background: rgb(182 254 59 / 15%); color: #b6fe3b; opacity: 1; }
   100% { border-color: #2a2d35; background: #12141d;              color: #e0e0e0; opacity: .2; }
 }
 

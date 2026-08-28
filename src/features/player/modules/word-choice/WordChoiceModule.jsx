@@ -20,8 +20,14 @@ export default function WordChoiceModule({ wordChoiceState, rewardXp = 0 }) {
         <div className="playerMsgRow playerMsgRowRight">
           <div className="reactionBubbleWrap">
             {/* --pick: маркер для PlayerFeed — этот пузырь молчит, звук уже
-                дал сам тап по варианту (answer-correct / answer-wrong) */}
-            <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--pick">
+                дал сам тап по варианту (answer-correct / answer-wrong).
+                Цвет верно/неверно вешается на него же: раньше красилась
+                только реплика responseCorrect, а её больше не пишут (она
+                рисуется справа и звучала как ответ ученика самому себе) —
+                и выбор приходил в чат всегда серым. Результат прилетает
+                на 700 мс позже самого выбора, поэтому пузырь появляется
+                нейтральным и доцвечивается — переход задан в CSS */}
+            <PlayerBubble className={`playerMsgBubble playerMsgBubble--response playerMsgBubble--pick${result ? mod : ''}`}>
               {pickText}
             </PlayerBubble>
             {showHeart && !text && <HeartReaction />}

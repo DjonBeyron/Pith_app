@@ -13,7 +13,7 @@
   transition: border-color 0.2s ease;
 }
 
-.pcAnswerPhotoOk  { border-color: rgba(74,  222, 128, 0.75); }
+.pcAnswerPhotoOk  { border-color: rgb(182 254 59 / 75%); }
 .pcAnswerPhotoErr { border-color: rgba(248, 113, 113, 0.75); }
 
 .pcAnswerImg {

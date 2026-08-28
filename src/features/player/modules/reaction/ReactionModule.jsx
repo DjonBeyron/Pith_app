@@ -2,27 +2,28 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 // Реакция на сообщение — как в мессенджере: своего пузыря у неё нет, эмодзи
-// встраивается ВНУТРЬ пузыря сообщения, снизу слева, и пузырь под неё
-// подрастает (PlayerBubble анимирует высоту сам, через ResizeObserver).
+// садится в ЛЕВЫЙ НИЖНИЙ угол пузыря и наполовину выходит наружу. Пузырь при
+// этом не растёт: элемент абсолютный, из потока выключен (см. reaction.css).
 //
 // Поэтому портал, а не обычный рендер: пузырь рисует модуль сообщения-хозяина
 // (их полтора десятка — text, audio, photo, AnswerBubbles с ответом ученика...),
 // и передавать реакцию через все них означало бы править каждый. Портал
 // доставляет её в уже отрисованный пузырь, ничего больше не трогая.
 //
-// Строка самой ноды в ленте остаётся пустой и нулевой высоты — место в потоке
-// реакция не занимает и соседние сообщения не раздвигает.
+// Своей строки в ленте у реакции тоже нет: модуль возвращает только портал
+// (PlayerFeedNodes рендерит его без слота-обёртки).
 //
 // target: 'student' — реакция на ответ ученика (пузырь справа), 'teacher' — на
 // свою реплику (пузырь слева).
 
+// Искры мельче самого эмодзи — иначе разлёт выглядит тяжелее реакции
 const SPARKS = [
-  { angle: -95, dist: 30, size: 10, delay: 40 },
-  { angle: -50, dist: 38, size: 13, delay: 0 },
-  { angle: -12, dist: 33, size: 9, delay: 90 },
-  { angle: 30, dist: 40, size: 12, delay: 30 },
-  { angle: 128, dist: 36, size: 11, delay: 60 },
-  { angle: -140, dist: 34, size: 12, delay: 20 },
+  { angle: -95, dist: 22, size: 7, delay: 40 },
+  { angle: -50, dist: 28, size: 9, delay: 0 },
+  { angle: -12, dist: 24, size: 6, delay: 90 },
+  { angle: 30, dist: 29, size: 8, delay: 30 },
+  { angle: 128, dist: 26, size: 7, delay: 60 },
+  { angle: -140, dist: 25, size: 8, delay: 20 },
 ]
 
 const SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
@@ -60,6 +61,14 @@ export default function ReactionModule({ node, onDone }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTarget(findBubble(toStudent ? SEL_STUDENT : SEL_TEACHER))
   }, [toStudent])
+
+  // Класс на пузыре: он якорь для абсолютного эмодзи и включает растушёвку
+  // низа — фон и обводка тают книзу, чтобы кромка не резала угол под реакцией
+  useEffect(() => {
+    if (!target) return
+    target.classList.add('playerMsgBubbleReacted')
+    return () => target.classList.remove('playerMsgBubbleReacted')
+  }, [target])
 
   useEffect(() => {
     if (!target) return

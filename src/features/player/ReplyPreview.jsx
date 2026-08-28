@@ -17,7 +17,8 @@ const MEDIA_LABEL = {
 
 const REPLY_THEME = {
   default:   { border: '#b6fe3b', bg: 'rgba(182,254,59,0.07)',  name: '#b6fe3b', text: null },
-  correct:   { border: '#4ade80', bg: 'rgba(74,222,128,0.07)',  name: '#9aa0b4', text: '#4ade80' },
+  // Верный ответ — брендовым, как и везде в уроке: второй зелёный убран
+  correct:   { border: '#b6fe3b', bg: 'rgba(182,254,59,0.06)', name: '#9aa0b4', text: '#b6fe3b' },
   incorrect: { border: '#f87171', bg: 'rgba(248,113,113,0.07)', name: '#9aa0b4', text: '#f87171' },
 }
 

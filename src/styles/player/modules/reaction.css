@@ -1,33 +1,34 @@
 /* Реакция на сообщение (ReactionModule.jsx).
 
-   Своего пузыря у реакции нет: эмодзи порталом уезжает ВНУТРЬ пузыря
-   сообщения, вниз слева, и пузырь под неё подрастает сам (PlayerBubble
-   анимирует высоту через ResizeObserver). Строка самой ноды в ленте пустая
-   и нулевой высоты — места в потоке не занимает. */
+   Эмодзи садится в ЛЕВЫЙ НИЖНИЙ угол пузыря и наполовину выходит наружу —
+   пузырь при этом не растёт ни на пиксель: элемент абсолютный, из потока
+   выключен. Раньше реакция была строкой внутри пузыря и раздвигала его по
+   высоте, из-за чего лента пересчитывала прокрутку на ходу.
 
-.reactionHost {
-  height: 0;
-  overflow: visible;
-}
+   Своей строки в ленте у реакции тоже нет: ReactionModule возвращает только
+   портал в чужой пузырь (см. PlayerFeedNodes). */
 
-/* Собственная строка внизу пузыря — она и раздвигает его по высоте */
 .reactionInBubble {
-  display: flex;
-  align-items: center;
-  margin: 6px 0 -2px;
+  position: absolute;
+  bottom: -7px;
+  left: -7px;
+  display: block;
   line-height: 1;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .reactionGlyph {
   position: relative;
   display: inline-block;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1;
+  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 55%));
   transform-origin: center bottom;
   will-change: transform;
 }
 
-/* Искры разлетаются из центра эмодзи и на размер строки не влияют */
+/* Искры разлетаются из центра эмодзи и на размер ничего не влияют */
 .reactionSpark {
   position: absolute;
   top: 50%;
@@ -35,4 +36,14 @@
   line-height: 1;
   opacity: 0;
   pointer-events: none;
+}
+
+/* Пузырь, на котором висит реакция: якорь для абсолютного эмодзи. Голосовому
+   заодно снимаем обрезку — иначе выступающий угол эмодзи срезало бы */
+.playerMsgBubbleReacted {
+  position: relative;
+}
+
+.playerMsgBubble--audio.playerMsgBubbleReacted {
+  overflow: visible;
 }

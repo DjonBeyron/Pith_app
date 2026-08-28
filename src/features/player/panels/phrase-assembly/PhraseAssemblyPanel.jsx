@@ -3,6 +3,7 @@ import { usePhraseAssembly } from './usePhraseAssembly.js'
 import PhraseWordChip from './PhraseWordChip.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
+import { usePanelHeight } from '../usePanelHeight.js'
 
 function wordForm(n) {
   const m10 = n % 10, m100 = n % 100
@@ -20,7 +21,6 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
   const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
     usePhraseAssembly(node)
   const [show, setShow]               = useState(false)
-  const [panelHeight, setPanelHeight] = useState(0)
   const [showCounter, setShowCounter] = useState(false)
   const panelRef    = useRef(null)
   const checkBtnRef = useRef(null)
@@ -35,11 +35,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
   const responseWrong   = pa.responseWrong   ?? ''
   const responseCorrect = pa.responseCorrect ?? ''
 
-  useEffect(() => {
-    const h = panelRef.current?.offsetHeight ?? 0
-    setPanelHeight(h)
-    onHeightChange?.(h)
-  }, [shuffled.length])
+  const panelHeight = usePanelHeight(panelRef, onHeightChange)
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setShow(true))

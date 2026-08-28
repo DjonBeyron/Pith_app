@@ -79,19 +79,21 @@ export default function PlayerBubble({ className, children, follow = false }) {
       const nextH = el.scrollHeight
       const prevH = st.prevH ?? nextH
       if (!readyRef.current) { st.prevH = nextH; return }
-      // Реакция прилетает в пузырь порталом (ReactionModule) уже готовым
-      // блоком — это не рост контента, который стоит проигрывать. Анимация
-      // здесь ломала ленту: высота пузыря ехала 250 мс, и приходившее следом
-      // сообщение считало FLIP-сдвиг по плавающей высоте — скролл дёргался
-      // туда-сюда. Принимаем новую высоту мгновенно, одним разом на пузырь.
+      // Реакция садится в угол пузыря абсолютом и наполовину торчит наружу
+      // (ReactionModule): в поток она не входит, но scrollHeight из-за выступа
+      // подрастает. Расти пузырю при этом не нужно — просто принимаем факт,
+      // ничего не анимируя. Раньше анимация здесь ещё и ломала ленту: высота
+      // ехала 250 мс, и следующее сообщение считало FLIP по плавающей высоте.
       if (!reactedRef.current && el.querySelector('.reactionInBubble')) {
         reactedRef.current = true
         clearTimeout(st.tid)
         st.tid = null
         st.target = null
         el.style.height = el.style.overflow = el.style.transition = ''
-        st.prevH = el.scrollHeight
-        pLog(`[bubble#${id}] реакция вставлена — высота принята без анимации (${st.prevH})`)
+        // Именно фактическая высота, а не scrollHeight: тот включает выступ
+        // эмодзи наружу, и следующее измерение считало бы от завышенного
+        st.prevH = el.getBoundingClientRect().height
+        pLog(`[bubble#${id}] реакция вставлена — высота пузыря не меняется (${Math.round(st.prevH)})`)
         return
       }
       // follow: плавность даёт CSS-переход контента, пузырь только запоминает
