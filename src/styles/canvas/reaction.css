@@ -1,0 +1,67 @@
+/* Поля ноды «Реакция на сообщение» в канвас-редакторе (NodeReactionPicker.jsx) */
+
+.nodeReactionBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgb(200 90 138 / 8%);
+}
+
+.nodeReactionQuick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.nodeReactionChip {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  background: #1a1d25;
+  border: 1px solid #2c313c;
+  border-radius: 7px;
+}
+
+.nodeReactionChip:hover {
+  border-color: #4a5162;
+}
+
+.nodeReactionChipOn {
+  background: rgb(200 90 138 / 22%);
+  border-color: #c85a8a;
+}
+
+.nodeReactionInput {
+  width: 46px;
+  height: 28px;
+  font-size: 14px;
+  color: #e6e8ee;
+  text-align: center;
+  background: #1a1d25;
+  border: 1px solid #2c313c;
+  border-radius: 7px;
+}
+
+.nodeReactionTarget {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: #9aa0ad;
+}
+
+.nodeReactionTarget select {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 12px;
+  color: #e6e8ee;
+  background: #1a1d25;
+  border: 1px solid #2c313c;
+  border-radius: 7px;
+}

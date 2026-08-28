@@ -102,9 +102,12 @@ export function decorStyle(span) {
       // Em-относительные (не px): фиксированный офсет был одинаково мал и в
       // мелком чат-пузыре, и в крупном превью — на жирных буквах с засечкой
       // (например «р») линия оказывалась впритык и визуально их перечёркивала.
-      textDecorationThickness: '0.08em',
-      textUnderlineOffset: '0.15em',
-      textDecorationSkipInk: 'auto',
+      // skip-ink: none — линия сплошная и идёт поверх хвостов букв (у, р, д).
+      // С 'auto' браузер разрывал её под каждым хвостом, и подчёркивание
+      // выглядело рваным: именно это читалось как «буквы перекрывают линию».
+      textDecorationThickness: '0.055em',
+      textUnderlineOffset: '0.19em',
+      textDecorationSkipInk: 'none',
     } : {}),
   }
 }

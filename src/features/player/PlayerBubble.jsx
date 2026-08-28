@@ -14,6 +14,7 @@ export default function PlayerBubble({ className, children, follow = false }) {
   const ref       = useRef(null)
   const stRef     = useRef({ prevH: null, tid: null, target: null })
   const readyRef  = useRef(false)
+  const reactedRef = useRef(false) // реакцию в этот пузырь уже вставляли
   const idRef     = useRef(0) // номер пузыря для дебаг-лога
   const followRef = useRef(false)
 
@@ -78,6 +79,21 @@ export default function PlayerBubble({ className, children, follow = false }) {
       const nextH = el.scrollHeight
       const prevH = st.prevH ?? nextH
       if (!readyRef.current) { st.prevH = nextH; return }
+      // Реакция прилетает в пузырь порталом (ReactionModule) уже готовым
+      // блоком — это не рост контента, который стоит проигрывать. Анимация
+      // здесь ломала ленту: высота пузыря ехала 250 мс, и приходившее следом
+      // сообщение считало FLIP-сдвиг по плавающей высоте — скролл дёргался
+      // туда-сюда. Принимаем новую высоту мгновенно, одним разом на пузырь.
+      if (!reactedRef.current && el.querySelector('.reactionInBubble')) {
+        reactedRef.current = true
+        clearTimeout(st.tid)
+        st.tid = null
+        st.target = null
+        el.style.height = el.style.overflow = el.style.transition = ''
+        st.prevH = el.scrollHeight
+        pLog(`[bubble#${id}] реакция вставлена — высота принята без анимации (${st.prevH})`)
+        return
+      }
       // follow: плавность даёт CSS-переход контента, пузырь только запоминает
       if (followRef.current) { st.prevH = nextH; return }
       if (Math.abs(nextH - prevH) < 2) return

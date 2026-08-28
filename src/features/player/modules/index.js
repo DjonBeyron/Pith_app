@@ -6,6 +6,7 @@ import PhotoModule      from './photo/PhotoModule.jsx'
 import VideoModule      from './video/VideoModule.jsx'
 import StickerModule    from './sticker/StickerModule.jsx'
 import SystemModule     from './system/SystemModule.jsx'
+import ReactionModule   from './reaction/ReactionModule.jsx'
 import WordChoiceModule      from './word-choice/WordChoiceModule.jsx'
 import PhraseAssemblyModule  from './phrase-assembly/PhraseAssemblyModule.jsx'
 import PinMessageModule      from './pin-message/PinMessageModule.jsx'
@@ -22,6 +23,7 @@ const MODULE_MAP = {
   video:           VideoModule,
   sticker:         StickerModule,
   system:          SystemModule,
+  reaction:        ReactionModule,
   word_choice:     WordChoiceModule,
   phrase_assembly: PhraseAssemblyModule,
   pin_message:     PinMessageModule,

@@ -1,0 +1,38 @@
+/* Реакция на сообщение (ReactionModule.jsx).
+
+   Своего пузыря у реакции нет: эмодзи порталом уезжает ВНУТРЬ пузыря
+   сообщения, вниз слева, и пузырь под неё подрастает сам (PlayerBubble
+   анимирует высоту через ResizeObserver). Строка самой ноды в ленте пустая
+   и нулевой высоты — места в потоке не занимает. */
+
+.reactionHost {
+  height: 0;
+  overflow: visible;
+}
+
+/* Собственная строка внизу пузыря — она и раздвигает его по высоте */
+.reactionInBubble {
+  display: flex;
+  align-items: center;
+  margin: 6px 0 -2px;
+  line-height: 1;
+}
+
+.reactionGlyph {
+  position: relative;
+  display: inline-block;
+  font-size: 18px;
+  line-height: 1;
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+/* Искры разлетаются из центра эмодзи и на размер строки не влияют */
+.reactionSpark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+}

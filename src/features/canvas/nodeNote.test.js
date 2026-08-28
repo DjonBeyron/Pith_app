@@ -43,12 +43,15 @@ describe('комментарий продакшена живёт в самой �
 })
 
 describe('комментарий не виден никому, кроме админа в канвасе', () => {
-  it('плеер поле note не читает вообще', () => {
+  it('плеер вне админ-панели поле note не читает вообще', () => {
     const dir = fileURLToPath(new URL('../player/', import.meta.url))
     const walk = d => readdirSync(d, { withFileTypes: true }).flatMap(e =>
       e.isDirectory() ? walk(`${d}${e.name}/`) : [`${d}${e.name}`])
     const hits = walk(dir)
       .filter(f => /\.jsx?$/.test(f) && !f.endsWith('.test.js'))
+      // player/admin/ — панель правки рядом с плеером: она открывается только
+      // у админа и только при запуске из канваса, там заметку показывать НУЖНО
+      .filter(f => !/[\\/]admin[\\/]/.test(f))
       .filter(f => /\bnode\.note\b|\bnotes\b/.test(readFileSync(f, 'utf8')))
     expect(hits).toEqual([])
   })
@@ -93,7 +96,8 @@ describe('комментарий не виден никому, кроме адм
     expect(menu).toContain('>✎</button>')
     expect(menu).not.toContain('📝')
     expect(menu).toContain("hasNote ? ' nodeHoverBtnNoteOn' : ''")
-  })
+  })
+
 })
 
 describe('стикер можно двигать и растягивать', () => {

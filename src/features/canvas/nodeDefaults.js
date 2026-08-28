@@ -34,6 +34,8 @@ const DEFAULT_TRIGGER = {
   sticker:     { if: 'timer', ms: 2000 },
   system:      { if: 'timer', ms: 2000 },
   pin_message: { if: 'timer', ms: 2000 },
+  // Реакция короткая: успела всплыть — и урок идёт дальше
+  reaction:    { if: 'timer', ms: 1400 },
 }
 
 // Триггеры для ноды типа type; keepThen — существующая связь, которую надо

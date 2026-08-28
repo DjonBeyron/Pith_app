@@ -63,6 +63,10 @@ export function makeNode(seq, x, y, wantType) {
       phrase_assembly: { words: [], distractors: [], responseCorrect: '', responseWrong: '', replyToSeq: null },
       pin_message:     { content: '' },
       system:          { content: '' },
+      // Реакция как в мессенджере: своего пузыря нет, эмодзи прилипает к
+      // сообщению выше. target: 'student' — к ответу ученика (справа),
+      // 'teacher' — к реплике учителя (слева)
+      reaction:        { emoji: '👍', target: 'student' },
       sticker:         { file_id: null, crop: { x: 0, y: 0, scale: 1 }, muted: true, isVideo: false, replyToSeq: null, caption: '', autoSound: false },
       photo_choice:    { photos: [], correctIndexes: [], responseCorrect: '', responseWrong: '' },
     },

@@ -221,3 +221,62 @@
 
 .playerStepAnswerBad .playerStepDot { background: #ff8040; }
 .playerStepAnswer:hover { border-color: #3a4050; }
+
+/* Комментарий продакшена в панели правки (PlayerNoteField.jsx) — тот же
+   node.note, что жёлтым стикером висит у ноды на холсте */
+.playerEditNote {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: rgb(230 200 80 / 8%);
+  border: 1px solid rgb(230 200 80 / 22%);
+  border-radius: 8px;
+}
+
+.playerEditNoteHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: .02em;
+  color: #d8c273;
+  text-transform: uppercase;
+}
+
+.playerEditNoteBtn {
+  padding: 0 4px;
+  font-size: 14px;
+  line-height: 1;
+  color: #d8c273;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.playerEditNoteArea {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #f0e4b0;
+  resize: none;
+  background: rgb(0 0 0 / 25%);
+  border: none;
+  border-radius: 6px;
+  outline: none;
+}
+
+.playerEditNoteAdd {
+  width: 100%;
+  padding: 5px;
+  font-size: 12px;
+  color: #9a8f5f;
+  cursor: pointer;
+  background: none;
+  border: 1px dashed rgb(230 200 80 / 30%);
+  border-radius: 6px;
+}
+
+.playerEditNoteAdd:hover { color: #d8c273; }

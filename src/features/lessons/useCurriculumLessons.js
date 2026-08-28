@@ -69,6 +69,26 @@ export function useCurriculumLessons(curriculumId) {
       .catch(e => dbg('[SYNC ERROR] сверка lesson_ids с сервером не удалась', e.message))
   }, [curriculumId])
 
+  // Состав модуля уезжает на сервер СРАЗУ при добавлении/удалении урока.
+  // Раньше lesson_ids до нажатия 💾 жили только в localStorage этого
+  // устройства: урок, созданный на одном компьютере, на других не появлялся
+  // вовсе, а сверка с сервером выше могла затереть его и локально — так
+  // «trying 2» и пропал. 💾 остаётся ручной страховкой (и на случай, если
+  // запись не прошла из-за сети — тогда isDirty снова true).
+  async function commitIds(next, what) {
+    setLessonIds(next)
+    persistIds(curriculumId, next)
+    try {
+      await saveCurriculumLessons(curriculumId, next)
+      setIsDirty(false)
+      dbg('[COMMIT OK]', what, '— lesson_ids на сервере:', next.length)
+    } catch (e) {
+      setIsDirty(true)
+      setError('Состав модуля не сохранён на сервере — нажми 💾')
+      dbg('[COMMIT ERROR]', what, e.message)
+    }
+  }
+
   const fetchLessons = useCallback(async (ids) => {
     if (!ids.length) { setLessons([]); return }
     dbg('[FETCH] loading', ids.length, 'lessons from DB:', ids)
@@ -149,12 +169,9 @@ export function useCurriculumLessons(curriculumId) {
         if (lesson) { created.push(lesson); dbg('[bulkCreate] created:', lesson.id, lesson.title) }
       }
       if (created.length) {
-        const ids = created.map(l => l.id)
-        setLessonIds(ids)
-        persistIds(curriculumId, ids)
         setLessons(created)
-        setIsDirty(true)
-        dbg('[bulkCreate] DONE — created', created.length, 'lessons, isDirty=true (press 💾 to save structure)')
+        await commitIds(created.map(l => l.id), 'bulkCreate')
+        dbg('[bulkCreate] DONE — created', created.length, 'lessons')
       }
     } catch (e) {
       dbg('[bulkCreate ERROR]', e.message)
@@ -174,15 +191,13 @@ export function useCurriculumLessons(curriculumId) {
       const cur  = idsRef.current
       const at   = Math.max(0, cur.length - 1)
       const next = [...cur.slice(0, at), lesson.id, ...cur.slice(at)]
-      setLessonIds(next)
-      persistIds(curriculumId, next)
       setLessons(prev => {
         const arr = [...prev]
         arr.splice(Math.max(0, arr.length - 1), 0, lesson)
         return arr
       })
-      setIsDirty(true)
-      dbg('[addBeforeFinal] added lesson', lesson.id, '— isDirty=true (press 💾 to save structure)')
+      await commitIds(next, 'addBeforeFinal')
+      dbg('[addBeforeFinal] added lesson', lesson.id)
     } catch (e) {
       dbg('[addBeforeFinal ERROR]', e.message)
       setError('Не удалось добавить урок')
@@ -200,10 +215,8 @@ export function useCurriculumLessons(curriculumId) {
       const lesson = await createLesson(title)
       if (!lesson) return
       const next = [...idsRef.current, lesson.id]
-      setLessonIds(next)
-      persistIds(curriculumId, next)
       setLessons(prev => [...prev, lesson])
-      setIsDirty(true)
+      await commitIds(next, 'addLast')
     } catch (e) {
       dbg('[addLast ERROR]', e.message)
       setError('Не удалось добавить урок')
@@ -217,7 +230,7 @@ export function useCurriculumLessons(curriculumId) {
     try {
       await supabase.from('lessons').update({ title }).eq('id', id)
       setLessons(prev => prev.map(l => l.id === id ? { ...l, title } : l))
-      setIsDirty(true)
+      // isDirty не поднимаем: название уже в lessons, состав модуля не менялся
     } catch (e) {
       dbg('[renameLesson ERROR]', e.message)
       setError('Не удалось переименовать')
@@ -230,11 +243,9 @@ export function useCurriculumLessons(curriculumId) {
       dbg('[DB DELETE] lesson', id)
       await deleteLesson(id)
       const next = idsRef.current.filter(lid => lid !== id)
-      setLessonIds(next)
-      persistIds(curriculumId, next)
       setLessons(prev => prev.filter(l => l.id !== id))
-      setIsDirty(true)
-      dbg('[DB OK] lesson deleted', id, '— isDirty=true (press 💾 to save structure)')
+      await commitIds(next, 'removeLesson')
+      dbg('[DB OK] lesson deleted', id)
     } catch (e) {
       dbg('[removeLesson ERROR]', e.message)
       setError('Не удалось удалить урок')

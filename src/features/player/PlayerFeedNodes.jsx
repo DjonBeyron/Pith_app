@@ -21,6 +21,22 @@ export default function PlayerFeedNodes({
     const isPending = pendingNode?.id === node.id && !visibleNodes.some(v => v.id === node.id)
     const fileId = node.typeData?.[node.type]?.file_id ?? null
     const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
+    // Реакция рисуется ВНУТРИ чужого пузыря (порталом, см. ReactionModule) —
+    // своей строки в ленте у неё нет вовсе. Пустой слот-обёртка всё равно
+    // добавлял бы gap ленты (4px): лента дёргалась на ровном месте
+    if (node.type === 'reaction') {
+      return (
+        <PlayerMessage
+          key={node.id}
+          node={node}
+          lessonNodes={nodes}
+          teacherName={teacherName}
+          pending={isPending}
+          onDone={isPending ? () => {} : () => onNodeDone(node.id)}
+          onTrReveal={() => onTrReveal(node.id)}
+        />
+      )
+    }
     return (
       <div
         key={node.id}

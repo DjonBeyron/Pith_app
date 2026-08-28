@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import NodeAudioPicker from './NodeAudioPicker.jsx'
 import NodeTextProEditor from './NodeTextProEditor.jsx'
+import NodeReactionPicker from './NodeReactionPicker.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
 import NodeTriggerEditor from './NodeTriggerEditor.jsx'
 import NodeAnswerFields           from './NodeAnswerFields.jsx'
@@ -153,6 +154,9 @@ export default function NodeContentEditor({
           growTextarea={growTextareas}
           heightKey={`${node.id}:content`}
         />
+      )}
+      {node.type === 'reaction' && (
+        <NodeReactionPicker tData={tData} onChange={updateTypeData} />
       )}
       {node.type === 'sticker' && (
         <label

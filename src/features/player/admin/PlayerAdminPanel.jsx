@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import NodeContentEditor from '../../canvas/NodeContentEditor.jsx'
 import PlayerStepBar from './PlayerStepBar.jsx'
+import PlayerNoteField from './PlayerNoteField.jsx'
 import { nodeEditLabel } from './playerEditLabel.js'
 
 // Правая панель редактора рядом с «телефоном» плеера (десктоп, только админ,
@@ -75,6 +76,8 @@ export default function PlayerAdminPanel({
 
       <div className="playerEditPanelBody">
         {shownNode ? (
+          <>
+          <PlayerNoteField note={shownNode.note ?? null} onChange={handleUpdate} />
           <NodeContentEditor
             key={shownNode.id}
             node={shownNode}
@@ -88,6 +91,7 @@ export default function PlayerAdminPanel({
             onToggleTriggers={() => setTrOpen(v => !v)}
             growTextareas
           />
+          </>
         ) : (
           <p className="playerEditPanelHint">
             Наведи на сообщение в чате и нажми ✎ — здесь откроются все настройки ноды.

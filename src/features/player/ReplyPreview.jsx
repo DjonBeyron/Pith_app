@@ -12,6 +12,7 @@ const MEDIA_LABEL = {
   word_choice:      'Выбор слова',
   photo_choice:     'Выбор фото',
   phrase_assembly:  'Собрать фразу',
+  table:            'Собрать фразу',
 }
 
 const REPLY_THEME = {
@@ -100,11 +101,13 @@ function resolveReply(replyNode, teacherName, allWordChoiceStates, allPhotoChoic
       thumbSrc: null, crop: null,
     }
   }
-  if (rType === 'phrase_assembly') {
+  // Таблица в ручном режиме отдаёт собранную фразу тем же handlePhraseAnswer,
+  // что и «Собери фразу» — значит и цитата на неё показывает ответ ученика
+  if (rType === 'phrase_assembly' || rType === 'table') {
     const attempt = resolvePhraseAttempt(allPhraseStates?.[replyNode.id])
     return {
       name:  'Вы:',
-      label: attempt.text || MEDIA_LABEL.phrase_assembly,
+      label: attempt.text || MEDIA_LABEL[rType],
       theme: attempt.result === 'correct' ? REPLY_THEME.correct
            : attempt.result === 'wrong'   ? REPLY_THEME.incorrect
            : REPLY_THEME.default,

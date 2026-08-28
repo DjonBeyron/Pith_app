@@ -1,6 +1,6 @@
 import {
   MessageSquare, Mic, PlayCircle, Video, Image, Smile,
-  Info, Pin, SpellCheck, Layers, Images, MicVocal, UserPlus, Table2,
+  Info, Pin, SpellCheck, Layers, Images, MicVocal, UserPlus, Table2, SmilePlus,
 } from 'lucide-react'
 
 // Справочник типов нод канваса (вынесен из NodeTypeSelect.jsx: react-refresh
@@ -15,6 +15,7 @@ export const NODE_TYPES = [
   { value: 'video',           label: 'Видео',               icon: Video,         color: '#9a7abc', group: 'content' },
   { value: 'photo',           label: 'Фото',                icon: Image,         color: '#6aaa6a', group: 'content' },
   { value: 'sticker',         label: 'Стикер',              icon: Smile,         color: '#c87850', group: 'content' },
+  { value: 'reaction',        label: 'Реакция на сообщение', icon: SmilePlus,    color: '#c85a8a', group: 'content' },
   { value: 'system',          label: 'Системное сообщение', icon: Info,          color: '#6a7a8a', group: 'content' },
   { value: 'pin_message',     label: 'Закрепить сообщение', icon: Pin,           color: '#aa8830', group: 'content' },
   { value: 'word_choice',     label: 'Выбери слово',        icon: SpellCheck,    color: '#c89050', group: 'interactive' },

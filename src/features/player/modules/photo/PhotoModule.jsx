@@ -61,36 +61,38 @@ export default function PhotoModule({ node, file, onDone }) {
   return (
     <div className="playerMsgRow">
       <PlayerBubble className="playerMsgBubble playerMsgBubble--photo">
+        {/* Файла ещё нет — держим ту же рамку кадра пустой заглушкой: сценарий
+            собирают текстом задолго до съёмки, и без неё сообщение схлопывалось
+            в узкую полоску, а подпись пропадала вовсе — вычитывать текст под
+            фото было негде */}
         {src
-          ? <>
-              <div
-                ref={frameRef}
-                className="playerPhotoCropFrame"
-                onClick={() => setFullscreen(true)}
-              >
-                <img
-                  src={src}
-                  className="playerPhotoMedia"
-                  style={{ ...getMediaStyle(), opacity: imgReady ? 1 : 0, transition: 'opacity 0.15s ease' }}
-                  alt=""
-                  draggable={false}
-                  onLoad={e => { setIntrinsic({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }); setImgReady(true) }}
-                />
-              </div>
-              {caption && (
-                <div className="playerPhotoCaption">
-                  <HighlightedText text={captionRaw} highlights={node.typeData?.photo?.highlights ?? []} />
-                </div>
-              )}
-              {fullscreen && (
-                <div className="photoFullOverlay" onClick={() => setFullscreen(false)}>
-                  <button className="photoFullClose" onClick={e => { e.stopPropagation(); setFullscreen(false) }}>×</button>
-                  <img src={src} className="photoFullImg" alt="" onClick={e => e.stopPropagation()} />
-                </div>
-              )}
-            </>
-          : <div className="playerMediaPlaceholder">Фото не загружено</div>
+          ? <div
+              ref={frameRef}
+              className="playerPhotoCropFrame"
+              onClick={() => setFullscreen(true)}
+            >
+              <img
+                src={src}
+                className="playerPhotoMedia"
+                style={{ ...getMediaStyle(), opacity: imgReady ? 1 : 0, transition: 'opacity 0.15s ease' }}
+                alt=""
+                draggable={false}
+                onLoad={e => { setIntrinsic({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }); setImgReady(true) }}
+              />
+            </div>
+          : <div className="playerPhotoCropFrame playerPhotoEmptyFrame">Фото не загружено</div>
         }
+        {caption && (
+          <div className="playerPhotoCaption">
+            <HighlightedText text={captionRaw} highlights={node.typeData?.photo?.highlights ?? []} />
+          </div>
+        )}
+        {fullscreen && src && (
+          <div className="photoFullOverlay" onClick={() => setFullscreen(false)}>
+            <button className="photoFullClose" onClick={e => { e.stopPropagation(); setFullscreen(false) }}>×</button>
+            <img src={src} className="photoFullImg" alt="" onClick={e => e.stopPropagation()} />
+          </div>
+        )}
       </PlayerBubble>
     </div>
   )
