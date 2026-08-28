@@ -11,3 +11,11 @@ export const canvasLsKey = id => `lesson_canvas_${id}`
 // стирается после успешного сохранения (CanvasPage.handleSave чистит
 // только canvasLsKey — см. там же)
 export const canvasViewKey = id => `lesson_canvas_view_${id}`
+
+// Есть ли локальный черновик правок этого урока — то же самое, что «есть
+// несохранённое»: черновик пишется на любую правку нод и стирается после
+// успешного сохранения на сервер
+export function hasCanvasDraft(lessonId) {
+  if (!lessonId) return false
+  try { return localStorage.getItem(canvasLsKey(lessonId)) != null } catch { return false }
+}

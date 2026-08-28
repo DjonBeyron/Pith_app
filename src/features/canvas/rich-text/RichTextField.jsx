@@ -1,6 +1,7 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useLayoutEffect } from 'react'
 import HighlightedText from '../../../shared/ui/HighlightedText.jsx'
 import { useRichTextEdit } from './useRichTextEdit.js'
+import { useRichTextInput } from './useRichTextInput.js'
 import { useRichTextCaret } from './useRichTextCaret.js'
 import { useRichTextSelection } from './useRichTextSelection.js'
 import RichTextToolbar from './RichTextToolbar.jsx'
@@ -29,8 +30,18 @@ export default function RichTextField({
   }
 
   const edit = useRichTextEdit({ ref, value, highlights, onChange: patchChange, pendingCaretRef })
+  // Печать/удаление/вставка правят модель напрямую, браузеру DOM поля трогать
+  // нельзя — иначе он рассинхронит разметку раскраски с моделью
+  useRichTextInput(ref, { value, currentRange: edit.currentRange, replaceRange: edit.replaceRange })
   useRichTextCaret(ref, pendingCaretRef, value, highlights)
   const selection = useRichTextSelection(ref)
+
+  // Печать больше не проходит через onInput (правку делает useRichTextInput,
+  // а браузеру ввод запрещён — значит и события input нет), поэтому высоту
+  // растущего поля пересчитываем по изменению самого текста
+  useLayoutEffect(() => {
+    if (growTextarea) autoGrowTextarea(ref.current)
+  }, [growTextarea, value])
 
   // Пока пользователь только печатает/читает, тулбара ещё нет — но избранное
   // можно запросить уже сейчас, чтобы к моменту первого выделения текста

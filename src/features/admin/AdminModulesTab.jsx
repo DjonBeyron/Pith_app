@@ -11,7 +11,7 @@ import { dbg } from '../../shared/lib/debug.js'
 // чипами «видео есть/нет» и статусом публикации (чип-циклер: черновик →
 // превью → опубликован → черновик, см. handleCycleStatus), «+ Новый модуль»,
 // тап по строке — схема модуля, ✕ — удаление.
-export default function AdminModulesTab({ onOpenCanvas, onOpenProduction }) {
+export default function AdminModulesTab({ onOpenCanvas, onOpenProduction, moduleToOpen = null, onModuleOpened }) {
   const [rows, setRows] = useState(null) // null = загрузка
   const [openModule, setOpenModule] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -22,6 +22,17 @@ export default function AdminModulesTab({ onOpenCanvas, onOpenProduction }) {
     loadCurricula().then(setRows).catch(() => setRows([]))
   }
   useEffect(refresh, [])
+
+  // Просьба снаружи: открыть схему конкретного модуля (возврат «назад» из
+  // редактора урока — ShellV2). Показываем её сразу, не заставляя админа
+  // искать модуль в списке руками
+  useEffect(() => {
+    if (!moduleToOpen?.id) return
+    // Ответ на разовую просьбу извне, а не синхронизация состояния
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpenModule({ id: moduleToOpen.id, title: moduleToOpen.title, isPro: !!moduleToOpen.isPro })
+    onModuleOpened?.()
+  }, [moduleToOpen, onModuleOpened])
 
   // isPro=true — про-модуль: без Старта/Финала, скрыт от пользователей,
   // используется как супер-урок гонки (XP — после итогов гонки)

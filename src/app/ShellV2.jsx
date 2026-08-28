@@ -37,6 +37,12 @@ export default function ShellV2() {
   // Продакшен-редактор (линейный список сообщений) — тот же оверлей-паттерн,
   // над теми же данными урока, что и canvas (см. PROJECT.md)
   const [productionLesson, setProductionLesson] = useState(null)
+  // Модуль, который админ-вкладка должна открыть по возвращении из редактора
+  // («назад» в канвасе ведёт в схему модуля урока, а не на главный экран)
+  const [moduleRequest, setModuleRequest] = useState(null)
+  // Всплывашка «продолжить редактирование» закрыта на этот сеанс: сама она
+  // больше не прячется по таймеру
+  const [resumeClosed, setResumeClosed] = useState(false)
   // Сигнал вкладке «Рейтинг» открыть страницу гонки (из попапа-анонса)
   const [raceOpenTick, setRaceOpenTick] = useState(0)
   // Настройки доступны и гостю (не только залогиненному, см. ProfileV2) —
@@ -109,7 +115,12 @@ export default function ShellV2() {
         {isAdmin && (
           <div className={tab === 'admin' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
             <Suspense fallback={<div className="shellV2Panel">Загрузка…</div>}>
-              <AdminV2 onOpenCanvas={setCanvasLesson} onOpenProduction={setProductionLesson} />
+              <AdminV2
+                onOpenCanvas={setCanvasLesson}
+                onOpenProduction={setProductionLesson}
+                openModule={moduleRequest}
+                onModuleOpened={() => setModuleRequest(null)}
+              />
             </Suspense>
           </div>
         )}
@@ -145,8 +156,14 @@ export default function ShellV2() {
       </nav>
 
       {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}
-      {isAdmin && !canvasLesson && !productionLesson && (
-        <ResumeEditingToast onOpen={lesson => setCanvasLesson({ id: lesson.id, moduleLessons: [] })} />
+      {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && (
+        <ResumeEditingToast
+          onOpen={lesson => {
+            setResumeClosed(true)
+            setCanvasLesson({ id: lesson.id, moduleLessons: [], module: lesson.module ?? null })
+          }}
+          onClose={() => setResumeClosed(true)}
+        />
       )}
 
       {/* Попапы супергонки: анонс недели и итоги — поверх любой вкладки */}
@@ -158,7 +175,18 @@ export default function ShellV2() {
             <CanvasPage
               lessonId={canvasLesson.id}
               moduleLessons={canvasLesson.moduleLessons ?? []}
-              onBack={() => setCanvasLesson(null)}
+              module={canvasLesson.module ?? null}
+              /* Назад — в схему модуля этого урока (если знаем её), а не на
+                 главный экран: чаще всего дальше правят соседний урок */
+              onBack={found => {
+                // Модуль мог быть найден уже внутри редактора (урок открыли
+                // из всплывашки, где модуль неизвестен) — он и приходит сюда
+                const m = found ?? canvasLesson.module
+                setCanvasLesson(null)
+                if (!m?.id || !isAdmin) return
+                setModuleRequest(m)
+                setTab('admin')
+              }}
               onOpenProduction={id => {
                 setCanvasLesson(null)
                 setProductionLesson({ id, moduleLessons: canvasLesson.moduleLessons ?? [] })

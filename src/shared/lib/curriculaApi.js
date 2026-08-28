@@ -128,6 +128,16 @@ const CURRICULA_COLS = 'id, title, lesson_ids, created_at, video_url, poster_url
 // применена, читаем список без них (иначе вся лента падала бы на 400)
 const CURRICULA_COLS_TR = `${CURRICULA_COLS}, title_translation, word_translations`
 
+// В каком модуле лежит урок. Нужно для «назад» из редактора: урок можно
+// открыть и не из схемы модуля (всплывашка «продолжить редактирование» после
+// перезагрузки знает только сам урок) — тогда модуль ищем по lesson_ids
+export async function findLessonModule(lessonId) {
+  if (!lessonId) return null
+  const rows = await loadCurricula()
+  const m = rows.find(r => (r.lesson_ids ?? []).includes(lessonId))
+  return m ? { id: m.id, title: m.title, isPro: !!m.is_pro } : null
+}
+
 export async function loadCurricula() {
   dbg('[DB READ] curricula list')
   let { data, error } = await supabase

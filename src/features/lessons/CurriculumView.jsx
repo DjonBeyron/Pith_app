@@ -42,7 +42,12 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   // данными урока — это не переключатель «навсегда», просто открывается то,
   // чем пользовались только что
   function openEditor(id) {
-    const payload = { id, moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })) }
+    const payload = {
+      id,
+      moduleLessons: lessons.map(l => ({ id: l.id, title: l.title })),
+      // Откуда пришли: «назад» из редактора вернёт в схему этого модуля
+      module: { id: curriculumId, title, isPro },
+    }
     if (getLastEditorMode() === 'production') onOpenProduction(payload)
     else onOpenCanvas(payload)
   }

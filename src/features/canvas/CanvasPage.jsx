@@ -14,12 +14,18 @@ import { useLessonFiles } from './useLessonFiles.js'
 import { useCanvasFilter } from './useCanvasFilter.js'
 import { useTeacherSettings } from './useTeacherSettings.js'
 import { useCanvasSave } from './useCanvasSave.js'
+import { useCanvasDirty } from './useCanvasDirty.js'
+import { useLessonModule } from './useLessonModule.js'
+import CanvasXpField from './CanvasXpField.jsx'
 import { loadScript } from '../../shared/lib/lessonsApi.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import { setLastEditedLesson } from '../../shared/lib/lastEditedLesson.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
-export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpenProduction }) {
+// module — { id, title, isPro } модуля, из схемы которого открыли урок:
+// по нему «назад» возвращает в этот модуль (ShellV2), в том числе после
+// перезагрузки — модуль лежит в памяти последнего урока
+export default function CanvasPage({ lessonId, moduleLessons = [], module = null, onBack, onOpenProduction }) {
   // Уроки модуля для привязки ответов (анализ знаний) — без урока, который редактируем.
   // useMemo — иначе новый массив на КАЖДЫЙ рендер CanvasPage (клик по XP-полю,
   // обновление syncStatus и т.п.) срывал бы React.memo у всех CanvasNode
@@ -89,10 +95,16 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   } = useTeacherSettings(lessonId)
 
   // Сохранение урока на сервер — useCanvasSave.js
-  const { isSaving, handleSave } = useCanvasSave({
+  const { isSaving, handleSave: saveToServer } = useCanvasSave({
     lessonId, title, lessonXp, nodesRef, hasUnsynced, files, syncToServer,
     prepareForSave, clearTeacherDraft, setSyncStatus,
   })
+
+  // Куда вернёт «назад»: модуль урока (если открыли не из схемы — найдём сами)
+  const backModule = useLessonModule(lessonId, module)
+
+  // Мигающая точка на «Сохранить» — useCanvasDirty.js
+  const { dirty, markDirty, syncDirty, save: handleSave } = useCanvasDirty(lessonId, saveToServer)
 
   // Правка ноды из правой панели плеера (только админ, только прогон из
   // канваса): ноды живут внутри CanvasBoard, поэтому идём туда через ref —
@@ -111,6 +123,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
   const handleNodesChange = useCallback(n => {
     nodesRef.current = n
     setPanelNodes(n)
+    // Черновик пишется раньше этого колбэка (80мс против 500мс), так что к
+    // этому моменту он уже отражает правку
+    syncDirty()
     // Ровно эти ноды уйдут и в плеер, и в сохранение — если граф битый здесь,
     // урок не поедет ни там, ни там
     const health = checkNodes(n)
@@ -121,7 +136,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
       .flatMap(nd => (nd.typeData?.photo_choice?.photos ?? []).map(ph => ph.fileId).filter(Boolean))
     const ids = [...new Set([...regular, ...pcPhotos])]
     if (ids.length) fetchMissingFiles(ids)
-  }, [fetchMissingFiles])
+  }, [fetchMissingFiles, syncDirty])
 
   useEffect(() => {
     if (!lessonId) return
@@ -133,7 +148,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
         setTitle(data?.title ?? '')
         // Запоминаем урок для всплывашки «продолжить редактирование» при
         // следующем запуске приложения (ResumeEditingToast.jsx)
-        setLastEditedLesson({ id: lessonId, title: data?.title })
+        setLastEditedLesson({ id: lessonId, title: data?.title, module })
         setLessonXp(data?.script?.lessonXp ?? 0)
         applyServerData(data?.script)
         if (nodes.length) setServerNodes(nodes)
@@ -175,14 +190,18 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
     setResetTick(t => t + 1)
   }
 
+  // Файлы/логотип, не уехавшие в R2, — тоже несохранённое: «Сохранить»
+  // подтягивает их тем же нажатием
+  const unsaved = dirty || hasUnsynced || hasUnsyncedLogo
+
   return (
     <div className="canvasPage">
       <div className="canvasPageHeader">
-        <BackButton onClick={onBack} />
+        <BackButton onClick={() => onBack?.(backModule)} />
         <input
           className="canvasPageTitle"
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={e => { setTitle(e.target.value); markDirty() }}
           placeholder="Название урока"
         />
         {/* Правая группа целиком: margin-left:auto держит её у правого края
@@ -190,12 +209,16 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
             на широких экранах (там title уходит в absolute — без этой
             обёртки кнопки съезжали бы к названию левым краем, см. page.css) */}
         <div className="canvasPageActions">
+          {/* Мигающая точка — есть несохранённые правки */}
           <button
             className="canvasPageSave"
-            title="Сохранить урок"
+            title={unsaved ? 'Есть несохранённые изменения' : 'Сохранить урок'}
             onClick={handleSave}
             disabled={isSaving || loading}
-          >{isSaving ? '…' : '💾'}</button>
+          >
+            {isSaving ? '…' : '💾'}
+            {unsaved && !isSaving && <span className="canvasPageSaveDot" />}
+          </button>
           {isAdmin && (
             <button
               className={`canvasPageFilter${filter.activeCount ? ' canvasPageFilterOn' : ''}`}
@@ -232,23 +255,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], onBack, onOpe
               setToolsPos(computeMenuPos(e.currentTarget.getBoundingClientRect()))
             }}
           >⋯</button>
-          <div className="canvasXpField">
-            <input
-              className="canvasXpInput"
-              type="number"
-              min="0"
-              step="10"
-              value={lessonXp}
-              onChange={e => {
-                const n = Math.max(0, parseInt(e.target.value) || 0)
-                // number-input не чистит ведущий ноль сам («05») — приводим DOM к числу
-                e.target.value = String(n)
-                setLessonXp(n)
-              }}
-              onClick={e => e.stopPropagation()}
-            />
-            <span className="canvasXpLabel">XP</span>
-          </div>
+          <CanvasXpField
+            value={lessonXp}
+            onChange={n => { setLessonXp(n); markDirty() }}
+          />
           {/* «Граф» — текущая страница (подсвечена, как активная вкладка
               нижнего навбара), клик всё равно работает — просто сохраняет */}
           <button className="pageTabBtn pageTabBtnActive" onClick={handleSave} disabled={isSaving || loading}>

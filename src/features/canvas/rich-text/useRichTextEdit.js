@@ -31,6 +31,19 @@ export function useRichTextEdit({ ref, value, highlights, onChange, pendingCaret
     return value.slice(0, start) + insert + value.slice(end)
   }
 
+  // Замена куска текста в МОДЕЛИ (не в DOM) — основной путь правки: им
+  // работают и печать, и удаление, и вставка (см. useRichTextInput.js).
+  // Раскраска сдвигается shiftHighlights: вставка ровно на границе цветного
+  // куска его НЕ растягивает — напечатанное сразу за покрашенным словом
+  // остаётся обычным текстом
+  function replaceRange(start, end, insert) {
+    commit(
+      spliceAt(start, end, insert),
+      shiftHighlights(highlights, start, end, insert.length),
+      start + insert.length,
+    )
+  }
+
   function onInput() {
     const el = ref.current
     if (!el) return
@@ -85,5 +98,5 @@ export function useRichTextEdit({ ref, value, highlights, onChange, pendingCaret
     else if (e.key === 'i' || e.key === 'I') { e.preventDefault(); toggleDecor('italic') }
   }
 
-  return { onInput, onPaste, onKeyDown }
+  return { onInput, onPaste, onKeyDown, currentRange, replaceRange }
 }

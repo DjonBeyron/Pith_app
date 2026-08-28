@@ -1,30 +1,24 @@
 import { useState, useEffect } from 'react'
 import { getLastEditedLesson } from '../lib/lastEditedLesson.js'
 
-// Сколько всплывашка висит, если её не трогать
-const HIDE_AFTER_MS = 12000
-
 // Маленькое окно при запуске приложения (только админу): «продолжить с того
 // урока, что правил в прошлый раз». Кнопка ведёт прямо в канвас этого урока,
-// крестик закрывает; если не трогать — уходит само.
-export default function ResumeEditingToast({ onOpen }) {
+// крестик закрывает. Само по себе окно НЕ уходит: раньше оно исчезало через
+// 12 секунд, и стоило отвлечься — возвращаться к уроку приходилось руками
+// через модули.
+export default function ResumeEditingToast({ onOpen, onClose }) {
   // Читаем один раз при монтировании: всплывашка про то, что было ДО запуска,
   // и не должна меняться, пока пользователь работает
   const [lesson] = useState(getLastEditedLesson)
   const [closing, setClosing] = useState(false)
   const [gone, setGone] = useState(false)
 
-  useEffect(() => {
-    if (!lesson) return
-    const hide = setTimeout(() => setClosing(true), HIDE_AFTER_MS)
-    return () => clearTimeout(hide)
-  }, [lesson])
-
+  // Уход проигрывается анимацией, и только потом окно снимается совсем
   useEffect(() => {
     if (!closing) return
-    const done = setTimeout(() => setGone(true), 260)  // дать доиграть уходу
+    const done = setTimeout(() => { setGone(true); onClose?.() }, 260)
     return () => clearTimeout(done)
-  }, [closing])
+  }, [closing, onClose])
 
   if (!lesson || gone) return null
 

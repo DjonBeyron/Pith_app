@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AdminModulesTab from './AdminModulesTab.jsx'
 import AdminTab from './AdminTab.jsx'
 import AdminNotificationsTab from './AdminNotificationsTab.jsx'
@@ -12,8 +12,17 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 // «Файлы» (таблица файлов R2), «Пуши» (рассылка), «Гонка» (супергонка),
 // «Стрик» (вехи наград), «Учитель» (общий учитель всех уроков) и «Ошибки»
 // (ошибки клиентов из client_errors).
-export default function AdminV2({ onOpenCanvas, onOpenProduction }) {
+// openModule — { id, title, isPro }: просьба снаружи открыть схему этого
+// модуля (возврат «назад» из редактора урока, см. ShellV2). Сбрасывается
+// через onModuleOpened, чтобы повторный заход в админку не открывал её снова
+export default function AdminV2({ onOpenCanvas, onOpenProduction, openModule = null, onModuleOpened }) {
   const [sub, setSub] = useState('modules') // modules | files | push | race | streak | teacher | errors
+
+  useEffect(() => {
+    // Просьба извне открыть схему модуля — переводим админку на «Модули»
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (openModule?.id) setSub('modules')
+  }, [openModule])
 
   return (
     <div className="avWrap">
@@ -41,7 +50,14 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction }) {
         </button>
       </div>
       <div className="avVersion">v{APP_VERSION}</div>
-      {sub === 'modules' && <AdminModulesTab onOpenCanvas={onOpenCanvas} onOpenProduction={onOpenProduction} />}
+      {sub === 'modules' && (
+        <AdminModulesTab
+          onOpenCanvas={onOpenCanvas}
+          onOpenProduction={onOpenProduction}
+          moduleToOpen={openModule}
+          onModuleOpened={onModuleOpened}
+        />
+      )}
       {sub === 'files' && <div className="shellV2Panel"><AdminTab /></div>}
       {sub === 'push' && <div className="shellV2Panel"><AdminNotificationsTab /></div>}
       {sub === 'race' && <div className="shellV2Panel"><AdminRaceTab /></div>}
