@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
+import { pLog } from '../../../../shared/lib/debug.js'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
 import { deriveAnswerTokens, normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 import { cellIsPickable, allCellsPicked } from './manualCellPick.js'
@@ -117,6 +118,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
     // Галочка «отправить таблицу в чат»: панель летит на место своего
     // сообщения в переписке, а не гаснет здесь (flyPanelToChat.js)
     if (onSendToChat) {
+      pLog(`[tm] уходим в чат: trigger=${trigger} высота панели=${panelH}px слов=${assembled.length}`)
       setToChat(true)
       // Та же собранная фраза и итог проверки уезжают в пузырь — чтобы после
       // посадки таблица в переписке выглядела как только что в панели
@@ -124,7 +126,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
       flyPanelToChat(panelRef.current, node.id, {
         send: arriving => onSendToChat(arriving, sent),
         reveal: onLandedInChat,
-        onLanded: done,
+        onLanded: () => { pLog('[tm] села в чат'); done() },
         // фразы нет — в пузыре бокса не будет, сворачиваем его заранее
         dropAssembly: !sent.words.length,
       })
@@ -132,6 +134,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
       timers.current.push(setTimeout(done, 420))
     }
     setShow(false)
+    pLog('[tm] setShow(false) — панель закрывается')
   }
 
   function check() {
@@ -188,6 +191,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
 
   return (
     <>
+      {/* Спейсер отпускается сразу: пока он держит высоту, лента приподнята
+          на панель, и пузырь стоит ВЫШЕ неё на эту же высоту — клону пришлось
+          бы лететь вверх через весь экран. Момент замера ловит whenStable */}
       <div
         className="tmSpacer"
         style={{

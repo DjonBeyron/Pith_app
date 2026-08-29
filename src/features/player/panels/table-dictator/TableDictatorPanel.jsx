@@ -281,7 +281,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
       flyPanelToChat(panelRef.current, node.id, {
         send: arriving => onSendToChat(arriving, sent),
         reveal: onLandedInChat,
-        onLanded: done,
+        onLanded: () => { pLog('[td] села в чат'); done() },
         // фразы нет — в пузыре бокса не будет, сворачиваем его заранее
         dropAssembly: !sent.words.length,
       })

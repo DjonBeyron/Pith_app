@@ -24,6 +24,9 @@ export default function TableDictatorView({
 
   return (
     <>
+      {/* Спейсер отпускается сразу: пока он держит высоту, лента приподнята
+          на панель, и пузырь стоит ВЫШЕ неё на эту же высоту — клону пришлось
+          бы лететь вверх через весь экран. Момент замера ловит whenStable */}
       <div className="tdSpacer" style={{
         height: show ? panelH : 0,
         transition: show

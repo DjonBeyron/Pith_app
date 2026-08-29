@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from 'react'
+import { pLog } from '../../../shared/lib/debug.js'
 
 // Высота панели ответа: на неё лента приподнимает сообщения
 // (usePlayerPanelNodes.offset), её же держит спейсер под лентой.
@@ -19,8 +20,11 @@ export function usePanelHeight(ref, onHeightChange) {
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
+    let last = null
     const apply = () => {
       const h = el.offsetHeight
+      if (last !== null && last !== h) pLog(`[panel-h] высота ${last} → ${h} (Δ${h - last})`)
+      last = h
       setHeight(prev => (prev === h ? prev : h))
       onHeightChange?.(h)
     }

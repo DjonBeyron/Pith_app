@@ -56,7 +56,7 @@ describe('таблица уходит в чат после ответа (гал�
       expect(src).toMatch(/words:/)
       // следующая нода стартует только после посадки — иначе её сообщение
       // встанет в переписке раньше самой таблицы
-      expect(src).toContain('onLanded: done')
+      expect(src).toContain('onLanded:')
       // пустой бокс сборки («Смотри на таблицу…») в пузырь не едет — клон
       // сворачивает его до полёта, иначе посадка идёт рывком
       expect(src).toContain('dropAssembly: !sent.words.length')
@@ -71,7 +71,15 @@ describe('таблица уходит в чат после ответа (гал�
     // Пузырь встаёт в ленту сразу (держит место под посадку), но невидимым:
     // иначе таблица секунду видна разом и в панели, и в переписке
     expect(fly).toContain('send?.(true)')
-    expect(fly).toContain('collapseAssembly(ghost)')
+    // Клон подбирается до вида сообщения ДО полёта: убираются кнопка и
+    // ловушки, при необходимости — пустой бокс сборки
+    expect(fly).toContain('slimDown(ghost, dropAssembly)')
+    // Замер цели — по факту остановки ленты, а не по таймеру: спейсер,
+    // подъём ленты и вставка сообщения кончаются в разное время
+    expect(fly).toContain('whenStable(')
+    // Летим настоящей геометрией, а не transform: scale — иначе сетка
+    // приезжает в пропорцию, которой у неё в пузыре нет
+    expect(fly).not.toContain('scale(${scale})')
     expect(read('./TableChatBubble.jsx')).toContain("visibility: 'hidden'")
     expect(read('../../usePlayerAnswers.js')).toContain('markTableLanded')
   })
