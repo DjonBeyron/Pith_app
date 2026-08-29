@@ -39,7 +39,10 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 0 12px;
+  /* Боковое поле вынесено в переменную: табличное сообщение компенсирует его
+     отрицательными margin, чтобы совпасть по ширине с панелью (table.css) */
+  --feed-pad: 12px;
+  padding: 0 var(--feed-pad);
   max-width: 600px;
   width: 100%;
   box-sizing: border-box;
@@ -47,7 +50,7 @@
 }
 
 @media (max-width: 400px) {
-  .playerFeedInner { padding: 0 8px; }
+  .playerFeedInner { --feed-pad: 8px; }
 }
 
 .playerEmpty {

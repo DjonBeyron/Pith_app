@@ -1,12 +1,13 @@
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import TableExtraChips from './TableExtraChips.jsx'
+import { spacerStyle } from '../spacerStyle.js'
 
 // Чистая разметка панели диктанта — вся логика прогона (аудио/часы/RAF/
 // проверка) остаётся в TableDictatorPanel.jsx, сюда приходят уже готовые
 // значения состояния и колбэки на <audio>. Вынесено, чтобы не раздувать
 // файл с состоянием: сам рендер не завязан ни на таймеры, ни на refs сценария.
 export default function TableDictatorView({
-  show, toChat, panelH, panelRef, barElsRef, waveformData, hudVisible,
+  show, toChat, panelH, givenToBubble, released, panelRef, barElsRef, waveformData, hudVisible,
   assembled, extrasAssembled, result, audioSrc, phase, table,
   highlighted, usedCells, revealedIds, flashDur, chipsVisible,
   shuffledExtras, chipStyles, extrasAssembledKeys, activeExtraKeys, hasExtraLayers,
@@ -27,12 +28,7 @@ export default function TableDictatorView({
       {/* Спейсер отпускается сразу: пока он держит высоту, лента приподнята
           на панель, и пузырь стоит ВЫШЕ неё на эту же высоту — клону пришлось
           бы лететь вверх через весь экран. Момент замера ловит whenStable */}
-      <div className="tdSpacer" style={{
-        height: show ? panelH : 0,
-        transition: show
-          ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
-          : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
-      }} />
+      <div className="tdSpacer" style={spacerStyle({ show, panelH, givenToBubble, released })} />
       <div ref={panelRef}
         className={`tdPanel${show ? ' tdPanelVisible' : ''}${!show && toChat ? ' tdPanelToChat' : ''}`}>
         <div className="tdPanelInner">

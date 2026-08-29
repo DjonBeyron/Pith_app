@@ -21,9 +21,11 @@ export function usePanelHeight(ref, onHeightChange) {
     const el = ref.current
     if (!el) return
     let last = null
+    const t0 = performance.now()
     const apply = () => {
       const h = el.offsetHeight
-      if (last !== null && last !== h) pLog(`[panel-h] высота ${last} → ${h} (Δ${h - last})`)
+      if (last === null) pLog(`[panel-h] первый замер ${h}px через ${Math.round(performance.now() - t0)}мс после монтирования`)
+      else if (last !== h) pLog(`[panel-h] высота ${last} → ${h} (Δ${h - last})`)
       last = h
       setHeight(prev => (prev === h ? prev : h))
       onHeightChange?.(h)

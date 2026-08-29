@@ -34,6 +34,12 @@ export default function PlayerFeed({ children, panelOpen = false }) {
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
 
+  // Третий участник подъёма истории: сама лента меняет нижний запас, когда
+  // снизу открывается панель ответа. Момент важен для разбора рассинхрона
+  useEffect(() => {
+    pLog(`[feed] panelOpen=${panelOpen}`)
+  }, [panelOpen])
+
   useLayoutEffect(() => {
     const inner = innerRef.current
     if (!inner) return
@@ -49,7 +55,10 @@ export default function PlayerFeed({ children, panelOpen = false }) {
     const prevEls = prevElsRef.current
 
     if (rowCount > prevRowCount.current) {
-      const newRows      = rows.filter(el => !prevEls.has(el))
+      // Таблица, которая превращается из панели, отмечена data-no-slide: она
+      // встаёт сразу на своё место, без въезда снизу. Иначе превращение целится
+      // в едущий пузырь и приходится ждать конца его анимации
+      const newRows      = rows.filter(el => !prevEls.has(el) && !el.closest('[data-no-slide]'))
       const existingRows = rows.filter(el =>  prevEls.has(el))
 
       // Measure how far existing rows already jumped (layout reflow before this effect).

@@ -50,21 +50,36 @@ describe('таблица уходит в чат после ответа (гал�
     for (const f of ['../../panels/table-dictator/TableDictatorPanel.jsx',
       '../../panels/table-manual/TableManualPanel.jsx']) {
       const src = read(f)
-      expect(src).toContain('flyPanelToChat(panelRef.current, node.id')
+      // Сам вызов живёт в общем хуке useTableToChat — панели только отдают
+      // ему свою DOM-ноду и данные пузыря
+      expect(src).toContain('toChatCtl.sendToChat(panelRef.current, node.id')
       expect(src).toContain('send: arriving => onSendToChat(arriving, sent)')
       // в чат уезжает то же, что было в панели: собранная фраза и итог
       expect(src).toMatch(/words:/)
       // следующая нода стартует только после посадки — иначе её сообщение
       // встанет в переписке раньше самой таблицы
-      expect(src).toContain('onLanded:')
-      // пустой бокс сборки («Смотри на таблицу…») в пузырь не едет — клон
-      // сворачивает его до полёта, иначе посадка идёт рывком
-      expect(src).toContain('dropAssembly: !sent.words.length')
+      // Завершение ноды идёт коллбэком done — хук вешает его на onLanded
+      expect(src).toContain('done: ()')
+      // Бокс сборки не сворачивается вовсе — он есть и в панели, и в
+      // сообщении, поэтому высоты совпадают сами
+      expect(src).not.toContain('dropAssembly')
     }
+  })
+
+  it('уход в чат живёт в общем хуке', () => {
+    const hook = read('../../panels/useTableToChat.js')
+    expect(hook).toContain('onCompensate')
+    // Распорка отдаёт место пузырю сразу (лента при вставке не дёргается),
+    // а остаток держит до посадки: пока идёт превращение, история стоит, и
+    // вверх едет таблица, а не вниз — переписка
+    expect(hook).toContain('setGivenToBubble(h)')
+    expect(hook).toContain('setSpacerReleased(true)')
   })
 
   it('полёту есть куда садиться: у пузыря в чате своя метка', () => {
     expect(read('./TableChatBubble.jsx')).toContain('data-table-bubble={nodeId}')
+    // бокс сборки в сообщении рисуется всегда — иначе не сойдётся высота с панелью
+    expect(read('./TableChatBubble.jsx')).not.toContain('words.length > 0 &&')
     expect(read('./TableModule.jsx')).toContain('nodeId={props.node.id}')
     const fly = read('../../panels/flyPanelToChat.js')
     expect(fly).toContain('[data-table-bubble="${nodeId}"]')
@@ -72,11 +87,13 @@ describe('таблица уходит в чат после ответа (гал�
     // иначе таблица секунду видна разом и в панели, и в переписке
     expect(fly).toContain('send?.(true)')
     // Клон подбирается до вида сообщения ДО полёта: убираются кнопка и
-    // ловушки, при необходимости — пустой бокс сборки
-    expect(fly).toContain('slimDown(ghost, dropAssembly)')
-    // Замер цели — по факту остановки ленты, а не по таймеру: спейсер,
-    // подъём ленты и вставка сообщения кончаются в разное время
-    expect(fly).toContain('whenStable(')
+    // ловушки. Бокс сборки остаётся — он есть и в сообщении
+    expect(fly).toContain('slimDown(ghost)')
+    expect(fly).toContain('бокс сборки не сворачиваем')
+    // Превращение стартует сразу, не дожидаясь остановки ленты: иначе клон
+    // висит неподвижно, пока история под ним ползёт. Цель считается с
+    // поправкой на то, что распорка ещё отдаст
+    expect(fly).toContain('whenSettled(')
     // Летим настоящей геометрией, а не transform: scale — иначе сетка
     // приезжает в пропорцию, которой у неё в пузыре нет
     expect(fly).not.toContain('scale(${scale})')

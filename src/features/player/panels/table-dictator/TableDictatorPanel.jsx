@@ -5,7 +5,8 @@ import { useTableDictatorAutostart } from './useTableDictatorAutostart.js'
 import TableDictatorView from './TableDictatorView.jsx'
 import { logDictatorConfig, logFileResolution, logAudioError } from './dictatorDebug.js'
 import { evaluateDictator } from './dictatorCheck.js'
-import { flyPanelToChat } from '../flyPanelToChat.js'
+import { tracePanelSync, tracePanelPaint } from '../tracePanelSync.js'
+import { useTableToChat } from '../useTableToChat.js'
 import { schedulePostAudioCheck } from './dictatorPostAudio.js'
 import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
@@ -70,7 +71,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   const [show,            setShow]            = useState(false)
   // Уходим «в чат» (галочка «Отправить таблицу в чат») — панель не уезжает
   // вниз, а приподнимается и растворяется, см. table-dictator.css
-  const [toChat,          setToChat]          = useState(false)
+  // Уход таблицы в переписку целиком живёт в useTableToChat: там же три
+  // состояния распорки под лентой (см. spacerStyle.js)
+  const toChatCtl = useTableToChat('td', '.tdSpacer')
   const [phase,           setPhase]           = useState(null)
   const [chipsVisible,    setChipsVisible]    = useState(false)
   const [playing,         setPlaying]         = useState(false)
@@ -158,7 +161,22 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   }, [assembled, extrasAssembled, chipsVisible]) // eslint-disable-line
 
   useEffect(() => {
-    const id = requestAnimationFrame(() => setShow(true))
+    const id = requestAnimationFrame(() => {
+      pLog(`[td] показываем панель (высота на этот момент ${panelH}px)`)
+      tracePanelSync('td', panelRef.current, '.tdSpacer')
+      // Композитный слой нужен только на время выезда: дальше он лишь размывает
+      // край панели субпиксельным сглаживанием (см. комментарий в CSS). Снимаем
+      // по факту конца перехода, а не по таймеру — иначе размытие держится
+      // дольше самой анимации
+      const el = panelRef.current
+      if (el) {
+        const drop = () => { el.style.willChange = 'auto' }
+        el.addEventListener('transitionend', drop, { once: true })
+        setTimeout(drop, 600)   // страховка, если перехода не случилось
+      }
+      tracePanelPaint('td-показ', panelRef.current)
+      setShow(true)
+    })
     return () => cancelAnimationFrame(id)
   }, [])
 
@@ -254,7 +272,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
     rfxCheckRef.current       = false
     rfxCloseRef.current       = false
     closedRef.current         = false
-    setToChat(false)
+    toChatCtl.reset()
     closeTriggerRef.current   = null
     closeVariantRef.current   = null
     setHighlighted(new Set()); setUsedCells(new Set())
@@ -270,7 +288,6 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
     // панель гаснет сразу — дальше видно её клон, — а следующая нода
     // запускается только после посадки, чтобы её сообщение не обогнало таблицу
     if (onSendToChat) {
-      setToChat(true)
       // Пузырь в чате повторяет вид панели: та же собранная фраза и тот же
       // итог проверки. Подсказку «Слушай диктора…» не отдаём — она не часть
       // ответа, только приглашение по ходу разбора
@@ -278,12 +295,10 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
         words: [...assembled, ...extrasAssembled.map(t => t.value)],
         result,
       }
-      flyPanelToChat(panelRef.current, node.id, {
+      toChatCtl.sendToChat(panelRef.current, node.id, {
         send: arriving => onSendToChat(arriving, sent),
         reveal: onLandedInChat,
-        onLanded: () => { pLog('[td] села в чат'); done() },
-        // фразы нет — в пузыре бокса не будет, сворачиваем его заранее
-        dropAssembly: !sent.words.length,
+        done: () => { pLog('[td] села в чат'); done() },
       })
     } else {
       timers.current.push(setTimeout(done, 420))
@@ -366,7 +381,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
 
   return (
     <TableDictatorView
-      show={show} toChat={toChat} panelH={panelH} panelRef={panelRef} barElsRef={barElsRef}
+      show={show} toChat={toChatCtl.toChat} panelH={panelH} givenToBubble={toChatCtl.givenToBubble} released={toChatCtl.spacerReleased} panelRef={panelRef} barElsRef={barElsRef}
       waveformData={waveformData} hudVisible={hudVisible}
       assembled={assembled} extrasAssembled={extrasAssembled} result={result}
       audioSrc={audioSrc} phase={phase} table={table}

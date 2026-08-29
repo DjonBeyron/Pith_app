@@ -4,7 +4,9 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
 import { deriveAnswerTokens, normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 import { cellIsPickable, allCellsPicked } from './manualCellPick.js'
-import { flyPanelToChat } from '../flyPanelToChat.js'
+import { tracePanelSync, tracePanelPaint } from '../tracePanelSync.js'
+import { useTableToChat } from '../useTableToChat.js'
+import { spacerStyle } from '../spacerStyle.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 
 
@@ -50,7 +52,8 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
 
   const [show,      setShow]      = useState(false)
   // Уход «в чат» — панель поднимается и тает, см. table-manual.css
-  const [toChat,    setToChat]    = useState(false)
+  // Уход таблицы в переписку целиком живёт в useTableToChat
+  const toChatCtl = useTableToChat('tm', '.tmSpacer')
   const [assembled, setAssembled] = useState([])
   const [result,    setResult]    = useState(null)       // null | 'correct' | 'wrong'
 
@@ -61,7 +64,22 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   const panelH = usePanelHeight(panelRef, onHeightChange)
 
   useEffect(() => {
-    const id = requestAnimationFrame(() => setShow(true))
+    const id = requestAnimationFrame(() => {
+      pLog(`[tm] показываем панель (высота на этот момент ${panelH}px)`)
+      tracePanelSync('tm', panelRef.current, '.tmSpacer')
+      // Композитный слой нужен только на время выезда: дальше он лишь размывает
+      // край панели субпиксельным сглаживанием (см. комментарий в CSS). Снимаем
+      // по факту конца перехода, а не по таймеру — иначе размытие держится
+      // дольше самой анимации
+      const el = panelRef.current
+      if (el) {
+        const drop = () => { el.style.willChange = 'auto' }
+        el.addEventListener('transitionend', drop, { once: true })
+        setTimeout(drop, 600)   // страховка, если перехода не случилось
+      }
+      tracePanelPaint('tm-показ', panelRef.current)
+      setShow(true)
+    })
     return () => cancelAnimationFrame(id)
   }, [])
 
@@ -119,16 +137,13 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
     // сообщения в переписке, а не гаснет здесь (flyPanelToChat.js)
     if (onSendToChat) {
       pLog(`[tm] уходим в чат: trigger=${trigger} высота панели=${panelH}px слов=${assembled.length}`)
-      setToChat(true)
       // Та же собранная фраза и итог проверки уезжают в пузырь — чтобы после
       // посадки таблица в переписке выглядела как только что в панели
       const sent = { words: assembled.map(t => t.value), result }
-      flyPanelToChat(panelRef.current, node.id, {
+      toChatCtl.sendToChat(panelRef.current, node.id, {
         send: arriving => onSendToChat(arriving, sent),
         reveal: onLandedInChat,
-        onLanded: () => { pLog('[tm] села в чат'); done() },
-        // фразы нет — в пузыре бокса не будет, сворачиваем его заранее
-        dropAssembly: !sent.words.length,
+        done: () => { pLog('[tm] села в чат'); done() },
       })
     } else {
       timers.current.push(setTimeout(done, 420))
@@ -194,17 +209,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
       {/* Спейсер отпускается сразу: пока он держит высоту, лента приподнята
           на панель, и пузырь стоит ВЫШЕ неё на эту же высоту — клону пришлось
           бы лететь вверх через весь экран. Момент замера ловит whenStable */}
-      <div
-        className="tmSpacer"
-        style={{
-          height: show ? panelH : 0,
-          transition: show
-            ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
-            : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
-        }}
-      />
+      <div className="tmSpacer" style={spacerStyle({ show, panelH, givenToBubble: toChatCtl.givenToBubble, released: toChatCtl.spacerReleased })} />
       <div ref={panelRef}
-        className={`tmPanel${show ? ' tmPanelVisible' : ''}${!show && toChat ? ' tmPanelToChat' : ''}`}>
+        className={`tmPanel${show ? ' tmPanelVisible' : ''}${!show && toChatCtl.toChat ? ' tmPanelToChat' : ''}`}>
         <div className="tmPanelInner">
 
           {/* Бокс сборки: нажимая на чип — удаляем его из ответа */}

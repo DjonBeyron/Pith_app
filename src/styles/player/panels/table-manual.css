@@ -7,6 +7,11 @@
   background: #1a1d22;
   transform: translateY(100%);
   transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1);
+  /* will-change поднимает панель на отдельный композитный слой. Слой с дробной
+     позицией браузер сглаживает по краям — правый край панели выглядел размытым,
+     будто там градиент, и «починивался» ровно в момент превращения: клон
+     рисуется без will-change. Слой нужен только пока панель едет, поэтому он
+     снимается по концу выезда (см. panelRef в самой панели). */
   will-change: transform;
   z-index: 10;
   padding-bottom: env(safe-area-inset-bottom, 0);

@@ -19,9 +19,11 @@ export default function TableChatBubble({ table, children, nodeId, arriving = fa
   }
 
   // Собранная фраза остаётся в переписке ровно в том виде, в каком была в
-  // панели (те же классы tdAssembly*, см. table-dictator.css). Подсказка
-  // «Смотри на таблицу…» сюда не переносится: она нужна только по ходу
-  // разбора — поэтому пустой бокс не рисуем вовсе
+  // панели (те же классы tdAssembly*, см. table-dictator.css). Бокс рисуется
+  // ВСЕГДА, даже пустой: панель с ним же и превращается в это сообщение, и
+  // если бы он тут исчезал, высоты не совпали бы — пришлось бы сворачивать
+  // его в клоне, двигать верхний край и пересчитывать цель, а история ловила
+  // бы лишний сдвиг. Пустой бокс дешевле всей этой возни
   const words   = sent?.words ?? []
   const boxCls  = [
     'tdAssemblyBox', 'tdAssemblyBoxStatic', 'tdAssemblyBoxFilled',
@@ -31,16 +33,18 @@ export default function TableChatBubble({ table, children, nodeId, arriving = fa
 
   return (
     <div
-      className="playerMsgRow"
+      className="playerMsgRow playerMsgRowTable"
       data-table-bubble={nodeId}
+      /* Приезжает превращением панели, а не «прилетает» снизу — своя анимация
+         появления ему не нужна и только мешает: пока она играет, пузырь ещё
+         едет, и клону некуда целиться (см. PlayerFeed и flyPanelToChat) */
+      data-no-slide={arriving ? 'true' : undefined}
       style={arriving ? { visibility: 'hidden' } : undefined}
     >
       <PlayerBubble className="playerMsgBubble playerMsgBubble--table">
-        {words.length > 0 && (
-          <div className={boxCls}>
-            {words.map((w, i) => <span key={i} className="tdAssemblyWord">{w}</span>)}
-          </div>
-        )}
+        <div className={boxCls}>
+          {words.map((w, i) => <span key={i} className="tdAssemblyWord">{w}</span>)}
+        </div>
         <TableGrid
           columns={table.columns}
           rows={table.rows}
