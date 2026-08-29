@@ -224,8 +224,8 @@ export function traceTableEdge(panelEl, note = '') {
 //
 // Участников снова несколько, и трасса разводит их по столбцам:
 //   · padTop у .playerFeed — лента перевёрнута, так что это её НИЖНИЙ запас.
-//     Он разный в двух состояниях (.playerFeed--panelOpen отключает safe-area),
-//     и если переключается не в такт с распоркой — вот и рывок вверх;
+//     Он обязан быть одинаковым в обоих состояниях: пока он переключался на
+//     safe-area, история на iPhone прыгала вверх на высоту home indicator;
 //   · распорка — она отдаёт место плавно, своим переходом высоты;
 //   · последнее сообщение — итог, то что видит глаз.
 // Если padTop меняется ПОЗЖЕ, чем осела распорка, порядок будет ровно тем, что
@@ -242,8 +242,10 @@ export function traceFeedClose(label, frames = 24) {
   const tick = () => {
     const ms = Math.round(performance.now() - t0)
     const pad = parseFloat(getComputedStyle(outer).paddingTop) || 0
-    const spacers = [...inner.querySelectorAll('[class*="Spacer"]')]
-      .map(el => Math.round(el.getBoundingClientRect().height))
+    // По всему документу, а не внутри ленты: часть панелей рисует распорку
+    // рядом с собой, а не среди сообщений
+    const spacers = [...document.querySelectorAll('[class*="Spacer"]')]
+      .map(el => `${el.className.split(' ')[0]}=${Math.round(el.getBoundingClientRect().height)}`)
     const row = lastRealRow(inner)?.getBoundingClientRect()
     const top = row ? row.top : null
     const dTop = prevTop != null && top != null ? top - prevTop : 0

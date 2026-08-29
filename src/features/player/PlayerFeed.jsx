@@ -170,7 +170,7 @@ export default function PlayerFeed({ children, panelOpen = false }) {
   })
 
   return (
-    <div className={`playerFeed${panelOpen ? ' playerFeed--panelOpen' : ''}`} ref={outerRef}>
+    <div className="playerFeed" ref={outerRef}>
       <div className="playerFeedInner" ref={innerRef}>
         {children}
       </div>
