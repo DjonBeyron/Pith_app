@@ -3,6 +3,20 @@ import { pLog } from '../../shared/lib/debug.js'
 
 let bubbleSeq = 0
 
+// Рост пузыря = сдвиг всей переписки: лента прижата к низу, поэтому когда в
+// голосовом появляется новая строка расшифровки, история едет вверх ровно по
+// этой кривой. Поэтому кривая тут важнее длительности.
+//
+// Было cubic-bezier(.16,1,.3,1) — expo-out: ~80% пути за первую четверть
+// времени. Формально «плавно», на глаз — щелчок и долгое доползание. Взята
+// та же кривая, что у превращения таблицы в сообщение: разгон и торможение
+// симметричны, движение читается спокойно.
+const GROW_MS   = 340
+const GROW_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)'
+// Уборка инлайновой высоты — строго ПОСЛЕ конца перехода. Раньше 250 и 280
+// жили в разных концах файла и молча разъезжались; теперь связаны формулой
+const CLEANUP_MS = GROW_MS + 40
+
 // Animated-height bubble wrapper. Smoothly grows as content is added (e.g. typing text).
 // Ported directly from MsgBubble in the old project (BlockEditorChat.jsx).
 // follow=true — режим «просто следуй»: свои анимации высоты выключены, пузырь
@@ -50,16 +64,26 @@ export default function PlayerBubble({ className, children, follow = false }) {
         pLog(`[bubble#${idRef.current}] cleanup: target=${t} actual=${actualH}${Math.abs(actualH - t) > 2 ? ' → RE-ANIMATE (вот возможный дёрг)' : ' ok'}`)
         if (Math.abs(actualH - t) > 2) animateTo(t, actualH)
         else st.prevH = el.getBoundingClientRect().height
-      }, 280)
+      }, CLEANUP_MS)
     }
 
     function animateTo(from, to) {
       pLog(`[bubble#${idRef.current}] animateTo ${Math.round(from)}→${Math.round(to)} (${to < from ? 'сжатие' : 'рост'})`)
       el.style.transition = 'none'
-      if (to < from) el.style.overflow = 'hidden'
+      // Пока высота едет, коробка КОРОЧЕ своего содержимого — и у аудио-пузыря
+      // (.playerMsgBubble--audio, overflow: hidden) новая строка расшифровки
+      // всё это время была срезана нижним краем. Чем плавнее рост, тем дольше
+      // виден обрезок, так что замедление анимации проблему только обнажило.
+      //
+      // При РОСТЕ снимаем обрезку: строка сразу читается целиком, просто первые
+      // мгновения лежит ниже фона, а фон догоняет её. Фону это не мешает — он
+      // рисуется отдельным слоем ::before с inset: 0 и своим скруглением, в
+      // overflow не нуждается. При СЖАТИИ обрезка наоборот обязательна: там
+      // содержимое должно уезжать под край, а не торчать из него.
+      el.style.overflow = to < from ? 'hidden' : 'visible'
       el.style.height = from + 'px'
       void el.offsetWidth
-      el.style.transition = 'height 0.25s cubic-bezier(.16,1,.3,1)'
+      el.style.transition = `height ${GROW_MS}ms ${GROW_EASE}`
       el.style.height = to + 'px'
       st.prevH = to
       scheduleCleanup(to)
@@ -83,7 +107,8 @@ export default function PlayerBubble({ className, children, follow = false }) {
       // (ReactionModule): в поток она не входит, но scrollHeight из-за выступа
       // подрастает. Расти пузырю при этом не нужно — просто принимаем факт,
       // ничего не анимируя. Раньше анимация здесь ещё и ломала ленту: высота
-      // ехала 250 мс, и следующее сообщение считало FLIP по плавающей высоте.
+      // ехала своим переходом, и следующее сообщение считало FLIP по плавающей
+      // высоте.
       if (!reactedRef.current && el.querySelector('.reactionInBubble')) {
         reactedRef.current = true
         clearTimeout(st.tid)
