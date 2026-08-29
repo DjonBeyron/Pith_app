@@ -219,3 +219,47 @@ export function traceTableEdge(panelEl, note = '') {
   }
   if (far) pLog(`[edge]   последняя ячейка right=${far.right.toFixed(2)} vs сетка ${gb.right.toFixed(2)} (вылет ${(far.right - gb.right).toFixed(2)})`)
 }
+
+// Закрытие панели: история сперва опускается, а потом чуть уходит вверх.
+//
+// Участников снова несколько, и трасса разводит их по столбцам:
+//   · padTop у .playerFeed — лента перевёрнута, так что это её НИЖНИЙ запас.
+//     Он разный в двух состояниях (.playerFeed--panelOpen отключает safe-area),
+//     и если переключается не в такт с распоркой — вот и рывок вверх;
+//   · распорка — она отдаёт место плавно, своим переходом высоты;
+//   · последнее сообщение — итог, то что видит глаз.
+// Если padTop меняется ПОЗЖЕ, чем осела распорка, порядок будет ровно тем, что
+// описан: сначала вниз (распорка), потом вверх (запас вырос).
+export function traceFeedClose(label, frames = 24) {
+  const outer = document.querySelector('.playerFeed')
+  const inner = document.querySelector('.playerFeedInner')
+  if (!outer || !inner) return
+  const t0 = performance.now()
+  let n = 0
+  let prevTop = null
+  let prevPad = null
+
+  const tick = () => {
+    const ms = Math.round(performance.now() - t0)
+    const pad = parseFloat(getComputedStyle(outer).paddingTop) || 0
+    const spacers = [...inner.querySelectorAll('[class*="Spacer"]')]
+      .map(el => Math.round(el.getBoundingClientRect().height))
+    const row = lastRealRow(inner)?.getBoundingClientRect()
+    const top = row ? row.top : null
+    const dTop = prevTop != null && top != null ? top - prevTop : 0
+    const dPad = prevPad != null ? pad - prevPad : 0
+    prevTop = top
+    prevPad = pad
+
+    pLog(
+      `[close ${label}] +${ms}мс кадр${n}`
+      + ` | запас ленты=${pad.toFixed(1)}${dPad ? ` ⚠СМЕНИЛСЯ ${dPad > 0 ? '+' : ''}${dPad.toFixed(1)}` : ''}`
+      + ` | распорки=[${spacers.join(',') || '—'}]`
+      + ` | посл.сообщ top=${top != null ? top.toFixed(1) : '—'}`
+      + `${dTop ? ` (${dTop > 0 ? '+' : ''}${dTop.toFixed(1)}${dTop < 0 ? ' ← ВВЕРХ' : ''})` : ''}`
+    )
+
+    if (++n < frames) requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}

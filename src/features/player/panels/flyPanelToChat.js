@@ -293,12 +293,31 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     // округляются углы. Таблица внутри при этом стоит на месте: позиция
     // клона подобрана выше так, чтобы его сетка совпала с сеткой пузыря,
     // поэтому видимого переезда нет — только смена формы вокруг неё.
-    // Рамку отдаём отдельной пустой коробке, а клон делаем прозрачным. Она и
-    // едет: left/top/width/height плюс скругление. Внутри неё пусто, поэтому
-    // перерисовка каждого кадра почти ничего не стоит — в отличие от той же
-    // анимации на самом клоне, где вместе с рамкой заново растеризовалась вся
-    // таблица (это и была рябь), и в отличие от clip-path, который не
-    // композитится и рисует то же самое, только ещё и со скруглённой маской.
+    // Клон СРАЗУ принимает форму пузыря и дальше не анимируется ничем: он и так
+    // стоит там, где окажется сообщение, и содержимое в нём то же самое.
+    // Внутренний блок в обоих ограничен 600px, поэтому от смены ширины коробки
+    // таблица не сдвигается — она как стояла, так и стоит.
+    //
+    // Фон при этом остаётся СВОИМ, непрозрачным. Это важнее, чем кажется: без
+    // непрозрачной подложки в своём слое Chrome рисует текст серым сглаживанием
+    // вместо субпиксельного, и надпись заметно меняет вид — сначала при уходе
+    // фона, потом обратно при подмене на пузырь. Это и было мерцание.
+    ghost.style.left = `${to.left}px`
+    ghost.style.top = `${to.top}px`
+    ghost.style.width = `${to.width}px`
+    ghost.style.height = `${to.height}px`
+    ghost.style.borderRadius = cs.borderRadius
+    if (dx || dy) ghost.style.transform = `translate(${dx}px, ${dy}px)`
+
+    // А панель вокруг него сжимает отдельная пустая коробка ПОЗАДИ клона. Ей и
+    // отданы left/top/width/height со скруглением. Внутри неё пусто, поэтому
+    // кадр почти ничего не стоит — в отличие от той же анимации на самом клоне,
+    // где вместе с рамкой заново растеризовалась вся таблица (это была рябь), и
+    // в отличие от clip-path, который не композитится и рисует то же самое,
+    // только ещё и сквозь скруглённую маску (это был лаг).
+    //
+    // В первых кадрах рамка шире клона, и её фон того же цвета просто
+    // достраивает панель по бокам; к концу они совпадают ровно.
     const frame = document.createElement('div')
     frame.className = 'panelFlyFrame'
     Object.assign(frame.style, {
@@ -308,22 +327,14 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
       borderRadius: '0px',
     })
     ghost.parentNode.insertBefore(frame, ghost)
-    // Свой фон клону больше не нужен — его рисует рамка
-    ghost.style.background = 'transparent'
-    // Низ панели под рамкой не обрезаем: там только пустой отступ .tdPanelInner,
-    // рисовать в нём нечего, а обрезка — это снова маска на каждый кадр
-    ghost.style.overflow = 'visible'
-    if (dx || dy) ghost.style.transform = `translate(${dx}px, ${dy}px)`
 
-    frame.animate([
+    // Единственная анимация всего перехода. onfinish берём с неё же: вешать
+    // пустышку на клон нельзя — анимация opacity, даже из 1 в 1, поднимает его
+    // на отдельный слой и на это время отключает субпиксельное сглаживание
+    const anim = frame.animate([
       { left: `${at.left}px`, top: `${at.top}px`, width: `${at.width}px`, height: `${at.height}px`, borderRadius: '0px' },
       { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: cs.borderRadius },
     ], { duration: FLIGHT_MS, easing: SPACER_EASE, fill: 'forwards' })
-
-    // Само содержимое НЕ анимируется ничем: оно уже стоит там, где окажется в
-    // пузыре, и должно просто дождаться, пока вокруг него сойдётся рамка
-    const anim = ghost.animate([{ opacity: 1 }, { opacity: 1 }],
-      { duration: FLIGHT_MS, easing: SPACER_EASE })
 
     // Тотальная трасса на время превращения — видно и цифры, и пропуски кадров
     traceMorph(ghost, target)
@@ -339,9 +350,9 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     // к этому моменту они совпадают пиксель в пиксель, и мигания нет
     const land = () => {
       const tg = target.getBoundingClientRect()
-      // Коробка клона не менялась — сравнивать надо ВИДИМУЮ рамку, то есть
-      // коробку за вычетом обрезки. Если тут не ноль, картинка прыгнет при
-      // подмене ровно на столько
+      // Сравнивать надо рамку: клон стоит на месте пузыря с самого начала, а
+      // едет и приходит в его форму именно она. Если тут не ноль, картинка
+      // прыгнет при подмене ровно на столько
       const fr = frame.getBoundingClientRect()
       const vL = fr.left, vT = fr.top, vW = fr.width, vH = fr.height
       pLog(`[fly] посадка: рамка ${Math.round(vL)},${Math.round(vT)} ${Math.round(vW)}x${Math.round(vH)}`

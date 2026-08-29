@@ -2,6 +2,7 @@ import { useRef, useLayoutEffect, useEffect } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
 import { playSound } from '../../shared/lib/sounds.js'
 import { wheelScrollShift } from './feedWheel.js'
+import { traceFeedClose } from './panels/tracePanelSync.js'
 
 // Double scaleY(-1) trick: outer container flipped → scrollTop=0 = visual bottom.
 // Inner content flipped back → messages appear normal.
@@ -84,6 +85,10 @@ export default function PlayerFeed({ children, panelOpen = false }) {
   // снизу открывается панель ответа. Момент важен для разбора рассинхрона
   useEffect(() => {
     pLog(`[feed] panelOpen=${panelOpen}`)
+    // Закрытие смотрим покадрово: там история сперва опускается вместе с
+    // распоркой, а потом дёргается вверх — трасса говорит, кто из двоих
+    // (запас ленты или распорка) меняется не в такт
+    if (!panelOpen) traceFeedClose('панель закрылась')
   }, [panelOpen])
 
   useLayoutEffect(() => {
