@@ -181,6 +181,16 @@ export default function NodeTablePicker({
         </label>
       )}
 
+      {!isDemo && tData.sendToChat === true && (
+        <input
+          className="nodeTableChatCaption"
+          value={tData.chatCaption ?? ''}
+          placeholder="Надпись в верхнем боксе таблицы в чате"
+          onClick={e => e.stopPropagation()}
+          onChange={e => onDataChange({ chatCaption: e.target.value })}
+        />
+      )}
+
       {!isDemo && (
         <label className="nodeTableSendChat" onClick={e => e.stopPropagation()}>
           <input

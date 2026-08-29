@@ -15,7 +15,17 @@ export const ROW_UNIT_PX = 44
 export default function TableGrid({ columns, rows, cells, rowCount, highlightedIds, selectedIds, dimmedIds, revealedIds, flashDurations, onCellClick }) {
   if (!columns?.length || !cells?.length) return null
 
-  const gridTemplateColumns = columns.map(c => `${c.widthPct}%`).join(' ')
+  // Доли, а не проценты. С процентами каждая колонка считается независимо, и
+  // после округления их сумма выходит чуть больше ширины сетки: последняя
+  // ячейка вылезает за край на доли пикселя, а overflow-x: hidden (и у сетки,
+  // и у .tdStage) этот хвост срезает. Отрезалось от правой РАМКИ — она теряла
+  // часть своей единственной пиксельной ширины и выглядела полупрозрачной.
+  // В чате сцены нет, резать некому — потому там та же рамка была полной.
+  //
+  // fr раздаёт именно свободное место, поэтому сумма треков точно равна
+  // контейнеру. minmax(0, ...) обязателен: у голого fr нижняя граница — размер
+  // содержимого, и длинное слово в ячейке раздуло бы колонку шире её доли.
+  const gridTemplateColumns = columns.map(c => `minmax(0, ${c.widthPct}fr)`).join(' ')
   const gridTemplateRows    = rows?.length ? rows.map(r => `${r.heightPct}%`).join(' ') : `repeat(${rowCount}, auto)`
   const height = rows?.length ? rowCount * ROW_UNIT_PX : undefined
 
@@ -29,7 +39,11 @@ export default function TableGrid({ columns, rows, cells, rowCount, highlightedI
           cell.options?.length ? 'tableGridCellOptions' : '',
           highlightedIds?.has(cell.id) ? 'tableGridCellHighlighted' : '',
           selectedIds?.has(cell.id) ? 'tableGridCellSelected' : '',
-          dimmedIds?.has(cell.id) ? 'tableGridCellDimmed' : '',
+          // Отработанные ячейки гаснут до 40% — но ТОЛЬКО обычные. Заголовок
+          // не участник разбора, а подпись к столбцу: погасив его после того,
+          // как по нему проехала зелёная подсветка, мы навсегда делали шапку
+          // серой, хотя до подсветки она была белой
+          dimmedIds?.has(cell.id) && !cell.isHeader ? 'tableGridCellDimmed' : '',
           onCellClick ? 'tableGridCellClickable' : '',
         ].filter(Boolean).join(' ')
         const revealed = !revealedIds || revealedIds.has(cell.id)

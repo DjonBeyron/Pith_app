@@ -8,7 +8,7 @@ import { spacerStyle } from '../spacerStyle.js'
 // файл с состоянием: сам рендер не завязан ни на таймеры, ни на refs сценария.
 export default function TableDictatorView({
   show, toChat, panelH, givenToBubble, released, panelRef, barElsRef, waveformData, hudVisible,
-  assembled, extrasAssembled, result, audioSrc, phase, table,
+  assembled, extrasAssembled, result, audioSrc, phase, table, caption,
   highlighted, usedCells, revealedIds, flashDur, chipsVisible,
   shuffledExtras, chipStyles, extrasAssembledKeys, activeExtraKeys, hasExtraLayers,
   audioRef, onPlay, onPause, onEnded, onError,
@@ -16,9 +16,14 @@ export default function TableDictatorView({
   const hudClass = ['tdHud', !waveformData && 'tdHudPulse', hudVisible && 'tdHudVisible']
     .filter(Boolean).join(' ')
 
+  // Подпись из ноды видна с первого кадра панели — той же, что уедет в чат.
+  // Раньше она появлялась только в пузыре, и в момент превращения не просто
+  // возникал текст: пустой бокс в панели носит рамку 0.07, а с текстом — 0.22,
+  // так что заодно втрое светлела обводка шапки
+  const empty = assembled.length === 0 && extrasAssembled.length === 0
   const boxCls = [
     'tdAssemblyBox',
-    (assembled.length > 0 || extrasAssembled.length > 0) ? 'tdAssemblyBoxFilled' : '',
+    (!empty || caption) ? 'tdAssemblyBoxFilled' : '',
     result === 'correct' ? 'tdAssemblyBoxOk'  : '',
     result === 'wrong'   ? 'tdAssemblyBoxErr' : '',
   ].filter(Boolean).join(' ')
@@ -41,8 +46,10 @@ export default function TableDictatorView({
           </div>
 
           <div className={boxCls}>
-            {assembled.length === 0 && extrasAssembled.length === 0
-              ? <span className="tdAssemblyPlaceholder">{audioSrc ? 'Слушай диктора…' : 'Смотри на таблицу…'}</span>
+            {empty
+              ? (caption
+                  ? <span className="tdAssemblyWord">{caption}</span>
+                  : <span className="tdAssemblyPlaceholder">{audioSrc ? 'Слушай диктора…' : 'Смотри на таблицу…'}</span>)
               : <>
                   {assembled.map((w, i) => <span key={`c${i}`} className="tdAssemblyWord">{w}</span>)}
                   {extrasAssembled.map(t => <span key={t.key} className="tdAssemblyWord">{t.value}</span>)}

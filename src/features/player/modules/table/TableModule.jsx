@@ -29,6 +29,9 @@ export default function TableModule(props) {
           arriving={props.tableArriving}
           /* как таблица выглядела в панели: собранная фраза и итог проверки */
           sent={typeof props.tableSent === 'object' ? props.tableSent : null}
+          /* своя надпись в верхнем боксе — задаётся у ноды рядом с галочкой
+             «отправить таблицу в чат» (NodeTablePicker) */
+          caption={tData.chatCaption ?? ''}
         />
       )}
     </>

@@ -5,7 +5,7 @@ import { useTableDictatorAutostart } from './useTableDictatorAutostart.js'
 import TableDictatorView from './TableDictatorView.jsx'
 import { logDictatorConfig, logFileResolution, logAudioError } from './dictatorDebug.js'
 import { evaluateDictator } from './dictatorCheck.js'
-import { tracePanelSync, tracePanelPaint } from '../tracePanelSync.js'
+import { tracePanelSync, tracePanelPaint, traceTableEdge } from '../tracePanelSync.js'
 import { useTableToChat } from '../useTableToChat.js'
 import { schedulePostAudioCheck } from './dictatorPostAudio.js'
 import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
@@ -175,6 +175,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
         setTimeout(drop, 600)   // страховка, если перехода не случилось
       }
       tracePanelPaint('td-показ', panelRef.current)
+      // Правый край смотрим уже В ПОКОЕ: эффект виден и после выезда, а на
+      // время перехода все замеры всё равно врут (панель на своём слое)
+      setTimeout(() => traceTableEdge(panelRef.current, `td в покое, sendToChat=${tData.sendToChat === true}`), 900)
       setShow(true)
     })
     return () => cancelAnimationFrame(id)
@@ -385,6 +388,8 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
       waveformData={waveformData} hudVisible={hudVisible}
       assembled={assembled} extrasAssembled={extrasAssembled} result={result}
       audioSrc={audioSrc} phase={phase} table={table}
+      /* своя надпись верхнего бокса — только когда таблица уедет в чат */
+      caption={tData.sendToChat === true ? (tData.chatCaption ?? '') : ''}
       highlighted={highlighted} usedCells={usedCells} revealedIds={revealedIds}
       flashDur={flashDur} chipsVisible={chipsVisible}
       shuffledExtras={shuffledExtras} chipStyles={chipStyles}

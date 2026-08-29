@@ -79,20 +79,34 @@ export function tracePanelSync(label, panelEl, spacerSel) {
   requestAnimationFrame(tick)
 }
 
-// Тотальная покадровая трасса самого превращения: что двигается, на сколько и
-// с какой задержкой между кадрами. Смысл в dt: если он скачет (16 → 40 → 16),
-// значит браузер пропускает кадры, и рывок не в цифрах, а в самом рендере.
+// Покадровая трасса превращения — ГОРИЗОНТАЛЬНАЯ.
 //
-// Пишем всё, что может дёргаться одновременно:
-//   клон (позиция и РАЗМЕР — их анимация идёт через layout, не композитор),
-//   сетка внутри клона, пузырь-цель, трансформ ленты, два нижних сообщения.
-export function traceMorph(ghost, target) {
-  const feed = document.querySelector('.playerFeedInner')
+// Прошлая версия писала только вертикаль и всё округляла, поэтому дрожание
+// по горизонтали в ней не было видно в принципе: сдвиг на 0.4px печатался как
+// одно и то же целое число два кадра подряд. Здесь всё наоборот — сотые доли
+// пикселя и слои слева направо, от клона до последней ячейки.
+//
+// Что с чем сравнивать. Клон едет намеренно (его left и width анимируются), а
+// вот inner, сетка и ячейки обязаны стоять на месте АБСОЛЮТНО: их положение
+// на экране не должно меняться ни на сотую. Любое ненулевое Δ у них — это и
+// есть дрожь, и по тому, на каком слое она появилась впервые, видно причину:
+//   · дрожит inner, а сетка следом  → виноват отступ/ширина внутреннего блока;
+//   · inner стоит, дрожит сетка     → пересчёт колонок самой сетки;
+//   · всё стоит, дрожит последняя ячейка → округление ширины треков.
+function traceMorph(ghost, target) {
   const t0 = performance.now()
   let prev = t0
   let n = 0
-  let prevG = null
-  let prevLast = null
+  const prevPos = {}
+
+  // Δ от прошлого кадра — печатаем только если оно есть, чтобы глаз цеплялся
+  const track = (key, v) => {
+    if (v == null) return '—'
+    const p = prevPos[key]
+    prevPos[key] = v
+    const d = p == null ? 0 : v - p
+    return `${v.toFixed(2)}${Math.abs(d) > 0.004 ? `(${d > 0 ? '+' : ''}${d.toFixed(2)})` : ''}`
+  }
 
   const tick = () => {
     const now = performance.now()
@@ -100,33 +114,108 @@ export function traceMorph(ghost, target) {
     const dt = Math.round(now - prev)
     prev = now
 
-    const g = document.body.contains(ghost) ? ghost.getBoundingClientRect() : null
-    const grid = g ? ghost.querySelector('.tableGrid')?.getBoundingClientRect() : null
+    const alive = document.body.contains(ghost)
+    const g = alive ? ghost.getBoundingClientRect() : null
+    const inner = alive ? ghost.querySelector('.tdPanelInner, .tmPanelInner') : null
+    const ib = inner?.getBoundingClientRect()
+    const grid = alive ? ghost.querySelector('.tableGrid') : null
+    const gr = grid?.getBoundingClientRect()
+    const box = alive ? ghost.querySelector('.tdAssemblyBox, .tmAnswerBox') : null
+    const bx = box?.getBoundingClientRect()
+    // Первая и последняя ячейки: между ними видно, тянется ли сама сетка
+    let first = null, last = null
+    if (grid) {
+      for (const c of grid.children) {
+        const r = c.getBoundingClientRect()
+        if (!first || r.left < first.left) first = r
+        if (!last || r.right > last.right) last = r
+      }
+    }
     const tg = target?.getBoundingClientRect()
-    const innerT = feed ? getComputedStyle(feed).transform : '—'
-    // matrix(a,b,c,d,tx,ty) — берём ty, это и есть сдвиг ленты
-    const ty = innerT.startsWith('matrix') ? Math.round(parseFloat(innerT.split(',')[5])) : 0
-    const rows = feed ? [...feed.children].filter(e => e.dataset.pending !== 'true') : []
-    const last = rows[rows.length - 1]?.getBoundingClientRect()
-    const prevRow = rows[rows.length - 2]?.getBoundingClientRect()
-
-    const dGhost = g && prevG ? Math.round(g.top - prevG.top) : 0
-    const dLast = last && prevLast ? Math.round(last.top - prevLast.top) : 0
-    prevG = g
-    prevLast = last
+    const innerCs = inner ? getComputedStyle(inner) : null
 
     pLog(
       `[morph] +${t}мс dt=${dt}`
-      + ` | клон top=${g ? Math.round(g.top) : '—'}(${dGhost >= 0 ? '+' : ''}${dGhost})`
-      + ` ${g ? Math.round(g.width) : '—'}x${g ? Math.round(g.height) : '—'}`
-      + ` | сетка=${grid ? Math.round(grid.top) : '—'}`
-      + ` | пузырь=${tg ? Math.round(tg.top) : '—'}`
-      + ` | лента ty=${ty}`
-      + ` | посл.сообщ=${last ? Math.round(last.top) : '—'}(${dLast >= 0 ? '+' : ''}${dLast})`
-      + ` | предпосл=${prevRow ? Math.round(prevRow.top) : '—'}`
+      + ` | клон L=${track('gL', g?.left)} W=${g ? g.width.toFixed(2) : '—'} T=${g ? g.top.toFixed(2) : '—'}`
+      + ` | inner L=${track('iL', ib?.left)} W=${ib ? ib.width.toFixed(2) : '—'}`
+      + ` ml=${innerCs ? parseFloat(innerCs.marginLeft).toFixed(2) : '—'}`
+      + ` | бокс L=${track('bL', bx?.left)} W=${bx ? bx.width.toFixed(2) : '—'}`
+      + ` | сетка L=${track('grL', gr?.left)} W=${gr ? gr.width.toFixed(2) : '—'} T=${gr ? gr.top.toFixed(2) : '—'}`
+      + ` | яч1 L=${track('c1', first?.left)} W=${first ? first.width.toFixed(2) : '—'}`
+      + ` | яч∞ R=${track('cN', last?.right)}`
+      + ` | пузырь L=${tg ? tg.left.toFixed(2) : '—'} T=${tg ? tg.top.toFixed(2) : '—'}`
     )
 
     if (++n < 26) requestAnimationFrame(tick)
   }
   requestAnimationFrame(tick)
+}
+
+export { traceMorph }
+
+// Разбор «правый край таблицы будто растворён / чем-то перекрыт».
+//
+// Снимок делается ПОЗЖЕ выезда панели (эффект живёт и в покое), и отвечает на
+// три вопроса сразу:
+//
+//  1. Композитный слой. Слой с дробной позицией браузер сглаживает по краям —
+//     край выглядит размытым. Поэтому пишем will-change/transform/filter по
+//     всей цепочке и, главное, ДРОБНЫЕ координаты правых краёв: если right
+//     нецелый, а devicePixelRatio=1 — это ровно тот случай.
+//  2. Перекрытие. elementFromPoint у самого края говорит, кто там сверху на
+//     самом деле. Если вместо ячейки таблицы вернётся что-то другое — значит
+//     край не «растворён», а закрыт.
+//  3. Обрезка. Правый край сетки против правого края её контейнеров: если
+//     сетка шире бокса, её последний столбец режется overflow.
+function describe(el) {
+  if (!el) return 'ничего'
+  const cls = typeof el.className === 'string' ? el.className.split(' ').filter(Boolean).slice(0, 3).join('.') : ''
+  return `${el.tagName.toLowerCase()}${cls ? '.' + cls : ''}`
+}
+
+export function traceTableEdge(panelEl, note = '') {
+  if (!panelEl) return
+  const grid = panelEl.querySelector('.tableGrid')
+  const chain = [
+    [panelEl, 'панель'],
+    [panelEl.querySelector('.tdPanelInner, .tmPanelInner'), 'inner'],
+    [panelEl.querySelector('.tdStage, .tmStage'), 'сцена'],
+    [panelEl.querySelector('.tdTableSection, .tmTableSection'), 'секция'],
+    [panelEl.querySelector('.tdGridBox, .tmGridBox'), 'бокс'],
+    [grid, 'сетка'],
+  ]
+
+  pLog(`[edge] ${note} dpr=${window.devicePixelRatio}`)
+  for (const [el, name] of chain) {
+    if (!el) continue
+    const cs = getComputedStyle(el)
+    const r  = el.getBoundingClientRect()
+    const odd = [
+      cs.willChange !== 'auto' ? `will-change=${cs.willChange}` : '',
+      cs.transform !== 'none' ? `transform=${cs.transform}` : '',
+      cs.filter !== 'none' ? `filter=${cs.filter}` : '',
+      cs.backdropFilter && cs.backdropFilter !== 'none' ? `backdrop=${cs.backdropFilter}` : '',
+      cs.opacity !== '1' ? `opacity=${cs.opacity}` : '',
+      (cs.maskImage && cs.maskImage !== 'none') ? `mask=${cs.maskImage.slice(0, 40)}` : '',
+      cs.overflowX !== 'visible' ? `overflowX=${cs.overflowX}` : '',
+      cs.contain && cs.contain !== 'none' ? `contain=${cs.contain}` : '',
+    ].filter(Boolean)
+    pLog(`[edge]   ${name}: right=${r.right.toFixed(2)} width=${r.width.toFixed(2)}`
+      + `${Number.isInteger(r.right) ? '' : ' ⚠ДРОБНЫЙ'}${odd.length ? ' | ' + odd.join(' ') : ' | чисто'}`)
+  }
+
+  if (!grid) return
+  const gb = grid.getBoundingClientRect()
+  const y = Math.round(gb.top + gb.height / 2)
+  for (const dx of [1, 3, 8]) {
+    const x = Math.round(gb.right - dx)
+    pLog(`[edge]   точка ${dx}px от края (x=${x}) → ${describe(document.elementFromPoint(x, y))}`)
+  }
+  // Последняя ячейка справа: не вылезает ли сетка за свой контейнер
+  let far = null
+  for (const c of grid.children) {
+    const r = c.getBoundingClientRect()
+    if (!far || r.right > far.right) far = r
+  }
+  if (far) pLog(`[edge]   последняя ячейка right=${far.right.toFixed(2)} vs сетка ${gb.right.toFixed(2)} (вылет ${(far.right - gb.right).toFixed(2)})`)
 }

@@ -228,6 +228,7 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     if (!target) {
       pLog('[fly] пузыря в ленте нет — показываем сообщение без превращения')
       ghost.remove()
+      frame?.remove()
       reveal?.()
       finish()
       return
@@ -247,73 +248,82 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     // замер ниже видит настоящую геометрию, а не кадр анимации
     ghost.getAnimations({ subtree: true }).forEach(a => a.cancel())
 
-    const inner = ghost.querySelector('.tdPanelInner, .tmPanelInner')
     const at = ghost.getBoundingClientRect()
 
-    // FLIP: примеряем конечные размеры и поля молча, замеряем, где при них
-    // окажется сетка внутри клона, и только потом считаем, куда его вести
-    const keep = { width: ghost.style.width, height: ghost.style.height, maxWidth: inner?.style.maxWidth, padding: inner?.style.padding }
-    ghost.style.width = `${to.width}px`
-    ghost.style.height = 'auto'
-    if (inner) {
-      inner.style.maxWidth = 'none'
-      inner.style.padding = `${cs.paddingTop} ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft}`
-    }
-    const endBox = ghost.getBoundingClientRect()
-    const endGrid = ghostGrid?.getBoundingClientRect() ?? endBox
-    const offX = endGrid.left - endBox.left
-    const offY = endGrid.top - endBox.top
-    const endH = endBox.height   // только для лога: насколько панель толще пузыря
-    ghost.style.width = keep.width
-    ghost.style.height = keep.height
-    if (inner) { inner.style.maxWidth = keep.maxWidth ?? ''; inner.style.padding = keep.padding ?? '' }
-
-    // Раскладка уже приведена к конечному виду (settleLayout ниже по стеку),
-    // поэтому пузырь стоит ровно там, где и останется — никаких поправок
-    // «на будущее», а значит и никакой гонки с моментом замера
+    // Клон и пузырь УЖЕ совпадают по содержимому: внутренний блок панели и сам
+    // пузырь оба ограничены 600px и центрированы, поэтому таблица в них стоит
+    // в одной и той же точке экрана. Значит переход — это не перелёт, а
+    // ОБРЕЗКА рамки: лишнее по бокам и снизу нужно просто убрать.
+    //
+    // Так и делаем: коробка клона не меняется вообще (ни left, ни width, ни
+    // height), а края съедает clip-path. Это чистая отрисовка — ни layout, ни
+    // сдвига содержимого, значит и рябить нечему. Раньше здесь ехали
+    // left/width/height, и весь текст таблицы каждый кадр растеризовался
+    // заново с новой субпиксельной фазой: в трассе всё стояло неподвижно до
+    // сотых, а на экране была рябь.
     const gridTo = bubbleGrid?.getBoundingClientRect() ?? to
-    const toLeft = gridTo.left - offX
-    const toTop  = gridTo.top - offY
-    pLog(`[fly] сдвиг таблицы ${Math.round(toTop - at.top)}px (должен быть около нуля)`)
+    const gridAt = ghostGrid?.getBoundingClientRect() ?? at
 
-    // Главные числа разбора: если таблица «улетает», смотреть сюда — Δ
-    // показывает, на сколько клон просят сместиться, а «сетка» — совпадают
-    // ли исходная и целевая сетки по вертикали
+    // Остаточное несовпадение сеток. В обычной раскладке это ноль; если вдруг
+    // нет — доводим трансформом, он композитный и содержимое не перерисовывает
+    const dx = gridTo.left - gridAt.left
+    const dy = gridTo.top - gridAt.top
+
+    // На сколько ужмётся рамка с каждой стороны — только для лога: сама она
+    // едет по своим left/top/width/height, а эти числа показывают величину хода
+    const cut = v => Math.max(0, v)
+    const insL = cut(to.left - (at.left + dx))
+    const insR = cut((at.left + dx + at.width) - (to.left + to.width))
+    const insT = cut(to.top - (at.top + dy))
+    const insB = cut((at.top + dy + at.height) - (to.top + to.height))
+
+    pLog(`[fly] сдвиг таблицы ${dx.toFixed(2)},${dy.toFixed(2)} (должен быть 0,0 — иначе сетки не совпали)`)
     pLog(`[fly] клон ${r(at)} | пузырь ${r(to)}`)
-    pLog(`[fly] сетка клона ${r(ghostGrid?.getBoundingClientRect())} → сетка пузыря ${r(gridTo)}${bubbleGrid ? '' : ' (СЕТКИ В ПУЗЫРЕ НЕТ, целимся по пузырю)'}`)
-    pLog(`[fly] примерка: бокс ${r(endBox)}, сетка ${r(endGrid)}, отступ сетки внутри ${Math.round(offX)},${Math.round(offY)}, высота ${Math.round(endH)}`)
-    pLog(`[fly] цель ${Math.round(toLeft)},${Math.round(toTop)} → Δ ${Math.round(toLeft - at.left)},${Math.round(toTop - at.top)} (минус = вверх/влево)`)
+    pLog(`[fly] сетка клона ${r(gridAt)} → сетка пузыря ${r(gridTo)}${bubbleGrid ? '' : ' (СЕТКИ В ПУЗЫРЕ НЕТ, целимся по пузырю)'}`)
+    pLog(`[fly] рамка ужмётся: сверху ${insT.toFixed(2)} справа ${insR.toFixed(2)} снизу ${insB.toFixed(2)} слева ${insL.toFixed(2)}`)
 
-    // Внутренние поля перетекают отдельно: в панели их держит .tdPanelInner /
-    // .tmPanelInner (6px 16px 16px), в пузыре — его собственный padding (8px)
-    if (inner) {
-      const ics = getComputedStyle(inner)
-      inner.animate([
-        { paddingTop: ics.paddingTop, paddingRight: ics.paddingRight, paddingBottom: ics.paddingBottom, paddingLeft: ics.paddingLeft, maxWidth: ics.maxWidth },
-        { paddingTop: cs.paddingTop, paddingRight: cs.paddingRight, paddingBottom: cs.paddingBottom, paddingLeft: cs.paddingLeft, maxWidth: 'none' },
-      ], { duration: FLIGHT_MS, easing: SPACER_EASE, fill: 'forwards' })
-    }
+    // Внутренний блок не трогаем СОВСЕМ. Поля панели и пузыря совпадают (6px
+    // сверху, 16px по бокам), отличается только нижний отступ — а он под
+    // срезанным низом и не виден. Раньше тут пинались ширина, margin и
+    // padding, и каждая правка была лишним пересчётом раскладки.
+
 
     // Никакого затухания: панель не «улетает и гаснет», а СХЛОПЫВАЕТСЯ в
     // форму сообщения — сжимается фон по бокам, уходит верхняя часть,
     // округляются углы. Таблица внутри при этом стоит на месте: позиция
     // клона подобрана выше так, чтобы его сетка совпала с сеткой пузыря,
     // поэтому видимого переезда нет — только смена формы вокруг неё.
-    const anim = ghost.animate([
-      {
-        left: `${at.left}px`, top: `${at.top}px`,
-        width: `${at.width}px`, height: `${at.height}px`,
-        borderRadius: '0px',
-      },
-      {
-        left: `${toLeft}px`, top: `${toTop}px`,
-        // Высота — как у пузыря, а не как у примерки: под сеткой в панели
-        // остаются отступы сцены, которых в сообщении нет. Верх сетки уже
-        // совмещён, поэтому лишнее просто отрезается снизу (у клона overflow)
-        width: `${to.width}px`, height: `${to.height}px`,
-        borderRadius: cs.borderRadius,
-      },
+    // Рамку отдаём отдельной пустой коробке, а клон делаем прозрачным. Она и
+    // едет: left/top/width/height плюс скругление. Внутри неё пусто, поэтому
+    // перерисовка каждого кадра почти ничего не стоит — в отличие от той же
+    // анимации на самом клоне, где вместе с рамкой заново растеризовалась вся
+    // таблица (это и была рябь), и в отличие от clip-path, который не
+    // композитится и рисует то же самое, только ещё и со скруглённой маской.
+    const frame = document.createElement('div')
+    frame.className = 'panelFlyFrame'
+    Object.assign(frame.style, {
+      left: `${at.left}px`, top: `${at.top}px`,
+      width: `${at.width}px`, height: `${at.height}px`,
+      background: getComputedStyle(ghost).backgroundColor,
+      borderRadius: '0px',
+    })
+    ghost.parentNode.insertBefore(frame, ghost)
+    // Свой фон клону больше не нужен — его рисует рамка
+    ghost.style.background = 'transparent'
+    // Низ панели под рамкой не обрезаем: там только пустой отступ .tdPanelInner,
+    // рисовать в нём нечего, а обрезка — это снова маска на каждый кадр
+    ghost.style.overflow = 'visible'
+    if (dx || dy) ghost.style.transform = `translate(${dx}px, ${dy}px)`
+
+    frame.animate([
+      { left: `${at.left}px`, top: `${at.top}px`, width: `${at.width}px`, height: `${at.height}px`, borderRadius: '0px' },
+      { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: cs.borderRadius },
     ], { duration: FLIGHT_MS, easing: SPACER_EASE, fill: 'forwards' })
+
+    // Само содержимое НЕ анимируется ничем: оно уже стоит там, где окажется в
+    // пузыре, и должно просто дождаться, пока вокруг него сойдётся рамка
+    const anim = ghost.animate([{ opacity: 1 }, { opacity: 1 }],
+      { duration: FLIGHT_MS, easing: SPACER_EASE })
 
     // Тотальная трасса на время превращения — видно и цифры, и пропуски кадров
     traceMorph(ghost, target)
@@ -328,10 +338,14 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     // приём: пузырь показывается и клон снимается в одном и том же кадре —
     // к этому моменту они совпадают пиксель в пиксель, и мигания нет
     const land = () => {
-      const gh = ghost.getBoundingClientRect()
       const tg = target.getBoundingClientRect()
-      // Если тут не ноль — ровно на столько картинка прыгнет при подмене
-      pLog(`[fly] посадка: клон ${r(gh)}, пузырь ${r(tg)} → расхождение ${Math.round(tg.left - gh.left)},${Math.round(tg.top - gh.top)} высота ${Math.round(tg.height - gh.height)}`)
+      // Коробка клона не менялась — сравнивать надо ВИДИМУЮ рамку, то есть
+      // коробку за вычетом обрезки. Если тут не ноль, картинка прыгнет при
+      // подмене ровно на столько
+      const fr = frame.getBoundingClientRect()
+      const vL = fr.left, vT = fr.top, vW = fr.width, vH = fr.height
+      pLog(`[fly] посадка: рамка ${Math.round(vL)},${Math.round(vT)} ${Math.round(vW)}x${Math.round(vH)}`
+        + `, пузырь ${r(tg)} → расхождение ${Math.round(tg.left - vL)},${Math.round(tg.top - vT)} высота ${Math.round(tg.height - vH)}`)
       reveal?.()
       // Клон снимаем не «через кадр», а когда пузырь ФАКТИЧЕСКИ проявился.
       // reveal — это setState: React коммитит его не в текущем кадре, и клон,
@@ -342,6 +356,7 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
         const shown = getComputedStyle(target).visibility !== 'hidden'
         if (shown || tries >= 8) {
           ghost.remove()
+          frame.remove()
           pLog(`[fly] клон снят через ${tries} кадр(ов)${shown ? '' : ' — ПО ЛИМИТУ, пузырь так и не проявился'}`)
           return
         }
