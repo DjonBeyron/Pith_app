@@ -11,6 +11,48 @@ import { wheelScrollShift } from './feedWheel.js'
 // т.п.): край ленты в этот момент касается верха панели, а не физического
 // низа экрана, и панель уже сама учитывает safe-area у своего низа (см.
 // choose-word.css) — лишний отступ тут был бы просто съеденным местом.
+// Прилёт сообщения снизу — две фазы, а не одна.
+//
+// Раньше новая строка ехала translateY(200 → 0), а история в тот же миг
+// translateY(shiftPx → 0): переписка трогалась, когда новый пузырь был ещё в
+// 200px под своим местом. Толчок начинался до касания — на двух голосовых
+// подряд это особенно заметно, верхнее уезжало само по себе.
+//
+// Теперь считаем точку касания. Новый пузырь стартует на TRAVEL ниже своего
+// места, история — на shiftPx ниже своего (её туда отбрасывает FLIP). Значит
+// коснутся они, когда пузырю останется пройти ровно shiftPx: до этого он идёт
+// один, после — оба едут как одно целое, сохраняя между собой те самые 4px
+// зазора ленты.
+//
+// Общий путь всегда TRAVEL, поэтому длительность постоянна, а деление на фазы
+// само подстраивается под высоту пришедшего пузыря.
+const TRAVEL     = 200
+const SLIDE_MS   = 240
+// Разгон: пузырь набирает скорость, пока летит один
+const EASE_FLY   = 'cubic-bezier(0.4, 0, 1, 1)'
+// Торможение: после касания связка гасит скорость и мягко встаёт на место
+const EASE_PUSH  = 'cubic-bezier(0, 0, 0.2, 1)'
+// Звук сообщения — за 60мс до конца, как и было
+const SOUND_AT   = SLIDE_MS - 60
+
+// Кадры для прилетающего пузыря и для истории. Оба используют ОДНИ И ТЕ ЖЕ
+// значения и кривую на второй фазе — иначе после касания они бы разъезжались
+function slideFrames(push, forHistory) {
+  const contact = Math.max(0, TRAVEL - push) / TRAVEL
+  if (contact <= 0) {
+    // Пузырь выше самого пролёта: касание уже произошло, фаза одна
+    return [
+      { transform: `translateY(${forHistory ? push : TRAVEL}px)`, easing: EASE_PUSH },
+      { transform: 'translateY(0)' },
+    ]
+  }
+  return [
+    { transform: `translateY(${forHistory ? push : TRAVEL}px)`, easing: forHistory ? 'linear' : EASE_FLY },
+    { transform: `translateY(${push}px)`, offset: contact, easing: EASE_PUSH },
+    { transform: 'translateY(0)' },
+  ]
+}
+
 export default function PlayerFeed({ children, panelOpen = false }) {
   const outerRef     = useRef(null)
   const innerRef     = useRef(null)
@@ -85,12 +127,12 @@ export default function PlayerFeed({ children, panelOpen = false }) {
           setTimeout(() => {
             pLog('[feed] sound message-in fired (-60ms)')
             playSound('message-in')
-          }, 130)
+          }, SOUND_AT)
         }
 
         const anim = el.animate(
-          [{ transform: 'translateY(200px)' }, { transform: 'translateY(0)' }],
-          { duration: 190, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
+          slideFrames(shiftPx, false),
+          { duration: SLIDE_MS, fill: 'backwards' },
         )
         if (photoAnswer) {
           anim.finished.then(() => {
@@ -102,14 +144,13 @@ export default function PlayerFeed({ children, panelOpen = false }) {
         }
       })
 
-      // Existing rows: FLIP — instantly push back to where they were, animate up in sync.
-      // fill:'backwards' holds the start frame from first paint so there's no visible jump.
+      // Existing rows: FLIP — отбрасываем их назад, туда где они стояли, и
+      // ведём вверх, но НЕ сразу: до точки касания они стоят (см. slideFrames).
+      // fill:'backwards' держит стартовый кадр с первой отрисовки, без прыжка.
       if (existingRows.length && shiftPx > 0) {
+        pLog(`[feed] толчок ${shiftPx}px, касание на ${Math.round(Math.max(0, TRAVEL - shiftPx) / TRAVEL * SLIDE_MS)}мс`)
         existingRows.forEach(el => {
-          el.animate(
-            [{ transform: `translateY(${shiftPx}px)` }, { transform: 'translateY(0)' }],
-            { duration: 190, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'backwards' },
-          )
+          el.animate(slideFrames(shiftPx, true), { duration: SLIDE_MS, fill: 'backwards' })
         })
       }
     }

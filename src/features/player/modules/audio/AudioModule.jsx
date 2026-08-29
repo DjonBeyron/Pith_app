@@ -24,7 +24,11 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const [weakDevice] = useState(() => isWeakDevice())
   const [objectUrl,       setObjectUrl]       = useState(null)
   const [isPlaying,       setIsPlaying]       = useState(false)
-  const [isFading,        setIsFading]        = useState(false)
+  // Сразу true, если у голосового есть расшифровка: пузырь должен прилететь
+  // в чат уже растушёванным. Раньше растушёвка включалась по старту печати —
+  // сообщение появлялось с резким низом и щёлкало в размытый через секунду.
+  // Ленивая инициализация, потому что node.typeData разбирается ниже
+  const [isFading,        setIsFading]        = useState(() => !!node.typeData?.audio?.text)
   const [waveData,        setWaveData]        = useState(null)
   const [duration,        setDuration]        = useState(null)
   const [barCount,        setBarCount]        = useState(WAVE_H_BASE.length)
