@@ -110,7 +110,7 @@ export default function PlayerBubble({ className, children, follow = false }) {
     st.target = null
     const el = ref.current
     if (el) {
-      el.style.height = el.style.overflow = el.style.transition = ''
+      el.style.height = el.style.overflow = el.style.transition = el.style.boxShadow = ''
       st.prevH = el.getBoundingClientRect().height
       pLog(`[bubble#${idRef.current}] follow ON (h=${Math.round(st.prevH)})`)
     }
@@ -127,7 +127,7 @@ export default function PlayerBubble({ className, children, follow = false }) {
       st.tid = setTimeout(() => {
         st.tid = null
         const t = st.target; st.target = null
-        el.style.height = el.style.overflow = el.style.transition = ''
+        el.style.height = el.style.overflow = el.style.transition = el.style.boxShadow = ''
         const actualH = el.scrollHeight
         const diff = actualH - t
         // Порог тот же, что у RO. Раньше здесь стояло 2px, и любая мелочь —
@@ -155,11 +155,30 @@ export default function PlayerBubble({ className, children, follow = false }) {
       // рисуется отдельным слоем ::before с inset: 0 и своим скруглением, в
       // overflow не нуждается. При СЖАТИИ обрезка наоборот обязательна: там
       // содержимое должно уезжать под край, а не торчать из него.
-      el.style.overflow = to < from ? 'hidden' : 'visible'
+      const grow = to > from
+      el.style.overflow = grow ? 'visible' : 'hidden'
+
+      // ...но текст без фона под собой всё равно читается как «пузырь не
+      // поспевает»: слово уже допечаталось, а прямоугольник ещё едет. Поэтому
+      // на время роста ДОРИСОВЫВАЕМ фон под выступающую часть — тенью в цвет
+      // пузыря, сдвинутой ровно на недостающую высоту.
+      //
+      // Тень повторяет форму коробки со всеми скруглениями и рисуется ПОД её
+      // собственным фоном, поэтому видна только та часть, что торчит снизу —
+      // получается цельный пузырь нужного размера с первого кадра. И это чистая
+      // отрисовка: ни layout, ни положение соседей она не трогает.
+      //
+      // Нижний край при этом стоит на месте (низ коробки прижат лентой, а тень
+      // сокращается ровно настолько, насколько растёт высота) — едет только
+      // верхний край, вместе с историей. Как и должно.
+      const bg = grow ? getComputedStyle(el).backgroundColor : null
+      if (grow) el.style.boxShadow = `0 ${Math.round(to - from)}px 0 0 ${bg}`
+
       el.style.height = from + 'px'
       void el.offsetWidth
-      el.style.transition = `height ${GROW_MS}ms ${GROW_EASE}`
+      el.style.transition = `height ${GROW_MS}ms ${GROW_EASE}, box-shadow ${GROW_MS}ms ${GROW_EASE}`
       el.style.height = to + 'px'
+      if (grow) el.style.boxShadow = `0 0 0 0 ${bg}`
       st.prevH = to
       scheduleCleanup(to)
     }
@@ -189,7 +208,7 @@ export default function PlayerBubble({ className, children, follow = false }) {
         clearTimeout(st.tid)
         st.tid = null
         st.target = null
-        el.style.height = el.style.overflow = el.style.transition = ''
+        el.style.height = el.style.overflow = el.style.transition = el.style.boxShadow = ''
         // Именно фактическая высота, а не scrollHeight: тот включает выступ
         // эмодзи наружу, и следующее измерение считало бы от завышенного
         st.prevH = el.getBoundingClientRect().height
@@ -206,10 +225,11 @@ export default function PlayerBubble({ className, children, follow = false }) {
         // Рост во время активной анимации: просто ставим новую цель. transition
         // от animateTo ещё висит на элементе, поэтому браузер перенацеливает
         // движение с текущего кадра — рывка нет, скорость не сбрасывается
+        // Пересобираем движение от текущего КАДРА, а не просто меняем цель:
+        // иначе дорисованный фон остался бы посчитанным под прошлую высоту и
+        // не покрыл бы новую строку
         pLog(`[bubble#${id}] новая цель на лету: ${nextH} (рост поверх анимации)`)
-        el.style.height = nextH + 'px'
-        st.prevH = nextH
-        scheduleCleanup(nextH)
+        animateTo(el.getBoundingClientRect().height, nextH)
       } else if (Math.abs(nextH - (st.prevH ?? 0)) < MICRO_PX) {
         // Дрожь на пару пикселей: принимаем как есть, высоту не трогаем —
         // пузырь просто остаётся на авто-высоте

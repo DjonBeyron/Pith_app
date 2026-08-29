@@ -11,6 +11,15 @@
   margin: 0 12px 4px;
   flex-shrink: 0;
   overflow: hidden; /* clips shimmer sweep */
+  animation: pinBannerIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Выезд сверху. Место под баннер появляется сразу, но ленте это не мешает:
+   она прижата к низу, поэтому сообщения остаются на месте, а сжимается её
+   верхний край */
+@keyframes pinBannerIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Glass border ───────────────────────────────────────────────────
