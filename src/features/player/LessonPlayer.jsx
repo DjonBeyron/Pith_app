@@ -10,6 +10,7 @@ import { PlayerFrozenContext } from './playerFrozen.js'
 import { useMediaPause, pauseAllMedia } from './useMediaPause.js'
 import PlayerPanels from './PlayerPanels.jsx'
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
+import { mainLineIndex, lessonProgress } from '../../shared/lib/lessonProgress.js'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPanelNodes } from './usePlayerPanelNodes.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
@@ -96,6 +97,10 @@ export default function LessonPlayer({
     },
   })
   const { visibleNodes, pendingNode, onNodeDone } = graph
+
+  // Карта главной линии считается один раз на урок, доля — на каждый показ
+  const mainIndex = useMemo(() => mainLineIndex(nodes), [nodes])
+  const progress  = lessonProgress(mainIndex, visibleNodes)
 
   function handleXpEarned(amount, rect) {
     setEarnedXp(prev => { earnedXpRef.current = prev + amount; return prev + amount })
@@ -243,6 +248,7 @@ export default function LessonPlayer({
      <div className="playerPhone">
       <div className="lessonPlayer" ref={playerRef}>
         <PlayerTopBar
+          progress={progress}
           title={lessonTitle}
           onClose={onClose}
           teacherName={teacherName}

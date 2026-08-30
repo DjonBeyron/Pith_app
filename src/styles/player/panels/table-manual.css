@@ -100,6 +100,9 @@
 .tmTableSection {
   width: 100%;
   transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+  /* см. .tdTableSection: без непрозрачной подложки в своём слое
+     субпиксельное сглаживание текста выключается на время сдвига */
+  background: #1a1d22;
 }
 .tmTableSectionSlid {
   transform: translateX(-100%);
@@ -120,13 +123,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 12px 8px;
-  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.18) transparent;
+  /* safe center, а не просто center. Обычное центрирование в скроллящемся
+     контейнере обрезает НАЧАЛО списка: когда пунктов больше, чем влезает,
+     содержимое выпирает в обе стороны, а прокрутить выше нулевой позиции
+     нельзя — верхние пункты становятся недоступны. Ключевое слово safe
+     отключает центрирование ровно в этом случае и прижимает список к началу.
+     Короткий список по-прежнему стоит по центру. */
+  justify-content: safe center;
+  /* scroll, а не auto: полоса нужна ВСЕГДА. С auto она появляется только во
+     время прокрутки, и по неподвижному экрану не понять, что список длиннее
+     видимой части — ученик просто не знает, что внизу есть ещё слова. */
+  overflow-y: scroll;
 }
-.tmExtrasSection::-webkit-scrollbar { width: 4px; }
+.tmExtrasSection::-webkit-scrollbar { width: 5px; -webkit-appearance: none; }
 .tmExtrasSection::-webkit-scrollbar-track { background: transparent; }
 .tmExtrasSection::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
 

@@ -81,3 +81,31 @@
   .playerTopBarLesson { display: none; }
   .playerTopBar { padding: 6px 8px; gap: 6px; }
 }
+
+/* ── Полоса прогресса урока ───────────────────────────────────────────
+   Тонкая линия по нижней кромке шапки. Абсолютная и высотой 2px: в поток не
+   входит, шапку не раздвигает, места под себя не просит.
+   Растёт через scaleX, а не через width: ширина — это layout, и на каждом
+   новом сообщении браузер пересчитывал бы раскладку шапки; transform идёт
+   на композиторе и не трогает ничего вокруг. transform-origin слева, иначе
+   полоса росла бы из центра в обе стороны. */
+.playerTopBarProgress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.playerTopBarProgressFill {
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(182, 254, 59, 0.55), #b6fe3b);
+  /* Плавно, но не медленно: полоса подрастает на каждое сообщение, и рывок
+     здесь читался бы как отдельное событие, отвлекая от самого сообщения */
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}

@@ -39,25 +39,70 @@
   color: #e0e0e0;
 }
 
-/* Итог ответа значком: верно — галочка, неверно — крестик. Значок появляется
-   на 700 мс позже самого пузыря (результат приходит отдельно), поэтому у него
-   своя короткая анимация — иначе он просто возникал бы из ниоткуда.
-   inline-block нужен, чтобы к ::after применялся transform. */
-.playerMsgBubble--responseOk::after,
-.playerMsgBubble--responseErr::after {
+/* Итог ответа значком: верно — галочка, неверно — крестик.
+   Место под значок держится С САМОГО НАЧАЛА, ещё до того как известен
+   результат: он приходит на 700 мс позже самого пузыря, и без резерва пузырь
+   в этот момент раздвигался бы, дёргая всю переписку. Поэтому ::after есть у
+   любого ответа — просто пустой и шириной ровно со знак.
+   Ширина фиксированная и общая: у ✓ и ✕ она разная, и без неё пузырь всё
+   равно бы дрогнул на пару пикселей в момент подстановки. */
+.playerMsgBubble--response::after {
+  content: '';
   display: inline-block;
+  width: 12px;
   margin-left: 7px;
   font-size: 12px;
   font-weight: 700;
+  text-align: center;
+  vertical-align: baseline;
+}
+
+/* Сам знак — своя короткая анимация появления, иначе он возникал бы из
+   ниоткуда. inline-block выше нужен как раз чтобы работал transform. */
+.playerMsgBubble--responseOk::after,
+.playerMsgBubble--responseErr::after {
   animation: answerMarkIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .playerMsgBubble--responseOk::after  { content: '✓'; color: #b6fe3b; }
-.playerMsgBubble--responseErr::after { content: '✕'; font-size: 11px; color: #f87171; }
+.playerMsgBubble--responseErr::after { content: '✕'; color: #f87171; }
 
 @keyframes answerMarkIn {
   from { opacity: 0; transform: scale(0.4); }
   60%  { opacity: 1; transform: scale(1.2); }
   to   { opacity: 1; transform: scale(1); }
+}
+
+/* Импакт на верном ответе — короткий салют над правым верхним углом пузыря.
+   Ради него не заводится ни элемент, ни компонент: шесть искр нарисованы
+   тенями одной точки, а разлёт — это анимация их смещений. Значит ни узла в
+   DOM, ни влияния на раскладку, и сработает он ровно там, где появился знак.
+   ::before у верного ответа свободен — раньше там жила брендовая обводка. */
+.playerMsgBubble--responseOk::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 10px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+  animation: answerSpark 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+@keyframes answerSpark {
+  from {
+    box-shadow:
+      0 0 0 0 rgba(182, 254, 59, 0.95),  0 0 0 0 rgba(182, 254, 59, 0.95),
+      0 0 0 0 rgba(255, 255, 255, 0.85), 0 0 0 0 rgba(182, 254, 59, 0.95),
+      0 0 0 0 rgba(255, 255, 255, 0.85), 0 0 0 0 rgba(182, 254, 59, 0.95);
+  }
+  to {
+    box-shadow:
+      -18px -14px 0 -1px rgba(182, 254, 59, 0),  -4px -22px 0 -1px rgba(182, 254, 59, 0),
+       10px -19px 0 -1px rgba(255, 255, 255, 0),  20px -9px 0 -1px rgba(182, 254, 59, 0),
+      -22px  -4px 0 -1px rgba(255, 255, 255, 0),   4px -26px 0 -1px rgba(182, 254, 59, 0);
+  }
 }
 
 /* Левый (учительский) красный пузырь — для подсказок об ошибке */

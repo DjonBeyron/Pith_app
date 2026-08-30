@@ -87,6 +87,14 @@
 .tdTableSection {
   width: 100%;
   transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Непрозрачный фон обязателен, хотя под секцией и так фон панели того же
+     цвета. Причина в сглаживании: transform поднимает элемент на отдельный
+     композитный слой, а субпиксельное сглаживание текста работает только
+     когда в СВОЁМ слое под буквами есть непрозрачная подложка. Без неё браузер
+     переключается на серое — и текст ячеек на время сдвига (и до самой отправки
+     в чат, пока слой жив) выглядит другой толщины. Тот же механизм мы уже
+     ловили на клоне панели в flyPanelToChat.js. */
+  background: #1a1d22;
 }
 .tdTableSectionSlid {
   transform: translateX(-100%);
@@ -105,13 +113,23 @@
   inset: 0 0 18px;
 
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  align-items: center;
   padding: 12px 8px;
-  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.18) transparent;
+  /* safe center, а не просто center. Обычное центрирование в скроллящемся
+     контейнере обрезает НАЧАЛО списка: когда пунктов больше, чем влезает,
+     содержимое выпирает в обе стороны, а прокрутить выше нулевой позиции
+     нельзя — верхние пункты становятся недоступны. Ключевое слово safe
+     отключает центрирование ровно в этом случае и прижимает список к началу.
+     Короткий список по-прежнему стоит по центру. */
+  justify-content: safe center;
+  /* scroll, а не auto: полоса нужна ВСЕГДА. С auto она появляется только во
+     время прокрутки, и по неподвижному экрану не понять, что список длиннее
+     видимой части — ученик просто не знает, что внизу есть ещё слова. */
+  overflow-y: scroll;
 }
-.tdExtrasSection::-webkit-scrollbar { width: 4px; }
+.tdExtrasSection::-webkit-scrollbar { width: 5px; -webkit-appearance: none; }
 .tdExtrasSection::-webkit-scrollbar-track { background: transparent; }
 .tdExtrasSection::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
 

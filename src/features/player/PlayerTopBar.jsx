@@ -8,7 +8,7 @@ import BackButton from '../../shared/ui/BackButton.jsx'
 const CROP_FRAME  = 80
 const AVATAR_SIZE = 36
 
-export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo, teacherLogoCrop, onDownloadLog }) {
+export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo, teacherLogoCrop, onDownloadLog, progress = 0 }) {
   const [intrinsic, setIntrinsic] = useState(null)
 
   // Сброс размеров при смене лого — подстройка состояния прямо в рендере
@@ -63,6 +63,12 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
 
   return (
     <div className="playerTopBar">
+      {/* Полоса прогресса — по нижней кромке шапки, поверх её границы.
+          Абсолютная: в поток не входит, поэтому шапка от неё не становится
+          выше ни на пиксель. Ширина внутренней части и есть доля пройденного */}
+      <div className="playerTopBarProgress" aria-hidden="true">
+        <div className="playerTopBarProgressFill" style={{ transform: `scaleX(${progress})` }} />
+      </div>
       <BackButton onClick={onClose} label="Закрыть" />
       <div className="playerTopBarAvatar">
         {teacherLogo
