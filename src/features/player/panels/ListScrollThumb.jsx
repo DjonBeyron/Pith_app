@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { pLog } from '../../../shared/lib/debug.js'
 
 // Всегда видимая полоса прокрутки для списка слов вне таблицы.
 //
@@ -21,7 +22,13 @@ export default function ListScrollThumb({ targetRef }) {
       const { scrollTop, scrollHeight, clientHeight } = el
       // +1 — запас на дробные высоты: без него полоса появлялась бы на списке,
       // который влезает, но чей scrollHeight на сотую больше clientHeight
-      if (scrollHeight <= clientHeight + 1) { setThumb(null); return }
+      if (scrollHeight <= clientHeight + 1) {
+        setThumb(prev => {
+          if (prev) pLog(`[scroll] список влезает целиком (${clientHeight}px) — полосы нет`)
+          return null
+        })
+        return
+      }
       setThumb({
         // Минимум в 14% — чтобы на длинном списке ползунок не превращался
         // в точку, по которой не понять ни положения, ни направления
@@ -31,6 +38,7 @@ export default function ListScrollThumb({ targetRef }) {
     }
 
     update()
+    pLog(`[scroll] список: видно ${el.clientHeight}px из ${el.scrollHeight}px → полоса ${el.scrollHeight > el.clientHeight + 1 ? 'нужна' : 'не нужна'}`)
     el.addEventListener('scroll', update, { passive: true })
     // Список приходит не сразу и меняется по ходу разбора — ResizeObserver
     // ловит и появление слов, и смену высоты сцены
