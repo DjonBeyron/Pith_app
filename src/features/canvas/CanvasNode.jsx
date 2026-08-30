@@ -3,7 +3,7 @@ import NodeContentEditor from './NodeContentEditor.jsx'
 import { applyTypeChange } from './nodeDefaults.js'
 import NodeTypeSelect from './NodeTypeSelect.jsx'
 import NodeMediaBadge from './NodeMediaBadge.jsx'
-import { TYPE_COLOR, colorBg } from './nodeTypes.js'
+import { TYPE_COLOR, TYPE_SHORT, colorBg } from './nodeTypes.js'
 import { isTextZone } from './canvasDragGuard.js'
 
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
@@ -24,6 +24,16 @@ function CanvasNode({
   dimmed = false,
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
+  // Подпись для дальнего зума. Рисуется всегда, но видна только когда холст
+  // в режиме far (CSS ниже) — там содержимое ноды скрыто, и без подписи граф
+  // превращается в набор одинаковых плиток. Цвет заливки берётся отсюда же,
+  // через переменную: тип становится виден и цветом, и словом
+  const farLabel = (
+    <span className="canvasNodeFar" aria-hidden="true">
+      <b>{node.seq}</b>
+      <i>{TYPE_SHORT[node.type] ?? node.type}</i>
+    </span>
+  )
   const handleUpdate = patch => onUpdate(node.id, patch)
   // Нажали ЛЕВОЙ в поле ввода/список — это работа с текстом: ноду не тащим и
   // курсор с выделением не отбираем. Всплытие всё равно гасим, иначе доска
@@ -63,12 +73,13 @@ function CanvasNode({
     return (
       <div
         className={`canvasNode canvasNodeNano${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`}
-        style={{ background: color }}
+        style={{ background: color, '--node-color': color }}
         onMouseDown={handleDragStart}
         onClick={expandClick}
       >
         <span className="canvasNodeSeq">{node.seq}</span>
         <NodeMediaBadge node={node} />
+        {farLabel}
       </div>
     )
   }
@@ -78,9 +89,10 @@ function CanvasNode({
 
   if (node.size === 'mini') {
     return (
-      <div className={`canvasNode canvasNodeMini${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={handleDragStart}>
+      <div className={`canvasNode canvasNodeMini${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07), '--node-color': color }} onMouseDown={handleDragStart}>
         <div className="canvasNodeTopBar" style={{ background: color }} />
         <NodeMediaBadge node={node} />
+        {farLabel}
         <div className="canvasNodeMiniBody">
           <button className="canvasNodeExpandBtn" onClick={expandClick}>›</button>
           <span className="canvasNodeSeq">#{node.seq}</span>
@@ -100,9 +112,10 @@ function CanvasNode({
 
   // ── max ─────────────────────────────────────────────────────────
   return (
-    <div className={`canvasNode canvasNodeMax${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07) }} onMouseDown={handleDragStart}>
+    <div className={`canvasNode canvasNodeMax${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07), '--node-color': color }} onMouseDown={handleDragStart}>
       <div className="canvasNodeTopBar" style={{ background: color }} />
       <NodeMediaBadge node={node} />
+      {farLabel}
       <div className="canvasNodeMaxBody">
         <div className="canvasNodeMaxTop">
           <button className="canvasNodeExpandBtn" onClick={expandClick}>‹</button>

@@ -5,6 +5,7 @@ import { useRichTextInput } from './useRichTextInput.js'
 import { useRichTextCaret } from './useRichTextCaret.js'
 import { useRichTextSelection } from './useRichTextSelection.js'
 import RichTextToolbar from './RichTextToolbar.jsx'
+import CopyPlainButton from './CopyPlainButton.jsx'
 import { preloadRichTextFavorites, RICH_TEXT_FAV_ID } from './useRichTextFavorites.js'
 import { autoGrowTextarea } from '../../../shared/lib/autoGrowTextarea.js'
 import { useTextareaHeight } from '../useTextareaHeight.js'
@@ -74,6 +75,11 @@ export default function RichTextField({
 
   return (
     <>
+      {/* Обёртка нужна только чтобы кнопка копирования могла позиционироваться
+          по полю и показываться на его :hover. Обычный блок, без флексов —
+          раскладку родителя не меняет */}
+      <div className="richTextBox">
+      <CopyPlainButton text={value} />
       <div
         ref={setNodeRef}
         className={className ? `richTextField ${className}` : 'richTextField'}
@@ -88,6 +94,7 @@ export default function RichTextField({
         onMouseDown={e => e.stopPropagation()}
       >
         <HighlightedText text={value} highlights={highlights} />
+      </div>
       </div>
       {selection.range && (
         <RichTextToolbar

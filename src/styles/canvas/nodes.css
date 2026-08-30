@@ -183,9 +183,49 @@
    Сами ноды остаются заметными блоками — иначе выделять пачкой нечего. */
 .canvasBoardWorldFar .canvasNode > * { visibility: hidden; }
 
+/* Заливка — ЦВЕТОМ ТИПА, а не одинаковым серо-зелёным. На дальнем зуме
+   содержимое скрыто, и раньше граф превращался в набор неразличимых плиток;
+   теперь тип читается цветом, а подпись ниже добавляет к нему слово и номер.
+   --node-color ставит сама нода инлайном (CanvasNode.jsx). */
 .canvasBoardWorldFar .canvasNode {
-  box-shadow: inset 0 0 0 9999px rgba(140, 160, 110, 0.38);
+  box-shadow: inset 0 0 0 9999px var(--node-color, rgba(140, 160, 110, 0.38));
   border-radius: 6px;
+}
+
+/* Подпись на дальнем зуме: номер крупно, тип помельче под ним.
+   Размеры В МИРОВЫХ пикселях — их ещё умножит масштаб холста, поэтому цифры
+   такие большие: при 0.2 экранный кегль выходит ~11px, это предел читаемости.
+   Само поле скрыто вместе с остальным содержимым (правило выше), поэтому
+   видимость возвращаем явно. */
+.canvasNodeFar {
+  display: none;
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: rgba(0, 0, 0, 0.72);
+  text-align: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.canvasBoardWorldFar .canvasNode > .canvasNodeFar {
+  display: flex;
+  visibility: visible;
+}
+
+.canvasNodeFar b { font-size: 54px; font-weight: 800; line-height: 1; }
+.canvasNodeFar i {
+  font-size: 26px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  max-width: 96%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Выделение на дальнем зуме — заливкой, а не рамкой: обводка в 1px

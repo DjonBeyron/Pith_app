@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import HeartReaction from '../../HeartReaction.jsx'
 
 const PHOTO_COLORS = [
   '#6366f1','#ec4899','#f59e0b','#10b981',
@@ -29,7 +28,7 @@ function usePhotoSrc(ph, lessonFiles = []) {
   return src
 }
 
-export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState, photoXpPending = 0, onPhotoXpFired, rewardXp = 0 }) {
+export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState, photoXpPending = 0, onPhotoXpFired }) {
   const photos   = node.typeData?.photo_choice?.photos ?? []
   const selected = photoChoiceState?.selected ?? null
   const photo    = selected != null ? (photos[selected] ?? null) : null
@@ -51,11 +50,9 @@ export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState,
   const { result } = photoChoiceState
   const isOk  = result === 'correct'
 
-  const showHeart = isOk && rewardXp > 0
-
   return (
     <div className="playerMsgRow playerMsgRowRight">
-      <div className={showHeart ? 'reactionBubbleWrap reactionBubbleWrapPhoto' : undefined}>
+      <div>
         <div
           ref={photoRef}
           className={`pcAnswerPhoto ${isOk ? 'pcAnswerPhotoOk' : 'pcAnswerPhotoErr'}`}
@@ -66,7 +63,6 @@ export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState,
             : <span className="pcAnswerIdx">{selected + 1}</span>
           }
         </div>
-        {showHeart && <HeartReaction variant="Photo" />}
       </div>
     </div>
   )

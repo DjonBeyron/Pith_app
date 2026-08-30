@@ -28,6 +28,15 @@ export const NODE_TYPES = [
 
 export const TYPE_COLOR = Object.fromEntries(NODE_TYPES.map(t => [t.value, t.color]))
 
+// Короткие имена — для подписи на дальнем зуме. Полные («Текстовое сообщение»)
+// туда не влезают: нода там шириной в палец, а подпись должна читаться целиком
+export const TYPE_SHORT = {
+  text: 'Текст', audio: 'Голос', circle: 'Кружок', video: 'Видео', photo: 'Фото',
+  sticker: 'Стикер', reaction: 'Реакция', system: 'Система', pin_message: 'Закреп',
+  word_choice: 'Слово', phrase_assembly: 'Фраза', table: 'Таблица',
+  photo_choice: 'Фото-выбор', voice_record: 'Запись', registration: 'Регистрация',
+}
+
 // true для первого элемента новой группы (кроме самой первой) — используется
 // в NodeTypeSelect.jsx/InsertNodeButton.jsx, чтобы отделить группы отступом
 // в выпадающем меню выбора типа

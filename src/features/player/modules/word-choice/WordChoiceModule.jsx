@@ -1,18 +1,16 @@
 import PlayerBubble from '../../PlayerBubble.jsx'
-import HeartReaction from '../../HeartReaction.jsx'
 
 // Справа в чате: сначала пузырь с выбранным вариантом (только если у ноды
 // включена галочка «Отправлять выбранное в чат» — тогда приходит pickText),
 // следом — текст реакции на верно/неверно. Сердечко XP вешается на последний
 // пузырь ряда: на реакцию, а если её текст пуст — на выбранное.
-export default function WordChoiceModule({ wordChoiceState, rewardXp = 0 }) {
+export default function WordChoiceModule({ wordChoiceState }) {
   if (!wordChoiceState) return null
   const { pickText, text, result } = wordChoiceState
   if (!pickText && !text) return null
 
   const isCorrect = result === 'correct'
   const mod = isCorrect ? ' playerMsgBubble--responseOk' : ' playerMsgBubble--responseErr'
-  const showHeart = isCorrect && rewardXp > 0
 
   return (
     <>
@@ -30,7 +28,6 @@ export default function WordChoiceModule({ wordChoiceState, rewardXp = 0 }) {
             <PlayerBubble className={`playerMsgBubble playerMsgBubble--response playerMsgBubble--pick${result ? mod : ''}`}>
               {pickText}
             </PlayerBubble>
-            {showHeart && !text && <HeartReaction />}
           </div>
         </div>
       )}
@@ -40,7 +37,6 @@ export default function WordChoiceModule({ wordChoiceState, rewardXp = 0 }) {
             <PlayerBubble className={`playerMsgBubble playerMsgBubble--response${mod}`}>
               {text}
             </PlayerBubble>
-            {showHeart && <HeartReaction />}
           </div>
         </div>
       )}

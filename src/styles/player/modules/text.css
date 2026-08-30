@@ -16,58 +16,49 @@
   word-break: break-word;
 }
 
-/* Выбор ученика прилетает в чат сразу по тапу, а верно/неверно — через 700 мс:
-   пузырь доцвечивается на месте, поэтому переход */
-.playerMsgBubble--pick {
-  transition: background .25s ease, color .25s ease;
-}
+/* Выбор ученика прилетает в чат сразу по тапу, а верно/неверно — через 700 мс.
+   Доцвечивать больше нечего (фон у обоих исходов общий), результат показывает
+   только значок, и своя анимация появления есть у него самого — см. ниже. */
 
-/* Верный ответ НЕ заливается цветом. Причина: верных ответов в уроке
-   большинство, и сплошная зелёная заливка превращала ленту в зелёную
-   простыню, а брендовый лайм на английских словах в ней тонул. Верность
-   показывает тонкая брендовая кромка и галочка — этого хватает, потому что
-   рядом всегда есть реакция или реплика учителя. Ошибка остаётся заливкой:
-   её, наоборот, нужно замечать. */
-.playerMsgBubble--responseOk {
+/* Верный и неверный ответ выглядят ОДИНАКОВО: тот же фон, тот же цвет текста,
+   та же растушёвка. Отличает их ровно один знак в конце — галочка или крестик.
+   Так решено сознательно:
+     · сплошная заливка превращала ленту в цветную простыню, а брендовый лайм
+       на английских словах в ней тонул;
+     · брендовая кромка у верного ответа спорила с этим же лаймом и делала
+       пузырь «особенным» там, где особенного ничего нет — верных ответов в
+       уроке большинство;
+     · разный фон у верного и неверного заодно ломал растушёвку низа: она
+       считается от цвета фона, и приходилось держать две копии правила.
+   Похвала и любая другая эмоция теперь приходят нодой reaction — её ставит
+   автор урока там, где она к месту, а не автоматом на каждый верный ответ. */
+.playerMsgBubble--responseOk,
+.playerMsgBubble--responseErr {
   position: relative;
   background: #1a1d22;
   color: #e0e0e0;
 }
 
-/* Обводка градиентом, а не сплошной линией: книзу она тает вместе с фоном,
-   иначе низ пузыря выглядел обрезанным ровной чертой. Приём стандартный —
-   градиент кладётся фоном на рамку и вырезается маской по padding-box. */
-.playerMsgBubble--responseOk::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  background: linear-gradient(to bottom, rgb(182 254 59 / 85%) 30%, rgb(182 254 59 / 0%) 94%);
-  border-radius: inherit;
-  pointer-events: none;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-}
-
-/* Итог ответа значком: верно — галочка, неверно — крестик */
-.playerMsgBubble--responseOk::after {
-  content: '✓';
+/* Итог ответа значком: верно — галочка, неверно — крестик. Значок появляется
+   на 700 мс позже самого пузыря (результат приходит отдельно), поэтому у него
+   своя короткая анимация — иначе он просто возникал бы из ниоткуда.
+   inline-block нужен, чтобы к ::after применялся transform. */
+.playerMsgBubble--responseOk::after,
+.playerMsgBubble--responseErr::after {
+  display: inline-block;
   margin-left: 7px;
   font-size: 12px;
   font-weight: 700;
-  color: #b6fe3b;
+  animation: answerMarkIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+.playerMsgBubble--responseOk::after  { content: '✓'; color: #b6fe3b; }
+.playerMsgBubble--responseErr::after { content: '✕'; font-size: 11px; color: #f87171; }
 
-.playerMsgBubble--responseErr::after {
-  content: '✕';
-  margin-left: 7px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #f87171;
+@keyframes answerMarkIn {
+  from { opacity: 0; transform: scale(0.4); }
+  60%  { opacity: 1; transform: scale(1.2); }
+  to   { opacity: 1; transform: scale(1); }
 }
-.playerMsgBubble--responseErr { background: rgba(248,113,113,.10); color: #f87171; }
 
 /* Левый (учительский) красный пузырь — для подсказок об ошибке */
 .playerMsgBubble--teacherErr {
@@ -92,16 +83,10 @@
 /* Ответ ученика растушёвывается ТОЛЬКО когда на нём есть реакция: класс
    вешает ReactionModule на пузырь, в который прилетел эмодзи. Пузырь при этом
    подрастает, и таять должна именно добавленная снизу полоса. */
+/* Одно правило на все ответы: фон у них теперь общий, поэтому и растушёвка
+   одна. Раньше здесь лежали три копии, и у неверного ответа она была красной */
 .playerMsgBubble--response.playerMsgBubbleReacted {
   background: linear-gradient(to bottom, #1a1d22 60%, rgb(26 29 34 / 0%));
-}
-
-.playerMsgBubble--responseOk.playerMsgBubbleReacted {
-  background: linear-gradient(to bottom, #1a1d22 60%, rgb(26 29 34 / 0%));
-}
-
-.playerMsgBubble--responseErr.playerMsgBubbleReacted {
-  background: linear-gradient(to bottom, rgb(248 113 113 / 10%) 60%, rgb(248 113 113 / 0%));
 }
 
 .playerReply {

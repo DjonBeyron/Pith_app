@@ -21,6 +21,13 @@ function shuffle(arr) {
   return a
 }
 
+// Возврат сцены на место (.tdTableSection, transition 0.42s в
+// table-dictator.css) плюс запас на кадр — раньше этого начинать превращение
+// нельзя, иначе клон снимется с уехавшей таблицы
+const SLIDE_BACK_MS = 460
+// Возврат текста ячеек — это один пересчёт раскладки, кадра хватает с запасом
+const RESTORE_MS = 90
+
 export default function TableDictatorPanel({ node, file, onDone, onHeightChange, onSendToChat, onLandedInChat }) {
   const tData        = node.typeData?.table ?? {}
   const table        = tData.table         ?? null
@@ -286,30 +293,63 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   function slideDown(trigger, variantId) {
     pLog(`[td-auto] slideDown trigger=${trigger}`)
     const done = () => onDone?.(trigger ?? 'table_correct', variantId)
-    // Галочка «отправить таблицу в чат»: панель не уезжает вниз, а летит на
-    // место своего сообщения в переписке (flyPanelToChat.js). Настоящая
-    // панель гаснет сразу — дальше видно её клон, — а следующая нода
-    // запускается только после посадки, чтобы её сообщение не обогнало таблицу
-    if (onSendToChat) {
-      // Пузырь в чате повторяет вид панели: та же собранная фраза и тот же
-      // итог проверки. Подсказку «Слушай диктора…» не отдаём — она не часть
-      // ответа, только приглашение по ходу разбора
-      const sent = {
-        words: [...assembled, ...extrasAssembled.map(t => t.value)],
-        result,
+
+    const leave = () => {
+      // Галочка «отправить таблицу в чат»: панель не уезжает вниз, а летит на
+      // место своего сообщения в переписке (flyPanelToChat.js). Настоящая
+      // панель гаснет сразу — дальше видно её клон, — а следующая нода
+      // запускается только после посадки, чтобы её сообщение не обогнало
+      // таблицу
+      if (onSendToChat) {
+        // Пузырь в чате повторяет вид панели: та же собранная фраза и тот же
+        // итог проверки. Подсказку «Слушай диктора…» не отдаём — она не часть
+        // ответа, только приглашение по ходу разбора
+        const sent = {
+          words: [...assembled, ...extrasAssembled.map(t => t.value)],
+          result,
+        }
+        toChatCtl.sendToChat(panelRef.current, node.id, {
+          send: arriving => onSendToChat(arriving, sent),
+          reveal: onLandedInChat,
+          done: () => { pLog('[td] села в чат'); done() },
+        })
+      } else {
+        timers.current.push(setTimeout(done, 420))
       }
-      toChatCtl.sendToChat(panelRef.current, node.id, {
-        send: arriving => onSendToChat(arriving, sent),
-        reveal: onLandedInChat,
-        done: () => { pLog('[td] села в чат'); done() },
-      })
-    } else {
-      timers.current.push(setTimeout(done, 420))
+      setShow(false)
+      setHudVisible(false)   // панель уезжает вниз — спектр сразу схлопывается (scale к 0), не ждёт onEnded
+      setHighlighted(new Set())
+      onHeightChange?.(0)
     }
-    setShow(false)
-    setHudVisible(false)   // панель уезжает вниз — спектр сразу схлопывается (scale к 0), не ждёт onEnded
-    setHighlighted(new Set())
-    onHeightChange?.(0)
+
+    // Если по ходу разбора появлялись слова вне таблицы, сцена уехала влево и
+    // на её месте стоят чипы (phase: 'extras'). В чат таблица должна уйти в
+    // своём обычном виде, поэтому сперва возвращаем её на место и только потом
+    // начинаем превращение. Панель в этот момент ещё видима — клон снимается с
+    // неё, и уехавшая сцена попала бы в него как есть.
+    //
+    // Состояние берём из DOM, а не из phase: slideDown вызывается из таймеров,
+    // и замыкание может держать значение прошлого рендера.
+    const slid = panelRef.current?.querySelector('.tdTableSectionSlid')
+    if (onSendToChat) {
+      // Текст ячеек возвращаем ВСЕГДА. По ходу диктанта ячейки гаснут: out-point
+      // слоя убирает их из revealedIds (dictatorPostAudio.js), и к концу разбора
+      // часть таблицы стоит без текста. В сообщении же таблица рисуется вообще
+      // без гейтинга — там виден весь текст. Не вернув его здесь, мы снимали бы
+      // клон с полупустой таблицы, а в чате она внезапно заполнялась.
+      // null, а не полный набор: у TableGrid это и означает «показывать всё».
+      setRevealedIds(null)
+      if (slid) {
+        pLog('[td] возвращаем таблицу на место и текст ячеек перед уходом в чат')
+        setPhase(null)
+        setChipsVisible(false)
+      } else {
+        pLog('[td] возвращаем текст ячеек перед уходом в чат')
+      }
+      timers.current.push(setTimeout(leave, slid ? SLIDE_BACK_MS : RESTORE_MS))
+      return
+    }
+    leave()
   }
 
   function handleEnded() {

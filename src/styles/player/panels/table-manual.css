@@ -49,8 +49,10 @@
 }
 
 .tmAnswerBoxFilled { border-style: solid; border-color: rgba(255, 255, 255, 0.22); }
-.tmAnswerBoxOk     { border-color: #b6fe3b; background: rgba(182, 254, 59, 0.07); }
-.tmAnswerBoxErr    { border-color: #f87171; animation: tmShake 0.42s ease; }
+/* Обводки «верно/неверно» здесь НЕТ: правильность показывает значок в чате
+   (галочка/крестик) и цвет самих слов, а рамка вокруг поля дублировала это
+   третий раз и спорила с брендовым лаймом на английских словах. */
+.tmAnswerBoxErr    { animation: tmShake 0.42s ease; }
 
 @keyframes tmShake {
   0%, 100% { transform: translateX(0); }
@@ -66,18 +68,22 @@
 }
 
 /* Собранное (уже выбранное) слово — как заголовок: жирный шрифт */
+/* Собранные слова — просто текст, без плашки и обводки. Плашка на каждом
+   слове превращала фразу в набор кнопок: глаз читал границы, а не сами слова,
+   и собранное предложение переставало выглядеть предложением. Тот же вид, что
+   у собранной фразы в таблице (.tdAssemblyWord) — так оба сборщика выглядят
+   одинаково, и в чат обе фразы уезжают в одном стиле. */
 .tmAnswerChip {
-  padding: 5px 11px;
-  background: rgba(182, 254, 59, 0.10);
-  border: 1px solid rgba(182, 254, 59, 0.32);
-  border-radius: 20px;
-  color: #b6fe3b;
-  font-size: 14px;
+  padding: 2px 2px;
+  background: none;
+  border: none;
+  color: #e8eaee;
+  font-size: 15px;
   font-family: 'Montserrat', 'Comfortaa', sans-serif; font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  transition: opacity 0.15s;
 }
-.tmAnswerChip:not(:disabled):active { background: rgba(182, 254, 59, 0.18); }
+.tmAnswerChip:not(:disabled):active { opacity: 0.6; }
 .tmAnswerChip:disabled { opacity: 0.7; cursor: default; }
 
 /* ── Сцена: таблица (слайд влево) + слова ────────────────────────── */

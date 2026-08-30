@@ -67,7 +67,19 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
 
   useEffect(() => {
     if (!isAnswered) return
-    const answer   = setTimeout(() => { if (responseCorrect.trim()) onAnswered?.(responseCorrect, 'correct') }, 700)
+    // В чат уходит СОБРАННАЯ ФРАЗА — так же, как при последней неверной
+    // попытке. Раньше сюда отправлялся responseCorrect, а его по легенде
+    // обычно не пишут (он рисуется справа, от лица ученика, и получалось бы,
+    // что ученик отвечает сам себе) — значит на верный ответ в переписке не
+    // появлялось НИЧЕГО. Отсюда же тянулся баг с реакцией: последним пузырём
+    // справа оставалась предыдущая неверная попытка, и нода reaction липла к
+    // ней. Если responseCorrect всё-таки задан, он идёт следом отдельной
+    // репликой учителя.
+    const phrase = placed.map(p => p.word).join(' ')
+    const answer   = setTimeout(() => {
+      if (phrase.trim()) onAnswered?.(phrase, 'correct')
+      if (responseCorrect.trim()) onAnswered?.(responseCorrect, 'hint')
+    }, 700)
     const slideOut = setTimeout(() => setShow(false), 700 + 900)
     const done     = setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_correct') }, 700 + 900 + 420)
     return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }

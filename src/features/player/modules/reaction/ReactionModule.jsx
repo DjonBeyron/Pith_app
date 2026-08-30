@@ -45,6 +45,14 @@ function findBubble(selector) {
   return found.length ? found[found.length - 1] : null
 }
 
+// Сколько ещё присматриваться к ленте после монтирования. Ответ ученика
+// прилетает в чат не обязательно раньше, чем стартует нода реакции: у выбора
+// слова результат приходит через 700 мс после тапа, у сборщика фразы пузырь
+// добавляется своим состоянием панели. Если в этот зазор реакция уже выбрала
+// цель, она липла к ПРЕДЫДУЩЕЙ попытке — и на неверной фразе оказывалась
+// реакция, предназначенная верной.
+const RETARGET_MS = 1000
+
 export default function ReactionModule({ node, onDone }) {
   const data = node.typeData?.reaction ?? {}
   const emoji = (data.emoji ?? '👍').trim() || '👍'
@@ -57,9 +65,24 @@ export default function ReactionModule({ node, onDone }) {
   useEffect(() => { onDone?.() }, []) // eslint-disable-line
 
   useEffect(() => {
-    // Цель ищем по готовому DOM ленты — до монтирования её знать неоткуда
+    const sel = toStudent ? SEL_STUDENT : SEL_TEACHER
+    // Цель берём сразу — в обычном случае нужный пузырь уже в ленте, и ждать
+    // нечего. Но следующую секунду продолжаем присматривать: если появится
+    // более поздний подходящий пузырь (тот самый запоздавший ответ), реакция
+    // переезжает на него. Ждать «стабилизации» ленты тут нельзя — пока ответ
+    // едет, количество пузырей как раз стабильно, и любое ожидание истекло бы
+    // впустую, задержав реакцию там, где она и так на месте.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTarget(findBubble(toStudent ? SEL_STUDENT : SEL_TEACHER))
+    setTarget(findBubble(sel))
+    const t0 = performance.now()
+    let raf = 0
+    const watch = () => {
+      const now = findBubble(sel)
+      setTarget(prev => (now && now !== prev ? now : prev))
+      if (performance.now() - t0 < RETARGET_MS) raf = requestAnimationFrame(watch)
+    }
+    raf = requestAnimationFrame(watch)
+    return () => cancelAnimationFrame(raf)
   }, [toStudent])
 
   // Класс на пузыре: он якорь для абсолютного эмодзи и включает растушёвку

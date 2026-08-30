@@ -45,8 +45,10 @@
   transition: border-color 0.2s, background 0.2s;
 }
 .tdAssemblyBoxFilled { border-color: rgba(255,255,255,0.22); }
-.tdAssemblyBoxOk     { border-color: #b6fe3b; background: rgba(182,254,59,0.07); }
-.tdAssemblyBoxErr    { border-color: #f87171; animation: tdShake 0.42s ease; }
+/* Обводки «верно/неверно» здесь НЕТ: правильность показывает значок в чате
+   (галочка/крестик) и цвет самих слов, а рамка вокруг поля дублировала это
+   третий раз и спорила с брендовым лаймом на английских словах. */
+.tdAssemblyBoxErr    { animation: tdShake 0.42s ease; }
 
 @keyframes tdShake {
   0%,100% { transform: translateX(0); }
