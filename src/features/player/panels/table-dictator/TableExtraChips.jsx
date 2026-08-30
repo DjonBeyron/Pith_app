@@ -1,3 +1,6 @@
+import { useRef } from 'react'
+import ListScrollThumb from '../ListScrollThumb.jsx'
+
 // Слова вне таблицы: список чипов под уехавшей таблицей. Зелёным горит то
 // слово, чей клип идёт сейчас; упавшее в бокс тускнеет до 40%.
 //
@@ -6,8 +9,10 @@
 export default function TableExtraChips({
   words, chipStyles, assembledKeys, activeKeys, hasExtraLayers, flashDurations,
 }) {
+  const listRef = useRef(null)
   return (
-    <div className="tdExtrasSection">
+    <>
+    <div className="tdExtrasSection" ref={listRef}>
       {words.map((word, i) => {
         const key   = `extra-${i}`
         const inBox = assembledKeys.has(key)
@@ -35,5 +40,9 @@ export default function TableExtraChips({
         )
       })}
     </div>
+    {/* Полоса — СНАРУЖИ прокручиваемого блока: внутри она уезжала бы вместе
+        с содержимым. Родитель (.tdStage) position: relative, по нему и встаёт */}
+    <ListScrollThumb targetRef={listRef} />
+    </>
   )
 }

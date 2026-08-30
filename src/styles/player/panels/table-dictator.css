@@ -115,8 +115,10 @@
   display: flex; flex-direction: column;
   align-items: center;
   padding: 12px 8px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.18) transparent;
+  /* Родную полосу прячем: на iOS она накладная — проступает при прокрутке и
+     гаснет, а ::-webkit-scrollbar там игнорируется. Вместо неё рисуем свою,
+     всегда видимую (ListScrollThumb.jsx) */
+  scrollbar-width: none;
   /* safe center, а не просто center. Обычное центрирование в скроллящемся
      контейнере обрезает НАЧАЛО списка: когда пунктов больше, чем влезает,
      содержимое выпирает в обе стороны, а прокрутить выше нулевой позиции
@@ -129,9 +131,7 @@
      видимой части — ученик просто не знает, что внизу есть ещё слова. */
   overflow-y: scroll;
 }
-.tdExtrasSection::-webkit-scrollbar { width: 5px; -webkit-appearance: none; }
-.tdExtrasSection::-webkit-scrollbar-track { background: transparent; }
-.tdExtrasSection::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+.tdExtrasSection::-webkit-scrollbar { display: none; }
 
 /* Только opacity, без transform: если у слова class сменится на tdExtraChipUsed
    (см. ниже) раньше, чем эта анимация доиграет свои 0.3с, свойство animation
@@ -207,4 +207,30 @@
 @keyframes tdBarPulse {
   0%,100% { height: 2px;  opacity: 0.5; }
   50%      { height: 11px; opacity: 1; }
+}
+
+/* ── Своя полоса прокрутки списка (ListScrollThumb.jsx) ───────────────
+   Общая для обоих режимов таблицы. Стоит поверх списка справа, кликов не
+   ловит — это индикатор, а не орган управления: тащить его пальцем на таком
+   списке всё равно неудобно, а перехват касаний мешал бы прокрутке. */
+.listScrollTrack {
+  position: absolute;
+  /* Координаты по СЦЕНЕ, а не по списку: сам список ниже на 18px (там кнопка
+     «Проверить»), плюс по 6px воздуха сверху и снизу */
+  top: 6px;
+  bottom: 24px;
+  right: 2px;
+  width: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.listScrollThumb {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.30);
 }

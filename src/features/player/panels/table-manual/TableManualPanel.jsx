@@ -4,6 +4,7 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
 import { deriveAnswerTokens, normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 import { cellIsPickable, allCellsPicked } from './manualCellPick.js'
+import ListScrollThumb from '../ListScrollThumb.jsx'
 import { tracePanelSync, tracePanelPaint } from '../tracePanelSync.js'
 import { useTableToChat } from '../useTableToChat.js'
 import { spacerStyle } from '../spacerStyle.js'
@@ -102,6 +103,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   // Особая ячейка: вместо того чтобы сразу уйти в фразу, открывает меню
   // своих вариантов — какое значение выбрал ученик, то и соберётся
   const [cellMenu, setCellMenu] = useState(null)   // { cellId, options, rect }
+  const extrasRef = useRef(null)
 
   function tapCell(cellId, rect) {
     if (assembledCellIds.has(cellId) || result) return
@@ -245,7 +247,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
             </div>
 
             {phase === 'extra' && (
-              <div className="tmExtrasSection">
+              <div className="tmExtrasSection" ref={extrasRef}>
                 {shuffledExtras.map((chip, i) => {
                   const used = assembledExtraKeys.has(`extra-${i}`)
                   return (
@@ -260,6 +262,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
                 })}
               </div>
             )}
+            {/* Полоса — СНАРУЖИ прокручиваемого блока: внутри она уезжала бы
+                вместе с содержимым. Родитель (.tmStage) position: relative */}
+            {phase === 'extra' && <ListScrollThumb targetRef={extrasRef} />}
           </div>
 
           {/* Кнопка «Проверить» — как в «собери фразу», только компактнее.

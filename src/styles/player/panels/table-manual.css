@@ -124,8 +124,10 @@
   flex-direction: column;
   align-items: center;
   padding: 12px 8px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.18) transparent;
+  /* Родную полосу прячем: на iOS она накладная — проступает при прокрутке и
+     гаснет, а ::-webkit-scrollbar там игнорируется. Вместо неё рисуем свою,
+     всегда видимую (ListScrollThumb.jsx) */
+  scrollbar-width: none;
   /* safe center, а не просто center. Обычное центрирование в скроллящемся
      контейнере обрезает НАЧАЛО списка: когда пунктов больше, чем влезает,
      содержимое выпирает в обе стороны, а прокрутить выше нулевой позиции
@@ -138,9 +140,7 @@
      видимой части — ученик просто не знает, что внизу есть ещё слова. */
   overflow-y: scroll;
 }
-.tmExtrasSection::-webkit-scrollbar { width: 5px; -webkit-appearance: none; }
-.tmExtrasSection::-webkit-scrollbar-track { background: transparent; }
-.tmExtrasSection::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+.tmExtrasSection::-webkit-scrollbar { display: none; }
 
 @keyframes tmChipIn {
   from { opacity: 0; transform: translateY(18px); }
