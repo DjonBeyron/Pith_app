@@ -82,7 +82,10 @@
   max-width: var(--photo-w);
   box-sizing: border-box;
   padding: 7px 10px 8px;
-  font-size: 14px;
+  /* Тот же шрифт, что у сообщений (message.css): это тот же читаемый
+     контент, а не служебный интерфейс */
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  font-size: 13px;
   line-height: 1.45;
   color: #e0e0e0;
   white-space: pre-wrap;

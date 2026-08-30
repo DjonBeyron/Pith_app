@@ -106,9 +106,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   function tapCell(cellId, rect) {
     if (assembledCellIds.has(cellId) || result) return
     const cell = cells.find(c => c.id === cellId)
-    // Нажать можно любую ячейку, чьё значение ещё нужно ответу — не важно, в
-    // какой она строке (в таблице «to be» одно «was» стоит в нескольких)
-    if (!cellIsPickable(cell, cellTokens, assembled)) return
+    // Нажать можно ЛЮБУЮ ячейку со значением, даже не ту, что нужна ответу:
+    // иначе ошибиться невозможно и проверка фразы ничего не проверяет
+    if (!cellIsPickable(cell)) return
     const options = cell?.options ?? []
     if (options.length) { setCellMenu({ cellId, options, rect }); return }
     pickCell(cellId, cell?.value?.trim() ?? '')

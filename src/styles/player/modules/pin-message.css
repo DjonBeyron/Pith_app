@@ -6,6 +6,9 @@
 }
 
 .pinSystemText {
+  /* Кегль меньше — строка служебная, её не читают, а замечают. Шрифт
+     всё равно общий: разнобой гарнитур в одной ленте виден сразу */
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
   font-size: 12px;
   color: #666;
   user-select: none;

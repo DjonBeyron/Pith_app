@@ -176,7 +176,9 @@ describe('подчёркивание, зачёркивание и плашка-�
       underline: { color: '#ffffff', opacity: 1 },
       strike: { color: '#000000', opacity: 1 },
     })
-    expect(style.fontWeight).toBe(700)
+    // 600, а не 700 — кириллица в Montserrat при 700 плотнее латиницы, и одно
+    // и то же выделение читалось как разная жирность в русском и английском
+    expect(style.fontWeight).toBe(600)
     expect(style.textDecorationLine).toBe('underline line-through')
     expect(style.textDecorationColor).toBe('rgba(255,255,255,1)')
   })

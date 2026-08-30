@@ -60,7 +60,10 @@
   padding: 8px 12px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  /* Слова стоят почти вплотную: у них больше нет плашек (см. ниже), и
+     прежние 8px превращали фразу в набор отдельных слов, а не в предложение.
+     Столько же, сколько в собранной фразе таблицы (.tdAssemblyBox) */
+  gap: 2px;
   align-items: center;
   transition: border-color .2s, background .2s;
 }
@@ -125,7 +128,9 @@
   font-weight: 600;
   color: #e0e0e0;
   cursor: pointer;
-  font-family: inherit;
+  /* Не inherit: слово в банке и оно же в собранной фразе должны быть
+     одним шрифтом — иначе при переносе слово будто меняет начертание */
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
   transition: border-color .15s, transform .1s;
 }
 

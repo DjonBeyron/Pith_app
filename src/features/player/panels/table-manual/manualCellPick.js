@@ -1,4 +1,4 @@
-import { normalizeAnswerText, cellMatchesWord } from '../../../../shared/lib/tableCellMatch.js'
+import { normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 
 // Какие ячейки таблицы ученик может нажать прямо сейчас (ручной режим).
 //
@@ -27,13 +27,30 @@ export function pendingCellValues(cellTokens, assembled) {
   return rest
 }
 
-// Можно ли нажать эту ячейку сейчас
-export function cellIsPickable(cell, cellTokens, assembled) {
-  if (!cell) return false
-  return pendingCellValues(cellTokens, assembled).some(v => cellMatchesWord(cell, v))
+// Можно ли нажать эту ячейку сейчас.
+//
+// ЛЮБУЮ со значением — не только ту, что нужна ответу. Раньше проверка шла по
+// оставшимся кускам ответа, и ячейка, не участвующая в правильной фразе,
+// просто не нажималась: ученик физически не мог ошибиться, таблица вела его за
+// руку по единственному верному пути. Задание превращалось в «нажми то, что
+// подсвечивается», а проверка ответа теряла смысл — неверных вариантов не
+// существовало.
+//
+// Теперь ошибиться можно, и решает это проверка фразы. Заголовки исключены:
+// это подписи строк и колонок («Местоимения», «Настоящее время»), их в ответ
+// не собирают ни при каком раскладе.
+export function cellIsPickable(cell) {
+  if (!cell || cell.isHeader) return false
+  const hasValue = (cell.value ?? '').trim().length > 0
+  return hasValue || (cell.options?.length ?? 0) > 0
 }
 
-// Все нужные из таблицы куски собраны — пора показывать слова вне таблицы
+// Пора показывать слова вне таблицы — когда из таблицы набрано СТОЛЬКО ЖЕ
+// кусков, сколько их в ответе. Именно столько, а не «все нужные»: набрать
+// теперь можно и не те ячейки, и ждать от них совпадения бессмысленно —
+// ошибку покажет проверка, а не отказ показывать вторую половину задания.
 export function allCellsPicked(cellTokens, assembled) {
-  return cellTokens.length > 0 && pendingCellValues(cellTokens, assembled).length === 0
+  if (!cellTokens.length) return false
+  const picked = assembled.filter(t => t.type === 'cell').length
+  return picked >= cellTokens.length
 }

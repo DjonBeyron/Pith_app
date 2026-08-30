@@ -49,7 +49,9 @@
   font-weight: 400;
   color: #e0e0e0;
   cursor: pointer;
-  font-family: inherit;
+  /* Не inherit: он тянул system-ui из body, и вариант ответа набирался
+     не тем шрифтом, которым потом приходил в чат */
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
   text-align: left;
   width: 100%;
   transition: border-color .15s, background .15s;

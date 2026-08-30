@@ -39,7 +39,9 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  /* Столько же, сколько в авторежиме (.tdAssemblyBox): плашек у слов нет,
+     и широкий зазор разрывал фразу на отдельные слова */
+  gap: 2px;
   min-height: 48px;
   padding: 8px 12px;
   margin-bottom: 10px;
@@ -109,7 +111,12 @@
    (тонкий тёмный скролл). */
 .tmExtrasSection {
   position: absolute;
-  inset: 0;
+  /* Снизу список кончается ВЫШЕ края сцены: под ней сразу кнопка «Проверить»,
+     и без этого зазора последний пункт упирался в неё вплотную — при прокрутке
+     казалось, что список продолжается прямо под кнопкой. 18px хватает, чтобы
+     обрез читался как «список кончился», а не как «список обрезан». */
+  inset: 0 0 18px;
+
   display: flex;
   flex-direction: column;
   align-items: center;

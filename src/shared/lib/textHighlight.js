@@ -94,7 +94,11 @@ export function decorStyle(span) {
   if (span?.strike)    lines.push('line-through')
   const src = span?.underline ?? span?.strike
   return {
-    ...(span?.bold ? { fontWeight: 700 } : {}),
+    // 600, а не 700: кириллица в Montserrat при 700 выглядит заметно плотнее
+    // латиницы — у кириллических знаков шире основные штрихи, и одно и то же
+    // выделение читалось как разная жирность в русском и английском слове.
+    // На 600 они сходятся, а от обычного текста жирное всё равно отличается
+    ...(span?.bold ? { fontWeight: 600 } : {}),
     ...(span?.italic ? { fontStyle: 'italic' } : {}),
     ...(lines.length ? {
       textDecorationLine: lines.join(' '),

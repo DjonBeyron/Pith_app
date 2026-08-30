@@ -22,9 +22,8 @@ describe('какие ячейки можно нажать (ручной режи
   it('разбор берёт первое попавшееся «was», но нажать можно любое', () => {
     expect(cellTokens.map(t => t.value)).toEqual(['She', 'was'])
     // ученик нажал «She», дальше жмёт «was» из СВОЕЙ строки — не то, что в разборе
-    const afterShe = picked('She')
-    expect(cellIsPickable(cells[3], cellTokens, afterShe)).toBe(true)
-    expect(cellIsPickable(cells[1], cellTokens, afterShe)).toBe(true)
+    expect(cellIsPickable(cells[3])).toBe(true)
+    expect(cellIsPickable(cells[1])).toBe(true)
   })
 
   it('после сбора всех кусков список слов вне таблицы открывается', () => {
@@ -32,8 +31,25 @@ describe('какие ячейки можно нажать (ручной режи
     expect(allCellsPicked(cellTokens, picked('She', 'was'))).toBe(true)
   })
 
-  it('ячейка не из ответа не нажимается', () => {
-    expect(cellIsPickable(cells[0], cellTokens, [])).toBe(false)
+  // Считается КОЛИЧЕСТВО, а не совпадение: набрали не те ячейки — вторая
+  // половина задания всё равно открывается, ошибку покажет проверка фразы
+  it('неверно набранные ячейки тоже открывают слова вне таблицы', () => {
+    expect(allCellsPicked(cellTokens, picked('I', 'was'))).toBe(true)
+  })
+
+  // Ошибиться ученик ДОЛЖЕН иметь возможность: пока нажимались только нужные
+  // ячейки, таблица вела за руку по единственному верному пути, а проверка
+  // фразы не могла ничего не проверить — неверных вариантов не существовало
+  it('ячейка не из ответа тоже нажимается — ошибиться можно', () => {
+    expect(cellIsPickable(cells[0])).toBe(true)
+  })
+
+  it('заголовок не нажимается: это подпись строки, а не слово ответа', () => {
+    expect(cellIsPickable({ id: 'h', value: 'Местоимения', isHeader: true })).toBe(false)
+  })
+
+  it('пустая ячейка не нажимается', () => {
+    expect(cellIsPickable({ id: 'e', value: '   ' })).toBe(false)
   })
 
   it('повтор слова в ответе требует двух нажатий', () => {
