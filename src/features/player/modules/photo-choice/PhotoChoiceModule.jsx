@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Confetti from '../../../../shared/ui/Confetti.jsx'
 
 const PHOTO_COLORS = [
   '#6366f1','#ec4899','#f59e0b','#10b981',
@@ -52,6 +53,8 @@ export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState,
 
   return (
     <div className="playerMsgRow playerMsgRowRight">
+      {/* Тот же салют, что у прочих верных ответов (Confetti.jsx) */}
+      {isOk && <Confetti count={26} refill={false} size={4} fallRatio={0.45} />}
       <div>
         <div
           ref={photoRef}

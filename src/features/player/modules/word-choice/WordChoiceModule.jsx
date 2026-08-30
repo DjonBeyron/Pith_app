@@ -1,4 +1,5 @@
 import PlayerBubble from '../../PlayerBubble.jsx'
+import Confetti from '../../../../shared/ui/Confetti.jsx'
 
 // Справа в чате: сначала пузырь с выбранным вариантом (только если у ноды
 // включена галочка «Отправлять выбранное в чат» — тогда приходит pickText),
@@ -14,6 +15,10 @@ export default function WordChoiceModule({ wordChoiceState }) {
 
   return (
     <>
+      {/* Салют на верном — тот же, что на новом уровне, только короче и реже
+          (Confetti.jsx). Рендерится один раз на весь модуль: пузырей с ответом
+          может быть два (выбор и реплика), а праздник один */}
+      {isCorrect && <Confetti count={26} refill={false} size={4} fallRatio={0.45} />}
       {pickText && (
         <div className="playerMsgRow playerMsgRowRight">
           <div className="reactionBubbleWrap">
