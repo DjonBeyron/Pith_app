@@ -9,8 +9,8 @@
   background: #1a1d22;
   border-radius: 18px 18px 4px 18px;
   padding: 6px 14px;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.45;
   color: #e0e0e0;
   max-width: 80%;
   word-break: break-word;
@@ -153,13 +153,8 @@
 
 .playerText {
   margin: 0;
-  /* 13px — столько же, сколько у расшифровки голосового
-     (.playerAudioTextSection). Разница была ровно в один пиксель кегля, но на
-     жирном выделении она вылезала: штрихи растут пропорционально размеру, и
-     одно и то же слово в 14px читалось заметно плотнее, чем в 13px. Соседние
-     сообщения выглядели набранными разным шрифтом, хотя шрифт один. */
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.5;
   color: #e0e0e0;
   white-space: pre-wrap;
   word-break: break-word;

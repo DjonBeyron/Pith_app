@@ -72,7 +72,8 @@
    Красным/зелёным становится ТОЛЬКО по итогу проверки (класс на боксе). */
 .tdAssemblyWord {
   padding: 2px 2px;
-  color: #cfd3da; font-size: 15px;
+  color: #cfd3da;
+  font-size: 15px;
   font-family: 'Montserrat', 'Comfortaa', sans-serif; font-weight: 700;
   animation: tdWordIn 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
   transition: color 0.25s;
