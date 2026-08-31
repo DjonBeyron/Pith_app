@@ -1,5 +1,5 @@
 import PlayerBubble from '../PlayerBubble.jsx'
-import Confetti from '../../../shared/ui/Confetti.jsx'
+import BurstConfetti from '../../../shared/ui/BurstConfetti.jsx'
 
 // Пузыри ответа ученика в ленте: собранная фраза справа и реплики учителя
 // слева. Верность показывает только значок в пузыре (галочка/крестик) — своей
@@ -21,7 +21,7 @@ export default function AnswerBubbles({ bubbles }) {
             <div key={i} className="playerMsgRow playerMsgRowRight">
               {/* Тот же салют, что на новом уровне, только короче и реже:
                   верных ответов в уроке десятки (Confetti.jsx) */}
-              <Confetti mode="burst" count={30} refill={false} size={4} />
+              <BurstConfetti count={30} size={4} />
               <div className="reactionBubbleWrap">
                 <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
                   {b.text}
