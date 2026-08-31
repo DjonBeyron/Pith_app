@@ -18,7 +18,7 @@ export default function WordChoiceModule({ wordChoiceState }) {
       {/* Салют на верном — тот же, что на новом уровне, только короче и реже
           (Confetti.jsx). Рендерится один раз на весь модуль: пузырей с ответом
           может быть два (выбор и реплика), а праздник один */}
-      {isCorrect && <Confetti count={26} refill={false} size={4} fallRatio={0.45} />}
+      {isCorrect && <Confetti mode="burst" count={30} refill={false} size={4} />}
       {pickText && (
         <div className="playerMsgRow playerMsgRowRight">
           <div className="reactionBubbleWrap">

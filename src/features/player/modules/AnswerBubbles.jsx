@@ -21,7 +21,7 @@ export default function AnswerBubbles({ bubbles }) {
             <div key={i} className="playerMsgRow playerMsgRowRight">
               {/* Тот же салют, что на новом уровне, только короче и реже:
                   верных ответов в уроке десятки (Confetti.jsx) */}
-              <Confetti count={26} refill={false} size={4} fallRatio={0.45} />
+              <Confetti mode="burst" count={30} refill={false} size={4} />
               <div className="reactionBubbleWrap">
                 <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
                   {b.text}

@@ -54,7 +54,7 @@ export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState,
   return (
     <div className="playerMsgRow playerMsgRowRight">
       {/* Тот же салют, что у прочих верных ответов (Confetti.jsx) */}
-      {isOk && <Confetti count={26} refill={false} size={4} fallRatio={0.45} />}
+      {isOk && <Confetti mode="burst" count={30} refill={false} size={4} />}
       <div>
         <div
           ref={photoRef}
