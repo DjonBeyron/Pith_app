@@ -25,7 +25,7 @@ const SAMPLES = 14
 const FRAMES = 105
 const GRAVITY = 0.32
 
-function makeParticle(W, H, size) {
+function makeParticle(W, H, size, colors) {
   // Подъём равен v²/(2g): чтобы верхняя точка легла примерно на середину
   // экрана, скорость должна расти как корень из высоты. С фиксированной
   // скоростью на большом экране залп не добивал бы и до трети
@@ -55,7 +55,7 @@ function makeParticle(W, H, size) {
   return {
     left: W * (0.2 + Math.random() * 0.6),
     size: size + Math.random() * size,
-    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    color: colors[Math.floor(Math.random() * colors.length)],
     round: Math.random() > 0.5,
     duration: life * (1000 / 60),
     frames,
@@ -65,7 +65,9 @@ function makeParticle(W, H, size) {
 const calm = () => typeof matchMedia === 'function'
   && matchMedia('(prefers-reduced-motion: reduce)').matches
 
-export default function BurstConfetti({ count = 30, size = 4 }) {
+// colors — своя палитра под фон (окно серии тёмно-фиолетовое, и яркий
+// разноцвет из урока на нём читается как чужой элемент)
+export default function BurstConfetti({ count = 30, size = 4, colors = COLORS }) {
   const hostRef = useRef(null)
   const [shown, setShown] = useState(!calm())
 
@@ -76,7 +78,7 @@ export default function BurstConfetti({ count = 30, size = 4 }) {
 
     const W = window.innerWidth
     const H = window.innerHeight
-    const parts = Array.from({ length: count }, () => makeParticle(W, H, size))
+    const parts = Array.from({ length: count }, () => makeParticle(W, H, size, colors))
     let longest = null
 
     for (const p of parts) {
@@ -121,7 +123,7 @@ export default function BurstConfetti({ count = 30, size = 4 }) {
     }
     longest?.anim.finished.then(stop).catch(() => {})
     return () => cancelAnimationFrame(raf)
-  }, [shown, count, size])
+  }, [shown, count, size]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!shown) return null
 

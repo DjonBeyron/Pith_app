@@ -17,6 +17,8 @@ import { clearLocalEvents } from '../../shared/lib/skillStatsStore.js'
 import { markModuleStarted, unmarkModuleStarted } from '../../shared/api/moduleSocialApi.js'
 import { dbg } from '../../shared/lib/debug.js'
 import PriorityLegend from './PriorityLegend.jsx'
+import StreakStartOverlay from '../streak/StreakStartOverlay.jsx'
+import { takeFirstDay } from '../streak/firstDaySignal.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
@@ -65,6 +67,8 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const [completedIds,    setCompletedIds]    = useState(() => getCompletedLessons())
   // Только что пройденный урок — для анимации прилёта XP в графе модуля.
   const [justCompleted,   setJustCompleted]   = useState(null)
+  // Окно «Путь начался» — только после анимации графа (см. firstDaySignal.js)
+  const [firstDayOpen,    setFirstDayOpen]    = useState(false)
   const [saving,          setSaving]          = useState(false)
   const [saveMsg,         setSaveMsg]         = useState('')
   // Легенда «Приоритеты уроков» поверх затемнённой схемы (этап 5)
@@ -293,7 +297,11 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           animHold={showLegend} /* пока попап открыт — вся анимация графа на паузе */
           animShort={postLegend}
           justCompleted={justCompleted}
-          onFlightDone={() => { setJustCompleted(null); setPostLegend(false) }}
+          onFlightDone={() => {
+            setJustCompleted(null)
+            setPostLegend(false)
+            if (takeFirstDay()) setFirstDayOpen(true)
+          }}
           onResetLesson={handleResetLesson}
           onPlay={id => setLaunchId(id)}
           onEdit={openEditor}
@@ -334,6 +342,8 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           onClose={() => setLaunchId(null)}
         />
       )}
+
+      {firstDayOpen && <StreakStartOverlay onClose={() => setFirstDayOpen(false)} />}
 
       {noEnergy && (
         <EnergyPaywall nextAt={noEnergy.nextAt} onClose={() => setNoEnergy(null)} />

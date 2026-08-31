@@ -4,6 +4,7 @@ import { saveLessonStars } from '../../shared/api/starsApi.js'
 import { addLocalXp, getLocalXp } from '../../shared/lib/localProfile.js'
 import { completeLesson, getProfile } from '../../shared/api/profileApi.js'
 import { bumpStreakOnLesson } from '../../shared/api/streakApi.js'
+import { markFirstDay } from '../streak/firstDaySignal.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { saveAnswerEvents } from '../../shared/lib/skillStatsStore.js'
 import { sendSelfTrigger } from '../../shared/api/pushApi.js'
@@ -44,7 +45,13 @@ export function useLessonFinish({
         // День серии закрывает именно пройденный урок, а не заход в
         // приложение (см. миграцию 20260831120000_streak_by_lesson.sql).
         // Идемпотентно: второй урок за сутки ничего не добавит
-        if (lessonId) await bumpStreakOnLesson()
+        if (lessonId) {
+          const bump = await bumpStreakOnLesson()
+          // Самый первый закрытый день в жизни аккаунта (серия и рекорд по
+          // единице) — схема уроков покажет окно «Путь начался» после своей
+          // анимации, см. firstDaySignal.js
+          if (bump?.incremented && bump.streak === 1 && (bump.longest ?? 1) === 1) markFirstDay()
+        }
         // События анализа — после completeLesson: он создаёт строку lesson_results
         await saveAnswerEvents(getEvents(), { sourceLessonId: lessonId, isLoggedIn: true })
         // Финал модуля: выдача золотого билета (после completeLesson — сервер

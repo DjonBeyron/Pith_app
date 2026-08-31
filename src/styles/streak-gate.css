@@ -224,8 +224,6 @@
 }
 
 .sgBtn {
-  position: relative;
-  overflow: hidden;
   width: 100%;
   margin-top: clamp(16px, 3vh, 26px);
   padding: clamp(13px, 2.2vh, 16px) 18px;
@@ -240,19 +238,6 @@
   cursor: pointer;
 }
 
-/* Диагональные штрихи у правого края — такая же пометка, как у
-   шапки рейтинга (.ratingHead::after в rating-podium.css) */
-.sgBtn::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 78px;
-  pointer-events: none;
-  background: repeating-linear-gradient(115deg,
-    transparent 0 8px, rgba(199, 176, 255, 0.14) 8px 12px);
-}
 
 /* Когда есть кнопка награды — кнопки идут парой, большой зазор не нужен */
 .sgClaimBtn + .sgBtn { margin-top: 12px; }

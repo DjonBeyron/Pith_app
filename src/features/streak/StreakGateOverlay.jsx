@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import StreakGuardRow from './StreakGuardRow.jsx'
+import StreakCountUp from './StreakCountUp.jsx'
+import BurstConfetti from '../../shared/ui/BurstConfetti.jsx'
 import FreezeSheet from './FreezeSheet.jsx'
 import RewardsPopup from './RewardsPopup.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
@@ -8,6 +10,9 @@ import { useFreezeBuy } from './useFreezeBuy.js'
 import { getCachedProfile, subscribeProfile } from '../../shared/api/profileCache.js'
 
 const RESET_INFO_KEY = 'pithy_streak_reset_info'
+// Тот же салют, что на верный ответ, но в лавандовой гамме окна:
+// красный/голубой из урока на тёмно-фиолетовом фоне читались как чужие
+const SG_CONFETTI = ['#c9b6ff', '#9b7bff', '#efe9ff', '#7c56e9', '#ffd98a']
 
 function days(n) {
   const t = n % 100
@@ -42,7 +47,7 @@ function copy(state, res) {
   }
   return {
     eyebrow: 'Добро пожаловать!',
-    title: <>Ты <span className="sgAccent">продолжаешь</span> свой путь!</>,
+    title: <>Ты <span className="sgAccent">сохранил</span> свою серию!</>,
     count: res.streak ?? 0,
     btn: 'Продолжить',
   }
@@ -102,7 +107,7 @@ export default function StreakGateOverlay({ state, res, onClose }) {
 
         <div className={state === 'reset' ? 'sgCard sgCardLost' : 'sgCard'}>
           {/* Оборванная серия — число перечёркнуто (линия рисуется в CSS) */}
-          <div className={countCls}>{c.count}</div>
+          <StreakCountUp value={c.count} className={countCls} />
           <div className="sgUnit"><span>{days(c.count)} подряд</span></div>
         </div>
 
@@ -133,6 +138,10 @@ export default function StreakGateOverlay({ state, res, onClose }) {
         <button className="sgBtn" onClick={onClose}>{c.btn}</button>
       </div>
       </div>
+
+      {/* Салют — только когда есть что праздновать: над оборванной
+          серией конфетти было бы издевательством */}
+      {state !== 'reset' && <BurstConfetti count={26} size={5} colors={SG_CONFETTI} />}
 
       <FreezeSheet
         kind={sheet}

@@ -11,6 +11,10 @@ const HINT_FROM_STREAK = 5                             // короткую се�
 // одна кнопка. Приоритет тот же, в каком защиты срабатывают на сервере
 // (PRO → заморозка → авто-заморозка), поэтому пользователь видит именно то,
 // что спасёт его следующим.
+//
+// Говорим результат, а не правило: «Серия под защитой PRO» вместо «PRO:
+// выходные и 1 будний в неделю». Сколько раз и в какие дни — под
+// «Подробнее» внутри FreezeSheet, куда ведёт тап по строке.
 function build({ state, res, hintAllowed }) {
   const pro   = !!res.is_pro
   const froze = !!res.has_freeze_charge
@@ -18,13 +22,13 @@ function build({ state, res, hintAllowed }) {
 
   if (state === 'saved') {
     if (res.saved_by === 'pro_weekend') {
-      return { icon: Crown, text: 'PRO простил выходные' }
+      return { icon: Crown, text: 'Серию спасла защита PRO' }
     }
     if (res.saved_by === 'pro_weekday') {
       return {
         icon: Crown,
-        text: 'PRO простил будний день',
-        note: 'На этой неделе — больше не простит',
+        text: 'Серию спасла защита PRO',
+        note: 'До конца недели защищены только выходные',
         cta: froze ? null : { kind: 'freeze', label: 'Подстраховаться', cost: FREEZE_COST },
       }
     }
@@ -37,7 +41,7 @@ function build({ state, res, hintAllowed }) {
     }
     return {
       icon: ShieldCheck,
-      text: auto > 0 ? `Авто-защита спасла серию · осталось ${auto}` : 'Авто-защита спасла серию и кончилась',
+      text: auto > 0 ? `Авто-защита спасла серию · ещё ${auto}` : 'Авто-защита спасла серию и кончилась',
       cta: auto > 0 || pro ? null : { kind: 'auto', label: 'Купить ещё', cost: AUTO_COST },
     }
   }
@@ -46,7 +50,7 @@ function build({ state, res, hintAllowed }) {
     // Один CTA, выбранный по причине срыва. Пропуск в 3+ дней не спасла бы
     // ни одна защита — предлагать её в этот момент было бы обманом.
     if (res.missed_weekend_only && !pro) {
-      return { icon: Crown, text: 'PRO прощает выходные', cta: { kind: 'pro', label: 'Про PRO' } }
+      return { icon: Crown, text: 'С PRO эта серия бы выжила', cta: { kind: 'pro', label: 'Про PRO' } }
     }
     if (res.missed_days === 1 && !froze) {
       return { icon: Snowflake, text: 'Заморозка бы спасла', cta: { kind: 'freeze', label: 'Взять', cost: FREEZE_COST } }
@@ -58,12 +62,12 @@ function build({ state, res, hintAllowed }) {
   if (pro) {
     return {
       icon: Crown,
-      text: 'PRO: выходные и 1 будний в неделю',
-      note: res.pro_weekday_used ? 'Будний на этой неделе уже потрачен' : null,
+      text: 'Серия под защитой PRO',
+      note: res.pro_weekday_used ? 'До конца недели защищены только выходные' : null,
     }
   }
-  if (froze) return { icon: Snowflake, text: 'Заморозка готова' }
-  if (auto > 0) return { icon: ShieldCheck, text: `Авто-защита: осталось ${auto}` }
+  if (froze) return { icon: Snowflake, text: 'Заморозка спасёт один пропуск' }
+  if (auto > 0) return { icon: ShieldCheck, text: `Авто-защита спасёт ${auto === 1 ? 'один пропуск' : auto + ' пропуска'}` }
   if (hintAllowed) {
     return { icon: Snowflake, text: 'Серия не защищена', cta: { kind: 'freeze', label: 'Защитить', cost: FREEZE_COST } }
   }
