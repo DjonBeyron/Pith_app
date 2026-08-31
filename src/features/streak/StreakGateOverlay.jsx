@@ -130,7 +130,7 @@ export default function StreakGateOverlay({ state, res, onClose, ready = true })
           <StreakCountUp
             value={c.count}
             from={state === 'reset' ? null : c.count - 1}
-            className={countCls}
+            className={peak ? `${countCls} sgCountGlow` : countCls}
             run={live}
             onDone={() => setPeak(true)}
           />

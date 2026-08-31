@@ -24,7 +24,7 @@ export default function StreakStartOverlay({ onClose }) {
 
           <div className="sgBody">
           <div className="sgCard">
-            <StreakCountUp value={1} from={0} className="sgCount" onDone={() => setPeak(true)} />
+            <StreakCountUp value={1} from={0} className={peak ? 'sgCount sgCountGlow' : 'sgCount'} onDone={() => setPeak(true)} />
             <div className="sgUnit"><span>день подряд</span></div>
           </div>
 

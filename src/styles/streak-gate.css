@@ -11,6 +11,9 @@
   inset: 0;
   z-index: 94;
   overflow-y: auto;
+  /* border-box, чтобы узор фона и узор волны (.sgWave) начинались от одной
+     точки и штрихи не двоились */
+  background-origin: border-box;
   /* Тот же стек текстур, что у карточек ленты/рейтинга (см. shell-v2.css):
      узор → зерно → пыль, а под ними фиолетовые засветы и почти чёрный фон */
   background:
@@ -48,38 +51,67 @@
   animation: sgRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Волна на переключении дня. Самого кольца не видно — оно смешивается с
-   фоном в режиме screen, и заметен только пробегающий по узору блеск:
-   светлые штрихи паттерна вспыхивают, тёмный фон почти не меняется */
+/* Волна на переключении дня. Это не свечение и не цветное кольцо: поверх
+   фона лежит ТОТ ЖЕ узор (--v2-tex-f, той же позиции и того же размера
+   тайла), и по нему кольцом едет маска. Узор не растягивается — растёт
+   только маска (mask-size), поэтому штрихи паттерна просто проявляются
+   ярче там, где проходит волна, и гаснут за ней.
+
+   Элемент всегда во весь экран, ничего не масштабируется — раньше кольцо
+   было отдельным кругом и его срезало сверху и снизу. */
 .sgWave {
   position: fixed;
-  left: 50%;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border-radius: 50%;
+  inset: 0;
   pointer-events: none;
-  /* color-dodge осветляет пропорционально тому, что уже есть: почти чёрный
-     фон остаётся почти чёрным, а светлые штрихи узора вспыхивают. Поэтому
-     самого кольца не видно — виден только пробегающий по паттерну блеск */
-  mix-blend-mode: color-dodge;
-  background: radial-gradient(circle,
-    rgba(255, 255, 255, 0) 58%,
-    rgba(226, 214, 255, 0.32) 68%,
-    rgba(255, 255, 255, 0) 78%);
-  animation: sgWave 1.6s cubic-bezier(0.3, 0.7, 0.4, 1) forwards;
+  /* Три слоя одного узора: сам по себе он почти прозрачный (белый с alpha
+     0.055), одного мало, чтобы проявление читалось */
+  background: var(--v2-tex-f), var(--v2-tex-f), var(--v2-tex-f);
+  mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(circle at center,
+    transparent 0 44%, #000 60%, transparent 76%);
+  mask-image: radial-gradient(circle at center,
+    transparent 0 44%, #000 60%, transparent 76%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  animation: sgWave 1.6s ease-out forwards;
 }
 
 @keyframes sgWave {
-  from { transform: scale(1);   opacity: 0; }
-  8%   { opacity: 1; }
-  70%  { opacity: 0.85; }
-  to   { transform: scale(260); opacity: 0; }
+  from {
+    -webkit-mask-size: 0% 0%;
+    mask-size: 0% 0%;
+    opacity: 0;
+  }
+  10% { opacity: 1; }
+  70% { opacity: 1; }
+  to {
+    -webkit-mask-size: 340% 340%;
+    mask-size: 340% 340%;
+    opacity: 0;
+  }
+}
+
+/* Число на переключении дня: короткая глубокая вспышка, которая плавно
+   спадает к обычному свечению — та же длительность, что у волны */
+.sgCountGlow {
+  animation: sgCountGlow 1.6s ease-out forwards;
+}
+
+@keyframes sgCountGlow {
+  from {
+    filter: drop-shadow(0 0 52px rgba(196, 168, 255, 0.95))
+            drop-shadow(0 0 18px rgba(255, 255, 255, 0.55));
+  }
+  to {
+    filter: drop-shadow(0 0 22px rgba(150, 112, 255, 0.55));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sgWave { display: none; }
+  .sgCountGlow { animation: none; }
 }
 
 /* Шапка стоит у верхнего края — заголовок больше не плавает по центру */
