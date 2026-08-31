@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { pLog } from '../lib/debug.js'
+import { pLog, isTraceOn } from '../lib/debug.js'
 
 // Залп конфетти на верный ответ — на КОМПОЗИТОРЕ, без канваса.
 //
@@ -91,12 +91,15 @@ export default function BurstConfetti({ count = 30, size = 4 }) {
 
     // Замер честный: считаем кадры ПОКА идёт салют. Сам замер ничего не рисует
     // и на композитор не влияет — он только смотрит на часы
+    const trace = isTraceOn()
     const t0 = performance.now()
     let prev = t0
     let frames = 0
     let worst = 0
     let raf = 0
     const measure = () => {
+      // Сам замер крутит rAF — вне разбора он такой же лишний расход
+
       const now = performance.now()
       const dt = now - prev
       prev = now
@@ -104,10 +107,11 @@ export default function BurstConfetti({ count = 30, size = 4 }) {
       if (dt > worst) worst = dt
       raf = requestAnimationFrame(measure)
     }
-    raf = requestAnimationFrame(measure)
+    if (trace) raf = requestAnimationFrame(measure)
 
     const stop = () => {
       cancelAnimationFrame(raf)
+      if (!trace) { setShown(false); return }
       const total = performance.now() - t0
       const avg = frames > 1 ? total / (frames - 1) : 0
       pLog(`[салют] ${count} частиц · ${Math.round(total)}мс · кадров ${frames}`

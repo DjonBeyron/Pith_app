@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { pLog } from '../../shared/lib/debug.js'
+import { pLog, isTraceOn } from '../../shared/lib/debug.js'
 
 let bubbleSeq = 0
 
@@ -70,6 +70,9 @@ function naturalH(el) {
 // именно случилось: перенос слова (строк стало больше) или подросший на пару
 // пикселей строчный бокс (строк столько же, а высота другая).
 function hDetail(el) {
+  // Дорогая справка: считает getClientRects по строкам текста. Вне разбора
+  // она не нужна, а вызывается на каждое срабатывание ResizeObserver
+  if (!isTraceOn()) return ''
   const rect = el.getBoundingClientRect()
   const txt  = el.querySelector('.playerAudioTextSection')
   const span = txt?.querySelector('.playerTypingText')

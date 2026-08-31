@@ -19,6 +19,39 @@ export function isDebugOn() {
   return enabled
 }
 
+// ── Покадровые трассы ────────────────────────────────────────────────────
+// Отдельный флаг, а не общий debug: трассы измеряют раскладку каждый кадр
+// (getBoundingClientRect, getComputedStyle, querySelectorAll по документу) и
+// тем самым СЛОМИТЕЛЬНО влияют на то, что измеряют. Замер салюта на iPhone 16
+// Pro показал 54 к/с и худший кадр 48мс — и виноваты были не анимации, а
+// именно эти трассы, работавшие в тот же момент.
+//
+// Поэтому по умолчанию выключены. Включаются на устройстве без пересборки:
+//   · адрес с ?trace=1
+//   · или из консоли: localStorage.pithyTrace = '1', перезагрузить
+const TRACE_KEY = 'pithyTrace'
+let tracing = false
+try {
+  const q = typeof location !== 'undefined' && new URLSearchParams(location.search).get('trace')
+  if (q === '1' || q === '0') localStorage.setItem(TRACE_KEY, q)
+  tracing = localStorage.getItem(TRACE_KEY) === '1'
+} catch {
+  // нет localStorage — трассы просто останутся выключенными
+}
+
+export function isTraceOn() {
+  return tracing
+}
+
+export function setTrace(on) {
+  tracing = on
+  try {
+    localStorage.setItem(TRACE_KEY, on ? '1' : '0')
+  } catch {
+    // не сохранится между перезагрузками — не страшно
+  }
+}
+
 export function setDebug(on) {
   enabled = on
   try {

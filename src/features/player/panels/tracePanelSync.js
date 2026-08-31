@@ -1,4 +1,4 @@
-import { pLog } from '../../../shared/lib/debug.js'
+import { pLog, isTraceOn } from '../../../shared/lib/debug.js'
 
 // Покадровая трасса появления/ухода панели ответа — для разбора рассинхрона
 // «панель уже поехала, а история ещё нет».
@@ -23,6 +23,7 @@ function lastRealRow(feed) {
 // Разовый снимок того, чем панель отличается от обычного элемента: полупрозрачность,
 // фильтры, маски. Ими объясняется «правый край будто размыт градиентом»
 export function tracePanelPaint(label, panelEl) {
+  if (!isTraceOn()) return
   if (!panelEl) return
   const parts = []
   const grab = (el, name) => {
@@ -49,6 +50,7 @@ export function tracePanelPaint(label, panelEl) {
 }
 
 export function tracePanelSync(label, panelEl, spacerSel) {
+  if (!isTraceOn()) return
   const t0 = performance.now()
   const feed = document.querySelector('.playerFeedInner')
   let n = 0
@@ -94,6 +96,7 @@ export function tracePanelSync(label, panelEl, spacerSel) {
 //   · inner стоит, дрожит сетка     → пересчёт колонок самой сетки;
 //   · всё стоит, дрожит последняя ячейка → округление ширины треков.
 function traceMorph(ghost, target) {
+  if (!isTraceOn()) return
   const t0 = performance.now()
   let prev = t0
   let n = 0
@@ -174,6 +177,7 @@ function describe(el) {
 }
 
 export function traceTableEdge(panelEl, note = '') {
+  if (!isTraceOn()) return
   if (!panelEl) return
   const grid = panelEl.querySelector('.tableGrid')
   const chain = [
@@ -231,6 +235,7 @@ export function traceTableEdge(panelEl, note = '') {
 // Если padTop меняется ПОЗЖЕ, чем осела распорка, порядок будет ровно тем, что
 // описан: сначала вниз (распорка), потом вверх (запас вырос).
 export function traceFeedClose(label, frames = 24) {
+  if (!isTraceOn()) return
   const outer = document.querySelector('.playerFeed')
   const inner = document.querySelector('.playerFeedInner')
   if (!outer || !inner) return
