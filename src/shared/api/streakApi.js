@@ -5,12 +5,14 @@ import { dbg } from '../lib/debug.js'
 // стрик + окно наград»). Баланс XP/билетов/заморозок живёт только на
 // сервере — клиент не передаёт суммы.
 
-// Вызывается раз при загрузке приложения (useDailyLoginTouch). Считает
-// вход, продлевает/спасает/сбрасывает серию (часовой пояс устройства —
-// граница суток теперь считается локально, а не по МСК).
-// { ok, streak, longest, saved_by: 'freeze'|'auto_freeze'|'pro_weekday'|
-// 'pro_weekend'|null, reset?, lost_streak?, auto_claimed?: { days, xp,
-// tickets }, guarded? }.
+// Вызывается при загрузке приложения и при возврате из фона (useStreakGate).
+// Считает ВИЗИТ и решает судьбу серии (спасти заморозкой/PRO или сбросить),
+// но саму серию НЕ наращивает — день закрывает только пройденный урок
+// (bumpStreakOnLesson). Граница суток — в поясе устройства.
+// { ok, first_today, streak, longest, today, saved_by: 'freeze'|'auto_freeze'|
+// 'pro_weekday'|'pro_weekend'|null, missed_days, missed_weekend_only, reset?,
+// lost_streak?, auto_claimed?: { days, xp, tickets }, has_freeze_charge,
+// auto_freeze_charges_left, is_pro, pro_weekday_used }.
 export async function touchDailyLogin() {
   const tz = (() => {
     try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null } catch { return null }
@@ -18,6 +20,17 @@ export async function touchDailyLogin() {
   const { data, error } = await supabase.rpc('touch_daily_login', { p_tz: tz })
   if (error) { console.error('[STREAK] touch_daily_login:', error.message); return null }
   dbg('[STREAK] touch_daily_login →', data)
+  return data ?? null
+}
+
+// Зачёт дня серии за пройденный урок (зовётся из useLessonFinish после
+// completeLesson). Идемпотентна в пределах суток: второй урок за день вернёт
+// incremented: false. { ok, streak, prev_streak?, incremented, longest?,
+// reason?: 'already_today', guarded?: true }.
+export async function bumpStreakOnLesson() {
+  const { data, error } = await supabase.rpc('bump_streak_on_lesson')
+  if (error) { console.error('[STREAK] bump_streak_on_lesson:', error.message); return null }
+  dbg('[STREAK] bump_streak_on_lesson →', data)
   return data ?? null
 }
 

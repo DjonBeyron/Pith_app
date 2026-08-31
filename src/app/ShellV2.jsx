@@ -16,7 +16,8 @@ import TicketBadge from './TicketBadge.jsx'
 import LevelBadge from './LevelBadge.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
-import { useDailyLoginTouch } from '../features/streak/useDailyLoginTouch.js'
+import { useStreakGate } from '../features/streak/useStreakGate.js'
+import StreakGateOverlay from '../features/streak/StreakGateOverlay.jsx'
 import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
 import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
 
@@ -50,7 +51,13 @@ export default function ShellV2() {
   const [guestSettings, setGuestSettings] = useState(false)
   const { isAdmin } = useAdmin()
   const { user } = useAuth()
-  useDailyLoginTouch()
+  // Ежедневное полноэкранное окно серии: показывать или нет — решает сервер
+  // (первый заход в сутки), см. useStreakGate.js
+  const { gate, closeGate } = useStreakGate()
+  // Лого стартового сплэша уже улетело (событие из index.html). Пока оно на
+  // экране, ленту не паузим: сплэш снимается по первому кадру видео, и на
+  // паузе он висел бы до страховки в 3.5 секунды
+  const [splashGone, setSplashGone] = useState(() => !!window.__pithySplashGone)
 
   // На всякий случай: убираем возможный след старого фикса высоты
   // (iOS 26 рисует только 812px окна — растягивать DOM бесполезно,
@@ -58,6 +65,17 @@ export default function ShellV2() {
   useEffect(() => {
     document.documentElement.style.removeProperty('--v2-app-h')
   }, [])
+
+  useEffect(() => {
+    if (splashGone) return
+    const onGone = () => setSplashGone(true)
+    window.addEventListener('pithy:splash-gone', onGone)
+    return () => window.removeEventListener('pithy:splash-gone', onGone)
+  }, [splashGone])
+
+  // Окно серии открыто и сплэш ушёл — лента под ним замолкает (у вернувшегося
+  // пользователя звук может быть включён с прошлого раза)
+  const feedPaused = !!gate && splashGone
 
   return (
     <div className="shellV2">
@@ -85,7 +103,7 @@ export default function ShellV2() {
       <div className="shellV2Content">
         <div className={tab === 'feed' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
           <FeedTab
-            visible={tab === 'feed'}
+            visible={tab === 'feed' && !feedPaused}
             onOpenCanvas={setCanvasLesson}
             onRequireAuth={() => setTab('profile')}
           />
@@ -166,8 +184,12 @@ export default function ShellV2() {
         />
       )}
 
+      {/* Окно серии — первое на старте: попапы гонки ждут, пока его закроют,
+          иначе два полноэкранных окна легли бы друг на друга */}
+      {gate && <StreakGateOverlay state={gate.state} res={gate.res} onClose={closeGate} />}
+
       {/* Попапы супергонки: анонс недели и итоги — поверх любой вкладки */}
-      <RaceGlobalPopups onOpenRace={() => { setTab('rating'); setRaceOpenTick(t => t + 1) }} />
+      {!gate && <RaceGlobalPopups onOpenRace={() => { setTab('rating'); setRaceOpenTick(t => t + 1) }} />}
 
       {canvasLesson && (
         <div className="shellV2CanvasOverlay">

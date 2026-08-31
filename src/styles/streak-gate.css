@@ -1,0 +1,260 @@
+/* ── Полноэкранное окно серии (StreakGateOverlay.jsx) ──────────────────
+   Показывается один раз в сутки, при первом заходе — ещё под стартовым
+   сплэшем, поэтому фон здесь той же почти чёрной гаммы, что и splash в
+   index.html: логотип улетает и открывает уже готовое окно, без стыка.
+   z-index 94 — ниже пейволла (95) и шторки заморозок (97), которые из
+   этого окна и открываются.
+   ──────────────────────────────────────────────────────────────────── */
+
+.sgOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 94;
+  overflow-y: auto;
+  /* Тот же стек текстур, что у карточек ленты/рейтинга (см. shell-v2.css):
+     узор → зерно → пыль, а под ними фиолетовые засветы и почти чёрный фон */
+  background:
+    var(--v2-dust), var(--v2-grain), var(--v2-tex-f),
+    radial-gradient(120% 70% at 50% 18%, rgba(96, 62, 191, 0.22) 0%, rgba(8, 6, 16, 0) 60%),
+    radial-gradient(90% 60% at 50% 100%, rgba(76, 46, 158, 0.18) 0%, rgba(6, 5, 12, 0) 70%),
+    #060509;
+  animation: sgIn 0.4s ease both;
+}
+
+/* Центрируем содержимое, но когда высоты не хватает — экран скроллится
+   целиком и ничего не срезается сверху (болячка flex-центрирования) */
+.sgScroll {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 24px
+           calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+@keyframes sgIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sgInner {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: sgRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sgRise {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.sgEyebrow {
+  margin: 0 0 clamp(4px, 1.2vh, 10px);
+  font-size: 14px;
+  color: #8b8ba0;
+}
+
+.sgTitle {
+  margin: 0 0 clamp(16px, 4vh, 34px);
+  font-size: clamp(21px, 3.4vh, 27px);
+  line-height: 1.24;
+  font-weight: 800;
+  color: #fff;
+  text-wrap: balance;
+}
+
+.sgAccent { color: #9b7bff; }
+/* Срыв серии — тот же акцент, но приглушённый: яркий фиолетовый
+   читается как праздник, а праздновать здесь нечего */
+.sgAccentMuted { color: #8f90a6; }
+
+/* ── Карточка со счётчиком ── */
+.sgCard {
+  width: 100%;
+  padding: clamp(14px, 2.6vh, 22px) 20px clamp(14px, 2.4vh, 20px);
+  border: 1px solid rgba(155, 123, 255, 0.5);
+  border-radius: 26px;
+  background: rgba(20, 15, 34, 0.5);
+  box-shadow:
+    0 0 34px rgba(124, 86, 233, 0.28),
+    inset 0 0 40px rgba(124, 86, 233, 0.08);
+}
+
+/* Серия сорвалась — та же карточка, но без фиолетового свечения:
+   праздничная подача здесь была бы издевательством */
+.sgCardLost {
+  border-color: rgba(120, 122, 145, 0.4);
+  box-shadow: none;
+}
+
+
+.sgCount {
+  position: relative;
+  display: inline-block;
+  font-size: clamp(62px, 15vh, 116px);
+  line-height: 1.05;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 38px rgba(150, 112, 255, 0.6);
+}
+
+/* Четырёх- и пятизначные серии (1348 дней) — кегль ниже ступенькой,
+   иначе число упирается в края карточки на узком телефоне */
+.sgCountSm { font-size: clamp(52px, 12.5vh, 94px); }
+.sgCountXs { font-size: clamp(42px, 10.5vh, 76px); }
+
+.sgCardLost .sgCount {
+  color: #7d7e91;
+  text-shadow: none;
+}
+
+/* Серия оборвалась — число перечёркивается на глазах: линия прочерчивается
+   слева направо через полсекунды после появления окна. Слово «прервалась» в
+   заголовке говорит то же самое, но увиденный обрыв доходит быстрее текста */
+.sgCardLost .sgCount::after {
+  content: '';
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  top: 52%;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(224, 108, 108, 0.9);
+  transform: rotate(-7deg) scaleX(0);
+  transform-origin: left center;
+  animation: sgStrike 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
+}
+
+@keyframes sgStrike {
+  to { transform: rotate(-7deg) scaleX(1); }
+}
+
+.sgUnit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: clamp(4px, 1.2vh, 8px);
+  font-size: 14px;
+  font-weight: 700;
+  color: #9b7bff;
+}
+
+.sgUnit::before,
+.sgUnit::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(155, 123, 255, 0.35);
+}
+
+.sgCardLost .sgUnit { color: #8a8b9e; }
+.sgCardLost .sgUnit::before,
+.sgCardLost .sgUnit::after { background: rgba(138, 139, 158, 0.25); }
+
+/* ── Награды, начисленные за сорвавшуюся серию ── */
+.sgGained {
+  margin: clamp(10px, 2vh, 16px) 0 0;
+  font-size: 14px;
+  color: #9a9ab0;
+}
+
+.sgGained b { color: #b6fe3b; }
+.sgGainedIcon { width: 13px; height: 13px; vertical-align: -2px; }
+
+/* ── Строка защиты (StreakGuardRow.jsx) ── */
+.sgGuard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: clamp(12px, 2.2vh, 18px);
+  padding: 11px 12px;
+  border: 1px solid #24202f;
+  border-radius: 14px;
+  background: rgba(18, 16, 26, 0.7);
+  text-align: left;
+}
+
+.sgGuardTap { cursor: pointer; }
+.sgGuardIcon { flex: none; color: #9b7bff; }
+.sgGuardBody { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.sgGuardText { font-size: 13px; line-height: 1.3; color: #d6d6e2; }
+.sgGuardNote { font-size: 11px; line-height: 1.3; color: #8b8ba0; }
+
+.sgGuardBtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 11px;
+  border: 1px solid rgba(155, 123, 255, 0.55);
+  border-radius: 999px;
+  background: rgba(124, 86, 233, 0.14);
+  color: #cfc2ff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sgGuardBtnIcon { width: 12px; height: 12px; }
+
+.sgMsg {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #ff8f8f;
+}
+
+
+/* ── Кнопки ── */
+.sgClaimBtn {
+  width: 100%;
+  margin-top: clamp(14px, 2.6vh, 22px);
+  padding: 13px 18px;
+  border: none;
+  border-radius: 999px;
+  background: #b6fe3b;
+  color: #10130a;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sgBtn {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  margin-top: clamp(16px, 3vh, 26px);
+  padding: clamp(13px, 2.2vh, 16px) 18px;
+  border: 1px solid rgba(155, 123, 255, 0.6);
+  border-radius: 999px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex-f),
+    rgba(124, 86, 233, 0.12);
+  box-shadow: 0 0 26px rgba(124, 86, 233, 0.28);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Диагональные штрихи у правого края — такая же пометка, как у
+   шапки рейтинга (.ratingHead::after в rating-podium.css) */
+.sgBtn::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 78px;
+  pointer-events: none;
+  background: repeating-linear-gradient(115deg,
+    transparent 0 8px, rgba(199, 176, 255, 0.14) 8px 12px);
+}
+
+/* Когда есть кнопка награды — кнопки идут парой, большой зазор не нужен */
+.sgClaimBtn + .sgBtn { margin-top: 12px; }
+
+.sgBtn:active { transform: scale(0.99); }

@@ -158,6 +158,12 @@
         function hide() {
           if (done) return; done = true;
           slog('улетает');
+          /* Сигнал приложению: лого ушло. Полноэкранное окно серии
+             (StreakGateOverlay) до этого момента НЕ ставит ленту на паузу —
+             иначе не будет первого кадра видео, по которому сплэш и
+             снимается, и лого висело бы до страховки */
+          window.__pithySplashGone = true;
+          try { window.dispatchEvent(new Event('pithy:splash-gone')); } catch (e) { /* ignore */ }
           var el = document.getElementById('splash');
           if (!el) return;
           el.classList.add('splash-out');

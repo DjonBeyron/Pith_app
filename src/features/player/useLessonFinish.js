@@ -3,6 +3,7 @@ import { starsFromErrors, setLocalStars } from '../../shared/lib/lessonStars.js'
 import { saveLessonStars } from '../../shared/api/starsApi.js'
 import { addLocalXp, getLocalXp } from '../../shared/lib/localProfile.js'
 import { completeLesson, getProfile } from '../../shared/api/profileApi.js'
+import { bumpStreakOnLesson } from '../../shared/api/streakApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { saveAnswerEvents } from '../../shared/lib/skillStatsStore.js'
 import { sendSelfTrigger } from '../../shared/api/pushApi.js'
@@ -40,6 +41,10 @@ export function useLessonFinish({
         // Без lessonId (предпросмотр в редакторе) начисления нет.
         setBaseXp(profile.xp)
         const awarded = lessonId ? await completeLesson(lessonId) : 0
+        // День серии закрывает именно пройденный урок, а не заход в
+        // приложение (см. миграцию 20260831120000_streak_by_lesson.sql).
+        // Идемпотентно: второй урок за сутки ничего не добавит
+        if (lessonId) await bumpStreakOnLesson()
         // События анализа — после completeLesson: он создаёт строку lesson_results
         await saveAnswerEvents(getEvents(), { sourceLessonId: lessonId, isLoggedIn: true })
         // Финал модуля: выдача золотого билета (после completeLesson — сервер
