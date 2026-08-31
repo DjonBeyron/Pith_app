@@ -14,6 +14,7 @@ export default function StreakStartOverlay({ onClose }) {
     <div className="sgOverlay">
       <div className="sgScroll">
         <div className="sgInner">
+          <div className="sgBody">
           <p className="sgEyebrow">Первый урок пройден</p>
           <h1 className="sgTitle">Твой путь <span className="sgAccent">начался!</span></h1>
 
@@ -32,8 +33,11 @@ export default function StreakStartOverlay({ onClose }) {
               <span className="sgGuardNote">Завтрашний подарок ждёт тебя после урока</span>
             </span>
           </div>
+          </div>
 
-          <button className="sgBtn" onClick={onClose}>Отлично</button>
+          <div className="sgActions">
+            <button className="sgBtn" onClick={onClose}>Отлично</button>
+          </div>
         </div>
       </div>
       <BurstConfetti count={26} size={5} colors={SG_CONFETTI} />

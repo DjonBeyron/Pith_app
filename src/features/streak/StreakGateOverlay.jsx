@@ -58,14 +58,26 @@ function copy(state, res) {
 // стартовым сплэшем — логотип улетает и открывает уже готовое окно.
 // Заменило плашку StreakDailyToast в схеме уроков: один показ в день вместо
 // двух.
-export default function StreakGateOverlay({ state, res, onClose }) {
+// ready — стартовый сплэш уже улетел и окно реально видно. До этого момента
+// ни салют, ни счётчик не запускаем: логотип перекрывает всё окно (у него
+// z-index 2147483000), и праздник отыгрывал за ним впустую.
+export default function StreakGateOverlay({ state, res, onClose, ready = true }) {
   const [profile, setProfile] = useState(() => getCachedProfile())
   const [sheet, setSheet] = useState(null)        // null | 'freeze' | 'auto'
   const [rewardsOpen, setRewardsOpen] = useState(false)
   const [wantPro, setWantPro] = useState(false)
   const { busy, msg, buyFreeze, buyAuto } = useFreezeBuy()
+  const [live, setLive] = useState(false)
 
   useEffect(() => subscribeProfile(setProfile), [])
+
+  // Небольшая пауза после ухода логотипа: окно успевает проявиться, и только
+  // потом взлетает салют — иначе он стартует в кадре, где ещё идёт затухание
+  useEffect(() => {
+    if (!ready || live) return
+    const t = setTimeout(() => setLive(true), 320)
+    return () => clearTimeout(t)
+  }, [ready, live])
 
   // Про срыв рассказывает это окно — плашка-дубль в окне наград не нужна.
   useEffect(() => {
@@ -102,12 +114,16 @@ export default function StreakGateOverlay({ state, res, onClose }) {
           начинает скроллиться целиком */}
       <div className="sgScroll">
       <div className="sgInner">
+        {/* Верх тянется и центрирует содержимое, кнопки живут отдельным
+            блоком у нижнего края: на высоком экране (iPhone 16 Pro) всё
+            иначе повисало посреди пустоты */}
+        <div className="sgBody">
         {c.eyebrow && <p className="sgEyebrow">{c.eyebrow}</p>}
         <h1 className="sgTitle">{c.title}</h1>
 
         <div className={state === 'reset' ? 'sgCard sgCardLost' : 'sgCard'}>
           {/* Оборванная серия — число перечёркнуто (линия рисуется в CSS) */}
-          <StreakCountUp value={c.count} className={countCls} />
+          <StreakCountUp value={c.count} className={countCls} run={live} />
           <div className="sgUnit"><span>{days(c.count)} подряд</span></div>
         </div>
 
@@ -129,19 +145,22 @@ export default function StreakGateOverlay({ state, res, onClose }) {
         />
 
         {msg && <p className="sgMsg">{msg}</p>}
+        </div>
 
+        <div className="sgActions">
         {claimable && (
           <button className="sgClaimBtn" onClick={() => setRewardsOpen(true)}>
             Забрать награду
           </button>
         )}
         <button className="sgBtn" onClick={onClose}>{c.btn}</button>
+        </div>
       </div>
       </div>
 
       {/* Салют — только когда есть что праздновать: над оборванной
           серией конфетти было бы издевательством */}
-      {state !== 'reset' && <BurstConfetti count={26} size={5} colors={SG_CONFETTI} />}
+      {live && state !== 'reset' && <BurstConfetti count={26} size={5} colors={SG_CONFETTI} />}
 
       <FreezeSheet
         kind={sheet}

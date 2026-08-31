@@ -25,8 +25,8 @@
    целиком и ничего не срезается сверху (болячка flex-центрирования) */
 .sgScroll {
   min-height: 100%;
+  align-items: stretch;
   display: flex;
-  align-items: center;
   justify-content: center;
   padding: calc(20px + env(safe-area-inset-top, 0px)) 24px
            calc(20px + env(safe-area-inset-bottom, 0px));
@@ -40,11 +40,30 @@
 .sgInner {
   width: 100%;
   max-width: 360px;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   animation: sgRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Содержимое центрируется в свободном месте, кнопки остаются у нижнего края:
+   на высоком экране (iPhone 16 Pro) центрирование целиком оставляло сверху и
+   снизу одинаково большие пустоты, а кнопка висела посреди экрана */
+.sgBody {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.sgActions {
+  flex: none;
+  width: 100%;
+  padding-top: clamp(16px, 3vh, 28px);
 }
 
 @keyframes sgRise {
@@ -212,7 +231,6 @@
 /* ── Кнопки ── */
 .sgClaimBtn {
   width: 100%;
-  margin-top: clamp(14px, 2.6vh, 22px);
   padding: 13px 18px;
   border: none;
   border-radius: 999px;
@@ -225,7 +243,6 @@
 
 .sgBtn {
   width: 100%;
-  margin-top: clamp(16px, 3vh, 26px);
   padding: clamp(13px, 2.2vh, 16px) 18px;
   border: 1px solid rgba(155, 123, 255, 0.6);
   border-radius: 999px;

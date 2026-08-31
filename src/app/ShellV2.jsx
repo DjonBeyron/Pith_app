@@ -186,7 +186,7 @@ export default function ShellV2() {
 
       {/* Окно серии — первое на старте: попапы гонки ждут, пока его закроют,
           иначе два полноэкранных окна легли бы друг на друга */}
-      {gate && <StreakGateOverlay state={gate.state} res={gate.res} onClose={closeGate} />}
+      {gate && <StreakGateOverlay state={gate.state} res={gate.res} onClose={closeGate} ready={splashGone} />}
 
       {/* Попапы супергонки: анонс недели и итоги — поверх любой вкладки */}
       {!gate && <RaceGlobalPopups onOpenRace={() => { setTab('rating'); setRaceOpenTick(t => t + 1) }} />}
