@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Gift } from 'lucide-react'
 import BurstConfetti from '../../shared/ui/BurstConfetti.jsx'
 import StreakCountUp from './StreakCountUp.jsx'
@@ -10,16 +11,20 @@ const SG_CONFETTI = ['#c9b6ff', '#9b7bff', '#efe9ff', '#7c56e9', '#ffd98a']
 // молчит — человеку ещё нечего «продолжать», зато самое время объяснить, что
 // он только что начал и что будет завтра.
 export default function StreakStartOverlay({ onClose }) {
+  const [peak, setPeak] = useState(false)
+
   return (
     <div className="sgOverlay">
       <div className="sgScroll">
         <div className="sgInner">
-          <div className="sgBody">
-          <p className="sgEyebrow">Первый урок пройден</p>
-          <h1 className="sgTitle">Твой путь <span className="sgAccent">начался!</span></h1>
+          <div className="sgHead">
+            <p className="sgEyebrow">Первый урок пройден</p>
+            <h1 className="sgTitle">Твой путь <span className="sgAccent">начался!</span></h1>
+          </div>
 
+          <div className="sgBody">
           <div className="sgCard">
-            <StreakCountUp value={1} className="sgCount" />
+            <StreakCountUp value={1} from={0} className="sgCount" onDone={() => setPeak(true)} />
             <div className="sgUnit"><span>день подряд</span></div>
           </div>
 
@@ -40,7 +45,8 @@ export default function StreakStartOverlay({ onClose }) {
           </div>
         </div>
       </div>
-      <BurstConfetti count={26} size={5} colors={SG_CONFETTI} />
+      {peak && <span className="sgWave" />}
+      {peak && <BurstConfetti count={26} size={5} colors={SG_CONFETTI} />}
     </div>
   )
 }

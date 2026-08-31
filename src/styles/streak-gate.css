@@ -48,9 +48,50 @@
   animation: sgRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Содержимое центрируется в свободном месте, кнопки остаются у нижнего края:
-   на высоком экране (iPhone 16 Pro) центрирование целиком оставляло сверху и
-   снизу одинаково большие пустоты, а кнопка висела посреди экрана */
+/* Волна на переключении дня. Самого кольца не видно — оно смешивается с
+   фоном в режиме screen, и заметен только пробегающий по узору блеск:
+   светлые штрихи паттерна вспыхивают, тёмный фон почти не меняется */
+.sgWave {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  pointer-events: none;
+  /* color-dodge осветляет пропорционально тому, что уже есть: почти чёрный
+     фон остаётся почти чёрным, а светлые штрихи узора вспыхивают. Поэтому
+     самого кольца не видно — виден только пробегающий по паттерну блеск */
+  mix-blend-mode: color-dodge;
+  background: radial-gradient(circle,
+    rgba(255, 255, 255, 0) 58%,
+    rgba(226, 214, 255, 0.32) 68%,
+    rgba(255, 255, 255, 0) 78%);
+  animation: sgWave 1.6s cubic-bezier(0.3, 0.7, 0.4, 1) forwards;
+}
+
+@keyframes sgWave {
+  from { transform: scale(1);   opacity: 0; }
+  8%   { opacity: 1; }
+  70%  { opacity: 0.85; }
+  to   { transform: scale(260); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sgWave { display: none; }
+}
+
+/* Шапка стоит у верхнего края — заголовок больше не плавает по центру */
+.sgHead {
+  flex: none;
+  width: 100%;
+  padding-top: clamp(8px, 4vh, 40px);
+}
+
+/* Число занимает всё, что осталось между шапкой и кнопками, и центрируется
+   в нём: на высоком экране (iPhone 16 Pro) сплошное центрирование оставляло
+   одинаково большие пустоты сверху и снизу */
 .sgBody {
   flex: 1;
   width: 100%;
@@ -64,6 +105,9 @@
   flex: none;
   width: 100%;
   padding-top: clamp(16px, 3vh, 28px);
+  /* Отступ от нижнего края: прижатая вплотную кнопка выглядела сваленной
+     под самый край экрана */
+  padding-bottom: clamp(10px, 4vh, 44px);
 }
 
 @keyframes sgRise {
@@ -115,10 +159,35 @@
   position: relative;
   display: inline-block;
   font-size: clamp(62px, 15vh, 116px);
-  line-height: 1.05;
+  line-height: 1;
   font-weight: 800;
   color: #fff;
-  text-shadow: 0 0 38px rgba(150, 112, 255, 0.6);
+  /* Свечение фильтром, а не text-shadow: барабаны одометра обрезают всё,
+     что выходит за строку, и тень цифры превращалась в тёмный прямоугольник
+     вокруг неё. filter применяется уже к отрисованному результату */
+  filter: drop-shadow(0 0 22px rgba(150, 112, 255, 0.55));
+}
+
+/* Барабаны одометра: у каждого разряда своя лента цифр, видно ровно одну
+   строку, лента едет вверх (см. StreakCountUp.jsx). Высота в em — барабан
+   сам подстраивается под кегль, который считает clamp выше */
+.sgDigit {
+  display: inline-block;
+  overflow: hidden;
+  height: 1em;
+  vertical-align: top;
+}
+
+.sgDigitReel {
+  display: flex;
+  flex-direction: column;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.sgDigitReel > span {
+  height: 1em;
+  line-height: 1;
 }
 
 /* Четырёх- и пятизначные серии (1348 дней) — кегль ниже ступенькой,
@@ -128,7 +197,7 @@
 
 .sgCardLost .sgCount {
   color: #7d7e91;
-  text-shadow: none;
+  filter: none;
 }
 
 /* Серия оборвалась — число перечёркивается на глазах: линия прочерчивается

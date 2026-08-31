@@ -68,6 +68,8 @@ export default function StreakGateOverlay({ state, res, onClose, ready = true })
   const [wantPro, setWantPro] = useState(false)
   const { busy, msg, buyFreeze, buyAuto } = useFreezeBuy()
   const [live, setLive] = useState(false)
+  // Барабаны докрутились до нового дня — момент для салюта и волны
+  const [peak, setPeak] = useState(false)
 
   useEffect(() => subscribeProfile(setProfile), [])
 
@@ -114,16 +116,24 @@ export default function StreakGateOverlay({ state, res, onClose, ready = true })
           начинает скроллиться целиком */}
       <div className="sgScroll">
       <div className="sgInner">
-        {/* Верх тянется и центрирует содержимое, кнопки живут отдельным
-            блоком у нижнего края: на высоком экране (iPhone 16 Pro) всё
-            иначе повисало посреди пустоты */}
-        <div className="sgBody">
-        {c.eyebrow && <p className="sgEyebrow">{c.eyebrow}</p>}
-        <h1 className="sgTitle">{c.title}</h1>
+        {/* Три зоны: шапка у верхнего края, число по центру, кнопки внизу.
+            Сплошное центрирование оставляло на высоком экране (iPhone 16 Pro)
+            пустоты сверху и снизу, а заголовок висел посреди них */}
+        <div className="sgHead">
+          {c.eyebrow && <p className="sgEyebrow">{c.eyebrow}</p>}
+          <h1 className="sgTitle">{c.title}</h1>
+        </div>
 
+        <div className="sgBody">
         <div className={state === 'reset' ? 'sgCard sgCardLost' : 'sgCard'}>
-          {/* Оборванная серия — число перечёркнуто (линия рисуется в CSS) */}
-          <StreakCountUp value={c.count} className={countCls} run={live} />
+          {/* Оборванную серию не крутим: from не передаём */}
+          <StreakCountUp
+            value={c.count}
+            from={state === 'reset' ? null : c.count - 1}
+            className={countCls}
+            run={live}
+            onDone={() => setPeak(true)}
+          />
           <div className="sgUnit"><span>{days(c.count)} подряд</span></div>
         </div>
 
@@ -158,9 +168,10 @@ export default function StreakGateOverlay({ state, res, onClose, ready = true })
       </div>
       </div>
 
-      {/* Салют — только когда есть что праздновать: над оборванной
-          серией конфетти было бы издевательством */}
-      {live && state !== 'reset' && <BurstConfetti count={26} size={5} colors={SG_CONFETTI} />}
+      {/* Салют и волна — на самом переключении дня, не раньше. Над
+          оборванной серией праздника нет вовсе */}
+      {peak && state !== 'reset' && <span className="sgWave" />}
+      {peak && state !== 'reset' && <BurstConfetti count={26} size={5} colors={SG_CONFETTI} />}
 
       <FreezeSheet
         kind={sheet}
