@@ -17,7 +17,7 @@ const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
 // Пропсы здесь принимают nodeId первым аргументом — обёртка в замыкание
 // happens здесь, локально, а не в CanvasBoard.jsx.
 function CanvasNode({
-  node, onUpdate, onDragStart, selected = false, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure,
+  node, onUpdate, onDragStart, selected = false, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, onTriggerMeasure,
   moduleLessons = [],
   // Фильтр в шапке канваса: тип не отмечен — нода приглушается, но остаётся
   // на месте и со своими связями
@@ -127,6 +127,7 @@ function CanvasNode({
           allNodes={allNodes}
           lessonFiles={lessonFiles}
           onPickLessonFile={onPickLessonFile}
+          onRemoveLessonFile={onRemoveLessonFile}
           onTriggerMeasure={handleTriggerMeasure}
           moduleLessons={moduleLessons}
         />

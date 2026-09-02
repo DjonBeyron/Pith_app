@@ -8,7 +8,7 @@ function truncate(name, max = 20) {
 }
 
 // status: 'idle' | 'loading' | 'done' | 'error'
-function StatusTag({ label, status }) {
+export function StatusTag({ label, status }) {
   if (status === 'idle') return null
   const cls = status === 'loading' ? 'nodeAudioTagLoading'
     : status === 'error' ? 'nodeAudioTagError' : 'nodeAudioTagDone'
@@ -27,10 +27,34 @@ export default function NodeAudioPicker({
   const file = lessonFiles.find(f => f.id === fileId) ?? null
   const [waveStatus, setWaveStatus] = useState('idle')
   const [txStatus,   setTxStatus]   = useState('idle')
+  const [isPlaying,  setIsPlaying]  = useState(false)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const previewRef = useRef(null)
 
   // Ref keeps latest onAnalyzed so async callbacks never use stale closure
   const onAnalyzedRef = useRef(onAnalyzed)
   useEffect(() => { onAnalyzedRef.current = onAnalyzed })
+
+  // Прослушка прямо в редакторе — работает и для загруженного вручную файла,
+  // и для озвученного через ElevenLabs (NodeAudioTts.jsx)
+  useEffect(() => {
+    // Синхронный setState осознан: как в AudioModule.jsx — blob-URL живёт
+    // строго вместе с file.localFile, откладывать через колбэк некуда
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!file?.localFile) { setPreviewUrl(file?.r2Url ?? null); return }
+    const url = URL.createObjectURL(file.localFile)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file?.localFile, file?.r2Url])
+
+  function togglePreview(e) {
+    e.stopPropagation()
+    const audio = previewRef.current
+    if (!audio) return
+    if (isPlaying) { audio.pause(); return }
+    audio.currentTime = 0
+    audio.play().then(() => setIsPlaying(true)).catch(() => {})
+  }
 
   async function handleFileChange(e) {
     const f = e.target.files[0]
@@ -80,6 +104,24 @@ export default function NodeAudioPicker({
           >
             {file.status === 'synced' ? '↑' : '○'}
           </span>
+        )}
+        {file && previewUrl && (
+          <>
+            <audio
+              ref={previewRef}
+              src={previewUrl}
+              onEnded={() => setIsPlaying(false)}
+              onPause={() => setIsPlaying(false)}
+            />
+            <button
+              type="button"
+              className="nodeAudioPreviewBtn"
+              onClick={togglePreview}
+              title="Прослушать"
+            >
+              {isPlaying ? '⏸' : '▶'}
+            </button>
+          </>
         )}
       </div>
 

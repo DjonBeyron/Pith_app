@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import NodeAudioPicker from './NodeAudioPicker.jsx'
+import NodeAudioTts from './NodeAudioTts.jsx'
 import NodeTextProEditor from './NodeTextProEditor.jsx'
 import NodeReactionPicker from './NodeReactionPicker.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
@@ -34,7 +35,7 @@ function mainFieldPlaceholder(type) {
 // продакшен-списка (ProductionList) — один источник правды на все 14 типов,
 // не дублируем 8 разных пикеров в двух местах.
 export default function NodeContentEditor({
-  node, onUpdate, allNodes, lessonFiles = [], onPickLessonFile, onTriggerMeasure, moduleLessons = [],
+  node, onUpdate, allNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, onTriggerMeasure, moduleLessons = [],
   showTypeSelect = true,
   // Продакшен: блок «Если/Тогда» (простые типы — не word_choice и т.п. со
   // своей парой) по умолчанию свёрнут — за раскрытие/ширину строки отвечает
@@ -118,6 +119,15 @@ export default function NodeContentEditor({
           highlights={tData.highlights ?? []}
           onTextChange={updateTypeData}
           growText={growTextareas}
+        />
+      )}
+      {node.type === 'audio' && (
+        <NodeAudioTts
+          fileId={fileId}
+          text={tData.text ?? ''}
+          onPick={handleAudioPick}
+          onAnalyzed={patch => updateTypeData(patch)}
+          onRemoveOldFile={onRemoveLessonFile}
         />
       )}
       {(node.type === 'photo' || node.type === 'video' || node.type === 'circle' || node.type === 'sticker') && (

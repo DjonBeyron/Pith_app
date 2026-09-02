@@ -83,3 +83,48 @@
 .nodeAudioTagLoading { background: rgba(255,200,50,0.15); color: #f0c040; }
 .nodeAudioTagDone    { background: rgba(100,220,100,0.15); color: #6dc86d; }
 .nodeAudioTagError   { background: rgba(255,80,80,0.15);  color: #f06060; }
+
+/* Прослушка выбранного/озвученного файла прямо в редакторе ноды */
+.nodeAudioPreviewBtn {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(182,254,59,0.15);
+  color: #b6fe3b;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+.nodeAudioPreviewBtn:hover { background: rgba(182,254,59,0.28); }
+
+/* Кнопка «Озвучить» (ElevenLabs) + остаток лимита символов */
+.nodeAudioTtsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nodeAudioTtsBtn {
+  padding: 4px 8px;
+  background: rgba(182,254,59,0.1);
+  border: 1px solid rgba(182,254,59,0.35);
+  border-radius: 6px;
+  color: #b6fe3b;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nodeAudioTtsBtn:hover:not(:disabled) { background: rgba(182,254,59,0.2); }
+.nodeAudioTtsBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.nodeAudioTtsQuota {
+  font-size: 9px;
+  color: #667;
+}

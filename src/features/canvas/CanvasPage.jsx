@@ -381,6 +381,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           lessonId={lessonId}
           lessonFiles={files}
           onPickLessonFile={pickFile}
+          onRemoveLessonFile={removeFile}
           onNodesChange={handleNodesChange}
           initialNodes={serverNodes}
           moduleLessons={linkableLessons}

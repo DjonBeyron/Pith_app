@@ -445,3 +445,18 @@ entrypoint = "./functions/push-send/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/push-trigger/index.ts"
+
+# Озвучка текста через ElevenLabs (кнопка «Озвучить» в ноде audio) — доступ
+# внутри функции дополнительно сужен до is_admin (requireAdmin), verify_jwt
+# здесь только проверяет, что запрос вообще несёт валидный Supabase JWT.
+[functions.tts-elevenlabs]
+enabled = true
+verify_jwt = true
+import_map = "./functions/tts-elevenlabs/deno.json"
+entrypoint = "./functions/tts-elevenlabs/index.ts"
+
+[functions.elevenlabs-quota]
+enabled = true
+verify_jwt = true
+import_map = "./functions/elevenlabs-quota/deno.json"
+entrypoint = "./functions/elevenlabs-quota/index.ts"

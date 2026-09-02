@@ -37,7 +37,7 @@ import { NODE_HIT_W, NODE_HIT_H } from './canvasHitTest.js'
 const EMPTY_NODES = []
 
 const CanvasBoard = forwardRef(function CanvasBoard({
-  initialNodes, lessonFiles = [], onPickLessonFile, lessonId, onNodesChange,
+  initialNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, lessonId, onNodesChange,
   moduleLessons = [],
   onPlayFrom, // админ: прогнать сценарий начиная с этой ноды
   // Фильтр в шапке (админ): типы, которые показываем в полную силу.
@@ -304,6 +304,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
               allNodes={node.size === 'max' ? nodeOptions : EMPTY_NODES}
               lessonFiles={lessonFiles}
               onPickLessonFile={onPickLessonFile}
+              onRemoveLessonFile={onRemoveLessonFile}
               onTriggerMeasure={handleTriggerMeasure}
               moduleLessons={moduleLessons}
               dimmed={isNodeDimmed(node, visibleTypes, onlyMissingMedia)}

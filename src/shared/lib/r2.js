@@ -7,7 +7,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 // Edge-функции R2 пускают только админа. В Authorization кладём access-token
 // залогиненного пользователя (не анонимный ключ) — по нему функция проверяет is_admin.
 // apikey остаётся анонимным ключом — он нужен шлюзу Supabase для маршрутизации.
-async function authHeaders() {
+export async function authHeaders() {
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token ?? SUPABASE_ANON_KEY
   return {
