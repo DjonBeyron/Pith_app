@@ -23,6 +23,7 @@ import CanvasLinkDebug, { CanvasDebugOverlay } from './CanvasLinkDebug.jsx'
 import { linkDiagnostics } from './canvasLinkDebug.js'
 import { useLinkDebugLog } from './useLinkDebugLog.js'
 import { useNodeNotes } from './useNodeNotes.js'
+import { useLocalNoteBox } from './useLocalNoteBox.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { isNodeDimmed } from './nodeMediaStatus.js'
 import { NODE_HIT_W, NODE_HIT_H } from './canvasHitTest.js'
@@ -117,8 +118,10 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       return prev.map(n => group.has(n.id) ? { ...n, x: n.x + dx, y: n.y + dy } : n)
     }), [moveGroup, setNodes])
 
-  // Комментарии продакшена: что свёрнуто — useNodeNotes.js
+  // Комментарии продакшена: что свёрнуто — useNodeNotes.js; куда подвинут
+  // стикер — useLocalNoteBox.js (это личное, живёт в браузере, не в уроке)
   const { toggleNote, isNoteOpen, isNoteFolded } = useNodeNotes(updateNode)
+  const { boxFor, setBoxFor, clearBoxFor } = useLocalNoteBox()
 
   const pan = useCallback((dx, dy) =>
     setOffset(o => ({ x: o.x + dx, y: o.y + dy })), [setOffset])
@@ -308,15 +311,17 @@ const CanvasBoard = forwardRef(function CanvasBoard({
             {isAdmin && node.note != null && (
               <NodeNoteLayer
                 node={node}
+                box={boxFor(node.id)}
                 scaleRef={scaleRef}
                 folded={isNoteFolded(node)}
                 onChange={value => updateNode(node.id, { note: value })}
-                onBoxChange={box => updateNode(node.id, { noteBox: box })}
+                onBoxChange={box => setBoxFor(node.id, box)}
                 onFold={() => toggleNote(node.id, true)}
                 onRemove={() => {
                   // Заметку с текстом просто так не теряем — рядом есть «свернуть»
                   if (node.note?.trim() && !window.confirm('Удалить комментарий продакшена?')) return
-                  updateNode(node.id, { note: undefined, noteBox: undefined })
+                  updateNode(node.id, { note: undefined })
+                  clearBoxFor(node.id)
                 }}
               />
             )}

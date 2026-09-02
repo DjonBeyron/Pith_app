@@ -80,8 +80,10 @@ describe('комментарий не виден никому, кроме адм
     expect((hook.match(/updateNode\(nodeId/g) ?? [])).toHaveLength(1)
   })
 
-  it('удаление комментария стирает поле у ноды', () => {
-    expect(read('./CanvasBoard.jsx')).toContain('updateNode(node.id, { note: undefined, noteBox: undefined })')
+  it('удаление комментария стирает текст у ноды и локальное положение стикера', () => {
+    const board = read('./CanvasBoard.jsx')
+    expect(board).toContain('updateNode(node.id, { note: undefined })')
+    expect(board).toContain('clearBoxFor(node.id)')
   })
 
   it('свернуть и удалить — разные кнопки: сворачивание текст не теряет', () => {

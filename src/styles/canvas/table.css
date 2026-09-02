@@ -184,3 +184,24 @@
 }
 .nodeTableChatCaption::placeholder { color: #6a7080; }
 .nodeTableChatCaption:focus { outline: none; border-color: rgba(182, 254, 59, 0.5); }
+
+/* Текст озвучки авто-режима — что именно проговаривается синхронно с
+   подсветкой в таймлайне (NodeTablePicker). Многострочное, в отличие от
+   chatCaption: фраза-другая, не одно слово. */
+.nodeTableScript {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0 2px;
+  padding: 6px 8px;
+  min-height: 44px;
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.35;
+  color: #e0e0e0;
+  background: rgba(182, 254, 59, 0.05);
+  border: 1px solid rgba(182, 254, 59, 0.18);
+  border-radius: 6px;
+  resize: vertical;
+}
+.nodeTableScript::placeholder { color: #6a7080; }
+.nodeTableScript:focus { outline: none; border-color: rgba(182, 254, 59, 0.5); }

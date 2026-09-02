@@ -280,6 +280,7 @@ export default function LessonPlayer({
             onNodeDone={onNodeDone}
             onTrReveal={registerHint}
             onPhotoXpFired={handlePhotoXpFired}
+            onXpEarned={handleXpEarned}
             adminEdit={adminEdit}
           />
           {visibleNodes.length === 0 && (

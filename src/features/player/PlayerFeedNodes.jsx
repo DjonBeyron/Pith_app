@@ -8,7 +8,7 @@ import NodeEditPencil from './admin/NodeEditPencil.jsx'
 export default function PlayerFeedNodes({
   visibleNodes, pendingNode, nodes, filesWithBlobs, teacherName,
   states, xpMap, pendingPhotoXp, bottomOffset, videoAutoSound, isAdmin,
-  onNodeDone, onTrReveal, onPhotoXpFired,
+  onNodeDone, onTrReveal, onPhotoXpFired, onXpEarned,
   // Режим правки из канваса (usePlayerAdminEdit) — в обычном плеере null
   adminEdit = null,
 }) {
@@ -80,6 +80,7 @@ export default function PlayerFeedNodes({
           photoXpPending={pendingPhotoXp[node.id] ?? 0}
           /* коллбэк дергается по событию XP-анимации, не в рендере */
           onPhotoXpFired={(rect) => onPhotoXpFired(node.id, rect)}
+          onXpEarned={onXpEarned}
         />
       </div>
     )

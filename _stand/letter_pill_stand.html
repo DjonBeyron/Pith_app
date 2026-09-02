@@ -1,0 +1,219 @@
+<title>Letter Pill Stand</title>
+<style>
+  :root {
+    --bg: #0d0f13;
+    --surface: #1a1d22;
+    --text: #e0e0e0;
+    --text-dim: #9aa0b4;
+    --accent: #b6fe3b;
+    --accent-ink: #12140d;
+    --line: rgba(255,255,255,0.08);
+    --card: #14171c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Montserrat', 'Comfortaa', sans-serif;
+    margin: 0;
+    padding: 56px 24px 100px;
+    display: flex;
+    justify-content: center;
+  }
+  .page { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 56px; }
+
+  .intro { display: flex; flex-direction: column; gap: 14px; }
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); margin: 0;
+  }
+  h1 { font-size: 26px; font-weight: 700; line-height: 1.25; margin: 0; text-wrap: balance; }
+  .lede { font-size: 14px; line-height: 1.6; color: var(--text-dim); margin: 0; max-width: 60ch; }
+  .lede b { color: var(--text); font-weight: 600; }
+
+  section { display: flex; flex-direction: column; gap: 16px; }
+  .sec-head { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+  .sec-title { font-size: 15px; font-weight: 700; margin: 0; }
+  .sec-note { font-size: 12.5px; color: var(--text-dim); margin: 0; line-height: 1.55; max-width: 62ch; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid--2 { grid-template-columns: repeat(2, 1fr); }
+  .grid--4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 620px) { .grid, .grid--2, .grid--4 { grid-template-columns: 1fr 1fr; } }
+
+  .card {
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .card-label { font-size: 12px; font-weight: 600; color: var(--text); }
+
+  .bubble {
+    background: var(--surface);
+    border-radius: 16px 16px 16px 4px;
+    padding: 7px 13px;
+    width: max-content;
+    max-width: 100%;
+  }
+  .playerText {
+    margin: 0; font-size: 14px; line-height: 1.5; color: var(--text);
+    white-space: pre-wrap; word-break: break-word;
+  }
+
+  .bubble-zoom-frame {
+    background: var(--surface); border-radius: 16px 16px 16px 4px;
+    width: 100%; height: 84px; overflow: hidden; padding: 7px 13px;
+  }
+  .bubble-zoom { transform: scale(2.6); transform-origin: top left; }
+
+  .g { color: var(--accent); font-weight: 600; }
+  .u { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+  .bold-only { font-weight: 600; color: var(--text); }
+
+  /* Две формулы, а не одна — единый набор чисел не подошёл сразу и одиночной
+     букве, и паре: у одиночной буквы (y, g, a...) естественное поле в шрифте
+     сильно смещено вправо (лево тоньше), у пары это сглаживается вторым
+     символом. Обе выверены сканом пикселей по 6-8 разным буквам/парам —
+     не только на «y» и «pp», чтобы не подгонять под один частный случай. */
+  .solo { position: relative; margin: 0 1.3px; }
+  .solo b { position: absolute; display: block; pointer-events: none; background: var(--accent);
+            left: -1.8px; right: 1.1px; top: 2px; bottom: -3px; border-radius: 3px; }
+  .solo span { position: relative; font-weight: 600; color: var(--accent-ink); }
+
+  .pair { position: relative; margin: 0 1.6px; }
+  .pair b { position: absolute; display: block; pointer-events: none; background: var(--accent);
+            left: -1.6px; right: 1.3px; top: 2px; bottom: -3px; border-radius: 3px; }
+  .pair span { position: relative; font-weight: 600; color: var(--accent-ink); }
+
+  footer { border-top: 1px solid var(--line); padding-top: 20px; }
+  footer p { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; margin: 0; max-width: 62ch; }
+</style>
+
+<div class="page">
+
+  <div class="intro">
+    <p class="eyebrow">Pithy · review</p>
+    <h1>Плашка для буквы внутри слова</h1>
+    <p class="lede">
+      v5 — нашлась настоящая причина смещения: у ОДНОЙ буквы поле в шрифте слева и справа
+      разное (слева уже), а я двигал рамку симметрично — плашка съезжала вправо от чернил
+      почти на 3px. Перемерил сканом пикселей на 8 разных буквах (не только «y») и подобрал
+      асимметричную компенсацию — разбор в 1a. Заодно проверил и пары («pp» и другие) — там
+      тот же перекос был, просто не так заметен на глаз.
+    </p>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <p class="sec-title">1 · одна буква — было vs стало, на «y»</p>
+      <p class="sec-note">try → tries. Слева — старая симметричная рамка (плашка съезжает вправо от чернил буквы). Справа — новая, с компенсацией.</p>
+    </div>
+    <div class="grid grid--2">
+      <div class="card">
+        <div class="card-label">Было (симметрично, -0.5/-0.5)</div>
+        <div class="bubble" style="font-size:40px"><p class="playerText" style="font-size:40px"><span class="g">tr</span><span style="position:relative;margin:0 3px"><b style="position:absolute;left:-1.5px;right:-1.5px;top:6px;bottom:-9px;border-radius:9px;background:var(--accent)"></b><span style="position:relative;font-weight:600;color:var(--accent-ink)">y</span></span></p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Стало (асимметрично, -1.8/+1.1)</div>
+        <div class="bubble" style="font-size:40px"><p class="playerText" style="font-size:40px"><span class="g">tr</span><span style="position:relative;margin:0 3.7px"><b style="position:absolute;left:-5.1px;right:3.1px;top:6px;bottom:-9px;border-radius:9px;background:var(--accent)"></b><span style="position:relative;font-weight:600;color:var(--accent-ink)">y</span></span></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="sec-title">1a · одна буква — ещё примеры, реальный размер</p>
+      <p class="sec-note">Разные буквы, разная форма (с хвостиком, без, широкая, узкая) — чтобы не подгонять формулу под одну «y».</p>
+    </div>
+    <div class="grid grid--4">
+      <div class="card">
+        <div class="card-label">try → tries</div>
+        <div class="bubble"><p class="playerText">tr<span class="solo"><b></b><span>y</span></span></p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">big → bigger</div>
+        <div class="bubble"><p class="playerText">bi<span class="solo"><b></b><span>g</span></span></p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">cat → cats</div>
+        <div class="bubble"><p class="playerText">c<span class="solo"><b></b><span>a</span></span>t</p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">sun → sunny</div>
+        <div class="bubble"><p class="playerText">s<span class="solo"><b></b><span>u</span></span>n</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="sec-title">2 · вся строка целиком</p>
+      <p class="sec-note">Так это будет выглядеть в контексте самого объяснения — с подчёркиванием у tries, разорванным в обход плашки на «i».</p>
+    </div>
+    <div class="bubble">
+      <p class="playerText">А если слово кончается на согласную и y, то y превращается в i:
+<span class="g">tr</span><span class="solo"><b></b><span>y</span></span> → <span class="g u">tr</span><span class="solo"><b></b><span>i</span></span><span class="g u">es</span></p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="sec-title">3 · пара букв внутри слова — ещё примеры</p>
+      <p class="sec-note">stop → stopped («pp»), плюс ещё три пары — тот же приём, своя формула (у пары само наличие двух символов сглаживает часть перекоса, но не весь).</p>
+    </div>
+    <div class="grid grid--4">
+      <div class="card">
+        <div class="card-label">stop → stopped</div>
+        <div class="bubble"><p class="playerText">sto<span class="pair"><b></b><span>pp</span></span>ed</p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">let → letter</div>
+        <div class="bubble"><p class="playerText">le<span class="pair"><b></b><span>tt</span></span>er</p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">run → running</div>
+        <div class="bubble"><p class="playerText">ru<span class="pair"><b></b><span>nn</span></span>ing</p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">mid → middle</div>
+        <div class="bubble"><p class="playerText">mi<span class="pair"><b></b><span>dd</span></span>le</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="sec-title">4 · отдельно стоящая буква в прозе — ещё примеры</p>
+      <p class="sec-note">Буква названа отдельно, не внутри примера. Слева — как сейчас (жирным без цвета), справа — если плашку распространить и туда.</p>
+    </div>
+    <div class="grid grid--2">
+      <div class="card">
+        <div class="card-label">Как сейчас · жирным</div>
+        <div class="bubble"><p class="playerText">А если слово кончается на согласную и <span class="bold-only">y</span>, то <span class="bold-only">y</span> превращается в <span class="bold-only">i</span></p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Плашка и здесь тоже</div>
+        <div class="bubble"><p class="playerText">А если слово кончается на согласную и <span class="solo"><b></b><span>y</span></span>, то <span class="solo"><b></b><span>y</span></span> превращается в <span class="solo"><b></b><span>i</span></span></p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Как сейчас · другой пример (a → e)</div>
+        <div class="bubble"><p class="playerText">Финальная <span class="bold-only">a</span> в конце иногда пропадает, и вместо неё встаёт <span class="bold-only">e</span></p></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Плашка и здесь тоже</div>
+        <div class="bubble"><p class="playerText">Финальная <span class="solo"><b></b><span>a</span></span> в конце иногда пропадает, и вместо неё встаёт <span class="solo"><b></b><span>e</span></span></p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Формулы: одна буква — margin 1.3px, рамка -1.8px/+1.1px. Пара букв — margin 1.6px, рамка -1.6px/+1.3px. Обе проверены построчно (пиксельный скан канваса), не на глаз.</p>
+  </footer>
+
+</div>

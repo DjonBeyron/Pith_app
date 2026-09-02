@@ -166,6 +166,21 @@ export default function NodeTablePicker({
         >👁 Показ</button>
       </div>
 
+      {/* Авто-режим не молчит — голос диктует таблицу вслух, и этот текст и есть
+          сценарий озвучки (что именно говорится, синхронно с подсветкой в
+          таймлайне). Отдельно от note: note — заметка для своих, этот текст —
+          часть самого урока. */}
+      {mode === 'dictator' && (
+        <textarea
+          className="nodeTableScript"
+          value={tData.script ?? ''}
+          onChange={e => onDataChange({ script: e.target.value })}
+          placeholder="Текст озвучки — коротко и живо, синхронно с подсветкой: «В настоящем времени мы имеем форму try»"
+          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+        />
+      )}
+
       {!isDemo && (
         <label
           className="nodeTableSendChat"

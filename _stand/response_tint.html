@@ -1,0 +1,170 @@
+<title>Response Tint Options</title>
+<style>
+  :root {
+    --bg: #0d0f13;
+    --surface: #1a1d22;
+    --text: #e0e0e0;
+    --text-dim: #9aa0b4;
+    --accent: #b6fe3b;
+    --line: rgba(255,255,255,0.08);
+    --card: #14171c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Montserrat', 'Comfortaa', sans-serif;
+    margin: 0;
+    padding: 48px 24px 100px;
+    display: flex;
+    justify-content: center;
+  }
+  .page { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 40px; }
+
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 8px;
+  }
+  h1 { font-size: 24px; font-weight: 700; line-height: 1.25; margin: 0 0 10px; text-wrap: balance; }
+  .lede { font-size: 13.5px; line-height: 1.6; color: var(--text-dim); margin: 0; max-width: 66ch; }
+  .lede b { color: var(--text); font-weight: 600; }
+
+  .option {
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .opt-head { display: flex; align-items: center; gap: 10px; }
+  .opt-swatch { width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0; border: 1px solid var(--line); }
+  .opt-title { font-size: 15px; font-weight: 700; margin: 0; }
+  .opt-hex { font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; margin-left: auto; }
+  .opt-note { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 0; }
+
+  .chat {
+    background: #08090c;
+    border-radius: 12px;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row { display: flex; }
+  .row--right { justify-content: flex-end; }
+  .bubble {
+    max-width: 78%;
+    padding: 7px 13px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--text);
+  }
+  .bubble--teacher {
+    background: linear-gradient(to bottom, var(--surface) 58%, rgb(26 29 34 / 0%));
+    border-radius: 16px 16px 16px 4px;
+  }
+  .bubble--response {
+    border-radius: 16px 16px 4px 16px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .bubble--response::after { content: '✓'; color: var(--accent); font-weight: 700; font-size: 12px; }
+  .bubble--voice {
+    border-radius: 16px 4px 16px 16px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px;
+  }
+  .mic { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.12); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .wave { display: flex; align-items: center; gap: 2px; height: 14px; }
+  .wave span { width: 2px; background: rgba(255,255,255,0.3); border-radius: 1px; }
+
+  footer { border-top: 1px solid var(--line); padding-top: 18px; }
+  footer p { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin: 0; max-width: 66ch; }
+</style>
+
+<div class="page">
+
+  <div>
+    <p class="eyebrow">Pithy · review</p>
+    <h1>Оттенок для ответа ученика — три варианта</h1>
+    <p class="lede">
+      Сейчас у текстовых ответов (word_choice, phrase_assembly, table) фон нейтрально-серый
+      <b>#1a1d22</b> — тот же, что у реплики учителя. У voice_record свой зелёный
+      <b>#1e3a12</b>, но больше нигде он не используется — несогласованность, которую и решаем.
+      Во всех трёх вариантах ниже растушёвки снизу НЕТ — она остаётся только у сообщений
+      учителя слева (для сравнения показана вверху каждого блока).
+    </p>
+  </div>
+
+  <div class="option">
+    <div class="opt-head">
+      <span class="opt-swatch" style="background:#23201c"></span>
+      <p class="opt-title">A · Тёплый нейтральный</p>
+      <span class="opt-hex">#23201c</span>
+    </div>
+    <p class="opt-note">Тот же принцип затемнения, что у учителя, но с тёплым (не холодным) сдвигом — едва заметно, спокойно. Ответ читается как «свой», не борясь с остальной палитрой.</p>
+    <div class="chat">
+      <div class="row"><div class="bubble bubble--teacher">Как сказать по-английски «Ты пробуешь каждый день»?</div></div>
+      <div class="row row--right"><div class="bubble bubble--response" style="background:#23201c">you try every day</div></div>
+      <div class="row row--right"><div class="bubble bubble--voice" style="background:#23201c">
+        <span class="mic">●</span>
+        <span class="wave">
+          <span style="height:6px"></span><span style="height:11px"></span><span style="height:8px"></span>
+          <span style="height:13px"></span><span style="height:5px"></span><span style="height:9px"></span>
+        </span>
+        0:04
+      </div></div>
+    </div>
+  </div>
+
+  <div class="option">
+    <div class="opt-head">
+      <span class="opt-swatch" style="background:#16212e"></span>
+      <p class="opt-title">B · Холодный синий</p>
+      <span class="opt-hex">#16212e</span>
+    </div>
+    <p class="opt-note">Привычная логика мессенджеров — «свои» сообщения синие. Контраст с зелёным акцентом сильнее, ответ сразу читается отдельным слоем от учителя.</p>
+    <div class="chat">
+      <div class="row"><div class="bubble bubble--teacher">Как сказать по-английски «Ты пробуешь каждый день»?</div></div>
+      <div class="row row--right"><div class="bubble bubble--response" style="background:#16212e">you try every day</div></div>
+      <div class="row row--right"><div class="bubble bubble--voice" style="background:#16212e">
+        <span class="mic">●</span>
+        <span class="wave">
+          <span style="height:6px"></span><span style="height:11px"></span><span style="height:8px"></span>
+          <span style="height:13px"></span><span style="height:5px"></span><span style="height:9px"></span>
+        </span>
+        0:04
+      </div></div>
+    </div>
+  </div>
+
+  <div class="option">
+    <div class="opt-head">
+      <span class="opt-swatch" style="background:#1b2415"></span>
+      <p class="opt-title">C · Приглушённый брендовый лайм</p>
+      <span class="opt-hex">#1b2415</span>
+    </div>
+    <p class="opt-note">Продолжение того, что уже начато в voice_record (#1e3a12) — тот же принцип, но выверено под общую палитру и не такой яркий зелёный, ближе к нейтральному фону.</p>
+    <div class="chat">
+      <div class="row"><div class="bubble bubble--teacher">Как сказать по-английски «Ты пробуешь каждый день»?</div></div>
+      <div class="row row--right"><div class="bubble bubble--response" style="background:#1b2415">you try every day</div></div>
+      <div class="row row--right"><div class="bubble bubble--voice" style="background:#1b2415">
+        <span class="mic">●</span>
+        <span class="wave">
+          <span style="height:6px"></span><span style="height:11px"></span><span style="height:8px"></span>
+          <span style="height:13px"></span><span style="height:5px"></span><span style="height:9px"></span>
+        </span>
+        0:04
+      </div></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Если ни один не подходит — скажи в какую сторону сдвинуть (теплее/холоднее/ярче/тусклее),
+      подберу ещё. Как определишься — единый цвет уйдёт в CSS всех модулей ответа разом
+      (word_choice, phrase_assembly, table, voice_record), фото-плитку (photo_choice) не трогаю —
+      там просто цветная рамка вокруг фото, заливка ей не подходит.</p>
+  </footer>
+
+</div>

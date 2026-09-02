@@ -6,7 +6,7 @@
 }
 
 .playerMsgBubble--response {
-  background: #1a1d22;
+  background: #16212e;
   border-radius: 18px 18px 4px 18px;
   padding: 6px 14px;
   font-size: 14px;
@@ -35,7 +35,7 @@
 .playerMsgBubble--responseOk,
 .playerMsgBubble--responseErr {
   position: relative;
-  background: #1a1d22;
+  background: #16212e;
   color: #e0e0e0;
 }
 
@@ -111,7 +111,7 @@
 /* Одно правило на все ответы: фон у них теперь общий, поэтому и растушёвка
    одна. Раньше здесь лежали три копии, и у неверного ответа она была красной */
 .playerMsgBubble--response.playerMsgBubbleReacted {
-  background: linear-gradient(to bottom, #1a1d22 60%, rgb(26 29 34 / 0%));
+  background: linear-gradient(to bottom, #16212e 60%, rgb(22 33 46 / 0%));
 }
 
 .playerReply {

@@ -1,0 +1,308 @@
+<title>Pill Controller</title>
+<style>
+  :root {
+    --bg: #0d0f13;
+    --surface: #1a1d22;
+    --text: #e0e0e0;
+    --text-dim: #9aa0b4;
+    --accent: #b6fe3b;
+    --accent-ink: #12140d;
+    --line: rgba(255,255,255,0.08);
+    --card: #14171c;
+    --track: #23262d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Montserrat', 'Comfortaa', sans-serif;
+    margin: 0;
+    padding: 48px 24px 100px;
+    display: flex;
+    justify-content: center;
+  }
+  .page { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 44px; min-width: 0; }
+
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 8px;
+  }
+  h1 { font-size: 24px; font-weight: 700; line-height: 1.25; margin: 0 0 10px; text-wrap: balance; }
+  .lede { font-size: 13.5px; line-height: 1.6; color: var(--text-dim); margin: 0; max-width: 64ch; }
+  .lede b { color: var(--text); font-weight: 600; }
+
+  .example {
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  .ex-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .ex-title { font-size: 15px; font-weight: 700; margin: 0; }
+  .ex-title span { color: var(--accent); }
+  .ex-reset {
+    background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+    font-size: 11px; padding: 5px 10px; border-radius: 999px; cursor: pointer;
+  }
+  .ex-reset:hover { color: var(--text); border-color: var(--text-dim); }
+
+  .previews { display: flex; flex-direction: column; gap: 10px; }
+  .bubble-lg, .bubble-sm {
+    background: var(--surface); border-radius: 16px 16px 16px 4px;
+    width: max-content; max-width: 100%; overflow: hidden;
+  }
+  .bubble-lg { padding: 20px 26px; }
+  .bubble-sm { padding: 7px 13px; }
+  .txt-lg { margin: 0; font-size: 46px; line-height: 1.5; color: var(--text); white-space: nowrap; }
+  .txt-sm { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text); white-space: nowrap; }
+  .sm-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 6px; }
+
+  .pill { position: relative; }
+  .pill b { position: absolute; display: block; pointer-events: none; background: var(--accent); }
+  .pill span { position: relative; font-weight: 600; color: var(--accent-ink); }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px 20px;
+  }
+  @media (max-width: 560px) { .controls { grid-template-columns: 1fr 1fr; } }
+  .ctrl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .ctrl-head { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); }
+  .ctrl-head b { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px; border-radius: 2px; background: var(--track);
+    outline: none; margin: 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%; background: var(--accent);
+    cursor: pointer; border: 2px solid var(--card);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%; background: var(--accent);
+    cursor: pointer; border: 2px solid var(--card);
+  }
+
+  .readout-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .readout {
+    flex: 1; min-width: 0;
+    font-size: 11px; color: var(--text-dim); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+    font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap;
+  }
+  .readout b { color: #cfd8a8; font-weight: 600; }
+
+  .copy-btn {
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--line); color: var(--text);
+    font-size: 11px; font-weight: 600; padding: 8px 12px; border-radius: 8px; cursor: pointer;
+    font-family: inherit;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--accent); color: var(--accent); background: rgba(182,254,59,0.08); }
+  .copy-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+  .copy-all-row { display: flex; justify-content: flex-end; }
+
+  footer { border-top: 1px solid var(--line); padding-top: 18px; }
+  footer p { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin: 0; max-width: 64ch; }
+</style>
+
+<div class="page">
+
+  <div>
+    <p class="eyebrow">Pithy · controller</p>
+    <h1>Плашка на слове «again» — двигай сам</h1>
+    <p class="lede">
+      Шесть ползунков на каждый пример: <b>left/right</b> — края плашки относительно буквы,
+      <b>top/bottom</b> — высота (чтобы не резать хвостик), <b>radius</b> — скругление углов,
+      <b>margin</b> — реальный отступ до соседних букв. Крупная версия — та же плашка,
+      только шрифт больше (числа те же, не отдельно подогнанные) — чтобы видеть тонко.
+      Внизу каждого примера — текущие цифры, просто скажи их мне в чате.
+    </p>
+  </div>
+
+  <div id="root"></div>
+
+  <div class="copy-all-row">
+    <button class="copy-btn" id="copy-all" type="button">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5.5" y="5.5" width="9" height="9" rx="1.5"/><path d="M3.5 10.5h-1a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v1"/></svg>
+      <span data-role="copy-label">Copy all three</span>
+    </button>
+  </div>
+
+  <footer>
+    <p>«Reset» возвращает пример к моим последним подобранным числам, не к нулю — так удобнее
+      двигать от рабочей точки, а не с чистого листа.</p>
+  </footer>
+
+</div>
+
+<script>
+const WORD = 'again';
+const LSCALE = 46 / 14; // крупная версия — тот же дизайн, шрифт в LSCALE раз больше
+
+const EXAMPLES = [
+  {
+    id: 'ga', label: 'a[ga]in', start: 1, end: 3,
+    defaults: { left: -1.6, right: 1.3, top: 2, bottom: -3, radius: 3, margin: 1.6 },
+  },
+  {
+    id: 'i', label: 'aga[i]n', start: 3, end: 4,
+    defaults: { left: -1.8, right: 1.1, top: 2, bottom: -3, radius: 3, margin: 1.3 },
+  },
+  {
+    id: 'n', label: 'agai[n]', start: 4, end: 5,
+    defaults: { left: -1.8, right: 1.1, top: 2, bottom: -3, radius: 3, margin: 1.3 },
+  },
+];
+
+const FIELDS = [
+  { key: 'left',   label: 'left',   min: -8, max: 4, step: 0.1 },
+  { key: 'right',  label: 'right',  min: -4, max: 8, step: 0.1 },
+  { key: 'top',    label: 'top',    min: -4, max: 8, step: 0.1 },
+  { key: 'bottom', label: 'bottom', min: -12, max: 4, step: 0.1 },
+  { key: 'radius', label: 'radius', min: 0, max: 14, step: 0.5 },
+  { key: 'margin', label: 'margin', min: 0, max: 5, step: 0.1 },
+];
+
+const root = document.getElementById('root');
+const state = {};
+const formatters = {};
+
+// Пишем в буфер сами, без window.claude/capabilities — обычный clipboard
+// API по клику пользователя, execCommand как страховка в старых движках
+async function copyText(text, btn) {
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch { ok = false; }
+  }
+  const label = btn.querySelector('[data-role="copy-label"]');
+  const prev = label.textContent;
+  label.textContent = ok ? 'Copied!' : 'Не вышло — выдели вручную';
+  btn.classList.toggle('copied', ok);
+  clearTimeout(btn._t);
+  btn._t = setTimeout(() => { label.textContent = prev; btn.classList.remove('copied'); }, 1500);
+}
+
+function fmt(id, s) {
+  return `${id}: left ${s.left.toFixed(1)}, right ${s.right.toFixed(1)}, top ${s.top.toFixed(1)}, bottom ${s.bottom.toFixed(1)}, radius ${s.radius.toFixed(1)}, margin ${s.margin.toFixed(1)}`;
+}
+
+EXAMPLES.forEach(ex => {
+  state[ex.id] = { ...ex.defaults };
+
+  const before = WORD.slice(0, ex.start);
+  const target = WORD.slice(ex.start, ex.end);
+  const after = WORD.slice(ex.end);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'example';
+  wrap.innerHTML = `
+    <div class="ex-head">
+      <p class="ex-title">again — <span>${ex.label}</span></p>
+      <button class="ex-reset" type="button">Reset</button>
+    </div>
+    <div class="previews">
+      <div class="bubble-lg"><p class="txt-lg">${before}<span class="pill" data-role="pill-lg"><b></b><span>${target}</span></span>${after}</p></div>
+      <div>
+        <p class="sm-label">реальный размер (14px)</p>
+        <div class="bubble-sm"><p class="txt-sm">${before}<span class="pill" data-role="pill-sm"><b></b><span>${target}</span></span>${after}</p></div>
+      </div>
+    </div>
+    <div class="controls" data-role="controls"></div>
+    <div class="readout-row">
+      <div class="readout" data-role="readout"></div>
+      <button class="copy-btn" data-role="copy" type="button">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5.5" y="5.5" width="9" height="9" rx="1.5"/><path d="M3.5 10.5h-1a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v1"/></svg>
+        <span data-role="copy-label">Copy</span>
+      </button>
+    </div>
+  `;
+  root.appendChild(wrap);
+
+  const controlsHost = wrap.querySelector('[data-role="controls"]');
+  const pillLg = wrap.querySelector('[data-role="pill-lg"] b');
+  const pillSm = wrap.querySelector('[data-role="pill-sm"] b');
+  const wrapLg = wrap.querySelector('[data-role="pill-lg"]');
+  const wrapSm = wrap.querySelector('[data-role="pill-sm"]');
+  const readout = wrap.querySelector('[data-role="readout"]');
+
+  const inputs = {};
+  FIELDS.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'ctrl';
+    row.innerHTML = `
+      <div class="ctrl-head"><span>${f.label}</span><b data-role="val"></b></div>
+      <input type="range" min="${f.min}" max="${f.max}" step="${f.step}" />
+    `;
+    controlsHost.appendChild(row);
+    const input = row.querySelector('input');
+    const valEl = row.querySelector('[data-role="val"]');
+    input.value = state[ex.id][f.key];
+    input.addEventListener('input', () => {
+      state[ex.id][f.key] = parseFloat(input.value);
+      render();
+    });
+    inputs[f.key] = { input, valEl };
+  });
+
+  wrap.querySelector('.ex-reset').addEventListener('click', () => {
+    state[ex.id] = { ...ex.defaults };
+    FIELDS.forEach(f => { inputs[f.key].input.value = state[ex.id][f.key]; });
+    render();
+  });
+
+  const copyBtn = wrap.querySelector('[data-role="copy"]');
+  copyBtn.addEventListener('click', () => copyText(fmt(ex.id, state[ex.id]), copyBtn));
+
+  function render() {
+    const s = state[ex.id];
+    FIELDS.forEach(f => { inputs[f.key].valEl.textContent = s[f.key].toFixed(1); });
+
+    pillSm.style.left = s.left + 'px';
+    pillSm.style.right = s.right + 'px';
+    pillSm.style.top = s.top + 'px';
+    pillSm.style.bottom = s.bottom + 'px';
+    pillSm.style.borderRadius = s.radius + 'px';
+    wrapSm.style.margin = `0 ${s.margin}px`;
+
+    pillLg.style.left = (s.left * LSCALE) + 'px';
+    pillLg.style.right = (s.right * LSCALE) + 'px';
+    pillLg.style.top = (s.top * LSCALE) + 'px';
+    pillLg.style.bottom = (s.bottom * LSCALE) + 'px';
+    pillLg.style.borderRadius = (s.radius * LSCALE) + 'px';
+    wrapLg.style.margin = `0 ${(s.margin * LSCALE).toFixed(1)}px`;
+
+    readout.innerHTML = `left <b>${s.left.toFixed(1)}</b> · right <b>${s.right.toFixed(1)}</b> · top <b>${s.top.toFixed(1)}</b> · bottom <b>${s.bottom.toFixed(1)}</b> · radius <b>${s.radius.toFixed(1)}</b> · margin <b>${s.margin.toFixed(1)}</b>`;
+  }
+
+  render();
+  formatters[ex.id] = () => fmt(ex.id, state[ex.id]);
+});
+
+const copyAllBtn = document.getElementById('copy-all');
+copyAllBtn.addEventListener('click', () => {
+  const text = EXAMPLES.map(ex => formatters[ex.id]()).join('\n');
+  copyText(text, copyAllBtn);
+});
+</script>

@@ -9,7 +9,7 @@ import { linkLine } from './noteBoxGeom.js'
 // Линия появляется, только когда стикер сдвинули с места по умолчанию: пока он
 // стоит вплотную справа, хватает короткого хвостика (CSS ::before). Рисуется
 // ПОД нодой и под стикером, поэтому не перечёркивает ни текст, ни саму ноду.
-export default function NodeNoteLayer({ node, scaleRef, folded, onChange, onBoxChange, onFold, onRemove }) {
+export default function NodeNoteLayer({ node, box, scaleRef, folded, onChange, onBoxChange, onFold, onRemove }) {
   if (node.note == null) return null
 
   if (folded) {
@@ -18,7 +18,6 @@ export default function NodeNoteLayer({ node, scaleRef, folded, onChange, onBoxC
     )
   }
 
-  const box = node.noteBox ?? null
   const nodeW = NODE_HIT_W[node.size] ?? 158
   const line = box ? linkLine({ w: nodeW, h: 48 }, box) : null
 

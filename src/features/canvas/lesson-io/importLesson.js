@@ -122,6 +122,20 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
     warnings.push('В файле нет ни одной связи между нодами (then у всех триггеров пустой)')
   }
 
+  // replyToSeq — сырой номер seq, а не ref: в отличие от триггеров его никто
+  // не проверяет автоматически. Ловим два случая брака: ссылка на
+  // несуществующий seq и ссылка вперёд (цитата на то, что ещё не прозвучало)
+  for (const n of nodes) {
+    const replyToSeq = n.typeData?.[n.type]?.replyToSeq
+    if (!replyToSeq) continue
+    const target = nodes.find(t => t.seq === replyToSeq)
+    if (!target) {
+      warnings.push(`#${n.seq} ${n.type}: replyToSeq ${replyToSeq} — такой ноды нет`)
+    } else if (replyToSeq >= n.seq) {
+      warnings.push(`#${n.seq} ${n.type}: replyToSeq ${replyToSeq} указывает вперёд по сценарию — цитата должна быть на уже прозвучавшее`)
+    }
+  }
+
   const health = checkNodes(nodes)
   dbg('[IMPORT] собрано:', `${nodes.length} нод`, `${links} связей`,
     warnings.length ? `предупреждений ${warnings.length}` : 'без предупреждений')

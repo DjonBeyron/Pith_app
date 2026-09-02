@@ -1,11 +1,13 @@
 /* ── Комментарий продакшена на ноде (NodeNoteBox.jsx) ──────────────────── */
-/* Жёлтый стикер справа от ноды: заметка «для своих». В плеере и в чате её
-   нет вовсе — поле note читает только канвас, и только у админа. */
+/* Жёлтый стикер над нодой по умолчанию: заметка «для своих». В плеере и в
+   чате её нет вовсе — поле note читает только канвас, и только у админа.
+   Положение стикера (box) — личное дело того, кто сейчас в редакторе, оно не
+   в уроке, а в localStorage (useLocalNoteBox.js). */
 
 .nodeNote {
   position: absolute;
-  left: calc(100% + 14px);
-  top: 0;
+  left: 0;
+  bottom: calc(100% + 14px);
   width: 190px;
   z-index: 9;
   display: flex;
@@ -20,18 +22,18 @@
 }
 
 /* Стикер, который сдвинули с места: координаты и размер приходят из
-   node.noteBox инлайном, хвостик к ноде заменяет линия связи (svg ниже) */
-.nodeNoteMoved { left: auto; top: auto; width: auto; }
+   localStorage инлайном, хвостик к ноде заменяет линия связи (svg ниже) */
+.nodeNoteMoved { left: auto; bottom: auto; top: auto; width: auto; }
 .nodeNoteMoved::before { display: none; }
 
 /* Хвостик к ноде — видно, к какой именно ноде относится заметка */
 .nodeNote::before {
   content: '';
   position: absolute;
-  left: -8px;
-  top: 12px;
-  width: 8px;
-  height: 1px;
+  left: 12px;
+  bottom: -8px;
+  width: 1px;
+  height: 8px;
   background: #6b5f1e;
 }
 

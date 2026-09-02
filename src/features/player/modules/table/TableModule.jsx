@@ -20,7 +20,7 @@ export default function TableModule(props) {
 
   return (
     <>
-      <AnswerBubbles bubbles={answers} rewardXp={props.rewardXp ?? 0} />
+      <AnswerBubbles bubbles={answers} rewardXp={props.rewardXp ?? 0} onXpEarned={props.onXpEarned} />
       {props.tableSent && (
         <TableChatBubble
           table={tData.table ?? null}
