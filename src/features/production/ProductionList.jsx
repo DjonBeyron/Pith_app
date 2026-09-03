@@ -49,7 +49,7 @@ function branchTrackIndex(node, branch) {
 // открывают компактное меню выбора типа (InsertNodeButton) вместо того,
 // чтобы молча создавать ноду прошлого выбранного типа.
 export default function ProductionList({
-  nodes, onNodesChange, lessonFiles = [], onPickLessonFile, moduleLessons = [], scrollRef,
+  nodes, onNodesChange, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, moduleLessons = [], scrollRef,
 }) {
   const sorted = nodes.slice().sort((a, b) => a.seq - b.seq)
   const plan = buildRenderPlan(sorted, nodes)
@@ -227,6 +227,7 @@ export default function ProductionList({
       allNodes: nodes,
       lessonFiles,
       onPickLessonFile,
+      onRemoveLessonFile,
       moduleLessons,
       triggersExpanded: expandedTriggerIds.has(node.id),
       onToggleTriggers: () => toggleTriggers(node.id),

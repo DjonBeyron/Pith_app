@@ -32,7 +32,7 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
   // Скролл-контейнер списка (ProductionList) — кнопка «В начало» скроллит его наверх
   const scrollRef = useRef(null)
 
-  const { files, pickFile, fetchMissingFiles } = useLessonFiles(lessonId)
+  const { files, pickFile, removeFile, fetchMissingFiles } = useLessonFiles(lessonId)
 
   const handleNodesChange = useCallback(n => {
     setNodes(n)
@@ -198,6 +198,7 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
           onNodesChange={handleNodesChange}
           lessonFiles={files}
           onPickLessonFile={pickFile}
+          onRemoveLessonFile={removeFile}
           moduleLessons={linkableLessons}
           scrollRef={scrollRef}
         />

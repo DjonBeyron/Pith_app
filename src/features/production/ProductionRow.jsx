@@ -9,7 +9,7 @@ export default function ProductionRow({
   node, isDragging, dropLineBefore, dropLineAfter,
   onDragOver, onDrop, onHandleDragStart, onHandleDragEnd,
   onUpdate, onTypeChange, onDuplicate, onDelete, onInsertBelow,
-  allNodes, lessonFiles, onPickLessonFile, moduleLessons,
+  allNodes, lessonFiles, onPickLessonFile, onRemoveLessonFile, moduleLessons,
   triggersExpanded, onToggleTriggers, mediaExpanded, onToggleMedia,
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
@@ -52,6 +52,7 @@ export default function ProductionRow({
           allNodes={allNodes}
           lessonFiles={lessonFiles}
           onPickLessonFile={onPickLessonFile}
+          onRemoveLessonFile={onRemoveLessonFile}
           moduleLessons={moduleLessons}
           showTypeSelect={false}
           collapsibleTriggers
