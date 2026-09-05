@@ -12,7 +12,7 @@ import { pruneTimelineForCells } from './timelinePrune.js'
 // Правки локальны до нажатия «Сохранить»; onSave получает полный объект tData.
 export default function TableEditorModal({
   initialTable, initialFileId, initialWaveformData, initialDuration, initialTimeline,
-  initialTimelineLen, initialAnswer,
+  initialTimelineLen, initialAnswer, initialWordTimings,
   lessonFiles, onPickFile, onSave, onClose,
 }) {
   const grid = useTableGrid(initialTable)
@@ -23,6 +23,9 @@ export default function TableEditorModal({
   const [timeline,     setTimeline]         = useState(initialTimeline ?? null)
   // Длина композиции таймлайна — задаётся автором, от аудио не зависит
   const [timelineLen,  setTimelineLen]      = useState(initialTimelineLen ?? null)
+  // Тайминги слов озвучки — кэш для «🪄 Смонтировать» (useTableAutoMontage.js),
+  // чтобы повторный клик не бил в Groq заново на той же записи
+  const [wordTimings,  setWordTimings]      = useState(initialWordTimings ?? null)
 
   // Правки сетки (удалили строку/колонку, объединили, разбили, применили
   // шаблон) сразу подчищают таймлайн: дорожки исчезнувших ячеек не копятся.
@@ -45,6 +48,7 @@ export default function TableEditorModal({
     setDuration(data.duration)
     setTimelineLen(data.timelineLen)
     setTimeline(data.timeline)
+    setWordTimings(data.wordTimings)
     setShowTimeline(false)
   }
 
@@ -60,6 +64,7 @@ export default function TableEditorModal({
             timelineLen={timelineLen}
             timeline={liveTimeline}
             answer={initialAnswer ?? ''}
+            wordTimings={wordTimings}
             lessonFiles={lessonFiles}
             onPickFile={onPickFile}
             onBack={handleTimelineSave}
@@ -73,7 +78,7 @@ export default function TableEditorModal({
                   ♪ Таймлайн
                 </button>
                 <button className="tableEditorBtnGhost" onClick={onClose}>Отмена</button>
-                <button className="tableEditorBtnPrimary" onClick={() => onSave({ table: grid.table, file_id: fileId, waveformData, duration, timelineLen, timeline: liveTimeline })}>
+                <button className="tableEditorBtnPrimary" onClick={() => onSave({ table: grid.table, file_id: fileId, waveformData, duration, timelineLen, timeline: liveTimeline, wordTimings })}>
                   Сохранить
                 </button>
               </div>

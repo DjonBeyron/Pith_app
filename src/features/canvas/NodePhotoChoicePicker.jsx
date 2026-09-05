@@ -1,5 +1,6 @@
 import { useRef, useState, useLayoutEffect, useEffect } from 'react'
 import { getVariantList, syncTriggers, triggersNeedSync } from './nodeVariants.js'
+import { generateImage } from '../../shared/lib/imageGenApi.js'
 
 const BASE_PAIR = ['photo_correct', 'photo_wrong']
 
@@ -31,7 +32,7 @@ function PhotoThumb({ ph, lessonFiles }) {
 
 export default function NodePhotoChoicePicker({
   photos = [], correctIndexes = [],
-  lessonFiles = [], onPickFile,
+  lessonFiles = [], onPickFile, onRemoveFile,
   onPhotosChange, onCorrectIndexesChange,
   triggers = [], allNodes = [], nodeId,
   onTriggersChange, onTriggerMeasure,
@@ -40,6 +41,11 @@ export default function NodePhotoChoicePicker({
   const rowRefs = useRef(new Map())
   const [labelText, setLabelText] = useState('')
   const [variantOpenIds, setVariantOpenIds] = useState(() => new Set())
+  // id фото → 'loading' | 'error' — генерация по промпту, см. generatePhoto
+  const [genStatus, setGenStatus] = useState({})
+  // Раскрытое поле промпта (как у NodeImageGen.jsx — первый клик показывает
+  // поле, второй генерирует), но своё на каждую строку варианта
+  const [genOpenIds, setGenOpenIds] = useState(() => new Set())
 
   const variantList = getVariantList('photo_choice', { photos })
 
@@ -68,6 +74,19 @@ export default function NodePhotoChoicePicker({
       else next.add(id)
       return next
     })
+  }
+
+  function toggleGenOpen(id) {
+    setGenOpenIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function setPhotoPrompt(idx, imagePrompt) {
+    onPhotosChange(photos.map((p, j) => (j === idx ? { ...p, imagePrompt } : p)))
   }
 
   function variantThen(id) {
@@ -103,6 +122,34 @@ export default function NodePhotoChoicePicker({
     if (!file || !onPickFile) return
     const fileId = onPickFile(file)
     onPhotosChange(photos.map((p, j) => j === idx ? { ...p, fileId, photoUrl: null } : p))
+  }
+
+  // Генерирует картинку по промпту варианта — та же кнопка «Сгенерировать»,
+  // что у audio/photo-нод (NodeImageGen.jsx), только по одной на каждую строку
+  // варианта, со своим статусом и своим раскрывающимся полем (genOpenIds).
+  // Промпт — imagePrompt, а не label: label видит ученик (обычно сама фраза
+  // на проверку, «She tries yoga»), imagePrompt — отдельное описание сцены
+  // для генерации. Пока imagePrompt не задан явно, используем label как
+  // разумный дефолт (короткие подписи часто и так годятся описанием).
+  function promptFor(ph) {
+    return (ph.imagePrompt ?? ph.label ?? '').trim()
+  }
+
+  async function generatePhoto(idx) {
+    const ph = photos[idx]
+    const prompt = promptFor(ph)
+    if (!prompt || genStatus[ph.id] === 'loading') return
+    setGenStatus(s => ({ ...s, [ph.id]: 'loading' }))
+    try {
+      const file = await generateImage(prompt)
+      const fileId = onPickFile(file)
+      onPhotosChange(photos.map((p, j) => j === idx ? { ...p, fileId, photoUrl: null } : p))
+      if (ph.fileId) onRemoveFile?.(ph.fileId)
+      setGenStatus(s => ({ ...s, [ph.id]: undefined }))
+    } catch (e) {
+      console.error('[NodePhotoChoicePicker] generate failed', e)
+      setGenStatus(s => ({ ...s, [ph.id]: 'error' }))
+    }
   }
 
   const correctThen = (triggers.find(t => t.if === 'photo_correct') ?? triggers[0])?.then ?? ''
@@ -150,6 +197,14 @@ export default function NodePhotoChoicePicker({
                   <input type="file" accept="image/*" className="nodePcFileInput"
                     onChange={e => { uploadPhoto(i, e.target.files[0]); e.target.value = '' }} />
                 </label>
+                <button
+                  type="button"
+                  className={`nodePcGenBtn${genStatus[ph.id] === 'error' ? ' nodePcGenBtnError' : ''}`}
+                  onClick={() => (genOpenIds.has(ph.id) ? generatePhoto(i) : toggleGenOpen(ph.id))}
+                  disabled={genStatus[ph.id] === 'loading' || (genOpenIds.has(ph.id) && !promptFor(ph))}
+                  title={genStatus[ph.id] === 'error' ? 'Не удалось сгенерировать — попробовать ещё раз'
+                    : genOpenIds.has(ph.id) ? 'Сгенерировать по промпту ниже' : 'Показать поле промпта'}
+                >{genStatus[ph.id] === 'loading' ? '●' : '🎨'}</button>
                 <span className="nodePcLabel">{ph.label}</span>
                 <button
                   className={`nodeWcCorrectBtn ${correctIndexes.includes(i) ? 'nodeWcCorrectBtnOn' : ''}`}
@@ -163,6 +218,18 @@ export default function NodePhotoChoicePicker({
                 >{variantOpenIds.has(ph.id) ? '▾' : '▸'}</button>
                 <button className="nodePcDel" onClick={() => removePhoto(i)}>×</button>
               </div>
+              {genOpenIds.has(ph.id) && (
+                <div className="nodePcPromptRow">
+                  <textarea
+                    className="nodePcPromptInput"
+                    value={ph.imagePrompt ?? ph.label ?? ''}
+                    onChange={e => setPhotoPrompt(i, e.target.value)}
+                    placeholder="Промпт для генерации этого фото (сцена, объекты, свет, ракурс)…"
+                    onClick={e => e.stopPropagation()}
+                    onMouseDown={e => e.stopPropagation()}
+                  />
+                </div>
+              )}
               {variantOpenIds.has(ph.id) && (
                 <div className="nodeWcTriggerRow nodeWcVariantRow">
                   <span className="nodeWcTriggerLabel">↳ Особый переход →</span>

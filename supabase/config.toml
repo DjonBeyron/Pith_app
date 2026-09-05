@@ -460,3 +460,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/elevenlabs-quota/deno.json"
 entrypoint = "./functions/elevenlabs-quota/index.ts"
+
+[functions.generate-image]
+enabled = true
+verify_jwt = true
+import_map = "./functions/generate-image/deno.json"
+entrypoint = "./functions/generate-image/index.ts"

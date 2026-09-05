@@ -1,0 +1,63 @@
+/* Генерация фото через AI (NodeImageGen.jsx) — по умолчанию видна только
+   кнопка (nodeImageGenWrap без рамки, как обычная строка), рамка и отступ
+   появляются лишь когда раскрыто поле промпта (nodeImageGenWrapOpen) — иначе
+   свёрнутая кнопка тонула бы в лишней рамке, а раскрытая без неё сливалась
+   с соседними контролами NodeMediaCrop (там свои кнопки ±/сброс) */
+.nodeImageGenWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nodeImageGenWrapOpen {
+  padding: 6px;
+  margin-bottom: 4px;
+  border: 1px solid #2a3040;
+  border-radius: 8px;
+}
+
+.nodeImageGenPrompt {
+  width: 100%;
+  min-height: 40px;
+  resize: vertical;
+  background: #0a0c10;
+  border: 1px dashed #2a3a50;
+  border-radius: 6px;
+  color: #b0c4d8;
+  font-size: 11px;
+  line-height: 1.55;
+  padding: 6px 8px;
+  font-family: inherit;
+}
+.nodeImageGenPrompt:focus {
+  outline: none;
+  border-color: #4a7ca8;
+}
+
+.nodeImageGenRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nodeImageGenBtn {
+  padding: 4px 8px;
+  background: rgba(182,254,59,0.1);
+  border: 1px solid rgba(182,254,59,0.35);
+  border-radius: 6px;
+  color: #b6fe3b;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nodeImageGenBtn:hover:not(:disabled) { background: rgba(182,254,59,0.2); }
+.nodeImageGenBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.nodeImageGenError {
+  font-size: 10px;
+  color: #f06060;
+  line-height: 1.4;
+}

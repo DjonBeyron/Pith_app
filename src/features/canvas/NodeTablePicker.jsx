@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import TableEditorModal from './table-editor/TableEditorModal.jsx'
+import NodeTableTts from './NodeTableTts.jsx'
 import { getVariantList, syncTriggers, triggersNeedSync, migrateDistractors } from './nodeVariants.js'
 
 const BASE_PAIR = ['table_correct', 'table_wrong']
@@ -22,7 +23,7 @@ function demoTriggers(hasAudio, keepThen) {
 // (TableDemoModule), ученик ничего не отвечает. Поэтому и переход у неё один,
 // как у текста/голосового: «доиграло» при озвучке или таймер без неё.
 export default function NodeTablePicker({
-  tData, onDataChange, lessonFiles, onPickFile,
+  tData, onDataChange, lessonFiles, onPickFile, onRemoveFile,
   triggers = [], allNodes = [], nodeId,
   onTriggersChange, onTriggerMeasure,
 }) {
@@ -96,6 +97,14 @@ export default function NodeTablePicker({
     onTriggersChange?.(triggers.map(t => (t.if === id ? { ...t, then: then || null } : t)))
   }
 
+  // Озвучка сценария (режим «Авто») — тот же приём, что у audio-ноды: пикнули
+  // файл, сразу сбросили производные поля, реальные значения придут следом
+  // через onAnalyzed, когда посчитаются
+  function handleScriptAudioPick(file) {
+    const id = onPickFile(file)
+    onDataChange({ file_id: id, waveformData: null, wordTimings: null, duration: null })
+  }
+
   function addDistractor() {
     const w = newD.trim()
     if (!w || distractors.some(d => d.text === w)) return
@@ -142,7 +151,7 @@ export default function NodeTablePicker({
               onClick={e => {
                 e.stopPropagation()
                 if (!window.confirm('Убрать аудио из таблицы? Разметка таймлайна останется.')) return
-                onDataChange({ file_id: null, waveformData: null, duration: null })
+                onDataChange({ file_id: null, waveformData: null, duration: null, wordTimings: null })
               }}
             >×</button>
           </span>
@@ -178,6 +187,16 @@ export default function NodeTablePicker({
           placeholder="Текст озвучки — коротко и живо, синхронно с подсветкой: «В настоящем времени мы имеем форму try»"
           onClick={e => e.stopPropagation()}
           onMouseDown={e => e.stopPropagation()}
+        />
+      )}
+
+      {mode === 'dictator' && (
+        <NodeTableTts
+          fileId={tData.file_id}
+          text={tData.script ?? ''}
+          onPick={handleScriptAudioPick}
+          onAnalyzed={patch => onDataChange(patch)}
+          onRemoveOldFile={onRemoveFile}
         />
       )}
 
@@ -349,6 +368,7 @@ export default function NodeTablePicker({
           initialTimeline={tData.timeline ?? null}
           initialTimelineLen={tData.timelineLen ?? null}
           initialAnswer={tData.answer ?? ''}
+          initialWordTimings={tData.wordTimings ?? null}
           lessonFiles={lessonFiles}
           onPickFile={onPickFile}
           onSave={data => { onDataChange(data); setOpen(false) }}

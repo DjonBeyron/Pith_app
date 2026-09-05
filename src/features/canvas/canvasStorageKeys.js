@@ -19,3 +19,8 @@ export function hasCanvasDraft(lessonId) {
   if (!lessonId) return false
   try { return localStorage.getItem(canvasLsKey(lessonId)) != null } catch { return false }
 }
+
+// Фильтр отображения нод в шапке (useCanvasFilter.js) — свой на каждый урок,
+// не стирается сохранением (в отличие от canvasLsKey) — это настройка вида
+// холста, а не правка сценария
+export const canvasFilterKey = id => `lesson_canvas_filter_${id}`

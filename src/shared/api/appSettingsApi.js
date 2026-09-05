@@ -3,8 +3,11 @@ import { dbg } from '../lib/debug.js'
 import { EMPTY_TEACHER } from '../lib/teacherResolve.js'
 
 // Глобальные настройки приложения — таблица app_settings (ключ → jsonb).
-// Пока используется один ключ: учитель по умолчанию для всех уроков.
+// Ключи: учитель по умолчанию для всех уроков, провайдер генерации фото и
+// его дневная выработка (см. ImageProviderSettings.jsx).
 const TEACHER_KEY = 'teacher_default'
+const IMAGE_PROVIDER_KEY = 'image_provider'
+const IMAGE_GEN_USAGE_KEY = 'image_gen_usage'
 
 let cache    = null // последнее прочитанное значение (живёт до перезагрузки)
 let inflight = null // текущий запрос, чтобы три вызова не сделали три запроса
@@ -54,4 +57,32 @@ export async function saveDefaultTeacher({ name, logo, crop }) {
   }
   cache = value
   return value
+}
+
+// Какой провайдер сейчас реально генерирует фото (см. generate-image/index.ts
+// — секрет IMAGE_PROVIDER остаётся дефолтом, если строки ещё нет в базе).
+export async function getImageProvider() {
+  const { data, error } = await supabase
+    .from('app_settings').select('value').eq('key', IMAGE_PROVIDER_KEY).maybeSingle()
+  if (error) { dbg('[DB ERROR] image_provider read', error.message); return null }
+  return data?.value?.provider ?? null
+}
+
+// Пишет только админ (та же политика app_settings_write_admin).
+export async function saveImageProvider(provider) {
+  const { error } = await supabase
+    .from('app_settings')
+    .upsert({ key: IMAGE_PROVIDER_KEY, value: { provider }, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+  if (error) { dbg('[DB ERROR] image_provider save', error.message); throw error }
+}
+
+// Счётчик генераций через Cloudflare за сегодня (UTC) — свой подсчёт, не
+// официальная квота (Cloudflare не отдаёт точный остаток бюджета через API).
+// Пишет сама edge function generate-image после каждой удачной генерации.
+export async function getImageGenUsage() {
+  const { data, error } = await supabase
+    .from('app_settings').select('value').eq('key', IMAGE_GEN_USAGE_KEY).maybeSingle()
+  if (error) { dbg('[DB ERROR] image_gen_usage read', error.message); return null }
+  const today = new Date().toISOString().slice(0, 10)
+  return data?.value?.date === today ? data.value.count ?? 0 : 0
 }

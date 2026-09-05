@@ -106,9 +106,12 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     onNodeMouseDown: onSelectionMouseDown, startMarquee, updateMarquee, endMarquee, collapseIfClick,
   } = useCanvasSelection()
 
+  // patch — объект ИЛИ функция (node)=>объект (функциональный setState) —
+  // нужна для нод, патчащихся в несколько приёмов подряд, см. PROJECT.md
+  // «Гонка обновлений typeData». renumber: патч мог поменять триггеры → граф
   const updateNode = useCallback((id, patch) =>
-    // renumber: патч мог изменить триггеры → порядок графа
-    setNodes(prev => renumber(prev.map(n => n.id === id ? { ...n, ...patch } : n))), [setNodes])
+    setNodes(prev => renumber(prev.map(n =>
+      n.id === id ? { ...n, ...(typeof patch === 'function' ? patch(n) : patch) } : n))), [setNodes])
 
   // Тянем одну ноду — двигается она одна; тянем ноду из группового выделения
   // (2+ нод) — двигается вся группа на тот же dx/dy
@@ -232,7 +235,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Команды холсту снаружи (кнопки шапки, правая панель плеера) + «прожектор»
   // на ноде, к которой перешли из плеера
   const spotlightId = useCanvasBoardApi(ref, {
-    nodes, setNodes, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset,
+    nodes, setNodes, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset, onRemoveLessonFile,
   })
 
   // Считается только когда отладка включена — на обычной работе холста ноль

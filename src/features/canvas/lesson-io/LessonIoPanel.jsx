@@ -3,13 +3,15 @@ import { createPortal } from 'react-dom'
 import { exportLessonText } from './exportLesson.js'
 import { importLesson } from './importLesson.js'
 
-// Окно «Поделиться / Импорт»: урок целиком в JSON и обратно.
+// Окно «Поделиться / Импорт»: урок целиком в JSON и обратно — экспорт и
+// импорт видны ОДНОВРЕМЕННО, двумя колонками, а не по вкладкам (раньше
+// нужно было переключаться, чтобы например скопировать текущий урок и сразу
+// же вставить обратно поправленный вариант).
 //
 // Экспорт отдаёт логику сценария вместе с легендой формата — такой файл можно
 // показать кому угодно (или модели), чтобы получить разбор и готовый шаблон
 // следующего урока. Медиа в файл не попадает: у нод стоит пометка needs.
 export default function LessonIoPanel({ nodes, title, lessonId, onImport, onClose }) {
-  const [tab, setTab] = useState('share')
   const [withLegend, setWithLegend] = useState(true)
   const [text, setText] = useState('')
   const [error, setError] = useState(null)
@@ -95,7 +97,7 @@ export default function LessonIoPanel({ nodes, title, lessonId, onImport, onClos
       <div
         className={`lioModal${overFile ? ' lioModalDrop' : ''}`}
         onMouseDown={e => e.stopPropagation()}
-        onDragOver={e => { e.preventDefault(); setTab('import'); setOverFile(true) }}
+        onDragOver={e => { e.preventDefault(); setOverFile(true) }}
         onDragLeave={() => setOverFile(false)}
         onDrop={e => {
           e.preventDefault()
@@ -104,21 +106,16 @@ export default function LessonIoPanel({ nodes, title, lessonId, onImport, onClos
         }}
       >
         <div className="lioHeader">
-          <div className="lioTabs">
-            <button className={`lioTab${tab === 'share' ? ' lioTabOn' : ''}`}
-              onClick={() => setTab('share')}>Поделиться</button>
-            <button className={`lioTab${tab === 'import' ? ' lioTabOn' : ''}`}
-              onClick={() => setTab('import')}>Импорт</button>
-          </div>
+          <span className="lioTitle">Поделиться / Импорт</span>
           <button className="lioClose" onClick={onClose}>×</button>
         </div>
 
-        {tab === 'share' ? (
-          <>
+        <div className="lioCols">
+          <div className="lioCol">
+            <div className="lioColHead">Экспорт</div>
             <div className="lioHint">
               Весь сценарий: ноды, их настройки и переходы. Файлы не выгружаются —
               у нод, которым нужна озвучка или картинка, стоит пометка <code>needs</code>.
-              Легенда объясняет формат, так что урок можно отдать «как есть».
             </div>
             <label className="lioCheck">
               <input type="checkbox" checked={withLegend}
@@ -133,13 +130,15 @@ export default function LessonIoPanel({ nodes, title, lessonId, onImport, onClos
                 {copied ? 'Скопировано' : 'Копировать'}
               </button>
             </div>
-          </>
-        ) : (
-          <>
+          </div>
+
+          <div className="lioDivider" />
+
+          <div className="lioCol">
+            <div className="lioColHead">Импорт</div>
             <div className="lioHint">
               Выберите файл, перетащите его сюда или вставьте JSON текстом — соберётся
-              готовый сценарий с нодами, настройками и переходами. Останется проверить
-              его и подложить файлы.
+              готовый сценарий с нодами, настройками и переходами.
             </div>
             <div className="lioActions">
               <button className="lioBtn" onClick={() => fileRef.current?.click()}>Выбрать файл…</button>
@@ -172,8 +171,8 @@ export default function LessonIoPanel({ nodes, title, lessonId, onImport, onClos
               <button className="lioBtn lioBtnPrimary" disabled={!text.trim()}
                 onClick={() => runImport('replace')}>Заменить урок</button>
             </div>
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </div>,
     document.body,

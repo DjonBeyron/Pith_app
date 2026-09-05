@@ -4,8 +4,9 @@ import CanvasBoard from './CanvasBoard.jsx'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import CanvasToolsMenu from './CanvasToolsMenu.jsx'
 import LessonIoPanel from './lesson-io/LessonIoPanel.jsx'
+import BatchGeneratePanel from './batch-gen/BatchGeneratePanel.jsx'
+import CanvasHeaderActions from './CanvasHeaderActions.jsx'
 import { checkNodes, formatIntegrity } from './canvasIntegrity.js'
-import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { canvasLsKey } from './canvasStorageKeys.js'
 import LessonFilesPanel from './LessonFilesPanel.jsx'
@@ -16,7 +17,6 @@ import { useTeacherSettings } from './useTeacherSettings.js'
 import { useCanvasSave } from './useCanvasSave.js'
 import { useCanvasDirty } from './useCanvasDirty.js'
 import { useLessonModule } from './useLessonModule.js'
-import CanvasXpField from './CanvasXpField.jsx'
 import { loadScript } from '../../shared/lib/lessonsApi.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import { setLastEditedLesson } from '../../shared/lib/lastEditedLesson.js'
@@ -55,7 +55,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // Фильтр в шапке — инструмент поиска на большом графе, только админу:
   // отмеченные типы плюс особый режим «не загруженные». Что не проходит
   // фильтр — притухает, оставаясь на своём месте со связями
-  const filter = useCanvasFilter(panelNodes)
+  const filter = useCanvasFilter(panelNodes, lessonId)
   const [lessonXp,    setLessonXp]    = useState(0)
   // Меняется при «Обновить с сервера» — форсирует remount CanvasBoard (через
   // key), чтобы он заново прочитал initialNodes вместо своего внутреннего
@@ -73,6 +73,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // Панель обмена уроком: снимок нод берём в момент открытия (сами ноды живут
   // в CanvasBoard, наружу они отдаются через boardApi)
   const [ioNodes, setIoNodes] = useState(null)
+  // Панель «⚡ Массовая генерация» — сама читает ноды/пишет файлы через
+  // boardApiRef/pickFile, состояние открытия держим здесь же, рядом с ioNodes
+  const [showBatchGen, setShowBatchGen] = useState(false)
   // Отладка связей: прямые отрезки поверх графа + сводка. Нужна, когда линий
   // «нет» — сразу видно, строятся они вообще или дело в отображении
   const [debugLinks, setDebugLinks] = useState(false)
@@ -208,72 +211,16 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
             и на мобильном (где title flex:1 и без того всё выталкивает), и
             на широких экранах (там title уходит в absolute — без этой
             обёртки кнопки съезжали бы к названию левым краем, см. page.css) */}
-        <div className="canvasPageActions">
-          {/* Мигающая точка — есть несохранённые правки */}
-          <button
-            className="canvasPageSave"
-            title={unsaved ? 'Есть несохранённые изменения' : 'Сохранить урок'}
-            onClick={handleSave}
-            disabled={isSaving || loading}
-          >
-            {isSaving ? '…' : '💾'}
-            {unsaved && !isSaving && <span className="canvasPageSaveDot" />}
-          </button>
-          {isAdmin && (
-            <button
-              className={`canvasPageFilter${filter.activeCount ? ' canvasPageFilterOn' : ''}`}
-              title={filter.activeCount
-                ? `Фильтр включён (${filter.activeCount}) — нажми, чтобы изменить`
-                : 'Фильтр по типам нод и по незагруженным файлам'}
-              onClick={e => {
-                if (Date.now() - menuClosedAt.current < 250) return
-                setFilterPos(computeMenuPos(e.currentTarget.getBoundingClientRect()))
-              }}
-            >⛃{filter.activeCount ? ` ${filter.activeCount}` : ''}</button>
-          )}
-          <button className="canvasPagePlay" onClick={() => { setPlayFrom(null); setShowPlayer(true) }}>▶</button>
-          <button
-            className="canvasPageShare"
-            title="Поделиться уроком в JSON и импортировать готовый сценарий"
-            disabled={loading}
-            onClick={() => setIoNodes(boardApiRef.current?.getNodes() ?? [])}
-          >⇄</button>
-          {/* Очистка урока — прямо в шапке: после неудачного импорта нужна
-              сразу, а не через меню «ещё действия» */}
-          <button
-            className="canvasPageShare canvasPageClear"
-            title="Очистить урок: удалить все ноды"
-            disabled={loading}
-            onClick={() => boardApiRef.current?.clearAll()}
-          >🗑</button>
-          <button
-            className="canvasPageTools"
-            title="Ещё действия с холстом"
-            disabled={loading}
-            onClick={e => {
-              if (Date.now() - menuClosedAt.current < 250) return
-              setToolsPos(computeMenuPos(e.currentTarget.getBoundingClientRect()))
-            }}
-          >⋯</button>
-          <CanvasXpField
-            value={lessonXp}
-            onChange={n => { setLessonXp(n); markDirty() }}
-          />
-          {/* «Граф» — текущая страница (подсвечена, как активная вкладка
-              нижнего навбара), клик всё равно работает — просто сохраняет */}
-          <button className="pageTabBtn pageTabBtnActive" onClick={handleSave} disabled={isSaving || loading}>
-            Граф
-          </button>
-          <button className="pageTabBtn" onClick={switchToProduction} disabled={isSaving || loading}>
-            Продакшен
-          </button>
-          {/* Настройки урока — в самом правом краю шапки: заходят туда редко,
-              а слева их место занял «назад» */}
-          <div className="canvasSettingsBtnWrap">
-            <button className="canvasSettingsBtn" onClick={() => setShowPanel(s => !s)}>⚙</button>
-            {(hasUnsynced || hasUnsyncedLogo) && <span className="canvasSettingsBadge" />}
-          </div>
-        </div>
+        <CanvasHeaderActions
+          unsaved={unsaved} isSaving={isSaving} loading={loading} handleSave={handleSave}
+          isAdmin={isAdmin} filter={filter} menuClosedAt={menuClosedAt}
+          setFilterPos={setFilterPos} setToolsPos={setToolsPos}
+          setPlayFrom={setPlayFrom} setShowPlayer={setShowPlayer} setIoNodes={setIoNodes}
+          setShowBatchGen={setShowBatchGen} boardApiRef={boardApiRef}
+          lessonXp={lessonXp} setLessonXp={setLessonXp} markDirty={markDirty}
+          switchToProduction={switchToProduction} hasUnsynced={hasUnsynced}
+          hasUnsyncedLogo={hasUnsyncedLogo} setShowPanel={setShowPanel}
+        />
       </div>
 
       {syncStatus && <div className="canvasSyncStatus">{syncStatus}</div>}
@@ -315,6 +262,14 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
             setSyncStatus(`Импортировано: ${nodes.length} нод · ${links} связей`)
           }}
           onClose={() => setIoNodes(null)}
+        />
+      )}
+
+      {showBatchGen && (
+        <BatchGeneratePanel
+          boardApiRef={boardApiRef}
+          pickFile={pickFile}
+          onClose={() => setShowBatchGen(false)}
         />
       )}
 

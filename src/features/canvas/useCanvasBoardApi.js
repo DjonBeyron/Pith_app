@@ -5,6 +5,7 @@ import { spreadNodes } from './canvasSpread.js'
 import { compactLayout, graphSize } from './canvasCompact.js'
 import { renumber, NODE_SLOT } from './nodeGraph.js'
 import { useBoardScrollGuard, checkBoardLayers } from './useBoardScrollGuard.js'
+import { carryOverFiles } from './lesson-io/fileCarryOver.js'
 
 // Сколько держится «прожектор» на ноде, к которой перешли из плеера
 // (возврат остальных — плавный, за счёт CSS-перехода, см. spotlight.css)
@@ -17,7 +18,7 @@ const SPOTLIGHT_MS = 1000
 //
 // Возвращает id ноды, на которой сейчас «прожектор» (или null).
 export function useCanvasBoardApi(ref, {
-  nodes, setNodes, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset,
+  nodes, setNodes, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset, onRemoveLessonFile,
 }) {
   const [spotlightId, setSpotlightId] = useState(null)
   const spotTimerRef = useRef(null)
@@ -48,6 +49,24 @@ export function useCanvasBoardApi(ref, {
     // из канваса (LessonPlayer → CanvasPage). Ноды живут здесь, поэтому и
     // правка идёт сюда же — второго источника правды не появляется
     updateNode,
+    // Точечный патч typeData текущего типа ноды — читает АКТУАЛЬНОЕ состояние
+    // из setNodes(prev => ...), а не из замыкания снаружи. Нужен пакетной
+    // генерации (batch-gen/useBatchGenerate.js): там одна и та же нода
+    // (photo_choice с несколькими вариантами) может патчиться несколько раз
+    // подряд один за другим — patchFn(prevTypeData, node) всегда видит
+    // результат предыдущего патча, updateNode(id, patch) с замыканием на
+    // старый node.typeData потерял бы более раннюю правку той же ноды
+    patchNodeTypeData(nodeId, patchFn) {
+      setNodes(prev => {
+        const idx = prev.findIndex(n => n.id === nodeId)
+        if (idx < 0) return prev
+        const node = prev[idx]
+        const nextData = patchFn(node.typeData?.[node.type] ?? {}, node)
+        const next = prev.slice()
+        next[idx] = { ...node, typeData: { ...node.typeData, [node.type]: nextData } }
+        return next
+      })
+    },
     // Обмен уроком в JSON (панель «Поделиться / Импорт», lesson-io/):
     // снимок нод наружу и приём готового сценария обратно
     getNodes() { return nodes },
@@ -65,7 +84,11 @@ export function useCanvasBoardApi(ref, {
       }, 60)
       setNodes(prev => {
         if (mode === 'replace') {
-          const next = renumber(list)
+          // Старый файл ноды переживает замену, только если исходный текст
+          // (озвучка/промпт фото) не изменился — иначе он больше никому не
+          // нужен и помечается на удаление (см. fileCarryOver.js)
+          const withFiles = carryOverFiles(prev, list, onRemoveLessonFile)
+          const next = renumber(withFiles)
           dbg('[IMPORT] заменил урок:', formatIntegrity(checkNodes(next)))
           return next
         }
@@ -108,7 +131,7 @@ export function useCanvasBoardApi(ref, {
       const n = nodes.find(x => x.id === nodeId)
       if (n) centerOn(n, true)
     },
-  }), [nodes, setNodes, updateNode, centerOn, boardRef])
+  }), [nodes, setNodes, updateNode, centerOn, boardRef, onRemoveLessonFile])
 
   return spotlightId
 }

@@ -3,6 +3,7 @@ import { fmtAudioTime } from '../../../shared/lib/audioUtils.js'
 import { extrasStartSec } from '../../../shared/lib/tableDictatorTiming.js'
 import { useTableTimelineEdit } from './useTableTimelineEdit.js'
 import { useTimelineAudioSource } from './useTimelineAudioSource.js'
+import { useTableAutoMontage } from './useTableAutoMontage.js'
 import { answerWordsOutsideTable, sortTimelineLayers } from './tableGridUtils.js'
 import TableTimelineTrack from './TableTimelineTrack.jsx'
 import TableTimelineRuler from './TableTimelineRuler.jsx'
@@ -12,7 +13,7 @@ import { collectSnapEdges } from './timelineSnapEdges.js'
 import { useNoTextSelection } from './useNoTextSelection.js'
 import BackButton from '../../../shared/ui/BackButton.jsx'
 
-export default function TableTimelineEditor({ table, fileId, waveformData, duration, timelineLen, timeline, answer, lessonFiles, onPickFile, onBack }) {
+export default function TableTimelineEditor({ table, fileId, waveformData, duration, timelineLen, timeline, answer, wordTimings, lessonFiles, onPickFile, onBack }) {
   const cells       = table?.cells ?? []
   const cellById    = new Map(cells.map(c => [c.id, c]))
   const sortedCells = [...cells].sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col)
@@ -34,10 +35,21 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
     localFileId, localWave, localDuration, localBlobUrl, analyzing, isPlaying, currentTime,
     audioRef, waveRef, audioElProps, handleFileChange, removeAudio, togglePlay, handleSeek,
   } = useTimelineAudioSource({ fileId, waveformData, duration, lessonFiles, onPickFile, timelineDur, setLocalLen })
+  // Имя прикреплённого файла — раньше в этой секции его не было видно вообще:
+  // сгенерированный/выбранный файл было не отличить «его тут нет» от «есть,
+  // просто не показываем»
+  const currentFile = lessonFiles?.find(f => f.id === localFileId) ?? null
 
   const { layers, initClips, toggleVisible, toggleHighlight, toggleCollect, setAllCollect, setLayerPick, updateClip, updateExtraClip, duplicateClip, addClearClip, removeExtraClip, addLayer, addWordLayer, addCheckLayer, addClearLayer, removeLayer, pruneLayers, getTimeline } = useTableTimelineEdit(timeline, cells)
   // С этого момента уезжает таблица — раньше её отъезда слова не зажигаются
   const extrasStart = extrasStartSec(layers)
+
+  // «🪄 Смонтировать» — черновая авто-расстановка подсветки по реальной
+  // озвучке (Groq-транскрипция готовой записи), см. autoMontage.js
+  const { wordTimings: localWordTimings, montaging, runMontage } = useTableAutoMontage({
+    cells, layers, localFileId, lessonFiles, timelineDur,
+    initialWordTimings: wordTimings, updateClip, toggleHighlight,
+  })
 
   // Общая галочка «в сборку»: показывает состояние всех слоёв разом (кроме
   // «Проверить» — у него своей галочки нет) и переключает их одним кликом
@@ -137,7 +149,7 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
       <div className="tlHeader">
         <BackButton onClick={() => onBack({
           file_id: localFileId, waveformData: localWave, duration: localDuration,
-          timelineLen: timelineDur, timeline: getTimeline(),
+          timelineLen: timelineDur, timeline: getTimeline(), wordTimings: localWordTimings,
         })} />
         <span className="tlTitle">Таймлайн</span>
         <button
@@ -172,8 +184,28 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
           <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleFileChange} />
         </label>
         {localFileId && (
+          <span className="tlFileName" title={currentFile?.name ?? localFileId}>
+            {currentFile?.name ?? '(загружается…)'}
+            {currentFile && (
+              <span className={currentFile.status === 'local' ? 'tlFileNameLocal' : 'tlFileNameSynced'}>
+                {currentFile.status === 'local' ? '○' : '↑'}
+              </span>
+            )}
+          </span>
+        )}
+        {localFileId && (
           <button className="tlRemoveAudio" title="Убрать аудио из таблицы" onClick={removeAudio}>
             ✕ Убрать аудио
+          </button>
+        )}
+        {localFileId && (
+          <button
+            className="tlMontageBtn"
+            title="Расставить подсветку ячеек по озвучке автоматически (черновик — дальше можно поправить руками)"
+            disabled={montaging}
+            onClick={runMontage}
+          >
+            {montaging ? '…' : '🪄'} Смонтировать
           </button>
         )}
         {localBlobUrl ? (

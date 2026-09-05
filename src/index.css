@@ -37,9 +37,11 @@
 @import './styles/lesson-locked-hint.css';
 @import './styles/canvas/page.css';
 @import './styles/canvas/lesson-io.css';
+@import './styles/canvas/batch-gen.css';
 @import './styles/canvas/files-panel.css';
 @import './styles/canvas/lesson-settings.css';
 @import './styles/canvas/audio.css';
+@import './styles/canvas/image-gen.css';
 @import './styles/canvas/crop.css';
 /* База контролов нод — раньше частных стилей: при равной специфичности
    выигрывает конкретный чекбокс (награда, звук стикера, офсет), а общий

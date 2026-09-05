@@ -5,13 +5,13 @@ import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
+import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 
 const WAVE_H_BASE = [7,11,16,22,14,19,24,17,10,20,13,22,18,11,25,21,15,9,18,24,16,12,21,14,19,10,17,23,15,9,13,19,21,14,17,24,11,18,22,15,10,19,13,25,16,9,20,23,12,17]
 const BAR_W = 2, BAR_GAP = 2
 const ACCENT = '#b6fe3b'
-const WHISPER_ADVANCE = 0.08
 
 function PlayTriangle() {
   return <Play size={10} fill="#0e1013" color="#0e1013" />
@@ -52,22 +52,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const storedWaveform = node.typeData?.audio?.waveformData ?? null
   const storedDuration = node.typeData?.audio?.duration     ?? null
 
-  const charTimings = useMemo(() => {
-    if (!wordTimings?.length || !text) return []
-    const userWords = text.trim().split(/\s+/).filter(Boolean)
-    const lastT = wordTimings[wordTimings.length - 1]?.t ?? 0
-    const out = []
-    userWords.forEach((word, wi) => {
-      const wt = wordTimings[wi]
-      const t = wt?.t ?? lastT + (wi - wordTimings.length + 1) * 0.3
-      const nextT = wordTimings[wi + 1]?.t
-      const wordDur = nextT != null ? Math.max(0.05, nextT - t) : 0.4
-      const wordStart = Math.max(0, t - WHISPER_ADVANCE)
-      word.split('').forEach((_, ci) => out.push(wordStart + (ci / word.length) * wordDur))
-      if (wi < userWords.length - 1) out.push(wordStart + wordDur)
-    })
-    return out
-  }, [wordTimings, text])
+  // Печать под звук: время каждого символа считает charTimings.js — по
+  // позициям слов в САМОМ тексте, а не по реконструкции «слова через пробел»
+  const charTimings = useMemo(() => buildCharTimings(text, wordTimings), [wordTimings, text])
 
   const waveH = useMemo(() =>
     Array.from({ length: barCount }, (_, i) =>

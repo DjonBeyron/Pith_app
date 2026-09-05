@@ -178,7 +178,7 @@ describe('удаление аудио из таблицы', () => {
     const editor = read('../../../canvas/table-editor/TableTimelineEditor.jsx')
     expect(editor).toContain('className="tlRemoveAudio"')
     const node = read('../../../canvas/NodeTablePicker.jsx')
-    expect(node).toContain('onDataChange({ file_id: null, waveformData: null, duration: null })')
+    expect(node).toContain('onDataChange({ file_id: null, waveformData: null, duration: null, wordTimings: null })')
   })
 
   it('разметка таймлайна при этом не трогается', () => {
@@ -234,6 +234,19 @@ describe('таймлайн без озвучки', () => {
     const panel = read('../../panels/table-dictator/TableDictatorPanel.jsx')
     const onError = panel.slice(panel.indexOf('logAudioError('))
     expect(onError.slice(0, 300)).toContain('runWithClock()')
+  })
+
+  it('часы не столбят старт за собой, пока blob локального файла ещё готовится', () => {
+    const autostart = read('../../panels/table-dictator/useTableDictatorAutostart.js')
+    // На первом рендере audioSrc всегда null (blob-URL рождается в эффекте) —
+    // silentMode=true. Если поднять autoPlayFired прямо здесь, пришедший через
+    // кадр звук уже не запустится: аудио-эффект выйдет по флагу, а свой таймер
+    // часы отменят собственным cleanup — не играет ничего.
+    const silent = autostart.slice(autostart.indexOf('if (!silentMode || autoPlayFired.current) return'))
+    const body   = silent.slice(0, 260)
+    expect(body).toContain('setTimeout(() => {')
+    // флаг — ВНУТРИ таймера, после повторной проверки
+    expect(body.indexOf('if (autoPlayFired.current) return')).toBeLessThan(body.indexOf('autoPlayFired.current = true'))
   })
 
   it('без озвучки подпись в боксе не зовёт слушать диктора', () => {

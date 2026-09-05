@@ -13,7 +13,8 @@ import { isRewardOn }           from '../../shared/lib/nodeReward.js'
 // NodeContentEditor.jsx — там же остаются простые типы (текст/медиа) и
 // общий блок триггеров.
 export default function NodeAnswerFields({
-  node, tData, updateTypeData, onUpdate, allNodes, lessonFiles, onPickLessonFile, onTriggerMeasure, moduleLessons,
+  node, tData, updateTypeData, onUpdate, allNodes, lessonFiles, onPickLessonFile, onRemoveLessonFile,
+  onTriggerMeasure, moduleLessons,
 }) {
   if (node.type === 'word_choice') {
     return (
@@ -77,6 +78,7 @@ export default function NodeAnswerFields({
           onDataChange={patch => updateTypeData(patch)}
           lessonFiles={lessonFiles}
           onPickFile={f => onPickLessonFile(f)}
+          onRemoveFile={onRemoveLessonFile}
           triggers={node.triggers ?? []}
           allNodes={allNodes}
           nodeId={node.id}
@@ -106,6 +108,7 @@ export default function NodeAnswerFields({
           correctIndexes={tData.correctIndexes ?? []}
           lessonFiles={lessonFiles}
           onPickFile={onPickLessonFile}
+          onRemoveFile={onRemoveLessonFile}
           onPhotosChange={p => updateTypeData({ photos: p })}
           onCorrectIndexesChange={ci => updateTypeData({ correctIndexes: ci })}
           triggers={node.triggers ?? []}

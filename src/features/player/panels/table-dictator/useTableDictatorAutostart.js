@@ -37,7 +37,13 @@ export function useTableDictatorAutostart({
   }
 
   useEffect(() => {
-    if (!audioSrc || autoPlayFired.current) return
+    if (!audioSrc) return
+    if (autoPlayFired.current) {
+      // Звук пришёл, когда прогон уже кем-то начат (обычно часами — файл
+      // раскрылся позже 800мс). Молча идём дальше без звука, но помечаем в логе
+      pLog('[td-auto] audioSrc пришёл после старта прогона — звука не будет')
+      return
+    }
     autoPlayFired.current = true
     const hudId   = setTimeout(() => setHudVisible(true), 400)
     const audioId = setTimeout(() => audioRef.current?.play().catch(e => {
@@ -51,10 +57,19 @@ export function useTableDictatorAutostart({
     }
   }, [audioSrc]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Флаг поднимаем в МОМЕНТ старта часов, а не при планировании. Локальный файл
+  // (только что сгенерированный TTS, ещё не синхронизированный) даёт blob-URL
+  // лишь со второго рендера: на первом audioSrc=null → silentMode=true. Раньше
+  // этот эффект тут же столбил autoPlayFired за собой, и пришедший через кадр
+  // audioSrc уже игнорировался аудио-эффектом, а часы отменял собственный
+  // cleanup — не играло НИЧЕГО, пока не срабатывала 3-секундная страховка.
   useEffect(() => {
     if (!silentMode || autoPlayFired.current) return
-    autoPlayFired.current = true
-    const startId = setTimeout(runWithClock, 800)
+    const startId = setTimeout(() => {
+      if (autoPlayFired.current) return   // аудио успело перехватить старт
+      autoPlayFired.current = true
+      runWithClock()
+    }, 800)
     return () => clearTimeout(startId)
   }, [silentMode]) // eslint-disable-line react-hooks/exhaustive-deps
 

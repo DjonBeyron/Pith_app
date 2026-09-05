@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import AvatarCrop from '../../shared/ui/AvatarCrop.jsx'
+import ImageProviderSettings from './ImageProviderSettings.jsx'
 
 export default function LessonSettingsTab({
   teacherName, onNameChange,
@@ -104,6 +105,8 @@ export default function LessonSettingsTab({
       <p className="lessonSettingsSaveNote lessonSettingsHint">
         Включено — видео автоматически воспроизводится со звуком один раз, затем без звука в цикле. Следующая нода появляется после первого просмотра.
       </p>
+
+      <ImageProviderSettings />
     </div>
   )
 }

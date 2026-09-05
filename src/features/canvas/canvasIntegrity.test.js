@@ -109,9 +109,9 @@ describe('дебаг на всём пути импорта', () => {
   })
 
   it('очистка урока есть прямо в шапке', () => {
-    const page = read('./CanvasPage.jsx')
-    expect(page).toContain('canvasPageClear')
-    expect(page).toContain('boardApiRef.current?.clearAll()')
+    const actions = read('./CanvasHeaderActions.jsx')
+    expect(actions).toContain('canvasPageClear')
+    expect(actions).toContain('boardApiRef.current?.clearAll()')
   })
 })
 

@@ -216,10 +216,10 @@ describe('импорт урока', () => {
 
 describe('панель обмена в шапке холста', () => {
   it('кнопка открывает панель со снимком нод', () => {
-    const page = read('../CanvasPage.jsx')
-    expect(page).toContain('className="canvasPageShare"')
-    expect(page).toContain('setIoNodes(boardApiRef.current?.getNodes() ?? [])')
-    expect(page).toContain('<LessonIoPanel')
+    const actions = read('../CanvasHeaderActions.jsx')
+    expect(actions).toContain('className="canvasPageShare"')
+    expect(actions).toContain('setIoNodes(boardApiRef.current?.getNodes() ?? [])')
+    expect(read('../CanvasPage.jsx')).toContain('<LessonIoPanel')
   })
 
   it('импорт умеет и заменить урок, и дописать к нему', () => {
@@ -229,7 +229,7 @@ describe('панель обмена в шапке холста', () => {
     const api = read('../useCanvasBoardApi.js')
     expect(api).toContain('importNodes(list, mode)')
     expect(api).toContain("if (mode === 'replace') {")
-    expect(api).toContain('const next = renumber(list)')
+    expect(api).toContain('const next = renumber(withFiles)')
   })
 })
 

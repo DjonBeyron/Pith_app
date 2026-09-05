@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import NodeAudioPicker from './NodeAudioPicker.jsx'
 import NodeAudioTts from './NodeAudioTts.jsx'
+import NodeImageGen from './NodeImageGen.jsx'
 import NodeTextProEditor from './NodeTextProEditor.jsx'
 import NodeReactionPicker from './NodeReactionPicker.jsx'
 import NodeMediaCrop from './NodeMediaCrop.jsx'
@@ -59,8 +60,17 @@ export default function NodeContentEditor({
   const fileId = tData.file_id ?? null
   const crop   = tData.crop ?? DEFAULT_CROP
 
+  // Функциональная форма (см. CanvasBoard.updateNode) — обязательна: генерация
+  // (озвучка/фото) часто патчит ноду в НЕСКОЛЬКО приёмов подряд (сначала
+  // file_id, чуть позже отдельным вызовом — тайминги/волна, когда досчитаются
+  // асинхронно). Раньше оба патча брали tData из ЭТОГО замыкания рендера — если
+  // React не успевал перерисовать компонент между двумя вызовами, второй патч
+  // считался от СТАРОГО tData и стирал file_id, записанный первым. Теперь каждый
+  // патч читает АКТУАЛЬНЫЙ typeData ноды на момент применения, а не на момент вызова
   function updateTypeData(patch) {
-    onUpdate({ typeData: { ...node.typeData, [node.type]: { ...tData, ...patch } } })
+    onUpdate(current => ({
+      typeData: { ...current.typeData, [current.type]: { ...(current.typeData?.[current.type] ?? {}), ...patch } },
+    }))
   }
 
   function changeType(newType) {
@@ -127,6 +137,15 @@ export default function NodeContentEditor({
           text={tData.text ?? ''}
           onPick={handleAudioPick}
           onAnalyzed={patch => updateTypeData(patch)}
+          onRemoveOldFile={onRemoveLessonFile}
+        />
+      )}
+      {(node.type === 'photo' || node.type === 'sticker') && (
+        <NodeImageGen
+          fileId={fileId}
+          prompt={tData.imagePrompt ?? ''}
+          onPromptChange={v => updateTypeData({ imagePrompt: v })}
+          onPick={handleMediaPick}
           onRemoveOldFile={onRemoveLessonFile}
         />
       )}
@@ -273,6 +292,7 @@ export default function NodeContentEditor({
       <NodeAnswerFields
         node={node} tData={tData} updateTypeData={updateTypeData} onUpdate={onUpdate}
         allNodes={allNodes} lessonFiles={lessonFiles} onPickLessonFile={onPickLessonFile}
+        onRemoveLessonFile={onRemoveLessonFile}
         onTriggerMeasure={onTriggerMeasure} moduleLessons={moduleLessons}
       />
       {node.type === 'registration' && (

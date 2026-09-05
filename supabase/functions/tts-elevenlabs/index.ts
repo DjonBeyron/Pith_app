@@ -44,9 +44,11 @@ async function requireAdmin(req: Request): Promise<Response | null> {
 
 type Alignment = { characters: string[]; character_start_times_seconds: number[] };
 
-// Символьные тайминги ElevenLabs → тайминги слов в формате, который уже
-// понимает AudioModule.jsx (charTimings сопоставляет их с введённым текстом
-// по ИНДЕКСУ слова, не по строке — важны только порядок и количество).
+// Символьные тайминги ElevenLabs → тайминги слов в формате {w, t}, который
+// понимает charTimings.js (сопоставляет их с текстом ПО САМОМУ СЛОВУ, поэтому
+// нормализация произносимого на стороне ElevenLabs печать не ломает).
+// Округляем до сотых: до десятых давало дрожание ±50мс на каждом слове —
+// на глаз печать то опережала звук, то отставала.
 function wordTimingsFromAlignment(alignment: Alignment) {
   const { characters, character_start_times_seconds: starts } = alignment;
   const out: { w: string; t: number }[] = [];
@@ -55,13 +57,13 @@ function wordTimingsFromAlignment(alignment: Alignment) {
   for (let i = 0; i < characters.length; i++) {
     const ch = characters[i];
     if (/\s/.test(ch)) {
-      if (word) { out.push({ w: word, t: Math.round(wordStart * 10) / 10 }); word = ""; }
+      if (word) { out.push({ w: word, t: Math.round(wordStart * 100) / 100 }); word = ""; }
       continue;
     }
     if (!word) wordStart = starts[i];
     word += ch;
   }
-  if (word) out.push({ w: word, t: Math.round(wordStart * 10) / 10 });
+  if (word) out.push({ w: word, t: Math.round(wordStart * 100) / 100 });
   return out;
 }
 

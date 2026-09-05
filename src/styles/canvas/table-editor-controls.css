@@ -24,6 +24,21 @@
   cursor: pointer; background: transparent; white-space: nowrap; flex-shrink: 0;
 }
 .tlPickBtn:hover { border-color: #b6fe3b; color: #b6fe3b; }
+
+.tlMontageBtn {
+  border: 1px solid rgba(182,120,255,0.35); border-radius: 8px;
+  padding: 5px 12px; font-size: 12px; color: #c9a8ff;
+  cursor: pointer; background: rgba(182,120,255,0.08); white-space: nowrap; flex-shrink: 0;
+}
+.tlMontageBtn:hover:not(:disabled) { border-color: #b678ff; background: rgba(182,120,255,0.16); }
+.tlMontageBtn:disabled { opacity: 0.5; cursor: default; }
+
+.tlFileName {
+  font-size: 11px; color: #9aa0b4; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 160px; display: inline-flex; align-items: center; gap: 4px;
+}
+.tlFileNameLocal  { color: #ff8040; font-weight: 600; }
+.tlFileNameSynced { color: #60c840; font-weight: 600; }
 .tlPlayBtn {
   width: 28px; height: 28px; border-radius: 50%; background: #b6fe3b;
   border: none; cursor: pointer; display: flex; align-items: center;

@@ -1,0 +1,64 @@
+/* ── Панель «⚡ Генерация» (batch-gen/BatchGeneratePanel.jsx) ─────────── */
+/* Оверлей/модалка/lioClose/lioHint/lioActions/lioBtn/lioMeta/lioWarn общие
+   со стилями lesson-io.css — своя разметка нужна только тому, чего там нет. */
+
+.bgpOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(4, 5, 8, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.bgpModal {
+  width: min(520px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  background: #101216;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+}
+
+.bgpHeader { display: flex; align-items: center; justify-content: space-between; }
+.bgpTitle { color: #ccc; font-size: 13px; font-weight: 600; }
+
+.bgpSummary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bgpSummaryItem { font-size: 12px; color: #ccc; }
+.bgpSummarySkip { color: #f0c040; }
+
+.bgpSkipList, .bgpResultList { max-height: 140px; }
+
+.bgpProgressRow { display: flex; align-items: center; gap: 8px; }
+.bgpProgressBar {
+  flex: 1;
+  height: 8px;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.bgpProgressFill {
+  height: 100%;
+  background: #b6fe3b;
+  transition: width .2s;
+}
+
+.bgpResultOk { color: #cfd3dd; }
+.bgpResultError { color: #f87171; }
+
+/* Кнопка в шапке холста — в ряд с остальными (⛃ ▶ ⇄ 🗑 ⋯) */
+.canvasPageBatchGen {
+  width: 30px; height: 28px; padding: 0;
+  background: #1a1d22; border: 1px solid #2a2d35; border-radius: 7px;
+  color: #9aa0b4; font-size: 13px; line-height: 1; cursor: pointer;
+}
+.canvasPageBatchGen:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.canvasPageBatchGen:disabled { opacity: 0.35; cursor: default; }

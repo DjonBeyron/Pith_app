@@ -27,6 +27,13 @@ export function useTimelineAudioSource({ fileId, waveformData, duration, lessonF
   const clockRef = useRef(null)
   const silent   = !localBlobUrl
 
+  // Синхронизируем локальный blob-URL с внешним File — не только на маунте:
+  // если таймлайн открыли раньше, чем lessonFiles успел получить только что
+  // сгенерированный/выбранный файл (например, сразу после «🔊 Озвучить» в
+  // самой ноде — см. NodeTableTts.jsx), первый рендер видит fileId уже
+  // выставленным, а localFile в lessonFiles — ещё нет. Раньше эффект бежал
+  // ровно один раз при маунте и с пустым localFile просто ничего не делал —
+  // таймлайн так и оставался в «без звука», хотя аудио на самом деле есть.
   useEffect(() => {
     if (localBlobUrl || !fileId) return
     const f = lessonFiles?.find(lf => lf.id === fileId)
@@ -34,10 +41,9 @@ export function useTimelineAudioSource({ fileId, waveformData, duration, lessonF
     const url = URL.createObjectURL(f.localFile)
     if (ownedRef.current) URL.revokeObjectURL(ownedRef.current)
     ownedRef.current = url
-    // Один раз на маунт синхронизируем локальный blob-URL с внешним File
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalBlobUrl(url)
-  }, []) // eslint-disable-line
+  }, [fileId, lessonFiles]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Волна на паузе: перерисовать при любой смене currentTime (клик/протяжка по
   // линейке-плейхеду) — раньше это было в одном эффекте с RAF-циклом ниже и не
