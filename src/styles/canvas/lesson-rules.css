@@ -1,0 +1,152 @@
+/* ── Панель «Правила формирования урока» (lesson-io/LessonRulesPanel.jsx) ─
+   Переиспользует .lio* базовые классы окна (lesson-io.css: оверлей,
+   заголовок, кнопки, подсказка) — здесь только то, что специфично
+   для списка строк-правил. */
+
+.lrModal {
+  width: min(760px, 100%);
+  max-height: 88vh;
+}
+
+/* Оба раздела скроллятся ОДНИМ общим скроллом (а не каждая строка своим,
+   см. .lrTextarea ниже) — так весь список читается как одна лента сверху
+   вниз, а не как набор отдельных окошек. Скроллбар специально светлее
+   стандартного тёмного (ср. .lioText) — тонкий тёмный на тёмном фоне почти
+   не виден, а тут список — основной способ ориентироваться в правилах. */
+.lrSections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #4a5064 #14161c;
+}
+.lrSections::-webkit-scrollbar { width: 10px; }
+.lrSections::-webkit-scrollbar-track { background: #14161c; border-radius: 5px; }
+.lrSections::-webkit-scrollbar-thumb { background: #4a5064; border-radius: 5px; }
+.lrSections::-webkit-scrollbar-thumb:hover { background: #5c6478; }
+
+.lrSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lrSectionHead {
+  color: #e0e0e0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lrHint {
+  color: #8a90a0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lrList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lrRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  border: 1px solid #22252c;
+  border-radius: 10px;
+}
+
+/* Выключенное правило — видно в списке, но приглушено: не участвует в
+   экспорте, пока галочка не вернётся */
+.lrRowInactive { opacity: 0.45; }
+
+.lrRowSide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.lrActiveCheck { display: flex; margin-top: 4px; cursor: pointer; }
+
+.lrIconBtn {
+  width: 22px; height: 22px; padding: 0;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 6px;
+  color: #9aa0b4;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lrIconBtn:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.lrIconBtn:disabled { opacity: 0.3; cursor: default; }
+.lrIconBtnDanger:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
+
+/* Растёт под весь текст (высоту выставляет AutoTextarea в JS) — никакого
+   внутреннего скролла: правило целиком видно сразу, крутить приходится
+   только общий список (.lrSections), а не каждую строку отдельно. */
+.lrTextarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: #0a0c10;
+  border: 1px solid #1e2030;
+  border-radius: 8px;
+  color: #dfe2ea;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: none;
+  overflow: hidden;
+}
+.lrTextarea:focus { outline: none; border-color: #3a4050; }
+
+.lrRowActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.lrBtn {
+  padding: 6px 12px;
+  background: #1a1d22;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lrBtn:disabled { opacity: 0.35; cursor: default; }
+.lrBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
+.lrBtnPrimary:hover:not(:disabled) { background: #c6ff5b; }
+
+.lrEmpty { color: #6a6f78; font-size: 12px; padding: 12px 0; text-align: center; }
+
+.lrAddRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding-top: 4px;
+  border-top: 1px solid #22252c;
+}
+
+/* Кнопка «Править правила» в LessonIoPanel */
+.lioRulesLink {
+  background: transparent;
+  border: none;
+  color: #6a6f78;
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+  align-self: flex-start;
+  padding: 0;
+}
+.lioRulesLink:hover { color: #b6fe3b; }

@@ -256,7 +256,18 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
               <VolumeX size={14} color="white" />
             </div>
           </div>
-        ) : <div className="playerMediaPlaceholder">Видеосообщение не загружено</div>}
+        ) : (
+          // Заглушка держит ту же круглую форму и тот же размер, что и
+          // загруженный кружок (см. wrapStyle выше) — иначе разметка прыгает,
+          // когда видео наконец подгружается. feedSkeleton — общий для ленты
+          // скелетон с бегущим бликом (feed-media.css), circleFrame его же
+          // обрезает в круг через overflow:hidden.
+          <div className="circleWrap" style={wrapStyle}>
+            <div className="circleFrame">
+              <div className="feedSkeleton" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

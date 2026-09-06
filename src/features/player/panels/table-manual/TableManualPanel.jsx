@@ -169,13 +169,23 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
     } else {
       wrongCount.current += 1
       setResult('wrong')
+      // Собранная (неверная) фраза — СПРАВА, красным, от лица ученика, на
+      // КАЖДОЙ попытке, кроме последней (та уходит в чат отдельно, ниже, по
+      // галочке «отправить ответ» — здесь не дублируем). Только следом —
+      // подсказка учителя обычным цветом ('hint', не 'wrong': красный
+      // оставлен только за ответом ученика, самой подсказке он не идёт).
+      if (wrongCount.current < 3 && phrase.trim()) onAnswered?.(phrase, 'wrong_final')
       if (wrongCount.current === 1 && tData.responseWrong?.trim()) {
-        onAnswered?.(tData.responseWrong, 'wrong')
+        onAnswered?.(tData.responseWrong, 'hint')
       }
       if (wrongCount.current >= 3) {
         // Именно последняя попытка — её ученик и видит в переписке
         if (phrase.trim()) onAnswerToChat?.(phrase, 'wrong_final')
-        if (answer.trim()) onAnswered?.(answer, 'wrong_final')
+        // Правильный ответ — раскрытие подсказкой учителя (не «от лица
+        // ученика»: это была ошибка — answer сюда попадал с тем же
+        // 'wrong_final', то есть красным и СПРАВА, как будто ученик сам
+        // ответил верно, хотя как раз нет)
+        if (answer.trim()) onAnswered?.(answer, 'hint')
         const variantId = assembled.find(t => t.distractorId)?.distractorId ?? null
         const id = setTimeout(() => closePanelWith('table_wrong', variantId), 800)
         timers.current.push(id)

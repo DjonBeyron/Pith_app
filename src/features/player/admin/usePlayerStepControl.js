@@ -56,11 +56,16 @@ export function buildStep({ state, graph, ctx }) {
 // onRollbackNode(nodeId, wasWrong) — вызывающий откатывает то, что живёт в его
 // рефах: отметку «мгновенная нода отыграла», начисленный XP и засчитанную
 // ошибку (она идёт в звёзды урока)
-// Был ли на ноде неверный ответ — чтобы шаг назад снял его из счёта ошибок
+// Был ли на ноде неверный ответ — чтобы шаг назад снял его из счёта ошибок.
+// 'wrong' — админский шаг (applyAnswer ниже сам пишет этот тег); 'wrong_final' —
+// реальная игра (PhraseAssemblyPanel.jsx/TableManualPanel.jsx: с недавних пор
+// красный пузырь ответа ученика шлётся под этим тегом на КАЖДОЙ неверной
+// попытке, а не только на подсказку — 'wrong' у настоящей игры больше не
+// встречается вовсе, но проверять оба тега дешевле, чем ловить рассинхрон)
 function wasAnsweredWrong(answers, nodeId) {
   return answers.wordChoiceStates[nodeId]?.result === 'wrong'
     || answers.photoChoiceStates[nodeId]?.result === 'wrong'
-    || (answers.phraseStates[nodeId] ?? []).some(b => b.result === 'wrong')
+    || (answers.phraseStates[nodeId] ?? []).some(b => b.result === 'wrong' || b.result === 'wrong_final')
 }
 
 export function makeStepActions({ state, graph, answers, onRollbackNode, onPhotoPick, onCountWrong }) {

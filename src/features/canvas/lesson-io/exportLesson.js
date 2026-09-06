@@ -72,7 +72,7 @@ function needsOf(node) {
   return base
 }
 
-export function exportLesson(nodes, { title = '', lessonId = null, includeLegend = true } = {}) {
+export function exportLesson(nodes, { title = '', lessonId = null, includeLegend = true, principles, checklist } = {}) {
   const list = [...(nodes ?? [])].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
   const refOf = new Map(list.map((n, i) => [n.id, `n${i + 1}`]))
 
@@ -80,7 +80,7 @@ export function exportLesson(nodes, { title = '', lessonId = null, includeLegend
     format: FORMAT,
     version: SCHEMA_VERSION,
     lesson: { title, ...(lessonId ? { lessonId } : {}), nodeCount: list.length },
-    ...(includeLegend ? { legend: buildLegend() } : {}),
+    ...(includeLegend ? { legend: buildLegend(principles, checklist) } : {}),
     nodes: list.map(n => {
       const data = exportData(n)
       const needs = needsOf(n)

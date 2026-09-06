@@ -46,13 +46,20 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
     if (result !== 'wrong') return
     wrongCount.current += 1
     const wc = wrongCount.current
+    const phrase = placed.map(p => p.word).join(' ')
+    // Собранная (неверная) фраза — СПРАВА, красным, от лица ученика: видно,
+    // ЧТО именно он собрал. Только следом — подсказка учителя обычным
+    // цветом ('hint', не 'wrong' — красный оставлен только за ответом
+    // ученика). Раньше подсказка приходила одна, без того, с чем её
+    // сравнивать. На последней попытке (wc>=3) свой пузырь ниже — здесь не
+    // дублируем.
+    if (wc < 3 && phrase.trim()) onAnswered?.(phrase, 'wrong_final')
     if (wc === 1) {
-      if (responseWrong.trim()) onAnswered?.(responseWrong, 'wrong')
+      if (responseWrong.trim()) onAnswered?.(responseWrong, 'hint')
     } else if (wc === 2) {
       onAnswered?.(`Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`, 'hint')
       setTimeout(() => setShowCounter(true), 350)
     } else if (wc >= 3) {
-      const phrase = placed.map(p => p.word).join(' ')
       // Особый переход конкретного слова-ловушки (nodeVariants.js) — если в
       // собранной фразе есть распознанный distractor, берём первый
       const variantId = placed.find(p => p.distractorId)?.distractorId ?? null

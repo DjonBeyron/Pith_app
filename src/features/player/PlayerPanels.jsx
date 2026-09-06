@@ -94,7 +94,11 @@ export default function PlayerPanels({
             onLandedInChat={() => onTableLanded?.(tableNode.id)}
             node={tableNode}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
-            onAnswered={() => {}}
+            /* Раньше была заглушка () => {} — подсказка учителя на неверный
+               ответ (responseWrong) и раскрытие ответа после трёх попыток
+               никогда не доходили до чата. Теперь тот же канал, что у
+               «Собери фразу» */
+            onAnswered={(text, result) => handlePhraseAnswer(tableNode.id, text, result)}
             /* Галочка «отправить ответ ученика в чат»: собранная фраза уходит
                пузырём справа (верная — сразу, неверная — последняя из трёх) */
             onAnswerToChat={tableNode.typeData?.table?.sendAnswerToChat
