@@ -84,3 +84,83 @@
 
 /* msgSlideIn — удалён. Анимация применяется через Web Animations API
    в PlayerFeed.jsx с точной стартовой позицией под нижним краем экрана. */
+
+/* ── Waiting dots — «учитель печатает/записывает» ─────────────────────
+   Не .playerMsgRow: PlayerFeed.jsx считает такие строки для FLIP-анимации
+   сдвига истории (querySelectorAll('.playerMsgRow')), а тут ноды-заглушки
+   исчезают и настоящее сообщение появляется в ОДНОМ и том же реконсиле —
+   счётчик строк дал бы нулевую дельту, и слайд-ин просто не сыграл бы.
+   Простой fade+сдвиг на своём CSS — достаточно для такой короткой вспышки. */
+.playerWaitingRow {
+  display: flex;
+  justify-content: flex-start;
+  padding: 2px 0;
+  animation: waitingRowIn 180ms ease-out;
+}
+
+@keyframes waitingRowIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.playerWaitingBubble {
+  background: #1a1d22;
+  border-radius: 4px 18px 18px 18px;
+  padding: 12px 16px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 14px;
+}
+
+/* text → три бегущие точки */
+.playerWaitingDots i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 2px;
+  border-radius: 50%;
+  background: #9aa0b4;
+  animation: waitingBounce 1.2s infinite ease-in-out;
+}
+.playerWaitingDots i:nth-child(2) { animation-delay: 0.15s; }
+.playerWaitingDots i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes waitingBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* audio → бегущая волна (записывает голосовое) */
+.playerWaitingWave i {
+  display: inline-block;
+  width: 3px;
+  height: 6px;
+  margin: 0 2px;
+  border-radius: 2px;
+  background: #b6fe3b;
+  animation: waitingWave 0.9s infinite ease-in-out;
+}
+.playerWaitingWave i:nth-child(1) { animation-delay: 0s; }
+.playerWaitingWave i:nth-child(2) { animation-delay: 0.15s; }
+.playerWaitingWave i:nth-child(3) { animation-delay: 0.3s; }
+.playerWaitingWave i:nth-child(4) { animation-delay: 0.45s; }
+
+@keyframes waitingWave {
+  0%, 100% { height: 6px; }
+  50%      { height: 16px; }
+}
+
+/* circle → пульсирующая точка «идёт запись» */
+.playerWaitingRec i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff4d4f;
+  animation: waitingPulse 1s infinite ease-in-out;
+}
+
+@keyframes waitingPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.7); }
+}

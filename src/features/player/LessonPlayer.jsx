@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerFeedNodes from './PlayerFeedNodes.jsx'
+import WaitingDots from './waiting/WaitingDots.jsx'
 import PlayerAdminPanel from './admin/PlayerAdminPanel.jsx'
 import NodeEditPencil from './admin/NodeEditPencil.jsx'
 import { usePlayerAdminEdit } from './admin/usePlayerAdminEdit.js'
@@ -96,7 +97,7 @@ export default function LessonPlayer({
       finishSummary()
     },
   })
-  const { visibleNodes, pendingNode, onNodeDone } = graph
+  const { visibleNodes, pendingNode, isWaiting, onNodeDone } = graph
 
   // Карта главной линии считается один раз на урок, доля — на каждый показ
   const mainIndex = useMemo(() => mainLineIndex(nodes), [nodes])
@@ -283,6 +284,7 @@ export default function LessonPlayer({
             onXpEarned={handleXpEarned}
             adminEdit={adminEdit}
           />
+          <WaitingDots visible={isWaiting} type={pendingNode?.type} />
           {visibleNodes.length === 0 && (
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}

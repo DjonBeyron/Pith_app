@@ -18,6 +18,8 @@ import { FAR_ZOOM } from './canvasZoom.js'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import CanvasZoomBadge from './CanvasZoomBadge.jsx'
 import NodeHoverMenu from './NodeHoverMenu.jsx'
+import CanvasSelectionToolbar from './CanvasSelectionToolbar.jsx'
+import { useCanvasGroupDelete } from './useCanvasGroupDelete.js'
 import NodeNoteLayer from './NodeNoteLayer.jsx'
 import CanvasLinkDebug, { CanvasDebugOverlay } from './CanvasLinkDebug.jsx'
 import { linkDiagnostics } from './canvasLinkDebug.js'
@@ -102,7 +104,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Выделение нескольких нод (рамкой по левой кнопке или Shift+клик) —
   // протяжка за любую из выделенных двигает всю группу разом (moveNode)
   const {
-    selectedIds, marquee, moveGroup, selectOnly,
+    selectedIds, marquee, moveGroup, selectOnly, clearSelection,
     onNodeMouseDown: onSelectionMouseDown, startMarquee, updateMarquee, endMarquee, collapseIfClick,
   } = useCanvasSelection()
 
@@ -129,8 +131,10 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const pan = useCallback((dx, dy) =>
     setOffset(o => ({ x: o.x + dx, y: o.y + dy })), [setOffset])
 
-  const { deleteNode: deleteNodeOp, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort } =
+  const { deleteNode: deleteNodeOp, deleteNodes: deleteNodesOp, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort } =
     useCanvasNodeOps(setNodes)
+  const { confirmGroupDelete, askGroupDelete, cancelGroupDelete, deleteSelectedGroup } =
+    useCanvasGroupDelete(selectedIds, deleteNodesOp, clearSelection)
 
   // Shift+протяжка ноды за шапку — копия ноды «без связей» отрывается от
   // оригинала и едет за курсором (как копирование файла протяжкой в
@@ -367,6 +371,14 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       )}
 
       <CanvasZoomBadge scale={scale} onReset={resetZoom} />
+
+      <CanvasSelectionToolbar
+        count={selectedIds.size}
+        confirming={confirmGroupDelete}
+        onAskDelete={askGroupDelete}
+        onDelete={deleteSelectedGroup}
+        onCancel={cancelGroupDelete}
+      />
 
       <NodeTypeMenu
         pos={typeMenu?.pos}

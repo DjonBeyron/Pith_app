@@ -1,0 +1,47 @@
+/* Плашка группового удаления — верх холста по центру, поверх содержимого */
+.canvasSelectionToolbar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid #2a2c33;
+  border-radius: 8px;
+  background: rgba(9, 11, 14, 0.92);
+  white-space: nowrap;
+  animation: canvasSelectionToolbarIn 0.1s ease;
+}
+
+@keyframes canvasSelectionToolbarIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.canvasSelectionToolbarLabel {
+  font-size: 12px;
+  color: #888;
+  padding: 0 2px;
+}
+
+.canvasSelectionBtn {
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 1px solid #2a2c33;
+  background: #12141a;
+  color: #ccc;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.canvasSelectionBtn:hover { background: #1a1c22; }
+
+.canvasSelectionBtnDel { color: #ff6060; }
+.canvasSelectionBtnDel:hover { background: #2a1010; border-color: #ff6060; }

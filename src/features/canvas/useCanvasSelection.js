@@ -134,8 +134,11 @@ export function useCanvasSelection() {
   // редактора: закрыть прогон и показать на холсте ту ноду, что правил)
   const selectOnly = useCallback(id => applySelection(new Set([id])), [applySelection])
 
+  // После удаления выделенной группы — обнулить выделение (нод больше нет)
+  const clearSelection = useCallback(() => applySelection(new Set()), [applySelection])
+
   return {
-    selectedIds, marquee, moveGroup, selectOnly,
+    selectedIds, marquee, moveGroup, selectOnly, clearSelection,
     onNodeMouseDown, startMarquee, updateMarquee, endMarquee, collapseIfClick,
   }
 }

@@ -16,6 +16,22 @@ export function useCanvasNodeOps(setNodes) {
     ))
   }
 
+  // Удаление группы нод (выделение рамкой/Shift+клик, кнопка «Удалить N нод»
+  // над выделением) — одним патчем, а не циклом deleteNode: иначе renumber
+  // пересчитывал бы seq на каждой промежуточной ноде отдельно
+  function deleteNodes(nodeIds) {
+    const ids = nodeIds instanceof Set ? nodeIds : new Set(nodeIds)
+    if (ids.size === 0) return
+    setNodes(prev => renumber(
+      prev
+        .filter(n => !ids.has(n.id))
+        .map(n => ({
+          ...n,
+          triggers: n.triggers.map(t => ({ ...t, then: ids.has(t.then) ? null : t.then })),
+        }))
+    ))
+  }
+
   // Освобождает место под дубликат: всё, что правее x, уезжает на слот вправо.
   // Вставка новой ноды («+» и точка на порте) соседей НЕ двигает — она ищет
   // свободное место рядом (findFreeSpot в nodeGraph.js)
@@ -164,5 +180,5 @@ export function useCanvasNodeOps(setNodes) {
     return findFreeSpot(list, node.x + NODE_SLOT, y)
   }
 
-  return { deleteNode, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort }
+  return { deleteNode, deleteNodes, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort }
 }
