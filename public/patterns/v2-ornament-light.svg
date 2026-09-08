@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="60" viewBox="0 0 90 60">
+  <!-- Фон только для наглядности при просмотре файла: в приложении узор
+       накладывается поверх уже тёмных карточек (#14171c и т.п.), сам по себе
+       фона не имеет (см. переменную v2 tex в src/styles/shell-v2.css) -->
+  <rect width="90" height="60" fill="#14171c"/>
+  <g fill="none" stroke="white" stroke-opacity=".055" stroke-linecap="round">
+    <path d="M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z"/>
+    <path d="M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z"/>
+    <path d="M60 8 C72 2 84 8 88 16"/>
+    <path d="M2 52 C10 46 20 48 26 54"/>
+    <path d="M74 42 l5 5 -5 5 -5 -5 z"/>
+    <path d="M10 12 l6 6"/>
+  </g>
+</svg>

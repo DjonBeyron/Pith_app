@@ -17,7 +17,7 @@ import { pLog } from '../../shared/lib/debug.js'
 // Вынесено из LessonPlayer.jsx.
 export function useLessonFinish({
   edit, starsEligible, lessonId, wrongRef, finalTicket, getHintCount, getEvents, earnedXpRef,
-  setBaseXp, setEarnedXp, setStarsRes, setShowSummary, setTicketRes,
+  setBaseXp, setEarnedXp, setStarsRes, setShowSummary, setTicketRes, clearProgress,
 }) {
   function finishSummary() {
     // Прогон из канваса — инструмент автора, а не прохождение урока: ни экрана
@@ -28,6 +28,8 @@ export function useLessonFinish({
       pLog('[player] конец урока в режиме правки из канваса — итоги не показываем')
       return
     }
+    // Урок реально пройден целиком — чекпойнт «докуда дошёл» больше не нужен
+    clearProgress?.()
     setTimeout(async () => {
       // Звёзды обычного урока: считаются и гостю, и залогиненному; локальный
       // стор обновляется сразу (схема модуля покажет без похода на сервер)

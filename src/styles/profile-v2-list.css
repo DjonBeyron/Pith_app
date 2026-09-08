@@ -28,6 +28,28 @@
 
 .pvModRow { cursor: pointer; border: 1px solid #232932; }
 
+/* Обёртка строки «Пройденные» — только чтобы кнопка сброса (тест, админ)
+   могла лежать РЯДОМ с .pvWord, а не внутри него (вложенные <button>
+   недопустимы) — тот же приём, что у .mlRowShell в my-lessons-v2.css */
+.pvRowShell { position: relative; margin-bottom: 8px; }
+.pvRowShell .pvWord { margin-bottom: 0; }
+
+.pvRowAdminReset {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 138, 101, 0.4);
+  background: rgba(9, 11, 14, 0.85);
+  color: #ff8a65;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .pvWordText { font-size: 15px; font-weight: 700; }
 
 .pvWordFrom {

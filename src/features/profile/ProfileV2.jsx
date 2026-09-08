@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Cog, Zap, Crown, Sparkles, Paintbrush, Star, Lock } from 'lucide-react'
+import { Cog, Zap, Crown, Sparkles, Paintbrush, Star } from 'lucide-react'
 import { useProfileV2Data } from './useProfileV2Data.js'
 import { getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
@@ -16,16 +16,20 @@ import { saveAvatar } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import { energyColor } from '../../shared/lib/energyColors.js'
-
-// Копилка слов: бесплатно видно первые 20, дальше — только с Pro
-const WORDS_FREE_CAP = 20
+import { useLessonNav } from '../../app/LessonNavContext.jsx'
+import ProfileWordsList from './ProfileWordsList.jsx'
+import ProfileDoneTab from './ProfileDoneTab.jsx'
+import ProfileSavedTab from './ProfileSavedTab.jsx'
 
 // Профиль (ui v2, тёмная тема по макету profile.html): уровень, XP-бар,
 // энергия, вкладки Сохранённые / Пройденные / Копилка слов. Шестерёнка —
 // экран настроек. Тап по модулю в списках открывает его схему.
 export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
-  const { profile, modules, bookmarks, words, loading, reload } = useProfileV2Data()
+  const { profile, modules, bookmarks, savedLessons, words, doneLessons, loading, reload } = useProfileV2Data()
   const [tab, setTab] = useState('words') // saved | done | words
+  // Тап по пройденному уроку (вкладка «Пройденные → Уроки») — пересдать его
+  // напрямую, тем же путём, что и урок-закладка из «Мои уроки» (LessonNavOverlay.jsx)
+  const { openRef } = useLessonNav()
   const [showSettings, setShowSettings] = useState(false)
   const [showCustomize, setShowCustomize] = useState(false)
   const [showPro, setShowPro] = useState(false)
@@ -195,26 +199,27 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
       ) : tab === 'words' ? (
         words.length === 0
           ? <div className="pvEmpty">Проходи уроки — выученные слова будут копиться здесь</div>
-          : <WordsList
+          : <ProfileWordsList
               words={words}
               unlimited={!!(profile?.has_subscription || profile?.is_admin)}
               onWantPro={() => setShowPro(true)}
             />
+      ) : tab === 'saved' ? (
+        <ProfileSavedTab
+          savedModules={saved}
+          savedLessons={savedLessons}
+          onOpenModule={setOpenModule}
+          onOpenLesson={id => openRef({ isModule: false, targetId: id }, null)}
+          onReload={reload}
+        />
       ) : (
-        (tab === 'saved' ? saved : doneMods).length === 0
-          ? <div className="pvEmpty">
-              {tab === 'saved'
-                ? 'Сохраняй модули закладкой в ленте — они появятся здесь'
-                : 'Пройди модуль до конца — он появится здесь'}
-            </div>
-          : (tab === 'saved' ? saved : doneMods).map(m => (
-            <button key={m.id} className="pvWord pvModRow" onClick={() => setOpenModule(m)}>
-              <span className="pvWordText">{m.title}</span>
-              <span className="pvWordFrom">
-                {m.pct === 100 ? 'пройден' : `${m.pct}%`}
-              </span>
-            </button>
-          ))
+        <ProfileDoneTab
+          doneMods={doneMods}
+          doneLessons={doneLessons}
+          onOpenModule={setOpenModule}
+          onOpenLesson={id => openRef({ isModule: false, targetId: id }, null)}
+          onReload={reload}
+        />
       )}
 
       {showAvatarPicker && (
@@ -238,34 +243,5 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
         <LogoutSheet email={userEmail} onClose={() => setShowLogout(false)} />
       )}
     </div>
-  )
-}
-
-// Копилка слов: бесплатным видно первые WORDS_FREE_CAP слов + счётчик,
-// остальные — за строкой-замком, которая открывает экран Pro
-function WordsList({ words, unlimited, onWantPro }) {
-  const shown  = unlimited ? words : words.slice(0, WORDS_FREE_CAP)
-  const hidden = words.length - shown.length
-
-  return (
-    <>
-      <div className="pvWordsCount">
-        {unlimited
-          ? `${words.length} ${plural(words.length, 'слово', 'слова', 'слов')}`
-          : `${Math.min(words.length, WORDS_FREE_CAP)} из ${WORDS_FREE_CAP} бесплатных`}
-      </div>
-      {shown.map(w => (
-        <div key={w.id} className="pvWord pvWordCard">
-          <span className="pvWordText">{w.word}</span>
-          <span className="pvWordFrom">{w.from}</span>
-        </div>
-      ))}
-      {hidden > 0 && (
-        <button className="pvWord pvWordsLocked" onClick={onWantPro}>
-          <span className="pvWordText pvIconLabel"><Lock size={13} /> ещё {hidden} {plural(hidden, 'слово', 'слова', 'слов')}</span>
-          <span className="pvWordFrom">открыть с Pro →</span>
-        </button>
-      )}
-    </>
   )
 }

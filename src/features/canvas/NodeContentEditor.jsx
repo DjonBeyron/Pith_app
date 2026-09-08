@@ -17,6 +17,7 @@ import { NODE_TYPES } from './nodeTypes.js'
 import { autoGrowTextarea } from '../../shared/lib/autoGrowTextarea.js'
 import { useTextareaHeight } from './useTextareaHeight.js'
 import RichTextField from './rich-text/RichTextField.jsx'
+import NodeLessonRefPicker from './NodeLessonRefPicker.jsx'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
@@ -288,6 +289,9 @@ export default function NodeContentEditor({
             onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}
           />
         </>
+      )}
+      {node.type === 'lesson_ref' && (
+        <NodeLessonRefPicker value={tData} onChange={patch => updateTypeData(patch)} />
       )}
       <NodeAnswerFields
         node={node} tData={tData} updateTypeData={updateTypeData} onUpdate={onUpdate}

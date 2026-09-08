@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <!-- Тёмный узор (см. v2-ornament-dark.svg), размноженный на холст 1000x1000.
+       Раньше тайлы стояли встык с зеркальным отражением соседа — на стыке
+       завиток и его зеркальная копия складывались в симметричную фигуру
+       (та самая "ласточка"/бабочка). Здесь ни одного зеркала (scale с минусом)
+       вообще нет — только повороты на разные, специально не кратные 90
+       градусы (0..350 вразнобой) и лёгкий разброс масштаба/позиции, россыпью
+       по редкой сетке с нахлёстом. Одинаковый узор рядом со своим зеркалом
+       никогда не встречается, поэтому симметричных стыков не возникает -->
+  <rect width="1000" height="1000" fill="#b6fe3b"/>
+  <defs>
+    <g id="tile">
+      <path d="M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z"/>
+      <path d="M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z"/>
+      <path d="M60 8 C72 2 84 8 88 16"/>
+      <path d="M2 52 C10 46 20 48 26 54"/>
+      <path d="M74 42 l5 5 -5 5 -5 -5 z"/>
+      <path d="M10 12 l6 6"/>
+    </g>
+  </defs>
+  <g fill="none" stroke="black" stroke-opacity=".09" stroke-linecap="round">
+      <use href="#tile" transform="translate(-2.5,12.5) rotate(0 45 30) scale(0.85)"/>
+      <use href="#tile" transform="translate(134.5,43.5) rotate(50 45 30) scale(1.02)"/>
+      <use href="#tile" transform="translate(271.5,33.5) rotate(100 45 30) scale(0.89)"/>
+      <use href="#tile" transform="translate(408.5,23.5) rotate(150 45 30) scale(1.06)"/>
+      <use href="#tile" transform="translate(504.5,13.5) rotate(200 45 30) scale(0.93)"/>
+      <use href="#tile" transform="translate(641.5,44.5) rotate(250 45 30) scale(1.10)"/>
+      <use href="#tile" transform="translate(778.5,34.5) rotate(300 45 30) scale(0.97)"/>
+      <use href="#tile" transform="translate(874.5,24.5) rotate(350 45 30) scale(1.14)"/>
+      <use href="#tile" transform="translate(26.5,163.5) rotate(84 45 30) scale(0.96)"/>
+      <use href="#tile" transform="translate(122.5,153.5) rotate(134 45 30) scale(1.13)"/>
+      <use href="#tile" transform="translate(259.5,143.5) rotate(184 45 30) scale(1.00)"/>
+      <use href="#tile" transform="translate(396.5,174.5) rotate(234 45 30) scale(0.87)"/>
+      <use href="#tile" transform="translate(533.5,164.5) rotate(284 45 30) scale(1.04)"/>
+      <use href="#tile" transform="translate(629.5,154.5) rotate(334 45 30) scale(0.91)"/>
+      <use href="#tile" transform="translate(766.5,144.5) rotate(24 45 30) scale(1.08)"/>
+      <use href="#tile" transform="translate(903.5,175.5) rotate(74 45 30) scale(0.95)"/>
+      <use href="#tile" transform="translate(14.5,273.5) rotate(168 45 30) scale(1.07)"/>
+      <use href="#tile" transform="translate(151.5,263.5) rotate(218 45 30) scale(0.94)"/>
+      <use href="#tile" transform="translate(247.5,294.5) rotate(268 45 30) scale(1.11)"/>
+      <use href="#tile" transform="translate(384.5,284.5) rotate(318 45 30) scale(0.98)"/>
+      <use href="#tile" transform="translate(521.5,274.5) rotate(8 45 30) scale(0.85)"/>
+      <use href="#tile" transform="translate(658.5,264.5) rotate(58 45 30) scale(1.02)"/>
+      <use href="#tile" transform="translate(754.5,295.5) rotate(108 45 30) scale(0.89)"/>
+      <use href="#tile" transform="translate(891.5,285.5) rotate(158 45 30) scale(1.06)"/>
+      <use href="#tile" transform="translate(2.5,424.5) rotate(252 45 30) scale(0.88)"/>
+      <use href="#tile" transform="translate(139.5,414.5) rotate(302 45 30) scale(1.05)"/>
+      <use href="#tile" transform="translate(276.5,404.5) rotate(352 45 30) scale(0.92)"/>
+      <use href="#tile" transform="translate(372.5,394.5) rotate(42 45 30) scale(1.09)"/>
+      <use href="#tile" transform="translate(509.5,425.5) rotate(92 45 30) scale(0.96)"/>
+      <use href="#tile" transform="translate(646.5,415.5) rotate(142 45 30) scale(1.13)"/>
+      <use href="#tile" transform="translate(783.5,405.5) rotate(192 45 30) scale(1.00)"/>
+      <use href="#tile" transform="translate(879.5,395.5) rotate(242 45 30) scale(0.87)"/>
+      <use href="#tile" transform="translate(31.5,534.5) rotate(336 45 30) scale(0.99)"/>
+      <use href="#tile" transform="translate(127.5,524.5) rotate(26 45 30) scale(0.86)"/>
+      <use href="#tile" transform="translate(264.5,514.5) rotate(76 45 30) scale(1.03)"/>
+      <use href="#tile" transform="translate(401.5,545.5) rotate(126 45 30) scale(0.90)"/>
+      <use href="#tile" transform="translate(497.5,535.5) rotate(176 45 30) scale(1.07)"/>
+      <use href="#tile" transform="translate(634.5,525.5) rotate(226 45 30) scale(0.94)"/>
+      <use href="#tile" transform="translate(771.5,515.5) rotate(276 45 30) scale(1.11)"/>
+      <use href="#tile" transform="translate(908.5,546.5) rotate(326 45 30) scale(0.98)"/>
+      <use href="#tile" transform="translate(19.5,644.5) rotate(60 45 30) scale(1.10)"/>
+      <use href="#tile" transform="translate(156.5,675.5) rotate(110 45 30) scale(0.97)"/>
+      <use href="#tile" transform="translate(252.5,665.5) rotate(160 45 30) scale(1.14)"/>
+      <use href="#tile" transform="translate(389.5,655.5) rotate(210 45 30) scale(1.01)"/>
+      <use href="#tile" transform="translate(526.5,645.5) rotate(260 45 30) scale(0.88)"/>
+      <use href="#tile" transform="translate(622.5,676.5) rotate(310 45 30) scale(1.05)"/>
+      <use href="#tile" transform="translate(759.5,666.5) rotate(0 45 30) scale(0.92)"/>
+      <use href="#tile" transform="translate(896.5,656.5) rotate(50 45 30) scale(1.09)"/>
+      <use href="#tile" transform="translate(7.5,795.5) rotate(144 45 30) scale(0.91)"/>
+      <use href="#tile" transform="translate(144.5,785.5) rotate(194 45 30) scale(1.08)"/>
+      <use href="#tile" transform="translate(281.5,775.5) rotate(244 45 30) scale(0.95)"/>
+      <use href="#tile" transform="translate(377.5,765.5) rotate(294 45 30) scale(1.12)"/>
+      <use href="#tile" transform="translate(514.5,796.5) rotate(344 45 30) scale(0.99)"/>
+      <use href="#tile" transform="translate(651.5,786.5) rotate(34 45 30) scale(0.86)"/>
+      <use href="#tile" transform="translate(747.5,776.5) rotate(84 45 30) scale(1.03)"/>
+      <use href="#tile" transform="translate(884.5,766.5) rotate(134 45 30) scale(0.90)"/>
+      <use href="#tile" transform="translate(36.5,905.5) rotate(228 45 30) scale(1.02)"/>
+      <use href="#tile" transform="translate(132.5,895.5) rotate(278 45 30) scale(0.89)"/>
+      <use href="#tile" transform="translate(269.5,926.5) rotate(328 45 30) scale(1.06)"/>
+      <use href="#tile" transform="translate(406.5,916.5) rotate(18 45 30) scale(0.93)"/>
+      <use href="#tile" transform="translate(502.5,906.5) rotate(68 45 30) scale(1.10)"/>
+      <use href="#tile" transform="translate(639.5,896.5) rotate(118 45 30) scale(0.97)"/>
+      <use href="#tile" transform="translate(776.5,927.5) rotate(168 45 30) scale(1.14)"/>
+      <use href="#tile" transform="translate(872.5,917.5) rotate(218 45 30) scale(1.01)"/>
+  </g>
+</svg>

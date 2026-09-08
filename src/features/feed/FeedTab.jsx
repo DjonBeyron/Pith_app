@@ -8,6 +8,7 @@ import FeedTabsHeader from './FeedTabsHeader.jsx'
 import FeedSearchPanel from './FeedSearchPanel.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
+import { useLessonNav } from '../../app/LessonNavContext.jsx'
 import { useFeedSound } from './useFeedSound.js'
 import { useFeedSocial } from './useFeedSocial.js'
 import { useFeedModules } from './useFeedModules.js'
@@ -32,6 +33,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   // (раньше тап по лайку до его загрузки улетал в форму входа)
   const { user, loading: authLoading } = useAuth()
   const { isAdmin } = useAdmin()
+  // Открытие урока-закладки из «Мои уроки» — тем же оверлеем, что и переход
+  // по ноде lesson_ref (fromLessonId=null: ничего не паузим, паузить нечего)
+  const { openRef } = useLessonNav()
 
   const { soundOn, soundReady, soundEverOn, soundGestureRef, handleSoundOn, handleSoundOff, handleSoundBlocked } = useFeedSound()
   const {
@@ -121,6 +125,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           likeCounts={social?.likeCount}
           onToggle={toggle}
           onOpen={m => setOpenModule(m)}
+          onOpenLesson={lessonId => openRef({ isModule: false, targetId: lessonId }, null)}
           onGoFeed={() => setView('feed')}
         />
       </div>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <!-- Зерно (переменная v2 grain) — фрактальный шум, накладывается поверх
+       тёмных карточек вместе с узором и пылью. Фон для наглядности -->
+  <rect width="120" height="120" fill="#14171c"/>
+  <filter id="n">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+    <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.07 0"/>
+  </filter>
+  <rect width="120" height="120" filter="url(#n)"/>
+</svg>

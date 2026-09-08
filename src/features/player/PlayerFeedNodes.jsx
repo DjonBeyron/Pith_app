@@ -8,7 +8,7 @@ import NodeEditPencil from './admin/NodeEditPencil.jsx'
 export default function PlayerFeedNodes({
   visibleNodes, pendingNode, nodes, filesWithBlobs, teacherName,
   states, xpMap, pendingPhotoXp, bottomOffset, videoAutoSound, isAdmin,
-  onNodeDone, onTrReveal, onPhotoXpFired, onXpEarned,
+  onNodeDone, onTrReveal, onPhotoXpFired, onXpEarned, onOpenLessonRef,
   // Режим правки из канваса (usePlayerAdminEdit) — в обычном плеере null
   adminEdit = null,
 }) {
@@ -32,7 +32,7 @@ export default function PlayerFeedNodes({
           lessonNodes={nodes}
           teacherName={teacherName}
           pending={isPending}
-          onDone={isPending ? () => {} : () => onNodeDone(node.id)}
+          onDone={isPending ? () => {} : result => onNodeDone(node.id, result)}
           onTrReveal={() => onTrReveal(node.id)}
         />
       )
@@ -74,13 +74,14 @@ export default function PlayerFeedNodes({
           videoAutoSound={videoAutoSound}
           adminPreview={isAdmin}
           pending={isPending}
-          onDone={isPending ? () => {} : () => onNodeDone(node.id)}
+          onDone={isPending ? () => {} : result => onNodeDone(node.id, result)}
           onTrReveal={() => onTrReveal(node.id)}
           rewardXp={xpMap.get(node.id) ?? 0}
           photoXpPending={pendingPhotoXp[node.id] ?? 0}
           /* коллбэк дергается по событию XP-анимации, не в рендере */
           onPhotoXpFired={(rect) => onPhotoXpFired(node.id, rect)}
           onXpEarned={onXpEarned}
+          onOpenLessonRef={onOpenLessonRef}
         />
       </div>
     )

@@ -13,6 +13,7 @@ import PinMessageModule      from './pin-message/PinMessageModule.jsx'
 import PhotoChoiceModule     from './photo-choice/PhotoChoiceModule.jsx'
 import RegistrationModule    from './registration/RegistrationModule.jsx'
 import TableModule           from './table/TableModule.jsx'
+import LessonRefModule       from './lesson-ref/LessonRefModule.jsx'
 
 const MODULE_MAP = {
   audio:        AudioModule,
@@ -30,6 +31,7 @@ const MODULE_MAP = {
   photo_choice:    PhotoChoiceModule,
   registration:    RegistrationModule,
   table:           TableModule,
+  lesson_ref:      LessonRefModule,
 }
 
 // Returns the component for a given node type, or null if unknown.

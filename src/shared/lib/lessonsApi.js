@@ -10,6 +10,19 @@ export async function listLessons() {
   return data
 }
 
+// Опубликованные уроки для дропдауна ноды-ссылки (lesson_ref) — в отличие от
+// listLessons() (все уроки, для админ-списка), тут только то, что реально
+// можно показать ученику.
+export async function listPublishedLessons() {
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('id, title')
+    .eq('published', true)
+    .order('title', { ascending: true })
+  if (error) throw error
+  return data
+}
+
 export async function createLesson(title) {
   const id = crypto.randomUUID()
   dbg('[DB WRITE] lesson create', id, title)

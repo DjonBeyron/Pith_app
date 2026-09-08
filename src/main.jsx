@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './app/App.jsx'
 import ErrorBoundary from './app/ErrorBoundary.jsx'
 import { AdminProvider } from './app/AdminContext.jsx'
+import { LessonNavProvider } from './app/LessonNavContext.jsx'
 import { initErrorTrap } from './shared/lib/errorTrap.js'
 import { startStallWatch } from './shared/lib/feedDebug.js'
 import './index.css'
@@ -31,7 +32,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
       <AdminProvider>
-        <App />
+        <LessonNavProvider>
+          <App />
+        </LessonNavProvider>
       </AdminProvider>
     </ErrorBoundary>
   </StrictMode>,

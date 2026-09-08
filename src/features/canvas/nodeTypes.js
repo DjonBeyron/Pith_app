@@ -1,6 +1,6 @@
 import {
   MessageSquare, Mic, PlayCircle, Video, Image, Smile,
-  Info, Pin, SpellCheck, Layers, Images, MicVocal, UserPlus, Table2, SmilePlus,
+  Info, Pin, SpellCheck, Layers, Images, MicVocal, UserPlus, Table2, SmilePlus, Link2,
 } from 'lucide-react'
 
 // Справочник типов нод канваса (вынесен из NodeTypeSelect.jsx: react-refresh
@@ -18,6 +18,7 @@ export const NODE_TYPES = [
   { value: 'reaction',        label: 'Реакция на сообщение', icon: SmilePlus,    color: '#c85a8a', group: 'content' },
   { value: 'system',          label: 'Системное сообщение', icon: Info,          color: '#6a7a8a', group: 'content' },
   { value: 'pin_message',     label: 'Закрепить сообщение', icon: Pin,           color: '#aa8830', group: 'content' },
+  { value: 'lesson_ref',      label: 'Ссылка на урок/модуль', icon: Link2,       color: '#5a9ac8', group: 'content' },
   { value: 'word_choice',     label: 'Выбери слово',        icon: SpellCheck,    color: '#c89050', group: 'interactive' },
   { value: 'phrase_assembly', label: 'Собери фразу',        icon: Layers,        color: '#3a9888', group: 'interactive' },
   { value: 'table',           label: 'Таблица',             icon: Table2,        color: '#8a6fd4', group: 'interactive' },
@@ -35,6 +36,7 @@ export const TYPE_SHORT = {
   sticker: 'Стикер', reaction: 'Реакция', system: 'Система', pin_message: 'Закреп',
   word_choice: 'Слово', phrase_assembly: 'Фраза', table: 'Таблица',
   photo_choice: 'Фото-выбор', voice_record: 'Запись', registration: 'Регистрация',
+  lesson_ref: 'Ссылка',
 }
 
 // true для первого элемента новой группы (кроме самой первой) — используется

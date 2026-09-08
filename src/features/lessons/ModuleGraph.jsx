@@ -31,7 +31,7 @@ export default function ModuleGraph({
   animHold = false,  // true (попап-легенда открыт) — пульс/полёт XP/озеленение линий ждут закрытия
   animShort = false, // true (попап только что закрыт) — офсет анимации вдвое короче
   onFlightDone,
-  onPlay, onEdit, onDelete, onRename, onTogglePublished, onResetLesson,
+  onPlay, onEdit, onDelete, onRename, onTogglePublished, onResetLesson, onMarkDoneLesson,
 }) {
   const { isAdmin } = useAdmin()
   const [hovered,  setHovered]  = useState(null)
@@ -192,7 +192,7 @@ export default function ModuleGraph({
     <MgBtns l={l} kind={kind} isAdmin={isAdmin}
       show={hovered === l.id || tapped === l.id}
       onPlay={onPlay} onEdit={onEdit} onRenameStart={startRename}
-      onResetLesson={onResetLesson} onTogglePublished={onTogglePublished}
+      onResetLesson={onResetLesson} onMarkDoneLesson={onMarkDoneLesson} onTogglePublished={onTogglePublished}
       onDelete={onDelete} clearTap={() => setTapped(null)} />
   )
 

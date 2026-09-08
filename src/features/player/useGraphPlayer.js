@@ -18,10 +18,15 @@ function findEntry(nodes, startNodeId) {
   )
 }
 
+// Чекпойнт «Продолжить урок» (useLessonResume.js): сколько РАЗНЫХ нод нужно
+// пройти, прежде чем предлагать резюм при следующем входе — меньше не имеет
+// смысла, разница со стартом с нуля незаметна
+const CHECKPOINT_THRESHOLD = 6
+
 // paused — шаговый режим админа (правка из канваса): переходы замирают.
 // Запланированный переход не теряется: он запоминается и отыгрывается, когда
 // паузу снимут или нажмут «вперёд».
-export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = false } = {}) {
+export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = null, paused = false } = {}) {
   const [visibleNodes, setVisibleNodes] = useState([])
   const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
@@ -37,6 +42,10 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
   const finishedRef = useRef(false) // финал урока срабатывает ровно один раз
   const onFinishRef = useRef(onFinish)
   onFinishRef.current = onFinish
+  const onCheckpointRef = useRef(onCheckpoint)
+  onCheckpointRef.current = onCheckpoint
+  // Разные ноды, показанные хоть раз за эту сессию плеера — для порога чекпойнта
+  const seenIdsRef = useRef(new Set())
 
   nodeMapRef.current = Object.fromEntries(nodes.map(n => [n.id, n]))
   visibleRef.current = visibleNodes
@@ -72,6 +81,8 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
     setIsWaiting(false)
     firedRef.current = forgetNodeKeys(firedRef.current, next.id)
     activateTimerTrigger.current(next)
+    seenIdsRef.current.add(next.id)
+    if (seenIdsRef.current.size >= CHECKPOINT_THRESHOLD) onCheckpointRef.current?.(next.id)
   }
 
   // force — шаг «вперёд» админа: показать не дожидаясь «печатает…» и не
@@ -261,6 +272,7 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
     clearTimers()
     firedRef.current = new Set()
     visitsRef.current = new Map()
+    seenIdsRef.current = new Set()
     finishedRef.current = false
     const entry = findEntry(nodes, startNodeId)
     const ids = new Set(nodes.map(n => n.id))
@@ -270,6 +282,7 @@ export function useGraphPlayer(nodes, { onFinish, startNodeId = null, paused = f
       (broken ? `, СВЯЗЕЙ В НИКУДА: ${broken}` : ''))
     if (!entry) return
     setVisibleNodes([entry])
+    seenIdsRef.current.add(entry.id)
     setIsWaiting(false)
     activateTimerTrigger.current(entry)
     return clearTimers

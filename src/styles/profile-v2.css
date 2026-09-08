@@ -229,6 +229,35 @@
   color: #0d1500;
 }
 
+/* ── Саб-вкладки внутри «Пройденные»: Модули/Уроки (ProfileDoneTab.jsx) —
+   та же капсула, что и pvTabs, но компактнее и без градиента на активном ── */
+.pvSubTabs {
+  display: flex;
+  gap: 2px;
+  margin: 0 0 12px;
+  padding: 3px;
+  background: #14171c;
+  border: 1px solid #232932;
+  border-radius: 999px;
+}
+
+.pvSubTab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #9aa3ad;
+  border-radius: 999px;
+  padding: 7px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pvSubTabActive {
+  background: rgba(182, 254, 59, 0.15);
+  color: #b6fe3b;
+}
+
 /* ── LogoutSheet: попап подтверждения выхода (карточка — rwInfoCard) ── */
 .pvLogoutEmail { color: #e8eaf0 !important; font-weight: 600; word-break: break-all; }
 

@@ -6,6 +6,7 @@
 @import './styles/layout.css';
 @import './styles/admin.css';
 @import './styles/shell-v2.css';
+@import './styles/lesson-nav-overlay.css';
 @import './styles/feed-v2.css';
 @import './styles/feed-reactions-fx.css';
 @import './styles/feed-bubble-spoiler.css';
@@ -15,6 +16,7 @@
 @import './styles/difficulty.css';
 @import './styles/feed-search.css';
 @import './styles/my-lessons-v2.css';
+@import './styles/auto-lesson-preview.css';
 @import './styles/profile-v2.css';
 @import './styles/profile-v2-list.css';
 @import './styles/avatar-picker.css';
@@ -57,6 +59,7 @@
 @import './styles/canvas/spotlight.css';
 @import './styles/canvas/zoom-badge.css';
 @import './styles/canvas/selection-toolbar.css';
+@import './styles/canvas/lesson-ref-picker.css';
 @import './styles/canvas/save-button.css';
 @import './styles/resume-toast.css';
 @import './styles/emoji-picker.css';
@@ -68,6 +71,8 @@
 @import './styles/player/admin-edit.css';
 @import './styles/player/topbar.css';
 @import './styles/player/feed.css';
+@import './styles/player/resume-lesson.css';
+@import './styles/player/lesson-ref.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';
 @import './styles/player/modules/circle.css';

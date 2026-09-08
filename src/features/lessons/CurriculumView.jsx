@@ -8,6 +8,7 @@ import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { getCompletedLessons, markLessonCompleted, unmarkLessons } from '../../shared/lib/completedLessons.js'
+import { simulateLessonsDone } from '../../shared/lib/adminTestCompletion.js'
 import { refreshProfile, getCachedProfile } from '../../shared/api/profileCache.js'
 import ProPaywall from '../pro/ProPaywall.jsx'
 import { resetLessonProgress, startLesson } from '../../shared/api/profileApi.js'
@@ -150,6 +151,19 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
     if (refunded > 0) refreshProfile()
   }
 
+  // Тест-инструмент админа: имитировать «весь модуль пройден» без реального
+  // прохождения — см. adminTestCompletion.js (XP на сервере не начисляется)
+  function handleMarkAllDone() {
+    if (!window.confirm('Тест: пометить ВСЕ уроки модуля пройденными? (без начисления XP)')) return
+    simulateLessonsDone(lessons.map(l => l.id))
+    setCompletedIds(getCompletedLessons())
+  }
+
+  function handleMarkLessonDone(id) {
+    simulateLessonsDone([id])
+    setCompletedIds(getCompletedLessons())
+  }
+
   async function handleSave() {
     // Защита от ложного «✓ Сохранено»: у обычного модуля всегда есть
     // Старт/Финал. Пустой список = уроки не создались (сбой сети в bulkCreate) —
@@ -260,6 +274,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
               disabled={loading || !lessons.length} title="Сбросить прохождение уроков модуля (локально)">
               ⟲
             </button>
+            <button className="saveBtn" onClick={handleMarkAllDone}
+              disabled={loading || !lessons.length} title="Тест: пометить все уроки модуля пройденными (без начисления XP)">
+              ✔
+            </button>
             <button className={`saveBtn${isDirty ? ' saveBtn--dirty' : ''}`}
               onClick={handleSave} disabled={saving || loading} title="Сохранить структуру на сервер">
               {saving ? '...' : '💾'}
@@ -303,6 +321,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             if (takeFirstDay()) setFirstDayOpen(true)
           }}
           onResetLesson={handleResetLesson}
+          onMarkDoneLesson={handleMarkLessonDone}
           onPlay={id => setLaunchId(id)}
           onEdit={openEditor}
           onDelete={removeLesson}

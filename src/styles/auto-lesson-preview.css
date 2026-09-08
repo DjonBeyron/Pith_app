@@ -1,0 +1,103 @@
+/* Авто-превью урока-закладки в «Мои уроки» (режим ленты) — AutoLessonPreview.jsx.
+   Фиолетовая подсветка сохранена как в присланном образце design-примера. */
+.autoLessonPreview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0c0715;
+}
+
+.autoLessonPreviewGlow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(180, 45, 205, 0.35) 0%, rgba(110, 30, 165, 0.2) 35%, rgba(18, 8, 30, 0.95) 70%, #0c0515 100%);
+}
+
+/* Статичная надпись сверху, как в образце дизайна («Всё, что нужно знать
+   об слове») — над карточкой-боксом, поверх фона-глоу */
+.autoLessonPreviewCaption {
+  position: absolute;
+  top: 18%;
+  left: 8%;
+  right: 8%;
+  z-index: 1;
+  text-align: center;
+  color: rgba(235, 238, 245, 0.82);
+  font-family: 'Comfortaa', cursive, sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 20px rgba(216, 180, 254, 0.25);
+}
+
+.autoLessonPreviewBoxWrap {
+  position: relative;
+  z-index: 1;
+  max-width: 82%;
+  padding: 90px 0;
+}
+
+.autoLessonPreviewBox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #3b2064;
+  padding: 1.3rem 2rem;
+  border-radius: 4px;
+  box-shadow: 0 12px 40px rgba(10, 4, 25, 0.7);
+}
+
+/* Маячки-капли на левом/правом крае бокса, торчащие за его пределы вверх/вниз —
+   тот же приём, что в образце (там были на противоположных углах-краях) */
+.autoLessonPreviewPin {
+  position: absolute;
+  width: 3.5px;
+  background-color: #7248f7;
+}
+
+.autoLessonPreviewPinSvg {
+  position: absolute;
+  width: 40px;
+  height: 48px;
+  filter: drop-shadow(0 0 14px rgba(125, 80, 255, 0.65));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Нижний маячок — зеркальная капля (остриём вверх, к боксу), а не та же
+   форма второй раз: раньше «висел» перевёрнутым, остриём наружу */
+.autoLessonPreviewPinSvgFlip {
+  transform: translateX(-50%) scaleY(-1);
+}
+
+.autoLessonPreviewPinLeft {
+  left: 0;
+  top: -64px;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+.autoLessonPreviewPinLeft svg { top: -44px; }
+
+.autoLessonPreviewPinRight {
+  right: 0;
+  top: 0;
+  bottom: -64px;
+  transform: translateX(50%);
+}
+.autoLessonPreviewPinRight svg { bottom: -44px; }
+
+.autoLessonPreviewText {
+  color: #f1e9ff;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  word-break: break-word;
+}

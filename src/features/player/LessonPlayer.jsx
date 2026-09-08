@@ -23,6 +23,9 @@ import PlayerOverlays from './PlayerOverlays.jsx'
 import HintBar from './HintBar.jsx'
 import { useFinalHints } from './useFinalHints.js'
 import { useLessonFinish } from './useLessonFinish.js'
+import { useLessonResume } from './useLessonResume.js'
+import ResumeLessonPopup from './ResumeLessonPopup.jsx'
+import { useLessonNav } from '../../app/LessonNavContext.jsx'
 import { usePlayerAnswers } from './usePlayerAnswers.js'
 import { buildXpMap } from './lessonXp.js'
 
@@ -72,14 +75,32 @@ export default function LessonPlayer({
   const [xpEvents,  setXpEvents]  = useState([])   // [{id, amount, rect}] — triggers float anim
   const [showSummary, setShowSummary] = useState(false)
 
+  // Чекпойнт «Продолжить урок» — работает для любого входа, не только новой
+  // ноды-ссылки (useLessonResume.js). Пока идёт проверка сохранённого места
+  // или ждём выбор в попапе — граф не запускаем (nodes ниже подменяются на [])
+  const resumeState = useLessonResume(lessonId, edit)
+  const holdForResume = resumeState.checking || !!resumeState.resumeOffer
+  const graphNodes = holdForResume ? [] : nodes
+
+  // Переход по ноде lesson_ref (карточка-ссылка в чате) — пауза этого урока
+  // и открытие целевого поверх всего (LessonNavOverlay.jsx)
+  const { openRef } = useLessonNav()
+  const handleOpenLessonRef = target => openRef(target, lessonId)
+
   // Конец урока: начисление XP/звёзд/билета, запись анализа — useLessonFinish.js
   const { finishSummary } = useLessonFinish({
     edit, starsEligible, lessonId, wrongRef, finalTicket, getHintCount, getEvents, earnedXpRef,
     setBaseXp, setEarnedXp, setStarsRes, setShowSummary, setTicketRes,
+    clearProgress: resumeState.clear,
   })
 
-  const graph = useGraphPlayer(nodes, {
-    startNodeId,
+  // Карта главной линии считается один раз на урок — нужна и для полоски
+  // прогресса в шапке, и для процента, который уходит в чекпойнт
+  const mainIndex = useMemo(() => mainLineIndex(nodes), [nodes])
+
+  const graph = useGraphPlayer(graphNodes, {
+    startNodeId: resumeState.startNodeId ?? startNodeId,
+    onCheckpoint: nodeId => resumeState.checkpoint(nodeId, Math.round(lessonProgress(mainIndex, [{ id: nodeId }]) * 100)),
     paused: stepState.paused,
     onFinish: () => {
       if (onFinishStats) {
@@ -98,10 +119,7 @@ export default function LessonPlayer({
     },
   })
   const { visibleNodes, pendingNode, isWaiting, onNodeDone } = graph
-
-  // Карта главной линии считается один раз на урок, доля — на каждый показ
-  const mainIndex = useMemo(() => mainLineIndex(nodes), [nodes])
-  const progress  = lessonProgress(mainIndex, visibleNodes)
+  const progress = lessonProgress(mainIndex, visibleNodes)
 
   function handleXpEarned(amount, rect) {
     setEarnedXp(prev => { earnedXpRef.current = prev + amount; return prev + amount })
@@ -282,10 +300,11 @@ export default function LessonPlayer({
             onTrReveal={registerHint}
             onPhotoXpFired={handlePhotoXpFired}
             onXpEarned={handleXpEarned}
+            onOpenLessonRef={handleOpenLessonRef}
             adminEdit={adminEdit}
           />
           <WaitingDots visible={isWaiting} type={pendingNode?.type} />
-          {visibleNodes.length === 0 && (
+          {!holdForResume && visibleNodes.length === 0 && (
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}
         </PlayerFeed>
@@ -334,6 +353,14 @@ export default function LessonPlayer({
         stars={starsRes}
         onSummaryClose={onSummaryClose ?? onClose}
       />
+
+      {resumeState.resumeOffer && (
+        <ResumeLessonPopup
+          pct={resumeState.resumeOffer.pct}
+          onResume={resumeState.resume}
+          onRestart={resumeState.restart}
+        />
+      )}
 
      </div>
 

@@ -150,6 +150,35 @@
 
 .mlThumb svg { width: 20px; height: 20px; color: rgba(255, 255, 255, 0.85); }
 
+/* Урок-закладка (без модуля вокруг) в списке — минималистичный тумб без
+   названия внутри картинки, тот же фиолетовый глоу, что у авто-превью
+   в ленте (auto-lesson-preview.css) — визуально одна и та же сущность */
+.mlThumbLesson {
+  background: radial-gradient(circle at 50% 30%, rgba(180, 45, 205, 0.45) 0%, rgba(110, 30, 165, 0.3) 45%, rgba(18, 8, 30, 0.9) 100%);
+  border: 1px solid rgba(148, 90, 220, 0.4);
+}
+.mlThumbLesson svg { color: #e5d8ff; }
+
+/* Обёртка строки (модуль/урок) — только чтобы кнопка админа могла лежать
+   РЯДОМ с .mlRow, а не ВНУТРИ него (вложенные <button> недопустимы) */
+.mlRowShell { position: relative; }
+
+.mlRowAdminMark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(182, 254, 59, 0.4);
+  background: rgba(9, 11, 14, 0.85);
+  color: #b6fe3b;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .mlRowBody { flex: 1; min-width: 0; }
 
 .mlRowTitle { display: block; font-size: 16px; font-weight: 700; }

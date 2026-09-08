@@ -14,10 +14,11 @@ export function MgRenameInput({ draft, onDraft, onCommit, onCancel }) {
 
 // Кнопки карточки (только админ): ▶ запуск, ⚙ редактор (граф или продакшен —
 // какой использовали последним, см. lastEditorMode.js), ✎ переименовать,
-// ⟲ сброс урока, 👁 публикация, ✕ удалить (только у обычных уроков)
+// ⟲ сброс урока, ✔ тест «пометить пройденным», 👁 публикация, ✕ удалить
+// (только у обычных уроков)
 export function MgBtns({
   l, kind, isAdmin, show,
-  onPlay, onEdit, onRenameStart, onResetLesson, onTogglePublished, onDelete, clearTap,
+  onPlay, onEdit, onRenameStart, onResetLesson, onMarkDoneLesson, onTogglePublished, onDelete, clearTap,
 }) {
   // Обычный пользователь запускает урок тапом/кликом по карточке (handleClick) —
   // кнопок у него нет вовсе, в том числе ▶.
@@ -30,6 +31,8 @@ export function MgBtns({
       <button className="mgBtn" onClick={e => { onRenameStart(e, l.id, l.title); clearTap() }}>✎</button>
       <button className="mgBtn" title="Сбросить прохождение этого урока (XP отнимется, анализ сохранится)"
         onClick={() => { onResetLesson?.(l.id); clearTap() }}>⟲</button>
+      <button className="mgBtn" title="Тест: пометить этот урок пройденным (без начисления XP)"
+        onClick={() => { onMarkDoneLesson?.(l.id); clearTap() }}>✔</button>
       <button className={`mgBtn mgBtnEye${l.published ? ' mgBtnEyeOn' : ''}`}
         title={l.published ? 'Скрыть' : 'Показать'}
         onClick={() => { onTogglePublished(l.id, l.published); clearTap() }}>
