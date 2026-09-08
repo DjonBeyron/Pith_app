@@ -69,6 +69,10 @@ export function makeNode(seq, x, y, wantType) {
       reaction:        { emoji: '👍', target: 'student' },
       sticker:         { file_id: null, crop: { x: 0, y: 0, scale: 1 }, muted: true, isVideo: false, replyToSeq: null, caption: '', autoSound: false },
       photo_choice:    { photos: [], correctIndexes: [], responseCorrect: '', responseWrong: '' },
+      // Подпись по умолчанию — коротко объясняет саму суть карточки с первого
+      // раза (что это не обязательная часть текущего урока, можно открыть
+      // сейчас или сохранить закладкой). Автор может стереть/переписать
+      lesson_ref:      { isModule: false, targetId: null, targetTitle: '', caption: 'Открой сейчас или сохрани на потом' },
     },
   }
 }
