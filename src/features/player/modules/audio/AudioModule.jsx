@@ -13,6 +13,21 @@ const WAVE_H_BASE = [7,11,16,22,14,19,24,17,10,20,13,22,18,11,25,21,15,9,18,24,1
 const BAR_W = 2, BAR_GAP = 2
 const ACCENT = '#b6fe3b'
 
+// Индекс центра самого громкого короткого участка записи (окно, а не
+// одиночный сэмпл — иначе один щелчок/вдох решал бы, где заморозить кадр).
+// wd — RMS-амплитуда 0..255 по кадрам (analyzeWaveform, 30 кадров/с).
+function loudestFrameIndex(wd, win = 9) {
+  const w = Math.min(win, wd.length)
+  let sum = 0
+  for (let i = 0; i < w; i++) sum += wd[i]
+  let bestSum = sum, bestCenter = Math.floor((w - 1) / 2)
+  for (let start = 1; start <= wd.length - w; start++) {
+    sum += wd[start + w - 1] - wd[start - 1]
+    if (sum > bestSum) { bestSum = sum; bestCenter = start + Math.floor((w - 1) / 2) }
+  }
+  return bestCenter
+}
+
 function PlayTriangle() {
   return <Play size={10} fill="#0e1013" color="#0e1013" />
 }
@@ -134,10 +149,18 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     if (!wd?.length) return
     const n = barElsRef.current.length
     const center = (n - 1) / 2
+    // Раньше центр стоп-кадра был жёстко на индексе 0 (самое начало записи —
+    // часто тишина/вдох перед речью), и кадр выглядел плоским. На слабых
+    // устройствах tick() вообще не пересчитывает полоски во время игры
+    // (см. ниже: fi=-1 всегда) — значит этот кадр виден не долю секунды до
+    // старта, а ВСЮ игру целиком. Берём центром самую громкую точку записи
+    // вместо начала — тот же формат разброса ±offset*0.2, что и у живого
+    // эквалайзера в tick(), просто центр не всегда 0.
+    const peakIdx = loudestFrameIndex(wd)
     barElsRef.current.forEach((bar, i) => {
       if (!bar) return
       const offset = Math.round((i - center) * 0.2)
-      const idx    = Math.max(0, Math.min(wd.length - 1, offset))
+      const idx    = Math.max(0, Math.min(wd.length - 1, peakIdx + offset))
       const amp    = Math.pow(wd[idx] / 255, 0.55)
       barSmoothRef.current[i] = amp
       bar.style.transform = `scaleY(${Math.max(0.1, amp * 1.8)})`

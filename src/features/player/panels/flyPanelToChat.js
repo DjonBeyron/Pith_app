@@ -44,9 +44,11 @@ function anchorRow() {
   const feed = document.querySelector('.playerFeedInner')
   if (!feed) return null
   // Распорка тоже лежит в ленте последним элементом, и она как раз меняет
-  // высоту — по ней ничего не измеришь. Якорем берём последнее сообщение
-  const rows = [...feed.children].filter(el =>
-    el.dataset.pending !== 'true' && !el.matches(SPACER_SEL))
+  // высоту — по ней ничего не измеришь. Якорем берём последнее сообщение.
+  // Индикатор «печатает» тоже не годится: он вне потока (feed.css) и сдвига
+  // истории по нему не видно вовсе — вышел бы drop=0
+  const rows = [...feed.children].filter(el => el.dataset.pending !== 'true'
+    && !el.matches(SPACER_SEL) && !el.classList.contains('playerWaitingRow'))
   return rows[rows.length - 1] ?? null
 }
 

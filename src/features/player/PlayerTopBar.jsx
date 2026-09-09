@@ -93,6 +93,14 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
         title="Скачать лог"
         aria-label="Скачать лог"
       >⬇ лог</button>
+      {import.meta.env.DEV && (
+        <button
+          className="playerTopBarDebugBtn"
+          onClick={() => import('../debugTools/debugToolbarState.js').then(m => m.openDebugToolbar())}
+          title="Покадровый дебаг-тулбар"
+          aria-label="Покадровый дебаг-тулбар"
+        >🐞</button>
+      )}
     </div>
   )
 }

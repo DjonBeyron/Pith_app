@@ -1,0 +1,210 @@
+/* Дебаг-тулбар покадровой отладки (src/features/debugTools) — грузится
+   только в dev-сборке, но CSS-файл общий для всех сборок (сам по себе не
+   исполняемый код и ничего не включает в проде).
+   Дефолтная позиция — верх-лево (top:64px), НЕ низ-право: там на телефоне
+   всегда что-то есть (нижний бар, кнопка "Изучить фразу", HUD-иконки).
+   Открытую панель можно перетащить за ручку (.dbgToolbarHandle) — позиция
+   держится инлайн-стилем поверх этих дефолтов, см. useDraggablePosition.js */
+
+.dbgToolbarFab {
+  position: fixed;
+  left: 8px;
+  top: 64px;
+  z-index: 99999;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #222;
+  color: #b6fe3b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+}
+
+/* Широкая и низкая — всё управление в один ряд, вместо стопки из 4-5 рядов */
+.dbgToolbar {
+  position: fixed;
+  left: 8px;
+  top: 64px;
+  z-index: 99999;
+  background: #1a1a1a;
+  color: #eee;
+  border: 1px solid #444;
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: monospace;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 320px;
+  max-width: calc(100vw - 16px);
+}
+
+.dbgToolbarHandle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #999;
+  font-size: 10px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #2c2c2c;
+}
+
+.dbgToolbarHandleText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dbgToolbarClose {
+  background: none !important;
+  border: none !important;
+  padding: 2px !important;
+  color: #999 !important;
+  min-height: auto !important;
+}
+
+.dbgToolbarRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Компактные квадратные кнопки — иконка (+ мини-цифра у кадра), без длинных
+   подписей: подсказка при наведении/долгом тапе идёт через title */
+.dbgToolbar button {
+  background: #333;
+  color: #eee;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 30px;
+  min-height: 30px;
+  flex-shrink: 0;
+  transition: transform .08s ease, background-color .08s ease, border-color .08s ease;
+}
+
+/* Тактильная отдача: у всего приложения глобально погашен нативный
+   -webkit-tap-highlight-color (base.css, синяя рамка тапа на Android), без
+   замены тап по кнопке тулбара выглядел так, будто ничего не произошло */
+.dbgToolbar button:hover {
+  background: #3d3d3d;
+  border-color: #777;
+}
+.dbgToolbar button:active {
+  transform: scale(0.88);
+  background: #b6fe3b;
+  border-color: #b6fe3b;
+  color: #111;
+}
+
+.dbgToolbarPauseBtn {
+  background: #2a2f22 !important;
+  border-color: #b6fe3b !important;
+  color: #b6fe3b !important;
+  min-width: 36px !important;
+}
+.dbgToolbarPauseBtn:active { color: #111 !important; }
+
+.dbgToolbarDivider {
+  width: 1px;
+  align-self: stretch;
+  background: #333;
+  margin: 0 2px;
+}
+
+/* Ряд шага по сценарию (PlayerStepRow.jsx) — виден только когда открыт
+   плеер урока. Отдельный цвет переключателя верно/неверно (зелёный/оранжевый,
+   как у desktop-панели PlayerStepBar) — чтобы не путать с общими кнопками */
+.dbgToolbarAnswerBtn {
+  min-width: auto !important;
+  width: auto !important;
+  padding: 6px 10px !important;
+  margin-left: auto;
+  color: #6ac46a !important;
+}
+.dbgToolbarAnswerBad { color: #ff8040 !important; }
+
+.dbgToolbarMarkBtn {
+  position: relative;
+}
+
+.dbgToolbarBadge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #b6fe3b;
+  color: #111;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 999px;
+  min-width: 14px;
+  text-align: center;
+}
+
+.dbgToolbarActive {
+  background: #22bb66 !important;
+  border-color: #22bb66 !important;
+  color: #012 !important;
+}
+
+.dbgToolbarGenerate {
+  background: #bb4455 !important;
+  border-color: #bb4455 !important;
+  margin-left: auto;
+}
+
+.dbgCommentPopover {
+  position: fixed;
+  z-index: 100000;
+  width: 240px;
+  background: #1a1a1a;
+  border: 1px solid #666;
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dbgCommentPopover textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #111;
+  color: #eee;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.dbgCommentPopoverRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.dbgCommentPopoverRow button {
+  min-width: auto;
+  padding: 6px 10px;
+  font-size: 11px;
+}

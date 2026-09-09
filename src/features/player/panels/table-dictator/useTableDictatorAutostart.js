@@ -3,6 +3,7 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import { createSilentClock } from '../../../../shared/lib/silentClock.js'
 import { logAudioPlayRejected } from './dictatorDebug.js'
 import { timelineEndSec } from '../../../../shared/lib/tableDictatorTiming.js'
+import { registerDebugClock } from '../../../debugTools/debugMedia.js'
 
 // Как прогон стартует без тапа пользователя: обычный автозапуск <audio>, и
 // подстраховка часами (silentClock.js) без звука, когда играть нечем/нечему —
@@ -17,6 +18,8 @@ export function useTableDictatorAutostart({
 }) {
   const autoPlayFired = useRef(false)
   const clockRef       = useRef(null)
+  // Снятие часов с учёта дебаг-тулбара (в проде — пустышка, см. registerDebugClock)
+  const unregClockRef  = useRef(null)
 
   // Длительность прогона: длина композиции из таймлайна → аудио + 10с → как
   // крайний случай конец самого позднего клипа с небольшим запасом. Что-то из
@@ -32,6 +35,10 @@ export function useTableDictatorAutostart({
     const clock = createSilentClock(silentDur, { onEnded: () => endedRef.current?.() })
     clockRef.current = clock
     audioRef.current = clock
+    // Без озвучки прогон крутят часы, а не <audio> — покадровый дебаг-тулбар
+    // не нашёл бы их в DOM. Отдаём их ему явно: дальше он паузит/двигает их
+    // ровно так же, как аудио, а RAF-цикл сам подхватывает новое время
+    unregClockRef.current = registerDebugClock(clock)
     clock.play()
     startedRef.current?.()
   }
@@ -73,7 +80,7 @@ export function useTableDictatorAutostart({
     return () => clearTimeout(startId)
   }, [silentMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => () => clockRef.current?.stop?.(), [])
+  useEffect(() => () => { clockRef.current?.stop?.(); unregClockRef.current?.() }, [])
 
   // Последняя страховка: аудио так и не заиграло за 3 секунды — файл не
   // подгрузился, декодер споткнулся, вкладка была скрыта. Прогон всё равно

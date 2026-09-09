@@ -68,6 +68,10 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   // действие за раз — цепочка линейна: либо ждём показа следующей ноды, либо
   // тикает таймер-триггер текущей
   const scheduledRef = useRef(null)
+  // Сколько миллисекунд осталось «докрутить» запланированному действию, если
+  // время двигают руками (дебаг-тулбар, stepTime ниже). На обычной паузе
+  // таймеры убиты, и без этого счётчика «печатает…» висело бы вечно
+  const pendingMsRef = useRef(0)
   const pausedRef = useRef(paused)
 
   function revealNode(next) {
@@ -97,12 +101,14 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     }
     if (pausedRef.current && !force) {
       scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
+      pendingMsRef.current = TYPING_DELAY_MS
       return
     }
     setPendingNode(next)   // pre-render node off-screen so video can decode
     setIsWaiting(true)
     if (force) { revealNode(next); return }
     scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
+    pendingMsRef.current = TYPING_DELAY_MS
     addTimer(() => revealNode(next), TYPING_DELAY_MS)
   }
 
@@ -112,6 +118,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   // бы навсегда: повторного «доиграло» от модуля уже не будет
   scheduleAfter.current = (ms, nextNodeId) => {
     scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
+    pendingMsRef.current = ms
     if (pausedRef.current) return
     addTimer(() => {
       scheduledRef.current = null
@@ -123,6 +130,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     const t = (node.triggers ?? []).find(tr => tr.if === 'timer' && tr.then)
     if (!t) return
     const key = `${node.id}:timer`
+    pendingMsRef.current = t.ms ?? 3000
     if (pausedRef.current && !force) {
       scheduledRef.current = { type: 'timer', nodeId: node.id }
       return
@@ -239,6 +247,19 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     return true
   }, [])
 
+  // Дебаг-тулбар двигает время руками (±33/±100мс, см. debugMedia.js). Пауза
+  // убила таймеры сценария, поэтому «печатает…» само по себе уже не кончится:
+  // сколько ни жми «вперёд», индикатор крутится бесконечно (у него CSS-анимация
+  // с iteration-count: infinite), а следующее сообщение не приходит. Здесь те же
+  // миллисекунды списываются и с отсчёта сценария — дошли до нуля, показываем
+  // ноду, ровно как это сделал бы живой таймер
+  const stepTime = useCallback(ms => {
+    if (!scheduledRef.current) return false
+    pendingMsRef.current -= ms
+    if (pendingMsRef.current > 0) return false
+    return revealNow()
+  }, [revealNow])
+
   // Шаг «назад»: снимаем последнее сообщение и разрешаем пройти этот кусок
   // заново — забываем сработавшие триггеры снятой ноды И той, что снова стала
   // последней (иначе её нельзя было бы «ответить» ещё раз, дедуп firedRef не
@@ -301,6 +322,6 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
 
   return {
     visibleNodes: freshVisible, pendingNode: freshPending, isWaiting, onNodeDone,
-    revealNow, stepBack, canStepBack: visibleNodes.length > 1,
+    revealNow, stepTime, stepBack, canStepBack: visibleNodes.length > 1,
   }
 }

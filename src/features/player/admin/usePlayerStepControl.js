@@ -47,6 +47,9 @@ export function buildStep({ state, graph, ctx }) {
     canBack: graph.canStepBack,
     forward: () => { const c = ctx(); c.onSkipMedia(); makeStepActions(c).forward() },
     back:    () => { const c = ctx(); c.onHideSummary(); makeStepActions(c).back() },
+    // Не шаг по сценарию, а ручная перемотка времени из дебаг-тулбара: те же
+    // миллисекунды, что уходят видео и CSS, списываются с отсчёта сценария
+    stepTime: ms => graph.stepTime(ms),
   }
 }
 

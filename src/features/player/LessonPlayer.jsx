@@ -257,6 +257,18 @@ export default function LessonPlayer({
   })
   const step = buildStep({ state: stepState, graph, ctx: stepCtx })
 
+  // Мобильный дебаг-тулбар (src/features/debugTools) читает тот же самый
+  // step, что и десктопная PlayerAdminPanel — просто через мост, а не через
+  // проп, ей ведь и на телефоне некуда отрисоваться. Только dev-сборка.
+  useEffect(() => {
+    if (import.meta.env.DEV) import('../debugTools/debugPlayerStep.js').then(m => m.registerPlayerStep(step))
+  }) // без deps: step — новый объект на каждый рендер, актуальные функции нужны сразу
+  useEffect(() => {
+    return () => {
+      if (import.meta.env.DEV) import('../debugTools/debugPlayerStep.js').then(m => m.registerPlayerStep(null))
+    }
+  }, [])
+
   return (
     /* На десктопе playerStage/playerPhone превращают плеер в «телефон» по
        центру экрана (styles/player/layout.css). playerPhone с transform —
@@ -303,7 +315,7 @@ export default function LessonPlayer({
             onOpenLessonRef={handleOpenLessonRef}
             adminEdit={adminEdit}
           />
-          <WaitingDots visible={isWaiting} type={pendingNode?.type} />
+          <WaitingDots visible={isWaiting} />
           {!holdForResume && visibleNodes.length === 0 && (
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}

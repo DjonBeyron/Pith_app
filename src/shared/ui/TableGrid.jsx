@@ -46,7 +46,12 @@ export default function TableGrid({ columns, rows, cells, rowCount, highlightedI
           dimmedIds?.has(cell.id) && !cell.isHeader ? 'tableGridCellDimmed' : '',
           onCellClick ? 'tableGridCellClickable' : '',
         ].filter(Boolean).join(' ')
-        const revealed = !revealedIds || revealedIds.has(cell.id)
+        // Заголовок — как и с dimmedIds выше: подпись столбца не участвует в
+        // разборе, гейтить её видимость таймлайном ячеек не за чем. Раньше
+        // это не было учтено здесь (в отличие от dimmedIds), и текст шапки
+        // мог гаснуть в 0, если у неё на таймлайне оказывался clip[1]
+        // проявления, не покрывающий весь плейбек
+        const revealed = cell.isHeader || !revealedIds || revealedIds.has(cell.id)
         return (
           <div
             key={cell.id}

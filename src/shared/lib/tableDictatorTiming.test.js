@@ -63,4 +63,26 @@ describe('состояние таблицы в момент t', () => {
     expect([...computeRevealedCellIds(layers, 0.5)]).toEqual(['a'])
     expect([...computeRevealedCellIds(layers, 3)].sort()).toEqual(['a', 'b'])
   })
+
+  it('аудио длиннее композиции — держим последний кадр, а не гасим всё', () => {
+    // Живой случай: таймлайн 6с, озвучка 8.87с. rAF считает по currentTime и
+    // уходит за конец всех клипов — текст ячеек не должен пропадать на хвосте
+    const tl = [
+      cellLayer('a', { start: 0.3, end: 1.3 }, { start: 0, end: 6 }),
+      cellLayer('b', { start: 1.4, end: 3 }, { start: 0, end: 6 }),
+    ]
+    expect([...computeRevealedCellIds(tl, 5.9)].sort()).toEqual(['a', 'b'])
+    expect([...computeRevealedCellIds(tl, 7.5)].sort()).toEqual(['a', 'b'])
+  })
+
+  it('автор сам подрезал проявление — за концом клипа текст остаётся скрытым', () => {
+    // Клип проявления кончается раньше композиции: это уже осознанное «спрятать»,
+    // а не хвост за её концом — держать такой текст нельзя
+    const tl = [
+      cellLayer('a', { start: 0, end: 1 }, { start: 0, end: 3 }),
+      cellLayer('b', { start: 0, end: 1 }, { start: 0, end: 8 }),
+    ]
+    expect([...computeRevealedCellIds(tl, 5)]).toEqual(['b'])
+    expect([...computeRevealedCellIds(tl, 9)]).toEqual(['b'])
+  })
 })

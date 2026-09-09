@@ -10,6 +10,7 @@ import { useTableToChat } from '../useTableToChat.js'
 import { schedulePostAudioCheck } from './dictatorPostAudio.js'
 import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
+import { isDebugPaused } from '../../../debugTools/debugMedia.js'
 
 
 function shuffle(arr) {
@@ -101,6 +102,10 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   const slideDownRef      = useRef(null)
   const checkRef          = useRef(null)
   const closeRef          = useRef(null)
+  // Прогон «удержан» дебаг-паузой: аудио стоит, но RAF-цикл мы не гасили (см.
+  // onPause ниже). Флаг нужен, чтобы возврат из паузы (настоящий 'play' от
+  // браузера) не запустил startRun заново и не стёр уже собранную фразу
+  const dbgKeptRef        = useRef(false)
   const closeTriggerRef   = useRef(null)    // 'table_correct'/'table_wrong' — итог проверки
   const closeVariantRef   = useRef(null)    // id варианта (особый переход distractor'а), если сработал
   // Рефы для RAF-управляемого сценария (checkAt-режим)
@@ -259,6 +264,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
 
   // Старт прогона: одно и то же для аудио (onPlay) и для часов без озвучки
   function startRun() {
+    // Возврат из дебаг-паузы: браузер шлёт настоящий 'play', но прогон мы и не
+    // прерывали — полный сброс ниже стёр бы собранную фразу и подсветку
+    if (dbgKeptRef.current) { dbgKeptRef.current = false; return }
     hasPlayedRef.current = true
     pLog(`[td-auto] onPlay answer="${answer}" cells=${cells.length} extras=${extraFromAnswer.length}`)
     logDictatorConfig({
@@ -442,7 +450,18 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
       extrasAssembledKeys={extrasAssembledKeys} activeExtraKeys={activeExtraKeys} hasExtraLayers={hasExtraLayers}
       audioRef={audioRef}
       onPlay={startRun}
-      onPause={() => setPlaying(false)}
+      onPause={() => {
+        // Подсветка ячеек/сборка слов тут — не CSS-анимация: их каждый кадр
+        // считает rAF-цикл (useTableDictatorRaf.js) по audio.currentTime. А
+        // дебаг-тулбар паузит именно настоящим audio.pause() — событие
+        // приходило сюда, playing становился false, цикл отменялся, и дальше
+        // шаг ±33/±100мс двигал currentTime, но подхватить его было некому:
+        // картинка стояла колом. В дебаг-паузе прогон остаётся «живым» —
+        // звука нет, но каждый кадр состояние пересчитывается по времени,
+        // которое двигает тулбар. Вне дев-режима ветка мертва (import.meta.env.DEV)
+        if (import.meta.env.DEV && isDebugPaused()) { dbgKeptRef.current = true; return }
+        setPlaying(false)
+      }}
       onEnded={handleEnded}
       onError={(e) => {
         logAudioError(e.currentTarget.error, e.currentTarget.currentSrc || audioSrc)
