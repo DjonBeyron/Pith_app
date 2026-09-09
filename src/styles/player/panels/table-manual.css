@@ -251,3 +251,12 @@
 
 .tmCheckBtn:hover:not(:disabled) { background: #b6fe3b; color: #000; }
 .tmCheckBtn:disabled { opacity: .35; cursor: default; }
+
+/* Кнопка есть в разметке всегда — до режима слов она лишь невидима.
+   visibility, а не display: none, именно ради высоты: место под кнопку
+   занято с первого кадра, поэтому режим выбора ячеек и режим слов ровно
+   одной высоты, и таблица не скачет вверх при откате влево. */
+.tmCheckBtnHidden {
+  visibility: hidden;
+  pointer-events: none;
+}
