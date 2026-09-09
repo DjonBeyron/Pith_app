@@ -1,4 +1,5 @@
 import { getPlayerLines } from '../../shared/lib/debug.js'
+import { sendToSink, debugFileName } from '../debugTools/debugSink.js'
 
 // Сборка и скачивание общего дебаг-лога плеера (кнопка в PlayerTopBar):
 // pLog-строки, таймлайн появления нод, загрузки файлов, события анализа.
@@ -29,10 +30,8 @@ export function downloadDebugLog({ nodeAppearLog, debugItems, events }) {
       `${e.type} урок=${e.lessonId} попытка=${e.attempt} время=${e.timeMs ?? '?'}мс «${e.option}» сессия=${e.sessionId}`
     ),
   ]
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `pithy-debug-${Date.now()}.txt`
-  a.click()
-  URL.revokeObjectURL(a.href)
+  // В папку проекта _debug/, а не в Downloads: лог нужен для разбора вместе с
+  // кодом, и искать его в загрузках, а потом пересылать — лишний круг. Если
+  // dev-сервера нет (прод-превью), debugSink сам скачает файл, как раньше.
+  return sendToSink(debugFileName('player-log'), lines.join('\n'))
 }

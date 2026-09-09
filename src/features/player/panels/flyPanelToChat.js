@@ -309,7 +309,43 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     ghost.style.width = `${to.width}px`
     ghost.style.height = `${to.height}px`
     ghost.style.borderRadius = cs.borderRadius
-    if (dx || dy) ghost.style.transform = `translate(${dx}px, ${dy}px)`
+
+    // Остаток меряем ПОСЛЕ переустановки коробки, а не до неё. Клон только что
+    // переехал из позиции панели в позицию пузыря, и его сетка уехала вместе с
+    // ним — то расхождение, что было посчитано выше (dx/dy), этим переездом
+    // уже закрыто. Применять его ещё и трансформом значит сдвинуть таблицу на
+    // ту же величину второй раз: в логе это видно как «клон T=509» при пузыре
+    // на 537 — ровно 28px мимо, при том что рамка садится в пузырь идеально.
+    // Отсюда и «таблицы не совпадают»: рамка на месте, а таблица внутри выше.
+    const gridNow = ghostGrid?.getBoundingClientRect() ?? ghost.getBoundingClientRect()
+    const restX = gridTo.left - gridNow.left
+    const restY = gridTo.top - gridNow.top
+    pLog(`[fly] остаток после переезда ${restX.toFixed(2)},${restY.toFixed(2)}`
+      + ` (до переезда было ${dx.toFixed(2)},${dy.toFixed(2)} — эта разница закрыта самим переездом)`)
+
+    // Переезд коробки — это МГНОВЕННЫЙ скачок из позиции панели в позицию
+    // пузыря. Пузырь же приезжает туда не сразу: лента опускается те же
+    // FLIGHT_MS (см. onRelease ниже). Если клон просто поставить на конечное
+    // место, он прыгает на всю разницу в первом кадре и потом неподвижно ждёт
+    // ленту — в трассе это видно как «клон T=537 с первого кадра, пузырь
+    // 565→537 за 416мс». Именно это читается как рывок: панель не перетекает,
+    // а телепортируется.
+    //
+    // Поэтому возвращаем клон трансформом туда, где он стоял, и снимаем этот
+    // сдвиг той же кривой и длительностью, что едет лента. Трансформ
+    // композитный: содержимое таблицы не перерисовывается, только смещается
+    // готовый слой.
+    const backX = at.left - to.left + restX
+    const backY = at.top - to.top + restY
+    if (backX || backY || restX || restY) {
+      pLog(`[fly] клон едет с лентой: ${backX.toFixed(2)},${backY.toFixed(2)} → ${restX.toFixed(2)},${restY.toFixed(2)} за ${FLIGHT_MS}мс`)
+      ghost.style.transform = `translate(${backX}px, ${backY}px)`
+      ghost.animate([
+        { transform: `translate(${backX}px, ${backY}px)` },
+        { transform: `translate(${restX}px, ${restY}px)` },
+      ], { duration: FLIGHT_MS, easing: SPACER_EASE, fill: 'forwards' })
+      ghost.style.transform = `translate(${restX}px, ${restY}px)`
+    }
 
     // А панель вокруг него сжимает отдельная пустая коробка ПОЗАДИ клона. Ей и
     // отданы left/top/width/height со скруглением. Внутри неё пусто, поэтому
@@ -371,13 +407,20 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
           ghost.remove()
           frame.remove()
           pLog(`[fly] клон снят через ${tries} кадр(ов)${shown ? '' : ' — ПО ЛИМИТУ, пузырь так и не проявился'}`)
+          // Следующая нода запускается ТОЛЬКО отсюда, после снятия клона.
+          // Раньше finish() стоял сразу за requestAnimationFrame(drop), то
+          // есть на кадр-два раньше: плеер успевал вставить в ленту индикатор
+          // «печатает» и следующее сообщение, лента сдвигалась и уносила
+          // пузырь, — а клон ещё висел поверх на прежних координатах и
+          // расходился с ним. До появления «печатает» вставлять в этот зазор
+          // было нечего, и промах не был виден.
+          finish()
           return
         }
         tries += 1
         requestAnimationFrame(drop)
       }
       requestAnimationFrame(drop)
-      finish()
     }
     anim.onfinish = land
     anim.oncancel = land

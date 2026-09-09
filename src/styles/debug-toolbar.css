@@ -6,22 +6,9 @@
    Открытую панель можно перетащить за ручку (.dbgToolbarHandle) — позиция
    держится инлайн-стилем поверх этих дефолтов, см. useDraggablePosition.js */
 
-.dbgToolbarFab {
-  position: fixed;
-  left: 8px;
-  top: 64px;
-  z-index: 99999;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: #222;
-  color: #b6fe3b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
-}
+/* Стилей плавающей кнопки .dbgToolbarFab здесь больше нет: у тулбара своей
+   кнопки не осталось, открывается он только 🐞 из шапки урока
+   (PlayerTopBar.jsx) — две точки входа на одно действие путали */
 
 /* Широкая и низкая — всё управление в один ряд, вместо стопки из 4-5 рядов */
 .dbgToolbar {
@@ -207,4 +194,39 @@
   min-width: auto;
   padding: 6px 10px;
   font-size: 11px;
+}
+
+/* Кнопка записи сессии (rrweb). Во время записи — красная заливка, без
+   мигающей анимации намеренно: пауза тулбара ловит любую бегущую анимацию и
+   складывает её в список «продолжить», а вечно крутящийся индикатор засорял
+   бы этот список на каждом кадре */
+.dbgToolbarRecBtn.dbgToolbarRecActive {
+  background: #b3261e;
+  border-color: #d9433a;
+  color: #fff;
+}
+
+/* Куда лёг последний файл — строка под кнопками. Длинный путь обрезаем
+   многоточием, полный виден по наведению (title) */
+.dbgToolbarSaved {
+  margin-top: 4px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #14351c;
+  color: #8fe0a6;
+  font-size: 10px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Подписи на кнопках шага: «1к» — один кадр (33мс), «100» — сто миллисекунд.
+   Без них две пары кнопок со стрелками разного размера неразличимы — не
+   понять, какая мельче */
+.dbgToolbarStepLabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  opacity: 0.85;
 }

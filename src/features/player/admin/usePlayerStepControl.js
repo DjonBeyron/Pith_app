@@ -30,6 +30,11 @@ export function usePlayerStepState() {
       setPaused(next)
     },
     pause: () => { setPaused(true); setFrozen(true) },
+    // Полное снятие паузы — обратное pause(). Без него из состояния
+    // «paused, но не frozen» (в него уводит unfreeze при шаге «вперёд») выйти
+    // было нечем: togglePause смотрит на frozen и из такого состояния снова
+    // всё замораживал, а сценарий оставался стоять навсегда
+    resume: () => { setPaused(false); setFrozen(false) },
     unfreeze: () => setFrozen(false),
     answerCorrect,
     setAnswerCorrect,

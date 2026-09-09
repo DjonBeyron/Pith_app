@@ -16,6 +16,11 @@ logs
 
 tools/*
 !tools/prepare-video.bat
+!tools/viteDebugSink.js
+
+# Дебаг-записи от тулбара (rrweb + отчёты) — приходят сюда через debugSink,
+# нужны только локально, в git им делать нечего
+_debug/
 
 old/
 supabase/.temp/

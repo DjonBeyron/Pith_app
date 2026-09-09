@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { clearPlayerLog, pLog, setDebug } from '../../shared/lib/debug.js'
 import { preloadSounds } from '../../shared/lib/sounds.js'
+import { DEBUG_TOOLS_ON } from '../../shared/lib/debugToolsEnabled.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
@@ -93,7 +94,10 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
         title="Скачать лог"
         aria-label="Скачать лог"
       >⬇ лог</button>
-      {import.meta.env.DEV && (
+      {/* Единственная точка входа в дебаг-тулбар: своей плавающей кнопки у него
+          больше нет. Тот же выключатель, что и у самого тулбара, — иначе кнопка
+          осталась бы висеть при выключенном дебаге и ничего не открывала */}
+      {DEBUG_TOOLS_ON && (
         <button
           className="playerTopBarDebugBtn"
           onClick={() => import('../debugTools/debugToolbarState.js').then(m => m.openDebugToolbar())}

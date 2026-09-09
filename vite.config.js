@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { APP_VERSION } from './src/shared/lib/version.js'
+import { debugSink } from './tools/viteDebugSink.js'
 
 // Собранный CSS (~115 КБ) Vite вставляет в <head> как render-blocking <link> —
 // браузер не рисует ни одного кадра (включая инлайновый сплэш), пока файл не
@@ -35,7 +36,9 @@ const emitVersionJson = {
 }
 
 export default defineConfig({
-  plugins: [react(), nonBlockingCss, emitVersionJson],
+  // debugSink — только dev: принимает отчёты и rrweb-записи от дебаг-тулбара
+  // и кладёт их в _debug/ (папка вне git), чтобы Claude читал их прямо с диска
+  plugins: [react(), nonBlockingCss, emitVersionJson, debugSink()],
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },

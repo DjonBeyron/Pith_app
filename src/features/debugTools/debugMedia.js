@@ -127,6 +127,37 @@ export function playAll() {
   resumable = emptyResumable()
 }
 
+// Кому мы уже досылали 'ended' вручную — чтобы не выстрелить дважды и чтобы
+// шаг назад от конца снова «зарядил» событие
+const endedSent = new WeakSet()
+
+// Браузер шлёт 'ended' только когда дорожка доиграла сама. На паузе мы двигаем
+// currentTime руками — позиция доезжает до конца, а события нет, и всё, что на
+// нём висит, не стартует никогда. Для таблицы-диктанта это значит, что
+// покадровый шаг упирается в конец озвучки: проверка, превращение и отправка
+// в чат живут на onEnded у <audio> (TableDictatorView.jsx), и без него
+// сценарий дальше не идёт. Досылаем событие сами — ровно один раз на подход
+// к концу.
+// Насколько надо отойти от конца, чтобы событие «зарядилось» снова. Не
+// symmetrично порогу срабатывания намеренно: шаг назад на кадр от самого конца
+// не должен разряжать ловушку, иначе шаг вперёд выстрелит 'ended' второй раз —
+// а на нём висит вся цепочка после озвучки (проверка → превращение → отправка
+// в чат), и повторный запуск ломает сценарий: панель улетает в чат сразу после
+// монтирования, дальше урок не идёт
+const REARM_GAP_SEC = 1
+
+function syncEnded(m) {
+  if (typeof m.dispatchEvent !== 'function') return   // silentClock: не DOM-элемент, у него свой onEnded по таймеру
+  const dur = m.duration
+  if (!dur || Number.isNaN(dur)) return
+  if (m.currentTime < dur - REARM_GAP_SEC) { endedSent.delete(m); return }
+  if (m.currentTime < dur - 0.01) return
+  if (endedSent.has(m)) return
+  endedSent.add(m)
+  m.currentTime = dur
+  m.dispatchEvent(new Event('ended'))
+}
+
 export function stepAll(deltaMs) {
   if (!active) pauseAll()
   const { anims, media } = collect()
@@ -136,5 +167,6 @@ export function stepAll(deltaMs) {
   })
   media.forEach(m => {
     m.currentTime = Math.max(0, m.currentTime + deltaMs / 1000)
+    syncEnded(m)
   })
 }

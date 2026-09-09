@@ -129,4 +129,6 @@
 @import './styles/streak-gate.css';
 @import './styles/update-toast.css';
 @import './styles/admin-errors.css';
-@import './styles/debug-toolbar.css';
+/* debug-toolbar.css здесь НЕ подключается: его импортирует сам
+   DebugToolbar.jsx, и стили уезжают вместе с dev-чанком тулбара, а не
+   висят мёртвым грузом в прод-сборке (см. shared/lib/debugToolsEnabled.js) */
