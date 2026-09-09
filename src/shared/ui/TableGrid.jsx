@@ -12,7 +12,27 @@ export const ROW_UNIT_PX = 44
 // Не передан — обратная совместимость: текст виден всегда (как раньше).
 // flashDurations — Map(cellId → секунды): сколько мигает подсветка ячейки.
 // Берётся из длины её слоя на таймлайне, поэтому длинный клип мигает дольше.
-export default function TableGrid({ columns, rows, cells, rowCount, highlightedIds, selectedIds, dimmedIds, revealedIds, flashDurations, onCellClick }) {
+// pickedValues — Map(cellId → выбранное значение): гасит текст ячейки opacity,
+// а не фон (фон трогать нельзя — на нём и держится сдвиг таблицы в ручном
+// режиме, см. table-manual.css). Для ячейки со списком вариантов (cell.options)
+// гасится ТОЛЬКО сама выбранная подстрока значения, а не весь текст ячейки —
+// остальные варианты в той же ячейке остаются читаемыми.
+function renderCellValue(value, picked, hasOptions) {
+  if (picked == null) return value
+  if (hasOptions) {
+    const idx = value.indexOf(picked)
+    if (idx >= 0) {
+      return <>
+        {value.slice(0, idx)}
+        <span className="tableGridCellTextDimmed">{picked}</span>
+        {value.slice(idx + picked.length)}
+      </>
+    }
+  }
+  return <span className="tableGridCellTextDimmed">{value}</span>
+}
+
+export default function TableGrid({ columns, rows, cells, rowCount, highlightedIds, pickedValues, dimmedIds, revealedIds, flashDurations, onCellClick }) {
   if (!columns?.length || !cells?.length) return null
 
   // Доли, а не проценты. С процентами каждая колонка считается независимо, и
@@ -38,7 +58,6 @@ export default function TableGrid({ columns, rows, cells, rowCount, highlightedI
           // Особая ячейка: по тапу в уроке из неё выпадает меню вариантов
           cell.options?.length ? 'tableGridCellOptions' : '',
           highlightedIds?.has(cell.id) ? 'tableGridCellHighlighted' : '',
-          selectedIds?.has(cell.id) ? 'tableGridCellSelected' : '',
           // Отработанные ячейки гаснут до 40% — но ТОЛЬКО обычные. Заголовок
           // не участник разбора, а подпись к столбцу: погасив его после того,
           // как по нему проехала зелёная подсветка, мы навсегда делали шапку
@@ -66,7 +85,7 @@ export default function TableGrid({ columns, rows, cells, rowCount, highlightedI
             <span
               className={`tableGridCellText${revealed ? '' : ' tableGridCellTextHidden'}`}
               style={cell.fontSize ? { fontSize: `${cell.fontSize}px` } : undefined}
-            >{cell.value}</span>
+            >{renderCellValue(cell.value, pickedValues?.get(cell.id), !!cell.options?.length)}</span>
           </div>
         )
       })}

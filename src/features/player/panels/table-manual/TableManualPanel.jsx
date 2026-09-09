@@ -87,8 +87,11 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   // Очищаем все таймеры при анмаунте
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
-  const assembledCellIds = useMemo(
-    () => new Set(assembled.filter(t => t.type === 'cell').map(t => t.cellId)),
+  // cellId → выбранное значение (не Set: нужно знать ИМЕННО какое слово из
+  // ячейки со списком вариантов ушло в ответ, чтобы погасить только его —
+  // см. pickedValues в TableGrid)
+  const assembledCellValues = useMemo(
+    () => new Map(assembled.filter(t => t.type === 'cell').map(t => [t.cellId, t.value])),
     [assembled]
   )
   const assembledExtraKeys = useMemo(
@@ -106,7 +109,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   const extrasRef = useRef(null)
 
   function tapCell(cellId, rect) {
-    if (assembledCellIds.has(cellId) || result) return
+    if (assembledCellValues.has(cellId) || result) return
     const cell = cells.find(c => c.id === cellId)
     // Нажать можно ЛЮБУЮ ячейку со значением, даже не ту, что нужна ответу:
     // иначе ошибиться невозможно и проверка фразы ничего не проверяет
@@ -249,7 +252,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
                 rows={table.rows}
                 cells={table.cells}
                 rowCount={table.rowCount}
-                selectedIds={assembledCellIds}
+                pickedValues={assembledCellValues}
                 onCellClick={phase === 'table' && !result
                   ? (cell, e) => tapCell(cell.id, e?.currentTarget?.getBoundingClientRect?.())
                   : undefined}
