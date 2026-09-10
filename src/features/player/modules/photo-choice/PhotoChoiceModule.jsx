@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
+import { xpAnchor } from '../../xpAnchor.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 import { chatFadeHeight } from '../../chatFadeHeight.js'
 
@@ -30,23 +31,11 @@ function usePhotoSrc(ph, lessonFiles = []) {
   return src
 }
 
-export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState, photoXpPending = 0, onPhotoXpFired }) {
+export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState }) {
   const photos   = node.typeData?.photo_choice?.photos ?? []
   const selected = photoChoiceState?.selected ?? null
   const photo    = selected != null ? (photos[selected] ?? null) : null
   const src      = usePhotoSrc(photo, lessonFiles)  // must be before any early return
-  const photoRef = useRef(null)
-  const xpFired  = useRef(false)
-
-  // Fire XP from the photo bubble in the chat (not from the gallery tile)
-  useEffect(() => {
-    if (!photoChoiceState || photoChoiceState.result !== 'correct') return
-    if (!photoXpPending || xpFired.current) return
-    xpFired.current = true
-    const rect = photoRef.current?.getBoundingClientRect()
-    if (rect) onPhotoXpFired?.(rect)
-  }, [photoChoiceState, photoXpPending]) // eslint-disable-line
-
   if (!photoChoiceState || selected == null) return null
 
   const { result } = photoChoiceState
@@ -58,7 +47,7 @@ export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState,
       {isOk && <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />}
       <div>
         <div
-          ref={photoRef}
+          {...xpAnchor(node?.id)}
           className={`pcAnswerPhoto ${isOk ? 'pcAnswerPhotoOk' : 'pcAnswerPhotoErr'}`}
           style={src ? {} : { background: PHOTO_COLORS[selected % PHOTO_COLORS.length] }}
         >

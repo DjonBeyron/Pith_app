@@ -1,4 +1,5 @@
 import PlayerBubble from '../../PlayerBubble.jsx'
+import { xpAnchor } from '../../xpAnchor.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 import { chatFadeHeight } from '../../chatFadeHeight.js'
 
@@ -6,7 +7,7 @@ import { chatFadeHeight } from '../../chatFadeHeight.js'
 // включена галочка «Отправлять выбранное в чат» — тогда приходит pickText),
 // следом — текст реакции на верно/неверно. Сердечко XP вешается на последний
 // пузырь ряда: на реакцию, а если её текст пуст — на выбранное.
-export default function WordChoiceModule({ wordChoiceState }) {
+export default function WordChoiceModule({ node, wordChoiceState }) {
   if (!wordChoiceState) return null
   const { pickText, text, result } = wordChoiceState
   const isCorrect = result === 'correct'
@@ -18,6 +19,12 @@ export default function WordChoiceModule({ wordChoiceState }) {
   // Теперь пузыри и салют независимы: пузырей может не быть, салют есть.
   if (!pickText && !text && !isCorrect) return null
   const mod = isCorrect ? ' playerMsgBubble--responseOk' : ' playerMsgBubble--responseErr'
+  // Точка старта для «+N XP» — ПОСЛЕДНИЙ пузырь ряда (xpAnchor.js): если у
+  // ноды заполнена реакция на верный ответ, она стоит ниже выбранного слова,
+  // и цифра должна вылетать из неё. Реакции нет — якорем становится выбор.
+  // Ни того, ни другого (короткая тренировка без реплик) — пузырей нет вовсе,
+  // и XP улетит от кнопки варианта в панели, как и задумано.
+  const anchorOnPick = !text
 
   return (
     <>
@@ -29,7 +36,7 @@ export default function WordChoiceModule({ wordChoiceState }) {
       )}
       {pickText && (
         <div className="playerMsgRow playerMsgRowRight">
-          <div className="reactionBubbleWrap">
+          <div className="reactionBubbleWrap" {...(anchorOnPick ? xpAnchor(node?.id) : {})}>
             {/* --pick: маркер для PlayerFeed — этот пузырь молчит, звук уже
                 дал сам тап по варианту (answer-correct / answer-wrong).
                 Цвет верно/неверно вешается на него же: раньше красилась
@@ -46,7 +53,7 @@ export default function WordChoiceModule({ wordChoiceState }) {
       )}
       {text && (
         <div className="playerMsgRow playerMsgRowRight">
-          <div className="reactionBubbleWrap">
+          <div className="reactionBubbleWrap" {...xpAnchor(node?.id)}>
             <PlayerBubble className={`playerMsgBubble playerMsgBubble--response${mod}`}>
               {text}
             </PlayerBubble>

@@ -9,6 +9,7 @@ import { usePlayerAdminEdit } from './admin/usePlayerAdminEdit.js'
 import { usePlayerStepState, buildStep } from './admin/usePlayerStepControl.js'
 import { PlayerFrozenContext } from './playerFrozen.js'
 import { useMediaPause, pauseAllMedia } from './useMediaPause.js'
+import { useSoloMedia } from './useSoloMedia.js'
 import PlayerPanels from './PlayerPanels.jsx'
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import { mainLineIndex, lessonProgress } from '../../shared/lib/lessonProgress.js'
@@ -29,6 +30,7 @@ import ResumeLessonPopup from './ResumeLessonPopup.jsx'
 import { useLessonNav } from '../../app/LessonNavContext.jsx'
 import { usePlayerAnswers } from './usePlayerAnswers.js'
 import { buildXpMap } from './lessonXp.js'
+import { resolveXpOrigin } from './xpAnchor.js'
 
 export default function LessonPlayer({
   nodes = [], files: propFiles = [], lessonTitle = '',
@@ -122,9 +124,14 @@ export default function LessonPlayer({
   const { visibleNodes, pendingNode, isWaiting, onNodeDone } = graph
   const progress = lessonProgress(mainIndex, visibleNodes)
 
-  function handleXpEarned(amount, rect) {
+  // Откуда полетит «+N XP», решает xpAnchor.js: от пузыря с ответом, если он
+  // появится в переписке, иначе от последнего места тапа (его панели пометили
+  // через rememberTap). Начисление при этом не ждёт ничего — счётчик в шапке
+  // растёт сразу, откладывается только полёт.
+  function handleXpEarned(amount, nodeId = null) {
     setEarnedXp(prev => { earnedXpRef.current = prev + amount; return prev + amount })
-    setXpEvents(prev => [...prev, { id: Date.now() + Math.random(), amount, rect }])
+    resolveXpOrigin(nodeId, origin =>
+      setXpEvents(prev => [...prev, { id: Date.now() + Math.random(), amount, rect: origin }]))
   }
 
   function dismissXpEvent(id) {
@@ -160,7 +167,6 @@ export default function LessonPlayer({
     wordChoiceStates, handleWordAnswer, handleWordPick,
     phraseStates, handlePhraseAnswer,
     regStates, handleRegAnswer,
-    pendingPhotoXp, setPendingPhotoXp,
   } = answers
 
   function handlePhotoPick(nodeId, idx, isCorrect) {
@@ -179,16 +185,12 @@ export default function LessonPlayer({
     setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
     if (isCorrect) {
       const xp = xpMap.get(nodeId) ?? 0
-      if (xp > 0) setPendingPhotoXp(prev => ({ ...prev, [nodeId]: xp }))
+      // Плитка галереи, по которой ткнули, уже помечена панелью (rememberTap):
+      // галерея сейчас закроется, но замер сделан. Пузырь с фото всё равно
+      // появится, и цифра стартует от него — плитка тут запасной вариант
+      if (xp > 0) handleXpEarned(xp, nodeId)
     }
     onNodeDone(nodeId, result, variantId)
-  }
-
-  function handlePhotoXpFired(nodeId, rect) {
-    const xp = pendingPhotoXp[nodeId]
-    if (!xp) return
-    setPendingPhotoXp(prev => { const n = { ...prev }; delete n[nodeId]; return n })
-    handleXpEarned(xp, rect)
   }
 
   const [pinVisible, setPinVisible] = useState(true)
@@ -223,6 +225,8 @@ export default function LessonPlayer({
     if (wasWrong) wrongRef.current = Math.max(0, wrongRef.current - 1)
   }
   const { forgetPaused } = useMediaPause(playerRef, stepState.frozen, stepState.paused)
+  // В переписке звучит что-то одно: новый звук глушит предыдущий
+  useSoloMedia(playerRef)
   // Действия шага собираются в момент нажатия, а не в рендере: они читают
   // рефы (XP, отметки отыгранных нод), а рендеру это знать незачем
   const stepCtx = () => ({
@@ -283,15 +287,11 @@ export default function LessonPlayer({
             filesWithBlobs={filesWithBlobs}
             teacherName={teacherName}
             states={{ photoChoiceStates, wordChoiceStates, phraseStates, regStates, tableSent: answers.tableSent, tableArriving: answers.tableArriving }}
-            xpMap={xpMap}
-            pendingPhotoXp={pendingPhotoXp}
             bottomOffset={panels.offset}
             videoAutoSound={videoAutoSound}
             isAdmin={isAdmin}
             onNodeDone={onNodeDone}
             onTrReveal={registerHint}
-            onPhotoXpFired={handlePhotoXpFired}
-            onXpEarned={handleXpEarned}
             onOpenLessonRef={handleOpenLessonRef}
             adminEdit={adminEdit}
           />

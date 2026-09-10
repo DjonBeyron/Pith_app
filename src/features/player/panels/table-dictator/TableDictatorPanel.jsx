@@ -14,10 +14,10 @@ import { isDebugPaused } from '../../../debugTools/debugMedia.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 import { chatFadeHeight } from '../../chatFadeHeight.js'
 import { playFeedRelease } from '../feedRelease.js'
+import { rememberTap } from '../../xpAnchor.js'
 import { makeDictatorSlideDown } from './dictatorSlideDown.js'
 import { useDictatorLegacyAssemble } from './useDictatorLegacyAssemble.js'
 import { resetDictatorRun } from './dictatorRunReset.js'
-
 
 function shuffle(arr) {
   const a = [...arr]
@@ -28,8 +28,7 @@ function shuffle(arr) {
   return a
 }
 
-
-export default function TableDictatorPanel({ node, file, onDone, onHeightChange, onSendToChat, onLandedInChat }) {
+export default function TableDictatorPanel({ node, file, onDone, onHeightChange, onSendToChat, onLandedInChat, xpAmount = 0, onXpEarned }) {
   const tData        = node.typeData?.table ?? {}
   const table        = tData.table         ?? null
   const timeline     = tData.timeline      ?? null
@@ -115,6 +114,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   const rfxCheckRef       = useRef(false)   // проверка запущена (in-point)
   const rfxCloseRef       = useRef(false)   // закрытие запущено (out-point)
   const closedRef         = useRef(false)   // модуль уже закрывается (защита от дабл-slideDown)
+  const xpFiredRef        = useRef(false)   // награда за прогон выдана (см. check)
   const barElsRef         = useRef([])
   const barSmoothRef      = useRef([0, 0, 0])
   const addedCellsRef        = useRef(new Set())
@@ -272,7 +272,6 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
     setShow, setHudVisible, setHighlighted, setUsedCells, setRevealedIds, setPhase, setChipsVisible,
   })
 
-
   function handleEnded() {
     cancelAnimationFrame(rafRef.current)   // сразу глушим RAF — иначе успеет перезаписать highlight
     setHudVisible(false)
@@ -329,6 +328,17 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
       ? null
       : distractors.find(d => extrasAssembled.some(t => t.value === d.text))?.id ?? null
     setResult(isCorrect ? 'correct' : 'wrong')
+    // XP объявляем здесь же. Тапов в диктанте нет (фразу собирает таймлайн),
+    // поэтому запасная точка старта — бокс собранного ответа: единственное
+    // место, где ученик свой ответ и видел. Уйдёт ответ в переписку — цифра
+    // полетит от пузыря (xpAnchor.js). xpFiredRef: проверку запускают разные
+    // пути (RAF, хвост после аудио, легаси-таймер), награда одна на прогон
+    if (isCorrect && xpAmount > 0 && !xpFiredRef.current) {
+      xpFiredRef.current = true
+      const box = panelRef.current?.querySelector('.tdAssemblyBox')
+      if (box) rememberTap(box.getBoundingClientRect())
+      onXpEarned?.(xpAmount)
+    }
     // Легаси (нет out-point у слоя проверки) — закрываем по задержке
     if (checkOut == null) timers.current.push(setTimeout(() => closeModule(), checkDelay))
   }

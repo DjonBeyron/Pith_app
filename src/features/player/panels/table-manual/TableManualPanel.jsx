@@ -13,6 +13,7 @@ import { playFeedRelease } from '../feedRelease.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 import { chatFadeHeight } from '../../chatFadeHeight.js'
+import { rememberTap } from '../../xpAnchor.js'
 
 
 function shuffle(arr) {
@@ -27,7 +28,7 @@ function shuffle(arr) {
 // onAnswerToChat(text, result) — галочка «отправить ответ ученика в чат»:
 // собранная фраза уходит пузырём справа. Верная — сразу; неверная — ОДИН раз,
 // последней (третьей) попыткой: промежуточные варианты в переписке не нужны.
-export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat, onLandedInChat }) {
+export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat, onLandedInChat, xpAmount = 0, onXpEarned }) {
   const tData       = node.typeData?.table ?? {}
   const table       = tData.table          ?? null
   const answer      = tData.answer         ?? ''
@@ -154,6 +155,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
 
   function tapCell(cellId, rect) {
     if (assembledCellValues.has(cellId) || result) return
+    rememberTap(rect)
     const cell = cells.find(c => c.id === cellId)
     // Нажать можно ЛЮБУЮ ячейку со значением, даже не ту, что нужна ответу:
     // иначе ошибиться невозможно и проверка фразы ничего не проверяет
@@ -168,9 +170,10 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
     setAssembled(prev => [...prev, { type: 'cell', cellId, value, key: `cell-${cellId}` }])
   }
 
-  function tapExtra(chip, idx) {
+  function tapExtra(chip, idx, rect) {
     const key = `extra-${idx}`
     if (assembledExtraKeys.has(key) || result) return
+    rememberTap(rect)
     setAssembled(prev => [...prev, { type: 'extra', value: chip.text, key, distractorId: chip.distractorId }])
   }
 
@@ -205,7 +208,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   }
 
   const check = makeManualCheck({
-    assembled, answer, tData, wrongCount, timers,
+    assembled, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
     setCellMenu, setResult, onAnswered, onAnswerToChat, closePanelWith,
   })
 
@@ -285,7 +288,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
                       key={i}
                       style={{ animationDelay: `${i * 50}ms` }}
                       className={`tmExtraChip${used ? ' tmExtraChipUsed' : ''}`}
-                      onClick={() => tapExtra(chip, i)}
+                      onClick={e => tapExtra(chip, i, e.currentTarget.getBoundingClientRect())}
                       disabled={used || !!result}
                     >{chip.text}</button>
                   )

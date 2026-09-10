@@ -3,6 +3,7 @@ import { usePhraseAssembly } from './usePhraseAssembly.js'
 import PhraseWordChip from './PhraseWordChip.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
+import { rememberTap } from '../../xpAnchor.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 
 function wordForm(n) {
@@ -23,7 +24,6 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
   const [show, setShow]               = useState(false)
   const [showCounter, setShowCounter] = useState(false)
   const panelRef    = useRef(null)
-  const checkBtnRef = useRef(null)
   const wrongCount  = useRef(0)
   const xpFiredRef  = useRef(false)
   // Refs for close timers so effect cleanup (result→null) can't cancel them
@@ -119,12 +119,11 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
                 word={chip.text}
                 used={usedIdxs.has(i)}
                 disabled={isAnswered}
-                onClick={() => pickChip(i)}
+                onClick={e => { rememberTap(e.currentTarget.getBoundingClientRect()); pickChip(i) }}
               />
             ))}
           </div>
           <button
-            ref={checkBtnRef}
             className="phraseCheckBtn"
             onClick={() => {
               const r = checkAnswer()
@@ -133,8 +132,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
               playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong')
               if (r === 'correct' && xpAmount > 0 && !xpFiredRef.current) {
                 xpFiredRef.current = true
-                const rect = checkBtnRef.current?.getBoundingClientRect()
-                onXpEarned?.(xpAmount, rect)
+                onXpEarned?.(xpAmount)
               }
             }}
             disabled={placed.length === 0 || isAnswered}

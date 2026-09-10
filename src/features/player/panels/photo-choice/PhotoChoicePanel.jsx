@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Paperclip } from 'lucide-react'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { rememberTap } from '../../xpAnchor.js'
 
 const PHOTO_COLORS = [
   '#6366f1','#ec4899','#f59e0b','#10b981',
@@ -118,7 +119,8 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
     kinds.forEach((k, i) => { if (k !== 'blob' && k !== 'local') pLog(`[pc-gallery] #${i + 1} НЕ предзагружено (${k})`) })
   }, [galleryOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handlePick(idx) {
+  function handlePick(idx, tapRect) {
+    rememberTap(tapRect)
     const isCorrect = correctIndexes.includes(idx)
     onPick(idx, isCorrect)
     setGalleryOpen(false)
@@ -150,7 +152,7 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
                     ph={ph}
                     index={i}
                     lessonFiles={lessonFiles}
-                    onClick={() => handlePick(i)}
+                    onClick={e => handlePick(i, e.currentTarget.getBoundingClientRect())}
                   />
                 ))}
               </div>

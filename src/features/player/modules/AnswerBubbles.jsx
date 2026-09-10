@@ -1,7 +1,7 @@
-import { useRef, useEffect } from 'react'
 import PlayerBubble from '../PlayerBubble.jsx'
 import BurstConfetti from '../../../shared/ui/BurstConfetti.jsx'
 import { chatFadeHeight } from '../chatFadeHeight.js'
+import { xpAnchor } from '../xpAnchor.js'
 
 // Пузыри ответа ученика в ленте: собранная фраза справа и реплики учителя
 // слева. Верность показывает только значок в пузыре (галочка/крестик) — своей
@@ -10,29 +10,16 @@ import { chatFadeHeight } from '../chatFadeHeight.js'
 // Общий вид для «собери фразу» и для таблицы — раньше жил только в
 // PhraseAssemblyModule, теперь его же использует TableModule.
 //
-// rewardXp/onXpEarned — только у таблицы (PhraseAssemblyModule XP не передаёт,
-// там он стреляет раньше, из панели по кнопке «Проверить», см.
-// PhraseAssemblyPanel.jsx). У таблицы такой кнопки нет — ответ проверяется
-// тапом по ячейке, поэтому XP стреляет здесь же, от первого верного пузыря,
-// как только он появляется в ленте (тот же приём, что у PhotoChoiceModule).
+// nodeId — метка для полёта XP: цифра стартует от верного пузыря, если он в
+// переписке есть (xpAnchor.js). Сам полёт объявляет панель, а не этот
+// компонент: пузырей может не быть вовсе (галочка «отправить ответ ученика»
+// выключена), и XP, привязанный к их появлению, тогда не начислялся бы вообще.
 // confetti — рисовать ли салют на верном пузыре. Таблица передаёт false: у неё
-// пузырей может не быть вовсе (галочка «отправить ответ ученика» выключена), и
-// салют там живёт в самой панели, привязанный к факту верного ответа, а не к
-// наличию сообщения в чате. Без этого флага при включённой галочке залпов было
-// бы два — из панели и отсюда.
-export default function AnswerBubbles({ bubbles, rewardXp = 0, onXpEarned, confetti = true }) {
+// пузырей может не быть вовсе, и салют там живёт в самой панели, привязанный к
+// факту верного ответа, а не к наличию сообщения в чате. Без этого флага при
+// включённой галочке залпов было бы два — из панели и отсюда.
+export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true }) {
   const list = bubbles ?? []
-  const okRef   = useRef(null)
-  const xpFired = useRef(false)
-
-  useEffect(() => {
-    if (xpFired.current || rewardXp <= 0) return
-    if (!list.some(b => b.result === 'correct')) return
-    xpFired.current = true
-    const rect = okRef.current?.getBoundingClientRect()
-    if (rect) onXpEarned?.(rewardXp, rect)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.length])
 
   if (!list.length) return null
 
@@ -49,7 +36,7 @@ export default function AnswerBubbles({ bubbles, rewardXp = 0, onXpEarned, confe
               {confetti && (
                 <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
               )}
-              <div className="reactionBubbleWrap" ref={okRef}>
+              <div className="reactionBubbleWrap" {...xpAnchor(nodeId)}>
                 <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
                   {b.text}
                 </PlayerBubble>

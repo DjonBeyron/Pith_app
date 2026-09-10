@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useChooseWord } from './useChooseWord.js'
 import ChooseWordOption from './ChooseWordOption.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
+import { rememberTap } from '../../xpAnchor.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 export default function ChooseWordPanel({ node, onDone, onAnswered, onPicked, onHeightChange, xpAmount = 0, onXpEarned }) {
@@ -69,10 +70,10 @@ export default function ChooseWordPanel({ node, onDone, onAnswered, onPicked, on
                 const snd = opt.isCorrect ? 'answer-correct' : 'answer-wrong'
                 pLog(`[word-choice] tap isCorrect=${opt.isCorrect} → sound=${snd}`)
                 playSound(snd)
+                rememberTap(e.currentTarget.getBoundingClientRect())
                 if (opt.isCorrect && xpAmount > 0 && !xpFiredRef.current) {
                   xpFiredRef.current = true
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  onXpEarned?.(xpAmount, rect)
+                  onXpEarned?.(xpAmount)
                 }
                 if (!isAnswered) onPicked?.(opt)
                 handlePick(opt)

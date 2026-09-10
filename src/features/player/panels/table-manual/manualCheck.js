@@ -12,7 +12,7 @@ import { whenBubbleLanded } from '../whenBubbleLanded.js'
 // должен успеть увидеть итог В САМОЙ ПАНЕЛИ, а пузыри и закрытие панели
 // должны тронуться одним движением, а не по очереди.
 export function makeManualCheck({
-  assembled, answer, tData, wrongCount, timers,
+  assembled, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
   setCellMenu, setResult, onAnswered, onAnswerToChat, closePanelWith,
 }) {
   return function check() {
@@ -23,6 +23,12 @@ export function makeManualCheck({
     // лишние пробелы/переносы из ячейки и вид апострофа значения не имеют
     if (normalizeAnswerText(phrase) === normalizeAnswerText(answer)) {
       setResult('correct')
+      // XP объявляем СРАЗУ, не дожидаясь пузыря: раньше он стрелял из
+      // AnswerBubbles, и при выключенной галочке «отправить ответ ученика»
+      // пузырей не было вовсе — значит, и награды за таблицу тоже. Точку
+      // старта полёта выберет xpAnchor.js: пузырь, если он появится, иначе
+      // последняя нажатая ячейка или слово.
+      if (xpAmount > 0) onXpEarned?.(xpAmount)
       // Пузырь с ответом уходит в чат НЕ сразу, а вместе с началом закрытия
       // панели. Эти 600мс нужны, чтобы ученик увидел зелёный итог в самой
       // панели, — но раньше ответ улетал в переписку в первый же миг, а

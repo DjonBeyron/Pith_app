@@ -16,8 +16,6 @@ export function usePlayerAnswers() {
   // держит место под посадку — но видимым быть не должен: иначе таблица
   // разом видна и в панели, и в переписке
   const [tableArriving, setTableArriving]         = useState({})
-  // XP pending for photo_choice: fires when the correct photo bubble mounts in chat
-  const [pendingPhotoXp, setPendingPhotoXp] = useState({})
 
   function handleWordAnswer(nodeId, text, result) {
     setWordChoiceStates(prev => ({ ...prev, [nodeId]: { ...prev[nodeId], text, result } }))
@@ -70,7 +68,6 @@ export function usePlayerAnswers() {
     setRegStates(drop)
     setTableSent(drop)
     setTableArriving(drop)
-    setPendingPhotoXp(drop)
   }
 
   return {
@@ -81,6 +78,5 @@ export function usePlayerAnswers() {
     regStates, handleRegAnswer,
     tableSent, markTableSent,
     tableArriving, markTableLanded,
-    pendingPhotoXp, setPendingPhotoXp,
   }
 }
