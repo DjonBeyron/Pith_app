@@ -49,6 +49,14 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const [barCount,        setBarCount]        = useState(WAVE_H_BASE.length)
   const [textStarted,     setTextStarted]     = useState(false)
   const [revealedCharIdx, setRevealedCharIdx] = useState(-1)
+  // Расшифровку показали целиком хотя бы раз. Дальше её НЕ перепечатываем:
+  // повторный запуск старого голосового схлопывал текст в ноль и набирал
+  // заново, пузырь при этом проходил через десяток промежуточных высот
+  // (замер: 57 → 57.2 → 58.2 → 60.3 → 63.5 → 69.3 → 76.4 → 85 → 90), и на
+  // каждую высоту PlayerBubble двигал ВСЮ ленту. Это и есть «чат дёргается,
+  // когда запускаешь сообщение из истории»: ученик уже прочитал текст,
+  // набирать его снова незачем, а лента из-за этого прыгает.
+  const fullyRevealedRef = useRef(false)
 
   const audioRef        = useRef(null)
   const rafRef          = useRef(null)
@@ -199,7 +207,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     const capturedChars = charTimings
 
     setTextStarted(true)
-    setRevealedCharIdx(-1)
+    // Первый прогон печатает текст в такт речи; повторный оставляет его как
+    // есть — иначе пузырь снова растёт с нуля и дёргает ленту
+    setRevealedCharIdx(fullyRevealedRef.current ? capturedChars.length : -1)
     // On replay: reset to first frame so EMA starts clean
     // On resume: keep current EMA values — no jump
     if (isReplay) applyFirstFrame(capturedWave)
@@ -231,7 +241,10 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
         }
       })
 
-      if (capturedChars.length) {
+      // Ведём раскрытие только на первом прогоне. На повторном текст уже
+      // показан целиком, и трогать его нельзя: каждое изменение — новая
+      // высота пузыря и сдвиг всей переписки
+      if (capturedChars.length && !fullyRevealedRef.current) {
         let idx = -1
         for (let i = 0; i < capturedChars.length; i++) {
           if (ct >= capturedChars[i]) idx = i; else break
@@ -246,7 +259,12 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     function onEnded() {
       stopRAF()
       setIsPlaying(false)
-      if (capturedChars.length) setRevealedCharIdx(capturedChars.length)
+      if (capturedChars.length) {
+        setRevealedCharIdx(capturedChars.length)
+        // С этого момента текст считается показанным: повторные запуски
+        // его больше не набирают (см. fullyRevealedRef)
+        fullyRevealedRef.current = true
+      }
       barElsRef.current.forEach(bar => {
         if (!bar) return
         bar.style.transition = 'background 0.55s ease'
