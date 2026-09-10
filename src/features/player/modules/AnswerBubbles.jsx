@@ -41,7 +41,7 @@ export default function AnswerBubbles({ bubbles, rewardXp = 0, onXpEarned }) {
             <div key={i} className="playerMsgRow playerMsgRowRight">
               {/* Тот же салют, что на новом уровне, только короче и реже:
                   верных ответов в уроке десятки (Confetti.jsx) */}
-              <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} />
+              <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
               <div className="reactionBubbleWrap" ref={okRef}>
                 <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
                   {b.text}

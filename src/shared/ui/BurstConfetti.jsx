@@ -74,7 +74,19 @@ const calm = () => typeof matchMedia === 'function'
 // растушёвки, иначе салют просто нарисуется поверх.
 // zIndex — по умолчанию поверх всего (итоги урока, окно серии), где никакой
 // подложки нет и перекрывать нечем.
-export default function BurstConfetti({ count = 30, size = 4, colors = COLORS, bottomInset = 0, zIndex = 10001 }) {
+// portalTo — селектор контейнера для портала. По умолчанию body: салют на
+// новом уровне и в окне серии должен лежать поверх вообще всего.
+// В чате нужен другой контейнер — сам .lessonPlayer. Причина в слоях: плеер
+// это z-index 200, а растушёвка низа — его псевдоэлемент с 65 ВНУТРИ него.
+// Портал в body между ними не встанет физически: он либо выше всего плеера,
+// либо ниже (и тогда салюта не видно вовсе — так и вышло с zIndex 60).
+// Изнутри плеера 60 читается как «ниже растушёвки», чего мы и добивались.
+// position: fixed внутри .lessonPlayer работает как надо — трансформа на нём
+// нет; а на десктопе его держит .playerPhone, и салют сам ложится в рамку.
+export default function BurstConfetti({
+  count = 30, size = 4, colors = COLORS,
+  bottomInset = 0, zIndex = 10001, portalTo = null,
+}) {
   const hostRef = useRef(null)
   const [shown, setShown] = useState(!calm())
 
@@ -136,7 +148,15 @@ export default function BurstConfetti({ count = 30, size = 4, colors = COLORS, b
       setShown(false)
     }
     longest?.anim.finished.then(stop).catch(() => {})
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      // Частицы убираются за собой. Без этого в dev их было ВДВОЕ больше, чем
+      // задумано: StrictMode прогоняет эффект дважды (эффект → уборка →
+      // эффект), а уборки не было — второй прогон досыпал свои 30 к уже
+      // висящим. Замер на живом уроке показывал 60 частиц вместо 30, то есть
+      // двойную нагрузку ровно там, где разбираются с лагами.
+      host.replaceChildren()
+    }
   }, [shown, count, size]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!shown) return null
@@ -153,6 +173,8 @@ export default function BurstConfetti({ count = 30, size = 4, colors = COLORS, b
         contain: 'strict',
       }}
     />,
-    document.body,
+    // Если названного контейнера на экране нет (плеер закрылся) — падаем на
+    // body: лучше показать салют поверх всего, чем не показать вовсе
+    (portalTo && document.querySelector(portalTo)) || document.body,
   )
 }

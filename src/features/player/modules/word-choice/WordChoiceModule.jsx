@@ -1,5 +1,6 @@
 import PlayerBubble from '../../PlayerBubble.jsx'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
+import { chatFadeHeight } from '../../chatFadeHeight.js'
 
 // Справа в чате: сначала пузырь с выбранным вариантом (только если у ноды
 // включена галочка «Отправлять выбранное в чат» — тогда приходит pickText),
@@ -8,9 +9,14 @@ import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 export default function WordChoiceModule({ wordChoiceState }) {
   if (!wordChoiceState) return null
   const { pickText, text, result } = wordChoiceState
-  if (!pickText && !text) return null
-
   const isCorrect = result === 'correct'
+  // Раннего выхода «нет пузырей — нет модуля» здесь больше НЕТ. Он забирал с
+  // собой и салют: pickText приходит только с галочкой «отправлять выбранное
+  // в чат», text — только если заполнена реакция на верный ответ. Когда автор
+  // не заполнил ни то, ни другое (а так задумано в коротких тренировках),
+  // верный ответ оставался вообще без праздника, хотя XP за него начислялся.
+  // Теперь пузыри и салют независимы: пузырей может не быть, салют есть.
+  if (!pickText && !text && !isCorrect) return null
   const mod = isCorrect ? ' playerMsgBubble--responseOk' : ' playerMsgBubble--responseErr'
 
   return (
@@ -18,7 +24,9 @@ export default function WordChoiceModule({ wordChoiceState }) {
       {/* Салют на верном — тот же, что на новом уровне, только короче и реже
           (Confetti.jsx). Рендерится один раз на весь модуль: пузырей с ответом
           может быть два (выбор и реплика), а праздник один */}
-      {isCorrect && <BurstConfetti count={30} size={4} />}
+      {isCorrect && (
+        <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
+      )}
       {pickText && (
         <div className="playerMsgRow playerMsgRowRight">
           <div className="reactionBubbleWrap">

@@ -55,7 +55,7 @@ export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState,
   return (
     <div className="playerMsgRow playerMsgRowRight">
       {/* Тот же салют, что у прочих верных ответов (Confetti.jsx) */}
-      {isOk && <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} />}
+      {isOk && <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />}
       <div>
         <div
           ref={photoRef}
