@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { shouldYieldTo } from './useSoloMedia.js'
+import { shouldYieldTo, shouldBlock, SOLO_LOCK } from './useSoloMedia.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
@@ -43,6 +43,37 @@ describe('в переписке звучит что-то одно', () => {
   it('пустые аргументы ничего не ломают', () => {
     expect(shouldYieldTo(null, voice())).toBe(false)
     expect(shouldYieldTo(voice(), null)).toBe(false)
+  })
+})
+
+// Разбор авто-таблицы идёт по таймлайну: по нему подсвечиваются ячейки,
+// собирается фраза и запускается проверка. Пауза посреди разбора роняет весь
+// прогон, поэтому пока её аудио звучит, чужое просто не пускаем.
+describe('во время авто-таблицы чужой звук не пускаем', () => {
+  const lead   = (over = {}) => ({ name: 'таблица', paused: false, hasAttribute: () => true, ...over })
+  const guest  = (over = {}) => ({ name: 'гость', paused: true, hasAttribute: () => false, ...over })
+
+  it('запуск сообщения отклоняется, пока идёт разбор', () => {
+    expect(shouldBlock(guest(), lead())).toBe(true)
+  })
+
+  it('доигравшая таблица никого не держит', () => {
+    expect(shouldBlock(guest(), lead({ paused: true }))).toBe(false)
+  })
+
+  it('таблицы нет — обычные правила', () => {
+    expect(shouldBlock(guest(), null)).toBe(false)
+  })
+
+  it('сама таблица себя не блокирует', () => {
+    const l = lead()
+    expect(shouldBlock(l, l)).toBe(false)
+    expect(shouldBlock(lead({ name: 'вторая' }), lead())).toBe(false)
+  })
+
+  it('метка ведущего стоит на аудио авто-таблицы', () => {
+    expect(SOLO_LOCK).toBe('data-solo-lock')
+    expect(read('./panels/table-dictator/TableDictatorView.jsx')).toContain('data-solo-lock=""')
   })
 })
 

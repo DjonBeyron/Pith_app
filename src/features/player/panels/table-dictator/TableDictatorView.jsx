@@ -89,6 +89,12 @@ export default function TableDictatorView({
             <audio
               ref={audioRef}
               src={audioSrc}
+              /* Ведущий звук модуля: пока он идёт, запуск любого другого
+                 сообщения в переписке отклоняется (useSoloMedia, SOLO_LOCK).
+                 Пауза посреди разбора не просто глушит звук — по этому же
+                 таймлайну подсвечиваются ячейки, собирается фраза и
+                 запускается проверка, и прогон разваливается */
+              data-solo-lock=""
               onPlay={onPlay}
               onPause={onPause}
               onEnded={onEnded}

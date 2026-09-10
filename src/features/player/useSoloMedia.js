@@ -28,6 +28,23 @@ export function shouldYieldTo(started, other) {
   return true
 }
 
+// Аудио, которое ведёт целый модуль, а не просто звучит сообщением.
+// Сейчас это авто-таблица: её разбор идёт по таймлайну — по нему подсвечиваются
+// ячейки, собирается фраза и запускается проверка. Пауза посреди разбора не
+// «ставит звук на паузу», а роняет весь прогон, поэтому пока ведущий звучит,
+// остальное в переписке не пускаем вовсе.
+export const SOLO_LOCK = 'data-solo-lock'
+
+// Нужно ли отклонить запуск `started`, раз сейчас звучит ведущий `lead`
+export function shouldBlock(started, lead) {
+  if (!started || !lead || lead === started) return false
+  if (lead.paused) return false
+  // Ведущий не блокирует сам себя и другого ведущего (двух сразу не бывает,
+  // но правило должно быть честным)
+  if (started.hasAttribute?.(SOLO_LOCK)) return false
+  return true
+}
+
 export function useSoloMedia(containerRef) {
   useEffect(() => {
     const el = containerRef.current
@@ -36,6 +53,16 @@ export function useSoloMedia(containerRef) {
     const onPlay = e => {
       const started = e.target
       if (!started || typeof started.pause !== 'function') return
+
+      // Идёт разбор авто-таблицы — чужой звук просто не пускаем. Кнопка того
+      // сообщения вернётся в ▶ сама: AudioModule слушает pause своего элемента
+      const lead = el.querySelector(`[${SOLO_LOCK}]`)
+      if (shouldBlock(started, lead)) {
+        pLog('[solo] запуск отклонён — идёт разбор авто-таблицы')
+        started.pause()
+        return
+      }
+
       el.querySelectorAll('audio, video').forEach(m => {
         if (!shouldYieldTo(started, m)) return
         pLog(`[solo] ${m.tagName.toLowerCase()} на паузу — запустилось другое`)

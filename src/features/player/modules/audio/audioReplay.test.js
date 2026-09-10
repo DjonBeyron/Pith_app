@@ -13,7 +13,16 @@ const mod = read('./AudioModule.jsx')
 describe('повторный запуск голосового из истории', () => {
   it('текст, показанный целиком, второй раз не набирается', () => {
     expect(mod).toContain('const fullyRevealedRef = useRef(false)')
-    expect(mod).toContain('setRevealedCharIdx(fullyRevealedRef.current ? capturedChars.length : -1)')
+    expect(mod).toContain('if (fullyRevealedRef.current) setRevealedCharIdx(capturedChars.length)')
+  })
+
+  it('ПРОДОЛЖЕНИЕ с паузы не трогает раскрытие — иначе текст мигает', () => {
+    // Сброс в −1 схлопывал недопечатанный текст на один кадр, следующий кадр
+    // возвращал обратно. Замер после правки: 39 → 39 → 40 → …, провалов 0,
+    // до нуля не обрывается. Сброс допустим только при запуске заново
+    expect(mod).toContain('else if (isReplay) setRevealedCharIdx(-1)')
+    // Безусловного сброса быть не должно ни в каком виде
+    expect(mod).not.toContain('? capturedChars.length : -1')
   })
 
   it('на повторе цикл кадров не трогает раскрытие', () => {
@@ -31,7 +40,7 @@ describe('повторный запуск голосового из истори
   it('первый прогон печатает как раньше — там рост задуман', () => {
     // Ветка «-1» на месте: на первом прогоне текст по-прежнему набирается
     // в такт речи, и лента едет вместе с ним. Правка касается только повтора
-    expect(mod).toContain(': -1)')
+    expect(mod).toContain('setRevealedCharIdx(-1)')
     expect(mod).toContain('setTextStarted(true)')
   })
 })

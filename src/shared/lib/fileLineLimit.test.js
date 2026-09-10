@@ -26,9 +26,17 @@ function walk(dir, out = []) {
   return out
 }
 
+// Считаем ровно как wc -l и как показывает редактор: завершающий перевод
+// строки закрывает последнюю строку, а не открывает новую. Без этой поправки
+// счёт был на единицу больше, и файл ровно в 400 строк объявлялся нарушителем
+function countLines(text) {
+  const n = text.split('\n').length
+  return text.endsWith('\n') ? n - 1 : n
+}
+
 const files = walk(SRC).map(f => ({
   path: relative(SRC, f).replace(/\\/g, '/'),
-  lines: readFileSync(f, 'utf8').split('\n').length,
+  lines: countLines(readFileSync(f, 'utf8')),
 }))
 
 describe('лимит размера файлов (CLAUDE.md)', () => {

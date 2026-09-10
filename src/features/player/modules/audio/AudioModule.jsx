@@ -49,17 +49,17 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const [barCount,        setBarCount]        = useState(WAVE_H_BASE.length)
   const [textStarted,     setTextStarted]     = useState(false)
   const [revealedCharIdx, setRevealedCharIdx] = useState(-1)
-  // Расшифровку показали целиком хотя бы раз. Дальше её НЕ перепечатываем:
-  // повторный запуск старого голосового схлопывал текст в ноль и набирал
-  // заново, пузырь при этом проходил через десяток промежуточных высот
-  // (замер: 57 → 57.2 → 58.2 → 60.3 → 63.5 → 69.3 → 76.4 → 85 → 90), и на
-  // каждую высоту PlayerBubble двигал ВСЮ ленту. Это и есть «чат дёргается,
-  // когда запускаешь сообщение из истории»: ученик уже прочитал текст,
-  // набирать его снова незачем, а лента из-за этого прыгает.
+  // Расшифровку показали целиком хотя бы раз — дальше её НЕ перепечатываем.
+  // Повторный запуск старого голосового схлопывал текст в ноль и набирал
+  // заново, пузырь проходил через десяток высот (замер: 57 → 60.3 → 69.3 →
+  // 85 → 90), и на каждую PlayerBubble двигал ВСЮ ленту. Это и есть «чат
+  // дёргается, когда запускаешь сообщение из истории».
   const fullyRevealedRef = useRef(false)
 
   const audioRef        = useRef(null)
   const rafRef          = useRef(null)
+  // Цикл кадров волны — чтобы возобновить его после паузы снаружи (см. ниже)
+  const tickRef         = useRef(null)
   const timeRef         = useRef(null)
   const waveRowRef      = useRef(null)
   const barElsRef       = useRef([])
@@ -183,6 +183,41 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     if (audioRef.current) audioRef.current.pause()
   }, [])
 
+  // Кнопка показывает состояние САМОГО элемента, а не только своих нажатий.
+  // Раньше isPlaying меняли лишь toggle() и onEnded, и остановленное со
+  // стороны сообщение продолжало показывать ⏸ и «играющие» полосы: в
+  // переписке звучит что-то одно (useSoloMedia), и запуск соседнего
+  // голосового ставит это на паузу мимо toggle(). То же с дебаг-тулбаром.
+  //
+  // Слушаем сам элемент — тогда любой, кто его тронет, честно отражается в
+  // кнопке, и новый источник паузы не потребует правок здесь.
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const onPause = () => { stopRAF(); setIsPlaying(false) }
+    // Возобновление снаружи (тулбар снял заморозку): цикл кадров мы погасили
+    // на паузе, поэтому поднимаем его обратно — иначе волна осталась бы
+    // стоять, пока звук идёт
+    const onPlay = () => {
+      setIsPlaying(true)
+      ensureTick()
+    }
+    audio.addEventListener('pause', onPause)
+    audio.addEventListener('play', onPlay)
+    return () => {
+      audio.removeEventListener('pause', onPause)
+      audio.removeEventListener('play', onPlay)
+    }
+  }, [src])
+
+  // Один цикл кадров на элемент, и не больше. Возобновление приходит с двух
+  // сторон сразу: событие 'play' и промис audio.play() — если каждая заведёт
+  // свой rAF, дальше они будут перебивать друг друга через общий rafRef, и
+  // волна с текстом начнут мерцать вдвое чаще нужного
+  function ensureTick() {
+    if (!rafRef.current && tickRef.current) rafRef.current = requestAnimationFrame(tickRef.current)
+  }
+
   function stopRAF() {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
   }
@@ -207,16 +242,25 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     const capturedChars = charTimings
 
     setTextStarted(true)
-    // Первый прогон печатает текст в такт речи; повторный оставляет его как
-    // есть — иначе пузырь снова растёт с нуля и дёргает ленту
-    setRevealedCharIdx(fullyRevealedRef.current ? capturedChars.length : -1)
+    // Три случая, и путать их нельзя:
+    //  · показывали целиком — оставляем целиком: повторный запуск старого
+    //    голосового текст не перенабирает (из-за этого дёргалась лента);
+    //  · запуск заново с начала — печатаем с нуля, как в первый раз;
+    //  · ПРОДОЛЖЕНИЕ с паузы — не трогаем. Сброс в −1 схлопывал недопечатанный
+    //    текст на кадр, следующий кадр возвращал обратно — это и было мигание
+    //    при возврате к сообщению, которое не успело договорить.
+    if (fullyRevealedRef.current) setRevealedCharIdx(capturedChars.length)
+    else if (isReplay) setRevealedCharIdx(-1)
     // On replay: reset to first frame so EMA starts clean
     // On resume: keep current EMA values — no jump
     if (isReplay) applyFirstFrame(capturedWave)
     barElsRef.current.forEach(bar => {
       if (!bar) return
       bar.style.transition = ''  // remove any lingering fade transition
-      bar.style.background = ''
+      // Заливку стираем ТОЛЬКО при запуске заново: на продолжении с паузы она
+      // уже показывает пройденное, а обнуление гасило спектр на кадр — то же
+      // мигание, что было у текста, только на полосах
+      if (isReplay) bar.style.background = ''
     })
 
     function tick() {
@@ -277,12 +321,19 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       onDone?.()
     }
 
+    // Запоминаем цикл кадров: если элемент остановит и снова запустит кто-то
+    // снаружи (сосед по переписке, дебаг-тулбар), возобновлять волну придётся
+    // не отсюда — см. эффект синхронизации ниже
+    tickRef.current = tick
+
     audio.addEventListener('ended', onEnded, { once: true })
     pLog('AudioModule: calling audio.play(), readyState=', audio.readyState, 'networkState=', audio.networkState)
     audio.play().then(() => {
       pLog('AudioModule: play() resolved OK')
       setIsPlaying(true)
-      rafRef.current = requestAnimationFrame(tick)
+      // ensureTick, а не свой rAF: событие 'play' уже могло поднять цикл,
+      // и второй такой же дальше дрался бы с ним за общий rafRef
+      ensureTick()
     }).catch(err => {
       pLog('AudioModule: play() ERROR —', err.name, err.message)
       console.warn('[AudioModule] play failed:', err.message)
