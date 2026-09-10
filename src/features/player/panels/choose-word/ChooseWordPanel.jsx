@@ -69,7 +69,7 @@ export default function ChooseWordPanel({ node, onDone, onAnswered, onPicked, on
               onClick={(e) => {
                 const snd = opt.isCorrect ? 'answer-correct' : 'answer-wrong'
                 pLog(`[word-choice] tap isCorrect=${opt.isCorrect} → sound=${snd}`)
-                playSound(snd)
+                playSound(snd, 'выбор слова')
                 rememberTap(e.currentTarget.getBoundingClientRect())
                 if (opt.isCorrect && xpAmount > 0 && !xpFiredRef.current) {
                   xpFiredRef.current = true

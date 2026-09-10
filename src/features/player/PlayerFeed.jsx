@@ -135,7 +135,7 @@ export default function PlayerFeed({ children, panelOpen = false }) {
         if (hasBubble && !photoAnswer && !pickBubble) {
           setTimeout(() => {
             pLog('[feed] sound message-in fired (-60ms)')
-            playSound('message-in')
+            playSound('message-in', 'лента: новое сообщение')
           }, SOUND_AT)
         }
 
@@ -148,7 +148,7 @@ export default function PlayerFeed({ children, panelOpen = false }) {
             pLog(`[feed] slide-in END row+${i} — photoAnswer=true`)
             const snd = photoAnswer.classList.contains('pcAnswerPhotoOk') ? 'answer-correct' : 'answer-wrong'
             pLog(`[feed] sound ${snd} fired (photo answer)`)
-            playSound(snd)
+            playSound(snd, 'лента: ответ фото')
           }).catch(() => {})
         }
       })

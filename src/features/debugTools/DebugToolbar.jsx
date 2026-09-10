@@ -16,6 +16,7 @@ import { decideToggle, decideFollowScenario, decideStep } from './debugStepLogic
 import { useDraggablePosition } from './useDraggablePosition.js'
 import { onDebugToolbarOpen } from './debugToolbarState.js'
 import { onPlayerStepChange } from './debugPlayerStep.js'
+import { runJitterProbe } from './debugJitter.js'
 import PlayerStepRow from './PlayerStepRow.jsx'
 
 // Видео проекта рендерится в 30fps (tools/prepare-video.ps1) — один кадр
@@ -39,6 +40,9 @@ export default function DebugToolbar() {
   const [authEmail, setAuthEmail] = useState(null)
   const [playerStep, setPlayerStep] = useState(null)
   const [recording, setRecording] = useState(false)
+  // Идёт ли замер дрожания ленты (debugJitter.js) — на время замера кнопка
+  // блокируется: экран трогать нельзя, иначе меряем не то
+  const [jitter, setJitter] = useState(false)
   // Куда лёг последний файл — единственный ответ на вопрос «а сохранилось-то
   // куда?»: путь показывается прямо в ручке тулбара, его же называют Claude
   const [savedPath, setSavedPath] = useState(null)
@@ -191,6 +195,16 @@ export default function DebugToolbar() {
     }
   }
 
+  // Замер дрожания: пять секунд смотрим на ленту покадрово. Сводка сама
+  // ложится в следующий отчёт (debugJitter.getJitterReport), поэтому дальше
+  // достаточно нажать «сохранить»
+  async function measureJitter() {
+    setJitter(true)
+    const res = await runJitterProbe(5)
+    setJitter(false)
+    setSavedPath(`дрожание: ${res.дрожат.length} из ${res.строк} строк — нажми «сохранить»`)
+  }
+
   async function save() {
     const file = await saveReport(comments)
     setSavedPath(file || 'ушло в Downloads (dev-сервер не ответил)')
@@ -221,10 +235,11 @@ export default function DebugToolbar() {
         />
 
         <CaptureRow
-          commentMode={commentMode} comments={comments} recording={recording}
+          commentMode={commentMode} comments={comments} recording={recording} jitter={jitter}
           onToggleCommentMode={() => setCommentMode(v => !v)}
           onClearComments={() => setComments([])}
           onToggleRecording={toggleRecording}
+          onJitter={measureJitter}
           onSave={save}
         />
       </div>

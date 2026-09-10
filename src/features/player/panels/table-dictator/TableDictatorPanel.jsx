@@ -11,8 +11,6 @@ import { schedulePostAudioCheck } from './dictatorPostAudio.js'
 import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 import { isDebugPaused } from '../../../debugTools/debugMedia.js'
-import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
-import { chatFadeHeight } from '../../chatFadeHeight.js'
 import { playFeedRelease } from '../feedRelease.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { makeDictatorSlideDown } from './dictatorSlideDown.js'
@@ -355,13 +353,12 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
 
   return (
     <>
-      {/* Салют на верный ответ живёт ЗДЕСЬ, а не на пузыре в чате: пузырей
-          может не быть вовсе — их даёт отдельная галочка «отправить ответ
-          ученика». Праздник же положен за верный ответ, а не за наличие
-          сообщения в переписке (AnswerBubbles получает confetti={false}) */}
-      {result === 'correct' && (
-        <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
-      )}
+      {/* Салюта у АВТО-таблицы нет вовсе — сознательно. Фразу здесь собирает
+          таймлайн, ученик её не собирал: праздновать нечего, а залп в конце
+          каждого разбора превращал диктант в череду фейерверков. У ручной
+          таблицы он остался — там ответ действительно собирает ученик
+          (TableManualPanel). AnswerBubbles у обеих получает confetti={false},
+          так что второго источника нет. */}
     <TableDictatorView
       show={show} toChat={toChatCtl.toChat} panelH={panelH} givenToBubble={toChatCtl.givenToBubble} released={toChatCtl.spacerReleased} panelRef={panelRef} barElsRef={barElsRef}
       waveformData={waveformData} hudVisible={hudVisible}

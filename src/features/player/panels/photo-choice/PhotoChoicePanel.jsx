@@ -76,7 +76,7 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
 
   useEffect(() => {
     pLog('[photo-choice] panel mount → sound message-in')
-    playSound('message-in')
+    playSound('message-in', 'панель выбора фото')
     const id = requestAnimationFrame(() => setShow(true))
     return () => cancelAnimationFrame(id)
   }, [])

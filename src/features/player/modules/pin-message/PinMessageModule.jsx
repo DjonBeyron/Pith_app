@@ -12,7 +12,7 @@ export default function PinMessageModule({ teacherName, onDone }) {
     const pending = rowRef.current?.closest('[data-pending]')
     // Звук — вместе с приходом строки, а не в момент монтирования: строка ещё
     // 240мс летит снизу. Тот же момент, что и у message-in обычных сообщений
-    const t = pending ? null : setTimeout(() => playSound('pin-message'), MSG_SOUND_AT)
+    const t = pending ? null : setTimeout(() => playSound('pin-message', 'закреплённое сообщение'), MSG_SOUND_AT)
     onDone?.()
     return () => { if (t) clearTimeout(t) }
   }, []) // eslint-disable-line

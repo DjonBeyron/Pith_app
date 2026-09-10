@@ -129,7 +129,7 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
               const r = checkAnswer()
               if (!r) return
               onChecked?.(r, placed.map(p => p.word).join(' '))
-              playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong')
+              playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'собери фразу')
               if (r === 'correct' && xpAmount > 0 && !xpFiredRef.current) {
                 xpFiredRef.current = true
                 onXpEarned?.(xpAmount)

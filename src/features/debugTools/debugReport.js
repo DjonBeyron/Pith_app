@@ -7,6 +7,8 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 import { getTimelineEvents } from './debugTimeline.js'
 import { buildSelector } from './debugSelector.js'
 import { sendToSink, debugFileName } from './debugSink.js'
+import { getSoundLog } from '../../shared/lib/soundTrace.js'
+import { getJitterReport } from './debugJitter.js'
 
 function snapshotAnimations() {
   if (!document.getAnimations) return []
@@ -33,6 +35,11 @@ export function buildReport(comments) {
     comments,
     timeline: getTimelineEvents(),
     runningAnimations: snapshotAnimations(),
+    // Что на самом деле прозвучало: «play() → OK» на этот вопрос не отвечает,
+    // промис резолвится в момент старта (soundTrace.js)
+    звук: getSoundLog(),
+    // Сводка последнего замера дрожания, если его запускали (debugJitter.js)
+    дрожание: getJitterReport(),
   }
 }
 

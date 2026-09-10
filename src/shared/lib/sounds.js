@@ -1,4 +1,5 @@
 import { pLog } from './debug.js'
+import { traceSoundRequest, traceSoundStarted, traceSoundFailed } from './soundTrace.js'
 
 // Hybrid approach for iOS (CriOS) compatibility:
 // - AudioContext.resume() in gesture handler properly unlocks the page for all audio.
@@ -41,15 +42,20 @@ export function unlockAudio() {
   }
 }
 
-export function playSound(name) {
+// where — кто просит звук ('word-choice', 'феед', 'таблица'…). В отчёт
+// дебага уходит вместе с итогом: по одному «OK» нельзя было понять, почему
+// ученик звука не услышал — промис play() резолвится в момент СТАРТА, а
+// дальше элемент мог встать на паузу или оборваться (см. soundTrace.js).
+export function playSound(name, where = null) {
   let audio = htmlCache[name]
   if (!audio) {
     audio = new Audio(`/sounds/${name}.mp3`)
     htmlCache[name] = audio
   }
+  const rec = traceSoundRequest(name, audio, { откуда: where, состояниеCtx: ctx?.state ?? null })
   // Only seek to start if not already there — avoids iOS re-decode stall on fresh objects
   if (audio.currentTime > 0) audio.currentTime = 0
   audio.play()
-    .then(() => pLog(`[sound] ${name} OK`))
-    .catch(e => pLog(`[sound] ${name} FAILED: ${e.message}`))
+    .then(() => { traceSoundStarted(rec); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
+    .catch(e => { traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`) })
 }
