@@ -15,6 +15,7 @@ import { mainLineIndex, lessonProgress } from '../../shared/lib/lessonProgress.j
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { usePlayerPanelNodes } from './usePlayerPanelNodes.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
+import { useNodeAppearLog } from './useNodeAppearLog.js'
 import { usePlayerFiles } from './usePlayerFiles.js'
 import { useAnswerStats } from './useAnswerStats.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
@@ -136,29 +137,8 @@ export default function LessonPlayer({
   // запрещён react-hooks/purity); все потребители читают ref после маунта
   const openTimeRef      = useRef(0)
   useEffect(() => { if (!openTimeRef.current) openTimeRef.current = Date.now() }, [])
-  const prevVisibleRef   = useRef([])
-  const nodeAppearLogRef = useRef([])
-
-  useEffect(() => {
-    const prevIds = new Set(prevVisibleRef.current.map(n => n.id))
-    const newNodes = visibleNodes.filter(n => !prevIds.has(n.id))
-    if (newNodes.length) {
-      const t = `+${((Date.now() - openTimeRef.current) / 1000).toFixed(1)}`
-      newNodes.forEach(n => {
-        addMsgTs(n.seq, t)
-        const fileId = n.typeData?.[n.type]?.file_id ?? null
-        const entry  = fileId ? blobMap[fileId] : null
-        nodeAppearLogRef.current.push({
-          seq: n.seq, type: n.type, appearTs: t,
-          blobReady:   !!entry?.blobUrl,
-          blobEvicted: !!entry?.evicted,
-          blobError:   !!entry?.error,
-          hadBlob:     !!entry,
-        })
-      })
-    }
-    prevVisibleRef.current = visibleNodes
-  }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Журнал появления нод + готовности их медиа — useNodeAppearLog.js
+  const nodeAppearLogRef = useNodeAppearLog(visibleNodes, blobMap, addMsgTs, openTimeRef)
 
   const downloadCombinedLog = () => downloadDebugLog({
     nodeAppearLog: nodeAppearLogRef.current, debugItems, events: getEvents(),

@@ -64,7 +64,7 @@ describe('какие ячейки можно нажать (ручной режи
 })
 
 describe('ответ ученика уходит в чат по галочке', () => {
-  const panel = read('./TableManualPanel.jsx')
+  const panel = read('./manualCheck.js')
 
   it('верный ответ отправляется сразу', () => {
     expect(panel).toContain("if (phrase.trim()) onAnswerToChat?.(phrase, 'correct')")

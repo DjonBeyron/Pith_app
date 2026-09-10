@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback, forwardRef } from 'react'
 import { dbg } from '../../shared/lib/debug.js'
-import CanvasNode from './CanvasNode.jsx'
+import CanvasBoardNode from './CanvasBoardNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
 import { nodeOptionsSignature, pickNodeOptions } from './canvasNodeOptions.js'
 import { releaseTextSelection } from './canvasDragGuard.js'
@@ -17,10 +17,8 @@ import { useCanvasZoom } from './useCanvasZoom.js'
 import { FAR_ZOOM } from './canvasZoom.js'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import CanvasZoomBadge from './CanvasZoomBadge.jsx'
-import NodeHoverMenu from './NodeHoverMenu.jsx'
 import CanvasSelectionToolbar from './CanvasSelectionToolbar.jsx'
 import { useCanvasGroupDelete } from './useCanvasGroupDelete.js'
-import NodeNoteLayer from './NodeNoteLayer.jsx'
 import CanvasLinkDebug, { CanvasDebugOverlay } from './CanvasLinkDebug.jsx'
 import { linkDiagnostics } from './canvasLinkDebug.js'
 import { useLinkDebugLog } from './useLinkDebugLog.js'
@@ -49,6 +47,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   onlyMissingMedia = false,
   // Отладка связей (меню «⋯»): прямые отрезки поверх всего + сводка
   debugLinks = false,
+  lessonXp = 0,
 }, ref) {
   // Ноды/offset/scale + вся локальная персистентность (черновик, сверка
   // с сервером, память позиции обзора) — useCanvasBoardState.js
@@ -296,62 +295,44 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       <div className={`canvasBoardWorld${far ? ' canvasBoardWorldFar' : ''}`}
         style={{ transform: worldTransform, transformOrigin: '0 0' }}>
         {nodes.map(node => (
-          <div
+          <CanvasBoardNode
             key={node.id}
-            className={`canvasNodeWrapper${spotlightId === node.id ? ' canvasNodeWrapperSpot' : ''}`}
-            style={{ left: node.x, top: node.y }}
-            onMouseEnter={() => enterNode(node.id)}
-          >
-            <CanvasNode
-              node={node}
-              onUpdate={updateNode}
-              onDragStart={handleNodeMouseDown}
-              selected={selectedIds.has(node.id)}
-              wasDragged={wasDragged}
-              allNodes={node.size === 'max' ? nodeOptions : EMPTY_NODES}
-              lessonFiles={lessonFiles}
-              onPickLessonFile={onPickLessonFile}
-              onRemoveLessonFile={onRemoveLessonFile}
-              onTriggerMeasure={handleTriggerMeasure}
-              moduleLessons={moduleLessons}
-              dimmed={isNodeDimmed(node, visibleTypes, onlyMissingMedia)}
-            />
-            {isAdmin && node.note != null && (
-              <NodeNoteLayer
-                node={node}
-                box={boxFor(node.id)}
-                scaleRef={scaleRef}
-                folded={isNoteFolded(node)}
-                onChange={value => updateNode(node.id, { note: value })}
-                onBoxChange={box => setBoxFor(node.id, box)}
-                onFold={() => toggleNote(node.id, true)}
-                onRemove={() => {
-                  // Заметку с текстом просто так не теряем — рядом есть «свернуть»
-                  if (node.note?.trim() && !window.confirm('Удалить комментарий продакшена?')) return
-                  updateNode(node.id, { note: undefined })
-                  clearBoxFor(node.id)
-                }}
-              />
-            )}
-            {hoveredNodeId === node.id && (
-              <NodeHoverMenu
-                isAdmin={isAdmin}
-                confirmDelete={confirmDeleteId === node.id}
-                hasNote={node.note != null}
-                noteOpen={isNoteOpen(node)}
-                onPlayFrom={onPlayFrom ? () => onPlayFrom(node.id) : null}
-                onAdd={e => setTypeMenu({
-                  pos: computeMenuPos(e.currentTarget.getBoundingClientRect()),
-                  nodeId: node.id,
-                })}
-                onToggleNote={() => toggleNote(node.id, node.note != null)}
-                onDuplicate={() => duplicateNode(node.id)}
-                onAskDelete={() => setConfirmDeleteId(node.id)}
-                onDelete={() => deleteNode(node.id)}
-                onCancelDelete={() => setConfirmDeleteId(null)}
-              />
-            )}
-          </div>
+            node={node}
+            spot={spotlightId === node.id}
+            selected={selectedIds.has(node.id)}
+            hovered={hoveredNodeId === node.id}
+            confirmDelete={confirmDeleteId === node.id}
+            isAdmin={isAdmin}
+            onEnter={() => enterNode(node.id)}
+            onUpdate={updateNode}
+            onDragStart={handleNodeMouseDown}
+            wasDragged={wasDragged}
+            allNodes={node.size === 'max' ? nodeOptions : EMPTY_NODES}
+            lessonFiles={lessonFiles}
+            onPickLessonFile={onPickLessonFile}
+            onRemoveLessonFile={onRemoveLessonFile}
+            lessonXp={lessonXp}
+            onTriggerMeasure={handleTriggerMeasure}
+            moduleLessons={moduleLessons}
+            dimmed={isNodeDimmed(node, visibleTypes, onlyMissingMedia)}
+            noteBox={boxFor(node.id)}
+            onNoteBoxChange={box => setBoxFor(node.id, box)}
+            onNoteBoxClear={() => clearBoxFor(node.id)}
+            scaleRef={scaleRef}
+            noteFolded={isNoteFolded(node)}
+            noteOpen={isNoteOpen(node)}
+            onFoldNote={() => toggleNote(node.id, true)}
+            onToggleNote={() => toggleNote(node.id, node.note != null)}
+            onPlayFrom={onPlayFrom ? () => onPlayFrom(node.id) : null}
+            onAdd={e => setTypeMenu({
+              pos: computeMenuPos(e.currentTarget.getBoundingClientRect()),
+              nodeId: node.id,
+            })}
+            onDuplicate={() => duplicateNode(node.id)}
+            onAskDelete={() => setConfirmDeleteId(node.id)}
+            onDelete={() => deleteNode(node.id)}
+            onCancelDelete={() => setConfirmDeleteId(null)}
+          />
         ))}
       </div>
 

@@ -55,7 +55,7 @@ describe('возврат на ту же ноду (ошибся → подска�
 })
 
 describe('право на ошибку в таблице', () => {
-  const panel = read('./panels/table-manual/TableManualPanel.jsx')
+  const panel = read('./panels/table-manual/manualCheck.js')
 
   it('триггер «неверно» уходит только с третьей ошибки', () => {
     expect(panel).toContain('wrongCount.current += 1')

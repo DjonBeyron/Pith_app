@@ -36,7 +36,7 @@ function mainFieldPlaceholder(type) {
 // ответов + блок триггеров. Общая для max-ноды канваса (CanvasNode) и строки
 // продакшен-списка (ProductionList) — один источник правды на все 14 типов,
 // не дублируем 8 разных пикеров в двух местах.
-export default function NodeContentEditor({
+export default function NodeContentEditor({ lessonXp = 0,
   node, onUpdate, allNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, onTriggerMeasure, moduleLessons = [],
   showTypeSelect = true,
   // Продакшен: блок «Если/Тогда» (простые типы — не word_choice и т.п. со
@@ -294,6 +294,7 @@ export default function NodeContentEditor({
         <NodeLessonRefPicker value={tData} onChange={patch => updateTypeData(patch)} />
       )}
       <NodeAnswerFields
+        lessonXp={lessonXp}
         node={node} tData={tData} updateTypeData={updateTypeData} onUpdate={onUpdate}
         allNodes={allNodes} lessonFiles={lessonFiles} onPickLessonFile={onPickLessonFile}
         onRemoveLessonFile={onRemoveLessonFile}

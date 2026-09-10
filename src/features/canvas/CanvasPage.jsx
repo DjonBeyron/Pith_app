@@ -344,6 +344,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           visibleTypes={filter.types}
           onlyMissingMedia={filter.onlyMissingMedia}
           debugLinks={debugLinks}
+          /* Нужен чекбоксу «Получить награду»: без XP у самого урока галочка
+             ничего не даёт, и нода об этом предупреждает (NodeRewardCheckbox) */
+          lessonXp={lessonXp}
         />
       )}
     </div>

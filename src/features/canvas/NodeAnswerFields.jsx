@@ -15,6 +15,9 @@ import { isRewardOn }           from '../../shared/lib/nodeReward.js'
 export default function NodeAnswerFields({
   node, tData, updateTypeData, onUpdate, allNodes, lessonFiles, onPickLessonFile, onRemoveLessonFile,
   onTriggerMeasure, moduleLessons,
+  // XP урока: ноль — значит галочка награды ни на что не влияет, и чекбокс
+  // об этом честно скажет (см. NodeRewardCheckbox)
+  lessonXp = 0,
 }) {
   if (node.type === 'word_choice') {
     return (
@@ -37,7 +40,7 @@ export default function NodeAnswerFields({
           onStatLessonChange={v => updateTypeData({ statLessonId: v })}
           moduleLessons={moduleLessons}
         />
-        <NodeRewardCheckbox checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
+        <NodeRewardCheckbox lessonXp={lessonXp} checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
       </>
     )
   }
@@ -65,7 +68,7 @@ export default function NodeAnswerFields({
           onChange={v => updateTypeData({ statLessonId: v })}
           moduleLessons={moduleLessons}
         />
-        <NodeRewardCheckbox checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
+        <NodeRewardCheckbox lessonXp={lessonXp} checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
       </>
     )
   }
@@ -93,6 +96,7 @@ export default function NodeAnswerFields({
         {/* В режиме «Авто» галочка снята по умолчанию (таблица собирается
             сама, ученик не отвечает), но включить награду можно */}
         <NodeRewardCheckbox
+          lessonXp={lessonXp}
           checked={isRewardOn('table', tData)}
           onChange={v => updateTypeData({ reward: v })}
         />
@@ -122,7 +126,7 @@ export default function NodeAnswerFields({
           onChange={v => updateTypeData({ statLessonId: v })}
           moduleLessons={moduleLessons}
         />
-        <NodeRewardCheckbox checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
+        <NodeRewardCheckbox lessonXp={lessonXp} checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
       </>
     )
   }

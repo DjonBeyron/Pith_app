@@ -47,7 +47,7 @@ describe('таблица уходит в чат после ответа (гал�
   // Панель не гаснет, чтобы «заново появиться» пузырём: её клон летит на
   // место сообщения в переписке и там садится (flyPanelToChat.js)
   it('панель улетает в чат, а не исчезает', () => {
-    for (const f of ['../../panels/table-dictator/TableDictatorPanel.jsx',
+    for (const f of ['../../panels/table-dictator/dictatorSlideDown.js',
       '../../panels/table-manual/TableManualPanel.jsx']) {
       const src = read(f)
       // Сам вызов живёт в общем хуке useTableToChat — панели только отдают
@@ -81,7 +81,7 @@ describe('таблица уходит в чат после ответа (гал�
     // бокс сборки в сообщении рисуется всегда — иначе не сойдётся высота с панелью
     expect(read('./TableChatBubble.jsx')).not.toContain('words.length > 0 &&')
     expect(read('./TableModule.jsx')).toContain('nodeId={props.node.id}')
-    const fly = read('../../panels/flyPanelToChat.js')
+    const fly = read('../../panels/flyPanelToChat.js') + read('../../panels/flyPanelParts.js')
     expect(fly).toContain('[data-table-bubble="${nodeId}"]')
     // Пузырь встаёт в ленту сразу (держит место под посадку), но невидимым:
     // иначе таблица секунду видна разом и в панели, и в переписке

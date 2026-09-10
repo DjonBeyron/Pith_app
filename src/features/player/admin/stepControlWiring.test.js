@@ -150,8 +150,8 @@ describe('выход к ноде и вид панели', () => {
     // тускнеет быстро, возвращается плавно — переходы разной длительности
     expect(FEED_CSS).toContain('transition: opacity 0.55s ease')
     expect(FEED_CSS).toContain('transition: opacity 0.12s ease')
-    expect(read('../../canvas/CanvasBoard.jsx'))
-      .toContain("spotlightId === node.id ? ' canvasNodeWrapperSpot' : ''")
+    expect(read('../../canvas/CanvasBoardNode.jsx'))
+      .toContain("spot ? ' canvasNodeWrapperSpot' : ''")
   })
 
   it('в панели есть блок «Если/Тогда» — свёрнутый, и рамка медиа как в ноде', () => {

@@ -76,7 +76,7 @@ describe('очистка собранной фразы', () => {
   })
 
   it('счётчик сработавших очисток сбрасывается на старте прогона', () => {
-    const panel = read('../../player/panels/table-dictator/TableDictatorPanel.jsx')
+    const panel = read('../../player/panels/table-dictator/dictatorRunReset.js')
     expect(panel).toContain('clearedRef.current    = new Set()')
   })
 

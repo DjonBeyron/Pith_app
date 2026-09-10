@@ -99,3 +99,18 @@
   padding: 1px 6px;
   font-weight: 600;
 }
+
+/* Галочка награды стоит, а XP у самого урока нулевой — значит награду не
+   получит ни одна нода (lessonXp.js). Показываем это вместо значка «⭐ XP»:
+   иначе автор видит включённую награду и уверен, что всё настроено, а на
+   итогах урока «+0 XP». Число задаётся в шапке канваса (CanvasXpField). */
+.nodeRewardWarn {
+  font-size: 11px;
+  color: #ffb020;
+  background: #3a2a12;
+  border: 1px solid #ffb02055;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-weight: 600;
+  cursor: help;
+}

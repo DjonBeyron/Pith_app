@@ -22,6 +22,8 @@ function CanvasNode({
   // Фильтр в шапке канваса: тип не отмечен — нода приглушается, но остаётся
   // на месте и со своими связями
   dimmed = false,
+  // XP самого урока — чекбокс награды предупреждает, если он нулевой
+  lessonXp = 0,
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
   // Подпись для дальнего зума. Рисуется всегда, но видна только когда холст
@@ -125,6 +127,7 @@ function CanvasNode({
           node={node}
           onUpdate={handleUpdate}
           allNodes={allNodes}
+          lessonXp={lessonXp}
           lessonFiles={lessonFiles}
           onPickLessonFile={onPickLessonFile}
           onRemoveLessonFile={onRemoveLessonFile}

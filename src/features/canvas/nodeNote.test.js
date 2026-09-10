@@ -57,7 +57,7 @@ describe('комментарий не виден никому, кроме адм
   })
 
   it('стикер и метка на холсте рендерятся только под isAdmin', () => {
-    const board = read('./CanvasBoard.jsx')
+    const board = read('./CanvasBoard.jsx') + read('./CanvasBoardNode.jsx')
     expect(board).toContain('{isAdmin && node.note != null && (')
     expect(board).toContain('<NodeNoteLayer')
     expect(read('./NodeNoteLayer.jsx')).toContain('if (folded) {')
@@ -81,8 +81,8 @@ describe('комментарий не виден никому, кроме адм
   })
 
   it('удаление комментария стирает текст у ноды и локальное положение стикера', () => {
-    const board = read('./CanvasBoard.jsx')
-    expect(board).toContain('updateNode(node.id, { note: undefined })')
+    const board = read('./CanvasBoard.jsx') + read('./CanvasBoardNode.jsx')
+    expect(board).toContain('onUpdate(node.id, { note: undefined })')
     expect(board).toContain('clearBoxFor(node.id)')
   })
 
@@ -90,7 +90,7 @@ describe('комментарий не виден никому, кроме адм
     const box = read('./NodeNoteBox.jsx')
     expect(box).toContain('onClick={onFold}')
     expect(box).toContain('onClick={onRemove}')
-    expect(read('./CanvasBoard.jsx')).toContain('onFold={() => toggleNote(node.id, true)}')
+    expect(read('./CanvasBoard.jsx')).toContain('onFoldNote={() => toggleNote(node.id, true)}')
   })
 
   it('иконка в меню — глиф, как у соседних кнопок, и желтеет, когда заметка есть', () => {

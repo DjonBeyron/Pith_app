@@ -14,6 +14,9 @@ import { isDebugPaused } from '../../../debugTools/debugMedia.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 import { chatFadeHeight } from '../../chatFadeHeight.js'
 import { playFeedRelease } from '../feedRelease.js'
+import { makeDictatorSlideDown } from './dictatorSlideDown.js'
+import { useDictatorLegacyAssemble } from './useDictatorLegacyAssemble.js'
+import { resetDictatorRun } from './dictatorRunReset.js'
 
 
 function shuffle(arr) {
@@ -25,12 +28,6 @@ function shuffle(arr) {
   return a
 }
 
-// Возврат сцены на место (.tdTableSection, transition 0.42s в
-// table-dictator.css) плюс запас на кадр — раньше этого начинать превращение
-// нельзя, иначе клон снимется с уехавшей таблицы
-const SLIDE_BACK_MS = 460
-// Возврат текста ячеек — это один пересчёт раскладки, кадра хватает с запасом
-const RESTORE_MS = 90
 
 export default function TableDictatorPanel({ node, file, onDone, onHeightChange, onSendToChat, onLandedInChat }) {
   const tData        = node.typeData?.table ?? {}
@@ -231,44 +228,12 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   // Как прогон стартует без тапа (автозапуск/подстраховка часами без звука) — useTableDictatorAutostart.js
   const { runWithClock } = useTableDictatorAutostart({
     audioSrc, timeline, tData, audioRef, hasPlayedRef, endedRef, startedRef, slideDownRef, setHudVisible,
+
   })
-
-  // Авто-сборка + авто-проверка для режима «совсем без таймлайна у слов» (легаси).
-  // Если у слов ЕСТЬ свои word-слои (hasExtraLayers) — RAF уже собирает их поштучно
-  // по своему времени; это было пропущено раньше при checkAt==null и приводило к
-  // двойной сборке (эта функция разом переписывала extrasAssembled поверх RAF) —
-  // именно это и «дёргало» интерфейс на последнем слове.
-  useEffect(() => {
-    if (!chipsVisible) return
-    if (checkAt != null) return  // RAF управляет сборкой (checkAt-режим)
-    if (hasExtraLayers) return   // RAF уже собирает слова поштучно по их word-слоям
-
-    // Ждём окончания анимации чипов, потом собираем слова
-    const staggerEnd = shuffledExtras.length * 50 + 350
-    pLog(`[td-auto] chipsVisible: staggerEnd=${staggerEnd}ms assembledNow=[${assembledRef.current.join('|')}]`)
-    const assembleId = setTimeout(() => {
-      pLog(`[td-auto] auto-assemble: assembledRef=[${assembledRef.current.join('|')}] extraFromAnswer=[${extraFromAnswer.join('|')}]`)
-      const usedIdx    = new Set()
-      const toAssemble = extraFromAnswer.map(word => {
-        const idx = shuffledExtras.findIndex((w, i) => w === word && !usedIdx.has(i))
-        if (idx === -1) {
-          pLog(`[td-auto] WARN: "${word}" не найдено в shuffledExtras=[${shuffledExtras.join('|')}]`)
-          return null
-        }
-        usedIdx.add(idx)
-        return { value: word, key: `extra-${idx}` }
-      }).filter(Boolean)
-      pLog(`[td-auto] toAssemble=[${toAssemble.map(t => t.value).join('|')}]`)
-      if (toAssemble.length > 0) setExtrasAssembled(toAssemble)
-      const id = setTimeout(() => {
-        pLog(`[td-auto] auto-check fired +${checkDelay}ms`)
-        checkRef.current?.()
-      }, checkDelay)
-      timers.current.push(id)
-    }, staggerEnd)
-
-    timers.current.push(assembleId)
-  }, [chipsVisible]) // eslint-disable-line
+  useDictatorLegacyAssemble({
+    chipsVisible, checkAt, hasExtraLayers, checkDelay,
+    shuffledExtras, extraFromAnswer, assembledRef, setExtrasAssembled, checkRef, timers,
+  })
 
   useTableDictatorRaf({
     playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers,
@@ -290,101 +255,23 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
       answer, cells, timeline, checkAt, checkDelay, duration: tData.duration,
       tokens, extraFromAnswer, distractors, shuffledExtras, hasExtraLayers,
     })
-    setPlaying(true)
-    setAssembled([])
-    setExtrasAssembled([])
-    setResult(null)
-    setPhase(null)
-    setChipsVisible(false)
-    addedCellsRef.current = new Set()
-    clearedRef.current    = new Set()
-    assembledRef.current  = []
-    prevActiveRef.current = new Set()
-    prevExtraRef.current  = new Set()
-    rfxPhaseRef.current       = false
-    rfxChipsRef.current       = false
-    rfxAssembRef.current      = false
-    rfxCheckRef.current       = false
-    rfxCloseRef.current       = false
-    closedRef.current         = false
-    toChatCtl.reset()
-    closeTriggerRef.current   = null
-    closeVariantRef.current   = null
-    setHighlighted(new Set()); setUsedCells(new Set())
-    setActiveExtraKeys(new Set())
-    setRevealedIds(computeRevealedCellIds(timeline?.layers, 0))
+    resetDictatorRun({
+      timeline, toChatCtl,
+      setPlaying, setAssembled, setExtrasAssembled, setResult, setPhase, setChipsVisible,
+      setHighlighted, setUsedCells, setActiveExtraKeys, setRevealedIds,
+      addedCellsRef, clearedRef, assembledRef, prevActiveRef, prevExtraRef,
+      rfxPhaseRef, rfxChipsRef, rfxAssembRef, rfxCheckRef, rfxCloseRef, closedRef,
+      closeTriggerRef, closeVariantRef,
+    })
   }
 
-  function slideDown(trigger, variantId) {
-    pLog(`[td-auto] slideDown trigger=${trigger}`)
-    const done = () => onDone?.(trigger ?? 'table_correct', variantId)
+  const slideDown = makeDictatorSlideDown({
+    node, panelH, panelRef, timers, releaseRef,
+    assembled, extrasAssembled, result, toChatCtl,
+    onDone, onSendToChat, onLandedInChat, onHeightChange,
+    setShow, setHudVisible, setHighlighted, setUsedCells, setRevealedIds, setPhase, setChipsVisible,
+  })
 
-    const leave = () => {
-      // Галочка «отправить таблицу в чат»: панель не уезжает вниз, а летит на
-      // место своего сообщения в переписке (flyPanelToChat.js). Настоящая
-      // панель гаснет сразу — дальше видно её клон, — а следующая нода
-      // запускается только после посадки, чтобы её сообщение не обогнало
-      // таблицу
-      if (onSendToChat) {
-        // Пузырь в чате повторяет вид панели: та же собранная фраза и тот же
-        // итог проверки. Подсказку «Слушай диктора…» не отдаём — она не часть
-        // ответа, только приглашение по ходу разбора
-        const sent = {
-          words: [...assembled, ...extrasAssembled.map(t => t.value)],
-          result,
-        }
-        toChatCtl.sendToChat(panelRef.current, node.id, {
-          send: arriving => onSendToChat(arriving, sent),
-          reveal: onLandedInChat,
-          done: () => { pLog('[td] села в чат'); done() },
-        })
-      } else {
-        timers.current.push(setTimeout(done, 420))
-      }
-      // Высоту запоминаем ЗДЕСЬ: к моменту, когда сдвиг реально запустится
-      // (useLayoutEffect ниже), распорка уже отдана и panelH обнулён
-      if (!onSendToChat) releaseRef.current = panelH
-      setShow(false)
-      setHudVisible(false)   // панель уезжает вниз — спектр сразу схлопывается (scale к 0), не ждёт onEnded
-      setHighlighted(new Set())
-      onHeightChange?.(0)
-    }
-
-    // Если по ходу разбора появлялись слова вне таблицы, сцена уехала влево и
-    // на её месте стоят чипы (phase: 'extras'). В чат таблица должна уйти в
-    // своём обычном виде, поэтому сперва возвращаем её на место и только потом
-    // начинаем превращение. Панель в этот момент ещё видима — клон снимается с
-    // неё, и уехавшая сцена попала бы в него как есть.
-    //
-    // Состояние берём из DOM, а не из phase: slideDown вызывается из таймеров,
-    // и замыкание может держать значение прошлого рендера.
-    const slid = panelRef.current?.querySelector('.tdTableSectionSlid')
-    if (onSendToChat) {
-      // Текст ячеек возвращаем ВСЕГДА. По ходу диктанта ячейки гаснут: out-point
-      // слоя убирает их из revealedIds (dictatorPostAudio.js), и к концу разбора
-      // часть таблицы стоит без текста. В сообщении же таблица рисуется вообще
-      // без гейтинга — там виден весь текст. Не вернув его здесь, мы снимали бы
-      // клон с полупустой таблицы, а в чате она внезапно заполнялась.
-      // null, а не полный набор: у TableGrid это и означает «показывать всё».
-      setRevealedIds(null)
-      // И снимаем затемнение отработавших ячеек. Оно ставится по ходу разбора
-      // (usedCells → dimmedIds → цвет с альфой 0.4) и на глаз читается не как
-      // «уже прошли», а как «текст стал тоньше». В сообщении таблица рисуется
-      // без dimmedIds вовсе, поэтому без этой строки панель и пузырь
-      // отличались яркостью текста — а при подмене он «возвращал толщину»
-      setUsedCells(new Set())
-      if (slid) {
-        pLog('[td] возвращаем таблицу на место и текст ячеек перед уходом в чат')
-        setPhase(null)
-        setChipsVisible(false)
-      } else {
-        pLog('[td] возвращаем текст ячеек перед уходом в чат')
-      }
-      timers.current.push(setTimeout(leave, slid ? SLIDE_BACK_MS : RESTORE_MS))
-      return
-    }
-    leave()
-  }
 
   function handleEnded() {
     cancelAnimationFrame(rafRef.current)   // сразу глушим RAF — иначе успеет перезаписать highlight
