@@ -21,8 +21,10 @@
 //     ТАБЛИЦА — движение читается как «таблица уходит в переписку», а не как
 //     «переписка съезжает к таблице». Место панели освобождается следом.
 const OPEN  = 'height 0.26s cubic-bezier(0.16, 1, 0.3, 1)'
-// Обычное закрытие: панель уезжает вниз, разгоняясь — ей ease-in идёт
-const CLOSE = 'height 0.22s cubic-bezier(0.4, 0, 1, 1)'
+// Обычное закрытие: высота снимается разом, движение истории играет трансформ
+// (feedRelease.js). Прежняя height-анимация 0.22s пересчитывала раскладку
+// каждый кадр — то самое торможение на высоких панелях
+const CLOSE_INSTANT = 'none'
 // Отдача места после превращения идёт БЕЗ перехода: высота снимается разом, а
 // сам сдвиг истории проигрывает трансформ на .playerFeedInner (см.
 // useTableToChat.releaseSpacer). Анимировать здесь height нельзя — это layout,
@@ -36,8 +38,15 @@ export function spacerStyle({ show, panelH, givenToBubble, released }) {
       ? { height: 0, transition: RELEASE }
       : { height: Math.max(0, panelH - givenToBubble), transition: 'none' }
   }
+  // Закрытие идёт БЕЗ анимации height — по той же причине, что и отдача места
+  // после превращения (см. RELEASE выше): это layout, он пересчитывается
+  // каждый кадр. На «выбери слово» с её ~100px это незаметно, а у ручной
+  // таблицы со списком слов панель 297px, и под лентой из десятка сообщений
+  // закрытие читалось как торможение.
+  // Место снимается разом, а видимый скачок гасит трансформ на .playerFeedInner
+  // (playFeedRelease в feedRelease.js) — его запускает сама панель.
   return {
     height: show ? panelH : 0,
-    transition: show ? OPEN : CLOSE,
+    transition: show ? OPEN : CLOSE_INSTANT,
   }
 }

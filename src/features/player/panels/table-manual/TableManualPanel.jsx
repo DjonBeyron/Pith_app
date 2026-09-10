@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
+import { flushSync } from 'react-dom'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
@@ -8,6 +9,8 @@ import ListScrollThumb from '../ListScrollThumb.jsx'
 import { tracePanelSync, tracePanelPaint } from '../tracePanelSync.js'
 import { useTableToChat } from '../useTableToChat.js'
 import { spacerStyle } from '../spacerStyle.js'
+import { whenBubbleLanded } from '../whenBubbleLanded.js'
+import { playFeedRelease } from '../feedRelease.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 import { chatFadeHeight } from '../../chatFadeHeight.js'
@@ -63,6 +66,8 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   const panelRef   = useRef(null)
   const wrongCount = useRef(0)
   const timers     = useRef([])
+  // Высота, на которую надо сдвинуть историю при закрытии (см. useLayoutEffect)
+  const releaseRef = useRef(0)
 
   const panelH = usePanelHeight(panelRef, onHeightChange)
 
@@ -88,6 +93,44 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
 
   // Очищаем все таймеры при анмаунте
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
+
+  // Сдвиг истории запускается ПОСЛЕ того, как распорка отдала место, но ДО
+  // отрисовки — для этого и нужен layout-эффект. Вызов сразу за setShow(false)
+  // был ошибкой: там место ещё занято, трансформ уводил ленту вниз на высоту
+  // панели, и только следующим кадром React снимал распорку. На экране это
+  // читалось как «ответ уходит вниз раньше, чем опускается таблица».
+  useLayoutEffect(() => {
+    if (show || !releaseRef.current) return
+    const h = releaseRef.current
+    releaseRef.current = 0
+    // Кривая и длительность — РОВНО те же, что у самой панели (.tmPanel,
+    // transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1) в table-manual.css).
+    // Оба движения идут вниз одновременно, и глазу заметно не то, что они
+    // стартуют вместе, а то, что идут по-разному: по кадрам панель давала
+    // +7 +18 +26 +31 +38, а лента со своей ease-in-out +8 +31 +68 +76 +51.
+    // Держи эти значения согласованными с CSS панели.
+    // Держим ленту НА МЕСТЕ прямо сейчас, а отпускаем следующим кадром.
+    //
+    // Причина тонкая: панель уезжает CSS-переходом, а лента — WAAPI. WAAPI
+    // стартует немедленно, из этого же layout-эффекта, а переход браузер
+    // начинает только со следующего кадра — ему надо сперва зафиксировать
+    // старое значение transform. Ровно на этот кадр ответ и уходил раньше
+    // панели. Прежний замер этого не видел: он считал только кадры, где
+    // панель УЖЕ едет, то есть отбрасывал как раз спорный первый.
+    // Компенсировать надо ФАКТИЧЕСКИ отданное место, а не всю высоту панели.
+    // Распорка снимается не в ноль: у неё есть min-height (safe-area + слот
+    // индикатора «печатает», см. feed.css) — в замерах 307 → 28. Удерживая
+    // ленту на все 307, мы поднимали её на лишние 28px, и в начале движения
+    // ответ заметно уходил ВВЕРХ, прежде чем поехать вниз.
+    const spacer = document.querySelector('.tmSpacer')
+    const drop = Math.max(0, h - (spacer ? spacer.getBoundingClientRect().height : 0))
+    if (drop < 1) return
+    const inner = document.querySelector('.playerFeedInner')
+    if (inner) inner.style.transform = `scaleY(-1) translateY(${-drop}px)`
+    requestAnimationFrame(() => {
+      playFeedRelease(drop, { duration: 280, easing: 'cubic-bezier(0.4, 0, 1, 1)' })
+    })
+  }, [show])
 
   // cellId → выбранное значение (не Set: нужно знать ИМЕННО какое слово из
   // ячейки со списком вариантов ушло в ответ, чтобы погасить только его —
@@ -155,8 +198,11 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
     } else {
       timers.current.push(setTimeout(done, 420))
     }
+    // Высоту запоминаем ЗДЕСЬ: к моменту, когда сдвиг реально запустится
+    // (useLayoutEffect ниже), распорка уже отдана и panelH может обнулиться
+    if (!onSendToChat) releaseRef.current = panelH
     setShow(false)
-    pLog('[tm] setShow(false) — панель закрывается')
+    pLog(`[tm] setShow(false) — панель закрывается (сдвиг истории ${panelH}px трансформом)`)
   }
 
   function check() {
@@ -167,9 +213,31 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
     // лишние пробелы/переносы из ячейки и вид апострофа значения не имеют
     if (normalizeAnswerText(phrase) === normalizeAnswerText(answer)) {
       setResult('correct')
-      if (phrase.trim()) onAnswerToChat?.(phrase, 'correct')
-      if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'correct')
-      const id = setTimeout(() => closePanelWith('table_correct'), 800)
+      // Пузырь с ответом уходит в чат НЕ сразу, а вместе с началом закрытия
+      // панели. Эти 800мс нужны, чтобы ученик увидел зелёный итог в самой
+      // панели, — но раньше ответ улетал в переписку в первый же миг, а
+      // панель трогалась только по их истечении. На экране это читалось как
+      // «ответ уехал сам по себе, панель поехала отдельно»: в записи между
+      // появлением пузыря и стартом панели было 808мс.
+      const id = setTimeout(() => {
+        // flushSync, а не отложенный вызов: пузырь должен ОКАЗАТЬСЯ В DOM
+        // прежде, чем панель начнёт уезжать, иначе он появляется уже под ней,
+        // у самого низа экрана. Обычный setState тут не годится — React
+        // откладывает коммит, и закрытие успевает пройти первым (проверено:
+        // и в одном тике, и через requestAnimationFrame порядок был
+        // «setShow(false) → slide-in», то есть наоборот).
+        flushSync(() => {
+          if (phrase.trim()) onAnswerToChat?.(phrase, 'correct')
+          if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'correct')
+        })
+        // Пузырь не просто появляется — он ВЪЕЗЖАЕТ снизу (PlayerFeed играет
+        // ему slide-in из-под нижнего края экрана). Если панель тронуть сразу,
+        // на один и тот же пузырь ложатся два встречных движения: он выезжает
+        // снизу и тут же уходит вниз вместе с лентой, которая занимает место
+        // панели. Ждём, пока въезд закончится, и только потом отпускаем всё
+        // остальное — тогда ответ успевает встать над таблицей.
+        whenBubbleLanded(() => closePanelWith('table_correct'))
+      }, 600)
       timers.current.push(id)
     } else {
       wrongCount.current += 1
@@ -184,15 +252,27 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
         onAnswered?.(tData.responseWrong, 'hint')
       }
       if (wrongCount.current >= 3) {
-        // Именно последняя попытка — её ученик и видит в переписке
-        if (phrase.trim()) onAnswerToChat?.(phrase, 'wrong_final')
-        // Правильный ответ — раскрытие подсказкой учителя (не «от лица
-        // ученика»: это была ошибка — answer сюда попадал с тем же
-        // 'wrong_final', то есть красным и СПРАВА, как будто ученик сам
-        // ответил верно, хотя как раз нет)
-        if (answer.trim()) onAnswered?.(answer, 'hint')
         const variantId = assembled.find(t => t.distractorId)?.distractorId ?? null
-        const id = setTimeout(() => closePanelWith('table_wrong', variantId), 800)
+        // Всё, что уходит в переписку, отправляется ВМЕСТЕ с началом закрытия
+        // панели — те же 800мс, что и на верном ответе. Раньше пузыри летели
+        // в чат сразу, а панель трогалась только по истечении задержки, и
+        // движения читались как два независимых.
+        const id = setTimeout(() => {
+          // flushSync — чтобы пузыри встали НАД панелью, см. верную ветку
+          flushSync(() => {
+            // Именно последняя попытка — её ученик и видит в переписке
+            if (phrase.trim()) onAnswerToChat?.(phrase, 'wrong_final')
+            // Правильный ответ — раскрытие подсказкой учителя (не «от лица
+            // ученика»: это была ошибка — answer сюда попадал с тем же
+            // 'wrong_final', то есть красным и СПРАВА, как будто ученик сам
+            // ответил верно, хотя как раз нет)
+            if (answer.trim()) onAnswered?.(answer, 'hint')
+          })
+          // Ждём конца въезда пузырей — та же причина, что и в верной ветке:
+          // иначе пузырь на полпути разворачивается и уезжает вниз вместе с
+          // лентой (замер: въехал до 479, потом ушёл на 619)
+          whenBubbleLanded(() => closePanelWith('table_wrong', variantId))
+        }, 600)
         timers.current.push(id)
         return
       }

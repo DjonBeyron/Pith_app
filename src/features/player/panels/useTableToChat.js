@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { playFeedRelease } from './feedRelease.js'
 import { flyPanelToChat } from './flyPanelToChat.js'
 import { tracePanelSync, tracePanelPaint } from './tracePanelSync.js'
 
@@ -73,27 +74,9 @@ export function useTableToChat(label, spacerSel) {
   // Отпускаем удержание: история плавно приходит на своё место.
   // drop — на сколько она УЖЕ сместилась к этому моменту (замер по якорю в
   // flyPanelToChat), знак любой: плюс — уехала вниз, минус — вверх
-  function playRelease(drop) {
-    const inner = document.querySelector('.playerFeedInner')
-    if (!inner) return
-    if (Math.abs(drop) < 1) { inner.style.transform = ''; return }
-    // Первый кадр анимации сам удержит историю на месте — отдельная
-    // предустановка стиля не нужна и только создала бы лишний кадр
-    const anim = inner.animate(
-      [
-        { transform: `scaleY(-1) translateY(${-drop}px)` },
-        { transform: 'scaleY(-1) translateY(0px)' },
-      ],
-      // Мягкий старт обязателен: движение начинается из покоя, а easeOut-кривые
-      // срываются с места на полной скорости — первый же кадр давал 17px и
-      // читался рывком. cubic-bezier(0.4, 0, 0.2, 1) разгоняется и тормозит
-      // плавно. Те же цифры у превращения клона (FLIGHT_MS/SPACER_EASE)
-      { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-    )
-    const clear = () => { inner.style.transform = '' }
-    anim.onfinish = clear
-    anim.oncancel = clear
-  }
+  // Сдвиг истории вынесен в feedRelease.js — тем же приёмом теперь
+  // закрывается и обычная панель, не только уход в чат
+  const playRelease = playFeedRelease
 
   // Ноду можно прогнать заново (шаг назад у админа) — состояние ухода
   // сбрасывается, иначе панель откроется уже «отправленной»

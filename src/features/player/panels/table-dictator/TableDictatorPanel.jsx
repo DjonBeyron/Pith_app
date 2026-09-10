@@ -13,6 +13,7 @@ import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 import { isDebugPaused } from '../../../debugTools/debugMedia.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 import { chatFadeHeight } from '../../chatFadeHeight.js'
+import { playFeedRelease } from '../feedRelease.js'
 
 
 function shuffle(arr) {
@@ -126,6 +127,8 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   // Какие клипы очистки уже сработали — каждый срабатывает один раз за прогон
   const clearedRef           = useRef(new Set())
   const timers               = useRef([])
+  // Высота, на которую надо сдвинуть историю при закрытии (см. useLayoutEffect)
+  const releaseRef           = useRef(0)
   // Старт/финиш прогона для режима без озвучки — те же функции, что дергает <audio>
   const endedRef             = useRef(null)
   const startedRef           = useRef(null)
@@ -198,6 +201,18 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   }, [])
 
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
+
+  // Сдвиг истории запускается ПОСЛЕ того, как распорка отдала место, но ДО
+  // отрисовки — для этого и нужен layout-эффект. Вызов сразу за setShow(false)
+  // был ошибкой: там место ещё занято, трансформ уводил ленту вниз на высоту
+  // панели, и только следующим кадром React снимал распорку. На экране это
+  // читалось как «ответ уходит вниз раньше, чем опускается таблица».
+  useLayoutEffect(() => {
+    if (show || !releaseRef.current) return
+    const h = releaseRef.current
+    releaseRef.current = 0
+    playFeedRelease(h)
+  }, [show])
 
   // useLayoutEffect (не присваивание прямо в теле рендера) — «всегда
   // свежий» коллбэк для таймеров/RAF без чтения ref во время рендера;
@@ -326,6 +341,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
       } else {
         timers.current.push(setTimeout(done, 420))
       }
+      // Высоту запоминаем ЗДЕСЬ: к моменту, когда сдвиг реально запустится
+      // (useLayoutEffect ниже), распорка уже отдана и panelH обнулён
+      if (!onSendToChat) releaseRef.current = panelH
       setShow(false)
       setHudVisible(false)   // панель уезжает вниз — спектр сразу схлопывается (scale к 0), не ждёт onEnded
       setHighlighted(new Set())
