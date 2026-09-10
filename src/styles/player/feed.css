@@ -122,14 +122,28 @@
    свободного места под последним сообщением нет ни при коротком чате, ни
    при длинном). Высота строки поэтому фиксированная — слот и строка должны
    совпадать, а не зависеть от кегля шрифта. */
+/* Строка живёт в корне плеера (LessonPlayer.jsx), а не в ленте: изнутри ей
+   не подняться над растушёвкой низа чата (.lessonPlayer::after) — лента
+   перевёрнута трансформом и образует свой слой целиком, а индикатор должен
+   быть НАД растушёвкой, единственный из всего чата.
+   Отсюда и позиционирование от низа плеера: 12px — тот же зазор, что у ленты
+   до края (см. её padding выше), плюс safe-area. */
 .playerWaitingRow {
   position: absolute;
-  top: 100%;
-  /* --feed-pad — боковые поля ленты: absolute считает от padding-box
-     .playerFeedInner, то есть без них строка вылезла бы за текст */
-  left: var(--feed-pad);
-  right: var(--feed-pad);
-  margin-top: 4px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  /* Центрирование без transform: он занят анимацией появления (scale).
+     left/right + width + margin auto дают ту же ширину и центр, что у ленты,
+     а боковое поле повторяет её --feed-pad */
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 var(--feed-pad, 12px);
+  box-sizing: border-box;
+  /* Выше растушёвки низа (.lessonPlayer::after, 65) — индикатор
+     единственный из чата, кто остаётся поверх неё */
+  z-index: 70;
   height: 24px;
   display: flex;
   align-items: center;
@@ -145,6 +159,14 @@
    на EXIT_MS (150мс здесь же) ради обратной анимации */
 .playerWaitingRowOut {
   animation: waitingRowOut 150ms ease-in both;
+}
+
+/* Узкий экран: лента сужает своё боковое поле до 8px (--feed-pad выше).
+   Индикатор лежит вне ленты и переменную не наследует, поэтому повторяем
+   значение здесь. Правило стоит ПОСЛЕ .playerWaitingRow намеренно —
+   специфичность у них одинаковая, и выше по файлу оно бы просто проиграло. */
+@media (max-width: 400px) {
+  .playerWaitingRow { padding: 0 8px; }
 }
 
 @keyframes waitingRowIn {

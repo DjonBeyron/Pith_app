@@ -302,14 +302,23 @@ describe('переход у ноды показа — как у обычного
 describe('кнопка «Проверить» в ручной таблице', () => {
   const panel = read('../../panels/table-manual/TableManualPanel.jsx')
 
-  it('появляется вместе со списком слов вне таблицы', () => {
-    const btn = panel.slice(panel.indexOf('className="tmCheckBtn"'))
-    expect(panel).toMatch(/\{phase === 'extra' && \(\s*<button/)
+  // Кнопка есть в разметке ВСЕГДА и до фазы слов лишь невидима. Раньше она
+  // монтировалась вместе со списком и добавляла свою высоту к панели — вся
+  // таблица прыгала вверх в момент отката влево. Место под неё занято с
+  // первого кадра, поэтому оба режима одной высоты.
+  it('в разметке всегда, до фазы слов — невидима (иначе панель скачет)', () => {
+    expect(panel).toMatch(/className=\{`tmCheckBtn\$\{phase === 'extra' \? '' : ' tmCheckBtnHidden'\}`\}/)
+    const btn = panel.slice(panel.indexOf('tmCheckBtn'))
     expect(btn).toContain('onClick={check}')
   })
 
-  it('нажать нечего, пока ничего не собрано или разбор уже показан', () => {
-    expect(panel).toContain('disabled={assembled.length === 0 || !!result}')
+  it('скрытая кнопка не ловит ни клик, ни фокус', () => {
+    expect(panel).toContain("aria-hidden={phase !== 'extra'}")
+    expect(panel).toContain("tabIndex={phase === 'extra' ? 0 : -1}")
+  })
+
+  it('нажать нечего вне фазы слов, пока ничего не собрано или разбор показан', () => {
+    expect(panel).toContain("disabled={phase !== 'extra' || assembled.length === 0 || !!result}")
   })
 
   it('автопроверка по полному набору слов никуда не делась', () => {

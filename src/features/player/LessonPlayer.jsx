@@ -315,11 +315,17 @@ export default function LessonPlayer({
             onOpenLessonRef={handleOpenLessonRef}
             adminEdit={adminEdit}
           />
-          <WaitingDots visible={isWaiting} />
           {!holdForResume && visibleNodes.length === 0 && (
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}
         </PlayerFeed>
+        {/* Индикатор «печатает» живёт СНАРУЖИ ленты, хотя рисуется у её нижнего
+            края. Причина — растушёвка низа чата (.lessonPlayer::after): она
+            перекрывает всё, что внутри ленты, а индикатор должен остаться над
+            ней. Изнутри подняться он не может: лента перевёрнута через
+            transform и потому образует свой слой целиком. Место в ленте под
+            него по-прежнему резервирует --wait-slot — здесь только отрисовка */}
+        <WaitingDots visible={isWaiting} />
         <PlayerPanels
           wcNode={panels.node.wc} paNode={panels.node.pa} pcNode={panels.node.pc}
           regNode={panels.node.reg} tableNode={panels.node.table}
