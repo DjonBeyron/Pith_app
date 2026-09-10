@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 import PlayerBubble from '../PlayerBubble.jsx'
 import BurstConfetti from '../../../shared/ui/BurstConfetti.jsx'
+import { chatFadeHeight } from '../chatFadeHeight.js'
 
 // Пузыри ответа ученика в ленте: собранная фраза справа и реплики учителя
 // слева. Верность показывает только значок в пузыре (галочка/крестик) — своей
@@ -40,7 +41,7 @@ export default function AnswerBubbles({ bubbles, rewardXp = 0, onXpEarned }) {
             <div key={i} className="playerMsgRow playerMsgRowRight">
               {/* Тот же салют, что на новом уровне, только короче и реже:
                   верных ответов в уроке десятки (Confetti.jsx) */}
-              <BurstConfetti count={30} size={4} />
+              <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} />
               <div className="reactionBubbleWrap" ref={okRef}>
                 <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
                   {b.text}

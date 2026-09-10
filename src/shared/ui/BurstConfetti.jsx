@@ -67,7 +67,14 @@ const calm = () => typeof matchMedia === 'function'
 
 // colors — своя палитра под фон (окно серии тёмно-фиолетовое, и яркий
 // разноцвет из урока на нём читается как чужой элемент)
-export default function BurstConfetti({ count = 30, size = 4, colors = COLORS }) {
+// bottomInset — на сколько поднять точку рождения над нижним краем окна.
+// В чате внизу лежит растушёвка (.lessonPlayer::after): без отступа частицы
+// рождаются за краем экрана и вылетают мимо неё, а нужно наоборот — чтобы
+// они выныривали ИЗ-ПОД неё. Вместе с ним обычно передают и zIndex ниже
+// растушёвки, иначе салют просто нарисуется поверх.
+// zIndex — по умолчанию поверх всего (итоги урока, окно серии), где никакой
+// подложки нет и перекрывать нечем.
+export default function BurstConfetti({ count = 30, size = 4, colors = COLORS, bottomInset = 0, zIndex = 10001 }) {
   const hostRef = useRef(null)
   const [shown, setShown] = useState(!calm())
 
@@ -77,15 +84,22 @@ export default function BurstConfetti({ count = 30, size = 4, colors = COLORS })
     if (!host) return
 
     const W = window.innerWidth
-    const H = window.innerHeight
+    const H = window.innerHeight - bottomInset
     const parts = Array.from({ length: count }, () => makeParticle(W, H, size, colors))
     let longest = null
 
     for (const p of parts) {
       const el = document.createElement('i')
+      // will-change здесь НЕТ намеренно. Он поднимает элемент на свой слой
+      // сразу при вставке — то есть все частицы разом, ДО первого кадра
+      // анимации. Композитору приходится пересобирать дерево слоёв в тот
+      // самый момент, когда панель ответа начинает уезжать вниз, и её
+      // движение спотыкается. Анимации transform/opacity через WAAPI и так
+      // получают свой слой на время проигрывания — и ровно тогда, когда он
+      // нужен, а не заранее.
       el.style.cssText = `position:absolute;left:${p.left.toFixed(0)}px;top:${H + 8}px;`
         + `width:${p.size.toFixed(1)}px;height:${(p.size * 0.6).toFixed(1)}px;`
-        + `background:${p.color};border-radius:${p.round ? '50%' : '1px'};will-change:transform,opacity;`
+        + `background:${p.color};border-radius:${p.round ? '50%' : '1px'};`
       host.appendChild(el)
       const anim = el.animate(p.frames, { duration: p.duration, easing: 'linear', fill: 'forwards' })
       if (!longest || p.duration > longest.duration) longest = { duration: p.duration, anim }
@@ -132,7 +146,12 @@ export default function BurstConfetti({ count = 30, size = 4, colors = COLORS })
   return createPortal(
     <div
       ref={hostRef}
-      style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 10001, overflow: 'hidden' }}
+      style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex, overflow: 'hidden',
+        // Слой салюта не влияет на раскладку и отрисовку страницы под ним:
+        // браузер может не пересчитывать её при каждом кадре частиц
+        contain: 'strict',
+      }}
     />,
     document.body,
   )
