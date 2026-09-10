@@ -9,6 +9,8 @@ import { tracePanelSync, tracePanelPaint } from '../tracePanelSync.js'
 import { useTableToChat } from '../useTableToChat.js'
 import { spacerStyle } from '../spacerStyle.js'
 import { usePanelHeight } from '../usePanelHeight.js'
+import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
+import { chatFadeHeight } from '../../chatFadeHeight.js'
 
 
 function shuffle(arr) {
@@ -221,6 +223,13 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
 
   return (
     <>
+      {/* Салют на верный ответ живёт ЗДЕСЬ, а не на пузыре в чате: пузырей
+          может не быть вовсе — их даёт отдельная галочка «отправить ответ
+          ученика». Праздник же положен за верный ответ, а не за наличие
+          сообщения в переписке (AnswerBubbles получает confetti={false}) */}
+      {result === 'correct' && (
+        <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
+      )}
       {/* Спейсер отпускается сразу: пока он держит высоту, лента приподнята
           на панель, и пузырь стоит ВЫШЕ неё на эту же высоту — клону пришлось
           бы лететь вверх через весь экран. Момент замера ловит whenStable */}

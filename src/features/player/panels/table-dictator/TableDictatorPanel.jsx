@@ -11,6 +11,8 @@ import { schedulePostAudioCheck } from './dictatorPostAudio.js'
 import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 import { isDebugPaused } from '../../../debugTools/debugMedia.js'
+import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
+import { chatFadeHeight } from '../../chatFadeHeight.js'
 
 
 function shuffle(arr) {
@@ -437,6 +439,14 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   if (!table) return null
 
   return (
+    <>
+      {/* Салют на верный ответ живёт ЗДЕСЬ, а не на пузыре в чате: пузырей
+          может не быть вовсе — их даёт отдельная галочка «отправить ответ
+          ученика». Праздник же положен за верный ответ, а не за наличие
+          сообщения в переписке (AnswerBubbles получает confetti={false}) */}
+      {result === 'correct' && (
+        <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
+      )}
     <TableDictatorView
       show={show} toChat={toChatCtl.toChat} panelH={panelH} givenToBubble={toChatCtl.givenToBubble} released={toChatCtl.spacerReleased} panelRef={panelRef} barElsRef={barElsRef}
       waveformData={waveformData} hudVisible={hudVisible}
@@ -469,5 +479,6 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
         runWithClock()
       }}
     />
+    </>
   )
 }

@@ -15,7 +15,12 @@ import { chatFadeHeight } from '../chatFadeHeight.js'
 // PhraseAssemblyPanel.jsx). У таблицы такой кнопки нет — ответ проверяется
 // тапом по ячейке, поэтому XP стреляет здесь же, от первого верного пузыря,
 // как только он появляется в ленте (тот же приём, что у PhotoChoiceModule).
-export default function AnswerBubbles({ bubbles, rewardXp = 0, onXpEarned }) {
+// confetti — рисовать ли салют на верном пузыре. Таблица передаёт false: у неё
+// пузырей может не быть вовсе (галочка «отправить ответ ученика» выключена), и
+// салют там живёт в самой панели, привязанный к факту верного ответа, а не к
+// наличию сообщения в чате. Без этого флага при включённой галочке залпов было
+// бы два — из панели и отсюда.
+export default function AnswerBubbles({ bubbles, rewardXp = 0, onXpEarned, confetti = true }) {
   const list = bubbles ?? []
   const okRef   = useRef(null)
   const xpFired = useRef(false)
@@ -41,7 +46,9 @@ export default function AnswerBubbles({ bubbles, rewardXp = 0, onXpEarned }) {
             <div key={i} className="playerMsgRow playerMsgRowRight">
               {/* Тот же салют, что на новом уровне, только короче и реже:
                   верных ответов в уроке десятки (Confetti.jsx) */}
-              <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
+              {confetti && (
+                <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
+              )}
               <div className="reactionBubbleWrap" ref={okRef}>
                 <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
                   {b.text}

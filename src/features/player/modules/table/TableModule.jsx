@@ -20,7 +20,9 @@ export default function TableModule(props) {
 
   return (
     <>
-      <AnswerBubbles bubbles={answers} rewardXp={props.rewardXp ?? 0} onXpEarned={props.onXpEarned} />
+      {/* confetti={false}: салют у таблицы даёт сама панель — пузырей тут может
+          не быть вовсе, если «отправить ответ ученика» выключено */}
+      <AnswerBubbles bubbles={answers} rewardXp={props.rewardXp ?? 0} onXpEarned={props.onXpEarned} confetti={false} />
       {props.tableSent && (
         <TableChatBubble
           table={tData.table ?? null}

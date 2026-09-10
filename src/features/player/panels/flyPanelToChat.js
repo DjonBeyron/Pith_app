@@ -376,9 +376,8 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     // достраивает панель по бокам; к концу они совпадают ровно.
     const frame = document.createElement('div')
     frame.className = 'panelFlyFrame'
+    // Габариты задаются ниже — сразу конечные, а начальный вид даёт трансформ
     Object.assign(frame.style, {
-      left: `${at.left}px`, top: `${at.top}px`,
-      width: `${at.width}px`, height: `${at.height}px`,
       background: getComputedStyle(ghost).backgroundColor,
       borderRadius: '0px',
     })
@@ -387,9 +386,26 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     // Единственная анимация всего перехода. onfinish берём с неё же: вешать
     // пустышку на клон нельзя — анимация opacity, даже из 1 в 1, поднимает его
     // на отдельный слой и на это время отключает субпиксельное сглаживание
+    // Рамка едет ТРАНСФОРМОМ, а не left/top/width/height. Те четыре свойства
+    // — раскладка: браузер пересчитывал её и перерисовывал каждый из ~20
+    // кадров превращения, и всё это на главном потоке, ровно тогда, когда он
+    // нужен ленте и клону. Отсюда и рывок на телефоне при уходе таблицы.
+    //
+    // Коробке сразу задаётся КОНЕЧНЫЙ размер (размер пузыря), а начальный вид
+    // получается обратным трансформом от него: сдвиг в позицию панели плюс
+    // растяжение до её габаритов. К концу трансформ сходит в единицу — рамка
+    // оказывается ровно там и такой, какой была бы при прежней анимации.
+    // Точка отсчёта — левый верхний угол, иначе масштаб развёл бы края.
+    const sx = at.width / to.width
+    const sy = at.height / to.height
+    Object.assign(frame.style, {
+      left: `${to.left}px`, top: `${to.top}px`,
+      width: `${to.width}px`, height: `${to.height}px`,
+      transformOrigin: 'top left',
+    })
     const anim = frame.animate([
-      { left: `${at.left}px`, top: `${at.top}px`, width: `${at.width}px`, height: `${at.height}px`, borderRadius: '0px' },
-      { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: cs.borderRadius },
+      { transform: `translate(${at.left - to.left}px, ${at.top - to.top}px) scale(${sx}, ${sy})`, borderRadius: '0px' },
+      { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: cs.borderRadius },
     ], { duration: FLIGHT_MS, easing: SPACER_EASE, fill: 'forwards' })
 
     // Тотальная трасса на время превращения — видно и цифры, и пропуски кадров
