@@ -2,6 +2,7 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 import XpFloat from './XpFloat.jsx'
 import LessonSummary from './LessonSummary.jsx'
 import { HINT_LIMIT } from './useFinalHints.js'
+import { useShowDebugUi } from './useShowDebugUi.js'
 
 // Номер версии виден прямо в плеере: после деплоя сразу понятно, что открыт
 // свежий код, а не кэш браузера (правило из CLAUDE.md)
@@ -17,6 +18,11 @@ export default function PlayerOverlays({
   xpEvents, onDismissXp,
   showSummary, earnedXp, baseXp, ticket, stars, onSummaryClose,
 }) {
+  // Штамп версии — вторая половина диагностического набора урока (первая,
+  // кнопка «⬇ лог», в PlayerTopBar). Раньше висел у всех и всегда, мимо
+  // переключателя в админке
+  const showDebugUi = useShowDebugUi()
+
   return (
     <>
       <XpFloat events={xpEvents} onDismiss={onDismissXp} />
@@ -30,7 +36,7 @@ export default function PlayerOverlays({
           onClose={onSummaryClose}
         />
       )}
-      <div className="playerVersionStamp">{buildStamp()}</div>
+      {showDebugUi && <div className="playerVersionStamp">{buildStamp()}</div>}
     </>
   )
 }

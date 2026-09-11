@@ -84,11 +84,14 @@ describe('что режим гасит, а что оставляет', () => {
 // Админ видит его всегда, остальные — только если админ включил (общая
 // настройка в базе, а не в localStorage: она про чужие устройства)
 describe('лог и версия в шапке урока', () => {
-  const bar = read('../features/player/PlayerTopBar.jsx')
+  const bar      = read('../features/player/PlayerTopBar.jsx')
+  const hook     = read('../features/player/useShowDebugUi.js')
+  const overlays = read('../features/player/PlayerOverlays.jsx')
 
   it('набор закрыт общим условием, а не висит всегда', () => {
-    expect(bar).toContain('const showDebugUi   = isAdmin || debugUiForAll')
-    expect(bar).toContain('{showDebugUi && <span className="playerTopBarVersion">v{APP_VERSION}</span>}')
+    expect(hook).toContain('return isAdmin || forEveryone')
+    // Штамп версии поверх чата тоже висел у всех и всегда, мимо переключателя
+    expect(overlays).toContain('{showDebugUi && <div className="playerVersionStamp">{buildStamp()}</div>}')
     // Кнопка раньше рисовалась вообще без проверки — из-за этого она
     // оставалась на экране и в «режиме пользователя»
     expect(bar).toContain('{showDebugUi && (')
@@ -98,8 +101,10 @@ describe('лог и версия в шапке урока', () => {
 
   it('в «режиме пользователя» гаснет вместе с остальным админским', () => {
     // Эффективный isAdmin из контекста, а не useIsAdmin напрямую
-    expect(bar).toContain("import { useAdmin } from '../../app/AdminContext.jsx'")
-    expect(bar).toContain('const { isAdmin } = useAdmin()')
+    expect(hook).toContain("import { useAdmin } from '../../app/AdminContext.jsx'")
+    expect(hook).toContain('const { isAdmin } = useAdmin()')
+    // Версия в уроке ровно в одном месте — дубля в шапке быть не должно
+    expect(bar).not.toContain('playerTopBarVersion')
   })
 
   it('настройка общая — лежит в базе, пишет только админ', () => {

@@ -495,7 +495,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `ResumeLessonPopup.jsx` | Попап «Продолжить (~X%) / Начать заново» при повторном входе в незавершённый урок — рендерится в LessonPlayer.jsx поверх чата, пока не выбрали |
 | `PlayerFeedNodes.jsx` | Разметка сообщений ленты: видимые ноды + pending-нода за экраном, карандаш правки админу — вынесено из LessonPlayer.jsx. `onDone` каждой ноды пробрасывает необязательный `result` в `onNodeDone(id, result)` — нужно LessonRefModule.jsx для кастомного триггера `shown` (остальные типы вызывают `onDone()` без аргумента, как раньше) |
 | `waiting/WaitingDots.jsx` | «Учитель печатает/записывает» — рисуется на время TYPING_DELAY_MS (useGraphPlayer.js) перед следующей нодой. Три варианта по типу pending-ноды: text → точки, audio → волна, circle → пульсирующая точка записи; для остальных типов (фото/стикер/system/интерактивные) — ничего не рисует |
-| `PlayerOverlays.jsx` | Слои поверх чата: «+N XP», итоги урока, штамп версии — вынесено из LessonPlayer.jsx |
+| `PlayerOverlays.jsx` | Слои поверх чата: «+N XP», итоги урока, штамп версии (виден по `useShowDebugUi`) — вынесено из LessonPlayer.jsx |
+| `useShowDebugUi.js` | Хук «показывать ли в уроке диагностический набор» — кнопку «⬇ лог» и штамп версии: админу всегда (кроме «режима пользователя»), остальным — по общей настройке из базы (`usePlayerDebugUi.js`). Лежит в features/player, а не в shared: знает про AdminContext |
 | `usePlayerPanelNodes.js` | Нижние панели ответа: панель живёт, пока её нода последняя в ленте (иначе шаговый ответ оставлял её висеть), высота открытой панели, скип рег-ноды залогиненному (+ `usePlayerPanelNodes.test.js`) |
 | `panels/table-dictator/dictatorCheck.js` (тест) | `dictatorCheck.test.js` — сборка фразы по токенам и сверка с эталоном (апострофы/пробелы/регистр не считаются ошибкой) |
 | `tableCellMatch.js` | Связь слова из ответа с ячейкой (учитывая особые значения) и разбор ответа на токены — общий для обеих панелей плеера и редактора таймлайна (+ `tableCellMatch.test.js`) |
@@ -547,7 +548,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `posterQueue.js` | Фоновая очередь захвата постер-кадров видео (строго по одному — параллельные декодеры душат Android); не блокирует готовность нод |
 | `preloadFetch.js` | Скачивание файла в Blob: прогресс по чанкам, 3 попытки с растущей задержкой, watchdog обрывает зависший стрим (15 с без байтов) |
 | `PlayerFeed.jsx` | Изолированный скролл-контейнер: auto-scroll при новом сообщении, lock/unlock, imperative ref. Проп `panelOpen` (из `panels.offset > 0` в LessonPlayer.jsx) переключает класс `playerFeed--panelOpen` — отключает safe-area-отступ снизу ленты, когда его уже отрабатывает открытая панель ответа |
-| `PlayerTopBar.jsx` | Шапка плеера: кнопка «←», аватар, «Учитель / онлайн», название урока |
+| `PlayerTopBar.jsx` | Шапка плеера: кнопка «←», аватар, «Учитель / изучаем …», кнопка «⬇ лог» (видна по `useShowDebugUi`) |
 | `PlayerMessage.jsx` | Тонкая обёртка: `resolveModule(node.type)` → рендерит нужный модуль |
 | `ReplyPreview.jsx` | Общий компонент превью ответа (зелёная полоса слева): используется в TextModule и StickerModule; содержит ReplyThumb с intrinsic-кропом |
 | `PlayerBubble.jsx` | Обёртка-пузырь с анимацией высоты (ResizeObserver + cubic-bezier) — общий для модулей |
