@@ -19,6 +19,9 @@ export function useTeacherSettings(lessonId) {
   const [teacherLogoFile, setTeacherLogoFile] = useState(null) // File if not yet uploaded
   const [teacherLogoCrop, setTeacherLogoCrop] = useState({ x: 0, y: 0, scale: 1 })
   const [videoAutoSound,  setVideoAutoSound]  = useState(false)
+  // Своя надпись в шапке чата вместо названия урока. Пустая — берётся
+  // название урока, как и было (см. PlayerTopBar: «изучаем …»)
+  const [chatTitle,       setChatTitle]       = useState('')
   // 'global' — общий учитель из app_settings, 'custom' — свой для этого урока
   const [teacherMode,     setTeacherMode]     = useState('global')
   const [globalTeacher,   setGlobalTeacher]   = useState(EMPTY_TEACHER)
@@ -62,6 +65,7 @@ export function useTeacherSettings(lessonId) {
       setTeacherName(saved.teacherName ?? '')
       setTeacherLogoCrop(saved.teacherLogoCrop ?? { x: 0, y: 0, scale: 1 })
       setVideoAutoSound(saved.videoAutoSound ?? false)
+      setChatTitle(saved.chatTitle ?? '')
       setTeacherMode(saved.teacherMode === 'custom' ? 'custom' : 'global')
       if (blob) {
         // Unsaved local file — recreate blob URL
@@ -92,13 +96,14 @@ export function useTeacherSettings(lessonId) {
         teacherName,
         teacherLogoCrop,
         videoAutoSound,
+        chatTitle,
         teacherMode,
         // blob URL dies on reload — only persist server URL
         teacherLogoUrl: teacherLogoFile ? null : teacherLogoUrl,
       }))
     }, 400)
     return () => clearTimeout(t)
-  }, [lessonId, teacherName, teacherLogoCrop, teacherLogoUrl, teacherLogoFile, videoAutoSound, teacherMode])
+  }, [lessonId, teacherName, teacherLogoCrop, teacherLogoUrl, teacherLogoFile, videoAutoSound, chatTitle, teacherMode])
 
   // ── API ──────────────────────────────────────────────────────────
 
@@ -108,6 +113,7 @@ export function useTeacherSettings(lessonId) {
     const serverLogo = script?.teacherLogo ?? null
     const serverCrop = script?.teacherLogoCrop ?? { x: 0, y: 0, scale: 1 }
     const serverSound = script?.videoAutoSound ?? false
+    const serverChatTitle = script?.chatTitle ?? ''
     // Старые уроки поля teacherMode не имеют — режим выводится из наличия
     // своего имени/лого, чтобы у них ничего не поменялось (см. teacherResolve)
     const serverMode = teacherModeOf(script)
@@ -117,6 +123,7 @@ export function useTeacherSettings(lessonId) {
       setTeacherLogoUrl(serverLogo)
       setTeacherLogoCrop(serverCrop)
       setVideoAutoSound(serverSound)
+      setChatTitle(serverChatTitle)
       setTeacherMode(serverMode)
       return
     }
@@ -142,6 +149,7 @@ export function useTeacherSettings(lessonId) {
     setTeacherLogoUrl(serverLogo)
     setTeacherLogoCrop(serverCrop)
     setVideoAutoSound(serverSound)
+    setChatTitle(serverChatTitle)
     setTeacherMode(serverMode)
     hasLocalRef.current = false
     localDraftRef.current = null
@@ -195,6 +203,7 @@ export function useTeacherSettings(lessonId) {
       teacherLogo:     logoUrl         || undefined,
       teacherLogoCrop: logoUrl         ? teacherLogoCrop : undefined,
       videoAutoSound:  videoAutoSound  || undefined,
+      chatTitle:       chatTitle.trim() || undefined,
     }
   }
 
@@ -208,6 +217,7 @@ export function useTeacherSettings(lessonId) {
     teacherLogoUrl,
     teacherLogoCrop, setTeacherLogoCrop,
     videoAutoSound,  setVideoAutoSound,
+    chatTitle,       setChatTitle,
     teacherMode,     setTeacherMode,
     globalTeacher,
     effectiveTeacher,

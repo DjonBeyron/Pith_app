@@ -85,9 +85,17 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
       </div>
       <div className="playerTopBarInfo">
         <span className="playerTopBarName">{name}</span>
-        <span className="playerTopBarStatus">онлайн</span>
+        {/* Вместо «онлайн» — что именно сейчас проходят. Строка живёт ВНУТРИ
+            блока с именем, а не отдельным элементом справа: там она жалась к
+            140px и на узком экране пряталась совсем. Здесь длинное название
+            просто сокращается многоточием и шапку не растягивает —
+            .playerTopBarInfo стоит с min-width: 0 (см. topbar.css).
+            Урока нет (запуск ноды из канваса) — показываем прежнее «онлайн»,
+            иначе строка осталась бы пустой */}
+        <span className="playerTopBarStatus" title={title || undefined}>
+          {title ? `изучаем ${title}` : 'онлайн'}
+        </span>
       </div>
-      {title && <span className="playerTopBarLesson">{title}</span>}
       <button
         className="playerTopBarDebugBtn"
         onClick={onDownloadLog}

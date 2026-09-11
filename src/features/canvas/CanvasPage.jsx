@@ -88,6 +88,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
     teacherLogoUrl,
     teacherLogoCrop, setTeacherLogoCrop,
     videoAutoSound, setVideoAutoSound,
+    chatTitle, setChatTitle,
     teacherMode, setTeacherMode,
     globalTeacher, effectiveTeacher,
     hasUnsyncedLogo,
@@ -289,7 +290,8 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
         <LessonPlayer
           nodes={panelNodes}
           files={files}
-          lessonTitle={title}
+          /* Шапка чата показывает свою надпись, если её задали в настройках */
+          lessonTitle={chatTitle.trim() || title}
           lessonXp={lessonXp}
           teacherName={effectiveTeacher.name}
           teacherLogo={effectiveTeacher.logo}
@@ -315,6 +317,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           hasUnsyncedLogo={hasUnsyncedLogo}
           onRemove={removeFile}
           onClose={() => setShowPanel(false)}
+          chatTitle={chatTitle}
+          onChatTitleChange={setChatTitle}
+          lessonTitle={title}
           teacherName={teacherName}
           onNameChange={setTeacherName}
           teacherLogoUrl={teacherLogoUrl}

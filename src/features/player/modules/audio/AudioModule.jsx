@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react'
-import { Play, Pause } from 'lucide-react'
 import PlayerBubble from '../../PlayerBubble.jsx'
+import { WAVE_H_BASE, BAR_W, BAR_GAP, ACCENT, loudestFrameIndex } from './audioWaveParts.js'
+import { PlayTriangle, PauseIcon } from './AudioPlayIcons.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -9,36 +10,13 @@ import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 
-const WAVE_H_BASE = [7,11,16,22,14,19,24,17,10,20,13,22,18,11,25,21,15,9,18,24,16,12,21,14,19,10,17,23,15,9,13,19,21,14,17,24,11,18,22,15,10,19,13,25,16,9,20,23,12,17]
-const BAR_W = 2, BAR_GAP = 2
-const ACCENT = '#b6fe3b'
-
-// Индекс центра самого громкого короткого участка записи (окно, а не
-// одиночный сэмпл — иначе один щелчок/вдох решал бы, где заморозить кадр).
-// wd — RMS-амплитуда 0..255 по кадрам (analyzeWaveform, 30 кадров/с).
-function loudestFrameIndex(wd, win = 9) {
-  const w = Math.min(win, wd.length)
-  let sum = 0
-  for (let i = 0; i < w; i++) sum += wd[i]
-  let bestSum = sum, bestCenter = Math.floor((w - 1) / 2)
-  for (let start = 1; start <= wd.length - w; start++) {
-    sum += wd[start + w - 1] - wd[start - 1]
-    if (sum > bestSum) { bestSum = sum; bestCenter = start + Math.floor((w - 1) / 2) }
-  }
-  return bestCenter
-}
-
-function PlayTriangle() {
-  return <Play size={10} fill="#0e1013" color="#0e1013" />
-}
-function PauseIcon() {
-  return <Pause size={10} fill="#0e1013" color="#0e1013" />
-}
-
 export default function AudioModule({ node, file, onDone, adminPreview = false, pending = false }) {
   const [weakDevice] = useState(() => isWeakDevice())
   const [objectUrl,       setObjectUrl]       = useState(null)
   const [isPlaying,       setIsPlaying]       = useState(false)
+  // Голосовое уже запускали — значит ▶ на нём означает «на паузе», а не
+  // «ещё не слушали». Кнопка в этих двух случаях выглядит по-разному
+  const [startedOnce,     setStartedOnce]     = useState(false)
   // Сразу true, если у голосового есть расшифровка: пузырь должен прилететь
   // в чат уже растушёванным. Раньше растушёвка включалась по старту печати —
   // сообщение появлялось с резким низом и щёлкало в размытый через секунду.
@@ -200,6 +178,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     // стоять, пока звук идёт
     const onPlay = () => {
       setIsPlaying(true)
+      setStartedOnce(true)
       ensureTick()
     }
     audio.addEventListener('pause', onPause)
@@ -354,7 +333,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
         <div className="playerAudio">
           <div className="playerAudioRow">
             <button
-              className="playerAudioBtn"
+              /* Стояла на паузе — кнопка серая, не лаймовая: лайм зовёт
+                 нажать, а у начатого и остановленного сообщения зова нет */
+              className={`playerAudioBtn${!isPlaying && startedOnce ? ' playerAudioBtnPaused' : ''}`}
               onClick={toggle}
               disabled={!src}
               aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}

@@ -9,6 +9,7 @@ export default function LessonSettingsTab({
   teacherMode, onTeacherModeChange,
   globalTeacher,
   videoAutoSound, onVideoAutoSoundChange,
+  chatTitle, onChatTitleChange, lessonTitle,
 }) {
   const fileInputRef = useRef(null)
   const isCustom = teacherMode === 'custom'
@@ -22,6 +23,22 @@ export default function LessonSettingsTab({
 
   return (
     <div className="lessonSettings">
+      {/* Надпись в шапке чата. Стоит ВЫШЕ выбора учителя и вне его веток: это
+          свойство урока, а не учителя, и нужно оно одинаково в обоих режимах.
+          Пустое поле — берётся название урока, как и было */}
+      <div className="lessonSettingsRow">
+        <span className="lessonSettingsLabel">Надпись в шапке</span>
+        <input
+          className="lessonSettingsInput"
+          value={chatTitle}
+          onChange={e => onChatTitleChange(e.target.value)}
+          placeholder={lessonTitle || 'название урока'}
+        />
+      </div>
+      <p className="lessonSettingsHint">
+        Ученик видит её в шапке чата: «изучаем …». Пусто — берётся название урока.
+      </p>
+
       <div className="lessonSettingsModes">
         <button
           className={`lessonSettingsMode${!isCustom ? ' lessonSettingsModeActive' : ''}`}

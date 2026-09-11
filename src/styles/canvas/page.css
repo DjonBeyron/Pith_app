@@ -275,6 +275,13 @@
      разом (подробности и страховка — useBoardScrollGuard.js) */
   overflow: clip;
   cursor: default;
+  /* Жесты над доской обрабатываем сами (useCanvasTouch.js): палец панорамирует
+     холст, два — масштабируют. Без этой строки браузер забирает их себе и
+     вместо холста прокручивает и масштабирует всю страницу — на телефоне
+     доску было не сдвинуть вовсе.
+     manipulation оставил бы браузеру двойной тап на зум страницы, поэтому
+     именно none. */
+  touch-action: none;
   background-color: #090b0e;
   background-image: radial-gradient(circle, rgba(255,255,255,0.10) 1px, transparent 1px);
   background-size: 22px 22px;

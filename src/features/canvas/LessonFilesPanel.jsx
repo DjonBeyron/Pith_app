@@ -11,6 +11,7 @@ function getNodeUsage(fileId, nodes) {
 export default function LessonFilesPanel({
   files, nodes, syncing, hasUnsyncedLogo, onRemove, onClose,
   teacherName, onNameChange, teacherLogoUrl, onLogoPick,
+  chatTitle, onChatTitleChange, lessonTitle,
   teacherLogoCrop, onCropChange,
   teacherMode, onTeacherModeChange, globalTeacher,
   videoAutoSound, onVideoAutoSoundChange,
@@ -93,6 +94,9 @@ export default function LessonFilesPanel({
           globalTeacher={globalTeacher}
           videoAutoSound={videoAutoSound}
           onVideoAutoSoundChange={onVideoAutoSoundChange}
+          chatTitle={chatTitle}
+          onChatTitleChange={onChatTitleChange}
+          lessonTitle={lessonTitle}
         />
       )}
     </div>

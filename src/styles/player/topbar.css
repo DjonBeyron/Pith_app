@@ -44,19 +44,17 @@
   text-overflow: ellipsis;
 }
 
+/* Строка «изучаем …»: длинное название урока сокращается многоточием и шапку
+   не растягивает. Работает за счёт min-width: 0 у .playerTopBarInfo — без
+   него флекс-элемент не даёт себя сжать меньше содержимого, и вместо
+   многоточия шапка поехала бы вширь. */
 .playerTopBarStatus {
   font-size: 11px;
-  color: #4caf82;
-}
-
-.playerTopBarLesson {
-  font-size: 12px;
   color: #9aa0b4;
-  max-width: 140px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-shrink: 0;
+  max-width: 100%;
 }
 
 .playerTopBarDebugBtn {
@@ -78,7 +76,6 @@
 .playerTopBarDebugBtn:hover { border-color: #b6fe3b; color: #b6fe3b; }
 
 @media (max-width: 400px) {
-  .playerTopBarLesson { display: none; }
   .playerTopBar { padding: 6px 8px; gap: 6px; }
 }
 

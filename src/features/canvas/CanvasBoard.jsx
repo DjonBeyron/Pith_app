@@ -14,6 +14,7 @@ import { useCanvasPortDrag } from './useCanvasPortDrag.js'
 import { renumber, makeNode } from './nodeGraph.js'
 import { useCanvasBoardApi } from './useCanvasBoardApi.js'
 import { useCanvasZoom } from './useCanvasZoom.js'
+import { useCanvasTouch } from './useCanvasTouch.js'
 import { FAR_ZOOM } from './canvasZoom.js'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import CanvasZoomBadge from './CanvasZoomBadge.jsx'
@@ -221,6 +222,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
 
   // Зум колесом/пинчем — точка под курсором остаётся под курсором
   const resetZoom = useCanvasZoom(boardRef, boardRectRef, scaleRef, setScale, setOffset)
+  // Пальцы: панорама одним, щипок двумя — на телефоне мыши и колеса нет
+  useCanvasTouch(boardRef, boardRectRef, scaleRef, setScale, setOffset)
 
   function addNode() {
     const el = boardRef.current

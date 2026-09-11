@@ -58,7 +58,10 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
         setLessonData({
           nodes,
           files,
-          title:           raw?.title ?? '',
+          // Надпись в шапке чата: своя из настроек урока, иначе его название.
+          // Отсюда её получают все три запуска — модуль, отдельный урок и
+          // гонка: playerData у них общий, собирается здесь
+          title:           (raw?.script?.chatTitle || '').trim() || raw?.title || '',
           teacherName:     teacher.name,
           teacherLogo:     teacher.logo,
           teacherLogoCrop: teacher.crop,
