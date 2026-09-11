@@ -57,6 +57,11 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
   useEffect(() => {
     loadScript(lessonId)
       .then(async raw => {
+        // Сервер не отдал урок — его сняли с публикации (или удалили), пока
+        // приложение было открыто: RLS такой урок ученику не показывает.
+        // Список на экране мог остаться старым, поэтому говорим прямо, а не
+        // прячем это под «не удалось загрузить» (похоже на сбой сети)
+        if (!raw) { setError('Этот урок сейчас закрыт'); return }
         const nodes = raw?.script?.nodes ?? []
         const ids   = extractFileIds(nodes)
         const files = ids.length ? await getFilesByIds(ids) : []
@@ -69,6 +74,9 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
           // Отсюда её получают все три запуска — модуль, отдельный урок и
           // гонка: playerData у них общий, собирается здесь
           title:           (raw?.script?.chatTitle || '').trim() || raw?.title || '',
+          // Название самого урока — на случай, когда его не передали пропсом
+          // (запуск не из схемы модуля): иначе заголовок карточки был бы пуст
+          name:            raw?.title ?? '',
           teacherName:     teacher.name,
           teacherLogo:     teacher.logo,
           teacherLogoCrop: teacher.crop,
@@ -128,7 +136,7 @@ function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, reta
   // title приходит из схемы модуля и уже нарисован скелетоном — берём его, а не
   // lessonData.title: тот может оказаться своей надписью для шапки чата, и
   // заголовок карточки на полпути подменился бы
-  const { nodes, files, title: chatTitle, teacherName, teacherLogo, teacherLogoCrop, videoAutoSound, lessonXp } = lessonData
+  const { nodes, files, title: chatTitle, name, teacherName, teacherLogo, teacherLogoCrop, videoAutoSound, lessonXp } = lessonData
   // Через контекст, а не useIsAdmin напрямую: иначе дебаг-панель предзагрузки
   // пережила бы «режим пользователя» (и это был лишний запрос getProfile)
   const { isAdmin } = useAdmin()
@@ -211,7 +219,7 @@ function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, reta
 
   return (
     <>
-      <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 600 }}>{title}</h2>
+      <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 600 }}>{title || name}</h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ height: 6, borderRadius: 3, background: '#333', overflow: 'hidden' }}>

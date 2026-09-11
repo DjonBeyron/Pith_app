@@ -166,5 +166,6 @@
     var(--mg-dust),
     var(--mg-grain),
     var(--mg-tex-start) center / 180px 180px no-repeat,
-    #14171e;
+    /* Этот же цвет теперь у попапа запуска — переменная в lessons.css */
+    var(--lesson-popup-bg);
 }

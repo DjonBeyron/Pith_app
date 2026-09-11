@@ -28,7 +28,7 @@ export function LessonNavProvider({ children }) {
     if (fromLessonId) await pushNavStack(fromLessonId)
     setOverlay(target.isModule
       ? { kind: 'module', moduleId: target.targetId, moduleTitle: target.targetTitle }
-      : { kind: 'lesson', lessonId: target.targetId })
+      : { kind: 'lesson', lessonId: target.targetId, lessonTitle: target.targetTitle ?? '' })
   }, [])
 
   // Закрытие оверлея (финиш урока / «Назад» в шапке модуля) — снимает верхний

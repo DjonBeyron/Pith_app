@@ -44,18 +44,27 @@ describe('зеркало уроков-закладок', () => {
 })
 
 describe('список «Мои уроки» не дорастает после отрисовки', () => {
-  const ml = read('./MyLessons.jsx')
+  const ml   = read('./MyLessons.jsx')
+  const hook = read('./useBookmarkedLessons.js')
+  const tab  = read('./FeedTab.jsx')
 
-  it('до ответа сервера показывается зеркало', () => {
-    // Модули приходят готовыми пропсами, закладки — тремя запросами подряд:
-    // без зеркала строка-закладка появлялась на ~100 мс позже остальных
-    expect(ml).toContain('const shownBookmarks = bmLoaded ? bookmarkedLessons : readCachedBookmarks(user?.id)')
-    expect(ml).toContain('const visibleLessons = shownBookmarks')
+  it('закладки грузятся вместе с лентой, а не при открытии вкладки', () => {
+    // Причина была не в объёме данных: запрос модулей уходит на старте
+    // приложения, а закладки ждали показа «Моих уроков» — фора в секунды
+    expect(tab).toContain('const bookmarkedLessons = useBookmarkedLessons(visible)')
+    expect(hook).toContain('useEffect(() => { load() }, [load])')
+    // В самом списке своей загрузки больше нет — только проценты чекпойнтов
+    expect(ml).not.toContain('listLessonBookmarks')
+    expect(ml).toContain('const visibleLessons = bookmarkedLessons')
   })
 
-  it('после ответа зеркало больше не участвует', () => {
+  it('до первого ответа показывается зеркало, после — только сервер', () => {
     // Иначе удалённая на другом устройстве закладка висела бы вечно
-    expect(ml).toContain('setBmLoaded(true)')
-    expect(ml).toContain('writeCachedBookmarks(user?.id, list)')
+    expect(hook).toContain('return loaded ? list : readCachedBookmarks(user?.id)')
+    expect(hook).toContain('if (loaded && user?.id) writeCachedBookmarks(user.id, list)')
+  })
+
+  it('возврат в ленту перечитывает список — как у модулей', () => {
+    expect(hook).toContain('if (visible && !prevVisible.current) load()')
   })
 })

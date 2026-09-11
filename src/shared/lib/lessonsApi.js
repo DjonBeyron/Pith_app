@@ -102,14 +102,20 @@ export async function fetchLessonTitles(ids) {
   return Object.fromEntries((data ?? []).map(l => [l.id, l.title]))
 }
 
+// Урока нет или он снят с публикации — возвращаем null, а не бросаем: для
+// вызывающего это разные случаи (сбой сети против «урок закрыли»), и сказать
+// об этом нужно по-разному. Неопубликованный урок сервер не отдаёт никому,
+// кроме админа (RLS lessons_select_all, миграция 20260729) — даже если открыто
+// приложение со старым списком на экране
 export async function loadScript(id) {
   dbg('[DB READ] lesson script', id)
   const { data, error } = await supabase
     .from('lessons')
     .select('script, title')
     .eq('id', id)
-    .single()
+    .maybeSingle()
   if (error) { dbg('[DB ERROR] lesson loadScript', error.message); throw error }
+  if (!data) { dbg('[DB] lesson недоступен (закрыт или удалён)', id); return null }
   dbg('[DB OK] lesson loaded', id, data?.script?.nodes?.length ?? 0, 'nodes')
   return data
 }

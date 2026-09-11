@@ -12,6 +12,7 @@ import { useLessonNav } from '../../app/LessonNavContext.jsx'
 import { useFeedSound } from './useFeedSound.js'
 import { useFeedSocial } from './useFeedSocial.js'
 import { useFeedModules } from './useFeedModules.js'
+import { useBookmarkedLessons } from './useBookmarkedLessons.js'
 import { useFeedFilter } from './useFeedFilter.js'
 import { useFeedSplash } from './useFeedSplash.js'
 import { useFeedVirtualizer } from './useFeedVirtualizer.js'
@@ -42,6 +43,10 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     reactions, diffVotes, startedIds, social, refreshStarted, toggle, voteDifficulty,
   } = useFeedSocial({ visible, view, user, authLoading, onRequireAuth })
   const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds, visible)
+  // Уроки-закладки грузятся здесь же, рядом с модулями, а не при открытии
+  // «Моих уроков»: иначе их запрос стартовал на секунды позже и строка
+  // появлялась после модулей (особенно заметно на телефоне)
+  const bookmarkedLessons = useBookmarkedLessons(visible)
   const { selected: diffSelected, toggle: toggleDiff, reset: resetDiffFilter, active: filterActive, passesFeed, passesMine } = useFeedFilter()
 
   // Позиция модуля в общем списке — стабильная опора для детерминированного
@@ -111,6 +116,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           visible={visible && view === 'mine'}
           modules={modules ?? []}
           startedIds={startedIds}
+          bookmarkedLessons={bookmarkedLessons}
           diffVotes={diffVotes}
           onVoteDifficulty={voteDifficulty}
           filterActive={filterActive}
@@ -125,7 +131,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
           likeCounts={social?.likeCount}
           onToggle={toggle}
           onOpen={m => setOpenModule(m)}
-          onOpenLesson={lessonId => openRef({ isModule: false, targetId: lessonId }, null)}
+          onOpenLesson={(lessonId, title) => openRef({ isModule: false, targetId: lessonId, targetTitle: title }, null)}
           onGoFeed={() => setView('feed')}
         />
       </div>

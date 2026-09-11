@@ -12,7 +12,9 @@ import { markLessonCompleted } from '../../shared/lib/completedLessons.js'
 // анализа — просто запуск (с обычной проверкой энергии) и честное
 // завершение своим набором наград (XP + звёзды), выход всегда наружу через
 // onExit, а не в чей-то модуль.
-export default function StandaloneLessonRunner({ lessonId, onExit }) {
+// onStarted — урок реально пошёл (плеер на экране): слой над «Моими уроками»
+// по нему возвращает себе сплошной фон, см. LessonNavOverlay.jsx
+export default function StandaloneLessonRunner({ lessonId, lessonTitle = '', onExit, onStarted }) {
   const [playerData, setPlayerData] = useState(null)
   const [noEnergy,   setNoEnergy]   = useState(null)
 
@@ -21,6 +23,7 @@ export default function StandaloneLessonRunner({ lessonId, onExit }) {
     if (res?.ok === false) { setNoEnergy({ nextAt: res.next_at }); return }
     refreshProfile()
     setPlayerData(data)
+    onStarted?.()
   }
 
   if (playerData) {
@@ -45,7 +48,7 @@ export default function StandaloneLessonRunner({ lessonId, onExit }) {
 
   return (
     <>
-      <LessonLaunchCard lessonId={lessonId} onStart={handleStart} onClose={onExit} />
+      <LessonLaunchCard lessonId={lessonId} lessonTitle={lessonTitle} onStart={handleStart} onClose={onExit} />
       {noEnergy && (
         <EnergyPaywall nextAt={noEnergy.nextAt} onClose={() => { setNoEnergy(null); onExit() }} />
       )}

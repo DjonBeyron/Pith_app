@@ -229,13 +229,20 @@
   .launchSkelTitle, .launchSkelLine, .launchSkelTrack { animation: none; }
 }
 
+/* Один фон на все попапы схемы модуля — берётся от карточки «Урок пока
+   закрыт». Окно запуска было заметно светлее (#1a1a1a) и рядом с ней
+   смотрелось из другого набора */
+:root {
+  --lesson-popup-bg: #14171e;
+}
+
 /* Попап запуска урока — тот же узор, что на стартовом ноде схемы: диалог
    выезжает прямо из него, и на голом плоском фоне выглядел чужим.
-   Переменные объявлены в lessons-chain-textures.css (:root) */
+   Переменные узора объявлены в lessons-chain-textures.css (:root) */
 .launchCard {
   background:
     var(--mg-dust),
     var(--mg-grain),
     var(--mg-tex-start) center / 180px 180px no-repeat,
-    #1a1a1a;
+    var(--lesson-popup-bg);
 }

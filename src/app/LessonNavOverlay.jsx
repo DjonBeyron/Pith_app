@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useLessonNav } from './LessonNavContext.jsx'
 import StandaloneLessonRunner from '../features/lessons/StandaloneLessonRunner.jsx'
 import CurriculumView from '../features/lessons/CurriculumView.jsx'
@@ -9,12 +10,18 @@ import CurriculumView from '../features/lessons/CurriculumView.jsx'
 // проп в LessonPlayer ради живого состояния под оверлеем.
 export default function LessonNavOverlay() {
   const { overlay, handleExit } = useLessonNav()
+  // Пока показана только карточка «Начать урок», слой прозрачный: под ней
+  // должен просвечивать экран, с которого урок открыли («Мои уроки»), —
+  // затемняет его сама карточка. Сплошной фон слоя давал вместо этого чёрный
+  // прямоугольник. Как только урок пошёл, фон возвращается: под плеером
+  // ничего просвечивать не должно
+  const [started, setStarted] = useState(false)
   if (!overlay) return null
 
   return (
-    <div className="lessonNavOverlay">
+    <div className={`lessonNavOverlay${overlay.kind === 'lesson' && !started ? ' lessonNavOverlay--launch' : ''}`}>
       {overlay.kind === 'lesson' ? (
-        <StandaloneLessonRunner lessonId={overlay.lessonId} onExit={handleExit} />
+        <StandaloneLessonRunner lessonId={overlay.lessonId} lessonTitle={overlay.lessonTitle} onExit={handleExit} onStarted={() => setStarted(true)} />
       ) : (
         <CurriculumView
           curriculumId={overlay.moduleId}
