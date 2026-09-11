@@ -1,6 +1,5 @@
 import PlayerBubble from '../PlayerBubble.jsx'
 import BurstConfetti from '../../../shared/ui/BurstConfetti.jsx'
-import { chatFadeHeight } from '../chatFadeHeight.js'
 import { xpAnchor } from '../xpAnchor.js'
 
 // Пузыри ответа ученика в ленте: собранная фраза справа и реплики учителя
@@ -34,7 +33,7 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true 
               {/* Тот же салют, что на новом уровне, только короче и реже:
                   верных ответов в уроке десятки (Confetti.jsx) */}
               {confetti && (
-                <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
+                <BurstConfetti count={30} size={4} zIndex={60} portalTo=".lessonPlayer" />
               )}
               <div className="reactionBubbleWrap" {...xpAnchor(nodeId)}>
                 <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">

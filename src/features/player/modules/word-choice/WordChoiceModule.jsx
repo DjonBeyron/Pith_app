@@ -1,7 +1,6 @@
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { xpAnchor } from '../../xpAnchor.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
-import { chatFadeHeight } from '../../chatFadeHeight.js'
 import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
 
 // Справа в чате: сначала пузырь с выбранным вариантом (только если у ноды
@@ -37,7 +36,7 @@ export default function WordChoiceModule({ node, wordChoiceState }) {
           (Confetti.jsx). Рендерится один раз на весь модуль: пузырей с ответом
           может быть два (выбор и реплика), а праздник один */}
       {isCorrect && rewardOn && (
-        <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
+        <BurstConfetti count={30} size={4} zIndex={60} portalTo=".lessonPlayer" />
       )}
       {pickText && (
         <div className="playerMsgRow playerMsgRowRight">

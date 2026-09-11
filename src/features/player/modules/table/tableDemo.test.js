@@ -220,9 +220,13 @@ describe('таймлайн без озвучки', () => {
 
   it('анимация идёт в любом случае: нет аудио, отказ автозапуска, ошибка, тишина', () => {
     const autostart = read('../../panels/table-dictator/useTableDictatorAutostart.js')
-    // отказ автозапуска
+    // Отказ автозапуска. Сначала пробуем доиграть звук на прогретом элементе
+    // (primedAudio.js) — часы тут последний рубеж, а не первый: без звука
+    // таблица идёт, но ученик не слышит диктора
     const rejected = autostart.slice(autostart.indexOf('logAudioPlayRejected(e, audioSrc)'))
-    expect(rejected.slice(0, 260)).toContain('runWithClock()')
+    const untilClock = rejected.slice(0, rejected.indexOf('}), 800)'))
+    expect(untilClock).toContain('playPrimed(')
+    expect(untilClock).toContain('runWithClock()')
     // аудио молча не стартовало
     const silence = autostart.slice(autostart.indexOf('if (hasPlayedRef.current) return'))
     expect(silence.slice(0, 300)).toContain('runWithClock()')

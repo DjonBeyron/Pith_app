@@ -4,6 +4,7 @@ import { createSilentClock } from '../../../../shared/lib/silentClock.js'
 import { logAudioPlayRejected } from './dictatorDebug.js'
 import { timelineEndSec } from '../../../../shared/lib/tableDictatorTiming.js'
 import { registerDebugClock } from '../../../debugTools/debugMedia.js'
+import { playPrimed, stopPrimed } from '../../../../shared/lib/primedAudio.js'
 
 // Как прогон стартует без тапа пользователя: обычный автозапуск <audio>, и
 // подстраховка часами (silentClock.js) без звука, когда играть нечем/нечему —
@@ -55,6 +56,17 @@ export function useTableDictatorAutostart({
     const hudId   = setTimeout(() => setHudVisible(true), 400)
     const audioId = setTimeout(() => audioRef.current?.play().catch(e => {
       logAudioPlayRejected(e, audioSrc)
+      // Отказ достаётся ИМЕННО этому элементу: разрешение Safari выдаёт
+      // конкретному <audio>, а этот родился вместе с панелью, без жеста.
+      // Пробуем тот же файл на прогретом на старте урока (primedAudio.js) —
+      // таймлайн читает currentTime из audioRef и подмены не замечает
+      const primed = playPrimed(audioSrc, { onEnded: () => endedRef.current?.() })
+      if (primed) {
+        hasPlayedRef.current = true
+        audioRef.current = primed
+        startedRef.current?.()
+        return
+      }
       pLog('[td-auto] автозапуск отклонён — крутим таймлайн часами, без звука')
       runWithClock()
     }), 800)
@@ -80,7 +92,13 @@ export function useTableDictatorAutostart({
     return () => clearTimeout(startId)
   }, [silentMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => () => { clockRef.current?.stop?.(); unregClockRef.current?.() }, [])
+  // Панель уходит — гасим и часы, и прогретый элемент, если звук шёл через
+  // него: он общий на весь урок, и его onended достался бы следующему разбору
+  useEffect(() => () => {
+    clockRef.current?.stop?.()
+    unregClockRef.current?.()
+    stopPrimed()
+  }, [])
 
   // Последняя страховка: аудио так и не заиграло за 3 секунды — файл не
   // подгрузился, декодер споткнулся, вкладка была скрыта. Прогон всё равно

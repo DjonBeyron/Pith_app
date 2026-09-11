@@ -56,7 +56,11 @@ export function useSoloMedia(containerRef) {
 
       // Идёт разбор авто-таблицы — чужой звук просто не пускаем. Кнопка того
       // сообщения вернётся в ▶ сама: AudioModule слушает pause своего элемента
-      const lead = el.querySelector(`[${SOLO_LOCK}]`)
+      // Ищем и ВНЕ плеера: когда родному <audio> панели отказали в автозапуске,
+      // разбор звучит через общий прогретый элемент, а он живёт в body
+      // (primedAudio.js). Не заглянув туда, мы пускали бы поверх разбора чужое
+      // голосовое — ровно то, что этот замок и запрещает
+      const lead = el.querySelector(`[${SOLO_LOCK}]`) ?? document.querySelector(`[${SOLO_LOCK}]`)
       if (shouldBlock(started, lead)) {
         pLog('[solo] запуск отклонён — идёт разбор авто-таблицы')
         started.pause()

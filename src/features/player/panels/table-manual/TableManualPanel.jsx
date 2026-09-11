@@ -12,7 +12,6 @@ import { spacerStyle } from '../spacerStyle.js'
 import { playFeedRelease } from '../feedRelease.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
-import { chatFadeHeight } from '../../chatFadeHeight.js'
 import { rememberTap } from '../../xpAnchor.js'
 
 
@@ -248,7 +247,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
           ученика». Праздник же положен за верный ответ, а не за наличие
           сообщения в переписке (AnswerBubbles получает confetti={false}) */}
       {result === 'correct' && (
-        <BurstConfetti count={30} size={4} bottomInset={chatFadeHeight()} zIndex={60} portalTo=".lessonPlayer" />
+        <BurstConfetti count={30} size={4} zIndex={60} portalTo=".lessonPlayer" />
       )}
       {/* Спейсер отпускается сразу: пока он держит высоту, лента приподнята
           на панель, и пузырь стоит ВЫШЕ неё на эту же высоту — клону пришлось
