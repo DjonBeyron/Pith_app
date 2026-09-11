@@ -9,10 +9,10 @@ import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
+import { useAudioSource } from './useAudioSource.js'
 
 export default function AudioModule({ node, file, onDone, adminPreview = false, pending = false }) {
   const [weakDevice] = useState(() => isWeakDevice())
-  const [objectUrl,       setObjectUrl]       = useState(null)
   const [isPlaying,       setIsPlaying]       = useState(false)
   // Сразу true, если у голосового есть расшифровка: пузырь должен прилететь
   // в чат уже растушёванным. Раньше растушёвка включалась по старту печати —
@@ -59,16 +59,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       WAVE_H_BASE[Math.floor(i / barCount * WAVE_H_BASE.length)]
     ), [barCount])
 
-  useEffect(() => {
-    // Синхронный setState осознан: blob-URL живёт строго вместе с file.localFile
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!file?.localFile) { setObjectUrl(null); return }
-    const url = URL.createObjectURL(file.localFile)
-    setObjectUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [file?.localFile])
-
-  const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.audio?.r2Url ?? null
+  // Откуда берётся звук и почему адрес фиксируется — useAudioSource.js
+  const { src, locked: srcLocked, lock: lockSrc, unlock: unlockSrc } = useAudioSource(node, file)
 
   // Аудио ещё не загружено, а сценарий смотрит админ: показываем текст, будто
   // сообщение звучит, и по окончании заглушки отпускаем цепочку дальше
@@ -83,7 +75,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const stubSpeed = Math.max(12, Math.round(FALLBACK_MS / Math.max(1, text.length)))
 
   useEffect(() => {
-    pLog('AudioModule mount/src change — r2Url=', file?.r2Url ?? 'null', 'objectUrl=', objectUrl ?? 'null', 'src=', src ?? 'NULL')
+    pLog('AudioModule mount/src change — r2Url=', file?.r2Url ?? 'null', 'src=', src ?? 'NULL')
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0 }
     // Сброс медиасостояния при смене src — осознанный setState в эффекте
@@ -170,6 +162,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     const audio = audioRef.current
     if (!audio) return
     const onPause = () => { stopRAF(); setIsPlaying(false) }
+    // Данные звука уже в элементе — с этого момента держимся за этот источник
+    // и не реагируем на подмену blob→r2Url у того же файла
+    const onLoaded = () => lockSrc(src)
     // Возобновление снаружи (тулбар снял заморозку): цикл кадров мы погасили
     // на паузе, поэтому поднимаем его обратно — иначе волна осталась бы
     // стоять, пока звук идёт
@@ -179,11 +174,17 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     }
     audio.addEventListener('pause', onPause)
     audio.addEventListener('play', onPlay)
+    audio.addEventListener('loadeddata', onLoaded)
+    // Файл мог загрузиться до того, как мы подписались (blob из предзагрузки
+    // готов сразу) — события тогда уже не будет, проверяем состояние сами
+    if (audio.readyState >= 2) onLoaded()
     return () => {
       audio.removeEventListener('pause', onPause)
       audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('loadeddata', onLoaded)
     }
-  }, [src])
+    // lockSrc стабилен (useCallback с пустыми deps) — подписку не пересобирает
+  }, [src, lockSrc])
 
   // Один цикл кадров на элемент, и не больше. Возобновление приходит с двух
   // сторон сразу: событие 'play' и промис audio.play() — если каждая заведёт
@@ -314,6 +315,15 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       console.warn('[AudioModule] play failed:', err.message)
       audio.removeEventListener('ended', onEnded)
       setIsPlaying(false)
+      // Держались за источник, который уже не играет (Safari мог выгрузить
+      // буфер, а blob к этому времени освободили) — отпускаем: пересчёт возьмёт
+      // то, что доступно сейчас, обычно прямую ссылку на тот же файл.
+      // NotAllowedError сюда не относится: это запрет автозапуска, а не
+      // проблема с источником — файл цел, и сбрасывать его нельзя
+      if (srcLocked && err.name !== 'NotAllowedError') {
+        pLog('AudioModule: отпускаем зафиксированный источник и пробуем актуальный')
+        unlockSrc()
+      }
     })
   }
 

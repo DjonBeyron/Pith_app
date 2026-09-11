@@ -27,6 +27,15 @@ const CLEANUP_MS = GROW_MS + 40
 // а вот их плавное проигрывание видно прекрасно.
 const MICRO_PX = 10
 
+// Сколько раз подряд cleanup может обнаружить расхождение и перезапустить
+// анимацию. Обычно хватает одного: первый замер чуть не попал, второй добирает.
+// Если расхождение возвращается снова и снова, значит высота содержимого и
+// высота коробки тянут в разные стороны — и пузырь будет дёргаться вечно,
+// двигая вместе с собой всю переписку (в логе такое шло 18 секунд подряд).
+// Когда счётчик исчерпан — отпускаем высоту на авто: пусть встанет как встанет,
+// это в разы лучше бесконечной тряски.
+const MAX_RETRIES = 3
+
 // Animated-height bubble wrapper. Smoothly grows as content is added (e.g. typing text).
 // Ported directly from MsgBubble in the old project (BlockEditorChat.jsx).
 // follow=true — режим «просто следуй»: свои анимации высоты выключены, пузырь
@@ -97,7 +106,7 @@ function hDetail(el) {
 
 export default function PlayerBubble({ className, children, follow = false }) {
   const ref       = useRef(null)
-  const stRef     = useRef({ prevH: null, tid: null, target: null })
+  const stRef     = useRef({ prevH: null, tid: null, target: null, retries: 0, gaveUp: false })
   const readyRef  = useRef(false)
   const reactedRef = useRef(false) // реакцию в этот пузырь уже вставляли
   const idRef     = useRef(0) // номер пузыря для дебаг-лога
@@ -140,8 +149,16 @@ export default function PlayerBubble({ className, children, follow = false }) {
         const real = Math.abs(diff) >= MICRO_PX
         pLog(`[bubble#${idRef.current}] cleanup: target=${t} actual=${actualH} Δ=${diff > 0 ? '+' : ''}${diff}`
           + `${real ? ' → RE-ANIMATE (настоящее расхождение)' : ' ok (в пределах дрожи)'} | ${hDetail(el)}`)
-        if (real) animateTo(t, actualH)
-        else st.prevH = el.getBoundingClientRect().height
+        if (!real) { st.retries = 0; st.prevH = el.getBoundingClientRect().height; return }
+        if (++st.retries > MAX_RETRIES) {
+          // Высота содержимого и высота коробки не сходятся — дальше это
+          // только тряска переписки. Отпускаем на авто и больше не вмешиваемся
+          st.gaveUp = true
+          st.prevH = el.getBoundingClientRect().height
+          pLog(`[bubble#${idRef.current}] расхождение не сходится за ${MAX_RETRIES} попытки — высота отпущена на авто`)
+          return
+        }
+        animateTo(t, actualH)
       }, CLEANUP_MS)
     }
 
@@ -220,6 +237,8 @@ export default function PlayerBubble({ className, children, follow = false }) {
       }
       // follow: плавность даёт CSS-переход контента, пузырь только запоминает
       if (followRef.current) { st.prevH = nextH; return }
+      // Сдались на этом пузыре (см. MAX_RETRIES) — только следим за высотой
+      if (st.gaveUp) { st.prevH = nextH; return }
       if (Math.abs(nextH - prevH) < 2) return
       pLog(`[bubble#${id}] RO ${Math.round(prevH)}→${nextH} (Δ${nextH - prevH > 0 ? '+' : ''}${Math.round(nextH - prevH)})`
         + `${st.tid !== null ? ` анимация активна, target=${st.target}` : ''} | ${hDetail(el)}`)

@@ -66,3 +66,34 @@ describe('кнопка голосового на паузе', () => {
     expect(mod).not.toContain('startedOnce')
   })
 })
+
+// Лог с iPhone 11:50:16 — у давнего голосового предзагрузчик освободил blob,
+// src сменился на прямую ссылку того же файла, эффект сбросил расшифровку,
+// и пузырь 18 секунд гонял высоту 110↔57, двигая вместе с собой весь чат.
+describe('подмена источника у уже загруженного голосового', () => {
+  const bubble = readFileSync(fileURLToPath(new URL('../../PlayerBubble.jsx', import.meta.url)), 'utf8')
+
+  it('загруженный звук держится за свой источник', () => {
+    const hook = read('./useAudioSource.js')
+    expect(hook).toContain('const src = loadedSrc ?? rawSrc')
+    expect(mod).toContain("const onLoaded = () => lockSrc(src)")
+    expect(mod).toContain("audio.addEventListener('loadeddata', onLoaded)")
+    // Blob из предзагрузки готов сразу — события может и не быть
+    expect(mod).toContain('if (audio.readyState >= 2) onLoaded()')
+    // Не получилось воспроизвести — отпускаем и берём доступный источник,
+    // но запрет автозапуска сюда не относится: файл цел
+    expect(mod).toContain("if (srcLocked && err.name !== 'NotAllowedError')")
+    expect(mod).toContain('unlockSrc()')
+  })
+
+  it('пузырь не тянет высоту бесконечно', () => {
+    // Предохранитель на любую будущую причину, не только на эту
+    expect(bubble).toContain('const MAX_RETRIES = 3')
+    expect(bubble).toContain('if (++st.retries > MAX_RETRIES)')
+    expect(bubble).toContain('st.gaveUp = true')
+    // Сдались — дальше только следим, высоту не трогаем
+    expect(bubble).toContain('if (st.gaveUp) { st.prevH = nextH; return }')
+    // Успешное схождение обнуляет счётчик, иначе он накопится за урок
+    expect(bubble).toContain('if (!real) { st.retries = 0;')
+  })
+})
