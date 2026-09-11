@@ -16,6 +16,10 @@ import { MgBtns, MgRenameInput } from './MgControls.jsx'
 // Меньше FLIGHT_DELAY_MS/2 (попап-кейс): озеленение стартует до полёта кружков.
 const START_REVEAL_MS = 500
 
+// Сколько живёт анимация снятия замков. Чуть больше самой длинной задержки
+// (последняя карточка стартует позже всех), чтобы класс не сняли на полпути
+const UNLOCK_ANIM_MS = 1100
+
 const PRIORITY = {
   high:   { label: 'Высокий приоритет', icon: ChevronsUp,   desc: 'Наиболее важен для вас' },
   medium: { label: 'Средний приоритет', icon: '≡',          desc: 'Полезен для развития' },
@@ -28,6 +32,8 @@ export default function ModuleGraph({
   justCompleted = null,
   priorities = null, // Map<lessonId, 'high'|'medium'|'low'> из анализа знаний; null у урока = без полоски
   stars = null,      // Map<lessonId, 1..3> — звёзды пройденных обычных уроков (лучший результат)
+  unlocked = false,  // уроки открыты без диагностики (см. moduleUnlock.js)
+  onUnlock,          // нажали «Всё равно разблокировать» в попапе закрытого урока
   animHold = false,  // true (попап-легенда открыт) — пульс/полёт XP/озеленение линий ждут закрытия
   animShort = false, // true (попап только что закрыт) — офсет анимации вдвое короче
   onFlightDone,
@@ -39,6 +45,10 @@ export default function ModuleGraph({
   const [renaming, setRenaming] = useState(null)
   const [draft,    setDraft]    = useState('')
   const [lockedHint, setLockedHint] = useState(false)
+  // Замки снимаются прямо сейчас: карточки по очереди переходят в «открыто».
+  // Только на этот сеанс — при следующем заходе уроки просто открыты
+  const [unlockAnim, setUnlockAnim] = useState(false)
+  const unlockTimer = useRef(null)
   // Полёт XP из только что пройденного урока к ключу-бегунку финала.
   const [flight,     setFlight]     = useState(null)
   const [delivered,  setDelivered]  = useState(0)
@@ -115,6 +125,7 @@ export default function ModuleGraph({
     return () => {
       window.removeEventListener('scroll', handleScroll)
       clearTimeout(calmTimer.current)
+      clearTimeout(unlockTimer.current)
     }
   }, [handleScroll])
 
@@ -160,13 +171,31 @@ export default function ModuleGraph({
   // Прогресс — XP только за пройденные уроки этого модуля.
   const nonFinal   = lessons.slice(0, n - 1)
   const xpUnlock   = nonFinal.reduce((s, l) => s + (l.lessonXp ?? 0), 0)
-  const earnedXp   = nonFinal.reduce((s, l) => s + (completedIds.has(l.id) ? (l.lessonXp ?? 0) : 0), 0)
-  const allDone    = nonFinal.every(l => completedIds.has(l.id))
+  // Открыли уроки без диагностики — доля Старта засчитывается в порог, иначе
+  // финал недостижим навсегда: его XP входит в xpUnlock, а набрать его негде.
+  // В профиль и рейтинг при этом не уходит ничего, и сам Старт остаётся
+  // непройденным (серым). Пройдёт его позже — слагаемое исчезнет, а earnedXp
+  // вырастет ровно на столько же: итог не дрогнет и бар не прыгнет
+  const startSkipXp = unlocked && !completedIds.has(start.id) ? (start.lessonXp ?? 0) : 0
+  const earnedXp   = nonFinal.reduce((s, l) => s + (completedIds.has(l.id) ? (l.lessonXp ?? 0) : 0), 0) + startSkipXp
+  // Тот же зачёт для модуля без XP: там порогом служит «все уроки пройдены»
+  const allDone    = nonFinal.every(l => completedIds.has(l.id) || (unlocked && l.id === start.id))
   // Пока XP «летит», недоставленная часть не показана — бар растёт по мере прилёта.
   const inFlight   = justCompleted ? Math.max(0, justCompleted.xp - delivered) : 0
   const earnedShow = Math.max(0, earnedXp - inFlight)
   const finalOpen  = xpUnlock > 0 ? earnedShow >= xpUnlock : allDone
   const xpPct      = xpUnlock > 0 ? Math.min(100, Math.round(earnedShow / xpUnlock * 100)) : (allDone ? 100 : 0)
+
+  // Снятие замков: попап закрывается, и уроки волной переходят в «открыто».
+  // Полёта XP здесь нет и быть не должно — Старт не пройден, а его доля просто
+  // засчитана в пороге финала (см. startSkipXp)
+  function handleUnlock() {
+    setLockedHint(false)
+    onUnlock?.()
+    setUnlockAnim(true)
+    clearTimeout(unlockTimer.current)
+    unlockTimer.current = setTimeout(() => setUnlockAnim(false), UNLOCK_ANIM_MS)
+  }
 
   function startRename(e, id, title) { e.stopPropagation(); setRenaming(id); setDraft(title) }
   function commitRename() { if (renaming && draft.trim()) onRename(renaming, draft.trim()); setRenaming(null) }
@@ -175,7 +204,7 @@ export default function ModuleGraph({
     // Не-админ: пока диагностика (Старт) не пройдена, остальные уроки
     // визуально «под замком» (locked выше) — раньше замок был декорацией,
     // сам клик всё равно запускал урок. Теперь блокируем и объясняем почему.
-    if (!isAdmin && id !== start.id && !startDoneShown) { setLockedHint(true); return }
+    if (!isAdmin && id !== start.id && !startDoneShown && !unlocked) { setLockedHint(true); return }
     // У не-админа нет управляющих кнопок — клик по блоку сразу запускает урок.
     if (!isAdmin) { onPlay(id); return }
     if (window.matchMedia('(hover: none)').matches) setTapped(p => p === id ? null : id)
@@ -224,7 +253,7 @@ export default function ModuleGraph({
           {middle.map((l, i) => {
             const done   = completedIds.has(l.id)
             // До диагностики уроки «под замком»: замок вместо номера, без блеска
-            const locked = !startDoneShown
+            const locked = !startDoneShown && !unlocked
             const pKey  = priorities?.get(l.id) ?? null
             const pInfo = pKey ? PRIORITY[pKey] : null
             // Звёзды показываются только на пройденном уроке; 0/нет записи
@@ -234,7 +263,8 @@ export default function ModuleGraph({
               <div
                 key={l.id}
                 ref={el => { lessonRefs.current[i] = el }}
-                className={`mgNode mgNode--lesson${pKey ? ` mgLesson--${pKey}` : ''}${done ? ' mgNode--lesson--done' : ''}${locked ? ' mgNode--locked' : ''}${justCompleted?.id === l.id && !animHold ? ' mgNode--justDone' : ''}`}
+                className={`mgNode mgNode--lesson${pKey ? ` mgLesson--${pKey}` : ''}${done ? ' mgNode--lesson--done' : ''}${locked ? ' mgNode--locked' : ''}${unlockAnim ? ' mgNode--unlocking' : ''}${justCompleted?.id === l.id && !animHold ? ' mgNode--justDone' : ''}`}
+                style={unlockAnim ? { '--unlock-i': i } : undefined}
                 onMouseEnter={() => setHovered(l.id)}
                 onMouseLeave={() => setHovered(null)}
                 onClick={e => { e.stopPropagation(); handleClick(l.id) }}
@@ -325,7 +355,7 @@ export default function ModuleGraph({
           />
         )}
 
-        {lockedHint && <LessonLockedHint onClose={() => setLockedHint(false)} />}
+        {lockedHint && <LessonLockedHint onClose={() => setLockedHint(false)} onUnlock={handleUnlock} />}
 
       </div>
     </div>

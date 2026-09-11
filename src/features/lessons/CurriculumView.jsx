@@ -25,6 +25,7 @@ import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import { weekKey, MODULE_DONE_WEEK_KEY } from '../race/useRaceState.js'
 import { getLastEditorMode } from '../../shared/lib/lastEditorMode.js'
+import { isModuleUnlocked, unlockModule, relockModule } from '../../shared/lib/moduleUnlock.js'
 
 const LEGEND_SEEN_KEY = 'pithy_priority_legend_seen_v1'
 
@@ -80,6 +81,8 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const [noEnergy,        setNoEnergy]        = useState(null)
   // Мягкое предложение Pro после первого прохождения Финала (момент успеха)
   const [proOffer,        setProOffer]        = useState(false)
+  // Уроки открыты без диагностики (решение по этому модулю, см. moduleUnlock.js)
+  const [unlocked, setUnlocked] = useState(() => isModuleUnlocked(curriculumId))
   const didInitRef = useRef(false)
   const { isAdmin } = useAdmin()
   const { user } = useAuth()
@@ -133,6 +136,10 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
     localStorage.removeItem(LEGEND_SEEN_KEY)
     // Модуль больше не «начат» — вернётся в рекомендации
     unmarkModuleStarted(curriculumId)
+    // И решение «открыть без диагностики» тоже: сброс обещает состояние нового
+    // пользователя, а с ним уроки остались бы открытыми при нулевом прогрессе
+    relockModule(curriculumId)
+    setUnlocked(false)
     const { refunded, error } = await resetLessonProgress(ids, true) // true = стереть и анализ
     dbg('[RESET] модуль:', ids.length, 'уроков, XP снято:', refunded, 'ошибка:', error)
     if (error) { setSaveMsg(`Сброс на сервере не сработал: ${error}`); setTimeout(() => setSaveMsg(''), 6000) }
@@ -312,6 +319,8 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           completedIds={completedIds}
           priorities={priorities}
           stars={stars}
+          unlocked={unlocked}
+          onUnlock={() => { unlockModule(curriculumId); setUnlocked(true) }}
           animHold={showLegend} /* пока попап открыт — вся анимация графа на паузе */
           animShort={postLegend}
           justCompleted={justCompleted}
@@ -333,6 +342,9 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
       {launchId && (
         <LessonLaunchCard
           lessonId={launchId}
+          /* Название уже известно схеме — карточка покажет его сразу, не дожидаясь
+             загрузки сценария по сети */
+          lessonTitle={lessons.find(l => l.id === launchId)?.title ?? ''}
           retake={completedIds.has(launchId)}
           examIntro={!isPro && lessons.length > 0 && launchId === lessons[lessons.length - 1].id}
           /* Старт и Финал модуля сервер не тарифицирует — надпись о стоимости честная */

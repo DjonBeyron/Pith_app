@@ -14,9 +14,6 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const [weakDevice] = useState(() => isWeakDevice())
   const [objectUrl,       setObjectUrl]       = useState(null)
   const [isPlaying,       setIsPlaying]       = useState(false)
-  // Голосовое уже запускали — значит ▶ на нём означает «на паузе», а не
-  // «ещё не слушали». Кнопка в этих двух случаях выглядит по-разному
-  const [startedOnce,     setStartedOnce]     = useState(false)
   // Сразу true, если у голосового есть расшифровка: пузырь должен прилететь
   // в чат уже растушёванным. Раньше растушёвка включалась по старту печати —
   // сообщение появлялось с резким низом и щёлкало в размытый через секунду.
@@ -178,7 +175,6 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     // стоять, пока звук идёт
     const onPlay = () => {
       setIsPlaying(true)
-      setStartedOnce(true)
       ensureTick()
     }
     audio.addEventListener('pause', onPause)
@@ -333,9 +329,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
         <div className="playerAudio">
           <div className="playerAudioRow">
             <button
-              /* Стояла на паузе — кнопка серая, не лаймовая: лайм зовёт
-                 нажать, а у начатого и остановленного сообщения зова нет */
-              className={`playerAudioBtn${!isPlaying && startedOnce ? ' playerAudioBtnPaused' : ''}`}
+              className="playerAudioBtn"
               onClick={toggle}
               disabled={!src}
               aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}

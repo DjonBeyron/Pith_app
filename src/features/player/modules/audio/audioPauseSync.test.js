@@ -47,27 +47,22 @@ describe('кнопка голосового отражает сам элемен
   })
 })
 
-// Кнопка на паузе — чистый серый, а не «грязно-зелёный». Полупрозрачный лайм
-// поверх тёмного фона давал болотный оттенок: цвет читался как испорченный
-// зелёный, а не как «выключено». Замер: lime rgb(182,254,59) → пауза
-// rgb(154,160,180) — зелёный не доминирует, оттенок холодный нейтральный.
+// Кнопка выглядит одинаково, играет голосовое или стоит: состояние показывает
+// значок внутри неё (▮▮ / ▶), а не цвет. Отдельный серый вид у паузы был —
+// от него отказались, и вместе с ним ушло состояние startedOnce, которое
+// кроме этого цвета ничему не служило.
 describe('кнопка голосового на паузе', () => {
   const css = readFileSync(fileURLToPath(new URL('../../../../styles/player/modules/audio.css', import.meta.url)), 'utf8')
 
-  it('серый задан своим цветом, а не прозрачностью лайма', () => {
-    const rule = css.slice(css.indexOf('.playerAudioBtnPaused {'))
+  it('у паузы нет своего цвета — тот же лайм, что у плей', () => {
+    expect(css).not.toContain('.playerAudioBtnPaused')
+    expect(mod).toContain('className="playerAudioBtn"')
+    const rule = css.slice(css.indexOf('.playerAudioBtn {'))
     const body = rule.slice(0, rule.indexOf('}'))
-    expect(body).toContain('background: #9aa0b4')
-    expect(body).toContain('border-color: #9aa0b4')
-    // Ни opacity, ни filter — они и давали грязь
-    expect(body).not.toContain('opacity')
-    expect(body).not.toContain('filter')
+    expect(body).toContain('background: #b6fe3b')
   })
 
-  it('серым становится только НАЧАТОЕ и остановленное сообщение', () => {
-    // У непрослушанного ▶ остаётся лаймовым: это зов нажать
-    expect(mod).toContain('const [startedOnce,     setStartedOnce]     = useState(false)')
-    expect(mod).toContain("playerAudioBtn${!isPlaying && startedOnce ? ' playerAudioBtnPaused' : ''}")
-    expect(mod).toContain('setStartedOnce(true)')
+  it('мёртвого состояния не осталось', () => {
+    expect(mod).not.toContain('startedOnce')
   })
 })

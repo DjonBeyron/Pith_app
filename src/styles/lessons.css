@@ -192,3 +192,50 @@
   outline: none;
 }
 .lessonMapTitleInput:focus { border-color: #b6fe3b; }
+
+/* ── Каркас карточки запуска (LaunchSkeleton.jsx) ──
+   Пока сценарий урока грузится, на местах будущих блоков стоят их заготовки —
+   окно сразу нужного размера и при готовности не прыгает */
+.launchSkelTitle {
+  height: 22px;
+  width: 60%;
+  border-radius: 6px;
+  background: #2a2a2a;
+  animation: launchSkelPulse 1.2s ease-in-out infinite;
+}
+
+.launchSkelLine {
+  height: 16px;
+  width: 40%;
+  border-radius: 5px;
+  background: #242424;
+  animation: launchSkelPulse 1.2s ease-in-out infinite;
+}
+
+/* Жёлоб прогресса — пустой и лишь слегка дышит. Заполненной полосы внутри не
+   должно быть ни на кадр: сколько уже скачано, пока неизвестно, а любая полоса
+   читается как прогресс и через долю секунды обнуляется до настоящего.
+   Что работа идёт, говорит подпись под жёлобом */
+.launchSkelTrack {
+  animation: launchSkelPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes launchSkelPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launchSkelTitle, .launchSkelLine, .launchSkelTrack { animation: none; }
+}
+
+/* Попап запуска урока — тот же узор, что на стартовом ноде схемы: диалог
+   выезжает прямо из него, и на голом плоском фоне выглядел чужим.
+   Переменные объявлены в lessons-chain-textures.css (:root) */
+.launchCard {
+  background:
+    var(--mg-dust),
+    var(--mg-grain),
+    var(--mg-tex-start) center / 180px 180px no-repeat,
+    #1a1a1a;
+}

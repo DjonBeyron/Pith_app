@@ -7,6 +7,8 @@ import { simulateLessonsDone } from '../../shared/lib/adminTestCompletion.js'
 import { fetchLessonTitles } from '../../shared/lib/lessonsApi.js'
 import { plural } from '../../shared/lib/plural.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
+import { useAuth } from '../../shared/lib/useAuth.js'
+import { readCachedBookmarks, writeCachedBookmarks } from './lessonBookmarkCache.js'
 import MyLessonSlide from './MyLessonSlide.jsx'
 import MyLessonRefSlide from './MyLessonRefSlide.jsx'
 
@@ -45,11 +47,17 @@ export default function MyLessons({
   // каждом показе вкладки — закладка могла появиться, пока «Мои уроки» были
   // не видны (переход по ссылке живёт в отдельном дереве, LessonNavOverlay.jsx)
   const [bookmarkedLessons, setBookmarkedLessons] = useState([])
+  // Пока ответ сервера не пришёл, показываем зеркало из localStorage: иначе
+  // строки-закладки дорисовывались на ~100 мс позже модулей (те приходят
+  // готовыми пропсами, а эти — тремя запросами подряд)
+  const [bmLoaded, setBmLoaded] = useState(false)
   // Активные чекпойнты (пройден урок не до конца ИЛИ пересдаётся заново после
   // 100%) — lessonId → pct. По нему модуль/урок на 100% временно снова виден
   // здесь, с текущим процентом пересдачи (см. useLessonResume.js)
   const [progressMap, setProgressMap] = useState(new Map())
   const { isAdmin } = useAdmin()
+  // Кэш закладок привязан к аккаунту: на общем устройстве чужие не мелькнут
+  const { user } = useAuth()
   // completed читается из localStorage заново на каждый рендер (не state) —
   // после теста «пометить пройденным» нужен просто любой ре-рендер
   const [, forceTick] = useState(0)
@@ -69,7 +77,10 @@ export default function MyLessons({
       const bmIds = [...await listLessonBookmarks()]
       const titles = bmIds.length ? await fetchLessonTitles(bmIds) : {}
       if (cancelled) return
-      setBookmarkedLessons(bmIds.map(id => ({ id, title: titles[id] ?? 'Урок' })))
+      const list = bmIds.map(id => ({ id, title: titles[id] ?? 'Урок' }))
+      setBookmarkedLessons(list)
+      setBmLoaded(true)
+      writeCachedBookmarks(user?.id, list)
 
       const moduleLessonIds = modules.flatMap(m => m.lessonIds)
       const progress = await listLessonsWithProgress([...new Set([...moduleLessonIds, ...bmIds])])
@@ -103,7 +114,10 @@ export default function MyLessons({
 
   // Уроки-закладки: скрываем завершённые НАВСЕГДА (пройдены, чекпойнта нет);
   // не завершённые и те, что сейчас пересдаются — видны, с текущим процентом
-  const visibleLessons = bookmarkedLessons
+  // До ответа сервера — зеркало; после — только настоящий список (иначе
+  // удалённая на другом устройстве закладка висела бы вечно)
+  const shownBookmarks = bmLoaded ? bookmarkedLessons : readCachedBookmarks(user?.id)
+  const visibleLessons = shownBookmarks
     .filter(l => !completed.has(l.id) || progressMap.has(l.id))
     .map(l => ({
       ...l,

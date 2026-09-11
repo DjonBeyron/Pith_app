@@ -86,3 +86,85 @@
 }
 
 .lessonLockedOkBtn:hover { background: #d4ff5a; }
+
+/* Предупреждение (второй шаг карточки): та же карточка, но иконка янтарная —
+   это не ошибка, а выбор с последствиями */
+.lessonLockedIcon--warn {
+  background: rgba(255, 200, 97, 0.1);
+  color: #ffc861;
+}
+
+.lessonLockedText--calm {
+  margin-top: -10px;
+  color: #7b8492;
+}
+
+.lessonLockedOkBtn--warn {
+  background: #ffc861;
+  color: #241a04;
+}
+
+.lessonLockedOkBtn--warn:hover { background: #ffd98a; }
+
+/* Второстепенное действие: читается как ссылка, а не как вторая равная кнопка —
+   основной путь всё-таки диагностика */
+.lessonLockedGhostBtn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #7b8492;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lessonLockedGhostBtn:hover { color: #c3cad8; }
+
+/* ── Снятие замков ──
+   Карточки переходят в «открыто» волной сверху вниз: --unlock-i это номер
+   урока, из него и берётся задержка. Анимация одноразовая, на один сеанс —
+   при следующем заходе уроки просто открыты, без представления */
+.mgNode--unlocking {
+  animation: mgUnlockPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--unlock-i, 0) * 90ms);
+}
+
+@keyframes mgUnlockPop {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); }
+  45%  { transform: scale(1.03); box-shadow: 0 0 0 3px rgba(182, 254, 59, 0.35); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); }
+}
+
+/* Кружок статуса: замок сменился на ▶ — поворачиваем его в тот же такт,
+   чтобы смена иконки не выглядела подменой кадра */
+.mgNode--unlocking .mgLessonNum {
+  animation: mgUnlockSpin 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--unlock-i, 0) * 90ms);
+}
+
+@keyframes mgUnlockSpin {
+  0%   { transform: rotate(-90deg) scale(0.7); opacity: 0.4; }
+  100% { transform: rotate(0)      scale(1);   opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mgNode--unlocking,
+  .mgNode--unlocking .mgLessonNum { animation: none; }
+}
+
+/* Тот же узор, что на нодах схемы: попап всплывает поверх неё и не должен
+   выглядеть вставкой из другого приложения. Переменные — из
+   lessons-chain-textures.css (:root) */
+.lessonLockedCard {
+  background:
+    var(--mg-dust),
+    var(--mg-grain),
+    var(--mg-tex-start) center / 180px 180px no-repeat,
+    #14171e;
+}

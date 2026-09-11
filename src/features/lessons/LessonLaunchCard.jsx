@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { Zap, RefreshCw } from 'lucide-react'
 import { loadScript } from '../../shared/lib/lessonsApi.js'
 import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
@@ -7,12 +6,12 @@ import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
-import { getCachedProfile } from '../../shared/api/profileCache.js'
-import { calcEnergy } from '../../shared/lib/energyCalc.js'
-import EnergyCells from '../../shared/ui/EnergyCells.jsx'
 import RetakeDialog from './RetakeDialog.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
 import LaunchDebugPanel from './LaunchDebugPanel.jsx'
+import LaunchSkeleton from './LaunchSkeleton.jsx'
+import LaunchEnergyRow from './LaunchEnergyRow.jsx'
+import { launchEnergyInfo } from './launchEnergy.js'
 import { hasStatBindings } from '../player/useAnswerStats.js'
 
 const WARMUP_TARGET = 5
@@ -43,9 +42,17 @@ function isWeakDevice() {
 // (правила, 3 подсказки, ключ); имеет приоритет над retake.
 // energyFree=true — сервер не спишет энергию (Старт/Финал модуля); клиенту
 // нужно только для честной надписи о стоимости, решает всё равно сервер.
-export default function LessonLaunchCard({ lessonId, retake = false, examIntro = false, energyFree = false, onStart, onClose }) {
+export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = false, examIntro = false, energyFree = false, onStart, onClose }) {
   const [lessonData, setLessonData] = useState(null)
   const [error, setError]           = useState(null)
+  // Момент открытия карточки: по нему считается энергия. Ленивый инициализатор —
+  // Date.now() импьюрный, а живой таймер тут не нужен, карточка живёт секунды
+  const [openedAt] = useState(() => Date.now())
+  // Растворение последней ячейки энергии при старте. Живёт здесь, а не в
+  // предзагрузчике: сама строка энергии рисуется с первого кадра, ещё до него
+  const [dissolving, setDissolving] = useState(false)
+  // Не зависит от сценария — профиль уже в кэше, остальное пропсы
+  const info = launchEnergyInfo({ retake, energyFree, openedAt })
 
   useEffect(() => {
     loadScript(lessonId)
@@ -78,8 +85,8 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
       background: 'rgba(0,0,0,0.7)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      <div style={{
-        background: '#1a1a1a', borderRadius: 16, padding: 32,
+      <div className="launchCard" style={{
+        borderRadius: 16, padding: 32,
         minWidth: 300, maxWidth: 420, width: '90%',
         display: 'flex', flexDirection: 'column', gap: 20,
         position: 'relative',
@@ -95,9 +102,7 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
 
         {error && <p style={{ color: '#ff7070', margin: 0 }}>{error}</p>}
 
-        {!error && !lessonData && (
-          <p style={{ color: '#888', margin: 0, textAlign: 'center' }}>Загрузка урока...</p>
-        )}
+        {!error && !lessonData && <LaunchSkeleton title={lessonTitle} info={info} />}
 
         {lessonData && (
           <LaunchPreloader
@@ -106,6 +111,10 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
             retake={retake}
             examIntro={examIntro}
             energyFree={energyFree}
+            title={lessonTitle}
+            info={info}
+            dissolving={dissolving}
+            onDissolve={() => setDissolving(true)}
             onStart={onStart}
             onClose={onClose}
           />
@@ -115,36 +124,18 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
   )
 }
 
-function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, examIntro = false, energyFree = false, onStart, onClose }) {
-  const { nodes, files, title, teacherName, teacherLogo, teacherLogoCrop, videoAutoSound, lessonXp } = lessonData
+function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, retakeChoice = false, examIntro = false, onStart, onClose }) {
+  // title приходит из схемы модуля и уже нарисован скелетоном — берём его, а не
+  // lessonData.title: тот может оказаться своей надписью для шапки чата, и
+  // заголовок карточки на полпути подменился бы
+  const { nodes, files, title: chatTitle, teacherName, teacherLogo, teacherLogoCrop, videoAutoSound, lessonXp } = lessonData
   // Через контекст, а не useIsAdmin напрямую: иначе дебаг-панель предзагрузки
   // пережила бы «режим пользователя» (и это был лишний запрос getProfile)
   const { isAdmin } = useAdmin()
 
-  // Надпись о стоимости — информационная, само списание решает сервер
-  // (start_lesson). Гость энергию не тратит — надпись ему не показываем.
-  const profile   = getCachedProfile()
-  const unlimited = profile?.has_subscription || profile?.is_admin
-  const CostIcon = !unlimited && retake ? RefreshCw : Zap
-  const costLabel = !profile
-    ? null
-    : unlimited
-      ? 'Безлимит — энергия не тратится'
-      : retake
-        ? 'Повторение пройденного — бесплатно'
-        : energyFree
-          ? 'Этот урок бесплатный — энергия не тратится'
-          : 'Урок спишет 1 энергию'
-
-  // Платный случай (не гость, не безлимит, не пересдача, не Старт/Финал) —
-  // вместо текстовой строки показываем ряд ячеек энергии с мигающей
-  // последней (её спишет сервер при старте)
-  const payingCase = !!profile && !unlimited && !retake && !energyFree
-  // Date.now() — импьюрный вызов, только один раз через ленивый инициализатор
-  // (карточка живёт недолго, живой тикающий таймер здесь не нужен)
-  const [openedAt] = useState(() => Date.now())
-  const energyValue = profile ? calcEnergy(profile, openedAt).value : 0
-  const [dissolving, setDissolving] = useState(false)
+  // Энергия и стоимость посчитаны в LessonLaunchCard и уже показаны — здесь
+  // только флаг, нужна ли анимация списания при старте
+  const { payingCase } = info
 
   // Weak device → smaller in-memory buffer during lesson (2 past + 2 ahead vs 5 + 3)
   const weak       = isWeakDevice()
@@ -205,13 +196,13 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
     const logoForPlayer = logoBlobRef.current ?? teacherLogo
     logoBlobRef.current = null
-    const payload = { nodes, files, blobMap, title, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound, lessonXp }
+    const payload = { nodes, files, blobMap, title: chatTitle, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound, lessonXp }
 
     if (payingCase) {
       // Платный случай: сперва показываем растворение мигающей ячейки —
       // пользователь видит, что энергия израсходована — и только потом
       // запускаем плеер. Реальное списание всё равно решает сервер (onStart→startLesson)
-      setDissolving(true)
+      onDissolve()
       setTimeout(() => onStart(payload, statsMode), 600)
     } else {
       onStart(payload, statsMode)
@@ -227,30 +218,21 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
           <div style={{
             height: '100%', borderRadius: 3,
             width: pct + '%',
-            background: canStart ? '#4caf50' : '#b6fe3b',
+            background: '#b6fe3b',
             transition: 'width 0.3s ease',
           }} />
         </div>
         <span style={{ color: '#888', fontSize: 12 }}>
+          {/* Слово то же, что в каркасе до загрузки сценария («Загрузка
+              урока…»): подмена «Загрузка» → «Подготовка» на полпути читалась
+              как смена этапа, хотя это одна и та же загрузка */}
           {canStart
             ? 'Урок готов к запуску'
-            : `Подготовка: ${pct}%`}
+            : `Загрузка урока: ${pct}%`}
         </span>
       </div>
 
-      {payingCase ? (
-        <EnergyCells value={energyValue} blinkLast={!dissolving} dissolving={dissolving} />
-      ) : unlimited ? (
-        /* Безлимит (админ/подписка): тот же ряд ячеек, но полный и с «∞» —
-           чтобы новый UI был виден и здесь, а не только текст */
-        <EnergyCells unlimited />
-      ) : (
-        costLabel && (
-          <span style={{ color: '#bbb', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <CostIcon size={13} />{costLabel}
-          </span>
-        )
-      )}
+      <LaunchEnergyRow info={info} dissolving={dissolving} />
 
       {isAdmin && (
         <LaunchDebugPanel
@@ -273,8 +255,8 @@ function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, exa
           style={{
             padding: '14px 0', borderRadius: 12, border: 'none',
             fontSize: 16, fontWeight: 600, cursor: canStart && !dissolving ? 'pointer' : 'default',
-            background: canStart ? '#4caf50' : '#333',
-            color: canStart ? '#fff' : '#666',
+            background: canStart ? '#b6fe3b' : '#333',
+            color: canStart ? '#0d1500' : '#666',
             transition: 'background 0.3s ease, color 0.3s ease',
           }}
         >
