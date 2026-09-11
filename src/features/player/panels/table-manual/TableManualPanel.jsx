@@ -191,7 +191,16 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
       pLog(`[tm] уходим в чат: trigger=${trigger} высота панели=${panelH}px слов=${assembled.length}`)
       // Та же собранная фраза и итог проверки уезжают в пузырь — чтобы после
       // посадки таблица в переписке выглядела как только что в панели
-      const sent = { words: assembled.map(t => t.value), result }
+      // picked — какие ячейки ученик выбрал и КАКОЕ значение взял из ячейки со
+      // списком вариантов. Уезжает в сообщение вместе с ответом, чтобы таблица
+      // в переписке осталась в том же виде, в каком её собрали: выбранное
+      // приглушено, а не «как новое». Массив пар, а не Map — sent проходит
+      // через setState и сравнение пропсов
+      const sent = {
+        words: assembled.map(t => t.value),
+        result,
+        picked: [...assembledCellValues],
+      }
       toChatCtl.sendToChat(panelRef.current, node.id, {
         send: arriving => onSendToChat(arriving, sent),
         reveal: onLandedInChat,

@@ -55,11 +55,21 @@ export default function TableChatBubble({ table, children, nodeId, arriving = fa
             ? <span className="tdAssemblyWord">{caption}</span>
             : words.map((w, i) => <span key={i} className="tdAssemblyWord">{w}</span>)}
         </div>
+        {/* Таблица в переписке сохраняет состояние ячеек, с которым закончился
+            разбор: отработавшие стоят приглушёнными, а у ячейки со списком
+            вариантов видно ИМЕННО то значение, которое выбрал ученик.
+            Раньше сообщение рисовало таблицу «как новую», и перед уходом в чат
+            панель приходилось насильно обесцвечивать под него — сообщение
+            теряло весь след разбора, а текст в момент подмены менял яркость.
+            Наборы приезжают массивами (sent переживает setState и сравнение
+            пропсов), здесь превращаются обратно в Set/Map. */}
         <TableGrid
           columns={table.columns}
           rows={table.rows}
           cells={table.cells}
           rowCount={table.rowCount}
+          dimmedIds={sent?.dimmed?.length ? new Set(sent.dimmed) : undefined}
+          pickedValues={sent?.picked?.length ? new Map(sent.picked) : undefined}
         />
         {children}
       </PlayerBubble>

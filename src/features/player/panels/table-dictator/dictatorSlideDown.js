@@ -16,9 +16,9 @@ const RESTORE_MS = 90
 // теле компонента (её ссылка всё равно каждый кадр клалась в slideDownRef).
 export function makeDictatorSlideDown({
   node, panelH, panelRef, timers, releaseRef,
-  assembled, extrasAssembled, result, toChatCtl,
+  assembled, extrasAssembled, result, usedCells, toChatCtl,
   onDone, onSendToChat, onLandedInChat, onHeightChange,
-  setShow, setHudVisible, setHighlighted, setUsedCells, setRevealedIds, setPhase, setChipsVisible,
+  setShow, setHudVisible, setHighlighted, setRevealedIds, setPhase, setChipsVisible,
 }) {
   return function slideDown(trigger, variantId) {
     pLog(`[td-auto] slideDown trigger=${trigger}`)
@@ -37,6 +37,10 @@ export function makeDictatorSlideDown({
         const sent = {
           words: [...assembled, ...extrasAssembled.map(t => t.value)],
           result,
+          // Приглушённые ячейки едут в сообщение как есть: разбор оставил на
+          // таблице след, и он часть ответа. Массив, а не Set — sent проходит
+          // через setState и сравнение пропсов
+          dimmed: [...usedCells],
         }
         toChatCtl.sendToChat(panelRef.current, node.id, {
           send: arriving => onSendToChat(arriving, sent),
@@ -72,12 +76,12 @@ export function makeDictatorSlideDown({
       // клон с полупустой таблицы, а в чате она внезапно заполнялась.
       // null, а не полный набор: у TableGrid это и означает «показывать всё».
       setRevealedIds(null)
-      // И снимаем затемнение отработавших ячеек. Оно ставится по ходу разбора
-      // (usedCells → dimmedIds → цвет с альфой 0.4) и на глаз читается не как
-      // «уже прошли», а как «текст стал тоньше». В сообщении таблица рисуется
-      // без dimmedIds вовсе, поэтому без этой строки панель и пузырь
-      // отличались яркостью текста — а при подмене он «возвращал толщину»
-      setUsedCells(new Set())
+      // Затемнение отработавших ячеек НЕ снимаем. Раньше снимали — потому что
+      // сообщение рисовало таблицу без dimmedIds, и без этой строки панель и
+      // пузырь отличались яркостью текста. Теперь набор уезжает в сообщение
+      // вместе с ответом (sent.dimmed выше), панель и пузырь совпадают сами, а
+      // разбор оставляет в переписке свой след — какие ячейки уже прошли.
+      // Заодно исчез скачок яркости прямо перед снятием клона.
       if (slid) {
         pLog('[td] возвращаем таблицу на место и текст ячеек перед уходом в чат')
         setPhase(null)

@@ -14,6 +14,10 @@ import { pLog } from '../../../shared/lib/debug.js'
 import { traceMorph } from './tracePanelSync.js'
 import { r, FLIGHT_MS, SPACER_EASE, anchorRow, whenSettled, slimDown } from './flyPanelParts.js'
 
+// Запас поверх длительности полёта: столько ждём штатного onfinish, прежде
+// чем сажать клон принудительно (см. страховку ниже)
+const LAND_GRACE_MS = 250
+
 export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onCompensate, settleLayout, onRelease }) {
   const finish = () => onLanded?.()
   // Без WAAPI (очень старый браузер) — обычное поведение: пузырь просто
@@ -24,9 +28,38 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     return
   }
 
+  // Доигрываем всё, что ещё идёт В САМОЙ ПАНЕЛИ, и только потом снимаем клон.
+  //
+  // Клон — статический снимок: анимаций он не наследует, а те, что попали в
+  // него из разметки, ниже отменяются. Отмена возвращает элемент в БАЗОВОЕ
+  // состояние — то есть в конечное, если анимация с fill. Пока слова ответа
+  // ещё въезжали (tdWordIn), панель и клон расходились так: в панели слово
+  // прозрачное, серое и на 2.6px правее, в клоне — лаймовое, непрозрачное и
+  // на месте. В кадр подмены собранный ответ из-за этого вспыхивал.
+  // Досрочный финиш выравнивает обоих: панель уже показывает итог, клон
+  // снимается с неё один в один.
+  panelEl.getAnimations({ subtree: true }).forEach(a => {
+    // finish() на бесконечной анимации бросает исключение — такие пропускаем
+    try { a.finish() } catch { /* бесконечная — пусть идёт как шла */ }
+  })
+
   const from = panelEl.getBoundingClientRect()
   const ghost = panelEl.cloneNode(true)
   ghost.classList.add('panelFlyGhost')
+  // Свой слой — С ПЕРВОГО кадра, а не с момента, когда клон поедет.
+  // Клон живёт несколько кадров до старта: пока ищется пузырь (whenSettled),
+  // он просто стоит на месте панели. Без этой строки первые кадры он рисуется
+  // БЕЗ слоя, а трансформ ниже поднимает его на слой — и весь текст в этот
+  // момент растеризуется заново, другим сглаживанием. В зонде это видно как
+  // единственное событие «нет → слой» ровно на старте полёта, а глазом — как
+  // моргание заголовка таблицы и текста в ячейках.
+  // Фон у панели непрозрачный, поэтому на слое сохраняется субпиксельное
+  // сглаживание и вид текста не меняется вовсе.
+  // translateZ(0), а не только will-change: так у клона с первого кадра есть
+  // и подсказка браузеру, и НЕНУЛЕВОЙ transform. Ниже трансформ перезапишется
+  // на настоящий сдвиг — для слоя это смена значения, а не появление слоя.
+  ghost.style.willChange = 'transform'
+  ghost.style.transform  = 'translateZ(0)'
   ghost.style.left   = `${from.left}px`
   ghost.style.top    = `${from.top}px`
   ghost.style.width  = `${from.width}px`
@@ -159,6 +192,22 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     ghost.style.height = `${to.height}px`
     ghost.style.borderRadius = cs.borderRadius
 
+    // Коробка клона только что сузилась до пузыря: панель стоит во всю ширину
+    // экрана, а сообщение — в боковых полях ленты. Внутренний блок клона
+    // считает свои поля от КОРОБКИ, поэтому без поправки сетка ужалась бы
+    // вместе с ней — те самые «колонки пересчитываются весь переход».
+    //
+    // Отдаём внутреннему блоку поля пузыря. Они подобраны так, что панель
+    // шире ровно настолько, насколько у пузыря поля меньше (16 у панели, 6 у
+    // пузыря при поле ленты 10), поэтому ширина сетки не меняется вообще —
+    // ни при переезде, ни при подмене. Одна правка в одном кадре с коробкой:
+    // это тот же единственный пересчёт раскладки, что и без неё.
+    const ghostInner = ghost.querySelector('.tdPanelInner, .tmPanelInner')
+    if (ghostInner) {
+      ghostInner.style.paddingLeft = cs.paddingLeft
+      ghostInner.style.paddingRight = cs.paddingRight
+    }
+
     // Остаток меряем ПОСЛЕ переустановки коробки, а не до неё. Клон только что
     // переехал из позиции панели в позицию пузыря, и его сетка уехала вместе с
     // ним — то расхождение, что было посчитано выше (dx/dy), этим переездом
@@ -184,8 +233,16 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     // сдвиг той же кривой и длительностью, что едет лента. Трансформ
     // композитный: содержимое таблицы не перерисовывается, только смещается
     // готовый слой.
-    const backX = at.left - to.left + restX
-    const backY = at.top - to.top + restY
+    // Отсчёт по СЕТКАМ, а не по коробкам. Коробка клона только что сузилась
+    // до пузыря, и «вернуть её туда, где стояла панель» — значит утащить
+    // таблицу за собой: в логе это видно как «сетка клона L=6» на первом
+    // кадре при L=16 в панели, то есть прыжок на 10px влево прямо в момент
+    // подмены. Двигать надо ровно столько, на сколько разъехались сетки:
+    // по вертикали это то же число, что и раньше (панель ниже пузыря на
+    // высоту распорки), а по горизонтали — ноль, потому что и в панели, и в
+    // сообщении сетка стоит на одном и том же месте.
+    const backX = gridAt.left - gridNow.left
+    const backY = gridAt.top - gridNow.top
     if (backX || backY || restX || restY) {
       pLog(`[fly] клон едет с лентой: ${backX.toFixed(2)},${backY.toFixed(2)} → ${restX.toFixed(2)},${restY.toFixed(2)} за ${FLIGHT_MS}мс`)
       ghost.style.transform = `translate(${backX}px, ${backY}px)`
@@ -287,7 +344,20 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
       }
       requestAnimationFrame(drop)
     }
-    anim.onfinish = land
+    // Страховка от зависшего полёта. Замечено вживую: анимация рамки иногда
+    // остаётся в playState «running» с currentTime = 0 и не двигается вовсе —
+    // onfinish тогда не приходит никогда, клон так и висит поверх переписки
+    // замороженной копией таблицы, а следующая нода не запускается (done
+    // зовётся из land). В логе это видно как полёт без строки «посадка».
+    // Поэтому приземляем и по таймеру: что сработает первым, то и сработает,
+    // повторный вызов land безвреден (landed).
+    let landed = false
+    const landOnce = () => { if (landed) return; landed = true; land() }
+    anim.onfinish = landOnce
+    setTimeout(() => {
+      if (!landed) pLog(`[fly] полёт не завершился за ${FLIGHT_MS + LAND_GRACE_MS}мс — сажаем принудительно`)
+      landOnce()
+    }, FLIGHT_MS + LAND_GRACE_MS)
     anim.oncancel = land
   })
 }

@@ -265,9 +265,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
 
   const slideDown = makeDictatorSlideDown({
     node, panelH, panelRef, timers, releaseRef,
-    assembled, extrasAssembled, result, toChatCtl,
+    assembled, extrasAssembled, result, usedCells, toChatCtl,
     onDone, onSendToChat, onLandedInChat, onHeightChange,
-    setShow, setHudVisible, setHighlighted, setUsedCells, setRevealedIds, setPhase, setChipsVisible,
+    setShow, setHudVisible, setHighlighted, setRevealedIds, setPhase, setChipsVisible,
   })
 
   function handleEnded() {
