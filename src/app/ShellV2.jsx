@@ -21,6 +21,7 @@ import StreakGateOverlay from '../features/streak/StreakGateOverlay.jsx'
 import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
 import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
 import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
+import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 
 // Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
 // пользователь эти chunk'и даже не скачивает (см. PROJECT.md, этап 2)
@@ -72,6 +73,8 @@ export default function ShellV2() {
     // базы). Спрашиваем здесь, на старте: к открытию урока ответ уже есть, и
     // шапка рисуется сразу правильной, без выскакивающей через полсекунды кнопки
     prefetchPlayerDebugUi()
+    // Датчик движения: согласие уже давали — тихо продлеваем на первом касании
+    armMotionOnGesture()
   }, [])
 
   useEffect(() => {

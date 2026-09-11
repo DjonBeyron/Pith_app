@@ -22,11 +22,10 @@ describe('нода «переверни телефон» зарегистрир�
 })
 
 describe('датчик поворота', () => {
-  it('ориентация экрана, а не акселерометр — без разрешений на iOS', () => {
+  it('первый канал — ориентация экрана, без разрешений', () => {
     expect(hook).toContain("window.matchMedia('(orientation: landscape)')")
-    // Упоминается только в комментарии — вызовов нет
+    // Разрешение на датчик сам хук не спрашивает — это делает жест «Начать урок»
     expect(hook).not.toContain('DeviceOrientationEvent.requestPermission')
-    expect(hook).not.toMatch(/addEventListener\(['"]deviceorientation/)
     // Старый Safari — без addEventListener у MediaQueryList
     expect(hook).toContain('mq.addListener?.(check)')
   })
@@ -109,5 +108,39 @@ describe('вид карточки', () => {
     expect(mod).not.toContain('Ладно, идём дальше')
     // Индикация для проверки датчика — только при настоящем повороте
     expect(mod).toContain("{by === 'rotate' && <span className=\"playerRotateHit\">Телефон повёрнут ✓</span>}")
+  })
+})
+
+// Системный замок поворота: экран остаётся портретным, что бы человек ни
+// делал с телефоном, — и matchMedia молчит. Датчик движения на замок не
+// смотрит: видит сам поворот в руках
+describe('замок поворота: второй канал — наклон устройства', () => {
+  const perm = read('../../../../shared/lib/motionPermission.js')
+
+  it('наклон gamma засчитывается наравне с поворотом экрана', () => {
+    expect(hook).toContain("window.addEventListener('deviceorientation', onTilt)")
+    expect(hook).toContain('const TILT_DEG = 55')
+    expect(hook).toContain('if (Math.abs(e.gamma) > TILT_DEG)')
+    // Оба канала ведут в одну точку и срабатывают один раз
+    expect(hook).toContain("const check = () => { if (mq.matches) hit('экран') }")
+    expect(hook).toContain('if (fired) return')
+  })
+
+  it('на iOS разрешение спрашивается на «Начать урок», один раз, и запоминается', () => {
+    const card = read('../../../lessons/LessonLaunchCard.jsx')
+    const start = card.slice(card.indexOf('function handleStart'))
+    expect(start.slice(0, 900)).toContain('requestMotionPermission()')
+    // Согласие помним; при следующих запусках тихо продлеваем на первом касании
+    expect(perm).toContain("const REMEMBER_KEY = 'pithy_motion_ok_v1'")
+    expect(perm).toContain('export function armMotionOnGesture()')
+    expect(read('../../../../app/ShellV2.jsx')).toContain('armMotionOnGesture()')
+    expect(perm).toContain('DeviceOrientationEvent.requestPermission()')
+    // Без разрешения канал молчит, а не падает
+    expect(hook).toContain('const useTilt = motionAllowed()')
+  })
+
+  it('где разрешения не существует — датчик доступен и без жеста', () => {
+    // Android/десктоп: превью админа из канваса запускается без «Начать урок»
+    expect(perm).toContain("typeof DeviceOrientationEvent.requestPermission !== 'function'")
   })
 })

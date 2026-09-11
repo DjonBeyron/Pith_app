@@ -6,6 +6,7 @@ import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
 import { primeAudio } from '../../shared/lib/primedAudio.js'
+import { requestMotionPermission } from '../../shared/lib/motionPermission.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import RetakeDialog from './RetakeDialog.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
@@ -204,6 +205,10 @@ function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, reta
     // И прогреваем элемент под автозапуск таблиц: разрешение Safari даёт
     // конкретному <audio>, а у панели диктанта он рождается уже без жеста
     primeAudio()
+    // Датчик движения (нода «переверни телефон» при системном замке поворота):
+    // на iOS это системный диалог, и спросить его можно только из жеста —
+    // здесь он и есть. Один раз: ответ запоминается (motionPermission.js)
+    requestMotionPermission()
     releaseBlobs()
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
     const logoForPlayer = logoBlobRef.current ?? teacherLogo
