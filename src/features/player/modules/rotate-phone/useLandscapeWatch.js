@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { pLog } from '../../../../shared/lib/debug.js'
-import { motionAllowed } from '../../../../shared/lib/motionPermission.js'
+import { motionAllowed, subscribeMotion } from '../../../../shared/lib/motionPermission.js'
 
 // Ждёт, пока телефон повернут в альбомное положение, и один раз зовёт onRotate.
 //
@@ -13,8 +13,9 @@ import { motionAllowed } from '../../../../shared/lib/motionPermission.js'
 // 2. Наклон УСТРОЙСТВА — deviceorientation, угол gamma (вокруг продольной оси).
 //    Телефон стоит в руке — gamma около 0; лёг набок — уходит к ±90. На замок
 //    не смотрит: видит сам поворот в руках. На iOS нужен requestPermission из
-//    жеста (motionPermission.js, спрашивается на «Начать урок»); без него
-//    остаётся первый канал.
+//    жеста (motionPermission.js, блок в карточке запуска); без него остаётся
+//    первый канал. Разрешение может прийти ПОЗЖЕ появления ноды — канал
+//    подключается в тот момент, когда оно появилось (useSyncExternalStore).
 //
 // Пока ждём, приложение ВПУСКАЕТ альбомную ориентацию: снимаем lock и
 // прячем заглушку «Поверните телефон вертикально» (OrientationGuard) — иначе
@@ -28,6 +29,13 @@ export const ALLOW_LANDSCAPE_ATTR = 'data-allow-landscape'
 const TILT_DEG = 55
 
 export function useLandscapeWatch(active, onRotate) {
+  // Общий на оба канала: кто первый — тот и засчитал, второй молчит
+  const firedRef = useRef(false)
+  // Живое состояние разрешения: нода могла появиться раньше, чем человек
+  // ответил на диалог (стоит в начале урока). Как только согласие пришло —
+  // второй канал подключается сам, а не со следующего захода в урок
+  const tiltAllowed = useSyncExternalStore(subscribeMotion, motionAllowed, () => false)
+
   useEffect(() => {
     if (!active) return
     const mq = window.matchMedia('(orientation: landscape)')
@@ -37,10 +45,9 @@ export function useLandscapeWatch(active, onRotate) {
     // В обычной вкладке unlock просто откажет, это ожидаемо
     try { screen.orientation?.unlock?.() } catch { /* нет API или не даёт */ }
 
-    let fired = false
     const hit = source => {
-      if (fired) return
-      fired = true
+      if (firedRef.current) return
+      firedRef.current = true
       pLog(`[rotate] телефон повёрнут (${source}) — стрелка остановлена`)
       onRotate?.()
     }
@@ -55,22 +62,31 @@ export function useLandscapeWatch(active, onRotate) {
     // Старый Safari — без addEventListener у MediaQueryList
     mq.addListener?.(check)
 
-    // Канал 2: наклон устройства — только с разрешением (iOS) или где оно не
-    // нужно. Нет разрешения — канал просто молчит, работает первый
-    const onTilt = e => {
-      if (e.gamma == null) return
-      if (Math.abs(e.gamma) > TILT_DEG) hit(`наклон gamma=${Math.round(e.gamma)}`)
-    }
-    const useTilt = motionAllowed()
-    if (useTilt) window.addEventListener('deviceorientation', onTilt)
-    pLog(`[rotate] жду поворота: экран=да, наклон=${useTilt ? 'да' : 'нет (нет разрешения)'}`)
+    pLog('[rotate] жду поворота: экран=да')
 
     return () => {
       mq.removeEventListener?.('change', check)
       mq.removeListener?.(check)
-      if (useTilt) window.removeEventListener('deviceorientation', onTilt)
       root.removeAttribute(ALLOW_LANDSCAPE_ATTR)
       try { screen.orientation?.lock?.('portrait').catch(() => {}) } catch { /* см. выше */ }
     }
   }, [active, onRotate])
+
+  // Канал 2: наклон устройства. Отдельным эффектом — он зависит ещё и от
+  // разрешения, и должен подключиться в тот момент, когда оно появится
+  useEffect(() => {
+    if (!active) return
+    if (!tiltAllowed) { pLog('[rotate] наклон: нет разрешения на датчик — ждём только экран'); return }
+    const onTilt = e => {
+      if (firedRef.current || e.gamma == null) return
+      if (Math.abs(e.gamma) > TILT_DEG) {
+        firedRef.current = true
+        pLog(`[rotate] телефон повёрнут (наклон gamma=${Math.round(e.gamma)}) — стрелка остановлена`)
+        onRotate?.()
+      }
+    }
+    window.addEventListener('deviceorientation', onTilt)
+    pLog('[rotate] наклон: датчик подключён')
+    return () => window.removeEventListener('deviceorientation', onTilt)
+  }, [active, tiltAllowed, onRotate])
 }

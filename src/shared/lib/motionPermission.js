@@ -23,31 +23,56 @@ const REMEMBER_KEY = 'pithy_motion_ok_v1'
 let state = 'unknown' // 'unknown' | 'granted' | 'denied' | 'not-needed' | 'unavailable'
 let armed = false
 
+// Кто ждёт смены состояния — нода «переверни телефон», если она уже на
+// экране, когда разрешение только приходит (стоит в начале урока, а диалог
+// ещё открыт). Без этого она подписывалась на датчик один раз при появлении
+// и пришедшее позже согласие не замечала — датчик «начинал работать» только
+// со следующего захода в урок
+const subs = new Set()
+function setState(next) {
+  if (next === state) return
+  state = next
+  subs.forEach(fn => fn())
+}
+
+export function subscribeMotion(fn) {
+  subs.add(fn)
+  return () => subs.delete(fn)
+}
+
 function remembered() {
   try { return localStorage.getItem(REMEMBER_KEY) === '1' } catch { return false }
 }
 
 export function motionPermissionState() { return state }
 
+// Есть ли смысл спрашивать: разрешение существует как понятие (iOS 13+) и ещё
+// не получено. На Android/десктопе и после согласия спрашивать нечего
+export function motionNeedsAsk() {
+  if (state === 'granted' || state === 'not-needed' || state === 'unavailable') return false
+  return typeof DeviceOrientationEvent !== 'undefined'
+    && typeof DeviceOrientationEvent.requestPermission === 'function'
+}
+
 // Звать ИЗ ЖЕСТА (клик/тап). Возвращает промис с итоговым состоянием.
 export async function requestMotionPermission() {
   if (state === 'granted' || state === 'not-needed') return state
   if (typeof window === 'undefined' || typeof DeviceOrientationEvent === 'undefined') {
-    state = 'unavailable'
+    setState('unavailable')
     return state
   }
   if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
     // Android, десктоп, iOS до 13: событие приходит без вопросов
-    state = 'not-needed'
+    setState('not-needed')
     return state
   }
   try {
     const r = await DeviceOrientationEvent.requestPermission()
-    state = r === 'granted' ? 'granted' : 'denied'
+    setState(r === 'granted' ? 'granted' : 'denied')
     try { if (state === 'granted') localStorage.setItem(REMEMBER_KEY, '1') } catch { /* приватный режим */ }
   } catch (e) {
     // Вызов не из жеста или пользователь закрыл диалог
-    state = 'denied'
+    setState('denied')
     pLog(`[motion] разрешение не получено: ${e?.name ?? e}`)
   }
   pLog(`[motion] датчик движения: ${state}`)

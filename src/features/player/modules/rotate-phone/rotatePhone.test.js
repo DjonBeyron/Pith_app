@@ -126,10 +126,19 @@ describe('замок поворота: второй канал — наклон 
     expect(hook).toContain('if (fired) return')
   })
 
-  it('на iOS разрешение спрашивается на «Начать урок», один раз, и запоминается', () => {
+  it('на iOS разрешение просят с пояснением, только в уроках с нодой', () => {
+    // Системный диалог без объяснения получает отказ, а отказ iOS помнит —
+    // поэтому свой шаг с текстом и кнопкой, а не молчаливый вызов в handleStart
     const card = read('../../../lessons/LessonLaunchCard.jsx')
-    const start = card.slice(card.indexOf('function handleStart'))
-    expect(start.slice(0, 900)).toContain('requestMotionPermission()')
+    expect(card).toContain("{nodes.some(n => n.type === 'rotate_phone') && motionNeedsAsk() && <LaunchMotionAsk />}")
+    expect(card).not.toContain('requestMotionPermission()')
+    const ask = read('../../../lessons/LaunchMotionAsk.jsx')
+    expect(ask).toContain('В этом уроке нужно будет повернуть телефон.')
+    expect(ask).toContain('const r = await requestMotionPermission()')
+    // Отказали — урок не ломается, остаётся поворот экрана
+    expect(ask).toContain('Без датчика сработает поворот экрана')
+    // На Android/десктопе спрашивать нечего — блока нет
+    expect(perm).toContain('export function motionNeedsAsk()')
     // Согласие помним; при следующих запусках тихо продлеваем на первом касании
     expect(perm).toContain("const REMEMBER_KEY = 'pithy_motion_ok_v1'")
     expect(perm).toContain('export function armMotionOnGesture()')
@@ -142,5 +151,26 @@ describe('замок поворота: второй канал — наклон 
   it('где разрешения не существует — датчик доступен и без жеста', () => {
     // Android/десктоп: превью админа из канваса запускается без «Начать урок»
     expect(perm).toContain("typeof DeviceOrientationEvent.requestPermission !== 'function'")
+  })
+})
+
+// Разрешение может прийти ПОЗЖЕ появления ноды (стоит в начале урока, диалог
+// ещё открыт). Раньше подписка на датчик делалась один раз при появлении, и
+// пришедшее согласие не замечалось — датчик «начинал работать» только со
+// следующего захода в урок
+describe('разрешение, пришедшее после появления ноды', () => {
+  it('состояние наблюдаемо, и датчик подключается по его смене', () => {
+    const perm = read('../../../../shared/lib/motionPermission.js')
+    expect(perm).toContain('export function subscribeMotion(fn)')
+    expect(perm).toContain('function setState(next)')
+    // Все смены состояния идут через setState — прямых присваиваний нет
+    expect(perm).not.toMatch(/^\s+state = '/m)
+    expect(hook).toContain('const tiltAllowed = useSyncExternalStore(subscribeMotion, motionAllowed, () => false)')
+    expect(hook).toContain('}, [active, tiltAllowed, onRotate])')
+  })
+
+  it('оба канала делят один флаг «уже сработало»', () => {
+    expect(hook).toContain('const firedRef = useRef(false)')
+    expect(hook).not.toContain('let fired = false')
   })
 })

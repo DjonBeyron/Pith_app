@@ -1,0 +1,51 @@
+/* Блок «разреши датчик движения» в карточке запуска (LaunchMotionAsk.jsx) —
+   только в уроках с нодой «переверни телефон» и только на iOS. Отдельный файл:
+   lessons.css уже у мягкого ориентира в 250 строк */
+
+.launchMotion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(182, 254, 59, 0.22);
+  background: rgba(182, 254, 59, 0.06);
+}
+
+.launchMotion--ok {
+  border-color: rgba(182, 254, 59, 0.35);
+}
+
+.launchMotionIcon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(182, 254, 59, 0.12);
+  color: #b6fe3b;
+}
+
+.launchMotionText {
+  flex: 1;
+  min-width: 0; /* иначе длинный текст выдавил бы кнопку за край */
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #c3cad8;
+}
+
+.launchMotionBtn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 10px;
+  background: #b6fe3b;
+  color: #0d1500;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.launchMotionBtn:disabled { opacity: 0.6; cursor: default; }
