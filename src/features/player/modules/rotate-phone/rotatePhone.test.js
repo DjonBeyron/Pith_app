@@ -123,7 +123,7 @@ describe('замок поворота: второй канал — наклон 
     expect(hook).toContain('if (Math.abs(e.gamma) > TILT_DEG)')
     // Оба канала ведут в одну точку и срабатывают один раз
     expect(hook).toContain("const check = () => { if (mq.matches) hit('экран') }")
-    expect(hook).toContain('if (fired) return')
+    expect(hook).toContain('if (firedRef.current) return')
   })
 
   it('на iOS разрешение просят с пояснением, только в уроках с нодой', () => {
@@ -145,7 +145,7 @@ describe('замок поворота: второй канал — наклон 
     expect(read('../../../../app/ShellV2.jsx')).toContain('armMotionOnGesture()')
     expect(perm).toContain('DeviceOrientationEvent.requestPermission()')
     // Без разрешения канал молчит, а не падает
-    expect(hook).toContain('const useTilt = motionAllowed()')
+    expect(hook).toContain("if (!tiltAllowed) { pLog('[rotate] наклон: нет разрешения на датчик — ждём только экран'); return }")
   })
 
   it('где разрешения не существует — датчик доступен и без жеста', () => {
