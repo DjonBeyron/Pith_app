@@ -74,6 +74,9 @@ export function makeNode(seq, x, y, wantType) {
       // сейчас или сохранить закладкой). Автор может стереть/переписать
       lesson_ref:      { isModule: false, targetId: null, targetTitle: '', caption: 'Открой сейчас или сохрани на потом' },
       rotate_phone:    { content: 'Поверните экран' },
+      // Новая таблица — ручной режим: диктант требует озвучки и монтажа, а
+      // ставится он куда реже. Старые ноды без поля mode остаются диктантом
+      table:           { mode: 'manual' },
     },
   }
 }

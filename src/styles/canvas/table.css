@@ -205,3 +205,38 @@
 }
 .nodeTableScript::placeholder { color: #6a7080; }
 .nodeTableScript:focus { outline: none; border-color: rgba(182, 254, 59, 0.5); }
+
+/* Под полем ответа: как ответ ляжет на сетку + жёсткая очистка
+   (NodeTableAnswerCheck.jsx) */
+.nodeTableAnswerCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.nodeTableAnswerNote {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #7b8492;
+}
+
+.nodeTableAnswerNote--bad { color: #f87171; font-weight: 600; }
+
+.nodeTableAnswerClear {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid #3a4048;
+  border-radius: 8px;
+  background: none;
+  color: #9aa3ad;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.nodeTableAnswerClear:hover { border-color: #f87171; color: #f87171; }

@@ -16,3 +16,25 @@ export function pruneTimelineForCells(timeline, cellIds) {
   const next = layers.filter(l => !l.cellId || cellIds.has(l.cellId))
   return next.length === layers.length ? timeline : { ...timeline, layers: next }
 }
+
+// Жёсткая уборка по кнопке «Очистить ответ» (NodeTablePicker): вместе с текстом
+// ответа уходит ВСЁ, что от него зависело. Дорожки слов вне таблицы — у них
+// больше нет слова, к которому они привязаны. Дорожки ячеек, чьей ячейки в
+// сетке уже нет, — мёртвый груз от старой таблицы (шаблон заменил сетку, а
+// дорожки остались). Дорожка «Проверить» и заголовочные остаются: они про
+// сетку, а не про ответ.
+//
+// Зачем это кнопкой, а не само: старый ответ и мёртвые дорожки — та самая
+// «память» ноды, из-за которой сборка после смены таблицы ведёт себя не так,
+// как ждёшь. Автору нужен способ сказать «начать с чистого листа» одним
+// нажатием, а не вылавливать след по полям.
+export function pruneTimelineForAnswerReset(timeline, cellIds) {
+  const layers = timeline?.layers
+  if (!layers?.length) return timeline
+  const next = layers.filter(l => {
+    if (l.word) return false                       // слово из старого ответа
+    if (l.cellId && !cellIds.has(l.cellId)) return false // ячейки больше нет
+    return true
+  })
+  return next.length === layers.length ? timeline : { ...timeline, layers: next }
+}

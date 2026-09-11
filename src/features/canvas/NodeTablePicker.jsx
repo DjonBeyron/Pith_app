@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import TableEditorModal from './table-editor/TableEditorModal.jsx'
 import NodeTableTts from './NodeTableTts.jsx'
+import NodeTableAnswerCheck from './NodeTableAnswerCheck.jsx'
 import { getVariantList, syncTriggers, triggersNeedSync, migrateDistractors } from './nodeVariants.js'
 
 const BASE_PAIR = ['table_correct', 'table_wrong']
@@ -35,6 +36,14 @@ export default function NodeTablePicker({
 
   const tableData   = tData.table       ?? null
   const mode        = tData.mode        ?? 'dictator'
+
+  // Новая таблица — ручной режим. Дефолт 'dictator' выше остаётся для СТАРЫХ
+  // нод без поля mode (у них уже есть сетка и, как правило, таймлайн — они
+  // диктовались). У только что созданной ноды нет ни того, ни другого —
+  // записываем manual явно, чтобы все шесть мест с `?? 'dictator'` видели одно
+  useEffect(() => {
+    if (tData.mode == null && !tableData && !tData.timeline) onDataChange({ mode: 'manual' })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const distractors = tData.distractors ?? []
 
   // Раньше distractors — массив голых строк, без id не к чему привязать
@@ -254,6 +263,8 @@ export default function NodeTablePicker({
           onClick={e => e.stopPropagation()}
           onMouseDown={e => e.stopPropagation()}
         />
+        {/* Как ответ ляжет на сетку + жёсткая очистка ответа и мёртвых дорожек */}
+        <NodeTableAnswerCheck tData={tData} onDataChange={onDataChange} />
 
         {/* Дополнительные поля — только в ручном режиме */}
         {mode === 'manual' && (

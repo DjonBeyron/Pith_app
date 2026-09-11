@@ -49,8 +49,15 @@ export function cellIsPickable(cell) {
 // кусков, сколько их в ответе. Именно столько, а не «все нужные»: набрать
 // теперь можно и не те ячейки, и ждать от них совпадения бессмысленно —
 // ошибку покажет проверка, а не отказ показывать вторую половину задания.
+//
+// Из таблицы собирать НЕЧЕГО (ни одно слово ответа в ней не нашлось —
+// автор написал «He tries», а в таблице «I / You / try») — считаем таблицу
+// пройденной сразу. Раньше здесь был false, и панель зависала навсегда: ни
+// чипов, ни кнопки «Проверить», таблица стоит и ничего не принимает. В
+// редакторе на такой ответ теперь есть предупреждение (NodeTableAnswerCheck),
+// но урок, уже ушедший ученику, ломаться не должен
 export function allCellsPicked(cellTokens, assembled) {
-  if (!cellTokens.length) return false
+  if (!cellTokens.length) return true
   const picked = assembled.filter(t => t.type === 'cell').length
   return picked >= cellTokens.length
 }
