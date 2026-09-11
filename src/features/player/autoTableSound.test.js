@@ -21,8 +21,30 @@ describe('авто-таблица звучит без свежего жеста'
     expect(start.slice(0, 700)).toContain('primeAudio()')
     // Прогрев тишиной, без сети
     expect(primed).toContain("const SILENCE = 'data:audio/wav;base64,")
-    expect(primed).toContain('el.muted = true')
     expect(primed).toContain("el.setAttribute('playsinline', '')")
+  })
+
+  it('прогрев идёт БЕЗ muted — иначе он ничего не открывает', () => {
+    // Приглушённый автозапуск Safari разрешает и без жеста, поэтому такой play
+    // не даёт элементу права на ЗВУК. Слышно ничего не будет и так: файл сам
+    // по себе тишина
+    const prime = primed.slice(primed.indexOf('export function primeAudio'))
+    expect(prime.slice(0, 400)).toContain('a.muted = false')
+    expect(primed).not.toContain('muted = true')
+  })
+
+  it('не прогрелись — пробуем на первом касании', () => {
+    // Лог плеера чистится при открытии (PlayerTopBar), поэтому итог прогрева
+    // со старта урока в отчёт не попадает — страховка обязана быть внутри урока
+    expect(primed).toContain('function armGesture()')
+    expect(primed).toContain("document.addEventListener('pointerdown', retry, true)")
+    expect(read('./PlayerTopBar.jsx')).toContain('armPrimeOnGesture()')
+  })
+
+  it('недоступный запасной путь виден в логе', () => {
+    // Раньше playPrimed молча возвращал null, и в отчёте не было НИ ОДНОЙ
+    // строки [primed] — нельзя было понять, прогрелись мы или нет
+    expect(primed).toContain('[primed] запасной путь недоступен')
   })
 
   it('отказ родному элементу — не приговор: играет прогретый', () => {

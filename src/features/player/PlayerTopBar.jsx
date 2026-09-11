@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { clearPlayerLog, pLog, setDebug } from '../../shared/lib/debug.js'
 import { preloadSounds } from '../../shared/lib/sounds.js'
+import { armPrimeOnGesture } from '../../shared/lib/primedAudio.js'
 import { DEBUG_TOOLS_ON } from '../../shared/lib/debugToolsEnabled.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 import { useShowDebugUi } from './useShowDebugUi.js'
@@ -31,6 +32,10 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
     // Fallback preload in case player opened without going through LaunchPreloader.
     // If already decoded in LaunchPreloader, this is a no-op.
     preloadSounds()
+    // Если прогреть элемент под автозапуск таблиц на «Начать урок» не вышло,
+    // пробуем на первом же касании внутри урока: иначе авто-таблица молчит,
+    // а её отказ не виден — лог открытия плеера чистится строкой выше
+    armPrimeOnGesture()
   }, [])
 
   const name    = teacherName || 'Учитель'
