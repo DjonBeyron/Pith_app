@@ -6,7 +6,7 @@ import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
 import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
-import { useIsAdmin } from '../../shared/lib/useIsAdmin.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
 import { getCachedProfile } from '../../shared/api/profileCache.js'
 import { calcEnergy } from '../../shared/lib/energyCalc.js'
 import EnergyCells from '../../shared/ui/EnergyCells.jsx'
@@ -117,7 +117,9 @@ export default function LessonLaunchCard({ lessonId, retake = false, examIntro =
 
 function LaunchPreloader({ lessonData, retakeChoice = false, retake = false, examIntro = false, energyFree = false, onStart, onClose }) {
   const { nodes, files, title, teacherName, teacherLogo, teacherLogoCrop, videoAutoSound, lessonXp } = lessonData
-  const { isAdmin } = useIsAdmin()
+  // Через контекст, а не useIsAdmin напрямую: иначе дебаг-панель предзагрузки
+  // пережила бы «режим пользователя» (и это был лишний запрос getProfile)
+  const { isAdmin } = useAdmin()
 
   // Надпись о стоимости — информационная, само списание решает сервер
   // (start_lesson). Гость энергию не тратит — надпись ему не показываем.

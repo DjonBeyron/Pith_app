@@ -168,6 +168,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `pro.css` | Стили подписки Pithy Pro: экран оплаты (карточка с короной, список преимуществ, золотая кнопка), карточка Pro в профиле, чип PRO у ника в рейтинге |
 | `module-video.css` | Стили панели «Видео фразы» в тулбаре схемы модуля: выпадающая карточка, постер, кнопки заменить/удалить |
 | `admin-v2.css` | Стили админ-раздела ui v2: субвкладки, «+ Новый модуль», строки модулей с чипами |
+| `admin-user-mode.css` | Стили переключателя «режим пользователя» в шапке админки (`AdminUserModeToggle.jsx`) + точка на кнопке «Админ» в нижней панели, пока режим включён |
 | `feed-media.css` | Медиа и виртуализация ленты: виртуальные элементы TanStack, постер/видео, чип звука, скелетон с бликом для медленной сети |
 | `feed-video-loader.css` | Кружок загрузки видео в ленте (и подпись «Нет соединения») — показывается, когда данные реально не едут (см. `useVideoStall.js`) |
 | `difficulty.css` | Сложность фразы на слух: иконка-«сигнал» (3 полоски) в HUD и панель голосования, выезжающая от кнопки (scale от 0) |
@@ -262,7 +263,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `App.jsx` | Точка сборки: рендерит ShellV2 (старая оболочка вынесена в `old/`) + `LessonNavOverlay` поверх неё |
 | `ErrorBoundary.jsx` | Классовый ErrorBoundary вокруг `<App>`: вместо белого экрана при ошибке рендера — тёмный экран «Что-то пошло не так» с кнопками «Перезагрузить» и «Скачать отчёт» (stack + буфер errorTrap); ошибка также уходит в client_errors |
 | `UpdateToast.jsx` | Плашка «Доступна новая версия»: сравнивает /version.json (генерируется при сборке) со своей APP_VERSION раз в 10 мин и при фокусе вкладки; предупреждает «Приложение перезагрузится», кнопка «Обновить» перезагружает страницу, «Позже» прячет плашку до следующей смены вкладки (прилетает пропсом `tab` из ShellV2). Обе кнопки дают тактильный отклик (`haptics.js`) |
-| `AdminContext.jsx` | React-контекст админ-статуса на всё приложение: `AdminProvider` (оборачивает `App` в `main.jsx`) + хук `useAdmin()` → `{ user, isAdmin, loading }`. Один запрос `getProfile` на всех потребителей |
+| `AdminContext.jsx` | React-контекст админ-статуса на всё приложение: `AdminProvider` (оборачивает `App` в `main.jsx`) + хук `useAdmin()` → `{ user, isAdmin, isRealAdmin, userMode, setUserMode, loading }`. Один запрос `getProfile` на всех потребителей. `isAdmin` — ЭФФЕКТИВНЫЙ статус (гаснет в «режиме пользователя», см. `userMode.js`), `isRealAdmin` — настоящий: на нём держатся только кнопка «Админ» в нижней панели и содержимое самой админки |
+| `userMode.test.js` | Сторож «режима пользователя»: флаг переживает перезагрузку и будит подписчиков, `isAdmin` гаснет, а вкладка «Админ», её содержимое и вкладка «Файлы» держатся на `isRealAdmin` — иначе режим было бы нечем выключить |
 | `LessonNavContext.jsx` | Стек паузы/возврата при переходе по ноде lesson_ref: `LessonNavProvider` (оборачивает `App` в `main.jsx`, читает/пишет `lessonNavStackApi.js`) + `useLessonNav()` → `{ overlay, openRef(target, fromLessonId), handleExit() }`. На старте приложения непустой стек (прерванный переход) сразу открывает верхний урок оверлеем |
 | `LessonNavOverlay.jsx` | Полноэкранный слой поверх текущей вкладки, когда `overlay` не пуст: `kind:'lesson'` → `StandaloneLessonRunner.jsx`, `kind:'module'` → `CurriculumView.jsx` (его `onBack` = `handleExit`, стек не размонтирует то, что было открыто до перехода) |
 | `ShellV2.jsx` | Оболочка приложения: вкладки-стопка (лента/профиль/админ живут постоянно), нижний бар, canvas-редактор оверлеем, фикс системных зон iPhone |
@@ -309,6 +311,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `AdminRacePicker.jsx` | Кастомный выпадающий список конструктора гонки: ограниченная высота со скроллом, пункты с подсказкой XP |
 | `AdminStreakTab.jsx` | Админ-вкладка «Стрик»: CRUD вех наград (streak_milestones) — день/XP/билеты/спецокно/подпись, прямо из приложения |
 | `AdminTeacherTab.jsx` | Админ-вкладка «Учитель»: общий учитель всех уроков (имя + аватар с кроп-редактором) — пишется в `app_settings.teacher_default`, фото уходит в R2 |
+| `AdminUserModeToggle.jsx` | Переключатель «режим пользователя» в шапке админки: админ прячет весь свой интерфейс и смотрит приложение глазами ученика. Единственное место, откуда режим выключается обратно (см. `userMode.js`) |
 | `AdminErrorsTab.jsx` | Админ-вкладка «Ошибки»: последние 50 ошибок клиентов из client_errors, тап раскрывает ua и stack; подсказка, если SQL-блок ещё не применён |
 
 ### `src/features/canvas/` — canvas-редактор уроков (отдельная полноэкранная страница)
@@ -823,6 +826,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `deviceTier.js` | `isWeakDevice()`/`markWeakDevice()` — определение «слабого» устройства (по факту измеренного FPS ленты, статические поля navigator — лишь стартовая прикидка), кэш в localStorage. Используется спойлером шариков для более дешёвого режима анимации |
 | `useAuth.js` | React-хук `useAuth()`: подписка на `supabase.auth.onAuthStateChange`, возвращает `{ user, loading }` |
 | `useIsAdmin.js` | React-хук `useIsAdmin()`: проверяет, что текущий пользователь залогинен и у него `is_admin=true` в `user_profiles`; возвращает `{ user, isAdmin, loading }`. Используется для показа/скрытия админского UI (реальная защита — RLS в БД) |
+| `userMode.js` | Флаг «режим пользователя» в localStorage (`pithy_user_mode_v1`) + подписка для `useSyncExternalStore`: `getUserMode` / `setUserMode` / `subscribeUserMode`. Читается в `AdminContext.jsx`, переключается из `AdminUserModeToggle.jsx`. Только про интерфейс — права в БД не меняет |
 | `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar` (рисует столбики волны на canvas), `fmtAudioTime`, `probeAudioDuration` |
 | `charTimings.js` | `buildCharTimings(text, wordTimings)` — во сколько секунд появляется каждый символ сообщения, чтобы печать шла в такт озвучке. Позиции слов берёт из самого текста (двойные пробелы, пустые строки и отступы печать не сдвигают), а слова сопоставляет по написанию с окном на пропуск — расхождение числа слов у ElevenLabs/Whisper не уводит остаток текста (+ `charTimings.test.js`) |
 | `tableDictatorTiming.js` | Константы тайминга word-слоя в режиме диктора: `EXTRA_ANIM_S`(0.6)+`EXTRA_BUFFER_S`(0.3)=`EXTRA_LEAD_IN_S`(0.9) — с начала клипа сперва анимация (слайд+список), потом буфер, и только потом слово реально загорается зелёным. Общие для плеера (useTableDictatorRaf/dictatorPostAudio) и редактора таймлайна (TableTimelineTrack — превью куска на слое) |

@@ -262,7 +262,10 @@ function AdminPanel() {
 }
 
 export default function AdminTab() {
-  const { user, isAdmin, loading } = useAdmin()
+  // Настоящий статус, а не эффективный: вкладка живёт ВНУТРИ админки, и в
+  // «режиме пользователя» она должна работать как обычно — иначе админка
+  // сама себе показывала бы «нет прав»
+  const { user, isRealAdmin: isAdmin, loading } = useAdmin()
 
   if (loading) return <div className="adminPanel"><div>Загрузка...</div></div>
 

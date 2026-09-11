@@ -49,7 +49,10 @@ export default function ShellV2() {
   // Настройки доступны и гостю (не только залогиненному, см. ProfileV2) —
   // например, инструкция «Как установить» нужна ДО регистрации
   const [guestSettings, setGuestSettings] = useState(false)
-  const { isAdmin } = useAdmin()
+  // isAdmin — эффективный (гаснет в «режиме пользователя»), isRealAdmin — настоящий.
+  // Настоящим держим только кнопку «Админ» и саму админку: иначе, включив режим,
+  // выключить его было бы нечем
+  const { isAdmin, isRealAdmin, userMode } = useAdmin()
   const { user } = useAuth()
   // Ежедневное полноэкранное окно серии: показывать или нет — решает сервер
   // (первый заход в сутки), см. useStreakGate.js
@@ -130,7 +133,7 @@ export default function ShellV2() {
             </div>
           )}
         </div>
-        {isAdmin && (
+        {isRealAdmin && (
           <div className={tab === 'admin' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
             <Suspense fallback={<div className="shellV2Panel">Загрузка…</div>}>
               <AdminV2
@@ -163,9 +166,11 @@ export default function ShellV2() {
           <Trophy />
           Рейтинг
         </button>
-        {isAdmin && (
+        {isRealAdmin && (
+          /* В «режиме пользователя» это единственная админская кнопка на экране —
+             помечаем точкой, иначе легко забыть, что режим ещё включён */
           <button
-            className={tab === 'admin' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
+            className={`shellV2NavBtn${tab === 'admin' ? ' shellV2NavBtnActive' : ''}${userMode ? ' shellV2NavBtnUserMode' : ''}`}
             onClick={() => setTab('admin')}>
             <Cog />
             Админ

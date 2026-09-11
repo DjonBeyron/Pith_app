@@ -10,7 +10,7 @@
 .avTabs {
   display: flex;
   gap: 6px;
-  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0;
+  padding: 12px 16px 0;
 }
 
 .avTab {

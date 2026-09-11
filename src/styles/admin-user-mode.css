@@ -1,0 +1,112 @@
+/* ── Переключатель «режим пользователя» в шапке админки ──
+   Отдельный файл: admin-v2.css уже у мягкого ориентира в 250 строк.
+   Блок стоит первым в админке, поэтому верхний safe-area-отступ (чёлка)
+   теперь на нём, а не на .avTabs */
+.avUserMode {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: calc(14px + env(safe-area-inset-top, 0px)) 16px 0;
+  padding: 10px 12px;
+  border: 1px solid #232932;
+  border-radius: 14px;
+  background: #14171c;
+}
+
+.avUserModeOn {
+  border-color: #b6fe3b;
+  background: #171d10;
+}
+
+.avUserModeText {
+  flex: 1;
+  min-width: 0; /* иначе длинная подсказка растянет строку и выдавит тумблер */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.avUserModeTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6ebf1;
+}
+
+.avUserModeOn .avUserModeTitle { color: #b6fe3b; }
+
+.avUserModeHint {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #7b8492;
+}
+
+.avUserModeSwitch {
+  flex: none;
+  position: relative;
+  width: 42px;
+  height: 24px;
+  cursor: pointer;
+}
+
+/* Чекбокс во всю площадь, но невидимый: клик и доступность с клавиатуры —
+   родные, рисуем только дорожку */
+.avUserModeSwitch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.avUserModeTrack {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: #2a313b;
+  transition: background 0.16s;
+  pointer-events: none;
+}
+
+.avUserModeTrack::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #8b95a1;
+  transition: transform 0.16s, background 0.16s;
+}
+
+.avUserModeSwitch input:checked ~ .avUserModeTrack { background: #b6fe3b; }
+.avUserModeSwitch input:checked ~ .avUserModeTrack::after {
+  transform: translateX(18px);
+  background: #0d1500;
+}
+
+/* Точка на кнопке «Админ» в нижней панели, пока режим включён.
+   Живёт здесь, а не в shell-v2.css: это часть той же фичи */
+.shellV2NavBtnUserMode {
+  position: relative;
+}
+
+/* Подсветку даём только неактивной кнопке: открытая вкладка остаётся зелёной,
+   как все остальные, а точка видна в обоих случаях */
+.shellV2NavBtnUserMode:not(.shellV2NavBtnActive) {
+  color: #ffc861;
+}
+
+.shellV2NavBtnUserMode::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: calc(50% - 16px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffc861;
+}
