@@ -39,6 +39,9 @@ const DEFAULT_TRIGGER = {
   // нажать «В закладки», нода ждёт, пока не покажется и не прочитается
   // системное уведомление, и только потом зовёт onDone('shown')
   lesson_ref:  { if: 'shown' },
+  // Тоже сама решает: стрелка остановилась (поворот или лимит показов) —
+  // тогда и onDone('shown'), см. RotatePhoneModule.jsx
+  rotate_phone: { if: 'shown' },
   // Реакция короткая: успела всплыть — и урок идёт дальше
   reaction:    { if: 'timer', ms: 1400 },
 }
@@ -73,6 +76,7 @@ const TEXT_FIELD = {
   text: 'content',
   pin_message: 'content',
   system: 'content',
+  rotate_phone: 'content',
   audio: 'text',
   sticker: 'caption',
   photo: 'caption',

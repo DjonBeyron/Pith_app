@@ -57,7 +57,8 @@ describe('раскраска не съезжает при вставке', () =>
 describe('кнопка смайликов в редакторе ноды', () => {
   it('есть у всех типов со своим текстом', () => {
     const editor = read('../../features/canvas/NodeContentEditor.jsx')
-    expect(editor).toContain("const HAS_TEXT_TYPES = new Set(['text', 'pin_message', 'system', 'audio', 'sticker', 'photo'])")
+    // «Переверни телефон» тоже пишет свой текст — и смайлик ему положен
+    expect(editor).toContain("const HAS_TEXT_TYPES = new Set(['text', 'pin_message', 'system', 'audio', 'sticker', 'photo', 'rotate_phone'])")
     expect(editor).toContain('hasText={HAS_TEXT_TYPES.has(node.type)}')
   })
 

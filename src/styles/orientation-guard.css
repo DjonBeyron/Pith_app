@@ -31,3 +31,9 @@
   color: #9aa3ad;
   max-width: 260px;
 }
+
+/* Нода «переверни телефон» (RotatePhoneModule) сама просит ученика лечь в
+   альбомное положение — на время её ожидания заглушка не показывается, иначе
+   послушный поворот встречал бы требование повернуть обратно. Атрибут ставит и
+   снимает useLandscapeWatch.js; после ноды всё как было */
+html[data-allow-landscape] .orientationGuard { display: none !important; }

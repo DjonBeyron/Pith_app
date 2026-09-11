@@ -73,6 +73,7 @@ export function makeNode(seq, x, y, wantType) {
       // раза (что это не обязательная часть текущего урока, можно открыть
       // сейчас или сохранить закладкой). Автор может стереть/переписать
       lesson_ref:      { isModule: false, targetId: null, targetTitle: '', caption: 'Открой сейчас или сохрани на потом' },
+      rotate_phone:    { content: 'Поверните экран' },
     },
   }
 }

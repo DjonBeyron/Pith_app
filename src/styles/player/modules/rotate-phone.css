@@ -1,0 +1,135 @@
+/* Уведомление «переверни телефон» (RotatePhoneModule.jsx). Сидит в том же
+   пузыре, что и ссылка на урок (.playerMsgBubble--lessonRef, lesson-ref.css),
+   и повторяет её раскладку: полоса слева, значок, заголовок + подпись. Своё
+   здесь — значок: нарисованный телефон поворачивается набок и обратно, а по
+   бокам две дуги-стрелки показывают направление. Карточка крупнее ссылки —
+   это просьба к ученику, ей нужно место. */
+
+.playerRotateCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 76px;
+  padding: 10px 14px 10px 18px;
+  border: 1px solid #2a2c33;
+  border-radius: 14px;
+  background: #12141a;
+}
+
+.playerRotateIconWrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  color: #b6fe3b;
+  /* Свечение без краёв: радиальный градиент уходит в прозрачность раньше,
+     чем кончается коробка. Раньше здесь был квадрат с фоном и рамкой —
+     «свет» с чёткими границами, они и были видны */
+  background: radial-gradient(circle at 50% 50%,
+    rgba(182, 254, 59, 0.22) 0%,
+    rgba(182, 254, 59, 0.07) 48%,
+    rgba(182, 254, 59, 0) 68%);
+}
+
+/* Стрелки по бокам стоят на месте и мигают в такт: ярче в момент, когда
+   телефон ложится */
+.playerRotateArrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: playerRotateArrowsPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes playerRotateArrowsPulse {
+  0%, 100% { opacity: 0.35; }
+  35%      { opacity: 1; }
+}
+
+/* Один цикл = одна просьба: телефон ложится набок, чуть держится и
+   возвращается. JS считает эти циклы по animationiteration — число показов
+   берётся отсюда, а не из отдельного таймера. Крутится HTML-обёртка, не SVG:
+   так Safari проигрывает поворот вокруг центра, как и все остальные */
+.playerRotatePhone {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 50% 50%;
+  animation: playerRotateAsk 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.playerRotatePhone svg { display: block; }
+
+@keyframes playerRotateAsk {
+  0%   { transform: rotate(0deg); }
+  35%  { transform: rotate(-90deg); }
+  65%  { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Остановились: телефон замирает горизонтально, стрелки гаснут, приходит галочка */
+.playerRotateCard--stopped .playerRotatePhone {
+  animation: none;
+  transform: rotate(-90deg);
+}
+.playerRotateCard--stopped .playerRotateArrows { animation: none; opacity: 0.18; }
+
+.playerRotateCheck {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #b6fe3b;
+  color: #0e1013;
+  animation: playerRotateCheckIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes playerRotateCheckIn {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* Текст крупнее, чем у ссылки на урок: заголовок — просьба, подпись — как */
+.playerRotateTitle {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f2f3f7;
+  line-height: 1.25;
+}
+
+.playerRotateCaption {
+  display: block;
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #9aa0b4;
+}
+
+/* Индикация для проверки датчика: видно, что сработал именно поворот */
+.playerRotateHit {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0e1013;
+  background: #b6fe3b;
+}
+
+/* Уменьшение движения: поворот телефона оставляем — это и есть содержание
+   сообщения, без него карточка не объясняет, что сделать. Гасим только
+   мигание стрелок как чисто декоративное */
+@media (prefers-reduced-motion: reduce) {
+  .playerRotateArrows { animation: none; opacity: 0.7; }
+}

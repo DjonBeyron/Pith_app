@@ -22,11 +22,12 @@ import NodeLessonRefPicker from './NodeLessonRefPicker.jsx'
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
 // Типы нод со своим текстом сообщения — им нужна кнопка смайликов
-const HAS_TEXT_TYPES = new Set(['text', 'pin_message', 'system', 'audio', 'sticker', 'photo'])
+const HAS_TEXT_TYPES = new Set(['text', 'pin_message', 'system', 'audio', 'sticker', 'photo', 'rotate_phone'])
 
 function mainFieldPlaceholder(type) {
   if (type === 'pin_message') return 'Текст закреплённого сообщения...'
   if (type === 'system')      return 'Системное сообщение...'
+  if (type === 'rotate_phone') return 'Текст просьбы, например: Переверни телефон горизонтально'
   if (type === 'photo')       return 'Текст под фото (в том же пузыре)...'
   if (type === 'sticker')     return 'Текст под стикером (в том же пузыре)...'
   return 'Введи текст сообщения...'
@@ -174,7 +175,7 @@ export default function NodeContentEditor({ lessonXp = 0,
           onMouseDown={e => e.stopPropagation()}
         />
       )}
-      {(node.type === 'text' || node.type === 'pin_message' || node.type === 'system') && (
+      {(node.type === 'text' || node.type === 'pin_message' || node.type === 'system' || node.type === 'rotate_phone') && (
         <RichTextField
           field="content"
           value={tData.content ?? ''}
