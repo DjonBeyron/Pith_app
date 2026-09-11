@@ -65,7 +65,25 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
   ghost.style.width  = `${from.width}px`
   ghost.style.height = `${from.height}px`
   document.body.appendChild(ghost)
-  pLog(`[fly] старт: панель ${r(from)}, сетка в панели ${r(panelEl.querySelector('.tableGrid')?.getBoundingClientRect())}`)
+
+  // Анимации из РАЗМЕТКИ клон всё-таки получает: cloneNode копирует классы, а
+  // CSS-анимация стартует заново, как только копия попадает в документ. У слов
+  // собранной фразы это tdWordIn (0.18s, прозрачность + сдвиг) — и первые кадры
+  // клон показывал их полупрозрачными и смещёнными ПОВЕРХ ещё видимой панели,
+  // где они стоят на месте. Глазом это и есть «фраза моргает при переходе».
+  //
+  // Панель к этому моменту уже доиграна (finish выше), но к клону это не
+  // относится — его анимации родились позже. Гасим их тем же кадром, что и
+  // вставку: cancel возвращает элемент к обычным стилям, то есть ровно к тому
+  // виду, что сейчас в панели.
+  //
+  // Видно только у таблицы со СЛОВАМИ: там, где бокс сборки пуст, анимировать
+  // нечего, и перехода это не касалось.
+  const born = ghost.getAnimations({ subtree: true })
+  born.forEach(a => { try { a.cancel() } catch { /* не отменяется — не страшно */ } })
+
+  pLog(`[fly] старт: панель ${r(from)}, сетка в панели ${r(panelEl.querySelector('.tableGrid')?.getBoundingClientRect())}`
+    + `${born.length ? ` | снято анимаций разметки в клоне: ${born.length}` : ''}`)
   slimDown(ghost)
 
   // Вставка пузыря толкает ленту ВВЕРХ на его высоту (FLIP в PlayerFeed), а
