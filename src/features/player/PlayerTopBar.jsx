@@ -3,6 +3,8 @@ import { clearPlayerLog, pLog, setDebug } from '../../shared/lib/debug.js'
 import { preloadSounds } from '../../shared/lib/sounds.js'
 import { DEBUG_TOOLS_ON } from '../../shared/lib/debugToolsEnabled.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
+import { usePlayerDebugUi } from '../../shared/lib/usePlayerDebugUi.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
@@ -11,6 +13,14 @@ const AVATAR_SIZE = 36
 
 export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo, teacherLogoCrop, onDownloadLog, progress = 0 }) {
   const [intrinsic, setIntrinsic] = useState(null)
+  // Кнопка «⬇ лог» и номер версии — один диагностический набор, нужный для
+  // одного и того же: чтобы пользователь прислал внятный отчёт о баге. Админу
+  // они есть всегда, остальным — только если админ их включил (настройка в
+  // базе, см. usePlayerDebugUi.js). isAdmin здесь эффективный: в «режиме
+  // пользователя» набор гаснет вместе с остальным админским интерфейсом
+  const { isAdmin } = useAdmin()
+  const debugUiForAll = usePlayerDebugUi()
+  const showDebugUi   = isAdmin || debugUiForAll
 
   // Сброс размеров при смене лого — подстройка состояния прямо в рендере
   // (паттерн из доков React вместо setState в эффекте)
@@ -96,12 +106,15 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
           {title ? `изучаем ${title}` : 'онлайн'}
         </span>
       </div>
-      <button
-        className="playerTopBarDebugBtn"
-        onClick={onDownloadLog}
-        title="Скачать лог"
-        aria-label="Скачать лог"
-      >⬇ лог</button>
+      {showDebugUi && <span className="playerTopBarVersion">v{APP_VERSION}</span>}
+      {showDebugUi && (
+        <button
+          className="playerTopBarDebugBtn"
+          onClick={onDownloadLog}
+          title="Скачать лог"
+          aria-label="Скачать лог"
+        >⬇ лог</button>
+      )}
       {/* Единственная точка входа в дебаг-тулбар: своей плавающей кнопки у него
           больше нет. Тот же выключатель, что и у самого тулбара, — иначе кнопка
           осталась бы висеть при выключенном дебаге и ничего не открывала */}

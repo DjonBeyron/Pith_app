@@ -168,7 +168,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `pro.css` | Стили подписки Pithy Pro: экран оплаты (карточка с короной, список преимуществ, золотая кнопка), карточка Pro в профиле, чип PRO у ника в рейтинге |
 | `module-video.css` | Стили панели «Видео фразы» в тулбаре схемы модуля: выпадающая карточка, постер, кнопки заменить/удалить |
 | `admin-v2.css` | Стили админ-раздела ui v2: субвкладки, «+ Новый модуль», строки модулей с чипами |
-| `admin-user-mode.css` | Стили переключателя «режим пользователя» в шапке админки (`AdminUserModeToggle.jsx`) + точка на кнопке «Админ» в нижней панели, пока режим включён |
+| `admin-toggles.css` | Стили переключателей в шапке админки (`AdminToggleRow.jsx`: строка, подсказка, тумблер) + точка на кнопке «Админ» в нижней панели, пока включён «режим пользователя» |
 | `feed-media.css` | Медиа и виртуализация ленты: виртуальные элементы TanStack, постер/видео, чип звука, скелетон с бликом для медленной сети |
 | `feed-video-loader.css` | Кружок загрузки видео в ленте (и подпись «Нет соединения») — показывается, когда данные реально не едут (см. `useVideoStall.js`) |
 | `difficulty.css` | Сложность фразы на слух: иконка-«сигнал» (3 полоски) в HUD и панель голосования, выезжающая от кнопки (scale от 0) |
@@ -312,6 +312,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `AdminStreakTab.jsx` | Админ-вкладка «Стрик»: CRUD вех наград (streak_milestones) — день/XP/билеты/спецокно/подпись, прямо из приложения |
 | `AdminTeacherTab.jsx` | Админ-вкладка «Учитель»: общий учитель всех уроков (имя + аватар с кроп-редактором) — пишется в `app_settings.teacher_default`, фото уходит в R2 |
 | `AdminUserModeToggle.jsx` | Переключатель «режим пользователя» в шапке админки: админ прячет весь свой интерфейс и смотрит приложение глазами ученика. Единственное место, откуда режим выключается обратно (см. `userMode.js`) |
+| `AdminToggleRow.jsx` | Строка-переключатель в шапке админки: название, подсказка (своя для «включено») и тумблер. Только внешний вид — что переключается, знает вызывающий |
+| `AdminDebugUiToggle.jsx` | Переключатель «Лог и версия в шапке урока»: видят ли НЕ-админы кнопку «⬇ лог» и номер версии. Общая настройка в базе (`app_settings.player_debug_ui`), тумблер заперт, пока сервер не подтвердил запись |
 | `AdminErrorsTab.jsx` | Админ-вкладка «Ошибки»: последние 50 ошибок клиентов из client_errors, тап раскрывает ua и stack; подсказка, если SQL-блок ещё не применён |
 
 ### `src/features/canvas/` — canvas-редактор уроков (отдельная полноэкранная страница)
@@ -754,7 +756,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | Файл | Зачем нужен |
 |------|-------------|
 | `supabase.js` | Подключение к базе данных Supabase (по ключам из `.env.local`) |
-| `appSettingsApi.js` | Глобальные настройки приложения (таблица `app_settings`): чтение/запись «учителя по умолчанию» (`teacher_default`, с кэшем на сессию), провайдера генерации фото (`image_provider`) и чтение счётчика генераций за сутки (`image_gen_usage`, пишет только edge function); писать может только админ (RLS) |
+| `appSettingsApi.js` | Глобальные настройки приложения (таблица `app_settings`): чтение/запись «учителя по умолчанию» (`teacher_default`, с кэшем на сессию), провайдера генерации фото (`image_provider`), чтение счётчика генераций за сутки (`image_gen_usage`, пишет только edge function) и флага «лог и версия в шапке урока для всех» (`player_debug_ui`); писать может только админ (RLS) |
 | `pushApi.js` | Вызов edge-функции `push-send` (рассылка Web Push, только админ) |
 | `pushTemplatesApi.js` | CRUD шаблонов пушей (`push_templates`) + поиск включённого шаблона по триггеру (manual / new_module / inactive_today / energy_full) |
 | `auth.js` | registerUser / loginUser / logoutUser / getCurrentUser — обёртки над supabase.auth; принимают `captchaToken` (Turnstile), если капча включена |
@@ -827,6 +829,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `useAuth.js` | React-хук `useAuth()`: подписка на `supabase.auth.onAuthStateChange`, возвращает `{ user, loading }` |
 | `useIsAdmin.js` | React-хук `useIsAdmin()`: проверяет, что текущий пользователь залогинен и у него `is_admin=true` в `user_profiles`; возвращает `{ user, isAdmin, loading }`. Используется для показа/скрытия админского UI (реальная защита — RLS в БД) |
 | `userMode.js` | Флаг «режим пользователя» в localStorage (`pithy_user_mode_v1`) + подписка для `useSyncExternalStore`: `getUserMode` / `setUserMode` / `subscribeUserMode`. Читается в `AdminContext.jsx`, переключается из `AdminUserModeToggle.jsx`. Только про интерфейс — права в БД не меняет |
+| `usePlayerDebugUi.js` | Доставка настройки «лог и версия в шапке урока» в интерфейс: зеркало в localStorage (верный первый кадр, без выскакивающей кнопки), прогрев с сервера на старте (`prefetchPlayerDebugUi`), подписка для `useSyncExternalStore` и запись из админки (`setPlayerDebugUi`) |
 | `audioUtils.js` | Утилиты аудио: `analyzeWaveform`, `drawWaveBar` (рисует столбики волны на canvas), `fmtAudioTime`, `probeAudioDuration` |
 | `charTimings.js` | `buildCharTimings(text, wordTimings)` — во сколько секунд появляется каждый символ сообщения, чтобы печать шла в такт озвучке. Позиции слов берёт из самого текста (двойные пробелы, пустые строки и отступы печать не сдвигают), а слова сопоставляет по написанию с окном на пропуск — расхождение числа слов у ElevenLabs/Whisper не уводит остаток текста (+ `charTimings.test.js`) |
 | `tableDictatorTiming.js` | Константы тайминга word-слоя в режиме диктора: `EXTRA_ANIM_S`(0.6)+`EXTRA_BUFFER_S`(0.3)=`EXTRA_LEAD_IN_S`(0.9) — с начала клипа сперва анимация (слайд+список), потом буфер, и только потом слово реально загорается зелёным. Общие для плеера (useTableDictatorRaf/dictatorPostAudio) и редактора таймлайна (TableTimelineTrack — превью куска на слое) |

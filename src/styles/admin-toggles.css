@@ -1,24 +1,31 @@
-/* ── Переключатель «режим пользователя» в шапке админки ──
+/* ── Переключатели в шапке админки ──
    Отдельный файл: admin-v2.css уже у мягкого ориентира в 250 строк.
    Блок стоит первым в админке, поэтому верхний safe-area-отступ (чёлка)
    теперь на нём, а не на .avTabs */
-.avUserMode {
+
+.avToggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: calc(14px + env(safe-area-inset-top, 0px)) 16px 0;
+}
+
+.avToggle {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: calc(14px + env(safe-area-inset-top, 0px)) 16px 0;
   padding: 10px 12px;
   border: 1px solid #232932;
   border-radius: 14px;
   background: #14171c;
 }
 
-.avUserModeOn {
+.avToggleOn {
   border-color: #b6fe3b;
   background: #171d10;
 }
 
-.avUserModeText {
+.avToggleText {
   flex: 1;
   min-width: 0; /* иначе длинная подсказка растянет строку и выдавит тумблер */
   display: flex;
@@ -26,21 +33,21 @@
   gap: 2px;
 }
 
-.avUserModeTitle {
+.avToggleTitle {
   font-size: 13px;
   font-weight: 600;
   color: #e6ebf1;
 }
 
-.avUserModeOn .avUserModeTitle { color: #b6fe3b; }
+.avToggleOn .avToggleTitle { color: #b6fe3b; }
 
-.avUserModeHint {
+.avToggleHint {
   font-size: 10.5px;
   line-height: 1.35;
   color: #7b8492;
 }
 
-.avUserModeSwitch {
+.avToggleSwitch {
   flex: none;
   position: relative;
   width: 42px;
@@ -50,7 +57,7 @@
 
 /* Чекбокс во всю площадь, но невидимый: клик и доступность с клавиатуры —
    родные, рисуем только дорожку */
-.avUserModeSwitch input {
+.avToggleSwitch input {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -60,7 +67,7 @@
   cursor: pointer;
 }
 
-.avUserModeTrack {
+.avToggleTrack {
   display: block;
   width: 100%;
   height: 100%;
@@ -70,7 +77,7 @@
   pointer-events: none;
 }
 
-.avUserModeTrack::after {
+.avToggleTrack::after {
   content: '';
   position: absolute;
   top: 3px;
@@ -82,8 +89,13 @@
   transition: transform 0.16s, background 0.16s;
 }
 
-.avUserModeSwitch input:checked ~ .avUserModeTrack { background: #b6fe3b; }
-.avUserModeSwitch input:checked ~ .avUserModeTrack::after {
+/* Пока запись в базу не подтверждена — тумблер приглушён и не нажимается:
+   иначе он показывал бы включённым то, что RLS могла и не пропустить */
+.avToggleSwitch input:disabled { cursor: progress; }
+.avToggleSwitch input:disabled ~ .avToggleTrack { opacity: 0.45; }
+
+.avToggleSwitch input:checked ~ .avToggleTrack { background: #b6fe3b; }
+.avToggleSwitch input:checked ~ .avToggleTrack::after {
   transform: translateX(18px);
   background: #0d1500;
 }

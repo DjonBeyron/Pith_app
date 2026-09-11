@@ -7,6 +7,7 @@ import AdminStreakTab from './AdminStreakTab.jsx'
 import AdminErrorsTab from './AdminErrorsTab.jsx'
 import AdminTeacherTab from './AdminTeacherTab.jsx'
 import AdminUserModeToggle from './AdminUserModeToggle.jsx'
+import AdminDebugUiToggle from './AdminDebugUiToggle.jsx'
 import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Админ-раздел новой оболочки: субвкладки «Модули» (список с публикацией),
@@ -28,8 +29,12 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, openModule = n
   return (
     <div className="avWrap">
       {/* Над субвкладками, а не внутри одной из них: в «режиме пользователя»
-          это единственная дверь обратно, искать её по вкладкам не нужно */}
-      <AdminUserModeToggle />
+          «Режим пользователя» — единственная дверь обратно, искать её по
+          вкладкам не нужно */}
+      <div className="avToggles">
+        <AdminUserModeToggle />
+        <AdminDebugUiToggle />
+      </div>
       <div className="avTabs">
         <button className={sub === 'modules' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('modules')}>
           Модули

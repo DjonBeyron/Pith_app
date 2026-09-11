@@ -3,11 +3,13 @@ import { dbg } from '../lib/debug.js'
 import { EMPTY_TEACHER } from '../lib/teacherResolve.js'
 
 // Глобальные настройки приложения — таблица app_settings (ключ → jsonb).
-// Ключи: учитель по умолчанию для всех уроков, провайдер генерации фото и
-// его дневная выработка (см. ImageProviderSettings.jsx).
+// Ключи: учитель по умолчанию для всех уроков, провайдер генерации фото,
+// его дневная выработка (см. ImageProviderSettings.jsx) и диагностический
+// набор в шапке урока для не-админов (см. usePlayerDebugUi.js).
 const TEACHER_KEY = 'teacher_default'
 const IMAGE_PROVIDER_KEY = 'image_provider'
 const IMAGE_GEN_USAGE_KEY = 'image_gen_usage'
+const PLAYER_DEBUG_UI_KEY = 'player_debug_ui'
 
 let cache    = null // последнее прочитанное значение (живёт до перезагрузки)
 let inflight = null // текущий запрос, чтобы три вызова не сделали три запроса
@@ -85,4 +87,32 @@ export async function getImageGenUsage() {
   if (error) { dbg('[DB ERROR] image_gen_usage read', error.message); return null }
   const today = new Date().toISOString().slice(0, 10)
   return data?.value?.date === today ? data.value.count ?? 0 : 0
+}
+
+// Диагностический набор в шапке урока — кнопка «⬇ лог» и номер версии.
+// Админ видит его всегда; этот ключ решает, видят ли его ОСТАЛЬНЫЕ. Держим
+// в базе, а не в localStorage: настройка про чужие устройства, а не про своё.
+// Строки нет — считаем «выключено» (у ключа один флаг, версия и кнопка
+// включаются вместе: это один набор для одного и того же — отчёта о баге).
+export async function getPlayerDebugUi() {
+  const { data, error } = await supabase
+    .from('app_settings').select('value').eq('key', PLAYER_DEBUG_UI_KEY).maybeSingle()
+  if (error) { dbg('[DB ERROR] player_debug_ui read', error.message); return null }
+  return !!data?.value?.on
+}
+
+// Пишет только админ (RLS app_settings_write_admin). .select() обязателен:
+// без него UPDATE, отсечённый политикой, выглядел бы как успех.
+export async function savePlayerDebugUi(on) {
+  dbg('[DB WRITE] app_settings', PLAYER_DEBUG_UI_KEY, on)
+  const { data, error } = await supabase
+    .from('app_settings')
+    .upsert({ key: PLAYER_DEBUG_UI_KEY, value: { on: !!on }, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+    .select('key')
+  if (error) { dbg('[DB ERROR] player_debug_ui save', error.message); throw error }
+  if (!data?.length) {
+    dbg('[DB WARN] player_debug_ui save matched 0 rows — RLS или нет прав админа')
+    throw new Error('Сохранение не применилось: сервер не подтвердил запись')
+  }
+  return !!on
 }

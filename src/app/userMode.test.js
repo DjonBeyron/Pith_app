@@ -79,3 +79,49 @@ describe('что режим гасит, а что оставляет', () => {
     expect(av.indexOf('<AdminUserModeToggle />')).toBeLessThan(av.indexOf('className="avTabs"'))
   })
 })
+
+// Кнопка «⬇ лог» и версия в шапке урока — один диагностический набор.
+// Админ видит его всегда, остальные — только если админ включил (общая
+// настройка в базе, а не в localStorage: она про чужие устройства)
+describe('лог и версия в шапке урока', () => {
+  const bar = read('../features/player/PlayerTopBar.jsx')
+
+  it('набор закрыт общим условием, а не висит всегда', () => {
+    expect(bar).toContain('const showDebugUi   = isAdmin || debugUiForAll')
+    expect(bar).toContain('{showDebugUi && <span className="playerTopBarVersion">v{APP_VERSION}</span>}')
+    // Кнопка раньше рисовалась вообще без проверки — из-за этого она
+    // оставалась на экране и в «режиме пользователя»
+    expect(bar).toContain('{showDebugUi && (')
+    const btn = bar.slice(bar.indexOf('className="playerTopBarDebugBtn"'))
+    expect(btn.slice(0, btn.indexOf('>⬇ лог<'))).toContain('onClick={onDownloadLog}')
+  })
+
+  it('в «режиме пользователя» гаснет вместе с остальным админским', () => {
+    // Эффективный isAdmin из контекста, а не useIsAdmin напрямую
+    expect(bar).toContain("import { useAdmin } from '../../app/AdminContext.jsx'")
+    expect(bar).toContain('const { isAdmin } = useAdmin()')
+  })
+
+  it('настройка общая — лежит в базе, пишет только админ', () => {
+    const api = read('../shared/api/appSettingsApi.js')
+    expect(api).toContain("const PLAYER_DEBUG_UI_KEY = 'player_debug_ui'")
+    // .select() обязателен: без него UPDATE, отсечённый RLS, выглядел бы удачей
+    const save = api.slice(api.indexOf('export async function savePlayerDebugUi'))
+    expect(save).toContain(".select('key')")
+    expect(save).toContain('if (!data?.length)')
+  })
+
+  it('значение прогревается на старте — шапка не моргает кнопкой', () => {
+    // Зеркало в localStorage даёт верный первый кадр, ответ сервера уточняет
+    const lib = read('../shared/lib/usePlayerDebugUi.js')
+    expect(lib).toContain("const LS = 'pithy_player_debug_ui_v1'")
+    expect(lib).toContain('if (on !== null) apply(on)')
+    expect(read('./ShellV2.jsx')).toContain('prefetchPlayerDebugUi()')
+  })
+
+  it('тумблер заперт, пока сервер не подтвердил запись', () => {
+    const t = read('../features/admin/AdminDebugUiToggle.jsx')
+    expect(t).toContain('disabled={saving}')
+    expect(t).toContain('await setPlayerDebugUi(next)')
+  })
+})
