@@ -51,7 +51,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   const [title,       setTitle]       = useState('')
   const [loading,     setLoading]     = useState(!!lessonId)
   const [serverNodes, setServerNodes] = useState(null)
+  const [serverZones, setServerZones] = useState([])
   const [panelNodes,  setPanelNodes]  = useState([])
+  // Инструмент «Зона» (шапка канваса): рисует рамку с подписью вокруг группы
+  // нод — чисто визуальная разметка для автора, см. features/canvas/zones/.
+  // Сам себя выключает после того, как зона нарисована (onZoneToolDone)
+  const [zoneToolActive, setZoneToolActive] = useState(false)
   // Фильтр в шапке — инструмент поиска на большом графе, только админу:
   // отмеченные типы плюс особый режим «не загруженные». Что не проходит
   // фильтр — притухает, оставаясь на своём месте со связями
@@ -67,12 +72,14 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // компьютерами прямо в интерфейсе, без консоли разработчика
   const [syncStatus,  setSyncStatus]  = useState('')
   const nodesRef = useRef([])
+  const zonesRef = useRef([])
   // nodes/offset/scale живут внутри CanvasBoard — «Очистить»/«В начало» дотягиваются
   // туда через imperative handle (см. useImperativeHandle в CanvasBoard.jsx)
   const boardApiRef = useRef(null)
-  // Панель обмена уроком: снимок нод берём в момент открытия (сами ноды живут
-  // в CanvasBoard, наружу они отдаются через boardApi)
+  // Панель обмена уроком: снимок нод и зон берём в момент открытия (сами они
+  // живут в CanvasBoard, наружу отдаются через boardApi)
   const [ioNodes, setIoNodes] = useState(null)
+  const [ioZones, setIoZones] = useState([])
   // Панель «⚡ Массовая генерация» — сама читает ноды/пишет файлы через
   // boardApiRef/pickFile, состояние открытия держим здесь же, рядом с ioNodes
   const [showBatchGen, setShowBatchGen] = useState(false)
@@ -100,7 +107,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
 
   // Сохранение урока на сервер — useCanvasSave.js
   const { isSaving, handleSave: saveToServer } = useCanvasSave({
-    lessonId, title, lessonXp, nodesRef, hasUnsynced, files, syncToServer,
+    lessonId, title, lessonXp, nodesRef, zonesRef, hasUnsynced, files, syncToServer,
     prepareForSave, clearTeacherDraft, setSyncStatus,
   })
 
@@ -142,6 +149,13 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
     if (ids.length) fetchMissingFiles(ids)
   }, [fetchMissingFiles, syncDirty])
 
+  // Зоны проще нод: своей проверки целостности и подгрузки файлов им не
+  // нужно, только снимок для сохранения (useCanvasSave.js) и «есть правки»
+  const handleZonesChange = useCallback(z => {
+    zonesRef.current = z
+    syncDirty()
+  }, [syncDirty])
+
   useEffect(() => {
     if (!lessonId) return
     loadScript(lessonId)
@@ -156,6 +170,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
         setLessonXp(data?.script?.lessonXp ?? 0)
         applyServerData(data?.script)
         if (nodes.length) setServerNodes(nodes)
+        setServerZones(data?.script?.zones ?? [])
         const stamp = new Date().toTimeString().slice(0, 8)
         setSyncStatus(`Загружено с сервера: ${nodes.length} нод · id ${lessonId.slice(0, 8)} · ${stamp}`)
       })
@@ -217,10 +232,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           isAdmin={isAdmin} filter={filter} menuClosedAt={menuClosedAt}
           setFilterPos={setFilterPos} setToolsPos={setToolsPos}
           setPlayFrom={setPlayFrom} setShowPlayer={setShowPlayer} setIoNodes={setIoNodes}
+          setIoZones={setIoZones}
           setShowBatchGen={setShowBatchGen} boardApiRef={boardApiRef}
           lessonXp={lessonXp} setLessonXp={setLessonXp} markDirty={markDirty}
           switchToProduction={switchToProduction} hasUnsynced={hasUnsynced}
           hasUnsyncedLogo={hasUnsyncedLogo} setShowPanel={setShowPanel}
+          zoneToolActive={zoneToolActive} onToggleZoneTool={() => setZoneToolActive(v => !v)}
         />
       </div>
 
@@ -254,15 +271,17 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
       {ioNodes && (
         <LessonIoPanel
           nodes={ioNodes}
+          zones={ioZones}
           title={title}
           lessonId={lessonId}
-          onImport={(nodes, mode, links) => {
-            boardApiRef.current?.importNodes(nodes, mode)
+          onImport={(nodes, zones, mode, links) => {
+            boardApiRef.current?.importNodes(nodes, zones, mode)
             // Итог виден и после закрытия окна: если связей 0 — это сразу видно,
             // а не выясняется по пустому холсту
-            setSyncStatus(`Импортировано: ${nodes.length} нод · ${links} связей`)
+            setSyncStatus(`Импортировано: ${nodes.length} нод · ${links} связей` +
+              (zones.length ? ` · зон: ${zones.length}` : ''))
           }}
-          onClose={() => setIoNodes(null)}
+          onClose={() => { setIoNodes(null); setIoZones([]) }}
         />
       )}
 
@@ -344,6 +363,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           onRemoveLessonFile={removeFile}
           onNodesChange={handleNodesChange}
           initialNodes={serverNodes}
+          initialZones={serverZones}
+          onZonesChange={handleZonesChange}
+          zoneToolActive={zoneToolActive}
+          onZoneToolDone={() => setZoneToolActive(false)}
           moduleLessons={linkableLessons}
           onPlayFrom={id => { setPlayFrom(id); setShowPlayer(true) }}
           visibleTypes={filter.types}

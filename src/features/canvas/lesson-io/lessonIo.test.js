@@ -212,6 +212,77 @@ describe('импорт урока', () => {
     expect(warnings.join(' ')).toMatch(/неизвестный тип/)
     expect(warnings.join(' ')).toMatch(/неизвестную ноду/)
   })
+
+  it('ноды с одинаковым pos раздвигаются по ряду вниз, а не ложатся друг на друга', () => {
+    const { nodes } = importLesson({
+      format: FORMAT,
+      nodes: [
+        { ref: 'a', type: 'text', data: { content: '1' }, pos: [100, 200], triggers: [] },
+        { ref: 'b', type: 'text', data: { content: '2' }, pos: [100, 200], triggers: [] },
+        { ref: 'c', type: 'text', data: { content: '3' }, pos: [100, 200], triggers: [] },
+      ],
+    })
+    const [a, b, c] = nodes
+    // По x ноды не разъезжаются (findFreeSpot двигает только вниз) — только
+    // по y, каждая на следующий свободный ряд
+    expect(a.x).toBe(100)
+    expect(b.x).toBe(100)
+    expect(c.x).toBe(100)
+    expect(new Set([a.y, b.y, c.y]).size).toBe(3)
+    expect(a.y).toBe(200)
+  })
+
+  it('ноды с разными (пусть и близкими) координатами не трогаются', () => {
+    const { nodes } = importLesson({
+      format: FORMAT,
+      nodes: [
+        { ref: 'a', type: 'text', data: { content: '1' }, pos: [0, 0], triggers: [] },
+        { ref: 'b', type: 'text', data: { content: '2' }, pos: [2000, 2000], triggers: [] },
+      ],
+    })
+    expect(nodes[0].y).toBe(0)
+    expect(nodes[1].y).toBe(2000)
+  })
+})
+
+describe('зоны на холсте (визуальная разметка автора, не часть сценария)', () => {
+  const zone = { id: 'z1', x: 10, y: 20, width: 300, height: 200, label: 'Часть 2 · he, she, it' }
+
+  it('экспорт отдаёт зоны как есть, координаты округлены, пустой список ключ не создаёт', () => {
+    const withZones = exportLesson(lesson(), { title: 'To be', zones: [zone] })
+    expect(withZones.zones).toEqual([zone])
+
+    const noZones = exportLesson(lesson(), { title: 'To be' })
+    expect(noZones.zones).toBeUndefined()
+  })
+
+  it('зона проходит через экспорт и импорт целиком, id пересоздаётся', () => {
+    const text = exportLessonText(lesson(), { title: 'To be', zones: [zone] })
+    const { zones } = importLesson(text)
+    expect(zones).toHaveLength(1)
+    expect(zones[0]).toMatchObject({ x: 10, y: 20, width: 300, height: 200, label: 'Часть 2 · he, she, it' })
+    expect(zones[0].id).not.toBe('z1')
+  })
+
+  it('файл без зон возвращает пустой массив, а не падает', () => {
+    const { zones } = importLesson(exportLessonText(lesson(), { title: 'To be' }))
+    expect(zones).toEqual([])
+  })
+
+  it('битые записи зон (не число/не объект) отфильтровываются, а не ломают импорт', () => {
+    const { zones } = importLesson({
+      format: FORMAT,
+      nodes: [{ ref: 'a', type: 'text', data: { content: '1' }, triggers: [] }],
+      zones: [zone, { id: 'bad', x: 'oops', y: 0, width: 10, height: 10 }, null],
+    })
+    expect(zones).toHaveLength(1)
+  })
+
+  it('легенда описывает поле zones', () => {
+    const legend = buildLegend()
+    expect(legend.zones).toBeTruthy()
+    expect(legend.zones.label).toBeTruthy()
+  })
 })
 
 describe('панель обмена в шапке холста', () => {
@@ -227,7 +298,7 @@ describe('панель обмена в шапке холста', () => {
     expect(panel).toContain("runImport('replace')")
     expect(panel).toContain("runImport('append')")
     const api = read('../useCanvasBoardApi.js')
-    expect(api).toContain('importNodes(list, mode)')
+    expect(api).toContain('importNodes(list, zoneList = [], mode)')
     expect(api).toContain("if (mode === 'replace') {")
     expect(api).toContain('const next = renumber(withFiles)')
   })

@@ -72,9 +72,27 @@ function needsOf(node) {
   return base
 }
 
-export function exportLesson(nodes, { title = '', lessonId = null, includeLegend = true, principles, checklist } = {}) {
+// Зоны — чисто визуальная разметка холста автора (см. features/canvas/zones/),
+// на сценарий не влияет. В обмен попадают как есть, координаты округляются
+// как у pos ноды — округление до целого пикселя ничего не портит, а лишние
+// знаки после запятой в файле не нужны
+function exportZones(zones) {
+  return (zones ?? []).map(z => ({
+    id: z.id,
+    x: Math.round(z.x ?? 0),
+    y: Math.round(z.y ?? 0),
+    width: Math.round(z.width ?? 0),
+    height: Math.round(z.height ?? 0),
+    label: z.label ?? '',
+  }))
+}
+
+export function exportLesson(nodes, {
+  title = '', lessonId = null, includeLegend = true, principles, checklist, zones = [],
+} = {}) {
   const list = [...(nodes ?? [])].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
   const refOf = new Map(list.map((n, i) => [n.id, `n${i + 1}`]))
+  const zonesOut = exportZones(zones)
 
   return {
     format: FORMAT,
@@ -96,6 +114,7 @@ export function exportLesson(nodes, { title = '', lessonId = null, includeLegend
         triggers: exportTriggers(n, refOf),
       }
     }),
+    ...(zonesOut.length ? { zones: zonesOut } : {}),
   }
 }
 

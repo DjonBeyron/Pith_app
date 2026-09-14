@@ -151,8 +151,10 @@ describe('протяжка связи не зависит от сдвига хо
   it('перед протяжкой положение доски перемеряется заново', () => {
     const board = read('./CanvasBoard.jsx')
     expect(board).toContain('const measureBoard = useCallback(')
-    expect(board).toContain('measureBoard()')
     expect(board).toContain('setTypeMenu, measureBoard })')
+    // Сам вызов — в обработчике mousedown доски, вынесенном в отдельный хук
+    // (useCanvasBoardPointer.js), не в самом CanvasBoard.jsx
+    expect(read('./useCanvasBoardPointer.js')).toContain('measureBoard()')
   })
 
   it('порт считает мировые координаты после свежего замера и пишет их в лог', () => {

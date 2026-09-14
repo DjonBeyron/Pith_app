@@ -23,12 +23,17 @@ function loadView(lessonId) {
   try { return JSON.parse(localStorage.getItem(canvasViewKey(lessonId)) ?? '{}') } catch { return {} }
 }
 
-// Состояние доски (ноды/offset/scale) + вся его локальная персистентность:
-// черновик нод в localStorage (переживает перезагрузку до сохранения),
+// Состояние доски (ноды/зоны/offset/scale) + вся его локальная персистентность:
+// черновик в localStorage (переживает перезагрузку до сохранения),
 // сверка черновика с сервером при монтировании, память позиции обзора,
-// автосейв черновика и оповещение onNodesChange наружу. Вынесено из
-// CanvasBoard.jsx — тот файл отвечал за это же вперемешку с рендером/DnD.
-export function useCanvasBoardState(lessonId, initialNodes, onNodesChange) {
+// автосейв черновика и оповещение onNodesChange/onZonesChange наружу.
+// Вынесено из CanvasBoard.jsx — тот файл отвечал за это же вперемешку с
+// рендером/DnD.
+//
+// Зоны (визуальная группировка нод, см. features/canvas/zones/) живут в ТОМ
+// ЖЕ черновике, что и ноды — отдельный localStorage-ключ для них не заводим:
+// это одна и та же «несохранённая правка урока».
+export function useCanvasBoardState(lessonId, initialNodes, initialZones, onNodesChange, onZonesChange) {
   // true, если начальные ноды взяты из локального черновика — он может
   // оказаться СТАРЕЕ того, что реально лежит на сервере (правки с другого
   // устройства/вкладки, о которых этот браузер не знает); проверяем это
@@ -71,6 +76,15 @@ export function useCanvasBoardState(lessonId, initialNodes, onNodesChange) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Зоны — своей сверки с сервером не нужно (в отличие от нод выше): это
+  // необязательная разметка холста, короче/длиннее локального черновика она
+  // быть «правильно» не может, спрашивать пользователя не о чем
+  const [zones, setZones] = useState(() => {
+    const s = loadSaved(lessonId)
+    if (s.zones?.length) return s.zones
+    return initialZones?.length ? initialZones : []
+  })
+
   const [offset, setOffset] = useState(() => loadView(lessonId).offset ?? { x: 0, y: 0 })
   const [scale, setScale]   = useState(() => {
     const v = loadView(lessonId)
@@ -86,15 +100,16 @@ export function useCanvasBoardState(lessonId, initialNodes, onNodesChange) {
   const scaleRef   = useRef(scale)
   const mountedRef = useRef(false)
 
-  // Черновик несохранённых правок нод — стирается после успешного
-  // сохранения (CanvasPage.handleSave)
+  // Черновик несохранённых правок урока — стирается после успешного
+  // сохранения (CanvasPage.handleSave). Ноды и зоны — один и тот же черновик
+  // (см. комментарий у useCanvasBoardState выше)
   useEffect(() => {
     if (!lessonId) return
     if (!mountedRef.current) { mountedRef.current = true; return }
     const t = setTimeout(() =>
-      localStorage.setItem(CANVAS_LS(lessonId), JSON.stringify({ nodes })), 80)
+      localStorage.setItem(CANVAS_LS(lessonId), JSON.stringify({ nodes, zones })), 80)
     return () => clearTimeout(t)
-  }, [lessonId, nodes])
+  }, [lessonId, nodes, zones])
 
   // Позиция обзора (offset/scale) — отдельная, независимая память: не
   // привязана к черновику и не стирается после сохранения, чтобы при
@@ -112,5 +127,11 @@ export function useCanvasBoardState(lessonId, initialNodes, onNodesChange) {
     return () => clearTimeout(t)
   }, [nodes, onNodesChange])
 
-  return { nodes, setNodes, offset, setOffset, scale, setScale, scaleRef }
+  useEffect(() => {
+    if (!onZonesChange) return
+    const t = setTimeout(() => onZonesChange(zones), 500)
+    return () => clearTimeout(t)
+  }, [zones, onZonesChange])
+
+  return { nodes, setNodes, zones, setZones, offset, setOffset, scale, setScale, scaleRef }
 }

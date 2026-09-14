@@ -2,7 +2,7 @@ import { dbg } from '../../../shared/lib/debug.js'
 import { checkNodes, formatIntegrity } from '../canvasIntegrity.js'
 import { FORMAT } from './lessonSchema.js'
 import { NODE_TYPES } from '../nodeTypes.js'
-import { makeNode, renumber, NODE_SLOT } from '../nodeGraph.js'
+import { makeNode, renumber, findFreeSpot, NODE_SLOT } from '../nodeGraph.js'
 
 // Обменный JSON → ноды урока. Обратная сторона exportLesson.js: восстанавливаем
 // сценарий целиком, кроме файлов — их автор подкладывает в редакторе, ноды
@@ -70,6 +70,11 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
   const warnings = []
   const idByRef = new Map()
   const built = []
+  // Ноды с одинаковым или почти одинаковым pos из чужого/битого экспорта
+  // легли бы точно друг на друга и были бы неотличимы на холсте — findFreeSpot
+  // (та же функция, что расставляет ноды при вставке «+»/с порта, см.
+  // nodeGraph.js) спускает такую ноду на ряд ниже, остальных не трогая
+  let nudged = 0
 
   json.nodes.forEach((raw, i) => {
     const ref = raw.ref ?? `n${i + 1}`
@@ -77,7 +82,9 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
       warnings.push(`${ref}: неизвестный тип «${raw.type}» — нода пропущена`)
       return
     }
-    const [x, y] = Array.isArray(raw.pos) ? raw.pos : [startX + built.length * NODE_SLOT, startY]
+    const [rawX, rawY] = Array.isArray(raw.pos) ? raw.pos : [startX + built.length * NODE_SLOT, startY]
+    const { x, y } = findFreeSpot(built.map(b => b.node), rawX, rawY)
+    if (y !== rawY) nudged++
     const node = makeNode(built.length + 1, x, y, raw.type)
     const data = withIds(raw.type, raw.data ?? {})
     node.typeData = { ...node.typeData, [raw.type]: { ...node.typeData[raw.type], ...data } }
@@ -138,11 +145,29 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
 
   const health = checkNodes(nodes)
   dbg('[IMPORT] собрано:', `${nodes.length} нод`, `${links} связей`,
-    warnings.length ? `предупреждений ${warnings.length}` : 'без предупреждений')
+    warnings.length ? `предупреждений ${warnings.length}` : 'без предупреждений',
+    nudged ? `· раздвинул ${nudged} нод, наехавших друг на друга` : '')
   dbg('[IMPORT]', formatIntegrity(health))
+
+  // Зоны — необязательная часть файла (см. exportLesson.js), чисто визуальная
+  // разметка холста автора. Id пересоздаём заново, как и у нод: это локальный
+  // идентификатор списка, ни на что не ссылается
+  const zones = Array.isArray(json.zones)
+    ? json.zones
+        .filter(z => z && Number.isFinite(z.x) && Number.isFinite(z.y)
+          && Number.isFinite(z.width) && Number.isFinite(z.height))
+        .map(z => ({
+          id: uid(),
+          x: z.x, y: z.y,
+          width: Math.max(1, z.width),
+          height: Math.max(1, z.height),
+          label: typeof z.label === 'string' ? z.label : '',
+        }))
+    : []
 
   return {
     nodes,
+    zones,
     links,
     warnings,
     title: json.lesson?.title ?? '',

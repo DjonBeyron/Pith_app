@@ -27,7 +27,9 @@ import { useNodeNotes } from './useNodeNotes.js'
 import { useLocalNoteBox } from './useLocalNoteBox.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { isNodeDimmed } from './nodeMediaStatus.js'
-import { NODE_HIT_W, NODE_HIT_H } from './canvasHitTest.js'
+import ZonesLayer from './zones/ZonesLayer.jsx'
+import { useZoneToolIntegration } from './zones/useZoneToolIntegration.js'
+import { useCanvasBoardPointer } from './useCanvasBoardPointer.js'
 
 // Стабильная ссылка для allNodes у mini/nano нод (см. рендер ниже) — тем,
 // у кого нет дропдаунов со списком других нод, не нужен реальный список.
@@ -49,11 +51,18 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Отладка связей (меню «⋯»): прямые отрезки поверх всего + сводка
   debugLinks = false,
   lessonXp = 0,
+  // Зоны — визуальная группировка нод на холсте автора (см. zones/), не
+  // часть сценария урока. Инструмент включается кнопкой шапки (CanvasPage) и
+  // сам себя выключает после того, как автор нарисовал одну зону
+  initialZones = [],
+  onZonesChange,
+  zoneToolActive = false,
+  onZoneToolDone,
 }, ref) {
-  // Ноды/offset/scale + вся локальная персистентность (черновик, сверка
+  // Ноды/зоны/offset/scale + вся локальная персистентность (черновик, сверка
   // с сервером, память позиции обзора) — useCanvasBoardState.js
-  const { nodes, setNodes, offset, setOffset, scale, setScale, scaleRef } =
-    useCanvasBoardState(lessonId, initialNodes, onNodesChange)
+  const { nodes, setNodes, zones, setZones, offset, setOffset, scale, setScale, scaleRef } =
+    useCanvasBoardState(lessonId, initialNodes, initialZones, onNodesChange, onZonesChange)
 
   const [triggerMeasures, setTriggerMeasures] = useState({})
   // Кнопка «пройти с этой ноды» в меню ноды — только для админа, это
@@ -173,8 +182,6 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     })
   }, [])
 
-
-
   function deleteNode(nodeId) {
     setHoveredNodeId(null)
     setConfirmDeleteId(null)
@@ -202,23 +209,22 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const { portDrag, startPortDrag, handlePortMouseMove, handlePortMouseUp } =
     useCanvasPortDrag({ nodes, triggerMeasures, toWorld, setNodes, setTypeMenu, measureBoard })
 
-  function handleMouseMove(e) {
-    if (handlePortMouseMove(e)) return
-    const hitSize = n => ({ w: NODE_HIT_W[n.size] ?? 158, h: NODE_HIT_H[n.size] ?? 200 })
-    if (updateMarquee(e, () => boardRectRef.current, toWorld, nodes, hitSize)) return
-    onMouseMove(e)
-  }
+  // Инструмент «Зона» + CRUD над зонами — useZoneToolIntegration.js (нужен
+  // только setZones, логика геометрии — в zones/zoneOps.js)
+  const { zoneDraft, tryStartZoneDraw, tryUpdateZoneDraw, tryEndZoneDraw,
+    updateZoneRect, updateZoneLabel, deleteZone } =
+    useZoneToolIntegration({ zoneToolActive, toWorld, setZones, onZoneToolDone })
 
-  function handleMouseUp(e) {
-    // Снимаем запрет выделения ЗДЕСЬ, а не в endDrag: у рамки и у протяжки
-    // порта свои ранние выходы ниже, и класс на body остался бы висеть после
-    // них навсегда — текст в нодах перестал бы выделяться вообще
-    releaseTextSelection()
-    if (endMarquee()) return
-    if (handlePortMouseUp(e)) return
-    endDrag()
-    collapseIfClick(wasDragged)
-  }
+  // Три обработчика мыши доски (mousedown/move/up по пустому месту) —
+  // useCanvasBoardPointer.js: порядок проверок порт → зона → рамка → протяжка
+  const { handleBoardMouseDown, handleBoardMouseMove, handleBoardMouseUp } = useCanvasBoardPointer({
+    toWorld, boardRectRef, measureBoard, nodes,
+    setHoveredNodeId, setConfirmDeleteId,
+    startCanvasDrag, startMarquee, updateMarquee, endMarquee,
+    handlePortMouseMove, handlePortMouseUp,
+    tryStartZoneDraw, tryUpdateZoneDraw, tryEndZoneDraw,
+    onDragMouseMove: onMouseMove, endDrag, wasDragged, collapseIfClick,
+  })
 
   // Зум колесом/пинчем — точка под курсором остаётся под курсором
   const resetZoom = useCanvasZoom(boardRef, boardRectRef, scaleRef, setScale, setOffset)
@@ -241,7 +247,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Команды холсту снаружи (кнопки шапки, правая панель плеера) + «прожектор»
   // на ноде, к которой перешли из плеера
   const spotlightId = useCanvasBoardApi(ref, {
-    nodes, setNodes, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset, onRemoveLessonFile,
+    nodes, setNodes, zones, setZones, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset, onRemoveLessonFile,
   })
 
   // Считается только когда отладка включена — на обычной работе холста ноль
@@ -260,30 +266,14 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     <div
       ref={boardRef}
       className={`canvasBoard${spotlightId ? ' canvasSpotlight' : ''}`}
-      style={{ cursor: portDrag ? 'crosshair' : undefined, userSelect: portDrag ? 'none' : undefined }}
-      onMouseDown={e => {
-        // Перед любой протяжкой сверяем, где сейчас доска на экране
-        measureBoard()
-        // Клик вне ноды и меню закрывает меню-липучку (и вопрос «Удалить?»)
-        if (!e.target.closest?.('.canvasNodeWrapper')) {
-          setHoveredNodeId(null)
-          setConfirmDeleteId(null)
-        }
-        // Средняя кнопка — панорамирование холста (в т.ч. начатое над нодой,
-        // см. handleNodeMouseDown). Левая по пустому месту — рамка выделения,
-        // а не панорамирование (клики по нодам сюда не долетают — там
-        // stopPropagation в handleNodeMouseDown)
-        if (e.button === 1) {
-          e.preventDefault()
-          startCanvasDrag(e)
-          return
-        }
-        if (e.button !== 0) return
-        startMarquee(e, () => boardRectRef.current)
+      style={{
+        cursor: (portDrag || zoneToolActive) ? 'crosshair' : undefined,
+        userSelect: portDrag ? 'none' : undefined,
       }}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      onMouseDown={handleBoardMouseDown}
+      onMouseMove={handleBoardMouseMove}
+      onMouseUp={handleBoardMouseUp}
+      onMouseLeave={handleBoardMouseUp}
     >
       <svg className="canvasBoardSvg canvasBoardSvgBack">
         <g transform={svgTransform}>
@@ -294,6 +284,16 @@ const CanvasBoard = forwardRef(function CanvasBoard({
           />
         </g>
       </svg>
+
+      <ZonesLayer
+        zones={zones}
+        draft={zoneDraft}
+        worldTransform={worldTransform}
+        scaleRef={scaleRef}
+        onChange={updateZoneRect}
+        onLabelChange={updateZoneLabel}
+        onDelete={deleteZone}
+      />
 
       <div className={`canvasBoardWorld${far ? ' canvasBoardWorldFar' : ''}`}
         style={{ transform: worldTransform, transformOrigin: '0 0' }}>

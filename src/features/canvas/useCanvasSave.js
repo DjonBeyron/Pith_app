@@ -9,7 +9,7 @@ import { notifyLessonSaved } from '../../shared/lib/lessonSavedBus.js'
 // было ошибки — значит записалось»), очистка локальных черновиков (canvas-
 // ноды + настройки учителя) после успеха. Вынесено из CanvasPage.jsx.
 export function useCanvasSave({
-  lessonId, title, lessonXp, nodesRef, hasUnsynced, files, syncToServer,
+  lessonId, title, lessonXp, nodesRef, zonesRef, hasUnsynced, files, syncToServer,
   prepareForSave, clearTeacherDraft, setSyncStatus,
 }) {
   const [isSaving, setIsSaving] = useState(false)
@@ -41,7 +41,10 @@ export function useCanvasSave({
         if (!f?.r2Url) return node
         return { ...node, typeData: { ...node.typeData, [node.type]: { ...node.typeData[node.type], r2Url: f.r2Url } } }
       })
-      const scriptToSave = { nodes: nodesForSave, lessonXp, ...teacherData }
+      // Зоны (визуальная группировка нод, см. features/canvas/zones/) — часть
+      // урока наравне с нодами, но не участвуют в r2Url-инъекции: у них нет
+      // файлов
+      const scriptToSave = { nodes: nodesForSave, zones: zonesRef?.current ?? [], lessonXp, ...teacherData }
       dbg('[CANVAS] saving', nodesForSave.length, 'nodes to lesson', lessonId)
       await saveLesson(lessonId, { title, script: scriptToSave })
       // Схема модуля открыта под редактором и сама в базу больше не ходит —
