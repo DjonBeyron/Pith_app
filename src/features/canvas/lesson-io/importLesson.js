@@ -162,6 +162,9 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
           width: Math.max(1, z.width),
           height: Math.max(1, z.height),
           label: typeof z.label === 'string' ? z.label : '',
+          // Битый/чужой цвет не берём — ZoneBox.jsx сам откатится на цвет по
+          // умолчанию без этого поля (см. zoneOps.js, DEFAULT_ZONE_COLOR)
+          ...(typeof z.color === 'string' && /^#[0-9a-f]{6}$/i.test(z.color) ? { color: z.color } : {}),
         }))
     : []
 

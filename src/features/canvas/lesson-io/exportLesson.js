@@ -84,6 +84,7 @@ function exportZones(zones) {
     width: Math.round(z.width ?? 0),
     height: Math.round(z.height ?? 0),
     label: z.label ?? '',
+    ...(z.color ? { color: z.color } : {}),
   }))
 }
 

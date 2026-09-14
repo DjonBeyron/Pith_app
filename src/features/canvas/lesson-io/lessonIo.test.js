@@ -278,6 +278,20 @@ describe('зоны на холсте (визуальная разметка ав
     expect(zones).toHaveLength(1)
   })
 
+  it('цвет зоны проходит через экспорт и импорт, битый hex отбрасывается', () => {
+    const colored = { ...zone, color: '#5fb8ff' }
+    const text = exportLessonText(lesson(), { title: 'To be', zones: [colored] })
+    expect(JSON.parse(text).zones[0].color).toBe('#5fb8ff')
+    expect(importLesson(text).zones[0].color).toBe('#5fb8ff')
+
+    const { zones } = importLesson({
+      format: FORMAT,
+      nodes: [{ ref: 'a', type: 'text', data: { content: '1' }, triggers: [] }],
+      zones: [{ ...zone, color: 'not-a-hex-color' }],
+    })
+    expect(zones[0].color).toBeUndefined()
+  })
+
   it('легенда описывает поле zones', () => {
     const legend = buildLegend()
     expect(legend.zones).toBeTruthy()

@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useZoneDrag } from './useZoneDrag.js'
+import { zoneColorVars, DEFAULT_ZONE_COLOR, ZONE_COLOR_PRESETS } from './zoneOps.js'
 
 // Одна зона на холсте: сама рамка (едва видная, чисто визуальная — пропускает
 // клики мимо себя, см. zones.css) + полоска подписи над ней (двигает зону,
@@ -25,17 +27,38 @@ function labelFontSize(scale) {
 export default function ZoneBox({ zone, scaleRef, scale, onChange, onLabelChange, onDelete }) {
   const startDrag = useZoneDrag({ scaleRef, onChange })
   const fontSize = labelFontSize(scale)
+  const color = zone.color ?? DEFAULT_ZONE_COLOR
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   return (
     <div
       className="canvasZone"
-      style={{ left: zone.x, top: zone.y, width: zone.width, height: zone.height }}
+      style={{ left: zone.x, top: zone.y, width: zone.width, height: zone.height, ...zoneColorVars(color) }}
     >
       <div
         className="canvasZoneLabelBar"
         style={{ fontSize }}
         onMouseDown={e => startDrag(zone, e, 'move')}
       >
+        <button
+          className="canvasZoneColorDot"
+          style={{ background: color }}
+          title="Цвет зоны"
+          onMouseDown={e => e.stopPropagation()}
+          onClick={() => setPickerOpen(v => !v)}
+        />
+        {pickerOpen && (
+          <div className="canvasZoneColorPicker" onMouseDown={e => e.stopPropagation()}>
+            {ZONE_COLOR_PRESETS.map(preset => (
+              <button
+                key={preset}
+                className="canvasZoneColorSwatch"
+                style={{ background: preset }}
+                onClick={() => { onChange(zone.id, { color: preset }); setPickerOpen(false) }}
+              />
+            ))}
+          </div>
+        )}
         <input
           className="canvasZoneLabelInput"
           value={zone.label ?? ''}
