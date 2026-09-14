@@ -23,6 +23,48 @@ import { motionAllowed, subscribeMotion } from '../../../../shared/lib/motionPer
 // повернуть обратно. Всё это только на время ожидания; после — как было.
 export const ALLOW_LANDSCAPE_ATTR = 'data-allow-landscape'
 
+// Впустить альбомную ориентацию: атрибут для заглушки + unlock. Возвращает
+// «отпустить». Держателей может быть несколько сразу: хук ожидания отпускает
+// в cleanup (пассивная фаза), а оверлей тренажёра берёт в layout-эффекте —
+// то есть РАНЬШЕ, чем хук отпустил. Без счётчика cleanup хука снимал атрибут
+// уже после того, как оверлей его поставил, и заглушка «Поверните
+// вертикально» ложилась поверх залитого экрана. Пока держит хоть кто-то —
+// атрибут стоит; отпустил последний — lock('portrait') как было
+let holds = 0
+// who — метка держателя для лога («ожидание», «оверлей»): по «Скачать лог»
+// видно, кто взял, кто отпустил и в какой момент атрибут реально снялся
+export function holdLandscape(who = '?') {
+  holds += 1
+  pLog(`[landscape] держит «${who}» → держателей ${holds}${holds === 1 ? ', атрибут ПОСТАВЛЕН' : ''}`)
+  if (holds === 1) {
+    document.documentElement.setAttribute(ALLOW_LANDSCAPE_ATTR, '')
+    // Только в PWA/fullscreen lock вообще работал — там его и снимаем.
+    // В обычной вкладке unlock просто откажет, это ожидаемо
+    try { screen.orientation?.unlock?.() } catch { /* нет API или не даёт */ }
+  }
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    holds -= 1
+    pLog(`[landscape] отпустил «${who}» → держателей ${holds}${holds === 0 ? ', атрибут СНЯТ' : ''}`)
+    if (holds > 0) return
+    document.documentElement.removeAttribute(ALLOW_LANDSCAPE_ATTR)
+    try { screen.orientation?.lock?.('portrait').catch(() => {}) } catch { /* см. выше */ }
+  }
+}
+
+// Снимок для лога: что сейчас с ориентацией и заглушкой
+export function landscapeDebugState() {
+  const guard = document.querySelector('.orientationGuard')
+  const shown = guard ? getComputedStyle(guard).display !== 'none' : null
+  return `landscape=${window.matchMedia('(orientation: landscape)').matches}`
+    + ` touch=${window.matchMedia('(hover: none) and (pointer: coarse)').matches}`
+    + ` attr=${document.documentElement.hasAttribute(ALLOW_LANDSCAPE_ATTR)}`
+    + ` держателей=${holds} заглушка=${shown == null ? 'нет в DOM' : shown ? 'ВИДНА' : 'скрыта'}`
+    + ` ${window.innerWidth}×${window.innerHeight}`
+}
+
 // Порог наклона. У лежащего набок телефона |gamma| подходит к 90, у стоящего
 // в руке — 0–25 (обычный наклон к себе). 55 оставляет запас в обе стороны и
 // ловит поворот до того, как у углов Эйлера начинается кувырок у 90
@@ -39,17 +81,15 @@ export function useLandscapeWatch(active, onRotate) {
   useEffect(() => {
     if (!active) return
     const mq = window.matchMedia('(orientation: landscape)')
-    const root = document.documentElement
-    root.setAttribute(ALLOW_LANDSCAPE_ATTR, '')
-    // Только в PWA/fullscreen lock вообще работал — там его и снимаем.
-    // В обычной вкладке unlock просто откажет, это ожидаемо
-    try { screen.orientation?.unlock?.() } catch { /* нет API или не даёт */ }
+    const release = holdLandscape('ожидание поворота')
 
+    // Оверлею тренажёра важно, КАК повернули: экран (рисовать как есть) или
+    // только сам телефон при замке (рисовать сцену повёрнутой, знак — по gamma)
     const hit = source => {
       if (firedRef.current) return
       firedRef.current = true
-      pLog(`[rotate] телефон повёрнут (${source}) — стрелка остановлена`)
-      onRotate?.()
+      pLog(`[rotate] телефон повёрнут (${source}) — стрелка остановлена · ${landscapeDebugState()}`)
+      onRotate?.({ source: 'screen', gamma: 0 })
     }
 
     // Канал 1: экран
@@ -62,13 +102,12 @@ export function useLandscapeWatch(active, onRotate) {
     // Старый Safari — без addEventListener у MediaQueryList
     mq.addListener?.(check)
 
-    pLog('[rotate] жду поворота: экран=да')
+    pLog(`[rotate] жду поворота: экран=да · ${landscapeDebugState()}`)
 
     return () => {
       mq.removeEventListener?.('change', check)
       mq.removeListener?.(check)
-      root.removeAttribute(ALLOW_LANDSCAPE_ATTR)
-      try { screen.orientation?.lock?.('portrait').catch(() => {}) } catch { /* см. выше */ }
+      release()
     }
   }, [active, onRotate])
 
@@ -82,7 +121,9 @@ export function useLandscapeWatch(active, onRotate) {
       if (Math.abs(e.gamma) > TILT_DEG) {
         firedRef.current = true
         pLog(`[rotate] телефон повёрнут (наклон gamma=${Math.round(e.gamma)}) — стрелка остановлена`)
-        onRotate?.()
+        // Экран мог повернуться и сам — тогда это не замок, рисуем как есть
+        const screenToo = window.matchMedia('(orientation: landscape)').matches
+        onRotate?.({ source: screenToo ? 'screen' : 'tilt', gamma: e.gamma })
       }
     }
     window.addEventListener('deviceorientation', onTilt)

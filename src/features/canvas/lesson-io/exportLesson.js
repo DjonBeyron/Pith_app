@@ -7,7 +7,7 @@ import { getVariantList } from '../nodeVariants.js'
 // выбрасывается — редактор пересчитает это сам при загрузке файла.
 
 // Поля data, которые не несут смысла без файла
-const FILE_FIELDS = ['file_id', 'photoUrl', 'waveformData', 'wordTimings', 'duration']
+const FILE_FIELDS = ['file_id', 'photoUrl', 'waveformData', 'wordTimings', 'duration', 'audioClips']
 
 const isEmpty = v =>
   v == null || v === '' ||

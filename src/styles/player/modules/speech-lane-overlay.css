@@ -1,0 +1,58 @@
+/* Оверлей голосового тренажёра (SpeechLaneOverlay.jsx): пузырь «переверни»
+   растягивается на весь экран и обратно. Длительности — те же, что в JS
+   (EXPAND_MS 1.5с, DRAW_MS 0.7с), сторож в rotatePhone.test.js. */
+.slOverlay {
+  position: fixed;
+  z-index: 10000;              /* поверх плеера (200), вкладок, версии, заглушек (999) */
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: left 1.5s cubic-bezier(0.4, 0, 0.2, 1), top 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+              width 1.5s cubic-bezier(0.4, 0, 0.2, 1), height 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius 1.5s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .slOverlay { transition: none; }
+}
+
+/* Сцена внутри: в режиме screen — весь оверлей; в режиме tilted (замок
+   поворота) — прямоугольник высотой в ширину экрана и шириной в высоту,
+   повёрнутый на ±90° (знак — --sl-rot из датчика). Адресная строка и
+   safe-area у Safari остаются «портретными» — оказываются сбоку сцены */
+.slOverlayStage {
+  position: absolute;
+  inset: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  box-sizing: border-box;
+}
+.slOverlayStage--tilted {
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: 100dvh;
+  height: 100dvw;
+  transform: translate(-50%, -50%) rotate(var(--sl-rot, 90deg));
+  padding: env(safe-area-inset-left) env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom);
+}
+/* Фон даёт сам оверлей (цвет пузыря) — сцена прозрачная */
+.slOverlay .slStage { background: transparent; }
+
+/* Пунктиры рисуются сверху вниз, пока идёт фаза draw; круг проявляется
+   следом. Потом всё статично — на кадры полёта ничего не влияет */
+.slOverlayStage--drawing .slStageDivider {
+  animation: slDividerDraw 0.7s ease-out both;
+}
+.slOverlayStage--drawing .slStageRing {
+  animation: slFadeIn 0.4s ease-out 0.4s both;
+}
+@keyframes slDividerDraw {
+  from { bottom: 100%; }
+  to   { bottom: 0; }
+}
+@keyframes slFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slOverlayStage--drawing .slStageDivider,
+  .slOverlayStage--drawing .slStageRing { animation: none; }
+}

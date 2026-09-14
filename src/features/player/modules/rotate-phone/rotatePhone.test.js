@@ -37,50 +37,93 @@ describe('датчик поворота', () => {
 
   it('на время ожидания приложение впускает альбомную ориентацию', () => {
     // Иначе послушный поворот встречал бы заглушку «Поверните вертикально»
-    expect(hook).toContain("root.setAttribute(ALLOW_LANDSCAPE_ATTR, '')")
+    expect(hook).toContain("document.documentElement.setAttribute(ALLOW_LANDSCAPE_ATTR, '')")
+    expect(hook).toContain("const release = holdLandscape('ожидание поворота')")
     expect(hook).toContain('screen.orientation?.unlock?.()')
     expect(read('../../../../styles/orientation-guard.css')).toContain('html[data-allow-landscape] .orientationGuard { display: none !important; }')
     // …и возвращает всё как было
-    expect(hook).toContain('root.removeAttribute(ALLOW_LANDSCAPE_ATTR)')
+    expect(hook).toContain('document.documentElement.removeAttribute(ALLOW_LANDSCAPE_ATTR)')
     expect(hook).toContain("screen.orientation?.lock?.('portrait')")
   })
 })
 
-describe('остановка стрелки', () => {
-  it('на телефоне крутится до поворота, галочка — только по повороту', () => {
-    // Лимит показов и часы — только вне телефона (десктоп, превью админа)
+describe('остановка стрелки и запуск тренажёра', () => {
+  it('на телефоне крутится до поворота, галочка — по повороту или концу игры', () => {
+    // Автостарт по часам — только вне телефона (десктоп, превью админа)
     expect(mod).toContain("const [canRotate] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches)")
-    const iter = mod.slice(mod.indexOf('function onIteration'))
-    expect(iter.slice(0, 80)).toContain('if (canRotate) return')
-    expect(mod).toContain("{by === 'rotate' && <span className=\"playerRotateCheck\"><Check size={13} /></span>}")
-    expect(mod).not.toContain('{stopped && <span className="playerRotateCheck"')
+    expect(mod).toContain('if (canRotate) return')
+    expect(mod).toContain("{(by === 'rotate' || phase === 'finished') && <span className=\"playerRotateCheck\"><Check size={13} /></span>}")
   })
 
-  it('поворот — стоп; вне телефона три показа — стоп; потом onDone', () => {
-    expect(mod).toContain('const MAX_SHOWS = 3')
-    expect(mod).toContain("useLandscapeWatch(!stopped, useCallback(() => stop('rotate'), [stop]))")
-    expect(mod).toContain('onAnimationIteration={onIteration}')
+  it('поворот — старт; вне телефона старт через 3 с; потом onDone', () => {
+    expect(mod).toContain('const AUTO_START_MS = 3000')
+    expect(mod).toContain("useLandscapeWatch(phase === 'wait', useCallback(rot => start('rotate', rot), [start]))")
     expect(mod).toContain("onDone?.('shown')")
+    // Повторно не срабатывает — ни датчик, ни часы
+    expect(mod).toContain('if (doneRef.current) return')
   })
 
-  it('показы считаются по самой анимации, а часы — только страховка', () => {
-    // Число циклов берётся из animationiteration — оно совпадает с тем, что
-    // видно на экране. Часы нужны на reduced-motion и скрытую вкладку
-    expect(mod).toContain('if (showsRef.current >= MAX_SHOWS)')
-    expect(mod).toContain('MAX_SHOWS * CYCLE_MS + 600')
-  })
-
-  it('длина цикла в JS и CSS одна и та же', () => {
-    const js = Number(mod.match(/const CYCLE_MS = (\d+)/)[1])
-    const cssMs = Number(css.match(/animation: playerRotateAsk ([\d.]+)s/)[1]) * 1000
-    expect(js).toBe(cssMs)
+  it('игра всегда: партитура из таймлайна, сценария или демо-фразы; подпись «закончена» в том же пузыре', () => {
+    expect(mod).toContain("import { prepareSpeechLane } from '../../../../shared/lib/speechLanePrepare.js'")
+    expect(mod).toContain('const score = useMemo(() => prepareSpeechLane(tData), [tData])')
+    expect(mod).toContain("setPhase('game')")
+    // Пути «без игры» больше нет — нода без настроек играет демо-фразу
+    expect(mod).not.toContain("setPhase('stopped')")
+    expect(mod).toContain("{phase === 'game' && (")
+    expect(mod).toContain("onFinished={() => setPhase('finished')}")
+    expect(mod).toContain("{phase === 'finished' ? FINISHED_TEXT : title}")
+    expect(mod).toContain("const FINISHED_TEXT = 'Голосовая тренировка закончена'")
   })
 
   it('после остановки значок замирает горизонтально, дуга гаснет', () => {
     expect(css).toContain('.playerRotateCard--stopped .playerRotatePhone {')
     expect(css).toContain('.playerRotateCard--stopped .playerRotateArrows { animation: none; opacity: 0.18; }')
-    // Повторно не срабатывает — ни датчик, ни лимит
-    expect(mod).toContain('if (doneRef.current) return')
+  })
+})
+
+describe('оверлей тренажёра', () => {
+  const ov = read('./SpeechLaneOverlay.jsx')
+  const ovCss = read('../../../../styles/player/modules/speech-lane-overlay.css')
+
+  it('поверх всего, длительности в JS и CSS одни', () => {
+    expect(ov).toContain('document.body')
+    expect(ovCss).toContain('z-index: 10000;')
+    const expand = Number(ov.match(/export const EXPAND_MS\s*=\s*(\d+)/)[1])
+    expect(ovCss).toContain('width ' + expand / 1000 + 's')
+    const draw = Number(ov.match(/export const DRAW_MS\s*=\s*(\d+)/)[1])
+    expect(ovCss).toContain('animation: slDividerDraw ' + draw / 1000 + 's')
+    expect(read('../../../../index.css')).toContain("@import './styles/player/modules/speech-lane-overlay.css'")
+  })
+
+  it('альбомная ориентация впущена на всю игру и два режима отрисовки', () => {
+    // Хук отпускает атрибут в cleanup ПОСЛЕ layout-эффекта оверлея — поэтому
+    // счётчик держателей, а не флаг: иначе заглушка ложилась поверх игры
+    expect(hook).toContain("export function holdLandscape(who = '?')")
+    expect(hook).toContain('holds -= 1')
+    expect(hook).toContain('if (holds > 0) return')
+    expect(ov).toContain("const release = holdLandscape('оверлей игры')")
+    expect(ov).toContain('return () => { cancelAnimationFrame(id); release() }')
+    const orient = read('./useStageOrientation.js')
+    expect(orient).toContain("const tilted = !screenLandscape && rotation?.source === 'tilt'")
+    expect(ovCss).toContain('.slOverlayStage--tilted {')
+    expect(ovCss).toContain('rotate(var(--sl-rot, 90deg))')
+    // Хук сообщает, как повернули: экран или только телефон при замке
+    expect(hook).toContain("onRotate?.({ source: screenToo ? 'screen' : 'tilt', gamma: e.gamma })")
+  })
+
+  it('мастер-часы — композиция, звук следом по нарезке, не Web Audio', () => {
+    const game = read('./useSpeechLaneGame.js')
+    expect(game).toContain('createSilentClock(timelineLen + TAIL_S')
+    expect(game).toContain('createAudioClipPlayer({ audioRef, clipsRef })')
+    expect(game).not.toContain('AudioContext')
+    // Скрытая вкладка — пауза
+    expect(game).toContain("document.addEventListener('visibilitychange', onVis)")
+  })
+
+  it('конец: фейерверк → стягивание в пузырь → onFinished', () => {
+    expect(ov).toContain("onEnd: () => setPhase('fireworks')")
+    expect(ov).toContain("{phase === 'fireworks' && <BurstConfetti")
+    expect(ov).toContain("else if (phase === 'collapse') id = setTimeout(() => onFinished?.(), EXPAND_MS)")
   })
 })
 
@@ -88,7 +131,7 @@ describe('вид карточки', () => {
   it('крутится HTML-обёртка, а не SVG-группа — Safari', () => {
     // CSS-поворот <g> Safari проигрывает ненадёжно (transform-origin у группы
     // считается иначе); span крутится везде одинаково
-    expect(mod).toContain('<span className="playerRotatePhone" onAnimationIteration={onIteration}>')
+    expect(mod).toContain('<span className="playerRotatePhone">')
     expect(mod).toContain('<svg className="playerRotateArrows"')
     expect(mod).not.toContain('<g className="playerRotatePhone"')
   })
@@ -103,11 +146,9 @@ describe('вид карточки', () => {
   })
 
   it('тексты: заголовок редактируется, подпись постоянная, «ладно» убрано', () => {
-    expect(mod).toContain("const title = node.typeData?.rotate_phone?.content || 'Поверните экран'")
+    expect(mod).toContain("const title = tData.content || 'Поверните экран'")
     expect(mod).toContain('Переверните телефон горизонтально')
     expect(mod).not.toContain('Ладно, идём дальше')
-    // Индикация для проверки датчика — только при настоящем повороте
-    expect(mod).toContain("{by === 'rotate' && <span className=\"playerRotateHit\">Телефон повёрнут ✓</span>}")
   })
 })
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { fmtAudioTime } from '../../../shared/lib/audioUtils.js'
 import { extrasStartSec } from '../../../shared/lib/tableDictatorTiming.js'
 import { useTableTimelineEdit } from './useTableTimelineEdit.js'
@@ -8,7 +8,7 @@ import { answerWordsOutsideTable, sortTimelineLayers } from './tableGridUtils.js
 import TableTimelineTrack from './TableTimelineTrack.jsx'
 import TableTimelineRuler from './TableTimelineRuler.jsx'
 import TableTimelinePreview from './TableTimelinePreview.jsx'
-import { startDragSession } from './timelineDrag.js'
+import { useTimelineStrip } from './useTimelineStrip.js'
 import { collectSnapEdges } from './timelineSnapEdges.js'
 import { useNoTextSelection } from './useNoTextSelection.js'
 import BackButton from '../../../shared/ui/BackButton.jsx'
@@ -90,58 +90,19 @@ export default function TableTimelineEditor({ table, fileId, waveformData, durat
   // (свои клип отфильтрует сам, см. TableTimelineTrack)
   const snapEdges = useMemo(() => collectSnapEdges(layers), [layers])
 
-  // Протяжка за сам плейхед — считаем время по той же полосе, что и линейка
   const rootRef = useRef(null)
-  const stripRef = useRef(null)
-  const innerRef = useRef(null)
-  // Полоса дорожек тянется по свободному месту (flex:1 при min-width), поэтому
-  // её реальная ширина бывает больше stripPx. Раньше линия рисовалась по
-  // stripPx, а время при протяжке считалось по фактической ширине — из-за
-  // расхождения плейхед убегал от курсора и не вставал туда, куда его тянут.
-  // Меряем полосу и рисуем линию ровно по ней.
-  const [strip, setStrip] = useState({ left: 120, width: 0 })
-
-  useLayoutEffect(() => {
-    const s = stripRef.current
-    const inner = innerRef.current
-    if (!s || !inner) return
-    const measure = () => {
-      const sb = s.getBoundingClientRect()
-      const ib = inner.getBoundingClientRect()
-      const next = { left: sb.left - ib.left, width: sb.width }
-      setStrip(prev => (prev.left === next.left && prev.width === next.width ? prev : next))
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(s)
-    ro.observe(inner)
-    return () => ro.disconnect()
-  }, [stripPx])
+  // Плейхед: измеренная полоса дорожек, линия и протяжка за флажок — useTimelineStrip.js
+  const { stripRef, innerRef, cursorLeftPx, startCursorDrag } = useTimelineStrip({
+    stripPx, duration: timelineDur, currentTime, onSeek: handleSeek,
+  })
   // Выделение текста на всей странице таймлайна запрещено (кроме полей ввода)
   useNoTextSelection(rootRef)
 
-  function timeAtX(clientX) {
-    const rect = stripRef.current?.getBoundingClientRect()
-    if (!rect?.width) return 0
-    return Math.max(0, Math.min(timelineDur, ((clientX - rect.left) / rect.width) * timelineDur))
-  }
-
-  function startCursorDrag(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    startDragSession(mv => handleSeek(timeAtX(mv.clientX)))
-  }
 
   // Канвас волны занимает только аудио-часть композиции (первую), дальше пусто.
   // В процентах, а не в пикселях: полоса тянется по свободному месту, и от
   // пиксельной ширины волна разъезжалась бы с линейкой на широком окне
   const wavePct = localDuration ? (localDuration / timelineDur) * 100 : 0
-  // Плейхед — по измеренной полосе (см. strip выше): так он всегда совпадает
-  // и с засечками линейки, и с клипами дорожек
-  const cursorLeftPx = strip.width
-    ? strip.left + (currentTime / timelineDur) * strip.width
-    : 0
-
   return (
     <div className="tlEditor" ref={rootRef}>
       {/* Только «Назад» — она же сохраняет (onBack в TableEditorModal сам коммитит

@@ -1,0 +1,131 @@
+/* ── Редактор таймлайна тренажёра «Переверни телефон» (canvas/speech-lane/) ──
+   Поверх общих стилей таймлайна таблицы (.tl*, table-editor-timeline.css):
+   тот же монтажный стол, свои дорожки — слова с ролью и дорожка озвучки. */
+
+/* Колонка названий шире: в ней ⧉ копия, роль, номер дорожки экрана, текст.
+   Спейсеры линейки — той же ширины, чтобы полосы совпали с засечками:
+   👁 22 + 6 + ⧉ 22 + 6 + роль 22 + 6 + дорожка 22 + 6 + подпись 150 = 262
+   (последний зазор 6 добавляет сам flex-gap линейки) */
+.slEditor .tlWaveSpacer { width: 262px; }
+.slEditor .tlTrackLabel { width: 150px; text-align: left; }
+.slEditor .tlTrack { height: 44px; }
+.slEditor .tlTrackStrip { height: 30px; }
+
+/* Роль: 🟢 диктор / 🔴 ученик — клик переключает */
+.slRoleBtn, .slLaneBtn {
+  width: 22px; height: 22px; flex-shrink: 0; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid #2a2d35; border-radius: 6px; background: transparent;
+  color: rgba(255,255,255,0.65); font-size: 11px; line-height: 1; cursor: pointer;
+}
+.slRoleBtn:hover, .slLaneBtn:hover { border-color: #3a4050; }
+.slLaneBtn { font-weight: 700; color: #b6fe3b; }
+
+/* Текст дорожки — правится прямо в колонке названий */
+.slLabel { display: flex; flex-direction: column; gap: 2px; }
+.slLabelText {
+  width: 100%; box-sizing: border-box; padding: 3px 5px;
+  background: rgba(255,255,255,0.04); border: 1px solid transparent; border-radius: 4px;
+  color: #ddd; font-size: 12px;
+}
+.slLabelText:focus { outline: none; border-color: rgba(182,254,59,0.4); background: #0a0c10; }
+/* Перевод: роль и дорожка экрана — только значки, не кнопки */
+.slRoleBtnTr, .slLaneBtnOff { cursor: default; opacity: 0.7; }
+.slLaneBtnOff { color: rgba(255,255,255,0.35); }
+
+/* ⧉ копия дорожки — слева, рядом с 👁 (та же кнопка-значок) */
+.slDupLayer { font-size: 14px; }
+
+/* Клип слова: зелёный — диктор (общий .tlClip), красный — ученик, голубой — перевод */
+.slClipTr { background: rgba(120, 200, 255, 0.22); border-color: rgba(120, 200, 255, 0.8); }
+.slClipTr .tlClipHandleL, .slClipTr .tlClipHandleR { background: rgba(120, 200, 255, 0.6); }
+.slClipUser { background: rgba(255, 80, 106, 0.28); border-color: rgba(255, 80, 106, 0.8); }
+.slClipUser .tlClipHandleL, .slClipUser .tlClipHandleR { background: rgba(255, 80, 106, 0.6); }
+.slTrackUser .tlEye:hover { color: #ff506a; }
+
+/* Окно, когда слово реально звучит в озвучке — светлая полоса внутри клипа.
+   Пунктирная — слово в озвучке не нашлось, горит «у круга» по умолчанию */
+.slClipLit {
+  position: absolute; top: 0; bottom: 0; z-index: 1; pointer-events: none;
+  background: rgba(255,255,255,0.35);
+}
+.slClipLitGuess { background: repeating-linear-gradient(90deg, rgba(255,255,255,0.3) 0 3px, transparent 3px 6px); }
+
+/* Столкновение: два вылета в одной дорожке экрана в одно время */
+.slClipCollide { box-shadow: 0 0 0 2px #ff3b3b, 0 0 10px rgba(255,59,59,0.6); }
+
+/* ⧉ повтор — та же кнопка, что × у повтора, только слева */
+.slClipDup {
+  position: absolute; right: 2px; top: 50%; transform: translateY(-50%); z-index: 3;
+  width: 14px; height: 14px; padding: 0; border: none; border-radius: 3px;
+  background: rgba(0,0,0,0.35); color: rgba(255,255,255,0.8); font-size: 10px; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.slClipDup:hover { background: rgba(0,0,0,0.65); color: #b6fe3b; }
+/* На куске озвучки × стоит справа — ⧉ левее него; слева — список слова */
+.slAudioDup { right: 18px; }
+.slAudioPick { left: 10px; max-width: calc(100% - 52px); background: rgba(10, 12, 16, 0.85); }
+
+/* Зум таймлайна в шапке */
+.slZoom { display: flex; align-items: center; gap: 4px; margin-left: 14px; color: #7a808c; font-size: 11px; }
+.slZoomBtn {
+  width: 20px; height: 20px; padding: 0; border: 1px solid #2a2d35; border-radius: 5px;
+  background: transparent; color: #ccc; font-size: 13px; line-height: 1; cursor: pointer;
+}
+.slZoomBtn:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.slZoomBtn:disabled { opacity: 0.3; cursor: default; }
+.slZoomVal { min-width: 34px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* Окно по ручной привязке куска — сплошное и ярче, чем по таймингам */
+.slClipLitBound { background: rgba(255,255,255,0.55); }
+
+/* Дорожка озвучки: куски файла с волной, режется ✂ по плейхеду */
+.slAudioTrack { height: 48px; }
+.slAudioTrack .tlEye:disabled { opacity: 0.25; cursor: default; }
+/* У дорожки озвучки нет роли и номера дорожки экрана — подпись шире ровно на
+   их место (2 × (22 + 6)), чтобы полоса начиналась там же, где у слов */
+.slEditor .slAudioLabel { width: 206px; display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.7); }
+.slSplitBtn {
+  width: 22px; height: 22px; padding: 0; border: 1px solid #2a2d35; border-radius: 6px;
+  background: transparent; color: #b6fe3b; font-size: 12px; cursor: pointer;
+}
+.slSplitBtn:hover { border-color: #b6fe3b; background: rgba(182,254,59,0.1); }
+.slAudioStrip { height: 36px; background: rgba(255,255,255,0.03); }
+.slAudioClip {
+  position: absolute; top: 2px; bottom: 2px; min-width: 8px;
+  background: rgba(120, 160, 255, 0.16); border: 1px solid rgba(120, 160, 255, 0.7);
+  border-radius: 4px; display: flex; align-items: stretch; overflow: hidden;
+}
+.slAudioClip .tlClipHandleL, .slAudioClip .tlClipHandleR { background: rgba(120, 160, 255, 0.55); }
+.slAudioClipCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* Предупреждение в строке аудио */
+.slWarn { font-size: 11px; color: #ffb84d; white-space: nowrap; }
+
+/* Строка добавления дорожки */
+.slAddText {
+  flex: 1; background: #0a0c10; border: 1px solid #1e2030; border-radius: 6px;
+  color: #ddd; font-size: 12px; padding: 5px 8px;
+}
+.slAddRow .tlCellSelect { flex: 0 0 auto; }
+.tlAddTrackBtn:disabled { opacity: 0.4; cursor: default; }
+
+/* Превью: альбомный «телефон» 16:9 со сценой внутри */
+.slPreviewPhone {
+  width: min(100%, 560px); aspect-ratio: 16 / 8.5; margin: 0 auto;
+  border: 2px solid #2a2d35; border-radius: 14px; overflow: hidden; background: #000;
+}
+
+/* В карточке ноды на канвасе */
+.nodeRotateTrainer { margin-top: 6px; }
+.nodeRotateTrainerRow { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.nodeRotateTrainerRow > .nodeTablePickerBtn { flex: 0 0 auto; white-space: nowrap; overflow: visible; }
+.nodeRotateTrainerInfo { font-size: 11px; color: #7a808c; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nodeRotateTrainerRow .nodeAudioTtsRow { margin: 0; }
+/* «⤓ Из дорожек» — рядом с «🔊 Озвучить», того же роста */
+.nodeRotatePickBtn {
+  padding: 4px 10px; border: 1px solid #2a2d35; border-radius: 6px; background: transparent;
+  color: rgba(255,255,255,0.7); font-size: 11px; cursor: pointer; white-space: nowrap;
+}
+.nodeRotatePickBtn:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.nodeRotatePickBtn:disabled { opacity: 0.35; cursor: default; }

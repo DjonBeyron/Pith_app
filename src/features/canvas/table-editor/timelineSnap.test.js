@@ -66,7 +66,7 @@ describe('магнит и протяжки в интерфейсе таймла�
       expect(drag).toContain(`window.removeEventListener('${ev}'`)
     }
     // все протяжки таймлайна идут через общую сессию
-    for (const f of ['./TableTimelineTrack.jsx', './TableTimelineRuler.jsx', './TableTimelineEditor.jsx']) {
+    for (const f of ['./TableTimelineTrack.jsx', './TableTimelineRuler.jsx', './useTimelineStrip.js']) {
       expect(read(f)).toContain('startDragSession(')
       expect(read(f)).not.toContain("window.addEventListener('mousemove'")
     }

@@ -36,7 +36,7 @@ export default function TableDemoModule({ node, file, onDone, pending = false, a
   }, [src, pending])
 
   return (
-    <TableChatBubble table={table}>
+    <TableChatBubble table={table} caption={tData.chatCaption ?? ''}>
       {src && (
         <audio
           src={src}

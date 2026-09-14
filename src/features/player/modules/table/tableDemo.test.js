@@ -143,10 +143,12 @@ describe('плейхед совпадает с линейкой и клипам�
   // Полоса дорожек тянется по свободному месту, поэтому её реальная ширина
   // больше stripPx. Линия рисовалась по stripPx — и убегала от курсора
   it('позиция линии считается по измеренной полосе, а не по stripPx', () => {
-    const editor = read('../../../canvas/table-editor/TableTimelineEditor.jsx')
-    expect(editor).toContain('const cursorLeftPx = strip.width')
-    expect(editor).toContain('strip.left + (currentTime / timelineDur) * strip.width')
-    expect(editor).toContain('new ResizeObserver(measure)')
+    // Геометрия плейхеда вынесена в useTimelineStrip.js — общий с тренажёром
+    const strip = read('../../../canvas/table-editor/useTimelineStrip.js')
+    expect(strip).toContain('const cursorLeftPx = strip.width')
+    expect(strip).toContain('strip.left + (currentTime / duration) * strip.width')
+    expect(strip).toContain('new ResizeObserver(measure)')
+    expect(read('../../../canvas/table-editor/TableTimelineEditor.jsx')).toContain('useTimelineStrip(')
   })
 
   it('волна тянется в процентах — иначе разъедется с линейкой', () => {

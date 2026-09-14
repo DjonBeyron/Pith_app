@@ -1,0 +1,126 @@
+/* Сцена голосового тренажёра «Переверни телефон» — shared/ui/SpeechLaneStage.jsx.
+   Одна и та же разметка в превью редактора таймлайна (канвас) и в плеере на
+   весь экран: контейнер задаёт размер снаружи, сцена заполняет его целиком.
+   Цвет фона — как у пузыря учителя (message.css .playerMsgBubble): именно в него
+   «заливается» карточка при повороте. */
+.slStage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Размеры внутри — от самой сцены (cq-единицы), не от окна: в превью
+     редактора она маленькая, в плеере — весь экран, пропорции одни */
+  container-type: size;
+  background: #1a1d22;
+  color: #fff;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  --sl-accent: #b6fe3b;
+  --sl-user: #ff506a;
+  --sl-role: var(--sl-accent);
+}
+.slStage--user { --sl-role: var(--sl-user); }
+
+/* Два пунктира сверху вниз делят экран на три дорожки. В плеере они
+   «рисуются» появлением (slStage--drawing → анимация высоты), здесь — статично */
+.slStageDivider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed rgba(255, 255, 255, 0.22);
+  transform: translateX(-1px);
+}
+
+/* Перевод — по центру, ПОВЕРХ круга (z-index выше колец). Своя дорожка на
+   таймлайне: появляется с началом её клипа, уходит к его концу. Появление —
+   scale/opacity/rotate с дрожанием (несколько перелётов через ноль, как
+   пружина), уход — в обратную сторону; оба недолгие, чтобы не отставать от
+   слов. Ключ элемента = вылет, поэтому каждый клип анимируется заново */
+.slStageTranslation {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  max-width: 60%;
+  text-align: center;
+  font-size: clamp(11px, 7cqh, 30px);
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  animation: slTrIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.slStageTranslation--out {
+  animation: slTrOut 0.35s ease-in both;
+}
+@keyframes slTrIn {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-14deg); }
+  45%  { opacity: 1; transform: translate(-50%, -50%) scale(1.12) rotate(6deg); }
+  65%  {            transform: translate(-50%, -50%) scale(0.96) rotate(-4deg); }
+  82%  {            transform: translate(-50%, -50%) scale(1.03) rotate(2deg); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+@keyframes slTrOut {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  30%  {            transform: translate(-50%, -50%) scale(1.06) rotate(-5deg); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(12deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slStageTranslation, .slStageTranslation--out { animation: none; }
+  .slStageTranslation--out { opacity: 0; }
+}
+
+/* Круг по центру — три кольца, как в записи голоса (VoiceRecordBar):
+   раздуваются от громкости (--sl-level 0..1). Цвет — по роли активного слова */
+.slStageRing {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34cqh;
+  height: 34cqh;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.slStageRingOuter, .slStageRingMid, .slStageRingCore {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  background: var(--sl-role);
+  transform: translate(-50%, -50%) scale(calc(1 + var(--sl-level, 0) * var(--sl-grow, 0.5)));
+  transition: background 0.3s ease, transform 0.08s linear;
+}
+.slStageRingOuter { width: 100%; height: 100%; opacity: 0.10; --sl-grow: 0.7; }
+.slStageRingMid   { width: 74%;  height: 74%;  opacity: 0.16; --sl-grow: 0.5; }
+.slStageRingCore  { width: 50%;  height: 50%;  opacity: 0.32; --sl-grow: 0.3; }
+
+/* Летящее слово: подложка-плашка, центр — на дорожке; top = прогресс полёта */
+.slWord {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 0.35em 0.9em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: clamp(10px, 8cqh, 34px);
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  will-change: top;
+}
+.slWord--coach.slWord--lit {
+  background: var(--sl-accent);
+  border-color: var(--sl-accent);
+  color: #0e1013;
+  box-shadow: 0 0 18px rgba(182, 254, 59, 0.55);
+}
+.slWord--user { border-color: rgba(255, 80, 106, 0.55); }
+.slWord--user.slWord--lit {
+  background: var(--sl-user);
+  border-color: var(--sl-user);
+  color: #fff;
+  box-shadow: 0 0 18px rgba(255, 80, 106, 0.6);
+}
