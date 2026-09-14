@@ -1,3 +1,5 @@
+import { ZONE_FIELDS } from '../zones/zoneSchema.js'
+
 // Легенда формата обмена уроком: что означает каждый тип ноды, каждое поле и
 // каждое условие перехода. Она уезжает вместе с экспортом (см. exportLesson.js),
 // чтобы урок можно было отдать человеку или модели «как есть» — без доступа к
@@ -388,6 +390,7 @@ export function buildLegend(principles = PRINCIPLES, checklist = PRE_SUBMIT_CHEC
       items: checklist,
     },
     node: NODE_FIELDS,
+    zones: ZONE_FIELDS,
     triggers: TRIGGER_DOCS,
     nodes: Object.fromEntries(Object.entries(NODE_DOCS).map(([type, d]) => [
       type,

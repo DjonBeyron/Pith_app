@@ -61,6 +61,7 @@
 @import './styles/canvas/spotlight.css';
 @import './styles/canvas/zoom-badge.css';
 @import './styles/canvas/selection-toolbar.css';
+@import './styles/canvas/zones.css';
 @import './styles/canvas/lesson-ref-picker.css';
 @import './styles/canvas/save-button.css';
 @import './styles/resume-toast.css';

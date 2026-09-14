@@ -14,7 +14,7 @@ import LessonRulesPanel from './LessonRulesPanel.jsx'
 // Экспорт отдаёт логику сценария вместе с легендой формата — такой файл можно
 // показать кому угодно (или модели), чтобы получить разбор и готовый шаблон
 // следующего урока. Медиа в файл не попадает: у нод стоит пометка needs.
-export default function LessonIoPanel({ nodes, title, lessonId, onImport, onClose }) {
+export default function LessonIoPanel({ nodes, zones = [], title, lessonId, onImport, onClose }) {
   const [withLegend, setWithLegend] = useState(true)
   const [text, setText] = useState('')
   const [error, setError] = useState(null)
@@ -37,7 +37,7 @@ export default function LessonIoPanel({ nodes, title, lessonId, onImport, onClos
   const checklistOverride  = activeChecklist.length  ? activeChecklist  : undefined
 
   const shareText = exportLessonText(nodes, {
-    title, lessonId, includeLegend: withLegend,
+    title, lessonId, includeLegend: withLegend, zones,
     principles: principlesOverride, checklist: checklistOverride,
   })
 
@@ -48,7 +48,8 @@ export default function LessonIoPanel({ nodes, title, lessonId, onImport, onClos
     const triggers = nodes.reduce((sum, n) => sum + (n.triggers?.length ?? 0), 0)
     const links = nodes.reduce((sum, n) => sum + (n.triggers ?? []).filter(t => t.then).length, 0)
     const sizes = [...new Set(nodes.map(n => n.size ?? 'max'))].join(', ')
-    return `${nodes.length} нод · ${triggers} триггеров · ${links} связей · размеры: ${sizes || '—'}`
+    return `${nodes.length} нод · ${triggers} триггеров · ${links} связей · размеры: ${sizes || '—'}` +
+      (zones.length ? ` · зон: ${zones.length}` : '')
   })()
 
   async function copyShare() {
@@ -124,7 +125,7 @@ export default function LessonIoPanel({ nodes, title, lessonId, onImport, onClos
       ? `Заменить весь урок на ${result.nodes.length} нод (${result.links} связей)? Текущие ноды пропадут.`
       : `Добавить ${result.nodes.length} нод (${result.links} связей) к текущему уроку?`
     if (!window.confirm(what)) return
-    onImport(result.nodes, mode, result.links)
+    onImport(result.nodes, result.zones ?? [], mode, result.links)
     setReport(`Готово: ${result.nodes.length} нод, ${result.links} связей на холсте`)
   }
 

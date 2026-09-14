@@ -18,7 +18,7 @@ const SPOTLIGHT_MS = 1000
 //
 // Возвращает id ноды, на которой сейчас «прожектор» (или null).
 export function useCanvasBoardApi(ref, {
-  nodes, setNodes, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset, onRemoveLessonFile,
+  nodes, setNodes, zones, setZones, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset, onRemoveLessonFile,
 }) {
   const [spotlightId, setSpotlightId] = useState(null)
   const spotTimerRef = useRef(null)
@@ -68,10 +68,12 @@ export function useCanvasBoardApi(ref, {
       })
     },
     // Обмен уроком в JSON (панель «Поделиться / Импорт», lesson-io/):
-    // снимок нод наружу и приём готового сценария обратно
+    // снимок нод/зон наружу и приём готового сценария обратно
     getNodes() { return nodes },
-    importNodes(list, mode) {
-      dbg('[IMPORT] на холст:', mode, `${list.length} нод`, `было ${nodes.length}`)
+    getZones() { return zones },
+    importNodes(list, zoneList = [], mode) {
+      dbg('[IMPORT] на холст:', mode, `${list.length} нод`, `было ${nodes.length}`,
+        zoneList.length ? `+ ${zoneList.length} зон` : '')
       // Показываем первую импортированную ноду: при «добавить» пачка встаёт
       // правее всего графа, и без этого автор смотрел бы на старый кусок
       // урока, не понимая, приехало что-нибудь или нет
@@ -82,8 +84,8 @@ export function useCanvasBoardApi(ref, {
         const problem = checkBoardLayers(boardRef.current)
         if (problem) dbg('[IMPORT] холст:', problem)
       }, 60)
-      setNodes(prev => {
-        if (mode === 'replace') {
+      if (mode === 'replace') {
+        setNodes(prev => {
           // Старый файл ноды переживает замену, только если исходный текст
           // (озвучка/промпт фото) не изменился — иначе он больше никому не
           // нужен и помечается на удаление (см. fileCarryOver.js)
@@ -91,16 +93,25 @@ export function useCanvasBoardApi(ref, {
           const next = renumber(withFiles)
           dbg('[IMPORT] заменил урок:', formatIntegrity(checkNodes(next)))
           return next
-        }
-        // Дописываем справа от того, что уже есть, — чтобы импорт не лёг
-        // поверх существующего графа
-        const maxX = prev.reduce((m, n) => Math.max(m, n.x ?? 0), 0)
-        const minX = list.reduce((m, n) => Math.min(m, n.x ?? 0), Infinity)
-        const shift = prev.length ? maxX + NODE_SLOT - (Number.isFinite(minX) ? minX : 0) : 0
+        })
+        setZones(zoneList)
+        return
+      }
+      // Дописываем справа от того, что уже есть, — чтобы импорт не лёг
+      // поверх существующего графа. Один и тот же сдвиг применяется и к
+      // нодам, и к зонам — иначе зона осталась бы стоять там, где были
+      // импортированные ноды ДО сдвига, а не вокруг них
+      const maxX = nodes.reduce((m, n) => Math.max(m, n.x ?? 0), 0)
+      const minX = list.reduce((m, n) => Math.min(m, n.x ?? 0), Infinity)
+      const shift = nodes.length ? maxX + NODE_SLOT - (Number.isFinite(minX) ? minX : 0) : 0
+      setNodes(prev => {
         const merged = renumber([...prev, ...list.map(n => ({ ...n, x: (n.x ?? 0) + shift }))])
         dbg('[IMPORT] дописал к уроку:', formatIntegrity(checkNodes(merged)))
         return merged
       })
+      if (zoneList.length) {
+        setZones(prev => [...prev, ...zoneList.map(z => ({ ...z, x: (z.x ?? 0) + shift }))])
+      }
     },
     clearAll() {
       if (!window.confirm('Удалить ВСЕ ноды урока? Это нельзя отменить.')) return
@@ -131,7 +142,7 @@ export function useCanvasBoardApi(ref, {
       const n = nodes.find(x => x.id === nodeId)
       if (n) centerOn(n, true)
     },
-  }), [nodes, setNodes, updateNode, centerOn, boardRef, onRemoveLessonFile])
+  }), [nodes, setNodes, zones, setZones, updateNode, centerOn, boardRef, onRemoveLessonFile])
 
   return spotlightId
 }

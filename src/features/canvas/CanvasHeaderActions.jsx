@@ -8,9 +8,10 @@ import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 export default function CanvasHeaderActions({
   unsaved, isSaving, loading, handleSave,
   isAdmin, filter, menuClosedAt, setFilterPos, setToolsPos,
-  setPlayFrom, setShowPlayer, setIoNodes, setShowBatchGen,
+  setPlayFrom, setShowPlayer, setIoNodes, setIoZones, setShowBatchGen,
   boardApiRef, lessonXp, setLessonXp, markDirty,
   switchToProduction, hasUnsynced, hasUnsyncedLogo, setShowPanel,
+  zoneToolActive, onToggleZoneTool,
 }) {
   return (
     <div className="canvasPageActions">
@@ -41,8 +42,20 @@ export default function CanvasHeaderActions({
         className="canvasPageShare"
         title="Поделиться уроком в JSON и импортировать готовый сценарий"
         disabled={loading}
-        onClick={() => setIoNodes(boardApiRef.current?.getNodes() ?? [])}
+        onClick={() => {
+          setIoNodes(boardApiRef.current?.getNodes() ?? [])
+          setIoZones(boardApiRef.current?.getZones() ?? [])
+        }}
       >⇄</button>
+      {/* Зона: рамкой с подписью группируешь ноды одного смыслового куска
+          урока («Часть 2», «Тренировка вперемешку») — чисто для автора,
+          на плеер не влияет. Активный инструмент подсвечен, как фильтр */}
+      <button
+        className={`canvasPageFilter${zoneToolActive ? ' canvasPageFilterOn' : ''}`}
+        title="Зона: нарисовать рамку с подписью вокруг группы нод"
+        disabled={loading}
+        onClick={onToggleZoneTool}
+      >▭</button>
       {/* Очистка урока — прямо в шапке: после неудачного импорта нужна
           сразу, а не через меню «ещё действия» */}
       <button
