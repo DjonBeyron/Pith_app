@@ -21,8 +21,8 @@
 .canvasZone {
   position: absolute;
   pointer-events: none;
-  border: 1px dashed rgba(182, 254, 59, 0.2);
-  background: rgba(182, 254, 59, 0.025);
+  border: 1px dashed rgba(182, 254, 59, 0.32);
+  background: rgba(182, 254, 59, 0.045);
   border-radius: 10px;
 }
 
@@ -38,6 +38,9 @@
   pointer-events: auto;
   cursor: move;
   padding: 2px 2px 3px;
+  /* font-size задаётся инлайн из ZoneBox.jsx (см. labelFontSize) — растёт при
+     отдалении холста, чтобы название зоны читалось издалека. Дети наследуют
+     через font-size: inherit ниже, а не держат свой фиксированный размер */
 }
 
 .canvasZoneLabelInput {
@@ -45,7 +48,7 @@
   border: none;
   outline: none;
   color: rgba(255, 255, 255, 0.35);
-  font-size: 12px;
+  font-size: inherit;
   font-weight: 600;
   padding: 1px 2px;
   min-width: 40px;
@@ -60,7 +63,7 @@
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.2);
-  font-size: 13px;
+  font-size: inherit;
   line-height: 1;
   cursor: pointer;
   padding: 0 3px;

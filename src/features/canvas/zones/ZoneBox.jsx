@@ -9,15 +9,33 @@ import { useZoneDrag } from './useZoneDrag.js'
 // не должна мешать ни рамке выделения нод под собой, ни протяжке самих нод.
 const DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']
 
-export default function ZoneBox({ zone, scaleRef, onChange, onLabelChange, onDelete }) {
+// Подпись зоны должна оставаться читаемой издалека: при отдалении (scale < 1)
+// холст ужимает её вместе со всем миром через worldTransform на слое — здесь
+// компенсируем это обратным масштабом, чтобы на экране подпись росла, а не
+// таяла. При приближении (scale >= 1) не трогаем — там читаемости и так
+// достаточно, лишний рост подписи только мешал бы.
+const LABEL_BASE_PX = 15
+const LABEL_MAX_PX = 40
+
+function labelFontSize(scale) {
+  if (!scale || scale >= 1) return LABEL_BASE_PX
+  return Math.min(LABEL_MAX_PX, LABEL_BASE_PX / scale)
+}
+
+export default function ZoneBox({ zone, scaleRef, scale, onChange, onLabelChange, onDelete }) {
   const startDrag = useZoneDrag({ scaleRef, onChange })
+  const fontSize = labelFontSize(scale)
 
   return (
     <div
       className="canvasZone"
       style={{ left: zone.x, top: zone.y, width: zone.width, height: zone.height }}
     >
-      <div className="canvasZoneLabelBar" onMouseDown={e => startDrag(zone, e, 'move')}>
+      <div
+        className="canvasZoneLabelBar"
+        style={{ fontSize }}
+        onMouseDown={e => startDrag(zone, e, 'move')}
+      >
         <input
           className="canvasZoneLabelInput"
           value={zone.label ?? ''}

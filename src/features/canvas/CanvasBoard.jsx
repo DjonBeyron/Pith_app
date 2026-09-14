@@ -290,6 +290,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
         draft={zoneDraft}
         worldTransform={worldTransform}
         scaleRef={scaleRef}
+        scale={scale}
         onChange={updateZoneRect}
         onLabelChange={updateZoneLabel}
         onDelete={deleteZone}

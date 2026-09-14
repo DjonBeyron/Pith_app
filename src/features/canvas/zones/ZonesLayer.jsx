@@ -8,7 +8,7 @@ import ZoneBox from './ZoneBox.jsx'
 // draft — черновик зоны, которую сейчас тянут инструментом «Зона» (см.
 // useZoneToolIntegration.js): показывается тем же пунктиром, но без подписи
 // и ручек — это ещё не сохранённая зона.
-export default function ZonesLayer({ zones, draft, worldTransform, scaleRef, onChange, onLabelChange, onDelete }) {
+export default function ZonesLayer({ zones, draft, worldTransform, scaleRef, scale, onChange, onLabelChange, onDelete }) {
   if (!zones.length && !draft) return null
   return (
     <div className="canvasZonesLayer" style={{ transform: worldTransform, transformOrigin: '0 0' }}>
@@ -17,6 +17,7 @@ export default function ZonesLayer({ zones, draft, worldTransform, scaleRef, onC
           key={zone.id}
           zone={zone}
           scaleRef={scaleRef}
+          scale={scale}
           onChange={onChange}
           onLabelChange={onLabelChange}
           onDelete={onDelete}
