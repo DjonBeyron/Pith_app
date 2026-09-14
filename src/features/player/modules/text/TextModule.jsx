@@ -3,6 +3,7 @@ import { Languages } from 'lucide-react'
 import { pLog } from '../../../../shared/lib/debug.js'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import ReplyPreview from '../../ReplyPreview.jsx'
+import { findReplyNode } from '../../replyResolve.js'
 import TranslationSection from '../../TranslationSection.jsx'
 import HighlightedText from '../../../../shared/ui/HighlightedText.jsx'
 import { emojiOnlyInfo } from '../../../../shared/lib/emojiOnly.js'
@@ -17,8 +18,7 @@ export default function TextModule({ node, lessonNodes = [], lessonFiles = [], t
   const tData      = node.typeData?.text ?? {}
   const content    = tData.content ?? ''
   const highlights = tData.highlights ?? []
-  const replyToSeq = tData.replyToSeq
-  const replyNode  = replyToSeq > 0 ? lessonNodes.find(n => n.seq === replyToSeq) : null
+  const replyNode  = findReplyNode(tData.replyToSeq, lessonNodes)
 
   // Про-режим: перевод по кнопке на пузыре (RU/EN/...)
   const pro = !!tData.pro && !!(tData.proText ?? '').trim()

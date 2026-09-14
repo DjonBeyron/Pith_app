@@ -231,7 +231,7 @@ export default function NodeContentEditor({ lessonXp = 0,
           onChange={updateTypeData}
         />
       )}
-      {(node.type === 'text' || node.type === 'sticker') && (
+      {(node.type === 'text' || node.type === 'sticker' || node.type === 'phrase_assembly') && (
         <div className="nodeReplySection">
           <label className="nodeReplyLabel" onClick={e => e.stopPropagation()}>
             <input
