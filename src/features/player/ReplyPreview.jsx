@@ -1,26 +1,5 @@
 import { useState } from 'react'
-
-// Не экспортируется: используется только внутри этого файла (react-refresh
-// требует, чтобы файл компонента экспортировал только компоненты)
-const MEDIA_LABEL = {
-  photo:            'Фото',
-  video:            'Видео',
-  circle:           'Видеосообщение',
-  sticker:          'Стикер',
-  audio:            'Голосовое сообщение',
-  voice_record:     'Голосовое сообщение',
-  word_choice:      'Выбор слова',
-  photo_choice:     'Выбор фото',
-  phrase_assembly:  'Собрать фразу',
-  table:            'Собрать фразу',
-}
-
-const REPLY_THEME = {
-  default:   { border: '#b6fe3b', bg: 'rgba(182,254,59,0.07)',  name: '#b6fe3b', text: null },
-  // Верный ответ — брендовым, как и везде в уроке: второй зелёный убран
-  correct:   { border: '#b6fe3b', bg: 'rgba(182,254,59,0.06)', name: '#9aa0b4', text: '#b6fe3b' },
-  incorrect: { border: '#f87171', bg: 'rgba(248,113,113,0.07)', name: '#9aa0b4', text: '#f87171' },
-}
+import { resolveReply } from './replyResolve.js'
 
 // Player frame reference dimensions
 const PLAYER_FW      = 200
@@ -77,62 +56,6 @@ function ReplyThumb({ type, src, crop = { x: 0, y: 0, scale: 1 } }) {
       <img src={src} alt="" onLoad={e => setNatural({ w: e.target.naturalWidth, h: e.target.naturalHeight })} style={imgStyle()} />
     </div>
   )
-}
-
-// For phrase_assembly: pick the correct attempt if exists, otherwise last wrong.
-function resolvePhraseAttempt(attempts) {
-  if (!attempts?.length) return { text: null, result: null }
-  const correct = attempts.find(a => a.result === 'correct')
-  if (correct) return correct
-  return attempts[attempts.length - 1]
-}
-
-// Resolves display properties for a reply block given the target node and choice states.
-function resolveReply(replyNode, teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates) {
-  if (!replyNode) return null
-  const rType = replyNode.type
-  if (rType === 'word_choice') {
-    const st = allWordChoiceStates?.[replyNode.id]
-    return {
-      name:  'Вы:',
-      label: st?.text || MEDIA_LABEL.word_choice,
-      theme: st?.result === 'correct' ? REPLY_THEME.correct
-           : st?.result === 'wrong'   ? REPLY_THEME.incorrect
-           : REPLY_THEME.default,
-      thumbSrc: null, crop: null,
-    }
-  }
-  // Таблица в ручном режиме отдаёт собранную фразу тем же handlePhraseAnswer,
-  // что и «Собери фразу» — значит и цитата на неё показывает ответ ученика
-  if (rType === 'phrase_assembly' || rType === 'table') {
-    const attempt = resolvePhraseAttempt(allPhraseStates?.[replyNode.id])
-    return {
-      name:  'Вы:',
-      label: attempt.text || MEDIA_LABEL[rType],
-      theme: attempt.result === 'correct' ? REPLY_THEME.correct
-           : attempt.result === 'wrong'   ? REPLY_THEME.incorrect
-           : REPLY_THEME.default,
-      thumbSrc: null, crop: null,
-    }
-  }
-  if (rType === 'photo_choice') {
-    const st = allPhotoChoiceStates?.[replyNode.id]
-    return {
-      name:  'Вы:',
-      label: MEDIA_LABEL.photo_choice,
-      theme: st?.result === 'correct' ? REPLY_THEME.correct
-           : st?.result === 'wrong'   ? REPLY_THEME.incorrect
-           : REPLY_THEME.default,
-      thumbSrc: null, crop: null,
-    }
-  }
-  return {
-    name:     teacherName || 'Учитель',
-    label:    MEDIA_LABEL[rType] ?? replyNode.typeData?.[rType]?.content ?? '',
-    theme:    REPLY_THEME.default,
-    thumbSrc: null,
-    crop:     replyNode.typeData?.[rType]?.crop ?? { x: 0, y: 0, scale: 1 },
-  }
 }
 
 // Renders the reply preview block (green left-bar style).

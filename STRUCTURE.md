@@ -582,7 +582,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `PlayerFeed.jsx` | Изолированный скролл-контейнер: auto-scroll при новом сообщении, lock/unlock, imperative ref. Проп `panelOpen` (из `panels.offset > 0` в LessonPlayer.jsx) переключает класс `playerFeed--panelOpen` — отключает safe-area-отступ снизу ленты, когда его уже отрабатывает открытая панель ответа |
 | `PlayerTopBar.jsx` | Шапка плеера: кнопка «←», аватар, «Учитель / изучаем …», кнопка «⬇ лог» (видна по `useShowDebugUi`) |
 | `PlayerMessage.jsx` | Тонкая обёртка: `resolveModule(node.type)` → рендерит нужный модуль |
-| `ReplyPreview.jsx` | Общий компонент превью ответа (зелёная полоса слева): используется в TextModule и StickerModule; содержит ReplyThumb с intrinsic-кропом |
+| `ReplyPreview.jsx` | Компонент превью ответа (зелёная полоса слева): рендер + ReplyThumb с intrinsic-кропом; используется в TextModule, StickerModule и AnswerBubbles (phrase_assembly). Логика резолва — в replyResolve.js |
+| `replyResolve.js` | Чистая логика цитаты «В ответ на»: `findReplyNode` (поиск ноды по replyToSeq — общий для text/sticker/phrase_assembly, раньше копия в каждом модуле), `resolvePhraseAttempt` (какая попытка «собери фразу» финальная), `resolveReply` (подпись/цвет блока цитаты по типу цитируемой ноды). Без React/DOM — проверяется юнит-тестами напрямую |
+| `replyResolve.test.js` | Юнит-тесты чистой логики цитаты: поиск ноды по seq (включая null/0/несуществующий seq), выбор финальной попытки «собери фразу», подписи/цвета для всех типов цитируемых нод |
+| `replyWiring.test.js` | Сторож сквозной проводки цитаты: TextModule/StickerModule/PhraseAssemblyModule используют общий findReplyNode, AnswerBubbles рисует ReplyPreview строго над финальным пузырём, редактор и nodeGraph.js/lessonSchema.js согласованы по phrase_assembly.replyToSeq |
 | `PlayerBubble.jsx` | Обёртка-пузырь с анимацией высоты (ResizeObserver + cubic-bezier) — общий для модулей |
 | `PlayerTypingText.jsx` | Посимвольная анимация текста: каждый символ вспыхивает лаймовым; курсор — светящаяся линия |
 | `TranslationSection.jsx` | Секция перевода (про-режим): плавное раскрытие/свёртка по высоте (ResizeObserver + transition), печать или мгновенный показ; переиспользуема для аудио |
@@ -616,8 +619,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/word-choice/WordChoiceModule.jsx` | Выбор слова — в ленте не рендерит ничего; панель снизу (`ChooseWordPanel`) |
 | `rewardAndFlyBlink.test.js` | Сторож двух правил: салют в «выбери слово» идёт только при включённой галочке «Получить награду» (`nodeReward.js`), и клон летящей панели гасит анимации разметки тем же кадром, что и вставку — иначе собранная фраза моргала поверх ещё видимой панели |
 | `modules/registration/RegistrationModule.jsx` | Регистрация — в ленте не рендерит ничего; панель снизу (`RegistrationPanel`) |
-| `modules/AnswerBubbles.jsx` | Пузыри ответа ученика в ленте (верный / последний неверный / реплики учителя) — общие для «собери фразу» и таблицы |
-| `modules/phrase-assembly/PhraseAssemblyModule.jsx` | Собрать фразу — в ленте не рендерит ничего; панель снизу (`PhraseAssemblyPanel`) |
+| `modules/AnswerBubbles.jsx` | Пузыри ответа ученика в ленте (верный / последний неверный / реплики учителя) — общие для «собери фразу» и таблицы. Необязательный `replyNode` (только у «собери фразу», см. replyToSeq) рисует цитату строго над финальным пузырём (resolvePhraseAttempt из replyResolve.js) |
+| `modules/phrase-assembly/PhraseAssemblyModule.jsx` | Собрать фразу — в ленте рисует только цитату «В ответ на» (своё поле replyToSeq, findReplyNode) поверх AnswerBubbles; сам ответ ученика — в ней же |
 | `modules/pin-message/PinMessageModule.jsx` | Закрепить сообщение — центрированная системная строка «[учитель] закрепил сообщение» |
 | `modules/photo-choice/PhotoChoiceModule.jsx` | Выбрать фото — возвращает null (панель снизу ведёт весь UI) |
 | `modules/table/TableModule.jsx` | Нода «Таблица» в ленте чата: «Показ» → `TableDemoModule`; «Авто»/«Ручной» — пусто, но с галочкой «отправить в чат» после разбора рисует `TableChatBubble` |

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { VolumeX } from 'lucide-react'
 import ReplyPreview from '../../ReplyPreview.jsx'
+import { findReplyNode } from '../../replyResolve.js'
 import HighlightedText from '../../../../shared/ui/HighlightedText.jsx'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
@@ -195,8 +196,7 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
         />)
     : <div className="stickerPlaceholder">Стикер не загружен</div>
 
-  const replyToSeq = node.typeData?.sticker?.replyToSeq
-  const replyNode  = replyToSeq > 0 ? lessonNodes.find(n => n.seq === replyToSeq) : null
+  const replyNode  = findReplyNode(node.typeData?.sticker?.replyToSeq, lessonNodes)
   // Рисуем подпись как есть: выделения хранятся позициями в исходной строке,
   // и обрезка пробелов сдвинула бы их. trim только решает, показывать ли блок.
   const captionRaw = node.typeData?.sticker?.caption ?? ''

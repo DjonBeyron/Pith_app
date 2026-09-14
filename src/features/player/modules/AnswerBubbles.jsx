@@ -1,6 +1,8 @@
 import PlayerBubble from '../PlayerBubble.jsx'
+import ReplyPreview from '../ReplyPreview.jsx'
 import BurstConfetti from '../../../shared/ui/BurstConfetti.jsx'
 import { xpAnchor } from '../xpAnchor.js'
+import { resolvePhraseAttempt } from '../replyResolve.js'
 
 // Пузыри ответа ученика в ленте: собранная фраза справа и реплики учителя
 // слева. Верность показывает только значок в пузыре (галочка/крестик) — своей
@@ -17,15 +19,32 @@ import { xpAnchor } from '../xpAnchor.js'
 // пузырей может не быть вовсе, и салют там живёт в самой панели, привязанный к
 // факту верного ответа, а не к наличию сообщения в чате. Без этого флага при
 // включённой галочке залпов было бы два — из панели и отсюда.
-export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true }) {
+// replyNode — цитата «В ответ на» (только у «Собери фразу», см. replyToSeq в
+// схеме): показывается ровно над ОДНИМ пузырём — тем же, который
+// resolvePhraseAttempt считает финальным ответом по ноде (верный, если он
+// был, иначе последняя попытка). Таблица цитату не заводит — там replyNode
+// всегда null, и это место не рендерится вовсе.
+export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true, replyNode = null, lessonFiles, teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates }) {
   const list = bubbles ?? []
 
   if (!list.length) return null
+
+  const finalAttempt = replyNode ? resolvePhraseAttempt(list) : null
 
   return (
     <>
       {list.map((b, i) => {
         if (!b.text?.trim()) return null
+        const quote = replyNode && b === finalAttempt && (
+          <ReplyPreview
+            replyNode={replyNode}
+            lessonFiles={lessonFiles}
+            teacherName={teacherName}
+            allWordChoiceStates={allWordChoiceStates}
+            allPhotoChoiceStates={allPhotoChoiceStates}
+            allPhraseStates={allPhraseStates}
+          />
+        )
 
         if (b.result === 'correct') {
           return (
@@ -37,6 +56,7 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true 
               )}
               <div className="reactionBubbleWrap" {...xpAnchor(nodeId)}>
                 <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
+                  {quote}
                   {b.text}
                 </PlayerBubble>
               </div>
@@ -47,6 +67,7 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true 
         if (b.result === 'wrong_final') return (
           <div key={i} className="playerMsgRow playerMsgRowRight">
             <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseErr">
+              {quote}
               {b.text}
             </PlayerBubble>
           </div>
