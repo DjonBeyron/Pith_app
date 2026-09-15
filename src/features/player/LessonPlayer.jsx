@@ -14,6 +14,8 @@ import PlayerPanels from './PlayerPanels.jsx'
 import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import { mainLineIndex, lessonProgress } from '../../shared/lib/lessonProgress.js'
 import { useGraphPlayer }  from './useGraphPlayer.js'
+import { useSignalMessages } from './useSignalMessages.js'
+import PlayerSignalMessages from './PlayerSignalMessages.jsx'
 import { usePlayerPanelNodes } from './usePlayerPanelNodes.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { useNodeAppearLog } from './useNodeAppearLog.js'
@@ -123,6 +125,7 @@ export default function LessonPlayer({
   })
   const { visibleNodes, pendingNode, isWaiting, onNodeDone } = graph
   const progress = lessonProgress(mainIndex, visibleNodes)
+  const signalMessages = useSignalMessages() // сигналы ошибок — вне графа урока (useSignalMessages.js)
 
   // Откуда полетит «+N XP», решает xpAnchor.js: от пузыря с ответом, если он
   // появится в переписке, иначе от последнего места тапа (его панели пометили
@@ -253,6 +256,9 @@ export default function LessonPlayer({
     }
   }, [])
 
+  // Общие пропсы обычной и сигнальной ленты (PlayerFeedNodes/PlayerSignalMessages)
+  const feedShared = { nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin, onTrReveal: registerHint, onOpenLessonRef: handleOpenLessonRef }
+
   return (
     /* На десктопе playerStage/playerPhone превращают плеер в «телефон» по
        центру экрана (styles/player/layout.css). playerPhone с transform —
@@ -283,18 +289,12 @@ export default function LessonPlayer({
           <PlayerFeedNodes
             visibleNodes={visibleNodes}
             pendingNode={pendingNode}
-            nodes={nodes}
-            filesWithBlobs={filesWithBlobs}
-            teacherName={teacherName}
+            {...feedShared}
             states={{ photoChoiceStates, wordChoiceStates, phraseStates, regStates, tableSent: answers.tableSent, tableArriving: answers.tableArriving }}
-            bottomOffset={panels.offset}
-            videoAutoSound={videoAutoSound}
-            isAdmin={isAdmin}
             onNodeDone={onNodeDone}
-            onTrReveal={registerHint}
-            onOpenLessonRef={handleOpenLessonRef}
             adminEdit={adminEdit}
           />
+          <PlayerSignalMessages items={signalMessages.items} {...feedShared} onMessageDone={signalMessages.onMessageDone} />
           {!holdForResume && visibleNodes.length === 0 && (
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}
@@ -316,6 +316,7 @@ export default function LessonPlayer({
           filesWithBlobs={filesWithBlobs}
           xpMap={xpMap}
           onNodeDone={onNodeDone}
+          onSignalFired={signalMessages.fire}
           record={record}
           wrongRef={wrongRef}
           handleWordAnswer={handleWordAnswer}

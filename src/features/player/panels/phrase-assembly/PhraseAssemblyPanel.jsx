@@ -5,7 +5,6 @@ import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { usePanelHeight } from '../usePanelHeight.js'
-import SignalOverlay from '../signal-overlay/SignalOverlay.jsx'
 
 function wordForm(n) {
   const m10 = n % 10, m100 = n % 100
@@ -21,15 +20,15 @@ function wordFormGenitive(n) {
 
 export default function PhraseAssemblyPanel({
   node, onDone, onAnswered, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
-  // Сигналы ошибок (см. PROJECT.md): nodes — все ноды урока (резолв ref),
-  // lessonFiles — содержимое ноды-сигнала для оверлея (SignalOverlay.jsx)
-  nodes = [], lessonFiles = [],
+  // Сигналы ошибок (см. PROJECT.md): nodes — все ноды урока (резолв ref);
+  // onSignalFired(node, release) — рисует сигнал как обычное сообщение
+  // ленты (LessonPlayer/useSignalMessages.js) вместо прежнего оверлея
+  nodes = [], onSignalFired,
 }) {
   const {
     shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer,
-    blinkIndex, overlayNode, dismissOverlay,
-  } = usePhraseAssembly(node, nodes)
-  const freeze = !!overlayNode
+    blinkIndex, freeze,
+  } = usePhraseAssembly(node, nodes, onSignalFired)
   const [show, setShow]               = useState(false)
   const [showCounter, setShowCounter] = useState(false)
   const panelRef    = useRef(null)
@@ -153,9 +152,6 @@ export default function PhraseAssemblyPanel({
           </button>
         </div>
       </div>
-      {overlayNode && (
-        <SignalOverlay node={overlayNode} lessonFiles={lessonFiles} onDone={dismissOverlay} />
-      )}
     </>
   )
 }

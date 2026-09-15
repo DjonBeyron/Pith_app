@@ -15,8 +15,11 @@ function shuffle(arr) {
 const wordMatches = (word, expected) => (word ?? '').toLowerCase() === expected.toLowerCase()
 
 // nodes — все ноды урока (не только видимые): нужны, чтобы резолвить ref
-// сигнала ошибки (см. PROJECT.md, «Сигналы ошибок») в живую ноду
-export function usePhraseAssembly(node, nodes = []) {
+// сигнала ошибки (см. PROJECT.md, «Сигналы ошибок») в живую ноду.
+// onSignalFired(node, release) — мост до ленты (PhraseAssemblyPanel →
+// LessonPlayer/useSignalMessages.js): рисует сигнал обычным сообщением
+// вместо прежнего оверлея, release === signalState.dismissOverlay ниже
+export function usePhraseAssembly(node, nodes = [], onSignalFired) {
   const words       = node.typeData?.phrase_assembly?.words       ?? []
   const distractors = node.typeData?.phrase_assembly?.distractors ?? []
   const signals      = node.typeData?.phrase_assembly?.signals    ?? []
@@ -76,6 +79,7 @@ export function usePhraseAssembly(node, nodes = []) {
         // Панель НЕ закрывается и НЕ чистит собранное — сигнал «бесплатный»,
         // см. PROJECT.md. Мигает именно placed[mismatchIdx]
         signalState.fire(mismatchIdx, found.node)
+        onSignalFired?.(found.node, signalState.dismissOverlay)
         return 'signal'
       }
     }
@@ -92,7 +96,6 @@ export function usePhraseAssembly(node, nodes = []) {
     shuffled, placed, usedIdxs, result, isAnswered,
     pickChip, removePlaced, checkAnswer,
     blinkIndex: signalState.blinkIndex,
-    overlayNode: signalState.overlayNode,
-    dismissOverlay: signalState.dismissOverlay,
+    freeze: signalState.freeze,
   }
 }

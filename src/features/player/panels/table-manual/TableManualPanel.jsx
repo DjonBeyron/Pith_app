@@ -14,7 +14,6 @@ import { usePanelHeight } from '../usePanelHeight.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 import { rememberTap } from '../../xpAnchor.js'
 import { useSignalState } from '../signal-overlay/useSignalState.js'
-import SignalOverlay from '../signal-overlay/SignalOverlay.jsx'
 
 
 function shuffle(arr) {
@@ -33,9 +32,10 @@ export default function TableManualPanel({
   node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat, onLandedInChat,
   xpAmount = 0, onXpEarned,
   // Сигналы ошибок (см. PROJECT.md): nodes — все ноды урока, чтобы найти
-  // живую ноду по ref сигнала; lessonFiles — для показа её содержимого
-  // (аудио/стикер) в оверлее (SignalOverlay.jsx)
-  nodes = [], lessonFiles = [],
+  // живую ноду по ref сигнала; onSignalFired(node, release) — рисует её как
+  // обычное сообщение ленты (LessonPlayer/useSignalMessages.js) вместо
+  // прежнего самодельного оверлея
+  nodes = [], onSignalFired,
 }) {
   const tData       = node.typeData?.table ?? {}
   const table       = tData.table          ?? null
@@ -161,8 +161,9 @@ export default function TableManualPanel({
   const [cellMenu, setCellMenu] = useState(null)   // { cellId, options, rect }
   const extrasRef = useRef(null)
 
-  // Сигнал ошибки автора (см. PROJECT.md, «Сигналы ошибок»): пока оверлей
-  // сигнала играет (freeze), ни новые тапы, ни удаление из бокса не проходят
+  // Сигнал ошибки автора (см. PROJECT.md, «Сигналы ошибок»): пока сигнальное
+  // сообщение играет в ленте (freeze), ни новые тапы, ни удаление из бокса
+  // не проходят
   const signalState = useSignalState()
 
   function tapCell(cellId, rect) {
@@ -234,7 +235,11 @@ export default function TableManualPanel({
   const check = makeManualCheck({
     assembled, tokens, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
     setCellMenu, setResult, onAnswered, onAnswerToChat, closePanelWith,
-    nodes, onSignal: (slotIndex, signalNode) => signalState.fire(slotIndex, signalNode),
+    nodes,
+    onSignal: (slotIndex, signalNode) => {
+      signalState.fire(slotIndex, signalNode)
+      onSignalFired?.(signalNode, signalState.dismissOverlay)
+    },
   })
 
   // Кнопки «Проверить» нет: как только слов собрано столько же, сколько в ответе — проверяем сами
@@ -346,15 +351,6 @@ export default function TableManualPanel({
 
         </div>
       </div>
-      {/* Сигнал ошибки автора (см. PROJECT.md) — оверлей поверх ещё открытой
-          панели, панель сама не закрывается */}
-      {signalState.overlayNode && (
-        <SignalOverlay
-          node={signalState.overlayNode}
-          lessonFiles={lessonFiles}
-          onDone={signalState.dismissOverlay}
-        />
-      )}
       {cellMenu && (
         <CellOptionsMenu
           options={cellMenu.options}
