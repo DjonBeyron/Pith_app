@@ -3,6 +3,10 @@ import TableEditorModal from './table-editor/TableEditorModal.jsx'
 import NodeTableTts from './NodeTableTts.jsx'
 import NodeTableAnswerCheck from './NodeTableAnswerCheck.jsx'
 import { getVariantList, syncTriggers, triggersNeedSync, migrateDistractors } from './nodeVariants.js'
+import NodeSignalsPicker from './NodeSignalsPicker.jsx'
+import { tableSlots } from '../../shared/lib/signalSlots.js'
+import NodeDistractorList from './NodeDistractorList.jsx'
+import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
 
 const BASE_PAIR = ['table_correct', 'table_wrong']
 
@@ -281,39 +285,19 @@ export default function NodeTablePicker({
               />
               <button className="nodeTableDAdd" onClick={addDistractor}>+</button>
             </div>
-            {distractors.length > 0 && (
-              <div className="nodeTableDList">
-                {distractors.map(d => (
-                  <div key={d.id} className="nodePaDistractorRow" ref={el => rowRefs.current.set(d.id, el)}>
-                    <span className="nodeTableDChip">
-                      {d.text}
-                      <button
-                        className={`nodeWcGearBtn nodePaVariantBtn${variantThen(d.id) ? ' nodeWcGearBtnOn' : ''}`}
-                        onClick={() => toggleVariantOpen(d.id)}
-                        title="Особый переход для этого слова (замещает верно/неверно)"
-                      >{variantOpenIds.has(d.id) ? '▾' : '▸'}</button>
-                      <button onClick={() => removeDistractor(d.id)}>×</button>
-                    </span>
-                    {variantOpenIds.has(d.id) && (
-                      <div className="nodeWcTriggerRow nodeWcVariantRow">
-                        <span className="nodeWcTriggerLabel">↳ Особый переход →</span>
-                        <select
-                          className="nodeWcTriggerSelect"
-                          value={variantThen(d.id)}
-                          onChange={e => setVariantThen(d.id, e.target.value)}
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <option value="">— как верно/неверно —</option>
-                          {otherNodes.map(n => (
-                            <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <NodeDistractorList
+              distractors={distractors}
+              wrapClass="nodeTableDList"
+              chipClass="nodeTableDChip"
+              removeClass=""
+              onRemove={removeDistractor}
+              variantOpenIds={variantOpenIds}
+              onToggleVariant={toggleVariantOpen}
+              variantThen={variantThen}
+              onSetVariantThen={setVariantThen}
+              otherNodes={otherNodes}
+              rowRefs={rowRefs}
+            />
             <input
               className="nodeTableManualInput"
               value={tData.responseCorrect ?? ''}
@@ -330,6 +314,12 @@ export default function NodeTablePicker({
               onClick={e => e.stopPropagation()}
               onMouseDown={e => e.stopPropagation()}
             />
+            <NodeSignalsPicker
+              slots={tableSlots(tData.answer, tableData?.cells)}
+              signals={tData.signals ?? []}
+              onChange={signals => onDataChange({ signals })}
+              otherNodes={otherNodes}
+            />
           </>
         )}
       </div>
@@ -338,36 +328,11 @@ export default function NodeTablePicker({
       {/* Триггеры: два выхода — верно / неверно. В режиме показа выход один
           и рисует его общий блок «Если/Тогда» (NodeTriggerEditor) */}
       {!isDemo && (
-      <div className="nodeWcTriggerWrap">
-        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('table_correct', el)}>
-          <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
-          <select
-            className="nodeWcTriggerSelect"
-            value={correctThen}
-            onChange={e => setTrigger('table_correct', e.target.value)}
-            onClick={e => e.stopPropagation()}
-          >
-            <option value="">—</option>
-            {otherNodes.map(n => (
-              <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-            ))}
-          </select>
-        </div>
-        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('table_wrong', el)}>
-          <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">✗ Неверно →</span>
-          <select
-            className="nodeWcTriggerSelect"
-            value={wrongThen}
-            onChange={e => setTrigger('table_wrong', e.target.value)}
-            onClick={e => e.stopPropagation()}
-          >
-            <option value="">—</option>
-            {otherNodes.map(n => (
-              <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+        <NodeCorrectWrongTriggers
+          correctThen={correctThen} wrongThen={wrongThen}
+          correctKey="table_correct" wrongKey="table_wrong"
+          onSetTrigger={setTrigger} otherNodes={otherNodes} rowRefs={rowRefs}
+        />
       )}
 
       {open && (

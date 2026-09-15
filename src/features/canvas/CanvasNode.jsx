@@ -7,6 +7,9 @@ import { TYPE_COLOR, TYPE_SHORT, colorBg } from './nodeTypes.js'
 import { isTextZone } from './canvasDragGuard.js'
 
 const NEXT_SIZE = { nano: 'mini', mini: 'max', max: 'nano' }
+// Тот же красный, что у неверного ответа/связи «неверно» в LINK_COLORS
+// (canvasLineStyle.js) — одно и то же значение цвета через весь холст
+const SIGNAL_TARGET_COLOR = '#f87171'
 
 // React.memo — на нагруженном графе (десятки-сотни нод) правка ОДНОЙ ноды
 // (текст, drag, любое setNodes в CanvasBoard.jsx) раньше перерисовывала
@@ -24,8 +27,13 @@ function CanvasNode({
   dimmed = false,
   // XP самого урока — чекбокс награды предупреждает, если он нулевой
   lessonXp = 0,
+  // Нода — цель ХОТЬ ОДНОГО сигнала ошибки (signals[].ref где-либо в уроке,
+  // см. signalTargets.js) — красим шапку красным НЕЗАВИСИМО от типа ноды,
+  // чтобы такие «сигнальные» ноды были видны на холсте с первого взгляда
+  isSignalTarget = false,
 }) {
   const color = TYPE_COLOR[node.type] ?? TYPE_COLOR.text
+  const topBarColor = isSignalTarget ? SIGNAL_TARGET_COLOR : color
   // Подпись для дальнего зума. Рисуется всегда, но видна только когда холст
   // в режиме far (CSS ниже) — там содержимое ноды скрыто, и без подписи граф
   // превращается в набор одинаковых плиток. Цвет заливки берётся отсюда же,
@@ -74,7 +82,7 @@ function CanvasNode({
   if (node.size === 'nano') {
     return (
       <div
-        className={`canvasNode canvasNodeNano${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`}
+        className={`canvasNode canvasNodeNano${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}${isSignalTarget ? ' canvasNodeSignalTarget' : ''}`}
         style={{ background: color, '--node-color': color }}
         onMouseDown={handleDragStart}
         onClick={expandClick}
@@ -92,7 +100,7 @@ function CanvasNode({
   if (node.size === 'mini') {
     return (
       <div className={`canvasNode canvasNodeMini${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07), '--node-color': color }} onMouseDown={handleDragStart}>
-        <div className="canvasNodeTopBar" style={{ background: color }} />
+        <div className="canvasNodeTopBar" style={{ background: topBarColor }} />
         <NodeMediaBadge node={node} />
         {farLabel}
         <div className="canvasNodeMiniBody">
@@ -115,7 +123,7 @@ function CanvasNode({
   // ── max ─────────────────────────────────────────────────────────
   return (
     <div className={`canvasNode canvasNodeMax${selected ? ' canvasNodeSelected' : ''}${dimmed ? ' canvasNodeDimmed' : ''}`} style={{ background: colorBg(color, 0.07), '--node-color': color }} onMouseDown={handleDragStart}>
-      <div className="canvasNodeTopBar" style={{ background: color }} />
+      <div className="canvasNodeTopBar" style={{ background: topBarColor }} />
       <NodeMediaBadge node={node} />
       {farLabel}
       <div className="canvasNodeMaxBody">

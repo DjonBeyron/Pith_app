@@ -57,6 +57,8 @@ export default function NodeAnswerFields({
           onDistractorsChange={d => updateTypeData({ distractors: d })}
           onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
           onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+          signals={tData.signals ?? []}
+          onSignalsChange={s => updateTypeData({ signals: s })}
           triggers={node.triggers ?? []}
           allNodes={allNodes}
           nodeId={node.id}

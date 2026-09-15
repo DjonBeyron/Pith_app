@@ -321,8 +321,8 @@ describe('кнопка «Проверить» в ручной таблице', (
     expect(panel).toContain("tabIndex={phase === 'extra' ? 0 : -1}")
   })
 
-  it('нажать нечего вне фазы слов, пока ничего не собрано или разбор показан', () => {
-    expect(panel).toContain("disabled={phase !== 'extra' || assembled.length === 0 || !!result}")
+  it('нажать нечего вне фазы слов, пока ничего не собрано, разбор показан, или играет сигнал ошибки', () => {
+    expect(panel).toContain("disabled={phase !== 'extra' || assembled.length === 0 || !!result || signalState.freeze}")
   })
 
   it('автопроверка по полному набору слов никуда не делась', () => {

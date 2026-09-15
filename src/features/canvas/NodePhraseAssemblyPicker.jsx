@@ -1,5 +1,9 @@
 import { useRef, useState, useLayoutEffect, useEffect } from 'react'
 import { getVariantList, syncTriggers, triggersNeedSync, migrateDistractors } from './nodeVariants.js'
+import NodeSignalsPicker from './NodeSignalsPicker.jsx'
+import { phraseAssemblySlots } from '../../shared/lib/signalSlots.js'
+import NodeDistractorList from './NodeDistractorList.jsx'
+import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
 
 const BASE_PAIR = ['phrase_correct', 'phrase_wrong']
 
@@ -8,6 +12,7 @@ export default function NodePhraseAssemblyPicker({
   responseCorrect = '', responseWrong = '',
   onWordsChange, onDistractorsChange,
   onResponseCorrectChange, onResponseWrongChange,
+  signals = [], onSignalsChange,
   triggers = [], allNodes = [], nodeId,
   onTriggersChange, onTriggerMeasure,
 }) {
@@ -131,37 +136,17 @@ export default function NodePhraseAssemblyPicker({
       )}
       {/* лишние слова */}
       <p className="nodePaLabel">Лишние слова</p>
-      <div className="nodePaDistractors">
-        {distractors.map(d => (
-          <div key={d.id} className="nodePaDistractorRow" ref={el => rowRefs.current.set(d.id, el)}>
-            <span className="nodePaDistractorChip">
-              {d.text}
-              <button
-                className={`nodeWcGearBtn nodePaVariantBtn${variantThen(d.id) ? ' nodeWcGearBtnOn' : ''}`}
-                onClick={() => toggleVariantOpen(d.id)}
-                title="Особый переход для этого слова (замещает верно/неверно)"
-              >{variantOpenIds.has(d.id) ? '▾' : '▸'}</button>
-              <button className="nodePaDistractorDel" onClick={() => removeDistractor(d.id)}>×</button>
-            </span>
-            {variantOpenIds.has(d.id) && (
-              <div className="nodeWcTriggerRow nodeWcVariantRow">
-                <span className="nodeWcTriggerLabel">↳ Особый переход →</span>
-                <select
-                  className="nodeWcTriggerSelect"
-                  value={variantThen(d.id)}
-                  onChange={e => setVariantThen(d.id, e.target.value)}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <option value="">— как верно/неверно —</option>
-                  {otherNodes.map(n => (
-                    <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <NodeDistractorList
+        distractors={distractors}
+        chipClass="nodePaDistractorChip"
+        onRemove={removeDistractor}
+        variantOpenIds={variantOpenIds}
+        onToggleVariant={toggleVariantOpen}
+        variantThen={variantThen}
+        onSetVariantThen={setVariantThen}
+        otherNodes={otherNodes}
+        rowRefs={rowRefs}
+      />
       <div className="nodeWcAddRow">
         <input
           ref={distInputRef}
@@ -195,37 +180,18 @@ export default function NodePhraseAssemblyPicker({
           />
         </div>
       </div>
+      <NodeSignalsPicker
+        slots={phraseAssemblySlots(words)}
+        signals={signals}
+        onChange={onSignalsChange}
+        otherNodes={otherNodes}
+      />
       {/* триггеры */}
-      <div className="nodeWcTriggerWrap">
-        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('phrase_correct', el)}>
-          <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
-          <select
-            className="nodeWcTriggerSelect"
-            value={correctThen}
-            onChange={e => setTrigger('phrase_correct', e.target.value)}
-            onClick={e => e.stopPropagation()}
-          >
-            <option value="">—</option>
-            {otherNodes.map(n => (
-              <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-            ))}
-          </select>
-        </div>
-        <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('phrase_wrong', el)}>
-          <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">✗ Неверно →</span>
-          <select
-            className="nodeWcTriggerSelect"
-            value={wrongThen}
-            onChange={e => setTrigger('phrase_wrong', e.target.value)}
-            onClick={e => e.stopPropagation()}
-          >
-            <option value="">—</option>
-            {otherNodes.map(n => (
-              <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <NodeCorrectWrongTriggers
+        correctThen={correctThen} wrongThen={wrongThen}
+        correctKey="phrase_correct" wrongKey="phrase_wrong"
+        onSetTrigger={setTrigger} otherNodes={otherNodes} rowRefs={rowRefs}
+      />
     </div>
   )
 }

@@ -56,6 +56,14 @@
   box-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
+/* Нода — цель сигнала ошибки (signalTargets.js). У mini/max есть отдельная
+   шапка (canvasNodeTopBar), которую красим красным напрямую (CanvasNode.jsx);
+   у nano своей шапки нет — вся плитка залита цветом типа, поэтому здесь
+   вместо замены фона (тип стал бы неразличим) — тонкое красное кольцо. */
+.canvasNodeNano.canvasNodeSignalTarget {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 0 2px #f87171;
+}
+
 .canvasNodeMini {
   width: 255px;
   background: #12141a;

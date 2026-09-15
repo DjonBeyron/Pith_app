@@ -117,7 +117,8 @@ describe('дебаг на всём пути импорта', () => {
 
 describe('дебаг создания нод и связей', () => {
   it('кнопка «+ Нода» пишет, что создала', () => {
-    expect(read('./CanvasBoard.jsx')).toContain("dbg('[NODE] кнопка «+ Нода»:'")
+    // Вынесено в addCenterNode.js (CanvasBoard.jsx упирался в потолок 400 строк)
+    expect(read('./addCenterNode.js')).toContain("dbg('[NODE] кнопка «+ Нода»:'")
   })
 
   it('вставка после ноды и с порта тоже логируются', () => {
