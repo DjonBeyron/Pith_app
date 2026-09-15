@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { triggerAnchor, nodeEntry, nodeBox } from './canvasPorts.js'
+import { triggerAnchor, nodeEntry, nodeBox, signalSlotAnchor } from './canvasPorts.js'
 
 const maxNode = (over = {}) => ({
   id: 'a', x: 1000, y: 500, size: 'max', type: 'audio',
@@ -67,5 +67,38 @@ describe('nodeBox — тело ноды как препятствие для л�
     const box = nodeBox(n, {})
     expect(nodeEntry(n, {}).x).toBeLessThan(box.left)
     expect(triggerAnchor(n, 0, {}).x).toBeGreaterThan(box.right)
+  })
+})
+
+describe('signalSlotAnchor — порт сигнала на конкретный слот', () => {
+  it('правее правого края ноды, как и выход триггера', () => {
+    const n = maxNode()
+    expect(signalSlotAnchor(n, 0, {}).x).toBe(triggerAnchor(n, 0, {}).x)
+  })
+
+  it('встаёт по замеренной строке слота, если она есть', () => {
+    const n = maxNode()
+    const measured = signalSlotAnchor(n, 1, { a: [50, 300] })
+    expect(measured.y).toBe(n.y + 300)
+  })
+
+  it('до первого замера разные слоты не совпадают в одной точке', () => {
+    const n = maxNode()
+    const p0 = signalSlotAnchor(n, 0, {})
+    const p1 = signalSlotAnchor(n, 1, {})
+    expect(p1.y).toBeGreaterThan(p0.y)
+  })
+
+  it('не-max нода тоже разводит слоты по y, а не даёт одну точку на всех', () => {
+    const n = maxNode({ size: 'mini' })
+    const p0 = signalSlotAnchor(n, 0, {})
+    const p1 = signalSlotAnchor(n, 2, {})
+    expect(p1.y).toBeGreaterThan(p0.y)
+  })
+
+  it('замер игнорируется для не-max ноды (как и у triggerAnchor)', () => {
+    const n = maxNode({ size: 'mini' })
+    const withMeasure = signalSlotAnchor(n, 0, { a: [999] })
+    expect(withMeasure.y).not.toBe(n.y + 999)
   })
 })

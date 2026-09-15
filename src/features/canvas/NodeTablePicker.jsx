@@ -30,7 +30,7 @@ function demoTriggers(hasAudio, keepThen) {
 export default function NodeTablePicker({
   tData, onDataChange, lessonFiles, onPickFile, onRemoveFile,
   triggers = [], allNodes = [], nodeId,
-  onTriggersChange, onTriggerMeasure,
+  onTriggersChange, onTriggerMeasure, onSignalMeasure,
 }) {
   const [open, setOpen] = useState(false)
   const [newD,  setNewD] = useState('')
@@ -319,6 +319,7 @@ export default function NodeTablePicker({
               signals={tData.signals ?? []}
               onChange={signals => onDataChange({ signals })}
               otherNodes={otherNodes}
+              onSignalMeasure={onSignalMeasure}
             />
           </>
         )}

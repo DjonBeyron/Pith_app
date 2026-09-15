@@ -20,7 +20,7 @@ const SIGNAL_TARGET_COLOR = '#f87171'
 // Пропсы здесь принимают nodeId первым аргументом — обёртка в замыкание
 // happens здесь, локально, а не в CanvasBoard.jsx.
 function CanvasNode({
-  node, onUpdate, onDragStart, selected = false, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, onTriggerMeasure,
+  node, onUpdate, onDragStart, selected = false, wasDragged, allNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, onTriggerMeasure, onSignalMeasure,
   moduleLessons = [],
   // Фильтр в шапке канваса: тип не отмечен — нода приглушается, но остаётся
   // на месте и со своими связями
@@ -55,14 +55,16 @@ function CanvasNode({
     onDragStart(node.id, e)
   }
   const handleTriggerMeasure = offsets => onTriggerMeasure?.(node.id, offsets)
+  const handleSignalMeasure = offsets => onSignalMeasure?.(node.id, offsets)
 
-  // When leaving max mode, clear stale trigger measurements so they don't
-  // ghost onto the next max layout (e.g. after type switch or size cycle).
-  // word_choice and phrase_assembly handle their own measurements via their pickers.
+  // When leaving max mode, clear stale trigger/signal measurements so they
+  // don't ghost onto the next max layout (e.g. after type switch or size
+  // cycle). word_choice and phrase_assembly handle their own trigger
+  // measurements via their pickers; signal slots — see NodeSignalsPicker.jsx.
   useEffect(() => {
-    if (node.size !== 'max') handleTriggerMeasure([])
+    if (node.size !== 'max') { handleTriggerMeasure([]); handleSignalMeasure([]) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node.size, onTriggerMeasure])
+  }, [node.size, onTriggerMeasure, onSignalMeasure])
 
   const fileId = node.typeData?.[node.type]?.file_id ?? null
 
@@ -140,6 +142,7 @@ function CanvasNode({
           onPickLessonFile={onPickLessonFile}
           onRemoveLessonFile={onRemoveLessonFile}
           onTriggerMeasure={handleTriggerMeasure}
+          onSignalMeasure={handleSignalMeasure}
           moduleLessons={moduleLessons}
         />
       </div>

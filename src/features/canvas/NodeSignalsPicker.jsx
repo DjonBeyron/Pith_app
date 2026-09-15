@@ -1,3 +1,5 @@
+import { useRef, useLayoutEffect } from 'react'
+
 // Пикер «Сигналы ошибок» — общий для table (ручной режим) и phrase_assembly
 // (см. PROJECT.md). У каждого слота ответа (слово/ячейка, см. signalSlots.js)
 // можно назначить ноду-сигнал: она играет ОВЕРЛЕЕМ поверх панели, когда
@@ -14,7 +16,30 @@
 // уже стоящие в основном потоке графа — автор сам решает, что использовать
 // как сигнал (в т.ч. ноду, которая одновременно часть линейного сценария:
 // решение задокументировано в PROJECT.md, «Сигналы ошибок»).
-export default function NodeSignalsPicker({ slots, signals = [], onChange, otherNodes = [] }) {
+//
+// Второй способ назначить сигнал — перетаскиваемый порт на холсте (см.
+// CanvasSignalConnections.jsx/useCanvasSignalPortDrag.js): пишет то же самое
+// поле signals, дропдаун здесь и порт на холсте — два входа в одни данные.
+// Для этого строкам слотов нужны те же координаты, что и строкам триггеров
+// «Тогда» (canvasPorts.js/triggerAnchor) — измеряем их тем же приёмом
+// (rowRefs + useLayoutEffect), что NodePhraseAssemblyPicker.jsx/NodeTablePicker.jsx
+// делают для своих строк, и поднимаем офсеты наверх через onSignalMeasure.
+export default function NodeSignalsPicker({ slots, signals = [], onChange, otherNodes = [], onSignalMeasure }) {
+  const rowRefs = useRef(new Map())
+
+  // Хук должен вызываться безусловно (до раннего return ниже) — иначе при
+  // первом появлении слотов (slots.length: 0 → N) React увидел бы новый
+  // порядок хуков между рендерами
+  useLayoutEffect(() => {
+    if (!onSignalMeasure) return
+    const offsets = slots.map(slot => {
+      const el = rowRefs.current.get(slot.index)
+      if (!el) return 0
+      return el.offsetTop + el.offsetHeight / 2
+    })
+    onSignalMeasure(offsets)
+  })
+
   if (!slots.length) return null
 
   function refFor(slotIndex) {
@@ -30,7 +55,7 @@ export default function NodeSignalsPicker({ slots, signals = [], onChange, other
     <div className="nodeSignalsWrap" onClick={e => e.stopPropagation()}>
       <p className="nodePaLabel">Сигналы ошибок (подсказка на конкретный слот)</p>
       {slots.map(slot => (
-        <div key={slot.index} className="nodeWcTriggerRow">
+        <div key={slot.index} className="nodeWcTriggerRow" ref={el => rowRefs.current.set(slot.index, el)}>
           <span className="nodeWcTriggerLabel">
             слот {slot.index + 1}: {slot.label || '—'}
           </span>

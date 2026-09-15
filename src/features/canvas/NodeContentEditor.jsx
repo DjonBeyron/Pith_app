@@ -39,7 +39,7 @@ function mainFieldPlaceholder(type) {
 // продакшен-списка (ProductionList) — один источник правды на все 14 типов,
 // не дублируем 8 разных пикеров в двух местах.
 export default function NodeContentEditor({ lessonXp = 0,
-  node, onUpdate, allNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, onTriggerMeasure, moduleLessons = [],
+  node, onUpdate, allNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, onTriggerMeasure, onSignalMeasure, moduleLessons = [],
   showTypeSelect = true,
   // Продакшен: блок «Если/Тогда» (простые типы — не word_choice и т.п. со
   // своей парой) по умолчанию свёрнут — за раскрытие/ширину строки отвечает
@@ -309,7 +309,7 @@ export default function NodeContentEditor({ lessonXp = 0,
         node={node} tData={tData} updateTypeData={updateTypeData} onUpdate={onUpdate}
         allNodes={allNodes} lessonFiles={lessonFiles} onPickLessonFile={onPickLessonFile}
         onRemoveLessonFile={onRemoveLessonFile}
-        onTriggerMeasure={onTriggerMeasure} moduleLessons={moduleLessons}
+        onTriggerMeasure={onTriggerMeasure} onSignalMeasure={onSignalMeasure} moduleLessons={moduleLessons}
       />
       {node.type === 'registration' && (
         <NodeRegistrationTriggers onTriggerMeasure={onTriggerMeasure} />

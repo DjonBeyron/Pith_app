@@ -14,7 +14,7 @@ import { isRewardOn }           from '../../shared/lib/nodeReward.js'
 // общий блок триггеров.
 export default function NodeAnswerFields({
   node, tData, updateTypeData, onUpdate, allNodes, lessonFiles, onPickLessonFile, onRemoveLessonFile,
-  onTriggerMeasure, moduleLessons,
+  onTriggerMeasure, onSignalMeasure, moduleLessons,
   // XP урока: ноль — значит галочка награды ни на что не влияет, и чекбокс
   // об этом честно скажет (см. NodeRewardCheckbox)
   lessonXp = 0,
@@ -64,6 +64,7 @@ export default function NodeAnswerFields({
           nodeId={node.id}
           onTriggersChange={triggers => onUpdate({ triggers })}
           onTriggerMeasure={onTriggerMeasure}
+          onSignalMeasure={onSignalMeasure}
         />
         <NodeLessonLink
           value={tData.statLessonId ?? null}
@@ -89,6 +90,7 @@ export default function NodeAnswerFields({
           nodeId={node.id}
           onTriggersChange={triggers => onUpdate({ triggers })}
           onTriggerMeasure={onTriggerMeasure}
+          onSignalMeasure={onSignalMeasure}
         />
         <NodeLessonLink
           value={tData.statLessonId ?? null}

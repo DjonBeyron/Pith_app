@@ -23,6 +23,14 @@ function getThenY(node, i, triggerMeasures) {
 const NODE_H = { nano: 42, mini: 52 }
 const MAX_TAIL = 46
 
+// Фолбэк до первого замера строки слота сигнала (или для не-max ноды, где
+// строк сигналов вовсе нет, но typeData.signals мог остаться от прошлого
+// размера) — строка слота стоит заметно ниже строк «Тогда», её точную
+// CSS-позицию не предсказать (зависит от числа слов/ловушек над ней), поэтому
+// просто разводим слоты маленьким шагом, чтобы порты не слипались в одну точку
+const SIGNAL_FALLBACK_BASE = 220
+const SIGNAL_ROW_STRIDE_FALLBACK = 16
+
 // Output: right side of node, 8px outside the edge.
 //   max  → at exact "Тогда" y (dot visible)
 //   mini/nano → at node center; конец линии виден снаружи, а не под телом
@@ -32,6 +40,20 @@ export function triggerAnchor(node, i, triggerMeasures) {
     return { x: node.x + w + PORT_OFFSET, y: node.y + 18 }
   }
   return { x: node.x + w + PORT_OFFSET, y: getThenY(node, i, triggerMeasures) }
+}
+
+// Выход сигнала (signals[] у table/phrase_assembly, см. NodeSignalsPicker.jsx)
+// для КОНКРЕТНОГО слота — та же форма, что triggerAnchor, но читает
+// signalMeasures вместо triggerMeasures (строки слотов измеряются отдельно,
+// см. onSignalMeasure). Не-max и не измеренный max — фолбэк с разводкой по слотам.
+export function signalSlotAnchor(node, slotIndex, signalMeasures) {
+  const w = NODE_W[node.size] ?? 192
+  if (node.size !== 'max') {
+    return { x: node.x + w + PORT_OFFSET, y: node.y + 18 + slotIndex * SIGNAL_ROW_STRIDE_FALLBACK }
+  }
+  const m = signalMeasures[node.id]
+  if (m?.[slotIndex] != null) return { x: node.x + w + PORT_OFFSET, y: node.y + m[slotIndex] }
+  return { x: node.x + w + PORT_OFFSET, y: node.y + SIGNAL_FALLBACK_BASE + slotIndex * SIGNAL_ROW_STRIDE_FALLBACK }
 }
 
 // Input: left side of node, 8px outside the edge — точка входа всегда снаружи,

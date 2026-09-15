@@ -12,6 +12,7 @@ import { useCanvasSelection } from './useCanvasSelection.js'
 import { useCanvasNodeOps } from './useCanvasNodeOps.js'
 import { useCanvasBoardState } from './useCanvasBoardState.js'
 import { useCanvasPortDrag } from './useCanvasPortDrag.js'
+import { useCanvasSignalPortDrag } from './useCanvasSignalPortDrag.js'
 import { renumber } from './nodeGraph.js'
 import { addCenterNode } from './addCenterNode.js'
 import { useCanvasBoardApi } from './useCanvasBoardApi.js'
@@ -142,7 +143,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const pan = useCallback((dx, dy) =>
     setOffset(o => ({ x: o.x + dx, y: o.y + dy })), [setOffset])
 
-  const { deleteNode: deleteNodeOp, deleteNodes: deleteNodesOp, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort } =
+  const { deleteNode: deleteNodeOp, deleteNodes: deleteNodesOp, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort, insertSignalFromPort } =
     useCanvasNodeOps(setNodes)
   const { confirmGroupDelete, askGroupDelete, cancelGroupDelete, deleteSelectedGroup } =
     useCanvasGroupDelete(selectedIds, deleteNodesOp, clearSelection)
@@ -213,6 +214,9 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Протяжка соединения от выходного кружка ноды — useCanvasPortDrag.js
   const { portDrag, startPortDrag, handlePortMouseMove, handlePortMouseUp } =
     useCanvasPortDrag({ nodes, triggerMeasures, toWorld, setNodes, setTypeMenu, measureBoard })
+  // То же для портов сигналов (слот table/phrase_assembly) — useCanvasSignalPortDrag.js
+  const { signalMeasures, handleSignalMeasure, signalDrag, startSignalDrag, handleSignalMouseMove, handleSignalMouseUp } =
+    useCanvasSignalPortDrag({ nodes, triggerMeasures, toWorld, setNodes, setTypeMenu, measureBoard })
 
   // Инструмент «Зона» + CRUD над зонами — useZoneToolIntegration.js (нужен
   // только setZones, логика геометрии — в zones/zoneOps.js)
@@ -226,7 +230,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     toWorld, boardRectRef, measureBoard, nodes,
     setHoveredNodeId, setConfirmDeleteId,
     startCanvasDrag, startMarquee, updateMarquee, endMarquee,
-    handlePortMouseMove, handlePortMouseUp,
+    handlePortMouseMove, handlePortMouseUp, handleSignalMouseMove, handleSignalMouseUp,
     tryStartZoneDraw, tryUpdateZoneDraw, tryEndZoneDraw,
     onDragMouseMove: onMouseMove, endDrag, wasDragged, collapseIfClick,
   })
@@ -312,7 +316,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
             onPickLessonFile={onPickLessonFile}
             onRemoveLessonFile={onRemoveLessonFile}
             lessonXp={lessonXp}
-            onTriggerMeasure={handleTriggerMeasure}
+            onTriggerMeasure={handleTriggerMeasure} onSignalMeasure={handleSignalMeasure}
             moduleLessons={moduleLessons}
             dimmed={isNodeDimmed(node, visibleTypes, onlyMissingMedia)}
             isSignalTarget={signalTargetIds.has(node.id)}
@@ -344,7 +348,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
             triggerMeasures={triggerMeasures} layer="front" far={far}
             hoveredNodeId={nodeDragging ? null : hoveredNodeId}
           />
-          <CanvasSignalConnections nodes={nodes} triggerMeasures={triggerMeasures} />
+          <CanvasSignalConnections nodes={nodes} triggerMeasures={triggerMeasures}
+            signalMeasures={signalMeasures} signalDrag={signalDrag} onSignalDragStart={startSignalDrag} />
           {linkDebug && <CanvasLinkDebug segments={linkDebug.segments} />}
         </g>
       </svg>
@@ -369,6 +374,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
         onPick={type => {
           if (!typeMenu) return
           if (typeMenu.triggerIdx != null) insertFromPort(typeMenu.nodeId, typeMenu.triggerIdx, type)
+          else if (typeMenu.slotIndex != null) insertSignalFromPort(typeMenu.nodeId, typeMenu.slotIndex, type)
           else insertAfterNode(typeMenu.nodeId, type)
           setTypeMenu(null)
         }}

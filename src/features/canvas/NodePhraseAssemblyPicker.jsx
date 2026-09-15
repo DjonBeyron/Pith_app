@@ -14,7 +14,7 @@ export default function NodePhraseAssemblyPicker({
   onResponseCorrectChange, onResponseWrongChange,
   signals = [], onSignalsChange,
   triggers = [], allNodes = [], nodeId,
-  onTriggersChange, onTriggerMeasure,
+  onTriggersChange, onTriggerMeasure, onSignalMeasure,
 }) {
   const wordInputRef = useRef(null)
   const distInputRef = useRef(null)
@@ -185,6 +185,7 @@ export default function NodePhraseAssemblyPicker({
         signals={signals}
         onChange={onSignalsChange}
         otherNodes={otherNodes}
+        onSignalMeasure={onSignalMeasure}
       />
       {/* триггеры */}
       <NodeCorrectWrongTriggers

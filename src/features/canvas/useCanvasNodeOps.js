@@ -180,5 +180,34 @@ export function useCanvasNodeOps(setNodes) {
     return findFreeSpot(list, node.x + NODE_SLOT, y)
   }
 
-  return { deleteNode, deleteNodes, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort }
+  // Клик по порту сигнала (см. useCanvasSignalPortDrag.js) без протяжки:
+  // создаём ноду-сигнал рядом и сразу привязываем её к этому слоту
+  // (typeData[node.type].signals). В отличие от insertFromPort НЕ встраивается
+  // в граф сценария (triggers не трогаем) — это отдельная нода-спутник, тот же
+  // результат, что и выбор из дропдауна NodeSignalsPicker.jsx.
+  function insertSignalFromPort(nodeId, slotIndex, type) {
+    setNodes(prev => {
+      const node = prev.find(n => n.id === nodeId)
+      if (!node) return prev
+      const insertSeq = node.seq + 1
+      const spot = findFreeSpot(prev, node.x + NODE_SLOT, node.y + NODE_ROW)
+      const newNode = makeNode(insertSeq, spot.x, spot.y, type)
+      dbg('[LINK] сигнал с порта #' + node.seq + ` (слот ${slotIndex}):`, type,
+        `в ${Math.round(spot.x)},${Math.round(spot.y)}`)
+      const updated = prev.map(n => {
+        const out = n.seq >= insertSeq ? { ...n, seq: n.seq + 1 } : n
+        if (n.id !== nodeId) return out
+        const key = out.type
+        const tData = out.typeData?.[key] ?? {}
+        const signals = (tData.signals ?? []).filter(s => s.slot !== slotIndex)
+        return {
+          ...out,
+          typeData: { ...out.typeData, [key]: { ...tData, signals: [...signals, { slot: slotIndex, ref: newNode.id }] } },
+        }
+      })
+      return renumber([...updated, newNode])
+    })
+  }
+
+  return { deleteNode, deleteNodes, duplicateNode, duplicateDetached, insertAfterNode, insertFromPort, insertSignalFromPort }
 }
