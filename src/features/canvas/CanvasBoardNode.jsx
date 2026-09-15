@@ -15,7 +15,7 @@ export default function CanvasBoardNode({
   node, spot, selected, hovered, confirmDelete, isAdmin,
   onEnter, onUpdate, onDragStart, wasDragged,
   allNodes, lessonFiles, onPickLessonFile, onRemoveLessonFile, lessonXp,
-  onTriggerMeasure, moduleLessons, dimmed,
+  onTriggerMeasure, moduleLessons, dimmed, isSignalTarget,
   // Стикер-комментарий продакшена
   noteBox, onNoteBoxChange, onNoteBoxClear, scaleRef, noteFolded, noteOpen, onFoldNote, onToggleNote,
   // Меню-липучка
@@ -41,6 +41,7 @@ export default function CanvasBoardNode({
         onTriggerMeasure={onTriggerMeasure}
         moduleLessons={moduleLessons}
         dimmed={dimmed}
+        isSignalTarget={isSignalTarget}
       />
       {isAdmin && node.note != null && (
         <NodeNoteLayer

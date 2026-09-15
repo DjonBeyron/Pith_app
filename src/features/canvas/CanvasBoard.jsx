@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useMemo, useCallback, forwardRef } from 'react'
-import { dbg } from '../../shared/lib/debug.js'
 import CanvasBoardNode from './CanvasBoardNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
+import CanvasSignalConnections from './CanvasSignalConnections.jsx'
+import { collectSignalTargetIds } from './signalTargets.js'
 import { nodeOptionsSignature, pickNodeOptions } from './canvasNodeOptions.js'
 import { releaseTextSelection } from './canvasDragGuard.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
@@ -11,7 +12,8 @@ import { useCanvasSelection } from './useCanvasSelection.js'
 import { useCanvasNodeOps } from './useCanvasNodeOps.js'
 import { useCanvasBoardState } from './useCanvasBoardState.js'
 import { useCanvasPortDrag } from './useCanvasPortDrag.js'
-import { renumber, makeNode } from './nodeGraph.js'
+import { renumber } from './nodeGraph.js'
+import { addCenterNode } from './addCenterNode.js'
 import { useCanvasBoardApi } from './useCanvasBoardApi.js'
 import { useCanvasZoom } from './useCanvasZoom.js'
 import { useCanvasTouch } from './useCanvasTouch.js'
@@ -182,6 +184,9 @@ const CanvasBoard = forwardRef(function CanvasBoard({
     })
   }, [])
 
+  // Цели сигналов ошибок (signals[].ref) — красная шапка ноды на холсте
+  const signalTargetIds = useMemo(() => collectSignalTargetIds(nodes), [nodes])
+
   function deleteNode(nodeId) {
     setHoveredNodeId(null)
     setConfirmDeleteId(null)
@@ -232,16 +237,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   useCanvasTouch(boardRef, boardRectRef, scaleRef, setScale, setOffset)
 
   function addNode() {
-    const el = boardRef.current
-    const rect = el ? el.getBoundingClientRect() : { width: 900, height: 600 }
-    const cx = (rect.width  / 2 - offset.x) / scale - 91 + (Math.random() - 0.5) * 60
-    const cy = (rect.height / 2 - offset.y) / scale - 20 + (Math.random() - 0.5) * 60
-    setNodes(prev => {
-      const created = makeNode(prev.length + 1, cx, cy)
-      dbg('[NODE] кнопка «+ Нода»:', created.type, `в ${Math.round(cx)},${Math.round(cy)}`,
-        `размер ${created.size}`, `триггеров ${created.triggers.length}`, `было нод ${prev.length}`)
-      return renumber([...prev, created])
-    })
+    addCenterNode({ boardRef, offset, scale, setNodes })
   }
 
   // Команды холсту снаружи (кнопки шапки, правая панель плеера) + «прожектор»
@@ -319,6 +315,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
             onTriggerMeasure={handleTriggerMeasure}
             moduleLessons={moduleLessons}
             dimmed={isNodeDimmed(node, visibleTypes, onlyMissingMedia)}
+            isSignalTarget={signalTargetIds.has(node.id)}
             noteBox={boxFor(node.id)}
             onNoteBoxChange={box => setBoxFor(node.id, box)}
             onNoteBoxClear={() => clearBoxFor(node.id)}
@@ -347,6 +344,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
             triggerMeasures={triggerMeasures} layer="front" far={far}
             hoveredNodeId={nodeDragging ? null : hoveredNodeId}
           />
+          <CanvasSignalConnections nodes={nodes} triggerMeasures={triggerMeasures} />
           {linkDebug && <CanvasLinkDebug segments={linkDebug.segments} />}
         </g>
       </svg>

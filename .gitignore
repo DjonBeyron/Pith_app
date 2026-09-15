@@ -31,3 +31,7 @@ supabase/.temp/
 playwright-report/
 test-results/
 /playwright/.cache/
+
+# Рабочие копии субагентов (Agent tool, isolation:"worktree") — свои git-репозитории,
+# не должны попадать в основной репозиторий как embedded git repo
+.claude/worktrees/

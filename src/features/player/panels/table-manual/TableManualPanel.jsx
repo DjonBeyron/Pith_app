@@ -13,6 +13,8 @@ import { playFeedRelease } from '../feedRelease.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
 import { rememberTap } from '../../xpAnchor.js'
+import { useSignalState } from '../signal-overlay/useSignalState.js'
+import SignalOverlay from '../signal-overlay/SignalOverlay.jsx'
 
 
 function shuffle(arr) {
@@ -27,7 +29,14 @@ function shuffle(arr) {
 // onAnswerToChat(text, result) — галочка «отправить ответ ученика в чат»:
 // собранная фраза уходит пузырём справа. Верная — сразу; неверная — ОДИН раз,
 // последней (третьей) попыткой: промежуточные варианты в переписке не нужны.
-export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat, onLandedInChat, xpAmount = 0, onXpEarned }) {
+export default function TableManualPanel({
+  node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat, onLandedInChat,
+  xpAmount = 0, onXpEarned,
+  // Сигналы ошибок (см. PROJECT.md): nodes — все ноды урока, чтобы найти
+  // живую ноду по ref сигнала; lessonFiles — для показа её содержимого
+  // (аудио/стикер) в оверлее (SignalOverlay.jsx)
+  nodes = [], lessonFiles = [],
+}) {
   const tData       = node.typeData?.table ?? {}
   const table       = tData.table          ?? null
   const answer      = tData.answer         ?? ''
@@ -152,8 +161,12 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   const [cellMenu, setCellMenu] = useState(null)   // { cellId, options, rect }
   const extrasRef = useRef(null)
 
+  // Сигнал ошибки автора (см. PROJECT.md, «Сигналы ошибок»): пока оверлей
+  // сигнала играет (freeze), ни новые тапы, ни удаление из бокса не проходят
+  const signalState = useSignalState()
+
   function tapCell(cellId, rect) {
-    if (assembledCellValues.has(cellId) || result) return
+    if (assembledCellValues.has(cellId) || result || signalState.freeze) return
     rememberTap(rect)
     const cell = cells.find(c => c.id === cellId)
     // Нажать можно ЛЮБУЮ ячейку со значением, даже не ту, что нужна ответу:
@@ -171,13 +184,16 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
 
   function tapExtra(chip, idx, rect) {
     const key = `extra-${idx}`
-    if (assembledExtraKeys.has(key) || result) return
+    if (assembledExtraKeys.has(key) || result || signalState.freeze) return
     rememberTap(rect)
     setAssembled(prev => [...prev, { type: 'extra', value: chip.text, key, distractorId: chip.distractorId }])
   }
 
   function removeFromBox(i) {
-    if (result) return
+    if (result || signalState.freeze) return
+    // Любое удаление — в т.ч. мигающего слова, тем же тапом, никакой новой
+    // механики: см. useSignalState.js
+    signalState.onRemoved()
     setAssembled(prev => prev.filter((_, j) => j !== i))
     // фаза пересчитается автоматически (производная от allCellsDone + hasExtras)
   }
@@ -216,8 +232,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
   }
 
   const check = makeManualCheck({
-    assembled, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
+    assembled, tokens, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
     setCellMenu, setResult, onAnswered, onAnswerToChat, closePanelWith,
+    nodes, onSignal: (slotIndex, signalNode) => signalState.fire(slotIndex, signalNode),
   })
 
   // Кнопки «Проверить» нет: как только слов собрано столько же, сколько в ответе — проверяем сами
@@ -264,9 +281,9 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
               : assembled.map((item, i) => (
                   <button
                     key={item.key}
-                    className="tmAnswerChip"
+                    className={`tmAnswerChip${i === signalState.blinkIndex ? ' signalBlinkChip' : ''}`}
                     onClick={() => removeFromBox(i)}
-                    disabled={result === 'correct'}
+                    disabled={result === 'correct' || signalState.freeze}
                   >{item.value}</button>
                 ))
             }
@@ -281,7 +298,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
                 cells={table.cells}
                 rowCount={table.rowCount}
                 pickedValues={assembledCellValues}
-                onCellClick={phase === 'table' && !result
+                onCellClick={phase === 'table' && !result && !signalState.freeze
                   ? (cell, e) => tapCell(cell.id, e?.currentTarget?.getBoundingClientRect?.())
                   : undefined}
               />
@@ -297,7 +314,7 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
                       style={{ animationDelay: `${i * 50}ms` }}
                       className={`tmExtraChip${used ? ' tmExtraChipUsed' : ''}`}
                       onClick={e => tapExtra(chip, i, e.currentTarget.getBoundingClientRect())}
-                      disabled={used || !!result}
+                      disabled={used || !!result || signalState.freeze}
                     >{chip.text}</button>
                   )
                 })}
@@ -322,13 +339,22 @@ export default function TableManualPanel({ node, onDone, onAnswered, onAnswerToC
           <button
             className={`tmCheckBtn${phase === 'extra' ? '' : ' tmCheckBtnHidden'}`}
             onClick={check}
-            disabled={phase !== 'extra' || assembled.length === 0 || !!result}
+            disabled={phase !== 'extra' || assembled.length === 0 || !!result || signalState.freeze}
             aria-hidden={phase !== 'extra'}
             tabIndex={phase === 'extra' ? 0 : -1}
           >Проверить</button>
 
         </div>
       </div>
+      {/* Сигнал ошибки автора (см. PROJECT.md) — оверлей поверх ещё открытой
+          панели, панель сама не закрывается */}
+      {signalState.overlayNode && (
+        <SignalOverlay
+          node={signalState.overlayNode}
+          lessonFiles={lessonFiles}
+          onDone={signalState.dismissOverlay}
+        />
+      )}
       {cellMenu && (
         <CellOptionsMenu
           options={cellMenu.options}

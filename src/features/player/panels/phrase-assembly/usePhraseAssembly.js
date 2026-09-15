@@ -1,4 +1,7 @@
 import { useState, useMemo } from 'react'
+import { firstMismatchSlot } from '../../../../shared/lib/signalMismatch.js'
+import { signalForSlot } from '../../../../shared/lib/signalSlots.js'
+import { useSignalState } from '../signal-overlay/useSignalState.js'
 
 function shuffle(arr) {
   const a = [...arr]
@@ -9,9 +12,14 @@ function shuffle(arr) {
   return a
 }
 
-export function usePhraseAssembly(node) {
+const wordMatches = (word, expected) => (word ?? '').toLowerCase() === expected.toLowerCase()
+
+// nodes — все ноды урока (не только видимые): нужны, чтобы резолвить ref
+// сигнала ошибки (см. PROJECT.md, «Сигналы ошибок») в живую ноду
+export function usePhraseAssembly(node, nodes = []) {
   const words       = node.typeData?.phrase_assembly?.words       ?? []
   const distractors = node.typeData?.phrase_assembly?.distractors ?? []
+  const signals      = node.typeData?.phrase_assembly?.signals    ?? []
 
   // Shuffle once on mount (all chips: correct words + distractors) — единая
   // форма {text, distractorId}: distractorId нужен, чтобы при неверном
@@ -26,18 +34,25 @@ export function usePhraseAssembly(node) {
   const [placed, setPlaced] = useState([])
   const [result, setResult] = useState(null) // 'correct' | 'wrong' | null
 
+  // Сигнал ошибки автора: пока его оверлей играет (freeze), ни новый чип, ни
+  // удаление из зоны ответа не проходят — см. useSignalState.js
+  const signalState = useSignalState()
+
   const usedIdxs   = useMemo(() => new Set(placed.map(p => p.shuffleIdx)), [placed])
   const isAnswered = result === 'correct'
 
   function pickChip(shuffleIdx) {
-    if (usedIdxs.has(shuffleIdx) || isAnswered) return
+    if (usedIdxs.has(shuffleIdx) || isAnswered || signalState.freeze) return
     const chip = shuffled[shuffleIdx]
     setPlaced(p => [...p, { shuffleIdx, word: chip.text, distractorId: chip.distractorId }])
     if (result === 'wrong') setResult(null)
   }
 
   function removePlaced(pos) {
-    if (isAnswered) return
+    if (isAnswered || signalState.freeze) return
+    // Любое удаление снимает мигание — та же самая, уже существующая
+    // механика, никакого отдельного «удали именно это слово» нет
+    signalState.onRemoved()
     setPlaced(p => p.filter((_, i) => i !== pos))
     setResult(null)
   }
@@ -45,20 +60,39 @@ export function usePhraseAssembly(node) {
   function checkAnswer() {
     if (placed.length === 0 || isAnswered) return null
     const placedWords = placed.map(p => p.word)
-    const correct = placedWords.length === words.length &&
-      words.every((w, i) => w.toLowerCase() === (placedWords[i] ?? '').toLowerCase())
-    setResult(correct ? 'correct' : 'wrong')
-    if (!correct) {
-      setTimeout(() => {
-        setPlaced([])
-        setResult(null)
-      }, 700)
+    const full = placedWords.length === words.length
+
+    // Сигнал ошибки смотрим ТОЛЬКО на полностью собранном ответе — частичная
+    // попытка (кнопка «Проверить» доступна и до конца сборки) идёт обычным
+    // путём ниже, как и раньше
+    if (full) {
+      const mismatchIdx = firstMismatchSlot(placedWords, words, wordMatches)
+      if (mismatchIdx == null) {
+        setResult('correct')
+        return 'correct'
+      }
+      const found = signalForSlot(signals, mismatchIdx, nodes)
+      if (found) {
+        // Панель НЕ закрывается и НЕ чистит собранное — сигнал «бесплатный»,
+        // см. PROJECT.md. Мигает именно placed[mismatchIdx]
+        signalState.fire(mismatchIdx, found.node)
+        return 'signal'
+      }
     }
-    return correct ? 'correct' : 'wrong'
+
+    setResult('wrong')
+    setTimeout(() => {
+      setPlaced([])
+      setResult(null)
+    }, 700)
+    return 'wrong'
   }
 
   return {
     shuffled, placed, usedIdxs, result, isAnswered,
     pickChip, removePlaced, checkAnswer,
+    blinkIndex: signalState.blinkIndex,
+    overlayNode: signalState.overlayNode,
+    dismissOverlay: signalState.dismissOverlay,
   }
 }

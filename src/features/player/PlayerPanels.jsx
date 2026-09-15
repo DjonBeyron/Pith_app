@@ -13,6 +13,9 @@ import { wordOptionEvent } from './useAnswerStats.js'
 export default function PlayerPanels({
   wcNode, paNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
+  // Сигналы ошибок (см. PROJECT.md) — table-manual и «Собери фразу» резолвят
+  // signals[].ref по полному списку нод урока
+  nodes = [],
   // Шаг «назад» админа: растёт при откате и пересобирает панель — иначе она
   // осталась бы в состоянии «уже отвечено» и вопрос заново не показала бы.
   // node.visit — то же самое для обычного игрока: сценарий вернул его на ту же
@@ -51,6 +54,8 @@ export default function PlayerPanels({
         <PhraseAssemblyPanel
           key={`${paNode.id}:${epoch}:${paNode.visit ?? 0}`}
           node={paNode}
+          nodes={nodes}
+          lessonFiles={filesWithBlobs}
           xpAmount={xpMap.get(paNode.id) ?? 0}
           onDone={(result, variantId) => { setPaPanelHeight(0); onNodeDone(paNode.id, result, variantId) }}
           onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
@@ -93,6 +98,8 @@ export default function PlayerPanels({
               ? (arriving, sent) => onTableToChat?.(tableNode.id, arriving, sent) : undefined}
             onLandedInChat={() => onTableLanded?.(tableNode.id)}
             node={tableNode}
+            nodes={nodes}
+            lessonFiles={filesWithBlobs}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
             /* Раньше была заглушка () => {} — подсказка учителя на неверный
                ответ (responseWrong) и раскрытие ответа после трёх попыток

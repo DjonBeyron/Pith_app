@@ -114,6 +114,7 @@
 @import './styles/player/panels/table-manual.css';
 @import './styles/player/panels/choose-word.css';
 @import './styles/player/panels/phrase-assembly.css';
+@import './styles/player/panels/signal-overlay.css';
 @import './styles/player/panels/registration.css';
 @import './styles/player/panels/push-prompt.css';
 @import './styles/player/modules/voice-record.css';

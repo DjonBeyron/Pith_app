@@ -1,4 +1,6 @@
-export default function PhraseAnswerRow({ placed, result, onRemove }) {
+// blinkIndex — слот с сигналом ошибки автора (см. PROJECT.md): именно это
+// слово мигает красным, пока его не уберут тем же тапом, что и любое другое
+export default function PhraseAnswerRow({ placed, result, blinkIndex = null, freeze = false, onRemove }) {
   const cls = [
     'phraseAnswerRow',
     placed.length > 0 && !result  ? 'phraseAnswerFilled' : '',
@@ -14,9 +16,9 @@ export default function PhraseAnswerRow({ placed, result, onRemove }) {
       {placed.map((p, i) => (
         <button
           key={i}
-          className="phraseAnswerChip"
+          className={`phraseAnswerChip${i === blinkIndex ? ' signalBlinkChip' : ''}`}
           onClick={() => onRemove(i)}
-          disabled={result === 'correct'}
+          disabled={result === 'correct' || freeze}
         >
           {p.word}
         </button>

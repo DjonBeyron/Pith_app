@@ -94,11 +94,23 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
     built.push({ node, raw, ref })
   })
 
-  // Второй проход: переходы — все ноды уже есть, ref-ы известны
+  // Второй проход: переходы и сигналы ошибок — все ноды уже есть, ref-ы известны
   for (const { node, raw, ref } of built) {
+    const data = node.typeData[node.type]
+
+    // signals[].ref (сигналы ошибок table/phrase_assembly, см. PROJECT.md) —
+    // n-ref из файла меняем на реальный id ноды урока, тем же приёмом, что и
+    // then у триггеров ниже. Сигнал на исчезнувшую/незнакомую ноду просто не
+    // попадает в результат — это не связь основного потока графа, отдельно
+    // не предупреждаем
+    if (Array.isArray(data?.signals) && data.signals.length) {
+      data.signals = data.signals
+        .map(s => ({ slot: s.slot, ref: idByRef.get(s.ref) ?? null }))
+        .filter(s => s.ref != null)
+    }
+
     const list = Array.isArray(raw.triggers) ? raw.triggers : []
     if (!list.length) continue
-    const data = node.typeData[node.type]
     node.triggers = list.map(t => {
       const ifKey = t.if === 'variant'
         ? variantIdByLabel(node.type, data, t.variantLabel)

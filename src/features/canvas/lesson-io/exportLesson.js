@@ -32,15 +32,29 @@ function stripIds(value, keepIds) {
   return value
 }
 
-function exportData(node) {
+// signals[].ref — id ноды-сигнала ВНУТРИ редактора (как then у триггеров),
+// на экспорт меняем на её n-ref (refOf) тем же приёмом, что и exportTriggers
+// ниже. Сигнал на ноду, которой почему-то нет в refOf (не должно случаться,
+// но триггеры на такой случай тоже просто отбрасывают несуществующее),
+// в экспорт не попадает — ссылка на пустоту автору не нужна
+function exportSignals(raw, refOf) {
+  return (raw.signals ?? [])
+    .map(s => ({ slot: s.slot, ref: refOf.get(s.ref) ?? null }))
+    .filter(s => s.ref)
+}
+
+function exportData(node, refOf) {
   const raw = node.typeData?.[node.type] ?? {}
   const keepIds = node.type === 'table'   // timeline ссылается на cellId
   const data = {}
   for (const [k, v] of Object.entries(raw)) {
     if (FILE_FIELDS.includes(k)) continue
+    if (k === 'signals') continue // особая обработка ниже — ref, а не значение
     if (isEmpty(v)) continue
     data[k] = stripIds(v, keepIds)
   }
+  const signals = exportSignals(raw, refOf)
+  if (signals.length) data.signals = signals
   return data
 }
 
@@ -101,7 +115,7 @@ export function exportLesson(nodes, {
     lesson: { title, ...(lessonId ? { lessonId } : {}), nodeCount: list.length },
     ...(includeLegend ? { legend: buildLegend(principles, checklist) } : {}),
     nodes: list.map(n => {
-      const data = exportData(n)
+      const data = exportData(n, refOf)
       const needs = needsOf(n)
       return {
         ref: refOf.get(n.id),

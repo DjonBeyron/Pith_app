@@ -5,6 +5,7 @@ import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { usePanelHeight } from '../usePanelHeight.js'
+import SignalOverlay from '../signal-overlay/SignalOverlay.jsx'
 
 function wordForm(n) {
   const m10 = n % 10, m100 = n % 100
@@ -18,9 +19,17 @@ function wordFormGenitive(n) {
   return n === 1 ? 'слова' : 'слов'
 }
 
-export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecked, onHeightChange, xpAmount = 0, onXpEarned }) {
-  const { shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer } =
-    usePhraseAssembly(node)
+export default function PhraseAssemblyPanel({
+  node, onDone, onAnswered, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
+  // Сигналы ошибок (см. PROJECT.md): nodes — все ноды урока (резолв ref),
+  // lessonFiles — содержимое ноды-сигнала для оверлея (SignalOverlay.jsx)
+  nodes = [], lessonFiles = [],
+}) {
+  const {
+    shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer,
+    blinkIndex, overlayNode, dismissOverlay,
+  } = usePhraseAssembly(node, nodes)
+  const freeze = !!overlayNode
   const [show, setShow]               = useState(false)
   const [showCounter, setShowCounter] = useState(false)
   const panelRef    = useRef(null)
@@ -111,14 +120,14 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
           <div className={`phraseCounter${showCounter ? ' phraseCounterVisible' : ''}`}>
             выбрано {placed.length} {wordForm(placed.length)} из {wordsTotal}
           </div>
-          <PhraseAnswerRow placed={placed} result={result} onRemove={removePlaced} />
+          <PhraseAnswerRow placed={placed} result={result} blinkIndex={blinkIndex} freeze={freeze} onRemove={removePlaced} />
           <div className="phrasePool">
             {shuffled.map((chip, i) => (
               <PhraseWordChip
                 key={i}
                 word={chip.text}
                 used={usedIdxs.has(i)}
-                disabled={isAnswered}
+                disabled={isAnswered || freeze}
                 onClick={e => { rememberTap(e.currentTarget.getBoundingClientRect()); pickChip(i) }}
               />
             ))}
@@ -127,7 +136,10 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
             className="phraseCheckBtn"
             onClick={() => {
               const r = checkAnswer()
-              if (!r) return
+              // 'signal' — сигнал ошибки автора уже показан (useSignalState.js
+              // внутри usePhraseAssembly.js), попытка «бесплатная»: ни звук, ни
+              // счётчик неверных, ни статистика её не видят, панель не закрылась
+              if (!r || r === 'signal') return
               onChecked?.(r, placed.map(p => p.word).join(' '))
               playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'собери фразу')
               if (r === 'correct' && xpAmount > 0 && !xpFiredRef.current) {
@@ -135,12 +147,15 @@ export default function PhraseAssemblyPanel({ node, onDone, onAnswered, onChecke
                 onXpEarned?.(xpAmount)
               }
             }}
-            disabled={placed.length === 0 || isAnswered}
+            disabled={placed.length === 0 || isAnswered || freeze}
           >
             Проверить
           </button>
         </div>
       </div>
+      {overlayNode && (
+        <SignalOverlay node={overlayNode} lessonFiles={lessonFiles} onDone={dismissOverlay} />
+      )}
     </>
   )
 }

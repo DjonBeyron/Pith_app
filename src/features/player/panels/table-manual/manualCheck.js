@@ -1,6 +1,12 @@
 import { flushSync } from 'react-dom'
 import { normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
+import { firstMismatchSlot } from '../../../../shared/lib/signalMismatch.js'
+import { signalForSlot } from '../../../../shared/lib/signalSlots.js'
 import { whenBubbleLanded } from '../whenBubbleLanded.js'
+
+function slotMatches(token, expectedToken) {
+  return !!token && normalizeAnswerText(token.value) === normalizeAnswerText(expectedToken.value)
+}
 
 // Проверка собранной фразы в ручной таблице — вынесено из TableManualPanel.jsx
 // (там это была самая длинная функция панели, а сама панель отвечает за
@@ -11,17 +17,32 @@ import { whenBubbleLanded } from '../whenBubbleLanded.js'
 // Задержка перед уходом в чат (600мс) — общая для верной и неверной ветки: ученик
 // должен успеть увидеть итог В САМОЙ ПАНЕЛИ, а пузыри и закрытие панели
 // должны тронуться одним движением, а не по очереди.
+//
+// tokens — ожидаемые слоты ответа (deriveAnswerTokens, тот же порядок и
+// разбиение, что видит и автор в пикере signals, см. signalSlots.js).
+// nodes — все ноды урока (резолв ref сигнала в живую ноду); onSignal(slotIndex,
+// node) зовётся, когда у ПЕРВОГО неверного слота есть личный сигнал автора и
+// его нода жива — сигнал «бесплатный» (см. PROJECT.md, «Сигналы ошибок»): НЕ
+// тратит попытку из трёх и НЕ закрывает панель, дальше этим занимается
+// useSignalState.js/TableManualPanel.jsx. Нет сигнала (или он ссылается на
+// удалённую ноду) — ветка ниже работает ровно как раньше, без изменений.
 export function makeManualCheck({
-  assembled, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
+  assembled, tokens, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
   setCellMenu, setResult, onAnswered, onAnswerToChat, closePanelWith,
+  nodes, onSignal,
 }) {
   return function check() {
     // Разбор закончен — открытое меню ячейки уже ни к чему
     setCellMenu(null)
     const phrase = assembled.map(t => t.value).join(' ')
-    // Сверяем по смыслу (тот же normalizeAnswerText, что и в дикторе): регистр,
-    // лишние пробелы/переносы из ячейки и вид апострофа значения не имеют
-    if (normalizeAnswerText(phrase) === normalizeAnswerText(answer)) {
+
+    // Сверяем ПОСЛОТОВО (а не строку целиком) — так находим ПЕРВЫЙ неверный
+    // слот, для него и смотрим персональный сигнал автора. Сверка по смыслу
+    // (тот же normalizeAnswerText, что и в дикторе) — регистр, лишние
+    // пробелы/переносы из ячейки и вид апострофа значения не имеют
+    const mismatchIdx = firstMismatchSlot(assembled, tokens, slotMatches)
+
+    if (mismatchIdx == null) {
       setResult('correct')
       // XP объявляем СРАЗУ, не дожидаясь пузыря: раньше он стрелял из
       // AnswerBubbles, и при выключенной галочке «отправить ответ ученика»
@@ -55,6 +76,14 @@ export function makeManualCheck({
         whenBubbleLanded(() => closePanelWith('table_correct'))
       }, 600)
       timers.current.push(id)
+      return
+    }
+
+    // Ошибка — сначала смотрим, не назначен ли ИМЕННО этому слоту личный
+    // сигнал автора
+    const found = signalForSlot(tData.signals, mismatchIdx, nodes)
+    if (found) {
+      onSignal?.(mismatchIdx, found.node)
       return
     }
 
