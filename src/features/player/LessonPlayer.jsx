@@ -316,10 +316,11 @@ export default function LessonPlayer({
           filesWithBlobs={filesWithBlobs}
           xpMap={xpMap}
           onNodeDone={onNodeDone}
-          // Замыкание на ТЕКУЩИЙ visibleNodes.length в момент срабатывания —
-          // именно так сигнал встаёт в ленте на своё хронологическое место
-          // (см. shared/lib/feedOrder.js), а не всегда в хвосте
-          onSignalFired={(node, release) => signalMessages.fire(node, release, visibleNodes.length)}
+          // exerciseNodeId — id ноды упражнения (не ноды-сигнала) — сигнал
+          // встаёт ПЕРЕД её слотом, см. fireForExercise/useSignalMessages.js
+          onSignalFired={(node, release, exerciseNodeId) =>
+            signalMessages.fireForExercise(node, release, exerciseNodeId, visibleNodes)}
+          hasSignalFired={signalMessages.hasFired}
           record={record}
           wrongRef={wrongRef}
           handleWordAnswer={handleWordAnswer}

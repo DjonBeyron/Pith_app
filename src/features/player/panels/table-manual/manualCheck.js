@@ -21,15 +21,17 @@ function slotMatches(token, expectedToken) {
 // tokens — ожидаемые слоты ответа (deriveAnswerTokens, тот же порядок и
 // разбиение, что видит и автор в пикере signals, см. signalSlots.js).
 // nodes — все ноды урока (резолв ref сигнала в живую ноду); onSignal(slotIndex,
-// node) зовётся, когда у ПЕРВОГО неверного слота есть личный сигнал автора и
-// его нода жива — сигнал «бесплатный» (см. PROJECT.md, «Сигналы ошибок»): НЕ
-// тратит попытку из трёх и НЕ закрывает панель, дальше этим занимается
-// useSignalState.js/TableManualPanel.jsx. Нет сигнала (или он ссылается на
-// удалённую ноду) — ветка ниже работает ровно как раньше, без изменений.
+// node) зовётся, когда у ПЕРВОГО неверного слота есть личный сигнал автора,
+// его нода жива, И она ЕЩЁ НЕ срабатывала за этот урок (hasSignalFired) —
+// сигнал «бесплатный» (см. PROJECT.md, «Сигналы ошибок»): НЕ тратит попытку
+// из трёх и НЕ закрывает панель, дальше этим занимается
+// useSignalState.js/TableManualPanel.jsx. Нет сигнала, он уже срабатывал
+// раньше, или ссылается на удалённую ноду — ветка ниже работает ровно как
+// обычная ошибка, без изменений.
 export function makeManualCheck({
   assembled, tokens, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
   setCellMenu, setResult, onAnswered, onAnswerToChat, closePanelWith,
-  nodes, onSignal,
+  nodes, onSignal, hasSignalFired,
 }) {
   return function check() {
     // Разбор закончен — открытое меню ячейки уже ни к чему
@@ -80,9 +82,10 @@ export function makeManualCheck({
     }
 
     // Ошибка — сначала смотрим, не назначен ли ИМЕННО этому слоту личный
-    // сигнал автора
+    // сигнал автора, и не срабатывал ли он уже раньше за этот урок (сигнал
+    // бесплатный только ОДИН раз — дальше та же ошибка идёт обычным путём)
     const found = signalForSlot(tData.signals, mismatchIdx, nodes)
-    if (found) {
+    if (found && !hasSignalFired?.(found.node.id)) {
       onSignal?.(mismatchIdx, found.node)
       return
     }

@@ -36,10 +36,12 @@ describe('сигналы ошибок — сигнал играет сообще
     expect(src).toContain('setItems(prev => [...prev, { key, node, afterVisibleCount }])') // сообщение остаётся в ленте навсегда
   })
 
-  it('useSignalMessages.js защищён от повторного срабатывания ТОГО ЖЕ сигнала, пока предыдущий показ активен', () => {
+  it('useSignalMessages.js — каждая нода-сигнал срабатывает один раз за урок (firedNodeIds/hasFired)', () => {
     const src = read('../../useSignalMessages.js')
-    expect(src).toMatch(/alreadyPending[\s\S]{0,80}nodeId === node\.id/)
-    expect(src).toContain('if (alreadyPending) return')
+    expect(src).toContain('const firedNodeIds = useRef(new Set())')
+    expect(src).toContain('const hasFired = useCallback(nodeId => firedNodeIds.current.has(nodeId)')
+    expect(src).toMatch(/if \(firedNodeIds\.current\.has\(node\.id\)\) return/)
+    expect(src).toContain('hasFired')
   })
 
   it('feedOrder.js вставляет сигнал в ленту по afterVisibleCount, а не жёстко в хвост', () => {
@@ -56,52 +58,66 @@ describe('сигналы ошибок — сигнал играет сообще
     expect(renderSignal).not.toMatch(/node\.type\s*===/) // никакого «text/audio/photo/...» вручную для сигнала
   })
 
-  it('LessonPlayer заводит useSignalMessages и прокидывает signalItems в общую ленту', () => {
+  it('LessonPlayer заводит useSignalMessages, прокидывает signalItems в ленту и якорит сигнал на exerciseNodeId через fireForExercise (не на длину visibleNodes)', () => {
     const src = read('../../LessonPlayer.jsx')
     expect(src).toContain('useSignalMessages()')
     expect(src).toMatch(/<PlayerFeedNodes[\s\S]{0,600}signalItems=\{signalMessages\.items\}/)
-    expect(src).toMatch(/<PlayerPanels[\s\S]{0,900}onSignalFired=\{[\s\S]{0,120}signalMessages\.fire\(node, release, visibleNodes\.length\)/)
+    expect(src).toMatch(/<PlayerPanels[\s\S]{0,900}onSignalFired=\{\(node, release, exerciseNodeId\) =>\s*\n\s*signalMessages\.fireForExercise\(node, release, exerciseNodeId, visibleNodes\)/)
+    expect(src).toMatch(/<PlayerPanels[\s\S]{0,1200}hasSignalFired=\{signalMessages\.hasFired\}/)
   })
 
-  it('PlayerPanels пробрасывает nodes/onSignalFired в TableManualPanel и PhraseAssemblyPanel', () => {
+  it('useSignalMessages.fireForExercise находит индекс ноды упражнения в visibleNodes и вставляет сигнал ПЕРЕД её слотом', () => {
+    const src = read('../../useSignalMessages.js')
+    expect(src).toContain('const fireForExercise = useCallback((node, onReleased, exerciseNodeId, visibleNodes)')
+    expect(src).toContain('visibleNodes.findIndex(n => n.id === exerciseNodeId)')
+    expect(src).toMatch(/return \{ items, fire, fireForExercise, onMessageDone: release, hasFired \}/)
+  })
+
+  it('PlayerPanels пробрасывает nodes/onSignalFired/hasSignalFired в TableManualPanel и PhraseAssemblyPanel', () => {
     const src = read('../../PlayerPanels.jsx')
     expect(src).toMatch(/<PhraseAssemblyPanel[\s\S]{0,300}nodes=\{nodes\}/)
     expect(src).toMatch(/<PhraseAssemblyPanel[\s\S]{0,300}onSignalFired=\{onSignalFired\}/)
+    expect(src).toMatch(/<PhraseAssemblyPanel[\s\S]{0,300}hasSignalFired=\{hasSignalFired\}/)
     expect(src).toMatch(/<TableManualPanel[\s\S]{0,400}nodes=\{nodes\}/)
     expect(src).toMatch(/<TableManualPanel[\s\S]{0,400}onSignalFired=\{onSignalFired\}/)
+    expect(src).toMatch(/<TableManualPanel[\s\S]{0,600}hasSignalFired=\{hasSignalFired\}/)
   })
 
-  it('TableManualPanel держит useSignalState (freeze/blinkIndex нетронуты) и зовёт onSignalFired, но не рендерит оверлей', () => {
+  it('TableManualPanel держит useSignalState (freeze/blinkIndex нетронуты), зовёт onSignalFired с id своей ноды и пробрасывает hasSignalFired в check — оверлей не рендерит', () => {
     const src = read('../table-manual/TableManualPanel.jsx')
     expect(src).toContain('useSignalState()')
     expect(src).toContain('signalState.freeze')
     expect(src).toContain('signalState.fire(slotIndex, signalNode)')
-    expect(src).toContain('onSignalFired?.(signalNode, signalState.dismissOverlay)')
+    expect(src).toContain('onSignalFired?.(signalNode, signalState.dismissOverlay, node.id)')
+    expect(src).toMatch(/makeManualCheck\(\{[\s\S]{0,300}hasSignalFired/)
     expect(src).not.toContain('SignalOverlay')
   })
 
-  it('manualCheck.js резолвит signalForSlot ПЕРЕД тем, как тратить попытку', () => {
+  it('manualCheck.js резолвит signalForSlot ПЕРЕД тем, как тратить попытку, и пропускает уже сработавший сигнал (hasSignalFired)', () => {
     const src = read('../table-manual/manualCheck.js')
     const signalIdx = src.indexOf('signalForSlot')
     const wrongCountIdx = src.indexOf('wrongCount.current += 1')
     expect(signalIdx).toBeGreaterThan(-1)
     expect(wrongCountIdx).toBeGreaterThan(-1)
     expect(signalIdx).toBeLessThan(wrongCountIdx)
+    expect(src).toContain('if (found && !hasSignalFired?.(found.node.id))')
   })
 
-  it('usePhraseAssembly принимает onSignalFired и зовёт его только на полном ответе', () => {
+  it('usePhraseAssembly принимает onSignalFired/hasSignalFired, зовёт их только на полном ответе и передаёт id своей ноды', () => {
     const src = read('../phrase-assembly/usePhraseAssembly.js')
     expect(src).toContain('useSignalState()')
     expect(src).toContain('onSignalFired')
+    expect(src).toContain('hasSignalFired')
     expect(src).toContain('signalForSlot')
     // onSignalFired проверяется внутри if(full) — не на частичной сборке
-    expect(src).toMatch(/if \(full\) \{[\s\S]*onSignalFired\?\.\(found\.node/)
+    expect(src).toMatch(/if \(full\) \{[\s\S]*if \(found && !hasSignalFired\?\.\(found\.node\.id\)\)[\s\S]*onSignalFired\?\.\(found\.node, signalState\.dismissOverlay, node\.id\)/)
   })
 
-  it('PhraseAssemblyPanel не рендерит оверлей и не шлёт статистику на result === "signal"', () => {
+  it('PhraseAssemblyPanel не рендерит оверлей, пробрасывает hasSignalFired и не шлёт статистику на result === "signal"', () => {
     const src = read('../phrase-assembly/PhraseAssemblyPanel.jsx')
     expect(src).not.toContain('SignalOverlay')
     expect(src).toContain('onSignalFired')
+    expect(src).toContain('hasSignalFired')
     expect(src).toMatch(/r === 'signal'/)
   })
 })

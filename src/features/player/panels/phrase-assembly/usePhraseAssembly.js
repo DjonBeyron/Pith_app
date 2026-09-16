@@ -16,10 +16,11 @@ const wordMatches = (word, expected) => (word ?? '').toLowerCase() === expected.
 
 // nodes — все ноды урока (не только видимые): нужны, чтобы резолвить ref
 // сигнала ошибки (см. PROJECT.md, «Сигналы ошибок») в живую ноду.
-// onSignalFired(node, release) — мост до ленты (PhraseAssemblyPanel →
-// LessonPlayer/useSignalMessages.js): рисует сигнал обычным сообщением
-// вместо прежнего оверлея, release === signalState.dismissOverlay ниже
-export function usePhraseAssembly(node, nodes = [], onSignalFired) {
+// onSignalFired(node, release, exerciseNodeId) — мост до ленты
+// (PhraseAssemblyPanel → LessonPlayer/useSignalMessages.js): рисует сигнал
+// обычным сообщением вместо прежнего оверлея, release === signalState.dismissOverlay
+// ниже. hasSignalFired(nodeId) — та же нода-сигнал срабатывает один раз за урок.
+export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFired) {
   const words       = node.typeData?.phrase_assembly?.words       ?? []
   const distractors = node.typeData?.phrase_assembly?.distractors ?? []
   const signals      = node.typeData?.phrase_assembly?.signals    ?? []
@@ -62,7 +63,10 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired) {
   }
 
   function checkAnswer() {
-    if (placed.length === 0 || isAnswered) return null
+    // signalState.freeze — защита от гонки при двойном клике/тапе по
+    // «Проверить»: React мог ещё не успеть перерисовать disabled на кнопке
+    // между двумя быстрыми кликами (см. useSignalMessages.js)
+    if (placed.length === 0 || isAnswered || signalState.freeze) return null
     const placedWords = placed.map(p => p.word)
     const full = placedWords.length === words.length
 
@@ -75,12 +79,15 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired) {
         setResult('correct')
         return 'correct'
       }
+      // Сигнал есть И он ещё не срабатывал за этот урок — бесплатный; иначе
+      // (нет сигнала, или уже срабатывал раньше) та же ошибка идёт обычным
+      // путём ниже, как будто сигнала для этого слота вовсе нет
       const found = signalForSlot(signals, mismatchIdx, nodes)
-      if (found) {
+      if (found && !hasSignalFired?.(found.node.id)) {
         // Панель НЕ закрывается и НЕ чистит собранное — сигнал «бесплатный»,
         // см. PROJECT.md. Мигает именно placed[mismatchIdx]
         signalState.fire(mismatchIdx, found.node)
-        onSignalFired?.(found.node, signalState.dismissOverlay)
+        onSignalFired?.(found.node, signalState.dismissOverlay, node.id)
         return 'signal'
       }
     }

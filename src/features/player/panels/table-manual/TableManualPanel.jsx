@@ -32,10 +32,11 @@ export default function TableManualPanel({
   node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat, onLandedInChat,
   xpAmount = 0, onXpEarned,
   // Сигналы ошибок (см. PROJECT.md): nodes — все ноды урока, чтобы найти
-  // живую ноду по ref сигнала; onSignalFired(node, release) — рисует её как
-  // обычное сообщение ленты (LessonPlayer/useSignalMessages.js) вместо
-  // прежнего самодельного оверлея
-  nodes = [], onSignalFired,
+  // живую ноду по ref сигнала; onSignalFired(node, release, exerciseNodeId)
+  // — рисует её как обычное сообщение ленты (LessonPlayer/useSignalMessages.js)
+  // вместо прежнего самодельного оверлея; hasSignalFired(nodeId) — та же
+  // нода-сигнал срабатывает один раз за урок (см. manualCheck.js)
+  nodes = [], onSignalFired, hasSignalFired,
 }) {
   const tData       = node.typeData?.table ?? {}
   const table       = tData.table          ?? null
@@ -236,10 +237,10 @@ export default function TableManualPanel({
   const check = makeManualCheck({
     assembled, tokens, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
     setCellMenu, setResult, onAnswered, onAnswerToChat, closePanelWith,
-    nodes,
+    nodes, hasSignalFired,
     onSignal: (slotIndex, signalNode) => {
       signalState.fire(slotIndex, signalNode)
-      onSignalFired?.(signalNode, signalState.dismissOverlay)
+      onSignalFired?.(signalNode, signalState.dismissOverlay, node.id)
     },
   })
 

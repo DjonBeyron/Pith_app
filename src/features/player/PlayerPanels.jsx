@@ -14,11 +14,13 @@ export default function PlayerPanels({
   wcNode, paNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
   // Сигналы ошибок (см. PROJECT.md) — table-manual и «Собери фразу» резолвят
-  // signals[].ref по полному списку нод урока; onSignalFired(node, release) —
-  // мост до ленты (LessonPlayer/useSignalMessages.js), рисует сигнал как
-  // обычное сообщение и зовёт release, когда оно доиграло
+  // signals[].ref по полному списку нод урока; onSignalFired(node, release,
+  // exerciseNodeId) — мост до ленты (LessonPlayer/useSignalMessages.js),
+  // рисует сигнал как обычное сообщение и зовёт release, когда оно доиграло;
+  // hasSignalFired(nodeId) — та же нода-сигнал срабатывает ОДИН РАЗ за
+  // урок, дальше эта же ошибка идёт обычным путём (не бесплатно)
   nodes = [],
-  onSignalFired,
+  onSignalFired, hasSignalFired,
   // Шаг «назад» админа: растёт при откате и пересобирает панель — иначе она
   // осталась бы в состоянии «уже отвечено» и вопрос заново не показала бы.
   // node.visit — то же самое для обычного игрока: сценарий вернул его на ту же
@@ -59,6 +61,7 @@ export default function PlayerPanels({
           node={paNode}
           nodes={nodes}
           onSignalFired={onSignalFired}
+          hasSignalFired={hasSignalFired}
           xpAmount={xpMap.get(paNode.id) ?? 0}
           onDone={(result, variantId) => { setPaPanelHeight(0); onNodeDone(paNode.id, result, variantId) }}
           onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
@@ -103,6 +106,7 @@ export default function PlayerPanels({
             node={tableNode}
             nodes={nodes}
             onSignalFired={onSignalFired}
+            hasSignalFired={hasSignalFired}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
             /* Раньше была заглушка () => {} — подсказка учителя на неверный
                ответ (responseWrong) и раскрытие ответа после трёх попыток

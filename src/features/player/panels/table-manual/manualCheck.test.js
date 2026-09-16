@@ -93,13 +93,29 @@ describe('makeManualCheck — сигнал ошибки на первом нев
     expect(setResult).toHaveBeenCalledWith('correct')
   })
 
-  it('всегда есть сигнал на первый неверный слот — можно проверять сколько угодно раз подряд, без счётчика попыток', () => {
+  it('сигнал ещё не срабатывал (hasSignalFired → false) — onSignal зовётся как обычно', () => {
+    const hasSignalFired = vi.fn(() => false)
     const { check, wrongCount, onSignal } = baseSetup({
       tData: { signals: [{ slot: 1, ref: 'sig1' }] },
       nodes: [{ id: 'sig1', type: 'audio' }],
+      hasSignalFired,
     })
-    check(); check(); check(); check()
-    expect(onSignal).toHaveBeenCalledTimes(4)
-    expect(wrongCount.current).toBe(0) // ни разу не потрачена — бесплатная подсказка каждый раз
+    check()
+    expect(hasSignalFired).toHaveBeenCalledWith('sig1')
+    expect(onSignal).toHaveBeenCalledTimes(1)
+    expect(wrongCount.current).toBe(0)
+  })
+
+  it('сигнал уже срабатывал раньше за урок (hasSignalFired → true) — обычная ветка, попытка тратится', () => {
+    const hasSignalFired = vi.fn(() => true)
+    const { check, wrongCount, onSignal, setResult } = baseSetup({
+      tData: { signals: [{ slot: 1, ref: 'sig1' }] },
+      nodes: [{ id: 'sig1', type: 'audio' }],
+      hasSignalFired,
+    })
+    check()
+    expect(onSignal).not.toHaveBeenCalled()
+    expect(wrongCount.current).toBe(1)
+    expect(setResult).toHaveBeenCalledWith('wrong')
   })
 })

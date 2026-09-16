@@ -21,14 +21,15 @@ function wordFormGenitive(n) {
 export default function PhraseAssemblyPanel({
   node, onDone, onAnswered, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
   // Сигналы ошибок (см. PROJECT.md): nodes — все ноды урока (резолв ref);
-  // onSignalFired(node, release) — рисует сигнал как обычное сообщение
-  // ленты (LessonPlayer/useSignalMessages.js) вместо прежнего оверлея
-  nodes = [], onSignalFired,
+  // onSignalFired(node, release, exerciseNodeId) — рисует сигнал как обычное
+  // сообщение ленты (LessonPlayer/useSignalMessages.js) вместо прежнего
+  // оверлея; hasSignalFired(nodeId) — та же нода-сигнал срабатывает один раз
+  nodes = [], onSignalFired, hasSignalFired,
 }) {
   const {
     shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer,
     blinkIndex, freeze,
-  } = usePhraseAssembly(node, nodes, onSignalFired)
+  } = usePhraseAssembly(node, nodes, onSignalFired, hasSignalFired)
   const [show, setShow]               = useState(false)
   const [showCounter, setShowCounter] = useState(false)
   const panelRef    = useRef(null)
