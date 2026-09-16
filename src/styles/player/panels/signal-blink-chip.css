@@ -1,10 +1,11 @@
 /* Мигающий чип — слот ответа с личным сигналом ошибки автора (см.
    PROJECT.md, «Сигналы ошибок», правка 2026-09-15). Общий класс для
    tmAnswerChip (TableManualPanel) и phraseAnswerChip (PhraseAnswerRow) —
-   сам сигнал теперь рендерится обычным сообщением ленты
-   (PlayerSignalMessages.jsx), а не отдельным оверлеем (был здесь раньше,
-   SignalOverlay.jsx, удалён); мигание чипа как было. Снимается тем же
-   тапом, которым убирают любое слово из бокса — см. useSignalState.js. */
+   сам сигнал теперь рендерится обычным сообщением ленты, на своём
+   хронологическом месте (PlayerFeedNodes.jsx/shared/lib/feedOrder.js), а
+   не отдельным оверлеем (был здесь раньше, SignalOverlay.jsx, удалён);
+   мигание чипа как было. Снимается тем же тапом, которым убирают любое
+   слово из бокса — см. useSignalState.js. */
 .signalBlinkChip {
   animation: signalBlink 0.9s ease-in-out infinite;
   border-radius: 4px;

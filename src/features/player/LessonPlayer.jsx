@@ -15,7 +15,6 @@ import PinMessageBanner    from './panels/PinMessageBanner.jsx'
 import { mainLineIndex, lessonProgress } from '../../shared/lib/lessonProgress.js'
 import { useGraphPlayer }  from './useGraphPlayer.js'
 import { useSignalMessages } from './useSignalMessages.js'
-import PlayerSignalMessages from './PlayerSignalMessages.jsx'
 import { usePlayerPanelNodes } from './usePlayerPanelNodes.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { useNodeAppearLog } from './useNodeAppearLog.js'
@@ -256,7 +255,7 @@ export default function LessonPlayer({
     }
   }, [])
 
-  // Общие пропсы обычной и сигнальной ленты (PlayerFeedNodes/PlayerSignalMessages)
+  // Общие пропсы ленты PlayerFeedNodes.jsx (обычные ноды + сигнальные сообщения вперемешку)
   const feedShared = { nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin, onTrReveal: registerHint, onOpenLessonRef: handleOpenLessonRef }
 
   return (
@@ -292,9 +291,10 @@ export default function LessonPlayer({
             {...feedShared}
             states={{ photoChoiceStates, wordChoiceStates, phraseStates, regStates, tableSent: answers.tableSent, tableArriving: answers.tableArriving }}
             onNodeDone={onNodeDone}
+            signalItems={signalMessages.items}
+            onMessageDone={signalMessages.onMessageDone}
             adminEdit={adminEdit}
           />
-          <PlayerSignalMessages items={signalMessages.items} {...feedShared} onMessageDone={signalMessages.onMessageDone} />
           {!holdForResume && visibleNodes.length === 0 && (
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}
@@ -316,7 +316,10 @@ export default function LessonPlayer({
           filesWithBlobs={filesWithBlobs}
           xpMap={xpMap}
           onNodeDone={onNodeDone}
-          onSignalFired={signalMessages.fire}
+          // Замыкание на ТЕКУЩИЙ visibleNodes.length в момент срабатывания —
+          // именно так сигнал встаёт в ленте на своё хронологическое место
+          // (см. shared/lib/feedOrder.js), а не всегда в хвосте
+          onSignalFired={(node, release) => signalMessages.fire(node, release, visibleNodes.length)}
           record={record}
           wrongRef={wrongRef}
           handleWordAnswer={handleWordAnswer}

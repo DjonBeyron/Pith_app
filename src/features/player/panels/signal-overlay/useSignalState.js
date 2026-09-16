@@ -17,11 +17,12 @@ import { nextBlinkIndex } from '../../../../shared/lib/signalMismatch.js'
 // существующий способ, см. правку пользователя в задаче.
 //
 // overlayNode — сама нода-сигнал, пока играет её сообщение в ленте (правка
-// 2026-09-15: рендер переехал из своего оверлея в PlayerSignalMessages.jsx —
+// 2026-09-15: рендер переехал из своего оверлея в PlayerFeedNodes.jsx —
 // сигнал показывается ТЕМ ЖЕ PlayerMessage/resolveModule, что и обычный чат,
-// см. useSignalMessages.js). Пока overlayNode не null, taps по таблице/словам
-// и удаление из бокса заморожены (freeze) — иначе можно убрать мигающее
-// слово раньше, чем ученик успел увидеть/дослушать сигнал.
+// на своём хронологическом месте, см. useSignalMessages.js/shared/lib/feedOrder.js).
+// Пока overlayNode не null, taps по таблице/словам и удаление из бокса
+// заморожены (freeze) — иначе можно убрать мигающее слово раньше, чем
+// ученик успел увидеть/дослушать сигнал.
 export function useSignalState() {
   const [blinkIndex, setBlinkIndex]   = useState(null)
   const [overlayNode, setOverlayNode] = useState(null)
@@ -34,7 +35,7 @@ export function useSignalState() {
   }
 
   // Сигнальное сообщение в ленте доиграло само (played/timer его Module'я —
-  // см. PlayerSignalMessages.jsx) или сработала страховка по таймеру
+  // см. PlayerFeedNodes.jsx) или сработала страховка по таймеру
   // (useSignalMessages.js) — freeze снят, мигающий чип остаётся ждать удаления
   function dismissOverlay() {
     setOverlayNode(null)

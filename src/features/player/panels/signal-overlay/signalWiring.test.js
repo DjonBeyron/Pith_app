@@ -12,9 +12,12 @@ import { fileURLToPath } from 'node:url'
 // Правка 2026-09-15: SignalOverlay.jsx (самодельный рендер по типу ноды,
 // критика автора — «сигнал должен выглядеть как обычное сообщение») удалён.
 // Сигнал теперь рендерится ТЕМ ЖЕ PlayerMessage/resolveModule, что и вся
-// остальная лента, — см. PlayerSignalMessages.jsx/useSignalMessages.js. Эти
-// тесты проверяют новую цепочку: панель → onSignalFired → LessonPlayer →
-// лента, и что freeze/blinkIndex (useSignalState.js) остались нетронуты.
+// остальная лента, — см. useSignalMessages.js. Отдельный PlayerSignalMessages.jsx
+// тоже удалён следующей правкой (та же дата): сигнал не просто «после ленты»,
+// а встаёт на своё хронологическое место среди обычных нод (см.
+// shared/lib/feedOrder.js) — рендерит его сам PlayerFeedNodes.jsx. Эти тесты
+// проверяют новую цепочку: панель → onSignalFired → LessonPlayer → лента, и
+// что freeze/blinkIndex (useSignalState.js) остались нетронуты.
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
 describe('сигналы ошибок — сигнал играет сообщением в ленте, не оверлеем', () => {
@@ -22,25 +25,42 @@ describe('сигналы ошибок — сигнал играет сообще
     expect(() => read('./SignalOverlay.jsx')).toThrow()
   })
 
-  it('useSignalMessages.js копит сработавшие сигналы и умеет их отпускать', () => {
+  it('PlayerSignalMessages.jsx удалён — сигнал рендерит сам PlayerFeedNodes.jsx на своём месте в ленте', () => {
+    expect(() => read('../../PlayerSignalMessages.jsx')).toThrow()
+  })
+
+  it('useSignalMessages.js копит сработавшие сигналы (с afterVisibleCount) и умеет их отпускать', () => {
     const src = read('../../useSignalMessages.js')
     expect(src).toContain('export function useSignalMessages')
     expect(src).toContain('const fire = useCallback')
-    expect(src).toContain('setItems(prev => [...prev, { key, node }])') // сообщение остаётся в ленте навсегда
+    expect(src).toContain('setItems(prev => [...prev, { key, node, afterVisibleCount }])') // сообщение остаётся в ленте навсегда
   })
 
-  it('PlayerSignalMessages.jsx рендерит через PlayerMessage/resolveModule — без свитча по node.type', () => {
-    const src = read('../../PlayerSignalMessages.jsx')
-    expect(src).toContain("import PlayerMessage from './PlayerMessage.jsx'")
-    expect(src).toContain('<PlayerMessage')
-    expect(src).not.toMatch(/node\.type\s*===/) // никакого «text/audio/photo/...» вручную
+  it('useSignalMessages.js защищён от повторного срабатывания ТОГО ЖЕ сигнала, пока предыдущий показ активен', () => {
+    const src = read('../../useSignalMessages.js')
+    expect(src).toMatch(/alreadyPending[\s\S]{0,80}nodeId === node\.id/)
+    expect(src).toContain('if (alreadyPending) return')
   })
 
-  it('LessonPlayer заводит useSignalMessages и рендерит PlayerSignalMessages в ленте', () => {
+  it('feedOrder.js вставляет сигнал в ленту по afterVisibleCount, а не жёстко в хвост', () => {
+    const src = read('../../../../shared/lib/feedOrder.js')
+    expect(src).toContain('export function mergeFeedOrder')
+    expect(src).toContain('afterVisibleCount')
+  })
+
+  it('PlayerFeedNodes.jsx рендерит сигнал через PlayerMessage/resolveModule — без свитча по node.type', () => {
+    const src = read('../../PlayerFeedNodes.jsx')
+    const renderSignal = src.slice(src.indexOf('function renderSignal'), src.indexOf('return (\n    <>'))
+    expect(src).toContain('mergeFeedOrder')
+    expect(renderSignal).toContain('<PlayerMessage')
+    expect(renderSignal).not.toMatch(/node\.type\s*===/) // никакого «text/audio/photo/...» вручную для сигнала
+  })
+
+  it('LessonPlayer заводит useSignalMessages и прокидывает signalItems в общую ленту', () => {
     const src = read('../../LessonPlayer.jsx')
     expect(src).toContain('useSignalMessages()')
-    expect(src).toMatch(/<PlayerFeedNodes[\s\S]*<PlayerSignalMessages/) // после обычной ленты
-    expect(src).toMatch(/<PlayerPanels[\s\S]{0,600}onSignalFired=\{signalMessages\.fire\}/)
+    expect(src).toMatch(/<PlayerFeedNodes[\s\S]{0,600}signalItems=\{signalMessages\.items\}/)
+    expect(src).toMatch(/<PlayerPanels[\s\S]{0,900}onSignalFired=\{[\s\S]{0,120}signalMessages\.fire\(node, release, visibleNodes\.length\)/)
   })
 
   it('PlayerPanels пробрасывает nodes/onSignalFired в TableManualPanel и PhraseAssemblyPanel', () => {

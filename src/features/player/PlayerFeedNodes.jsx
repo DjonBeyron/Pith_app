@@ -1,24 +1,29 @@
 import PlayerMessage from './PlayerMessage.jsx'
 import NodeEditPencil from './admin/NodeEditPencil.jsx'
+import { mergeFeedOrder } from '../../shared/lib/feedOrder.js'
 
-// Сообщения ленты: видимые ноды + pending-нода, которая пре-рендерится за
-// экраном с тем же key (React сохраняет DOM и уже декодированный кадр видео,
-// когда нода становится активной). Вынесено из LessonPlayer.jsx — он упирался
-// в потолок размера файла.
+// Сообщения ленты: видимые ноды графа урока + сигнальные сообщения
+// (useSignalMessages.js), вперемешку в хронологическом порядке (см.
+// shared/lib/feedOrder.js — сигнал, сработавший раньше, не должен оказаться
+// в чате НИЖЕ более поздних сообщений графа), + pending-нода, которая
+// пре-рендерится за экраном с тем же key (React сохраняет DOM и уже
+// декодированный кадр видео, когда нода становится активной). Вынесено из
+// LessonPlayer.jsx — он упирался в потолок размера файла.
 export default function PlayerFeedNodes({
   visibleNodes, pendingNode, nodes, filesWithBlobs, teacherName,
   states, bottomOffset, videoAutoSound, isAdmin,
   onNodeDone, onTrReveal, onOpenLessonRef,
+  // Сигналы ошибок (см. useSignalMessages.js) — свой onDone: снимает freeze
+  // у панели-источника, НЕ уходит в onNodeDone графа урока
+  signalItems = [], onMessageDone,
   // Режим правки из канваса (usePlayerAdminEdit) — в обычном плеере null
   adminEdit = null,
 }) {
-  const feedNodes = [
-    ...visibleNodes,
-    ...(pendingNode && !visibleNodes.some(v => v.id === pendingNode.id) ? [pendingNode] : []),
-  ]
+  const merged = mergeFeedOrder(visibleNodes, signalItems)
+  const trailingPending = pendingNode && !visibleNodes.some(v => v.id === pendingNode.id)
+    ? pendingNode : null
 
-  return feedNodes.map(node => {
-    const isPending = pendingNode?.id === node.id && !visibleNodes.some(v => v.id === node.id)
+  function renderNode(node, isPending) {
     const fileId = node.typeData?.[node.type]?.file_id ?? null
     const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
     // Реакция рисуется ВНУТРИ чужого пузыря (порталом, см. ReactionModule) —
@@ -80,5 +85,36 @@ export default function PlayerFeedNodes({
         />
       </div>
     )
-  })
+  }
+
+  function renderSignal(key, node) {
+    const fileId = node.typeData?.[node.type]?.file_id ?? null
+    const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
+    return (
+      <div key={key}>
+        <PlayerMessage
+          node={node}
+          file={file}
+          lessonFiles={filesWithBlobs}
+          lessonNodes={nodes}
+          teacherName={teacherName}
+          bottomOffset={bottomOffset}
+          videoAutoSound={videoAutoSound}
+          adminPreview={isAdmin}
+          onDone={() => onMessageDone(key)}
+          onTrReveal={() => onTrReveal(node.id)}
+          onOpenLessonRef={onOpenLessonRef}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {merged.map(entry => entry.kind === 'signal'
+        ? renderSignal(entry.key, entry.node)
+        : renderNode(entry.node, false))}
+      {trailingPending && renderNode(trailingPending, true)}
+    </>
+  )
 }
