@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseTemplateSegments, countBlanks, buildRevealedText, buildPickedText } from './fillBlanksTemplate.js'
+import { parseTemplateSegments, countBlanks, buildRevealedText, buildPickedText, blankKind } from './fillBlanksTemplate.js'
 
 describe('parseTemplateSegments — пропуск-слово', () => {
   it('She ___ to cook every weekend. → текст/пропуск/текст', () => {
@@ -94,5 +94,33 @@ describe('buildPickedText', () => {
     expect(buildPickedText(template, { 0: 'tried' })).toBe(
       'Yesterday she tried to fix her bike, but tomorrow she ___ again.'
     )
+  })
+})
+
+describe('blankKind', () => {
+  it('пропуск-слово (пробелы/края с обеих сторон) — "word"', () => {
+    expect(blankKind('She ___ to cook every weekend.', 0)).toBe('word')
+  })
+
+  it('пропуск-буквы внутри слова (без пробела хотя бы с одной стороны) — "letters"', () => {
+    expect(blankKind('He tr___s a new recipe every week.', 0)).toBe('letters')
+  })
+
+  it('пропуск в самом начале слова, без пробела после — тоже "letters"', () => {
+    expect(blankKind('___s a new recipe.', 0)).toBe('letters')
+  })
+
+  it('пропуск в самом начале фразы целиком (край строки = граница) — "word"', () => {
+    expect(blankKind('___ tries every day.', 0)).toBe('word')
+  })
+
+  it('несколько пропусков — определяет каждый по своему окружению', () => {
+    const template = 'Yesterday she ___ to fix her bike, but tomorrow she will tr___.'
+    expect(blankKind(template, 0)).toBe('word')
+    expect(blankKind(template, 1)).toBe('letters')
+  })
+
+  it('индекс без соответствующего пропуска в шаблоне — безопасный дефолт "word"', () => {
+    expect(blankKind('Без пропусков', 0)).toBe('word')
   })
 })

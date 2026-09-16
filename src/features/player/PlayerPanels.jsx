@@ -90,6 +90,12 @@ export default function PlayerPanels({
           xpAmount={xpMap.get(fbNode.id) ?? 0}
           onDone={result => { setFbPanelHeight(0); onNodeDone(fbNode.id, result) }}
           onAnswered={(text, result) => handlePhraseAnswer(fbNode.id, text, result)}
+          // Галочка «отправить ответ ученика в чат»: собранная фраза уходит
+          // пузырём справа (верная — сразу, неверная — последняя из трёх),
+          // тот же приём, что у table
+          onAnswerToChat={fbNode.typeData?.fill_blanks?.sendAnswerToChat
+            ? (text, result) => handlePhraseAnswer(fbNode.id, text, result)
+            : undefined}
           onChecked={result => {
             if (result === 'wrong') wrongRef.current += 1
             record({

@@ -33,6 +33,23 @@ export function countBlanks(template) {
   return parseTemplateSegments(template).filter(s => s.type === 'blank').length
 }
 
+// 'letters' — пропуск ВНУТРИ слова, без пробела хотя бы с одной стороны
+// («tr___s»); 'word' — пропуск отдельным словом, с обеих сторон граница
+// (пробел или край фразы, «She ___ to»). Нужно только для вида плейсхолдера
+// незаполненного пропуска (см. FillBlanksPanel.jsx/FillBlank.jsx) — 2 точки
+// для буквенного, 5 для словесного, по просьбе автора урока.
+export function blankKind(template, blankIndex) {
+  const segments = parseTemplateSegments(template)
+  const pos = segments.findIndex(s => s.type === 'blank' && s.index === blankIndex)
+  if (pos < 0) return 'word'
+  const before = pos > 0 ? segments[pos - 1] : null
+  const after  = pos < segments.length - 1 ? segments[pos + 1] : null
+  const beforeChar = before?.type === 'text' ? before.value.slice(-1) : ''
+  const afterChar  = after?.type  === 'text' ? after.value.slice(0, 1) : ''
+  const touchesWord = ch => !!ch && !/\s/.test(ch)
+  return (touchesWord(beforeChar) || touchesWord(afterChar)) ? 'letters' : 'word'
+}
+
 // Шаблон целиком с подставленными значениями. values — функция (index) =>
 // текст для пропуска (или объект/массив с тем же интерфейсом через обёртку
 // вызывающей стороны). Общая сборка для «раскрыть верный ответ» и «фраза,

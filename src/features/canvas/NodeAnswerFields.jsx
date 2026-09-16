@@ -89,6 +89,8 @@ export default function NodeAnswerFields({
           onBlanksChange={b => updateTypeData({ blanks: b })}
           onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
           onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+          sendAnswerToChat={tData.sendAnswerToChat === true}
+          onSendAnswerToChatChange={v => updateTypeData({ sendAnswerToChat: v })}
           triggers={node.triggers ?? []}
           allNodes={allNodes}
           nodeId={node.id}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import CellOptionsMenu from '../table-manual/CellOptionsMenu.jsx'
+import FillBlank from './FillBlank.jsx'
 import { parseTemplateSegments } from '../../../../shared/lib/fillBlanksTemplate.js'
 import { makeFillBlanksCheck } from './fillBlanksCheck.js'
 import { usePanelHeight } from '../usePanelHeight.js'
@@ -7,14 +8,17 @@ import { rememberTap } from '../../xpAnchor.js'
 
 // Панель «Составь предложение»: фраза рисуется ОДНИМ текстом (принцип
 // «заполненное слово — без плашки», см. table-manual.css/phrase-assembly.css)
-// с несколькими интерактивными пропусками внутри строки. Тап по пропуску
-// открывает CellOptionsMenu (готовый компонент table-manual — переиспользуем
-// как есть, см. NodeFillBlanksPicker.jsx и PROJECT.md).
+// с несколькими интерактивными пропусками внутри строки (сам пропуск —
+// FillBlank.jsx). Тап по пропуску открывает CellOptionsMenu (готовый
+// компонент table-manual — переиспользуем как есть, см.
+// NodeFillBlanksPicker.jsx и PROJECT.md).
 //
 // Никаких сигналов ошибок здесь нет (пользователь явно исключил их для этого
 // модуля) — стандартный поток из трёх попыток, как у table (ручной режим).
+// onAnswerToChat — необязательный: PlayerPanels.jsx передаёт его, только
+// если у ноды включена галочка «отправить ответ в чат» (см. fillBlanksCheck.js).
 export default function FillBlanksPanel({
-  node, onDone, onAnswered, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
+  node, onDone, onAnswered, onAnswerToChat, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
 }) {
   const fbData = node.typeData?.fill_blanks ?? {}
   const template = fbData.template ?? ''
@@ -23,10 +27,15 @@ export default function FillBlanksPanel({
   const segments = useMemo(() => parseTemplateSegments(template), [template])
   const blanksCount = blanks.length
 
-  const [show,      setShow]      = useState(false)
-  const [picked,    setPicked]    = useState({})     // index → выбранный текст
-  const [result,    setResult]    = useState(null)   // null | 'correct' | 'wrong'
-  const [blankMenu, setBlankMenu] = useState(null)   // { index, options, rect }
+  const [show,         setShow]         = useState(false)
+  const [picked,       setPicked]       = useState({})   // index → выбранный текст
+  const [result,       setResult]       = useState(null) // null | 'correct' | 'wrong'
+  const [blankMenu,    setBlankMenu]    = useState(null) // { index, options, rect }
+  // Неверно заполненные пропуски — мигают красным (см. FillBlank.jsx), пока
+  // ученик не перевыберет ИМЕННО этот пропуск (не по таймеру, тот же приём,
+  // что у мигающего слова в «Собери фразу» — держится до собственного
+  // исправления, не общего сброса result)
+  const [wrongIndices, setWrongIndices] = useState([])
 
   const panelRef   = useRef(null)
   const wrongCount = useRef(0)
@@ -53,11 +62,15 @@ export default function FillBlanksPanel({
   }
 
   // Повторный тап по уже заполненному пропуску — снова открывает меню и
-  // меняет выбор (см. tapBlank выше — там нет разницы «пусто/заполнено»)
+  // меняет выбор (см. tapBlank выше — там нет разницы «пусто/заполнено»).
+  // Перевыбор снимает мигание именно с ЭТОГО пропуска (не со всех сразу) —
+  // независимо от того, попал ли новый выбор в точку: ученик уже отреагировал
+  // на подсказку, дальше её решает следующая проверка
   function pickOption(value) {
     const index = blankMenu.index
     setBlankMenu(null)
     setPicked(prev => ({ ...prev, [index]: value }))
+    setWrongIndices(prev => prev.filter(i => i !== index))
   }
 
   function closePanelWith(trigger) {
@@ -72,7 +85,7 @@ export default function FillBlanksPanel({
   // eslint-disable-next-line react-hooks/refs
   const check = makeFillBlanksCheck({
     picked, blanks, tData: fbData, wrongCount, timers, xpAmount, onXpEarned,
-    setResult, onAnswered, onChecked, closePanelWith,
+    setResult, setWrongIndices, onAnswered, onAnswerToChat, onChecked, closePanelWith,
   })
 
   const allFilled = blanksCount > 0 && Object.keys(picked).length === blanksCount
@@ -109,15 +122,17 @@ export default function FillBlanksPanel({
           <div className={sentenceCls}>
             {segments.map((seg, i) => {
               if (seg.type === 'text') return <span key={i}>{seg.value}</span>
-              const value = picked[seg.index]
+              const index = seg.index
               return (
-                <button
+                <FillBlank
                   key={i}
-                  type="button"
-                  className={value != null ? 'fbBlankFilled' : 'fbBlankEmpty'}
-                  onClick={e => tapBlank(seg.index, e.currentTarget.getBoundingClientRect())}
+                  template={template}
+                  index={index}
+                  value={picked[index] ?? null}
+                  wrong={wrongIndices.includes(index)}
                   disabled={!!result}
-                >{value != null ? value : '···'}</button>
+                  onTap={e => tapBlank(index, e.currentTarget.getBoundingClientRect())}
+                />
               )
             })}
           </div>

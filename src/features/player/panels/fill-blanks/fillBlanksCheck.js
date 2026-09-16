@@ -1,17 +1,19 @@
 import { flushSync } from 'react-dom'
 import { normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 import { firstMismatchSlot } from '../../../../shared/lib/signalMismatch.js'
-import { buildRevealedText } from '../../../../shared/lib/fillBlanksTemplate.js'
+import { buildRevealedText, buildPickedText } from '../../../../shared/lib/fillBlanksTemplate.js'
 import { whenBubbleLanded } from '../whenBubbleLanded.js'
 
-function blankMatches(value, blank) {
+export function blankMatches(value, blank) {
   return !!value && normalizeAnswerText(value) === normalizeAnswerText(blank.answer)
 }
 
 // Проверка «Составь предложение» — по образцу table-manual/manualCheck.js, но
 // БЕЗ сигналов ошибок (пользователь явно попросил не подключать их сюда, см.
-// PROJECT.md) и без отдельной галочки «отправить ответ в чат»: responseCorrect/
-// responseWrong сами и есть пузыри ответа (тот же приём, что у table).
+// PROJECT.md). Галочка «отправить ответ в чат» — как у table: onAnswerToChat
+// зовётся, только если она включена (иначе панель просто её не передаёт),
+// responseCorrect/responseWrong — отдельные, ВСЕГДА идущие пузыри с текстом
+// автора.
 //
 // Фабрика, а не хук — вызывается на каждом рендере панели и замыкает свежие
 // picked/blanks, как manualCheck.js/usePhraseAssembly.js.
@@ -24,9 +26,14 @@ function blankMatches(value, blank) {
 // onChecked(result) — 'correct'|'wrong', зовётся СИНХРОННО в момент проверки
 // (на каждой попытке, включая неокончательные) — мост до статистики/звёзд
 // урока (LessonPlayer.jsx), тот же приём, что у onChecked в PhraseAssemblyPanel.
+//
+// setWrongIndices([...]) — ВСЕ неверно заполненные пропуски (не только первый
+// слева, в отличие от firstMismatchSlot ниже — тот определяет только сам факт
+// ошибки) — они мигают красным в FillBlank.jsx тем же signalBlinkChip, что и
+// у «Собери фразу», пока ученик не перевыберет именно этот пропуск.
 export function makeFillBlanksCheck({
   picked, blanks, tData, wrongCount, timers, xpAmount, onXpEarned,
-  setResult, onAnswered, onChecked, closePanelWith,
+  setResult, setWrongIndices, onAnswered, onAnswerToChat, onChecked, closePanelWith,
 }) {
   return function check() {
     const actual = blanks.map((_, i) => picked[i] ?? null)
@@ -42,6 +49,13 @@ export function makeFillBlanksCheck({
       // (иначе на один и тот же пузырь ложатся два встречных движения)
       const id = setTimeout(() => {
         flushSync(() => {
+          // Собранная фраза — СПРАВА, от лица ученика, с галочкой/салютом
+          // (AnswerBubbles.jsx, result==='correct') — только если включена
+          // галочка «отправить ответ в чат» (onAnswerToChat не передан, если
+          // она выключена, см. PlayerPanels.jsx). Следом — responseCorrect
+          // автора, если задан, отдельной репликой.
+          const text = buildPickedText(tData.template, picked)
+          if (text.trim()) onAnswerToChat?.(text, 'correct')
           if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'correct')
         })
         whenBubbleLanded(() => closePanelWith('fill_correct'))
@@ -52,6 +66,7 @@ export function makeFillBlanksCheck({
 
     wrongCount.current += 1
     setResult('wrong')
+    setWrongIndices?.(actual.reduce((acc, v, i) => (blankMatches(v, blanks[i]) ? acc : [...acc, i]), []))
     onChecked?.('wrong')
     // Подсказка учителя — только на ПЕРВУЮ ошибку (как у table/«Собери
     // фразу»): повторять её слово в слово на второй попытке незачем
@@ -64,6 +79,11 @@ export function makeFillBlanksCheck({
       const revealed = buildRevealedText(tData.template, blanks)
       const id = setTimeout(() => {
         flushSync(() => {
+          // Последняя (неверная) попытка ученика — СПРАВА, тем же каналом,
+          // что и верный ответ выше, только result='wrong_final' (тот же
+          // приём, что у table) — тоже только при включённой галочке
+          const text = buildPickedText(tData.template, picked)
+          if (text.trim()) onAnswerToChat?.(text, 'wrong_final')
           if (revealed.trim()) onAnswered?.(revealed, 'hint')
         })
         whenBubbleLanded(() => closePanelWith('fill_wrong'))

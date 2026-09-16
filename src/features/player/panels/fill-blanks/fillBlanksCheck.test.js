@@ -14,6 +14,7 @@ function baseSetup(overrides = {}) {
   const timers = { current: [] }
   const setResult = vi.fn()
   const onAnswered = vi.fn()
+  const onAnswerToChat = vi.fn()
   const onChecked = vi.fn()
   const onXpEarned = vi.fn()
   const closePanelWith = vi.fn()
@@ -22,11 +23,11 @@ function baseSetup(overrides = {}) {
     picked, blanks,
     tData: { template: 'He tr___s a new recipe every week.', responseCorrect: 'Yep!', responseWrong: 'Погляди ещё раз' },
     wrongCount, timers, xpAmount: 0, onXpEarned,
-    setResult, onAnswered, onChecked, closePanelWith,
+    setResult, onAnswered, onAnswerToChat, onChecked, closePanelWith,
     ...overrides,
   })
 
-  return { check, wrongCount, setResult, onAnswered, onChecked, onXpEarned }
+  return { check, wrongCount, setResult, onAnswered, onAnswerToChat, onChecked, onXpEarned }
 }
 
 describe('makeFillBlanksCheck — неверный ответ', () => {
@@ -37,6 +38,26 @@ describe('makeFillBlanksCheck — неверный ответ', () => {
     expect(setResult).toHaveBeenCalledWith('wrong')
     expect(onChecked).toHaveBeenCalledWith('wrong')
     expect(onAnswered).toHaveBeenCalledWith('Погляди ещё раз', 'hint')
+  })
+
+  it('setWrongIndices получает ВСЕ неверные пропуски, не только первый слева', () => {
+    const setWrongIndices = vi.fn()
+    const { check } = baseSetup({
+      picked: { 0: 'try', 1: 'y' }, // оба пропуска неверны (verно: tries/ie)
+      setWrongIndices,
+    })
+    check()
+    expect(setWrongIndices).toHaveBeenCalledWith([0, 1])
+  })
+
+  it('setWrongIndices — только реально неверные индексы, верно заполненные не попадают', () => {
+    const setWrongIndices = vi.fn()
+    const { check } = baseSetup({
+      picked: { 0: 'tries', 1: 'y' }, // только второй пропуск неверный
+      setWrongIndices,
+    })
+    check()
+    expect(setWrongIndices).toHaveBeenCalledWith([1])
   })
 
   it('вторая ошибка: попытка тратится, но подсказка НЕ повторяется', () => {
@@ -88,5 +109,24 @@ describe('makeFillBlanksCheck — сверка нечувствительна к
     const { check, setResult } = baseSetup({ picked: { 0: '  TRIES ', 1: 'ie' } })
     check()
     expect(setResult).toHaveBeenCalledWith('correct')
+  })
+})
+
+describe('makeFillBlanksCheck — «отправить ответ в чат» (onAnswerToChat)', () => {
+  // onAnswerToChat зовётся внутри setTimeout(600мс)/flushSync — та же ветка,
+  // что и flushSync-часть у table-manual/manualCheck.js, здесь её тоже не
+  // гоняем (см. верхний комментарий файла). Синхронно к моменту return из
+  // check() он ещё не должен быть вызван — сам текст вызова с правильным
+  // result проверен source-text тестом в fillBlanksWiring.test.js.
+  it('верный ответ — onAnswerToChat синхронно ещё не вызван (уйдёт из таймера)', () => {
+    const { check, onAnswerToChat } = baseSetup({ picked: { 0: 'tries', 1: 'ie' } })
+    check()
+    expect(onAnswerToChat).not.toHaveBeenCalled()
+  })
+
+  it('третья ошибка — onAnswerToChat синхронно ещё не вызван (уйдёт из таймера)', () => {
+    const { check, onAnswerToChat } = baseSetup({ wrongCount: { current: 2 } })
+    check()
+    expect(onAnswerToChat).not.toHaveBeenCalled()
   })
 })

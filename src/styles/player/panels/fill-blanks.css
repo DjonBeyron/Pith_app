@@ -40,6 +40,9 @@
   line-height: 1.6;
   color: #9aa0b4;
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  /* Фраза сама держит внимание в панели — без надписи-подсказки сверху ей
+     нужен явный визуальный центр, не прижатый к левому краю */
+  text-align: center;
 }
 
 .fbSentenceErr { animation: fbShake 0.42s ease; }
@@ -52,42 +55,79 @@
   80%      { transform: translateX(3px); }
 }
 
+/* Общее для обоих состояний пропуска: ширина под содержимое, но АНИМИРУЕМАЯ
+   явным px (см. FillBlank.jsx — auto-ширина в CSS не транзишнится), поэтому
+   меняется плавно и при заполнении, и при смене выбора, и при снятии (пин
+   старой ширины → форс reflow → отпуск на новую на следующем кадре). display:
+   inline-flex + align-items: flex-end — точки прижаты к НИЖНЕМУ краю шрифта
+   (baseline), а не к центру строки. */
+.fbBlank {
+  display: inline-flex;
+  align-items: flex-end;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: baseline;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  transition: width 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s;
+}
+.fbBlank:not(:disabled):active { opacity: 0.6; }
+.fbBlank:disabled { cursor: default; }
+
 /* Заполненный пропуск — просто выделенный кусок текста (жирный + брендовый
    цвет), БЕЗ фоновой плашки и рамки: иначе вся фраза читалась бы как ряд
    кнопок, а не как предложение (тот же принцип, что у .tmAnswerChip/
    .phraseAnswerChip). */
 .fbBlankFilled {
-  padding: 0;
-  margin: 0;
-  background: none;
-  border: none;
   color: #b6fe3b;
-  font-size: inherit;
-  font-family: inherit;
   font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s;
 }
-.fbBlankFilled:not(:disabled):active { opacity: 0.6; }
-.fbBlankFilled:disabled { cursor: default; }
 
-/* Незаполненный пропуск — компактный маркер, БЕЗ паддинга в стиле обычного
-   чипа: буквенный пропуск («tr[···]s») не должен разрывать слово заметным
-   зазором. Пунктирное подчёркивание — единственный намёк на интерактивность,
-   вписывается в строку текста, а не выглядит отдельной кнопкой. */
-.fbBlankEmpty {
-  padding: 0 1px;
-  margin: 0 1px;
-  background: none;
-  border: none;
-  border-bottom: 2px dashed #b6fe3b;
-  color: #b6fe3b;
-  font-size: inherit;
-  font-family: inherit;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  transition: opacity 0.15s;
+/* Незаполненный пропуск — компактные точки на нижнем краю шрифта, без
+   плашки/подчёркивания: буквенный пропуск («tr[..]s») не должен разрывать
+   слово заметным зазором или рамкой, точки — единственный намёк на
+   интерактивность, вписываются в строку текста. */
+.fbBlankEmpty { padding: 0 1px; }
+.fbBlankEmpty:disabled { opacity: 0.5; }
+
+/* Точки пропуска — базовый цвет серый, точка сама не «прыгает» и не меняет
+   форму (без transform вовсе) — только БЛЕСК: цвет проходит через белый и
+   возвращается в серый. Раньше все точки светились ОДНОВРЕМЕННО — это
+   читалось как обычное синхронное мигание, а не блеск. Теперь каждая точка
+   загорается СО СДВИГОМ по очереди (animation-delay по nth-child) — блик
+   пробегает СЛЕВА НАПРАВО по точкам одну за другой, а не мигает всеми сразу.
+   Это НЕ та же «волна», что убрали раньше: там двигались/прыгали сами точки
+   (transform), здесь неподвижные точки просто по очереди светлеют — едет
+   только свет, не форма. 2 точки для буквенного пропуска, 5 для
+   пропуска-словом (см. FillBlank.jsx). Мельче и с меньшим зазором, чем в
+   чате — тут они должны вписаться внутрь строки текста размером 15px, а не
+   в отдельный пузырь. */
+.fbBlankDots {
+  display: inline-flex;
+  align-items: flex-end;
+  line-height: 0;
+  padding-bottom: 2px;
 }
-.fbBlankEmpty:not(:disabled):active { opacity: 0.6; }
-.fbBlankEmpty:disabled { cursor: default; opacity: 0.5; }
+.fbBlankDots i {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 1.5px;
+  border-radius: 50%;
+  background: #6b7180;
+  animation: fbDotShine 1.6s infinite ease-in-out;
+}
+.fbBlankDots i:nth-child(2) { animation-delay: 0.14s; }
+.fbBlankDots i:nth-child(3) { animation-delay: 0.28s; }
+.fbBlankDots i:nth-child(4) { animation-delay: 0.42s; }
+.fbBlankDots i:nth-child(5) { animation-delay: 0.56s; }
+
+@keyframes fbDotShine {
+  0%, 40%, 100% { background: #6b7180; box-shadow: none; }
+  15%           { background: #fdfcfc; box-shadow: 0 0 3px rgba(253, 252, 252, 0.7); }
+}

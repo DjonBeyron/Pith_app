@@ -12,6 +12,7 @@ export default function NodeFillBlanksPicker({
   responseCorrect = '', responseWrong = '',
   onTemplateChange, onBlanksChange,
   onResponseCorrectChange, onResponseWrongChange,
+  sendAnswerToChat = false, onSendAnswerToChatChange,
   triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
   const rowRefs = useRef(new Map())
@@ -140,6 +141,14 @@ export default function NodeFillBlanksPicker({
           />
         </div>
       </div>
+      <label className="nodeTableSendChat" onClick={e => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={sendAnswerToChat === true}
+          onChange={e => onSendAnswerToChatChange?.(e.target.checked)}
+        />
+        Отправить ответ ученика в чат после проверки
+      </label>
       <NodeCorrectWrongTriggers
         correctThen={correctThen} wrongThen={wrongThen}
         correctKey="fill_correct" wrongKey="fill_wrong"

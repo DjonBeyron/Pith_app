@@ -113,11 +113,38 @@ describe('fill_blanks — легенда экспорта/импорта (lesson
     expect(block).toContain('responseCorrect:')
     expect(block).toContain('responseWrong:')
     expect(block).toContain('replyToSeq:')
+    expect(block).toContain('sendAnswerToChat:')
   })
 
   it('документирует переходы fill_correct/fill_wrong', () => {
     expect(schema).toContain('fill_correct:')
     expect(schema).toContain('fill_wrong:')
+  })
+})
+
+describe('fill_blanks — «отправить ответ в чат» (sendAnswerToChat, тот же приём, что у table)', () => {
+  it('NodeFillBlanksPicker.jsx рисует галочку тем же классом, что и у table', () => {
+    expect(picker).toContain('className="nodeTableSendChat"')
+    expect(picker).toContain('checked={sendAnswerToChat === true}')
+    expect(picker).toContain('onSendAnswerToChatChange?.(e.target.checked)')
+  })
+
+  it('NodeAnswerFields.jsx пробрасывает sendAnswerToChat в пикер', () => {
+    const block = answerFields.slice(answerFields.indexOf("node.type === 'fill_blanks'"), answerFields.indexOf("node.type === 'table'"))
+    expect(block).toContain('sendAnswerToChat={tData.sendAnswerToChat === true}')
+    expect(block).toContain('onSendAnswerToChatChange={v => updateTypeData({ sendAnswerToChat: v })}')
+  })
+
+  it('fillBlanksCheck.js зовёт onAnswerToChat собранной фразой (buildPickedText) на верном и финальном неверном ответе', () => {
+    expect(check).toContain("import { buildRevealedText, buildPickedText } from '../../../../shared/lib/fillBlanksTemplate.js'")
+    expect(check).toContain("onAnswerToChat?.(text, 'correct')")
+    expect(check).toContain("onAnswerToChat?.(text, 'wrong_final')")
+  })
+
+  it('PlayerPanels.jsx передаёт onAnswerToChat, только если у ноды включена галочка', () => {
+    const fbBlock = playerPanels.slice(playerPanels.indexOf('{fbNode && ('), playerPanels.indexOf('{pcNode &&'))
+    expect(fbBlock).toContain('fbNode.typeData?.fill_blanks?.sendAnswerToChat')
+    expect(fbBlock).toContain('onAnswerToChat={fbNode.typeData?.fill_blanks?.sendAnswerToChat')
   })
 })
 
