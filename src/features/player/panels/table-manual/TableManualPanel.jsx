@@ -192,9 +192,10 @@ export default function TableManualPanel({
 
   function removeFromBox(i) {
     if (result || signalState.freeze) return
-    // Любое удаление — в т.ч. мигающего слова, тем же тапом, никакой новой
-    // механики: см. useSignalState.js
-    signalState.onRemoved()
+    // Удаление любого чипа тем же тапом, никакой новой механики — но
+    // мигание гасится, только если убрали именно помеченный чип
+    // (см. useSignalState.js/nextBlinkIndex)
+    signalState.onRemoved(i)
     setAssembled(prev => prev.filter((_, j) => j !== i))
     // фаза пересчитается автоматически (производная от allCellsDone + hasExtras)
   }

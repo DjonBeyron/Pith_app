@@ -53,9 +53,10 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired) {
 
   function removePlaced(pos) {
     if (isAnswered || signalState.freeze) return
-    // Любое удаление снимает мигание — та же самая, уже существующая
-    // механика, никакого отдельного «удали именно это слово» нет
-    signalState.onRemoved()
+    // Удаление любого чипа — та же самая, уже существующая механика (нет
+    // отдельного «удали именно это слово из середины»), но мигание гасится,
+    // только если убрали именно помеченный чип (см. nextBlinkIndex)
+    signalState.onRemoved(pos)
     setPlaced(p => p.filter((_, i) => i !== pos))
     setResult(null)
   }
