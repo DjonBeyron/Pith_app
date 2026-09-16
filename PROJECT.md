@@ -2975,3 +2975,95 @@ n14 (обычную финальную ветку table_wrong) — при пов
 сигнала пишем свою короткую ноду с другой формулировкой; переиспользование
 существующей — только когда сознательно проверено, что дословного повтора
 не будет.
+
+### Новый тип ноды «Составь предложение» (fill_blanks) (2026-09-16)
+
+Новое упражнение канваса/плеера: готовая фраза с пропусками, ученик заполняет
+каждый ТАПОМ по короткому списку вариантов (никакого текстового ввода —
+принцип «везде тап по готовым вариантам», как у word_choice/phrase_assembly/
+table, здесь без исключений).
+
+**Данные ноды** (`typeData.fill_blanks`):
+```js
+{
+  template: 'She ___ to cook every weekend.', // пропуск — буквально "___"
+  blanks: [{ options: ['tries', 'try', 'tried'], answer: 'tries' }],
+  responseCorrect: '...', responseWrong: '...', replyToSeq: null,
+}
+```
+Пропуск может быть ЦЕЛЫМ СЛОВОМ («She ___ to cook») или БУКВАМИ ВНУТРИ СЛОВА
+на орфографию («tr___s» → tries) — это НАМЕРЕННО одна и та же структура
+`blanks[]` и одна и та же механика заполнения, без отдельного поля
+`type:'word'|'letters'` (явное решение пользователя перед стартом — де-факто
+разница только в том, что лежит в `options`/`answer` конкретного пропуска).
+Порядок `blanks[]` строго = порядку вхождений `"___"` в `template` слева
+направо; разбор — чистые функции в `shared/lib/fillBlanksTemplate.js`
+(`parseTemplateSegments`/`countBlanks`/`buildRevealedText`/`buildPickedText`).
+
+**Без сигналов ошибок** — тоже осознанное решение пользователя ДО старта
+работы, не техническое упрощение: `fillBlanksCheck.js`/`FillBlanksPanel.jsx`
+не импортируют `useSignalState`/`signalForSlot` вовсе (в отличие от
+table-manual/phrase_assembly). Стандартный поток из трёх попыток:
+`responseWrong` подсказкой ПОСЛЕ ПЕРВОЙ ошибки (не повторяется на второй,
+как и у table/phrase_assembly), полное раскрытие правильного ответа
+(`buildRevealedText` — шаблон со ВСЕМИ верными `answer` подставленными)
+после третьей, переходы `fill_correct`/`fill_wrong`.
+
+**Визуальный принцип «заполненное слово — без плашки»** (уже был в
+table-manual.css/phrase-assembly.css) здесь ещё важнее: ВСЯ фраза — готовый
+текст, интерактивны только несколько мест внутри. Заполненный пропуск —
+просто жирный брендовый текст (`.fbBlankFilled`), БЕЗ фона/рамки; незаполненный
+— компактный маркер с пунктирным подчёркиванием (`.fbBlankEmpty`), БЕЗ
+паддинга обычного чипа: у буквенного пропуска внутри слова («tr[···]s»)
+большой паддинг развалил бы слово на глаз. Тап по маркеру открывает готовый
+`CellOptionsMenu.jsx` (table-manual) — переиспользован как есть, не переписан.
+
+**Переиспользование инфраструктуры, а не дублирование:**
+- Ответ ученика в чате идёт через уже существующий `phraseStates`/
+  `handlePhraseAnswer` (`usePlayerAnswers.js`) — тот же генерик-стор, что уже
+  делят phrase_assembly и table (ключ по `nodeId`, коллизий нет). Отдельного
+  `fbStates` заводить не стали — это расширение уже существующего паттерна на
+  третьего потребителя, не новая абстракция. `replyResolve.js` (цитата «В
+  ответ на») и `PlayerFeedNodes.jsx`/`PlayerMessage.jsx` не трогались вовсе:
+  `phraseState` там прокидывается generic-ом по всем типам нод.
+- `CellOptionsMenu.jsx` — переиспользован как есть.
+- `NodeCorrectWrongTriggers.jsx` — переиспользован как есть (пара портов
+  ✓/✗), без своего слоя `variant`-триггеров: у fill_blanks нет понятия
+  «особый переход по конкретному варианту» (в отличие от distractors у
+  phrase_assembly/table) — упрощение сознательное.
+- `firstMismatchSlot` (`signalMismatch.js`) — переиспользован для послотовой
+  сверки picked/blanks.
+
+**Что реально пришлось завести новым:**
+`shared/lib/fillBlanksTemplate.js`, `NodeFillBlanksPicker.jsx` (canvas),
+`modules/fill-blanks/FillBlanksModule.jsx` (лента), `panels/fill-blanks/
+FillBlanksPanel.jsx` + `fillBlanksCheck.js` (панель ответа), плюс точечные
+правки в местах, которые ведут «реестр» типов нод: `nodeGraph.js` (дефолт
+typeData), `nodeDefaults.js` (`TYPED_PAIRS`), `nodeTypes.js` (`NODE_TYPES`),
+`lessonSchema.js` (`NODE_DOCS`/`TRIGGER_DOCS`, легенда экспорта),
+`NodeContentEditor.jsx`/`NodeAnswerFields.jsx`, `usePlayerPanelNodes.js`
+(`KIND_TYPE`/`PANEL_KINDS`), `PlayerPanels.jsx`, `LessonPlayer.jsx`,
+`replyResolve.js`. `exportLesson.js`/`importLesson.js` — проверены явно,
+править не пришлось: обе работают с `typeData`/`triggers` ОБЩО (не по
+списку типов), кроме пары мест, специфичных для `table` (`needsOf`,
+`VARIANT_FIELD`), которых у fill_blanks просто нет.
+
+**Два места, найденные при сверке уже во время реализации (не входили в
+исходный список файлов, но без них фича была бы наполовину рабочей):**
+- `lessonXp.js:REWARD_TYPES` — без этой строки чекбокс «Получить награду» у
+  fill_blanks в редакторе существовал бы, но `buildXpMap` его молча
+  игнорировал бы (XP всегда 0). Добавлено.
+- `admin/stepAnswer.js:pickStepAnswer` — шаговый прогон админа («нажать за
+  ученика» верно/неверно) не знал fill_blanks вовсе: `pickStepAnswer`
+  возвращал `null`, граф не находил подходящий триггер (`fill_correct`/
+  `fill_wrong` ждут явного результата, не `null`) и «шаг вперёд» на такой
+  ноде просто зависал бы. Добавлена ветка с `kind: 'phrase'` (тот же канал,
+  что у phrase_assembly/table — `usePlayerStepControl.js` не пришлось
+  трогать вовсе).
+
+**Открытый вопрос (не блокирует, отметить на будущее):** `statLessonId`
+(привязка к уроку для анализа знаний, `NodeLessonLink`) и чекбокс награды
+добавлены fill_blanks по аналогии с остальными интерактивными типами — в
+исходном ТЗ явно не упоминались, но без них новый тип выпадал бы из общей
+системы аналитики/наград, которой пользуется каждый другой интерактивный
+тип ноды.

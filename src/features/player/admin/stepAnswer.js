@@ -54,6 +54,26 @@ export function pickStepAnswer(node, wantCorrect, rnd = Math.random) {
     }
   }
 
+  if (t === 'fill_blanks') {
+    const blanks = d.blanks ?? []
+    // Пропуски, где есть из чего ошибиться (в options есть хоть один вариант
+    // помимо answer) — «неверно» просто считает результат неверным, без
+    // выбора конкретного варианта: у fill_blanks нет отдельных переходов по
+    // варианту (в отличие от distractors у phrase_assembly/table). Без
+    // единого такого пропуска ошибиться нечем — идём как верный
+    const wrongable = blanks.some(b => (b.options ?? []).some(o => o !== b.answer))
+    const correct = wantCorrect || !wrongable
+    return {
+      // Тот же канал ответа в чате, что у table/phrase_assembly — общий
+      // phraseStates (см. usePlayerAnswers.js/handlePhraseAnswer)
+      kind: 'phrase',
+      correct,
+      variantId: null,
+      result: correct ? 'fill_correct' : 'fill_wrong',
+      responseText: (correct ? d.responseCorrect : d.responseWrong) ?? '',
+    }
+  }
+
   if (t === 'photo_choice') {
     const photos  = d.photos ?? []
     const correctIdx = d.correctIndexes ?? []

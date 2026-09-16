@@ -1,0 +1,34 @@
+/* ── NodeFillBlanksPicker — canvas node editor ─────────────────────── */
+
+.nodeFbWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 10px;
+}
+
+.nodeFbHint {
+  margin: 0;
+  font-size: 11px;
+  color: #d4a24e;
+}
+
+/* Одна карточка на каждый найденный в шаблоне пропуск: подпись «Пропуск N» +
+   список вариантов (переиспользует чипы distractor'ов из phrase-assembly.css,
+   ✓ отмечает верный — та же кнопка, что у word_choice) + добавление варианта */
+.nodeFbBlankRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: #12141d;
+  border: 1px solid #22252d;
+  border-radius: 8px;
+}
+
+.nodeFbBlankLabel {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

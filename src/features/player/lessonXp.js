@@ -5,7 +5,7 @@
 // иначе часть XP просто терялась бы.
 import { isRewardOn } from '../../shared/lib/nodeReward.js'
 
-export const REWARD_TYPES = ['word_choice', 'phrase_assembly', 'photo_choice', 'table']
+export const REWARD_TYPES = ['word_choice', 'phrase_assembly', 'fill_blanks', 'photo_choice', 'table']
 
 export function rewardNodes(nodes) {
   return nodes.filter(n =>

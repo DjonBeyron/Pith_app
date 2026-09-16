@@ -15,6 +15,7 @@ const MEDIA_LABEL = {
   photo_choice:     'Выбор фото',
   phrase_assembly:  'Собрать фразу',
   table:            'Собрать фразу',
+  fill_blanks:      'Составь предложение',
 }
 
 const REPLY_THEME = {
@@ -56,9 +57,10 @@ export function resolveReply(replyNode, teacherName, allWordChoiceStates, allPho
       thumbSrc: null, crop: null,
     }
   }
-  // Таблица в ручном режиме отдаёт собранную фразу тем же handlePhraseAnswer,
-  // что и «Собери фразу» — значит и цитата на неё показывает ответ ученика
-  if (rType === 'phrase_assembly' || rType === 'table') {
+  // Таблица в ручном режиме и «Составь предложение» отдают ответ тем же
+  // handlePhraseAnswer, что и «Собери фразу» (общий phraseStates, keyed по
+  // nodeId) — значит и цитата на них показывает ответ ученика
+  if (rType === 'phrase_assembly' || rType === 'table' || rType === 'fill_blanks') {
     const attempt = resolvePhraseAttempt(allPhraseStates?.[replyNode.id])
     return {
       name:  'Вы:',

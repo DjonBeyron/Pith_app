@@ -67,6 +67,29 @@ describe('phrase_assembly и table', () => {
   })
 })
 
+describe('fill_blanks', () => {
+  const FB = {
+    blanks: [{ options: ['tries', 'try', 'tried'], answer: 'tries' }],
+    responseCorrect: 'Верно', responseWrong: 'Мимо',
+  }
+
+  it('верно — общий триггер, тот же канал ответа (kind: phrase), что у table/phrase_assembly', () => {
+    expect(pickStepAnswer(node('fill_blanks', FB), true, first))
+      .toMatchObject({ kind: 'phrase', result: 'fill_correct', variantId: null, correct: true, responseText: 'Верно' })
+  })
+
+  it('неверно — есть из чего ошибиться (options длиннее одного answer)', () => {
+    expect(pickStepAnswer(node('fill_blanks', FB), false, first))
+      .toMatchObject({ result: 'fill_wrong', correct: false, responseText: 'Мимо' })
+  })
+
+  it('у каждого пропуска в options только сам answer — ошибиться нечем, идём как верный', () => {
+    const noWrongOptions = { blanks: [{ options: ['tries'], answer: 'tries' }] }
+    expect(pickStepAnswer(node('fill_blanks', noWrongOptions), false, first))
+      .toMatchObject({ result: 'fill_correct', correct: true })
+  })
+})
+
 describe('photo_choice', () => {
   const PC = { photos: [{ id: 'p0' }, { id: 'p1' }, { id: 'p2' }], correctIndexes: [1] }
 

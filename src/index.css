@@ -95,6 +95,7 @@
 @import './styles/canvas/sticker.css';
 @import './styles/canvas/reaction.css';
 @import './styles/canvas/phrase-assembly.css';
+@import './styles/canvas/fill-blanks.css';
 @import './styles/canvas/table.css';
 @import './styles/canvas/table-editor-modal.css';
 @import './styles/canvas/table-editor-builder.css';
@@ -114,6 +115,7 @@
 @import './styles/player/panels/table-manual.css';
 @import './styles/player/panels/choose-word.css';
 @import './styles/player/panels/phrase-assembly.css';
+@import './styles/player/panels/fill-blanks.css';
 @import './styles/player/panels/signal-blink-chip.css';
 @import './styles/player/panels/registration.css';
 @import './styles/player/panels/push-prompt.css';

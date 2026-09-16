@@ -22,7 +22,7 @@ describe('какая нода сейчас в нижней панели', () => 
   })
 
   it('каждый тип панели работает одинаково', () => {
-    for (const [kind, type] of [['pa', 'phrase_assembly'], ['pc', 'photo_choice'],
+    for (const [kind, type] of [['pa', 'phrase_assembly'], ['fb', 'fill_blanks'], ['pc', 'photo_choice'],
       ['reg', 'registration'], ['table', 'table']]) {
       expect(pickPanelNodes([n('1', type)])[kind]?.id).toBe('1')
       expect(pickPanelNodes([n('1', type), n('2', 'text')])[kind]).toBe(null)

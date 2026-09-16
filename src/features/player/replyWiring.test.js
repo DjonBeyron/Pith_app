@@ -49,8 +49,8 @@ describe('«Собери фразу» — своя цитата (replyToSeq)', (
     expect(block).toContain('replyToSeq:')
   })
 
-  it('редактор показывает «В ответ на» и для phrase_assembly, не только text/sticker', () => {
-    expect(editor).toContain("(node.type === 'text' || node.type === 'sticker' || node.type === 'phrase_assembly') && (")
+  it('редактор показывает «В ответ на» и для phrase_assembly (и fill_blanks), не только text/sticker', () => {
+    expect(editor).toContain("(node.type === 'text' || node.type === 'sticker' || node.type === 'phrase_assembly' || node.type === 'fill_blanks') && (")
   })
 
   it('PhraseAssemblyModule ищет replyNode по своему полю и передаёт в AnswerBubbles', () => {

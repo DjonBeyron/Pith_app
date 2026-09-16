@@ -1,17 +1,22 @@
 import ChooseWordPanel     from './panels/choose-word/ChooseWordPanel.jsx'
 import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.jsx'
+import FillBlanksPanel     from './panels/fill-blanks/FillBlanksPanel.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
 import TableDictatorPanel  from './panels/table-dictator/TableDictatorPanel.jsx'
 import TableManualPanel    from './panels/table-manual/TableManualPanel.jsx'
 import { wordOptionEvent } from './useAnswerStats.js'
 
-// Нижние панели ответов: выбор слова, сборка фразы, выбор фото, регистрация,
-// таблица. Каждая привязана к последней видимой ноде своего типа и живёт до
-// ответа. Вынесены из LessonPlayer.jsx — самодостаточный кусок разметки,
-// который упирался в потолок размера файла.
+// Нижние панели ответов: выбор слова, сборка фразы, составь предложение,
+// выбор фото, регистрация, таблица. Каждая привязана к последней видимой
+// ноде своего типа и живёт до ответа. Вынесены из LessonPlayer.jsx —
+// самодостаточный кусок разметки, который упирался в потолок размера файла.
+//
+// fill_blanks (FillBlanksPanel) сигналов ошибок не знает вовсе (см.
+// PROJECT.md) — nodes/onSignalFired/hasSignalFired ей не нужны, в отличие от
+// PhraseAssemblyPanel/TableManualPanel ниже.
 export default function PlayerPanels({
-  wcNode, paNode, pcNode, regNode, tableNode,
+  wcNode, paNode, fbNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
   // Сигналы ошибок (см. PROJECT.md) — table-manual и «Собери фразу» резолвят
   // signals[].ref по полному списку нод урока; onSignalFired(node, release,
@@ -30,7 +35,7 @@ export default function PlayerPanels({
   onNodeDone, record, wrongRef,
   handleWordAnswer, handleWordPick, handlePhraseAnswer, handleRegAnswer,
   handlePhotoPick, handleXpEarned, onTableToChat, onTableLanded,
-  setWcPanelHeight, setPaPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
+  setWcPanelHeight, setPaPanelHeight, setFbPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
 }) {
   return (
     <>
@@ -76,6 +81,25 @@ export default function PlayerPanels({
           }}
           onXpEarned={amount => handleXpEarned(amount, paNode.id)}
           onHeightChange={setPaPanelHeight}
+        />
+      )}
+      {fbNode && (
+        <FillBlanksPanel
+          key={`${fbNode.id}:${epoch}:${fbNode.visit ?? 0}`}
+          node={fbNode}
+          xpAmount={xpMap.get(fbNode.id) ?? 0}
+          onDone={result => { setFbPanelHeight(0); onNodeDone(fbNode.id, result) }}
+          onAnswered={(text, result) => handlePhraseAnswer(fbNode.id, text, result)}
+          onChecked={result => {
+            if (result === 'wrong') wrongRef.current += 1
+            record({
+              nodeId: fbNode.id,
+              lessonId: fbNode.typeData?.fill_blanks?.statLessonId ?? null,
+              type: result,
+            })
+          }}
+          onXpEarned={amount => handleXpEarned(amount, fbNode.id)}
+          onHeightChange={setFbPanelHeight}
         />
       )}
       {pcNode && !photoChoiceStates[pcNode.id] && (

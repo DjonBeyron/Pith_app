@@ -1,5 +1,6 @@
 import NodeWordChoicePicker     from './NodeWordChoicePicker.jsx'
 import NodePhraseAssemblyPicker from './NodePhraseAssemblyPicker.jsx'
+import NodeFillBlanksPicker     from './NodeFillBlanksPicker.jsx'
 import NodeTablePicker          from './NodeTablePicker.jsx'
 import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
 import NodeLessonLink           from './NodeLessonLink.jsx'
@@ -65,6 +66,34 @@ export default function NodeAnswerFields({
           onTriggersChange={triggers => onUpdate({ triggers })}
           onTriggerMeasure={onTriggerMeasure}
           onSignalMeasure={onSignalMeasure}
+        />
+        <NodeLessonLink
+          value={tData.statLessonId ?? null}
+          onChange={v => updateTypeData({ statLessonId: v })}
+          moduleLessons={moduleLessons}
+        />
+        <NodeRewardCheckbox lessonXp={lessonXp} checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
+      </>
+    )
+  }
+
+  if (node.type === 'fill_blanks') {
+    return (
+      <>
+        <NodeFillBlanksPicker
+          template={tData.template ?? ''}
+          blanks={tData.blanks ?? []}
+          responseCorrect={tData.responseCorrect ?? ''}
+          responseWrong={tData.responseWrong ?? ''}
+          onTemplateChange={v => updateTypeData({ template: v })}
+          onBlanksChange={b => updateTypeData({ blanks: b })}
+          onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
+          onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+          triggers={node.triggers ?? []}
+          allNodes={allNodes}
+          nodeId={node.id}
+          onTriggersChange={triggers => onUpdate({ triggers })}
+          onTriggerMeasure={onTriggerMeasure}
         />
         <NodeLessonLink
           value={tData.statLessonId ?? null}

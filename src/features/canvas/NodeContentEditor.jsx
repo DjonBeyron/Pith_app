@@ -232,7 +232,7 @@ export default function NodeContentEditor({ lessonXp = 0,
           onChange={updateTypeData}
         />
       )}
-      {(node.type === 'text' || node.type === 'sticker' || node.type === 'phrase_assembly') && (
+      {(node.type === 'text' || node.type === 'sticker' || node.type === 'phrase_assembly' || node.type === 'fill_blanks') && (
         <div className="nodeReplySection">
           <label className="nodeReplyLabel" onClick={e => e.stopPropagation()}>
             <input
@@ -314,7 +314,7 @@ export default function NodeContentEditor({ lessonXp = 0,
       {node.type === 'registration' && (
         <NodeRegistrationTriggers onTriggerMeasure={onTriggerMeasure} />
       )}
-      {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'photo_choice' && node.type !== 'registration' && node.type !== 'table' && (
+      {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'fill_blanks' && node.type !== 'photo_choice' && node.type !== 'registration' && node.type !== 'table' && (
         collapsibleTriggers ? (
           <div className="triggerCollapse">
             <button

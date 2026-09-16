@@ -61,6 +61,10 @@ export function makeNode(seq, x, y, wantType) {
       text:        { content: '', replyToSeq: null, hardWrap: false },
       word_choice:     { options: [], responseCorrect: '', responseWrong: '', sendPickToChat: false },
       phrase_assembly: { words: [], distractors: [], responseCorrect: '', responseWrong: '', replyToSeq: null },
+      // Составь предложение: фраза с пропусками ("___" в тексте, буквально
+      // три подчёркивания) — пропуск может быть целым словом или буквами
+      // внутри слова, механика (и поле blanks) для обоих случаев одна
+      fill_blanks:     { template: '', blanks: [], responseCorrect: '', responseWrong: '', replyToSeq: null },
       pin_message:     { content: '' },
       system:          { content: '' },
       // Реакция как в мессенджере: своего пузыря нет, эмодзи прилипает к

@@ -1,0 +1,93 @@
+/* ── FillBlanksPanel — «Составь предложение» ─────────────────────────
+   Панель того же устройства, что и «Собери фразу» (phrasePanel/phraseAssembly-
+   Spacer): fixed panel + пустой spacer в потоке, GPU translateY. Вся фраза —
+   ОДИН текст (принцип «заполненное слово — без плашки», см. table-manual.css/
+   phrase-assembly.css) с несколькими интерактивными пропусками внутри строки:
+   плашка на КАЖДОМ пропуске превратила бы фразу в ряд кнопок, а тут это
+   особенно заметно — почти весь текст уже готов, интерактивны только
+   несколько мест в нём. ──────────────────────────────────────────── */
+
+.fbSpacer { flex-shrink: 0; width: 100%; }
+
+.fbPanel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1a1d22;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1);
+  will-change: transform;
+  z-index: 10;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.fbPanelVisible {
+  transform: translateY(0%);
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fbInner {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Фраза целиком ───────────────────────────────────────────────── */
+
+.fbSentence {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #9aa0b4;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+}
+
+.fbSentenceErr { animation: fbShake 0.42s ease; }
+
+@keyframes fbShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-5px); }
+  40%      { transform: translateX(5px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+/* Заполненный пропуск — просто выделенный кусок текста (жирный + брендовый
+   цвет), БЕЗ фоновой плашки и рамки: иначе вся фраза читалась бы как ряд
+   кнопок, а не как предложение (тот же принцип, что у .tmAnswerChip/
+   .phraseAnswerChip). */
+.fbBlankFilled {
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  color: #b6fe3b;
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.fbBlankFilled:not(:disabled):active { opacity: 0.6; }
+.fbBlankFilled:disabled { cursor: default; }
+
+/* Незаполненный пропуск — компактный маркер, БЕЗ паддинга в стиле обычного
+   чипа: буквенный пропуск («tr[···]s») не должен разрывать слово заметным
+   зазором. Пунктирное подчёркивание — единственный намёк на интерактивность,
+   вписывается в строку текста, а не выглядит отдельной кнопкой. */
+.fbBlankEmpty {
+  padding: 0 1px;
+  margin: 0 1px;
+  background: none;
+  border: none;
+  border-bottom: 2px dashed #b6fe3b;
+  color: #b6fe3b;
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.fbBlankEmpty:not(:disabled):active { opacity: 0.6; }
+.fbBlankEmpty:disabled { cursor: default; opacity: 0.5; }
