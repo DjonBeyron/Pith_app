@@ -226,8 +226,12 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     })
 
     function tick() {
-      const ct        = audio.currentTime
-      const total     = d || audio.duration || 1
+      const ct = audio.currentTime
+      // audio.duration живого элемента приоритетнее заранее сохранённой d:
+      // у отдельного probeAudioDuration()-элемента метаданные MP3 иногда чуть
+      // короче реальных (VBR) — на коротких голосовых это заметный процент,
+      // заливка добегала до края раньше, чем звук реально доигрывал
+      const total     = (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : d) || 1
       const progress  = total > 0 ? ct / total : 0
       const bars      = barElsRef.current
       const greenUpTo = progress * bars.length
