@@ -33,13 +33,17 @@ export function findReplyNode(replyToSeq, lessonNodes) {
   return lessonNodes?.find(n => n.seq === replyToSeq) ?? null
 }
 
-// Для phrase_assembly/table: какая попытка ученика в чате СЧИТАЕТСЯ финальным
-// сообщением по этой ноде — верная, если она вообще была, иначе последняя.
+// Для phrase_assembly/table/fill_blanks: какая попытка ученика в чате
+// СЧИТАЕТСЯ финальным сообщением по этой ноде — верная, если она вообще
+// была, иначе последняя НЕВЕРНАЯ (wrong_final). 'hint' — это реплика
+// УЧИТЕЛЯ (responseWrong/раскрытие ответа после трёх попыток), а не ответ
+// ученика: если её не отфильтровать, а верной попытки не было, цитата может
+// показать текст учителя вместо того, что реально собрал ученик — именно
+// так проявлялся баг (цитата «ни на что не похожа», см. PROJECT.md).
 export function resolvePhraseAttempt(attempts) {
-  if (!attempts?.length) return { text: null, result: null }
-  const correct = attempts.find(a => a.result === 'correct')
-  if (correct) return correct
-  return attempts[attempts.length - 1]
+  const real = (attempts ?? []).filter(a => a.result === 'correct' || a.result === 'wrong_final')
+  if (!real.length) return { text: null, result: null }
+  return real.find(a => a.result === 'correct') ?? real[real.length - 1]
 }
 
 // Собирает вид блока цитаты по цитируемой ноде: имя, подпись, цвет темы.
@@ -65,8 +69,12 @@ export function resolveReply(replyNode, teacherName, allWordChoiceStates, allPho
     return {
       name:  'Вы:',
       label: attempt.text || MEDIA_LABEL[rType],
-      theme: attempt.result === 'correct' ? REPLY_THEME.correct
-           : attempt.result === 'wrong'   ? REPLY_THEME.incorrect
+      // wrong_final — реальный результат, который шлют table/phrase_assembly/
+      // fill_blanks (см. manualCheck.js/usePhraseAssembly.js/fillBlanksCheck.js);
+      // просто 'wrong' сюда никогда не приходит — раньше здесь стояла именно
+      // 'wrong', и итоговая неверная попытка никогда не подсвечивалась красным
+      theme: attempt.result === 'correct'     ? REPLY_THEME.correct
+           : attempt.result === 'wrong_final' ? REPLY_THEME.incorrect
            : REPLY_THEME.default,
       thumbSrc: null, crop: null,
     }

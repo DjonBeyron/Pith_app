@@ -103,13 +103,17 @@ describe('сколько времени у элемента есть на дек
     expect(FEED_NODES).toContain("bottom: '-100vh'")
   })
 
-  it('запас времени на предрисовку — ровно задержка «печатает»', () => {
+  it('запас времени на предрисовку — ровно задержка «печатает» (кроме реакций)', () => {
     const delay = Number(GRAPH.match(/const TYPING_DELAY_MS = (\d+)/)?.[1])
     expect(delay).toBeGreaterThan(0)
     expect(GRAPH).toContain('setPendingNode(next)')
-    // показ ноды отложен ровно на задержку «печатает…» (шаг «вперёд» админа
-    // раскрывает её раньше — это отдельная ветка revealNode)
-    expect(GRAPH).toContain('addTimer(() => revealNode(next), TYPING_DELAY_MS)')
+    // показ ноды отложен на задержку «печатает…» (шаг «вперёд» админа
+    // раскрывает её раньше — это отдельная ветка revealNode). Исключение —
+    // reaction: она прилипает к уже показанному пузырю, а не открывает
+    // новое сообщение, и получает свою короткую паузу REACTION_DELAY_MS,
+    // без индикатора «печатает…» (см. useGraphPlayer.js)
+    expect(GRAPH).toContain('const delay = isReaction ? REACTION_DELAY_MS : TYPING_DELAY_MS')
+    expect(GRAPH).toContain('addTimer(() => revealNode(next), delay)')
     console.log(`[preRenderBudget] на декодирование до показа: ${delay} мс`)
   })
 

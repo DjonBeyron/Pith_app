@@ -42,12 +42,17 @@ describe('resolvePhraseAttempt', () => {
     expect(resolvePhraseAttempt(attempts)).toBe(attempts[1])
   })
 
-  it('верной попытки нет — берём последнюю (финальная неверная)', () => {
+  it('верной попытки нет — берём последнюю НЕВЕРНУЮ (wrong_final), а не hint учителя', () => {
     const attempts = [
       { text: 'I is', result: 'wrong_final' },
-      { text: 'Мимо', result: 'hint' },
+      { text: 'Мимо', result: 'hint' }, // подсказка учителя — не ответ ученика
     ]
-    expect(resolvePhraseAttempt(attempts)).toBe(attempts[1])
+    expect(resolvePhraseAttempt(attempts)).toBe(attempts[0])
+  })
+
+  it('только hint без единой настоящей попытки — заглушка без текста', () => {
+    expect(resolvePhraseAttempt([{ text: 'Подсказка', result: 'hint' }]))
+      .toEqual({ text: null, result: null })
   })
 })
 
@@ -77,12 +82,9 @@ describe('resolveReply', () => {
     expect(r.theme.border).toBe('#b6fe3b')
   })
 
-  it('table — та же логика, что phrase_assembly (общий handlePhraseAnswer)', () => {
+  it('table — та же логика, что phrase_assembly (общий handlePhraseAnswer); wrong_final — цвет ошибки', () => {
     const target = node(1, 'table')
-    // result: 'wrong' — цвет ошибки; 'wrong_final' в этой ветке трактуется
-    // как обычная (не итоговая неверная) попытка — так же ведёт себя и
-    // существующая ветка word_choice/photo_choice ниже, поведение не менялось
-    const states = { n1: [{ text: 'wrong final', result: 'wrong' }] }
+    const states = { n1: [{ text: 'wrong final', result: 'wrong_final' }] }
     const r = resolveReply(target, 'Учитель', {}, {}, states)
     expect(r.label).toBe('wrong final')
     expect(r.theme.border).toBe('#f87171')

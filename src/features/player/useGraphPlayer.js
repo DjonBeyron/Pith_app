@@ -6,6 +6,12 @@ import { pLog } from '../../shared/lib/debug.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
+// Реакция (эмодзи) не открывает новое сообщение — она прилипает к уже
+// показанному пузырю. Полный TYPING_DELAY_MS перед ней выглядит как
+// самостоятельный цикл «печатает», хотя на экране пока ничего не появляется:
+// студент видит два «печатает» подряд там, где реально появляется только
+// одно новое сообщение (следующее ЗА реакцией). См. scheduleReveal ниже.
+const REACTION_DELAY_MS = 350
 
 // Start from seq=1; fallback to lowest seq if seq=1 not found.
 // startNodeId — админский прогон с середины сценария («играть отсюда»).
@@ -105,11 +111,15 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
       return
     }
     setPendingNode(next)   // pre-render node off-screen so video can decode
-    setIsWaiting(true)
+    // Реакция — без индикатора «печатает…» и с короткой паузой вместо полной
+    // задержки набора текста (см. REACTION_DELAY_MS выше)
+    const isReaction = next.type === 'reaction'
+    const delay = isReaction ? REACTION_DELAY_MS : TYPING_DELAY_MS
+    setIsWaiting(!isReaction)
     if (force) { revealNode(next); return }
     scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
-    pendingMsRef.current = TYPING_DELAY_MS
-    addTimer(() => revealNode(next), TYPING_DELAY_MS)
+    pendingMsRef.current = delay
+    addTimer(() => revealNode(next), delay)
   }
 
   // Переход с задержкой: пауза после конца медиа (offsetMs) и «таймер после
