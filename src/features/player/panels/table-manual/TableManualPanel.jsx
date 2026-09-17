@@ -244,17 +244,6 @@ export default function TableManualPanel({
     },
   })
 
-  // Кнопки «Проверить» нет: как только слов собрано столько же, сколько в ответе — проверяем сами
-  // (небольшая задержка — чтобы было видно, как встало последнее слово, и чтобы setState не
-  // вызывался синхронно в теле эффекта)
-  useEffect(() => {
-    if (result) return
-    if (tokens.length === 0 || assembled.length !== tokens.length) return
-    const id = setTimeout(() => check(), 300)
-    timers.current.push(id)
-    return () => clearTimeout(id)
-  }, [assembled]) // eslint-disable-line
-
   if (!table) return null
 
   const boxCls = [
@@ -349,11 +338,11 @@ export default function TableManualPanel({
             {phase === 'extra' && <ListScrollThumb targetRef={extrasRef} />}
           </div>
 
-          {/* Кнопка «Проверить» — как в «собери фразу», только компактнее.
-              Работает вместе со списком слов вне таблицы: до этого ученик ещё
-              выбирает ячейки, проверять нечего. Автопроверка по полному набору
-              слов остаётся — кнопка нужна, когда собрано не всё или в бокс
-              попало лишнее слово-ловушка.
+          {/* Кнопка «Проверить» — как в «собери фразу»: никакой автопроверки
+              по факту заполнения, ученик жмёт сам, доступна уже с первой
+              выбранной ячейки (не только когда всё собрано и не только у
+              таблиц со словами-ловушками — иначе у таблиц БЕЗ extras, где
+              phase никогда не становится 'extra', проверить было бы нечем).
 
               В разметке она есть ВСЕГДА, а до нужного момента лишь невидима.
               Раньше её не было вовсе, пока таблица не уехала влево, — и в этот
@@ -361,11 +350,11 @@ export default function TableManualPanel({
               скакала. Место под неё занято с самого начала, поэтому оба режима
               одной высоты и перехода по вертикали не видно. */}
           <button
-            className={`tmCheckBtn${phase === 'extra' ? '' : ' tmCheckBtnHidden'}`}
+            className={`tmCheckBtn${assembled.length > 0 ? '' : ' tmCheckBtnHidden'}`}
             onClick={check}
-            disabled={phase !== 'extra' || assembled.length === 0 || !!result || signalState.freeze}
-            aria-hidden={phase !== 'extra'}
-            tabIndex={phase === 'extra' ? 0 : -1}
+            disabled={assembled.length === 0 || !!result || signalState.freeze}
+            aria-hidden={assembled.length === 0}
+            tabIndex={assembled.length > 0 ? 0 : -1}
           >Проверить</button>
 
         </div>

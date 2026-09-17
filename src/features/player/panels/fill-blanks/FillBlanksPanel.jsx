@@ -121,19 +121,7 @@ export default function FillBlanksPanel({
     setResult, setWrongIndices, onAnswered, onAnswerToChat, onChecked, closePanelWith,
   })
 
-  const allFilled = blanksCount > 0 && Object.keys(picked).length === blanksCount
-
-  // Автопроверка, как только заполнены ВСЕ пропуски — тот же приём, что у
-  // TableManualPanel.jsx (без отдельной кнопки «Проверить»). Эффект зависит
-  // от picked целиком: после неудачной попытки ученик меняет один из уже
-  // заполненных пропусков — это тоже смена picked, и проверка идёт заново.
-  useEffect(() => {
-    if (result) return // на любом текущем результате (в т.ч. краткой вспышке «неверно») ждём
-    if (!allFilled) return
-    const id = setTimeout(() => check(), 300)
-    timers.current.push(id)
-    return () => clearTimeout(id)
-  }, [picked]) // eslint-disable-line
+  const filledCount = Object.keys(picked).length
 
   if (!template || blanksCount === 0) return null
 
@@ -152,49 +140,66 @@ export default function FillBlanksPanel({
       />
       <div ref={panelRef} className={`fbPanel${show ? ' fbPanelVisible' : ''}`}>
         <div className="fbInner">
-          <div className="fbRow">
+          <div className="fbSentenceCol">
+            <div className={sentenceCls}>
+              {segments.map((seg, i) => {
+                if (seg.type === 'text') return <span key={i}>{seg.value}</span>
+                const index = seg.index
+                return (
+                  <FillBlank
+                    key={i}
+                    template={template}
+                    index={index}
+                    value={picked[index] ?? null}
+                    wrong={wrongIndices.includes(index)}
+                    disabled={!!result}
+                    onTap={e => tapBlank(index, e.currentTarget.getBoundingClientRect())}
+                  />
+                )
+              })}
+            </div>
+            {/* Место под перевод зарезервировано С САМОГО НАЧАЛА (рендерится
+                всегда, пока задан translation) — trOpen меняет только
+                видимость (opacity), не высоту: иначе раскрытие/закрытие
+                двигало бы спейсер и сообщения над панелью */}
             {translation && (
+              <div className={`fbTranslation${trOpen ? ' fbTranslationOpen' : ''}`}>
+                {trSegments.map((seg, i) => (
+                  seg.type === 'text'
+                    ? <span key={i}>{seg.value}</span>
+                    : <TranslationDots key={i} template={template} index={seg.index} />
+                ))}
+              </div>
+            )}
+            {/* Кнопка — по центру, ПОД переводом (не сбоку от фразы): место
+                под неё держится всегда через min-height на .fbTrBtnSlot, сама
+                кнопка только проявляется scale 0→1 — переключение перевода
+                не двигает её позицию */}
+            {translation && (
+              <div className="fbTrBtnSlot">
+                <button
+                  type="button"
+                  className={`fbTrBtn${trBtnShown ? ' fbTrBtnShown' : ''}${trOpen ? ' fbTrBtnOn' : ''}`}
+                  onClick={() => setTrOpen(o => !o)}
+                  aria-label="Перевод"
+                >
+                  <Languages size={16} />
+                </button>
+              </div>
+            )}
+            {/* Без автопроверки — ученик жмёт сам, кнопка появляется, как
+                только заполнен хотя бы один пропуск (тот же приём, что у
+                table-manual/«Собери фразу»: место под неё не резервируем
+                отдельно, т.к. в отличие от table здесь нет фазы-сдвига,
+                под которую нужно держать высоту заранее) */}
+            {filledCount > 0 && (
               <button
                 type="button"
-                className={`fbTrBtn${trBtnShown ? ' fbTrBtnShown' : ''}${trOpen ? ' fbTrBtnOn' : ''}`}
-                onClick={() => setTrOpen(o => !o)}
-                aria-label="Перевод"
-              >
-                <Languages size={16} />
-              </button>
+                className="fbCheckBtn"
+                onClick={check}
+                disabled={!!result}
+              >Проверить</button>
             )}
-            <div className="fbSentenceCol">
-              <div className={sentenceCls}>
-                {segments.map((seg, i) => {
-                  if (seg.type === 'text') return <span key={i}>{seg.value}</span>
-                  const index = seg.index
-                  return (
-                    <FillBlank
-                      key={i}
-                      template={template}
-                      index={index}
-                      value={picked[index] ?? null}
-                      wrong={wrongIndices.includes(index)}
-                      disabled={!!result}
-                      onTap={e => tapBlank(index, e.currentTarget.getBoundingClientRect())}
-                    />
-                  )
-                })}
-              </div>
-              {/* Место под перевод зарезервировано С САМОГО НАЧАЛА (рендерится
-                  всегда, пока задан translation) — trOpen меняет только
-                  видимость (opacity), не высоту: иначе раскрытие/закрытие
-                  двигало бы спейсер и сообщения над панелью */}
-              {translation && (
-                <div className={`fbTranslation${trOpen ? ' fbTranslationOpen' : ''}`}>
-                  {trSegments.map((seg, i) => (
-                    seg.type === 'text'
-                      ? <span key={i}>{seg.value}</span>
-                      : <TranslationDots key={i} template={template} index={seg.index} />
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
