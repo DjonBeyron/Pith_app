@@ -110,12 +110,16 @@ export default function PlayerTypingText({ text, speed = 45, onTypingChange, hig
     }
 
     if (s.h.mode === 'text') {
-      const c = hexToRgba(s.h.color, s.h.opacity ?? 1)
+      // opacity — ОТДЕЛЬНЫМ CSS-свойством, а не запечённой в rgba() альфой:
+      // color на цветной эмодзи-глиф не действует вовсе (эмодзи рисуются
+      // своим фиксированным цветом), а вот element-level opacity его честно
+      // притушивает наравне с обычным текстом — без этого приглушённые
+      // (opacity < 1) реплики оставляли эмодзи внутри себя яркими
       lines.forEach((line, k) => {
         if (k > 0) rendered.push(<br key={`${si}-br-${k}`} />)
         if (!line && k !== lastLine) return
         rendered.push(
-          <span key={`${si}-${k}`} style={{ color: c, ...decor }}>{line}{cursorHere && k === lastLine && <span className="playerCursor" />}</span>
+          <span key={`${si}-${k}`} style={{ color: s.h.color, opacity: s.h.opacity ?? 1, ...decor }}>{line}{cursorHere && k === lastLine && <span className="playerCursor" />}</span>
         )
       })
       continue

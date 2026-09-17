@@ -78,8 +78,11 @@ export default function HighlightedText({ text, highlights }) {
       if (!s.h) {
         out.push(<span key={key} style={decor}>{line}</span>)
       } else if (s.h.mode === 'text') {
+        // opacity — отдельным CSS-свойством, не запечённой в rgba() альфой:
+        // color не действует на цветной эмодзи-глиф, а element-level opacity
+        // притушивает его наравне с текстом (см. PlayerTypingText.jsx)
         out.push(
-          <span key={key} style={{ color: hexToRgba(s.h.color, s.h.opacity ?? 1), ...decor }}>{line}</span>
+          <span key={key} style={{ color: s.h.color, opacity: s.h.opacity ?? 1, ...decor }}>{line}</span>
         )
       } else {
         const radius = openLeft && openRight ? 0
