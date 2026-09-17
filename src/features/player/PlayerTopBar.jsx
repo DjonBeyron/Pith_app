@@ -11,11 +11,27 @@ import BackButton from '../../shared/ui/BackButton.jsx'
 const CROP_FRAME  = 80
 const AVATAR_SIZE = 36
 
-export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo, teacherLogoCrop, onDownloadLog, progress = 0 }) {
+export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo, teacherLogoCrop, onDownloadLog, onCopyLog, progress = 0 }) {
   const [intrinsic, setIntrinsic] = useState(null)
-  // Кнопка «⬇ лог» — часть диагностического набора урока (вторая половина,
-  // штамп версии, живёт в PlayerOverlays). Кто его видит — см. useShowDebugUi
+  // Кнопки «⬇ лог»/«⧉ копия» — часть диагностического набора урока (вторая
+  // половина, штамп версии, живёт в PlayerOverlays). Кто его видит — см.
+  // useShowDebugUi
   const showDebugUi = useShowDebugUi()
+  // Внутри Telegram WebView синтетический клик по <a download> на части
+  // устройств не срабатывает молча (файл просто не появляется) — копия в
+  // буфер работает там, где скачивание нет. copyState — краткая подпись
+  // результата под кнопкой вместо тихого «ничего не произошло»
+  const [copyState, setCopyState] = useState(null) // null | 'ok' | 'err'
+
+  async function handleCopy() {
+    try {
+      await onCopyLog?.()
+      setCopyState('ok')
+    } catch {
+      setCopyState('err')
+    }
+    setTimeout(() => setCopyState(null), 1500)
+  }
 
   // Сброс размеров при смене лого — подстройка состояния прямо в рендере
   // (паттерн из доков React вместо setState в эффекте)
@@ -112,6 +128,14 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
           title="Скачать лог"
           aria-label="Скачать лог"
         >⬇ лог</button>
+      )}
+      {showDebugUi && (
+        <button
+          className="playerTopBarDebugBtn"
+          onClick={handleCopy}
+          title="Копировать лог в буфер"
+          aria-label="Копировать лог в буфер"
+        >{copyState === 'ok' ? '✓' : copyState === 'err' ? '✗' : '⧉'}</button>
       )}
       {/* Единственная точка входа в дебаг-тулбар: своей плавающей кнопки у него
           больше нет. Тот же выключатель, что и у самого тулбара, — иначе кнопка

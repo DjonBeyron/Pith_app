@@ -21,7 +21,7 @@ import { useNodeAppearLog } from './useNodeAppearLog.js'
 import { usePlayerFiles } from './usePlayerFiles.js'
 import { useAnswerStats } from './useAnswerStats.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
-import { downloadDebugLog } from './downloadDebugLog.js'
+import { downloadDebugLog, copyDebugLog } from './downloadDebugLog.js'
 import PlayerOverlays from './PlayerOverlays.jsx'
 import HintBar from './HintBar.jsx'
 import { useFinalHints } from './useFinalHints.js'
@@ -149,9 +149,11 @@ export default function LessonPlayer({
   // Журнал появления нод + готовности их медиа — useNodeAppearLog.js
   const nodeAppearLogRef = useNodeAppearLog(visibleNodes, blobMap, addMsgTs, openTimeRef)
 
-  const downloadCombinedLog = () => downloadDebugLog({
+  const combinedLogData = () => ({
     nodeAppearLog: nodeAppearLogRef.current, debugItems, events: getEvents(),
   })
+  const downloadCombinedLog = () => downloadDebugLog(combinedLogData())
+  const copyCombinedLog     = () => copyDebugLog(combinedLogData())
 
   const filesWithBlobs = useMemo(
     () => files.map(f => {
@@ -275,6 +277,7 @@ export default function LessonPlayer({
           teacherLogo={teacherLogo}
           teacherLogoCrop={teacherLogoCrop}
           onDownloadLog={downloadCombinedLog}
+          onCopyLog={copyCombinedLog}
         />
         {finalTicket && <HintBar count={hintCount} />}
         {pmNode && pinVisible && (
