@@ -61,17 +61,31 @@ describe('resolveReply', () => {
     expect(resolveReply(null, 'Учитель', {}, {}, {})).toBe(null)
   })
 
-  it('word_choice — подпись из выбора ученика, цвет по результату', () => {
+  it('word_choice — подпись из pickText (реально выбранный вариант), цвет по результату', () => {
     const target = node(1, 'word_choice')
-    const correct = resolveReply(target, 'Учитель', { n1: { text: 'yes', result: 'correct' } }, {}, {})
-    expect(correct).toMatchObject({ name: 'Вы:', label: 'yes' })
+    // pickText — то, что реально пришло в чат по тапу (handleWordPick,
+    // галочка «отправлять выбранное»); text — отдельная реплика УЧИТЕЛЯ
+    // (responseCorrect/Wrong, обычно пустая) и не должна перекрывать pickText
+    const correct = resolveReply(target, 'Учитель', { n1: { pickText: 'I try to listen', text: '', result: 'correct' } }, {}, {})
+    expect(correct).toMatchObject({ name: 'Вы:', label: 'I try to listen' })
     expect(correct.theme.border).toBe('#b6fe3b')
 
-    const wrong = resolveReply(target, 'Учитель', { n1: { text: 'no', result: 'wrong' } }, {}, {})
+    const wrong = resolveReply(target, 'Учитель', { n1: { pickText: 'I try to leave', text: '', result: 'wrong' } }, {}, {})
     expect(wrong.theme.border).toBe('#f87171')
 
     const unanswered = resolveReply(target, 'Учитель', {}, {}, {})
     expect(unanswered.label).toBe('Выбор слова') // MEDIA_LABEL — ещё не отвечено
+  })
+
+  it('word_choice — без pickText (галочка «отправлять выбранное» выключена) падает на text, потом на MEDIA_LABEL', () => {
+    const target = node(1, 'word_choice')
+    // text задан (реплика учителя) — используем её, раз выбранного варианта в чате нет
+    const withTeacherText = resolveReply(target, 'Учитель', { n1: { text: 'Отлично!', result: 'correct' } }, {}, {})
+    expect(withTeacherText.label).toBe('Отлично!')
+
+    // Ни pickText, ни text — общий ярлык модуля, не пустая строка
+    const nothing = resolveReply(target, 'Учитель', { n1: { text: '', result: 'correct' } }, {}, {})
+    expect(nothing.label).toBe('Выбор слова')
   })
 
   it('phrase_assembly — подпись из resolvePhraseAttempt по allPhraseStates', () => {

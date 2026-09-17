@@ -52,9 +52,15 @@ export function resolveReply(replyNode, teacherName, allWordChoiceStates, allPho
   const rType = replyNode.type
   if (rType === 'word_choice') {
     const st = allWordChoiceStates?.[replyNode.id]
+    // pickText — реально выбранный учеником вариант (handleWordPick,
+    // приходит в чат СРАЗУ по тапу, если включена галочка «отправлять
+    // выбранное в чат»). st.text — это НЕ ответ ученика, а реплика
+    // УЧИТЕЛЯ (responseCorrect/responseWrong), она обычно пустая (см.
+    // ChooseWordPanel.jsx) — читать её тут для цитаты «В ответ на» было
+    // ошибкой: цитата показывала название модуля вместо сказанного
     return {
       name:  'Вы:',
-      label: st?.text || MEDIA_LABEL.word_choice,
+      label: st?.pickText || st?.text || MEDIA_LABEL.word_choice,
       theme: st?.result === 'correct' ? REPLY_THEME.correct
            : st?.result === 'wrong'   ? REPLY_THEME.incorrect
            : REPLY_THEME.default,
