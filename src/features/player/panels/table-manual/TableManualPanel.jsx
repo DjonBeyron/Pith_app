@@ -308,8 +308,9 @@ export default function TableManualPanel({
               // transform-переход, оба процесса накладываются — на экране
               // видно микро-дёрганье. Заранее посчитанный (но невидимый)
               // layout к моменту показа уже стабилен — остаётся только сдвиг
-              // таблицы и entrance-анимация чипов (класс tmExtraChipEnter,
-              // добавляется только при реальном показе, см. table-manual.css).
+              // таблицы, слова уже на месте БЕЗ отдельной entrance-анимации
+              // (раньше был свой въезд поверх слайда — читался как лишнее
+              // движение).
               <div
                 className={`tmExtrasSection${phase === 'extra' ? '' : ' tmExtrasSectionHidden'}`}
                 ref={extrasRef}
@@ -319,12 +320,7 @@ export default function TableManualPanel({
                   return (
                     <button
                       key={i}
-                      style={{ animationDelay: `${i * 50}ms` }}
-                      className={[
-                        'tmExtraChip',
-                        phase === 'extra' && 'tmExtraChipEnter',
-                        used && 'tmExtraChipUsed',
-                      ].filter(Boolean).join(' ')}
+                      className={`tmExtraChip${used ? ' tmExtraChipUsed' : ''}`}
                       onClick={e => tapExtra(chip, i, e.currentTarget.getBoundingClientRect())}
                       disabled={phase !== 'extra' || used || !!result || signalState.freeze}
                       tabIndex={phase === 'extra' ? 0 : -1}

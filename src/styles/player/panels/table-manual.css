@@ -166,18 +166,12 @@
    так надёжнее, если что-то не перекрыто. */
 .tmExtrasSectionHidden { visibility: hidden; opacity: 0; pointer-events: none; }
 
-/* Только transform, без opacity: слова появляются одновременно с тем, как
-   таблица уезжает влево (см. .tmTableSectionSlid) — если чипы ещё и
-   растворяются по opacity, поверх чистого сдвига таблицы появляется
-   лишнее «грязное» наложение двух анимаций сразу */
-@keyframes tmChipIn {
-  from { transform: translateY(18px); }
-  to   { transform: translateY(0); }
-}
-
 /* Плашка — тот же вид, что у .phraseChip («Собери фразу»): тёмный фон,
    рамка, скругление. Раньше слово было пунктом на всю ширину без плашки —
-   теперь оба сборщика показывают слова-ловушки одинаково. */
+   теперь оба сборщика показывают слова-ловушки одинаково. Без анимации
+   появления: слова должны быть уже на месте в момент, когда таблица
+   уезжает — сама анимация слайда (.tmTableSectionSlid) достаточно
+   заметна, отдельный въезд чипов поверх неё читался как лишнее движение. */
 .tmExtraChip {
   flex: 0 0 auto;
   background: #12141d;
@@ -190,15 +184,6 @@
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.1s;
-}
-/* Анимация входа — ОТДЕЛЬНЫМ классом, добавляется только в момент реального
-   показа (phase==='extra'), а не с монтирования (chip смонтирован раньше,
-   см. .tmExtrasSectionHidden выше). Если бы animation была на базовом
-   .tmExtraChip всегда, она бы доигрывала ещё во время скрытого монтирования
-   и к показу уже стояла на конечном кадре — эффект «чипы въезжают вместе с
-   уходом таблицы» пропал бы. */
-.tmExtraChipEnter {
-  animation: tmChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .tmExtraChip:not(:disabled):hover {
   border-color: #b6fe3b;
