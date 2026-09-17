@@ -1,7 +1,5 @@
 import { useRef, useLayoutEffect } from 'react'
-import { blankKind } from '../../../../shared/lib/fillBlanksTemplate.js'
-
-const DOT_COUNT = { letters: 2, word: 5 }
+import { blankKind, BLANK_DOT_COUNT } from '../../../../shared/lib/fillBlanksTemplate.js'
 
 // Один пропуск во фразе «Составь предложение» — кнопка внутри строки текста.
 // Пусто — компактные мигающие точки на нижнем краю шрифта (тот же приём, что
@@ -18,7 +16,7 @@ const DOT_COUNT = { letters: 2, word: 5 }
 // НОВОЙ — тот же классический FLIP-приём для «расширить/сжать плавно».
 export default function FillBlank({ template, index, value, wrong, disabled, onTap }) {
   const kind = blankKind(template, index)
-  const dots = DOT_COUNT[kind] ?? DOT_COUNT.word
+  const dots = BLANK_DOT_COUNT[kind] ?? BLANK_DOT_COUNT.word
 
   const ref = useRef(null)
   const widthRef = useRef(null)

@@ -7,12 +7,13 @@ import { countBlanks } from '../../shared/lib/fillBlanksTemplate.js'
 // (варианты выбора + отметка верного), тексты ответов, пара триггеров
 // верно/неверно. Сигналов ошибок здесь нет — пользователь явно исключил их
 // для этого модуля (см. PROJECT.md), в отличие от table/phrase_assembly.
+// Собранная фраза ВСЕГДА уходит в чат (не опционально, как у table) —
+// галочки на это здесь больше нет, см. PlayerPanels.jsx.
 export default function NodeFillBlanksPicker({
-  template = '', blanks = [],
+  template = '', blanks = [], translation = '',
   responseCorrect = '', responseWrong = '',
-  onTemplateChange, onBlanksChange,
+  onTemplateChange, onBlanksChange, onTranslationChange,
   onResponseCorrectChange, onResponseWrongChange,
-  sendAnswerToChat = false, onSendAnswerToChatChange,
   triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
   const rowRefs = useRef(new Map())
@@ -90,6 +91,14 @@ export default function NodeFillBlanksPicker({
       {blanksCount === 0 && template.trim() !== '' && (
         <p className="nodeFbHint">Нет ни одного пропуска — вставь ___ туда, где ученик выбирает вариант</p>
       )}
+      <textarea
+        className="nodeTextInput"
+        value={translation}
+        onChange={e => onTranslationChange?.(e.target.value)}
+        placeholder={'Необязательный русский перевод (кнопка-подсказка в плеере). Те же пропуски "___", то же их число, что в фразе выше'}
+        onClick={e => e.stopPropagation()}
+        rows={2}
+      />
       {blanks.map((b, i) => (
         <div key={i} className="nodeFbBlankRow" ref={el => rowRefs.current.set(`blank-${i}`, el)}>
           <span className="nodeFbBlankLabel">Пропуск {i + 1}</span>
@@ -141,14 +150,6 @@ export default function NodeFillBlanksPicker({
           />
         </div>
       </div>
-      <label className="nodeTableSendChat" onClick={e => e.stopPropagation()}>
-        <input
-          type="checkbox"
-          checked={sendAnswerToChat === true}
-          onChange={e => onSendAnswerToChatChange?.(e.target.checked)}
-        />
-        Отправить ответ ученика в чат после проверки
-      </label>
       <NodeCorrectWrongTriggers
         correctThen={correctThen} wrongThen={wrongThen}
         correctKey="fill_correct" wrongKey="fill_wrong"

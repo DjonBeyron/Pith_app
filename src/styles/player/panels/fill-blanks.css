@@ -27,10 +27,30 @@
   transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Панель поднята заметно выше прежнего (низ вырос почти в полтора раза за
+   счёт padding-bottom, а не только safe-area) — фраза больше не жмётся к
+   нижнему краю экрана. flex + justify-content: center держит саму фразу (и
+   зарезервированную строку перевода под ней) по центру этой новой высоты,
+   а не прибитой к низу блока. */
 .fbInner {
   max-width: 600px;
   margin: 0 auto;
-  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  min-height: 88px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 16px calc(40px + env(safe-area-inset-bottom, 0px));
+}
+
+.fbRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fbSentenceCol {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ── Фраза целиком ───────────────────────────────────────────────── */
@@ -43,6 +63,94 @@
   /* Фраза сама держит внимание в панели — без надписи-подсказки сверху ей
      нужен явный визуальный центр, не прижатый к левому краю */
   text-align: center;
+}
+
+/* ── Кнопка «раскрыть перевод» — слева от фразы, приём и вид как у
+   playerTrBtn (text.css, тот же «PRO»-чип перевода в тексте урока): тёмная
+   тусклая таблетка, чуть ярче на активном состоянии, лёгкий блеск-приманка
+   пока перевод не раскрыт. Появляется не сразу — scale 0→1 спустя 1с после
+   монтирования модуля (см. FillBlanksPanel.jsx), дальше просто тоггл. ── */
+.fbTrBtn {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: #22252d;
+  color: #9aa0b4;
+  cursor: pointer;
+  transform: scale(0);
+  transition: transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 0.15s, background 0.15s;
+}
+
+.fbTrBtnShown { transform: scale(1); }
+
+.fbTrBtn:hover { color: #fff; background: #2a2e38; }
+
+.fbTrBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg,
+    transparent 40%, rgba(255, 255, 255, 0.22) 50%, transparent 60%);
+  transform: translateX(-130%);
+  animation: fbTrBtnShine 5s linear infinite;
+}
+
+.fbTrBtnOn {
+  color: #b6fe3b;
+  background: rgba(182, 254, 59, 0.1);
+}
+
+.fbTrBtnOn::after { animation: none; }
+
+@keyframes fbTrBtnShine {
+  0%        { transform: translateX(-130%); }
+  18%, 100% { transform: translateX(130%); }
+}
+
+/* ── Перевод-подсказка — место держится ЗАРАНЕЕ (рендерится всегда, если
+   задан translation), open меняет только видимость: высота блока не
+   плавает, поэтому высота панели/спейсера не дёргается при тогглах.
+   Текст мельче и глуше английской фразы; точки пропуска — тусклый
+   неинтерактивный двойник fbBlankDots, без блеска и мельче (см. ниже). ── */
+.fbTranslation {
+  margin-top: 4px;
+  min-height: 15px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #5c6072;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease;
+}
+
+.fbTranslationOpen {
+  opacity: 1;
+  visibility: visible;
+}
+
+.fbTrDots {
+  display: inline-flex;
+  align-items: flex-end;
+  line-height: 0;
+  padding-bottom: 1px;
+}
+.fbTrDots i {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin: 0 1px;
+  border-radius: 50%;
+  background: #454956;
 }
 
 .fbSentenceErr { animation: fbShake 0.42s ease; }

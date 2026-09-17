@@ -64,7 +64,9 @@ export function makeNode(seq, x, y, wantType) {
       // Составь предложение: фраза с пропусками ("___" в тексте, буквально
       // три подчёркивания) — пропуск может быть целым словом или буквами
       // внутри слова, механика (и поле blanks) для обоих случаев одна
-      fill_blanks:     { template: '', blanks: [], responseCorrect: '', responseWrong: '', replyToSeq: null },
+      // translation — необязательный русский перевод той же фразы (те же
+      // "___"), для кнопки-подсказки в плеере (см. FillBlanksPanel.jsx)
+      fill_blanks:     { template: '', blanks: [], translation: '', responseCorrect: '', responseWrong: '', replyToSeq: null },
       pin_message:     { content: '' },
       system:          { content: '' },
       // Реакция как в мессенджере: своего пузыря нет, эмодзи прилипает к

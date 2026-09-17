@@ -83,14 +83,14 @@ export default function NodeAnswerFields({
         <NodeFillBlanksPicker
           template={tData.template ?? ''}
           blanks={tData.blanks ?? []}
+          translation={tData.translation ?? ''}
           responseCorrect={tData.responseCorrect ?? ''}
           responseWrong={tData.responseWrong ?? ''}
           onTemplateChange={v => updateTypeData({ template: v })}
           onBlanksChange={b => updateTypeData({ blanks: b })}
+          onTranslationChange={v => updateTypeData({ translation: v })}
           onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
           onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
-          sendAnswerToChat={tData.sendAnswerToChat === true}
-          onSendAnswerToChatChange={v => updateTypeData({ sendAnswerToChat: v })}
           triggers={node.triggers ?? []}
           allNodes={allNodes}
           nodeId={node.id}

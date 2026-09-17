@@ -115,3 +115,41 @@
 .pinBannerClose:hover {
   color: rgba(255, 255, 255, 0.65);
 }
+
+/* ── Блюр закрепа под «ручной» панелью сборки (см. LessonPlayer.jsx) ──
+   Блюрится содержимое (текст + крестик), а не сам .pinBanner — оверлей
+   с подсказкой должен остаться резким и лечь ПОВЕРХ размытого слоя. */
+.pinBannerInner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  transition: filter 0.3s ease;
+}
+
+.pinBannerInnerBlurred {
+  filter: blur(4px);
+}
+
+.pinBannerBlurOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba(26, 29, 34, 0.35);
+  color: rgba(255, 255, 255, 0.55);
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: pinBlurOverlayIn 0.3s ease;
+}
+
+@keyframes pinBlurOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

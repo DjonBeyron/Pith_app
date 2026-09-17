@@ -282,6 +282,7 @@ export default function LessonPlayer({
             content={pmNode.typeData?.pin_message?.content ?? ''}
             highlights={pmNode.typeData?.pin_message?.highlights ?? []}
             onUnpin={() => setPinVisible(false)}
+            manualPanelOpen={panels.manualPanelOpen}
           />
         )}
         <PlayerFeed panelOpen={panels.offset > 0}>

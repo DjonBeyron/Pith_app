@@ -74,7 +74,7 @@ describe('fill_blanks — CellOptionsMenu переиспользован как 
 describe('fill_blanks — редактор ноды в канвасе', () => {
   it('nodeGraph.js заводит дефолтный typeData', () => {
     expect(nodeGraph).toContain('fill_blanks:')
-    expect(nodeGraph).toContain("template: '', blanks: [], responseCorrect: '', responseWrong: '', replyToSeq: null")
+    expect(nodeGraph).toContain("template: '', blanks: [], translation: '', responseCorrect: '', responseWrong: '', replyToSeq: null")
   })
 
   it('nodeDefaults.js заводит пару триггеров fill_correct/fill_wrong', () => {
@@ -113,7 +113,6 @@ describe('fill_blanks — легенда экспорта/импорта (lesson
     expect(block).toContain('responseCorrect:')
     expect(block).toContain('responseWrong:')
     expect(block).toContain('replyToSeq:')
-    expect(block).toContain('sendAnswerToChat:')
   })
 
   it('документирует переходы fill_correct/fill_wrong', () => {
@@ -122,17 +121,15 @@ describe('fill_blanks — легенда экспорта/импорта (lesson
   })
 })
 
-describe('fill_blanks — «отправить ответ в чат» (sendAnswerToChat, тот же приём, что у table)', () => {
-  it('NodeFillBlanksPicker.jsx рисует галочку тем же классом, что и у table', () => {
-    expect(picker).toContain('className="nodeTableSendChat"')
-    expect(picker).toContain('checked={sendAnswerToChat === true}')
-    expect(picker).toContain('onSendAnswerToChatChange?.(e.target.checked)')
+describe('fill_blanks — собранная фраза ВСЕГДА уходит в чат (не опционально, в отличие от table)', () => {
+  it('NodeFillBlanksPicker.jsx больше не рисует галочку «отправить в чат»', () => {
+    expect(picker).not.toContain('nodeTableSendChat')
+    expect(picker).not.toContain('sendAnswerToChat')
   })
 
-  it('NodeAnswerFields.jsx пробрасывает sendAnswerToChat в пикер', () => {
+  it('NodeAnswerFields.jsx больше не пробрасывает sendAnswerToChat в пикер', () => {
     const block = answerFields.slice(answerFields.indexOf("node.type === 'fill_blanks'"), answerFields.indexOf("node.type === 'table'"))
-    expect(block).toContain('sendAnswerToChat={tData.sendAnswerToChat === true}')
-    expect(block).toContain('onSendAnswerToChatChange={v => updateTypeData({ sendAnswerToChat: v })}')
+    expect(block).not.toContain('sendAnswerToChat')
   })
 
   it('fillBlanksCheck.js зовёт onAnswerToChat собранной фразой (buildPickedText) на верном и финальном неверном ответе', () => {
@@ -141,10 +138,10 @@ describe('fill_blanks — «отправить ответ в чат» (sendAnswe
     expect(check).toContain("onAnswerToChat?.(text, 'wrong_final')")
   })
 
-  it('PlayerPanels.jsx передаёт onAnswerToChat, только если у ноды включена галочка', () => {
+  it('PlayerPanels.jsx передаёт onAnswerToChat безусловно, без галочки', () => {
     const fbBlock = playerPanels.slice(playerPanels.indexOf('{fbNode && ('), playerPanels.indexOf('{pcNode &&'))
-    expect(fbBlock).toContain('fbNode.typeData?.fill_blanks?.sendAnswerToChat')
-    expect(fbBlock).toContain('onAnswerToChat={fbNode.typeData?.fill_blanks?.sendAnswerToChat')
+    expect(fbBlock).not.toContain('sendAnswerToChat')
+    expect(fbBlock).toContain('onAnswerToChat={(text, result) => handlePhraseAnswer(fbNode.id, text, result)}')
   })
 })
 

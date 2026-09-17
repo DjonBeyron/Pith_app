@@ -59,11 +59,24 @@ export function usePlayerPanelNodes(visibleNodes, { onNodeDone, panelShown }) {
   // ушедшая вместе со своей нодой, не должна оставлять за собой отступ
   const activeKind = PANEL_KINDS.find(k => node[k])
 
+  // «Ручная» панель сборки (table-manual, «Собери фразу», «Составь
+  // предложение») перекрывает низ ленты и требует продолжительного внимания —
+  // на это время закреп выше по ленте блюрится (см. PinMessageBanner.jsx).
+  // Простые панели (word_choice/photo_choice/registration/table-«Диктант»)
+  // сюда не входят. Значение производное от node — само становится false,
+  // как только нода панели перестаёт быть последней в ленте (ответ принят),
+  // сбрасывать вручную ничего не нужно.
+  const manualPanelOpen = !!(
+    node.pa || node.fb ||
+    (node.table && (node.table.typeData?.table?.mode ?? 'dictator') === 'manual')
+  )
+
   return {
     node,
     showRegPanel,
     setHeight,
     offset: activeKind ? heights[activeKind] : 0,
+    manualPanelOpen,
     // Последняя активная панельная нода — у неё свой карандаш правки
     editNode: node.table ?? node.reg ?? node.pc ?? node.fb ?? node.pa ?? node.wc,
   }

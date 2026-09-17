@@ -1,10 +1,25 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { Languages } from 'lucide-react'
 import CellOptionsMenu from '../table-manual/CellOptionsMenu.jsx'
 import FillBlank from './FillBlank.jsx'
-import { parseTemplateSegments } from '../../../../shared/lib/fillBlanksTemplate.js'
+import { parseTemplateSegments, blankKind, BLANK_DOT_COUNT } from '../../../../shared/lib/fillBlanksTemplate.js'
 import { makeFillBlanksCheck } from './fillBlanksCheck.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import { rememberTap } from '../../xpAnchor.js'
+
+// Точки-плейсхолдер в переводе — тусклый неинтерактивный двойник пропуска:
+// та же логика количества (blankKind по индексу ИЗ template, не перевода —
+// в переводе своя грамматика, но позиция пропуска соответствует той же
+// blanks[i]), но без блеска и мельче (см. fill-blanks.css .fbTrDots)
+function TranslationDots({ template, index }) {
+  const kind = blankKind(template, index)
+  const dots = BLANK_DOT_COUNT[kind] ?? BLANK_DOT_COUNT.word
+  return (
+    <span className="fbTrDots" aria-hidden="true">
+      {Array.from({ length: dots }, (_, i) => <i key={i} />)}
+    </span>
+  )
+}
 
 // Панель «Составь предложение»: фраза рисуется ОДНИМ текстом (принцип
 // «заполненное слово — без плашки», см. table-manual.css/phrase-assembly.css)
@@ -21,16 +36,26 @@ export default function FillBlanksPanel({
   node, onDone, onAnswered, onAnswerToChat, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
 }) {
   const fbData = node.typeData?.fill_blanks ?? {}
-  const template = fbData.template ?? ''
-  const blanks   = fbData.blanks   ?? []
+  const template    = fbData.template ?? ''
+  const blanks      = fbData.blanks   ?? []
+  const translation = (fbData.translation ?? '').trim()
 
   const segments = useMemo(() => parseTemplateSegments(template), [template])
+  const trSegments = useMemo(
+    () => (translation ? parseTemplateSegments(translation) : []),
+    [translation],
+  )
   const blanksCount = blanks.length
 
   const [show,         setShow]         = useState(false)
   const [picked,       setPicked]       = useState({})   // index → выбранный текст
   const [result,       setResult]       = useState(null) // null | 'correct' | 'wrong'
   const [blankMenu,    setBlankMenu]    = useState(null) // { index, options, rect }
+  // Кнопка перевода: сама появляется (scale 0→1) спустя 1с после монтирования
+  // панели, независимо от show/анимации выезда — раскрытие/закрытие перевода
+  // дальше только меняет trOpen, кнопка с экрана не уходит
+  const [trBtnShown,   setTrBtnShown]   = useState(false)
+  const [trOpen,       setTrOpen]       = useState(false)
   // Неверно заполненные пропуски — мигают красным (см. FillBlank.jsx), пока
   // ученик не перевыберет ИМЕННО этот пропуск (не по таймеру, тот же приём,
   // что у мигающего слова в «Собери фразу» — держится до собственного
@@ -47,6 +72,14 @@ export default function FillBlanksPanel({
     const id = requestAnimationFrame(() => setShow(true))
     return () => cancelAnimationFrame(id)
   }, [])
+
+  // Кнопка перевода — ровно через 1с после появления модуля, не раньше
+  useEffect(() => {
+    if (!translation) return
+    const id = setTimeout(() => setTrBtnShown(true), 1000)
+    timers.current.push(id)
+    return () => clearTimeout(id)
+  }, [translation])
 
   // Очищаем все таймеры при анмаунте
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
@@ -119,22 +152,49 @@ export default function FillBlanksPanel({
       />
       <div ref={panelRef} className={`fbPanel${show ? ' fbPanelVisible' : ''}`}>
         <div className="fbInner">
-          <div className={sentenceCls}>
-            {segments.map((seg, i) => {
-              if (seg.type === 'text') return <span key={i}>{seg.value}</span>
-              const index = seg.index
-              return (
-                <FillBlank
-                  key={i}
-                  template={template}
-                  index={index}
-                  value={picked[index] ?? null}
-                  wrong={wrongIndices.includes(index)}
-                  disabled={!!result}
-                  onTap={e => tapBlank(index, e.currentTarget.getBoundingClientRect())}
-                />
-              )
-            })}
+          <div className="fbRow">
+            {translation && (
+              <button
+                type="button"
+                className={`fbTrBtn${trBtnShown ? ' fbTrBtnShown' : ''}${trOpen ? ' fbTrBtnOn' : ''}`}
+                onClick={() => setTrOpen(o => !o)}
+                aria-label="Перевод"
+              >
+                <Languages size={16} />
+              </button>
+            )}
+            <div className="fbSentenceCol">
+              <div className={sentenceCls}>
+                {segments.map((seg, i) => {
+                  if (seg.type === 'text') return <span key={i}>{seg.value}</span>
+                  const index = seg.index
+                  return (
+                    <FillBlank
+                      key={i}
+                      template={template}
+                      index={index}
+                      value={picked[index] ?? null}
+                      wrong={wrongIndices.includes(index)}
+                      disabled={!!result}
+                      onTap={e => tapBlank(index, e.currentTarget.getBoundingClientRect())}
+                    />
+                  )
+                })}
+              </div>
+              {/* Место под перевод зарезервировано С САМОГО НАЧАЛА (рендерится
+                  всегда, пока задан translation) — trOpen меняет только
+                  видимость (opacity), не высоту: иначе раскрытие/закрытие
+                  двигало бы спейсер и сообщения над панелью */}
+              {translation && (
+                <div className={`fbTranslation${trOpen ? ' fbTranslationOpen' : ''}`}>
+                  {trSegments.map((seg, i) => (
+                    seg.type === 'text'
+                      ? <span key={i}>{seg.value}</span>
+                      : <TranslationDots key={i} template={template} index={seg.index} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
