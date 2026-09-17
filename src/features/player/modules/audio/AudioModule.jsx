@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
-import { WAVE_H_BASE, BAR_W, BAR_GAP, ACCENT, loudestFrameIndex } from './audioWaveParts.js'
+import { WAVE_H_BASE, ACCENT, loudestFrameIndex } from './audioWaveParts.js'
 import { PlayTriangle, PauseIcon } from './AudioPlayIcons.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
@@ -10,6 +10,7 @@ import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
+import { useAdaptiveBarCount } from './useAdaptiveBarCount.js'
 
 export default function AudioModule({ node, file, onDone, adminPreview = false, pending = false }) {
   const [weakDevice] = useState(() => isWeakDevice())
@@ -97,28 +98,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     return () => { cancelled = true }
   }, [src, storedWaveform, storedDuration])
 
-  // Adaptive bar count — only update when width actually changes to avoid
-  // ResizeObserver false-fires (layout changes from text mount / className) resetting state
-  useEffect(() => {
-    const el = waveRowRef.current
-    if (!el) return
-    const update = () => {
-      const count = Math.max(20, Math.floor(el.offsetWidth / (BAR_W + BAR_GAP)))
-      if (count === prevBarCountRef.current) return  // same width → skip reset entirely
-      // Width genuinely changed: carry over smooth values proportionally
-      const prev = prevBarCountRef.current
-      barSmoothRef.current = Array.from({ length: count },
-        (_, i) => barSmoothRef.current[Math.floor(i / count * prev)] || 0
-      )
-      prevBarCountRef.current = count
-      barElsRef.current = []
-      setBarCount(count)
-    }
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
+  // Плотность полосок волны под реальную ширину дорожки — useAdaptiveBarCount.js
+  useAdaptiveBarCount({ waveRowRef, prevBarCountRef, barSmoothRef, barElsRef, setBarCount })
 
   function applyFirstFrame(wd) {
     if (!wd?.length) return
@@ -329,6 +310,14 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
   const bubbleClass = [
     'playerMsgBubble', 'playerMsgBubble--audio',
+    // Без расшифровки — фиксированная ширина (25vw), а не fit-content по
+    // содержимому волны: без текста-«призрака» единственное, что могло бы
+    // влиять на fit-content, — сама дорожка волны, а её плотность (barCount)
+    // пересчитывается ПОСЛЕ первого кадра (ResizeObserver в AudioModule.jsx)
+    // и на момент первого paint ещё не знает финальную ширину — из-за этого
+    // пузырь долю секунды рисовался wider, потом скакал к 25vw. Явная
+    // фиксированная ширина убирает саму возможность этой обратной связи.
+    !text ? 'playerMsgBubble--audioNoText' : '',
     isFading ? 'playerMsgBubbleFading' : '',
   ].filter(Boolean).join(' ')
 
@@ -341,8 +330,14 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
               с первого рендера, даже пока сама расшифровка ещё не появилась
               (text && textStarted ниже) — без него пузырь стартовал бы
               узким и скакал шире в момент появления текста (тот же приём,
-              что у .trGhost в TextModule.jsx) */}
-          {text && <div className="playerAudioTextGhost" aria-hidden="true">{text}</div>}
+              что у .trGhost в TextModule.jsx). Переносы строк (\n) заменены
+              на пробел и меряются В ОДНУ строку (nowrap, не pre) — иначе
+              автор, разбивший длинную реплику на несколько КОРОТКИХ строк
+              для ритма чтения, получал бы узкий пузырь по самой короткой
+              из них, хотя текста внутри много. Сама видимая расшифровка
+              (.playerAudioTextSection ниже) переносы всё равно сохраняет —
+              меняется только то, ПО ЧЕМУ считается ширина пузыря. */}
+          {text && <div className="playerAudioTextGhost" aria-hidden="true">{text.replace(/\n/g, ' ')}</div>}
           <div className="playerAudioRow">
             <button
               className="playerAudioBtn"
