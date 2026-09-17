@@ -308,25 +308,28 @@ describe('переход у ноды показа — как у обычного
 describe('кнопка «Проверить» в ручной таблице', () => {
   const panel = read('../../panels/table-manual/TableManualPanel.jsx')
 
-  // Кнопка есть в разметке ВСЕГДА и до первого выбора лишь невидима. Раньше
+  // Кнопка есть в разметке ВСЕГДА и до нужного момента лишь невидима. Раньше
   // она монтировалась вместе со списком и добавляла свою высоту к панели —
   // вся таблица прыгала вверх в момент отката влево. Место под неё занято с
-  // первого кадра, поэтому оба режима одной высоты. Условие видимости — не
-  // phase==='extra' (у таблиц без слов-ловушек phase никогда не становится
-  // 'extra', и кнопку было бы не нажать вовсе), а assembled.length > 0.
-  it('в разметке всегда, до первой выбранной ячейки — невидима (иначе панель скачет)', () => {
-    expect(panel).toMatch(/className=\{`tmCheckBtn\$\{assembled\.length > 0 \? '' : ' tmCheckBtnHidden'\}`\}/)
+  // первого кадра, поэтому оба режима одной высоты. Условие видимости —
+  // checkBtnShown: у таблиц со словами-ловушками ждёт phase==='extra' —
+  // появляется ОДНИМ моментом с откатом таблицы и самими словами (иначе
+  // всплывала раньше стола и слов, рассинхрон); у таблиц БЕЗ них phase
+  // никогда не становится 'extra' — там снова просто assembled.length > 0.
+  it('в разметке всегда, видимость — checkBtnShown (не раньше слов-ловушек)', () => {
+    expect(panel).toContain('const checkBtnShown = assembled.length > 0 && (!hasExtras || phase === \'extra\')')
+    expect(panel).toMatch(/className=\{`tmCheckBtn\$\{checkBtnShown \? '' : ' tmCheckBtnHidden'\}`\}/)
     const btn = panel.slice(panel.indexOf('tmCheckBtn'))
     expect(btn).toContain('onClick={check}')
   })
 
   it('скрытая кнопка не ловит ни клик, ни фокус', () => {
-    expect(panel).toContain('aria-hidden={assembled.length === 0}')
-    expect(panel).toContain('tabIndex={assembled.length > 0 ? 0 : -1}')
+    expect(panel).toContain('aria-hidden={!checkBtnShown}')
+    expect(panel).toContain('tabIndex={checkBtnShown ? 0 : -1}')
   })
 
-  it('нажать нечего, пока ничего не собрано, разбор показан, или играет сигнал ошибки', () => {
-    expect(panel).toContain('disabled={assembled.length === 0 || !!result || signalState.freeze}')
+  it('нажать нечего, пока кнопка не показана, разбор показан, или играет сигнал ошибки', () => {
+    expect(panel).toContain('disabled={!checkBtnShown || !!result || signalState.freeze}')
   })
 
   it('автопроверки по полному набору слов больше нет — ученик жмёт сам', () => {

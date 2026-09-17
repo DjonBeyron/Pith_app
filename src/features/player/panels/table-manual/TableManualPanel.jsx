@@ -156,6 +156,12 @@ export default function TableManualPanel({
   const allCellsDone = allCellsPicked(cellTokens, assembled)
   // Фаза полностью производная: extra только когда все ячейки выбраны и есть слова-ловушки
   const phase        = (allCellsDone && hasExtras) ? 'extra' : 'table'
+  // Кнопка «Проверить» должна появляться ОДНИМ моментом со словами-ловушками
+  // и откатом таблицы (phase==='extra'), а не раньше — иначе она всплывала
+  // сразу с первой выбранной ячейкой, пока таблица ещё стоит на месте и
+  // слов не видно. У таблиц БЕЗ extras отката вообще не бывает (phase
+  // никогда не 'extra') — там кнопка по-прежнему доступна с первого же слова
+  const checkBtnShown = assembled.length > 0 && (!hasExtras || phase === 'extra')
 
   // Особая ячейка: вместо того чтобы сразу уйти в фразу, открывает меню
   // своих вариантов — какое значение выбрал ученик, то и соберётся
@@ -335,10 +341,14 @@ export default function TableManualPanel({
           </div>
 
           {/* Кнопка «Проверить» — как в «собери фразу»: никакой автопроверки
-              по факту заполнения, ученик жмёт сам, доступна уже с первой
-              выбранной ячейки (не только когда всё собрано и не только у
-              таблиц со словами-ловушками — иначе у таблиц БЕЗ extras, где
-              phase никогда не становится 'extra', проверить было бы нечем).
+              по факту заполнения, ученик жмёт сам. У таблиц СО словами-
+              ловушками кнопка ждёт phase==='extra' — появляется ОДНИМ
+              моментом с откатом таблицы и самими словами, а не раньше
+              (раньше всплывала уже с первой выбранной ячейкой, пока стол ещё
+              на месте и ловушек не видно — рассинхрон с самим содержимым).
+              У таблиц БЕЗ extras отката не бывает вовсе (phase никогда не
+              'extra') — там кнопка по-прежнему доступна с первого слова,
+              иначе проверить было бы нечем (checkBtnShown, см. выше).
 
               В разметке она есть ВСЕГДА, а до нужного момента лишь невидима.
               Раньше её не было вовсе, пока таблица не уехала влево, — и в этот
@@ -346,11 +356,11 @@ export default function TableManualPanel({
               скакала. Место под неё занято с самого начала, поэтому оба режима
               одной высоты и перехода по вертикали не видно. */}
           <button
-            className={`tmCheckBtn${assembled.length > 0 ? '' : ' tmCheckBtnHidden'}`}
+            className={`tmCheckBtn${checkBtnShown ? '' : ' tmCheckBtnHidden'}`}
             onClick={check}
-            disabled={assembled.length === 0 || !!result || signalState.freeze}
-            aria-hidden={assembled.length === 0}
-            tabIndex={assembled.length > 0 ? 0 : -1}
+            disabled={!checkBtnShown || !!result || signalState.freeze}
+            aria-hidden={!checkBtnShown}
+            tabIndex={checkBtnShown ? 0 : -1}
           >Проверить</button>
 
         </div>
