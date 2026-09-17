@@ -2,12 +2,22 @@
    Bubble variant + div-based waveform bars (Telegram-style, from bottom).
    ──────────────────────────────────────────────────────────────────── */
 
+/* Ширина — под содержимое, а не растянута на всю строку: если самая длинная
+   строка расшифровки короче экрана, пузырь сжимается под неё (+небольшой
+   запас от padding). Без расшифровки вовсе — не меньше 25vw (примерно
+   четверть ширины экрана), чтобы плеер/волна не жались в узкую полоску.
+   Верхняя граница — как у обычных пузырей (78%): длинная расшифровка всё
+   равно переносится по словам (overflow-wrap на .playerAudioTextSection),
+   а не растягивает пузырь во весь экран. Ширина меряется по «призраку»
+   полного текста (.playerAudioTextGhost, см. AudioModule.jsx) — он в разметке
+   ВСЕГДА, даже пока сама расшифровка ещё не показалась (textStarted), иначе
+   пузырь стартовал бы узким и скакал шире в момент появления текста. */
 .playerMsgBubble--audio {
   background: transparent !important;
   border-radius: 4px 18px 18px 18px;
-  flex: 1;
-  min-width: 0;
-  max-width: none;
+  width: fit-content;
+  min-width: 25vw;
+  max-width: 78%;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -15,6 +25,16 @@
   overflow: hidden;
   position: relative;
   isolation: isolate;
+}
+
+.playerAudioTextGhost {
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-size: 14px;
+  line-height: 1.55;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  white-space: pre;
 }
 .playerMsgBubble--audio::before {
   content: '';

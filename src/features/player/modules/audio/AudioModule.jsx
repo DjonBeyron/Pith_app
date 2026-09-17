@@ -337,6 +337,12 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       <PlayerBubble className={bubbleClass}>
         {src && <audio ref={audioRef} src={src} preload="auto" />}
         <div className="playerAudio">
+          {/* Призрак полного текста — держит финальную ширину пузыря СРАЗУ,
+              с первого рендера, даже пока сама расшифровка ещё не появилась
+              (text && textStarted ниже) — без него пузырь стартовал бы
+              узким и скакал шире в момент появления текста (тот же приём,
+              что у .trGhost в TextModule.jsx) */}
+          {text && <div className="playerAudioTextGhost" aria-hidden="true">{text}</div>}
           <div className="playerAudioRow">
             <button
               className="playerAudioBtn"
