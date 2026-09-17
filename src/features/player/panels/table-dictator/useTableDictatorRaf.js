@@ -3,7 +3,7 @@ import { WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { logHudState } from './dictatorDebug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
-import { EXTRA_LEAD_IN_S, mapWordLayersToChips, answerOrderOf, wordGreenAt, lastWordClipEnd, computeRevealedCellIds, sameIdSet, resultHoldSec, layerShots } from '../../../../shared/lib/tableDictatorTiming.js'
+import { EXTRA_LEAD_IN_S, extrasStartWithGap, mapWordLayersToChips, answerOrderOf, wordGreenAt, lastWordClipEnd, computeRevealedCellIds, sameIdSet, resultHoldSec, layerShots } from '../../../../shared/lib/tableDictatorTiming.js'
 
 const HUD_OFFSETS    = [-1, 0, 1]
 const HUD_ALPHA_UP   = [0.60, 0.75, 0.50]
@@ -29,13 +29,10 @@ export function useTableDictatorRaf({
     const greenedKeys = new Set()   // какие word-чипы уже загорались зелёным (чтобы 1 раз)
     const cellVal = id => cells.find(c => c.id === id)?.value?.trim() ?? `id=${id}`
 
-    // Старт самого раннего видимого word-клипа — от него отсчитываем слайд/чипы (перед словом)
-    let firstExtraStart = null
-    for (const l of timeline?.layers ?? []) {
-      if (l.visible === false || !l.word || !l.clips?.length) continue
-      const s = l.clips[0].start
-      if (firstExtraStart == null || s < firstExtraStart) firstExtraStart = s
-    }
+    // Старт самого раннего видимого word-клипа — от него отсчитываем слайд/чипы
+    // (перед словом), не раньше конца последней подсветки ячейки + зазор —
+    // см. extrasStartWithGap (общая с dictatorPostAudio.js точка отсчёта)
+    let firstExtraStart = extrasStartWithGap(timeline?.layers)
     // Каждому слою — свой чип: два одинаковых слова в ответе больше не делят один
     const chipByLayer = mapWordLayersToChips(timeline?.layers, shuffledExtras)
     // Докуда идут клипы слов — после этого ждать сборку больше нечего

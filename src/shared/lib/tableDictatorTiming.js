@@ -23,6 +23,14 @@ export const TABLE_SLIDE_S = 0.42
 // правило одно для всех: не раньше конца отъезда.
 export const EXTRA_AFTER_SLIDE_S = TABLE_SLIDE_S + EXTRA_BUFFER_S   // 0.72s
 
+// Минимальный зазор между концом подсветки последней ячейки таблицы и стартом
+// слайда/чипов слов вне неё. Автор нередко ставит клипы встык (озвучка идёт
+// без пауз) — конец подсветки ячейки и начало клипа первого слова совпадают
+// секунда в секунду. Без зазора таблица уезжает в тот же миг, что гаснет
+// последняя подсветка — ученик не успевает её увидеть. Значение то же, что у
+// паузы после анимации (EXTRA_BUFFER_S), для единообразия.
+export const CELL_TO_EXTRAS_GAP_S = 0.3
+
 // Когда слово реально загорается зелёным. Лид-ин (анимация + буфер, у
 // последних слов ещё и отъезд таблицы) не может вылезти за конец клипа: иначе
 // окно «горит» пустое и слово не загорается ВООБЩЕ — ни в чат, ни в фразу.
@@ -58,6 +66,27 @@ export function extrasStartSec(layers) {
     if (l.visible === false || !l.word || !l.clips?.length) continue
     if (start == null || l.clips[0].start < start) start = l.clips[0].start
   }
+  return start
+}
+
+// То же самое, но не раньше конца последней «настоящей» подсветки ячейки
+// (без фона/шапки — у них collect:false) плюс CELL_TO_EXTRAS_GAP_S. Общая
+// для RAF-пути (useTableDictatorRaf.js, живая игра аудио) и пост-аудио пути
+// (dictatorPostAudio.js, когда запись короче таймлайна и хвост доигрывает
+// таймерами) — если бы каждый считал стартовую точку по-своему, слайд
+// таблицы и подсветка слов расходились бы в зависимости от того, успело
+// аудио доиграть до конца таймлайна или нет.
+export function extrasStartWithGap(layers) {
+  let start = extrasStartSec(layers)
+  if (start == null) return start
+  let lastCellClipEnd = null
+  for (const l of layers ?? []) {
+    if (l.visible === false || !l.cellId || l.word || l.isCheck || l.collect === false) continue
+    for (const shot of layerShots(l)) {
+      if (lastCellClipEnd == null || shot.end > lastCellClipEnd) lastCellClipEnd = shot.end
+    }
+  }
+  if (lastCellClipEnd != null) start = Math.max(start, lastCellClipEnd + CELL_TO_EXTRAS_GAP_S)
   return start
 }
 

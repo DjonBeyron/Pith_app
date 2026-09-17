@@ -1,6 +1,6 @@
 import { pLog } from '../../../../shared/lib/debug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
-import { mapWordLayersToChips, answerOrderOf, wordGreenAt, extrasStartSec, resultHoldSec, layerShots } from '../../../../shared/lib/tableDictatorTiming.js'
+import { mapWordLayersToChips, answerOrderOf, wordGreenAt, extrasStartWithGap, resultHoldSec, layerShots } from '../../../../shared/lib/tableDictatorTiming.js'
 
 // Клип слова/ячейки может стоять ПОСЛЕ конца аудио (10с-хвост таймлайна) — целиком
 // (слово, которого физически нет в записи) или НАПОЛОВИНУ (начался во время игры,
@@ -143,10 +143,21 @@ export function schedulePostAudioCheck({
   setPhase, setChipsVisible, setAssembled, setExtrasAssembled,
   setHighlighted, setUsedCells, setActiveExtraKeys, setRevealedIds, checkRef, closeRef,
 }) {
-  if (!rfxChipsRef.current) { rfxChipsRef.current = true; setPhase('extras'); setChipsVisible(true) }
   const tEnd = Number.isFinite(audioRef.current?.duration) ? audioRef.current.duration : checkAt
-  const extrasStart = extrasStartSec(timeline?.layers)
+  const extrasStart = extrasStartWithGap(timeline?.layers)
   const chipByLayer = mapWordLayersToChips(timeline?.layers, shuffledExtras)
+
+  // Запись может кончиться раньше, чем ячейки доиграли по таймлайну (тогда их
+  // подсветку дособирают таймеры ниже, в scheduleLayer) — слайд таблицы
+  // должен ждать extrasStart, а не срабатывать в тот же миг, что audio
+  // 'ended'. Раньше слайд срабатывал сразу же: таблица уезжала, а следующая
+  // за ней ячейка (например «try») подсвечивалась уже после — ученик её не
+  // видел вовсе, только что перепланированный ON успевал догнать закрытие
+  if (!rfxChipsRef.current) {
+    rfxChipsRef.current = true
+    const slideDelay = extrasStart != null ? Math.max(0, extrasStart - tEnd) : 0
+    timers.current.push(setTimeout(() => { setPhase('extras'); setChipsVisible(true) }, slideDelay * 1000))
+  }
 
   // Слова с одинаковым стартом падают в бокс в порядке ответа: планируем их в
   // этом же порядке и разносим на пару миллисекунд, чтобы очередь не решал
