@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
-import { WAVE_H_BASE, ACCENT, loudestFrameIndex } from './audioWaveParts.js'
+import { WAVE_H_BASE, ACCENT } from './audioWaveParts.js'
 import { PlayTriangle, PauseIcon } from './AudioPlayIcons.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
@@ -12,6 +12,8 @@ import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallb
 import { useAudioSource } from './useAudioSource.js'
 import { useAdaptiveBarCount } from './useAdaptiveBarCount.js'
 import { useAudioStaticWaveform } from '../../../../shared/lib/useAudioStaticWaveform.js'
+import { logAudioMount, logAudioDurationReady, logAudioPlayStart, makeAudioHeartbeat, logAudioEnded } from './audioDebug.js'
+import { applyFirstAudioFrame } from './applyFirstAudioFrame.js'
 
 export default function AudioModule({ node, file, onDone, adminPreview = false, pending = false }) {
   const [weakDevice] = useState(() => isWeakDevice())
@@ -81,7 +83,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const stubSpeed = Math.max(12, Math.round(FALLBACK_MS / Math.max(1, text.length)))
 
   useEffect(() => {
-    pLog('AudioModule mount/src change — r2Url=', file?.r2Url ?? 'null', 'src=', src ?? 'NULL')
+    logAudioMount({ src, storedWaveform, storedDuration })
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0 }
     // Сброс медиасостояния при смене src — осознанный setState в эффекте
@@ -92,13 +94,18 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     barSmoothRef.current.fill(0)
     setWaveData(storedWaveform?.length ? storedWaveform : null)
     setDuration(storedDuration || null)
+    if (storedDuration) logAudioDurationReady('сразу, storedDuration', storedDuration)
     if (!src) { pLog('AudioModule: src is null, skipping load'); return }
     let cancelled = false
     if (!storedWaveform?.length) {
       analyzeWaveform(src).then(wd => { if (!cancelled) setWaveData(wd) }).catch(() => {})
     }
     if (!storedDuration) {
-      probeAudioDuration(src).then(d => { if (!cancelled && d && isFinite(d)) setDuration(d) }).catch(() => {})
+      probeAudioDuration(src).then(d => {
+        if (cancelled || !d || !isFinite(d)) return
+        setDuration(d)
+        logAudioDurationReady('асинхронно, probeAudioDuration', d)
+      }).catch(() => {})
     }
     return () => { cancelled = true }
   }, [src, storedWaveform, storedDuration])
@@ -106,30 +113,10 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // Плотность полосок волны под реальную ширину дорожки — useAdaptiveBarCount.js
   useAdaptiveBarCount({ waveRowRef, prevBarCountRef, barSmoothRef, barElsRef, setBarCount })
 
-  function applyFirstFrame(wd) {
-    if (!wd?.length) return
-    const n = barElsRef.current.length
-    const center = (n - 1) / 2
-    // Раньше центр стоп-кадра был жёстко на индексе 0 (самое начало записи —
-    // часто тишина/вдох перед речью), и кадр выглядел плоским. На слабых
-    // устройствах tick() вообще не пересчитывает полоски во время игры
-    // (см. ниже: fi=-1 всегда) — значит этот кадр виден не долю секунды до
-    // старта, а ВСЮ игру целиком. Берём центром самую громкую точку записи
-    // вместо начала — тот же формат разброса ±offset*0.2, что и у живого
-    // эквалайзера в tick(), просто центр не всегда 0.
-    const peakIdx = loudestFrameIndex(wd)
-    barElsRef.current.forEach((bar, i) => {
-      if (!bar) return
-      const offset = Math.round((i - center) * 0.2)
-      const idx    = Math.max(0, Math.min(wd.length - 1, peakIdx + offset))
-      const amp    = Math.pow(wd[idx] / 255, 0.55)
-      barSmoothRef.current[i] = amp
-      bar.style.transform = `scaleY(${Math.max(0.1, amp * 1.8)})`
-    })
-  }
+  const applyFirstFrame = wd => applyFirstAudioFrame(wd, barElsRef, barSmoothRef)
 
   // Show first frame before first play so there's no visual jump on start
-  useLayoutEffect(() => { applyFirstFrame(waveData) }, [waveData, barCount])  
+  useLayoutEffect(() => { applyFirstFrame(waveData) }, [waveData, barCount])
 
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -202,6 +189,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     const d             = duration || audio.duration || 0
     const capturedWave  = waveData
     const capturedChars = charTimings
+    logAudioPlayStart({ d, liveDuration: audio.duration, readyState: audio.readyState, networkState: audio.networkState, waveLen: capturedWave?.length })
+    const hb = makeAudioHeartbeat()
 
     setTextStarted(true)
     // Три случая, и путать их нельзя:
@@ -240,6 +229,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       // высота баров просто не трогается тут вообще, оставаясь такой, какой
       // её один раз поставил applyFirstFrame (пик громкости всей записи)
       const fi        = !weakDevice && !staticWaveform && capturedWave?.length ? Math.floor(ct * WAVEFORM_FPS) : -1
+      hb(ct, total, bars.length)
 
       bars.forEach((bar, i) => {
         if (!bar) return
@@ -270,6 +260,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     }
 
     function onEnded() {
+      logAudioEnded({ ct: audio.currentTime, liveDuration: audio.duration, d })
       stopRAF()
       setIsPlaying(false)
       if (capturedChars.length) {
