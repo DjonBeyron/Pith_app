@@ -29,7 +29,8 @@ const SPARKS = [
 const SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
 
 // Ответ ученика — пузыри справа (AnswerBubbles / WordChoiceModule),
-// реплика учителя — все остальные
+// реплика учителя — все остальные, включая стикеры (нужны в селекторе,
+// чтобы правильно найти «последнее сообщение», см. findBubble ниже)
 const SEL_STUDENT = '.playerMsgBubble--response'
 const SEL_TEACHER = '.playerMsgBubble:not(.playerMsgBubble--response), .stickerBubble'
 
@@ -37,12 +38,20 @@ const SEL_TEACHER = '.playerMsgBubble:not(.playerMsgBubble--response), .stickerB
 // узла в ленте у реакции нет (см. PlayerFeedNodes), поэтому ищем от корня:
 // на момент монтирования последнее сообщение в ленте и есть то, на которое
 // реакция отвечает. Пре-рендер за экраном ([data-pending]) пропускаем.
+//
+// Стикер — не цель: у него overflow:hidden (sticker.css) обрезает эмодзи,
+// которая наполовину высовывается за нижний край пузыря (странно срезанный
+// значок вместо аккуратной реакции). Если самое свежее сообщение — стикер,
+// реакция просто не рисуется вовсе (а не переезжает на более старый пузырь,
+// который ей на самом деле не адресован).
 function findBubble(selector) {
   const feed = document.querySelector('.playerFeedInner')
   if (!feed) return null
   const found = [...feed.querySelectorAll(selector)]
     .filter(el => !el.closest('[data-pending]'))
-  return found.length ? found[found.length - 1] : null
+  if (!found.length) return null
+  const last = found[found.length - 1]
+  return last.classList.contains('stickerBubble') ? null : last
 }
 
 // Сколько ещё присматриваться к ленте после монтирования. Ответ ученика
@@ -61,6 +70,12 @@ export default function ReactionModule({ node, onDone }) {
   const glyphRef = useRef(null)
   const sparkRefs = useRef([])
   const [target, setTarget] = useState(null)
+  // Ретаргет (ниже) может сменить target несколько раз за первую секунду —
+  // без этого флага эффект анимации перезапускался бы на КАЖДУЮ смену цели,
+  // и появление эмодзи читалось как двойное/дёрганое срабатывание. Пружинный
+  // «влёт» должен сыграть РОВНО один раз за жизнь ноды; поздний ретаргет
+  // просто переносит уже отыгравший эмодзи на новый пузырь без повтора анимации
+  const hasAnimatedRef = useRef(false)
 
   useEffect(() => { onDone?.() }, []) // eslint-disable-line
 
@@ -94,7 +109,8 @@ export default function ReactionModule({ node, onDone }) {
   }, [target])
 
   useEffect(() => {
-    if (!target) return
+    if (!target || hasAnimatedRef.current) return
+    hasAnimatedRef.current = true
     glyphRef.current?.animate(
       [
         { transform: 'translateY(10px) scale(0) rotate(-30deg)', opacity: 0, offset: 0 },
