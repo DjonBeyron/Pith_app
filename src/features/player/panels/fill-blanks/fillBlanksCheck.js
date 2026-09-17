@@ -56,7 +56,10 @@ export function makeFillBlanksCheck({
           // автора, если задан, отдельной репликой.
           const text = buildPickedText(tData.template, picked)
           if (text.trim()) onAnswerToChat?.(text, 'correct')
-          if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'correct')
+          // 'hint', не 'correct': это реплика УЧИТЕЛЯ, а не второй ответ
+          // ученика — 'correct' рисует её тем же зелёным пузырём справа,
+          // что и саму фразу, и получались две «реплики ученика» подряд
+          if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'hint')
         })
         whenBubbleLanded(() => closePanelWith('fill_correct'))
       }, 600)

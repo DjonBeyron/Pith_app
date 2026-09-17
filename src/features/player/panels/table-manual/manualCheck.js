@@ -67,7 +67,11 @@ export function makeManualCheck({
         // «setShow(false) → slide-in», то есть наоборот).
         flushSync(() => {
           if (phrase.trim()) onAnswerToChat?.(phrase, 'correct')
-          if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'correct')
+          // 'hint', не 'correct': это реплика УЧИТЕЛЯ, а не второй ответ
+          // ученика — 'correct' рисует её тем же зелёным пузырём справа,
+          // что и саму фразу, и получались две «реплики ученика» подряд
+          // (тот же баг был у fillBlanksCheck.js, см. PROJECT.md)
+          if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'hint')
         })
         // Пузырь не просто появляется — он ВЪЕЗЖАЕТ снизу (PlayerFeed играет
         // ему slide-in из-под нижнего края экрана). Если панель тронуть сразу,
