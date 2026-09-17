@@ -158,6 +158,14 @@
 }
 .tmExtrasSection::-webkit-scrollbar { display: none; }
 
+/* Смонтирована заранее, пока идёт сборка таблицы (см. комментарий в
+   TableManualPanel.jsx) — visibility, а не display:none, чтобы браузер уже
+   посчитал flex-wrap layout (реальные ширины чипов) и не делал этот reflow
+   в момент показа, одновременно с transform-переходом таблицы. opacity:0
+   на всякий случай — сама секция всё равно под таблицей (z-index ниже), но
+   так надёжнее, если что-то не перекрыто. */
+.tmExtrasSectionHidden { visibility: hidden; opacity: 0; pointer-events: none; }
+
 /* Только transform, без opacity: слова появляются одновременно с тем, как
    таблица уезжает влево (см. .tmTableSectionSlid) — если чипы ещё и
    растворяются по opacity, поверх чистого сдвига таблицы появляется
@@ -182,6 +190,14 @@
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.1s;
+}
+/* Анимация входа — ОТДЕЛЬНЫМ классом, добавляется только в момент реального
+   показа (phase==='extra'), а не с монтирования (chip смонтирован раньше,
+   см. .tmExtrasSectionHidden выше). Если бы animation была на базовом
+   .tmExtraChip всегда, она бы доигрывала ещё во время скрытого монтирования
+   и к показу уже стояла на конечном кадре — эффект «чипы въезжают вместе с
+   уходом таблицы» пропал бы. */
+.tmExtraChipEnter {
   animation: tmChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .tmExtraChip:not(:disabled):hover {

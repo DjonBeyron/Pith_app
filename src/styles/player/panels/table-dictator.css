@@ -102,34 +102,37 @@
   pointer-events: none;
 }
 
-/* Список слов — вертикальный, без обводки у пунктов, разделитель — тонкая
-   серая линия. Если пунктов больше, чем помещается в tdStage — список
-   скроллится (тонкий тёмный скролл). */
+/* Список слов — плашки в ряд, как у table-manual (.tmExtrasSection) и «Собери
+   фразу»: flex-wrap заполняет ширину модуля рядами вместо одного слова на
+   строку. Если рядов больше, чем помещается в tdStage — список скроллится
+   (тонкий тёмный скролл, тот же приём). */
 .tdExtrasSection {
   position: absolute;
   /* Снизу список кончается ВЫШЕ края сцены: под ней сразу кнопка «Проверить»,
-     и без этого зазора последний пункт упирался в неё вплотную — при прокрутке
+     и без этого зазора последний ряд упирался в неё вплотную — при прокрутке
      казалось, что список продолжается прямо под кнопкой. 18px хватает, чтобы
      обрез читался как «список кончился», а не как «список обрезан». */
   inset: 0 0 18px;
 
-  display: flex; flex-direction: column;
-  align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 12px 8px;
   /* Родную полосу прячем: на iOS она накладная — проступает при прокрутке и
      гаснет, а ::-webkit-scrollbar там игнорируется. Вместо неё рисуем свою,
      всегда видимую (ListScrollThumb.jsx) */
   scrollbar-width: none;
-  /* safe center, а не просто center. Обычное центрирование в скроллящемся
-     контейнере обрезает НАЧАЛО списка: когда пунктов больше, чем влезает,
-     содержимое выпирает в обе стороны, а прокрутить выше нулевой позиции
-     нельзя — верхние пункты становятся недоступны. Ключевое слово safe
-     отключает центрирование ровно в этом случае и прижимает список к началу.
-     Короткий список по-прежнему стоит по центру. */
-  justify-content: safe center;
+  /* Горизонтально — по центру каждого ряда. Вертикально — safe center:
+     короткий набор чипов стоит по центру секции, а когда рядов больше, чем
+     влезает, safe отключает центрирование и прижимает сетку к началу — иначе
+     верхние ряды в скролле были бы недоступны (обычный center в
+     скроллящемся контейнере обрезает начало содержимого). */
+  justify-content: center;
+  align-content: safe center;
   /* scroll, а не auto: полоса нужна ВСЕГДА. С auto она появляется только во
      время прокрутки, и по неподвижному экрану не понять, что список длиннее
-     видимой части — ученик просто не знает, что внизу есть ещё слова. */
+     видимой части — ученик просто не знает, что ниже есть ещё слова. */
   overflow-y: scroll;
 }
 .tdExtrasSection::-webkit-scrollbar { display: none; }
@@ -144,30 +147,31 @@
   to   { opacity: 1; }
 }
 
+/* Плашка — тот же вид, что у .tmExtraChip/.phraseChip: тёмный фон, рамка,
+   скругление. Раньше слово было пунктом на всю ширину с разделительной
+   линией — теперь все три сборщика показывают слова-ловушки одинаково. */
 .tdExtraChip {
-  width: 100%; flex-shrink: 0;
-  padding: 12px 8px; background: transparent; position: relative;
-  border: none; border-radius: 8px;
-  color: #ccc; font-size: 14px;
-  font-family: 'Montserrat', 'Comfortaa', sans-serif; text-align: center;
-  transition: color 0.25s, background 0.25s;
+  flex: 0 0 auto;
+  background: #12141d;
+  border: 2px solid #2a2d35;
+  border-radius: 12px;
+  padding: 8px 16px;
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  transition: color 0.25s, background 0.25s, border-color 0.25s;
   animation: tdChipIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   pointer-events: none;   /* авто-режим: без кликов и hover */
 }
-/* Разделитель — во всю ширину экрана приложения (не короткий по центру),
-   но со скруглёнными краями — не задевает последний пункт */
-.tdExtrasSection > .tdExtraChip:not(:last-child)::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
-  height: 2px; border-radius: 2px; background: rgba(255,255,255,0.12);
-}
-/* Пока выбирается — горит зелёным: слово + его прямоугольный фон, та же
-   логика и та же анимация тройного мерцания, что и у ячейки в таблице */
+/* Пока выбирается — горит зелёным: слово + его плашка, та же логика и та же
+   анимация тройного мерцания, что и у ячейки в таблице */
 .tdExtraChipUsed {
-  color: #b6fe3b; background: rgba(182, 254, 59, 0.18);
+  color: #b6fe3b; background: rgba(182, 254, 59, 0.18); border-color: #b6fe3b;
   animation: tableGridCellFlash var(--td-flash, 0.6s) ease-in-out;
 }
-/* Уже в боксе — текст тускнеет до 40% */
-.tdExtraChipDone { color: rgba(204,204,204,0.4); }
+/* Уже в боксе — текст и рамка тускнеют */
+.tdExtraChipDone { color: rgba(204,204,204,0.4); border-color: #23252c; }
 
 /* ── HUD (осциллограф) ──────────────────────────────────────── */
 /* Плавает НАД панелью (position:absolute относительно .tdPanel, bottom:100%):

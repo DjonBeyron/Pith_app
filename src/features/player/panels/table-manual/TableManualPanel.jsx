@@ -311,17 +311,34 @@ export default function TableManualPanel({
               />
             </div>
 
-            {phase === 'extra' && (
-              <div className="tmExtrasSection" ref={extrasRef}>
+            {hasExtras && (
+              // Смонтирована ВСЕГДА (не только при phase==='extra'), но
+              // спрятана visibility:hidden, пока таблица не уехала: flex-wrap
+              // сетке нужен реальный reflow (ширины чипов по тексту), и если
+              // делать его В ТОТ ЖЕ момент, когда таблица начинает свой
+              // transform-переход, оба процесса накладываются — на экране
+              // видно микро-дёрганье. Заранее посчитанный (но невидимый)
+              // layout к моменту показа уже стабилен — остаётся только сдвиг
+              // таблицы и entrance-анимация чипов (класс tmExtraChipEnter,
+              // добавляется только при реальном показе, см. table-manual.css).
+              <div
+                className={`tmExtrasSection${phase === 'extra' ? '' : ' tmExtrasSectionHidden'}`}
+                ref={extrasRef}
+              >
                 {shuffledExtras.map((chip, i) => {
                   const used = assembledExtraKeys.has(`extra-${i}`)
                   return (
                     <button
                       key={i}
                       style={{ animationDelay: `${i * 50}ms` }}
-                      className={`tmExtraChip${used ? ' tmExtraChipUsed' : ''}`}
+                      className={[
+                        'tmExtraChip',
+                        phase === 'extra' && 'tmExtraChipEnter',
+                        used && 'tmExtraChipUsed',
+                      ].filter(Boolean).join(' ')}
                       onClick={e => tapExtra(chip, i, e.currentTarget.getBoundingClientRect())}
-                      disabled={used || !!result || signalState.freeze}
+                      disabled={phase !== 'extra' || used || !!result || signalState.freeze}
+                      tabIndex={phase === 'extra' ? 0 : -1}
                     >{chip.text}</button>
                   )
                 })}
