@@ -4,12 +4,14 @@ import { EMPTY_TEACHER } from '../lib/teacherResolve.js'
 
 // Глобальные настройки приложения — таблица app_settings (ключ → jsonb).
 // Ключи: учитель по умолчанию для всех уроков, провайдер генерации фото,
-// его дневная выработка (см. ImageProviderSettings.jsx) и диагностический
-// набор в шапке урока для не-админов (см. usePlayerDebugUi.js).
+// его дневная выработка (см. ImageProviderSettings.jsx), диагностический
+// набор в шапке урока для не-админов (см. usePlayerDebugUi.js) и заморозка
+// спектра голосовых на пике громкости (см. useAudioStaticWaveform.js).
 const TEACHER_KEY = 'teacher_default'
 const IMAGE_PROVIDER_KEY = 'image_provider'
 const IMAGE_GEN_USAGE_KEY = 'image_gen_usage'
 const PLAYER_DEBUG_UI_KEY = 'player_debug_ui'
+const AUDIO_STATIC_WAVEFORM_KEY = 'audio_static_waveform'
 
 let cache    = null // последнее прочитанное значение (живёт до перезагрузки)
 let inflight = null // текущий запрос, чтобы три вызова не сделали три запроса
@@ -112,6 +114,33 @@ export async function savePlayerDebugUi(on) {
   if (error) { dbg('[DB ERROR] player_debug_ui save', error.message); throw error }
   if (!data?.length) {
     dbg('[DB WARN] player_debug_ui save matched 0 rows — RLS или нет прав админа')
+    throw new Error('Сохранение не применилось: сервер не подтвердил запись')
+  }
+  return !!on
+}
+
+// Заморозка спектра голосовых — глобально для ВСЕХ уроков (см.
+// useAudioStaticWaveform.js). Включено: вместо живой анимации колебания
+// каждый бар спектра встаёт на высоту САМОЙ громкой амплитуды всей записи
+// и больше не двигается — ни во время игры, ни на паузе, ни после конца.
+export async function getAudioStaticWaveform() {
+  const { data, error } = await supabase
+    .from('app_settings').select('value').eq('key', AUDIO_STATIC_WAVEFORM_KEY).maybeSingle()
+  if (error) { dbg('[DB ERROR] audio_static_waveform read', error.message); return null }
+  return !!data?.value?.on
+}
+
+// Пишет только админ (RLS app_settings_write_admin). .select() обязателен:
+// без него UPDATE, отсечённый политикой, выглядел бы как успех.
+export async function saveAudioStaticWaveform(on) {
+  dbg('[DB WRITE] app_settings', AUDIO_STATIC_WAVEFORM_KEY, on)
+  const { data, error } = await supabase
+    .from('app_settings')
+    .upsert({ key: AUDIO_STATIC_WAVEFORM_KEY, value: { on: !!on }, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+    .select('key')
+  if (error) { dbg('[DB ERROR] audio_static_waveform save', error.message); throw error }
+  if (!data?.length) {
+    dbg('[DB WARN] audio_static_waveform save matched 0 rows — RLS или нет прав админа')
     throw new Error('Сохранение не применилось: сервер не подтвердил запись')
   }
   return !!on

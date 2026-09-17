@@ -11,9 +11,14 @@ import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
 import { useAdaptiveBarCount } from './useAdaptiveBarCount.js'
+import { useAudioStaticWaveform } from '../../../../shared/lib/useAudioStaticWaveform.js'
 
 export default function AudioModule({ node, file, onDone, adminPreview = false, pending = false }) {
   const [weakDevice] = useState(() => isWeakDevice())
+  // Глобальная заморозка спектра (админка, все уроки сразу) — см.
+  // useAudioStaticWaveform.js. Просто ещё одна причина не считать живой
+  // кадр в tick() ниже, тот же приём, что уже есть у weakDevice
+  const staticWaveform = useAudioStaticWaveform()
   const [isPlaying,       setIsPlaying]       = useState(false)
   // Сразу true, если у голосового есть расшифровка: пузырь должен прилететь
   // в чат уже растушёванным. Раньше растушёвка включалась по старту печати —
@@ -227,7 +232,10 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       const bars      = barElsRef.current
       const greenUpTo = progress * bars.length
       const center    = (bars.length - 1) / 2
-      const fi        = !weakDevice && capturedWave?.length ? Math.floor(ct * WAVEFORM_FPS) : -1
+      // staticWaveform: fi всегда -1 — тот же путь, что у weakDevice — и
+      // высота баров просто не трогается тут вообще, оставаясь такой, какой
+      // её один раз поставил applyFirstFrame (пик громкости всей записи)
+      const fi        = !weakDevice && !staticWaveform && capturedWave?.length ? Math.floor(ct * WAVEFORM_FPS) : -1
 
       bars.forEach((bar, i) => {
         if (!bar) return
