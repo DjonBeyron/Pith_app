@@ -2,6 +2,7 @@ import { useRef, useState, useLayoutEffect, useEffect } from 'react'
 import NodeLessonLink from './NodeLessonLink.jsx'
 import NodeWordChoiceResponses from './NodeWordChoiceResponses.jsx'
 import { getVariantList, syncTriggers, triggersNeedSync } from './nodeVariants.js'
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 const BASE_PAIR = ['word_correct', 'word_wrong']
 
@@ -132,6 +133,7 @@ export default function NodeWordChoicePicker({
                 onClick={e => e.stopPropagation()}
                 onMouseDown={e => e.stopPropagation()}
                 placeholder="Вариант…"
+                {...NO_AUTOCORRECT}
               />
               <button
                 className={`nodeWcGearBtn${variantThen(o.id) ? ' nodeWcGearBtnOn' : ''}`}
@@ -196,6 +198,7 @@ export default function NodeWordChoicePicker({
           placeholder="Новый вариант..."
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOption() } }}
           onClick={e => e.stopPropagation()}
+          {...NO_AUTOCORRECT}
         />
         <button className="nodeWcAddBtn" onClick={addOption}>+</button>
       </div>

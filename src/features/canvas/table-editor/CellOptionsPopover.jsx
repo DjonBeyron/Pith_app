@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { NO_AUTOCORRECT } from '../../../shared/lib/noAutoCorrectProps.js'
 
 // Особые значения ячейки: список вариантов, по одному в строке. В уроке из
 // такой ячейки выпадает меню выбора (ручной режим), а в авто-режиме нужный
@@ -24,6 +25,7 @@ export default function CellOptionsPopover({ cell, onSave, onClose }) {
           autoFocus
           placeholder={'he\nshe\nit'}
           onChange={e => setText(e.target.value)}
+          {...NO_AUTOCORRECT}
         />
         <div className="cellOptsHint">
           По одному варианту в строке. Пусто — обычная ячейка без меню.

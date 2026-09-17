@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { listPublishedLessons } from '../../shared/lib/lessonsApi.js'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 // Редактор ноды lesson_ref (канвас): чекбокс урок/модуль → дропдаун из
 // ОПУБЛИКОВАННЫХ (ученику доступных) уроков либо модулей + доп. текст под
@@ -58,6 +59,7 @@ export default function NodeLessonRefPicker({ value, onChange }) {
         placeholder="Подпись под названием (необязательно): «Изучить урок»..."
         onClick={e => e.stopPropagation()}
         onMouseDown={e => e.stopPropagation()}
+        {...NO_AUTOCORRECT}
       />
     </div>
   )

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import NodeTableTts from './NodeTableTts.jsx'
 import SpeechLaneEditorModal from './speech-lane/SpeechLaneEditorModal.jsx'
 import { scriptFromLayers } from '../../shared/lib/speechLanePrepare.js'
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 // Нода «Переверни телефон» — голосовой тренажёр после поворота: сценарий
 // озвучки диктора, «🔊 Озвучить» (тот же генератор, что у таблицы-диктора —
@@ -41,6 +42,7 @@ export default function NodeRotatePhonePicker({ tData, onDataChange, lessonFiles
         value={tData.script ?? ''}
         onChange={e => onDataChange({ script: e.target.value })}
         placeholder="Сценарий диктора: «I. I. I. Try. Try. Try. I try. I try. I try.» — паузы для ученика нарежете в тренажёре"
+        {...NO_AUTOCORRECT}
       />
       <div className="nodeRotateTrainerRow">
         <NodeTableTts

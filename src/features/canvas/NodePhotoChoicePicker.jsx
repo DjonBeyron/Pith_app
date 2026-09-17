@@ -1,6 +1,7 @@
 import { useRef, useState, useLayoutEffect, useEffect } from 'react'
 import { getVariantList, syncTriggers, triggersNeedSync } from './nodeVariants.js'
 import { generateImage } from '../../shared/lib/imageGenApi.js'
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 const BASE_PAIR = ['photo_correct', 'photo_wrong']
 
@@ -180,6 +181,7 @@ export default function NodePhotoChoicePicker({
           placeholder="Подпись фото..."
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPhoto() } }}
           onClick={e => e.stopPropagation()}
+          {...NO_AUTOCORRECT}
         />
         <button className="nodeWcAddBtn" onClick={addPhoto}>+</button>
       </div>

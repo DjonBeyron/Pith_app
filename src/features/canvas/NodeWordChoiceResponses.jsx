@@ -1,3 +1,5 @@
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
+
 // Блок «что уходит в чат после ответа» для ноды word_choice: тексты реакции
 // на верно/неверно + галочка «Отправлять выбранное в чат» (тогда перед
 // реакцией справа прилетает пузырь с текстом самого выбранного варианта).
@@ -28,6 +30,7 @@ export default function NodeWordChoiceResponses({
           onChange={e => onResponseCorrectChange(e.target.value)}
           placeholder="Текст верного ответа..."
           onClick={e => e.stopPropagation()}
+          {...NO_AUTOCORRECT}
         />
       </div>
       <div className="nodeWcResponseRow">
@@ -38,6 +41,7 @@ export default function NodeWordChoiceResponses({
           onChange={e => onResponseWrongChange(e.target.value)}
           placeholder="Текст неверного ответа..."
           onClick={e => e.stopPropagation()}
+          {...NO_AUTOCORRECT}
         />
       </div>
     </div>

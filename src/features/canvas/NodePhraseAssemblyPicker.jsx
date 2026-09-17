@@ -4,6 +4,7 @@ import NodeSignalsPicker from './NodeSignalsPicker.jsx'
 import { phraseAssemblySlots } from '../../shared/lib/signalSlots.js'
 import NodeDistractorList from './NodeDistractorList.jsx'
 import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 const BASE_PAIR = ['phrase_correct', 'phrase_wrong']
 
@@ -121,6 +122,7 @@ export default function NodePhraseAssemblyPicker({
           placeholder="введи фразу..."
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitWords() } }}
           onClick={e => e.stopPropagation()}
+          {...NO_AUTOCORRECT}
         />
         <button className="nodeWcAddBtn" onClick={commitWords}>✓</button>
       </div>
@@ -154,6 +156,7 @@ export default function NodePhraseAssemblyPicker({
           placeholder="Доп. слово..."
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addDistractor() } }}
           onClick={e => e.stopPropagation()}
+          {...NO_AUTOCORRECT}
         />
         <button className="nodeWcAddBtn" onClick={addDistractor}>+</button>
       </div>
@@ -167,6 +170,7 @@ export default function NodePhraseAssemblyPicker({
             onChange={e => onResponseCorrectChange(e.target.value)}
             placeholder="Текст верного ответа..."
             onClick={e => e.stopPropagation()}
+            {...NO_AUTOCORRECT}
           />
         </div>
         <div className="nodeWcResponseRow">
@@ -177,6 +181,7 @@ export default function NodePhraseAssemblyPicker({
             onChange={e => onResponseWrongChange(e.target.value)}
             placeholder="Текст неверного ответа..."
             onClick={e => e.stopPropagation()}
+            {...NO_AUTOCORRECT}
           />
         </div>
       </div>

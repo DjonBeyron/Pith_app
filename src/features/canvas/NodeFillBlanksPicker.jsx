@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
 import { countBlanks } from '../../shared/lib/fillBlanksTemplate.js'
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 // Редактор ноды «Составь предложение»: textarea с шаблоном фразы (пропуски —
 // буквально "___") + по одной карточке настроек на каждый найденный пропуск
@@ -87,6 +88,7 @@ export default function NodeFillBlanksPicker({
         placeholder={'Фраза с пропусками, например: She ___ to cook every weekend.\nПропуск — ровно три подчёркивания ___ (можно внутри слова: tr___s)'}
         onClick={e => e.stopPropagation()}
         rows={3}
+        {...NO_AUTOCORRECT}
       />
       {blanksCount === 0 && template.trim() !== '' && (
         <p className="nodeFbHint">Нет ни одного пропуска — вставь ___ туда, где ученик выбирает вариант</p>
@@ -98,6 +100,7 @@ export default function NodeFillBlanksPicker({
         placeholder={'Необязательный русский перевод (кнопка-подсказка в плеере). Те же пропуски "___", то же их число, что в фразе выше'}
         onClick={e => e.stopPropagation()}
         rows={2}
+        {...NO_AUTOCORRECT}
       />
       {blanks.map((b, i) => (
         <div key={i} className="nodeFbBlankRow" ref={el => rowRefs.current.set(`blank-${i}`, el)}>
@@ -123,6 +126,7 @@ export default function NodeFillBlanksPicker({
               placeholder="Добавь вариант..."
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOption(i) } }}
               onClick={e => e.stopPropagation()}
+              {...NO_AUTOCORRECT}
             />
             <button className="nodeWcAddBtn" onClick={() => addOption(i)}>+</button>
           </div>
@@ -137,6 +141,7 @@ export default function NodeFillBlanksPicker({
             onChange={e => onResponseCorrectChange(e.target.value)}
             placeholder="Текст верного ответа..."
             onClick={e => e.stopPropagation()}
+            {...NO_AUTOCORRECT}
           />
         </div>
         <div className="nodeWcResponseRow">
@@ -147,6 +152,7 @@ export default function NodeFillBlanksPicker({
             onChange={e => onResponseWrongChange(e.target.value)}
             placeholder="Текст неверного ответа..."
             onClick={e => e.stopPropagation()}
+            {...NO_AUTOCORRECT}
           />
         </div>
       </div>

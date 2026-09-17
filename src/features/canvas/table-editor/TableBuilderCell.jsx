@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
+import { NO_AUTOCORRECT } from '../../../shared/lib/noAutoCorrectProps.js'
 
 // Одна ячейка конструктора сетки: поле ввода текста + кнопка особых значений.
 // Вынесена из TableGridBuilder.jsx, потому что ячейке нужен свой ref и свой
@@ -68,6 +69,7 @@ export default function TableBuilderCell({
           fontSize: cell.fontSize ? `${cell.fontSize}px` : undefined,
         }}
         placeholder="…"
+        {...NO_AUTOCORRECT}
       />
     </div>
   )

@@ -19,6 +19,7 @@ import { useTextareaHeight } from './useTextareaHeight.js'
 import RichTextField from './rich-text/RichTextField.jsx'
 import NodeLessonRefPicker from './NodeLessonRefPicker.jsx'
 import NodeRotatePhonePicker from './NodeRotatePhonePicker.jsx'
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
@@ -275,6 +276,7 @@ export default function NodeContentEditor({ lessonXp = 0,
             value={tData.title ?? ''}
             onChange={e => updateTypeData({ title: e.target.value })}
             placeholder="Заголовок панели (по умолчанию: Регистрация)"
+            {...NO_AUTOCORRECT}
             onClick={e => e.stopPropagation()}
             onMouseDown={e => e.stopPropagation()}
           />
@@ -286,6 +288,7 @@ export default function NodeContentEditor({ lessonXp = 0,
             placeholder="Текст политики конфиденциальности (если пусто — используется стандартный текст)"
             onClick={e => e.stopPropagation()}
             onMouseDown={e => e.stopPropagation()}
+            {...NO_AUTOCORRECT}
             rows={10}
             ref={growTextareas ? autoGrowTextarea : policyRef}
             onInput={growTextareas ? e => autoGrowTextarea(e.target) : undefined}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import ChatBubblePreview from './ChatBubblePreview.jsx'
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 const PANEL_W = 340
 
@@ -56,6 +57,7 @@ export default function NodeTextWrapModal({
           placeholder="Текст сообщения. Enter — новая строка."
           rows={5}
           autoFocus
+          {...NO_AUTOCORRECT}
         />
 
         <div className="textWrapPreviewLabel">Как придёт в чат</div>

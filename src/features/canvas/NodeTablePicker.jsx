@@ -7,6 +7,7 @@ import NodeSignalsPicker from './NodeSignalsPicker.jsx'
 import { tableSlots } from '../../shared/lib/signalSlots.js'
 import NodeDistractorList from './NodeDistractorList.jsx'
 import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
+import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 const BASE_PAIR = ['table_correct', 'table_wrong']
 
@@ -200,6 +201,7 @@ export default function NodeTablePicker({
           placeholder="Текст озвучки — коротко и живо, синхронно с подсветкой: «В настоящем времени мы имеем форму try»"
           onClick={e => e.stopPropagation()}
           onMouseDown={e => e.stopPropagation()}
+          {...NO_AUTOCORRECT}
         />
       )}
 
@@ -235,6 +237,7 @@ export default function NodeTablePicker({
           placeholder="Надпись в верхнем боксе таблицы в чате"
           onClick={e => e.stopPropagation()}
           onChange={e => onDataChange({ chatCaption: e.target.value })}
+          {...NO_AUTOCORRECT}
         />
       )}
 
@@ -266,6 +269,7 @@ export default function NodeTablePicker({
           placeholder="Правильный ответ (фраза целиком)"
           onClick={e => e.stopPropagation()}
           onMouseDown={e => e.stopPropagation()}
+          {...NO_AUTOCORRECT}
         />
         {/* Как ответ ляжет на сетку + жёсткая очистка ответа и мёртвых дорожек */}
         <NodeTableAnswerCheck tData={tData} onDataChange={onDataChange} />
@@ -282,6 +286,7 @@ export default function NodeTablePicker({
                 placeholder="Слово-ловушка + Enter"
                 onClick={e => e.stopPropagation()}
                 onMouseDown={e => e.stopPropagation()}
+                {...NO_AUTOCORRECT}
               />
               <button className="nodeTableDAdd" onClick={addDistractor}>+</button>
             </div>
@@ -305,6 +310,7 @@ export default function NodeTablePicker({
               placeholder="Ответ верный (сообщение в чате)"
               onClick={e => e.stopPropagation()}
               onMouseDown={e => e.stopPropagation()}
+              {...NO_AUTOCORRECT}
             />
             <input
               className="nodeTableManualInput"
@@ -313,6 +319,7 @@ export default function NodeTablePicker({
               placeholder="Ответ неверный (сообщение в чате)"
               onClick={e => e.stopPropagation()}
               onMouseDown={e => e.stopPropagation()}
+              {...NO_AUTOCORRECT}
             />
             <NodeSignalsPicker
               slots={tableSlots(tData.answer, tableData?.cells)}

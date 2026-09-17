@@ -9,6 +9,7 @@ import CopyPlainButton from './CopyPlainButton.jsx'
 import { preloadRichTextFavorites, RICH_TEXT_FAV_ID } from './useRichTextFavorites.js'
 import { autoGrowTextarea } from '../../../shared/lib/autoGrowTextarea.js'
 import { useTextareaHeight } from '../useTextareaHeight.js'
+import { NO_AUTOCORRECT } from '../../../shared/lib/noAutoCorrectProps.js'
 
 // Поле ввода текста ноды, которое сразу показывает раскраску — выделил слово
 // прямо во время печати, всплыл тулбар, покрасил, без захода в отдельное
@@ -85,6 +86,7 @@ export default function RichTextField({
         className={className ? `richTextField ${className}` : 'richTextField'}
         contentEditable
         suppressContentEditableWarning
+        {...NO_AUTOCORRECT}
         data-empty={value === '' ? 'true' : undefined}
         data-placeholder={placeholder}
         onInput={handleInput}
