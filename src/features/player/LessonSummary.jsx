@@ -41,6 +41,8 @@ export default function LessonSummary({ earnedXp = 0, baseXp = 0, ticket = null,
             </div>
           )}
 
+          <p className="summaryReturnHint">Урок никуда не денется — можно вернуться и потренироваться ещё раз или повторить правила</p>
+
           <button className="summaryCloseBtn" onClick={onClose}>
             Закрыть
           </button>
