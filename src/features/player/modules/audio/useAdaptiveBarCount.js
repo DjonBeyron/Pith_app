@@ -20,7 +20,7 @@ export function useAdaptiveBarCount({
     const el = waveRowRef.current
     if (!el) return
     const update = () => {
-      const count = Math.max(20, Math.floor(el.offsetWidth / (BAR_W + BAR_GAP)))
+      const count = Math.max(8, Math.floor(el.offsetWidth / (BAR_W + BAR_GAP)))
       if (count === prevBarCountRef.current) return  // same width → skip reset entirely
       // Width genuinely changed: carry over smooth values proportionally
       const prev = prevBarCountRef.current
