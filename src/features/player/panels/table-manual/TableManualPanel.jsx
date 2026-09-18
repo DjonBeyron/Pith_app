@@ -4,6 +4,7 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 import { makeManualCheck } from './manualCheck.js'
+import { makeManualClose } from './manualClose.js'
 import { cellIsPickable, allCellsPicked } from './manualCellPick.js'
 import ListScrollThumb from '../ListScrollThumb.jsx'
 import { tracePanelSync, tracePanelPaint } from '../tracePanelSync.js'
@@ -11,7 +12,7 @@ import { useTableToChat } from '../useTableToChat.js'
 import { spacerStyle } from '../spacerStyle.js'
 import { playFeedRelease } from '../feedRelease.js'
 import { usePanelHeight } from '../usePanelHeight.js'
-import BurstConfetti from '../../../../shared/ui/BurstConfetti.jsx'
+import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { useSignalState } from '../signal-overlay/useSignalState.js'
 
@@ -102,6 +103,16 @@ export default function TableManualPanel({
 
   // Очищаем все таймеры при анмаунте
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
+
+  // Салют на верный ответ — ЗДЕСЬ, а не на пузыре в чате: пузырей может не
+  // быть вовсе (галочка «отправить ответ ученика»), а праздник положен за сам
+  // ответ. Императивный fireBurst, а не <BurstConfetti>: панель теперь
+  // размонтируется через ~0.5с после ответа, а залп летит 1.4–2.1с —
+  // компонент внутри панели обрывал его на первой трети
+  useEffect(() => {
+    pLog(`[tm] result → ${result ?? 'null'}${result === 'correct' ? ' — запускаем салют' : ''}`)
+    if (result === 'correct') fireBurst({ count: 30, size: 4, zIndex: 60, portalTo: '.lessonPlayer' })
+  }, [result])
 
   // Сдвиг истории запускается ПОСЛЕ того, как распорка отдала место, но ДО
   // отрисовки — для этого и нужен layout-эффект. Вызов сразу за setShow(false)
@@ -207,38 +218,12 @@ export default function TableManualPanel({
     // фаза пересчитается автоматически (производная от allCellsDone + hasExtras)
   }
 
-  function closePanelWith(trigger, variantId) {
-    const done = () => { onHeightChange?.(0); onDone?.(trigger, variantId) }
-    // Галочка «отправить таблицу в чат»: панель летит на место своего
-    // сообщения в переписке, а не гаснет здесь (flyPanelToChat.js)
-    if (onSendToChat) {
-      pLog(`[tm] уходим в чат: trigger=${trigger} высота панели=${panelH}px слов=${assembled.length}`)
-      // Та же собранная фраза и итог проверки уезжают в пузырь — чтобы после
-      // посадки таблица в переписке выглядела как только что в панели
-      // picked — какие ячейки ученик выбрал и КАКОЕ значение взял из ячейки со
-      // списком вариантов. Уезжает в сообщение вместе с ответом, чтобы таблица
-      // в переписке осталась в том же виде, в каком её собрали: выбранное
-      // приглушено, а не «как новое». Массив пар, а не Map — sent проходит
-      // через setState и сравнение пропсов
-      const sent = {
-        words: assembled.map(t => t.value),
-        result,
-        picked: [...assembledCellValues],
-      }
-      toChatCtl.sendToChat(panelRef.current, node.id, {
-        send: arriving => onSendToChat(arriving, sent),
-        reveal: onLandedInChat,
-        done: () => { pLog('[tm] села в чат'); done() },
-      })
-    } else {
-      timers.current.push(setTimeout(done, 420))
-    }
-    // Высоту запоминаем ЗДЕСЬ: к моменту, когда сдвиг реально запустится
-    // (useLayoutEffect ниже), распорка уже отдана и panelH может обнулиться
-    if (!onSendToChat) releaseRef.current = panelH
-    setShow(false)
-    pLog(`[tm] setShow(false) — панель закрывается (сдвиг истории ${panelH}px трансформом)`)
-  }
+  // Закрытие по итогу проверки (уход панели → пузыри → onDone) — manualClose.js
+  const closePanelWith = makeManualClose({
+    node, panelRef, panelH, timers, releaseRef, setShow, toChatCtl,
+    assembled, result, assembledCellValues,
+    onDone, onHeightChange, onSendToChat, onLandedInChat,
+  })
 
   const check = makeManualCheck({
     assembled, tokens, answer, tData, wrongCount, timers, xpAmount, onXpEarned,
@@ -261,13 +246,6 @@ export default function TableManualPanel({
 
   return (
     <>
-      {/* Салют на верный ответ живёт ЗДЕСЬ, а не на пузыре в чате: пузырей
-          может не быть вовсе — их даёт отдельная галочка «отправить ответ
-          ученика». Праздник же положен за верный ответ, а не за наличие
-          сообщения в переписке (AnswerBubbles получает confetti={false}) */}
-      {result === 'correct' && (
-        <BurstConfetti count={30} size={4} zIndex={60} portalTo=".lessonPlayer" />
-      )}
       {/* Спейсер отпускается сразу: пока он держит высоту, лента приподнята
           на панель, и пузырь стоит ВЫШЕ неё на эту же высоту — клону пришлось
           бы лететь вверх через весь экран. Момент замера ловит whenStable */}
@@ -342,10 +320,9 @@ export default function TableManualPanel({
 
           {/* Кнопка «Проверить» — как в «собери фразу»: никакой автопроверки
               по факту заполнения, ученик жмёт сам. У таблиц СО словами-
-              ловушками кнопка ждёт phase==='extra' — появляется ОДНИМ
-              моментом с откатом таблицы и самими словами, а не раньше
-              (раньше всплывала уже с первой выбранной ячейкой, пока стол ещё
-              на месте и ловушек не видно — рассинхрон с самим содержимым).
+              ловушками кнопка ждёт phase==='extra' и ПРОЯВЛЯЕТСЯ (opacity +
+              скейл, table-manual.css) с задержкой на длину отката — когда
+              таблица целиком ушла за край, а не раньше.
               У таблиц БЕЗ extras отката не бывает вовсе (phase никогда не
               'extra') — там кнопка по-прежнему доступна с первого слова,
               иначе проверить было бы нечем (checkBtnShown, см. выше).
@@ -356,7 +333,7 @@ export default function TableManualPanel({
               скакала. Место под неё занято с самого начала, поэтому оба режима
               одной высоты и перехода по вертикали не видно. */}
           <button
-            className={`tmCheckBtn${checkBtnShown ? '' : ' tmCheckBtnHidden'}`}
+            className={`tmCheckBtn${hasExtras ? '' : ' tmCheckBtnNoWait'}${checkBtnShown ? '' : ' tmCheckBtnHidden'}`}
             onClick={check}
             disabled={!checkBtnShown || !!result || signalState.freeze}
             aria-hidden={!checkBtnShown}

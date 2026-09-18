@@ -70,7 +70,9 @@ describe('авто-таблица звучит без свежего жеста'
 
 // Салют вылетает снизу экрана, а не из середины чата
 describe('точка старта салюта', () => {
+  // Компонент — обёртка, физика (в т.ч. отступ снизу) живёт в burstParticles.js
   const burst = read('../../shared/ui/BurstConfetti.jsx')
+  const physics = read('../../shared/lib/burstParticles.js')
 
   it('в чате подъём точки рождения больше не задаётся', () => {
     // Было bottomInset = высота растушёвки: на iPhone это 12 + safe-area 34 +
@@ -89,7 +91,7 @@ describe('точка старта салюта', () => {
     // Портал лежит ниже растушёвки (60 против 65) — частица поднимается сквозь
     // градиент и проявляется сама
     expect(read('./modules/word-choice/WordChoiceModule.jsx')).toContain('zIndex={60}')
-    expect(burst).toContain('const H = window.innerHeight - bottomInset')
+    expect(physics).toContain('const H = window.innerHeight - bottomInset')
     expect(burst).toContain('bottomInset = 0')
   })
 })

@@ -60,7 +60,7 @@ describe('право на ошибку в таблице', () => {
   it('триггер «неверно» уходит только с третьей ошибки', () => {
     expect(panel).toContain('wrongCount.current += 1')
     expect(panel).toContain('if (wrongCount.current >= 3) {')
-    expect(panel).toContain("closePanelWith('table_wrong', variantId)")
+    expect(panel).toContain("closePanelWith('table_wrong', variantId, ")
   })
 
   it('первые две ошибки только показывают разбор и дают попробовать снова', () => {

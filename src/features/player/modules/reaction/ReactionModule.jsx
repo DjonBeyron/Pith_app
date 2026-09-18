@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 // Реакция на сообщение — как в мессенджере: своего пузыря у неё нет, эмодзи
 // садится в ЛЕВЫЙ НИЖНИЙ угол пузыря и наполовину выходит наружу. Пузырь при
@@ -54,6 +55,13 @@ function findBubble(selector) {
   return last.classList.contains('stickerBubble') ? null : last
 }
 
+// Для лога: какой пузырь выбран (класс-модификатор + начало текста)
+function describe(el) {
+  if (!el) return 'нет'
+  const mod = [...el.classList].find(c => c.startsWith('playerMsgBubble--')) ?? el.className
+  return `${mod} «${(el.textContent ?? '').trim().slice(0, 30)}»`
+}
+
 // Сколько ещё присматриваться к ленте после монтирования. Ответ ученика
 // прилетает в чат не обязательно раньше, чем стартует нода реакции: у выбора
 // слова результат приходит через 700 мс после тапа, у сборщика фразы пузырь
@@ -62,7 +70,13 @@ function findBubble(selector) {
 // реакция, предназначенная верной.
 const RETARGET_MS = 1000
 
-export default function ReactionModule({ node, onDone }) {
+// pending — нода пре-рендерится ДО показа (useGraphPlayer.scheduleReveal ставит
+// pendingNode за REACTION_DELAY_MS до reveal). Обычные модули в этой фазе
+// стоят за экраном ([data-pending]), а реакция — портал в ЖИВОЙ пузырь: без
+// этого флага эмодзи влетал в пузырь ещё в pending-фазе, а на reveal нода
+// переезжала из хвоста списка в основной (другой слот у React → ремаунт) и
+// влетал второй раз — то самое «анимация играет несколько раз».
+export default function ReactionModule({ node, onDone, pending = false }) {
   const data = node.typeData?.reaction ?? {}
   const emoji = (data.emoji ?? '👍').trim() || '👍'
   const toStudent = (data.target ?? 'student') === 'student'
@@ -77,9 +91,18 @@ export default function ReactionModule({ node, onDone }) {
   // просто переносит уже отыгравший эмодзи на новый пузырь без повтора анимации
   const hasAnimatedRef = useRef(false)
 
-  useEffect(() => { onDone?.() }, []) // eslint-disable-line
+  const tag = `[reaction ${String(node.id).slice(0, 6)} ${emoji}]`
+  useEffect(() => {
+    pLog(`${tag} mount pending=${pending}`)
+    return () => pLog(`${tag} unmount`)
+  }, []) // eslint-disable-line
+
+  // onDone — только у настоящей (не pending) ноды; заглушка в pending-фазе
+  // и так пустая, но эффект должен сработать и на переходе pending → показ
+  useEffect(() => { if (!pending) onDone?.() }, [pending]) // eslint-disable-line
 
   useEffect(() => {
+    if (pending) return
     const sel = toStudent ? SEL_STUDENT : SEL_TEACHER
     // Цель берём сразу — в обычном случае нужный пузырь уже в ленте, и ждать
     // нечего. Но следующую секунду продолжаем присматривать: если появится
@@ -87,18 +110,23 @@ export default function ReactionModule({ node, onDone }) {
     // переезжает на него. Ждать «стабилизации» ленты тут нельзя — пока ответ
     // едет, количество пузырей как раз стабильно, и любое ожидание истекло бы
     // впустую, задержав реакцию там, где она и так на месте.
+    const first = findBubble(sel)
+    pLog(`${tag} цель: ${describe(first)}`)
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTarget(findBubble(sel))
+    setTarget(first)
     const t0 = performance.now()
     let raf = 0
     const watch = () => {
       const now = findBubble(sel)
-      setTarget(prev => (now && now !== prev ? now : prev))
+      setTarget(prev => {
+        if (now && now !== prev) pLog(`${tag} ретаргет через ${Math.round(performance.now() - t0)}мс: ${describe(now)}`)
+        return now && now !== prev ? now : prev
+      })
       if (performance.now() - t0 < RETARGET_MS) raf = requestAnimationFrame(watch)
     }
     raf = requestAnimationFrame(watch)
     return () => cancelAnimationFrame(raf)
-  }, [toStudent])
+  }, [toStudent, pending]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Класс на пузыре: он якорь для абсолютного эмодзи и включает растушёвку
   // низа — фон и обводка тают книзу, чтобы кромка не резала угол под реакцией
@@ -111,6 +139,7 @@ export default function ReactionModule({ node, onDone }) {
   useEffect(() => {
     if (!target || hasAnimatedRef.current) return
     hasAnimatedRef.current = true
+    pLog(`${tag} анимация влёта → ${describe(target)}${node.isHistory ? ' (история, без анимации)' : ''}`)
     // Восстановленная история («Продолжить урок») — эмодзи сразу в конечном
     // виде, без анимации появления (искры не нужны вовсе — opacity:0 по
     // умолчанию в reaction.css, без .animate() их и не видно)
@@ -163,5 +192,5 @@ export default function ReactionModule({ node, onDone }) {
   )
 
   // Возвращаем только портал: собственного места в ленте реакция не занимает
-  return target ? createPortal(badge, target) : null
+  return target && !pending ? createPortal(badge, target) : null
 }

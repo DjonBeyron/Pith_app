@@ -3,6 +3,7 @@ import { pLog } from '../../shared/lib/debug.js'
 import { playSound } from '../../shared/lib/sounds.js'
 import { wheelScrollShift } from './feedWheel.js'
 import { traceFeedClose } from './panels/tracePanelSync.js'
+import { traceSlideIn, watchLastTop } from './traceSlideIn.js'
 
 // Double scaleY(-1) trick: outer container flipped → scrollTop=0 = visual bottom.
 // Inner content flipped back → messages appear normal.
@@ -63,6 +64,9 @@ export default function PlayerFeed({ children, panelOpen = false }) {
   const innerRef     = useRef(null)
   const prevElsRef   = useRef(new Set())
   const prevRowCount = useRef(0)
+  // Положение опоры (последнего сообщения) в последнем кадре ДО вставки —
+  // «старое место» для трассы прилёта; пишет watchLastTop (только в трейсе)
+  const lastTopRef   = useRef(null)
 
   // Колесо мыши в перевёрнутом контейнере крутило ленту в обратную сторону:
   // браузер прибавляет deltaY к scrollTop, не зная про scaleY(-1), и «вниз»
@@ -80,6 +84,9 @@ export default function PlayerFeed({ children, panelOpen = false }) {
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
+
+  // Режим трейса: положение опоры каждый кадр — для traceSlideIn.js
+  useEffect(() => watchLastTop(innerRef.current, lastTopRef), [])
 
   // Третий участник подъёма истории: сама лента меняет нижний запас, когда
   // снизу открывается панель ответа. Момент важен для разбора рассинхрона
@@ -161,6 +168,16 @@ export default function PlayerFeed({ children, panelOpen = false }) {
         existingRows.forEach(el => {
           el.animate(slideFrames(shiftPx, true), { duration: SLIDE_MS, fill: 'backwards' })
         })
+        // Прилёт в открытую панель (подсказка/сигнал над таблицей) — покадрово:
+        // глазом видно микро-опускание истории в первые кадры (traceSlideIn.js)
+        if (panelOpen) {
+          const old = lastTopRef.current   // последний кадр ДО вставки (watchLastTop)
+          traceSlideIn({
+            anchor: existingRows[existingRows.length - 1], fresh: newRows[0],
+            old,
+            shiftPx,
+          })
+        }
       }
     }
 

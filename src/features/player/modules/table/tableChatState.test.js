@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url'
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 const bubble   = read('./TableChatBubble.jsx')
 const slide    = read('../../panels/table-dictator/dictatorSlideDown.js')
-const manual   = read('../../panels/table-manual/TableManualPanel.jsx')
+// Уход ручной таблицы в чат (sent/picked) живёт в manualClose.js
+const manual   = read('../../panels/table-manual/manualClose.js')
 const tableCss = read('../../../../styles/player/modules/table.css')
 const dictCss  = read('../../../../styles/player/panels/table-dictator.css')
 const indexCss = read('../../../../index.css')

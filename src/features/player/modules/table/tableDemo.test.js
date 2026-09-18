@@ -48,7 +48,8 @@ describe('таблица уходит в чат после ответа (гал�
   // место сообщения в переписке и там садится (flyPanelToChat.js)
   it('панель улетает в чат, а не исчезает', () => {
     for (const f of ['../../panels/table-dictator/dictatorSlideDown.js',
-      '../../panels/table-manual/TableManualPanel.jsx']) {
+      // (у ручной таблицы уход в чат живёт в manualClose.js, не в панели)
+      '../../panels/table-manual/manualClose.js']) {
       const src = read(f)
       // Сам вызов живёт в общем хуке useTableToChat — панели только отдают
       // ему свою DOM-ноду и данные пузыря
@@ -318,7 +319,9 @@ describe('кнопка «Проверить» в ручной таблице', (
   // никогда не становится 'extra' — там снова просто assembled.length > 0.
   it('в разметке всегда, видимость — checkBtnShown (не раньше слов-ловушек)', () => {
     expect(panel).toContain('const checkBtnShown = assembled.length > 0 && (!hasExtras || phase === \'extra\')')
-    expect(panel).toMatch(/className=\{`tmCheckBtn\$\{checkBtnShown \? '' : ' tmCheckBtnHidden'\}`\}/)
+    // Класс скрытия — последний в строке; перед ним может стоять модификатор
+    // (tmCheckBtnNoWait у таблиц без слов-ловушек — без задержки проявления)
+    expect(panel).toMatch(/className=\{`tmCheckBtn.*\$\{checkBtnShown \? '' : ' tmCheckBtnHidden'\}`\}/)
     const btn = panel.slice(panel.indexOf('tmCheckBtn'))
     expect(btn).toContain('onClick={check}')
   })
