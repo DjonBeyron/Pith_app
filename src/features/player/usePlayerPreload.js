@@ -267,9 +267,25 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // ─── visibleNodes: reorder queue + eviction check ────────────────────────
   useEffect(() => {
     if (!visibleNodes.length) return
-    const visibleMediaCount = visibleNodes.filter(n => MEDIA_TYPES.has(n.type)).length
-    const needed = visibleMediaCount + LOOKAHEAD
-    if (needed > allowUpToRef.current) allowUpToRef.current = needed
+    // Гейт считаем от МЕСТА в очереди (nodeIdx — BFS-расстояние от начала
+    // урока), а не от числа увиденных ЗА ЭТУ СЕССИЮ медиа-нод. Раньше это
+    // было одно и то же только потому, что сессия всегда начиналась с ноды
+    // 0 — счёт «сколько видели» совпадал с позицией в очереди. При
+    // «Продолжить урок» (startNodeId где-то в середине графа) видимых нод
+    // за сессию мало (счёт с нуля), а их реальный nodeIdx уже большой —
+    // гейт оставался маленьким и блокировал докачку файлов рядом с точкой
+    // возобновления: голосовые играли «в лоб» с сервера без буфера
+    // (readyState=0 в момент play(), реальные паузы на несколько секунд)
+    const nodeIdxById = new Map(queueRef.current.map(item => [item.nodeId, item.nodeIdx]))
+    const maxVisibleIdx = visibleNodes.reduce((max, n) => {
+      const idx = nodeIdxById.get(n.id)
+      return idx != null && idx > max ? idx : max
+    }, -1)
+    const needed = maxVisibleIdx + 1 + LOOKAHEAD
+    if (needed > allowUpToRef.current) {
+      pLog(`[preload] гейт ${allowUpToRef.current}→${needed} (дальняя видимая нода idx=${maxVisibleIdx})`)
+      allowUpToRef.current = needed
+    }
 
     const lastVisible = visibleNodes[visibleNodes.length - 1]
     if (!lastVisible) return
