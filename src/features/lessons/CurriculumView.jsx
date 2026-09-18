@@ -202,6 +202,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
         teacherLogoCrop={playerData.teacherLogoCrop}
         videoAutoSound={playerData.videoAutoSound ?? false}
         initialBlobMap={playerData.blobMap}
+        startNodeId={playerData.startNodeId ?? null} historyIds={playerData.historyIds ?? null} resumedXp={playerData.resumedXp ?? 0}
         recordStats={statsMode !== 'silent'} /* «без записи» — анализ не пишется */
         /* Финал модуля (залогинен, не про-модуль): панель подсказок + золотой билет */
         finalTicket={!isPro && user && lessons.length > 0 &&

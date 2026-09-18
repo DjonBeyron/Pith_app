@@ -51,7 +51,9 @@ describe('остановка стрелки и запуск тренажёра',
   it('на телефоне крутится до поворота, галочка — по повороту или концу игры', () => {
     // Автостарт по часам — только вне телефона (десктоп, превью админа)
     expect(mod).toContain("const [canRotate] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches)")
-    expect(mod).toContain('if (canRotate) return')
+    // node.isHistory — восстановленная история («Продолжить урок») тоже не
+    // должна запускать тренажёр заново
+    expect(mod).toContain('if (canRotate || node.isHistory) return')
     expect(mod).toContain("{(by === 'rotate' || phase === 'finished') && <span className=\"playerRotateCheck\"><Check size={13} /></span>}")
   })
 

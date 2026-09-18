@@ -111,6 +111,10 @@ export default function ReactionModule({ node, onDone }) {
   useEffect(() => {
     if (!target || hasAnimatedRef.current) return
     hasAnimatedRef.current = true
+    // Восстановленная история («Продолжить урок») — эмодзи сразу в конечном
+    // виде, без анимации появления (искры не нужны вовсе — opacity:0 по
+    // умолчанию в reaction.css, без .animate() их и не видно)
+    if (node.isHistory) return
     glyphRef.current?.animate(
       [
         { transform: 'translateY(10px) scale(0) rotate(-30deg)', opacity: 0, offset: 0 },
@@ -137,7 +141,7 @@ export default function ReactionModule({ node, onDone }) {
         { duration: 900, delay: 140 + delay, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' }
       )
     })
-  }, [target])
+  }, [target]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const badge = (
     <span className="reactionInBubble">

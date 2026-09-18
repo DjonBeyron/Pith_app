@@ -1,4 +1,5 @@
 import LaunchEnergyRow from './LaunchEnergyRow.jsx'
+import LaunchCtaSlot from './LaunchCtaSlot.jsx'
 
 // Карточка запуска, пока сценарий урока едет по сети (~0.7 с).
 //
@@ -7,7 +8,12 @@ import LaunchEnergyRow from './LaunchEnergyRow.jsx'
 // появлялись только вместе со сценарием. Теперь показываем всё, что уже знаем:
 // название урока пришло из схемы модуля, энергия — из кэша профиля. Ждёт своих
 // данных только полоса подготовки, она одна и меняется.
-export default function LaunchSkeleton({ title, info }) {
+//
+// mayResume — та же синхронная проверка (skipResumeCheck), что решает,
+// нужен ли вообще каркас с местом под «Продолжить»: когда чекпойнт в
+// принципе невозможен (пересдача/уже пройден/гонка), лишнее место под
+// вторую кнопку не резервируем — там её никогда не будет
+export default function LaunchSkeleton({ title, info, mayResume = false }) {
   return (
     <>
       {title
@@ -29,14 +35,44 @@ export default function LaunchSkeleton({ title, info }) {
 
       <LaunchEnergyRow info={info} />
 
-      <button
-        disabled
-        style={{
-          padding: '14px 0', borderRadius: 12, border: 'none',
-          fontSize: 16, fontWeight: 600, cursor: 'default',
-          background: '#333', color: '#666',
-        }}
-      >Загрузка...</button>
+      {/* mayResume=true — резервируем ту же высоту, что займёт готовое
+          содержимое (LaunchCtaSlot с ОДИНАКОВЫМИ классами — высота
+          совпадает пиксель-в-пиксель, а не по числу-догадке, см.
+          LaunchCtaSlot.jsx), но пока неизвестно, будет ли вторая кнопка,
+          нечестно рисовать «Загрузка...» ПОД ВИДОМ одной конкретной кнопки
+          (серая подложка на месте будущей «Продолжить»/«Начать урок») —
+          читается как готовая кнопка, а не как индикатор ожидания. Поэтому
+          сам LaunchCtaSlot здесь ПОЛНОСТЬЮ невидим (только резервирует
+          высоту), а «Загрузка...» — обычный текст без подложки, наложенный
+          поверх и отцентрованный по всей резервируемой высоте (между тем
+          местом, где скоро окажутся обе кнопки, а не в слоте одной из них) */}
+      {mayResume ? (
+        <div style={{ position: 'relative' }}>
+          <LaunchCtaSlot
+            // pctLabel обязателен, даже скрытый: пустая строка в <span> даёт
+            // высоту 0 (нет текста — нет строки), а не высоту строки текста —
+            // именно это и роняло резерв на ~17px ниже настоящего блока
+            pctLabel="Загрузка..."
+            primaryLabel="Загрузка..."
+            primaryDisabled
+            primaryStyle={{ padding: '14px 0', borderRadius: 12, border: 'none', fontSize: 16, visibility: 'hidden' }}
+          />
+          <span style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#666', fontSize: 16, fontWeight: 600,
+          }}>Загрузка...</span>
+        </div>
+      ) : (
+        <button
+          disabled
+          style={{
+            padding: '14px 0', borderRadius: 12, border: 'none',
+            fontSize: 16, fontWeight: 600, cursor: 'default',
+            background: '#333', color: '#666',
+          }}
+        >Загрузка...</button>
+      )}
     </>
   )
 }

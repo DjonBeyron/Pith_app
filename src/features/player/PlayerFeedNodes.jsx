@@ -18,6 +18,9 @@ export default function PlayerFeedNodes({
   signalItems = [], onMessageDone,
   // Режим правки из канваса (usePlayerAdminEdit) — в обычном плеере null
   adminEdit = null,
+  // «Продолжить урок»: история восстановлена не вся сразу (useGraphPlayer.js,
+  // HISTORY_PAGE) — кнопка сверху ленты подгружает более раннюю пачку
+  hasMoreHistory = false, onLoadMoreHistory,
 }) {
   const merged = mergeFeedOrder(visibleNodes, signalItems)
   const trailingPending = pendingNode && !visibleNodes.some(v => v.id === pendingNode.id)
@@ -49,6 +52,12 @@ export default function PlayerFeedNodes({
           ? `playerMsgSlot${adminEdit.editId === node.id ? ' playerMsgSlotActive' : ''}`
           : undefined}
         data-pending={isPending ? 'true' : undefined}
+        // Восстановленная история («Продолжить урок») встаёт сразу на своё
+        // место — без въезда снизу и без звука «новое сообщение» (тот же
+        // приём, что у превращения таблицы в сообщение, PlayerFeed.jsx).
+        // Без этого 8+ восстановленных строк разом слетались вниз и звучали
+        // почти хором в момент открытия плеера — видимый «скачок»
+        data-no-slide={node.isHistory ? 'true' : undefined}
         style={isPending ? {
           position: 'fixed', bottom: '-100vh', left: 0, width: '100%',
           pointerEvents: 'none', visibility: 'hidden',
@@ -111,6 +120,11 @@ export default function PlayerFeedNodes({
 
   return (
     <>
+      {hasMoreHistory && (
+        <button className="playerLoadHistoryBtn" onClick={onLoadMoreHistory}>
+          Показать более раннюю историю
+        </button>
+      )}
       {merged.map(entry => entry.kind === 'signal'
         ? renderSignal(entry.key, entry.node)
         : renderNode(entry.node, false))}

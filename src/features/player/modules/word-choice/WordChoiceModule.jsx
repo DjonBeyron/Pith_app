@@ -34,8 +34,9 @@ export default function WordChoiceModule({ node, wordChoiceState }) {
     <>
       {/* Салют на верном — тот же, что на новом уровне, только короче и реже
           (Confetti.jsx). Рендерится один раз на весь модуль: пузырей с ответом
-          может быть два (выбор и реплика), а праздник один */}
-      {isCorrect && rewardOn && (
+          может быть два (выбор и реплика), а праздник один. Восстановленная
+          история («Продолжить урок») — без салюта, ответ уже отпраздновали */}
+      {isCorrect && rewardOn && !node?.isHistory && (
         <BurstConfetti count={30} size={4} zIndex={60} portalTo=".lessonPlayer" />
       )}
       {pickText && (

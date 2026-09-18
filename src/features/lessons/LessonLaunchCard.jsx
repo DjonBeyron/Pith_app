@@ -11,33 +11,18 @@ import LaunchMotionAsk from './LaunchMotionAsk.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import RetakeDialog from './RetakeDialog.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
+import LaunchCtaSlot from './LaunchCtaSlot.jsx'
 import LaunchDebugPanel from './LaunchDebugPanel.jsx'
 import LaunchSkeleton from './LaunchSkeleton.jsx'
 import LaunchEnergyRow from './LaunchEnergyRow.jsx'
 import { launchEnergyInfo } from './launchEnergy.js'
 import { hasStatBindings } from '../player/useAnswerStats.js'
+import { getLessonProgress, clearLessonProgress } from '../../shared/lib/lessonProgressApi.js'
+import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
+import { extractFileIds, isWeakDevice } from './launchHelpers.js'
+import useSmoothPct from './useSmoothPct.js'
 
 const WARMUP_TARGET = 5
-
-function extractFileIds(nodes) {
-  const single = nodes.map(n => n.typeData?.[n.type]?.file_id).filter(Boolean)
-  const photos  = nodes
-    .filter(n => n.type === 'photo_choice')
-    .flatMap(n => (n.typeData?.photo_choice?.photos ?? []).map(p => p.fileId).filter(Boolean))
-  return [...new Set([...single, ...photos])]
-}
-
-// Detect slow/low-memory devices to use a smaller in-memory buffer.
-// Falls back to false on browsers that don't expose these APIs (e.g. iOS Safari).
-function isWeakDevice() {
-  const mem  = navigator.deviceMemory          // GB, Chrome/Android only
-  const cpu  = navigator.hardwareConcurrency
-  const conn = navigator.connection?.effectiveType  // '2g' | 'slow-3g' | '3g' | '4g'
-  if (mem  && mem  < 2)                        return true
-  if (cpu  && cpu  < 4)                        return true
-  if (conn && (conn === '2g' || conn === 'slow-3g')) return true
-  return false
-}
 
 // retake=true (урок уже пройден): если в сценарии есть привязки «→ Урок»,
 // вместо кнопки старта — выбор режима пересдачи (RetakeDialog).
@@ -45,7 +30,9 @@ function isWeakDevice() {
 // (правила, 3 подсказки, ключ); имеет приоритет над retake.
 // energyFree=true — сервер не спишет энергию (Старт/Финал модуля); клиенту
 // нужно только для честной надписи о стоимости, решает всё равно сервер.
-export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = false, examIntro = false, energyFree = false, onStart, onClose }) {
+// allowResume=false — гонка (RaceRunner.jsx): там своя механика прохождения
+// уроков цепочкой, «Продолжить» посреди гонки не имеет смысла.
+export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = false, examIntro = false, energyFree = false, allowResume = true, onStart, onClose }) {
   const [lessonData, setLessonData] = useState(null)
   const [error, setError]           = useState(null)
   // Момент открытия карточки: по нему считается энергия. Ленивый инициализатор —
@@ -56,6 +43,29 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
   const [dissolving, setDissolving] = useState(false)
   // Не зависит от сценария — профиль уже в кэше, остальное пропсы
   const info = launchEnergyInfo({ retake, energyFree, openedAt })
+
+  // Минимум 1.2с каркаса (LaunchSkeleton), даже если всё готово раньше:
+  // без этого на лёгком уроке (файлов почти нет) кнопка «мигала» — успевала
+  // побывать «Загрузка...» и тут же смениться на «Начать урок»/«Продолжить»
+  // за доли секунды, читалось как дефект, а не как загрузка
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setMinTimeElapsed(true), 1200)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Чекпойнт «Продолжить урок» — проверяем ПАРАЛЛЕЛЬНО с загрузкой сценария,
+  // а не внутри уже открытого плеера (как раньше, ResumeLessonPopup.jsx):
+  // решение «продолжить или заново» нужно ДО прогрева, чтобы он целился в
+  // точку входа, а не всегда в начало урока (см. LaunchPreloader ниже).
+  // undefined — ещё проверяем, null — нет чекпойнта (или не участвует).
+  // Тот же гейт, что раньше был в useLessonResume.js: пересдача (retake) и
+  // уже отмеченный как пройденный урок — «Продолжить» не предлагаем вовсе.
+  // Ленивый инициализатор — та же синхронная (localStorage) проверка, что
+  // и там, не побочный эффект
+  const skipResumeCheck = !allowResume || retake || getCompletedLessons().has(lessonId)
+  const mayResume = !skipResumeCheck
+  const [resumeOffer, setResumeOffer] = useState(() => skipResumeCheck ? null : undefined)
 
   useEffect(() => {
     loadScript(lessonId)
@@ -88,7 +98,19 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
         })
       })
       .catch(() => setError('Не удалось загрузить урок'))
-  }, [lessonId])  
+    if (!skipResumeCheck) {
+      getLessonProgress(lessonId)
+        .then(p => setResumeOffer(p?.nodeId ? p : null))
+        .catch(() => setResumeOffer(null))
+    }
+  }, [lessonId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Готово к ПОКАЗУ — не к монтированию: ждём сценарий, чекпойнт И минимум
+  // 1.2с каркаса разом, иначе карточка успевала показать «нет чекпойнта»
+  // (узкую «Начать урок»), а через мгновение — резко расшириться под
+  // «Продолжить», плюс на лёгком уроке кнопка «мигала» загрузкой. Ширина
+  // меняется РОВНО один раз, вместе с самим переключением каркас→содержимое
+  const ready = !!lessonData && resumeOffer !== undefined && minTimeElapsed
 
   return (
     <div style={{
@@ -98,7 +120,15 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
     }}>
       <div className="launchCard" style={{
         borderRadius: 16, padding: 32,
-        minWidth: 300, maxWidth: 420, width: '90%',
+        // Шире, когда чекпойнт в принципе возможен (mayResume, известно
+        // синхронно, до сети) — двум кнопкам и строке прогресса тесно в
+        // обычных 420px без переноса текста. Раньше ширина зависела от
+        // ready && resumeOffer — а это как раз МОМЕНТ раскрытия содержимого:
+        // каркас всегда рисовался узким (420), и если чекпойнт находился,
+        // карточка скакала на 460 РОВНО когда показывались кнопки. Теперь
+        // и каркас, и содержимое смотрят на один и тот же mayResume — ширина
+        // решена ещё до того, как есть что показывать, скакать нечему
+        minWidth: 300, maxWidth: mayResume ? 460 : 420, width: '90%',
         display: 'flex', flexDirection: 'column', gap: 20,
         position: 'relative',
       }}>
@@ -113,29 +143,45 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
 
         {error && <p style={{ color: '#ff7070', margin: 0 }}>{error}</p>}
 
-        {!error && !lessonData && <LaunchSkeleton title={lessonTitle} info={info} />}
+        {!error && !ready && <LaunchSkeleton title={lessonTitle} info={info} mayResume={mayResume} />}
 
+        {/* Монтируется, как только есть lessonData — НЕ ждёт ready: сама
+            предзагрузка (usePlayerPreload внутри) должна стартовать раньше
+            всех, а не терять минимум 1.2с впустую. Скрыт (не размонтирован)
+            до ready — только чтобы не было видно ни его роста, ни мигания.
+            display:contents, а не блок: блок-обёртка «съедала» flex-колонку
+            карточки — дети стояли вплотную без gap:20, и содержимое было
+            плотнее/ниже каркаса, который рендерится фрагментом прямо в ней */}
         {lessonData && (
-          <LaunchPreloader
-            lessonData={lessonData}
-            retakeChoice={retake && hasStatBindings(lessonData.nodes)}
-            retake={retake}
-            examIntro={examIntro}
-            energyFree={energyFree}
-            title={lessonTitle}
-            info={info}
-            dissolving={dissolving}
-            onDissolve={() => setDissolving(true)}
-            onStart={onStart}
-            onClose={onClose}
-          />
+          <div style={{ display: ready ? 'contents' : 'none' }}>
+            <LaunchPreloader
+              lessonData={lessonData}
+              retakeChoice={retake && hasStatBindings(lessonData.nodes)}
+              retake={retake}
+              examIntro={examIntro}
+              energyFree={energyFree}
+              resumeOffer={resumeOffer}
+              visible={ready}
+              mayResume={mayResume}
+              onRestartProgress={() => { clearLessonProgress(lessonId); setResumeOffer(null) }}
+              title={lessonTitle}
+              info={info}
+              dissolving={dissolving}
+              onDissolve={() => setDissolving(true)}
+              onStart={onStart}
+              onClose={onClose}
+            />
+          </div>
         )}
       </div>
     </div>
   )
 }
 
-function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, retakeChoice = false, examIntro = false, onStart, onClose }) {
+function LaunchPreloader({
+  lessonData, title, info, dissolving, onDissolve, retakeChoice = false, examIntro = false,
+  resumeOffer = null, mayResume = false, visible = false, onRestartProgress, onStart, onClose,
+}) {
   // title приходит из схемы модуля и уже нарисован скелетоном — берём его, а не
   // lessonData.title: тот может оказаться своей надписью для шапки чата, и
   // заголовок карточки на полпути подменился бы
@@ -152,8 +198,16 @@ function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, reta
   const weak       = isWeakDevice()
   const bufferSize = weak ? 3 : 5
 
+  // Точка входа — начало урока по умолчанию, а если есть чекпойнт (resumeOffer)
+  // — точка возобновления: прогрев (usePlayerPreload) целится именно туда,
+  // а не всегда в начало (тот же приоритет по nodeIdx, что чинили в
+  // самом плеере — см. PROJECT.md, «гейт предзагрузки не открывался до
+  // точки возобновления»). Если студент всё же нажмёт «Начать заново» —
+  // прогрев для начала урока НЕ был готов заранее, это осознанный компромисс:
+  // «Продолжить» — основная, зелёная кнопка, более вероятный выбор
+  const resumeEntryNode = resumeOffer?.nodeId ? nodes.find(n => n.id === resumeOffer.nodeId) : null
   const { blobMap, readyNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, releaseBlobs } = usePlayerPreload(
-    nodes, files, [], { initialLookahead: WARMUP_TARGET, bufferSize }
+    nodes, files, resumeEntryNode ? [resumeEntryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize }
   )
 
   // Start decoding UI sounds while lesson files are loading — no gesture needed for decode.
@@ -193,11 +247,29 @@ function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, reta
   // initialized=false until the hook has built its queue — prevents false "ready" flash.
   const nodeTotal   = warmupNodeIds.length
   const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id)).length
-  const canStart    = initialized && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
-  const pct         = canStart ? 100 : Math.min(warmupPct, 99)
+  const loaded      = initialized && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
+  // Показанный процент — плавный (не быстрее 1 с на всю шкалу, useSmoothPct)
+  // и крутится только когда карточка видна (visible), не за каркасом.
+  // Кнопка открывается вместе с ним: «Начать урок» при баре на 40 % — тот
+  // же «мгновенный» скачок, только другой стороной
+  const { barRef, textRef, reached } = useSmoothPct(loaded ? 100 : Math.min(warmupPct, 99), visible)
+  const canStart    = loaded && reached
 
-  // statsMode: null (первое прохождение) | 'update' | 'silent' (выбор пересдачи)
-  function handleStart(statsMode = null) {
+  // Стиль обычной кнопки старта — общий для LaunchCtaSlot (mayResume) и для
+  // простой <button> (когда «Продолжить» в принципе невозможно)
+  const startBtnStyle = {
+    padding: '14px 0', borderRadius: 12, border: 'none',
+    fontSize: 16, fontWeight: 600, cursor: canStart && !dissolving ? 'pointer' : 'default',
+    background: canStart ? '#b6fe3b' : '#333',
+    color: canStart ? '#0d1500' : '#666',
+    transition: 'background 0.3s ease, color 0.3s ease',
+  }
+
+  // statsMode: null (первое прохождение) | 'update' | 'silent' (выбор пересдачи).
+  // resume=true — жмут «Продолжить» в LaunchCtaSlot: payload несёт точку
+  // входа и историю чата выше нее, LessonPlayer.jsx берёт их напрямую и не
+  // гоняет свою собственную проверку чекпойнта (см. useLessonResume.js)
+  function handleStart(statsMode = null, resume = false) {
     // Preload + unlock in the same gesture context so iOS Safari decodes audio immediately.
     // preloadSounds() creates Audio objects; unlockAudio() does play+pause on them.
     // Both must run here (not in useEffect) — iOS only allows audio decode within a gesture.
@@ -210,7 +282,12 @@ function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, reta
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
     const logoForPlayer = logoBlobRef.current ?? teacherLogo
     logoBlobRef.current = null
-    const payload = { nodes, files, blobMap, title: chatTitle, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound, lessonXp }
+    const payload = {
+      nodes, files, blobMap, title: chatTitle, teacherName, teacherLogo: logoForPlayer, teacherLogoCrop, videoAutoSound, lessonXp,
+      startNodeId: resume ? resumeOffer.nodeId : null,
+      historyIds:  resume ? (resumeOffer.visitedIds ?? []).slice(0, -1) : null,
+      resumedXp:   resume ? (resumeOffer.xp ?? 0) : 0,
+    }
 
     if (payingCase) {
       // Платный случай: сперва показываем растворение мигающей ячейки —
@@ -229,12 +306,11 @@ function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, reta
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ height: 6, borderRadius: 3, background: '#333', overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', borderRadius: 3,
-            width: pct + '%',
-            background: '#b6fe3b',
-            transition: 'width 0.3s ease',
-          }} />
+          {/* Ширину и цифру ниже ведёт useSmoothPct прямо в DOM (ref),
+              покадрово и без ре-рендеров; в JSX — только стартовые «0%»,
+              React их не перезаписывает (значение в JSX не меняется).
+              Без transition: покадровая запись сама и есть анимация */}
+          <div ref={barRef} style={{ height: '100%', borderRadius: 3, width: '0%', background: '#b6fe3b' }} />
         </div>
         <span style={{ color: '#888', fontSize: 12 }}>
           {/* Слово то же, что в каркасе до загрузки сценария («Загрузка
@@ -242,7 +318,7 @@ function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, reta
               как смена этапа, хотя это одна и та же загрузка */}
           {canStart
             ? 'Урок готов к запуску'
-            : `Загрузка урока: ${pct}%`}
+            : <>Загрузка урока: <span ref={textRef}>0%</span></>}
         </span>
       </div>
 
@@ -264,22 +340,44 @@ function LaunchPreloader({ lessonData, title, info, dissolving, onDissolve, reta
         />
       )}
 
-      {examIntro ? (
+      {/* LaunchCtaSlot — одна и та же вёрстка для «Продолжить» и для обычного
+          старта (showSecondRow включает вторую строку/кнопку), поэтому не
+          нужно подгонять высоту числом (CTA_MIN_HEIGHT раньше расходился с
+          реальным рендером шрифта) — см. LaunchCtaSlot.jsx. mayResume — та
+          же синхронная проверка, что ушла в каркас (LaunchSkeleton): пока
+          есть шанс на чекпойнт, даже обычная кнопка «Начать урок» держит то
+          же место под вторую кнопку, что и каркас до неё — а когда его нет
+          (пересдача/уже пройден/гонка), второй кнопки не будет никогда,
+          и обычная кнопка не резервирует под неё пустое место */}
+      {resumeOffer ? (
+        <LaunchCtaSlot
+          showSecondRow
+          pctLabel={`Дошёл примерно до ${Math.round(resumeOffer.pct ?? 0)}%`}
+          pct={Math.round(resumeOffer.pct ?? 0)}
+          primaryClassName="resumeLessonBtnPrimary"
+          primaryStyle={{ opacity: canStart ? 1 : 0.5, cursor: canStart ? 'pointer' : 'default' }}
+          primaryLabel={canStart ? 'Продолжить' : 'Загрузка...'}
+          primaryDisabled={!canStart}
+          onPrimary={() => handleStart(null, true)}
+          onGhost={() => { onRestartProgress(); handleStart() }}
+        />
+      ) : examIntro ? (
         <ExamIntroDialog canStart={canStart} onStart={() => handleStart()} />
       ) : retakeChoice ? (
         <RetakeDialog canStart={canStart} onPick={handleStart} onCancel={onClose} />
+      ) : mayResume ? (
+        <LaunchCtaSlot
+          // pctLabel — см. LaunchSkeleton.jsx: пустая строка в скрытом <span>
+          // даёт высоту 0, а не высоту строки текста, и блок оказывается на
+          // ~17px ниже, чем у showSecondRow — та самая «растяжка» на глаз
+          pctLabel="Загрузка..."
+          primaryLabel={canStart ? '▶ Начать урок' : 'Загрузка...'}
+          primaryDisabled={!canStart || dissolving}
+          primaryStyle={startBtnStyle}
+          onPrimary={() => handleStart()}
+        />
       ) : (
-        <button
-          onClick={() => handleStart()}
-          disabled={!canStart || dissolving}
-          style={{
-            padding: '14px 0', borderRadius: 12, border: 'none',
-            fontSize: 16, fontWeight: 600, cursor: canStart && !dissolving ? 'pointer' : 'default',
-            background: canStart ? '#b6fe3b' : '#333',
-            color: canStart ? '#0d1500' : '#666',
-            transition: 'background 0.3s ease, color 0.3s ease',
-          }}
-        >
+        <button onClick={() => handleStart()} disabled={!canStart || dissolving} style={startBtnStyle}>
           {canStart ? '▶ Начать урок' : 'Загрузка...'}
         </button>
       )}

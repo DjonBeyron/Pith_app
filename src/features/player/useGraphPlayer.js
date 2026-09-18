@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/refs */
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 import { appendVisit, forgetNodeKeys } from './graphPlayerVisits.js'
 import { pLog } from '../../shared/lib/debug.js'
 
@@ -29,13 +29,24 @@ function findEntry(nodes, startNodeId) {
 // смысла, разница со стартом с нуля незаметна
 const CHECKPOINT_THRESHOLD = 6
 
+// Восстановление истории при «Продолжить урок» (historyIds ниже) — не всю
+// сразу: у длинного урока это могут быть сотни нод разом в DOM. Изначально
+// показываем только «хвост» — столько, сколько обычно видно на экране без
+// скролла — остальное подгружается по requestMoreHistory (кнопка/скролл
+// вверх в LessonPlayer.jsx)
+const HISTORY_PAGE = 8
+
 // paused — шаговый режим админа (правка из канваса): переходы замирают.
 // Запланированный переход не теряется: он запоминается и отыгрывается, когда
 // паузу снимут или нажмут «вперёд».
-export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = null, paused = false } = {}) {
+// historyIds — id нод, показанных ДО startNodeId в прошлой сессии
+// (useLessonResume.js/checkpoint) — восстанавливаются в ленту как read-only
+// история (node.isHistory=true), без повторного запуска их триггеров/XP.
+export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = null, historyIds = null, paused = false } = {}) {
   const [visibleNodes, setVisibleNodes] = useState([])
   const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
+  const [historyShown, setHistoryShown] = useState(0)
 
   const nodeMapRef  = useRef({})
   // Сколько раз каждая нода уже показывалась. Сценарий бывает цикличным
@@ -52,6 +63,12 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   onCheckpointRef.current = onCheckpoint
   // Разные ноды, показанные хоть раз за эту сессию плеера — для порога чекпойнта
   const seenIdsRef = useRef(new Set())
+  // Порядок показа по id — то, что уходит в чекпойнт целиком (история ДО
+  // резюма + всё показанное в этой живой сессии), см. revealNode ниже
+  const visitedIdsRef = useRef([])
+  // Полный список восстановленных исторических нод (объекты, старые→новые) —
+  // из него requestMoreHistory достаёт следующую пачку «показать раньше»
+  const historyRef = useRef([])
 
   nodeMapRef.current = Object.fromEntries(nodes.map(n => [n.id, n]))
   visibleRef.current = visibleNodes
@@ -92,7 +109,10 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     firedRef.current = forgetNodeKeys(firedRef.current, next.id)
     activateTimerTrigger.current(next)
     seenIdsRef.current.add(next.id)
-    if (seenIdsRef.current.size >= CHECKPOINT_THRESHOLD) onCheckpointRef.current?.(next.id)
+    // Тот же приём, что у appendVisit: повторный показ не дублирует id в
+    // истории, а сдвигает его в конец — чекпойнт отражает реальный порядок
+    visitedIdsRef.current = [...visitedIdsRef.current.filter(id => id !== next.id), next.id]
+    if (seenIdsRef.current.size >= CHECKPOINT_THRESHOLD) onCheckpointRef.current?.(next.id, visitedIdsRef.current)
   }
 
   // force — шаг «вперёд» админа: показать не дожидаясь «печатает…» и не
@@ -292,7 +312,12 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   }, [])
 
   const nodesKey = nodes.map(n => n.id).join(',')
-  useEffect(() => {
+  // useLayoutEffect, а НЕ useEffect: заполнение visibleNodes (особенно при
+  // «Продолжить урок» — сразу 8+ исторических строк) должно случиться ДО
+  // того, как браузер покажет кадр — иначе первый кадр рисуется с пустой
+  // лентой (visibleNodes всё ещё [] от useState), и через мгновение она
+  // разом заполняется — тот самый «скачок» с пустого на полное
+  useLayoutEffect(() => {
     if (!nodes.length) {
       setVisibleNodes([])
       setPendingNode(null)
@@ -312,20 +337,53 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     pLog(`[graph] старт: ${nodes.length} нод, вход #${entry?.seq ?? '—'}` +
       (broken ? `, СВЯЗЕЙ В НИКУДА: ${broken}` : ''))
     if (!entry) return
-    setVisibleNodes([entry])
-    seenIdsRef.current.add(entry.id)
+    // Восстановление истории при «Продолжить урок» (historyIds —
+    // useLessonResume.js/resume): id нод из прошлой сессии, показанных ДО
+    // точки входа. Сама entry сюда не входит — заводится ниже как живая
+    // нода, как и при обычном старте. Изначально в ленту попадает только
+    // «хвост» (HISTORY_PAGE) — requestMoreHistory подгружает остальное
+    const historyNodes = (historyIds ?? []).map(id => nodeMapRef.current[id]).filter(Boolean)
+    historyRef.current = historyNodes
+    const initialPage = historyNodes.slice(-HISTORY_PAGE).map(n => ({ ...n, isHistory: true }))
+    setHistoryShown(initialPage.length)
+    if (startNodeId && entry.seq > 1) {
+      pLog(`[graph] возобновление: лента стартует с #${entry.seq}, восстановлено истории ${historyNodes.length}/${(historyIds ?? []).length} нод (показано сразу ${initialPage.length})`)
+    }
+    visitedIdsRef.current = [...historyNodes.map(n => n.id), entry.id]
+    setVisibleNodes([...initialPage, entry])
+    seenIdsRef.current = new Set(visitedIdsRef.current)
     setIsWaiting(false)
     activateTimerTrigger.current(entry)
     return clearTimers
-  }, [nodesKey, startNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nodesKey, startNodeId, historyIds]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Подгрузка более ранней истории по требованию (кнопка/скролл вверх) —
+  // следующая пачка HISTORY_PAGE, старше уже показанных. НЕ трогает
+  // visitedIdsRef/seenIdsRef — те уже содержат ПОЛНУЮ историю с момента
+  // инициализации, подгрузка меняет только то, что нарисовано в ленте
+  const requestMoreHistory = useCallback(() => {
+    setHistoryShown(shown => {
+      const total = historyRef.current.length
+      if (shown >= total) return shown
+      const nextShown = Math.min(total, shown + HISTORY_PAGE)
+      const older = historyRef.current
+        .slice(total - nextShown, total - shown)
+        .map(n => ({ ...n, isHistory: true }))
+      setVisibleNodes(prev => [...older, ...prev])
+      return nextShown
+    })
+  }, [])
+  const hasMoreHistory = historyShown < historyRef.current.length
 
   // visibleNodes/pendingNode хранят СНИМКИ нод на момент показа. Админ правит
   // урок прямо из плеера (правая панель редактора), и пузырь должен меняться
   // на месте — отдаём наружу всегда свежий объект ноды по id. Порядок показа
   // и прогресс при этом не трогаются: сам список остаётся тем же.
   const freshVisible = useMemo(
-    // visit — номер показа этой ноды, он живёт в снимке, а не в самой ноде
-    () => visibleNodes.map(n => ({ ...(nodeMapRef.current[n.id] ?? n), visit: n.visit })),
+    // visit — номер показа этой ноды, он живёт в снимке, а не в самой ноде.
+    // isHistory — так же: снимок-флаг «это восстановленная история», не
+    // часть самой ноды урока, иначе бы потерялся при подмешивании свежей
+    () => visibleNodes.map(n => ({ ...(nodeMapRef.current[n.id] ?? n), visit: n.visit, isHistory: n.isHistory })),
     [visibleNodes, nodes], // eslint-disable-line react-hooks/exhaustive-deps
   )
   const freshPending = pendingNode ? (nodeMapRef.current[pendingNode.id] ?? pendingNode) : null
@@ -333,5 +391,6 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   return {
     visibleNodes: freshVisible, pendingNode: freshPending, isWaiting, onNodeDone,
     revealNow, stepTime, stepBack, canStepBack: visibleNodes.length > 1,
+    requestMoreHistory, hasMoreHistory,
   }
 }

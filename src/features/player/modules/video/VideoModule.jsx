@@ -98,7 +98,9 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
   // videoAutoSound mode: play unmuted once, then muted loop
   function handleInlineLoaded(e) {
     captureFrame0(e.currentTarget)
-    if (!videoAutoSound || firstPlayDoneRef.current) return
+    // Восстановленная история («Продолжить урок») — ноду студент уже видел,
+    // повторный автозапуск со звуком тут неуместен (не то что он просил)
+    if (!videoAutoSound || firstPlayDoneRef.current || node.isHistory) return
     const v = videoRef.current
     if (!v) return
     v.muted = false
@@ -188,7 +190,7 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
                   className={`playerVideoMedia${mirror ? ' videoMirrorSource' : ''}`}
                   style={mirror ? VIDEO_GUARD_STYLE : { ...getMediaStyle(), ...VIDEO_GUARD_STYLE }}
                   playsInline preload="auto"
-                  autoPlay={!videoAutoSound}
+                  autoPlay={!videoAutoSound && !node.isHistory}
                   muted={!videoAutoSound}
                   loop={!videoAutoSound}
                   onLoadedMetadata={e => {

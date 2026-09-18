@@ -92,7 +92,8 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
 
   // videoAutoSound: called on onLoadedData — sets up MutationObserver then unmuted play
   function handleCircleLoaded() {
-    if (!videoAutoSound || firstPlayDoneRef.current) return
+    // Восстановленная история («Продолжить урок») — повторный автозапуск не нужен
+    if (!videoAutoSound || firstPlayDoneRef.current || node.isHistory) return
     const v = vRef.current
     if (!v) return
     // vRef — обычный DOM-ref видео, мутация .current-свойств тут безопасна
@@ -217,7 +218,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
                 className={`circleMedia${mirror ? ' videoMirrorSource' : ''}`}
                 style={mirror ? VIDEO_GUARD_STYLE : { ...videoStyle, ...VIDEO_GUARD_STYLE }}
                 playsInline preload="auto"
-                autoPlay={!videoAutoSound}
+                autoPlay={!videoAutoSound && !node.isHistory}
                 muted={!videoAutoSound}
                 loop={!videoAutoSound}
                 onLoadedMetadata={e => {

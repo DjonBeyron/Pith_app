@@ -10,6 +10,7 @@ export default function PhraseAssemblyModule({ node, phraseState, lessonNodes = 
     <AnswerBubbles
       bubbles={phraseState}
       nodeId={node?.id ?? null}
+      confetti={!node?.isHistory}
       replyNode={replyNode}
       lessonFiles={lessonFiles}
       teacherName={teacherName}

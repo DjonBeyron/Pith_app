@@ -27,6 +27,7 @@ export default function RaceRunner({ lessonIds = [], onRaceFinish, onClosed }) {
       <LessonLaunchCard
         key={lessonId}
         lessonId={lessonId}
+        allowResume={false}
         onStart={async (data) => {
           // Энергию решает сервер (новый урок → -1, пересдача бесплатно)
           const res = await startLesson(lessonId)

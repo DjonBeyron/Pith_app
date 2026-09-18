@@ -56,15 +56,17 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     pLog(`[rotate] партитура: ${score.source} — слоёв ${score.layers.length}, композиция ${score.timelineLen.toFixed(1)}с, озвучка ${tData.file_id ? `есть (кусков ${score.audioClips.length})` : 'нет'}`)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Вне телефона поворота не будет — стартуем по часам
+  // Вне телефона поворота не будет — стартуем по часам. Восстановленная
+  // история («Продолжить урок») — ноду студент уже прошёл, запускать
+  // голосовой тренажёр заново (со звуком) не нужно
   useEffect(() => {
-    if (canRotate) return
+    if (canRotate || node.isHistory) return
     const t = setTimeout(() => {
       pLog(`[rotate] поворота не бывает — идём дальше сами через ${AUTO_START_MS}мс`)
       start('auto')
     }, AUTO_START_MS)
     return () => clearTimeout(t)
-  }, [start, canRotate])
+  }, [start, canRotate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (phase !== 'finished') return

@@ -119,7 +119,7 @@ describe('сколько времени у элемента есть на дек
 
   it('первая нода урока показывается без предрисовки вообще', () => {
     const init = GRAPH.slice(GRAPH.indexOf('const entry = findEntry'))
-    expect(init).toContain('setVisibleNodes([entry])')
+    expect(init).toContain('setVisibleNodes([...initialPage, entry])')
     expect(init).not.toContain('setPendingNode(entry)')
   })
 

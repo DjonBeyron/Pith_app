@@ -208,3 +208,18 @@
   0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
   40%           { transform: translateY(-3px); opacity: 1; }
 }
+
+/* «Продолжить урок»: подгрузка более ранней истории по требованию —
+   PlayerFeedNodes.jsx/useGraphPlayer.js (HISTORY_PAGE) */
+.playerLoadHistoryBtn {
+  display: block;
+  margin: 8px auto 12px;
+  padding: 7px 16px;
+  border-radius: 14px;
+  border: 1px solid #3a3d45;
+  background: rgba(255, 255, 255, 0.04);
+  color: #9aa0b4;
+  font-size: 12px;
+  font-family: 'Comfortaa', system-ui, sans-serif;
+  cursor: pointer;
+}

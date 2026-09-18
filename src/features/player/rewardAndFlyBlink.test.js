@@ -16,7 +16,9 @@ describe('салют в «выбери слово» идёт по галочке
   })
 
   it('без награды салюта нет даже на верном ответе', () => {
-    expect(wc).toContain('{isCorrect && rewardOn && (')
+    // !node?.isHistory — восстановленная история («Продолжить урок») тоже без
+    // салюта (ответ уже отпраздновали в прошлой сессии), не только без награды
+    expect(wc).toContain('{isCorrect && rewardOn && !node?.isHistory && (')
     // И ранний выход учитывает это же: модуль без пузырей и без салюта пуст
     expect(wc).toContain('if (!pickText && !text && !(isCorrect && rewardOn)) return null')
   })

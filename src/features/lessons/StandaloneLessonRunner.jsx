@@ -39,6 +39,9 @@ export default function StandaloneLessonRunner({ lessonId, lessonTitle = '', onE
         teacherLogoCrop={playerData.teacherLogoCrop}
         videoAutoSound={playerData.videoAutoSound ?? false}
         initialBlobMap={playerData.blobMap}
+        startNodeId={playerData.startNodeId ?? null}
+        historyIds={playerData.historyIds ?? null}
+        resumedXp={playerData.resumedXp ?? 0}
         starsEligible
         onClose={onExit}
         onSummaryClose={() => { markLessonCompleted(lessonId); onExit() }}

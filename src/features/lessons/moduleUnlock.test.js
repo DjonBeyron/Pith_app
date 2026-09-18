@@ -117,7 +117,7 @@ describe('карточка запуска урока', () => {
   const card = read('./LessonLaunchCard.jsx')
 
   it('окно сразу нужного размера — каркас вместо одной строчки', () => {
-    expect(card).toContain('<LaunchSkeleton title={lessonTitle} info={info} />')
+    expect(card).toContain('<LaunchSkeleton title={lessonTitle} info={info} mayResume={mayResume} />')
     expect(card).not.toContain('Загрузка урока...</p>')
   })
 
@@ -143,7 +143,7 @@ describe('карточка запуска урока', () => {
   it('подпись под баром не меняет слово на полпути', () => {
     // Было «Загрузка урока…» → «Подготовка: 42%»: читалось как смена этапа,
     // хотя это одна и та же загрузка
-    expect(card).toContain('`Загрузка урока: ${pct}%`')
+    expect(card).toContain('Загрузка урока: <span ref={textRef}>0%</span>')
     expect(card).not.toContain('Подготовка:')
     // Включая проценты: без них «0%» появлялось отдельным элементом позже
     expect(read('./LaunchSkeleton.jsx')).toContain('Загрузка урока: 0%')

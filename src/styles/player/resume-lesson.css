@@ -9,8 +9,15 @@
   justify-content: center;
 }
 
+/* Тот же узор, что у карточки запуска урока (.launchCard, lessons.css) —
+   попап возобновления открывается из того же экрана, плоский однотонный
+   фон рядом с ним смотрелся чужим. Переменные узора — lessons-chain-textures.css */
 .resumeLessonCard {
-  background: #1a1a1a;
+  background:
+    var(--mg-dust),
+    var(--mg-grain),
+    var(--mg-tex-start) center / 180px 180px no-repeat,
+    var(--lesson-popup-bg);
   border-radius: 16px;
   padding: 28px;
   width: 90%;
@@ -46,13 +53,16 @@
   transition: width 0.3s ease;
 }
 
+/* font-size 16px — как у обычной кнопки «Начать урок» (startBtnStyle в
+   LessonLaunchCard) и у невидимой кнопки каркаса: LaunchCtaSlot обещает
+   высоту пиксель-в-пиксель, а 15px давал строку на ~1px ниже */
 .resumeLessonBtnPrimary {
   padding: 14px 0;
   border-radius: 12px;
   border: none;
-  background: #4caf50;
-  color: #fff;
-  font-size: 15px;
+  background: #b6fe3b;
+  color: #0e1013;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
 }

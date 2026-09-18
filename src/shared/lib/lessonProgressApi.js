@@ -25,23 +25,35 @@ export async function getLessonProgress(lessonId) {
   }
   const { data, error } = await supabase
     .from('lesson_progress')
-    .select('node_id, pct, updated_at')
+    .select('node_id, pct, updated_at, visited_ids')
     .eq('lesson_id', lessonId)
     .maybeSingle()
   if (error) { dbg('[DB ERROR] lesson_progress get', error.message); return null }
-  return data ? { nodeId: data.node_id, pct: data.pct, updatedAt: data.updated_at } : null
+  return data
+    ? { nodeId: data.node_id, pct: data.pct, updatedAt: data.updated_at, visitedIds: data.visited_ids ?? [] }
+    : null
 }
 
-export async function saveLessonProgress(lessonId, nodeId, pct = 0) {
+// xp — сколько XP уже заработано К МОМЕНТУ чекпойнта (LessonPlayer.jsx,
+// earnedXpRef.current). Нужен ТОЛЬКО гостю: у него итоговый XP на "Продолжить
+// урок" собирается локально из earnedXpRef, а фид возобновления не переигрывает
+// старые ноды — без xp в чекпойнте вклад нод до закрытия терялся бы совсем.
+// У залогиненного сервер сам считает итог по lessonXp урока (completeLesson) —
+// xp в lesson_progress ему не нужен, в БД не пишем (нет колонки, и не будет).
+// visitedIds — id всех показанных нод по порядку (с учётом повторов —
+// appendVisit сам держит каждую ноду один раз, сдвигая к концу при повторном
+// показе), нужен ОБОИМ: восстановить историю чата ВЫШЕ точки входа при
+// «Продолжить урок» (useGraphPlayer.js)
+export async function saveLessonProgress(lessonId, nodeId, pct = 0, xp = 0, visitedIds = []) {
   const user = await currentUser()
   if (!user) {
     try {
-      localStorage.setItem(LS_PREFIX + lessonId, JSON.stringify({ nodeId, pct, updatedAt: new Date().toISOString() }))
+      localStorage.setItem(LS_PREFIX + lessonId, JSON.stringify({ nodeId, pct, xp, visitedIds, updatedAt: new Date().toISOString() }))
     } catch { /* localStorage недоступен — пропускаем */ }
     return
   }
   const { error } = await supabase.from('lesson_progress').upsert(
-    { user_id: user.id, lesson_id: lessonId, node_id: nodeId, pct, updated_at: new Date().toISOString() },
+    { user_id: user.id, lesson_id: lessonId, node_id: nodeId, pct, visited_ids: visitedIds, updated_at: new Date().toISOString() },
     { onConflict: 'user_id,lesson_id' },
   )
   if (error) dbg('[DB ERROR] lesson_progress save', error.message)

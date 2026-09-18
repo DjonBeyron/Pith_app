@@ -40,7 +40,9 @@ export default function LessonPlayer({
   initialBlobMap = null,
   lessonXp = 0,
   lessonId = null,
-  startNodeId = null, // админский прогон с середины: «играть с этой ноды»
+  startNodeId = null, // админский прогон с середины ИЛИ «Продолжить» из LessonLaunchCard.jsx
+  historyIds = null, // история чата выше startNodeId — из LessonLaunchCard.jsx (см. ниже)
+  resumedXp = 0, // XP, заработанный до закрытия — из LessonLaunchCard.jsx («Продолжить»)
   recordStats = true, // false (пересдача «без записи») — события анализа не пишутся
   onFinishStats = null, // супергонка: ({ errors, timeMs }) в момент финиша урока
   finalTicket = null, // Финал модуля: { moduleId } — подсказки + золотой билет
@@ -55,7 +57,7 @@ export default function LessonPlayer({
   // Файлы урока: проп + догруженное с сервера. В режиме правки из канваса
   // список живой — админ может подложить медиа прямо во время прохождения
   const files = usePlayerFiles(nodes, propFiles, !!edit)
-  const earnedXpRef = useRef(0)
+  const earnedXpRef = useRef(resumedXp)
   // Контейнер плеера — по нему пауза находит всё звучащее (useMediaPause)
   const playerRef = useRef(null)
   // Золотой билет за Финал: счётчик подсказок (раскрытий перевода) и итог
@@ -74,15 +76,14 @@ export default function LessonPlayer({
   const stepState = usePlayerStepState()
 
   const xpMap     = useMemo(() => buildXpMap(nodes, lessonXp), [nodes, lessonXp])
-  const [earnedXp,  setEarnedXp]  = useState(0)
+  const [earnedXp,  setEarnedXp]  = useState(resumedXp)
   const [baseXp,    setBaseXp]    = useState(0)
   const [xpEvents,  setXpEvents]  = useState([])   // [{id, amount, rect}] — triggers float anim
   const [showSummary, setShowSummary] = useState(false)
 
-  // Чекпойнт «Продолжить урок» — работает для любого входа, не только новой
-  // ноды-ссылки (useLessonResume.js). Пока идёт проверка сохранённого места
-  // или ждём выбор в попапе — граф не запускаем (nodes ниже подменяются на [])
-  const resumeState = useLessonResume(lessonId, edit)
+  // Чекпойнт «Продолжить урок» — резервный путь для входов МИМО карточки
+  // запуска (LessonLaunchCard.jsx уже решает это сама и передаёт startNodeId)
+  const resumeState = useLessonResume(lessonId, edit, xp => { earnedXpRef.current = xp; setEarnedXp(xp) }, !!startNodeId)
   const holdForResume = resumeState.checking || !!resumeState.resumeOffer
   const graphNodes = holdForResume ? [] : nodes
 
@@ -104,7 +105,8 @@ export default function LessonPlayer({
 
   const graph = useGraphPlayer(graphNodes, {
     startNodeId: resumeState.startNodeId ?? startNodeId,
-    onCheckpoint: nodeId => resumeState.checkpoint(nodeId, Math.round(lessonProgress(mainIndex, [{ id: nodeId }]) * 100)),
+    historyIds: resumeState.historyIds ?? historyIds,
+    onCheckpoint: (nodeId, vIds) => resumeState.checkpoint(nodeId, Math.round(lessonProgress(mainIndex, [{ id: nodeId }]) * 100), earnedXpRef.current, vIds),
     paused: stepState.paused,
     onFinish: () => {
       if (onFinishStats) {
@@ -122,7 +124,7 @@ export default function LessonPlayer({
       finishSummary()
     },
   })
-  const { visibleNodes, pendingNode, isWaiting, onNodeDone } = graph
+  const { visibleNodes, pendingNode, isWaiting, onNodeDone, requestMoreHistory, hasMoreHistory } = graph
   const progress = lessonProgress(mainIndex, visibleNodes)
   const signalMessages = useSignalMessages() // сигналы ошибок — вне графа урока (useSignalMessages.js)
 
@@ -292,6 +294,8 @@ export default function LessonPlayer({
           <PlayerFeedNodes
             visibleNodes={visibleNodes}
             pendingNode={pendingNode}
+            hasMoreHistory={hasMoreHistory}
+            onLoadMoreHistory={requestMoreHistory}
             {...feedShared}
             states={{ photoChoiceStates, wordChoiceStates, phraseStates, regStates, tableSent: answers.tableSent, tableArriving: answers.tableArriving }}
             onNodeDone={onNodeDone}
