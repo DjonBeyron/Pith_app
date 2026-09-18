@@ -27,3 +27,29 @@ export function loudestFrameIndex(wd, win = 9) {
   }
   return bestCenter
 }
+
+// Сколько баров РЕАЛЬНО видно в дорожке (та обрезана overflow:hidden), а не
+// формально существует в массиве рефов — barElsRef.current.length может
+// отставать от настоящей вёрстки (пересчёт ширины ResizeObserver-ом ещё не
+// докатился до рендера) или содержать «дыры» после смены плотности баров.
+// Считаем один раз в момент старта воспроизведения (не на каждый кадр в
+// tick() — getBoundingClientRect() форсирует reflow, дорого на 60fps) и
+// дальше используем как знаменатель заливки — иначе прогресс считался от
+// числа, которого ученик не видит, и зелёная полоса «доходила до края»
+// задолго до конца записи
+export function measureBarVisibility(waveRowRef, barElsRef) {
+  const row = waveRowRef.current
+  const all = barElsRef.current
+  if (!row) return { visible: all.filter(Boolean).length, clipped: 0, hidden: 0, rowWidth: 0, rowRight: 0, lastBarRight: 0, barCount: all.length }
+  const rowRect = row.getBoundingClientRect()
+  let visible = 0, clipped = 0, hidden = 0, lastBarRight = 0
+  for (const bar of all) {
+    if (!bar) continue
+    const r = bar.getBoundingClientRect()
+    lastBarRight = r.right
+    if (r.right <= rowRect.right + 0.5) visible++
+    else if (r.left < rowRect.right) clipped++
+    else hidden++
+  }
+  return { visible, clipped, hidden, rowWidth: rowRect.width, rowRight: rowRect.right, lastBarRight, barCount: all.length }
+}

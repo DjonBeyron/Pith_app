@@ -12,7 +12,7 @@ import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallb
 import { useAudioSource } from './useAudioSource.js'
 import { useAdaptiveBarCount } from './useAdaptiveBarCount.js'
 import { useAudioStaticWaveform } from '../../../../shared/lib/useAudioStaticWaveform.js'
-import { logAudioMount, logAudioDurationReady, logAudioPlayStart, makeAudioHeartbeat, logAudioEnded } from './audioDebug.js'
+import { logAudioMount, logAudioDurationReady, logAudioPlayStart, makeAudioHeartbeat, logAudioEnded, logAudioBarClipping } from './audioDebug.js'
 import { applyFirstAudioFrame } from './applyFirstAudioFrame.js'
 
 export default function AudioModule({ node, file, onDone, adminPreview = false, pending = false }) {
@@ -190,6 +190,13 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     const capturedWave  = waveData
     const capturedChars = charTimings
     logAudioPlayStart({ d, liveDuration: audio.duration, readyState: audio.readyState, networkState: audio.networkState, waveLen: capturedWave?.length })
+    // Заливку считаем от числа РЕАЛЬНО видимых баров, а не от
+    // barElsRef.current.length: тот может быть больше настоящей вёрстки
+    // (дорожка обрезает лишнее overflow:hidden, а массив рефов иногда ещё не
+    // догнал actual плотность после пересчёта ширины) — тогда progress*length
+    // «доходил до края» видимой части задолго до конца записи. Меряем один
+    // раз здесь, не на каждый кадр в tick() (форсирует reflow)
+    const visBars = logAudioBarClipping(waveRowRef, barElsRef)
     const hb = makeAudioHeartbeat()
 
     setTextStarted(true)
@@ -220,16 +227,17 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       // у отдельного probeAudioDuration()-элемента метаданные MP3 иногда чуть
       // короче реальных (VBR) — на коротких голосовых это заметный процент,
       // заливка добегала до края раньше, чем звук реально доигрывал
-      const total     = (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : d) || 1
-      const progress  = total > 0 ? ct / total : 0
-      const bars      = barElsRef.current
-      const greenUpTo = progress * bars.length
-      const center    = (bars.length - 1) / 2
+      const total       = (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : d) || 1
+      const progress    = total > 0 ? ct / total : 0
+      const bars        = barElsRef.current
+      const barsForFill = visBars > 0 ? visBars : bars.length
+      const greenUpTo   = progress * barsForFill
+      const center      = (bars.length - 1) / 2
       // staticWaveform: fi всегда -1 — тот же путь, что у weakDevice — и
       // высота баров просто не трогается тут вообще, оставаясь такой, какой
       // её один раз поставил applyFirstFrame (пик громкости всей записи)
       const fi        = !weakDevice && !staticWaveform && capturedWave?.length ? Math.floor(ct * WAVEFORM_FPS) : -1
-      hb(ct, total, bars.length)
+      hb(ct, total, barsForFill)
 
       bars.forEach((bar, i) => {
         if (!bar) return
