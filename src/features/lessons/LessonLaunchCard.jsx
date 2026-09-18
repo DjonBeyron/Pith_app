@@ -260,7 +260,11 @@ function LaunchPreloader({
   const startBtnStyle = {
     padding: '14px 0', borderRadius: 12, border: 'none',
     fontSize: 16, fontWeight: 600, cursor: canStart && !dissolving ? 'pointer' : 'default',
-    background: canStart ? '#b6fe3b' : '#333',
+    // До готовности — без подложки, просто серый текст, как «Загрузка...» в
+    // каркасе: серая плашка появлялась на полпути и читалась как отдельный
+    // этап перед зелёной кнопкой. Ключ 'transparent', не 'none' — иначе
+    // transition фона к зелёному не анимируется
+    background: canStart ? '#b6fe3b' : 'transparent',
     color: canStart ? '#0d1500' : '#666',
     transition: 'background 0.3s ease, color 0.3s ease',
   }
@@ -355,7 +359,9 @@ function LaunchPreloader({
           pctLabel={`Дошёл примерно до ${Math.round(resumeOffer.pct ?? 0)}%`}
           pct={Math.round(resumeOffer.pct ?? 0)}
           primaryClassName="resumeLessonBtnPrimary"
-          primaryStyle={{ opacity: canStart ? 1 : 0.5, cursor: canStart ? 'pointer' : 'default' }}
+          // Тот же принцип, что у startBtnStyle: до готовности — серый текст без
+          // зелёной плашки (раньше зелёная на 50% — та же «плашка до кнопки»)
+          primaryStyle={canStart ? undefined : { background: 'transparent', color: '#666', cursor: 'default' }}
           primaryLabel={canStart ? 'Продолжить' : 'Загрузка...'}
           primaryDisabled={!canStart}
           onPrimary={() => handleStart(null, true)}

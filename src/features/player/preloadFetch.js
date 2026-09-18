@@ -1,6 +1,15 @@
-const MAX_ATTEMPTS     = 3
-const RETRY_DELAY_MS   = 1200
-const STALL_TIMEOUT_MS = 15_000
+import { pLog } from '../../shared/lib/debug.js'
+
+const MAX_ATTEMPTS       = 3
+const RETRY_DELAY_MS     = 1200
+const STALL_TIMEOUT_MS   = 15_000
+// Первый байт ждём короче, чем паузу между чанками: если ответ не начался
+// за 8 с, соединение почти наверняка «повисло» (холодный DNS/TLS, мобильная
+// сеть), и держать его ещё 7 с — это те самые ~20 с с баром на нуле
+// (15 с сторож + 1.2 с пауза + перекачка), после которых всё вдруг летит.
+// Между чанками 15 с оставляем: большой файл на слабой сети может реально
+// «думать» дольше 8 с, а обрыв посреди тела дороже, чем на старте
+const FIRST_BYTE_TIMEOUT_MS = 8_000
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
@@ -16,6 +25,9 @@ export async function fetchBlobWithRetry(url, { onProgress, isAlive }) {
       return await fetchOnce(url, onProgress, isAlive)
     } catch (e) {
       lastError = e
+      // В player-log — чтобы «бар стоял 20 секунд» потом можно было прочитать
+      // по логу (обрыв на первом байте / посреди тела / HTTP), а не гадать
+      pLog(`[preload] попытка ${attempt}/${MAX_ATTEMPTS} не удалась (${e.message}): ${url.split('/').pop()}`)
       if (attempt < MAX_ATTEMPTS && isAlive()) await sleep(RETRY_DELAY_MS * attempt)
     }
   }
@@ -24,7 +36,9 @@ export async function fetchBlobWithRetry(url, { onProgress, isAlive }) {
 
 async function fetchOnce(url, onProgress, isAlive) {
   const controller = new AbortController()
-  let watchdog = setTimeout(() => controller.abort(), STALL_TIMEOUT_MS)
+  // Пока не пришёл заголовок ответа — короткий таймер; дальше — обычный сторож
+  let stage = 'первый байт'
+  let watchdog = setTimeout(() => controller.abort(), FIRST_BYTE_TIMEOUT_MS)
   const kick = () => {
     clearTimeout(watchdog)
     watchdog = setTimeout(() => controller.abort(), STALL_TIMEOUT_MS)
@@ -36,6 +50,7 @@ async function fetchOnce(url, onProgress, isAlive) {
       err.httpStatus = res.status
       throw err
     }
+    stage = 'тело'
     kick()
     const total  = Number(res.headers.get('content-length')) || 0
     const reader = res.body.getReader()
@@ -51,6 +66,10 @@ async function fetchOnce(url, onProgress, isAlive) {
       onProgress(loaded, total)
     }
     return { blob: new Blob(chunks), httpStatus: res.status }
+  } catch (e) {
+    // AbortError от сторожа — переименовываем в понятное: где именно повисло
+    if (e?.name === 'AbortError') throw new Error(`таймаут: ${stage}`)
+    throw e
   } finally {
     clearTimeout(watchdog)
   }

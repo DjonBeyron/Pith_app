@@ -65,6 +65,9 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
+  /* Карточка запуска: до готовности кнопка — серый текст без фона, потом
+     зелёная; без transition переход щёлкал */
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .resumeLessonBtnGhost {

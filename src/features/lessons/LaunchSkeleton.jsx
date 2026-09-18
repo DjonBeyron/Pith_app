@@ -69,7 +69,7 @@ export default function LaunchSkeleton({ title, info, mayResume = false }) {
           style={{
             padding: '14px 0', borderRadius: 12, border: 'none',
             fontSize: 16, fontWeight: 600, cursor: 'default',
-            background: '#333', color: '#666',
+            background: 'transparent', color: '#666',
           }}
         >Загрузка...</button>
       )}

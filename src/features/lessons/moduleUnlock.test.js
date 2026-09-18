@@ -157,7 +157,7 @@ describe('карточка запуска урока', () => {
 
   it('кнопка «Начать урок» брендового цвета', () => {
     expect(card).not.toContain('#4caf50')
-    expect(card).toContain("background: canStart ? '#b6fe3b' : '#333'")
+    expect(card).toContain("background: canStart ? '#b6fe3b' : 'transparent'")
     expect(card).toContain("color: canStart ? '#0d1500' : '#666'")
   })
 })
