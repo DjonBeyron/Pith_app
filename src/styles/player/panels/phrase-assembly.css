@@ -55,7 +55,10 @@
 /* ── Answer row (drop zone) ─────────────────────────────── */
 .phraseAnswerRow {
   min-height: 50px;
-  border: 1px dashed #3a3d47;
+  /* Как у ручной таблицы (.tmAnswerBox): тот же пунктир, при заполнении —
+     сплошная нейтральная рамка, БЕЗ зелёного (правильность показывают цвет
+     слов и значок в чате, а лайм рамки спорил с лаймом английских слов) */
+  border: 1.5px dashed #252830;
   border-radius: 14px;
   padding: 8px 12px;
   display: flex;
@@ -68,10 +71,7 @@
   transition: border-color .2s, background .2s;
 }
 
-.phraseAnswerFilled {
-  border-color: #b6fe3b;
-  background: rgba(182,254,59,.04);
-}
+.phraseAnswerFilled { border-style: solid; border-color: rgba(255, 255, 255, 0.22); }
 
 /* Обводки «верно/неверно» здесь НЕТ: правильность показывает значок в чате
    (галочка/крестик) и цвет самих слов, а рамка вокруг поля дублировала это
@@ -81,8 +81,10 @@
 }
 
 .phraseAnswerPlaceholder {
-  font-size: 13px;
-  color: #555;
+  /* Тот же вид, что у .tmAnswerPlaceholder */
+  font-size: 14px;
+  color: #3a4050;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
   margin: auto;
 }
 
@@ -152,7 +154,7 @@
   border: 2px solid #b6fe3b;
   border-radius: 12px;
   padding: 12px;
-  font-size: 14px;
+  font-size: 13px; /* как .tmCheckBtn */
   font-weight: 700;
   color: #b6fe3b;
   cursor: pointer;

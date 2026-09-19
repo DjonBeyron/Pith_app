@@ -46,7 +46,8 @@
   border-radius: 11px;
   padding: 10px 16px;
   font-size: 14px;
-  font-weight: 400;
+  /* Как плашки слов у таблицы (.tmExtraChip): тот же кегль и начертание */
+  font-weight: 600;
   color: #e0e0e0;
   cursor: pointer;
   /* Не inherit: он тянул system-ui из body, и вариант ответа набирался

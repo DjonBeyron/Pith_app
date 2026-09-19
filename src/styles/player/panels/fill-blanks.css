@@ -53,6 +53,9 @@
 
 .fbSentence {
   font-size: 15px;
+  /* То же начертание, что у собранной фразы в таблице (.tmAnswerChip) и
+     «собери фразу»: жирный 700; заполненный пропуск отличается цветом */
+  font-weight: 700;
   line-height: 1.6;
   color: #9aa0b4;
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
@@ -121,7 +124,7 @@
 .fbTranslation {
   margin-top: 8px;
   min-height: 18px;
-  font-size: 13.5px;
+  font-size: 13px; /* кегль ячейки таблицы (table-grid.css) */
   line-height: 1.4;
   color: #6b7180;
   text-align: center;
