@@ -172,7 +172,8 @@ describe('раскладка «Составь предложение»', () => {
     expect(btn).toContain('top: 8px;')
     expect(btn).toContain('right: 12px;')
     // фраза начинается ниже кнопки — верхний отступ inner под неё
-    expect(css).toMatch(/\.fbInner \{[^}]*padding: 38px 16px/)
+    // низ компактный (16px, как у остальных панелей), верх — под кнопку
+    expect(css).toMatch(/\.fbInner \{[^}]*padding: 36px 16px 16px/)
   })
 
   it('«Проверить» всегда в разметке, скрыта до первого пропуска, проявляется opacity+scale', () => {

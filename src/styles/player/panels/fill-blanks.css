@@ -27,23 +27,22 @@
   transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Панель поднята заметно выше прежнего (низ вырос почти в полтора раза за
-   счёт padding-bottom, а не только safe-area) — фраза больше не жмётся к
-   нижнему краю экрана. flex + justify-content: center держит саму фразу (и
-   зарезервированную строку перевода под ней) по центру этой новой высоты,
-   а не прибитой к низу блока. */
+/* Компактно снизу: прежний большой низ (24px + свой safe-area поверх
+   safe-area самой панели, плюс min-height и центрирование) оставлял между
+   кнопкой «Проверить» и краем экрана пустую полосу. Теперь низ такой же, как
+   у остальных панелей (16px, safe-area даёт только .fbPanel), содержимое
+   идёт сверху вниз без центрирования: кнопка перевода → фраза → перевод →
+   «Проверить». */
 .fbInner {
   position: relative;
   max-width: 600px;
   margin: 0 auto;
-  min-height: 88px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   /* Верхний отступ — под маленькую кнопку перевода в правом верхнем углу
      (absolute, см. .fbTrBtn): фраза начинается НИЖЕ неё, поэтому длинное
      предложение на первой строке никогда под кнопку не заезжает */
-  padding: 38px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  padding: 36px 16px 16px;
 }
 
 .fbSentenceCol {
@@ -163,7 +162,7 @@
    (.tmCheckBtn); задержки нет — отката, который надо переждать, тут нет */
 .fbCheckBtn {
   display: block;
-  margin: 14px auto 0;
+  margin: 12px auto 0;
   padding: 7px 22px;
   background: #12141d;
   border: 2px solid #b6fe3b;
