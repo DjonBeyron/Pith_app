@@ -11,7 +11,7 @@ import { schedulePostAudioCheck } from './dictatorPostAudio.js'
 import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 import { isDebugPaused } from '../../../debugTools/debugMedia.js'
-import { playFeedRelease } from '../feedRelease.js'
+import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { makeDictatorSlideDown } from './dictatorSlideDown.js'
 import { useDictatorLegacyAssemble } from './useDictatorLegacyAssemble.js'
@@ -122,8 +122,6 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   // Какие клипы очистки уже сработали — каждый срабатывает один раз за прогон
   const clearedRef           = useRef(new Set())
   const timers               = useRef([])
-  // Высота, на которую надо сдвинуть историю при закрытии (см. useLayoutEffect)
-  const releaseRef           = useRef(0)
   // Старт/финиш прогона для режима без озвучки — те же функции, что дергает <audio>
   const endedRef             = useRef(null)
   const startedRef           = useRef(null)
@@ -197,17 +195,10 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
 
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
-  // Сдвиг истории запускается ПОСЛЕ того, как распорка отдала место, но ДО
-  // отрисовки — для этого и нужен layout-эффект. Вызов сразу за setShow(false)
-  // был ошибкой: там место ещё занято, трансформ уводил ленту вниз на высоту
-  // панели, и только следующим кадром React снимал распорку. На экране это
-  // читалось как «ответ уходит вниз раньше, чем опускается таблица».
-  useLayoutEffect(() => {
-    if (show || !releaseRef.current) return
-    const h = releaseRef.current
-    releaseRef.current = 0
-    playFeedRelease(h)
-  }, [show])
+  // Подъём/спуск с историей — общий хук (usePanelRiseDrop.js): распорка меняет
+  // высоту разом, история стоит до касания панели и едет с ней 1:1; спуск —
+  // зеркально (dictatorSlideDown.js зовёт rise.prepareClose перед setShow(false))
+  const rise = usePanelRiseDrop({ show, panelRef, spacerSel: '.tdSpacer', panelH, label: 'td' })
 
   // useLayoutEffect (не присваивание прямо в теле рендера) — «всегда
   // свежий» коллбэк для таймеров/RAF без чтения ref во время рендера;
@@ -264,7 +255,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   }
 
   const slideDown = makeDictatorSlideDown({
-    node, panelH, panelRef, timers, releaseRef,
+    node, panelRef, timers, rise,
     assembled, extrasAssembled, result, usedCells, toChatCtl,
     onDone, onSendToChat, onLandedInChat, onHeightChange,
     setShow, setHudVisible, setHighlighted, setRevealedIds, setPhase, setChipsVisible,
@@ -360,7 +351,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
           (TableManualPanel). AnswerBubbles у обеих получает confetti={false},
           так что второго источника нет. */}
     <TableDictatorView
-      show={show} toChat={toChatCtl.toChat} panelH={panelH} givenToBubble={toChatCtl.givenToBubble} released={toChatCtl.spacerReleased} panelRef={panelRef} barElsRef={barElsRef}
+      show={show} toChat={toChatCtl.toChat} panelH={panelH} opening={rise.opening} givenToBubble={toChatCtl.givenToBubble} released={toChatCtl.spacerReleased} panelRef={panelRef} barElsRef={barElsRef}
       waveformData={waveformData} hudVisible={hudVisible}
       assembled={assembled} extrasAssembled={extrasAssembled} result={result}
       audioSrc={audioSrc} phase={phase} table={table}

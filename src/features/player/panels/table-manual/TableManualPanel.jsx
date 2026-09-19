@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
@@ -10,7 +10,7 @@ import ListScrollThumb from '../ListScrollThumb.jsx'
 import { tracePanelSync, tracePanelPaint } from '../tracePanelSync.js'
 import { useTableToChat } from '../useTableToChat.js'
 import { spacerStyle } from '../spacerStyle.js'
-import { playFeedRelease } from '../feedRelease.js'
+import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { rememberTap } from '../../xpAnchor.js'
@@ -30,7 +30,7 @@ function shuffle(arr) {
 // собранная фраза уходит пузырём справа. Верная — сразу; неверная — ОДИН раз,
 // последней (третьей) попыткой: промежуточные варианты в переписке не нужны.
 export default function TableManualPanel({
-  node, onDone, onAnswered, onAnswerToChat, onHeightChange, onSendToChat, onLandedInChat,
+  node, onDone, onAnswered, onAnswerToChat, onRevealAnswer, onHeightChange, onSendToChat, onLandedInChat,
   xpAmount = 0, onXpEarned,
   // Сигналы ошибок (см. PROJECT.md): nodes — все ноды урока, чтобы найти
   // живую ноду по ref сигнала; onSignalFired(node, release, exerciseNodeId)
@@ -76,8 +76,6 @@ export default function TableManualPanel({
   const panelRef   = useRef(null)
   const wrongCount = useRef(0)
   const timers     = useRef([])
-  // Высота, на которую надо сдвинуть историю при закрытии (см. useLayoutEffect)
-  const releaseRef = useRef(0)
 
   const panelH = usePanelHeight(panelRef, onHeightChange)
 
@@ -114,43 +112,11 @@ export default function TableManualPanel({
     if (result === 'correct') fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
   }, [result])
 
-  // Сдвиг истории запускается ПОСЛЕ того, как распорка отдала место, но ДО
-  // отрисовки — для этого и нужен layout-эффект. Вызов сразу за setShow(false)
-  // был ошибкой: там место ещё занято, трансформ уводил ленту вниз на высоту
-  // панели, и только следующим кадром React снимал распорку. На экране это
-  // читалось как «ответ уходит вниз раньше, чем опускается таблица».
-  useLayoutEffect(() => {
-    if (show || !releaseRef.current) return
-    const h = releaseRef.current
-    releaseRef.current = 0
-    // Кривая и длительность — РОВНО те же, что у самой панели (.tmPanel,
-    // transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1) в table-manual.css).
-    // Оба движения идут вниз одновременно, и глазу заметно не то, что они
-    // стартуют вместе, а то, что идут по-разному: по кадрам панель давала
-    // +7 +18 +26 +31 +38, а лента со своей ease-in-out +8 +31 +68 +76 +51.
-    // Держи эти значения согласованными с CSS панели.
-    // Держим ленту НА МЕСТЕ прямо сейчас, а отпускаем следующим кадром.
-    //
-    // Причина тонкая: панель уезжает CSS-переходом, а лента — WAAPI. WAAPI
-    // стартует немедленно, из этого же layout-эффекта, а переход браузер
-    // начинает только со следующего кадра — ему надо сперва зафиксировать
-    // старое значение transform. Ровно на этот кадр ответ и уходил раньше
-    // панели. Прежний замер этого не видел: он считал только кадры, где
-    // панель УЖЕ едет, то есть отбрасывал как раз спорный первый.
-    // Компенсировать надо ФАКТИЧЕСКИ отданное место, а не всю высоту панели.
-    // Распорка снимается не в ноль: у неё есть min-height (safe-area + слот
-    // индикатора «печатает», см. feed.css) — в замерах 307 → 28. Удерживая
-    // ленту на все 307, мы поднимали её на лишние 28px, и в начале движения
-    // ответ заметно уходил ВВЕРХ, прежде чем поехать вниз.
-    const spacer = document.querySelector('.tmSpacer')
-    const drop = Math.max(0, h - (spacer ? spacer.getBoundingClientRect().height : 0))
-    if (drop < 1) return
-    const inner = document.querySelector('.playerFeedInner')
-    if (inner) inner.style.transform = `scaleY(-1) translateY(${-drop}px)`
-    requestAnimationFrame(() => {
-      playFeedRelease(drop, { duration: 280, easing: 'cubic-bezier(0.4, 0, 1, 1)' })
-    })
-  }, [show])
+  // Подъём/спуск с историей — общий хук (usePanelRiseDrop.js → panelRise.js):
+  // распорка меняет высоту разом, история стоит до касания панели и едет с
+  // ней 1:1; на спуске опускается ровно до места под уже вставленные (пока
+  // невидимые) пузыри ответа — см. manualClose.js
+  const rise = usePanelRiseDrop({ show, panelRef, spacerSel: '.tmSpacer', panelH, label: 'tm' })
 
   // cellId → выбранное значение (не Set: нужно знать ИМЕННО какое слово из
   // ячейки со списком вариантов ушло в ответ, чтобы погасить только его —
@@ -220,9 +186,9 @@ export default function TableManualPanel({
 
   // Закрытие по итогу проверки (уход панели → пузыри → onDone) — manualClose.js
   const closePanelWith = makeManualClose({
-    node, panelRef, panelH, timers, releaseRef, setShow, toChatCtl,
+    node, panelRef, panelH, setShow, toChatCtl, rise,
     assembled, result, assembledCellValues,
-    onDone, onHeightChange, onSendToChat, onLandedInChat,
+    onDone, onHeightChange, onSendToChat, onLandedInChat, onRevealAnswer,
   })
 
   const check = makeManualCheck({
@@ -249,7 +215,7 @@ export default function TableManualPanel({
       {/* Спейсер отпускается сразу: пока он держит высоту, лента приподнята
           на панель, и пузырь стоит ВЫШЕ неё на эту же высоту — клону пришлось
           бы лететь вверх через весь экран. Момент замера ловит whenStable */}
-      <div className="tmSpacer" style={spacerStyle({ show, panelH, givenToBubble: toChatCtl.givenToBubble, released: toChatCtl.spacerReleased })} />
+      <div className="tmSpacer" style={spacerStyle({ show, panelH, opening: rise.opening, givenToBubble: toChatCtl.givenToBubble, released: toChatCtl.spacerReleased })} />
       <div ref={panelRef}
         className={`tmPanel${show ? ' tmPanelVisible' : ''}${!show && toChatCtl.toChat ? ' tmPanelToChat' : ''}`}>
         <div className="tmPanelInner">

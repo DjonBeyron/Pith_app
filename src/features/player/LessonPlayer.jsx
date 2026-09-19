@@ -171,7 +171,7 @@ export default function LessonPlayer({
   const {
     photoChoiceStates, setPhotoChoiceStates,
     wordChoiceStates, handleWordAnswer, handleWordPick, handleWordReveal,
-    phraseStates, handlePhraseAnswer,
+    phraseStates, handlePhraseAnswer, revealPhraseAnswers,
     regStates, handleRegAnswer,
   } = answers
 
@@ -331,10 +331,8 @@ export default function LessonPlayer({
           hasSignalFired={signalMessages.hasFired}
           record={record}
           wrongRef={wrongRef}
-          handleWordAnswer={handleWordAnswer}
-          handleWordPick={handleWordPick}
-          handleWordReveal={handleWordReveal}
-          handlePhraseAnswer={handlePhraseAnswer}
+          handleWordAnswer={handleWordAnswer} handleWordPick={handleWordPick} handleWordReveal={handleWordReveal}
+          handlePhraseAnswer={handlePhraseAnswer} revealPhraseAnswers={revealPhraseAnswers}
           handleRegAnswer={handleRegAnswer}
           handlePhotoPick={handlePhotoPick}
           onTableToChat={answers.markTableSent}

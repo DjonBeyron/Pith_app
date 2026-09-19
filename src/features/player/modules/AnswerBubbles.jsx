@@ -3,6 +3,8 @@ import ReplyPreview from '../ReplyPreview.jsx'
 import BurstConfetti from '../../../shared/ui/BurstConfetti.jsx'
 import { xpAnchor } from '../xpAnchor.js'
 import { resolvePhraseAttempt } from '../replyResolve.js'
+import { useRef } from 'react'
+import { useDeferredArrival } from './useDeferredArrival.js'
 
 // Пузыри ответа ученика в ленте: собранная фраза справа и реплики учителя
 // слева. Верность показывает только значок в пузыре (галочка/крестик) — своей
@@ -24,12 +26,28 @@ import { resolvePhraseAttempt } from '../replyResolve.js'
 // resolvePhraseAttempt считает финальным ответом по ноде (верный, если он
 // был, иначе последняя попытка). Таблица цитату не заводит — там replyNode
 // всегда null, и это место не рендерится вовсе.
+// b.arriving — пузырь уже в ленте, но невидим и без въезда, пока панель не
+// уехала (таблица: manualClose.js → usePlayerAnswers.revealPhraseAnswers);
+// проявление играет useDeferredArrival. Строкам с флагом — data-no-slide +
+// .playerMsgRowArriving (PlayerFeed их не толкает)
 export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true, replyNode = null, lessonFiles, teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates }) {
+  const rowsRef = useRef([])
+  const anyArriving = (bubbles ?? []).some(b => b.arriving)
+  // Какие именно строки отложены — въезжать должны только они, а не старые
+  // попытки той же ноды (хук запоминает список, пока флаг стоит)
+  const arrivingIdx = (bubbles ?? []).map((b, i) => (b.arriving ? i : -1)).filter(i => i >= 0)
+  useDeferredArrival(anyArriving, rowsRef, { indices: arrivingIdx })
   const list = bubbles ?? []
 
   if (!list.length) return null
 
   const finalAttempt = replyNode ? resolvePhraseAttempt(list) : null
+  // Атрибуты строки: обычная, либо отложенная (см. выше)
+  const rowProps = (b, i, cls) => ({
+    className: b.arriving ? `${cls} playerMsgRowArriving` : cls,
+    ...(b.arriving ? { 'data-no-slide': 'true' } : {}),
+    ref: el => { rowsRef.current[i] = el },
+  })
 
   return (
     <>
@@ -48,7 +66,7 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
 
         if (b.result === 'correct') {
           return (
-            <div key={i} className="playerMsgRow playerMsgRowRight">
+            <div key={i} {...rowProps(b, i, 'playerMsgRow playerMsgRowRight')}>
               {/* Тот же салют, что на новом уровне, только короче и реже:
                   верных ответов в уроке десятки (Confetti.jsx) */}
               {confetti && (
@@ -65,7 +83,7 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
         }
 
         if (b.result === 'wrong_final') return (
-          <div key={i} className="playerMsgRow playerMsgRowRight">
+          <div key={i} {...rowProps(b, i, 'playerMsgRow playerMsgRowRight')}>
             <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseErr">
               {quote}
               {b.text}
@@ -74,13 +92,13 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
         )
 
         if (b.result === 'hint') return (
-          <div key={i} className="playerMsgRow">
+          <div key={i} {...rowProps(b, i, 'playerMsgRow')}>
             <PlayerBubble className="playerMsgBubble">{b.text}</PlayerBubble>
           </div>
         )
 
         return (
-          <div key={i} className="playerMsgRow">
+          <div key={i} {...rowProps(b, i, 'playerMsgRow')}>
             <PlayerBubble className="playerMsgBubble playerMsgBubble--teacherErr">
               {b.text}
             </PlayerBubble>

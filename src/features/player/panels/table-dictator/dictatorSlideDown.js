@@ -12,10 +12,10 @@ const RESTORE_MS = 90
 // причём цельная по смыслу: «как модуль уходит со сцены».
 //
 // Фабрика, а не хук: вызывается на каждом рендере и замыкает свежие
-// assembled/result/panelH — ровно так же, как когда функция жила прямо в
+// assembled/result — ровно так же, как когда функция жила прямо в
 // теле компонента (её ссылка всё равно каждый кадр клалась в slideDownRef).
 export function makeDictatorSlideDown({
-  node, panelH, panelRef, timers, releaseRef,
+  node, panelRef, timers, rise,
   assembled, extrasAssembled, result, usedCells, toChatCtl,
   onDone, onSendToChat, onLandedInChat, onHeightChange,
   setShow, setHudVisible, setHighlighted, setRevealedIds, setPhase, setChipsVisible,
@@ -50,9 +50,10 @@ export function makeDictatorSlideDown({
       } else {
         timers.current.push(setTimeout(done, 420))
       }
-      // Высоту запоминаем ЗДЕСЬ: к моменту, когда сдвиг реально запустится
-      // (useLayoutEffect ниже), распорка уже отдана и panelH обнулён
-      if (!onSendToChat) releaseRef.current = panelH
+      // Опора для спуска — хуку (usePanelRiseDrop), ДО setShow(false): история
+      // едет вниз с панелью и встаёт, отдав своё; без reveal — пузырей у
+      // авто-таблицы нет, ноду закрывает таймер done выше
+      if (!onSendToChat) rise.prepareClose()
       setShow(false)
       setHudVisible(false)   // панель уезжает вниз — спектр сразу схлопывается (scale к 0), не ждёт onEnded
       setHighlighted(new Set())

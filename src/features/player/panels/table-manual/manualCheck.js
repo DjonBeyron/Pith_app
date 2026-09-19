@@ -14,7 +14,10 @@ function slotMatches(token, expectedToken) {
 //
 // Порядок движений (эксперимент, см. PROJECT.md «Ручная таблица: панель
 // уезжает раньше ответа»): пузыри в чат отсюда НЕ шлём напрямую — отдаём их
-// третьим аргументом closePanelWith, а панель сама решает, КОГДА их показать.
+// третьим аргументом closePanelWith — функцией sendBubbles(deferred), а панель
+// сама решает, КОГДА её позвать и с каким флагом: deferred=true — пузыри
+// встают в ленту невидимыми (arriving) тем же тиком, что закрывается панель,
+// и проявляются, когда история встала (manualClose.js).
 // При обычном закрытии — после того как таблица и история уехали вниз; при
 // уходе таблицы в чат (галочка «отправить таблицу») — как раньше, ДО
 // превращения. Верная ветка стартует закрытие сразу, одним тиком с салютом;
@@ -62,13 +65,13 @@ export function makeManualCheck({
       // Закрытие стартует В ТОТ ЖЕ тик, что и салют (setResult выше):
       // таблица и история трогаются вниз с первыми искрами, а ответ въезжает
       // в переписку уже на освободившееся место (см. closePanelWith)
-      closePanelWith('table_correct', undefined, () => {
-        if (phrase.trim()) onAnswerToChat?.(phrase, 'correct')
+      closePanelWith('table_correct', undefined, deferred => {
+        if (phrase.trim()) onAnswerToChat?.(phrase, 'correct', deferred)
         // 'hint', не 'correct': это реплика УЧИТЕЛЯ, а не второй ответ
         // ученика — 'correct' рисует её тем же зелёным пузырём справа,
         // что и саму фразу, и получались две «реплики ученика» подряд
         // (тот же баг был у fillBlanksCheck.js, см. PROJECT.md)
-        if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'hint')
+        if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'hint', deferred)
       })
       return
     }
@@ -99,14 +102,14 @@ export function makeManualCheck({
       // дальше тот же порядок, что и у верного ответа: сперва уезжает
       // панель, потом пузыри
       const id = setTimeout(() => {
-        closePanelWith('table_wrong', variantId, () => {
+        closePanelWith('table_wrong', variantId, deferred => {
           // Именно последняя попытка — её ученик и видит в переписке
-          if (phrase.trim()) onAnswerToChat?.(phrase, 'wrong_final')
+          if (phrase.trim()) onAnswerToChat?.(phrase, 'wrong_final', deferred)
           // Правильный ответ — раскрытие подсказкой учителя (не «от лица
           // ученика»: это была ошибка — answer сюда попадал с тем же
           // 'wrong_final', то есть красным и СПРАВА, как будто ученик сам
           // ответил верно, хотя как раз нет)
-          if (answer.trim()) onAnswered?.(answer, 'hint')
+          if (answer.trim()) onAnswered?.(answer, 'hint', deferred)
         })
       }, 600)
       timers.current.push(id)

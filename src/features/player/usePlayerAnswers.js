@@ -39,11 +39,22 @@ export function usePlayerAnswers() {
     setWordChoiceStates(prev => ({ ...prev, [nodeId]: { ...prev[nodeId], pickText } }))
   }
 
-  function handlePhraseAnswer(nodeId, text, result) {
+  // arriving — то же, что у word_choice выше: пузырь уже в ленте, но невидим,
+  // пока панель не уехала (AnswerBubbles / useDeferredArrival.js);
+  // revealPhraseAnswers снимает флаг со всех пузырей ноды
+  function handlePhraseAnswer(nodeId, text, result, arriving = false) {
     setPhraseStates(prev => {
       const arr = prev[nodeId] ?? []
       if (result === 'wrong' && arr.some(b => b.result === 'wrong')) return prev
-      return { ...prev, [nodeId]: [...arr, { text, result }] }
+      return { ...prev, [nodeId]: [...arr, { text, result, ...(arriving ? { arriving: true } : {}) }] }
+    })
+  }
+
+  function revealPhraseAnswers(nodeId) {
+    setPhraseStates(prev => {
+      const arr = prev[nodeId]
+      if (!arr?.some(b => b.arriving)) return prev
+      return { ...prev, [nodeId]: arr.map(b => (b.arriving ? { ...b, arriving: false } : b)) }
     })
   }
 
@@ -85,7 +96,7 @@ export function usePlayerAnswers() {
     resetNode,
     photoChoiceStates, setPhotoChoiceStates,
     wordChoiceStates, handleWordAnswer, handleWordPick, handleWordReveal,
-    phraseStates, handlePhraseAnswer,
+    phraseStates, handlePhraseAnswer, revealPhraseAnswers,
     regStates, handleRegAnswer,
     tableSent, markTableSent,
     tableArriving, markTableLanded,

@@ -67,12 +67,12 @@ describe('ответ ученика уходит в чат по галочке',
   const panel = read('./manualCheck.js')
 
   it('верный ответ отправляется сразу', () => {
-    expect(panel).toContain("if (phrase.trim()) onAnswerToChat?.(phrase, 'correct')")
+    expect(panel).toContain("if (phrase.trim()) onAnswerToChat?.(phrase, 'correct', deferred)")
   })
 
   it('неверный — один раз, последней из трёх попыток', () => {
     const tail = panel.slice(panel.indexOf('if (wrongCount.current >= 3) {'))
-    expect(tail).toContain("onAnswerToChat?.(phrase, 'wrong_final')")
+    expect(tail).toContain("onAnswerToChat?.(phrase, 'wrong_final', deferred)")
     // на первой и второй ошибке в чат ничего не уходит
     const middle = panel.slice(panel.indexOf('wrongCount.current += 1'), panel.indexOf('if (wrongCount.current >= 3) {'))
     expect(middle).not.toContain('onAnswerToChat')

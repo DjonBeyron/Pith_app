@@ -7,7 +7,7 @@ import { spacerStyle } from '../spacerStyle.js'
 // значения состояния и колбэки на <audio>. Вынесено, чтобы не раздувать
 // файл с состоянием: сам рендер не завязан ни на таймеры, ни на refs сценария.
 export default function TableDictatorView({
-  show, toChat, panelH, givenToBubble, released, panelRef, barElsRef, waveformData, hudVisible,
+  show, toChat, panelH, opening, givenToBubble, released, panelRef, barElsRef, waveformData, hudVisible,
   assembled, extrasAssembled, result, audioSrc, phase, table, caption,
   highlighted, usedCells, revealedIds, flashDur, chipsVisible,
   shuffledExtras, chipStyles, extrasAssembledKeys, activeExtraKeys, hasExtraLayers,
@@ -33,7 +33,7 @@ export default function TableDictatorView({
       {/* Спейсер отпускается сразу: пока он держит высоту, лента приподнята
           на панель, и пузырь стоит ВЫШЕ неё на эту же высоту — клону пришлось
           бы лететь вверх через весь экран. Момент замера ловит whenStable */}
-      <div className="tdSpacer" style={spacerStyle({ show, panelH, givenToBubble, released })} />
+      <div className="tdSpacer" style={spacerStyle({ show, panelH, opening, givenToBubble, released })} />
       <div ref={panelRef}
         className={`tdPanel${show ? ' tdPanelVisible' : ''}${!show && toChat ? ' tdPanelToChat' : ''}`}>
         <div className="tdPanelInner">

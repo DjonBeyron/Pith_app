@@ -19,13 +19,21 @@ import { pLog } from '../../../shared/lib/debug.js'
 // играть «message-in» (пузырь --pick молчит: звук уже дал сам тап)
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
 
-export function useDeferredArrival(arriving, rowsRef, { silent = false } = {}) {
+// indices — массив индексов строк, которые сейчас отложены (когда строк у
+// сообщения несколько и часть пришла раньше обычным путём — как у таблицы с
+// попытками); хук запоминает его, пока флаг стоит, — в рендере со снятым
+// флагом этого уже не видно. Без indices въезжают все строки rowsRef
+export function useDeferredArrival(arriving, rowsRef, { silent = false, indices = null } = {}) {
   const wasArriving = useRef(arriving)
+  const idxRef = useRef(null)
   useLayoutEffect(() => {
     const was = wasArriving.current
     wasArriving.current = arriving
-    if (!was || arriving) return
-    const rows = (rowsRef.current ?? []).filter(Boolean)
+    if (arriving) { idxRef.current = indices; return }
+    if (!was) return
+    const all = rowsRef.current ?? []
+    const rows = (idxRef.current ? idxRef.current.map(i => all[i]) : all).filter(Boolean)
+    idxRef.current = null
     pLog(`[arrival] проявляем ${rows.length} отложенных пузырей`)
     rows.forEach(el => {
       el.animate(

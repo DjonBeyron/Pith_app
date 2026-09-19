@@ -32,7 +32,10 @@ const CLOSE_INSTANT = 'none'
 // трассе ровные
 const RELEASE = 'none'
 
-export function spacerStyle({ show, panelH, givenToBubble, released }) {
+// opening — идёт подъём (usePanelRiseDrop): высота ставится РАЗОМ, движение
+// истории играет трансформ ленты (panelRise.js). Дальше распорка снова
+// плавно следует за ростом панели по ходу ответа (OPEN)
+export function spacerStyle({ show, panelH, opening = false, givenToBubble, released }) {
   if (givenToBubble != null) {
     return released
       ? { height: 0, transition: RELEASE }
@@ -47,6 +50,6 @@ export function spacerStyle({ show, panelH, givenToBubble, released }) {
   // (playFeedRelease в feedRelease.js) — его запускает сама панель.
   return {
     height: show ? panelH : 0,
-    transition: show ? OPEN : CLOSE_INSTANT,
+    transition: show && !opening ? OPEN : CLOSE_INSTANT,
   }
 }

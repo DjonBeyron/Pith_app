@@ -6,20 +6,24 @@ import { whenBubbleLanded } from '../whenBubbleLanded.js'
 // (панель упёрлась в потолок 400 строк). Фабрика, как и makeManualCheck:
 // зовётся на каждом рендере и замыкает свежие панельные значения.
 //
-// sendBubbles — что уходит в переписку (собирает manualCheck.js). КОГДА
-// показать — решается здесь, по способу закрытия (PROJECT.md, «панель
-// уезжает раньше ответа»):
-//  · обычное закрытие — сперва панель и история уезжают вниз одним тиком с
-//    салютом, потом пузыри въезжают на освободившееся место;
+// sendBubbles(deferred) — что уходит в переписку (собирает manualCheck.js).
+// КОГДА показать — решается здесь, по способу закрытия:
+//  · обычное закрытие («история знает высоту ответа заранее», PROJECT.md):
+//    пузыри встают в ленту НЕВИДИМЫМИ (deferred=true → arriving) тем же
+//    тиком, что закрывается панель; раскладка сразу конечная, история едет
+//    вниз с панелью ровно до места, где останется, и в момент её остановки
+//    хук usePanelRiseDrop зовёт onRevealAnswer — пузыри въезжают снизу, потом
+//    onDone. Салют здесь же, одним тиком;
 //  · уход таблицы в чат (галочка «отправить таблицу») — пузыри ДО
-//    превращения, как и было: клон целится в готовую конечную раскладку.
+//    превращения, обычным путём (deferred=false): клон целится в готовую
+//    конечную раскладку.
 //
 // Зовётся ТОЛЬКО на верном ответе и на третьей ошибке — первые две ошибки и
 // сигналы автора панель не закрывают (см. manualCheck.js).
 export function makeManualClose({
-  node, panelRef, panelH, timers, releaseRef, setShow, toChatCtl,
+  node, panelRef, panelH, setShow, toChatCtl, rise,
   assembled, result, assembledCellValues,
-  onDone, onHeightChange, onSendToChat, onLandedInChat,
+  onDone, onHeightChange, onSendToChat, onLandedInChat, onRevealAnswer,
 }) {
   // Уход таблицы в переписку целиком
   function flyToChat(trigger, done) {
@@ -44,26 +48,18 @@ export function makeManualClose({
 
   return function closePanelWith(trigger, variantId, sendBubbles) {
     const done = () => { onHeightChange?.(0); onDone?.(trigger, variantId) }
-    // flushSync: пузырь должен ОКАЗАТЬСЯ В DOM до того, как whenBubbleLanded
-    // спросит у него анимацию въезда
-    const send = () => { if (sendBubbles) flushSync(sendBubbles) }
     if (onSendToChat) {
-      send()
+      // flushSync: пузырь должен ОКАЗАТЬСЯ В DOM до того, как whenBubbleLanded
+      // спросит у него анимацию въезда
+      if (sendBubbles) flushSync(() => sendBubbles(false))
       whenBubbleLanded(() => flyToChat(trigger, done))
       return
     }
-    // Высоту запоминаем ЗДЕСЬ: к моменту, когда сдвиг реально запустится
-    // (useLayoutEffect в панели), распорка уже отдана и panelH может обнулиться
-    releaseRef.current = panelH
+    // Опора и что сделать на остановке истории — хуку; пузыри (невидимые) и
+    // закрытие — ОДНИМ тиком, React батчит
+    rise.prepareClose({ reveal: { onReveal: () => onRevealAnswer?.(), done } })
+    sendBubbles?.(true)
     setShow(false)
-    pLog(`[tm] setShow(false) — панель закрывается (сдвиг истории ${panelH}px трансформом)`)
-    // 300мс = панель 0.28s (.tmPanel) и сдвиг ленты 280мс закончились —
-    // раньше пузырь толкал бы вверх ленту, которая ещё опускается. Ноду
-    // закрываем после въезда пузыря, чтобы следующее сообщение его не догоняло
-    timers.current.push(setTimeout(() => {
-      pLog(`[tm] панель уехала (+300мс) → пузыри в чат: ${sendBubbles ? 'есть' : 'нет'}`)
-      send()
-      whenBubbleLanded(() => { pLog(`[tm] пузырь въехал → onDone(${trigger})`); done() })
-    }, 300))
+    pLog(`[tm] setShow(false) — панель закрывается (trigger=${trigger}), пузыри уже в ленте невидимыми`)
   }
 }

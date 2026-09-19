@@ -33,7 +33,7 @@ export default function PlayerPanels({
   // с чистого листа, а не с показанным разбором прошлой попытки
   epoch = 0,
   onNodeDone, record, wrongRef,
-  handleWordAnswer, handleWordPick, handleWordReveal, handlePhraseAnswer, handleRegAnswer,
+  handleWordAnswer, handleWordPick, handleWordReveal, handlePhraseAnswer, revealPhraseAnswers, handleRegAnswer,
   handlePhotoPick, handleXpEarned, onTableToChat, onTableLanded,
   setWcPanelHeight, setPaPanelHeight, setFbPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
 }) {
@@ -147,11 +147,15 @@ export default function PlayerPanels({
                ответ (responseWrong) и раскрытие ответа после трёх попыток
                никогда не доходили до чата. Теперь тот же канал, что у
                «Собери фразу» */
-            onAnswered={(text, result) => handlePhraseAnswer(tableNode.id, text, result)}
+            /* Третий аргумент — arriving: пузырь встаёт в ленту невидимым тем
+               же тиком, что закрывается панель (manualClose.js), onRevealAnswer
+               проявляет его на остановке истории */
+            onAnswered={(text, result, arriving) => handlePhraseAnswer(tableNode.id, text, result, arriving)}
+            onRevealAnswer={() => revealPhraseAnswers(tableNode.id)}
             /* Галочка «отправить ответ ученика в чат»: собранная фраза уходит
                пузырём справа (верная — сразу, неверная — последняя из трёх) */
             onAnswerToChat={tableNode.typeData?.table?.sendAnswerToChat
-              ? (text, result) => handlePhraseAnswer(tableNode.id, text, result)
+              ? (text, result, arriving) => handlePhraseAnswer(tableNode.id, text, result, arriving)
               : undefined}
             xpAmount={xpMap.get(tableNode.id) ?? 0}
             onXpEarned={(amount, opts) => handleXpEarned(amount, tableNode.id, opts)}

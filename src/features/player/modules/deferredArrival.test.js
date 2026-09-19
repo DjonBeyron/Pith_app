@@ -13,6 +13,7 @@ describe('отложенный приход ответа «выбери слов
   const panels = read('../PlayerPanels.jsx')
   const panel = read('../panels/choose-word/ChooseWordPanel.jsx')
   const css = read('../../../styles/player/message.css')
+  const hook = read('../panels/usePanelRiseDrop.js')
 
   it('строки в arriving помечены data-no-slide и невидимы', () => {
     expect(wc).toContain("const noSlide = arriving ? { 'data-no-slide': 'true' } : {}")
@@ -25,19 +26,47 @@ describe('отложенный приход ответа «выбери слов
     expect(feed).toContain('if (existingRows.length && shiftPx > 0)')
   })
 
-  it('панель вставляет пузыри с arriving одним тиком с закрытием и проявляет с остановки истории', () => {
+  it('панель вставляет пузыри с arriving одним тиком с закрытием, проявление — с остановки истории (хук)', () => {
     expect(panels).toContain('handleWordAnswer(wcNode.id, text, result, true)')
     expect(panels).toContain('onRevealAnswer={() => handleWordReveal(wcNode.id)}')
-    const close = panel.slice(panel.indexOf('anchorRef.current = last'))
-    // порядок: пузыри → setShow(false) в одном колбэке; reveal планирует
-    // layout-эффект спуска на historyStopMs из playPanelDrop
+    const close = panel.slice(panel.indexOf('rise.prepareClose({ reveal: {'))
+    // порядок: prepareClose → пузыри → setShow(false) в одном колбэке
     expect(close.indexOf('onAnswered?.(responseText, result)')).toBeLessThan(close.indexOf('setShow(false)'))
-    expect(panel).toContain('flushSync(() => onRevealAnswer?.())')
-    expect(panel).toContain('}, historyStopMs))')
+    // reveal планирует общий хук на historyStopMs из playPanelDrop
+    expect(hook).toContain('flushSync(() => reveal.onReveal?.())')
+    expect(hook).toContain('}, historyStopMs))')
     expect(read('../panels/panelRise.js')).toContain('return { anim, historyStopMs }')
   })
 
   it('спуск меряется по опоре — с учётом места, занятого пузырями', () => {
-    expect(panel).toContain('a.el.getBoundingClientRect().top - a.top')
+    expect(hook).toContain('a.el.getBoundingClientRect().top - a.top')
+  })
+})
+
+// Таблица (ручная) — тот же приём через phraseStates/AnswerBubbles
+describe('отложенный приход ответа ручной таблицы', () => {
+  const bubbles = read('./AnswerBubbles.jsx')
+  const close = read('../panels/table-manual/manualClose.js')
+  const check = read('../panels/table-manual/manualCheck.js')
+  const panels = read('../PlayerPanels.jsx')
+  const answers = read('../usePlayerAnswers.js')
+
+  it('AnswerBubbles: строки с arriving — без въезда и невидимы, проявляются только они', () => {
+    expect(bubbles).toContain("...(b.arriving ? { 'data-no-slide': 'true' } : {})")
+    expect(bubbles).toContain('playerMsgRowArriving')
+    expect(bubbles).toContain('useDeferredArrival(anyArriving, rowsRef, { indices: arrivingIdx })')
+  })
+
+  it('manualClose: обычное закрытие — пузыри отложенные (deferred=true) одним тиком с setShow(false); уход в чат — обычные', () => {
+    const normal = close.slice(close.indexOf('rise.prepareClose('))
+    expect(normal.indexOf('sendBubbles?.(true)')).toBeLessThan(normal.indexOf('setShow(false)'))
+    expect(close).toContain('if (sendBubbles) flushSync(() => sendBubbles(false))')
+    expect(check).toContain("onAnswerToChat?.(phrase, 'correct', deferred)")
+  })
+
+  it('флаг доходит до phraseStates, reveal снимает его', () => {
+    expect(panels).toContain('handlePhraseAnswer(tableNode.id, text, result, arriving)')
+    expect(panels).toContain('onRevealAnswer={() => revealPhraseAnswers(tableNode.id)}')
+    expect(answers).toContain('function revealPhraseAnswers(nodeId)')
   })
 })
