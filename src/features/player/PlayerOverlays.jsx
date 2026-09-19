@@ -3,6 +3,7 @@ import XpFloat from './XpFloat.jsx'
 import LessonSummary from './LessonSummary.jsx'
 import { HINT_LIMIT } from './useFinalHints.js'
 import { useShowDebugUi } from './useShowDebugUi.js'
+import { usePerfProbe } from './usePerfProbe.js'
 
 // Номер версии виден прямо в плеере: после деплоя сразу понятно, что открыт
 // свежий код, а не кэш браузера (правило из CLAUDE.md)
@@ -22,6 +23,9 @@ export default function PlayerOverlays({
   // кнопка «⬇ лог», в PlayerTopBar). Раньше висел у всех и всегда, мимо
   // переключателя в админке
   const showDebugUi = useShowDebugUi()
+  // Датчик производительности (fps, число анимаций и т.п.) — строка под
+  // штампом версии и та же строка раз в секунду в pLog (usePerfProbe.js)
+  const perfSummary = usePerfProbe(showDebugUi)
 
   return (
     <>
@@ -37,6 +41,7 @@ export default function PlayerOverlays({
         />
       )}
       {showDebugUi && <div className="playerVersionStamp">{buildStamp()}</div>}
+      {showDebugUi && perfSummary && <div className="playerPerfStamp">{perfSummary}</div>}
     </>
   )
 }

@@ -78,6 +78,22 @@
   white-space: nowrap;
 }
 
+/* Строка датчика производительности под штампом версии (usePerfProbe.js):
+   такая же мелкая и прозрачная, чуть ярче — её надо суметь прочитать на
+   скриншоте с телефона */
+.playerPerfStamp {
+  position: fixed;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+  z-index: 9999;
+  user-select: none;
+  white-space: nowrap;
+}
+
 /* Растушёвка нижней границы чата — зеркало верхней в ленте (.feedV2::after).
    Сообщения, панели и таблицы выезжают снизу как бы ИЗ-ПОД неё: у самого низа
    она плотная, к верху сходит на нет.

@@ -1,19 +1,33 @@
 import { getPlayerLines } from '../../shared/lib/debug.js'
 import { sendToSink, debugFileName } from '../debugTools/debugSink.js'
+import { buildPerfSection } from './perfLogSection.js'
+
+// ВРЕМЕННО (замер лагов урока trying, 2026-09-19): в лог идёт только секция
+// производительности, всё остальное заглушено — так файл читается за минуту.
+// Вернуть полный лог: поставить false
+const PERF_ONLY = true
 
 // Сборка общего дебаг-лога плеера (текст): pLog-строки, таймлайн появления
 // нод, загрузки файлов, события анализа. Общая для скачивания и копирования
 // в буфер (downloadDebugLog/copyDebugLog), чтобы текст не расходился.
 function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
   const ts = new Date().toISOString()
+  const playerLines = getPlayerLines()
   const lines = [
     `=== HETA Player Debug Log ===`,
     `ts: ${ts}`,
     `ua: ${navigator.userAgent}`,
     `device: memory=${navigator.deviceMemory ?? 'n/a'} cpu=${navigator.hardwareConcurrency ?? 'n/a'} conn=${navigator.connection?.effectiveType ?? 'n/a'}`,
     ``,
+    // Датчик производительности — отдельной секцией вперёд остального: по
+    // ней сразу видно, лагало ли и что росло (perfLogSection.js)
+    ...buildPerfSection(playerLines),
+  ]
+  if (PERF_ONLY) return lines.join('\n')
+  lines.push(
+    ``,
     `--- Player log (pLog) ---`,
-    ...getPlayerLines(),
+    ...playerLines,
     ``,
     `--- Node timeline ---`,
     ...nodeAppearLog.map(n =>
@@ -29,7 +43,7 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
     ...events.map(e =>
       `${e.type} урок=${e.lessonId} попытка=${e.attempt} время=${e.timeMs ?? '?'}мс «${e.option}» сессия=${e.sessionId}`
     ),
-  ]
+  )
   return lines.join('\n')
 }
 
