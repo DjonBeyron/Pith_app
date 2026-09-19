@@ -131,11 +131,11 @@ export default function LessonPlayer({
   // Откуда полетит «+N XP», решает xpAnchor.js: от пузыря с ответом, если он
   // появится в переписке, иначе от последнего места тапа (его панели пометили
   // через rememberTap). Начисление при этом не ждёт ничего — счётчик в шапке
-  // растёт сразу, откладывается только полёт.
-  function handleXpEarned(amount, nodeId = null) {
+  // растёт сразу, откладывается только полёт. opts.expectBubble — см. xpAnchor.js
+  function handleXpEarned(amount, nodeId = null, opts = undefined) {
     setEarnedXp(prev => { earnedXpRef.current = prev + amount; return prev + amount })
     resolveXpOrigin(nodeId, origin =>
-      setXpEvents(prev => [...prev, { id: Date.now() + Math.random(), amount, rect: origin }]))
+      setXpEvents(prev => [...prev, { id: Date.now() + Math.random(), amount, rect: origin }]), opts)
   }
 
   function dismissXpEvent(id) {

@@ -177,7 +177,10 @@ export default function ChooseWordPanel({
                 rememberTap(e.currentTarget.getBoundingClientRect())
                 if (opt.isCorrect && xpAmount > 0 && !xpFiredRef.current) {
                   xpFiredRef.current = true
-                  onXpEarned?.(xpAmount)
+                  // Пузырь ответа будет, если в чат уходит выбранное слово или
+                  // есть реплика на верный — XP тогда ждёт его и летит от него
+                  const expectBubble = !!onPickToChat || !!wcData.responseCorrect?.trim()
+                  onXpEarned?.(xpAmount, { expectBubble })
                 }
                 if (!isAnswered) onPicked?.(opt)
                 handlePick(opt)

@@ -53,7 +53,12 @@ export function makeManualCheck({
       // пузырей не было вовсе — значит, и награды за таблицу тоже. Точку
       // старта полёта выберет xpAnchor.js: пузырь, если он появится, иначе
       // последняя нажатая ячейка или слово.
-      if (xpAmount > 0) onXpEarned?.(xpAmount)
+      // expectBubble — будет ли пузырь в чате (галочка «отправить ответ» или
+      // реплика на верный): XP тогда ждёт его и летит от него (xpAnchor.js)
+      if (xpAmount > 0) {
+        const expectBubble = !!(onAnswerToChat && phrase.trim()) || !!tData.responseCorrect?.trim()
+        onXpEarned?.(xpAmount, { expectBubble })
+      }
       // Закрытие стартует В ТОТ ЖЕ тик, что и салют (setResult выше):
       // таблица и история трогаются вниз с первыми искрами, а ответ въезжает
       // в переписку уже на освободившееся место (см. closePanelWith)

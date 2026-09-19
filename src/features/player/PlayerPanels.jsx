@@ -61,7 +61,7 @@ export default function PlayerPanels({
           onPickToChat={wcNode.typeData?.word_choice?.sendPickToChat === true
             ? text => handleWordPick(wcNode.id, text)
             : undefined}
-          onXpEarned={amount => handleXpEarned(amount, wcNode.id)}
+          onXpEarned={(amount, opts) => handleXpEarned(amount, wcNode.id, opts)}
           onHeightChange={setWcPanelHeight}
         />
       )}
@@ -154,7 +154,7 @@ export default function PlayerPanels({
               ? (text, result) => handlePhraseAnswer(tableNode.id, text, result)
               : undefined}
             xpAmount={xpMap.get(tableNode.id) ?? 0}
-            onXpEarned={amount => handleXpEarned(amount, tableNode.id)}
+            onXpEarned={(amount, opts) => handleXpEarned(amount, tableNode.id, opts)}
             onHeightChange={setTablePanelHeight}
           />
         ) : (
@@ -167,7 +167,7 @@ export default function PlayerPanels({
             file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
             xpAmount={xpMap.get(tableNode.id) ?? 0}
-            onXpEarned={amount => handleXpEarned(amount, tableNode.id)}
+            onXpEarned={(amount, opts) => handleXpEarned(amount, tableNode.id, opts)}
             onHeightChange={setTablePanelHeight}
           />
         )

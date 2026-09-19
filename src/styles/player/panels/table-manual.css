@@ -13,7 +13,7 @@
      рисуется без will-change. Слой нужен только пока панель едет, поэтому он
      снимается по концу выезда (см. panelRef в самой панели). */
   will-change: transform;
-  z-index: 80; /* над растушёвкой низа (65) и «печатает» (70) — см. layout.css */
+  z-index: 80; /* над «печатает» (70), под салютом (85) и растушёвкой низа (90) — см. layout.css */
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 .tmPanelVisible {

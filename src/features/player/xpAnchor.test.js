@@ -15,7 +15,7 @@ describe('откуда вылетает XP', () => {
   const player = read('./LessonPlayer.jsx')
 
   it('точку старта считает один модуль, и он ждёт пузырь', () => {
-    expect(anchor).toContain('export function resolveXpOrigin(nodeId, done)')
+    expect(anchor).toContain('export function resolveXpOrigin(nodeId, done, { expectBubble } = {})')
     expect(anchor).toContain('export function rememberTap(rect)')
     expect(anchor).toContain("export const XP_ANCHOR = 'data-xp-anchor'")
     // Ждём не только появления пузыря, но и конца его въезда снизу: первые
@@ -77,7 +77,7 @@ describe('откуда вылетает XP', () => {
     // ответ ученика» TableModule возвращал null — награды за таблицу не было
     // вовсе. Теперь объявляет проверка, независимо от пузырей.
     const check = read('./panels/table-manual/manualCheck.js')
-    expect(check).toContain('if (xpAmount > 0) onXpEarned?.(xpAmount)')
+    expect(check).toContain('onXpEarned?.(xpAmount, { expectBubble })')
     const dictator = read('./panels/table-dictator/TableDictatorPanel.jsx')
     expect(dictator).toContain('if (isCorrect && xpAmount > 0 && !xpFiredRef.current)')
   })
@@ -137,5 +137,29 @@ describe('двойной блеск на верном ответе', () => {
     expect(rm).not.toContain('.playerMsgBubble--responseOk::before { animation: none')
     expect(rm).toContain('answerSheenStill')
     expect(rm).toContain('answerMarkFlash')
+  })
+})
+
+// Пользователь (2026-09-19): цифра должна стартовать от самого пузыря ответа
+// — от его центра, а у короткого ответа (< 10 знаков) от левой части
+describe('точка старта — сам пузырь, короткий ответ — слева', () => {
+  const anchor = read('./xpAnchor.js')
+
+  it('берётся .playerMsgBubble внутри якоря, а не обёртка', () => {
+    expect(anchor).toContain("const bubble = el.matches?.('.playerMsgBubble') ? el : (el.querySelector?.('.playerMsgBubble') ?? el)")
+  })
+
+  it('короткий ответ — левая половина пузыря (центр на четверти ширины)', () => {
+    expect(anchor).toContain('const SHORT_LEN = 10')
+    expect(anchor).toContain('if (len < SHORT_LEN) return { left: r.left, top: r.top, width: r.width / 2, height: r.height }')
+  })
+
+  it('отложенный (ещё невидимый) пузырь считается не готовым, а ожидание зависит от expectBubble', () => {
+    expect(anchor).toContain("const arriving = !!el.closest?.('.playerMsgRowArriving')")
+    expect(anchor).toContain('if ((!busy && !arriving) || late)')
+    expect(anchor).toContain("if (nodeId == null || expectBubble === false || typeof requestAnimationFrame !== 'function')")
+    // панели знают, будет ли пузырь
+    expect(read('./panels/choose-word/ChooseWordPanel.jsx')).toContain('onXpEarned?.(xpAmount, { expectBubble })')
+    expect(read('./LessonPlayer.jsx')).toContain('function handleXpEarned(amount, nodeId = null, opts = undefined)')
   })
 })

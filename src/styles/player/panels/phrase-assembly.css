@@ -17,7 +17,7 @@
   transform: translateY(100%);
   transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1);
   will-change: transform;
-  z-index: 80; /* над растушёвкой низа (65) и «печатает» (70) — см. layout.css */
+  z-index: 80; /* над «печатает» (70), под салютом (85) и растушёвкой низа (90) — см. layout.css */
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
