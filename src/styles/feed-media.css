@@ -229,6 +229,14 @@
   .feedSkeleton::after { animation: none; }
 }
 
+/* Блик не крутится там, где его никто не видит: скрытый вид ленты, скрытая
+   вкладка, лента под окном серии/слоем урока (.feedV2--paused, FeedTab.jsx).
+   visibility:hidden анимацию НЕ останавливает — композитор просыпался под
+   ней каждый кадр все 10 минут урока (датчик: feedSkelShine весь урок) */
+.feedViewHidden .feedSkeleton::after,
+.shellV2TabHidden .feedSkeleton::after,
+.feedV2--paused .feedSkeleton::after { animation: none; }
+
 /* Иконка звука в шапке — только для тех, кто уже включал звук раньше (не
    новичок, см. soundEverOn): пока звук выключен, торчит слева постоянно,
    не только на паузе, как чип на самом видео. Тот же ряд, что у лупы

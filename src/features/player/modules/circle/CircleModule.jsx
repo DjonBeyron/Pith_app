@@ -6,6 +6,7 @@ import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
 import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
 import { useCircleExpand, getSmallPx } from './useCircleExpand.js'
+import { useCircleLoopPause } from './useCircleLoopPause.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -85,6 +86,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     arcRef.current.style.animation = 'none'
     arcRef.current.style.strokeDashoffset = String(RING_C)
   }
+
+  // Беззвучный цикл кружка вне экрана — на паузу (useCircleLoopPause.js)
+  useCircleLoopPause(wrapRef, vRef, !!src)
 
   // Раскрытие кружка на весь экран по тапу/свайпу — useCircleExpand.js
   const { expanded, collapsing, expandTransform, expandedRef, handleTap, collapse, onTouchStart, onTouchEnd } =

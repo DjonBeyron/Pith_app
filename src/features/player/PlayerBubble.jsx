@@ -106,7 +106,7 @@ function hDetail(el) {
 
 export default function PlayerBubble({ className, children, follow = false }) {
   const ref       = useRef(null)
-  const stRef     = useRef({ prevH: null, tid: null, target: null, retries: 0, gaveUp: false })
+  const stRef     = useRef({ prevH: null, tid: null, target: null, retries: 0, gaveUp: false, frozen: false })
   const readyRef  = useRef(false)
   const reactedRef = useRef(false) // реакцию в этот пузырь уже вставляли
   const idRef     = useRef(0) // номер пузыря для дебаг-лога
@@ -214,7 +214,13 @@ export default function PlayerBubble({ className, children, follow = false }) {
     }, 620)
 
     const ro = new ResizeObserver(() => {
+      // Строка заморожена (useFeedRowFreeze.js: content-visibility hidden) —
+      // у содержимого нет боксов, RO приносит ноль. Это не смена высоты:
+      // молчим, а первое честное измерение после разморозки принимаем как
+      // есть, без анимации — иначе пузырь «рос» бы из нуля при прокрутке вверх
+      if (!el.getClientRects().length) { st.frozen = true; return }
       const nextH = naturalH(el)
+      if (st.frozen) { st.frozen = false; st.prevH = nextH; return }
       const prevH = st.prevH ?? nextH
       if (!readyRef.current) { st.prevH = nextH; return }
       // Реакция садится в угол пузыря абсолютом и наполовину торчит наружу

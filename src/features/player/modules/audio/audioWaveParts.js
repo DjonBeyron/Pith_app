@@ -33,9 +33,10 @@ function barAmp(wd, i, count) {
 }
 
 // Рисует волну целиком: полоски снизу вверх, пройденные (до progress 0..1) —
-// акцентным зелёным. Возвращает число полосок — по нему AudioWave решает,
-// изменилось ли что-то видимое с прошлого кадра
-export function drawAudioWave(canvas, waveData, progress = 0) {
+// акцентным зелёным; greenAlpha < 1 — зелёный полупрозрачный поверх серого
+// (затухание заливки в конце записи). Возвращает число полосок — по нему
+// AudioWave решает, изменилось ли что-то видимое с прошлого кадра
+export function drawAudioWave(canvas, waveData, progress = 0, greenAlpha = 1) {
   if (!canvas) return 0
   const dpr = window.devicePixelRatio || 1
   const w   = canvas.clientWidth
@@ -51,10 +52,16 @@ export function drawAudioWave(canvas, waveData, progress = 0) {
   ctx.scale(dpr, dpr)
   for (let i = 0; i < count; i++) {
     const barH = Math.max(2, barAmp(waveData, i, count) * h * 0.95)
-    ctx.fillStyle = i < green ? ACCENT : MUTED
+    const isGreen = i < green
     ctx.beginPath()
     ctx.roundRect(i * (BAR_W + BAR_GAP), h - barH, BAR_W, barH, [2, 2, 1, 1])
-    ctx.fill()
+    if (!isGreen || greenAlpha < 1) { ctx.fillStyle = MUTED; ctx.fill() }
+    if (isGreen) {
+      ctx.globalAlpha = greenAlpha
+      ctx.fillStyle = ACCENT
+      ctx.fill()
+      ctx.globalAlpha = 1
+    }
   }
   ctx.restore()
   return count

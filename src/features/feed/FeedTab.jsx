@@ -100,8 +100,10 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
     })
   }
 
+  // --paused: лента не видна (другая вкладка, окно серии, слой урока сверху) —
+  // бесконечные анимации под ней гасятся в CSS (feed-media.css)
   return (
-    <div className="feedV2">
+    <div className={visible ? 'feedV2' : 'feedV2 feedV2--paused'}>
       <FeedTabsHeader
         view={view} onSetView={setView} onShowDebug={() => setShowDebug(true)}
         onOpenSearch={() => setShowSearch(true)} filterActive={filterActive}

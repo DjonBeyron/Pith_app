@@ -4,6 +4,7 @@ import { playSound } from '../../shared/lib/sounds.js'
 import { wheelScrollShift } from './feedWheel.js'
 import { traceFeedClose } from './panels/tracePanelSync.js'
 import { traceSlideIn, watchLastTop } from './traceSlideIn.js'
+import { useFeedRowFreeze } from './useFeedRowFreeze.js'
 
 // Double scaleY(-1) trick: outer container flipped → scrollTop=0 = visual bottom.
 // Inner content flipped back → messages appear normal.
@@ -88,6 +89,8 @@ export default function PlayerFeed({ children, panelOpen = false }) {
 
   // Режим трейса: положение опоры каждый кадр — для traceSlideIn.js
   useEffect(() => watchLastTop(innerRef.current, lastTopRef), [])
+  // Строки дальше полутора экранов — заморожены (useFeedRowFreeze.js)
+  useFeedRowFreeze(outerRef, innerRef)
 
   // Третий участник подъёма истории: сама лента меняет нижний запас, когда
   // снизу открывается панель ответа. Момент важен для разбора рассинхрона

@@ -26,11 +26,11 @@ export function logAudioPlayStart({ d, liveDuration, readyState, networkState, w
 // бы лог 60 раз в секунду. Возвращает функцию-замыкание — своя на каждый play()
 export function makeAudioHeartbeat() {
   let last = -1
-  return (ct, total) => {
+  return (ct, total, wave) => {
     if (last >= 0 && ct - last < 0.5) return
     last = ct
     const progress = total > 0 ? ct / total : 0
-    pLog(`[audio-hb] ct=${ct.toFixed(2)}s total=${total.toFixed(2)}s прогресс=${(progress * 100).toFixed(0)}%`)
+    pLog(`[audio-hb] ct=${ct.toFixed(2)}s total=${total.toFixed(2)}s прогресс=${(progress * 100).toFixed(0)}% полоски=${wave ? `${wave.green}/${wave.count} w=${wave.width}px` : '—'}`)
   }
 }
 

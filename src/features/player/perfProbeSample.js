@@ -29,6 +29,7 @@ export function samplePerf({ fps, worstMs, drops }) {
   const feed    = document.querySelector('.playerFeedInner')
   const dom     = feed ? feed.getElementsByTagName('*').length : -1
   const bubbles = feed ? feed.querySelectorAll('.playerMsgBubble').length : -1
+  const frozen  = feed ? feed.querySelectorAll('.playerMsgRow[data-frozen]').length : 0
   const waves   = document.querySelectorAll('.playerAudioWave').length
   const audios  = document.querySelectorAll('audio')
   const videos  = document.querySelectorAll('video')
@@ -40,7 +41,7 @@ export function samplePerf({ fps, worstMs, drops }) {
     `[perf] fps=${fps} worst=${worstMs}ms drops=${drops}` +
     ` anim=${anims.length} inf=${inf}${top ? `(${top})` : ''}` +
     ` waves=${waves} audio=${audios.length}/${playingA} video=${videos.length}/${playingV}` +
-    ` bubbles=${bubbles} dom=${dom}${memStr}` +
+    ` bubbles=${bubbles} frozen=${frozen} dom=${dom}${memStr}` +
     (document.hidden ? ' HIDDEN' : '')
   )
 }

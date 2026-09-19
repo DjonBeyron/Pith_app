@@ -17,6 +17,7 @@ import LevelBadge from './LevelBadge.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { useStreakGate } from '../features/streak/useStreakGate.js'
+import { useLessonNav } from './LessonNavContext.jsx'
 import StreakGateOverlay from '../features/streak/StreakGateOverlay.jsx'
 import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
 import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
@@ -88,8 +89,14 @@ export default function ShellV2() {
   }, [splashGone])
 
   // Окно серии открыто и сплэш ушёл — лента под ним замолкает (у вернувшегося
-  // пользователя звук может быть включён с прошлого раза)
-  const feedPaused = !!gate && splashGone
+  // пользователя звук может быть включён с прошлого раза). То же — пока сверху
+  // лежит слой урока (LessonNavOverlay: закладка из «Моих уроков», переход по
+  // lesson_ref): лента под ним не видна, но её видео крутило декодер, а
+  // скелетон — блик все 10 минут урока (датчик на iPhone: video=4/1,
+  // feedSkelShine весь урок). Пул видео при этом не размонтируется — только
+  // паркуется, разблокировка звука остаётся
+  const { overlay: lessonOverlay } = useLessonNav()
+  const feedPaused = (!!gate && splashGone) || !!lessonOverlay
 
   return (
     <div className="shellV2">

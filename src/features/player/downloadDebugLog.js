@@ -23,7 +23,13 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
     // ней сразу видно, лагало ли и что росло (perfLogSection.js)
     ...buildPerfSection(playerLines),
   ]
-  if (PERF_ONLY) return lines.join('\n')
+  if (PERF_ONLY) {
+    // Плюс события голосовых: старт/конец/heartbeat (ct, total, прогресс,
+    // полоски) — чтобы разбирать рассинхрон заливки без полного лога
+    lines.push(``, `--- Audio / Circle / Freeze (голосовые, кружок, заморозка строк) ---`,
+      ...playerLines.filter(l => l.includes('[audio-') || l.includes('AudioModule') || l.includes('[circle]') || l.includes('[freeze]')))
+    return lines.join('\n')
+  }
   lines.push(
     ``,
     `--- Player log (pLog) ---`,

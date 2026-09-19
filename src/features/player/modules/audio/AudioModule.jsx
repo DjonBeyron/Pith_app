@@ -26,6 +26,14 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // нулём, который тут же менялся на настоящий (видно на въезде голосового)
   const [waveData,        setWaveData]        = useState(() => node.typeData?.audio?.waveformData?.length ? node.typeData.audio.waveformData : null)
   const [duration,        setDuration]        = useState(() => node.typeData?.audio?.duration || null)
+  // Волна известна (сохранена в ноде или уже посчитана/не удалась) — до этого
+  // AudioWave прозрачный, чтобы не показывать подмену базовой формы настоящей
+  const [waveReady,       setWaveReady]       = useState(() => !!node.typeData?.audio?.waveformData?.length)
+  // Волна и длительность — свойство ФАЙЛА, а не адреса: при смене src (прямая
+  // ссылка → blob предзагрузки и обратно) их не сбрасываем и не считаем
+  // заново — именно этот пересчёт и выглядел как «спектр перестраивается»
+  const waveDoneRef     = useRef(!!node.typeData?.audio?.waveformData?.length)
+  const durationDoneRef = useRef(!!node.typeData?.audio?.duration)
   const [textStarted,     setTextStarted]     = useState(false)
   const [revealedCharIdx, setRevealedCharIdx] = useState(-1)
   // Расшифровку показали целиком хотя бы раз — дальше её НЕ перепечатываем.
@@ -81,17 +89,24 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     setTextStarted(false)
     setRevealedCharIdx(-1)
     waveRef.current?.setProgress(0)
-    setWaveData(storedWaveform?.length ? storedWaveform : null)
-    setDuration(storedDuration || null)
     if (storedDuration) logAudioDurationReady('сразу, storedDuration', storedDuration)
     if (!src) { pLog('AudioModule: src is null, skipping load'); return }
     let cancelled = false
-    if (!storedWaveform?.length) {
-      analyzeWaveform(src).then(wd => { if (!cancelled) setWaveData(wd) }).catch(() => {})
+    if (!waveDoneRef.current) {
+      analyzeWaveform(src).then(wd => {
+        if (cancelled) return
+        waveDoneRef.current = true
+        setWaveData(wd)
+        setWaveReady(true)
+      }).catch(() => {
+        // Файл не отдался — показываем базовую форму, а не пустую дорожку
+        if (!cancelled) setWaveReady(true)
+      })
     }
-    if (!storedDuration) {
+    if (!durationDoneRef.current) {
       probeAudioDuration(src).then(d => {
         if (cancelled || !d || !isFinite(d)) return
+        durationDoneRef.current = true
         setDuration(d)
         logAudioDurationReady('асинхронно, probeAudioDuration', d)
       }).catch(() => {})
@@ -194,7 +209,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       // заливка добегала до края раньше, чем звук реально доигрывал
       const total    = (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : d) || 1
       const progress = total > 0 ? ct / total : 0
-      hb(ct, total)
+      hb(ct, total, waveRef.current?.getState())
       // Сама волна перерисуется только если заливка дошла до новой полоски
       waveRef.current?.setProgress(progress)
 
@@ -225,7 +240,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
         // его больше не набирают (см. fullyRevealedRef)
         fullyRevealedRef.current = true
       }
-      waveRef.current?.setProgress(0)
+      waveRef.current?.finish()
       if (timeRef.current) timeRef.current.textContent = fmtAudioTime(d)
       onDone?.()
     }
@@ -300,7 +315,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
               {isPlaying ? <PauseIcon /> : <PlayTriangle />}
             </button>
             <div className="playerAudioWaveCol">
-              <AudioWave ref={waveRef} waveData={waveData} />
+              <AudioWave ref={waveRef} waveData={waveData} ready={waveReady} />
               <span ref={timeRef} className="playerAudioDur">{fmtAudioTime(duration)}</span>
             </div>
           </div>
