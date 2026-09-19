@@ -28,7 +28,8 @@ import { traceSlideIn, watchLastTop } from './traceSlideIn.js'
 //
 // Общий путь всегда TRAVEL, поэтому длительность постоянна, а деление на фазы
 // само подстраивается под высоту пришедшего пузыря.
-const TRAVEL     = 200
+export const MSG_TRAVEL = 200
+const TRAVEL     = MSG_TRAVEL
 // Наружу — чтобы всё, что должно звучать и появляться «вместе с сообщением»,
 // брало тайминг отсюда, а не заводило свои числа (см. PinMessageModule)
 export const MSG_SLIDE_MS = 240

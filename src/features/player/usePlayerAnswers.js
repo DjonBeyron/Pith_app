@@ -17,13 +17,24 @@ export function usePlayerAnswers() {
   // разом видна и в панели, и в переписке
   const [tableArriving, setTableArriving]         = useState({})
 
-  function handleWordAnswer(nodeId, text, result) {
-    setWordChoiceStates(prev => ({ ...prev, [nodeId]: { ...prev[nodeId], text, result } }))
+  // arriving — пузыри уже вставлены в ленту, но ещё НЕВИДИМЫ (место занято):
+  // панель закрывается тем же тиком, и история опускается ровно до места,
+  // которое останется после прихода ответа. Когда панель ушла, панель зовёт
+  // handleWordReveal — пузыри въезжают снизу, историю двигать уже не надо
+  // (WordChoiceModule / useDeferredArrival.js)
+  function handleWordAnswer(nodeId, text, result, arriving = false) {
+    setWordChoiceStates(prev => ({ ...prev, [nodeId]: { ...prev[nodeId], text, result, arriving } }))
   }
 
-  // Выбранный вариант как реплика ученика — прилетает в чат сразу по тапу,
-  // раньше текста реакции (тот приходит через handleWordAnswer с задержкой).
-  // Только если у ноды включена галочка «Отправлять выбранное в чат».
+  function handleWordReveal(nodeId) {
+    setWordChoiceStates(prev => (prev[nodeId]?.arriving
+      ? { ...prev, [nodeId]: { ...prev[nodeId], arriving: false } }
+      : prev))
+  }
+
+  // Выбранный вариант как реплика ученика — только если у ноды включена
+  // галочка «Отправлять выбранное в чат». Приходит одним тиком с реакцией
+  // (handleWordAnswer), панель решает когда
   function handleWordPick(nodeId, pickText) {
     setWordChoiceStates(prev => ({ ...prev, [nodeId]: { ...prev[nodeId], pickText } }))
   }
@@ -73,7 +84,7 @@ export function usePlayerAnswers() {
   return {
     resetNode,
     photoChoiceStates, setPhotoChoiceStates,
-    wordChoiceStates, handleWordAnswer, handleWordPick,
+    wordChoiceStates, handleWordAnswer, handleWordPick, handleWordReveal,
     phraseStates, handlePhraseAnswer,
     regStates, handleRegAnswer,
     tableSent, markTableSent,

@@ -170,7 +170,7 @@ export default function LessonPlayer({
   const answers = usePlayerAnswers()
   const {
     photoChoiceStates, setPhotoChoiceStates,
-    wordChoiceStates, handleWordAnswer, handleWordPick,
+    wordChoiceStates, handleWordAnswer, handleWordPick, handleWordReveal,
     phraseStates, handlePhraseAnswer,
     regStates, handleRegAnswer,
   } = answers
@@ -333,6 +333,7 @@ export default function LessonPlayer({
           wrongRef={wrongRef}
           handleWordAnswer={handleWordAnswer}
           handleWordPick={handleWordPick}
+          handleWordReveal={handleWordReveal}
           handlePhraseAnswer={handlePhraseAnswer}
           handleRegAnswer={handleRegAnswer}
           handlePhotoPick={handlePhotoPick}

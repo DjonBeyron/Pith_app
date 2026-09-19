@@ -33,7 +33,7 @@ export default function PlayerPanels({
   // с чистого листа, а не с показанным разбором прошлой попытки
   epoch = 0,
   onNodeDone, record, wrongRef,
-  handleWordAnswer, handleWordPick, handlePhraseAnswer, handleRegAnswer,
+  handleWordAnswer, handleWordPick, handleWordReveal, handlePhraseAnswer, handleRegAnswer,
   handlePhotoPick, handleXpEarned, onTableToChat, onTableLanded,
   setWcPanelHeight, setPaPanelHeight, setFbPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
 }) {
@@ -45,7 +45,11 @@ export default function PlayerPanels({
           node={wcNode}
           xpAmount={xpMap.get(wcNode.id) ?? 0}
           onDone={(result, variantId) => { setWcPanelHeight(0); onNodeDone(wcNode.id, result, variantId) }}
-          onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result)}
+          /* arriving=true: пузыри встают в ленту невидимыми тем же тиком, что
+             закрывается панель, — история опускается сразу на своё конечное
+             место; onRevealAnswer после ухода панели их проявляет */
+          onAnswered={(text, result) => handleWordAnswer(wcNode.id, text, result, true)}
+          onRevealAnswer={() => handleWordReveal(wcNode.id)}
           onPicked={(opt) => {
             const ev = wordOptionEvent(wcNode, opt)
             if (ev.type === 'wrong') wrongRef.current += 1
