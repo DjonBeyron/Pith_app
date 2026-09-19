@@ -5,6 +5,12 @@ import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { usePanelHeight } from '../usePanelHeight.js'
+import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
+import { fireBurst } from '../../../../shared/lib/burstParticles.js'
+import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
+
+// Ученик видит итог в панели (зелёный/красный, тряска), потом панель уезжает
+const SEE_RESULT_MS = 700
 
 function wordForm(n) {
   const m10 = n % 10, m100 = n % 100
@@ -19,7 +25,7 @@ function wordFormGenitive(n) {
 }
 
 export default function PhraseAssemblyPanel({
-  node, onDone, onAnswered, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
+  node, onDone, onAnswered, onRevealAnswer, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
   // Сигналы ошибок (см. PROJECT.md): nodes — все ноды урока (резолв ref);
   // onSignalFired(node, release, exerciseNodeId) — рисует сигнал как обычное
   // сообщение ленты (LessonPlayer/useSignalMessages.js) вместо прежнего
@@ -51,6 +57,23 @@ export default function PhraseAssemblyPanel({
     return () => cancelAnimationFrame(id)
   }, [])
 
+  // Подъём/спуск с историей — общий хук (usePanelRiseDrop.js → panelRise.js),
+  // тот же, что у «выбери слово» и таблиц
+  const rise = usePanelRiseDrop({ show, panelRef, spacerSel: '.phraseAssemblySpacer', panelH: panelHeight, label: 'pa' })
+
+  // Закрытие по итогу («история знает высоту ответа заранее», PROJECT.md):
+  // одним тиком — салют (на верном), пузыри в ленту НЕВИДИМЫМИ (arriving) и
+  // setShow(false); история едет вниз с панелью ровно до места под ответ,
+  // на её остановке хук проявляет пузыри, после въезда — закрывает ноду
+  function closeWith(trigger, variantId, sendBubbles) {
+    rise.prepareClose({ reveal: {
+      onReveal: () => onRevealAnswer?.(),
+      done: () => { onHeightChange?.(0); onDone?.(trigger, variantId) },
+    } })
+    sendBubbles()
+    setShow(false)
+  }
+
   useEffect(() => {
     if (result !== 'wrong') return
     wrongCount.current += 1
@@ -72,12 +95,13 @@ export default function PhraseAssemblyPanel({
       // Особый переход конкретного слова-ловушки (nodeVariants.js) — если в
       // собранной фразе есть распознанный distractor, берём первый
       const variantId = placed.find(p => p.distractorId)?.distractorId ?? null
-      onAnswered?.(phrase, 'wrong_final')
+      // 700мс — ученик видит красный итог и тряску в самой панели
       closeTimers.current.forEach(clearTimeout)
-      closeTimers.current = [
-        setTimeout(() => setShow(false), 700),
-        setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_wrong', variantId) }, 700 + 420),
-      ]
+      closeTimers.current = [setTimeout(() => {
+        closeWith('phrase_wrong', variantId, () => {
+          if (phrase.trim()) onAnswered?.(phrase, 'wrong_final', true)
+        })
+      }, SEE_RESULT_MS)]
     }
   }, [result]) // eslint-disable-line
 
@@ -92,24 +116,31 @@ export default function PhraseAssemblyPanel({
     // ней. Если responseCorrect всё-таки задан, он идёт следом отдельной
     // репликой учителя.
     const phrase = placed.map(p => p.word).join(' ')
-    const answer   = setTimeout(() => {
-      if (phrase.trim()) onAnswered?.(phrase, 'correct')
-      if (responseCorrect.trim()) onAnswered?.(responseCorrect, 'hint')
-    }, 700)
-    const slideOut = setTimeout(() => setShow(false), 700 + 900)
-    const done     = setTimeout(() => { onHeightChange?.(0); onDone?.('phrase_correct') }, 700 + 900 + 420)
-    return () => { clearTimeout(answer); clearTimeout(slideOut); clearTimeout(done) }
+    const id = setTimeout(() => {
+      // Салют — праздник награды (nodeReward.js), одним тиком с уходом панели.
+      // Живёт здесь, а не на пузыре в чате (PhraseAssemblyModule передаёт
+      // confetti={false}): праздник за сам верный ответ
+      if (isRewardOn('phrase_assembly', pa)) {
+        fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
+      }
+      closeWith('phrase_correct', undefined, () => {
+        if (phrase.trim()) onAnswered?.(phrase, 'correct', true)
+        if (responseCorrect.trim()) onAnswered?.(responseCorrect, 'hint', true)
+      })
+    }, SEE_RESULT_MS)
+    return () => clearTimeout(id)
   }, [isAnswered]) // eslint-disable-line
 
   return (
     <>
+      {/* Распорка: на подъёме и спуске высота меняется РАЗОМ — движение
+          истории играет трансформ ленты (panelRise.js); между ними плавно
+          следует за ростом панели (слова уходят из банка в строку ответа) */}
       <div
         className="phraseAssemblySpacer"
         style={{
           height: show ? panelHeight : 0,
-          transition: show
-            ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
-            : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
+          transition: show && !rise.opening ? 'height 0.26s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
         }}
       />
       <div
@@ -144,7 +175,8 @@ export default function PhraseAssemblyPanel({
               playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'собери фразу')
               if (r === 'correct' && xpAmount > 0 && !xpFiredRef.current) {
                 xpFiredRef.current = true
-                onXpEarned?.(xpAmount)
+                // Пузырь с фразой в чате будет всегда — XP ждёт его и летит от него
+                onXpEarned?.(xpAmount, { expectBubble: true })
               }
             }}
             disabled={placed.length === 0 || isAnswered || freeze}

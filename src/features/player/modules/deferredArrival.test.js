@@ -70,3 +70,24 @@ describe('отложенный приход ответа ручной табли
     expect(answers).toContain('function revealPhraseAnswers(nodeId)')
   })
 })
+
+// «Собери фразу» — тот же приём (панель → phraseStates → AnswerBubbles)
+describe('отложенный приход ответа «собери фразу»', () => {
+  const panel = read('../panels/phrase-assembly/PhraseAssemblyPanel.jsx')
+  const panels = read('../PlayerPanels.jsx')
+
+  it('верный и третий неверный закрываются через closeWith: prepareClose → пузыри arriving → setShow(false)', () => {
+    const body = panel.slice(panel.indexOf('function closeWith('))
+    expect(body.indexOf('rise.prepareClose({ reveal: {')).toBeLessThan(body.indexOf('sendBubbles()'))
+    expect(body.indexOf('sendBubbles()')).toBeLessThan(body.indexOf('setShow(false)'))
+    expect(panel).toContain("onAnswered?.(phrase, 'correct', true)")
+    expect(panel).toContain("onAnswered?.(phrase, 'wrong_final', true)")
+  })
+
+  it('салют — из панели по галочке награды, XP ждёт пузырь', () => {
+    expect(panel).toContain("if (isRewardOn('phrase_assembly', pa)) {")
+    expect(panel).toContain('onXpEarned?.(xpAmount, { expectBubble: true })')
+    expect(panels).toContain('handlePhraseAnswer(paNode.id, text, result, arriving)')
+    expect(panels).toContain('onRevealAnswer={() => revealPhraseAnswers(paNode.id)}')
+  })
+})

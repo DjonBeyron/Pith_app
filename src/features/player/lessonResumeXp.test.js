@@ -149,7 +149,8 @@ describe('«Продолжить урок» — восстановленная �
     // У «выбери слово» салют живёт в панели (ChooseWordPanel), а панели у
     // восстановленной истории нет вовсе — чат-модуль салюта не знает
     expect(wordChoice).not.toContain('BurstConfetti')
-    expect(phraseAssembly).toContain('confetti={!node?.isHistory}')
+    // «Собери фразу»: салют тоже в панели (PhraseAssemblyPanel), чат-модуль без него
+    expect(phraseAssembly).toContain('confetti={false}')
     expect(fillBlanks).toContain('confetti={!node?.isHistory}')
   })
 })

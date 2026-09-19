@@ -10,7 +10,9 @@ export default function PhraseAssemblyModule({ node, phraseState, lessonNodes = 
     <AnswerBubbles
       bubbles={phraseState}
       nodeId={node?.id ?? null}
-      confetti={!node?.isHistory}
+      /* салют даёт сама панель (PhraseAssemblyPanel, fireBurst при уходе) —
+         как у таблицы и «выбери слово»; на восстановленной истории панели нет */
+      confetti={false}
       replyNode={replyNode}
       lessonFiles={lessonFiles}
       teacherName={teacherName}

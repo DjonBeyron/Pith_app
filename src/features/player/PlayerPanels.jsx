@@ -74,7 +74,11 @@ export default function PlayerPanels({
           hasSignalFired={hasSignalFired}
           xpAmount={xpMap.get(paNode.id) ?? 0}
           onDone={(result, variantId) => { setPaPanelHeight(0); onNodeDone(paNode.id, result, variantId) }}
-          onAnswered={(text, result) => handlePhraseAnswer(paNode.id, text, result)}
+          /* Третий аргумент — arriving: пузырь встаёт в ленту невидимым тем же
+             тиком, что закрывается панель; onRevealAnswer проявляет его на
+             остановке истории (usePanelRiseDrop) */
+          onAnswered={(text, result, arriving) => handlePhraseAnswer(paNode.id, text, result, arriving)}
+          onRevealAnswer={() => revealPhraseAnswers(paNode.id)}
           onChecked={(result, text) => {
             if (result === 'wrong') wrongRef.current += 1
             record({
@@ -84,7 +88,7 @@ export default function PlayerPanels({
               option: text,
             })
           }}
-          onXpEarned={amount => handleXpEarned(amount, paNode.id)}
+          onXpEarned={(amount, opts) => handleXpEarned(amount, paNode.id, opts)}
           onHeightChange={setPaPanelHeight}
         />
       )}
