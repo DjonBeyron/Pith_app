@@ -7,7 +7,7 @@ import { rememberTap } from '../../xpAnchor.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
-import { playFeedRelease } from '../feedRelease.js'
+import { playPanelRise, playPanelDrop, tracePanelRise } from '../panelRise.js'
 import { whenBubbleLanded } from '../whenBubbleLanded.js'
 
 // Порядок после тапа — тот же, что у ручной таблицы (PROJECT.md, «панель
@@ -21,7 +21,7 @@ import { whenBubbleLanded } from '../whenBubbleLanded.js'
 // пузырём справа, зовётся ВМЕСТЕ с репликой после ухода панели (передаётся
 // только при галочке «отправлять выбранное в чат», см. PlayerPanels.jsx).
 const SEE_RESULT_MS = 700
-// Панель 0.28s (.chooseWordPanel) и сдвиг ленты 280мс — пузыри после обоих
+// Панель 0.28s и сдвиг ленты 280мс (panelRise.js) — пузыри после обоих
 const PANEL_GONE_MS = 300
 
 export default function ChooseWordPanel({
@@ -34,6 +34,7 @@ export default function ChooseWordPanel({
   const xpFiredRef = useRef(false)
   // Высота, на которую надо сдвинуть историю при закрытии (см. useLayoutEffect)
   const releaseRef = useRef(0)
+  const spacerBeforeRef = useRef(0)
 
   const wcData = node.typeData?.word_choice ?? {}
   const responseText = result === 'correct'
@@ -47,27 +48,38 @@ export default function ChooseWordPanel({
   }, [options.length])
 
   useEffect(() => {
+    // Высота распорки ДО показа (min-height: safe-area + слот «печатает») —
+    // от неё считается, на сколько раскладка реально поднимет историю
+    spacerBeforeRef.current = document.querySelector('.chooseWordSpacer')?.getBoundingClientRect().height ?? 0
     const id = requestAnimationFrame(() => setShow(true))
     return () => cancelAnimationFrame(id)
   }, [])
 
-  // Сдвиг истории — ПОСЛЕ того, как распорка отдала место, но ДО отрисовки
-  // (layout-эффект). Приём и цифры — ровно те же, что у TableManualPanel:
-  // распорка снимается разом, видимый скачок гасит трансформ на ленте, и он
-  // уходит в ноль той же кривой и за то же время, что и сама панель
+  // Подъём и спуск — одной парой WAAPI-анимаций на панели и ленте
+  // (panelRise.js): распорка меняет высоту РАЗОМ (без height-анимации, это
+  // layout), видимый скачок гасит трансформ ленты. На подъёме история стоит,
+  // пока верх панели не коснётся низа последнего сообщения с итоговым зазором,
+  // и только потом едет вверх вместе с панелью; на спуске — зеркально.
+  // Layout-эффект: анимации должны встать ДО первой отрисовки нового layout
   useLayoutEffect(() => {
-    if (show || !releaseRef.current) return
+    const panel = panelRef.current
+    const spacer = document.querySelector('.chooseWordSpacer')
+    if (!panel || !spacer) return
+    const spacerH = spacer.getBoundingClientRect().height
+    if (show) {
+      if (!panelHeight) return
+      const drop = Math.max(0, spacerH - spacerBeforeRef.current)
+      playPanelRise(panel, { drop, panelH: panelHeight, label: 'wc' })
+      tracePanelRise('wc-подъём', panel, '.chooseWordSpacer')
+      return
+    }
+    if (!releaseRef.current) return
     const h = releaseRef.current
     releaseRef.current = 0
-    const spacer = document.querySelector('.chooseWordSpacer')
-    const drop = Math.max(0, h - (spacer ? spacer.getBoundingClientRect().height : 0))
-    if (drop < 1) return
-    const inner = document.querySelector('.playerFeedInner')
-    if (inner) inner.style.transform = `scaleY(-1) translateY(${-drop}px)`
-    requestAnimationFrame(() => {
-      playFeedRelease(drop, { duration: 280, easing: 'cubic-bezier(0.4, 0, 1, 1)' })
-    })
-  }, [show])
+    const drop = Math.max(0, h - spacerH)
+    playPanelDrop(panel, { drop, panelH: h, label: 'wc' })
+    tracePanelRise('wc-спуск', panel, '.chooseWordSpacer', 22)
+  }, [show]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isAnswered) return
@@ -109,14 +121,11 @@ export default function ChooseWordPanel({
 
   return (
     <>
-      {/* Спейсер: вход — spring вместе с панелью; уход — БЕЗ анимации высоты
-          (это layout, пересчёт каждый кадр), сдвиг истории играет трансформ */}
+      {/* Распорка: высота меняется РАЗОМ в обе стороны — движение истории
+          целиком играет трансформ ленты (panelRise.js), height-анимации нет */}
       <div
         className="chooseWordSpacer"
-        style={{
-          height: show ? panelHeight : 0,
-          transition: show ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
-        }}
+        style={{ height: show ? panelHeight : 0, transition: 'none' }}
       />
       {/* Панель вне потока (fixed) — анимируется через translateY на GPU */}
       <div

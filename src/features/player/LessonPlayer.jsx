@@ -313,7 +313,7 @@ export default function LessonPlayer({
             ней. Изнутри подняться он не может: лента перевёрнута через
             transform и потому образует свой слой целиком. Место в ленте под
             него по-прежнему резервирует --wait-slot — здесь только отрисовка */}
-        <WaitingDots visible={isWaiting} />
+        <WaitingDots visible={isWaiting} hideNow={panels.offset > 0} />
         <PlayerPanels
           wcNode={panels.node.wc} paNode={panels.node.pa} fbNode={panels.node.fb} pcNode={panels.node.pc}
           regNode={panels.node.reg} tableNode={panels.node.table}

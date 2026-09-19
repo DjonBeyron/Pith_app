@@ -15,17 +15,30 @@ import { useEffect, useState } from 'react'
 // зашито в её длительность, держи оба места синхронно.
 const EXIT_MS = 150
 
-export default function WaitingDots({ visible }) {
+// hideNow — снизу открыта панель ответа (таблица, «выбери слово», «собери
+// фразу»…): индикатор гаснет СРАЗУ, без обратной анимации. По z-index он выше
+// панелей (70 против 10 — ему нужно стоять над растушёвкой низа чата, 65), и
+// пока доигрывали 150мс исчезновения, он висел ПОВЕРХ выезжающей панели.
+// Опустить его под панели нельзя — попал бы под градиент и терял читаемость,
+// поэтому под панелью его просто не должно быть.
+export default function WaitingDots({ visible, hideNow = false }) {
   // 'shown' | 'closing' | 'hidden'. visible пришёл другим, чем в прошлый
   // рендер — подстраиваем состояние прямо тут (паттерн из доков React,
   // как в PlayerTopBar.jsx), а не через setState в эффекте
-  const [state, setState] = useState(() => (visible ? 'shown' : 'hidden'))
+  const [state, setState] = useState(() => (visible && !hideNow ? 'shown' : 'hidden'))
   const [prevVisible, setPrevVisible] = useState(visible)
   if (visible !== prevVisible) {
     setPrevVisible(visible)
-    if (visible) setState('shown')
+    if (visible && !hideNow) setState('shown')
     else if (state !== 'hidden') setState('closing')
   }
+  // Панель ушла, а ждать ещё надо (isWaiting уже стоял) — показать заново
+  const [prevHide, setPrevHide] = useState(hideNow)
+  if (hideNow !== prevHide) {
+    setPrevHide(hideNow)
+    if (!hideNow && visible) setState('shown')
+  }
+  if (hideNow && state !== 'hidden') setState('hidden')
 
   // 'closing' — реальный внешний таймер: ждём конца обратной CSS-анимации
   // (playerWaitingRowOut, см. feed.css), потом уже размонтируем
