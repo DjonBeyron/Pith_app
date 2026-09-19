@@ -11,7 +11,7 @@ import { easingFn } from '../../../shared/lib/cubicBezier.js'
 // история трогалась с первого же кадра, хотя панель ещё далеко внизу.
 //
 // Теперь: распорка меняет высоту РАЗОМ (раскладка сразу конечная), а видимый
-// скачок гасит трансформ на .playerFeedInner. Панель и лента едут двумя
+// скачок гасит трансформ на ленте. Панель и лента едут двумя
 // WAAPI-анимациями, стартующими в одном тике:
 //
 //   · панель — translateY(100% → 0), своя кривая (easing браузера);
@@ -24,8 +24,12 @@ import { easingFn } from '../../../shared/lib/cubicBezier.js'
 //     той же bezier (cubicBezier.js) с linear между точками — SAMPLES точек
 //     на 380мс это шаг ~8мс, вдвое чаще кадра.
 //
-// Лента перевёрнута (scaleY(-1) на .playerFeedInner), в этой системе
-// translateY(+v) = визуально ВНИЗ на v (см. вывод в feedRelease.js).
+// Трансформ вешается на САМ контейнер ленты (.playerFeed, overflow:auto), а не
+// на .playerFeedInner: на подъёме контейнер уже стал короче (распорка забрала
+// место), и удерживаемое ниже содержимое резалось бы его краем — так и
+// выглядело «что-то перекрывает низ чата» в начале подъёма. Когда едет сам
+// контейнер, его клип-бокс едет вместе с содержимым. Контейнер перевёрнут
+// (scaleY(-1)), в его системе translateY(−v) = визуально ВНИЗ на v.
 const SAMPLES = 48
 
 function sample(duration, easing, holdDownAt) {
@@ -35,7 +39,7 @@ function sample(duration, easing, holdDownAt) {
     const t = i / SAMPLES
     frames.push({
       offset: t,
-      transform: `scaleY(-1) translateY(${holdDownAt(p(t)).toFixed(2)}px)`,
+      transform: `scaleY(-1) translateY(${(-holdDownAt(p(t))).toFixed(2)}px)`,
       easing: 'linear',
     })
   }
@@ -43,18 +47,18 @@ function sample(duration, easing, holdDownAt) {
 }
 
 function run(panelEl, panelFrames, historyFrames, duration, easing, label) {
-  const inner = document.querySelector('.playerFeedInner')
+  const feed = document.querySelector('.playerFeed')
   // На время анимации CSS-переход панели выключен: иначе он стартует
   // на кадр позже WAAPI и в конце «дожимает» уже стоящую панель
   const prevTransition = panelEl.style.transition
   panelEl.style.transition = 'none'
   const panelAnim = panelEl.animate(panelFrames, { duration, easing, fill: 'both' })
-  const histAnim = inner
-    ? inner.animate(historyFrames, { duration, fill: 'both' })
+  const histAnim = feed
+    ? feed.animate(historyFrames, { duration, fill: 'both' })
     : null
   const finish = () => {
     panelEl.style.transition = prevTransition
-    if (inner) inner.style.transform = ''
+    if (feed) feed.style.transform = ''
     // fill:both держал конечный кадр; снимаем анимации — конечное состояние
     // дальше держат классы панели и чистая раскладка ленты
     panelAnim.cancel()
