@@ -90,7 +90,7 @@ describe('точка старта салюта', () => {
   it('«из-под растушёвки» обеспечивает слой, а не отступ', () => {
     // Портал лежит ниже растушёвки (60 против 65) — частица поднимается сквозь
     // градиент и проявляется сама
-    expect(read('./modules/word-choice/WordChoiceModule.jsx')).toContain('zIndex={60}')
+    expect(read('./panels/choose-word/ChooseWordPanel.jsx')).toContain('zIndex: 60')
     expect(physics).toContain('const H = window.innerHeight - bottomInset')
     expect(burst).toContain('bottomInset = 0')
   })

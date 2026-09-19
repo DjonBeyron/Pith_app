@@ -146,7 +146,9 @@ describe('«Продолжить урок» — восстановленная �
   })
 
   it('салют не повторяется на исторически верных ответах', () => {
-    expect(wordChoice).toContain('isCorrect && rewardOn && !node?.isHistory')
+    // У «выбери слово» салют живёт в панели (ChooseWordPanel), а панели у
+    // восстановленной истории нет вовсе — чат-модуль салюта не знает
+    expect(wordChoice).not.toContain('BurstConfetti')
     expect(phraseAssembly).toContain('confetti={!node?.isHistory}')
     expect(fillBlanks).toContain('confetti={!node?.isHistory}')
   })

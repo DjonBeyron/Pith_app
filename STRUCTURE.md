@@ -657,7 +657,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/sticker/StickerModule.jsx` | Стикер: квадрат 160px, поддерживает фото/gif/видео, muted по флагу isVideo; при заданной подписи (`caption`) и/или ответе стикер и текст показываются одним пузырём; галочка `autoSound` — первый проход со звуком, дальше беззвучная петля, тап по стикеру включает/выключает звук; с триггером «Воспроизведено до конца» ролик сам проигрывается один раз и только потом отпускает цепочку |
 | `modules/reaction/ReactionModule.jsx` | Реакция на сообщение: своего пузыря нет — эмодзи порталом уезжает в пузырь соседнего сообщения и садится абсолютом в его левый нижний угол, наполовину снаружи; пузырь не растёт, своей строки в ленте у реакции тоже нет; `target` — к ответу ученика (пузырь справа) или к реплике учителя (слева) |
 | `modules/system/SystemModule.jsx` | Системное сообщение без пузыря (заглушка) |
-| `modules/word-choice/WordChoiceModule.jsx` | Выбор слова — в ленте не рендерит ничего; панель снизу (`ChooseWordPanel`) |
+| `modules/word-choice/WordChoiceModule.jsx` | Выбор слова в ленте: пузыри справа — выбранное слово (галочка «отправлять выбранное в чат») и реплика на верно/неверно. Салюта тут нет — он в панели |
 | `rewardAndFlyBlink.test.js` | Сторож двух правил: салют в «выбери слово» идёт только при включённой галочке «Получить награду» (`nodeReward.js`), и клон летящей панели гасит анимации разметки тем же кадром, что и вставку — иначе собранная фраза моргала поверх ещё видимой панели |
 | `modules/registration/RegistrationModule.jsx` | Регистрация — в ленте не рендерит ничего; панель снизу (`RegistrationPanel`) |
 | `modules/AnswerBubbles.jsx` | Пузыри ответа ученика в ленте (верный / последний неверный / реплики учителя) — общие для «собери фразу» и таблицы. Необязательный `replyNode` (только у «собери фразу», см. replyToSeq) рисует цитату строго над финальным пузырём (resolvePhraseAttempt из replyResolve.js) |
@@ -699,7 +699,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `panels/PinConfirmDialog.jsx` | Модальное окно подтверждения откреплення сообщения |
 | `panels/choose-word/useChooseWord.js` | Хук: выбранный вариант, результат (correct/wrong), флаг isAnswered |
 | `panels/choose-word/ChooseWordOption.jsx` | Одна кнопка-вариант: 4 состояния (default/correct/wrong/dimmed) |
-| `panels/choose-word/ChooseWordPanel.jsx` | Панель снизу плеера: варианты + ответ; показывается за пределами PlayerFeed |
+| `panels/choose-word/ChooseWordPanel.jsx` | Панель снизу плеера: варианты; после тапа — 700мс виден цвет, затем панель и история едут вниз одним тиком с салютом (`fireBurst`, по галочке награды), через 300мс пузыри в чат (`onPickToChat` + `onAnswered`), после въезда — `onDone`. Тот же порядок, что у ручной таблицы |
 | `panels/registration/RegistrationPanel.jsx` | Панель регистрации снизу: email + имя + кнопки; триггеры reg_submit / reg_cancel; модалка согласия — из `shared/ui/RegistrationConsent.jsx`; после успеха зовёт попап уведомлений |
 | `panels/registration/PushPromptPopup.jsx` | Попап «Включи уведомления» после успешной регистрации в уроке: subscribePush из тапа (iOS), кнопки «Разрешить» / «Не сейчас» |
 | `canvas/NodeRegistrationTriggers.jsx` | Строки триггеров для ноды регистрации (reg_submit / reg_cancel) с измерением позиций через onTriggerMeasure |

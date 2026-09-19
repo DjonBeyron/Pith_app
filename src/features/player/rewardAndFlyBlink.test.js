@@ -6,21 +6,23 @@ const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), '
 
 // Салют — праздник НАГРАДЫ. Снята галочка «Получить награду» — XP за ноду не
 // начисляется (lessonXp.js), значит и салютовать нечему.
+// Живёт в ПАНЕЛИ (fireBurst при уходе), не в чат-модуле: пузырей может не
+// быть вовсе, а праздник положен за сам верный ответ — как у таблицы
 describe('салют в «выбери слово» идёт по галочке награды', () => {
+  const panel = read('./panels/choose-word/ChooseWordPanel.jsx')
   const wc = read('./modules/word-choice/WordChoiceModule.jsx')
 
   it('правило про галочку берётся общее, а не своё', () => {
     // nodeReward.js — одно правило на редактор холста и на плеер
-    expect(wc).toContain("import { isRewardOn } from '../../../../shared/lib/nodeReward.js'")
-    expect(wc).toContain("const rewardOn = isRewardOn('word_choice', node?.typeData?.word_choice)")
+    expect(panel).toContain("import { isRewardOn } from '../../../../shared/lib/nodeReward.js'")
+    expect(panel).toContain("if (result === 'correct' && isRewardOn('word_choice', wcData)) {")
   })
 
-  it('без награды салюта нет даже на верном ответе', () => {
-    // !node?.isHistory — восстановленная история («Продолжить урок») тоже без
-    // салюта (ответ уже отпраздновали в прошлой сессии), не только без награды
-    expect(wc).toContain('{isCorrect && rewardOn && !node?.isHistory && (')
-    // И ранний выход учитывает это же: модуль без пузырей и без салюта пуст
-    expect(wc).toContain('if (!pickText && !text && !(isCorrect && rewardOn)) return null')
+  it('без награды салюта нет даже на верном ответе, а в чат-модуле его нет вовсе', () => {
+    const start = panel.indexOf("isRewardOn('word_choice', wcData)")
+    expect(panel.slice(start, start + 200)).toContain('fireBurst(')
+    expect(wc).not.toContain('BurstConfetti')
+    expect(wc).toContain('if (!pickText && !text) return null')
   })
 })
 

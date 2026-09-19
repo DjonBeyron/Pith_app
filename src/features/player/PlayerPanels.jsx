@@ -50,12 +50,13 @@ export default function PlayerPanels({
             const ev = wordOptionEvent(wcNode, opt)
             if (ev.type === 'wrong') wrongRef.current += 1
             record({ nodeId: wcNode.id, ...ev })
-            // Галочка в редакторе ноды: выбранный вариант уходит в чат
-            // отдельным пузырём справа — раньше текста реакции
-            if (wcNode.typeData?.word_choice?.sendPickToChat === true) {
-              handleWordPick(wcNode.id, opt.text)
-            }
           }}
+          /* Галочка в редакторе ноды: выбранный вариант уходит в чат отдельным
+             пузырём справа. Момент выбирает панель — вместе с репликой, после
+             своего ухода (раньше летел сразу по тапу, ещё над панелью) */
+          onPickToChat={wcNode.typeData?.word_choice?.sendPickToChat === true
+            ? text => handleWordPick(wcNode.id, text)
+            : undefined}
           onXpEarned={amount => handleXpEarned(amount, wcNode.id)}
           onHeightChange={setWcPanelHeight}
         />
