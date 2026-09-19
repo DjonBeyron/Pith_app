@@ -25,6 +25,11 @@
 }
 .playerPhotoCropFrame:hover { opacity: .88; }
 
+/* Под фото подпись (та же карточка): нижние углы кадра НЕ скругляем — иначе
+   между фото и текстом торчали «ушки» фона пузыря. Скругление низа остаётся
+   у самого пузыря, вокруг подписи */
+.playerPhotoCropFrame--captioned { border-radius: 4px 14px 0 0; }
+
 .playerPhotoMedia {
   display: block;
   max-width: none;

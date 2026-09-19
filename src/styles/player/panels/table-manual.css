@@ -45,12 +45,14 @@
   min-height: 48px;
   padding: 8px 12px;
   margin-bottom: 10px;
-  border: 1.5px dashed #252830;
+  /* Сплошная едва заметная рамка — как у сборщика авто-таблицы (.tdAssemblyBox)
+     и «собери фразу»; пунктир убран (пользователь, 2026-09-19) */
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 14px;
   transition: border-color 0.2s, background 0.2s;
 }
 
-.tmAnswerBoxFilled { border-style: solid; border-color: rgba(255, 255, 255, 0.22); }
+.tmAnswerBoxFilled { border-color: rgba(255, 255, 255, 0.22); }
 /* Обводки «верно/неверно» здесь НЕТ: правильность показывает значок в чате
    (галочка/крестик) и цвет самих слов, а рамка вокруг поля дублировала это
    третий раз и спорила с брендовым лаймом на английских словах. */

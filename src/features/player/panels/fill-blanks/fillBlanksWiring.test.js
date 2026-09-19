@@ -201,3 +201,14 @@ describe('«Составь предложение» — подъём/спуск 
     expect(panel).toContain("transition: show && !rise.opening ? 'height 0.26s cubic-bezier(0.16, 1, 0.3, 1)' : 'none'")
   })
 })
+
+// Баг: панель поднимала историю выше остальных — .fbSpacer не входила в общий
+// список распорок feed.css, вычитающий safe-area + слот «печатает» (28px)
+describe('распорка «Составь предложение» — в общем списке распорок ленты', () => {
+  it('.fbSpacer вычитает safe-area и wait-slot, как остальные', () => {
+    const feed = read('../../../../styles/player/feed.css')
+    const block = feed.slice(feed.indexOf('.fbSpacer,'), feed.indexOf('.tmSpacer {'))
+    expect(block).toContain('.chooseWordSpacer,')
+    expect(feed.slice(feed.indexOf('.tmSpacer {'), feed.indexOf('.tmSpacer {') + 400)).toContain('margin-bottom: calc((env(safe-area-inset-bottom, 0px) + var(--wait-slot, 0px)) * -1);')
+  })
+})

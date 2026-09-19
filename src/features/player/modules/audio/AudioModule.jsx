@@ -27,8 +27,11 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // сообщение появлялось с резким низом и щёлкало в размытый через секунду.
   // Ленивая инициализация, потому что node.typeData разбирается ниже
   const [isFading,        setIsFading]        = useState(() => !!node.typeData?.audio?.text)
-  const [waveData,        setWaveData]        = useState(null)
-  const [duration,        setDuration]        = useState(null)
+  // Сохранённые длительность/волна — сразу в начальном состоянии, не в эффекте:
+  // тот срабатывает ПОСЛЕ первой отрисовки, и первый кадр показывал таймер с
+  // нулём, который тут же менялся на настоящий (видно на въезде голосового)
+  const [waveData,        setWaveData]        = useState(() => node.typeData?.audio?.waveformData?.length ? node.typeData.audio.waveformData : null)
+  const [duration,        setDuration]        = useState(() => node.typeData?.audio?.duration || null)
   const [barCount,        setBarCount]        = useState(WAVE_H_BASE.length)
   const [textStarted,     setTextStarted]     = useState(false)
   const [revealedCharIdx, setRevealedCharIdx] = useState(-1)

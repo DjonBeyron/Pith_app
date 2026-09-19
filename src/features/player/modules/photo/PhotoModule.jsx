@@ -68,7 +68,7 @@ export default function PhotoModule({ node, file, onDone }) {
         {src
           ? <div
               ref={frameRef}
-              className="playerPhotoCropFrame"
+              className={`playerPhotoCropFrame${caption ? ' playerPhotoCropFrame--captioned' : ''}`}
               onClick={() => setFullscreen(true)}
             >
               <img
@@ -80,7 +80,7 @@ export default function PhotoModule({ node, file, onDone }) {
                 onLoad={e => { setIntrinsic({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }); setImgReady(true) }}
               />
             </div>
-          : <div className="playerPhotoCropFrame playerPhotoEmptyFrame">Фото не загружено</div>
+          : <div className={`playerPhotoCropFrame playerPhotoEmptyFrame${caption ? ' playerPhotoCropFrame--captioned' : ''}`}>Фото не загружено</div>
         }
         {caption && (
           <div className="playerPhotoCaption">

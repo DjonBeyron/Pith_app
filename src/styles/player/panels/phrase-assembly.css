@@ -14,6 +14,8 @@
   left: 0;
   right: 0;
   background: #1a1d22;
+  /* Верхняя линия-ободок — как у панели «прикрепи фото» (.pcPanel) */
+  border-top: 1px solid #2a2d35;
   transform: translateY(100%);
   transition: transform 0.28s cubic-bezier(0.4, 0, 1, 1);
   will-change: transform;
@@ -55,10 +57,10 @@
 /* ── Answer row (drop zone) ─────────────────────────────── */
 .phraseAnswerRow {
   min-height: 50px;
-  /* Как у ручной таблицы (.tmAnswerBox): тот же пунктир, при заполнении —
-     сплошная нейтральная рамка, БЕЗ зелёного (правильность показывают цвет
-     слов и значок в чате, а лайм рамки спорил с лаймом английских слов) */
-  border: 1.5px dashed #252830;
+  /* Как у сборщика авто-таблицы (.tdAssemblyBox): тонкая СПЛОШНАЯ едва
+     заметная рамка, при заполнении ярче; без пунктира и без зелёного
+     (правильность показывают цвет слов и значок в чате) */
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 14px;
   padding: 8px 12px;
   display: flex;
@@ -71,7 +73,7 @@
   transition: border-color .2s, background .2s;
 }
 
-.phraseAnswerFilled { border-style: solid; border-color: rgba(255, 255, 255, 0.22); }
+.phraseAnswerFilled { border-color: rgba(255, 255, 255, 0.22); }
 
 /* Обводки «верно/неверно» здесь НЕТ: правильность показывает значок в чате
    (галочка/крестик) и цвет самих слов, а рамка вокруг поля дублировала это
