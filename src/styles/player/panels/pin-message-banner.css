@@ -116,23 +116,26 @@
   color: rgba(255, 255, 255, 0.65);
 }
 
-/* ── Блюр закрепа под «ручной» панелью сборки (см. LessonPlayer.jsx) ──
-   Блюрится содержимое (текст + крестик), а не сам .pinBanner — оверлей
-   с подсказкой должен остаться резким и лечь ПОВЕРХ размытого слоя. */
+/* ── Закреп под «ручной» панелью сборки (см. LessonPlayer.jsx) ──
+   Пока ученик собирает фразу, текст правила прячется под плотную накладку
+   с тем же узором, что у попапов урока (.launchCard, lessons.css), и
+   надписью «Напомнить правило». Раньше текст блюрился (filter: blur) —
+   filter заставляет перерисовывать баннер при любом изменении, а баннер
+   висит над лентой всё время, пока панель открыта. Текст под накладкой
+   остаётся в потоке (visibility, не display) — высота баннера не прыгает */
 .pinBannerInner {
   display: flex;
   align-items: center;
   gap: 8px;
   flex: 1;
   min-width: 0;
-  transition: filter 0.3s ease;
 }
 
-.pinBannerInnerBlurred {
-  filter: blur(4px);
+.pinBannerInnerCovered {
+  visibility: hidden;
 }
 
-.pinBannerBlurOverlay {
+.pinBannerCover {
   position: absolute;
   inset: 0;
   z-index: 4;
@@ -140,16 +143,20 @@
   align-items: center;
   justify-content: center;
   border: none;
-  background: rgba(26, 29, 34, 0.35);
+  background:
+    var(--mg-dust),
+    var(--mg-grain),
+    var(--mg-tex-start) center / 180px 180px no-repeat,
+    var(--lesson-popup-bg);
   color: rgba(255, 255, 255, 0.55);
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  animation: pinBlurOverlayIn 0.3s ease;
+  animation: pinCoverIn 0.3s ease;
 }
 
-@keyframes pinBlurOverlayIn {
+@keyframes pinCoverIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }

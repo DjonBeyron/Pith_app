@@ -19,25 +19,25 @@ const AFTER_ROW_MS = 200
 export default function PinMessageBanner({ content, highlights = [], onUnpin, manualPanelOpen = false }) {
   const [confirm, setConfirm] = useState(false)
   const [shown,   setShown]   = useState(false)
-  const [blurDismissed, setBlurDismissed] = useState(false)
+  const [coverDismissed, setCoverDismissed] = useState(false)
   const wasOpenRef = useRef(false)
   useEffect(() => {
     const t = setTimeout(() => setShown(true), MSG_SLIDE_MS + AFTER_ROW_MS)
     return () => clearTimeout(t)
   }, [])
   useEffect(() => {
-    if (wasOpenRef.current && !manualPanelOpen) setBlurDismissed(false)
+    if (wasOpenRef.current && !manualPanelOpen) setCoverDismissed(false)
     wasOpenRef.current = manualPanelOpen
   }, [manualPanelOpen])
   if (!content || !shown) return null
-  const blurred = manualPanelOpen && !blurDismissed
+  const covered = manualPanelOpen && !coverDismissed
   return (
     <>
       <div className="pinBanner">
         <div
-          className={`pinBannerInner${blurred ? ' pinBannerInnerBlurred' : ''}`}
-          onClick={manualPanelOpen && !blurred ? () => setBlurDismissed(false) : undefined}
-          style={manualPanelOpen && !blurred ? { cursor: 'pointer' } : undefined}
+          className={`pinBannerInner${covered ? ' pinBannerInnerCovered' : ''}`}
+          onClick={manualPanelOpen && !covered ? () => setCoverDismissed(false) : undefined}
+          style={manualPanelOpen && !covered ? { cursor: 'pointer' } : undefined}
         >
           <span className="pinBannerText">
             <HighlightedText text={content} highlights={highlights} />
@@ -48,11 +48,11 @@ export default function PinMessageBanner({ content, highlights = [], onUnpin, ma
             aria-label="Открепить"
           ><X size={14} /></button>
         </div>
-        {blurred && (
+        {covered && (
           <button
             type="button"
-            className="pinBannerBlurOverlay"
-            onClick={() => setBlurDismissed(true)}
+            className="pinBannerCover"
+            onClick={() => setCoverDismissed(true)}
           >
             Напомнить правило
           </button>

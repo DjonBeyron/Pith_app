@@ -1,26 +1,20 @@
-import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
-import { WAVE_H_BASE, ACCENT } from './audioWaveParts.js'
+import AudioWave from './AudioWave.jsx'
 import { PlayTriangle, PauseIcon } from './AudioPlayIcons.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
-import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
+import { analyzeWaveform, fmtAudioTime, probeAudioDuration } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
-import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
-import { useAdaptiveBarCount } from './useAdaptiveBarCount.js'
-import { useAudioStaticWaveform } from '../../../../shared/lib/useAudioStaticWaveform.js'
-import { logAudioMount, logAudioDurationReady, logAudioPlayStart, makeAudioHeartbeat, logAudioEnded, logAudioBarClipping } from './audioDebug.js'
-import { applyFirstAudioFrame } from './applyFirstAudioFrame.js'
+import { logAudioMount, logAudioDurationReady, logAudioPlayStart, makeAudioHeartbeat, logAudioEnded } from './audioDebug.js'
 
+// Волна — один canvas (AudioWave.jsx), спектр статичен всегда: живой
+// эквалайзер на ~70 div-полосках с will-change был главным источником
+// нагрева и лагов на длинных уроках (см. audioWaveParts.js)
 export default function AudioModule({ node, file, onDone, adminPreview = false, pending = false }) {
-  const [weakDevice] = useState(() => isWeakDevice())
-  // Глобальная заморозка спектра (админка, все уроки сразу) — см.
-  // useAudioStaticWaveform.js. Просто ещё одна причина не считать живой
-  // кадр в tick() ниже, тот же приём, что уже есть у weakDevice
-  const staticWaveform = useAudioStaticWaveform()
   const [isPlaying,       setIsPlaying]       = useState(false)
   // Сразу true, если у голосового есть расшифровка: пузырь должен прилететь
   // в чат уже растушёванным. Раньше растушёвка включалась по старту печати —
@@ -32,7 +26,6 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // нулём, который тут же менялся на настоящий (видно на въезде голосового)
   const [waveData,        setWaveData]        = useState(() => node.typeData?.audio?.waveformData?.length ? node.typeData.audio.waveformData : null)
   const [duration,        setDuration]        = useState(() => node.typeData?.audio?.duration || null)
-  const [barCount,        setBarCount]        = useState(WAVE_H_BASE.length)
   const [textStarted,     setTextStarted]     = useState(false)
   const [revealedCharIdx, setRevealedCharIdx] = useState(-1)
   // Расшифровку показали целиком хотя бы раз — дальше её НЕ перепечатываем.
@@ -47,10 +40,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // Цикл кадров волны — чтобы возобновить его после паузы снаружи (см. ниже)
   const tickRef         = useRef(null)
   const timeRef         = useRef(null)
-  const waveRowRef      = useRef(null)
-  const barElsRef       = useRef([])
-  const barSmoothRef    = useRef(new Array(WAVE_H_BASE.length).fill(0))
-  const prevBarCountRef = useRef(WAVE_H_BASE.length)
+  // Ручка волны: setProgress(0..1) — см. AudioWave.jsx
+  const waveRef         = useRef(null)
 
   // Отрицательный офсет триггера played — запустить следующую ноду до конца звука
   usePlayedOffset(playedOffsetMs(node), () => audioRef.current, onDone)
@@ -64,11 +55,6 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // Печать под звук: время каждого символа считает charTimings.js — по
   // позициям слов в САМОМ тексте, а не по реконструкции «слова через пробел»
   const charTimings = useMemo(() => buildCharTimings(text, wordTimings), [wordTimings, text])
-
-  const waveH = useMemo(() =>
-    Array.from({ length: barCount }, (_, i) =>
-      WAVE_H_BASE[Math.floor(i / barCount * WAVE_H_BASE.length)]
-    ), [barCount])
 
   // Откуда берётся звук и почему адрес фиксируется — useAudioSource.js
   const { src, locked: srcLocked, lock: lockSrc, unlock: unlockSrc } = useAudioSource(node, file)
@@ -94,7 +80,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     setIsPlaying(false)
     setTextStarted(false)
     setRevealedCharIdx(-1)
-    barSmoothRef.current.fill(0)
+    waveRef.current?.setProgress(0)
     setWaveData(storedWaveform?.length ? storedWaveform : null)
     setDuration(storedDuration || null)
     if (storedDuration) logAudioDurationReady('сразу, storedDuration', storedDuration)
@@ -112,14 +98,6 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     }
     return () => { cancelled = true }
   }, [src, storedWaveform, storedDuration])
-
-  // Плотность полосок волны под реальную ширину дорожки — useAdaptiveBarCount.js
-  useAdaptiveBarCount({ waveRowRef, prevBarCountRef, barSmoothRef, barElsRef, setBarCount })
-
-  const applyFirstFrame = wd => applyFirstAudioFrame(wd, barElsRef, barSmoothRef)
-
-  // Show first frame before first play so there's no visual jump on start
-  useLayoutEffect(() => { applyFirstFrame(waveData) }, [waveData, barCount])
 
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -190,16 +168,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     if (isReplay) audio.currentTime = 0
 
     const d             = duration || audio.duration || 0
-    const capturedWave  = waveData
     const capturedChars = charTimings
-    logAudioPlayStart({ d, liveDuration: audio.duration, readyState: audio.readyState, networkState: audio.networkState, waveLen: capturedWave?.length })
-    // Заливку считаем от числа РЕАЛЬНО видимых баров, а не от
-    // barElsRef.current.length: тот может быть больше настоящей вёрстки
-    // (дорожка обрезает лишнее overflow:hidden, а массив рефов иногда ещё не
-    // догнал actual плотность после пересчёта ширины) — тогда progress*length
-    // «доходил до края» видимой части задолго до конца записи. Меряем один
-    // раз здесь, не на каждый кадр в tick() (форсирует reflow)
-    const visBars = logAudioBarClipping(waveRowRef, barElsRef)
+    logAudioPlayStart({ d, liveDuration: audio.duration, readyState: audio.readyState, networkState: audio.networkState, waveLen: waveData?.length })
     const hb = makeAudioHeartbeat()
 
     setTextStarted(true)
@@ -212,17 +182,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     //    при возврате к сообщению, которое не успело договорить.
     if (fullyRevealedRef.current) setRevealedCharIdx(capturedChars.length)
     else if (isReplay) setRevealedCharIdx(-1)
-    // On replay: reset to first frame so EMA starts clean
-    // On resume: keep current EMA values — no jump
-    if (isReplay) applyFirstFrame(capturedWave)
-    barElsRef.current.forEach(bar => {
-      if (!bar) return
-      bar.style.transition = ''  // remove any lingering fade transition
-      // Заливку стираем ТОЛЬКО при запуске заново: на продолжении с паузы она
-      // уже показывает пройденное, а обнуление гасило спектр на кадр — то же
-      // мигание, что было у текста, только на полосах
-      if (isReplay) bar.style.background = ''
-    })
+    // Заливку стираем ТОЛЬКО при запуске заново: на продолжении с паузы она
+    // уже показывает пройденное
+    if (isReplay) waveRef.current?.setProgress(0)
 
     function tick() {
       const ct = audio.currentTime
@@ -230,30 +192,11 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       // у отдельного probeAudioDuration()-элемента метаданные MP3 иногда чуть
       // короче реальных (VBR) — на коротких голосовых это заметный процент,
       // заливка добегала до края раньше, чем звук реально доигрывал
-      const total       = (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : d) || 1
-      const progress    = total > 0 ? ct / total : 0
-      const bars        = barElsRef.current
-      const barsForFill = visBars > 0 ? visBars : bars.length
-      const greenUpTo   = progress * barsForFill
-      const center      = (bars.length - 1) / 2
-      // staticWaveform: fi всегда -1 — тот же путь, что у weakDevice — и
-      // высота баров просто не трогается тут вообще, оставаясь такой, какой
-      // её один раз поставил applyFirstFrame (пик громкости всей записи)
-      const fi        = !weakDevice && !staticWaveform && capturedWave?.length ? Math.floor(ct * WAVEFORM_FPS) : -1
-      hb(ct, total, barsForFill)
-
-      bars.forEach((bar, i) => {
-        if (!bar) return
-        bar.style.background = i < greenUpTo ? ACCENT : ''
-        if (fi >= 0) {
-          const offset = Math.round((i - center) * 0.2)
-          const idx    = Math.max(0, Math.min(capturedWave.length - 1, fi + offset))
-          const target = Math.pow(capturedWave[idx] / 255, 0.55)
-          const alpha  = target > barSmoothRef.current[i] ? 0.75 : 0.28
-          barSmoothRef.current[i] = barSmoothRef.current[i] * (1 - alpha) + target * alpha
-          bar.style.transform = `scaleY(${Math.max(0.1, barSmoothRef.current[i] * 1.8)})`
-        }
-      })
+      const total    = (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : d) || 1
+      const progress = total > 0 ? ct / total : 0
+      hb(ct, total)
+      // Сама волна перерисуется только если заливка дошла до новой полоски
+      waveRef.current?.setProgress(progress)
 
       // Ведём раскрытие только на первом прогоне. На повторном текст уже
       // показан целиком, и трогать его нельзя: каждое изменение — новая
@@ -266,7 +209,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
         setRevealedCharIdx(idx)
       }
 
-      if (timeRef.current) timeRef.current.textContent = fmtAudioTime(Math.max(0, total - ct))
+      // Таймер меняется раз в секунду — не трогаем DOM, пока строка та же
+      const left = fmtAudioTime(Math.max(0, total - ct))
+      if (timeRef.current && timeRef.current.textContent !== left) timeRef.current.textContent = left
       rafRef.current = requestAnimationFrame(tick)
     }
 
@@ -280,14 +225,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
         // его больше не набирают (см. fullyRevealedRef)
         fullyRevealedRef.current = true
       }
-      barElsRef.current.forEach(bar => {
-        if (!bar) return
-        bar.style.transition = 'background 0.55s ease'
-        bar.style.background = ''
-      })
-      setTimeout(() => {
-        barElsRef.current.forEach(bar => { if (bar) bar.style.transition = '' })
-      }, 650)
+      waveRef.current?.setProgress(0)
       if (timeRef.current) timeRef.current.textContent = fmtAudioTime(d)
       onDone?.()
     }
@@ -362,20 +300,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
               {isPlaying ? <PauseIcon /> : <PlayTriangle />}
             </button>
             <div className="playerAudioWaveCol">
-              <div ref={waveRowRef} className="playerAudioWaveRow">
-                {waveH.map((h, i) => (
-                  <div
-                    key={i}
-                    ref={el => { barElsRef.current[i] = el }}
-                    className={[
-                      'playerAudioBar',
-                      isPlaying && waveData ? 'playerAudioBarLive'
-                        : isPlaying && !weakDevice ? 'playerAudioBarPlaying' : '',
-                    ].filter(Boolean).join(' ')}
-                    style={{ '--bar-h': h + 'px', '--delay': `${i * 0.07}s` }}
-                  />
-                ))}
-              </div>
+              <AudioWave ref={waveRef} waveData={waveData} />
               <span ref={timeRef} className="playerAudioDur">{fmtAudioTime(duration)}</span>
             </div>
           </div>

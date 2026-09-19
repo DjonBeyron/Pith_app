@@ -9,16 +9,12 @@
    min(25vw, 140px), чтобы плеер/волна не жались в узкую полоску.
 
    140px — не круглое число «на глаз»: это реальный минимум, чтобы влезли
-   ВСЕ элементы ряда без обрезки дорожки волны (см. useAdaptiveBarCount.js —
-   там жёсткий пол в 8 баров, Math.max(8, ...) — по просьбе автора: короткое
-   голосовое не должно тянуться под 20 баров, которым нечем светиться на
-   секундной записи). Счёт: паддинг пузыря 24px (12×2) + кнопка-плеер 36px +
-   её отступ 8px + минимум 8 баров волны по (BAR_W+BAR_GAP)=4px = 32px +
-   время (~25px) ≈ 125px, плюс запас. Если этого не хватает, дорожка
-   обрезает часть баров (overflow:hidden) — прогресс-заливка (AudioModule.jsx)
-   с этим уже справляется (считает от РЕАЛЬНО видимых баров, не от общего
-   числа, см. measureBarVisibility в audioWaveParts.js), но сама дорожка
-   выглядит опрятнее, когда обрезки вообще нет.
+   ВСЕ элементы ряда (см. barCountFor в audioWaveParts.js — там жёсткий пол
+   в 8 полосок, Math.max(8, ...) — по просьбе автора: короткое голосовое не
+   должно тянуться под 20 полосок, которым нечем светиться на секундной
+   записи). Счёт: паддинг пузыря 24px (12×2) + кнопка-плеер 36px + её отступ
+   8px + минимум 8 полосок по (BAR_W+BAR_GAP)=4px = 32px + время (~25px)
+   ≈ 125px, плюс запас.
 
    min(...,190px), а НЕ голый 25vw: лента ограничена max-width:600px
    (feed.css, --feed-pad) и на десктопе центрируется узкой колонкой — голый
@@ -58,11 +54,9 @@
   isolation: isolate;
 }
 
-/* Без расшифровки вовсе — ширина ФИКСИРОВАНА (не fit-content): единственное,
-   что тогда может повлиять на fit-content, — дорожка волны, чья плотность
-   баров подстраивается под реальную ширину (useAdaptiveBarCount.js).
-   Фиксированная ширина убирает саму возможность обратной связи между
-   плотностью баров и шириной пузыря. min(25vw,140px) — см. комментарий выше,
+/* Без расшифровки вовсе — ширина ФИКСИРОВАНА (не fit-content): волна теперь
+   canvas на 100% колонки и на fit-content не влияет, но фиксированная ширина
+   всё равно проще и предсказуемее. min(25vw,140px) — см. комментарий выше,
    значение держим в паре с min-width там же. */
 .playerMsgBubble--audioNoText {
   width: min(25vw, 140px);
@@ -149,50 +143,21 @@
   gap: 6px;
 }
 
-/* ── Wave bars (div-based, Telegram style) ─────────────────────────── */
+/* ── Wave (один canvas, AudioWave.jsx) ──────────────────────────────
+   Раньше — ~70 div-полосок с will-change на каждое голосовое: к концу
+   длинного урока 1200+ слоёв GPU, iPhone грелся и лагал. Canvas не влияет
+   на раскладку (высота фиксирована, ширина — от колонки), так что смена
+   плотности полосок больше не двигает пузырь */
 
-.playerAudioWaveRow {
+.playerAudioWave {
+  display: block;
   width: 100%;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
   height: 26px;
-  contain: layout;
 }
 
 @keyframes playerSepFadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes playerWaveAnim {
-  0%, 100% { transform: scaleY(1);   }
-  50%       { transform: scaleY(.25); }
-}
-
-.playerAudioBar {
-  width: 2px;
-  height: var(--bar-h, 10px);
-  background: #2a2d35;
-  border-radius: 2px 2px 1px 1px;
-  flex-shrink: 0;
-  transform-origin: bottom;
-  will-change: transform;
-}
-
-/* No waveformData — animated bounce while playing */
-.playerAudioBarPlaying {
-  background: #b6fe3b;
-  animation: playerWaveAnim .75s ease-in-out infinite;
-  animation-delay: var(--delay, 0s);
-}
-
-/* Has waveformData — heights controlled via JS scaleY */
-.playerAudioBarLive {
-  animation: none;
-  transition: transform 0.04s ease-out;
-  transform-origin: bottom;
 }
 
 /* ── Timer ─────────────────────────────────────────────────────────── */

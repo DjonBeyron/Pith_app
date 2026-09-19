@@ -1,55 +1,61 @@
-import { Play, Pause } from 'lucide-react'
+// Как ВЫГЛЯДИТ волна голосового, без единого знания о том, что сейчас играет.
+//
+// Волна — один <canvas>, а не ~70 div-полосок (см. AudioWave.jsx). Замер на
+// iPhone 16 Pro (урок trying, 24 голосовых): каждая полоска с will-change —
+// свой слой GPU, к концу урока их было 1246, телефон грелся и лагала даже
+// системная шторка. Canvas — один слой на сообщение, рисуется один раз и
+// перерисовывается только когда зелёная заливка прогресса добегает до
+// следующей полоски.
 
-// Мелочь голосового сообщения, не зависящая от его состояния: размеры полос
-// спектра, поиск самого громкого места записи и поиск самого громкого места. Вынесено
-// из AudioModule.jsx — тот упёрся в потолок 400 строк, а здесь своя
-// ответственность: как волна и кнопка ВЫГЛЯДЯТ, без единого знания о том,
-// что сейчас играет.
-
-// Базовые высоты полос: рисунок «спектра» до того, как посчитан настоящий.
+// Базовые высоты полос, пока настоящая волна не посчитана (или файла нет).
 // Массив, а не генератор: набор подобран на глаз, чтобы неозвученный пузырь
 // не выглядел ни ровным забором, ни случайным шумом
 export const WAVE_H_BASE = [7,11,16,22,14,19,24,17,10,20,13,22,18,11,25,21,15,9,18,24,16,12,21,14,19,10,17,23,15,9,13,19,21,14,17,24,11,18,22,15,10,19,13,25,16,9,20,23,12,17]
 export const BAR_W = 2, BAR_GAP = 2
 export const ACCENT = '#b6fe3b'
+const MUTED = '#2a2d35'
 
-// Индекс центра самого громкого короткого участка записи (окно, а не
-// одиночный сэмпл — иначе один щелчок/вдох решал бы, где заморозить кадр).
-// wd — RMS-амплитуда 0..255 по кадрам (analyzeWaveform, 30 кадров/с).
-export function loudestFrameIndex(wd, win = 9) {
-  const w = Math.min(win, wd.length)
-  let sum = 0
-  for (let i = 0; i < w; i++) sum += wd[i]
-  let bestSum = sum, bestCenter = Math.floor((w - 1) / 2)
-  for (let start = 1; start <= wd.length - w; start++) {
-    sum += wd[start + w - 1] - wd[start - 1]
-    if (sum > bestSum) { bestSum = sum; bestCenter = start + Math.floor((w - 1) / 2) }
-  }
-  return bestCenter
+export function barCountFor(width) {
+  return Math.max(8, Math.floor(width / (BAR_W + BAR_GAP)))
 }
 
-// Сколько баров РЕАЛЬНО видно в дорожке (та обрезана overflow:hidden), а не
-// формально существует в массиве рефов — barElsRef.current.length может
-// отставать от настоящей вёрстки (пересчёт ширины ResizeObserver-ом ещё не
-// докатился до рендера) или содержать «дыры» после смены плотности баров.
-// Считаем один раз в момент старта воспроизведения (не на каждый кадр в
-// tick() — getBoundingClientRect() форсирует reflow, дорого на 60fps) и
-// дальше используем как знаменатель заливки — иначе прогресс считался от
-// числа, которого ученик не видит, и зелёная полоса «доходила до края»
-// задолго до конца записи
-export function measureBarVisibility(waveRowRef, barElsRef) {
-  const row = waveRowRef.current
-  const all = barElsRef.current
-  if (!row) return { visible: all.filter(Boolean).length, clipped: 0, hidden: 0, rowWidth: 0, rowRight: 0, lastBarRight: 0, barCount: all.length }
-  const rowRect = row.getBoundingClientRect()
-  let visible = 0, clipped = 0, hidden = 0, lastBarRight = 0
-  for (const bar of all) {
-    if (!bar) continue
-    const r = bar.getBoundingClientRect()
-    lastBarRight = r.right
-    if (r.right <= rowRect.right + 0.5) visible++
-    else if (r.left < rowRect.right) clipped++
-    else hidden++
+// Высота полоски i из count: огибающая ВСЕЙ записи (как в Telegram) — пик
+// громкости внутри своего отрезка времени, а не один сэмпл (иначе короткий
+// щелчок или пауза между словами решали бы, какой высоты полоска).
+// wd — RMS-амплитуда 0..255 по кадрам (analyzeWaveform, 30 кадров/с)
+function barAmp(wd, i, count) {
+  if (!wd?.length) return WAVE_H_BASE[Math.floor(i / count * WAVE_H_BASE.length)] / 25
+  const from = Math.floor(i / count * wd.length)
+  const to   = Math.max(from + 1, Math.floor((i + 1) / count * wd.length))
+  let peak = 0
+  for (let k = from; k < to && k < wd.length; k++) if (wd[k] > peak) peak = wd[k]
+  return Math.pow(peak / 255, 0.55)
+}
+
+// Рисует волну целиком: полоски снизу вверх, пройденные (до progress 0..1) —
+// акцентным зелёным. Возвращает число полосок — по нему AudioWave решает,
+// изменилось ли что-то видимое с прошлого кадра
+export function drawAudioWave(canvas, waveData, progress = 0) {
+  if (!canvas) return 0
+  const dpr = window.devicePixelRatio || 1
+  const w   = canvas.clientWidth
+  const h   = canvas.clientHeight
+  if (!w || !h) return 0
+  const pw = Math.round(w * dpr), ph = Math.round(h * dpr)
+  if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph }
+  const ctx   = canvas.getContext('2d')
+  const count = barCountFor(w)
+  const green = Math.floor(progress * count)
+  ctx.clearRect(0, 0, pw, ph)
+  ctx.save()
+  ctx.scale(dpr, dpr)
+  for (let i = 0; i < count; i++) {
+    const barH = Math.max(2, barAmp(waveData, i, count) * h * 0.95)
+    ctx.fillStyle = i < green ? ACCENT : MUTED
+    ctx.beginPath()
+    ctx.roundRect(i * (BAR_W + BAR_GAP), h - barH, BAR_W, barH, [2, 2, 1, 1])
+    ctx.fill()
   }
-  return { visible, clipped, hidden, rowWidth: rowRect.width, rowRight: rowRect.right, lastBarRight, barCount: all.length }
+  ctx.restore()
+  return count
 }

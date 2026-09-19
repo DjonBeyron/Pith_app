@@ -1,9 +1,9 @@
 // Один замер «что сейчас жрёт ресурсы» — чистая функция над DOM, без React.
 // Считает то, что на телефоне нельзя увидеть без DevTools: сколько CSS-анимаций
-// реально крутится (в т.ч. бесконечных и за экраном), сколько полосок волны
-// голосовых живёт в ленте (каждая — will-change → отдельный слой GPU), сколько
-// <audio>/<video> держат медиа в памяти, размер DOM. Формат строки нарочно
-// компактный — она пишется в pLog раз в секунду и читается по столбикам.
+// реально крутится (в т.ч. бесконечных и за экраном), сколько волн голосовых
+// (canvas) живёт в ленте, сколько <audio>/<video> держат медиа в памяти,
+// размер DOM. Формат строки нарочно компактный — она пишется в pLog раз в
+// секунду и читается по столбикам.
 
 // Сколько анимаций из списка бесконечные и как они распределены по именам —
 // именно бесконечные не дают GPU уснуть, даже если пузырь давно уехал вверх
@@ -29,7 +29,7 @@ export function samplePerf({ fps, worstMs, drops }) {
   const feed    = document.querySelector('.playerFeedInner')
   const dom     = feed ? feed.getElementsByTagName('*').length : -1
   const bubbles = feed ? feed.querySelectorAll('.playerMsgBubble').length : -1
-  const bars    = document.querySelectorAll('.playerAudioBar').length
+  const waves   = document.querySelectorAll('.playerAudioWave').length
   const audios  = document.querySelectorAll('audio')
   const videos  = document.querySelectorAll('video')
   const playingA = [...audios].filter(a => !a.paused).length
@@ -39,7 +39,7 @@ export function samplePerf({ fps, worstMs, drops }) {
   return (
     `[perf] fps=${fps} worst=${worstMs}ms drops=${drops}` +
     ` anim=${anims.length} inf=${inf}${top ? `(${top})` : ''}` +
-    ` bars=${bars} audio=${audios.length}/${playingA} video=${videos.length}/${playingV}` +
+    ` waves=${waves} audio=${audios.length}/${playingA} video=${videos.length}/${playingV}` +
     ` bubbles=${bubbles} dom=${dom}${memStr}` +
     (document.hidden ? ' HIDDEN' : '')
   )
