@@ -134,14 +134,14 @@ describe('fill_blanks — собранная фраза ВСЕГДА уходи�
 
   it('fillBlanksCheck.js зовёт onAnswerToChat собранной фразой (buildPickedText) на верном и финальном неверном ответе', () => {
     expect(check).toContain("import { buildRevealedText, buildPickedText } from '../../../../shared/lib/fillBlanksTemplate.js'")
-    expect(check).toContain("onAnswerToChat?.(text, 'correct')")
-    expect(check).toContain("onAnswerToChat?.(text, 'wrong_final')")
+    expect(check).toContain("onAnswerToChat?.(text, 'correct', deferred)")
+    expect(check).toContain("onAnswerToChat?.(text, 'wrong_final', deferred)")
   })
 
   it('PlayerPanels.jsx передаёт onAnswerToChat безусловно, без галочки', () => {
     const fbBlock = playerPanels.slice(playerPanels.indexOf('{fbNode && ('), playerPanels.indexOf('{pcNode &&'))
     expect(fbBlock).not.toContain('sendAnswerToChat')
-    expect(fbBlock).toContain('onAnswerToChat={(text, result) => handlePhraseAnswer(fbNode.id, text, result)}')
+    expect(fbBlock).toContain('onAnswerToChat={(text, result, arriving) => handlePhraseAnswer(fbNode.id, text, result, arriving)}')
   })
 })
 
@@ -154,5 +154,49 @@ describe('fill_blanks — цитата «В ответ на» и общий ст
 
   it('replyResolve.js резолвит fill_blanks через тот же общий phraseStates, что и table/phrase_assembly', () => {
     expect(replyResolve).toContain("rType === 'phrase_assembly' || rType === 'table' || rType === 'fill_blanks'")
+  })
+})
+
+// Раскладка панели (пользователь, 2026-09-19): кнопка перевода — маленькая в
+// правом верхнем углу; фраза и перевод ниже; кнопка «Проверить» под ними,
+// всегда в разметке и проявляется плавно, как у таблицы
+describe('раскладка «Составь предложение»', () => {
+  const panel = read('./FillBlanksPanel.jsx')
+  const css = read('../../../../styles/player/panels/fill-blanks.css')
+
+  it('кнопка перевода — absolute в правом верхнем углу, без слота в потоке', () => {
+    expect(panel).not.toContain('fbTrBtnSlot')
+    expect(css).not.toContain('.fbTrBtnSlot')
+    const btn = css.slice(css.indexOf('.fbTrBtn {'), css.indexOf('.fbTrBtnShown'))
+    expect(btn).toContain('position: absolute;')
+    expect(btn).toContain('top: 8px;')
+    expect(btn).toContain('right: 12px;')
+    // фраза начинается ниже кнопки — верхний отступ inner под неё
+    expect(css).toMatch(/\.fbInner \{[^}]*padding: 38px 16px/)
+  })
+
+  it('«Проверить» всегда в разметке, скрыта до первого пропуска, проявляется opacity+scale', () => {
+    expect(panel).toContain("className={`fbCheckBtn${filledCount > 0 ? '' : ' fbCheckBtnHidden'}`}")
+    expect(panel).toContain('aria-hidden={filledCount === 0}')
+    expect(css).toContain('.fbCheckBtn.fbCheckBtnHidden {')
+    expect(css).toMatch(/\.fbCheckBtn\.fbCheckBtnHidden \{[^}]*transform: scale\(0\.88\)/)
+  })
+})
+
+// Та же система, что у «выбери слово»: подъём/спуск с историей, салют из
+// панели, пузыри невидимыми в тик закрытия, проявление на остановке истории
+describe('«Составь предложение» — подъём/спуск и отложенные пузыри', () => {
+  const panel = read('./FillBlanksPanel.jsx')
+
+  it('хук usePanelRiseDrop, closePanelWith: салют → prepareClose → пузыри arriving → setShow(false)', () => {
+    expect(panel).toContain("usePanelRiseDrop({ show, panelRef, spacerSel: '.fbSpacer', panelH, label: 'fb' })")
+    const body = panel.slice(panel.indexOf('function closePanelWith(trigger, sendBubbles)'))
+    expect(body).toContain("if (trigger === 'fill_correct' && isRewardOn('fill_blanks', fbData)) {")
+    expect(body.indexOf('rise.prepareClose({ reveal: {')).toBeLessThan(body.indexOf('sendBubbles?.(true)'))
+    expect(body.indexOf('sendBubbles?.(true)')).toBeLessThan(body.indexOf('setShow(false)'))
+  })
+
+  it('распорка без анимации высоты на подъёме (opening) и спуске', () => {
+    expect(panel).toContain("transition: show && !rise.opening ? 'height 0.26s cubic-bezier(0.16, 1, 0.3, 1)' : 'none'")
   })
 })

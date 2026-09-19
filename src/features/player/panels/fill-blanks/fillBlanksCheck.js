@@ -1,8 +1,6 @@
-import { flushSync } from 'react-dom'
 import { normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 import { firstMismatchSlot } from '../../../../shared/lib/signalMismatch.js'
 import { buildRevealedText, buildPickedText } from '../../../../shared/lib/fillBlanksTemplate.js'
-import { whenBubbleLanded } from '../whenBubbleLanded.js'
 
 export function blankMatches(value, blank) {
   return !!value && normalizeAnswerText(value) === normalizeAnswerText(blank.answer)
@@ -42,26 +40,30 @@ export function makeFillBlanksCheck({
     if (mismatchIdx == null) {
       setResult('correct')
       onChecked?.('correct')
-      if (xpAmount > 0) onXpEarned?.(xpAmount)
-      // Та же пауза и flushSync/whenBubbleLanded, что у table-manual: ученик
-      // должен успеть увидеть зелёный итог в панели, а пузырь — оказаться в
-      // DOM и доехать въездом снизу ПРЕЖДЕ, чем панель тронется закрытием
-      // (иначе на один и тот же пузырь ложатся два встречных движения)
+      // expectBubble — будет ли пузырь в чате (галочка «отправить ответ» или
+      // реплика на верный): XP тогда ждёт его и летит от него (xpAnchor.js)
+      if (xpAmount > 0) {
+        const expectBubble = !!(onAnswerToChat && buildPickedText(tData.template, picked).trim())
+          || !!tData.responseCorrect?.trim()
+        onXpEarned?.(xpAmount, { expectBubble })
+      }
+      // 600мс — ученик видит зелёный итог в панели; дальше панель решает, как
+      // показать пузыри (closePanelWith → sendBubbles(deferred)): обычно они
+      // встают в ленту невидимыми одним тиком с закрытием и проявляются,
+      // когда история встала (usePanelRiseDrop)
       const id = setTimeout(() => {
-        flushSync(() => {
-          // Собранная фраза — СПРАВА, от лица ученика, с галочкой/салютом
-          // (AnswerBubbles.jsx, result==='correct') — только если включена
-          // галочка «отправить ответ в чат» (onAnswerToChat не передан, если
-          // она выключена, см. PlayerPanels.jsx). Следом — responseCorrect
-          // автора, если задан, отдельной репликой.
+        closePanelWith('fill_correct', deferred => {
+          // Собранная фраза — СПРАВА, от лица ученика (AnswerBubbles.jsx,
+          // result==='correct') — только если включена галочка «отправить
+          // ответ в чат» (onAnswerToChat не передан, если она выключена, см.
+          // PlayerPanels.jsx). Следом — responseCorrect автора, если задан.
           const text = buildPickedText(tData.template, picked)
-          if (text.trim()) onAnswerToChat?.(text, 'correct')
+          if (text.trim()) onAnswerToChat?.(text, 'correct', deferred)
           // 'hint', не 'correct': это реплика УЧИТЕЛЯ, а не второй ответ
           // ученика — 'correct' рисует её тем же зелёным пузырём справа,
           // что и саму фразу, и получались две «реплики ученика» подряд
-          if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'hint')
+          if (tData.responseCorrect?.trim()) onAnswered?.(tData.responseCorrect, 'hint', deferred)
         })
-        whenBubbleLanded(() => closePanelWith('fill_correct'))
       }, 600)
       timers.current.push(id)
       return
@@ -81,15 +83,14 @@ export function makeFillBlanksCheck({
       // подсказкой учителя (не «от лица ученика» — см. manualCheck.js)
       const revealed = buildRevealedText(tData.template, blanks)
       const id = setTimeout(() => {
-        flushSync(() => {
+        closePanelWith('fill_wrong', deferred => {
           // Последняя (неверная) попытка ученика — СПРАВА, тем же каналом,
           // что и верный ответ выше, только result='wrong_final' (тот же
           // приём, что у table) — тоже только при включённой галочке
           const text = buildPickedText(tData.template, picked)
-          if (text.trim()) onAnswerToChat?.(text, 'wrong_final')
-          if (revealed.trim()) onAnswered?.(revealed, 'hint')
+          if (text.trim()) onAnswerToChat?.(text, 'wrong_final', deferred)
+          if (revealed.trim()) onAnswered?.(revealed, 'hint', deferred)
         })
-        whenBubbleLanded(() => closePanelWith('fill_wrong'))
       }, 600)
       timers.current.push(id)
       return

@@ -14,7 +14,8 @@ export default function FillBlanksModule({ node, phraseState, lessonNodes = [], 
     <AnswerBubbles
       bubbles={phraseState}
       nodeId={node?.id ?? null}
-      confetti={!node?.isHistory}
+      /* салют даёт сама панель (FillBlanksPanel, fireBurst при уходе) */
+      confetti={false}
       replyNode={replyNode}
       lessonFiles={lessonFiles}
       teacherName={teacherName}

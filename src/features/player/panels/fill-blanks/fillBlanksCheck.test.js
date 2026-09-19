@@ -87,7 +87,8 @@ describe('makeFillBlanksCheck — верный ответ', () => {
     expect(setResult).toHaveBeenCalledWith('correct')
     expect(onChecked).toHaveBeenCalledWith('correct')
     expect(wrongCount.current).toBe(0)
-    expect(onXpEarned).toHaveBeenCalledWith(10)
+    // второй аргумент — знает ли панель, что пузырь будет (xpAnchor.js, expectBubble)
+    expect(onXpEarned).toHaveBeenCalledWith(10, expect.objectContaining({ expectBubble: expect.any(Boolean) }))
   })
 
   it('xpAmount = 0 — onXpEarned не зовётся вовсе', () => {

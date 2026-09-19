@@ -98,13 +98,16 @@ export default function PlayerPanels({
           node={fbNode}
           xpAmount={xpMap.get(fbNode.id) ?? 0}
           onDone={result => { setFbPanelHeight(0); onNodeDone(fbNode.id, result) }}
-          onAnswered={(text, result) => handlePhraseAnswer(fbNode.id, text, result)}
+          /* третий аргумент — arriving (отложенный пузырь, см. fillBlanksCheck.js),
+             onRevealAnswer проявляет его на остановке истории */
+          onAnswered={(text, result, arriving) => handlePhraseAnswer(fbNode.id, text, result, arriving)}
+          onRevealAnswer={() => revealPhraseAnswers(fbNode.id)}
           // Собранная фраза ВСЕГДА уходит пузырём справа (верная — сразу,
           // неверная — последняя из трёх) — в отличие от table, тут это не
           // опциональная галочка: «Составь предложение» без видимого итога
           // в чате выглядит незавершённым, реплай на цитату тоже не на что
           // ставить (см. PROJECT.md)
-          onAnswerToChat={(text, result) => handlePhraseAnswer(fbNode.id, text, result)}
+          onAnswerToChat={(text, result, arriving) => handlePhraseAnswer(fbNode.id, text, result, arriving)}
           onChecked={result => {
             if (result === 'wrong') wrongRef.current += 1
             record({
@@ -113,7 +116,7 @@ export default function PlayerPanels({
               type: result,
             })
           }}
-          onXpEarned={amount => handleXpEarned(amount, fbNode.id)}
+          onXpEarned={(amount, opts) => handleXpEarned(amount, fbNode.id, opts)}
           onHeightChange={setFbPanelHeight}
         />
       )}

@@ -6,6 +6,9 @@ import { parseTemplateSegments, blankKind, BLANK_DOT_COUNT } from '../../../../s
 import { makeFillBlanksCheck } from './fillBlanksCheck.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import { rememberTap } from '../../xpAnchor.js'
+import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
+import { fireBurst } from '../../../../shared/lib/burstParticles.js'
+import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
 
 // Точки-плейсхолдер в переводе — тусклый неинтерактивный двойник пропуска:
 // та же логика количества (blankKind по индексу ИЗ template, не перевода —
@@ -33,7 +36,7 @@ function TranslationDots({ template, index }) {
 // onAnswerToChat — необязательный: PlayerPanels.jsx передаёт его, только
 // если у ноды включена галочка «отправить ответ в чат» (см. fillBlanksCheck.js).
 export default function FillBlanksPanel({
-  node, onDone, onAnswered, onAnswerToChat, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
+  node, onDone, onAnswered, onAnswerToChat, onRevealAnswer, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
 }) {
   const fbData = node.typeData?.fill_blanks ?? {}
   const template    = fbData.template ?? ''
@@ -106,8 +109,24 @@ export default function FillBlanksPanel({
     setWrongIndices(prev => prev.filter(i => i !== index))
   }
 
-  function closePanelWith(trigger) {
-    timers.current.push(setTimeout(() => { onHeightChange?.(0); onDone?.(trigger) }, 420))
+  // Подъём/спуск с историей — общий хук (usePanelRiseDrop.js), как у «выбери
+  // слово», таблиц и «собери фразу»
+  const rise = usePanelRiseDrop({ show, panelRef, spacerSel: '.fbSpacer', panelH, label: 'fb' })
+
+  // Закрытие по итогу («история знает высоту ответа заранее», PROJECT.md):
+  // одним тиком — салют (на верном, по галочке награды), пузыри в ленту
+  // НЕВИДИМЫМИ (sendBubbles(true) → arriving) и setShow(false); история едет
+  // вниз с панелью ровно до места под ответ, на её остановке хук проявляет
+  // пузыри, после въезда — закрывает ноду
+  function closePanelWith(trigger, sendBubbles) {
+    if (trigger === 'fill_correct' && isRewardOn('fill_blanks', fbData)) {
+      fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
+    }
+    rise.prepareClose({ reveal: {
+      onReveal: () => onRevealAnswer?.(),
+      done: () => { onHeightChange?.(0); onDone?.(trigger) },
+    } })
+    sendBubbles?.(true)
     setShow(false)
   }
 
@@ -129,17 +148,31 @@ export default function FillBlanksPanel({
 
   return (
     <>
+      {/* Распорка: на подъёме и спуске высота меняется РАЗОМ — движение
+          истории играет трансформ ленты (panelRise.js); между ними плавно
+          следует за ростом панели (перевод/кнопка место держат заранее) */}
       <div
         className="fbSpacer"
         style={{
           height: show ? panelH : 0,
-          transition: show
-            ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
-            : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
+          transition: show && !rise.opening ? 'height 0.26s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
         }}
       />
       <div ref={panelRef} className={`fbPanel${show ? ' fbPanelVisible' : ''}`}>
         <div className="fbInner">
+          {/* Кнопка перевода — маленькая, в правом верхнем углу панели
+              (absolute, вне потока — см. fill-blanks.css .fbTrBtn); фраза
+              начинается ниже неё, длинные предложения под кнопку не заезжают */}
+          {translation && (
+            <button
+              type="button"
+              className={`fbTrBtn${trBtnShown ? ' fbTrBtnShown' : ''}${trOpen ? ' fbTrBtnOn' : ''}`}
+              onClick={() => setTrOpen(o => !o)}
+              aria-label="Перевод"
+            >
+              <Languages size={14} />
+            </button>
+          )}
           <div className="fbSentenceCol">
             <div className={sentenceCls}>
               {segments.map((seg, i) => {
@@ -171,35 +204,18 @@ export default function FillBlanksPanel({
                 ))}
               </div>
             )}
-            {/* Кнопка — по центру, ПОД переводом (не сбоку от фразы): место
-                под неё держится всегда через min-height на .fbTrBtnSlot, сама
-                кнопка только проявляется scale 0→1 — переключение перевода
-                не двигает её позицию */}
-            {translation && (
-              <div className="fbTrBtnSlot">
-                <button
-                  type="button"
-                  className={`fbTrBtn${trBtnShown ? ' fbTrBtnShown' : ''}${trOpen ? ' fbTrBtnOn' : ''}`}
-                  onClick={() => setTrOpen(o => !o)}
-                  aria-label="Перевод"
-                >
-                  <Languages size={16} />
-                </button>
-              </div>
-            )}
-            {/* Без автопроверки — ученик жмёт сам, кнопка появляется, как
-                только заполнен хотя бы один пропуск (тот же приём, что у
-                table-manual/«Собери фразу»: место под неё не резервируем
-                отдельно, т.к. в отличие от table здесь нет фазы-сдвига,
-                под которую нужно держать высоту заранее) */}
-            {filledCount > 0 && (
-              <button
-                type="button"
-                className="fbCheckBtn"
-                onClick={check}
-                disabled={!!result}
-              >Проверить</button>
-            )}
+            {/* Без автопроверки — ученик жмёт сам. Кнопка в разметке ВСЕГДА,
+                до первого заполненного пропуска невидима (visibility): место
+                занято с первого кадра, панель не подрастает и распорку не
+                дёргает; проявляется opacity+scale, как у таблицы */}
+            <button
+              type="button"
+              className={`fbCheckBtn${filledCount > 0 ? '' : ' fbCheckBtnHidden'}`}
+              onClick={check}
+              disabled={filledCount === 0 || !!result}
+              aria-hidden={filledCount === 0}
+              tabIndex={filledCount > 0 ? 0 : -1}
+            >Проверить</button>
           </div>
         </div>
       </div>

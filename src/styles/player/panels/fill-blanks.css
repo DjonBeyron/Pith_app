@@ -33,13 +33,17 @@
    зарезервированную строку перевода под ней) по центру этой новой высоты,
    а не прибитой к низу блока. */
 .fbInner {
+  position: relative;
   max-width: 600px;
   margin: 0 auto;
   min-height: 88px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 20px 16px calc(40px + env(safe-area-inset-bottom, 0px));
+  /* Верхний отступ — под маленькую кнопку перевода в правом верхнем углу
+     (absolute, см. .fbTrBtn): фраза начинается НИЖЕ неё, поэтому длинное
+     предложение на первой строке никогда под кнопку не заезжает */
+  padding: 38px 16px calc(24px + env(safe-area-inset-bottom, 0px));
 }
 
 .fbSentenceCol {
@@ -58,30 +62,23 @@
   text-align: center;
 }
 
-/* ── Кнопка «раскрыть перевод» — по центру, ПОД строкой перевода (не сбоку
-   от фразы). Прямоугольная плашка (не круглая — see PROJECT.md), тот же
-   тёмный тусклый приём, что и раньше: чуть ярче на активном состоянии,
-   лёгкий блеск-приманка пока перевод не раскрыт. Появляется не сразу —
-   scale 0→1 спустя 1с после монтирования модуля (см. FillBlanksPanel.jsx),
-   дальше просто тоггл. Слот держит место ВСЕГДА (высота кнопки), чтобы её
-   появление не двигало текст фразы над ней на 1-й секунде. */
-.fbTrBtnSlot {
-  display: flex;
-  justify-content: center;
-  min-height: 32px;
-  margin-top: 8px;
-}
-
+/* ── Кнопка «раскрыть перевод» — маленькая, в ПРАВОМ ВЕРХНЕМ углу панели
+   (absolute, вне потока: её появление и тоггл ничего не двигают). Тот же
+   тёмный тусклый приём: чуть ярче на активном состоянии, лёгкий
+   блеск-приманка пока перевод не раскрыт. Появляется не сразу — scale 0→1
+   спустя 1с после монтирования модуля (см. FillBlanksPanel.jsx). */
 .fbTrBtn {
-  position: relative;
+  position: absolute;
+  top: 8px;
+  right: 12px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 30px;
-  padding: 0 18px;
+  height: 24px;
+  padding: 0 9px;
   border: none;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #22252d;
   color: #9aa0b4;
   cursor: pointer;
@@ -123,7 +120,7 @@
    Текст мельче и глуше английской фразы; точки пропуска — тусклый
    неинтерактивный двойник fbBlankDots, без блеска и мельче (см. ниже). ── */
 .fbTranslation {
-  margin-top: 6px;
+  margin-top: 8px;
   min-height: 18px;
   font-size: 13.5px;
   line-height: 1.4;
@@ -159,9 +156,14 @@
    реальной «фазы» смены раскладки тут нет (в отличие от table), поэтому
    место под неё заранее не резервируем: чуть подрастающая высота панели
    не выглядит скачком, т.к. происходит сразу вместе с первым выбором. */
+/* Кнопка «Проверить» — под переводом. В разметке ВСЕГДА, а до первого
+   заполненного пропуска лишь невидима (visibility): место занято с первого
+   кадра, панель не подрастает в момент появления и не дёргает распорку.
+   Проявление — прозрачность + лёгкий скейл, как у ручной таблицы
+   (.tmCheckBtn); задержки нет — отката, который надо переждать, тут нет */
 .fbCheckBtn {
   display: block;
-  margin: 10px auto 0;
+  margin: 14px auto 0;
   padding: 7px 22px;
   background: #12141d;
   border: 2px solid #b6fe3b;
@@ -171,10 +173,24 @@
   color: #b6fe3b;
   font-family: inherit;
   cursor: pointer;
-  transition: background .15s, color .15s;
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    background .15s, color .15s,
+    opacity .22s ease,
+    transform .22s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s;
 }
 .fbCheckBtn:hover:not(:disabled) { background: #b6fe3b; color: #000; }
 .fbCheckBtn:disabled { opacity: .35; cursor: default; }
+/* После :disabled — у той тоже opacity, скрытая кнопка обязана победить */
+.fbCheckBtn.fbCheckBtnHidden {
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.88);
+  transition: opacity .12s, transform .12s, visibility 0s .12s;
+}
 
 .fbSentenceErr { animation: fbShake 0.42s ease; }
 

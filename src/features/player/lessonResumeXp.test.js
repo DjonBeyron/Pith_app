@@ -151,7 +151,8 @@ describe('«Продолжить урок» — восстановленная �
     expect(wordChoice).not.toContain('BurstConfetti')
     // «Собери фразу»: салют тоже в панели (PhraseAssemblyPanel), чат-модуль без него
     expect(phraseAssembly).toContain('confetti={false}')
-    expect(fillBlanks).toContain('confetti={!node?.isHistory}')
+    // «Составь предложение»: салют тоже в панели (FillBlanksPanel), чат-модуль без него
+    expect(fillBlanks).toContain('confetti={false}')
   })
 })
 
