@@ -6,7 +6,7 @@
 .panelFlyGhost.panelFlyGhost {
   position: fixed;
   margin: 0;
-  z-index: 60;
+  z-index: 82;   /* над панелями (80): клон подменяет панель и должен лежать там же */
   pointer-events: none;
   transform: none;
   transform-origin: top left;
@@ -25,7 +25,7 @@
    вовсе и растеризуется один раз. */
 .panelFlyFrame {
   position: fixed;
-  z-index: 59;          /* ровно под .panelFlyGhost */
+  z-index: 81;          /* ровно под .panelFlyGhost */
   pointer-events: none;
   will-change: left, top, width, height;
 }

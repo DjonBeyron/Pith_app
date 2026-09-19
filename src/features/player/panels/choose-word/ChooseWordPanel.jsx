@@ -91,7 +91,7 @@ export default function ChooseWordPanel({
       // начисляется, и салютовать нечему (правило общее, nodeReward.js).
       // Стартует в тот же тик, что и уход панели
       if (result === 'correct' && isRewardOn('word_choice', wcData)) {
-        fireBurst({ count: 30, size: 4, zIndex: 60, portalTo: '.lessonPlayer' })
+        fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
       }
       releaseRef.current = panelHeight
       setShow(false)

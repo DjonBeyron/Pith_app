@@ -87,10 +87,12 @@ describe('точка старта салюта', () => {
     }
   })
 
-  it('«из-под растушёвки» обеспечивает слой, а не отступ', () => {
-    // Портал лежит ниже растушёвки (60 против 65) — частица поднимается сквозь
-    // градиент и проявляется сама
-    expect(read('./panels/choose-word/ChooseWordPanel.jsx')).toContain('zIndex: 60')
+  it('салют — над панелями ответа, точка рождения у нижнего края', () => {
+    // Панели подняты над растушёвкой (80 > 65), салют — над панелями (85): он
+    // стартует в момент ухода панели и не должен прятаться за ней. Частицы
+    // рождаются у самого низа окна (bottomInset = 0), а не подняты над ним
+    expect(read('./panels/choose-word/ChooseWordPanel.jsx')).toContain('zIndex: 85')
+    expect(read('./panels/table-manual/TableManualPanel.jsx')).toContain('zIndex: 85')
     expect(physics).toContain('const H = window.innerHeight - bottomInset')
     expect(burst).toContain('bottomInset = 0')
   })

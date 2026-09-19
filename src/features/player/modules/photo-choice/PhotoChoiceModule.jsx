@@ -43,7 +43,7 @@ export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState 
   return (
     <div className="playerMsgRow playerMsgRowRight">
       {/* Тот же салют, что у прочих верных ответов (Confetti.jsx) */}
-      {isOk && <BurstConfetti count={30} size={4} zIndex={60} portalTo=".lessonPlayer" />}
+      {isOk && <BurstConfetti count={30} size={4} zIndex={85} portalTo=".lessonPlayer" />}
       <div>
         <div
           {...xpAnchor(node?.id)}

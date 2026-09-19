@@ -111,7 +111,7 @@ export default function TableManualPanel({
   // компонент внутри панели обрывал его на первой трети
   useEffect(() => {
     pLog(`[tm] result → ${result ?? 'null'}${result === 'correct' ? ' — запускаем салют' : ''}`)
-    if (result === 'correct') fireBurst({ count: 30, size: 4, zIndex: 60, portalTo: '.lessonPlayer' })
+    if (result === 'correct') fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
   }, [result])
 
   // Сдвиг истории запускается ПОСЛЕ того, как распорка отдала место, но ДО
