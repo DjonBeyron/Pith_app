@@ -15,17 +15,15 @@ import { whenBubbleLanded } from '../whenBubbleLanded.js'
 // в ленту НЕВИДИМЫМИ (arriving, WordChoiceModule) и панель закрывается —
 // раскладка сразу конечная, история едет вниз вместе с панелью ровно до
 // места, где останется после прихода ответа (спуск меряется по опоре) →
-// панель ушла → пузыри проявляются и въезжают снизу на уже свободное место
-// (историю двигать не надо) → нода закрывается. Раньше реплика прилетала НАД
-// панелью и толкала историю вверх, потом всё съезжало вниз, а после ухода
-// панели история снова поднималась под пузырь — три движения вместо одного.
+// в момент ОСТАНОВКИ истории (считается из кривой спуска, panelRise.js)
+// пузыри проявляются и въезжают снизу навстречу уходящей панели → нода
+// закрывается. Раньше реплика прилетала НАД панелью и толкала историю вверх,
+// потом всё съезжало вниз, а после ухода панели история снова поднималась.
 //
 // onPicked — статистика по тапу (сразу); onPickToChat — выбранное слово
 // пузырём справа (только при галочке «отправлять выбранное в чат»);
 // onRevealAnswer — снять arriving, когда панель ушла (PlayerPanels.jsx).
 const SEE_RESULT_MS = 700
-// Панель 0.28s и сдвиг ленты 280мс (panelRise.js) — пузыри после обоих
-const PANEL_GONE_MS = 300
 
 export default function ChooseWordPanel({
   node, onDone, onAnswered, onRevealAnswer, onPicked, onPickToChat, onHeightChange, xpAmount = 0, onXpEarned,
@@ -40,6 +38,10 @@ export default function ChooseWordPanel({
   const spacerBeforeRef = useRef(0)
   // Опора для спуска: последнее сообщение и его top до закрытия (см. ниже)
   const anchorRef = useRef(null)
+  // Что проявить после остановки истории (ставит таймер закрытия, читает
+  // layout-эффект спуска) и все таймеры панели
+  const revealRef = useRef(null)
+  const timersRef = useRef([])
 
   const wcData = node.typeData?.word_choice ?? {}
   const responseText = result === 'correct'
@@ -91,16 +93,35 @@ export default function ChooseWordPanel({
     const drop = Math.max(0, measured ?? (h - spacerH))
     pLog(`[word-choice] спуск: распорка отдала ${h}px, история опустится на ${drop.toFixed(1)}px`
       + `${measured != null ? ` (по опоре; ${(h - spacerH - drop).toFixed(1)}px заняли пузыри)` : ' (по распорке)'}`)
-    playPanelDrop(panel, { drop, panelH: h, label: 'wc' })
+    const { historyStopMs } = playPanelDrop(panel, { drop, panelH: h, label: 'wc' })
     tracePanelRise('wc-спуск', panel, '.chooseWordSpacer', 22)
+    // Ответ летит вверх РОВНО с остановки истории (не после ухода панели):
+    // момент считается из той же кривой спуска (panelRise.js). Панель в это
+    // время ещё едет вниз одна — пузырь въезжает ей навстречу на уже
+    // освободившееся место
+    const pending = revealRef.current
+    revealRef.current = null
+    if (!pending) return
+    timersRef.current.push(setTimeout(() => {
+      pLog(`[word-choice] история встала (+${historyStopMs}мс) → проявляем пузыри`)
+      // flushSync: въезд должен стартовать до того, как whenBubbleLanded
+      // спросит у строк их анимацию
+      flushSync(() => onRevealAnswer?.())
+      whenBubbleLanded(() => {
+        pLog(`[word-choice] пузырь въехал → onDone(${pending.triggerResult})`)
+        onDone?.(pending.triggerResult, pending.selectedId)
+      })
+    }, historyStopMs))
   }, [show]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Все таймеры панели гасятся при размонтировании
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), [])
 
   useEffect(() => {
     if (!isAnswered) return
     const triggerResult = result === 'correct' ? 'word_correct' : 'word_wrong'
     const picked = options.find(o => o.id === selectedId)
-    const timers = []
-    timers.push(setTimeout(() => {
+    timersRef.current.push(setTimeout(() => {
       // Салют — праздник НАГРАДЫ: снята галочка «Получить награду» — XP не
       // начисляется, и салютовать нечему (правило общее, nodeReward.js).
       // Стартует в тот же тик, что и уход панели
@@ -113,6 +134,8 @@ export default function ChooseWordPanel({
       const last = rows[rows.length - 1]
       anchorRef.current = last ? { el: last, top: last.getBoundingClientRect().top } : null
       releaseRef.current = panelHeight
+      // Что проявить и чем закрыть ноду — заберёт layout-эффект спуска
+      revealRef.current = { triggerResult, selectedId }
       // Пузыри и закрытие — ОДНИМ тиком (React батчит): строки встают в ленту
       // невидимыми (arriving, см. WordChoiceModule), раскладка сразу конечная,
       // и история опускается ровно до места, где останется после их прихода
@@ -120,18 +143,7 @@ export default function ChooseWordPanel({
       onAnswered?.(responseText, result)
       setShow(false)
       pLog(`[word-choice] панель закрывается (result=${result}), пузыри уже в ленте невидимыми`)
-      timers.push(setTimeout(() => {
-        pLog('[word-choice] панель уехала → проявляем пузыри')
-        // flushSync: въезд должен стартовать до того, как whenBubbleLanded
-        // спросит у строк их анимацию
-        flushSync(() => onRevealAnswer?.())
-        whenBubbleLanded(() => {
-          pLog(`[word-choice] пузырь въехал → onDone(${triggerResult})`)
-          onDone?.(triggerResult, selectedId)
-        })
-      }, PANEL_GONE_MS))
     }, SEE_RESULT_MS))
-    return () => timers.forEach(clearTimeout)
   }, [isAnswered]) // eslint-disable-line
   function getState(opt) {
     if (!isAnswered) return 'default'

@@ -25,13 +25,16 @@ describe('отложенный приход ответа «выбери слов
     expect(feed).toContain('if (existingRows.length && shiftPx > 0)')
   })
 
-  it('панель вставляет пузыри с arriving одним тиком с закрытием и проявляет после ухода', () => {
+  it('панель вставляет пузыри с arriving одним тиком с закрытием и проявляет с остановки истории', () => {
     expect(panels).toContain('handleWordAnswer(wcNode.id, text, result, true)')
     expect(panels).toContain('onRevealAnswer={() => handleWordReveal(wcNode.id)}')
     const close = panel.slice(panel.indexOf('anchorRef.current = last'))
-    // порядок: пузыри → setShow(false) в одном колбэке, reveal — по таймеру
+    // порядок: пузыри → setShow(false) в одном колбэке; reveal планирует
+    // layout-эффект спуска на historyStopMs из playPanelDrop
     expect(close.indexOf('onAnswered?.(responseText, result)')).toBeLessThan(close.indexOf('setShow(false)'))
-    expect(close).toContain('flushSync(() => onRevealAnswer?.())')
+    expect(panel).toContain('flushSync(() => onRevealAnswer?.())')
+    expect(panel).toContain('}, historyStopMs))')
+    expect(read('../panels/panelRise.js')).toContain('return { anim, historyStopMs }')
   })
 
   it('спуск меряется по опоре — с учётом места, занятого пузырями', () => {

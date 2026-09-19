@@ -83,16 +83,34 @@ export function playPanelRise(panelEl, { drop, panelH, duration = 380, easing = 
 }
 
 // Спуск — зеркально: история едет вниз с панелью с первого кадра и
-// останавливается, отдав свои drop px; панель уезжает дальше одна
+// останавливается, отдав свои drop px; панель уезжает дальше одна.
+// Возвращает { anim, historyStopMs } — через сколько мс история встанет
+// (panelH·p(t) = drop, t ищется по той же кривой): в этот момент вызывающий
+// проявляет ответ, чтобы он полетел вверх ровно с остановки истории
 export function playPanelDrop(panelEl, { drop, panelH, duration = 280, easing = 'cubic-bezier(0.4, 0, 1, 1)', label = 'drop' }) {
-  pLog(`[${label}] спуск: drop=${drop.toFixed(1)} panelH=${panelH}`)
-  // В раскладке история уже ВНИЗУ; держим её вверху на остаток пути
   const histFrames = sample(duration, easing, p => -(drop - Math.min(drop, panelH * p)))
-  return run(
+  const historyStopMs = Math.round(timeAtProgress(easing, panelH > 0 ? drop / panelH : 0) * duration)
+  pLog(`[${label}] спуск: drop=${drop.toFixed(1)} panelH=${panelH} → история встанет через ${historyStopMs}мс`)
+  const anim = run(
     panelEl,
     [{ transform: 'translateY(0%)' }, { transform: 'translateY(100%)' }],
     histFrames, duration, easing, label,
   )
+  return { anim, historyStopMs }
+}
+
+// t ∈ [0..1], при котором кривая даёт прогресс target (кривые монотонны —
+// бисекция). target ≥ 1 → 1, ≤ 0 → 0
+function timeAtProgress(easing, target) {
+  if (target <= 0) return 0
+  if (target >= 1) return 1
+  const p = easingFn(easing)
+  let lo = 0, hi = 1
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2
+    if (p(mid) < target) lo = mid; else hi = mid
+  }
+  return (lo + hi) / 2
 }
 
 // Покадровая трасса с длительностью кадра: «лагает/мало кадров» — это либо
