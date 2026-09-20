@@ -9,10 +9,10 @@ import PhraseBubbleStatic from './PhraseBubbleStatic.jsx'
 // (PhraseBubbleStatic). Решение снимается один раз при монтировании
 // (useState с ленивым инициализатором) — устройство не «слабеет» посреди
 // сессии, а лишний рендер-чек на каждый рендер не нужен
-export default function PhraseBubbleSpoiler({ active, near, onUnlock, children }) {
+export default function PhraseBubbleSpoiler({ active, near, tabVisible = true, onUnlock, children }) {
   const [useStatic] = useState(() =>
     isWeakDevice() || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
   if (useStatic) return <PhraseBubbleStatic onUnlock={onUnlock}>{children}</PhraseBubbleStatic>
-  return <PhraseBubbleAnimated active={active} near={near} onUnlock={onUnlock}>{children}</PhraseBubbleAnimated>
+  return <PhraseBubbleAnimated active={active} near={near} tabVisible={tabVisible} onUnlock={onUnlock}>{children}</PhraseBubbleAnimated>
 }

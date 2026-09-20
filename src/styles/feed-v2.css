@@ -262,6 +262,14 @@
   12%, 100% { transform: translateX(130%); }
 }
 
+/* Блик не крутится там, где кнопку никто не видит: скрытый вид ленты,
+   скрытая вкладка, лента под окном серии/слоем урока (.feedV2--paused,
+   FeedTab.jsx). Бесконечная анимация с will-change на 5-7 кнопках сразу
+   крутилась под уроком весь урок (датчик на iPhone: inf=7 feedShine) */
+.feedViewHidden .feedLearnBtn::after,
+.shellV2TabHidden .feedLearnBtn::after,
+.feedV2--paused .feedLearnBtn::after { animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .feedLearnBtn::after { content: none; }
 }

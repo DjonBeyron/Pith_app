@@ -212,11 +212,16 @@ function drawExplode(ctx, bubbles, dt, w, h) {
   return allDone
 }
 
-export default function PhraseBubbleAnimated({ active, near, onUnlock, children }) {
+export default function PhraseBubbleAnimated({ active, near, tabVisible = true, onUnlock, children }) {
   // near (сосед по свайпу, как в SlideVideo) — плаваем чуть раньше, чем
   // слайд станет активным, иначе при перелистывании шарики на новом слайде
-  // видно с задержкой (холст пустой, пока не отрисован первый кадр)
-  const warm = active || near
+  // видно с задержкой (холст пустой, пока не отрисован первый кадр).
+  // tabVisible — лента вообще на экране? Без него активный слайд рисовал все
+  // частицы каждый кадр под уроком, на «Моих уроках», в профиле: датчик на
+  // iPhone показывал 5 rAF-циклов по 60 кадров/с весь урок, а Chrome —
+  // 35% Scripting в покое. Это и делало дёрганой системную анимацию
+  // сворачивания приложения
+  const warm = (active || near) && tabVisible
   const wrapRef = useRef(null)
   const canvasRef = useRef(null)
   const bubblesRef = useRef([])
@@ -289,19 +294,23 @@ export default function PhraseBubbleAnimated({ active, near, onUnlock, children 
     return () => ro.disconnect()
   }, [revealed])
 
-  // Анимация: плавает пока слайд активен или в соседях (warm) — не тратим
-  // кадры только на дальних, скрытых слайдах; взрыв всегда доигрывается до конца
+  // Анимация: плавает пока слайд активен или в соседях (warm) — на холодных
+  // слайдах цикл не крутится вовсе (ни одного rAF), а не «крутится и выходит
+  // в начале кадра»: пять холостых циклов по 60/с — тоже нагрузка и повод для
+  // браузера не засыпать. Взрыв всегда доигрывается до конца, даже если
+  // слайд остыл посреди него
   useEffect(() => {
     if (revealed) return
     const canvas = canvasRef.current
     if (!canvas) return
+    if (!warm && !explodingRef.current) return
     const ctx = canvas.getContext('2d')
 
     let last = performance.now()
     let bgFrameSkip = 0
     function frame(now) {
+      if (!warm && !explodingRef.current) { rafRef.current = 0; return }
       rafRef.current = requestAnimationFrame(frame)
-      if (!warm && !explodingRef.current) return
       // Тёплый, но не активный (сосед) — перерисовываем раз в три кадра, а
       // не каждый: при быстром скролле одновременно тёплыми могут быть
       // активный + сосед, и полная перерисовка обоих на каждом кадре — то,
