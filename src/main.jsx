@@ -6,6 +6,7 @@ import { AdminProvider } from './app/AdminContext.jsx'
 import { LessonNavProvider } from './app/LessonNavContext.jsx'
 import { initErrorTrap } from './shared/lib/errorTrap.js'
 import { startStallWatch } from './shared/lib/feedDebug.js'
+import { applyPerfFlagClasses } from './shared/lib/perfFlags.js'
 import './index.css'
 // Побочный эффект: вешает слушатель beforeinstallprompt как можно раньше
 // (см. pwaInstall.js) — событие приходит один раз за загрузку, ловить надо
@@ -27,6 +28,8 @@ initErrorTrap()
 // Сторож подвисаний главного потока (лаг всего телефона при сворачивании
 // на iPhone) — пишет в DBG-лог ленты, см. feedDebug.js
 startStallWatch()
+// Флаги бисекции лага сворачивания (классы на <html>, см. perf-flags.css)
+applyPerfFlagClasses()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

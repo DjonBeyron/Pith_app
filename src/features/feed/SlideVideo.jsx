@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Play, VolumeX, Volume2 } from 'lucide-react'
 import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface, prepareReturn } from './videoPool.js'
 import { useVideoStall } from './useVideoStall.js'
+import { perfFlags } from '../../shared/lib/perfFlags.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
 const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга при частых тапах по чипу звука
@@ -23,7 +24,8 @@ export default function SlideVideo({
   // устройство успевает вернуть кадр на место — он «плывёт». Один тап
   // проходит, следующие в течение SOUND_TOGGLE_COOLDOWN_MS игнорируются
   const lastSoundToggleRef = useRef(0)
-  const hasVideo = !!videoUrl
+  // perfFlags.noVideo — бисекция лага сворачивания: лента без <video> вовсе
+  const hasVideo = !!videoUrl && !perfFlags.noVideo
   // В «окне» = активный или сосед. Только для них держим элемент пула.
   const inWindow = active || near
 

@@ -142,3 +142,4 @@
 /* debug-toolbar.css здесь НЕ подключается: его импортирует сам
    DebugToolbar.jsx, и стили уезжают вместе с dev-чанком тулбара, а не
    висят мёртвым грузом в прод-сборке (см. shared/lib/debugToolsEnabled.js) */
+@import './styles/perf-flags.css';

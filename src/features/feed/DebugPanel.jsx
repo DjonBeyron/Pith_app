@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { collectEnv, fdbgLog } from '../../shared/lib/feedDebug.js'
 import { getPlayerLines } from '../../shared/lib/debug.js'
+import { PERF_FLAG_DEFS, perfFlags, togglePerfFlag, perfFlagsSummary } from '../../shared/lib/perfFlags.js'
 
 // Панель дебага ленты: собирает отчёт (окружение + метрики ленты + датчик
 // производительности + лог событий), умеет Поделиться (share sheet на
@@ -18,7 +19,7 @@ export default function DebugPanel({ getFeedInfo, onClose }) {
   }
 
   function build() {
-    return `${collectEnv()}\n\n--- лента ---\n${getFeedInfo()}\n\n--- perf (датчик, 1 строка = 1 секунда) ---\n${perfLog()}\n\n--- лог ---\n${fdbgLog()}`
+    return `${collectEnv()}\nperfFlags: ${perfFlagsSummary()}\n\n--- лента ---\n${getFeedInfo()}\n\n--- perf (датчик, 1 строка = 1 секунда) ---\n${perfLog()}\n\n--- лог ---\n${fdbgLog()}`
   }
 
   function share() {
@@ -52,6 +53,15 @@ export default function DebugPanel({ getFeedInfo, onClose }) {
           <button className="fdbgClose" onClick={onClose}><X size={16} /></button>
         </div>
         <textarea className="fdbgText" readOnly value={report} />
+        {/* Бисекция лага сворачивания: каждая кнопка переключает флаг и
+            перезагружает страницу (shared/lib/perfFlags.js) */}
+        <div className="fdbgBtns">
+          {PERF_FLAG_DEFS.map(d => (
+            <button key={d.key} onClick={() => togglePerfFlag(d.key)}>
+              {perfFlags[d.key] ? '✓ ' : ''}{d.label}
+            </button>
+          ))}
+        </div>
         <div className="fdbgBtns">
           <button onClick={share}>Поделиться</button>
           <button onClick={copy}>Скопировать</button>

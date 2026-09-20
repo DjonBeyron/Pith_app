@@ -1,0 +1,21 @@
+/* Переключатели бисекции лага сворачивания iPhone (shared/lib/perfFlags.js):
+   классы на <html>, кнопки — в панели DBG ленты. Подключается последним,
+   чтобы перебивать переменные текстур из shell-v2.css и
+   lessons-chain-textures.css. Не для продакшен-поведения — только для
+   измерений: выключили → свернули → сравнили. */
+
+/* SVG-текстуры (feTurbulence-зерно/пыль + узоры) на карточках и фонах:
+   `none` как слой background-image допустим, порядок слоёв сохраняется */
+html.perf-no-textures {
+  --v2-tex: none; --v2-tex-f: none; --v2-tex-r: none; --v2-tex-d: none;
+  --v2-grain: none; --v2-dust: none; --v2-grain-d: none; --v2-dust-d: none;
+  --mg-tex-start: none; --mg-tex-final: none; --mg-tex-lesson: none;
+  --mg-grain: none; --mg-dust: none;
+}
+
+/* Принудительные GPU-слои шапки (translateZ(0) у hudBarLeft/hudBarRight) */
+html.perf-no-layers .hudBarLeft,
+html.perf-no-layers .hudBarRight {
+  transform: none;
+  -webkit-transform: none;
+}

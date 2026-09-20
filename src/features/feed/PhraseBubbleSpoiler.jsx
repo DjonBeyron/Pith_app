@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { isWeakDevice } from '../../shared/lib/deviceTier.js'
+import { perfFlags } from '../../shared/lib/perfFlags.js'
 import PhraseBubbleAnimated from './PhraseBubbleAnimated.jsx'
 import PhraseBubbleStatic from './PhraseBubbleStatic.jsx'
 
@@ -10,8 +11,9 @@ import PhraseBubbleStatic from './PhraseBubbleStatic.jsx'
 // (useState с ленивым инициализатором) — устройство не «слабеет» посреди
 // сессии, а лишний рендер-чек на каждый рендер не нужен
 export default function PhraseBubbleSpoiler({ active, near, tabVisible = true, onUnlock, children }) {
+  // perfFlags.noBubbles — бисекция лага сворачивания (shared/lib/perfFlags.js)
   const [useStatic] = useState(() =>
-    isWeakDevice() || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    perfFlags.noBubbles || isWeakDevice() || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
   if (useStatic) return <PhraseBubbleStatic onUnlock={onUnlock}>{children}</PhraseBubbleStatic>
   return <PhraseBubbleAnimated active={active} near={near} tabVisible={tabVisible} onUnlock={onUnlock}>{children}</PhraseBubbleAnimated>
