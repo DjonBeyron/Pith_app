@@ -15,7 +15,8 @@ function infiniteBreakdown(anims) {
   for (const a of anims) {
     let iters
     try { iters = a.effect?.getTiming?.().iterations } catch { iters = undefined }
-    if (iters !== Infinity) continue
+    // На паузе (animation-play-state: paused) композитор не крутит — не считаем
+    if (iters !== Infinity || a.playState !== 'running') continue
     inf++
     const name = a.animationName || a.transitionProperty || '?'
     names.set(name, (names.get(name) || 0) + 1)

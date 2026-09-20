@@ -15,7 +15,7 @@ import FeedHud from './FeedHud.jsx'
 // слайда в круге.
 export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, saveCount = 0, repostCount = 0, tabVisible = true,
-  active = false, near = false, spoilerNear = false, slideKey,
+  active = false, near = false, slideKey,
   difficulty, myDifficulty, onVoteDifficulty,
   soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
   showSlowHint = false, onSlowHintSeen,
@@ -69,7 +69,7 @@ export default function FeedSlide({
             перевод» не спойлер, ей не нужны шарики (меньше высота = меньше
             шариков). Сама строка спрятана за фразой и выкатывается по тапу */}
         <div className="feedPhraseStack">
-          <PhraseBubbleSpoiler active={active} near={spoilerNear} tabVisible={tabVisible} onUnlock={unlockSub}>
+          <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={unlockSub}>
             <div className="feedPhrase">
               <PhraseWords
                 title={mod.title}

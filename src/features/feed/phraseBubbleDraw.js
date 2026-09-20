@@ -1,7 +1,7 @@
 // Геометрия и отрисовка шариков-спойлера фразы (без React) — вынесено из
 // PhraseBubbleAnimated.jsx, когда тот упёрся в потолок 400 строк. Здесь:
-// константы сетки/полей, LUT для sin/cos, buildGrid (сетка + бахрома),
-// drawFloat (плавание: один Path2D + один fill за кадр) и drawExplode
+// константы сетки/полей, buildGrid (сетка + бахрома), renderLayerImages
+// (покой: группы шариков → картинки, canvas в DOM не живёт) и drawExplode
 // (взрыв: fill по бакетам альфы). Компонент решает КОГДА рисовать, этот
 // модуль — ЧТО и КАК.
 
@@ -25,22 +25,6 @@ const WIGGLE_SECOND_RATIO = 0.35
 const MAX_WANDER = AMP_MAX * (1 + WIGGLE_SECOND_RATIO)
 const MAX_WANDER_Y = MAX_WANDER * WANDER_Y_SCALE
 const BUBBLE_COLOR = 'rgb(248,250,252)'
-// Таблица готовых sin/cos вместо живых Math.sin/cos на каждый шарик каждый
-// кадр — на слабом Android с ~1800 шариков на холст и до 2 тёплых холстов
-// разом это тысячи трансцендентных вызовов в кадр, ощутимая доля времени.
-// Точность 2048 делений на 2π более чем достаточна для визуального wiggle
-const LUT_SIZE = 2048
-const TWO_PI = Math.PI * 2
-const SIN_LUT = new Float32Array(LUT_SIZE)
-for (let i = 0; i < LUT_SIZE; i++) SIN_LUT[i] = Math.sin((i / LUT_SIZE) * TWO_PI)
-function fastSin(x) {
-  let idx = x % TWO_PI
-  if (idx < 0) idx += TWO_PI
-  return SIN_LUT[(idx * (LUT_SIZE / TWO_PI)) | 0]
-}
-function fastCos(x) {
-  return fastSin(x + Math.PI / 2)
-}
 const BLUR_PX = 0.4
 // Максимальная глубина «бахромы» шариков за прямоугольником сетки (см.
 // buildGrid). По вертикали (верх/низ) бахрома тоже мельче — та же причина
@@ -128,26 +112,39 @@ export function buildGrid(contentW, contentH) {
   return bubbles
 }
 
-// Плавающее состояние: один Path2D на все шарики + один fill(). Wiggle —
-// дрейф по двум наложенным синусоидам разной частоты + лёгкая пульсация
-// радиуса (дыхание) вместо ровного покачивания по одной синусоиде
-export function drawFloat(ctx, bubbles, dt) {
-  ctx.globalAlpha = 0.94
-  ctx.fillStyle = BUBBLE_COLOR
-  ctx.beginPath()
-  for (const b of bubbles) {
-    b.phase += b.speed * dt * 0.001
-    const dx = fastCos(b.phase) * b.amp + fastSin(b.phase * 3.1) * b.amp * WIGGLE_SECOND_RATIO
-    const dy = (fastSin(b.phase * 1.3) * b.amp + fastCos(b.phase * 2.7) * b.amp * WIGGLE_SECOND_RATIO) * WANDER_Y_SCALE
-    const pulse = 1 + PULSE_AMP * fastSin(b.phase * 2.3 + b.pulseOffset)
-    const x = b.ax + dx, y = b.ay + dy, r = b.r * pulse
-    ctx.moveTo(x + r, y)
-    ctx.arc(x, y, r, 0, Math.PI * 2)
-  }
-  ctx.fill()
-  ctx.globalAlpha = 1
-}
+// Покой без canvas: шарики делятся на LAYER_COUNT групп через одну и каждая
+// группа рисуется ОДИН РАЗ в невидимый (не в DOM) canvas → PNG data-URL →
+// обычная <img>. Дальше группы дрейфуют CSS-анимацией transform
+// (feed-bubble-spoiler.css) — на композиторе, ~0 CPU, и главное: в DOM в
+// покое нет ни одного <canvas>. Бисекция на iPhone показала, что именно
+// живые canvas-элементы (по одному на слайд, dpr=3) делали дёрганой системную
+// анимацию сворачивания приложения — даже когда они ничего не рисовали и
+// лента была скрыта под уроком. Canvas остаётся только на 0.75с взрыва.
+export const LAYER_COUNT = 3
 
+export function renderLayerImages(bubbles, w, h, dpr) {
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(w * dpr)
+  canvas.height = Math.round(h * dpr)
+  const ctx = canvas.getContext('2d')
+  const urls = []
+  for (let g = 0; g < LAYER_COUNT; g++) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    ctx.globalAlpha = 0.94
+    ctx.fillStyle = BUBBLE_COLOR
+    ctx.beginPath()
+    for (let i = g; i < bubbles.length; i += LAYER_COUNT) {
+      const b = bubbles[i]
+      ctx.moveTo(b.ax + b.r, b.ay)
+      ctx.arc(b.ax, b.ay, b.r, 0, Math.PI * 2)
+    }
+    ctx.fill()
+    urls.push(canvas.toDataURL('image/png'))
+  }
+  return urls
+}
 // Взрыв: та же идея, но альфа у каждого шарика своя (время + затухание к
 // краю), поэтому один fill() не подходит — группируем по «бакетам» альфы
 // (ALPHA_BINS штук) и делаем fill() на бакет вместо fill() на шарик

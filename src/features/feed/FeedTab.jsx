@@ -67,7 +67,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   const len = feedModules.length
 
   useFeedSplash(modules, len, feedModules)
-  const { scrollRef, virtualizer, viewH, cycles, activeIdx, onScroll, scrollDir } = useFeedVirtualizer(len, openModule, pinnedId)
+  const { scrollRef, virtualizer, viewH, cycles, activeIdx, onScroll } = useFeedVirtualizer(len, openModule, pinnedId)
   // Обучающая подсказка «зажми лайк — замедли»: взводится, когда пользователь
   // включил звук и затем свайпнул на следующее видео; активна только в
   // «Рекомендациях» (тут же живёт activeIdx) — «Мои уроки» её не показывают.
@@ -179,7 +179,6 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                       slideKey={vi.index}
                       active={rel === 0}
                       near={Math.abs(rel) <= 1}
-                      spoilerNear={Math.abs(rel) === 1 && Math.sign(rel) === scrollDir}
                       tabVisible={visible && view === 'feed'}
                       gradIdx={(vi.index % len) % 4}
                       reaction={reactions[m.id]}
