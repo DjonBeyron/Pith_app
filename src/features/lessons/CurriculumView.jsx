@@ -37,7 +37,7 @@ const LEGEND_SEEN_KEY = 'pithy_priority_legend_seen_v1'
 export default function CurriculumView({ curriculumId, curriculumTitle, isPro = false, onBack, onOpenCanvas, onOpenProduction }) {
   const {
     lessons, loading, creating, error, isDirty,
-    bulkCreate, addBeforeFinal, addLast, renameLesson, removeLesson, saveStructure, togglePublished,
+    bulkCreate, addBeforeFinal, addLast, renameLesson, removeLesson, moveLesson, saveStructure, togglePublished,
   } = useCurriculumLessons(curriculumId)
 
   // ⚙ открывает граф или продакшен — какой использовали последним
@@ -334,7 +334,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           onMarkDoneLesson={handleMarkLessonDone}
           onPlay={id => setLaunchId(id)}
           onEdit={openEditor}
-          onDelete={removeLesson}
+          onDelete={removeLesson} onMove={moveLesson}
           onRename={renameLesson}
           onTogglePublished={togglePublished}
         />

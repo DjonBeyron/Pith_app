@@ -173,7 +173,10 @@
 .mgLessonPriority--low .mgLessonPriorityLabel,
 .mgLessonPriority--low .mgLessonPriorityIcon    { color: #3b82f6; }
 
-/* Done lesson: зеленоватый фон и рамка — навсегда */
+/* Done lesson: зеленоватый фон и рамка — навсегда; название приглушено —
+   урок уже за спиной, внимание к непройденным */
+.mgNode--lesson--done .mgNodeTitle { color: rgba(242, 243, 247, 0.62); }
+
 .mgNode--lesson--done {
   border-color: rgba(182, 254, 59, 0.3);
   background:

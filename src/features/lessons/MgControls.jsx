@@ -14,11 +14,12 @@ export function MgRenameInput({ draft, onDraft, onCommit, onCancel }) {
 
 // Кнопки карточки (только админ): ▶ запуск, ⚙ редактор (граф или продакшен —
 // какой использовали последним, см. lastEditorMode.js), ✎ переименовать,
-// ⟲ сброс урока, ✔ тест «пометить пройденным», 👁 публикация, ✕ удалить
-// (только у обычных уроков)
+// ⟲ сброс урока, ✔ тест «пометить пройденным», 👁 публикация, ↑↓ порядок
+// и ✕ удалить (последние — только у обычных уроков: Старт и Финал
+// неподвижны и неудаляемы). canUp/canDown — есть ли куда двигать
 export function MgBtns({
-  l, kind, isAdmin, show,
-  onPlay, onEdit, onRenameStart, onResetLesson, onMarkDoneLesson, onTogglePublished, onDelete, clearTap,
+  l, kind, isAdmin, show, canUp = false, canDown = false,
+  onPlay, onEdit, onRenameStart, onResetLesson, onMarkDoneLesson, onTogglePublished, onDelete, onMove, clearTap,
 }) {
   // Обычный пользователь запускает урок тапом/кликом по карточке (handleClick) —
   // кнопок у него нет вовсе, в том числе ▶.
@@ -39,7 +40,13 @@ export function MgBtns({
         {l.published ? '👁' : '🚫'}
       </button>
       {kind === 'lesson' && (
-        <button className="mgBtn mgBtnDel" onClick={() => { onDelete(l.id); clearTap() }}>✕</button>
+        <>
+          <button className="mgBtn" title="Выше" disabled={!canUp}
+            onClick={() => { onMove?.(l.id, -1); clearTap() }}>↑</button>
+          <button className="mgBtn" title="Ниже" disabled={!canDown}
+            onClick={() => { onMove?.(l.id, 1); clearTap() }}>↓</button>
+          <button className="mgBtn mgBtnDel" onClick={() => { onDelete(l.id); clearTap() }}>✕</button>
+        </>
       )}
     </div>
   )

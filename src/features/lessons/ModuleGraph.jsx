@@ -38,6 +38,7 @@ export default function ModuleGraph({
   animShort = false, // true (попап только что закрыт) — офсет анимации вдвое короче
   onFlightDone,
   onPlay, onEdit, onDelete, onRename, onTogglePublished, onResetLesson, onMarkDoneLesson,
+  onMove,            // (id, dir) — админ переставляет урок на шаг выше/ниже
 }) {
   const { isAdmin } = useAdmin()
   const [hovered,  setHovered]  = useState(null)
@@ -217,12 +218,14 @@ export default function ModuleGraph({
     <MgRenameInput draft={draft} onDraft={setDraft}
       onCommit={commitRename} onCancel={() => setRenaming(null)} />
   )
-  const btnsFor = (l, kind) => (
+  // i — индекс среди обычных уроков (middle): крайние не двигаются за Старт/Финал
+  const btnsFor = (l, kind, i = -1) => (
     <MgBtns l={l} kind={kind} isAdmin={isAdmin}
       show={hovered === l.id || tapped === l.id}
+      canUp={i > 0} canDown={i >= 0 && i < middle.length - 1}
       onPlay={onPlay} onEdit={onEdit} onRenameStart={startRename}
       onResetLesson={onResetLesson} onMarkDoneLesson={onMarkDoneLesson} onTogglePublished={onTogglePublished}
-      onDelete={onDelete} clearTap={() => setTapped(null)} />
+      onDelete={onDelete} onMove={onMove} clearTap={() => setTapped(null)} />
   )
 
   // animHold (попап-легенда открыт): граф спрятан (--held) — попап появляется на
@@ -285,8 +288,9 @@ export default function ModuleGraph({
                     <span className="mgNodeTitle">
                       {renaming === l.id ? renameInputEl : l.title}
                     </span>
-                    {/* при переименовании бейдж прячется — не наезжает на поле ввода */}
-                    {l.lessonXp > 0 && renaming !== l.id && (
+                    {/* при переименовании бейдж прячется — не наезжает на поле ввода;
+                        у пройденного урока XP уже получен — бейджа нет */}
+                    {l.lessonXp > 0 && !done && renaming !== l.id && (
                       <span className="mgLessonXp">+{l.lessonXp} XP</span>
                     )}
                   </div>
@@ -307,7 +311,7 @@ export default function ModuleGraph({
                     </div>
                   )}
                 </div>
-                {btnsFor(l, 'lesson')}
+                {btnsFor(l, 'lesson', i)}
               </div>
             )
           })}

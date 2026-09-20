@@ -261,9 +261,11 @@
   width: 13px;
   height: 13px;
   fill: rgba(255, 255, 255, 0.13);
+  stroke-width: 1.5; /* тоньше дефолтных 2 у lucide — контур не спорит с заливкой */
 }
 
 .mgStarOn {
-  fill: #ffd257;
-  filter: drop-shadow(0 0 3px rgba(255, 210, 87, 0.45));
+  fill: #ffc628;
+  stroke: #ffb200;
+  filter: drop-shadow(0 0 3px rgba(255, 190, 40, 0.5));
 }

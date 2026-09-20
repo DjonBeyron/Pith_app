@@ -8,6 +8,8 @@ import { MSG_SLIDE_MS } from '../PlayerFeed.jsx'
 // MSG_SLIDE_MS), и только потом сверху выезжает сам закреп. Порядок важен:
 // баннер — это следствие события в чате, а не одновременное с ним явление
 const AFTER_ROW_MS = 200
+// Растворение накладки «Напомнить правило» (та же длительность в CSS)
+const COVER_FADE_MS = 300
 
 // Пока открыта «ручная» панель сборки (table-manual/«Собери фразу»/«Составь
 // предложение», см. LessonPlayer.jsx), закреп выше по ленте отвлекает —
@@ -29,8 +31,22 @@ export default function PinMessageBanner({ content, highlights = [], onUnpin, ma
     if (wasOpenRef.current && !manualPanelOpen) setCoverDismissed(false)
     wasOpenRef.current = manualPanelOpen
   }, [manualPanelOpen])
-  if (!content || !shown) return null
   const covered = manualPanelOpen && !coverDismissed
+  // Накладка уходит не рывком, а растворяется: после снятия (тап или
+  // закрытие панели) остаётся смонтированной на COVER_FADE_MS с классом
+  // --leaving, текст под ней уже виден
+  const [leaving, setLeaving] = useState(false)
+  const wasCoveredRef = useRef(false)
+  useEffect(() => {
+    if (wasCoveredRef.current && !covered) {
+      setLeaving(true)
+      const t = setTimeout(() => setLeaving(false), COVER_FADE_MS)
+      wasCoveredRef.current = covered
+      return () => clearTimeout(t)
+    }
+    wasCoveredRef.current = covered
+  }, [covered])
+  if (!content || !shown) return null
   return (
     <>
       <div className="pinBanner">
@@ -48,11 +64,11 @@ export default function PinMessageBanner({ content, highlights = [], onUnpin, ma
             aria-label="Открепить"
           ><X size={14} /></button>
         </div>
-        {covered && (
+        {(covered || leaving) && (
           <button
             type="button"
-            className="pinBannerCover"
-            onClick={() => setCoverDismissed(true)}
+            className={covered ? 'pinBannerCover' : 'pinBannerCover pinBannerCover--leaving'}
+            onClick={covered ? () => setCoverDismissed(true) : undefined}
           >
             Напомнить правило
           </button>

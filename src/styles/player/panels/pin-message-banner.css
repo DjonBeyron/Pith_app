@@ -160,3 +160,15 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* Уход накладки — растворение той же длины (COVER_FADE_MS в PinMessageBanner.jsx);
+   тапы сквозь уходящую накладку идут в текст */
+.pinBannerCover--leaving {
+  animation: pinCoverOut 0.3s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes pinCoverOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}

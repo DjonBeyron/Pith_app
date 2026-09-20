@@ -70,6 +70,8 @@
      Столько же, сколько в собранной фразе таблицы (.tdAssemblyBox) */
   gap: 2px;
   align-items: center;
+  /* Фраза собирается по центру бокса, а не прижатой к левому краю */
+  justify-content: center;
   transition: border-color .2s, background .2s;
 }
 

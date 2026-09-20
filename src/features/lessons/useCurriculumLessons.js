@@ -225,6 +225,24 @@ export function useCurriculumLessons(curriculumId) {
     }
   }
 
+  // Админ переставляет обычный урок на шаг вверх/вниз (dir = -1 | +1).
+  // Старт (первый) и Финал (последний) неподвижны: их позиции не трогаем и
+  // через них не переходим. Порядок — это сам массив lesson_ids, уезжает на
+  // сервер сразу (commitIds), как и добавление/удаление
+  async function moveLesson(id, dir) {
+    const cur = idsRef.current
+    const i = cur.indexOf(id), j = i + dir
+    if (i <= 0 || i >= cur.length - 1 || j <= 0 || j >= cur.length - 1) return
+    const next = [...cur]
+    ;[next[i], next[j]] = [next[j], next[i]]
+    setLessons(prev => {
+      const arr = [...prev]
+      ;[arr[i], arr[j]] = [arr[j], arr[i]]
+      return arr
+    })
+    await commitIds(next, 'moveLesson')
+  }
+
   async function renameLesson(id, title) {
     setError('')
     try {
@@ -268,5 +286,5 @@ export function useCurriculumLessons(curriculumId) {
     }
   }
 
-  return { lessons, loading, creating, error, isDirty, bulkCreate, addBeforeFinal, addLast, renameLesson, removeLesson, saveStructure, togglePublished }
+  return { lessons, loading, creating, error, isDirty, bulkCreate, addBeforeFinal, addLast, renameLesson, removeLesson, moveLesson, saveStructure, togglePublished }
 }
