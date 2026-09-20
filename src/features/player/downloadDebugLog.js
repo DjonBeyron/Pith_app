@@ -26,8 +26,8 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
   if (PERF_ONLY) {
     // Плюс события голосовых: старт/конец/heartbeat (ct, total, прогресс,
     // полоски) — чтобы разбирать рассинхрон заливки без полного лога
-    lines.push(``, `--- Audio / Circle / Freeze (голосовые, кружок, заморозка строк) ---`,
-      ...playerLines.filter(l => l.includes('[audio-') || l.includes('AudioModule') || l.includes('[circle]') || l.includes('[freeze]')))
+    lines.push(``, `--- Audio / Circle / Freeze / Vis (голосовые, кружок, заморозка, сворачивание, сканы композитора) ---`,
+      ...playerLines.filter(l => /\[(audio-|circle\]|freeze\]|vis\]|suspects\])/.test(l) || l.includes('AudioModule')))
     return lines.join('\n')
   }
   lines.push(

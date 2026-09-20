@@ -1,4 +1,6 @@
 // Один замер «что сейчас жрёт ресурсы» — чистая функция над DOM, без React.
+// Общий для всего приложения (appPerfProbe.js): в уроке заполнены поля ленты
+// чата (bubbles/frozen/dom/waves), вне урока они -1/0.
 // Считает то, что на телефоне нельзя увидеть без DevTools: сколько CSS-анимаций
 // реально крутится (в т.ч. бесконечных и за экраном), сколько волн голосовых
 // (canvas) живёт в ленте, сколько <audio>/<video> держат медиа в памяти,
@@ -23,7 +25,7 @@ function infiniteBreakdown(anims) {
   return { inf, top }
 }
 
-export function samplePerf({ fps, worstMs, drops }) {
+export function samplePerf({ fps, worstMs, drops, raf }) {
   const anims = typeof document.getAnimations === 'function' ? document.getAnimations() : []
   const { inf, top } = infiniteBreakdown(anims)
   const feed    = document.querySelector('.playerFeedInner')
@@ -40,6 +42,7 @@ export function samplePerf({ fps, worstMs, drops }) {
   // урока от видео ленты под ним и от заглушки кружка без видео
   const who  = [...videos].filter(v => !v.paused).map(describeMedia).join(',')
   const skel = [...document.querySelectorAll('.feedSkeleton')].map(parentTag).join(',')
+  const canvases = document.querySelectorAll('canvas').length
   const mem     = performance.memory?.usedJSHeapSize
   const memStr  = mem ? ` heap=${Math.round(mem / 1048576)}MB` : ''
   return (
@@ -48,6 +51,9 @@ export function samplePerf({ fps, worstMs, drops }) {
     ` waves=${waves} audio=${audios.length}/${playingA} video=${videos.length}/${playingV}` +
     ` bubbles=${bubbles} frozen=${frozen} dom=${dom}${memStr}` +
     (who ? ` vplay=${who}` : '') + (skel ? ` skel=${skel}` : '') +
+    // rAF-колбэков за секунду (60 = один цикл на 60fps) и кто они (rafProbe.js)
+    (raf ? ` raf=${raf.total}${raf.top ? '(' + raf.top + ')' : ''}` : '') +
+    ` canvas=${canvases}` +
     (document.hidden ? ' HIDDEN' : '')
   )
 }

@@ -1,15 +1,24 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { collectEnv, fdbgLog } from '../../shared/lib/feedDebug.js'
+import { getPlayerLines } from '../../shared/lib/debug.js'
 
-// Панель дебага ленты: собирает отчёт (окружение + метрики ленты + лог
-// событий), умеет Поделиться (share sheet на iPhone), Скопировать, Скачать.
+// Панель дебага ленты: собирает отчёт (окружение + метрики ленты + датчик
+// производительности + лог событий), умеет Поделиться (share sheet на
+// iPhone), Скопировать, Скачать.
 export default function DebugPanel({ getFeedInfo, onClose }) {
   const [report, setReport] = useState(build)
   const [msg, setMsg] = useState('')
 
+  // Датчик производительности (shared/lib/appPerfProbe.js): последние ~5 минут
+  // посекундных строк + сканы композитора + моменты сворачивания
+  function perfLog() {
+    const lines = getPlayerLines().filter(l => /\[(perf|vis|suspects)\]/.test(l))
+    return lines.slice(-320).join('\n') || '(датчик выключен — нужен админ или флаг «лог и версия в шапке»)'
+  }
+
   function build() {
-    return `${collectEnv()}\n\n--- лента ---\n${getFeedInfo()}\n\n--- лог ---\n${fdbgLog()}`
+    return `${collectEnv()}\n\n--- лента ---\n${getFeedInfo()}\n\n--- perf (датчик, 1 строка = 1 секунда) ---\n${perfLog()}\n\n--- лог ---\n${fdbgLog()}`
   }
 
   function share() {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import ShellV2 from './ShellV2.jsx'
 import LessonNavOverlay from './LessonNavOverlay.jsx'
+import AppPerfProbe from './AppPerfProbe.jsx'
 
 // Этап 6 миграции завершён: старая оболочка вынесена в old/ (вне git и
 // сборки), приложение — это новая оболочка ShellV2.
@@ -26,6 +27,7 @@ export default function App() {
     <>
       <ShellV2 />
       <LessonNavOverlay />
+      <AppPerfProbe />
     </>
   )
 }
