@@ -112,6 +112,8 @@ export function buildGrid(contentW, contentH) {
   return bubbles
 }
 
+import { LAYER_COUNT } from './phraseBubbleDrift.js'
+
 // Покой без canvas: шарики делятся на LAYER_COUNT групп через одну и каждая
 // группа рисуется ОДИН РАЗ в невидимый (не в DOM) canvas → PNG data-URL →
 // обычная <img>. Дальше группы дрейфуют CSS-анимацией transform
@@ -120,7 +122,6 @@ export function buildGrid(contentW, contentH) {
 // живые canvas-элементы (по одному на слайд, dpr=3) делали дёрганой системную
 // анимацию сворачивания приложения — даже когда они ничего не рисовали и
 // лента была скрыта под уроком. Canvas остаётся только на 0.75с взрыва.
-export const LAYER_COUNT = 3
 
 export function renderLayerImages(bubbles, w, h, dpr) {
   const canvas = document.createElement('canvas')

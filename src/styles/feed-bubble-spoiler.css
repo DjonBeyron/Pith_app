@@ -18,10 +18,11 @@
   cursor: pointer;
 }
 
-/* Покой: три картинки-группы шариков (PhraseBubbleAnimated.jsx) вместо
+/* Покой: несколько картинок-групп шариков (PhraseBubbleAnimated.jsx) вместо
    canvas — дрейфуют CSS-transform на композиторе, каждая своим путём и
-   периодом: относительное движение групп читается как живое колыхание всей
-   сетки. Дрейф идёт только у активного слайда видимой ленты
+   периодом (keyframes по синусоидам прежнего wiggle инжектит
+   phraseBubbleDrift.js; имя/длительность — inline у каждой картинки):
+   относительное движение групп читается как живое колыхание всей сетки. Дрейф идёт только у активного слайда видимой ленты
    (.phraseBubbleLayersLive); у остальных анимация на паузе, а не выключена —
    иначе при смене активного слайда группы прыгали бы в исходную точку.
    will-change не ставим: слоёв в покое и так три, лишние поверхности GPU —
@@ -39,42 +40,15 @@
   width: 100%;
   height: 100%;
   display: block;
-  animation-timing-function: ease-in-out;
+  /* linear + 48 ключевых кадров = гладкая синусоида; ease-in-out между
+     редкими кадрами давал «шаг-стоп» на разворотах */
+  animation-timing-function: linear;
   animation-iteration-count: infinite;
   animation-play-state: paused;
 }
 
 .phraseBubbleLayersLive .phraseBubbleLayer { animation-play-state: running; }
 
-.phraseBubbleLayer0 { animation-name: bubbleDrift0; animation-duration: 6.5s; }
-.phraseBubbleLayer1 { animation-name: bubbleDrift1; animation-duration: 8s; animation-delay: -2.7s; }
-.phraseBubbleLayer2 { animation-name: bubbleDrift2; animation-duration: 9.5s; animation-delay: -5.1s; }
-
-/* Амплитуды в духе прежнего wiggle: до ~4px по горизонтали, ~0.45 от этого по
-   вертикали, плюс лёгкое «дыхание» масштабом */
-@keyframes bubbleDrift0 {
-  0%   { transform: translate(0, 0) scale(1); }
-  25%  { transform: translate(3.2px, 1.1px) scale(1.012); }
-  50%  { transform: translate(-0.8px, -1.5px) scale(1); }
-  75%  { transform: translate(-3.4px, 0.7px) scale(0.99); }
-  100% { transform: translate(0, 0) scale(1); }
-}
-
-@keyframes bubbleDrift1 {
-  0%   { transform: translate(0, 0) scale(1); }
-  30%  { transform: translate(-2.8px, 1.4px) scale(0.992); }
-  55%  { transform: translate(1.6px, -1.2px) scale(1.01); }
-  80%  { transform: translate(3.6px, 0.9px) scale(1); }
-  100% { transform: translate(0, 0) scale(1); }
-}
-
-@keyframes bubbleDrift2 {
-  0%   { transform: translate(0, 0) scale(1); }
-  20%  { transform: translate(1.9px, -1.6px) scale(1.008); }
-  45%  { transform: translate(-3.5px, -0.6px) scale(1); }
-  70%  { transform: translate(-1.2px, 1.7px) scale(0.993); }
-  100% { transform: translate(0, 0) scale(1); }
-}
 /* Заглушка для слабых устройств (PhraseBubbleStatic.jsx) — векторный
    тайловый SVG-паттерн вместо canvas-анимации, ноль JS каждый кадр.
    Тайл 6×6 с двумя точками по диагонали — при повторении даёт тот же

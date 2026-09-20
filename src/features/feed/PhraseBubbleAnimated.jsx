@@ -4,6 +4,7 @@ import {
   MARGIN_X, MARGIN_Y, EXPLODE_MARGIN, EXPLODE_POWER_MIN, EXPLODE_POWER_MAX,
   buildGrid, drawExplode, renderLayerImages,
 } from './phraseBubbleDraw.js'
+import { ensureDriftStyles, driftDuration } from './phraseBubbleDrift.js'
 
 // Шарики-спойлер поверх фразы модуля (замена blur+зерна) для способных
 // устройств — на слабых и при prefers-reduced-motion вместо этого компонента
@@ -15,9 +16,9 @@ import {
 // показать что-то ещё (см. FeedSlide: подпись выкатывается из-под фразы).
 //
 // В ПОКОЕ CANVAS В DOM НЕТ. Сетка рисуется один раз в невидимый canvas и
-// превращается в три <img> (группы шариков через одну), которые дрейфуют
-// CSS-анимацией transform (feed-bubble-spoiler.css) — на композиторе, без
-// JS в кадре. Раньше на каждом из 5 слайдов виртуального окна жил свой
+// превращается в несколько <img> (группы шариков через одну), которые
+// дрейфуют CSS-анимацией transform по синусоидам прежнего wiggle
+// (phraseBubbleDrift.js) — на композиторе, без JS в кадре. Раньше на каждом из 5 слайдов виртуального окна жил свой
 // <canvas> с rAF-циклом: ~1000-1800 кружков на dpr=3 каждый кадр держали
 // GPU занятым (Chrome: 35% Scripting в покое), а бисекция на iPhone
 // показала, что даже НЕанимирующие canvas-элементы делали дёрганой системную
@@ -42,6 +43,8 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
   const [revealed, setRevealed] = useState(false)
   const idRef = useRef(null)
   if (idRef.current === null) idRef.current = nextSpoilerId()
+  // keyframes дрейфа групп — один раз на страницу
+  useEffect(() => { ensureDriftStyles() }, [])
 
   // Отчёт в реестр DBG-панели (spoilerStats.js): сколько шариков у ЭТОГО
   // спойлера и дрейфует ли он сейчас
@@ -152,7 +155,10 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
           aria-hidden="true"
         >
           {layers.urls.map((src, i) => (
-            <img key={i} src={src} className={`phraseBubbleLayer phraseBubbleLayer${i}`} alt="" draggable={false} />
+            <img
+              key={i} src={src} className="phraseBubbleLayer" alt="" draggable={false}
+              style={{ animationName: `bubbleDrift${i}`, animationDuration: `${driftDuration(i)}s`, animationDelay: `${-i * 1.3}s` }}
+            />
           ))}
         </div>
       )}
