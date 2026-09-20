@@ -13,7 +13,7 @@ const mod = read('./AudioModule.jsx')
 describe('повторный запуск голосового из истории', () => {
   it('текст, показанный целиком, второй раз не набирается', () => {
     expect(mod).toContain('const fullyRevealedRef = useRef(false)')
-    expect(mod).toContain('if (fullyRevealedRef.current) setRevealedCharIdx(capturedChars.length)')
+    expect(mod).toContain('if (fullyRevealedRef.current) setRevealedCharIdx(capturedText.length)')
   })
 
   it('ПРОДОЛЖЕНИЕ с паузы не трогает раскрытие — иначе текст мигает', () => {
@@ -27,13 +27,13 @@ describe('повторный запуск голосового из истори
 
   it('на повторе цикл кадров не трогает раскрытие', () => {
     // Каждое изменение revealedCharIdx — новая высота пузыря и сдвиг ленты
-    expect(mod).toContain('if (capturedChars.length && !fullyRevealedRef.current) {')
+    expect(mod).toContain('if (capturedText && !fullyRevealedRef.current) {')
   })
 
   it('флаг ставится там, где текст действительно дошёл до конца', () => {
     const ended = mod.slice(mod.indexOf('function onEnded'))
     const body = ended.slice(0, ended.indexOf('\n    }'))
-    expect(body).toContain('setRevealedCharIdx(capturedChars.length)')
+    expect(body).toContain('setRevealedCharIdx(capturedText.length)')
     expect(body).toContain('fullyRevealedRef.current = true')
   })
 

@@ -37,6 +37,9 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const queueRef       = useRef([])
   const cursorRef      = useRef(0)
   const allowUpToRef   = useRef(initialLookahead)
+  // Сколько элементов уже взято «вперёд по пути» с последнего переупорядочивания
+  // очереди (см. гейт в pump и эффект visibleNodes)
+  const aheadRef       = useRef(0)
   const inFlightRef    = useRef(0)
   const byIdRef        = useRef({})
   const startTimeRef   = useRef(0) // выставляется в Date.now() при rebuild-эффекте
@@ -170,10 +173,23 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     if (genRef.current !== gen) return
     while (inFlightRef.current < CONCURRENCY && cursorRef.current < queueRef.current.length) {
       const item = queueRef.current[cursorRef.current]
-      if (item.nodeIdx >= allowUpToRef.current) return
+      // Гейт по BFS-индексу (nodeIdx) ИЛИ первые LOOKAHEAD элементов очереди
+      // после курсора. Одного nodeIdx мало: в ветвящемся уроке (выбор, сигналы)
+      // ближайшие по BFS ноды лежат на чужих ветках, а следующее голосовое по
+      // РЕАЛЬНОМУ пути имеет индекс много больше гейта — эффект visibleNodes
+      // ставит его первым в очереди (forwardReachable), но гейт по индексу его
+      // не пропускал, и файл качался только когда нода уже показана: в логе
+      // play() при readyState=1, rate=0.3 первые секунды, текст и заливка
+      // разъезжались со звуком, буферящимся с сети
+      const ahead = aheadRef.current < LOOKAHEAD
+      if (item.nodeIdx >= allowUpToRef.current && !ahead) return
       cursorRef.current++
       // Skip if blobUrl already present (evicted entries have blobUrl=null → re-download ok)
       if (blobUrlsRef.current[item.id]?.blobUrl) continue
+      if (item.nodeIdx >= allowUpToRef.current) {
+        aheadRef.current++
+        pLog(`[preload] вперёд по пути: seq=${item.nodeSeq} ${item.nodeType} idx=${item.nodeIdx} (гейт ${allowUpToRef.current}, ${aheadRef.current}/${LOOKAHEAD})`)
+      }
       fetchOne(item, gen)
     }
   }
@@ -297,6 +313,8 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     if (speculative.length > 0) {
       queueRef.current = [...queueRef.current.slice(0, loaded), ...active, ...speculative]
     }
+    // Новая видимая нода — снова можно взять LOOKAHEAD файлов вперёд по пути
+    aheadRef.current = 0
     evictFarthestIfNeeded(genRef.current, null).catch(() => {})
     pump(genRef.current)
   }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps

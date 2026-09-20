@@ -66,3 +66,29 @@ export function drawAudioWave(canvas, waveData, progress = 0, greenAlpha = 1) {
   ctx.restore()
   return count
 }
+
+// Границы речи в записи: сколько тишины в начале и в хвосте файла. TTS
+// (ElevenLabs) и обрезка вручную оставляют по 0.1–0.5с тишины с обеих
+// сторон; если считать прогресс от 0 до конца ФАЙЛА, заливка и печать
+// стартуют раньше первого слова и ещё ползут, когда речь уже кончилась
+// («спектр заканчивает позже остальных»). wd — RMS 0..255 по кадрам
+// analyzeWaveform (WAVEFORM_FPS кадров/с, p99 нормирован в 255).
+// Порог 5% от пика, два кадра подряд — чтобы щелчок/вдох не считался речью
+const SILENCE = 13
+export function speechBounds(wd, fps) {
+  if (!wd?.length || !fps) return null
+  let start = 0
+  for (let i = 0; i < wd.length - 1; i++) {
+    if (wd[i] > SILENCE && wd[i + 1] > SILENCE) { start = i; break }
+  }
+  let end = wd.length
+  for (let i = wd.length - 1; i > 0; i--) {
+    if (wd[i] > SILENCE && wd[i - 1] > SILENCE) { end = i + 1; break }
+  }
+  const lead = start / fps
+  const tail = (wd.length - end) / fps
+  const total = wd.length / fps
+  // Слишком тихая или пустая запись — границы не применяем, идём по файлу
+  if (end - start < fps * 0.3 || lead + tail > total * 0.6) return null
+  return { lead, tail }
+}

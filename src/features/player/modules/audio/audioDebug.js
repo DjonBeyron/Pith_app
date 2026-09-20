@@ -21,11 +21,12 @@ export function logAudioDurationReady(source, value) {
   pLog(`[audio-dur] duration готов (${source}): ${value != null ? value.toFixed(3) + 's' : 'null'}`)
 }
 
-export function logAudioPlayStart({ d, liveDuration, readyState, networkState, waveLen, textLen, timings }) {
+export function logAudioPlayStart({ d, liveDuration, readyState, networkState, waveLen, textLen, timings, bounds }) {
   const live = Number.isFinite(liveDuration) ? liveDuration.toFixed(3) + 's' : String(liveDuration)
   pLog(`[audio-play] старт: d(сохранённая)=${d.toFixed(3)}s audio.duration(живая)=${live} `
     + `readyState=${readyState} networkState=${networkState} waveData=${waveLen ?? 0}pts `
-    + `text=${textLen}симв печать=${textLen ? (timings ? 'timings(' + timings + ')' : 'auto — таймингов нет') : '—'}`)
+    + `text=${textLen}симв печать=${textLen ? (timings ? 'timings(' + timings + ')' : 'по доле речи — таймингов нет') : '—'} `
+    + `тишина=${bounds ? 'старт ' + bounds.lead.toFixed(2) + 's / хвост ' + bounds.tail.toFixed(2) + 's' : 'не определена'}`)
 }
 
 function bufferedEnd(a) {

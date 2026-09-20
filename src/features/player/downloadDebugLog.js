@@ -22,8 +22,15 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
     ``,
   ]
   if (AUDIO_ONLY) {
-    lines.push(`--- Audio (события голосовых: mount / dur / play / hb / gap / ev / end) ---`,
-      ...playerLines.filter(l => l.includes('[audio-') || l.includes('AudioModule')))
+    lines.push(`--- Audio (события голосовых: mount / dur / play / hb / gap / ev / end) + предзагрузка ---`,
+      ...playerLines.filter(l => l.includes('[audio-') || l.includes('AudioModule') || l.includes('[preload]')),
+      ``,
+      // Загрузки — чтобы видеть, успел ли blob к моменту play() или голосовое
+      // играло с сервера в лоб (start/ready относительно msg — момента показа)
+      `--- Downloads ---`,
+      ...debugItems.map(d =>
+        `#${d.seq} ${d.type} ${d.status} http=${d.httpStatus ?? '-'} ${d.sizeKb ?? '-'}KB start=${d.startTs} ready=${d.readyTs} msg=${d.msgTs ?? '-'} ${d.error ?? ''}`
+      ))
     return lines.join('\n')
   }
   lines.push(

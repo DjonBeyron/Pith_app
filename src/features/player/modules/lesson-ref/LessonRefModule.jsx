@@ -90,9 +90,12 @@ export default function LessonRefModule({ node, onDone, onOpenLessonRef }) {
   const title = liveTitle ?? targetTitle
 
   // Кнопка-закладка есть только у ссылки на УРОК (см. StandaloneLessonRunner —
-  // модули добавлять в закладки некуда, у них уже есть свой module_bookmarks),
-  // и только когда реально знаем текущее состояние (bookmarkChecked)
-  const showActions = !isModule && !unavailable && bookmarkChecked
+  // модули добавлять в закладки некуда, у них уже есть свой module_bookmarks).
+  // Место под неё резервируем СРАЗУ, а саму кнопку показываем, когда реально
+  // знаем состояние (bookmarkChecked): раньше ряд появлялся после ответа БД,
+  // карточка подрастала и PlayerBubble анимировал перестройку — «карточка
+  // монтируется одной высоты, потом другой»
+  const showActions = !isModule && !unavailable
 
   // Закладка ставится один раз и навсегда — второй клик её НЕ снимает
   // (иначе легко потерять сохранённый урок случайным повторным тапом),
@@ -132,8 +135,9 @@ export default function LessonRefModule({ node, onDone, onOpenLessonRef }) {
             <div className="playerLessonRefActions">
               <button
                 type="button"
-                className={`playerLessonRefBookmarkPill${bookmarked ? ' playerLessonRefBookmarkPill--on' : ''}${justAdded ? ' playerLessonRefBookmarkPill--justAdded' : ''}`}
-                onClick={handleBookmarkClick}
+                className={`playerLessonRefBookmarkPill${bookmarked ? ' playerLessonRefBookmarkPill--on' : ''}${justAdded ? ' playerLessonRefBookmarkPill--justAdded' : ''}${bookmarkChecked ? '' : ' playerLessonRefBookmarkPill--pending'}`}
+                onClick={bookmarkChecked ? handleBookmarkClick : undefined}
+                aria-hidden={!bookmarkChecked}
               >
                 {bookmarked ? <BookmarkCheck size={15} /> : <BookmarkPlus size={15} />}
                 <span>{bookmarked ? 'В закладках' : 'В закладки'}</span>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import AudioWave from './AudioWave.jsx'
+import { speechBounds } from './audioWaveParts.js'
 import { PlayTriangle, PauseIcon } from './AudioPlayIcons.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
-import { analyzeWaveform, fmtAudioTime, probeAudioDuration } from '../../../../shared/lib/audioUtils.js'
+import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
@@ -198,9 +199,13 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
     const d             = duration || audio.duration || 0
     const capturedChars = charTimings
+    const capturedText  = text
+    // Границы речи в файле (тишина в начале/хвосте): заливка и печать без
+    // таймингов идут от первого слова до последнего, а не от 0 до конца файла
+    const bounds = speechBounds(waveData, WAVEFORM_FPS)
     logAudioPlayStart({
       d, liveDuration: audio.duration, readyState: audio.readyState, networkState: audio.networkState,
-      waveLen: waveData?.length, textLen: text.length, timings: capturedChars.length,
+      waveLen: waveData?.length, textLen: text.length, timings: capturedChars.length, bounds,
     })
     const hb = makeAudioHeartbeat()
     const gap = makeGapWatch()
@@ -213,7 +218,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     //  · ПРОДОЛЖЕНИЕ с паузы — не трогаем. Сброс в −1 схлопывал недопечатанный
     //    текст на кадр, следующий кадр возвращал обратно — это и было мигание
     //    при возврате к сообщению, которое не успело договорить.
-    if (fullyRevealedRef.current) setRevealedCharIdx(capturedChars.length)
+    if (fullyRevealedRef.current) setRevealedCharIdx(capturedText.length)
     else if (isReplay) setRevealedCharIdx(-1)
     // Заливку стираем ТОЛЬКО при запуске заново: на продолжении с паузы она
     // уже показывает пройденное
@@ -227,21 +232,30 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       // короче реальных (VBR) — на коротких голосовых это заметный процент,
       // заливка добегала до края раньше, чем звук реально доигрывал
       const total    = (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : d) || 1
-      const progress = total > 0 ? ct / total : 0
+      // Прогресс — доля РЕЧИ, не файла: до первого слова 0, после последнего 1
+      const speechFrom = bounds ? bounds.lead : 0
+      const speechLen  = bounds ? Math.max(0.1, total - bounds.lead - bounds.tail) : total
+      const progress   = Math.min(1, Math.max(0, (ct - speechFrom) / speechLen))
       // Сама волна перерисуется только если заливка дошла до новой полоски
       waveRef.current?.setProgress(progress)
 
       // Ведём раскрытие только на первом прогоне. На повторном текст уже
       // показан целиком, и трогать его нельзя: каждое изменение — новая
-      // высота пузыря и сдвиг всей переписки
+      // высота пузыря и сдвиг всей переписки. Печать всегда по часам ЗВУКА:
+      // по таймингам слов, если они есть, иначе пропорционально прогрессу
+      // речи — свой таймер не знал бы, что звук застрял на буферизации
       let idx = -1
-      if (capturedChars.length && !fullyRevealedRef.current) {
-        for (let i = 0; i < capturedChars.length; i++) {
-          if (ct >= capturedChars[i]) idx = i; else break
+      if (capturedText && !fullyRevealedRef.current) {
+        if (capturedChars.length) {
+          for (let i = 0; i < capturedChars.length; i++) {
+            if (ct >= capturedChars[i]) idx = i; else break
+          }
+        } else {
+          idx = Math.floor(progress * capturedText.length) - 1
         }
         setRevealedCharIdx(idx)
       }
-      hb(audio, ct, total, waveRef.current?.getState(), capturedChars.length ? `${idx + 1}/${capturedChars.length}` : null)
+      hb(audio, ct, total, waveRef.current?.getState(), capturedText ? `${idx + 1}/${capturedText.length}` : null)
 
       // Таймер меняется раз в секунду — не трогаем DOM, пока строка та же
       const left = fmtAudioTime(Math.max(0, total - ct))
@@ -253,8 +267,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       logAudioEnded({ ct: audio.currentTime, liveDuration: audio.duration, d })
       stopRAF()
       setIsPlaying(false)
-      if (capturedChars.length) {
-        setRevealedCharIdx(capturedChars.length)
+      if (capturedText) {
+        setRevealedCharIdx(capturedText.length)
         // С этого момента текст считается показанным: повторные запуски
         // его больше не набирают (см. fullyRevealedRef)
         fullyRevealedRef.current = true
@@ -344,15 +358,11 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
               <PlayerTypingText
                 text={text}
                 highlights={highlights}
-                /* в заглушке таймингов нет — печатаем ровно за её длительность,
-                   чтобы текст закончился к моменту перехода к следующей ноде */
-                revealedCharIdx={!stubMode && charTimings.length ? revealedCharIdx : undefined}
-                /* без таймингов слов печатаем своим таймером, но растянутым на
-                   длительность звука — иначе текст жил отдельно от голоса
-                   (45мс/символ независимо от того, 3 секунды запись или 10) */
-                speed={stubMode ? stubSpeed
-                  : !charTimings.length && duration ? Math.max(12, Math.round(duration * 1000 / Math.max(1, text.length)))
-                  : undefined}
+                /* Печать ведёт tick() по часам звука (тайминги слов или доля
+                   прогресса речи). Только в заглушке без файла — свой таймер,
+                   ровно на её длительность, чтобы текст закончился к переходу */
+                revealedCharIdx={!stubMode ? revealedCharIdx : undefined}
+                speed={stubMode ? stubSpeed : undefined}
                 onTypingChange={active => { if (active) setIsFading(true) }}
               />
             </div>

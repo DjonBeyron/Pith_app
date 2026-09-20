@@ -186,3 +186,10 @@
   color: #0d1500;
   font-weight: 700;
 }
+
+/* Состояние закладки ещё не пришло из БД: кнопка невидима, но место занимает —
+   высота карточки известна с первого кадра (LessonRefModule.jsx) */
+.playerLessonRefBookmarkPill--pending {
+  visibility: hidden;
+  pointer-events: none;
+}
