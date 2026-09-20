@@ -5,6 +5,7 @@ import { fetchBlobWithRetry } from './preloadFetch.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { forwardReachable, buildItemQueue, revokeEntry } from './preloadQueue.js'
 import { usePreloadProgress } from './usePreloadProgress.js'
+import { analyzeWaveform, probeAudioDuration } from '../../shared/lib/audioUtils.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
@@ -155,6 +156,22 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     }
   }
 
+  // Длительность и волна голосового — сразу после скачивания, а не при показе
+  // (прогрев): пузырь монтируется с таймером и волной с первого кадра, без
+  // подрастания, когда таймер «появляется позже». metaDone — анализ прошёл,
+  // даже если ничего не вышло (тогда AudioModule считает сам)
+  async function analyzeAudioMeta(id, blobUrl, gen) {
+    const [duration, waveformData] = await Promise.all([
+      probeAudioDuration(blobUrl).catch(() => null),
+      analyzeWaveform(blobUrl).catch(() => null),
+    ])
+    if (genRef.current !== gen) return
+    const entry = blobUrlsRef.current[id]
+    if (!entry?.blobUrl) return
+    blobUrlsRef.current[id] = { ...entry, duration, waveformData, metaDone: true }
+    setBlobMap(prev => ({ ...prev, [id]: blobUrlsRef.current[id] }))
+  }
+
   async function fetchOne(item, gen) {
     const { id, url, nodeType, nodeSeq, nodeId } = item
     const key = `${nodeSeq}_${id}`
@@ -217,6 +234,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     blobUrlsRef.current[id] = { blobUrl, posterUrl: null }
     setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
     pump(gen)
+    if (nodeType === 'audio') analyzeAudioMeta(id, blobUrl, gen)
 
     if (EVICT_TYPES.has(nodeType)) await evictFarthestIfNeeded(gen, id)
 

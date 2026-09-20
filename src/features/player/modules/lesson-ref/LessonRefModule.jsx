@@ -3,7 +3,7 @@ import { Link2, BookmarkPlus, BookmarkCheck } from 'lucide-react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import { fetchLessonTitles } from '../../../../shared/lib/lessonsApi.js'
 import { loadCurricula } from '../../../../shared/lib/curriculaApi.js'
-import { listLessonBookmarks, setLessonBookmark } from '../../../../shared/lib/lessonBookmarksApi.js'
+import { listLessonBookmarks, setLessonBookmark, cachedLessonBookmarks } from '../../../../shared/lib/lessonBookmarksApi.js'
 
 // Обычная пауза перед автопереходом дальше (как у text/photo/system) — если
 // пользователь ничего не нажал на карточке
@@ -33,10 +33,11 @@ export default function LessonRefModule({ node, onDone, onOpenLessonRef }) {
 
   const [liveTitle,       setLiveTitle]       = useState(null)
   const [unavailable,     setUnavailable]     = useState(false)
-  const [bookmarked,      setBookmarked]      = useState(false)
-  // Пока не пришёл ответ БД — не знаем правды, кнопку не показываем вовсе
-  // (иначе на миг мелькает «В закладки», а через мгновение — «В закладках»)
-  const [bookmarkChecked, setBookmarkChecked] = useState(false)
+  // Кэш сессии (lessonBookmarksApi): лента спросила список ещё при старте
+  // приложения — состояние известно синхронно, кнопка верная с первого кадра.
+  // Без кэша — ждём ответ БД, кнопка невидима, но место занимает (--pending)
+  const [bookmarked,      setBookmarked]      = useState(() => !!cachedLessonBookmarks()?.has(targetId))
+  const [bookmarkChecked, setBookmarkChecked] = useState(() => cachedLessonBookmarks() !== null)
   // true только когда закладка встала ИМЕННО этим кликом (не найдена уже
   // существующей при загрузке) — включает разовую анимацию «зелёная → тусклая»;
   // при повторном заходе в урок (уже в закладках с самого начала) анимация не

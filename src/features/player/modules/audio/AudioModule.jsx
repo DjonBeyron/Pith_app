@@ -4,13 +4,14 @@ import AudioWave from './AudioWave.jsx'
 import { speechBounds } from './audioWaveParts.js'
 import { PlayTriangle, PauseIcon } from './AudioPlayIcons.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
-import { analyzeWaveform, fmtAudioTime, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
+import { fmtAudioTime, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
-import { logAudioMount, logAudioDurationReady, logAudioPlayStart, makeAudioHeartbeat, makeGapWatch, attachAudioEventLog, logAudioEnded } from './audioDebug.js'
+import { useAudioMeta } from './useAudioMeta.js'
+import { logAudioMount, logAudioPlayStart, makeAudioHeartbeat, makeGapWatch, attachAudioEventLog, logAudioEnded } from './audioDebug.js'
 
 // Волна — один canvas (AudioWave.jsx), спектр статичен всегда: живой
 // эквалайзер на ~70 div-полосках с will-change был главным источником
@@ -22,19 +23,6 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // сообщение появлялось с резким низом и щёлкало в размытый через секунду.
   // Ленивая инициализация, потому что node.typeData разбирается ниже
   const [isFading,        setIsFading]        = useState(() => !!node.typeData?.audio?.text)
-  // Сохранённые длительность/волна — сразу в начальном состоянии, не в эффекте:
-  // тот срабатывает ПОСЛЕ первой отрисовки, и первый кадр показывал таймер с
-  // нулём, который тут же менялся на настоящий (видно на въезде голосового)
-  const [waveData,        setWaveData]        = useState(() => node.typeData?.audio?.waveformData?.length ? node.typeData.audio.waveformData : null)
-  const [duration,        setDuration]        = useState(() => node.typeData?.audio?.duration || null)
-  // Волна известна (сохранена в ноде или уже посчитана/не удалась) — до этого
-  // AudioWave прозрачный, чтобы не показывать подмену базовой формы настоящей
-  const [waveReady,       setWaveReady]       = useState(() => !!node.typeData?.audio?.waveformData?.length)
-  // Волна и длительность — свойство ФАЙЛА, а не адреса: при смене src (прямая
-  // ссылка → blob предзагрузки и обратно) их не сбрасываем и не считаем
-  // заново — именно этот пересчёт и выглядел как «спектр перестраивается»
-  const waveDoneRef     = useRef(!!node.typeData?.audio?.waveformData?.length)
-  const durationDoneRef = useRef(!!node.typeData?.audio?.duration)
   const [textStarted,     setTextStarted]     = useState(false)
   const [revealedCharIdx, setRevealedCharIdx] = useState(-1)
   // Расшифровку показали целиком хотя бы раз — дальше её НЕ перепечатываем.
@@ -67,6 +55,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
   // Откуда берётся звук и почему адрес фиксируется — useAudioSource.js
   const { src, locked: srcLocked, lock: lockSrc, unlock: unlockSrc } = useAudioSource(node, file)
+  // Волна, длительность, готовность волны — useAudioMeta.js (нода → прогрев → сами)
+  const { waveData, duration, waveReady, adoptElementDuration } = useAudioMeta(node, file, src)
 
   // Аудио ещё не загружено, а сценарий смотрит админ: показываем текст, будто
   // сообщение звучит, и по окончании заглушки отпускаем цепочку дальше
@@ -90,29 +80,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     setTextStarted(false)
     setRevealedCharIdx(-1)
     waveRef.current?.setProgress(0)
-    if (storedDuration) logAudioDurationReady('сразу, storedDuration', storedDuration)
-    if (!src) { pLog('AudioModule: src is null, skipping load'); return }
-    let cancelled = false
-    if (!waveDoneRef.current) {
-      analyzeWaveform(src).then(wd => {
-        if (cancelled) return
-        waveDoneRef.current = true
-        setWaveData(wd)
-        setWaveReady(true)
-      }).catch(() => {
-        // Файл не отдался — показываем базовую форму, а не пустую дорожку
-        if (!cancelled) setWaveReady(true)
-      })
-    }
-    if (!durationDoneRef.current) {
-      probeAudioDuration(src).then(d => {
-        if (cancelled || !d || !isFinite(d)) return
-        durationDoneRef.current = true
-        setDuration(d)
-        logAudioDurationReady('асинхронно, probeAudioDuration', d)
-      }).catch(() => {})
-    }
-    return () => { cancelled = true }
+    if (!src) pLog('AudioModule: src is null, skipping load')
+    // Волна и длительность — useAudioMeta.js (нода → прогрев → сами)
   }, [src, storedWaveform, storedDuration])
 
   useEffect(() => () => {
@@ -138,12 +107,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     // Длительность — из метаданных ЭТОГО элемента, как только они есть:
     // раньше без сохранённой duration таймер показывал 00:00, пока отдельный
     // probeAudioDuration не догрузит свой экземпляр файла
-    const onMeta = () => {
-      if (durationDoneRef.current || !Number.isFinite(audio.duration) || audio.duration <= 0) return
-      durationDoneRef.current = true
-      setDuration(audio.duration)
-      logAudioDurationReady('из метаданных элемента', audio.duration)
-    }
+    const onMeta = () => adoptElementDuration(audio)
     const detachEvents = attachAudioEventLog(audio)
     // Возобновление снаружи (тулбар снял заморозку): цикл кадров мы погасили
     // на паузе, поэтому поднимаем его обратно — иначе волна осталась бы
@@ -167,7 +131,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       audio.removeEventListener('loadedmetadata', onMeta)
       detachEvents()
     }
-    // lockSrc стабилен (useCallback с пустыми deps) — подписку не пересобирает
+    // lockSrc стабилен (useCallback с пустыми deps) — подписку не пересобирает;
+    // adoptElementDuration — функция хука, читает только рефы
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, lockSrc])
 
   // Один цикл кадров на элемент, и не больше. Возобновление приходит с двух
@@ -210,7 +176,12 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     const hb = makeAudioHeartbeat()
     const gap = makeGapWatch()
 
-    setTextStarted(true)
+    // Секция текста (и рост пузыря) — не сейчас, а на первой напечатанной
+    // букве в tick(): между play() и реальным стартом звука проходит 0.2–2с
+    // (первый запуск в сессии — активация аудио-сессии iOS), и пузырь
+    // расширялся, а дальше пауза без звука и без печати. Показанный целиком
+    // текст (повтор) — сразу
+    if (fullyRevealedRef.current) setTextStarted(true)
     // Три случая, и путать их нельзя:
     //  · показывали целиком — оставляем целиком: повторный запуск старого
     //    голосового текст не перенабирает (из-за этого дёргалась лента);
@@ -254,6 +225,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
           idx = Math.floor(progress * capturedText.length) - 1
         }
         setRevealedCharIdx(idx)
+        if (idx >= 0) setTextStarted(true)
       }
       hb(audio, ct, total, waveRef.current?.getState(), capturedText ? `${idx + 1}/${capturedText.length}` : null)
 
@@ -349,7 +321,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
             </button>
             <div className="playerAudioWaveCol">
               <AudioWave ref={waveRef} waveData={waveData} ready={waveReady} />
-              <span ref={timeRef} className="playerAudioDur">{duration ? fmtAudioTime(duration) : ''}</span>
+              <span ref={timeRef} className="playerAudioDur">{duration ? fmtAudioTime(duration) : '\u00a0'}</span>
             </div>
           </div>
 

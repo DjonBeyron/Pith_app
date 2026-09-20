@@ -8,17 +8,30 @@ async function currentUser() {
   return session?.user ?? null
 }
 
+// Последний ответ сервера — на сессию. Лента (useBookmarkedLessons) и профиль
+// спрашивают список при старте, так что к моменту карточки-ссылки в уроке
+// (LessonRefModule) состояние закладки уже известно синхронно и кнопка
+// рисуется в правильном виде с первого кадра, а не «появляется позже».
+// null — ещё не спрашивали
+let cache = null
+
+export function cachedLessonBookmarks() {
+  return cache
+}
+
 export async function listLessonBookmarks() {
   const user = await currentUser()
-  if (!user) return new Set()
+  if (!user) { cache = new Set(); return cache }
   const { data, error } = await supabase.from('lesson_bookmarks').select('lesson_id')
-  if (error) { dbg('[DB ERROR] lesson_bookmarks list', error.message); return new Set() }
-  return new Set((data ?? []).map(r => r.lesson_id))
+  if (error) { dbg('[DB ERROR] lesson_bookmarks list', error.message); return cache ?? new Set() }
+  cache = new Set((data ?? []).map(r => r.lesson_id))
+  return cache
 }
 
 export async function setLessonBookmark(lessonId, on) {
   const user = await currentUser()
   if (!user) return false
+  if (cache) { if (on) cache.add(lessonId); else cache.delete(lessonId) }
   if (on) {
     const { error } = await supabase.from('lesson_bookmarks').upsert(
       { user_id: user.id, lesson_id: lessonId },

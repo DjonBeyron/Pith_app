@@ -161,7 +161,8 @@ export default function LessonPlayer({
     () => files.map(f => {
       const entry = blobMap[f.id]
       if (!entry) return f
-      return { ...f, blobUrl: entry.blobUrl, posterUrl: entry.posterUrl ?? null }
+      // + мета голосового из прогрева (usePlayerPreload.analyzeAudioMeta): duration/waveformData/metaDone
+      return { ...f, blobUrl: entry.blobUrl, posterUrl: entry.posterUrl ?? null, duration: entry.duration ?? null, waveformData: entry.waveformData ?? null, metaDone: !!entry.metaDone }
     }),
     [files, blobMap]
   )
