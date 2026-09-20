@@ -18,36 +18,18 @@
   cursor: pointer;
 }
 
-/* Покой: несколько картинок-групп шариков (PhraseBubbleAnimated.jsx) вместо
-   canvas — дрейфуют CSS-transform на композиторе, каждая своим путём и
-   периодом (keyframes по синусоидам прежнего wiggle инжектит
-   phraseBubbleDrift.js; имя/длительность — inline у каждой картинки):
-   относительное движение групп читается как живое колыхание всей сетки. Дрейф идёт только у активного слайда видимой ленты
-   (.phraseBubbleLayersLive); у остальных анимация на паузе, а не выключена —
-   иначе при смене активного слайда группы прыгали бы в исходную точку.
-   will-change не ставим: слоёв в покое и так три, лишние поверхности GPU —
-   ровно то, из-за чего убирали canvas */
-.phraseBubbleLayers {
+/* Картинка покоя (PhraseBubbleAnimated.jsx): снимок сетки с текущих позиций
+   шариков вместо canvas — у соседей в виртуальном окне, под уроком, на других
+   вкладках. Canvas живёт только у активного слайда видимой ленты: бисекция на
+   iPhone показала, что спящие canvas-элементы делали дёрганой системную
+   анимацию сворачивания приложения с любого экрана */
+.phraseBubbleStill {
   position: absolute;
   z-index: 1;
+  display: block;
   pointer-events: auto;
   cursor: pointer;
 }
-
-.phraseBubbleLayer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  /* linear + 48 ключевых кадров = гладкая синусоида; ease-in-out между
-     редкими кадрами давал «шаг-стоп» на разворотах */
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  animation-play-state: paused;
-}
-
-.phraseBubbleLayersLive .phraseBubbleLayer { animation-play-state: running; }
 
 /* Заглушка для слабых устройств (PhraseBubbleStatic.jsx) — векторный
    тайловый SVG-паттерн вместо canvas-анимации, ноль JS каждый кадр.
