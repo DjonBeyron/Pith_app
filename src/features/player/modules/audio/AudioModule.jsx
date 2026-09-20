@@ -9,7 +9,7 @@ import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
-import { logAudioMount, logAudioDurationReady, logAudioPlayStart, makeAudioHeartbeat, logAudioEnded } from './audioDebug.js'
+import { logAudioMount, logAudioDurationReady, logAudioPlayStart, makeAudioHeartbeat, makeGapWatch, attachAudioEventLog, logAudioEnded } from './audioDebug.js'
 
 // Волна — один canvas (AudioWave.jsx), спектр статичен всегда: живой
 // эквалайзер на ~70 div-полосках с will-change был главным источником
@@ -134,6 +134,16 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     // Данные звука уже в элементе — с этого момента держимся за этот источник
     // и не реагируем на подмену blob→r2Url у того же файла
     const onLoaded = () => lockSrc(src)
+    // Длительность — из метаданных ЭТОГО элемента, как только они есть:
+    // раньше без сохранённой duration таймер показывал 00:00, пока отдельный
+    // probeAudioDuration не догрузит свой экземпляр файла
+    const onMeta = () => {
+      if (durationDoneRef.current || !Number.isFinite(audio.duration) || audio.duration <= 0) return
+      durationDoneRef.current = true
+      setDuration(audio.duration)
+      logAudioDurationReady('из метаданных элемента', audio.duration)
+    }
+    const detachEvents = attachAudioEventLog(audio)
     // Возобновление снаружи (тулбар снял заморозку): цикл кадров мы погасили
     // на паузе, поэтому поднимаем его обратно — иначе волна осталась бы
     // стоять, пока звук идёт
@@ -144,13 +154,17 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     audio.addEventListener('pause', onPause)
     audio.addEventListener('play', onPlay)
     audio.addEventListener('loadeddata', onLoaded)
+    audio.addEventListener('loadedmetadata', onMeta)
     // Файл мог загрузиться до того, как мы подписались (blob из предзагрузки
     // готов сразу) — события тогда уже не будет, проверяем состояние сами
+    if (audio.readyState >= 1) onMeta()
     if (audio.readyState >= 2) onLoaded()
     return () => {
       audio.removeEventListener('pause', onPause)
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('loadeddata', onLoaded)
+      audio.removeEventListener('loadedmetadata', onMeta)
+      detachEvents()
     }
     // lockSrc стабилен (useCallback с пустыми deps) — подписку не пересобирает
   }, [src, lockSrc])
@@ -184,8 +198,12 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
     const d             = duration || audio.duration || 0
     const capturedChars = charTimings
-    logAudioPlayStart({ d, liveDuration: audio.duration, readyState: audio.readyState, networkState: audio.networkState, waveLen: waveData?.length })
+    logAudioPlayStart({
+      d, liveDuration: audio.duration, readyState: audio.readyState, networkState: audio.networkState,
+      waveLen: waveData?.length, textLen: text.length, timings: capturedChars.length,
+    })
     const hb = makeAudioHeartbeat()
+    const gap = makeGapWatch()
 
     setTextStarted(true)
     // Три случая, и путать их нельзя:
@@ -201,28 +219,29 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     // уже показывает пройденное
     if (isReplay) waveRef.current?.setProgress(0)
 
-    function tick() {
+    function tick(now) {
       const ct = audio.currentTime
+      gap(now, ct)
       // audio.duration живого элемента приоритетнее заранее сохранённой d:
       // у отдельного probeAudioDuration()-элемента метаданные MP3 иногда чуть
       // короче реальных (VBR) — на коротких голосовых это заметный процент,
       // заливка добегала до края раньше, чем звук реально доигрывал
       const total    = (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : d) || 1
       const progress = total > 0 ? ct / total : 0
-      hb(ct, total, waveRef.current?.getState())
       // Сама волна перерисуется только если заливка дошла до новой полоски
       waveRef.current?.setProgress(progress)
 
       // Ведём раскрытие только на первом прогоне. На повторном текст уже
       // показан целиком, и трогать его нельзя: каждое изменение — новая
       // высота пузыря и сдвиг всей переписки
+      let idx = -1
       if (capturedChars.length && !fullyRevealedRef.current) {
-        let idx = -1
         for (let i = 0; i < capturedChars.length; i++) {
           if (ct >= capturedChars[i]) idx = i; else break
         }
         setRevealedCharIdx(idx)
       }
+      hb(audio, ct, total, waveRef.current?.getState(), capturedChars.length ? `${idx + 1}/${capturedChars.length}` : null)
 
       // Таймер меняется раз в секунду — не трогаем DOM, пока строка та же
       const left = fmtAudioTime(Math.max(0, total - ct))
@@ -316,7 +335,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
             </button>
             <div className="playerAudioWaveCol">
               <AudioWave ref={waveRef} waveData={waveData} ready={waveReady} />
-              <span ref={timeRef} className="playerAudioDur">{fmtAudioTime(duration)}</span>
+              <span ref={timeRef} className="playerAudioDur">{duration ? fmtAudioTime(duration) : ''}</span>
             </div>
           </div>
 
@@ -328,7 +347,12 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
                 /* в заглушке таймингов нет — печатаем ровно за её длительность,
                    чтобы текст закончился к моменту перехода к следующей ноде */
                 revealedCharIdx={!stubMode && charTimings.length ? revealedCharIdx : undefined}
-                speed={stubMode ? stubSpeed : undefined}
+                /* без таймингов слов печатаем своим таймером, но растянутым на
+                   длительность звука — иначе текст жил отдельно от голоса
+                   (45мс/символ независимо от того, 3 секунды запись или 10) */
+                speed={stubMode ? stubSpeed
+                  : !charTimings.length && duration ? Math.max(12, Math.round(duration * 1000 / Math.max(1, text.length)))
+                  : undefined}
                 onTypingChange={active => { if (active) setIsFading(true) }}
               />
             </div>

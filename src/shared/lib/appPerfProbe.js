@@ -73,7 +73,10 @@ export function startPerfProbe() {
     emit(`fps ${frames} · worst ${Math.round(worst)}ms · ${line.match(/anim=\S+ inf=\d+/)?.[0] ?? ''}`)
     frames = 0; worst = 0; drops = 0
     // В фоне rAF стоит, кадры не считаются — сканировать DOM тоже незачем
-    if (!document.hidden && ++seconds % SUSPECTS_EVERY === 0) suspects('tick')
+    // Периодический скан — только вне урока: getComputedStyle на ~2000
+    // элементов ленты чата — десятки миллисекунд главного потока раз в 10с,
+    // сам датчик становился источником рывков заливки голосового
+    if (!document.hidden && !document.querySelector('.lessonPlayer') && ++seconds % SUSPECTS_EVERY === 0) suspects('tick')
   }, 1000)
 
   const onVis = () => {

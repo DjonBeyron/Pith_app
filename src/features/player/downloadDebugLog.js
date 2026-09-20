@@ -2,10 +2,11 @@ import { getPlayerLines } from '../../shared/lib/debug.js'
 import { sendToSink, debugFileName } from '../debugTools/debugSink.js'
 import { buildPerfSection } from './perfLogSection.js'
 
-// ВРЕМЕННО (замер лагов урока trying, 2026-09-19): в лог идёт только секция
-// производительности, всё остальное заглушено — так файл читается за минуту.
-// Вернуть полный лог: поставить false
-const PERF_ONLY = true
+// ВРЕМЕННО (разбор рассинхрона голосовых, 2026-09-20): в лог идут только
+// события голосовых (audioDebug.js), всё остальное заглушено — так файл
+// читается за минуту. Датчик производительности читается через панель DBG
+// ленты. Вернуть полный лог: поставить false
+const AUDIO_ONLY = true
 
 // Сборка общего дебаг-лога плеера (текст): pLog-строки, таймлайн появления
 // нод, загрузки файлов, события анализа. Общая для скачивания и копирования
@@ -19,18 +20,16 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
     `ua: ${navigator.userAgent}`,
     `device: memory=${navigator.deviceMemory ?? 'n/a'} cpu=${navigator.hardwareConcurrency ?? 'n/a'} conn=${navigator.connection?.effectiveType ?? 'n/a'}`,
     ``,
-    // Датчик производительности — отдельной секцией вперёд остального: по
-    // ней сразу видно, лагало ли и что росло (perfLogSection.js)
-    ...buildPerfSection(playerLines),
   ]
-  if (PERF_ONLY) {
-    // Плюс события голосовых: старт/конец/heartbeat (ct, total, прогресс,
-    // полоски) — чтобы разбирать рассинхрон заливки без полного лога
-    lines.push(``, `--- Audio / Circle / Freeze / Vis (голосовые, кружок, заморозка, сворачивание, сканы композитора) ---`,
-      ...playerLines.filter(l => /\[(audio-|circle\]|freeze\]|vis\]|suspects\])/.test(l) || l.includes('AudioModule')))
+  if (AUDIO_ONLY) {
+    lines.push(`--- Audio (события голосовых: mount / dur / play / hb / gap / ev / end) ---`,
+      ...playerLines.filter(l => l.includes('[audio-') || l.includes('AudioModule')))
     return lines.join('\n')
   }
   lines.push(
+    // Датчик производительности — отдельной секцией вперёд остального: по
+    // ней сразу видно, лагало ли и что росло (perfLogSection.js)
+    ...buildPerfSection(playerLines),
     ``,
     `--- Player log (pLog) ---`,
     ...playerLines,
