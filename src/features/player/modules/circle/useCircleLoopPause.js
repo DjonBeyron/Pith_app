@@ -18,9 +18,13 @@ export function useCircleLoopPause(wrapRef, vRef, enabled) {
     const el = wrapRef.current
     if (!el || !enabled || typeof IntersectionObserver === 'undefined') return
     let pausedOffscreen = false
+    pLog('[circle] наблюдатель включён')
     const io = new IntersectionObserver(([entry]) => {
       const v = vRef.current
       if (!v) return
+      // Каждое пересечение границы — в лог, даже без паузы: чтобы отличить
+      // «наблюдатель не сработал» от «видео не в том режиме»
+      pLog(`[circle] ${entry.isIntersecting ? 'на экране' : 'вне экрана'} paused=${v.paused} muted=${v.muted} loop=${v.loop}`)
       if (!entry.isIntersecting) {
         if (v.muted && v.loop && !v.paused) {
           v.pause()

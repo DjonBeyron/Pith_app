@@ -35,6 +35,11 @@ export function samplePerf({ fps, worstMs, drops }) {
   const videos  = document.querySelectorAll('video')
   const playingA = [...audios].filter(a => !a.paused).length
   const playingV = [...videos].filter(v => !v.paused).length
+  // Кто именно играет и где живёт скелетон с бликом — класс родителя
+  // (circleFrame / slideVideoRoot / poolHolder …): в логе отличить кружок
+  // урока от видео ленты под ним и от заглушки кружка без видео
+  const who  = [...videos].filter(v => !v.paused).map(describeMedia).join(',')
+  const skel = [...document.querySelectorAll('.feedSkeleton')].map(parentTag).join(',')
   const mem     = performance.memory?.usedJSHeapSize
   const memStr  = mem ? ` heap=${Math.round(mem / 1048576)}MB` : ''
   return (
@@ -42,6 +47,19 @@ export function samplePerf({ fps, worstMs, drops }) {
     ` anim=${anims.length} inf=${inf}${top ? `(${top})` : ''}` +
     ` waves=${waves} audio=${audios.length}/${playingA} video=${videos.length}/${playingV}` +
     ` bubbles=${bubbles} frozen=${frozen} dom=${dom}${memStr}` +
+    (who ? ` vplay=${who}` : '') + (skel ? ` skel=${skel}` : '') +
     (document.hidden ? ' HIDDEN' : '')
   )
+}
+
+// Класс ближайшего родителя; парковка пула видео ленты (за экраном) — poolHolder
+function parentTag(el) {
+  const p = el.parentElement
+  if (!p) return 'detached'
+  if (p.style?.left === '-9999px') return 'poolHolder'
+  return String(p.className || p.tagName || '?').split(' ')[0]
+}
+
+function describeMedia(v) {
+  return `${parentTag(v)}${v.muted ? ':muted' : ''}${v.loop ? ':loop' : ''}`
 }
