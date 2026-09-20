@@ -4,10 +4,10 @@ import { enqueuePosterCapture } from './posterQueue.js'
 import { fetchBlobWithRetry } from './preloadFetch.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { forwardReachable, buildItemQueue, revokeEntry } from './preloadQueue.js'
+import { usePreloadProgress } from './usePreloadProgress.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
-const FALLBACK_SIZE = 500 * 1024 // вес файла с неизвестным размером в байтовом прогрессе
 export const CHAT_BUFFER_SIZE = 5
 const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice', 'table'])
 const POSTER_TYPES = new Set(['video', 'circle', 'sticker'])
@@ -21,10 +21,6 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const [blobMap, setBlobMap] = useState(() => ({ ...(initialBlobMap ?? {}) }))
   const [queueTotal, setQueueTotal] = useState(0)
   const [readyNodeIds, setReadyNodeIds] = useState(() => new Set())
-
-  // Debug overlay: one item per download, updated in place
-  const debugItemsRef = useRef(new Map())
-  const [, setDebugTick] = useState(0)
 
   // Eviction
   const [evictLog, setEvictLog] = useState([])
@@ -44,45 +40,10 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const byIdRef        = useRef({})
   const startTimeRef   = useRef(0) // выставляется в Date.now() при rebuild-эффекте
 
-  // Байтовый прогресс warmup-файлов — для честного плавного бара на карточке запуска
-  const bytesTotalRef  = useRef(new Map())
-  const bytesLoadedRef = useRef(new Map())
-  const [warmupPct, setWarmupPct] = useState(0)
-  const lastFlushRef   = useRef(0)
-  const flushTimerRef  = useRef(null)
-
-  function computeWarmupPct() {
-    let loaded = 0
-    let total  = 0
-    for (const it of queueRef.current) {
-      if (it.nodeIdx >= initialLookahead) continue
-      const size = bytesTotalRef.current.get(it.id) || it.size || FALLBACK_SIZE
-      total  += size
-      loaded += Math.min(bytesLoadedRef.current.get(it.id) ?? 0, size)
-    }
-    return total ? Math.round(loaded / total * 100) : 100
-  }
-
-  const tick = () => {
-    setWarmupPct(computeWarmupPct())
-    setDebugTick(t => t + 1)
-  }
-
-  // Шторм чанков при скачивании → не чаще одного обновления state в 100 мс
-  function throttledTick() {
-    const now = Date.now()
-    if (now - lastFlushRef.current >= 100) {
-      lastFlushRef.current = now
-      tick()
-      return
-    }
-    if (flushTimerRef.current) return
-    flushTimerRef.current = setTimeout(() => {
-      flushTimerRef.current = null
-      lastFlushRef.current = Date.now()
-      tick()
-    }, 100)
-  }
+  // Байтовый прогресс, процент прогрева, реестр загрузок — usePreloadProgress.js
+  const {
+    debugItemsRef, bytesTotalRef, bytesLoadedRef, warmupPct, tick, throttledTick, cancelFlush, markFailed,
+  } = usePreloadProgress(queueRef, initialLookahead)
 
   const [warmupNodeIds, setWarmupNodeIds] = useState([])
   const [initialized, setInitialized]     = useState(false)
@@ -224,7 +185,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       debugItem.httpStatus = e.httpStatus ?? null
       debugItem.readyTs    = ts()
       // Файл не скачался после всех попыток — для бара считается «завершённым»
-      bytesLoadedRef.current.set(id, bytesTotalRef.current.get(id) || item.size || FALLBACK_SIZE)
+      markFailed(id, item.size)
       blobUrlsRef.current[id] = { blobUrl: null, error: true }
       setBlobMap(prev => ({ ...prev, [id]: { blobUrl: null, error: true } }))
       tick()
@@ -394,7 +355,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     return () => {
       genRef.current++
       clearTimeout(safetyTimer)
-      if (flushTimerRef.current) { clearTimeout(flushTimerRef.current); flushTimerRef.current = null }
+      cancelFlush()
     }
   }, [nodes, files]) // eslint-disable-line react-hooks/exhaustive-deps
 
