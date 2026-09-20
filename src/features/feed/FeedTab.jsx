@@ -172,14 +172,14 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
                 return (
                   <div
                     key={vi.key}
-                    className="feedVirtualItem"
+                    className={rel === 0 ? 'feedVirtualItem feedVirtualItemActive' : 'feedVirtualItem'}
                     style={{ height: vi.size, transform: `translateY(${vi.start}px)` }}>
                     <FeedSlide
                       module={m}
                       slideKey={vi.index}
                       active={rel === 0}
                       near={Math.abs(rel) <= 1}
-                      spoilerNear={rel !== 0 && Math.sign(rel) === scrollDir}
+                      spoilerNear={Math.abs(rel) === 1 && Math.sign(rel) === scrollDir}
                       tabVisible={visible && view === 'feed'}
                       gradIdx={(vi.index % len) % 4}
                       reaction={reactions[m.id]}

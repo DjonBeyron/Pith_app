@@ -116,6 +116,9 @@ function ensure() {
   const onShow = () => {
     for (const el of hiddenPaused) {
       if (el.dataset.parked === '1' || !el.parentElement || el.parentElement === holder) continue
+      // Сосед мог оказаться «играющим» на момент ухода только по ошибке —
+      // возвращаем звук и кадры только активному слайду
+      if (el.dataset.active !== '1') continue
       if (el.dataset.unloaded === '1') {
         el.dataset.unloaded = ''
         const t0 = performance.now()
@@ -180,6 +183,7 @@ function parkEl(el) {
   // до следующего leaseVideo — благодаря этому переносимый элемент всегда
   // холодный, и переносы не оставляют iOS-стоп-кадров
   el.dataset.parked = '1'
+  el.dataset.active = ''
   if (el.parentElement !== holder) holder.appendChild(el)
   // Подготовительный seek — чуть позже: не во время свайпа (дёргает скролл)
   setTimeout(() => { if (el.dataset.parked === '1') prepareReturn(el) }, 300)
@@ -224,8 +228,10 @@ export function reloadVideo(el) {
     el.removeEventListener('loadedmetadata', onLoaded)
     if (resumeCt > 0) { try { el.currentTime = resumeCt } catch { /* не критично */ } }
     fdbg(`vid ${(url || '').slice(-8)} перезапуск: данные пошли (${(performance.now() - t0).toFixed(0)}мс)`)
-    // Пока тянулись данные, слайд могли покинуть — припаркованного не будим
-    if (el.dataset.parked === '1' || el.parentElement === holder) return
+    // Пока тянулись данные, слайд могли покинуть — припаркованного или
+    // ставшего соседом (data-active снимает SlideVideo) не будим: сосед
+    // должен стоять на паузе, иначе два видео декодируются разом
+    if (el.dataset.parked === '1' || el.parentElement === holder || el.dataset.active !== '1') return
     const p = el.play()
     if (p && p.catch) p.catch(() => {})
   }
@@ -248,7 +254,7 @@ export function kickSurface(v) {
     v.removeEventListener('seeked', resume)
     // Пока шёл seek, элемент могли запарковать (быстрый уход с вкладки) —
     // припаркованного не будим, иначе звук «из-за кулис»
-    if (v.parentElement !== holder) v.play().catch(() => {})
+    if (v.parentElement !== holder && v.dataset.active === '1') v.play().catch(() => {})
   }
   v.addEventListener('seeked', resume, { once: true })
   try { v.currentTime = Math.max(0, v.currentTime - 0.01) } catch { resume() }

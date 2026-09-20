@@ -268,7 +268,14 @@
    крутилась под уроком весь урок (датчик на iPhone: inf=7 feedShine) */
 .feedViewHidden .feedLearnBtn::after,
 .shellV2TabHidden .feedLearnBtn::after,
-.feedV2--paused .feedLearnBtn::after { animation: none; }
+.feedV2--paused .feedLearnBtn::after,
+.feedVirtualItem:not(.feedVirtualItemActive) .feedLearnBtn::after { animation: none; }
+
+/* Тени HUD (filter: drop-shadow) — только у активного слайда: в виртуальном
+   окне 5 слайдов, и 28 кнопок с filter одновременно — 28 отдельных проходов
+   композитора, из них 22 за экраном. Класс активного — feedVirtualItemActive
+   (FeedTab.jsx) */
+.feedVirtualItem:not(.feedVirtualItemActive) .feedHudBtn { filter: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .feedLearnBtn::after { content: none; }
