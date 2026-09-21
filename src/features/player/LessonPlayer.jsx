@@ -17,6 +17,7 @@ import { useGraphPlayer }  from './useGraphPlayer.js'
 import { useSignalMessages } from './useSignalMessages.js'
 import { usePlayerPanelNodes } from './usePlayerPanelNodes.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
+import { useLessonWordAudio } from './word-audio/useLessonWordAudio.js'
 import { useNodeAppearLog } from './useNodeAppearLog.js'
 import { usePlayerFiles } from './usePlayerFiles.js'
 import { useAnswerStats } from './useAnswerStats.js'
@@ -142,7 +143,8 @@ export default function LessonPlayer({
     setXpEvents(prev => prev.filter(e => e.id !== id))
   }
 
-  const { blobMap, addMsgTs, debugItems } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
+  const { blobMap, addMsgTs, debugItems, warmupPct } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
+  useLessonWordAudio(nodes, warmupPct) // озвучка слов при тапе — после прогрева первых нод
 
   // Момент открытия урока: инициализация в эффекте (Date.now в рендере
   // запрещён react-hooks/purity); все потребители читают ref после маунта
@@ -151,21 +153,16 @@ export default function LessonPlayer({
   // Журнал появления нод + готовности их медиа — useNodeAppearLog.js
   const nodeAppearLogRef = useNodeAppearLog(visibleNodes, blobMap, addMsgTs, openTimeRef)
 
-  const combinedLogData = () => ({
-    nodeAppearLog: nodeAppearLogRef.current, debugItems, events: getEvents(),
-  })
+  const combinedLogData = () => ({ nodeAppearLog: nodeAppearLogRef.current, debugItems, events: getEvents() })
   const downloadCombinedLog = () => downloadDebugLog(combinedLogData())
   const copyCombinedLog     = () => copyDebugLog(combinedLogData())
 
-  const filesWithBlobs = useMemo(
-    () => files.map(f => {
+  const filesWithBlobs = useMemo(() => files.map(f => {
       const entry = blobMap[f.id]
       if (!entry) return f
       // + мета голосового из прогрева (usePlayerPreload.analyzeAudioMeta): duration/waveformData/metaDone
       return { ...f, blobUrl: entry.blobUrl, posterUrl: entry.posterUrl ?? null, duration: entry.duration ?? null, waveformData: entry.waveformData ?? null, metaDone: !!entry.metaDone }
-    }),
-    [files, blobMap]
-  )
+    }), [files, blobMap])
 
   // ── Panels ───────────────────────────────────────────────────────────────
   const answers = usePlayerAnswers()

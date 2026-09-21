@@ -1,0 +1,92 @@
+/* ── Меню 🔊 «Озвучка слов» (canvas/word-audio/) ─────────────────────────
+   Оверлей/модалка/кнопки — общие классы bgp- и lio- (batch-gen.css, lesson-io.css);
+   здесь только своё: вкладки, список слов, бейдж на кнопке шапки. */
+
+.warModal { width: min(640px, 100%); max-height: 88vh; }
+.warModal .bgpHeader { gap: 10px; }
+.warModal .bgpTitle { white-space: nowrap; }
+.warModal .bgpHeader .lioMeta { flex: 1; text-align: right; }
+
+/* Бейдж числа неозвученных слов на кнопке шапки (обёртка — .canvasSettingsBtnWrap) */
+.warBadge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #ff6040;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.warTabs { display: flex; align-items: center; gap: 6px; }
+.warTab {
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid #2a2d35;
+  background: #1a1d22;
+  color: #9aa0b4;
+  font-size: 12px;
+  cursor: pointer;
+}
+.warTab:hover { color: #ccc; }
+.warTabOn { color: #b6fe3b; border-color: #b6fe3b; }
+.warSearch {
+  margin-left: auto;
+  width: 140px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  border: 1px solid #2a2d35;
+  background: #0c0e12;
+  color: #ddd;
+  font-size: 12px;
+}
+.warLink {
+  background: none; border: none; padding: 0;
+  color: #9aa0b4; font-size: 12px; text-decoration: underline; cursor: pointer;
+}
+.warLink:hover { color: #ccc; }
+
+.warList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid #2a2d35;
+  border-radius: 10px;
+}
+.warRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-bottom: 1px solid #1c1f26;
+  font-size: 13px;
+}
+.warRow:last-child { border-bottom: none; }
+.warStatus { width: 14px; text-align: center; flex-shrink: 0; }
+.warRowOk .warStatus { color: #b6fe3b; }
+.warRowMissing .warStatus { color: #f0c040; }
+.warBody { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.warText { color: #e6e8ee; }
+.warRowMissing .warText { color: #f5f0d8; }
+.warLessons {
+  color: #6a7080; font-size: 11px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.warError { color: #f87171; font-size: 11px; }
+.warBtns { display: flex; gap: 4px; flex-shrink: 0; }
+.warBtn {
+  width: 26px; height: 24px; padding: 0;
+  border-radius: 6px; border: 1px solid #2a2d35;
+  background: #1a1d22; color: #9aa0b4; font-size: 12px; cursor: pointer;
+}
+.warBtn:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.warBtn:disabled { opacity: 0.35; cursor: default; }
+.warBtnDel:hover:not(:disabled) { border-color: #f87171; color: #f87171; }

@@ -233,7 +233,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           setFilterPos={setFilterPos} setToolsPos={setToolsPos}
           setPlayFrom={setPlayFrom} setShowPlayer={setShowPlayer} setIoNodes={setIoNodes}
           setIoZones={setIoZones}
-          setShowBatchGen={setShowBatchGen} boardApiRef={boardApiRef}
+          setShowBatchGen={setShowBatchGen} boardApiRef={boardApiRef} lessonId={lessonId} title={title}
           lessonXp={lessonXp} setLessonXp={setLessonXp} markDirty={markDirty}
           switchToProduction={switchToProduction} hasUnsynced={hasUnsynced}
           hasUnsyncedLogo={hasUnsyncedLogo} setShowPanel={setShowPanel}

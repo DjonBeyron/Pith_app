@@ -3,6 +3,8 @@ import { firstMismatchSlot } from '../../../../shared/lib/signalMismatch.js'
 import { signalForSlot } from '../../../../shared/lib/signalSlots.js'
 import { useSignalState } from '../signal-overlay/useSignalState.js'
 import { useAnswerOrder } from '../../useAnswerOrder.js'
+import { playWord } from '../../word-audio/wordAudioPlayer.js'
+import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
 
 const wordMatches = (word, expected) => (word ?? '').toLowerCase() === expected.toLowerCase()
 
@@ -42,6 +44,7 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
   function pickChip(shuffleIdx) {
     if (usedIdxs.has(shuffleIdx) || isAnswered || signalState.freeze) return
     const chip = shuffled[shuffleIdx]
+    playWord(wordKey(chip.text)) // озвучка слова при тапе (и при удалении ниже)
     setPlaced(p => [...p, { shuffleIdx, word: chip.text, distractorId: chip.distractorId }])
     if (result === 'wrong') setResult(null)
   }
@@ -52,6 +55,7 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
     // отдельного «удали именно это слово из середины»), но мигание гасится,
     // только если убрали именно помеченный чип (см. nextBlinkIndex)
     signalState.onRemoved(pos)
+    playWord(wordKey(placed[pos]?.word))
     setPlaced(p => p.filter((_, i) => i !== pos))
     setResult(null)
   }

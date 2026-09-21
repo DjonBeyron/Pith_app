@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useAnswerOrder } from '../../useAnswerOrder.js'
+import { playWord } from '../../word-audio/wordAudioPlayer.js'
+import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
 
 export function useChooseWord(node) {
   const [selectedId, setSelectedId] = useState(null)
@@ -12,6 +14,7 @@ export function useChooseWord(node) {
   function handlePick(option) {
     if (isAnswered) return
     setSelectedId(option.id)
+    if (option.isCorrect) playWord(wordKey(option.text)) // озвучка — только верного
     setResult(option.isCorrect ? 'correct' : 'wrong')
   }
 

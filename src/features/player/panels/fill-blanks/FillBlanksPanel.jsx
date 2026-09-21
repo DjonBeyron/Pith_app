@@ -12,6 +12,10 @@ import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
 import { orderAnswers } from '../../useAnswerOrder.js'
 import { normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
+import { blankMatches } from './fillBlanksCheck.js'
+import { blankWord } from '../../../../shared/lib/wordAudio/collectLessonWords.js'
+import { playWord } from '../../word-audio/wordAudioPlayer.js'
+import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
 
 // Точки-плейсхолдер в переводе — тусклый неинтерактивный двойник пропуска:
 // та же логика количества (blankKind по индексу ИЗ template, не перевода —
@@ -113,6 +117,8 @@ export default function FillBlanksPanel({
   function pickOption(value) {
     const index = blankMenu.index
     setBlankMenu(null)
+    // Озвучка — только верного выбора и ЦЕЛЫМ словом («tries», не «ie»)
+    if (blankMatches(value, blanks[index])) playWord(wordKey(blankWord(template, blanks, index)))
     setPicked(prev => ({ ...prev, [index]: value }))
     setWrongIndices(prev => prev.filter(i => i !== index))
   }

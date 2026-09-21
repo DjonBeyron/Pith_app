@@ -10,6 +10,8 @@ import ListScrollThumb from '../ListScrollThumb.jsx'
 import { tracePanelSync, tracePanelPaint } from '../tracePanelSync.js'
 import { useTableToChat } from '../useTableToChat.js'
 import { spacerStyle } from '../spacerStyle.js'
+import { playWord } from '../../word-audio/wordAudioPlayer.js'
+import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
@@ -165,6 +167,7 @@ export default function TableManualPanel({
 
   function pickCell(cellId, value) {
     setCellMenu(null)
+    playWord(wordKey(value)) // озвучка слова при тапе — ячейка и вариант меню
     setAssembled(prev => [...prev, { type: 'cell', cellId, value, key: `cell-${cellId}` }])
   }
 
@@ -172,6 +175,7 @@ export default function TableManualPanel({
     const key = `extra-${idx}`
     if (assembledExtraKeys.has(key) || result || signalState.freeze) return
     rememberTap(rect)
+    playWord(wordKey(chip.text))
     setAssembled(prev => [...prev, { type: 'extra', value: chip.text, key, distractorId: chip.distractorId }])
   }
 
@@ -181,6 +185,7 @@ export default function TableManualPanel({
     // мигание гасится, только если убрали именно помеченный чип
     // (см. useSignalState.js/nextBlinkIndex)
     signalState.onRemoved(i)
+    playWord(wordKey(assembled[i]?.value))
     setAssembled(prev => prev.filter((_, j) => j !== i))
     // фаза пересчитается автоматически (производная от allCellsDone + hasExtras)
   }
