@@ -16,6 +16,7 @@ import { rememberTap } from '../../xpAnchor.js'
 import { makeDictatorSlideDown } from './dictatorSlideDown.js'
 import { useDictatorLegacyAssemble } from './useDictatorLegacyAssemble.js'
 import { resetDictatorRun } from './dictatorRunReset.js'
+import { useDictatorWordVoice } from './useDictatorWordVoice.js'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
 import { orderAnswers } from '../../useAnswerOrder.js'
 
@@ -214,6 +215,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
     audioSrc, timeline, tData, audioRef, hasPlayedRef, endedRef, startedRef, slideDownRef, setHudVisible,
 
   })
+  // Озвучка слов, падающих в бокс — по галочке ноды (useDictatorWordVoice.js)
+  useDictatorWordVoice(tData.voiceWords === true, assembled, extrasAssembled)
+
   useDictatorLegacyAssemble({
     chipsVisible, checkAt, hasExtraLayers, checkDelay,
     shuffledExtras, extraFromAnswer, assembledRef, setExtrasAssembled, checkRef, timers,

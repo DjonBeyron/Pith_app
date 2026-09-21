@@ -9,6 +9,7 @@ import AdminTeacherTab from './AdminTeacherTab.jsx'
 import AdminUserModeToggle from './AdminUserModeToggle.jsx'
 import AdminDebugUiToggle from './AdminDebugUiToggle.jsx'
 import AdminAudioWaveformToggle from './AdminAudioWaveformToggle.jsx'
+import AdminWordChoiceVoiceToggle from './AdminWordChoiceVoiceToggle.jsx'
 import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Админ-раздел новой оболочки: субвкладки «Модули» (список с публикацией),
@@ -36,6 +37,7 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, openModule = n
         <AdminUserModeToggle />
         <AdminDebugUiToggle />
         <AdminAudioWaveformToggle />
+        <AdminWordChoiceVoiceToggle />
       </div>
       <div className="avTabs">
         <button className={sub === 'modules' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('modules')}>

@@ -12,8 +12,8 @@ import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 // галочки на это здесь больше нет, см. PlayerPanels.jsx.
 export default function NodeFillBlanksPicker({
   template = '', blanks = [], translation = '',
-  responseCorrect = '', responseWrong = '',
-  onTemplateChange, onBlanksChange, onTranslationChange,
+  responseCorrect = '', responseWrong = '', voiceWords = false,
+  onVoiceWordsChange, onTemplateChange, onBlanksChange, onTranslationChange,
   onResponseCorrectChange, onResponseWrongChange,
   triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
@@ -156,6 +156,16 @@ export default function NodeFillBlanksPicker({
           />
         </div>
       </div>
+      {/* Озвучка верно выбранного слова из библиотеки слов (FillBlanksPanel.jsx,
+          целым словом — «tries», не «ie»). По умолчанию выключено */}
+      <label className="nodeVoiceWords" onClick={e => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={voiceWords}
+          onChange={e => onVoiceWordsChange?.(e.target.checked)}
+        />
+        Озвучивать выбранные слова
+      </label>
       <NodeCorrectWrongTriggers
         correctThen={correctThen} wrongThen={wrongThen}
         correctKey="fill_correct" wrongKey="fill_wrong"

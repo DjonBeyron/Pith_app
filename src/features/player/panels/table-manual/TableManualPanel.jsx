@@ -185,7 +185,6 @@ export default function TableManualPanel({
     // мигание гасится, только если убрали именно помеченный чип
     // (см. useSignalState.js/nextBlinkIndex)
     signalState.onRemoved(i)
-    playWord(wordKey(assembled[i]?.value))
     setAssembled(prev => prev.filter((_, j) => j !== i))
     // фаза пересчитается автоматически (производная от allCellsDone + hasExtras)
   }

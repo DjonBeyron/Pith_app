@@ -117,8 +117,8 @@ export default function FillBlanksPanel({
   function pickOption(value) {
     const index = blankMenu.index
     setBlankMenu(null)
-    // Озвучка — только верного выбора и ЦЕЛЫМ словом («tries», не «ie»)
-    if (blankMatches(value, blanks[index])) playWord(wordKey(blankWord(template, blanks, index)))
+    // Озвучка — по галочке ноды, только верного выбора и ЦЕЛЫМ словом («tries», не «ie»)
+    if (fbData.voiceWords === true && blankMatches(value, blanks[index])) playWord(wordKey(blankWord(template, blanks, index)))
     setPicked(prev => ({ ...prev, [index]: value }))
     setWrongIndices(prev => prev.filter(i => i !== index))
   }

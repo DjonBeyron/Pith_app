@@ -23,6 +23,7 @@ import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
 import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
 import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
+import { wordChoiceVoice } from '../shared/lib/wordChoiceVoice.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 
 // Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
@@ -77,6 +78,7 @@ export default function ShellV2() {
     prefetchPlayerDebugUi()
     // Заморозка спектра голосовых (тоже глобальная настройка) — по той же причине
     prefetchAudioStaticWaveform()
+    wordChoiceVoice.prefetch() // озвучка в «Выбери слово» — тоже глобальный флаг
     // Датчик движения: согласие уже давали — тихо продлеваем на первом касании
     armMotionOnGesture()
   }, [])

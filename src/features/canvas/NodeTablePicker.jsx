@@ -205,6 +205,19 @@ export default function NodeTablePicker({
         />
       )}
 
+      {/* Слова, которые диктант сам кладёт в бокс, — озвучивать из библиотеки
+          слов поверх голоса диктора (useDictatorWordVoice.js). По умолчанию нет */}
+      {mode === 'dictator' && (
+        <label className="nodeVoiceWords" onClick={e => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={tData.voiceWords === true}
+            onChange={e => onDataChange({ voiceWords: e.target.checked })}
+          />
+          Озвучивать выбранные слова
+        </label>
+      )}
+
       {mode === 'dictator' && (
         <NodeTableTts
           fileId={tData.file_id}
