@@ -16,15 +16,8 @@ import { rememberTap } from '../../xpAnchor.js'
 import { makeDictatorSlideDown } from './dictatorSlideDown.js'
 import { useDictatorLegacyAssemble } from './useDictatorLegacyAssemble.js'
 import { resetDictatorRun } from './dictatorRunReset.js'
-
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
+import { useAdmin } from '../../../../app/AdminContext.jsx'
+import { orderAnswers } from '../../useAnswerOrder.js'
 
 export default function TableDictatorPanel({ node, file, onDone, onHeightChange, onSendToChat, onLandedInChat, xpAmount = 0, onXpEarned }) {
   const tData        = node.typeData?.table ?? {}
@@ -66,7 +59,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   // dictatorPostAudio.js, dictatorCheck.js) сопоставляет chips по строкам;
   // id варианта (для особого перехода, nodeVariants.js) резолвится отдельно
   // в check() по distractors.find(d => d.text === ...), не меняя эту форму
-  const [shuffledExtras] = useState(() => shuffle([...extraFromAnswer, ...distractors.map(d => d.text)]))
+  // Порядок — ученику случайный, админу авторский (useAnswerOrder.js)
+  const { isAdmin } = useAdmin()
+  const [shuffledExtras] = useState(() => orderAnswers([...extraFromAnswer, ...distractors.map(d => d.text)], isAdmin))
   // Стабильные объекты стилей — новый объект каждый рендер перезапускает CSS-анимацию
   const chipStyles = useMemo(
     () => shuffledExtras.map((_, i) => ({ animationDelay: `${i * 50}ms` })),

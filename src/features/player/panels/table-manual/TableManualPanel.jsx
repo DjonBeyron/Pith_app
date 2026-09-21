@@ -15,16 +15,9 @@ import { usePanelHeight } from '../usePanelHeight.js'
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { useSignalState } from '../signal-overlay/useSignalState.js'
-
-
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
+import { useAdmin } from '../../../../app/AdminContext.jsx'
+import { orderAnswers } from '../../useAnswerOrder.js'
+import { normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 
 // onAnswerToChat(text, result) — галочка «отправить ответ ученика в чат»:
 // собранная фраза уходит пузырём справа. Верная — сразу; неверная — ОДИН раз,
@@ -57,14 +50,22 @@ export default function TableManualPanel({
   )
   const hasExtras = extraFromAnswer.length > 0 || distractors.length > 0
 
-  // Список слов вне таблицы перемешивается один раз при маунте (lazy useState).
-  // distractorId нужен, чтобы при неверном ответе понять, какое именно
-  // слово-ловушка попало в собранную фразу (особый переход варианта,
-  // nodeVariants.js) — у настоящих «лишних» слов из ответа его нет
-  const [shuffledExtras] = useState(() => shuffle([
+  // Список слов вне таблицы — порядок один раз при маунте (lazy useState):
+  // ученику случайный, админу авторский «из ответа, потом ловушки»
+  // (useAnswerOrder.js). distractorId нужен, чтобы при неверном ответе понять,
+  // какое именно слово-ловушка попало в собранную фразу (особый переход
+  // варианта, nodeVariants.js) — у настоящих «лишних» слов из ответа его нет
+  const { isAdmin } = useAdmin()
+  const [shuffledExtras] = useState(() => orderAnswers([
     ...extraFromAnswer.map(w => ({ text: w, distractorId: null })),
     ...distractors.map(d => ({ text: d.text, distractorId: d.id })),
-  ]))
+  ], isAdmin))
+  // Меню ячейки с вариантами — тот же порядок: ученику случайный, админу
+  // значение ячейки (верное) первым. Считается один раз на панель
+  const [cellOptions] = useState(() => Object.fromEntries(cells
+    .filter(c => c.options?.length)
+    .map(c => [c.id, orderAnswers(c.options, isAdmin,
+      o => normalizeAnswerText(o) === normalizeAnswerText(c.value ?? ''))])))
 
   const [show,      setShow]      = useState(false)
   // Уход «в чат» — панель поднимается и тает, см. table-manual.css
@@ -157,7 +158,7 @@ export default function TableManualPanel({
     // Нажать можно ЛЮБУЮ ячейку со значением, даже не ту, что нужна ответу:
     // иначе ошибиться невозможно и проверка фразы ничего не проверяет
     if (!cellIsPickable(cell)) return
-    const options = cell?.options ?? []
+    const options = cellOptions[cellId] ?? []
     if (options.length) { setCellMenu({ cellId, options, rect }); return }
     pickCell(cellId, cell?.value?.trim() ?? '')
   }

@@ -9,7 +9,7 @@ import { MSG_SLIDE_MS } from '../PlayerFeed.jsx'
 // баннер — это следствие события в чате, а не одновременное с ним явление
 const AFTER_ROW_MS = 200
 // Растворение накладки «Напомнить правило» (та же длительность в CSS)
-const COVER_FADE_MS = 300
+const COVER_FADE_MS = 550
 
 // Пока открыта «ручная» панель сборки (table-manual/«Собери фразу»/«Составь
 // предложение», см. LessonPlayer.jsx), закреп выше по ленте отвлекает —
@@ -34,18 +34,21 @@ export default function PinMessageBanner({ content, highlights = [], onUnpin, ma
   const covered = manualPanelOpen && !coverDismissed
   // Накладка уходит не рывком, а растворяется: после снятия (тап или
   // закрытие панели) остаётся смонтированной на COVER_FADE_MS с классом
-  // --leaving, текст под ней уже виден
+  // --leaving, текст под ней уже виден. leaving поднимается В ТОМ ЖЕ рендере,
+  // где covered стал false (правка состояния при рендере, не в эффекте):
+  // через эффект накладка на один кадр размонтировалась, потом монтировалась
+  // заново уже непрозрачной и только затем таяла — «открылось-закрылось-открылось»
   const [leaving, setLeaving] = useState(false)
-  const wasCoveredRef = useRef(false)
+  const [prevCovered, setPrevCovered] = useState(covered)
+  if (prevCovered !== covered) {
+    setPrevCovered(covered)
+    if (!covered) setLeaving(true)
+  }
   useEffect(() => {
-    if (wasCoveredRef.current && !covered) {
-      setLeaving(true)
-      const t = setTimeout(() => setLeaving(false), COVER_FADE_MS)
-      wasCoveredRef.current = covered
-      return () => clearTimeout(t)
-    }
-    wasCoveredRef.current = covered
-  }, [covered])
+    if (!leaving) return
+    const t = setTimeout(() => setLeaving(false), COVER_FADE_MS)
+    return () => clearTimeout(t)
+  }, [leaving])
   if (!content || !shown) return null
   return (
     <>

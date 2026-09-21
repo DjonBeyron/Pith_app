@@ -2,15 +2,7 @@ import { useState, useMemo } from 'react'
 import { firstMismatchSlot } from '../../../../shared/lib/signalMismatch.js'
 import { signalForSlot } from '../../../../shared/lib/signalSlots.js'
 import { useSignalState } from '../signal-overlay/useSignalState.js'
-
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
+import { useAnswerOrder } from '../../useAnswerOrder.js'
 
 const wordMatches = (word, expected) => (word ?? '').toLowerCase() === expected.toLowerCase()
 
@@ -25,14 +17,16 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
   const distractors = node.typeData?.phrase_assembly?.distractors ?? []
   const signals      = node.typeData?.phrase_assembly?.signals    ?? []
 
-  // Shuffle once on mount (all chips: correct words + distractors) — единая
-  // форма {text, distractorId}: distractorId нужен, чтобы при неверном
-  // ответе понять, какое именно слово-ловушка попало в фразу (особый
-  // переход конкретного варианта, nodeVariants.js), null у настоящих слов
-  const [shuffled] = useState(() => shuffle([
+  // Порядок чипов (слова фразы + ловушки) — один раз при маунте: ученику
+  // случайный, админу авторский «слова по порядку, потом ловушки»
+  // (useAnswerOrder.js). Единая форма {text, distractorId}: distractorId
+  // нужен, чтобы при неверном ответе понять, какое именно слово-ловушка
+  // попало в фразу (особый переход конкретного варианта, nodeVariants.js),
+  // null у настоящих слов
+  const shuffled = useAnswerOrder([
     ...words.map(w => ({ text: w, distractorId: null })),
     ...distractors.map(d => ({ text: d.text, distractorId: d.id })),
-  ]))
+  ])
 
   // placed: [{ shuffleIdx, word, distractorId }, ...]
   const [placed, setPlaced] = useState([])
@@ -92,11 +86,11 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
       }
     }
 
+    // Собранное НЕ чистим — только тряска (phraseAnswerErr, 700мс), как у
+    // таблиц (manualCheck.js): ученик видит, что именно собрал не так, и
+    // правит по месту, а не собирает всё заново
     setResult('wrong')
-    setTimeout(() => {
-      setPlaced([])
-      setResult(null)
-    }, 700)
+    setTimeout(() => setResult(null), 700)
     return 'wrong'
   }
 

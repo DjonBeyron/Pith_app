@@ -9,6 +9,9 @@ import { rememberTap } from '../../xpAnchor.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
+import { useAdmin } from '../../../../app/AdminContext.jsx'
+import { orderAnswers } from '../../useAnswerOrder.js'
+import { normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
 
 // Точки-плейсхолдер в переводе — тусклый неинтерактивный двойник пропуска:
 // та же логика количества (blankKind по индексу ИЗ template, не перевода —
@@ -49,6 +52,11 @@ export default function FillBlanksPanel({
     [translation],
   )
   const blanksCount = blanks.length
+  // Варианты в меню каждого пропуска — порядок один раз на панель: ученику
+  // случайный, админу верный (answer) первым (useAnswerOrder.js)
+  const { isAdmin } = useAdmin()
+  const [blankOptions] = useState(() => blanks.map(b => orderAnswers(b.options ?? [], isAdmin,
+    o => normalizeAnswerText(o) === normalizeAnswerText(b.answer ?? ''))))
 
   const [show,         setShow]         = useState(false)
   const [picked,       setPicked]       = useState({})   // index → выбранный текст
@@ -92,7 +100,7 @@ export default function FillBlanksPanel({
     // (пока не погасло) — та же логика, что disabled на кнопке ниже
     if (result) return
     rememberTap(rect)
-    const options = blanks[index]?.options ?? []
+    const options = blankOptions[index] ?? []
     if (!options.length) return
     setBlankMenu({ index, options, rect })
   }

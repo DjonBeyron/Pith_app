@@ -3,6 +3,7 @@ import { X, Paperclip } from 'lucide-react'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { rememberTap } from '../../xpAnchor.js'
+import { useAnswerOrder } from '../../useAnswerOrder.js'
 
 const PHOTO_COLORS = [
   '#6366f1','#ec4899','#f59e0b','#10b981',
@@ -67,6 +68,10 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
 
   const photos         = node.typeData?.photo_choice?.photos         ?? []
   const correctIndexes = node.typeData?.photo_choice?.correctIndexes ?? []
+  // Порядок плиток в галерее: ученику случайный, админу верные первыми
+  // (useAnswerOrder.js). Наружу (onPick, лог) уходит ИСХОДНЫЙ индекс i —
+  // PhotoChoiceModule берёт photos[selected]
+  const order = useAnswerOrder(photos.map((_, i) => i), i => correctIndexes.includes(i))
 
   useEffect(() => {
     const h = panelRef.current?.offsetHeight ?? 0
@@ -146,10 +151,10 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
             </div>
             <div className="pcGalleryScroll">
               <div className="pcGalleryGrid">
-                {photos.map((ph, i) => (
+                {order.map(i => (
                   <GalleryTile
-                    key={ph.id}
-                    ph={ph}
+                    key={photos[i].id}
+                    ph={photos[i]}
                     index={i}
                     lessonFiles={lessonFiles}
                     onClick={e => handlePick(i, e.currentTarget.getBoundingClientRect())}

@@ -153,7 +153,7 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  animation: pinCoverIn 0.3s ease;
+  animation: pinCoverIn 0.55s ease-in-out;
 }
 
 @keyframes pinCoverIn {
@@ -164,7 +164,7 @@
 /* Уход накладки — растворение той же длины (COVER_FADE_MS в PinMessageBanner.jsx);
    тапы сквозь уходящую накладку идут в текст */
 .pinBannerCover--leaving {
-  animation: pinCoverOut 0.3s ease forwards;
+  animation: pinCoverOut 0.55s ease-in-out forwards;
   pointer-events: none;
 }
 
