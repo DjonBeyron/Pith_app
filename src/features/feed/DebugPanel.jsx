@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { collectEnv, fdbgLog } from '../../shared/lib/feedDebug.js'
 import { getPlayerLines } from '../../shared/lib/debug.js'
+import { scrollTraceReport } from './feedScrollReport.js'
 import { PERF_FLAG_DEFS, perfFlags, togglePerfFlag, perfFlagsSummary } from '../../shared/lib/perfFlags.js'
 
-// Панель дебага ленты: собирает отчёт (окружение + метрики ленты + датчик
-// производительности + лог событий), умеет Поделиться (share sheet на
-// iPhone), Скопировать, Скачать.
+// Панель дебага ленты: собирает отчёт (окружение + метрики ленты + трассировка
+// скролла + датчик производительности + лог событий), умеет Поделиться (share
+// sheet на iPhone), Скопировать, Скачать.
+// Про «дёрганье» листания смотреть секцию «скролл ленты» (feedScrollReport.js):
+// там по кадрам видно отскоки, пропуски кадров, телепорты и смену высоты.
 export default function DebugPanel({ getFeedInfo, onClose }) {
   const [report, setReport] = useState(build)
   const [msg, setMsg] = useState('')
@@ -18,8 +21,17 @@ export default function DebugPanel({ getFeedInfo, onClose }) {
     return lines.slice(-320).join('\n') || '(датчик выключен — нужен админ или флаг «лог и версия в шапке»)'
   }
 
+  // Трассировка листания (feedScrollTrace.js): отскоки, пропуски кадров,
+  // телепорты круга и смена высоты вьюпорта — по ним ищут «дёрганье» ленты
+  function scrollSection() {
+    return `
+
+--- скролл ленты (дёрганье) ---
+${scrollTraceReport()}`
+  }
+
   function build() {
-    return `${collectEnv()}\nperfFlags: ${perfFlagsSummary()}\n\n--- лента ---\n${getFeedInfo()}\n\n--- perf (датчик, 1 строка = 1 секунда) ---\n${perfLog()}\n\n--- лог ---\n${fdbgLog()}`
+    return `${collectEnv()}\nperfFlags: ${perfFlagsSummary()}\n\n--- лента ---\n${getFeedInfo()}${scrollSection()}\n\n--- perf (датчик, 1 строка = 1 секунда) ---\n${perfLog()}\n\n--- лог ---\n${fdbgLog()}`
   }
 
   function share() {

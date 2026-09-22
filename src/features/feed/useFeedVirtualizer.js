@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { fdbg } from '../../shared/lib/feedDebug.js'
+import { createTeleporter } from './feedSnapTeleport.js'
+import { traceAttach, traceDetach, traceEvent, traceMeta, traceTeleportFlag, traceTick } from './feedScrollTrace.js'
 
 // Виртуализация бесконечного круга ленты (как в TikTok): в DOM живут только
 // видимый слайд и запас overscan сверху/снизу, круг «телепортируется»
@@ -8,6 +10,7 @@ import { fdbg } from '../../shared/lib/feedDebug.js'
 export function useFeedVirtualizer(len, openModule, pinnedId) {
   const scrollRef = useRef(null)
   const [activeIdx, setActiveIdx] = useState(-1)
+  const activeIdxRef = useRef(-1)
   // Направление последнего скролла (1 — вниз/вперёд, -1 — вверх). Спойлер
   // шариков (PhraseBubbleSpoiler) прогревает только соседа В ЭТУ сторону,
   // а не обоих сразу — вдвое меньше «тёплых» холстов разом при листании
@@ -40,11 +43,31 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
   // уже новый — без перезапуска эффекта viewH оставался 0, виртуализатор
   // рендерил ноль слайдов и лента была чёрной
   const [viewH, setViewH] = useState(0)
+  const viewHRef = useRef(0)
+  // Телепорт круга и возврат scroll-snap живут в feedSnapTeleport.js — там же
+  // объяснено, почему snap нельзя включать вслепую через пару кадров
+  const tpRef = useRef(null)
+  if (!tpRef.current) tpRef.current = createTeleporter()
+  const tp = tpRef.current
+  // Трассировщик скролла (feedScrollTrace.js) живёт, пока смонтирован контейнер
+  // ленты: сам слушает палец и снимает движение по кадрам
+  useEffect(() => {
+    traceAttach(scrollRef.current)
+    traceTeleportFlag(() => tpRef.current.isTeleporting())
+    return () => traceDetach()
+  }, [len, openModule])
+  useEffect(() => { traceMeta({ viewH, len, cycles }) }, [viewH, len, cycles])
+  useEffect(() => { traceEvent('len', `модулей=${len} циклов=${cycles}`) }, [len, cycles])
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
     const measure = () => {
       fdbg('viewH:', el.clientHeight)
+      // Смена высоты вьюпорта прямо во время жеста (сворачивание адресной
+      // строки браузера на телефоне!) переразмеривает все слайды — трассировщик
+      // помечает такой жест, чтобы рывок не искали в другом месте
+      traceEvent('viewH', `${viewHRef.current}→${el.clientHeight} scrollH=${el.scrollHeight}`)
+      viewHRef.current = el.clientHeight
       setViewH(el.clientHeight)
     }
     measure()
@@ -65,41 +88,8 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
   })
   useEffect(() => { virtualizer.measure() }, [viewH]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Телепорт scrollTop с ВЫКЛЮЧЕННЫМ snap: iOS Safari на программный
-  // scrollTop в snap-контейнере запускает «доснэпливание» и скролл улетает
-  // к краям — получалась вечная драка (мигание слайдов). События скролла от
-  // самого телепорта глушим флагом
-  const teleportingRef = useRef(false)
-  // Номер последнего телепорта: восстанавливать snap имеет право только он.
-  // Иначе два телепорта подряд (реальный случай при старте: len меняется с 4
-  // на 3, пока догружаются начатые модули, и init срабатывает дважды с
-  // разницей ~30мс) дрались друг с другом — раньше каждый запоминал ЖИВОЕ
-  // значение scrollSnapType, и второй запоминал уже выставленное первым
-  // 'none', а потом честно его «восстанавливал». Snap оставался выключен
-  // навсегда — лента листалась свободным скроллом без фиксации на видео.
-  const snapTokenRef = useRef(0)
   function teleport(el, target, why) {
-    fdbg('teleport', why + ':', el.scrollTop.toFixed(0), '→', target.toFixed(0))
-    teleportingRef.current = true
-    el.style.scrollSnapType = 'none'
-    el.scrollTop = target
-    if (viewH > 0) setActiveIdx(Math.round(target / viewH))
-    // Восстановление snap — двойной rAF (обычный путь) ИЛИ таймер-страховка:
-    // если между этим кадром и rAF приложение надолго ушло в фон (реальный
-    // случай — юзер свайпнул у края круга и в этот же миг заблокировал
-    // телефон/ушёл в другую вкладку на несколько минут), у iOS очередь rAF
-    // не переживает долгую заморозку — snap так и оставался бы выключенным
-    // навсегда. setTimeout переживает заморозку надёжнее (просто откладывается).
-    // Возвращаем всегда в '' — значение snap живёт только в CSS (feed-v2.css),
-    // инлайном его выставляет исключительно этот код
-    const token = ++snapTokenRef.current
-    const restore = () => {
-      if (token !== snapTokenRef.current) return // нас обогнал более поздний телепорт
-      el.style.scrollSnapType = ''
-      teleportingRef.current = false
-    }
-    requestAnimationFrame(() => requestAnimationFrame(restore))
-    setTimeout(restore, 500)
+    tp.teleport(el, target, why, viewH, idx => setActiveIdx(idx))
   }
 
   // Перенос в середину круга с сохранением позиции внутри цикла: контент в
@@ -154,7 +144,7 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
       if (!el || el.style.scrollSnapType !== 'none') return
       fdbg('окно вернулось из фона: snap залип на none — восстанавливаю')
       el.style.scrollSnapType = ''
-      teleportingRef.current = false
+      tpRef.current.clearTeleporting()
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
@@ -166,6 +156,7 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
     const el = scrollRef.current
     if (!el || !len) return
     el.dataset.scrolling = '' // скролл затих — сторож стоп-кадра снова работает
+    traceEvent('остановка', `top=${el.scrollTop.toFixed(0)} остаток=${viewH ? (el.scrollTop % viewH).toFixed(1) : '—'}px`)
     const cycleH = el.scrollHeight / cycles
     const mid = Math.floor(cycles / 2) * cycleH
     const threshold = cycleH * Math.max(1, Math.floor(cycles / 2) - 2)
@@ -175,13 +166,21 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
   function onScroll() {
     const el = scrollRef.current
     if (!el || !len) return
+    if (!tpRef.current.isTeleporting()) traceTick()
     // Активный слайд — сразу из позиции скролла. Сосед (active±1) при этом
     // считается near и заранее прогревает своё видео из пула, поэтому при
     // приезде оно стартует мгновенно (см. SlideVideo/videoPool).
-    if (viewH > 0) setActiveIdx(Math.round(el.scrollTop / viewH))
+    if (viewH > 0) {
+      const idx = Math.round(el.scrollTop / viewH)
+      if (idx !== activeIdxRef.current) {
+        traceEvent('активный слайд', `${activeIdxRef.current} → ${idx}`)
+        activeIdxRef.current = idx
+      }
+      setActiveIdx(idx)
+    }
     // Направление не обновляем по скачку от нашего же телепорта — иначе он
     // выглядел бы как случайный свайп и сбивал сторону прогрева соседа
-    if (!teleportingRef.current && el.scrollTop !== lastScrollTopRef.current) {
+    if (!tp.isTeleporting() && el.scrollTop !== lastScrollTopRef.current) {
       const dir = el.scrollTop > lastScrollTopRef.current ? 1 : -1
       if (dir !== dirValRef.current) {
         dirValRef.current = dir
@@ -190,7 +189,7 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
     }
     lastScrollTopRef.current = el.scrollTop
     // События, порождённые нашим же телепортом, не обрабатываем
-    if (teleportingRef.current) return
+    if (tp.isTeleporting()) return
     // Самопочинка: телепорта нет, а snap выключен — значит его восстановление
     // где-то потерялось (заморозка rAF в фоне, гонка двух телепортов). Чиним
     // при первом же движении пальца, не дожидаясь ухода в фон и обратно
