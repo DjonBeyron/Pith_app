@@ -102,3 +102,92 @@ describe('телепорт круга ленты', () => {
     expect(el.scrollTop).toBe(81400)
   })
 })
+
+describe('заморозка ленты, пока она не на экране', () => {
+  beforeEach(() => { frameQueue.length = 0; vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }) })
+  afterEach(() => vi.useRealTimers())
+
+  it('сначала выключает snap, потом ставит позицию — иначе iOS улетает', () => {
+    const el = makeEl([81200])
+    const order = []
+    let snap = ''
+    Object.defineProperty(el.style, 'scrollSnapType', {
+      get: () => snap,
+      set: v => { snap = v; order.push(`snap=${v}`) },
+    })
+    let top = 81300
+    Object.defineProperty(el, 'scrollTop', {
+      get: () => top,
+      set: v => { top = v; order.push(`top=${v}`) },
+    })
+    createTeleporter().freeze(el, 81200)
+    expect(order).toEqual(['snap=none', 'top=81200'])
+  })
+
+  it('snap остаётся выключенным всё время, пока лента скрыта', () => {
+    const el = makeEl([80388, 81200, 82012])
+    const tp = createTeleporter()
+    tp.freeze(el, 81200)
+    runFrames(20)
+    vi.advanceTimersByTime(2000)
+    expect(el.style.scrollSnapType).toBe('none')
+    expect(tp.isTeleporting()).toBe(true) // onScroll ленты молчит
+  })
+
+  it('держит скрытую ленту на месте, куда бы её ни унесло', () => {
+    const el = makeEl([81200])
+    const tp = createTeleporter()
+    tp.freeze(el, 81200)
+    el.scrollTop = 135604 // лог с iPhone: улетела, пока была скрыта
+    expect(tp.holdFrozen(el)).toBe(true)
+    expect(el.scrollTop).toBe(81200)
+    expect(tp.holdFrozen(el)).toBe(false) // на месте — ничего не трогаем
+  })
+
+  it('страховки хука не снимают заморозку', () => {
+    const el = makeEl([81200])
+    const tp = createTeleporter()
+    tp.freeze(el, 81200)
+    tp.clearTeleporting() // возврат из фона / самопочинка snap
+    expect(tp.isTeleporting()).toBe(true)
+    expect(tp.isFrozen()).toBe(true)
+  })
+
+  it('отменяет недоигранный телепорт — его snap не включится на скрытой ленте', () => {
+    const el = makeEl([80388, 81200, 82012])
+    const tp = createTeleporter()
+    tp.teleport(el, 81200, 'init', 812, () => {})
+    tp.freeze(el, 81200) // ушли на другую вкладку, пока телепорт ждал кадры
+    runFrames(5)
+    vi.advanceTimersByTime(1000)
+    expect(el.style.scrollSnapType).toBe('none')
+  })
+
+  it('телепорт в фоне только переносит замороженную позицию', () => {
+    const el = makeEl([81200])
+    const tp = createTeleporter()
+    tp.freeze(el, 81200)
+    tp.teleport(el, 64960, 'init', 812, () => {}) // круг пересобрался, пока скрыта
+    runFrames(5)
+    expect(el.scrollTop).toBe(64960)
+    expect(el.style.scrollSnapType).toBe('none')
+    el.scrollTop = 70000
+    tp.holdFrozen(el)
+    expect(el.scrollTop).toBe(64960) // держим уже новую позицию
+  })
+
+  it('на возврате — полноценный телепорт: snap включается по готовым слайдам', () => {
+    const el = makeEl([80388, 81200, 82012])
+    const tp = createTeleporter()
+    tp.freeze(el, 81200)
+    el.scrollTop = 81200
+    const scrollsBefore = el.scrolls
+    tp.unfreeze(el, 'возврат на вкладку', 812, () => {})
+    expect(el.scrolls).toBe(scrollsBefore + 1) // виртуализатор разбужен
+    expect(tp.isFrozen()).toBe(false)
+    runFrames(3)
+    expect(el.style.scrollSnapType).toBe('')
+    expect(el.scrollTop).toBe(81200)
+    expect(tp.isTeleporting()).toBe(false)
+  })
+})

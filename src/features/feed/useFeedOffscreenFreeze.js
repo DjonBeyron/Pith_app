@@ -12,33 +12,31 @@ import { keepSlideOnResize } from './feedSnapTeleport.js'
 // не применяется — по спеке snap-области элементов с visibility:hidden
 // игнорируются, так что momentum не тормозится ни на одном слайде.
 //
-// В логе с iPhone это выглядело так: один жест проехал 90 слайдов
-// (86884 → 159964) со скоростью ~31000px/с, активный слайд менялся каждые
-// 15-30мс (141→142→…→197), пул видео при этом бешено перепарковывал элементы
-// (десятки recycle в секунду), и в конце сработал аварийный
-// `ТЕЛЕПОРТ edge: 159964 → 82824`. Пользователь видит это как «лента летит» и
-// «сходит с ума» — ровно после возврата с другой вкладки.
-//
-// Лечение: уходя с экрана — гасим инерцию (программная установка scrollTop
-// прерывает momentum в Safari) и встаём на целый слайд; сам контейнер на это
-// время получает `overflow:hidden` (класс в FeedTab), чтобы новый скролл
-// вслепую вообще не начался. Возвращаясь — выравниваем позицию телепортом,
-// если всё же застряли между слайдами.
-export function useFeedOffscreenFreeze({ scrollRef, active, len, viewH, teleport }) {
+// Первая версия (3.2.1706) ставила scrollTop при ВКЛЮЧЁННОМ snap — и на iOS
+// это само запускало «доснэпливание» с улётом (лента ехала ровно по слайду за
+// кадр до края круга). Теперь всё делает телепортер (feedSnapTeleport.js):
+// freeze — snap выключить, потом позиция, и держать выключенным до возврата;
+// unfreeze — полноценный телепорт (разбудить виртуализатор, включить snap
+// только по отрисованным слайдам, 300мс сторожить позицию). А пока лента
+// скрыта, onScroll хука возвращает любое её смещение (holdFrozen) и не меняет
+// активный слайд — иначе пул видео перепарковывал элементы десятками в секунду.
+// overflow:hidden на контейнере (класс в FeedTab) не даёт скроллу начаться.
+export function useFeedOffscreenFreeze({ scrollRef, active, len, viewH, freeze, unfreeze }) {
   const prevActiveRef = useRef(true)
   useEffect(() => {
     const el = scrollRef.current
-    const was = prevActiveRef.current
+    // Пока лента не измерена — не запоминаем состояние: иначе при старте на
+    // скрытой вкладке заморозка так и не случилась бы
+    if (!el || !len || !viewH || prevActiveRef.current === active) return
     prevActiveRef.current = active
-    if (!el || !len || !viewH || was === active) return
-    const target = keepSlideOnResize(el.scrollTop, viewH, viewH) // ближайший целый слайд
     if (!active) {
-      fdbg('лента ушла с экрана: гашу инерцию', el.scrollTop.toFixed(0), '→', target.toFixed(0))
-      traceEvent('ушла с экрана', `${el.scrollTop.toFixed(0)} → ${target.toFixed(0)} (инерция погашена)`)
-      el.scrollTop = target
+      const target = keepSlideOnResize(el.scrollTop, viewH, viewH) // ближайший целый слайд
+      fdbg('лента ушла с экрана: замораживаю', el.scrollTop.toFixed(0), '→', target.toFixed(0))
+      traceEvent('ушла с экрана', `${el.scrollTop.toFixed(0)} → ${target.toFixed(0)} (snap выключен, позиция заморожена)`)
+      freeze(el, target)
       return
     }
     traceEvent('вернулась на экран', `top=${el.scrollTop.toFixed(0)} остаток=${(el.scrollTop % viewH).toFixed(1)}px`)
-    if (Math.abs(el.scrollTop - target) > 1) teleport(el, target, 'возврат на вкладку')
+    unfreeze(el, 'возврат на вкладку')
   }, [active, len, viewH]) // eslint-disable-line react-hooks/exhaustive-deps
 }

@@ -3,7 +3,8 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { createTeleporter, keepSlideOnResize, pickSlideAfterRebuild } from './feedSnapTeleport.js'
 import { useFeedOffscreenFreeze } from './useFeedOffscreenFreeze.js'
-import { traceAttach, traceDetach, traceEvent, traceMeta, traceTeleportFlag, traceTick } from './feedScrollTrace.js'
+import { useSnapForegroundRepair } from './useSnapForegroundRepair.js'
+import { traceActive, traceAttach, traceDetach, traceEvent, traceMeta, traceTeleportFlag, traceTick } from './feedScrollTrace.js'
 
 // Виртуализация бесконечного круга ленты (как в TikTok): в DOM живут только
 // видимый слайд и запас overscan сверху/снизу, круг «телепортируется»
@@ -156,30 +157,18 @@ export function useFeedVirtualizer(len, openModule, pinnedId, feedModules = [], 
     if (Math.abs(target - el.scrollTop) > 1) teleport(el, target, 'viewH')
   }, [viewH, len]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Лента не на экране — гасим инерцию и выравниваем при возврате
-  useFeedOffscreenFreeze({ scrollRef, active, len, viewH, teleport })
+  // Лента не на экране — заморожена (snap выключен, позиция держится),
+  // при возврате — полноценный телепорт (см. useFeedOffscreenFreeze.js)
+  useFeedOffscreenFreeze({
+    scrollRef, active, len, viewH,
+    freeze: (el, target) => tp.freeze(el, target),
+    unfreeze: (el, why) => tp.unfreeze(el, why, viewH, idx => setActiveIdx(idx)),
+  })
 
   useEffect(() => () => clearTimeout(settleTimer.current), [])
 
-  // Вторая страховка (см. teleport выше): document.hidden — именно тот
-  // сигнал, из-за которого у iOS замирает очередь rAF (свайп у края круга
-  // случился прямо перед тем, как экран заблокировали/ушли из вкладки
-  // браузера на несколько минут). Возврат из фона — момент, когда
-  // пользователь и замечает залипший scroll-snap-type:none (лента листается
-  // «свободным» скроллом без фиксации на видео). Даже если обе восстановки
-  // в teleport() почему-то не сработали — чиним здесь
-  useEffect(() => {
-    function onVisible() {
-      if (document.hidden) return
-      const el = scrollRef.current
-      if (!el || el.style.scrollSnapType !== 'none') return
-      fdbg('окно вернулось из фона: snap залип на none — восстанавливаю')
-      el.style.scrollSnapType = ''
-      tpRef.current.clearTeleporting()
-    }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [])
+  // Залипший snap после возврата приложения из фона — см. useSnapForegroundRepair.js
+  useSnapForegroundRepair(scrollRef, tpRef)
 
   // Доводка: скролл остановился — только перецентровка круга, если додрейфовали
   // к краю запаса (teleport). Активный слайд считается в onScroll на лету.
@@ -197,6 +186,10 @@ export function useFeedVirtualizer(len, openModule, pinnedId, feedModules = [], 
   function onScroll() {
     const el = scrollRef.current
     if (!el || !len) return
+    // Лента не на экране: возвращаем любое её смещение и ничего не
+    // пересчитываем — ни активный слайд (пул видео перепарковывал бы элементы
+    // десятками в секунду), ни аварийный перенос круга
+    if (tp.isFrozen()) { tp.holdFrozen(el); return }
     if (!tpRef.current.isTeleporting()) traceTick()
     // Активный слайд — сразу из позиции скролла. Сосед (active±1) при этом
     // считается near и заранее прогревает своё видео из пула, поэтому при
@@ -204,7 +197,7 @@ export function useFeedVirtualizer(len, openModule, pinnedId, feedModules = [], 
     if (viewH > 0) {
       const idx = Math.round(el.scrollTop / viewH)
       if (idx !== activeIdxRef.current) {
-        traceEvent('активный слайд', `${activeIdxRef.current} → ${idx}`)
+        traceActive(activeIdxRef.current, idx)
         activeIdxRef.current = idx
         activeModuleRef.current = idsRef.current[((idx % len) + len) % len] ?? activeModuleRef.current
       }

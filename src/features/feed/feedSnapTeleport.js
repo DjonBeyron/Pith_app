@@ -53,9 +53,15 @@ export function createTeleporter() {
   // разницей ~30мс) дрались друг с другом и snap оставался выключен навсегда —
   // лента листалась свободным скроллом без фиксации на видео
   let token = 0
+  // Заморозка, пока лента не на экране (см. useFeedOffscreenFreeze.js):
+  // { target } — позиция, которую держим; null — лента на экране
+  let frozen = null
 
   function isTeleporting() { return teleporting }
-  function clearTeleporting() { teleporting = false }
+  function isFrozen() { return !!frozen }
+  // Страховки хука (возврат из фона, самопочинка snap) не имеют права снимать
+  // заморозку — иначе snap включится на скрытой ленте, и всё начнётся заново
+  function clearTeleporting() { if (!frozen) teleporting = false }
 
   // Есть ли в DOM слайд, чей верх стоит ровно на нужной позиции = появилась ли
   // snap-точка, к которой браузеру можно прилипнуть. Слайды сдвинуты
@@ -91,8 +97,54 @@ export function createTeleporter() {
     requestAnimationFrame(tick)
   }
 
+  // Лента ушла с экрана. Порядок важен: СНАЧАЛА выключить snap, потом ставить
+  // scrollTop. Наоборот (как было в 3.2.1706) iOS Safari на программный
+  // scrollTop в mandatory-контейнере запускает «доснэпливание», и лента
+  // улетает — лог с iPhone: ровно по 812px за кадр, слайд 142 → 197, без
+  // пальца, пока лента скрыта и после возврата, до аварийного телепорта.
+  // Snap так и остаётся выключенным всё время, пока лента не на экране: к
+  // visibility:hidden он по спеке всё равно не применяется, а включать его
+  // обратно здесь — ровно та ловушка. Отменяем и недоигранный телепорт
+  function freeze(el, target) {
+    token++
+    frozen = { target }
+    teleporting = true
+    el.style.scrollSnapType = 'none'
+    el.scrollTop = target
+  }
+
+  // Скрытая лента всё-таки сдвинулась (прилетело событие scroll) — возвращаем.
+  // Snap выключен, поэтому программный scrollTop тут безопасен
+  function holdFrozen(el) {
+    if (!frozen || Math.abs(el.scrollTop - frozen.target) <= 1) return false
+    traceEvent('ДЕРЖУ СКРЫТУЮ', `${el.scrollTop.toFixed(0)} → ${frozen.target.toFixed(0)}`)
+    el.scrollTop = frozen.target
+    return true
+  }
+
+  // Лента вернулась на экран — полноценный телепорт на замороженную позицию:
+  // он будит виртуализатор, включает snap только по отрисованным слайдам и
+  // ещё 300мс сторожит позицию. Всегда, даже если позиция вроде бы на месте:
+  // на iOS хвост недоигранной snap-анимации без этого продолжался
+  function unfreeze(el, why, viewH, onIndex) {
+    const target = frozen ? frozen.target : el.scrollTop
+    frozen = null
+    teleport(el, target, why, viewH, onIndex)
+  }
+
   // onIndex — хук ленты обновляет им активный слайд под новую позицию
   function teleport(el, target, why, viewH, onIndex) {
+    // Телепорт, пока лента заморожена (пересборка круга или аварийный перенос
+    // в фоне): только переносим замороженную позицию, snap не трогаем —
+    // он включится при возврате (unfreeze)
+    if (frozen) {
+      traceEvent('ТЕЛЕПОРТ (скрыта)', `${why}: ${el.scrollTop.toFixed(0)} → ${target.toFixed(0)}`)
+      frozen.target = target
+      el.scrollTop = target
+      el.dispatchEvent(new Event('scroll'))
+      if (viewH > 0) onIndex(Math.round(target / viewH))
+      return
+    }
     fdbg('teleport', why + ':', el.scrollTop.toFixed(0), '→', target.toFixed(0))
     traceEvent('ТЕЛЕПОРТ', `${why}: ${el.scrollTop.toFixed(0)} → ${target.toFixed(0)} (${((target - el.scrollTop) / (viewH || 1)).toFixed(2)} слайда)`)
     teleporting = true
@@ -135,5 +187,5 @@ export function createTeleporter() {
     setTimeout(() => restore(true), HARD_RESTORE_MS)
   }
 
-  return { teleport, isTeleporting, clearTeleporting }
+  return { teleport, isTeleporting, clearTeleporting, freeze, unfreeze, holdFrozen, isFrozen }
 }

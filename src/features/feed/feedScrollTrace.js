@@ -54,6 +54,27 @@ export function traceEvent(kind, text = '') {
   if (kind === 'viewH') cur.resizes++
 }
 
+// Смена активного слайда. Серия смен подряд (меньше 150мс между ними)
+// схлопывается в одну строку: при «полёте» ленты их были десятки, и они
+// вытесняли из отчёта всё важное (в логе с iPhone так пропало «ушла с
+// экрана»). 4+ смен в серии — лента едет сама, без пальца так не листают
+export function traceActive(from, to) {
+  const t = now()
+  const last = events[events.length - 1]
+  if (last && last.kind === 'активный слайд' && t - last.tEnd < 150) {
+    last.n++
+    last.tEnd = t
+    last.top = el ? el.scrollTop : -1
+    last.text = `${last.from} → ${to} (серия: ${last.n} смен за ${((t - last.t) / 1000).toFixed(2)}с${last.n >= 4 ? ' ⚠ПОЛЁТ' : ''})`
+    return
+  }
+  traceEvent('активный слайд', `${from} → ${to}`)
+  const e = events[events.length - 1]
+  e.from = from
+  e.n = 1
+  e.tEnd = t
+}
+
 function begin() {
   const top = el ? el.scrollTop : 0
   cur = {
