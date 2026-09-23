@@ -230,7 +230,9 @@
 .feedHeaderSoundBtn {
   position: absolute;
   left: 14px;
-  top: calc(40px + env(safe-area-inset-top, 0px));
+  /* Ниже переключателя «видео/список» в «Моих уроках» (.mlModeToggle,
+     top 40px, высота ~23px) — чтобы не наезжали */
+  top: calc(70px + env(safe-area-inset-top, 0px));
   z-index: 6;
   padding: 4px;
   border: none;

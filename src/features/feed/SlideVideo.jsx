@@ -3,6 +3,7 @@ import { Play, VolumeX, Volume2 } from 'lucide-react'
 import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface, prepareReturn } from './videoPool.js'
 import { useVideoStall } from './useVideoStall.js'
 import { perfFlags } from '../../shared/lib/perfFlags.js'
+import { useFeedVideoCanvas } from './useFeedVideoCanvas.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
 const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга при частых тапах по чипу звука
@@ -19,6 +20,9 @@ export default function SlideVideo({
 }) {
   const [paused, setPaused] = useState(false)
   const rootRef = useRef(null)
+  // DBG «видео через canvas» (обход дымки Android): кадры показывает canvas
+  const canvasRef = useRef(null)
+  const canvasMode = !!perfFlags.videoCanvas
   // Защита от дребезга: на реальных телефонах быстрые повторные тапы по чипу
   // звука (вкл/выкл подряд) успевают дёрнуть play()/pause() чаще, чем
   // устройство успевает вернуть кадр на место — он «плывёт». Один тап
@@ -28,6 +32,7 @@ export default function SlideVideo({
   const hasVideo = !!videoUrl && !perfFlags.noVideo
   // В «окне» = активный или сосед. Только для них держим элемент пула.
   const inWindow = active || near
+  useFeedVideoCanvas(rootRef, canvasRef, canvasMode && hasVideo)
 
   // Аренда элемента пула и загрузка своего src. Пока слайд в окне — элемент
   // живёт внутри него. Смена active↔near сюда не входит (inWindow один и тот
@@ -277,6 +282,7 @@ export default function SlideVideo({
       {posterUrl
         ? <div className="feedPosterBg" style={{ backgroundImage: `url("${posterUrl}")` }} />
         : <div className="feedSkeleton" />}
+      {canvasMode && <canvas ref={canvasRef} className="feedMedia poolVideo feedVideoCanvas" aria-hidden="true" />}
       {paused && active && (
         <div className="slidePauseIcon">
           <Play fill="currentColor" />

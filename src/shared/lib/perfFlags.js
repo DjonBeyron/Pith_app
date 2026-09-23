@@ -26,6 +26,9 @@ export const PERF_FLAG_DEFS = [
   // Мгновенная проверка теории «диапазон 16–235 прочитан как 0–255»: если
   // растяжение контраста в 255/219 раз убирает дымку — теория верна
   { key: 'videoContrast', label: '+контраст (тест дымки)' },
+  // Обход дымки: кадры рисуются в canvas (как стоп-кадр — с верными цветами),
+  // сам <video> прячется. Лента — useFeedVideoCanvas.js, уроки — videoMirror.js
+  { key: 'videoCanvas', label: 'видео через canvas' },
 ]
 
 function read() {

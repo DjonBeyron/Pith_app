@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { perfFlags } from '../../shared/lib/perfFlags.js'
 
 // Зеркалим кадры <video> в <canvas> — обход браузерной панели над видео.
 //
@@ -23,7 +24,8 @@ export function useWideScreen() {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
-  return !!wide
+  // DBG-флаг «видео через canvas» — зеркало и на телефоне (обход дымки Android)
+  return !!wide || !!perfFlags.videoCanvas
 }
 
 // Рисует в canvas каждый новый кадр видео. requestVideoFrameCallback даёт

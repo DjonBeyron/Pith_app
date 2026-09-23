@@ -38,3 +38,10 @@ html.perf-video-gpu video {
 html.perf-video-contrast video {
   filter: contrast(1.164);
 }
+
+/* «Видео через canvas» в ленте: холст кадров слайда (useFeedVideoCanvas.js).
+   Прозрачность и её переход он копирует с <video> — до первого кадра скрыт,
+   виден постер */
+.feedVideoCanvas {
+  opacity: 0;
+}
