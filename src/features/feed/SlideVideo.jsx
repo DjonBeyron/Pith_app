@@ -176,10 +176,10 @@ export default function SlideVideo({
         // поверхности: пинать нечего, ждём (на холодном старте сторож
         // бессмысленно дошёл до пересборки на rs=0)
         if (v.readyState < 3) { wdStall = 0; return }
-        // Во время свайпа rvfc законно молчит (iOS душит колбэки при скролле),
-        // а пинки-сики в этот момент ломают доводку снапа — молчим (флаг
-        // scrolling ставит onScroll в FeedTab)
-        const sc = rootRef.current.closest('.feedV2Scroll')
+        // Во время свайпа rvfc законно молчит (iOS душит колбэки при жесте) —
+        // молчим и мы. Флаг scrolling ставит FeedSwiper (жест/анимация Swiper)
+        // или onScroll «Моих уроков» (там пока нативный скролл)
+        const sc = rootRef.current.closest('.feedSwiper, .feedV2Scroll')
         if (sc && sc.dataset.scrolling === '1') { wdStall = 0; return }
         if (performance.now() - lastFrame < 450) { wdStall = 0; return }
         // Пинаем только после двух «пустых» тиков подряд (~1с без кадров) —

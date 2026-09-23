@@ -4,7 +4,7 @@ import { markSlowmoHintSeen } from '../../shared/api/profileApi.js'
 
 const SEEN_KEY = 'pithy_slowmo_hint_seen_v1'
 // «Свайп доехал до конца» у виртуализатора не отдельное событие, а вывод из
-// activeIdx (см. useFeedVirtualizer.onSettle ~140мс тишины) — не лезем в его
+// activeIdx (см. FeedSwiper.jsx — меняется в начале анимации слайда) — не лезем в его
 // внутренности, просто ждём, что activeIdx перестал меняться, плюс
 // запрошенные 0.3с сверху: 140 + 300 ≈ 450мс.
 const ARM_DELAY_MS = 450

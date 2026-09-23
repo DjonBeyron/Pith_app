@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { displayDifficulty } from '../../shared/api/difficultyApi.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import FeedSlide from './FeedSlide.jsx'
+import FeedSwiper from './FeedSwiper.jsx'
 import MyLessons from './MyLessons.jsx'
 import DebugPanel from './DebugPanel.jsx'
 import FeedTabsHeader from './FeedTabsHeader.jsx'
@@ -15,15 +16,13 @@ import { useFeedModules } from './useFeedModules.js'
 import { useBookmarkedLessons } from './useBookmarkedLessons.js'
 import { useFeedFilter } from './useFeedFilter.js'
 import { useFeedSplash } from './useFeedSplash.js'
-import { useFeedVirtualizer } from './useFeedVirtualizer.js'
 import { useSlowMotionHint } from './useSlowMotionHint.js'
 import { buildFeedInfo } from './feedDebugInfo.js'
+import { moduleOf } from './feedCircle.js'
 
-// Лента видео (новая оболочка, шаг 3 миграции): вертикальный scroll-snap
-// по модулям из curricula, бесконечная по кругу — список повторяется
-// циклами, а при подходе к краю scrollTop незаметно переносится на один
-// цикл внутрь (контент идентичен — скачка не видно). Вместо видео пока
-// градиент-заглушка — поле video_url появится на серверном этапе.
+// Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
+// бесконечная по кругу — список повторяется циклами, у края запаса лента
+// незаметно переносится в середину (контент идентичен — скачка не видно).
 export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth }) {
   const [view, setView] = useState('feed') // feed | mine
   // Открытый модуль (схема Старт → уроки → Финал) поверх ленты
@@ -67,12 +66,14 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   const len = feedModules.length
 
   // Лента реально на экране: вкладка оболочки открыта И выбраны «Рекомендации».
-  // Скрытая вкладка остаётся в layout и продолжает прокручиваться вслепую —
-  // см. useFeedOffscreenFreeze.js
+  // Скрытой ленте FeedSwiper выключает жесты, колесо и клавиатуру
   const feedActive = visible && view === 'feed'
+  // Индекс активного слайда круга. Живёт здесь, а не в FeedSwiper: экран
+  // модуля («Изучить фразу») размонтирует ленту, и по возвращении она должна
+  // встать туда же, где была, а не на начало круга
+  const [activeIdx, setActiveIdx] = useState(-1)
 
   useFeedSplash(modules, len, feedModules)
-  const { scrollRef, virtualizer, viewH, cycles, activeIdx, onScroll } = useFeedVirtualizer(len, openModule, pinnedId, feedModules, feedActive)
   // Обучающая подсказка «зажми лайк — замедли»: взводится, когда пользователь
   // включил звук и затем свайпнул на следующее видео; активна только в
   // «Рекомендациях» (тут же живёт activeIdx) — «Мои уроки» её не показывают.
@@ -99,10 +100,37 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   }
 
   function feedInfo() {
-    return buildFeedInfo({
-      view, len, cycles, viewH, activeIdx, startedIds, modules, visible,
-      scrollEl: scrollRef.current, virtualizer, soundOn, soundGestureRef,
-    })
+    return buildFeedInfo({ view, len, activeIdx, startedIds, modules, visible, soundOn, soundGestureRef })
+  }
+
+  function renderSlide(m, i, rel) {
+    return (
+      <FeedSlide
+        module={m}
+        slideKey={i}
+        active={rel === 0}
+        near={Math.abs(rel) <= 1}
+        tabVisible={feedActive}
+        gradIdx={moduleOf(i, len) % 4}
+        reaction={reactions[m.id]}
+        likeCount={social?.likeCount?.[m.id] ?? 0}
+        saveCount={m.saveCount}
+        repostCount={m.repostCount}
+        difficulty={displayDifficulty(m, diffVotes[m.id])}
+        myDifficulty={diffVotes[m.id]}
+        onVoteDifficulty={v => voteDifficulty(m.id, v)}
+        soundOn={soundReady}
+        soundEverOn={soundEverOn}
+        onSoundOn={handleSoundOn}
+        onSoundOff={handleSoundOff}
+        onSoundBlocked={handleSoundBlocked}
+        showSlowHint={showSlowHint && rel === 0}
+        onSlowHintSeen={markSlowHintSeen}
+        onToggleLike={() => toggle(m.id, 'liked')}
+        onToggleSave={() => toggle(m.id, 'saved')}
+        onLearn={() => setOpenModule(m)}
+      />
+    )
   }
 
   // --paused: лента не видна (другая вкладка, окно серии, слой урока сверху) —
@@ -169,48 +197,14 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
             )}
           </div>
         ) : (
-          <div
-            className={feedActive ? 'feedV2Scroll' : 'feedV2Scroll feedV2ScrollFrozen'}
-            ref={scrollRef} onScroll={onScroll}>
-            <div className="feedVirtualTotal" style={{ height: virtualizer.getTotalSize() }}>
-              {virtualizer.getVirtualItems().map(vi => {
-                const m = feedModules[vi.index % len]
-                const rel = vi.index - activeIdx
-                return (
-                  <div
-                    key={vi.key}
-                    className={rel === 0 ? 'feedVirtualItem feedVirtualItemActive' : 'feedVirtualItem'}
-                    style={{ height: vi.size, transform: `translateY(${vi.start}px)` }}>
-                    <FeedSlide
-                      module={m}
-                      slideKey={vi.index}
-                      active={rel === 0}
-                      near={Math.abs(rel) <= 1}
-                      tabVisible={visible && view === 'feed'}
-                      gradIdx={(vi.index % len) % 4}
-                      reaction={reactions[m.id]}
-                      likeCount={social?.likeCount?.[m.id] ?? 0}
-                      saveCount={m.saveCount}
-                      repostCount={m.repostCount}
-                      difficulty={displayDifficulty(m, diffVotes[m.id])}
-                      myDifficulty={diffVotes[m.id]}
-                      onVoteDifficulty={v => voteDifficulty(m.id, v)}
-                      soundOn={soundReady}
-                      soundEverOn={soundEverOn}
-                      onSoundOn={handleSoundOn}
-                      onSoundOff={handleSoundOff}
-                      onSoundBlocked={handleSoundBlocked}
-                      showSlowHint={showSlowHint && rel === 0}
-                      onSlowHintSeen={markSlowHintSeen}
-                      onToggleLike={() => toggle(m.id, 'liked')}
-                      onToggleSave={() => toggle(m.id, 'saved')}
-                      onLearn={() => setOpenModule(m)}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+          <FeedSwiper
+            feedModules={feedModules}
+            pinnedId={pinnedId}
+            active={feedActive}
+            activeIdx={activeIdx}
+            onActiveIdx={setActiveIdx}
+            renderSlide={renderSlide}
+          />
         )}
       </div>
 

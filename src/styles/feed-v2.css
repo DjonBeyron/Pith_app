@@ -80,7 +80,8 @@
   pointer-events: none;
 }
 
-/* Скролл-лента со снапом: один слайд = один экран */
+/* Скролл-лента со снапом: один слайд = один экран. Сейчас — только «Мои
+   уроки»: «Рекомендации» переехали на Swiper (feed-swiper.css) */
 .feedV2Scroll {
   flex: 1;
   min-height: 0;
@@ -108,19 +109,6 @@
   /* Скрываем полоску скролла (как в плеере — сам скролл работает) */
   scrollbar-width: none;
   -ms-overflow-style: none;
-}
-
-/* Лента не на экране (открыта другая вкладка оболочки или «Мои уроки»):
-   прокрутка заморожена. Скрытая вкладка остаётся в layout
-   (.shellV2TabHidden / .feedViewHidden — это visibility:hidden), поэтому
-   инерция iOS продолжала доигрывать вслепую, а scroll-snap к ней уже не
-   применялся (snap-области элементов с visibility:hidden по спеке
-   игнорируются) — тормозить momentum было нечем, и лента улетала на десятки
-   слайдов. Возврат на вкладку — и она «летит». Позицию гасит
-   useFeedOffscreenFreeze.js, а overflow:hidden не даёт начаться новому
-   скроллу вслепую */
-.feedV2ScrollFrozen {
-  overflow: hidden;
 }
 
 .feedV2Scroll::-webkit-scrollbar {
@@ -293,13 +281,13 @@
 .feedViewHidden .feedLearnBtn::after,
 .shellV2TabHidden .feedLearnBtn::after,
 .feedV2--paused .feedLearnBtn::after,
-.feedVirtualItem:not(.feedVirtualItemActive) .feedLearnBtn::after { animation: none; }
+.feedSlideWrap:not(.feedSlideWrapActive) .feedLearnBtn::after { animation: none; }
 
 /* Тени HUD (filter: drop-shadow) — только у активного слайда: в виртуальном
    окне 5 слайдов, и 28 кнопок с filter одновременно — 28 отдельных проходов
-   композитора, из них 22 за экраном. Класс активного — feedVirtualItemActive
+   композитора, из них 22 за экраном. Класс активного — feedSlideWrapActive (FeedSwiper.jsx)
    (FeedTab.jsx) */
-.feedVirtualItem:not(.feedVirtualItemActive) .feedHudBtn { filter: none; }
+.feedSlideWrap:not(.feedSlideWrapActive) .feedHudBtn { filter: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .feedLearnBtn::after { content: none; }

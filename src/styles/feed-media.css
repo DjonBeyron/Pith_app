@@ -1,23 +1,5 @@
-/* ── Медиа и виртуализация ленты (ui v2) ─────────────────────────
-   Виртуальный список TanStack: в DOM только видимый слайд + overscan. */
-
-.feedVirtualTotal {
-  position: relative;
-  width: 100%;
-}
-
-.feedVirtualItem {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  /* Слайд не может быть якорем прокрутки (см. .feedV2Scroll в feed-v2.css):
-     виртуализатор снимает и добавляет их на ходу, и Chrome на Android
-     подправлял из-за этого scrollTop прямо посреди свайпа */
-  overflow-anchor: none;
-}
+/* ── Медиа ленты (ui v2) ─────────────────────────────────────────
+   Сама лента — Swiper (feed-swiper.css), здесь видео-слой слайда. */
 
 /* Видео-слой слайда: на весь слайд, тап по нему — пауза/продолжить.
    overflow:hidden режет оверскан медиа (см. .feedMedia) прямо по границе

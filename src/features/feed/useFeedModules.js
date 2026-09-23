@@ -76,7 +76,7 @@ export function useFeedModules(startedIds, visible = true) {
   // бесконечный, поэтому просто поворачиваем список — фраза первой,
   // остальное следом. Если модуль не в рекомендациях (начат/черновик) —
   // всё равно показываем её (как и с репостом). State (не ref!): смена
-  // должна вызвать перерисовку и реальный поворот ленты (см. useFeedVirtualizer)
+  // должна вызвать перерисовку и реальный поворот ленты (см. FeedSwiper.jsx — пересборка круга)
   const [pinnedId, setPinnedId] = useState(() => new URLSearchParams(location.search).get('m'))
   useEffect(() => {
     if (pinnedId) {
