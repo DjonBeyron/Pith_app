@@ -6,6 +6,7 @@ import 'swiper/css/virtual'
 import { circleCycles, midSlide, moduleOf, pickSlideAfterRebuild, recentreTarget } from './feedCircle.js'
 import { swipeEvent, swipeProgrammatic, swipeTraceAttach, swipeTraceDetach, swipeTraceVisible } from './feedSwipeTrace.js'
 import { FEEL, ratioFor, releaseVelocity, swipeVerdict, targetSlide } from './feedSwipeFeel.js'
+import { nudgeActiveFeedVideo } from './videoLayerNudge.js'
 
 // Вертикальная лента на Swiper (замена нативного скролла со scroll-snap).
 //
@@ -83,13 +84,19 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
     return () => { document.removeEventListener('visibilitychange', onVisible); clearTimeout(endTimerRef.current) }
   }, [])
 
+  // Android: после свайпа видео может остаться «в дымке» до касания экрана —
+  // подталкиваем его слой, когда слайд доехал (см. videoLayerNudge.js)
+  const nudgeCancelRef = useRef(() => {})
   function handleTransitionEnd(s) {
     clearTimeout(endTimerRef.current)
     s.el.dataset.scrolling = '' // анимация закончилась — сторож стоп-кадра видео снова работает
     const L = idsRef.current.length
     const target = recentreTarget(s.activeIndex, L, circleCycles(L))
     if (target !== null) jump(s, target, 'перенос круга')
+    nudgeCancelRef.current()
+    nudgeCancelRef.current = nudgeActiveFeedVideo(s.el, () => swipeEvent('подтолкнул слой видео (Android)'))
   }
+  useEffect(() => () => nudgeCancelRef.current(), [])
 
   // Флаг для сторожа стоп-кадра (SlideVideo): во время жеста и анимации кадры
   // законно могут молчать — не пинать видео

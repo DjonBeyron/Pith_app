@@ -21,7 +21,7 @@ export function buildFeedInfo({ view, len, activeIdx, startedIds, modules, visib
     let buf = 0
     try { buf = v.buffered.length ? v.buffered.end(v.buffered.length - 1) : 0 } catch { /* нет данных */ }
     const err = v.error ? ` err=${v.error.code}` : ''
-    return `  ${(v.dataset.url || '—').slice(-8)} [${where}] paused=${v.paused} muted=${v.muted} ct=${v.currentTime.toFixed(2)}/${(v.duration || 0).toFixed(1)} rs=${v.readyState} buf=${buf.toFixed(1)}${err} op=${v.style.opacity || '1'}`
+    return `  ${(v.dataset.url || '—').slice(-8)} [${where}] paused=${v.paused} muted=${v.muted} ct=${v.currentTime.toFixed(2)}/${(v.duration || 0).toFixed(1)} rs=${v.readyState} buf=${buf.toFixed(1)}${err} op=${v.style.opacity || '1'} trans=${v.style.transition || '—'} tf=${v.style.transform || '—'}`
   })
   return [
     `fps: ${fpsSnapshot()}`,
