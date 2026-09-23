@@ -13,6 +13,10 @@
   width: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
+  /* Слайд не может быть якорем прокрутки (см. .feedV2Scroll в feed-v2.css):
+     виртуализатор снимает и добавляет их на ходу, и Chrome на Android
+     подправлял из-за этого scrollTop прямо посреди свайпа */
+  overflow-anchor: none;
 }
 
 /* Видео-слой слайда: на весь слайд, тап по нему — пауза/продолжить.

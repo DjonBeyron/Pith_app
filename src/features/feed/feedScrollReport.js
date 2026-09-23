@@ -40,9 +40,13 @@ export function scrollTraceReport() {
   const bad = gestures.filter(g => g.rev > 0)
   const janky = gestures.filter(g => g.jank > 0)
   const misaligned = gestures.filter(g => Math.abs(g.align) > h * 0.02)
+  // Свайп вхолостую: лента заметно поехала, но вернулась на тот же слайд.
+  // Именно это пользователь и называет «дёрганьем» — свайпнул, дёрнулось,
+  // ничего не перелистнулось
+  const idle = gestures.filter(g => Math.abs(g.slides) < 0.5 && Math.abs(g.maxStep) > h * 0.1)
   const out = [
     `viewH=${meta.viewH} len=${meta.len} cycles=${meta.cycles} палец=${touching}`,
-    `жестов: ${gestures.length}${live ? ' (+1 идёт сейчас)' : ''}, с отскоком: ${bad.length}, с пропуском кадров: ${janky.length}, не доснэплено: ${misaligned.length}`,
+    `жестов: ${gestures.length}${live ? ' (+1 идёт сейчас)' : ''}, с отскоком: ${bad.length}, с пропуском кадров: ${janky.length}, не доснэплено: ${misaligned.length}, вхолостую (дёрнулось и вернулось): ${idle.length}`,
     '',
     'жесты (последние 12):',
     ...(all.length

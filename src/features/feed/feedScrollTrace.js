@@ -166,7 +166,13 @@ export function traceTick() {
 function onDown() {
   touching = true
   traceEvent('палец↓', `top=${el ? el.scrollTop.toFixed(0) : '—'}`)
-  if (!cur) { begin(); idleAt = now(); rafId = requestAnimationFrame(sample) }
+  // Палец лёг, пока предыдущий жест ещё доезжал по инерции — это уже новый
+  // свайп. Раньше оба склеивались в одну строку отчёта (движение вперёд,
+  // потом назад в тех же кадрах) и читались как выдуманный «отскок»
+  if (cur) finish()
+  begin()
+  idleAt = now()
+  if (!rafId) rafId = requestAnimationFrame(sample)
 }
 
 function onUp() {

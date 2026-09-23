@@ -10,7 +10,7 @@ function runFrames(n) {
   }
 }
 
-const { createTeleporter } = await import('./feedSnapTeleport.js')
+const { createTeleporter, keepSlideOnResize, pickSlideAfterRebuild } = await import('./feedSnapTeleport.js')
 
 // Слайды виртуализатора сдвинуты transform'ом, поэтому телепорт ищет их по
 // getBoundingClientRect. Здесь тот же расклад: контейнер в нуле экрана
@@ -62,6 +62,35 @@ describe('телепорт круга ленты', () => {
     el.scrollTop = 1624 // снап прилип к началу круга
     runFrames(2)
     expect(el.scrollTop).toBe(81200)
+  })
+
+  it('при смене высоты вьюпорта остаётся на том же слайде', () => {
+    // Android Chrome сворачивает адресную строку на первом же свайпе: шаг
+    // круга меняется, и старый scrollTop указывает уже между слайдами
+    expect(keepSlideOnResize(81200, 812, 750)).toBe(75000) // слайд 100 остаётся сотым
+    expect(75000 % 750).toBe(0) // и позиция снова кратна шагу — снапу не за что дёргать
+    expect(81200 % 750).toBe(200) // а без пересчёта лента стояла бы между слайдами
+    // Разворот обратно (адресная строка вернулась) — тот же слайд
+    expect(keepSlideOnResize(75000, 750, 812)).toBe(81200)
+  })
+
+  it('после пересборки круга остаётся на том же модуле, а не прыгает на первый', () => {
+    // startedIds приезжают позже первого кадра и вырезают начатые модули:
+    // len меняется, круг пересобирается — раньше лента вставала на модуль №0
+    const before = ['a', 'b', 'c', 'd', 'e']
+    const after = ['b', 'c', 'e'] // 'a' и 'd' оказались начатыми
+    expect(pickSlideAfterRebuild(before, 'c', 5, 40)).toBe(5 * 20 + 2)
+    expect(pickSlideAfterRebuild(after, 'c', 3, 40)).toBe(3 * 20 + 1)
+  })
+
+  it('начатый модуль исчез из ленты — встаём на начало круга, как раньше', () => {
+    expect(pickSlideAfterRebuild(['b', 'c', 'e'], 'a', 3, 40)).toBe(3 * 20)
+    expect(pickSlideAfterRebuild(['b', 'c', 'e'], null, 3, 40)).toBe(3 * 20)
+  })
+
+  it('без известной прошлой высоты позицию не трогает', () => {
+    expect(keepSlideOnResize(81200, 0, 750)).toBe(81200)
+    expect(keepSlideOnResize(81200, 812, 0)).toBe(81200)
   })
 
   it('доснэпливание на пару сотен пикселей не трогает — это норма', () => {

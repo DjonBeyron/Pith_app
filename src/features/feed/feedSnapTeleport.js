@@ -24,6 +24,27 @@ const SNAP_WAIT_MS = 400 // сколько ждём отрисовку слай�
 const HARD_RESTORE_MS = 700 // страховка: rAF не переживает заморозку в фоне
 const GUARD_MS = 300 // сколько сторожим позицию после включения снапа
 
+// Куда перенести ленту, когда высота вьюпорта сменилась: тот же слайд, но в
+// новом шаге круга. Позиция между слайдами (остаток от старого шага) теряется
+// намеренно — снап всё равно доведёт её до края, и лучше до правильного
+export function keepSlideOnResize(scrollTop, prevH, nextH) {
+  if (!prevH || !nextH) return scrollTop
+  return Math.round(scrollTop / prevH) * nextH
+}
+
+// Какой слайд круга показать после пересборки списка. Круг пересобирается не
+// только по фильтру: startedIds приезжают с сервера уже ПОСЛЕ первого кадра
+// ленты (useFeedSocial), начатые модули вырезаются из рекомендаций, len
+// меняется — и раньше лента всегда вставала на модуль №0, то есть первый
+// слайд подменялся сам собой через секунду после входа. Держим тот же модуль;
+// его нет в новом списке (сам его и начал) — встаём на начало, как раньше.
+// keepId игнорируется при повороте из поиска: там pinned-модуль уже первый
+export function pickSlideAfterRebuild(ids, keepId, len, cycles) {
+  const base = len * Math.floor(cycles / 2)
+  const idx = keepId ? ids.indexOf(keepId) : -1
+  return idx >= 0 ? base + idx : base
+}
+
 export function createTeleporter() {
   let teleporting = false
   // Номер последнего телепорта: доводить дело до конца имеет право только он.

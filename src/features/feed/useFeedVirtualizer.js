@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { fdbg } from '../../shared/lib/feedDebug.js'
-import { createTeleporter } from './feedSnapTeleport.js'
+import { createTeleporter, keepSlideOnResize, pickSlideAfterRebuild } from './feedSnapTeleport.js'
 import { traceAttach, traceDetach, traceEvent, traceMeta, traceTeleportFlag, traceTick } from './feedScrollTrace.js'
 
 // Виртуализация бесконечного круга ленты (как в TikTok): в DOM живут только
 // видимый слайд и запас overscan сверху/снизу, круг «телепортируется»
 // незаметно при подходе к краю запаса циклов (контент идентичен — скачка не видно)
-export function useFeedVirtualizer(len, openModule, pinnedId) {
+export function useFeedVirtualizer(len, openModule, pinnedId, feedModules = []) {
   const scrollRef = useRef(null)
   const [activeIdx, setActiveIdx] = useState(-1)
   const activeIdxRef = useRef(-1)
+  // Модуль, который пользователь сейчас видит: после пересборки круга (сменился
+  // состав ленты) встаём на него же, а не на начало списка
+  const idsRef = useRef([])
+  idsRef.current = feedModules.map(m => m.id)
+  const activeModuleRef = useRef(null)
   // Направление последнего скролла (1 — вниз/вперёд, -1 — вверх). Спойлер
   // шариков (PhraseBubbleSpoiler) прогревает только соседа В ЭТУ сторону,
   // а не обоих сразу — вдвое меньше «тёплых» холстов разом при листании
@@ -106,6 +111,7 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
   // экрана И контейнер реально растянут (iOS обрезал scrollTop, если ставить
   // его раньше, чем виртуализатор дорастил высоту)
   const initedRef = useRef(false)
+  const prevPinnedRef = useRef(null)
   // Сброс и по возврату из экрана модуля: контейнер пересоздан, скролл на нуле —
   // круг нужно заново поставить на середину запаса циклов. pinnedId в зависимостях —
   // поворот из поиска (jumpTo) переставляет фразу в начало круга (см.
@@ -120,13 +126,34 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
     const apply = () => {
       if (!scrollRef.current) return
       if (scrollRef.current.scrollHeight >= want - 2 || tries++ > 60) {
-        teleport(scrollRef.current, len * viewH * Math.floor(cycles / 2), 'init')
+        const keepId = pinnedId && pinnedId !== prevPinnedRef.current ? null : activeModuleRef.current
+        prevPinnedRef.current = pinnedId
+        const slide = pickSlideAfterRebuild(idsRef.current, keepId, len, cycles)
+        teleport(scrollRef.current, slide * viewH, keepId && slide !== len * Math.floor(cycles / 2) ? 'init (держу модуль)' : 'init')
       } else {
         requestAnimationFrame(apply)
       }
     }
     apply()
   }, [len, cycles, viewH, pinnedId])
+
+  // Высота вьюпорта сменилась на ходу. На Android Chrome это происходит на
+  // ПЕРВОМ ЖЕ свайпе: сворачивается адресная строка, .shellV2 (position:fixed;
+  // inset:0) растягивается — и виртуализатор переразмеривает ВСЕ слайды разом.
+  // scrollTop при этом остаётся прежним и перестаёт быть кратным шагу круга:
+  // лента оказывается между слайдами, mandatory-снап утаскивает её на чужой —
+  // это и есть «дёрганье первого слайда». Держим тот же слайд, переводя
+  // позицию в новый шаг (init сюда не вмешивается: initedRef уже взведён)
+  const prevViewHRef = useRef(0)
+  useEffect(() => {
+    const el = scrollRef.current
+    const prev = prevViewHRef.current
+    prevViewHRef.current = viewH
+    if (!el || !len || !viewH || !prev || prev === viewH || !initedRef.current) return
+    const target = keepSlideOnResize(el.scrollTop, prev, viewH)
+    fdbg('viewH сменилась', prev, '→', viewH, '— держу слайд:', el.scrollTop.toFixed(0), '→', target.toFixed(0))
+    if (Math.abs(target - el.scrollTop) > 1) teleport(el, target, 'viewH')
+  }, [viewH, len]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => clearTimeout(settleTimer.current), [])
 
@@ -175,6 +202,7 @@ export function useFeedVirtualizer(len, openModule, pinnedId) {
       if (idx !== activeIdxRef.current) {
         traceEvent('активный слайд', `${activeIdxRef.current} → ${idx}`)
         activeIdxRef.current = idx
+        activeModuleRef.current = idsRef.current[((idx % len) + len) % len] ?? activeModuleRef.current
       }
       setActiveIdx(idx)
     }
