@@ -5,6 +5,7 @@ import 'swiper/css'
 import 'swiper/css/virtual'
 import { circleCycles, midSlide, moduleOf, pickSlideAfterRebuild, recentreTarget } from './feedCircle.js'
 import { swipeEvent, swipeProgrammatic, swipeTraceAttach, swipeTraceDetach, swipeTraceVisible } from './feedSwipeTrace.js'
+import { FEEL, ratioFor, releaseVelocity, swipeVerdict, targetSlide } from './feedSwipeFeel.js'
 
 // Вертикальная лента на Swiper (замена нативного скролла со scroll-snap).
 //
@@ -19,20 +20,11 @@ import { swipeEvent, swipeProgrammatic, swipeTraceAttach, swipeTraceDetach, swip
 // индекс % len, старт с середины, у края — перенос в середину без анимации.
 // Virtual держит в DOM только активный слайд и по два соседа.
 
-// «Листать или нет» решаем сами, а не по часам Swiper. Swiper меряет длительность
-// жеста временем выполнения своих обработчиков (now()): если главный поток занят
-// (смена слайда, пул видео), быстрый флик по его часам «длится» дольше порога и
-// уходит в ветку медленного ведения — лента дёргается и возвращается (поймано
-// синтетическим фликом: 100мс по таймерам, >200мс по часам Swiper). Поэтому:
-//   • медленное ведение — листает, если протащили больше DRAG_RATIO экрана;
-//   • быстрый флик — по скорости из e.timeStamp (метку ставит браузер в момент
-//     касания, занятость JS на неё не влияет): от FLICK_MIN_PX и FLICK_SPEED
-//     листает всегда;
-//   • до threshold (10px) — это вообще тап, не жест (дрожание пальца по лайку)
-const DRAG_RATIO = 0.18
-const FLICK_SPEED = 0.3 // px/мс ≈ 300px/с
-const FLICK_MIN_PX = 24
-const SPEED = 320 // мс анимации перехода между слайдами
+// «Листать или нет» решаем сами (feedSwipeFeel.js) — как в TikTok: по скорости
+// пальца в момент отпускания, иначе по пройденному пути. Swiper сам не может:
+// он меряет жест часами своих обработчиков, и при занятом главном потоке
+// быстрый флик по ним «длился» дольше порога — лента возвращалась
+const SPEED = 300 // мс анимации перехода между слайдами
 
 export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, onActiveIdx, renderSlide }) {
   const len = feedModules.length
@@ -101,19 +93,43 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
 
   // Флаг для сторожа стоп-кадра (SlideVideo): во время жеста и анимации кадры
   // законно могут молчать — не пинать видео
-  const gestureRef = useRef({ t: 0, y: 0 })
+  // Жест пальца: старт и последние точки движения (по меткам событий)
+  const gestureRef = useRef({ y: 0, moves: [], start: 0 })
   function handleTouchStart(s, e) {
     s.el.dataset.scrolling = '1'
-    s.params.longSwipesRatio = DRAG_RATIO
-    gestureRef.current = { t: e?.timeStamp ?? 0, y: e?.clientY ?? 0 }
+    s.params.longSwipesRatio = FEEL.DRAG_RATIO
+    gestureRef.current = { y: e?.clientY ?? 0, moves: [], start: s.activeIndex }
   }
-  // Swiper отдаёт touchEnd ДО своего решения — успеваем подсказать ему, что
-  // это был флик: на этот жест порог пути падает почти до нуля
+  function handleTouchMove(s, e) {
+    if (e?.clientY == null) return
+    const moves = gestureRef.current.moves
+    moves.push({ t: e.timeStamp, y: e.clientY })
+    if (moves.length > 12) moves.shift()
+  }
+  // Swiper отдаёт touchEnd ДО своего решения — успеваем подсказать ему вердикт:
+  // флик — листать при любом пути, рывок обратно — вернуть, иначе решит путь
   function handleTouchEnd(s, e) {
-    const g = gestureRef.current
-    const dist = e?.clientY == null ? 0 : Math.abs(e.clientY - g.y)
-    const dt = Math.max(1, (e?.timeStamp ?? 0) - g.t)
-    if (dist >= FLICK_MIN_PX && dist / dt >= FLICK_SPEED) s.params.longSwipesRatio = 0.01
+    if (e?.clientY != null) {
+      const g = gestureRef.current
+      const dy = e.clientY - g.y
+      const v = releaseVelocity(g.moves, { t: e.timeStamp, y: e.clientY })
+      const verdict = swipeVerdict(dy, v)
+      s.params.longSwipesRatio = ratioFor(verdict)
+      if (Math.abs(dy) >= FEEL.THRESHOLD_PX) {
+        const want = targetSlide(g.start, dy, verdict, s.size)
+        swipeEvent('решение', `путь ${dy.toFixed(0)}px, скорость отпускания ${v.toFixed(2)}px/мс → ${verdict === 'flip' ? 'флик' : verdict === 'stay' ? 'рывок назад' : 'по пути'}, слайд ${want}`)
+        // Сверка после Swiper. Первое движение за порог он «съедает» целиком
+        // (переносит туда точку старта): при редких событиях (медленный
+        // телефон, нагрузка) первый же рывок на 60px пропадал, слайд не
+        // двигался, и Swiper выходил, ничего не решив. Решение — по полному
+        // пути пальца, Swiper только анимирует; разошлись — ставим нужный слайд
+        setTimeout(() => {
+          if (s.destroyed || !s.allowTouchMove || s.activeIndex === want) return
+          swipeEvent('поправка решения', `Swiper: ${s.activeIndex}, нужно ${want}`)
+          s.slideTo(want)
+        }, 0)
+      }
+    }
     setTimeout(() => { if (!s.destroyed && !s.animating) s.el.dataset.scrolling = '' }, 0)
   }
 
@@ -178,13 +194,12 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
       initialSlide={initialSlide}
       virtual={{ addSlidesBefore: 1, addSlidesAfter: 1 }}
       speed={SPEED}
-      // Чувствительность — см. DRAG_RATIO/FLICK_SPEED выше. longSwipesMs=0:
-      // все жесты решаются по пути, «короткую» ветку Swiper (листает при любом
-      // сдвиге, если жест короче 300мс по его часам) не используем вовсе —
-      // с ней палец, дрогнувший на 30px при тапе по лайку, листал видео
-      threshold={10}
+      // Чувствительность — feedSwipeFeel.js. longSwipesMs=0: все жесты решаются
+      // по пути (его подменяет наш вердикт), «короткую» ветку Swiper (листает
+      // при любом сдвиге, если жест короче 300мс по его часам) не используем
+      threshold={FEEL.THRESHOLD_PX}
       longSwipesMs={0}
-      longSwipesRatio={DRAG_RATIO}
+      longSwipesRatio={FEEL.DRAG_RATIO}
       resistanceRatio={0.5}
       mousewheel={{ forceToAxis: true, thresholdDelta: 12 }}
       keyboard={{ enabled: true }}
@@ -193,6 +208,7 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
       onTransitionStart={handleTransitionStart}
       onTransitionEnd={handleTransitionEnd}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {slides}
