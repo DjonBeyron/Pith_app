@@ -1,37 +1,31 @@
-// Метка цвета в MP4 перед загрузкой (атом colr/nclx: BT.709, limited range).
+import { tagSpsColor } from './h264Sps.js'
+
+// Метка цвета в MP4 перед загрузкой: «BT.709, limited range».
 //
 // Зачем: на части Android (Mali-G72, Android 10, Chrome 150) любое видео
 // сначала показывалось нормально, а через миг вся картинка «в дымке» —
 // светлее и бледнее; касание (пауза) дымку убирало. В наших файлах НЕТ ни
-// одной метки цвета: ни атома colr, ни video_signal_type в VUI H.264
-// (проверено разбором двух видео ленты). iPhone и компьютеры по умолчанию
-// считают такие кадры видео-диапазоном 16–235 (BT.709 limited) — всё верно.
-// Аппаратный декодер части Android считает их полным диапазоном 0–255:
-// чёрное (16) становится серым, белое тускнеет — это и есть «дымка».
-// Заставка и кадр на паузе рисуются другим путём — поэтому они нормальные.
+// одной метки цвета. iPhone и компьютеры считают такие кадры видео-диапазоном
+// 16–235 — всё верно; аппаратный декодер части Android — полным 0–255:
+// чёрное становится серым, белое тускнеет — «дымка».
 //
-// Лечение без перекодирования: в описание видеодорожки (avc1/hvc1 внутри
-// stsd) дописываем colr nclx с явным BT.709 limited — сами кадры не
-// меняются ни на бит. Размеры всех родительских атомов увеличиваются, а
-// смещения кусков данных (stco/co64) сдвигаются, если данные лежат после
-// moov (faststart). Файлы, которые трогать рискованно (фрагментированные с
-// абсолютными смещениями, mfra), и уже размеченные — не трогаем.
+// Метка ставится в два места:
+//   • атом colr (nclx) в описании дорожки — его читают браузеры;
+//   • video_signal_type в VUI заголовка SPS (h264Sps.js) — и в описании
+//     дорожки (avcC), и в повторах SPS внутри потока перед ключевыми кадрами.
+//     Одного colr (3.2.1718) Android не хватило: аппаратный декодер смотрит в
+//     поток. Повторы SPS тоже надо править — иначе на первом ключевом кадре
+//     декодер перечитал бы заголовок «без метки».
+// Кадры не перекодируются. Механизм — список правок «заменить байты
+// [start, end) на новые» с цепочкой атомов-владельцев: после сборки
+// пересчитываются размеры атомов, размеры кадров (stsz) и смещения кусков
+// данных (stco/co64). Рискованные файлы (mfra, фрагменты с абсолютными
+// смещениями) не трогаем; уже размеченное не трогаем.
 
-const COLR = new Uint8Array([
-  0, 0, 0, 19, 0x63, 0x6f, 0x6c, 0x72, // size 19, 'colr'
-  0x6e, 0x63, 0x6c, 0x78, // 'nclx'
-  0, 1, // colour_primaries: BT.709
-  0, 1, // transfer_characteristics: BT.709
-  0, 1, // matrix_coefficients: BT.709
-  0, // full_range_flag = 0 (limited), reserved = 0
-])
+const COLR = [0, 0, 0, 19, 0x63, 0x6f, 0x6c, 0x72, 0x6e, 0x63, 0x6c, 0x78, 0, 1, 0, 1, 0, 1, 0]
 const VIDEO_ENTRIES = ['avc1', 'avc3', 'hvc1', 'hev1']
-// Атомы-контейнеры: дети начинаются сразу после заголовка
 const CONTAINERS = ['moov', 'trak', 'mdia', 'minf', 'stbl', 'moof', 'traf', 'mfra', 'edts', 'dinf']
 
-const typeAt = (dv, p) => String.fromCharCode(dv.getUint8(p + 4), dv.getUint8(p + 5), dv.getUint8(p + 6), dv.getUint8(p + 7))
-
-// Атомы в диапазоне [start, end): { type, start, size, hdr, children }
 function parse(dv, start, end) {
   const out = []
   let p = start
@@ -41,12 +35,10 @@ function parse(dv, start, end) {
     if (size === 1) { size = Number(dv.getBigUint64(p + 8)); hdr = 16 }
     else if (size === 0) size = end - p
     if (size < hdr || p + size > end) break
-    const type = typeAt(dv, p)
+    const type = String.fromCharCode(dv.getUint8(p + 4), dv.getUint8(p + 5), dv.getUint8(p + 6), dv.getUint8(p + 7))
     const box = { type, start: p, size, hdr, children: [] }
     if (CONTAINERS.includes(type)) box.children = parse(dv, p + hdr, p + size)
-    // stsd: полный атом (4 байта версия/флаги) + 4 байта числа записей
     if (type === 'stsd') box.children = parse(dv, p + hdr + 8, p + size)
-    // Визуальная запись образца: 78 байт полей перед дочерними атомами
     if (VIDEO_ENTRIES.includes(type)) box.children = parse(dv, p + hdr + 78, p + size)
     out.push(box)
     p += size
@@ -55,80 +47,125 @@ function parse(dv, start, end) {
 }
 
 const find = (boxes, type) => boxes.filter(b => b.type === type)
-const walk = (boxes, fn, chain = []) => boxes.forEach(b => { fn(b, chain); walk(b.children, fn, [...chain, b]) })
+const child = (b, type) => b && find(b.children, type)[0]
+const walk = (boxes, fn) => boxes.forEach(b => { fn(b); walk(b.children, fn) })
+const lenBytes = (n, size) => Array.from({ length: size }, (_, i) => (n >>> (8 * (size - 1 - i))) & 255)
 
-// buf: ArrayBuffer файла. Возвращает { buf, changed, reason }
+// Позиция и размер каждого кадра дорожки (по stsz/stsc/stco|co64)
+function samples(dv, stbl) {
+  const stsz = child(stbl, 'stsz'); const stsc = child(stbl, 'stsc'); const co = child(stbl, 'stco') || child(stbl, 'co64')
+  if (!stsz || !stsc || !co || dv.getUint32(stsz.start + 12) !== 0) return null // единый размер кадра — не наш случай
+  const count = dv.getUint32(stsz.start + 16)
+  const chunks = Array.from({ length: dv.getUint32(co.start + 12) }, (_, i) => co.type === 'stco'
+    ? dv.getUint32(co.start + 16 + i * 4) : Number(dv.getBigUint64(co.start + 16 + i * 8)))
+  const runs = Array.from({ length: dv.getUint32(stsc.start + 12) }, (_, i) => ({ first: dv.getUint32(stsc.start + 16 + i * 12), per: dv.getUint32(stsc.start + 20 + i * 12) }))
+  const out = []
+  for (let c = 0; c < chunks.length && out.length < count; c++) {
+    const run = [...runs].reverse().find(r => r.first <= c + 1)
+    let p = chunks[c]
+    for (let k = 0; k < (run?.per || 0) && out.length < count; k++) {
+      const size = dv.getUint32(stsz.start + 20 + out.length * 4)
+      out.push({ pos: p, size, entry: stsz.start + 20 + out.length * 4 })
+      p += size
+    }
+  }
+  return out
+}
+
 export function tagMp4Color(buf) {
   const dv = new DataView(buf)
+  const src = new Uint8Array(buf)
   const top = parse(dv, 0, buf.byteLength)
   if (!top.length || top[0].type !== 'ftyp') return { buf, changed: false, reason: 'не MP4' }
   const moov = find(top, 'moov')[0]
   if (!moov) return { buf, changed: false, reason: 'нет moov' }
-  if (moov.hdr !== 8) return { buf, changed: false, reason: '64-битный moov — не трогаем' }
   if (find(top, 'mfra').length) return { buf, changed: false, reason: 'есть mfra (абсолютные смещения)' }
-
-  // Фрагментированный файл: безопасно, только если смещения в фрагментах
-  // считаются от moof (флаг base-data-offset в tfhd не стоит)
   let absFragments = false
-  walk(find(top, 'moof'), b => {
-    if (b.type === 'tfhd' && (dv.getUint32(b.start + 8) & 0x000001)) absFragments = true
-  })
+  walk(find(top, 'moof'), b => { if (b.type === 'tfhd' && (dv.getUint32(b.start + 8) & 1)) absFragments = true })
   if (absFragments) return { buf, changed: false, reason: 'фрагменты с абсолютными смещениями' }
+  const fragmented = find(top, 'moof').length > 0
 
-  // Куда вставлять: в конец каждой видеозаписи без colr
-  const inserts = [] // { pos, chain } — chain: все предки вставки, включая саму запись
-  let already = 0
-  walk([moov], (b, chain) => {
-    if (!VIDEO_ENTRIES.includes(b.type)) return
-    if (b.hdr !== 8 || chain.some(c => c.hdr !== 8)) return
-    if (find(b.children, 'colr').length) { already++; return }
-    inserts.push({ pos: b.start + b.size, chain: [...chain, b] })
-  })
-  if (!inserts.length) {
-    return { buf, changed: false, reason: already ? 'метка цвета уже есть' : 'нет видеодорожки H.264/HEVC' }
+  const edits = [] // { start, end, bytes, chain }
+  const sizeFixes = [] // { entry (позиция в stsz), size }
+  const stat = { colr: 0, spsHead: 0, spsStream: 0, marked: 0 }
+  for (const trak of find(moov.children, 'trak')) {
+    const mdia = child(trak, 'mdia'); const minf = child(mdia, 'minf'); const stbl = child(minf, 'stbl'); const stsd = child(stbl, 'stsd')
+    const entry = stsd && stsd.children.find(b => VIDEO_ENTRIES.includes(b.type))
+    if (!entry) continue
+    const chain = [moov, trak, mdia, minf, stbl, stsd, entry]
+    if (child(entry, 'colr')) stat.marked++
+    else { edits.push({ start: entry.start + entry.size, end: entry.start + entry.size, bytes: COLR, chain }); stat.colr++ }
+
+    const avcC = child(entry, 'avcC')
+    if (!avcC) continue
+    const p = avcC.start + 8
+    const nalLen = (src[p + 4] & 3) + 1
+    let q = p + 6
+    for (let i = 0; i < (src[p + 5] & 0x1f); i++) {
+      const len = dv.getUint16(q)
+      const fixed = tagSpsColor(src.subarray(q + 2, q + 2 + len))
+      if (fixed) { edits.push({ start: q, end: q + 2 + len, bytes: [...lenBytes(fixed.length, 2), ...fixed], chain: [...chain, avcC] }); stat.spsHead++ }
+      q += 2 + len
+    }
+    // Повторы SPS внутри потока (перед ключевыми кадрами)
+    const list = fragmented ? null : samples(dv, stbl)
+    for (const s of list || []) {
+      const mdat = find(top, 'mdat').find(m => m.start < s.pos && s.pos + s.size <= m.start + m.size)
+      if (!mdat) continue
+      let delta = 0
+      for (let r = s.pos; r + nalLen < s.pos + s.size;) {
+        let len = 0
+        for (let k = 0; k < nalLen; k++) len = len * 256 + src[r + k]
+        if ((src[r + nalLen] & 0x1f) === 7) {
+          const fixed = tagSpsColor(src.subarray(r + nalLen, r + nalLen + len))
+          if (fixed) {
+            edits.push({ start: r, end: r + nalLen + len, bytes: [...lenBytes(fixed.length, nalLen), ...fixed], chain: [mdat] })
+            delta += fixed.length - len
+            stat.spsStream++
+          }
+        }
+        r += nalLen + len
+      }
+      if (delta) sizeFixes.push({ entry: s.entry, size: s.size + delta })
+    }
   }
+  if (!edits.length) return { buf, changed: false, reason: stat.marked ? 'метка цвета уже есть' : 'нет видеодорожки H.264/HEVC' }
 
-  // Новый файл: исходные байты со вставками
-  const len = COLR.length
-  const shift = oldPos => inserts.filter(i => i.pos <= oldPos).length * len
-  const out = new Uint8Array(buf.byteLength + inserts.length * len)
-  const src = new Uint8Array(buf)
+  // Сборка нового файла
+  edits.sort((a, b) => a.start - b.start || a.end - b.end)
+  const delta = e => e.bytes.length - (e.end - e.start)
+  const mapPos = old => old + edits.reduce((s, e) => s + (e.end <= old ? delta(e) : 0), 0)
+  const out = new Uint8Array(src.length + edits.reduce((s, e) => s + delta(e), 0))
   let from = 0
   let to = 0
-  for (const i of [...inserts].sort((a, b) => a.pos - b.pos)) {
-    out.set(src.subarray(from, i.pos), to)
-    to += i.pos - from
-    out.set(COLR, to)
-    to += len
-    from = i.pos
+  for (const e of edits) {
+    out.set(src.subarray(from, e.start), to); to += e.start - from
+    out.set(e.bytes, to); to += e.bytes.length
+    from = e.end
   }
   out.set(src.subarray(from), to)
   const ndv = new DataView(out.buffer)
 
-  // Размеры предков: каждый растёт на число вставок внутри него
+  // Размеры атомов-владельцев правок
   const grown = new Map()
-  for (const i of inserts) for (const b of i.chain) grown.set(b, (grown.get(b) || 0) + len)
-  for (const [b, add] of grown) ndv.setUint32(b.start + shift(b.start), b.size + add)
-
-  // Смещения кусков данных — абсолютные от начала файла: сдвигаем на число
-  // вставок, стоящих раньше данных (при faststart — все вставки)
+  for (const e of edits) for (const b of e.chain) grown.set(b, (grown.get(b) || 0) + delta(e))
+  for (const [b, add] of grown) {
+    const at = mapPos(b.start)
+    if (b.hdr === 16) ndv.setBigUint64(at + 8, BigInt(b.size + add))
+    else ndv.setUint32(at, b.size + add)
+  }
+  // Размеры кадров с изменённым SPS
+  for (const f of sizeFixes) ndv.setUint32(mapPos(f.entry), f.size)
+  // Смещения кусков данных всех дорожек
   walk([moov], b => {
     if (b.type !== 'stco' && b.type !== 'co64') return
-    const at = b.start + shift(b.start)
-    const count = ndv.getUint32(at + 12)
-    for (let k = 0; k < count; k++) {
-      if (b.type === 'stco') {
-        const p = at + 16 + k * 4
-        const o = ndv.getUint32(p)
-        ndv.setUint32(p, o + shift(o))
-      } else {
-        const p = at + 16 + k * 8
-        const o = Number(ndv.getBigUint64(p))
-        ndv.setBigUint64(p, BigInt(o + shift(o)))
-      }
+    const at = mapPos(b.start)
+    for (let k = 0; k < ndv.getUint32(at + 12); k++) {
+      if (b.type === 'stco') { const p = at + 16 + k * 4; ndv.setUint32(p, mapPos(ndv.getUint32(p))) }
+      else { const p = at + 16 + k * 8; ndv.setBigUint64(p, BigInt(mapPos(Number(ndv.getBigUint64(p))))) }
     }
   })
-  return { buf: out.buffer, changed: true, reason: `добавлена метка BT.709 limited (${inserts.length} дорожк.)` }
+  return { buf: out.buffer, changed: true, reason: `метка BT.709 limited: colr ${stat.colr}, SPS в описании ${stat.spsHead}, SPS в потоке ${stat.spsStream}` }
 }
 
 // Обёртка для загрузки: File → File с меткой (или исходный, если не нужно

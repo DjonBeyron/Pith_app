@@ -64,6 +64,54 @@ function makeFile({ moovFirst = true, tracks = 1, withColr = false } = {}) {
   return { buf: new Uint8Array(bytes).buffer, offsets, data }
 }
 
+// Файл с настоящим SPS: в описании дорожки (avcC) и повтором внутри первого
+// кадра (перед ключевым), с таблицами кадров stsz/stsc/stco
+const SPS = [0x67, 0x4d, 0x40, 0x1f, 0xec, 0xa0, 0x5a, 0x05, 0x0d, 0x80, 0x88, 0, 0, 3, 0, 0x08, 0, 0, 3, 0x01, 0xe0, 0x78, 0xc1, 0x8c, 0xb0]
+function makeStreamFile() {
+  const nal = bytes => [...u32(bytes.length), ...bytes] // 4-байтовая длина + NAL
+  const sample0 = [...nal(SPS), ...nal([0x65, 1, 2, 3, 4])] // SPS + ключевой кадр
+  const sample1 = nal([0x41, 9, 9, 9]) // обычный кадр
+  const avcC = box('avcC', [1, 0x4d, 0x40, 0x1f, 0xff, 0xe1, 0, SPS.length, ...SPS, 1, 0, 4, 0x68, 0xee, 0x3c, 0x80])
+  const build = off => box('moov', box('trak', box('mdia', box('minf', box('stbl',
+    full('stsd', u32(1), box('avc1', new Array(78).fill(0), avcC)),
+    full('stsz', u32(0), u32(2), u32(sample0.length), u32(sample1.length)),
+    full('stsc', u32(1), u32(1), u32(2), u32(1)),
+    full('stco', u32(1), u32(off)),
+  )))))
+  const off = ftyp.length + build(0).length + 8
+  const bytes = [...ftyp, ...build(off), ...box('mdat', sample0, sample1)]
+  return new Uint8Array(bytes).buffer
+}
+
+describe('метка цвета в потоке H.264 (SPS)', () => {
+  it('правит SPS и в описании дорожки, и повтор в кадре; таблицы кадров сходятся', async () => {
+    const { readSpsColor } = await import('./h264Sps.js')
+    const res = tagMp4Color(makeStreamFile())
+    expect(res.reason).toMatch(/SPS в описании 1, SPS в потоке 1/)
+    const b = u8(res.buf)
+    const dv = new DataView(res.buf)
+    const at = (tag) => { for (let i = 0; i + 4 <= b.length; i++) if (String.fromCharCode(...b.subarray(i, i + 4)) === tag) return i - 4; return -1 }
+    // SPS в avcC
+    const avcC = at('avcC')
+    const headLen = dv.getUint16(avcC + 14)
+    expect(readSpsColor(b.subarray(avcC + 16, avcC + 16 + headLen))).toEqual({ fullRange: 0, primaries: 1, transfer: 1, matrix: 1 })
+    // Кадр 0 по новым stco/stsz: первый NAL — SPS с меткой, дальше ключевой кадр
+    const off = dv.getUint32(at('stco') + 16)
+    const size0 = dv.getUint32(at('stsz') + 20)
+    const size1 = dv.getUint32(at('stsz') + 24)
+    const spsLen = dv.getUint32(off)
+    expect(readSpsColor(b.subarray(off + 4, off + 4 + spsLen))).toEqual({ fullRange: 0, primaries: 1, transfer: 1, matrix: 1 })
+    expect(b[off + 4 + spsLen + 4]).toBe(0x65) // ключевой кадр на своём месте
+    expect(size0).toBe(4 + spsLen + 4 + 5) // размер кадра 0 вырос ровно на прибавку SPS
+    expect(b[off + size0 + 4]).toBe(0x41) // кадр 1 — сразу за кадром 0
+    expect(size1).toBe(8)
+    // Верхний уровень без дыр, повторная обработка ничего не меняет
+    const top = boxes(b)
+    expect(top.reduce((s, x) => s + x.size, 0)).toBe(res.buf.byteLength)
+    expect(tagMp4Color(res.buf).changed).toBe(false)
+  })
+})
+
 describe('метка цвета в MP4', () => {
   it('добавляет colr BT.709 limited в видеодорожку', () => {
     const { buf } = makeFile()

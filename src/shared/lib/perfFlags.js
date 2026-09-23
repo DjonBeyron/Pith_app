@@ -23,6 +23,9 @@ export const PERF_FLAG_DEFS = [
   { key: 'noLayers',   label: 'GPU-слои шапки выкл' },
   { key: 'noNudge',    label: 'подталкивание видео выкл' },
   { key: 'videoGpu',   label: 'видео через GPU' },
+  // Мгновенная проверка теории «диапазон 16–235 прочитан как 0–255»: если
+  // растяжение контраста в 255/219 раз убирает дымку — теория верна
+  { key: 'videoContrast', label: '+контраст (тест дымки)' },
 ]
 
 function read() {
@@ -44,6 +47,7 @@ export function applyPerfFlagClasses() {
   if (perfFlags.noTextures) el.classList.add('perf-no-textures')
   if (perfFlags.noLayers)   el.classList.add('perf-no-layers')
   if (perfFlags.videoGpu)   el.classList.add('perf-video-gpu')
+  if (perfFlags.videoContrast) el.classList.add('perf-video-contrast')
 }
 
 export function perfFlagsSummary() {
