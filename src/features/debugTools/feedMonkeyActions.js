@@ -42,6 +42,12 @@ function findButton(re, root = document) {
 // ждут элемент (e.target.matches/closest) и падали — ложные JS-ошибки в тесте.
 // Если под пальцем не лента (она скрыта за другой вкладкой) — жест всё равно
 // шлём в скрытую ленту: проверяем, что она его не примет
+//
+// Как на телефоне: pointerdown + touchstart, дальше touchmove/touchend. На
+// тач-устройстве Swiper ведёт жест по TouchEvent (а pointer-события после
+// touchstart игнорирует), и у TouchEvent нет clientY — именно на этом пути
+// до 3.2.1713 не работали флик и сверка решения, а тесты на одних
+// PointerEvent этого не видели. Браузер без тача — только pointer-события
 function finger(sw, rnd, dy, yFrac) {
   const r = sw.el.getBoundingClientRect()
   const x = r.left + r.width * (0.25 + rnd() * 0.3)
@@ -49,14 +55,36 @@ function finger(sw, rnd, dy, yFrac) {
   const id = ++pointerSeq
   const under = document.elementFromPoint(x, y0)
   const target = under && sw.el.contains(under) ? under : sw.wrapperEl
-  const send = (type, y, buttons = 1) => target.dispatchEvent(new PointerEvent(type, {
+  const pointer = (type, y, buttons = 1) => target.dispatchEvent(new PointerEvent(type, {
     bubbles: true, cancelable: true, composed: true, pointerId: id, pointerType: 'touch',
     isPrimary: true, clientX: x, clientY: y, button: 0, buttons,
   }))
-  send('pointerdown', y0)
+  let touch = null
+  if (navigator.maxTouchPoints > 0 && typeof Touch === 'function') {
+    try {
+      const mk = y => new Touch({ identifier: id, target, clientX: x, clientY: y, pageX: x, pageY: y, screenX: x, screenY: y })
+      mk(y0) // конструктор есть не везде — проверяем заранее
+      touch = (type, y, down) => target.dispatchEvent(new TouchEvent(type, {
+        bubbles: true, cancelable: true, composed: true,
+        touches: down ? [mk(y)] : [], targetTouches: down ? [mk(y)] : [], changedTouches: [mk(y)],
+      }))
+    } catch { touch = null }
+  }
+  pointer('pointerdown', y0)
+  if (touch) touch('touchstart', y0, true)
+  // На телефоне приходят обе серии: pointer-событие, затем touch. Swiper
+  // после touchstart pointer-события пропускает, а другие части приложения
+  // (зона замедления у лайка) слушают именно их — без pointerup у них
+  // «залипал» бы палец
   return {
-    move: k => send('pointermove', y0 + dy * k),
-    up: () => send('pointerup', y0 + dy, 0),
+    move: k => {
+      pointer('pointermove', y0 + dy * k)
+      if (touch) touch('touchmove', y0 + dy * k, true)
+    },
+    up: () => {
+      pointer('pointerup', y0 + dy, 0)
+      if (touch) touch('touchend', y0 + dy, false)
+    },
   }
 }
 

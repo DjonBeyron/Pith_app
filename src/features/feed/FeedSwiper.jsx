@@ -25,7 +25,23 @@ import { nudgeActiveFeedVideo } from './videoLayerNudge.js'
 // пальца в момент отпускания, иначе по пройденному пути. Swiper сам не может:
 // он меряет жест часами своих обработчиков, и при занятом главном потоке
 // быстрый флик по ним «длился» дольше порога — лента возвращалась
-const SPEED = 300 // мс анимации перехода между слайдами
+// Анимация перехода: в TikTok слайд уезжает быстрее — 220мс с замедлением к
+// концу (кривая в feed-swiper.css). Чем она короче, тем короче и окно, в
+// котором быстрый свайп игнорируется (preventInteractionOnTransition ниже)
+const SPEED = 220
+
+// Вертикаль касания из любого события. На телефоне Swiper идёт по сенсорному
+// пути (touchstart/touchmove/touchend), а у TouchEvent нет clientY — он в
+// touches/changedTouches. До 3.2.1713 здесь читался только e.clientY: на
+// настоящем телефоне флик по скорости и сверка решения НЕ работали вовсе
+// (в DBG ни одной строки «решение»), решал один Swiper по пути. В браузерных
+// тестах это пряталось: синтетические PointerEvent clientY имеют
+function pointY(e) {
+  if (!e) return null
+  if (e.clientY != null) return e.clientY
+  const t = e.changedTouches?.[0] ?? e.touches?.[0]
+  return t ? t.clientY : null
+}
 
 export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, onActiveIdx, renderSlide }) {
   const len = feedModules.length
@@ -105,21 +121,23 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
   function handleTouchStart(s, e) {
     s.el.dataset.scrolling = '1'
     s.params.longSwipesRatio = FEEL.DRAG_RATIO
-    gestureRef.current = { y: e?.clientY ?? 0, moves: [], start: s.activeIndex }
+    gestureRef.current = { y: pointY(e) ?? 0, moves: [], start: s.activeIndex }
   }
   function handleTouchMove(s, e) {
-    if (e?.clientY == null) return
+    const y = pointY(e)
+    if (y == null) return
     const moves = gestureRef.current.moves
-    moves.push({ t: e.timeStamp, y: e.clientY })
+    moves.push({ t: e.timeStamp, y })
     if (moves.length > 12) moves.shift()
   }
   // Swiper отдаёт touchEnd ДО своего решения — успеваем подсказать ему вердикт:
   // флик — листать при любом пути, рывок обратно — вернуть, иначе решит путь
   function handleTouchEnd(s, e) {
-    if (e?.clientY != null) {
+    const y = pointY(e)
+    if (y != null) {
       const g = gestureRef.current
-      const dy = e.clientY - g.y
-      const v = releaseVelocity(g.moves, { t: e.timeStamp, y: e.clientY })
+      const dy = y - g.y
+      const v = releaseVelocity(g.moves, { t: e.timeStamp, y })
       const verdict = swipeVerdict(dy, v)
       s.params.longSwipesRatio = ratioFor(verdict)
       if (Math.abs(dy) >= FEEL.THRESHOLD_PX) {
@@ -208,6 +226,13 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
       longSwipesMs={0}
       longSwipesRatio={FEEL.DRAG_RATIO}
       resistanceRatio={0.5}
+      // Свайп, начатый во время анимации прошлого, игнорируется целиком, как
+      // в TikTok. Без этого при быстром листании Swiper подхватывал слайд на
+      // полпути, палец лишь «доталкивал» его, и слайд отскакивал на место —
+      // то самое дёрганье (лог: «палец вверх 128px за 65мс» без смены слайда,
+      // свайпы каждые ~250мс при анимации 300мс). Зависнуть в «анимации»
+      // лента не может — её добивает страховка finishStuck
+      preventInteractionOnTransition
       mousewheel={{ forceToAxis: true, thresholdDelta: 12 }}
       keyboard={{ enabled: true }}
       onSwiper={s => { swiperRef.current = s; swipeTraceAttach(s); handleSlideChange(s) }}
