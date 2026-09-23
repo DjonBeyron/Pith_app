@@ -20,12 +20,57 @@
   border-radius: 18px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
   text-align: center;
-  animation: lessonLockedIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: 50% 100%;
+  animation: popSpringIn 0.62s both;
 }
 
-@keyframes lessonLockedIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1); }
+/* Появление «с пружиной»: карточка выкатывается снизу и растёт из 0.9,
+   проскакивает чуть дальше и успокаивается затухающим колебанием. Только
+   transform и opacity — анимация целиком на видеочипе, без перерисовок.
+   Колебание задано ключевыми кадрами, а не easing linear() — тот не везде
+   поддерживается (старый iOS выбросил бы анимацию целиком) */
+@keyframes popSpringIn {
+  0%   { opacity: 0; transform: translateY(28px) scale(0.9);    animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+  30%  { opacity: 1; }
+  38%  { transform: translateY(-7px) scale(1.025);              animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  58%  { transform: translateY(3px) scale(0.992);               animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  76%  { transform: translateY(-1px) scale(1.004);              animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Затемнение под карточкой — просто проявляется */
+.lessonLockedOverlay {
+  animation: popFadeIn 0.2s ease-out both;
+}
+
+@keyframes popFadeIn {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lessonLockedCard { animation: popFadeIn 0.2s ease-out both; }
+}
+
+/* Два шага карточки лежат друг на друге в одной ячейке сетки — высота по
+   большему, при переключении «закрыт ↔ предупреждение» не скачет. Кнопки
+   прижаты к низу: у короткого шага пустое место уходит между текстом и
+   кнопками, а сами кнопки стоят там же, где у длинного */
+.lessonLockedSteps {
+  display: grid;
+}
+
+.lessonLockedStep {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.lessonLockedStep--off {
+  visibility: hidden;
+}
+
+.lessonLockedActions {
+  margin-top: auto;
 }
 
 .lessonLockedClose {
