@@ -45,7 +45,7 @@ describe('вердикт свайпа', () => {
     expect(swipeVerdict(-40, -0.6)).toBe('flip')
   })
 
-  it('неспешное ведение без рывка — решает путь (12% экрана)', () => {
+  it('неспешное ведение без рывка — решает путь (8% экрана)', () => {
     expect(swipeVerdict(-80, -0.1)).toBeNull()
     expect(ratioFor(null)).toBe(FEEL.DRAG_RATIO)
   })
@@ -57,6 +57,12 @@ describe('вердикт свайпа', () => {
 
   it('дрожание пальца при тапе не листает, даже быстрое', () => {
     expect(swipeVerdict(-10, -2)).toBeNull() // короче FLICK_MIN_PX
+    expect(targetSlide(100, -10, swipeVerdict(-10, -2), 812)).toBe(100)
+  })
+
+  it('лёгкий короткий смах — уже флик (порог как в TikTok)', () => {
+    expect(swipeVerdict(-20, -0.2)).toBe('flip') // 20px со скоростью 200px/с
+    expect(swipeVerdict(-20, -0.1)).toBeNull() // совсем вяло — решает путь, 20px мало
   })
 
   it('флик листает при любом пройденном пути', () => {
@@ -65,8 +71,8 @@ describe('вердикт свайпа', () => {
 
   it('итоговый слайд — по полному пути пальца, а не по «съеденному» Swiper', () => {
     const h = 812
-    expect(targetSlide(100, -110, null, h)).toBe(101) // 13.5% — вперёд
-    expect(targetSlide(100, -80, null, h)).toBe(100) // 9.8% — на месте
+    expect(targetSlide(100, -70, null, h)).toBe(101) // 8.6% — вперёд (как в TikTok, без «усилия»)
+    expect(targetSlide(100, -50, null, h)).toBe(100) // 6% — на месте
     expect(targetSlide(100, 62, 'flip', h)).toBe(99) // флик вниз — назад
     expect(targetSlide(100, -250, 'stay', h)).toBe(100) // рывок обратно — на месте
   })

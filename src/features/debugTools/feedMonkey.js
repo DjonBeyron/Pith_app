@@ -32,8 +32,8 @@ function makeActions(rnd, hide) {
   return [
     [26, async () => ({ label: await A.swipe(rnd, { dy: pm() * H() * (0.35 + rnd() * 0.25), ms: 180 + rnd() * 170 }), maxStep: 1 })],
     [10, async () => ({ label: A.flick(rnd, pm() * (30 + rnd() * 120)), maxStep: 1 })],
-    // Короче FEEL.FLICK_MIN_PX (16px) — случайное движение, листать нельзя
-    [3, async () => ({ label: 'микро' + A.flick(rnd, pm() * (7 + rnd() * 7)), maxStep: 0 })],
+    // Короче FEEL.FLICK_MIN_PX (12px) — случайное движение, листать нельзя
+    [3, async () => ({ label: 'микро' + A.flick(rnd, pm() * (7 + rnd() * 4)), maxStep: 0 })],
     [4, async () => ({ label: 'недосвайп ' + await A.swipe(rnd, { dy: pm() * H() * 0.05, ms: 250 }), maxStep: 1 })],
     [12, async () => {
       const n = 3 + Math.floor(rnd() * 4)
