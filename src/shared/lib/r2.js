@@ -1,5 +1,6 @@
 import { dbg } from './debug.js'
 import { supabase } from '../api/supabase.js'
+import { tagMp4ColorFile } from './mp4ColorTag.js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -39,6 +40,13 @@ function xhrPut(url, contentType, body) {
 
 export async function uploadToR2(file) {
   dbg('[R2] uploadToR2 called', { fileName: file.name, contentType: file.type, sizeKb: Math.round(file.size / 1024) })
+
+  // Видео: метка цвета BT.709 limited в заголовок MP4 (mp4ColorTag.js) — без
+  // неё часть Android показывает любое видео «в дымке». Кадры не меняются,
+  // файл не перекодируется; не вышло — грузим как есть
+  const tagged = await tagMp4ColorFile(file)
+  if (tagged.file !== file || tagged.reason !== 'не видео MP4') dbg('[R2] метка цвета видео:', tagged.reason)
+  file = tagged.file
 
   const contentType = file.type || 'application/octet-stream'
 
