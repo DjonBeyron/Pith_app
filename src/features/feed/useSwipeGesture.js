@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { swipeEvent } from './feedSwipeTrace.js'
+import { hazeTouch } from './videoHazeProbe.js'
 import { FEEL, ratioFor, releaseVelocity, swipeVerdict, targetSlide } from './feedSwipeFeel.js'
 
 // Жест пальца по ленте (вынесено из FeedSwiper.jsx): обработчики касания
@@ -29,6 +30,7 @@ export function useSwipeGesture() {
   // Флаг data-scrolling — для сторожа стоп-кадра (SlideVideo): во время жеста
   // и анимации кадры законно могут молчать, видео не пинать
   function onTouchStart(s, e) {
+    hazeTouch() // для слежки за «дымкой»: первое касание после остановки
     s.el.dataset.scrolling = '1'
     s.params.longSwipesRatio = FEEL.DRAG_RATIO
     gestureRef.current = { y: pointY(e) ?? 0, moves: [], start: s.activeIndex }

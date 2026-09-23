@@ -61,15 +61,15 @@
 
 .poolVideo { z-index: 1; }
 
-/* Чип «Включить звук» / «Выключить звук» (при паузе) — сидит прямо над
-   иконкой play (.slidePauseIcon: 64px, центр экрана): translateY(-100%)
-   ставит нижний край чипа на линию центра, -46px = половина высоты play
-   (32px) + отступ (14px) */
+/* Чип «Включить звук» / «Выключить звук» (при паузе) — сидит прямо ПОД
+   иконкой play (.slidePauseIcon: 64px, центр экрана): верхний край чипа на
+   46px ниже линии центра = половина высоты play (32px) + отступ (14px).
+   Раньше был над play — перенесён вниз по просьбе (3.2.1715) */
 .feedSoundChip {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, calc(-100% - 46px));
+  transform: translate(-50%, 46px);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -246,24 +246,8 @@
   filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
 }
 
-/* ── Дебаг ленты (временная кнопка) — слева, ниже иконки звука и
-   переключателя видео/список (my-lessons-v2.css, mlModeToggle, top 40px),
-   чтобы никому не мешать */
-.feedDbgBtn {
-  position: absolute;
-  left: 14px;
-  top: calc(100px + env(safe-area-inset-top, 0px));
-  z-index: 6;
-  padding: 3px 7px;
-  border-radius: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.5);
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 9px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
+/* ── Дебаг ленты: кнопка DBG убрана, панель открывается 5 тапами по
+   «Рекомендациям» (FeedTabsHeader.jsx, только админу) */
 .fdbgOverlay {
   position: fixed;
   inset: 0;
