@@ -66,8 +66,13 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   )
   const len = feedModules.length
 
+  // Лента реально на экране: вкладка оболочки открыта И выбраны «Рекомендации».
+  // Скрытая вкладка остаётся в layout и продолжает прокручиваться вслепую —
+  // см. useFeedOffscreenFreeze.js
+  const feedActive = visible && view === 'feed'
+
   useFeedSplash(modules, len, feedModules)
-  const { scrollRef, virtualizer, viewH, cycles, activeIdx, onScroll } = useFeedVirtualizer(len, openModule, pinnedId, feedModules)
+  const { scrollRef, virtualizer, viewH, cycles, activeIdx, onScroll } = useFeedVirtualizer(len, openModule, pinnedId, feedModules, feedActive)
   // Обучающая подсказка «зажми лайк — замедли»: взводится, когда пользователь
   // включил звук и затем свайпнул на следующее видео; активна только в
   // «Рекомендациях» (тут же живёт activeIdx) — «Мои уроки» её не показывают.
@@ -164,7 +169,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
             )}
           </div>
         ) : (
-          <div className="feedV2Scroll" ref={scrollRef} onScroll={onScroll}>
+          <div
+            className={feedActive ? 'feedV2Scroll' : 'feedV2Scroll feedV2ScrollFrozen'}
+            ref={scrollRef} onScroll={onScroll}>
             <div className="feedVirtualTotal" style={{ height: virtualizer.getTotalSize() }}>
               {virtualizer.getVirtualItems().map(vi => {
                 const m = feedModules[vi.index % len]

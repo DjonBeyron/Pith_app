@@ -110,6 +110,19 @@
   -ms-overflow-style: none;
 }
 
+/* Лента не на экране (открыта другая вкладка оболочки или «Мои уроки»):
+   прокрутка заморожена. Скрытая вкладка остаётся в layout
+   (.shellV2TabHidden / .feedViewHidden — это visibility:hidden), поэтому
+   инерция iOS продолжала доигрывать вслепую, а scroll-snap к ней уже не
+   применялся (snap-области элементов с visibility:hidden по спеке
+   игнорируются) — тормозить momentum было нечем, и лента улетала на десятки
+   слайдов. Возврат на вкладку — и она «летит». Позицию гасит
+   useFeedOffscreenFreeze.js, а overflow:hidden не даёт начаться новому
+   скроллу вслепую */
+.feedV2ScrollFrozen {
+  overflow: hidden;
+}
+
 .feedV2Scroll::-webkit-scrollbar {
   display: none;
   width: 0;

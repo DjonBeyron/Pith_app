@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { createTeleporter, keepSlideOnResize, pickSlideAfterRebuild } from './feedSnapTeleport.js'
+import { useFeedOffscreenFreeze } from './useFeedOffscreenFreeze.js'
 import { traceAttach, traceDetach, traceEvent, traceMeta, traceTeleportFlag, traceTick } from './feedScrollTrace.js'
 
 // Виртуализация бесконечного круга ленты (как в TikTok): в DOM живут только
 // видимый слайд и запас overscan сверху/снизу, круг «телепортируется»
 // незаметно при подходе к краю запаса циклов (контент идентичен — скачка не видно)
-export function useFeedVirtualizer(len, openModule, pinnedId, feedModules = []) {
+export function useFeedVirtualizer(len, openModule, pinnedId, feedModules = [], active = true) {
   const scrollRef = useRef(null)
   const [activeIdx, setActiveIdx] = useState(-1)
   const activeIdxRef = useRef(-1)
@@ -154,6 +155,9 @@ export function useFeedVirtualizer(len, openModule, pinnedId, feedModules = []) 
     fdbg('viewH сменилась', prev, '→', viewH, '— держу слайд:', el.scrollTop.toFixed(0), '→', target.toFixed(0))
     if (Math.abs(target - el.scrollTop) > 1) teleport(el, target, 'viewH')
   }, [viewH, len]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Лента не на экране — гасим инерцию и выравниваем при возврате
+  useFeedOffscreenFreeze({ scrollRef, active, len, viewH, teleport })
 
   useEffect(() => () => clearTimeout(settleTimer.current), [])
 
