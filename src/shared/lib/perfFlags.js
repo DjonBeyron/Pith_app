@@ -7,6 +7,13 @@
 // GPU-слои шапки (translateZ). Флаги живут в localStorage, применяются один
 // раз при старте (класс на <html> + чтение из компонентов); кнопки — в
 // панели DBG ленты (feed/DebugPanel.jsx), каждая перезагружает страницу.
+//
+// Видео-флаги — бисекция «дымки»/мигания видео на части Android (Mali-G72,
+// Android 10: и в ленте, и в чате урока — значит, дело в выводе <video>, а не
+// в ленте): noNudge выключает подталкивание слоя из videoLayerNudge.js (его
+// переключение способа вывода само может мигать), videoGpu держит любое
+// видео всегда на GPU-композиции (Android не переключает его на аппаратный
+// оверлей и обратно на ходу — см. perf-flags.css)
 const KEY = 'pithy_perf_flags'
 
 export const PERF_FLAG_DEFS = [
@@ -14,6 +21,8 @@ export const PERF_FLAG_DEFS = [
   { key: 'noVideo',    label: 'видео ленты выкл' },
   { key: 'noTextures', label: 'SVG-текстуры выкл' },
   { key: 'noLayers',   label: 'GPU-слои шапки выкл' },
+  { key: 'noNudge',    label: 'подталкивание видео выкл' },
+  { key: 'videoGpu',   label: 'видео через GPU' },
 ]
 
 function read() {
@@ -34,6 +43,7 @@ export function applyPerfFlagClasses() {
   const el = document.documentElement
   if (perfFlags.noTextures) el.classList.add('perf-no-textures')
   if (perfFlags.noLayers)   el.classList.add('perf-no-layers')
+  if (perfFlags.videoGpu)   el.classList.add('perf-video-gpu')
 }
 
 export function perfFlagsSummary() {

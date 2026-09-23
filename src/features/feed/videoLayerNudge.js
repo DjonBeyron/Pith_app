@@ -14,7 +14,14 @@
 // Точно воспроизвести без такого телефона нельзя; iOS не трогаем — там этого
 // нет, а лишние изменения слоя видео на iOS уже вызывали стоп-кадры
 
-const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+import { perfFlags } from '../../shared/lib/perfFlags.js'
+
+// Флаг бисекции noNudge (DBG): подталкивание переключает способ вывода видео
+// туда-обратно — на части Mali-GPU это само может быть видно как мигание.
+// Флаг videoGpu (видео всегда на GPU) делает подталкивание бессмысленным —
+// тоже выключаем
+const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent) &&
+  !perfFlags.noNudge && !perfFlags.videoGpu
 
 export function nudgeVideoLayer(v) {
   if (!isAndroid || !v || !v.isConnected) return false
