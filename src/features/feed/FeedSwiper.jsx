@@ -5,7 +5,8 @@ import 'swiper/css'
 import 'swiper/css/virtual'
 import { circleCycles, midSlide, moduleOf, pickSlideAfterRebuild, recentreTarget } from './feedCircle.js'
 import { swipeEvent, swipeProgrammatic, swipeTraceAttach, swipeTraceDetach, swipeTraceVisible } from './feedSwipeTrace.js'
-import { FEEL, ratioFor, releaseVelocity, swipeVerdict, targetSlide } from './feedSwipeFeel.js'
+import { FEEL } from './feedSwipeFeel.js'
+import { useSwipeGesture } from './useSwipeGesture.js'
 import { nudgeActiveFeedVideo } from './videoLayerNudge.js'
 
 // Вертикальная лента на Swiper (замена нативного скролла со scroll-snap).
@@ -21,27 +22,15 @@ import { nudgeActiveFeedVideo } from './videoLayerNudge.js'
 // индекс % len, старт с середины, у края — перенос в середину без анимации.
 // Virtual держит в DOM только активный слайд и по два соседа.
 
-// «Листать или нет» решаем сами (feedSwipeFeel.js) — как в TikTok: по скорости
-// пальца в момент отпускания, иначе по пройденному пути. Swiper сам не может:
-// он меряет жест часами своих обработчиков, и при занятом главном потоке
-// быстрый флик по ним «длился» дольше порога — лента возвращалась
-// Анимация перехода: в TikTok слайд уезжает быстрее — 220мс с замедлением к
-// концу (кривая в feed-swiper.css). Чем она короче, тем короче и окно, в
-// котором быстрый свайп игнорируется (preventInteractionOnTransition ниже)
-const SPEED = 220
+// «Листать или нет» решаем сами — useSwipeGesture.js (feedSwipeFeel.js).
 
-// Вертикаль касания из любого события. На телефоне Swiper идёт по сенсорному
-// пути (touchstart/touchmove/touchend), а у TouchEvent нет clientY — он в
-// touches/changedTouches. До 3.2.1713 здесь читался только e.clientY: на
-// настоящем телефоне флик по скорости и сверка решения НЕ работали вовсе
-// (в DBG ни одной строки «решение»), решал один Swiper по пути. В браузерных
-// тестах это пряталось: синтетические PointerEvent clientY имеют
-function pointY(e) {
-  if (!e) return null
-  if (e.clientY != null) return e.clientY
-  const t = e.changedTouches?.[0] ?? e.touches?.[0]
-  return t ? t.clientY : null
-}
+// Анимация перехода: 260мс с мягким замедлением (кривая в feed-swiper.css).
+// В 3.2.1713 было 220мс с резким ease-out: после флика (палец ~2px/мс) слайд
+// стартовал на ~11px/мс — в 5 раз быстрее пальца, это читалось как рывок.
+// Сейчас старт примерно вдвое мягче, хвост к концу плавный. Короткая
+// анимация — короткое окно, где быстрый свайп игнорируется
+// (preventInteractionOnTransition ниже)
+const SPEED = 260
 
 export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, onActiveIdx, renderSlide }) {
   const len = feedModules.length
@@ -69,10 +58,16 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
     onActiveRef.current(target)
   }
 
+  // Смена слайда жестом/колесом: запоминаем модуль, но слайд НЕ активируем —
+  // это делает handleTransitionEnd, когда анимация закончилась. Активация
+  // тяжёлая (перерисовка ленты, перенос <video> между слайдами, play/pause,
+  // звук): в начале анимации она ложилась ровно на время движения, и слайд
+  // доезжал рывками (датчик с iPhone при быстром листании: fps 49-57, кадры
+  // до 79мс, против ровных 60 в покое). Как в TikTok: пока слайд едет — чистый
+  // композитор, видео соседа уже прогрето и стартует, когда слайд встал
   function handleSlideChange(s) {
     const ids = idsRef.current
     activeModuleRef.current = ids[moduleOf(s.activeIndex, ids.length)] ?? activeModuleRef.current
-    onActiveRef.current(s.activeIndex)
   }
 
   // Страховка анимации. CSS-переход обёртки может так и не закончиться:
@@ -106,6 +101,7 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
   function handleTransitionEnd(s) {
     clearTimeout(endTimerRef.current)
     s.el.dataset.scrolling = '' // анимация закончилась — сторож стоп-кадра видео снова работает
+    onActiveRef.current(s.activeIndex) // слайд встал — теперь активируем (см. handleSlideChange)
     const L = idsRef.current.length
     const target = recentreTarget(s.activeIndex, L, circleCycles(L))
     if (target !== null) jump(s, target, 'перенос круга')
@@ -114,49 +110,8 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
   }
   useEffect(() => () => nudgeCancelRef.current(), [])
 
-  // Флаг для сторожа стоп-кадра (SlideVideo): во время жеста и анимации кадры
-  // законно могут молчать — не пинать видео
-  // Жест пальца: старт и последние точки движения (по меткам событий)
-  const gestureRef = useRef({ y: 0, moves: [], start: 0 })
-  function handleTouchStart(s, e) {
-    s.el.dataset.scrolling = '1'
-    s.params.longSwipesRatio = FEEL.DRAG_RATIO
-    gestureRef.current = { y: pointY(e) ?? 0, moves: [], start: s.activeIndex }
-  }
-  function handleTouchMove(s, e) {
-    const y = pointY(e)
-    if (y == null) return
-    const moves = gestureRef.current.moves
-    moves.push({ t: e.timeStamp, y })
-    if (moves.length > 12) moves.shift()
-  }
-  // Swiper отдаёт touchEnd ДО своего решения — успеваем подсказать ему вердикт:
-  // флик — листать при любом пути, рывок обратно — вернуть, иначе решит путь
-  function handleTouchEnd(s, e) {
-    const y = pointY(e)
-    if (y != null) {
-      const g = gestureRef.current
-      const dy = y - g.y
-      const v = releaseVelocity(g.moves, { t: e.timeStamp, y })
-      const verdict = swipeVerdict(dy, v)
-      s.params.longSwipesRatio = ratioFor(verdict)
-      if (Math.abs(dy) >= FEEL.THRESHOLD_PX) {
-        const want = targetSlide(g.start, dy, verdict, s.size)
-        swipeEvent('решение', `путь ${dy.toFixed(0)}px, скорость отпускания ${v.toFixed(2)}px/мс → ${verdict === 'flip' ? 'флик' : verdict === 'stay' ? 'рывок назад' : 'по пути'}, слайд ${want}`)
-        // Сверка после Swiper. Первое движение за порог он «съедает» целиком
-        // (переносит туда точку старта): при редких событиях (медленный
-        // телефон, нагрузка) первый же рывок на 60px пропадал, слайд не
-        // двигался, и Swiper выходил, ничего не решив. Решение — по полному
-        // пути пальца, Swiper только анимирует; разошлись — ставим нужный слайд
-        setTimeout(() => {
-          if (s.destroyed || !s.allowTouchMove || s.activeIndex === want) return
-          swipeEvent('поправка решения', `Swiper: ${s.activeIndex}, нужно ${want}`)
-          s.slideTo(want)
-        }, 0)
-      }
-    }
-    setTimeout(() => { if (!s.destroyed && !s.animating) s.el.dataset.scrolling = '' }, 0)
-  }
+  // Жест пальца и решение «листать или нет» — useSwipeGesture.js
+  const gesture = useSwipeGesture()
 
   // Пересборка круга: изменился состав ленты (фильтр, начатые модули приехали
   // с сервера) или поворот из поиска. Swiper уже получил новые слайды (его
@@ -235,13 +190,13 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
       preventInteractionOnTransition
       mousewheel={{ forceToAxis: true, thresholdDelta: 12 }}
       keyboard={{ enabled: true }}
-      onSwiper={s => { swiperRef.current = s; swipeTraceAttach(s); handleSlideChange(s) }}
+      onSwiper={s => { swiperRef.current = s; swipeTraceAttach(s); handleSlideChange(s); onActiveRef.current(s.activeIndex) }}
       onSlideChange={handleSlideChange}
       onTransitionStart={handleTransitionStart}
       onTransitionEnd={handleTransitionEnd}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      onTouchStart={gesture.onTouchStart}
+      onTouchMove={gesture.onTouchMove}
+      onTouchEnd={gesture.onTouchEnd}
     >
       {slides}
     </Swiper>

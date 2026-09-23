@@ -185,6 +185,9 @@ export async function runFeedMonkey({ ms = 60000, seed = Date.now() % 100000, on
   const t0 = performance.now()
   let step = 0
   await ensureFeed()
+  // Прошлая анимация ленты могла ещё идти (или застыть на скрытой странице) —
+  // стартовать поверх неё значит получить ложное нарушение на первом шаге
+  await settle()
   while (!stopFlag && performance.now() - t0 < ms) {
     step++
     watcher.bind()
