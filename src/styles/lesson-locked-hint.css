@@ -20,35 +20,9 @@
   border-radius: 18px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
   text-align: center;
-  transform-origin: 50% 100%;
-  animation: popSpringIn 0.5s both;
 }
 
-/* Появление — по мотивам панели «Понял на слух?» в ленте (diffPanelIn), но
-   с одним дополнительным мягким качанием: перелёт за 1 → лёгкий недолёт →
-   на место. Каждый участок с плавным разгоном/торможением, без рывков.
-   Карточка чуть выкатывается снизу и растёт из 0.88 (крупное окно из точки,
-   как маленькая панель, смотрелось бы резко). Только transform и opacity —
-   на видеочипе. Ключевые кадры, а не easing linear(): тот не везде есть */
-@keyframes popSpringIn {
-  0%   { opacity: 0; transform: translateY(22px) scale(0.88);  animation-timing-function: cubic-bezier(0.25, 0.8, 0.35, 1); }
-  45%  { opacity: 1; transform: translateY(-2.5px) scale(1.015); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
-  74%  { transform: translateY(0.8px) scale(0.997);             animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* Затемнение под карточкой — просто проявляется */
-.lessonLockedOverlay {
-  animation: popFadeIn 0.2s ease-out both;
-}
-
-@keyframes popFadeIn {
-  from { opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lessonLockedCard { animation: popFadeIn 0.2s ease-out both; }
-}
+/* Появление окна и затемнения — общая «пружинка», pop-spring.css */
 
 /* Два шага карточки лежат друг на друге в одной ячейке сетки — высота по
    большему, при переключении «закрыт ↔ предупреждение» не скачет. Кнопки

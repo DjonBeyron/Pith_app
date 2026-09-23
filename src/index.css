@@ -144,4 +144,6 @@
 /* debug-toolbar.css здесь НЕ подключается: его импортирует сам
    DebugToolbar.jsx, и стили уезжают вместе с dev-чанком тулбара, а не
    висят мёртвым грузом в прод-сборке (см. shared/lib/debugToolsEnabled.js) */
+/* Общая анимация появления попапов — после стилей самих окон */
+@import './styles/pop-spring.css';
 @import './styles/perf-flags.css';

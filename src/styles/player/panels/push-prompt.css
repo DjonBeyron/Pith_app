@@ -13,12 +13,6 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  animation: pushPromptFadeIn 0.25s ease;
-}
-
-@keyframes pushPromptFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
 }
 
 .pushPromptCard {
@@ -32,12 +26,6 @@
   flex-direction: column;
   gap: 10px;
   text-align: center;
-  animation: pushPromptPop 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes pushPromptPop {
-  from { transform: scale(0.92); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
 }
 
 .pushPromptIcon {

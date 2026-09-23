@@ -1,0 +1,79 @@
+/* Общая анимация появления попапов — «пружинка» (утверждена на окне
+   «Урок закрыт», 3.2.1727). Окно чуть выкатывается и растёт из 0.88,
+   перелетает за место → лёгкий недолёт → встаёт. Каждый участок с плавным
+   разгоном/торможением. Только transform и opacity — на видеочипе, без
+   перерисовок. Ключевые кадры, а не easing linear(): тот не везде есть
+   (старый iOS выбросил бы анимацию целиком).
+
+   Заливка backwards (не both): после анимации у окна снова его собственный
+   transform, ничего «не залипает».
+
+   Направление выезда — переменная --pop-dy на самом окне: по умолчанию
+   снизу (22px), у выпадашек из верхней панели — сверху (отрицательное).
+
+   Подключено здесь списком, чтобы было видно все окна разом. Не подключены
+   (конфликт с устройством окна): выбор аватара (центрируется transform'ом),
+   политика конфиденциальности (шторка от нижнего края — перелёт оторвал бы
+   её от края), окно наград и окна серии (полноэкранные, не карточки). */
+
+@keyframes popSpringIn {
+  0%   { opacity: 0; transform: translateY(var(--pop-dy, 22px)) scale(0.88);
+         animation-timing-function: cubic-bezier(0.25, 0.8, 0.35, 1); }
+  42%  { opacity: 1; transform: translateY(calc(var(--pop-dy, 22px) * -0.075)) scale(1.01);
+         animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  72%  { transform: translateY(calc(var(--pop-dy, 22px) * 0.02)) scale(0.998);
+         animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes popFadeIn {
+  from { opacity: 0; }
+}
+
+/* Карточки по центру экрана — выезд снизу */
+.lessonLockedCard,
+.priorityLegendCard,
+.epCard,
+.ppCard,
+.resumeLessonCard,
+.pinDialogCard,
+.pushPromptCard,
+.rwInfoCard,
+.rcCard,
+.racePopupCard,
+.installSlidesCard {
+  transform-origin: 50% 100%;
+  animation: popSpringIn 0.45s backwards;
+}
+
+/* Выпадашки сверху справа (значки энергии/уровня/билетов, поиск ленты) —
+   выезд сверху, растут от своего угла */
+.energyPop,
+.fsPanel {
+  --pop-dy: -10px;
+  transform-origin: top right;
+  animation: popSpringIn 0.45s backwards;
+}
+
+/* Затемнение под окном — просто проявляется. Под легендой приоритетов
+   затемнения нет намеренно: оно сразу непрозрачное и прячет смену экрана */
+.lessonLockedOverlay,
+.epOverlay,
+.ppOverlay,
+.resumeLessonOverlay,
+.pinDialog,
+.pushPromptOverlay,
+.rwInfoOverlay,
+.rcOverlay,
+.racePopupOverlay,
+.installSlidesOverlay {
+  animation: popFadeIn 0.2s ease-out backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lessonLockedCard, .priorityLegendCard, .epCard, .ppCard, .resumeLessonCard,
+  .pinDialogCard, .pushPromptCard, .rwInfoCard, .rcCard, .racePopupCard,
+  .installSlidesCard, .energyPop, .fsPanel {
+    animation: popFadeIn 0.2s ease-out backwards;
+  }
+}
