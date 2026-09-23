@@ -17,7 +17,7 @@
 // окне больше, чем элементов, переиспользуется самый давно не нужный (LRU).
 
 import { fdbg } from '../../shared/lib/feedDebug.js'
-import { perfFlags } from '../../shared/lib/perfFlags.js'
+import { VIDEO_CANVAS } from '../../shared/lib/videoCanvasMode.js'
 
 const POOL_SIZE = 4
 const slots = [] // { el, key, used }
@@ -27,7 +27,7 @@ let tick = 0
 function makeVideo() {
   const v = document.createElement('video')
   // «Видео через canvas»: элемент только декодирует, показывает canvas (useFeedVideoCanvas.js)
-  v.className = perfFlags.videoCanvas ? 'feedMedia poolVideo videoMirrorSource' : 'feedMedia poolVideo'
+  v.className = VIDEO_CANVAS ? 'feedMedia poolVideo videoMirrorSource' : 'feedMedia poolVideo'
   v.loop = true
   v.preload = 'auto'
   v.muted = true

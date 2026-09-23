@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { perfFlags } from '../../shared/lib/perfFlags.js'
+import { VIDEO_CANVAS, noteCanvasDraw } from '../../shared/lib/videoCanvasMode.js'
 
 // Зеркалим кадры <video> в <canvas> — обход браузерной панели над видео.
 //
@@ -24,8 +24,8 @@ export function useWideScreen() {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
-  // DBG-флаг «видео через canvas» — зеркало и на телефоне (обход дымки Android)
-  return !!wide || !!perfFlags.videoCanvas
+  // «Видео через canvas» — зеркало и на Android (обход дымки, videoCanvasMode.js)
+  return !!wide || VIDEO_CANVAS
 }
 
 // Рисует в canvas каждый новый кадр видео. requestVideoFrameCallback даёт
@@ -49,12 +49,18 @@ export function useVideoMirror(videoRef, canvasRef, enabled, posterUrl = null) {
       if (c.width !== w || c.height !== h) { c.width = w; c.height = h }
     }
 
-    const draw = () => {
+    // meta — от requestVideoFrameCallback: по presentedFrames видно пропуски
+    let lastPresented = null
+    const draw = (_now, meta) => {
       if (stopped) return
       const w = v.videoWidth, h = v.videoHeight
       if (w && h) {
         fit(w, h)
+        const t0 = performance.now()
         ctx.drawImage(v, 0, 0, w, h)
+        const pf = meta?.presentedFrames
+        noteCanvasDraw(performance.now() - t0, pf != null && lastPresented != null ? Math.max(0, pf - lastPresented - 1) : 0)
+        if (pf != null) lastPresented = pf
         painted = true
       }
       schedule()

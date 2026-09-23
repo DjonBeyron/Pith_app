@@ -4,6 +4,7 @@ import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurfac
 import { useVideoStall } from './useVideoStall.js'
 import { perfFlags } from '../../shared/lib/perfFlags.js'
 import { useFeedVideoCanvas } from './useFeedVideoCanvas.js'
+import { VIDEO_CANVAS } from '../../shared/lib/videoCanvasMode.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
 const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга при частых тапах по чипу звука
@@ -20,9 +21,9 @@ export default function SlideVideo({
 }) {
   const [paused, setPaused] = useState(false)
   const rootRef = useRef(null)
-  // DBG «видео через canvas» (обход дымки Android): кадры показывает canvas
+  // «Видео через canvas» (обход дымки Android, videoCanvasMode.js)
   const canvasRef = useRef(null)
-  const canvasMode = !!perfFlags.videoCanvas
+  const canvasMode = VIDEO_CANVAS
   // Защита от дребезга: на реальных телефонах быстрые повторные тапы по чипу
   // звука (вкл/выкл подряд) успевают дёрнуть play()/pause() чаще, чем
   // устройство успевает вернуть кадр на место — он «плывёт». Один тап

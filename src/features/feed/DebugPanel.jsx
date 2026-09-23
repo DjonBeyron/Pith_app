@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import { collectEnv, fdbgLog } from '../../shared/lib/feedDebug.js'
 import { getPlayerLines } from '../../shared/lib/debug.js'
 import { swipeTraceReport } from './feedSwipeReport.js'
-import { hazeMarkLast, hazeReport } from './videoHazeProbe.js'
+import { videoCanvasReport } from '../../shared/lib/videoCanvasMode.js'
 import { PERF_FLAG_DEFS, perfFlags, togglePerfFlag, perfFlagsSummary } from '../../shared/lib/perfFlags.js'
 
 // Панель дебага ленты: собирает отчёт (окружение + метрики ленты + трассировка
@@ -48,18 +48,8 @@ ${swipeTraceReport()}${monkey}`
     monkeyReport = await m.runFeedMonkey({ ms: 60000 })
   }
 
-  // Слежка за «дымкой» на видео (Android, videoHazeProbe.js) — сразу после
-  // данных устройства, чтобы не искать
   function build() {
-    return `${collectEnv()}\nperfFlags: ${perfFlagsSummary()}\n\n--- дымка видео (Android) ---\n${hazeReport()}\n\n--- лента ---\n${getFeedInfo()}${scrollSection()}\n\n--- perf (датчик, 1 строка = 1 секунда) ---\n${perfLog()}\n\n--- лог ---\n${fdbgLog()}`
-  }
-
-  // Увидел дымку → открыл DBG → жмёт сюда. Касания дымку уже убрали, но
-  // снимок последнего видео сделан ДО них — он и отмечается
-  function markHaze() {
-    const slide = hazeMarkLast()
-    setReport(build())
-    setMsg(slide == null ? 'Ещё нет снимков после свайпа' : `Отмечено: дымка на слайде ${slide}`)
+    return `${collectEnv()}\nperfFlags: ${perfFlagsSummary()}\n${videoCanvasReport()}\n\n--- лента ---\n${getFeedInfo()}${scrollSection()}\n\n--- perf (датчик, 1 строка = 1 секунда) ---\n${perfLog()}\n\n--- лог ---\n${fdbgLog()}`
   }
 
   function share() {
@@ -93,9 +83,6 @@ ${swipeTraceReport()}${monkey}`
           <button className="fdbgClose" onClick={onClose}><X size={16} /></button>
         </div>
         <textarea className="fdbgText" readOnly value={report} />
-        <div className="fdbgBtns">
-          <button onClick={markHaze}>⚠ На последнем видео была дымка</button>
-        </div>
         {/* Бисекция лага сворачивания: каждая кнопка переключает флаг и
             перезагружает страницу (shared/lib/perfFlags.js) */}
         <div className="fdbgBtns">

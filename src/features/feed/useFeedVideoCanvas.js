@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
+import { noteCanvasDraw } from '../../shared/lib/videoCanvasMode.js'
 
-// «Видео через canvas» в ленте (DBG-флаг perfFlags.videoCanvas) — обход «дымки»
+// «Видео через canvas» в ленте (на Android сам, см. videoCanvasMode.js) — обход «дымки»
 // на части Android (Mali-G72): <video> там выводится с неверным диапазоном
 // (16–235 как 0–255), а та же картинка, нарисованная в canvas, — верная
 // (поэтому стоп-кадр до старта видео нормальный, а видео — «в дымке»).
@@ -26,18 +27,24 @@ export function useFeedVideoCanvas(rootRef, canvasRef, enabled) {
       // Элемент пула сменил видео — чужой кадр не показываем
       if (drawnUrl && v.dataset.url !== drawnUrl) { ctx.clearRect(0, 0, c.width, c.height); drawnUrl = null }
     }
-    const draw = () => {
+    // meta — от requestVideoFrameCallback: по presentedFrames видно пропуски
+    let lastPresented = null
+    const draw = (_now, meta) => {
       if (!v || stopped) return
       sync()
       const w = v.videoWidth
       const h = v.videoHeight
       if (!w || !h || v.readyState < 2) return
       if (c.width !== w || c.height !== h) { c.width = w; c.height = h }
+      const t0 = performance.now()
       ctx.drawImage(v, 0, 0, w, h)
+      const pf = meta?.presentedFrames
+      noteCanvasDraw(performance.now() - t0, pf != null && lastPresented != null ? Math.max(0, pf - lastPresented - 1) : 0)
+      if (pf != null) lastPresented = pf
       drawnUrl = v.dataset.url
     }
-    const loop = () => {
-      draw()
+    const loop = (now, meta) => {
+      draw(now, meta)
       if (stopped || !v) return
       frameId = v.requestVideoFrameCallback ? v.requestVideoFrameCallback(loop) : requestAnimationFrame(loop)
     }
@@ -57,6 +64,7 @@ export function useFeedVideoCanvas(rootRef, canvasRef, enabled) {
       if (el === v) { sync(); return }
       unbind()
       v = el
+      lastPresented = null
       if (!v) return
       v.addEventListener('loadeddata', draw)
       v.addEventListener('seeked', draw)

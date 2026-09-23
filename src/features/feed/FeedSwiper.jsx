@@ -7,8 +7,6 @@ import { circleCycles, midSlide, moduleOf, pickSlideAfterRebuild, recentreTarget
 import { swipeEvent, swipeProgrammatic, swipeTraceAttach, swipeTraceDetach, swipeTraceVisible } from './feedSwipeTrace.js'
 import { FEEL } from './feedSwipeFeel.js'
 import { useSwipeGesture } from './useSwipeGesture.js'
-import { nudgeActiveFeedVideo } from './videoLayerNudge.js'
-import { hazeSnapshot } from './videoHazeProbe.js'
 
 // Вертикальная лента на Swiper (замена нативного скролла со scroll-snap).
 //
@@ -96,9 +94,6 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
     return () => { document.removeEventListener('visibilitychange', onVisible); clearTimeout(endTimerRef.current) }
   }, [])
 
-  // Android: после свайпа видео может остаться «в дымке» до касания экрана —
-  // подталкиваем его слой, когда слайд доехал (см. videoLayerNudge.js)
-  const nudgeCancelRef = useRef(() => {})
   function handleTransitionEnd(s) {
     clearTimeout(endTimerRef.current)
     s.el.dataset.scrolling = '' // анимация закончилась — сторож стоп-кадра видео снова работает
@@ -106,28 +101,7 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
     const L = idsRef.current.length
     const target = recentreTarget(s.activeIndex, L, circleCycles(L))
     if (target !== null) jump(s, target, 'перенос круга')
-    nudgeCancelRef.current()
-    const nudged = { n: 0 }
-    nudgeCancelRef.current = nudgeActiveFeedVideo(s.el, () => { nudged.n++; swipeEvent('подтолкнул слой видео (Android)') })
-    // Снимок для слежки за «дымкой» (videoHazeProbe.js): видео проявилось,
-    // оба подталкивания прошли — фиксируем, в каком состоянии оно осталось
-    clearTimeout(hazeTimerRef.current)
-    hazeTimerRef.current = setTimeout(() => hazeSnapshot(s.el, 'после свайпа', nudged.n), 900)
   }
-  const hazeTimerRef = useRef(0)
-  useEffect(() => {
-    // Стартовое видео — «яркое», эталон для сравнения со снимками после
-    // свайпов. Снимаем, когда оно реально заиграло (сплэш, загрузка — до 10с)
-    let tries = 0
-    const t = setInterval(() => {
-      const v = swiperRef.current?.el?.querySelector('.feedSlideWrapActive video')
-      if ((v && !v.paused && v.style.opacity === '1') || ++tries > 20) {
-        clearInterval(t)
-        if (v) hazeSnapshot(swiperRef.current.el, 'старт', 0)
-      }
-    }, 500)
-    return () => { nudgeCancelRef.current(); clearInterval(t); clearTimeout(hazeTimerRef.current) }
-  }, [])
 
   // Жест пальца и решение «листать или нет» — useSwipeGesture.js
   const gesture = useSwipeGesture()
