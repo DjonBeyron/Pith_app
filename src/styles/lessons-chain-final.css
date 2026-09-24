@@ -243,12 +243,25 @@
 }
 
 /* ── Вспышка в такт касанию кружочка XP ─────────────────────── */
-@keyframes mgFinalFlash {
-  0%   { filter: brightness(1.9); }
-  100% { filter: brightness(1); }
+/* Светлый слой над заливкой финала гаснет прозрачностью — вместо
+   filter: brightness на всём ноде (яркость пересчитывалась на каждом
+   касании кружочка, пока летит XP) */
+.mgHexFill--final::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* над фоном заливки, под текстом */
+  pointer-events: none;
+  background: rgba(185, 160, 255, 0.2); /* подобрано бок о бок со старым brightness */
+  opacity: 0;
 }
 
-.mgGlow--finalFlash .mgNode--final {
+@keyframes mgFinalFlash {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.mgGlow--finalFlash .mgHexFill--final::before {
   animation: mgFinalFlash 0.28s ease-out;
 }
 
@@ -297,15 +310,26 @@
   100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.4); opacity: 0; }
 }
 
-/* Вспышка блока: яркость + компактный drop-shadow (без огромного блюра,
-   который резался краем скролл-контейнера — глубину даёт ореол ниже) */
+/* Вспышка блока: яркое свечение (слой burst в MgNodeGlow.jsx) и подсветка
+   заливки — прозрачностью. Раньше filter: brightness + drop-shadow на всём
+   ноде 2.1с — во время полёта XP, замка и искр пересчитывались каждый кадр */
 @keyframes mgFinalBurst {
-  0%   { filter: brightness(1); }
-  18%  { filter: brightness(1.45) drop-shadow(0 0 18px rgba(167, 139, 250, 0.8)); }
-  100% { filter: brightness(1)    drop-shadow(0 0 14px rgba(167, 139, 250, 0.45)); }
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  100% { opacity: 0.55; }
 }
 
-.mgGlow--finalBurst { animation: mgFinalBurst 2.1s ease-out forwards; }
+@keyframes mgFinalBurstFill {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.mgGlow--finalBurst .mgNodeGlowLayer--burst { animation: mgFinalBurst 2.1s ease-out forwards; }
+/* Пока вспышка, обычное свечение «открыт» уступает ей место (как раньше:
+   фильтр вспышки заменял фильтр открытого финала) */
+.mgGlow--finalBurst .mgNodeGlowLayer--open { opacity: 0; transition: none; }
+.mgGlow--finalBurst .mgHexFill--final::before { animation: mgFinalBurstFill 2.1s ease-out forwards; }
 
 .mgGlow--finalBurst .mgNodeOutline {
   color: #d9ccff;

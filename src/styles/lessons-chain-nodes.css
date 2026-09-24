@@ -1,6 +1,6 @@
 /* ── Старт и Финал: обводка + свечение (по референсу) ────────
-   box-shadow не работает с clip-path, поэтому свечение — через
-   drop-shadow на обёртке .mgGlow, а «обводка» — фон родителя,
+   box-shadow не работает с clip-path, поэтому свечение — отдельный SVG-слой
+   той же формы под нодом (MgNodeGlow.jsx), а «обводка» — фон родителя,
    проглядывающий из-под уменьшенного .mgHexFill. */
 
 .mgGlow {
@@ -8,17 +8,35 @@
   flex-shrink: 0;
   position: relative;
   z-index: 1; /* выше SVG-слоя линий: точки линий не должны перекрывать ноды */
-  /* GPU-слой заводим ЗАРАНЕЕ, а не в момент смены filter: если браузер
-     создаёт слой только когда filter уже меняется (переход/пульс), область
-     под размытие иногда считается по старым узким границам — свечение
-     обрывается ровной кромкой вместо плавного рассеивания. */
-  will-change: filter;
 }
 
-.mgGlow--start        { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.10)); }
-.mgGlow--start--done  { filter: drop-shadow(0 0 18px rgba(182, 254, 59, 0.35)); }
-.mgGlow--final        { filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.30)); }
-.mgGlow--final--open  { filter: drop-shadow(0 0 22px rgba(167, 139, 250, 0.50)); }
+/* Свечение — размытая форма нода, нарисованная один раз. Раньше это был
+   filter: drop-shadow на всей .mgGlow: любое движение внутри нода (блик,
+   ключ по бару, замок) заставляло пересчитывать размытие каждый кадр.
+   Свой GPU-слой (will-change) — движение рядом его не перерисовывает;
+   состояния переключаются только прозрачностью слоёв */
+.mgNodeGlow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: -1;
+  will-change: transform;
+}
+
+.mgNodeGlowLayer { transition: opacity 0.9s ease; }
+.mgNodeGlowLayer--inactive { fill: rgba(255, 255, 255, 0.10); }
+.mgNodeGlowLayer--done     { fill: rgba(182, 254, 59, 0.35); }
+.mgNodeGlowLayer--closed   { fill: rgba(139, 92, 246, 0.30); }
+.mgNodeGlowLayer--open     { fill: rgba(167, 139, 250, 0.50); }
+.mgNodeGlowLayer--burst    { fill: rgba(167, 139, 250, 0.80); opacity: 0; }
+
+.mgGlow--start       .mgNodeGlowLayer--done     { opacity: 0; }
+.mgGlow--start--done .mgNodeGlowLayer--inactive { opacity: 0; }
+.mgGlow--final       .mgNodeGlowLayer--open     { opacity: 0; }
+.mgGlow--final--open .mgNodeGlowLayer--closed   { opacity: 0; }
 
 /* Контур нода — SVG-штрих поверх (ровная толщина по всему периметру) */
 .mgNodeOutline {
@@ -110,12 +128,10 @@
 /* ── СТАРТ ──────────────────────────────────────────────────── */
 
 /* Превращение в «пройден» анимируется: фоны — сплошные цвета (transition),
-   зелёный градиент — отдельный слой ::before с opacity, свечение и контур —
-   transition на filter/color. Работает и после попапа, и при обычном выходе. */
+   зелёный градиент — отдельный слой ::before с opacity, свечение — смена
+   прозрачности слоёв MgNodeGlow, контур — transition на color. Работает и после попапа, и при обычном выходе. */
 .mgNode--start { transition: background 0.9s ease; }
 .mgNode--start .mgHexFill { transition: background 0.9s ease; }
-.mgGlow--start,
-.mgGlow--start--done { transition: filter 0.9s ease; }
 .mgGlow--start .mgNodeOutline,
 .mgGlow--start--done .mgNodeOutline { transition: color 0.9s ease; }
 

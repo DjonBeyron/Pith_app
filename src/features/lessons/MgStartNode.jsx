@@ -1,4 +1,5 @@
 import { Star, Check } from 'lucide-react'
+import MgNodeGlow from './MgNodeGlow.jsx'
 
 // Нод «Старт» (диагностика): шестиугольник со звездой, кнопкой запуска и
 // SVG-контуром. done — зелёный «пройден» (плавное озеленение — transition в
@@ -8,12 +9,16 @@ import { Star, Check } from 'lucide-react'
 // поверх нода: даёт ровную обводку, чего не добиться масштабированием заливки.
 const START_PATH = 'M 25.82 32.12 L 64.18 12.88 A 50 50 0 0 1 115.82 12.88 L 154.18 32.12 A 50 50 0 0 1 180 73.86 L 180 106.14 A 50 50 0 0 1 154.18 147.88 L 115.82 167.12 A 50 50 0 0 1 64.18 167.12 L 25.82 147.88 A 50 50 0 0 1 0 106.14 L 0 73.86 A 50 50 0 0 1 25.82 32.12 Z'
 
+// Свечение старта: не пройден / пройден (MgNodeGlow.jsx)
+const START_GLOW = [{ name: 'inactive', blur: 14 }, { name: 'done', blur: 18 }]
+
 export default function MgStartNode({
   lesson, done = false, pulse = false,
   renaming, renameInput, btns, nodeRef, onHover, onClick, onPlay,
 }) {
   return (
     <div className={`mgGlow ${done ? 'mgGlow--start--done' : 'mgGlow--start'}${pulse ? ' mgGlow--justDone' : ''}`}>
+      <MgNodeGlow id="mgGlowStart" path={START_PATH} size={180} layers={START_GLOW} />
       <span className="mgIconBadge mgIconBadge--start"><Star size={13} fill="currentColor" /></span>
       <div
         ref={nodeRef}

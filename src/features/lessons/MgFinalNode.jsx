@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Lock, LockOpen, KeyRound, Play } from 'lucide-react'
+import MgNodeGlow from './MgNodeGlow.jsx'
 
 // Контур пятиугольника — тот же path, что в clip-path (lessons.css).
 const FINAL_PATH = 'M 17.4 154.0 L 28.6 78.4 A 43.8 43.8 0 0 1 72.0 40.6 L 198.0 40.6 A 43.8 43.8 0 0 1 241.8 78.4 L 252.6 154.0 A 43.8 43.8 0 0 1 232.0 197.4 L 158.2 242.8 A 43.8 43.8 0 0 1 112.0 242.8 L 38.2 197.4 A 43.8 43.8 0 0 1 17.4 154.0 Z'
@@ -15,6 +16,9 @@ const SPARK_DIRS = Array.from({ length: 8 }, (_, i) => {
 // края, дуга и свободный конец висят в воздухе справа (как 🔓 в референсе).
 // overflow visible: открытая дужка выходит за viewBox справа — не режем её.
 // Экспорт: ModuleGraph рисует этот же замок на уроках до прохождения диагностики.
+// Свечение финала: закрыт / открыт / вспышка церемонии (MgNodeGlow.jsx)
+const FINAL_GLOW = [{ name: 'closed', blur: 16 }, { name: 'open', blur: 22 }, { name: 'burst', blur: 18 }]
+
 export function LockIcon({ open, size = 23 }) {
   return open ? <LockOpen size={size} /> : <Lock size={size} />
 }
@@ -84,6 +88,7 @@ export default function MgFinalNode({
   return (
     <div className={glowCls}>
       <div className="mgFinalHalo" />
+      <MgNodeGlow id="mgGlowFinal" path={FINAL_PATH} size={270} layers={FINAL_GLOW} />
       <div
         ref={nodeRef}
         className={`mgNode mgNode--final${finalOpen ? ' mgNode--final--open' : ''}`}
