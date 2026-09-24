@@ -283,7 +283,7 @@ export default function SlideVideo({
       {posterUrl
         ? <div className="feedPosterBg" style={{ backgroundImage: `url("${posterUrl}")` }} />
         : <div className="feedSkeleton" />}
-      {canvasMode && <canvas ref={canvasRef} className="feedMedia poolVideo feedVideoCanvas" aria-hidden="true" />}
+      {canvasMode && <canvas ref={canvasRef} className="feedMedia feedVideoCanvas" aria-hidden="true" />}
       {paused && active && (
         <div className="slidePauseIcon">
           <Play fill="currentColor" />

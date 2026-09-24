@@ -24,5 +24,6 @@ html.perf-no-layers .hudBarRight {
    Прозрачность и её переход он копирует с <video> — до первого кадра скрыт,
    виден постер */
 .feedVideoCanvas {
+  z-index: 1; /* тот же слой, что у видео пула (.poolVideo) — над постером */
   opacity: 0;
 }

@@ -11,7 +11,9 @@ export function buildFeedInfo({ view, len, activeIdx, startedIds, modules, visib
   const sw = document.querySelector('.feedSwiper')?.swiper
   const vd = sw?.virtual
   const items = vd ? Array.from({ length: vd.to - vd.from + 1 }, (_, k) => vd.from + k) : []
-  const all = [...document.querySelectorAll('.poolVideo')]
+  // Именно <video>: у холста «видео через canvas» (Android) раньше был тот же
+  // класс, и отчёт падал на canvas.currentTime (DBG не открывался вовсе)
+  const all = [...document.querySelectorAll('video.poolVideo')]
   const dump = all.map(v => {
     const inFeed = !!v.closest('.feedSwiper, .feedV2Scroll')
     const r = v.getBoundingClientRect()
