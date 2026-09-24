@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Crown, Zap, Library, Heart } from 'lucide-react'
 import {
   createSubscriptionPayment, PRO_PRICE_MONTH_RUB, PRO_PRICE_YEAR_RUB,
 } from '../../shared/api/subscriptionApi.js'
+import { track } from '../../shared/lib/analytics/track.js'
 
 // «Экономия» и цена в пересчёте на месяц — для вкладки «Год»
 const YEAR_AS_MONTH_RUB = Math.round(PRO_PRICE_YEAR_RUB / 12)
@@ -19,7 +20,10 @@ export default function ProPaywall({ heading = 'HETA Pro', onClose }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
+  useEffect(() => { track('paywall_view', { kind: 'pro', heading }) }, [heading])
+
   async function handleBuy() {
+    track('paywall_click', { kind: 'pro', period })
     setBusy(true)
     setMsg('')
     const res = await createSubscriptionPayment(period)

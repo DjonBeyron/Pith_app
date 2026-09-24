@@ -1,0 +1,98 @@
+/* ── Admin → Аналитика ─────────────────────────────────────────────────
+   Отчёт по журналу app_events (AdminAnalyticsTab.jsx): выбор периода,
+   воронка с полосками, таблицы удержания/активности/уроков/ленты.
+   Шапка, «Обновить», подсказки — общие классы вкладки «Ошибки» (ae*).
+   ──────────────────────────────────────────────────────────────────── */
+
+.anWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0 24px;
+}
+
+.anPeriods {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.anPeriod {
+  background: transparent;
+  border: 1px solid #2a2d35;
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #888;
+  cursor: pointer;
+  font-family: inherit;
+}
+.anPeriodActive { border-color: #b6fe3b; color: #b6fe3b; }
+
+.anBlock {
+  background: #14161b;
+  border: 1px solid #23262d;
+  border-radius: 11px;
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+
+.anBlockTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #bbb;
+  margin-bottom: 8px;
+}
+
+.anFunnelRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.4fr) 2fr 44px 44px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #ddd;
+  padding: 3px 0;
+}
+
+.anFunnelBar {
+  height: 8px;
+  background: #1e2128;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.anFunnelBar > span {
+  display: block;
+  height: 100%;
+  background: #b6fe3b;
+  border-radius: 4px;
+}
+
+.anNum { text-align: right; font-variant-numeric: tabular-nums; }
+.anPct { text-align: right; color: #888; font-variant-numeric: tabular-nums; }
+
+.anNote {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #777;
+}
+
+.anTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: #ddd;
+}
+.anTable th {
+  text-align: left;
+  font-weight: 500;
+  color: #777;
+  padding: 4px 6px;
+  border-bottom: 1px solid #23262d;
+  white-space: nowrap;
+}
+.anTable td {
+  padding: 5px 6px;
+  border-bottom: 1px solid #1a1d23;
+  font-variant-numeric: tabular-nums;
+}
+.anTable td:first-child { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -21,7 +21,11 @@ self.addEventListener('push', e => {
 // Тап по уведомлению: фокусируем открытое приложение или открываем новое окно
 self.addEventListener('notificationclick', e => {
   e.notification.close()
-  const url = e.notification.data?.url || '/'
+  // ?from=push — метка для аналитики (push_open, analytics/track.js),
+  // приложение считает её и сразу убирает из адреса
+  const target = new URL(e.notification.data?.url || '/', self.location.origin)
+  target.searchParams.set('from', 'push')
+  const url = target.href
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       const open = list.find(c => 'focus' in c)

@@ -5,6 +5,7 @@ import AdminNotificationsTab from './AdminNotificationsTab.jsx'
 import AdminRaceTab from './AdminRaceTab.jsx'
 import AdminStreakTab from './AdminStreakTab.jsx'
 import AdminErrorsTab from './AdminErrorsTab.jsx'
+import AdminAnalyticsTab from './AdminAnalyticsTab.jsx'
 import AdminTeacherTab from './AdminTeacherTab.jsx'
 import AdminUserModeToggle from './AdminUserModeToggle.jsx'
 import AdminDebugUiToggle from './AdminDebugUiToggle.jsx'
@@ -14,13 +15,13 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Админ-раздел новой оболочки: субвкладки «Модули» (список с публикацией),
 // «Файлы» (таблица файлов R2), «Пуши» (рассылка), «Гонка» (супергонка),
-// «Стрик» (вехи наград), «Учитель» (общий учитель всех уроков) и «Ошибки»
-// (ошибки клиентов из client_errors).
+// «Стрик» (вехи наград), «Учитель» (общий учитель всех уроков), «Ошибки»
+// (ошибки клиентов из client_errors) и «Аналитика» (отчёт по app_events).
 // openModule — { id, title, isPro }: просьба снаружи открыть схему этого
 // модуля (возврат «назад» из редактора урока, см. ShellV2). Сбрасывается
 // через onModuleOpened, чтобы повторный заход в админку не открывал её снова
 export default function AdminV2({ onOpenCanvas, onOpenProduction, openModule = null, onModuleOpened }) {
-  const [sub, setSub] = useState('modules') // modules | files | push | race | streak | teacher | errors
+  const [sub, setSub] = useState('modules') // modules | files | push | race | streak | teacher | errors | analytics
 
   useEffect(() => {
     // Просьба извне открыть схему модуля — переводим админку на «Модули»
@@ -61,6 +62,9 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, openModule = n
         <button className={sub === 'errors' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('errors')}>
           Ошибки
         </button>
+        <button className={sub === 'analytics' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('analytics')}>
+          Аналитика
+        </button>
       </div>
       <div className="avVersion">v{APP_VERSION}</div>
       {sub === 'modules' && (
@@ -77,6 +81,7 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, openModule = n
       {sub === 'streak' && <AdminStreakTab />}
       {sub === 'teacher' && <div className="shellV2Panel"><AdminTeacherTab /></div>}
       {sub === 'errors' && <div className="shellV2Panel"><AdminErrorsTab /></div>}
+      {sub === 'analytics' && <div className="shellV2Panel"><AdminAnalyticsTab /></div>}
     </div>
   )
 }

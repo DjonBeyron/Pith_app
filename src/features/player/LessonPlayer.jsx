@@ -27,6 +27,7 @@ import PlayerOverlays from './PlayerOverlays.jsx'
 import HintBar from './HintBar.jsx'
 import { useFinalHints } from './useFinalHints.js'
 import { useLessonFinish } from './useLessonFinish.js'
+import { useLessonTracking } from './useLessonTracking.js'
 import { useLessonResume } from './useLessonResume.js'
 import ResumeLessonPopup from './ResumeLessonPopup.jsx'
 import { useLessonNav } from '../../app/LessonNavContext.jsx'
@@ -127,6 +128,7 @@ export default function LessonPlayer({
   })
   const { visibleNodes, pendingNode, isWaiting, onNodeDone, requestMoreHistory, hasMoreHistory } = graph
   const progress = lessonProgress(mainIndex, visibleNodes)
+  useLessonTracking({ lessonId, enabled: !edit, progress, finished: showSummary, resumed: !!startNodeId })
   const signalMessages = useSignalMessages() // сигналы ошибок — вне графа урока (useSignalMessages.js)
 
   // Откуда полетит «+N XP», решает xpAnchor.js: от пузыря с ответом, если он

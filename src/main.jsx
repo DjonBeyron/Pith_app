@@ -7,6 +7,7 @@ import { LessonNavProvider } from './app/LessonNavContext.jsx'
 import { initErrorTrap } from './shared/lib/errorTrap.js'
 import { startStallWatch } from './shared/lib/feedDebug.js'
 import { applyPerfFlagClasses } from './shared/lib/perfFlags.js'
+import { initAnalytics } from './shared/lib/analytics/track.js'
 import './index.css'
 // Побочный эффект: вешает слушатель beforeinstallprompt как можно раньше
 // (см. pwaInstall.js) — событие приходит один раз за загрузку, ловить надо
@@ -30,6 +31,9 @@ initErrorTrap()
 startStallWatch()
 // Флаги бисекции лага сворачивания (классы на <html>, см. perf-flags.css)
 applyPerfFlagClasses()
+// Журнал продуктовой аналитики: открытие, открытие из пуша, отправка при
+// сворачивании (см. analytics/track.js)
+initAnalytics()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js'
 import { alog, describeAuthError } from '../lib/authLog.js'
+import { track } from '../lib/analytics/track.js'
 
 // Как выглядит токен в логе: длина и начало. Целиком не пишем — он одноразовый
 // и живёт 5 минут, но лог человек отправляет в поддержку, лишнего там не надо
@@ -19,6 +20,8 @@ export async function registerUser({ email, password, name, captchaToken }) {
   })
   alog('[auth] ответ на регистрацию:', describeAuthError(error))
   if (error) return { data, error }
+  // Новый аккаунт (у занятого email signUp возвращает user без identities)
+  if (data?.user?.identities?.length) track('signup')
   // При включённом подтверждении email signUp НЕ создаёт сессию — пользователь
   // оставался гостем (терялись XP и «Мои уроки»). Если сессии нет — сразу
   // входим паролем; не вышло (нужно подтверждение) — вернём как есть.

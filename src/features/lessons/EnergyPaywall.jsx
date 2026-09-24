@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Zap } from 'lucide-react'
 import ProPaywall from '../pro/ProPaywall.jsx'
 import { energyColor } from '../../shared/lib/energyColors.js'
+import { track } from '../../shared/lib/analytics/track.js'
 
 function fmtLeft(ms) {
   if (ms <= 0) return 'уже доступна'
@@ -20,6 +21,8 @@ function fmtLeft(ms) {
 export default function EnergyPaywall({ nextAt, onClose }) {
   const [left, setLeft] = useState(() => new Date(nextAt) - Date.now())
   const [showPro, setShowPro] = useState(false)
+
+  useEffect(() => { track('paywall_view', { kind: 'energy' }) }, [])
 
   useEffect(() => {
     const t = setInterval(() => setLeft(new Date(nextAt) - Date.now()), 1000)
