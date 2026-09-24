@@ -142,7 +142,7 @@ export default function ModuleGraph({
 
   // Скролл после урока: урок к верху экрана + плавный проезд к финалу (useChainScroll).
   const scrollToFinal = useChainScroll({
-    justCompleted, lessons, scrollRef, startRef, finalRef, lessonRefs,
+    justCompleted, lessons, scrollRef, innerRef: containerRef, startRef, finalRef, lessonRefs,
   })
 
   // Актуальное положение ключа-бегунка прогресс-бара — кружочки доводятся точно в него.
@@ -231,9 +231,14 @@ export default function ModuleGraph({
 
   // animHold (попап-легенда открыт): граф спрятан (--held) — попап появляется на
   // ровном тёмном фоне без «моргания» перехода плеер→схема; после закрытия проявляется
+  // Рамка вокруг скролла — ради мягкого гашения краёв во время полёта XP
+  // (.moduleGraphEdge, см. module-graph-layout.css)
   return (
+    <div className={`moduleGraphFrame${flight ? ' moduleGraphFrame--flying' : ''}`}>
+    <div className="moduleGraphEdge moduleGraphEdge--top" aria-hidden="true" />
+    <div className="moduleGraphEdge moduleGraphEdge--bottom" aria-hidden="true" />
     <div ref={scrollRef}
-      className={`moduleGraphScroll${animHold || !arcsReady || !progressReady ? ' moduleGraphScroll--held' : ''}${calm || justCompleted ? ' moduleGraphScroll--calm' : ''}${flight ? ' moduleGraphScroll--flying' : ''}`}
+      className={`moduleGraphScroll${animHold || !arcsReady || !progressReady ? ' moduleGraphScroll--held' : ''}${calm || justCompleted ? ' moduleGraphScroll--calm' : ''}`}
       onScroll={handleScroll}
       onClick={() => setTapped(null)}>
       <div ref={containerRef} className="moduleGraphInner">
@@ -350,6 +355,7 @@ export default function ModuleGraph({
         )}
 
       </div>
+    </div>
     </div>
   )
 }
