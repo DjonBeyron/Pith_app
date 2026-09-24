@@ -5,6 +5,8 @@ import {
   buildGrid, drawFloat, drawExplode, renderStillImage,
 } from './phraseBubbleDraw.js'
 
+const EXPLODE_SAFETY_MS = 1500 // взрыв ~0.75с — с двойным запасом
+
 // Шарики-спойлер поверх фразы модуля (замена blur+зерна) для способных
 // устройств — на слабых и при prefers-reduced-motion вместо этого компонента
 // монтируется PhraseBubbleStatic (см. PhraseBubbleSpoiler.jsx-переключатель).
@@ -190,7 +192,10 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
       rafRef.current = requestAnimationFrame(frame)
     }
     rafRef.current = requestAnimationFrame(frame)
-    return () => cancelAnimationFrame(rafRef.current)
+    // Страховка: взрыв длится ~0.75с; если кадры встали (фон, троттлинг),
+    // холст всё равно убираем — иначе он висел бы поверх строки перевода
+    const safety = setTimeout(() => setRevealed(true), EXPLODE_SAFETY_MS)
+    return () => { cancelAnimationFrame(rafRef.current); clearTimeout(safety) }
     // onUnlock — колбэк родителя, зовётся один раз в момент тапа
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exploding])
@@ -207,8 +212,12 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
       <div className={unlocked ? 'phraseBubbleText' : 'phraseBubbleText phraseBubbleTextHidden'}>
         {children}
       </div>
+      {/* Во время взрыва холст на 120px шире фразы со всех сторон и лежит
+          поверх строки «перевести» — касания он не ловит (иначе на Android
+          тап по переводу уходил в холст, пока шарики разлетаются) */}
       {showCanvas && (
-        <canvas className="phraseBubbleCanvas" ref={canvasRef} aria-hidden="true" />
+        <canvas className={exploding ? 'phraseBubbleCanvas phraseBubbleCanvasExploding' : 'phraseBubbleCanvas'}
+          ref={canvasRef} aria-hidden="true" />
       )}
       {!showCanvas && !unlocked && still && (
         <img
