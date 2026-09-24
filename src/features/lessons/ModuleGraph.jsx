@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ChevronsUp, ChevronsDown, Check, Play } from 'lucide-react'
+import { Check, Play } from 'lucide-react'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import XpFlight, { FLIGHT_DELAY_MS } from './XpFlight.jsx'
 import ChainLines from './ChainLines.jsx'
 import MgFinalNode, { LockIcon } from './MgFinalNode.jsx'
 import MgStartNode from './MgStartNode.jsx'
-import MgStars from './MgStars.jsx'
+import MgLessonBody from './MgLessonBody.jsx'
+import { useLessonsProgress } from './useLessonsProgress.js'
 import LessonLockedHint from './LessonLockedHint.jsx'
 import { useChainScroll } from './useChainScroll.js'
 import { useChainArcs } from './useChainArcs.js'
@@ -20,11 +21,6 @@ const START_REVEAL_MS = 500
 // (последняя карточка стартует позже всех), чтобы класс не сняли на полпути
 const UNLOCK_ANIM_MS = 1100
 
-const PRIORITY = {
-  high:   { label: 'Высокий приоритет', icon: ChevronsUp,   desc: 'Наиболее важен для вас' },
-  medium: { label: 'Средний приоритет', icon: '≡',          desc: 'Полезен для развития' },
-  low:    { label: 'Низкий приоритет',  icon: ChevronsDown, desc: 'Можно изучить позже' },
-}
 
 export default function ModuleGraph({
   lessons,
@@ -67,6 +63,9 @@ export default function ModuleGraph({
   // arcsReady — было ли уже хоть одно измерение: пока false, схема скрыта
   // (opacity), чтобы узлы не появлялись раньше соединяющих их линий.
   const { arcs, ready: arcsReady } = useChainArcs({ containerRef, startRef, finalRef, lessonRefs, lessons })
+
+  // Начатые уроки (без старта и финала) → процент: полоска вместо подписи
+  const progress = useLessonsProgress(lessons.slice(1, -1).map(l => l.id))
 
   // Сборка полёта XP: маршрут по нарисованным линиям + цель (ключ-бегунок бара).
   // animHold: пока открыт попап-легенда, полёт не стартует — эффект перезапустится
@@ -258,7 +257,6 @@ export default function ModuleGraph({
             // До диагностики уроки «под замком»: замок вместо номера, без блеска
             const locked = !startDoneShown && !unlocked
             const pKey  = priorities?.get(l.id) ?? null
-            const pInfo = pKey ? PRIORITY[pKey] : null
             // Звёзды показываются только на пройденном уроке; 0/нет записи
             // (пройден до появления фичи) — остаётся обычная подпись
             const st = done ? (stars?.get(l.id) ?? 0) : 0
@@ -283,34 +281,16 @@ export default function ModuleGraph({
                     ? <Check size={13} />
                     : <Play size={11} fill="currentColor" />}
                 </div>
-                <div className="mgLessonBody">
-                  <div className="mgLessonTop">
-                    <span className="mgNodeTitle">
-                      {renaming === l.id ? renameInputEl : l.title}
-                    </span>
-                    {/* при переименовании бейдж прячется — не наезжает на поле ввода;
-                        у пройденного урока XP уже получен — бейджа нет */}
-                    {l.lessonXp > 0 && !done && renaming !== l.id && (
-                      <span className="mgLessonXp">+{l.lessonXp} XP</span>
-                    )}
-                  </div>
-                  {st > 0
-                    ? <MgStars value={st} />
-                    : locked
-                      ? <span className="mgLessonSub">Сначала пройди диагностику</span>
-                      : <span className="mgLessonSub">Пройдите и получите</span>}
-                  {pInfo && (
-                    <div className={`mgLessonPriority mgLessonPriority--${pKey}`}>
-                      <span className="mgLessonPriorityIcon">
-                        {typeof pInfo.icon === 'string' ? pInfo.icon : <pInfo.icon size={14} />}
-                      </span>
-                      <div className="mgLessonPriorityText">
-                        <span className="mgLessonPriorityLabel">{pInfo.label}</span>
-                        <span className="mgLessonPriorityDesc">{pInfo.desc}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <MgLessonBody
+                  title={renaming === l.id ? renameInputEl : l.title}
+                  xp={l.lessonXp}
+                  hideXp={renaming === l.id}
+                  done={done}
+                  locked={locked}
+                  stars={st}
+                  pct={progress.get(l.id) ?? null}
+                  pKey={pKey}
+                />
                 {btnsFor(l, 'lesson', i)}
               </div>
             )

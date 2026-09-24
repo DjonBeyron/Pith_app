@@ -101,10 +101,11 @@
   min-width: 0;
 }
 
-/* Top row: title + XP */
+/* Top row: title + награда. По верхнему краю: столбик награды (XP + подпись)
+   выше одной строки названия и не должен тянуть его вниз */
 .mgLessonTop {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
@@ -115,14 +116,61 @@
   color: #f2f3f7;
 }
 
+/* Награда — компактный столбик справа: «+N XP» и под ним мелко «награда» */
+.mgLessonReward {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 /* XP — простой брендовый текст, без пилла */
 .mgLessonXp {
   color: #b6fe3b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
+  line-height: 1.15;
   white-space: nowrap;
-  flex-shrink: 0;
   letter-spacing: 0.02em;
+}
+
+.mgLessonRewardLabel {
+  font-size: 9px;
+  line-height: 1.1;
+  color: #6a7080;
+  letter-spacing: 0.03em;
+}
+
+/* Урок начат — тонкая полоска прогресса вместо подписи, в цветах схемы */
+.mgLessonProgress {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 3px 0 2px;
+}
+
+.mgLessonProgressBar {
+  flex: 1;
+  max-width: 140px;
+  height: 4px;
+  border-radius: 2px;
+  background: #2a2e38;
+  overflow: hidden;
+}
+
+.mgLessonProgressFill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(182, 254, 59, 0.55), #b6fe3b);
+  transition: width 0.4s ease;
+}
+
+.mgLessonProgressPct {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9aa0b4;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Subtitle */

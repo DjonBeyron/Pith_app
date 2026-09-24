@@ -10,6 +10,13 @@ import { dbg } from './debug.js'
 // входе: это не критичная потеря, в отличие от completedLessons.js).
 const LS_PREFIX = 'pithy_lesson_progress_'
 
+// «Прогресс урока изменился» — схема модуля обновляет полоску «урок начат»
+// сразу, без повторного запроса (useLessonsProgress.js). pct null — сброшен
+export const PROGRESS_EVENT = 'pithy:lesson-progress'
+function notify(lessonId, pct) {
+  try { window.dispatchEvent(new CustomEvent(PROGRESS_EVENT, { detail: { lessonId, pct } })) } catch { /* нет window — не страшно */ }
+}
+
 async function currentUser() {
   const { data: { session } } = await supabase.auth.getSession()
   return session?.user ?? null
@@ -45,6 +52,7 @@ export async function getLessonProgress(lessonId) {
 // показе), нужен ОБОИМ: восстановить историю чата ВЫШЕ точки входа при
 // «Продолжить урок» (useGraphPlayer.js)
 export async function saveLessonProgress(lessonId, nodeId, pct = 0, xp = 0, visitedIds = []) {
+  notify(lessonId, pct)
   const user = await currentUser()
   if (!user) {
     try {
@@ -60,6 +68,7 @@ export async function saveLessonProgress(lessonId, nodeId, pct = 0, xp = 0, visi
 }
 
 export async function clearLessonProgress(lessonId) {
+  notify(lessonId, null)
   const user = await currentUser()
   if (!user) {
     try { localStorage.removeItem(LS_PREFIX + lessonId) } catch { /* недоступен */ }

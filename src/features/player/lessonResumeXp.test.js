@@ -272,7 +272,7 @@ describe('карточка запуска — без собственного «
     // место под вторую кнопку — та же проверка, что решает финальный исход
     expect(launch).toContain('<LaunchSkeleton title={lessonTitle} info={info} mayResume={mayResume} />')
     expect(skeleton).toContain('export default function LaunchSkeleton({ title, info, mayResume = false }) {')
-    expect(skeleton).toContain('{mayResume ? (\n        <div style={{ position: \'relative\' }}>\n          <LaunchCtaSlot')
+    expect(skeleton).toContain('{mayResume ? (\n        <LaunchCtaSlot')
     // И обычная кнопка «Начать урок» (когда чекпойнт ещё не решён, но теоретически
     // возможен), и «Продолжить» — LaunchCtaSlot с одними и теми же CSS-классами
     expect(launch).toContain(') : mayResume ? (\n        <LaunchCtaSlot')
@@ -305,14 +305,17 @@ describe('карточка запуска — без собственного «
     expect(launch).not.toContain('В прошлый раз ты дошёл')
   })
 
-  it('в каркасе «Загрузка...» — обычный текст без серой подложки кнопки, по центру всей резервируемой высоты', () => {
+  // 3.2.1728: второе «Загрузка...» (в каркасе — по центру блока, в содержимом —
+  // в слоте кнопки, другим шрифтом, чем «Загрузка урока: N%») читалось как
+  // отдельный элемент. Загрузку показывают только полоса и строка с процентом;
+  // место под кнопки держится невидимым, кнопка проявляется, когда урок готов
+  it('в каркасе и в содержимом нет второго видимого «Загрузка...» под полосой', () => {
     const skeleton = read('../lessons/LaunchSkeleton.jsx')
-    // LaunchCtaSlot здесь только резервирует высоту (primary скрыт visibility),
-    // рисовать «Загрузка...» под видом ОДНОЙ конкретной кнопки нечестно — пока
-    // неизвестно, будет ли вторая. Текст наложен поверх и отцентрован по всей
-    // высоте — между тем местом, где скоро окажутся обе кнопки
     expect(skeleton).toContain("primaryStyle={{ padding: '14px 0', borderRadius: 12, border: 'none', fontSize: 16, visibility: 'hidden' }}")
-    expect(skeleton).toContain("position: 'absolute', inset: 0,\n            display: 'flex', alignItems: 'center', justifyContent: 'center',")
+    expect(skeleton).toContain("fontSize: 16, fontWeight: 600, visibility: 'hidden',")
+    expect(skeleton).not.toContain("position: 'absolute', inset: 0,")
+    expect(launch).toContain('opacity: canStart ? 1 : 0,')
+    expect(launch).toContain("cursor: 'default', opacity: 0 }}")
   })
 })
 

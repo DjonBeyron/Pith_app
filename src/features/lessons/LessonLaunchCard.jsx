@@ -266,7 +266,9 @@ function LaunchPreloader({
     // transition фона к зелёному не анимируется
     background: canStart ? '#b6fe3b' : 'transparent',
     color: canStart ? '#0d1500' : '#666',
-    transition: 'background 0.3s ease, color 0.3s ease',
+    // До готовности кнопки не видно: загрузку показывает полоса выше (см. LaunchSkeleton)
+    opacity: canStart ? 1 : 0,
+    transition: 'background 0.3s ease, color 0.3s ease, opacity 0.3s ease',
   }
 
   // statsMode: null (первое прохождение) | 'update' | 'silent' (выбор пересдачи).
@@ -361,7 +363,7 @@ function LaunchPreloader({
           primaryClassName="resumeLessonBtnPrimary"
           // Тот же принцип, что у startBtnStyle: до готовности — серый текст без
           // зелёной плашки (раньше зелёная на 50% — та же «плашка до кнопки»)
-          primaryStyle={canStart ? undefined : { background: 'transparent', color: '#666', cursor: 'default' }}
+          primaryStyle={canStart ? undefined : { background: 'transparent', color: '#666', cursor: 'default', opacity: 0 }}
           primaryLabel={canStart ? 'Продолжить' : 'Загрузка...'}
           primaryDisabled={!canStart}
           onPrimary={() => handleStart(null, true)}

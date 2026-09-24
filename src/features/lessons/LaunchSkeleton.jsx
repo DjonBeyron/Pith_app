@@ -35,41 +35,27 @@ export default function LaunchSkeleton({ title, info, mayResume = false }) {
 
       <LaunchEnergyRow info={info} />
 
-      {/* mayResume=true — резервируем ту же высоту, что займёт готовое
-          содержимое (LaunchCtaSlot с ОДИНАКОВЫМИ классами — высота
-          совпадает пиксель-в-пиксель, а не по числу-догадке, см.
-          LaunchCtaSlot.jsx), но пока неизвестно, будет ли вторая кнопка,
-          нечестно рисовать «Загрузка...» ПОД ВИДОМ одной конкретной кнопки
-          (серая подложка на месте будущей «Продолжить»/«Начать урок») —
-          читается как готовая кнопка, а не как индикатор ожидания. Поэтому
-          сам LaunchCtaSlot здесь ПОЛНОСТЬЮ невидим (только резервирует
-          высоту), а «Загрузка...» — обычный текст без подложки, наложенный
-          поверх и отцентрованный по всей резервируемой высоте (между тем
-          местом, где скоро окажутся обе кнопки, а не в слоте одной из них) */}
+      {/* Место под кнопки держим (та же высота, что у готового содержимого,
+          см. LaunchCtaSlot.jsx), но само слово «Загрузка...» здесь не пишем:
+          загрузку уже показывают полоса и «Загрузка урока: N%» выше. Второе
+          «Загрузка...» другим шрифтом (и в каркасе по центру блока, а в
+          готовом содержимом — в слоте кнопки) читалось как отдельный элемент.
+          Кнопка просто проявляется, когда урок готов */}
       {mayResume ? (
-        <div style={{ position: 'relative' }}>
-          <LaunchCtaSlot
-            // pctLabel обязателен, даже скрытый: пустая строка в <span> даёт
-            // высоту 0 (нет текста — нет строки), а не высоту строки текста —
-            // именно это и роняло резерв на ~17px ниже настоящего блока
-            pctLabel="Загрузка..."
-            primaryLabel="Загрузка..."
-            primaryDisabled
-            primaryStyle={{ padding: '14px 0', borderRadius: 12, border: 'none', fontSize: 16, visibility: 'hidden' }}
-          />
-          <span style={{
-            position: 'absolute', inset: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#666', fontSize: 16, fontWeight: 600,
-          }}>Загрузка...</span>
-        </div>
+        <LaunchCtaSlot
+          // pctLabel обязателен, даже скрытый: пустая строка в <span> даёт
+          // высоту 0 (нет текста — нет строки), а не высоту строки текста
+          pctLabel="Загрузка..."
+          primaryLabel="Загрузка..."
+          primaryDisabled
+          primaryStyle={{ padding: '14px 0', borderRadius: 12, border: 'none', fontSize: 16, visibility: 'hidden' }}
+        />
       ) : (
         <button
           disabled
           style={{
             padding: '14px 0', borderRadius: 12, border: 'none',
-            fontSize: 16, fontWeight: 600, cursor: 'default',
-            background: 'transparent', color: '#666',
+            fontSize: 16, fontWeight: 600, visibility: 'hidden',
           }}
         >Загрузка...</button>
       )}
