@@ -259,11 +259,17 @@
   overflow: hidden;
 }
 
-/* Shimmer overlay — активируется классом во время анимации */
+/* Shimmer overlay — активируется классом во время анимации.
+   Полоса едет transform'ом (слой шириной 200% бара, свет в его середине),
+   а не background-position: тот перерисовывал бар каждый кадр. Путь и
+   темп те же, что были: свет проходит бар за четверть цикла */
 .summaryXpBarFillShimmer::after {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 200%;
   background: linear-gradient(
     105deg,
     transparent 25%,
@@ -272,13 +278,14 @@
     rgba(255, 255, 255, 0.55) 55%,
     transparent 75%
   );
-  background-size: 200% 100%;
+  transform: translateX(-100%);
+  will-change: transform;
   animation: barShimmer 0.85s linear infinite;
 }
 
 @keyframes barShimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* Slow shimmer after fill — replaces the fast one */

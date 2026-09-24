@@ -166,14 +166,27 @@
 }
 
 @keyframes diffIconPulse {
-  0%, 100% {
-    transform: scale(1);
-    filter: none;
-  }
-  50% {
-    transform: scale(1.28);
-    filter: drop-shadow(0 0 7px rgba(182, 254, 59, 0.8));
-  }
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.28); }
+}
+
+/* Свечение пульса — отдельный мягкий ореол под иконкой, вспыхивает
+   прозрачностью. Раньше это был filter: drop-shadow на самой иконке —
+   размытие пересчитывалось каждый кадр, бесконечно, поверх видео */
+.diffIconPulse::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(182, 254, 59, 0.55) 0%, rgba(182, 254, 59, 0.2) 45%, rgba(182, 254, 59, 0) 70%);
+  opacity: 0;
+  pointer-events: none;
+  animation: diffIconGlow 1.4s ease-in-out infinite;
+}
+
+@keyframes diffIconGlow {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
 
 /* …и сама иконка моргает целиком залитая лаймом на пике пульса и
@@ -186,21 +199,25 @@
   50% { color: #b6fe3b; }
 }
 
-.diffPanelGlow {
-  animation:
-    diffPanelIn 0.3s cubic-bezier(0.34, 1.25, 0.64, 1),
-    diffPanelGlow 1.4s ease-in-out 0.35s infinite;
+/* Подсветка панели — готовая лаймовая рамка со свечением отдельным слоем
+   поверх, вспыхивает прозрачностью. Раньше анимировались border-color и
+   box-shadow самой панели — перерисовка каждый кадр поверх видео */
+.diffPanelGlow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid rgba(182, 254, 59, 0.5);
+  box-shadow: 0 0 18px 0 rgba(182, 254, 59, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1; /* панель — свой стекинг-контекст (z-index 9): слой под её содержимым, над фоном */
+  animation: diffPanelGlow 1.4s ease-in-out 0.35s infinite;
 }
 
 @keyframes diffPanelGlow {
-  0%, 100% {
-    border-color: rgba(255, 255, 255, 0.09);
-    box-shadow: 0 0 0 0 rgba(182, 254, 59, 0);
-  }
-  50% {
-    border-color: rgba(182, 254, 59, 0.5);
-    box-shadow: 0 0 18px 0 rgba(182, 254, 59, 0.22);
-  }
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
 
 .diffHelpClose {
