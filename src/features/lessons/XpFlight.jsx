@@ -75,15 +75,15 @@ export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive,
         if (t < 0) { allDone = false; return }
         if (t >= 1) {
           arrived.add(i)
-          el.setAttribute('opacity', '0')
+          el.style.opacity = '0'
           onArrive?.(val)
           onTouch?.()
           return
         }
         allDone = false
         const p = pointAt(t * totalLen)
-        el.setAttribute('transform', `translate(${p.x} ${p.y})`)
-        el.setAttribute('opacity', '1')
+        el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`
+        el.style.opacity = '1'
       })
       if (allDone) {
         if (!doneRef.current) { doneRef.current = true; onDone?.() }
@@ -95,24 +95,23 @@ export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive,
     return () => cancelAnimationFrame(raf)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Пути — невидимый SVG только ради геометрии (getPointAtLength). Сами
+  // кружочки — обычные элементы, которые двигаются transform'ом на своём
+  // GPU-слое: кадр полёта ничего не перерисовывает. Раньше это были SVG-круги
+  // со свечением через SVG-фильтр внутри слоя на всю схему — каждый кадр
+  // перерисовывался слой и заново считалось размытие свечения
   return (
-    <svg className="mgOrbsSvg">
-      <defs>
-        {/* Широкая область фильтра: дефолтные 110% bbox обрезали свечение
-            кружочка квадратной рамкой — «свет с границами» */}
-        <filter id="mgOrbGlow" x="-250%" y="-250%" width="600%" height="600%">
-          <feDropShadow dx="0" dy="0" stdDeviation="3.5" floodColor="#b6fe3b" floodOpacity="0.85" />
-        </filter>
-      </defs>
-      {paths.map((d, i) => (
-        <path key={i} d={d} ref={el => { pathRefs.current[i] = el }} fill="none" stroke="none" />
-      ))}
+    <div className="mgOrbsLayer">
+      <svg className="mgOrbsSvg" aria-hidden="true">
+        {paths.map((d, i) => (
+          <path key={i} d={d} ref={el => { pathRefs.current[i] = el }} fill="none" stroke="none" />
+        ))}
+      </svg>
       {parts.map((val, i) => (
-        <g key={i} ref={el => { orbRefs.current[i] = el }} opacity="0" className="mgOrb">
-          <circle r="5.5" filter="url(#mgOrbGlow)" />
-          <text y="2" textAnchor="middle">{val}</text>
-        </g>
+        <div key={i} ref={el => { orbRefs.current[i] = el }} className="mgOrb">
+          <span className="mgOrbDot">{val}</span>
+        </div>
       ))}
-    </svg>
+    </div>
   )
 }

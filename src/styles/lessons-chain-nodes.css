@@ -85,27 +85,53 @@
    до полёта кружочков (FLIGHT_DELAY_MS) */
 .mgGlow--justDone { animation: mgNodePulse 0.9s ease-in-out 0.2s 1; }
 
-/* Слой кружочков XP — поверх нодов */
+/* Слой кружочков XP — поверх нодов (XpFlight.jsx) */
+.mgOrbsLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Невидимые пути полёта — только геометрия, ничего не рисуют */
 .mgOrbsSvg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   overflow: visible;
-  pointer-events: none;
-  z-index: 2;
+  visibility: hidden;
 }
 
-/* Свечение — SVG-фильтр #mgOrbGlow (XpFlight.jsx) с широкой областью:
-   CSS drop-shadow обрезался дефолтной областью фильтра квадратом */
-.mgOrb circle {
-  fill: #b6fe3b;
+/* Кружочек: точка отсчёта — центр (translate из JS ставит центр в точку
+   пути). Двигается только transform'ом на своём слое — без перерисовок */
+.mgOrb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  will-change: transform, opacity;
 }
 
-.mgOrb text {
-  fill: #0e1013;
+/* Сама точка: r=5.5 как у прежнего SVG-круга; свечение — обычная тень
+   (blur 7px = σ 3.5 прежнего feDropShadow), рисуется один раз */
+.mgOrbDot {
+  position: absolute;
+  left: -5.5px;
+  top: -5.5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #b6fe3b;
+  box-shadow: 0 0 7px 0 rgba(182, 254, 59, 0.85);
+  color: #0e1013;
   font-size: 6px;
   font-weight: 800;
+  line-height: 11px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Зелёный «прогресс» правой линии пройденного урока */
@@ -127,11 +153,12 @@
 
 /* ── СТАРТ ──────────────────────────────────────────────────── */
 
-/* Превращение в «пройден» анимируется: фоны — сплошные цвета (transition),
-   зелёный градиент — отдельный слой ::before с opacity, свечение — смена
-   прозрачности слоёв MgNodeGlow, контур — transition на color. Работает и после попапа, и при обычном выходе. */
-.mgNode--start { transition: background 0.9s ease; }
-.mgNode--start .mgHexFill { transition: background 0.9s ease; }
+/* Превращение в «пройден» анимируется: зелёный градиент — отдельный слой
+   ::before с opacity, свечение — смена прозрачности слоёв MgNodeGlow,
+   контур — transition на color. Работает и после попапа, и при обычном выходе.
+   Тёмный фон (#14161c → #10140c, разница в пару оттенков) меняется сразу, без
+   transition: плавная смена фона перерисовывала нод с текстурами каждый кадр
+   0.9с, а на глаз её и так закрывает проявляющийся зелёный слой */
 .mgGlow--start .mgNodeOutline,
 .mgGlow--start--done .mgNodeOutline { transition: color 0.9s ease; }
 
