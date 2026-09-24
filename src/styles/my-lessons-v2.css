@@ -17,19 +17,33 @@
   left: 14px;
   z-index: 6;
   display: flex;
+  padding: 0;
   border-radius: 8px;
-  overflow: hidden;
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+}
+
+/* Невидимое расширение зоны касания: слева до края экрана, сверху до
+   вкладок, снизу — до зоны кнопки звука (.feedHeaderSoundBtn, top 84px),
+   не заходя в неё. Пиксели вне ::before-зоны уходят в видео, как раньше */
+.mlModeToggle::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  bottom: -8px;
+  left: -14px;
+  right: -16px;
 }
 
 .mlModeBtn {
-  border: none;
-  background: none;
+  display: block;
   padding: 4px 6px;
   color: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
 }
+
+.mlModeBtn:first-child { border-radius: 7px 0 0 7px; }
+.mlModeBtn:last-child  { border-radius: 0 7px 7px 0; }
 
 .mlModeBtn svg { width: 13px; height: 13px; display: block; }
 

@@ -231,10 +231,14 @@
   position: absolute;
   left: 14px;
   /* Ниже переключателя «видео/список» в «Моих уроках» (.mlModeToggle,
-     top 40px, высота ~23px) — чтобы не наезжали */
-  top: calc(70px + env(safe-area-inset-top, 0px));
+     top 40px, высота ~23px, зона касания до ~71px). Иконка на прежнем
+     месте по X, на 14px ниже прежнего; зона касания — 12px вокруг иконки
+     (паддинг), а отрицательный маржин держит иконку там же: зона 45×45,
+     сверху начинается на 76px — не пересекается с зоной переключателя */
+  top: calc(84px + env(safe-area-inset-top, 0px));
+  margin: -8px 0 0 -8px;
   z-index: 6;
-  padding: 4px;
+  padding: 12px;
   border: none;
   background: none;
   color: rgba(255, 255, 255, 0.92);

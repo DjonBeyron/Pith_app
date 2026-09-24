@@ -131,16 +131,14 @@ export default function MyLessons({
 
   return (
     <div className="mlWrap">
-      <div className="mlModeToggle">
-        <button className={mode === 'video' ? 'mlModeBtn mlModeBtnActive' : 'mlModeBtn'}
-          onClick={() => setMode('video')} title="Видео">
-          <Video />
-        </button>
-        <button className={mode === 'list' ? 'mlModeBtn mlModeBtnActive' : 'mlModeBtn'}
-          onClick={() => setMode('list')} title="Список">
-          <List />
-        </button>
-      </div>
+      {/* Один переключатель «видео ↔ список»: тап в любое место (и в
+          расширенную невидимую зону вокруг) меняет режим — две крошечные
+          кнопки промахивались, и тап уходил в видео (пауза) */}
+      <button className="mlModeToggle" onClick={() => setMode(m => (m === 'video' ? 'list' : 'video'))}
+        aria-label={mode === 'video' ? 'Показать списком' : 'Показать лентой'}>
+        <span className={mode === 'video' ? 'mlModeBtn mlModeBtnActive' : 'mlModeBtn'}><Video /></span>
+        <span className={mode === 'list' ? 'mlModeBtn mlModeBtnActive' : 'mlModeBtn'}><List /></span>
+      </button>
 
       {mode === 'video' ? (
         <div className="feedV2Scroll" ref={scrollRef} onScroll={onScroll}>
