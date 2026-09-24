@@ -13,8 +13,24 @@ const LS_PREFIX = 'pithy_lesson_progress_'
 // «Прогресс урока изменился» — схема модуля обновляет полоску «урок начат»
 // сразу, без повторного запроса (useLessonsProgress.js). pct null — сброшен
 export const PROGRESS_EVENT = 'pithy:lesson-progress'
-function notify(lessonId, pct) {
-  try { window.dispatchEvent(new CustomEvent(PROGRESS_EVENT, { detail: { lessonId, pct } })) } catch { /* нет window — не страшно */ }
+function notify(lessonId, pct, started = false) {
+  try { window.dispatchEvent(new CustomEvent(PROGRESS_EVENT, { detail: { lessonId, pct, started } })) } catch { /* нет window — не страшно */ }
+}
+
+// Флаг «урок начат» — отдельно от чекпойнта. Чекпойнт (а с ним «Продолжить»)
+// пишется только с 6-й ноды, и вышедший раньше видел на схеме «Урок ещё не
+// начат» — неправда. Флаг ставится при каждом входе в урок, схема по нему
+// рисует полоску с 1%. Только на этом устройстве (localStorage) — это
+// подсказка на карточке, не данные прогресса. Снимается вместе с чекпойнтом
+const STARTED_PREFIX = 'pithy_lesson_started_'
+
+export function markLessonStarted(lessonId) {
+  try { localStorage.setItem(STARTED_PREFIX + lessonId, '1') } catch { /* недоступен */ }
+  notify(lessonId, null, true)
+}
+
+export function isLessonStarted(lessonId) {
+  try { return localStorage.getItem(STARTED_PREFIX + lessonId) === '1' } catch { return false }
 }
 
 async function currentUser() {
@@ -68,6 +84,7 @@ export async function saveLessonProgress(lessonId, nodeId, pct = 0, xp = 0, visi
 }
 
 export async function clearLessonProgress(lessonId) {
+  try { localStorage.removeItem(STARTED_PREFIX + lessonId) } catch { /* недоступен */ }
   notify(lessonId, null)
   const user = await currentUser()
   if (!user) {

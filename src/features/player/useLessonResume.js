@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getLessonProgress, saveLessonProgress, clearLessonProgress } from '../../shared/lib/lessonProgressApi.js'
+import { getLessonProgress, saveLessonProgress, clearLessonProgress, markLessonStarted } from '../../shared/lib/lessonProgressApi.js'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { pLog } from '../../shared/lib/debug.js'
 
@@ -33,6 +33,12 @@ export function useLessonResume(lessonId, edit, onResume, skipCheck = false) {
   // Сама точка входа (startNodeId) сюда не входит — её заводит живой граф
   const [historyIds, setHistoryIds] = useState(null)
 
+  // Флаг «урок начат» для схемы модуля — даже если выйти с первой ноды,
+  // до чекпойнта (см. markLessonStarted)
+  useEffect(() => {
+    if (active) markLessonStarted(lessonId)
+  }, [active, lessonId])
+
   useEffect(() => {
     if (!checking) return
     let cancelled = false
@@ -64,7 +70,8 @@ export function useLessonResume(lessonId, edit, onResume, skipCheck = false) {
     setResumeOffer(null)
   }
   function restart() {
-    if (lessonId) clearLessonProgress(lessonId)
+    // Сброс чекпойнта снимает и флаг «начат» — а урок как раз идёт, ставим обратно
+    if (lessonId) { clearLessonProgress(lessonId); markLessonStarted(lessonId) }
     setResumeOffer(null)
   }
   // useGraphPlayer.js зовёт это после 6-й показанной ноды (через LessonPlayer.jsx,

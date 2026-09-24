@@ -90,7 +90,13 @@ describe('замок и его снятие', () => {
     expect(hint).toContain('все уроки модуля')
     expect(hint).toContain('слабые места')
     // И что решение не тупиковое — диагностику можно пройти позже
-    expect(hint).toContain('Диагностику можно пройти и позже')
+    expect(hint).toContain('Её можно пройти в любой момент')
+  })
+
+  it('два равноправных пути: главная кнопка сразу запускает диагностику', () => {
+    expect(hint).not.toContain('Сначала пройди')
+    expect(hint).toContain('onClick={onDiagnostics}>Пройти диагностику')
+    expect(graph).toContain('onDiagnostics={() => { setLockedHint(false); onPlay?.(start.id) }}')
   })
 
   it('предупреждение — отдельный шаг, а не мелкий текст под кнопкой', () => {

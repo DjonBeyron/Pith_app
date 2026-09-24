@@ -147,16 +147,24 @@
 /* ── Снятие замков ──
    Карточки переходят в «открыто» волной сверху вниз: --unlock-i это номер
    урока, из него и берётся задержка. Анимация одноразовая, на один сеанс —
-   при следующем заходе уроки просто открыты, без представления */
-.mgNode--unlocking {
-  animation: mgUnlockPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+   при следующем заходе уроки просто открыты, без представления.
+
+   По карточке пробегает зелёный блеск — тот же слой ::after, что у обычного
+   редкого блика (lessons-chain-textures.css), только быстрый и один раз.
+   Раньше карточка пульсировала масштабом и свечением box-shadow: тень
+   перерисовывается каждый кадр на каждой карточке разом — на слабом
+   Android подлагивало. Блеск двигается только transform'ом на своём
+   GPU-слое, без перерисовок */
+.mgNode--lesson.mgNode--unlocking:not(.mgNode--lesson--done):not(.mgNode--locked)::after {
+  background: linear-gradient(115deg,
+    transparent 35%, rgba(182, 254, 59, 0.22) 50%, transparent 65%);
+  animation: mgUnlockShine 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
   animation-delay: calc(var(--unlock-i, 0) * 90ms);
 }
 
-@keyframes mgUnlockPop {
-  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); }
-  45%  { transform: scale(1.03); box-shadow: 0 0 0 3px rgba(182, 254, 59, 0.35); }
-  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); }
+@keyframes mgUnlockShine {
+  from { transform: translateX(-130%); }
+  to   { transform: translateX(130%); }
 }
 
 /* Кружок статуса: замок сменился на ▶ — поворачиваем его в тот же такт,
@@ -172,7 +180,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mgNode--unlocking,
   .mgNode--unlocking .mgLessonNum { animation: none; }
 }
 

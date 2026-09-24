@@ -17,9 +17,9 @@ import { MgBtns, MgRenameInput } from './MgControls.jsx'
 // Меньше FLIGHT_DELAY_MS/2 (попап-кейс): озеленение стартует до полёта кружков.
 const START_REVEAL_MS = 500
 
-// Сколько живёт анимация снятия замков. Чуть больше самой длинной задержки
-// (последняя карточка стартует позже всех), чтобы класс не сняли на полпути
-const UNLOCK_ANIM_MS = 1100
+// Сколько живёт анимация снятия замков: задержка последней карточки
+// (90мс × номер) + сам блеск 0.7с, с запасом — чтобы класс не сняли на полпути
+const UNLOCK_ANIM_MS = 1800
 
 
 export default function ModuleGraph({
@@ -64,8 +64,9 @@ export default function ModuleGraph({
   // (opacity), чтобы узлы не появлялись раньше соединяющих их линий.
   const { arcs, ready: arcsReady } = useChainArcs({ containerRef, startRef, finalRef, lessonRefs, lessons })
 
-  // Начатые уроки (без старта и финала) → процент: полоска вместо подписи
-  const progress = useLessonsProgress(lessons.slice(1, -1).map(l => l.id))
+  // Начатые уроки (без старта и финала) → процент: полоска вместо подписи.
+  // Пока не пришли — схема скрыта вместе с линиями (полоска не дорисовывается)
+  const { map: progress, ready: progressReady } = useLessonsProgress(lessons.slice(1, -1).map(l => l.id))
 
   // Сборка полёта XP: маршрут по нарисованным линиям + цель (ключ-бегунок бара).
   // animHold: пока открыт попап-легенда, полёт не стартует — эффект перезапустится
@@ -231,7 +232,7 @@ export default function ModuleGraph({
   // ровном тёмном фоне без «моргания» перехода плеер→схема; после закрытия проявляется
   return (
     <div ref={scrollRef}
-      className={`moduleGraphScroll${animHold || !arcsReady ? ' moduleGraphScroll--held' : ''}${calm || justCompleted ? ' moduleGraphScroll--calm' : ''}${flight ? ' moduleGraphScroll--flying' : ''}`}
+      className={`moduleGraphScroll${animHold || !arcsReady || !progressReady ? ' moduleGraphScroll--held' : ''}${calm || justCompleted ? ' moduleGraphScroll--calm' : ''}${flight ? ' moduleGraphScroll--flying' : ''}`}
       onScroll={handleScroll}
       onClick={() => setTapped(null)}>
       <div ref={containerRef} className="moduleGraphInner">
@@ -339,7 +340,13 @@ export default function ModuleGraph({
           />
         )}
 
-        {lockedHint && <LessonLockedHint onClose={() => setLockedHint(false)} onUnlock={handleUnlock} />}
+        {lockedHint && (
+          <LessonLockedHint
+            onClose={() => setLockedHint(false)}
+            onUnlock={handleUnlock}
+            onDiagnostics={() => { setLockedHint(false); onPlay?.(start.id) }}
+          />
+        )}
 
       </div>
     </div>
