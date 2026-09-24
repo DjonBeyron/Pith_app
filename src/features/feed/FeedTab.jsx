@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { displayDifficulty } from '../../shared/api/difficultyApi.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import FeedSlide from './FeedSlide.jsx'
@@ -19,6 +19,7 @@ import { useFeedSplash } from './useFeedSplash.js'
 import { useSlowMotionHint } from './useSlowMotionHint.js'
 import { buildFeedInfo } from './feedDebugInfo.js'
 import { moduleOf } from './feedCircle.js'
+import { onLessonsHome } from '../../shared/lib/lessonsHomeEvent.js'
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
 // бесконечная по кругу — список повторяется циклами, у края запаса лента
@@ -41,6 +42,14 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   const {
     reactions, diffVotes, startedIds, social, refreshStarted, toggle, voteDifficulty,
   } = useFeedSocial({ visible, view, user, authLoading, onRequireAuth })
+
+  // Повторное нажатие на вкладку «Уроки» внизу = «назад» из схемы модуля
+  // (открытой из «Рекомендаций» или «Моих уроков»). Слушаем, только пока
+  // схема открыта
+  useEffect(() => {
+    if (!openModule) return
+    return onLessonsHome(() => { setOpenModule(null); refreshStarted() })
+  }, [openModule, refreshStarted])
   const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds, visible)
   // Уроки-закладки грузятся здесь же, рядом с модулями, а не при открытии
   // «Моих уроков»: иначе их запрос стартовал на секунды позже и строка

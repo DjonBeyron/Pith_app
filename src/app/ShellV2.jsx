@@ -25,6 +25,7 @@ import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
 import { wordChoiceVoice } from '../shared/lib/wordChoiceVoice.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
+import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
 
 // Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
 // пользователь эти chunk'и даже не скачивает (см. PROJECT.md, этап 2)
@@ -170,7 +171,8 @@ export default function ShellV2() {
       <nav className="shellV2Nav">
         <button
           className={tab === 'feed' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
-          onClick={() => setTab('feed')}>
+          // Уже на «Уроках» — повторное нажатие = «назад» из схемы модуля
+          onClick={() => { if (tab === 'feed') requestLessonsHome(); setTab('feed') }}>
           <Video />
           Уроки
         </button>

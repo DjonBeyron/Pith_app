@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 import { Play, VolumeX, Volume2 } from 'lucide-react'
 import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface, prepareReturn } from './videoPool.js'
 import { useVideoStall } from './useVideoStall.js'
@@ -6,6 +6,7 @@ import { perfFlags } from '../../shared/lib/perfFlags.js'
 import { useFeedVideoCanvas } from './useFeedVideoCanvas.js'
 import { VIDEO_CANVAS } from '../../shared/lib/videoCanvasMode.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
+import { useFeedPaused, getFeedPaused } from './feedPauseState.js'
 
 const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга при частых тапах по чипу звука
 
@@ -19,7 +20,8 @@ export default function SlideVideo({
   videoUrl, posterUrl, slideKey, active = false, near = false, tabVisible = true,
   soundOn = false, soundEverOn = false, onSoundOn, onSoundOff, onSoundBlocked, fallback = null,
 }) {
-  const [paused, setPaused] = useState(false)
+  // Пауза общая для «Рекомендаций» и «Моих уроков» (feedPauseState.js)
+  const [paused, setPaused] = useFeedPaused()
   const rootRef = useRef(null)
   // «Видео через canvas» (обход дымки Android, videoCanvasMode.js)
   const canvasRef = useRef(null)
@@ -219,12 +221,15 @@ export default function SlideVideo({
   // не едут (см. useVideoStall — он же перезапускает загрузку сам)
   const stall = useVideoStall(rootRef, hasVideo && active && tabVisible && !paused)
 
-  // Ушли со слайда — ручная пауза сбрасывается
+  // Ушли со слайда (свайп на другое видео) — ручная пауза сбрасывается.
+  // Именно ПЕРЕХОД active → false: пауза общая на обе ленты, и неактивные
+  // соседи не должны её сбрасывать, а переход между вкладками active не
+  // меняет — пауза переносится в другую ленту
+  const wasActiveRef = useRef(active)
   useEffect(() => {
-    if (active || !paused) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPaused(false)
-  }, [active, paused])
+    if (wasActiveRef.current && !active && getFeedPaused()) setPaused(false)
+    wasActiveRef.current = active
+  }, [active]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Включение звука по жесту: разблокируем звук на ВСём пуле (чтобы соседние
   // видео тоже могли играть со звуком), затем включаем звук здесь. Если
