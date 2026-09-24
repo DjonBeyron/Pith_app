@@ -49,14 +49,13 @@ export default function ModuleGraph({
   // Полёт XP из только что пройденного урока к ключу-бегунку финала.
   const [flight,     setFlight]     = useState(null)
   const [delivered,  setDelivered]  = useState(0)
-  const [finalFlash, setFinalFlash] = useState(false)
-  const flashTimer = useRef(null)
 
   const scrollRef    = useRef(null)
   const containerRef = useRef(null)
   const startRef     = useRef(null)
   const finalRef     = useRef(null)
   const knobRef      = useRef(null)
+  const flashRef     = useRef(null)
   const lessonRefs   = useRef([])
 
   // Геометрия линий (пути для ChainLines и маршруты полёта XP) — useChainArcs.js
@@ -131,12 +130,14 @@ export default function ModuleGraph({
   }, [handleScroll])
 
   // Вспышка финала в такт касанию кружочка (снять класс → кадр → надеть заново,
-  // чтобы CSS-анимация перезапускалась на каждом прилёте).
+  // чтобы CSS-анимация перезапускалась на каждом прилёте). Прямо на элементе,
+  // не через состояние: раньше каждое касание давало три ре-рендера ВСЕЙ
+  // схемы (карточки, линии, ноды) посреди полёта — на слабом Android рывки
   const flashFinal = useCallback(() => {
-    setFinalFlash(false)
-    requestAnimationFrame(() => setFinalFlash(true))
-    clearTimeout(flashTimer.current)
-    flashTimer.current = setTimeout(() => setFinalFlash(false), 300)
+    const el = flashRef.current
+    if (!el) return
+    el.classList.remove('mgFinalFlash--on')
+    requestAnimationFrame(() => el.classList.add('mgFinalFlash--on'))
   }, [])
 
   // Скролл после урока: урок к верху экрана + плавный проезд к финалу (useChainScroll).
@@ -304,7 +305,6 @@ export default function ModuleGraph({
           finalOpen={finalOpen}
           shine={startDoneShown && !finalOpen}
           onPlay={onPlay}
-          finalFlash={finalFlash}
           xpUnlock={xpUnlock}
           earnedShow={earnedShow}
           xpPct={xpPct}
@@ -313,6 +313,7 @@ export default function ModuleGraph({
           btns={btnsFor(final_, 'final')}
           nodeRef={finalRef}
           knobRef={knobRef}
+          flashRef={flashRef}
           onHover={setHovered}
           onClick={handleClick}
         />

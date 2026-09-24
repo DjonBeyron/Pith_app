@@ -50,6 +50,9 @@ export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive,
     const dur = totalLen / SPEED
     onLaunch?.(dur) // первый кружочек стартует без задержки и летит ровно dur
 
+    // Положение ключа читается не чаще раза за кадр (getBoundingClientRect) —
+    // а не отдельно на каждый кружочек в хвосте
+    let frameTarget
     const pointAt = (s) => {
       let acc = 0
       for (let k = 0; k < els.length; k++) {
@@ -57,7 +60,8 @@ export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive,
         acc += lens[k]
       }
       // Хвост: доводка к актуальному положению ключа-бегунка (он едет вместе с баром)
-      const cur = getTarget?.() ?? initTarget
+      if (frameTarget === undefined) frameTarget = getTarget?.() ?? null
+      const cur = frameTarget ?? initTarget
       if (!cur) return end
       const q = tail > 0 ? Math.min(1, (s - pathLen) / tail) : 1
       return { x: end.x + (cur.x - end.x) * q, y: end.y + (cur.y - end.y) * q }
@@ -67,6 +71,7 @@ export default function XpFlight({ paths, getTarget, amount, onLaunch, onArrive,
     const t0 = performance.now()
     const arrived = new Set()
     const tick = (now) => {
+      frameTarget = undefined
       let allDone = true
       parts.forEach((val, i) => {
         const el = orbRefs.current[i]

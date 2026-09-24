@@ -32,9 +32,9 @@ function KeyIcon() {
 // Держит церемонию открытия: замок приближается, трясётся 4 раза,
 // открывается со вспышкой deep-glow и неоновой обводкой, возвращается открытым.
 export default function MgFinalNode({
-  lesson, finalOpen, finalFlash, xpUnlock, earnedShow, xpPct,
+  lesson, finalOpen, xpUnlock, earnedShow, xpPct,
   shine = false, // манящий блик: только после диагностики и пока финал закрыт
-  renaming, renameInput, btns, nodeRef, knobRef, onHover, onClick, onPlay,
+  renaming, renameInput, btns, nodeRef, knobRef, flashRef, onHover, onClick, onPlay,
 }) {
   const [unlockAnim,    setUnlockAnim]    = useState(false)
   const [burst,         setBurst]         = useState(false)
@@ -82,7 +82,7 @@ export default function MgFinalNode({
   }, [finalOpen])
 
   const glowCls = `mgGlow ${finalOpen ? 'mgGlow--final--open' : 'mgGlow--final'}` +
-    (finalFlash ? ' mgGlow--finalFlash' : '') + (burst ? ' mgGlow--finalBurst' : '') +
+    (burst ? ' mgGlow--finalBurst' : '') +
     (shine ? ' mgGlow--finalShine' : '')
 
   return (
@@ -97,6 +97,9 @@ export default function MgFinalNode({
         onClick={e => { e.stopPropagation(); onClick(lesson.id) }}
       >
         <div className="mgHexFill mgHexFill--final">
+          {/* Вспышка в такт кружочку XP — класс ставит ModuleGraph напрямую
+              (flashFinal), без ре-рендера схемы на каждое касание */}
+          <span ref={flashRef} className="mgFinalFlash" aria-hidden="true" />
           {renaming ? renameInput : (
             <>
               {/* У открытого финала заголовок сидит ниже — ближе к центру формы */}
@@ -142,9 +145,13 @@ export default function MgFinalNode({
                       </div>
                       {/* Ключ исчезает сразу, как бар дошёл до конца (finalOpen),
                           не дожидаясь конца церемонии */}
-                      <span ref={knobRef} className={`mgFinalXpKnob${finalOpen ? ' mgFinalXpKnob--gone' : ''}`}
-                        style={{ left: xpPct + '%' }}>
-                        <KeyIcon />
+                      {/* Ключ едет «рельсом» во всю ширину трека: translateX(%) у
+                          рельса = % ширины трека, то же, что left у ключа, но
+                          transform'ом — без пересчёта раскладки каждый кадр */}
+                      <span className="mgFinalXpRail" style={{ transform: `translateX(${xpPct}%)` }}>
+                        <span ref={knobRef} className={`mgFinalXpKnob${finalOpen ? ' mgFinalXpKnob--gone' : ''}`}>
+                          <KeyIcon />
+                        </span>
                       </span>
                     </div>
                     <span

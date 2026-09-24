@@ -180,9 +180,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Быстрый плавный доезд после каждого касания кружочка: ease-out за 0.25s —
-     бар успевает встать на место до прилёта следующего (ORB_GAP_MS = 300) */
-  transition: left 0.25s ease-out, opacity 0.7s ease;
+  left: 0; /* едет вместе с рельсом .mgFinalXpRail */
+  transition: opacity 0.7s ease;
+}
+
+/* Рельс ключа во всю ширину трека: translateX(N%) = N% ширины трека (то же,
+   что было left: N% у ключа), но transform'ом — без пересчёта раскладки
+   каждый кадр, пока по нему доводятся кружочки XP.
+   Быстрый плавный доезд после каждого касания кружочка: ease-out за 0.25s —
+   бар успевает встать на место до прилёта следующего (ORB_GAP_MS = 300) */
+.mgFinalXpRail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: transform 0.25s ease-out;
 }
 
 /* Финал открыт: ключ «использован» — плавно исчезает вместе с пилюлей */
@@ -244,8 +255,10 @@
 
 /* ── Вспышка в такт касанию кружочка XP ─────────────────────── */
 /* Светлый слой над заливкой финала гаснет прозрачностью — вместо
-   filter: brightness на всём ноде (яркость пересчитывалась на каждом
-   касании кружочка, пока летит XP) */
+   filter: brightness на всём ноде. Два таких слоя: .mgFinalFlash — вспышка
+   на каждое касание кружочка (класс ставит ModuleGraph.flashFinal напрямую,
+   без ре-рендера), ::before — подсветка церемонии открытия (mgFinalBurstFill) */
+.mgFinalFlash,
 .mgHexFill--final::before {
   content: '';
   position: absolute;
@@ -261,7 +274,7 @@
   100% { opacity: 0; }
 }
 
-.mgGlow--finalFlash .mgHexFill--final::before {
+.mgFinalFlash--on {
   animation: mgFinalFlash 0.28s ease-out;
 }
 
