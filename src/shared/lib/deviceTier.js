@@ -20,7 +20,10 @@
 //
 // Результат кэшируется в localStorage — при следующем заходе решение уже
 // готово с первого кадра.
-const KEY = 'pithy_weak_device_v4'
+// v5: расширен список GPU (бюджетные Mali-G/Adreno 5xx–610/PowerVR GE83xx) —
+// новый ключ, чтобы телефоны, уже решившие «не слабый» по старому списку,
+// пересчитали решение
+const KEY = 'pithy_weak_device_v5'
 const BENCH_ARCS = 3000
 const BENCH_THRESHOLD_MS = 6
 
@@ -32,6 +35,13 @@ const WEAK_GPU_PATTERNS = [
   /mali-t7\d\d/i,
   /adreno \(tm\) 3\d\d/i,
   /adreno \(tm\) 4\d\d/i,
+  // Бюджетные и старые средние (2016–2020): полноценные шарики на canvas
+  // на них лагали — рассыпание не играло или шло рывками (Mali-G72,
+  // Android 10). Вместе с «видео через canvas» на Android нагрузка выше
+  /mali-g(31|51|52|71|72)\b/i,
+  /adreno \(tm\) 5(0\d|1[0-2])\b/i,
+  /adreno \(tm\) 6(0\d|10)\b/i,
+  /powervr rogue.*ge83\d\d/i,
 ]
 
 function isIOS() {
