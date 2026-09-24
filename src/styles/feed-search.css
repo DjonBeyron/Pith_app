@@ -75,10 +75,11 @@
   gap: 10px;
   padding: 14px;
   border-radius: 16px;
-  background: rgba(18, 21, 26, 0.96);
+  /* Без backdrop-filter — поверх играющего видео ленты размытие
+     пересчитывалось каждый кадр (см. .diffPanel в difficulty.css); фон
+     чуть плотнее вместо него */
+  background: rgba(18, 21, 26, 0.98);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .fsChips {
