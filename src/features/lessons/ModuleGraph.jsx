@@ -231,10 +231,10 @@ export default function ModuleGraph({
 
   // animHold (попап-легенда открыт): граф спрятан (--held) — попап появляется на
   // ровном тёмном фоне без «моргания» перехода плеер→схема; после закрытия проявляется
-  // Рамка вокруг скролла — ради мягкого гашения краёв во время полёта XP
+  // Рамка вокруг скролла — ради постоянного мягкого гашения краёв
   // (.moduleGraphEdge, см. module-graph-layout.css)
   return (
-    <div className={`moduleGraphFrame${flight ? ' moduleGraphFrame--flying' : ''}`}>
+    <div className="moduleGraphFrame">
     <div className="moduleGraphEdge moduleGraphEdge--top" aria-hidden="true" />
     <div className="moduleGraphEdge moduleGraphEdge--bottom" aria-hidden="true" />
     <div ref={scrollRef}
