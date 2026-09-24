@@ -38,7 +38,17 @@ export default function ChainLines({
   // завершение (тогда зелень появляется анимацией-прорисовкой поверх белой).
   // startHold: попап-легенда открыт — линии ждут белыми, анимация после закрытия.
   const leftGreen = startDone && !startJustDone && !startHold
+  // Заполнения, которые прорисовываются прямо сейчас, — в отдельном SVG на
+  // своём GPU-слое (.moduleGraphSvgFx): их покадровая перерисовка не трогает
+  // основной слой схемы с текстурами карточек. Статичные зелёные заполнения
+  // пройденных уроков остаются в основном SVG
+  const rightFills = arcs.filter(a => a.side === 'right' && a.fillD).map(a => {
+    const lesson = middle[a.lessonIndex]
+    if (!lesson || !completedIds.has(lesson.id)) return null
+    return { a, lesson, animate: lesson.id === justCompletedId }
+  }).filter(Boolean)
   return (
+    <>
     <svg className="moduleGraphSvg">
       <defs>
         <marker id="mgArrow" viewBox="0 0 10 10" refX="8" refY="5"
@@ -64,20 +74,21 @@ export default function ChainLines({
           })}
         </g>
       ))}
+      {rightFills.filter(r => !r.animate).map(({ a, lesson }) => (
+        <ProgressStroke key={lesson.id} d={a.fillD} animate={false} delayMs={lineDelayMs} />
+      ))}
+    </svg>
+    <svg className="moduleGraphSvg moduleGraphSvgFx" aria-hidden="true">
       {/* Диагностика только что пройдена: левые линии прорисовываются зелёным
           со скоростью кружочков — первый кружок касается первого урока ровно
           когда его линия дозеленела */}
       {startJustDone && arcs.filter(a => a.side === 'left').map((a, i) => (
         <ProgressStroke key={`left-${i}`} d={a.d} animate delayMs={lineDelayMs} />
       ))}
-      {arcs.filter(a => a.side === 'right' && a.fillD).map(a => {
-        const lesson = middle[a.lessonIndex]
-        if (!lesson || !completedIds.has(lesson.id)) return null
-        return (
-          <ProgressStroke key={lesson.id} d={a.fillD}
-            animate={lesson.id === justCompletedId} delayMs={lineDelayMs} />
-        )
-      })}
+      {rightFills.filter(r => r.animate).map(({ a, lesson }) => (
+        <ProgressStroke key={lesson.id} d={a.fillD} animate delayMs={lineDelayMs} />
+      ))}
     </svg>
+    </>
   )
 }

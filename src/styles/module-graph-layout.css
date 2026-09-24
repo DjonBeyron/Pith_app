@@ -100,3 +100,10 @@
   overflow: visible;
   z-index: 0;
 }
+
+/* Линии, которые прорисовываются прямо сейчас (ChainLines.jsx), — на своём
+   GPU-слое: покадровая прорисовка stroke-dashoffset перерисовывает только
+   этот слой, а не общий слой схемы с текстурами карточек вокруг линий */
+.moduleGraphSvgFx {
+  will-change: transform;
+}

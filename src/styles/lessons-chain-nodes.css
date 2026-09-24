@@ -46,6 +46,9 @@
   height: 100%;
   pointer-events: none;
   overflow: visible;
+  /* Свой слой: смена цвета контура (озеленение Старта 0.9с, открытие
+     Финала) перерисовывает только его, не нод с текстурами */
+  will-change: transform;
 }
 
 .mgNodeOutline path {
@@ -216,6 +219,7 @@
 
 /* Звезда — на верхушке шестиугольника, поверх контура (вне clip-path) */
 .mgIconBadge--start {
+  will-change: transform; /* свой слой: озеленение звезды не перерисовывает нод */
   position: absolute;
   top: 10px;
   left: 50%;
