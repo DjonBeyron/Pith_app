@@ -10,3 +10,13 @@ test('вход подхватился: профиль залогиненного
   // «Кастомизация» есть только в профиле залогиненного (у гостя — форма входа)
   await expect(page.getByRole('button', { name: /Кастомизация/ })).toBeVisible({ timeout: 30_000 })
 })
+
+test('обычный пользователь не видит вкладку «Админ»', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  await expect(page.getByRole('button', { name: /Кастомизация/ })).toBeVisible({ timeout: 30_000 })
+  // Дождаться, пока профиль (и с ним is_admin) дочитается — иначе проверка
+  // «кнопки нет» прошла бы раньше, чем кнопка успела бы появиться
+  await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
+  await expect(page.getByRole('button', { name: 'Админ', exact: true })).toHaveCount(0)
+})

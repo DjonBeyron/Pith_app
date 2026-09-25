@@ -24,6 +24,7 @@ _debug/
 
 old/
 supabase/.temp/
+supabase/.branches/
 
 # E2E (Playwright) — этап 5.5
 .env.test
