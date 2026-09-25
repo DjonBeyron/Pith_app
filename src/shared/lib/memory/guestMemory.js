@@ -86,7 +86,7 @@ export function seedGuestWordOf(lessons, lessonId) {
 
 // Исход повторения гостя: как ответ memory_review_word; пишет и журнал
 // (для бюджета дня и итогов недели)
-export function reviewGuestWord({ word, outcome, cardId = null, events = null }, today, rand) {
+export function reviewGuestWord({ word, outcome, cardId = null, events = null, source = 'review' }, today, rand) {
   const mem = read(MEM_KEY, {})
   const cur = mem[word]
   if (!cur) return { ok: false, reason: 'not_found' }
@@ -95,7 +95,7 @@ export function reviewGuestWord({ word, outcome, cardId = null, events = null },
   write(MEM_KEY, mem)
   const since = addDays(today, -LOG_DAYS)
   const log = read(LOG_KEY, []).filter(r => localDate(r.created_at) >= since)
-  log.push({ word, outcome, source: 'review', step_before: prevStep, step_after: row.step, applied, events, created_at: new Date().toISOString() })
+  log.push({ word, outcome, source, step_before: prevStep, step_after: row.step, applied, events, created_at: new Date().toISOString() })
   write(LOG_KEY, log)
   return { ok: true, word, prev_step: prevStep, step: row.step, due_on: row.due_on, applied }
 }

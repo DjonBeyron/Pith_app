@@ -81,3 +81,30 @@ test('вход переносит память гостя в аккаунт', as
   await expect(page.locator('.lrMain')).toContainText('Повторить · 1 мин', { timeout: 30_000 })
   await expect(page.locator('.lrGuestLead')).toHaveCount(0)
 })
+
+test('«Помнишь?» в ленте: раз в 6–8 видео карточка слова дня, ответ растит память', async ({ page }) => {
+  test.slow()
+  await seedMemory(page)
+  await page.goto('/')
+  await expect(page.locator('.feedSlideWrapActive')).toBeVisible({ timeout: 30_000 })
+  const remember = page.getByRole('dialog', { name: 'Помнишь?' })
+  // Листаем клавиатурой (Swiper слушает ↓), пока не выйдет «Помнишь?» — не
+  // раньше 6-го и не позже 8-го видео
+  let swipes = 0
+  while (swipes < 9 && !(await remember.isVisible())) {
+    await page.keyboard.press('ArrowDown')
+    swipes += 1
+    await page.waitForTimeout(700)
+  }
+  await expect(remember).toBeVisible()
+  expect(swipes).toBeGreaterThanOrEqual(6)
+  expect(swipes).toBeLessThanOrEqual(8)
+
+  await remember.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
+  await remember.getByRole('button', { name: 'Далее' }).click()
+  await expect(remember).toHaveCount(0, { timeout: 15_000 })
+  // Исход записан в память гостя: keep окреп до шага 2, повтор — через 3 дня
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('pithy_guest_memory_v1')).keep.step)).toBe(2)
+  // Слово дня отвечено — повторять больше нечего: точки нет
+  await expect(page.locator('.shellV2NavBtnDot')).toHaveCount(0)
+})

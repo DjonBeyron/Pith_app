@@ -31,7 +31,7 @@ export async function listWordMemory() {
 // Исход повторения слова (reviewOutcome.js). Шаг и дату считает сервер.
 // { ok, word, prev_step, step, due_on, applied } | { ok: false, reason } | null
 export async function reviewWord({ word, outcome, cardId = null, lessonId = null, source = 'review', events = null }) {
-  if (await isGuest()) return reviewGuestWord({ word, outcome, cardId, events }, today())
+  if (await isGuest()) return reviewGuestWord({ word, outcome, cardId, events, source }, today())
   const { data, error } = await supabase.rpc('memory_review_word', {
     p_word: word, p_outcome: outcome, p_card_id: cardId,
     p_lesson_id: lessonId, p_source: source, p_events: events,

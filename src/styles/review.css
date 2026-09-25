@@ -14,6 +14,18 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* «Помнишь?» в ленте (feed/FeedRemember.jsx) — тот же экран карточки */
+.feedRememberTitle {
+  margin: calc(env(safe-area-inset-top, 0px) + 12px) 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b6fe3b;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.feedRemember .reviewHead { padding-top: 6px; }
+
 /* ── Шапка ─────────────────────────────────────────────────────────── */
 .reviewHead { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); flex-shrink: 0; }
 .reviewHeadRow { display: flex; align-items: center; gap: 10px; }

@@ -141,6 +141,7 @@ export default function ShellV2() {
             onOpenCanvas={setCanvasLesson}
             onRequireAuth={() => setTab('profile')}
             learnView={learn.view}
+            onLearnChanged={learn.reload}
           />
         </div>
         <div className={tab === 'learn' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>

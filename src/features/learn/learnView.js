@@ -79,9 +79,10 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
   }
 }
 
-// Итоги недели: дней с повторением, слов повторено, слов окрепло
+// Итоги недели: дней с повторением, слов повторено, слов окрепло (сессии и
+// «Помнишь?» в ленте)
 export function weekSummary(reviews) {
-  const rs = (reviews ?? []).filter(r => r.source === 'review')
+  const rs = (reviews ?? []).filter(r => r.source === 'review' || r.source === 'feed')
   return {
     days: new Set(rs.map(r => localDate(r.created_at))).size,
     words: new Set(rs.map(r => r.word)).size,

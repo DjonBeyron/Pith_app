@@ -24,13 +24,17 @@ import { moduleOf } from './feedCircle.js'
 import { onLessonsHome } from '../../shared/lib/lessonsHomeEvent.js'
 import { onOpenModule } from '../../shared/lib/openModuleEvent.js'
 import { useFeedKnowledge } from './useFeedKnowledge.js'
+import { useFeedRemember } from './useFeedRemember.js'
+import FeedRemember from './FeedRemember.jsx'
+import FeedEmptyState from './FeedEmptyState.jsx'
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
 // бесконечная по кругу — список повторяется циклами, у края запаса лента
 // незаметно переносится в середину (контент идентичен — скачка не видно).
 // learnView — данные «Моего обучения»: по памяти слов лента подсвечивает
-// знакомое, ставит метки и выбирает порядок рекомендаций (feedKnowledge.js)
-export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, learnView = null }) {
+// знакомое, ставит метки и выбирает порядок рекомендаций (feedKnowledge.js),
+// раз в 6–8 видео — «Помнишь?» (useFeedRemember); onLearnChanged — после ответа
+export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, learnView = null, onLearnChanged }) {
   const [view, setView] = useState('feed') // feed | mine
   // Открытый модуль (схема Старт → уроки → Финал) поверх ленты
   const [openModule, setOpenModule] = useState(null)
@@ -59,6 +63,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   // Просьба открыть модуль извне (мостик из итога повторения) — openModuleEvent.js
   useEffect(() => onOpenModule(m => { if (m?.id) setOpenModule(m) }), [])
   const { rank, knowledgeOf } = useFeedKnowledge(learnView)
+  const remember = useFeedRemember(learnView)
   const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds, visible, rank)
   // Уроки-закладки грузятся здесь же, рядом с модулями, а не при открытии
   // «Моих уроков»: иначе их запрос стартовал на секунды позже и строка
@@ -83,9 +88,10 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   )
   const len = feedModules.length
 
-  // Лента реально на экране: вкладка оболочки открыта И выбраны «Рекомендации».
-  // Скрытой ленте FeedSwiper выключает жесты, колесо и клавиатуру
-  const feedActive = visible && view === 'feed'
+  // Лента реально на экране: вкладка оболочки открыта И выбраны «Рекомендации»
+  // и поверх нет «Помнишь?». Скрытой ленте FeedSwiper выключает жесты, колесо
+  // и клавиатуру, видео встаёт на паузу
+  const feedActive = visible && view === 'feed' && !remember.offer
   // Индекс активного слайда круга. Живёт здесь, а не в FeedSwiper: экран
   // модуля («Изучить фразу») размонтирует ленту, и по возвращении она должна
   // встать туда же, где была, а не на начало круга
@@ -197,38 +203,26 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
             <section className="feedSlide"><div className="feedSkeleton" /></section>
           </div>
         ) : len === 0 ? (
-          <div className="feedV2Center">
-            {filterActive && circleLen > 0 ? (
-              <>
-                <div className="feedV2CenterTitle">Ничего не подошло</div>
-                <div className="feedV2CenterSub">Ни одна фраза не попала под фильтр сложности</div>
-                <button className="mlGoFeedBtn" onClick={resetDiffFilter}>Сбросить фильтр</button>
-              </>
-            ) : modules.length > 0 ? (
-              <>
-                <div className="feedV2CenterTitle">Все уроки начаты</div>
-                <div className="feedV2CenterSub">Продолжай обучение во вкладке «Мои уроки»</div>
-                <button className="mlGoFeedBtn" onClick={() => setView('mine')}>Мои уроки</button>
-              </>
-            ) : (
-              <>
-                <div className="feedV2CenterTitle">Лента пуста</div>
-                <div className="feedV2CenterSub">{error || 'На сервере пока нет модулей'}</div>
-              </>
-            )}
-          </div>
+          <FeedEmptyState
+            filterActive={filterActive} circleLen={circleLen} modulesCount={modules.length} error={error}
+            onResetFilter={resetDiffFilter} onGoMine={() => setView('mine')}
+          />
         ) : (
           <FeedSwiper
             feedModules={feedModules}
             pinnedId={pinnedId}
             active={feedActive}
             activeIdx={activeIdx}
-            onActiveIdx={setActiveIdx}
+            onActiveIdx={idx => { setActiveIdx(idx); remember.onSlide(feedModules[moduleOf(idx, len)]?.id) }}
             renderSlide={renderSlide}
           />
         )}
       </div>
 
+      {remember.offer && (
+        <FeedRemember word={remember.offer} onClose={remember.close}
+          onDone={() => { remember.close(); onLearnChanged?.() }} />
+      )}
       {showDebug && <DebugPanel getFeedInfo={feedInfo} onClose={() => setShowDebug(false)} />}
       {showSearch && (
         <FeedSearchPanel
