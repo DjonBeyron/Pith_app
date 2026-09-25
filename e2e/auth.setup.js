@@ -1,4 +1,5 @@
 import { test as setup, expect } from '@playwright/test'
+import { isLocalBackend } from './helpers/backend.js'
 
 // Логин один раз (этап D): заполняем форму входа, сохраняем storageState —
 // остальные тесты стартуют уже залогиненными (см. playwright.config.js,
@@ -30,6 +31,9 @@ setup('вход обычным пользователем', async ({ page }) => 
 setup('вход админом', async ({ page }) => {
   const { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD } = process.env
   setup.skip(!E2E_ADMIN_EMAIL || !E2E_ADMIN_PASSWORD, 'нет E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD в .env.test')
+  // Админ входит только в локальную базу (scripts/e2e-local.sh): админ-сессия
+  // нужна лишь проекту admin, а он бывает только на локальном стеке
+  setup.skip(!isLocalBackend(), 'админ-вход только на локальном стеке Supabase')
   await login(page, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD)
   await page.context().storageState({ path: 'test-results/.auth/admin.json' })
 })
