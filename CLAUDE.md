@@ -97,3 +97,6 @@ React 19 + Vite 8, Supabase JS v2 (база данных + edge functions), Clou
   `postgres.<ref>`), нужен пароль БД (percent-кодировать спецсимволы в URL).
 - Миграция должна быть идемпотентной, где возможно (`create table if not exists`,
   `create or replace function`, `drop policy if exists` перед `create policy`).
+- **Каждую новую миграцию показывай пользователю целиком прямо в чате** (блок
+  ```sql```), не только файлом — он копирует её оттуда в SQL Editor. Длинную
+  (больше ~90 строк — SQL Editor может обрезать вставку) — частями по порядку.
