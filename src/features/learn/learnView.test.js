@@ -91,7 +91,15 @@ describe('вкладка «Моё обучение»: данные', () => {
       { source: 'review', word: 'cook', created_at: at('2026-09-21'), step_before: 2, step_after: 2 },
       { source: 'feed', word: 'x', created_at: at('2026-09-22'), step_before: 1, step_after: 2 },
       { source: 'other', word: 'y', created_at: at('2026-09-23'), step_before: 1, step_after: 2 },
-    ])).toEqual({ days: 3, words: 3, grew: 2 })
+    ])).toEqual({ days: 3, words: 3, grew: 2, prevGrew: null })
+    // С сегодняшней датой — последние 7 дней против 7 дней до них
+    const two = [
+      { source: 'review', word: 'a', created_at: at('2026-09-24'), step_before: 1, step_after: 2 },
+      { source: 'review', word: 'b', created_at: at('2026-09-19'), step_before: 1, step_after: 2 },
+      { source: 'review', word: 'c', created_at: at('2026-09-18'), step_before: 2, step_after: 3 }, // неделей раньше
+      { source: 'review', word: 'd', created_at: at('2026-09-05'), step_before: 2, step_after: 3 }, // давно — не в счёт
+    ]
+    expect(weekSummary(two, today)).toEqual({ days: 2, words: 2, grew: 2, prevGrew: 1 })
     expect([today, '2026-09-26', '2026-09-28', '2026-10-20'].map(d => dueLabel(d, today)))
       .toEqual(['сегодня', 'завтра', 'через 3 дня', 'через 25 дней'])
   })

@@ -17,10 +17,13 @@ const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
 // итогов недели, карта памяти. Данные — useLearnData (живёт в ShellV2: по
 // ним же точка на вкладке). Гость видит свою локальную память и подводку к
 // входу («сохрани прогресс, чтобы завтра напомнили»); «Отпуск» — только в аккаунте.
-function weekLine({ days, words, grew }) {
+// Итоги недели — только в плюс: сравнение с прошлой неделей показываем,
+// когда окрепло больше (меньше — не упрекаем)
+function weekLine({ days, words, grew, prevGrew }) {
   if (!days) return 'На этой неделе повторений ещё не было'
   return `За 7 дней: ${days} ${plural(days, 'день', 'дня', 'дней')} с повторением · ${words} ${plural(words, 'слово', 'слова', 'слов')}`
     + (grew ? ` · окрепло ${grew}` : '')
+    + (grew && prevGrew != null && grew > prevGrew ? ' — больше, чем неделей раньше' : '')
 }
 
 export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) {

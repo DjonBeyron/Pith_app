@@ -19,7 +19,7 @@ export function useLearnData(isLoggedIn) {
   const reload = useCallback(async () => {
     try {
       const [memory, curricula, lessons, reviews, { minutes, vacationSince }, golden] = await Promise.all([
-        listWordMemory(), loadCurricula(), listLessonDeckFlags(), listRecentReviews(7), getMemoryProfile(), listPhraseMemory(),
+        listWordMemory(), loadCurricula(), listLessonDeckFlags(), listRecentReviews(14), getMemoryProfile(), listPhraseMemory(),
       ])
       setView(buildLearnView({ memory, curricula, lessons, reviews, minutes, vacationSince, golden }, localToday()))
       setError(false)

@@ -82,22 +82,35 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
       phrase: ready ? { id: ready.id, title: ready.title, videoUrl: ready.videoUrl } : null,
     },
     next,
-    week: weekSummary(reviews),
+    week: weekSummary(reviews, today),
     phrases,
     known: memory.filter(m => m.step >= KNOW_STEP).length,
     strongPhrases: phrases.filter(p => p.golden).length,
   }
 }
 
-// Итоги недели: дней с повторением, слов повторено, слов окрепло (сессии и
-// «Помнишь?» в ленте)
-export function weekSummary(reviews) {
+// Итоги недели (пассивные — PROJECT.md → «Вкладки»): за последние 7 дней —
+// дней с повторением, слов повторено, слов окрепло (сессии и «Помнишь?» в
+// ленте); prevGrew — окрепло неделей раньше (дни 8–14) для сравнения, null —
+// тогда не повторял. today не задан — весь журнал считается текущей неделей
+export function weekSummary(reviews, today = null) {
   const rs = (reviews ?? []).filter(r => r.source === 'review' || r.source === 'feed')
+  const weekStart = today ? addDaysIso(today, -6) : ''
+  const cur = rs.filter(r => localDate(r.created_at) >= weekStart)
+  const prev = today ? rs.filter(r => localDate(r.created_at) < weekStart && localDate(r.created_at) >= addDaysIso(today, -13)) : []
+  const grewOf = list => new Set(list.filter(r => (r.step_after ?? 0) > (r.step_before ?? 0)).map(r => r.word)).size
   return {
-    days: new Set(rs.map(r => localDate(r.created_at))).size,
-    words: new Set(rs.map(r => r.word)).size,
-    grew: new Set(rs.filter(r => (r.step_after ?? 0) > (r.step_before ?? 0)).map(r => r.word)).size,
+    days: new Set(cur.map(r => localDate(r.created_at))).size,
+    words: new Set(cur.map(r => r.word)).size,
+    grew: grewOf(cur),
+    prevGrew: prev.length ? grewOf(prev) : null,
   }
+}
+
+function addDaysIso(date, n) {
+  const d = new Date(`${date}T12:00:00`)
+  d.setDate(d.getDate() + n)
+  return localDate(d)
 }
 
 // Через сколько дней срок: 'сегодня' | 'завтра' | 'через 3 дня'
