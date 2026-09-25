@@ -76,7 +76,8 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
       )}
       {review && (
         <Suspense fallback={null}>
-          <ReviewScreen focusWords={review.focus} onClose={() => { setReview(null); reload() }}
+          <ReviewScreen focusWords={review.focus} phrase={review.focus ? null : view?.today.phrase}
+            onClose={() => { setReview(null); reload() }}
             onRequireAuth={() => { setReview(null); onRequireAuth() }} />
         </Suspense>
       )}

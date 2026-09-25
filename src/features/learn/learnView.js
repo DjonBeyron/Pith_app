@@ -12,7 +12,9 @@ import { plural } from '../../shared/lib/plural.js'
 //   week    — строка итогов 7 дней;
 //   phrases — карта памяти: фразы (модули со словом в памяти) → слова с силой;
 //   known   — «Знаю N слов» (шаг ≥ 3 — слово пережило недельный интервал),
-//   strongPhrases — фразы, где все слова «знаю»;
+//   strongPhrases — закреплённые фразы (собраны целиком, golden);
+//   today.phrase — фраза к закреплению: все слова «знаю», ещё не золотая
+//             (одна в день — приходит в повторение после карточек слов);
 //   vacation — «Отпуск» ({ since } | null): расписание на паузе, сегодня
 //             ничего не предлагается (и точки на вкладке нет);
 //   stepOf, lessonWord — Map слово → шаг и урок → слово: лента подсвечивает
@@ -20,8 +22,9 @@ import { plural } from '../../shared/lib/plural.js'
 export const KNOW_STEP = 3
 
 // data: { memory: word_memory[], curricula: [{ id, title, lesson_ids }],
-//         lessons: [{ id, title, deck }], reviews: review_events[], minutes, vacationSince }
-export function buildLearnView({ memory = [], curricula = [], lessons = [], reviews = [], minutes = 5, vacationSince = null }, today) {
+//         lessons: [{ id, title, deck }], reviews: review_events[], minutes, vacationSince,
+//         golden: Set id закреплённых фраз }
+export function buildLearnView({ memory = [], curricula = [], lessons = [], reviews = [], minutes = 5, vacationSince = null, golden = new Set() }, today) {
   const byWord = new Map(memory.map(m => [m.word, m]))
   const lessonById = new Map(lessons.map(l => [l.id, l]))
 
@@ -40,7 +43,7 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
       if (l.deck) deckWords.add(word)
       words.push({ word, lessonId: id })
     }
-    return { id: m.id, title: m.title ?? '', words }
+    return { id: m.id, title: m.title ?? '', videoUrl: m.video_url ?? null, golden: golden.has(m.id), words }
   })
 
   const hasDeck = w => deckWords.has(w)
@@ -64,6 +67,9 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
     .map(m => ({ ...m, due: m.words.some(w => w.step && w.hasDeck && w.due <= today) }))
     .sort((a, b) => (b.due - a.due) || a.title.localeCompare(b.title))
 
+  const ready = vacationSince ? null
+    : phrases.find(p => !p.golden && p.words.length && p.words.every(w => (w.step ?? 0) >= KNOW_STEP))
+
   return {
     empty: memory.length === 0,
     minutes,
@@ -71,12 +77,15 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
     lessonWord: new Map(lessons.map(l => [l.id, wordKey(l.title)]).filter(([, w]) => w)),
     vacation: vacationSince ? { since: vacationSince } : null,
     inMemory: memory.length,
-    today: { picked, cards, minutes: sessionMinutes(cards), shown },
+    today: {
+      picked, cards, minutes: sessionMinutes(cards + (ready ? 1 : 0)), shown,
+      phrase: ready ? { id: ready.id, title: ready.title, videoUrl: ready.videoUrl } : null,
+    },
     next,
     week: weekSummary(reviews),
     phrases,
     known: memory.filter(m => m.step >= KNOW_STEP).length,
-    strongPhrases: phrases.filter(p => p.words.every(w => (w.step ?? 0) >= KNOW_STEP)).length,
+    strongPhrases: phrases.filter(p => p.golden).length,
   }
 }
 

@@ -76,7 +76,7 @@ export default function ShellV2() {
   const [splashGone, setSplashGone] = useState(() => !!window.__pithySplashGone)
   // «Моё обучение»: данные живут здесь — по ним же точка на вкладке
   const learn = useLearnData(!!user)
-  const learnDot = !!learn.view?.today.picked.length
+  const learnDot = !!(learn.view?.today.picked.length || learn.view?.today.phrase)
   // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
   // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
   useEffect(() => onOpenModule(() => setTab('feed')), [])

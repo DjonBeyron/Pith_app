@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { listWordMemory, listRecentReviews, getMemoryProfile, importGuestMemory } from '../../shared/api/memoryApi.js'
+import { listWordMemory, listRecentReviews, getMemoryProfile, importGuestMemory, listPhraseMemory } from '../../shared/api/memoryApi.js'
 import { hasGuestMemory } from '../../shared/lib/memory/guestMemory.js'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { listLessonDeckFlags } from '../../shared/lib/lessonsApi.js'
@@ -18,10 +18,10 @@ export function useLearnData(isLoggedIn) {
 
   const reload = useCallback(async () => {
     try {
-      const [memory, curricula, lessons, reviews, { minutes, vacationSince }] = await Promise.all([
-        listWordMemory(), loadCurricula(), listLessonDeckFlags(), listRecentReviews(7), getMemoryProfile(),
+      const [memory, curricula, lessons, reviews, { minutes, vacationSince }, golden] = await Promise.all([
+        listWordMemory(), loadCurricula(), listLessonDeckFlags(), listRecentReviews(7), getMemoryProfile(), listPhraseMemory(),
       ])
-      setView(buildLearnView({ memory, curricula, lessons, reviews, minutes, vacationSince }, localToday()))
+      setView(buildLearnView({ memory, curricula, lessons, reviews, minutes, vacationSince, golden }, localToday()))
       setError(false)
     } catch (e) {
       console.error('[LEARN] загрузка:', e?.message)

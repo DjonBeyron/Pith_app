@@ -18,14 +18,19 @@ function rewardText(finish) {
   return parts.join(' · ') || null
 }
 
-export default function ReviewSummary({ results, finish, bridge, words, onClose, onRequireAuth }) {
+export default function ReviewSummary({ results, finish, bridge, phrase = null, words, onClose, onRequireAuth }) {
   const order = new Map(words.map((w, i) => [w, i]))
   const rows = [...results].sort((a, b) => (order.get(a.word) ?? 99) - (order.get(b.word) ?? 99))
   const reward = rewardText(finish)
   return (
     <div className="reviewSummary">
       <h2 className="reviewSummaryTitle">Повторение завершено</h2>
-      <p className="reviewTeacherLine">{summaryLine(rows)}</p>
+      {rows.length > 0 && <p className="reviewTeacherLine">{summaryLine(rows)}</p>}
+      {phrase && (
+        <p className={phrase.ok ? 'reviewPhraseResult reviewPhraseResultOk' : 'reviewPhraseResult'}>
+          {phrase.ok ? `✨ Фраза «${phrase.title}» закреплена` : `Фраза «${phrase.title}» вернётся в другой раз`}
+        </p>
+      )}
       <ul className="reviewWords">
         {rows.map(r => (
           <li key={r.word} className={`reviewWord reviewWord--${TONE[r.outcome] ?? 'mid'}`}>

@@ -106,11 +106,16 @@ export function listGuestReviews(days, today) {
   return read(LOG_KEY, []).filter(r => localDate(r.created_at) >= since)
 }
 
+// Закреплённые фразы гостя (в аккаунте — таблица phrase_memory): Set id модулей
+const PHRASE_KEY = 'pithy_guest_phrases_v1'
+export const getGuestPhrases = () => new Set(read(PHRASE_KEY, []))
+export const addGuestPhrase = id => write(PHRASE_KEY, [...new Set([...read(PHRASE_KEY, []), id])])
+
 // «Сколько минут в день» гостя (в аккаунте — user_profiles.daily_minutes)
 const MIN_KEY = 'pithy_guest_minutes_v1'
 export const getGuestMinutes = () => read(MIN_KEY, 5)
 export const setGuestMinutes = m => write(MIN_KEY, m)
 
 export function clearGuestMemory() {
-  try { localStorage.removeItem(MEM_KEY); localStorage.removeItem(LOG_KEY) } catch { /* нечего чистить */ }
+  try { localStorage.removeItem(MEM_KEY); localStorage.removeItem(LOG_KEY); localStorage.removeItem(PHRASE_KEY) } catch { /* нечего чистить */ }
 }

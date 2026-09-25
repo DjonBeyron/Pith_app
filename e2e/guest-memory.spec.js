@@ -117,3 +117,39 @@ test('«Помнишь?» в ленте: раз в 6–8 видео карточ
   // Слово дня отвечено — повторять больше нечего: точки нет
   await expect(page.locator('.shellV2NavBtnDot')).toHaveCount(0)
 })
+
+test('закрепление фразы: все слова окрепли → собери фразу целиком → фраза золотая', async ({ page }) => {
+  // hold (единственное слово фразы «Hold on») уже на шаге 3, срок не подошёл
+  const due = new Date(Date.now() + 5 * 86_400_000).toLocaleDateString('sv')
+  await page.addInitScript(d => {
+    if (sessionStorage.getItem('e2e_phrase_seeded')) return
+    sessionStorage.setItem('e2e_phrase_seeded', '1')
+    localStorage.setItem('pithy_guest_memory_v1', JSON.stringify({
+      hold: { word: 'hold', step: 3, due_on: d, last_card_id: null, reviews: 2, lapses: 0 },
+    }))
+  }, due)
+  await page.goto('/')
+  const nav = page.getByRole('button', { name: 'Обучение', exact: true })
+  await expect(nav).toHaveClass(/shellV2NavBtnDot/, { timeout: 30_000 })
+  await nav.click()
+  const main = page.locator('.lrMain')
+  await expect(main).toContainText('Закрепить фразу', { timeout: 30_000 })
+  await main.click()
+
+  const review = page.locator('.reviewScreen')
+  await expect(review.locator('.reviewTeacherLine')).toContainText('пора собрать её целиком', { timeout: 30_000 })
+  await review.getByRole('button', { name: 'Начать', exact: true }).click()
+  const pool = review.locator('.phrasePool')
+  await pool.getByRole('button', { name: 'Hold', exact: true }).click({ timeout: 30_000 })
+  await pool.getByRole('button', { name: 'on', exact: true }).click()
+  await review.getByRole('button', { name: 'Проверить' }).click()
+  await expect(review.locator('.reviewVerdict--ok')).toContainText('закреплена', { timeout: 30_000 })
+  await review.getByRole('button', { name: 'Далее' }).click()
+  await expect(review.locator('.reviewPhraseResultOk')).toHaveText('✨ Фраза «Hold on» закреплена', { timeout: 30_000 })
+  await review.getByRole('button', { name: 'Готово' }).click()
+
+  // Карта: фраза золотая; повторять сегодня больше нечего
+  await expect(page.locator('.lrPhraseGolden')).toContainText('★ закреплена', { timeout: 30_000 })
+  await expect(main).toContainText('На сегодня всё')
+  await expect(nav).not.toHaveClass(/shellV2NavBtnDot/)
+})

@@ -3,6 +3,7 @@ import { dbg } from '../lib/debug.js'
 import { localDate } from '../lib/memory/dailyPick.js'
 import {
   listGuestMemory, reviewGuestWord, listGuestReviews, clearGuestMemory, getGuestMinutes, setGuestMinutes,
+  getGuestPhrases, addGuestPhrase,
 } from '../lib/memory/guestMemory.js'
 
 // Память повторения: тонкие обёртки над таблицей word_memory и RPC (миграция
@@ -125,5 +126,22 @@ export async function setDailyMinutes(minutes) {
   if (await isGuest()) { setGuestMinutes(minutes); return { ok: true, minutes } }
   const { data, error } = await supabase.rpc('memory_set_daily_minutes', { p_minutes: minutes })
   if (error) { console.error('[MEMORY] memory_set_daily_minutes:', error.message); return null }
+  return data ?? null
+}
+
+// Закреплённые фразы (миграция 20260925190000_phrase_memory.sql): Set id модулей.
+// Гостю — локальные. Без миграции — пусто
+export async function listPhraseMemory() {
+  if (await isGuest()) return getGuestPhrases()
+  const { data, error } = await supabase.from('phrase_memory').select('module_id')
+  if (error) { console.error('[MEMORY] phrase_memory:', error.message); return new Set() }
+  return new Set((data ?? []).map(r => r.module_id))
+}
+
+// Фраза собрана — закрепить (сервер проверит, что все её слова на шаге ≥ 3)
+export async function consolidatePhrase(moduleId) {
+  if (await isGuest()) { addGuestPhrase(moduleId); return { ok: true } }
+  const { data, error } = await supabase.rpc('memory_consolidate_phrase', { p_module_id: moduleId })
+  if (error) { console.error('[MEMORY] memory_consolidate_phrase:', error.message); return null }
   return data ?? null
 }

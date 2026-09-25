@@ -85,6 +85,11 @@
 }
 .lrPhraseTitle { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .lrPhraseMeta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; color: #8b95a1; }
+.lrPhraseGolden { border-color: rgba(255, 210, 87, 0.55); }
+.lrPhraseGolden .lrPhraseTitle,
+.lrPhraseGolden .lrPhraseMeta { color: #ffd257; }
+.lrMainPhrase { border-color: rgba(255, 210, 87, 0.55); }
+.lrMainPhrase .lrMainTitle { color: #ffd257; }
 .lrDueDot { width: 7px; height: 7px; border-radius: 50%; background: #b6fe3b; }
 
 .lrWord { padding: 10px 14px 10px 24px; border-top: 1px solid #1d2229; }

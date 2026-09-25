@@ -68,12 +68,19 @@ describe('вкладка «Моё обучение»: данные', () => {
     expect(buildLearnView({ memory, curricula, lessons }, today).vacation).toBe(null)
   })
 
-  it('«знаю» — шаг ≥ 3; фраза «закреплена», когда все её слова «знаю»', () => {
+  it('«знаю» — шаг ≥ 3; все слова фразы «знаю» → фраза к закреплению; собрана — золотая', () => {
     const v = buildLearnView({ memory, curricula, lessons }, today)
     expect(KNOW_STEP).toBe(3)
     expect(v.known).toBe(2)
     expect(v.inMemory).toBe(4)
-    expect(v.strongPhrases).toBe(1) // Keep trying: trying 3, keep 4
+    // Keep trying: trying 3, keep 4 — пора закрепить; «закреплено» — только собранные
+    expect(v.today.phrase).toEqual({ id: 'm2', title: 'Keep trying', videoUrl: null })
+    expect(v.strongPhrases).toBe(0)
+    const done = buildLearnView({ memory, curricula, lessons, golden: new Set(['m2']) }, today)
+    expect(done.strongPhrases).toBe(1)
+    expect(done.today.phrase).toBe(null)
+    expect(done.phrases.find(p => p.id === 'm2').golden).toBe(true)
+    expect(buildLearnView({ memory, curricula, lessons, vacationSince: today }, today).today.phrase).toBe(null)
     expect(buildLearnView({ curricula, lessons }, today).empty).toBe(true)
   })
 

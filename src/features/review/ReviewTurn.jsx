@@ -6,7 +6,12 @@ import { useSwipeNext } from './useSwipeNext.js'
 
 // Вторая ошибка — показать ответ: само слово сессии (плеер верный вариант
 // в чат не выводит, у «выбери слово» его может не быть в переписке)
-function verdictOf(result, { attempt, word }) {
+function verdictOf(result, { attempt, word, kind }) {
+  if (kind === 'phrase') {
+    return result === 'correct'
+      ? { kind: 'ok', text: 'Фраза твоя — закреплена ✨' }
+      : { kind: 'bad', text: 'Почти! Вернёмся к фразе в другой раз' }
+  }
   if (result === 'correct') return { kind: 'ok', text: 'Верно!' }
   if (attempt === 1) return { kind: 'bad', text: 'Ошибка — это слово вернётся в конце сессии' }
   return { kind: 'bad', text: `Снова мимо. Запомни: ${word} — повторим завтра` }

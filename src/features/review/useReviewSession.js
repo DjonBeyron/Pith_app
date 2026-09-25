@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { listWordMemory, reviewWord, finishReviewSession, getMemoryProfile, listRecentReviews } from '../../shared/api/memoryApi.js'
+import {
+  listWordMemory, reviewWord, finishReviewSession, getMemoryProfile, listRecentReviews, consolidatePhrase,
+} from '../../shared/api/memoryApi.js'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { listLessonCards } from '../../shared/lib/lessonsApi.js'
 import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
@@ -24,9 +26,11 @@ import {
 // Бюджет дня — на все сессии дня: уже показанные сегодня карточки вычитаются.
 // focusWords — «Повторить сейчас» из карты памяти (Pro): только эти слова,
 // вне расписания и бюджета (сервер ранний верный ответ шагом не засчитает).
+// phrase — фраза к закреплению ({ id, title, videoUrl }, learnView): после
+// карточек слов (или вместо них) — «собери фразу» целиком (phraseDrill.js).
 //
-// phase: loading | error | empty | intro | run | finishing | done
-export function useReviewSession({ focusWords = null } = {}) {
+// phase: loading | error | empty | intro | run | phrase | finishing | done
+export function useReviewSession({ focusWords = null, phrase = null } = {}) {
   const [phase, setPhase] = useState('loading')
   const [session, setSession] = useState(null)
   // { decks, curricula, memory, teacher (общий, сырой), words, cards }
@@ -34,6 +38,8 @@ export function useReviewSession({ focusWords = null } = {}) {
   const [results, setResults] = useState([]) // [{ word, outcome, ok, applied, step }]
   const [finish, setFinish] = useState(null)
   const [bridge, setBridge] = useState(null)
+  const [phraseRes, setPhraseRes] = useState(null) // { ok } — итог закрепления фразы
+  const phraseDoneRef = useRef(!phrase)
   const [tracker] = useState(() => createReviewTracker())
   const sentRef = useRef(new Map()) // word → Promise строки results
   const noAudioRef = useRef(false)
@@ -59,7 +65,7 @@ export function useReviewSession({ focusWords = null } = {}) {
         const built = buildSession(picked, decks, { lastCardIds })
         setInfo({ decks, curricula, memory, teacher, words: built.words, cards: built.items.length })
         setSession(startSession(built))
-        setPhase(built.items.length ? 'intro' : 'empty')
+        setPhase(built.items.length || phrase ? 'intro' : 'empty')
       })
       .catch(e => { console.error('[REVIEW] загрузка:', e?.message); if (alive) setPhase('error') })
     // Закрыли экран или приложение до итога — «брошена» (после итога трекер молчит)
@@ -95,7 +101,19 @@ export function useReviewSession({ focusWords = null } = {}) {
           return row
         }))
     }
-    if (isFinished(s)) finishAll()
+    if (!isFinished(s)) return
+    if (phraseDoneRef.current) finishAll()
+    else setPhase('phrase')
+  }
+
+  // Фраза собрана без ошибок — закрепить (сервер проверит готовность слов);
+  // ошибка или «Не могу слушать» — фраза вернётся в другой раз
+  async function answerPhrase(res) {
+    if (phraseDoneRef.current) return
+    phraseDoneRef.current = true
+    const r = res.result === 'correct' ? await consolidatePhrase(phrase.id) : null
+    setPhraseRes({ ok: !!r?.ok, title: phrase.title })
+    finishAll()
   }
 
   // { result: 'correct' | 'wrong' | 'know', timeMs }
@@ -120,8 +138,8 @@ export function useReviewSession({ focusWords = null } = {}) {
 
   function start() {
     tracker.start({ words: info.words.length, cards: info.cards })
-    setPhase('run')
+    setPhase(info.cards ? 'run' : 'phrase')
   }
 
-  return { phase, session, info, results, finish, bridge, start, answer, skipAudio }
+  return { phase, session, info, results, finish, bridge, phraseRes, start, answer, skipAudio, answerPhrase }
 }

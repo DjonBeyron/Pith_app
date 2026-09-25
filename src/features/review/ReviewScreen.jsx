@@ -9,6 +9,7 @@ import { primeAudio } from '../../shared/lib/primedAudio.js'
 import ReviewTurn from './ReviewTurn.jsx'
 import ReviewWarmup from './ReviewWarmup.jsx'
 import ReviewSummary from './ReviewSummary.jsx'
+import { phraseItem } from './phraseDrill.js'
 
 // Экран повторения дня (этап 4 системы повторения, PROJECT.md → «Формат
 // повторения»): строка учителя → карточки → итог. Полноэкранный слой в body
@@ -27,8 +28,8 @@ function Message({ title, text, onClose }) {
   )
 }
 
-export default function ReviewScreen({ focusWords = null, onClose, onRequireAuth = null }) {
-  const r = useReviewSession({ focusWords })
+export default function ReviewScreen({ focusWords = null, phrase = null, onClose, onRequireAuth = null }) {
+  const r = useReviewSession({ focusWords, phrase })
   const warmRef = useRef(null)
   const [handoff, setHandoff] = useState(null) // { key, blobMap } — прогретое для карточки
   const s = r.session
@@ -64,7 +65,12 @@ export default function ReviewScreen({ focusWords = null, onClose, onRequireAuth
     body = (
       <div className="reviewCenter">
         <p className="reviewTeacherName">{r.info.teacher?.name || 'Учитель'}</p>
-        <p className="reviewTeacherLine">{introLine({ words: r.info.words, cards: r.info.cards, memory: r.info.memory })}</p>
+        <p className="reviewTeacherLine">
+          {r.info.words.length ? introLine({ words: r.info.words, cards: r.info.cards, memory: r.info.memory }) : ''}
+          {phrase && (r.info.words.length
+            ? ` А в конце — фраза «${phrase.title}» целиком.`
+            : `Все слова фразы «${phrase.title}» окрепли — пора собрать её целиком.`)}
+        </p>
         <button className="reviewBtn reviewBtn--main" onClick={start}>Начать</button>
         <button className="reviewBtn reviewBtnGhost" onClick={onClose}>Не сейчас</button>
       </div>
@@ -83,8 +89,25 @@ export default function ReviewScreen({ focusWords = null, onClose, onRequireAuth
         onClose={onClose}
       />
     )
+  } else if (r.phase === 'phrase') {
+    const item = phraseItem(phrase)
+    body = (
+      <>
+        <p className="feedRememberTitle">Закрепление фразы</p>
+        <ReviewTurn
+          key={item.key}
+          session={{ queue: [item], index: 0, events: [] }}
+          item={item}
+          phrase=""
+          teacher={r.info.teacher}
+          onAnswer={r.answerPhrase}
+          onNoAudio={() => r.answerPhrase({ result: 'skip' })}
+          onClose={onClose}
+        />
+      </>
+    )
   } else if (r.phase === 'done') {
-    body = <ReviewSummary results={r.results} finish={r.finish} bridge={r.bridge} words={r.info.words} onClose={onClose} onRequireAuth={onRequireAuth} />
+    body = <ReviewSummary results={r.results} finish={r.finish} bridge={r.bridge} phrase={r.phraseRes} words={r.info.words} onClose={onClose} onRequireAuth={onRequireAuth} />
   }
 
   return createPortal(

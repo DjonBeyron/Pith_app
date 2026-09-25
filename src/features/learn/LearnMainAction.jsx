@@ -34,7 +34,15 @@ export default function LearnMainAction({ view, today, onStart, onChanged }) {
       </div>
     )
   }
-  const { picked, minutes } = view.today
+  const { picked, minutes, phrase } = view.today
+  if (!picked.length && phrase) {
+    return (
+      <button className="lrMain lrMainGo lrMainPhrase" onClick={onStart}>
+        <span className="lrMainTitle">Закрепить фразу · {minutes} мин</span>
+        <span className="lrMainSub">Все слова «{phrase.title}» окрепли — собери её целиком</span>
+      </button>
+    )
+  }
   if (picked.length) {
     return (
       <button className="lrMain lrMainGo" onClick={onStart}>

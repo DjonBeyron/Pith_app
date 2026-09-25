@@ -22,12 +22,12 @@ export default function LearnMemoryMap({ phrases, onWord }) {
         const inMemory = p.words.filter(w => w.step)
         const known = inMemory.filter(w => w.step >= KNOW_STEP).length
         return (
-          <div key={p.id} className="lrPhrase">
+          <div key={p.id} className={p.golden ? 'lrPhrase lrPhraseGolden' : 'lrPhrase'}>
             <button className="lrPhraseHead" aria-expanded={open.has(p.id)} onClick={() => toggle(p.id)}>
               <span className="lrPhraseTitle">{p.title}</span>
               <span className="lrPhraseMeta">
                 {p.due && <span className="lrDueDot" aria-label="есть что повторить" />}
-                знаю {known} из {p.words.length}
+                {p.golden ? '★ закреплена' : `знаю ${known} из ${p.words.length}`}
               </span>
             </button>
             {open.has(p.id) && p.words.map(w => (
