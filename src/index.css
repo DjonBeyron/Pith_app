@@ -78,6 +78,7 @@
 @import './styles/production/list.css';
 @import './styles/production/fan.css';
 @import './styles/review-cards.css';
+@import './styles/review-cards-source.css';
 @import './styles/player/layout.css';
 @import './styles/player/admin-edit.css';
 @import './styles/player/topbar.css';

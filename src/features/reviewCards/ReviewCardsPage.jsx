@@ -2,7 +2,7 @@ import { useState } from 'react'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import ProductionList from '../production/ProductionList.jsx'
 import ReviewCardStrip from './ReviewCardStrip.jsx'
-import ReviewNodePicker from './ReviewNodePicker.jsx'
+import ReviewLessonSource from './ReviewLessonSource.jsx'
 import ReviewCardPreview from './ReviewCardPreview.jsx'
 import { useReviewCards } from './useReviewCards.js'
 import { isTaskNode } from './reviewCardCopy.js'
@@ -10,10 +10,11 @@ import { isTaskNode } from './reviewCardCopy.js'
 // Редактор колоды «Карточки повтора» (этап 3 системы повторения, PROJECT.md →
 // «Колоды»). Третья вкладка редактора урока рядом с «Граф» и «Продакшен»:
 // карточка — короткая цепочка нод той же схемы, правится тем же списком,
-// что продакшен. Хранится в lessons.script.reviewCards (saveReviewCards)
+// что продакшен. Слева — урок как чат (ReviewLessonSource): из него копии
+// нод уходят в карточку. Хранится в lessons.script.reviewCards (saveReviewCards)
 export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, onOpenCanvas, onOpenProduction }) {
   const rc = useReviewCards(lessonId)
-  const [picking, setPicking] = useState(false)
+  const [lessonShown, setLessonShown] = useState(true)
   const [previewing, setPreviewing] = useState(false)
   const busy = rc.saving || rc.loading
   const current = rc.cards[rc.active]
@@ -66,30 +67,44 @@ export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, 
           onAdd={rc.addCard}
           onDraft={handleDraft}
           canDraft={rc.lessonNodes.some(isTaskNode)}
-          onPull={() => setPicking(true)}
+          lessonShown={lessonShown}
+          onToggleLesson={() => setLessonShown(v => !v)}
           onPreview={() => setPreviewing(true)}
           onRemove={handleRemove}
           disabled={busy}
         />
       )}
 
-      {!rc.loading && !current && (
-        <div className="rcEmpty">
-          Карточек пока нет. Нажми «Черновик из урока» — по карточке на каждое задание,
-          или «+ Карточка» и собери её сам.
+      {!rc.loading && (
+        <div className="rcBody">
+          {lessonShown && (
+            <ReviewLessonSource
+              nodes={rc.lessonNodes}
+              hasCard={!!current}
+              onAddNode={id => rc.pullIntoActive([id])}
+              onCardFromTask={rc.addCardFromTask}
+            />
+          )}
+          <div className="rcCardPane">
+            {!current && (
+              <div className="rcEmpty">
+                Карточек пока нет. В уроке слева нажми «＋ Карточка из задания» у нужного
+                задания, или «Черновик из урока» — по карточке на каждое задание.
+              </div>
+            )}
+            {current && (
+              <ProductionList
+                key={current.id}
+                nodes={current.nodes ?? []}
+                onNodesChange={rc.setActiveNodes}
+                lessonFiles={files}
+                onPickLessonFile={pickFile}
+                onRemoveLessonFile={removeFile}
+                moduleLessons={moduleLessons.filter(l => l.id !== lessonId)}
+              />
+            )}
+          </div>
         </div>
-      )}
-
-      {!rc.loading && current && (
-        <ProductionList
-          key={current.id}
-          nodes={current.nodes ?? []}
-          onNodesChange={rc.setActiveNodes}
-          lessonFiles={files}
-          onPickLessonFile={pickFile}
-          onRemoveLessonFile={removeFile}
-          moduleLessons={moduleLessons.filter(l => l.id !== lessonId)}
-        />
       )}
 
       {previewing && current && (
@@ -98,14 +113,6 @@ export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, 
           nodes={current.nodes ?? []}
           files={files}
           onClose={() => setPreviewing(false)}
-        />
-      )}
-
-      {picking && (
-        <ReviewNodePicker
-          nodes={rc.lessonNodes}
-          onClose={() => setPicking(false)}
-          onPick={ids => { rc.pullIntoActive(ids); setPicking(false) }}
         />
       )}
     </div>

@@ -4,7 +4,7 @@ import { useLessonFiles } from '../canvas/useLessonFiles.js'
 import { injectR2Urls } from '../canvas/injectR2Urls.js'
 import { dbg } from '../../shared/lib/debug.js'
 import { plural } from '../../shared/lib/plural.js'
-import { copyNodesForCard, draftDeckFromLesson, makeEmptyCard, appendToCard } from './reviewCardCopy.js'
+import { copyNodesForCard, draftDeckFromLesson, makeEmptyCard, appendToCard, cardFromTask } from './reviewCardCopy.js'
 
 const cardsWord = n => `${n} ${plural(n, 'карточка', 'карточки', 'карточек')}`
 
@@ -60,6 +60,14 @@ export function useReviewCards(lessonId) {
     return draft.length
   }
 
+  // «＋ Карточка из задания» в уроке слева: новая карточка = контекст + задание
+  function addCardFromTask(taskId) {
+    const card = cardFromTask(lessonNodes, taskId)
+    if (!card) return
+    change([...cards, card])
+    setActive(cards.length)
+  }
+
   function removeActive() {
     change(cards.filter((_, i) => i !== active))
     setActive(a => Math.max(0, a - 1))
@@ -80,13 +88,15 @@ export function useReviewCards(lessonId) {
     try {
       const files = lessonFiles.hasUnsynced ? await lessonFiles.syncToServer() : lessonFiles.files
       const toSave = cards.filter(c => c.nodes?.length).map(c => ({ ...c, nodes: injectR2Urls(c.nodes, files) }))
+      const dropped = cards.length - toSave.length
       dbg('[CARDS] saving', toSave.length, 'cards for lesson', lessonId)
       await saveReviewCards(lessonId, toSave)
       const check = await loadScript(lessonId)
       const got = check?.script?.reviewCards?.length ?? 0
       const stamp = new Date().toTimeString().slice(0, 8)
+      const note = dropped ? ` · пустые убраны: ${dropped}` : ''
       setStatus(got === toSave.length
-        ? `✓ Сохранено и проверено: ${cardsWord(got)} · ${stamp}`
+        ? `✓ Сохранено и проверено: ${cardsWord(got)}${note} · ${stamp}`
         : `⚠ Сохранено ${toSave.length}, но сервер вернул ${got} · ${stamp}`)
       setCards(toSave)
       setActive(a => Math.min(a, Math.max(0, toSave.length - 1)))
@@ -102,6 +112,6 @@ export function useReviewCards(lessonId) {
 
   return {
     title, lessonNodes, cards, active, setActive, loading, saving, dirty, status, lessonFiles,
-    setActiveNodes, addCard, addDraft, removeActive, pullIntoActive, save,
+    setActiveNodes, addCard, addDraft, addCardFromTask, removeActive, pullIntoActive, save,
   }
 }

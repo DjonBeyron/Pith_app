@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  copyNodesForCard, draftDeckFromLesson, deckStatus, cardHasTask, makeEmptyCard, MIN_CARDS, appendToCard,
+  copyNodesForCard, draftDeckFromLesson, deckStatus, cardHasTask, makeEmptyCard, MIN_CARDS, appendToCard, cardFromTask,
 } from './reviewCardCopy.js'
 
 // Урок: текст → выбор слова (верно → текст-итог, неверно → сигнал-спутник
@@ -74,6 +74,12 @@ describe('черновик колоды', () => {
     expect(deck[0].nodes.map(n => n.type)).toEqual(['text', 'word_choice'])
     expect(deck[1].nodes.map(n => n.type)).toEqual(['phrase_assembly', 'text']) // + спутник
     expect(deck.every(cardHasTask)).toBe(true)
+  })
+
+  it('карточка из одного задания — контекст + задание; не задание — null', () => {
+    expect(cardFromTask(lesson(), 'b').nodes.map(n => n.type)).toEqual(['text', 'word_choice'])
+    expect(cardFromTask(lesson(), 'a')).toBe(null)
+    expect(cardFromTask(lesson(), 'нет такой')).toBe(null)
   })
 
   it('урок без заданий — пустой черновик', () => {

@@ -1,6 +1,7 @@
 /* Редактор колоды «Карточки повтора» (features/reviewCards). Шапка и список
    нод — общие с продакшеном (production/list.css), здесь только своё:
-   предупреждения, ряд карточек, окно выбора нод урока */
+   предупреждения, мини-превью карточек, шапка предпросмотра. Урок слева —
+   review-cards-source.css */
 
 .rcTitle {
   flex: 1;
@@ -34,27 +35,65 @@
 }
 .rcWarnSoft { color: #aaa; background: transparent; border-color: #2a2c33; }
 
-.rcChips {
+.rcThumbs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
-.rcChip {
-  min-width: 34px;
-  background: transparent;
+.rcThumb {
+  flex: 0 0 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #111317;
   border: 1px solid #2a2c33;
+  border-radius: 10px;
   color: #aaa;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 999px;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
-.rcChip:hover { background: #1a1c22; }
-.rcChip:disabled { opacity: 0.5; cursor: default; }
-.rcChipActive { background: #182818; border-color: #3a5a2a; color: #b6fe3b; }
-.rcChipWarn { color: #e0b25a; }
-.rcChipAdd { font-weight: 500; color: #888; }
+.rcThumb:hover { background: #16181d; }
+.rcThumb:disabled { opacity: 0.5; cursor: default; }
+.rcThumbBars { display: flex; gap: 2px; height: 4px; }
+.rcThumbBars i { flex: 1; border-radius: 2px; }
+.rcThumbHead { font-size: 12px; font-weight: 700; color: #ddd; }
+.rcThumbText {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #888;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.rcThumbMeta { font-size: 10px; color: #666; margin-top: auto; }
+.rcThumbActive {
+  border-color: #3a5a2a;
+  background: #141c12;
+  animation: rcThumbIn 0.6s ease;
+}
+.rcThumbActive .rcThumbHead { color: #b6fe3b; }
+.rcThumbWarn .rcThumbHead { color: #e0b25a; }
+.rcThumbAdd {
+  flex-basis: 110px;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 13px;
+  border-style: dashed;
+}
+@keyframes rcThumbIn {
+  from { box-shadow: 0 0 0 3px rgba(182, 254, 59, 0.55); }
+  to   { box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rcThumbActive { animation: none; }
+}
 
 .rcActions { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -65,51 +104,6 @@
   line-height: 1.5;
   text-align: center;
 }
-
-.rcPickerBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-.rcPicker {
-  width: min(560px, 100%);
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  background: #111317;
-  border: 1px solid #2a2c33;
-  border-radius: 12px;
-  overflow: hidden;
-}
-.rcPickerHead { padding: 12px 16px; color: #ddd; font-weight: 600; font-size: 14px; }
-.rcPickerList { flex: 1; overflow-y: auto; padding: 0 8px; }
-.rcPickerEmpty { padding: 16px; color: #777; font-size: 13px; }
-.rcPickerRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 6px;
-  color: #aaa;
-  font-size: 13px;
-  cursor: pointer;
-}
-.rcPickerRow:hover { background: #1a1c22; }
-.rcPickerRowTask { color: #b6fe3b; }
-.rcPickerFoot {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid #1a1c22;
-}
-.rcPickerFoot .productionPageSave { margin-left: 0; }
-.rcPickerFoot .productionPageSave:disabled { opacity: 0.5; cursor: default; }
 
 /* Предпросмотр карточки (ReviewCardPreview.jsx) — поверх редактора тот же
    слой .reviewScreen и рамка .reviewCardFrame, что у ученика в повторении */

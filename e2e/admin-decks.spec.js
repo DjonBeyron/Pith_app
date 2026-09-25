@@ -45,11 +45,16 @@ test('черновик колоды из урока → сохранить → �
   await openDecks(page)
   const before = await cardsOf(page, 'trying')
   await openCards(page, 'trying')
+  // Пустая карточка помечена и при сохранении выбрасывается (статус об этом)
+  await page.getByRole('button', { name: '+ Карточка' }).click()
+  await expect(page.locator('.rcThumbActive')).toContainText('пустая — не сохранится')
   await page.getByRole('button', { name: 'Черновик из урока' }).click()
   // В уроке одно задание — черновик из одной карточки: контекст + «выбери слово»
-  await expect(page.locator('.rcChip', { hasText: String(before + 1) })).toBeVisible()
+  await expect(page.locator('.rcThumbActive')).toContainText(`Карточка ${before + 2}`)
+  await expect(page.locator('.rcThumbActive')).toContainText('2 ноды')
   await page.getByRole('button', { name: /^Сохранить/ }).click()
   await expect(page.locator('.productionSyncStatus')).toContainText('Сохранено и проверено', { timeout: 15_000 })
+  await expect(page.locator('.productionSyncStatus')).toContainText('пустые убраны: 1')
 
   await page.getByRole('button', { name: 'Назад' }).first().click()
   await openDecks(page)
@@ -68,20 +73,36 @@ test('сохранение урока из «Графа» не стирает к
   // Кнопка шапки канваса (под оверлеем в админке есть свои «Карточки»)
   await page.locator('.canvasPageActions').getByRole('button', { name: 'Карточки', exact: true }).click()
   await expect(page.locator('.rcTitle')).toBeVisible({ timeout: 30_000 })
-  await expect(page.locator('.rcChips .rcChip:not(.rcChipAdd)')).toHaveCount(before)
+  await expect(page.locator('.rcThumbs .rcThumb:not(.rcThumbAdd)')).toHaveCount(before)
 })
 
-test('«Подтянуть из урока» копирует выбранные ноды в карточку', async ({ page }) => {
+// Урок слева (ReviewLessonSource): фильтры по типам, «＋ Карточка из
+// задания» (контекст + задание одним нажатием), «＋ в карточку» по одной ноде
+test('урок слева: фильтры, карточка из задания, ноды по одной', async ({ page }) => {
   await openDecks(page)
   await openCards(page, 'trying')
-  await page.getByRole('button', { name: '+ Карточка' }).click()
-  await page.getByRole('button', { name: 'Подтянуть из урока' }).click()
-  const boxes = page.locator('.rcPickerRow input')
-  await expect(boxes).toHaveCount(2)
-  await boxes.nth(0).check()
-  await boxes.nth(1).check()
-  await page.getByRole('button', { name: 'Скопировать (2)' }).click()
+  const source = page.getByRole('complementary', { name: 'Урок' })
+  const rows = source.locator('.rcSrcRow')
+  await expect(rows).toHaveCount(2)
+  await source.getByRole('button', { name: /^Задания/ }).click()
+  await expect(rows).toHaveCount(1)
+  await expect(rows.first().locator('.rcSrcAnswerOk')).toHaveText('trying')
+  await source.getByRole('button', { name: /^Все/ }).click()
+
+  const thumbs = page.locator('.rcThumbs .rcThumb:not(.rcThumbAdd)')
+  const before = await thumbs.count()
+  await source.getByRole('button', { name: '＋ Карточка из задания' }).click()
+  await expect(thumbs).toHaveCount(before + 1)
+  await expect(page.locator('.rcThumbActive')).toContainText(`Карточка ${before + 1}`)
   await expect(page.locator('.productionList [data-node-id]')).toHaveCount(2)
+
+  await page.getByRole('button', { name: '+ Карточка' }).click()
+  await rows.nth(0).getByRole('button', { name: '＋ в карточку' }).click()
+  await rows.nth(1).getByRole('button', { name: '＋ в карточку' }).click()
+  await expect(page.locator('.productionList [data-node-id]')).toHaveCount(2)
+  await expect(page.locator('.rcThumbActive')).toContainText('2 ноды')
+  // Прежние карточки на месте — в том же ряду превью
+  await expect(thumbs).toHaveCount(before + 2)
   await expect(page.getByRole('button', { name: 'Сохранить •' })).toBeVisible()
 })
 

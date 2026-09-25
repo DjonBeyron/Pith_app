@@ -92,14 +92,21 @@ function contextBefore(lessonNodes, task) {
     CONTEXT_TYPES.has(n.type) && n.triggers?.[getPrimaryTriggerIndex(n)]?.then === task.id) ?? null
 }
 
-// «Черновик колоды из урока»: по карточке на каждое задание урока, с
-// сообщением-контекстом перед ним, если оно есть. Автор потом правит сам
+// Карточка из одного задания урока: сообщение-контекст перед ним (если есть)
+// + само задание (+ его спутники-сигналы). null — такой ноды-задания нет
+export function cardFromTask(lessonNodes, taskId) {
+  const nodes = lessonNodes ?? []
+  const task = nodes.find(n => n.id === taskId)
+  if (!isTaskNode(task)) return null
+  const ctx = contextBefore(nodes, task)
+  return { id: uid(), nodes: copyNodesForCard(nodes, ctx ? [ctx.id, task.id] : [task.id]) }
+}
+
+// «Черновик колоды из урока»: по карточке на каждое задание урока (см.
+// cardFromTask). Автор потом правит сам
 export function draftDeckFromLesson(lessonNodes) {
   const nodes = lessonNodes ?? []
-  return nodes.filter(isTaskNode).sort(bySeq).map(task => {
-    const ctx = contextBefore(nodes, task)
-    return { id: uid(), nodes: copyNodesForCard(nodes, ctx ? [ctx.id, task.id] : [task.id]) }
-  })
+  return nodes.filter(isTaskNode).sort(bySeq).map(task => cardFromTask(nodes, task.id))
 }
 
 // Дописать скопированные ноды в конец карточки: номера и позиции — после
