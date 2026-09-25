@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { listWordMemory, reviewWord, finishReviewSession, getDailyMinutes, listRecentReviews } from '../../shared/api/memoryApi.js'
+import { listWordMemory, reviewWord, finishReviewSession, getMemoryProfile, listRecentReviews } from '../../shared/api/memoryApi.js'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { listLessonCards } from '../../shared/lib/lessonsApi.js'
 import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
@@ -41,8 +41,8 @@ export function useReviewSession({ focusWords = null } = {}) {
 
   useEffect(() => {
     let alive = true
-    Promise.all([listWordMemory(), loadCurricula(), listLessonCards(), getDailyMinutes(), getDefaultTeacher(), listRecentReviews(1)])
-      .then(([memory, curricula, lessons, minutes, teacher, reviews]) => {
+    Promise.all([listWordMemory(), loadCurricula(), listLessonCards(), getMemoryProfile(), getDefaultTeacher(), listRecentReviews(1)])
+      .then(([memory, curricula, lessons, { minutes }, teacher, reviews]) => {
         if (!alive) return
         const decks = buildDecks(curricula, lessons)
         const today = localToday()

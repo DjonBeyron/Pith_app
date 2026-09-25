@@ -49,16 +49,30 @@ export async function finishReviewSession(words) {
   return data ?? null
 }
 
-// «Сколько минут в день» (user_profiles.daily_minutes) → бюджет карточек
-// (dailyPick.js). Отдельным запросом, а не в getProfile: без миграции памяти
-// колонки нет, и падал бы весь профиль. Гость и сбой — 5 минут
-export async function getDailyMinutes() {
+// Настройки повторения из профиля: «Сколько минут в день» (daily_minutes →
+// бюджет карточек, dailyPick.js) и «Отпуск» (vacation_since — дата начала
+// паузы или null). Отдельным запросом, а не в getProfile: без миграций колонок
+// нет, и падал бы весь профиль; без миграции «Отпуска» — только минуты.
+// Гость и сбой — 5 минут, не в отпуске. → { minutes, vacationSince }
+export async function getMemoryProfile() {
+  const none = { minutes: 5, vacationSince: null }
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user) return 5
-  const { data, error } = await supabase
-    .from('user_profiles').select('daily_minutes').eq('id', session.user.id).maybeSingle()
-  if (error) { console.error('[MEMORY] daily_minutes:', error.message); return 5 }
-  return data?.daily_minutes ?? 5
+  if (!session?.user) return none
+  const q = cols => supabase.from('user_profiles').select(cols).eq('id', session.user.id).maybeSingle()
+  let { data, error } = await q('daily_minutes, vacation_since')
+  if (error && /vacation_since/.test(error.message)) ({ data, error } = await q('daily_minutes'))
+  if (error) { console.error('[MEMORY] профиль повторения:', error.message); return none }
+  return { minutes: data?.daily_minutes ?? 5, vacationSince: data?.vacation_since ?? null }
+}
+
+// «Отпуск»: on=true — пауза расписания с сегодняшнего дня; false — вернуться
+// (сервер сдвигает сроки памяти на число дней отпуска). Миграция
+// 20260925150000_memory_vacation.sql. { ok, on, since? , days?, shifted? } | null
+export async function setVacation(on) {
+  const { data, error } = await supabase.rpc('memory_set_vacation', { p_on: on })
+  if (error) { console.error('[MEMORY] memory_set_vacation:', error.message); return null }
+  dbg('[MEMORY] memory_set_vacation →', data)
+  return data ?? null
 }
 
 // Свой журнал повторений за последние N дней (review_events, свои строки по

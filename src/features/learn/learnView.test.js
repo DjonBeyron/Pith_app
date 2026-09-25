@@ -59,6 +59,14 @@ describe('вкладка «Моё обучение»: данные', () => {
     expect(cookPhrase.due).toBe(true)
   })
 
+  it('«Отпуск»: сегодня ничего не предлагается, карта на месте', () => {
+    const v = buildLearnView({ memory, curricula, lessons, vacationSince: '2026-09-20' }, today)
+    expect(v.vacation).toEqual({ since: '2026-09-20' })
+    expect(v.today.picked).toEqual([])
+    expect(v.phrases).toHaveLength(2)
+    expect(buildLearnView({ memory, curricula, lessons }, today).vacation).toBe(null)
+  })
+
   it('«знаю» — шаг ≥ 3; фраза «закреплена», когда все её слова «знаю»', () => {
     const v = buildLearnView({ memory, curricula, lessons }, today)
     expect(KNOW_STEP).toBe(3)

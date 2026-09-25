@@ -1,9 +1,31 @@
+import { useState } from 'react'
 import { plural } from '../../shared/lib/plural.js'
+import { setVacation } from '../../shared/api/memoryApi.js'
 import { dueLabel } from './learnView.js'
 
 // Главное действие вкладки «Моё обучение» — по состоянию, одно:
-// «Повторить · 2 мин» | «На сегодня всё ✓» (+ когда следующее) | память пуста
-export default function LearnMainAction({ view, today, onStart }) {
+// «Отпуск» (+ вернуться) | память пуста | «Повторить · 2 мин» |
+// «На сегодня всё ✓» (+ когда следующее)
+const fmtDate = d => new Date(`${d}T12:00:00`).toLocaleDateString('ru', { day: 'numeric', month: 'long' })
+
+export default function LearnMainAction({ view, today, onStart, onChanged }) {
+  const [busy, setBusy] = useState(false)
+
+  if (view.vacation) {
+    async function back() {
+      setBusy(true)
+      const res = await setVacation(false)
+      setBusy(false)
+      if (res?.ok) onChanged()
+    }
+    return (
+      <div className="lrMain lrMainVacation">
+        <p className="lrMainTitle">Ты в отпуске 🌴</p>
+        <p className="lrMainSub">Повторения на паузе с {fmtDate(view.vacation.since)}. Вернёшься — сроки сдвинутся, долга не будет</p>
+        <button className="lrBtn lrBtnMain" disabled={busy} onClick={back}>Вернуться из отпуска</button>
+      </div>
+    )
+  }
   if (view.empty) {
     return (
       <div className="lrMain">

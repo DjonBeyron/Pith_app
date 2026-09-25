@@ -6,6 +6,7 @@ import { localToday } from '../review/reviewDecks.js'
 import LearnMainAction from './LearnMainAction.jsx'
 import LearnMemoryMap from './LearnMemoryMap.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
+import LearnVacation from './LearnVacation.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
 
 const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
@@ -54,9 +55,10 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
       {error && !view && <p className="lrNote">Не загрузилось. <button className="lrLink" onClick={reload}>Ещё раз</button></p>}
       {view && (
         <>
-          <LearnMainAction view={view} today={today} onStart={() => setReview({ focus: null })} />
+          <LearnMainAction view={view} today={today} onStart={() => setReview({ focus: null })} onChanged={reload} />
           {!view.empty && <p className="lrWeek">{weekLine(view.week)}</p>}
           <LearnMemoryMap phrases={view.phrases} onWord={(word, phrase) => setSheet({ word, phrase })} />
+          {!view.empty && !view.vacation && <LearnVacation onChanged={reload} />}
         </>
       )}
       {sheet && (

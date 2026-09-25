@@ -39,6 +39,21 @@
 
 .lrWeek { margin: 0 4px 18px; font-size: 13px; color: #8b95a1; }
 
+/* ── «Отпуск» (LearnVacation, LearnMainAction) ──────────────────── */
+.lrMainVacation .lrMainTitle { color: #ffd257; }
+.lrMainVacation .lrBtn { margin-top: 8px; }
+.lrVacationLink {
+  display: block;
+  margin: 14px auto 0;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  color: #6b737d;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 /* ── Карта памяти ──────────────────────────────────────────────────── */
 .lrSectionTitle { margin: 0 4px 8px; font-size: 13px; font-weight: 600; color: #9aa3ad; text-transform: uppercase; letter-spacing: 0.04em; }
 

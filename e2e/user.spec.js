@@ -80,3 +80,18 @@ test('схема модуля: у пройденного урока-слова �
   // Не пройденный урок — без силы памяти
   await expect(page.locator('.mgNode--lesson', { hasText: 'going' }).locator('.mgLessonStrength')).toHaveCount(0)
 })
+
+test('«Отпуск»: пауза расписания и возвращение', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
+  await page.getByRole('button', { name: 'Уезжаю в отпуск' }).click({ timeout: 30_000 })
+  await page.getByRole('dialog', { name: 'Отпуск' }).getByRole('button', { name: 'Поставить на паузу' }).click()
+  const main = page.locator('.lrMain')
+  await expect(main).toContainText('Ты в отпуске', { timeout: 30_000 })
+  await expect(page.locator('.shellV2NavBtnDot')).toHaveCount(0) // в отпуске не зовём повторять
+  await expect(page.getByRole('button', { name: 'Уезжаю в отпуск' })).toHaveCount(0)
+
+  await main.getByRole('button', { name: 'Вернуться из отпуска' }).click()
+  await expect(main).not.toContainText('Ты в отпуске', { timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Уезжаю в отпуск' })).toBeVisible()
+})

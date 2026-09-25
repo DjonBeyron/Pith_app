@@ -12,12 +12,14 @@ import { plural } from '../../shared/lib/plural.js'
 //   week    — строка итогов 7 дней;
 //   phrases — карта памяти: фразы (модули со словом в памяти) → слова с силой;
 //   known   — «Знаю N слов» (шаг ≥ 3 — слово пережило недельный интервал),
-//   strongPhrases — фразы, где все слова «знаю».
+//   strongPhrases — фразы, где все слова «знаю»;
+//   vacation — «Отпуск» ({ since } | null): расписание на паузе, сегодня
+//             ничего не предлагается (и точки на вкладке нет).
 export const KNOW_STEP = 3
 
 // data: { memory: word_memory[], curricula: [{ id, title, lesson_ids }],
-//         lessons: [{ id, title, deck }], reviews: review_events[], minutes }
-export function buildLearnView({ memory = [], curricula = [], lessons = [], reviews = [], minutes = 5 }, today) {
+//         lessons: [{ id, title, deck }], reviews: review_events[], minutes, vacationSince }
+export function buildLearnView({ memory = [], curricula = [], lessons = [], reviews = [], minutes = 5, vacationSince = null }, today) {
   const byWord = new Map(memory.map(m => [m.word, m]))
   const lessonById = new Map(lessons.map(l => [l.id, l]))
 
@@ -42,7 +44,7 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
   const hasDeck = w => deckWords.has(w)
   const shown = cardsShownToday(reviews, today)
   const left = Math.max(0, dailyCardBudget(minutes) - shown)
-  const picked = pickToday(memory, { today, budget: left, canReview: hasDeck })
+  const picked = vacationSince ? [] : pickToday(memory, { today, budget: left, canReview: hasDeck })
   const cards = picked.reduce((n, p) => n + p.cards, 0)
 
   const upcoming = memory.filter(m => m.due_on > today && hasDeck(m.word)).map(m => m.due_on).sort()
@@ -62,6 +64,7 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
 
   return {
     empty: memory.length === 0,
+    vacation: vacationSince ? { since: vacationSince } : null,
     inMemory: memory.length,
     today: { picked, cards, minutes: sessionMinutes(cards), shown },
     next,
