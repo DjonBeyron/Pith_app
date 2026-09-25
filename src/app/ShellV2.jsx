@@ -40,7 +40,9 @@ const AdminV2         = lazy(() => lazyRetry(() => import('../features/admin/Adm
 // (+Админ для is_admin). Пока: лента — заглушка (шаг 3 миграции),
 // профиль и админ — существующие вкладки внутри новой оболочки.
 export default function ShellV2() {
-  const [tab, setTab] = useState('feed')
+  // Пуш повторения открывает приложение сразу во «Моём обучении» (?tab=learn,
+  // миграция 20260925180000_push_review_due.sql)
+  const [tab, setTab] = useState(() => (new URLSearchParams(location.search).get('tab') === 'learn' ? 'learn' : 'feed'))
   // Canvas-редактор урока (админ, «✎» на схеме модуля) — оверлеем поверх
   // оболочки: лента под ним не размонтируется и не теряет позицию
   const [canvasLesson, setCanvasLesson] = useState(null)
@@ -78,6 +80,14 @@ export default function ShellV2() {
   // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
   // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
   useEffect(() => onOpenModule(() => setTab('feed')), [])
+  // ?tab= прочитан при старте — убираем из адреса (перезагрузка не должна
+  // снова открывать ту же вкладку)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (!params.has('tab')) return
+    params.delete('tab')
+    history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : '') + location.hash)
+  }, [])
 
   // На всякий случай: убираем возможный след старого фикса высоты
   // (iOS 26 рисует только 812px окна — растягивать DOM бесполезно,

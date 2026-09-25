@@ -10,6 +10,10 @@ import webpush from "npm:web-push@3.6.7";
 //      - streak_risk          — серия под угрозой, {streak}
 //      - streak_milestone_eve — сегодня уже заходил, завтра день-веха серии;
 //        плейсхолдеры {streak} {day} {xp} {tickets} (m_day/m_xp/m_tickets)
+//    В том же ежечасном прогоне — пуш повторения review_due: SQL
+//    push_audience_review() сама отбирает тех, у кого сейчас привычный час,
+//    есть созревшие слова и сегодня ещё не было напоминаний (миграция
+//    20260925180000_push_review_due.sql); плейсхолдеры {words} {words_label} {minutes}
 //    POST { kind: "energy_full" } — энергия восстановилась (раз в час)
 // 2) Self (Authorization: JWT пользователя):
 //    POST { kind: "level_up", level } — пуш САМОМУ СЕБЕ о новом уровне
@@ -100,6 +104,23 @@ async function sendPersonalized<T extends { uid: string }>(
   return { sent, failed };
 }
 
+type ReviewRow = { uid: string; words: number; words_label: string; minutes: number };
+
+// Повторение ждёт: один пуш в день в привычный час. Ошибка здесь не должна
+// ронять вечерние пуши — возвращаем её в отчёт
+async function runReviewDue(): Promise<Record<string, unknown>> {
+  const { data, error } = await service.rpc("push_audience_review");
+  if (error) return { error: error.message };
+  const rows = (data ?? []) as ReviewRow[];
+  const tpl = rows.length ? await loadTemplate("review_due") : null;
+  if (!tpl) return { audience: rows.length, skipped: true };
+  const res = await sendPersonalized(rows, tpl, r => ({
+    words: String(r.words), words_label: r.words_label, minutes: String(r.minutes),
+  }));
+  await logSent(rows.map(r => r.uid), "review_due");
+  return { audience: rows.length, ...res };
+}
+
 type EveningRow = {
   uid: string; kind: string; streak: number;
   m_day: number | null; m_xp: number | null; m_tickets: number | null;
@@ -143,6 +164,9 @@ async function runEvening() {
     await logSent(milestoneRows.map(r => r.uid), "streak_milestone_eve");
     out.streak_milestone_eve = { audience: milestoneRows.length, ...res };
   } else out.streak_milestone_eve = { audience: milestoneRows.length, skipped: true };
+
+  // После вечерних: кому в этот час уже ушло «не занимался», review_due не получит
+  out.review_due = await runReviewDue();
 
   return json(200, out);
 }

@@ -87,3 +87,10 @@ test('«Моё обучение» гостю: память пуста, «Вой�
   await page.locator('.lrGuestLead').getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
 })
+
+test('ссылка из пуша повторения /?tab=learn открывает «Моё обучение»', async ({ page }) => {
+  await page.goto('/?tab=learn')
+  await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Обучение')
+  await expect(page.locator('.lrTitle')).toBeVisible()
+  await expect.poll(() => new URL(page.url()).searchParams.has('tab')).toBe(false) // адрес очищен
+})
