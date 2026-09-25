@@ -34,3 +34,8 @@
   gap: 10px;
 }
 .adkLessonName { font-size: 12px; color: #888; min-width: 0; overflow-wrap: anywhere; }
+
+/* «Обучение» у слова (AdminLearnControls.jsx): своя память админа */
+.adkLearn { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.adkLearnState { flex: 1; min-width: 0; font-size: 12px; color: #777; }
+.adkLearnState--on { color: #b6fe3b; }

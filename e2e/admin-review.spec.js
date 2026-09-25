@@ -95,3 +95,37 @@ async function swipeRight(page, card) {
   await page.mouse.move(box.x + box.width / 3 + 160, y - 10, { steps: 6 })
   await page.mouse.up()
 }
+
+// «＋ В обучение» (Админ → Колоды): слово — в память админа к повтору сегодня
+// без прохождения урока → вкладка «Обучение» предлагает повторить → «Убрать»
+// (Админ → Повторение). keep не из модуля E2E-КОЛОДЫ — admin-learn.spec.js
+// (идёт параллельно) его не смотрит; тесты этого файла идут по очереди, и
+// сессия выше keep не видит: в конце теста слово убрано
+test('админ вручную добавляет слово в обучение и убирает его', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Админ', exact: true }).click()
+  await page.locator('.avTab', { hasText: 'Колоды' }).click()
+  await page.locator('.adkFilter input').uncheck()
+  const row = page.locator('.adkRow').filter({ has: page.locator('.adkWord', { hasText: /^keep$/ }) })
+  await expect(row.locator('.adkLearn')).toContainText('Не в обучении', { timeout: 30_000 })
+  await row.getByRole('button', { name: '＋ В обучение' }).click()
+  await expect(row.locator('.adkLearn')).toContainText('В обучении · шаг 1 · к повтору сегодня')
+
+  const nav = page.getByRole('button', { name: 'Обучение', exact: true })
+  await nav.click()
+  const main = page.locator('.lrMain')
+  await expect(main).toContainText('Повторить · 1 мин', { timeout: 30_000 })
+  const phrase = page.locator('.lrPhrase', { hasText: 'Keep going · E2E-ОБУЧЕНИЕ' })
+  await phrase.locator('.lrPhraseHead').click()
+  await expect(phrase.locator('.lrWord', { hasText: 'keep' }).locator('.strengthDotOn')).toHaveCount(1)
+  await main.click()
+  const review = page.locator('.reviewScreen')
+  await expect(review.locator('.reviewTeacherLine')).toContainText('Сегодня 1 слово', { timeout: 30_000 })
+  await review.getByRole('button', { name: 'Не сейчас' }).click()
+
+  await page.getByRole('button', { name: 'Админ', exact: true }).click()
+  await page.locator('.avTab', { hasText: 'Повторение' }).click()
+  await page.locator('.arvRow', { hasText: 'keep' }).getByRole('button', { name: 'Убрать' }).click()
+  await expect(page.locator('.aeHint', { hasText: '«keep» убрано из обучения' })).toBeVisible()
+  await expect(page.locator('.arvRow', { hasText: 'keep' })).toHaveCount(0)
+})

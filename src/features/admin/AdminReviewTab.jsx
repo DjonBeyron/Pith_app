@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
-import { listWordMemory, debugShiftMemory } from '../../shared/api/memoryApi.js'
+import { listWordMemory, debugShiftMemory, debugRemoveWord } from '../../shared/api/memoryApi.js'
 import { localToday } from '../review/reviewDecks.js'
 
 const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
@@ -24,6 +24,12 @@ export default function AdminReviewTab() {
     load()
   }
 
+  async function remove(word) {
+    const n = await debugRemoveWord(word)
+    setNote(n == null ? 'Не вышло (нужна миграция memory_debug_add и права админа)' : `«${word}» убрано из обучения`)
+    load()
+  }
+
   const today = localToday()
   const due = (rows ?? []).filter(r => r.due_on <= today).length
 
@@ -42,11 +48,14 @@ export default function AdminReviewTab() {
         <button className="aeRefresh" onClick={() => shift(7)}>Прожить 7 дней</button>
       </div>
       {note && <p className="aeHint">{note}</p>}
-      {rows?.length === 0 && <p className="aeHint">Память пуста — пройди урок-слово в любом модуле</p>}
+      {rows?.length === 0 && (
+        <p className="aeHint">Память пуста — пройди урок-слово или добавь слово: Колоды → «＋ В обучение»</p>
+      )}
       {(rows ?? []).map(r => (
         <div key={r.word} className="aeRow arvRow">
           <span className="arvWord">{r.word}</span>
           <span className="arvMeta">шаг {r.step} · {r.due_on <= today ? 'сегодня' : r.due_on}</span>
+          <button className="aeRefresh" onClick={() => remove(r.word)}>Убрать</button>
         </div>
       ))}
       {open && (
