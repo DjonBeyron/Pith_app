@@ -110,3 +110,14 @@
 }
 .rcPickerFoot .productionPageSave { margin-left: 0; }
 .rcPickerFoot .productionPageSave:disabled { opacity: 0.5; cursor: default; }
+
+/* Предпросмотр карточки (ReviewCardPreview.jsx) — поверх редактора тот же
+   слой .reviewScreen и рамка .reviewCardFrame, что у ученика в повторении */
+.rcPreviewHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+  flex-shrink: 0;
+}
+.rcPreviewTitle { flex: 1; font-size: 14px; font-weight: 600; color: #b6fe3b; }

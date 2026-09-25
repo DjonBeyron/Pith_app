@@ -84,3 +84,31 @@ test('«Подтянуть из урока» копирует выбранные
   await expect(page.locator('.productionList [data-node-id]')).toHaveCount(2)
   await expect(page.getByRole('button', { name: 'Сохранить •' })).toBeVisible()
 })
+
+// Печать в ноде карточки: поле текста — модельное (браузеру ввод запрещён),
+// правку оно шлёт функцией от актуальной ноды. Раньше список нод такую
+// правку терял — буквы не появлялись ни в одной ноде. Затем предпросмотр:
+// несохранённая карточка играет в плеере до конца (плашка итога)
+test('в ноду карточки печатается текст, предпросмотр играет карточку', async ({ page }) => {
+  await openDecks(page)
+  await openCards(page, 'trying')
+  await page.getByRole('button', { name: '+ Карточка' }).click()
+  await page.getByRole('button', { name: '+ Добавить первую ноду' }).click()
+  await page.locator('.nodeTypeSelectItem', { hasText: 'Текстовое сообщение' }).click()
+  const field = page.locator('.productionList .richTextField').first()
+  await field.click()
+  await page.keyboard.type('Привет из карточки')
+  await expect(field).toHaveText('Привет из карточки')
+  await expect(page.getByRole('button', { name: 'Сохранить •' })).toBeVisible()
+
+  await page.getByRole('button', { name: '▶ Предпросмотр' }).click()
+  const preview = page.getByRole('dialog', { name: 'Предпросмотр карточки' })
+  await expect(preview.locator('.reviewCardFrame')).toContainText('Привет из карточки', { timeout: 15_000 })
+  await expect(preview.locator('.reviewVerdict')).toContainText('Верно', { timeout: 20_000 })
+  // «Заново» — плеер с начала; короткая карточка тут же доигрывает снова
+  await preview.getByRole('button', { name: 'Заново' }).click()
+  await expect(preview.locator('.reviewVerdict')).toContainText('Верно', { timeout: 20_000 })
+  await preview.getByRole('button', { name: 'К правке' }).click()
+  await expect(preview).toHaveCount(0)
+  await expect(field).toHaveText('Привет из карточки')
+})

@@ -13,7 +13,7 @@ import { useCanvasNodeOps } from './useCanvasNodeOps.js'
 import { useCanvasBoardState } from './useCanvasBoardState.js'
 import { useCanvasPortDrag } from './useCanvasPortDrag.js'
 import { useCanvasSignalPortDrag } from './useCanvasSignalPortDrag.js'
-import { renumber } from './nodeGraph.js'
+import { renumber, applyNodePatch } from './nodeGraph.js'
 import { addCenterNode } from './addCenterNode.js'
 import { useCanvasBoardApi } from './useCanvasBoardApi.js'
 import { useCanvasZoom } from './useCanvasZoom.js'
@@ -100,8 +100,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // нужна для нод, патчащихся в несколько приёмов подряд, см. PROJECT.md
   // «Гонка обновлений typeData». renumber: патч мог поменять триггеры → граф
   const updateNode = useCallback((id, patch) =>
-    setNodes(prev => renumber(prev.map(n =>
-      n.id === id ? { ...n, ...(typeof patch === 'function' ? patch(n) : patch) } : n))), [setNodes])
+    setNodes(prev => renumber(prev.map(n => (n.id === id ? applyNodePatch(n, patch) : n)))), [setNodes])
 
   // Тянем одну ноду — двигается она одна; тянем ноду из группового выделения
   // (2+ нод) — двигается вся группа на тот же dx/dy

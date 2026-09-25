@@ -3,6 +3,7 @@ import BackButton from '../../shared/ui/BackButton.jsx'
 import ProductionList from '../production/ProductionList.jsx'
 import ReviewCardStrip from './ReviewCardStrip.jsx'
 import ReviewNodePicker from './ReviewNodePicker.jsx'
+import ReviewCardPreview from './ReviewCardPreview.jsx'
 import { useReviewCards } from './useReviewCards.js'
 import { isTaskNode } from './reviewCardCopy.js'
 
@@ -13,6 +14,7 @@ import { isTaskNode } from './reviewCardCopy.js'
 export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, onOpenCanvas, onOpenProduction }) {
   const rc = useReviewCards(lessonId)
   const [picking, setPicking] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
   const busy = rc.saving || rc.loading
   const current = rc.cards[rc.active]
   const { files, pickFile, removeFile } = rc.lessonFiles
@@ -65,6 +67,7 @@ export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, 
           onDraft={handleDraft}
           canDraft={rc.lessonNodes.some(isTaskNode)}
           onPull={() => setPicking(true)}
+          onPreview={() => setPreviewing(true)}
           onRemove={handleRemove}
           disabled={busy}
         />
@@ -86,6 +89,15 @@ export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, 
           onPickLessonFile={pickFile}
           onRemoveLessonFile={removeFile}
           moduleLessons={moduleLessons.filter(l => l.id !== lessonId)}
+        />
+      )}
+
+      {previewing && current && (
+        <ReviewCardPreview
+          index={rc.active}
+          nodes={current.nodes ?? []}
+          files={files}
+          onClose={() => setPreviewing(false)}
         />
       )}
 

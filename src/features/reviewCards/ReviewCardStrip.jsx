@@ -3,7 +3,7 @@ import { cardHasTask, deckStatus, MIN_CARDS } from './reviewCardCopy.js'
 // Над списком нод: предупреждение о колоде, ряд карточек (выбор) и действия.
 // Сами ноды выбранной карточки правятся ниже тем же списком, что продакшен
 export default function ReviewCardStrip({
-  cards, active, onSelect, onAdd, onDraft, canDraft, onPull, onRemove, disabled,
+  cards, active, onSelect, onAdd, onDraft, canDraft, onPull, onPreview, onRemove, disabled,
 }) {
   const status = deckStatus(cards)
   const filled = cards.filter(c => c.nodes?.length).length
@@ -45,6 +45,12 @@ export default function ReviewCardStrip({
       {current && (
         <div className="rcActions">
           <button className="pageTabBtn" onClick={onPull} disabled={disabled}>Подтянуть из урока</button>
+          <button
+            className="pageTabBtn"
+            onClick={onPreview}
+            disabled={!current.nodes?.length}
+            title="Проиграть карточку так, как её увидит ученик"
+          >▶ Предпросмотр</button>
           <button className="pageDangerBtn" onClick={onRemove} disabled={disabled}>Удалить карточку {active + 1}</button>
         </div>
       )}
