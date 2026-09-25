@@ -53,9 +53,11 @@ describe('что режим гасит, а что оставляет', () => {
   })
 
   it('дверь назад не запирается: вкладка «Админ» на настоящем статусе', () => {
-    const nav   = shell.slice(shell.indexOf('<nav className="shellV2Nav">'))
-    const panel = shell.slice(shell.indexOf('<div className="shellV2Content">'), shell.indexOf('<nav className="shellV2Nav">'))
+    // Нижняя панель вынесена в ShellNav.jsx — ей передаётся настоящий статус
+    const nav   = read('./ShellNav.jsx')
+    const panel = shell.slice(shell.indexOf('<div className="shellV2Content">'), shell.indexOf('<ShellNav '))
     expect(nav).toContain('{isRealAdmin && (')
+    expect(shell).toContain('isRealAdmin={isRealAdmin}')
     expect(panel).toContain('{isRealAdmin && (')
   })
 

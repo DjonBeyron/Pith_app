@@ -133,6 +133,7 @@
   cursor: pointer;
 }
 .reviewBtn--main { min-width: 160px; border-color: transparent; background: #b6fe3b; color: #0d1500; }
+.reviewBtnGhost { border-color: transparent; color: #8b95a1; }
 .reviewBridge { max-width: 100%; border-color: rgba(182, 254, 59, 0.45); color: #b6fe3b; }
 
 /* ── Вступление, сообщения, итог ───────────────────────────────────── */
@@ -176,9 +177,6 @@
 .reviewWord--bad { border-left-color: #f87171; }
 .reviewWordText { font-weight: 600; }
 
-.reviewDots { display: flex; gap: 4px; }
-.reviewDot { width: 8px; height: 8px; border-radius: 50%; background: #2a2d35; }
-.reviewDot--on { background: #b6fe3b; }
 
 .reviewReward { margin: 0; color: #b6fe3b; font-weight: 600; }
 

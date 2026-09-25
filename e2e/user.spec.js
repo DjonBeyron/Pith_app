@@ -20,3 +20,10 @@ test('обычный пользователь не видит вкладку «�
   await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
   await expect(page.getByRole('button', { name: 'Админ', exact: true })).toHaveCount(0)
 })
+
+test('«Моё обучение»: у нового пользователя память пуста, точки нет', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
+  await expect(page.locator('.lrMainTitle')).toHaveText('Память пока пуста', { timeout: 30_000 })
+  await expect(page.locator('.shellV2NavBtnDot')).toHaveCount(0)
+})

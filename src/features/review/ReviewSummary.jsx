@@ -1,20 +1,12 @@
 import { summaryLine } from './reviewTeacher.js'
 import { requestOpenModule } from '../../shared/lib/openModuleEvent.js'
+import StrengthDots from '../../shared/ui/StrengthDots.jsx'
 
 // Итог сессии повторения: строка учителя из данных, сила каждого слова
 // (шаг памяти 1–5 после ответа сервера), XP и день серии — по ответу
 // memory_finish_session; мостик «Продолжить *фраза* · N%» — в недопройденный
 // модуль слов сессии (reviewBridge.js), открывает его схему во вкладке «Уроки».
 const TONE = { good: 'ok', know: 'ok', hard: 'mid', again: 'bad', fail: 'bad' }
-
-function StrengthDots({ step }) {
-  if (!step) return null
-  return (
-    <span className="reviewDots" aria-label={`Сила памяти ${step} из 5`}>
-      {[1, 2, 3, 4, 5].map(i => <span key={i} className={i <= step ? 'reviewDot reviewDot--on' : 'reviewDot'} />)}
-    </span>
-  )
-}
 
 function rewardText(finish) {
   if (!finish?.ok) return null

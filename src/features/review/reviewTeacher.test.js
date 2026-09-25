@@ -1,12 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { plural, sessionMinutes, introLine, summaryLine } from './reviewTeacher.js'
+import { sessionMinutes, introLine, summaryLine } from './reviewTeacher.js'
 import { buildDecks, cardFiles, localToday } from './reviewDecks.js'
 import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 
 describe('строки учителя', () => {
-  it('склонение и оценка минут', () => {
-    expect([1, 2, 5, 11, 21, 22].map(n => plural(n, ['слово', 'слова', 'слов'])))
-      .toEqual(['слово', 'слова', 'слов', 'слов', 'слово', 'слова'])
+  it('оценка минут: ~15 с на карточку', () => {
     expect(sessionMinutes(8)).toBe(2)
     expect(sessionMinutes(1)).toBe(1)
   })

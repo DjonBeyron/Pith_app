@@ -3,7 +3,7 @@ import FeedTab from '../features/feed/FeedTab.jsx'
 import ProfileV2 from '../features/profile/ProfileV2.jsx'
 import AuthTab from '../features/auth/AuthTab.jsx'
 import SettingsTab from '../features/settings/SettingsTab.jsx'
-import { Cog, Video, UserRound, Trophy } from 'lucide-react'
+import { Cog } from 'lucide-react'
 import BackButton from '../shared/ui/BackButton.jsx'
 import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
@@ -25,7 +25,9 @@ import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
 import { wordChoiceVoice } from '../shared/lib/wordChoiceVoice.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
-import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
+import ShellNav from './ShellNav.jsx'
+import LearnTab from '../features/learn/LearnTab.jsx'
+import { useLearnData } from '../features/learn/useLearnData.js'
 import { onOpenModule } from '../shared/lib/openModuleEvent.js'
 
 // Код-сплиттинг: админка нужна только is_admin — обычный пользователь этот
@@ -69,6 +71,9 @@ export default function ShellV2() {
   // экране, ленту не паузим: сплэш снимается по первому кадру видео, и на
   // паузе он висел бы до страховки в 3.5 секунды
   const [splashGone, setSplashGone] = useState(() => !!window.__pithySplashGone)
+  // «Моё обучение»: данные живут здесь — по ним же точка на вкладке
+  const learn = useLearnData(!!user)
+  const learnDot = !!learn.view?.today.picked.length
   // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
   // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
   useEffect(() => onOpenModule(() => setTab('feed')), [])
@@ -114,7 +119,7 @@ export default function ShellV2() {
       {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
           самого верха), справа энергия. Версия приложения — в админке
           (AdminV2) и на стартовом сплэше (index.html), не в ленте */}
-      {tab !== 'profile' && tab !== 'admin' && (
+      {tab !== 'profile' && tab !== 'admin' && tab !== 'learn' && (
         <>
           <div className="hudBarLeft">
             <LevelBadge />
@@ -136,6 +141,9 @@ export default function ShellV2() {
             onOpenCanvas={setCanvasLesson}
             onRequireAuth={() => setTab('profile')}
           />
+        </div>
+        <div className={tab === 'learn' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
+          <LearnTab learn={learn} visible={tab === 'learn'} isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} />
         </div>
         <div className={tab === 'rating' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
           <RatingTab visible={tab === 'rating'} openRaceTick={raceOpenTick} />
@@ -174,37 +182,7 @@ export default function ShellV2() {
         )}
       </div>
 
-      <nav className="shellV2Nav">
-        <button
-          className={tab === 'feed' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
-          // Уже на «Уроках» — повторное нажатие = «назад» из схемы модуля
-          onClick={() => { if (tab === 'feed') requestLessonsHome(); setTab('feed') }}>
-          <Video />
-          Уроки
-        </button>
-        <button
-          className={tab === 'profile' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
-          onClick={() => setTab('profile')}>
-          <UserRound />
-          Профиль
-        </button>
-        <button
-          className={tab === 'rating' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
-          onClick={() => setTab('rating')}>
-          <Trophy />
-          Рейтинг
-        </button>
-        {isRealAdmin && (
-          /* В «режиме пользователя» это единственная админская кнопка на экране —
-             помечаем точкой, иначе легко забыть, что режим ещё включён */
-          <button
-            className={`shellV2NavBtn${tab === 'admin' ? ' shellV2NavBtnActive' : ''}${userMode ? ' shellV2NavBtnUserMode' : ''}`}
-            onClick={() => setTab('admin')}>
-            <Cog />
-            Админ
-          </button>
-        )}
-      </nav>
+      <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} isRealAdmin={isRealAdmin} userMode={userMode} />
 
       {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}
       {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && (

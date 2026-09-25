@@ -13,7 +13,8 @@ import ReviewSummary from './ReviewSummary.jsx'
 // Экран повторения дня (этап 4 системы повторения, PROJECT.md → «Формат
 // повторения»): строка учителя → карточки → итог. Полноэкранный слой в body
 // (портал): открывается из любого места, не завися от transform/overflow
-// родителя. Пока вход один — админка → «Повторение».
+// родителя. Входы: «Моё обучение» (день или «Повторить сейчас» —
+// focusWords) и админка → «Повторение».
 // Следующая карточка греется заранее (ReviewWarmup): на вступлении — первая,
 // во время ответа — следующая; скачанное передаётся плееру карточки.
 function Message({ title, text, onClose }) {
@@ -26,8 +27,8 @@ function Message({ title, text, onClose }) {
   )
 }
 
-export default function ReviewScreen({ onClose }) {
-  const r = useReviewSession()
+export default function ReviewScreen({ focusWords = null, onClose }) {
+  const r = useReviewSession({ focusWords })
   const warmRef = useRef(null)
   const [handoff, setHandoff] = useState(null) // { key, blobMap } — прогретое для карточки
   const s = r.session
@@ -65,6 +66,7 @@ export default function ReviewScreen({ onClose }) {
         <p className="reviewTeacherName">{r.info.teacher?.name || 'Учитель'}</p>
         <p className="reviewTeacherLine">{introLine({ words: r.info.words, cards: r.info.cards, memory: r.info.memory })}</p>
         <button className="reviewBtn reviewBtn--main" onClick={start}>Начать</button>
+        <button className="reviewBtn reviewBtnGhost" onClick={onClose}>Не сейчас</button>
       </div>
     )
   } else if (r.phase === 'run' && item) {

@@ -74,7 +74,7 @@ test('сессия: ошибка → слово в конце → верно; «
   screen = await startSession(page)
   await screen.getByRole('button', { name: 'Знаю' }).click()
   await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook окрепло.', { timeout: 30_000 })
-  await expect(screen.locator('.reviewWord--ok .reviewDot--on')).toHaveCount(2) // шаг 1 → 2
+  await expect(screen.locator('.reviewWord--ok .strengthDotOn')).toHaveCount(2) // шаг 1 → 2
 
   // ── 3. Мостик открывает схему модуля во вкладке «Уроки» ─────────────
   await screen.locator('.reviewBridge').click()

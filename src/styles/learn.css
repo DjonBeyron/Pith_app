@@ -1,0 +1,126 @@
+/* Вкладка «Моё обучение» (features/learn): главное действие, строка недели,
+   карта памяти (фразы → слова с силой), шторка слова. Фон и карточки — в
+   гамме профиля (profile-v2.css). Точка «есть что повторить» на нижней
+   панели — .shellV2NavBtnDot */
+
+.lrScreen {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(20px + var(--v2-nav-h));
+  scrollbar-width: none;
+}
+.lrScreen::-webkit-scrollbar { display: none; }
+
+.lrTitle { margin: 4px 0 14px; font-size: 22px; font-weight: 700; color: #e8ecf0; }
+.lrNote { color: #8b95a1; }
+.lrLink { background: none; border: none; padding: 0; color: #b6fe3b; font: inherit; cursor: pointer; }
+
+/* ── Главное действие ─────────────────────────────────────────────── */
+.lrMain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 18px 16px;
+  border: 1px solid #232932;
+  border-radius: 18px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  color: #e8ecf0;
+  font: inherit;
+  text-align: left;
+}
+.lrMainGo { border-color: rgba(182, 254, 59, 0.5); cursor: pointer; }
+.lrMainGo .lrMainTitle { color: #b6fe3b; }
+.lrMainDone .lrMainTitle { color: #b6fe3b; }
+.lrMainTitle { margin: 0; font-size: 20px; font-weight: 700; }
+.lrMainSub { margin: 0; font-size: 13px; color: #9aa3ad; line-height: 1.4; }
+
+.lrWeek { margin: 0 4px 18px; font-size: 13px; color: #8b95a1; }
+
+/* ── Карта памяти ──────────────────────────────────────────────────── */
+.lrSectionTitle { margin: 0 4px 8px; font-size: 13px; font-weight: 600; color: #9aa3ad; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.lrPhrase {
+  margin-bottom: 8px;
+  border: 1px solid #232932;
+  border-radius: 14px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  overflow: hidden;
+}
+
+.lrPhraseHead,
+.lrWord {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  color: #e8ecf0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.lrPhraseTitle { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.lrPhraseMeta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; color: #8b95a1; }
+.lrDueDot { width: 7px; height: 7px; border-radius: 50%; background: #b6fe3b; }
+
+.lrWord { padding: 10px 14px 10px 24px; border-top: 1px solid #1d2229; }
+.lrWordText { font-weight: 600; }
+.lrWordMuted .lrWordText { color: #6b737d; }
+.lrWordNote { font-size: 12px; color: #6b737d; }
+
+/* ── Шторка слова ──────────────────────────────────────────────────── */
+.lrSheetBack {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+.lrSheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 460px);
+  padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-radius: 20px 20px 0 0;
+  background: #14171c;
+  color: #e8ecf0;
+}
+.lrSheetWord { margin: 0; font-size: 24px; font-weight: 700; }
+.lrSheetPhrase { margin: 0; font-size: 13px; color: #8b95a1; }
+.lrSheetInfo { display: flex; align-items: center; gap: 10px; margin: 4px 0 6px; font-size: 13px; color: #9aa3ad; }
+
+.lrBtn {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  background: transparent;
+  color: #e8ecf0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lrBtnMain { border-color: transparent; background: #b6fe3b; color: #0d1500; }
+.lrBtnGhost { border-color: transparent; color: #8b95a1; }
+
+/* Точка на нижней панели: есть что повторить сегодня (ShellNav.jsx) */
+.shellV2NavBtnDot { position: relative; }
+.shellV2NavBtnDot::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: calc(50% - 16px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #b6fe3b;
+}

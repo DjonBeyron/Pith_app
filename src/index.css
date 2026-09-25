@@ -130,6 +130,8 @@
 @import './styles/player/hints.css';
 /* после стилей плеера: review.css переопределяет плеер внутри карточки */
 @import './styles/review.css';
+@import './styles/strength-dots.css';
+@import './styles/learn.css';
 @import './styles/canvas/text-highlight.css';
 @import './styles/canvas/text-pro.css';
 @import './styles/canvas/text-wrap.css';

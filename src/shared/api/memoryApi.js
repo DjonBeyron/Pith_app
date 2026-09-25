@@ -60,3 +60,19 @@ export async function getDailyMinutes() {
   if (error) { console.error('[MEMORY] daily_minutes:', error.message); return 5 }
   return data?.daily_minutes ?? 5
 }
+
+// Свой журнал повторений за последние N дней (review_events, свои строки по
+// RLS): сколько карточек уже показано сегодня (бюджет дня) и итоги недели.
+// [{ word, outcome, source, step_before, step_after, applied, events, created_at }]
+export async function listRecentReviews(days = 7) {
+  const since = new Date()
+  since.setHours(0, 0, 0, 0)
+  since.setDate(since.getDate() - (days - 1))
+  const { data, error } = await supabase
+    .from('review_events')
+    .select('word, outcome, source, step_before, step_after, applied, events, created_at')
+    .gte('created_at', since.toISOString())
+    .order('created_at', { ascending: true })
+  if (error) { console.error('[MEMORY] review_events:', error.message); return [] }
+  return data ?? []
+}

@@ -1,12 +1,7 @@
+import { plural } from '../../shared/lib/plural.js'
+
 // Строки учителя в начале и в итоге сессии повторения — собраны из данных,
 // без заготовок на каждый случай (PROJECT.md → «Формат повторения»).
-
-export function plural(n, [one, few, many]) {
-  const d = n % 10, h = n % 100
-  if (d === 1 && h !== 11) return one
-  if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return few
-  return many
-}
 
 // ~15 с на карточку: 8 карточек → «2 мин»
 export const sessionMinutes = cards => Math.max(1, Math.round(cards * 15 / 60))
@@ -21,7 +16,7 @@ function list(words, max = 3) {
 // (lapses > 0 — слово уже путали)
 export function introLine({ words, cards, memory = [] }) {
   const n = words.length
-  const head = `Сегодня ${n} ${plural(n, ['слово', 'слова', 'слов'])} · около ${sessionMinutes(cards)} мин.`
+  const head = `Сегодня ${n} ${plural(n, 'слово', 'слова', 'слов')} · около ${sessionMinutes(cards)} мин.`
   const shaky = memory.filter(m => words.includes(m.word) && m.lapses > 0).map(m => m.word).slice(0, 3)
   if (!shaky.length) return `${head} Поехали!`
   return `${head} ${list(shaky)} ${shaky.length === 1 ? 'уже путалось' : 'уже путались'} — посмотрим, как сейчас.`

@@ -1,4 +1,5 @@
 import { wordLessonsOf } from '../../shared/lib/memory/wordLessons.js'
+import { localDate } from '../../shared/lib/memory/dailyPick.js'
 
 // Колоды повторения по словам: карточки ВСЕХ уроков слова (одно слово в
 // разных модулях = одна память, PROJECT.md → «Память слова»). Фраза для
@@ -47,7 +48,4 @@ export function buildDecks(curricula, lessons) {
 }
 
 // Сегодня по часам устройства — 'YYYY-MM-DD' (как ждёт pickToday)
-export function localToday(now = new Date()) {
-  const p = n => String(n).padStart(2, '0')
-  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`
-}
+export const localToday = (now = new Date()) => localDate(now)

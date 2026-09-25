@@ -161,6 +161,16 @@ export async function saveReviewCards(id, cards) {
   dbg('[DB OK] reviewCards saved', id)
 }
 
+// Лёгкий список уроков для карты памяти («Моё обучение»): название и есть ли
+// колода повтора (id первой карточки или null) — без самих карточек
+export async function listLessonDeckFlags() {
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('id, title, deck:script->reviewCards->0->>id')
+  if (error) { dbg('[DB ERROR] lesson deck flags', error.message); throw error }
+  return data ?? []
+}
+
 // Колоды всех уроков — для отчёта «Колоды» в админке и плеера повторения. Из
 // скрипта берём только JSON-пути колоды и учителя урока: ноды уроков не тянем
 export async function listLessonCards() {

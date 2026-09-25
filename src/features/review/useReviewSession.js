@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { listWordMemory, reviewWord, finishReviewSession, getDailyMinutes } from '../../shared/api/memoryApi.js'
+import { listWordMemory, reviewWord, finishReviewSession, getDailyMinutes, listRecentReviews } from '../../shared/api/memoryApi.js'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { listLessonCards } from '../../shared/lib/lessonsApi.js'
 import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
 import { fetchMyDoneLessonIds } from '../../shared/api/starsApi.js'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
-import { pickToday, dailyCardBudget } from '../../shared/lib/memory/dailyPick.js'
+import { pickToday, dailyCardBudget, cardsShownToday, cardsForStep } from '../../shared/lib/memory/dailyPick.js'
 import { buildDecks, localToday } from './reviewDecks.js'
 import { pickBridge } from './reviewBridge.js'
 import { createReviewTracker } from './reviewTracker.js'
@@ -21,8 +21,12 @@ import {
 // мостик «Продолжить фразу» (reviewBridge.js). События аналитики —
 // reviewTracker.js.
 //
+// Бюджет дня — на все сессии дня: уже показанные сегодня карточки вычитаются.
+// focusWords — «Повторить сейчас» из карты памяти (Pro): только эти слова,
+// вне расписания и бюджета (сервер ранний верный ответ шагом не засчитает).
+//
 // phase: loading | error | empty | intro | run | finishing | done
-export function useReviewSession() {
+export function useReviewSession({ focusWords = null } = {}) {
   const [phase, setPhase] = useState('loading')
   const [session, setSession] = useState(null)
   // { decks, curricula, memory, teacher (общий, сырой), words, cards }
@@ -37,15 +41,20 @@ export function useReviewSession() {
 
   useEffect(() => {
     let alive = true
-    Promise.all([listWordMemory(), loadCurricula(), listLessonCards(), getDailyMinutes(), getDefaultTeacher()])
-      .then(([memory, curricula, lessons, minutes, teacher]) => {
+    Promise.all([listWordMemory(), loadCurricula(), listLessonCards(), getDailyMinutes(), getDefaultTeacher(), listRecentReviews(1)])
+      .then(([memory, curricula, lessons, minutes, teacher, reviews]) => {
         if (!alive) return
         const decks = buildDecks(curricula, lessons)
-        const picked = pickToday(memory, {
-          today: localToday(),
-          budget: dailyCardBudget(minutes),
-          canReview: w => (decks.get(w)?.cards.length ?? 0) > 0,
-        })
+        const today = localToday()
+        const canReview = w => (decks.get(w)?.cards.length ?? 0) > 0
+        const picked = focusWords
+          ? memory.filter(m => focusWords.includes(m.word) && canReview(m.word))
+            .map(m => ({ word: m.word, step: m.step, cards: cardsForStep(m.step) }))
+          : pickToday(memory, {
+            today,
+            budget: Math.max(0, dailyCardBudget(minutes) - cardsShownToday(reviews, today)),
+            canReview,
+          })
         const lastCardIds = Object.fromEntries(memory.map(m => [m.word, m.last_card_id]))
         const built = buildSession(picked, decks, { lastCardIds })
         setInfo({ decks, curricula, memory, teacher, words: built.words, cards: built.items.length })
@@ -56,7 +65,7 @@ export function useReviewSession() {
     // Закрыли экран или приложение до итога — «брошена» (после итога трекер молчит)
     window.addEventListener('pagehide', tracker.abandon)
     return () => { alive = false; window.removeEventListener('pagehide', tracker.abandon); tracker.abandon() }
-  }, [tracker])
+  }, [tracker]) // eslint-disable-line react-hooks/exhaustive-deps -- focusWords задаётся при открытии экрана
 
   async function finishAll() {
     if (finishingRef.current) return
