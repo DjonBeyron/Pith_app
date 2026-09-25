@@ -1,8 +1,10 @@
 import { summaryLine } from './reviewTeacher.js'
+import { requestOpenModule } from '../../shared/lib/openModuleEvent.js'
 
 // Итог сессии повторения: строка учителя из данных, сила каждого слова
 // (шаг памяти 1–5 после ответа сервера), XP и день серии — по ответу
-// memory_finish_session.
+// memory_finish_session; мостик «Продолжить *фраза* · N%» — в недопройденный
+// модуль слов сессии (reviewBridge.js), открывает его схему во вкладке «Уроки».
 const TONE = { good: 'ok', know: 'ok', hard: 'mid', again: 'bad', fail: 'bad' }
 
 function StrengthDots({ step }) {
@@ -24,7 +26,7 @@ function rewardText(finish) {
   return parts.join(' · ') || null
 }
 
-export default function ReviewSummary({ results, finish, words, onClose }) {
+export default function ReviewSummary({ results, finish, bridge, words, onClose }) {
   const order = new Map(words.map((w, i) => [w, i]))
   const rows = [...results].sort((a, b) => (order.get(a.word) ?? 99) - (order.get(b.word) ?? 99))
   const reward = rewardText(finish)
@@ -41,6 +43,11 @@ export default function ReviewSummary({ results, finish, words, onClose }) {
         ))}
       </ul>
       {reward && <p className="reviewReward">{reward}</p>}
+      {bridge && (
+        <button className="reviewBtn reviewBridge" onClick={() => { onClose(); requestOpenModule(bridge) }}>
+          Продолжить «{bridge.title}» · {bridge.pct}%
+        </button>
+      )}
       <button className="reviewBtn reviewBtn--main" onClick={onClose}>Готово</button>
     </div>
   )

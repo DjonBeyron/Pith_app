@@ -79,7 +79,9 @@ on conflict (id) do nothing;
 
 -- ── Модуль «E2E-КОЛОДЫ» (черновик — в ленту не попадает) ───────────────
 -- Для админ-теста колод повтора: слово trying без колоды, cook — с одной
--- карточкой (меньше минимума 3). Названия латиницей — иначе урок не слово
+-- карточкой (меньше минимума 3): фото (файл «E2E-МЕДИА» ниже, ссылка прямо в
+-- ноде — как после injectR2Urls) → «выбери слово». Названия латиницей —
+-- иначе урок не слово
 insert into public.lessons (id, title, published, sort_order, script) values
 ('e2e0b000-0000-4000-8000-00000000000a', 'Старт', true, 0, '{"nodes": []}'),
 ('e2e0b000-0000-4000-8000-00000000000b', 'trying', true, 1, $json${"nodes": [
@@ -95,7 +97,11 @@ insert into public.lessons (id, title, published, sort_order, script) values
 ]}$json$),
 ('e2e0b000-0000-4000-8000-00000000000c', 'cook', true, 2, $json${"nodes": [], "reviewCards": [
   {"id": "e2e-card-cook-1", "nodes": [
-    {"id": "e2e-c1", "seq": 1, "x": 0, "y": 0, "size": "max", "type": "word_choice",
+    {"id": "e2e-c0", "seq": 1, "x": 0, "y": 0, "size": "max", "type": "photo",
+     "typeData": {"photo": {"caption": "Что он делает?", "file_id": "e2e0f000-0000-4000-8000-000000000003",
+                            "r2Url": "http://localhost:5299/icons/icon-512.png"}},
+     "triggers": [{"id": "e2e-c0t", "if": "timer", "ms": 800, "then": "e2e-c1"}]},
+    {"id": "e2e-c1", "seq": 2, "x": 370, "y": 0, "size": "max", "type": "word_choice",
      "typeData": {"word_choice": {
        "options": [{"id": "e2e-c-ok", "text": "cook", "isCorrect": true}, {"id": "e2e-c-bad", "text": "cake"}],
        "responseCorrect": "", "responseWrong": ""}},
@@ -112,10 +118,16 @@ insert into public.curricula (id, title, published, lesson_ids) values
 on conflict (id) do nothing;
 
 -- Память повторения e2e-админа: слово cook созрело (e2e/admin-review.spec.js).
--- Фраза спойлер-заголовка — название модуля выше, в нём есть cook
+-- Фраза спойлер-заголовка — название модуля выше, в нём есть cook. Урок cook
+-- зачтён (как будто пройден) — мостик «Продолжить фразу» в итоге покажет
+-- модуль пройденным на 25 %. Память — ДО зачёта: иначе триггер занесения
+-- поставил бы cook на завтра
 insert into public.word_memory (user_id, word, step, due_on)
 values ('e2e00000-0000-4000-8000-000000000002', 'cook', 1, current_date)
 on conflict (user_id, word) do nothing;
+insert into public.lesson_results (user_id, lesson_id, xp_awarded)
+values ('e2e00000-0000-4000-8000-000000000002', 'e2e0b000-0000-4000-8000-00000000000c', true)
+on conflict (user_id, lesson_id) do nothing;
 
 -- ── Модуль «E2E-МЕДИА» (опубликован) ───────────────────────────────────
 -- Старт с медиа — гоняет прогрев (скачивание и разбор голосового, фото),

@@ -161,12 +161,12 @@ export async function saveReviewCards(id, cards) {
   dbg('[DB OK] reviewCards saved', id)
 }
 
-// Колоды всех уроков — для отчёта «Колоды» в админке. Из скрипта берём только
-// JSON-путь script->reviewCards: ноды самих уроков не тянем
+// Колоды всех уроков — для отчёта «Колоды» в админке и плеера повторения. Из
+// скрипта берём только JSON-пути колоды и учителя урока: ноды уроков не тянем
 export async function listLessonCards() {
   const { data, error } = await supabase
     .from('lessons')
-    .select('id, title, cards:script->reviewCards')
+    .select('id, title, cards:script->reviewCards, teacherMode:script->>teacherMode, teacherName:script->>teacherName, teacherLogo:script->>teacherLogo, teacherLogoCrop:script->teacherLogoCrop')
   if (error) { dbg('[DB ERROR] lesson cards list', error.message); throw error }
   return data ?? []
 }

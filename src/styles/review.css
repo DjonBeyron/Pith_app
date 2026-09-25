@@ -79,6 +79,20 @@
 .reviewCardFrame .playerVersionStamp,
 .reviewCardFrame .playerPerfStamp { display: none; }
 
+/* После ответа карточку смахивают (useSwipeNext): жесты браузера внутри
+   неё выключены, иначе вертикальный жест уходил бы в прокрутку чата */
+.reviewCard--answered,
+.reviewCard--answered * { touch-action: none; }
+.reviewCard--answered { cursor: grab; will-change: transform; }
+
+.reviewSwipeHint {
+  margin: -6px 0 0;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+  font-size: 12px;
+  color: #555a66;
+  text-align: center;
+}
+
 /* «Оборот» карточки: плашка итога ответа откидывается сверху */
 .reviewVerdict {
   position: absolute;
@@ -119,6 +133,7 @@
   cursor: pointer;
 }
 .reviewBtn--main { min-width: 160px; border-color: transparent; background: #b6fe3b; color: #0d1500; }
+.reviewBridge { max-width: 100%; border-color: rgba(182, 254, 59, 0.45); color: #b6fe3b; }
 
 /* ── Вступление, сообщения, итог ───────────────────────────────────── */
 .reviewNote { margin: auto; color: #888; }

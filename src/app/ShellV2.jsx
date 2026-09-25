@@ -26,6 +26,7 @@ import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWavefor
 import { wordChoiceVoice } from '../shared/lib/wordChoiceVoice.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
+import { onOpenModule } from '../shared/lib/openModuleEvent.js'
 
 // Код-сплиттинг: админка нужна только is_admin — обычный пользователь этот
 // chunk даже не скачивает (см. PROJECT.md, этап 2). Редакторы — там же, в
@@ -68,6 +69,9 @@ export default function ShellV2() {
   // экране, ленту не паузим: сплэш снимается по первому кадру видео, и на
   // паузе он висел бы до страховки в 3.5 секунды
   const [splashGone, setSplashGone] = useState(() => !!window.__pithySplashGone)
+  // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
+  // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
+  useEffect(() => onOpenModule(() => setTab('feed')), [])
 
   // На всякий случай: убираем возможный след старого фикса высоты
   // (iOS 26 рисует только 812px окна — растягивать DOM бесполезно,

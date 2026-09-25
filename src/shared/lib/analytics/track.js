@@ -15,6 +15,9 @@ import { createTracker } from './tracker.js'
 //   lesson_start { lesson_id, resumed }    lesson_finish { lesson_id, ms }
 //   lesson_abandon { lesson_id, pct, ms }  signup
 //   paywall_view { kind }                  paywall_click { kind, period }
+//   review_start { words, cards }          review_answer { word, result, attempt, ms }
+//   review_finish { words, cards, errors, ms, xp }   review_abandon { answered, total, ms }
+//   (повторение — features/review/reviewTracker.js)
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY

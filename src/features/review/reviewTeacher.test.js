@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { plural, sessionMinutes, introLine, summaryLine } from './reviewTeacher.js'
-import { buildDecks, localToday } from './reviewDecks.js'
+import { buildDecks, cardFiles, localToday } from './reviewDecks.js'
+import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 
 describe('строки учителя', () => {
   it('склонение и оценка минут', () => {
@@ -40,11 +41,33 @@ describe('колоды повторения', () => {
 
   it('одно слово из двух модулей — одна колода; фраза — первый модуль; пустые карточки прочь', () => {
     const decks = buildDecks(curricula, lessons)
-    expect(decks.get('trying')).toEqual({
-      phrase: "I'm trying to cook",
-      cards: [{ id: 'a', nodes: [{ id: 'n' }], lessonId: 'l1' }, { id: 'b', nodes: [{ id: 'n' }], lessonId: 'l3' }],
-    })
+    const t = decks.get('trying')
+    expect(t.phrase).toBe("I'm trying to cook")
+    expect(t.modules).toEqual([{ id: 'm1', title: "I'm trying to cook" }, { id: 'm2', title: 'Keep trying' }])
+    expect(t.cards.map(c => [c.id, c.lessonId])).toEqual([['a', 'l1'], ['b', 'l3']])
     expect(decks.get('cook').cards).toEqual([])
+  })
+
+  it('у карточки — учитель её урока: свой у урока или общий', () => {
+    const own = { ...lessons[2], teacherMode: 'custom', teacherName: 'Анна', teacherLogo: 'a.png' }
+    const decks = buildDecks(curricula, [lessons[0], lessons[1], own])
+    const [a, b] = decks.get('trying').cards
+    expect(resolveTeacher(a.teacher, { name: 'Общий' }).name).toBe('Общий')
+    expect(resolveTeacher(b.teacher, { name: 'Общий' })).toEqual({ name: 'Анна', logo: 'a.png', crop: null })
+  })
+
+  it('файлы карточки — из ссылок в нодах (для прогрева следующей карточки)', () => {
+    expect(cardFiles([
+      { type: 'photo', typeData: { photo: { file_id: 'f1', r2Url: 'https://r2/1.png' } } },
+      { type: 'audio', typeData: { audio: { file_id: 'f2' } } }, // без ссылки — не прогреть
+      { type: 'photo_choice', typeData: { photo_choice: { photos: [
+        { fileId: 'f3', photoUrl: 'https://r2/3.png' }, { fileId: 'f1', photoUrl: 'https://r2/1.png' }] } } },
+      { type: 'text', typeData: { text: { content: 'hi' } } },
+    ])).toEqual([
+      { id: 'f1', r2Url: 'https://r2/1.png', size: 0 },
+      { id: 'f3', r2Url: 'https://r2/3.png', size: 0 },
+    ])
+    expect(buildDecks(curricula, lessons).get('trying').cards[0].files).toEqual([])
   })
 
   it('дата устройства в формате YYYY-MM-DD', () => {

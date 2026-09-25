@@ -38,8 +38,12 @@ import { usePlayerAnswers } from './usePlayerAnswers.js'
 import { buildXpMap } from './lessonXp.js'
 import { resolveXpOrigin } from './xpAnchor.js'
 
+// Пустой список файлов по умолчанию — ОДИН на все рендеры: новый [] каждый раз
+// (usePlayerFiles → files → прогрев) зацикливал перерисовку у урока с медиа
+const NO_FILES = []
+
 export default function LessonPlayer({
-  nodes = [], files: propFiles = [], lessonTitle = '',
+  nodes = [], files: propFiles = NO_FILES, lessonTitle = '',
   teacherName, teacherLogo, teacherLogoCrop,
   videoAutoSound = false,
   initialBlobMap = null,

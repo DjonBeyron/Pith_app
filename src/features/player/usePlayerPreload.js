@@ -281,12 +281,20 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     }
   }, [nodes, files]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Размонтирование: blob-ссылки освобождаются на следующем такте и только
+  // если хук не смонтировался снова. StrictMode в dev «размонтирует» и тут же
+  // монтирует заново — сразу отозванные ссылки, переданные карточкой запуска
+  // или прогревом карточки повторения (initialBlobMap), терялись, и файлы
+  // качались второй раз
+  const releaseTimerRef = useRef(null)
   useEffect(() => {
+    clearTimeout(releaseTimerRef.current)
     return () => {
-      Object.values(blobUrlsRef.current).forEach(revokeEntry)
-      // Clear refs so StrictMode remount doesn't reuse revoked blob URLs
-      blobUrlsRef.current = {}
-      initRef.current = {}
+      releaseTimerRef.current = setTimeout(() => {
+        Object.values(blobUrlsRef.current).forEach(revokeEntry)
+        blobUrlsRef.current = {}
+        initRef.current = {}
+      }, 0)
     }
   }, [])
 
