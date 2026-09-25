@@ -62,6 +62,7 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
 
   return {
     empty: memory.length === 0,
+    inMemory: memory.length,
     today: { picked, cards, minutes: sessionMinutes(cards), shown },
     next,
     week: weekSummary(reviews),

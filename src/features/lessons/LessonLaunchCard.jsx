@@ -4,7 +4,6 @@ import { getFilesByIds } from '../../shared/lib/filesApi.js'
 import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
 import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 import LaunchMotionAsk from './LaunchMotionAsk.jsx'
-import RetakeDialog from './RetakeDialog.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
 import LaunchCtaSlot from './LaunchCtaSlot.jsx'
 import LaunchDebugPanel from './LaunchDebugPanel.jsx'
@@ -12,15 +11,14 @@ import LaunchSkeleton from './LaunchSkeleton.jsx'
 import LaunchPreloader from './LaunchPreloader.jsx'
 import LaunchEnergyRow from './LaunchEnergyRow.jsx'
 import { launchEnergyInfo } from './launchEnergy.js'
-import { hasStatBindings } from '../player/useAnswerStats.js'
 import { getLessonProgress, clearLessonProgress } from '../../shared/lib/lessonProgressApi.js'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { extractFileIds } from './launchHelpers.js'
 
-// retake=true (урок уже пройден): если в сценарии есть привязки «→ Урок»,
-// вместо кнопки старта — выбор режима пересдачи (RetakeDialog).
+// retake=true — урок уже пройден (энергия: пересдача). Выбора «с обновлением
+// анализа / без записи» больше нет — ответы только добавляются.
 // examIntro=true (финальный урок): вместо кнопки старта — интро экзамена
-// (правила, 3 подсказки, ключ); имеет приоритет над retake.
+// (правила, 3 подсказки, ключ).
 // energyFree=true — сервер не спишет энергию (Старт/Финал модуля); клиенту
 // нужно только для честной надписи о стоимости, решает всё равно сервер.
 // allowResume=false — гонка (RaceRunner.jsx): там своя механика прохождения
@@ -149,7 +147,6 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
           <div style={{ display: ready ? 'contents' : 'none' }}>
             <LaunchPreloader
               lessonData={lessonData}
-              retakeChoice={retake && hasStatBindings(lessonData.nodes)}
               retake={retake}
               examIntro={examIntro}
               energyFree={energyFree}
@@ -162,7 +159,6 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
               dissolving={dissolving}
               onDissolve={() => setDissolving(true)}
               onStart={onStart}
-              onClose={onClose}
             />
           </div>
         )}

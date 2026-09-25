@@ -61,9 +61,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const [launchId,        setLaunchId]        = useState(null)
   const [playerData,      setPlayerData]      = useState(null)
   const [playingLessonId, setPlayingLessonId] = useState(null)
-  // Режим пересдачи (RetakeDialog): null — первое прохождение,
-  // 'update' — новая диагностика поверх старой, 'silent' — без записи анализа
-  const [statsMode,       setStatsMode]       = useState(null)
   const [completedIds,    setCompletedIds]    = useState(() => getCompletedLessons())
   // Только что пройденный урок — для анимации прилёта XP в графе модуля.
   const [justCompleted,   setJustCompleted]   = useState(null)
@@ -143,7 +140,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
         videoAutoSound={playerData.videoAutoSound ?? false}
         initialBlobMap={playerData.blobMap}
         startNodeId={playerData.startNodeId ?? null} historyIds={playerData.historyIds ?? null} resumedXp={playerData.resumedXp ?? 0}
-        recordStats={statsMode !== 'silent'} /* «без записи» — анализ не пишется */
         /* Финал модуля (залогинен, не про-модуль): панель подсказок + золотой билет */
         finalTicket={!isPro && user && lessons.length > 0 &&
           playingLessonId === lessons[lessons.length - 1].id
@@ -177,14 +173,11 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           // Ждём пересчёт приоритетов ДО закрытия плеера — граф отрисуется
           // сразу с готовыми полосками, без скачка UI на глазах пользователя
           const map = await refreshPriorities()
-          // Легенда — когда диагностика впервые дала приоритеты, и снова
-          // после пересдачи «с обновлением» (карта знаний перезаписана).
-          // «Без записи» (silent) — явно исключаем: раньше !seen срабатывал
-          // даже в этом режиме (если легенду ещё не видел), хотя пользователь
-          // прямо выбрал «не обновлять» — попап всё равно вылезал
+          // Легенда — когда диагностика впервые дала приоритеты (пересдача
+          // теперь обычное прохождение: выбора «без записи» больше нет)
           const seen = !!localStorage.getItem(LEGEND_SEEN_KEY)
-          dbg('[LEGEND] приоритетов:', map?.size ?? 'null', 'уже видел:', seen, 'режим:', statsMode)
-          if (map?.size > 0 && statsMode !== 'silent' && (!seen || statsMode === 'update')) {
+          dbg('[LEGEND] приоритетов:', map?.size ?? 'null', 'уже видел:', seen)
+          if (map?.size > 0 && !seen) {
             setShowLegend(true)
           }
           setPlayerData(null)
@@ -291,7 +284,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           /* Старт и Финал модуля сервер не тарифицирует — надпись о стоимости честная */
           energyFree={lessons.length > 0 &&
             (launchId === lessons[0].id || launchId === lessons[lessons.length - 1].id)}
-          onStart={async (data, mode) => {
+          onStart={async (data) => {
             // Энергия: сервер решает, бесплатный урок или -1; при нуле —
             // пейволл вместо плеера
             const res = await startLesson(launchId)
@@ -308,7 +301,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             }
             setPlayingLessonId(launchId)
             setLaunchId(null)
-            setStatsMode(mode ?? null)
             setPlayerData(data)
           }}
           onClose={() => setLaunchId(null)}

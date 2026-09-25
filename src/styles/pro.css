@@ -163,26 +163,6 @@
 
 .pvProCard .pvProState { color: #ffd257; font-weight: 700; font-size: 13px; }
 
-/* ── Копилка слов: счётчик и строка-замок (лимит 20 бесплатно) ── */
-.pvWordsCount {
-  font-size: 12px;
-  color: #9aa3ad;
-  padding: 2px 4px 6px;
-}
-
-.pvWordsLocked {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  border: 1px dashed #4a4028;
-}
-
-.pvWordsLocked .pvWordFrom { color: #ffd257; }
-
 /* ── Значок PRO под аватаром (рейтинг, гонка) — сидит на низе круга,
    перекрывая его (top:85% от высоты .ubAvatarWrap, которая равна
    диаметру аватара), остальное свисает под кругом ── */

@@ -200,62 +200,30 @@
 .pvBuyText { font-size: 15px; font-weight: 800; }
 .pvBuyPrice { font-size: 13px; font-weight: 600; opacity: 0.72; }
 
-/* ── Вкладки-сегменты: единая тёмная капсула, активный сегмент — зелёный ── */
-.pvTabs {
-  display: flex;
-  gap: 2px;
-  margin: 20px 0 14px;
-  padding: 4px;
-  background: #14171c;
-  border: 1px solid #232932;
-  border-radius: 999px;
-}
-
-.pvTab {
-  flex: 1;
+/* ── «Знаю N слов · M фраз закреплено» под именем (learnView, этап 5
+   системы повторения) — тап ведёт во вкладку «Моё обучение» ── */
+.pvKnow {
+  display: block;
+  margin: 2px 0 6px;
+  padding: 0;
   border: none;
-  background: transparent;
-  color: #9aa3ad;
-  border-radius: 999px;
-  padding: 9px 4px;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.pvTabActive {
-  background: linear-gradient(180deg, #ceff73, #a9f335);
-  box-shadow: 0 4px 14px rgba(182, 254, 59, 0.35);
-  color: #0d1500;
-}
-
-/* ── Саб-вкладки внутри «Пройденные»: Модули/Уроки (ProfileDoneTab.jsx) —
-   та же капсула, что и pvTabs, но компактнее и без градиента на активном ── */
-.pvSubTabs {
-  display: flex;
-  gap: 2px;
-  margin: 0 0 12px;
-  padding: 3px;
-  background: #14171c;
-  border: 1px solid #232932;
-  border-radius: 999px;
-}
-
-.pvSubTab {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: #9aa3ad;
-  border-radius: 999px;
-  padding: 7px 4px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.pvSubTabActive {
-  background: rgba(182, 254, 59, 0.15);
+  background: none;
   color: #b6fe3b;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Заголовок раздела «Сохранённые» (вместо бывших вкладок-сегментов) */
+.pvSectionTitle {
+  margin: 18px 4px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9aa3ad;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 /* ── LogoutSheet: попап подтверждения выхода (карточка — rwInfoCard) ── */

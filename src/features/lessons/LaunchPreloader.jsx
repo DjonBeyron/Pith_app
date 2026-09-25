@@ -5,7 +5,6 @@ import { primeAudio } from '../../shared/lib/primedAudio.js'
 import { motionNeedsAsk } from '../../shared/lib/motionPermission.js'
 import LaunchMotionAsk from './LaunchMotionAsk.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
-import RetakeDialog from './RetakeDialog.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
 import LaunchCtaSlot from './LaunchCtaSlot.jsx'
 import LaunchDebugPanel from './LaunchDebugPanel.jsx'
@@ -22,8 +21,8 @@ import useSmoothPct from './useSmoothPct.js'
 const WARMUP_TARGET = 5
 
 export default function LaunchPreloader({
-  lessonData, title, info, dissolving, onDissolve, retakeChoice = false, examIntro = false,
-  resumeOffer = null, mayResume = false, visible = false, onRestartProgress, onStart, onClose,
+  lessonData, title, info, dissolving, onDissolve, examIntro = false,
+  resumeOffer = null, mayResume = false, visible = false, onRestartProgress, onStart,
 }) {
   // title приходит из схемы модуля и уже нарисован скелетоном — берём его, а не
   // lessonData.title: тот может оказаться своей надписью для шапки чата, и
@@ -114,11 +113,12 @@ export default function LaunchPreloader({
     transition: 'background 0.3s ease, color 0.3s ease, opacity 0.3s ease',
   }
 
-  // statsMode: null (первое прохождение) | 'update' | 'silent' (выбор пересдачи).
   // resume=true — жмут «Продолжить» в LaunchCtaSlot: payload несёт точку
   // входа и историю чата выше нее, LessonPlayer.jsx берёт их напрямую и не
-  // гоняет свою собственную проверку чекпойнта (см. useLessonResume.js)
-  function handleStart(statsMode = null, resume = false) {
+  // гоняет свою собственную проверку чекпойнта (см. useLessonResume.js).
+  // Выбора режима пересдачи больше нет: ответы только добавляются (PROJECT.md
+  // → «Анализ знаний»), пересдача — обычное прохождение
+  function handleStart(resume = false) {
     // Preload + unlock in the same gesture context so iOS Safari decodes audio immediately.
     // preloadSounds() creates Audio objects; unlockAudio() does play+pause on them.
     // Both must run here (not in useEffect) — iOS only allows audio decode within a gesture.
@@ -143,9 +143,9 @@ export default function LaunchPreloader({
       // пользователь видит, что энергия израсходована — и только потом
       // запускаем плеер. Реальное списание всё равно решает сервер (onStart→startLesson)
       onDissolve()
-      setTimeout(() => onStart(payload, statsMode), 600)
+      setTimeout(() => onStart(payload), 600)
     } else {
-      onStart(payload, statsMode)
+      onStart(payload)
     }
   }
 
@@ -209,13 +209,11 @@ export default function LaunchPreloader({
           primaryStyle={canStart ? undefined : { background: 'transparent', color: '#666', cursor: 'default', opacity: 0 }}
           primaryLabel={canStart ? 'Продолжить' : 'Загрузка...'}
           primaryDisabled={!canStart}
-          onPrimary={() => handleStart(null, true)}
+          onPrimary={() => handleStart(true)}
           onGhost={() => { onRestartProgress(); handleStart() }}
         />
       ) : examIntro ? (
         <ExamIntroDialog canStart={canStart} onStart={() => handleStart()} />
-      ) : retakeChoice ? (
-        <RetakeDialog canStart={canStart} onPick={handleStart} onCancel={onClose} />
       ) : mayResume ? (
         <LaunchCtaSlot
           // pctLabel — см. LaunchSkeleton.jsx: пустая строка в скрытом <span>

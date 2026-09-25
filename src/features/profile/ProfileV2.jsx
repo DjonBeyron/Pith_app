@@ -16,20 +16,16 @@ import { saveAvatar } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import { energyColor } from '../../shared/lib/energyColors.js'
-import { useLessonNav } from '../../app/LessonNavContext.jsx'
-import ProfileWordsList from './ProfileWordsList.jsx'
-import ProfileDoneTab from './ProfileDoneTab.jsx'
 import ProfileSavedTab from './ProfileSavedTab.jsx'
 
-// Профиль (ui v2, тёмная тема по макету profile.html): уровень, XP-бар,
-// энергия, вкладки Сохранённые / Пройденные / Копилка слов. Шестерёнка —
-// экран настроек. Тап по модулю в списках открывает его схему.
-export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
-  const { profile, modules, bookmarks, savedLessons, words, doneLessons, loading, reload } = useProfileV2Data()
-  const [tab, setTab] = useState('words') // saved | done | words
-  // Тап по пройденному уроку (вкладка «Пройденные → Уроки») — пересдать его
-  // напрямую, тем же путём, что и урок-закладка из «Мои уроки» (LessonNavOverlay.jsx)
-  const { openRef } = useLessonNav()
+// Профиль (ui v2, тёмная тема по макету profile.html) — «кто я?»: первой
+// строкой «Знаю N слов · M фраз закреплено» (learnView — данные «Моего
+// обучения», тап ведёт туда), ниже уровень, XP-бар, энергия и «Сохранённые» —
+// только НЕ начатые модули. «Пройденные» и копилка слов убраны: память слов
+// живёт в карте «Моего обучения», начатое — в «Моих уроках» (PROJECT.md →
+// «Вкладки»). Шестерёнка — экран настроек. Тап по модулю — его схема.
+export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, learnView = null, onOpenLearn }) {
+  const { profile, modules, bookmarks, loading, reload } = useProfileV2Data()
   const [showSettings, setShowSettings] = useState(false)
   const [showCustomize, setShowCustomize] = useState(false)
   const [showPro, setShowPro] = useState(false)
@@ -46,7 +42,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
     setAvatarBusy(false)
   }
 
-  // Возврат на вкладку: тихое фоновое обновление (XP, копилка, закладки) —
+  // Возврат на вкладку: тихое фоновое обновление (XP, закладки) —
   // без «Загрузки...» и моргания, пользователь видит сразу свежие данные
   useEffect(() => {
     if (visible) reload()
@@ -89,8 +85,8 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
   // Ник из профиля (виден в рейтинге); до загрузки/без ника — часть email
   const name = profile?.nickname || (userEmail?.split('@')[0] ?? 'Профиль')
 
-  const saved    = modules.filter(m => bookmarks.has(m.id))
-  const doneMods = modules.filter(m => m.total > 0 && m.pct === 100)
+  // Сохранённые — только не начатые: начатое продолжают из «Моих уроков»
+  const saved = modules.filter(m => bookmarks.has(m.id) && m.done === 0)
 
   return (
     <div className="pvScreen">
@@ -122,6 +118,15 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
             <button className="pvName pvNameBtn" onClick={() => setShowLogout(true)} title="Выйти из аккаунта">{name}</button>
             {(profile?.has_subscription || profile?.is_admin) && <span className="pvProBadge">PRO</span>}
           </div>
+          {learnView && !learnView.empty && (
+            <button className="pvKnow" onClick={onOpenLearn}>
+              {/* «Знаю 0 слов» звучало бы упрёком — пока ничего не закрепилось, считаем память */}
+              {learnView.known > 0
+                ? `Знаю ${learnView.known} ${plural(learnView.known, 'слово', 'слова', 'слов')}`
+                : `В памяти ${learnView.inMemory} ${plural(learnView.inMemory, 'слово', 'слова', 'слов')}`}
+              {learnView.strongPhrases > 0 && ` · ${learnView.strongPhrases} ${plural(learnView.strongPhrases, 'фраза закреплена', 'фразы закреплены', 'фраз закреплено')}`}
+            </button>
+          )}
           <span className="pvLvlChip"><Star className="pvLvlChipIcon" /> {cur.level} уровень · {cur.label}</span>
         </div>
       </div>
@@ -188,38 +193,11 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas }) {
         <span className="pvCustomizeLabel"><Paintbrush size={16} /> Кастомизация</span>
       </button>
 
-      <div className="pvTabs">
-        <button className={tab === 'saved' ? 'pvTab pvTabActive' : 'pvTab'} onClick={() => setTab('saved')}>Сохранённые</button>
-        <button className={tab === 'done'  ? 'pvTab pvTabActive' : 'pvTab'} onClick={() => setTab('done')}>Пройденные</button>
-        <button className={tab === 'words' ? 'pvTab pvTabActive' : 'pvTab'} onClick={() => setTab('words')}>Копилка слов</button>
-      </div>
-
+      <p className="pvSectionTitle">Сохранённые</p>
       {loading ? (
         <div className="pvEmpty">Загрузка...</div>
-      ) : tab === 'words' ? (
-        words.length === 0
-          ? <div className="pvEmpty">Проходи уроки — выученные слова будут копиться здесь</div>
-          : <ProfileWordsList
-              words={words}
-              unlimited={!!(profile?.has_subscription || profile?.is_admin)}
-              onWantPro={() => setShowPro(true)}
-            />
-      ) : tab === 'saved' ? (
-        <ProfileSavedTab
-          savedModules={saved}
-          savedLessons={savedLessons}
-          onOpenModule={setOpenModule}
-          onOpenLesson={id => openRef({ isModule: false, targetId: id }, null)}
-          onReload={reload}
-        />
       ) : (
-        <ProfileDoneTab
-          doneMods={doneMods}
-          doneLessons={doneLessons}
-          onOpenModule={setOpenModule}
-          onOpenLesson={id => openRef({ isModule: false, targetId: id }, null)}
-          onReload={reload}
-        />
+        <ProfileSavedTab savedModules={saved} onOpenModule={setOpenModule} />
       )}
 
       {showAvatarPicker && (

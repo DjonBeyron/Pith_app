@@ -11,6 +11,8 @@
 --   • черновой модуль «I'm trying to cook · E2E-КОЛОДЫ» для колод повтора:
 --     слова trying (без колоды) и cook (1 карточка); cook — в памяти
 --     повторения e2e-админа (созрело сегодня)
+--   • модуль «Keep going · E2E-ОБУЧЕНИЕ» (опубликован): слово keep — в памяти
+--     повторения e2e-user (вкладка «Моё обучение»)
 --   • модуль «E2E-МЕДИА»: Старт с голосовым, фото и «выбери фото» — файлы
 --     со статики dev-сервера (http://localhost:5299/...)
 -- ═══════════════════════════════════════════════════════════════════════
@@ -127,6 +129,39 @@ values ('e2e00000-0000-4000-8000-000000000002', 'cook', 1, current_date)
 on conflict (user_id, word) do nothing;
 insert into public.lesson_results (user_id, lesson_id, xp_awarded)
 values ('e2e00000-0000-4000-8000-000000000002', 'e2e0b000-0000-4000-8000-00000000000c', true)
+on conflict (user_id, lesson_id) do nothing;
+
+-- ── Модуль «Keep going · E2E-ОБУЧЕНИЕ» (опубликован) ────────────────────
+-- Вкладка «Моё обучение» ОБЫЧНОГО пользователя (e2e/user.spec.js): слово keep
+-- в его памяти (созрело сегодня, урок зачтён), у keep колода из одной
+-- карточки, у going колоды нет. Отдельно от cook админа: e2e-файлы идут
+-- параллельно, общая память давала бы гонку
+insert into public.lessons (id, title, published, sort_order, script) values
+('e2e0d000-0000-4000-8000-00000000000a', 'Старт', true, 0, '{"nodes": []}'),
+('e2e0d000-0000-4000-8000-00000000000b', 'keep', true, 1, $json${"nodes": [], "reviewCards": [
+  {"id": "e2e-card-keep-1", "nodes": [
+    {"id": "e2e-k1", "seq": 1, "x": 0, "y": 0, "size": "max", "type": "word_choice",
+     "typeData": {"word_choice": {
+       "options": [{"id": "e2e-k-ok", "text": "keep", "isCorrect": true}, {"id": "e2e-k-bad", "text": "kept"}],
+       "responseCorrect": "", "responseWrong": ""}},
+     "triggers": [{"id": "e2e-k1ok", "if": "word_correct", "then": null},
+                  {"id": "e2e-k1bad", "if": "word_wrong", "then": null}]}
+  ]}
+]}$json$),
+('e2e0d000-0000-4000-8000-00000000000c', 'going', true, 2, '{"nodes": []}'),
+('e2e0d000-0000-4000-8000-00000000000d', 'Финал', true, 3, '{"nodes": []}')
+on conflict (id) do nothing;
+
+insert into public.curricula (id, title, published, lesson_ids) values
+('e2e0d000-0000-4000-8000-0000000000ff', 'Keep going · E2E-ОБУЧЕНИЕ', true,
+ '["e2e0d000-0000-4000-8000-00000000000a", "e2e0d000-0000-4000-8000-00000000000b", "e2e0d000-0000-4000-8000-00000000000c", "e2e0d000-0000-4000-8000-00000000000d"]')
+on conflict (id) do nothing;
+
+insert into public.word_memory (user_id, word, step, due_on)
+values ('e2e00000-0000-4000-8000-000000000001', 'keep', 1, current_date)
+on conflict (user_id, word) do nothing;
+insert into public.lesson_results (user_id, lesson_id, xp_awarded)
+values ('e2e00000-0000-4000-8000-000000000001', 'e2e0d000-0000-4000-8000-00000000000b', true)
 on conflict (user_id, lesson_id) do nothing;
 
 -- ── Модуль «E2E-МЕДИА» (опубликован) ───────────────────────────────────

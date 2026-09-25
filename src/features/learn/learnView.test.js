@@ -63,6 +63,7 @@ describe('вкладка «Моё обучение»: данные', () => {
     const v = buildLearnView({ memory, curricula, lessons }, today)
     expect(KNOW_STEP).toBe(3)
     expect(v.known).toBe(2)
+    expect(v.inMemory).toBe(4)
     expect(v.strongPhrases).toBe(1) // Keep trying: trying 3, keep 4
     expect(buildLearnView({ curricula, lessons }, today).empty).toBe(true)
   })
