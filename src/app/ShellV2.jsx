@@ -19,7 +19,7 @@ import { useAuth } from '../shared/lib/useAuth.js'
 import { useStreakGate } from '../features/streak/useStreakGate.js'
 import { useLessonNav } from './LessonNavContext.jsx'
 import StreakGateOverlay from '../features/streak/StreakGateOverlay.jsx'
-import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
+import LessonEditorOverlays from './LessonEditorOverlays.jsx'
 import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
 import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
@@ -27,11 +27,10 @@ import { wordChoiceVoice } from '../shared/lib/wordChoiceVoice.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
 
-// Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
-// пользователь эти chunk'и даже не скачивает (см. PROJECT.md, этап 2)
+// Код-сплиттинг: админка нужна только is_admin — обычный пользователь этот
+// chunk даже не скачивает (см. PROJECT.md, этап 2). Редакторы — там же, в
+// LessonEditorOverlays.jsx
 const AdminV2         = lazy(() => lazyRetry(() => import('../features/admin/AdminV2.jsx'), 'admin'))
-const CanvasPage      = lazy(() => lazyRetry(() => import('../features/canvas/CanvasPage.jsx'), 'canvas'))
-const ProductionPage  = lazy(() => lazyRetry(() => import('../features/production/ProductionPage.jsx'), 'production'))
 
 // Новая оболочка (ui v2, миграция по PROJECT.md): нижний бар Уроки/Профиль
 // (+Админ для is_admin). Пока: лента — заглушка (шаг 3 миграции),
@@ -44,6 +43,8 @@ export default function ShellV2() {
   // Продакшен-редактор (линейный список сообщений) — тот же оверлей-паттерн,
   // над теми же данными урока, что и canvas (см. PROJECT.md)
   const [productionLesson, setProductionLesson] = useState(null)
+  // Редактор колоды «Карточки повтора» того же урока (features/reviewCards)
+  const [cardsLesson, setCardsLesson] = useState(null)
   // Модуль, который админ-вкладка должна открыть по возвращении из редактора
   // («назад» в канвасе ведёт в схему модуля урока, а не на главный экран)
   const [moduleRequest, setModuleRequest] = useState(null)
@@ -160,6 +161,7 @@ export default function ShellV2() {
               <AdminV2
                 onOpenCanvas={setCanvasLesson}
                 onOpenProduction={setProductionLesson}
+                onOpenCards={setCardsLesson}
                 openModule={moduleRequest}
                 onModuleOpened={() => setModuleRequest(null)}
               />
@@ -201,7 +203,7 @@ export default function ShellV2() {
       </nav>
 
       {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}
-      {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && (
+      {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && (
         <ResumeEditingToast
           onOpen={lesson => {
             setResumeClosed(true)
@@ -218,56 +220,16 @@ export default function ShellV2() {
       {/* Попапы супергонки: анонс недели и итоги — поверх любой вкладки */}
       {!gate && <RaceGlobalPopups onOpenRace={() => { setTab('rating'); setRaceOpenTick(t => t + 1) }} />}
 
-      {canvasLesson && (
-        <div className="shellV2CanvasOverlay">
-          <Suspense fallback={<div className="shellV2Panel">Загрузка редактора…</div>}>
-            <CanvasPage
-              lessonId={canvasLesson.id}
-              moduleLessons={canvasLesson.moduleLessons ?? []}
-              module={canvasLesson.module ?? null}
-              /* Назад — в схему модуля этого урока (если знаем её), а не на
-                 главный экран: чаще всего дальше правят соседний урок */
-              onBack={found => {
-                // Модуль мог быть найден уже внутри редактора (урок открыли
-                // из всплывашки, где модуль неизвестен) — он и приходит сюда
-                const m = found ?? canvasLesson.module
-                setCanvasLesson(null)
-                if (!m?.id || !isAdmin) return
-                setModuleRequest(m)
-                setTab('admin')
-              }}
-              onOpenProduction={id => {
-                setCanvasLesson(null)
-                setProductionLesson({ id, moduleLessons: canvasLesson.moduleLessons ?? [] })
-              }}
-            />
-          </Suspense>
-        </div>
-      )}
-
-      {productionLesson && (
-        <div className="shellV2CanvasOverlay">
-          <Suspense fallback={<div className="shellV2Panel">Загрузка продакшена…</div>}>
-            <ProductionPage
-              lessonId={productionLesson.id}
-              moduleLessons={productionLesson.moduleLessons ?? []}
-              onBack={() => setProductionLesson(null)}
-              onOpenCanvas={id => {
-                // Продакшен только что сохранил на сервер (см. ProductionPage.
-                // switchToCanvas) — это самая свежая версия урока. Но у
-                // CanvasBoard есть СВОЙ localStorage-черновик (canvasLsKey),
-                // который при монтировании имеет приоритет над initialNodes —
-                // если он остался от прошлой, незакрытой через «Сохранить»/
-                // «Продакшен» сессии канваса, он перекрыл бы то, что только
-                // что поменяли в списке, и порядок «не долетал» бы до графа
-                localStorage.removeItem(canvasLsKey(id))
-                setProductionLesson(null)
-                setCanvasLesson({ id, moduleLessons: productionLesson.moduleLessons ?? [] })
-              }}
-            />
-          </Suspense>
-        </div>
-      )}
+      <LessonEditorOverlays
+        canvasLesson={canvasLesson} setCanvasLesson={setCanvasLesson}
+        productionLesson={productionLesson} setProductionLesson={setProductionLesson}
+        cardsLesson={cardsLesson} setCardsLesson={setCardsLesson}
+        onBackToModule={m => {
+          if (!m?.id || !isAdmin) return
+          setModuleRequest(m)
+          setTab('admin')
+        }}
+      />
     </div>
   )
 }

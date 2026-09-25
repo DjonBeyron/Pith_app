@@ -1,5 +1,6 @@
 import { ZONE_FIELDS } from '../zones/zoneSchema.js'
 import { PRINCIPLES, PRE_SUBMIT_CHECKLIST } from './lessonRulesDefaults.js'
+import { REVIEW_CARDS_DOC } from './reviewCardsDoc.js'
 
 // Легенда формата обмена уроком: что означает каждый тип ноды, каждое поле и
 // каждое условие перехода. Она уезжает вместе с экспортом (см. exportLesson.js),
@@ -368,6 +369,7 @@ export function buildLegend(principles = PRINCIPLES, checklist = PRE_SUBMIT_CHEC
     },
     node: NODE_FIELDS,
     zones: ZONE_FIELDS,
+    reviewCards: REVIEW_CARDS_DOC,
     triggers: TRIGGER_DOCS,
     nodes: Object.fromEntries(Object.entries(NODE_DOCS).map(([type, d]) => [
       type,

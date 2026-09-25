@@ -72,6 +72,7 @@
 @import './styles/canvas/drag.css';
 @import './styles/production/list.css';
 @import './styles/production/fan.css';
+@import './styles/review-cards.css';
 @import './styles/player/layout.css';
 @import './styles/player/admin-edit.css';
 @import './styles/player/topbar.css';
@@ -141,6 +142,7 @@
 @import './styles/streak-gate.css';
 @import './styles/update-toast.css';
 @import './styles/admin-errors.css';
+@import './styles/admin-decks.css';
 @import './styles/admin-analytics.css';
 /* debug-toolbar.css здесь НЕ подключается: его импортирует сам
    DebugToolbar.jsx, и стили уезжают вместе с dev-чанком тулбара, а не

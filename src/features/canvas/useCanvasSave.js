@@ -3,6 +3,7 @@ import { dbg } from '../../shared/lib/debug.js'
 import { canvasLsKey } from './canvasStorageKeys.js'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 import { notifyLessonSaved } from '../../shared/lib/lessonSavedBus.js'
+import { injectR2Urls } from './injectR2Urls.js'
 
 // Сохранение урока на сервер: догрузка несинхронизированных файлов, инъекция
 // r2Url в ноды, запись + контрольное чтение сразу после (не доверяем «раз не
@@ -24,23 +25,8 @@ export function useCanvasSave({
       // из closure, оно бы осталось старым до следующего рендера
       const currentFiles = hasUnsynced ? await syncToServer() : files
       const teacherData = await prepareForSave()
-      // Inject r2Url into each node's typeData so the player can use it without Supabase lookup
-      const nodesForSave = nodesRef.current.map(node => {
-        // photo_choice: inject r2Url into each photo object
-        if (node.type === 'photo_choice') {
-          const photos = (node.typeData?.photo_choice?.photos ?? []).map(ph => {
-            if (!ph.fileId) return ph
-            const f = currentFiles.find(fl => fl.id === ph.fileId)
-            return f?.r2Url ? { ...ph, photoUrl: f.r2Url } : ph
-          })
-          return { ...node, typeData: { ...node.typeData, photo_choice: { ...node.typeData.photo_choice, photos } } }
-        }
-        const fileId = node.typeData?.[node.type]?.file_id
-        if (!fileId) return node
-        const f = currentFiles.find(fl => fl.id === fileId)
-        if (!f?.r2Url) return node
-        return { ...node, typeData: { ...node.typeData, [node.type]: { ...node.typeData[node.type], r2Url: f.r2Url } } }
-      })
+      // r2Url — прямо в ноды, чтобы плееру не ходить в таблицу files
+      const nodesForSave = injectR2Urls(nodesRef.current, currentFiles)
       // Зоны (визуальная группировка нод, см. features/canvas/zones/) — часть
       // урока наравне с нодами, но не участвуют в r2Url-инъекции: у них нет
       // файлов

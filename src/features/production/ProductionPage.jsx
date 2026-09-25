@@ -12,7 +12,7 @@ import ProductionList from './ProductionList.jsx'
 // Полноэкранный линейный редактор сценария урока («продакшен»): та же модель
 // данных (lessons.script.nodes[]), что и canvas-редактор, — просто другой вид
 // для быстрого набора большой цепочки сообщений подряд. См. PROJECT.md.
-export default function ProductionPage({ lessonId, moduleLessons = [], onBack, onOpenCanvas }) {
+export default function ProductionPage({ lessonId, moduleLessons = [], onBack, onOpenCanvas, onOpenCards }) {
   const linkableLessons = moduleLessons.filter(l => l.id !== lessonId)
   // ⚙ в схеме модуля запоминает, каким редактором пользовались последним,
   // и в следующий раз открывает сразу его (см. lastEditorMode.js)
@@ -44,7 +44,10 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
     if (!lessonId) return
     loadScript(lessonId)
       .then(data => {
-        const { nodes: loadedNodes, ...extra } = data?.script ?? {}
+        // reviewCards в extra НЕ держим: колоду правит своя страница, и
+        // снимок на момент открытия затёр бы её более свежую версию —
+        // saveLesson подтянет актуальную с сервера сам
+        const { nodes: loadedNodes, reviewCards: _cards, ...extra } = data?.script ?? {}
         scriptExtraRef.current = extra
         setTitle(data?.title ?? '')
         handleNodesChange(loadedNodes ?? [])
@@ -146,6 +149,12 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
     onOpenCanvas(lessonId)
   }
 
+  // «Карточки» (колода повтора) — тот же принцип: сначала сохраняем урок
+  async function switchToCards() {
+    try { await handleSave() } catch { return }
+    onOpenCards(lessonId)
+  }
+
   function clearAll() {
     if (!window.confirm('Удалить ВСЕ ноды урока? Это нельзя отменить.')) return
     handleNodesChange([])
@@ -187,6 +196,9 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
         </button>
         <button className="pageTabBtn pageTabBtnActive" onClick={handleSave} disabled={isSaving || loading}>
           Продакшен
+        </button>
+        <button className="pageTabBtn" onClick={switchToCards} disabled={isSaving || loading}>
+          Карточки
         </button>
       </div>
 

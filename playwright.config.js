@@ -20,7 +20,7 @@ const hasCreds = !!(process.env.E2E_EMAIL && process.env.E2E_PASSWORD)
 // (scripts/e2e-local.sh): они пишут в базу с правами is_admin. На боевой
 // базе их нет вовсе, даже если админ-креды случайно заданы.
 const hasAdmin = hasCreds && !!(process.env.E2E_ADMIN_EMAIL && process.env.E2E_ADMIN_PASSWORD) && isLocalBackend()
-const IGNORE_AUTH = [/auth\.setup\.js/, /user\.spec\.js/, /admin\.spec\.js/, /rls\.spec\.js/]
+const IGNORE_AUTH = [/auth\.setup\.js/, /user\.spec\.js/, /admin.*\.spec\.js/, /rls\.spec\.js/]
 const mobileChromium = { ...devices['iPhone 13'], browserName: 'chromium' }
 const PORT = isLocalBackend() ? 5299 : 5199
 
@@ -67,7 +67,7 @@ export default defineConfig({
     ...(hasAdmin ? [
       {
         name: 'admin',
-        testMatch: /admin\.spec\.js/,
+        testMatch: /admin.*\.spec\.js/, // admin.spec.js, admin-decks.spec.js
         dependencies: ['setup'],
         use: { viewport: { width: 1280, height: 800 }, storageState: 'test-results/.auth/admin.json' },
       },

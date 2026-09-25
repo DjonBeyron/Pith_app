@@ -19,3 +19,13 @@ export function assertLocalBackend() {
     )
   }
 }
+
+// Edge functions в локальном стеке не запускаются (scripts/e2e-local.sh, -x
+// edge-runtime): ключей ElevenLabs/R2/пушей там нет намеренно. Канвас при
+// открытии сам спрашивает остаток квоты озвучки — эту пассивную проверку
+// подменяем правдоподобным ответом. Остальные функции НЕ глушим: их вызов в
+// тесте — повод заметить (fixtures.js уронит тест на 5xx)
+export async function stubLocalEdgeFunctions(page) {
+  await page.route('**/functions/v1/elevenlabs-quota', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{"used":0,"limit":10000}' }))
+}

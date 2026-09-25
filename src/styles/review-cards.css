@@ -1,0 +1,112 @@
+/* Редактор колоды «Карточки повтора» (features/reviewCards). Шапка и список
+   нод — общие с продакшеном (production/list.css), здесь только своё:
+   предупреждения, ряд карточек, окно выбора нод урока */
+
+.rcTitle {
+  flex: 1;
+  min-width: 0;
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rcStrip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1a1c22;
+  flex-shrink: 0;
+}
+
+.rcWarn {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #e0b25a;
+  background: rgba(224, 178, 90, 0.08);
+  border: 1px solid rgba(224, 178, 90, 0.25);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.rcWarnSoft { color: #aaa; background: transparent; border-color: #2a2c33; }
+
+.rcChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rcChip {
+  min-width: 34px;
+  background: transparent;
+  border: 1px solid #2a2c33;
+  color: #aaa;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.rcChip:hover { background: #1a1c22; }
+.rcChip:disabled { opacity: 0.5; cursor: default; }
+.rcChipActive { background: #182818; border-color: #3a5a2a; color: #b6fe3b; }
+.rcChipWarn { color: #e0b25a; }
+.rcChipAdd { font-weight: 500; color: #888; }
+
+.rcActions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.rcEmpty {
+  padding: 32px 16px;
+  color: #777;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.rcPickerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.rcPicker {
+  width: min(560px, 100%);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: #111317;
+  border: 1px solid #2a2c33;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.rcPickerHead { padding: 12px 16px; color: #ddd; font-weight: 600; font-size: 14px; }
+.rcPickerList { flex: 1; overflow-y: auto; padding: 0 8px; }
+.rcPickerEmpty { padding: 16px; color: #777; font-size: 13px; }
+.rcPickerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+}
+.rcPickerRow:hover { background: #1a1c22; }
+.rcPickerRowTask { color: #b6fe3b; }
+.rcPickerFoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #1a1c22;
+}
+.rcPickerFoot .productionPageSave { margin-left: 0; }
+.rcPickerFoot .productionPageSave:disabled { opacity: 0.5; cursor: default; }

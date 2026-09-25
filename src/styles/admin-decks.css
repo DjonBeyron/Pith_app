@@ -1,0 +1,36 @@
+/* Админ → «Колоды» (AdminDecksTab.jsx). Каркас — общий с «Ошибками»
+   (admin-errors.css: aeWrap/aeHead/aeRow), здесь только своё */
+
+.adkFilter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #aaa;
+  cursor: pointer;
+}
+
+.adkRow { cursor: default; display: flex; flex-direction: column; gap: 6px; }
+.adkTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.adkWord { font-size: 15px; font-weight: 600; color: #e0e0e0; }
+
+.adkChip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #2a2d35;
+  color: #aaa;
+  white-space: nowrap;
+}
+.adkChip--none { color: #f87171; border-color: rgba(248, 113, 113, 0.4); }
+.adkChip--few  { color: #e0b25a; border-color: rgba(224, 178, 90, 0.4); }
+.adkChip--ok   { color: #b6fe3b; border-color: rgba(182, 254, 59, 0.35); }
+
+.adkLesson {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.adkLessonName { font-size: 12px; color: #888; min-width: 0; overflow-wrap: anywhere; }

@@ -103,11 +103,16 @@ function exportZones(zones) {
 }
 
 export function exportLesson(nodes, {
-  title = '', lessonId = null, includeLegend = true, principles, checklist, zones = [],
+  title = '', lessonId = null, includeLegend = true, principles, checklist, zones = [], reviewCards = [],
 } = {}) {
   const list = [...(nodes ?? [])].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
   const refOf = new Map(list.map((n, i) => [n.id, `n${i + 1}`]))
   const zonesOut = exportZones(zones)
+  // Колода повтора (lessons.script.reviewCards): каждая карточка — те же
+  // ноды обмена, но со своими ref n1, n2 … (переходы только внутри карточки)
+  const cardsOut = (reviewCards ?? [])
+    .filter(c => c?.nodes?.length)
+    .map(c => ({ nodes: exportLesson(c.nodes, { includeLegend: false }).nodes }))
 
   return {
     format: FORMAT,
@@ -130,6 +135,7 @@ export function exportLesson(nodes, {
       }
     }),
     ...(zonesOut.length ? { zones: zonesOut } : {}),
+    ...(cardsOut.length ? { reviewCards: cardsOut } : {}),
   }
 }
 
