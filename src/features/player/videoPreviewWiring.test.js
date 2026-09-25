@@ -12,8 +12,10 @@ const VIDEO   = read('./modules/video/VideoModule.jsx')
 const VIDEO_FS = read('./modules/video/useVideoFullscreen.jsx')
 const CIRCLE  = read('./modules/circle/CircleModule.jsx')
 const STICKER = read('./modules/sticker/StickerModule.jsx')
-const PRELOAD = read('./usePlayerPreload.js')
-const PLAYER  = read('./LessonPlayer.jsx')
+// Прогрев — два файла подряд: usePlayerPreload.js + preloadFetchOne.js (загрузка файла, постер)
+const PRELOAD = read('./usePlayerPreload.js') + read('./preloadFetchOne.js')
+// Склейка файлов с прогревом (withBlobs) — в usePlayerFiles.js, плеер её зовёт
+const PLAYER  = read('./LessonPlayer.jsx') + read('./usePlayerFiles.js')
 // Разметка сообщений ленты живёт отдельно от оркестратора (вынесена из
 // LessonPlayer.jsx, когда тот упёрся в потолок размера файла)
 const FEED_NODES = read('./PlayerFeedNodes.jsx')

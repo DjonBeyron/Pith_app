@@ -19,7 +19,10 @@ import { usePlayerPanelNodes } from './usePlayerPanelNodes.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { useLessonWordAudio } from './word-audio/useLessonWordAudio.js'
 import { useNodeAppearLog } from './useNodeAppearLog.js'
-import { usePlayerFiles } from './usePlayerFiles.js'
+import { usePlayerFiles, withBlobs } from './usePlayerFiles.js'
+import { useInstantNodesDone } from './useInstantNodesDone.js'
+import { pickPhoto } from './photoPick.js'
+import { useDebugStepBridge } from './admin/useDebugStepBridge.js'
 import { useAnswerStats } from './useAnswerStats.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { downloadDebugLog, copyDebugLog } from './downloadDebugLog.js'
@@ -159,12 +162,7 @@ export default function LessonPlayer({
   const downloadCombinedLog = () => downloadDebugLog(combinedLogData())
   const copyCombinedLog     = () => copyDebugLog(combinedLogData())
 
-  const filesWithBlobs = useMemo(() => files.map(f => {
-      const entry = blobMap[f.id]
-      if (!entry) return f
-      // + мета голосового из прогрева (usePlayerPreload.analyzeAudioMeta): duration/waveformData/metaDone
-      return { ...f, blobUrl: entry.blobUrl, posterUrl: entry.posterUrl ?? null, duration: entry.duration ?? null, waveformData: entry.waveformData ?? null, metaDone: !!entry.metaDone }
-    }), [files, blobMap])
+  const filesWithBlobs = useMemo(() => withBlobs(files, blobMap), [files, blobMap])
 
   // ── Panels ───────────────────────────────────────────────────────────────
   const answers = usePlayerAnswers()
@@ -175,29 +173,9 @@ export default function LessonPlayer({
     regStates, handleRegAnswer,
   } = answers
 
-  function handlePhotoPick(nodeId, idx, isCorrect) {
-    const result = isCorrect ? 'photo_correct' : 'photo_wrong'
-    if (!isCorrect) wrongRef.current += 1
-    const pcNode = nodes.find(n => n.id === nodeId)
-    // Особый переход этого конкретного фото (nodeVariants.js), если задан —
-    // проверяется раньше общего верно/неверно (useGraphPlayer.onNodeDone)
-    const variantId = pcNode?.typeData?.photo_choice?.photos?.[idx]?.id ?? null
-    record({
-      nodeId,
-      lessonId: pcNode?.typeData?.photo_choice?.statLessonId ?? null,
-      type: isCorrect ? 'correct' : 'wrong',
-      option: `фото #${idx + 1}`,
-    })
-    setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
-    if (isCorrect) {
-      const xp = xpMap.get(nodeId) ?? 0
-      // Плитка галереи, по которой ткнули, уже помечена панелью (rememberTap):
-      // галерея сейчас закроется, но замер сделан. Пузырь с фото всё равно
-      // появится, и цифра стартует от него — плитка тут запасной вариант
-      if (xp > 0) handleXpEarned(xp, nodeId)
-    }
-    onNodeDone(nodeId, result, variantId)
-  }
+  // Ответ «выбери фото» — photoPick.js
+  const handlePhotoPick = (nodeId, idx, isCorrect) => pickPhoto(
+    { nodes, wrongRef, record, setPhotoChoiceStates, xpMap, handleXpEarned, onNodeDone }, nodeId, idx, isCorrect)
 
   const [pinVisible, setPinVisible] = useState(true)
   // Нижние панели ответа: их ноды, высоты и что скипнуть залогиненному
@@ -206,21 +184,8 @@ export default function LessonPlayer({
 
   // Правка урока из плеера (только запуск из канваса админом)
   const adminEdit = usePlayerAdminEdit(edit, nodes, visibleNodes)
-  // «Мгновенные» ноды зовут onDone в эффекте маунта, но монтируются они в
-  // pending-фазе с onDone-заглушкой (DOM сохраняется по key при активации,
-  // эффект не перезапускается) — их onNodeDone терялся, и ПОСЛЕДНЕЕ такое
-  // сообщение не завершало урок (итоги с XP не показывались). Дублируем
-  // onNodeDone при появлении ноды среди видимых; повторные вызовы безопасны
-  // (дедуп триггеров и финиша в useGraphPlayer).
-  const instantDoneRef = useRef(new Set())
-  useEffect(() => {
-    visibleNodes.forEach(n => {
-      if (!['text', 'pin_message', 'system', 'photo'].includes(n.type)) return
-      if (instantDoneRef.current.has(n.id)) return
-      instantDoneRef.current.add(n.id)
-      onNodeDone(n.id)
-    })
-  }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
+  // «Мгновенные» ноды (текст, фото, закреп, системное) — useInstantNodesDone.js
+  const instantDoneRef = useInstantNodesDone(visibleNodes, onNodeDone)
 
   // Шаг назад откатывает и то, что живёт в рефах: отметку «мгновенная нода
   // отыграла» и начисленный за ноду XP
@@ -247,17 +212,8 @@ export default function LessonPlayer({
   })
   const step = buildStep({ state: stepState, graph, ctx: stepCtx })
 
-  // Мобильный дебаг-тулбар (src/features/debugTools) читает тот же самый
-  // step, что и десктопная PlayerAdminPanel — просто через мост, а не через
-  // проп, ей ведь и на телефоне некуда отрисоваться. Только dev-сборка.
-  useEffect(() => {
-    if (import.meta.env.DEV) import('../debugTools/debugPlayerStep.js').then(m => m.registerPlayerStep(step))
-  }) // без deps: step — новый объект на каждый рендер, актуальные функции нужны сразу
-  useEffect(() => {
-    return () => {
-      if (import.meta.env.DEV) import('../debugTools/debugPlayerStep.js').then(m => m.registerPlayerStep(null))
-    }
-  }, [])
+  // Тот же step — мобильному дебаг-тулбару (только dev) — useDebugStepBridge.js
+  useDebugStepBridge(step)
 
   // Общие пропсы ленты PlayerFeedNodes.jsx (обычные ноды + сигнальные сообщения вперемешку)
   const feedShared = { nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin, onTrReveal: registerHint, onOpenLessonRef: handleOpenLessonRef }

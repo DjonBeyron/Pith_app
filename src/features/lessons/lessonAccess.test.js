@@ -10,7 +10,8 @@ const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), '
 // а не получить «не удалось загрузить» под видом сбоя сети.
 describe('закрытый урок не отдаётся ученику', () => {
   const api = read('../../shared/lib/lessonsApi.js')
-  const card = read('./LessonLaunchCard.jsx')
+  // Карточка запуска — два файла подряд: LessonLaunchCard.jsx + LaunchPreloader.jsx (прогрев)
+  const card = (read('./LessonLaunchCard.jsx') + read('./LaunchPreloader.jsx'))
 
   it('защита стоит на сервере, а не в интерфейсе', () => {
     // Клиентскую проверку обойти можно, политику RLS — нет. Здесь сторож на
@@ -64,7 +65,7 @@ describe('окно запуска урока', () => {
     expect(read('../feed/FeedTab.jsx')).toContain('targetTitle: title')
     expect(read('../../app/LessonNavContext.jsx')).toContain("lessonTitle: target.targetTitle ?? ''")
     // А если название так и не передали — берём настоящее из самого урока
-    expect(read('./LessonLaunchCard.jsx')).toContain('{title || name}')
+    expect((read('./LessonLaunchCard.jsx') + read('./LaunchPreloader.jsx'))).toContain('{title || name}')
   })
 
   it('у попапов схемы один фон', () => {

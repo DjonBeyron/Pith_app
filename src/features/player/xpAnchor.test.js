@@ -52,7 +52,8 @@ describe('откуда вылетает XP', () => {
       ['выбор слова',   read('./panels/choose-word/ChooseWordPanel.jsx')],
       ['собери фразу',  read('./panels/phrase-assembly/PhraseAssemblyPanel.jsx')],
       ['ручная таблица', read('./panels/table-manual/TableManualPanel.jsx')],
-      ['авто-таблица',  read('./panels/table-dictator/TableDictatorPanel.jsx')],
+      // авто-таблица: панель + её шаги прогона (dictatorFlow.js — проверка ответа)
+      ['авто-таблица',  read('./panels/table-dictator/TableDictatorPanel.jsx') + read('./panels/table-dictator/dictatorFlow.js')],
       ['выбор фото',    read('./panels/photo-choice/PhotoChoicePanel.jsx')],
     ]) {
       expect(src, `${name}: нет импорта rememberTap`).toContain("import { rememberTap } from")
@@ -78,7 +79,7 @@ describe('откуда вылетает XP', () => {
     // вовсе. Теперь объявляет проверка, независимо от пузырей.
     const check = read('./panels/table-manual/manualCheck.js')
     expect(check).toContain('onXpEarned?.(xpAmount, { expectBubble })')
-    const dictator = read('./panels/table-dictator/TableDictatorPanel.jsx')
+    const dictator = read('./panels/table-dictator/TableDictatorPanel.jsx') + read('./panels/table-dictator/dictatorFlow.js')
     expect(dictator).toContain('if (isCorrect && xpAmount > 0 && !xpFiredRef.current)')
   })
 })

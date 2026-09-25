@@ -5121,8 +5121,9 @@ id стабилен между сохранениями (ротация «пос
   этапа 4 заведены имена `review_start / review_answer / review_finish /
   review_abandon` (в словаре PROJECT.md → «Аналитика»), в отчёт
   `analytics_report` их ещё надо добавить.
-- **`LessonPlayer.jsx` = 397 строк при потолке 400** — любая правка там
-  начинается с выноса куска в отдельный хук/компонент.
+- ~~`LessonPlayer.jsx` = 397 строк при потолке 400~~ — разделён 2026-09-25
+  (теперь 353, см. «Разделение файлов на пределе» в TESTING.md); вынесенные куски —
+  `useInstantNodesDone.js`, `photoPick.js`, `admin/useDebugStepBridge.js`, `withBlobs`.
 - Карточки хранить в `lessons.script` (jsonb) рядом с `nodes` (например
   `reviewCards: [{ id, nodes: [...] }]`) — это решение ещё не подтверждено
   пользователем, спросить в начале этапа 3. Не забыть экспорт/импорт JSON

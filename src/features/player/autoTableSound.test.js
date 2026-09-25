@@ -12,7 +12,8 @@ const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), '
 describe('авто-таблица звучит без свежего жеста', () => {
   const primed = read('../../shared/lib/primedAudio.js')
   const auto   = read('./panels/table-dictator/useTableDictatorAutostart.js')
-  const card   = read('../lessons/LessonLaunchCard.jsx')
+  // Карточка запуска — два файла подряд: LessonLaunchCard.jsx + LaunchPreloader.jsx (прогрев)
+  const card   = (read('../lessons/LessonLaunchCard.jsx') + read('../lessons/LaunchPreloader.jsx'))
 
   it('элемент прогревается настоящим жестом — стартом урока', () => {
     // «Начать урок» — единственный надёжный жест до того, как пойдут таблицы

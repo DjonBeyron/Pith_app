@@ -78,7 +78,8 @@ describe('финал открывается и без диагностики', (
 describe('замок и его снятие', () => {
   const graph = read('./ModuleGraph.jsx')
   const hint  = read('./LessonLockedHint.jsx')
-  const view  = read('./CurriculumView.jsx')
+  // Сброс модуля — в useModuleAdminActions.js (вынесено из CurriculumView)
+  const actions = read('./useModuleAdminActions.js')
 
   it('замок снимается со всех уроков модуля разом', () => {
     expect(graph).toContain('const locked = !startDoneShown && !unlocked')
@@ -107,7 +108,7 @@ describe('замок и его снятие', () => {
 
   it('сброс модуля возвращает замки', () => {
     // Иначе «как новый пользователь» врал бы: прогресс ноль, а уроки открыты
-    const reset = view.slice(view.indexOf('async function handleResetProgress'))
+    const reset = actions.slice(actions.indexOf('async function handleResetProgress'))
     expect(reset.slice(0, reset.indexOf('\n  }'))).toContain('relockModule(curriculumId)')
   })
 
@@ -120,7 +121,8 @@ describe('замок и его снятие', () => {
 })
 
 describe('карточка запуска урока', () => {
-  const card = read('./LessonLaunchCard.jsx')
+  // Карточка запуска — два файла подряд: LessonLaunchCard.jsx + LaunchPreloader.jsx (прогрев)
+  const card = (read('./LessonLaunchCard.jsx') + read('./LaunchPreloader.jsx'))
 
   it('окно сразу нужного размера — каркас вместо одной строчки', () => {
     expect(card).toContain('<LaunchSkeleton title={lessonTitle} info={info} mayResume={mayResume} />')
@@ -176,7 +178,7 @@ describe('узор схемы в попапах', () => {
     expect(read('../../styles/lesson-locked-hint.css')).toContain('var(--mg-tex-start) center / 180px 180px no-repeat')
     // Фон карточки запуска переехал из inline-стиля в класс — иначе текстуру
     // было бы некуда положить
-    expect(read('./LessonLaunchCard.jsx')).toContain('className="launchCard"')
-    expect(read('./LessonLaunchCard.jsx')).not.toContain("background: '#1a1a1a'")
+    expect((read('./LessonLaunchCard.jsx') + read('./LaunchPreloader.jsx'))).toContain('className="launchCard"')
+    expect((read('./LessonLaunchCard.jsx') + read('./LaunchPreloader.jsx'))).not.toContain("background: '#1a1a1a'")
   })
 })

@@ -77,7 +77,8 @@ describe('всплывашка «продолжить редактировани
   })
 
   it('урок запоминается при открытии канваса', () => {
-    const page = read('../../features/canvas/CanvasPage.jsx')
+    // Загрузка урока канваса — useCanvasLessonLoad.js (вынесено из CanvasPage)
+    const page = read('../../features/canvas/useCanvasLessonLoad.js')
     expect(page).toContain('setLastEditedLesson({ id: lessonId, title: data?.title, module })')
   })
 })

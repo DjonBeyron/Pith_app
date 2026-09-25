@@ -172,7 +172,8 @@ describe('замок поворота: второй канал — наклон 
   it('на iOS разрешение просят с пояснением, только в уроках с нодой', () => {
     // Системный диалог без объяснения получает отказ, а отказ iOS помнит —
     // поэтому свой шаг с текстом и кнопкой, а не молчаливый вызов в handleStart
-    const card = read('../../../lessons/LessonLaunchCard.jsx')
+    // Карточка запуска — два файла подряд: LessonLaunchCard.jsx + LaunchPreloader.jsx (прогрев)
+    const card = (read('../../../lessons/LessonLaunchCard.jsx') + read('../../../lessons/LaunchPreloader.jsx'))
     expect(card).toContain("{nodes.some(n => n.type === 'rotate_phone') && motionNeedsAsk() && <LaunchMotionAsk />}")
     expect(card).not.toContain('requestMotionPermission()')
     const ask = read('../../../lessons/LaunchMotionAsk.jsx')

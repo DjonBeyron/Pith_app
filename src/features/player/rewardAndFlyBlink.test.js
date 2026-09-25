@@ -31,7 +31,8 @@ describe('салют в «выбери слово» идёт по галочке
 // дело не в перелёте, а в том, что клон получает из разметки CSS-анимацию слов
 // (tdWordIn) и она стартует заново при вставке копии в документ.
 describe('собранная фраза не моргает при переходе таблицы в чат', () => {
-  const fly = read('./panels/flyPanelToChat.js')
+  // Полёт панели — два файла подряд: flyPanelToChat.js + flyPanelGhost.js (подготовка клона)
+  const fly = read('./panels/flyPanelToChat.js') + read('./panels/flyPanelGhost.js')
 
   it('анимации разметки гаснут в клоне тем же кадром, что и вставка', () => {
     const start = fly.indexOf('document.body.appendChild(ghost)')

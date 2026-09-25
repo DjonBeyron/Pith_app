@@ -63,7 +63,7 @@ describe('стыки разнесённых панелей', () => {
   })
 
   it('полёт панели в чат разнесён, но обе половины на месте', () => {
-    const fly   = read('./flyPanelToChat.js')
+    const fly   = read('./flyPanelToChat.js') + read('./flyPanelGhost.js')
     const parts = read('./flyPanelParts.js')
     expect(fly).toContain("from './flyPanelParts.js'")
     // Всё, что импортируется, действительно экспортировано

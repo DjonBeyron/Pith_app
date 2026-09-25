@@ -6,7 +6,8 @@ import { clampScale, zoomAtPoint } from './canvasZoom.js'
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 const hook  = read('./useCanvasTouch.js')
 const board = read('./CanvasBoard.jsx')
-const css   = read('../../styles/canvas/page.css')
+// Стили страницы канваса — три файла подряд (page.css → page-menus.css → page-debug.css)
+const css   = ['page', 'page-menus', 'page-debug'].map(f => read(`../../styles/canvas/${f}.css`)).join('\n')
 
 // На телефоне у холста не было ни мыши, ни колеса — доску нельзя было ни
 // подвинуть, ни приблизить. Замеры на эмуляции касаний (375x812, 5 точек):

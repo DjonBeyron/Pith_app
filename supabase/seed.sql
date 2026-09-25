@@ -10,6 +10,8 @@
 --     Старт (текст) → Урок (текст + «выбери слово»: верно✓ | неверно) → Финал.
 --   • черновой модуль «E2E-КОЛОДЫ» для колод повтора: слова trying (без
 --     колоды) и cook (1 карточка)
+--   • модуль «E2E-МЕДИА»: Старт с голосовым, фото и «выбери фото» — файлы
+--     со статики dev-сервера (http://localhost:5299/...)
 -- ═══════════════════════════════════════════════════════════════════════
 
 -- ── Тест-аккаунты ───────────────────────────────────────────────────────
@@ -106,4 +108,45 @@ on conflict (id) do nothing;
 insert into public.curricula (id, title, published, lesson_ids) values
 ('e2e0b000-0000-4000-8000-0000000000ff', 'E2E-КОЛОДЫ', false,
  '["e2e0b000-0000-4000-8000-00000000000a", "e2e0b000-0000-4000-8000-00000000000b", "e2e0b000-0000-4000-8000-00000000000c", "e2e0b000-0000-4000-8000-00000000000d"]')
+on conflict (id) do nothing;
+
+-- ── Модуль «E2E-МЕДИА» (опубликован) ───────────────────────────────────
+-- Старт с медиа — гоняет прогрев (скачивание и разбор голосового, фото),
+-- «мгновенные» ноды и ответ «выбери фото». Файлы — статика самого
+-- dev-сервера локального прогона (scripts/e2e-local.sh → порт 5299), R2 не нужен
+insert into public.files (id, file_name, size_bytes, content_type, r2_url) values
+('e2e0f000-0000-4000-8000-000000000001', 'message-in.mp3', 9405,  'audio/mpeg', 'http://localhost:5299/sounds/message-in.mp3'),
+('e2e0f000-0000-4000-8000-000000000002', 'icon-192.png',   7025,  'image/png',  'http://localhost:5299/icons/icon-192.png'),
+('e2e0f000-0000-4000-8000-000000000003', 'icon-512.png',   19151, 'image/png',  'http://localhost:5299/icons/icon-512.png')
+on conflict (id) do nothing;
+
+insert into public.lessons (id, title, published, sort_order, script) values
+('e2e0c000-0000-4000-8000-00000000000a', 'Старт', true, 0, $json${"nodes": [
+  {"id": "e2e-m1", "seq": 1, "x": 0, "y": 0, "size": "max", "type": "text",
+   "typeData": {"text": {"content": "Медиа-тест", "hardWrap": false}},
+   "triggers": [{"id": "e2e-m1t", "if": "timer", "ms": 1000, "then": "e2e-m2"}]},
+  {"id": "e2e-m2", "seq": 2, "x": 370, "y": 0, "size": "max", "type": "audio",
+   "typeData": {"audio": {"text": "Hello", "file_id": "e2e0f000-0000-4000-8000-000000000001"}},
+   "triggers": [{"id": "e2e-m2t", "if": "timer", "ms": 1500, "then": "e2e-m3"}]},
+  {"id": "e2e-m3", "seq": 3, "x": 740, "y": 0, "size": "max", "type": "photo",
+   "typeData": {"photo": {"caption": "Картинка", "file_id": "e2e0f000-0000-4000-8000-000000000002"}},
+   "triggers": [{"id": "e2e-m3t", "if": "timer", "ms": 1000, "then": "e2e-m4"}]},
+  {"id": "e2e-m4", "seq": 4, "x": 1110, "y": 0, "size": "max", "type": "photo_choice",
+   "typeData": {"photo_choice": {
+     "photos": [{"id": "e2e-ph-ok", "fileId": "e2e0f000-0000-4000-8000-000000000002", "label": "верно"},
+                {"id": "e2e-ph-bad", "fileId": "e2e0f000-0000-4000-8000-000000000003", "label": "неверно"}],
+     "correctIndexes": [0], "responseCorrect": "", "responseWrong": ""}},
+   "triggers": [{"id": "e2e-m4ok", "if": "photo_correct", "then": "e2e-m5"},
+                {"id": "e2e-m4bad", "if": "photo_wrong", "then": null}]},
+  {"id": "e2e-m5", "seq": 5, "x": 1480, "y": 0, "size": "max", "type": "text",
+   "typeData": {"text": {"content": "Готово", "hardWrap": false}},
+   "triggers": [{"id": "e2e-m5t", "if": "timer", "ms": 1000, "then": null}]}
+]}$json$),
+('e2e0c000-0000-4000-8000-00000000000b', 'Урок', true, 1, '{"nodes": []}'),
+('e2e0c000-0000-4000-8000-00000000000c', 'Финал', true, 2, '{"nodes": []}')
+on conflict (id) do nothing;
+
+insert into public.curricula (id, title, published, lesson_ids) values
+('e2e0c000-0000-4000-8000-0000000000ff', 'E2E-МЕДИА', true,
+ '["e2e0c000-0000-4000-8000-00000000000a", "e2e0c000-0000-4000-8000-00000000000b", "e2e0c000-0000-4000-8000-00000000000c"]')
 on conflict (id) do nothing;

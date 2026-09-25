@@ -37,10 +37,14 @@
 @import './styles/lessons-chain.css';
 @import './styles/lessons-chain-nodes.css';
 @import './styles/lessons-chain-final.css';
+@import './styles/lessons-chain-final-xp.css';
+@import './styles/lessons-chain-final-ceremony.css';
 @import './styles/lessons-chain-textures.css';
 @import './styles/priority-legend.css';
 @import './styles/lesson-locked-hint.css';
 @import './styles/canvas/page.css';
+@import './styles/canvas/page-menus.css';
+@import './styles/canvas/page-debug.css';
 @import './styles/canvas/lesson-io.css';
 @import './styles/canvas/lesson-rules.css';
 @import './styles/canvas/batch-gen.css';

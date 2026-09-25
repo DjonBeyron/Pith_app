@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
-const GRAPH  = read('../useGraphPlayer.js')
+// Проигрыватель графа — два файла подряд: useGraphPlayer.js + useGraphStepControls.js (шаги дебага)
+const GRAPH  = read('../useGraphPlayer.js') + read('../useGraphStepControls.js')
 const PANELS = read('../PlayerPanels.jsx')
 const MEDIA  = read('../useMediaPause.js')
 const FROZEN = read('../playerFrozen.js')

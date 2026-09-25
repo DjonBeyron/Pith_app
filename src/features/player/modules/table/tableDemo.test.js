@@ -82,7 +82,7 @@ describe('таблица уходит в чат после ответа (гал�
     // бокс сборки в сообщении рисуется всегда — иначе не сойдётся высота с панелью
     expect(read('./TableChatBubble.jsx')).not.toContain('words.length > 0 &&')
     expect(read('./TableModule.jsx')).toContain('nodeId={props.node.id}')
-    const fly = read('../../panels/flyPanelToChat.js') + read('../../panels/flyPanelParts.js')
+    const fly = read('../../panels/flyPanelToChat.js') + read('../../panels/flyPanelParts.js') + read('../../panels/flyPanelGhost.js')
     expect(fly).toContain('[data-table-bubble="${nodeId}"]')
     // Пузырь встаёт в ленту сразу (держит место под посадку), но невидимым:
     // иначе таблица секунду видна разом и в панели, и в переписке

@@ -69,7 +69,8 @@ describe('что режим гасит, а что оставляет', () => {
   })
 
   it('дебаг-панель предзагрузки идёт через контекст, а не мимо него', () => {
-    const card = read('../features/lessons/LessonLaunchCard.jsx')
+    // Карточка запуска — два файла подряд: LessonLaunchCard.jsx + LaunchPreloader.jsx (прогрев)
+    const card = (read('../features/lessons/LessonLaunchCard.jsx') + read('../features/lessons/LaunchPreloader.jsx'))
     expect(card).not.toContain('} from \'../../shared/lib/useIsAdmin.js\'')
     expect(card).toContain("import { useAdmin } from '../../app/AdminContext.jsx'")
   })

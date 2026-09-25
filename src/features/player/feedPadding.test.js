@@ -7,7 +7,8 @@ const feed     = read('../../styles/player/feed.css')
 const table    = read('../../styles/player/modules/table.css')
 const dictator = read('../../styles/player/panels/table-dictator.css')
 const manual   = read('../../styles/player/panels/table-manual.css')
-const fly      = read('./panels/flyPanelToChat.js')
+// Полёт панели — два файла подряд: flyPanelToChat.js + flyPanelGhost.js (подготовка клона)
+const fly      = read('./panels/flyPanelToChat.js') + read('./panels/flyPanelGhost.js')
 
 const FEED_PAD   = +feed.match(/--feed-pad:\s*(\d+)px/)[1]
 // Боковое поле пузыря с таблицей — второе число в padding: A B C

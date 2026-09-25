@@ -38,7 +38,7 @@ describe('диагностика связей холста', () => {
   })
 
   it('отладка включается из меню холста и рисует прямые поверх графа', () => {
-    expect(read('./CanvasPage.jsx')).toContain("label: debugLinks ? '✓ Отладка связей' : 'Отладка связей'")
+    expect(read('./CanvasPageToolsMenu.jsx')).toContain("label: debugLinks ? '✓ Отладка связей' : 'Отладка связей'")
     expect(read('./CanvasPage.jsx')).toContain('debugLinks={debugLinks}')
     const board = read('./CanvasBoard.jsx')
     expect(board).toContain('<CanvasLinkDebug segments={linkDebug.segments} />')
@@ -71,7 +71,9 @@ describe('диагностика связей холста', () => {
 
 describe('холст не схлопывается по высоте', () => {
   it('у доски задан min-height — иначе SVG-слои обрежут связи в ноль', () => {
-    const css = readFileSync(fileURLToPath(new URL('../../styles/canvas/page.css', import.meta.url)), 'utf8')
+    // Стили страницы канваса — три файла подряд (page.css → page-menus.css → page-debug.css)
+    const css = ['page', 'page-menus', 'page-debug']
+      .map(f => readFileSync(fileURLToPath(new URL(`../../styles/canvas/${f}.css`, import.meta.url)), 'utf8')).join('\n')
     const block = css.slice(css.indexOf('.canvasBoard {'), css.indexOf('.canvasBoardSvg {'))
     expect(block).toContain('min-height: 240px')
     // сами слои по-прежнему обрезаются по доске — это и делает высоту важной

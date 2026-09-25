@@ -66,7 +66,9 @@ describe('сигналы ошибок — порт на холсте (сквоз
   it('клик по порту сигнала (без протяжки) создаёт ноду через insertSignalFromPort', () => {
     expect(nodeOps).toContain('function insertSignalFromPort(nodeId, slotIndex, type)')
     expect(canvasBoard).toContain('insertSignalFromPort')
-    expect(canvasBoard).toContain('typeMenu.slotIndex != null')
+    // Выбор типа новой ноды — в CanvasBoardChrome.jsx (вынесено из CanvasBoard)
+    expect(canvasBoard).toContain('insertSignalFromPort={insertSignalFromPort}')
+    expect(read('./CanvasBoardChrome.jsx')).toContain('typeMenu.slotIndex != null')
   })
 
   it('useCanvasBoardPointer пробует обработчики сигнала в общей цепочке мыши доски', () => {

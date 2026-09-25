@@ -7,7 +7,8 @@ const bar      = read('./PlayerTopBar.jsx')
 const css      = read('../../styles/player/topbar.css')
 const settings = read('../canvas/LessonSettingsTab.jsx')
 const hook     = read('../canvas/useTeacherSettings.js')
-const launch   = read('../lessons/LessonLaunchCard.jsx')
+// Карточка запуска — два файла подряд: LessonLaunchCard.jsx + LaunchPreloader.jsx (прогрев)
+const launch   = (read('../lessons/LessonLaunchCard.jsx') + read('../lessons/LaunchPreloader.jsx'))
 const page     = read('../canvas/CanvasPage.jsx')
 
 // Вместо «онлайн» в шапке — что сейчас проходят. Замер на 375px: шапка

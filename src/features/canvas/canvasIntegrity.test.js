@@ -89,7 +89,8 @@ describe('дебаг на всём пути импорта', () => {
     expect(read('./CanvasLinkDebug.jsx')).toContain('export function CanvasLinkDebugHtml')
     expect(read('./CanvasLinkDebug.jsx')).toContain('<CanvasLinkDebugHtml segments={debug.segments}')
     expect(read('./CanvasBoard.jsx')).toContain('<CanvasDebugOverlay debug={linkDebug}')
-    const css = readFileSync(fileURLToPath(new URL('../../styles/canvas/page.css', import.meta.url)), 'utf8')
+    // Отладочные слои — в page-debug.css (продолжение canvas/page.css)
+    const css = readFileSync(fileURLToPath(new URL('../../styles/canvas/page-debug.css', import.meta.url)), 'utf8')
     expect(css).toContain('.canvasLinkDebugMark')
   })
 
@@ -151,7 +152,9 @@ describe('лог маршрутов связей', () => {
 describe('протяжка связи не зависит от сдвига холста', () => {
   it('перед протяжкой положение доски перемеряется заново', () => {
     const board = read('./CanvasBoard.jsx')
-    expect(board).toContain('const measureBoard = useCallback(')
+    // Сам замер — в useBoardRect.js (вынесено из CanvasBoard), доска отдаёт его дальше
+    expect(read('./useBoardRect.js')).toContain('const measureBoard = useCallback(')
+    expect(board).toContain('const { boardRef, boardRectRef, measureBoard } = useBoardRect()')
     expect(board).toContain('setTypeMenu, measureBoard })')
     // Сам вызов — в обработчике mousedown доски, вынесенном в отдельный хук
     // (useCanvasBoardPointer.js), не в самом CanvasBoard.jsx
