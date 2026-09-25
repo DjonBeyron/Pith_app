@@ -18,7 +18,7 @@ function rewardText(finish) {
   return parts.join(' · ') || null
 }
 
-export default function ReviewSummary({ results, finish, bridge, words, onClose }) {
+export default function ReviewSummary({ results, finish, bridge, words, onClose, onRequireAuth }) {
   const order = new Map(words.map((w, i) => [w, i]))
   const rows = [...results].sort((a, b) => (order.get(a.word) ?? 99) - (order.get(b.word) ?? 99))
   const reward = rewardText(finish)
@@ -35,6 +35,12 @@ export default function ReviewSummary({ results, finish, bridge, words, onClose 
         ))}
       </ul>
       {reward && <p className="reviewReward">{reward}</p>}
+      {finish?.guest && (
+        <>
+          <p className="reviewTeacherLine reviewGuestLead">Сохрани прогресс — войди, и завтра напомним повторить</p>
+          {onRequireAuth && <button className="reviewBtn reviewBtnGuest" onClick={onRequireAuth}>Войти</button>}
+        </>
+      )}
       {bridge && (
         <button className="reviewBtn reviewBridge" onClick={() => { onClose(); requestOpenModule(bridge) }}>
           Продолжить «{bridge.title}» · {bridge.pct}%

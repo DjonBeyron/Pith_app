@@ -1,16 +1,26 @@
 import { supabase } from './supabase.js'
 import { dbg } from '../lib/debug.js'
+import { localDate } from '../lib/memory/dailyPick.js'
+import {
+  listGuestMemory, reviewGuestWord, listGuestReviews, clearGuestMemory,
+} from '../lib/memory/guestMemory.js'
 
 // Память повторения: тонкие обёртки над таблицей word_memory и RPC (миграция
 // 20260924120000_word_memory.sql, см. PROJECT.md → «Система повторения»).
 // Слово в память заносит СЕРВЕР сам — триггер на lesson_results при первом
 // зачёте урока-слова; клиент только читает память и сообщает исход повторения.
-// Только для залогиненных: гостю таблица закрыта (его память — локальная,
-// этап 5). Без применённой миграции — пустая память, приложение не ломается.
+// Гостю таблица закрыта — его память локальная (guestMemory.js): чтение,
+// исход повторения и журнал ниже сами уходят туда, если сессии нет. После
+// входа память гостя переносится в аккаунт (importGuestMemory). Без
+// применённой миграции — пустая память, приложение не ломается.
+
+const isGuest = async () => !(await supabase.auth.getSession()).data.session?.user
+const today = () => localDate(new Date())
 
 // Вся память пользователя: [{ word, step, due_on, last_reviewed_at,
 // last_card_id, reviews, lapses }]
 export async function listWordMemory() {
+  if (await isGuest()) return listGuestMemory()
   const { data, error } = await supabase
     .from('word_memory')
     .select('word, step, due_on, last_reviewed_at, last_card_id, reviews, lapses')
@@ -21,6 +31,7 @@ export async function listWordMemory() {
 // Исход повторения слова (reviewOutcome.js). Шаг и дату считает сервер.
 // { ok, word, prev_step, step, due_on, applied } | { ok: false, reason } | null
 export async function reviewWord({ word, outcome, cardId = null, lessonId = null, source = 'review', events = null }) {
+  if (await isGuest()) return reviewGuestWord({ word, outcome, cardId, events }, today())
   const { data, error } = await supabase.rpc('memory_review_word', {
     p_word: word, p_outcome: outcome, p_card_id: cardId,
     p_lesson_id: lessonId, p_source: source, p_events: events,
@@ -42,7 +53,9 @@ export async function debugShiftMemory(days) {
 // сервер проверяет, что у каждого слова сессии есть исход за сегодня, и
 // начисляет XP (2 за слово по расписанию, потолок 20 в день) + день серии.
 // { ok, xp, xp_today, xp_cap, words, streak } | { ok: false, reason, missing? } | null
+// Гостю — ни XP, ни серии (они серверные): { ok, guest: true } — итог позовёт войти
 export async function finishReviewSession(words) {
+  if (await isGuest()) return { ok: true, guest: true, xp: 0, streak: null }
   const { data, error } = await supabase.rpc('memory_finish_session', { p_words: words })
   if (error) { console.error('[MEMORY] memory_finish_session:', error.message); return null }
   dbg('[MEMORY] memory_finish_session →', data)
@@ -79,6 +92,7 @@ export async function setVacation(on) {
 // RLS): сколько карточек уже показано сегодня (бюджет дня) и итоги недели.
 // [{ word, outcome, source, step_before, step_after, applied, events, created_at }]
 export async function listRecentReviews(days = 7) {
+  if (await isGuest()) return listGuestReviews(days, today())
   const since = new Date()
   since.setHours(0, 0, 0, 0)
   since.setDate(since.getDate() - (days - 1))
@@ -89,4 +103,18 @@ export async function listRecentReviews(days = 7) {
     .order('created_at', { ascending: true })
   if (error) { console.error('[MEMORY] review_events:', error.message); return [] }
   return data ?? []
+}
+
+// После входа: память гостя (localStorage) — в аккаунт, RPC memory_import_guest
+// (миграция 20260925160000_memory_import_guest.sql; сервер берёт только
+// настоящие слова и не трогает те, что в аккаунте уже есть). Удалось — память
+// гостя чистится. → число перенесённых слов | null
+export async function importGuestMemory() {
+  const words = listGuestMemory()
+  if (!words.length) return 0
+  const { data, error } = await supabase.rpc('memory_import_guest', { p_words: words })
+  if (error || !data?.ok) { console.error('[MEMORY] memory_import_guest:', error?.message ?? data?.reason); return null }
+  clearGuestMemory()
+  dbg('[MEMORY] память гостя перенесена:', data.imported)
+  return data.imported
 }

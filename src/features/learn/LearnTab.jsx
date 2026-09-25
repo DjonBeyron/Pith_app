@@ -14,7 +14,8 @@ const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
 // Вкладка «Моё обучение» — отвечает на вопрос «что я помню?» (PROJECT.md →
 // «Вкладки»): не больше трёх блоков — главное действие по состоянию, строка
 // итогов недели, карта памяти. Данные — useLearnData (живёт в ShellV2: по
-// ним же точка на вкладке). Гостю — приглашение войти.
+// ним же точка на вкладке). Гость видит свою локальную память и подводку к
+// входу («сохрани прогресс, чтобы завтра напомнили»); «Отпуск» — только в аккаунте.
 function weekLine({ days, words, grew }) {
   if (!days) return 'На этой неделе повторений ещё не было'
   return `За 7 дней: ${days} ${plural(days, 'день', 'дня', 'дней')} с повторением · ${words} ${plural(words, 'слово', 'слова', 'слов')}`
@@ -32,20 +33,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
 
   useEffect(() => subscribeProfile(setProfile), [])
   // Вернулись на вкладку — тихо обновить (урок мог добавить слово)
-  useEffect(() => { if (visible && isLoggedIn) reload() }, [visible, isLoggedIn, reload])
-
-  if (!isLoggedIn) {
-    return (
-      <div className="lrScreen">
-        <h1 className="lrTitle">Моё обучение</h1>
-        <div className="lrMain">
-          <p className="lrMainTitle">Здесь живёт твоя память слов</p>
-          <p className="lrMainSub">Войди — и пройденные слова будут возвращаться на повторение ровно тогда, когда начинают забываться</p>
-        </div>
-        <button className="lrBtn lrBtnMain" onClick={onRequireAuth}>Войти</button>
-      </div>
-    )
-  }
+  useEffect(() => { if (visible) reload() }, [visible, reload])
 
   const isPro = !!(profile?.has_subscription || profile?.is_admin)
   return (
@@ -58,7 +46,13 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
           <LearnMainAction view={view} today={today} onStart={() => setReview({ focus: null })} onChanged={reload} />
           {!view.empty && <p className="lrWeek">{weekLine(view.week)}</p>}
           <LearnMemoryMap phrases={view.phrases} onWord={(word, phrase) => setSheet({ word, phrase })} />
-          {!view.empty && !view.vacation && <LearnVacation onChanged={reload} />}
+          {!isLoggedIn && (
+            <div className="lrGuestLead">
+              <p className="lrMainSub">Войди — память слов сохранится, и завтра напомним повторить. Сейчас она живёт только в этом браузере</p>
+              <button className="lrBtn lrBtnMain" onClick={onRequireAuth}>Войти</button>
+            </div>
+          )}
+          {isLoggedIn && !view.empty && !view.vacation && <LearnVacation onChanged={reload} />}
         </>
       )}
       {sheet && (
@@ -75,7 +69,8 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
       )}
       {review && (
         <Suspense fallback={null}>
-          <ReviewScreen focusWords={review.focus} onClose={() => { setReview(null); reload() }} />
+          <ReviewScreen focusWords={review.focus} onClose={() => { setReview(null); reload() }}
+            onRequireAuth={() => { setReview(null); onRequireAuth() }} />
         </Suspense>
       )}
       {showPro && <ProPaywall onClose={() => setShowPro(false)} />}

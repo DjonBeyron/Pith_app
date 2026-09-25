@@ -18,9 +18,8 @@ async function loadStarsMap(user, lessons) {
 
 // Память слов: Map(word → шаг 1–5). Сила памяти в схеме модуля — ПОСЛЕ
 // прохождения урока-слова, на месте полоски приоритета (PROJECT.md → «Анализ
-// знаний»). Гостю — пусто (его память — этап 5e)
-async function loadMemoryMap(user) {
-  if (!user) return new Map()
+// знаний»). Гостю — его локальная память (listWordMemory сам уходит туда)
+async function loadMemoryMap() {
   return new Map((await listWordMemory()).map(m => [m.word, m.step]))
 }
 
@@ -54,7 +53,7 @@ export function useModuleAnalysis({ isPro, lessons, user }) {
   // Звёзды и память: при загрузке уроков и после каждого прохождения
   // (локальный стор уже обновлён плеером, слово в память заносит сервер).
   const refreshStars = (ls = lessons) =>
-    Promise.all([loadStarsMap(user, ls), loadMemoryMap(user).catch(() => new Map())])
+    Promise.all([loadStarsMap(user, ls), loadMemoryMap().catch(() => new Map())])
       .then(([st, mem]) => { setStars(st); setMemory(mem) })
       .finally(() => setStarsReady(true))
 

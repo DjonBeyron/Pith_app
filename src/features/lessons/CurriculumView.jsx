@@ -8,6 +8,7 @@ import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { getCompletedLessons, markLessonCompleted } from '../../shared/lib/completedLessons.js'
+import { seedGuestWordOf } from '../../shared/lib/memory/guestMemory.js'
 import { refreshProfile, getCachedProfile } from '../../shared/api/profileCache.js'
 import ProPaywall from '../pro/ProPaywall.jsx'
 import { startLesson } from '../../shared/api/profileApi.js'
@@ -158,6 +159,9 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
               const l = lessons.find(x => x.id === playingLessonId)
               if (l) setJustCompleted({ id: l.id, xp: l.lessonXp ?? 0 })
             }
+            // Гость прошёл урок-слово — слово в его локальную память (у
+            // залогиненного это делает серверный триггер)
+            if (!user) seedGuestWordOf(lessons, playingLessonId)
             // Финальный урок = модуль пройден: пометка недели для попапа
             // «доступна супергонка». Про-модуль — не в счёт (он сам про гонку)
             if (!isPro && lessons.length > 0 && playingLessonId === lessons[lessons.length - 1].id) {

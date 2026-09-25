@@ -179,6 +179,8 @@
 
 
 .reviewReward { margin: 0; color: #b6fe3b; font-weight: 600; }
+.reviewGuestLead { font-size: 15px; color: #9aa3ad; }
+.reviewBtnGuest { border-color: rgba(182, 254, 59, 0.45); color: #b6fe3b; }
 
 @keyframes reviewFlip {
   from { opacity: 0; transform: perspective(600px) rotateX(-90deg); }

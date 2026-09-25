@@ -39,6 +39,9 @@
 
 .lrWeek { margin: 0 4px 18px; font-size: 13px; color: #8b95a1; }
 
+/* Подводка гостя к входу (память пока только в этом браузере) */
+.lrGuestLead { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
 /* ── «Отпуск» (LearnVacation, LearnMainAction) ──────────────────── */
 .lrMainVacation .lrMainTitle { color: #ffd257; }
 .lrMainVacation .lrBtn { margin-top: 8px; }

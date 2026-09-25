@@ -78,10 +78,10 @@ test('гость проходит Старт и урок → звёзды в и�
 // маркер активного слайда в коде ленты, либо клик по видимому по boundingBox.
 // Пока покрыто вручную (PROJECT.md: тап гостя по лайку → форма входа).
 
-test('«Моё обучение» гостю: приглашение войти ведёт в профиль', async ({ page }) => {
+test('«Моё обучение» гостю: память пуста, «Войти» ведёт в профиль', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Обучение', exact: true }).click()
-  await expect(page.locator('.lrMainTitle')).toHaveText('Здесь живёт твоя память слов')
-  await page.locator('.lrScreen').getByRole('button', { name: 'Войти' }).click()
+  await expect(page.locator('.lrMainTitle')).toHaveText('Память пока пуста', { timeout: 30_000 })
+  await page.locator('.lrGuestLead').getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
 })

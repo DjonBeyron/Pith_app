@@ -27,7 +27,7 @@ function Message({ title, text, onClose }) {
   )
 }
 
-export default function ReviewScreen({ focusWords = null, onClose }) {
+export default function ReviewScreen({ focusWords = null, onClose, onRequireAuth = null }) {
   const r = useReviewSession({ focusWords })
   const warmRef = useRef(null)
   const [handoff, setHandoff] = useState(null) // { key, blobMap } — прогретое для карточки
@@ -84,7 +84,7 @@ export default function ReviewScreen({ focusWords = null, onClose }) {
       />
     )
   } else if (r.phase === 'done') {
-    body = <ReviewSummary results={r.results} finish={r.finish} bridge={r.bridge} words={r.info.words} onClose={onClose} />
+    body = <ReviewSummary results={r.results} finish={r.finish} bridge={r.bridge} words={r.info.words} onClose={onClose} onRequireAuth={onRequireAuth} />
   }
 
   return createPortal(

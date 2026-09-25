@@ -3,9 +3,11 @@
 -- На боевой проект НЕ применяется: `supabase db push` сиды не трогает.
 --
 -- Что создаёт:
---   • два тест-аккаунта: e2e-user@pithy.local и e2e-admin@pithy.local
---     (is_admin = true). Пароль у обоих — e2e-local-password. Это не
---     секрет: аккаунты живут только в локальной базе в контейнере/CI.
+--   • три тест-аккаунта: e2e-user@pithy.local, e2e-admin@pithy.local
+--     (is_admin = true) и e2e-guest@pithy.local (пустой — в него
+--     guest-memory.spec.js переносит память гостя при входе). Пароль у всех —
+--     e2e-local-password. Это не секрет: аккаунты живут только в локальной
+--     базе в контейнере/CI.
 --   • тест-модуль «E2E-ТЕСТ» (тот же id, что в e2e/config.js):
 --     Старт (текст) → Урок (текст + «выбери слово»: верно✓ | неверно) → Финал.
 --   • черновой модуль «I'm trying to cook · E2E-КОЛОДЫ» для колод повтора:
@@ -30,7 +32,8 @@ select '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authentic
        now(), now(), '', '', '', ''
 from (values
   ('e2e00000-0000-4000-8000-000000000001'::uuid, 'e2e-user@pithy.local',  'e2e-user'),
-  ('e2e00000-0000-4000-8000-000000000002'::uuid, 'e2e-admin@pithy.local', 'e2e-admin')
+  ('e2e00000-0000-4000-8000-000000000002'::uuid, 'e2e-admin@pithy.local', 'e2e-admin'),
+  ('e2e00000-0000-4000-8000-000000000003'::uuid, 'e2e-guest@pithy.local', 'e2e-guest')
 ) as u(id, email, name)
 on conflict (id) do nothing;
 
@@ -39,7 +42,7 @@ select gen_random_uuid(), u.id, u.id::text, 'email',
        jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
        now(), now(), now()
 from auth.users u
-where u.email in ('e2e-user@pithy.local', 'e2e-admin@pithy.local')
+where u.email in ('e2e-user@pithy.local', 'e2e-admin@pithy.local', 'e2e-guest@pithy.local')
 on conflict do nothing;
 
 update public.user_profiles set is_admin = true
@@ -138,7 +141,14 @@ on conflict (user_id, lesson_id) do nothing;
 -- параллельно, общая память давала бы гонку
 insert into public.lessons (id, title, published, sort_order, script) values
 ('e2e0d000-0000-4000-8000-00000000000a', 'Старт', true, 0, '{"nodes": []}'),
-('e2e0d000-0000-4000-8000-00000000000b', 'keep', true, 1, $json${"nodes": [], "reviewCards": [
+('e2e0d000-0000-4000-8000-00000000000b', 'keep', true, 1, $json${"nodes": [
+  {"id": "e2e-kl1", "seq": 1, "x": 0, "y": 0, "size": "max", "type": "word_choice",
+   "typeData": {"word_choice": {
+     "options": [{"id": "e2e-kl-ok", "text": "keep", "isCorrect": true}, {"id": "e2e-kl-bad", "text": "kept"}],
+     "responseCorrect": "", "responseWrong": ""}},
+   "triggers": [{"id": "e2e-kl1ok", "if": "word_correct", "then": null},
+                {"id": "e2e-kl1bad", "if": "word_wrong", "then": null}]}
+], "reviewCards": [
   {"id": "e2e-card-keep-1", "nodes": [
     {"id": "e2e-k1", "seq": 1, "x": 0, "y": 0, "size": "max", "type": "word_choice",
      "typeData": {"word_choice": {
