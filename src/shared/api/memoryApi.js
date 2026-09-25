@@ -2,7 +2,7 @@ import { supabase } from './supabase.js'
 import { dbg } from '../lib/debug.js'
 import { localDate } from '../lib/memory/dailyPick.js'
 import {
-  listGuestMemory, reviewGuestWord, listGuestReviews, clearGuestMemory,
+  listGuestMemory, reviewGuestWord, listGuestReviews, clearGuestMemory, getGuestMinutes, setGuestMinutes,
 } from '../lib/memory/guestMemory.js'
 
 // Память повторения: тонкие обёртки над таблицей word_memory и RPC (миграция
@@ -70,7 +70,7 @@ export async function finishReviewSession(words) {
 export async function getMemoryProfile() {
   const none = { minutes: 5, vacationSince: null }
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user) return none
+  if (!session?.user) return { minutes: getGuestMinutes(), vacationSince: null }
   const q = cols => supabase.from('user_profiles').select(cols).eq('id', session.user.id).maybeSingle()
   let { data, error } = await q('daily_minutes, vacation_since')
   if (error && /vacation_since/.test(error.message)) ({ data, error } = await q('daily_minutes'))
@@ -117,4 +117,13 @@ export async function importGuestMemory() {
   clearGuestMemory()
   dbg('[MEMORY] память гостя перенесена:', data.imported)
   return data.imported
+}
+
+// «Сколько минут в день?» (5 | 10 | 15): в аккаунте — RPC memory_set_daily_minutes
+// (миграция 20260925170000_memory_daily_minutes.sql), гостю — локально
+export async function setDailyMinutes(minutes) {
+  if (await isGuest()) { setGuestMinutes(minutes); return { ok: true, minutes } }
+  const { data, error } = await supabase.rpc('memory_set_daily_minutes', { p_minutes: minutes })
+  if (error) { console.error('[MEMORY] memory_set_daily_minutes:', error.message); return null }
+  return data ?? null
 }

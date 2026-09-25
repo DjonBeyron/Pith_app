@@ -58,6 +58,8 @@ test('гость проходит Старт и урок → звёзды в и�
   await expect(page.getByText('Урок завершён')).toBeVisible({ timeout: 60_000 })
   // Кнопка итогов, а не «×» в шапке урока (у неё тоже aria-label «Закрыть»)
   await page.locator('.summaryCloseBtn').click()
+  // Первый пройденный урок → разовый вопрос «Сколько минут в день?» — пропускаем
+  await page.getByRole('dialog', { name: 'Минуты в день' }).getByRole('button', { name: 'Пропустить' }).click({ timeout: 15_000 })
 
   // Старт пройден → средний «Урок» разблокировался, запускаем его
   await page.locator('.mgNode--lesson', { hasText: 'Урок' }).click()

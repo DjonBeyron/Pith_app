@@ -130,6 +130,26 @@
 .lrBtnMain { border-color: transparent; background: #b6fe3b; color: #0d1500; }
 .lrBtnGhost { border-color: transparent; color: #8b95a1; }
 
+/* Шторка «Сколько минут в день?» (MinutesSheet) */
+.lrMinutes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 2px; }
+.lrMinute {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 6px;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  background: #1a1d22;
+  color: #e8ecf0;
+  font: inherit;
+  cursor: pointer;
+}
+.lrMinute b { font-size: 17px; }
+.lrMinute span { font-size: 11px; color: #8b95a1; }
+.lrMinuteOn { border-color: #b6fe3b; }
+.lrMinuteOn b { color: #b6fe3b; }
+
 /* Точка на нижней панели: есть что повторить сегодня (ShellNav.jsx) */
 .shellV2NavBtnDot { position: relative; }
 .shellV2NavBtnDot::after {

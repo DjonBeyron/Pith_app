@@ -105,3 +105,14 @@ test('лента по памяти: фраза со своим словом — 
   await expect(slide.locator('.feedKnowChip')).toHaveText('Закрепит: keep')
   await expect(slide.locator('.fwKnown')).toHaveText('Keep')
 })
+
+test('«Сколько минут в день» меняется во вкладке и сохраняется в аккаунте', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
+  await page.getByRole('button', { name: /Повторение: \d+ минут в день/ }).click({ timeout: 30_000 })
+  await page.getByRole('dialog', { name: 'Минуты в день' }).getByRole('button', { name: /15 мин/ }).click()
+  await expect(page.getByRole('button', { name: /Повторение: 15 минут в день/ })).toBeVisible({ timeout: 15_000 })
+  await page.reload()
+  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
+  await expect(page.getByRole('button', { name: /Повторение: 15 минут в день/ })).toBeVisible({ timeout: 30_000 })
+})

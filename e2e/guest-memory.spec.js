@@ -36,10 +36,19 @@ test('гость проходит урок-слово → слово в его �
   await expect(page.getByText('Урок завершён')).toBeVisible({ timeout: 60_000 })
   await page.locator('.summaryCloseBtn').click()
 
+  // Первый пройденный урок → «Сколько минут в день?» (один раз), гостю —
+  // вторым шагом «Сохрани прогресс»
+  const ask = page.getByRole('dialog', { name: 'Минуты в день' })
+  await ask.getByRole('button', { name: /10 мин/ }).click({ timeout: 15_000 })
+  await expect(ask).toContainText('Сохрани прогресс')
+  await ask.getByRole('button', { name: 'Позже' }).click()
+  await expect(ask).toHaveCount(0)
+
   await page.getByRole('button', { name: 'Обучение', exact: true }).click()
   await expect(page.locator('.lrMain')).toContainText('На сегодня всё ✓', { timeout: 30_000 })
   await expect(page.locator('.lrMain')).toContainText('Следующее повторение завтра · 1 слово')
   await expect(page.locator('.lrGuestLead')).toContainText('только в этом браузере')
+  await expect(page.getByRole('button', { name: /Повторение: 10 минут в день/ })).toBeVisible()
 })
 
 test('гость повторяет слово дня → итог зовёт войти', async ({ page }) => {

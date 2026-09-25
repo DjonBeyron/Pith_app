@@ -7,6 +7,7 @@ import LearnMainAction from './LearnMainAction.jsx'
 import LearnMemoryMap from './LearnMemoryMap.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
 import LearnVacation from './LearnVacation.jsx'
+import MinutesSheet from './MinutesSheet.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
 
 const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
@@ -27,6 +28,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const [review, setReview] = useState(null) // null | { focus: string[] | null }
   const [sheet, setSheet] = useState(null)   // { word, phrase }
   const [showPro, setShowPro] = useState(false)
+  const [minutesOpen, setMinutesOpen] = useState(false)
   const [profile, setProfile] = useState(getCachedProfile)
   const { openRef } = useLessonNav()
   const today = localToday()
@@ -52,6 +54,11 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
               <button className="lrBtn lrBtnMain" onClick={onRequireAuth}>Войти</button>
             </div>
           )}
+          {!view.empty && (
+            <button className="lrVacationLink" onClick={() => setMinutesOpen(true)}>
+              Повторение: {view.minutes} минут в день · изменить
+            </button>
+          )}
           {isLoggedIn && !view.empty && !view.vacation && <LearnVacation onChanged={reload} />}
         </>
       )}
@@ -74,6 +81,10 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         </Suspense>
       )}
       {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
+      {minutesOpen && (
+        <MinutesSheet current={view?.minutes} isGuest={!isLoggedIn}
+          onClose={changed => { setMinutesOpen(false); if (changed) reload() }} />
+      )}
     </div>
   )
 }

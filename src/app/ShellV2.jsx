@@ -28,6 +28,7 @@ import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import ShellNav from './ShellNav.jsx'
 import LearnTab from '../features/learn/LearnTab.jsx'
 import { useLearnData } from '../features/learn/useLearnData.js'
+import MinutesAsk from '../features/learn/MinutesAsk.jsx'
 import { onOpenModule } from '../shared/lib/openModuleEvent.js'
 
 // Код-сплиттинг: админка нужна только is_admin — обычный пользователь этот
@@ -185,6 +186,7 @@ export default function ShellV2() {
         )}
       </div>
 
+      <MinutesAsk isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} onChanged={learn.reload} />
       <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} isRealAdmin={isRealAdmin} userMode={userMode} />
 
       {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}

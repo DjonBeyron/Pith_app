@@ -66,6 +66,7 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
 
   return {
     empty: memory.length === 0,
+    minutes,
     stepOf: new Map(memory.map(m => [m.word, m.step])),
     lessonWord: new Map(lessons.map(l => [l.id, wordKey(l.title)]).filter(([, w]) => w)),
     vacation: vacationSince ? { since: vacationSince } : null,
