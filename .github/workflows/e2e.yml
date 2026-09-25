@@ -22,8 +22,8 @@ jobs:
   guest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -34,7 +34,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-report-guest
@@ -44,8 +44,8 @@ jobs:
   local:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -53,17 +53,19 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # Поднимает Supabase в Docker, db reset (миграции + сид) и гонит весь
       # пакет с локальными ключами и тест-аккаунтами из seed.sql.
-      # E2E_PLAYER не включаем: полный прогон плеера флачит в headless
-      # (см. TESTING.md, этап F) — гонять локально в headed при доработке.
-      - name: E2E (полный, локальный Supabase — с админом и правами БД)
+      # E2E_PLAYER=1 — полный проход плеера (Старт → урок → звёзды): на
+      # локальной базе с сидом он стабилен (на боевой — нет, см. TESTING.md)
+      - name: E2E (полный, локальный Supabase — с админом, правами БД и плеером)
         run: scripts/e2e-local.sh
-      - uses: actions/upload-artifact@v4
+        env:
+          E2E_PLAYER: '1'
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-report-local
           path: playwright-report/
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: test-results-local

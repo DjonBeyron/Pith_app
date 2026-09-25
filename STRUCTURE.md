@@ -68,7 +68,7 @@
 | `playwright.config.js` | Конфиг E2E-тестов (этап 5.5): проекты mobile/desktop (гостевые) + setup/mobile-auth (под логином, только при кредах) + admin/rls (только на локальном стеке Supabase); грузит .env.test; dev-сервер на 5199, для локального стека — свой на 5299 (не переиспользуется); `PW_CHROMIUM_PATH` — свой браузер |
 | `.env.test.example` | Шаблон тест-аккаунтов для этапа D (скопировать в .env.test, вписать пароли); сам `.env.test` — в .gitignore |
 | `.github/workflows/ci.yml` | CI на GitHub Actions: build + lint + тесты на каждый push/PR в main |
-| `.github/workflows/e2e.yml` | E2E в CI: `guest` — гостевые против боевой базы (только чтение, anon-ключ); `local` — весь пакет с админом и правами БД на локальном Supabase в Docker (`scripts/e2e-local.sh`), без секретов аккаунтов; отчёт Playwright в артефакты |
+| `.github/workflows/e2e.yml` | E2E в CI: `guest` — гостевые против боевой базы (только чтение, anon-ключ); `local` — весь пакет с админом, правами БД и полным проходом плеера (`E2E_PLAYER=1`) на локальном Supabase в Docker (`scripts/e2e-local.sh`), без секретов аккаунтов; отчёт Playwright в артефакты |
 | `eslint.config.js` | Правила проверки кода (лимит длины файла); игнор `old/`+артефактов; отдельный блок globals для `e2e/**` |
 | `index.html` | Самая первая HTML-страница, в которую подключается приложение |
 | `start-dev.bat` | Двойной клик запускает сервер разработки (`npm run dev`) без открытия терминала вручную |

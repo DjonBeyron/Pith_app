@@ -27,10 +27,28 @@ fi
 $SUPABASE start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 # Каждый прогон — с чистой базы: миграции + сид заново
 $SUPABASE db reset
+# db reset перезапускает контейнер Postgres, а REST (PostgREST) — нет: в его
+# пуле изредка оставалось соединение времён перезапуска, и случайный запрос
+# теста получал 503. Свежий PostgREST = свежий пул
+docker restart "supabase_rest_$(grep -m1 '^project_id' supabase/config.toml | cut -d'"' -f2)" >/dev/null
 
 # Ключи локального стека одинаковые у всех установок — это не секрет
 eval "$($SUPABASE status -o env 2>/dev/null | grep -E '^(API_URL|ANON_KEY)=')"
 export VITE_SUPABASE_URL="$API_URL" VITE_SUPABASE_ANON_KEY="$ANON_KEY"
+
+# После перезапусков REST и auth поднимаются не мгновенно — ждём 3 успешных
+# ответа подряд от обоих (не дольше 60 с), иначе первые тесты ловят 503
+ok=0
+for _ in $(seq 1 60); do
+  if curl -sf -o /dev/null -H "apikey: $ANON_KEY" "$API_URL/rest/v1/app_settings?select=key&limit=1" \
+     && curl -sf -o /dev/null -H "apikey: $ANON_KEY" "$API_URL/auth/v1/health"; then
+    ok=$((ok + 1)); [ "$ok" -ge 3 ] && break
+  else
+    ok=0
+  fi
+  sleep 1
+done
+[ "$ok" -ge 3 ] || { echo "[e2e-local] Supabase не поднялся за 60 с" >&2; exit 1; }
 # Пустой ключ перекрывает .env.local: капча локально выключена
 export VITE_TURNSTILE_SITE_KEY=
 # Тест-аккаунты из supabase/seed.sql (существуют только в локальной базе)
