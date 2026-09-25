@@ -80,8 +80,8 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const { isAdmin } = useAdmin()
   const { user } = useAuth()
 
-  // Приоритеты уроков (анализ знаний) + звёзды — useModuleAnalysis.js
-  const { priorities, stars, prioritiesReady, starsReady, readyTimeout, refreshPriorities, refreshStars } =
+  // Приоритеты уроков (анализ знаний) + звёзды + память слов — useModuleAnalysis.js
+  const { priorities, stars, memory, prioritiesReady, starsReady, readyTimeout, refreshPriorities, refreshStars } =
     useModuleAnalysis({ isPro, lessons, user })
 
   // Тест-инструменты админа (сброс, «пометить пройденным») и 💾 структуры —
@@ -253,6 +253,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           completedIds={completedIds}
           priorities={priorities}
           stars={stars}
+          memory={memory}
           unlocked={unlocked}
           onUnlock={() => { unlockModule(curriculumId); setUnlocked(true) }}
           animHold={showLegend} /* пока попап открыт — вся анимация графа на паузе */

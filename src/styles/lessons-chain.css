@@ -180,6 +180,11 @@
   margin-bottom: 2px;
 }
 
+/* Сила памяти слова — после прохождения, на месте приоритета (MgLessonBody) */
+.mgLessonStrength { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.mgLessonStrengthLabel { font-size: 11px; color: #6a7080; }
+.mgLessonStrengthSoon { font-size: 11px; color: #6a7080; }
+
 /* Priority section */
 .mgLessonPriority {
   display: flex;

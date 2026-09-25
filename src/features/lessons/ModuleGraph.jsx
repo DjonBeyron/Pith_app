@@ -6,6 +6,7 @@ import ChainLines from './ChainLines.jsx'
 import MgFinalNode, { LockIcon } from './MgFinalNode.jsx'
 import MgStartNode from './MgStartNode.jsx'
 import MgLessonBody from './MgLessonBody.jsx'
+import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { useLessonsProgress } from './useLessonsProgress.js'
 import LessonLockedHint from './LessonLockedHint.jsx'
 import { useChainScroll } from './useChainScroll.js'
@@ -28,6 +29,7 @@ export default function ModuleGraph({
   justCompleted = null,
   priorities = null, // Map<lessonId, 'high'|'medium'|'low'> из анализа знаний; null у урока = без полоски
   stars = null,      // Map<lessonId, 1..3> — звёзды пройденных обычных уроков (лучший результат)
+  memory = null,     // Map<word, 1..5> — шаг памяти слова (сила памяти после прохождения)
   unlocked = false,  // уроки открыты без диагностики (см. moduleUnlock.js)
   onUnlock,          // нажали «Всё равно разблокировать» в попапе закрытого урока
   animHold = false,  // true (попап-легенда открыт) — пульс/полёт XP/озеленение линий ждут закрытия
@@ -267,6 +269,8 @@ export default function ModuleGraph({
             // Звёзды показываются только на пройденном уроке; 0/нет записи
             // (пройден до появления фичи) — остаётся обычная подпись
             const st = done ? (stars?.get(l.id) ?? 0) : 0
+            // Сила памяти — у пройденного урока-слова, чьё слово уже в памяти
+            const step = done ? (memory?.get(wordKey(l.title)) ?? null) : null
             return (
               <div
                 key={l.id}
@@ -297,6 +301,8 @@ export default function ModuleGraph({
                   stars={st}
                   pct={progress.get(l.id) ?? null}
                   pKey={pKey}
+                  strength={step}
+                  noDeck={!l.hasDeck}
                 />
                 {btnsFor(l, 'lesson', i)}
               </div>

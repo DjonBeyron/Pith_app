@@ -1,5 +1,6 @@
 import { ChevronsUp, ChevronsDown } from 'lucide-react'
 import MgStars from './MgStars.jsx'
+import StrengthDots from '../../shared/ui/StrengthDots.jsx'
 
 const PRIORITY = {
   high:   { label: 'Высокий приоритет', icon: ChevronsUp,   desc: 'Наиболее важен для вас' },
@@ -14,8 +15,12 @@ const PRIORITY = {
 //   начат                   — тонкая полоска прогресса с процентом;
 //   пройден                 — звёзды (или «Урок пройден», если их нет).
 // Награда — компактный столбик справа: «+N XP» и под ним подпись «награда».
-export default function MgLessonBody({ title, xp, done, locked, stars, pct, pKey, hideXp }) {
-  const pInfo = pKey ? PRIORITY[pKey] : null
+// Приоритет показывается ДО прохождения; после — на его месте сила памяти
+// слова (strength — шаг 1–5) или «повторение скоро», если у урока нет колоды
+// (noDeck) — PROJECT.md → «Анализ знаний».
+export default function MgLessonBody({ title, xp, done, locked, stars, pct, pKey, hideXp, strength = null, noDeck = false }) {
+  const showMemory = done && !!strength
+  const pInfo = pKey && !showMemory ? PRIORITY[pKey] : null
   const started = !done && !locked && pct != null
 
   let status
@@ -45,6 +50,13 @@ export default function MgLessonBody({ title, xp, done, locked, stars, pct, pKey
         )}
       </div>
       {status}
+      {showMemory && (
+        <div className="mgLessonStrength">
+          {noDeck
+            ? <span className="mgLessonStrengthSoon">Повторение скоро</span>
+            : <><StrengthDots step={strength} small /><span className="mgLessonStrengthLabel">сила памяти</span></>}
+        </div>
+      )}
       {pInfo && (
         <div className={`mgLessonPriority mgLessonPriority--${pKey}`}>
           <span className="mgLessonPriorityIcon">

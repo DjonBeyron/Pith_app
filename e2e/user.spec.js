@@ -67,3 +67,16 @@ test('«Моё обучение»: повторить слово дня, кар�
   await page.locator('.pvKnow').click()
   await expect(page.locator('.lrTitle')).toBeVisible()
 })
+
+test('схема модуля: у пройденного урока-слова — сила памяти вместо приоритета', async ({ page }) => {
+  // Урок keep пройден на этом устройстве (отметка «пройдено» — локальная)
+  await page.addInitScript(() => localStorage.setItem('pithy_completed_v1', JSON.stringify(['e2e0d000-0000-4000-8000-00000000000b'])))
+  await page.goto('/?m=e2e0d000-0000-4000-8000-0000000000ff')
+  await page.locator('.feedSlideWrapActive').getByRole('button', { name: 'Изучить фразу' }).click({ timeout: 30_000 })
+  const keep = page.locator('.mgNode--lesson', { hasText: 'keep' })
+  await expect(keep.locator('.mgLessonStrength')).toContainText('сила памяти', { timeout: 30_000 })
+  await expect(keep.locator('.strengthDot')).toHaveCount(5)
+  await expect(keep.locator('.mgLessonPriority')).toHaveCount(0)
+  // Не пройденный урок — без силы памяти
+  await expect(page.locator('.mgNode--lesson', { hasText: 'going' }).locator('.mgLessonStrength')).toHaveCount(0)
+})
