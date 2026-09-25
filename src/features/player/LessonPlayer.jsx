@@ -29,7 +29,7 @@ import { downloadDebugLog, copyDebugLog } from './downloadDebugLog.js'
 import PlayerOverlays from './PlayerOverlays.jsx'
 import HintBar from './HintBar.jsx'
 import { useFinalHints } from './useFinalHints.js'
-import { useLessonFinish } from './useLessonFinish.js'
+import { useLessonFinish, finishStatsOf } from './useLessonFinish.js'
 import { useLessonTracking } from './useLessonTracking.js'
 import { useLessonResume } from './useLessonResume.js'
 import ResumeLessonPopup from './ResumeLessonPopup.jsx'
@@ -49,7 +49,7 @@ export default function LessonPlayer({
   historyIds = null, // история чата выше startNodeId — из LessonLaunchCard.jsx (см. ниже)
   resumedXp = 0, // XP, заработанный до закрытия — из LessonLaunchCard.jsx («Продолжить»)
   recordStats = true, // false (пересдача «без записи») — события анализа не пишутся
-  onFinishStats = null, // супергонка: ({ errors, timeMs }) в момент финиша урока
+  onFinishStats = null, // супергонка и карточка повторения: finishStatsOf (useLessonFinish.js) в момент финиша
   finalTicket = null, // Финал модуля: { moduleId } — подсказки + золотой билет
   starsEligible = false, // обычный урок модуля (не Старт/Финал): звёзды по ошибкам
   // Правка урока прямо из плеера — только когда его запустил админ из канваса
@@ -108,6 +108,11 @@ export default function LessonPlayer({
   // прогресса в шапке, и для процента, который уходит в чекпойнт
   const mainIndex = useMemo(() => mainLineIndex(nodes), [nodes])
 
+  // Момент открытия урока: инициализация в эффекте (Date.now в рендере
+  // запрещён react-hooks/purity); все потребители читают ref после маунта
+  const openTimeRef      = useRef(0)
+  useEffect(() => { if (!openTimeRef.current) openTimeRef.current = Date.now() }, [])
+
   const graph = useGraphPlayer(graphNodes, {
     startNodeId: resumeState.startNodeId ?? startNodeId,
     historyIds: resumeState.historyIds ?? historyIds,
@@ -118,11 +123,7 @@ export default function LessonPlayer({
         // Супергонка: отдаём счёт ошибок/времени и сразу выходим — XP и
         // события анализа отложены до итогов гонки (completeLesson не зовём),
         // обычный экран итогов не показывается (его заменяет RaceSummary)
-        onFinishStats({
-          errors: getEvents().filter(e => e.type === 'wrong').length,
-          // Date.now в коллбэке финиша, а не в рендере — не ложное срабатывание purity-проверки
-          timeMs: Date.now() - openTimeRef.current,
-        })
+        onFinishStats(finishStatsOf({ getEvents, wrongRef, openTimeRef }))
         setTimeout(() => (onSummaryClose ?? onClose)?.(), 800)
         return
       }
@@ -151,10 +152,6 @@ export default function LessonPlayer({
   const { blobMap, addMsgTs, debugItems, warmupPct } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
   useLessonWordAudio(nodes, warmupPct) // озвучка слов при тапе — после прогрева первых нод
 
-  // Момент открытия урока: инициализация в эффекте (Date.now в рендере
-  // запрещён react-hooks/purity); все потребители читают ref после маунта
-  const openTimeRef      = useRef(0)
-  useEffect(() => { if (!openTimeRef.current) openTimeRef.current = Date.now() }, [])
   // Журнал появления нод + готовности их медиа — useNodeAppearLog.js
   const nodeAppearLogRef = useNodeAppearLog(visibleNodes, blobMap, addMsgTs, openTimeRef)
 

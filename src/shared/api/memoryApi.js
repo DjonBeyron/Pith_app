@@ -37,3 +37,26 @@ export async function debugShiftMemory(days) {
   if (error) { console.error('[MEMORY] memory_debug_shift:', error.message); return null }
   return data ?? 0
 }
+
+// Конец сессии повторения (миграция 20260925140000_memory_finish_session.sql):
+// сервер проверяет, что у каждого слова сессии есть исход за сегодня, и
+// начисляет XP (2 за слово по расписанию, потолок 20 в день) + день серии.
+// { ok, xp, xp_today, xp_cap, words, streak } | { ok: false, reason, missing? } | null
+export async function finishReviewSession(words) {
+  const { data, error } = await supabase.rpc('memory_finish_session', { p_words: words })
+  if (error) { console.error('[MEMORY] memory_finish_session:', error.message); return null }
+  dbg('[MEMORY] memory_finish_session →', data)
+  return data ?? null
+}
+
+// «Сколько минут в день» (user_profiles.daily_minutes) → бюджет карточек
+// (dailyPick.js). Отдельным запросом, а не в getProfile: без миграции памяти
+// колонки нет, и падал бы весь профиль. Гость и сбой — 5 минут
+export async function getDailyMinutes() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return 5
+  const { data, error } = await supabase
+    .from('user_profiles').select('daily_minutes').eq('id', session.user.id).maybeSingle()
+  if (error) { console.error('[MEMORY] daily_minutes:', error.message); return 5 }
+  return data?.daily_minutes ?? 5
+}

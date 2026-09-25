@@ -11,6 +11,19 @@ import { sendSelfTrigger } from '../../shared/api/pushApi.js'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 import { pLog } from '../../shared/lib/debug.js'
 
+// Счёт для onFinishStats (супергонка, карточка повторения) в момент финиша:
+// errors — неверные ответы с привязкой к уроку-цели (события анализа),
+// wrong — все неверные ответы (у карточки повторения привязок нет),
+// timeMs — от открытия плеера. Отдельной функцией, а не в коллбэке плеера:
+// Date.now там компилятор React принимал за вызов в рендере
+export function finishStatsOf({ getEvents, wrongRef, openTimeRef }) {
+  return {
+    errors: getEvents().filter(e => e.type === 'wrong').length,
+    wrong: wrongRef.current,
+    timeMs: Date.now() - openTimeRef.current,
+  }
+}
+
 // Конец урока: начисление XP (гостю — локально, залогиненному — сервером
 // через completeLesson), звёзды по ошибкам, золотой билет за Финал модуля,
 // запись событий анализа знаний, пуш себе при переходе на новый уровень.

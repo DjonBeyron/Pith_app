@@ -128,6 +128,8 @@
 @import './styles/player/panels/push-prompt.css';
 @import './styles/player/modules/voice-record.css';
 @import './styles/player/hints.css';
+/* после стилей плеера: review.css переопределяет плеер внутри карточки */
+@import './styles/review.css';
 @import './styles/canvas/text-highlight.css';
 @import './styles/canvas/text-pro.css';
 @import './styles/canvas/text-wrap.css';
@@ -147,6 +149,7 @@
 @import './styles/update-toast.css';
 @import './styles/admin-errors.css';
 @import './styles/admin-decks.css';
+@import './styles/admin-review.css';
 @import './styles/admin-analytics.css';
 /* debug-toolbar.css здесь НЕ подключается: его импортирует сам
    DebugToolbar.jsx, и стили уезжают вместе с dev-чанком тулбара, а не

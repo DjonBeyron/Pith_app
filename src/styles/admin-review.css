@@ -1,0 +1,18 @@
+/* Админ → «Повторение» (AdminReviewTab.jsx). Каркас — общий с «Ошибками»
+   (admin-errors.css: aeWrap/aeHead/aeRow), здесь только своё */
+
+.arvActions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.arvStart {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #b6fe3b;
+  color: #0d1500;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.arvRow { cursor: default; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.arvWord { font-size: 15px; font-weight: 600; color: #e0e0e0; }
+.arvMeta { font-size: 12px; color: #888; white-space: nowrap; }
