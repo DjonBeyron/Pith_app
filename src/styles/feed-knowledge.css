@@ -1,0 +1,21 @@
+/* Память слов в ленте (features/feed/feedKnowledge.js): знакомые слова во
+   фразе окрашены цветом силы (только цвет — ширина фразы та же, спойлер не
+   пересчитывается), метка «Знаешь 3 из 4 · Закрепит: to» под фразой */
+.fwKnown--1,
+.fwKnown--2 { color: #ffd98a; }
+.fwKnown--3 { color: #d4ff8a; }
+.fwKnown--4,
+.fwKnown--5 { color: #b6fe3b; }
+
+.feedKnowChip {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: none;
+  pointer-events: none;
+}

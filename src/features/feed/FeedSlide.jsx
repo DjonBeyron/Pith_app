@@ -19,6 +19,7 @@ export default function FeedSlide({
   difficulty, myDifficulty, onVoteDifficulty,
   soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
   showSlowHint = false, onSlowHintSeen,
+  knowledge = null, // { chip, stepOf } — что во фразе знакомо (feedKnowledge.js)
 }) {
   // Строка «раскрыть перевод» спрятана за фразой и выкатывается из-под неё с
   // небольшой задержкой после тапа — не одновременно с разлётом шариков, а
@@ -77,6 +78,7 @@ export default function FeedSlide({
                 activeIndex={pick && !pick.closing ? pick.index : -1}
                 enabled={revealed}
                 onPick={pickWord}
+                stepOf={knowledge?.stepOf}
               />
             </div>
           </PhraseBubbleSpoiler>
@@ -90,6 +92,9 @@ export default function FeedSlide({
             </div>
           )}
         </div>
+        {/* Метка знания фразы по памяти слов: «Знаешь 3 из 4 · Закрепит: to» —
+            под строкой перевода (та выезжает из-под фразы и накрыла бы её) */}
+        {knowledge?.chip && <div className="feedKnowChip">{knowledge.chip}</div>}
       </div>
 
       {pick && <WordTranslateLine key={pick.id} pick={pick} onClose={close} />}

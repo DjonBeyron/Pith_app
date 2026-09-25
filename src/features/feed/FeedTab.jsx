@@ -23,11 +23,14 @@ import { buildFeedInfo } from './feedDebugInfo.js'
 import { moduleOf } from './feedCircle.js'
 import { onLessonsHome } from '../../shared/lib/lessonsHomeEvent.js'
 import { onOpenModule } from '../../shared/lib/openModuleEvent.js'
+import { useFeedKnowledge } from './useFeedKnowledge.js'
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
 // бесконечная по кругу — список повторяется циклами, у края запаса лента
 // незаметно переносится в середину (контент идентичен — скачка не видно).
-export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth }) {
+// learnView — данные «Моего обучения»: по памяти слов лента подсвечивает
+// знакомое, ставит метки и выбирает порядок рекомендаций (feedKnowledge.js)
+export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, learnView = null }) {
   const [view, setView] = useState('feed') // feed | mine
   // Открытый модуль (схема Старт → уроки → Финал) поверх ленты
   const [openModule, setOpenModule] = useState(null)
@@ -55,7 +58,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
   }, [openModule, refreshStarted])
   // Просьба открыть модуль извне (мостик из итога повторения) — openModuleEvent.js
   useEffect(() => onOpenModule(m => { if (m?.id) setOpenModule(m) }), [])
-  const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds, visible)
+  const { rank, knowledgeOf } = useFeedKnowledge(learnView)
+  const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds, visible, rank)
   // Уроки-закладки грузятся здесь же, рядом с модулями, а не при открытии
   // «Моих уроков»: иначе их запрос стартовал на секунды позже и строка
   // появлялась после модулей (особенно заметно на телефоне)
@@ -145,6 +149,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth })
         onToggleLike={() => toggle(m.id, 'liked')}
         onToggleSave={() => toggle(m.id, 'saved')}
         onLearn={() => { track('feed_learn', { module_id: m.id }); setOpenModule(m) }}
+        knowledge={knowledgeOf(m)}
       />
     )
   }

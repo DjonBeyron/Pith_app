@@ -1,13 +1,27 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
+import { rankFeed } from './feedKnowledge.js'
 
 // Загрузка модулей (curricula) + «пин» на фразу (deep-link репоста /?m=<id>,
 // либо программный поворот из поиска — см. jumpTo) + расчёт круга
-// рекомендаций (не начатые модули, повёрнутые к закреплённой фразе)
-export function useFeedModules(startedIds, visible = true) {
-  const [modules, setModules] = useState(null) // null = загрузка
+// рекомендаций (не начатые модули по карте памяти — rankFeed, повёрнутые к
+// закреплённой фразе). rank — { stepOf, lessonWord, skipped, seed } | null
+// (null — память ещё грузится: лента ждёт её до RANK_WAIT_MS, чтобы ПЕРВАЯ
+// фраза уже была по карте памяти — потом круг держит текущую фразу, и порядок
+// сменился бы только со второго слайда; не дождались — порядок админа)
+const RANK_WAIT_MS = 1200
+
+export function useFeedModules(startedIds, visible = true, rank = null) {
+  const [loaded, setModules] = useState(null) // null = загрузка
   const [error, setError] = useState('')
+  const [rankWaitOver, setRankWaitOver] = useState(false)
+  useEffect(() => {
+    if (!loaded || rank || rankWaitOver) return
+    const t = setTimeout(() => setRankWaitOver(true), RANK_WAIT_MS)
+    return () => clearTimeout(t)
+  }, [loaded, rank, rankWaitOver])
+  const modules = loaded && (rank || rankWaitOver) ? loaded : null
 
   const load = useCallback(() => {
     return loadCurricula()
@@ -88,8 +102,8 @@ export function useFeedModules(startedIds, visible = true) {
   // Поворот ленты к фразе (используется поиском): просто меняем закреплённый id
   function jumpTo(id) { setPinnedId(id) }
 
-  // Круг рекомендаций — только не начатые модули
-  let feedModules = (modules ?? []).filter(m => !startedIds.has(m.id))
+  // Круг рекомендаций — только не начатые модули, по карте памяти
+  let feedModules = rankFeed((modules ?? []).filter(m => !startedIds.has(m.id)), rank ?? undefined)
   if (pinnedId) {
     const dlIdx = feedModules.findIndex(m => m.id === pinnedId)
     if (dlIdx > 0) {
