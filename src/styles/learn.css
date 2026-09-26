@@ -25,7 +25,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 14px;
+  padding: 16px 16px 16px 18px;
   border: 1px solid #262b33;
   border-radius: 18px;
   background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
@@ -84,20 +84,9 @@
 /* Подводка гостя к входу (память пока только в этом браузере) */
 .lrGuestLead { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 
-/* ── «Отпуск» (LearnVacation, LearnMainAction) ──────────────────── */
+/* «Отпуск» в шапке (LearnMainAction): вернуться из отпуска */
 .lrMainVacation .lrMainTitle { color: #ffd257; }
 .lrMainVacation .lrBtn { margin-top: 8px; }
-.lrVacationLink {
-  display: block;
-  margin: 14px auto 0;
-  padding: 8px 12px;
-  border: none;
-  background: none;
-  color: #6b737d;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
 
 /* ── Шторка слова ──────────────────────────────────────────────────── */
 .lrSheetBack {

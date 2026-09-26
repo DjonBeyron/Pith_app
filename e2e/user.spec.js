@@ -96,18 +96,28 @@ test('схема модуля: у пройденного урока-слова �
   await expect(page.locator('.mgNode--lesson', { hasText: 'going' }).locator('.mgLessonStrength')).toHaveCount(0)
 })
 
-test('«Отпуск»: пауза расписания и возвращение', async ({ page }) => {
+// Настройки повторения — в шестерёнке профиля (единственной в приложении)
+const openSettings = async page => {
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  await page.getByRole('button', { name: 'Настройки', exact: true }).click({ timeout: 30_000 })
+}
+
+test('«Отпуск»: пауза расписания (в настройках) и возвращение (во вкладке «Память»)', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Память', exact: true }).click()
+  await openSettings(page)
   await page.getByRole('button', { name: 'Уезжаю в отпуск' }).click({ timeout: 30_000 })
   await page.getByRole('dialog', { name: 'Отпуск' }).getByRole('button', { name: 'Поставить на паузу' }).click()
+  await expect(page.getByText(/Ты в отпуске с .* — вернуться можно во вкладке «Память»/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('.shellV2NavBtnDot')).toHaveCount(0) // в отпуске не зовём повторять
+
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Ты в отпуске', { timeout: 30_000 })
-  await expect(page.locator('.shellV2NavBtnDot')).toHaveCount(0) // в отпуске не зовём повторять
-  await expect(page.getByRole('button', { name: 'Уезжаю в отпуск' })).toHaveCount(0)
-
   await main.getByRole('button', { name: 'Вернуться из отпуска' }).click()
   await expect(main).not.toContainText('Ты в отпуске', { timeout: 30_000 })
+  // Во вкладке настроек нет — ни отпуска, ни минут
+  await expect(page.getByRole('button', { name: 'Уезжаю в отпуск' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Уезжаю в отпуск' })).toBeVisible()
 })
 
@@ -121,13 +131,14 @@ test('лента по памяти: фраза со своим словом — 
   await expect(slide.locator('.fwKnown')).toHaveText('Keep')
 })
 
-test('«Сколько минут в день» меняется во вкладке и сохраняется в аккаунте', async ({ page }) => {
+test('«Сколько минут в день» меняется в настройках и сохраняется в аккаунте', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Память', exact: true }).click()
-  await page.getByRole('button', { name: /Повторение: \d+ минут в день/ }).click({ timeout: 30_000 })
+  await openSettings(page)
+  await expect(page.getByText(/^За 7 дней|^На этой неделе повторений/)).toBeVisible({ timeout: 30_000 }) // итоги недели
+  await page.getByRole('button', { name: /^\d+ минут в день · изменить$/ }).click()
   await page.getByRole('dialog', { name: 'Минуты в день' }).getByRole('button', { name: /15 мин/ }).click()
-  await expect(page.getByRole('button', { name: /Повторение: 15 минут в день/ })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('button', { name: '15 минут в день · изменить' })).toBeVisible({ timeout: 15_000 })
   await page.reload()
-  await page.getByRole('button', { name: 'Память', exact: true }).click()
-  await expect(page.getByRole('button', { name: /Повторение: 15 минут в день/ })).toBeVisible({ timeout: 30_000 })
+  await openSettings(page)
+  await expect(page.getByRole('button', { name: '15 минут в день · изменить' })).toBeVisible({ timeout: 30_000 })
 })

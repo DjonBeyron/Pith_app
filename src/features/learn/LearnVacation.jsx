@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { setVacation } from '../../shared/api/memoryApi.js'
 
 // «Отпуск» — пауза расписания повторения (бесплатно, PROJECT.md → «Деньги,
-// серия, XP»). Ссылка внизу вкладки → шторка с честным объяснением → RPC
-// memory_set_vacation. Вернуться — в главном действии (LearnMainAction).
+// серия, XP»). Кнопка в настройках (MemorySettings) → шторка с честным
+// объяснением → RPC memory_set_vacation. Вернуться — в шапке вкладки
+// «Память» (LearnMainAction).
 // Серию отпуск не замораживает — так и говорим.
 export default function LearnVacation({ onChanged }) {
   const [ask, setAsk] = useState(false)
@@ -19,7 +20,7 @@ export default function LearnVacation({ onChanged }) {
 
   return (
     <>
-      <button className="lrVacationLink" onClick={() => setAsk(true)}>Уезжаю в отпуск</button>
+      <button className="settingsInstallBtn" onClick={() => setAsk(true)}>Уезжаю в отпуск</button>
       {ask && (
         <div className="lrSheetBack" onClick={() => setAsk(false)}>
           <div className="lrSheet" role="dialog" aria-label="Отпуск" onClick={e => e.stopPropagation()}>

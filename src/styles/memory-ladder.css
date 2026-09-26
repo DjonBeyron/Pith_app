@@ -30,15 +30,15 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 9px 11px 11px 12px;
+  gap: 10px;
+  padding: 13px 14px 14px 15px;
   border-left: 3px solid var(--c);
   border-radius: 16px;
   background: linear-gradient(to right, var(--tint) 0, transparent 90px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
 }
 .memLvl--2 { --c: #e2cd78; --tint: rgba(226, 205, 120, 0.15); }
 .memLvl--3 { --c: #b6fe3b; --tint: rgba(182, 254, 59, 0.15); }
-.memLvlTop { position: relative; padding-right: 22px; }
+.memLvlTop { position: relative; padding-right: 28px; }
 .memLvlOpen {
   display: flex;
   flex-direction: column;
@@ -52,15 +52,17 @@
   text-align: left;
   cursor: pointer;
 }
-.memLvlLine { display: flex; align-items: baseline; gap: 7px; white-space: nowrap; }
+/* Число и название — в одну строку; на узком экране название переносится
+   само, не заезжая под ⤢ */
+.memLvlLine { display: flex; align-items: baseline; gap: 7px; }
 .memLvlCount { font-size: 20px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--c); }
-.memLvlName { font-size: 13.5px; font-weight: 800; color: var(--c); }
-.memLvlWhen { font-size: 11px; font-weight: 600; color: #8b95a1; white-space: nowrap; }
+.memLvlName { min-width: 0; font-size: 13.5px; font-weight: 800; line-height: 1.2; color: var(--c); }
+.memLvlWhen { margin-top: 2px; font-size: 11px; font-weight: 600; color: #8b95a1; }
 /* «Все слова» — только значок, маленький, в самом углу */
 .memExpand {
   position: absolute;
-  top: -4px;
-  right: -6px;
+  top: -6px;
+  right: -7px;
   display: grid;
   place-items: center;
   width: 24px;
@@ -73,7 +75,7 @@
   cursor: pointer;
 }
 .memExpand svg { width: 11px; height: 11px; }
-.memWords { display: flex; flex-wrap: wrap; gap: 5px; }
+.memWords { display: flex; flex-wrap: wrap; gap: 6px; }
 .memEmpty { font-size: 12px; color: #5c6570; }
 
 /* ── Слово: заливка цвета ступени, обводка зеленеет с ростом ─────────── */
@@ -84,7 +86,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border: 0;
   border-radius: 7px;
   background: #1a1d22;
@@ -127,9 +129,10 @@
 }
 .memPerm svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
 .memPerm svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
-.memPermText { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -10px; text-align: center; }
+/* Текст — уже пятиугольника, с полями от боковых граней (они сходятся книзу) */
+.memPermText { position: relative; display: flex; flex-direction: column; align-items: center; max-width: 124px; margin-top: -18px; text-align: center; }
 .memPermText b { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }
-.memPermText span { margin-top: 5px; font-size: 11.5px; font-weight: 700; color: #d9ccff; }
+.memPermText span { margin-top: 5px; font-size: 11.5px; font-weight: 700; line-height: 1.25; color: #d9ccff; }
 .memPermText small { margin-top: 2px; font-size: 9.5px; font-weight: 600; color: #a78bfa; }
 
 /* ── Линии и шарики ────────────────────────────────────────────────── */

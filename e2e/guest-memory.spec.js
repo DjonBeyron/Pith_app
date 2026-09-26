@@ -48,7 +48,11 @@ test('гость проходит урок-слово → слово в его �
   await expect(page.locator('.lrMain')).toContainText('На сегодня всё ✓', { timeout: 30_000 })
   await expect(page.locator('.lrMain')).toContainText('Следующее повторение завтра · 1 слово')
   await expect(page.locator('.lrGuestLead')).toContainText('только в этом браузере')
-  await expect(page.getByRole('button', { name: /Повторение: 10 минут в день/ })).toBeVisible()
+  // Минуты — в шестерёнке (у гостя — над формой входа)
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  await page.getByRole('button', { name: 'Настройки', exact: true }).click()
+  await expect(page.getByRole('button', { name: '10 минут в день · изменить' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Уезжаю в отпуск' })).toHaveCount(0) // отпуск — только в аккаунте
 })
 
 test('гость повторяет слово дня → итог зовёт войти', async ({ page }) => {

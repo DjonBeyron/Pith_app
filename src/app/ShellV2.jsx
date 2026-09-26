@@ -164,11 +164,11 @@ export default function ShellV2() {
         <div className={tab === 'profile' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
           {user ? (
             <ProfileV2 visible={tab === 'profile'} userEmail={user.email} onOpenCanvas={setCanvasLesson}
-              learnView={learn.view} onOpenLearn={() => setTab('learn')} />
+              learnView={learn.view} onOpenLearn={() => setTab('learn')} onLearnChanged={learn.reload} />
           ) : guestSettings ? (
             <div className="pvSettingsScreen">
               <BackButton onClick={() => setGuestSettings(false)} label="Профиль" className="pvBack" />
-              <div className="shellV2Panel"><SettingsTab /></div>
+              <div className="shellV2Panel"><SettingsTab learnView={learn.view} onLearnChanged={learn.reload} isGuest /></div>
             </div>
           ) : (
             <div className="shellV2Panel">

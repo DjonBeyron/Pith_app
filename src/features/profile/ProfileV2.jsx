@@ -19,12 +19,13 @@ import { energyColor } from '../../shared/lib/energyColors.js'
 import ProfileSavedTab from './ProfileSavedTab.jsx'
 
 // Профиль (ui v2, тёмная тема по макету profile.html) — «кто я?»: первой
-// строкой «Знаю N слов · M фраз закреплено» (learnView — данные «Моего
-// обучения», тап ведёт туда), ниже уровень, XP-бар, энергия и «Сохранённые» —
+// строкой «Знаю N слов · M фраз закреплено» (learnView — данные «Моей
+// памяти», тап ведёт туда), ниже уровень, XP-бар, энергия и «Сохранённые» —
 // только НЕ начатые модули. «Пройденные» и копилка слов убраны: память слов
-// живёт в карте «Моего обучения», начатое — в «Моих уроках» (PROJECT.md →
-// «Вкладки»). Шестерёнка — экран настроек. Тап по модулю — его схема.
-export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, learnView = null, onOpenLearn }) {
+// живёт во вкладке «Память», начатое — в «Моих уроках» (PROJECT.md →
+// «Вкладки»). Шестерёнка — экран настроек (там же «Повторение»: минуты в
+// день, «Отпуск», итоги недели). Тап по модулю — его схема.
+export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, learnView = null, onOpenLearn, onLearnChanged }) {
   const { profile, modules, bookmarks, loading, reload } = useProfileV2Data()
   const [showSettings, setShowSettings] = useState(false)
   const [showCustomize, setShowCustomize] = useState(false)
@@ -70,7 +71,7 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, lea
       <div className="pvSettingsScreen">
         <BackButton onClick={() => setShowSettings(false)} label="Профиль" className="pvBack" />
         <NicknameCard />
-        <div className="shellV2Panel"><SettingsTab /></div>
+        <div className="shellV2Panel"><SettingsTab learnView={learnView} onLearnChanged={onLearnChanged} /></div>
       </div>
     )
   }

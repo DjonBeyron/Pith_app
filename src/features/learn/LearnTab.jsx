@@ -7,8 +7,6 @@ import MemoryLadder from './MemoryLadder.jsx'
 import MemoryLevelPage from './MemoryLevelPage.jsx'
 import MemoryPermPage from './MemoryPermPage.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
-import LearnVacation from './LearnVacation.jsx'
-import MinutesSheet from './MinutesSheet.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
 
 const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
@@ -18,14 +16,14 @@ const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
 // (MemoryLadder): новенькие → мои → родные → постоянная память. Со ступени —
 // страница всех её слов, с пятиугольника — постоянная память (page).
 // Данные — useLearnData (живёт в ShellV2: по ним же точка на вкладке).
-// Гость видит свою локальную память и подводку к входу; «Отпуск» — только в аккаунте
+// Гость видит свою локальную память и подводку к входу. Настроек здесь нет:
+// минуты в день, «Отпуск» и итоги недели — в шестерёнке профиля (MemorySettings)
 export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) {
   const { view, error, reload } = learn
   const [review, setReview] = useState(null) // null | { focus: string[] | null }
   const [page, setPage] = useState(null)     // null | 1..3 | 'perm'
   const [sheet, setSheet] = useState(null)   // { word, perm }
   const [showPro, setShowPro] = useState(false)
-  const [minutesOpen, setMinutesOpen] = useState(false)
   const [profile, setProfile] = useState(getCachedProfile)
   const { openRef } = useLessonNav()
   const today = localToday()
@@ -58,12 +56,6 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
               <button className="lrBtn lrBtnMain" onClick={onRequireAuth}>Войти</button>
             </div>
           )}
-          {!view.empty && (
-            <button className="lrVacationLink" onClick={() => setMinutesOpen(true)}>
-              Повторение: {view.minutes} минут в день · изменить
-            </button>
-          )}
-          {isLoggedIn && !view.empty && !view.vacation && <LearnVacation onChanged={reload} />}
         </>
       )}
       {sheet && (
@@ -86,10 +78,6 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         </Suspense>
       )}
       {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
-      {minutesOpen && (
-        <MinutesSheet current={view?.minutes} isGuest={!isLoggedIn}
-          onClose={changed => { setMinutesOpen(false); if (changed) reload() }} />
-      )}
     </div>
   )
 }
