@@ -58,6 +58,8 @@ test('гость проходит Старт и урок → звёзды в и�
   await expect(page.getByText('Урок завершён')).toBeVisible({ timeout: 60_000 })
   // Кнопка итогов, а не «×» в шапке урока (у неё тоже aria-label «Закрыть»)
   await page.locator('.summaryCloseBtn').click()
+  // Первый пройденный урок → разовый вопрос «Сколько минут в день?» — пропускаем
+  await page.getByRole('dialog', { name: 'Минуты в день' }).getByRole('button', { name: 'Пропустить' }).click({ timeout: 15_000 })
 
   // Старт пройден → средний «Урок» разблокировался, запускаем его
   await page.locator('.mgNode--lesson', { hasText: 'Урок' }).click()
@@ -77,3 +79,35 @@ test('гость проходит Старт и урок → звёзды в и�
 // нет → клик по нужной кнопке через селектор нестабилен. Ревизит: либо
 // маркер активного слайда в коде ленты, либо клик по видимому по boundingBox.
 // Пока покрыто вручную (PROJECT.md: тап гостя по лайку → форма входа).
+
+test('«Моя память» гостю: память пуста, «Войти» ведёт в профиль', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
+  await expect(page.locator('.lrMainTitle')).toHaveText('Память пока пуста', { timeout: 30_000 })
+  await page.locator('.lrGuestLead').getByRole('button', { name: 'Войти' }).click()
+  await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
+})
+
+test('первый вход во вкладку «Память» — окно «Это твоя память», один раз', async ({ page }) => {
+  // fixtures.js гасит окно флагом — здесь снимаем его (только при первой загрузке)
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('e2e_intro_reset')) return
+    sessionStorage.setItem('e2e_intro_reset', '1')
+    localStorage.removeItem('pithy_memory_intro_v1')
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
+  const intro = page.getByRole('dialog', { name: 'Это твоя память' })
+  await expect(intro).toContainText('Мы сами напомним повторить слово', { timeout: 30_000 })
+  await expect(intro).toContainText('постоянную память')
+  await intro.getByRole('button', { name: 'Посмотреть мою память' }).click()
+  await expect(intro).toHaveCount(0)
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('pithy_memory_intro_v1'))).toBe('1')
+})
+
+test('ссылка из пуша повторения /?tab=learn открывает «Мою память»', async ({ page }) => {
+  await page.goto('/?tab=learn')
+  await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Память')
+  await expect(page.locator('.lrTitle')).toBeVisible()
+  await expect.poll(() => new URL(page.url()).searchParams.has('tab')).toBe(false) // адрес очищен
+})

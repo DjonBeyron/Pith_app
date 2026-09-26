@@ -1,0 +1,7 @@
+/* Сила памяти слова точками 1–5 (shared/ui/StrengthDots.jsx): итог
+   повторения, карта памяти «Моего обучения», схема модуля */
+.strengthDots { display: inline-flex; gap: 4px; flex-shrink: 0; }
+.strengthDot { width: 8px; height: 8px; border-radius: 50%; background: #2a2d35; }
+.strengthDotOn { background: #b6fe3b; }
+.strengthDotsSmall { gap: 3px; }
+.strengthDotsSmall .strengthDot { width: 6px; height: 6px; }

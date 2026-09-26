@@ -144,7 +144,7 @@
   font-family: inherit;
 }
 
-/* Активная таблетка — лаймовый градиент (как pvTabActive в profile-v2.css) */
+/* Активная таблетка — лаймовый градиент */
 .ratingTabActive {
   background: var(--v2-dust-d), var(--v2-grain-d),
     linear-gradient(180deg, #ceff73, #a9f335);

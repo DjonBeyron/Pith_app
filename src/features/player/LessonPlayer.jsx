@@ -19,14 +19,17 @@ import { usePlayerPanelNodes } from './usePlayerPanelNodes.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { useLessonWordAudio } from './word-audio/useLessonWordAudio.js'
 import { useNodeAppearLog } from './useNodeAppearLog.js'
-import { usePlayerFiles } from './usePlayerFiles.js'
+import { usePlayerFiles, withBlobs } from './usePlayerFiles.js'
+import { useInstantNodesDone } from './useInstantNodesDone.js'
+import { pickPhoto } from './photoPick.js'
+import { useDebugStepBridge } from './admin/useDebugStepBridge.js'
 import { useAnswerStats } from './useAnswerStats.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { downloadDebugLog, copyDebugLog } from './downloadDebugLog.js'
 import PlayerOverlays from './PlayerOverlays.jsx'
 import HintBar from './HintBar.jsx'
 import { useFinalHints } from './useFinalHints.js'
-import { useLessonFinish } from './useLessonFinish.js'
+import { useLessonFinish, finishStatsOf } from './useLessonFinish.js'
 import { useLessonTracking } from './useLessonTracking.js'
 import { useLessonResume } from './useLessonResume.js'
 import ResumeLessonPopup from './ResumeLessonPopup.jsx'
@@ -35,8 +38,12 @@ import { usePlayerAnswers } from './usePlayerAnswers.js'
 import { buildXpMap } from './lessonXp.js'
 import { resolveXpOrigin } from './xpAnchor.js'
 
+// Пустой список файлов по умолчанию — ОДИН на все рендеры: новый [] каждый раз
+// (usePlayerFiles → files → прогрев) зацикливал перерисовку у урока с медиа
+const NO_FILES = []
+
 export default function LessonPlayer({
-  nodes = [], files: propFiles = [], lessonTitle = '',
+  nodes = [], files: propFiles = NO_FILES, lessonTitle = '',
   teacherName, teacherLogo, teacherLogoCrop,
   videoAutoSound = false,
   initialBlobMap = null,
@@ -46,9 +53,10 @@ export default function LessonPlayer({
   historyIds = null, // история чата выше startNodeId — из LessonLaunchCard.jsx (см. ниже)
   resumedXp = 0, // XP, заработанный до закрытия — из LessonLaunchCard.jsx («Продолжить»)
   recordStats = true, // false (пересдача «без записи») — события анализа не пишутся
-  onFinishStats = null, // супергонка: ({ errors, timeMs }) в момент финиша урока
+  onFinishStats = null, // супергонка и карточка повторения: finishStatsOf (useLessonFinish.js) в момент финиша
   finalTicket = null, // Финал модуля: { moduleId } — подсказки + золотой билет
   starsEligible = false, // обычный урок модуля (не Старт/Финал): звёзды по ошибкам
+  memoryWord = null, // слово урока-слова модуля: впервые в памяти → карточка в итоге
   // Правка урока прямо из плеера — только когда его запустил админ из канваса
   // (CanvasPage передаёт { onUpdateNode, onPickLessonFile, moduleLessons }).
   // В ленте, уроках и гонке проп не передаётся — режима нет вовсе
@@ -65,6 +73,7 @@ export default function LessonPlayer({
   // Золотой билет за Финал: счётчик подсказок (раскрытий перевода) и итог
   const { count: hintCount, registerHint, getCount: getHintCount } = useFinalHints(!!finalTicket)
   const [ticketRes, setTicketRes] = useState(null)
+  const [newWord, setNewWord] = useState(null) // «Новое слово во временной памяти»
   // Звёзды обычного урока: свой счётчик неверных ответов — независим от
   // recordStats (пересдача «без записи» не должна дарить 3★ из-за пустых событий)
   const wrongRef = useRef(0)
@@ -98,12 +107,17 @@ export default function LessonPlayer({
   const { finishSummary } = useLessonFinish({
     edit, starsEligible, lessonId, wrongRef, finalTicket, getHintCount, getEvents, earnedXpRef,
     setBaseXp, setEarnedXp, setStarsRes, setShowSummary, setTicketRes,
-    clearProgress: resumeState.clear,
+    clearProgress: resumeState.clear, memoryWord, setNewWord,
   })
 
   // Карта главной линии считается один раз на урок — нужна и для полоски
   // прогресса в шапке, и для процента, который уходит в чекпойнт
   const mainIndex = useMemo(() => mainLineIndex(nodes), [nodes])
+
+  // Момент открытия урока: инициализация в эффекте (Date.now в рендере
+  // запрещён react-hooks/purity); все потребители читают ref после маунта
+  const openTimeRef      = useRef(0)
+  useEffect(() => { if (!openTimeRef.current) openTimeRef.current = Date.now() }, [])
 
   const graph = useGraphPlayer(graphNodes, {
     startNodeId: resumeState.startNodeId ?? startNodeId,
@@ -115,11 +129,7 @@ export default function LessonPlayer({
         // Супергонка: отдаём счёт ошибок/времени и сразу выходим — XP и
         // события анализа отложены до итогов гонки (completeLesson не зовём),
         // обычный экран итогов не показывается (его заменяет RaceSummary)
-        onFinishStats({
-          errors: getEvents().filter(e => e.type === 'wrong').length,
-          // Date.now в коллбэке финиша, а не в рендере — не ложное срабатывание purity-проверки
-          timeMs: Date.now() - openTimeRef.current,
-        })
+        onFinishStats(finishStatsOf({ getEvents, wrongRef, openTimeRef }))
         setTimeout(() => (onSummaryClose ?? onClose)?.(), 800)
         return
       }
@@ -148,10 +158,6 @@ export default function LessonPlayer({
   const { blobMap, addMsgTs, debugItems, warmupPct } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
   useLessonWordAudio(nodes, warmupPct) // озвучка слов при тапе — после прогрева первых нод
 
-  // Момент открытия урока: инициализация в эффекте (Date.now в рендере
-  // запрещён react-hooks/purity); все потребители читают ref после маунта
-  const openTimeRef      = useRef(0)
-  useEffect(() => { if (!openTimeRef.current) openTimeRef.current = Date.now() }, [])
   // Журнал появления нод + готовности их медиа — useNodeAppearLog.js
   const nodeAppearLogRef = useNodeAppearLog(visibleNodes, blobMap, addMsgTs, openTimeRef)
 
@@ -159,12 +165,7 @@ export default function LessonPlayer({
   const downloadCombinedLog = () => downloadDebugLog(combinedLogData())
   const copyCombinedLog     = () => copyDebugLog(combinedLogData())
 
-  const filesWithBlobs = useMemo(() => files.map(f => {
-      const entry = blobMap[f.id]
-      if (!entry) return f
-      // + мета голосового из прогрева (usePlayerPreload.analyzeAudioMeta): duration/waveformData/metaDone
-      return { ...f, blobUrl: entry.blobUrl, posterUrl: entry.posterUrl ?? null, duration: entry.duration ?? null, waveformData: entry.waveformData ?? null, metaDone: !!entry.metaDone }
-    }), [files, blobMap])
+  const filesWithBlobs = useMemo(() => withBlobs(files, blobMap), [files, blobMap])
 
   // ── Panels ───────────────────────────────────────────────────────────────
   const answers = usePlayerAnswers()
@@ -175,29 +176,9 @@ export default function LessonPlayer({
     regStates, handleRegAnswer,
   } = answers
 
-  function handlePhotoPick(nodeId, idx, isCorrect) {
-    const result = isCorrect ? 'photo_correct' : 'photo_wrong'
-    if (!isCorrect) wrongRef.current += 1
-    const pcNode = nodes.find(n => n.id === nodeId)
-    // Особый переход этого конкретного фото (nodeVariants.js), если задан —
-    // проверяется раньше общего верно/неверно (useGraphPlayer.onNodeDone)
-    const variantId = pcNode?.typeData?.photo_choice?.photos?.[idx]?.id ?? null
-    record({
-      nodeId,
-      lessonId: pcNode?.typeData?.photo_choice?.statLessonId ?? null,
-      type: isCorrect ? 'correct' : 'wrong',
-      option: `фото #${idx + 1}`,
-    })
-    setPhotoChoiceStates(prev => ({ ...prev, [nodeId]: { selected: idx, result: isCorrect ? 'correct' : 'wrong' } }))
-    if (isCorrect) {
-      const xp = xpMap.get(nodeId) ?? 0
-      // Плитка галереи, по которой ткнули, уже помечена панелью (rememberTap):
-      // галерея сейчас закроется, но замер сделан. Пузырь с фото всё равно
-      // появится, и цифра стартует от него — плитка тут запасной вариант
-      if (xp > 0) handleXpEarned(xp, nodeId)
-    }
-    onNodeDone(nodeId, result, variantId)
-  }
+  // Ответ «выбери фото» — photoPick.js
+  const handlePhotoPick = (nodeId, idx, isCorrect) => pickPhoto(
+    { nodes, wrongRef, record, setPhotoChoiceStates, xpMap, handleXpEarned, onNodeDone }, nodeId, idx, isCorrect)
 
   const [pinVisible, setPinVisible] = useState(true)
   // Нижние панели ответа: их ноды, высоты и что скипнуть залогиненному
@@ -206,21 +187,8 @@ export default function LessonPlayer({
 
   // Правка урока из плеера (только запуск из канваса админом)
   const adminEdit = usePlayerAdminEdit(edit, nodes, visibleNodes)
-  // «Мгновенные» ноды зовут onDone в эффекте маунта, но монтируются они в
-  // pending-фазе с onDone-заглушкой (DOM сохраняется по key при активации,
-  // эффект не перезапускается) — их onNodeDone терялся, и ПОСЛЕДНЕЕ такое
-  // сообщение не завершало урок (итоги с XP не показывались). Дублируем
-  // onNodeDone при появлении ноды среди видимых; повторные вызовы безопасны
-  // (дедуп триггеров и финиша в useGraphPlayer).
-  const instantDoneRef = useRef(new Set())
-  useEffect(() => {
-    visibleNodes.forEach(n => {
-      if (!['text', 'pin_message', 'system', 'photo'].includes(n.type)) return
-      if (instantDoneRef.current.has(n.id)) return
-      instantDoneRef.current.add(n.id)
-      onNodeDone(n.id)
-    })
-  }, [visibleNodes]) // eslint-disable-line react-hooks/exhaustive-deps
+  // «Мгновенные» ноды (текст, фото, закреп, системное) — useInstantNodesDone.js
+  const instantDoneRef = useInstantNodesDone(visibleNodes, onNodeDone)
 
   // Шаг назад откатывает и то, что живёт в рефах: отметку «мгновенная нода
   // отыграла» и начисленный за ноду XP
@@ -247,17 +215,8 @@ export default function LessonPlayer({
   })
   const step = buildStep({ state: stepState, graph, ctx: stepCtx })
 
-  // Мобильный дебаг-тулбар (src/features/debugTools) читает тот же самый
-  // step, что и десктопная PlayerAdminPanel — просто через мост, а не через
-  // проп, ей ведь и на телефоне некуда отрисоваться. Только dev-сборка.
-  useEffect(() => {
-    if (import.meta.env.DEV) import('../debugTools/debugPlayerStep.js').then(m => m.registerPlayerStep(step))
-  }) // без deps: step — новый объект на каждый рендер, актуальные функции нужны сразу
-  useEffect(() => {
-    return () => {
-      if (import.meta.env.DEV) import('../debugTools/debugPlayerStep.js').then(m => m.registerPlayerStep(null))
-    }
-  }, [])
+  // Тот же step — мобильному дебаг-тулбару (только dev) — useDebugStepBridge.js
+  useDebugStepBridge(step)
 
   // Общие пропсы ленты PlayerFeedNodes.jsx (обычные ноды + сигнальные сообщения вперемешку)
   const feedShared = { nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin, onTrReveal: registerHint, onOpenLessonRef: handleOpenLessonRef }
@@ -363,6 +322,7 @@ export default function LessonPlayer({
         baseXp={baseXp}
         ticket={ticketRes}
         stars={starsRes}
+        newWord={newWord}
         onSummaryClose={onSummaryClose ?? onClose}
       />
 

@@ -171,7 +171,8 @@ describe('«Продолжить урок» — история появляет�
 // делаем двойную работу (обычный старт → отдельный попап ВНУТРИ плеера),
 // и прогрев (usePlayerPreload) с самого начала целится в нужную точку
 describe('«Продолжить урок» — решение и прогрев в карточке запуска, не внутри плеера', () => {
-  const launch   = read('../../features/lessons/LessonLaunchCard.jsx')
+  // Карточка запуска — два файла подряд: LessonLaunchCard.jsx + LaunchPreloader.jsx (прогрев)
+  const launch   = (read('../../features/lessons/LessonLaunchCard.jsx') + read('../../features/lessons/LaunchPreloader.jsx'))
   const choice   = read('../../features/lessons/LaunchCtaSlot.jsx')
   const standalone = read('../../features/lessons/StandaloneLessonRunner.jsx')
   const curriculum = read('../../features/lessons/CurriculumView.jsx')
@@ -240,7 +241,7 @@ describe('«Продолжить урок» — решение и прогрев
 // «Начать урок», через мгновение шире с «Продолжить» (чекпойнт читается
 // асинхронно и мог прийти позже сценария). Ждём оба результата разом
 describe('карточка запуска — без собственного «скачка» на чекпойнте', () => {
-  const launch = read('../../features/lessons/LessonLaunchCard.jsx')
+  const launch = (read('../../features/lessons/LessonLaunchCard.jsx') + read('../../features/lessons/LaunchPreloader.jsx'))
 
   it('содержимое показывается только когда решены сценарий, чекпойнт И прошёл минимум 1.2с', () => {
     expect(launch).toContain('const ready = !!lessonData && resumeOffer !== undefined && minTimeElapsed')

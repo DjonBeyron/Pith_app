@@ -6,7 +6,7 @@ const TYPE_LABEL = Object.fromEntries(NODE_TYPES.map(t => [t.value, t.label]))
 // это подпись к аудио, у стикера — подпись под картинкой, у таблицы — задание.
 const TEXT_FIELDS = ['content', 'text', 'caption', 'question', 'title', 'prompt']
 
-function nodeText(node) {
+export function nodeText(node) {
   const d = node.typeData?.[node.type] ?? {}
   for (const f of TEXT_FIELDS) {
     if (typeof d[f] === 'string' && d[f].trim()) return d[f].trim().replace(/\s+/g, ' ')

@@ -141,19 +141,21 @@ export function useVideoFullscreen({ src, frame0, crop, intrinsic, frameDims, mi
 
   // Fullscreen overlay — portalled to document.body so that position:fixed is
   // relative to the viewport, not the PlayerFeed's scaleY(-1) containing block.
+  // Слои 10000+ — выше всех экранов приложения: плеер живёт и в повторении
+  // (.reviewScreen, 300), и на слое ссылки (.lessonNavOverlay, 600)
   const fsPortal = createPortal(
     <>
       {fsVisible && (
         <div
           className="videoFsBg"
           onClick={closeFs}
-          style={{ zIndex: 251, WebkitTapHighlightColor: 'transparent' }}
+          style={{ zIndex: 10000, WebkitTapHighlightColor: 'transparent' }}
         />
       )}
       {/* Video container always in DOM so fsVideoRef is always attached */}
       <div style={{
         position: 'fixed', inset: 0,
-        zIndex: fsVisible ? 252 : -1,
+        zIndex: fsVisible ? 10001 : -1,
         overflow: 'hidden',
         pointerEvents: 'none',
       }}>
@@ -186,7 +188,7 @@ export function useVideoFullscreen({ src, frame0, crop, intrinsic, frameDims, mi
       {fsVisible && (
         <div
           className="videoFsControls"
-          style={{ zIndex: 253, WebkitTapHighlightColor: 'transparent' }}
+          style={{ zIndex: 10002, WebkitTapHighlightColor: 'transparent' }}
         >
           <button className="videoFullClose" onClick={closeFs}>×</button>
           <div className="videoFsProgressTrack">

@@ -1,0 +1,67 @@
+/* Страницы «Моей памяти» (features/learn): все слова ступени
+   (MemoryLevelPage — вкладки ступеней, шапка «что за слова и когда
+   спросим», список) и фиолетовая постоянная память (MemoryPermPage) */
+
+.memPage { display: flex; flex-direction: column; gap: 10px; }
+.memPageTop { display: flex; align-items: center; gap: 10px; }
+.memPageTop .lrTitle { margin: 0; }
+.memBack {
+  padding: 6px 12px;
+  border: 1px solid #262b33;
+  border-radius: 10px;
+  background: #1a1d22;
+  color: #eef1f4;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Вкладки ступеней ──────────────────────────────────────────────── */
+.memTabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 12px; background: #14171c; }
+.memTab {
+  --c: #8a939e;
+  padding: 7px 4px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #8b95a1;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+  cursor: pointer;
+}
+.memTab b { display: block; font-size: 16px; }
+.memTab--2 { --c: #e2cd78; }
+.memTab--3 { --c: #b6fe3b; }
+.memTab[aria-selected='true'] { background: #1a1d22; color: var(--c); box-shadow: inset 0 -2px 0 var(--c); }
+
+/* ── Шапка ступени ─────────────────────────────────────────────────── */
+.memHead {
+  --c: #8a939e;
+  --tint: rgba(138, 147, 158, 0.16);
+  padding: 14px 16px 15px;
+  border-top: 3px solid var(--c);
+  border-radius: 14px;
+  background: linear-gradient(to bottom, var(--tint) 0, transparent 70px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+}
+.memHead--2 { --c: #e2cd78; --tint: rgba(226, 205, 120, 0.15); }
+.memHead--3 { --c: #b6fe3b; --tint: rgba(182, 254, 59, 0.15); }
+.memHead b { display: block; margin-bottom: 4px; font-size: 16px; color: var(--c); }
+.memHead p { margin: 0; font-size: 13px; line-height: 1.4; color: #c9d0d7; }
+.memHeadWhen { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--c); }
+
+/* ── Список слов ───────────────────────────────────────────────────── */
+.memList { display: flex; flex-direction: column; gap: 5px; }
+.memChipRow { justify-content: space-between; width: 100%; padding: 9px 12px; font-size: 14px; }
+.memChipNote { position: relative; font-size: 11px; font-weight: 700; color: #8b95a1; }
+.memChipNoteToday { color: #b6fe3b; }
+.memListEmpty { margin: 6px 2px; font-size: 13px; color: #6b737d; }
+
+/* ── Постоянная память — фиолетовая ────────────────────────────────── */
+.memHead--Perm { --c: #8b5cf6; --tint: rgba(139, 92, 246, 0.22); }
+.memHead--Perm b { font-size: 17px; color: #c4b5fd; }
+.memPermCount { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 6px; }
+.memPermCount strong { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }
+.memPermCount span { font-size: 13px; font-weight: 700; color: #d9ccff; }

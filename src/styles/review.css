@@ -1,0 +1,211 @@
+/* Экран повторения дня (src/features/review/): шапка с капсулами и фразой
+   под спойлером, карточка-кусочек чата, плашка итога ответа, кнопки, итог.
+   Полноэкранный слой; на широком экране колонка шириной с «телефон» плеера. */
+
+.reviewScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  padding: 0 max(12px, calc((100% - 460px) / 2));
+  background: #0e1013;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* «Помнишь?» в ленте (feed/FeedRemember.jsx) — тот же экран карточки */
+.feedRememberTitle {
+  margin: calc(env(safe-area-inset-top, 0px) + 12px) 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b6fe3b;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.feedRemember .reviewHead { padding-top: 6px; }
+
+/* ── Шапка ─────────────────────────────────────────────────────────── */
+.reviewHead { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); flex-shrink: 0; }
+.reviewHeadRow { display: flex; align-items: center; gap: 10px; }
+.reviewCapsules { flex: 1; display: flex; gap: 4px; }
+
+.reviewCapsule {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #2a2d35;
+  transition: background 0.3s;
+}
+.reviewCapsule--now { background: #555a66; }
+.reviewCapsule--ok  { background: #b6fe3b; }
+.reviewCapsule--bad { background: #f87171; }
+
+.reviewClose {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #888;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.reviewPhrase {
+  margin: 12px 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+}
+.reviewPhraseHidden { color: #b6fe3b; letter-spacing: -1px; }
+.reviewPhraseWord   { color: #b6fe3b; animation: reviewFadeIn 0.35s ease both; }
+
+/* ── Карточка ──────────────────────────────────────────────────────── */
+.reviewCard {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 8px 0;
+  border: 1px solid #2a2d35;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* transform — containing block для fixed-слоёв плеера (панели ответа,
+   полноэкранные фото): всё ложится внутрь карточки */
+.reviewCardFrame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+
+/* Плеер внутри карточки: без «телефона» на десктопе, без шапки урока и
+   штампов версии — у карточки своя шапка */
+.reviewCardFrame .playerStage,
+.reviewCardFrame .playerPhone { display: contents; }
+.reviewCardFrame .lessonPlayer { position: absolute; }
+.reviewCardFrame .playerTopBar,
+.reviewCardFrame .playerVersionStamp,
+.reviewCardFrame .playerPerfStamp { display: none; }
+
+/* После ответа карточку смахивают (useSwipeNext): жесты браузера внутри
+   неё выключены, иначе вертикальный жест уходил бы в прокрутку чата */
+.reviewCard--answered,
+.reviewCard--answered * { touch-action: none; }
+.reviewCard--answered { cursor: grab; will-change: transform; }
+
+.reviewSwipeHint {
+  margin: -6px 0 0;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+  font-size: 12px;
+  color: #555a66;
+  text-align: center;
+}
+
+/* «Оборот» карточки: плашка итога ответа откидывается сверху */
+.reviewVerdict {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 300;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  transform-origin: top;
+  animation: reviewFlip 0.45s ease both;
+}
+.reviewVerdict--ok  { background: #1f2a12; border: 1px solid rgba(182, 254, 59, 0.45); color: #b6fe3b; }
+.reviewVerdict--bad { background: #2a1616; border: 1px solid rgba(248, 113, 113, 0.5); color: #fca5a5; }
+
+/* ── Кнопки ────────────────────────────────────────────────────────── */
+.reviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 4px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
+  flex-shrink: 0;
+}
+
+.reviewBtn {
+  padding: 12px 18px;
+  border: 1px solid #2a2d35;
+  border-radius: 999px;
+  background: transparent;
+  color: #e0e0e0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reviewBtn--main { min-width: 160px; border-color: transparent; background: #b6fe3b; color: #0d1500; }
+.reviewBtnGhost { border-color: transparent; color: #8b95a1; }
+.reviewBridge { max-width: 100%; border-color: rgba(182, 254, 59, 0.45); color: #b6fe3b; }
+
+/* ── Вступление, сообщения, итог ───────────────────────────────────── */
+.reviewNote { margin: auto; color: #888; }
+
+.reviewCenter,
+.reviewSummary {
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.reviewTeacherName { margin: 0; font-size: 13px; color: #888; }
+.reviewTeacherLine { margin: 0; font-size: 17px; line-height: 1.45; }
+.reviewSummaryTitle { margin: 0; font-size: 22px; }
+
+.reviewWords {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reviewWord {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border-left: 3px solid #555a66;
+  background: #1a1d22;
+}
+.reviewWord--ok  { border-left-color: #b6fe3b; }
+.reviewWord--bad { border-left-color: #f87171; }
+.reviewWordText { font-weight: 600; }
+
+
+.reviewReward { margin: 0; color: #b6fe3b; font-weight: 600; }
+.reviewPhraseResult { margin: 0; font-size: 16px; font-weight: 600; color: #9aa3ad; }
+.reviewPhraseResultOk { color: #ffd257; }
+/* Слово ушло в постоянную память — фиолетовый, как пятиугольник во вкладке «Память» */
+.reviewSettled { color: #a78bfa; }
+.reviewGuestLead { font-size: 15px; color: #9aa3ad; }
+.reviewBtnGuest { border-color: rgba(182, 254, 59, 0.45); color: #b6fe3b; }
+
+@keyframes reviewFlip {
+  from { opacity: 0; transform: perspective(600px) rotateX(-90deg); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes reviewFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reviewVerdict, .reviewPhraseWord { animation: none; }
+}

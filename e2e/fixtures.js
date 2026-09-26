@@ -28,8 +28,13 @@ export const test = base.extend({
     // Гасим одноразовый попап «Установить приложение» (гость+мобила): его
     // оверлей installSlidesOverlay перехватывает клики. Флаг ставится ДО
     // загрузки страницы, поэтому попап не всплывает ни в одном тесте.
+    // То же — окно первого входа во вкладку «Память» (MemoryIntro.jsx): его
+    // проверяет свой тест, снимая флаг (guest.spec.js)
     await page.addInitScript(() => {
-      try { localStorage.setItem('pithy_install_dismissed', '1') } catch { /* приватный режим */ }
+      try {
+        localStorage.setItem('pithy_install_dismissed', '1')
+        localStorage.setItem('pithy_memory_intro_v1', '1')
+      } catch { /* приватный режим */ }
     })
 
     const bugs = []

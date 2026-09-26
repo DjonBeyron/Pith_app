@@ -1,0 +1,106 @@
+/* Церемония открытия Финала: тряска и отщёлкивание замка, искры, вспышка блока, ореол. Продолжение lessons-chain-final-xp.css (подключается сразу за ним) */
+
+/* ── Церемония открытия ─────────────────────────────────────── */
+
+/* Замок: приближается, трясётся 4 раза, ОТКРЫВАЕТСЯ (крупнее), возвращается */
+@keyframes mgLockUnlock {
+  0%   { transform: scale(1); }
+  12%  { transform: scale(1.7); }
+  18%  { transform: scale(1.7) translateX(-4px) rotate(-7deg); }
+  26%  { transform: scale(1.7) translateX(4px)  rotate(7deg); }
+  34%  { transform: scale(1.7) translateX(-4px) rotate(-7deg); }
+  42%  { transform: scale(1.7) translateX(4px)  rotate(7deg); }
+  50%  { transform: scale(1.7); }
+  62%  { transform: scale(2.25); }
+  78%  { transform: scale(2.25); }
+  100% { transform: scale(1); }
+}
+
+.mgIconBadge--unlocking {
+  animation: mgLockUnlock 2.2s ease-in-out forwards;
+  z-index: 3;
+}
+
+/* Искры разлетаются от замка в момент «отщёлкивания» */
+.mgLockSparks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.mgLockSpark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #d9ccff;
+  box-shadow: 0 0 6px rgba(196, 168, 255, 0.9);
+  animation: mgSpark 0.7s ease-out forwards;
+}
+
+@keyframes mgSpark {
+  0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.4); opacity: 0; }
+}
+
+/* Вспышка блока: яркое свечение (слой burst в MgNodeGlow.jsx) и подсветка
+   заливки — прозрачностью. Раньше filter: brightness + drop-shadow на всём
+   ноде 2.1с — во время полёта XP, замка и искр пересчитывались каждый кадр */
+@keyframes mgFinalBurst {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+
+@keyframes mgFinalBurstFill {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.mgGlow--finalBurst .mgNodeGlowLayer--burst { animation: mgFinalBurst 2.1s ease-out forwards; }
+/* Пока вспышка, обычное свечение «открыт» уступает ей место (как раньше:
+   фильтр вспышки заменял фильтр открытого финала) */
+.mgGlow--finalBurst .mgNodeGlowLayer--open { opacity: 0; transition: none; }
+.mgGlow--finalBurst .mgHexFill--final::before { animation: mgFinalBurstFill 2.1s ease-out forwards; }
+
+.mgGlow--finalBurst .mgNodeOutline {
+  color: #d9ccff;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.95));
+}
+
+/* Deep-glow ореол: радиальный градиент, гаснет до прозрачного ЗАДОЛГО до
+   края своего бокса — обрезка контейнером не видна */
+.mgFinalHalo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 440px;
+  height: 440px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  /* В покое бокс убран совсем: невидимый 440px-круг иначе расширяет
+     scroll-область и оставляет ~100px пустоты под финалом (особенно
+     заметно на телефонах). Показывается только на время burst-церемонии. */
+  display: none;
+  background: radial-gradient(circle,
+    rgba(196, 168, 255, 0.5) 0%,
+    rgba(139, 92, 246, 0.22) 40%,
+    rgba(139, 92, 246, 0) 66%);
+}
+
+@keyframes mgHaloBurst {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.55); }
+  22%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.18); }
+}
+
+.mgGlow--finalBurst .mgFinalHalo {
+  display: block;
+  animation: mgHaloBurst 2.1s ease-out forwards;
+}

@@ -180,11 +180,27 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
         }))
     : []
 
+  // Колода повтора (см. exportLesson.js): каждая карточка собирается тем же
+  // импортом, со своими ref. Битая карточка — предупреждение, не отказ всего файла
+  const reviewCards = []
+  ;(Array.isArray(json.reviewCards) ? json.reviewCards : []).forEach((card, i) => {
+    if (!Array.isArray(card?.nodes) || !card.nodes.length) return
+    try {
+      const r = importLesson({ nodes: card.nodes })
+      r.warnings.forEach(w => warnings.push(`карточка ${i + 1}: ${w}`))
+      // Все ноды карточки оказались неизвестного типа — пустую не заводим
+      if (r.nodes.length) reviewCards.push({ id: uid(), nodes: r.nodes })
+    } catch (e) {
+      warnings.push(`карточка ${i + 1}: ${e.message}`)
+    }
+  })
+
   return {
     nodes,
     zones,
     links,
     warnings,
+    reviewCards,
     title: json.lesson?.title ?? '',
   }
 }

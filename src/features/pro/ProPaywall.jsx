@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Crown, Zap, Library, Heart } from 'lucide-react'
+import { Crown, Zap, Repeat, Heart } from 'lucide-react'
 import {
   createSubscriptionPayment, PRO_PRICE_MONTH_RUB, PRO_PRICE_YEAR_RUB,
 } from '../../shared/api/subscriptionApi.js'
@@ -45,7 +45,7 @@ export default function ProPaywall({ heading = 'HETA Pro', onClose }) {
 
         <ul className="ppPerks">
           <li><span><Zap size={18} /></span> Безлимит энергии — уроки без ожидания</li>
-          <li><span><Library size={18} /></span> Копилка слов без лимита (бесплатно — 20)</li>
+          <li><span><Repeat size={18} /></span> «Повторить сейчас» — любое слово вне расписания</li>
           <li><span><Crown size={18} /></span> Значок PRO в рейтинге и супергонке</li>
           <li><span><Heart size={18} /></span> Поддержка развития HETA</li>
         </ul>

@@ -5,6 +5,7 @@ import { importLesson } from './importLesson.js'
 import { lintLesson, fromCanvasNodes } from './lessonLint.js'
 import { useLessonRules } from './useLessonRules.js'
 import LessonRulesPanel from './LessonRulesPanel.jsx'
+import { useDeckIo } from '../../reviewCards/useDeckIo.js'
 
 // Окно «Поделиться / Импорт»: урок целиком в JSON и обратно — экспорт и
 // импорт видны ОДНОВРЕМЕННО, двумя колонками, а не по вкладкам (раньше
@@ -31,13 +32,15 @@ export default function LessonIoPanel({ nodes, zones = [], title, lessonId, onIm
   // экспорте, без пересборки приложения. Пока правила ещё грузятся (busy,
   // rules == []), exportLesson тихо падает на встроенный дефолт в buildLegend.
   const { principles, checklist } = useLessonRules()
+  // Колода карточек повтора: в экспорт — с сервера, из импорта — на сервер
+  const deck = useDeckIo(lessonId)
   const activePrinciples = principles.filter(r => r.active).map(r => r.text)
   const activeChecklist  = checklist.filter(r => r.active).map(r => r.text)
   const principlesOverride = activePrinciples.length ? activePrinciples : undefined
   const checklistOverride  = activeChecklist.length  ? activeChecklist  : undefined
 
   const shareText = exportLessonText(nodes, {
-    title, lessonId, includeLegend: withLegend, zones,
+    title, lessonId, includeLegend: withLegend, zones, reviewCards: deck.cards,
     principles: principlesOverride, checklist: checklistOverride,
   })
 
@@ -110,6 +113,7 @@ export default function LessonIoPanel({ nodes, zones = [], title, lessonId, onIm
       const lintWarnings = lintLesson(fromCanvasNodes(r.nodes))
       setWarnings([...r.warnings, ...lintWarnings])
       setReport(`Разобрано: ${r.nodes.length} нод, ${r.links} связей`
+        + (r.reviewCards.length ? `, карточек повтора: ${r.reviewCards.length}` : '')
         + (lintWarnings.length ? ` · проверка правил: ${lintWarnings.length} замечаний` : ' · проверка правил: чисто'))
       return r
     } catch (e) {
@@ -126,7 +130,11 @@ export default function LessonIoPanel({ nodes, zones = [], title, lessonId, onIm
       : `Добавить ${result.nodes.length} нод (${result.links} связей) к текущему уроку?`
     if (!window.confirm(what)) return
     onImport(result.nodes, result.zones ?? [], mode, result.links)
-    setReport(`Готово: ${result.nodes.length} нод, ${result.links} связей на холсте`)
+    const done = `Готово: ${result.nodes.length} нод, ${result.links} связей на холсте`
+    setReport(done)
+    deck.applyImported(result.reviewCards)
+      .then(msg => { if (msg) setReport(`${done} · ${msg}`) })
+      .catch(e => setError(`Колода не сохранилась: ${e?.message ?? '?'}`))
   }
 
   return createPortal(

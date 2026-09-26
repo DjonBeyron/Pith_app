@@ -7,27 +7,28 @@ import ModuleGraph from './ModuleGraph.jsx'
 import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
-import { getCompletedLessons, markLessonCompleted, unmarkLessons } from '../../shared/lib/completedLessons.js'
-import { simulateLessonsDone } from '../../shared/lib/adminTestCompletion.js'
+import { getCompletedLessons, markLessonCompleted } from '../../shared/lib/completedLessons.js'
+import { seedGuestWordOf } from '../../shared/lib/memory/guestMemory.js'
+import { lessonWordOf } from '../../shared/lib/memory/wordLessons.js'
 import { refreshProfile, getCachedProfile } from '../../shared/api/profileCache.js'
 import ProPaywall from '../pro/ProPaywall.jsx'
-import { resetLessonProgress, startLesson } from '../../shared/api/profileApi.js'
+import { startLesson } from '../../shared/api/profileApi.js'
 import EnergyPaywall from './EnergyPaywall.jsx'
 import ModuleVideoPanel from './ModuleVideoPanel.jsx'
-import { clearLocalEvents } from '../../shared/lib/skillStatsStore.js'
-import { markModuleStarted, unmarkModuleStarted } from '../../shared/api/moduleSocialApi.js'
+import { markModuleStarted } from '../../shared/api/moduleSocialApi.js'
 import { dbg } from '../../shared/lib/debug.js'
 import PriorityLegend from './PriorityLegend.jsx'
 import StreakStartOverlay from '../streak/StreakStartOverlay.jsx'
 import { takeFirstDay } from '../streak/firstDaySignal.js'
+import { askMinutesOnce } from '../learn/minutesAsk.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import { weekKey, MODULE_DONE_WEEK_KEY } from '../race/useRaceState.js'
 import { getLastEditorMode } from '../../shared/lib/lastEditorMode.js'
-import { isModuleUnlocked, unlockModule, relockModule } from '../../shared/lib/moduleUnlock.js'
-
-const LEGEND_SEEN_KEY = 'pithy_priority_legend_seen_v1'
+import { isModuleUnlocked, unlockModule } from '../../shared/lib/moduleUnlock.js'
+import { useModuleAdminActions } from './useModuleAdminActions.js'
+import { LEGEND_SEEN_KEY } from './priorityLegendSeen.js'
 
 // Экран одного модуля: схема Старт → уроки → Финал, запуск уроков через
 // карточку прогрева, плеер, приоритеты анализа знаний. Используется и во
@@ -63,16 +64,11 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const [launchId,        setLaunchId]        = useState(null)
   const [playerData,      setPlayerData]      = useState(null)
   const [playingLessonId, setPlayingLessonId] = useState(null)
-  // Режим пересдачи (RetakeDialog): null — первое прохождение,
-  // 'update' — новая диагностика поверх старой, 'silent' — без записи анализа
-  const [statsMode,       setStatsMode]       = useState(null)
   const [completedIds,    setCompletedIds]    = useState(() => getCompletedLessons())
   // Только что пройденный урок — для анимации прилёта XP в графе модуля.
   const [justCompleted,   setJustCompleted]   = useState(null)
   // Окно «Путь начался» — только после анимации графа (см. firstDaySignal.js)
   const [firstDayOpen,    setFirstDayOpen]    = useState(false)
-  const [saving,          setSaving]          = useState(false)
-  const [saveMsg,         setSaveMsg]         = useState('')
   // Легенда «Приоритеты уроков» поверх затемнённой схемы (этап 5)
   const [showLegend,      setShowLegend]      = useState(false)
   // Попап только что закрыт — отложенная анимация графа идёт с половинным офсетом
@@ -87,9 +83,17 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const { isAdmin } = useAdmin()
   const { user } = useAuth()
 
-  // Приоритеты уроков (анализ знаний) + звёзды — useModuleAnalysis.js
-  const { priorities, stars, prioritiesReady, starsReady, readyTimeout, refreshPriorities, refreshStars } =
+  // Приоритеты уроков (анализ знаний) + звёзды + память слов — useModuleAnalysis.js
+  const { priorities, stars, memory, prioritiesReady, starsReady, readyTimeout, refreshPriorities, refreshStars } =
     useModuleAnalysis({ isPro, lessons, user })
+
+  // Тест-инструменты админа (сброс, «пометить пройденным») и 💾 структуры —
+  // useModuleAdminActions.js
+  const {
+    saving, saveMsg, handleResetProgress, handleResetLesson, handleMarkAllDone, handleMarkLessonDone, handleSave,
+  } = useModuleAdminActions({
+    curriculumId, lessons, isPro, saveStructure, setCompletedIds, setUnlocked, refreshPriorities,
+  })
 
   // Регистрация посреди урока (нода в плеере): гостевая сессия start_lesson
   // была пустой — без пересоздания под новым пользователем complete_lesson
@@ -124,70 +128,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
     }
   }, [isAdmin, loading, creating, lessons.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Полный сброс модуля (тест-кнопка ⟲): снимает «пройдено» локально и на
-  // сервере, отнимает начисленный за эти уроки XP и стирает анализ (события).
-  async function handleResetProgress() {
-    if (!window.confirm('Сбросить прохождение, XP и анализ уроков этого модуля?')) return
-    const ids = lessons.map(l => l.id)
-    unmarkLessons(ids)
-    setCompletedIds(getCompletedLessons())
-    clearLocalEvents(ids)
-    // Полный сброс = «как новый пользователь»: легенда покажется снова
-    localStorage.removeItem(LEGEND_SEEN_KEY)
-    // Модуль больше не «начат» — вернётся в рекомендации
-    unmarkModuleStarted(curriculumId)
-    // И решение «открыть без диагностики» тоже: сброс обещает состояние нового
-    // пользователя, а с ним уроки остались бы открытыми при нулевом прогрессе
-    relockModule(curriculumId)
-    setUnlocked(false)
-    const { refunded, error } = await resetLessonProgress(ids, true) // true = стереть и анализ
-    dbg('[RESET] модуль:', ids.length, 'уроков, XP снято:', refunded, 'ошибка:', error)
-    if (error) { setSaveMsg(`Сброс на сервере не сработал: ${error}`); setTimeout(() => setSaveMsg(''), 6000) }
-    if (refunded > 0) refreshProfile()
-    await refreshPriorities()
-  }
-
-  // Сброс одного урока (кнопка ⟲ на уроке): снимает только «пройдено» и его XP,
-  // анализ (answers) не трогает.
-  async function handleResetLesson(id) {
-    unmarkLessons([id])
-    setCompletedIds(getCompletedLessons())
-    const { refunded, error } = await resetLessonProgress([id], false)
-    dbg('[RESET] урок:', id, 'XP снято:', refunded, 'ошибка:', error)
-    if (error) { setSaveMsg(`Сброс на сервере не сработал: ${error}`); setTimeout(() => setSaveMsg(''), 6000) }
-    if (refunded > 0) refreshProfile()
-  }
-
-  // Тест-инструмент админа: имитировать «весь модуль пройден» без реального
-  // прохождения — см. adminTestCompletion.js (XP на сервере не начисляется)
-  function handleMarkAllDone() {
-    if (!window.confirm('Тест: пометить ВСЕ уроки модуля пройденными? (без начисления XP)')) return
-    simulateLessonsDone(lessons.map(l => l.id))
-    setCompletedIds(getCompletedLessons())
-  }
-
-  function handleMarkLessonDone(id) {
-    simulateLessonsDone([id])
-    setCompletedIds(getCompletedLessons())
-  }
-
-  async function handleSave() {
-    // Защита от ложного «✓ Сохранено»: у обычного модуля всегда есть
-    // Старт/Финал. Пустой список = уроки не создались (сбой сети в bulkCreate) —
-    // сохранять пустую структуру и рапортовать успех нельзя (так модуль
-    // уходил в ленту с «0 уроков»).
-    if (!isPro && lessons.length === 0) {
-      setSaveMsg('Уроки не созданы (сбой сети?) — обнови страницу и открой модуль заново')
-      setTimeout(() => setSaveMsg(''), 6000)
-      return
-    }
-    setSaving(true)
-    setSaveMsg('')
-    const result = await saveStructure()
-    setSaving(false)
-    setSaveMsg(result.ok ? '✓ Сохранено' : `Ошибка: ${result.error}`)
-    setTimeout(() => setSaveMsg(''), 3000)
-  }
 
   if (playerData) {
     return (
@@ -203,7 +143,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
         videoAutoSound={playerData.videoAutoSound ?? false}
         initialBlobMap={playerData.blobMap}
         startNodeId={playerData.startNodeId ?? null} historyIds={playerData.historyIds ?? null} resumedXp={playerData.resumedXp ?? 0}
-        recordStats={statsMode !== 'silent'} /* «без записи» — анализ не пишется */
         /* Финал модуля (залогинен, не про-модуль): панель подсказок + золотой билет */
         finalTicket={!isPro && user && lessons.length > 0 &&
           playingLessonId === lessons[lessons.length - 1].id
@@ -212,6 +151,8 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
         starsEligible={!isPro && lessons.length > 2 &&
           playingLessonId !== lessons[0].id &&
           playingLessonId !== lessons[lessons.length - 1].id}
+        /* Урок-слово: впервые в памяти → «Новое слово во временной памяти» в итоге */
+        memoryWord={lessonWordOf(lessons, playingLessonId)}
         onClose={() => setPlayerData(null)}
         onSummaryClose={async () => {
           if (playingLessonId) {
@@ -221,7 +162,12 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             if (!wasDone) {
               const l = lessons.find(x => x.id === playingLessonId)
               if (l) setJustCompleted({ id: l.id, xp: l.lessonXp ?? 0 })
+              // Урок без XP — полёта не будет, «минуты» спросим после паузы
+              if (l && !(l.lessonXp > 0)) setTimeout(askMinutesOnce, 1500)
             }
+            // Гость прошёл урок-слово — слово в его локальную память (у
+            // залогиненного это делает серверный триггер)
+            if (!user) seedGuestWordOf(lessons, playingLessonId)
             // Финальный урок = модуль пройден: пометка недели для попапа
             // «доступна супергонка». Про-модуль — не в счёт (он сам про гонку)
             if (!isPro && lessons.length > 0 && playingLessonId === lessons[lessons.length - 1].id) {
@@ -237,14 +183,11 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           // Ждём пересчёт приоритетов ДО закрытия плеера — граф отрисуется
           // сразу с готовыми полосками, без скачка UI на глазах пользователя
           const map = await refreshPriorities()
-          // Легенда — когда диагностика впервые дала приоритеты, и снова
-          // после пересдачи «с обновлением» (карта знаний перезаписана).
-          // «Без записи» (silent) — явно исключаем: раньше !seen срабатывал
-          // даже в этом режиме (если легенду ещё не видел), хотя пользователь
-          // прямо выбрал «не обновлять» — попап всё равно вылезал
+          // Легенда — когда диагностика впервые дала приоритеты (пересдача
+          // теперь обычное прохождение: выбора «без записи» больше нет)
           const seen = !!localStorage.getItem(LEGEND_SEEN_KEY)
-          dbg('[LEGEND] приоритетов:', map?.size ?? 'null', 'уже видел:', seen, 'режим:', statsMode)
-          if (map?.size > 0 && statsMode !== 'silent' && (!seen || statsMode === 'update')) {
+          dbg('[LEGEND] приоритетов:', map?.size ?? 'null', 'уже видел:', seen)
+          if (map?.size > 0 && !seen) {
             setShowLegend(true)
           }
           setPlayerData(null)
@@ -320,6 +263,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           completedIds={completedIds}
           priorities={priorities}
           stars={stars}
+          memory={memory}
           unlocked={unlocked}
           onUnlock={() => { unlockModule(curriculumId); setUnlocked(true) }}
           animHold={showLegend} /* пока попап открыт — вся анимация графа на паузе */
@@ -328,7 +272,9 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           onFlightDone={() => {
             setJustCompleted(null)
             setPostLegend(false)
+            // «Сколько минут в день?» (один раз) — после анимации и окна «Путь начался»
             if (takeFirstDay()) setFirstDayOpen(true)
+            else askMinutesOnce()
           }}
           onResetLesson={handleResetLesson}
           onMarkDoneLesson={handleMarkLessonDone}
@@ -351,7 +297,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           /* Старт и Финал модуля сервер не тарифицирует — надпись о стоимости честная */
           energyFree={lessons.length > 0 &&
             (launchId === lessons[0].id || launchId === lessons[lessons.length - 1].id)}
-          onStart={async (data, mode) => {
+          onStart={async (data) => {
             // Энергия: сервер решает, бесплатный урок или -1; при нуле —
             // пейволл вместо плеера
             const res = await startLesson(launchId)
@@ -368,14 +314,13 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             }
             setPlayingLessonId(launchId)
             setLaunchId(null)
-            setStatsMode(mode ?? null)
             setPlayerData(data)
           }}
           onClose={() => setLaunchId(null)}
         />
       )}
 
-      {firstDayOpen && <StreakStartOverlay onClose={() => setFirstDayOpen(false)} />}
+      {firstDayOpen && <StreakStartOverlay onClose={() => { setFirstDayOpen(false); askMinutesOnce() }} />}
 
       {noEnergy && (
         <EnergyPaywall nextAt={noEnergy.nextAt} onClose={() => setNoEnergy(null)} />

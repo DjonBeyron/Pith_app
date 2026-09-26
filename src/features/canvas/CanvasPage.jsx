@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { dbg } from '../../shared/lib/debug.js'
 import CanvasBoard from './CanvasBoard.jsx'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
-import CanvasToolsMenu from './CanvasToolsMenu.jsx'
+import CanvasPageToolsMenu from './CanvasPageToolsMenu.jsx'
 import LessonIoPanel from './lesson-io/LessonIoPanel.jsx'
 import BatchGeneratePanel from './batch-gen/BatchGeneratePanel.jsx'
 import CanvasHeaderActions from './CanvasHeaderActions.jsx'
@@ -17,15 +17,14 @@ import { useTeacherSettings } from './useTeacherSettings.js'
 import { useCanvasSave } from './useCanvasSave.js'
 import { useCanvasDirty } from './useCanvasDirty.js'
 import { useLessonModule } from './useLessonModule.js'
-import { loadScript } from '../../shared/lib/lessonsApi.js'
+import { useCanvasLessonLoad } from './useCanvasLessonLoad.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
-import { setLastEditedLesson } from '../../shared/lib/lastEditedLesson.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
 // module — { id, title, isPro } модуля, из схемы которого открыли урок:
 // по нему «назад» возвращает в этот модуль (ShellV2), в том числе после
 // перезагрузки — модуль лежит в памяти последнего урока
-export default function CanvasPage({ lessonId, moduleLessons = [], module = null, onBack, onOpenProduction }) {
+export default function CanvasPage({ lessonId, moduleLessons = [], module = null, onBack, onOpenProduction, onOpenCards }) {
   // Уроки модуля для привязки ответов (анализ знаний) — без урока, который редактируем.
   // useMemo — иначе новый массив на КАЖДЫЙ рендер CanvasPage (клик по XP-полю,
   // обновление syncStatus и т.п.) срывал бы React.memo у всех CanvasNode
@@ -48,10 +47,6 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // открывал бы меню заново, и повторное нажатие ничего не закрывало
   const menuClosedAt = useRef(0)
   const { isAdmin } = useAdmin()
-  const [title,       setTitle]       = useState('')
-  const [loading,     setLoading]     = useState(!!lessonId)
-  const [serverNodes, setServerNodes] = useState(null)
-  const [serverZones, setServerZones] = useState([])
   const [panelNodes,  setPanelNodes]  = useState([])
   // Инструмент «Зона» (шапка канваса): рисует рамку с подписью вокруг группы
   // нод — чисто визуальная разметка для автора, см. features/canvas/zones/.
@@ -61,16 +56,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // отмеченные типы плюс особый режим «не загруженные». Что не проходит
   // фильтр — притухает, оставаясь на своём месте со связями
   const filter = useCanvasFilter(panelNodes, lessonId)
-  const [lessonXp,    setLessonXp]    = useState(0)
   // Меняется при «Обновить с сервера» — форсирует remount CanvasBoard (через
   // key), чтобы он заново прочитал initialNodes вместо своего внутреннего
   // localStorage-черновика (см. handleResetToServer)
   const [resetTick,   setResetTick]   = useState(0)
-  // Видимая на любом устройстве строка статуса синхронизации (без включения
-  // «Активировать дебаг» — на свежем компьютере без кэша дебаг тоже выключен
-  // по умолчанию). Помогает увидеть расхождение id/числа нод между
-  // компьютерами прямо в интерфейсе, без консоли разработчика
-  const [syncStatus,  setSyncStatus]  = useState('')
   const nodesRef = useRef([])
   const zonesRef = useRef([])
   // nodes/offset/scale живут внутри CanvasBoard — «Очистить»/«В начало» дотягиваются
@@ -104,6 +93,11 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
     prepareForSave,
     clearDraft: clearTeacherDraft,
   } = useTeacherSettings(lessonId)
+
+  // Загрузка урока с сервера и её состояния — useCanvasLessonLoad.js
+  const {
+    title, setTitle, loading, serverNodes, serverZones, lessonXp, setLessonXp, syncStatus, setSyncStatus,
+  } = useCanvasLessonLoad(lessonId, module, applyServerData)
 
   // Сохранение урока на сервер — useCanvasSave.js
   const { isSaving, handleSave: saveToServer } = useCanvasSave({
@@ -156,32 +150,6 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
     syncDirty()
   }, [syncDirty])
 
-  useEffect(() => {
-    if (!lessonId) return
-    loadScript(lessonId)
-      .then(data => {
-        const nodes = data?.script?.nodes ?? []
-        dbg('[CANVAS] loaded lesson', lessonId, nodes.length, 'nodes, title:', data?.title)
-        if (nodes.length) dbg('[CANVAS] node types:', nodes.map(n => n.type).join(', '))
-        setTitle(data?.title ?? '')
-        // Запоминаем урок для всплывашки «продолжить редактирование» при
-        // следующем запуске приложения (ResumeEditingToast.jsx)
-        setLastEditedLesson({ id: lessonId, title: data?.title, module })
-        setLessonXp(data?.script?.lessonXp ?? 0)
-        applyServerData(data?.script)
-        if (nodes.length) setServerNodes(nodes)
-        setServerZones(data?.script?.zones ?? [])
-        const stamp = new Date().toTimeString().slice(0, 8)
-        setSyncStatus(`Загружено с сервера: ${nodes.length} нод · id ${lessonId.slice(0, 8)} · ${stamp}`)
-      })
-      .catch(e => {
-        dbg('[CANVAS ERROR] loadScript', e?.message)
-        setSyncStatus('✗ Ошибка загрузки: ' + (e?.message ?? '?'))
-      })
-      .finally(() => setLoading(false))
-  // applyServerData is stable (defined outside render), safe to omit from deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lessonId])
 
   // Переход в продакшен-список — те же данные, другой вид: сохраняем перед
   // переключением (как по кнопке «Сохранить»), иначе список открыл бы
@@ -195,6 +163,11 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
       return
     }
     onOpenProduction(lessonId)
+  }
+  // «Карточки» (колода повтора) — так же, после сохранения урока
+  async function switchToCards() {
+    try { await handleSave() } catch { return }
+    onOpenCards(lessonId)
   }
 
   // Кнопка на случай, когда локальный черновик застрял (например, урок
@@ -235,7 +208,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           setIoZones={setIoZones}
           setShowBatchGen={setShowBatchGen} boardApiRef={boardApiRef} lessonId={lessonId} title={title}
           lessonXp={lessonXp} setLessonXp={setLessonXp} markDirty={markDirty}
-          switchToProduction={switchToProduction} hasUnsynced={hasUnsynced}
+          switchToProduction={switchToProduction} switchToCards={switchToCards} hasUnsynced={hasUnsynced}
           hasUnsyncedLogo={hasUnsyncedLogo} setShowPanel={setShowPanel}
           zoneToolActive={zoneToolActive} onToggleZoneTool={() => setZoneToolActive(v => !v)}
         />
@@ -243,29 +216,12 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
 
       {syncStatus && <div className="canvasSyncStatus">{syncStatus}</div>}
 
-      <CanvasToolsMenu
+      <CanvasPageToolsMenu
         pos={toolsPos}
         onClose={() => { menuClosedAt.current = Date.now(); setToolsPos(null) }}
-        items={[
-          ...(filter.activeCount
-            ? [{ label: `Сбросить фильтры (${filter.activeCount})`,
-                 title: 'Показать все ноды',
-                 onClick: filter.reset }]
-            : []),
-          { label: 'В начало', title: 'Прокрутить холст к первой ноде',
-            onClick: () => boardApiRef.current?.focusStart() },
-          { label: 'Раздвинуть', title: 'Развести ноды, если они наехали друг на друга',
-            onClick: () => boardApiRef.current?.spreadNodes() },
-          { label: 'Сжать раскладку', title: 'Собрать длинную ленту нод в несколько рядов — по сценарию, слева направо',
-            onClick: () => boardApiRef.current?.compactLayout() },
-          { label: debugLinks ? '✓ Отладка связей' : 'Отладка связей',
-            title: 'Показать связи прямыми линиями поверх графа и сводку по ним',
-            onClick: () => setDebugLinks(v => !v) },
-          { label: '↻ Вернуть данные с сервера', title: 'Отменить несохранённые локальные правки',
-            onClick: handleResetToServer },
-          { label: 'Очистить все ноды', danger: true, title: 'Удалить все ноды урока',
-            onClick: () => boardApiRef.current?.clearAll() },
-        ]}
+        filter={filter} boardApiRef={boardApiRef}
+        debugLinks={debugLinks} setDebugLinks={setDebugLinks}
+        onResetToServer={handleResetToServer}
       />
 
       {ioNodes && (

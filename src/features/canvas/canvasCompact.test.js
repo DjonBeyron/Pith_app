@@ -54,8 +54,10 @@ describe('сжатие раскладки', () => {
   })
 
   it('доступно из меню холста', () => {
-    expect(read('./CanvasPage.jsx')).toContain("label: 'Сжать раскладку'")
-    expect(read('./CanvasPage.jsx')).toContain('boardApiRef.current?.compactLayout()')
+    // Меню «⋯» с пунктами — CanvasPageToolsMenu.jsx (вынесено из CanvasPage)
+    expect(read('./CanvasPage.jsx')).toContain('<CanvasPageToolsMenu')
+    expect(read('./CanvasPageToolsMenu.jsx')).toContain("label: 'Сжать раскладку'")
+    expect(read('./CanvasPageToolsMenu.jsx')).toContain('boardApiRef.current?.compactLayout()')
     expect(read('./useCanvasBoardApi.js')).toContain("dbg('[LAYOUT] сжатие:'")
   })
 })

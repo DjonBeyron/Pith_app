@@ -46,7 +46,24 @@ export async function deleteLesson(id) {
   dbg('[DB OK] lesson deleted', id)
 }
 
-export async function saveScript(id, script) {
+// Колоду карточек повтора (script.reviewCards) правит только своя страница
+// (features/reviewCards, saveReviewCards ниже). Редакторы урока — канвас и
+// продакшен — пишут script целиком и о колоде не знают: чтобы их «Сохранить»
+// её не стёрло, недостающий reviewCards подтягиваем с сервера перед записью.
+// Не прочиталось — не сохраняем вовсе: лучше ошибка, чем молча стёртая колода
+async function keepReviewCards(id, script) {
+  if (!script || 'reviewCards' in script) return script
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('cards:script->reviewCards')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) { dbg('[DB ERROR] lesson reviewCards read', error.message); throw error }
+  return data?.cards ? { ...script, reviewCards: data.cards } : script
+}
+
+export async function saveScript(id, rawScript) {
+  const script = await keepReviewCards(id, rawScript)
   const nodeCount = script?.nodes?.length ?? 0
   dbg('[DB WRITE] lesson script', id, nodeCount, 'nodes')
   // .select() обязателен: без него UPDATE, которому RLS тихо не дала совпасть
@@ -66,7 +83,8 @@ export async function saveScript(id, script) {
   dbg('[DB OK] lesson script saved', id)
 }
 
-export async function saveLesson(id, { title, script }) {
+export async function saveLesson(id, { title, script: rawScript }) {
+  const script = await keepReviewCards(id, rawScript)
   const nodeCount = script?.nodes?.length ?? 0
   // Подробный снимок того, что реально уходит на сервер — file_id/r2Url по
   // каждой ноде с медиа, чтобы ловить именно расхождения файлов при сохранении
@@ -118,4 +136,47 @@ export async function loadScript(id) {
   if (!data) { dbg('[DB] lesson недоступен (закрыт или удалён)', id); return null }
   dbg('[DB OK] lesson loaded', id, data?.script?.nodes?.length ?? 0, 'nodes')
   return data
+}
+
+// Колода карточек повтора урока (этап 3 системы повторения, PROJECT.md →
+// «Колоды»): меняем ТОЛЬКО script.reviewCards — ноды и настройки урока берём
+// свежими с сервера, чтобы не затереть правки, сделанные в канвасе/продакшене
+export async function saveReviewCards(id, cards) {
+  dbg('[DB WRITE] lesson reviewCards', id, cards.length, 'cards')
+  const { data: cur, error: readErr } = await supabase
+    .from('lessons')
+    .select('script')
+    .eq('id', id)
+    .maybeSingle()
+  if (readErr) { dbg('[DB ERROR] reviewCards read', readErr.message); throw readErr }
+  if (!cur) throw new Error('Урок не найден или недоступен')
+  const script = { ...(cur.script ?? { nodes: [] }), reviewCards: cards }
+  const { data, error } = await supabase
+    .from('lessons')
+    .update({ script })
+    .eq('id', id)
+    .select('id')
+  if (error) { dbg('[DB ERROR] reviewCards save', error.message); throw error }
+  if (!data?.length) throw new Error('Сохранение не применилось: сервер не подтвердил запись (0 строк изменено)')
+  dbg('[DB OK] reviewCards saved', id)
+}
+
+// Лёгкий список уроков для карты памяти («Моё обучение»): название и есть ли
+// колода повтора (id первой карточки или null) — без самих карточек
+export async function listLessonDeckFlags() {
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('id, title, deck:script->reviewCards->0->>id')
+  if (error) { dbg('[DB ERROR] lesson deck flags', error.message); throw error }
+  return data ?? []
+}
+
+// Колоды всех уроков — для отчёта «Колоды» в админке и плеера повторения. Из
+// скрипта берём только JSON-пути колоды и учителя урока: ноды уроков не тянем
+export async function listLessonCards() {
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('id, title, cards:script->reviewCards, teacherMode:script->>teacherMode, teacherName:script->>teacherName, teacherLogo:script->>teacherLogo, teacherLogoCrop:script->teacherLogoCrop')
+  if (error) { dbg('[DB ERROR] lesson cards list', error.message); throw error }
+  return data ?? []
 }

@@ -2,6 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 import { appendVisit, forgetNodeKeys } from './graphPlayerVisits.js'
+import { useGraphStepControls } from './useGraphStepControls.js'
 import { pLog } from '../../shared/lib/debug.js'
 
 // How long "teacher is typing" dots show before a new node appears
@@ -92,7 +93,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   // тикает таймер-триггер текущей
   const scheduledRef = useRef(null)
   // Сколько миллисекунд осталось «докрутить» запланированному действию, если
-  // время двигают руками (дебаг-тулбар, stepTime ниже). На обычной паузе
+  // время двигают руками (дебаг-тулбар, stepTime в useGraphStepControls.js). На обычной паузе
   // таймеры убиты, и без этого счётчика «печатает…» висело бы вечно
   const pendingMsRef = useRef(0)
   const pausedRef = useRef(paused)
@@ -254,62 +255,12 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     onFinishRef.current?.()
   }, [])  
 
-  // Шаг «вперёд», когда переход уже назначен (тикает «печатает…» или лежит
-  // отложенным из-за паузы) — показываем следующее сообщение сейчас же.
-  // Возвращает true, если было что показать
-  const revealNow = useCallback(() => {
-    const planned = scheduledRef.current
-    if (!planned) return false
-    clearTimers()
-    scheduledRef.current = null
-    if (planned.type === 'reveal') {
-      const next = nodeMapRef.current[planned.nodeId]
-      if (next) revealNode(next)
-      return !!next
-    }
-    const n = nodeMapRef.current[planned.nodeId]
-    const t = (n?.triggers ?? []).find(tr => tr.if === 'timer' && tr.then)
-    if (!t) return false
-    const key = `${n.id}:timer`
-    if (firedRef.current.has(key)) return false
-    firedRef.current.add(key)
-    scheduleReveal.current(t.then, true)
-    return true
-  }, [])
-
-  // Дебаг-тулбар двигает время руками (±33/±100мс, см. debugMedia.js). Пауза
-  // убила таймеры сценария, поэтому «печатает…» само по себе уже не кончится:
-  // сколько ни жми «вперёд», индикатор крутится бесконечно (у него CSS-анимация
-  // с iteration-count: infinite), а следующее сообщение не приходит. Здесь те же
-  // миллисекунды списываются и с отсчёта сценария — дошли до нуля, показываем
-  // ноду, ровно как это сделал бы живой таймер
-  const stepTime = useCallback(ms => {
-    if (!scheduledRef.current) return false
-    pendingMsRef.current -= ms
-    if (pendingMsRef.current > 0) return false
-    return revealNow()
-  }, [revealNow])
-
-  // Шаг «назад»: снимаем последнее сообщение и разрешаем пройти этот кусок
-  // заново — забываем сработавшие триггеры снятой ноды И той, что снова стала
-  // последней (иначе её нельзя было бы «ответить» ещё раз, дедуп firedRef не
-  // пустил бы). Возвращает обе ноды: вызывающий откатывает по ним ответы и XP
-  const stepBack = useCallback(() => {
-    const prev = visibleRef.current
-    if (prev.length <= 1) return null
-    const removed = prev[prev.length - 1]
-    const last    = prev[prev.length - 2]
-    clearTimers()
-    scheduledRef.current = null
-    finishedRef.current = false
-    for (const key of [...firedRef.current]) {
-      if (key.startsWith(`${removed.id}:`) || key.startsWith(`${last.id}:`)) firedRef.current.delete(key)
-    }
-    setPendingNode(null)
-    setIsWaiting(false)
-    setVisibleNodes(p => p.slice(0, -1))
-    return { removed, last }
-  }, [])
+  // Пошаговое управление (админ, дебаг): «показать сейчас», «сдвинуть время»,
+  // «шаг назад» — useGraphStepControls.js
+  const { revealNow, stepTime, stepBack } = useGraphStepControls({
+    scheduledRef, nodeMapRef, firedRef, scheduleReveal, pendingMsRef, visibleRef, finishedRef,
+    clearTimers, revealNode, setPendingNode, setIsWaiting, setVisibleNodes,
+  })
 
   const nodesKey = nodes.map(n => n.id).join(',')
   // useLayoutEffect, а НЕ useEffect: заполнение visibleNodes (особенно при

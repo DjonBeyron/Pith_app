@@ -1,9 +1,9 @@
-import { Fragment, useState, useRef } from 'react'
+import { Fragment, useState, useRef, useLayoutEffect } from 'react'
 import ProductionRow from './ProductionRow.jsx'
 import ProductionFanRow from './ProductionFanRow.jsx'
 import InsertNodeButton from './InsertNodeButton.jsx'
 import { applyTypeChange, setLastNodeType } from '../canvas/nodeDefaults.js'
-import { makeNode, NODE_SLOT, renumber } from '../canvas/nodeGraph.js'
+import { makeNode, NODE_SLOT, renumber, applyNodePatch } from '../canvas/nodeGraph.js'
 import { getVariantList } from '../canvas/nodeVariants.js'
 import { dbg } from '../../shared/lib/debug.js'
 import {
@@ -84,8 +84,15 @@ export default function ProductionList({
     return makeNode(0, maxX + NODE_SLOT, y)
   }
 
+  // Правка поля ноды: patch — объект или функция от актуальной ноды
+  // (applyNodePatch). Считаем от последнего отправленного списка, а не от
+  // пропса: несколько патчей подряд до перерисовки не затирают друг друга
+  const nodesRef = useRef(nodes)
+  useLayoutEffect(() => { nodesRef.current = nodes }, [nodes])
   function updateNode(id, patch) {
-    onNodesChange(nodes.map(n => (n.id === id ? { ...n, ...patch } : n)))
+    const next = nodesRef.current.map(n => (n.id === id ? applyNodePatch(n, patch) : n))
+    nodesRef.current = next
+    onNodesChange(next)
   }
 
   // Вставляет новую ноду СРАЗУ ПОСЛЕ afterId — патчит только один триггер

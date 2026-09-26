@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import PushToggle from '../profile/PushToggle.jsx'
 import InstallSlides from '../../shared/ui/InstallSlides.jsx'
+import MemorySettings from '../learn/MemorySettings.jsx'
 
-export default function SettingsTab() {
+// Настройки — единственная шестерёнка приложения (в профиле и у гостя).
+// learnView / onLearnChanged — раздел «Повторение» (MemorySettings)
+export default function SettingsTab({ learnView = null, onLearnChanged = () => {}, isGuest = false }) {
   // Та же инструкция, что при первом запуске (InstallPrompt.jsx), но
   // открывается вручную в любой момент — без ограничений «раз за всё время»
   const [showInstall, setShowInstall] = useState(false)
@@ -17,6 +20,8 @@ export default function SettingsTab() {
           Как установить на телефон
         </button>
       </section>
+
+      <MemorySettings view={learnView} isGuest={isGuest} onChanged={onLearnChanged} />
 
       <section className="settingsSection">
         <h2 className="settingsSectionTitle">Уведомления</h2>

@@ -1,0 +1,41 @@
+/* Как появляется «Моя память» (утверждённый макет): карточка «Новое слово во
+   временной памяти» в итоге урока-слова (player/SummaryMemoryCard.jsx) и окно
+   первого входа во вкладку (learn/MemoryIntro.jsx) */
+
+/* ── Итог урока: новое слово ───────────────────────────────────────── */
+.summaryMemCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #262b33;
+  border-radius: 16px;
+  background: #14171c;
+  text-align: left;
+}
+.summaryMemLabel { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8b95a1; }
+/* Плашка слова — отдельным классом (без предков): её копия летит к вкладке
+   «Память» уже вне карточки (memoryFresh.js) */
+.summaryMemWord {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-left: 4px solid #8a939e;
+  border-radius: 10px;
+  background: #1a1d22;
+  color: #eef1f4;
+  font-size: 18px;
+  font-weight: 800;
+}
+.summaryMemText { margin: 0; font-size: 13px; line-height: 1.4; color: #8b95a1; }
+
+/* ── Первый вход во вкладку ────────────────────────────────────────── */
+.memIntro { gap: 12px; }
+.memIntroText { margin: 0; font-size: 14px; line-height: 1.45; color: #8b95a1; }
+.memIntroStrong { font-weight: 700; color: #eef1f4; }
+.memIntroLv1 { color: #8a939e; }
+.memIntroLv2 { color: #e2cd78; }
+.memIntroLv3 { color: #b6fe3b; }
+.memIntroPerm { color: #a78bfa; }
+/* Кнопка — как «Повторить», но без пульса: окно и так в фокусе */
+.memIntroCta { margin-top: 4px; animation: none; }

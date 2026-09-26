@@ -17,6 +17,7 @@ export const TRIGGERS = [
   { value: 'streak_milestone_eve', label: 'завтра веха серии (вечер, по местному времени)' },
   { value: 'energy_full', label: 'энергия восстановилась (каждый час)' },
   { value: 'level_up', label: 'достиг нового уровня' },
+  { value: 'review_due', label: 'повторение ждёт (раз в день, в привычный час; {words} {words_label} {minutes})' },
 ]
 
 export async function listTemplates() {

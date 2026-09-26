@@ -42,3 +42,14 @@ export function usePlayerFiles(nodes, propFiles, live = false) {
     return [...base, ...extraFiles.filter(f => !base.some(b => b.id === f.id))]
   }, [live, propFiles, snapshot, extraFiles])
 }
+
+// Файлы урока + то, что уже прогрето (blobMap из usePlayerPreload): blob-ссылка,
+// постер и мета голосового (analyzeAudioMeta: duration/waveformData/metaDone).
+// Вынесено из LessonPlayer.jsx (тот упирался в потолок 400 строк)
+export function withBlobs(files, blobMap) {
+  return files.map(f => {
+    const entry = blobMap[f.id]
+    if (!entry) return f
+    return { ...f, blobUrl: entry.blobUrl, posterUrl: entry.posterUrl ?? null, duration: entry.duration ?? null, waveformData: entry.waveformData ?? null, metaDone: !!entry.metaDone }
+  })
+}

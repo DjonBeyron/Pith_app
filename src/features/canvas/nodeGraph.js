@@ -41,6 +41,14 @@ export function renumber(list) {
   return list.map(n => ({ ...n, seq: seqMap.get(n.id) }))
 }
 
+// Патч одной ноды: объект полей ИЛИ функция (node) => объект. Функцию шлёт
+// NodeContentEditor.updateTypeData — патч считается от актуальной ноды
+// (PROJECT.md «Гонка обновлений typeData»); просто распаковать её нельзя —
+// у функции нет своих полей, правка молча терялась бы
+export function applyNodePatch(node, patch) {
+  return { ...node, ...(typeof patch === 'function' ? patch(node) : patch) }
+}
+
 // wantType — тип выбран в меню создания; без него берётся последний
 // использованный
 export function makeNode(seq, x, y, wantType) {

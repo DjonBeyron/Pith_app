@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback, forwardRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, forwardRef } from 'react'
 import CanvasBoardNode from './CanvasBoardNode.jsx'
 import CanvasConnections from './CanvasConnections.jsx'
 import CanvasSignalConnections from './CanvasSignalConnections.jsx'
@@ -13,15 +13,14 @@ import { useCanvasNodeOps } from './useCanvasNodeOps.js'
 import { useCanvasBoardState } from './useCanvasBoardState.js'
 import { useCanvasPortDrag } from './useCanvasPortDrag.js'
 import { useCanvasSignalPortDrag } from './useCanvasSignalPortDrag.js'
-import { renumber } from './nodeGraph.js'
+import { renumber, applyNodePatch } from './nodeGraph.js'
 import { addCenterNode } from './addCenterNode.js'
 import { useCanvasBoardApi } from './useCanvasBoardApi.js'
 import { useCanvasZoom } from './useCanvasZoom.js'
 import { useCanvasTouch } from './useCanvasTouch.js'
 import { FAR_ZOOM } from './canvasZoom.js'
-import NodeTypeMenu from './NodeTypeMenu.jsx'
-import CanvasZoomBadge from './CanvasZoomBadge.jsx'
-import CanvasSelectionToolbar from './CanvasSelectionToolbar.jsx'
+import CanvasBoardChrome from './CanvasBoardChrome.jsx'
+import { useBoardRect } from './useBoardRect.js'
 import { useCanvasGroupDelete } from './useCanvasGroupDelete.js'
 import CanvasLinkDebug, { CanvasDebugOverlay } from './CanvasLinkDebug.jsx'
 import { linkDiagnostics } from './canvasLinkDebug.js'
@@ -76,11 +75,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // когда создаём с конкретного выхода развилки
   const [typeMenu, setTypeMenu] = useState(null)
 
-  const boardRef     = useRef(null)
-  // Кэш getBoundingClientRect() холста: сам вызов форсирует layout, а на
-  // колесе и протяжке он летел бы на каждое событие. Обновляется на resize,
-  // и дополнительно перед каждой протяжкой — см. measureBoard ниже
-  const boardRectRef = useRef({ left: 0, top: 0 })
+  // Доска и кэш её прямоугольника (+ measureBoard перед протяжкой) — useBoardRect.js
+  const { boardRef, boardRectRef, measureBoard } = useBoardRect()
 
   // Мышь могли отпустить за пределами холста — тогда handleMouseUp доски не
   // сработает, а запрет наведения/кликов остался бы висеть на body
@@ -91,26 +87,6 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       window.removeEventListener('mouseup', releaseTextSelection)
       window.removeEventListener('blur', releaseTextSelection)
     }
-  }, [])
-
-  // Пересчёт кэша прямоугольника доски. Нужен не только на resize: доска
-  // может СДВИНУТЬСЯ без изменения размера (появилась строка статуса,
-  // страница прокрутилась) — ResizeObserver такого не замечает, а координаты
-  // мыши считаются именно от него, и протяжка порта уезжает мимо курсора
-  const measureBoard = useCallback(() => {
-    const el = boardRef.current
-    if (el) boardRectRef.current = el.getBoundingClientRect()
-  }, [])
-
-  useEffect(() => {
-    const el = boardRef.current
-    if (!el) return
-    function measure() { boardRectRef.current = el.getBoundingClientRect() }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    window.addEventListener('resize', measure)
-    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
   }, [])
 
   // Выделение нескольких нод (рамкой по левой кнопке или Shift+клик) —
@@ -124,8 +100,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // нужна для нод, патчащихся в несколько приёмов подряд, см. PROJECT.md
   // «Гонка обновлений typeData». renumber: патч мог поменять триггеры → граф
   const updateNode = useCallback((id, patch) =>
-    setNodes(prev => renumber(prev.map(n =>
-      n.id === id ? { ...n, ...(typeof patch === 'function' ? patch(n) : patch) } : n))), [setNodes])
+    setNodes(prev => renumber(prev.map(n => (n.id === id ? applyNodePatch(n, patch) : n)))), [setNodes])
 
   // Тянем одну ноду — двигается она одна; тянем ноду из группового выделения
   // (2+ нод) — двигается вся группа на тот же dx/dy
@@ -209,7 +184,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
       x: (clientX - rect.left - offset.x) / scale,
       y: (clientY - rect.top  - offset.y) / scale,
     }
-  }, [offset, scale])
+  }, [offset, scale, boardRectRef])
 
   // Протяжка соединения от выходного кружка ноды — useCanvasPortDrag.js
   const { portDrag, startPortDrag, handlePortMouseMove, handlePortMouseUp } =
@@ -358,41 +333,14 @@ const CanvasBoard = forwardRef(function CanvasBoard({
         <CanvasDebugOverlay debug={linkDebug} scale={scale} offset={offset} />
       )}
 
-      <CanvasZoomBadge scale={scale} onReset={resetZoom} />
-
-      <CanvasSelectionToolbar
-        count={selectedIds.size}
-        confirming={confirmGroupDelete}
-        onAskDelete={askGroupDelete}
-        onDelete={deleteSelectedGroup}
-        onCancel={cancelGroupDelete}
+      <CanvasBoardChrome
+        scale={scale} onResetZoom={resetZoom}
+        selection={{ count: selectedIds.size, confirming: confirmGroupDelete,
+          onAskDelete: askGroupDelete, onDelete: deleteSelectedGroup, onCancel: cancelGroupDelete }}
+        typeMenu={typeMenu} setTypeMenu={setTypeMenu}
+        insertFromPort={insertFromPort} insertSignalFromPort={insertSignalFromPort} insertAfterNode={insertAfterNode}
+        marquee={marquee} onAddNode={addNode}
       />
-
-      <NodeTypeMenu
-        pos={typeMenu?.pos}
-        onClose={() => setTypeMenu(null)}
-        onPick={type => {
-          if (!typeMenu) return
-          if (typeMenu.triggerIdx != null) insertFromPort(typeMenu.nodeId, typeMenu.triggerIdx, type)
-          else if (typeMenu.slotIndex != null) insertSignalFromPort(typeMenu.nodeId, typeMenu.slotIndex, type)
-          else insertAfterNode(typeMenu.nodeId, type)
-          setTypeMenu(null)
-        }}
-      />
-
-      {marquee && (
-        <div
-          className="canvasMarquee"
-          style={{
-            left: Math.min(marquee.x0, marquee.x1),
-            top: Math.min(marquee.y0, marquee.y1),
-            width: Math.abs(marquee.x1 - marquee.x0),
-            height: Math.abs(marquee.y1 - marquee.y0),
-          }}
-        />
-      )}
-
-      <button className="canvasAddBtn" onClick={addNode}>+ Нода</button>
     </div>
   )
 })

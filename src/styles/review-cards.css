@@ -1,0 +1,117 @@
+/* Редактор колоды «Карточки повтора» (features/reviewCards). Шапка и список
+   нод — общие с продакшеном (production/list.css), здесь только своё:
+   предупреждения, мини-превью карточек, шапка предпросмотра. Урок слева —
+   review-cards-source.css */
+
+.rcTitle {
+  flex: 1;
+  min-width: 0;
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rcStrip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1a1c22;
+  flex-shrink: 0;
+}
+
+.rcWarn {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #e0b25a;
+  background: rgba(224, 178, 90, 0.08);
+  border: 1px solid rgba(224, 178, 90, 0.25);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.rcWarnSoft { color: #aaa; background: transparent; border-color: #2a2c33; }
+
+.rcThumbs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.rcThumb {
+  flex: 0 0 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #111317;
+  border: 1px solid #2a2c33;
+  border-radius: 10px;
+  color: #aaa;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rcThumb:hover { background: #16181d; }
+.rcThumb:disabled { opacity: 0.5; cursor: default; }
+.rcThumbBars { display: flex; gap: 2px; height: 4px; }
+.rcThumbBars i { flex: 1; border-radius: 2px; }
+.rcThumbHead { font-size: 12px; font-weight: 700; color: #ddd; }
+.rcThumbText {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #888;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.rcThumbMeta { font-size: 10px; color: #666; margin-top: auto; }
+.rcThumbActive {
+  border-color: #3a5a2a;
+  background: #141c12;
+  animation: rcThumbIn 0.6s ease;
+}
+.rcThumbActive .rcThumbHead { color: #b6fe3b; }
+.rcThumbWarn .rcThumbHead { color: #e0b25a; }
+.rcThumbAdd {
+  flex-basis: 110px;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 13px;
+  border-style: dashed;
+}
+@keyframes rcThumbIn {
+  from { box-shadow: 0 0 0 3px rgba(182, 254, 59, 0.55); }
+  to   { box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rcThumbActive { animation: none; }
+}
+
+.rcActions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.rcEmpty {
+  padding: 32px 16px;
+  color: #777;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Предпросмотр карточки (ReviewCardPreview.jsx) — поверх редактора тот же
+   слой .reviewScreen и рамка .reviewCardFrame, что у ученика в повторении */
+.rcPreviewHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+  flex-shrink: 0;
+}
+.rcPreviewTitle { flex: 1; font-size: 14px; font-weight: 600; color: #b6fe3b; }

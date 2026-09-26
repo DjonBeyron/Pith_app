@@ -22,6 +22,8 @@
   text-transform: uppercase;
 }
 
+.settingsMemoryWeek { margin: 0; font-size: 13px; color: #9aa3ad; line-height: 1.45; }
+
 .settingsSectionNote {
   margin: 0;
   font-size: 12px;

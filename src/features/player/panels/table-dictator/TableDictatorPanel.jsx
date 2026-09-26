@@ -4,16 +4,14 @@ import { useTableDictatorRaf } from './useTableDictatorRaf.js'
 import { useTableDictatorAutostart } from './useTableDictatorAutostart.js'
 import TableDictatorView from './TableDictatorView.jsx'
 import { logDictatorConfig, logFileResolution, logAudioError } from './dictatorDebug.js'
-import { evaluateDictator } from './dictatorCheck.js'
 import { tracePanelSync, tracePanelPaint, traceTableEdge } from '../tracePanelSync.js'
 import { useTableToChat } from '../useTableToChat.js'
-import { schedulePostAudioCheck } from './dictatorPostAudio.js'
 import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 import { isDebugPaused } from '../../../debugTools/debugMedia.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
-import { rememberTap } from '../../xpAnchor.js'
 import { makeDictatorSlideDown } from './dictatorSlideDown.js'
+import { onDictatorEnded, runDictatorCheck } from './dictatorFlow.js'
 import { useDictatorLegacyAssemble } from './useDictatorLegacyAssemble.js'
 import { resetDictatorRun } from './dictatorRunReset.js'
 import { useDictatorWordVoice } from './useDictatorWordVoice.js'
@@ -260,75 +258,23 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
     setShow, setHudVisible, setHighlighted, setRevealedIds, setPhase, setChipsVisible,
   })
 
+  // Конец аудио и проверка ответа — dictatorFlow.js (значения этого рендера)
   function handleEnded() {
-    cancelAnimationFrame(rafRef.current)   // сразу глушим RAF — иначе успеет перезаписать highlight
-    setHudVisible(false)
-    setPlaying(false)
-    prevActiveRef.current = new Set()
-    prevExtraRef.current  = new Set()
-    setHighlighted(new Set())
-    setActiveExtraKeys(new Set())
-    const assembled_now = assembledRef.current.join(' ').trim()
-    pLog(`[td-auto] ended assembled="${assembled_now}" hasExtras=${hasExtras} checkAt=${checkAt}`)
-
-    // checkAt-режим: клипы (слова/ячейки/проверка) могут стоять ПОСЛЕ конца аудио —
-    // дособираем их и планируем проверку (in) + закрытие (out) таймерами от конца аудио.
-    if (checkAt != null) {
-      schedulePostAudioCheck({
-        timeline, cells, shuffledExtras, extraFromAnswer, checkAt, checkOut, audioRef, timers,
-        rfxChipsRef, rfxCheckRef, rfxCloseRef, addedCellsRef, assembledRef,
-        setPhase, setChipsVisible, setAssembled, setExtrasAssembled,
-        setHighlighted, setUsedCells, setActiveExtraKeys, setRevealedIds, checkRef, closeRef,
-      })
-      return
-    }
-
-    if (hasExtras) {
-      setPhase('extras')
-      pLog(`[td-auto] → phase:extras`)
-      const id = setTimeout(() => {
-        setChipsVisible(true)
-        pLog(`[td-auto] chips visible`)
-      }, 450)
-      timers.current.push(id)
-    } else {
-      const trigger = (!answer || assembled_now.toLowerCase() === answer.toLowerCase())
-        ? 'table_correct' : 'table_wrong'
-      pLog(`[td-auto] no extras → trigger=${trigger}`)
-      const id = setTimeout(() => slideDown(trigger), 500)
-      timers.current.push(id)
-    }
+    onDictatorEnded({
+      rafRef, setHudVisible, setPlaying, prevActiveRef, prevExtraRef, setHighlighted,
+      setActiveExtraKeys, assembledRef, hasExtras, checkAt, timeline, cells, shuffledExtras,
+      extraFromAnswer, checkOut, audioRef, timers, rfxChipsRef, rfxCheckRef, rfxCloseRef,
+      addedCellsRef, setPhase, setChipsVisible, setAssembled, setExtrasAssembled, setUsedCells,
+      setRevealedIds, checkRef, closeRef, answer, slideDown,
+    })
   }
 
-  // Проверка (in-point слоя): только показать результат (зелёный/красный).
-  // Закрытие модуля запускает out-point слоя (closeModule) — либо задержка для легаси.
   function check() {
-    if (assembled.length === 0 && extrasAssembled.length === 0) {
-      pLog(`[td-auto] check SKIPPED — state empty (double-play reset?)`)
-      return
-    }
-    const { isCorrect } = evaluateDictator({ tokens, assembled, extrasAssembled, answer })
-    const trigger = isCorrect ? 'table_correct' : 'table_wrong'
-    closeTriggerRef.current = trigger
-    // Особый переход конкретного слова-ловушки (nodeVariants.js) — если в
-    // собранном ответе есть распознанный distractor
-    closeVariantRef.current = isCorrect
-      ? null
-      : distractors.find(d => extrasAssembled.some(t => t.value === d.text))?.id ?? null
-    setResult(isCorrect ? 'correct' : 'wrong')
-    // XP объявляем здесь же. Тапов в диктанте нет (фразу собирает таймлайн),
-    // поэтому запасная точка старта — бокс собранного ответа: единственное
-    // место, где ученик свой ответ и видел. Уйдёт ответ в переписку — цифра
-    // полетит от пузыря (xpAnchor.js). xpFiredRef: проверку запускают разные
-    // пути (RAF, хвост после аудио, легаси-таймер), награда одна на прогон
-    if (isCorrect && xpAmount > 0 && !xpFiredRef.current) {
-      xpFiredRef.current = true
-      const box = panelRef.current?.querySelector('.tdAssemblyBox')
-      if (box) rememberTap(box.getBoundingClientRect())
-      onXpEarned?.(xpAmount)
-    }
-    // Легаси (нет out-point у слоя проверки) — закрываем по задержке
-    if (checkOut == null) timers.current.push(setTimeout(() => closeModule(), checkDelay))
+    runDictatorCheck({
+      checkOut, timers, answer, assembled, extrasAssembled, tokens, closeTriggerRef,
+      closeVariantRef, distractors, setResult, xpAmount, xpFiredRef, panelRef, onXpEarned,
+      checkDelay, closeModule,
+    })
   }
 
   // Обратная анимация (out-point слоя проверки): модуль уезжает вниз за экран.

@@ -10,6 +10,7 @@
 @import './styles/feed-v2.css';
 @import './styles/feed-reactions-fx.css';
 @import './styles/feed-bubble-spoiler.css';
+@import './styles/feed-knowledge.css';
 @import './styles/feed-word-translate.css';
 @import './styles/feed-media.css';
 @import './styles/feed-swiper.css';
@@ -37,10 +38,14 @@
 @import './styles/lessons-chain.css';
 @import './styles/lessons-chain-nodes.css';
 @import './styles/lessons-chain-final.css';
+@import './styles/lessons-chain-final-xp.css';
+@import './styles/lessons-chain-final-ceremony.css';
 @import './styles/lessons-chain-textures.css';
 @import './styles/priority-legend.css';
 @import './styles/lesson-locked-hint.css';
 @import './styles/canvas/page.css';
+@import './styles/canvas/page-menus.css';
+@import './styles/canvas/page-debug.css';
 @import './styles/canvas/lesson-io.css';
 @import './styles/canvas/lesson-rules.css';
 @import './styles/canvas/batch-gen.css';
@@ -72,6 +77,8 @@
 @import './styles/canvas/drag.css';
 @import './styles/production/list.css';
 @import './styles/production/fan.css';
+@import './styles/review-cards.css';
+@import './styles/review-cards-source.css';
 @import './styles/player/layout.css';
 @import './styles/player/admin-edit.css';
 @import './styles/player/topbar.css';
@@ -123,6 +130,13 @@
 @import './styles/player/panels/push-prompt.css';
 @import './styles/player/modules/voice-record.css';
 @import './styles/player/hints.css';
+/* после стилей плеера: review.css переопределяет плеер внутри карточки */
+@import './styles/review.css';
+@import './styles/strength-dots.css';
+@import './styles/learn.css';
+@import './styles/memory-ladder.css';
+@import './styles/memory-pages.css';
+@import './styles/memory-onboarding.css';
 @import './styles/canvas/text-highlight.css';
 @import './styles/canvas/text-pro.css';
 @import './styles/canvas/text-wrap.css';
@@ -141,6 +155,8 @@
 @import './styles/streak-gate.css';
 @import './styles/update-toast.css';
 @import './styles/admin-errors.css';
+@import './styles/admin-decks.css';
+@import './styles/admin-review.css';
 @import './styles/admin-analytics.css';
 /* debug-toolbar.css здесь НЕ подключается: его импортирует сам
    DebugToolbar.jsx, и стили уезжают вместе с dev-чанком тулбара, а не

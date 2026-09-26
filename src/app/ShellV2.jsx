@@ -3,7 +3,7 @@ import FeedTab from '../features/feed/FeedTab.jsx'
 import ProfileV2 from '../features/profile/ProfileV2.jsx'
 import AuthTab from '../features/auth/AuthTab.jsx'
 import SettingsTab from '../features/settings/SettingsTab.jsx'
-import { Cog, Video, UserRound, Trophy } from 'lucide-react'
+import { Cog } from 'lucide-react'
 import BackButton from '../shared/ui/BackButton.jsx'
 import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
@@ -19,31 +19,39 @@ import { useAuth } from '../shared/lib/useAuth.js'
 import { useStreakGate } from '../features/streak/useStreakGate.js'
 import { useLessonNav } from './LessonNavContext.jsx'
 import StreakGateOverlay from '../features/streak/StreakGateOverlay.jsx'
-import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
+import LessonEditorOverlays from './LessonEditorOverlays.jsx'
 import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
 import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
 import { wordChoiceVoice } from '../shared/lib/wordChoiceVoice.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
-import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
+import ShellNav from './ShellNav.jsx'
+import LearnTab from '../features/learn/LearnTab.jsx'
+import { useLearnData } from '../features/learn/useLearnData.js'
+import { useMemoryFresh } from '../features/learn/memoryFresh.js'
+import MinutesAsk from '../features/learn/MinutesAsk.jsx'
+import { onOpenModule } from '../shared/lib/openModuleEvent.js'
 
-// Код-сплиттинг: админка и canvas-редактор нужны только is_admin — обычный
-// пользователь эти chunk'и даже не скачивает (см. PROJECT.md, этап 2)
+// Код-сплиттинг: админка нужна только is_admin — обычный пользователь этот
+// chunk даже не скачивает (см. PROJECT.md, этап 2). Редакторы — там же, в
+// LessonEditorOverlays.jsx
 const AdminV2         = lazy(() => lazyRetry(() => import('../features/admin/AdminV2.jsx'), 'admin'))
-const CanvasPage      = lazy(() => lazyRetry(() => import('../features/canvas/CanvasPage.jsx'), 'canvas'))
-const ProductionPage  = lazy(() => lazyRetry(() => import('../features/production/ProductionPage.jsx'), 'production'))
 
 // Новая оболочка (ui v2, миграция по PROJECT.md): нижний бар Уроки/Профиль
 // (+Админ для is_admin). Пока: лента — заглушка (шаг 3 миграции),
 // профиль и админ — существующие вкладки внутри новой оболочки.
 export default function ShellV2() {
-  const [tab, setTab] = useState('feed')
+  // Пуш повторения открывает приложение сразу в «Моей памяти» (?tab=learn,
+  // миграция 20260925180000_push_review_due.sql)
+  const [tab, setTab] = useState(() => (new URLSearchParams(location.search).get('tab') === 'learn' ? 'learn' : 'feed'))
   // Canvas-редактор урока (админ, «✎» на схеме модуля) — оверлеем поверх
   // оболочки: лента под ним не размонтируется и не теряет позицию
   const [canvasLesson, setCanvasLesson] = useState(null)
   // Продакшен-редактор (линейный список сообщений) — тот же оверлей-паттерн,
   // над теми же данными урока, что и canvas (см. PROJECT.md)
   const [productionLesson, setProductionLesson] = useState(null)
+  // Редактор колоды «Карточки повтора» того же урока (features/reviewCards)
+  const [cardsLesson, setCardsLesson] = useState(null)
   // Модуль, который админ-вкладка должна открыть по возвращении из редактора
   // («назад» в канвасе ведёт в схему модуля урока, а не на главный экран)
   const [moduleRequest, setModuleRequest] = useState(null)
@@ -67,6 +75,22 @@ export default function ShellV2() {
   // экране, ленту не паузим: сплэш снимается по первому кадру видео, и на
   // паузе он висел бы до страховки в 3.5 секунды
   const [splashGone, setSplashGone] = useState(() => !!window.__pithySplashGone)
+  // «Моя память»: данные живут здесь — по ним же точка на вкладке
+  const learn = useLearnData(!!user)
+  // Точка на «Памяти»: есть что повторить сегодня или новое слово из урока
+  const memoryFresh = useMemoryFresh(tab === 'learn')
+  const learnDot = !!(learn.view?.today.picked.length || learn.view?.today.phrase) || memoryFresh
+  // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
+  // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
+  useEffect(() => onOpenModule(() => setTab('feed')), [])
+  // ?tab= прочитан при старте — убираем из адреса (перезагрузка не должна
+  // снова открывать ту же вкладку)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (!params.has('tab')) return
+    params.delete('tab')
+    history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : '') + location.hash)
+  }, [])
 
   // На всякий случай: убираем возможный след старого фикса высоты
   // (iOS 26 рисует только 812px окна — растягивать DOM бесполезно,
@@ -109,7 +133,7 @@ export default function ShellV2() {
       {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
           самого верха), справа энергия. Версия приложения — в админке
           (AdminV2) и на стартовом сплэше (index.html), не в ленте */}
-      {tab !== 'profile' && tab !== 'admin' && (
+      {tab !== 'profile' && tab !== 'admin' && tab !== 'learn' && (
         <>
           <div className="hudBarLeft">
             <LevelBadge />
@@ -130,18 +154,24 @@ export default function ShellV2() {
             visible={tab === 'feed' && !feedPaused}
             onOpenCanvas={setCanvasLesson}
             onRequireAuth={() => setTab('profile')}
+            learnView={learn.view}
+            onLearnChanged={learn.reload}
           />
+        </div>
+        <div className={tab === 'learn' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
+          <LearnTab learn={learn} visible={tab === 'learn'} isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} />
         </div>
         <div className={tab === 'rating' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
           <RatingTab visible={tab === 'rating'} openRaceTick={raceOpenTick} />
         </div>
         <div className={tab === 'profile' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
           {user ? (
-            <ProfileV2 visible={tab === 'profile'} userEmail={user.email} onOpenCanvas={setCanvasLesson} />
+            <ProfileV2 visible={tab === 'profile'} userEmail={user.email} onOpenCanvas={setCanvasLesson}
+              learnView={learn.view} onOpenLearn={() => setTab('learn')} onLearnChanged={learn.reload} />
           ) : guestSettings ? (
             <div className="pvSettingsScreen">
               <BackButton onClick={() => setGuestSettings(false)} label="Профиль" className="pvBack" />
-              <div className="shellV2Panel"><SettingsTab /></div>
+              <div className="shellV2Panel"><SettingsTab learnView={learn.view} onLearnChanged={learn.reload} isGuest /></div>
             </div>
           ) : (
             <div className="shellV2Panel">
@@ -160,6 +190,7 @@ export default function ShellV2() {
               <AdminV2
                 onOpenCanvas={setCanvasLesson}
                 onOpenProduction={setProductionLesson}
+                onOpenCards={setCardsLesson}
                 openModule={moduleRequest}
                 onModuleOpened={() => setModuleRequest(null)}
               />
@@ -168,40 +199,11 @@ export default function ShellV2() {
         )}
       </div>
 
-      <nav className="shellV2Nav">
-        <button
-          className={tab === 'feed' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
-          // Уже на «Уроках» — повторное нажатие = «назад» из схемы модуля
-          onClick={() => { if (tab === 'feed') requestLessonsHome(); setTab('feed') }}>
-          <Video />
-          Уроки
-        </button>
-        <button
-          className={tab === 'profile' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
-          onClick={() => setTab('profile')}>
-          <UserRound />
-          Профиль
-        </button>
-        <button
-          className={tab === 'rating' ? 'shellV2NavBtn shellV2NavBtnActive' : 'shellV2NavBtn'}
-          onClick={() => setTab('rating')}>
-          <Trophy />
-          Рейтинг
-        </button>
-        {isRealAdmin && (
-          /* В «режиме пользователя» это единственная админская кнопка на экране —
-             помечаем точкой, иначе легко забыть, что режим ещё включён */
-          <button
-            className={`shellV2NavBtn${tab === 'admin' ? ' shellV2NavBtnActive' : ''}${userMode ? ' shellV2NavBtnUserMode' : ''}`}
-            onClick={() => setTab('admin')}>
-            <Cog />
-            Админ
-          </button>
-        )}
-      </nav>
+      <MinutesAsk isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} onChanged={learn.reload} />
+      <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} isRealAdmin={isRealAdmin} userMode={userMode} />
 
       {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}
-      {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && (
+      {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && (
         <ResumeEditingToast
           onOpen={lesson => {
             setResumeClosed(true)
@@ -218,56 +220,16 @@ export default function ShellV2() {
       {/* Попапы супергонки: анонс недели и итоги — поверх любой вкладки */}
       {!gate && <RaceGlobalPopups onOpenRace={() => { setTab('rating'); setRaceOpenTick(t => t + 1) }} />}
 
-      {canvasLesson && (
-        <div className="shellV2CanvasOverlay">
-          <Suspense fallback={<div className="shellV2Panel">Загрузка редактора…</div>}>
-            <CanvasPage
-              lessonId={canvasLesson.id}
-              moduleLessons={canvasLesson.moduleLessons ?? []}
-              module={canvasLesson.module ?? null}
-              /* Назад — в схему модуля этого урока (если знаем её), а не на
-                 главный экран: чаще всего дальше правят соседний урок */
-              onBack={found => {
-                // Модуль мог быть найден уже внутри редактора (урок открыли
-                // из всплывашки, где модуль неизвестен) — он и приходит сюда
-                const m = found ?? canvasLesson.module
-                setCanvasLesson(null)
-                if (!m?.id || !isAdmin) return
-                setModuleRequest(m)
-                setTab('admin')
-              }}
-              onOpenProduction={id => {
-                setCanvasLesson(null)
-                setProductionLesson({ id, moduleLessons: canvasLesson.moduleLessons ?? [] })
-              }}
-            />
-          </Suspense>
-        </div>
-      )}
-
-      {productionLesson && (
-        <div className="shellV2CanvasOverlay">
-          <Suspense fallback={<div className="shellV2Panel">Загрузка продакшена…</div>}>
-            <ProductionPage
-              lessonId={productionLesson.id}
-              moduleLessons={productionLesson.moduleLessons ?? []}
-              onBack={() => setProductionLesson(null)}
-              onOpenCanvas={id => {
-                // Продакшен только что сохранил на сервер (см. ProductionPage.
-                // switchToCanvas) — это самая свежая версия урока. Но у
-                // CanvasBoard есть СВОЙ localStorage-черновик (canvasLsKey),
-                // который при монтировании имеет приоритет над initialNodes —
-                // если он остался от прошлой, незакрытой через «Сохранить»/
-                // «Продакшен» сессии канваса, он перекрыл бы то, что только
-                // что поменяли в списке, и порядок «не долетал» бы до графа
-                localStorage.removeItem(canvasLsKey(id))
-                setProductionLesson(null)
-                setCanvasLesson({ id, moduleLessons: productionLesson.moduleLessons ?? [] })
-              }}
-            />
-          </Suspense>
-        </div>
-      )}
+      <LessonEditorOverlays
+        canvasLesson={canvasLesson} setCanvasLesson={setCanvasLesson}
+        productionLesson={productionLesson} setProductionLesson={setProductionLesson}
+        cardsLesson={cardsLesson} setCardsLesson={setCardsLesson}
+        onBackToModule={m => {
+          if (!m?.id || !isAdmin) return
+          setModuleRequest(m)
+          setTab('admin')
+        }}
+      />
     </div>
   )
 }

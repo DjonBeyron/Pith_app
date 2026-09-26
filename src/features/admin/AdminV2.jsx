@@ -7,6 +7,8 @@ import AdminStreakTab from './AdminStreakTab.jsx'
 import AdminErrorsTab from './AdminErrorsTab.jsx'
 import AdminAnalyticsTab from './AdminAnalyticsTab.jsx'
 import AdminTeacherTab from './AdminTeacherTab.jsx'
+import AdminDecksTab from './AdminDecksTab.jsx'
+import AdminReviewTab from './AdminReviewTab.jsx'
 import AdminUserModeToggle from './AdminUserModeToggle.jsx'
 import AdminDebugUiToggle from './AdminDebugUiToggle.jsx'
 import AdminAudioWaveformToggle from './AdminAudioWaveformToggle.jsx'
@@ -16,12 +18,14 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 // Админ-раздел новой оболочки: субвкладки «Модули» (список с публикацией),
 // «Файлы» (таблица файлов R2), «Пуши» (рассылка), «Гонка» (супергонка),
 // «Стрик» (вехи наград), «Учитель» (общий учитель всех уроков), «Ошибки»
-// (ошибки клиентов из client_errors) и «Аналитика» (отчёт по app_events).
+// (ошибки клиентов из client_errors), «Аналитика» (отчёт по app_events) и
+// «Колоды» (слова без колоды карточек повтора, AdminDecksTab), «Повторение»
+// (временный вход в плеер повторения + своя память слов, AdminReviewTab).
 // openModule — { id, title, isPro }: просьба снаружи открыть схему этого
 // модуля (возврат «назад» из редактора урока, см. ShellV2). Сбрасывается
 // через onModuleOpened, чтобы повторный заход в админку не открывал её снова
-export default function AdminV2({ onOpenCanvas, onOpenProduction, openModule = null, onModuleOpened }) {
-  const [sub, setSub] = useState('modules') // modules | files | push | race | streak | teacher | errors | analytics
+export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, openModule = null, onModuleOpened }) {
+  const [sub, setSub] = useState('modules') // modules | files | push | race | streak | teacher | errors | analytics | decks | review
 
   useEffect(() => {
     // Просьба извне открыть схему модуля — переводим админку на «Модули»
@@ -65,6 +69,12 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, openModule = n
         <button className={sub === 'analytics' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('analytics')}>
           Аналитика
         </button>
+        <button className={sub === 'decks' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('decks')}>
+          Колоды
+        </button>
+        <button className={sub === 'review' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('review')}>
+          Повторение
+        </button>
       </div>
       <div className="avVersion">v{APP_VERSION}</div>
       {sub === 'modules' && (
@@ -82,6 +92,8 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, openModule = n
       {sub === 'teacher' && <div className="shellV2Panel"><AdminTeacherTab /></div>}
       {sub === 'errors' && <div className="shellV2Panel"><AdminErrorsTab /></div>}
       {sub === 'analytics' && <div className="shellV2Panel"><AdminAnalyticsTab /></div>}
+      {sub === 'decks' && <div className="shellV2Panel"><AdminDecksTab onOpenCards={onOpenCards} /></div>}
+      {sub === 'review' && <div className="shellV2Panel"><AdminReviewTab /></div>}
     </div>
   )
 }

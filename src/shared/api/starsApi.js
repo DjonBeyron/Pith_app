@@ -26,3 +26,12 @@ export async function fetchMyLessonStars(ids) {
   dbg('[STARS] с сервера:', data?.length ?? 0, 'уроков со звёздами')
   return new Map((data ?? []).map(r => [r.lesson_id, r.stars]))
 }
+
+// Уроки, пройденные на сервере (зачёт с XP) — Set id. Мостик «Продолжить
+// фразу» в итоге повторения считает по ним долю пройденного модуля
+// (вместе с локальной отметкой completedLessons). Гостю — пусто
+export async function fetchMyDoneLessonIds() {
+  const { data, error } = await supabase.from('lesson_results').select('lesson_id').eq('xp_awarded', true)
+  if (error) { console.error('[STARS] fetchMyDoneLessonIds:', error.message); return new Set() }
+  return new Set((data ?? []).map(r => r.lesson_id))
+}

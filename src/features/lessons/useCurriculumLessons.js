@@ -104,6 +104,9 @@ export function useCurriculumLessons(curriculumId) {
       ...l,
       lessonXp:  l.script?.lessonXp  ?? 0,
       priority:  l.script?.priority  ?? null,
+      // Есть колода повтора — слово в расписании (сила памяти в схеме);
+      // нет — «повторение скоро»
+      hasDeck:   (l.script?.reviewCards?.length ?? 0) > 0,
     }))
     dbg('[FETCH] ordered result:', ordered.map(l => `${l.id.slice(0,6)} "${l.title}"`))
     setLessons(ordered)

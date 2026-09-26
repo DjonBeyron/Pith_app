@@ -41,3 +41,24 @@ export function pickToday(memory, { today, budget, canReview = () => true }) {
   }
   return picked
 }
+
+// Сколько карточек уже показано сегодня (бюджет дня — на все сессии дня):
+// reviews — журнал review_events; сегодняшние по дате устройства — сессии
+// повторения и «Помнишь?» в ленте (source 'review' | 'feed'); карточка —
+// уникальный cardId в ответах строки (возврат после ошибки — та же карточка)
+export function cardsShownToday(reviews, today) {
+  let n = 0
+  for (const r of reviews ?? []) {
+    if ((r.source !== 'review' && r.source !== 'feed') || localDate(r.created_at) !== today) continue
+    const ids = new Set((Array.isArray(r.events) ? r.events : []).map(e => e?.cardId))
+    n += Math.max(1, ids.size)
+  }
+  return n
+}
+
+// 'YYYY-MM-DD' по часам устройства
+export function localDate(ts) {
+  const d = new Date(ts)
+  const p = x => String(x).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}

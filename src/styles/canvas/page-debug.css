@@ -1,0 +1,58 @@
+/* Отладочные слои канваса (связи, метки портов, проба SVG) и кнопка очистки урока. Продолжение canvas/page-menus.css (подключается сразу за ним) */
+
+/* ── Отладка связей (меню «⋯» → «Отладка связей») ───────────────────── */
+/* Прямые отрезки поверх графа: видно, строятся ли связи вообще, и куда они
+   идут, даже если обычные линии по какой-то причине не видны. */
+.canvasLinkDebugBadge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 30;
+  padding: 6px 10px;
+  background: rgba(10, 12, 16, 0.92);
+  border: 1px solid #ff3b3b;
+  border-radius: 8px;
+  color: #ffb3b3;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Очистка урока — рядом с ⇄, красная на наведении: действие разрушительное */
+.canvasPageClear:hover:not(:disabled) { border-color: #ff6060; color: #ff6060; }
+
+/* Отладочные HTML-метки портов: рисуются мимо SVG — если видны они, а кружков
+   нет, значит не отрисовывается сам SVG-слой связей */
+.canvasLinkDebugHtml {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.canvasLinkDebugMark {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: #ff3b3b;
+  border: 1px solid #fff;
+  border-radius: 2px;
+}
+
+/* Проба SVG поверх холста: четыре линии, нарисованные разными способами.
+   Нужна, чтобы отличить «SVG не рисуется вовсе» от «ломается именно наш слой
+   связей с его трансформацией». */
+.canvasSvgProbe {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 360px;
+  height: 120px;
+  z-index: 26;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid #ff3b3b;
+  border-radius: 6px;
+}

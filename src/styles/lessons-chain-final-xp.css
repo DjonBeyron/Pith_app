@@ -1,0 +1,149 @@
+/* XP-прогресс Финала: трек с ключом-бегунком, замок-цель, подсказка, вспышка в такт кружочку XP. Продолжение lessons-chain-final.css (подключается сразу за ним — порядок каскада тот же) */
+
+/* ── XP-прогресс финала ─────────────────────────────────────── */
+.mgFinalXpWrap {
+  width: 46%; /* короче, чтобы замок справа от трека не прилипал к краю нода */
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* воздух между баром и цифрами под ним */
+  align-items: center;
+  /* отступ сверху не нужен: gap хекс-заливки одинаков с двух сторон пилюли */
+}
+
+/* Цифры — ПОД баром */
+.mgFinalXpLabel {
+  font-size: 11px;
+  color: #6a7080;
+  position: relative;
+  z-index: 2; /* поверх ключа-бегунка, чтобы он не перекрывал цифры */
+}
+
+.mgFinalXpNow {
+  color: #a78bfa;
+  font-weight: 700;
+}
+
+/* Ряд прогресса: трек с ключом-бегунком; замок вынесен из потока и висит
+   справа от трека — трек и цифры над ним центруются по форме нода */
+.mgFinalXpBarRow {
+  width: 100%;
+  position: relative;
+}
+
+.mgFinalXpTrack {
+  width: 100%;
+  position: relative;
+}
+
+.mgFinalXpKnob {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  left: 0; /* едет вместе с рельсом .mgFinalXpRail */
+  transition: opacity 0.7s ease;
+}
+
+/* Рельс ключа во всю ширину трека: translateX(N%) = N% ширины трека (то же,
+   что было left: N% у ключа), но transform'ом — без пересчёта раскладки
+   каждый кадр, пока по нему доводятся кружочки XP.
+   Быстрый плавный доезд после каждого касания кружочка: ease-out за 0.25s —
+   бар успевает встать на место до прилёта следующего (ORB_GAP_MS = 300) */
+.mgFinalXpRail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: transform 0.25s ease-out;
+}
+
+/* Финал открыт: ключ «использован» — плавно исчезает вместе с пилюлей */
+.mgFinalXpKnob--gone { opacity: 0; pointer-events: none; }
+
+/* Замок-цель (дужка всегда откинута): серый пока закрыт, фиолетовый после
+   открытия финала. По наведению/тапу показывает подсказку про ключ. */
+.mgFinalXpLock {
+  position: absolute; /* заодно якорь подсказки */
+  left: calc(100% + 4px);
+  top: 42%; /* чуть выше оси бара */
+  transform: translateY(-50%);
+  display: flex;
+  color: #6a7080;
+  cursor: pointer;
+  transition: opacity 0.7s ease;
+}
+
+.mgFinalXpLock--open { color: #a78bfa; cursor: default; }
+
+.mgFinalLockTip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: -6px;
+  padding: 5px 10px;
+  background: #1b1626;
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #c4b5fd;
+  white-space: nowrap;
+  z-index: 4;
+  animation: mgLockTipIn 0.16s ease-out;
+}
+
+@keyframes mgLockTipIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Трек — непрозрачный и с рамкой, тон как у пилюли (#1a1529) */
+.mgFinalXpBar {
+  /* Свой слой: доезд заполнения (width 0.25с на каждом касании кружочка)
+     перерисовывает только бар, не нод финала с текстурами */
+  will-change: transform;
+  width: 100%;
+  height: 8px;
+  background: #1a1529;
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  border-radius: 4px;
+}
+
+/* Растушёванный край: мягкое свечение вокруг заполнения */
+.mgFinalXpBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #a78bfa, #8b5cf6);
+  border-radius: 3px;
+  transition: width 0.25s ease-out; /* в такт ключу-бегунку */
+  box-shadow: 0 0 7px rgba(139, 92, 246, 0.65);
+}
+
+/* ── Вспышка в такт касанию кружочка XP ─────────────────────── */
+/* Светлый слой над заливкой финала гаснет прозрачностью — вместо
+   filter: brightness на всём ноде. Два таких слоя: .mgFinalFlash — вспышка
+   на каждое касание кружочка (класс ставит ModuleGraph.flashFinal напрямую,
+   без ре-рендера), ::before — подсветка церемонии открытия (mgFinalBurstFill) */
+.mgFinalFlash,
+.mgHexFill--final::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* над фоном заливки, под текстом */
+  pointer-events: none;
+  background: rgba(185, 160, 255, 0.2); /* подобрано бок о бок со старым brightness */
+  opacity: 0;
+}
+
+@keyframes mgFinalFlash {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.mgFinalFlash--on {
+  animation: mgFinalFlash 0.28s ease-out;
+}
