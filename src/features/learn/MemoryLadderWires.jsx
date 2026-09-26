@@ -1,19 +1,23 @@
-import { useId, useLayoutEffect, useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { ladderLinks, orth, ballPath, WIRE_COLORS } from './ladderWires.js'
 
 const MAX_BALLS = 3 // на ступень: больше — каша из шариков
 
-// Слой линий «Моей памяти» поверх зоны zoneRef (ладдер): меряет шапку
-// (.lrMain), ступени (.memLvl) и пятиугольник (.memPerm), рисует связи
-// (ladderWires.js) и шарики — слова сегодняшнего повторения бегут из своей
-// ступени к кнопке. Меряет после каждого рендера и при смене размеров; в
-// скрытой вкладке (ширина 0) не меряет. today — число сегодняшних слов по ступеням
-export default function MemoryLadderWires({ zoneRef, today }) {
+// Слой линий «Моей памяти» поверх зоны лестницы (родитель слоя): меряет
+// шапку (.lrMain), ступени (.memLvl) и пятиугольник (.memPerm), рисует
+// связи (ladderWires.js) и шарики — слова сегодняшнего повторения бегут из
+// своей ступени к кнопке. Меряет после каждого рендера и при смене размеров;
+// в скрытой вкладке (ширина 0) не меряет. Зона — через СВОЙ элемент слоя:
+// ref родителя в эффекте ребёнка при монтировании ещё пуст (React цепляет
+// ref родителя после эффектов детей) — так линии пропадали после «Назад».
+// today — число сегодняшних слов по ступеням
+export default function MemoryLadderWires({ today }) {
   const [links, setLinks] = useState(null)
+  const layerRef = useRef(null)
   const uid = 'memw' + useId().replace(/[^a-zA-Z0-9]/g, '')
 
   useLayoutEffect(() => {
-    const zone = zoneRef.current
+    const zone = layerRef.current?.parentElement
     if (!zone) return undefined
     const measure = () => {
       const box = zone.getBoundingClientRect()
@@ -35,9 +39,9 @@ export default function MemoryLadderWires({ zoneRef, today }) {
     return () => ro.disconnect()
   })
 
-  if (!links) return null
+  if (!links) return <div className="memWires" ref={layerRef} aria-hidden="true" />
   return (
-    <div className="memWires" aria-hidden="true">
+    <div className="memWires" ref={layerRef} aria-hidden="true">
       <svg>
         <defs>
           {links.map((l, k) => {

@@ -35,7 +35,7 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
   const [session, setSession] = useState(null)
   // { decks, curricula, memory, teacher (общий, сырой), words, cards }
   const [info, setInfo] = useState(null)
-  const [results, setResults] = useState([]) // [{ word, outcome, ok, applied, step }]
+  const [results, setResults] = useState([]) // [{ word, outcome, ok, applied, step, settled }]
   const [finish, setFinish] = useState(null)
   const [bridge, setBridge] = useState(null)
   const [phraseRes, setPhraseRes] = useState(null) // { ok } — итог закрепления фразы
@@ -96,7 +96,7 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
       const events = o.events.map(({ cardId, result, timeMs }) => ({ cardId, result, timeMs }))
       sentRef.current.set(o.word, reviewWord({ word: o.word, outcome: o.outcome, cardId: o.cardId, lessonId, events })
         .then(r => {
-          const row = { word: o.word, outcome: o.outcome, ok: !!r?.ok, applied: r?.applied, step: r?.step ?? null }
+          const row = { word: o.word, outcome: o.outcome, ok: !!r?.ok, applied: r?.applied, step: r?.step ?? null, settled: !!r?.settled }
           setResults(prev => [...prev, row])
           return row
         }))

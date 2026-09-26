@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import { Maximize2 } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
 import MemoryWordChip from './MemoryWordChip.jsx'
@@ -13,10 +12,9 @@ const SHOWN = 3 // слов на ступени главного экрана �
 // (MemoryLadderWires). Число, название или ⤢ ступени — onOpen(1..3) (все
 // слова ступени), пятиугольник — onOpen('perm'), слово — onWord
 export default function MemoryLadder({ ladder, onOpen, onWord, children }) {
-  const zoneRef = useRef(null)
   const today = ladder.levels.map(l => l.words.filter(w => w.today).length)
   return (
-    <div className="memZone" ref={zoneRef}>
+    <div className="memZone">
       {children}
       <div className="memStairs">
         <div className="memSideLabel">
@@ -47,7 +45,7 @@ export default function MemoryLadder({ ladder, onOpen, onWord, children }) {
         ))}
       </div>
       <MemoryPermNode count={ladder.permanent.length} onOpen={() => onOpen('perm')} />
-      <MemoryLadderWires zoneRef={zoneRef} today={today} />
+      <MemoryLadderWires today={today} />
     </div>
   )
 }

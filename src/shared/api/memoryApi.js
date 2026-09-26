@@ -18,19 +18,25 @@ import {
 const isGuest = async () => !(await supabase.auth.getSession()).data.session?.user
 const today = () => localDate(new Date())
 
-// Вся память пользователя: [{ word, step, due_on, last_reviewed_at,
-// last_card_id, reviews, lapses }]
+// Вся память пользователя: [{ word, step, due_on, settled_on,
+// last_reviewed_at, last_card_id, reviews, lapses }]. settled_on — постоянная
+// память (миграция 20260926120000_memory_settled.sql); без неё — читаем без
+// колонки, постоянной памяти просто нет
+const MEMORY_COLS = 'word, step, due_on, last_reviewed_at, last_card_id, reviews, lapses'
 export async function listWordMemory() {
   if (await isGuest()) return listGuestMemory()
-  const { data, error } = await supabase
-    .from('word_memory')
-    .select('word, step, due_on, last_reviewed_at, last_card_id, reviews, lapses')
+  let { data, error } = await supabase.from('word_memory').select(`${MEMORY_COLS}, settled_on`)
+  if (error && /settled_on/.test(error.message)) {
+    dbg('[MEMORY] нет колонки settled_on — применить миграцию 20260926120000_memory_settled.sql')
+    ;({ data, error } = await supabase.from('word_memory').select(MEMORY_COLS))
+  }
   if (error) { console.error('[MEMORY] word_memory:', error.message); return [] }
   return data ?? []
 }
 
 // Исход повторения слова (reviewOutcome.js). Шаг и дату считает сервер.
-// { ok, word, prev_step, step, due_on, applied } | { ok: false, reason } | null
+// { ok, word, prev_step, step, due_on, applied, settled, settled_on } | { ok: false, reason } | null
+// (settled — слово ушло в постоянную память этим ответом)
 export async function reviewWord({ word, outcome, cardId = null, lessonId = null, source = 'review', events = null }) {
   if (await isGuest()) return reviewGuestWord({ word, outcome, cardId, events, source }, today())
   const { data, error } = await supabase.rpc('memory_review_word', {

@@ -6,6 +6,8 @@ import StrengthDots from '../../shared/ui/StrengthDots.jsx'
 // (шаг памяти 1–5 после ответа сервера), XP и день серии — по ответу
 // memory_finish_session; мостик «Продолжить *фраза* · N%» — в недопройденный
 // модуль слов сессии (reviewBridge.js), открывает его схему во вкладке «Уроки».
+// Родное слово, вспомненное на месячной проверке, уходит в постоянную память —
+// празднуем отдельной фиолетовой строкой (settled — ответ memory_review_word).
 const TONE = { good: 'ok', know: 'ok', hard: 'mid', again: 'bad', fail: 'bad' }
 
 function rewardText(finish) {
@@ -22,6 +24,7 @@ export default function ReviewSummary({ results, finish, bridge, phrase = null, 
   const order = new Map(words.map((w, i) => [w, i]))
   const rows = [...results].sort((a, b) => (order.get(a.word) ?? 99) - (order.get(b.word) ?? 99))
   const reward = rewardText(finish)
+  const settled = rows.filter(r => r.settled).map(r => `«${r.word}»`)
   return (
     <div className="reviewSummary">
       <h2 className="reviewSummaryTitle">Повторение завершено</h2>
@@ -29,6 +32,11 @@ export default function ReviewSummary({ results, finish, bridge, phrase = null, 
       {phrase && (
         <p className={phrase.ok ? 'reviewPhraseResult reviewPhraseResultOk' : 'reviewPhraseResult'}>
           {phrase.ok ? `✨ Фраза «${phrase.title}» закреплена` : `Фраза «${phrase.title}» вернётся в другой раз`}
+        </p>
+      )}
+      {settled.length > 0 && (
+        <p className="reviewPhraseResult reviewSettled">
+          ✨ {settled.join(', ')} {settled.length === 1 ? 'ушло' : 'ушли'} в постоянную память
         </p>
       )}
       <ul className="reviewWords">

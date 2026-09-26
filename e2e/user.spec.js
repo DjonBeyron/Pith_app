@@ -54,6 +54,8 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await expect(page.locator('.memHead')).toContainText('Мои слова')
   await expect(page.locator('.memListEmpty')).toBeVisible()
   await page.getByRole('button', { name: '← Назад' }).click()
+  // Лестница снова с линиями: три отвода в ступени + «Родные» → пятиугольник
+  await expect(page.locator('.memWires .memWire')).toHaveCount(4)
   // Пятиугольник — фиолетовая страница постоянной памяти (пока пусто)
   await page.getByRole('button', { name: /^Постоянная память/ }).click()
   await expect(page.locator('.memPermCount')).toHaveText(/^0\s*слов выучены навсегда$/)

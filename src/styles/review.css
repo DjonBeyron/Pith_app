@@ -193,6 +193,8 @@
 .reviewReward { margin: 0; color: #b6fe3b; font-weight: 600; }
 .reviewPhraseResult { margin: 0; font-size: 16px; font-weight: 600; color: #9aa3ad; }
 .reviewPhraseResultOk { color: #ffd257; }
+/* Слово ушло в постоянную память — фиолетовый, как пятиугольник во вкладке «Память» */
+.reviewSettled { color: #a78bfa; }
 .reviewGuestLead { font-size: 15px; color: #9aa3ad; }
 .reviewBtnGuest { border-color: rgba(182, 254, 59, 0.45); color: #b6fe3b; }
 

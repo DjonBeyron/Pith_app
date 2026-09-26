@@ -46,6 +46,18 @@ describe('шаги памяти гостя — как на сервере (memor
     expect(applyReview(row(2, '2026-09-27'), 'fail', today).row.step).toBe(1)
   })
 
+  it('постоянная память: верно в срок на шаге 5 → settled_on; раньше срока и hard — нет; ошибка — выходит', () => {
+    const month = applyReview(row(5), 'good', today, mid)
+    expect(month).toMatchObject({ settled: true, row: { step: 5, settled_on: today } })
+    expect(applyReview(row(4), 'good', today, mid)).toMatchObject({ settled: false, row: { step: 5, settled_on: null } })
+    expect(applyReview(row(5), 'hard', today, mid).row.settled_on).toBe(null)
+    expect(applyReview(row(5, '2026-09-27'), 'know', today, mid).row.settled_on).toBe(null)
+    // уже в постоянной: дата не сдвигается, повторно не празднуем
+    const again = applyReview(month.row, 'good', addDays(today, 60), mid)
+    expect(again).toMatchObject({ settled: false, row: { settled_on: today } })
+    expect(applyReview(month.row, 'again', addDays(today, 60)).row).toMatchObject({ step: 4, settled_on: null })
+  })
+
   it('разброс ±1 день — только от 7 дней', () => {
     expect(applyReview(row(2), 'good', today, () => 0).row.due_on).toBe(addDays(today, 6))
     expect(applyReview(row(2), 'good', today, () => 0.99).row.due_on).toBe(addDays(today, 8))

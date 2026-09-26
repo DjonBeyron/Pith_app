@@ -157,3 +157,30 @@ test('закрепление фразы: все слова окрепли → с
   await expect(main).toContainText('На сегодня всё', { timeout: 30_000 })
   await expect(nav).not.toHaveClass(/shellV2NavBtnDot/)
 })
+
+test('родное слово на месячной проверке → постоянная память: итог, пятиугольник, фиолетовая страница', async ({ page }) => {
+  // keep — родное (шаг 5), месячная проверка — сегодня
+  await page.addInitScript(d => {
+    if (sessionStorage.getItem('e2e_settle_seeded')) return
+    sessionStorage.setItem('e2e_settle_seeded', '1')
+    localStorage.setItem('pithy_guest_memory_v1', JSON.stringify({
+      keep: { word: 'keep', step: 5, due_on: d, last_card_id: null, reviews: 4, lapses: 0 },
+    }))
+  }, today())
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
+  await expect(page.locator('.memLvl--3 .memChip')).toHaveText(['keep'], { timeout: 30_000 })
+  await page.locator('.lrCta').click()
+  const review = page.locator('.reviewScreen')
+  await review.getByRole('button', { name: 'Начать', exact: true }).click({ timeout: 30_000 })
+  await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
+  await review.getByRole('button', { name: 'Далее' }).click()
+  await expect(review.locator('.reviewSettled')).toHaveText('✨ «keep» ушло в постоянную память', { timeout: 30_000 })
+  await review.getByRole('button', { name: 'Готово' }).click()
+
+  // «Родные» опустели, пятиугольник — 1; его страница — keep
+  await expect(page.locator('.memLvl--3 .memLvlCount')).toHaveText('0', { timeout: 30_000 })
+  await page.getByRole('button', { name: /^Постоянная память/ }).click()
+  await expect(page.locator('.memPermCount')).toHaveText(/^1\s*слово выучено навсегда$/)
+  await expect(page.locator('.memChipRow')).toHaveText(['keep'])
+})
