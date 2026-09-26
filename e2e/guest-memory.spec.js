@@ -44,7 +44,7 @@ test('гость проходит урок-слово → слово в его �
   await ask.getByRole('button', { name: 'Позже' }).click()
   await expect(ask).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
   await expect(page.locator('.lrMain')).toContainText('На сегодня всё ✓', { timeout: 30_000 })
   await expect(page.locator('.lrMain')).toContainText('Следующее повторение завтра · 1 слово')
   await expect(page.locator('.lrGuestLead')).toContainText('только в этом браузере')
@@ -54,10 +54,10 @@ test('гость проходит урок-слово → слово в его �
 test('гость повторяет слово дня → итог зовёт войти', async ({ page }) => {
   await seedMemory(page)
   await page.goto('/')
-  const nav = page.getByRole('button', { name: 'Обучение', exact: true })
+  const nav = page.getByRole('button', { name: 'Память', exact: true })
   await expect(nav).toHaveClass(/shellV2NavBtnDot/, { timeout: 30_000 })
   await nav.click()
-  await page.locator('.lrMain').click()
+  await page.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
   await review.getByRole('button', { name: 'Начать', exact: true }).click({ timeout: 30_000 })
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
@@ -66,11 +66,10 @@ test('гость повторяет слово дня → итог зовёт в
   await expect(review.locator('.reviewGuestLead')).toBeVisible()
   await review.getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
-  // Шаг вырос локально: в карте keep — сила 2
-  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
-  const phrase = page.locator('.lrPhrase', { hasText: 'Keep going · E2E-ОБУЧЕНИЕ' })
-  await phrase.locator('.lrPhraseHead').click()
-  await expect(phrase.locator('.lrWord', { hasText: 'keep' }).locator('.strengthDotOn')).toHaveCount(2)
+  // Шаг вырос локально: keep всё ещё в «Новеньких», заливка — три четверти пути
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
+  const keep = page.locator('.memLvl--1 .memChip', { hasText: 'keep' })
+  await expect(keep.locator('.memChipFill')).toHaveAttribute('style', /width: 75%/, { timeout: 30_000 })
 })
 
 test('вход переносит память гостя в аккаунт', async ({ page }, testInfo) => {
@@ -86,8 +85,8 @@ test('вход переносит память гостя в аккаунт', as
   // Память теперь серверная: профиль видит слово, локальная — очищена
   await expect(page.locator('.pvKnow')).toHaveText('В памяти 1 слово', { timeout: 30_000 })
   await expect.poll(() => page.evaluate(() => localStorage.getItem('pithy_guest_memory_v1'))).toBe(null)
-  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
-  await expect(page.locator('.lrMain')).toContainText('Повторить · 1 мин', { timeout: 30_000 })
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
+  await expect(page.locator('.lrMain')).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })
   await expect(page.locator('.lrGuestLead')).toHaveCount(0)
 })
 
@@ -118,7 +117,7 @@ test('«Помнишь?» в ленте: раз в 6–8 видео карточ
   await expect(page.locator('.shellV2NavBtnDot')).toHaveCount(0)
 })
 
-test('закрепление фразы: все слова окрепли → собери фразу целиком → фраза золотая', async ({ page }) => {
+test('закрепление фразы: все слова окрепли → собери фразу целиком', async ({ page }) => {
   // hold (единственное слово фразы «Hold on») уже на шаге 3, срок не подошёл
   const due = new Date(Date.now() + 5 * 86_400_000).toLocaleDateString('sv')
   await page.addInitScript(d => {
@@ -129,12 +128,14 @@ test('закрепление фразы: все слова окрепли → с
     }))
   }, due)
   await page.goto('/')
-  const nav = page.getByRole('button', { name: 'Обучение', exact: true })
+  const nav = page.getByRole('button', { name: 'Память', exact: true })
   await expect(nav).toHaveClass(/shellV2NavBtnDot/, { timeout: 30_000 })
   await nav.click()
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Закрепить фразу', { timeout: 30_000 })
-  await main.click()
+  // hold на шаге 3 — ступень «Мои слова»
+  await expect(page.locator('.memLvl--2 .memChip')).toHaveText(['hold'])
+  await main.locator('.lrCta').click()
 
   const review = page.locator('.reviewScreen')
   await expect(review.locator('.reviewTeacherLine')).toContainText('пора собрать её целиком', { timeout: 30_000 })
@@ -148,8 +149,7 @@ test('закрепление фразы: все слова окрепли → с
   await expect(review.locator('.reviewPhraseResultOk')).toHaveText('✨ Фраза «Hold on» закреплена', { timeout: 30_000 })
   await review.getByRole('button', { name: 'Готово' }).click()
 
-  // Карта: фраза золотая; повторять сегодня больше нечего
-  await expect(page.locator('.lrPhraseGolden')).toContainText('★ закреплена', { timeout: 30_000 })
-  await expect(main).toContainText('На сегодня всё')
+  // Повторять сегодня больше нечего
+  await expect(main).toContainText('На сегодня всё', { timeout: 30_000 })
   await expect(nav).not.toHaveClass(/shellV2NavBtnDot/)
 })

@@ -12,7 +12,7 @@ import { onDeckSaved } from '../reviewCards/deckSavedEvent.js'
 // (этап 3 системы повторения, PROJECT.md → «Колоды»). Слово без колоды не
 // попадёт в повторение. «Карточки» открывает редактор колоды урока.
 // «＋ В обучение» (AdminLearnControls) — слово в СВОЮ память админа к повтору
-// сегодня: проверить вкладку «Обучение», не проходя урок
+// сегодня: проверить вкладку «Память», не проходя урок
 const STATUS_TEXT = { none: 'нет колоды', few: 'мало', ok: 'готово' }
 
 export default function AdminDecksTab({ onOpenCards }) {
@@ -41,7 +41,7 @@ export default function AdminDecksTab({ onOpenCards }) {
     setMemory(new Map(mem.map(m => [m.word, m])))
     setBusy(false)
   }
-  const addToLearn = word => toLearn(word, debugAddWord, `«${word}» — к повтору сегодня. Открой вкладку «Обучение»`)
+  const addToLearn = word => toLearn(word, debugAddWord, `«${word}» — к повтору сегодня. Открой вкладку «Память»`)
   const removeFromLearn = word => toLearn(word, debugRemoveWord, `«${word}» убрано из обучения`)
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- первичная загрузка списка

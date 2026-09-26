@@ -25,7 +25,7 @@ export default function MinutesSheet({ current = null, isGuest, onRequireAuth, o
           <>
             <p className="lrSheetWord">Сколько минут в день?</p>
             <p className="lrSheetPhrase">
-              Столько займёт повторение пройденных слов. Поменять можно в «Моём обучении»
+              Столько займёт повторение пройденных слов. Поменять можно во вкладке «Память»
             </p>
             <div className="lrMinutes">
               {[5, 10, 15].map(m => (

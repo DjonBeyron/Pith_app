@@ -80,17 +80,17 @@ test('гость проходит Старт и урок → звёзды в и�
 // маркер активного слайда в коде ленты, либо клик по видимому по boundingBox.
 // Пока покрыто вручную (PROJECT.md: тап гостя по лайку → форма входа).
 
-test('«Моё обучение» гостю: память пуста, «Войти» ведёт в профиль', async ({ page }) => {
+test('«Моя память» гостю: память пуста, «Войти» ведёт в профиль', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
   await expect(page.locator('.lrMainTitle')).toHaveText('Память пока пуста', { timeout: 30_000 })
   await page.locator('.lrGuestLead').getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
 })
 
-test('ссылка из пуша повторения /?tab=learn открывает «Моё обучение»', async ({ page }) => {
+test('ссылка из пуша повторения /?tab=learn открывает «Мою память»', async ({ page }) => {
   await page.goto('/?tab=learn')
-  await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Обучение')
+  await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Память')
   await expect(page.locator('.lrTitle')).toBeVisible()
   await expect.poll(() => new URL(page.url()).searchParams.has('tab')).toBe(false) // адрес очищен
 })

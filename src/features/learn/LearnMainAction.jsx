@@ -3,10 +3,22 @@ import { plural } from '../../shared/lib/plural.js'
 import { setVacation } from '../../shared/api/memoryApi.js'
 import { dueLabel } from './learnView.js'
 
-// Главное действие вкладки «Моё обучение» — по состоянию, одно:
-// «Отпуск» (+ вернуться) | память пуста | «Повторить · 2 мин» |
-// «На сегодня всё ✓» (+ когда следующее)
+// Шапка «Моей памяти» — главное действие по состоянию, одно:
+// «Отпуск» (+ вернуться) | память пуста | «Сегодня повторяем N слов» +
+// «Повторить» | «Закрепить фразу» | «На сегодня всё ✓» (+ когда следующее).
+// От низа шапки идёт ствол линий к ступеням (MemoryLadderWires.jsx)
 const fmtDate = d => new Date(`${d}T12:00:00`).toLocaleDateString('ru', { day: 'numeric', month: 'long' })
+const words = n => `${n} ${plural(n, 'слово', 'слова', 'слов')}`
+
+function Hero({ mod = '', title, sub, children }) {
+  return (
+    <div className={'lrMain' + mod}>
+      <p className="lrMainTitle">{title}</p>
+      {sub && <p className="lrMainSub">{sub}</p>}
+      {children}
+    </div>
+  )
+}
 
 export default function LearnMainAction({ view, today, onStart, onChanged }) {
   const [busy, setBusy] = useState(false)
@@ -19,48 +31,36 @@ export default function LearnMainAction({ view, today, onStart, onChanged }) {
       if (res?.ok) onChanged()
     }
     return (
-      <div className="lrMain lrMainVacation">
-        <p className="lrMainTitle">Ты в отпуске 🌴</p>
-        <p className="lrMainSub">Повторения на паузе с {fmtDate(view.vacation.since)}. Вернёшься — сроки сдвинутся, долга не будет</p>
+      <Hero mod=" lrMainVacation" title="Ты в отпуске 🌴"
+        sub={`Повторения на паузе с ${fmtDate(view.vacation.since)}. Вернёшься — сроки сдвинутся, долга не будет`}>
         <button className="lrBtn lrBtnMain" disabled={busy} onClick={back}>Вернуться из отпуска</button>
-      </div>
+      </Hero>
     )
   }
   if (view.empty) {
-    return (
-      <div className="lrMain">
-        <p className="lrMainTitle">Память пока пуста</p>
-        <p className="lrMainSub">Пройди урок-слово в любой фразе — завтра повторим его здесь</p>
-      </div>
-    )
+    return <Hero title="Память пока пуста" sub="Пройди урок-слово в любой фразе — завтра повторим его здесь" />
   }
-  const { picked, minutes, phrase } = view.today
-  if (!picked.length && phrase) {
-    return (
-      <button className="lrMain lrMainGo lrMainPhrase" onClick={onStart}>
-        <span className="lrMainTitle">Закрепить фразу · {minutes} мин</span>
-        <span className="lrMainSub">Все слова «{phrase.title}» окрепли — собери её целиком</span>
-      </button>
-    )
-  }
+  const { picked, phrase } = view.today
   if (picked.length) {
     return (
-      <button className="lrMain lrMainGo" onClick={onStart}>
-        <span className="lrMainTitle">Повторить · {minutes} мин</span>
-        <span className="lrMainSub">
-          {picked.length} {plural(picked.length, 'слово ждёт', 'слова ждут', 'слов ждут')} — и день серии засчитан
-        </span>
-      </button>
+      <Hero title={`Сегодня повторяем ${words(picked.length)}`} sub="чтобы они ушли в долгую память">
+        <button className="lrCta" onClick={onStart}>
+          Повторить<span className="lrCtaCount">{words(picked.length)}</span>
+        </button>
+      </Hero>
+    )
+  }
+  if (phrase) {
+    return (
+      <Hero mod=" lrMainPhrase" title="Сегодня закрепляем фразу" sub={`Все слова «${phrase.title}» окрепли — собери её целиком`}>
+        <button className="lrCta" onClick={onStart}>Закрепить фразу</button>
+      </Hero>
     )
   }
   return (
-    <div className="lrMain lrMainDone">
-      <p className="lrMainTitle">На сегодня всё ✓</p>
-      <p className="lrMainSub">
-        {view.next
-          ? `Следующее повторение ${dueLabel(view.next.date, today)} · ${view.next.count} ${plural(view.next.count, 'слово', 'слова', 'слов')}`
-          : 'Новые слова появятся после следующих уроков'}
-      </p>
-    </div>
+    <Hero mod=" lrMainDone" title="На сегодня всё ✓"
+      sub={view.next
+        ? `Следующее повторение ${dueLabel(view.next.date, today)} · ${words(view.next.count)}`
+        : 'Новые слова появятся после следующих уроков'} />
   )
 }

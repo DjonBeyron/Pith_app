@@ -1,13 +1,15 @@
-/* Вкладка «Моё обучение» (features/learn): главное действие, строка недели,
-   карта памяти (фразы → слова с силой), шторка слова. Фон и карточки — в
-   гамме профиля (profile-v2.css). Точка «есть что повторить» на нижней
-   панели — .shellV2NavBtnDot */
+/* Вкладка «Моя память» (features/learn): шапка с главным действием,
+   кнопка «Повторить», шторка слова, «Отпуск», минуты в день. Лестница
+   памяти — memory-ladder.css, страницы ступени и постоянной памяти —
+   memory-pages.css. Точка «есть что повторить» на нижней панели —
+   .shellV2NavBtnDot */
 
+/* Слева шире: там ствол линий лестницы (MemoryLadderWires) */
 .lrScreen {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(20px + var(--v2-nav-h));
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(20px + var(--v2-nav-h)) 22px;
   scrollbar-width: none;
 }
 .lrScreen::-webkit-scrollbar { display: none; }
@@ -16,28 +18,68 @@
 .lrNote { color: #8b95a1; }
 .lrLink { background: none; border: none; padding: 0; color: #b6fe3b; font: inherit; cursor: pointer; }
 
-/* ── Главное действие ─────────────────────────────────────────────── */
+/* ── Шапка: главное действие ───────────────────────────────────────── */
 .lrMain {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 18px 16px;
-  border: 1px solid #232932;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid #262b33;
   border-radius: 18px;
   background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
   color: #e8ecf0;
-  font: inherit;
-  text-align: left;
 }
-.lrMainGo { border-color: rgba(182, 254, 59, 0.5); cursor: pointer; }
-.lrMainGo .lrMainTitle { color: #b6fe3b; }
+.lrMainTitle { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.25; }
+.lrMainSub { margin: 0; font-size: 13px; color: #8b95a1; line-height: 1.4; }
 .lrMainDone .lrMainTitle { color: #b6fe3b; }
-.lrMainTitle { margin: 0; font-size: 20px; font-weight: 700; }
-.lrMainSub { margin: 0; font-size: 13px; color: #9aa3ad; line-height: 1.4; }
+.lrMainPhrase .lrMainTitle { color: #ffd257; }
 
-.lrWeek { margin: 0 4px 18px; font-size: 13px; color: #8b95a1; }
+/* Кнопка «Повторить» — как «Изучить фразу» в ленте (.feedLearnBtn):
+   градиент, тёмные узоры, редкий блик и мягкий «пульс» */
+.lrCta {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 14px;
+  border: none;
+  border-radius: 999px;
+  background:
+    var(--v2-dust-d), var(--v2-grain-d), var(--v2-tex-d),
+    linear-gradient(180deg, #ceff73 0%, #b6fe3b 45%, #9ce922 100%);
+  color: #0d1500;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(182, 254, 59, 0.3);
+  animation: lrCtaPulse 2.6s ease-out infinite;
+}
+.lrCta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.45) 50%, transparent 60%);
+  transform: translateX(-130%);
+  animation: lrCtaShine 7s linear infinite;
+}
+.lrCtaCount { padding: 3px 9px; border-radius: 999px; background: rgba(13, 21, 0, 0.14); font-size: 13px; font-weight: 700; }
+@keyframes lrCtaShine { 0% { transform: translateX(-130%); } 14%, 100% { transform: translateX(130%); } }
+@keyframes lrCtaPulse {
+  0%, 70% { box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); transform: scale(1); }
+  76% { box-shadow: 0 0 0 0 rgba(182, 254, 59, 0.55); transform: scale(1.03); }
+  95% { box-shadow: 0 0 0 14px rgba(182, 254, 59, 0); transform: scale(1); }
+  100% { box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); }
+}
+/* Скрытая вкладка — анимации стоят (как у кнопки ленты) */
+.shellV2TabHidden .lrCta,
+.shellV2TabHidden .lrCta::after { animation: none; }
 
 /* Подводка гостя к входу (память пока только в этом браузере) */
 .lrGuestLead { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
@@ -56,46 +98,6 @@
   font-size: 13px;
   cursor: pointer;
 }
-
-/* ── Карта памяти ──────────────────────────────────────────────────── */
-.lrSectionTitle { margin: 0 4px 8px; font-size: 13px; font-weight: 600; color: #9aa3ad; text-transform: uppercase; letter-spacing: 0.04em; }
-
-.lrPhrase {
-  margin-bottom: 8px;
-  border: 1px solid #232932;
-  border-radius: 14px;
-  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
-  overflow: hidden;
-}
-
-.lrPhraseHead,
-.lrWord {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 14px;
-  border: none;
-  background: none;
-  color: #e8ecf0;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.lrPhraseTitle { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.lrPhraseMeta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; color: #8b95a1; }
-.lrPhraseGolden { border-color: rgba(255, 210, 87, 0.55); }
-.lrPhraseGolden .lrPhraseTitle,
-.lrPhraseGolden .lrPhraseMeta { color: #ffd257; }
-.lrMainPhrase { border-color: rgba(255, 210, 87, 0.55); }
-.lrMainPhrase .lrMainTitle { color: #ffd257; }
-.lrDueDot { width: 7px; height: 7px; border-radius: 50%; background: #b6fe3b; }
-
-.lrWord { padding: 10px 14px 10px 24px; border-top: 1px solid #1d2229; }
-.lrWordText { font-weight: 600; }
-.lrWordMuted .lrWordText { color: #6b737d; }
-.lrWordNote { font-size: 12px; color: #6b737d; }
 
 /* ── Шторка слова ──────────────────────────────────────────────────── */
 .lrSheetBack {
@@ -119,7 +121,12 @@
 }
 .lrSheetWord { margin: 0; font-size: 24px; font-weight: 700; }
 .lrSheetPhrase { margin: 0; font-size: 13px; color: #8b95a1; }
-.lrSheetInfo { display: flex; align-items: center; gap: 10px; margin: 4px 0 6px; font-size: 13px; color: #9aa3ad; }
+.lrSheetInfo { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 4px 0 6px; font-size: 13px; color: #9aa3ad; }
+.lrSheetLevel { font-weight: 800; }
+.lrSheetLevel--1 { color: #8a939e; }
+.lrSheetLevel--2 { color: #e2cd78; }
+.lrSheetLevel--3 { color: #b6fe3b; }
+.lrSheetLevel--Perm { color: #a78bfa; }
 
 .lrBtn {
   width: 100%;
@@ -166,4 +173,9 @@
   height: 7px;
   border-radius: 50%;
   background: #b6fe3b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lrCta { animation: none; }
+  .lrCta::after { content: none; }
 }

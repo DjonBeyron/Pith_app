@@ -4,7 +4,7 @@ import MinutesSheet from './MinutesSheet.jsx'
 
 // Онбординг повторения в оболочке: по просьбе схемы модуля после первого
 // пройденного урока (minutesAsk.js) — шторка «Сколько минут в день?», один
-// раз на устройстве. onChanged — перечитать «Моё обучение» (бюджет сменился)
+// раз на устройстве. onChanged — перечитать «Мою память» (бюджет сменился)
 export default function MinutesAsk({ isLoggedIn, onRequireAuth, onChanged }) {
   const [open, setOpen] = useState(false)
   useEffect(() => onMinutesAsk(() => { markMinutesAsked(); setOpen(true) }), [])

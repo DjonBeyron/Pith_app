@@ -21,31 +21,46 @@ test('обычный пользователь не видит вкладку «�
   await expect(page.getByRole('button', { name: 'Админ', exact: true })).toHaveCount(0)
 })
 
-test('«Моё обучение»: повторить слово дня, карта памяти, «Повторить сейчас» — за Pro', async ({ page }) => {
-  // Память e2e-user из сида: keep (созрело сегодня) во фразе «Keep going · E2E-ОБУЧЕНИЕ»
+test('«Моя память»: ступени, слово дня, «Повторить сейчас» — за Pro', async ({ page }) => {
+  // Память e2e-user из сида: keep (шаг 1, созрело сегодня) во фразе «Keep going · E2E-ОБУЧЕНИЕ»
   test.slow()
   await page.goto('/')
-  const nav = page.getByRole('button', { name: 'Обучение', exact: true })
+  const nav = page.getByRole('button', { name: 'Память', exact: true })
   await expect(nav).toHaveClass(/shellV2NavBtnDot/, { timeout: 30_000 }) // есть что повторить
   await nav.click()
   const main = page.locator('.lrMain')
-  await expect(main).toContainText('Повторить · 1 мин', { timeout: 30_000 })
-  await expect(main).toContainText('1 слово ждёт')
+  await expect(main).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })
 
-  // Карта: keep с силой, going без колоды — «не пройдено»
-  const phrase = page.locator('.lrPhrase', { hasText: 'Keep going · E2E-ОБУЧЕНИЕ' })
-  await phrase.locator('.lrPhraseHead').click()
-  await expect(phrase.locator('.lrWord', { hasText: 'going' })).toContainText('не пройдено')
-  await expect(phrase.locator('.lrWord', { hasText: 'keep' }).locator('.strengthDotOn')).toHaveCount(1)
+  // Лестница: keep — в «Новеньких» (going не пройден — в памяти его нет)
+  const fresh = page.locator('.memLvl--1')
+  await expect(fresh.locator('.memLvlCount')).toHaveText('1')
+  await expect(fresh.locator('.memChip')).toHaveText(['keep'])
+  await expect(page.locator('.memSideLabel')).toHaveText(/^1\s*слово во временной памяти$/)
+  // Все слова ступени: keep — «сегодня»
+  await fresh.getByRole('button', { name: 'Все слова: Новенькие слова' }).click()
+  await expect(page.getByRole('tab', { name: /Новенькие/ })).toHaveAttribute('aria-selected', 'true')
+  const row = page.locator('.memChipRow', { hasText: 'keep' })
+  await expect(row).toContainText('сегодня')
 
   // «Повторить сейчас» — удобство Pro: обычному пользователю — пейволл
-  await phrase.locator('.lrWord', { hasText: 'keep' }).click()
-  await page.getByRole('button', { name: 'Повторить сейчас · Pro' }).click()
+  await row.click()
+  const sheet = page.getByRole('dialog', { name: 'Слово keep' })
+  await expect(sheet).toContainText('Новенькие слова')
+  await sheet.getByRole('button', { name: 'Повторить сейчас · Pro' }).click()
   await expect(page.locator('.ppCard')).toBeVisible()
   await page.locator('.ppClose').click()
+  // Вкладки ступеней: «Мои» пока пусто
+  await page.getByRole('tab', { name: /Мои/ }).click()
+  await expect(page.locator('.memHead')).toContainText('Мои слова')
+  await expect(page.locator('.memListEmpty')).toBeVisible()
+  await page.getByRole('button', { name: '← Назад' }).click()
+  // Пятиугольник — фиолетовая страница постоянной памяти (пока пусто)
+  await page.getByRole('button', { name: /^Постоянная память/ }).click()
+  await expect(page.locator('.memPermCount')).toHaveText(/^0\s*слов выучены навсегда$/)
+  await page.getByRole('button', { name: '← Назад' }).click()
 
   // Сессия дня: верный ответ → итог (+2 XP, мостик в фразу) → «На сегодня всё ✓»
-  await main.click()
+  await main.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
   await review.getByRole('button', { name: 'Начать', exact: true }).click({ timeout: 30_000 })
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
@@ -83,7 +98,7 @@ test('схема модуля: у пройденного урока-слова �
 
 test('«Отпуск»: пауза расписания и возвращение', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
   await page.getByRole('button', { name: 'Уезжаю в отпуск' }).click({ timeout: 30_000 })
   await page.getByRole('dialog', { name: 'Отпуск' }).getByRole('button', { name: 'Поставить на паузу' }).click()
   const main = page.locator('.lrMain')
@@ -108,11 +123,11 @@ test('лента по памяти: фраза со своим словом — 
 
 test('«Сколько минут в день» меняется во вкладке и сохраняется в аккаунте', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
   await page.getByRole('button', { name: /Повторение: \d+ минут в день/ }).click({ timeout: 30_000 })
   await page.getByRole('dialog', { name: 'Минуты в день' }).getByRole('button', { name: /15 мин/ }).click()
   await expect(page.getByRole('button', { name: /Повторение: 15 минут в день/ })).toBeVisible({ timeout: 15_000 })
   await page.reload()
-  await page.getByRole('button', { name: 'Обучение', exact: true }).click()
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
   await expect(page.getByRole('button', { name: /Повторение: 15 минут в день/ })).toBeVisible({ timeout: 30_000 })
 })

@@ -21,13 +21,20 @@ const memory = [
   { word: 'keep', step: 4, due_on: '2026-09-27' },
 ]
 
-describe('вкладка «Моё обучение»: данные', () => {
+describe('вкладка «Моя память»: данные', () => {
   it('сегодня — созревшие слова с колодой; минут по карточкам', () => {
     const v = buildLearnView({ memory, curricula, lessons, minutes: 5 }, today)
     expect(v.today.picked.map(p => p.word)).toEqual(['to', 'trying'])
     expect(v.today.cards).toBe(3)
     expect(v.today.minutes).toBe(1)
     expect(v.next).toEqual({ date: '2026-09-27', count: 1 })
+  })
+
+  it('ступени памяти: сегодняшние слова первыми, у слова — его первая фраза', () => {
+    const v = buildLearnView({ memory, curricula, lessons, minutes: 5 }, today)
+    expect(v.ladder.levels.map(l => l.words.map(w => w.word))).toEqual([['to', 'cook'], ['trying', 'keep'], []])
+    expect(v.ladder.levels[1].words[0]).toMatchObject({ today: true, lessonId: 'l-try', phrase: "I'm trying to cook" })
+    expect(v.ladder.levels[0].words[1]).toMatchObject({ today: false, hasDeck: false })
   })
 
   it('бюджет дня общий на все сессии: показанное сегодня вычитается', () => {

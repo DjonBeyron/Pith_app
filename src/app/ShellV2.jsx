@@ -40,7 +40,7 @@ const AdminV2         = lazy(() => lazyRetry(() => import('../features/admin/Adm
 // (+Админ для is_admin). Пока: лента — заглушка (шаг 3 миграции),
 // профиль и админ — существующие вкладки внутри новой оболочки.
 export default function ShellV2() {
-  // Пуш повторения открывает приложение сразу во «Моём обучении» (?tab=learn,
+  // Пуш повторения открывает приложение сразу в «Моей памяти» (?tab=learn,
   // миграция 20260925180000_push_review_due.sql)
   const [tab, setTab] = useState(() => (new URLSearchParams(location.search).get('tab') === 'learn' ? 'learn' : 'feed'))
   // Canvas-редактор урока (админ, «✎» на схеме модуля) — оверлеем поверх
@@ -74,7 +74,7 @@ export default function ShellV2() {
   // экране, ленту не паузим: сплэш снимается по первому кадру видео, и на
   // паузе он висел бы до страховки в 3.5 секунды
   const [splashGone, setSplashGone] = useState(() => !!window.__pithySplashGone)
-  // «Моё обучение»: данные живут здесь — по ним же точка на вкладке
+  // «Моя память»: данные живут здесь — по ним же точка на вкладке
   const learn = useLearnData(!!user)
   const learnDot = !!(learn.view?.today.picked.length || learn.view?.today.phrase)
   // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,

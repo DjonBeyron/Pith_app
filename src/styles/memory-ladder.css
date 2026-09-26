@@ -1,0 +1,161 @@
+/* Лестница «Моей памяти» (features/learn/MemoryLadder.jsx): ступени
+   новенькие → мои → родные (серый → мягкий жёлтый → салатовый) лесенкой
+   по 2/3 ширины, справа — число слов во временной памяти, внизу —
+   фиолетовый пятиугольник постоянной памяти (форма финала модуля). Линии
+   и шарики — слой .memWires под блоками (MemoryLadderWires.jsx) */
+
+.memZone { position: relative; }
+
+.memStairs { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 20px; margin-top: 30px; }
+.memSideLabel {
+  position: absolute;
+  right: 0;
+  top: -6px;
+  width: calc(100% / 3 - 10px);
+  text-align: center;
+  line-height: 1.2;
+  font-size: 12px;
+  font-weight: 700;
+  color: #aeb6bf;
+}
+.memSideLabel b { display: block; font-size: 30px; font-weight: 800; line-height: 1.05; color: #eef1f4; }
+.memStair { width: calc(200% / 3); }
+.memStair--2 { margin-left: calc(100% / 6); }
+.memStair--3 { margin-left: calc(100% / 3); }
+
+/* ── Ступень ───────────────────────────────────────────────────────── */
+.memLvl {
+  --c: #8a939e;
+  --tint: rgba(138, 147, 158, 0.16);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 11px 11px 12px;
+  border-left: 3px solid var(--c);
+  border-radius: 16px;
+  background: linear-gradient(to right, var(--tint) 0, transparent 90px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+}
+.memLvl--2 { --c: #e2cd78; --tint: rgba(226, 205, 120, 0.15); }
+.memLvl--3 { --c: #b6fe3b; --tint: rgba(182, 254, 59, 0.15); }
+.memLvlTop { position: relative; padding-right: 22px; }
+.memLvlOpen {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.memLvlLine { display: flex; align-items: baseline; gap: 7px; white-space: nowrap; }
+.memLvlCount { font-size: 20px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--c); }
+.memLvlName { font-size: 13.5px; font-weight: 800; color: var(--c); }
+.memLvlWhen { font-size: 11px; font-weight: 600; color: #8b95a1; white-space: nowrap; }
+/* «Все слова» — только значок, маленький, в самом углу */
+.memExpand {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #2c323b;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #aeb6bf;
+  cursor: pointer;
+}
+.memExpand svg { width: 11px; height: 11px; }
+.memWords { display: flex; flex-wrap: wrap; gap: 5px; }
+.memEmpty { font-size: 12px; color: #5c6570; }
+
+/* ── Слово: заливка цвета ступени, обводка зеленеет с ростом ─────────── */
+.memChip {
+  --fill: #8a939e;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: #1a1d22;
+  color: #eef1f4;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px var(--ring, #2a3038);
+}
+.memChip--2 { --fill: #e2cd78; }
+.memChip--3 { --fill: #b6fe3b; }
+.memChip--Perm { --fill: #8b5cf6; --ring: rgba(139, 92, 246, 0.55); }
+.memChipFill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--fill); opacity: 0.3; }
+.memChipWord { position: relative; }
+.memChipMuted { opacity: 0.55; }
+
+/* ── Постоянная память: пятиугольник (контур 240×212 в масштабе 3/4) ── */
+.memPerm {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 180px;
+  height: 159px;
+  margin-top: 34px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.memPerm::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: path('M 4.05 88.5 L 12.45 31.8 A 32.85 32.85 0 0 1 45 3.45 L 139.5 3.45 A 32.85 32.85 0 0 1 172.35 31.8 L 180.45 88.5 A 32.85 32.85 0 0 1 165 121.05 L 109.65 155.1 A 32.85 32.85 0 0 1 75 155.1 L 19.65 121.05 A 32.85 32.85 0 0 1 4.05 88.5 Z');
+  background: radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.22), transparent 70%), var(--v2-dust), var(--v2-grain), var(--v2-tex) #12101a;
+}
+.memPerm svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
+.memPerm svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
+.memPermText { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -10px; text-align: center; }
+.memPermText b { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }
+.memPermText span { margin-top: 5px; font-size: 11.5px; font-weight: 700; color: #d9ccff; }
+.memPermText small { margin-top: 2px; font-size: 9.5px; font-weight: 600; color: #a78bfa; }
+
+/* ── Линии и шарики ────────────────────────────────────────────────── */
+.memWires { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.memWires svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.memWire { fill: none; stroke-width: 2; stroke-linecap: round; opacity: 0.85; }
+.memBall {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  offset-rotate: 0deg;
+  animation: memBallRun 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes memBallRun {
+  0% { offset-distance: 0%; opacity: 0; }
+  6% { opacity: 1; }
+  74% { offset-distance: 100%; opacity: 1; }
+  75%, 100% { offset-distance: 100%; opacity: 0; }
+}
+/* Скрытая вкладка — шарики не крутятся */
+.shellV2TabHidden .memBall { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .memBall { display: none; }
+}

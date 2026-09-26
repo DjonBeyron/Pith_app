@@ -14,7 +14,7 @@ export default function AdminLearnControls({ word, mem, cards, today, busy, onAd
           className="aeRefresh"
           onClick={() => onAdd(word)}
           disabled={busy || !cards}
-          title={cards ? 'В свою память к повтору сегодня — смотри вкладку «Обучение»' : 'Сначала карточки: без колоды слова нет в повторении'}
+          title={cards ? 'В свою память к повтору сегодня — смотри вкладку «Память»' : 'Сначала карточки: без колоды слова нет в повторении'}
         >＋ В обучение</button>
       </div>
     )

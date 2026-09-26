@@ -1,24 +1,25 @@
-import StrengthDots from '../../shared/ui/StrengthDots.jsx'
+import { LEVELS, levelOf } from './memoryLadder.js'
 import { dueLabel } from './learnView.js'
 
-// Шторка слова из карты памяти: сила и срок, «Пройти урок целиком» и
-// «Повторить сейчас» (вне расписания — удобство Pro; шаг от раннего повтора
-// не растёт, ошибка — снижает: так договорились в концепции)
-export default function LearnWordSheet({ word, phrase, today, isPro, onLesson, onReview, onWantPro, onClose }) {
-  const canReview = !!word.step && word.hasDeck
+// Шторка слова «Моей памяти»: ступень и срок, «Пройти урок целиком» (если
+// слово есть во фразе) и «Повторить сейчас» (вне расписания — удобство Pro;
+// шаг от раннего повтора не растёт, ошибка — снижает: так договорились в
+// концепции). perm — слово из постоянной памяти
+export default function LearnWordSheet({ word, perm, today, isPro, onLesson, onReview, onWantPro, onClose }) {
+  const lvl = levelOf(word.step)
   return (
     <div className="lrSheetBack" onClick={onClose}>
       <div className="lrSheet" role="dialog" aria-label={`Слово ${word.word}`} onClick={e => e.stopPropagation()}>
         <p className="lrSheetWord">{word.word}</p>
-        <p className="lrSheetPhrase">{phrase.title}</p>
-        {word.step ? (
-          <div className="lrSheetInfo">
-            <StrengthDots step={word.step} />
-            <span>{word.hasDeck ? `повтор ${dueLabel(word.due, today)}` : 'повторение скоро — карточек пока нет'}</span>
-          </div>
-        ) : <p className="lrSheetPhrase">ещё не пройдено</p>}
-        <button className="lrBtn lrBtnMain" onClick={onLesson}>Пройти урок целиком</button>
-        {canReview && (
+        {word.phrase && <p className="lrSheetPhrase">{word.phrase}</p>}
+        <div className="lrSheetInfo">
+          <span className={perm ? 'lrSheetLevel lrSheetLevel--Perm' : `lrSheetLevel lrSheetLevel--${lvl}`}>
+            {perm ? 'Постоянная память' : LEVELS[lvl - 1].name}
+          </span>
+          <span>{word.hasDeck ? `повтор ${dueLabel(word.due, today)}` : 'повторение скоро — карточек пока нет'}</span>
+        </div>
+        {word.lessonId && <button className="lrBtn lrBtnMain" onClick={onLesson}>Пройти урок целиком</button>}
+        {word.hasDeck && (
           <button className="lrBtn" onClick={isPro ? onReview : onWantPro}>
             Повторить сейчас{isPro ? '' : ' · Pro'}
           </button>

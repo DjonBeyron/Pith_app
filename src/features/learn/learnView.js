@@ -2,15 +2,18 @@ import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { pickToday, dailyCardBudget, cardsShownToday, localDate } from '../../shared/lib/memory/dailyPick.js'
 import { sessionMinutes } from '../review/reviewTeacher.js'
 import { plural } from '../../shared/lib/plural.js'
+import { buildLadder } from './memoryLadder.js'
 
-// Всё, что показывает вкладка «Моё обучение» (PROJECT.md → «Вкладки»), из
+// Всё, что показывает вкладка «Моя память» (PROJECT.md → «Вкладки»), из
 // сырых данных — чистая функция без сети:
 //   today   — главное действие: что повторить сегодня (pickToday в пределах
 //             ОСТАТКА бюджета дня — карточки, уже показанные сегодня, не
 //             повторяются второй сессией) или «на сегодня всё»;
 //   next    — когда следующее повторение, если сегодня нечего;
 //   week    — строка итогов 7 дней;
-//   phrases — карта памяти: фразы (модули со словом в памяти) → слова с силой;
+//   ladder  — ступени памяти (memoryLadder.js): новенькие / мои / родные и
+//             постоянная память — главный экран вкладки;
+//   phrases — фразы (модули со словом в памяти) → слова с силой;
 //   known   — «Знаю N слов» (шаг ≥ 3 — слово пережило недельный интервал),
 //   strongPhrases — закреплённые фразы (собраны целиком, golden);
 //   today.phrase — фраза к закреплению: все слова «знаю», ещё не золотая
@@ -67,6 +70,12 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
     .map(m => ({ ...m, due: m.words.some(w => w.step && w.hasDeck && w.due <= today) }))
     .sort((a, b) => (b.due - a.due) || a.title.localeCompare(b.title))
 
+  // Дом слова — первая фраза с ним: из шторки слова «Пройти урок целиком»
+  const wordHome = new Map()
+  for (const m of moduleWords) {
+    for (const w of m.words) if (!wordHome.has(w.word)) wordHome.set(w.word, { lessonId: w.lessonId, phrase: m.title })
+  }
+
   const ready = vacationSince ? null
     : phrases.find(p => !p.golden && p.words.length && p.words.every(w => (w.step ?? 0) >= KNOW_STEP))
 
@@ -82,6 +91,7 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
       phrase: ready ? { id: ready.id, title: ready.title, videoUrl: ready.videoUrl } : null,
     },
     next,
+    ladder: buildLadder(memory, { todayWords: new Set(picked.map(p => p.word)), hasDeck, wordHome }),
     week: weekSummary(reviews, today),
     phrases,
     known: memory.filter(m => m.step >= KNOW_STEP).length,
