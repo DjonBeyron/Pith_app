@@ -9,6 +9,7 @@ import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { getCompletedLessons, markLessonCompleted } from '../../shared/lib/completedLessons.js'
 import { seedGuestWordOf } from '../../shared/lib/memory/guestMemory.js'
+import { lessonWordOf } from '../../shared/lib/memory/wordLessons.js'
 import { refreshProfile, getCachedProfile } from '../../shared/api/profileCache.js'
 import ProPaywall from '../pro/ProPaywall.jsx'
 import { startLesson } from '../../shared/api/profileApi.js'
@@ -150,6 +151,8 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
         starsEligible={!isPro && lessons.length > 2 &&
           playingLessonId !== lessons[0].id &&
           playingLessonId !== lessons[lessons.length - 1].id}
+        /* Урок-слово: впервые в памяти → «Новое слово во временной памяти» в итоге */
+        memoryWord={lessonWordOf(lessons, playingLessonId)}
         onClose={() => setPlayerData(null)}
         onSummaryClose={async () => {
           if (playingLessonId) {

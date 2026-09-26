@@ -28,6 +28,7 @@ import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import ShellNav from './ShellNav.jsx'
 import LearnTab from '../features/learn/LearnTab.jsx'
 import { useLearnData } from '../features/learn/useLearnData.js'
+import { useMemoryFresh } from '../features/learn/memoryFresh.js'
 import MinutesAsk from '../features/learn/MinutesAsk.jsx'
 import { onOpenModule } from '../shared/lib/openModuleEvent.js'
 
@@ -76,7 +77,9 @@ export default function ShellV2() {
   const [splashGone, setSplashGone] = useState(() => !!window.__pithySplashGone)
   // «Моя память»: данные живут здесь — по ним же точка на вкладке
   const learn = useLearnData(!!user)
-  const learnDot = !!(learn.view?.today.picked.length || learn.view?.today.phrase)
+  // Точка на «Памяти»: есть что повторить сегодня или новое слово из урока
+  const memoryFresh = useMemoryFresh(tab === 'learn')
+  const learnDot = !!(learn.view?.today.picked.length || learn.view?.today.phrase) || memoryFresh
   // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
   // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
   useEffect(() => onOpenModule(() => setTab('feed')), [])

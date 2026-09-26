@@ -34,6 +34,10 @@ test('гость проходит урок-слово → слово в его �
   await page.getByRole('button', { name: /Начать урок/ }).click({ timeout: 30_000 })
   await page.getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
   await expect(page.getByText('Урок завершён')).toBeVisible({ timeout: 60_000 })
+  // Урок-слово впервые — «Новое слово во временной памяти»; по «Закрыть»
+  // слово улетает к вкладке «Память», на ней загорается точка
+  await expect(page.locator('.summaryMemCard')).toContainText('Новое слово во временной памяти')
+  await expect(page.locator('.summaryMemWord')).toHaveText('keep')
   await page.locator('.summaryCloseBtn').click()
 
   // Первый пройденный урок → «Сколько минут в день?» (один раз), гостю —
@@ -44,7 +48,10 @@ test('гость проходит урок-слово → слово в его �
   await ask.getByRole('button', { name: 'Позже' }).click()
   await expect(ask).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Память', exact: true }).click()
+  const nav = page.getByRole('button', { name: 'Память', exact: true })
+  await expect(nav).toHaveClass(/shellV2NavBtnDot/) // новое слово — повторять его завтра, а точка уже горит
+  await nav.click()
+  await expect(nav).not.toHaveClass(/shellV2NavBtnDot/) // открыли вкладку — точка погасла
   await expect(page.locator('.lrMain')).toContainText('На сегодня всё ✓', { timeout: 30_000 })
   await expect(page.locator('.lrMain')).toContainText('Следующее повторение завтра · 1 слово')
   await expect(page.locator('.lrGuestLead')).toContainText('только в этом браузере')

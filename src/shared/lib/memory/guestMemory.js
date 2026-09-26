@@ -1,5 +1,5 @@
 import { localDate } from './dailyPick.js'
-import { wordKey } from '../wordAudio/wordKey.js'
+import { lessonWordOf } from './wordLessons.js'
 
 // Память повторения ГОСТЯ — в localStorage (PROJECT.md → «Онбординг»: память
 // гостя локальная, при регистрации переносится — RPC memory_import_guest).
@@ -85,9 +85,7 @@ export function seedGuestWord(word, today) {
 // Финалом, название — слово латиницей), слово — в память. lessons — уроки
 // модуля по порядку [{ id, title }]
 export function seedGuestWordOf(lessons, lessonId) {
-  const i = (lessons ?? []).findIndex(l => l.id === lessonId)
-  if (i <= 0 || i >= lessons.length - 1) return
-  seedGuestWord(wordKey(lessons[i].title), localDate(new Date()))
+  seedGuestWord(lessonWordOf(lessons, lessonId), localDate(new Date()))
 }
 
 // Исход повторения гостя: как ответ memory_review_word; пишет и журнал

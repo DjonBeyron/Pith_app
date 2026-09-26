@@ -56,6 +56,7 @@ export default function LessonPlayer({
   onFinishStats = null, // супергонка и карточка повторения: finishStatsOf (useLessonFinish.js) в момент финиша
   finalTicket = null, // Финал модуля: { moduleId } — подсказки + золотой билет
   starsEligible = false, // обычный урок модуля (не Старт/Финал): звёзды по ошибкам
+  memoryWord = null, // слово урока-слова модуля: впервые в памяти → карточка в итоге
   // Правка урока прямо из плеера — только когда его запустил админ из канваса
   // (CanvasPage передаёт { onUpdateNode, onPickLessonFile, moduleLessons }).
   // В ленте, уроках и гонке проп не передаётся — режима нет вовсе
@@ -72,6 +73,7 @@ export default function LessonPlayer({
   // Золотой билет за Финал: счётчик подсказок (раскрытий перевода) и итог
   const { count: hintCount, registerHint, getCount: getHintCount } = useFinalHints(!!finalTicket)
   const [ticketRes, setTicketRes] = useState(null)
+  const [newWord, setNewWord] = useState(null) // «Новое слово во временной памяти»
   // Звёзды обычного урока: свой счётчик неверных ответов — независим от
   // recordStats (пересдача «без записи» не должна дарить 3★ из-за пустых событий)
   const wrongRef = useRef(0)
@@ -105,7 +107,7 @@ export default function LessonPlayer({
   const { finishSummary } = useLessonFinish({
     edit, starsEligible, lessonId, wrongRef, finalTicket, getHintCount, getEvents, earnedXpRef,
     setBaseXp, setEarnedXp, setStarsRes, setShowSummary, setTicketRes,
-    clearProgress: resumeState.clear,
+    clearProgress: resumeState.clear, memoryWord, setNewWord,
   })
 
   // Карта главной линии считается один раз на урок — нужна и для полоски
@@ -320,6 +322,7 @@ export default function LessonPlayer({
         baseXp={baseXp}
         ticket={ticketRes}
         stars={starsRes}
+        newWord={newWord}
         onSummaryClose={onSummaryClose ?? onClose}
       />
 

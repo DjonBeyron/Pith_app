@@ -7,6 +7,7 @@ import MemoryLadder from './MemoryLadder.jsx'
 import MemoryLevelPage from './MemoryLevelPage.jsx'
 import MemoryPermPage from './MemoryPermPage.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
+import MemoryIntro from './MemoryIntro.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
 
 const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
@@ -78,6 +79,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         </Suspense>
       )}
       {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
+      <MemoryIntro open={visible} />
     </div>
   )
 }

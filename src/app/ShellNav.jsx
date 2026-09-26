@@ -2,8 +2,8 @@ import { Cog, Video, UserRound, Trophy, Brain } from 'lucide-react'
 import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
 
 // Нижняя панель оболочки: Уроки / Память / Профиль / Рейтинг (+ Админ).
-// Точка на «Памяти» — есть что повторить сегодня (без числа: число
-// давило бы долгом, см. PROJECT.md → «Вкладки»). Вынесено из ShellV2.jsx
+// Точка на «Памяти» — есть что повторить сегодня или новое слово из урока
+// (без числа: число давило бы долгом, см. PROJECT.md → «Вкладки»). Вынесено из ShellV2.jsx
 export default function ShellNav({ tab, setTab, learnDot, isRealAdmin, userMode }) {
   const cls = (id, extra = '') => `shellV2NavBtn${tab === id ? ' shellV2NavBtnActive' : ''}${extra}`
   return (
@@ -15,7 +15,8 @@ export default function ShellNav({ tab, setTab, learnDot, isRealAdmin, userMode 
         <Video />
         Уроки
       </button>
-      <button className={cls('learn', learnDot ? ' shellV2NavBtnDot' : '')} onClick={() => setTab('learn')}>
+      {/* data-nav — цель полёта нового слова из итога урока (memoryFresh.js) */}
+      <button className={cls('learn', learnDot ? ' shellV2NavBtnDot' : '')} data-nav="learn" onClick={() => setTab('learn')}>
         <Brain />
         Память
       </button>

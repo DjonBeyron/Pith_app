@@ -88,6 +88,23 @@ test('«Моя память» гостю: память пуста, «Войти�
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
 })
 
+test('первый вход во вкладку «Память» — окно «Это твоя память», один раз', async ({ page }) => {
+  // fixtures.js гасит окно флагом — здесь снимаем его (только при первой загрузке)
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('e2e_intro_reset')) return
+    sessionStorage.setItem('e2e_intro_reset', '1')
+    localStorage.removeItem('pithy_memory_intro_v1')
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
+  const intro = page.getByRole('dialog', { name: 'Это твоя память' })
+  await expect(intro).toContainText('Мы сами напомним повторить слово', { timeout: 30_000 })
+  await expect(intro).toContainText('постоянную память')
+  await intro.getByRole('button', { name: 'Посмотреть мою память' }).click()
+  await expect(intro).toHaveCount(0)
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('pithy_memory_intro_v1'))).toBe('1')
+})
+
 test('ссылка из пуша повторения /?tab=learn открывает «Мою память»', async ({ page }) => {
   await page.goto('/?tab=learn')
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Память')

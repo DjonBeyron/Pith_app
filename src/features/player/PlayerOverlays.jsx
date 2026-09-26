@@ -17,7 +17,7 @@ function buildStamp() {
 // Вынесены из LessonPlayer.jsx — он у потолка размера файла.
 export default function PlayerOverlays({
   xpEvents, onDismissXp,
-  showSummary, earnedXp, baseXp, ticket, stars, onSummaryClose,
+  showSummary, earnedXp, baseXp, ticket, stars, newWord = null, onSummaryClose,
 }) {
   // Штамп версии — вторая половина диагностического набора урока (первая,
   // кнопка «⬇ лог», в PlayerTopBar). Раньше висел у всех и всегда, мимо
@@ -37,6 +37,7 @@ export default function PlayerOverlays({
           ticket={ticket}
           hintLimit={HINT_LIMIT}
           stars={stars}
+          newWord={newWord}
           onClose={onSummaryClose}
         />
       )}

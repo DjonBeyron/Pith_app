@@ -34,6 +34,15 @@ export async function listWordMemory() {
   return data ?? []
 }
 
+// Есть ли слово в памяти: итог урока сравнивает до и после зачёта — слово
+// впервые во временной памяти → карточка «Новое слово». null — не узнали
+export async function hasMemoryWord(word) {
+  if (await isGuest()) return listGuestMemory().some(m => m.word === word)
+  const { data, error } = await supabase.from('word_memory').select('word').eq('word', word).limit(1)
+  if (error) { dbg('[MEMORY] hasMemoryWord:', error.message); return null }
+  return (data ?? []).length > 0
+}
+
 // Исход повторения слова (reviewOutcome.js). Шаг и дату считает сервер.
 // { ok, word, prev_step, step, due_on, applied, settled, settled_on } | { ok: false, reason } | null
 // (settled — слово ушло в постоянную память этим ответом)

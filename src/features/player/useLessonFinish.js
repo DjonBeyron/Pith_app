@@ -10,6 +10,7 @@ import { saveAnswerEvents } from '../../shared/lib/skillStatsStore.js'
 import { sendSelfTrigger } from '../../shared/api/pushApi.js'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 import { pLog } from '../../shared/lib/debug.js'
+import { hasMemoryWord } from '../../shared/api/memoryApi.js'
 
 // Счёт для onFinishStats (супергонка, карточка повторения) в момент финиша:
 // errors — неверные ответы с привязкой к уроку-цели (события анализа),
@@ -27,10 +28,14 @@ export function finishStatsOf({ getEvents, wrongRef, openTimeRef }) {
 // Конец урока: начисление XP (гостю — локально, залогиненному — сервером
 // через completeLesson), звёзды по ошибкам, золотой билет за Финал модуля,
 // запись событий анализа знаний, пуш себе при переходе на новый уровень.
-// Вынесено из LessonPlayer.jsx.
+// memoryWord — слово урока-слова модуля (CurriculumView): если его не было в
+// памяти, а после зачёта оно там (залогиненному заносит серверный триггер,
+// гостю — схема модуля по «Закрыть»), итог покажет «Новое слово во временной
+// памяти» (setNewWord). Вынесено из LessonPlayer.jsx.
 export function useLessonFinish({
   edit, starsEligible, lessonId, wrongRef, finalTicket, getHintCount, getEvents, earnedXpRef,
   setBaseXp, setEarnedXp, setStarsRes, setShowSummary, setTicketRes, clearProgress,
+  memoryWord = null, setNewWord = () => {},
 }) {
   function finishSummary() {
     // Прогон из канваса — инструмент автора, а не прохождение урока: ни экрана
@@ -56,7 +61,9 @@ export function useLessonFinish({
         // Залогинен: XP начисляет сервер по своей копии урока, один раз за урок.
         // Без lessonId (предпросмотр в редакторе) начисления нет.
         setBaseXp(profile.xp)
+        const hadWord = memoryWord ? await hasMemoryWord(memoryWord) : null
         const awarded = lessonId ? await completeLesson(lessonId) : 0
+        if (hadWord === false && await hasMemoryWord(memoryWord)) setNewWord(memoryWord)
         // День серии закрывает именно пройденный урок, а не заход в
         // приложение (см. миграцию 20260831120000_streak_by_lesson.sql).
         // Идемпотентно: второй урок за сутки ничего не добавит
@@ -94,6 +101,8 @@ export function useLessonFinish({
         if (earned > 0) addLocalXp(earned)
         saveAnswerEvents(getEvents(), { sourceLessonId: lessonId, isLoggedIn: false })
         setEarnedXp(earned)
+        // Гостю слово заносит схема модуля по «Закрыть» — здесь только «ещё нет»
+        if (memoryWord && await hasMemoryWord(memoryWord) === false) setNewWord(memoryWord)
       }
       if (stars) setStarsRes(stars)
       setShowSummary(true)

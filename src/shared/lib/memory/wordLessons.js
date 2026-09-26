@@ -6,6 +6,16 @@ import { wordKey } from '../wordAudio/wordKey.js'
 // Одно слово в разных модулях — одна память, поэтому результат по ключу слова.
 // Общий для отчёта «Колоды» в админке и для колод повторения.
 //
+// Слово урока модуля, если это урок-слово (строго между Стартом и Финалом,
+// название — слово латиницей), иначе null. lessons — уроки модуля по порядку
+// [{ id, title }]. Итог урока (карточка «Новое слово во временной памяти») и
+// память гостя (seedGuestWordOf)
+export function lessonWordOf(lessons, lessonId) {
+  const i = (lessons ?? []).findIndex(l => l.id === lessonId)
+  if (i <= 0 || i >= lessons.length - 1) return null
+  return wordKey(lessons[i].title)
+}
+
 // curricula: [{ id, title, lesson_ids }]; lessons: [{ id, title, ... }]
 // → Map(word → [{ lesson, module }]) — урок в двух модулях учитывается один раз
 export function wordLessonsOf(curricula, lessons) {
