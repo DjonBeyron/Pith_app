@@ -50,6 +50,20 @@ describe('урок-источник', () => {
     expect(rowsFor(rows, 'нет такого')).toHaveLength(6)
   })
 
+  it('таблица: ответ целиком (верный) и ловушки; «Показ» — не задание', () => {
+    const table = mode => ({ id: 't', seq: 1, type: 'table', triggers: [],
+      typeData: { table: { mode, answer: 'She is trying', distractors: [{ id: 'd', text: 'are' }] } } })
+    const [row] = sourceRows([table('manual')])
+    expect(row.isTask).toBe(true)
+    expect(row.answers).toEqual([{ text: 'She is trying', ok: true }, { text: 'are', ok: false }])
+    expect(sourceRows([table('demo')])[0].isTask).toBe(false)
+    expect(cardSummary({ nodes: [table('manual')] }).text).toBe('She is trying')
+  })
+
+  it('без текста и ответа — превью подписано типом', () => {
+    expect(cardSummary({ nodes: [{ id: 'p', seq: 1, type: 'photo', typeData: {} }] }).text).toBe('Фото')
+  })
+
   it('пустой урок', () => {
     expect(sourceRows(undefined)).toEqual([])
   })

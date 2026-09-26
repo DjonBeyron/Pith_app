@@ -43,13 +43,19 @@ function branchMarks(nodes) {
   return marks
 }
 
-// Варианты ответа задания: у «выбери слово» верный помечен
+// Варианты ответа задания: у «выбери слово» верный помечен; у таблицы и
+// «собери фразу» верный — фраза-ответ целиком, дальше слова-ловушки
 function answersOf(n) {
   if (n.type === 'word_choice') {
     return (dataOf(n).options ?? []).map(o => ({ text: o.text ?? '', ok: !!o.isCorrect })).filter(a => a.text)
   }
-  return getVariantList(n.type, dataOf(n)).map(v => ({ text: v.label ?? '', ok: false })).filter(a => a.text)
+  const answer = typeof dataOf(n).answer === 'string' ? dataOf(n).answer.trim() : ''
+  const traps = getVariantList(n.type, dataOf(n)).map(v => ({ text: v.label ?? '', ok: false }))
+  return [...(answer ? [{ text: answer, ok: true }] : []), ...traps].filter(a => a.text)
 }
+
+// Подпись ноды для превью: её текст, иначе ответ задания, иначе имя типа
+const labelOf = n => nodeText(n) || (typeof dataOf(n).answer === 'string' ? dataOf(n).answer.trim() : '')
 
 // Строки урока-источника по порядку урока
 export function sourceRows(lessonNodes) {
@@ -80,7 +86,7 @@ export function cardSummary(card) {
   const nodes = [...(card?.nodes ?? [])].sort(bySeq)
   return {
     colors: nodes.map(colorOf),
-    text: nodes.map(nodeText).find(Boolean) ?? '',
+    text: nodes.map(labelOf).find(Boolean) ?? (nodes.length ? TYPE_SHORT[nodes[0].type] ?? '' : ''),
     count: nodes.length,
     hasTask: nodes.some(isTaskNode),
   }

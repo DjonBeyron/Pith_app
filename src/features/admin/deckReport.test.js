@@ -26,6 +26,14 @@ describe('отчёт по колодам', () => {
     expect(trying.lessons.map(l => l.moduleTitle)).toEqual(['I am trying', 'Trying again'])
   })
 
+  it('у урока — все уроки его модуля (для выпадающих списков редактора карточек)', () => {
+    const trying = buildDeckReport(curricula, lessons).find(x => x.word === 'trying')
+    expect(trying.lessons[0].moduleLessons.map(l => l.id)).toEqual(['s1', 'l-try', 'l-am', 'f1'])
+    expect(trying.lessons[1].moduleLessons).toEqual([
+      { id: 's2', title: 'Старт' }, { id: 'l-try2', title: 'Trying' }, { id: 'f2', title: 'Финал' },
+    ])
+  })
+
   it('Старт/Финал и модули без середины не считаются; проблемные — первыми', () => {
     const r = buildDeckReport(curricula, lessons)
     expect(r.map(x => x.word)).toEqual(['am', 'trying'])

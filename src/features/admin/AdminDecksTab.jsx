@@ -6,6 +6,7 @@ import { buildDeckReport } from './deckReport.js'
 import { listWordMemory, debugAddWord, debugRemoveWord } from '../../shared/api/memoryApi.js'
 import { localToday } from '../review/reviewDecks.js'
 import AdminLearnControls from './AdminLearnControls.jsx'
+import { onDeckSaved } from '../reviewCards/deckSavedEvent.js'
 
 // Админ → «Колоды»: слова без колоды повтора или с колодой меньше минимума
 // (этап 3 системы повторения, PROJECT.md → «Колоды»). Слово без колоды не
@@ -45,6 +46,8 @@ export default function AdminDecksTab({ onOpenCards }) {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- первичная загрузка списка
   useEffect(() => { load() }, [load])
+  // Колоду сохранили в редакторе карточек (он поверх этой вкладки) — перечитать
+  useEffect(() => onDeckSaved(() => { load() }), [load])
 
   const shown = (rows ?? []).filter(r => !onlyProblems || r.status !== 'ok')
   const count = s => (rows ?? []).filter(r => r.status === s).length
@@ -89,7 +92,7 @@ export default function AdminDecksTab({ onOpenCards }) {
           {r.lessons.map(l => (
             <div key={l.id} className="adkLesson">
               <span className="adkLessonName">{l.moduleTitle} → {l.title} · {l.cards}</span>
-              <button className="aeRefresh" onClick={() => onOpenCards?.({ id: l.id, moduleLessons: [] })}>
+              <button className="aeRefresh" onClick={() => onOpenCards?.({ id: l.id, moduleLessons: l.moduleLessons })}>
                 Карточки
               </button>
             </div>

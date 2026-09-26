@@ -22,7 +22,9 @@ const uid = () => crypto.randomUUID()
 const bySeq = (a, b) => (a.seq ?? 0) - (b.seq ?? 0)
 const dataOf = n => n.typeData?.[n.type] ?? {}
 
-export const isTaskNode = n => TASK_TYPES.has(n?.type)
+// Таблица в режиме «Показ» уходит в чат сообщением — ответа не ждёт, не задание
+export const isTaskNode = n =>
+  TASK_TYPES.has(n?.type) && !(n.type === 'table' && n.typeData?.table?.mode === 'demo')
 export const cardHasTask = card => (card?.nodes ?? []).some(isTaskNode)
 export const makeEmptyCard = () => ({ id: uid(), nodes: [] })
 

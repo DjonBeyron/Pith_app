@@ -133,3 +133,65 @@ test('в ноду карточки печатается текст, предпр
   await expect(preview).toHaveCount(0)
   await expect(field).toHaveText('Привет из карточки')
 })
+
+// Таблица из урока в карточке. В сиде таблиц нет — урок trying подменяется на
+// лету (+ ручная таблица с ячейкой-меню «He/She/It» и привязкой к cook для
+// анализа). Проверяет: ответ виден в уроке слева и на превью карточки;
+// «Урок для анализа» — с уроками модуля (из «Колод» список был пуст); меню
+// ячейки в предпросмотре нажимается; после сохранения отчёт «Колоды» сам
+// показывает новое число карточек (раньше — только после перезагрузки)
+const TRYING = 'e2e0b000-0000-4000-8000-00000000000b'
+const COOK = 'e2e0b000-0000-4000-8000-00000000000c'
+const tableNode = {
+  id: 'e2e-tab', seq: 3, x: 740, y: 0, size: 'max', type: 'table',
+  typeData: { table: {
+    mode: 'manual', answer: 'She is trying', statLessonId: COOK,
+    distractors: [{ id: 'd1', text: 'are' }],
+    table: {
+      rowCount: 2, colCount: 2, columns: [{ widthPct: 50 }, { widthPct: 50 }],
+      cells: [
+        { id: 'h1', row: 0, col: 0, rowspan: 1, colspan: 1, value: 'Кто', isHeader: true },
+        { id: 'h2', row: 0, col: 1, rowspan: 1, colspan: 1, value: 'Глагол', isHeader: true },
+        { id: 'c1', row: 1, col: 0, rowspan: 1, colspan: 1, value: 'She', options: ['He', 'She', 'It'] },
+        { id: 'c2', row: 1, col: 1, rowspan: 1, colspan: 1, value: 'is' },
+      ],
+    },
+  } },
+  triggers: [{ id: 'tt1', if: 'table_correct', then: null }, { id: 'tt2', if: 'table_wrong', then: null }],
+}
+
+async function injectTable(route) {
+  const resp = await route.fetch()
+  const json = await resp.json()
+  const row = Array.isArray(json) ? json[0] : json
+  if (row?.script?.nodes && !row.script.nodes.some(n => n.id === tableNode.id)) row.script.nodes.push(tableNode)
+  await route.fulfill({ response: resp, json })
+}
+
+test('таблица из урока в карточке: данные, списки, меню ячейки, отчёт', async ({ page }) => {
+  await page.route(new RegExp(`/rest/v1/lessons\\?.*select=script%2Ctitle.*${TRYING}`), injectTable)
+  await openDecks(page)
+  const before = await cardsOf(page, 'trying')
+  await openCards(page, 'trying')
+  const src = page.locator('.rcSrcRow', { hasText: 'Таблица' })
+  await expect(src.locator('.rcSrcAnswerOk')).toHaveText('She is trying')
+  await src.getByRole('button', { name: '＋ Карточка из задания' }).click()
+  await expect(page.locator('.rcThumbActive')).toContainText('She is trying')
+  const stat = page.locator('.productionList .nodeStatLinkSelect')
+  await expect(stat).toHaveValue(COOK)
+  await expect(stat.locator('option')).toHaveText(['— не привязан —', 'Старт', 'cook', 'Финал'])
+
+  await page.getByRole('button', { name: '▶ Предпросмотр' }).click()
+  const preview = page.getByRole('dialog', { name: 'Предпросмотр карточки' })
+  await preview.locator('.tableGridCellOptions').click({ timeout: 30_000 })
+  await page.locator('.cellMenu').getByRole('button', { name: 'He', exact: true }).click()
+  await expect(page.locator('.cellMenu')).toHaveCount(0)
+  await expect(preview.locator('.tmAnswerChip')).toHaveText(['He'])
+  await preview.getByRole('button', { name: 'К правке' }).click()
+
+  await page.getByRole('button', { name: /^Сохранить/ }).click()
+  await expect(page.locator('.productionSyncStatus')).toContainText('Сохранено и проверено', { timeout: 15_000 })
+  await page.getByRole('button', { name: 'Назад' }).first().click()
+  // Без перезагрузки: отчёт перечитался по событию «колода сохранена»
+  await expect.poll(() => cardsOf(page, 'trying'), { timeout: 15_000 }).toBe(before + 1)
+})

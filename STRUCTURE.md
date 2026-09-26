@@ -288,7 +288,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/modules/circle.css` | Видео-кружок: круглый контейнер 200×200 |
 | `player/modules/text.css` | Текстовое сообщение |
 | `player/modules/photo.css` | Фото-сообщение |
-| `player/modules/video.css` | Видео-сообщение |
+| `player/modules/video.css` | Видео-сообщение; полноэкранный фон — слой 10000 (выше повторения и слоя ссылки) |
 | `canvas/word-choice.css` | Редактор ноды «Выбор слова»: список вариантов, кнопка ✓, поле ответа |
 | `canvas/sticker.css` | Редактор ноды «Стикер»: галочка «Со звуком» |
 | `canvas/reaction.css` | Редактор ноды «Реакция на сообщение»: набор частых эмодзи и выбор цели |
@@ -310,7 +310,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `canvas/clip-menu.css` | Всплывающее меню клипа (ClipMenu.jsx): сборка фразы/повтор анимации/очистка. Вынесено из table-editor-timeline.css |
 | `player/modules/table.css` | Плеер ноды «Таблица»: минимальный (основной UI — в `TableDictatorPanel`) |
 | `player/panels/table-dictator.css` | Панель таблицы-диктора в плеере: спейсер, slide-up/down анимация, HUD — 3 пульсирующих бара, бокс сборки фразы |
-| `player/panels/table-manual.css` | Панель ручной сборки фразы в плеере: бокс ответа с состояниями ok/err, slide-анимация таблицы −80%, слова-ловушки с анимацией, кнопка «Проверить» |
+| `player/panels/table-manual.css` | Панель ручной сборки фразы в плеере: бокс ответа с состояниями ok/err, slide-анимация таблицы −80%, слова-ловушки с анимацией, кнопка «Проверить»; меню ячейки «he/she/it» — слой 10000+ (выше повторения и слоя ссылки) |
 | `player/panels/signal-blink-chip.css` | `.signalBlinkChip`/`@keyframes signalBlink` — мигание слота ответа с личным сигналом ошибки (table-manual и phrase-assembly); маленький отдельный файл, т.к. `table-manual.css` уже за мягким ориентиром строк. Сам сигнал теперь — сообщение ленты на своём хронологическом месте (PlayerFeedNodes.jsx), не оверлей — старый signal-overlay.css удалён |
 | `player/panels/panel-fly.css` | Летящий клон панели (flyPanelToChat.js): fixed поверх всего, габариты ставятся инлайном по замеру настоящей панели |
 | `player/panels/choose-word.css` | Панель выбора слова в плеере: кнопки-варианты, анимации wcFlashGreen/wcFlashRed, пузырь-ответ |
@@ -389,7 +389,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `AdminAnalyticsTab.jsx` | Админ-вкладка «Аналитика»: отчёт `analytics_report` за 7/14/30 дней — воронка «открыли → лента → Изучить → урок → прошли → регистрация», удержание D1/D7 по когортам, активные устройства по дням, уроки (где бросают, средний %), лента (медиана просмотра, пролистывания, «Изучить») |
 | `AdminDecksTab.jsx` | Админ-вкладка «Колоды»: слова без колоды карточек повтора или с колодой меньше 3 (отчёт `deckReport.js`), по каждому слову — его уроки с числом карточек и кнопка «Карточки» (редактор колоды) и строка «Обучение» (`AdminLearnControls.jsx`) |
 | `AdminLearnControls.jsx` | Строка «Обучение» у слова в «Колодах»: есть ли слово в своей памяти админа (шаг, срок) и кнопки «＋ В обучение» (к повтору сегодня, без урока; выключена без карточек), «К повтору сегодня», «Убрать» |
-| `deckReport.js` | Чистый расчёт отчёта «Колоды»: уроки-слова — `shared/lib/memory/wordLessons.js` (как SQL-триггер памяти), колода слова = карточки всех его уроков; проблемные — первыми (+ `deckReport.test.js`) |
+| `deckReport.js` | Чистый расчёт отчёта «Колоды»: уроки-слова — `shared/lib/memory/wordLessons.js` (как SQL-триггер памяти), колода слова = карточки всех его уроков; у каждого урока — `moduleLessons` (все уроки модуля — для выпадающих списков редактора карточек); проблемные — первыми (+ `deckReport.test.js`) |
 | `AdminReviewTab.jsx` | Админ-вкладка «Повторение» — временный вход в плеер повторения (до вкладки «Моё обучение»): своя память слов (шаг, срок), «Начать повторение» (`review/ReviewScreen.jsx`), «Прожить 1/7 дней» (`memory_debug_shift` — тест интервалов), «Убрать» слово из своей памяти |
 
 ### `src/features/canvas/` — canvas-редактор уроков (отдельная полноэкранная страница)
@@ -575,7 +575,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `reviewCardsView.js` | Чистые функции отображения редактора карточек: `sourceRows` (строки урока, метки веток), `SOURCE_FILTERS`/`rowsFor`/`filterCounts`, `cardSummary` (мини-превью карточки) (+ `reviewCardsView.test.js`) |
 | `useReviewCards.js` | Состояние страницы: загрузка урока и колоды, правки карточек, `addCardFromTask`, сохранение (пустые карточки выбрасываются — статус пишет, сколько; `saveReviewCards` — меняет ТОЛЬКО `script.reviewCards`, файлы → R2 и r2Url как у урока, контрольное чтение) |
 | `useDeckIo.js` | Колода в окне «Импорт/экспорт» урока (LessonIoPanel): текущая колода с сервера для экспорта, колода из файла — на сервер после подтверждения |
-| `reviewCardCopy.js` | Чистая логика колоды: `copyNodesForCard` (КОПИЯ нод урока: новые id, переходы/`signals`/`replyToSeq` переписаны внутри карточки, спутники-сигналы едут сами, основной путь сшит), `appendToCard`, `cardFromTask` (карточка из одного задания: контекст перед ним + задание), `draftDeckFromLesson` (по `cardFromTask` на каждое задание), `deckStatus` (нет / мало / ок, минимум `MIN_CARDS` = 3), `cardHasTask` (+ `reviewCardCopy.test.js`) |
+| `deckSavedEvent.js` | Событие «колода урока сохранена»: редактор карточек сообщает (`notifyDeckSaved`), отчёт Админ → «Колоды» перечитывает число карточек (`onDeckSaved`) |
+| `reviewCardCopy.js` | Чистая логика колоды: `copyNodesForCard` (КОПИЯ нод урока: новые id, переходы/`signals`/`replyToSeq` переписаны внутри карточки, спутники-сигналы едут сами, основной путь сшит), `appendToCard`, `cardFromTask` (карточка из одного задания: контекст перед ним + задание), `draftDeckFromLesson` (по `cardFromTask` на каждое задание), `deckStatus` (нет / мало / ок, минимум `MIN_CARDS` = 3), `cardHasTask`, `isTaskNode` (таблица в режиме «Показ» — не задание) (+ `reviewCardCopy.test.js`) |
 | `reviewCardsIo.test.js` | Колода в обменном JSON: экспорт → импорт сохраняет карточки, связи и сигналы; битая карточка — предупреждение; легенда описывает `reviewCards` |
 
 ### `src/features/learn/` — вкладка «Моё обучение» (этап 5 системы повторения)
@@ -744,6 +745,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `ReplyPreview.jsx` | Компонент превью ответа (зелёная полоса слева): рендер + ReplyThumb с intrinsic-кропом; используется в TextModule, StickerModule и AnswerBubbles (phrase_assembly). Логика резолва — в replyResolve.js |
 | `replyResolve.js` | Чистая логика цитаты «В ответ на»: `findReplyNode` (поиск ноды по replyToSeq — общий для text/sticker/phrase_assembly/fill_blanks, раньше копия в каждом модуле), `resolvePhraseAttempt` (какая попытка финальная — общая для «собери фразу»/таблицы/«составь предложение», у всех один и тот же phraseStates), `resolveReply` (подпись/цвет блока цитаты по типу цитируемой ноды). Без React/DOM — проверяется юнит-тестами напрямую |
 | `replyResolve.test.js` | Юнит-тесты чистой логики цитаты: поиск ноды по seq (включая null/0/несуществующий seq), выбор финальной попытки «собери фразу», подписи/цвета для всех типов цитируемых нод |
+| `playerPopupLayers.test.js` | Сторож слоёв: всплывающее из плеера порталом в body (меню ячейки таблицы, полноэкранное видео) выше всех экранов с плеером — урок, повторение/предпросмотр карточки (`.reviewScreen`), слой ссылки (`.lessonNavOverlay`) |
 | `replyWiring.test.js` | Сторож сквозной проводки цитаты: TextModule/StickerModule/PhraseAssemblyModule используют общий findReplyNode, AnswerBubbles рисует ReplyPreview строго над финальным пузырём, редактор и nodeGraph.js/lessonSchema.js согласованы по phrase_assembly.replyToSeq |
 | `PlayerBubble.jsx` | Обёртка-пузырь с анимацией высоты (ResizeObserver + cubic-bezier) — общий для модулей |
 | `PlayerTypingText.jsx` | Посимвольная анимация текста: каждый символ вспыхивает лаймовым; курсор — светящаяся линия |

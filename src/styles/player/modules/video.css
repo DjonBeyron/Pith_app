@@ -45,11 +45,13 @@
   z-index: 2;
 }
 
-/* ── Fullscreen dark background ── */
+/* ── Fullscreen dark background ──
+   Портал в body — слой выше всех экранов (повторение 300, слой ссылки 600),
+   как у меню ячейки таблицы (playerPopupLayers.test.js) */
 .videoFsBg {
   position: fixed;
   inset: 0;
-  z-index: 251;
+  z-index: 10000;
   background: rgba(0, 0, 0, .92);
   animation: videoFsBgIn 0.18s ease forwards;
 }

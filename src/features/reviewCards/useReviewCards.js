@@ -5,6 +5,7 @@ import { injectR2Urls } from '../canvas/injectR2Urls.js'
 import { dbg } from '../../shared/lib/debug.js'
 import { plural } from '../../shared/lib/plural.js'
 import { copyNodesForCard, draftDeckFromLesson, makeEmptyCard, appendToCard, cardFromTask } from './reviewCardCopy.js'
+import { notifyDeckSaved } from './deckSavedEvent.js'
 
 const cardsWord = n => `${n} ${plural(n, 'карточка', 'карточки', 'карточек')}`
 
@@ -91,6 +92,7 @@ export function useReviewCards(lessonId) {
       const dropped = cards.length - toSave.length
       dbg('[CARDS] saving', toSave.length, 'cards for lesson', lessonId)
       await saveReviewCards(lessonId, toSave)
+      notifyDeckSaved(lessonId)
       const check = await loadScript(lessonId)
       const got = check?.script?.reviewCards?.length ?? 0
       const stamp = new Date().toTimeString().slice(0, 8)
