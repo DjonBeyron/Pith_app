@@ -77,7 +77,7 @@ test('гость повторяет слово дня → итог зовёт в
   await expect(review.locator('.reviewGuestLead')).toBeVisible()
   await review.getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
-  // Шаг вырос локально: keep всё ещё в «Новеньких», заливка — три четверти пути
+  // Шаг вырос локально: keep всё ещё в «Новых», заливка — три четверти пути
   await page.getByRole('button', { name: 'Память', exact: true }).click()
   const keep = page.locator('.memLvl--1 .memChip', { hasText: 'keep' })
   await expect(keep.locator('.memChipFill')).toHaveAttribute('style', /width: 75%/, { timeout: 30_000 })
@@ -144,7 +144,7 @@ test('закрепление фразы: все слова окрепли → с
   await nav.click()
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Закрепить фразу', { timeout: 30_000 })
-  // hold на шаге 3 — ступень «Мои слова»
+  // hold на шаге 3 — ступень «Знакомые слова»
   await expect(page.locator('.memLvl--2 .memChip')).toHaveText(['hold'])
   await main.locator('.lrCta').click()
 
@@ -182,12 +182,12 @@ test('родное слово на месячной проверке → пос�
   await review.getByRole('button', { name: 'Начать', exact: true }).click({ timeout: 30_000 })
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
   await review.getByRole('button', { name: 'Далее' }).click()
-  await expect(review.locator('.reviewSettled')).toHaveText('✨ «keep» ушло в постоянную память', { timeout: 30_000 })
+  await expect(review.locator('.reviewSettled')).toHaveText('✨ «keep» закрепилось в памяти', { timeout: 30_000 })
   await review.getByRole('button', { name: 'Готово' }).click()
 
-  // «Родные» опустели, пятиугольник — 1; его страница — keep
+  // «Усвоенные» опустели, пятиугольник — 1; его страница — keep
   await expect(page.locator('.memLvl--3 .memLvlCount')).toHaveText('0', { timeout: 30_000 })
-  await page.getByRole('button', { name: /^Постоянная память/ }).click()
-  await expect(page.locator('.memPermCount')).toHaveText(/^1\s*слово выучено навсегда$/)
+  await page.getByRole('button', { name: /^Закреплённые слова/ }).click()
+  await expect(page.locator('.memPermCount')).toHaveText(/^1\s*слово закреплено$/)
   await expect(page.locator('.memChipRow')).toHaveText(['keep'])
 })

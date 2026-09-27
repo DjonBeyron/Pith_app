@@ -16,11 +16,11 @@ test.beforeEach(async ({ page }) => {
 test('память админа: слово ступени → «Повторить сейчас» (Pro) → вступление → «Не сейчас»', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Память', exact: true }).click()
-  // cook (шаг 1–2, даже если admin-review.spec.js его уже повторил) — в «Новеньких»
+  // cook (шаг 1–2, даже если admin-review.spec.js его уже повторил) — в «Новых»
   await page.locator('.memLvl--1 .memChip', { hasText: 'cook' }).click({ timeout: 30_000 })
   const sheet = page.getByRole('dialog', { name: 'Слово cook' })
   await expect(sheet).toContainText("I'm trying to cook · E2E-КОЛОДЫ")
-  await expect(sheet).toContainText('Новенькие слова')
+  await expect(sheet).toContainText('Новые слова')
   await expect(sheet.getByRole('button', { name: 'Пройти урок целиком' })).toBeVisible()
   await sheet.getByRole('button', { name: 'Повторить сейчас', exact: true }).click()
   const review = page.locator('.reviewScreen')

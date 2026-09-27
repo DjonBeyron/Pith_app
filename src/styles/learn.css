@@ -112,7 +112,7 @@
 .lrSheetPhrase { margin: 0; font-size: 13px; color: #8b95a1; }
 .lrSheetInfo { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 4px 0 6px; font-size: 13px; color: #9aa3ad; }
 .lrSheetLevel { font-weight: 800; }
-.lrSheetLevel--1 { color: #8a939e; }
+.lrSheetLevel--1 { color: #b0b8c2; }
 .lrSheetLevel--2 { color: #e2cd78; }
 .lrSheetLevel--3 { color: #b6fe3b; }
 .lrSheetLevel--Perm { color: #a78bfa; }

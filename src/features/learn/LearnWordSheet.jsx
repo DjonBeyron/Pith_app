@@ -1,10 +1,10 @@
-import { LEVELS, levelOf } from './memoryLadder.js'
+import { LEVELS, levelOf, SETTLED_NAME } from './memoryLadder.js'
 import { dueLabel } from './learnView.js'
 
 // Шторка слова «Моей памяти»: ступень и срок, «Пройти урок целиком» (если
 // слово есть во фразе) и «Повторить сейчас» (вне расписания — удобство Pro;
 // шаг от раннего повтора не растёт, ошибка — снижает: так договорились в
-// концепции). perm — слово из постоянной памяти
+// концепции). perm — закреплённое слово (пятиугольник)
 export default function LearnWordSheet({ word, perm, today, isPro, onLesson, onReview, onWantPro, onClose }) {
   const lvl = levelOf(word.step)
   return (
@@ -14,7 +14,7 @@ export default function LearnWordSheet({ word, perm, today, isPro, onLesson, onR
         {word.phrase && <p className="lrSheetPhrase">{word.phrase}</p>}
         <div className="lrSheetInfo">
           <span className={perm ? 'lrSheetLevel lrSheetLevel--Perm' : `lrSheetLevel lrSheetLevel--${lvl}`}>
-            {perm ? 'Постоянная память' : LEVELS[lvl - 1].name}
+            {perm ? SETTLED_NAME : LEVELS[lvl - 1].name}
           </span>
           <span>{word.hasDeck ? `повтор ${dueLabel(word.due, today)}` : 'повторение скоро — карточек пока нет'}</span>
         </div>

@@ -6,8 +6,8 @@ import StrengthDots from '../../shared/ui/StrengthDots.jsx'
 // (шаг памяти 1–5 после ответа сервера), XP и день серии — по ответу
 // memory_finish_session; мостик «Продолжить *фраза* · N%» — в недопройденный
 // модуль слов сессии (reviewBridge.js), открывает его схему во вкладке «Уроки».
-// Родное слово, вспомненное на месячной проверке, уходит в постоянную память —
-// празднуем отдельной фиолетовой строкой (settled — ответ memory_review_word).
+// Усвоенное слово, вспомненное на месячной проверке, закрепляется (пятиугольник
+// «Закреплённые слова») — празднуем фиолетовой строкой (settled — ответ memory_review_word).
 const TONE = { good: 'ok', know: 'ok', hard: 'mid', again: 'bad', fail: 'bad' }
 
 function rewardText(finish) {
@@ -36,7 +36,7 @@ export default function ReviewSummary({ results, finish, bridge, phrase = null, 
       )}
       {settled.length > 0 && (
         <p className="reviewPhraseResult reviewSettled">
-          ✨ {settled.join(', ')} {settled.length === 1 ? 'ушло' : 'ушли'} в постоянную память
+          ✨ {settled.join(', ')} {settled.length === 1 ? 'закрепилось' : 'закрепились'} в памяти
         </p>
       )}
       <ul className="reviewWords">

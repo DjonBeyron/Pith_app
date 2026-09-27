@@ -7,7 +7,7 @@ export default function SummaryMemoryCard({ word, pillRef }) {
       <span className="summaryMemLabel">Новое слово во временной памяти</span>
       <span className="summaryMemWord" ref={pillRef}>{word}</span>
       <p className="summaryMemText">
-        Мы напомним повторить его в нужный момент — так оно станет родным и уйдёт в постоянную память.
+        Мы напомним повторить его в нужный момент — так оно станет знакомым, потом усвоенным и закрепится в памяти.
       </p>
     </div>
   )

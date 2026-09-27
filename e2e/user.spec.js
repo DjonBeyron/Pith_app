@@ -31,34 +31,34 @@ test('«Моя память»: ступени, слово дня, «Повтор
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })
 
-  // Лестница: keep — в «Новеньких» (going не пройден — в памяти его нет)
+  // Лестница: keep — в «Новых» (going не пройден — в памяти его нет)
   const fresh = page.locator('.memLvl--1')
   await expect(fresh.locator('.memLvlCount')).toHaveText('1')
   await expect(fresh.locator('.memChip')).toHaveText(['keep'])
   await expect(page.locator('.memSideLabel')).toHaveText(/^1\s*слово во временной памяти$/)
   // Все слова ступени: keep — «сегодня»
-  await fresh.getByRole('button', { name: 'Все слова: Новенькие слова' }).click()
-  await expect(page.getByRole('tab', { name: /Новенькие/ })).toHaveAttribute('aria-selected', 'true')
+  await fresh.getByRole('button', { name: 'Все слова: Новые слова' }).click()
+  await expect(page.getByRole('tab', { name: /Новые/ })).toHaveAttribute('aria-selected', 'true')
   const row = page.locator('.memChipRow', { hasText: 'keep' })
   await expect(row).toContainText('сегодня')
 
   // «Повторить сейчас» — удобство Pro: обычному пользователю — пейволл
   await row.click()
   const sheet = page.getByRole('dialog', { name: 'Слово keep' })
-  await expect(sheet).toContainText('Новенькие слова')
+  await expect(sheet).toContainText('Новые слова')
   await sheet.getByRole('button', { name: 'Повторить сейчас · Pro' }).click()
   await expect(page.locator('.ppCard')).toBeVisible()
   await page.locator('.ppClose').click()
-  // Вкладки ступеней: «Мои» пока пусто
-  await page.getByRole('tab', { name: /Мои/ }).click()
-  await expect(page.locator('.memHead')).toContainText('Мои слова')
+  // Вкладки ступеней: «Знакомые» пока пусто
+  await page.getByRole('tab', { name: /Знакомые/ }).click()
+  await expect(page.locator('.memHead')).toContainText('Знакомые слова')
   await expect(page.locator('.memListEmpty')).toBeVisible()
   await page.getByRole('button', { name: '← Назад' }).click()
-  // Лестница снова с линиями: три отвода в ступени + «Родные» → пятиугольник
-  await expect(page.locator('.memWires .memWire')).toHaveCount(4)
+  // Лестница снова с линиями: точки у шапки, трёх ступеней и связи в пятиугольник
+  await expect(page.locator('.memWires circle')).toHaveCount(6)
   // Пятиугольник — фиолетовая страница постоянной памяти (пока пусто)
-  await page.getByRole('button', { name: /^Постоянная память/ }).click()
-  await expect(page.locator('.memPermCount')).toHaveText(/^0\s*слов выучены навсегда$/)
+  await page.getByRole('button', { name: /^Закреплённые слова/ }).click()
+  await expect(page.locator('.memPermCount')).toHaveText(/^0\s*слов закреплено$/)
   await page.getByRole('button', { name: '← Назад' }).click()
 
   // Сессия дня: верный ответ → итог (+2 XP, мостик в фразу) → «На сегодня всё ✓»

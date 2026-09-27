@@ -20,7 +20,7 @@
 /* ── Вкладки ступеней ──────────────────────────────────────────────── */
 .memTabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 12px; background: #14171c; }
 .memTab {
-  --c: #8a939e;
+  --c: #b0b8c2;
   padding: 7px 4px;
   border: 0;
   border-radius: 9px;
@@ -39,8 +39,8 @@
 
 /* ── Шапка ступени ─────────────────────────────────────────────────── */
 .memHead {
-  --c: #8a939e;
-  --tint: rgba(138, 147, 158, 0.16);
+  --c: #b0b8c2;
+  --tint: rgba(176, 184, 194, 0.16);
   padding: 14px 16px 15px;
   border-top: 3px solid var(--c);
   border-radius: 14px;

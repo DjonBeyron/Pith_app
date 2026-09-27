@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { levelOf, levelFill, journey, buildLadder } from './memoryLadder.js'
-import { orth, ladderLinks, ballPath, FIN_TOP } from './ladderWires.js'
+import { orth, ladderLinks, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX } from './ladderWires.js'
 
 describe('ступени памяти', () => {
-  it('шаг → ступень: 1–2 новенькие, 3–4 мои, 5 родные', () => {
+  it('шаг → ступень: 1–2 новые, 3–4 знакомые, 5 усвоенные', () => {
     expect([1, 2, 3, 4, 5].map(levelOf)).toEqual([1, 1, 2, 2, 3])
   })
 
@@ -14,7 +14,7 @@ describe('ступени памяти', () => {
     j.slice(1).forEach((v, i) => expect(v).toBeGreaterThan(j[i]))
   })
 
-  it('слова по ступеням: сегодняшние первыми, дальше по сроку; постоянная — отдельно', () => {
+  it('слова по ступеням: сегодняшние первыми, дальше по сроку; закреплённые — отдельно', () => {
     const memory = [
       { word: 'go', step: 1, due_on: '2026-09-28' },
       { word: 'keep', step: 2, due_on: '2026-09-27' },
@@ -58,5 +58,41 @@ describe('линии памяти', () => {
     // шарик бежит обратно: из ступени к шапке
     expect(ballPath(links[0]).startsWith('M 0 170')).toBe(true)
     expect(ballPath(links[0]).endsWith('L 150 100')).toBe(true)
+  })
+})
+
+describe('связи памяти: толщина растёт от шапки до пятиугольника', () => {
+  const hero = { l: 0, t: 0, r: 300, b: 100 }
+  const blocks = [
+    { l: 0, t: 140, r: 200, b: 200 }, { l: 50, t: 220, r: 250, b: 280 }, { l: 100, t: 300, r: 300, b: 360 },
+  ]
+  const fin = { l: 0, t: 400, r: 180, b: 559 }
+
+  it('точки скруглённой ломаной — от начала до конца, угол — дугой', () => {
+    const pts = orthPoints([[0, 0], [0, 40], [30, 40]], 10, 4)
+    expect(pts[0]).toEqual([0, 0])
+    expect(pts.at(-1)).toEqual([30, 40])
+    expect(pts).toHaveLength(1 + 1 + 4 + 1)
+  })
+
+  it('цвет и толщина плавно меняются по длине', () => {
+    const pieces = taper([[0, 0], [0, 80]], { s0: 0, s1: 1, c0: '#000000', c1: '#ffffff', maxLen: 8 })
+    expect(pieces).toHaveLength(10)
+    pieces.slice(1).forEach((p, i) => expect(p.w).toBeGreaterThan(pieces[i].w))
+    expect(pieces[0].w).toBeGreaterThanOrEqual(W_MIN)
+    expect(pieces.at(-1).w).toBeLessThanOrEqual(W_MAX)
+    expect(mixColor('#000000', '#ffffff', 0.5)).toBe('rgb(128, 128, 128)')
+  })
+
+  it('ствол тоньше всего у шапки, толще всего у пятиугольника; отвод ниже — толще', () => {
+    const { pieces, dots } = ladderWireSet({ hero, blocks, fin, edge: -22 })
+    const widths = pieces.map(p => p.w)
+    expect(Math.min(...widths)).toBeCloseTo(W_MIN, 0)
+    expect(Math.max(...widths)).toBeCloseTo(W_MAX, 0)
+    const at = y => pieces.find(p => p.x1 === p.x2 && p.x1 === -11 && p.y1 <= y && p.y2 >= y).w
+    expect(at(240)).toBeGreaterThan(at(150))
+    // точки: начало у шапки + концы трёх ступеней + начало и конец связи в пятиугольник
+    expect(dots).toHaveLength(6)
+    expect(dots[2].r).toBeGreaterThanOrEqual(dots[1].r)
   })
 })
