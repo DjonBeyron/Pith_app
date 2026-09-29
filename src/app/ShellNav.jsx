@@ -2,8 +2,12 @@ import { Cog, Video, UserRound, Trophy, Brain } from 'lucide-react'
 import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
 
 // Нижняя панель оболочки: Уроки / Память / Профиль / Рейтинг (+ Админ).
-// Точка на «Памяти» — есть что повторить сегодня или новое слово из урока
-// (без числа: число давило бы долгом, см. PROJECT.md → «Вкладки»). Вынесено из ShellV2.jsx
+// «Память» зовёт, когда есть что повторить сегодня или новое слово из урока
+// (learnDot): иконка залита цветом, светится и мягко пульсирует — без числа,
+// число давило бы долгом (PROJECT.md → «Вкладки»). Вынесено из ShellV2.jsx
+
+// Силуэт мозга под контуром иконки Brain (lucide) — заливка «есть что повторить»
+const BRAIN_FILL = 'M12 4.2c-1-1.4-3.6-1.6-5 .1-1.8.1-3.2 1.6-3 3.4-1.6 1-2 3.2-.9 4.7-1 1.6-.4 3.8 1.3 4.6.3 2 2.3 3.3 4.2 2.9 1 1 2.6 1.2 3.4.2.8 1 2.4.8 3.4-.2 1.9.4 3.9-.9 4.2-2.9 1.7-.8 2.3-3 1.3-4.6 1.1-1.5.7-3.7-.9-4.7.2-1.8-1.2-3.3-3-3.4-1.4-1.7-4-1.5-5-.1z'
 export default function ShellNav({ tab, setTab, learnDot, isRealAdmin, userMode }) {
   const cls = (id, extra = '') => `shellV2NavBtn${tab === id ? ' shellV2NavBtnActive' : ''}${extra}`
   return (
@@ -16,8 +20,8 @@ export default function ShellNav({ tab, setTab, learnDot, isRealAdmin, userMode 
         Уроки
       </button>
       {/* data-nav — цель полёта нового слова из итога урока (memoryFresh.js) */}
-      <button className={cls('learn', learnDot ? ' shellV2NavBtnDot' : '')} data-nav="learn" onClick={() => setTab('learn')}>
-        <Brain />
+      <button className={cls('learn', learnDot ? ' shellV2NavBtnDue' : '')} data-nav="learn" onClick={() => setTab('learn')}>
+        <Brain>{learnDot && <path className="shellV2NavBrainFill" d={BRAIN_FILL} />}</Brain>
         Память
       </button>
       <button className={cls('profile')} onClick={() => setTab('profile')}>

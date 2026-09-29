@@ -49,9 +49,9 @@ test('гость проходит урок-слово → слово в его �
   await expect(ask).toHaveCount(0)
 
   const nav = page.getByRole('button', { name: 'Память', exact: true })
-  await expect(nav).toHaveClass(/shellV2NavBtnDot/) // новое слово — повторять его завтра, а точка уже горит
+  await expect(nav).toHaveClass(/shellV2NavBtnDue/) // новое слово — повторять его завтра, а вкладка уже зовёт (залитая иконка)
   await nav.click()
-  await expect(nav).not.toHaveClass(/shellV2NavBtnDot/) // открыли вкладку — точка погасла
+  await expect(nav).not.toHaveClass(/shellV2NavBtnDue/) // открыли вкладку — перестала звать
   await expect(page.locator('.lrMain')).toContainText('На сегодня всё ✓', { timeout: 30_000 })
   await expect(page.locator('.lrMain')).toContainText('Следующее повторение завтра · 1 слово')
   await expect(page.locator('.lrGuestLead')).toContainText('только в этом браузере')
@@ -66,7 +66,7 @@ test('гость повторяет слово дня → итог зовёт в
   await seedMemory(page)
   await page.goto('/')
   const nav = page.getByRole('button', { name: 'Память', exact: true })
-  await expect(nav).toHaveClass(/shellV2NavBtnDot/, { timeout: 30_000 })
+  await expect(nav).toHaveClass(/shellV2NavBtnDue/, { timeout: 30_000 })
   await nav.click()
   await page.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
@@ -125,7 +125,7 @@ test('«Помнишь?» в ленте: раз в 6–8 видео карточ
   // Исход записан в память гостя: keep окреп до шага 2, повтор — через 3 дня
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('pithy_guest_memory_v1')).keep.step)).toBe(2)
   // Слово дня отвечено — повторять больше нечего: точки нет
-  await expect(page.locator('.shellV2NavBtnDot')).toHaveCount(0)
+  await expect(page.locator('.shellV2NavBtnDue')).toHaveCount(0)
 })
 
 test('закрепление фразы: все слова окрепли → собери фразу целиком', async ({ page }) => {
@@ -140,7 +140,7 @@ test('закрепление фразы: все слова окрепли → с
   }, due)
   await page.goto('/')
   const nav = page.getByRole('button', { name: 'Память', exact: true })
-  await expect(nav).toHaveClass(/shellV2NavBtnDot/, { timeout: 30_000 })
+  await expect(nav).toHaveClass(/shellV2NavBtnDue/, { timeout: 30_000 })
   await nav.click()
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Закрепить фразу', { timeout: 30_000 })
@@ -162,7 +162,7 @@ test('закрепление фразы: все слова окрепли → с
 
   // Повторять сегодня больше нечего
   await expect(main).toContainText('На сегодня всё', { timeout: 30_000 })
-  await expect(nav).not.toHaveClass(/shellV2NavBtnDot/)
+  await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)
 })
 
 test('родное слово на месячной проверке → постоянная память: итог, пятиугольник, фиолетовая страница', async ({ page }) => {

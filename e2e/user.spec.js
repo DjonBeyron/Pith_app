@@ -26,7 +26,7 @@ test('«Моя память»: ступени, слово дня, «Повтор
   test.slow()
   await page.goto('/')
   const nav = page.getByRole('button', { name: 'Память', exact: true })
-  await expect(nav).toHaveClass(/shellV2NavBtnDot/, { timeout: 30_000 }) // есть что повторить
+  await expect(nav).toHaveClass(/shellV2NavBtnDue/, { timeout: 30_000 }) // есть что повторить
   await nav.click()
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })
@@ -72,7 +72,7 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await expect(review.locator('.reviewBridge')).toContainText('Keep going · E2E-ОБУЧЕНИЕ» · 25%')
   await review.getByRole('button', { name: 'Готово' }).click()
   await expect(main).toContainText('На сегодня всё ✓', { timeout: 30_000 })
-  await expect(nav).not.toHaveClass(/shellV2NavBtnDot/)
+  await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)
 
   // Профиль: «Сохранённые» вместо вкладок «Пройденные»/«Копилка слов»
   await page.getByRole('button', { name: 'Профиль', exact: true }).click()
@@ -110,7 +110,7 @@ test('«Отпуск»: пауза расписания (в настройках
   await page.getByRole('button', { name: 'Уезжаю в отпуск' }).click({ timeout: 30_000 })
   await page.getByRole('dialog', { name: 'Отпуск' }).getByRole('button', { name: 'Поставить на паузу' }).click()
   await expect(page.getByText(/Ты в отпуске с .* — вернуться можно во вкладке «Память»/)).toBeVisible({ timeout: 30_000 })
-  await expect(page.locator('.shellV2NavBtnDot')).toHaveCount(0) // в отпуске не зовём повторять
+  await expect(page.locator('.shellV2NavBtnDue')).toHaveCount(0) // в отпуске не зовём повторять
 
   await page.getByRole('button', { name: 'Память', exact: true }).click()
   const main = page.locator('.lrMain')
