@@ -172,7 +172,8 @@
   top: 0;
   width: 8px;
   height: 8px;
-  margin: -4px 0 0 -4px;
+  /* Без отрицательного margin: по offset-path центр шарика и так ставится
+     на линию (offset-anchor — центр), а margin сдвигал его на 4px вверх-влево */
   border-radius: 50%;
   box-shadow: 0 0 8px currentColor;
   offset-rotate: 0deg;
