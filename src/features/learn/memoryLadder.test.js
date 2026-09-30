@@ -75,6 +75,9 @@ describe('линии памяти', () => {
     expect(links[1].pts).toEqual([[150, 100], [150, 114], [-11, 114], [-11, 250], [50, 250]])
     expect(links[3].pts.at(-1)).toEqual([90, 400 + 159 * FIN_TOP])
     expect(links[3].pts[0]).toEqual([200, 360])
+    // большой зазор — последний прямой участок 36px (раздув 24 + скругление 12): вход в пятиугольник с тем же раздувом
+    const roomy = ladderLinks({ hero, blocks, fin: { l: 0, t: 440, r: 180, b: 599 }, edge: -22 })
+    expect(roomy[3].pts.at(-1)[1] - roomy[3].pts.at(-2)[1]).toBe(36)
     // шарик бежит обратно: из ступени к шапке
     expect(ballPath(links[0]).startsWith('M 0 170')).toBe(true)
     expect(ballPath(links[0]).endsWith('L 150 100')).toBe(true)

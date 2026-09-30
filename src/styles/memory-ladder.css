@@ -41,8 +41,14 @@
   padding: 13px 14px 14px 17px;
   border-radius: 16px;
   background: linear-gradient(to right, var(--tint) 0, transparent 90px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
-  /* Первая обводка — по краю блока */
-  box-shadow: inset 0 0 0 var(--w1, 1px) var(--c1, rgba(176, 184, 194, 0.85));
+  --glow: rgba(176, 184, 194, 0.45);
+  /* Первая обводка — по краю блока; слева, где в блок входит связь, она толще
+     (серп 3px: самый толстый напротив входа, к углам сходит на нет) и светится
+     наружу — как мембрана у входа отростка нейрона */
+  box-shadow:
+    inset 0 0 0 var(--w1, 1px) var(--c1, rgba(176, 184, 194, 0.85)),
+    inset 3px 0 0 0 var(--c1, rgba(176, 184, 194, 0.85)),
+    -5px 0 16px -4px var(--glow);
 }
 /* Вторая и третья — наружу, с прозрачным зазором (линии связей видны сквозь) */
 .memLvl::before,
@@ -62,12 +68,12 @@
 .memLvl::after { filter: url(#memTurbB); }
 .memLvl--2 {
   --c: #e2cd78; --tint: rgba(226, 205, 120, 0.15);
-  --w1: 2px; --c1: rgba(226, 205, 120, 0.95);
+  --w1: 2px; --c1: rgba(226, 205, 120, 0.95); --glow: rgba(226, 205, 120, 0.5);
 }
 .memLvl--2::before { border-width: 1.25px; border-color: rgba(226, 205, 120, 0.24); }
 .memLvl--3 {
   --c: #b6fe3b; --tint: rgba(182, 254, 59, 0.15);
-  --w1: 2.5px; --c1: rgba(182, 254, 59, 0.95);
+  --w1: 2.5px; --c1: rgba(182, 254, 59, 0.95); --glow: rgba(182, 254, 59, 0.5);
 }
 .memLvl--3::before { border-width: 1.5px; border-color: rgba(182, 254, 59, 0.24); }
 .memLvl--3::after { border-width: 1px; border-color: rgba(182, 254, 59, 0.12); }
@@ -108,8 +114,8 @@
   cursor: pointer;
 }
 .memExpand svg { width: 9.35px; height: 9.35px; }
-/* Тот же значок в пятиугольнике — слева сверху; сам пятиугольник и есть кнопка, значок только метка */
-.memExpand--perm { top: 15px; right: auto; left: 30px; cursor: inherit; pointer-events: none; }
+/* Тот же значок в пятиугольнике — справа сверху; сам пятиугольник и есть кнопка, значок только метка */
+.memExpand--perm { top: 15px; right: 30px; cursor: inherit; pointer-events: none; }
 .memWords { display: flex; flex-wrap: wrap; gap: 6px; }
 .memEmpty { font-size: 12px; color: #5c6570; }
 

@@ -35,6 +35,9 @@ export const BULB = 4.5
 const r1 = x => Math.round(x * 10) / 10
 export const bulbR = w => r1(w / 2 + BULB)
 
+// Прямой участок перед входом в пятиугольник: раздув (FLARE_L) + скругление угла
+const ENTRY_LEG = FLARE_L + 12
+
 // Ствол — на этом расстоянии от левого края экрана (не зависит от сдвига ступеней)
 export const TRUNK_INSET = 11
 
@@ -75,7 +78,10 @@ export function ladderLinks({ hero, blocks, fin, edge = 0 }) {
   if (fin) {
     const b3 = blocks[2]
     const top = [midX(fin), fin.t + (fin.b - fin.t) * FIN_TOP]
-    const y = b3.b + (top[1] - b3.b) / 2
+    // Вход в пятиугольник — с тем же раздувом, что у ступеней: последний прямой
+    // участок ENTRY_LEG (раздув + скругление); зазор мал — горизонталь посередине
+    const gap = top[1] - b3.b
+    const y = gap >= 50 ? top[1] - ENTRY_LEG : b3.b + gap / 2
     links.push({ pts: [[midX(b3), b3.b], [midX(b3), y], [top[0], y], top], from: WIRE_COLORS.levels[2], to: WIRE_COLORS.perm })
   }
   return links

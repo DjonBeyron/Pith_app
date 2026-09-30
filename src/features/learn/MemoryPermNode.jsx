@@ -20,7 +20,9 @@ const PERM_PATH = 'M 5.4 118.0 L 16.6 42.4 A 43.8 43.8 0 0 1 60.0 4.6 L 186.0 4.
 // вкладки «Память», memory-perm.css). Тап — четвёртая вкладка страницы уровней
 export default function MemoryPermNode({ count, onOpen }) {
   // id градиента — только буквы и цифры: url(#…) в SVG надёжен без спецсимволов
-  const grad = 'memPermGrad' + useId().replace(/[^a-zA-Z0-9]/g, '')
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
+  const grad = 'memPermGrad' + uid
+  const gradTop = 'memPermTopGrad' + uid
   return (
     <button className="memPerm" onClick={onOpen}>
       <svg viewBox="0 0 240 212" aria-hidden="true">
@@ -29,8 +31,15 @@ export default function MemoryPermNode({ count, onOpen }) {
             <stop offset="0" stopColor="#a78bfa" />
             <stop offset="1" stopColor="#8b5cf6" stopOpacity=".35" />
           </linearGradient>
+          <linearGradient id={gradTop} gradientUnits="userSpaceOnUse" x1="52" y1="0" x2="194" y2="0">
+            <stop offset="0" stopColor="#c4b5fd" stopOpacity="0" />
+            <stop offset=".5" stopColor="#d9ccff" />
+            <stop offset="1" stopColor="#c4b5fd" stopOpacity="0" />
+          </linearGradient>
         </defs>
         <path d={PERM_PATH} stroke={`url(#${grad})`} />
+        {/* Верх толще и светится — там связь входит в блок, как у ступеней слева */}
+        <path className="memPermTop" d="M 52 4.6 L 194 4.6" stroke={`url(#${gradTop})`} />
         {RINGS.map(r => (
           <path key={r.s} className="memPermRing" d={PERM_PATH}
             transform={`translate(120 106) scale(${r.s}) translate(-120 -106)`}
@@ -41,7 +50,7 @@ export default function MemoryPermNode({ count, onOpen }) {
       <span className="memPermText">
         <b>{count}</b>
         <span>{plural(count, 'Слово', 'Слова', 'Слов')} в постоянной памяти</span>
-        <small>{count ? 'легко вспоминаются' : 'пока пусто'}</small>
+        <small>{count ? 'последний уровень · навсегда' : 'пока пусто'}</small>
       </span>
     </button>
   )

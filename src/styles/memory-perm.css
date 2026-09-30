@@ -13,7 +13,7 @@
   place-items: center;
   width: 180px;
   height: 159px;
-  margin: 42px auto 0; /* по центру по горизонтали */
+  margin: 62px auto 0; /* по центру по горизонтали; зазор с запасом на раздув линии у входа */
   padding: 0;
   border: 0;
   background: none;
@@ -28,6 +28,7 @@
   inset: 0;
   clip-path: path('M 4.05 88.5 L 12.45 31.8 A 32.85 32.85 0 0 1 45 3.45 L 139.5 3.45 A 32.85 32.85 0 0 1 172.35 31.8 L 180.45 88.5 A 32.85 32.85 0 0 1 165 121.05 L 109.65 155.1 A 32.85 32.85 0 0 1 75 155.1 L 19.65 121.05 A 32.85 32.85 0 0 1 4.05 88.5 Z');
   background:
+    radial-gradient(ellipse at 50% 0%, rgba(196, 181, 253, 0.3), transparent 42%),
     radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.22), transparent 70%),
     var(--mem-brain) 50% 44% / 178px 178px no-repeat,
     var(--v2-dust), var(--v2-grain), var(--v2-tex) #12101a;
@@ -35,6 +36,8 @@
 .memPerm > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
 .memPerm > svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
 .memPerm > svg .memPermRing { stroke: #a78bfa; }
+/* Утолщение и свечение сверху — у входа связи (как левая обводка у ступеней) */
+.memPerm > svg .memPermTop { stroke-width: 6; stroke-linecap: round; filter: drop-shadow(0 0 5px rgba(196, 181, 253, 0.95)); }
 /* Текст — уже пятиугольника, с полями от боковых граней (они сходятся книзу) */
 .memPermText { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -18px; text-align: center; }
 .memPermText b { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }
