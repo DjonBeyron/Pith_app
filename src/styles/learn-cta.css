@@ -1,0 +1,76 @@
+/* Кнопка «Повторить» вкладки «Память» (LearnMainAction.jsx → Cta): вынесена
+   из learn.css, когда тот дошёл до 250 строк */
+
+/* Кнопка «Повторить» — как «Изучить фразу» в ленте (.feedLearnBtn):
+   градиент, тёмные узоры, редкий блик, мягкий «пульс» и три обводки вокруг,
+   вспыхивающие по очереди (обёртка нужна: у кнопки overflow: hidden под блик) */
+.lrCtaWrap { display: block; position: relative; margin-top: 6px; }
+.lrCta {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 999px;
+  background:
+    var(--v2-dust-d), var(--v2-grain-d), var(--v2-tex-d),
+    linear-gradient(180deg, #ceff73 0%, #b6fe3b 45%, #9ce922 100%);
+  color: #0d1500;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(182, 254, 59, 0.3);
+  animation: lrCtaPulse 2.6s ease-out infinite;
+}
+.lrCta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.45) 50%, transparent 60%);
+  transform: translateX(-130%);
+  animation: lrCtaShine 7s linear infinite;
+}
+.lrCtaCount { padding: 3px 9px; border-radius: 999px; background: rgba(13, 21, 0, 0.14); font-size: 13px; font-weight: 700; }
+@keyframes lrCtaShine { 0% { transform: translateX(-130%); } 14%, 100% { transform: translateX(130%); } }
+/* Пульс — только масштаб (композитор); расходящийся круг из box-shadow
+   заменили тремя обводками: тень перерисовывалась каждый кадр */
+@keyframes lrCtaPulse {
+  0%, 70% { transform: scale(1); }
+  76% { transform: scale(1.03); }
+  95%, 100% { transform: scale(1); }
+}
+/* Три тонкие обводки вокруг кнопки — на разном расстоянии, чем дальше, тем
+   тоньше и бледнее. Вспыхивают ПО ОЧЕРЕДИ (задержка 0 / 0.14 / 0.28с) в
+   момент пульса: волна идёт от кнопки наружу. Только opacity — композитор */
+.lrCtaRing {
+  position: absolute;
+  border: 1.5px solid rgba(182, 254, 59, 0.75);
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  animation: lrCtaRing 2.6s ease-out infinite;
+}
+.lrCtaRing--1 { inset: -6px; }
+.lrCtaRing--2 { inset: -10px; border-width: 1.25px; border-color: rgba(182, 254, 59, 0.5); animation-delay: 0.14s; }
+.lrCtaRing--3 { inset: -14px; border-width: 1px; border-color: rgba(182, 254, 59, 0.3); animation-delay: 0.28s; }
+@keyframes lrCtaRing {
+  0%, 70% { opacity: 0; }
+  78% { opacity: 1; }
+  95%, 100% { opacity: 0; }
+}
+/* Скрытая вкладка — анимации стоят (как у кнопки ленты) */
+.shellV2TabHidden .lrCta,
+.shellV2TabHidden .lrCta::after,
+.shellV2TabHidden .lrCtaRing { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lrCta { animation: none; }
+  .lrCta::after { content: none; }
+  .lrCtaRing { display: none; }
+}
