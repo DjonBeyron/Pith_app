@@ -39,6 +39,13 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await nav.click()
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })
+  // Кнопка «Повторить»: три обводки вокруг; затемнение снизу — над нижней панелью, без кликов
+  await expect(main.locator('.lrCtaRing')).toHaveCount(3)
+  await expect(page.locator('.lrEdgeBottom')).toHaveCSS('pointer-events', 'none')
+  // Шарик слова к повтору стартует крупнее, чем финиширует: сжимается вместе с линией связи
+  const [s0, s1] = await page.locator('.memBall').first().evaluate(el => ['--s0', '--s1'].map(k => Number(el.style.getPropertyValue(k))))
+  expect(s1).toBeGreaterThan(0)
+  expect(s0).toBeGreaterThan(s1)
 
   // Лестница: keep — в «Новых» (going не пройден — в памяти его нет)
   const fresh = page.locator('.memLvl--1')
@@ -75,10 +82,15 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await page.getByRole('button', { name: '← Назад' }).click()
   // Лестница снова с линиями: точки у шапки, трёх ступеней и связи в пятиугольник
   await expect(page.locator('.memWires circle')).toHaveCount(6)
-  // Пятиугольник — фиолетовая страница постоянной памяти (пока пусто)
-  await page.getByRole('button', { name: /^Закреплённые слова/ }).click()
+  // Пятиугольник — «N слов в постоянной памяти»; его страница — «Закреплённые слова» (пока пусто)
+  const perm = page.getByRole('button', { name: /слов в постоянной памяти/ })
+  await expect(perm).toContainText('0')
+  await perm.click()
   await expect(page.locator('.memPermCount')).toHaveText(/^0\s*слов закреплено$/)
-  await page.getByRole('button', { name: '← Назад' }).click()
+  // Повторный тап по значку «Память» — назад на главный экран (без кнопки «Назад»)
+  await nav.click()
+  await expect(page.locator('.memPage')).toHaveCount(0)
+  await expect(page.locator('.memZone')).toBeVisible()
 
   // Сессия дня: верный ответ → итог (+2 XP, мостик в фразу) → «На сегодня всё ✓»
   await main.locator('.lrCta').click()

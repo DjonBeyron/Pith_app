@@ -183,11 +183,16 @@
   offset-rotate: 0deg;
   animation: memBallRun 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
+/* Размер шарика — по толщине линии: 115% у ступени (--s0) → толщина у шапки
+   (--s1), ballScale в ladderWires.js. Масштаб (transform, не individual
+   `scale`: тот применялся бы и к смещению по пути) идёт в тех же ключевых
+   кадрах, что offset-distance, с той же кривой — шарик и толщина линии
+   совпадают в любой точке пути. Тень масштабируется вместе с шариком */
 @keyframes memBallRun {
-  0% { offset-distance: 0%; opacity: 0; }
+  0% { offset-distance: 0%; opacity: 0; transform: scale(var(--s0, 1)); }
   6% { opacity: 1; }
-  74% { offset-distance: 100%; opacity: 1; }
-  75%, 100% { offset-distance: 100%; opacity: 0; }
+  74% { offset-distance: 100%; opacity: 1; transform: scale(var(--s1, 1)); }
+  75%, 100% { offset-distance: 100%; opacity: 0; transform: scale(var(--s1, 1)); }
 }
 /* Скрытая вкладка — шарики не крутятся */
 .shellV2TabHidden .memBall { display: none; }

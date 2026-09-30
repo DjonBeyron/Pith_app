@@ -1,5 +1,6 @@
 import { Cog, Video, UserRound, Trophy, Brain } from 'lucide-react'
 import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
+import { requestLearnHome } from '../shared/lib/learnHomeEvent.js'
 
 // Нижняя панель оболочки: Уроки / Память / Профиль / Рейтинг (+ Админ).
 // «Память» зовёт, когда есть что повторить сегодня или новое слово из урока
@@ -20,7 +21,9 @@ export default function ShellNav({ tab, setTab, learnDot, isRealAdmin, userMode 
         Уроки
       </button>
       {/* data-nav — цель полёта нового слова из итога урока (memoryFresh.js) */}
-      <button className={cls('learn', learnDot ? ' shellV2NavBtnDue' : '')} data-nav="learn" onClick={() => setTab('learn')}>
+      <button className={cls('learn', learnDot ? ' shellV2NavBtnDue' : '')} data-nav="learn"
+        // Уже в «Памяти» — повторное нажатие = «назад» из списка слов на главный экран
+        onClick={() => { if (tab === 'learn') requestLearnHome(); setTab('learn') }}>
         <Brain>{learnDot && <path className="shellV2NavBrainFill" d={BRAIN_FILL} />}</Brain>
         Память
       </button>

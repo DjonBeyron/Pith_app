@@ -1,6 +1,5 @@
 import { useId } from 'react'
 import { plural } from '../../shared/lib/plural.js'
-import { SETTLED_NAME } from './memoryLadder.js'
 
 // Контур финала модуля (MgFinalNode.jsx), сдвинутый в коробку 240×212; на
 // экране — в масштабе 3/4 (clip-path того же контура — memory-ladder.css)
@@ -13,7 +12,7 @@ const RINGS = [
 ]
 const PERM_PATH = 'M 5.4 118.0 L 16.6 42.4 A 43.8 43.8 0 0 1 60.0 4.6 L 186.0 4.6 A 43.8 43.8 0 0 1 229.8 42.4 L 240.6 118.0 A 43.8 43.8 0 0 1 220.0 161.4 L 146.2 206.8 A 43.8 43.8 0 0 1 100.0 206.8 L 26.2 161.4 A 43.8 43.8 0 0 1 5.4 118.0 Z'
 
-// «Закреплённые слова» — фиолетовый пятиугольник под ступенями (форма финала
+// Фиолетовый пятиугольник «N слов в постоянной памяти» под ступенями (форма финала
 // модуля): сюда уходят усвоенные слова, вспомненные на месячной проверке.
 // Четыре контура с затуханием и утоньшением наружу — как обводки ступеней
 // (1 / 2 / 3). Тап — фиолетовая страница этих слов (MemoryPermPage.jsx)
@@ -21,7 +20,7 @@ export default function MemoryPermNode({ count, onOpen }) {
   // id градиента — только буквы и цифры: url(#…) в SVG надёжен без спецсимволов
   const grad = 'memPermGrad' + useId().replace(/[^a-zA-Z0-9]/g, '')
   return (
-    <button className="memPerm" onClick={onOpen} aria-label={`${SETTLED_NAME}: ${count}`}>
+    <button className="memPerm" onClick={onOpen}>
       <svg viewBox="0 0 240 212" aria-hidden="true">
         <defs>
           <linearGradient id={grad} x1="0" y1="0" x2="0" y2="1">
@@ -38,7 +37,7 @@ export default function MemoryPermNode({ count, onOpen }) {
       </svg>
       <span className="memPermText">
         <b>{count}</b>
-        <span>{plural(count, 'закреплённое слово', 'закреплённых слова', 'закреплённых слов')}</span>
+        <span>{plural(count, 'слово', 'слова', 'слов')} в постоянной памяти</span>
         <small>{count ? 'легко вспоминаются' : 'пока пусто'}</small>
       </span>
     </button>

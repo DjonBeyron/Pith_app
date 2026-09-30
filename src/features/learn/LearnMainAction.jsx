@@ -10,6 +10,19 @@ import { dueLabel } from './learnView.js'
 const fmtDate = d => new Date(`${d}T12:00:00`).toLocaleDateString('ru', { day: 'numeric', month: 'long' })
 const words = n => `${n} ${plural(n, 'слово', 'слова', 'слов')}`
 
+// Кнопка-призыв: сама кнопка + три обводки вокруг (вспыхивают по очереди,
+// стили — learn.css; обёртка нужна, потому что у кнопки overflow: hidden)
+function Cta({ onClick, children }) {
+  return (
+    <span className="lrCtaWrap">
+      <button className="lrCta" onClick={onClick}>{children}</button>
+      <i className="lrCtaRing lrCtaRing--1" aria-hidden="true" />
+      <i className="lrCtaRing lrCtaRing--2" aria-hidden="true" />
+      <i className="lrCtaRing lrCtaRing--3" aria-hidden="true" />
+    </span>
+  )
+}
+
 function Hero({ mod = '', title, sub, children }) {
   return (
     <div className={'lrMain' + mod}>
@@ -44,16 +57,14 @@ export default function LearnMainAction({ view, today, onStart, onChanged }) {
   if (picked.length) {
     return (
       <Hero title={`Сегодня повторяем ${words(picked.length)}`} sub="чтобы они ушли в долгую память">
-        <button className="lrCta" onClick={onStart}>
-          Повторить<span className="lrCtaCount">{words(picked.length)}</span>
-        </button>
+        <Cta onClick={onStart}>Повторить<span className="lrCtaCount">{words(picked.length)}</span></Cta>
       </Hero>
     )
   }
   if (phrase) {
     return (
       <Hero mod=" lrMainPhrase" title="Сегодня закрепляем фразу" sub={`Все слова «${phrase.title}» окрепли — собери её целиком`}>
-        <button className="lrCta" onClick={onStart}>Закрепить фразу</button>
+        <Cta onClick={onStart}>Закрепить фразу</Cta>
       </Hero>
     )
   }

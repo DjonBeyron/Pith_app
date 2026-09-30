@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { getCachedProfile, subscribeProfile } from '../../shared/api/profileCache.js'
 import { useLessonNav } from '../../app/LessonNavContext.jsx'
 import { localToday } from '../review/reviewDecks.js'
+import { onLearnHome } from '../../shared/lib/learnHomeEvent.js'
 import LearnMainAction from './LearnMainAction.jsx'
 import MemoryLadder from './MemoryLadder.jsx'
 import MemoryLevelPage from './MemoryLevelPage.jsx'
@@ -30,6 +31,9 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const today = localToday()
 
   useEffect(() => subscribeProfile(setProfile), [])
+  // Тап по значку «Память» в нижней панели, когда вкладка уже открыта — из
+  // списка слов назад на главный экран
+  useEffect(() => onLearnHome(() => setPage(null)), [])
   // Вернулись на вкладку — тихо обновить (урок мог добавить слово)
   useEffect(() => { if (visible) reload() }, [visible, reload])
 
@@ -38,47 +42,52 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const ladder = view?.ladder
 
   return (
-    <div className="lrScreen">
-      {page === 'perm' && ladder && <MemoryPermPage words={ladder.permanent} onWord={openWord(true)} onBack={() => setPage(null)} />}
-      {typeof page === 'number' && ladder && (
-        <MemoryLevelPage ladder={ladder} level={page} onLevel={setPage} onWord={openWord(false)} onBack={() => setPage(null)} />
-      )}
-      {!page && <h1 className="lrTitle">Моя память</h1>}
-      {!view && !error && <p className="lrNote">Загрузка…</p>}
-      {error && !view && <p className="lrNote">Не загрузилось. <button className="lrLink" onClick={reload}>Ещё раз</button></p>}
-      {view && !page && (
-        <>
-          <MemoryLadder ladder={ladder} onOpen={setPage} onWord={openWord(false)}>
-            <LearnMainAction view={view} today={today} onStart={() => setReview({ focus: null })} onChanged={reload} />
-          </MemoryLadder>
-          {!isLoggedIn && (
-            <div className="lrGuestLead">
-              <p className="lrMainSub">Войди — память слов сохранится, и завтра напомним повторить. Сейчас она живёт только в этом браузере</p>
-              <button className="lrBtn lrBtnMain" onClick={onRequireAuth}>Войти</button>
-            </div>
-          )}
-        </>
-      )}
-      {sheet && (
-        <LearnWordSheet
-          word={sheet.word}
-          perm={sheet.perm}
-          isPro={isPro}
-          onLesson={() => { setSheet(null); openRef({ isModule: false, targetId: sheet.word.lessonId }, null) }}
-          onReview={() => { setSheet(null); setReview({ focus: [sheet.word.word] }) }}
-          onWantPro={() => { setSheet(null); setShowPro(true) }}
-          onClose={() => setSheet(null)}
-        />
-      )}
-      {review && (
-        <Suspense fallback={null}>
-          <ReviewScreen focusWords={review.focus} phrase={review.focus ? null : view?.today.phrase}
-            onClose={() => { setReview(null); reload() }}
-            onRequireAuth={() => { setReview(null); onRequireAuth() }} />
-        </Suspense>
-      )}
-      {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
-      <MemoryIntro open={visible} />
+    <div className="lrRoot">
+      <div className="lrScreen">
+        {page === 'perm' && ladder && <MemoryPermPage words={ladder.permanent} onWord={openWord(true)} onBack={() => setPage(null)} />}
+        {typeof page === 'number' && ladder && (
+          <MemoryLevelPage ladder={ladder} level={page} onLevel={setPage} onWord={openWord(false)} onBack={() => setPage(null)} />
+        )}
+        {!page && <h1 className="lrTitle">Моя память</h1>}
+        {!view && !error && <p className="lrNote">Загрузка…</p>}
+        {error && !view && <p className="lrNote">Не загрузилось. <button className="lrLink" onClick={reload}>Ещё раз</button></p>}
+        {view && !page && (
+          <>
+            <MemoryLadder ladder={ladder} onOpen={setPage} onWord={openWord(false)}>
+              <LearnMainAction view={view} today={today} onStart={() => setReview({ focus: null })} onChanged={reload} />
+            </MemoryLadder>
+            {!isLoggedIn && (
+              <div className="lrGuestLead">
+                <p className="lrMainSub">Войди — память слов сохранится, и завтра напомним повторить. Сейчас она живёт только в этом браузере</p>
+                <button className="lrBtn lrBtnMain" onClick={onRequireAuth}>Войти</button>
+              </div>
+            )}
+          </>
+        )}
+        {sheet && (
+          <LearnWordSheet
+            word={sheet.word}
+            perm={sheet.perm}
+            isPro={isPro}
+            onLesson={() => { setSheet(null); openRef({ isModule: false, targetId: sheet.word.lessonId }, null) }}
+            onReview={() => { setSheet(null); setReview({ focus: [sheet.word.word] }) }}
+            onWantPro={() => { setSheet(null); setShowPro(true) }}
+            onClose={() => setSheet(null)}
+          />
+        )}
+        {review && (
+          <Suspense fallback={null}>
+            <ReviewScreen focusWords={review.focus} phrase={review.focus ? null : view?.today.phrase}
+              onClose={() => { setReview(null); reload() }}
+              onRequireAuth={() => { setReview(null); onRequireAuth() }} />
+          </Suspense>
+        )}
+        {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
+        <MemoryIntro open={visible} />
+      </div>
+      {/* Затемнение снизу — как у схемы модуля (moduleGraphEdge--bottom): то, что
+          уходит под нижнюю панель, плавно темнеет, а не режется ровной линией */}
+      <div className="lrEdgeBottom" aria-hidden="true" />
     </div>
   )
 }

@@ -187,7 +187,8 @@ test('родное слово на месячной проверке → пос�
 
   // «Усвоенные» опустели, пятиугольник — 1; его страница — keep
   await expect(page.locator('.memLvl--3 .memLvlCount')).toHaveText('0', { timeout: 30_000 })
-  await page.getByRole('button', { name: /^Закреплённые слова/ }).click()
+  await expect(page.getByRole('button', { name: /1 слово в постоянной памяти/ })).toBeVisible()
+  await page.getByRole('button', { name: /слово в постоянной памяти/ }).click()
   await expect(page.locator('.memPermCount')).toHaveText(/^1\s*слово закреплено$/)
   await expect(page.locator('.memChipRow')).toHaveText(['keep'])
 })

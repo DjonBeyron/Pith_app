@@ -13,6 +13,14 @@ export const WIRE_COLORS = { accent: '#b6fe3b', levels: ['#b0b8c2', '#e2cd78', '
 export const W_MIN = 1.25
 export const W_MAX = 4.5
 
+// Шарик слова к повтору — круг BALL_D px (.memBall, memory-ladder.css). Он
+// стартует у ступени размером BALL_GROW (115%) толщины линии и сжимается вместе
+// с ней по дороге к шапке: масштаб transform в тех же ключевых кадрах и с той
+// же кривой, что offset-distance (CSS, без JS на кадр)
+export const BALL_D = 8
+export const BALL_GROW = 1.15
+export const ballScale = w => Math.round(BALL_GROW * w / BALL_D * 1000) / 1000
+
 // Верх контура пятиугольника — доля высоты его коробки (MemoryPermNode.jsx)
 export const FIN_TOP = 4.6 / 212
 
@@ -118,7 +126,9 @@ export function taper(poly, { s0, s1, c0, c1, maxLen = 8 }) {
 // Весь рисунок связей: ствол (от шапки до «Усвоенных»), отводы в «Новые» и
 // «Знакомые» (толщина — как у ствола в точке отвода, цвет — к цвету ступени),
 // связь «Усвоенные» → пятиугольник (до W_MAX) и точки на концах.
-// → { pieces: [{ x1, y1, x2, y2, w, color }], dots: [{ x, y, r, color }] }
+// → { pieces: [{ x1, y1, x2, y2, w, color }], dots: [{ x, y, r, color }],
+//      widths: [w0, w1, w2] } — widths: толщина линии там, где шарик каждой
+//      ступени стартует (у самой ступени)
 export function ladderWireSet(rects) {
   const links = ladderLinks(rects)
   const R = 12
@@ -129,6 +139,7 @@ export function ladderWireSet(rects) {
   const C = WIRE_COLORS
   const pieces = taper(trunk, { s0: 0, s1: trunkLen / total, c0: C.accent, c1: C.levels[2] })
   const dots = [{ x: links[2].pts[0][0], y: links[2].pts[0][1], r: 3.5, color: C.accent }]
+  const widths = []
   links.slice(0, 3).forEach((l, i) => {
     const end = l.pts[l.pts.length - 1]
     const trunkX = l.pts[3][0]
@@ -138,12 +149,14 @@ export function ladderWireSet(rects) {
       const branch = orthPoints([[trunkX, end[1] - R], [trunkX, end[1]], end], R)
       pieces.push(...taper(branch, { s0: s, s1: s, c0: C.levels[2], c1: C.levels[i] }))
     }
-    dots.push({ x: end[0], y: end[1], r: Math.max(3.5, f(W_MIN + (W_MAX - W_MIN) * s) / 2 + 1.5), color: C.levels[i] })
+    const w = f(W_MIN + (W_MAX - W_MIN) * s)
+    widths.push(w)
+    dots.push({ x: end[0], y: end[1], r: Math.max(3.5, w / 2 + 1.5), color: C.levels[i] })
   })
   if (fin) {
     pieces.push(...taper(fin, { s0: trunkLen / total, s1: 1, c0: C.levels[2], c1: C.perm }))
     const [a, z] = [links[3].pts[0], links[3].pts[links[3].pts.length - 1]]
     dots.push({ x: a[0], y: a[1], r: 3.5, color: C.levels[2] }, { x: z[0], y: z[1], r: W_MAX / 2 + 1.5, color: C.perm })
   }
-  return { pieces, dots }
+  return { pieces, dots, widths }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { levelOf, levelFill, journey, buildLadder, wordLevel, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
-import { orth, ladderLinks, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX } from './ladderWires.js'
+import { orth, ladderLinks, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX, ballScale, BALL_D, BALL_GROW } from './ladderWires.js'
 
 describe('ступени памяти', () => {
   it('шаг → ступень: 1–2 новые, 3–4 знакомые, 5 усвоенные', () => {
@@ -114,5 +114,17 @@ describe('связи памяти: толщина растёт от шапки �
     // точки: начало у шапки + концы трёх ступеней + начало и конец связи в пятиугольник
     expect(dots).toHaveLength(6)
     expect(dots[2].r).toBeGreaterThanOrEqual(dots[1].r)
+  })
+
+  it('шарик: старт на 115% толщины линии у ступени и сжатие вместе с линией до шапки', () => {
+    const { widths } = ladderWireSet({ hero, blocks, fin, edge: -22 })
+    expect(widths).toHaveLength(3)
+    // чем ниже ступень, тем толще линия у неё, а значит и крупнее шарик на старте
+    expect(widths[0]).toBeLessThan(widths[1])
+    expect(widths[1]).toBeLessThan(widths[2])
+    // диаметр шарика = 115% толщины
+    expect(ballScale(3.2) * BALL_D).toBeCloseTo(3.2 * BALL_GROW, 2)
+    // к шапке линия тоньше — шарик меньше, чем на старте
+    widths.forEach(w => expect(ballScale(W_MIN)).toBeLessThan(ballScale(w)))
   })
 })

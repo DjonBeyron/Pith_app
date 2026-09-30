@@ -4,6 +4,15 @@
    memory-pages.css. «Есть что повторить» на нижней панели —
    .shellV2NavBtnDue (залитая светящаяся иконка) */
 
+/* Корень вкладки: скролл-экран + неподвижное затемнение снизу поверх него */
+.lrRoot {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Слева шире: там ствол линий лестницы (MemoryLadderWires) */
 .lrScreen {
   flex: 1;
@@ -13,6 +22,21 @@
   scrollbar-width: none;
 }
 .lrScreen::-webkit-scrollbar { display: none; }
+
+/* Мягкое гашение снизу — как у схемы модуля (.moduleGraphEdge--bottom,
+   module-graph-layout.css): полоска цвета фона над нижней панелью, всё, что
+   уходит под неё, плавно темнеет. Полоска, а не mask-image на скролле: маска
+   перерисовывала бы экран каждый кадр прокрутки. Только снизу */
+.lrEdgeBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--v2-nav-h);
+  z-index: 3;
+  height: 68px;
+  background: linear-gradient(to top, #0b0d10, transparent);
+  pointer-events: none;
+}
 
 .lrTitle { margin: 4px 0 14px; font-size: 22px; font-weight: 700; color: #e8ecf0; }
 .lrNote { color: #8b95a1; }
@@ -37,7 +61,9 @@
 .lrMainPhrase .lrMainTitle { color: #ffd257; }
 
 /* Кнопка «Повторить» — как «Изучить фразу» в ленте (.feedLearnBtn):
-   градиент, тёмные узоры, редкий блик и мягкий «пульс» */
+   градиент, тёмные узоры, редкий блик, мягкий «пульс» и три обводки вокруг,
+   вспыхивающие по очереди (обёртка нужна: у кнопки overflow: hidden под блик) */
+.lrCtaWrap { display: block; position: relative; margin-top: 6px; }
 .lrCta {
   position: relative;
   overflow: hidden;
@@ -45,7 +71,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 6px;
+  width: 100%;
   padding: 14px;
   border: none;
   border-radius: 999px;
@@ -71,15 +97,36 @@
 }
 .lrCtaCount { padding: 3px 9px; border-radius: 999px; background: rgba(13, 21, 0, 0.14); font-size: 13px; font-weight: 700; }
 @keyframes lrCtaShine { 0% { transform: translateX(-130%); } 14%, 100% { transform: translateX(130%); } }
+/* Пульс — только масштаб (композитор); расходящийся круг из box-shadow
+   заменили тремя обводками: тень перерисовывалась каждый кадр */
 @keyframes lrCtaPulse {
-  0%, 70% { box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); transform: scale(1); }
-  76% { box-shadow: 0 0 0 0 rgba(182, 254, 59, 0.55); transform: scale(1.03); }
-  95% { box-shadow: 0 0 0 14px rgba(182, 254, 59, 0); transform: scale(1); }
-  100% { box-shadow: 0 0 0 0 rgba(182, 254, 59, 0); }
+  0%, 70% { transform: scale(1); }
+  76% { transform: scale(1.03); }
+  95%, 100% { transform: scale(1); }
+}
+/* Три тонкие обводки вокруг кнопки — на разном расстоянии, чем дальше, тем
+   тоньше и бледнее. Вспыхивают ПО ОЧЕРЕДИ (задержка 0 / 0.14 / 0.28с) в
+   момент пульса: волна идёт от кнопки наружу. Только opacity — композитор */
+.lrCtaRing {
+  position: absolute;
+  border: 1.5px solid rgba(182, 254, 59, 0.75);
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  animation: lrCtaRing 2.6s ease-out infinite;
+}
+.lrCtaRing--1 { inset: -6px; }
+.lrCtaRing--2 { inset: -10px; border-width: 1.25px; border-color: rgba(182, 254, 59, 0.5); animation-delay: 0.14s; }
+.lrCtaRing--3 { inset: -14px; border-width: 1px; border-color: rgba(182, 254, 59, 0.3); animation-delay: 0.28s; }
+@keyframes lrCtaRing {
+  0%, 70% { opacity: 0; }
+  78% { opacity: 1; }
+  95%, 100% { opacity: 0; }
 }
 /* Скрытая вкладка — анимации стоят (как у кнопки ленты) */
 .shellV2TabHidden .lrCta,
-.shellV2TabHidden .lrCta::after { animation: none; }
+.shellV2TabHidden .lrCta::after,
+.shellV2TabHidden .lrCtaRing { animation: none; }
 
 /* Подводка гостя к входу (память пока только в этом браузере) */
 .lrGuestLead { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
@@ -199,4 +246,5 @@
   .shellV2NavBtnDue svg,
   .shellV2NavBtnDue::before { animation: none; }
   .lrCta::after { content: none; }
+  .lrCtaRing { display: none; }
 }
