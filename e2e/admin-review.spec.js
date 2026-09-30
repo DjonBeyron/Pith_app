@@ -73,7 +73,7 @@ test('сессия: ошибка → слово в конце → верно; «
   // ── 2. «Знаю» — без ответа, слово крепнет ───────────────────────────
   screen = await startSession(page)
   await screen.getByRole('button', { name: 'Знаю' }).click()
-  await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook окрепло.', { timeout: 30_000 })
+  await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook теперь помнится лучше.', { timeout: 30_000 })
   await expect(screen.locator('.reviewWord--ok .memChipFill')).toHaveAttribute('style', /width: 75%/, { timeout: 15_000 }) // шаг 1 → 2: полоска доросла до 75% ступени
 
   // ── 3. Мостик открывает схему модуля во вкладке «Уроки» ─────────────

@@ -24,7 +24,7 @@ export function introLines({ words, memory = [], phrase = null }) {
   if (phrase) {
     lines.push(words.length
       ? `А в конце соберём фразу «${phrase.title}» целиком.`
-      : `Все слова фразы «${phrase.title}» окрепли — пора собрать её целиком.`)
+      : `Ты уже уверенно вспоминаешь все слова фразы «${phrase.title}» — пора собрать её целиком.`)
   }
   return lines
 }
@@ -34,7 +34,7 @@ export function summaryLine(results) {
   const grew  = results.filter(r => (r.outcome === 'good' || r.outcome === 'know') && r.applied !== false).map(r => r.word)
   const shaky = results.filter(r => r.outcome === 'again' || r.outcome === 'fail').map(r => r.word)
   const parts = []
-  if (grew.length) parts.push(`${list(grew)} ${grew.length === 1 ? 'окрепло' : 'окрепли'}`)
+  if (grew.length) parts.push(`${list(grew)} ${grew.length === 1 ? 'теперь помнится' : 'теперь помнятся'} лучше`)
   if (shaky.length) {
     const one = shaky.length === 1
     parts.push(`${list(shaky)} ${one ? 'пока даётся' : 'пока даются'} непросто — вернёмся к ${one ? 'нему' : 'ним'} завтра`)

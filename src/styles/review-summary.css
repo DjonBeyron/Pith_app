@@ -39,8 +39,10 @@
 /* Слово ушло в постоянную память — фиолетовый, как пятиугольник во вкладке «Память» */
 .reviewSettled { color: #a78bfa; }
 
-.reviewGuest { display: flex; flex-direction: column; gap: 8px; }
-.reviewGuestLead { margin: 0; font-size: 13px; line-height: 1.4; color: #8b95a1; }
+/* Призыв гостя — компактный и отдельно от карточки прогресса (отступ и черта) */
+.reviewGuest { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; padding-top: 12px; border-top: 1px solid #1c2028; }
+.reviewGuestLead { margin: 0; font-size: 12px; line-height: 1.35; color: #8b95a1; }
+.reviewGuest .lrBtn { padding: 9px 14px; font-size: 14px; }
 .reviewBtnGuest,
 .reviewBridge { border-color: rgba(182, 254, 59, 0.45); color: #b6fe3b; }
 /* Название модуля в мостике длинное — переносится */

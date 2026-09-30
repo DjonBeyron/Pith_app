@@ -3,9 +3,10 @@ import LessonPlayer from '../player/LessonPlayer.jsx'
 import ReviewHeader from './ReviewHeader.jsx'
 import { cardHasAudio } from './reviewSession.js'
 import { useSwipeNext } from './useSwipeNext.js'
+import NoAudioButton from './NoAudioButton.jsx'
 
 // Плашка итога ответа. Без «ошибки» и «мимо»: слово не потеряно, мы просто
-// вернёмся к нему. Вторая ошибка — показать ответ: само слово сессии (плеер
+// вернёмся к нему. Вторая ошибка — показать слово: само слово сессии (плеер
 // верный вариант в чат не выводит, у «выбери слово» его может не быть в переписке)
 function verdictOf(result, { attempt, word, kind }) {
   if (kind === 'phrase') {
@@ -15,7 +16,7 @@ function verdictOf(result, { attempt, word, kind }) {
   }
   if (result === 'correct') return { kind: 'ok', text: 'Верно!' }
   if (attempt === 1) return { kind: 'bad', text: 'Ничего страшного — мы ещё вернёмся к этому слову' }
-  return { kind: 'bad', text: `Бывает! Запомни: ${word}. Вернёмся к нему завтра` }
+  return { kind: 'bad', text: `Вернёмся к слову «${word}» завтра` }
 }
 
 // Одна карточка сессии: кусочек чата (1–3 ноды) играет тот же LessonPlayer,
@@ -24,12 +25,11 @@ function verdictOf(result, { attempt, word, kind }) {
 // Режим onFinishStats: ни XP, ни звёзд, ни экрана итогов, ни записи в анализ
 // урока. После ответа карточка «переворачивается» — плашка с итогом; дальше —
 // «Далее», смахивание вверх/вправо (useSwipeNext) или Enter/→ на клавиатуре.
-// Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
+// «Не могу слушать» — только на карточке со звуком (NoAudioButton). Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
 export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, onAnswer, onNoAudio, onClose }) {
   const [answered, setAnswered] = useState(null) // { result, timeMs }
   const sentRef = useRef(false)
   const verdict = answered && verdictOf(answered.result, item)
-  const audioAhead = session.queue.slice(session.index).some(q => cardHasAudio(q.card))
 
   // Ответ уходит ровно один раз, чем бы ни нажали (кнопка, жест, клавиша)
   function send(res) {
@@ -73,15 +73,24 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
       </div>
       <div className="reviewActions">
         {answered
-          ? <button className="reviewBtn reviewBtn--main" onClick={next}>Далее</button>
+          ? <>
+              {/* Кнопка — там, где есть мышь; на касании — надпись (она же кнопка для
+                  тех, кто не смахивает). Появляется только после ответа, плавно */}
+              <button className="reviewBtn reviewBtn--main reviewNext" onClick={next}>Далее</button>
+              <button className="reviewSwipeHint" aria-label="Далее" onClick={next}>
+                <span className="reviewSwipeHintText">
+                  смахни вверх или вправо
+                  <span className="reviewSwipeShine" aria-hidden="true"><span>смахни вверх или вправо</span></span>
+                </span>
+              </button>
+            </>
           : <>
               {item.attempt === 1 && (
                 <button className="reviewBtn" onClick={() => send({ result: 'know' })}>Знаю</button>
               )}
-              {audioAhead && <button className="reviewBtn" onClick={onNoAudio}>Не могу слушать</button>}
+              {cardHasAudio(item.card) && <NoAudioButton onSkip={onNoAudio} />}
             </>}
       </div>
-      {answered && <p className="reviewSwipeHint">смахни вверх или вправо</p>}
     </>
   )
 }

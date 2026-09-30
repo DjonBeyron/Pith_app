@@ -1,0 +1,135 @@
+/* Панель под карточкой повторения (features/review: ReviewTurn, NoAudioButton):
+   компактные кнопки, «Далее» (мышь) / подсказка «смахни…» (касание), кнопка
+   «Не могу слушать» с морфингом в кружок и её попап */
+
+.reviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 2px 0 calc(env(safe-area-inset-bottom, 0px) + 10px);
+  flex-shrink: 0;
+}
+
+.reviewBtn {
+  padding: 8px 16px;
+  border: 1px solid #2a2d35;
+  border-radius: 999px;
+  background: transparent;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reviewBtn--main { min-width: 120px; border-color: transparent; background: #b6fe3b; color: #0d1500; }
+
+/* ── «Далее»: кнопка только там, где есть мышь; на касании — надпись ─── */
+.reviewNext { display: none; animation: reviewHintIn 0.5s ease 0.3s backwards; }
+@media (hover: hover) and (pointer: fine) {
+  .reviewNext { display: inline-block; }
+  .reviewSwipeHint { display: none; }
+}
+
+/* Надпись появляется после ответа и не раньше, чем откинулась плашка (0.45с) —
+   то есть когда смахнуть карточку уже можно. Блик — «окно» с яркой копией
+   текста: окно едет слева направо, а текст в нём едет навстречу, поэтому он
+   стоит на месте и открывается по кусочку. Двигаются только transform-слои —
+   без перерисовки текста; пауза между проходами, чтобы не мельтешило */
+.reviewSwipeHint {
+  padding: 8px 14px;
+  border: 0;
+  background: none;
+  color: #6f7784;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: reviewHintIn 0.7s ease 0.55s backwards;
+}
+.reviewSwipeHintText { position: relative; display: inline-block; white-space: nowrap; }
+.reviewSwipeShine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 34%;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%, #000 55%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 45%, #000 55%, transparent);
+  will-change: transform;
+  animation: reviewShineWindow 3.4s ease-in-out 1.3s infinite;
+}
+.reviewSwipeShine span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #f2f5f7;
+  will-change: transform;
+  animation: reviewShineText 3.4s ease-in-out 1.3s infinite;
+}
+@keyframes reviewShineWindow { 0% { transform: translateX(-100%); } 45%, 100% { transform: translateX(300%); } }
+@keyframes reviewShineText   { 0% { transform: translateX(34%); }   45%, 100% { transform: translateX(-102%); } }
+@keyframes reviewHintIn { from { opacity: 0; } }
+
+/* ── «Не могу слушать»: широкая кнопка → кружок с иконкой ───────────── */
+.reviewNoAudio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 172px;
+  height: 36px;
+  padding: 0 14px;
+  overflow: hidden;
+  border: 1px solid #2a2d35;
+  border-radius: 999px;
+  background: transparent;
+  color: #e0e0e0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: width 0.55s cubic-bezier(0.65, 0, 0.25, 1), padding 0.55s cubic-bezier(0.65, 0, 0.25, 1), gap 0.55s cubic-bezier(0.65, 0, 0.25, 1);
+  animation: reviewHintIn 0.4s ease backwards;
+}
+.reviewNoAudioIcon { width: 18px; height: 18px; flex-shrink: 0; }
+.reviewNoAudioLabel { max-width: 120px; overflow: hidden; transition: opacity 0.25s ease, max-width 0.55s cubic-bezier(0.65, 0, 0.25, 1); }
+.reviewNoAudio--compact { width: 36px; padding: 0; gap: 0; }
+.reviewNoAudio--compact .reviewNoAudioLabel { max-width: 0; opacity: 0; }
+
+/* Попап-объяснение (один раз) */
+.reviewPopBack {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  animation: popFadeIn 0.2s ease-out backwards;
+}
+.reviewPop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 360px);
+  padding: 20px 16px 14px;
+  border-radius: 20px;
+  background: #14171c;
+  color: #e8ecf0;
+  animation: popSheetWobble 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards;
+}
+.reviewPopTitle { margin: 0; font-size: 18px; font-weight: 700; }
+.reviewPopText { margin: 0 0 4px; font-size: 14px; line-height: 1.45; color: #c9d0d7; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reviewSwipeShine { display: none; }
+  .reviewNoAudio, .reviewNoAudioLabel { transition: none; }
+  .reviewPop, .reviewPopBack { animation: none; }
+}

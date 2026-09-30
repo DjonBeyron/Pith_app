@@ -73,7 +73,7 @@ test('гость повторяет слово дня → итог зовёт в
   await review.getByRole('button', { name: 'Начать', exact: true }).click({ timeout: 30_000 })
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
   await review.getByRole('button', { name: 'Далее' }).click()
-  await expect(review.locator('.reviewTeacherLine').first()).toHaveText('keep окрепло.', { timeout: 30_000 })
+  await expect(review.locator('.reviewTeacherLine').first()).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 })
   await expect(review.locator('.reviewGuestLead')).toBeVisible()
   await review.getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')

@@ -106,7 +106,7 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await review.getByRole('button', { name: 'Начать', exact: true }).click({ timeout: 30_000 })
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
   await review.getByRole('button', { name: 'Далее' }).click()
-  await expect(review.locator('.reviewTeacherLine')).toHaveText('keep окрепло.', { timeout: 30_000 })
+  await expect(review.locator('.reviewTeacherLine')).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 })
   await expect(review.locator('.reviewReward')).toContainText('+2 XP')
   await expect(review.locator('.reviewBridge')).toContainText('Keep going · E2E-ОБУЧЕНИЕ» · 25%')
   await review.getByRole('button', { name: 'Готово' }).click()

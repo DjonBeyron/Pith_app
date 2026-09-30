@@ -4,8 +4,9 @@
 
 /* ── Постоянная память: пятиугольник (контур 240×212 в масштабе 3/4) ── */
 .memPerm {
-  /* Один еле видный мозг — тот же значок, что у вкладки «Память» внизу */
-  --mem-brain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cg fill='none' stroke='white' stroke-opacity='.12' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='scale(4.1667)'%3E%3Cpath d='M12 18V5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.997 5.125a4 4 0 0 1 2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M18 18a4 4 0 0 0 2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6 18a4 4 0 0 1-2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6.003 5.125a4 4 0 0 0-2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  /* Один еле видный мозг — тот же значок, что у вкладки «Память» внизу; крупный:
+     контур подходит почти к самой границе пятиугольника */
+  --mem-brain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='178' height='178'%3E%3Cg fill='none' stroke='white' stroke-opacity='.12' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='scale(7.4167)'%3E%3Cpath d='M12 18V5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.997 5.125a4 4 0 0 1 2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M18 18a4 4 0 0 0 2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6 18a4 4 0 0 1-2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6.003 5.125a4 4 0 0 0-2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   position: relative;
   z-index: 2;
   display: grid;
@@ -28,7 +29,7 @@
   clip-path: path('M 4.05 88.5 L 12.45 31.8 A 32.85 32.85 0 0 1 45 3.45 L 139.5 3.45 A 32.85 32.85 0 0 1 172.35 31.8 L 180.45 88.5 A 32.85 32.85 0 0 1 165 121.05 L 109.65 155.1 A 32.85 32.85 0 0 1 75 155.1 L 19.65 121.05 A 32.85 32.85 0 0 1 4.05 88.5 Z');
   background:
     radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.22), transparent 70%),
-    var(--mem-brain) 50% 46% / 100px 100px no-repeat,
+    var(--mem-brain) 50% 44% / 178px 178px no-repeat,
     var(--v2-dust), var(--v2-grain), var(--v2-tex) #12101a;
 }
 .memPerm svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }

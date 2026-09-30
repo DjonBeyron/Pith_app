@@ -3,8 +3,8 @@ import { plural } from '../../shared/lib/plural.js'
 import { introLines, sessionMinutes } from './reviewTeacher.js'
 
 // Вступление к повторению: продолжаем вид чата — аватар и имя учителя, его
-// реплики пузырями (тот же вид, что в уроке) и ниже «план» тремя ячейками:
-// слов, минут, сообщений. «Сообщение» — карточка: учитель пересылает кусочки
+// реплики пузырями (тот же вид, что в уроке); «план» тремя ячейками (слов,
+// минут, сообщений) стоит внизу, над «Начать». «Сообщение» — карточка: учитель пересылает кусочки
 // чата (чат словом не называем). Слева сверху — «назад» вместо «Не сейчас».
 export default function ReviewIntro({ teacher, words, cards, memory, phrase, onStart, onClose }) {
   const name = teacher?.name || 'Учитель'
@@ -23,6 +23,8 @@ export default function ReviewIntro({ teacher, words, cards, memory, phrase, onS
             <p key={i} className="reviewBubble reviewTeacherLine" style={{ animationDelay: `${i * 0.3}s` }}>{t}</p>
           ))}
         </div>
+      </div>
+      <div className="reviewIntroFoot">
         {n > 0 && (
           <div className="reviewPlan" style={{ animationDelay: `${lines.length * 0.3}s` }}>
             <div><b>{n}</b><span>{plural(n, 'слово', 'слова', 'слов')}</span></div>
@@ -30,8 +32,6 @@ export default function ReviewIntro({ teacher, words, cards, memory, phrase, onS
             <div><b>{cards}</b><span>{plural(cards, 'сообщение', 'сообщения', 'сообщений')}</span></div>
           </div>
         )}
-      </div>
-      <div className="reviewIntroFoot">
         <button className="lrBtn lrBtnMain" onClick={onStart}>Начать</button>
       </div>
     </div>

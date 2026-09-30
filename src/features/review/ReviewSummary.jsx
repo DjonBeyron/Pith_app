@@ -29,12 +29,14 @@ export default function ReviewSummary({ results, finish, bridge, phrase = null, 
   const before = new Map(memory.map(m => [m.word, m.step]))
   const reward = rewardText(finish)
   const settled = rows.filter(r => r.settled).map(r => `«${r.word}»`)
+  // Ушедшие в постоянную память в строке учителя не повторяем — у них своя строка
+  const lineRows = rows.filter(r => !r.settled)
   return (
     <div className="reviewSummary">
       <h2 className="lrTitle reviewSummaryTitle">Повторение завершено</h2>
       {rows.length > 0 && (
         <div className="reviewSumCard">
-          <p className="reviewTeacherLine">{summaryLine(rows)}</p>
+          {lineRows.length > 0 && <p className="reviewTeacherLine">{summaryLine(lineRows)}</p>}
           <ul className="reviewWords">
             {rows.map(r => (
               <li key={r.word} className={`reviewWord reviewWord--${TONE[r.outcome] ?? 'mid'}`}>
@@ -57,7 +59,7 @@ export default function ReviewSummary({ results, finish, bridge, phrase = null, 
       {reward && <p className="reviewReward">{reward}</p>}
       {finish?.guest && (
         <div className="reviewGuest">
-          <p className="reviewGuestLead">Сохрани прогресс — войди, и завтра напомним повторить</p>
+          <p className="reviewGuestLead">Войди — сохраним прогресс и напомним завтра</p>
           {onRequireAuth && <button className="lrBtn reviewBtnGuest" onClick={onRequireAuth}>Войти</button>}
         </div>
       )}

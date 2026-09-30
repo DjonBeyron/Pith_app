@@ -63,7 +63,7 @@ export default function LearnMainAction({ view, today, onStart, onChanged }) {
   }
   if (phrase) {
     return (
-      <Hero mod=" lrMainPhrase" title="Сегодня закрепляем фразу" sub={`Все слова «${phrase.title}» окрепли — собери её целиком`}>
+      <Hero mod=" lrMainPhrase" title="Сегодня закрепляем фразу" sub={`Ты уверенно вспоминаешь все слова «${phrase.title}» — собери её целиком`}>
         <Cta onClick={onStart}>Закрепить фразу</Cta>
       </Hero>
     )
