@@ -15,6 +15,10 @@
 
 /* Слева шире: там ствол линий лестницы (MemoryLadderWires) */
 .lrScreen {
+  /* position без z-index: над узором вкладки (.lrPattern, раньше в разметке), но
+     БЕЗ нового контекста наложения — иначе шторки внутри (fixed, z-index 250)
+     оказались бы под нижней панелью */
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;

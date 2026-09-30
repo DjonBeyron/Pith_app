@@ -41,6 +41,8 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await expect(main).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })
   // Кнопка «Повторить»: три обводки вокруг; затемнение снизу — над нижней панелью, без кликов
   await expect(main.locator('.lrCtaRing')).toHaveCount(3)
+  // Узор под вкладкой мигает вместе с кнопкой: одна волна цвета ступени с готовым к повтору словом
+  await expect(page.locator('.lrPattern .lrWave')).toHaveCount(1)
   await expect(page.locator('.lrEdgeBottom')).toHaveCSS('pointer-events', 'none')
   // Шарик слова к повтору стартует крупнее, чем финиширует: сжимается вместе с линией связи
   const [s0, s1] = await page.locator('.memBall').first().evaluate(el => ['--s0', '--s1'].map(k => Number(el.style.getPropertyValue(k))))
@@ -55,8 +57,9 @@ test('«Моя память»: ступени, слово дня, «Повтор
   const count = page.getByRole('button', { name: /^1 слово во временной памяти/ })
   await expect(count).toBeVisible()
   await count.click()
-  const pop = page.getByRole('dialog', { name: 'Слова во временной памяти' })
-  await expect(pop).toContainText('Здесь слова, которые ты ещё запоминаешь')
+  const pop = page.getByRole('dialog', { name: 'Временная память' })
+  await expect(pop).toContainText('Здесь слова, которые тебе попадались в уроках')
+  await expect(pop.locator('.memCountStep')).toHaveCount(3)
   await pop.click()
   await page.locator('.memCountBack').click({ position: { x: 5, y: 5 } })
   await expect(pop).toHaveCount(0)
@@ -120,6 +123,7 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await review.getByRole('button', { name: 'Готово' }).click()
   await expect(main).toContainText('На сегодня всё ✓', { timeout: 30_000 })
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)
+  await expect(page.locator('.lrPattern .lrWave')).toHaveCount(0) // повторять нечего — узор спокоен
 
   // Профиль: «Сохранённые» вместо вкладок «Пройденные»/«Копилка слов»
   await page.getByRole('button', { name: 'Профиль', exact: true }).click()

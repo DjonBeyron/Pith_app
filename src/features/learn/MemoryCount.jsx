@@ -1,4 +1,5 @@
 import { useState, useRef, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { plural } from '../../shared/lib/plural.js'
 
 // Счётчик слов во временной памяти — справа от первой ступени: только число.
@@ -13,7 +14,8 @@ import { plural } from '../../shared/lib/plural.js'
 // края первой цифры до правого края последней (--k в CSS: 1 для одной цифры,
 // больше для двух-трёх; не шире кнопки). Линии орбит почти невидимы (1%).
 // Тап по числу — окошко: что это за счётчик и как слова сюда попадают, тремя
-// короткими блоками; появляется с тем же «колебанием», что панель сложности в
+// короткими блоками без номеров. Окошко — в портале (body): иначе ступень-предок
+// держит его под пятиугольником ниже по странице; появляется с тем же «колебанием», что панель сложности в
 // ленте, а при закрытии
 // так же плавно схлопывается (CLOSE_MS), а не пропадает разом.
 const ORBITS = [
@@ -68,27 +70,19 @@ export default function MemoryCount({ total }) {
         <b ref={numRef} className="memCountNum memCountNum--ghost" aria-hidden="true">{total}</b>
         {[1, 2, 3].map(n => <b key={n} className={`memCountNum memCountNum--${n}`} aria-hidden="true">{total}</b>)}
       </button>
-      {pop && (
+      {pop && createPortal(
         <div className="memCountBack" onClick={close}>
-          <div className={closing ? 'memCountPop memCountPop--out' : 'memCountPop'} role="dialog" aria-label="Слова во временной памяти" style={{ top: pop.top }} onClick={e => e.stopPropagation()}>
-            <p className="memCountPopTitle">{words}</p>
-            <p className="memCountPopLead">Здесь слова, которые ты ещё запоминаешь.</p>
-            <ol className="memCountSteps">
-              <li><i>1</i><span>Слово из урока попадает сюда</span></li>
-              <li>
-                <i>2</i>
-                <span>Мы напомним о нём вовремя
-                  <span className="memCountChips">
-                    <b className="memAcc memAcc--1">завтра</b>
-                    <b className="memAcc memAcc--2">через неделю</b>
-                    <b className="memAcc memAcc--3">через месяц</b>
-                  </span>
-                </span>
-              </li>
-              <li><i>3</i><span>Запомнилось — уходит в постоянную память <b className="memAcc memAcc--4">навсегда</b></span></li>
-            </ol>
+          <div className={closing ? 'memCountPop memCountPop--out' : 'memCountPop'} role="dialog" aria-label="Временная память" style={{ top: pop.top }} onClick={e => e.stopPropagation()}>
+            <p className="memCountPopTitle">Временная память</p>
+            <p className="memCountPopLead">Здесь слова, которые тебе попадались в уроках</p>
+            <ul className="memCountSteps">
+              <li className="memCountStep memCountStep--1">Слова из урока попадают <b>в этот счётчик</b></li>
+              <li className="memCountStep memCountStep--2">Чтобы запомнить их навсегда, нужно <b>повторить их несколько раз</b></li>
+              <li className="memCountStep memCountStep--3">После этого слова попадают в <b>постоянную память</b>, где ты их точно не забудешь</li>
+            </ul>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

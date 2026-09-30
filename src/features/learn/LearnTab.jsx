@@ -5,6 +5,7 @@ import { localToday } from '../review/reviewDecks.js'
 import { onLearnHome } from '../../shared/lib/learnHomeEvent.js'
 import LearnMainAction from './LearnMainAction.jsx'
 import MemoryLadder from './MemoryLadder.jsx'
+import LearnPattern from './LearnPattern.jsx'
 import MemoryLevelPage from './MemoryLevelPage.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
 import MemoryIntro from './MemoryIntro.jsx'
@@ -42,6 +43,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
 
   return (
     <div className="lrRoot">
+      <LearnPattern view={view} ladder={ladder} />
       <div className="lrScreen">
         {page && ladder && (
           <MemoryLevelPage ladder={ladder} level={page} onLevel={setPage} onWord={openWord} onBack={() => setPage(null)} />
