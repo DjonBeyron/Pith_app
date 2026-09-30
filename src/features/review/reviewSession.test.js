@@ -57,10 +57,9 @@ describe('ответы в сессии', () => {
     expect(wordOutcomes(s)[0].outcome).toBe('fail')
   })
 
-  it('верно с первого раза — good; «Знаю» — know; последняя показанная карточка запомнена', () => {
+  it('верно с первого раза — good; последняя показанная карточка запомнена', () => {
     const s = answerCard(one(), { result: 'correct', timeMs: 500 }, deck)
     expect(wordOutcomes(s)[0]).toMatchObject({ outcome: 'good', cardId: s.queue[0].card.id })
-    expect(wordOutcomes(answerCard(one(), { result: 'know' }, deck))[0].outcome).toBe('know')
   })
 
   it('«Не могу слушать» посреди сессии убирает оставшиеся карточки со звуком', () => {

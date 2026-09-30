@@ -31,7 +31,7 @@ export function phraseNodes(module) {
   ]
 }
 
-// Пункт очереди для ReviewTurn: без слова и без «Знаю» (attempt 2)
+// Пункт очереди для ReviewTurn: без слова (attempt 2 — как возврат)
 export function phraseItem(module) {
   return { key: `phrase:${module.id}`, kind: 'phrase', word: null, attempt: 2, card: { id: 'phrase', nodes: phraseNodes(module) } }
 }

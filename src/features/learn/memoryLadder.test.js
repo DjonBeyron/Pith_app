@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { levelOf, levelFill, journey, buildLadder, wordLevel, pageTabs, LEVEL_TITLES, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
-import { orth, ladderLinks, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX, ballScale, haloScale, BALL_D, BALL_GROW, HALO_D, HALO_GROW } from './ladderWires.js'
+import { orth, ladderLinks, flarePath, bulbR, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX, ballScale, haloScale, BALL_D, BALL_GROW, HALO_D, HALO_GROW } from './ladderWires.js'
 
 describe('ступени памяти', () => {
   it('шаг → ступень: 1–2 новые, 3–4 знакомые, 5 усвоенные', () => {
@@ -138,6 +138,21 @@ describe('связи памяти: толщина растёт от шапки �
     // точки: начало у шапки + концы трёх ступеней + начало и конец связи в пятиугольник
     expect(dots).toHaveLength(6)
     expect(dots[2].r).toBeGreaterThanOrEqual(dots[1].r)
+  })
+
+  it('«нейрон»: у каждого элемента труба раздува и бутон шире линии', () => {
+    const { flares, dots } = ladderWireSet({ hero, blocks, fin, edge: -22 })
+    expect(flares).toHaveLength(6)
+    expect(flares.every(fl => fl.d.startsWith('M ') && fl.d.endsWith('Z'))).toBe(true)
+    // у пятиугольника бутон — толщина линии W_MAX + 2·BULB
+    expect(dots.at(-1).r).toBe(bulbR(W_MAX))
+    expect(bulbR(W_MAX)).toBeGreaterThan(W_MAX / 2)
+    // труба: узкий конец — толщина линии, широкий — диаметр бутона, у самого элемента
+    const d = flarePath([100, 50], [1, 0], 2, 20, 5)
+    const ys = [...d.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map(m => [+m[1], +m[2]])
+    expect(Math.min(...ys.map(p => p[0]))).toBe(80)
+    expect(Math.max(...ys.map(p => p[0]))).toBe(100)
+    expect(Math.max(...ys.filter(p => p[0] === 100).map(p => p[1])) - Math.min(...ys.filter(p => p[0] === 100).map(p => p[1]))).toBe(10)
   })
 
   it('шарик: старт на 115% толщины линии у ступени и сжатие вместе с линией до шапки', () => {

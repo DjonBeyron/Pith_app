@@ -19,7 +19,7 @@ describe('закрепление фразы', () => {
     expect(noVideo.map(n => [n.type, n.seq])).toEqual([['phrase_assembly', 1]])
   })
 
-  it('пункт очереди без слова и без «Знаю»', () => {
+  it('пункт очереди без слова (attempt 2 — как возврат)', () => {
     expect(phraseItem({ id: 'm1', title: 'Hold on' })).toMatchObject({ key: 'phrase:m1', kind: 'phrase', word: null, attempt: 2 })
   })
 })

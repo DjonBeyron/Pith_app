@@ -11,7 +11,7 @@ import ReviewWordBar from './ReviewWordBar.jsx'
 // вспомненное на месячной проверке, уходит в постоянную память — празднуем
 // фиолетовой строкой (settled — ответ memory_review_word). memory — память слов
 // до сессии: оттуда прежний шаг для полоски.
-const TONE = { good: 'ok', know: 'ok', hard: 'mid', again: 'soft', fail: 'soft' }
+const TONE = { good: 'ok', hard: 'mid', again: 'soft', fail: 'soft' }
 
 function rewardText(finish) {
   if (!finish?.ok) return null

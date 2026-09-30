@@ -28,10 +28,10 @@ describe('события аналитики сессии', () => {
   it('закрыли посреди сессии — «брошена» один раз; до старта — ничего', () => {
     const { sent, tr, tick } = setup()
     tr.abandon()
-    tr.answer({ word: 'x', result: 'know', attempt: 1, answered: 1, total: 1 })
+    tr.answer({ word: 'x', result: 'correct', attempt: 1, answered: 1, total: 1 })
     expect(sent).toEqual([])
     tr.start({ words: 1, cards: 2 })
-    tr.answer({ word: 'x', result: 'know', attempt: 1, answered: 1, total: 2 })
+    tr.answer({ word: 'x', result: 'correct', attempt: 1, answered: 1, total: 2 })
     tick(1200)
     tr.abandon()
     tr.abandon()

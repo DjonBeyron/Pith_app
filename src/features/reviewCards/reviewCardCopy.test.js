@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  copyNodesForCard, draftDeckFromLesson, deckStatus, cardHasTask, makeEmptyCard, MIN_CARDS, appendToCard, cardFromTask,
+  copyNodesForCard, draftDeckFromLesson, deckStatus, deckSound, soundTooMuch, cardHasTask, makeEmptyCard, MIN_CARDS, appendToCard, cardFromTask,
 } from './reviewCardCopy.js'
 
 // Урок: текст → выбор слова (верно → текст-итог, неверно → сигнал-спутник
@@ -113,5 +113,16 @@ describe('дописать в карточку', () => {
     const out = appendToCard(copies, copyNodesForCard(lesson(), ['c']))
     expect(out[1].triggers[0].then).toBe(out[2].id) // «верно» у b было пустым → на c
     expect(out[0].triggers[0].then).toBe(copies[1].id)
+  })
+})
+
+describe('карточки со звуком: не больше половины колоды', () => {
+  const card = types => ({ id: types.join(), nodes: types.map((type, k) => ({ id: `n${k}`, seq: k + 1, type })) })
+  it('считает карточки со звуком/голосом; пустые не в счёт; больше половины — предупреждение', () => {
+    const deck = [card(['audio', 'word_choice']), card(['text', 'word_choice']), card(['video', 'word_choice']), makeEmptyCard()]
+    expect(deckSound(deck)).toEqual({ sound: 2, total: 3 })
+    expect(soundTooMuch(deckSound(deck))).toBe(true)
+    expect(soundTooMuch(deckSound([card(['audio', 'word_choice']), card(['text', 'word_choice'])]))).toBe(false) // ровно 50%
+    expect(soundTooMuch(deckSound([]))).toBe(false)
   })
 })

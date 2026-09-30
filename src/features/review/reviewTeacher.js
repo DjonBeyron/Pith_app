@@ -17,7 +17,7 @@ function list(words, max = 3) {
 export function introLines({ words, memory = [], phrase = null }) {
   const lines = []
   if (words.length) {
-    lines.push('Сейчас я перешлю тебе несколько сообщений — вспомни слова из них.')
+    lines.push('Сейчас я перешлю тебе несколько сообщений с заданиями. Ответь на них — так слова лучше запомнятся.')
     const shaky = memory.filter(m => words.includes(m.word) && m.lapses > 0).map(m => m.word).slice(0, 3)
     if (shaky.length) lines.push(`${list(shaky)} в прошлый раз ${shaky.length === 1 ? 'давалось' : 'давались'} непросто — посмотрим, как сейчас.`)
   }
@@ -31,7 +31,7 @@ export function introLines({ words, memory = [], phrase = null }) {
 
 // results: [{ word, outcome, applied }] — ответ сервера по словам сессии
 export function summaryLine(results) {
-  const grew  = results.filter(r => (r.outcome === 'good' || r.outcome === 'know') && r.applied !== false).map(r => r.word)
+  const grew  = results.filter(r => r.outcome === 'good' && r.applied !== false).map(r => r.word)
   const shaky = results.filter(r => r.outcome === 'again' || r.outcome === 'fail').map(r => r.word)
   const parts = []
   if (grew.length) parts.push(`${list(grew)} ${grew.length === 1 ? 'теперь помнится' : 'теперь помнятся'} лучше`)

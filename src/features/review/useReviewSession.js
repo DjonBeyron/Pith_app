@@ -122,7 +122,7 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
     finishAll()
   }
 
-  // { result: 'correct' | 'wrong' | 'know', timeMs }
+  // { result: 'correct' | 'wrong', timeMs }
   function answer(res) {
     const item = currentItem(session)
     if (!item) return

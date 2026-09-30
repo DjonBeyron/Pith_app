@@ -52,7 +52,7 @@ export const isFinished = s => s.index >= s.queue.length
 // (так брошенная посреди сессия не теряет уже отвеченные слова)
 export const wordDone = (s, word) => !s.queue.slice(s.index).some(q => q.word === word)
 
-// result: 'correct' | 'wrong' | 'know'; timeMs — время ответа.
+// result: 'correct' | 'wrong'; timeMs — время ответа.
 // deck: колода слова текущей карточки (для возврата другой карточкой)
 export function answerCard(s, { result, timeMs = null }, deck = []) {
   const item = currentItem(s)

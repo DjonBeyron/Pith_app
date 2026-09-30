@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { deckStatus, MIN_CARDS } from './reviewCardCopy.js'
+import { deckStatus, deckSound, soundTooMuch, MIN_CARDS } from './reviewCardCopy.js'
+import { cardHasAudio } from '../review/reviewSession.js'
 import { cardSummary } from './reviewCardsView.js'
 import { plural } from '../../shared/lib/plural.js'
 
@@ -13,6 +14,7 @@ export default function ReviewCardStrip({
 }) {
   const status = deckStatus(cards)
   const filled = cards.filter(c => c.nodes?.length).length
+  const sound = deckSound(cards)
   const current = cards[active]
   const currentSummary = current && cardSummary(current)
   const rowRef = useRef(null)
@@ -31,6 +33,18 @@ export default function ReviewCardStrip({
       )}
       {status === 'few' && (
         <div className="rcWarn">Карточек: {filled} — нужно минимум {MIN_CARDS}, иначе ответы быстро заучиваются.</div>
+      )}
+      {soundTooMuch(sound) && (
+        <div className="rcWarn">
+          Со звуком или голосом: {sound.sound} из {sound.total} карточек — нужно не больше половины (минимум 50% — без звука).
+          Тот, кто нажмёт «Не могу слушать», не получит эти карточки, и слову может нечего показать.
+        </div>
+      )}
+      {!soundTooMuch(sound) && current && cardHasAudio(current) && (
+        <div className="rcWarn rcWarnSoft">
+          Карточка со звуком. Правило: минимум 50% карточек колоды — без звука (сейчас со звуком {sound.sound} из {sound.total}).
+          Так слово остаётся в повторении и у тех, кто нажал «Не могу слушать».
+        </div>
       )}
       {currentSummary?.count > 0 && !currentSummary.hasTask && (
         <div className="rcWarn rcWarnSoft">В карточке {active + 1} нет задания — ученику нечего ответить.</div>

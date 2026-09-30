@@ -11,7 +11,7 @@ import NoAudioButton from './NoAudioButton.jsx'
 function verdictOf(result, { attempt, word, kind }) {
   if (kind === 'phrase') {
     return result === 'correct'
-      ? { kind: 'ok', text: 'Фраза твоя — закреплена ✨' }
+      ? { kind: 'ok', text: 'Отлично — фраза собрана и закреплена ✨' }
       : { kind: 'bad', text: 'Почти! Вернёмся к фразе в другой раз' }
   }
   if (result === 'correct') return { kind: 'ok', text: 'Верно!' }
@@ -84,12 +84,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
                 </span>
               </button>
             </>
-          : <>
-              {item.attempt === 1 && (
-                <button className="reviewBtn" onClick={() => send({ result: 'know' })}>Знаю</button>
-              )}
-              {cardHasAudio(item.card) && <NoAudioButton onSkip={onNoAudio} />}
-            </>}
+          : cardHasAudio(item.card) && <NoAudioButton onSkip={onNoAudio} />}
       </div>
     </>
   )

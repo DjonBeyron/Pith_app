@@ -10,7 +10,7 @@ describe('строки учителя', () => {
   })
 
   it('в начале: учитель «перешлёт сообщения»; давшиеся непросто слова — по памяти; фраза — в конце', () => {
-    expect(introLines({ words: ['trying'] })).toEqual(['Сейчас я перешлю тебе несколько сообщений — вспомни слова из них.'])
+    expect(introLines({ words: ['trying'] })).toEqual(['Сейчас я перешлю тебе несколько сообщений с заданиями. Ответь на них — так слова лучше запомнятся.'])
     const memory = [{ word: 'to', lapses: 2 }, { word: 'for', lapses: 1 }, { word: 'cook', lapses: 0 }]
     expect(introLines({ words: ['to', 'for', 'cook'], memory })[1]).toBe('to и for в прошлый раз давались непросто — посмотрим, как сейчас.')
     expect(introLines({ words: ['a'], phrase: { title: 'Hold on' } }).at(-1)).toBe('А в конце соберём фразу «Hold on» целиком.')
@@ -22,7 +22,7 @@ describe('строки учителя', () => {
       { word: 'trying', outcome: 'good' }, { word: 'to', outcome: 'fail' }, { word: 'cook', outcome: 'good', applied: false },
     ])).toBe('trying теперь помнится лучше, to пока даётся непросто — вернёмся к нему завтра.')
     expect(summaryLine([{ word: 'a', outcome: 'hard' }])).toBe('Слова держатся — так и продолжим.')
-    expect(summaryLine(['a', 'b', 'c', 'd', 'e'].map(word => ({ word, outcome: 'know' }))))
+    expect(summaryLine(['a', 'b', 'c', 'd', 'e'].map(word => ({ word, outcome: 'good' }))))
       .toBe('a, b, c и ещё 2 теперь помнятся лучше.')
   })
 })

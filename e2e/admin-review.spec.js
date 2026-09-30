@@ -28,7 +28,7 @@ async function startSession(page, beforeStart = null) {
 
 const option = (screen, text) => screen.locator('.chooseWordPanel').getByRole('button', { name: text, exact: true })
 
-test('сессия: ошибка → слово в конце → верно; «Знаю»; жест, клавиша, итог, XP, мостик в модуль', async ({ page }) => {
+test('сессия: ошибка → слово в конце → верно; жест, клавиша, итог, XP, мостик в модуль', async ({ page }) => {
   test.slow()
   await page.goto('/')
   await page.getByRole('button', { name: 'Админ', exact: true }).click()
@@ -53,10 +53,9 @@ test('сессия: ошибка → слово в конце → верно; «
   await expect(screen.locator('.reviewVerdict--bad')).toContainText('мы ещё вернёмся к этому слову')
   await expect(screen.locator('.reviewPhraseWord')).toHaveText('cook') // слово проявилось
   await page.keyboard.press('Enter') // «Далее» с клавиатуры
-  // Возврат добавил карточку; на возврате «Знаю» нет — только ответ
+  // Возврат добавил карточку
   await expect(screen.locator('.reviewCapsule')).toHaveCount(2)
   await expect(screen.locator('.reviewCapsule--bad')).toHaveCount(1)
-  await expect(screen.getByRole('button', { name: 'Знаю' })).toHaveCount(0)
   await option(screen, 'cook').click({ timeout: 30_000 })
   await expect(screen.locator('.reviewVerdict--ok')).toHaveText('Верно!')
   await swipeRight(page, screen.locator('.reviewCard')) // «Далее» жестом
@@ -70,9 +69,10 @@ test('сессия: ошибка → слово в конце → верно; «
   await screen.getByRole('button', { name: 'Готово' }).click()
   await expect(screen).toHaveCount(0)
 
-  // ── 2. «Знаю» — без ответа, слово крепнет ───────────────────────────
+  // ── 2. Верный ответ — слово крепнет ─────────────────────────────────
   screen = await startSession(page)
-  await screen.getByRole('button', { name: 'Знаю' }).click()
+  await option(screen, 'cook').click({ timeout: 30_000 })
+  await screen.getByRole('button', { name: 'Далее' }).click()
   await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook теперь помнится лучше.', { timeout: 30_000 })
   await expect(screen.locator('.reviewWord--ok .memChipFill')).toHaveAttribute('style', /width: 75%/, { timeout: 15_000 }) // шаг 1 → 2: полоска доросла до 75% ступени
 

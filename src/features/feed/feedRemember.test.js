@@ -35,7 +35,6 @@ describe('«Помнишь?» в ленте', () => {
   })
 
   it('исход одной карточки: ошибка — again (без второй попытки), долго — hard', () => {
-    expect(feedOutcome({ result: 'know' }, 'c')).toBe('know')
     expect(feedOutcome({ result: 'wrong' }, 'c')).toBe('again')
     expect(feedOutcome({ result: 'correct', timeMs: 800 }, 'c')).toBe('good')
     expect(feedOutcome({ result: 'correct', timeMs: 20_000 }, 'c')).toBe('hard')

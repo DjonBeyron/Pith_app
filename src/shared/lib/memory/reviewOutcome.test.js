@@ -4,7 +4,6 @@ import { THRESHOLD_SLOW } from '../skillScore.js'
 
 const ok   = (cardId, timeMs = 3000) => ({ cardId, result: 'correct', timeMs })
 const bad  = (cardId) => ({ cardId, result: 'wrong', timeMs: 2000 })
-const know = (cardId) => ({ cardId, result: 'know' })
 
 describe('reviewOutcome', () => {
   it('нет ответов → null', () => {
@@ -34,17 +33,5 @@ describe('reviewOutcome', () => {
 
   it('медленный ответ на возврате не делает hard — решает первая попытка', () => {
     expect(reviewOutcome([bad('c1'), ok('c1', THRESHOLD_SLOW + 1)])).toBe('again')
-  })
-
-  it('только «Знаю» → know', () => {
-    expect(reviewOutcome([know('c1')])).toBe('know')
-  })
-
-  it('«Знаю» на одной карточке + верный ответ на другой → good', () => {
-    expect(reviewOutcome([know('c1'), ok('c2')])).toBe('good')
-  })
-
-  it('«Знаю» + ошибка → факт сильнее самооценки', () => {
-    expect(reviewOutcome([know('c1'), bad('c2')])).toBe('fail')
   })
 })

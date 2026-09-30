@@ -4,7 +4,7 @@ import { THRESHOLD_SLOW } from '../skillScore.js'
 // Шаг памяти по этому исходу меняет СЕРВЕР (RPC memory_review_word, миграция
 // 20260924120000_word_memory.sql); здесь только перевод ответов в исход.
 //
-// events: [{ cardId, result: 'correct' | 'wrong' | 'know', timeMs }] в порядке
+// events: [{ cardId, result: 'correct' | 'wrong', timeMs }] в порядке
 // ответа. Карточка с ошибкой возвращается в конец колоды один раз, поэтому у
 // одной карточки бывает два ответа: wrong → correct (исправил на возврате).
 //
@@ -13,7 +13,6 @@ import { THRESHOLD_SLOW } from '../skillScore.js'
 //   'again' — ошиблся, но на возврате исправил            (шаг −1)
 //   'hard'  — всё верно, но хоть раз дольше THRESHOLD_SLOW (шаг тот же)
 //   'good'  — всё верно и быстро                           (шаг +1)
-//   'know'  — ни одного ответа, только «Знаю»              (шаг +1)
 //   null    — ответов нет вовсе
 export function reviewOutcome(events) {
   if (!events?.length) return null
@@ -25,21 +24,17 @@ export function reviewOutcome(events) {
     byCard.get(key).push(e)
   }
 
-  let fail = false, again = false, slow = false, answered = false
+  let fail = false, again = false, slow = false
   for (const list of byCard.values()) {
-    const real = list.filter(e => e.result !== 'know')
-    if (!real.length) continue
-    answered = true
-    if (real[0].result === 'wrong') {
-      if (real.some(e => e.result === 'correct')) again = true
+    if (list[0].result === 'wrong') {
+      if (list.some(e => e.result === 'correct')) again = true
       else fail = true
-    } else if ((real[0].timeMs ?? 0) > THRESHOLD_SLOW) {
+    } else if ((list[0].timeMs ?? 0) > THRESHOLD_SLOW) {
       slow = true
     }
   }
 
   if (fail) return 'fail'
   if (again) return 'again'
-  if (!answered) return 'know'
   return slow ? 'hard' : 'good'
 }

@@ -27,6 +27,14 @@ const r3 = x => Math.round(x * 1000) / 1000
 export const ballScale = w => r3(BALL_GROW * w / BALL_D)
 export const haloScale = w => r3(HALO_GROW * w / HALO_D)
 
+// «Нейрон»: у самого элемента линия плавно раздувается «трубой» (FLARE_L px) и
+// кончается кружком-бутоном — шире линии на BULB px с каждой стороны. Так связь
+// не просто упирается в блок, а прорастает в него, как отросток нервной клетки
+export const FLARE_L = 24
+export const BULB = 3
+const r1 = x => Math.round(x * 10) / 10
+export const bulbR = w => r1(w / 2 + BULB)
+
 // Верх контура пятиугольника — доля высоты его коробки (MemoryPermNode.jsx: фигура заполняет коробку, верх — у самого края)
 export const FIN_TOP = 0
 
@@ -68,6 +76,22 @@ export function ladderLinks({ hero, blocks, fin, edge = 0 }) {
     links.push({ pts: [[midX(b3), b3.b], [midX(b3), y], [top[0], y], top], from: WIRE_COLORS.levels[2], to: WIRE_COLORS.perm })
   }
   return links
+}
+
+// Труба раздува: P — точка на элементе, dir — единичный вектор К элементу, w —
+// толщина линии у начала трубы, L — её длина, H — радиус бутона у элемента
+// (сужается по параболе: раздув нарастает к элементу). → path заливки
+export function flarePath(P, dir, w, L, H, n = 10) {
+  const nrm = [-dir[1], dir[0]]
+  const left = [], right = []
+  for (let k = 0; k <= n; k++) {
+    const t = k / n
+    const c = [P[0] - dir[0] * L * (1 - t), P[1] - dir[1] * L * (1 - t)]
+    const h = w / 2 + (H - w / 2) * t * t
+    left.push([c[0] + nrm[0] * h, c[1] + nrm[1] * h])
+    right.push([c[0] - nrm[0] * h, c[1] - nrm[1] * h])
+  }
+  return 'M ' + [...left, ...right.reverse()].map(p => `${f(p[0])} ${f(p[1])}`).join(' L ') + ' Z'
 }
 
 // Путь шарика — та же связь задом наперёд: из ступени к шапке
@@ -133,7 +157,7 @@ export function taper(poly, { s0, s1, c0, c1, maxLen = 8 }) {
 // «Знакомые» (толщина — как у ствола в точке отвода, цвет — к цвету ступени),
 // связь «Усвоенные» → пятиугольник (до W_MAX) и точки на концах.
 // → { pieces: [{ x1, y1, x2, y2, w, color }], dots: [{ x, y, r, color }],
-//      widths: [w0, w1, w2] } — widths: толщина линии там, где шарик каждой
+//      flares: [{ d, color }] (трубы у элементов), widths: [w0, w1, w2] } — widths: толщина линии там, где шарик каждой
 //      ступени стартует (у самой ступени)
 export function ladderWireSet(rects) {
   const links = ladderLinks(rects)
@@ -144,7 +168,18 @@ export function ladderWireSet(rects) {
   const total = trunkLen + (fin ? polyLen(fin) : 0)
   const C = WIRE_COLORS
   const pieces = taper(trunk, { s0: 0, s1: trunkLen / total, c0: C.accent, c1: C.levels[2] })
-  const dots = [{ x: links[2].pts[0][0], y: links[2].pts[0][1], r: 3.5, color: C.accent }]
+  const flares = []
+  // Конец связи у элемента: труба (если прямого участка хватает) → радиус бутона
+  const grow = (pts, atEnd, w, color) => {
+    const n = pts.length
+    const [A, C1, O] = atEnd ? [pts[n - 1], pts[n - 2], pts[n - 3]] : [pts[0], pts[1], pts[2]]
+    const seg = dist(A, C1)
+    const L = Math.min(FLARE_L, seg - Math.min(R, seg / 2, dist(C1, O) / 2))
+    const H = bulbR(w)
+    if (L >= 5) flares.push({ d: flarePath(A, [(A[0] - C1[0]) / seg, (A[1] - C1[1]) / seg], w, L, H), color })
+    return H
+  }
+  const dots = [{ x: links[2].pts[0][0], y: links[2].pts[0][1], r: grow(links[2].pts, false, W_MIN, C.accent), color: C.accent }]
   const widths = []
   links.slice(0, 3).forEach((l, i) => {
     const end = l.pts[l.pts.length - 1]
@@ -157,12 +192,14 @@ export function ladderWireSet(rects) {
     }
     const w = f(W_MIN + (W_MAX - W_MIN) * s)
     widths.push(w)
-    dots.push({ x: end[0], y: end[1], r: Math.max(3.5, w / 2 + 1.5), color: C.levels[i] })
+    dots.push({ x: end[0], y: end[1], r: grow(l.pts, true, w, C.levels[i]), color: C.levels[i] })
   })
   if (fin) {
     pieces.push(...taper(fin, { s0: trunkLen / total, s1: 1, c0: C.levels[2], c1: C.perm }))
     const [a, z] = [links[3].pts[0], links[3].pts[links[3].pts.length - 1]]
-    dots.push({ x: a[0], y: a[1], r: 3.5, color: C.levels[2] }, { x: z[0], y: z[1], r: W_MAX / 2 + 1.5, color: C.perm })
+    const wFin = f(W_MIN + (W_MAX - W_MIN) * trunkLen / total)
+    dots.push({ x: a[0], y: a[1], r: grow(links[3].pts, false, wFin, C.levels[2]), color: C.levels[2] },
+      { x: z[0], y: z[1], r: grow(links[3].pts, true, W_MAX, C.perm), color: C.perm })
   }
-  return { pieces, dots, widths }
+  return { pieces, dots, flares, widths }
 }

@@ -32,7 +32,6 @@ export const shouldOffer = ({ swipes, gap, shown, word }) =>
 // Исход одной карточки в ленте: второй попытки тут нет, поэтому ошибка —
 // again (−1), а не fail (−2), как было бы в сессии без исправления
 export function feedOutcome(res, cardId) {
-  if (res.result === 'know') return 'know'
   if (res.result === 'wrong') return 'again'
   return reviewOutcome([{ cardId, result: 'correct', timeMs: res.timeMs }])
 }

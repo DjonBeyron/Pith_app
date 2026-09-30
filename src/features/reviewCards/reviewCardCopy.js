@@ -1,6 +1,7 @@
 import { TYPED_PAIRS } from '../canvas/nodeDefaults.js'
 import { getPrimaryTriggerIndex } from '../production/nodeGraphPrimary.js'
 import { NODE_SLOT } from '../canvas/nodeGraph.js'
+import { cardHasAudio } from '../review/reviewSession.js'
 
 // Колода карточек повтора (этап 3 системы повторения, PROJECT.md → «Колоды»).
 // Карточка = короткая цепочка нод той же схемы, что урок: { id, nodes: [] }.
@@ -27,6 +28,17 @@ export const isTaskNode = n =>
   TASK_TYPES.has(n?.type) && !(n.type === 'table' && n.typeData?.table?.mode === 'demo')
 export const cardHasTask = card => (card?.nodes ?? []).some(isTaskNode)
 export const makeEmptyCard = () => ({ id: uid(), nodes: [] })
+
+// Карточек со звуком или голосом — не больше половины колоды: кнопка «Не могу
+// слушать» убирает их до конца сессии, и слово не должно остаться без карточек
+export const MAX_SOUND_SHARE = 0.5
+
+// Сколько карточек колоды со звуком/голосом (пустые не считаются)
+export function deckSound(cards) {
+  const filled = (cards ?? []).filter(c => c?.nodes?.length)
+  return { sound: filled.filter(cardHasAudio).length, total: filled.length }
+}
+export const soundTooMuch = ({ sound, total }) => total > 0 && sound / total > MAX_SOUND_SHARE
 
 // 'none' — колоды нет, 'few' — меньше MIN_CARDS, 'ok' — достаточно.
 // Пустые карточки (без нод) не считаются
