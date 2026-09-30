@@ -1,6 +1,6 @@
 /* Лестница «Моей памяти» (features/learn/MemoryLadder.jsx): ступени
    новые → знакомые → усвоенные (серый → мягкий жёлтый → салатовый) лесенкой
-   по 2/3 ширины, справа — число слов во временной памяти, внизу по центру —
+   по 64% ширины с равным шагом, справа — число слов во временной памяти, внизу по центру —
    фиолетовый пятиугольник постоянной памяти (memory-perm.css).
    Сила ступени — числом обводок: 1 / 2 / 3, у пятиугольника 4; каждая
    следующая наружу тоньше и бледнее. Линии и шарики — слой .memWires под
@@ -13,7 +13,7 @@
   position: absolute;
   right: 0;
   top: -6px;
-  width: calc(100% / 3 - 10px);
+  width: calc(28% - 8px);
   text-align: center;
   line-height: 1.2;
   font-size: 12px;
@@ -21,9 +21,14 @@
   color: #aeb6bf;
 }
 .memSideLabel b { display: block; font-size: 30px; font-weight: 800; line-height: 1.05; color: #eef1f4; }
-.memStair { width: calc(200% / 3); }
-.memStair--2 { margin-left: calc(100% / 6); }
-.memStair--3 { margin-left: calc(100% / 3); }
+/* Лесенка с ОДИНАКОВЫМ шагом: смещения 7.5% → 21.75% → 36% ширины зоны (шаг
+   14.25%), ширина 64% — третья вплотную к правому краю. Первая отодвинута от
+   ствола: у входа в каждую ступень хватает прямого участка на раздув линии
+   (ladderWires.js), у всех трёх он одинаковый */
+.memStair { width: 64%; }
+.memStair--1 { margin-left: 7.5%; }
+.memStair--2 { margin-left: 21.75%; }
+.memStair--3 { margin-left: 36%; }
 
 /* ── Ступень ───────────────────────────────────────────────────────── */
 .memLvl {
@@ -86,7 +91,8 @@
 .memLvlCount { font-size: 20px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--c); }
 .memLvlName { min-width: 0; font-size: 13.5px; font-weight: 800; line-height: 1.2; color: var(--c); }
 .memLvlWhen { margin-top: 2px; font-size: 11px; font-weight: 600; color: #8b95a1; }
-/* «Все слова» — только значок, маленький, в самом углу */
+/* «Все слова» — только значок (без подложки), маленький, в самом углу. Кнопка
+   осталась 24×24 — по ней легко попасть, а значок на 15% меньше прежнего (11 → 9.35px) */
 .memExpand {
   position: absolute;
   top: -6px;
@@ -96,13 +102,14 @@
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid #2c323b;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  background: none;
   color: #aeb6bf;
   cursor: pointer;
 }
-.memExpand svg { width: 11px; height: 11px; }
+.memExpand svg { width: 9.35px; height: 9.35px; }
+/* Тот же значок в пятиугольнике — слева сверху; сам пятиугольник и есть кнопка, значок только метка */
+.memExpand--perm { top: 15px; right: auto; left: 30px; cursor: inherit; pointer-events: none; }
 .memWords { display: flex; flex-wrap: wrap; gap: 6px; }
 .memEmpty { font-size: 12px; color: #5c6570; }
 

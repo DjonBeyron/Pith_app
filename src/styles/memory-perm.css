@@ -32,9 +32,9 @@
     var(--mem-brain) 50% 44% / 178px 178px no-repeat,
     var(--v2-dust), var(--v2-grain), var(--v2-tex) #12101a;
 }
-.memPerm svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
-.memPerm svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
-.memPerm svg .memPermRing { stroke: #a78bfa; }
+.memPerm > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
+.memPerm > svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
+.memPerm > svg .memPermRing { stroke: #a78bfa; }
 /* Текст — уже пятиугольника, с полями от боковых граней (они сходятся книзу) */
 .memPermText { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -18px; text-align: center; }
 .memPermText b { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }

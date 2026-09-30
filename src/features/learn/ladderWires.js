@@ -31,9 +31,12 @@ export const haloScale = w => r3(HALO_GROW * w / HALO_D)
 // кончается кружком-бутоном — шире линии на BULB px с каждой стороны. Так связь
 // не просто упирается в блок, а прорастает в него, как отросток нервной клетки
 export const FLARE_L = 24
-export const BULB = 3
+export const BULB = 4.5
 const r1 = x => Math.round(x * 10) / 10
 export const bulbR = w => r1(w / 2 + BULB)
+
+// Ствол — на этом расстоянии от левого края экрана (не зависит от сдвига ступеней)
+export const TRUNK_INSET = 11
 
 // Верх контура пятиугольника — доля высоты его коробки (MemoryPermNode.jsx: фигура заполняет коробку, верх — у самого края)
 export const FIN_TOP = 0
@@ -60,10 +63,10 @@ const midY = r => (r.t + r.b) / 2
 
 // Прямоугольники { l, t, r, b } — в координатах слоя линий. edge — левый
 // край экрана в тех же координатах (слой правее края — отрицательный):
-// ствол идёт посередине между краем экрана и ступенями.
+// ствол идёт вдоль края экрана на расстоянии TRUNK_INSET.
 // → [{ pts, from, to }]: три отвода в ступени и связь «Родные» → пятиугольник
 export function ladderLinks({ hero, blocks, fin, edge = 0 }) {
-  const trunkX = (edge + blocks[0].l) / 2
+  const trunkX = edge + TRUNK_INSET
   const y0 = hero.b + 14
   const links = blocks.map((b, i) => ({
     pts: [[midX(hero), hero.b], [midX(hero), y0], [trunkX, y0], [trunkX, midY(b)], [b.l, midY(b)]],

@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { Maximize2 } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
 
 // Контур финала модуля (MgFinalNode.jsx), сдвинутый в коробку 240×212; на
@@ -36,6 +37,7 @@ export default function MemoryPermNode({ count, onOpen }) {
             style={{ strokeWidth: r.w, opacity: r.o, filter: `url(#${r.f})` }} />
         ))}
       </svg>
+      <span className="memExpand memExpand--perm" aria-hidden="true"><Maximize2 /></span>
       <span className="memPermText">
         <b>{count}</b>
         <span>{plural(count, 'Слово', 'Слова', 'Слов')} в постоянной памяти</span>
