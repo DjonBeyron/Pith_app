@@ -1,14 +1,17 @@
 import { summaryLine } from './reviewTeacher.js'
 import { requestOpenModule } from '../../shared/lib/openModuleEvent.js'
-import StrengthDots from '../../shared/ui/StrengthDots.jsx'
+import ReviewWordBar from './ReviewWordBar.jsx'
 
-// Итог сессии повторения: строка учителя из данных, сила каждого слова
-// (шаг памяти 1–5 после ответа сервера), XP и день серии — по ответу
-// memory_finish_session; мостик «Продолжить *фраза* · N%» — в недопройденный
-// модуль слов сессии (reviewBridge.js), открывает его схему во вкладке «Уроки».
-// Усвоенное слово, вспомненное на месячной проверке, уходит в постоянную память
-// (пятиугольник) — празднуем фиолетовой строкой (settled — ответ memory_review_word).
-const TONE = { good: 'ok', know: 'ok', hard: 'mid', again: 'bad', fail: 'bad' }
+// Итог сессии повторения — в стиле вкладки «Моя память»: заголовок слева, карточка
+// с фоном-узором, кнопки как там (.lrBtn). В карточке — строка учителя из
+// данных и полоска каждого слова, которая на глазах пополняется (ReviewWordBar);
+// ниже XP и день серии (memory_finish_session), мостик «Продолжить *фраза* · N%»
+// в недопройденный модуль (reviewBridge.js). Слова, которые давались непросто,
+// подаются с заботой — «вернёмся завтра», без «ошибок». Усвоенное слово,
+// вспомненное на месячной проверке, уходит в постоянную память — празднуем
+// фиолетовой строкой (settled — ответ memory_review_word). memory — память слов
+// до сессии: оттуда прежний шаг для полоски.
+const TONE = { good: 'ok', know: 'ok', hard: 'mid', again: 'soft', fail: 'soft' }
 
 function rewardText(finish) {
   if (!finish?.ok) return null
@@ -20,15 +23,27 @@ function rewardText(finish) {
   return parts.join(' · ') || null
 }
 
-export default function ReviewSummary({ results, finish, bridge, phrase = null, words, onClose, onRequireAuth }) {
+export default function ReviewSummary({ results, finish, bridge, phrase = null, words, memory = [], onClose, onRequireAuth }) {
   const order = new Map(words.map((w, i) => [w, i]))
   const rows = [...results].sort((a, b) => (order.get(a.word) ?? 99) - (order.get(b.word) ?? 99))
+  const before = new Map(memory.map(m => [m.word, m.step]))
   const reward = rewardText(finish)
   const settled = rows.filter(r => r.settled).map(r => `«${r.word}»`)
   return (
     <div className="reviewSummary">
-      <h2 className="reviewSummaryTitle">Повторение завершено</h2>
-      {rows.length > 0 && <p className="reviewTeacherLine">{summaryLine(rows)}</p>}
+      <h2 className="lrTitle reviewSummaryTitle">Повторение завершено</h2>
+      {rows.length > 0 && (
+        <div className="reviewSumCard">
+          <p className="reviewTeacherLine">{summaryLine(rows)}</p>
+          <ul className="reviewWords">
+            {rows.map(r => (
+              <li key={r.word} className={`reviewWord reviewWord--${TONE[r.outcome] ?? 'mid'}`}>
+                <ReviewWordBar word={r.word} from={before.get(r.word) ?? r.step} to={r.step} settled={r.settled} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {phrase && (
         <p className={phrase.ok ? 'reviewPhraseResult reviewPhraseResultOk' : 'reviewPhraseResult'}>
           {phrase.ok ? `✨ Фраза «${phrase.title}» закреплена` : `Фраза «${phrase.title}» вернётся в другой раз`}
@@ -39,27 +54,21 @@ export default function ReviewSummary({ results, finish, bridge, phrase = null, 
           ✨ {settled.join(', ')} {settled.length === 1 ? 'ушло' : 'ушли'} в постоянную память
         </p>
       )}
-      <ul className="reviewWords">
-        {rows.map(r => (
-          <li key={r.word} className={`reviewWord reviewWord--${TONE[r.outcome] ?? 'mid'}`}>
-            <span className="reviewWordText">{r.word}</span>
-            <StrengthDots step={r.step} />
-          </li>
-        ))}
-      </ul>
       {reward && <p className="reviewReward">{reward}</p>}
       {finish?.guest && (
-        <>
-          <p className="reviewTeacherLine reviewGuestLead">Сохрани прогресс — войди, и завтра напомним повторить</p>
-          {onRequireAuth && <button className="reviewBtn reviewBtnGuest" onClick={onRequireAuth}>Войти</button>}
-        </>
+        <div className="reviewGuest">
+          <p className="reviewGuestLead">Сохрани прогресс — войди, и завтра напомним повторить</p>
+          {onRequireAuth && <button className="lrBtn reviewBtnGuest" onClick={onRequireAuth}>Войти</button>}
+        </div>
       )}
-      {bridge && (
-        <button className="reviewBtn reviewBridge" onClick={() => { onClose(); requestOpenModule(bridge) }}>
-          Продолжить «{bridge.title}» · {bridge.pct}%
-        </button>
-      )}
-      <button className="reviewBtn reviewBtn--main" onClick={onClose}>Готово</button>
+      <div className="reviewSumFoot">
+        {bridge && (
+          <button className="lrBtn reviewBridge" onClick={() => { onClose(); requestOpenModule(bridge) }}>
+            Продолжить «{bridge.title}» · {bridge.pct}%
+          </button>
+        )}
+        <button className="lrBtn lrBtnMain" onClick={onClose}>Готово</button>
+      </div>
     </div>
   )
 }

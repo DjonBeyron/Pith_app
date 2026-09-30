@@ -1,5 +1,3 @@
-import { plural } from '../../shared/lib/plural.js'
-
 // Строки учителя в начале и в итоге сессии повторения — собраны из данных,
 // без заготовок на каждый случай (PROJECT.md → «Формат повторения»).
 
@@ -12,14 +10,23 @@ function list(words, max = 3) {
   return words.length === 1 ? words[0] : `${words.slice(0, -1).join(', ')} и ${words.at(-1)}`
 }
 
-// words: слова сессии; cards: сколько карточек; memory: строки word_memory
-// (lapses > 0 — слово уже путали)
-export function introLine({ words, cards, memory = [] }) {
-  const n = words.length
-  const head = `Сегодня ${n} ${plural(n, 'слово', 'слова', 'слов')} · около ${sessionMinutes(cards)} мин.`
-  const shaky = memory.filter(m => words.includes(m.word) && m.lapses > 0).map(m => m.word).slice(0, 3)
-  if (!shaky.length) return `${head} Поехали!`
-  return `${head} ${list(shaky)} ${shaky.length === 1 ? 'уже путалось' : 'уже путались'} — посмотрим, как сейчас.`
+// Вступление — реплики учителя, по одной на пузырь (ReviewIntro.jsx). Чата не
+// называем: учитель «пересылает сообщения». words: слова сессии; memory: строки
+// word_memory (lapses > 0 — слово уже давалось непросто); phrase — фраза к
+// закреплению ({ title }) или null
+export function introLines({ words, memory = [], phrase = null }) {
+  const lines = []
+  if (words.length) {
+    lines.push('Сейчас я перешлю тебе несколько сообщений — вспомни слова из них.')
+    const shaky = memory.filter(m => words.includes(m.word) && m.lapses > 0).map(m => m.word).slice(0, 3)
+    if (shaky.length) lines.push(`${list(shaky)} в прошлый раз ${shaky.length === 1 ? 'давалось' : 'давались'} непросто — посмотрим, как сейчас.`)
+  }
+  if (phrase) {
+    lines.push(words.length
+      ? `А в конце соберём фразу «${phrase.title}» целиком.`
+      : `Все слова фразы «${phrase.title}» окрепли — пора собрать её целиком.`)
+  }
+  return lines
 }
 
 // results: [{ word, outcome, applied }] — ответ сервера по словам сессии
@@ -28,7 +35,10 @@ export function summaryLine(results) {
   const shaky = results.filter(r => r.outcome === 'again' || r.outcome === 'fail').map(r => r.word)
   const parts = []
   if (grew.length) parts.push(`${list(grew)} ${grew.length === 1 ? 'окрепло' : 'окрепли'}`)
-  if (shaky.length) parts.push(`${list(shaky)} ${shaky.length === 1 ? 'шатается' : 'шатаются'} — вернёмся завтра`)
+  if (shaky.length) {
+    const one = shaky.length === 1
+    parts.push(`${list(shaky)} ${one ? 'пока даётся' : 'пока даются'} непросто — вернёмся к ${one ? 'нему' : 'ним'} завтра`)
+  }
   if (!parts.length) return 'Слова держатся — так и продолжим.'
   return parts.join(', ') + '.'
 }

@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
   await stubLocalEdgeFunctions(page)
 })
 
-test('память админа: слово ступени → «Повторить сейчас» (Pro) → вступление → «Не сейчас»', async ({ page }) => {
+test('память админа: слово ступени → «Повторить сейчас» (Pro) → вступление → «Назад»', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Память', exact: true }).click()
   // cook (шаг 1–2, даже если admin-review.spec.js его уже повторил) — в «Новых»
@@ -24,7 +24,8 @@ test('память админа: слово ступени → «Повтори�
   await expect(sheet.getByRole('button', { name: 'Пройти урок целиком' })).toBeVisible()
   await sheet.getByRole('button', { name: 'Повторить сейчас', exact: true }).click()
   const review = page.locator('.reviewScreen')
-  await expect(review.locator('.reviewTeacherLine')).toContainText('Сегодня 1 слово', { timeout: 30_000 })
-  await review.getByRole('button', { name: 'Не сейчас' }).click()
+  await expect(review.locator('.reviewTeacherLine').first()).toContainText('Сейчас я перешлю тебе несколько сообщений', { timeout: 30_000 })
+  await expect(review.locator('.reviewPlan')).toBeVisible()
+  await review.getByRole('button', { name: 'Назад' }).click()
   await expect(review).toHaveCount(0)
 })

@@ -20,7 +20,7 @@ async function startSession(page, beforeStart = null) {
   await expect(page.locator('.arvRow', { hasText: 'cook' })).toContainText('сегодня')
   await page.getByRole('button', { name: 'Начать повторение' }).click()
   const screen = page.locator('.reviewScreen')
-  await expect(screen.locator('.reviewTeacherLine')).toContainText('Сегодня 1 слово', { timeout: 30_000 })
+  await expect(screen.locator('.reviewTeacherLine').first()).toContainText('Сейчас я перешлю тебе несколько сообщений', { timeout: 30_000 })
   await beforeStart?.()
   await screen.getByRole('button', { name: 'Начать', exact: true }).click()
   return screen
@@ -50,7 +50,7 @@ test('сессия: ошибка → слово в конце → верно; «
   await expect(screen.locator('.reviewPhraseHidden')).toHaveText('●●●●')
   await expect(screen.locator('.reviewCapsule')).toHaveCount(1)
   await option(screen, 'cake').click({ timeout: 30_000 })
-  await expect(screen.locator('.reviewVerdict--bad')).toContainText('вернётся в конце')
+  await expect(screen.locator('.reviewVerdict--bad')).toContainText('мы ещё вернёмся к этому слову')
   await expect(screen.locator('.reviewPhraseWord')).toHaveText('cook') // слово проявилось
   await page.keyboard.press('Enter') // «Далее» с клавиатуры
   // Возврат добавил карточку; на возврате «Знаю» нет — только ответ
@@ -62,8 +62,8 @@ test('сессия: ошибка → слово в конце → верно; «
   await swipeRight(page, screen.locator('.reviewCard')) // «Далее» жестом
 
   await expect(screen.locator('.reviewSummaryTitle')).toHaveText('Повторение завершено', { timeout: 30_000 })
-  await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook шатается — вернёмся завтра.')
-  await expect(screen.locator('.reviewWord--bad')).toContainText('cook')
+  await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook пока даётся непросто — вернёмся к нему завтра.')
+  await expect(screen.locator('.reviewWord--soft')).toContainText('cook')
   await expect(screen.locator('.reviewReward')).toContainText(/\+2 XP|XP за повторение на сегодня уже набран/)
   // Мостик в модуль слова: пройден урок cook — 1 из 4 (сид)
   await expect(screen.locator('.reviewBridge')).toHaveText("Продолжить «I'm trying to cook · E2E-КОЛОДЫ» · 25%")
@@ -74,7 +74,7 @@ test('сессия: ошибка → слово в конце → верно; «
   screen = await startSession(page)
   await screen.getByRole('button', { name: 'Знаю' }).click()
   await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook окрепло.', { timeout: 30_000 })
-  await expect(screen.locator('.reviewWord--ok .strengthDotOn')).toHaveCount(2) // шаг 1 → 2
+  await expect(screen.locator('.reviewWord--ok .memChipFill')).toHaveAttribute('style', /width: 75%/, { timeout: 15_000 }) // шаг 1 → 2: полоска доросла до 75% ступени
 
   // ── 3. Мостик открывает схему модуля во вкладке «Уроки» ─────────────
   await screen.locator('.reviewBridge').click()
@@ -118,8 +118,8 @@ test('админ вручную добавляет слово в обучени�
   await expect(page.locator('.memLvl--1 .memChip', { hasText: 'keep' })).toBeVisible()
   await main.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
-  await expect(review.locator('.reviewTeacherLine')).toContainText('Сегодня 1 слово', { timeout: 30_000 })
-  await review.getByRole('button', { name: 'Не сейчас' }).click()
+  await expect(review.locator('.reviewTeacherLine').first()).toContainText('Сейчас я перешлю тебе несколько сообщений', { timeout: 30_000 })
+  await review.getByRole('button', { name: 'Назад' }).click()
 
   await page.getByRole('button', { name: 'Админ', exact: true }).click()
   await page.locator('.avTab', { hasText: 'Повторение' }).click()

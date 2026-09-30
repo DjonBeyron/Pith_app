@@ -29,6 +29,10 @@ import {
 // phrase — фраза к закреплению ({ id, title, videoUrl }, learnView): после
 // карточек слов (или вместо них) — «собери фразу» целиком (phraseDrill.js).
 //
+// Загрузка на экране не короче MIN_LOADING_MS: даже если всё пришло мгновенно,
+// успеваешь прочитать «Ищу слова, которые нужно напомнить…» (ошибка — сразу)
+const MIN_LOADING_MS = 1400
+
 // phase: loading | error | empty | intro | run | phrase | finishing | done
 export function useReviewSession({ focusWords = null, phrase = null } = {}) {
   const [phase, setPhase] = useState('loading')
@@ -47,7 +51,9 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
 
   useEffect(() => {
     let alive = true
+    const minShow = new Promise(r => setTimeout(r, MIN_LOADING_MS))
     Promise.all([listWordMemory(), loadCurricula(), listLessonCards(), getMemoryProfile(), getDefaultTeacher(), listRecentReviews(1)])
+      .then(async data => { await minShow; return data })
       .then(([memory, curricula, lessons, { minutes }, teacher, reviews]) => {
         if (!alive) return
         const decks = buildDecks(curricula, lessons)

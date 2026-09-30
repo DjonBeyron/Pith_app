@@ -1,0 +1,50 @@
+/* Итог повторения (features/review: ReviewSummary, ReviewWordBar) — в стиле
+   вкладки «Моя память»: заголовок слева (.lrTitle), карточка с узором (как
+   .lrMain), кнопки .lrBtn. Полоска слова — тот же .memChip (memory-ladder.css),
+   растянутый на строку и с анимацией заливки */
+
+.reviewSummary {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 4px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  scrollbar-width: none;
+}
+.reviewSummary::-webkit-scrollbar { display: none; }
+.reviewSummaryTitle { margin: 4px 0 2px; }
+
+.reviewSumCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #262b33;
+  border-radius: 18px;
+  background: var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+}
+.reviewSumCard .reviewTeacherLine { margin: 0; font-size: 15px; line-height: 1.45; color: #e8ecf0; }
+
+.reviewWords { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.reviewBar { width: 100%; padding: 11px 14px; border-radius: 12px; font-size: 15px; justify-content: space-between; cursor: default; }
+.reviewBar .memChipFill { transition: width 0.9s cubic-bezier(0.22, 0.8, 0.3, 1); }
+.reviewBar--still .memChipFill { transition: none; }
+.reviewBarLevel { position: relative; font-size: 11px; font-weight: 700; color: #8b95a1; }
+
+.reviewReward { margin: 0; font-size: 14px; font-weight: 700; color: #b6fe3b; }
+.reviewPhraseResult { margin: 0; font-size: 15px; font-weight: 700; color: #9aa3ad; }
+.reviewPhraseResultOk { color: #ffd257; }
+/* Слово ушло в постоянную память — фиолетовый, как пятиугольник во вкладке «Память» */
+.reviewSettled { color: #a78bfa; }
+
+.reviewGuest { display: flex; flex-direction: column; gap: 8px; }
+.reviewGuestLead { margin: 0; font-size: 13px; line-height: 1.4; color: #8b95a1; }
+.reviewBtnGuest,
+.reviewBridge { border-color: rgba(182, 254, 59, 0.45); color: #b6fe3b; }
+/* Название модуля в мостике длинное — переносится */
+.reviewBridge { box-sizing: border-box; white-space: normal; line-height: 1.3; }
+.reviewSumFoot .lrBtn, .reviewGuest .lrBtn { box-sizing: border-box; }
+
+.reviewSumFoot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 8px; }

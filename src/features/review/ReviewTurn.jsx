@@ -4,8 +4,9 @@ import ReviewHeader from './ReviewHeader.jsx'
 import { cardHasAudio } from './reviewSession.js'
 import { useSwipeNext } from './useSwipeNext.js'
 
-// Вторая ошибка — показать ответ: само слово сессии (плеер верный вариант
-// в чат не выводит, у «выбери слово» его может не быть в переписке)
+// Плашка итога ответа. Без «ошибки» и «мимо»: слово не потеряно, мы просто
+// вернёмся к нему. Вторая ошибка — показать ответ: само слово сессии (плеер
+// верный вариант в чат не выводит, у «выбери слово» его может не быть в переписке)
 function verdictOf(result, { attempt, word, kind }) {
   if (kind === 'phrase') {
     return result === 'correct'
@@ -13,8 +14,8 @@ function verdictOf(result, { attempt, word, kind }) {
       : { kind: 'bad', text: 'Почти! Вернёмся к фразе в другой раз' }
   }
   if (result === 'correct') return { kind: 'ok', text: 'Верно!' }
-  if (attempt === 1) return { kind: 'bad', text: 'Ошибка — это слово вернётся в конце сессии' }
-  return { kind: 'bad', text: `Снова мимо. Запомни: ${word} — повторим завтра` }
+  if (attempt === 1) return { kind: 'bad', text: 'Ничего страшного — мы ещё вернёмся к этому слову' }
+  return { kind: 'bad', text: `Бывает! Запомни: ${word}. Вернёмся к нему завтра` }
 }
 
 // Одна карточка сессии: кусочек чата (1–3 ноды) играет тот же LessonPlayer,
@@ -24,7 +25,7 @@ function verdictOf(result, { attempt, word, kind }) {
 // урока. После ответа карточка «переворачивается» — плашка с итогом; дальше —
 // «Далее», смахивание вверх/вправо (useSwipeNext) или Enter/→ на клавиатуре.
 // Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
-export default function ReviewTurn({ session, item, phrase, teacher, initialBlobMap, onAnswer, onNoAudio, onClose }) {
+export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, onAnswer, onNoAudio, onClose }) {
   const [answered, setAnswered] = useState(null) // { result, timeMs }
   const sentRef = useRef(false)
   const verdict = answered && verdictOf(answered.result, item)
@@ -51,7 +52,7 @@ export default function ReviewTurn({ session, item, phrase, teacher, initialBlob
 
   return (
     <>
-      <ReviewHeader session={session} phrase={phrase} word={item.word} revealed={!!answered} onClose={onClose} />
+      <ReviewHeader session={session} phrase={phrase} title={title} word={item.word} revealed={!!answered} onClose={onClose} />
       <div className={answered ? 'reviewCard reviewCard--answered' : 'reviewCard'} style={swipe.style} {...swipe.handlers}>
         <div className="reviewCardFrame">
           <LessonPlayer

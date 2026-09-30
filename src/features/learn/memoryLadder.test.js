@@ -41,7 +41,7 @@ describe('ступени памяти', () => {
     expect([1, 2, 3, 4, 5].map(s => wordLevel(s).n)).toEqual([1, 1, 2, 2, 3])
     expect(wordLevel(5, true)).toMatchObject({ n: 4, name: 'Слово в постоянной памяти' })
     expect(wordLevel(1).name).toBe('Новое слово')
-    expect(wordLevel(3).remember).toMatch(/ты узнаёшь/i)
+    expect(wordLevel(3).remember).toMatch(/ты уже узнаёшь/i)
   })
 
   it('описания: как слово сюда попадает → забывается → что делать → куда перейдёт', () => {

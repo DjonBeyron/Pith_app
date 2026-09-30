@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sessionMinutes, introLine, summaryLine } from './reviewTeacher.js'
+import { sessionMinutes, introLines, summaryLine } from './reviewTeacher.js'
 import { buildDecks, cardFiles, localToday } from './reviewDecks.js'
 import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 
@@ -9,17 +9,18 @@ describe('строки учителя', () => {
     expect(sessionMinutes(1)).toBe(1)
   })
 
-  it('в начале: сколько слов и минут; путавшиеся слова — по памяти', () => {
-    expect(introLine({ words: ['trying'], cards: 2 })).toBe('Сегодня 1 слово · около 1 мин. Поехали!')
+  it('в начале: учитель «перешлёт сообщения»; давшиеся непросто слова — по памяти; фраза — в конце', () => {
+    expect(introLines({ words: ['trying'] })).toEqual(['Сейчас я перешлю тебе несколько сообщений — вспомни слова из них.'])
     const memory = [{ word: 'to', lapses: 2 }, { word: 'for', lapses: 1 }, { word: 'cook', lapses: 0 }]
-    expect(introLine({ words: ['to', 'for', 'cook'], cards: 8, memory }))
-      .toBe('Сегодня 3 слова · около 2 мин. to и for уже путались — посмотрим, как сейчас.')
+    expect(introLines({ words: ['to', 'for', 'cook'], memory })[1]).toBe('to и for в прошлый раз давались непросто — посмотрим, как сейчас.')
+    expect(introLines({ words: ['a'], phrase: { title: 'Hold on' } }).at(-1)).toBe('А в конце соберём фразу «Hold on» целиком.')
+    expect(introLines({ words: [], phrase: { title: 'Hold on' } })).toEqual(['Все слова фразы «Hold on» окрепли — пора собрать её целиком.'])
   })
 
-  it('в итоге: что окрепло, что шатается; ранний повтор не «окреп»', () => {
+  it('в итоге: что окрепло, что даётся непросто; ранний повтор не «окреп»', () => {
     expect(summaryLine([
       { word: 'trying', outcome: 'good' }, { word: 'to', outcome: 'fail' }, { word: 'cook', outcome: 'good', applied: false },
-    ])).toBe('trying окрепло, to шатается — вернёмся завтра.')
+    ])).toBe('trying окрепло, to пока даётся непросто — вернёмся к нему завтра.')
     expect(summaryLine([{ word: 'a', outcome: 'hard' }])).toBe('Слова держатся — так и продолжим.')
     expect(summaryLine(['a', 'b', 'c', 'd', 'e'].map(word => ({ word, outcome: 'know' }))))
       .toBe('a, b, c и ещё 2 окрепли.')

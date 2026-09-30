@@ -2,13 +2,14 @@ import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useReviewSession } from './useReviewSession.js'
 import { currentItem } from './reviewSession.js'
-import { introLine } from './reviewTeacher.js'
 import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
 import { primeAudio } from '../../shared/lib/primedAudio.js'
 import ReviewTurn from './ReviewTurn.jsx'
 import ReviewWarmup from './ReviewWarmup.jsx'
 import ReviewSummary from './ReviewSummary.jsx'
+import ReviewIntro from './ReviewIntro.jsx'
+import ReviewLoading from './ReviewLoading.jsx'
 import { phraseItem } from './phraseDrill.js'
 
 // Экран повторения дня (этап 4 системы повторения, PROJECT.md → «Формат
@@ -20,9 +21,9 @@ import { phraseItem } from './phraseDrill.js'
 // во время ответа — следующая; скачанное передаётся плееру карточки.
 function Message({ title, text, onClose }) {
   return (
-    <div className="reviewCenter">
-      {title && <h2 className="reviewSummaryTitle">{title}</h2>}
-      <p className="reviewTeacherLine">{text}</p>
+    <div className="reviewMessage">
+      {title && <h2 className="reviewMessageTitle">{title}</h2>}
+      <p className="reviewMessageText">{text}</p>
       <button className="reviewBtn reviewBtn--main" onClick={onClose}>Закрыть</button>
     </div>
   )
@@ -57,23 +58,14 @@ export default function ReviewScreen({ focusWords = null, phrase = null, onClose
   }
 
   let body = null
-  if (r.phase === 'loading') body = <p className="reviewNote">Собираю карточки…</p>
-  else if (r.phase === 'finishing') body = <p className="reviewNote">Подвожу итог…</p>
-  else if (r.phase === 'error') body = <Message text="Не загрузилось. Проверь сеть и попробуй ещё раз." onClose={onClose} />
-  else if (r.phase === 'empty') body = <Message title="На сегодня всё ✓" text="Слова для повторения появятся, когда подойдёт их срок." onClose={onClose} />
+  if (r.phase === 'loading') body = <ReviewLoading text="Ищу слова, которые нужно напомнить…" />
+  else if (r.phase === 'finishing') body = <ReviewLoading text="Подвожу итог…" />
+  else if (r.phase === 'error') body = <Message text="Не загрузилось. Проверь сеть." onClose={onClose} />
+  else if (r.phase === 'empty') body = <Message title="На сегодня всё ✓" text="Новые слова появятся, когда придёт их срок." onClose={onClose} />
   else if (r.phase === 'intro') {
     body = (
-      <div className="reviewCenter">
-        <p className="reviewTeacherName">{r.info.teacher?.name || 'Учитель'}</p>
-        <p className="reviewTeacherLine">
-          {r.info.words.length ? introLine({ words: r.info.words, cards: r.info.cards, memory: r.info.memory }) : ''}
-          {phrase && (r.info.words.length
-            ? ` А в конце — фраза «${phrase.title}» целиком.`
-            : `Все слова фразы «${phrase.title}» окрепли — пора собрать её целиком.`)}
-        </p>
-        <button className="reviewBtn reviewBtn--main" onClick={start}>Начать</button>
-        <button className="reviewBtn reviewBtnGhost" onClick={onClose}>Не сейчас</button>
-      </div>
+      <ReviewIntro teacher={r.info.teacher} words={r.info.words} cards={r.info.cards} memory={r.info.memory}
+        phrase={phrase} onStart={start} onClose={onClose} />
     )
   } else if (r.phase === 'run' && item) {
     body = (
@@ -92,22 +84,20 @@ export default function ReviewScreen({ focusWords = null, phrase = null, onClose
   } else if (r.phase === 'phrase') {
     const item = phraseItem(phrase)
     body = (
-      <>
-        <p className="feedRememberTitle">Закрепление фразы</p>
-        <ReviewTurn
-          key={item.key}
-          session={{ queue: [item], index: 0, events: [] }}
-          item={item}
-          phrase=""
-          teacher={r.info.teacher}
-          onAnswer={r.answerPhrase}
-          onNoAudio={() => r.answerPhrase({ result: 'skip' })}
-          onClose={onClose}
-        />
-      </>
+      <ReviewTurn
+        key={item.key}
+        session={{ queue: [item], index: 0, events: [] }}
+        item={item}
+        phrase=""
+        title="Закрепление фразы"
+        teacher={r.info.teacher}
+        onAnswer={r.answerPhrase}
+        onNoAudio={() => r.answerPhrase({ result: 'skip' })}
+        onClose={onClose}
+      />
     )
   } else if (r.phase === 'done') {
-    body = <ReviewSummary results={r.results} finish={r.finish} bridge={r.bridge} phrase={r.phraseRes} words={r.info.words} onClose={onClose} onRequireAuth={onRequireAuth} />
+    body = <ReviewSummary results={r.results} finish={r.finish} bridge={r.bridge} phrase={r.phraseRes} words={r.info.words} memory={r.info.memory} onClose={onClose} onRequireAuth={onRequireAuth} />
   }
 
   return createPortal(
