@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { ladderLinks, ladderWireSet, ballPath, ballScale, WIRE_COLORS, W_MIN } from './ladderWires.js'
+import { ladderLinks, ladderWireSet, ballPath, ballScale, haloScale, WIRE_COLORS, W_MIN } from './ladderWires.js'
 
 const MAX_BALLS = 3 // на ступень: больше — каша из шариков
 
@@ -8,9 +8,9 @@ const MAX_BALLS = 3 // на ступень: больше — каша из ша�
 // связи (ladderWires.js: толщина плавно растёт от шапки до пятиугольника —
 // короткими отрезками, общая прозрачность на группе, чтобы стыки не темнели)
 // и шарики — слова сегодняшнего повторения бегут из своей ступени к кнопке.
-// Шарик стартует размером 115% толщины линии у ступени и сжимается вместе с
-// линией до её толщины у шапки (--s0 → --s1: масштаб в CSS-анимации шарика,
-// на кадр ничего не считается). Меряет после каждого рендера и при смене размеров;
+// Шарик — светлое ядро 115% толщины линии у ступени + ореол; оба сжимаются
+// вместе с линией до её толщины у шапки (--s0 → --s1 и --h0 → --h1: масштаб во
+// вложенных элементах в CSS-анимации, на кадр ничего не считается). Меряет после каждого рендера и при смене размеров;
 // в скрытой вкладке (ширина 0) не меряет. Зона — через СВОЙ элемент слоя:
 // ref родителя в эффекте ребёнка при монтировании ещё пуст (React цепляет
 // ref родителя после эффектов детей) — так линии пропадали после «Назад».
@@ -59,11 +59,15 @@ export default function MemoryLadderWires({ today }) {
           offsetPath: `path('${ballPath(geo.links[i])}')`,
           '--s0': ballScale(geo.widths[i]),
           '--s1': ballScale(W_MIN),
-          background: WIRE_COLORS.levels[i],
+          '--h0': haloScale(geo.widths[i]),
+          '--h1': haloScale(W_MIN),
           color: WIRE_COLORS.levels[i],
-          animationDelay: `${(k * 0.2 + i * 0.1).toFixed(2)}s`,
-          animationDuration: `${2.6 + i * 0.3}s`,
-        }} />
+          '--delay': `${(k * 0.2 + i * 0.1).toFixed(2)}s`,
+          '--dur': `${(2.6 + i * 0.3).toFixed(1)}s`,
+        }}>
+          <i className="memBallGlow" />
+          <i className="memBallDot" />
+        </span>
       )))}
     </div>
   )

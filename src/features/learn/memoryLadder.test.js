@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { levelOf, levelFill, journey, buildLadder, wordLevel, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
-import { orth, ladderLinks, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX, ballScale, BALL_D, BALL_GROW } from './ladderWires.js'
+import { levelOf, levelFill, journey, buildLadder, wordLevel, pageTabs, LEVEL_TITLES, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
+import { orth, ladderLinks, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX, ballScale, haloScale, BALL_D, BALL_GROW, HALO_D, HALO_GROW } from './ladderWires.js'
 
 describe('ступени памяти', () => {
   it('шаг → ступень: 1–2 новые, 3–4 знакомые, 5 усвоенные', () => {
@@ -14,7 +14,7 @@ describe('ступени памяти', () => {
     j.slice(1).forEach((v, i) => expect(v).toBeGreaterThan(j[i]))
   })
 
-  it('слова по ступеням: сегодняшние первыми, дальше по сроку; закреплённые — отдельно', () => {
+  it('слова по ступеням: сегодняшние первыми, дальше по сроку; постоянная память — отдельно', () => {
     const memory = [
       { word: 'go', step: 1, due_on: '2026-09-28' },
       { word: 'keep', step: 2, due_on: '2026-09-27' },
@@ -36,10 +36,10 @@ describe('ступени памяти', () => {
     expect(keep).toMatchObject({ today: false, hasDeck: false, lessonId: null, lessonTitle: '', phrase: '' })
   })
 
-  it('уровень слова для окна: n из 4, закреплённое — четвёртый', () => {
+  it('уровень слова для окна: n из 4, постоянная память — четвёртый', () => {
     expect(LEVEL_COUNT).toBe(4)
     expect([1, 2, 3, 4, 5].map(s => wordLevel(s).n)).toEqual([1, 1, 2, 2, 3])
-    expect(wordLevel(5, true)).toMatchObject({ n: 4, name: 'Закреплённое слово' })
+    expect(wordLevel(5, true)).toMatchObject({ n: 4, name: 'Слово в постоянной памяти' })
     expect(wordLevel(1).name).toBe('Новое слово')
     expect(wordLevel(3).remember).toMatch(/ты узнаёшь/i)
   })
@@ -51,7 +51,7 @@ describe('ступени памяти', () => {
       expect(l.about).toMatch(/перейдёт|станет/)      // куда слово пойдёт дальше
     })
     expect(LEVELS[0].about.startsWith('Сюда попадают слова из уроков')).toBe(true)
-    // закреплённые: начинаем с того, откуда слова здесь берутся
+    // постоянная память: начинаем с того, откуда слова здесь берутся
     expect(SETTLED_ABOUT.startsWith('Тут хранятся слова из «Усвоенных»')).toBe(true)
     expect(SETTLED_ABOUT).toMatch(/вернётся в «Знакомые»/)
   })
@@ -78,6 +78,30 @@ describe('линии памяти', () => {
     // шарик бежит обратно: из ступени к шапке
     expect(ballPath(links[0]).startsWith('M 0 170')).toBe(true)
     expect(ballPath(links[0]).endsWith('L 150 100')).toBe(true)
+  })
+})
+
+describe('страница уровней', () => {
+  const ladder = buildLadder([
+    { word: 'go', step: 1, due_on: '2026-09-28' },
+    { word: 'cook', step: 3, due_on: '2026-09-28' },
+    { word: 'make', step: 5, due_on: '2026-10-20' },
+    { word: 'hello', step: 5, due_on: '2026-11-20', settled_on: '2026-09-20' },
+  ])
+
+  it('заголовки: «Первый уровень памяти» … «Четвёртый уровень памяти»', () => {
+    expect(LEVEL_TITLES).toEqual(['Первый уровень памяти', 'Второй уровень памяти', 'Третий уровень памяти', 'Четвёртый уровень памяти'])
+  })
+
+  it('четыре вкладки: три ступени и «Постоянная» с её словами и описанием', () => {
+    const tabs = pageTabs(ladder)
+    expect(tabs.map(t => t.short)).toEqual(['Новые', 'Знакомые', 'Усвоенные', 'Постоянная'])
+    expect(tabs.map(t => t.words.length)).toEqual([1, 1, 1, 1])
+    expect(tabs.map(t => t.perm)).toEqual([false, false, false, true])
+    expect(tabs[3]).toMatchObject({ id: LEVEL_COUNT, title: 'Четвёртый уровень памяти', name: 'Постоянная память', about: SETTLED_ABOUT })
+    expect(tabs[3].words.map(w => w.word)).toEqual(['hello'])
+    // пусто — другое описание (как слово сюда попадёт)
+    expect(pageTabs(buildLadder([]))[3].about).toMatch(/Тут будут храниться/)
   })
 })
 
@@ -126,5 +150,9 @@ describe('связи памяти: толщина растёт от шапки �
     expect(ballScale(3.2) * BALL_D).toBeCloseTo(3.2 * BALL_GROW, 2)
     // к шапке линия тоньше — шарик меньше, чем на старте
     widths.forEach(w => expect(ballScale(W_MIN)).toBeLessThan(ballScale(w)))
+    // ореол — заметно шире линии (иначе шарик одного цвета с тонкой линией не виден) и тоже сжимается
+    expect(haloScale(3.2) * HALO_D).toBeCloseTo(3.2 * HALO_GROW, 2)
+    expect(HALO_GROW).toBeGreaterThan(BALL_GROW * 2)
+    widths.forEach(w => expect(haloScale(W_MIN)).toBeLessThan(haloScale(w)))
   })
 })

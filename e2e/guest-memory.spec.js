@@ -182,13 +182,14 @@ test('родное слово на месячной проверке → пос�
   await review.getByRole('button', { name: 'Начать', exact: true }).click({ timeout: 30_000 })
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
   await review.getByRole('button', { name: 'Далее' }).click()
-  await expect(review.locator('.reviewSettled')).toHaveText('✨ «keep» закрепилось в памяти', { timeout: 30_000 })
+  await expect(review.locator('.reviewSettled')).toHaveText('✨ «keep» ушло в постоянную память', { timeout: 30_000 })
   await review.getByRole('button', { name: 'Готово' }).click()
 
   // «Усвоенные» опустели, пятиугольник — 1; его страница — keep
   await expect(page.locator('.memLvl--3 .memLvlCount')).toHaveText('0', { timeout: 30_000 })
-  await expect(page.getByRole('button', { name: /1 слово в постоянной памяти/ })).toBeVisible()
-  await page.getByRole('button', { name: /слово в постоянной памяти/ }).click()
+  await expect(page.getByRole('button', { name: /1 Слово в постоянной памяти/ })).toBeVisible()
+  await page.getByRole('button', { name: /Слово в постоянной памяти/ }).click()
+  await expect(page.locator('.memTitle')).toHaveText('Четвёртый уровень памяти')
   await expect(page.locator('.memPermCount')).toHaveText(/^1\s*слово закреплено$/)
   await expect(page.locator('.memChipRow')).toHaveText(['keep'])
 })

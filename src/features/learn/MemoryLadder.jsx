@@ -9,9 +9,9 @@ const SHOWN = 3 // слов на ступени главного экрана �
 
 // Главный экран «Моей памяти»: шапка (children — LearnMainAction), справа
 // число слов во временной памяти, три ступени лесенкой (новые → знакомые →
-// усвоенные) и пятиугольник закреплённых слов; линии и шарики — слоем поверх
+// усвоенные) и пятиугольник постоянной памяти; линии и шарики — слоем поверх
 // (MemoryLadderWires). Число, название или ⤢ ступени — onOpen(1..3) (все
-// слова ступени), пятиугольник — onOpen('perm'), слово — onWord
+// слова ступени), пятиугольник — onOpen(4), слово — onWord
 export default function MemoryLadder({ ladder, onOpen, onWord, children }) {
   const today = ladder.levels.map(l => l.words.filter(w => w.today).length)
   return (
@@ -46,7 +46,7 @@ export default function MemoryLadder({ ladder, onOpen, onWord, children }) {
           </div>
         ))}
       </div>
-      <MemoryPermNode count={ladder.permanent.length} onOpen={() => onOpen('perm')} />
+      <MemoryPermNode count={ladder.permanent.length} onOpen={() => onOpen(4)} />
       <MemoryLadderWires today={today} />
     </div>
   )

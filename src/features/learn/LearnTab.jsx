@@ -6,7 +6,6 @@ import { onLearnHome } from '../../shared/lib/learnHomeEvent.js'
 import LearnMainAction from './LearnMainAction.jsx'
 import MemoryLadder from './MemoryLadder.jsx'
 import MemoryLevelPage from './MemoryLevelPage.jsx'
-import MemoryPermPage from './MemoryPermPage.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
 import MemoryIntro from './MemoryIntro.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
@@ -15,15 +14,15 @@ const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
 
 // Вкладка «Моя память» — отвечает на вопрос «что я помню?» (PROJECT.md →
 // «Вкладки»). Главный экран — шапка с главным действием и лестница памяти
-// (MemoryLadder): новые → знакомые → усвоенные → закреплённые. Со ступени —
-// страница всех её слов, с пятиугольника — закреплённые слова (page).
+// (MemoryLadder): новые → знакомые → усвоенные → постоянная память. Со ступени
+// и с пятиугольника — страница уровней с четырьмя вкладками (page = 1..4).
 // Данные — useLearnData (живёт в ShellV2: по ним же точка на вкладке).
 // Гость видит свою локальную память и подводку к входу. Настроек здесь нет:
 // минуты в день, «Отпуск» и итоги недели — в шестерёнке профиля (MemorySettings)
 export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) {
   const { view, error, reload } = learn
   const [review, setReview] = useState(null) // null | { focus: string[] | null }
-  const [page, setPage] = useState(null)     // null | 1..3 | 'perm'
+  const [page, setPage] = useState(null)     // null (главный экран) | 1..4 (страница уровней; 4 — постоянная память)
   const [sheet, setSheet] = useState(null)   // { word, perm }
   const [showPro, setShowPro] = useState(false)
   const [profile, setProfile] = useState(getCachedProfile)
@@ -38,22 +37,21 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   useEffect(() => { if (visible) reload() }, [visible, reload])
 
   const isPro = !!(profile?.has_subscription || profile?.is_admin)
-  const openWord = perm => word => setSheet({ word, perm })
+  const openWord = (word, perm = false) => setSheet({ word, perm })
   const ladder = view?.ladder
 
   return (
     <div className="lrRoot">
       <div className="lrScreen">
-        {page === 'perm' && ladder && <MemoryPermPage words={ladder.permanent} onWord={openWord(true)} onBack={() => setPage(null)} />}
-        {typeof page === 'number' && ladder && (
-          <MemoryLevelPage ladder={ladder} level={page} onLevel={setPage} onWord={openWord(false)} onBack={() => setPage(null)} />
+        {page && ladder && (
+          <MemoryLevelPage ladder={ladder} level={page} onLevel={setPage} onWord={openWord} onBack={() => setPage(null)} />
         )}
         {!page && <h1 className="lrTitle">Моя память</h1>}
         {!view && !error && <p className="lrNote">Загрузка…</p>}
         {error && !view && <p className="lrNote">Не загрузилось. <button className="lrLink" onClick={reload}>Ещё раз</button></p>}
         {view && !page && (
           <>
-            <MemoryLadder ladder={ladder} onOpen={setPage} onWord={openWord(false)}>
+            <MemoryLadder ladder={ladder} onOpen={setPage} onWord={openWord}>
               <LearnMainAction view={view} today={today} onStart={() => setReview({ focus: null })} onChanged={reload} />
             </MemoryLadder>
             {!isLoggedIn && (

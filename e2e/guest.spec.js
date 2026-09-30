@@ -99,7 +99,7 @@ test('первый вход во вкладку «Память» — окно «
   await page.getByRole('button', { name: 'Память', exact: true }).click()
   const intro = page.getByRole('dialog', { name: 'Это твоя память' })
   await expect(intro).toContainText('Мы сами напомним повторить слово', { timeout: 30_000 })
-  await expect(intro).toContainText('закреплёнными')
+  await expect(intro).toContainText('постоянную память')
   await intro.getByRole('button', { name: 'Посмотреть мою память' }).click()
   await expect(intro).toHaveCount(0)
   await expect.poll(() => page.evaluate(() => localStorage.getItem('pithy_memory_intro_v1'))).toBe('1')

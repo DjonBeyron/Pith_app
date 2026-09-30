@@ -1,7 +1,7 @@
 /* Лестница «Моей памяти» (features/learn/MemoryLadder.jsx): ступени
    новые → знакомые → усвоенные (серый → мягкий жёлтый → салатовый) лесенкой
    по 2/3 ширины, справа — число слов во временной памяти, внизу по центру —
-   фиолетовый пятиугольник «Закреплённые слова» (форма финала модуля).
+   фиолетовый пятиугольник постоянной памяти (memory-perm.css).
    Сила ступени — числом обводок: 1 / 2 / 3, у пятиугольника 4; каждая
    следующая наружу тоньше и бледнее. Линии и шарики — слой .memWires под
    блоками (MemoryLadderWires.jsx) */
@@ -132,67 +132,67 @@
 .memChipWord { position: relative; }
 .memChipMuted { opacity: 0.55; }
 
-/* ── Постоянная память: пятиугольник (контур 240×212 в масштабе 3/4) ── */
-.memPerm {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 180px;
-  height: 159px;
-  margin: 42px auto 0; /* по центру по горизонтали */
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.memPerm::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  clip-path: path('M 4.05 88.5 L 12.45 31.8 A 32.85 32.85 0 0 1 45 3.45 L 139.5 3.45 A 32.85 32.85 0 0 1 172.35 31.8 L 180.45 88.5 A 32.85 32.85 0 0 1 165 121.05 L 109.65 155.1 A 32.85 32.85 0 0 1 75 155.1 L 19.65 121.05 A 32.85 32.85 0 0 1 4.05 88.5 Z');
-  background: radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.22), transparent 70%), var(--v2-dust), var(--v2-grain), var(--v2-tex) #12101a;
-}
-.memPerm svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
-.memPerm svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
-.memPerm svg .memPermRing { stroke: #a78bfa; }
-/* Текст — уже пятиугольника, с полями от боковых граней (они сходятся книзу) */
-.memPermText { position: relative; display: flex; flex-direction: column; align-items: center; max-width: 124px; margin-top: -18px; text-align: center; }
-.memPermText b { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }
-.memPermText span { margin-top: 5px; font-size: 11.5px; font-weight: 700; line-height: 1.25; color: #d9ccff; }
-.memPermText small { margin-top: 2px; font-size: 9.5px; font-weight: 600; color: #a78bfa; }
-
 /* ── Линии и шарики ────────────────────────────────────────────────── */
 .memWires { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .memWires svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 /* Отрезки связи — со своей толщиной и цветом (ladderWireSet); прозрачность —
    на всей группе, иначе круглые концы отрезков темнели бы бусинами */
 .memWire { stroke-linecap: round; opacity: 0.85; }
+/* Шарик слова к повтору. Внешний элемент — точка 0×0: только движение по
+   пути (offset-path) и появление; ядро и ореол лежат в нём по центру и
+   масштабируются САМИ, внутри. Так масштаб не зависит от того, в каком порядке
+   браузер совмещает transform и offset-path (на тонкой линии ошибка порядка
+   утащила бы шарик с пути). Ядро — светлое (тонкий цветной шарик на линии
+   того же цвета не виден), ореол — цвета ступени */
 .memBall {
   position: absolute;
   left: 0;
   top: 0;
+  width: 0;
+  height: 0;
+  offset-rotate: 0deg;
+  /* backwards: в задержку перед стартом шарик уже в первом кадре (невидим), а не стоит крупной точкой */
+  animation: memBallRun var(--dur, 2.6s) cubic-bezier(0.45, 0, 0.55, 1) var(--delay, 0s) infinite backwards;
+}
+.memBallDot,
+.memBallGlow {
+  position: absolute;
+  border-radius: 50%;
+  animation: memBallDotScale var(--dur, 2.6s) cubic-bezier(0.45, 0, 0.55, 1) var(--delay, 0s) infinite backwards;
+}
+.memBallDot {
+  left: -4px;
+  top: -4px;
   width: 8px;
   height: 8px;
-  /* Без отрицательного margin: по offset-path центр шарика и так ставится
-     на линию (offset-anchor — центр), а margin сдвигал его на 4px вверх-влево */
-  border-radius: 50%;
-  box-shadow: 0 0 8px currentColor;
-  offset-rotate: 0deg;
-  animation: memBallRun 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  background: color-mix(in srgb, currentColor 30%, #fff);
 }
-/* Размер шарика — по толщине линии: 115% у ступени (--s0) → толщина у шапки
-   (--s1), ballScale в ladderWires.js. Масштаб (transform, не individual
-   `scale`: тот применялся бы и к смещению по пути) идёт в тех же ключевых
-   кадрах, что offset-distance, с той же кривой — шарик и толщина линии
-   совпадают в любой точке пути. Тень масштабируется вместе с шариком */
+.memBallGlow {
+  left: -8px;
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle, currentColor 0%, transparent 70%);
+  opacity: 0.9;
+  animation-name: memBallGlowScale;
+}
+/* Размер — по толщине линии: ядро 115% у ступени (--s0) → толщина у шапки
+   (--s1), ореол — то же в HALO_GROW раз толще (--h0 → --h1); числа — ballScale
+   / haloScale в ladderWires.js. Кривая та же, что у движения (кадры 0 → 74%),
+   поэтому размер и толщина линии совпадают в любой точке пути */
 @keyframes memBallRun {
-  0% { offset-distance: 0%; opacity: 0; transform: scale(var(--s0, 1)); }
+  0% { offset-distance: 0%; opacity: 0; }
   6% { opacity: 1; }
-  74% { offset-distance: 100%; opacity: 1; transform: scale(var(--s1, 1)); }
-  75%, 100% { offset-distance: 100%; opacity: 0; transform: scale(var(--s1, 1)); }
+  74% { offset-distance: 100%; opacity: 1; }
+  75%, 100% { offset-distance: 100%; opacity: 0; }
+}
+@keyframes memBallDotScale {
+  0% { transform: scale(var(--s0, 1)); }
+  74%, 100% { transform: scale(var(--s1, 1)); }
+}
+@keyframes memBallGlowScale {
+  0% { transform: scale(var(--h0, 1)); }
+  74%, 100% { transform: scale(var(--h1, 1)); }
 }
 /* Скрытая вкладка — шарики не крутятся */
 .shellV2TabHidden .memBall { display: none; }

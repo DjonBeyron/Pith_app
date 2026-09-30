@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 // Первый вход во вкладку «Память» — один раз на устройстве (утверждённый
 // макет, экран «Первый вход»): что здесь живёт, что мы напоминаем вовремя и
-// как слово растёт — новые → знакомые → усвоенные → закреплённые.
+// как слово растёт — новые → знакомые → усвоенные → постоянная память.
 // open — вкладка на экране (в скрытой вкладке окно не всплывает)
 const FLAG = 'pithy_memory_intro_v1'
 const seen = () => { try { return !!localStorage.getItem(FLAG) } catch { return true } }
@@ -25,7 +25,7 @@ export default function MemoryIntro({ open }) {
         <p className="memIntroText">
           Сначала слова живут во временной памяти и с каждым повтором крепнут:{' '}
           <b className="memIntroLv1">новые</b> → <b className="memIntroLv2">знакомые</b> → <b className="memIntroLv3">усвоенные</b>.
-          Потом становятся <b className="memIntroPerm">закреплёнными</b> — и легко вспоминаются.
+          Потом слово уходит в <b className="memIntroPerm">постоянную память</b> — и легко вспоминается.
         </p>
         <button className="lrCta memIntroCta" onClick={close}>Посмотреть мою память</button>
       </div>

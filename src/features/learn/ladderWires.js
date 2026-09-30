@@ -13,16 +13,22 @@ export const WIRE_COLORS = { accent: '#b6fe3b', levels: ['#b0b8c2', '#e2cd78', '
 export const W_MIN = 1.25
 export const W_MAX = 4.5
 
-// Шарик слова к повтору — круг BALL_D px (.memBall, memory-ladder.css). Он
-// стартует у ступени размером BALL_GROW (115%) толщины линии и сжимается вместе
-// с ней по дороге к шапке: масштаб transform в тех же ключевых кадрах и с той
-// же кривой, что offset-distance (CSS, без JS на кадр)
+// Шарик слова к повтору: светлое ядро (BALL_D px) + мягкий ореол (HALO_D px),
+// оба во вложенных элементах .memBallDot / .memBallGlow (memory-ladder.css).
+// Ядро стартует у ступени размером BALL_GROW (115%) толщины линии, ореол — в
+// HALO_GROW раз толще линии (иначе шарик одного цвета с тонкой линией не
+// виден); оба сжимаются вместе с линией по дороге к шапке. Масштаб — в тех же
+// ключевых кадрах и с той же кривой, что движение по пути (CSS, без JS на кадр)
 export const BALL_D = 8
 export const BALL_GROW = 1.15
-export const ballScale = w => Math.round(BALL_GROW * w / BALL_D * 1000) / 1000
+export const HALO_D = 16
+export const HALO_GROW = 7
+const r3 = x => Math.round(x * 1000) / 1000
+export const ballScale = w => r3(BALL_GROW * w / BALL_D)
+export const haloScale = w => r3(HALO_GROW * w / HALO_D)
 
-// Верх контура пятиугольника — доля высоты его коробки (MemoryPermNode.jsx)
-export const FIN_TOP = 4.6 / 212
+// Верх контура пятиугольника — доля высоты его коробки (MemoryPermNode.jsx: фигура заполняет коробку, верх — у самого края)
+export const FIN_TOP = 0
 
 const f = n => Math.round(n * 10) / 10
 
