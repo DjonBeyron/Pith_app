@@ -83,22 +83,29 @@ test('гость повторяет слово дня → итог зовёт в
   await expect(keep.locator('.memChipFill')).toHaveAttribute('style', /width: 75%/, { timeout: 30_000 })
 })
 
-test('вход переносит память гостя в аккаунт', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'mobile', 'перенос в общий аккаунт — один раз, не параллельно')
-  await seedMemory(page)
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
-  await page.getByPlaceholder('Email').fill('e2e-guest@pithy.local')
-  await page.getByPlaceholder('Пароль', { exact: true }).fill('e2e-local-password')
-  await page.locator('.authBtnPrimary').click()
-  await expect(page.getByRole('button', { name: /Кастомизация/ })).toBeVisible({ timeout: 30_000 })
+// Сервер считает «сегодня» пользователя по его поясу (по умолчанию Europe/Moscow,
+// user_local_today), поэтому браузер теста — в том же поясе: иначе с 21:00 до 24:00
+// UTC серверное «сегодня» на день впереди и перенесённое слово «не к повтору сегодня»
+test.describe('перенос памяти в аккаунт', () => {
+  test.use({ timezoneId: 'Europe/Moscow' })
 
-  // Память теперь серверная: профиль видит слово, локальная — очищена
-  await expect(page.locator('.pvKnow')).toHaveText('В памяти 1 слово', { timeout: 30_000 })
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('pithy_guest_memory_v1'))).toBe(null)
-  await page.getByRole('button', { name: 'Память', exact: true }).click()
-  await expect(page.locator('.lrMain')).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })
-  await expect(page.locator('.lrGuestLead')).toHaveCount(0)
+  test('вход переносит память гостя в аккаунт', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'перенос в общий аккаунт — один раз, не параллельно')
+    await seedMemory(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+    await page.getByPlaceholder('Email').fill('e2e-guest@pithy.local')
+    await page.getByPlaceholder('Пароль', { exact: true }).fill('e2e-local-password')
+    await page.locator('.authBtnPrimary').click()
+    await expect(page.getByRole('button', { name: /Кастомизация/ })).toBeVisible({ timeout: 30_000 })
+
+    // Память теперь серверная: профиль видит слово, локальная — очищена
+    await expect(page.locator('.pvKnow')).toHaveText('В памяти 1 слово', { timeout: 30_000 })
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('pithy_guest_memory_v1'))).toBe(null)
+    await page.getByRole('button', { name: 'Память', exact: true }).click()
+    await expect(page.locator('.lrMain')).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })
+    await expect(page.locator('.lrGuestLead')).toHaveCount(0)
+  })
 })
 
 test('«Помнишь?» в ленте: раз в 6–8 видео карточка слова дня, ответ растит память', async ({ page }) => {

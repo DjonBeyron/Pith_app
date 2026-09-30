@@ -3,7 +3,10 @@ import { Maximize2 } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
 
 // Контур финала модуля (MgFinalNode.jsx), сдвинутый в коробку 240×212; на
-// экране — в масштабе 3/4 (clip-path того же контура — memory-perm.css)
+// экране — в масштабе 3/4. Холст svg больше коробки на 24 px со всех сторон
+// (viewBox −32…272 × −32…244): кольца и свечение лежат внутри холста, а не
+// торчат за него — иначе слой (will-change) подрезал их по низу.
+// Clip-path того же контура — memory-perm.css.
 // Внешние контуры: масштаб от центра коробки, толщина и яркость — по убыванию;
 // f — фильтр искажения кольца (MemoryTurbulence.jsx: у каждого свой рисунок)
 const RINGS = [
@@ -25,7 +28,7 @@ export default function MemoryPermNode({ count, onOpen }) {
   const gradTop = 'memPermTopGrad' + uid
   return (
     <button className="memPerm" onClick={onOpen}>
-      <svg viewBox="0 0 240 212" aria-hidden="true">
+      <svg viewBox="-32 -32 304 276" aria-hidden="true">
         <defs>
           <linearGradient id={grad} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#a78bfa" />

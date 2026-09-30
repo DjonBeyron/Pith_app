@@ -105,7 +105,7 @@
 }
 .memExpand svg { width: 9.35px; height: 9.35px; }
 /* Тот же значок в пятиугольнике — справа сверху; сам пятиугольник и есть кнопка, значок только метка */
-.memExpand--perm { top: 15px; right: 30px; cursor: inherit; pointer-events: none; }
+.memExpand--perm { top: 15px; right: 18px; cursor: inherit; pointer-events: none; }
 .memWords { display: flex; flex-wrap: wrap; gap: 6px; }
 .memEmpty { font-size: 12px; color: #5c6570; }
 

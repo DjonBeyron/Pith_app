@@ -37,7 +37,7 @@
    со сдвигом на четверть круга: x = −24·cos φ, y = 8·sin φ — эллипс, а форма
    точки не искажается. Кривая — синусоида (ease-in-out sine) на полпериода
    туда-обратно. Только transform: слой не перерисовывается */
-.memOrbitLines { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px; overflow: visible; fill: none; stroke-width: 0.8; opacity: 0.3; pointer-events: none; }
+.memOrbitLines { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px; overflow: visible; fill: none; stroke-width: 0.8; opacity: 0.01; pointer-events: none; transform: scale(var(--k, 1)); }
 .memOrbit { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
 .memOrbitX,
 .memOrbitY { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
@@ -53,8 +53,8 @@
   background: currentColor;
   box-shadow: 0 0 4px currentColor;
 }
-@keyframes memOrbitX { from { transform: translateX(-24px); } to { transform: translateX(24px); } }
-@keyframes memOrbitY { from { transform: translateY(-8px); } to { transform: translateY(8px); } }
+@keyframes memOrbitX { from { transform: translateX(calc(-24px * var(--k, 1))); } to { transform: translateX(calc(24px * var(--k, 1))); } }
+@keyframes memOrbitY { from { transform: translateY(calc(-8px * var(--k, 1))); } to { transform: translateY(calc(8px * var(--k, 1))); } }
 .shellV2TabHidden .memOrbitX,
 .shellV2TabHidden .memOrbitY,
 .shellV2TabHidden .memCountNum--1,
@@ -78,13 +78,20 @@
 /* Закрытие — обратное «колебанию»: схлопывается в правый верхний угол, 0.2с */
 .memCountPop--out { animation: memCountPopOut 0.2s cubic-bezier(0.5, 0, 0.75, 0) forwards; }
 @keyframes memCountPopOut { to { transform: scale(0); opacity: 0; } }
-.memCountPopTitle { margin: 0 0 6px; font-size: 15px; font-weight: 800; }
-.memCountPopText { margin: 0; font-size: 13px; line-height: 1.45; color: #c9d0d7; }
-/* Сроки — цветами ступеней, как число в счётчике: завтра / через неделю / через месяц */
+.memCountPopTitle { margin: 0 0 4px; font-size: 15px; font-weight: 800; }
+.memCountPopLead { margin: 0 0 10px; font-size: 13px; line-height: 1.4; color: #c9d0d7; }
+/* Три коротких блока: как слово сюда попадает, когда напомним, куда уйдёт */
+.memCountSteps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.memCountSteps li { display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); font-size: 13px; line-height: 1.35; }
+.memCountSteps i { flex-shrink: 0; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #262b33; color: #aeb6bf; font-size: 11px; font-style: normal; font-weight: 800; }
+.memCountChips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+/* Сроки — цветами ступеней, как число в счётчике; «навсегда» — цветом постоянной памяти */
 .memAcc { font-weight: 800; }
+.memCountChips .memAcc { padding: 2px 8px; border-radius: 999px; font-size: 12px; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px currentColor; }
 .memAcc--1 { color: #eef1f4; }
 .memAcc--2 { color: #e2cd78; }
 .memAcc--3 { color: #b6fe3b; }
+.memAcc--4 { color: #a78bfa; }
 
 @media (prefers-reduced-motion: reduce) {
   .memOrbitX, .memOrbitY, .memCountNum--1, .memCountNum--2, .memCountNum--3 { animation: none; }

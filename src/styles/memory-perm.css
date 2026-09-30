@@ -33,7 +33,7 @@
     var(--mem-brain) 50% 44% / 178px 178px no-repeat,
     var(--v2-dust), var(--v2-grain), var(--v2-tex) #12101a;
 }
-.memPerm > svg { will-change: transform; position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
+.memPerm > svg { will-change: transform; position: absolute; inset: -24px; width: calc(100% + 48px); height: calc(100% + 48px); overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
 .memPerm > svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
 .memPerm > svg .memPermRing { stroke: #a78bfa; }
 /* Утолщение сверху — у входа связи (как левая обводка у ступеней); свет — только
