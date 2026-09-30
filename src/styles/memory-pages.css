@@ -6,7 +6,7 @@
 .memPage { display: flex; flex-direction: column; gap: 10px; }
 /* Шапка — как у «Ежедневных наград» (.rwHeader): стрелка назад (общий
    BackButton) и заголовок в ряд */
-.memHeader { display: flex; align-items: center; gap: 12px; margin: 0 0 2px -8px; }
+.memHeader { display: flex; align-items: center; gap: 12px; margin: 0 0 2px -6px; }
 .memTitle { min-width: 0; margin: 0; font-size: 19px; font-weight: 700; line-height: 1.2; color: #e8ecf0; }
 
 /* ── Вкладки уровней (четыре) ──────────────────────────────────────── */
@@ -91,7 +91,4 @@
 
 /* ── Постоянная память — фиолетовая ────────────────────────────────── */
 .memHead--Perm { --c: #8b5cf6; --tint: rgba(139, 92, 246, 0.22); }
-.memHead--Perm b { font-size: 17px; color: #c4b5fd; }
-.memPermCount { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 6px; }
-.memPermCount strong { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }
-.memPermCount span { font-size: 13px; font-weight: 700; color: #d9ccff; }
+.memHead--Perm b { color: #c4b5fd; }

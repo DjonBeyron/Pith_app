@@ -1,5 +1,8 @@
 /* Единая кнопка «назад»/«закрыть» (BackButton.jsx) — во всех шапках экранов
-   и попапов приложения: голая иконка стрелки, без фона и без подписи. */
+   и попапов приложения: стрелка на круглой полупрозрачной подложке, без
+   подписи. Нажатие «продавливается»: кнопка быстро уменьшается, стрелка
+   сдвигается, подложка светлеет, а при отпускании пружинит назад (плюс
+   тактильный импакт — BackButton.jsx). Анимируются только transform и цвет */
 .backBtn {
   display: inline-flex;
   align-items: center;
@@ -9,12 +12,35 @@
   height: 34px;
   padding: 0;
   border: none;
-  background: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
   color: #e8e8ea;
   cursor: pointer;
-  transition: color 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  /* Отпускание — пружина с лёгким перелётом */
+  transition: transform 0.32s cubic-bezier(0.34, 1.7, 0.5, 1), background-color 0.2s, color 0.15s;
 }
 
-.backBtn:hover { color: #fff; }
+@media (hover: hover) {
+  .backBtn:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+}
 
-.backBtn svg { width: 9px; height: 9px; }
+/* Нажатие — мгновенный «удар»: сжатие, светлая подложка, стрелка чуть назад */
+.backBtn:active {
+  transform: scale(0.82);
+  background: rgba(255, 255, 255, 0.24);
+  color: #fff;
+  transition-duration: 0.06s, 0.06s, 0.06s;
+}
+.backBtn:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: 2px; }
+
+.backBtn svg { width: 12px; height: 12px; transition: transform 0.32s cubic-bezier(0.34, 1.7, 0.5, 1); }
+.backBtn:active svg { transform: translateX(-1.5px); transition-duration: 0.06s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .backBtn, .backBtn svg { transition: none; }
+  .backBtn:active { transform: none; }
+  .backBtn:active svg { transform: none; }
+}

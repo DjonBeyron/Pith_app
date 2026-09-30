@@ -190,6 +190,7 @@ test('родное слово на месячной проверке → пос�
   await expect(page.getByRole('button', { name: /1 Слово в постоянной памяти/ })).toBeVisible()
   await page.getByRole('button', { name: /Слово в постоянной памяти/ }).click()
   await expect(page.locator('.memTitle')).toHaveText('Четвёртый уровень памяти')
-  await expect(page.locator('.memPermCount')).toHaveText(/^1\s*слово закреплено$/)
+  await expect(page.locator('.memHead')).toContainText('Тут хранятся слова из «Усвоенных»')
+  await expect(page.getByRole('tab', { name: /Постоянная/ })).toContainText('1')
   await expect(page.locator('.memChipRow')).toHaveText(['keep'])
 })

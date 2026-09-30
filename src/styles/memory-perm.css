@@ -1,19 +1,17 @@
-/* Пятиугольник «N слов в постоянной памяти» вкладки «Память»
+/* Пятиугольник «N Слов в постоянной памяти» вкладки «Память»
    (features/learn/MemoryPermNode.jsx): вынесен из memory-ladder.css, когда тот
    подошёл к 250 строкам */
 
-/* ── Постоянная память: пятиугольник (форма финала модуля) ──────────── */
-/* Шире, чем был (264px, но не шире экрана): подпись «Слова в постоянной
-   памяти» — в одну строку на iPhone mini. Размеры — PERM_W / PERM_H в
-   MemoryPermNode.jsx (по ним считаются кольца) */
+/* ── Постоянная память: пятиугольник (контур 240×212 в масштабе 3/4) ── */
 .memPerm {
-  --mem-brain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='88'%3E%3Cg fill='none' stroke='white' stroke-opacity='.06' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='translate(12 9) scale(2.2)'%3E%3Cpath d='M12 18V5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.997 5.125a4 4 0 0 1 2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M18 18a4 4 0 0 0 2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6 18a4 4 0 0 1-2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6.003 5.125a4 4 0 0 0-2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3Cg transform='translate(76 46) rotate(-14 12 12) scale(1.7)'%3E%3Cpath d='M12 18V5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.997 5.125a4 4 0 0 1 2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M18 18a4 4 0 0 0 2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6 18a4 4 0 0 1-2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6.003 5.125a4 4 0 0 0-2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  /* Один еле видный мозг — тот же значок, что у вкладки «Память» внизу */
+  --mem-brain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cg fill='none' stroke='white' stroke-opacity='.12' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='scale(4.1667)'%3E%3Cpath d='M12 18V5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M17.997 5.125a4 4 0 0 1 2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M18 18a4 4 0 0 0 2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6 18a4 4 0 0 1-2-7.464' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6.003 5.125a4 4 0 0 0-2.526 5.77' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   position: relative;
   z-index: 2;
   display: grid;
   place-items: center;
-  width: min(100%, 264px);
-  height: 166px;
+  width: 180px;
+  height: 159px;
   margin: 42px auto 0; /* по центру по горизонтали */
   padding: 0;
   border: 0;
@@ -22,23 +20,23 @@
   font: inherit;
   cursor: pointer;
 }
-/* Фон — по контуру (маска objectBoundingBox тянется вместе с шириной). Поверх
-   узора приложения — еле видный узор мозга, как значок вкладки «Память» */
+/* Фон — по контуру: узор приложения, поверх него — один мозг по центру */
 .memPerm::before {
   content: '';
   position: absolute;
   inset: 0;
-  clip-path: url(#memPermClip);
+  clip-path: path('M 4.05 88.5 L 12.45 31.8 A 32.85 32.85 0 0 1 45 3.45 L 139.5 3.45 A 32.85 32.85 0 0 1 172.35 31.8 L 180.45 88.5 A 32.85 32.85 0 0 1 165 121.05 L 109.65 155.1 A 32.85 32.85 0 0 1 75 155.1 L 19.65 121.05 A 32.85 32.85 0 0 1 4.05 88.5 Z');
   background:
     radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.22), transparent 70%),
-    var(--mem-brain) 10px 6px / 132px 88px,
+    var(--mem-brain) 50% 46% / 100px 100px no-repeat,
     var(--v2-dust), var(--v2-grain), var(--v2-tex) #12101a;
 }
-.memPermOutline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
-.memPermOutline path { fill: none; stroke-width: 3; stroke-linejoin: round; }
-.memPermOutline .memPermRing { stroke: #a78bfa; }
-.memPermText { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -12px; text-align: center; }
+.memPerm svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
+.memPerm svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
+.memPerm svg .memPermRing { stroke: #a78bfa; }
+/* Текст — уже пятиугольника, с полями от боковых граней (они сходятся книзу) */
+.memPermText { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -18px; text-align: center; }
 .memPermText b { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }
-/* Подпись — одной строкой, с большой буквы */
-.memPermText span { margin-top: 5px; font-size: 12.5px; font-weight: 700; line-height: 1.25; white-space: nowrap; color: #d9ccff; }
-.memPermText small { margin-top: 2px; font-size: 10px; font-weight: 600; color: #a78bfa; }
+/* Подпись — одной строкой, с большой буквы: контур в этом месте почти во всю ширину */
+.memPermText span { margin-top: 5px; font-size: 10px; font-weight: 700; line-height: 1.25; white-space: nowrap; color: #d9ccff; }
+.memPermText small { margin-top: 2px; font-size: 9.5px; font-weight: 600; color: #a78bfa; }

@@ -1,5 +1,4 @@
 import BackButton from '../../shared/ui/BackButton.jsx'
-import { plural } from '../../shared/lib/plural.js'
 import MemoryWordChip from './MemoryWordChip.jsx'
 import { useWordVoice } from './useWordVoice.js'
 import { pageTabs } from './memoryLadder.js'
@@ -33,12 +32,6 @@ export default function MemoryLevelPage({ ladder, level, onLevel, onWord, onBack
       </div>
       <div className={`memHead memHead--${cur.perm ? 'Perm' : level}`}>
         <b>{cur.name}</b>
-        {cur.perm && (
-          <div className="memPermCount">
-            <strong>{n}</strong>
-            <span>{plural(n, 'слово закреплено', 'слова закреплены', 'слов закреплено')}</span>
-          </div>
-        )}
         <p>{cur.about}</p>
         {cur.when && <div className="memHeadWhen">{cur.when}</div>}
       </div>
