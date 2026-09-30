@@ -36,8 +36,9 @@
 .memPerm > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
 .memPerm > svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
 .memPerm > svg .memPermRing { stroke: #a78bfa; }
-/* Утолщение и свечение сверху — у входа связи (как левая обводка у ступеней) */
-.memPerm > svg .memPermTop { stroke-width: 6; stroke-linecap: round; filter: drop-shadow(0 0 5px rgba(196, 181, 253, 0.95)); }
+/* Утолщение сверху — у входа связи (как левая обводка у ступеней); свет — только
+   внутри фигуры (блик в ::before), наружу дополнительно не светит */
+.memPerm > svg .memPermTop { stroke-width: 6; stroke-linecap: round; }
 /* Текст — уже пятиугольника, с полями от боковых граней (они сходятся книзу) */
 .memPermText { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -18px; text-align: center; }
 .memPermText b { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }

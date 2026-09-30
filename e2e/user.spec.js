@@ -51,7 +51,15 @@ test('«Моя память»: ступени, слово дня, «Повтор
   const fresh = page.locator('.memLvl--1')
   await expect(fresh.locator('.memLvlCount')).toHaveText('1')
   await expect(fresh.locator('.memChip')).toHaveText(['keep'])
-  await expect(page.locator('.memSideLabel')).toHaveText(/^1\s*слово во временной памяти$/)
+  // Счётчик — число, тап открывает окошко с пояснением
+  const count = page.getByRole('button', { name: /^1 слово во временной памяти/ })
+  await expect(count).toBeVisible()
+  await count.click()
+  const pop = page.getByRole('dialog', { name: 'Слова во временной памяти' })
+  await expect(pop).toContainText('Здесь слова, которые ты ещё запоминаешь')
+  await pop.click()
+  await page.locator('.memCountBack').click({ position: { x: 5, y: 5 } })
+  await expect(pop).toHaveCount(0)
   // Все слова ступени: keep — «сегодня»
   await fresh.getByRole('button', { name: 'Все слова: Новые слова' }).click()
   await expect(page.getByRole('tab', { name: /Новые/ })).toHaveAttribute('aria-selected', 'true')

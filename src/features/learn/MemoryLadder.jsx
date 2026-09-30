@@ -1,14 +1,14 @@
 import { Maximize2 } from 'lucide-react'
-import { plural } from '../../shared/lib/plural.js'
 import MemoryWordChip from './MemoryWordChip.jsx'
 import MemoryPermNode from './MemoryPermNode.jsx'
 import MemoryLadderWires from './MemoryLadderWires.jsx'
 import MemoryTurbulence from './MemoryTurbulence.jsx'
+import MemoryCount from './MemoryCount.jsx'
 
 const SHOWN = 3 // слов на ступени главного экрана — остальные в «Все слова»
 
 // Главный экран «Моей памяти»: шапка (children — LearnMainAction), справа
-// число слов во временной памяти, три ступени лесенкой (новые → знакомые →
+// счётчик слов во временной памяти (MemoryCount), три ступени лесенкой (новые → знакомые →
 // усвоенные) и пятиугольник постоянной памяти; линии и шарики — слоем поверх
 // (MemoryLadderWires). Число, название или ⤢ ступени — onOpen(1..3) (все
 // слова ступени), пятиугольник — onOpen(4), слово — onWord
@@ -19,10 +19,7 @@ export default function MemoryLadder({ ladder, onOpen, onWord, children }) {
       <MemoryTurbulence />
       {children}
       <div className="memStairs">
-        <div className="memSideLabel">
-          <b>{ladder.total}</b>
-          {plural(ladder.total, 'слово', 'слова', 'слов')} во временной памяти
-        </div>
+        <MemoryCount total={ladder.total} />
         {ladder.levels.map(l => (
           <div key={l.id} className={`memStair memStair--${l.id}`}>
             <div className={`memLvl memLvl--${l.id}`}>

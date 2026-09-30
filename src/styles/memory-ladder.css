@@ -9,18 +9,6 @@
 .memZone { position: relative; }
 
 .memStairs { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 20px; margin-top: 30px; }
-.memSideLabel {
-  position: absolute;
-  right: 0;
-  top: -6px;
-  width: calc(28% - 8px);
-  text-align: center;
-  line-height: 1.2;
-  font-size: 12px;
-  font-weight: 700;
-  color: #aeb6bf;
-}
-.memSideLabel b { display: block; font-size: 30px; font-weight: 800; line-height: 1.05; color: #eef1f4; }
 /* Лесенка с ОДИНАКОВЫМ шагом: смещения 7.5% → 21.75% → 36% ширины зоны (шаг
    14.25%), ширина 64% — третья вплотную к правому краю. Первая отодвинута от
    ствола: у входа в каждую ступень хватает прямого участка на раздув линии
@@ -44,11 +32,11 @@
   --glow: rgba(176, 184, 194, 0.45);
   /* Первая обводка — по краю блока; слева, где в блок входит связь, она толще
      (серп 3px: самый толстый напротив входа, к углам сходит на нет) и светится
-     наружу — как мембрана у входа отростка нейрона */
+     ВНУТРИ блока — наружу свет не выходит */
   box-shadow:
     inset 0 0 0 var(--w1, 1px) var(--c1, rgba(176, 184, 194, 0.85)),
     inset 3px 0 0 0 var(--c1, rgba(176, 184, 194, 0.85)),
-    -5px 0 16px -4px var(--glow);
+    inset 14px 0 16px -10px var(--glow);
 }
 /* Вторая и третья — наружу, с прозрачным зазором (линии связей видны сквозь) */
 .memLvl::before,
