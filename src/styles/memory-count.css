@@ -76,9 +76,26 @@
   transform-origin: 85% 0;
   animation: popSheetWobble 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards;
 }
-/* Закрытие — обратное «колебанию»: схлопывается в правый верхний угол, 0.2с */
-.memCountPop--out { animation: memCountPopOut 0.2s cubic-bezier(0.5, 0, 0.75, 0) forwards; }
-@keyframes memCountPopOut { to { transform: scale(0); opacity: 0; } }
+/* Закрытие: сначала окно «заливается» цветом своего фона сверху вниз с мягкой
+   кромкой (::after ползёт вниз и перекрывает текст), затем схлопывается в правый
+   верхний угол. Без прозрачности: текст не тает, а закрывается заливкой. Только
+   transform. overflow — чтобы заливка не выходила за окно */
+.memCountPop--out {
+  overflow: hidden;
+  animation: memCountPopOut 0.2s cubic-bezier(0.5, 0, 0.75, 0) 0.2s forwards;
+}
+.memCountPop--out::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -150%;
+  height: 150%;
+  background: linear-gradient(to top, rgba(20, 23, 28, 0), #14171c 33%);
+  animation: memCountFlood 0.24s ease-in-out forwards;
+}
+@keyframes memCountFlood { to { transform: translateY(100%); } }
+@keyframes memCountPopOut { to { transform: scale(0); } }
 .memCountPopTitle { margin: 0 0 3px; font-size: 16px; font-weight: 800; }
 .memCountPopLead { margin: 0 0 10px; font-size: 13px; line-height: 1.4; color: #aeb6bf; }
 /* Три коротких блока без номеров: слева полоска цвета (серый → жёлтый → фиолетовый — путь слова) */
@@ -101,5 +118,5 @@
 @media (prefers-reduced-motion: reduce) {
   .memOrbitX, .memOrbitY, .memCountNum--1, .memCountNum--2, .memCountNum--3 { animation: none; }
   .memCountNum--1 { opacity: 1; }
-  .memCountPop, .memCountPop--out { animation: none; }
+  .memCountPop, .memCountPop--out, .memCountPop--out::after { animation: none; }
 }
