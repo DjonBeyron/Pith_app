@@ -3,6 +3,7 @@ import { plural } from '../../shared/lib/plural.js'
 import MemoryWordChip from './MemoryWordChip.jsx'
 import MemoryPermNode from './MemoryPermNode.jsx'
 import MemoryLadderWires from './MemoryLadderWires.jsx'
+import MemoryTurbulence from './MemoryTurbulence.jsx'
 
 const SHOWN = 3 // слов на ступени главного экрана — остальные в «Все слова»
 
@@ -15,6 +16,7 @@ export default function MemoryLadder({ ladder, onOpen, onWord, children }) {
   const today = ladder.levels.map(l => l.words.filter(w => w.today).length)
   return (
     <div className="memZone">
+      <MemoryTurbulence />
       {children}
       <div className="memStairs">
         <div className="memSideLabel">

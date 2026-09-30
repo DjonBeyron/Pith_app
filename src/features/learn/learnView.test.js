@@ -33,7 +33,7 @@ describe('вкладка «Моя память»: данные', () => {
   it('ступени памяти: сегодняшние слова первыми, у слова — его первая фраза', () => {
     const v = buildLearnView({ memory, curricula, lessons, minutes: 5 }, today)
     expect(v.ladder.levels.map(l => l.words.map(w => w.word))).toEqual([['to', 'cook'], ['trying', 'keep'], []])
-    expect(v.ladder.levels[1].words[0]).toMatchObject({ today: true, lessonId: 'l-try', phrase: "I'm trying to cook" })
+    expect(v.ladder.levels[1].words[0]).toMatchObject({ today: true, lessonId: 'l-try', lessonTitle: 'trying', phrase: "I'm trying to cook" })
     expect(v.ladder.levels[0].words[1]).toMatchObject({ today: false, hasDeck: false })
   })
 
@@ -58,9 +58,9 @@ describe('вкладка «Моя память»: данные', () => {
     expect(v.phrases.map(p => p.title)).toEqual(["I'm trying to cook", 'Keep trying'])
     const [cookPhrase, keepPhrase] = v.phrases
     expect(cookPhrase.words).toEqual([
-      { word: 'trying', lessonId: 'l-try', step: 3, due: today, hasDeck: true },
-      { word: 'to', lessonId: 'l-to', step: 1, due: '2026-09-24', hasDeck: true },
-      { word: 'cook', lessonId: 'l-cook', step: 2, due: today, hasDeck: false },
+      { word: 'trying', lessonId: 'l-try', lessonTitle: 'trying', step: 3, due: today, hasDeck: true },
+      { word: 'to', lessonId: 'l-to', lessonTitle: 'to', step: 1, due: '2026-09-24', hasDeck: true },
+      { word: 'cook', lessonId: 'l-cook', lessonTitle: 'cook', step: 2, due: today, hasDeck: false },
     ])
     // у урока «Trying» во втором модуле колоды нет, но у слова она есть
     expect(keepPhrase.words[0]).toMatchObject({ word: 'trying', hasDeck: true })

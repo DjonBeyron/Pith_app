@@ -44,7 +44,7 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
       if (!word || seen.has(word)) continue
       seen.add(word)
       if (l.deck) deckWords.add(word)
-      words.push({ word, lessonId: id })
+      words.push({ word, lessonId: id, lessonTitle: l.title })
     }
     return { id: m.id, title: m.title ?? '', videoUrl: m.video_url ?? null, golden: golden.has(m.id), words }
   })
@@ -70,10 +70,13 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
     .map(m => ({ ...m, due: m.words.some(w => w.step && w.hasDeck && w.due <= today) }))
     .sort((a, b) => (b.due - a.due) || a.title.localeCompare(b.title))
 
-  // Дом слова — первая фраза с ним: из шторки слова «Пройти урок целиком»
+  // Дом слова — первый урок-слово с ним и фраза (модуль): в окне слова —
+  // «из урока …» и «Пройти урок целиком»
   const wordHome = new Map()
   for (const m of moduleWords) {
-    for (const w of m.words) if (!wordHome.has(w.word)) wordHome.set(w.word, { lessonId: w.lessonId, phrase: m.title })
+    for (const w of m.words) {
+      if (!wordHome.has(w.word)) wordHome.set(w.word, { lessonId: w.lessonId, lessonTitle: w.lessonTitle, phrase: m.title })
+    }
   }
 
   const ready = vacationSince ? null

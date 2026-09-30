@@ -54,8 +54,41 @@
 
 /* ── Список слов ───────────────────────────────────────────────────── */
 .memList { display: flex; flex-direction: column; gap: 5px; }
-.memChipRow { justify-content: space-between; width: 100%; padding: 9px 12px; font-size: 14px; }
+.memChipRow { align-items: stretch; width: 100%; padding: 0; font-size: 14px; cursor: default; }
+/* Строка: кнопка слова (тянется) + место под ▶ справа */
+.memChipMain {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px 4px 9px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
 .memChipNote { position: relative; font-size: 11px; font-weight: 700; color: #8b95a1; }
+/* Кнопка озвучки: 44px по высоте строки — под палец, значок мелкий */
+.memPlaySlot { position: relative; display: grid; place-items: center; flex-shrink: 0; width: 44px; }
+.memPlay {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d6dbe0;
+  cursor: pointer;
+}
+.memPlay:active { background: rgba(255, 255, 255, 0.16); }
+.memPlay svg { width: 17px; height: 17px; }
 .memChipNoteToday { color: #b6fe3b; }
 .memListEmpty { margin: 6px 2px; font-size: 13px; color: #6b737d; }
 

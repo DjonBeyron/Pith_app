@@ -24,6 +24,15 @@ test('обычный пользователь не видит вкладку «�
 test('«Моя память»: ступени, слово дня, «Повторить сейчас» — за Pro', async ({ page }) => {
   // Память e2e-user из сида: keep (шаг 1, созрело сегодня) во фразе «Keep going · E2E-ОБУЧЕНИЕ»
   test.slow()
+  // Озвучка: библиотеки word_audio в сиде нет — подменяем (одно слово keep),
+  // а play() только записываем: слышно ли, проверять не нужно
+  await page.route(/\/rest\/v1\/word_audio/, route => route.fulfill({
+    json: [{ lang: 'en', key: 'keep', text: 'keep', url: 'https://audio.test/keep.mp3' }],
+  }))
+  await page.route(/audio\.test/, route => route.fulfill({ status: 200, contentType: 'audio/mpeg', body: Buffer.alloc(64) }))
+  await page.addInitScript(() => {
+    HTMLMediaElement.prototype.play = function () { window.__plays = [...(window.__plays ?? []), this.src]; return Promise.resolve() }
+  })
   await page.goto('/')
   const nav = page.getByRole('button', { name: 'Память', exact: true })
   await expect(nav).toHaveClass(/shellV2NavBtnDue/, { timeout: 30_000 }) // есть что повторить
@@ -41,11 +50,21 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await expect(page.getByRole('tab', { name: /Новые/ })).toHaveAttribute('aria-selected', 'true')
   const row = page.locator('.memChipRow', { hasText: 'keep' })
   await expect(row).toContainText('сегодня')
+  // Кнопка ▶ — из той же базы озвучки, что слова в уроках
+  await row.getByRole('button', { name: 'Воспроизвести «keep»' }).click({ timeout: 30_000 })
+  await expect.poll(() => page.evaluate(() => window.__plays)).toEqual(['https://audio.test/keep.mp3'])
+  // Описание ступени: как слова сюда попадают → что делать → куда перейдут
+  await expect(page.locator('.memHead')).toContainText('Сюда попадают слова из уроков')
+  await expect(page.locator('.memHead')).toContainText('перейдёт в «Знакомые»')
 
+  // Окно слова: уровень памяти («1 из 4»), из какого урока пришло, срока повтора нет;
   // «Повторить сейчас» — удобство Pro: обычному пользователю — пейволл
-  await row.click()
+  await row.locator('.memChipMain').click()
   const sheet = page.getByRole('dialog', { name: 'Слово keep' })
-  await expect(sheet).toContainText('Новые слова')
+  await expect(sheet).toContainText('Новое слово')
+  await expect(sheet).toContainText('Уровень 1 из 4')
+  await expect(sheet).toContainText('Из урока «keep» · фраза «Keep going · E2E-ОБУЧЕНИЕ»')
+  await expect(sheet).not.toContainText('повтор сегодня')
   await sheet.getByRole('button', { name: 'Повторить сейчас · Pro' }).click()
   await expect(page.locator('.ppCard')).toBeVisible()
   await page.locator('.ppClose').click()

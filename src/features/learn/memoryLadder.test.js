@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { levelOf, levelFill, journey, buildLadder } from './memoryLadder.js'
+import { levelOf, levelFill, journey, buildLadder, wordLevel, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
 import { orth, ladderLinks, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX } from './ladderWires.js'
 
 describe('ступени памяти', () => {
@@ -26,14 +26,32 @@ describe('ступени памяти', () => {
     const ladder = buildLadder(memory, {
       todayWords: new Set(['go']),
       hasDeck: w => w !== 'keep',
-      wordHome: new Map([['go', { lessonId: 'l-go', phrase: 'Let’s go' }]]),
+      wordHome: new Map([['go', { lessonId: 'l-go', lessonTitle: 'Go', phrase: 'Let’s go' }]]),
     })
     expect(ladder.levels.map(l => l.words.map(w => w.word))).toEqual([['go', 'cook', 'keep'], ['want'], ['make']])
     expect(ladder.total).toBe(5)
     expect(ladder.permanent.map(w => w.word)).toEqual(['hello'])
     const [go, , keep] = ladder.levels[0].words
-    expect(go).toMatchObject({ today: true, hasDeck: true, lessonId: 'l-go', phrase: 'Let’s go' })
-    expect(keep).toMatchObject({ today: false, hasDeck: false, lessonId: null, phrase: '' })
+    expect(go).toMatchObject({ today: true, hasDeck: true, lessonId: 'l-go', lessonTitle: 'Go', phrase: 'Let’s go' })
+    expect(keep).toMatchObject({ today: false, hasDeck: false, lessonId: null, lessonTitle: '', phrase: '' })
+  })
+
+  it('уровень слова для окна: n из 4, закреплённое — четвёртый', () => {
+    expect(LEVEL_COUNT).toBe(4)
+    expect([1, 2, 3, 4, 5].map(s => wordLevel(s).n)).toEqual([1, 1, 2, 2, 3])
+    expect(wordLevel(5, true)).toMatchObject({ n: 4, name: 'Закреплённое слово' })
+    expect(wordLevel(1).name).toBe('Новое слово')
+    expect(wordLevel(3).remember).toMatch(/ты узнаёшь/i)
+  })
+
+  it('описания: как слово сюда попадает → забывается → что делать → куда перейдёт', () => {
+    LEVELS.forEach(l => {
+      expect(l.about).toMatch(/забыва|забуд|тускне/) // такие слова забываются
+      expect(l.about).toMatch(/мы напомним|проверим/) // что мы делаем
+      expect(l.about).toMatch(/перейдёт|станет/)      // куда слово пойдёт дальше
+    })
+    expect(LEVELS[0].about.startsWith('Сюда попадают слова из уроков')).toBe(true)
+    expect(SETTLED_ABOUT).toMatch(/вернётся в «Знакомые»/)
   })
 })
 

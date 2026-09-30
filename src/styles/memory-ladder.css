@@ -51,6 +51,10 @@
 }
 .memLvl::before { inset: -5px; border-radius: 21px; }
 .memLvl::after { inset: -10px; border-radius: 26px; }
+/* Эхо-кольца — с турбулентным искажением (MemoryTurbulence.jsx); первая
+   обводка (box-shadow выше) чистая */
+.memLvl::before { filter: url(#memTurbA); }
+.memLvl::after { filter: url(#memTurbB); }
 .memLvl--2 {
   --c: #e2cd78; --tint: rgba(226, 205, 120, 0.15);
   --w1: 2px; --c1: rgba(226, 205, 120, 0.95);

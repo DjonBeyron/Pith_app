@@ -1,11 +1,13 @@
 import { plural } from '../../shared/lib/plural.js'
 import MemoryWordChip from './MemoryWordChip.jsx'
-import { SETTLED_NAME } from './memoryLadder.js'
+import { SETTLED_NAME, SETTLED_ABOUT, SETTLED_ABOUT_EMPTY } from './memoryLadder.js'
+import { useWordVoice } from './useWordVoice.js'
 
 // «Закреплённые слова» — своя фиолетовая страница (по пятиугольнику): слова,
 // прошедшие все три ступени. Пусто — объясняем, как слово сюда попадает
 export default function MemoryPermPage({ words, onWord, onBack }) {
   const n = words.length
+  const voice = useWordVoice()
   return (
     <div className="memPage">
       <div className="memPageTop">
@@ -18,14 +20,12 @@ export default function MemoryPermPage({ words, onWord, onBack }) {
           <strong>{n}</strong>
           <span>{plural(n, 'слово закреплено', 'слова закреплены', 'слов закреплено')}</span>
         </div>
-        <p>
-          {n
-            ? 'Слова прочно закрепились в памяти и легко вспоминаются: прошли все ступени — новые → знакомые → усвоенные. Изредка будем проверять, что они на месте.'
-            : 'Сюда попадают усвоенные слова, которые ты вспомнил на месячной проверке. Пройди с ними все ступени: новые → знакомые → усвоенные.'}
-        </p>
+        <p>{n ? SETTLED_ABOUT : SETTLED_ABOUT_EMPTY}</p>
       </div>
       <div className="memList">
-        {words.map(w => <MemoryWordChip key={w.word} w={w} perm row onClick={onWord} />)}
+        {words.map(w => (
+          <MemoryWordChip key={w.word} w={w} perm row onClick={onWord} onPlay={voice.play} canPlay={voice.has(w.word)} />
+        ))}
       </div>
     </div>
   )

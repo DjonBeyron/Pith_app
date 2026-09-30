@@ -110,12 +110,29 @@
 }
 .lrSheetWord { margin: 0; font-size: 24px; font-weight: 700; }
 .lrSheetPhrase { margin: 0; font-size: 13px; color: #8b95a1; }
-.lrSheetInfo { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 4px 0 6px; font-size: 13px; color: #9aa3ad; }
-.lrSheetLevel { font-weight: 800; }
-.lrSheetLevel--1 { color: #b0b8c2; }
-.lrSheetLevel--2 { color: #e2cd78; }
-.lrSheetLevel--3 { color: #b6fe3b; }
-.lrSheetLevel--Perm { color: #a78bfa; }
+/* Окно слова: уровень памяти — полоска из 4 отрезков + название и пояснение */
+.memSheetFrom { margin-top: -6px; }
+.memSheetLevel {
+  --c: #b0b8c2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 4px;
+  padding: 12px 14px 13px;
+  border: 1px solid #262b33;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.memSheetLevel--2 { --c: #e2cd78; }
+.memSheetLevel--3 { --c: #b6fe3b; }
+.memSheetLevel--Perm { --c: #a78bfa; }
+.memSheetMeter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.memSheetSeg { height: 5px; border-radius: 3px; background: #262b33; }
+.memSheetSegOn { background: var(--c); }
+.memSheetLevelHead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0; }
+.memSheetLevelHead b { font-size: 16px; font-weight: 800; color: var(--c); }
+.memSheetLevelHead span { font-size: 12px; font-weight: 700; color: #8b95a1; }
+.memSheetLevelText { margin: 0; font-size: 13px; line-height: 1.4; color: #c9d0d7; }
 
 .lrBtn {
   width: 100%;

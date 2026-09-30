@@ -4,8 +4,13 @@ import { SETTLED_NAME } from './memoryLadder.js'
 
 // Контур финала модуля (MgFinalNode.jsx), сдвинутый в коробку 240×212; на
 // экране — в масштабе 3/4 (clip-path того же контура — memory-ladder.css)
-// Внешние контуры: масштаб от центра коробки, толщина и яркость — по убыванию
-const RINGS = [{ s: 1.07, w: 2, o: 0.5 }, { s: 1.14, w: 1.4, o: 0.28 }, { s: 1.21, w: 0.9, o: 0.14 }]
+// Внешние контуры: масштаб от центра коробки, толщина и яркость — по убыванию;
+// f — фильтр искажения кольца (MemoryTurbulence.jsx: у каждого свой рисунок)
+const RINGS = [
+  { s: 1.07, w: 2, o: 0.5, f: 'memTurbA' },
+  { s: 1.14, w: 1.4, o: 0.28, f: 'memTurbB' },
+  { s: 1.21, w: 0.9, o: 0.14, f: 'memTurbC' },
+]
 const PERM_PATH = 'M 5.4 118.0 L 16.6 42.4 A 43.8 43.8 0 0 1 60.0 4.6 L 186.0 4.6 A 43.8 43.8 0 0 1 229.8 42.4 L 240.6 118.0 A 43.8 43.8 0 0 1 220.0 161.4 L 146.2 206.8 A 43.8 43.8 0 0 1 100.0 206.8 L 26.2 161.4 A 43.8 43.8 0 0 1 5.4 118.0 Z'
 
 // «Закреплённые слова» — фиолетовый пятиугольник под ступенями (форма финала
@@ -28,7 +33,7 @@ export default function MemoryPermNode({ count, onOpen }) {
         {RINGS.map(r => (
           <path key={r.s} className="memPermRing" d={PERM_PATH}
             transform={`translate(120 106) scale(${r.s}) translate(-120 -106)`}
-            style={{ strokeWidth: r.w, opacity: r.o }} />
+            style={{ strokeWidth: r.w, opacity: r.o, filter: `url(#${r.f})` }} />
         ))}
       </svg>
       <span className="memPermText">

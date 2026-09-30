@@ -55,6 +55,26 @@
   animation: popSpringIn 0.45s backwards;
 }
 
+/* Шторки вкладки «Память» (окно слова, минуты, отпуск, первый вход) растут от
+   нижнего края экрана. Те же время (0.45с) и кривые «пружинки», но translateY
+   не уходит в минус: перелёт вверх оторвал бы шторку от края (см. выше про
+   политику конфиденциальности). Лёгкий перелёт — только по масштабу от
+   нижней середины, край остаётся на месте */
+@keyframes popSheetIn {
+  0%   { opacity: 0; transform: translateY(34px) scale(0.94);
+         animation-timing-function: cubic-bezier(0.25, 0.8, 0.35, 1); }
+  42%  { opacity: 1; transform: translateY(0) scale(1.012);
+         animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  72%  { transform: translateY(0) scale(0.998);
+         animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.lrSheet {
+  transform-origin: 50% 100%;
+  animation: popSheetIn 0.45s backwards;
+}
+
 /* Затемнение под окном — просто проявляется. Под легендой приоритетов
    затемнения нет намеренно: оно сразу непрозрачное и прячет смену экрана */
 .lessonLockedOverlay,
@@ -66,14 +86,15 @@
 .rwInfoOverlay,
 .rcOverlay,
 .racePopupOverlay,
-.installSlidesOverlay {
+.installSlidesOverlay,
+.lrSheetBack {
   animation: popFadeIn 0.2s ease-out backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lessonLockedCard, .priorityLegendCard, .epCard, .ppCard, .resumeLessonCard,
   .pinDialogCard, .pushPromptCard, .rwInfoCard, .rcCard, .racePopupCard,
-  .installSlidesCard, .energyPop, .fsPanel {
+  .installSlidesCard, .energyPop, .fsPanel, .lrSheet {
     animation: popFadeIn 0.2s ease-out backwards;
   }
 }

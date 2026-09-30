@@ -1,4 +1,5 @@
 import MemoryWordChip from './MemoryWordChip.jsx'
+import { useWordVoice } from './useWordVoice.js'
 
 // «Все слова ступени» (по числу, названию или ⤢ ступени): вкладки трёх
 // ступеней с числами — переключаться, не возвращаясь; шапка ступени — что
@@ -6,6 +7,7 @@ import MemoryWordChip from './MemoryWordChip.jsx'
 // level — 1..3, onLevel — сменить ступень, onWord — шторка слова
 export default function MemoryLevelPage({ ladder, level, onLevel, onWord, onBack }) {
   const cur = ladder.levels[level - 1]
+  const voice = useWordVoice()
   return (
     <div className="memPage">
       <div className="memPageTop">
@@ -26,7 +28,9 @@ export default function MemoryLevelPage({ ladder, level, onLevel, onWord, onBack
         <div className="memHeadWhen">{cur.when}</div>
       </div>
       <div className="memList">
-        {cur.words.map(w => <MemoryWordChip key={w.word} w={w} row onClick={onWord} />)}
+        {cur.words.map(w => (
+          <MemoryWordChip key={w.word} w={w} row onClick={onWord} onPlay={voice.play} canPlay={voice.has(w.word)} />
+        ))}
         {!cur.words.length && <p className="memListEmpty">Здесь пока пусто</p>}
       </div>
     </div>

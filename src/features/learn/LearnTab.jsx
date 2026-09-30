@@ -63,7 +63,6 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         <LearnWordSheet
           word={sheet.word}
           perm={sheet.perm}
-          today={today}
           isPro={isPro}
           onLesson={() => { setSheet(null); openRef({ isModule: false, targetId: sheet.word.lessonId }, null) }}
           onReview={() => { setSheet(null); setReview({ focus: [sheet.word.word] }) }}
