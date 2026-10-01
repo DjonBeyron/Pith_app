@@ -3,6 +3,7 @@ import MemoryWordChip from './MemoryWordChip.jsx'
 import MemoryPermNode from './MemoryPermNode.jsx'
 import MemoryLadderWires from './MemoryLadderWires.jsx'
 import MemoryTurbulence from './MemoryTurbulence.jsx'
+import MemoryLvlRings from './MemoryLvlRings.jsx'
 import MemoryCount from './MemoryCount.jsx'
 
 const SHOWN = 3 // слов на ступени главного экрана — остальные в «Все слова»
@@ -23,6 +24,7 @@ export default function MemoryLadder({ ladder, onOpen, onWord, children }) {
         {ladder.levels.map(l => (
           <div key={l.id} className={`memStair memStair--${l.id}`}>
             <div className={`memLvl memLvl--${l.id}`}>
+              <MemoryLvlRings level={l.id} />
               <div className="memLvlTop">
                 <button className="memLvlOpen" onClick={() => onOpen(l.id)}>
                   <span className="memLvlLine">

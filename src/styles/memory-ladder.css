@@ -38,35 +38,19 @@
     inset 3px 0 0 0 var(--c1, rgba(176, 184, 194, 0.85)),
     inset 14px 0 16px -10px var(--glow);
 }
-/* Вторая и третья — наружу, с прозрачным зазором (линии связей видны сквозь) */
-.memLvl::before,
-.memLvl::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  border-style: solid;
-  border-color: transparent;
-  border-width: 0;
-}
-.memLvl::before,
-.memLvl::after { will-change: transform; } /* свой слой: SVG-фильтр колец растрируется один раз и не перерисовывается при анимациях рядом и при прокрутке */
-.memLvl::before { inset: -5px; border-radius: 21px; }
-.memLvl::after { inset: -10px; border-radius: 26px; }
-/* Эхо-кольца — с турбулентным искажением (MemoryTurbulence.jsx); первая
-   обводка (box-shadow выше) чистая */
-.memLvl::before { filter: url(#memTurbA); }
-.memLvl::after { filter: url(#memTurbB); }
+/* Вторая и третья обводки — эхо-кольца снаружи, с прозрачным зазором (линии связей
+   видны сквозь): SVG-слои MemoryLvlRings.jsx. Слой статичный: фильтр искажения
+   считается один раз при растеризации, а не композитором на каждом кадре */
+.memRing { position: absolute; pointer-events: none; will-change: transform; }
+.memRing svg { position: absolute; left: 16px; top: 16px; width: calc(100% - 32px); height: calc(100% - 32px); overflow: visible; }
 .memLvl--2 {
   --c: #e2cd78; --tint: rgba(226, 205, 120, 0.15);
   --w1: 2px; --c1: rgba(226, 205, 120, 0.95); --glow: rgba(226, 205, 120, 0.5);
 }
-.memLvl--2::before { border-width: 1.25px; border-color: rgba(226, 205, 120, 0.24); }
 .memLvl--3 {
   --c: #b6fe3b; --tint: rgba(182, 254, 59, 0.15);
   --w1: 2.5px; --c1: rgba(182, 254, 59, 0.95); --glow: rgba(182, 254, 59, 0.5);
 }
-.memLvl--3::before { border-width: 1.5px; border-color: rgba(182, 254, 59, 0.24); }
-.memLvl--3::after { border-width: 1px; border-color: rgba(182, 254, 59, 0.12); }
 .memLvlTop { position: relative; padding-right: 28px; }
 .memLvlOpen {
   display: flex;

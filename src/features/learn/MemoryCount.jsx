@@ -1,6 +1,7 @@
-import { useState, useRef, useLayoutEffect } from 'react'
+import { useState, useRef, useLayoutEffect, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { plural } from '../../shared/lib/plural.js'
+import { popPlace, ORBIT_RX } from './memoryCountPop.js'
 
 // Счётчик слов во временной памяти — справа от первой ступени: только число.
 // Число «дышит» цветами ступеней (серый → жёлтый → салатовый, каждый
@@ -14,7 +15,9 @@ import { plural } from '../../shared/lib/plural.js'
 // края первой цифры до правого края последней (--k в CSS: 1 для одной цифры,
 // больше для двух-трёх; не шире кнопки). Линии орбит почти невидимы (1%).
 // Тап по числу — окошко: что это за счётчик и как слова сюда попадают, тремя
-// короткими блоками без номеров. Окошко — в портале (body): иначе ступень-предок
+// короткими блоками без номеров. Если слева от числа есть место, окно встаёт
+// правым верхним углом к цифре с отступом от орбит (точки остаются видны),
+// иначе — под кнопкой (memoryCountPop.js). Окошко — в портале (body): иначе ступень-предок
 // держит его под пятиугольником ниже по странице; появляется с тем же «колебанием», что панель сложности в
 // ленте, а при закрытии окно схлопывается в угол, и в такт с масштабом поверх
 // текста проступает заливка цветом фона окна (opacity слоя-заливки; CLOSE_MS).
@@ -25,10 +28,9 @@ const ORBITS = [
 ]
 
 const CLOSE_MS = 340 // схлопывание и заливка идут вместе, 0.34 с
-const ORBIT_RX = 24 // горизонтальный радиус орбиты при одной цифре, px
 
 export default function MemoryCount({ total }) {
-  const [pop, setPop] = useState(null) // { top } — окошко открыто
+  const [pop, setPop] = useState(null) // место окошка (popPlace) — оно открыто
   const [closing, setClosing] = useState(false)
   const btnRef = useRef(null)
   const numRef = useRef(null)
@@ -51,10 +53,21 @@ export default function MemoryCount({ total }) {
     setTimeout(() => { setPop(null); setClosing(false) }, CLOSE_MS)
   }
 
+  // Окошко ставится углом к цифре, если слева есть место (popPlace), иначе — под кнопкой
   function open() {
-    const r = btnRef.current?.getBoundingClientRect()
-    setPop({ top: Math.round((r?.bottom ?? 120) + 4) })
+    const btn = btnRef.current
+    if (!btn) return
+    const k = parseFloat(btn.style.getPropertyValue('--k')) || 1
+    setPop(popPlace({ rect: btn.getBoundingClientRect(), vw: document.documentElement.clientWidth, k }))
   }
+
+  // Размер окна браузера изменился — место окошка устарело, закрываем
+  useEffect(() => {
+    if (!pop) return
+    const off = () => setPop(null)
+    window.addEventListener('resize', off)
+    return () => window.removeEventListener('resize', off)
+  }, [pop])
 
   return (
     <div className="memCountWrap">
@@ -72,7 +85,8 @@ export default function MemoryCount({ total }) {
       </button>
       {pop && createPortal(
         <div className="memCountBack" onClick={close}>
-          <div className={closing ? 'memCountPop memCountPop--out' : 'memCountPop'} role="dialog" aria-label="Временная память" style={{ top: pop.top }} onClick={e => e.stopPropagation()}>
+          <div className={`memCountPop${pop.corner ? ' memCountPop--corner' : ''}${closing ? ' memCountPop--out' : ''}`} role="dialog" aria-label="Временная память"
+            style={pop.corner ? { top: pop.top, right: pop.right, width: pop.width } : { top: pop.top }} onClick={e => e.stopPropagation()}>
             <p className="memCountPopTitle">Временная память</p>
             <p className="memCountPopLead">Здесь слова, которые тебе попадались в уроках</p>
             <ul className="memCountSteps">

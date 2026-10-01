@@ -61,8 +61,9 @@
 .shellV2TabHidden .memCountNum--2,
 .shellV2TabHidden .memCountNum--3 { animation: none; }
 
-/* Окошко: без затемнения, под числом справа; растёт из правого верхнего угла.
-   В портале (body), поверх всего */
+/* Окошко: без затемнения. Если слева от числа есть место — правым верхним углом к
+   цифре (top/right/width ставит memoryCountPop.js, растёт из этого угла), иначе под
+   числом справа. В портале (body), поверх всего */
 .memCountBack { position: fixed; inset: 0; z-index: 250; background: transparent; }
 .memCountPop {
   position: fixed;
@@ -76,6 +77,7 @@
   transform-origin: 85% 0;
   animation: popSheetWobble 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards;
 }
+.memCountPop--corner { transform-origin: 100% 0; }
 /* Закрытие: окно схлопывается в правый верхний угол, а поверх текста в такт
    проступает заливка цветом фона окна (::after). Обе анимации стартуют вместе, с
    одной длительностью и одной кривой: заливка = 1 − масштаб окна, поэтому она
