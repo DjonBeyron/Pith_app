@@ -231,7 +231,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             </button>
             <button className="saveBtn" onClick={handleTogglePinned} aria-pressed={pinned}
               disabled={loading || !lessons.length}
-              title={pinned ? 'Открепить фразу из моей памяти (тест админа)' : 'Закрепить эту фразу в моей памяти — появится в «Память» → «Фразы» (тест админа)'}>
+              title={pinned ? 'Убрать фразу из моих выученных (тест админа)' : 'Добавить эту фразу в мои выученные — появится в «Память» → «Мои выученные фразы» (тест админа)'}>
               {pinned ? '★' : '☆'}
             </button>
             <button className={`saveBtn${isDirty ? ' saveBtn--dirty' : ''}`}

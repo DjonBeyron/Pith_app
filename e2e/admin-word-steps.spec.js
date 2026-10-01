@@ -1,0 +1,46 @@
+import { test, expect } from './fixtures.js'
+import { assertLocalBackend, stubLocalEdgeFunctions } from './helpers/backend.js'
+
+// Тест админа в окне слова вкладки «Память»: «Повторил → следующий уровень» ведёт
+// слово по уровням до постоянной памяти (дальше некуда), «Сбросить слово»
+// возвращает его новым. Слово hold — из сида, другие админ-тесты его не трогают;
+// в память его заносит и убирает сам тест (через те же API, что кнопки админки).
+test.beforeAll(() => assertLocalBackend())
+test.beforeEach(async ({ page }) => {
+  await page.route(/\.supabase\.co\//, route => route.abort())
+  await stubLocalEdgeFunctions(page)
+})
+
+test('слово: «Повторил» по уровням до постоянной памяти, «Сбросить слово» — как новое', async ({ page }) => {
+  test.slow()
+  await page.goto('/')
+  await page.evaluate(async () => {
+    const api = await import('/src/shared/api/memoryApi.js')
+    await api.debugRemoveWord('hold')
+    await api.debugAddWord('hold')
+  })
+  await page.goto('/?tab=learn')
+  await page.locator('.memLvl--1 .memChip', { hasText: 'hold' }).click({ timeout: 30_000 })
+  const sheet = page.getByRole('dialog', { name: 'Слово hold' })
+  const next = sheet.getByRole('button', { name: /^Повторил → /i })
+  await expect(sheet).toContainText('Уровень 1 из 4')
+  // шаг 1 → 2 (ещё «Новые»), 2 → 3 («Знакомые»), 3 → 4, 4 → 5 («Усвоенные»)
+  await next.click()
+  await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 1 из 4') // шаг 2 — ещё «Новые»
+  await next.click()
+  await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 2 из 4', { timeout: 15_000 })
+  await next.click()
+  await next.click()
+  await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 3 из 4', { timeout: 15_000 })
+  // шаг 5 → постоянная память: дальше некуда
+  await expect(next).toHaveText('Повторил → в постоянную память')
+  await next.click()
+  await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 4 из 4', { timeout: 15_000 })
+  await expect(sheet.getByRole('button', { name: 'Конец пути: постоянная память' })).toBeDisabled()
+  // Сбросить: как новое слово
+  await sheet.getByRole('button', { name: 'Сбросить слово' }).click()
+  await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 1 из 4', { timeout: 15_000 })
+  await expect(sheet.getByRole('button', { name: /^Повторил → /i })).toBeEnabled()
+
+  await page.evaluate(async () => { (await import('/src/shared/api/memoryApi.js')).debugRemoveWord('hold') })
+})

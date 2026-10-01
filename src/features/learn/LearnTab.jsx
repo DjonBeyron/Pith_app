@@ -4,6 +4,8 @@ import { useLessonNav } from '../../app/LessonNavContext.jsx'
 import { localToday } from '../review/reviewDecks.js'
 import { onLearnHome } from '../../shared/lib/learnHomeEvent.js'
 import { listWordAudio } from '../../shared/lib/wordAudio/wordAudioApi.js'
+import { debugStepWord } from '../../shared/api/memoryApi.js'
+import { findLadderWord } from './memoryLadder.js'
 import LearnMainAction from './LearnMainAction.jsx'
 import MemoryLadder from './MemoryLadder.jsx'
 import LearnPattern from './LearnPattern.jsx'
@@ -31,6 +33,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const [sheet, setSheet] = useState(null)   // { word, perm }
   const [phrases, setPhrases] = useState(null) // null | 'all' (окно «Все фразы») | фраза из view.phraseList (её карточка)
   const [showPro, setShowPro] = useState(false)
+  const [stepBusy, setStepBusy] = useState(false)
   const [profile, setProfile] = useState(getCachedProfile)
   const { openRef } = useLessonNav()
   const today = localToday()
@@ -45,8 +48,20 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   useEffect(() => { if (visible) reload() }, [visible, reload])
 
   const isPro = !!(profile?.has_subscription || profile?.is_admin)
+  const isAdmin = !!profile?.is_admin
   const openWord = (word, perm = false) => setSheet({ word, perm })
   const ladder = view?.ladder
+  // Окно слова показывает свежие данные: после тест-шага админа слово могло перейти на другую ступень
+  const live = sheet && ladder ? findLadderWord(ladder, sheet.word.word) : null
+  const sheetWord = live ? { ...sheet.word, ...live.word } : sheet?.word
+  const sheetPerm = live ? live.perm : sheet?.perm
+  // Тест админа: «Повторил → следующий уровень» / «Сбросить слово» (memory_debug_step)
+  async function stepWord(action) {
+    setStepBusy(true)
+    const r = await debugStepWord(sheet.word.word, action)
+    if (r?.ok) await reload()
+    setStepBusy(false)
+  }
 
   return (
     <div className="lrRoot">
@@ -74,11 +89,14 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         )}
         {sheet && (
           <LearnWordSheet
-            word={sheet.word}
-            perm={sheet.perm}
+            word={sheetWord}
+            perm={sheetPerm}
             isPro={isPro}
-            onLesson={() => { setSheet(null); openRef({ isModule: false, targetId: sheet.word.lessonId }, null) }}
-            onReview={() => { setSheet(null); setReview({ focus: [sheet.word.word] }) }}
+            isAdmin={isAdmin}
+            stepBusy={stepBusy}
+            onStep={stepWord}
+            onLesson={() => { setSheet(null); openRef({ isModule: false, targetId: sheetWord.lessonId }, null) }}
+            onReview={() => { setSheet(null); setReview({ focus: [sheetWord.word] }) }}
             onWantPro={() => { setSheet(null); setShowPro(true) }}
             onClose={() => setSheet(null)}
           />

@@ -1,6 +1,6 @@
 import { localDate } from '../../shared/lib/memory/dailyPick.js'
 
-// Список закреплённых фраз для раздела «Фразы» вкладки «Память» (чистая
+// Список выученных фраз для раздела «Мои выученные фразы» вкладки «Память» (чистая
 // функция без сети). Фраза = модуль; запись о закреплении — phrase_memory
 // (module_id, consolidated_at и снимок phrase_title / phrase_words на момент
 // закрепления). Прогресс ученика не зависит от модуля, поэтому фраза остаётся
@@ -12,8 +12,9 @@ import { localDate } from '../../shared/lib/memory/dailyPick.js'
 // rows — [{ module_id, consolidated_at, phrase_title, phrase_words }];
 // moduleById — Map id → { id, title, videoUrl, words: [{ word, lessonId, lessonTitle }] };
 // byWord — Map слово → строка word_memory; hasDeck — слово с колодой повтора.
-// → [{ id, title, date, words: [{ word, lessonId?, lessonTitle?, step, due, hasDeck }],
-//      lost: null | 'gone' | 'closed', videoUrl }], свежие закрепления первыми
+// → [{ id, n, title, date, words: [{ word, lessonId?, lessonTitle?, step, due, hasDeck }],
+//      lost: null | 'gone' | 'closed', videoUrl }], свежие выученные первыми. n — номер фразы в
+// коллекции по порядку выучивания (самая первая — 1), поэтому номера не меняются, пока коллекция растёт
 export function buildPhraseList(rows, moduleById, byWord, hasDeck) {
   const withMemory = w => ({ ...w, step: byWord.get(w.word)?.step ?? null, due: byWord.get(w.word)?.due_on ?? null, hasDeck: hasDeck(w.word) })
   return (rows ?? [])
@@ -33,6 +34,7 @@ export function buildPhraseList(rows, moduleById, byWord, hasDeck) {
       }
     })
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || a.title.localeCompare(b.title))
+    .map((p, i, all) => ({ ...p, n: all.length - i }))
 }
 
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
@@ -45,8 +47,8 @@ export function phraseDateLabel(date, today) {
   return today && String(y) !== today.slice(0, 4) ? `${label} ${y}` : label
 }
 
-// Заботливое объяснение, если урок фразы пропал, а закрепление осталось
+// Заботливое объяснение, если урок фразы пропал, а фраза в коллекции осталась
 export const PHRASE_LOST_TEXT = {
-  gone: 'Урок этой фразы сейчас недоступен — возможно, его убрали или переделали. Не переживай: фраза остаётся закреплённой, а её слова по-прежнему в твоей памяти. Повторять её заново не нужно.',
-  closed: 'Урок этой фразы сейчас закрыт — его дорабатывают. Фраза остаётся закреплённой, прогресс не потерян. Когда урок снова откроется, откроется и здесь.',
+  gone: 'Урок этой фразы сейчас недоступен — возможно, его убрали или переделали. Не переживай: фраза остаётся в твоей коллекции выученных, а её слова по-прежнему в твоей памяти. Повторять её заново не нужно.',
+  closed: 'Урок этой фразы сейчас закрыт — его дорабатывают. Фраза остаётся в твоей коллекции выученных, прогресс не потерян. Когда урок снова откроется, откроется и здесь.',
 }

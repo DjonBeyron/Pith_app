@@ -166,3 +166,8 @@
   animation: memPlaySpin 0.7s linear infinite;
 }
 @keyframes memPlaySpin { to { transform: rotate(360deg); } }
+
+/* Тест админа в окне слова: шаг памяти вперёд до конца и сброс (LearnWordSheet.jsx) */
+.memAdminStep { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-top: 10px; border-top: 1px dashed #2a2d35; }
+.memAdminStepLabel { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #6b737d; }
+.memAdminStep .lrBtn:disabled { opacity: 0.5; cursor: default; }

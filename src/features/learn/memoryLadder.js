@@ -69,6 +69,19 @@ export function wordLevel(step, perm = false) {
 // ступени целиком, текущая — levelFill, будущие пусты
 export const lineFills = step => [1, 2, 3].map(n => (n < levelOf(step) ? 1 : n > levelOf(step) ? 0 : levelFill(step)))
 
+// Слово в лестнице по ключу → { word, perm } | null (перм — оно в постоянной памяти). Окно слова
+// берёт по нему свежие данные после тест-шага админа (слово могло перейти на другую ступень)
+export function findLadderWord(ladder, key) {
+  if (!ladder) return null
+  const perm = ladder.permanent.find(w => w.word === key)
+  if (perm) return { word: perm, perm: true }
+  for (const l of ladder.levels) {
+    const w = l.words.find(x => x.word === key)
+    if (w) return { word: w, perm: false }
+  }
+  return null
+}
+
 // memory     — строки word_memory [{ word, step, due_on, settled_on? }]
 // todayWords — Set слов сегодняшнего повторения (pickToday)
 // hasDeck    — есть ли у слова колода (без неё слово не в расписании)

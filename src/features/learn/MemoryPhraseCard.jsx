@@ -1,8 +1,7 @@
-import { Star } from 'lucide-react'
 import MemoryWordChip from './MemoryWordChip.jsx'
 import { phraseDateLabel, PHRASE_LOST_TEXT } from './phraseList.js'
 
-// Карточка закреплённой фразы: ★ закреплена + дата, сама фраза, её слова (тап —
+// Карточка выученной фразы: «Фраза № N · выучена + дата», сама фраза, её слова (тап —
 // окно слова, как на главном экране) и «Открыть фразу». Если урок фразы пропал
 // (p.lost) — вместо кнопки заботливое объяснение: фраза и слова остаются в
 // памяти, повторять ничего не нужно. Слова фразы берутся из снимка закрепления
@@ -12,7 +11,7 @@ export default function MemoryPhraseCard({ p, today, onWord, onOpenModule, onClo
   return (
     <div className="lrSheetBack" onClick={onClose}>
       <div className="lrSheet" role="dialog" aria-label={`Фраза ${p.title}`} onClick={e => e.stopPropagation()}>
-        <p className="memPhraseCardMeta"><Star aria-hidden="true" /> закреплена{date && ` · ${date}`}</p>
+        <p className="memPhraseCardMeta">Фраза № {p.n} · выучена{date && ` ${date}`}</p>
         <p className="lrSheetWord">{p.title || 'Фраза'}</p>
         {p.words.length > 0 && (
           <>

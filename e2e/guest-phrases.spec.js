@@ -1,8 +1,8 @@
 import { test, expect } from './fixtures.js'
 import { isLocalBackend } from './helpers/backend.js'
 
-// Раздел «Фразы · N» вкладки «Память» гостя: закреплённые фразы под пятиугольником,
-// «Все фразы», карточка фразы; фраза с пропавшим уроком остаётся и объясняется
+// Раздел «Мои выученные фразы · N» вкладки «Память» гостя: коллекция под пятиугольником с
+// номерами, «Вся коллекция», карточка фразы; фраза с пропавшим уроком остаётся и объясняется
 // заботливо. Модуль «Keep going · E2E-ОБУЧЕНИЕ» есть только в сиде локального стека.
 const MODULE = 'e2e0d000-0000-4000-8000-0000000000ff'
 const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv') }
@@ -28,25 +28,27 @@ test('закреплённые фразы: список, «Все фразы», 
   await page.goto('/?tab=learn')
 
   const section = page.locator('.memPhrases')
-  await expect(section.locator('.memPhrasesTitle')).toHaveText('Фразы · 4', { timeout: 30_000 })
+  await expect(section.locator('.memPhrasesTitle')).toHaveText('Мои выученные фразы · 4', { timeout: 30_000 })
   await expect(section.locator('.memPhraseRow')).toHaveCount(3) // три последние; остальные — в «Все фразы»
   await expect(section.locator('.memPhraseRow').first()).toContainText('Keep going')
+  // Номер в коллекции — по порядку выучивания: самая свежая — 4, дальше 3, 2 (запись без даты — №1)
+  await expect(section.locator('.memPhraseNum')).toHaveText(['4', '3', '2'])
   await expect(section.locator('.memPhraseRow').first()).toContainText('2 слова')
   await expect(section.locator('.memPhraseRow').nth(1)).toContainText('урок сейчас недоступен')
 
-  // «Все фразы» — окно со всем списком, включая запись без снимка
-  await section.getByRole('button', { name: /Все фразы · 4/ }).click()
-  const all = page.getByRole('dialog', { name: 'Все фразы' })
+  // «Вся коллекция» — окно со всем списком, включая запись без снимка
+  await section.getByRole('button', { name: /Вся коллекция · 4/ }).click()
+  const all = page.getByRole('dialog', { name: 'Мои выученные фразы' })
   await expect(all.locator('.memPhraseRow')).toHaveCount(4)
   await expect(all.locator('.memPhraseRow').nth(3)).toContainText('Фраза')
 
   // Фраза с пропавшим уроком: слова из снимка и забота вместо кнопки
   await all.locator('.memPhraseRow').nth(1).click()
   const lost = page.getByRole('dialog', { name: 'Фраза Gone phrase' })
-  await expect(lost).toContainText('закреплена')
+  await expect(lost).toContainText('Фраза № 3 · выучена')
   await expect(lost.locator('.memChip')).toHaveText(['keep'])
   await expect(lost.locator('.memPhraseLost')).toContainText('Не переживай')
-  await expect(lost.locator('.memPhraseLost')).toContainText('остаётся закреплённой')
+  await expect(lost.locator('.memPhraseLost')).toContainText('остаётся в твоей коллекции выученных')
   await expect(lost.getByRole('button', { name: 'Открыть фразу' })).toHaveCount(0)
   await lost.getByRole('button', { name: 'Закрыть' }).click()
 

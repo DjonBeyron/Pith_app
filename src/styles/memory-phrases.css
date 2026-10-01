@@ -1,17 +1,18 @@
-/* Раздел «Фразы · N» вкладки «Память» (features/learn/MemoryPhrases.jsx), окно «Все фразы»
-   и карточка фразы. Золото — цвет закреплённой фразы (как «золотая» фраза в карте модуля) */
+/* Раздел «Мои выученные фразы · N» вкладки «Память» (features/learn/MemoryPhrases.jsx), окно
+   со всей коллекцией и карточка фразы. Золото — цвет выученной фразы (как «золотая» фраза в карте модуля) */
 :root { --phrase-gold: #ffd257; }
 .memPhrases { margin-top: 30px; }
 .memPhrasesTitle {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin: 0 0 10px;
+  margin: 0 0 3px;
   font-size: 15px;
   font-weight: 800;
   color: #e8ecf0;
 }
-.memPhrasesTitle svg, .memPhraseCardMeta svg { width: 15px; height: 15px; color: var(--phrase-gold); fill: var(--phrase-gold); }
+.memPhrasesLead { margin: 0 0 10px; font-size: 12px; font-weight: 600; color: #8b95a1; }
+.memPhrasesTitle svg { width: 15px; height: 15px; color: var(--phrase-gold); fill: var(--phrase-gold); }
 .memPhrasesList { display: flex; flex-direction: column; gap: 6px; }
 .memPhrasesAll {
   display: flex;
@@ -46,17 +47,31 @@
   text-align: left;
   cursor: pointer;
 }
-.memPhraseStar { flex: none; width: 17px; height: 17px; color: var(--phrase-gold); fill: var(--phrase-gold); }
+/* Номер фразы в коллекции — вместо звёздочки */
+.memPhraseNum {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 14px;
+  background: rgba(255, 210, 87, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 87, 0.45);
+  color: var(--phrase-gold);
+  font-size: 13px;
+  font-weight: 800;
+}
 .memPhraseText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .memPhraseText b { overflow: hidden; font-size: 15px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; color: #eef1f4; }
 .memPhraseText small { font-size: 12px; font-weight: 600; color: #8b95a1; }
 /* Урок фразы пропал — фраза не «сломана», просто спокойнее по цвету */
-.memPhraseRow--lost .memPhraseStar { opacity: 0.6; }
+.memPhraseRow--lost .memPhraseNum { opacity: 0.6; }
 
 .memPhrasesScroll { display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow-y: auto; scrollbar-width: none; }
 .memPhrasesScroll::-webkit-scrollbar { display: none; }
 
-.memPhraseCardMeta { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; font-weight: 700; color: #aeb6bf; }
+.memPhraseCardMeta { margin: 0; font-size: 12px; font-weight: 700; color: var(--phrase-gold); }
 .memPhraseCardLabel { margin: 4px 0 0; font-size: 12px; font-weight: 700; color: #8b95a1; }
 .memPhraseLost {
   margin: 4px 0;

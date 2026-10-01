@@ -8,8 +8,9 @@ import { wordLevel, LEVEL_COUNT } from './memoryLadder.js'
 // расписания — удобство Pro; шаг от раннего повтора не растёт, ошибка —
 // снижает: так договорились в концепции). perm — слово постоянной памяти
 // (пятиугольник). Появляется «пружинкой» — общая анимация шторок вкладки
-// (pop-spring.css)
-export default function LearnWordSheet({ word, perm, isPro, onLesson, onReview, onWantPro, onClose }) {
+// (pop-spring.css). У админа ниже — тест-инструмент: «Повторил → следующий уровень»
+// (шаг +1 до постоянной памяти) и «Сбросить слово» (onStep('next' | 'reset'))
+export default function LearnWordSheet({ word, perm, isPro, isAdmin = false, stepBusy = false, onStep, onLesson, onReview, onWantPro, onClose }) {
   const level = wordLevel(word.step, perm)
   return (
     <div className="lrSheetBack" onClick={onClose}>
@@ -35,6 +36,15 @@ export default function LearnWordSheet({ word, perm, isPro, onLesson, onReview, 
           <button className="lrBtn" onClick={isPro ? onReview : onWantPro}>
             Повторить сейчас{isPro ? '' : ' · Pro'}
           </button>
+        )}
+        {isAdmin && (
+          <div className="memAdminStep">
+            <p className="memAdminStepLabel">Тест админа</p>
+            <button className="lrBtn" disabled={stepBusy || perm} onClick={() => onStep('next')}>
+              {perm ? 'Конец пути: постоянная память' : word.step >= 5 ? 'Повторил → в постоянную память' : 'Повторил → следующий уровень'}
+            </button>
+            <button className="lrBtn lrBtnGhost" disabled={stepBusy} onClick={() => onStep('reset')}>Сбросить слово</button>
+          </div>
         )}
         <button className="lrBtn lrBtnGhost" onClick={onClose}>Закрыть</button>
       </div>

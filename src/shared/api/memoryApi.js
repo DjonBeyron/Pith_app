@@ -82,6 +82,16 @@ export async function debugRemoveWord(word) {
   return data ?? 0
 }
 
+// Только админ (миграция 20261001140000_memory_debug_step.sql): пройти слово по уровням памяти
+// до конца — action 'next' (как верный повтор в срок: шаг +1; на шаге 5 — в постоянную память;
+// в постоянной — дальше некуда, end: true) — и 'reset' (как новое: шаг 1, постоянная снимается).
+// Журнал повторений не пишется. { ok, word, prev_step, step, due_on, settled, end } | { ok: false, reason } | null
+export async function debugStepWord(word, action) {
+  const { data, error } = await supabase.rpc('memory_debug_step', { p_word: word, p_action: action })
+  if (error) { console.error('[MEMORY] memory_debug_step:', error.message); return null }
+  return data ?? null
+}
+
 // Конец сессии повторения (миграция 20260925140000_memory_finish_session.sql):
 // сервер проверяет, что у каждого слова сессии есть исход за сегодня, и
 // начисляет XP (2 за слово по расписанию, потолок 20 в день) + день серии.

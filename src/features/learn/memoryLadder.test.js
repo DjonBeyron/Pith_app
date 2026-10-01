@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { levelOf, levelFill, lineFills, buildLadder, wordLevel, pageTabs, LEVEL_TITLES, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
+import { levelOf, levelFill, lineFills, findLadderWord, buildLadder, wordLevel, pageTabs, LEVEL_TITLES, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
 import { orth, ladderLinks, flarePath, bulbR, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX, ballScale, haloScale, BALL_D, BALL_GROW, HALO_D, HALO_GROW } from './ladderWires.js'
 
 describe('ступени памяти', () => {
@@ -173,5 +173,18 @@ describe('связи памяти: толщина растёт от шапки �
     expect(haloScale(3.2) * HALO_D).toBeCloseTo(3.2 * HALO_GROW, 2)
     expect(HALO_GROW).toBeGreaterThan(BALL_GROW * 2)
     widths.forEach(w => expect(haloScale(W_MIN)).toBeLessThan(haloScale(w)))
+  })
+})
+
+describe('findLadderWord', () => {
+  const ladder = buildLadder([
+    { word: 'keep', step: 2, due_on: '2026-10-01' },
+    { word: 'make', step: 5, due_on: '2026-11-01', settled_on: '2026-10-01' },
+  ])
+  it('находит слово на ступени и в постоянной памяти; нет слова — null', () => {
+    expect(findLadderWord(ladder, 'keep')).toMatchObject({ perm: false, word: { word: 'keep', step: 2 } })
+    expect(findLadderWord(ladder, 'make')).toMatchObject({ perm: true, word: { word: 'make' } })
+    expect(findLadderWord(ladder, 'nope')).toBe(null)
+    expect(findLadderWord(null, 'keep')).toBe(null)
   })
 })

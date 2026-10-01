@@ -36,9 +36,10 @@ describe('список закреплённых фраз', () => {
     expect(p).toMatchObject({ title: '', lost: 'gone', date: null, words: [] })
   })
 
-  it('свежие закрепления первыми; записи без module_id пропускаются', () => {
+  it('свежие выученные первыми; записи без module_id пропускаются; номер — по порядку выучивания', () => {
     const l = list([rowOf('m1', '2026-09-01T10:00:00Z'), rowOf('gone-1', '2026-09-30T10:00:00Z', 'B'), { consolidated_at: '2026-10-01T10:00:00Z' }])
     expect(l.map(p => p.id)).toEqual(['gone-1', 'm1'])
+    expect(l.map(p => p.n)).toEqual([2, 1]) // первая выученная — №1, новая получает следующий номер
   })
 
   it('дата словами; не этого года — с годом', () => {
@@ -49,7 +50,7 @@ describe('список закреплённых фраз', () => {
 
   it('заботливые тексты — для обоих случаев и без «ошибки»', () => {
     for (const k of ['gone', 'closed']) {
-      expect(PHRASE_LOST_TEXT[k]).toMatch(/закреплённой/)
+      expect(PHRASE_LOST_TEXT[k]).toMatch(/коллекции выученных/)
       expect(PHRASE_LOST_TEXT[k]).not.toMatch(/ошибк|не удалось/i)
     }
   })
