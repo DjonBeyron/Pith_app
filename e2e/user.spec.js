@@ -68,6 +68,9 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await expect(page.getByRole('tab', { name: /Новые/ })).toHaveAttribute('aria-selected', 'true')
   const row = page.locator('.memChipRow', { hasText: 'keep' })
   await expect(row).toContainText('сегодня')
+  // По нижней кромке строки — линия из трёх отрезков (keep на шаге 1: первый на четверть)
+  await expect(row.locator('.memLineSeg')).toHaveCount(3)
+  await expect(row.locator('.memLineSeg--1')).toHaveAttribute('style', /--f: 25%/)
   // Кнопка ▶ — из той же базы озвучки, что слова в уроках
   await row.getByRole('button', { name: 'Воспроизвести «keep»' }).click({ timeout: 30_000 })
   await expect.poll(() => page.evaluate(() => window.__plays)).toEqual(['https://audio.test/keep.mp3'])

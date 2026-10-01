@@ -96,7 +96,7 @@
 /* Окно слова: уровень памяти — полоска из 4 отрезков + название и пояснение */
 .memSheetFrom { margin-top: -6px; }
 .memSheetLevel {
-  --c: #b0b8c2;
+  --c: var(--lvl1);
   display: flex;
   flex-direction: column;
   gap: 8px;

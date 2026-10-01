@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { levelOf, levelFill, journey, buildLadder, wordLevel, pageTabs, LEVEL_TITLES, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
+import { levelOf, levelFill, lineFills, buildLadder, wordLevel, pageTabs, LEVEL_TITLES, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
 import { orth, ladderLinks, flarePath, bulbR, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX, ballScale, haloScale, BALL_D, BALL_GROW, HALO_D, HALO_GROW } from './ladderWires.js'
 
 describe('ступени памяти', () => {
@@ -7,11 +7,12 @@ describe('ступени памяти', () => {
     expect([1, 2, 3, 4, 5].map(levelOf)).toEqual([1, 1, 2, 2, 3])
   })
 
-  it('заливка — путь к следующей ступени, весь путь растёт с шагом', () => {
+  it('заливка — путь к следующей ступени', () => {
     expect([1, 2, 3, 4, 5].map(levelFill)).toEqual([0.25, 0.75, 0.25, 0.75, 1])
-    const j = [1, 2, 3, 4, 5].map(journey)
-    expect(j[4]).toBe(1)
-    j.slice(1).forEach((v, i) => expect(v).toBeGreaterThan(j[i]))
+  })
+
+  it('линия слова: пройденные отрезки целиком, текущий — на заливку ступени, будущие пусты', () => {
+    expect([1, 2, 3, 4, 5].map(lineFills)).toEqual([[0.25, 0, 0], [0.75, 0, 0], [1, 0.25, 0], [1, 0.75, 0], [1, 1, 1]])
   })
 
   it('слова по ступеням: сегодняшние первыми, дальше по сроку; постоянная память — отдельно', () => {

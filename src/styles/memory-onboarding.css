@@ -20,7 +20,7 @@
 .summaryMemWord {
   align-self: flex-start;
   padding: 4px 12px;
-  border-left: 4px solid #b0b8c2;
+  border-left: 4px solid var(--lvl1);
   border-radius: 10px;
   background: #1a1d22;
   color: #eef1f4;
@@ -33,7 +33,7 @@
 .memIntro { gap: 12px; }
 .memIntroText { margin: 0; font-size: 14px; line-height: 1.45; color: #8b95a1; }
 .memIntroStrong { font-weight: 700; color: #eef1f4; }
-.memIntroLv1 { color: #b0b8c2; }
+.memIntroLv1 { color: var(--lvl1); }
 .memIntroLv2 { color: #e2cd78; }
 .memIntroLv3 { color: #b6fe3b; }
 .memIntroPerm { color: #a78bfa; }

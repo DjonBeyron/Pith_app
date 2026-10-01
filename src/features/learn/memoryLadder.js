@@ -65,8 +65,9 @@ export function wordLevel(step, perm = false) {
   return { n: l.id, name: l.one, remember: l.remember }
 }
 
-// Весь путь слова 0..1 — обводка слова зеленеет по мере роста
-export const journey = step => (step >= 5 ? 1 : (levelOf(step) - 1 + levelFill(step)) / 3)
+// Заливка трёх отрезков линии слова (Новые, Знакомые, Усвоенные), 0..1: пройденные
+// ступени целиком, текущая — levelFill, будущие пусты
+export const lineFills = step => [1, 2, 3].map(n => (n < levelOf(step) ? 1 : n > levelOf(step) ? 0 : levelFill(step)))
 
 // memory     — строки word_memory [{ word, step, due_on, settled_on? }]
 // todayWords — Set слов сегодняшнего повторения (pickToday)

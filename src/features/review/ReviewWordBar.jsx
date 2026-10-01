@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { levelOf, levelFill, journey, LEVELS } from '../learn/memoryLadder.js'
+import { levelOf, levelFill, LEVELS } from '../learn/memoryLadder.js'
 
 // Полоска слова в итоге — та же, что у слова во вкладке «Память» (.memChip):
-// заливка цвета ступени — путь к следующей ступени. Растёт от прежнего
+// заливка и рамка цвета ступени, заливка — путь к следующей ступени. Растёт от прежнего
 // значения к новому, чтобы было видно, как слово пополнилось. Ступень
 // сменилась — старая дозаливается (или опустошается), затем новая набирает
 // с начала. from/to — шаг памяти до и после (to = null — сервер не ответил,
@@ -31,11 +31,9 @@ export default function ReviewWordBar({ word, from, to, settled = false }) {
     return () => timers.forEach(clearTimeout)
   }, [from, to, settled])
 
-  const last = to ?? from
   const perm = cur.lvl === 'Perm'
-  const ring = perm || !last ? undefined : `color-mix(in srgb, #b6fe3b ${Math.round(12 + journey(last) * 58)}%, #2a3038)`
   return (
-    <div className={`memChip memChip--${cur.lvl} reviewBar${cur.still ? ' reviewBar--still' : ''}`} style={ring ? { '--ring': ring } : undefined}>
+    <div className={`memChip memChip--${cur.lvl} reviewBar${cur.still ? ' reviewBar--still' : ''}`}>
       <span className="memChipFill" style={{ width: `${cur.fill * 100}%` }} />
       <span className="memChipWord">{word}</span>
       <span className="reviewBarLevel">{perm ? 'Постоянная память' : LEVELS[cur.lvl - 1].name}</span>

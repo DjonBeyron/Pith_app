@@ -1,10 +1,20 @@
 /* Лестница «Моей памяти» (features/learn/MemoryLadder.jsx): ступени
-   новые → знакомые → усвоенные (серый → мягкий жёлтый → салатовый) лесенкой
+   новые → знакомые → усвоенные (небесный → мягкий жёлтый → салатовый) лесенкой
    по 64% ширины с равным шагом, справа — число слов во временной памяти, внизу по центру —
    фиолетовый пятиугольник постоянной памяти (memory-perm.css).
    Сила ступени — числом обводок: 1 / 2 / 3, у пятиугольника 4; каждая
    следующая наружу тоньше и бледнее. Линии и шарики — слой .memWires под
    блоками (MemoryLadderWires.jsx) */
+
+/* Цвета ступеней (одно место для CSS; в JS те же — WIRE_COLORS в ladderWires.js):
+   Новые — небесный, Знакомые — мягкий жёлтый, Усвоенные — салатовый, Постоянная — фиолетовый */
+:root {
+  --lvl1: #4fb3ee;
+  --lvl1-rgb: 79, 179, 238;
+  --lvl2: #e2cd78;
+  --lvl3: #b6fe3b;
+  --lvlP: #8b5cf6;
+}
 
 .memZone { position: relative; }
 
@@ -20,8 +30,8 @@
 
 /* ── Ступень ───────────────────────────────────────────────────────── */
 .memLvl {
-  --c: #b0b8c2;
-  --tint: rgba(176, 184, 194, 0.16);
+  --c: var(--lvl1);
+  --tint: rgba(var(--lvl1-rgb), 0.16);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -29,13 +39,13 @@
   padding: 13px 14px 14px 17px;
   border-radius: 16px;
   background: linear-gradient(to right, var(--tint) 0, transparent 90px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
-  --glow: rgba(176, 184, 194, 0.45);
+  --glow: rgba(var(--lvl1-rgb), 0.45);
   /* Первая обводка — по краю блока; слева, где в блок входит связь, она толще
      (серп 3px: самый толстый напротив входа, к углам сходит на нет) и светится
      ВНУТРИ блока — наружу свет не выходит */
   box-shadow:
-    inset 0 0 0 var(--w1, 1px) var(--c1, rgba(176, 184, 194, 0.85)),
-    inset 3px 0 0 0 var(--c1, rgba(176, 184, 194, 0.85)),
+    inset 0 0 0 var(--w1, 1px) var(--c1, rgba(var(--lvl1-rgb), 0.85)),
+    inset 3px 0 0 0 var(--c1, rgba(var(--lvl1-rgb), 0.85)),
     inset 14px 0 16px -10px var(--glow);
 }
 /* Вторая и третья обводки — эхо-кольца снаружи, с прозрачным зазором (линии связей
@@ -93,9 +103,9 @@
 .memWords { display: flex; flex-wrap: wrap; gap: 6px; }
 .memEmpty { font-size: 12px; color: #5c6570; }
 
-/* ── Слово: заливка цвета ступени, обводка зеленеет с ростом ─────────── */
+/* ── Слово: заливка и обводка цвета ступени ────────────────────────── */
 .memChip {
-  --fill: #b0b8c2;
+  --fill: var(--lvl1);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -110,11 +120,11 @@
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px var(--ring, #2a3038);
+  box-shadow: inset 0 0 0 1px var(--ring, var(--fill));
 }
-.memChip--2 { --fill: #e2cd78; }
-.memChip--3 { --fill: #b6fe3b; }
-.memChip--Perm { --fill: #8b5cf6; --ring: rgba(139, 92, 246, 0.55); }
+.memChip--2 { --fill: var(--lvl2); }
+.memChip--3 { --fill: var(--lvl3); }
+.memChip--Perm { --fill: var(--lvlP); --ring: rgba(139, 92, 246, 0.55); }
 .memChipFill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--fill); opacity: 0.3; }
 .memChipWord { position: relative; }
 .memChipMuted { opacity: 0.55; }

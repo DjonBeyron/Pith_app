@@ -12,7 +12,7 @@
 /* ── Вкладки уровней (четыре) ──────────────────────────────────────── */
 .memTabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 3px; border-radius: 12px; background: #14171c; }
 .memTab {
-  --c: #b0b8c2;
+  --c: var(--lvl1);
   min-width: 0;
   padding: 7px 2px;
   border: 0;
@@ -33,8 +33,8 @@
 
 /* ── Шапка ступени ─────────────────────────────────────────────────── */
 .memHead {
-  --c: #b0b8c2;
-  --tint: rgba(176, 184, 194, 0.16);
+  --c: var(--lvl1);
+  --tint: rgba(var(--lvl1-rgb), 0.16);
   padding: 14px 16px 15px;
   border-top: 3px solid var(--c);
   border-radius: 14px;
@@ -52,7 +52,7 @@
    перепереносится. Кнопка справа сверху: в открытом виде «Свернуть ⌃», при нажатии
    морфится: подпись уезжает, появляется иконка описания, шеврон переворачивается
    вниз — получается компактная кнопка «развернуть описание» */
-.memHeadWrap { --c: #b0b8c2; --tint: rgba(176, 184, 194, 0.16); --ease: cubic-bezier(0.4, 0, 0.2, 1); position: relative; padding-bottom: 0; transition: padding-bottom 0.32s var(--ease); }
+.memHeadWrap { --c: var(--lvl1); --tint: rgba(var(--lvl1-rgb), 0.16); --ease: cubic-bezier(0.4, 0, 0.2, 1); position: relative; padding-bottom: 0; transition: padding-bottom 0.32s var(--ease); }
 .memHeadWrap--shut { padding-bottom: 32px; }
 .memHeadWrap.memHead--2 { --c: #e2cd78; --tint: rgba(226, 205, 120, 0.15); }
 .memHeadWrap.memHead--3 { --c: #b6fe3b; --tint: rgba(182, 254, 59, 0.15); }
@@ -143,3 +143,12 @@
 @media (prefers-reduced-motion: reduce) {
   .memHeadWrap, .memHeadFold, .memHeadWrap--shut .memHeadFold, .memHeadToggle, .memHeadToggle * { transition: none !important; }
 }
+
+/* Линия по нижней кромке строки списка (MemoryWordLine.jsx): три отрезка цветов ступеней;
+   дорожка — тусклый оттенок цвета отрезка, заливка — яркий цвет */
+.memLine { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 1px; pointer-events: none; }
+.memLineSeg { position: relative; flex: 1; height: 3px; background: color-mix(in srgb, var(--c) 30%, #12151a); }
+.memLineSeg::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--f, 0%); background: var(--c); }
+.memLineSeg--1 { --c: var(--lvl1); }
+.memLineSeg--2 { --c: var(--lvl2); }
+.memLineSeg--3 { --c: var(--lvl3); }

@@ -2,6 +2,7 @@ import { useState, useRef, useLayoutEffect, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { plural } from '../../shared/lib/plural.js'
 import { popPlace, ORBIT_RX } from './memoryCountPop.js'
+import { WIRE_COLORS } from './ladderWires.js'
 
 // Счётчик слов во временной памяти — справа от первой ступени: только число.
 // Число «дышит» цветами ступеней (серый → жёлтый → салатовый, каждый
@@ -22,9 +23,9 @@ import { popPlace, ORBIT_RX } from './memoryCountPop.js'
 // ленте, а при закрытии окно схлопывается в угол, и в такт с масштабом поверх
 // текста проступает заливка цветом фона окна (opacity слоя-заливки; CLOSE_MS).
 const ORBITS = [
-  { deg: 0, dur: 3.2, color: '#b0b8c2' },
-  { deg: 60, dur: 4.1, color: '#e2cd78' },
-  { deg: 120, dur: 5, color: '#b6fe3b' },
+  { deg: 0, dur: 3.2, color: WIRE_COLORS.levels[0] },
+  { deg: 60, dur: 4.1, color: WIRE_COLORS.levels[1] },
+  { deg: 120, dur: 5, color: WIRE_COLORS.levels[2] },
 ]
 
 const CLOSE_MS = 340 // схлопывание и заливка идут вместе, 0.34 с
