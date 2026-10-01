@@ -133,7 +133,7 @@
 .memPlay svg { width: 13px; height: 13px; }
 /* Невидимая расширенная зона нажатия: круг 25px, а попасть можно в 38px */
 .memPlay::after { content: ''; position: absolute; inset: -6px -3px; }
-.memChipNoteToday { color: #b6fe3b; }
+.memChipNoteToday { color: var(--fill); } /* цвет ступени, в которой слово */
 .memListEmpty { margin: 6px 2px; font-size: 13px; color: #6b737d; }
 
 /* ── Постоянная память — фиолетовая ────────────────────────────────── */
@@ -146,9 +146,23 @@
 
 /* Линия по нижней кромке строки списка (MemoryWordLine.jsx): три отрезка цветов ступеней;
    дорожка — тусклый оттенок цвета отрезка, заливка — яркий цвет */
-.memLine { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 1px; pointer-events: none; }
+.memLine { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 1px; background: #1a1d22; pointer-events: none; } /* фон чипа: в зазоре пустота, а не просвечивающая заливка */
 .memLineSeg { position: relative; flex: 1; height: 3px; background: color-mix(in srgb, var(--c) 30%, #12151a); }
 .memLineSeg::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--f, 0%); background: var(--c); }
 .memLineSeg--1 { --c: var(--lvl1); }
 .memLineSeg--2 { --c: var(--lvl2); }
 .memLineSeg--3 { --c: var(--lvl3); }
+
+/* Значок ▶ появляется плавно (библиотека озвучки догружается чуть позже списка); крутилка —
+   пока звук грузится дольше порога (MemoryPlayButton.jsx) */
+.memPlay { animation: memPlayIn 0.3s ease backwards; }
+@keyframes memPlayIn { from { opacity: 0; transform: scale(0.6); } }
+.memPlaySpin {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-top-color: #e8ecf0;
+  border-radius: 50%;
+  animation: memPlaySpin 0.7s linear infinite;
+}
+@keyframes memPlaySpin { to { transform: rotate(360deg); } }

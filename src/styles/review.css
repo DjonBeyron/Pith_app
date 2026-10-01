@@ -76,6 +76,10 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+/* Новая карточка (шапка монтируется заново): фраза со словом под спойлером плавно опускается из-за
+   верха экрана. Только transform и opacity — композитор */
+.reviewPhrase, .reviewTitle { animation: reviewPhraseDrop 0.7s cubic-bezier(0.22, 0.85, 0.3, 1) backwards; }
+@keyframes reviewPhraseDrop { from { transform: translate3d(0, -110px, 0); opacity: 0; } 55% { opacity: 1; } }
 .reviewPhraseHidden { color: #b6fe3b; letter-spacing: -1px; }
 .reviewPhraseWord   { color: #b6fe3b; animation: reviewFadeIn 0.35s ease both; }
 
@@ -142,5 +146,5 @@
   to   { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .reviewVerdict, .reviewPhraseWord { animation: none; }
+  .reviewVerdict, .reviewPhraseWord, .reviewPhrase, .reviewTitle { animation: none; }
 }

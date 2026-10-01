@@ -46,6 +46,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  touch-action: none; /* подсказку тоже можно смахнуть (useSwipeNext) */
   animation: reviewHintIn 0.7s ease 0.55s backwards;
 }
 /* Стрелка влево — куда смахивать; чуть «подтягивается» влево с паузой (transform, без перерисовки) */

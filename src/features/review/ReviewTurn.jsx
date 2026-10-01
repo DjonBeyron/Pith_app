@@ -25,7 +25,7 @@ function verdictOf(result, { attempt, word, kind }) {
 // block для fixed-слоёв плеера: панели ответа ложатся внутрь карточки).
 // Режим onFinishStats: ни XP, ни звёзд, ни экрана итогов, ни записи в анализ
 // урока. После ответа карточка «переворачивается» — плашка с итогом; дальше —
-// «Далее», смахивание влево (useSwipeNext) или Enter/← на клавиатуре.
+// «Далее», смахивание влево — карточки или подсказки под ней (useSwipeNext) или Enter/← на клавиатуре.
 // «Не могу слушать» — только на карточке со звуком (NoAudioButton). Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
 export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, onAnswer, onNoAudio, onClose }) {
   const [answered, setAnswered] = useState(null) // { result, timeMs }
@@ -39,7 +39,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
     onAnswer(res)
   }
   const next = () => answered && send(answered)
-  const swipeRef = useSwipeNext(!!answered, next)
+  const [cardRef, hintRef] = useSwipeNext(!!answered, next)
 
   useEffect(() => {
     if (!answered) return
@@ -54,7 +54,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
   return (
     <>
       <ReviewHeader session={session} phrase={phrase} title={title} word={item.word} revealed={!!answered} onClose={onClose} />
-      <div className={answered ? 'reviewCard reviewCard--answered' : 'reviewCard'} ref={swipeRef}>
+      <div className={answered ? 'reviewCard reviewCard--answered' : 'reviewCard'} ref={cardRef}>
         <div className="reviewCardFrame">
           <LessonPlayer
             nodes={item.card.nodes}
@@ -78,7 +78,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
               {/* Кнопка — там, где есть мышь; на касании — надпись (она же кнопка для
                   тех, кто не смахивает). Появляется только после ответа, плавно */}
               <button className="reviewBtn reviewBtn--main reviewNext" onClick={next}>Далее</button>
-              <button className="reviewSwipeHint" aria-label="Далее" onClick={next}>
+              <button className="reviewSwipeHint" aria-label="Далее" onClick={next} ref={hintRef}>
                 <ArrowLeft className="reviewSwipeArrow" aria-hidden="true" />
                 <span className="reviewSwipeHintText">
                   смахни карточку влево

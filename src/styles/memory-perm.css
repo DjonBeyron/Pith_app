@@ -68,13 +68,13 @@
   height: var(--s);
   border-radius: 50%;
   background: var(--c);
-  box-shadow: 0 0 8px 2px rgba(167, 139, 250, 0.6);
+  box-shadow: 0 0 10px 3px rgba(167, 139, 250, 0.7);
   animation: memAshSway calc(var(--d) / 3.3) ease-in-out var(--dl) infinite alternate;
 }
 @keyframes memAshRise {
   0% { transform: translate3d(0, 0, 0); opacity: 0; }
-  10% { opacity: 0.9; }
-  45% { opacity: 0.6; }
+  10% { opacity: 1; }
+  45% { opacity: 0.75; }
   70%, 100% { transform: translate3d(0, calc(var(--r) * -1), 0); opacity: 0; }
 }
 @keyframes memAshSway { from { transform: translate3d(calc(var(--sw) * -1), 0, 0); } to { transform: translate3d(var(--sw), 0, 0); } }

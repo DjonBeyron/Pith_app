@@ -23,6 +23,7 @@ const blobUrls = new Map()  // key → blob: URL (revoke при release)
 let blobCount = 0, urlCount = 0 // для лога прогрева: blob (свой) или прямой URL (CORS)
 let current = null
 let gen = 0                 // смена урока обесценивает идущую предзагрузку
+export const WAIT_MS = 250  // звук не пошёл дольше — зовём onWait (кнопка ▶ показывает крутилку загрузки)
 
 function stopCurrent() {
   if (!current) return
@@ -69,8 +70,11 @@ export async function preloadWordAudio(keys) {
 }
 
 // true — слово есть и запущено. Нет в базе/не прогрето — тишина (не ждём:
-// слово с опозданием «прилипло» бы к следующему тапу)
-export function playWord(key) {
+// слово с опозданием «прилипло» бы к следующему тапу).
+// hooks (необязательно): onWait — звук не пошёл за WAIT_MS (грузится с сервера),
+// onDone — звук пошёл, не удался или его прервали другим словом (после onWait
+// всегда приходит onDone)
+export function playWord(key, hooks = null) {
   if (!key) return false
   stopCurrent()
   let a = players.get(key)
@@ -83,8 +87,11 @@ export function playWord(key) {
     players.set(key, a)
   }
   current = a
-  a.onplaying = () => pLog(`[word-audio] играет «${key}» (${a.src.startsWith('blob:') ? 'blob' : 'url'}, ${a.duration.toFixed(2)}с)`)
-  a.play().catch(e => pLog(`[word-audio] play «${key}» не удался: ${e.message}`))
+  let finished = false
+  const done = () => { if (finished) return; finished = true; clearTimeout(waitTimer); hooks?.onDone?.() }
+  const waitTimer = hooks?.onWait ? setTimeout(() => { if (!finished) hooks.onWait() }, WAIT_MS) : 0
+  a.onplaying = () => { done(); pLog(`[word-audio] играет «${key}» (${a.src.startsWith('blob:') ? 'blob' : 'url'}, ${a.duration.toFixed(2)}с)`) }
+  a.play().then(done).catch(e => { done(); pLog(`[word-audio] play «${key}» не удался: ${e.message}`) })
   return true
 }
 

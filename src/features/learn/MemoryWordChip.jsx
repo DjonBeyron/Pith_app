@@ -1,6 +1,6 @@
-import { Volume2 } from 'lucide-react'
 import { levelOf, levelFill } from './memoryLadder.js'
 import MemoryWordLine from './MemoryWordLine.jsx'
+import MemoryPlayButton from './MemoryPlayButton.jsx'
 
 // Слово памяти: заливка цвета ступени — путь к следующей ступени, рамка — цвет
 // ступени (memory-ladder.css). perm — слово постоянной памяти (фиолетовое, залито
@@ -8,7 +8,7 @@ import MemoryWordLine from './MemoryWordLine.jsx'
 // row — строка списка «Все слова»: по нижней кромке тонкая линия пути по трём
 // ступеням (MemoryWordLine), справа пометка «сегодня» (в сегодняшнем
 // повторении) или «скоро» (у слова ещё нет карточек — не в расписании) и
-// кнопка ▶ озвучки: onPlay — сыграть слово, canPlay — оно уже озвучено (место
+// кнопка ▶ озвучки (MemoryPlayButton): onPlay(слово, { onWait, onDone }) — сыграть слово, canPlay — оно уже озвучено (место
 // под кнопку занято всегда, чтобы пометки стояли ровно)
 export default function MemoryWordChip({ w, perm = false, row = false, onClick, onPlay, canPlay = false }) {
   const lvl = perm ? 'Perm' : levelOf(w.step)
@@ -36,11 +36,7 @@ export default function MemoryWordChip({ w, perm = false, row = false, onClick, 
       </button>
       {onPlay && (
         <span className="memPlaySlot">
-          {canPlay && (
-            <button className="memPlay" onClick={() => onPlay(w.word)} aria-label={`Воспроизвести «${w.word}»`} title="Послушать">
-              <Volume2 />
-            </button>
-          )}
+          {canPlay && <MemoryPlayButton word={w.word} onPlay={onPlay} />}
         </span>
       )}
     </div>

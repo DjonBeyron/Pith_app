@@ -3,6 +3,7 @@ import { getCachedProfile, subscribeProfile } from '../../shared/api/profileCach
 import { useLessonNav } from '../../app/LessonNavContext.jsx'
 import { localToday } from '../review/reviewDecks.js'
 import { onLearnHome } from '../../shared/lib/learnHomeEvent.js'
+import { listWordAudio } from '../../shared/lib/wordAudio/wordAudioApi.js'
 import LearnMainAction from './LearnMainAction.jsx'
 import MemoryLadder from './MemoryLadder.jsx'
 import LearnPattern from './LearnPattern.jsx'
@@ -35,6 +36,8 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const today = localToday()
 
   useEffect(() => subscribeProfile(setProfile), [])
+  // Библиотека озвучки слов — заранее (кэш на сессию): значки ▶ в списке «Все слова» готовы сразу
+  useEffect(() => { listWordAudio() }, [])
   // Тап по значку «Память» в нижней панели, когда вкладка уже открыта — из
   // списка слов назад на главный экран
   useEffect(() => onLearnHome(() => setPage(null)), [])
