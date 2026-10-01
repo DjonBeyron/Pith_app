@@ -2,6 +2,7 @@ import { ZONE_FIELDS } from '../zones/zoneSchema.js'
 import { PRINCIPLES, PRE_SUBMIT_CHECKLIST } from './lessonRulesDefaults.js'
 import { REVIEW_CARDS_DOC } from './reviewCardsDoc.js'
 import { WORD_CARD_DOC } from './wordCardDoc.js'
+import { ALL_PARTS, partsAbout, principlesForParts } from './lessonParts.js'
 
 // Легенда формата обмена уроком: что означает каждый тип ноды, каждое поле и
 // каждое условие перехода. Она уезжает вместе с экспортом (см. exportLesson.js),
@@ -231,22 +232,31 @@ export const NODE_FIELDS = {
 // подставляет сюда при экспорте. Без них (например офлайн, или сервер
 // недоступен) используется зашитый в код список — экспорт не должен
 // ломаться из-за недоступности БД.
-export function buildLegend(principles = PRINCIPLES, checklist = PRE_SUBMIT_CHECKLIST) {
+// parts — какие части файла выгружаются (lessonParts.js): легенда несёт только то,
+// что нужно им, — без урока не тащим ни правила урока, ни чек-лист, ни зоны; описание
+// нод нужно и урока, и карточкам повтора (карточка — те же ноды)
+export function buildLegend(principles = PRINCIPLES, checklist = PRE_SUBMIT_CHECKLIST, parts = ALL_PARTS) {
+  const needNodes = parts.lesson || parts.reviewCards
   return {
     about: 'Формат обмена уроком Pithy. Файлы не передаются — вместо них пометка needs. Переходы ссылаются на ref других нод.',
-    principles,
-    preSubmitChecklist: {
-      about: 'Эти пункты проверяются НЕ по одной ноде, а по готовому черновику урока целиком — пройди по ним явно перед тем как отдать урок.',
-      items: checklist,
-    },
-    node: NODE_FIELDS,
-    zones: ZONE_FIELDS,
-    reviewCards: REVIEW_CARDS_DOC,
-    wordCard: WORD_CARD_DOC,
-    triggers: TRIGGER_DOCS,
-    nodes: Object.fromEntries(Object.entries(NODE_DOCS).map(([type, d]) => [
-      type,
-      { label: d.label, what: d.what, ...(d.needs ? { needs: d.needs } : {}), fields: d.fields },
-    ])),
+    parts: partsAbout(parts),
+    principles: principlesForParts(principles, parts),
+    ...(parts.lesson ? {
+      preSubmitChecklist: {
+        about: 'Эти пункты проверяются НЕ по одной ноде, а по готовому черновику урока целиком — пройди по ним явно перед тем как отдать урок.',
+        items: checklist,
+      },
+    } : {}),
+    ...(needNodes ? { node: NODE_FIELDS } : {}),
+    ...(parts.lesson ? { zones: ZONE_FIELDS } : {}),
+    ...(parts.reviewCards ? { reviewCards: REVIEW_CARDS_DOC } : {}),
+    ...(parts.wordCard ? { wordCard: WORD_CARD_DOC } : {}),
+    ...(needNodes ? {
+      triggers: TRIGGER_DOCS,
+      nodes: Object.fromEntries(Object.entries(NODE_DOCS).map(([type, d]) => [
+        type,
+        { label: d.label, what: d.what, ...(d.needs ? { needs: d.needs } : {}), fields: d.fields },
+      ])),
+    } : {}),
   }
 }

@@ -62,11 +62,16 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
   if (json.format && json.format !== FORMAT) {
     throw new Error(`Чужой формат: ${json.format}. Ожидался ${FORMAT}`)
   }
-  if (!Array.isArray(json.nodes) || !json.nodes.length) {
-    throw new Error('В файле нет массива nodes')
+  // Файл — это три независимые части (lessonParts.js): скрипт урока (nodes), колода
+  // (reviewCards) и справка слова (wordCard). Нужна хотя бы одна
+  const rawNodes = Array.isArray(json.nodes) ? json.nodes : []
+  const hasCards = Array.isArray(json.reviewCards) && json.reviewCards.length > 0
+  const hasWordCard = !!json.wordCard && typeof json.wordCard === 'object'
+  if (!rawNodes.length && !hasCards && !hasWordCard) {
+    throw new Error('В файле нет массива nodes (и нет ни reviewCards, ни wordCard)')
   }
 
-  dbg('[IMPORT] разбираю файл:', `${json.nodes.length} нод`, `формат ${json.format ?? '—'}`)
+  dbg('[IMPORT] разбираю файл:', `${rawNodes.length} нод`, `формат ${json.format ?? '—'}`)
 
   const warnings = []
   const idByRef = new Map()
@@ -77,7 +82,7 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
   // nodeGraph.js) спускает такую ноду на ряд ниже, остальных не трогая
   let nudged = 0
 
-  json.nodes.forEach((raw, i) => {
+  rawNodes.forEach((raw, i) => {
     const ref = raw.ref ?? `n${i + 1}`
     if (!KNOWN_TYPES.has(raw.type)) {
       warnings.push(`${ref}: неизвестный тип «${raw.type}» — нода пропущена`)
@@ -207,6 +212,9 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
     warnings,
     reviewCards,
     wordCard: wc.card,
+    // какие части были в файле (для окна импорта): nodes — даже если все они оказались негодными
+    has: { lesson: rawNodes.length > 0, reviewCards: hasCards, wordCard: hasWordCard },
     title: json.lesson?.title ?? '',
+    lessonId: typeof json.lesson?.lessonId === 'string' ? json.lesson.lessonId : null,
   }
 }

@@ -108,7 +108,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         )}
         {phrases && phrases !== 'all' && (
           <MemoryPhraseCard p={phrases} today={today} onClose={() => setPhrases(null)}
-            onWord={w => { setPhrases(null); setWordCard({ word: w, phrase: phrases.title }) }}
+            onWord={w => setWordCard({ word: w, phrase: phrases.title })}
             onOpenModule={() => { const id = phrases.id, title = phrases.title; setPhrases(null); openRef({ isModule: true, targetId: id, targetTitle: title }, null) }} />
         )}
         {wordCard && (
@@ -118,7 +118,8 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
             perm={!!findLadderWord(ladder, wordCard.word.word)?.perm}
             today={today}
             onLesson={() => { const id = wordCard.word.lessonId; setWordCard(null); openRef({ isModule: false, targetId: id }, null) }}
-            onFallback={() => { const w = wordCard.word; setWordCard(null); openWord(w) }}
+            onReady={() => setPhrases(null)}
+            onFallback={() => { const w = wordCard.word; setWordCard(null); setPhrases(null); openWord(w) }}
             onClose={() => setWordCard(null)}
           />
         )}

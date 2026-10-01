@@ -39,10 +39,12 @@ async function seed(page, card) {
     localStorage.setItem('pithy_minutes_asked_v1', '1')
     localStorage.setItem('pithy_memory_intro_v1', '1')
   }, [day(5), MODULE, iso])
-  // Справка слова: запрос script->wordCard урока — отдаём свою (или «нет справки»)
-  await page.route(/\/rest\/v1\/lessons\?.*wordCard/, route => route.fulfill({
-    status: 200, contentType: 'application/json', body: JSON.stringify({ wc: card }),
-  }))
+  // Справка слова: запрос script->wordCard урока — отдаём свою (или «нет справки»),
+  // с задержкой: так видно, что пока она грузится, на экране не появляется пустая карточка
+  await page.route(/\/rest\/v1\/lessons\?.*wordCard/, async route => {
+    await new Promise(r => setTimeout(r, 600))
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ wc: card }) })
+  })
   await page.goto('/?tab=learn')
   await page.locator('.memPhraseRow').first().click({ timeout: 30_000 })
   await page.getByRole('dialog', { name: 'Фраза Keep going' }).locator('.memChip', { hasText: 'keep' }).click()
@@ -78,8 +80,17 @@ test('тап по слову во фразе → карточка слова: ш
   await expect(card).toHaveCount(0)
 })
 
-test('у слова нет справки → обычное окно слова', async ({ page }) => {
+// Не мелькает: у слова без справки сразу окно слова, карточка слова в DOM не появлялась
+test('у слова нет справки → обычное окно слова, карточка не мелькает', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__wcSeen = false
+    new MutationObserver(() => { if (document.querySelector('.wcCard')) window.__wcSeen = true })
+      .observe(document, { childList: true, subtree: true })
+  })
   await seed(page, null)
+  // Пока справка грузится, карточка фразы остаётся на экране
+  await expect(page.getByRole('dialog', { name: 'Фраза Keep going' })).toBeVisible()
   await expect(page.getByRole('dialog', { name: 'Слово keep' })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('dialog', { name: 'Карточка слова keep' })).toHaveCount(0)
+  expect(await page.evaluate(() => window.__wcSeen)).toBe(false)
 })

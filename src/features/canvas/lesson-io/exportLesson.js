@@ -1,6 +1,7 @@
 import { FORMAT, SCHEMA_VERSION, NODE_DOCS, buildLegend } from './lessonSchema.js'
 import { getVariantList } from '../nodeVariants.js'
 import { wordCardToJson } from '../../wordCard/wordCardIo.js'
+import { normalizeParts } from './lessonParts.js'
 
 // Урок → обменный JSON. Отдаём всю логику сценария и ни одного байта медиа:
 // вместо файлов — пометка needs («сюда нужна озвучка»), а всё, что считается
@@ -104,40 +105,44 @@ function exportZones(zones) {
 }
 
 export function exportLesson(nodes, {
-  title = '', lessonId = null, includeLegend = true, principles, checklist, zones = [], reviewCards = [], wordCard = null,
+  title = '', lessonId = null, includeLegend = true, principles, checklist, zones = [], reviewCards = [], wordCard = null, parts,
 } = {}) {
+  // parts — какие части класть в файл (lessonParts.js); без него — все, как раньше
+  const use = normalizeParts(parts)
   const list = [...(nodes ?? [])].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
   const refOf = new Map(list.map((n, i) => [n.id, `n${i + 1}`]))
   const zonesOut = exportZones(zones)
   // Колода повтора (lessons.script.reviewCards): каждая карточка — те же
   // ноды обмена, но со своими ref n1, n2 … (переходы только внутри карточки)
-  const cardsOut = (reviewCards ?? [])
+  const cardsOut = (use.reviewCards ? (reviewCards ?? []) : [])
     .filter(c => c?.nodes?.length)
     .map(c => ({ nodes: exportLesson(c.nodes, { includeLegend: false }).nodes }))
   // Справка слова (lessons.script.wordCard) — как есть, без служебных id блоков
-  const wordCardOut = wordCardToJson(wordCard)
+  const wordCardOut = use.wordCard ? wordCardToJson(wordCard) : null
+
+  const nodesOut = list.map(n => {
+    const data = exportData(n, refOf)
+    const needs = needsOf(n)
+    return {
+      ref: refOf.get(n.id),
+      type: n.type,
+      seq: n.seq,
+      pos: [Math.round(n.x ?? 0), Math.round(n.y ?? 0)],
+      ...(n.size && n.size !== 'max' ? { size: n.size } : {}),
+      ...(n.note ? { note: n.note } : {}),
+      ...(needs ? { needs } : {}),
+      ...(Object.keys(data).length ? { data } : {}),
+      triggers: exportTriggers(n, refOf),
+    }
+  })
 
   return {
     format: FORMAT,
     version: SCHEMA_VERSION,
-    lesson: { title, ...(lessonId ? { lessonId } : {}), nodeCount: list.length },
-    ...(includeLegend ? { legend: buildLegend(principles, checklist) } : {}),
-    nodes: list.map(n => {
-      const data = exportData(n, refOf)
-      const needs = needsOf(n)
-      return {
-        ref: refOf.get(n.id),
-        type: n.type,
-        seq: n.seq,
-        pos: [Math.round(n.x ?? 0), Math.round(n.y ?? 0)],
-        ...(n.size && n.size !== 'max' ? { size: n.size } : {}),
-        ...(n.note ? { note: n.note } : {}),
-        ...(needs ? { needs } : {}),
-        ...(Object.keys(data).length ? { data } : {}),
-        triggers: exportTriggers(n, refOf),
-      }
-    }),
-    ...(zonesOut.length ? { zones: zonesOut } : {}),
+    lesson: { title, ...(lessonId ? { lessonId } : {}), ...(use.lesson ? { nodeCount: list.length } : {}) },
+    ...(includeLegend ? { legend: buildLegend(principles, checklist, use) } : {}),
+    ...(use.lesson ? { nodes: nodesOut } : {}),
+    ...(use.lesson && zonesOut.length ? { zones: zonesOut } : {}),
     ...(cardsOut.length ? { reviewCards: cardsOut } : {}),
     ...(wordCardOut ? { wordCard: wordCardOut } : {}),
   }

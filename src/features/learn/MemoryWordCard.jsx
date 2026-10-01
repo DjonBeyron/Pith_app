@@ -14,12 +14,15 @@ const LEVEL_COLOR = ['var(--lvl1)', 'var(--lvl2)', 'var(--lvl3)']
 // Карточка слова — справка для новичка (PROJECT.md → «Макет «Карточка слова»»): слово,
 // озвучка, перевод, где оно в фразе, блоки справки урока-слова (script.wordCard) и одна
 // строка про память. Открывается тапом по слову в карточке выученной фразы. Справки у
-// слова нет (не написана или не загрузилась) — onFallback: обычное окно слова
-export default function MemoryWordCard({ word, phrase, perm, today, onLesson, onFallback, onClose }) {
+// слова нет (не написана или не загрузилась) — onFallback: обычное окно слова; пока
+// идёт загрузка, не рисуется вовсе (карточка не мелькает перед окном слова), а карточка
+// фразы под ней остаётся на экране; когда справка готова — onReady (фразу закрываем)
+export default function MemoryWordCard({ word, phrase, perm, today, onLesson, onFallback, onReady, onClose }) {
   const [state, setState] = useState({ status: 'loading', card: null })
   const voice = useWordVoice()
   const fallbackRef = useRef(onFallback)
-  useEffect(() => { fallbackRef.current = onFallback })
+  const readyRef = useRef(onReady)
+  useEffect(() => { fallbackRef.current = onFallback; readyRef.current = onReady })
 
   useEffect(() => {
     let off = false
@@ -28,13 +31,16 @@ export default function MemoryWordCard({ word, phrase, perm, today, onLesson, on
       .then(raw => {
         if (off) return
         const card = normalizeWordCard(raw)
-        if (card) setState({ status: 'ok', card })
+        if (card) { readyRef.current?.(); setState({ status: 'ok', card }) }
         else fallbackRef.current()
       })
       .catch(() => { if (!off) fallbackRef.current() })
     return () => { off = true }
   }, [word.lessonId])
 
+  // Пока справка грузится — ничего не рисуем: если справки у слова нет, сразу откроется
+  // окно слова (onFallback), а мелькнувшая пустая карточка перед ним только путала бы
+  if (state.status === 'loading') return null
   const card = state.card
   const lvl = levelOf(word.step) - 1
   const fills = lineFills(word.step)
@@ -44,7 +50,7 @@ export default function MemoryWordCard({ word, phrase, perm, today, onLesson, on
       <div className="wcCard" role="dialog" aria-label={`Карточка слова ${word.word}`} onClick={e => e.stopPropagation()}>
         <div className="wcHead">
           <div className="wcTop">
-            <span className="wcTag">{card?.tag || 'слово'}</span>
+            <span className="wcTag">{card.tag || 'слово'}</span>
             <button className="wcX" onClick={onClose} aria-label="Закрыть"><X /></button>
           </div>
           <div className="wcWordRow">
@@ -62,7 +68,7 @@ export default function MemoryWordCard({ word, phrase, perm, today, onLesson, on
           )}
         </div>
         <div className="wcMid">
-          {state.status === 'loading' ? <p className="wcNote">Загрузка…</p> : <WordCardBlocks nodes={card.nodes} />}
+          <WordCardBlocks nodes={card.nodes} />
         </div>
         <div className="wcFoot">
           <div className="wcMem">

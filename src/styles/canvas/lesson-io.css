@@ -131,3 +131,11 @@
   border-color: #b6fe3b;
   box-shadow: 0 0 0 1px #b6fe3b, 0 20px 60px rgba(0, 0, 0, 0.6);
 }
+
+/* Галочки «какие части файла»: урок / карточки повтора / справка слова (LessonIoParts.jsx) */
+.lioParts { display: flex; flex-direction: column; gap: 5px; margin: 0; padding: 8px 10px; border: 1px solid #22252c; border-radius: 8px; }
+.lioParts legend { padding: 0 4px; color: #9aa0b4; font-size: 11px; font-weight: 700; }
+.lioPart { display: flex; align-items: center; gap: 7px; color: #d5d8de; font-size: 12px; cursor: pointer; }
+.lioPartName { font-weight: 600; }
+.lioPartInfo { color: #6a6f78; font-size: 11px; }
+.lioPartOff { opacity: 0.5; cursor: default; }

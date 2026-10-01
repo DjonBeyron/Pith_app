@@ -308,9 +308,9 @@ describe('панель обмена в шапке холста', () => {
   })
 
   it('импорт умеет и заменить урок, и дописать к нему', () => {
-    const panel = read('./LessonIoPanel.jsx')
-    expect(panel).toContain("runImport('replace')")
-    expect(panel).toContain("runImport('append')")
+    const panel = read('./LessonIoImport.jsx')
+    expect(panel).toContain("apply('replace')")
+    expect(panel).toContain("apply('append')")
     const api = read('../useCanvasBoardApi.js')
     expect(api).toContain('importNodes(list, zoneList = [], mode)')
     expect(api).toContain("if (mode === 'replace') {")
@@ -339,11 +339,12 @@ describe('импорт из файла и видимый итог', () => {
 
   it('в панели есть выбор файла, перетаскивание и разбор без применения', () => {
     const panel = read('./LessonIoPanel.jsx')
-    expect(panel).toContain("type=\"file\"")
-    expect(panel).toContain('accept=".json,application/json"')
+    const imp = read('./LessonIoImport.jsx')
+    expect(imp).toContain("type=\"file\"")
+    expect(imp).toContain('accept=".json,application/json"')
     expect(panel).toContain('readFile(e.dataTransfer.files?.[0])')
-    expect(panel).toContain('onClick={check}')
-    expect(panel).toContain('Разобрано: ${r.nodes.length} нод, ${r.links} связей')
+    expect(imp).toContain('onClick={check}')
+    expect(imp).toContain('Разобрано: ${parsedSummary(r)}')
   })
 
   it('после импорта холст показывает первую ноду и итог в строке статуса', () => {
@@ -354,7 +355,7 @@ describe('импорт из файла и видимый итог', () => {
 
 describe('сводка по холсту', () => {
   it('панель показывает триггеры, связи и размеры нод текущего урока', () => {
-    const panel = read('./LessonIoPanel.jsx')
+    const panel = read('./LessonIoExport.jsx')
     expect(panel).toContain("nodes.reduce((sum, n) => sum + (n.triggers?.length ?? 0), 0)")
     expect(panel).toContain("(n.triggers ?? []).filter(t => t.then).length")
     expect(panel).toContain("размеры: ${sizes")
