@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { moduleWords, phraseInfo, feedChip, tokenStep, rankFeed, daySeed } from './feedKnowledge.js'
+import { moduleWords, phraseInfo, tokenStep, rankFeed, daySeed } from './feedKnowledge.js'
 
 const lessonWord = new Map([
   ['to', 'to'], ['try', 'trying'], ['cook', 'cook'], ['keep', 'keep'], ['go', 'going'], ['a', 'apple'], ['b', 'banana'],
@@ -12,13 +12,6 @@ describe('знание фразы', () => {
     const words = moduleWords(['s', 'try', 'to', 'try', 'cook', 'f'], lessonWord)
     expect(words).toEqual(['trying', 'to', 'cook'])
     expect(phraseInfo(words, stepOf)).toEqual({ total: 3, known: 1, newWords: ['cook'], shaky: ['to'] })
-  })
-
-  it('метка: «Знаешь N из M · Закрепит» или «Новое для тебя»; без памяти — ничего', () => {
-    expect(feedChip(phraseInfo(['trying', 'to', 'cook'], stepOf), true)).toBe('Знаешь 1 из 3 · Закрепит: to')
-    expect(feedChip(phraseInfo(['keep', 'going'], stepOf), true)).toBe('Знаешь 1 из 2 · Новое для тебя: 1 слово')
-    expect(feedChip(phraseInfo(['apple', 'banana'], stepOf), true)).toBe('Новое для тебя: 2 слова')
-    expect(feedChip(phraseInfo(['trying'], stepOf), false)).toBe(null)
   })
 
   it('подсветка: шаг слова по его тексту во фразе (регистр, апостроф)', () => {

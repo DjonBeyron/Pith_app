@@ -1,9 +1,8 @@
 import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
-import { plural } from '../../shared/lib/plural.js'
 import { KNOW_STEP } from '../learn/learnView.js'
 
 // Лента и память слов (этап 6 системы повторения, PROJECT.md → «Лента»):
-// что во фразе знакомо, метка слайда и порядок рекомендаций. Чистые функции:
+// что во фразе знакомо, подсветка слов и порядок рекомендаций. Чистые функции:
 // stepOf — Map слово → шаг памяти, lessonWord — Map урок → слово (learnView).
 
 // Слова фразы — уроки-слова модуля (между Стартом и Финалом), без повторов
@@ -21,20 +20,6 @@ export function phraseInfo(words, stepOf) {
     newWords: words.filter(w => !stepOf.has(w)),
     shaky: inMem.filter(w => stepOf.get(w) < KNOW_STEP),
   }
-}
-
-// Метка слайда: «Знаешь 3 из 4 · Закрепит: to» / «Новое для тебя: 1 слово».
-// Пока память пуста — без меток (новичку нечего сравнивать)
-export function feedChip(info, hasMemory) {
-  if (!hasMemory || !info.total) return null
-  const parts = []
-  if (info.known) parts.push(`Знаешь ${info.known} из ${info.total}`)
-  if (info.shaky.length) parts.push(`Закрепит: ${info.shaky.slice(0, 2).join(', ')}`)
-  else if (info.newWords.length) {
-    const n = info.newWords.length
-    parts.push(`Новое для тебя: ${n} ${plural(n, 'слово', 'слова', 'слов')}`)
-  }
-  return parts.join(' · ') || null
 }
 
 // Шаг памяти слова фразы (для подсветки цветом силы) или null

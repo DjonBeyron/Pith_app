@@ -181,13 +181,13 @@ test('«Отпуск»: пауза расписания (в настройках
   await expect(page.getByRole('button', { name: 'Уезжаю в отпуск' })).toBeVisible()
 })
 
-test('лента по памяти: фраза со своим словом — первой, слово подсвечено, метка «Закрепит»', async ({ page }) => {
+test('лента по памяти: фраза со своим словом — первой, слово подсвечено цветом, без текстовой метки', async ({ page }) => {
   // keep в памяти e2e-user и ещё не окреп (шаг < 3): фраза «Keep going» —
   // вверх (у остальных фраз сида нет слов-уроков), «Keep» окрашен силой
   await page.goto('/')
   const slide = page.locator('.feedSlideWrapActive')
   await expect(slide.locator('.feedPhrase')).toContainText('Keep going', { timeout: 30_000 })
-  await expect(slide.locator('.feedKnowChip')).toHaveText('Закрепит: keep')
+  await expect(slide.locator('.feedKnowChip')).toHaveCount(0)
   await expect(slide.locator('.fwKnown')).toHaveText('Keep')
 })
 
