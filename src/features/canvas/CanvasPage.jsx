@@ -24,7 +24,7 @@ import BackButton from '../../shared/ui/BackButton.jsx'
 // module — { id, title, isPro } модуля, из схемы которого открыли урок:
 // по нему «назад» возвращает в этот модуль (ShellV2), в том числе после
 // перезагрузки — модуль лежит в памяти последнего урока
-export default function CanvasPage({ lessonId, moduleLessons = [], module = null, onBack, onOpenProduction, onOpenCards }) {
+export default function CanvasPage({ lessonId, moduleLessons = [], module = null, onBack, onOpenProduction, onOpenCards, onOpenWordCard }) {
   // Уроки модуля для привязки ответов (анализ знаний) — без урока, который редактируем.
   // useMemo — иначе новый массив на КАЖДЫЙ рендер CanvasPage (клик по XP-полю,
   // обновление syncStatus и т.п.) срывал бы React.memo у всех CanvasNode
@@ -169,6 +169,11 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
     try { await handleSave() } catch { return }
     onOpenCards(lessonId)
   }
+  // «Справка» слова (карточка слова) — так же, после сохранения урока
+  async function switchToWordCard() {
+    try { await handleSave() } catch { return }
+    onOpenWordCard(lessonId)
+  }
 
   // Кнопка на случай, когда локальный черновик застрял (например, урок
   // поменяли не в этом браузере) — без консоли/DevTools, прямо из интерфейса.
@@ -208,7 +213,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           setIoZones={setIoZones}
           setShowBatchGen={setShowBatchGen} boardApiRef={boardApiRef} lessonId={lessonId} title={title}
           lessonXp={lessonXp} setLessonXp={setLessonXp} markDirty={markDirty}
-          switchToProduction={switchToProduction} switchToCards={switchToCards} hasUnsynced={hasUnsynced}
+          switchToProduction={switchToProduction} switchToCards={switchToCards} switchToWordCard={switchToWordCard} hasUnsynced={hasUnsynced}
           hasUnsyncedLogo={hasUnsyncedLogo} setShowPanel={setShowPanel}
           zoneToolActive={zoneToolActive} onToggleZoneTool={() => setZoneToolActive(v => !v)}
         />

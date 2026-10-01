@@ -42,13 +42,15 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
     const ids = Array.isArray(m.lesson_ids) && m.lesson_ids.length > 2 ? m.lesson_ids.slice(1, -1) : []
     const seen = new Set()
     const words = []
+    // Перевод по словам модуля ([{ w, t }], его пишет админ): слово → перевод
+    const tr = new Map((Array.isArray(m.word_translations) ? m.word_translations : []).map(e => [wordKey(e?.w), (e?.t ?? '').trim()]).filter(([k, v]) => k && v))
     for (const id of ids) {
       const l = lessonById.get(id)
       const word = l && wordKey(l.title)
       if (!word || seen.has(word)) continue
       seen.add(word)
       if (l.deck) deckWords.add(word)
-      words.push({ word, lessonId: id, lessonTitle: l.title })
+      words.push({ word, lessonId: id, lessonTitle: l.title, translation: tr.get(word) ?? '' })
     }
     return { id: m.id, title: m.title ?? '', videoUrl: m.video_url ?? null, golden: golden.has(m.id), words }
   })
@@ -79,7 +81,7 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
   const wordHome = new Map()
   for (const m of moduleWords) {
     for (const w of m.words) {
-      if (!wordHome.has(w.word)) wordHome.set(w.word, { lessonId: w.lessonId, lessonTitle: w.lessonTitle, phrase: m.title })
+      if (!wordHome.has(w.word)) wordHome.set(w.word, { lessonId: w.lessonId, lessonTitle: w.lessonTitle, phrase: m.title, translation: w.translation })
     }
   }
 

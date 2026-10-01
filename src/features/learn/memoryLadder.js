@@ -97,7 +97,7 @@ export function buildLadder(memory, { todayWords = new Set(), hasDeck = () => tr
     const w = {
       word: m.word, step: m.step, due: m.due_on,
       today: todayWords.has(m.word), hasDeck: hasDeck(m.word),
-      lessonId: home?.lessonId ?? null, lessonTitle: home?.lessonTitle ?? '', phrase: home?.phrase ?? '',
+      lessonId: home?.lessonId ?? null, lessonTitle: home?.lessonTitle ?? '', phrase: home?.phrase ?? '', translation: home?.translation ?? '',
     }
     if (m.settled_on) permanent.push(w)
     else levels[levelOf(m.step) - 1].words.push(w)

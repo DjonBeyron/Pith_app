@@ -46,24 +46,30 @@ export async function deleteLesson(id) {
   dbg('[DB OK] lesson deleted', id)
 }
 
-// Колоду карточек повтора (script.reviewCards) правит только своя страница
-// (features/reviewCards, saveReviewCards ниже). Редакторы урока — канвас и
-// продакшен — пишут script целиком и о колоде не знают: чтобы их «Сохранить»
-// её не стёрло, недостающий reviewCards подтягиваем с сервера перед записью.
-// Не прочиталось — не сохраняем вовсе: лучше ошибка, чем молча стёртая колода
-async function keepReviewCards(id, script) {
-  if (!script || 'reviewCards' in script) return script
+// Колоду карточек повтора (script.reviewCards) и справку слова (script.wordCard)
+// правят только свои страницы (features/reviewCards, features/wordCard; saveReviewCards /
+// saveWordCard ниже). Редакторы урока — канвас и продакшен — пишут script целиком и о
+// них не знают: чтобы их «Сохранить» их не стёрло, недостающие ключи подтягиваем с
+// сервера перед записью. Не прочиталось — не сохраняем вовсе: лучше ошибка, чем молча
+// стёртая колода или справка
+const OWN_KEYS = { reviewCards: 'cards', wordCard: 'wc' } // ключ script → псевдоним в select
+async function keepOwnKeys(id, script) {
+  if (!script) return script
+  const missing = Object.keys(OWN_KEYS).filter(k => !(k in script))
+  if (!missing.length) return script
   const { data, error } = await supabase
     .from('lessons')
-    .select('cards:script->reviewCards')
+    .select(missing.map(k => `${OWN_KEYS[k]}:script->${k}`).join(', '))
     .eq('id', id)
     .maybeSingle()
-  if (error) { dbg('[DB ERROR] lesson reviewCards read', error.message); throw error }
-  return data?.cards ? { ...script, reviewCards: data.cards } : script
+  if (error) { dbg('[DB ERROR] lesson own keys read', error.message); throw error }
+  const next = { ...script }
+  for (const k of missing) if (data?.[OWN_KEYS[k]]) next[k] = data[OWN_KEYS[k]]
+  return next
 }
 
 export async function saveScript(id, rawScript) {
-  const script = await keepReviewCards(id, rawScript)
+  const script = await keepOwnKeys(id, rawScript)
   const nodeCount = script?.nodes?.length ?? 0
   dbg('[DB WRITE] lesson script', id, nodeCount, 'nodes')
   // .select() обязателен: без него UPDATE, которому RLS тихо не дала совпасть
@@ -84,7 +90,7 @@ export async function saveScript(id, rawScript) {
 }
 
 export async function saveLesson(id, { title, script: rawScript }) {
-  const script = await keepReviewCards(id, rawScript)
+  const script = await keepOwnKeys(id, rawScript)
   const nodeCount = script?.nodes?.length ?? 0
   // Подробный снимок того, что реально уходит на сервер — file_id/r2Url по
   // каждой ноде с медиа, чтобы ловить именно расхождения файлов при сохранении
@@ -159,6 +165,40 @@ export async function saveReviewCards(id, cards) {
   if (error) { dbg('[DB ERROR] reviewCards save', error.message); throw error }
   if (!data?.length) throw new Error('Сохранение не применилось: сервер не подтвердил запись (0 строк изменено)')
   dbg('[DB OK] reviewCards saved', id)
+}
+
+// Справка слова урока-слова (PROJECT.md → «Макет «Карточка слова»»): меняем ТОЛЬКО
+// script.wordCard — ноды и настройки урока берём свежими с сервера. null — убрать справку
+export async function saveWordCard(id, wordCard) {
+  dbg('[DB WRITE] lesson wordCard', id, wordCard?.nodes?.length ?? 0, 'blocks')
+  const { data: cur, error: readErr } = await supabase
+    .from('lessons')
+    .select('script')
+    .eq('id', id)
+    .maybeSingle()
+  if (readErr) { dbg('[DB ERROR] wordCard read', readErr.message); throw readErr }
+  if (!cur) throw new Error('Урок не найден или недоступен')
+  const { wordCard: _old, ...rest } = cur.script ?? { nodes: [] }
+  const script = wordCard ? { ...rest, wordCard } : rest
+  const { data, error } = await supabase
+    .from('lessons')
+    .update({ script })
+    .eq('id', id)
+    .select('id')
+  if (error) { dbg('[DB ERROR] wordCard save', error.message); throw error }
+  if (!data?.length) throw new Error('Сохранение не применилось: сервер не подтвердил запись (0 строк изменено)')
+  dbg('[DB OK] wordCard saved', id)
+}
+
+// Справка слова для карточки слова и редактора: сырой JSON (чистит normalizeWordCard) или null
+export async function loadWordCardRaw(id) {
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('wc:script->wordCard')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) { dbg('[DB ERROR] wordCard load', error.message); throw error }
+  return data?.wc ?? null
 }
 
 // Лёгкий список уроков для карты памяти («Моё обучение»): название и есть ли

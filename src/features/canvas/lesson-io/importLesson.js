@@ -3,6 +3,7 @@ import { checkNodes, formatIntegrity } from '../canvasIntegrity.js'
 import { FORMAT } from './lessonSchema.js'
 import { NODE_TYPES } from '../nodeTypes.js'
 import { makeNode, renumber, findFreeSpot, NODE_SLOT } from '../nodeGraph.js'
+import { wordCardFromJson } from '../../wordCard/wordCardIo.js'
 
 // Обменный JSON → ноды урока. Обратная сторона exportLesson.js: восстанавливаем
 // сценарий целиком, кроме файлов — их автор подкладывает в редакторе, ноды
@@ -195,12 +196,17 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
     }
   })
 
+  // Справка слова (см. wordCardIo.js): годные блоки берём, остальное — предупреждения
+  const wc = wordCardFromJson(json.wordCard)
+  warnings.push(...wc.warnings)
+
   return {
     nodes,
     zones,
     links,
     warnings,
     reviewCards,
+    wordCard: wc.card,
     title: json.lesson?.title ?? '',
   }
 }

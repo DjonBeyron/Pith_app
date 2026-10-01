@@ -12,7 +12,7 @@ import { isTaskNode } from './reviewCardCopy.js'
 // карточка — короткая цепочка нод той же схемы, правится тем же списком,
 // что продакшен. Слева — урок как чат (ReviewLessonSource): из него копии
 // нод уходят в карточку. Хранится в lessons.script.reviewCards (saveReviewCards)
-export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, onOpenCanvas, onOpenProduction }) {
+export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, onOpenCanvas, onOpenProduction, onOpenWordCard }) {
   const rc = useReviewCards(lessonId)
   const [lessonShown, setLessonShown] = useState(true)
   const [previewing, setPreviewing] = useState(false)
@@ -55,6 +55,7 @@ export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, 
         <button className="pageTabBtn" onClick={() => leaveTo(onOpenCanvas)} disabled={busy}>Граф</button>
         <button className="pageTabBtn" onClick={() => leaveTo(onOpenProduction)} disabled={busy}>Продакшен</button>
         <button className="pageTabBtn pageTabBtnActive" disabled={busy}>Карточки</button>
+        <button className="pageTabBtn" onClick={() => leaveTo(onOpenWordCard)} disabled={busy}>Справка</button>
       </div>
 
       {rc.status && <div className="productionSyncStatus">{rc.status}</div>}

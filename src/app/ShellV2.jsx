@@ -52,6 +52,7 @@ export default function ShellV2() {
   const [productionLesson, setProductionLesson] = useState(null)
   // Редактор колоды «Карточки повтора» того же урока (features/reviewCards)
   const [cardsLesson, setCardsLesson] = useState(null)
+  const [wordCardLesson, setWordCardLesson] = useState(null)
   // Модуль, который админ-вкладка должна открыть по возвращении из редактора
   // («назад» в канвасе ведёт в схему модуля урока, а не на главный экран)
   const [moduleRequest, setModuleRequest] = useState(null)
@@ -203,7 +204,7 @@ export default function ShellV2() {
       <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} isRealAdmin={isRealAdmin} userMode={userMode} />
 
       {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}
-      {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && (
+      {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && !wordCardLesson && (
         <ResumeEditingToast
           onOpen={lesson => {
             setResumeClosed(true)
@@ -224,6 +225,7 @@ export default function ShellV2() {
         canvasLesson={canvasLesson} setCanvasLesson={setCanvasLesson}
         productionLesson={productionLesson} setProductionLesson={setProductionLesson}
         cardsLesson={cardsLesson} setCardsLesson={setCardsLesson}
+        wordCardLesson={wordCardLesson} setWordCardLesson={setWordCardLesson}
         onBackToModule={m => {
           if (!m?.id || !isAdmin) return
           setModuleRequest(m)

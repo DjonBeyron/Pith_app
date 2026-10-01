@@ -1,0 +1,85 @@
+/* Карточка слова (features/learn/MemoryWordCard.jsx) и её блоки (features/wordCard/WordCardBlocks.jsx,
+   их же показывает превью в редакторе «Справка»). Язык чата плеера: пузырь #1a1d22, ячейки #12141d,
+   лаймовая подсветка слова из фразы, янтарное отрицание. Середина карточки (.wcMid) — колонка:
+   справка на месте, пример диалога (.wcDlg) занимает остаток высоты и прокручивается внутри;
+   совсем тесный экран — прокручивается вся середина */
+.wcCard {
+  --wc-lime: #b6fe3b;
+  --wc-amber: #ffd98a;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 460px);
+  height: min(92dvh, 780px);
+  overflow: hidden;
+  border-radius: 24px 24px 0 0;
+  background: #14171c;
+  color: #e8ecf0;
+  transform-origin: 50% 100%;
+  animation: popSheetWobble 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards;
+}
+.wcHead { flex: none; padding: 16px 18px 8px; }
+.wcTop { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
+.wcTag { padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); color: #c9d0d7; font-size: 11.5px; font-weight: 700; }
+.wcX { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.07); color: #aab2bb; cursor: pointer; }
+.wcX svg { width: 12px; height: 12px; }
+.wcWordRow { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.wcWord { margin: 0; font-size: 34px; font-weight: 800; line-height: 1.1; letter-spacing: -0.01em; }
+.wcSnd { display: grid; place-items: center; flex: none; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.08); color: #d6dbe0; cursor: pointer; }
+.wcSnd svg { width: 15px; height: 15px; }
+.wcGloss { margin: 4px 0 0; color: #c9d0d7; font-size: 15px; font-weight: 600; }
+.wcCtx { margin: 10px 0 0; padding: 9px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); }
+.wcCtx > span { display: block; margin-bottom: 2px; color: #6b737d; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.wcCtx p { margin: 0; font-size: 15px; font-weight: 700; }
+.wcCtx mark { padding: 0 4px; border-radius: 5px; background: var(--wc-lime); color: #0d1500; }
+
+.wcMid { display: flex; flex: 1; flex-direction: column; gap: 8px; min-height: 0; padding: 4px 16px 10px; overflow-y: auto; scrollbar-width: none; }
+.wcMid::-webkit-scrollbar { display: none; }
+.wcNote { margin: 20px 0; color: #8b95a1; font-size: 13px; text-align: center; }
+.wcBub { flex: none; max-width: 100%; padding: 10px 14px; border-radius: 4px 18px 18px 18px; background: #1a1d22; color: #e0e0e0; font-size: 13.5px; font-weight: 500; line-height: 1.5; }
+.wcBub b, .wcBub strong { color: var(--wc-lime); font-weight: 700; }
+.wcBub small { display: block; margin-top: 2px; color: #8b95a1; font-size: 12px; }
+.wcNeg { color: var(--wc-amber); font-weight: 700; }
+.wcBub--tbl { padding: 8px 8px 10px; }
+.wcTbl { border-collapse: separate; border-spacing: 3px; font-size: 13px; }
+.wcTbl th { padding: 4px 6px; color: #6b737d; font-size: 11px; font-weight: 600; text-align: center; }
+.wcTbl td { padding: 8px 12px; border-radius: 8px; background: #12141d; color: #cfd3da; font-weight: 700; text-align: center; }
+.wcTbl td:first-child { background: none; color: #6b737d; font-size: 11.5px; font-weight: 600; text-align: left; }
+.wcTbl td:last-child { color: #8b95a1; font-size: 12px; }
+.wcTbl tr.wcMark td:not(:first-child) { background: rgba(182, 254, 59, 0.18); color: var(--wc-lime); box-shadow: inset 0 0 0 1px var(--wc-lime); }
+.wcTbl td small { display: block; margin-top: 1px; color: #cfeb92; font-size: 10.5px; font-weight: 600; }
+.wcBub--fm { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 12px 10px; }
+.wcChip { padding: 6px 9px; border-radius: 10px; background: #12141d; color: #e8ecf0; font-size: 14px; font-weight: 800; }
+.wcChip--res { background: rgba(182, 254, 59, 0.18); color: var(--wc-lime); box-shadow: inset 0 0 0 1px var(--wc-lime); }
+.wcOp { color: #6b737d; font-size: 14px; font-weight: 800; }
+.wcBub--cs { display: grid; gap: 8px; padding: 8px; }
+.wcCase { padding: 9px 12px 10px; border-radius: 12px; background: #12141d; }
+.wcCase--mark { background: rgba(182, 254, 59, 0.14); box-shadow: inset 0 0 0 1px var(--wc-lime); }
+.wcCase span { display: block; color: #6b737d; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.wcCase--mark span, .wcCase--mark small { color: #cfeb92; }
+.wcCase p { margin: 3px 0 0; color: #e8ecf0; font-size: 17px; font-weight: 800; }
+.wcCase p b { color: var(--wc-lime); }
+.wcCase small { display: block; margin-top: 2px; color: #8b95a1; font-size: 12px; font-weight: 500; }
+
+.wcDlg { display: flex; flex: 1 0 140px; flex-direction: column; min-height: 140px; margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.09); }
+.wcDlgLabel { margin: 9px 0 8px; color: #6b737d; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.wcDlgScroll {
+  display: flex; flex: 1; flex-direction: column; gap: 8px; min-height: 0; padding-bottom: 14px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #3a3f48 transparent;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
+}
+.wcMsg { display: flex; }
+.wcMsg--r { justify-content: flex-end; }
+.wcBub--me { border-radius: 18px 4px 18px 18px; background: rgba(182, 254, 59, 0.1); box-shadow: inset 0 0 0 1px rgba(182, 254, 59, 0.26); }
+.wcWho { display: block; margin-bottom: 1px; color: #6b737d; font-size: 10.5px; font-weight: 700; }
+.wcBub--me .wcWho { color: #9db86a; }
+
+.wcFoot { flex: none; padding: 11px 16px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255, 255, 255, 0.09); }
+.wcMem { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: #8b95a1; font-size: 12px; line-height: 1.35; }
+.wcMem b { font-weight: 700; }
+.wcLine { display: flex; flex: none; gap: 1px; width: 64px; }
+.wcLine i { position: relative; flex: 1; height: 4px; overflow: hidden; background: color-mix(in srgb, var(--c) 30%, #12151a); }
+.wcLine i::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--f); background: var(--c); }
+.wcActs { display: flex; align-items: center; gap: 12px; }
+.wcActs .lrBtn { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .wcCard { animation: popFadeIn 0.2s ease-out backwards; } }

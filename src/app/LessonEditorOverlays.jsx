@@ -7,19 +7,20 @@ import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
 const CanvasPage      = lazy(() => lazyRetry(() => import('../features/canvas/CanvasPage.jsx'), 'canvas'))
 const ProductionPage  = lazy(() => lazyRetry(() => import('../features/production/ProductionPage.jsx'), 'production'))
 const ReviewCardsPage = lazy(() => lazyRetry(() => import('../features/reviewCards/ReviewCardsPage.jsx'), 'review-cards'))
+const WordCardPage    = lazy(() => lazyRetry(() => import('../features/wordCard/WordCardPage.jsx'), 'word-card'))
 
-// Три вида редактора одного урока — оверлеем поверх оболочки (лента под ним
-// не размонтируется): «Граф» (canvas), «Продакшен» (линейный список) и
-// «Карточки» (колода повтора). Открыт максимум один; переключение между ними
+// Четыре вида редактора одного урока — оверлеем поверх оболочки (лента под ним
+// не размонтируется): «Граф» (canvas), «Продакшен» (линейный список),
+// «Карточки» (колода повтора) и «Справка» (карточка слова). Открыт максимум один; переключение между ними
 // — через шапку самого редактора (каждый сохраняет перед уходом).
 // Вынесено из ShellV2.jsx; состояние (какой урок в каком редакторе) — там же.
 export default function LessonEditorOverlays({
   canvasLesson, setCanvasLesson, productionLesson, setProductionLesson,
-  cardsLesson, setCardsLesson, onBackToModule,
+  cardsLesson, setCardsLesson, wordCardLesson, setWordCardLesson, onBackToModule,
 }) {
   // Открыть урок в другом редакторе, закрыв текущий
   const open = (setter, lesson) => id => {
-    setCanvasLesson(null); setProductionLesson(null); setCardsLesson(null)
+    setCanvasLesson(null); setProductionLesson(null); setCardsLesson(null); setWordCardLesson(null)
     setter({ id, moduleLessons: lesson?.moduleLessons ?? [] })
   }
   // Соседний редактор только что сохранил урок на сервер — это самая свежая
@@ -51,6 +52,7 @@ export default function LessonEditorOverlays({
               }}
               onOpenProduction={open(setProductionLesson, canvasLesson)}
               onOpenCards={open(setCardsLesson, canvasLesson)}
+              onOpenWordCard={open(setWordCardLesson, canvasLesson)}
             />
           </Suspense>
         </div>
@@ -65,6 +67,7 @@ export default function LessonEditorOverlays({
               onBack={() => setProductionLesson(null)}
               onOpenCanvas={openCanvasFrom(productionLesson)}
               onOpenCards={open(setCardsLesson, productionLesson)}
+              onOpenWordCard={open(setWordCardLesson, productionLesson)}
             />
           </Suspense>
         </div>
@@ -79,6 +82,21 @@ export default function LessonEditorOverlays({
               onBack={() => setCardsLesson(null)}
               onOpenCanvas={openCanvasFrom(cardsLesson)}
               onOpenProduction={open(setProductionLesson, cardsLesson)}
+              onOpenWordCard={open(setWordCardLesson, cardsLesson)}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {wordCardLesson && (
+        <div className="shellV2CanvasOverlay">
+          <Suspense fallback={<div className="shellV2Panel">Загрузка справки…</div>}>
+            <WordCardPage
+              lessonId={wordCardLesson.id}
+              onBack={() => setWordCardLesson(null)}
+              onOpenCanvas={openCanvasFrom(wordCardLesson)}
+              onOpenProduction={open(setProductionLesson, wordCardLesson)}
+              onOpenCards={open(setCardsLesson, wordCardLesson)}
             />
           </Suspense>
         </div>

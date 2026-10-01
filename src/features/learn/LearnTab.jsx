@@ -13,6 +13,7 @@ import MemoryLevelPage from './MemoryLevelPage.jsx'
 import MemoryPhrases from './MemoryPhrases.jsx'
 import MemoryPhrasesSheet from './MemoryPhrasesSheet.jsx'
 import MemoryPhraseCard from './MemoryPhraseCard.jsx'
+import MemoryWordCard from './MemoryWordCard.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
 import MemoryIntro from './MemoryIntro.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
@@ -34,6 +35,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const [phrases, setPhrases] = useState(null) // null | 'all' (окно «Все фразы») | фраза из view.phraseList (её карточка)
   const [showPro, setShowPro] = useState(false)
   const [stepBusy, setStepBusy] = useState(false)
+  const [wordCard, setWordCard] = useState(null) // { word, phrase } — карточка слова (справка) из карточки фразы
   const [profile, setProfile] = useState(getCachedProfile)
   const { openRef } = useLessonNav()
   const today = localToday()
@@ -106,8 +108,19 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         )}
         {phrases && phrases !== 'all' && (
           <MemoryPhraseCard p={phrases} today={today} onClose={() => setPhrases(null)}
-            onWord={w => { setPhrases(null); openWord(w) }}
+            onWord={w => { setPhrases(null); setWordCard({ word: w, phrase: phrases.title }) }}
             onOpenModule={() => { const id = phrases.id, title = phrases.title; setPhrases(null); openRef({ isModule: true, targetId: id, targetTitle: title }, null) }} />
+        )}
+        {wordCard && (
+          <MemoryWordCard
+            word={findLadderWord(ladder, wordCard.word.word)?.word ? { ...wordCard.word, ...findLadderWord(ladder, wordCard.word.word).word } : wordCard.word}
+            phrase={wordCard.phrase}
+            perm={!!findLadderWord(ladder, wordCard.word.word)?.perm}
+            today={today}
+            onLesson={() => { const id = wordCard.word.lessonId; setWordCard(null); openRef({ isModule: false, targetId: id }, null) }}
+            onFallback={() => { const w = wordCard.word; setWordCard(null); openWord(w) }}
+            onClose={() => setWordCard(null)}
+          />
         )}
         {review && (
           <Suspense fallback={null}>

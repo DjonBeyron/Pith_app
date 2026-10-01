@@ -58,9 +58,9 @@ describe('вкладка «Моя память»: данные', () => {
     expect(v.phrases.map(p => p.title)).toEqual(["I'm trying to cook", 'Keep trying'])
     const [cookPhrase, keepPhrase] = v.phrases
     expect(cookPhrase.words).toEqual([
-      { word: 'trying', lessonId: 'l-try', lessonTitle: 'trying', step: 3, due: today, hasDeck: true },
-      { word: 'to', lessonId: 'l-to', lessonTitle: 'to', step: 1, due: '2026-09-24', hasDeck: true },
-      { word: 'cook', lessonId: 'l-cook', lessonTitle: 'cook', step: 2, due: today, hasDeck: false },
+      { word: 'trying', lessonId: 'l-try', lessonTitle: 'trying', step: 3, due: today, hasDeck: true, translation: '' },
+      { word: 'to', lessonId: 'l-to', lessonTitle: 'to', step: 1, due: '2026-09-24', hasDeck: true, translation: '' },
+      { word: 'cook', lessonId: 'l-cook', lessonTitle: 'cook', step: 2, due: today, hasDeck: false, translation: '' },
     ])
     // у урока «Trying» во втором модуле колоды нет, но у слова она есть
     expect(keepPhrase.words[0]).toMatchObject({ word: 'trying', hasDeck: true })

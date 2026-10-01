@@ -11,7 +11,7 @@ export default function CanvasHeaderActions({
   isAdmin, filter, menuClosedAt, setFilterPos, setToolsPos,
   setPlayFrom, setShowPlayer, setIoNodes, setIoZones, setShowBatchGen,
   boardApiRef, lessonXp, setLessonXp, markDirty,
-  switchToProduction, switchToCards, hasUnsynced, hasUnsyncedLogo, setShowPanel,
+  switchToProduction, switchToCards, switchToWordCard, hasUnsynced, hasUnsyncedLogo, setShowPanel,
   zoneToolActive, onToggleZoneTool,
   lessonId, title,
 }) {
@@ -101,6 +101,9 @@ export default function CanvasHeaderActions({
       </button>
       <button className="pageTabBtn" onClick={switchToCards} disabled={isSaving || loading}>
         Карточки
+      </button>
+      <button className="pageTabBtn" onClick={switchToWordCard} disabled={isSaving || loading}>
+        Справка
       </button>
       {/* Настройки урока — в самом правом краю шапки: заходят туда редко,
           а слева их место занял «назад» */}

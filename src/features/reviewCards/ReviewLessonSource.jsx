@@ -9,7 +9,12 @@ import { SOURCE_FILTERS, MARK_LABEL, sourceRows, rowsFor, filterCounts } from '.
 // уходят КОПИИ (reviewCardCopy.js):
 //   «＋ Карточка из задания» — новая карточка: сообщение перед заданием + задание;
 //   «＋ в карточку» — нода (со своими подсказками) в конец выбранной карточки
-export default function ReviewLessonSource({ nodes, hasCard, onAddNode, onCardFromTask }) {
+// Тот же список берёт редактор «Справка» (wordCard/WordCardPage): без onCardFromTask
+// кнопки «из задания» нет, подпись кнопки — addLabel/addTitle
+export default function ReviewLessonSource({
+  nodes, hasCard, onAddNode, onCardFromTask = null,
+  addLabel = '＋ в карточку', addTitle = null,
+}) {
   const [filter, setFilter] = useState('all')
   const rows = sourceRows(nodes)
   const counts = filterCounts(rows)
@@ -57,14 +62,14 @@ export default function ReviewLessonSource({ nodes, hasCard, onAddNode, onCardFr
               </div>
             )}
             <div className="rcSrcBtns">
-              {r.isTask && (
+              {r.isTask && onCardFromTask && (
                 <button className="rcSrcMain" onClick={() => onCardFromTask(r.id)}>＋ Карточка из задания</button>
               )}
               <button
                 className="rcSrcAdd"
                 onClick={() => onAddNode(r.id)}
-                title={hasCard ? 'Копия ноды — в конец выбранной карточки' : 'Карточек нет — создастся новая'}
-              >＋ в карточку</button>
+                title={addTitle ?? (hasCard ? 'Копия ноды — в конец выбранной карточки' : 'Карточек нет — создастся новая')}
+              >{addLabel}</button>
             </div>
           </div>
         ))}

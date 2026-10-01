@@ -1,5 +1,6 @@
 import { FORMAT, SCHEMA_VERSION, NODE_DOCS, buildLegend } from './lessonSchema.js'
 import { getVariantList } from '../nodeVariants.js'
+import { wordCardToJson } from '../../wordCard/wordCardIo.js'
 
 // Урок → обменный JSON. Отдаём всю логику сценария и ни одного байта медиа:
 // вместо файлов — пометка needs («сюда нужна озвучка»), а всё, что считается
@@ -103,7 +104,7 @@ function exportZones(zones) {
 }
 
 export function exportLesson(nodes, {
-  title = '', lessonId = null, includeLegend = true, principles, checklist, zones = [], reviewCards = [],
+  title = '', lessonId = null, includeLegend = true, principles, checklist, zones = [], reviewCards = [], wordCard = null,
 } = {}) {
   const list = [...(nodes ?? [])].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
   const refOf = new Map(list.map((n, i) => [n.id, `n${i + 1}`]))
@@ -113,6 +114,8 @@ export function exportLesson(nodes, {
   const cardsOut = (reviewCards ?? [])
     .filter(c => c?.nodes?.length)
     .map(c => ({ nodes: exportLesson(c.nodes, { includeLegend: false }).nodes }))
+  // Справка слова (lessons.script.wordCard) — как есть, без служебных id блоков
+  const wordCardOut = wordCardToJson(wordCard)
 
   return {
     format: FORMAT,
@@ -136,6 +139,7 @@ export function exportLesson(nodes, {
     }),
     ...(zonesOut.length ? { zones: zonesOut } : {}),
     ...(cardsOut.length ? { reviewCards: cardsOut } : {}),
+    ...(wordCardOut ? { wordCard: wordCardOut } : {}),
   }
 }
 

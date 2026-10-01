@@ -16,6 +16,7 @@ export default function LearnWordSheet({ word, perm, isPro, isAdmin = false, ste
     <div className="lrSheetBack" onClick={onClose}>
       <div className="lrSheet" role="dialog" aria-label={`Слово ${word.word}`} onClick={e => e.stopPropagation()}>
         <p className="lrSheetWord">{word.word}</p>
+        {word.translation && <p className="lrSheetPhrase memSheetFrom" style={{ marginTop: -4 }}>{word.translation}</p>}
         {word.lessonId && (
           <p className="lrSheetPhrase memSheetFrom">
             Из урока «{word.lessonTitle || word.word}»{word.phrase && <> · фраза «{word.phrase}»</>}

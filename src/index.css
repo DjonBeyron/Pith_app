@@ -141,6 +141,8 @@
 @import './styles/memory-ladder.css';
 @import './styles/memory-perm.css';
 @import './styles/memory-phrases.css';
+@import './styles/word-card.css';
+@import './styles/word-card-editor.css';
 @import './styles/memory-count.css';
 @import './styles/learn-pattern.css';
 @import './styles/memory-pages.css';

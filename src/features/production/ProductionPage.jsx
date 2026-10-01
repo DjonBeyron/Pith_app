@@ -12,7 +12,7 @@ import ProductionList from './ProductionList.jsx'
 // Полноэкранный линейный редактор сценария урока («продакшен»): та же модель
 // данных (lessons.script.nodes[]), что и canvas-редактор, — просто другой вид
 // для быстрого набора большой цепочки сообщений подряд. См. PROJECT.md.
-export default function ProductionPage({ lessonId, moduleLessons = [], onBack, onOpenCanvas, onOpenCards }) {
+export default function ProductionPage({ lessonId, moduleLessons = [], onBack, onOpenCanvas, onOpenCards, onOpenWordCard }) {
   const linkableLessons = moduleLessons.filter(l => l.id !== lessonId)
   // ⚙ в схеме модуля запоминает, каким редактором пользовались последним,
   // и в следующий раз открывает сразу его (см. lastEditorMode.js)
@@ -44,10 +44,10 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
     if (!lessonId) return
     loadScript(lessonId)
       .then(data => {
-        // reviewCards в extra НЕ держим: колоду правит своя страница, и
+        // reviewCards и wordCard в extra НЕ держим: колоду и справку правят свои страницы, и
         // снимок на момент открытия затёр бы её более свежую версию —
         // saveLesson подтянет актуальную с сервера сам
-        const { nodes: loadedNodes, reviewCards: _cards, ...extra } = data?.script ?? {}
+        const { nodes: loadedNodes, reviewCards: _cards, wordCard: _wc, ...extra } = data?.script ?? {}
         scriptExtraRef.current = extra
         setTitle(data?.title ?? '')
         handleNodesChange(loadedNodes ?? [])
@@ -155,6 +155,12 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
     onOpenCards(lessonId)
   }
 
+  // «Справка» слова (карточка слова) — так же, после сохранения урока
+  async function switchToWordCard() {
+    try { await handleSave() } catch { return }
+    onOpenWordCard(lessonId)
+  }
+
   function clearAll() {
     if (!window.confirm('Удалить ВСЕ ноды урока? Это нельзя отменить.')) return
     handleNodesChange([])
@@ -199,6 +205,9 @@ export default function ProductionPage({ lessonId, moduleLessons = [], onBack, o
         </button>
         <button className="pageTabBtn" onClick={switchToCards} disabled={isSaving || loading}>
           Карточки
+        </button>
+        <button className="pageTabBtn" onClick={switchToWordCard} disabled={isSaving || loading}>
+          Справка
         </button>
       </div>
 

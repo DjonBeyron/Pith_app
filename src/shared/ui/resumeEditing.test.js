@@ -71,8 +71,8 @@ describe('всплывашка «продолжить редактировани
 
   it('показывается только админу и только когда редактор закрыт', () => {
     const shell = read('../../app/ShellV2.jsx')
-    // Редактор — любой из трёх: граф, продакшен, карточки повтора
-    expect(shell).toContain('{isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && (')
+    // Редактор — любой из четырёх: граф, продакшен, карточки повтора, справка слова
+    expect(shell).toContain('{isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && !wordCardLesson && (')
     expect(shell).toContain('setCanvasLesson({ id: lesson.id, moduleLessons: [], module: lesson.module ?? null })')
   })
 

@@ -7,7 +7,7 @@ const cardsWord = n => `${n} ${plural(n, 'карточка', 'карточки',
 // Колода в окне «Импорт/экспорт» урока (canvas/lesson-io/LessonIoPanel.jsx).
 // Канвас держит только ноды, колоду — нет: для экспорта берём её с сервера,
 // а колоду из файла пишем на сервер сразу (с подтверждением) — «Сохранить»
-// канваса её не трогает (lessonsApi.keepReviewCards)
+// канваса её не трогает (lessonsApi.keepOwnKeys)
 export function useDeckIo(lessonId) {
   const [cards, setCards] = useState([])
 
