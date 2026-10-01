@@ -1,5 +1,6 @@
 /* Панель под карточкой повторения (features/review: ReviewTurn, NoAudioButton):
-   компактные кнопки, «Далее» (мышь) / подсказка «смахни…» (касание), кнопка
+   подвал .reviewFoot — панель действий фиксированной высоты (место занято всегда: карточка
+   при ответе не двигается) и под ней тонкий прогресс; компактные кнопки, «Далее» (мышь) / подсказка «смахни…» (касание), кнопка
    «Не могу слушать» с морфингом в кружок и её попап */
 
 .reviewActions {
@@ -12,6 +13,17 @@
   padding: 2px 0 calc(env(safe-area-inset-bottom, 0px) + 10px);
   flex-shrink: 0;
 }
+
+/* Подвал карточки: высота панели действий фиксирована — «Далее», «смахни…» и «Не могу
+   слушать» сменяют друг друга внутри неё, ничего не сдвигая */
+.reviewFoot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 0 calc(env(safe-area-inset-bottom, 0px) + 10px);
+}
+.reviewFoot .reviewActions { box-sizing: border-box; flex-wrap: nowrap; width: 100%; height: 40px; min-height: 0; padding: 0; overflow: hidden; }
 
 .reviewBtn {
   padding: 8px 16px;
@@ -43,14 +55,14 @@
   background: none;
   color: #6f7784;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   touch-action: none; /* подсказку тоже можно смахнуть (useSwipeNext) */
   animation: reviewHintIn 0.7s ease 0.55s backwards;
 }
 /* Стрелка влево — куда смахивать; чуть «подтягивается» влево с паузой (transform, без перерисовки) */
-.reviewSwipeArrow { width: 15px; height: 15px; margin-right: 7px; vertical-align: -3px; animation: reviewArrowNudge 2.2s ease-in-out 1.3s infinite; }
+.reviewSwipeArrow { width: 14px; height: 14px; margin-right: 6px; vertical-align: -3px; animation: reviewArrowNudge 2.2s ease-in-out 1.3s infinite; }
 @keyframes reviewArrowNudge { 0%, 55%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } }
 .reviewSwipeHintText { position: relative; display: inline-block; white-space: nowrap; }
 .reviewSwipeShine {

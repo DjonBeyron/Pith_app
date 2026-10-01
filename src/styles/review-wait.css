@@ -1,0 +1,13 @@
+/* Ожидание и короткие сообщения экрана повторения (features/review: ReviewLoading,
+   Message в ReviewScreen). Вступления с «Начать» больше нет — после «Ищу слова…»
+   сразу идут карточки */
+
+/* ── Ожидание: тот же кружок, что при открытии схемы модуля ─────────── */
+.reviewLoading { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.reviewLoadingText { margin: 0; font-size: 14px; color: #9aa3ad; text-align: center; }
+
+/* ── Короткие сообщения (пусто, не загрузилось) ─────────────────────── */
+.reviewMessage { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.reviewMessageTitle { margin: 0; font-size: 18px; color: #e8ecf0; }
+.reviewMessageText { margin: 0; font-size: 14px; color: #9aa3ad; }
+

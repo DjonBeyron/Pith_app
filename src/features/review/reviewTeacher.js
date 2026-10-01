@@ -1,5 +1,6 @@
-// Строки учителя в начале и в итоге сессии повторения — собраны из данных,
-// без заготовок на каждый случай (PROJECT.md → «Формат повторения»).
+// Строка учителя в итоге сессии повторения и оценка минут — собраны из данных,
+// без заготовок на каждый случай (PROJECT.md → «Формат повторения»). Вступления с репликами
+// учителя больше нет: после «Ищу слова…» сразу идут карточки.
 
 // ~15 с на карточку: 8 карточек → «2 мин»
 export const sessionMinutes = cards => Math.max(1, Math.round(cards * 15 / 60))
@@ -8,25 +9,6 @@ export const sessionMinutes = cards => Math.max(1, Math.round(cards * 15 / 60))
 function list(words, max = 3) {
   if (words.length > max) return `${words.slice(0, max).join(', ')} и ещё ${words.length - max}`
   return words.length === 1 ? words[0] : `${words.slice(0, -1).join(', ')} и ${words.at(-1)}`
-}
-
-// Вступление — реплики учителя, по одной на пузырь (ReviewIntro.jsx). Чата не
-// называем: учитель «пересылает сообщения». words: слова сессии; memory: строки
-// word_memory (lapses > 0 — слово уже давалось непросто); phrase — фраза к
-// закреплению ({ title }) или null
-export function introLines({ words, memory = [], phrase = null }) {
-  const lines = []
-  if (words.length) {
-    lines.push('Сейчас я перешлю тебе несколько сообщений с заданиями. Ответь на них — так слова лучше запомнятся.')
-    const shaky = memory.filter(m => words.includes(m.word) && m.lapses > 0).map(m => m.word).slice(0, 3)
-    if (shaky.length) lines.push(`${list(shaky)} в прошлый раз ${shaky.length === 1 ? 'давалось' : 'давались'} непросто — посмотрим, как сейчас.`)
-  }
-  if (phrase) {
-    lines.push(words.length
-      ? `А в конце соберём фразу «${phrase.title}» целиком.`
-      : `Ты уже уверенно вспоминаешь все слова фразы «${phrase.title}» — пора собрать её целиком.`)
-  }
-  return lines
 }
 
 // results: [{ word, outcome, applied }] — ответ сервера по словам сессии

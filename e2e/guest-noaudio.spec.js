@@ -35,7 +35,6 @@ test('«Не могу слушать»: широкая → кружок; поп�
   await page.getByRole('button', { name: 'Память', exact: true }).click()
   await page.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
-  await review.getByRole('button', { name: 'Начать', exact: true }).click({ timeout: 30_000 })
 
   const btn = review.getByRole('button', { name: 'Не могу слушать' })
   await expect(btn).toBeVisible({ timeout: 30_000 })

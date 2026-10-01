@@ -1,24 +1,23 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useReviewSession } from './useReviewSession.js'
 import { currentItem } from './reviewSession.js'
 import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
-import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
-import { primeAudio } from '../../shared/lib/primedAudio.js'
 import ReviewTurn from './ReviewTurn.jsx'
 import ReviewWarmup from './ReviewWarmup.jsx'
 import ReviewSummary from './ReviewSummary.jsx'
-import ReviewIntro from './ReviewIntro.jsx'
 import ReviewLoading from './ReviewLoading.jsx'
 import { phraseItem } from './phraseDrill.js'
 
 // Экран повторения дня (этап 4 системы повторения, PROJECT.md → «Формат
-// повторения»): строка учителя → карточки → итог. Полноэкранный слой в body
+// повторения»): «Ищу слова…» → сразу карточки (вступления с «Начать» нет — тап
+// «Повторить» уже и есть начало) → итог. Полноэкранный слой в body
 // (портал): открывается из любого места, не завися от transform/overflow
 // родителя. Входы: «Моё обучение» (день или «Повторить сейчас» —
 // focusWords) и админка → «Повторение».
-// Следующая карточка греется заранее (ReviewWarmup): на вступлении — первая,
-// во время ответа — следующая; скачанное передаётся плееру карточки.
+// Медиа греется заранее (ReviewWarmup): первая карточка — пока на экране «Ищу
+// слова…» (не дольше WARM_MAX_MS), следующая — пока отвечают на текущую;
+// скачанное передаётся плееру карточки.
 function Message({ title, text, onClose }) {
   return (
     <div className="reviewMessage">
@@ -29,13 +28,19 @@ function Message({ title, text, onClose }) {
   )
 }
 
+const WARM_MAX_MS = 8000 // дольше не держим «Ищу слова…»: карточка покажется и сама дозагрузит медиа
+
 export default function ReviewScreen({ focusWords = null, phrase = null, onClose, onRequireAuth = null }) {
   const r = useReviewSession({ focusWords, phrase })
   const warmRef = useRef(null)
   const [handoff, setHandoff] = useState(null) // { key, blobMap } — прогретое для карточки
+  const [firstReady, setFirstReady] = useState(false) // первая карточка прогрета (или ждать нечего / вышло время)
   const s = r.session
   const item = s && currentItem(s)
-  const warmItem = r.phase === 'intro' ? s?.queue[0] : r.phase === 'run' ? s?.queue[s.index + 1] : null
+  const first = s?.queue[0]
+  // Первую карточку с файлами держим за «Ищу слова…», пока она не прогреется
+  const holdFirst = r.phase === 'run' && !firstReady && !!first?.card.files?.length
+  const warmItem = r.phase === 'run' ? (holdFirst ? first : s?.queue[s.index + 1]) : null
 
   // Забрать прогретое для карточки, что встанет следующей
   function takeWarm(nextItem) {
@@ -43,14 +48,16 @@ export default function ReviewScreen({ focusWords = null, phrase = null, onClose
     setHandoff(blobMap ? { key: nextItem.key, blobMap } : null)
   }
 
-  function start() {
-    // В жесте нажатия, как у «Начать урок»: iOS разрешает звук только так
-    preloadSounds()
-    unlockAudio()
-    primeAudio()
-    takeWarm(s.queue[0])
-    r.start()
-  }
+  // Первая карточка прогрета (или вышло время) — показываем её, отдав ей скачанное
+  const releaseRef = useRef(null)
+  useEffect(() => {
+    releaseRef.current = () => { if (!holdFirst) return; takeWarm(first); setFirstReady(true) }
+  })
+  useEffect(() => {
+    if (!holdFirst) return undefined
+    const t = setTimeout(() => releaseRef.current?.(), WARM_MAX_MS)
+    return () => clearTimeout(t)
+  }, [holdFirst])
 
   function answer(res) {
     takeWarm(s.queue[s.index + 1])
@@ -58,16 +65,11 @@ export default function ReviewScreen({ focusWords = null, phrase = null, onClose
   }
 
   let body = null
-  if (r.phase === 'loading') body = <ReviewLoading text="Ищу слова, которые нужно напомнить…" />
+  if (r.phase === 'loading' || holdFirst) body = <ReviewLoading text="Ищу слова, которые нужно напомнить…" />
   else if (r.phase === 'finishing') body = <ReviewLoading text="Подвожу итог…" />
   else if (r.phase === 'error') body = <Message text="Не загрузилось. Проверь сеть." onClose={onClose} />
   else if (r.phase === 'empty') body = <Message title="На сегодня всё ✓" text="Новые слова появятся, когда придёт их срок." onClose={onClose} />
-  else if (r.phase === 'intro') {
-    body = (
-      <ReviewIntro teacher={r.info.teacher} words={r.info.words} cards={r.info.cards} memory={r.info.memory}
-        phrase={phrase} onStart={start} onClose={onClose} />
-    )
-  } else if (r.phase === 'run' && item) {
+  else if (r.phase === 'run' && item) {
     body = (
       <ReviewTurn
         key={`${item.key}@${s.index}`}
@@ -97,13 +99,16 @@ export default function ReviewScreen({ focusWords = null, phrase = null, onClose
       />
     )
   } else if (r.phase === 'done') {
-    body = <ReviewSummary results={r.results} finish={r.finish} bridge={r.bridge} phrase={r.phraseRes} words={r.info.words} memory={r.info.memory} onClose={onClose} onRequireAuth={onRequireAuth} />
+    body = <ReviewSummary results={r.results} finish={r.finish} baseXp={r.baseXp} bridge={r.bridge} phrase={r.phraseRes} words={r.info.words} memory={r.info.memory} onClose={onClose} onRequireAuth={onRequireAuth} />
   }
 
   return createPortal(
     <div className="reviewScreen" role="dialog" aria-label="Повторение">
       {body}
-      {warmItem && <ReviewWarmup key={warmItem.key} card={warmItem.card} ref={warmRef} />}
+      {warmItem && (
+        <ReviewWarmup key={warmItem.key} card={warmItem.card} ref={warmRef}
+          onWarm={holdFirst ? pct => { if (pct >= 100) releaseRef.current?.() } : null} />
+      )}
     </div>,
     document.body,
   )

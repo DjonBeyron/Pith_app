@@ -6,6 +6,7 @@ import { onLearnHome } from '../../shared/lib/learnHomeEvent.js'
 import { listWordAudio } from '../../shared/lib/wordAudio/wordAudioApi.js'
 import { debugStepWord } from '../../shared/api/memoryApi.js'
 import { findLadderWord } from './memoryLadder.js'
+import { unlockReviewAudio } from '../review/reviewAudioUnlock.js'
 import LearnMainAction from './LearnMainAction.jsx'
 import MemoryLadder from './MemoryLadder.jsx'
 import LearnPattern from './LearnPattern.jsx'
@@ -52,6 +53,8 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const isPro = !!(profile?.has_subscription || profile?.is_admin)
   const isAdmin = !!profile?.is_admin
   const openWord = (word, perm = false) => setSheet({ word, perm })
+  // Повторение открывается тапом — в нём же разрешаем звук (iOS: только из жеста)
+  const openReview = focus => { unlockReviewAudio(); setReview({ focus }) }
   const ladder = view?.ladder
   // Окно слова показывает свежие данные: после тест-шага админа слово могло перейти на другую ступень
   const live = sheet && ladder ? findLadderWord(ladder, sheet.word.word) : null
@@ -78,7 +81,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         {view && !page && (
           <>
             <MemoryLadder ladder={ladder} onOpen={setPage} onWord={openWord}>
-              <LearnMainAction view={view} today={today} onStart={() => setReview({ focus: null })} onChanged={reload} />
+              <LearnMainAction view={view} today={today} onStart={() => openReview(null)} onChanged={reload} />
             </MemoryLadder>
             <MemoryPhrases list={view.phraseList} today={today} onOpen={setPhrases} onAll={() => setPhrases('all')} />
             {!isLoggedIn && (
@@ -98,7 +101,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
             stepBusy={stepBusy}
             onStep={stepWord}
             onLesson={() => { setSheet(null); openRef({ isModule: false, targetId: sheetWord.lessonId }, null) }}
-            onReview={() => { setSheet(null); setReview({ focus: [sheetWord.word] }) }}
+            onReview={() => { setSheet(null); openReview([sheetWord.word]) }}
             onWantPro={() => { setSheet(null); setShowPro(true) }}
             onClose={() => setSheet(null)}
           />

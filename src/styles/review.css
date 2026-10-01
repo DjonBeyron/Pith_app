@@ -1,7 +1,7 @@
 /* Экран повторения дня (src/features/review/): шапка со стрелкой «назад» и
-   фразой под спойлером, тонкая полоска прогресса, карточка-кусочек чата, плашка
-   итога ответа. Кнопки под карточкой и подсказка — review-actions.css, вступление
-   и ожидание — review-intro.css, итог — review-summary.css. Полноэкранный слой; на широком экране колонка
+   фразой под спойлером, карточка-кусочек чата, плашка итога ответа, внизу — тонкая
+   полоска прогресса. Кнопки под карточкой и подсказка — review-actions.css, ожидание
+   — review-wait.css, итог — review-summary.css. Полноэкранный слой; на широком экране колонка
    шириной с «телефон» плеера. */
 
 .reviewScreen {
@@ -28,7 +28,7 @@
 }
 .feedRemember .reviewHead { padding-top: 6px; }
 
-/* ── Шапка: «назад» слева, по центру фраза и под ней тонкий прогресс ── */
+/* ── Шапка: «назад» слева, по центру фраза ── */
 .reviewHead {
   display: flex;
   align-items: flex-start;
@@ -45,14 +45,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
 }
-.reviewCapsules { display: flex; gap: 3px; width: min(100%, 150px); }
+/* Прогресс сессии — внизу, под панелью действий (ReviewProgress): тоньше прежнего и без
+   собственной высоты в шапке, поэтому фраза стоит там же, где стояла */
+.reviewCapsules { display: flex; gap: 3px; width: min(100%, 150px); margin-top: 6px; }
 
 .reviewCapsule {
   flex: 1;
-  height: 3px;
-  border-radius: 2px;
+  height: 2px;
+  border-radius: 1px;
   background: #2a2d35;
   transition: background 0.3s;
 }

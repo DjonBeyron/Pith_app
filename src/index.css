@@ -133,7 +133,7 @@
 /* после стилей плеера: review.css переопределяет плеер внутри карточки */
 @import './styles/review.css';
 @import './styles/review-actions.css';
-@import './styles/review-intro.css';
+@import './styles/review-wait.css';
 @import './styles/review-summary.css';
 @import './styles/strength-dots.css';
 @import './styles/learn.css';

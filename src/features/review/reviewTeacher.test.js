@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sessionMinutes, introLines, summaryLine } from './reviewTeacher.js'
+import { sessionMinutes, summaryLine } from './reviewTeacher.js'
 import { buildDecks, cardFiles, localToday } from './reviewDecks.js'
 import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 
@@ -7,14 +7,6 @@ describe('строки учителя', () => {
   it('оценка минут: ~15 с на карточку', () => {
     expect(sessionMinutes(8)).toBe(2)
     expect(sessionMinutes(1)).toBe(1)
-  })
-
-  it('в начале: учитель «перешлёт сообщения»; давшиеся непросто слова — по памяти; фраза — в конце', () => {
-    expect(introLines({ words: ['trying'] })).toEqual(['Сейчас я перешлю тебе несколько сообщений с заданиями. Ответь на них — так слова лучше запомнятся.'])
-    const memory = [{ word: 'to', lapses: 2 }, { word: 'for', lapses: 1 }, { word: 'cook', lapses: 0 }]
-    expect(introLines({ words: ['to', 'for', 'cook'], memory })[1]).toBe('to и for в прошлый раз давались непросто — посмотрим, как сейчас.')
-    expect(introLines({ words: ['a'], phrase: { title: 'Hold on' } }).at(-1)).toBe('А в конце соберём фразу «Hold on» целиком.')
-    expect(introLines({ words: [], phrase: { title: 'Hold on' } })).toEqual(['Ты уже уверенно вспоминаешь все слова фразы «Hold on» — пора собрать её целиком.'])
   })
 
   it('в итоге: что помнится лучше, что даётся непросто; ранний повтор не в счёт', () => {

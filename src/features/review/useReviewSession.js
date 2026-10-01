@@ -8,6 +8,7 @@ import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
 import { fetchMyDoneLessonIds } from '../../shared/api/starsApi.js'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
+import { getProfile } from '../../shared/api/profileApi.js'
 import { pickToday, dailyCardBudget, cardsShownToday, cardsForStep } from '../../shared/lib/memory/dailyPick.js'
 import { buildDecks, localToday } from './reviewDecks.js'
 import { pickBridge } from './reviewBridge.js'
@@ -30,10 +31,12 @@ import {
 // карточек слов (или вместо них) — «собери фразу» целиком (phraseDrill.js).
 //
 // Загрузка на экране не короче MIN_LOADING_MS: даже если всё пришло мгновенно,
-// успеваешь прочитать «Ищу слова, которые нужно напомнить…» (ошибка — сразу)
+// успеваешь прочитать «Ищу слова, которые нужно напомнить…» (ошибка — сразу).
+// Вступления с кнопкой «Начать» нет: загрузка кончилась — сразу первая карточка
+// (или сразу фраза, если слов на сегодня нет)
 const MIN_LOADING_MS = 1400
 
-// phase: loading | error | empty | intro | run | phrase | finishing | done
+// phase: loading | error | empty | run | phrase | finishing | done
 export function useReviewSession({ focusWords = null, phrase = null } = {}) {
   const [phase, setPhase] = useState('loading')
   const [session, setSession] = useState(null)
@@ -41,6 +44,7 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
   const [info, setInfo] = useState(null)
   const [results, setResults] = useState([]) // [{ word, outcome, ok, applied, step, settled }]
   const [finish, setFinish] = useState(null)
+  const [baseXp, setBaseXp] = useState(0) // XP до награды за повторение — от него едет полоска уровня в итоге
   const [bridge, setBridge] = useState(null)
   const [phraseRes, setPhraseRes] = useState(null) // { ok } — итог закрепления фразы
   const phraseDoneRef = useRef(!phrase)
@@ -71,7 +75,8 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
         const built = buildSession(picked, decks, { lastCardIds })
         setInfo({ decks, curricula, memory, teacher, words: built.words, cards: built.items.length })
         setSession(startSession(built))
-        setPhase(built.items.length || phrase ? 'intro' : 'empty')
+        if (built.items.length || phrase) tracker.start({ words: built.words.length, cards: built.items.length })
+        setPhase(built.items.length ? 'run' : phrase ? 'phrase' : 'empty')
       })
       .catch(e => { console.error('[REVIEW] загрузка:', e?.message); if (alive) setPhase('error') })
     // Закрыли экран или приложение до итога — «брошена» (после итога трекер молчит)
@@ -83,7 +88,10 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
     if (finishingRef.current) return
     finishingRef.current = true
     setPhase('finishing')
-    const rows = await Promise.all(sentRef.current.values())
+    // XP до начисления читаем заранее: finishReviewSession добавит награду, а полоска уровня
+    // в итоге должна ехать от прежнего значения (гостю профиля нет — XP-блока в итоге не будет)
+    const [rows, profile] = await Promise.all([Promise.all(sentRef.current.values()), getProfile().catch(() => null)])
+    setBaseXp(profile?.xp ?? 0)
     const words = rows.filter(r => r.ok).map(r => r.word)
     const res = words.length ? await finishReviewSession(words) : null
     const done = new Set([...getCompletedLessons(), ...await fetchMyDoneLessonIds()])
@@ -142,10 +150,5 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
     flush(next)
   }
 
-  function start() {
-    tracker.start({ words: info.words.length, cards: info.cards })
-    setPhase(info.cards ? 'run' : 'phrase')
-  }
-
-  return { phase, session, info, results, finish, bridge, phraseRes, start, answer, skipAudio, answerPhrase }
+  return { phase, session, info, results, finish, baseXp, bridge, phraseRes, answer, skipAudio, answerPhrase }
 }

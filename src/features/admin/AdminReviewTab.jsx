@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { listWordMemory, debugShiftMemory, debugRemoveWord } from '../../shared/api/memoryApi.js'
 import { localToday } from '../review/reviewDecks.js'
+import { unlockReviewAudio } from '../review/reviewAudioUnlock.js'
 
 const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
 
@@ -43,7 +44,7 @@ export default function AdminReviewTab() {
         Слов в памяти: {rows?.length ?? '…'} · к повтору сегодня: {rows ? due : '…'}
       </p>
       <div className="arvActions">
-        <button className="arvStart" onClick={() => setOpen(true)}>Начать повторение</button>
+        <button className="arvStart" onClick={() => { unlockReviewAudio(); setOpen(true) }}>Начать повторение</button>
         <button className="aeRefresh" onClick={() => shift(1)}>Прожить 1 день</button>
         <button className="aeRefresh" onClick={() => shift(7)}>Прожить 7 дней</button>
       </div>

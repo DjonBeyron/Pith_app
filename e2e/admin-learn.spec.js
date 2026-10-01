@@ -24,8 +24,9 @@ test('память админа: слово ступени → «Повтори�
   await expect(sheet.getByRole('button', { name: 'Пройти урок целиком' })).toBeVisible()
   await sheet.getByRole('button', { name: 'Повторить сейчас', exact: true }).click()
   const review = page.locator('.reviewScreen')
-  await expect(review.locator('.reviewTeacherLine').first()).toContainText('Сейчас я перешлю тебе несколько сообщений', { timeout: 30_000 })
-  await expect(review.locator('.reviewPlan')).toBeVisible()
+  // Вступления с «Начать» нет: «Ищу слова…» → сразу карточка
+  await expect(review.locator('.reviewCard')).toBeVisible({ timeout: 30_000 })
+  await expect(review.getByRole('button', { name: 'Начать', exact: true })).toHaveCount(0)
   await review.getByRole('button', { name: 'Назад' }).click()
   await expect(review).toHaveCount(0)
 })
