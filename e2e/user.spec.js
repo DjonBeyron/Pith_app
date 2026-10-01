@@ -74,6 +74,13 @@ test('«Моя память»: ступени, слово дня, «Повтор
   // Описание ступени: как слова сюда попадают → что делать → куда перейдут
   await expect(page.locator('.memHead')).toContainText('Сюда попадают слова из уроков')
   await expect(page.locator('.memHead')).toContainText('перейдёт в «Знакомые»')
+  // Описание открыто по умолчанию; кнопка слева сворачивает его в иконку (список поднимается) и возвращает
+  await expect(page.locator('.memHead')).toBeVisible()
+  await page.getByRole('button', { name: 'Скрыть описание' }).click()
+  await expect(page.locator('.memHead')).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Показать описание' })).toBeVisible()
+  await page.getByRole('button', { name: 'Показать описание' }).click()
+  await expect(page.locator('.memHead')).toBeVisible()
 
   // Окно слова: уровень памяти («1 из 4»), из какого урока пришло, срока повтора нет;
   // «Повторить сейчас» — удобство Pro: обычному пользователю — пейволл

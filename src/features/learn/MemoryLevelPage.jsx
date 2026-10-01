@@ -1,5 +1,6 @@
 import BackButton from '../../shared/ui/BackButton.jsx'
 import MemoryWordChip from './MemoryWordChip.jsx'
+import MemoryLevelHead from './MemoryLevelHead.jsx'
 import { useWordVoice } from './useWordVoice.js'
 import { pageTabs } from './memoryLadder.js'
 
@@ -8,7 +9,8 @@ import { pageTabs } from './memoryLadder.js'
 // уровень памяти» и стрелка «назад» в стиле «Ежедневных наград» (общий
 // BackButton). Ниже — четыре вкладки с числами слов: три ступени и
 // «Постоянная» (пятиугольник); переключаться можно, не возвращаясь. Шапка
-// уровня — что это за слова и когда спросим, дальше список слов
+// уровня (MemoryLevelHead) — что это за слова и когда спросим; её можно свернуть
+// в иконку, дальше список слов
 // (MemoryWordChip, строкой, у озвученных — ▶). level — 1..4, onLevel — сменить
 // уровень, onWord(слово, perm) — окно слова, onBack — на главный экран памяти
 export default function MemoryLevelPage({ ladder, level, onLevel, onWord, onBack }) {
@@ -30,11 +32,7 @@ export default function MemoryLevelPage({ ladder, level, onLevel, onWord, onBack
           </button>
         ))}
       </div>
-      <div className={`memHead memHead--${cur.perm ? 'Perm' : level}`}>
-        <b>{cur.name}</b>
-        <p>{cur.about}</p>
-        {cur.when && <div className="memHeadWhen">{cur.when}</div>}
-      </div>
+      <MemoryLevelHead cur={cur} level={level} />
       <div className="memList">
         {cur.words.map(w => (
           <MemoryWordChip key={w.word} w={w} row perm={cur.perm} onClick={word => onWord(word, cur.perm)}
