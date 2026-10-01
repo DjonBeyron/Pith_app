@@ -24,6 +24,8 @@ test('слово: «Повторил» по уровням до постоянн
   const sheet = page.getByRole('dialog', { name: 'Слово hold' })
   const next = sheet.getByRole('button', { name: /^Повторил → /i })
   await expect(sheet).toContainText('Уровень 1 из 4')
+  await expect(sheet).toContainText('Тест админа · шаг 1 из 5')
+  await expect(next).toHaveText('Повторил → шаг 2')
   // шаг 1 → 2 (ещё «Новые»), 2 → 3 («Знакомые»), 3 → 4, 4 → 5 («Усвоенные»)
   await next.click()
   await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 1 из 4') // шаг 2 — ещё «Новые»
@@ -32,6 +34,7 @@ test('слово: «Повторил» по уровням до постоянн
   await next.click()
   await next.click()
   await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 3 из 4', { timeout: 15_000 })
+  await expect(sheet).toContainText('Тест админа · шаг 5 из 5')
   // шаг 5 → постоянная память: дальше некуда
   await expect(next).toHaveText('Повторил → в постоянную память')
   await next.click()
