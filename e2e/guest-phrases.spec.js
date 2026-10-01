@@ -63,6 +63,30 @@ test('закреплённые фразы: список, «Все фразы», 
   await expect(page.getByRole('dialog', { name: 'Слово keep' })).toBeVisible()
 })
 
+// Слово постоянной памяти (settled_on) в карточке фразы — фиолетовое и залито целиком, как в
+// пятиугольнике; слово «обычной» ступени — цвета своей ступени
+test('карточка фразы: слово постоянной памяти фиолетовое', async ({ page }) => {
+  await page.addInitScript(([d, m, at]) => {
+    localStorage.setItem('pithy_guest_memory_v1', JSON.stringify({
+      keep: { word: 'keep', step: 4, due_on: d, last_card_id: null, reviews: 1, lapses: 0 },
+      going: { word: 'going', step: 5, due_on: d, settled_on: at.slice(0, 10), last_card_id: null, reviews: 6, lapses: 0 },
+    }))
+    localStorage.setItem('pithy_guest_phrases_v1', JSON.stringify([
+      { module_id: m, consolidated_at: at, phrase_title: 'Keep going', phrase_words: ['keep', 'going'] },
+    ]))
+    localStorage.setItem('pithy_minutes_asked_v1', '1')
+    localStorage.setItem('pithy_memory_intro_v1', '1')
+  }, [day(40), MODULE, new Date(Date.now() - 86_400_000).toISOString()])
+  await page.goto('/?tab=learn')
+  await page.locator('.memPhraseRow').first().click({ timeout: 30_000 })
+  const card = page.getByRole('dialog', { name: 'Фраза Keep going' })
+  const going = card.locator('.memChip', { hasText: 'going' })
+  const keep = card.locator('.memChip', { hasText: 'keep' })
+  await expect(going).toHaveClass(/memChip--Perm/)
+  await expect(going.locator('.memChipFill')).toHaveAttribute('style', /width: 100%/)
+  await expect(keep).not.toHaveClass(/memChip--Perm/)
+})
+
 test('фраз нет — раздела нет', async ({ page }) => {
   await page.addInitScript(d => {
     localStorage.setItem('pithy_guest_memory_v1', JSON.stringify({ keep: { word: 'keep', step: 4, due_on: d, last_card_id: null, reviews: 1, lapses: 0 } }))

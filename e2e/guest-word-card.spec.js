@@ -50,7 +50,7 @@ async function seed(page, card) {
   await page.getByRole('dialog', { name: 'Фраза Keep going' }).locator('.memChip', { hasText: 'keep' }).click()
 }
 
-test('тап по слову во фразе → карточка слова: шапка, блоки, диалог прокручивается сам', async ({ page }) => {
+test('тап по слову во фразе → карточка слова: шапка, блоки, один скролл на всю середину, запас снизу', async ({ page }) => {
   await seed(page, CARD)
   const card = page.getByRole('dialog', { name: 'Карточка слова keep' })
   await expect(card).toBeVisible({ timeout: 15_000 })
@@ -66,15 +66,24 @@ test('тап по слову во фразе → карточка слова: ш
   await expect(card.locator('.wcMem')).toContainText('Знакомые')
   await expect(card.getByRole('button', { name: 'Пройти урок слова' })).toBeVisible()
 
-  // Карточка помещается в экран, а длинный диалог прокручивается внутри себя
+  // Карточка помещается в экран; прокрутка ОДНА — вся середина (блоки и диалог вместе),
+  // а у самого диалога своего скролла нет
   const box = await card.boundingBox()
   const vh = page.viewportSize().height
   expect(box.y + box.height).toBeLessThanOrEqual(vh + 1)
-  const scroll = card.locator('.wcDlgScroll')
-  const { sh, ch } = await scroll.evaluate(el => ({ sh: el.scrollHeight, ch: el.clientHeight }))
+  const mid = card.locator('.wcMid')
+  const { sh, ch } = await mid.evaluate(el => ({ sh: el.scrollHeight, ch: el.clientHeight }))
   expect(sh).toBeGreaterThan(ch)
-  await scroll.evaluate(el => { el.scrollTop = el.scrollHeight })
-  expect(await scroll.evaluate(el => el.scrollTop)).toBeGreaterThan(0)
+  expect(await card.locator('.wcDlgScroll').evaluate(el => getComputedStyle(el).overflowY)).toBe('visible')
+  // Шапка и подвал на месте при прокрутке; в конце последнее сообщение не липнет к подвалу
+  const headTop = (await card.locator('.wcHead').boundingBox()).y
+  await mid.evaluate(el => { el.scrollTop = el.scrollHeight })
+  expect(await mid.evaluate(el => el.scrollTop)).toBeGreaterThan(0)
+  expect((await card.locator('.wcHead').boundingBox()).y).toBe(headTop)
+  const lastBottom = (await card.locator('.wcDlgScroll .wcBub').last().boundingBox()).y
+    + (await card.locator('.wcDlgScroll .wcBub').last().boundingBox()).height
+  const footTop = (await card.locator('.wcFoot').boundingBox()).y
+  expect(footTop - lastBottom).toBeGreaterThanOrEqual(20) // запас внизу
 
   await card.getByRole('button', { name: 'Закрыть' }).last().click()
   await expect(card).toHaveCount(0)

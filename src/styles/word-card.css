@@ -1,8 +1,9 @@
 /* Карточка слова (features/learn/MemoryWordCard.jsx) и её блоки (features/wordCard/WordCardBlocks.jsx,
    их же показывает превью в редакторе «Справка»). Язык чата плеера: пузырь #1a1d22, ячейки #12141d,
-   лаймовая подсветка слова из фразы, янтарное отрицание. Середина карточки (.wcMid) — колонка:
-   справка на месте, пример диалога (.wcDlg) занимает остаток высоты и прокручивается внутри;
-   совсем тесный экран — прокручивается вся середина */
+   лаймовая подсветка слова из фразы, янтарное отрицание. Шапка (.wcHead: метка, слово, «В фразе») и
+   подвал (.wcFoot: память и кнопки) стоят на месте, а вся середина (.wcMid) — ОДИН скролл: блоки и пример
+   диалога прокручиваются вместе (два вложенных скролла на узком экране мешали друг другу). Внизу
+   середины запас и лёгкое затухание над подвалом — последнее сообщение не липнет к краю экрана */
 .wcCard {
   --wc-lime: #b6fe3b;
   --wc-amber: #ffd98a;
@@ -32,7 +33,9 @@
 .wcCtx p { margin: 0; font-size: 15px; font-weight: 700; }
 .wcCtx mark { padding: 0 4px; border-radius: 5px; background: var(--wc-lime); color: #0d1500; }
 
-.wcMid { display: flex; flex: 1; flex-direction: column; gap: 8px; min-height: 0; padding: 4px 16px 10px; overflow-y: auto; scrollbar-width: none; }
+.wcMid { display: flex; flex: 1; flex-direction: column; gap: 8px; min-height: 0; padding: 4px 16px 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+/* Запас под последним блоком — отдельным элементом, а не padding: в flex-контейнере с прокруткой padding снизу местами теряется */
+.wcMid::after { content: ''; flex: none; height: 28px; }
 .wcMid::-webkit-scrollbar { display: none; }
 .wcNote { margin: 20px 0; color: #8b95a1; font-size: 13px; text-align: center; }
 .wcBub { flex: none; max-width: 100%; padding: 10px 14px; border-radius: 4px 18px 18px 18px; background: #1a1d22; color: #e0e0e0; font-size: 13.5px; font-weight: 500; line-height: 1.5; }
@@ -60,21 +63,18 @@
 .wcCase p b { color: var(--wc-lime); }
 .wcCase small { display: block; margin-top: 2px; color: #8b95a1; font-size: 12px; font-weight: 500; }
 
-.wcDlg { display: flex; flex: 1 0 140px; flex-direction: column; min-height: 140px; margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.09); }
+.wcDlg { flex: none; margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.09); }
 .wcDlgLabel { margin: 9px 0 8px; color: #6b737d; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.wcDlgScroll {
-  display: flex; flex: 1; flex-direction: column; gap: 8px; min-height: 0; padding-bottom: 14px; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: #3a3f48 transparent;
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
-}
+.wcDlgScroll { display: flex; flex-direction: column; gap: 8px; }
 .wcMsg { display: flex; }
 .wcMsg--r { justify-content: flex-end; }
 .wcBub--me { border-radius: 18px 4px 18px 18px; background: rgba(182, 254, 59, 0.1); box-shadow: inset 0 0 0 1px rgba(182, 254, 59, 0.26); }
 .wcWho { display: block; margin-bottom: 1px; color: #6b737d; font-size: 10.5px; font-weight: 700; }
 .wcBub--me .wcWho { color: #9db86a; }
 
-.wcFoot { flex: none; padding: 11px 16px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255, 255, 255, 0.09); }
+.wcFoot { position: relative; flex: none; padding: 11px 16px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255, 255, 255, 0.09); }
+/* Затухание над подвалом: прокручиваемое плавно уходит под него, а не режется линией */
+.wcFoot::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 22px; background: linear-gradient(to top, #14171c, rgba(20, 23, 28, 0)); pointer-events: none; }
 .wcMem { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: #8b95a1; font-size: 12px; line-height: 1.35; }
 .wcMem b { font-weight: 700; }
 .wcLine { display: flex; flex: none; gap: 1px; width: 64px; }

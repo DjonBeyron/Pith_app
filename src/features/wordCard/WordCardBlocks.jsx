@@ -2,9 +2,9 @@ import { parseMarks, splitNeg } from './wordCardModel.js'
 
 // Блоки справки слова глазами ученика (PROJECT.md → «Макет «Карточка слова»»). Один
 // компонент и для карточки слова в приложении, и для превью в редакторе «Справка».
-// Рисует блоки подряд внутри .wcMid; «Пример диалога» занимает остаток высоты и
-// прокручивается сам (word-card.css). Выделение **слов** — лаймом, отрицание в
-// репликах с галочкой «отрицание» — янтарным
+// Рисует блоки подряд внутри .wcMid — единственной прокручиваемой области карточки
+// (диалог своего скролла не имеет, word-card.css). Выделение **слов** — лаймом,
+// отрицание в репликах с галочкой «отрицание» — янтарным
 
 // **текст** → строка с <b>; neg — ещё и янтарное отрицание (lang 'en' | 'ru')
 function Marked({ text, neg = false, lang = 'en' }) {
@@ -67,7 +67,7 @@ function Dialog({ b }) {
   return (
     <div className="wcDlg">
       <div className="wcDlgLabel">Пример диалога</div>
-      <div className="wcDlgScroll" tabIndex={0} aria-label="Пример диалога, прокручивается">
+      <div className="wcDlgScroll">
         {b.lines.map((l, i) => (
           <div key={i} className={l.side === 'r' ? 'wcMsg wcMsg--r' : 'wcMsg'}>
             <div className={l.side === 'r' ? 'wcBub wcBub--me' : 'wcBub'}>

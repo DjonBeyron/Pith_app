@@ -5,7 +5,7 @@ import { phraseDateLabel, PHRASE_LOST_TEXT } from './phraseList.js'
 // окно слова, как на главном экране) и «Открыть фразу». Если урок фразы пропал
 // (p.lost) — вместо кнопки заботливое объяснение: фраза и слова остаются в
 // памяти, повторять ничего не нужно. Слова фразы берутся из снимка закрепления
-// и показываются с их силой, пока слово есть в памяти
+// и показываются с их силой, пока слово есть в памяти; слово постоянной памяти — фиолетовое
 export default function MemoryPhraseCard({ p, today, onWord, onOpenModule, onClose }) {
   const date = phraseDateLabel(p.date, today)
   return (
@@ -18,7 +18,7 @@ export default function MemoryPhraseCard({ p, today, onWord, onOpenModule, onClo
             <p className="memPhraseCardLabel">Слова фразы</p>
             <div className="memWords">
               {p.words.map(w => (
-                <MemoryWordChip key={w.word} w={{ ...w, hasDeck: w.hasDeck && w.step != null }} onClick={() => onWord({ ...w, phrase: p.title })} />
+                <MemoryWordChip key={w.word} w={{ ...w, hasDeck: w.hasDeck && w.step != null }} perm={w.perm} onClick={() => onWord({ ...w, phrase: p.title })} />
               ))}
             </div>
           </>

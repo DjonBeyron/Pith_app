@@ -13,9 +13,17 @@ describe('список закреплённых фраз', () => {
     const [p] = list([rowOf('m1', '2026-09-30T10:00:00Z')])
     expect(p).toMatchObject({ id: 'm1', title: 'Keep going', lost: null })
     expect(p.words).toEqual([
-      { word: 'keep', lessonId: 'l-keep', lessonTitle: 'keep', step: 4, due: '2026-10-09', hasDeck: true },
-      { word: 'going', lessonId: 'l-going', lessonTitle: 'going', step: 3, due: '2026-10-05', hasDeck: false },
+      { word: 'keep', lessonId: 'l-keep', lessonTitle: 'keep', step: 4, due: '2026-10-09', hasDeck: true, perm: false },
+      { word: 'going', lessonId: 'l-going', lessonTitle: 'going', step: 3, due: '2026-10-05', hasDeck: false, perm: false },
     ])
+  })
+
+  it('слово постоянной памяти (settled_on) помечено perm — и в живой фразе, и в снимке', () => {
+    const settled = new Map([['keep', { step: 5, due_on: '2026-12-01', settled_on: '2026-10-01' }], ['going', { step: 3, due_on: '2026-10-05' }]])
+    const live = buildPhraseList([rowOf('m1', '2026-09-30T10:00:00Z')], modules, settled, () => true)[0]
+    expect(live.words.map(w => [w.word, w.perm])).toEqual([['keep', true], ['going', false]])
+    const lost = buildPhraseList([rowOf('gone-1', '2026-09-30T10:00:00Z', 'Old', ['keep', 'zzz'])], modules, settled, () => true)[0]
+    expect(lost.words.map(w => [w.word, w.perm])).toEqual([['keep', true], ['zzz', false]])
   })
 
   it('модуль пропал: фраза остаётся — название и слова из снимка, слова с силой из памяти', () => {
