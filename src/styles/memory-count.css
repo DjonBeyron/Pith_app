@@ -76,25 +76,21 @@
   transform-origin: 85% 0;
   animation: popSheetWobble 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards;
 }
-/* Закрытие: сначала окно «заливается» цветом своего фона сверху вниз с мягкой
-   кромкой (::after ползёт вниз и перекрывает текст), затем схлопывается в правый
-   верхний угол. Без прозрачности: текст не тает, а закрывается заливкой. Только
-   transform. overflow — чтобы заливка не выходила за окно */
-.memCountPop--out {
-  overflow: hidden;
-  animation: memCountPopOut 0.2s cubic-bezier(0.5, 0, 0.75, 0) 0.2s forwards;
-}
+/* Закрытие: сначала поверх текста плавно проступает заливка цветом фона окна
+   (::after, opacity 0 → 1) — текст закрывается, окно при этом на месте, — затем
+   окно схлопывается в правый верхний угол. Прозрачность у самого окна не
+   меняется, только у слоя заливки */
+.memCountPop--out { animation: memCountPopOut 0.2s cubic-bezier(0.5, 0, 0.75, 0) 0.2s forwards; }
 .memCountPop--out::after {
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
-  top: -150%;
-  height: 150%;
-  background: linear-gradient(to top, rgba(20, 23, 28, 0), #14171c 33%);
+  inset: 0;
+  border-radius: 15px;
+  background: #14171c;
+  opacity: 0;
   animation: memCountFlood 0.24s ease-in-out forwards;
 }
-@keyframes memCountFlood { to { transform: translateY(100%); } }
+@keyframes memCountFlood { to { opacity: 1; } }
 @keyframes memCountPopOut { to { transform: scale(0); } }
 .memCountPopTitle { margin: 0 0 3px; font-size: 16px; font-weight: 800; }
 .memCountPopLead { margin: 0 0 10px; font-size: 13px; line-height: 1.4; color: #aeb6bf; }
