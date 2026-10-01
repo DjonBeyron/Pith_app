@@ -90,9 +90,9 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   // Тест-инструменты админа (сброс, «пометить пройденным») и 💾 структуры —
   // useModuleAdminActions.js
   const {
-    saving, saveMsg, handleResetProgress, handleResetLesson, handleMarkAllDone, handleMarkLessonDone, handleSave,
+    saving, saveMsg, pinned, handleTogglePinned, handleResetProgress, handleResetLesson, handleMarkAllDone, handleMarkLessonDone, handleSave,
   } = useModuleAdminActions({
-    curriculumId, lessons, isPro, saveStructure, setCompletedIds, setUnlocked, refreshPriorities,
+    curriculumId, lessons, isPro, isAdmin, saveStructure, setCompletedIds, setUnlocked, refreshPriorities,
   })
 
   // Регистрация посреди урока (нода в плеере): гостевая сессия start_lesson
@@ -228,6 +228,11 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             <button className="saveBtn" onClick={handleMarkAllDone}
               disabled={loading || !lessons.length} title="Тест: пометить все уроки модуля пройденными (без начисления XP)">
               ✔
+            </button>
+            <button className="saveBtn" onClick={handleTogglePinned} aria-pressed={pinned}
+              disabled={loading || !lessons.length}
+              title={pinned ? 'Открепить фразу из моей памяти (тест админа)' : 'Закрепить эту фразу в моей памяти — появится в «Память» → «Фразы» (тест админа)'}>
+              {pinned ? '★' : '☆'}
             </button>
             <button className={`saveBtn${isDirty ? ' saveBtn--dirty' : ''}`}
               onClick={handleSave} disabled={saving || loading} title="Сохранить структуру на сервер">

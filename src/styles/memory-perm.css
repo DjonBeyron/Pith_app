@@ -47,20 +47,21 @@
 .memPermText small { margin-top: 2px; font-size: 9.5px; font-weight: 600; color: #a78bfa; }
 
 
-/* «Пепел» (MemoryAsh.jsx): искорки поднимаются от верха пятиугольника и гаснут у блока выше
-   (зазор до него 62 px, подъём ≤ 92 px от точки старта на 26 px ниже верха). Только transform и opacity — композитор, без перерисовки. Видна ~70% периода: в кадре 3–5 из 5 */
-.memAshBox { position: absolute; left: 0; right: 0; top: 0; height: 0; pointer-events: none; }
-.memAsh {
+/* Искры (MemorySparks.jsx): мелкие фиолетовые огоньки быстро взлетают от верха пятиугольника, вихляют,
+   мерцают, сжимаются и гаснут — как от костра. Видна ~72% периода: в кадре 3–5 из 6. Только transform и
+   opacity — композитор, без перерисовки. Летят выше блока над пятиугольником и поверх него */
+.memSparkBox { position: absolute; left: 0; right: 0; top: 0; height: 0; pointer-events: none; }
+.memSpark {
   position: absolute;
   left: var(--x);
-  top: 26px;
+  top: 22px;
   width: 0;
   height: 0;
   opacity: 0;
   will-change: transform, opacity;
-  animation: memAshRise var(--d) cubic-bezier(0.25, 0.5, 0.5, 1) var(--dl) infinite;
+  animation: memSparkRise var(--d) cubic-bezier(0.15, 0.6, 0.4, 1) var(--dl) infinite;
 }
-.memAsh i {
+.memSpark i {
   position: absolute;
   left: calc(var(--s) / -2);
   top: calc(var(--s) / -2);
@@ -68,16 +69,17 @@
   height: var(--s);
   border-radius: 50%;
   background: var(--c);
-  box-shadow: 0 0 10px 3px rgba(167, 139, 250, 0.7);
-  animation: memAshSway calc(var(--d) / 3.3) ease-in-out var(--dl) infinite alternate;
+  box-shadow: 0 0 6px 2px rgba(167, 139, 250, 0.85);
+  animation: memSparkSway calc(var(--d) / 4) ease-in-out var(--dl) infinite alternate, memSparkFlicker 0.3s ease-in-out infinite alternate;
 }
-@keyframes memAshRise {
-  0% { transform: translate3d(0, 0, 0); opacity: 0; }
-  10% { opacity: 1; }
-  45% { opacity: 0.75; }
-  70%, 100% { transform: translate3d(0, calc(var(--r) * -1), 0); opacity: 0; }
+@keyframes memSparkRise {
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0; }
+  6% { opacity: 1; }
+  50% { opacity: 0.9; }
+  72%, 100% { transform: translate3d(0, calc(var(--r) * -1), 0) scale(0.3); opacity: 0; }
 }
-@keyframes memAshSway { from { transform: translate3d(calc(var(--sw) * -1), 0, 0); } to { transform: translate3d(var(--sw), 0, 0); } }
-.shellV2TabHidden .memAsh,
-.shellV2TabHidden .memAsh i { animation: none; }
-@media (prefers-reduced-motion: reduce) { .memAshBox { display: none; } }
+@keyframes memSparkSway { from { transform: translate3d(calc(var(--sw) * -1), 0, 0); } to { transform: translate3d(var(--sw), 0, 0); } }
+@keyframes memSparkFlicker { from { opacity: 0.55; } to { opacity: 1; } }
+.shellV2TabHidden .memSpark,
+.shellV2TabHidden .memSpark i { animation: none; }
+@media (prefers-reduced-motion: reduce) { .memSparkBox { display: none; } }

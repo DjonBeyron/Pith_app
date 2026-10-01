@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getCompletedLessons, unmarkLessons } from '../../shared/lib/completedLessons.js'
 import { simulateLessonsDone } from '../../shared/lib/adminTestCompletion.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { resetLessonProgress } from '../../shared/api/profileApi.js'
+import { adminPinPhrase, isPhrasePinned } from '../../shared/api/memoryApi.js'
 import { clearLocalEvents } from '../../shared/lib/skillStatsStore.js'
 import { unmarkModuleStarted } from '../../shared/api/moduleSocialApi.js'
 import { relockModule } from '../../shared/lib/moduleUnlock.js'
@@ -10,15 +11,38 @@ import { dbg } from '../../shared/lib/debug.js'
 import { LEGEND_SEEN_KEY } from './priorityLegendSeen.js'
 
 // Тест-инструменты админа в схеме модуля — сброс прохождения (модуль целиком
-// и один урок), «пометить пройденным» — и 💾 сохранение структуры, с их
-// строкой статуса. Вынесено из CurriculumView.jsx (тот упирался в потолок
+// и один урок), «пометить пройденным», ★ закрепить фразу в своей памяти — и 💾
+// сохранение структуры, с их строкой статуса. Вынесено из CurriculumView.jsx (тот упирался в потолок
 // 400 строк); состояние схемы (completedIds, unlocked) остаётся там — сюда
 // приходят его сеттеры
 export function useModuleAdminActions({
-  curriculumId, lessons, isPro, saveStructure, setCompletedIds, setUnlocked, refreshPriorities,
+  curriculumId, lessons, isPro, isAdmin, saveStructure, setCompletedIds, setUnlocked, refreshPriorities,
 }) {
   const [saving,  setSaving]  = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
+  const [pinned,  setPinned]  = useState(false) // фраза закреплена в памяти админа (★)
+
+  useEffect(() => {
+    if (!isAdmin || !curriculumId) return undefined
+    let off = false
+    isPhrasePinned(curriculumId).then(v => { if (!off) setPinned(v) })
+    return () => { off = true }
+  }, [isAdmin, curriculumId])
+
+  const say = (msg, ms = 4000) => { setSaveMsg(msg); setTimeout(() => setSaveMsg(''), ms) }
+
+  // ★ Закрепить фразу этого модуля в СВОЕЙ памяти (она появится в «Память» → «Фразы»)
+  // или открепить — чтобы проверять раздел без прохождения всех слов. Только админ (RPC проверяет)
+  async function handleTogglePinned() {
+    const next = !pinned
+    const r = await adminPinPhrase(curriculumId, next)
+    if (!r?.ok) {
+      say(r ? `Не вышло: ${r.reason === 'forbidden' ? 'нужны права админа' : r.reason === 'module' ? 'модуль не найден' : r.reason}` : 'Не вышло (применена ли миграция 20261001130000_admin_pin_phrase.sql?)', 6000)
+      return
+    }
+    setPinned(next)
+    say(next ? '★ Фраза закреплена — смотри «Память» → «Фразы»' : 'Фраза откреплена')
+  }
 
   // Полный сброс модуля (тест-кнопка ⟲): снимает «пройдено» локально и на
   // сервере, отнимает начисленный за эти уроки XP и стирает анализ (события).
@@ -85,5 +109,5 @@ export function useModuleAdminActions({
     setTimeout(() => setSaveMsg(''), 3000)
   }
 
-  return { saving, saveMsg, handleResetProgress, handleResetLesson, handleMarkAllDone, handleMarkLessonDone, handleSave }
+  return { saving, saveMsg, pinned, handleTogglePinned, handleResetProgress, handleResetLesson, handleMarkAllDone, handleMarkLessonDone, handleSave }
 }

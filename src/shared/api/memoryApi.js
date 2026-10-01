@@ -176,6 +176,21 @@ export async function listPhraseRows() {
   return (data ?? []).map(r => ({ phrase_title: null, phrase_words: null, ...r }))
 }
 
+// Тест-инструмент админа (миграция 20261001130000_admin_pin_phrase.sql): закрепить /
+// открепить фразу (модуль) в СВОЕЙ памяти — кнопка ★ в схеме модуля. → { ok, pinned } | { ok: false, reason } | null
+export async function adminPinPhrase(moduleId, pinned) {
+  const { data, error } = await supabase.rpc('memory_admin_pin_phrase', { p_module_id: moduleId, p_pinned: pinned })
+  if (error) { console.error('[MEMORY] memory_admin_pin_phrase:', error.message); return null }
+  return data ?? null
+}
+
+// Закреплена ли фраза (модуль) у текущего пользователя (RLS: видны только свои записи)
+export async function isPhrasePinned(moduleId) {
+  const { data, error } = await supabase.from('phrase_memory').select('module_id').eq('module_id', moduleId).maybeSingle()
+  if (error) { console.error('[MEMORY] phrase_memory:', error.message); return false }
+  return !!data
+}
+
 // Фраза собрана — закрепить (сервер проверит, что все её слова на шаге ≥ 3 и
 // сам снимет название и слова). snap — { title, words } для гостя (у него
 // записи локальные, снимок кладём сами)
