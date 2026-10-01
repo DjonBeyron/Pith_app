@@ -76,11 +76,12 @@
   transform-origin: 85% 0;
   animation: popSheetWobble 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards;
 }
-/* Закрытие: сначала поверх текста плавно проступает заливка цветом фона окна
-   (::after, opacity 0 → 1) — текст закрывается, окно при этом на месте, — затем
-   окно схлопывается в правый верхний угол. Прозрачность у самого окна не
-   меняется, только у слоя заливки */
-.memCountPop--out { animation: memCountPopOut 0.2s cubic-bezier(0.5, 0, 0.75, 0) 0.2s forwards; }
+/* Закрытие: окно схлопывается в правый верхний угол, а поверх текста в такт
+   проступает заливка цветом фона окна (::after). Обе анимации стартуют вместе, с
+   одной длительностью и одной кривой: заливка = 1 − масштаб окна, поэтому она
+   начинается ровно с началом уменьшения и закрывает текст по мере сжатия.
+   Прозрачность у самого окна не меняется, только у слоя заливки */
+.memCountPop--out { animation: memCountPopOut 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards; }
 .memCountPop--out::after {
   content: '';
   position: absolute;
@@ -88,7 +89,7 @@
   border-radius: 15px;
   background: #14171c;
   opacity: 0;
-  animation: memCountFlood 0.24s ease-in-out forwards;
+  animation: memCountFlood 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards;
 }
 @keyframes memCountFlood { to { opacity: 1; } }
 @keyframes memCountPopOut { to { transform: scale(0); } }

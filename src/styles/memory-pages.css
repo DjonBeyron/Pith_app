@@ -1,7 +1,7 @@
 /* Страница уровней «Моей памяти» (features/learn/MemoryLevelPage.jsx): шапка
    «Первый уровень памяти» со стрелкой назад, четыре вкладки (три ступени и
    фиолетовая «Постоянная»), шапка уровня «что за слова и когда спросим»
-   (сворачивается в иконку описания слева) и список слов */
+   (сворачивается кнопкой справа в компактную «развернуть описание») и список слов */
 
 .memPage { display: flex; flex-direction: column; gap: 10px; }
 /* Шапка — как у «Ежедневных наград» (.rwHeader): стрелка назад (общий
@@ -46,41 +46,52 @@
 .memHead p { margin: 0; font-size: 13px; line-height: 1.4; color: #c9d0d7; }
 .memHeadWhen { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--c); }
 
-/* Сворачивание описания: обёртка держит цвет уровня; под иконку в свёрнутом виде
-   добавляется отступ 34 px (растёт синхронно с уходом карточки).
-   Высота карточки плавно едет к нулю (grid 1fr → 0fr), карточка внутри не
-   меняет ширину — текст не перепереносится. Кнопка-иконка лежит в левом
-   верхнем углу карточки, а в свёрнутом виде остаётся одна, вся в углу */
-.memHeadWrap { --c: #b0b8c2; --tint: rgba(176, 184, 194, 0.16); position: relative; padding-bottom: 0; transition: padding-bottom 0.32s cubic-bezier(0.4, 0, 0.2, 1); }
-.memHeadWrap--shut { padding-bottom: 34px; } /* место под иконку растёт, пока карточка уходит: высота меняется без упора и рывка */
+/* Сворачивание описания: обёртка держит цвет уровня; под кнопку в свёрнутом виде
+   добавляется отступ 32 px (растёт синхронно с уходом карточки). Высота карточки
+   плавно едет к нулю (grid 1fr → 0fr), карточка внутри не меняет ширину — текст не
+   перепереносится. Кнопка справа сверху: в открытом виде «Свернуть ⌃», при нажатии
+   морфится: подпись уезжает, появляется иконка описания, шеврон переворачивается
+   вниз — получается компактная кнопка «развернуть описание» */
+.memHeadWrap { --c: #b0b8c2; --tint: rgba(176, 184, 194, 0.16); --ease: cubic-bezier(0.4, 0, 0.2, 1); position: relative; padding-bottom: 0; transition: padding-bottom 0.32s var(--ease); }
+.memHeadWrap--shut { padding-bottom: 32px; }
 .memHeadWrap.memHead--2 { --c: #e2cd78; --tint: rgba(226, 205, 120, 0.15); }
 .memHeadWrap.memHead--3 { --c: #b6fe3b; --tint: rgba(182, 254, 59, 0.15); }
 .memHeadWrap.memHead--Perm { --c: #8b5cf6; --tint: rgba(139, 92, 246, 0.22); }
-.memHeadFold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease 0.04s, visibility 0s; }
+.memHeadFold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.32s var(--ease), opacity 0.25s ease 0.04s, visibility 0s; }
 .memHeadClip { min-height: 0; overflow: hidden; }
-.memHeadWrap--shut .memHeadFold { grid-template-rows: 0fr; opacity: 0; visibility: hidden; transition: grid-template-rows 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0s 0.32s; }
+.memHeadWrap--shut .memHeadFold { grid-template-rows: 0fr; opacity: 0; visibility: hidden; transition: grid-template-rows 0.32s var(--ease), opacity 0.2s ease, visibility 0s 0.32s; }
 .memHeadToggle {
   position: absolute;
-  left: 10px;
-  top: 13px;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
+  right: 10px;
+  top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px 0 10px;
   border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
-  color: #b9c1c9;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #c9d0d7;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: left 0.32s cubic-bezier(0.4, 0, 0.2, 1), top 0.32s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+  transition: right 0.32s var(--ease), top 0.32s var(--ease), padding 0.32s var(--ease), background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
 }
-.memHeadToggle svg { width: 16px; height: 16px; }
-.memHeadWrap--shut .memHeadToggle { left: 0; top: 2px; background: var(--tint); color: var(--c); box-shadow: inset 0 0 0 1.5px var(--c); }
-.memHeadToggle:active { transform: scale(0.94); }
-/* Название в открытой карточке сдвинуто вправо от иконки */
-.memHeadWrap .memHead b { padding-left: 36px; min-height: 22px; line-height: 22px; }
+.memHeadToggle:active { transform: scale(0.95); }
+.memHeadToggle svg { flex-shrink: 0; width: 16px; height: 16px; }
+/* Подпись и иконка описания меняются местами: ширина и прозрачность идут вместе */
+.memHeadToggleLabel { max-width: 64px; overflow: hidden; white-space: nowrap; opacity: 1; transition: max-width 0.32s var(--ease), opacity 0.2s ease 0.06s; }
+.memHeadToggleDoc { width: 0 !important; margin-right: -4px; opacity: 0; transition: width 0.32s var(--ease), margin 0.32s var(--ease), opacity 0.2s ease; }
+.memHeadToggleChev { transition: transform 0.32s var(--ease); }
+.memHeadWrap--shut .memHeadToggle { right: 0; top: 2px; padding: 0 8px; background: var(--tint); color: var(--c); box-shadow: inset 0 0 0 1.5px var(--c); }
+.memHeadWrap--shut .memHeadToggleLabel { max-width: 0; opacity: 0; transition: max-width 0.32s var(--ease), opacity 0.15s ease; }
+.memHeadWrap--shut .memHeadToggleDoc { width: 16px !important; margin-right: 0; opacity: 1; transition: width 0.32s var(--ease), margin 0.32s var(--ease), opacity 0.2s ease 0.1s; }
+.memHeadWrap--shut .memHeadToggleChev { transform: rotate(180deg); }
+/* Название в открытой карточке не заходит под кнопку справа */
+.memHeadWrap .memHead b { padding-right: 96px; min-height: 22px; line-height: 22px; }
 
 /* ── Список слов ───────────────────────────────────────────────────── */
 .memList { display: flex; flex-direction: column; gap: 5px; }
@@ -130,5 +141,5 @@
 .memHead--Perm b { color: #c4b5fd; }
 
 @media (prefers-reduced-motion: reduce) {
-  .memHeadWrap, .memHeadFold, .memHeadWrap--shut .memHeadFold, .memHeadToggle { transition: none; }
+  .memHeadWrap, .memHeadFold, .memHeadWrap--shut .memHeadFold, .memHeadToggle, .memHeadToggle * { transition: none !important; }
 }

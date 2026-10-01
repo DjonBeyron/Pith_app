@@ -1,8 +1,9 @@
 import { useState } from 'react'
 
 // Шапка уровня на странице памяти: название, что за слова, когда спросим.
-// По умолчанию описание открыто; кнопка слева (иконка описания) сворачивает его
-// в эту иконку, освобождая место под список слов, и разворачивает обратно.
+// По умолчанию описание открыто; кнопка справа сверху — «Свернуть ⌃» — прячет его,
+// освобождая место под список слов, и морфингом превращается в компактную кнопку
+// «развернуть описание» (иконка описания и шеврон вниз). Нажатие — обратно.
 // Сворачивание плавное (высота в CSS: grid-template-rows 1fr → 0fr), текст внутри
 // не переносится заново по ходу анимации, список слов едет вслед за высотой,
 // а не прыгает. Выбор запоминается в браузере (в разных уровнях и на следующих
@@ -36,9 +37,13 @@ export default function MemoryLevelHead({ cur, level }) {
       </div>
       <button className="memHeadToggle" onClick={toggle} aria-expanded={!shut}
         aria-label={shut ? 'Показать описание' : 'Скрыть описание'} title={shut ? 'Показать описание' : 'Скрыть описание'}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <span className="memHeadToggleLabel" aria-hidden="true">Свернуть</span>
+        <svg className="memHeadToggleDoc" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="4" y="3" width="16" height="18" rx="3" />
           <path d="M8 8h8M8 12h8M8 16h5" />
+        </svg>
+        <svg className="memHeadToggleChev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 15l6-6 6 6" />
         </svg>
       </button>
     </div>
