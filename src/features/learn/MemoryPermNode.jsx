@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { Maximize2 } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
+import MemoryAsh from './MemoryAsh.jsx'
 
 // Контур финала модуля (MgFinalNode.jsx), сдвинутый в коробку 240×212; на
 // экране — в масштабе 3/4. Холст svg больше коробки на 24 px со всех сторон
@@ -20,7 +21,9 @@ const PERM_PATH = 'M 5.4 118.0 L 16.6 42.4 A 43.8 43.8 0 0 1 60.0 4.6 L 186.0 4.
 // финала модуля): сюда уходят усвоенные слова, вспомненные на месячной
 // проверке. Четыре контура с затуханием наружу — как обводки ступеней (1 / 2 /
 // 3). В фоне, кроме узора приложения, — один еле видный мозг (как значок
-// вкладки «Память», memory-perm.css). Тап — четвёртая вкладка страницы уровней
+// вкладки «Память», memory-perm.css). Над ним поднимаются искорки-«пепел»
+// (MemoryAsh.jsx) — если в постоянной памяти уже есть слова. Тап — четвёртая
+// вкладка страницы уровней
 export default function MemoryPermNode({ count, onOpen }) {
   // id градиента — только буквы и цифры: url(#…) в SVG надёжен без спецсимволов
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
@@ -49,6 +52,7 @@ export default function MemoryPermNode({ count, onOpen }) {
             style={{ strokeWidth: r.w, opacity: r.o, filter: `url(#${r.f})` }} />
         ))}
       </svg>
+      {count > 0 && <MemoryAsh />}
       <span className="memExpand memExpand--perm" aria-hidden="true"><Maximize2 /></span>
       <span className="memPermText">
         <b>{count}</b>

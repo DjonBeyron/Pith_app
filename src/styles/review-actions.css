@@ -48,6 +48,9 @@
   cursor: pointer;
   animation: reviewHintIn 0.7s ease 0.55s backwards;
 }
+/* Стрелка влево — куда смахивать; чуть «подтягивается» влево с паузой (transform, без перерисовки) */
+.reviewSwipeArrow { width: 15px; height: 15px; margin-right: 7px; vertical-align: -3px; animation: reviewArrowNudge 2.2s ease-in-out 1.3s infinite; }
+@keyframes reviewArrowNudge { 0%, 55%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } }
 .reviewSwipeHintText { position: relative; display: inline-block; white-space: nowrap; }
 .reviewSwipeShine {
   position: absolute;
@@ -130,6 +133,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .reviewSwipeShine { display: none; }
+  .reviewSwipeArrow { animation: none; }
   .reviewNoAudio, .reviewNoAudioLabel { transition: none; }
   .reviewPop, .reviewPopBack { animation: none; }
 }

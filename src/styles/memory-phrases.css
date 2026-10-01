@@ -1,0 +1,70 @@
+/* Раздел «Фразы · N» вкладки «Память» (features/learn/MemoryPhrases.jsx), окно «Все фразы»
+   и карточка фразы. Золото — цвет закреплённой фразы (как «золотая» фраза в карте модуля) */
+:root { --phrase-gold: #ffd257; }
+.memPhrases { margin-top: 30px; }
+.memPhrasesTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #e8ecf0;
+}
+.memPhrasesTitle svg, .memPhraseCardMeta svg { width: 15px; height: 15px; color: var(--phrase-gold); fill: var(--phrase-gold); }
+.memPhrasesList { display: flex; flex-direction: column; gap: 6px; }
+.memPhrasesAll {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #aeb6bf;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.memPhrasesAll svg { width: 16px; height: 16px; }
+
+.memPhraseRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid #262b33;
+  border-radius: 14px;
+  background: #14171c;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.memPhraseStar { flex: none; width: 17px; height: 17px; color: var(--phrase-gold); fill: var(--phrase-gold); }
+.memPhraseText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.memPhraseText b { overflow: hidden; font-size: 15px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; color: #eef1f4; }
+.memPhraseText small { font-size: 12px; font-weight: 600; color: #8b95a1; }
+/* Урок фразы пропал — фраза не «сломана», просто спокойнее по цвету */
+.memPhraseRow--lost .memPhraseStar { opacity: 0.6; }
+
+.memPhrasesScroll { display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow-y: auto; scrollbar-width: none; }
+.memPhrasesScroll::-webkit-scrollbar { display: none; }
+
+.memPhraseCardMeta { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; font-weight: 700; color: #aeb6bf; }
+.memPhraseCardLabel { margin: 4px 0 0; font-size: 12px; font-weight: 700; color: #8b95a1; }
+.memPhraseLost {
+  margin: 4px 0;
+  padding: 12px 14px;
+  border: 1px solid #262b33;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  line-height: 1.45;
+  color: #c9d0d7;
+}

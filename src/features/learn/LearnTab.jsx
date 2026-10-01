@@ -7,6 +7,9 @@ import LearnMainAction from './LearnMainAction.jsx'
 import MemoryLadder from './MemoryLadder.jsx'
 import LearnPattern from './LearnPattern.jsx'
 import MemoryLevelPage from './MemoryLevelPage.jsx'
+import MemoryPhrases from './MemoryPhrases.jsx'
+import MemoryPhrasesSheet from './MemoryPhrasesSheet.jsx'
+import MemoryPhraseCard from './MemoryPhraseCard.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
 import MemoryIntro from './MemoryIntro.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
@@ -25,6 +28,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const [review, setReview] = useState(null) // null | { focus: string[] | null }
   const [page, setPage] = useState(null)     // null (главный экран) | 1..4 (страница уровней; 4 — постоянная память)
   const [sheet, setSheet] = useState(null)   // { word, perm }
+  const [phrases, setPhrases] = useState(null) // null | 'all' (окно «Все фразы») | фраза из view.phraseList (её карточка)
   const [showPro, setShowPro] = useState(false)
   const [profile, setProfile] = useState(getCachedProfile)
   const { openRef } = useLessonNav()
@@ -56,6 +60,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
             <MemoryLadder ladder={ladder} onOpen={setPage} onWord={openWord}>
               <LearnMainAction view={view} today={today} onStart={() => setReview({ focus: null })} onChanged={reload} />
             </MemoryLadder>
+            <MemoryPhrases list={view.phraseList} today={today} onOpen={setPhrases} onAll={() => setPhrases('all')} />
             {!isLoggedIn && (
               <div className="lrGuestLead">
                 <p className="lrMainSub">Войди — память слов сохранится, и завтра напомним повторить. Сейчас она живёт только в этом браузере</p>
@@ -74,6 +79,14 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
             onWantPro={() => { setSheet(null); setShowPro(true) }}
             onClose={() => setSheet(null)}
           />
+        )}
+        {phrases === 'all' && (
+          <MemoryPhrasesSheet list={view.phraseList} today={today} onOpen={setPhrases} onClose={() => setPhrases(null)} />
+        )}
+        {phrases && phrases !== 'all' && (
+          <MemoryPhraseCard p={phrases} today={today} onClose={() => setPhrases(null)}
+            onWord={w => { setPhrases(null); openWord(w) }}
+            onOpenModule={() => { const id = phrases.id, title = phrases.title; setPhrases(null); openRef({ isModule: true, targetId: id, targetTitle: title }, null) }} />
         )}
         {review && (
           <Suspense fallback={null}>

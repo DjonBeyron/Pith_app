@@ -81,9 +81,10 @@ describe('вкладка «Моя память»: данные', () => {
     expect(v.known).toBe(2)
     expect(v.inMemory).toBe(4)
     // Keep trying: trying 3, keep 4 — пора закрепить; «закреплено» — только собранные
-    expect(v.today.phrase).toEqual({ id: 'm2', title: 'Keep trying', videoUrl: null })
+    expect(v.today.phrase).toMatchObject({ id: 'm2', title: 'Keep trying', videoUrl: null })
+    expect(v.today.phrase.words).toEqual(expect.arrayContaining(['trying', 'keep']))
     expect(v.strongPhrases).toBe(0)
-    const done = buildLearnView({ memory, curricula, lessons, golden: new Set(['m2']) }, today)
+    const done = buildLearnView({ memory, curricula, lessons, phraseRows: [{ module_id: 'm2', consolidated_at: '2026-09-30T10:00:00Z' }] }, today)
     expect(done.strongPhrases).toBe(1)
     expect(done.today.phrase).toBe(null)
     expect(done.phrases.find(p => p.id === 'm2').golden).toBe(true)

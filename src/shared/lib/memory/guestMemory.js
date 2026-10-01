@@ -110,10 +110,21 @@ export function listGuestReviews(days, today) {
   return read(LOG_KEY, []).filter(r => localDate(r.created_at) >= since)
 }
 
-// Закреплённые фразы гостя (в аккаунте — таблица phrase_memory): Set id модулей
+// Закреплённые фразы гостя (в аккаунте — таблица phrase_memory). Запись — строка-id
+// модуля (так было раньше) или { module_id, consolidated_at, phrase_title, phrase_words }:
+// снимок названия и слов нужен, чтобы показать фразу, даже если модуль потом убрали
 const PHRASE_KEY = 'pithy_guest_phrases_v1'
-export const getGuestPhrases = () => new Set(read(PHRASE_KEY, []))
-export const addGuestPhrase = id => write(PHRASE_KEY, [...new Set([...read(PHRASE_KEY, []), id])])
+const phraseRow = p => (typeof p === 'string' ? { module_id: p, consolidated_at: null, phrase_title: null, phrase_words: null } : p)
+export const getGuestPhraseRows = () => read(PHRASE_KEY, []).map(phraseRow).filter(r => r?.module_id)
+// snap — { title, words } на момент закрепления; уже закреплённую фразу не перезаписываем
+export function addGuestPhrase(id, snap = {}) {
+  const rows = getGuestPhraseRows()
+  if (rows.some(r => r.module_id === id)) return
+  write(PHRASE_KEY, [...rows, {
+    module_id: id, consolidated_at: new Date().toISOString(),
+    phrase_title: snap.title ?? null, phrase_words: Array.isArray(snap.words) ? snap.words : null,
+  }])
+}
 
 // «Сколько минут в день» гостя (в аккаунте — user_profiles.daily_minutes)
 const MIN_KEY = 'pithy_guest_minutes_v1'

@@ -45,3 +45,39 @@
 /* Подпись — одной строкой, с большой буквы: контур в этом месте почти во всю ширину */
 .memPermText span { margin-top: 5px; font-size: 10px; font-weight: 700; line-height: 1.25; white-space: nowrap; color: #d9ccff; }
 .memPermText small { margin-top: 2px; font-size: 9.5px; font-weight: 600; color: #a78bfa; }
+
+
+/* «Пепел» (MemoryAsh.jsx): искорки поднимаются от верха пятиугольника и гаснут у блока выше
+   (зазор до него 62 px, подъём ≤ 92 px от точки старта на 26 px ниже верха). Только transform и opacity — композитор, без перерисовки. Видна ~70% периода: в кадре 3–5 из 5 */
+.memAshBox { position: absolute; left: 0; right: 0; top: 0; height: 0; pointer-events: none; }
+.memAsh {
+  position: absolute;
+  left: var(--x);
+  top: 26px;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: memAshRise var(--d) cubic-bezier(0.25, 0.5, 0.5, 1) var(--dl) infinite;
+}
+.memAsh i {
+  position: absolute;
+  left: calc(var(--s) / -2);
+  top: calc(var(--s) / -2);
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 8px 2px rgba(167, 139, 250, 0.6);
+  animation: memAshSway calc(var(--d) / 3.3) ease-in-out var(--dl) infinite alternate;
+}
+@keyframes memAshRise {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  10% { opacity: 0.9; }
+  45% { opacity: 0.6; }
+  70%, 100% { transform: translate3d(0, calc(var(--r) * -1), 0); opacity: 0; }
+}
+@keyframes memAshSway { from { transform: translate3d(calc(var(--sw) * -1), 0, 0); } to { transform: translate3d(var(--sw), 0, 0); } }
+.shellV2TabHidden .memAsh,
+.shellV2TabHidden .memAsh i { animation: none; }
+@media (prefers-reduced-motion: reduce) { .memAshBox { display: none; } }

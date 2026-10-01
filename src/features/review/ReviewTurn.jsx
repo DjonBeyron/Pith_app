@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import ReviewHeader from './ReviewHeader.jsx'
 import { cardHasAudio } from './reviewSession.js'
@@ -24,7 +25,7 @@ function verdictOf(result, { attempt, word, kind }) {
 // block для fixed-слоёв плеера: панели ответа ложатся внутрь карточки).
 // Режим onFinishStats: ни XP, ни звёзд, ни экрана итогов, ни записи в анализ
 // урока. После ответа карточка «переворачивается» — плашка с итогом; дальше —
-// «Далее», смахивание вверх/вправо (useSwipeNext) или Enter/→ на клавиатуре.
+// «Далее», смахивание влево (useSwipeNext) или Enter/← на клавиатуре.
 // «Не могу слушать» — только на карточке со звуком (NoAudioButton). Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
 export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, onAnswer, onNoAudio, onClose }) {
   const [answered, setAnswered] = useState(null) // { result, timeMs }
@@ -38,13 +39,13 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
     onAnswer(res)
   }
   const next = () => answered && send(answered)
-  const swipe = useSwipeNext(!!answered, next)
+  const swipeRef = useSwipeNext(!!answered, next)
 
   useEffect(() => {
     if (!answered) return
     const onKey = e => {
       if (e.target?.closest?.('button, input, textarea')) return // у кнопки Enter — её собственный клик
-      if (e.key === 'Enter' || e.key === 'ArrowRight') next()
+      if (e.key === 'Enter' || e.key === 'ArrowLeft') next()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -53,7 +54,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
   return (
     <>
       <ReviewHeader session={session} phrase={phrase} title={title} word={item.word} revealed={!!answered} onClose={onClose} />
-      <div className={answered ? 'reviewCard reviewCard--answered' : 'reviewCard'} style={swipe.style} {...swipe.handlers}>
+      <div className={answered ? 'reviewCard reviewCard--answered' : 'reviewCard'} ref={swipeRef}>
         <div className="reviewCardFrame">
           <LessonPlayer
             nodes={item.card.nodes}
@@ -78,9 +79,10 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
                   тех, кто не смахивает). Появляется только после ответа, плавно */}
               <button className="reviewBtn reviewBtn--main reviewNext" onClick={next}>Далее</button>
               <button className="reviewSwipeHint" aria-label="Далее" onClick={next}>
+                <ArrowLeft className="reviewSwipeArrow" aria-hidden="true" />
                 <span className="reviewSwipeHintText">
-                  смахни вверх или вправо
-                  <span className="reviewSwipeShine" aria-hidden="true"><span>смахни вверх или вправо</span></span>
+                  смахни карточку влево
+                  <span className="reviewSwipeShine" aria-hidden="true"><span>смахни карточку влево</span></span>
                 </span>
               </button>
             </>

@@ -117,7 +117,7 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
   async function answerPhrase(res) {
     if (phraseDoneRef.current) return
     phraseDoneRef.current = true
-    const r = res.result === 'correct' ? await consolidatePhrase(phrase.id) : null
+    const r = res.result === 'correct' ? await consolidatePhrase(phrase.id, { title: phrase.title, words: phrase.words }) : null
     setPhraseRes({ ok: !!r?.ok, title: phrase.title })
     finishAll()
   }

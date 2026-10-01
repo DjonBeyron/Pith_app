@@ -3,7 +3,7 @@ import { dbg } from '../lib/debug.js'
 import { localDate } from '../lib/memory/dailyPick.js'
 import {
   listGuestMemory, reviewGuestWord, listGuestReviews, clearGuestMemory, getGuestMinutes, setGuestMinutes,
-  getGuestPhrases, addGuestPhrase,
+  getGuestPhraseRows, addGuestPhrase,
 } from '../lib/memory/guestMemory.js'
 
 // Память повторения: тонкие обёртки над таблицей word_memory и RPC (миграция
@@ -161,18 +161,26 @@ export async function setDailyMinutes(minutes) {
   return data ?? null
 }
 
-// Закреплённые фразы (миграция 20260925190000_phrase_memory.sql): Set id модулей.
-// Гостю — локальные. Без миграции — пусто
-export async function listPhraseMemory() {
-  if (await isGuest()) return getGuestPhrases()
-  const { data, error } = await supabase.from('phrase_memory').select('module_id')
-  if (error) { console.error('[MEMORY] phrase_memory:', error.message); return new Set() }
-  return new Set((data ?? []).map(r => r.module_id))
+// Закреплённые фразы (миграции 20260925190000_phrase_memory.sql и
+// 20261001120000_phrase_memory_snapshot.sql): строки { module_id, consolidated_at,
+// phrase_title, phrase_words } — снимок названия и слов на момент закрепления.
+// Гостю — локальные. Без второй миграции снимка нет (title/words = null), без
+// первой — пусто
+export async function listPhraseRows() {
+  if (await isGuest()) return getGuestPhraseRows()
+  let { data, error } = await supabase.from('phrase_memory').select('module_id, consolidated_at, phrase_title, phrase_words')
+  if (error && /phrase_title|phrase_words/.test(error.message)) {
+    ;({ data, error } = await supabase.from('phrase_memory').select('module_id, consolidated_at'))
+  }
+  if (error) { console.error('[MEMORY] phrase_memory:', error.message); return [] }
+  return (data ?? []).map(r => ({ phrase_title: null, phrase_words: null, ...r }))
 }
 
-// Фраза собрана — закрепить (сервер проверит, что все её слова на шаге ≥ 3)
-export async function consolidatePhrase(moduleId) {
-  if (await isGuest()) { addGuestPhrase(moduleId); return { ok: true } }
+// Фраза собрана — закрепить (сервер проверит, что все её слова на шаге ≥ 3 и
+// сам снимет название и слова). snap — { title, words } для гостя (у него
+// записи локальные, снимок кладём сами)
+export async function consolidatePhrase(moduleId, snap) {
+  if (await isGuest()) { addGuestPhrase(moduleId, snap); return { ok: true } }
   const { data, error } = await supabase.rpc('memory_consolidate_phrase', { p_module_id: moduleId })
   if (error) { console.error('[MEMORY] memory_consolidate_phrase:', error.message); return null }
   return data ?? null

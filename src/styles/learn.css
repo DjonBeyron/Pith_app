@@ -22,6 +22,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden; /* поля эхо-колец (.memRing) у правого блока вылезают за экран — горизонтального скролла нет */
   padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(20px + var(--v2-nav-h)) 22px;
   scrollbar-width: none;
 }

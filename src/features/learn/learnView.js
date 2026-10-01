@@ -3,6 +3,7 @@ import { pickToday, dailyCardBudget, cardsShownToday, localDate } from '../../sh
 import { sessionMinutes } from '../review/reviewTeacher.js'
 import { plural } from '../../shared/lib/plural.js'
 import { buildLadder } from './memoryLadder.js'
+import { buildPhraseList } from './phraseList.js'
 
 // Всё, что показывает вкладка «Моя память» (PROJECT.md → «Вкладки»), из
 // сырых данных — чистая функция без сети:
@@ -16,6 +17,8 @@ import { buildLadder } from './memoryLadder.js'
 //   phrases — фразы (модули со словом в памяти) → слова с силой;
 //   known   — «Знаю N слов» (шаг ≥ 3 — слово пережило недельный интервал),
 //   strongPhrases — закреплённые фразы (собраны целиком, golden);
+//   phraseList — раздел «Фразы»: закреплённые фразы со снимком и пометкой lost,
+//             если урок фразы пропал (phraseList.js);
 //   today.phrase — фраза к закреплению: все слова «знаю», ещё не золотая
 //             (одна в день — приходит в повторение после карточек слов);
 //   vacation — «Отпуск» ({ since } | null): расписание на паузе, сегодня
@@ -26,8 +29,9 @@ export const KNOW_STEP = 3
 
 // data: { memory: word_memory[], curricula: [{ id, title, lesson_ids }],
 //         lessons: [{ id, title, deck }], reviews: review_events[], minutes, vacationSince,
-//         golden: Set id закреплённых фраз }
-export function buildLearnView({ memory = [], curricula = [], lessons = [], reviews = [], minutes = 5, vacationSince = null, golden = new Set() }, today) {
+//         phraseRows: строки phrase_memory [{ module_id, consolidated_at, phrase_title, phrase_words }] }
+export function buildLearnView({ memory = [], curricula = [], lessons = [], reviews = [], minutes = 5, vacationSince = null, phraseRows = [] }, today) {
+  const golden = new Set(phraseRows.map(r => r.module_id))
   const byWord = new Map(memory.map(m => [m.word, m]))
   const lessonById = new Map(lessons.map(l => [l.id, l]))
 
@@ -91,12 +95,13 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
     inMemory: memory.length,
     today: {
       picked, cards, minutes: sessionMinutes(cards + (ready ? 1 : 0)), shown,
-      phrase: ready ? { id: ready.id, title: ready.title, videoUrl: ready.videoUrl } : null,
+      phrase: ready ? { id: ready.id, title: ready.title, videoUrl: ready.videoUrl, words: ready.words.map(w => w.word) } : null,
     },
     next,
     ladder: buildLadder(memory, { todayWords: new Set(picked.map(p => p.word)), hasDeck, wordHome }),
     week: weekSummary(reviews, today),
     phrases,
+    phraseList: buildPhraseList(phraseRows, new Map(moduleWords.map(m => [m.id, m])), byWord, hasDeck),
     known: memory.filter(m => m.step >= KNOW_STEP).length,
     strongPhrases: phrases.filter(p => p.golden).length,
   }

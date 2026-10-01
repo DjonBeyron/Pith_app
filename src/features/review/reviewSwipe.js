@@ -1,25 +1,21 @@
 // Смахивание карточки повторения после ответа (PROJECT.md → «Формат
-// повторения»: вверх или вправо, не от левого края — там жест «назад» Safari).
-// Чистые функции без DOM: решение по смещению и стиль карточки на лету.
+// повторения»): только ВЛЕВО. Жест «назад» Safari идёт от левого края вправо,
+// с нашим не пересекается. Чистые функции без DOM: решение по смещению и
+// строки transform для карточки — их ставит useSwipeNext напрямую в стиль.
 
-export const EDGE_PX = 24   // старт ближе к левому краю экрана — не наш жест
-export const SWIPE_PX = 70  // сколько протянуть, чтобы засчиталось
+export const SWIPE_PX = 70  // сколько протянуть влево, чтобы засчиталось
 
-// startX — где начался жест (от левого края экрана); dx/dy — смещение.
-// → 'right' | 'up' | null
-export function swipeDecision({ startX, dx, dy }) {
-  if (startX < EDGE_PX) return null
-  if (dx >= SWIPE_PX && Math.abs(dy) < dx) return 'right'
-  if (-dy >= SWIPE_PX && Math.abs(dx) < -dy) return 'up'
-  return null
+// dx/dy — смещение от начала жеста → 'left' | null. Диагональ решает большая ось
+export function swipeDecision({ dx, dy }) {
+  return -dx >= SWIPE_PX && Math.abs(dy) < -dx ? 'left' : null
 }
 
-// drag: null | { dx, dy } (тянут) | { leave: 'right' | 'up' } (улетает)
-export function swipeStyle(drag) {
-  if (!drag) return undefined
-  if (drag.leave === 'right') return { transform: 'translateX(115%) rotate(8deg)', transition: 'transform 0.2s ease-in' }
-  if (drag.leave === 'up') return { transform: 'translateY(-115%)', transition: 'transform 0.2s ease-in' }
-  // Тянуть можно только в «нашу» сторону: влево и вниз карточка не едет
-  const dx = Math.max(0, drag.dx), dy = Math.min(0, drag.dy)
-  return { transform: `translate(${dx}px, ${dy}px) rotate(${dx / 40}deg)`, transition: 'none' }
+// Тянут: карточка едет только влево (вправо — стоит), по вертикали лишь слегка
+// следует за пальцем; чуть наклоняется. translate3d — слой на видеокарте
+export function dragTransform(dx, dy) {
+  const x = Math.min(0, dx)
+  return `translate3d(${x}px, ${Math.round(dy * 0.3)}px, 0) rotate(${(x / 40).toFixed(2)}deg)`
 }
+
+// Улетает за левый край экрана
+export const LEAVE_TRANSFORM = 'translate3d(-115%, 0, 0) rotate(-8deg)'

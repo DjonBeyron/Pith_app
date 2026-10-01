@@ -58,7 +58,7 @@ test('сессия: ошибка → слово в конце → верно; ж
   await expect(screen.locator('.reviewCapsule--bad')).toHaveCount(1)
   await option(screen, 'cook').click({ timeout: 30_000 })
   await expect(screen.locator('.reviewVerdict--ok')).toHaveText('Верно!')
-  await swipeRight(page, screen.locator('.reviewCard')) // «Далее» жестом
+  await swipeLeft(page, screen.locator('.reviewCard')) // «Далее» жестом
 
   await expect(screen.locator('.reviewSummaryTitle')).toHaveText('Повторение завершено', { timeout: 30_000 })
   await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook пока даётся непросто — вернёмся к нему завтра.')
@@ -86,13 +86,13 @@ test('сессия: ошибка → слово в конце → верно; ж
   await expect(page.locator('.arvRow', { hasText: 'cook' })).toContainText('шаг 2')
 })
 
-// Смахнуть карточку вправо мышью (pointer-события — те же, что у пальца)
-async function swipeRight(page, card) {
+// Смахнуть карточку влево мышью (pointer-события — те же, что у пальца)
+async function swipeLeft(page, card) {
   const box = await card.boundingBox()
   const y = box.y + box.height / 2
-  await page.mouse.move(box.x + box.width / 3, y)
+  await page.mouse.move(box.x + box.width * 2 / 3, y)
   await page.mouse.down()
-  await page.mouse.move(box.x + box.width / 3 + 160, y - 10, { steps: 6 })
+  await page.mouse.move(box.x + box.width * 2 / 3 - 160, y - 10, { steps: 6 })
   await page.mouse.up()
 }
 
