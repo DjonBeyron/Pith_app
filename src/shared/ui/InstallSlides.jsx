@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Cog, X } from 'lucide-react'
 import { getSlides } from './installSlidesContent.js'
 import { getInstallPrompt, hasInstallPrompt, detectBrowser } from '../lib/pwaInstall.js'
+import { fdbg } from '../lib/feedDebug.js'
 
 // Иконки слайдов — простые линии (stroke 1.8), тот же стиль, что и остальной
 // интерфейс. settings — исключение: иконка Cog (заливка, не линия) — тонкая
@@ -64,7 +65,8 @@ export default function InstallSlides({ onClose }) {
       const prompt = getInstallPrompt()
       if (prompt) {
         prompt.prompt()
-        await prompt.userChoice.catch(() => {})
+        const choice = await prompt.userChoice.catch(() => null)
+        fdbg(`pwa: prompt() → ${choice?.outcome ?? 'ошибка'}`)
       }
       go(1)
       return

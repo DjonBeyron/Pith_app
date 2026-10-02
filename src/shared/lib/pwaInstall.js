@@ -1,3 +1,5 @@
+import { fdbg } from './feedDebug.js'
+
 // Установка приложения на телефон (Add to Home Screen / «Установить
 // приложение»). beforeinstallprompt Chrome шлёт МАКСИМУМ один раз за
 // загрузку страницы и только если браузер сам решил, что сайт «устанавливаем»
@@ -8,11 +10,21 @@
 let deferredPrompt = null
 let promptCaptured = false
 
+// Диагностика установки на Android: адрес с ?nativeinstall=1 — событие НЕ перехватываем (без preventDefault), Chrome
+// сам показывает свой диалог и ведёт установку из меню. Нужен, чтобы проверить, не мешает ли перехват установке «Установить»
+// из меню Chrome. События установки пишутся в лог DBG (feedDebug.js)
+export const NATIVE_INSTALL = (() => {
+  try { return new URLSearchParams(location.search).has('nativeinstall') } catch { return false }
+})()
+
 window.addEventListener('beforeinstallprompt', e => {
+  if (NATIVE_INSTALL) { fdbg('pwa: beforeinstallprompt (режим nativeinstall — не перехватываем)'); return }
   e.preventDefault()
   deferredPrompt = e
   promptCaptured = true
+  fdbg('pwa: beforeinstallprompt пойман')
 })
+window.addEventListener('appinstalled', () => fdbg('pwa: appinstalled'))
 
 export function getInstallPrompt() {
   return deferredPrompt
