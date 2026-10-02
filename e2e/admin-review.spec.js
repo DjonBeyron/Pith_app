@@ -194,10 +194,13 @@ test('админ вручную добавляет слово в обучени�
   await row.getByRole('button', { name: '＋ В обучение' }).click()
   await expect(row.locator('.adkLearn')).toContainText('В обучении · шаг 1 · к повтору сегодня')
 
+  // Вкладку «Память» не открывали (она живёт скрытой), а слово в её лестнице уже есть — данные обновились по сигналу
+  const keepChip = page.locator('.memLvl--1 .memChip', { hasText: 'keep' })
+  await expect(keepChip).toHaveCount(1, { timeout: 15_000 })
   const nav = page.getByRole('button', { name: 'Память', exact: true })
   await nav.click()
   const main = page.locator('.lrMain')
-  await expect(main).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })
+  await expect(main).toContainText(/Сегодня повторяем \d+ сло/, { timeout: 30_000 }) // слов может быть больше: cook из прошлых тестов тоже созрел
   await expect(page.locator('.memLvl--1 .memChip', { hasText: 'keep' })).toBeVisible()
   await main.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
@@ -209,6 +212,8 @@ test('админ вручную добавляет слово в обучени�
   await page.locator('.arvRow', { hasText: 'keep' }).getByRole('button', { name: 'Убрать' }).click()
   await expect(page.locator('.aeHint', { hasText: '«keep» убрано из обучения' })).toBeVisible()
   await expect(page.locator('.arvRow', { hasText: 'keep' })).toHaveCount(0)
+  // Убрали слово — и из лестницы оно пропало, не заходя во вкладку «Память»
+  await expect(keepChip).toHaveCount(0, { timeout: 15_000 })
 })
 
 // «Прожить день» и «На сегодня» (миграция 20261002130000_memory_debug_today.sql): бюджет карточек дня считается по журналу

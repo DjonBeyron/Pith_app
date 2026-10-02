@@ -32,7 +32,7 @@ export default function MemoryPhrases({ list, started = [], today, onOpen, onAll
         {!shown.length && <p className="memPhrasesEmpty">{learned ? 'Пока нет выученных фраз' : 'Начатых фраз нет — все пройдены или ещё не начаты'}</p>}
         {learned
           ? list.slice(0, SHOWN).map(p => <MemoryPhraseRow key={p.id} p={p} today={today} onClick={onOpen} />)
-          : started.slice(0, SHOWN).map(p => <MemoryStartedRow key={p.id} p={p} onClick={onOpenStarted} />)}
+          : started.slice(0, SHOWN).map((p, i) => <MemoryStartedRow key={p.id} p={p} idx={i + 1} onClick={onOpenStarted} />)}
       </div>
       {shown.length > SHOWN && (
         <button className="memPhrasesAll" onClick={learned ? onAll : onAllStarted}>

@@ -63,6 +63,9 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   // Начатая фраза: тап открывает схему её модуля — продолжить с места, где остановился
   const openStarted = p => openRef({ isModule: true, targetId: p.id, targetTitle: p.title }, null)
   const ladder = view?.ladder
+  // Нет ни выученных, ни начатых фраз — раздела под пятиугольником нет: экран кончается пятиугольником, и при полном скролле
+  // он оказывался у самой нижней панели, под затемнением. Запас снизу (learn.css) поднимает его выше
+  const bare = !!view && !page && !view.phraseList.length && !view.startedPhrases.length
   // Окно слова показывает свежие данные: после тест-шага админа слово могло перейти на другую ступень
   const live = sheet && ladder ? findLadderWord(ladder, sheet.word.word) : null
   const sheetWord = live ? { ...sheet.word, ...live.word } : sheet?.word
@@ -79,7 +82,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   return (
     <div className="lrRoot">
       <LearnPattern view={view} ladder={ladder} />
-      <div className="lrScreen">
+      <div className={bare ? 'lrScreen lrScreen--bare' : 'lrScreen'}>
         {page && ladder && (
           <MemoryLevelPage ladder={ladder} level={page} onLevel={setPage} onWord={openWord} onBack={() => setPage(null)} />
         )}

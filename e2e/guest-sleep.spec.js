@@ -132,6 +132,27 @@ test('пятиугольник: подпись того же размера, ч�
   expect(screen[0]).toBeLessThanOrEqual(screen[1])
 })
 
+test('нет фраз: у «Моей памяти» запас пустоты снизу — при полном скролле пятиугольник не жмётся к панели', async ({ page }) => {
+  await seed(page, { due: day(5) })
+  await page.setViewportSize({ width: 390, height: 800 })
+  await page.goto('/?tab=learn')
+  const screen = page.locator('.lrScreen')
+  await expect(screen).toHaveClass(/lrScreen--bare/, { timeout: 30_000 })
+  const gap = async () => {
+    await screen.evaluate(el => { el.scrollTop = el.scrollHeight })
+    await page.waitForTimeout(200)
+    return page.evaluate(() => document.querySelector('.shellV2Nav').getBoundingClientRect().top - document.querySelector('.memPerm').getBoundingClientRect().bottom)
+  }
+  expect(await gap(), 'пятиугольник заметно выше панели (над затемнением 68 px)').toBeGreaterThan(110)
+})
+
+test('есть начатая фраза: запаса нет — раздел фраз сам занимает место', async ({ page }) => {
+  await seed(page, { due: day(5), completed: [LESSONS[0], LESSONS[1]] })
+  await page.goto('/?tab=learn')
+  await expect(page.locator('.memPhrases')).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('.lrScreen')).not.toHaveClass(/lrScreen--bare/)
+})
+
 test('есть что повторить: мозг не спит, искры летят', async ({ page }) => {
   await seed(page, { due: day(0) })
   await page.goto('/?tab=learn')
@@ -168,6 +189,8 @@ test('«Мои начатые фразы»: вкладка рядом с выу�
   const row = section.locator('.memStartedRow')
   await expect(row).toContainText('Keep going')
   await expect(row.locator('.memStartedPct')).toHaveText('50%')
+  await expect(row.locator('.memStartedIdx'), 'порядковый номер — мелкий, в углу, как номер урока в схеме модуля').toHaveText('1')
+  expect(await row.locator('.memStartedIdx').evaluate(el => getComputedStyle(el).fontSize)).toBe('9px')
   await expect(row).toContainText('Пройдено 2 из 4 уроков · осталось 2')
   // Вкладка выученных — пусто, заботливо
   await section.getByRole('tab', { name: /выученные/ }).click()

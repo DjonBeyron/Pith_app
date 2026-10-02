@@ -25,8 +25,12 @@
   overflow-x: hidden; /* поля эхо-колец (.memRing) у правого блока вылезают за экран — горизонтального скролла нет */
   padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(20px + var(--v2-nav-h)) 22px;
   scrollbar-width: none;
+  overscroll-behavior-y: contain; /* край списка не передаёт жест окну (Android: прыжки панели, «обновить страницу») */
 }
 .lrScreen::-webkit-scrollbar { display: none; }
+/* Пустая «Моя память» (нет фраз): экран кончается пятиугольником — запас пустоты снизу, чтобы при полном скролле он
+   не жался к нижней панели и затемнению (.lrEdgeBottom, 68 px) */
+.lrScreen--bare { padding-bottom: calc(120px + var(--v2-nav-h)); }
 
 /* Мягкое гашение снизу — как у схемы модуля (.moduleGraphEdge--bottom,
    module-graph-layout.css): полоска цвета фона над нижней панелью, всё, что

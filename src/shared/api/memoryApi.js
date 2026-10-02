@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js'
 import { viewSession } from './viewSession.js'
 import { dbg } from '../lib/debug.js'
+import { notifyMemoryChanged } from '../lib/memoryChangedEvent.js'
 import { localDate } from '../lib/memory/dailyPick.js'
 import {
   listGuestMemory, reviewGuestWord, listGuestReviews, clearGuestMemory, getGuestMinutes, setGuestMinutes,
@@ -157,6 +158,7 @@ export async function listPhraseRows() {
 export async function adminPinPhrase(moduleId, pinned) {
   const { data, error } = await supabase.rpc('memory_admin_pin_phrase', { p_module_id: moduleId, p_pinned: pinned })
   if (error) { console.error('[MEMORY] memory_admin_pin_phrase:', error.message); return null }
+  if (data?.ok) notifyMemoryChanged() // список фраз на вкладке «Память» обновится сразу
   return data ?? null
 }
 

@@ -98,10 +98,10 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   const [activeIdx, setActiveIdx] = useState(-1)
 
   useFeedSplash(modules, len, feedModules)
-  // Обучающая подсказка «зажми лайк — замедли»: взводится, когда пользователь
-  // включил звук и затем свайпнул на следующее видео; активна только в
-  // «Рекомендациях» (тут же живёт activeIdx) — «Мои уроки» её не показывают.
-  const { showHint: showSlowHint, markSeenNow: markSlowHintSeen } = useSlowMotionHint(activeIdx, soundReady)
+  // Обучающая подсказка «зажми лайк — замедли»: появляется на 3-м видео при первом посещении ленты и пропадает
+  // насовсем после трёх проигнорированных видео; активна только в «Рекомендациях» (тут же живёт activeIdx) —
+  // «Мои уроки» её не показывают.
+  const { showHint: showSlowHint, markSeenNow: markSlowHintSeen } = useSlowMotionHint(activeIdx)
   // Аналитика: сколько видео фразы было на экране (feed_view)
   useFeedTracking(feedActive && !openModule && len > 0 && activeIdx >= 0 ? feedModules[moduleOf(activeIdx, len)] : null)
 

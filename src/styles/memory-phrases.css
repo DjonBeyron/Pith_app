@@ -100,6 +100,9 @@
   font-size: 12px;
   font-weight: 800;
 }
+/* Порядковый номер строки — как номер урока на карточке в схеме модуля (.mgLessonIdx): мелкий, тусклый, в левом верхнем углу */
+.memStartedRow { position: relative; }
+.memStartedIdx { position: absolute; top: 5px; left: 9px; font-size: 9px; font-weight: 600; line-height: 1; color: #565c6b; pointer-events: none; }
 .memStartedTrack { display: block; height: 3px; margin-top: 4px; overflow: hidden; border-radius: 2px; background: rgba(255, 255, 255, 0.08); }
 .memStartedTrack > span { display: block; height: 100%; border-radius: 2px; background: #4fb3ee; }
 
