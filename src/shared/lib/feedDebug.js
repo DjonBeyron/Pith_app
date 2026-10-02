@@ -122,6 +122,24 @@ export function startStallWatch() {
   }, STALL_TICK_MS)
 }
 
+// ── Сторож размера окна (Android в браузере) ──────────────────────────────
+// Жалоба: нижняя панель при скролле прыгает и местами пропадает — адресная строка браузера уезжает и возвращается, окно
+// меняет высоту. Пишем каждую смену высоты окна и видимой области + где в этот момент низ панели: по отчёту DBG видно,
+// когда окно сменило размер и успела ли панель за ним (низ панели должен совпадать с высотой видимой области)
+let lastViewportH = 0
+export function startViewportWatch() {
+  const note = why => {
+    const vv = window.visualViewport
+    const h = Math.round(vv?.height ?? window.innerHeight)
+    if (h === lastViewportH) return
+    lastViewportH = h
+    const nav = document.querySelector('.shellV2Nav')?.getBoundingClientRect()
+    fdbg(`окно (${why}): inner=${window.innerHeight} visual=${h} низ панели=${nav ? nav.bottom.toFixed(0) : 'нет'}`)
+  }
+  window.addEventListener('resize', () => note('resize'))
+  window.visualViewport?.addEventListener('resize', () => note('visual'))
+}
+
 export function fpsSnapshot() {
   if (fpsWindow.length < 5) return 'n/a (монитор ещё копит данные)'
   const span = fpsWindow[fpsWindow.length - 1] - fpsWindow[0]
@@ -152,5 +170,6 @@ export function collectEnv() {
     `--v2-app-h: ${document.documentElement.style.getPropertyValue('--v2-app-h') || 'не задан'}`,
     `shellV2 rect: ${shell ? `top=${shell.top.toFixed(1)} bottom=${shell.bottom.toFixed(1)} h=${shell.height.toFixed(1)}` : 'нет'}`,
     `nav rect: ${nav ? `top=${nav.top.toFixed(1)} bottom=${nav.bottom.toFixed(1)} h=${nav.height.toFixed(1)} (winH=${window.innerHeight})` : 'нет'}`,
+    `nav position: ${document.querySelector('.shellV2Nav') ? getComputedStyle(document.querySelector('.shellV2Nav')).position : 'нет'}`,
   ].join('\n')
 }

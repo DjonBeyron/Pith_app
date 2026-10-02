@@ -7,7 +7,7 @@ import ErrorBoundary from './app/ErrorBoundary.jsx'
 import { AdminProvider } from './app/AdminContext.jsx'
 import { LessonNavProvider } from './app/LessonNavContext.jsx'
 import { initErrorTrap } from './shared/lib/errorTrap.js'
-import { startStallWatch } from './shared/lib/feedDebug.js'
+import { startStallWatch, startViewportWatch } from './shared/lib/feedDebug.js'
 import { applyPerfFlagClasses } from './shared/lib/perfFlags.js'
 import { initAnalytics } from './shared/lib/analytics/track.js'
 import './index.css'
@@ -31,6 +31,7 @@ initErrorTrap()
 // Сторож подвисаний главного потока (лаг всего телефона при сворачивании
 // на iPhone) — пишет в DBG-лог ленты, см. feedDebug.js
 startStallWatch()
+startViewportWatch()
 // Флаги бисекции лага сворачивания (классы на <html>, см. perf-flags.css)
 applyPerfFlagClasses()
 // Журнал продуктовой аналитики: открытие, открытие из пуша, отправка при
