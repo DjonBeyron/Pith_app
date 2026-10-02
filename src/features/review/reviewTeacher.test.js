@@ -9,13 +9,21 @@ describe('строки учителя', () => {
     expect(sessionMinutes(1)).toBe(1)
   })
 
-  it('в итоге: что помнится лучше, что даётся непросто; ранний повтор не в счёт', () => {
+  it('в итоге: у каждой группы слов — своя строка; шаг, который не менялся, объяснён', () => {
     expect(summaryLine([
       { word: 'trying', outcome: 'good' }, { word: 'to', outcome: 'fail' }, { word: 'cook', outcome: 'good', applied: false },
-    ])).toBe('trying теперь помнится лучше, to пока даётся непросто — вернёмся к нему завтра.')
-    expect(summaryLine([{ word: 'a', outcome: 'hard' }])).toBe('Слова держатся — так и продолжим.')
+    ])).toBe('trying теперь помнится лучше; cook повторено раньше срока — ступень не меняется, зато память крепче; to пока даётся непросто — вернёмся к нему завтра.')
+    expect(summaryLine([{ word: 'a', outcome: 'hard' }])).toBe('a вспомнилось не сразу — потренируемся ещё.')
+    expect(summaryLine([{ word: 'a', outcome: 'hard' }, { word: 'b', outcome: 'hard' }])).toBe('a и b вспомнились не сразу — потренируемся ещё.')
     expect(summaryLine(['a', 'b', 'c', 'd', 'e'].map(word => ({ word, outcome: 'good' }))))
       .toBe('a, b, c и ещё 2 теперь помнятся лучше.')
+    // ошибка важнее «раньше срока»: слово всё равно даётся непросто
+    expect(summaryLine([{ word: 'x', outcome: 'again', applied: false }])).toBe('x пока даётся непросто — вернёмся к нему завтра.')
+  })
+
+  it('слов для строки нет — спокойная строка по умолчанию, без «держатся»', () => {
+    expect(summaryLine([])).toBe('Слова на месте — вернёмся к ним в своё время.')
+    expect(summaryLine([{ word: 'a', outcome: null }])).not.toMatch(/держат/)
   })
 })
 

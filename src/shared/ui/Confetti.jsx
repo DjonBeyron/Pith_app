@@ -49,8 +49,12 @@ function makeBurst(W, H, size, gravity) {
 const calm = () => typeof matchMedia === 'function'
   && matchMedia('(prefers-reduced-motion: reduce)').matches
 
-export default function Confetti({ mode = 'fall', count = 120, refill = true, size = 5, fallRatio = 1 }) {
+// active — пока true, дождь подсыпает новые частицы; стал false — подсыпка прекращается, а то, что уже
+// летит, доигрывает и гаснет (плавный конец: итог повторения держит салют, пока идут его анимации)
+export default function Confetti({ mode = 'fall', count = 120, refill = true, size = 5, fallRatio = 1, active = true }) {
   const canvasRef = useRef(null)
+  const activeRef = useRef(active)
+  useEffect(() => { activeRef.current = active }, [active])
   // Канвас снимается, как только салют отыграл. Без этого он оставался бы в
   // DOM до конца урока: сообщения из ленты не исчезают, и после двух десятков
   // верных ответов на странице висело бы два десятка полноэкранных битмапов —
@@ -101,7 +105,7 @@ export default function Confetti({ mode = 'fall', count = 120, refill = true, si
       }
 
       if (!done && alive <= count / 2) done = true
-      if (refill && !done) particles.push(spawn())
+      if (refill && activeRef.current && !done) particles.push(spawn())
       if (alive > 0) rafId = requestAnimationFrame(tick)
       else setShown(false)   // отыграл — снимаем канвас вместе с его битмапом
     }

@@ -41,7 +41,8 @@
   padding: 11px 13px;
   border: 1px solid #262b33;
   border-radius: 14px;
-  background: #14171c;
+  /* Тот же узор, что у блоков уровней памяти (.memLvl): пыль, зерно, текстура поверх #14171c, слева — золотой отсвет фразы */
+  background: linear-gradient(to right, rgba(255, 210, 87, 0.1) 0, transparent 90px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
   color: inherit;
   font: inherit;
   text-align: left;

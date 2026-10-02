@@ -68,7 +68,7 @@ export default function ReviewScreen({ focusWords = null, phrase = null, onClose
   if (r.phase === 'loading' || holdFirst) body = <ReviewLoading text="Ищу слова, которые нужно напомнить…" />
   else if (r.phase === 'finishing') body = <ReviewLoading text="Подвожу итог…" />
   else if (r.phase === 'error') body = <Message text="Не загрузилось. Проверь сеть." onClose={onClose} />
-  else if (r.phase === 'empty') body = <Message title="На сегодня всё ✓" text="Новые слова появятся, когда придёт их срок." onClose={onClose} />
+  else if (r.phase === 'empty') body = <Message title="Повторение на сегодня закончено ✓" text="Слова уже укладываются в памяти — можно отдохнуть. Новые придут, когда настанет их срок." onClose={onClose} />
   else if (r.phase === 'run' && item) {
     body = (
       <ReviewTurn
@@ -107,7 +107,7 @@ export default function ReviewScreen({ focusWords = null, phrase = null, onClose
       {body}
       {warmItem && (
         <ReviewWarmup key={warmItem.key} card={warmItem.card} ref={warmRef}
-          onWarm={holdFirst ? pct => { if (pct >= 100) releaseRef.current?.() } : null} />
+          onWarm={holdFirst ? warm => { if (warm) releaseRef.current?.() } : null} />
       )}
     </div>,
     document.body,

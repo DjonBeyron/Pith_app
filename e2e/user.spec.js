@@ -121,16 +121,17 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await expect(page.locator('.memPage')).toHaveCount(0)
   await expect(page.locator('.memZone')).toBeVisible()
 
-  // Сессия дня: верный ответ → итог (+2 XP, мостик в фразу) → «На сегодня всё ✓»
+  // Сессия дня: верный ответ → итог (серия, мостик в фразу) → «Повторение на сегодня закончено ✓»
   await main.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
   await review.getByRole('button', { name: 'Далее' }).click()
   await expect(review.locator('.reviewTeacherLine')).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 })
-  await expect(review.locator('.reviewReward')).toContainText('+2 XP', { timeout: 20_000 }) // после переноса награды в XP-полоску
-  await expect(review.locator('.reviewBridge')).toContainText('Keep going · E2E-ОБУЧЕНИЕ» · 25%')
+  await expect(review.locator('.reviewReward')).toContainText(/серии|серия/, { timeout: 20_000 }) // после переноса награды в XP-полоску; «+N XP» текстом не пишем
+  await expect(review.locator('.reviewBridge')).toContainText('Продолжить изучение фразы «Keep going · E2E-ОБУЧЕНИЕ»')
+  await expect(review.locator('.reviewBridge')).toContainText('Пройдено 25%')
   await review.getByRole('button', { name: 'Готово' }).click()
-  await expect(main).toContainText('На сегодня всё ✓', { timeout: 30_000 })
+  await expect(main).toContainText('Повторение на сегодня закончено ✓', { timeout: 30_000 })
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)
   await expect(page.locator('.lrPattern .lrWave')).toHaveCount(0) // повторять нечего — узор спокоен
 

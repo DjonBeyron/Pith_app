@@ -5,7 +5,7 @@ import { dueLabel } from './learnView.js'
 
 // Шапка «Моей памяти» — главное действие по состоянию, одно:
 // «Отпуск» (+ вернуться) | память пуста | «Сегодня повторяем N слов» +
-// «Повторить» | «Закрепить фразу» | «На сегодня всё ✓» (+ когда следующее).
+// «Повторить» | «Закрепить фразу» | «Повторение на сегодня закончено ✓» (+ когда следующее).
 // От низа шапки идёт ствол линий к ступеням (MemoryLadderWires.jsx)
 const fmtDate = d => new Date(`${d}T12:00:00`).toLocaleDateString('ru', { day: 'numeric', month: 'long' })
 const words = n => `${n} ${plural(n, 'слово', 'слова', 'слов')}`
@@ -69,9 +69,9 @@ export default function LearnMainAction({ view, today, onStart, onChanged }) {
     )
   }
   return (
-    <Hero mod=" lrMainDone" title="На сегодня всё ✓"
+    <Hero mod=" lrMainDone" title="Повторение на сегодня закончено ✓"
       sub={view.next
-        ? `Следующее повторение ${dueLabel(view.next.date, today)} · ${words(view.next.count)}`
-        : 'Новые слова появятся после следующих уроков'} />
+        ? `Слова уже укладываются в памяти — можно отдохнуть. Следующее повторение ${dueLabel(view.next.date, today)} · ${words(view.next.count)}`
+        : 'Слова уже укладываются в памяти — можно отдохнуть. Новые появятся после следующих уроков'} />
   )
 }

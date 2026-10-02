@@ -77,9 +77,13 @@ test('тап по слову во фразе → карточка слова: ш
   expect(await card.locator('.wcDlgScroll').evaluate(el => getComputedStyle(el).overflowY)).toBe('visible')
   // Шапка и подвал на месте при прокрутке; в конце последнее сообщение не липнет к подвалу
   const headTop = (await card.locator('.wcHead').boundingBox()).y
+  const ctxTop = (await card.locator('.wcCtx').boundingBox()).y
   await mid.evaluate(el => { el.scrollTop = el.scrollHeight })
   expect(await mid.evaluate(el => el.scrollTop)).toBeGreaterThan(0)
   expect((await card.locator('.wcHead').boundingBox()).y).toBe(headTop)
+  // «В фразе» едет вместе с остальным: в шапке только метка, слово и перевод
+  expect((await card.locator('.wcCtx').boundingBox()).y).toBeLessThan(ctxTop)
+  expect(await card.locator('.wcHead .wcCtx').count()).toBe(0)
   const lastBottom = (await card.locator('.wcDlgScroll .wcBub').last().boundingBox()).y
     + (await card.locator('.wcDlgScroll .wcBub').last().boundingBox()).height
   const footTop = (await card.locator('.wcFoot').boundingBox()).y

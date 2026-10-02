@@ -70,9 +70,10 @@ test('сессия: ошибка → слово в конце → верно; ж
   await expect(screen.locator('.reviewSummaryTitle')).toHaveText('Повторение завершено', { timeout: 30_000 })
   await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook пока даётся непросто — вернёмся к нему завтра.')
   await expect(screen.locator('.reviewWord--soft')).toContainText('cook')
-  await expect(screen.locator('.reviewReward')).toContainText(/\+2 XP|XP за повторение на сегодня уже набран/, { timeout: 20_000 }) // после переноса награды в XP-полоску
+  await expect(screen.locator('.reviewReward')).toContainText(/серии|серия/, { timeout: 20_000 }) // после переноса награды в XP-полоску; «+N XP» текстом не пишем
   // Мостик в модуль слова: пройден урок cook — 1 из 4 (сид)
-  await expect(screen.locator('.reviewBridge')).toHaveText("Продолжить «I'm trying to cook · E2E-КОЛОДЫ» · 25%")
+  await expect(screen.locator('.reviewBridge')).toContainText("Продолжить изучение фразы «I'm trying to cook · E2E-КОЛОДЫ»")
+  await expect(screen.locator('.reviewBridge')).toContainText('Пройдено 25%')
   await screen.getByRole('button', { name: 'Готово' }).click()
   await expect(screen).toHaveCount(0)
 

@@ -60,14 +60,15 @@ export default function MemoryWordCard({ word, phrase, perm, today, onLesson, on
             )}
           </div>
           {word.translation && <p className="wcGloss">{word.translation}</p>}
+        </div>
+        <div className="wcMid">
+          {/* «В фразе» — первым в прокручиваемой части: на месте остаются только метка, слово и перевод */}
           {phrase && (
             <div className="wcCtx">
               <span>В фразе</span>
               <p>{splitByWord(phrase, word.word).map((p, i) => (p.hit ? <mark key={i}>{p.text}</mark> : <span key={i}>{p.text}</span>))}</p>
             </div>
           )}
-        </div>
-        <div className="wcMid">
           <WordCardBlocks nodes={card.nodes} />
         </div>
         <div className="wcFoot">
