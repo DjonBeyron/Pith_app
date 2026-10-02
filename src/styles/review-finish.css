@@ -1,0 +1,27 @@
+/* Конец повторения (features/review: ReviewScreen). Последняя карточка не смахивается: после ответа экран
+   плавно затемняется (.reviewScrim), и поверх еле видной карточки проявляется итог. Закрытие экрана —
+   растворение (.reviewScreen--leaving): под ним проявляется вкладка «Моя память» */
+
+/* Затемнение: выше плашки ответа карточки (z 300), ниже итога (.lessonSummaryOverlay, z 10000), и под ним
+   карточка остаётся — итог ложится на неё. Пока идёт расчёт итога, тапы мимо не проходят */
+.reviewScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 9, 11, 0.72);
+  animation: reviewFadeIn 1s ease both;
+}
+/* «Подвожу итог…» — только если расчёт затянулся: появляется не сразу, а через секунду с лишним */
+.reviewScrimText { margin: 0; font-size: 14px; color: #9aa3ad; animation: reviewFadeIn 0.5s ease 1.2s both; }
+
+/* Растворение: весь экран (с итогом и конфетти) тает, страница под ним проявляется. Срок — LEAVE_MS в ReviewScreen.jsx */
+.reviewScreen--leaving { pointer-events: none; animation: reviewFadeOut 0.5s ease forwards; }
+@keyframes reviewFadeOut { to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .reviewScrim, .reviewScrimText { animation: none; }
+  .reviewScreen--leaving { animation: none; opacity: 0; }
+}

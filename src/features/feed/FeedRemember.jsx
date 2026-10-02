@@ -6,14 +6,17 @@ import { listLessonCards } from '../../shared/lib/lessonsApi.js'
 import { getDefaultTeacher } from '../../shared/api/appSettingsApi.js'
 import { resolveTeacher } from '../../shared/lib/teacherResolve.js'
 import { buildDecks } from '../review/reviewDecks.js'
-import { buildSession, startSession, currentItem } from '../review/reviewSession.js'
+import { buildSession, startSession, currentItem, cardNeedsSound } from '../review/reviewSession.js'
+import { levelClass } from '../review/reviewLevel.js'
+import { levelOf } from '../learn/memoryLadder.js'
 import ReviewTurn from '../review/ReviewTurn.jsx'
 import { feedOutcome } from './feedRemember.js'
 
 // «Помнишь?» поверх ленты: одна карточка слова (ротация — не та, что в
 // прошлый раз) тем же ReviewTurn, что и сессия повторения. Ответ — исход в
-// память (source 'feed', засчитан в бюджет дня) и назад в ленту; закрыл или
-// «Не могу слушать» — пролистал, без штрафа. Колоды кэшируются на 5 минут:
+// память (source 'feed', засчитан в бюджет дня) и назад в ленту; закрыл — пролистал,
+// без штрафа. «Не могу слушать»: если без звука не обойтись — пролистал так же, а
+// голосовое с текстом просто играет беззвучно. Колоды кэшируются на 5 минут:
 // «Помнишь?» бывает до 3 раз в день, колоды всех уроков не качаем каждый раз
 const CACHE_MS = 5 * 60_000
 let cache = null // { at, promise }
@@ -30,7 +33,8 @@ function loadData() {
 }
 
 export default function FeedRemember({ word, onDone, onClose }) {
-  const [state, setState] = useState(null) // { session, decks, teacher }
+  const [state, setState] = useState(null) // { session, decks, teacher, level }
+  const [muted, setMuted] = useState(false) // «Не могу слушать» на карточке с голосовым: играет беззвучно
 
   useEffect(() => {
     let alive = true
@@ -40,7 +44,8 @@ export default function FeedRemember({ word, onDone, onClose }) {
         const last = memory.find(m => m.word === word)?.last_card_id
         const built = buildSession([{ word, cards: 1 }], decks, { lastCardIds: { [word]: last } })
         if (!built.items.length) { onClose(); return }
-        setState({ session: startSession(built), decks, teacher })
+        const step = memory.find(m => m.word === word)?.step
+        setState({ session: startSession(built), decks, teacher, level: step ? levelOf(step) : null })
       })
       .catch(() => { if (alive) onClose() })
     return () => { alive = false }
@@ -56,7 +61,7 @@ export default function FeedRemember({ word, onDone, onClose }) {
 
   const item = state && currentItem(state.session)
   return createPortal(
-    <div className="reviewScreen feedRemember" role="dialog" aria-label="Помнишь?">
+    <div className={`reviewScreen${levelClass(state?.level)} feedRemember`} role="dialog" aria-label="Помнишь?">
       <p className="feedRememberTitle">Помнишь?</p>
       {item
         ? <ReviewTurn
@@ -64,8 +69,9 @@ export default function FeedRemember({ word, onDone, onClose }) {
             item={item}
             phrase={state.decks.get(word)?.phrase ?? ''}
             teacher={resolveTeacher(item.card.teacher, state.teacher)}
+            muted={muted}
             onAnswer={answer}
-            onNoAudio={onClose}
+            onNoAudio={() => (cardNeedsSound(item.card) ? onClose() : setMuted(true))}
             onClose={onClose}
           />
         : <p className="reviewNote">…</p>}

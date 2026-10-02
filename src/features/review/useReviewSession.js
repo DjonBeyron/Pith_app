@@ -14,7 +14,7 @@ import { buildDecks, localToday } from './reviewDecks.js'
 import { pickBridge } from './reviewBridge.js'
 import { createReviewTracker } from './reviewTracker.js'
 import {
-  buildSession, startSession, currentItem, isFinished, wordDone, answerCard, dropAudio, wordOutcomes, cardHasAudio,
+  buildSession, startSession, currentItem, isFinished, wordDone, answerCard, dropAudio, wordOutcomes, cardNeedsSound,
 } from './reviewSession.js'
 
 // Сессия повторения дня целиком: загрузка памяти и колод, выбор дня
@@ -29,6 +29,7 @@ import {
 // вне расписания и бюджета (сервер ранний верный ответ шагом не засчитает).
 // phrase — фраза к закреплению ({ id, title, videoUrl }, learnView): после
 // карточек слов (или вместо них) — «собери фразу» целиком (phraseDrill.js).
+// firstWord — слово, с которого начать: экран загрузки уже окрашен в цвет его ступени.
 //
 // Загрузка на экране не короче MIN_LOADING_MS: даже если всё пришло мгновенно,
 // успеваешь прочитать «Ищу слова, которые нужно напомнить…» (ошибка — сразу).
@@ -37,7 +38,7 @@ import {
 const MIN_LOADING_MS = 1400
 
 // phase: loading | error | empty | run | phrase | finishing | done
-export function useReviewSession({ focusWords = null, phrase = null } = {}) {
+export function useReviewSession({ focusWords = null, phrase = null, firstWord = null } = {}) {
   const [phase, setPhase] = useState('loading')
   const [session, setSession] = useState(null)
   // { decks, curricula, memory, teacher (общий, сырой), words, cards }
@@ -51,6 +52,7 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
   const [tracker] = useState(() => createReviewTracker())
   const sentRef = useRef(new Map()) // word → Promise строки results
   const noAudioRef = useRef(false)
+  const [muted, setMuted] = useState(false) // «Не могу слушать»: голосовые играют беззвучно
   const finishingRef = useRef(false)
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
             canReview,
           })
         const lastCardIds = Object.fromEntries(memory.map(m => [m.word, m.last_card_id]))
-        const built = buildSession(picked, decks, { lastCardIds })
+        const built = buildSession(picked, decks, { lastCardIds, first: firstWord })
         setInfo({ decks, curricula, memory, teacher, words: built.words, cards: built.items.length })
         setSession(startSession(built))
         if (built.items.length || phrase) tracker.start({ words: built.words.length, cards: built.items.length })
@@ -134,7 +136,7 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
   function answer(res) {
     const item = currentItem(session)
     if (!item) return
-    const deck = (info.decks.get(item.word)?.cards ?? []).filter(c => !(noAudioRef.current && cardHasAudio(c)))
+    const deck = (info.decks.get(item.word)?.cards ?? []).filter(c => !(noAudioRef.current && cardNeedsSound(c)))
     const next = answerCard(session, res, deck)
     tracker.answer({ word: item.word, result: res.result, attempt: item.attempt, timeMs: res.timeMs,
       answered: next.index, total: next.queue.length })
@@ -142,13 +144,16 @@ export function useReviewSession({ focusWords = null, phrase = null } = {}) {
     flush(next)
   }
 
-  // «Не могу слушать»: до конца сессии — без звука и голоса
+  // «Не могу слушать»: до конца сессии голосовые играют беззвучно (текст в них остаётся), а карточки,
+  // где без звука не обойтись (видео, кружок, голос ученика, голосовое без текста), уходят из очереди
   function skipAudio() {
     noAudioRef.current = true
+    setMuted(true)
     const next = dropAudio(session)
+    if (next.queue.length === session.queue.length) return
     setSession(next)
     flush(next)
   }
 
-  return { phase, session, info, results, finish, baseXp, bridge, phraseRes, answer, skipAudio, answerPhrase }
+  return { phase, session, info, results, finish, baseXp, bridge, phraseRes, muted, answer, skipAudio, answerPhrase }
 }

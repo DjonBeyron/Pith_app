@@ -10,9 +10,14 @@ import { reviewOutcome } from '../../shared/lib/memory/reviewOutcome.js'
 //   wordOutcomes — исход каждого слова за сессию (reviewOutcome.js).
 // Сессия длиннее плана максимум на число ошибок.
 
-// Карточки со звуком/голосом — их убирает «Не могу слушать»
+// Карточки со звуком/голосом — на них стоит «Не могу слушать»
 const AUDIO_TYPES = new Set(['audio', 'voice_record', 'circle', 'video'])
 export const cardHasAudio = card => (card?.nodes ?? []).some(n => AUDIO_TYPES.has(n.type))
+
+// Без звука не обойтись — такие карточки «Не могу слушать» убирает. Голосовое сообщение с текстом
+// (текст в нём печатается под голос) просто играет беззвучно: карточка остаётся
+const needsSound = n => AUDIO_TYPES.has(n.type) && !(n.type === 'audio' && n.typeData?.audio?.text?.trim())
+export const cardNeedsSound = card => (card?.nodes ?? []).some(needsSound)
 
 // Карточки слова начиная со следующей после показанной в прошлый раз
 function rotate(cards, lastCardId) {
@@ -21,9 +26,12 @@ function rotate(cards, lastCardId) {
 }
 
 // Вперемешку: слова в случайном порядке, дальше по кругу по одной карточке
-// слова — две карточки одного слова рядом только если другого не осталось
-function interleave(lists, rand) {
+// слова — две карточки одного слова рядом только если другого не осталось.
+// first — слово, с которого начать (экран загрузки уже окрашен в цвет его ступени)
+function interleave(lists, rand, first = null) {
   const order = lists.map(l => [...l]).sort(() => rand() - 0.5)
+  const at = order.findIndex(l => l[0].word === first)
+  if (at > 0) order.unshift(...order.splice(at, 1))
   const out = []
   while (order.some(l => l.length)) for (const l of order) if (l.length) out.push(l.shift())
   return out
@@ -31,14 +39,14 @@ function interleave(lists, rand) {
 
 // picked: [{ word, step, cards }] (pickToday); decks: Map(word → { phrase, cards: [{ id, nodes, lessonId }] })
 // → { items: [{ key, word, card, attempt: 1 }], words: [...] }
-export function buildSession(picked, decks, { lastCardIds = {}, noAudio = false, rand = Math.random } = {}) {
+export function buildSession(picked, decks, { lastCardIds = {}, noAudio = false, first = null, rand = Math.random } = {}) {
   const lists = []
   for (const { word, cards: n } of picked ?? []) {
-    const deck = (decks.get(word)?.cards ?? []).filter(c => c?.nodes?.length && !(noAudio && cardHasAudio(c)))
+    const deck = (decks.get(word)?.cards ?? []).filter(c => c?.nodes?.length && !(noAudio && cardNeedsSound(c)))
     const chosen = rotate(deck, lastCardIds[word]).slice(0, n)
     if (chosen.length) lists.push(chosen.map(card => ({ key: `${word}:${card.id}:1`, word, card, attempt: 1 })))
   }
-  const items = interleave(lists, rand)
+  const items = interleave(lists, rand, first)
   return { items, words: [...new Set(items.map(i => i.word))] }
 }
 
@@ -75,12 +83,16 @@ export function answerCard(s, { result, timeMs = null }, deck = []) {
   return { ...s, queue, index: s.index + 1, events, shownCards, revealed }
 }
 
-// «Не могу слушать»: убрать из ОСТАВШЕЙСЯ очереди карточки со звуком
+// «Не могу слушать»: убрать из ОСТАВШЕЙСЯ очереди карточки, где без звука не обойтись
 export function dropAudio(s) {
   const done = s.queue.slice(0, s.index)
-  const rest = s.queue.slice(s.index).filter(q => !cardHasAudio(q.card))
+  const rest = s.queue.slice(s.index).filter(q => !cardNeedsSound(q.card))
   return { ...s, queue: [...done, ...rest] }
 }
+
+// Этот ответ — последний в очереди (ошибка с первой попытки добавит повтор — тогда нет)
+export const endsQueue = (s, item, result) =>
+  s.index >= s.queue.length - 1 && !(result === 'wrong' && item.attempt === 1)
 
 // → [{ word, outcome, cardId, events }] только по словам, у которых был ответ
 export function wordOutcomes(s) {

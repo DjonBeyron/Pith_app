@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import ReviewHeader from './ReviewHeader.jsx'
 import ReviewProgress from './ReviewProgress.jsx'
-import { cardHasAudio } from './reviewSession.js'
+import { cardHasAudio, endsQueue } from './reviewSession.js'
 import { useSwipeNext } from './useSwipeNext.js'
 import NoAudioButton from './NoAudioButton.jsx'
 import WaitingDots from '../player/waiting/WaitingDots.jsx'
@@ -22,16 +22,22 @@ function verdictOf(result, { attempt, word, kind }) {
   return { kind: 'bad', text: `Вернёмся к слову «${word}» завтра` }
 }
 
+const FINAL_HOLD_MS = 1600 // последняя карточка: плашка «Верно!» читается, потом итог
+const FINAL_HOLD_BAD_MS = 2400 // плашка с «вернёмся к слову» длиннее — читается дольше
+
 // Одна карточка сессии: кусочек чата (1–3 ноды) играет тот же LessonPlayer,
 // что и урок, — в рамке .reviewCardFrame (transform делает её containing
 // block для fixed-слоёв плеера: панели ответа ложатся внутрь карточки).
 // Режим onFinishStats: ни XP, ни звёзд, ни экрана итогов, ни записи в анализ
 // урока. После ответа карточка «переворачивается» — плашка с итогом; дальше —
 // «Далее», смахивание влево — карточки или подсказки под ней (useSwipeNext) или Enter/← на клавиатуре.
-// «Не могу слушать» — только на карточке со звуком (NoAudioButton). Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
+// «Не могу слушать» — только на карточке со звуком (NoAudioButton); после неё голосовые играют беззвучно
+// (muted), и кнопка больше не нужна. Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
+// Последняя карточка сессии (finalRun — после неё сразу итог) не смахивается: ответ, пауза на плашке итога —
+// и экран сам уходит в затемнение и итог (ReviewScreen).
 // Подвал (.reviewFoot) — панель действий фиксированной высоты (место под «Далее» / «смахни…» /
 // «Не могу слушать» занято всегда, карточка при ответе не двигается) и тонкий прогресс под ней.
-export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, typingMs = 0, hold = false, onAnswer, onNoAudio, onClose }) {
+export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, typingMs = 0, hold = false, muted = false, finalRun = false, onAnswer, onNoAudio, onClose }) {
   const [answered, setAnswered] = useState(null) // { result, timeMs }
   // Перед заданием — точки «печатает» (как в уроке): минимум typingMs, а пока hold (первая карточка
   // греет медиа) — дольше; плеер карточки монтируется, когда точки уходят
@@ -52,7 +58,17 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
     onAnswer(res)
   }
   const next = () => answered && send(answered)
-  const [cardRef, hintRef] = useSwipeNext(!!answered, next)
+  const ends = finalRun && !!answered && endsQueue(session, item, answered.result)
+  const [cardRef, hintRef] = useSwipeNext(!!answered && !ends, next)
+
+  // Последняя карточка: смахивать нечего — после паузы на плашке ответ уходит сам
+  const nextRef = useRef(next)
+  useEffect(() => { nextRef.current = next })
+  useEffect(() => {
+    if (!ends) return undefined
+    const t = setTimeout(() => nextRef.current(), answered.result === 'correct' ? FINAL_HOLD_MS : FINAL_HOLD_BAD_MS)
+    return () => clearTimeout(t)
+  }, [ends]) // eslint-disable-line react-hooks/exhaustive-deps -- answered не меняется, пока ends
 
   useEffect(() => {
     if (!answered) return
@@ -67,7 +83,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
   return (
     <>
       <ReviewHeader phrase={phrase} title={title} word={item.word} revealed={!!answered} onClose={onClose} />
-      <div className={answered ? 'reviewCard reviewCard--answered' : 'reviewCard'} ref={cardRef}>
+      <div className={answered && !ends ? 'reviewCard reviewCard--answered' : 'reviewCard'} ref={cardRef}>
         <div className="reviewCardFrame">
           {!typing && (
             <LessonPlayer
@@ -76,6 +92,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
               teacherLogo={teacher?.logo}
               teacherLogoCrop={teacher?.crop}
               initialBlobMap={initialBlobMap}
+              muted={muted}
               recordStats={false}
               onFinishStats={({ wrong, timeMs }) => setAnswered({ result: wrong > 0 ? 'wrong' : 'correct', timeMs })}
               onSummaryClose={() => {}}
@@ -90,7 +107,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
       </div>
       <div className="reviewFoot">
         <div className="reviewActions">
-          {answered && (
+          {answered && !ends && (
             <>
               {/* Кнопка — там, где есть мышь; на касании — надпись (она же кнопка для
                   тех, кто не смахивает). Появляется только после ответа, плавно */}
@@ -105,7 +122,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
             </>
           )}
           {/* «Не могу слушать» стоит справа и не исчезает: после ответа тускнеет и не нажимается */}
-          {cardHasAudio(item.card) && <NoAudioButton onSkip={onNoAudio} disabled={!!answered} />}
+          {cardHasAudio(item.card) && !muted && <NoAudioButton onSkip={onNoAudio} disabled={!!answered} />}
         </div>
         <ReviewProgress session={session} />
       </div>

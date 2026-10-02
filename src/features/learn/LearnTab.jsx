@@ -7,6 +7,7 @@ import { listWordAudio } from '../../shared/lib/wordAudio/wordAudioApi.js'
 import { debugStepWord } from '../../shared/api/memoryApi.js'
 import { findLadderWord } from './memoryLadder.js'
 import { unlockReviewAudio, loadReviewScreen, prefetchReviewScreen } from '../review/reviewLaunch.js'
+import { startOfReview } from '../review/reviewLevel.js'
 import ReviewLaunching from '../review/ReviewLaunching.jsx'
 import LearnMainAction from './LearnMainAction.jsx'
 import MemoryLadder from './MemoryLadder.jsx'
@@ -31,7 +32,7 @@ const ReviewScreen = lazy(loadReviewScreen)
 // минуты в день, «Отпуск» и итоги недели — в шестерёнке профиля (MemorySettings)
 export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) {
   const { view, error, reload } = learn
-  const [review, setReview] = useState(null) // null | { focus: string[] | null }
+  const [review, setReview] = useState(null) // null | { focus: string[] | null, start: { word, level } | null }
   const [page, setPage] = useState(null)     // null (главный экран) | 1..4 (страница уровней; 4 — постоянная память)
   const [sheet, setSheet] = useState(null)   // { word, perm }
   const [phrases, setPhrases] = useState(null) // null | 'all' (окно «Все фразы») | фраза из view.phraseList (её карточка)
@@ -57,7 +58,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const isAdmin = !!profile?.is_admin
   const openWord = (word, perm = false) => setSheet({ word, perm })
   // Повторение открывается тапом — в нём же разрешаем звук (iOS: только из жеста)
-  const openReview = focus => { unlockReviewAudio(); setReview({ focus }) }
+  const openReview = focus => { unlockReviewAudio(); setReview({ focus, start: startOfReview(view, focus) }) }
   const ladder = view?.ladder
   // Окно слова показывает свежие данные: после тест-шага админа слово могло перейти на другую ступень
   const live = sheet && ladder ? findLadderWord(ladder, sheet.word.word) : null
@@ -130,9 +131,9 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
           />
         )}
         {review && (
-          <Suspense fallback={<ReviewLaunching />}>
-            <ReviewScreen focusWords={review.focus} phrase={review.focus ? null : view?.today.phrase}
-              onClose={() => { setReview(null); reload() }}
+          <Suspense fallback={<ReviewLaunching level={review.start?.level} />}>
+            <ReviewScreen focusWords={review.focus} phrase={review.focus ? null : view?.today.phrase} start={review.start}
+              onFinished={reload} onClose={() => { setReview(null); reload() }}
               onRequireAuth={() => { setReview(null); onRequireAuth() }} />
           </Suspense>
         )}

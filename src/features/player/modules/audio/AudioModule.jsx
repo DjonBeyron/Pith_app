@@ -11,6 +11,7 @@ import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
 import { useAudioMeta } from './useAudioMeta.js'
+import { usePlayerMuted } from '../../playerMuted.js'
 import { logAudioMount, logAudioPlayStart, makeAudioHeartbeat, makeGapWatch, attachAudioEventLog, logAudioEnded } from './audioDebug.js'
 
 // Волна — один canvas (AudioWave.jsx), спектр статичен всегда: живой
@@ -32,6 +33,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // дёргается, когда запускаешь сообщение из истории».
   const fullyRevealedRef = useRef(false)
 
+  // Повторение, «Не могу слушать»: играет как обычно, но без звука (текст печатается под время)
+  const muted           = usePlayerMuted()
   const audioRef        = useRef(null)
   const rafRef          = useRef(null)
   // Цикл кадров волны — чтобы возобновить его после паузы снаружи (см. ниже)
@@ -296,7 +299,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   return (
     <div className="playerMsgRow">
       <PlayerBubble className={bubbleClass}>
-        {src && <audio ref={audioRef} src={src} preload="auto" />}
+        {src && <audio ref={audioRef} src={src} preload="auto" muted={muted} />}
         <div className="playerAudio">
           {/* Призрак полного текста — держит финальную ширину пузыря СРАЗУ,
               с первого рендера, даже пока сама расшифровка ещё не появилась

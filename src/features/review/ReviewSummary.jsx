@@ -12,7 +12,7 @@ import Confetti from '../../shared/ui/Confetti.jsx'
 // данных и полоска каждого слова, которая на глазах пополняется (ReviewWordBar): слова идут
 // по одному, медленно, чтобы рост можно было разглядеть. Ниже награда (XpTransfer, если XP
 // начислен — без «+N XP» текстом), день серии одной строкой (место под неё занято заранее —
-// окно не растёт), серый мостик «Продолжить изучение / «фраза» зелёным с новой строки / Пройден N% урока» в недопройденный модуль
+// окно не растёт), серый мостик «Продолжить изучение / «фраза» зелёным с новой строки / Пройдено N% урока» в недопройденный модуль
 // (reviewBridge.js). Слова, которые давались непросто,
 // подаются с заботой — «вернёмся завтра», без «ошибок». Усвоенное слово,
 // вспомненное на месячной проверке, уходит в постоянную память — празднуем
@@ -99,7 +99,7 @@ export default function ReviewSummary({ results, finish, bridge, phrase = null, 
               <button className="reviewBridge" onClick={() => { onClose(); requestOpenModule(bridge) }}>
                 <span className="reviewBridgeMain">Продолжить изучение</span>
                 <span className="reviewBridgePhrase">«{bridge.title}»</span>
-                <span className="reviewBridgeSub">Пройден <b>{bridge.pct}%</b> урока</span>
+                <span className="reviewBridgeSub">Пройдено <b>{bridge.pct}%</b> урока</span>
               </button>
             )}
             <button className="summaryCloseBtn" onClick={onClose}>Готово</button>

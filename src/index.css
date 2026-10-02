@@ -135,6 +135,7 @@
 @import './styles/review-actions.css';
 @import './styles/review-wait.css';
 @import './styles/review-summary.css';
+@import './styles/review-finish.css';
 @import './styles/strength-dots.css';
 @import './styles/learn.css';
 @import './styles/learn-cta.css';

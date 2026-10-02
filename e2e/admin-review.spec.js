@@ -22,6 +22,7 @@ async function startSession(page) {
   // Вступления с «Начать» нет: «Ищу слова…» → сразу первая карточка
   const screen = page.locator('.reviewScreen')
   await expect(screen.locator('.reviewLoading')).toContainText('Ищу слова')
+  await expect(screen).not.toHaveClass(/reviewScreen--lvl/) // ступень слова ещё неизвестна — фон нейтральный, а не чужого цвета
   await expect(screen.getByRole('button', { name: 'Начать', exact: true })).toHaveCount(0)
   return screen
 }
@@ -43,6 +44,8 @@ test('сессия: ошибка → слово в конце → верно; ж
   // Перед заданием — точки «печатает»; пока греется медиа они держатся, но не дольше ~1,5 с, даже если
   // фото грузится 5 с: дальше карточка играет сама (медиа догрузится)
   await expect(screen.locator('.reviewCardFrame .playerWaitingDots')).toBeVisible({ timeout: 2000 })
+  // Рамка карточки тёмная уже на точках (как плеер) — не серая с узором, которая потом темнеет
+  expect(await screen.locator('.reviewCardFrame').evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(14, 16, 19)')
   expect(await screen.locator('.reviewCardFrame .lessonPlayer').count()).toBe(0) // плеер ещё не смонтирован
   await expect(screen.locator('.reviewCardFrame .lessonPlayer')).toBeVisible({ timeout: 2500 }) // точки отстояли ≤ ~1,5 с, а не 5 с загрузки фото
   await page.unroute(PHOTO)
@@ -63,7 +66,7 @@ test('сессия: ошибка → слово в конце → верно; ж
   await expect(screen.locator('.reviewPhraseWord')).toHaveText('cook') // слово проявилось
   await page.waitForTimeout(900) // плашка откинулась, подсказка проявилась
   expect({ card: await cardBox(), foot: await footH() }).toEqual(still)
-  await page.keyboard.press('Enter') // «Далее» с клавиатуры
+  await swipeLeft(page, screen.locator('.reviewCard')) // «Далее» жестом (карточка не последняя)
   // Возврат добавил карточку
   await expect(screen.locator('.reviewCapsule')).toHaveCount(2)
   await expect(screen.locator('.reviewCapsule--bad')).toHaveCount(1)
@@ -71,24 +74,29 @@ test('сессия: ошибка → слово в конце → верно; ж
   await expect(screen.locator('.reviewVerdict--ok')).toHaveText('Верно!')
   await page.waitForTimeout(900)
   expect({ card: await cardBox(), foot: await footH() }).toEqual(still) // и при верном ответе — на месте
-  await swipeLeft(page, screen.locator('.reviewCard')) // «Далее» жестом
-
+  // Последняя карточка: ни «Далее», ни «смахни…» — пауза на плашке, затемнение, итог поверх еле видной карточки
+  await expect(screen.locator('.reviewSwipeHint, .reviewNext')).toHaveCount(0)
+  await expect(screen.locator('.reviewScrim')).toBeVisible({ timeout: 10_000 })
   await expect(screen.locator('.reviewSummaryTitle')).toHaveText('Повторение завершено', { timeout: 30_000 })
+  await expect(screen.locator('.reviewCard')).toHaveCount(1) // карточка осталась под итогом
+  await expect(screen.locator('.reviewCard')).toBeVisible()
   await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook пока даётся непросто — вернёмся к нему завтра.')
   await expect(screen.locator('.reviewWord--soft')).toContainText('cook')
   await expect(screen.locator('.reviewReward')).toContainText(/серии|серия/, { timeout: 20_000 }) // после переноса награды в XP-полоску; «+N XP» текстом не пишем
   // Мостик в модуль слова: пройден урок cook — 1 из 4 (сид)
   await expect(screen.locator('.reviewBridge .reviewBridgeMain')).toHaveText('Продолжить изучение')
   await expect(screen.locator('.reviewBridge .reviewBridgePhrase')).toHaveText("«I'm trying to cook · E2E-КОЛОДЫ»") // фраза — на своей строке
-  await expect(screen.locator('.reviewBridge .reviewBridgeSub')).toHaveText('Пройден 25% урока')
+  await expect(screen.locator('.reviewBridge .reviewBridgeSub')).toHaveText('Пройдено 25% урока')
   await expect(screen.locator('.reviewBridge .reviewBridgeSub b')).toHaveText('25%')
   await screen.getByRole('button', { name: 'Готово' }).click()
-  await expect(screen).toHaveCount(0)
+  await expect(screen).toHaveClass(/reviewScreen--leaving/) // экран растворяется, а не пропадает разом
+  await expect(screen).toHaveCount(0, { timeout: 5000 })
 
   // ── 2. Верный ответ — слово крепнет ─────────────────────────────────
   screen = await startSession(page)
   await option(screen, 'cook').click({ timeout: 30_000 })
-  await screen.getByRole('button', { name: 'Далее' }).click()
+  await expect(screen.locator('.reviewVerdict--ok')).toBeVisible()
+  await page.keyboard.press('Enter') // последняя карточка: итог и сам придёт через паузу, Enter — сразу
   await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook теперь помнится лучше.', { timeout: 30_000 })
   await expect(screen.locator('.reviewWord--ok .memChipFill')).toHaveAttribute('style', /width: 75%/, { timeout: 15_000 }) // шаг 1 → 2: полоска доросла до 75% ступени
 
@@ -107,7 +115,7 @@ test('сессия: ошибка → слово в конце → верно; ж
 // прогресса не налезают друг на друга
 test.describe('на касании', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 780 } })
-  test('верный ответ: карточка на месте, подсказка под ней, полоска прогресса ниже', async ({ page }) => {
+  test('ответ: карточка на месте, подсказка под ней, полоска прогресса ниже', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: 'Админ', exact: true }).click()
     await page.locator('.avTab', { hasText: 'Повторение' }).click()
@@ -117,8 +125,10 @@ test.describe('на касании', () => {
     await page.waitForTimeout(1000) // фраза доопустилась из-за верха экрана
     const before = await box('.reviewCard')
     const phraseBefore = await box('.reviewPhrase')
-    await option(screen, 'cook').tap({ timeout: 30_000 })
-    await expect(screen.locator('.reviewVerdict--ok')).toHaveText('Верно!')
+    // Ошибка с первой попытки: слово вернётся другой карточкой, значит эта — не последняя и её смахивают
+    // (на последней подсказки нет — после ответа экран сам уходит в итог)
+    await option(screen, 'cake').tap({ timeout: 30_000 })
+    await expect(screen.locator('.reviewVerdict--bad')).toBeVisible()
     await expect(screen.locator('.reviewSwipeHint')).toBeVisible()
     await page.waitForTimeout(1200) // подсказка проявилась
     expect(await box('.reviewCard')).toEqual(before) // карточка не сдвинулась

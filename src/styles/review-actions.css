@@ -99,8 +99,9 @@
 @keyframes reviewHintIn { from { opacity: 0; } }
 
 /* ── «Не могу слушать»: кнопка с подписью → кружок с иконкой ─────────────
-   Вдвое мельче прежнего (кружок 18 px вместо 36) и справа в панели действий. Слот вокруг кнопки —
-   увеличенная зона нажатия (внутри самой кнопки overflow: hidden, псевдоэлемент наружу не вышел бы) */
+   Справа в панели действий: 142×28, кружок 26 px (первая версия была 172×36, «вдвое мельче» — 118×22: мелко).
+   Слот вокруг кнопки — увеличенная зона нажатия (внутри самой кнопки overflow: hidden, псевдоэлемент
+   наружу не вышел бы) */
 .reviewNoAudioSlot {
   position: absolute;
   right: -10px;
@@ -114,28 +115,28 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   box-sizing: border-box;
-  width: 118px;
-  height: 22px;
-  padding: 0 9px;
+  width: 142px;
+  height: 28px;
+  padding: 0 11px;
   overflow: hidden;
   border: 1px solid #2a2d35;
   border-radius: 999px;
   background: transparent;
   color: #e0e0e0;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition: width 0.55s cubic-bezier(0.65, 0, 0.25, 1), height 0.55s cubic-bezier(0.65, 0, 0.25, 1), padding 0.55s cubic-bezier(0.65, 0, 0.25, 1), gap 0.55s cubic-bezier(0.65, 0, 0.25, 1), opacity 0.3s ease;
   animation: reviewHintIn 0.4s ease backwards;
 }
-.reviewNoAudioIcon { width: 11px; height: 11px; flex-shrink: 0; }
-.reviewNoAudioLabel { max-width: 90px; overflow: hidden; transition: opacity 0.25s ease, max-width 0.55s cubic-bezier(0.65, 0, 0.25, 1); }
-.reviewNoAudio--compact { width: 18px; height: 18px; padding: 0; gap: 0; }
-.reviewNoAudio--compact .reviewNoAudioIcon { width: 10px; height: 10px; }
+.reviewNoAudioIcon { width: 14px; height: 14px; flex-shrink: 0; }
+.reviewNoAudioLabel { max-width: 100px; overflow: hidden; transition: opacity 0.25s ease, max-width 0.55s cubic-bezier(0.65, 0, 0.25, 1); }
+.reviewNoAudio--compact { width: 26px; height: 26px; padding: 0; gap: 0; }
+.reviewNoAudio--compact .reviewNoAudioIcon { width: 14px; height: 14px; }
 .reviewNoAudio--compact .reviewNoAudioLabel { max-width: 0; opacity: 0; }
 /* Ответ дан, появилась подсказка «смахни…» — кнопка остаётся, но тусклая и не нажимается */
 .reviewNoAudio:disabled { opacity: 0.3; cursor: default; pointer-events: none; }

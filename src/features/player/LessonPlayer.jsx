@@ -8,6 +8,7 @@ import NodeEditPencil from './admin/NodeEditPencil.jsx'
 import { usePlayerAdminEdit } from './admin/usePlayerAdminEdit.js'
 import { usePlayerStepState, buildStep } from './admin/usePlayerStepControl.js'
 import { PlayerFrozenContext } from './playerFrozen.js'
+import { PlayerMutedContext } from './playerMuted.js'
 import { useMediaPause, pauseAllMedia } from './useMediaPause.js'
 import { useSoloMedia } from './useSoloMedia.js'
 import PlayerPanels from './PlayerPanels.jsx'
@@ -47,6 +48,7 @@ export default function LessonPlayer({
   teacherName, teacherLogo, teacherLogoCrop,
   videoAutoSound = false,
   initialBlobMap = null,
+  muted = false, // повторение, «Не могу слушать»: голосовые играют без звука (playerMuted.js)
   lessonXp = 0,
   lessonId = null,
   startNodeId = null, // админский прогон с середины ИЛИ «Продолжить» из LessonLaunchCard.jsx
@@ -226,6 +228,7 @@ export default function LessonPlayer({
        центру экрана (styles/player/layout.css). playerPhone с transform —
        containing block для всех fixed внутри: панели, оверлеи, итоги урока
        сами ложатся в рамку. На мобильном обе обёртки display:contents. */
+    <PlayerMutedContext.Provider value={muted}>
     <PlayerFrozenContext.Provider value={stepState.frozen}>
     <div className="playerStage">
      <div className="playerPhone">
@@ -353,5 +356,6 @@ export default function LessonPlayer({
      )}
     </div>
     </PlayerFrozenContext.Provider>
+    </PlayerMutedContext.Provider>
   )
 }

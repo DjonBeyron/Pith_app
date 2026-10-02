@@ -71,7 +71,7 @@ export default function LearnMainAction({ view, today, onStart, onChanged }) {
   return (
     <Hero mod=" lrMainDone" title="Повторение на сегодня закончено ✓"
       sub={view.next
-        ? `Слова уже укладываются в памяти — можно отдохнуть. Следующее повторение ${dueLabel(view.next.date, today)} · ${words(view.next.count)}`
-        : 'Слова уже укладываются в памяти — можно отдохнуть. Новые появятся после следующих уроков'} />
+        ? `Можно отдохнуть. Дальше — ${dueLabel(view.next.date, today)} · ${words(view.next.count)}`
+        : 'Можно отдохнуть. Новые слова — после следующих уроков'} />
   )
 }

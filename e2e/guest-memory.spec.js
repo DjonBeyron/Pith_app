@@ -53,7 +53,7 @@ test('гость проходит урок-слово → слово в его �
   await nav.click()
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/) // открыли вкладку — перестала звать
   await expect(page.locator('.lrMain')).toContainText('Повторение на сегодня закончено ✓', { timeout: 30_000 })
-  await expect(page.locator('.lrMain')).toContainText('Следующее повторение завтра · 1 слово')
+  await expect(page.locator('.lrMain')).toContainText('Дальше — завтра · 1 слово')
   await expect(page.locator('.lrGuestLead')).toContainText('только в этом браузере')
   // Минуты — в шестерёнке (у гостя — над формой входа)
   await page.getByRole('button', { name: 'Профиль', exact: true }).click()
@@ -75,8 +75,7 @@ test('гость повторяет слово дня → итог зовёт в
   await page.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
-  await review.getByRole('button', { name: 'Далее' }).click()
-  await expect(review.locator('.reviewTeacherLine').first()).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 })
+  await expect(review.locator('.reviewTeacherLine').first()).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 }) // последняя карточка — итог придёт сам
   await expect(review.locator('.reviewGuestLead')).toBeVisible()
   await review.getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
@@ -163,8 +162,7 @@ test('закрепление фразы: все слова окрепли → с
   await pool.getByRole('button', { name: 'Hold', exact: true }).click({ timeout: 30_000 })
   await pool.getByRole('button', { name: 'on', exact: true }).click()
   await review.getByRole('button', { name: 'Проверить' }).click()
-  await expect(review.locator('.reviewVerdict--ok')).toContainText('закреплена', { timeout: 30_000 })
-  await review.getByRole('button', { name: 'Далее' }).click()
+  await expect(review.locator('.reviewVerdict--ok')).toContainText('закреплена', { timeout: 30_000 }) // карточка фразы — последняя: итог придёт сам
   await expect(review.locator('.reviewPhraseResultOk')).toHaveText('✨ Фраза «Hold on» закреплена', { timeout: 30_000 })
   await review.getByRole('button', { name: 'Готово' }).click()
 
@@ -188,7 +186,6 @@ test('родное слово на месячной проверке → пос�
   await page.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
-  await review.getByRole('button', { name: 'Далее' }).click()
   await expect(review.locator('.reviewSettled')).toHaveText('✨ «keep» ушло в постоянную память', { timeout: 30_000 })
   await review.getByRole('button', { name: 'Готово' }).click()
 

@@ -15,14 +15,31 @@
   display: flex;
   flex-direction: column;
   padding: 0 max(12px, calc((100% - 460px) / 2));
-  /* За карточкой — тот же узор, что на вкладке «Память» (пыль, зерно, текстура), и оттенок цвета ступени сверху и снизу */
+  /* За карточкой — тот же узор, что на вкладке «Память» (пыль, зерно, текстура), но приглушённый тёмной
+     вуалью: он еле угадывается, и весь фон темнее */
   background:
-    radial-gradient(120% 42% at 50% 0%, rgba(var(--rv-rgb), 0.2), transparent 72%),
-    radial-gradient(120% 38% at 50% 100%, rgba(var(--rv-rgb), 0.13), transparent 72%),
+    linear-gradient(rgba(14, 16, 19, 0.74), rgba(14, 16, 19, 0.74)),
     var(--v2-dust), var(--v2-grain), var(--v2-tex) #0e1013;
   color: #e0e0e0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+/* Оттенок цвета ступени сверху и снизу — отдельный слой под содержимым. Появляется, только когда
+   известна ступень (класс --lvlN): пока её нет — фон нейтральный, а не чужого цвета. Класс стоит с
+   первого кадра (ступень известна уже на экране загрузки) — слой сразу на месте; если он появляется
+   позже, то проявляется плавно */
+.reviewScreen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 42% at 50% 0%, rgba(var(--rv-rgb), 0.11), transparent 72%),
+    radial-gradient(120% 38% at 50% 100%, rgba(var(--rv-rgb), 0.07), transparent 72%);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.reviewScreen[class*='--lvl']::before { opacity: 1; }
 .reviewScreen--lvl1 { --rv-c: var(--lvl1); --rv-rgb: var(--lvl1-rgb); }
 .reviewScreen--lvl2 { --rv-c: var(--lvl2); --rv-rgb: 226, 205, 120; }
 .reviewScreen--lvl3 { --rv-c: var(--lvl3); --rv-rgb: 182, 254, 59; }
@@ -104,6 +121,8 @@
   border: 1px solid #2a2d35;
   border-radius: 18px;
   overflow: hidden;
+  /* Новая карточка проявляется, а не выскакивает на место смахнутой */
+  animation: reviewFadeIn 0.28s ease backwards;
 }
 
 /* transform — containing block для fixed-слоёв плеера (панели ответа,
@@ -111,6 +130,9 @@
 .reviewCardFrame {
   position: absolute;
   inset: 0;
+  /* Тёмная с первого кадра — как сам плеер: пока идут точки «печатает», рамка была прозрачной, и сквозь неё
+     светился узор экрана (серая карточка), а с появлением плеера она темнела — это и мигало */
+  background: #0e1013;
   overflow: hidden;
   /* clip, а не hidden: hidden — это ещё и прокручиваемый контейнер. Панель ответа (fixed, ушла под низ
      рамки) давала ему переполнение, и браузер сдвигал рамку вверх на высоту распорки (замер: scrollTop 28):
@@ -174,5 +196,5 @@
   to   { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .reviewVerdict, .reviewPhraseWord, .reviewPhrase, .reviewTitle { animation: none; }
+  .reviewVerdict, .reviewPhraseWord, .reviewPhrase, .reviewTitle, .reviewCard { animation: none; }
 }

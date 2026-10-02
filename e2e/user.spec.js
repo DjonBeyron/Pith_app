@@ -125,11 +125,10 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await main.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
-  await review.getByRole('button', { name: 'Далее' }).click()
   await expect(review.locator('.reviewTeacherLine')).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 })
   await expect(review.locator('.reviewReward')).toContainText(/серии|серия/, { timeout: 20_000 }) // после переноса награды в XP-полоску; «+N XP» текстом не пишем
   await expect(review.locator('.reviewBridge .reviewBridgePhrase')).toHaveText('«Keep going · E2E-ОБУЧЕНИЕ»')
-  await expect(review.locator('.reviewBridge .reviewBridgeSub')).toHaveText('Пройден 25% урока')
+  await expect(review.locator('.reviewBridge .reviewBridgeSub')).toHaveText('Пройдено 25% урока')
   await review.getByRole('button', { name: 'Готово' }).click()
   await expect(main).toContainText('Повторение на сегодня закончено ✓', { timeout: 30_000 })
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)
