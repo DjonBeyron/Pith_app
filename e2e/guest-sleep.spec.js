@@ -74,11 +74,23 @@ test('«Z»: выплывают из-за мозга, выходят выше г
   expect(Math.abs((bb.y + bb.height / 2) - (mb.y + mb.height / 2)), 'мозг по центру блока по вертикали').toBeLessThanOrEqual(1.5)
   expect(Number(await brain.locator('svg').getAttribute('stroke-width'))).toBeLessThan(2)
 
-  // Z лежат под значком (слой ниже), а не поверх него
-  for (const [zs, icon] of [[main.locator('.lrZ'), main.locator('.lrSleep svg')], [nav.locator('.shellV2NavZzz i'), nav.locator('> svg')]]) {
+  // Z лежат под значком (слой ниже) и спрятаны маской по силуэту мозга: сквозь контур не просвечивают, узор фона виден
+  for (const [zs, icon] of [[main.locator('.lrZ'), main.locator('.lrSleep svg')], [nav.locator('.shellV2NavZzz i'), nav.locator('.shellV2NavBrain svg')]]) {
     const zIdx = await zs.first().evaluate(el => Number(getComputedStyle(el).zIndex) || Number(getComputedStyle(el.parentElement).zIndex) || 0)
     const iconIdx = await icon.evaluate(el => Number(getComputedStyle(el).zIndex))
     expect(zIdx, 'Z ниже значка мозга').toBeLessThan(iconIdx)
+    const mask = await zs.first().evaluate(el => { const cs = getComputedStyle(el.parentElement); return cs.maskImage !== 'none' ? cs.maskImage : cs.webkitMaskImage })
+    expect(mask, 'маска по силуэту мозга').toContain('data:image/svg+xml')
+    // Путь ровный, без остановок на середине: за равные доли периода «Z» проходит равные расстояния (linear)
+    const tops = await zs.first().evaluate(el => {
+      const a = el.getAnimations()[0]
+      a.pause()
+      return [0.3, 0.4, 0.5, 0.6, 0.7].map(k => { a.currentTime = a.effect.getTiming().duration * k; return el.getBoundingClientRect().top })
+    })
+    const steps = tops.slice(1).map((v, i) => tops[i] - v) // вверх — вычитание
+    const mean = steps.reduce((x, y) => x + y, 0) / steps.length
+    expect(mean, 'Z поднимается').toBeGreaterThan(1)
+    for (const d of steps) expect(Math.abs(d - mean) / mean, 'шаги пути почти равны').toBeLessThan(0.35)
     // оптимизация: только transform и opacity; период не короче 9 с — Z идут редко
     for (const a of await animInfo(zs)) {
       expect(a.props).toEqual(['opacity', 'transform'])

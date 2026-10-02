@@ -16,3 +16,6 @@
 .arvRow { cursor: default; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .arvWord { font-size: 15px; font-weight: 600; color: #e0e0e0; }
 .arvMeta { margin-left: auto; font-size: 12px; color: #888; white-space: nowrap; }
+/* Диагноз «почему вкладка Память молчит» (reviewDiagnosis.js) */
+.arvWarn { color: #ffd257; }
+.arvRow .aeRefresh { flex-shrink: 0; }

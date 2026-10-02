@@ -25,9 +25,15 @@ export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false,
       <button className={cls('learn', learnDot ? ' shellV2NavBtnDue' : learnSleeping ? ' shellV2NavBtn--sleep' : '')} data-nav="learn"
         // Уже в «Памяти» — повторное нажатие = «назад» из списка слов на главный экран
         onClick={() => { if (tab === 'learn') requestLearnHome(); setTab('learn') }}>
-        {/* Всё повторено — мозг спит: три мелких «Z» выплывают из-за значка (слой под ним, learn-sleep.css) */}
-        {learnSleeping && !learnDot && <span className="shellV2NavZzz" aria-hidden="true"><i>Z</i><i>Z</i><i>Z</i></span>}
-        <Brain>{learnDot && <path className="shellV2NavBrainFill" d={BRAIN_FILL} />}</Brain>
+        {/* Всё повторено — мозг спит: три мелких «Z» выплывают из-за значка (маска по силуэту мозга, learn-sleep.css) */}
+        {learnSleeping && !learnDot ? (
+          <span className="shellV2NavBrain">
+            <span className="shellV2NavZzz zMask" aria-hidden="true"><i>Z</i><i>Z</i><i>Z</i></span>
+            <Brain />
+          </span>
+        ) : (
+          <Brain>{learnDot && <path className="shellV2NavBrainFill" d={BRAIN_FILL} />}</Brain>
+        )}
         Память
       </button>
       <button className={cls('profile')} onClick={() => setTab('profile')}>

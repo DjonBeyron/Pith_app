@@ -77,14 +77,24 @@ test('гость повторяет слово дня → итог зовёт в
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
   await expect(review.locator('.reviewTeacherLine').first()).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 }) // последняя карточка — итог придёт сам
   await expect(review.locator('.reviewGuestLead')).toBeVisible()
-  // Пока полоска слова пополняется, мигает её заливка (и линия на границе), а обводка полоски не мигает
+  // Пока полоска слова пополняется: заливка горит ровно и едет (рост виден), мигает ПРИРОСТ — полоса .reviewBarGain между
+  // прежним краем и текущим — и линия на границе; обводка полоски не мигает
   const bar = review.locator('.reviewBar--grow')
   await bar.waitFor({ timeout: 15_000 })
-  expect(await bar.evaluate(el => ({
+  const probe = () => bar.evaluate(el => ({
     outline: getComputedStyle(el).animationName,
     fill: getComputedStyle(el.querySelector('.memChipFill')).animationName,
+    gain: getComputedStyle(el.querySelector('.reviewBarGain'), '::after').animationName,
     edge: getComputedStyle(el.querySelector('.reviewBarEdge')).animationName,
-  }))).toEqual({ outline: 'none', fill: 'reviewFillBlink', edge: 'reviewEdgeBlink' })
+    fillW: el.querySelector('.memChipFill').getBoundingClientRect().width,
+    gainW: el.querySelector('.reviewBarGain').getBoundingClientRect().width,
+  }))
+  const t1 = await probe()
+  expect({ outline: t1.outline, fill: t1.fill, gain: t1.gain, edge: t1.edge }).toEqual({ outline: 'none', fill: 'none', gain: 'reviewGainBlink', edge: 'reviewEdgeBlink' })
+  await page.waitForTimeout(500)
+  const t2 = await probe()
+  expect(t2.fillW, 'заливка едет — процесс заполнения виден').toBeGreaterThan(t1.fillW)
+  expect(t2.gainW, 'мигающий прирост растёт вместе с заливкой').toBeGreaterThan(t1.gainW)
   await review.getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
   // Шаг вырос локально: keep всё ещё в «Новых», заливка — три четверти пути

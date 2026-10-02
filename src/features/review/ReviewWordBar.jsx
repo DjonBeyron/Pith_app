@@ -10,10 +10,11 @@ import { levelOf, levelFill, LEVELS } from '../learn/memoryLadder.js'
 // (итог ведёт слова по одному, друг за другом). Заливка не меняется (слово повторено,
 // а шаг остался — «не сразу» или раньше срока) — заливка дважды мягко вспыхивает, чтобы было
 // видно: слово учтено. go — можно начинать (итог пускает полоски после переноса XP в полоску уровня).
-// Пока заливка едет, мигает сама заливка (внутренняя закраска слова) и яркая линия на её границе
-// (.reviewBarEdge) — рост заметен; обводка полоски не мигает.
+// Пока заливка едет, мигает прирост — закраска между прежним и новым краем (.reviewBarGain, растёт
+// вместе с заливкой), а старая часть заливки горит ровно: так виден и сам рост, и «новое» в нём. На границе —
+// яркая линия (.reviewBarEdge); обводка полоски не мигает.
 // onDone — полоска доиграла (итог по ним гасит салют).
-export const GROW_MS = 1600 // сколько едет заливка (тот же срок — в review-summary.css)
+export const GROW_MS = 1900 // сколько едет заливка (тот же срок — в review-summary.css)
 const KEPT_MS = 1400        // вспышка полоски, которая не росла (длина keyframes reviewBarKept)
 const EDGE_TAIL_MS = 500    // линия на границе мигает ещё чуть-чуть после остановки заливки
 const MIN_FILL = 0.06
@@ -23,7 +24,7 @@ const look = (step, perm) => (perm
   : { lvl: levelOf(step), fill: Math.max(levelFill(step), MIN_FILL) })
 
 export default function ReviewWordBar({ word, from, to, settled = false, delay = 450, go = true, onDone = null }) {
-  const [cur, setCur] = useState(() => ({ ...look(from ?? to, false), still: true }))
+  const [cur, setCur] = useState(() => { const a = look(from ?? to, false); return { ...a, base: a.fill, still: true } })
 
   const onDoneRef = useRef(onDone)
   useEffect(() => { onDoneRef.current = onDone })
@@ -35,18 +36,20 @@ export default function ReviewWordBar({ word, from, to, settled = false, delay =
     const timers = []
     const at = (ms, v) => timers.push(setTimeout(() => setCur(v), ms))
     let end
+    // base — откуда стартует прирост ступени: от него до fill закрашивается мигающая полоса .reviewBarGain
     if (a.lvl === b.lvl) {
       const same = a.fill === b.fill
-      at(delay, { ...b, still: false, kept: same, grow: !same })
+      at(delay, { ...b, base: a.fill, still: false, kept: same, grow: !same })
       end = delay + (same ? KEPT_MS : GROW_MS)
-      if (!same) at(end + EDGE_TAIL_MS, { ...b, still: false, grow: false })
+      if (!same) at(end + EDGE_TAIL_MS, { ...b, base: a.fill, still: false, grow: false })
     } else {
       const up = RANK[b.lvl] > RANK[a.lvl]
-      at(delay, { lvl: a.lvl, fill: up ? 1 : MIN_FILL, still: false, grow: true })
-      at(delay + GROW_MS + 350, { lvl: b.lvl, fill: up ? MIN_FILL : 1, still: true, grow: false })
-      at(delay + GROW_MS + 410, { ...b, still: false, grow: true })
+      const turn = up ? MIN_FILL : 1 // с чего новая ступень начинает набор
+      at(delay, { lvl: a.lvl, fill: up ? 1 : MIN_FILL, base: a.fill, still: false, grow: true })
+      at(delay + GROW_MS + 350, { lvl: b.lvl, fill: turn, base: turn, still: true, grow: false })
+      at(delay + GROW_MS + 410, { ...b, base: turn, still: false, grow: true })
       end = delay + 2 * GROW_MS + 410
-      at(end + EDGE_TAIL_MS, { ...b, still: false, grow: false })
+      at(end + EDGE_TAIL_MS, { ...b, base: turn, still: false, grow: false })
     }
     timers.push(setTimeout(() => onDoneRef.current?.(), end))
     return () => timers.forEach(clearTimeout)
@@ -56,6 +59,7 @@ export default function ReviewWordBar({ word, from, to, settled = false, delay =
   return (
     <div className={`memChip memChip--${cur.lvl} reviewBar${cur.still ? ' reviewBar--still' : ''}${cur.kept ? ' reviewBar--kept' : ''}${cur.grow ? ' reviewBar--grow' : ''}`}>
       <span className="memChipFill" style={{ width: `${cur.fill * 100}%` }} />
+      <span className="reviewBarGain" style={{ left: `${cur.base * 100}%`, width: `${Math.max(0, cur.fill - cur.base) * 100}%` }} aria-hidden="true" />
       <span className="reviewBarEdge" style={{ left: `${cur.fill * 100}%` }} aria-hidden="true" />
       <span className="memChipWord">{word}</span>
       <span className="reviewBarLevel">{perm ? 'Постоянная память' : LEVELS[cur.lvl - 1].name}</span>

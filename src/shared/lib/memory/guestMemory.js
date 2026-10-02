@@ -110,6 +110,78 @@ export function listGuestReviews(days, today) {
   return read(LOG_KEY, []).filter(r => localDate(r.created_at) >= since)
 }
 
+// ── Тест-инструменты админа в режиме «новенький» (песочница localStorage): те же действия, что серверные
+// memory_debug_* (миграции 20260925200000, 20261001140000, 20261002130000), над локальной памятью и журналом.
+// Раньше админские кнопки шли на сервер, а вкладка «Память» читала песочницу — «прожить день» ничего не менял.
+const DAY_MS = 86400000
+const shiftLog = (log, ms) => log.map(r => ({ ...r, created_at: new Date(new Date(r.created_at).getTime() - ms).toISOString() }))
+
+// «Прожить» N дней: сроки слов и журнал — назад → число слов
+export function debugShiftGuest(days) {
+  const mem = read(MEM_KEY, {})
+  const keys = Object.keys(mem)
+  for (const w of keys) mem[w] = { ...mem[w], due_on: addDays(mem[w].due_on, -days) }
+  write(MEM_KEY, mem)
+  write(LOG_KEY, shiftLog(read(LOG_KEY, []), days * DAY_MS))
+  return keys.length
+}
+
+// Слова (words — список ключей; null — все) к повтору сегодня и бюджет дня свободен
+// (журнал последних 36 часов — на 2 дня назад) → { ok, words, journal }
+export function debugTodayGuest(words, today) {
+  const mem = read(MEM_KEY, {})
+  let n = 0
+  for (const w of Object.keys(mem)) {
+    if ((words && !words.includes(w)) || mem[w].due_on <= today) continue
+    mem[w] = { ...mem[w], due_on: today }
+    n++
+  }
+  write(MEM_KEY, mem)
+  const log = read(LOG_KEY, [])
+  const recent = log.filter(r => Date.now() - new Date(r.created_at).getTime() <= 36 * 3600000)
+  write(LOG_KEY, [...log.filter(r => !recent.includes(r)), ...shiftLog(recent, 2 * DAY_MS)])
+  return { ok: true, words: n, journal: recent.length }
+}
+
+// Занести слово «к повтору сегодня»: новое — шаг 1; уже есть — шаг тот же, срок на сегодня
+export function debugAddGuest(word, today) {
+  if (!word) return { ok: false, reason: 'word' }
+  const mem = read(MEM_KEY, {})
+  mem[word] = mem[word] ? { ...mem[word], due_on: today } : { word, step: 1, due_on: today, last_card_id: null, reviews: 0, lapses: 0 }
+  write(MEM_KEY, mem)
+  return { ok: true, word, step: mem[word].step, due_on: today }
+}
+
+// Убрать слово из памяти → 1 | 0
+export function debugRemoveGuest(word) {
+  const mem = read(MEM_KEY, {})
+  if (!mem[word]) return 0
+  delete mem[word]
+  write(MEM_KEY, mem)
+  return 1
+}
+
+// 'next' — верный повтор в срок: шаг +1 (на шаге 5 — в постоянную память); 'reset' — как новое, к повтору сегодня.
+// Журнал не пишется. Ответ — как у memory_debug_step
+export function debugStepGuest(word, action, today) {
+  const mem = read(MEM_KEY, {})
+  const m = mem[word]
+  if (!m) return { ok: false, reason: 'not_found' }
+  if (action === 'reset') {
+    mem[word] = { ...m, step: 1, due_on: today, settled_on: null, reviews: 0, lapses: 0 }
+    write(MEM_KEY, mem)
+    return { ok: true, word, prev_step: m.step, step: 1, due_on: today, settled: false, end: false }
+  }
+  if (action !== 'next') return { ok: false, reason: 'action' }
+  if (m.settled_on) return { ok: true, word, prev_step: m.step, step: m.step, due_on: m.due_on, settled: true, end: true }
+  const settle = m.step >= 5
+  const step = settle ? 5 : m.step + 1
+  const due = settle ? addDays(today, 60) : addDays(today, intervalFor(step))
+  mem[word] = { ...m, step, due_on: due, settled_on: settle ? today : null, reviews: (m.reviews ?? 0) + 1 }
+  write(MEM_KEY, mem)
+  return { ok: true, word, prev_step: m.step, step, due_on: due, settled: settle, end: false }
+}
+
 // Закреплённые фразы гостя (в аккаунте — таблица phrase_memory). Запись — строка-id
 // модуля (так было раньше) или { module_id, consolidated_at, phrase_title, phrase_words }:
 // снимок названия и слов нужен, чтобы показать фразу, даже если модуль потом убрали

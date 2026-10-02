@@ -1,8 +1,25 @@
 /* Спящий мозг (SleepingBrain.jsx в блоке «Памяти пора отдыхать», ShellNav.jsx в нижней панели): мозг дышит,
-   «Z» выплывают из-за него (слой под значком), поднимаются и заходят чуть за верхнюю границу блока/панели.
-   Всплывают медленно и плавно (11 и 9 с, ease-in-out), по одной раз в 3 с — реже и просторнее, чем искры над
-   пятиугольником (3,4–3,9 с). Только transform и opacity — композитор, без перерисовки; постоянных слоёв
+   «Z» выплывают из-за него и поднимаются, заходя чуть выше верхней границы блока/панели. Мозг — контур без
+   заливки: за ним виден узор фона, поэтому «Z» скрыты не слоем, а МАСКОЙ по силуэту мозга (.zMask: внутри
+   силуэта дыра, вне его всё видно) — через контур «Z» не просвечивают, а узор остаётся. Всплывают медленно
+   и РОВНО (11 и 9 с, linear, без остановок на середине пути), по одной раз в 3 с — реже и просторнее, чем
+   искры над пятиугольником. Только transform и opacity — композитор, без перерисовки; постоянных слоёв
    (will-change) нет: слой живёт, пока идёт анимация */
+
+/* Маска: картинка 48×66 «единиц» (1 единица = 1/24 стороны значка мозга; значок — в 0..24 по обеим осям, поле маски
+   -12..36 по x и -40..26 по y — места на весь путь «Z»). Внутри — силуэт мозга (тот же, что заливка вкладки
+   «Память» в ShellNav.jsx: BRAIN_FILL, с запасом в обводку) — там маска прозрачна. --s — размер единицы в px */
+.zMask {
+  --z-hole: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='66' viewBox='-12 -40 48 66'%3E%3Cdefs%3E%3Cmask id='m' maskUnits='userSpaceOnUse' x='-12' y='-40' width='48' height='66'%3E%3Crect x='-12' y='-40' width='48' height='66' fill='white'/%3E%3Cpath d='M12 4.2c-1-1.4-3.6-1.6-5 .1-1.8.1-3.2 1.6-3 3.4-1.6 1-2 3.2-.9 4.7-1 1.6-.4 3.8 1.3 4.6.3 2 2.3 3.3 4.2 2.9 1 1 2.6 1.2 3.4.2.8 1 2.4.8 3.4-.2 1.9.4 3.9-.9 4.2-2.9 1.7-.8 2.3-3 1.3-4.6 1.1-1.5.7-3.7-.9-4.7.2-1.8-1.2-3.3-3-3.4-1.4-1.7-4-1.5-5-.1z' fill='black' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/mask%3E%3C/defs%3E%3Crect x='-12' y='-40' width='48' height='66' fill='black' mask='url(%23m)'/%3E%3C/svg%3E");
+  position: absolute;
+  left: calc(var(--s) * -12);
+  top: calc(var(--s) * -40);
+  width: calc(var(--s) * 48);
+  height: calc(var(--s) * 66);
+  pointer-events: none;
+  -webkit-mask: var(--z-hole) 0 0 / 100% 100% no-repeat;
+  mask: var(--z-hole) 0 0 / 100% 100% no-repeat;
+}
 
 /* Блок «Памяти пора отдыхать»: заголовок всегда в одну строку — кегль растёт и сжимается вместе с шириной
    самого блока (cqi — доля ширины контейнера), справа место под мозг */
@@ -23,26 +40,27 @@
   width: 46px;
   height: 46px;
   margin-top: -23px;
+  --s: 1.91667px; /* единица маски .zMask: 46 / 24 */
   color: #8f9ab8;
   pointer-events: none;
 }
 .lrSleep > svg { position: relative; z-index: 1; width: 100%; height: 100%; animation: lrBrainBreathe 6s ease-in-out infinite; }
 @keyframes lrBrainBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
-/* «Z»: стартуют у верхнего правого края мозга (под ним, затем выходят из-за него), поднимаются на 46 px — выше
+/* «Z»: стартуют у верхнего правого края мозга (под ним — маска прячет их внутри контура), поднимаются на 46 px — выше
    верхней границы блока, — покачиваясь вбок, растут и гаснут. Три штуки через треть периода: в кадре почти
-   всегда две-три, но далеко друг от друга */
+   всегда две-три, но далеко друг от друга. Путь — ломаная из шести точек при linear: при ease-in-out на каждом
+   отрезке «Z» замирали бы на середине пути */
 .lrZ {
   position: absolute;
-  left: 58%;
-  top: 6px;
-  z-index: 0;
+  left: calc(var(--s) * 26); /* 14 единиц от левого края значка: у его верхнего правого угла */
+  top: calc(var(--s) * 43);  /* 3 единицы от верха значка */
   font-style: normal;
   font-weight: 800;
   line-height: 1;
   color: #b9c3ff;
   opacity: 0;
-  animation: lrZFloat 11s ease-in-out infinite;
+  animation: lrZFloat 11s linear infinite;
 }
 .lrZ--1 { font-size: 12px; --zx: 8px; animation-delay: 0s; }
 .lrZ--2 { font-size: 15px; --zx: -3px; animation-delay: -3.7s; }
@@ -50,26 +68,30 @@
 @keyframes lrZFloat {
   0% { transform: translate3d(0, 6px, 0) scale(0.6); opacity: 0; }
   12% { opacity: 0.9; }
-  55% { transform: translate3d(calc(var(--zx) * -0.5), -22px, 0) scale(0.95); opacity: 0.8; }
+  20% { transform: translate3d(calc(var(--zx) * -0.153), -4.4px, 0) scale(0.71); }
+  40% { transform: translate3d(calc(var(--zx) * -0.171), -14.8px, 0) scale(0.82); }
+  60% { transform: translate3d(calc(var(--zx) * 0.029), -25.2px, 0) scale(0.93); opacity: 0.8; }
+  80% { transform: translate3d(calc(var(--zx) * 0.447), -35.6px, 0) scale(1.04); }
   100% { transform: translate3d(var(--zx), -46px, 0) scale(1.15); opacity: 0; }
 }
 
-/* Мозг спит и в нижней панели: три мелких «Z» выплывают из-за значка и заходят выше верхней границы панели.
-   Фильтр-тень с кнопки снят (она заставляла бы пересчитывать тень на каждом кадре «Z»): тень — на значке и тексте */
+/* Мозг спит и в нижней панели: значок — в своей обёртке (.shellV2NavBrain, размер значка 22 px), три мелких «Z»
+   выплывают из-за него (маска .zMask по силуэту) и заходят выше верхней границы панели. Фильтр-тень с кнопки снят (она
+   заставляла бы пересчитывать тень на каждом кадре «Z»): тень — на значке и тексте. Путь — как в блоке: linear, без остановок */
 .shellV2NavBtn--sleep { position: relative; filter: none; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55); }
-.shellV2NavBtn--sleep > svg { position: relative; z-index: 1; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.55)); }
-.shellV2NavZzz { position: absolute; top: 3px; left: calc(50% + 3px); width: 0; height: 0; z-index: 0; pointer-events: none; }
+.shellV2NavBrain { --s: 0.91667px; position: relative; display: flex; width: 22px; height: 22px; } /* единица маски: 22 / 24 */
+.shellV2NavBrain svg { position: relative; z-index: 1; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.55)); }
 .shellV2NavZzz i {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: calc(var(--s) * 26);
+  top: calc(var(--s) * 43);
   font-style: normal;
   font-weight: 800;
   line-height: 1;
   color: #b9c3ff;
   text-shadow: none;
   opacity: 0;
-  animation: navZFloat 9s ease-in-out infinite;
+  animation: navZFloat 9s linear infinite;
 }
 .shellV2NavZzz i:nth-child(1) { font-size: 7px; animation-delay: 0s; }
 .shellV2NavZzz i:nth-child(2) { font-size: 8.5px; animation-delay: -3s; }
@@ -77,7 +99,10 @@
 @keyframes navZFloat {
   0% { transform: translate3d(0, 4px, 0); opacity: 0; }
   14% { opacity: 0.95; }
-  55% { transform: translate3d(3px, -8px, 0); opacity: 0.85; }
+  20% { transform: translate3d(-0.66px, -0.8px, 0); }
+  40% { transform: translate3d(-0.53px, -5.6px, 0); }
+  60% { transform: translate3d(0.87px, -10.4px, 0); opacity: 0.85; }
+  80% { transform: translate3d(3.54px, -15.2px, 0); }
   100% { transform: translate3d(7px, -20px, 0); opacity: 0; }
 }
 
@@ -89,4 +114,7 @@
   .lrZ--2 { transform: translate3d(-2px, -28px, 0); }
   .lrZ--3 { transform: translate3d(8px, -42px, 0); }
   .shellV2NavZzz i { opacity: 0.8; }
+  .shellV2NavZzz i:nth-child(1) { transform: translate3d(1px, -6px, 0); }
+  .shellV2NavZzz i:nth-child(2) { transform: translate3d(4px, -11px, 0); }
+  .shellV2NavZzz i:nth-child(3) { transform: translate3d(7px, -17px, 0); }
 }

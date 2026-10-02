@@ -210,3 +210,36 @@ test('админ вручную добавляет слово в обучени�
   await expect(page.locator('.aeHint', { hasText: '«keep» убрано из обучения' })).toBeVisible()
   await expect(page.locator('.arvRow', { hasText: 'keep' })).toHaveCount(0)
 })
+
+// «Прожить день» и «На сегодня» (миграция 20261002130000_memory_debug_today.sql): бюджет карточек дня считается по журналу
+// повторений, поэтому «прожить день» двигает и его — иначе при исчерпанном лимите вкладка «Память» молчала бы, хотя сроки
+// наступили. Под счётчиком — диагноз «лимит дня», в строке слова — «На сегодня»
+test('«Прожить день» освобождает лимит карточек дня, «На сегодня» ставит слово к повтору сегодня', async ({ page }) => {
+  test.slow()
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Админ', exact: true }).click()
+  await page.locator('.avTab', { hasText: 'Повторение' }).click()
+  const screen = await startSession(page)
+  await option(screen, 'cook').click({ timeout: 30_000 })
+  await expect(screen.locator('.reviewSummaryTitle')).toHaveText('Повторение завершено', { timeout: 30_000 })
+  await screen.getByRole('button', { name: 'Готово' }).click()
+  await expect(screen).toHaveCount(0, { timeout: 5000 })
+
+  // Карточка показана сегодня — она в журнале, лимит дня частично потрачен
+  const shown = page.locator('.aeHint', { hasText: 'Карточек показано сегодня' })
+  await expect(shown).not.toContainText('показано сегодня: 0 из', { timeout: 15_000 })
+  await expect(shown).toContainText('из 8')
+  // «Прожить 1 день»: журнал уходит во «вчера» — лимит свободен
+  await page.getByRole('button', { name: 'Прожить 1 день' }).click()
+  await expect(shown).toContainText('показано сегодня: 0 из 8', { timeout: 15_000 })
+  await expect(page.locator('.aeHint', { hasText: 'лимит карточек дня свободен' })).toBeVisible()
+  // Слово отложено на несколько дней: «На сегодня» возвращает его к повтору (и снова освобождает лимит)
+  const cook = page.locator('.arvRow', { hasText: 'cook' })
+  await cook.getByRole('button', { name: 'На сегодня' }).click()
+  await expect(cook).toContainText('сегодня', { timeout: 15_000 })
+  await expect(cook.getByRole('button', { name: 'На сегодня' })).toHaveCount(0)
+  await expect(page.locator('.aeHint', { hasText: /^К повтору сегодня: \d+ слов/ })).toBeVisible()
+  // слово с колодой — диагноз «лимит/колода» молчит, в расписание оно попадёт
+  await expect(page.locator('.arvWarn')).toHaveCount(0)
+  await expect(page.locator('.aeHint', { hasText: 'в расписание попадут: 1' })).toBeVisible()
+})

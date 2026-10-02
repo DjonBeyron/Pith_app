@@ -58,41 +58,6 @@ export async function reviewWord({ word, outcome, cardId = null, lessonId = null
   return data ?? null
 }
 
-// Тест интервалов (только админ): «прожить» N дней — даты повторов своей
-// памяти сдвигаются назад. Возвращает число сдвинутых слов.
-export async function debugShiftMemory(days) {
-  const { data, error } = await supabase.rpc('memory_debug_shift', { p_days: days })
-  if (error) { console.error('[MEMORY] memory_debug_shift:', error.message); return null }
-  return data ?? 0
-}
-
-// Только админ (миграция 20260925200000_memory_debug_add.sql): занести слово
-// в свою память «к повтору сегодня» без прохождения урока — проверить вкладку
-// «Моё обучение». Уже в памяти — шаг тот же, срок на сегодня.
-// { ok, word, step, due_on } | { ok: false, reason } | null
-export async function debugAddWord(word) {
-  const { data, error } = await supabase.rpc('memory_debug_add', { p_word: word })
-  if (error) { console.error('[MEMORY] memory_debug_add:', error.message); return null }
-  return data ?? null
-}
-
-// Только админ: убрать слово из своей памяти. 1 — убрано, 0 — не было, null — ошибка
-export async function debugRemoveWord(word) {
-  const { data, error } = await supabase.rpc('memory_debug_remove', { p_word: word })
-  if (error) { console.error('[MEMORY] memory_debug_remove:', error.message); return null }
-  return data ?? 0
-}
-
-// Только админ (миграция 20261001140000_memory_debug_step.sql): пройти слово по уровням памяти
-// до конца — action 'next' (как верный повтор в срок: шаг +1; на шаге 5 — в постоянную память;
-// в постоянной — дальше некуда, end: true) — и 'reset' (как новое: шаг 1, постоянная снимается).
-// Журнал повторений не пишется. { ok, word, prev_step, step, due_on, settled, end } | { ok: false, reason } | null
-export async function debugStepWord(word, action) {
-  const { data, error } = await supabase.rpc('memory_debug_step', { p_word: word, p_action: action })
-  if (error) { console.error('[MEMORY] memory_debug_step:', error.message); return null }
-  return data ?? null
-}
-
 // Конец сессии повторения (миграция 20260925140000_memory_finish_session.sql):
 // сервер проверяет, что у каждого слова сессии есть исход за сегодня, и
 // начисляет XP (2 за слово по расписанию, потолок 20 в день) + день серии.

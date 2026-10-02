@@ -4,7 +4,7 @@ import { useLessonNav } from '../../app/LessonNavContext.jsx'
 import { localToday } from '../review/reviewDecks.js'
 import { onLearnHome } from '../../shared/lib/learnHomeEvent.js'
 import { listWordAudio } from '../../shared/lib/wordAudio/wordAudioApi.js'
-import { debugStepWord } from '../../shared/api/memoryApi.js'
+import { debugStepWord, debugDueToday } from '../../shared/api/memoryDebugApi.js'
 import { findLadderWord } from './memoryLadder.js'
 import { unlockReviewAudio, loadReviewScreen, prefetchReviewScreen } from '../review/reviewLaunch.js'
 import { startOfReview } from '../review/reviewLevel.js'
@@ -67,10 +67,11 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const live = sheet && ladder ? findLadderWord(ladder, sheet.word.word) : null
   const sheetWord = live ? { ...sheet.word, ...live.word } : sheet?.word
   const sheetPerm = live ? live.perm : sheet?.perm
-  // Тест админа: «Повторил → следующий уровень» / «Сбросить слово» (memory_debug_step)
+  // Тест админа: «Повторил → следующий уровень» / «Сбросить слово» (memory_debug_step) / «К повтору сегодня» (memory_debug_today:
+  // срок на сегодня и свободный бюджет дня — без него слово не попало бы в сегодняшнее повторение)
   async function stepWord(action) {
     setStepBusy(true)
-    const r = await debugStepWord(sheet.word.word, action)
+    const r = action === 'today' ? await debugDueToday([sheet.word.word]) : await debugStepWord(sheet.word.word, action)
     if (r?.ok) await reload()
     setStepBusy(false)
   }

@@ -15,7 +15,7 @@ test('слово: «Повторил» по уровням до постоянн
   test.slow()
   await page.goto('/')
   await page.evaluate(async () => {
-    const api = await import('/src/shared/api/memoryApi.js')
+    const api = await import('/src/shared/api/memoryDebugApi.js')
     await api.debugRemoveWord('hold')
     await api.debugAddWord('hold')
   })
@@ -40,10 +40,21 @@ test('слово: «Повторил» по уровням до постоянн
   await next.click()
   await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 4 из 4', { timeout: 15_000 })
   await expect(sheet.getByRole('button', { name: 'Конец пути: постоянная память' })).toBeDisabled()
-  // Сбросить: как новое слово
+  // «К повтору сегодня»: срок слова — сегодня (слово в постоянной памяти — месячная проверка сегодня), уровень не меняется
+  await sheet.getByRole('button', { name: 'К повтору сегодня' }).click()
+  await expect.poll(() => page.evaluate(async () => {
+    const m = (await (await import('/src/shared/api/memoryApi.js')).listWordMemory()).find(w => w.word === 'hold')
+    const d = new Date(), p = x => String(x).padStart(2, '0')
+    return m.due_on <= `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  }), { timeout: 15_000 }).toBe(true)
+  await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 4 из 4')
+  // Сбросить: как новое слово (срок — сегодня, не завтра)
   await sheet.getByRole('button', { name: 'Сбросить слово' }).click()
   await expect(sheet.locator('.memSheetLevelHead')).toContainText('Уровень 1 из 4', { timeout: 15_000 })
   await expect(sheet.getByRole('button', { name: /^Повторил → /i })).toBeEnabled()
+  const dueAfterReset = await page.evaluate(async () => (await (await import('/src/shared/api/memoryApi.js')).listWordMemory()).find(w => w.word === 'hold').due_on)
+  const now = new Date(), pad = x => String(x).padStart(2, '0')
+  expect(dueAfterReset <= `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`, 'после сброса слово — к повтору сегодня').toBe(true)
 
-  await page.evaluate(async () => { (await import('/src/shared/api/memoryApi.js')).debugRemoveWord('hold') })
+  await page.evaluate(async () => { (await import('/src/shared/api/memoryDebugApi.js')).debugRemoveWord('hold') })
 })
