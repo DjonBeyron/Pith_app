@@ -153,6 +153,7 @@ export function collectEnv() {
   const vv = window.visualViewport
   const nav = document.querySelector('.shellV2Nav')?.getBoundingClientRect()
   const shell = document.querySelector('.shellV2')?.getBoundingClientRect()
+  const root = document.scrollingElement || document.documentElement
   return [
     `version: ${APP_VERSION}`,
     `time: ${new Date().toISOString()}`,
@@ -171,5 +172,7 @@ export function collectEnv() {
     `shellV2 rect: ${shell ? `top=${shell.top.toFixed(1)} bottom=${shell.bottom.toFixed(1)} h=${shell.height.toFixed(1)}` : 'нет'}`,
     `nav rect: ${nav ? `top=${nav.top.toFixed(1)} bottom=${nav.bottom.toFixed(1)} h=${nav.height.toFixed(1)} (winH=${window.innerHeight})` : 'нет'}`,
     `nav position: ${document.querySelector('.shellV2Nav') ? getComputedStyle(document.querySelector('.shellV2Nav')).position : 'нет'}`,
+    // Полоса справа на Android: страница не должна прокручиваться и масштабироваться (тогда браузер рисует свою полосу)
+    `page scroll: scroll=${root.scrollWidth}x${root.scrollHeight} client=${root.clientWidth}x${root.clientHeight} scale=${vv?.scale ?? 'n/a'} offset=${vv ? `${vv.offsetLeft},${vv.offsetTop}` : 'n/a'} touch=${window.matchMedia('(hover: none) and (pointer: coarse)').matches}`,
   ].join('\n')
 }

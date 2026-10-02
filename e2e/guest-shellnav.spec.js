@@ -19,6 +19,20 @@ test('нижняя панель: fixed у низа окна, следует за
     await expect.poll(() => nav.evaluate(el => Math.round(el.getBoundingClientRect().bottom)), { timeout: 5000 }).toBe(h)
   }
 
+  // Затемнение снизу «Моей памяти» привязано к тому же краю окна, что и панель (fixed, свой слой): стоит ровно над
+  // панелью и вместе с ней следует за изменением высоты — иначе при скролле «дёргается» относительно панели
+  const edge = page.locator('.lrEdgeBottom')
+  expect(await edge.evaluate(el => { const cs = getComputedStyle(el); return { position: cs.position, willChange: cs.willChange } }))
+    .toEqual({ position: 'fixed', willChange: 'transform' })
+  for (const h of [800, 740, 860]) {
+    await page.setViewportSize({ width: 390, height: h })
+    await expect.poll(async () => {
+      const [e, n] = await Promise.all([edge.evaluate(el => el.getBoundingClientRect().bottom), nav.evaluate(el => el.getBoundingClientRect().top)])
+      return Math.round(e - n)
+    }, { timeout: 5000 }).toBe(0)
+  }
+  await page.setViewportSize({ width: 390, height: 800 })
+
   // Жест не «передаётся» окну: у прокручиваемых контейнеров и у самих html/body
   const over = await page.evaluate(() => {
     const ob = el => getComputedStyle(el).overscrollBehaviorY

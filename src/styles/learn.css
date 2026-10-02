@@ -35,13 +35,18 @@
 /* Мягкое гашение снизу — как у схемы модуля (.moduleGraphEdge--bottom,
    module-graph-layout.css): полоска цвета фона над нижней панелью, всё, что
    уходит под неё, плавно темнеет. Полоска, а не mask-image на скролле: маска
-   перерисовывала бы экран каждый кадр прокрутки. Только снизу */
+   перерисовывала бы экран каждый кадр прокрутки. Только снизу.
+   position: fixed, как у самой нижней панели (.shellV2Nav, shell-v2.css): на Android в браузере адресная строка уезжает
+   при скролле, окно меняет высоту, и панель (fixed, свой слой) двигается сразу, а всё, что лежит в оболочке (absolute
+   внутри .lrRoot), ждёт пересчёта вёрстки — полоса затемнения «дёргалась» относительно панели. Тот же край окна и тот же
+   отдельный слой (will-change) — полоса и панель двигаются вместе. Скрытая вкладка (visibility) полосу не показывает */
 .lrEdgeBottom {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
   bottom: var(--v2-nav-h);
   z-index: 3;
+  will-change: transform;
   height: 68px;
   background: linear-gradient(to top, #0b0d10, transparent);
   pointer-events: none;
