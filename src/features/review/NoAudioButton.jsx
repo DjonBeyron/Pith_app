@@ -2,17 +2,18 @@ import { useState, useEffect } from 'react'
 import { VolumeX } from 'lucide-react'
 import { hintSeen, markHint } from './reviewHints.js'
 
-// «Не могу слушать» — на карточке со звуком или голосом, в нижней панели.
-// Первый раз — широкая кнопка с подписью; через пару секунд она «сдувается»:
+// «Не могу слушать» — на карточке со звуком или голосом, в нижней панели, справа и вдвое мельче
+// прежнего. Первый раз — кнопка с подписью; через пару секунд она «сдувается»:
 // прямоугольник плавно превращается в кружок с иконкой, и так остаётся навсегда
-// (флаг COMPACT). Первое нажатие показывает попап: что делает кнопка, без
+// (флаг COMPACT). Не исчезает: когда ответ дан и появилась подсказка «смахни…», disabled —
+// кнопка тускнеет и не нажимается. Нажимаемая зона больше самой кнопки (отступы слота). Первое нажатие показывает попап: что делает кнопка, без
 // нажима (флаг INFO — один раз); дальше нажатие срабатывает сразу.
-// onSkip — убрать задания со звуком до конца сессии.
+// onSkip — убрать задания со звуком до конца сессии; disabled — ответ уже дан.
 const COMPACT = 'pithy_review_noaudio_compact_v1'
 const INFO = 'pithy_review_noaudio_info_v1'
 const COLLAPSE_MS = 3500
 
-export default function NoAudioButton({ onSkip }) {
+export default function NoAudioButton({ onSkip, disabled = false }) {
   const [compact, setCompact] = useState(() => hintSeen(COMPACT))
   const [ask, setAsk] = useState(false)
 
@@ -23,6 +24,7 @@ export default function NoAudioButton({ onSkip }) {
   }, [compact])
 
   function press() {
+    if (disabled) return
     if (hintSeen(INFO)) { onSkip(); return }
     markHint(INFO)
     setAsk(true)
@@ -30,11 +32,13 @@ export default function NoAudioButton({ onSkip }) {
 
   return (
     <>
-      <button className={compact ? 'reviewNoAudio reviewNoAudio--compact' : 'reviewNoAudio'} onClick={press}
-        aria-label="Не могу слушать" title="Не могу слушать">
-        <VolumeX className="reviewNoAudioIcon" />
-        <span className="reviewNoAudioLabel">Не могу слушать</span>
-      </button>
+      <span className="reviewNoAudioSlot">
+        <button className={compact ? 'reviewNoAudio reviewNoAudio--compact' : 'reviewNoAudio'} onClick={press} disabled={disabled}
+          aria-label="Не могу слушать" title="Не могу слушать">
+          <VolumeX className="reviewNoAudioIcon" />
+          <span className="reviewNoAudioLabel">Не могу слушать</span>
+        </button>
+      </span>
       {ask && (
         <div className="reviewPopBack" onClick={() => setAsk(false)}>
           <div className="reviewPop" role="dialog" aria-label="Не могу слушать" onClick={e => e.stopPropagation()}>

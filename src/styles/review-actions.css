@@ -23,7 +23,15 @@
   flex-shrink: 0;
   padding: 2px 0 calc(env(safe-area-inset-bottom, 0px) + 10px);
 }
-.reviewFoot .reviewActions { box-sizing: border-box; flex-wrap: nowrap; width: 100%; height: 40px; min-height: 0; padding: 0; overflow: hidden; }
+/* На экране повторения подвал выше (карточка ниже примерно на 10%): больше места под панель действий,
+   «Не могу слушать» и полоску прогресса; полоска — у нижнего края, панель — сразу под карточкой */
+.reviewScreen .reviewFoot {
+  box-sizing: border-box;
+  height: calc(9dvh + 52px);
+  justify-content: space-between;
+  padding: 10px 0 calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+.reviewFoot .reviewActions { position: relative; box-sizing: border-box; flex-wrap: nowrap; width: 100%; height: 40px; min-height: 0; padding: 0; }
 
 .reviewBtn {
   padding: 8px 16px;
@@ -90,33 +98,47 @@
 @keyframes reviewShineText   { 0% { transform: translateX(34%); }   45%, 100% { transform: translateX(-102%); } }
 @keyframes reviewHintIn { from { opacity: 0; } }
 
-/* ── «Не могу слушать»: широкая кнопка → кружок с иконкой ───────────── */
+/* ── «Не могу слушать»: кнопка с подписью → кружок с иконкой ─────────────
+   Вдвое мельче прежнего (кружок 18 px вместо 36) и справа в панели действий. Слот вокруг кнопки —
+   увеличенная зона нажатия (внутри самой кнопки overflow: hidden, псевдоэлемент наружу не вышел бы) */
+.reviewNoAudioSlot {
+  position: absolute;
+  right: -10px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+}
 .reviewNoAudio {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 5px;
   box-sizing: border-box;
-  width: 172px;
-  height: 36px;
-  padding: 0 14px;
+  width: 118px;
+  height: 22px;
+  padding: 0 9px;
   overflow: hidden;
   border: 1px solid #2a2d35;
   border-radius: 999px;
   background: transparent;
   color: #e0e0e0;
   font: inherit;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: width 0.55s cubic-bezier(0.65, 0, 0.25, 1), padding 0.55s cubic-bezier(0.65, 0, 0.25, 1), gap 0.55s cubic-bezier(0.65, 0, 0.25, 1);
+  transition: width 0.55s cubic-bezier(0.65, 0, 0.25, 1), height 0.55s cubic-bezier(0.65, 0, 0.25, 1), padding 0.55s cubic-bezier(0.65, 0, 0.25, 1), gap 0.55s cubic-bezier(0.65, 0, 0.25, 1), opacity 0.3s ease;
   animation: reviewHintIn 0.4s ease backwards;
 }
-.reviewNoAudioIcon { width: 18px; height: 18px; flex-shrink: 0; }
-.reviewNoAudioLabel { max-width: 120px; overflow: hidden; transition: opacity 0.25s ease, max-width 0.55s cubic-bezier(0.65, 0, 0.25, 1); }
-.reviewNoAudio--compact { width: 36px; padding: 0; gap: 0; }
+.reviewNoAudioIcon { width: 11px; height: 11px; flex-shrink: 0; }
+.reviewNoAudioLabel { max-width: 90px; overflow: hidden; transition: opacity 0.25s ease, max-width 0.55s cubic-bezier(0.65, 0, 0.25, 1); }
+.reviewNoAudio--compact { width: 18px; height: 18px; padding: 0; gap: 0; }
+.reviewNoAudio--compact .reviewNoAudioIcon { width: 10px; height: 10px; }
 .reviewNoAudio--compact .reviewNoAudioLabel { max-width: 0; opacity: 0; }
+/* Ответ дан, появилась подсказка «смахни…» — кнопка остаётся, но тусклая и не нажимается */
+.reviewNoAudio:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
 
 /* Попап-объяснение (один раз) */
 .reviewPopBack {

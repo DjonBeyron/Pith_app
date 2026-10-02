@@ -128,8 +128,8 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await review.getByRole('button', { name: 'Далее' }).click()
   await expect(review.locator('.reviewTeacherLine')).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 })
   await expect(review.locator('.reviewReward')).toContainText(/серии|серия/, { timeout: 20_000 }) // после переноса награды в XP-полоску; «+N XP» текстом не пишем
-  await expect(review.locator('.reviewBridge')).toContainText('Продолжить изучение фразы «Keep going · E2E-ОБУЧЕНИЕ»')
-  await expect(review.locator('.reviewBridge')).toContainText('Пройдено 25%')
+  await expect(review.locator('.reviewBridge .reviewBridgePhrase')).toHaveText('«Keep going · E2E-ОБУЧЕНИЕ»')
+  await expect(review.locator('.reviewBridge .reviewBridgeSub')).toHaveText('Пройден 25% урока')
   await review.getByRole('button', { name: 'Готово' }).click()
   await expect(main).toContainText('Повторение на сегодня закончено ✓', { timeout: 30_000 })
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)

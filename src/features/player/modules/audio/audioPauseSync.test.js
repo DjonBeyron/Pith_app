@@ -59,7 +59,7 @@ describe('кнопка голосового на паузе', () => {
     expect(mod).toContain('className="playerAudioBtn"')
     const rule = css.slice(css.indexOf('.playerAudioBtn {'))
     const body = rule.slice(0, rule.indexOf('}'))
-    expect(body).toContain('background: #b6fe3b')
+    expect(body).toContain('background: var(--player-accent, #b6fe3b)')
   })
 
   it('мёртвого состояния не осталось', () => {

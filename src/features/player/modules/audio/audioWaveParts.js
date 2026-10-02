@@ -13,6 +13,14 @@
 export const WAVE_H_BASE = [7,11,16,22,14,19,24,17,10,20,13,22,18,11,25,21,15,9,18,24,16,12,21,14,19,10,17,23,15,9,13,19,21,14,17,24,11,18,22,15,10,19,13,25,16,9,20,23,12,17]
 export const BAR_W = 2, BAR_GAP = 2
 export const ACCENT = '#b6fe3b'
+// Акцент берётся из --player-accent (layout.css) — в карточке повторения он цвета ступени памяти слова.
+// Читаем один раз на канвас: у плеера он не меняется
+const accents = new WeakMap()
+function accentOf(canvas) {
+  let c = accents.get(canvas)
+  if (!c) { c = getComputedStyle(canvas).getPropertyValue('--player-accent').trim() || ACCENT; accents.set(canvas, c) }
+  return c
+}
 const MUTED = '#2a2d35'
 
 export function barCountFor(width) {
@@ -58,7 +66,7 @@ export function drawAudioWave(canvas, waveData, progress = 0, greenAlpha = 1) {
     if (!isGreen || greenAlpha < 1) { ctx.fillStyle = MUTED; ctx.fill() }
     if (isGreen) {
       ctx.globalAlpha = greenAlpha
-      ctx.fillStyle = ACCENT
+      ctx.fillStyle = accentOf(canvas)
       ctx.fill()
       ctx.globalAlpha = 1
     }

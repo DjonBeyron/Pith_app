@@ -6,7 +6,8 @@ import { onLearnHome } from '../../shared/lib/learnHomeEvent.js'
 import { listWordAudio } from '../../shared/lib/wordAudio/wordAudioApi.js'
 import { debugStepWord } from '../../shared/api/memoryApi.js'
 import { findLadderWord } from './memoryLadder.js'
-import { unlockReviewAudio } from '../review/reviewAudioUnlock.js'
+import { unlockReviewAudio, loadReviewScreen, prefetchReviewScreen } from '../review/reviewLaunch.js'
+import ReviewLaunching from '../review/ReviewLaunching.jsx'
 import LearnMainAction from './LearnMainAction.jsx'
 import MemoryLadder from './MemoryLadder.jsx'
 import LearnPattern from './LearnPattern.jsx'
@@ -19,7 +20,7 @@ import LearnWordSheet from './LearnWordSheet.jsx'
 import MemoryIntro from './MemoryIntro.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
 
-const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
+const ReviewScreen = lazy(loadReviewScreen)
 
 // Вкладка «Моя память» — отвечает на вопрос «что я помню?» (PROJECT.md →
 // «Вкладки»). Главный экран — шапка с главным действием и лестница памяти
@@ -47,6 +48,8 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   // Тап по значку «Память» в нижней панели, когда вкладка уже открыта — из
   // списка слов назад на главный экран
   useEffect(() => onLearnHome(() => setPage(null)), [])
+  // Чанк экрана повторения качаем заранее — тап по «Повторить» не ждёт сеть
+  useEffect(() => { if (visible) prefetchReviewScreen() }, [visible])
   // Вернулись на вкладку — тихо обновить (урок мог добавить слово)
   useEffect(() => { if (visible) reload() }, [visible, reload])
 
@@ -127,7 +130,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
           />
         )}
         {review && (
-          <Suspense fallback={null}>
+          <Suspense fallback={<ReviewLaunching />}>
             <ReviewScreen focusWords={review.focus} phrase={review.focus ? null : view?.today.phrase}
               onClose={() => { setReview(null); reload() }}
               onRequireAuth={() => { setReview(null); onRequireAuth() }} />

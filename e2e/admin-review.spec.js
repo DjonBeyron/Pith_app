@@ -35,15 +35,21 @@ test('сессия: ошибка → слово в конце → верно; ж
   await page.locator('.avTab', { hasText: 'Повторение' }).click()
 
   // ── 1. Ошибка возвращает слово в конец сессии ───────────────────────
-  // Фото карточки сервер отдаёт с задержкой 5 с. Первую карточку греют, пока на экране «Ищу
-  // слова…»; скачанное передаётся плееру — когда карточка появилась, фото видно почти сразу.
-  // Без передачи плеер качал бы заново и ждал бы ещё 5 с (4 с — с запасом на холодный старт)
+  // Фото карточки сервер отдаёт с задержкой 5 с
   const PHOTO = '**/icons/icon-512.png'
   await page.route(PHOTO, async route => { await new Promise(r => setTimeout(r, 5000)); await route.continue() })
   let screen = await startSession(page)
   await expect(screen.locator('.reviewCard')).toBeVisible({ timeout: 30_000 })
-  await expect(screen.locator('.reviewCard img[src^="blob:"]')).toBeVisible({ timeout: 4000 })
+  // Перед заданием — точки «печатает»; пока греется медиа они держатся, но не дольше ~1,5 с, даже если
+  // фото грузится 5 с: дальше карточка играет сама (медиа догрузится)
+  await expect(screen.locator('.reviewCardFrame .playerWaitingDots')).toBeVisible({ timeout: 2000 })
+  expect(await screen.locator('.reviewCardFrame .lessonPlayer').count()).toBe(0) // плеер ещё не смонтирован
+  await expect(screen.locator('.reviewCardFrame .lessonPlayer')).toBeVisible({ timeout: 2500 }) // точки отстояли ≤ ~1,5 с, а не 5 с загрузки фото
   await page.unroute(PHOTO)
+  // Слово cook — на первом шаге («Новые»): оттенок фона, точки закрытого слова и акцент «худа» чата — небесные
+  await expect(screen).toHaveClass(/reviewScreen--lvl1/)
+  expect(await screen.locator('.reviewPhraseHidden').evaluate(el => getComputedStyle(el).color)).toBe('rgb(79, 179, 238)')
+  expect(await screen.locator('.reviewCardFrame .lessonPlayer').evaluate(el => getComputedStyle(el).getPropertyValue('--player-accent').trim())).toBe('#4fb3ee')
   // Слово во фразе под спойлером, одна капсула на одну карточку — внизу, под панелью действий
   await expect(screen.locator('.reviewPhraseHidden')).toHaveText('●●●●')
   await expect(screen.locator('.reviewCapsule')).toHaveCount(1)
@@ -72,8 +78,10 @@ test('сессия: ошибка → слово в конце → верно; ж
   await expect(screen.locator('.reviewWord--soft')).toContainText('cook')
   await expect(screen.locator('.reviewReward')).toContainText(/серии|серия/, { timeout: 20_000 }) // после переноса награды в XP-полоску; «+N XP» текстом не пишем
   // Мостик в модуль слова: пройден урок cook — 1 из 4 (сид)
-  await expect(screen.locator('.reviewBridge')).toContainText("Продолжить изучение фразы «I'm trying to cook · E2E-КОЛОДЫ»")
-  await expect(screen.locator('.reviewBridge')).toContainText('Пройдено 25%')
+  await expect(screen.locator('.reviewBridge .reviewBridgeMain')).toHaveText('Продолжить изучение')
+  await expect(screen.locator('.reviewBridge .reviewBridgePhrase')).toHaveText("«I'm trying to cook · E2E-КОЛОДЫ»") // фраза — на своей строке
+  await expect(screen.locator('.reviewBridge .reviewBridgeSub')).toHaveText('Пройден 25% урока')
+  await expect(screen.locator('.reviewBridge .reviewBridgeSub b')).toHaveText('25%')
   await screen.getByRole('button', { name: 'Готово' }).click()
   await expect(screen).toHaveCount(0)
 
@@ -114,6 +122,8 @@ test.describe('на касании', () => {
     await expect(screen.locator('.reviewSwipeHint')).toBeVisible()
     await page.waitForTimeout(1200) // подсказка проявилась
     expect(await box('.reviewCard')).toEqual(before) // карточка не сдвинулась
+    // и чат внутри неё не уехал: рамка не прокручивается (раньше сдвигалась на высоту распорки, снизу торчал край панели)
+    expect(await screen.locator('.reviewCardFrame').evaluate(el => el.scrollTop)).toBe(0)
     expect(await box('.reviewPhrase')).toEqual(phraseBefore) // фраза наверху — там же
     const hint = await screen.locator('.reviewSwipeHint').boundingBox()
     const bar = await screen.locator('.reviewCapsules').boundingBox()

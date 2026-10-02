@@ -6,6 +6,7 @@ import ReviewProgress from './ReviewProgress.jsx'
 import { cardHasAudio } from './reviewSession.js'
 import { useSwipeNext } from './useSwipeNext.js'
 import NoAudioButton from './NoAudioButton.jsx'
+import WaitingDots from '../player/waiting/WaitingDots.jsx'
 
 // Плашка итога ответа. Без «ошибки» и «мимо»: слово не потеряно, мы просто
 // вернёмся к нему. Вторая ошибка — показать слово: само слово сессии (плеер
@@ -30,8 +31,17 @@ function verdictOf(result, { attempt, word, kind }) {
 // «Не могу слушать» — только на карточке со звуком (NoAudioButton). Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
 // Подвал (.reviewFoot) — панель действий фиксированной высоты (место под «Далее» / «смахни…» /
 // «Не могу слушать» занято всегда, карточка при ответе не двигается) и тонкий прогресс под ней.
-export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, onAnswer, onNoAudio, onClose }) {
+export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, typingMs = 0, hold = false, onAnswer, onNoAudio, onClose }) {
   const [answered, setAnswered] = useState(null) // { result, timeMs }
+  // Перед заданием — точки «печатает» (как в уроке): минимум typingMs, а пока hold (первая карточка
+  // греет медиа) — дольше; плеер карточки монтируется, когда точки уходят
+  const [typedEnough, setTypedEnough] = useState(typingMs === 0)
+  useEffect(() => {
+    if (typingMs === 0) return undefined
+    const t = setTimeout(() => setTypedEnough(true), typingMs)
+    return () => clearTimeout(t)
+  }, [typingMs])
+  const typing = !typedEnough || hold
   const sentRef = useRef(false)
   const verdict = answered && verdictOf(answered.result, item)
 
@@ -59,17 +69,20 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
       <ReviewHeader phrase={phrase} title={title} word={item.word} revealed={!!answered} onClose={onClose} />
       <div className={answered ? 'reviewCard reviewCard--answered' : 'reviewCard'} ref={cardRef}>
         <div className="reviewCardFrame">
-          <LessonPlayer
-            nodes={item.card.nodes}
-            teacherName={teacher?.name}
-            teacherLogo={teacher?.logo}
-            teacherLogoCrop={teacher?.crop}
-            initialBlobMap={initialBlobMap}
-            recordStats={false}
-            onFinishStats={({ wrong, timeMs }) => setAnswered({ result: wrong > 0 ? 'wrong' : 'correct', timeMs })}
-            onSummaryClose={() => {}}
-            onClose={onClose}
-          />
+          {!typing && (
+            <LessonPlayer
+              nodes={item.card.nodes}
+              teacherName={teacher?.name}
+              teacherLogo={teacher?.logo}
+              teacherLogoCrop={teacher?.crop}
+              initialBlobMap={initialBlobMap}
+              recordStats={false}
+              onFinishStats={({ wrong, timeMs }) => setAnswered({ result: wrong > 0 ? 'wrong' : 'correct', timeMs })}
+              onSummaryClose={() => {}}
+              onClose={onClose}
+            />
+          )}
+          <WaitingDots visible={typing} />
         </div>
         {verdict && (
           <div className={`reviewVerdict reviewVerdict--${verdict.kind}`} role="status">{verdict.text}</div>
@@ -77,20 +90,22 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
       </div>
       <div className="reviewFoot">
         <div className="reviewActions">
-          {answered
-            ? <>
-                {/* Кнопка — там, где есть мышь; на касании — надпись (она же кнопка для
-                    тех, кто не смахивает). Появляется только после ответа, плавно */}
-                <button className="reviewBtn reviewBtn--main reviewNext" onClick={next}>Далее</button>
-                <button className="reviewSwipeHint" aria-label="Далее" onClick={next} ref={hintRef}>
-                  <ArrowLeft className="reviewSwipeArrow" aria-hidden="true" />
-                  <span className="reviewSwipeHintText">
-                    смахни карточку влево
-                    <span className="reviewSwipeShine" aria-hidden="true"><span>смахни карточку влево</span></span>
-                  </span>
-                </button>
-              </>
-            : cardHasAudio(item.card) && <NoAudioButton onSkip={onNoAudio} />}
+          {answered && (
+            <>
+              {/* Кнопка — там, где есть мышь; на касании — надпись (она же кнопка для
+                  тех, кто не смахивает). Появляется только после ответа, плавно */}
+              <button className="reviewBtn reviewBtn--main reviewNext" onClick={next}>Далее</button>
+              <button className="reviewSwipeHint" aria-label="Далее" onClick={next} ref={hintRef}>
+                <ArrowLeft className="reviewSwipeArrow" aria-hidden="true" />
+                <span className="reviewSwipeHintText">
+                  смахни карточку влево
+                  <span className="reviewSwipeShine" aria-hidden="true"><span>смахни карточку влево</span></span>
+                </span>
+              </button>
+            </>
+          )}
+          {/* «Не могу слушать» стоит справа и не исчезает: после ответа тускнеет и не нажимается */}
+          {cardHasAudio(item.card) && <NoAudioButton onSkip={onNoAudio} disabled={!!answered} />}
         </div>
         <ReviewProgress session={session} />
       </div>

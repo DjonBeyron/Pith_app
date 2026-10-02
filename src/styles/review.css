@@ -5,16 +5,27 @@
    шириной с «телефон» плеера. */
 
 .reviewScreen {
+  /* Цвет ступени памяти слова на карточке (класс --lvlN ставит ReviewScreen): оттенок фона,
+     точки закрытого слова, акцент «худа» чата карточки */
+  --rv-c: var(--lvl3);
+  --rv-rgb: 182, 254, 59;
   position: fixed;
   inset: 0;
   z-index: 300;
   display: flex;
   flex-direction: column;
   padding: 0 max(12px, calc((100% - 460px) / 2));
-  background: #0e1013;
+  /* За карточкой — тот же узор, что на вкладке «Память» (пыль, зерно, текстура), и оттенок цвета ступени сверху и снизу */
+  background:
+    radial-gradient(120% 42% at 50% 0%, rgba(var(--rv-rgb), 0.2), transparent 72%),
+    radial-gradient(120% 38% at 50% 100%, rgba(var(--rv-rgb), 0.13), transparent 72%),
+    var(--v2-dust), var(--v2-grain), var(--v2-tex) #0e1013;
   color: #e0e0e0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+.reviewScreen--lvl1 { --rv-c: var(--lvl1); --rv-rgb: var(--lvl1-rgb); }
+.reviewScreen--lvl2 { --rv-c: var(--lvl2); --rv-rgb: 226, 205, 120; }
+.reviewScreen--lvl3 { --rv-c: var(--lvl3); --rv-rgb: 182, 254, 59; }
 
 /* «Помнишь?» в ленте (feed/FeedRemember.jsx) — тот же экран карточки */
 .feedRememberTitle {
@@ -73,7 +84,7 @@
   font-size: 13px;
   font-weight: 700;
   line-height: 25px;
-  color: #b6fe3b;
+  color: var(--rv-c, #b6fe3b);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -81,8 +92,8 @@
    верха экрана. Только transform и opacity — композитор */
 .reviewPhrase, .reviewTitle { animation: reviewPhraseDrop 0.7s cubic-bezier(0.22, 0.85, 0.3, 1) backwards; }
 @keyframes reviewPhraseDrop { from { transform: translate3d(0, -110px, 0); opacity: 0; } 55% { opacity: 1; } }
-.reviewPhraseHidden { color: #b6fe3b; letter-spacing: -1px; }
-.reviewPhraseWord   { color: #b6fe3b; animation: reviewFadeIn 0.35s ease both; }
+.reviewPhraseHidden { color: var(--rv-c, #b6fe3b); letter-spacing: -1px; }
+.reviewPhraseWord   { color: var(--rv-c, #b6fe3b); animation: reviewFadeIn 0.35s ease both; }
 
 /* ── Карточка ──────────────────────────────────────────────────────── */
 .reviewCard {
@@ -101,7 +112,23 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
+  /* clip, а не hidden: hidden — это ещё и прокручиваемый контейнер. Панель ответа (fixed, ушла под низ
+     рамки) давала ему переполнение, и браузер сдвигал рамку вверх на высоту распорки (замер: scrollTop 28):
+     весь чат поднимался, внизу карточки торчал край панели, а зазор до последнего сообщения рос */
+  overflow: clip;
   transform: translateZ(0);
+}
+
+/* Плеер внутри карточки: акцент «худа» (кнопка ▶ и спектр голосовых, свечение печати) — цвет ступени слова;
+   нижний отступ чата втрое меньше обычного: в карточке нет home indicator под лентой, поэтому safe-area
+   в запас не входит, а слот «печатает» ужат до высоты самой строки точек (24 px) */
+.reviewCardFrame .lessonPlayer { --player-accent: var(--rv-c, #b6fe3b); --wait-slot: 24px; }
+.reviewCardFrame .playerFeed { padding: calc(var(--wait-slot) + 2px) 0 12px; }
+.reviewCardFrame .playerWaitingRow { bottom: 2px; }
+/* Распорки панелей ответа держат прежний зазор «сообщение → панель» (12 px) при ужатом запасе ленты */
+.reviewCardFrame :is(.fbSpacer, .chooseWordSpacer, .pcPanelSpacer, .phraseAssemblySpacer, .regPanelSpacer, .tdSpacer, .tmSpacer) {
+  margin-bottom: -14px;
+  min-height: 14px;
 }
 
 /* Плеер внутри карточки: без «телефона» на десктопе, без шапки урока и

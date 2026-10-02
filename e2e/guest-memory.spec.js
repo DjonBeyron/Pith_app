@@ -67,6 +67,10 @@ test('гость повторяет слово дня → итог зовёт в
   await page.goto('/')
   const nav = page.getByRole('button', { name: 'Память', exact: true })
   await expect(nav).toHaveClass(/shellV2NavBtnDue/, { timeout: 30_000 })
+  // Светится только мозг: иконка лаймовая, подпись «Память» — обычного цвета
+  const navColors = await nav.evaluate(el => ({ label: getComputedStyle(el).color, icon: getComputedStyle(el.querySelector('svg')).color }))
+  expect(navColors.icon).toBe('rgb(182, 254, 59)')
+  expect(navColors.label).not.toBe('rgb(182, 254, 59)')
   await nav.click()
   await page.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')

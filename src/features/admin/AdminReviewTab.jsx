@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { listWordMemory, debugShiftMemory, debugRemoveWord } from '../../shared/api/memoryApi.js'
 import { localToday } from '../review/reviewDecks.js'
-import { unlockReviewAudio } from '../review/reviewAudioUnlock.js'
+import { unlockReviewAudio, loadReviewScreen } from '../review/reviewLaunch.js'
+import ReviewLaunching from '../review/ReviewLaunching.jsx'
 
-const ReviewScreen = lazy(() => import('../review/ReviewScreen.jsx'))
+const ReviewScreen = lazy(loadReviewScreen)
 
 // Админ → «Повторение»: временный вход в плеер повторения (этап 4 системы
 // повторения, до вкладки «Моё обучение» этапа 5) и инструменты проверки —
@@ -60,7 +61,7 @@ export default function AdminReviewTab() {
         </div>
       ))}
       {open && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<ReviewLaunching />}>
           <ReviewScreen onClose={() => { setOpen(false); load() }} />
         </Suspense>
       )}

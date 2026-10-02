@@ -114,8 +114,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1.5px solid #b6fe3b;
-  background: #b6fe3b;
+  border: 1.5px solid var(--player-accent, #b6fe3b);
+  background: var(--player-accent, #b6fe3b);
   color: #0e1013;
   font-size: 10px;
   cursor: pointer;
@@ -200,7 +200,7 @@
 }
 
 @keyframes charRevealGlow {
-  from { text-shadow: 0 0 6px #b6fe3b, 0 0 12px #b6fe3b; }
+  from { text-shadow: 0 0 6px var(--player-accent, #b6fe3b), 0 0 12px var(--player-accent, #b6fe3b); }
   to   { text-shadow: none; }
 }
 
@@ -208,8 +208,8 @@
   display: inline-block;
   width: 1px;
   height: 1.1em;
-  background: #b6fe3b;
-  box-shadow: 0 0 4px #b6fe3b, 0 0 10px #b6fe3b;
+  background: var(--player-accent, #b6fe3b);
+  box-shadow: 0 0 4px var(--player-accent, #b6fe3b), 0 0 10px var(--player-accent, #b6fe3b);
   vertical-align: text-bottom;
   margin-left: 1px;
 }
