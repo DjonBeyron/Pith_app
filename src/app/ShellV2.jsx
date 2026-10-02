@@ -7,6 +7,7 @@ import GearIcon from '../shared/ui/GearIcon.jsx'
 import BackButton from '../shared/ui/BackButton.jsx'
 import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
+import { useRaceFlame } from '../features/race/useRaceFlame.js'
 import OrientationGuard from '../shared/ui/OrientationGuard.jsx'
 import UpdateToast from './UpdateToast.jsx'
 import { lazyRetry } from '../shared/lib/lazyRetry.js'
@@ -82,6 +83,7 @@ export default function ShellV2() {
   const memoryFresh = useMemoryFresh(tab === 'learn')
   const learnDot = !!(learn.view?.today.picked.length || learn.view?.today.phrase) || memoryFresh
   const learnSleeping = !learnDot && !!learn.view?.sleeping // всё повторено — мозг на вкладке спит
+  const raceFlame = useRaceFlame() // активная супергонка — огонёк над кубком в панели
   // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
   // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
   useEffect(() => onOpenModule(() => setTab('feed')), [])
@@ -141,7 +143,7 @@ export default function ShellV2() {
             <LevelBadge />
             <TicketBadge />
           </div>
-          <div className={tab === 'feed' ? 'hudBarRight hudBarRightFeed' : 'hudBarRight'}>
+          <div className="hudBarRight">
             <EnergyBadge />
           </div>
         </>
@@ -202,7 +204,7 @@ export default function ShellV2() {
       </div>
 
       <MinutesAsk isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} onChanged={learn.reload} />
-      <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} learnSleeping={learnSleeping} isRealAdmin={isRealAdmin} userMode={userMode || newbie} />
+      <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} learnSleeping={learnSleeping} raceFlame={raceFlame} isRealAdmin={isRealAdmin} userMode={userMode || newbie} />
 
       {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}
       {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && !wordCardLesson && (

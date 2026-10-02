@@ -10,11 +10,7 @@ import AdminTeacherTab from './AdminTeacherTab.jsx'
 import AdminDecksTab from './AdminDecksTab.jsx'
 import AdminReviewTab from './AdminReviewTab.jsx'
 import AdminAchievementsTab from './AdminAchievementsTab.jsx'
-import AdminUserModeToggle from './AdminUserModeToggle.jsx'
-import AdminNewbieToggle from './AdminNewbieToggle.jsx'
-import AdminDebugUiToggle from './AdminDebugUiToggle.jsx'
-import AdminAudioWaveformToggle from './AdminAudioWaveformToggle.jsx'
-import AdminWordChoiceVoiceToggle from './AdminWordChoiceVoiceToggle.jsx'
+import AdminToggles from './AdminToggles.jsx'
 import { APP_VERSION } from '../../shared/lib/version.js'
 
 // Админ-раздел новой оболочки: субвкладки «Модули» (список с публикацией),
@@ -24,7 +20,8 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 // «Колоды» (слова без колоды карточек повтора, AdminDecksTab), «Повторение»
 // (временный вход в плеер повторения + своя память слов, AdminReviewTab) и «Достижения» (выдать/снять себе достижение,
 // AdminAchievementsTab). Открытая субвкладка запоминается
-// на устройстве; рядом с «Режимом пользователя» — «Я новенький» (имитация первого входа, newbieSim.js).
+// на устройстве; тумблеры («Режим пользователя», «Я новенький» — имитация первого входа, newbieSim.js, и др.) — в одном
+// сворачиваемом блоке «Переключатели» (AdminToggles).
 // openModule — { id, title, isPro }: просьба снаружи открыть схему этого
 // модуля (возврат «назад» из редактора урока, см. ShellV2). Сбрасывается
 // через onModuleOpened, чтобы повторный заход в админку не открывал её снова
@@ -52,14 +49,8 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
     <div className="avWrap">
       {/* Над субвкладками, а не внутри одной из них: в «режиме пользователя»
           «Режим пользователя» — единственная дверь обратно, искать её по
-          вкладкам не нужно */}
-      <div className="avToggles">
-        <AdminUserModeToggle />
-        <AdminNewbieToggle />
-        <AdminDebugUiToggle />
-        <AdminAudioWaveformToggle />
-        <AdminWordChoiceVoiceToggle />
-      </div>
+          вкладкам не нужно. Все тумблеры — в одном сворачиваемом блоке */}
+      <AdminToggles />
       <div className="avTabs">
         <button className={sub === 'modules' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('modules')}>
           Модули

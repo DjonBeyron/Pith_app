@@ -4,6 +4,7 @@ import {
   fetchMyAchievements, saveCosmetics, claimLevelAchievement,
 } from '../../shared/api/ratingApi.js'
 import { getProfile } from '../../shared/api/profileApi.js'
+import { patchCachedProfile } from '../../shared/api/profileCache.js'
 import { LEVELS } from '../../shared/lib/xpLevels.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
 import { markSeen } from './customizationSeen.js'
@@ -40,7 +41,10 @@ export default function CustomizationScreen({ onBack }) {
 
   async function equip(next) {
     const applied = await saveCosmetics(next)
-    if (applied) setCosmetics(applied)
+    if (applied) {
+      setCosmetics(applied)
+      patchCachedProfile({ cosmetics: applied }) // «Рейтинг» (уже смонтирован) обновит свой ряд заранее — без скачка при заходе
+    }
   }
 
   return (

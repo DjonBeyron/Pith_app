@@ -10,6 +10,28 @@
   margin: calc(14px + env(safe-area-inset-top, 0px)) 16px 0;
 }
 
+/* Один небольшой блок на все тумблеры: свёрнут — только строка «Переключатели ⌄» */
+.avTogglesHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #232932;
+  border-radius: 12px;
+  background: #14171c;
+  color: #e6ebf1;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.avTogglesHead:disabled { cursor: default; }
+.avTogglesChev { width: 16px; height: 16px; color: #8b95a1; transition: transform 0.2s ease; }
+.avTogglesChevOpen { transform: rotate(180deg); }
+.avTogglesBody { display: flex; flex-direction: column; gap: 8px; }
+
 .avToggle {
   display: flex;
   align-items: center;

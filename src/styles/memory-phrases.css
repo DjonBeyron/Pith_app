@@ -1,5 +1,5 @@
-/* Раздел фраз вкладки «Память» (features/learn/MemoryPhrases.jsx): две вкладки — «Мои выученные фразы · N» и
-   «Мои начатые фразы · M», окно со всем списком и карточка фразы. Золото — цвет выученной фразы (как «золотая»
+/* Раздел фраз вкладки «Память» (features/learn/MemoryPhrases.jsx): две вкладки — «Мои выученные фразы» и
+   «Мои начатые фразы» (у каждой — маленький счётчик), окно со всем списком и карточка фразы. Золото — цвет выученной фразы (как «золотая»
    фраза в карте модуля), небесный — прогресс начатой */
 :root { --phrase-gold: #ffd257; }
 .memPhrases { margin-top: 30px; }
@@ -18,14 +18,34 @@
   background: transparent;
   color: #8b95a1;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1.2;
   text-align: center;
   cursor: pointer;
 }
-.memPhrasesTab svg { flex: none; width: 13px; height: 13px; color: var(--phrase-gold); fill: var(--phrase-gold); }
-.memPhrasesTab--on { background: #1d2127; color: #eef1f4; box-shadow: inset 0 0 0 1px #2c323b; }
+/* Цвет вкладки (--pt): выученные — фиолетовый (как постоянная память), начатые — небесный (как первый уровень памяти);
+   активная заливается им тихо. Счётчик — отдельная маленькая плашка, не часть названия */
+.memPhrasesTab--learned { --pt: #a78bfa; }
+.memPhrasesTab--started { --pt: var(--lvl1); }
+.memPhrasesTab--on {
+  background: color-mix(in srgb, var(--pt) 13%, #1d2127);
+  color: #eef1f4;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pt) 50%, transparent);
+}
+.memPhrasesCount {
+  flex: none;
+  min-width: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pt) 18%, transparent);
+  color: var(--pt);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+}
+.memPhrasesTab:not(.memPhrasesTab--on) .memPhrasesCount { opacity: 0.7; }
 .memPhrasesEmpty { margin: 4px 0 0; font-size: 13px; color: #8b95a1; }
 .memPhrasesLead { margin: 0 0 10px; font-size: 12px; font-weight: 600; color: #8b95a1; }
 .memPhrasesList { display: flex; flex-direction: column; gap: 6px; }

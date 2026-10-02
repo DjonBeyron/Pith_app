@@ -82,11 +82,12 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   return (
     <div className="lrRoot">
       <LearnPattern view={view} ladder={ladder} />
-      <div className={bare ? 'lrScreen lrScreen--bare' : 'lrScreen'}>
+      {/* Надпись стоит на месте: под ней и под худом (уровень · билеты · энергия) уезжает всё, что листаем */}
+      {!page && <div className="lrTop"><h1 className="lrTitle">Моя память</h1></div>}
+      <div className={`lrScreen${bare ? ' lrScreen--bare' : ''}${page ? '' : ' lrScreen--titled'}`}>
         {page && ladder && (
           <MemoryLevelPage ladder={ladder} level={page} onLevel={setPage} onWord={openWord} onBack={() => setPage(null)} />
         )}
-        {!page && <h1 className="lrTitle">Моя память</h1>}
         {!view && !error && <p className="lrNote">Загрузка…</p>}
         {error && !view && <p className="lrNote">Не загрузилось. <button className="lrLink" onClick={reload}>Ещё раз</button></p>}
         {view && !page && (

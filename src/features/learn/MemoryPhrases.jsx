@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { Star, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import MemoryPhraseRow from './MemoryPhraseRow.jsx'
 import MemoryStartedRow from './MemoryStartedRow.jsx'
 
 const SHOWN = 3
 
 // Раздел фраз под пятиугольником вкладки «Память» — две вкладки рядом (PROJECT.md → «Решения 2026-10-01 по
-// фразам»): «Мои выученные фразы · N» — коллекция фраз, собранных целиком (три последние строками с номерами
+// фразам»; счётчик — маленькой плашкой в самой вкладке, цвет вкладки: выученные — фиолетовый, начатые — небесный): «Мои выученные фразы · N» — коллекция фраз, собранных целиком (три последние строками с номерами
 // и «Вся коллекция · N» — окно со всем списком; расписания повторов у фраз нет) и «Мои начатые фразы · M» —
 // модули, которые начаты, но пройдены не на 100% (тап — открыть и продолжить, «Все начатые · M» — окно со
 // всем списком). Если фраз нет совсем — раздела нет. Открывается на выученных, а если их нет — на начатых
@@ -18,11 +18,11 @@ export default function MemoryPhrases({ list, started = [], today, onOpen, onAll
   return (
     <section className="memPhrases" aria-label="Мои фразы">
       <div className="memPhrasesTabs" role="tablist">
-        <button role="tab" aria-selected={learned} className={learned ? 'memPhrasesTab memPhrasesTab--on' : 'memPhrasesTab'} onClick={() => setTab('learned')}>
-          <Star aria-hidden="true" /> Мои выученные фразы · {list.length}
+        <button role="tab" aria-selected={learned} className={learned ? 'memPhrasesTab memPhrasesTab--learned memPhrasesTab--on' : 'memPhrasesTab memPhrasesTab--learned'} onClick={() => setTab('learned')}>
+          <span>Мои выученные фразы</span> <b className="memPhrasesCount">{list.length}</b>
         </button>
-        <button role="tab" aria-selected={!learned} className={learned ? 'memPhrasesTab' : 'memPhrasesTab memPhrasesTab--on'} onClick={() => setTab('started')}>
-          Мои начатые фразы · {started.length}
+        <button role="tab" aria-selected={!learned} className={learned ? 'memPhrasesTab memPhrasesTab--started' : 'memPhrasesTab memPhrasesTab--started memPhrasesTab--on'} onClick={() => setTab('started')}>
+          <span>Мои начатые фразы</span> <b className="memPhrasesCount">{started.length}</b>
         </button>
       </div>
       <p className="memPhrasesLead">

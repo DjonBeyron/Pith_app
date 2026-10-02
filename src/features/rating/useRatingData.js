@@ -4,7 +4,7 @@ import {
   saveCosmetics, claimLevelAchievement,
 } from '../../shared/api/ratingApi.js'
 import { getProfile } from '../../shared/api/profileApi.js'
-import { subscribeProfile } from '../../shared/api/profileCache.js'
+import { subscribeProfile, patchCachedProfile } from '../../shared/api/profileCache.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
 
 // Порог достижения «level10» — захардкожен и здесь, и в claim_level_achievement
@@ -80,7 +80,10 @@ export function useRatingData(active = true, visible = true) {
   // Надеть/снять: сервер вернёт то, что реально открыто достижениями
   async function equip(next) {
     const applied = await saveCosmetics(next)
-    if (applied) setCosmetics(applied)
+    if (applied) {
+      setCosmetics(applied)
+      patchCachedProfile({ cosmetics: applied }) // профиль и «Кастомизация» подхватят сразу
+    }
   }
 
   return { rows, myRank, achievements, cosmetics, profile, loading, equip, myId: user?.id ?? null }

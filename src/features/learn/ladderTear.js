@@ -4,10 +4,10 @@
 // результат MemoryLadderWires.jsx.
 // pieces — отрезки ствола (ladderWireSet), pts — точки первого отвода (ladderLinks()[0].pts: [ось шапки, низ шапки],
 // [ось, уровень горизонтали], …). → { pieces, strands: [{ d, w, color }], bolt: { x, y }, sparks: [{ x, y, delay }] }
-export const TEAR_FROM = 20 // от оси шапки влево до конца «висящего» обрывка, px
-export const TEAR_LEN = 38 // длина разрыва, px
-const COPPER = '#e2a76b'
-const FRAY = [[-0.65, 11, -2.5, null], [0.05, 8, 2, COPPER], [0.6, 12, 2.5, COPPER]] // [угол от оси (рад), длина px, изгиб px, цвет (null — цвет линии)]
+export const TEAR_FROM = 16 // от оси шапки влево до конца «висящего» обрывка, px
+export const TEAR_LEN = 64 // длина разрыва, px (на телефоне 38 px читались как «ничего не изменилось» — разрыв и жилки сделаны крупнее)
+const COPPER = '#f0a860'
+const FRAY = [[-0.8, 17, -3, null], [-0.3, 23, -4, COPPER], [0.3, 21, 4, COPPER], [0.8, 15, 3, null]] // [угол от оси (рад), длина px, изгиб px, цвет (null — цвет линии)]
 const SPARKS = [[0.22, -6, 0], [0.78, 5, 0.7]] // [доля разрыва, сдвиг по y, задержка вспышки с]
 const r1 = x => Math.round(x * 10) / 10
 
@@ -34,7 +34,7 @@ export function tearWire(pieces, pts) {
       const ey = y + Math.sin(a) * len
       const cx = x + dir * Math.cos(a / 2) * len * 0.5
       const cy = y + Math.sin(a / 2) * len * 0.5 + bend
-      strands.push({ d: `M ${r1(x)} ${r1(y)} Q ${r1(cx)} ${r1(cy)} ${r1(ex)} ${r1(ey)}`, w: Math.max(0.9, r1(w * 0.55)), color: tint ?? color })
+      strands.push({ d: `M ${r1(x)} ${r1(y)} Q ${r1(cx)} ${r1(cy)} ${r1(ex)} ${r1(ey)}`, w: Math.max(1.2, r1(w * 0.75)), color: tint ?? color })
     }
   }
   const at = t => r1(left + (right - left) * t)

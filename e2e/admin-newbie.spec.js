@@ -17,6 +17,12 @@ test.beforeEach(async ({ page }) => {
 })
 
 const adminTab = page => page.getByRole('button', { name: 'Админ', exact: true })
+// Тумблеры админки лежат в одном свёрнутом блоке «Переключатели» — раскрываем, если свёрнут
+const openToggles = async page => {
+  const head = page.getByRole('button', { name: 'Переключатели' })
+  await head.waitFor({ timeout: 30_000 })
+  if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click()
+}
 
 test('админка помнит открытую вкладку после перезагрузки', async ({ page }) => {
   await page.goto('/')
@@ -41,6 +47,8 @@ test('«Я новенький»: приложение как у нового г�
   // Включаем (страница перезагружается), вкладка админки запомнена
   await adminTab(page).click()
   await page.locator('.avTab', { hasText: 'Повторение' }).click()
+  await expect(page.locator('.avToggle')).toHaveCount(0) // по умолчанию тумблеры свёрнуты в один блок
+  await openToggles(page)
   const toggle = page.locator('.avToggle', { hasText: 'Я новенький' })
   await expect(toggle.locator('input')).not.toBeChecked()
   await Promise.all([page.waitForEvent('load'), toggle.locator('input').click()])
@@ -64,6 +72,7 @@ test('«Я новенький»: приложение как у нового г�
   // Выключаем: вкладка админки на месте, прежняя память вернулась
   await adminTab(page).click()
   await expect(page.locator('.avTab.avTabActive')).toHaveText('Повторение')
+  await openToggles(page)
   const toggleOn = page.locator('.avToggle', { hasText: 'Я новенький' })
   await expect(toggleOn.locator('input')).toBeChecked()
   await Promise.all([page.waitForEvent('load'), toggleOn.locator('input').click()])

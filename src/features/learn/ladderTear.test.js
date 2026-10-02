@@ -36,8 +36,8 @@ describe('tearWire — оборванный кабель в режиме сна'
     expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThanOrEqual(TEAR_LEN - 8)
   })
 
-  it('у каждого конца — три жилки, в разрыве — молния и искры между концами', () => {
-    expect(tear.strands).toHaveLength(6)
+  it('у каждого конца — четыре жилки, в разрыве — молния и искры между концами', () => {
+    expect(tear.strands).toHaveLength(8)
     expect(tear.sparks).toHaveLength(2)
     const removed = pieces.filter(p => !tear.pieces.includes(p))
     const xs = removed.flatMap(p => [p.x1, p.x2])

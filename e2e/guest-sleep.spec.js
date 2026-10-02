@@ -29,7 +29,7 @@ test('всё повторено: «Памяти пора отдыхать» в �
   // Связь от шапки к ступеням оборвана, как порванный кабель: разрыв на стволе, жилки у концов, молния и искры
   await expect(page.locator('.memWires .memTearSpark--bolt')).toHaveCount(1)
   await expect(page.locator('.memWires .memTearSpark:not(.memTearSpark--bolt)')).toHaveCount(2)
-  expect(await page.locator('.memWires svg g path[fill="none"]').count()).toBeGreaterThanOrEqual(6)
+  expect(await page.locator('.memWires svg g path[fill="none"]').count()).toBeGreaterThanOrEqual(8)
   // Спящий мозг: значок, три «Z»; в нижней панели — три мелких «Z» у мозга
   await expect(main.locator('.lrSleep svg')).toBeVisible()
   await expect(main.locator('.lrZ')).toHaveCount(3)
@@ -188,8 +188,8 @@ test('«Мои начатые фразы»: вкладка рядом с выу�
   await page.goto('/?tab=learn')
   const section = page.locator('.memPhrases')
   // Выученных нет, начатая есть — раздел открывается на ней
-  await expect(section.locator('.memPhrasesTab')).toHaveText(['Мои выученные фразы · 0', 'Мои начатые фразы · 1'], { timeout: 30_000 })
-  await expect(section.locator('.memPhrasesTab--on')).toHaveText('Мои начатые фразы · 1')
+  await expect(section.locator('.memPhrasesTab')).toHaveText(['Мои выученные фразы 0', 'Мои начатые фразы 1'], { timeout: 30_000 })
+  await expect(section.locator('.memPhrasesTab--on')).toHaveText('Мои начатые фразы 1')
   const row = section.locator('.memStartedRow')
   await expect(row).toContainText('Keep going')
   await expect(row.locator('.memStartedPct')).toHaveText('50%')

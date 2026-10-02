@@ -20,6 +20,14 @@ export async function refreshProfile() {
   return cached
 }
 
+// Точечная правка кэша без похода в сеть (надел другую косметику): подписчики — например, свой ряд во
+// вкладке «Рейтинг» — обновляются сразу, а не после повторной загрузки, когда уже видно «скачок»
+export function patchCachedProfile(patch) {
+  if (!cached) { refreshProfile(); return } // кэша ещё нет — подтянем целиком (правка уже сохранена на сервере)
+  cached = { ...cached, ...patch }
+  subs.forEach(fn => fn(cached))
+}
+
 export function subscribeProfile(fn) {
   subs.add(fn)
   return () => subs.delete(fn)

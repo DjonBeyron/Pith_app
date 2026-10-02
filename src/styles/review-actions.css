@@ -54,7 +54,7 @@
 
 /* Надпись появляется после ответа и не раньше, чем откинулась плашка (0.45с) —
    то есть когда смахнуть карточку уже можно. Блик — «окно» с яркой копией
-   текста: окно едет слева направо, а текст в нём едет навстречу, поэтому он
+   текста: окно едет справа налево (в сторону смахивания), а текст в нём едет навстречу, поэтому он
    стоит на месте и открывается по кусочку. Двигаются только transform-слои —
    без перерисовки текста; пауза между проходами, чтобы не мельтешило */
 .reviewSwipeHint {
@@ -69,9 +69,23 @@
   touch-action: none; /* подсказку тоже можно смахнуть (useSwipeNext) */
   animation: reviewHintIn 0.7s ease 0.55s backwards;
 }
-/* Стрелка влево — куда смахивать; чуть «подтягивается» влево с паузой (transform, без перерисовки) */
-.reviewSwipeArrow { width: 14px; height: 14px; margin-right: 6px; vertical-align: -3px; animation: reviewArrowNudge 2.2s ease-in-out 1.3s infinite; }
-@keyframes reviewArrowNudge { 0%, 55%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } }
+/* Стрелка влево — куда смахивать. Блик идёт СПРАВА НАЛЕВО (как смахивают): сначала по надписи, а дойдя до её начала —
+   зажигает стрелку: яркая копия (.reviewSwipeArrowLit) проявляется, стрелка чуть пульсирует и подтягивается влево.
+   Всё на одном такте 3,4 с с блеском надписи; только opacity и transform — без перерисовки */
+.reviewSwipeArrowWrap {
+  position: relative;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  vertical-align: -3px;
+  will-change: transform;
+  animation: reviewArrowPulse 3.4s ease-in-out 1.3s infinite;
+}
+.reviewSwipeArrow { display: block; width: 14px; height: 14px; }
+.reviewSwipeArrowLit { position: absolute; inset: 0; color: #f2f5f7; opacity: 0; will-change: opacity; animation: reviewArrowLit 3.4s ease-in-out 1.3s infinite; }
+@keyframes reviewArrowPulse { 0%, 38%, 72%, 100% { transform: translateX(0) scale(1); } 49% { transform: translateX(-4px) scale(1.22); } 60% { transform: translateX(-6px) scale(1.06); } }
+@keyframes reviewArrowLit { 0%, 36%, 74%, 100% { opacity: 0; } 49% { opacity: 1; } }
 .reviewSwipeHintText { position: relative; display: inline-block; white-space: nowrap; }
 .reviewSwipeShine {
   position: absolute;
@@ -94,8 +108,8 @@
   will-change: transform;
   animation: reviewShineText 3.4s ease-in-out 1.3s infinite;
 }
-@keyframes reviewShineWindow { 0% { transform: translateX(-100%); } 45%, 100% { transform: translateX(300%); } }
-@keyframes reviewShineText   { 0% { transform: translateX(34%); }   45%, 100% { transform: translateX(-102%); } }
+@keyframes reviewShineWindow { 0% { transform: translateX(300%); } 45%, 100% { transform: translateX(-100%); } }
+@keyframes reviewShineText   { 0% { transform: translateX(-102%); }   45%, 100% { transform: translateX(34%); } }
 @keyframes reviewHintIn { from { opacity: 0; } }
 
 /* ── «Не могу слушать»: кнопка с подписью → кружок с иконкой ─────────────
@@ -169,7 +183,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .reviewSwipeShine { display: none; }
-  .reviewSwipeArrow { animation: none; }
+  .reviewSwipeArrowWrap, .reviewSwipeArrowLit { animation: none; }
+  .reviewSwipeArrowLit { display: none; }
   .reviewNoAudio, .reviewNoAudioLabel { transition: none; }
   .reviewPop, .reviewPopBack { animation: none; }
 }

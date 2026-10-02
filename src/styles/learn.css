@@ -52,7 +52,24 @@
   pointer-events: none;
 }
 
-.lrTitle { margin: 0 0 14px; line-height: 26px; font-size: 22px; font-weight: 700; color: #e8ecf0; }
+/* Верх вкладки: надпись «Моя память» не уезжает при скролле. Подложка цвета фона (с мягким краем снизу) закрывает и
+   надпись, и худ сверху (уровень · билеты · энергия, они лежат над ней): листаемое уходит под неё, как список
+   «Рейтинга» под шапку. Высота = отступ худа + надпись 26 px + зазор 14 px (.lrScreen--titled) — вёрстка прежняя;
+   касания проходят сквозь (pointer-events), прокрутка не ломается */
+.lrTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  height: calc(var(--v2-tab-top) + 40px);
+  padding: var(--v2-tab-top) 16px 0 22px;
+  background: linear-gradient(to bottom, #0b0d10 0, #0b0d10 calc(100% - 14px), transparent 100%);
+  pointer-events: none;
+}
+.lrScreen--titled { padding-top: calc(var(--v2-tab-top) + 40px); }
+.lrTitle { margin: 0; line-height: 26px; font-size: 22px; font-weight: 700; color: #e8ecf0; }
 .lrNote { color: #8b95a1; }
 .lrLink { background: none; border: none; padding: 0; color: #b6fe3b; font: inherit; cursor: pointer; }
 

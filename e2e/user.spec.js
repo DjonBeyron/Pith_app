@@ -192,6 +192,18 @@ test('верхняя линия вкладок: «Память», «Профил
   for (const tab of [page.locator('.shellV2Tab--pattern')]) await expect(tab).toHaveCount(2) // профиль и рейтинг
 })
 
+// Профиль: подписи «Ежедневные награды» и «Кастомизация профиля» — один шрифт (раньше у кнопки он не наследовался), значок
+// слева у награды светится, пока она не получена; админка: тумблеры спрятаны в один блок
+test('профиль: одинаковые подписи блоков, светящийся значок награды', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  const labels = page.locator('.pvCardLabel')
+  await expect(labels).toHaveCount(2, { timeout: 30_000 })
+  const font = el => el.evaluate(e => { const cs = getComputedStyle(e); return [cs.fontFamily, cs.fontSize, cs.fontWeight].join('|') })
+  expect(await font(labels.nth(0))).toBe(await font(labels.nth(1)))
+  await expect(page.locator('.pvStreakBtn .pvIconGlow--warm')).toHaveCount(1) // награда не получена — значок светится
+})
+
 test('схема модуля: у пройденного урока-слова — сила памяти вместо приоритета', async ({ page }) => {
   // Урок keep пройден на этом устройстве (отметка «пройдено» — локальная)
   await page.addInitScript(() => localStorage.setItem('pithy_completed_v1', JSON.stringify(['e2e0d000-0000-4000-8000-00000000000b'])))

@@ -62,8 +62,8 @@ export default function MemoryLadderWires({ today, sleeping = false }) {
         </g>
         {tear && (
           <>
-            <path className="memTearSpark memTearSpark--bolt" d="M0 -7 L-3.2 1 L-0.4 1 L-1.6 7.5 L3.4 -2 L0.4 -2 Z" transform={`translate(${tear.bolt.x} ${tear.bolt.y})`} />
-            {tear.sparks.map((s, k) => <circle key={`k${k}`} className="memTearSpark" cx={s.x} cy={s.y} r="1.3" style={{ '--d': `${s.delay}s` }} />)}
+            <path className="memTearSpark memTearSpark--bolt" d="M0 -7 L-3.2 1 L-0.4 1 L-1.6 7.5 L3.4 -2 L0.4 -2 Z" transform={`translate(${tear.bolt.x} ${tear.bolt.y}) scale(1.5)`} />
+            {tear.sparks.map((s, k) => <circle key={`k${k}`} className="memTearSpark" cx={s.x} cy={s.y} r="1.9" style={{ '--d': `${s.delay}s` }} />)}
           </>
         )}
       </svg>

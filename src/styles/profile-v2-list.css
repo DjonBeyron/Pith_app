@@ -94,11 +94,24 @@
   display: flex; align-items: center; justify-content: flex-start;
   width: 100%; cursor: pointer; text-align: left;
   border: 1px solid #232932;
+  font: inherit;
 }
-.pvCustomizeLabel {
+/* Подпись карточки-кнопки — одна на «Ежедневные награды» и «Кастомизацию профиля» (раньше шрифты у них расходились: у
+   кнопки он не наследовался, а размер и толщину задавала только кастомизация) */
+.pvCardLabel {
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 14px; font-weight: 700; color: #f2f5f7;
+  font-family: inherit; font-size: 14px; font-weight: 700; line-height: 1.3; color: #f2f5f7;
 }
+.pvCardLabel svg { flex-shrink: 0; }
+
+/* Сохранённые уроки: длинный список листается внутри себя, без полосы прокрутки (страница профиля не вытягивается) */
+.pvSavedList {
+  max-height: min(46vh, 340px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  overscroll-behavior-y: contain;
+}
+.pvSavedList::-webkit-scrollbar { display: none; }
 
 /* Заголовок «Сохранённые уроки» — кнопка свёртки (ProfileSavedTab); сам вид заголовка — .pvSectionTitle в profile-v2.css */
 .pvSectionBtn {

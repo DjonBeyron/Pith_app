@@ -1,4 +1,4 @@
-import { Cog, Video, UserRound, Trophy, Brain } from 'lucide-react'
+import { Cog, Video, UserRound, Trophy, Brain, Flame } from 'lucide-react'
 import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
 import { requestLearnHome } from '../shared/lib/learnHomeEvent.js'
 
@@ -6,11 +6,12 @@ import { requestLearnHome } from '../shared/lib/learnHomeEvent.js'
 // «Память» зовёт, когда есть что повторить сегодня или новое слово из урока
 // (learnDot): иконка залита цветом, светится и мягко пульсирует — без числа,
 // число давило бы долгом (PROJECT.md → «Вкладки»). Когда всё повторено (learnSleeping) — мозг спит:
-// из-за значка выплывают три мелких «Z». Вынесено из ShellV2.jsx
+// из-за значка выплывают три мелких «Z». Активная супергонка (raceFlame) — над кубком «Рейтинга» мерцает
+// огонёк с искрами (nav-race.css). Вынесено из ShellV2.jsx
 
 // Силуэт мозга под контуром иконки Brain (lucide) — заливка «есть что повторить»
 const BRAIN_FILL = 'M12 4.2c-1-1.4-3.6-1.6-5 .1-1.8.1-3.2 1.6-3 3.4-1.6 1-2 3.2-.9 4.7-1 1.6-.4 3.8 1.3 4.6.3 2 2.3 3.3 4.2 2.9 1 1 2.6 1.2 3.4.2.8 1 2.4.8 3.4-.2 1.9.4 3.9-.9 4.2-2.9 1.7-.8 2.3-3 1.3-4.6 1.1-1.5.7-3.7-.9-4.7.2-1.8-1.2-3.3-3-3.4-1.4-1.7-4-1.5-5-.1z'
-export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false, isRealAdmin, userMode }) {
+export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false, raceFlame = false, isRealAdmin, userMode }) {
   const cls = (id, extra = '') => `shellV2NavBtn${tab === id ? ' shellV2NavBtnActive' : ''}${extra}`
   return (
     <nav className="shellV2Nav">
@@ -41,7 +42,12 @@ export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false,
         Профиль
       </button>
       <button className={cls('rating')} onClick={() => setTab('rating')}>
-        <Trophy />
+        {raceFlame ? (
+          <span className="shellV2NavCup">
+            <span className="shellV2NavFlame" aria-hidden="true"><Flame /><i /><i /></span>
+            <Trophy />
+          </span>
+        ) : <Trophy />}
         Рейтинг
       </button>
       {isRealAdmin && (

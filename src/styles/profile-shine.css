@@ -1,4 +1,4 @@
-/* Блеск карточек профиля (.pvShine): «Ежедневные награды» — пока награда не получена (--warm), «Кастомизация профиля» —
+/* Блеск карточек профиля (.pvShine) и свечение значка слева (.pvIconGlow): «Ежедневные награды» — пока награда не получена (--warm), «Кастомизация профиля» —
    пока есть открытая и не просмотренная косметика. Приёмы блока урока в схеме модуля (lessons-chain-textures.css, mgTexShine):
    блик — псевдоэлемент из линейного градиента, ходит ТОЛЬКО transform (композитор, без перерисовки), проход редкий
    (~1,7 с из 14), свой слой (will-change); во время прокрутки — пауза и гашение (useScrollCalm вешает .pvScreen--calm);
@@ -33,3 +33,23 @@
   .pvShine::after { content: none; }
 }
 html.perf-no-textures .pvShine::after { content: none; }
+
+/* Значок слева от подписи светится вместе с блеском карточки: «Ежедневные награды» — тёплый, мягко пульсирует;
+   «Кастомизация профиля» — чуть светится и залит салатовым (без пульса). Анимируется только transform */
+.pvIconGlow svg { will-change: transform; }
+.pvIconGlow--warm svg {
+  color: #ffc460;
+  filter: drop-shadow(0 0 5px rgba(255, 196, 96, 0.75));
+  animation: pvIconPulse 2.6s ease-in-out infinite;
+}
+.pvIconGlow--lime svg {
+  color: #b6fe3b;
+  fill: rgba(182, 254, 59, 0.3);
+  filter: drop-shadow(0 0 3px rgba(182, 254, 59, 0.5));
+}
+@keyframes pvIconPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.14); } }
+.pvScreen--calm .pvIconGlow svg { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .pvIconGlow--warm svg { animation: none; }
+}
+html.perf-no-textures .pvIconGlow--warm svg { animation: none; }

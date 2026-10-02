@@ -81,10 +81,6 @@
   -webkit-transform: translateZ(0);
 }
 
-/* В ленте — сдвинута левее, чтобы значок энергии встал по левому краю
-   вровень с иконкой поиска (feedSearchBtn, feed-search.css) */
-.hudBarRightFeed { right: 20px; }
-
 /* Каждый значок — якорь своего мини-окна (.energyPop) */
 .energyWrap,
 .ticketWrap,

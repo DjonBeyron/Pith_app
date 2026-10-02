@@ -1,0 +1,53 @@
+/* Огонёк над кубком «Рейтинга» в нижней панели, пока есть активная супергонка (ShellNav.jsx, useRaceFlame.js).
+   Тот же приём, что у «Z» спящего мозга (learn-sleep.css): значок в своей обёртке, над ним мерцает огонёк, от него
+   поднимаются две искры и гаснут. Только transform и opacity — композитор, без перерисовки; тень значка — как у
+   остальных значков панели (на самой кнопке фильтр-тень остаётся) */
+.shellV2NavCup { position: relative; display: flex; width: 22px; height: 22px; }
+.shellV2NavFlame {
+  position: absolute;
+  left: 50%;
+  top: -10px;
+  width: 11px;
+  height: 11px;
+  margin-left: -5.5px;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  animation: navFlameFlicker 1.5s ease-in-out infinite;
+}
+.shellV2NavFlame svg {
+  display: block;
+  width: 11px;
+  height: 11px;
+  color: #ffb347;
+  fill: rgba(255, 128, 48, 0.6);
+  filter: drop-shadow(0 0 4px rgba(255, 140, 50, 0.85));
+}
+.shellV2NavFlame i {
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  width: 2px;
+  height: 2px;
+  margin-left: -1px;
+  border-radius: 50%;
+  background: #ffd28a;
+  opacity: 0;
+  animation: navEmber 3s linear infinite;
+}
+.shellV2NavFlame i + i { animation-delay: -1.5s; margin-left: 2px; }
+@keyframes navFlameFlicker {
+  0%, 100% { transform: scale(1, 1) rotate(0deg); opacity: 1; }
+  22% { transform: scale(0.92, 1.12) rotate(-4deg); opacity: 0.9; }
+  48% { transform: scale(1.06, 0.94) rotate(2deg); opacity: 1; }
+  74% { transform: scale(0.95, 1.1) rotate(4deg); opacity: 0.92; }
+}
+@keyframes navEmber {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  15% { opacity: 0.95; }
+  60% { transform: translate3d(2px, -9px, 0); opacity: 0.7; }
+  100% { transform: translate3d(-1px, -15px, 0); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shellV2NavFlame, .shellV2NavFlame i { animation: none; }
+  .shellV2NavFlame i { display: none; }
+}

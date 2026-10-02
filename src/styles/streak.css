@@ -253,6 +253,7 @@
   width: 100%;
   text-align: left;
   cursor: pointer;
+  font: inherit;
 }
 
 .pvStreakBtn .pvStreakVal { color: #ff9d42; font-weight: 800; font-size: 15px; }

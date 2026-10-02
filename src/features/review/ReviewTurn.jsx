@@ -113,7 +113,10 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
                   тех, кто не смахивает). Появляется только после ответа, плавно */}
               <button className="reviewBtn reviewBtn--main reviewNext" onClick={next}>Далее</button>
               <button className="reviewSwipeHint" aria-label="Далее" onClick={next} ref={hintRef}>
-                <ArrowLeft className="reviewSwipeArrow" aria-hidden="true" />
+                <span className="reviewSwipeArrowWrap" aria-hidden="true">
+                  <ArrowLeft className="reviewSwipeArrow" />
+                  <ArrowLeft className="reviewSwipeArrow reviewSwipeArrowLit" />
+                </span>
                 <span className="reviewSwipeHintText">
                   смахни карточку влево
                   <span className="reviewSwipeShine" aria-hidden="true"><span>смахни карточку влево</span></span>

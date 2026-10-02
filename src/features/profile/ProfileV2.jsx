@@ -182,13 +182,13 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, lea
 
       {/* Ежедневный стрик: статус + ручной вход в окно наград */}
       <button className={`pvCard pvStreakBtn${hasUnclaimedStreak(profile) ? ' pvShine pvShine--warm' : ''}`} onClick={() => setShowRewards(true)}>
-        <span className="pvIconLabel"><Sparkles size={16} /> Ежедневные награды</span>
+        <span className={`pvCardLabel${hasUnclaimedStreak(profile) ? ' pvIconGlow pvIconGlow--warm' : ''}`}><Sparkles size={16} /> Ежедневные награды</span>
         <span className="pvStreakVal">{profile?.current_streak ?? 0} {plural(profile?.current_streak ?? 0, 'день', 'дня', 'дней')}</span>
       </button>
 
       {/* Кастомизация профиля: достижения и косметика (подложка/рамка/медаль); блестит, пока есть не просмотренное */}
       <button className={`pvCard pvCustomizeBtn${unseenCustom ? ' pvShine' : ''}`} onClick={() => setShowCustomize(true)}>
-        <span className="pvCustomizeLabel"><Paintbrush size={16} /> Кастомизация профиля</span>
+        <span className={`pvCardLabel${unseenCustom ? ' pvIconGlow pvIconGlow--lime' : ''}`}><Paintbrush size={16} /> Кастомизация профиля</span>
       </button>
 
       <ProfileSavedTab savedModules={saved} loading={loading} onOpenModule={setOpenModule} />
