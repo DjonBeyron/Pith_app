@@ -60,18 +60,6 @@
 .reviewScreen--lvl2 { --rv-c: var(--lvl2); --rv-rgb: 226, 205, 120; }
 .reviewScreen--lvl3 { --rv-c: var(--lvl3); --rv-rgb: 182, 254, 59; }
 
-/* «Помнишь?» в ленте (feed/FeedRemember.jsx) — тот же экран карточки */
-.feedRememberTitle {
-  margin: calc(env(safe-area-inset-top, 0px) + 12px) 0 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: #b6fe3b;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.feedRemember .reviewHead { padding-top: 6px; }
-
 /* ── Шапка: «назад» слева, по центру фраза ── */
 .reviewHead {
   display: flex;

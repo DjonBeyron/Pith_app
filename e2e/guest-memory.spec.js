@@ -128,31 +128,76 @@ test.describe('перенос памяти в аккаунт', () => {
   })
 })
 
-test('«Помнишь?» в ленте: раз в 6–8 видео карточка слова дня, ответ растит память', async ({ page }) => {
+test('лента: слово к повтору дышит после открытия фразы; тап — проверка прямо в переводе; верный ответ растит память', async ({ page }) => {
   test.slow()
   await seedMemory(page)
   await page.goto('/')
-  await expect(page.locator('.feedSlideWrapActive')).toBeVisible({ timeout: 30_000 })
-  const remember = page.getByRole('dialog', { name: 'Помнишь?' })
-  // Листаем клавиатурой (Swiper слушает ↓), пока не выйдет «Помнишь?» — не
-  // раньше 6-го и не позже 8-го видео
-  let swipes = 0
-  while (swipes < 9 && !(await remember.isVisible())) {
-    await page.keyboard.press('ArrowDown')
-    swipes += 1
-    await page.waitForTimeout(700)
-  }
-  await expect(remember).toBeVisible()
-  expect(swipes).toBeGreaterThanOrEqual(6)
-  expect(swipes).toBeLessThanOrEqual(8)
-
-  await remember.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
-  await remember.getByRole('button', { name: 'Далее' }).click()
-  await expect(remember).toHaveCount(0, { timeout: 15_000 })
-  // Исход записан в память гостя: keep окреп до шага 2, повтор — через 3 дня
+  const slide = page.locator('.feedSlideWrapActive')
+  await expect(slide.locator('.feedPhrase')).toContainText('Keep going', { timeout: 30_000 })
+  const keep = slide.locator('.fwWord', { hasText: 'Keep' })
+  // Фраза закрыта — «Тихо»: ничего не дышит; открыли — дышит только keep (срок сегодня), цвет — «Новые» (небесный)
+  await expect(slide.locator('.fwDue')).toHaveCount(0)
+  await slide.locator('.phraseBubbleWrap').click()
+  await expect(slide.locator('.fwDue')).toHaveText('Keep')
+  await expect(keep).toHaveClass(/fwKnown--1/)
+  expect(await keep.evaluate(el => getComputedStyle(el).color)).toBe('rgb(79, 179, 238)')
+  // Тап: та же линия и плашка, но сначала проверка: подпись и три варианта (верный + два чужих)
+  await keep.click()
+  const plate = slide.locator('.wtPlate')
+  await expect(plate.locator('.rcCap')).toHaveText('Закрепить знание')
+  await expect(plate.locator('.rcOpt')).toHaveCount(3)
+  await expect(plate.getByRole('button', { name: 'держать', exact: true })).toBeVisible()
+  // Верно: галочка, перевод, чип слова; исход — в память гостя (keep: шаг 2, повтор через 3 дня)
+  await plate.getByRole('button', { name: 'держать', exact: true }).click()
+  await expect(plate.locator('.rcCheck')).toBeVisible()
+  await expect(plate.locator('.rcRow b')).toHaveText('держать')
+  await expect(plate.locator('.reviewBar')).toContainText('keep')
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('pithy_guest_memory_v1')).keep.step)).toBe(2)
-  // Слово дня отвечено — повторять больше нечего: точки нет
-  await expect(page.locator('.shellV2NavBtnDue')).toHaveCount(0)
+  // Плашка сама уходит (≈3 с), слово больше не дышит; повторять больше нечего — точки на «Памяти» нет
+  await expect(plate).toHaveCount(0, { timeout: 15_000 })
+  await expect(slide.locator('.fwDue')).toHaveCount(0)
+  await expect(page.locator('.shellV2NavBtnDue')).toHaveCount(0, { timeout: 15_000 })
+  // Повторный тап по тому же слову — обычный перевод (без проверки)
+  await keep.click()
+  await expect(slide.locator('.wtPlate')).toHaveText('держать')
+  await expect(slide.locator('.rcCap')).toHaveCount(0)
+})
+
+test('лента: ошибка в проверке слова — без галочки, «вернёмся завтра», шаг не растёт', async ({ page }) => {
+  test.slow()
+  await seedMemory(page)
+  await page.goto('/')
+  const slide = page.locator('.feedSlideWrapActive')
+  await expect(slide.locator('.feedPhrase')).toContainText('Keep going', { timeout: 30_000 })
+  await slide.locator('.phraseBubbleWrap').click()
+  await slide.locator('.fwWord', { hasText: 'Keep' }).click()
+  const plate = slide.locator('.wtPlate')
+  await expect(plate.locator('.rcOpt')).toHaveCount(3)
+  // Любой чужой вариант
+  await plate.locator('.rcOpt:not(:text-is("держать"))').first().click()
+  await expect(plate.locator('.rcNoteBad')).toContainText('вернёмся')
+  await expect(plate.locator('.rcCheck')).toHaveCount(0)
+  // again: шаг не ниже 1, слово вернётся завтра, ошибка записана
+  await expect.poll(() => page.evaluate(() => {
+    const k = JSON.parse(localStorage.getItem('pithy_guest_memory_v1')).keep
+    return `${k.step}/${k.lapses}`
+  })).toBe('1/1')
+  await expect(plate).toHaveCount(0, { timeout: 15_000 })
+})
+
+test('лента: тап мимо закрывает проверку без штрафа — память не меняется', async ({ page }) => {
+  await seedMemory(page)
+  await page.goto('/')
+  const slide = page.locator('.feedSlideWrapActive')
+  await expect(slide.locator('.feedPhrase')).toContainText('Keep going', { timeout: 30_000 })
+  await slide.locator('.phraseBubbleWrap').click()
+  await slide.locator('.fwWord', { hasText: 'Keep' }).click()
+  await expect(slide.locator('.rcCap')).toBeVisible()
+  await page.mouse.click(8, 300) // мимо слова и плашки
+  await expect(slide.locator('.wtPlate')).toHaveCount(0)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pithy_guest_memory_v1')).keep)).toMatchObject({ step: 1, reviews: 0, lapses: 0 })
+  // Слово всё ещё дышит — спросим, когда захочется
+  await expect(slide.locator('.fwDue')).toHaveText('Keep')
 })
 
 test('закрепление фразы: все слова окрепли → собери фразу целиком', async ({ page }) => {

@@ -1,5 +1,6 @@
 import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { KNOW_STEP } from '../learn/learnView.js'
+import { levelOf } from '../learn/memoryLadder.js'
 
 // Лента и память слов (этап 6 системы повторения, PROJECT.md → «Лента»):
 // что во фразе знакомо, подсветка слов и порядок рекомендаций. Чистые функции:
@@ -22,8 +23,17 @@ export function phraseInfo(words, stepOf) {
   }
 }
 
-// Шаг памяти слова фразы (для подсветки цветом силы) или null
+// Шаг памяти слова фразы или null
 export const tokenStep = (text, stepOf) => stepOf?.get(wordKey(text)) ?? null
+
+// Ступень цвета слова фразы — как во вкладке «Память»: 1 небесный, 2 жёлтый, 3 салатовый, 'P' —
+// постоянная память (фиолетовый); слова нет в памяти — null (остаётся белым, серого нет)
+export function tokenLevel(text, stepOf, settledOf = null) {
+  const key = wordKey(text)
+  const step = key ? stepOf?.get(key) : null
+  if (!step) return null
+  return settledOf?.has(key) ? 'P' : levelOf(step)
+}
 
 // Детерминированный генератор: порядок ленты не прыгает в течение дня
 function seeded(seed) {

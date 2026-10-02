@@ -3,6 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 // Длительность исчезновения подсказки (см. .wtLayerClosing в
 // feed-word-translate.css) — столько живёт слой после закрытия
 const CLOSE_MS = 130
+// Мягкий уход результата повторения (.wtLayerSoft в feed-recall.css): линия сворачивается к слову,
+// плашка гаснет
+const SOFT_MS = 400
 
 // Состояние пословного перевода в слайде ленты: какое слово открыто, где оно
 // лежит внутри слайда и каким переводом подписано.
@@ -13,8 +16,11 @@ const CLOSE_MS = 130
 //
 // hostRef — сам слайд (.feedSlide): координаты слова считаем относительно
 // него, потому что слой перевода лежит внутри слайда.
+// extra в pickWord — доп. поля подсказки; recall — проверка слова к повтору (useSlideRecall):
+// patch(id, fn) правит её по ходу, softClose(id) убирает мягко. Правки и уход касаются только
+// той подсказки, чей id передан: пока шёл ответ сервера, пользователь мог открыть другое слово
 export function useWordTranslate(hostRef) {
-  const [pick, setPick] = useState(null) // { index, text, x, y, hostW, id, closing }
+  const [pick, setPick] = useState(null) // { index, text, x, y, hostW, id, closing, soft, recall }
   const pickRef = useRef(null)
   const timerRef = useRef(null)
   const seqRef = useRef(0)
@@ -22,12 +28,17 @@ export function useWordTranslate(hostRef) {
   useEffect(() => { pickRef.current = pick }, [pick])
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
-  const close = useCallback(() => {
+  const closeWith = useCallback((ms, soft, id = null) => {
     const cur = pickRef.current
-    if (!cur || cur.closing) return
+    if (!cur || cur.closing || (id !== null && cur.id !== id)) return
     clearTimeout(timerRef.current)
-    setPick({ ...cur, closing: true })
-    timerRef.current = setTimeout(() => setPick(null), CLOSE_MS)
+    setPick({ ...cur, closing: true, soft })
+    timerRef.current = setTimeout(() => setPick(null), ms)
+  }, [])
+  const close = useCallback(() => closeWith(CLOSE_MS, false), [closeWith])
+  const softClose = useCallback(id => closeWith(SOFT_MS, true, id), [closeWith])
+  const patch = useCallback((id, fn) => {
+    setPick(p => (p && p.id === id && !p.closing ? { ...p, ...fn(p) } : p))
   }, [])
 
   // Тап куда угодно мимо слова и мимо самой подложки закрывает подсказку — и
@@ -66,7 +77,7 @@ export function useWordTranslate(hostRef) {
     }
   }, [close])
 
-  const pickWord = useCallback((index, text, el) => {
+  const pickWord = useCallback((index, text, el, extra = null) => {
     const cur = pickRef.current
     if (cur && cur.index === index && !cur.closing) { close(); return }
     const host = hostRef.current
@@ -89,8 +100,9 @@ export function useWordTranslate(hostRef) {
       y: wr.top - hr.top,
       blockTop: br.top - hr.top,
       hostW: hr.width,
+      ...extra,
     })
   }, [hostRef, close])
 
-  return { pick, pickWord, close }
+  return { pick, pickWord, close, softClose, patch }
 }

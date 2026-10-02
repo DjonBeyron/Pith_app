@@ -163,9 +163,12 @@ insert into public.lessons (id, title, published, sort_order, script) values
 ('e2e0d000-0000-4000-8000-00000000000d', 'Финал', true, 3, '{"nodes": []}')
 on conflict (id) do nothing;
 
-insert into public.curricula (id, title, published, lesson_ids) values
+-- word_translations — пословный перевод названия (в ленте тап по слову открывает перевод; слово keep со
+-- сроком «сегодня» — повторение внутри перевода, e2e/guest-memory.spec.js; чужие варианты — из соседних слов)
+insert into public.curricula (id, title, published, lesson_ids, word_translations) values
 ('e2e0d000-0000-4000-8000-0000000000ff', 'Keep going · E2E-ОБУЧЕНИЕ', true,
- '["e2e0d000-0000-4000-8000-00000000000a", "e2e0d000-0000-4000-8000-00000000000b", "e2e0d000-0000-4000-8000-00000000000c", "e2e0d000-0000-4000-8000-00000000000d"]')
+ '["e2e0d000-0000-4000-8000-00000000000a", "e2e0d000-0000-4000-8000-00000000000b", "e2e0d000-0000-4000-8000-00000000000c", "e2e0d000-0000-4000-8000-00000000000d"]',
+ '[{"w": "Keep", "t": "держать"}, {"w": "going", "t": "идти"}, {"w": "E2E", "t": "сквозной"}, {"w": "ОБУЧЕНИЕ", "t": "обучение"}]')
 on conflict (id) do nothing;
 
 insert into public.word_memory (user_id, word, step, due_on)

@@ -7,6 +7,7 @@ import PhraseWords from './PhraseWords.jsx'
 import PhraseTranslationRow from './PhraseTranslationRow.jsx'
 import WordTranslateLine from './WordTranslateLine.jsx'
 import { useWordTranslate } from './useWordTranslate.js'
+import { useSlideRecall } from './useSlideRecall.js'
 import FeedHud from './FeedHud.jsx'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером, HUD
@@ -19,7 +20,9 @@ export default function FeedSlide({
   difficulty, myDifficulty, onVoteDifficulty,
   soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
   showSlowHint = false, onSlowHintSeen,
-  knowledge = null, // { stepOf } — шаги памяти слов для подсветки (feedKnowledge.js)
+  knowledge = null, // { stepOf, settledOf } — память слов: цвет слов по ступеням (feedKnowledge.js)
+  recall = null,    // повторение слов фразы (useFeedRecall): что к повтору, запас вариантов, лимиты
+  onLearnChanged,   // ответ на проверку слова изменил память — лента обновит данные «Моего обучения»
 }) {
   // Строка «раскрыть перевод» спрятана за фразой и выкатывается из-под неё с
   // небольшой задержкой после тапа — не одновременно с разлётом шариков, а
@@ -30,15 +33,18 @@ export default function FeedSlide({
   const [trOpen, setTrOpen] = useState(false)
   const subTimer = useRef(null)
   useEffect(() => () => clearTimeout(subTimer.current), [])
-  function unlockSub() {
-    setRevealed(true)
-    subTimer.current = setTimeout(() => setSubOpen(true), 320)
-  }
-
   // Пословный перевод названия: тап по слову — линия с подложкой (см.
   // WordTranslateLine). Координаты считаются относительно самого слайда
   const rootRef = useRef(null)
-  const { pick, pickWord, close } = useWordTranslate(rootRef)
+  const wordTr = useWordTranslate(rootRef)
+  const { pick, close } = wordTr
+  // Слово фразы со сроком «сегодня»: дышит, по тапу — проверка вместо перевода (useSlideRecall)
+  const rc = useSlideRecall({ recall, mod, active, knowledge, wp: wordTr, onChanged: onLearnChanged })
+  function unlockSub() {
+    setRevealed(true)
+    rc.onReveal()
+    subTimer.current = setTimeout(() => setSubOpen(true), 320)
+  }
   // Ушли с этого слайда свайпом — подсказку убираем. Отдельно закрываем её и
   // при подмене модуля в той же копии слайда (лента крутится по кругу и
   // переиспользует смонтированные слайды — иначе остался бы чужой перевод)
@@ -75,10 +81,12 @@ export default function FeedSlide({
               <PhraseWords
                 title={mod.title}
                 entries={mod.wordTranslations}
-                activeIndex={pick && !pick.closing ? pick.index : -1}
+                activeIndex={pick && !(pick.closing && !pick.soft) ? pick.index : -1}
                 enabled={revealed}
-                onPick={pickWord}
-                stepOf={knowledge?.stepOf}
+                onPick={rc.onPick}
+                levelOf={rc.levelOf}
+                lureIndex={rc.lureIndex}
+                tint={rc.tint}
               />
             </div>
           </PhraseBubbleSpoiler>
@@ -94,7 +102,7 @@ export default function FeedSlide({
         </div>
       </div>
 
-      {pick && <WordTranslateLine key={pick.id} pick={pick} onClose={close} />}
+      {pick && <WordTranslateLine key={pick.id} pick={pick} onClose={close} onAnswer={rc.answer} />}
 
       <FeedHud
         module={mod}

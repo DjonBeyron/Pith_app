@@ -130,7 +130,7 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
       rafRef.current = requestAnimationFrame(frame)
       skip ^= 1
       if (skip) return
-      const dt = Math.min(48, now - last)
+      const dt = Math.max(0, Math.min(48, now - last))
       last = now
       draw(dt)
     }
@@ -184,7 +184,9 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
 
     let last = performance.now()
     function frame(now) {
-      const dt = Math.min(32, now - last)
+      // Время кадра rAF бывает чуть раньше performance.now() из эффекта — dt < 0 давал NaN в альфе
+      // шарика и «Cannot read properties of undefined (reading 'push')» в drawExplode
+      const dt = Math.max(0, Math.min(32, now - last))
       last = now
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, w, h)

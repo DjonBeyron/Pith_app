@@ -1,0 +1,102 @@
+/* Повторение слова в переводе по словам в ленте (features/feed: useSlideRecall, RecallPlate,
+   feedRecall.js; макет frazy-pomnish.html). Цвет линии, плашки и залитого слова — ступень памяти
+   слова, переменная --wt-c (приходит из WordTranslateLine / PhraseWords).
+   Анимируются только transform и opacity */
+
+/* «Тихо»: слово со сроком «сегодня» мягко дышит — полоска под ним цвета ступени, дальше ничего
+   в кадре. Дыхание — прозрачность псевдоэлемента (композитор, без перерисовки) */
+.fwDue { position: relative; }
+.fwDue::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--fw-c, #fff);
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--fw-c, #fff) 55%, transparent);
+  opacity: 0.2;
+  pointer-events: none;
+  animation: fwDueBreath 1.8s ease-in-out infinite;
+}
+@keyframes fwDueBreath { 50% { opacity: 1; } }
+.fwWordOn.fwDue::after { display: none; }
+
+/* Открытое слово повторения заливается цветом ступени (вместо лайма обычного перевода) */
+.fwWordOn.fwTint {
+  background: var(--wt-c);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wt-c) 55%, transparent), 0 6px 18px color-mix(in srgb, var(--wt-c) 35%, transparent);
+}
+
+/* Плашка повторения: тёмная, цветная нижняя черта — линия связи продолжается под ней */
+.wtPlateRc {
+  min-width: 190px;
+  padding: 7px 10px 8px;
+  background: rgba(10, 12, 14, 0.96);
+  color: #fff;
+  text-align: left;
+  cursor: default;
+}
+.rcCap {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--wt-c);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.rcOpts { display: flex; flex-wrap: wrap; gap: 6px; }
+.rcOpt {
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rcOpt:active { background: rgba(255, 255, 255, 0.14); }
+
+/* Результат: галочка, перевод, пометка справа */
+.rcRow { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.rcCheck {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #b6fe3b;
+  color: #12180a;
+}
+.rcCheck svg { width: 11px; height: 11px; }
+.rcCheckSoft { background: #9aa3ad; }
+.rcNote { margin-left: auto; color: #9aa3ad; font-size: 10.5px; font-weight: 700; line-height: 1.25; text-align: right; }
+.rcNoteBad { color: #f0b35a; }
+/* Чип слова — тот же .memChip / .reviewBar, что в итоге повторения, но по размеру плашки */
+.wtPlateRc .reviewBar { padding: 5px 9px; border-radius: 7px; font-size: 12.5px; }
+
+/* Мягкий уход результата: линия сворачивается к слову, плашка гаснет (слой не тускнеет целиком) */
+.wtLayerSoft .wtPath,
+.wtLayerSoft .wtPathGlow { animation: wtUndraw 380ms ease-in forwards; }
+.wtLayerSoft .wtPathGlow { opacity: 0; transition: opacity 300ms ease; }
+.wtLayerSoft .wtPlate { animation: wtPlateOut 280ms ease-in forwards; }
+@keyframes wtUndraw { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 1; } }
+@keyframes wtPlateOut {
+  from { opacity: 1; transform: translate(-50%, -100%); }
+  to   { opacity: 0; transform: translate(-50%, -78%); }
+}
+
+/* Дыхание не крутится там, где его никто не видит (как блик загрузки, feed-media.css) */
+.feedViewHidden .fwDue::after,
+.shellV2TabHidden .fwDue::after,
+.feedV2--paused .fwDue::after { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fwDue::after { animation: none; opacity: 0.75; }
+  .wtLayerSoft .wtPath, .wtLayerSoft .wtPathGlow, .wtLayerSoft .wtPlate { animation: none; opacity: 0; }
+}

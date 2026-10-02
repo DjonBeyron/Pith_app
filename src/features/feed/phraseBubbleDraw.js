@@ -182,13 +182,13 @@ export function drawExplode(ctx, bubbles, dt, w, h) {
     b.vy = b.vy * decay + 0.01 * dt
     b.ax += b.vx * dt * 0.06
     b.ay += b.vy * dt * 0.06
-    const timeAlpha = Math.max(0, 1 - (b.t / EXPLODE_MS) ** 1.5)
+    const timeAlpha = Math.max(0, 1 - (Math.max(0, b.t) / EXPLODE_MS) ** 1.5)
     // Доп. затухание по расстоянию до новой (увеличенной) границы холста —
     // гарантирует, что альфа уйдёт в 0 раньше, чем шарик долетит до края
     const distToEdge = Math.min(b.ax, w - b.ax, b.ay, h - b.ay)
     const edgeAlpha = Math.max(0, Math.min(1, distToEdge / EXPLODE_FADE_ZONE))
     const alpha = timeAlpha * edgeAlpha
-    if (alpha <= 0.01) continue
+    if (!(alpha > 0.01)) continue // и NaN: бакета под него нет
     buckets[Math.round(alpha * ALPHA_BINS)].push(b)
   }
   ctx.fillStyle = BUBBLE_COLOR

@@ -24,8 +24,7 @@ import { moduleOf } from './feedCircle.js'
 import { onLessonsHome } from '../../shared/lib/lessonsHomeEvent.js'
 import { onOpenModule } from '../../shared/lib/openModuleEvent.js'
 import { useFeedKnowledge } from './useFeedKnowledge.js'
-import { useFeedRemember } from './useFeedRemember.js'
-import FeedRemember from './FeedRemember.jsx'
+import { useFeedRecall } from './useFeedRecall.js'
 import FeedEmptyState from './FeedEmptyState.jsx'
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
@@ -33,7 +32,8 @@ import FeedEmptyState from './FeedEmptyState.jsx'
 // незаметно переносится в середину (контент идентичен — скачка не видно).
 // learnView — данные «Моего обучения»: по памяти слов лента подсвечивает
 // знакомое, ставит метки и выбирает порядок рекомендаций (feedKnowledge.js),
-// раз в 6–8 видео — «Помнишь?» (useFeedRemember); onLearnChanged — после ответа
+// слово фразы со сроком «сегодня» дышит и по тапу проверяется прямо в переводе по словам
+// (useFeedRecall); onLearnChanged — после ответа
 export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, learnView = null, onLearnChanged }) {
   const [view, setView] = useState('feed') // feed | mine
   // Открытый модуль (схема Старт → уроки → Финал) поверх ленты
@@ -63,8 +63,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   // Просьба открыть модуль извне (мостик из итога повторения) — openModuleEvent.js
   useEffect(() => onOpenModule(m => { if (m?.id) setOpenModule(m) }), [])
   const { rank, knowledgeOf } = useFeedKnowledge(learnView)
-  const remember = useFeedRemember(learnView)
   const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds, visible, rank)
+  const recall = useFeedRecall(learnView, modules)
   // Уроки-закладки грузятся здесь же, рядом с модулями, а не при открытии
   // «Моих уроков»: иначе их запрос стартовал на секунды позже и строка
   // появлялась после модулей (особенно заметно на телефоне)
@@ -89,9 +89,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   const len = feedModules.length
 
   // Лента реально на экране: вкладка оболочки открыта И выбраны «Рекомендации»
-  // и поверх нет «Помнишь?». Скрытой ленте FeedSwiper выключает жесты, колесо
+  // Скрытой ленте FeedSwiper выключает жесты, колесо
   // и клавиатуру, видео встаёт на паузу
-  const feedActive = visible && view === 'feed' && !remember.offer
+  const feedActive = visible && view === 'feed'
   // Индекс активного слайда круга. Живёт здесь, а не в FeedSwiper: экран
   // модуля («Изучить фразу») размонтирует ленту, и по возвращении она должна
   // встать туда же, где была, а не на начало круга
@@ -156,6 +156,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
         onToggleSave={() => toggle(m.id, 'saved')}
         onLearn={() => { track('feed_learn', { module_id: m.id }); setOpenModule(m) }}
         knowledge={knowledgeOf(m)}
+        recall={recall}
+        onLearnChanged={onLearnChanged}
       />
     )
   }
@@ -213,16 +215,12 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
             pinnedId={pinnedId}
             active={feedActive}
             activeIdx={activeIdx}
-            onActiveIdx={idx => { setActiveIdx(idx); remember.onSlide(feedModules[moduleOf(idx, len)]?.id) }}
+            onActiveIdx={idx => { setActiveIdx(idx); recall.onSlide(feedModules[moduleOf(idx, len)]?.id) }}
             renderSlide={renderSlide}
           />
         )}
       </div>
 
-      {remember.offer && (
-        <FeedRemember word={remember.offer} onClose={remember.close}
-          onDone={() => { remember.close(); onLearnChanged?.() }} />
-      )}
       {showDebug && <DebugPanel getFeedInfo={feedInfo} onClose={() => setShowDebug(false)} />}
       {showSearch && (
         <FeedSearchPanel

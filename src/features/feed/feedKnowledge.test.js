@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { moduleWords, phraseInfo, tokenStep, rankFeed, daySeed } from './feedKnowledge.js'
+import { moduleWords, phraseInfo, tokenStep, tokenLevel, rankFeed, daySeed } from './feedKnowledge.js'
 
 const lessonWord = new Map([
   ['to', 'to'], ['try', 'trying'], ['cook', 'cook'], ['keep', 'keep'], ['go', 'going'], ['a', 'apple'], ['b', 'banana'],
@@ -18,6 +18,15 @@ describe('знание фразы', () => {
     expect(tokenStep('Trying', stepOf)).toBe(3)
     expect(tokenStep('xyz', stepOf)).toBe(null)
     expect(tokenStep('to', null)).toBe(null)
+  })
+
+  it('цвет слова — ступень памяти: 1–2 небесный, 3–4 жёлтый, 5 салатовый, постоянная — P; нет в памяти — без цвета', () => {
+    const steps = new Map([['a', 1], ['b', 2], ['c', 3], ['d', 4], ['e', 5], ['f', 5]])
+    const settled = new Set(['f'])
+    expect(['a', 'b', 'c', 'd', 'e', 'f'].map(w => tokenLevel(w, steps, settled))).toEqual([1, 1, 2, 2, 3, 'P'])
+    expect(tokenLevel('Trying', steps)).toBe(null)
+    expect(tokenLevel('A', steps)).toBe(1)
+    expect(tokenLevel('a', null)).toBe(null)
   })
 })
 

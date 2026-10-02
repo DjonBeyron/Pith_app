@@ -1,3 +1,6 @@
+import RecallPlate from './RecallPlate.jsx'
+import { recallColor } from './feedRecall.js'
+
 // Линия перевода слова: изгибающаяся кривая от середины слова до середины
 // нижней грани подложки с переводом — та же кубическая безье, что связывает
 // ноды в редакторе канваса (см. neuronPath в CanvasConnections.jsx), только
@@ -24,8 +27,12 @@ function neuronPath(x1, y1, x2, y2) {
   return `M ${x1} ${y1} C ${x1 + dx * 0.3} ${y1 - v}, ${x2 - dx * 0.3} ${y2 + v}, ${x2} ${y2}`
 }
 
-export default function WordTranslateLine({ pick, onClose }) {
-  const { x, y, text, hostW, blockTop, closing } = pick
+// Слово к повтору (pick.recall): та же линия, но цвета ступени слова, а на плашке — проверка
+// «Закрепить знание» и затем результат (RecallPlate); onAnswer — ответ на проверку
+export default function WordTranslateLine({ pick, onClose, onAnswer }) {
+  const { x, y, text, hostW, blockTop, closing, soft, recall } = pick
+  const color = recallColor(recall)
+  const quiz = recall?.phase === 'quiz'
   const cx = hostW / 2
   const startY = y                       // линия стартует вплотную к подложке слова
   // Уровень низа подложки общий для всех слов фразы; если слово оказалось
@@ -35,7 +42,9 @@ export default function WordTranslateLine({ pick, onClose }) {
   const d = neuronPath(x, startY, cx, railY)
 
   return (
-    <div className={closing ? 'wtLayer wtLayerClosing' : 'wtLayer'}>
+    <div
+      className={closing ? (soft ? 'wtLayer wtLayerSoft' : 'wtLayer wtLayerClosing') : 'wtLayer'}
+      style={color ? { '--wt-c': color } : undefined}>
       <svg className="wtSvg" width={hostW} height={Math.max(1, startY + LW)}>
         {/* Широкий полупрозрачный дубль — мягкое свечение вокруг линии,
             как у связей в канвасе */}
@@ -43,10 +52,10 @@ export default function WordTranslateLine({ pick, onClose }) {
         <path className="wtPath" d={d} pathLength="1" />
       </svg>
       <div
-        className="wtPlate"
+        className={recall ? 'wtPlate wtPlateRc' : 'wtPlate'}
         style={{ top: `${railY + LW / 2}px` }}
-        onClick={e => { e.stopPropagation(); onClose() }}>
-        {text}
+        onClick={e => { e.stopPropagation(); if (!quiz) onClose() }}>
+        {recall ? <RecallPlate r={recall} translation={text} onAnswer={onAnswer} /> : text}
       </div>
     </div>
   )

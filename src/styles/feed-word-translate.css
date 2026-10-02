@@ -51,13 +51,13 @@
   left: 0;
   top: 0;
   overflow: visible;
-  filter: drop-shadow(0 0 5px rgba(182, 254, 59, 0.35));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--wt-c, #b6fe3b) 35%, transparent));
 }
 
 .wtPath,
 .wtPathGlow {
   fill: none;
-  stroke: #b6fe3b;
+  stroke: var(--wt-c, #b6fe3b);
   stroke-linecap: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -86,7 +86,7 @@
   padding: 6px 12px;
   border-radius: 10px 10px 3px 3px;
   background: rgba(10, 14, 4, 0.96);
-  border-bottom: 1.5px solid #b6fe3b;
+  border-bottom: 1.5px solid var(--wt-c, #b6fe3b);
   color: #eaffc4;
   font-size: 14px;
   font-weight: 700;

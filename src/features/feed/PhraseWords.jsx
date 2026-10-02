@@ -1,5 +1,4 @@
 import { splitTitleTokens, wordTranslation } from '../../shared/lib/titleWords.js'
-import { tokenStep } from './feedKnowledge.js'
 
 // Название модуля в ленте, разбитое на слова: слово, у которого есть перевод,
 // кликабельно (тап → линия с переводом, см. WordTranslateLine). Знаки
@@ -9,23 +8,28 @@ import { tokenStep } from './feedKnowledge.js'
 // .fwWord при этом стоят на месте с самого начала (меняется только
 // обработчик) — иначе их отступы меняли бы ширину фразы в момент раскрытия,
 // а ResizeObserver спойлера принимал бы это за ресайз и обрывал вспышку.
-// stepOf — память слов: знакомое слово окрашено цветом своей силы
-// (.fwKnown--1…5, только цвет — ширина фразы не меняется)
-export default function PhraseWords({ title, entries, activeIndex, enabled, onPick, stepOf = null }) {
+// levelOf(текст слова) — память слов: знакомое слово окрашено цветом своей ступени, как во
+// вкладке «Память» (.fwKnown--1|2|3|P, только цвет — ширина фразы не меняется); нет — белое.
+// lureIndex — слово со сроком «сегодня»: мягко «дышит» (.fwDue) и по тапу открывает проверку.
+// tint — цвет плашки повторения: открытое слово заливается им вместо лайма
+export default function PhraseWords({ title, entries, activeIndex, enabled, onPick, levelOf = null, lureIndex = -1, tint = null }) {
   const tokens = splitTitleTokens(title)
   return (
     <>
       {tokens.map((t, i) => {
         const tr = t.word ? wordTranslation(entries, t.text, t.index) : ''
-        const step = t.word ? tokenStep(t.text, stepOf) : null
-        const known = step ? ` fwKnown fwKnown--${step}` : ''
+        const level = t.word && levelOf ? levelOf(t.text) : null
+        const known = level ? ` fwKnown fwKnown--${level}` : ''
         if (!t.word || !tr) return <span key={i} className={known.trim() || undefined}>{t.text}</span>
+        const on = t.index === activeIndex
+        const lure = t.index === lureIndex
         return (
           <span
             key={i}
-            className={(t.index === activeIndex ? 'fwWord fwWordOn' : 'fwWord') + known}
+            className={(on ? 'fwWord fwWordOn' : 'fwWord') + known + (lure ? ' fwDue' : '') + (on && tint ? ' fwTint' : '')}
+            style={on && tint ? { '--wt-c': tint } : undefined}
             onClick={enabled
-              ? e => { e.stopPropagation(); onPick(t.index, tr, e.currentTarget) }
+              ? e => { e.stopPropagation(); onPick(t.index, tr, e.currentTarget, lure) }
               : undefined}
           >
             {t.text}

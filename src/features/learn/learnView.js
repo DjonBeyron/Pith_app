@@ -26,7 +26,9 @@ import { buildPhraseList, buildStartedPhrases } from './phraseList.js'
 //   vacation — «Отпуск» ({ since } | null): расписание на паузе, сегодня
 //             ничего не предлагается (и точки на вкладке нет);
 //   stepOf, lessonWord — Map слово → шаг и урок → слово: лента подсвечивает
-//             знакомые слова и ранжирует фразы (features/feed/feedKnowledge.js).
+//             знакомые слова и ранжирует фразы (features/feed/feedKnowledge.js);
+//   dueOf, settledOf — Map слово → срок (due_on) и Set слов постоянной памяти: лента красит
+//             слова цветом ступени и выбирает слово для повторения (feedRecall.js).
 export const KNOW_STEP = 3
 
 // data: { memory: word_memory[], curricula: [{ id, title, lesson_ids }],
@@ -97,6 +99,8 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
     sleeping: !vacationSince && memory.length > 0 && !picked.length && !ready,
     minutes,
     stepOf: new Map(memory.map(m => [m.word, m.step])),
+    dueOf: new Map(memory.map(m => [m.word, m.due_on])),
+    settledOf: new Set(memory.filter(m => m.settled_on).map(m => m.word)),
     lessonWord: new Map(lessons.map(l => [l.id, wordKey(l.title)]).filter(([, w]) => w)),
     vacation: vacationSince ? { since: vacationSince } : null,
     inMemory: memory.length,
