@@ -1,0 +1,23 @@
+/* Закрытие окошек худа (уровень · билеты · энергия; ShellV2 → hudBar, useHudPopupExit в hudPopupState.js) — обратная
+   анимация к появлению, та же, что у окошка счётчика памяти (memory-count.css, .memCountPop--out): окошко схлопывается в
+   свой угол, а в такт с масштабом поверх текста проступает заливка цветом фона окошка (::after). Обе анимации стартуют
+   вместе, с одной длительностью и кривой: заливка = 1 − масштаб, поэтому текст закрывается по мере сжатия.
+   Окошки слева (уровень, билеты) растут и схлопываются от левого угла — от своего бейджа, справа (энергия) — от правого */
+.hudBarLeft .energyPop { transform-origin: top left; }
+
+.energyPop--out { animation: hudPopOut 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards; }
+.energyPop--out::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 13px;
+  background: #14171c;
+  opacity: 0;
+  animation: hudPopFlood 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards;
+}
+@keyframes hudPopOut { to { transform: scale(0); } }
+@keyframes hudPopFlood { to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .energyPop--out, .energyPop--out::after { animation: none; }
+}

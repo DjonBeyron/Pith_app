@@ -5,7 +5,7 @@ import { useAuth } from '../shared/lib/useAuth.js'
 import { calcEnergy, ENERGY_CAP, ENERGY_TICK_MS } from '../shared/lib/energyCalc.js'
 import { energyColor } from '../shared/lib/energyColors.js'
 import EnergyCells from '../shared/ui/EnergyCells.jsx'
-import { isHudPopupOpen, toggleHudPopup, subscribeHudPopup, useHudOutsideDismiss } from './hudPopupState.js'
+import { isHudPopupOpen, toggleHudPopup, subscribeHudPopup, useHudOutsideDismiss, useHudPopupExit } from './hudPopupState.js'
 
 function fmtLeft(ms) {
   if (ms <= 0) return 'уже доступна'
@@ -50,6 +50,7 @@ export default function EnergyBadge() {
 
   const wrapRef = useRef(null)
   useHudOutsideDismiss(wrapRef, open)
+  const { shown, closing } = useHudPopupExit(open)
 
   if (!user || !profile) return null
   const unlimited = profile.has_subscription || profile.is_admin
@@ -64,12 +65,12 @@ export default function EnergyBadge() {
         <span style={color ? { color } : undefined}>{unlimited ? '∞' : value}</span>
       </button>
 
-      {open && (
+      {shown && (
         <>
           {/* Закрытие — только тапом ВНЕ окна (useHudOutsideDismiss глушит
               этот тап, чтобы он не долетел до видео ленты), само окно
-              кликабельно безопасно */}
-          <div className="energyPop">
+              кликабельно безопасно; уходит схлопыванием (useHudPopupExit) */}
+          <div className={`energyPop${closing ? ' energyPop--out' : ''}`}>
             <div className="energyPopHead">
               <EnergyCells
                 value={unlimited ? ENERGY_CAP : value}

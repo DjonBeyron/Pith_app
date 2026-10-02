@@ -1,33 +1,18 @@
-import { Star, Trophy, Lock, Flag } from 'lucide-react'
+import { Star, Trophy, Lock, Flag, Footprints } from 'lucide-react'
 import UserBadge from '../../shared/ui/UserBadge.jsx'
 import TicketIcon from '../../shared/ui/TicketIcon.jsx'
+import { ACHIEVEMENTS } from '../../shared/lib/achievementKinds.js'
 
-// Описания достижений: какое условие и какую косметику открывает.
-// key косметики = поле в user_profiles.cosmetics. icon — компонент.
-const ACH_DEFS = [
-  {
-    kind: 'level10', cosmeticKey: 'bg', icon: <Star size={20} />,
-    name: '10-й уровень',
-    desc: 'Достигни 10-го уровня («Легенда», 8000 XP). Открывает подложку под ник.',
-  },
-  {
-    kind: 'clean_final', cosmeticKey: 'bg2', icon: <TicketIcon style={{ width: 20, height: 20 }} />,
-    name: 'Чистый финал',
-    desc: 'Пройди Финал модуля без единой подсказки. Открывает золотую подложку под ник.',
-  },
-  {
-    kind: 'race_finisher', cosmeticKey: 'frame', icon: <Flag size={20} />,
-    name: 'Участник гонки',
-    desc: 'Финишируй еженедельную супергонку. Открывает рамку вокруг аватара.',
-  },
-  {
-    kind: 'race_winner', cosmeticKey: 'medal', icon: <Trophy size={20} />,
-    name: 'Победитель гонки',
-    desc: 'Попади в тройку призёров супергонки. Открывает медаль с твоим местом.',
-  },
-]
+// Иконки достижений по виду; названия, условия и ключи косметики — в shared/lib/achievementKinds.js
+const ICONS = {
+  journey_start: <Footprints size={20} />,
+  level10: <Star size={20} />,
+  clean_final: <TicketIcon style={{ width: 20, height: 20 }} />,
+  race_finisher: <Flag size={20} />,
+  race_winner: <Trophy size={20} />,
+}
 
-// Субвкладка «Достижения»: три карточки с кнопками «Надеть/Снять» и
+// Экран «Кастомизация профиля»: карточки достижений (с кнопками «Надеть/Снять», если достижение открывает косметику) и
 // предпросмотр — как ты выглядишь в общем рейтинге с надетой косметикой.
 export default function AchievementsPanel({ achievements, cosmetics, equip, profile, myId }) {
   const unlockedKinds = new Set(achievements.map(a => a.kind))
@@ -53,12 +38,12 @@ export default function AchievementsPanel({ achievements, cosmetics, equip, prof
         <span className="ratingXp">{profile?.xp ?? 0} XP</span>
       </div>
 
-      {ACH_DEFS.map(def => {
+      {ACHIEVEMENTS.map(def => {
         const unlocked = unlockedKinds.has(def.kind)
-        const worn     = !!cosmetics[def.cosmeticKey]
+        const worn     = !!def.cosmeticKey && !!cosmetics[def.cosmeticKey]
         return (
           <div key={def.kind} className={unlocked ? 'achCard' : 'achCard achCardLocked'}>
-            <div className="achIcon">{unlocked ? def.icon : <Lock size={20} />}</div>
+            <div className="achIcon">{unlocked ? ICONS[def.kind] : <Lock size={20} />}</div>
             <div>
               <div className="achName">
                 {def.name}
@@ -66,13 +51,17 @@ export default function AchievementsPanel({ achievements, cosmetics, equip, prof
               </div>
               <div className="achDesc">{def.desc}</div>
             </div>
-            <button
-              className={worn ? 'achEquipBtn achEquipBtnOn' : 'achEquipBtn'}
-              disabled={!unlocked}
-              onClick={() => toggle(def.cosmeticKey)}
-            >
-              {!unlocked ? 'Закрыто' : worn ? 'Снять' : 'Надеть'}
-            </button>
+            {def.cosmeticKey ? (
+              <button
+                className={worn ? 'achEquipBtn achEquipBtnOn' : 'achEquipBtn'}
+                disabled={!unlocked}
+                onClick={() => toggle(def.cosmeticKey)}
+              >
+                {!unlocked ? 'Закрыто' : worn ? 'Снять' : 'Надеть'}
+              </button>
+            ) : (
+              <span className="achEquipBtn achEquipBtnOn achGot">{unlocked ? 'Получено' : 'Закрыто'}</span>
+            )}
           </div>
         )
       })}

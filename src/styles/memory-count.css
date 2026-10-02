@@ -61,23 +61,37 @@
 .shellV2TabHidden .memCountNum--2,
 .shellV2TabHidden .memCountNum--3 { animation: none; }
 
-/* Окошко: без затемнения. Если слева от числа есть место — правым верхним углом к
-   цифре (top/right/width ставит memoryCountPop.js, растёт из этого угла), иначе под
-   числом справа. В портале (body), поверх всего */
-.memCountBack { position: fixed; inset: 0; z-index: 250; background: transparent; }
+/* Окошко: строго по центру экрана (left/width/top ставит memoryCountPop.js), верх чуть ниже числа, на верхней кромке —
+   уголок (::before), что смотрит на число (--caret-x). Растёт из кончика уголка и в него же схлопывается (transform-origin
+   inline). В портале (body), поверх всего. Экран под окном затемнён так же, как при разблокировке урока в схеме модуля
+   (.lessonLockedOverlay, lesson-locked-hint.css): тот же цвет, то же проявление за 0,2 с; при закрытии затемнение тает
+   вместе со схлопыванием */
+.memCountBack { position: fixed; inset: 0; z-index: 250; background: rgba(5, 6, 9, 0.72); animation: popFadeIn 0.2s ease-out backwards; }
+.memCountBack--out { animation: memCountDimOut 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards; }
+@keyframes memCountDimOut { to { opacity: 0; } }
 .memCountPop {
   position: fixed;
-  right: 16px;
-  width: min(280px, calc(100% - 32px));
   padding: 14px 16px 15px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 16px;
   background: #14171c; /* сплошной: не просвечивает */
   color: #e8ecf0;
-  transform-origin: 85% 0;
   animation: popSheetWobble 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards;
 }
-.memCountPop--corner { transform-origin: 100% 0; }
+.memCountPop::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: var(--caret-x, 50%);
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  border-left: 1px solid rgba(255, 255, 255, 0.09);
+  border-top-left-radius: 3px;
+  background: #14171c;
+  transform: rotate(45deg);
+}
 /* Закрытие: окно схлопывается в правый верхний угол, а поверх текста в такт
    проступает заливка цветом фона окна (::after). Обе анимации стартуют вместе, с
    одной длительностью и одной кривой: заливка = 1 − масштаб окна, поэтому она
@@ -117,5 +131,5 @@
 @media (prefers-reduced-motion: reduce) {
   .memOrbitX, .memOrbitY, .memCountNum--1, .memCountNum--2, .memCountNum--3 { animation: none; }
   .memCountNum--1 { opacity: 1; }
-  .memCountPop, .memCountPop--out, .memCountPop--out::after { animation: none; }
+  .memCountPop, .memCountPop--out, .memCountPop--out::after, .memCountBack, .memCountBack--out { animation: none; }
 }

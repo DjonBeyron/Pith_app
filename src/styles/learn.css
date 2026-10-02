@@ -23,7 +23,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden; /* поля эхо-колец (.memRing) у правого блока вылезают за экран — горизонтального скролла нет */
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(20px + var(--v2-nav-h)) 22px;
+  padding: var(--v2-tab-top) 16px calc(20px + var(--v2-nav-h)) 22px; /* сверху — под худом (tab-top.css) */
   scrollbar-width: none;
   overscroll-behavior-y: contain; /* край списка не передаёт жест окну (Android: прыжки панели, «обновить страницу») */
 }
@@ -52,7 +52,7 @@
   pointer-events: none;
 }
 
-.lrTitle { margin: 4px 0 14px; font-size: 22px; font-weight: 700; color: #e8ecf0; }
+.lrTitle { margin: 0 0 14px; line-height: 26px; font-size: 22px; font-weight: 700; color: #e8ecf0; }
 .lrNote { color: #8b95a1; }
 .lrLink { background: none; border: none; padding: 0; color: #b6fe3b; font: inherit; cursor: pointer; }
 

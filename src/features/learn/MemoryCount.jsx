@@ -16,12 +16,12 @@ import { WIRE_COLORS } from './ladderWires.js'
 // края первой цифры до правого края последней (--k в CSS: 1 для одной цифры,
 // больше для двух-трёх; не шире кнопки). Линии орбит почти невидимы (1%).
 // Тап по числу — окошко: что это за счётчик и как слова сюда попадают, тремя
-// короткими блоками без номеров. Если слева от числа есть место, окно встаёт
-// правым верхним углом к цифре с отступом от орбит (точки остаются видны),
-// иначе — под кнопкой (memoryCountPop.js). Окошко — в портале (body): иначе ступень-предок
+// короткими блоками без номеров. Окно строго по центру экрана, верх чуть ниже числа, на верхней кромке — уголок, что
+// смотрит на число (memoryCountPop.js; точки на орбитах остаются видны); экран под ним затемнён так же, как при
+// разблокировке урока в схеме модуля (.lessonLockedOverlay). Окошко — в портале (body): иначе ступень-предок
 // держит его под пятиугольником ниже по странице; появляется с тем же «колебанием», что панель сложности в
-// ленте, а при закрытии окно схлопывается в угол, и в такт с масштабом поверх
-// текста проступает заливка цветом фона окна (opacity слоя-заливки; CLOSE_MS).
+// ленте, а при закрытии окно схлопывается в кончик уголка, и в такт с масштабом поверх
+// текста проступает заливка цветом фона окна (opacity слоя-заливки), а затемнение тает (CLOSE_MS).
 const ORBITS = [
   { deg: 0, dur: 3.2, color: WIRE_COLORS.levels[0] },
   { deg: 60, dur: 4.1, color: WIRE_COLORS.levels[1] },
@@ -54,7 +54,7 @@ export default function MemoryCount({ total }) {
     setTimeout(() => { setPop(null); setClosing(false) }, CLOSE_MS)
   }
 
-  // Окошко ставится углом к цифре, если слева есть место (popPlace), иначе — под кнопкой
+  // Окошко ставится по центру экрана, уголком к цифре (popPlace)
   function open() {
     const btn = btnRef.current
     if (!btn) return
@@ -90,14 +90,15 @@ export default function MemoryCount({ total }) {
         {[1, 2, 3].map(n => <b key={n} className={`memCountNum memCountNum--${n}`} aria-hidden="true">{total}</b>)}
       </button>
       {pop && createPortal(
-        <div className="memCountBack" onClick={close}>
-          <div className={`memCountPop${pop.corner ? ' memCountPop--corner' : ''}${closing ? ' memCountPop--out' : ''}`} role="dialog" aria-label="Временная память"
-            style={pop.corner ? { top: pop.top, right: pop.right, width: pop.width } : { top: pop.top }} onClick={e => e.stopPropagation()}>
+        <div className={`memCountBack${closing ? ' memCountBack--out' : ''}`} onClick={close}>
+          <div className={`memCountPop${closing ? ' memCountPop--out' : ''}`} role="dialog" aria-label="Временная память"
+            style={{ top: pop.top, left: pop.left, width: pop.width, '--caret-x': `${pop.caretX}px`, transformOrigin: `${pop.caretX}px -8px` }}
+            onClick={e => e.stopPropagation()}>
             <p className="memCountPopTitle">Временная память</p>
             <p className="memCountPopLead">Здесь слова, которые тебе попадались в уроках</p>
             <ul className="memCountSteps">
-              <li className="memCountStep memCountStep--1">Слова из урока попадают <b>в этот счётчик</b></li>
-              <li className="memCountStep memCountStep--2">Чтобы запомнить их навсегда, нужно <b>повторить их несколько раз</b></li>
+              <li className="memCountStep memCountStep--1">Слова из урока попадают<br /><b>в этот счётчик</b></li>
+              <li className="memCountStep memCountStep--2">Чтобы запомнить их навсегда, нужно<br /><b>повторить их несколько раз</b></li>
               <li className="memCountStep memCountStep--3">После этого слова попадают в <b>постоянную память</b>, где ты их точно не забудешь</li>
             </ul>
           </div>

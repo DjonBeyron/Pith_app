@@ -89,13 +89,30 @@
   font-weight: 700;
 }
 
-/* Кнопка-карточка «Кастомизация» (достижения и косметика) */
+/* Кнопка-карточка «Кастомизация профиля» (достижения и косметика): текст слева, как у «Ежедневных наград» */
 .pvCustomizeBtn {
-  display: flex; align-items: center; justify-content: center;
-  width: 100%; cursor: pointer; text-align: center;
+  display: flex; align-items: center; justify-content: flex-start;
+  width: 100%; cursor: pointer; text-align: left;
   border: 1px solid #232932;
 }
 .pvCustomizeLabel {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 14px; font-weight: 700; color: #f2f5f7;
 }
+
+/* Заголовок «Сохранённые уроки» — кнопка свёртки (ProfileSavedTab); сам вид заголовка — .pvSectionTitle в profile-v2.css */
+.pvSectionBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: calc(100% - 8px);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pvChev { width: 16px; height: 16px; transition: transform 0.2s ease; }
+.pvChevOpen { transform: rotate(180deg); }

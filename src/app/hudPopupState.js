@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 // Общее состояние «какое окошко hudBar открыто» (уровень/билеты/энергия) —
 // чтобы клик по одному бейджу закрывал попап другого, а не открывал оба сразу.
@@ -48,4 +48,25 @@ export function useHudOutsideDismiss(wrapRef, open) {
       document.removeEventListener('click', swallowClick, true)
     }
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps -- wrapRef стабилен
+}
+
+// Окошко худа не пропадает мгновенно: после закрытия оно ещё EXIT_MS остаётся в разметке с классом --out и схлопывается в
+// свой угол (hud-pop-out.css) — обратная анимация к появлению, как у окошка счётчика памяти (MemoryCount.jsx).
+// → { shown: рисовать окошко, closing: оно сейчас схлопывается }
+const EXIT_MS = 340 // = длительность hudPopOut в hud-pop-out.css
+
+export function useHudPopupExit(open) {
+  const [prevOpen, setPrevOpen] = useState(open)
+  const [closing, setClosing] = useState(false)
+  // Подстройка состояния при смене пропа прямо в рендере (паттерн из доков React): закрыли → пошло схлопывание
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    setClosing(!open && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+  }
+  useEffect(() => {
+    if (!closing) return undefined
+    const t = setTimeout(() => setClosing(false), EXIT_MS)
+    return () => clearTimeout(t)
+  }, [closing])
+  return { shown: open || closing, closing: closing && !open }
 }

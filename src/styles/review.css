@@ -125,7 +125,11 @@
    верха экрана. Только transform и opacity — композитор */
 .reviewPhrase, .reviewTitle { animation: reviewPhraseDrop 0.7s cubic-bezier(0.22, 0.85, 0.3, 1) backwards; }
 @keyframes reviewPhraseDrop { from { transform: translate3d(0, -110px, 0); opacity: 0; } 55% { opacity: 1; } }
-.reviewPhraseHidden { color: var(--rv-c, #b6fe3b); letter-spacing: -1px; }
+/* Шарики вместо закрытого слова: чуть меньше буквы (0.8 em, было 1 em), а vertical-align возвращает их на прежнюю высоту —
+   иначе при меньшем кегле они садились ниже середины строки. Интервал 0.085 em (было -1px) оставляет ПОЛНУЮ ширину ряда
+   прежней: слово при ответе занимает место шариков, и более узкий ряд заставлял фразу переноситься на вторую строку —
+   карточка под шапкой сдвигалась. Ширину слота шариков ReviewPhraseWord меряет сам */
+.reviewPhraseHidden { color: var(--rv-c, #b6fe3b); letter-spacing: 0.085em; font-size: 0.8em; vertical-align: 0.06em; }
 .reviewPhraseWord   { color: var(--rv-c, #b6fe3b); } /* проявляется переходом слота — review-phrase.css */
 
 /* ── Карточка ──────────────────────────────────────────────────────── */
@@ -155,13 +159,17 @@
      весь чат поднимался, внизу карточки торчал край панели, а зазор до последнего сообщения рос */
   overflow: clip;
   transform: translateZ(0);
+  /* Запас под чатом: объявлен на САМОЙ рамке, а не на плеере внутри. Точки «печатает» перед стартом карточки
+     (WaitingDots в ReviewTurn) лежат в рамке вне плеера — без переменной у них не считалось bottom, и они на секунду
+     прилипали к ВЕРХУ карточки, а потом плеер ставил свои точки внизу. Плеер наследует её с рамки */
+  --rv-x: 38px;
 }
 
 /* Плеер внутри карточки: акцент «худа» (кнопка ▶ и спектр голосовых, свечение печати) — цвет ступени слова.
    Нижний запас чата — --rv-x плюс 12 px: в карточке нет home indicator под лентой, поэтому safe-area в запас не
    входит, а слот «печатает» ужат до высоты самой строки точек (24 px). Обычный запас в плеере ≈ 74 px
    (12 + safe-area + слот), было ужато до 26 — слишком низко; теперь середина (≈ 50 px) */
-.reviewCardFrame .lessonPlayer { --player-accent: var(--rv-c, #b6fe3b); --wait-slot: 24px; --rv-x: 38px; }
+.reviewCardFrame .lessonPlayer { --player-accent: var(--rv-c, #b6fe3b); --wait-slot: 24px; }
 .reviewCardFrame .playerFeed { padding: calc(var(--rv-x) + 12px) 0 12px; }
 /* Точки «печатает» — сразу под последним сообщением */
 .reviewCardFrame .playerWaitingRow { bottom: calc(var(--rv-x) - 12px); }

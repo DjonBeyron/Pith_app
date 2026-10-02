@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { ladderLinks, ladderWireSet, ballPath, ballScale, haloScale, WIRE_COLORS, W_MIN } from './ladderWires.js'
+import { tearWire } from './ladderTear.js'
 
 const MAX_BALLS = 3 // на ступень: больше — каша из шариков
 
@@ -16,8 +17,9 @@ const MAX_BALLS = 3 // на ступень: больше — каша из ша�
 // в скрытой вкладке (ширина 0) не меряет. Зона — через СВОЙ элемент слоя:
 // ref родителя в эффекте ребёнка при монтировании ещё пуст (React цепляет
 // ref родителя после эффектов детей) — так линии пропадали после «Назад».
-// today — число сегодняшних слов по ступеням
-export default function MemoryLadderWires({ today }) {
+// today — число сегодняшних слов по ступеням. sleeping — мозг спит: кабель от шапки оборван (ladderTear.js): разрыв на
+// стволе у шапки, жилки у концов, искры
+export default function MemoryLadderWires({ today, sleeping = false }) {
   const [geo, setGeo] = useState(null) // { links, pieces, dots }
   const layerRef = useRef(null)
 
@@ -46,16 +48,24 @@ export default function MemoryLadderWires({ today }) {
   })
 
   if (!geo) return <div className="memWires" ref={layerRef} aria-hidden="true" />
+  const tear = sleeping ? tearWire(geo.pieces, geo.links[0].pts) : null
   return (
     <div className="memWires" ref={layerRef} aria-hidden="true">
       <svg>
         <g className="memWire">
-          {geo.pieces.map((p, k) => (
+          {(tear?.pieces ?? geo.pieces).map((p, k) => (
             <line key={k} x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} stroke={p.color} strokeWidth={p.w} />
           ))}
+          {tear?.strands.map((s, k) => <path key={`s${k}`} d={s.d} fill="none" stroke={s.color} strokeWidth={s.w} />)}
           {geo.flares.map((fl, k) => <path key={`f${k}`} d={fl.d} fill={fl.color} stroke="none" />)}
           {geo.dots.map((d, k) => <circle key={k} cx={d.x} cy={d.y} r={d.r} fill={d.color} />)}
         </g>
+        {tear && (
+          <>
+            <path className="memTearSpark memTearSpark--bolt" d="M0 -7 L-3.2 1 L-0.4 1 L-1.6 7.5 L3.4 -2 L0.4 -2 Z" transform={`translate(${tear.bolt.x} ${tear.bolt.y})`} />
+            {tear.sparks.map((s, k) => <circle key={`k${k}`} className="memTearSpark" cx={s.x} cy={s.y} r="1.3" style={{ '--d': `${s.delay}s` }} />)}
+          </>
+        )}
       </svg>
       {[0, 1, 2].flatMap(i => Array.from({ length: Math.min(today[i] ?? 0, MAX_BALLS) }, (_, k) => (
         <span key={`${i}-${k}`} className="memBall" style={{

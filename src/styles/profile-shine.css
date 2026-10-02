@@ -1,0 +1,35 @@
+/* Блеск карточек профиля (.pvShine): «Ежедневные награды» — пока награда не получена (--warm), «Кастомизация профиля» —
+   пока есть открытая и не просмотренная косметика. Приёмы блока урока в схеме модуля (lessons-chain-textures.css, mgTexShine):
+   блик — псевдоэлемент из линейного градиента, ходит ТОЛЬКО transform (композитор, без перерисовки), проход редкий
+   (~1,7 с из 14), свой слой (will-change); во время прокрутки — пауза и гашение (useScrollCalm вешает .pvScreen--calm);
+   при «уменьшить анимации» и на слабом устройстве (html.perf-no-textures) блика нет совсем */
+.pvShine { position: relative; overflow: hidden; }
+
+.pvShine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 40%, rgba(182, 254, 59, 0.13) 50%, transparent 60%);
+  transform: translateX(-130%);
+  will-change: transform;
+  transition: opacity 0.25s ease;
+  animation: pvShineSweep 14s linear infinite;
+}
+
+.pvShine--warm::after {
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 196, 96, 0.16) 50%, transparent 60%);
+  animation-duration: 12s;
+}
+
+.pvScreen--calm .pvShine::after { animation-play-state: paused; opacity: 0; }
+
+@keyframes pvShineSweep {
+  0%        { transform: translateX(-130%); }
+  12%, 100% { transform: translateX(130%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pvShine::after { content: none; }
+}
+html.perf-no-textures .pvShine::after { content: none; }

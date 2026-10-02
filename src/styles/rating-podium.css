@@ -106,12 +106,15 @@
   color: transparent;
 }
 
+/* Металлические карточки: слои узора (пыль, зерно, топо-завитки) — СВЕРХУ градиента металла, иначе почти непрозрачный
+   конец градиента (0.9) закрывал узор, и у 1–3 мест его не было, а у 4-го и ниже — был */
 /* Золото */
 .ratingRow[data-place='1'] {
   border-color: rgba(255, 210, 87, 0.6);
   background:
+    var(--v2-dust), var(--v2-grain), var(--v2-tex),
     linear-gradient(90deg, rgba(255, 190, 60, 0.32) 0%, rgba(20, 23, 28, 0.9) 62%),
-    var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+    #14171c;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 0 24px rgba(255, 190, 60, 0.16);
@@ -126,8 +129,9 @@
 .ratingRow[data-place='2'] {
   border-color: rgba(210, 221, 235, 0.55);
   background:
+    var(--v2-dust), var(--v2-grain), var(--v2-tex),
     linear-gradient(90deg, rgba(205, 217, 232, 0.26) 0%, rgba(20, 23, 28, 0.9) 62%),
-    var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+    #14171c;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     0 0 20px rgba(205, 217, 232, 0.12);
@@ -142,8 +146,9 @@
 .ratingRow[data-place='3'] {
   border-color: rgba(224, 153, 92, 0.55);
   background:
+    var(--v2-dust), var(--v2-grain), var(--v2-tex),
     linear-gradient(90deg, rgba(214, 138, 74, 0.28) 0%, rgba(20, 23, 28, 0.9) 62%),
-    var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+    #14171c;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 0 20px rgba(214, 138, 74, 0.14);

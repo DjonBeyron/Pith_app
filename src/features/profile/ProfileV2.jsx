@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Cog, Zap, Crown, Sparkles, Paintbrush, Star } from 'lucide-react'
+import { Zap, Crown, Sparkles, Paintbrush, Star } from 'lucide-react'
 import { useProfileV2Data } from './useProfileV2Data.js'
 import { getCurrentLevel, getNextLevel } from '../../shared/lib/xpLevels.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
@@ -17,15 +17,18 @@ import { refreshProfile } from '../../shared/api/profileCache.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import { energyColor } from '../../shared/lib/energyColors.js'
 import ProfileSavedTab from './ProfileSavedTab.jsx'
+import GearIcon from '../../shared/ui/GearIcon.jsx'
+import { useAuth } from '../../shared/lib/useAuth.js'
+import { useUnseenCustomization } from './useUnseenCustomization.js'
+import { useScrollCalm } from './useScrollCalm.js'
+import { hasUnclaimedStreak } from '../streak/streakClaim.js'
 
-// Профиль (ui v2, тёмная тема по макету profile.html) — «кто я?»: первой
-// строкой «Знаю N слов · M фраз закреплено» (learnView — данные «Моей
-// памяти», тап ведёт туда), ниже уровень, XP-бар, энергия и «Сохранённые» —
-// только НЕ начатые модули. «Пройденные» и копилка слов убраны: память слов
-// живёт во вкладке «Память», начатое — в «Моих уроках» (PROJECT.md →
-// «Вкладки»). Шестерёнка — экран настроек (там же «Повторение»: минуты в
-// день, «Отпуск», итоги недели). Тап по модулю — его схема.
-export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, learnView = null, onOpenLearn, onLearnChanged }) {
+// Профиль (ui v2, тёмная тема по макету profile.html) — «кто я?»: аватар, ник и уровень, XP-бар, энергия, подписка,
+// «Ежедневные награды» (блестит, пока награда не получена), «Кастомизация профиля» (блестит, пока есть открытая и не
+// просмотренная косметика) и «Сохранённые уроки» — только НЕ начатые модули (по умолчанию свёрнуто). «Пройденные» и копилка
+// слов убраны: память слов живёт во вкладке «Память», начатое — в «Моих уроках» (PROJECT.md → «Вкладки»). Шестерёнка —
+// экран настроек (там же «Повторение»: минуты в день, «Отпуск», итоги недели). Тап по модулю — его схема.
+export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, learnView = null, onLearnChanged }) {
   const { profile, modules, bookmarks, loading, reload } = useProfileV2Data()
   const [showSettings, setShowSettings] = useState(false)
   const [showCustomize, setShowCustomize] = useState(false)
@@ -35,6 +38,9 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, lea
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [avatarBusy, setAvatarBusy] = useState(false)
   const [showLogout, setShowLogout] = useState(false)
+  const { user } = useAuth()
+  const unseenCustom = useUnseenCustomization(user?.id, visible, showCustomize)
+  const calmScroll = useScrollCalm()
 
   async function changeAvatar(seed) {
     setAvatarBusy(true)
@@ -90,10 +96,10 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, lea
   const saved = modules.filter(m => bookmarks.has(m.id) && m.done === 0)
 
   return (
-    <div className="pvScreen">
+    <div className="pvScreen" onScroll={calmScroll}>
       <div className="pvHead">
         <button className="pvGear" onClick={() => setShowSettings(true)} title="Настройки">
-          <Cog />
+          <GearIcon />
         </button>
       </div>
 
@@ -119,15 +125,6 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, lea
             <button className="pvName pvNameBtn" onClick={() => setShowLogout(true)} title="Выйти из аккаунта">{name}</button>
             {(profile?.has_subscription || profile?.is_admin) && <span className="pvProBadge">PRO</span>}
           </div>
-          {learnView && !learnView.empty && (
-            <button className="pvKnow" onClick={onOpenLearn}>
-              {/* «Знаю 0 слов» звучало бы упрёком — пока ничего не закрепилось, считаем память */}
-              {learnView.known > 0
-                ? `Знаю ${learnView.known} ${plural(learnView.known, 'слово', 'слова', 'слов')}`
-                : `В памяти ${learnView.inMemory} ${plural(learnView.inMemory, 'слово', 'слова', 'слов')}`}
-              {learnView.strongPhrases > 0 && ` · ${learnView.strongPhrases} ${plural(learnView.strongPhrases, 'фраза закреплена', 'фразы закреплены', 'фраз закреплено')}`}
-            </button>
-          )}
           <span className="pvLvlChip"><Star className="pvLvlChipIcon" /> {cur.level} уровень · {cur.label}</span>
         </div>
       </div>
@@ -184,22 +181,17 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, lea
       {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
 
       {/* Ежедневный стрик: статус + ручной вход в окно наград */}
-      <button className="pvCard pvStreakBtn" onClick={() => setShowRewards(true)}>
+      <button className={`pvCard pvStreakBtn${hasUnclaimedStreak(profile) ? ' pvShine pvShine--warm' : ''}`} onClick={() => setShowRewards(true)}>
         <span className="pvIconLabel"><Sparkles size={16} /> Ежедневные награды</span>
         <span className="pvStreakVal">{profile?.current_streak ?? 0} {plural(profile?.current_streak ?? 0, 'день', 'дня', 'дней')}</span>
       </button>
 
-      {/* Кастомизация: достижения и косметика (подложка/рамка/медаль) */}
-      <button className="pvCard pvCustomizeBtn" onClick={() => setShowCustomize(true)}>
-        <span className="pvCustomizeLabel"><Paintbrush size={16} /> Кастомизация</span>
+      {/* Кастомизация профиля: достижения и косметика (подложка/рамка/медаль); блестит, пока есть не просмотренное */}
+      <button className={`pvCard pvCustomizeBtn${unseenCustom ? ' pvShine' : ''}`} onClick={() => setShowCustomize(true)}>
+        <span className="pvCustomizeLabel"><Paintbrush size={16} /> Кастомизация профиля</span>
       </button>
 
-      <p className="pvSectionTitle">Сохранённые</p>
-      {loading ? (
-        <div className="pvEmpty">Загрузка...</div>
-      ) : (
-        <ProfileSavedTab savedModules={saved} onOpenModule={setOpenModule} />
-      )}
+      <ProfileSavedTab savedModules={saved} loading={loading} onOpenModule={setOpenModule} />
 
       {showAvatarPicker && (
         <AvatarPickerPopup

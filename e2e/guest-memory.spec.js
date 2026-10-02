@@ -119,8 +119,8 @@ test.describe('перенос памяти в аккаунт', () => {
     await page.locator('.authBtnPrimary').click()
     await expect(page.getByRole('button', { name: /Кастомизация/ })).toBeVisible({ timeout: 30_000 })
 
-    // Память теперь серверная: профиль видит слово, локальная — очищена
-    await expect(page.locator('.pvKnow')).toHaveText('В памяти 1 слово', { timeout: 30_000 })
+    // Память теперь серверная: локальная — очищена (надписи «В памяти N слов» в профиле больше нет)
+    await expect(page.locator('.pvKnow')).toHaveCount(0)
     await expect.poll(() => page.evaluate(() => localStorage.getItem('pithy_guest_memory_v1'))).toBe(null)
     await page.getByRole('button', { name: 'Память', exact: true }).click()
     await expect(page.locator('.lrMain')).toContainText('Сегодня повторяем 1 слово', { timeout: 30_000 })

@@ -3,7 +3,7 @@ import FeedTab from '../features/feed/FeedTab.jsx'
 import ProfileV2 from '../features/profile/ProfileV2.jsx'
 import AuthTab from '../features/auth/AuthTab.jsx'
 import SettingsTab from '../features/settings/SettingsTab.jsx'
-import { Cog } from 'lucide-react'
+import GearIcon from '../shared/ui/GearIcon.jsx'
 import BackButton from '../shared/ui/BackButton.jsx'
 import RatingTab from '../features/rating/RatingTab.jsx'
 import RaceGlobalPopups from '../features/race/RaceGlobalPopups.jsx'
@@ -135,7 +135,7 @@ export default function ShellV2() {
       {/* Верхняя панель игрока: слева уровень + золотые билеты (мельче, у
           самого верха), справа энергия. Версия приложения — в админке
           (AdminV2) и на стартовом сплэше (index.html), не в ленте */}
-      {tab !== 'profile' && tab !== 'admin' && tab !== 'learn' && (
+      {tab !== 'profile' && tab !== 'admin' && (
         <>
           <div className="hudBarLeft">
             <LevelBadge />
@@ -163,23 +163,23 @@ export default function ShellV2() {
         <div className={tab === 'learn' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
           <LearnTab learn={learn} visible={tab === 'learn'} isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} />
         </div>
-        <div className={tab === 'rating' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
+        <div className={`shellV2Tab shellV2Tab--pattern${tab === 'rating' ? '' : ' shellV2TabHidden'}`}>
           <RatingTab visible={tab === 'rating'} openRaceTick={raceOpenTick} />
         </div>
-        <div className={tab === 'profile' ? 'shellV2Tab' : 'shellV2Tab shellV2TabHidden'}>
+        <div className={`shellV2Tab shellV2Tab--pattern${tab === 'profile' ? '' : ' shellV2TabHidden'}`}>
           {user ? (
             <ProfileV2 visible={tab === 'profile'} userEmail={user.email} onOpenCanvas={setCanvasLesson}
-              learnView={learn.view} onOpenLearn={() => setTab('learn')} onLearnChanged={learn.reload} />
+              learnView={learn.view} onLearnChanged={learn.reload} />
           ) : guestSettings ? (
             <div className="pvSettingsScreen">
               <BackButton onClick={() => setGuestSettings(false)} label="Профиль" className="pvBack" />
               <div className="shellV2Panel"><SettingsTab learnView={learn.view} onLearnChanged={learn.reload} isGuest /></div>
             </div>
           ) : (
-            <div className="shellV2Panel">
+            <div className="shellV2Panel pvGuestPanel">
               <div className="pvHead">
                 <button className="pvGear" onClick={() => setGuestSettings(true)} title="Настройки">
-                  <Cog />
+                  <GearIcon />
                 </button>
               </div>
               <AuthTab onLoginSuccess={() => {}} />

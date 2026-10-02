@@ -13,7 +13,8 @@ const SHOWN = 3 // слов на ступени главного экрана �
 // усвоенные) и пятиугольник постоянной памяти; линии и шарики — слоем поверх
 // (MemoryLadderWires). Число, название или ⤢ ступени — onOpen(1..3) (все
 // слова ступени), пятиугольник — onOpen(4), слово — onWord. sleeping — мозг спит (всё повторено):
-// искры над пятиугольником не летят, в шапке плывут «Z» (они сменяют друг друга, вместе не идут)
+// искры над пятиугольником не летят, в шапке плывут «Z» (они сменяют друг друга, вместе не идут), а связь от шапки к
+// ступеням оборвана, как порванный кабель (ladderTear.js)
 export default function MemoryLadder({ ladder, sleeping = false, onOpen, onWord, children }) {
   const today = ladder.levels.map(l => l.words.filter(w => w.today).length)
   return (
@@ -47,7 +48,7 @@ export default function MemoryLadder({ ladder, sleeping = false, onOpen, onWord,
         ))}
       </div>
       <MemoryPermNode count={ladder.permanent.length} sparks={!sleeping} onOpen={() => onOpen(4)} />
-      <MemoryLadderWires today={today} />
+      <MemoryLadderWires today={today} sleeping={sleeping} />
     </div>
   )
 }

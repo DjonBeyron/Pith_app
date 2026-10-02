@@ -72,6 +72,9 @@
   white-space: nowrap;
 }
 
+/* «Получено» у достижения без косметики — не кнопка */
+.achGot { cursor: default; }
+
 /* Надето — лаймовая подсветка */
 .achEquipBtnOn {
   background: rgba(182, 254, 59, 0.12);

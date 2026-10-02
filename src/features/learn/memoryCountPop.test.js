@@ -5,34 +5,32 @@ import { popPlace, ORBIT_RX } from './memoryCountPop.js'
 const rect = { left: 272, width: 88, top: 244, height: 60, bottom: 304 }
 
 describe('popPlace — окошко счётчика', () => {
-  it('есть место слева — углом к цифре, правее и ниже центра не заходит', () => {
+  it('окно строго по центру экрана по ширине', () => {
     const p = popPlace({ rect, vw: 375, k: 1 })
-    expect(p.corner).toBe(true)
-    const cornerX = 375 - p.right
-    const cornerY = p.top
-    // угол окна вне круга орбит (радиус ORBIT_RX + точка) вокруг центра числа
-    const dist = Math.hypot(cornerX - 316, cornerY - 274)
-    expect(dist).toBeGreaterThan(ORBIT_RX + 4)
-    expect(cornerX).toBeLessThan(316)
-    expect(cornerY).toBeGreaterThan(274)
-    expect(p.width).toBeLessThanOrEqual(280)
-    expect(cornerX - p.width).toBeGreaterThanOrEqual(16) // слева остаётся поле
+    expect(Math.abs(p.left + p.width / 2 - 375 / 2)).toBeLessThanOrEqual(0.5)
+    expect(p.width).toBe(320)
+    expect(p.left).toBeGreaterThanOrEqual(16)
   })
 
-  it('чем шире число (орбиты больше), тем дальше угол от центра', () => {
-    const a = popPlace({ rect, vw: 375, k: 1 })
-    const b = popPlace({ rect, vw: 375, k: 1.7 })
-    expect(375 - b.right).toBeLessThan(375 - a.right)
-    expect(b.top).toBeGreaterThan(a.top)
+  it('верх окна ниже круга орбит вокруг числа — точки остаются видны', () => {
+    const p = popPlace({ rect, vw: 375, k: 1 })
+    expect(p.top).toBeGreaterThan(274 + ORBIT_RX + 4)
   })
 
-  it('на широком экране ширина — до 280', () => {
-    const wide = { left: 700, width: 88, top: 244, height: 60, bottom: 304 }
-    expect(popPlace({ rect: wide, vw: 1200, k: 1 }).width).toBe(280)
+  it('уголок смотрит на число', () => {
+    const p = popPlace({ rect, vw: 375, k: 1 })
+    expect(p.left + p.caretX).toBe(316)
   })
 
-  it('слева мало места — под кнопкой, как раньше', () => {
-    const narrow = { left: 190, width: 88, top: 244, height: 60, bottom: 304 }
-    expect(popPlace({ rect: narrow, vw: 320, k: 1 })).toEqual({ corner: false, top: 308 })
+  it('чем шире число (орбиты больше), тем ниже окно', () => {
+    expect(popPlace({ rect, vw: 375, k: 1.7 }).top).toBeGreaterThan(popPlace({ rect, vw: 375, k: 1 }).top)
+  })
+
+  it('на узком экране ширина — экран минус поля, а уголок не заходит на скруглённый угол', () => {
+    const edge = { left: 250, width: 88, top: 244, height: 60, bottom: 304 }
+    const p = popPlace({ rect: edge, vw: 320, k: 1 })
+    expect(p.width).toBe(288)
+    expect(p.caretX).toBeLessThanOrEqual(p.width - 22)
+    expect(p.caretX).toBeGreaterThanOrEqual(22)
   })
 })

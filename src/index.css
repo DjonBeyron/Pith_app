@@ -6,6 +6,7 @@
 @import './styles/layout.css';
 @import './styles/admin.css';
 @import './styles/shell-v2.css';
+@import './styles/tab-top.css';
 @import './styles/lesson-nav-overlay.css';
 @import './styles/feed-v2.css';
 @import './styles/feed-reactions-fx.css';
@@ -21,6 +22,7 @@
 @import './styles/auto-lesson-preview.css';
 @import './styles/profile-v2.css';
 @import './styles/profile-v2-list.css';
+@import './styles/profile-shine.css';
 @import './styles/avatar-picker.css';
 @import './styles/energy-v2.css';
 @import './styles/energy-cells.css';
@@ -28,6 +30,7 @@
 @import './styles/module-video.css';
 @import './styles/admin-v2.css';
 @import './styles/admin-toggles.css';
+@import './styles/admin-achievements.css';
 @import './styles/admin-title-editor.css';
 @import './styles/admin-race.css';
 @import './styles/admin-teacher.css';
@@ -176,4 +179,5 @@
    висят мёртвым грузом в прод-сборке (см. shared/lib/debugToolsEnabled.js) */
 /* Общая анимация появления попапов — после стилей самих окон */
 @import './styles/pop-spring.css';
+@import './styles/hud-pop-out.css';
 @import './styles/perf-flags.css';

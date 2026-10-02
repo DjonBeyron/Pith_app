@@ -63,3 +63,12 @@ export async function claimLevelAchievement() {
   dbg('[RATING] заявка «10-й уровень» →', data === true ? 'выдано' : 'отказ (XP < порога)')
   return data === true
 }
+
+// Тест админа: поставить/снять себе достижение (admin_set_achievement, миграция 20261003120000_achievement_journey_start.sql).
+// place — место 1..3 для «Победителя гонки». → { ok, kind, on } | { ok: false, reason } | null
+export async function adminSetAchievement(kind, on, place = null) {
+  const { data, error } = await supabase.rpc('admin_set_achievement', { p_kind: kind, p_on: on, p_place: place })
+  if (error) { console.error('[RATING] admin_set_achievement:', error.message); return null }
+  dbg('[RATING] админ: достижение', kind, on ? 'выдано' : 'снято', data)
+  return data ?? null
+}

@@ -26,6 +26,10 @@ test('всё повторено: «Памяти пора отдыхать» в �
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Памяти пора отдыхать', { timeout: 30_000 })
   await expect(main).toContainText('Сегодня все слова записаны в твою память')
+  // Связь от шапки к ступеням оборвана, как порванный кабель: разрыв на стволе, жилки у концов, молния и искры
+  await expect(page.locator('.memWires .memTearSpark--bolt')).toHaveCount(1)
+  await expect(page.locator('.memWires .memTearSpark:not(.memTearSpark--bolt)')).toHaveCount(2)
+  expect(await page.locator('.memWires svg g path[fill="none"]').count()).toBeGreaterThanOrEqual(6)
   // Спящий мозг: значок, три «Z»; в нижней панели — три мелких «Z» у мозга
   await expect(main.locator('.lrSleep svg')).toBeVisible()
   await expect(main.locator('.lrZ')).toHaveCount(3)

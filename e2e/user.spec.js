@@ -60,9 +60,17 @@ test('«Моя память»: ступени, слово дня, «Повтор
   const pop = page.getByRole('dialog', { name: 'Временная память' })
   await expect(pop).toContainText('Здесь слова, которые тебе попадались в уроках')
   await expect(pop.locator('.memCountStep')).toHaveCount(3)
+  // Окно — строго по центру экрана, шире прежнего, «в этот счётчик» и «повторить их несколько раз» — на второй строке
+  await pop.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished))) // дорастает из уголка за 0,3 с
+  const popBox = await pop.boundingBox()
+  expect(Math.abs(popBox.x + popBox.width / 2 - page.viewportSize().width / 2)).toBeLessThanOrEqual(1.5)
+  expect(popBox.width).toBeGreaterThan(300)
+  await expect(pop.locator('.memCountStep--1 br, .memCountStep--2 br')).toHaveCount(2)
+  // Экран под окном затемнён так же, как при разблокировке урока в схеме модуля
+  await expect(page.locator('.memCountBack')).toHaveCSS('background-color', 'rgba(5, 6, 9, 0.72)')
   await pop.click()
   await page.locator('.memCountBack').click({ position: { x: 5, y: 5 } })
-  await expect(pop).toHaveCount(0)
+  await expect(pop).toHaveCount(0, { timeout: 5_000 }) // схлопывается 0,34 с
   // Все слова ступени: keep — «сегодня»
   await fresh.getByRole('button', { name: 'Все слова: Новые слова' }).click()
   await expect(page.getByRole('tab', { name: /Новые/ })).toHaveAttribute('aria-selected', 'true')
@@ -134,15 +142,54 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)
   await expect(page.locator('.lrPattern .lrWave')).toHaveCount(0) // повторять нечего — узор спокоен
 
-  // Профиль: «Сохранённые» вместо вкладок «Пройденные»/«Копилка слов»
+  // Профиль: «Сохранённые уроки» вместо вкладок «Пройденные»/«Копилка слов»; надписи про память («В памяти N слов…»)
+  // в профиле больше нет
   await page.getByRole('button', { name: 'Профиль', exact: true }).click()
-  // Первой строкой — память (keep на шаге 2: ещё не «знаю»); тап — в «Моё обучение»
-  await expect(page.locator('.pvKnow')).toHaveText('В памяти 1 слово', { timeout: 30_000 })
-  await expect(page.locator('.pvSectionTitle')).toHaveText('Сохранённые')
+  const savedTitle = page.locator('.pvSectionTitle')
+  await expect(savedTitle).toHaveText('Сохранённые уроки', { timeout: 30_000 })
+  await expect(page.locator('.pvKnow')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Пройденные' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Копилка слов' })).toHaveCount(0)
-  await page.locator('.pvKnow').click()
-  await expect(page.locator('.lrTitle')).toBeVisible()
+  // «Кастомизация профиля» — текст слева
+  await expect(page.getByRole('button', { name: /Кастомизация профиля/ })).toHaveCSS('justify-content', 'flex-start')
+  // Раздел по умолчанию свёрнут, состояние запоминается
+  await expect(savedTitle).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.locator('.pvEmpty')).toHaveCount(0)
+  await savedTitle.click()
+  await expect(page.locator('.pvEmpty')).toBeVisible()
+  await page.reload()
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  await expect(savedTitle).toHaveAttribute('aria-expanded', 'true', { timeout: 30_000 })
+  await savedTitle.click() // вернуть свёрнутым
+  await expect(savedTitle).toHaveAttribute('aria-expanded', 'false')
+})
+
+// Верхняя линия вкладок: верх первого элемента «Памяти» (надпись), «Профиля» (ник) и «Рейтинга» (баннер активной гонки,
+// а без неё — шапка рейтинга) — на одной высоте; у надписи и ника и центры строк совпадают. Худ (уровень · билеты ·
+// энергия) стоит и в «Памяти», как в рекомендациях. Блок «Ежедневные награды» блестит, пока награда не получена
+test('верхняя линия вкладок: «Память», «Профиль», «Рейтинг» на одной высоте', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Память', exact: true }).click()
+  await expect(page.locator('.lrTitle')).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('.hudBarLeft')).toBeVisible() // худ как в рекомендациях
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  await expect(page.locator('.pvNameRow')).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('.pvGear svg')).toBeVisible()
+  await expect(page.locator('.pvKnow')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Рейтинг', exact: true }).click()
+  await expect(page.locator('.ratingWrap > :first-child')).toBeVisible({ timeout: 30_000 })
+  // Вкладки смонтированы всегда (скрытые — visibility), поэтому все три измеряются разом
+  const box = sel => page.locator(sel).first().evaluate(el => { const r = el.getBoundingClientRect(); return { top: r.top, mid: (r.top + r.bottom) / 2 } })
+  const title = await box('.lrTitle')
+  const nick = await box('.pvNameRow')
+  const first = await box('.ratingWrap > :first-child')
+  expect(Math.abs(nick.top - title.top)).toBeLessThanOrEqual(1)
+  expect(Math.abs(nick.mid - title.mid)).toBeLessThanOrEqual(1)
+  expect(Math.abs(first.top - title.top)).toBeLessThanOrEqual(1)
+  // Профиль: «Ежедневные награды» блестит, пока награда не получена; на самом заднем фоне вкладок — узор
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  await expect(page.locator('.pvStreakBtn')).toHaveClass(/pvShine/)
+  for (const tab of [page.locator('.shellV2Tab--pattern')]) await expect(tab).toHaveCount(2) // профиль и рейтинг
 })
 
 test('схема модуля: у пройденного урока-слова — сила памяти вместо приоритета', async ({ page }) => {

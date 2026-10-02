@@ -238,17 +238,19 @@
   top: calc(84px + env(safe-area-inset-top, 0px));
   margin: -8px 0 0 -8px;
   z-index: 6;
-  padding: 12px;
+  /* Значок 17px (был 21) — паддинг на 2px больше, чем раньше: центр значка и зона касания (45×45) остались прежними */
+  padding: 14px;
   border: none;
   background: none;
   color: rgba(255, 255, 255, 0.92);
+  opacity: 0.6; /* ненавязчивый индикатор «звук выключен» */
   line-height: 0;
   cursor: pointer;
 }
 
 .feedHeaderSoundBtn svg {
-  width: 21px;
-  height: 21px;
+  width: 17px;
+  height: 17px;
   filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
 }
 

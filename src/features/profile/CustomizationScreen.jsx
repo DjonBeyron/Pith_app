@@ -6,11 +6,12 @@ import {
 import { getProfile } from '../../shared/api/profileApi.js'
 import { LEVELS } from '../../shared/lib/xpLevels.js'
 import { useAuth } from '../../shared/lib/useAuth.js'
+import { markSeen } from './customizationSeen.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
 const LEVEL10_XP = LEVELS.find(l => l.level === 10)?.xpNeeded ?? 8000
 
-// Экран «Кастомизация» в профиле: три достижения, примерка косметики
+// Экран «Кастомизация профиля»: достижения, примерка косметики
 // (подложка/рамка/медаль) и предпросмотр своей строки в рейтинге.
 // Выбор аватара — отдельный попап по тапу на аватар в самом профиле.
 export default function CustomizationScreen({ onBack }) {
@@ -19,6 +20,7 @@ export default function CustomizationScreen({ onBack }) {
   const [profile,      setProfile]      = useState(null)
   const [loading,      setLoading]      = useState(true)
   const { user } = useAuth()
+  const uid = user?.id ?? null
 
   useEffect(() => {
     (async () => {
@@ -31,9 +33,10 @@ export default function CustomizationScreen({ onBack }) {
         if (await claimLevelAchievement()) ach = [...ach, { kind: 'level10', meta: {} }]
       }
       setAchievements(ach)
+      if (uid) markSeen(uid, ach) // увидел открытое — блок в профиле перестаёт блестеть
       setLoading(false)
     })()
-  }, [])
+  }, [uid])
 
   async function equip(next) {
     const applied = await saveCosmetics(next)

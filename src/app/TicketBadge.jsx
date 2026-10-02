@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Gem, GraduationCap } from 'lucide-react'
 import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
-import { isHudPopupOpen, toggleHudPopup, subscribeHudPopup, useHudOutsideDismiss } from './hudPopupState.js'
+import { isHudPopupOpen, toggleHudPopup, subscribeHudPopup, useHudOutsideDismiss, useHudPopupExit } from './hudPopupState.js'
 import TicketIcon from '../shared/ui/TicketIcon.jsx'
 
 // Значок золотых билетов в верхней панели (рядом с энергией). Тап — мини-окно:
@@ -22,6 +22,7 @@ export default function TicketBadge() {
 
   const wrapRef = useRef(null)
   useHudOutsideDismiss(wrapRef, open)
+  const { shown, closing } = useHudPopupExit(open)
 
   if (!user || !profile) return null
   const count = Math.max(0, profile.tickets ?? 0)
@@ -33,9 +34,9 @@ export default function TicketBadge() {
         <span>{count}</span>
       </button>
 
-      {open && (
+      {shown && (
         <>
-          <div className="energyPop ticketPop">
+          <div className={`energyPop ticketPop${closing ? ' energyPop--out' : ''}`}>
             <b>Золотой билет</b>
             <div className="energyPopHelpRow"><TicketIcon style={{ width: 13, height: 13 }} /> Доступ к супергонке = 1 билет (списывается при открытии)</div>
             <div className="energyPopHelpRow"><GraduationCap size={13} /> Получить: пройди Финал модуля, раскрыв не больше 3 переводов</div>
