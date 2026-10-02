@@ -12,8 +12,9 @@ const SHOWN = 3 // слов на ступени главного экрана �
 // счётчик слов во временной памяти (MemoryCount), три ступени лесенкой (новые → знакомые →
 // усвоенные) и пятиугольник постоянной памяти; линии и шарики — слоем поверх
 // (MemoryLadderWires). Число, название или ⤢ ступени — onOpen(1..3) (все
-// слова ступени), пятиугольник — onOpen(4), слово — onWord
-export default function MemoryLadder({ ladder, onOpen, onWord, children }) {
+// слова ступени), пятиугольник — onOpen(4), слово — onWord. sleeping — мозг спит (всё повторено):
+// искры над пятиугольником не летят, в шапке плывут «Z» (они сменяют друг друга, вместе не идут)
+export default function MemoryLadder({ ladder, sleeping = false, onOpen, onWord, children }) {
   const today = ladder.levels.map(l => l.words.filter(w => w.today).length)
   return (
     <div className="memZone">
@@ -45,7 +46,7 @@ export default function MemoryLadder({ ladder, onOpen, onWord, children }) {
           </div>
         ))}
       </div>
-      <MemoryPermNode count={ladder.permanent.length} onOpen={() => onOpen(4)} />
+      <MemoryPermNode count={ladder.permanent.length} sparks={!sleeping} onOpen={() => onOpen(4)} />
       <MemoryLadderWires today={today} />
     </div>
   )

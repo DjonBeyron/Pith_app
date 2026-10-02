@@ -1,10 +1,11 @@
 import { supabase } from '../api/supabase.js'
+import { viewSession } from '../api/viewSession.js'
 import { dbg } from './debug.js'
 
 // Закладки на ОТДЕЛЬНЫЕ уроки (не путать с module_bookmarks — те на модуль
 // целиком, из ленты). Гостю недоступно — как и лайки/закладки модулей.
 async function currentUser() {
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await viewSession()
   return session?.user ?? null
 }
 

@@ -7,7 +7,7 @@ import { useAuth } from './useAuth.js'
 // показать/скрыть админский UI. Права выставляются в Supabase один раз вручную:
 //   update public.user_profiles set is_admin = true where id = '<uuid аккаунта>';
 export function useIsAdmin() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading } = useAuth({ real: true }) // настоящий вход: в режиме «новенький» админка остаётся
   const [isAdmin, setIsAdmin] = useState(false)
   const [checking, setChecking] = useState(true)
 
@@ -19,7 +19,7 @@ export function useIsAdmin() {
         if (alive) { setIsAdmin(false); setChecking(false) }
         return
       }
-      const p = await getProfile()
+      const p = await getProfile({ real: true })
       if (alive) { setIsAdmin(!!p?.is_admin); setChecking(false) }
     })()
     return () => { alive = false }

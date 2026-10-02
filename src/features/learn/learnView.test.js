@@ -21,6 +21,25 @@ const memory = [
   { word: 'keep', step: 4, due_on: '2026-09-27' },
 ]
 
+describe('вкладка «Моя память»: мозг спит и начатые фразы', () => {
+  it('sleeping — слова в памяти есть, а повторять сегодня нечего', () => {
+    const later = [{ word: 'keep', step: 4, due_on: '2026-09-27' }]
+    expect(buildLearnView({ memory: later, curricula, lessons, minutes: 5 }, today).sleeping).toBe(true)
+    expect(buildLearnView({ memory, curricula, lessons, minutes: 5 }, today).sleeping).toBe(false) // есть что повторить
+    expect(buildLearnView({ memory: [], curricula, lessons, minutes: 5 }, today).sleeping).toBe(false) // память пуста — не «отдыхает»
+    expect(buildLearnView({ memory: later, curricula, lessons, minutes: 5, vacationSince: today }, today).sleeping).toBe(false) // отпуск
+  })
+
+  it('startedPhrases — начатые модули без 100%: из startedIds или с пройденным уроком', () => {
+    const v = buildLearnView({
+      memory: [], curricula, lessons, minutes: 5,
+      startedIds: new Set(['m2']), doneLessons: new Set(['s1', 'l-try']),
+    }, today)
+    expect(v.startedPhrases.map(p => [p.id, p.done, p.total, p.pct])).toEqual([['m1', 2, 5, 40], ['m2', 0, 4, 0]])
+    expect(buildLearnView({ memory: [], curricula, lessons, minutes: 5 }, today).startedPhrases).toEqual([])
+  })
+})
+
 describe('вкладка «Моя память»: данные', () => {
   it('сегодня — созревшие слова с колодой; минут по карточкам', () => {
     const v = buildLearnView({ memory, curricula, lessons, minutes: 5 }, today)

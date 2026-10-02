@@ -36,6 +36,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const [page, setPage] = useState(null)     // null (главный экран) | 1..4 (страница уровней; 4 — постоянная память)
   const [sheet, setSheet] = useState(null)   // { word, perm }
   const [phrases, setPhrases] = useState(null) // null | 'all' (окно «Все фразы») | фраза из view.phraseList (её карточка)
+  const [startedAll, setStartedAll] = useState(false) // окно «Все начатые» (начатые, но не пройденные на 100% фразы)
   const [showPro, setShowPro] = useState(false)
   const [stepBusy, setStepBusy] = useState(false)
   const [wordCard, setWordCard] = useState(null) // { word, phrase } — карточка слова (справка) из карточки фразы
@@ -59,6 +60,8 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const openWord = (word, perm = false) => setSheet({ word, perm })
   // Повторение открывается тапом — в нём же разрешаем звук (iOS: только из жеста)
   const openReview = focus => { unlockReviewAudio(); setReview({ focus, start: startOfReview(view, focus) }) }
+  // Начатая фраза: тап открывает схему её модуля — продолжить с места, где остановился
+  const openStarted = p => openRef({ isModule: true, targetId: p.id, targetTitle: p.title }, null)
   const ladder = view?.ladder
   // Окно слова показывает свежие данные: после тест-шага админа слово могло перейти на другую ступень
   const live = sheet && ladder ? findLadderWord(ladder, sheet.word.word) : null
@@ -84,10 +87,11 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         {error && !view && <p className="lrNote">Не загрузилось. <button className="lrLink" onClick={reload}>Ещё раз</button></p>}
         {view && !page && (
           <>
-            <MemoryLadder ladder={ladder} onOpen={setPage} onWord={openWord}>
-              <LearnMainAction view={view} today={today} onStart={() => openReview(null)} onChanged={reload} />
+            <MemoryLadder ladder={ladder} sleeping={view.sleeping} onOpen={setPage} onWord={openWord}>
+              <LearnMainAction view={view} onStart={() => openReview(null)} onChanged={reload} />
             </MemoryLadder>
-            <MemoryPhrases list={view.phraseList} today={today} onOpen={setPhrases} onAll={() => setPhrases('all')} />
+            <MemoryPhrases list={view.phraseList} started={view.startedPhrases} today={today} onOpen={setPhrases} onAll={() => setPhrases('all')}
+              onOpenStarted={openStarted} onAllStarted={() => setStartedAll(true)} />
             {!isLoggedIn && (
               <div className="lrGuestLead">
                 <p className="lrMainSub">Войди — память слов сохранится, и завтра напомним повторить. Сейчас она живёт только в этом браузере</p>
@@ -112,6 +116,9 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         )}
         {phrases === 'all' && (
           <MemoryPhrasesSheet list={view.phraseList} today={today} onOpen={setPhrases} onClose={() => setPhrases(null)} />
+        )}
+        {startedAll && (
+          <MemoryPhrasesSheet list={view.startedPhrases} started onOpen={p => { setStartedAll(false); openStarted(p) }} onClose={() => setStartedAll(false)} />
         )}
         {phrases && phrases !== 'all' && (
           <MemoryPhraseCard p={phrases} today={today} onClose={() => setPhrases(null)}

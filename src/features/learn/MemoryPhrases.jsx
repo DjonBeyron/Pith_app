@@ -1,24 +1,42 @@
+import { useState } from 'react'
 import { Star, ChevronRight } from 'lucide-react'
 import MemoryPhraseRow from './MemoryPhraseRow.jsx'
+import MemoryStartedRow from './MemoryStartedRow.jsx'
 
 const SHOWN = 3
 
-// Раздел «Мои выученные фразы · N» под пятиугольником вкладки «Память»: коллекция
-// фраз, которые собраны целиком (PROJECT.md → «Решения 2026-10-01 по фразам»).
-// Три последние строками с номерами и «Вся коллекция · N» — окно со всем списком.
-// У фраз расписания повторов нет — это коллекция, а у пустого списка раздела нет совсем
-export default function MemoryPhrases({ list, today, onOpen, onAll }) {
-  if (!list.length) return null
+// Раздел фраз под пятиугольником вкладки «Память» — две вкладки рядом (PROJECT.md → «Решения 2026-10-01 по
+// фразам»): «Мои выученные фразы · N» — коллекция фраз, собранных целиком (три последние строками с номерами
+// и «Вся коллекция · N» — окно со всем списком; расписания повторов у фраз нет) и «Мои начатые фразы · M» —
+// модули, которые начаты, но пройдены не на 100% (тап — открыть и продолжить, «Все начатые · M» — окно со
+// всем списком). Если фраз нет совсем — раздела нет. Открывается на выученных, а если их нет — на начатых
+export default function MemoryPhrases({ list, started = [], today, onOpen, onAll, onOpenStarted, onAllStarted }) {
+  const [tab, setTab] = useState(list.length || !started.length ? 'learned' : 'started')
+  if (!list.length && !started.length) return null
+  const learned = tab === 'learned'
+  const shown = learned ? list : started
   return (
-    <section className="memPhrases" aria-label="Мои выученные фразы">
-      <h2 className="memPhrasesTitle"><Star aria-hidden="true" /> Мои выученные фразы · {list.length}</h2>
-      <p className="memPhrasesLead">Твоя коллекция: фразы, которые ты выучил целиком</p>
-      <div className="memPhrasesList">
-        {list.slice(0, SHOWN).map(p => <MemoryPhraseRow key={p.id} p={p} today={today} onClick={onOpen} />)}
+    <section className="memPhrases" aria-label="Мои фразы">
+      <div className="memPhrasesTabs" role="tablist">
+        <button role="tab" aria-selected={learned} className={learned ? 'memPhrasesTab memPhrasesTab--on' : 'memPhrasesTab'} onClick={() => setTab('learned')}>
+          <Star aria-hidden="true" /> Мои выученные фразы · {list.length}
+        </button>
+        <button role="tab" aria-selected={!learned} className={learned ? 'memPhrasesTab' : 'memPhrasesTab memPhrasesTab--on'} onClick={() => setTab('started')}>
+          Мои начатые фразы · {started.length}
+        </button>
       </div>
-      {list.length > SHOWN && (
-        <button className="memPhrasesAll" onClick={onAll}>
-          Вся коллекция · {list.length} <ChevronRight aria-hidden="true" />
+      <p className="memPhrasesLead">
+        {learned ? 'Твоя коллекция: фразы, которые ты выучил целиком' : 'Фразы, которые ты начал, но ещё не прошёл до конца'}
+      </p>
+      <div className="memPhrasesList">
+        {!shown.length && <p className="memPhrasesEmpty">{learned ? 'Пока нет выученных фраз' : 'Начатых фраз нет — все пройдены или ещё не начаты'}</p>}
+        {learned
+          ? list.slice(0, SHOWN).map(p => <MemoryPhraseRow key={p.id} p={p} today={today} onClick={onOpen} />)
+          : started.slice(0, SHOWN).map(p => <MemoryStartedRow key={p.id} p={p} onClick={onOpenStarted} />)}
+      </div>
+      {shown.length > SHOWN && (
+        <button className="memPhrasesAll" onClick={learned ? onAll : onAllStarted}>
+          {learned ? 'Вся коллекция' : 'Все начатые'} · {shown.length} <ChevronRight aria-hidden="true" />
         </button>
       )}
     </section>

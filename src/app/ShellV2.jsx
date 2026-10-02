@@ -67,7 +67,7 @@ export default function ShellV2() {
   // isAdmin — эффективный (гаснет в «режиме пользователя»), isRealAdmin — настоящий.
   // Настоящим держим только кнопку «Админ» и саму админку: иначе, включив режим,
   // выключить его было бы нечем
-  const { isAdmin, isRealAdmin, userMode } = useAdmin()
+  const { isAdmin, isRealAdmin, userMode, newbie } = useAdmin()
   const { user } = useAuth()
   // Ежедневное полноэкранное окно серии: показывать или нет — решает сервер
   // (первый заход в сутки), см. useStreakGate.js
@@ -81,6 +81,7 @@ export default function ShellV2() {
   // Точка на «Памяти»: есть что повторить сегодня или новое слово из урока
   const memoryFresh = useMemoryFresh(tab === 'learn')
   const learnDot = !!(learn.view?.today.picked.length || learn.view?.today.phrase) || memoryFresh
+  const learnSleeping = !learnDot && !!learn.view?.sleeping // всё повторено — мозг на вкладке спит
   // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
   // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
   useEffect(() => onOpenModule(() => setTab('feed')), [])
@@ -201,7 +202,7 @@ export default function ShellV2() {
       </div>
 
       <MinutesAsk isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} onChanged={learn.reload} />
-      <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} isRealAdmin={isRealAdmin} userMode={userMode} />
+      <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} learnSleeping={learnSleeping} isRealAdmin={isRealAdmin} userMode={userMode || newbie} />
 
       {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}
       {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && !wordCardLesson && (

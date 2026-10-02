@@ -10,7 +10,8 @@ import Confetti from '../../shared/ui/Confetti.jsx'
 // Сверху конфетти — поздравление: повторение завершено. Оно сыплется, пока идут анимации итога
 // (полоски слов, перенос XP), и плавно затихает. В карточке — строка учителя из
 // данных и полоска каждого слова, которая на глазах пополняется (ReviewWordBar): слова идут
-// по одному, медленно, чтобы рост можно было разглядеть. Ниже награда (XpTransfer, если XP
+// по одному, медленно, чтобы рост можно было разглядеть, — и начинают, когда XP уже перенесён в полоску
+// уровня; на границе заливки мигает линия. Ниже награда (XpTransfer, если XP
 // начислен — без «+N XP» текстом), день серии одной строкой (место под неё занято заранее —
 // окно не растёт), серый мостик «Продолжить изучение / «фраза» зелёным с новой строки / Пройдено N% урока» в недопройденный модуль
 // (reviewBridge.js). Слова, которые давались непросто,
@@ -19,7 +20,7 @@ import Confetti from '../../shared/ui/Confetti.jsx'
 // фиолетовой строкой (settled — ответ memory_review_word). memory — память слов
 // до сессии: оттуда прежний шаг для полоски; baseXp — XP до награды.
 const TONE = { good: 'ok', hard: 'mid', again: 'soft', fail: 'soft' }
-const FIRST_MS = 700   // первая полоска начинает расти, когда карточка уже проявилась
+const FIRST_MS = 600   // первая полоска начинает расти через столько после переноса XP (или сразу, если XP нет)
 const STAGGER_MS = 1000 // следующая — через столько после предыдущей (не более MAX_STAGGER шагов)
 const MAX_STAGGER = 5
 const MIN_CONFETTI_MS = 3500 // салют идёт не меньше — даже если анимировать почти нечего
@@ -68,7 +69,7 @@ export default function ReviewSummary({ results, finish, bridge, phrase = null, 
                 {rows.map((r, i) => (
                   <li key={r.word} className={`reviewWord reviewWord--${TONE[r.outcome] ?? 'mid'}`}>
                     <ReviewWordBar word={r.word} from={before.get(r.word) ?? r.step} to={r.step} settled={r.settled}
-                      delay={FIRST_MS + Math.min(i, MAX_STAGGER) * STAGGER_MS} onDone={() => setBarsDone(n => n + 1)} />
+                      delay={FIRST_MS + Math.min(i, MAX_STAGGER) * STAGGER_MS} go={xpDone || !earned} onDone={() => setBarsDone(n => n + 1)} />
                   </li>
                 ))}
               </ul>

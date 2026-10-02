@@ -1,9 +1,12 @@
 import { supabase } from './supabase.js'
 import { dbg } from '../lib/debug.js'
+import { viewSession } from './viewSession.js'
 
-export async function getProfile() {
+// real — настоящий профиль, даже в режиме «новенький» (newbieSim.js): так узнаём, админ ли это. Иначе в этом
+// режиме профиля «нет», как у гостя
+export async function getProfile({ real = false } = {}) {
   // Локальная сессия вместо сетевого getUser — надёжнее на медленном старте
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = real ? (await supabase.auth.getSession()).data.session : await viewSession()
   const user = session?.user
   if (!user) return null
 

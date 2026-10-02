@@ -121,7 +121,7 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await expect(page.locator('.memPage')).toHaveCount(0)
   await expect(page.locator('.memZone')).toBeVisible()
 
-  // Сессия дня: верный ответ → итог (серия, мостик в фразу) → «Повторение на сегодня закончено ✓»
+  // Сессия дня: верный ответ → итог (серия, мостик в фразу) → «Памяти пора отдыхать»
   await main.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
@@ -130,7 +130,7 @@ test('«Моя память»: ступени, слово дня, «Повтор
   await expect(review.locator('.reviewBridge .reviewBridgePhrase')).toHaveText('«Keep going · E2E-ОБУЧЕНИЕ»')
   await expect(review.locator('.reviewBridge .reviewBridgeSub')).toHaveText('Пройдено 25% урока')
   await review.getByRole('button', { name: 'Готово' }).click()
-  await expect(main).toContainText('Повторение на сегодня закончено ✓', { timeout: 30_000 })
+  await expect(main).toContainText('Памяти пора отдыхать', { timeout: 30_000 })
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)
   await expect(page.locator('.lrPattern .lrWave')).toHaveCount(0) // повторять нечего — узор спокоен
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildPhraseList, phraseDateLabel, PHRASE_LOST_TEXT } from './phraseList.js'
+import { buildPhraseList, buildStartedPhrases, phraseDateLabel, PHRASE_LOST_TEXT } from './phraseList.js'
 
 const mod = (id, title, words) => ({ id, title, videoUrl: null, words: words.map(w => ({ word: w, lessonId: 'l-' + w, lessonTitle: w })) })
 const byWord = new Map([['keep', { step: 4, due_on: '2026-10-09' }], ['going', { step: 3, due_on: '2026-10-05' }]])
@@ -61,5 +61,26 @@ describe('список закреплённых фраз', () => {
       expect(PHRASE_LOST_TEXT[k]).toMatch(/коллекции выученных/)
       expect(PHRASE_LOST_TEXT[k]).not.toMatch(/ошибк|не удалось/i)
     }
+  })
+})
+
+describe('«Мои начатые фразы»', () => {
+  const cur = [
+    { id: 'a', title: 'Alpha', video_url: 'v.mp4', lesson_ids: ['a1', 'a2', 'a3', 'a4'] },
+    { id: 'b', title: 'Beta', lesson_ids: ['b1', 'b2'] },
+    { id: 'c', title: 'Gamma', lesson_ids: ['c1', 'c2'] },
+    { id: 'd', title: 'Delta', lesson_ids: [] },
+  ]
+
+  it('начат (в списке начатых или есть пройденный урок), но не 100%; ближние к концу первыми', () => {
+    const list = buildStartedPhrases(cur, new Set(['c']), new Set(['a1', 'a2', 'a3', 'b1', 'b2']))
+    expect(list.map(p => [p.id, p.done, p.total, p.pct])).toEqual([['a', 3, 4, 75], ['c', 0, 2, 0]])
+    expect(list[0]).toMatchObject({ title: 'Alpha', videoUrl: 'v.mp4' })
+  })
+
+  it('пройден на 100% — не в списке; ни начат, ни пройден — тоже; модуль без уроков — нет', () => {
+    expect(buildStartedPhrases(cur, new Set(), new Set(['b1', 'b2']))).toEqual([])
+    expect(buildStartedPhrases(cur, new Set(), new Set())).toEqual([])
+    expect(buildStartedPhrases(null, new Set(), new Set())).toEqual([])
   })
 })

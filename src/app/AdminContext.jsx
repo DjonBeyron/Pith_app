@@ -1,6 +1,7 @@
 import { createContext, useContext, useSyncExternalStore } from 'react'
 import { useIsAdmin } from '../shared/lib/useIsAdmin.js'
 import { getUserMode, setUserMode, subscribeUserMode } from '../shared/lib/userMode.js'
+import { isNewbieSim } from '../shared/lib/newbieSim.js'
 
 // Один источник правды об админ-статусе на всё приложение.
 // Провайдер держит useIsAdmin (один запрос getProfile), потребители читают через useAdmin().
@@ -11,17 +12,20 @@ import { getUserMode, setUserMode, subscribeUserMode } from '../shared/lib/userM
 // он нужен ровно в двух местах: кнопка «Админ» в нижней панели и содержимое самой
 // админки, иначе выключить режим было бы нечем.
 const AdminCtx = createContext({
-  user: null, isAdmin: false, isRealAdmin: false, userMode: false, setUserMode, loading: true,
+  user: null, isAdmin: false, isRealAdmin: false, userMode: false, newbie: false, setUserMode, loading: true,
 })
 
 export function AdminProvider({ children }) {
   const base = useIsAdmin()
   const userMode = useSyncExternalStore(subscribeUserMode, getUserMode, () => false)
+  // «Новенький» (newbieSim.js) — тоже взгляд ученика: админский интерфейс спрятан, кнопка «Админ» остаётся
+  const newbie = isNewbieSim()
   const value = {
     ...base,
-    isAdmin: base.isAdmin && !userMode,
+    isAdmin: base.isAdmin && !userMode && !newbie,
     isRealAdmin: base.isAdmin,
     userMode: base.isAdmin && userMode, // не-админу флаг в localStorage ничего не значит
+    newbie: base.isAdmin && newbie,
     setUserMode,
   }
   return <AdminCtx.Provider value={value}>{children}</AdminCtx.Provider>

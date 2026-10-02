@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { viewSession } from './viewSession.js'
 import { dbg } from '../lib/debug.js'
 
 // Глобальный рейтинг по XP (RPC get_leaderboard — security definer, отдаёт
@@ -21,7 +22,7 @@ export async function fetchMyRank() {
 
 // Мои открытые достижения: [{ kind, meta, unlocked_at }].
 export async function fetchMyAchievements() {
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await viewSession()
   if (!session?.user) return []
   const { data, error } = await supabase
     .from('user_achievements')

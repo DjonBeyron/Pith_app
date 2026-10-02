@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { plural } from '../../shared/lib/plural.js'
 import { setVacation } from '../../shared/api/memoryApi.js'
-import { dueLabel } from './learnView.js'
+import SleepingBrain from './SleepingBrain.jsx'
 
 // Шапка «Моей памяти» — главное действие по состоянию, одно:
 // «Отпуск» (+ вернуться) | память пуста | «Сегодня повторяем N слов» +
-// «Повторить» | «Закрепить фразу» | «Повторение на сегодня закончено ✓» (+ когда следующее).
+// «Повторить» | «Закрепить фразу» | «Памяти пора отдыхать» (всё на сегодня повторено: спящий мозг с «Z»).
 // От низа шапки идёт ствол линий к ступеням (MemoryLadderWires.jsx)
 const fmtDate = d => new Date(`${d}T12:00:00`).toLocaleDateString('ru', { day: 'numeric', month: 'long' })
 const words = n => `${n} ${plural(n, 'слово', 'слова', 'слов')}`
@@ -33,7 +33,7 @@ function Hero({ mod = '', title, sub, children }) {
   )
 }
 
-export default function LearnMainAction({ view, today, onStart, onChanged }) {
+export default function LearnMainAction({ view, onStart, onChanged }) {
   const [busy, setBusy] = useState(false)
 
   if (view.vacation) {
@@ -69,9 +69,8 @@ export default function LearnMainAction({ view, today, onStart, onChanged }) {
     )
   }
   return (
-    <Hero mod=" lrMainDone" title="Повторение на сегодня закончено ✓"
-      sub={view.next
-        ? `Можно отдохнуть. Дальше — ${dueLabel(view.next.date, today)} · ${words(view.next.count)}`
-        : 'Можно отдохнуть. Новые слова — после следующих уроков'} />
+    <Hero mod=" lrMainDone" title="Памяти пора отдыхать" sub="Сегодня все слова записаны в твою память">
+      <SleepingBrain />
+    </Hero>
   )
 }

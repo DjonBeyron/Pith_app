@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { listWordMemory, listRecentReviews, getMemoryProfile, importGuestMemory, listPhraseRows } from '../../shared/api/memoryApi.js'
+import { fetchStartedModules } from '../../shared/api/moduleSocialApi.js'
+import { fetchMyDoneLessonIds } from '../../shared/api/starsApi.js'
+import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { hasGuestMemory } from '../../shared/lib/memory/guestMemory.js'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { listLessonDeckFlags } from '../../shared/lib/lessonsApi.js'
@@ -18,10 +21,12 @@ export function useLearnData(isLoggedIn) {
 
   const reload = useCallback(async () => {
     try {
-      const [memory, curricula, lessons, reviews, { minutes, vacationSince }, phraseRows] = await Promise.all([
+      const [memory, curricula, lessons, reviews, { minutes, vacationSince }, phraseRows, startedIds, doneIds] = await Promise.all([
         listWordMemory(), loadCurricula(), listLessonDeckFlags(), listRecentReviews(14), getMemoryProfile(), listPhraseRows(),
+        fetchStartedModules().catch(() => new Set()), fetchMyDoneLessonIds().catch(() => []),
       ])
-      setView(buildLearnView({ memory, curricula, lessons, reviews, minutes, vacationSince, phraseRows }, localToday()))
+      const doneLessons = new Set([...getCompletedLessons(), ...doneIds])
+      setView(buildLearnView({ memory, curricula, lessons, reviews, minutes, vacationSince, phraseRows, startedIds, doneLessons }, localToday()))
       setError(false)
     } catch (e) {
       console.error('[LEARN] загрузка:', e?.message)

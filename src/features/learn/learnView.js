@@ -3,7 +3,7 @@ import { pickToday, dailyCardBudget, cardsShownToday, localDate } from '../../sh
 import { sessionMinutes } from '../review/reviewTeacher.js'
 import { plural } from '../../shared/lib/plural.js'
 import { buildLadder } from './memoryLadder.js'
-import { buildPhraseList } from './phraseList.js'
+import { buildPhraseList, buildStartedPhrases } from './phraseList.js'
 
 // Всё, что показывает вкладка «Моя память» (PROJECT.md → «Вкладки»), из
 // сырых данных — чистая функция без сети:
@@ -19,8 +19,10 @@ import { buildPhraseList } from './phraseList.js'
 //   strongPhrases — закреплённые фразы (собраны целиком, golden);
 //   phraseList — раздел «Фразы»: закреплённые фразы со снимком и пометкой lost,
 //             если урок фразы пропал (phraseList.js);
+//   startedPhrases — «Мои начатые фразы»: модули, начатые, но пройденные не на 100% (phraseList.js);
 //   today.phrase — фраза к закреплению: все слова «знаю», ещё не золотая
 //             (одна в день — приходит в повторение после карточек слов);
+//   sleeping — всё на сегодня повторено: блок «Памяти пора отдыхать», спящий мозг, искры пятиугольника молчат;
 //   vacation — «Отпуск» ({ since } | null): расписание на паузе, сегодня
 //             ничего не предлагается (и точки на вкладке нет);
 //   stepOf, lessonWord — Map слово → шаг и урок → слово: лента подсвечивает
@@ -29,8 +31,9 @@ export const KNOW_STEP = 3
 
 // data: { memory: word_memory[], curricula: [{ id, title, lesson_ids }],
 //         lessons: [{ id, title, deck }], reviews: review_events[], minutes, vacationSince,
-//         phraseRows: строки phrase_memory [{ module_id, consolidated_at, phrase_title, phrase_words }] }
-export function buildLearnView({ memory = [], curricula = [], lessons = [], reviews = [], minutes = 5, vacationSince = null, phraseRows = [] }, today) {
+//         phraseRows: строки phrase_memory [{ module_id, consolidated_at, phrase_title, phrase_words }],
+//         startedIds: Set начатых модулей, doneLessons: Set пройденных уроков }
+export function buildLearnView({ memory = [], curricula = [], lessons = [], reviews = [], minutes = 5, vacationSince = null, phraseRows = [], startedIds = new Set(), doneLessons = new Set() }, today) {
   const golden = new Set(phraseRows.map(r => r.module_id))
   const byWord = new Map(memory.map(m => [m.word, m]))
   const lessonById = new Map(lessons.map(l => [l.id, l]))
@@ -90,6 +93,8 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
 
   return {
     empty: memory.length === 0,
+    // Мозг «спит»: слова в памяти есть, но повторять сегодня нечего и фразу закреплять не надо (не в отпуске)
+    sleeping: !vacationSince && memory.length > 0 && !picked.length && !ready,
     minutes,
     stepOf: new Map(memory.map(m => [m.word, m.step])),
     lessonWord: new Map(lessons.map(l => [l.id, wordKey(l.title)]).filter(([, w]) => w)),
@@ -104,6 +109,7 @@ export function buildLearnView({ memory = [], curricula = [], lessons = [], revi
     week: weekSummary(reviews, today),
     phrases,
     phraseList: buildPhraseList(phraseRows, new Map(moduleWords.map(m => [m.id, m])), byWord, hasDeck),
+    startedPhrases: buildStartedPhrases(curricula, startedIds, doneLessons),
     known: memory.filter(m => m.step >= KNOW_STEP).length,
     strongPhrases: phrases.filter(p => p.golden).length,
   }

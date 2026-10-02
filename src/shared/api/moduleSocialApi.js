@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { viewSession } from './viewSession.js'
 
 // Лайки, закладки и прогресс модулей (новый интерфейс, видео-лента).
 // Лайки/закладки гостю недоступны — лента предлагает войти. «Начатые модули»
@@ -8,7 +9,7 @@ const LS_STARTED = 'pithy_started_modules_v1'
 
 // Локальное чтение сессии (без сетевого getUser)
 async function currentUser() {
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await viewSession()
   return session?.user ?? null
 }
 

@@ -1,0 +1,87 @@
+/* Спящий мозг (SleepingBrain.jsx в блоке «Памяти пора отдыхать», ShellNav.jsx в нижней панели): мозг дышит,
+   над ним всплывают «Z». Всплывают медленно и плавно (6,5 с, ease-in-out), в отличие от искр над пятиугольником
+   (3,4–3,9 с). Только transform и opacity — композитор, без перерисовки */
+
+/* Блок «Памяти пора отдыхать»: заголовок всегда в одну строку — кегль растёт и сжимается вместе с шириной
+   самого блока (cqi — доля ширины контейнера), справа место под мозг */
+.lrMainDone { container-type: inline-size; padding-right: 76px; }
+.lrMainDone .lrMainTitle {
+  font-size: clamp(11px, 6.1cqi, 21px);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.lrSleep {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 38px;
+  height: 38px;
+  margin-top: -14px;
+  color: #8f9ab8;
+  pointer-events: none;
+}
+.lrSleep > svg { width: 100%; height: 100%; animation: lrBrainBreathe 5s ease-in-out infinite; }
+@keyframes lrBrainBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+
+/* «Z»: поднимаются от мозга на ~44 px, чуть покачиваясь вбок, растут и гаснут. Три штуки, старты разведены
+   на треть периода — в кадре почти всегда две-три */
+.lrZ {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  margin-left: -4px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+  color: #b9c3ff;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: lrZFloat 6.5s ease-in-out infinite;
+}
+.lrZ--1 { font-size: 11px; --zx: 8px; animation-delay: 0s; }
+.lrZ--2 { font-size: 14px; --zx: -4px; animation-delay: -2.2s; }
+.lrZ--3 { font-size: 17px; --zx: 10px; animation-delay: -4.4s; }
+@keyframes lrZFloat {
+  0% { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
+  18% { opacity: 0.9; }
+  55% { transform: translate3d(calc(var(--zx) * -0.5), -26px, 0) scale(0.95); opacity: 0.8; }
+  100% { transform: translate3d(var(--zx), -46px, 0) scale(1.15); opacity: 0; }
+}
+
+/* Мозг спит и в нижней панели: три мелких «Z» у значка, всплывают так же неспешно */
+.shellV2NavBtn--sleep { position: relative; }
+.shellV2NavZzz { position: absolute; top: 1px; left: 50%; width: 0; height: 0; pointer-events: none; }
+.shellV2NavZzz i {
+  position: absolute;
+  left: 4px;
+  top: 0;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+  color: #b9c3ff;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: navZFloat 5.4s ease-in-out infinite;
+}
+.shellV2NavZzz i:nth-child(1) { font-size: 6px; animation-delay: 0s; }
+.shellV2NavZzz i:nth-child(2) { font-size: 7.5px; animation-delay: -1.8s; }
+.shellV2NavZzz i:nth-child(3) { font-size: 9px; animation-delay: -3.6s; }
+@keyframes navZFloat {
+  0% { transform: translate3d(0, 4px, 0); opacity: 0; }
+  20% { opacity: 0.95; }
+  55% { transform: translate3d(3px, -3px, 0); opacity: 0.85; }
+  100% { transform: translate3d(7px, -10px, 0); opacity: 0; }
+}
+
+.shellV2TabHidden .lrZ, .shellV2TabHidden .lrSleep > svg { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .lrSleep > svg, .shellV2NavZzz i { animation: none; }
+  .lrZ { animation: none; opacity: 0.8; }
+  .lrZ--1 { transform: translate3d(8px, -14px, 0); }
+  .lrZ--2 { transform: translate3d(-2px, -26px, 0); }
+  .lrZ--3 { transform: translate3d(8px, -40px, 0); }
+  .shellV2NavZzz i { opacity: 0.8; }
+}

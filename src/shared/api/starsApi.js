@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { isNewbieSim } from '../lib/newbieSim.js'
 import { dbg } from '../lib/debug.js'
 
 // ── Звёзды уроков: клиентский API ──
@@ -18,6 +19,7 @@ export async function saveLessonStars(lessonId, stars) {
 
 // Мои звёзды по списку уроков: Map<lessonId, stars>. Гостю вернёт пустую.
 export async function fetchMyLessonStars(ids) {
+  if (isNewbieSim()) return new Map() // режим «новенький»: звёзд ещё нет (newbieSim.js)
   if (!ids?.length) return new Map()
   const { data, error } = await supabase
     .from('lesson_results').select('lesson_id, stars')
@@ -31,6 +33,7 @@ export async function fetchMyLessonStars(ids) {
 // фразу» в итоге повторения считает по ним долю пройденного модуля
 // (вместе с локальной отметкой completedLessons). Гостю — пусто
 export async function fetchMyDoneLessonIds() {
+  if (isNewbieSim()) return new Set()
   const { data, error } = await supabase.from('lesson_results').select('lesson_id').eq('xp_awarded', true)
   if (error) { console.error('[STARS] fetchMyDoneLessonIds:', error.message); return new Set() }
   return new Set((data ?? []).map(r => r.lesson_id))

@@ -41,6 +41,25 @@ export function buildPhraseList(rows, moduleById, byWord, hasDeck) {
     .map((p, i, all) => ({ ...p, n: all.length - i }))
 }
 
+// «Мои начатые фразы»: модули (фразы), которые ученик начал, но не прошёл до конца — нет 100%.
+// Начат = отмечен в user_module_progress (startedIds) или в нём пройден хоть один урок; процент —
+// доля пройденных уроков модуля (как в «Моих уроках» и в мостике итога повторения).
+// curricula — [{ id, title, video_url, lesson_ids }]; startedIds — Set id модулей; done — Set пройденных уроков.
+// → [{ id, title, videoUrl, done, total, pct }], ближние к концу первыми
+export function buildStartedPhrases(curricula, startedIds, done) {
+  return (curricula ?? [])
+    .map(m => {
+      const ids = Array.isArray(m.lesson_ids) ? m.lesson_ids : []
+      const n = ids.filter(id => done.has(id)).length
+      return {
+        id: m.id, title: (m.title ?? '').trim(), videoUrl: m.video_url ?? null,
+        done: n, total: ids.length, pct: ids.length ? Math.round((n / ids.length) * 100) : 0,
+      }
+    })
+    .filter(p => p.total > 0 && p.pct < 100 && (startedIds.has(p.id) || p.done > 0))
+    .sort((a, b) => b.pct - a.pct || a.title.localeCompare(b.title))
+}
+
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
 
 // '2026-10-01' → '1 окт'; не этого года — '1 окт 2025'; даты нет — ''

@@ -40,6 +40,19 @@
   transition: opacity 0.6s ease;
 }
 .reviewScreen[class*='--lvl']::before { opacity: 1; }
+/* Верхний край экрана растворяется: узор и оттенок памяти плавно уходят в сплошной фон у самого верха
+   (слой над оттенком, под содержимым). Только сверху */
+.reviewScreen::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: -1;
+  height: calc(env(safe-area-inset-top, 0px) + 120px);
+  background: linear-gradient(to bottom, #0e1013 12%, rgba(14, 16, 19, 0));
+  pointer-events: none;
+}
 .reviewScreen--lvl1 { --rv-c: var(--lvl1); --rv-rgb: var(--lvl1-rgb); }
 .reviewScreen--lvl2 { --rv-c: var(--lvl2); --rv-rgb: 226, 205, 120; }
 .reviewScreen--lvl3 { --rv-c: var(--lvl3); --rv-rgb: 182, 254, 59; }
@@ -141,16 +154,18 @@
   transform: translateZ(0);
 }
 
-/* Плеер внутри карточки: акцент «худа» (кнопка ▶ и спектр голосовых, свечение печати) — цвет ступени слова;
-   нижний отступ чата втрое меньше обычного: в карточке нет home indicator под лентой, поэтому safe-area
-   в запас не входит, а слот «печатает» ужат до высоты самой строки точек (24 px) */
-.reviewCardFrame .lessonPlayer { --player-accent: var(--rv-c, #b6fe3b); --wait-slot: 24px; }
-.reviewCardFrame .playerFeed { padding: calc(var(--wait-slot) + 2px) 0 12px; }
-.reviewCardFrame .playerWaitingRow { bottom: 2px; }
-/* Распорки панелей ответа держат прежний зазор «сообщение → панель» (12 px) при ужатом запасе ленты */
+/* Плеер внутри карточки: акцент «худа» (кнопка ▶ и спектр голосовых, свечение печати) — цвет ступени слова.
+   Нижний запас чата — --rv-x плюс 12 px: в карточке нет home indicator под лентой, поэтому safe-area в запас не
+   входит, а слот «печатает» ужат до высоты самой строки точек (24 px). Обычный запас в плеере ≈ 74 px
+   (12 + safe-area + слот), было ужато до 26 — слишком низко; теперь середина (≈ 50 px) */
+.reviewCardFrame .lessonPlayer { --player-accent: var(--rv-c, #b6fe3b); --wait-slot: 24px; --rv-x: 38px; }
+.reviewCardFrame .playerFeed { padding: calc(var(--rv-x) + 12px) 0 12px; }
+/* Точки «печатает» — сразу под последним сообщением */
+.reviewCardFrame .playerWaitingRow { bottom: calc(var(--rv-x) - 12px); }
+/* Распорки панелей ответа держат прежний зазор «сообщение → панель» (12 px) при ином запасе ленты */
 .reviewCardFrame :is(.fbSpacer, .chooseWordSpacer, .pcPanelSpacer, .phraseAssemblySpacer, .regPanelSpacer, .tdSpacer, .tmSpacer) {
-  margin-bottom: -14px;
-  min-height: 14px;
+  margin-bottom: calc(var(--rv-x) * -1);
+  min-height: var(--rv-x);
 }
 
 /* Плеер внутри карточки: без «телефона» на десктопе, без шапки урока и

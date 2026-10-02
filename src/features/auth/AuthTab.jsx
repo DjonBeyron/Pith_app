@@ -25,7 +25,9 @@ function loginErrorToRu(error) {
 }
 
 export default function AuthTab({ onLoginSuccess }) {
-  const { user, isAdmin, loading } = useAdmin()
+  // «Новенький» (админ, newbieSim.js): вход не показываем — форма как у нового гостя, сессия при этом жива
+  const { user: realUser, isAdmin, loading, newbie } = useAdmin()
+  const user = newbie ? null : realUser
   const [mode,     setMode]     = useState('login') // 'login' | 'register'
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')

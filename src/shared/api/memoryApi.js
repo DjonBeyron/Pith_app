@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { viewSession } from './viewSession.js'
 import { dbg } from '../lib/debug.js'
 import { localDate } from '../lib/memory/dailyPick.js'
 import {
@@ -15,7 +16,7 @@ import {
 // входа память гостя переносится в аккаунт (importGuestMemory). Без
 // применённой миграции — пустая память, приложение не ломается.
 
-const isGuest = async () => !(await supabase.auth.getSession()).data.session?.user
+const isGuest = async () => !(await viewSession())?.user
 const today = () => localDate(new Date())
 
 // Вся память пользователя: [{ word, step, due_on, settled_on,
@@ -112,7 +113,7 @@ export async function finishReviewSession(words) {
 // Гость и сбой — 5 минут, не в отпуске. → { minutes, vacationSince }
 export async function getMemoryProfile() {
   const none = { minutes: 5, vacationSince: null }
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await viewSession()
   if (!session?.user) return { minutes: getGuestMinutes(), vacationSince: null }
   const q = cols => supabase.from('user_profiles').select(cols).eq('id', session.user.id).maybeSingle()
   let { data, error } = await q('daily_minutes, vacation_since')

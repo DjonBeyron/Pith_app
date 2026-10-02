@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { viewSession } from './viewSession.js'
 
 // Сложность фразы на слух: голос 1 (легко) / 2 (средне) / 3 (сложно).
 // Одна строка на (user, module), голос перезаписываемый. Итог (медиана +
@@ -11,7 +12,7 @@ export const MIN_DIFFICULTY_VOTES = 5
 
 // Мои голоса по всем модулям: { moduleId: 1|2|3 }. Гость → пусто.
 export async function fetchMyDifficultyVotes() {
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await viewSession()
   if (!session?.user) return {}
   const { data, error } = await supabase
     .from('module_difficulty_votes')
@@ -26,7 +27,7 @@ export async function fetchMyDifficultyVotes() {
 
 // Поставить/переписать голос
 export async function setDifficultyVote(moduleId, vote) {
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await viewSession()
   if (!session?.user) return false
   const { error } = await supabase.from('module_difficulty_votes').upsert(
     { user_id: session.user.id, module_id: moduleId, vote },

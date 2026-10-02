@@ -20,19 +20,22 @@ async function seedAudioCard(page, flags = {}, text = 'Hello') {
     for (const [k, v] of Object.entries(f)) localStorage.setItem(k, v)
   }, [today, flags])
   await page.route('**/rest/v1/lessons?*', async route => {
-    const res = await route.fetch()
-    const json = await res.json()
-    for (const l of json) {
-      if (l.title !== 'keep') continue
-      l.cards = [{ id: 'e2e-audio-card', nodes: [
-        { id: 'na1', seq: 1, x: 0, y: 0, size: 'max', type: 'audio', typeData: { audio: { text, file_id: 'e2e0f000-0000-4000-8000-000000000001' } },
-          triggers: [{ id: 'na1t', if: 'timer', ms: 800, then: 'na2' }] },
-        { id: 'na2', seq: 2, x: 370, y: 0, size: 'max', type: 'word_choice',
-          typeData: { word_choice: { options: [{ id: 'no1', text: 'keep', isCorrect: true }, { id: 'no2', text: 'kept' }], responseCorrect: '', responseWrong: '' } },
-          triggers: [{ id: 'na2a', if: 'word_correct', then: null }, { id: 'na2b', if: 'word_wrong', then: null }] },
-      ] }]
-    }
-    await route.fulfill({ response: res, json })
+    // Ответ сервера подменяется на лету; страница могла уйти на перезагрузку — тогда запрос просто отпускаем
+    try {
+      const res = await route.fetch()
+      const json = await res.json()
+      for (const l of json) {
+        if (l.title !== 'keep') continue
+        l.cards = [{ id: 'e2e-audio-card', nodes: [
+          { id: 'na1', seq: 1, x: 0, y: 0, size: 'max', type: 'audio', typeData: { audio: { text, file_id: 'e2e0f000-0000-4000-8000-000000000001' } },
+            triggers: [{ id: 'na1t', if: 'timer', ms: 800, then: 'na2' }] },
+          { id: 'na2', seq: 2, x: 370, y: 0, size: 'max', type: 'word_choice',
+            typeData: { word_choice: { options: [{ id: 'no1', text: 'keep', isCorrect: true }, { id: 'no2', text: 'kept' }], responseCorrect: '', responseWrong: '' } },
+            triggers: [{ id: 'na2a', if: 'word_correct', then: null }, { id: 'na2b', if: 'word_wrong', then: null }] },
+        ] }]
+      }
+      await route.fulfill({ response: res, json })
+    } catch { await route.continue().catch(() => {}) }
   })
   await page.goto('/')
   await page.getByRole('button', { name: 'Память', exact: true }).click()

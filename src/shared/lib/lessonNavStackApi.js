@@ -1,4 +1,5 @@
 import { supabase } from '../api/supabase.js'
+import { viewSession } from '../api/viewSession.js'
 import { dbg } from './debug.js'
 
 // Стек паузы/возврата: переход по ноде lesson_ref на другой урок/модуль
@@ -9,7 +10,7 @@ import { dbg } from './debug.js'
 const LS_KEY = 'pithy_lesson_nav_stack_v1'
 
 async function currentUser() {
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await viewSession()
   return session?.user ?? null
 }
 

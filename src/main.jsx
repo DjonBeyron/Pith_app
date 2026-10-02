@@ -1,3 +1,5 @@
+// Самым первым: режим «новенький» подменяет localStorage до того, как его начнёт читать остальное приложение
+import './shared/lib/newbieBoot.js'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './app/App.jsx'

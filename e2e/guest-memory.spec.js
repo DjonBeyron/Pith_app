@@ -52,8 +52,8 @@ test('гость проходит урок-слово → слово в его �
   await expect(nav).toHaveClass(/shellV2NavBtnDue/) // новое слово — повторять его завтра, а вкладка уже зовёт (залитая иконка)
   await nav.click()
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/) // открыли вкладку — перестала звать
-  await expect(page.locator('.lrMain')).toContainText('Повторение на сегодня закончено ✓', { timeout: 30_000 })
-  await expect(page.locator('.lrMain')).toContainText('Дальше — завтра · 1 слово')
+  await expect(page.locator('.lrMain')).toContainText('Памяти пора отдыхать', { timeout: 30_000 })
+  await expect(page.locator('.lrMain')).toContainText('Сегодня все слова записаны в твою память')
   await expect(page.locator('.lrGuestLead')).toContainText('только в этом браузере')
   // Минуты — в шестерёнке (у гостя — над формой входа)
   await page.getByRole('button', { name: 'Профиль', exact: true }).click()
@@ -167,7 +167,7 @@ test('закрепление фразы: все слова окрепли → с
   await review.getByRole('button', { name: 'Готово' }).click()
 
   // Повторять сегодня больше нечего
-  await expect(main).toContainText('Повторение на сегодня закончено', { timeout: 30_000 })
+  await expect(main).toContainText('Памяти пора отдыхать', { timeout: 30_000 })
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)
 })
 

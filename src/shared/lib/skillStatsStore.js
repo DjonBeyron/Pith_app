@@ -1,4 +1,5 @@
 import { supabase } from '../api/supabase.js'
+import { viewSession } from '../api/viewSession.js'
 import { pLog } from './debug.js'
 
 // Хранение событий ответов (SKILL_ANALYSIS.md §6).
@@ -62,7 +63,7 @@ export async function saveAnswerEvents(events, { sourceLessonId, isLoggedIn }) {
 // Весь лог для расчёта приоритетов (этап 4): гость — localStorage,
 // залогиненный — answers всех своих строк lesson_results.
 export async function loadAllEvents() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = (await viewSession())?.user
   if (!user) return loadLocalEvents()
   const { data, error } = await supabase.from('lesson_results').select('answers')
   if (error || !data) return []

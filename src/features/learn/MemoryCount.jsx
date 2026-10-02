@@ -8,7 +8,7 @@ import { WIRE_COLORS } from './ladderWires.js'
 // Число «дышит» цветами ступеней (серый → жёлтый → салатовый, каждый
 // загорается и медленно тускнеет — три копии числа, у каждой своя фаза, меняется
 // только opacity). Вокруг него, как электроны вокруг ядра, тесно летят три точки
-// цветов ступеней по трём пересекающимся орбитам (эллипс 24×8 px, повёрнут на
+// цветов ступеней (когда слов больше нуля; при 0 — только число) по трём пересекающимся орбитам (эллипс 24×8 px, повёрнут на
 // 0° / 60° / 120°); сами орбиты видны тонкими бледными линиями. Точка едет
 // двумя transform-анимациями — по x и по y со сдвигом на четверть круга
 // (эллипс без offset-path: всё на компоситоре, страница не перерисовывается).
@@ -73,14 +73,19 @@ export default function MemoryCount({ total }) {
   return (
     <div className="memCountWrap">
       <button ref={btnRef} className="memCount" onClick={open} aria-label={`${words}. Подробнее`}>
-        <svg className="memOrbitLines" viewBox="-30 -30 60 60" aria-hidden="true">
-          {ORBITS.map(o => <ellipse key={o.deg} rx="24" ry="8" transform={`rotate(${o.deg})`} stroke={o.color} />)}
-        </svg>
-        {ORBITS.map(o => (
-          <span key={o.deg} className="memOrbit" style={{ transform: `rotate(${o.deg}deg)`, color: o.color, '--dur': `${o.dur}s` }} aria-hidden="true">
-            <span className="memOrbitX"><span className="memOrbitY"><i /></span></span>
-          </span>
-        ))}
+        {/* Слов нет (0) — три точки не летают: орбитам нечего окружать */}
+        {total > 0 && (
+          <>
+            <svg className="memOrbitLines" viewBox="-30 -30 60 60" aria-hidden="true">
+              {ORBITS.map(o => <ellipse key={o.deg} rx="24" ry="8" transform={`rotate(${o.deg})`} stroke={o.color} />)}
+            </svg>
+            {ORBITS.map(o => (
+              <span key={o.deg} className="memOrbit" style={{ transform: `rotate(${o.deg}deg)`, color: o.color, '--dur': `${o.dur}s` }} aria-hidden="true">
+                <span className="memOrbitX"><span className="memOrbitY"><i /></span></span>
+              </span>
+            ))}
+          </>
+        )}
         <b ref={numRef} className="memCountNum memCountNum--ghost" aria-hidden="true">{total}</b>
         {[1, 2, 3].map(n => <b key={n} className={`memCountNum memCountNum--${n}`} aria-hidden="true">{total}</b>)}
       </button>

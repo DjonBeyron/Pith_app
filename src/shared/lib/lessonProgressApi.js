@@ -1,4 +1,5 @@
 import { supabase } from '../api/supabase.js'
+import { viewSession } from '../api/viewSession.js'
 import { dbg } from './debug.js'
 
 // Чекпойнт «докуда дошёл в уроке» — для попапа «Продолжить / Начать заново»
@@ -34,7 +35,7 @@ export function isLessonStarted(lessonId) {
 }
 
 async function currentUser() {
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await viewSession()
   return session?.user ?? null
 }
 
