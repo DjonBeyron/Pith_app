@@ -77,6 +77,14 @@ test('гость повторяет слово дня → итог зовёт в
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
   await expect(review.locator('.reviewTeacherLine').first()).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 }) // последняя карточка — итог придёт сам
   await expect(review.locator('.reviewGuestLead')).toBeVisible()
+  // Пока полоска слова пополняется, мигает её заливка (и линия на границе), а обводка полоски не мигает
+  const bar = review.locator('.reviewBar--grow')
+  await bar.waitFor({ timeout: 15_000 })
+  expect(await bar.evaluate(el => ({
+    outline: getComputedStyle(el).animationName,
+    fill: getComputedStyle(el.querySelector('.memChipFill')).animationName,
+    edge: getComputedStyle(el.querySelector('.reviewBarEdge')).animationName,
+  }))).toEqual({ outline: 'none', fill: 'reviewFillBlink', edge: 'reviewEdgeBlink' })
   await review.getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
   // Шаг вырос локально: keep всё ещё в «Новых», заливка — три четверти пути

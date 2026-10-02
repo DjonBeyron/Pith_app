@@ -31,6 +31,14 @@ const option = (screen, text) => screen.locator('.chooseWordPanel').getByRole('b
 
 test('сессия: ошибка → слово в конце → верно; жест, клавиша, итог, XP, мостик в модуль', async ({ page }) => {
   test.slow()
+  // Счётчик награды в переносе XP: пишем каждое его значение (шарики отнимают от него по доле)
+  await page.addInitScript(() => {
+    window.__xpSeq = []
+    new MutationObserver(() => {
+      const el = document.querySelector('.summaryXpEarned > span:first-child')
+      if (el && el.textContent !== window.__xpSeq[window.__xpSeq.length - 1]) window.__xpSeq.push(el.textContent)
+    }).observe(document, { subtree: true, childList: true, characterData: true })
+  })
   await page.goto('/')
   await page.getByRole('button', { name: 'Админ', exact: true }).click()
   await page.locator('.avTab', { hasText: 'Повторение' }).click()
@@ -64,6 +72,9 @@ test('сессия: ошибка → слово в конце → верно; ж
   await option(screen, 'cake').click({ timeout: 30_000 })
   await expect(screen.locator('.reviewVerdict--bad')).toContainText('мы ещё вернёмся к этому слову')
   await expect(screen.locator('.reviewPhraseWord')).toHaveText('cook') // слово проявилось
+  await expect(screen.locator('.rvSlot--open')).toHaveCount(1, { timeout: 3000 }) // переход кончился: слот снова обычный текст
+  expect(await screen.locator('.rvSlot').evaluate(el => el.style.width)).toBe('') // ширина вернулась в авто — фраза не зависит от размера окна
+  await expect(screen.locator('.reviewPhraseHidden')).toBeHidden() // точки убраны из потока
   await page.waitForTimeout(900) // плашка откинулась, подсказка проявилась
   expect({ card: await cardBox(), foot: await footH() }).toEqual(still)
   await swipeLeft(page, screen.locator('.reviewCard')) // «Далее» жестом (карточка не последняя)
@@ -76,13 +87,27 @@ test('сессия: ошибка → слово в конце → верно; ж
   expect({ card: await cardBox(), foot: await footH() }).toEqual(still) // и при верном ответе — на месте
   // Последняя карточка: ни «Далее», ни «смахни…» — пауза на плашке, затемнение, итог поверх еле видной карточки
   await expect(screen.locator('.reviewSwipeHint, .reviewNext')).toHaveCount(0)
-  await expect(screen.locator('.reviewScrim')).toBeVisible({ timeout: 10_000 })
+  // Колода до итога не темнеет: затемнение — это подложка самого итога, она появляется вместе с результатами
+  await expect(screen.locator('.reviewSummary')).toHaveCount(0)
   await expect(screen.locator('.reviewSummaryTitle')).toHaveText('Повторение завершено', { timeout: 30_000 })
+  await expect(screen.locator('.reviewSummary.lessonSummaryOverlayVisible')).toBeVisible()
+  await expect.poll(() => screen.locator('.reviewSummary').evaluate(el => getComputedStyle(el).backgroundColor), { timeout: 3000 }).toBe('rgba(0, 0, 0, 0.9)')
   await expect(screen.locator('.reviewCard')).toHaveCount(1) // карточка осталась под итогом
   await expect(screen.locator('.reviewCard')).toBeVisible()
   await expect(screen.locator('.reviewTeacherLine')).toHaveText('cook пока даётся непросто — вернёмся к нему завтра.')
   await expect(screen.locator('.reviewWord--soft')).toContainText('cook')
   await expect(screen.locator('.reviewReward')).toContainText(/серии|серия/, { timeout: 20_000 }) // после переноса награды в XP-полоску; «+N XP» текстом не пишем
+  // Перенос XP в полоску: шариков столько же, сколько XP, но не больше десяти; каждый отлёт отнимает от счётчика
+  // свою долю (доли отличаются не больше чем на 1), в конце счётчик пуст
+  await expect(screen.locator('.reviewReward--on')).toHaveCount(1, { timeout: 20_000 }) // строка серии включается, когда перенос закончен
+  const seq = (await page.evaluate(() => window.__xpSeq)).map(Number)
+  expect(seq.length, 'счётчик XP менялся').toBeGreaterThan(1)
+  const steps = seq.slice(1).map((v, i) => seq[i] - v)
+  expect(seq[seq.length - 1]).toBe(0)
+  expect(steps.length).toBe(Math.min(seq[0], 10))
+  expect(steps.every(d => d > 0)).toBe(true)
+  expect(Math.max(...steps) - Math.min(...steps)).toBeLessThanOrEqual(1)
+  expect(steps.reduce((a, b) => a + b, 0)).toBe(seq[0])
   // Мостик в модуль слова: пройден урок cook — 1 из 4 (сид)
   await expect(screen.locator('.reviewBridge .reviewBridgeMain')).toHaveText('Продолжить изучение')
   await expect(screen.locator('.reviewBridge .reviewBridgePhrase')).toHaveText("«I'm trying to cook · E2E-КОЛОДЫ»") // фраза — на своей строке

@@ -23,10 +23,10 @@
   color: #e0e0e0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
-/* Оттенок цвета ступени сверху и снизу — отдельный слой под содержимым. Появляется, только когда
-   известна ступень (класс --lvlN): пока её нет — фон нейтральный, а не чужого цвета. Класс стоит с
-   первого кадра (ступень известна уже на экране загрузки) — слой сразу на месте; если он появляется
-   позже, то проявляется плавно */
+/* Оттенок цвета ступени — отдельный слой под содержимым: у верха он слабее и начинается ниже края (до самого
+   верха не доходит), у низа — как прежде. Появляется, только когда известна ступень (класс --lvlN): пока её
+   нет — фон нейтральный, а не чужого цвета. Класс стоит с первого кадра (ступень известна уже на экране
+   загрузки) — слой сразу на месте; если он появляется позже, то проявляется плавно */
 .reviewScreen::before {
   content: '';
   position: absolute;
@@ -34,14 +34,15 @@
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(120% 42% at 50% 0%, rgba(var(--rv-rgb), 0.11), transparent 72%),
+    radial-gradient(120% 30% at 50% 17%, rgba(var(--rv-rgb), 0.07), transparent 70%),
     radial-gradient(120% 38% at 50% 100%, rgba(var(--rv-rgb), 0.07), transparent 72%);
   opacity: 0;
   transition: opacity 0.6s ease;
 }
 .reviewScreen[class*='--lvl']::before { opacity: 1; }
-/* Верхний край экрана растворяется: узор и оттенок памяти плавно уходят в сплошной фон у самого верха
-   (слой над оттенком, под содержимым). Только сверху */
+/* Верхний край экрана растворяется: узор и оттенок памяти уходят в сплошной фон у самого верха плавной кривой
+   (много опорных точек — без видимой границы градиента), 190 px + safe-area. Слой над оттенком, под содержимым.
+   Только сверху */
 .reviewScreen::after {
   content: '';
   position: absolute;
@@ -49,8 +50,10 @@
   right: 0;
   top: 0;
   z-index: -1;
-  height: calc(env(safe-area-inset-top, 0px) + 120px);
-  background: linear-gradient(to bottom, #0e1013 12%, rgba(14, 16, 19, 0));
+  height: calc(env(safe-area-inset-top, 0px) + 190px);
+  background: linear-gradient(to bottom,
+    #0e1013 0%, rgba(14, 16, 19, 0.96) 12%, rgba(14, 16, 19, 0.86) 26%, rgba(14, 16, 19, 0.68) 42%,
+    rgba(14, 16, 19, 0.46) 58%, rgba(14, 16, 19, 0.26) 73%, rgba(14, 16, 19, 0.11) 86%, rgba(14, 16, 19, 0.03) 95%, rgba(14, 16, 19, 0));
   pointer-events: none;
 }
 .reviewScreen--lvl1 { --rv-c: var(--lvl1); --rv-rgb: var(--lvl1-rgb); }
@@ -123,7 +126,7 @@
 .reviewPhrase, .reviewTitle { animation: reviewPhraseDrop 0.7s cubic-bezier(0.22, 0.85, 0.3, 1) backwards; }
 @keyframes reviewPhraseDrop { from { transform: translate3d(0, -110px, 0); opacity: 0; } 55% { opacity: 1; } }
 .reviewPhraseHidden { color: var(--rv-c, #b6fe3b); letter-spacing: -1px; }
-.reviewPhraseWord   { color: var(--rv-c, #b6fe3b); animation: reviewFadeIn 0.35s ease both; }
+.reviewPhraseWord   { color: var(--rv-c, #b6fe3b); } /* проявляется переходом слота — review-phrase.css */
 
 /* ── Карточка ──────────────────────────────────────────────────────── */
 .reviewCard {
@@ -211,5 +214,5 @@
   to   { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .reviewVerdict, .reviewPhraseWord, .reviewPhrase, .reviewTitle, .reviewCard { animation: none; }
+  .reviewVerdict, .reviewPhrase, .reviewTitle, .reviewCard { animation: none; }
 }

@@ -46,6 +46,80 @@ test('всё повторено: «Памяти пора отдыхать» в �
   }
 })
 
+// Пауза анимации на доле периода → боксы «Z» (в конце — они выше всего). Только compositor-свойства: transform и opacity
+const frozen = (zs, at) => zs.evaluateAll((els, k) => els.map(el => {
+  const a = el.getAnimations()[0]
+  a.pause(); a.currentTime = a.effect.getTiming().duration * k
+  const b = el.getBoundingClientRect()
+  return { top: b.top, left: b.left, right: b.right }
+}), at)
+const animInfo = zs => zs.evaluateAll(els => els.map(el => {
+  const a = el.getAnimations()[0]
+  const skip = ['offset', 'computedOffset', 'easing', 'composite']
+  return { dur: a.effect.getTiming().duration, props: [...new Set(a.effect.getKeyframes().flatMap(kf => Object.keys(kf)))].filter(k => !skip.includes(k)).sort() }
+}))
+
+test('«Z»: выплывают из-за мозга, выходят выше границы, редко и только на transform/opacity', async ({ page }) => {
+  await seed(page, { due: day(5) })
+  await page.goto('/?tab=learn')
+  const main = page.locator('.lrMain')
+  await expect(main.locator('.lrZ')).toHaveCount(3, { timeout: 30_000 })
+  const nav = page.getByRole('button', { name: 'Память', exact: true })
+
+  // Мозг в блоке: крупнее, по центру по вертикали, линия тонкая
+  const brain = main.locator('.lrSleep')
+  const bb = await brain.boundingBox()
+  const mb = await main.boundingBox()
+  expect(bb.width).toBeGreaterThanOrEqual(46)
+  expect(Math.abs((bb.y + bb.height / 2) - (mb.y + mb.height / 2)), 'мозг по центру блока по вертикали').toBeLessThanOrEqual(1.5)
+  expect(Number(await brain.locator('svg').getAttribute('stroke-width'))).toBeLessThan(2)
+
+  // Z лежат под значком (слой ниже), а не поверх него
+  for (const [zs, icon] of [[main.locator('.lrZ'), main.locator('.lrSleep svg')], [nav.locator('.shellV2NavZzz i'), nav.locator('> svg')]]) {
+    const zIdx = await zs.first().evaluate(el => Number(getComputedStyle(el).zIndex) || Number(getComputedStyle(el.parentElement).zIndex) || 0)
+    const iconIdx = await icon.evaluate(el => Number(getComputedStyle(el).zIndex))
+    expect(zIdx, 'Z ниже значка мозга').toBeLessThan(iconIdx)
+    // оптимизация: только transform и opacity; период не короче 9 с — Z идут редко
+    for (const a of await animInfo(zs)) {
+      expect(a.props).toEqual(['opacity', 'transform'])
+      expect(a.dur).toBeGreaterThanOrEqual(9000)
+    }
+  }
+
+  // Z выходят за верхнюю границу блока и нижней панели
+  const hostTop = { block: mb.y, bar: (await page.locator('.shellV2Nav').boundingBox()).y }
+  const topOf = async zs => Math.min(...(await frozen(zs, 0.99)).map(b => b.top))
+  expect(await topOf(main.locator('.lrZ'))).toBeLessThan(hostTop.block - 1)
+  expect(await topOf(nav.locator('.shellV2NavZzz i'))).toBeLessThan(hostTop.bar - 1)
+})
+
+test('пятиугольник: подпись того же размера, что названия уровней; кольца третьего уровня не режутся', async ({ page }) => {
+  await seed(page, { due: day(5) })
+  await page.setViewportSize({ width: 390, height: 800 })
+  await page.goto('/?tab=learn')
+  const perm = page.locator('.memPerm')
+  await expect(perm).toBeVisible({ timeout: 30_000 })
+  const box = await perm.boundingBox()
+  expect(box.width / box.height, 'пропорции без искажений').toBeCloseTo(243 / 214.65, 1)
+  const size = sel => page.locator(sel).first().evaluate(el => getComputedStyle(el).fontSize)
+  expect(await size('.memPermText span'), 'подпись — как заголовки уровней').toBe(await size('.memLvlName'))
+  // Кольца (.memRing) выходят за блок ступени — ни один предок до экрана «Моя память» их не обрезает, и они в пределах окна
+  const rings = await page.locator('.memRing').evaluateAll(els => els.map(el => {
+    const clipped = []
+    for (let n = el.parentElement; n && !n.classList.contains('lrScreen'); n = n.parentElement) {
+      if (getComputedStyle(n).overflowX !== 'visible') clipped.push(n.className)
+    }
+    return { clipped, right: el.getBoundingClientRect().right }
+  }))
+  expect(rings.length).toBeGreaterThan(0)
+  for (const r of rings) {
+    expect(r.clipped, 'предки колец ничего не обрезают').toEqual([])
+    expect(r.right).toBeLessThanOrEqual(390)
+  }
+  const screen = await page.locator('.lrScreen').evaluate(el => [el.scrollWidth, el.clientWidth])
+  expect(screen[0]).toBeLessThanOrEqual(screen[1])
+})
+
 test('есть что повторить: мозг не спит, искры летят', async ({ page }) => {
   await seed(page, { due: day(0) })
   await page.goto('/?tab=learn')

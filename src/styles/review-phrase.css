@@ -1,0 +1,20 @@
+/* Слово во фразе шапки карточки повторения (features/review: ReviewPhraseWord): точки ●●● плавно становятся словом.
+   Слот — inline-block; в потоке у него всегда одна строка текста (точки, потом слово), поэтому базовая линия не
+   прыгает; второй слой лежит вне потока у верха слота (его строка совпадает по высоте). Состояния (классы вешает
+   компонент): без класса — в потоке точки, слово (если уже есть) невидимо вне потока; --opening — идёт переход:
+   слово встало в поток и проявляется, точки гаснут поверх, ширина слота едет от ширины точек к ширине слова,
+   а всё, что вылезает за слот, обрезано clip-path (на строку и базовую линию он не влияет); --open — раскрыто, ширина
+   снова авто, обрезки нет, это обычный текст */
+.rvSlot { position: relative; display: inline-block; white-space: nowrap; }
+.rvWord { position: absolute; left: 0; top: 0; opacity: 0; }
+
+.rvSlot--opening { clip-path: inset(-0.4em -0.1em); transition: width 0.56s cubic-bezier(0.3, 0.7, 0.25, 1); }
+.rvSlot--opening .rvDots { position: absolute; left: 0; top: 0; opacity: 0; transition: opacity 0.22s ease; }
+.rvSlot--opening .rvWord { position: static; opacity: 1; transition: opacity 0.34s ease 0.14s; }
+
+.rvSlot--open .rvDots { display: none; }
+.rvSlot--open .rvWord { position: static; opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rvSlot--opening, .rvSlot--opening .rvDots, .rvSlot--opening .rvWord { transition: none; }
+}

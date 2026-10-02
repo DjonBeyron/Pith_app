@@ -2,7 +2,8 @@
    (features/learn/MemoryPermNode.jsx): вынесен из memory-ladder.css, когда тот
    подошёл к 250 строкам */
 
-/* ── Постоянная память: пятиугольник (контур 240×212 в масштабе 3/4) ── */
+/* ── Постоянная память: пятиугольник (контур 240×212 в масштабе 1,0125: на 35% крупнее прежних 3/4 — подпись
+   внутри 13,5 px, как названия ступеней .memLvlName) ── */
 .memPerm {
   /* Один еле видный мозг — тот же значок, что у вкладки «Память» внизу; крупный:
      контур подходит почти к самой границе пятиугольника */
@@ -11,8 +12,8 @@
   z-index: 2;
   display: grid;
   place-items: center;
-  width: 180px;
-  height: 159px;
+  width: 243px;
+  height: 214.65px;
   margin: 62px auto 0; /* по центру по горизонтали; зазор с запасом на раздув линии у входа */
   padding: 0;
   border: 0;
@@ -26,25 +27,25 @@
   content: '';
   position: absolute;
   inset: 0;
-  clip-path: path('M 4.05 88.5 L 12.45 31.8 A 32.85 32.85 0 0 1 45 3.45 L 139.5 3.45 A 32.85 32.85 0 0 1 172.35 31.8 L 180.45 88.5 A 32.85 32.85 0 0 1 165 121.05 L 109.65 155.1 A 32.85 32.85 0 0 1 75 155.1 L 19.65 121.05 A 32.85 32.85 0 0 1 4.05 88.5 Z');
+  clip-path: path('M 5.47 119.48 L 16.81 42.93 A 44.35 44.35 0 0 1 60.75 4.66 L 188.33 4.66 A 44.35 44.35 0 0 1 232.67 42.93 L 243.61 119.48 A 44.35 44.35 0 0 1 222.75 163.42 L 148.03 209.39 A 44.35 44.35 0 0 1 101.25 209.39 L 26.53 163.42 A 44.35 44.35 0 0 1 5.47 119.48 Z');
   background:
     radial-gradient(ellipse at 50% 0%, rgba(196, 181, 253, 0.3), transparent 42%),
     radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.22), transparent 70%),
-    var(--mem-brain) 50% 44% / 178px 178px no-repeat,
+    var(--mem-brain) 50% 44% / 240px 240px no-repeat,
     var(--v2-dust), var(--v2-grain), var(--v2-tex) #12101a;
 }
-.memPerm > svg { will-change: transform; position: absolute; inset: -24px; width: calc(100% + 48px); height: calc(100% + 48px); overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
+.memPerm > svg { will-change: transform; position: absolute; inset: -32.4px; width: calc(100% + 64.8px); height: calc(100% + 64.8px); overflow: visible; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
 .memPerm > svg path { fill: none; stroke-width: 3; stroke-linejoin: round; }
 .memPerm > svg .memPermRing { stroke: #a78bfa; }
 /* Утолщение сверху — у входа связи (как левая обводка у ступеней); свет — только
    внутри фигуры (блик в ::before), наружу дополнительно не светит */
 .memPerm > svg .memPermTop { stroke-width: 6; stroke-linecap: round; }
 /* Текст — уже пятиугольника, с полями от боковых граней (они сходятся книзу) */
-.memPermText { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -18px; text-align: center; }
-.memPermText b { font-size: 30px; font-weight: 800; line-height: 1; color: #fff; }
-/* Подпись — одной строкой, с большой буквы: контур в этом месте почти во всю ширину */
-.memPermText span { margin-top: 5px; font-size: 10px; font-weight: 700; line-height: 1.25; white-space: nowrap; color: #d9ccff; }
-.memPermText small { margin-top: 2px; font-size: 9.5px; font-weight: 600; color: #a78bfa; }
+.memPermText { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -24px; text-align: center; }
+.memPermText b { font-size: 38px; font-weight: 800; line-height: 1; color: #fff; }
+/* Подпись — одной строкой, с большой буквы, того же размера, что названия ступеней (13.5 px): контур в этом месте почти во всю ширину */
+.memPermText span { margin-top: 6px; font-size: 13.5px; font-weight: 700; line-height: 1.25; white-space: nowrap; color: #d9ccff; }
+.memPermText small { margin-top: 3px; font-size: 12px; font-weight: 600; color: #a78bfa; }
 
 
 /* Искры (MemorySparks.jsx): мелкие фиолетовые огоньки быстро взлетают от верха пятиугольника, вихляют,

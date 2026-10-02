@@ -20,8 +20,8 @@ import { levelClass } from './reviewLevel.js'
 // Медиа греется заранее (ReviewWarmup): первая карточка — пока на экране «Ищу
 // слова…» (не дольше WARM_MAX_MS), следующая — пока отвечают на текущую;
 // скачанное передаётся плееру карточки.
-// Последняя карточка не смахивается: после ответа экран сам затемняется (.reviewScrim), и когда затемнение
-// дошло до конца, поверх еле видной карточки проявляется итог. Закрытие (стрелка, «Готово») — плавное растворение экрана:
+// Последняя карточка не смахивается: после ответа — пауза на плашке, и в момент появления итога экран быстро
+// затемняется (подложка итога, review-summary.css), так что карточка остаётся под ним еле видной. Закрытие (стрелка, «Готово») — плавное растворение экрана:
 // под ним проявляется «Моя память».
 // start — { word, level } с вкладки «Память»: слово, с которого начать, и его ступень (цвет фона
 // уже на экране загрузки). onFinished — итог готов: вкладка за экраном обновляется заранее, а не
@@ -41,7 +41,6 @@ function Message({ title, text, onClose }) {
 const TYPING_MS = 800
 const WARM_MAX_MS = 1500
 const LEAVE_MS = 500 // растворение экрана при закрытии (review-finish.css)
-const SCRIM_MS = 1000 // затемнение после последней карточки доходит до конца (review-finish.css) — только потом итог
 
 export default function ReviewScreen({ focusWords = null, phrase: phraseProp = null, start = null, onClose, onFinished = null, onRequireAuth = null }) {
   const [phrase] = useState(phraseProp) // фраза — на момент открытия: вкладка за экраном после итога перезагружается
@@ -50,7 +49,6 @@ export default function ReviewScreen({ focusWords = null, phrase: phraseProp = n
   const [handoff, setHandoff] = useState(null) // { key, blobMap } — прогретое для карточки
   const [firstReady, setFirstReady] = useState(false) // первая карточка прогрета (или ждать нечего / вышло время)
   const [finalTurn, setFinalTurn] = useState(null) // последняя карточка ответена: { item, index } | { phrase: true } — остаётся под затемнением
-  const [scrimDone, setScrimDone] = useState(false) // затемнение дошло — итог можно проявлять поверх него
   const [leaving, setLeaving] = useState(false)
   const leaveRef = useRef(0)
   const s = r.session
@@ -60,7 +58,7 @@ export default function ReviewScreen({ focusWords = null, phrase: phraseProp = n
   const holdFirst = r.phase === 'run' && !firstReady && !!first?.card.files?.length
   const warmItem = r.phase === 'run' ? (holdFirst ? first : s?.queue[s.index + 1]) : null
 
-  // Забрать прогретое для карточки, что встанет следующей (после последней — ничего, под затемнением
+  // Забрать прогретое для карточки, что встанет следующей (после последней — ничего, под итогом
   // остаётся та же карточка с теми же файлами)
   function takeWarm(nextItem) {
     if (!nextItem) return
@@ -82,16 +80,9 @@ export default function ReviewScreen({ focusWords = null, phrase: phraseProp = n
   // Итог готов — вкладка за экраном обновляется сейчас, пока экран закрыт ею же от глаз
   useEffect(() => { if (r.phase === 'done') onFinished?.() }, [r.phase, onFinished])
   useEffect(() => () => clearTimeout(leaveRef.current), [])
-  // Итог проявляется на уже тёмном экране: иначе, пока он не набрал прозрачность, сквозь него просвечивают
-  // карточка и плашка ответа, и он кажется лежащим не поверх
-  useEffect(() => {
-    if (!finalTurn) return undefined
-    const t = setTimeout(() => setScrimDone(true), SCRIM_MS)
-    return () => clearTimeout(t)
-  }, [finalTurn])
 
   function answer(res) {
-    // Ответ на последнюю карточку (и фразы дальше нет): она остаётся на экране под затемнением
+    // Ответ на последнюю карточку (и фразы дальше нет): она остаётся на экране, итог ляжет на неё
     if (!phrase && endsQueue(s, item, res.result)) setFinalTurn({ item, index: s.index })
     takeWarm(s.queue[s.index + 1])
     r.answer(res)
@@ -167,12 +158,7 @@ export default function ReviewScreen({ focusWords = null, phrase: phraseProp = n
   return createPortal(
     <div className={`reviewScreen${levelClass(level)}${leaving ? ' reviewScreen--leaving' : ''}`} role="dialog" aria-label="Повторение">
       {body}
-      {finalTurn && (
-        <div className="reviewScrim" aria-hidden="true">
-          {r.phase === 'finishing' && <p className="reviewScrimText">Подвожу итог…</p>}
-        </div>
-      )}
-      {r.phase === 'done' && (!finalTurn || scrimDone) && (
+      {r.phase === 'done' && (
         <ReviewSummary results={r.results} finish={r.finish} baseXp={r.baseXp} bridge={r.bridge} phrase={r.phraseRes} words={r.info.words} memory={r.info.memory} onClose={close} onRequireAuth={onRequireAuth} />
       )}
       {warmItem && (

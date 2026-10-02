@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCurrentLevel, getNextLevel } from '../lib/xpLevels.js'
+import { particleShares, departGap } from '../lib/xpTransferPlan.js'
 
-// XP-transfer анимация: тикающий счётчик «+N XP» → частицы летят в XP-бар →
-// бар едет (shimmer) → блок награды схлопывается → onDone. Общий компонент —
-// используется в итогах урока (LessonSummary) и в попапе забора награды
-// стрика (RewardClaimPopup). CSS-классы summaryXpTransfer* / summaryRewardBlock*
-// / summaryXpBar* — глобальные, лежат в src/styles/xp.css.
-const ANIM_MS        = 2600   // total animation duration
-const PARTICLE_FLY   = 520    // ms each dot takes to fly
-const PARTICLE_EVERY = 110    // ms between spawning new dots
+// XP-transfer анимация: счётчик «+N XP» → шарики летят по одному в XP-бар → бар растёт → блок награды
+// схлопывается → onDone. Шариков столько же, сколько XP, но не больше десяти (xpTransferPlan.js: получил 3 —
+// три шарика, 50 — десять, по 5 XP каждый): отлёт шарика уменьшает счётчик на его долю,
+// прилёт добавляет долю в полоску. Общий компонент — используется в итогах урока (LessonSummary), итоге
+// повторения (ReviewSummary) и в попапе забора награды стрика (RewardClaimPopup): правило одно на все.
+// CSS-классы summaryXpTransfer* / summaryRewardBlock* / summaryXpBar* — глобальные, лежат в src/styles/xp.css.
+const PARTICLE_FLY = 520    // ms each dot takes to fly
+const START_MS     = 200    // пауза до первого вылета
+const BAR_STEP_MS  = 360    // полоска доезжает до новой отметки за это время после прилёта шарика
 
 export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Награда за урок' }) {
   const totalXp    = baseXp + earnedXp
@@ -24,9 +26,7 @@ export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Нагр
   const initPct    = Math.max(0, ((baseXp  - rangeStart) / rangeSize) * 100)
   const finalPct   = Math.min(((totalXp - rangeStart) / rangeSize) * 100, 100)
 
-
-
-  // Bar width as React state — CSS transition handles smooth movement
+  // Bar width as React state — меняется ступенями, по одному разу на прилёт шарика; CSS transition доезжает
   const [barPct, setBarPct] = useState(initPct)
 
   const numRef      = useRef(null)
@@ -37,38 +37,44 @@ export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Нагр
   const canvasRef   = useRef(null)
   const wrapRef     = useRef(null)
 
-  // Kick off bar CSS transition after mount
   useEffect(() => {
-    if (!earnedXp) { onDone?.(); return }
-    const id = setTimeout(() => setBarPct(finalPct), 80)
-    return () => clearTimeout(id)
+    if (!earnedXp) onDone?.()
   }, []) // eslint-disable-line
 
-  // rAF loop: number countdown + particles (independent of bar state)
+  // rAF loop: счётчик, шарики и полоска идут по плану (xpTransferPlan.js)
   useEffect(() => {
     if (!earnedXp) return
-    const particles = []
-    let lastSpawn   = 0
+    const shares = particleShares(earnedXp)
+    const gap = departGap(shares.length)
+    // Шарик: когда вылетает, сколько XP уносит и до какой отметки полоски доедет после прилёта
+    let cum = 0
+    const plan = shares.map((share, i) => {
+      cum += share
+      return { at: START_MS + i * gap, share, pct: initPct + (finalPct - initPct) * (cum / earnedXp), arrived: false }
+    })
+    const endAt = plan[plan.length - 1].at + PARTICLE_FLY
     const startTime = performance.now()
+    let shownNum = earnedXp
+    let shownTotal = baseXp
     let raf
 
     function tick(now) {
       const elapsed = now - startTime
-      const t       = Math.min(elapsed / ANIM_MS, 1)
-      const eased   = 1 - Math.pow(1 - t, 2)
-      const curXp   = Math.round(earnedXp * (1 - eased))
-      const curPct  = initPct + (finalPct - initPct) * eased
-
-      // Direct DOM: number + small counter (numRef — только цифры, частицы
-      // стартуют из центра именно цифр, даже когда осталась одна)
-      if (numRef.current)   numRef.current.textContent   = curXp
-      if (xpNumRef.current) xpNumRef.current.textContent = (baseXp + earnedXp - curXp) + ' XP'
-
-      // Spawn particles
-      if (elapsed - lastSpawn > PARTICLE_EVERY && t < 0.92) {
-        particles.push({ born: now })
-        lastSpawn = elapsed
+      let departedXp = 0
+      let arrivedXp = 0
+      for (const p of plan) {
+        if (elapsed >= p.at) departedXp += p.share
+        if (elapsed >= p.at + PARTICLE_FLY) {
+          arrivedXp += p.share
+          if (!p.arrived) { p.arrived = true; setBarPct(p.pct) }
+        }
       }
+
+      // Direct DOM: число — остаток награды (только цифры: шарики стартуют из центра цифр), маленький
+      // счётчик — XP игрока с учётом прилетевшего; пишем, только когда значение сменилось
+      const curXp = earnedXp - departedXp
+      if (numRef.current && curXp !== shownNum) { numRef.current.textContent = curXp; shownNum = curXp }
+      if (xpNumRef.current && baseXp + arrivedXp !== shownTotal) { shownTotal = baseXp + arrivedXp; xpNumRef.current.textContent = shownTotal + ' XP' }
 
       // Canvas particles
       const canvas = canvasRef.current
@@ -80,8 +86,10 @@ export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Нагр
         // свечение частиц у краёв не режется границей канваса
         const BLEED = 40
         const wr = wrap.getBoundingClientRect()
-        canvas.width  = wr.width  + BLEED * 2
-        canvas.height = wr.height + BLEED * 2
+        const cw = Math.round(wr.width + BLEED * 2)
+        const ch = Math.round(wr.height + BLEED * 2)
+        if (canvas.width !== cw) canvas.width = cw // смена размера сбрасывает холст — только если он изменился
+        if (canvas.height !== ch) canvas.height = ch
         const ctx = canvas.getContext('2d')
         ctx.clearRect(0, 0, canvas.width, canvas.height)
 
@@ -90,12 +98,13 @@ export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Нагр
         const sy = nr.top  - wr.top  + BLEED + nr.height / 2
 
         const br = barBg.getBoundingClientRect()
-        const tx = br.left - wr.left + BLEED + br.width * (curPct / 100)
         const ty = br.top  - wr.top  + BLEED + br.height / 2
 
-        for (const p of particles) {
-          const pt = Math.min((now - p.born) / PARTICLE_FLY, 1)
-          if (pt >= 1) { p.dead = true; continue }
+        for (const p of plan) {
+          const pt = (elapsed - p.at) / PARTICLE_FLY
+          if (pt < 0 || pt >= 1) continue
+          // летит к отметке, до которой полоска доедет после этого шарика
+          const tx = br.left - wr.left + BLEED + br.width * (p.pct / 100)
           const cpx = (sx + tx) / 2
           const cpy = sy + (ty - sy) * 0.4 - 20
           const bx  = (1-pt)*(1-pt)*sx + 2*(1-pt)*pt*cpx + pt*pt*tx
@@ -109,12 +118,9 @@ export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Нагр
           ctx.fill()
           ctx.shadowBlur  = 0
         }
-        for (let i = particles.length - 1; i >= 0; i--) {
-          if (particles[i].dead) particles.splice(i, 1)
-        }
       }
 
-      if (t < 1) {
+      if (elapsed < endAt) {
         raf = requestAnimationFrame(tick)
       } else {
         if (numRef.current)   numRef.current.textContent   = '0'
@@ -168,7 +174,7 @@ export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Нагр
           <div
             ref={barFillRef}
             className="summaryXpBarFill summaryXpBarFillShimmer"
-            style={{ width: barPct + '%', transition: barPct === initPct ? 'none' : `width ${ANIM_MS}ms cubic-bezier(0.4,0,0.2,1)` }}
+            style={{ width: barPct + '%', transition: barPct === initPct ? 'none' : `width ${BAR_STEP_MS}ms ease-out` }}
           />
         </div>
         <div className="summaryXpNumbers">
