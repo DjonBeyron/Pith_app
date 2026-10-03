@@ -19,10 +19,10 @@ export default function MemoryPhrases({ list, started = [], today, onOpen, onAll
     <section className="memPhrases" aria-label="Мои фразы">
       <div className="memPhrasesTabs" role="tablist">
         <button role="tab" aria-selected={learned} className={learned ? 'memPhrasesTab memPhrasesTab--learned memPhrasesTab--on' : 'memPhrasesTab memPhrasesTab--learned'} onClick={() => setTab('learned')}>
-          <span>Мои выученные фразы</span> <b className="memPhrasesCount">{list.length}</b>
+          <span>Выученные фразы</span> <b className="memPhrasesCount">{list.length}</b>
         </button>
         <button role="tab" aria-selected={!learned} className={learned ? 'memPhrasesTab memPhrasesTab--started' : 'memPhrasesTab memPhrasesTab--started memPhrasesTab--on'} onClick={() => setTab('started')}>
-          <span>Мои начатые фразы</span> <b className="memPhrasesCount">{started.length}</b>
+          <span>Начатые фразы</span> <b className="memPhrasesCount">{started.length}</b>
         </button>
       </div>
       <p className="memPhrasesLead">

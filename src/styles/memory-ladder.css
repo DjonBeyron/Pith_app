@@ -141,8 +141,9 @@
 /* Отрезки связи — со своей толщиной и цветом (ladderWireSet); прозрачность —
    на всей группе, иначе круглые концы отрезков темнели бы бусинами */
 .memWire { stroke-linecap: round; opacity: 0.85; }
-/* Искры в разрыве кабеля (режим сна, ladderTear.js): редкие короткие вспышки по очереди — только opacity */
-.memTearSpark { fill: #ffe9a8; opacity: 0; animation: memTearSparkFlick 2.4s steps(1, end) var(--d, 0s) infinite; }
+/* Искры на кончиках проводов порванного кабеля (режим сна, ladderTear.js): редкие короткие вспышки, у каждой свой период и
+   сдвиг (--p, --d) — моргают в случайные моменты; всего четыре точки, только opacity */
+.memTearSpark { fill: #ffe27a; opacity: 0; animation: memTearSparkFlick var(--p, 2.4s) steps(1, end) var(--d, 0s) infinite; }
 @keyframes memTearSparkFlick { 0% { opacity: 0; } 4% { opacity: 1; } 9% { opacity: 0.25; } 14% { opacity: 0.9; } 20%, 100% { opacity: 0; } }
 .shellV2TabHidden .memTearSpark { animation: none; }
 @media (prefers-reduced-motion: reduce) { .memTearSpark { animation: none; opacity: 0.7; } }

@@ -21,7 +21,23 @@
   animation: fwDueBreath 1.8s ease-in-out infinite;
 }
 @keyframes fwDueBreath { 50% { opacity: 1; } }
-.fwWordOn.fwDue::after { display: none; }
+.fwWordOn.fwDue::after,
+.fwWordOn.fwDue::before { display: none; }
+
+/* Дышит само слово: мягко «вдыхает» (чуть крупнее) и вокруг него вспыхивает ореол цвета ступени. Слово — transform (масштаб не
+   двигает соседей), ореол — opacity; оба на композиторе */
+.fwDue:not(.fwWordOn) { will-change: transform; animation: fwDueWord 1.8s ease-in-out infinite; }
+.fwDue::before {
+  content: '';
+  position: absolute;
+  inset: -4px -7px;
+  border-radius: 10px;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--fw-c, #fff) 42%, transparent), transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: fwDueBreath 1.8s ease-in-out infinite;
+}
+@keyframes fwDueWord { 50% { transform: scale(1.08); } }
 
 /* Открытое слово повторения заливается цветом ступени (вместо лайма обычного перевода) */
 .fwWordOn.fwTint {
@@ -77,6 +93,9 @@
 .rcCheckSoft { background: #9aa3ad; }
 .rcNote { margin-left: auto; color: #9aa3ad; font-size: 10.5px; font-weight: 700; line-height: 1.25; text-align: right; }
 .rcNoteBad { color: #f0b35a; }
+/* Слово перешло на ступень выше: пометка цвета новой ступени, появляется вместе с вспышкой полоски */
+.rcNoteUp { color: var(--wt-c, #b6fe3b); animation: rcNoteIn 0.5s ease 0.1s backwards; }
+@keyframes rcNoteIn { from { opacity: 0; transform: translateY(4px); } }
 /* Чип слова — тот же .memChip / .reviewBar, что в итоге повторения, но по размеру плашки */
 .wtPlateRc .reviewBar { padding: 5px 9px; border-radius: 7px; font-size: 12.5px; }
 
@@ -92,11 +111,13 @@
 }
 
 /* Дыхание не крутится там, где его никто не видит (как блик загрузки, feed-media.css) */
-.feedViewHidden .fwDue::after,
-.shellV2TabHidden .fwDue::after,
-.feedV2--paused .fwDue::after { animation: none; }
+.feedViewHidden .fwDue, .feedViewHidden .fwDue::after, .feedViewHidden .fwDue::before,
+.shellV2TabHidden .fwDue, .shellV2TabHidden .fwDue::after, .shellV2TabHidden .fwDue::before,
+.feedV2--paused .fwDue, .feedV2--paused .fwDue::after, .feedV2--paused .fwDue::before { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
+  .fwDue:not(.fwWordOn) { animation: none; }
+  .fwDue::before { animation: none; opacity: 0.5; }
   .fwDue::after { animation: none; opacity: 0.75; }
   .wtLayerSoft .wtPath, .wtLayerSoft .wtPathGlow, .wtLayerSoft .wtPlate { animation: none; opacity: 0; }
 }

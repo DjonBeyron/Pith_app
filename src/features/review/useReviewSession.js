@@ -155,5 +155,12 @@ export function useReviewSession({ focusWords = null, phrase = null, firstWord =
     flush(next)
   }
 
-  return { phase, session, info, results, finish, baseXp, bridge, phraseRes, muted, answer, skipAudio, answerPhrase }
+  // Вернуть звук (кнопка на карточке стала серой и нажимается обратно): голосовые снова звучат. Карточки, ушедшие из очереди
+  // при «Не могу слушать», не возвращаются — вернутся к ученику в другой раз
+  function unmuteAudio() {
+    noAudioRef.current = false
+    setMuted(false)
+  }
+
+  return { phase, session, info, results, finish, baseXp, bridge, phraseRes, muted, answer, skipAudio, unmuteAudio, answerPhrase }
 }

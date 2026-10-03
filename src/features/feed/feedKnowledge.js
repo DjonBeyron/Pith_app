@@ -35,6 +35,10 @@ export function tokenLevel(text, stepOf, settledOf = null) {
   return settledOf?.has(key) ? 'P' : levelOf(step)
 }
 
+// Какую карту памяти держать для порядка ленты: первую пришедшую берём сразу, дальнейшие — только
+// пока лента скрыта (иначе круг пересобирается под пальцем и слайд пересоздаётся)
+export const latchRank = (held, fresh, visible) => (held == null || !visible ? fresh : held)
+
 // Детерминированный генератор: порядок ленты не прыгает в течение дня
 function seeded(seed) {
   let a = seed >>> 0

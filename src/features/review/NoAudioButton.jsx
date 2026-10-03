@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { VolumeX } from 'lucide-react'
+import { Volume2, VolumeX } from 'lucide-react'
 import { hintSeen, markHint } from './reviewHints.js'
 
 // «Не могу слушать» — на карточке со звуком или голосом, в нижней панели, справа. Первый раз — кнопка
@@ -10,11 +10,13 @@ import { hintSeen, markHint } from './reviewHints.js'
 // нажатие срабатывает сразу.
 // onSkip — до конца сессии голосовые беззвучны, задания, где без звука никак, уходят
 // (useReviewSession.skipAudio); disabled — ответ уже дан.
+// Это тумблер, как значок звука в ленте: звук есть — значок динамика (Volume2); нажали — кнопка серая,
+// динамик зачёркнут (VolumeX), и она остаётся на месте: нажми ещё раз (onUnmute) — звук вернётся.
 const COMPACT = 'pithy_review_noaudio_compact_v1'
 const INFO = 'pithy_review_noaudio_info_v1'
 const COLLAPSE_MS = 3500
 
-export default function NoAudioButton({ onSkip, disabled = false }) {
+export default function NoAudioButton({ onSkip, onUnmute = null, muted = false, disabled = false }) {
   const [compact, setCompact] = useState(() => hintSeen(COMPACT))
   const [ask, setAsk] = useState(false)
 
@@ -25,6 +27,7 @@ export default function NoAudioButton({ onSkip, disabled = false }) {
   }, [compact])
 
   function press() {
+    if (muted) { onUnmute?.(); return }
     if (disabled) return
     if (hintSeen(INFO)) { onSkip(); return }
     markHint(INFO)
@@ -34,10 +37,12 @@ export default function NoAudioButton({ onSkip, disabled = false }) {
   return (
     <>
       <span className="reviewNoAudioSlot">
-        <button className={compact ? 'reviewNoAudio reviewNoAudio--compact' : 'reviewNoAudio'} onClick={press} disabled={disabled}
-          aria-label="Не могу слушать" title="Не могу слушать">
-          <VolumeX className="reviewNoAudioIcon" />
-          <span className="reviewNoAudioLabel">Не могу слушать</span>
+        <button
+          className={`reviewNoAudio${compact ? ' reviewNoAudio--compact' : ''}${muted ? ' reviewNoAudio--off' : ''}`}
+          onClick={press} disabled={disabled && !muted} aria-pressed={muted}
+          aria-label={muted ? 'Включить звук' : 'Не могу слушать'} title={muted ? 'Включить звук' : 'Не могу слушать'}>
+          {muted ? <VolumeX className="reviewNoAudioIcon" /> : <Volume2 className="reviewNoAudioIcon" />}
+          <span className="reviewNoAudioLabel">{muted ? 'Звук выключен' : 'Не могу слушать'}</span>
         </button>
       </span>
       {ask && (

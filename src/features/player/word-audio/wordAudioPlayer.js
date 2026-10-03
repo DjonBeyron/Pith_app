@@ -22,6 +22,7 @@ const players = new Map()   // key → HTMLAudioElement
 const blobUrls = new Map()  // key → blob: URL (revoke при release)
 let blobCount = 0, urlCount = 0 // для лога прогрева: blob (свой) или прямой URL (CORS)
 let current = null
+let muted = false           // «Не могу слушать» (повторение): слова не звучат при тапах по таблицам, вариантам и т.п.
 let gen = 0                 // смена урока обесценивает идущую предзагрузку
 export const WAIT_MS = 250  // звук не пошёл дольше — зовём onWait (кнопка ▶ показывает крутилку загрузки)
 
@@ -77,6 +78,7 @@ export async function preloadWordAudio(keys) {
 export function playWord(key, hooks = null) {
   if (!key) return false
   stopCurrent()
+  if (muted) return false // беззвучный режим: слово не играем (звук включается обратно кнопкой на карточке)
   let a = players.get(key)
   if (!a) {
     const row = cachedWordAudio()?.get(key)
@@ -95,6 +97,12 @@ export function playWord(key, hooks = null) {
   return true
 }
 
+// Беззвучный режим повторения: включили — звучащее слово смолкает, новые не запускаются
+export function setWordAudioMuted(value) {
+  muted = !!value
+  if (muted) stopCurrent()
+}
+
 export function releaseWordAudio() {
   gen += 1
   stopCurrent()
@@ -103,4 +111,5 @@ export function releaseWordAudio() {
   players.clear()
   blobUrls.clear()
   blobCount = 0; urlCount = 0
+  muted = false
 }

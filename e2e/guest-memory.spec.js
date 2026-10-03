@@ -68,33 +68,30 @@ test('гость повторяет слово дня → итог зовёт в
   const nav = page.getByRole('button', { name: 'Память', exact: true })
   await expect(nav).toHaveClass(/shellV2NavBtnDue/, { timeout: 30_000 })
   // Светится только мозг: иконка лаймовая, подпись «Память» — обычного цвета
-  const navColors = await nav.evaluate(el => ({ label: getComputedStyle(el).color, icon: getComputedStyle(el.querySelector('svg')).color }))
-  expect(navColors.icon).toBe('rgb(182, 254, 59)')
-  expect(navColors.label).not.toBe('rgb(182, 254, 59)')
+  // Цвет мозга набирается плавно (transition 0.8 с, learn.css) — ждём, пока дойдёт до лаймового
+  await expect.poll(() => nav.evaluate(el => getComputedStyle(el.querySelector('svg')).color), { timeout: 5000 }).toBe('rgb(182, 254, 59)')
+  expect(await nav.evaluate(el => getComputedStyle(el).color)).not.toBe('rgb(182, 254, 59)')
   await nav.click()
   await page.locator('.lrCta').click()
   const review = page.locator('.reviewScreen')
   await review.locator('.chooseWordPanel').getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
   await expect(review.locator('.reviewTeacherLine').first()).toHaveText('keep теперь помнится лучше.', { timeout: 30_000 }) // последняя карточка — итог придёт сам
   await expect(review.locator('.reviewGuestLead')).toBeVisible()
-  // Пока полоска слова пополняется: заливка горит ровно и едет (рост виден), мигает ПРИРОСТ — полоса .reviewBarGain между
-  // прежним краем и текущим — и линия на границе; обводка полоски не мигает
+  // Пока полоска слова пополняется: мигает ВСЯ заливка (не только прирост) и линия на границе; обводка не мигает
   const bar = review.locator('.reviewBar--grow')
   await bar.waitFor({ timeout: 15_000 })
   const probe = () => bar.evaluate(el => ({
     outline: getComputedStyle(el).animationName,
     fill: getComputedStyle(el.querySelector('.memChipFill')).animationName,
-    gain: getComputedStyle(el.querySelector('.reviewBarGain'), '::after').animationName,
     edge: getComputedStyle(el.querySelector('.reviewBarEdge')).animationName,
     fillW: el.querySelector('.memChipFill').getBoundingClientRect().width,
-    gainW: el.querySelector('.reviewBarGain').getBoundingClientRect().width,
+    gainEl: el.querySelectorAll('.reviewBarGain').length,
   }))
   const t1 = await probe()
-  expect({ outline: t1.outline, fill: t1.fill, gain: t1.gain, edge: t1.edge }).toEqual({ outline: 'none', fill: 'none', gain: 'reviewGainBlink', edge: 'reviewEdgeBlink' })
+  expect({ outline: t1.outline, fill: t1.fill, edge: t1.edge, gainEl: t1.gainEl }).toEqual({ outline: 'none', fill: 'reviewFillBlink', edge: 'reviewEdgeBlink', gainEl: 0 })
   await page.waitForTimeout(500)
   const t2 = await probe()
   expect(t2.fillW, 'заливка едет — процесс заполнения виден').toBeGreaterThan(t1.fillW)
-  expect(t2.gainW, 'мигающий прирост растёт вместе с заливкой').toBeGreaterThan(t1.gainW)
   await review.getByRole('button', { name: 'Войти' }).click()
   await expect(page.locator('.shellV2NavBtnActive')).toHaveText('Профиль')
   // Шаг вырос локально: keep всё ещё в «Новых», заливка — три четверти пути
@@ -142,7 +139,10 @@ test('лента: слово к повтору дышит после откры�
   await expect(keep).toHaveClass(/fwKnown--1/)
   expect(await keep.evaluate(el => getComputedStyle(el).color)).toBe('rgb(79, 179, 238)')
   // Тап: та же линия и плашка, но сначала проверка: подпись и три варианта (верный + два чужих)
-  await keep.click()
+  // Метка на самом слайде: после ответа память обновляется, и слайд не должен пересоздаваться (фраза снова закрылась бы шариками,
+  // первый тап по слову «пропадал»)
+  await slide.locator('.feedSlide').evaluate(el => { el.dataset.probe = '1' })
+  await keep.click({ force: true }) // слово к повтору дышит (scale) — Playwright считает его «нестабильным»
   const plate = slide.locator('.wtPlate')
   await expect(plate.locator('.rcCap')).toHaveText('Закрепить знание')
   await expect(plate.locator('.rcOpt')).toHaveCount(3)
@@ -157,10 +157,41 @@ test('лента: слово к повтору дышит после откры�
   await expect(plate).toHaveCount(0, { timeout: 15_000 })
   await expect(slide.locator('.fwDue')).toHaveCount(0)
   await expect(page.locator('.shellV2NavBtnDue')).toHaveCount(0, { timeout: 15_000 })
+  await expect(page.locator('.feedSlideWrapActive .feedSlide[data-probe="1"]')).toHaveCount(1) // тот же слайд, фраза открыта
   // Повторный тап по тому же слову — обычный перевод (без проверки)
   await keep.click()
   await expect(slide.locator('.wtPlate')).toHaveText('держать')
   await expect(slide.locator('.rcCap')).toHaveCount(0)
+})
+
+test('лента: срок слова настал, пока фраза уже открыта — слово начинает дышать само', async ({ page }) => {
+  test.slow()
+  // Память гостя: keep повторять только завтра — сегодня фраза «пустая»
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('e2e_guest_seeded')) return
+    sessionStorage.setItem('e2e_guest_seeded', '1')
+    const next = new Date(Date.now() + 86_400_000).toLocaleDateString('sv')
+    localStorage.setItem('pithy_guest_memory_v1', JSON.stringify({
+      keep: { word: 'keep', step: 1, due_on: next, last_card_id: null, reviews: 0, lapses: 0 },
+    }))
+  })
+  await page.goto('/')
+  const slide = page.locator('.feedSlideWrapActive')
+  await expect(slide.locator('.feedPhrase')).toContainText('Keep going', { timeout: 30_000 })
+  await slide.locator('.phraseBubbleWrap').click()
+  await page.waitForTimeout(600)
+  await expect(slide.locator('.fwDue')).toHaveCount(0)
+  // Срок настал (как «прожить день» или возврат в приложение на другой день): память обновилась, фраза та же и открыта
+  await page.evaluate(() => {
+    const m = JSON.parse(localStorage.getItem('pithy_guest_memory_v1'))
+    m.keep.due_on = new Date().toLocaleDateString('sv')
+    localStorage.setItem('pithy_guest_memory_v1', JSON.stringify(m))
+    window.dispatchEvent(new Event('pithy:memory-changed'))
+  })
+  await expect(slide.locator('.fwDue')).toHaveText('Keep', { timeout: 15_000 })
+  // и тап по нему — проверка, а не обычный перевод
+  await slide.locator('.fwWord', { hasText: 'Keep' }).click({ force: true }) // дышит — см. выше
+  await expect(slide.locator('.wtPlate .rcCap')).toHaveText('Закрепить знание')
 })
 
 test('лента: ошибка в проверке слова — без галочки, «вернёмся завтра», шаг не растёт', async ({ page }) => {
@@ -170,7 +201,7 @@ test('лента: ошибка в проверке слова — без гал�
   const slide = page.locator('.feedSlideWrapActive')
   await expect(slide.locator('.feedPhrase')).toContainText('Keep going', { timeout: 30_000 })
   await slide.locator('.phraseBubbleWrap').click()
-  await slide.locator('.fwWord', { hasText: 'Keep' }).click()
+  await slide.locator('.fwWord', { hasText: 'Keep' }).click({ force: true }) // дышит — см. выше
   const plate = slide.locator('.wtPlate')
   await expect(plate.locator('.rcOpt')).toHaveCount(3)
   // Любой чужой вариант
@@ -191,7 +222,7 @@ test('лента: тап мимо закрывает проверку без ш�
   const slide = page.locator('.feedSlideWrapActive')
   await expect(slide.locator('.feedPhrase')).toContainText('Keep going', { timeout: 30_000 })
   await slide.locator('.phraseBubbleWrap').click()
-  await slide.locator('.fwWord', { hasText: 'Keep' }).click()
+  await slide.locator('.fwWord', { hasText: 'Keep' }).click({ force: true }) // дышит — см. выше
   await expect(slide.locator('.rcCap')).toBeVisible()
   await page.mouse.click(8, 300) // мимо слова и плашки
   await expect(slide.locator('.wtPlate')).toHaveCount(0)

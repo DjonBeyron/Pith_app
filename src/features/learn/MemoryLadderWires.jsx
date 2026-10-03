@@ -18,7 +18,7 @@ const MAX_BALLS = 3 // на ступень: больше — каша из ша�
 // ref родителя в эффекте ребёнка при монтировании ещё пуст (React цепляет
 // ref родителя после эффектов детей) — так линии пропадали после «Назад».
 // today — число сегодняшних слов по ступеням. sleeping — мозг спит: кабель от шапки оборван (ladderTear.js): разрыв на
-// стволе у шапки, жилки у концов, искры
+// стволе у шапки, по три провода цветов ступеней у концов, искры на кончиках
 export default function MemoryLadderWires({ today, sleeping = false }) {
   const [geo, setGeo] = useState(null) // { links, pieces, dots }
   const layerRef = useRef(null)
@@ -60,12 +60,7 @@ export default function MemoryLadderWires({ today, sleeping = false }) {
           {geo.flares.map((fl, k) => <path key={`f${k}`} d={fl.d} fill={fl.color} stroke="none" />)}
           {geo.dots.map((d, k) => <circle key={k} cx={d.x} cy={d.y} r={d.r} fill={d.color} />)}
         </g>
-        {tear && (
-          <>
-            <path className="memTearSpark memTearSpark--bolt" d="M0 -7 L-3.2 1 L-0.4 1 L-1.6 7.5 L3.4 -2 L0.4 -2 Z" transform={`translate(${tear.bolt.x} ${tear.bolt.y}) scale(1.5)`} />
-            {tear.sparks.map((s, k) => <circle key={`k${k}`} className="memTearSpark" cx={s.x} cy={s.y} r="1.9" style={{ '--d': `${s.delay}s` }} />)}
-          </>
-        )}
+        {tear?.sparks.map((s, k) => <circle key={`k${k}`} className="memTearSpark" cx={s.x} cy={s.y} r="1.6" style={{ '--p': `${s.period}s`, '--d': `${s.delay}s` }} />)}
       </svg>
       {[0, 1, 2].flatMap(i => Array.from({ length: Math.min(today[i] ?? 0, MAX_BALLS) }, (_, k) => (
         <span key={`${i}-${k}`} className="memBall" style={{

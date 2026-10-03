@@ -32,12 +32,12 @@ const FINAL_HOLD_BAD_MS = 2400 // плашка с «вернёмся к слов
 // урока. После ответа карточка «переворачивается» — плашка с итогом; дальше —
 // «Далее», смахивание влево — карточки или подсказки под ней (useSwipeNext) или Enter/← на клавиатуре.
 // «Не могу слушать» — только на карточке со звуком (NoAudioButton); после неё голосовые играют беззвучно
-// (muted), и кнопка больше не нужна. Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
+// (muted), а кнопка остаётся серой с зачёркнутым звуком — нажми ещё раз, и звук вернётся. Монтируется с key карточки — состояние ответа живёт ровно одну карточку.
 // Последняя карточка сессии (finalRun — после неё сразу итог) не смахивается: ответ, пауза на плашке итога —
 // и экран сам уходит в затемнение и итог (ReviewScreen).
 // Подвал (.reviewFoot) — панель действий фиксированной высоты (место под «Далее» / «смахни…» /
 // «Не могу слушать» занято всегда, карточка при ответе не двигается) и тонкий прогресс под ней.
-export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, typingMs = 0, hold = false, muted = false, finalRun = false, onAnswer, onNoAudio, onClose }) {
+export default function ReviewTurn({ session, item, phrase, title = '', teacher, initialBlobMap, typingMs = 0, hold = false, muted = false, finalRun = false, onAnswer, onNoAudio, onUnmute, onClose }) {
   const [answered, setAnswered] = useState(null) // { result, timeMs }
   // Перед заданием — точки «печатает» (как в уроке): минимум typingMs, а пока hold (первая карточка
   // греет медиа) — дольше; плеер карточки монтируется, когда точки уходят
@@ -125,7 +125,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
             </>
           )}
           {/* «Не могу слушать» стоит справа и не исчезает: после ответа тускнеет и не нажимается */}
-          {cardHasAudio(item.card) && !muted && <NoAudioButton onSkip={onNoAudio} disabled={!!answered} />}
+          {cardHasAudio(item.card) && <NoAudioButton muted={muted} onSkip={onNoAudio} onUnmute={onUnmute} disabled={!!answered} />}
         </div>
         <ReviewProgress session={session} />
       </div>

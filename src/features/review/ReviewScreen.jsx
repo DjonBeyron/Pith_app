@@ -113,6 +113,7 @@ export default function ReviewScreen({ focusWords = null, phrase: phraseProp = n
       finalRun={!phrase}
       onAnswer={answer}
       onNoAudio={r.skipAudio}
+      onUnmute={r.unmuteAudio}
       onClose={close}
     />
   )

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   recallView, pickRecallWord, translationPool, quizOptions, recallOutcome, recallState, recallResult,
-  recallColor, recallHoldMs, shownToday, markShown, canOffer, RECALL_GAP, RECALL_PER_DAY, LEVEL_COLOR,
+  recallColor, recallHoldMs, recallGrowth, shownToday, markShown, canOffer, RECALL_GAP, RECALL_PER_DAY, LEVEL_COLOR,
 } from './feedRecall.js'
 
 // localStorage в node-окружении vitest нет — подставляем
@@ -143,6 +143,23 @@ describe('цвет и время плашки', () => {
     expect(recallHoldMs({ phase: 'ok', step: 1, from: 1, to: 2 })).toBe(3400)
     expect(recallHoldMs({ phase: 'ok', step: 2, from: 2, to: 3 })).toBeGreaterThan(5000)
     expect(recallHoldMs({ phase: 'ok', step: 5, from: 5, to: 5, perm: true })).toBeGreaterThan(5000)
+  })
+})
+
+describe('recallGrowth — заботливая пометка при переходе на ступень', () => {
+  it('ступень выросла — слово окрепло и новое название', () => {
+    expect(recallGrowth({ phase: 'ok', step: 2, from: 2, to: 3 })).toEqual(['слово окрепло', '→ «Знакомые»'])
+    expect(recallGrowth({ phase: 'ok', step: 4, from: 4, to: 5 })).toEqual(['слово окрепло', '→ «Усвоенные»'])
+  })
+  it('ушло в постоянную память — «закрепилось навсегда»', () => {
+    expect(recallGrowth({ phase: 'ok', step: 5, from: 5, to: 5, perm: true })).toEqual(['закрепилось', 'навсегда'])
+  })
+  it('шаг внутри ступени, ошибка, «долго», ответ сервера не пришёл — без пометки', () => {
+    expect(recallGrowth({ phase: 'ok', step: 1, from: 1, to: 2 })).toBe(null)
+    expect(recallGrowth({ phase: 'hard', step: 2, from: 2, to: 2 })).toBe(null)
+    expect(recallGrowth({ phase: 'bad', step: 3, from: 3, to: 2 })).toBe(null)
+    expect(recallGrowth({ phase: 'ok', step: 2 })).toBe(null)
+    expect(recallGrowth({ phase: 'ok', step: 5, from: 5, to: 5, perm: true, wasSettled: true })).toBe(null)
   })
 })
 

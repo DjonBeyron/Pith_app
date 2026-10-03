@@ -11,15 +11,18 @@ const SERVER_WAIT_MS = 6000
 
 // Повторение слова фразы на одном слайде ленты (feedRecall.js, макет frazy-pomnish.html):
 //   «Тихо» — после открытия фразы слово со сроком «сегодня» мягко дышит (lureIndex), если лимиты
-//   позволяют (useFeedRecall.claim); больше ничего в кадре;
+//   позволяют (useFeedRecall.claim); больше ничего в кадре. Срок мог настать и пока человек уже на
+//   открытой фразе (память обновилась: возврат в приложение, «прожить день») — слово начинает
+//   дышать в тот же момент, повторно открывать фразу не нужно;
 //   тап по нему — та же линия и плашка, но сначала проверка «Закрепить знание» (onPick);
 //   ответ (answer) — исход в память (source 'feed': бюджет дня, без XP и серии), результат на
 //   плашке, салют на «верно и быстро», через ≈3 с плашка сама уходит (softClose);
 //   дальше слово — обычное: повторный тап даёт обычный перевод.
 // wp — useWordTranslate слайда; knowledge — { stepOf, settledOf }; onChanged — память изменилась
 // (лента обновит данные «Моего обучения» — после ухода плашки, чтобы порядок ленты не прыгнул под ней).
-// → { lureIndex, levelOf, tint, onReveal, onPick, answer }
-export function useSlideRecall({ recall, mod, active, knowledge, wp, onChanged }) {
+// revealed — фраза открыта (шарики разлетелись).
+// → { lureIndex, levelOf, tint, onPick, answer }
+export function useSlideRecall({ recall, mod, active, revealed, knowledge, wp, onChanged }) {
   const { pick, pickWord, patch, softClose } = wp
   const cand = useMemo(
     () => pickRecallWord(mod.title, mod.wordTranslations, recall?.view),
@@ -32,10 +35,15 @@ export function useSlideRecall({ recall, mod, active, knowledge, wp, onChanged }
   const changedRef = useRef(onChanged)
   useEffect(() => { changedRef.current = onChanged })
 
-  // Фразу открыли (тап по шарикам): в ней есть слово к повтору и лимиты позволяют — слово начинает дышать
-  function onReveal() {
-    if (cand && recall.claim(mod.id)) setOffered(mod.id)
-  }
+  // Фраза открыта, на экране, и в ней есть слово к повтору — если лимиты позволяют, оно начинает дышать.
+  // Срабатывает и при открытии фразы, и когда слово «созрело» на уже открытой (cand появился позже).
+  // Заявка уходит в таймер: setState прямо в теле эффекта запрещён, а лишний кадр здесь не заметен
+  const hasCand = !!cand
+  useEffect(() => {
+    if (!active || !revealed || !hasCand || offered === mod.id) return
+    const t = setTimeout(() => { if (recall.claim(mod.id)) setOffered(mod.id) }, 0)
+    return () => clearTimeout(t)
+  }, [active, revealed, hasCand, offered, mod.id, recall])
 
   // Память обновляем, когда плашка ушла (или слайд размонтирован)
   useEffect(() => {
@@ -95,5 +103,5 @@ export function useSlideRecall({ recall, mod, active, knowledge, wp, onChanged }
     })
   }
 
-  return { lureIndex, levelOf, tint: recallColor(pick?.recall), onReveal, onPick, answer }
+  return { lureIndex, levelOf, tint: recallColor(pick?.recall), onPick, answer }
 }

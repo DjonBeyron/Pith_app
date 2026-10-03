@@ -1,7 +1,7 @@
 import { splitTitleTokens, wordTranslation } from '../../shared/lib/titleWords.js'
 import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { reviewOutcome } from '../../shared/lib/memory/reviewOutcome.js'
-import { levelOf } from '../learn/memoryLadder.js'
+import { levelOf, LEVELS } from '../learn/memoryLadder.js'
 
 // Повторение слова ВНУТРИ перевода по словам в ленте (PROJECT.md → «Лента»,
 // макет frazy-pomnish.html, утверждено 2026-10-01). Чистые функции без React:
@@ -101,6 +101,16 @@ export function recallColor(r) {
   if (r.phase === 'quiz') return LEVEL_COLOR[r.wasSettled ? 'P' : levelOf(r.step)]
   if (r.perm) return LEVEL_COLOR.P
   return LEVEL_COLOR[levelOf(r.to ?? r.step)]
+}
+
+// Слово перешло на следующую ступень (или навсегда закрепилось): две короткие строки заботливой пометки
+// на плашке — иначе смена цвета полоски выглядела бы просто «другой анимацией». Нет перехода — null
+export function recallGrowth(r) {
+  if (!r || r.phase !== 'ok' || r.to == null) return null
+  if (r.perm && !r.wasSettled) return ['закрепилось', 'навсегда']
+  const to = levelOf(r.to)
+  if (r.perm || to <= levelOf(r.from ?? r.step)) return null
+  return ['слово окрепло', `→ «${LEVELS[to - 1].short}»`]
 }
 
 // Сколько результат висит на экране (мс): ok дольше; сменилась ступень — ждём, пока доедет полоска слова

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
-import { rankFeed } from './feedKnowledge.js'
+import { rankFeed, latchRank } from './feedKnowledge.js'
 
 // Загрузка модулей (curricula) + «пин» на фразу (deep-link репоста /?m=<id>,
 // либо программный поворот из поиска — см. jumpTo) + расчёт круга
@@ -9,10 +9,16 @@ import { rankFeed } from './feedKnowledge.js'
 // закреплённой фразе). rank — { stepOf, lessonWord, skipped, seed } | null
 // (null — память ещё грузится: лента ждёт её до RANK_WAIT_MS, чтобы ПЕРВАЯ
 // фраза уже была по карте памяти — потом круг держит текущую фразу, и порядок
-// сменился бы только со второго слайда; не дождались — порядок админа)
+// сменился бы только со второго слайда; не дождались — порядок админа).
+// Порядок меняется, только пока лента скрыта: ответ на проверку слова или сигнал «память изменилась»
+// обновляют rank, пока человек смотрит фразу, — пересортировка сдвигает индекс слайда, слайд
+// пересоздаётся и фраза снова закрывается шариками (первый тап по слову после ответа «пропадал»)
 const RANK_WAIT_MS = 1200
 
-export function useFeedModules(startedIds, visible = true, rank = null) {
+export function useFeedModules(startedIds, visible = true, freshRank = null) {
+  const [latched, setLatched] = useState(freshRank)
+  const rank = latchRank(latched, freshRank, visible)
+  if (rank !== latched) setLatched(rank)
   const [loaded, setModules] = useState(null) // null = загрузка
   const [error, setError] = useState('')
   const [rankWaitOver, setRankWaitOver] = useState(false)

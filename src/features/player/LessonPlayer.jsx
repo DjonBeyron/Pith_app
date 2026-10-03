@@ -158,7 +158,7 @@ export default function LessonPlayer({
   }
 
   const { blobMap, addMsgTs, debugItems, warmupPct } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
-  useLessonWordAudio(nodes, warmupPct) // озвучка слов при тапе — после прогрева первых нод
+  useLessonWordAudio(nodes, warmupPct, muted) // озвучка слов при тапе — после прогрева первых нод; muted — беззвучный режим повторения
 
   // Журнал появления нод + готовности их медиа — useNodeAppearLog.js
   const nodeAppearLogRef = useNodeAppearLog(visibleNodes, blobMap, addMsgTs, openTimeRef)

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { X, Check, Ear } from 'lucide-react'
+import { useHudPopupExit } from '../../app/hudPopupState.js'
 
 // Иконка сложности фразы (три полоски-«сигнал») = кнопка голосования.
 // Тап → панель выезжает от кнопки (scale от 0, origin у кнопки). Один
@@ -9,6 +10,8 @@ import { X, Check, Ear } from 'lucide-react'
 // закрывает саму панель (свой backdrop поверх панельного). При самом
 // первом открытии панели попап показывается сам; пока он не закрыт —
 // пульсирует иконка голосования и подсвечивается панель (не сам попап).
+// Закрытие — обратная анимация к появлению, как у окошек худа сверху (useHudPopupExit): панель схлопывается к
+// своей кнопке, поверх проступает заливка цвета панели (.diffPanel--out, hud-pop-out.css).
 const LEVELS = [
   { v: 1, label: 'Легко',  cls: 'diffEasy' },
   { v: 2, label: 'Средне', cls: 'diffMid' },
@@ -34,6 +37,7 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
   const [confirmed, setConfirmed] = useState(false)
   const timers = useRef([])
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
+  const { shown, closing } = useHudPopupExit(open)
 
   // Свайп на другое видео и обратно: слайд не размонтируется (виртуализация
   // переиспользует DOM), поэтому без этого открытая панель голосования
@@ -80,8 +84,8 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
   return (
     <div className="diffWrap">
       {open && <div className="diffBackdrop" onClick={closePanel} />}
-      {open && (
-        <div className={intro ? 'diffPanel diffPanelGlow' : 'diffPanel'}>
+      {shown && (
+        <div className={`${intro ? 'diffPanel diffPanelGlow' : 'diffPanel'}${closing ? ' diffPanel--out' : ''}`}>
           <div className="diffPanelHead">
             <span className="diffPanelTitle">Понял на слух?</span>
             <button className="diffHelpBtn" onClick={() => setHelp(true)}>?</button>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { moduleWords, phraseInfo, tokenStep, tokenLevel, rankFeed, daySeed } from './feedKnowledge.js'
+import { moduleWords, phraseInfo, tokenStep, tokenLevel, rankFeed, daySeed, latchRank } from './feedKnowledge.js'
 
 const lessonWord = new Map([
   ['to', 'to'], ['try', 'trying'], ['cook', 'cook'], ['keep', 'keep'], ['go', 'going'], ['a', 'apple'], ['b', 'banana'],
@@ -61,5 +61,19 @@ describe('порядок рекомендаций', () => {
     expect(a.slice(0, 4).map(m => m.id)).toEqual(['m0', 'm1', 'm2', 'm3'])
     expect(new Set(a.map(m => m.id)).size).toBe(14)
     expect(a[5].id).not.toBe('m5')
+  })
+})
+
+describe('latchRank — порядок ленты не меняется под пальцем', () => {
+  const a = { seed: 1 }
+  const b = { seed: 2 }
+  it('первая карта памяти берётся сразу, даже при видимой ленте', () => {
+    expect(latchRank(null, a, true)).toBe(a)
+  })
+  it('пока лента на экране, новая карта не подменяет прежнюю', () => {
+    expect(latchRank(a, b, true)).toBe(a)
+  })
+  it('лента скрыта — новая карта принимается', () => {
+    expect(latchRank(a, b, false)).toBe(b)
   })
 })

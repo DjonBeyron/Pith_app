@@ -17,6 +17,7 @@ import { useBookmarkedLessons } from './useBookmarkedLessons.js'
 import { useFeedFilter } from './useFeedFilter.js'
 import { useFeedSplash } from './useFeedSplash.js'
 import { useSlowMotionHint } from './useSlowMotionHint.js'
+import { useRubHint } from './useRubHint.js'
 import { useFeedTracking } from './useFeedTracking.js'
 import { track } from '../../shared/lib/analytics/track.js'
 import { buildFeedInfo } from './feedDebugInfo.js'
@@ -102,6 +103,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   // насовсем после трёх проигнорированных видео; активна только в «Рекомендациях» (тут же живёт activeIdx) —
   // «Мои уроки» её не показывают.
   const { showHint: showSlowHint, markSeenNow: markSlowHintSeen } = useSlowMotionHint(activeIdx)
+  // Вторая подсказка — «потри фразу, чтобы появился перевод»: на 5-м видео (useRubHint.js)
+  const { showHint: showRubHint, markSeenNow: markRubHintSeen } = useRubHint(activeIdx)
   // Аналитика: сколько видео фразы было на экране (feed_view)
   useFeedTracking(feedActive && !openModule && len > 0 && activeIdx >= 0 ? feedModules[moduleOf(activeIdx, len)] : null)
 
@@ -152,6 +155,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
         onSoundBlocked={handleSoundBlocked}
         showSlowHint={showSlowHint && rel === 0}
         onSlowHintSeen={markSlowHintSeen}
+        showRubHint={showRubHint && rel === 0}
+        onRubHintSeen={markRubHintSeen}
         onToggleLike={() => toggle(m.id, 'liked')}
         onToggleSave={() => toggle(m.id, 'saved')}
         onLearn={() => { track('feed_learn', { module_id: m.id }); setOpenModule(m) }}

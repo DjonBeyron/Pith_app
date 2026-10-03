@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react'
 import ReviewWordBar from '../review/ReviewWordBar.jsx'
+import { recallGrowth } from './feedRecall.js'
 
 // Содержимое плашки перевода, когда по слову к повтору тапнули (макет frazy-pomnish.html):
 //   quiz — подпись «Закрепить знание» и три варианта перевода;
@@ -21,6 +22,7 @@ export default function RecallPlate({ r, translation, onAnswer }) {
     )
   }
   const bad = r.phase === 'bad'
+  const growth = recallGrowth(r)
   return (
     <>
       <div className="rcRow">
@@ -28,6 +30,7 @@ export default function RecallPlate({ r, translation, onAnswer }) {
         <b>{translation}</b>
         {r.phase === 'hard' && <span className="rcNote">Верно, но долго<br />повторим позже</span>}
         {bad && <span className="rcNote rcNoteBad">вернёмся<br />завтра</span>}
+        {growth && <span className="rcNote rcNoteUp">{growth[0]}<br />{growth[1]}</span>}
       </div>
       <ReviewWordBar word={r.key} from={r.from ?? r.step} to={r.to ?? null} settled={!!r.perm} delay={250} go={!!r.go} />
     </>

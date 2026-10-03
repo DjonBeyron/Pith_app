@@ -3,7 +3,7 @@ import { isLocalBackend } from './helpers/backend.js'
 
 // «Памяти пора отдыхать» (всё повторено): заголовок в одну строку на любой ширине, спящий мозг с «Z» в углу блока и
 // в нижней панели, искры пятиугольника в это время молчат (две анимации никогда не идут вместе). Плюс счётчик
-// временной памяти (три точки только при словах > 0) и вкладка «Мои начатые фразы». Модуль «Keep going ·
+// временной памяти (три точки только при словах > 0) и вкладка «Начатые фразы». Модуль «Keep going ·
 // E2E-ОБУЧЕНИЕ» есть только в сиде локального стека; память гостя — в localStorage своего контекста.
 const LESSONS = ['a', 'b', 'c', 'd'].map(x => `e2e0d000-0000-4000-8000-00000000000${x}`) // Старт, keep, going, Финал
 const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv') }
@@ -26,10 +26,14 @@ test('всё повторено: «Памяти пора отдыхать» в �
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Памяти пора отдыхать', { timeout: 30_000 })
   await expect(main).toContainText('Сегодня все слова записаны в твою память')
-  // Связь от шапки к ступеням оборвана, как порванный кабель: разрыв на стволе, жилки у концов, молния и искры
-  await expect(page.locator('.memWires .memTearSpark--bolt')).toHaveCount(1)
-  await expect(page.locator('.memWires .memTearSpark:not(.memTearSpark--bolt)')).toHaveCount(2)
-  expect(await page.locator('.memWires svg g path[fill="none"]').count()).toBeGreaterThanOrEqual(8)
+  // Связь от шапки к ступеням оборвана, как порванный кабель: небольшой разрыв, по три провода цветов ступеней у концов,
+  // на кончиках части проводов — жёлтые искры с разным периодом (у каждой свой тайминг)
+  expect(await page.locator('.memWires svg g path[fill="none"]').count()).toBe(6)
+  await expect(page.locator('.memWires .memTearSpark')).toHaveCount(4)
+  const periods = await page.locator('.memWires .memTearSpark').evaluateAll(els => els.map(el => el.style.getPropertyValue('--p')))
+  expect(new Set(periods).size).toBe(4)
+  const strokes = await page.locator('.memWires svg g path[fill="none"]').evaluateAll(els => els.map(el => el.getAttribute('stroke')))
+  expect(new Set(strokes)).toEqual(new Set(['#4fb3ee', '#e2cd78', '#b6fe3b']))
   // Спящий мозг: значок, три «Z»; в нижней панели — три мелких «Z» у мозга
   await expect(main.locator('.lrSleep svg')).toBeVisible()
   await expect(main.locator('.lrZ')).toHaveCount(3)
@@ -183,13 +187,13 @@ test('счётчик временной памяти: со словами лет
   await expect(page.locator('.memOrbit')).toHaveCount(3)
 })
 
-test('«Мои начатые фразы»: вкладка рядом с выученными, процент, продолжить', async ({ page }) => {
+test('«Начатые фразы»: вкладка рядом с выученными, процент, продолжить', async ({ page }) => {
   await seed(page, { due: null, completed: [LESSONS[0], LESSONS[1]] }) // 2 из 4 уроков модуля — 50%
   await page.goto('/?tab=learn')
   const section = page.locator('.memPhrases')
   // Выученных нет, начатая есть — раздел открывается на ней
-  await expect(section.locator('.memPhrasesTab')).toHaveText(['Мои выученные фразы 0', 'Мои начатые фразы 1'], { timeout: 30_000 })
-  await expect(section.locator('.memPhrasesTab--on')).toHaveText('Мои начатые фразы 1')
+  await expect(section.locator('.memPhrasesTab')).toHaveText(['Выученные фразы 0', 'Начатые фразы 1'], { timeout: 30_000 })
+  await expect(section.locator('.memPhrasesTab--on')).toHaveText('Начатые фразы 1')
   const row = section.locator('.memStartedRow')
   await expect(row).toContainText('Keep going')
   await expect(row.locator('.memStartedPct')).toHaveText('50%')
@@ -197,10 +201,10 @@ test('«Мои начатые фразы»: вкладка рядом с выу�
   expect(await row.locator('.memStartedIdx').evaluate(el => getComputedStyle(el).fontSize)).toBe('9px')
   await expect(row).toContainText('Пройдено 2 из 4 уроков · осталось 2')
   // Вкладка выученных — пусто, заботливо
-  await section.getByRole('tab', { name: /выученные/ }).click()
+  await section.getByRole('tab', { name: /выученные/i }).click()
   await expect(section.locator('.memPhrasesEmpty')).toContainText('Пока нет выученных фраз')
   // Тап по начатой — схема модуля
-  await section.getByRole('tab', { name: /начатые/ }).click()
+  await section.getByRole('tab', { name: /начатые/i }).click()
   await section.locator('.memStartedRow').click()
   await expect(page.locator('.mgNode--lesson').first()).toBeVisible({ timeout: 30_000 }) // схема модуля открылась
 })

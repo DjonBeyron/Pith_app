@@ -28,8 +28,8 @@ test('закреплённые фразы: список, «Все фразы», 
   await page.goto('/?tab=learn')
 
   const section = page.locator('.memPhrases')
-  await expect(section.locator('.memPhrasesTab--on')).toHaveText('Мои выученные фразы 4', { timeout: 30_000 })
-  await expect(section.locator('.memPhrasesTab')).toHaveText(['Мои выученные фразы 4', 'Мои начатые фразы 0'])
+  await expect(section.locator('.memPhrasesTab--on')).toHaveText('Выученные фразы 4', { timeout: 30_000 })
+  await expect(section.locator('.memPhrasesTab')).toHaveText(['Выученные фразы 4', 'Начатые фразы 0'])
   await expect(section.locator('.memPhraseRow')).toHaveCount(3) // три последние; остальные — в «Все фразы»
   await expect(section.locator('.memPhraseRow').first()).toContainText('Keep going')
   // Номер в коллекции — по порядку выучивания: самая свежая — 4, дальше 3, 2 (запись без даты — №1)
@@ -39,7 +39,7 @@ test('закреплённые фразы: список, «Все фразы», 
 
   // «Вся коллекция» — окно со всем списком, включая запись без снимка
   await section.getByRole('button', { name: /Вся коллекция · 4/ }).click()
-  const all = page.getByRole('dialog', { name: 'Мои выученные фразы' })
+  const all = page.getByRole('dialog', { name: 'Выученные фразы' })
   await expect(all.locator('.memPhraseRow')).toHaveCount(4)
   await expect(all.locator('.memPhraseRow').nth(3)).toContainText('Фраза')
 

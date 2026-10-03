@@ -5,13 +5,15 @@ import SlideVideo from './SlideVideo.jsx'
 import PhraseBubbleSpoiler from './PhraseBubbleSpoiler.jsx'
 import PhraseWords from './PhraseWords.jsx'
 import PhraseTranslationRow from './PhraseTranslationRow.jsx'
+import RubHint from './RubHint.jsx'
 import WordTranslateLine from './WordTranslateLine.jsx'
 import { useWordTranslate } from './useWordTranslate.js'
 import { useSlideRecall } from './useSlideRecall.js'
+import { useTranslationReveal } from './useTranslationReveal.js'
 import FeedHud from './FeedHud.jsx'
 
-// Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером, HUD
-// (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
+// Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером (перевод фразы появляется, когда её потёрли пальцем —
+// useTranslationReveal), HUD (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
 // Состояние лайков живёт в FeedTab, спойлер локален для каждой копии
 // слайда в круге.
 export default function FeedSlide({
@@ -20,31 +22,22 @@ export default function FeedSlide({
   difficulty, myDifficulty, onVoteDifficulty,
   soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
   showSlowHint = false, onSlowHintSeen,
+  showRubHint = false, onRubHintSeen, // обучающая подсказка «потри фразу» (useRubHint)
   knowledge = null, // { stepOf, settledOf } — память слов: цвет слов по ступеням (feedKnowledge.js)
   recall = null,    // повторение слов фразы (useFeedRecall): что к повтору, запас вариантов, лимиты
   onLearnChanged,   // ответ на проверку слова изменил память — лента обновит данные «Моего обучения»
 }) {
-  // Строка «раскрыть перевод» спрятана за фразой и выкатывается из-под неё с
-  // небольшой задержкой после тапа — не одновременно с разлётом шариков, а
-  // чуть следом, отдельным движением. revealed — сама фраза уже открыта
-  // (слова становятся кликабельными сразу, не дожидаясь выката строки)
+  // revealed — фраза уже открыта (слова становятся кликабельными сразу, перевод фразы можно тереть)
   const [revealed, setRevealed] = useState(false)
-  const [subOpen, setSubOpen] = useState(false)
-  const [trOpen, setTrOpen] = useState(false)
-  const subTimer = useRef(null)
-  useEffect(() => () => clearTimeout(subTimer.current), [])
   // Пословный перевод названия: тап по слову — линия с подложкой (см.
   // WordTranslateLine). Координаты считаются относительно самого слайда
   const rootRef = useRef(null)
   const wordTr = useWordTranslate(rootRef)
   const { pick, close } = wordTr
   // Слово фразы со сроком «сегодня»: дышит, по тапу — проверка вместо перевода (useSlideRecall)
-  const rc = useSlideRecall({ recall, mod, active, knowledge, wp: wordTr, onChanged: onLearnChanged })
-  function unlockSub() {
-    setRevealed(true)
-    rc.onReveal()
-    subTimer.current = setTimeout(() => setSubOpen(true), 320)
-  }
+  const rc = useSlideRecall({ recall, mod, active, revealed, knowledge, wp: wordTr, onChanged: onLearnChanged })
+  // Перевод фразы: спрятан, пока её не потёрли; стрелка прячет его обратно, подпись «перевести» остаётся до ухода со слайда
+  const { phase: trPhase, setSub, rubProps, toggle: toggleTr } = useTranslationReveal({ active, modId: mod.id, enabled: revealed && !!mod.titleTranslation, onRubbed: onRubHintSeen })
   // Ушли с этого слайда свайпом — подсказку убираем. Отдельно закрываем её и
   // при подмене модуля в той же копии слайда (лента крутится по кругу и
   // переиспользует смонтированные слайды — иначе остался бы чужой перевод)
@@ -72,12 +65,13 @@ export default function FeedSlide({
       />
 
       <div className="feedPhraseBlock">
-        {/* Шариками спойлера накрыта только сама фраза — строка «раскрыть
-            перевод» не спойлер, ей не нужны шарики (меньше высота = меньше
-            шариков). Сама строка спрятана за фразой и выкатывается по тапу */}
+        {/* Шариками спойлера накрыта только сама фраза — строка перевода не
+            спойлер, ей не нужны шарики (меньше высота = меньше шариков). Сама строка спрятана за фразой
+            и выкатывается, когда фразу потёрли */}
         <div className="feedPhraseStack">
-          <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={unlockSub}>
-            <div className="feedPhrase">
+          {showRubHint && revealed && trPhase === 'off' && !!mod.titleTranslation && <RubHint />}
+          <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={() => setRevealed(true)}>
+            <div className="feedPhrase" {...rubProps}>
               <PhraseWords
                 title={mod.title}
                 entries={mod.wordTranslations}
@@ -91,11 +85,12 @@ export default function FeedSlide({
             </div>
           </PhraseBubbleSpoiler>
           {!!mod.titleTranslation && (
-            <div className={subOpen ? 'feedPhraseSub feedPhraseSubOpen' : 'feedPhraseSub'}>
+            <div ref={setSub} className={trPhase === 'off' ? 'feedPhraseSub' : 'feedPhraseSub feedPhraseSubOpen'}>
               <PhraseTranslationRow
                 text={mod.titleTranslation}
-                open={trOpen}
-                onToggle={() => setTrOpen(v => !v)}
+                open={trPhase === 'open'}
+                peek={trPhase === 'off'}
+                onToggle={toggleTr}
               />
             </div>
           )}

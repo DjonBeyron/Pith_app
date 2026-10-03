@@ -181,7 +181,49 @@
   font-weight: 700;
 }
 
+/* Подсказка «потри фразу — появится перевод» (RubHint.jsx, useRubHint.js): плашка над фразой, отпечаток ходит
+   вправо-влево — так и надо тереть. Касаний не ловит. Бесконечная анимация только у transform и гаснет, когда
+   лента скрыта (как у остальных, feed-media.css) */
+.feedRubHint {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  margin-bottom: 10px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 6px 11px 6px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: feedRubHintIn 0.35s cubic-bezier(0.34, 1.25, 0.64, 1) 0.45s backwards;
+}
+.feedRubHintIcon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 255, 255, 0.85);
+  will-change: transform;
+  animation: feedRubHintRub 1.5s ease-in-out 0.8s infinite;
+}
+@keyframes feedRubHintIn { from { opacity: 0; transform: translateY(6px) scale(0.9); } }
+@keyframes feedRubHintRub {
+  0%, 100% { transform: translateX(-5px); }
+  25%      { transform: translateX(5px); }
+  50%      { transform: translateX(-5px); }
+  75%      { transform: translateX(5px); }
+}
+.feedViewHidden .feedRubHintIcon, .feedV2--paused .feedRubHintIcon { animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
+  .feedRubHint, .feedRubHintIcon { animation: none; }
   .fwWordOn { animation: none; }
   .wtPath, .wtPathGlow { stroke-dashoffset: 0; animation: none; }
   .wtPlate { animation: none; }

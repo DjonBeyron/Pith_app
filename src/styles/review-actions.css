@@ -80,12 +80,13 @@
   margin-right: 6px;
   vertical-align: -3px;
   will-change: transform;
-  animation: reviewArrowPulse 3.4s ease-in-out 1.3s infinite;
+  animation: reviewArrowPulse 3.4s ease-in-out 1.3s infinite backwards;
 }
 .reviewSwipeArrow { display: block; width: 14px; height: 14px; }
-.reviewSwipeArrowLit { position: absolute; inset: 0; color: #f2f5f7; opacity: 0; will-change: opacity; animation: reviewArrowLit 3.4s ease-in-out 1.3s infinite; }
-@keyframes reviewArrowPulse { 0%, 38%, 72%, 100% { transform: translateX(0) scale(1); } 49% { transform: translateX(-4px) scale(1.22); } 60% { transform: translateX(-6px) scale(1.06); } }
-@keyframes reviewArrowLit { 0%, 36%, 74%, 100% { opacity: 0; } 49% { opacity: 1; } }
+.reviewSwipeArrowLit { position: absolute; inset: 0; color: #f2f5f7; opacity: 0; will-change: opacity; animation: reviewArrowLit 3.4s ease-in-out 1.3s infinite backwards; }
+/* Один плавный «вдох» без остановок посередине (раньше два шага подряд давали торможение на пути): тянется влево и обратно */
+@keyframes reviewArrowPulse { 0%, 38%, 68%, 100% { transform: translateX(0) scale(1); } 52% { transform: translateX(-5px) scale(1.2); } }
+@keyframes reviewArrowLit { 0%, 38%, 70%, 100% { opacity: 0; } 52% { opacity: 1; } }
 .reviewSwipeHintText { position: relative; display: inline-block; white-space: nowrap; }
 .reviewSwipeShine {
   position: absolute;
@@ -98,7 +99,8 @@
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%, #000 55%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 45%, #000 55%, transparent);
   will-change: transform;
-  animation: reviewShineWindow 3.4s ease-in-out 1.3s infinite;
+  /* backwards: в задержку перед первым проходом блик уже у правого края (за надписью), а не стоит яркой полосой слева */
+  animation: reviewShineWindow 3.4s ease-in-out 1.3s infinite backwards;
 }
 .reviewSwipeShine span {
   position: absolute;
@@ -106,7 +108,7 @@
   left: 0;
   color: #f2f5f7;
   will-change: transform;
-  animation: reviewShineText 3.4s ease-in-out 1.3s infinite;
+  animation: reviewShineText 3.4s ease-in-out 1.3s infinite backwards;
 }
 @keyframes reviewShineWindow { 0% { transform: translateX(300%); } 45%, 100% { transform: translateX(-100%); } }
 @keyframes reviewShineText   { 0% { transform: translateX(-102%); }   45%, 100% { transform: translateX(34%); } }
@@ -152,6 +154,9 @@
 .reviewNoAudio--compact { width: 26px; height: 26px; padding: 0; gap: 0; }
 .reviewNoAudio--compact .reviewNoAudioIcon { width: 14px; height: 14px; }
 .reviewNoAudio--compact .reviewNoAudioLabel { max-width: 0; opacity: 0; }
+/* Звук выключен: кнопка серая, динамик зачёркнут; нажатие возвращает звук */
+.reviewNoAudio--off { border-color: #232830; color: #6f7784; }
+.reviewNoAudio { transition-property: width, height, padding, gap, opacity, color, border-color; }
 /* Ответ дан, появилась подсказка «смахни…» — кнопка остаётся, но тусклая и не нажимается */
 .reviewNoAudio:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
 

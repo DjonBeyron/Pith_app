@@ -15,9 +15,21 @@
   opacity: 0;
   animation: hudPopFlood 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards;
 }
+/* Окно голосования сложности в ленте (DifficultyBadge.jsx) закрывается так же: схлопывается к своей кнопке справа, заливка —
+   цвета панели. Не нажимается, пока схлопывается */
+.diffPanel--out { pointer-events: none; animation: hudPopOut 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards; }
+.diffPanel--out::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: #12151a;
+  opacity: 0;
+  animation: hudPopFlood 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards;
+}
 @keyframes hudPopOut { to { transform: scale(0); } }
 @keyframes hudPopFlood { to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .energyPop--out, .energyPop--out::after { animation: none; }
+  .energyPop--out, .energyPop--out::after, .diffPanel--out, .diffPanel--out::after { animation: none; }
 }
