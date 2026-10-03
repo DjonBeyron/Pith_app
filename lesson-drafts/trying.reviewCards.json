@@ -1,0 +1,743 @@
+{
+  "format": "pithy-lesson",
+  "version": 1,
+  "lesson": {
+    "title": "Trying",
+    "lessonId": "c171d573-7fa5-4d71-ae17-c5c5a908c111",
+    "nodeCount": 294
+  },
+  "reviewCards": [
+    {
+      "nodes": [
+        {
+          "type": "text",
+          "data": {
+            "content": "Опаздываем на автобус 🚌 Как сказать по-английски: «мы пытаемся успеть прямо сейчас»?",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 85,
+                "opacity": 0.75
+              },
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 51,
+                "end": 84,
+                "opacity": 1
+              },
+              {
+                "mode": "bold",
+                "color": "#ffffff",
+                "start": 51,
+                "end": 84,
+                "opacity": 1
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 1600,
+              "then": "n2"
+            }
+          ],
+          "ref": "n1",
+          "seq": 1,
+          "pos": [
+            0,
+            0
+          ]
+        },
+        {
+          "type": "word_choice",
+          "data": {
+            "options": [
+              {
+                "text": "We try to catch it",
+                "isCorrect": false
+              },
+              {
+                "text": "We are trying to catch it",
+                "isCorrect": true
+              },
+              {
+                "text": "We tried to catch it",
+                "isCorrect": false
+              }
+            ],
+            "sendPickToChat": true
+          },
+          "triggers": [
+            {
+              "if": "word_correct",
+              "then": null
+            },
+            {
+              "if": "word_wrong",
+              "then": null
+            }
+          ],
+          "ref": "n2",
+          "seq": 2,
+          "pos": [
+            370,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "nodes": [
+        {
+          "type": "text",
+          "data": {
+            "content": "Тсс, малыш спит 👶 Тапни на пропуск и выбери форму, которая подходит прямо сейчас",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 81,
+                "opacity": 0.75
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 1600,
+              "then": "n2"
+            }
+          ],
+          "ref": "n1",
+          "seq": 1,
+          "pos": [
+            0,
+            0
+          ]
+        },
+        {
+          "type": "fill_blanks",
+          "data": {
+            "template": "Shh, the baby is ___ to sleep.",
+            "translation": "Тсс, малыш ___ уснуть.",
+            "blanks": [
+              {
+                "answer": "trying",
+                "options": [
+                  "tries",
+                  "trying",
+                  "tried"
+                ]
+              }
+            ],
+            "responseWrong": "Смотри на слово is: после него нужна форма на ing",
+            "responseCorrect": "В точку 👌"
+          },
+          "triggers": [
+            {
+              "if": "fill_correct",
+              "then": null
+            },
+            {
+              "if": "fill_wrong",
+              "then": null
+            }
+          ],
+          "ref": "n2",
+          "seq": 2,
+          "pos": [
+            370,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "nodes": [
+        {
+          "type": "text",
+          "data": {
+            "content": "Дождь льёт как из ведра ☔ Собери фразу мы пытаемся поймать такси",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 64,
+                "opacity": 0.75
+              },
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 39,
+                "end": 64,
+                "opacity": 1
+              },
+              {
+                "mode": "bold",
+                "color": "#ffffff",
+                "start": 39,
+                "end": 64,
+                "opacity": 1
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 1600,
+              "then": "n2"
+            }
+          ],
+          "ref": "n1",
+          "seq": 1,
+          "pos": [
+            0,
+            0
+          ]
+        },
+        {
+          "type": "phrase_assembly",
+          "data": {
+            "words": [
+              "We",
+              "are",
+              "trying",
+              "to",
+              "catch",
+              "a",
+              "taxi"
+            ],
+            "distractors": [
+              {
+                "text": "tried"
+              },
+              {
+                "text": "is"
+              },
+              {
+                "text": "he"
+              }
+            ],
+            "responseWrong": "Начни с we, дальше пара из двух слов с trying",
+            "signals": [
+              {
+                "slot": 1,
+                "ref": "n3"
+              },
+              {
+                "slot": 2,
+                "ref": "n4"
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "phrase_correct",
+              "then": null
+            },
+            {
+              "if": "phrase_wrong",
+              "then": null
+            }
+          ],
+          "ref": "n2",
+          "seq": 2,
+          "pos": [
+            370,
+            0
+          ]
+        },
+        {
+          "type": "text",
+          "data": {
+            "content": "Слово перед trying зависит от того, кто действует: am, is или are 👀",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 68,
+                "opacity": 0.75
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 2000,
+              "then": null
+            }
+          ],
+          "note": "Сигнал ошибки (signals) — короткий намёк на причину без готового ответа, показывается в ленте при первой ошибке в этой букве. Продолжения не имеет.",
+          "ref": "n3",
+          "seq": 3,
+          "pos": [
+            740,
+            340
+          ]
+        },
+        {
+          "type": "text",
+          "data": {
+            "content": "Это происходит прямо сейчас, а не уже закончилось ⏳",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 51,
+                "opacity": 0.75
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 2000,
+              "then": null
+            }
+          ],
+          "note": "Сигнал ошибки (signals) — короткий намёк на причину без готового ответа, показывается в ленте при первой ошибке в этой букве. Продолжения не имеет.",
+          "ref": "n4",
+          "seq": 4,
+          "pos": [
+            1110,
+            340
+          ]
+        }
+      ]
+    },
+    {
+      "nodes": [
+        {
+          "type": "text",
+          "data": {
+            "content": "Серия вот-вот начнётся 📺 Допиши: Look! I am ___ Прямо сейчас «пытаюсь» найти пульт. Тапай по светящимся буквам",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 111,
+                "opacity": 0.75
+              },
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 62,
+                "end": 71,
+                "opacity": 1
+              },
+              {
+                "mode": "bold",
+                "color": "#ffffff",
+                "start": 62,
+                "end": 71,
+                "opacity": 1
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 1600,
+              "then": "n2"
+            }
+          ],
+          "ref": "n1",
+          "seq": 1,
+          "pos": [
+            0,
+            0
+          ]
+        },
+        {
+          "type": "type_word",
+          "data": {
+            "word": "trying",
+            "extraLetters": "ed",
+            "responseWrong": "Не то) После am нужна форма с окончанием из трёх букв 🤔",
+            "signals": [
+              {
+                "slot": 2,
+                "ref": "n3"
+              },
+              {
+                "slot": 3,
+                "ref": "n4"
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "type_correct",
+              "then": null
+            },
+            {
+              "if": "type_wrong",
+              "then": null
+            }
+          ],
+          "ref": "n2",
+          "seq": 2,
+          "pos": [
+            370,
+            0
+          ]
+        },
+        {
+          "type": "text",
+          "data": {
+            "content": "Подумай про y: меняется она в этой форме или остаётся?",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 54,
+                "opacity": 0.75
+              },
+              {
+                "mode": "bold",
+                "start": 12,
+                "end": 13
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 2000,
+              "then": null
+            }
+          ],
+          "note": "Сигнал ошибки (signals) — короткий намёк на причину без готового ответа, показывается в ленте при первой ошибке в этой букве. Продолжения не имеет.",
+          "ref": "n3",
+          "seq": 3,
+          "pos": [
+            740,
+            340
+          ]
+        },
+        {
+          "type": "text",
+          "data": {
+            "content": "Окончание этой формы — ing, три буквы подряд, ни одну не теряй",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 62,
+                "opacity": 0.75
+              },
+              {
+                "mode": "bold",
+                "start": 23,
+                "end": 26
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 2000,
+              "then": null
+            }
+          ],
+          "note": "Сигнал ошибки (signals) — короткий намёк на причину без готового ответа, показывается в ленте при первой ошибке в этой букве. Продолжения не имеет.",
+          "ref": "n4",
+          "seq": 4,
+          "pos": [
+            1110,
+            340
+          ]
+        }
+      ]
+    },
+    {
+      "nodes": [
+        {
+          "type": "text",
+          "data": {
+            "content": "Каждое лето мой брат пытается поймать крупную рыбу 🎣 Как это сказать по-английски?",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 83,
+                "opacity": 0.75
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 1600,
+              "then": "n2"
+            }
+          ],
+          "ref": "n1",
+          "seq": 1,
+          "pos": [
+            0,
+            0
+          ]
+        },
+        {
+          "type": "word_choice",
+          "data": {
+            "options": [
+              {
+                "text": "He try to catch a big fish",
+                "isCorrect": false
+              },
+              {
+                "text": "He tries to catch a big fish",
+                "isCorrect": true
+              },
+              {
+                "text": "He tried to catch a big fish",
+                "isCorrect": false
+              }
+            ],
+            "sendPickToChat": true
+          },
+          "triggers": [
+            {
+              "if": "word_correct",
+              "then": null
+            },
+            {
+              "if": "word_wrong",
+              "then": null
+            }
+          ],
+          "ref": "n2",
+          "seq": 2,
+          "pos": [
+            370,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "nodes": [
+        {
+          "type": "text",
+          "data": {
+            "content": "Вчера дома был целый переполох 😅 Собери фразу мы пытались найти ключи",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 70,
+                "opacity": 0.75
+              },
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 47,
+                "end": 70,
+                "opacity": 1
+              },
+              {
+                "mode": "bold",
+                "color": "#ffffff",
+                "start": 47,
+                "end": 70,
+                "opacity": 1
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 1600,
+              "then": "n2"
+            }
+          ],
+          "ref": "n1",
+          "seq": 1,
+          "pos": [
+            0,
+            0
+          ]
+        },
+        {
+          "type": "phrase_assembly",
+          "data": {
+            "words": [
+              "We",
+              "tried",
+              "to",
+              "find",
+              "the",
+              "keys"
+            ],
+            "distractors": [
+              {
+                "text": "try"
+              },
+              {
+                "text": "tries"
+              },
+              {
+                "text": "he"
+              }
+            ],
+            "responseWrong": "Это было вчера, значит нужна форма прошедшего времени",
+            "signals": [
+              {
+                "slot": 1,
+                "ref": "n3"
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "phrase_correct",
+              "then": null
+            },
+            {
+              "if": "phrase_wrong",
+              "then": null
+            }
+          ],
+          "ref": "n2",
+          "seq": 2,
+          "pos": [
+            370,
+            0
+          ]
+        },
+        {
+          "type": "text",
+          "data": {
+            "content": "Вчера уже прошло: нужна форма прошедшего, где y превращается в i",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 64,
+                "opacity": 0.75
+              },
+              {
+                "mode": "bold",
+                "start": 46,
+                "end": 47
+              },
+              {
+                "mode": "bold",
+                "start": 63,
+                "end": 64
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 2000,
+              "then": null
+            }
+          ],
+          "note": "Сигнал ошибки (signals) — короткий намёк на причину без готового ответа, показывается в ленте при первой ошибке в этой букве. Продолжения не имеет.",
+          "ref": "n3",
+          "seq": 3,
+          "pos": [
+            740,
+            340
+          ]
+        }
+      ]
+    },
+    {
+      "nodes": [
+        {
+          "type": "text",
+          "data": {
+            "content": "Мой кот каждое утро пытается открыть окно 😹 Тапни на пропуск и выбери форму",
+            "hardWrap": false,
+            "highlights": [
+              {
+                "mode": "text",
+                "color": "#ffffff",
+                "start": 0,
+                "end": 76,
+                "opacity": 0.75
+              }
+            ]
+          },
+          "triggers": [
+            {
+              "if": "timer",
+              "ms": 1600,
+              "then": "n2"
+            }
+          ],
+          "ref": "n1",
+          "seq": 1,
+          "pos": [
+            0,
+            0
+          ]
+        },
+        {
+          "type": "fill_blanks",
+          "data": {
+            "template": "Every morning my cat ___ to open the window.",
+            "translation": "Каждое утро мой кот ___ открыть окно.",
+            "blanks": [
+              {
+                "answer": "tries",
+                "options": [
+                  "tried",
+                  "try",
+                  "tries"
+                ]
+              }
+            ],
+            "responseWrong": "Кот — это it, а привычка — настоящее время. Какая форма нужна с it?",
+            "responseCorrect": "Ага, привычка 😺"
+          },
+          "triggers": [
+            {
+              "if": "fill_correct",
+              "then": null
+            },
+            {
+              "if": "fill_wrong",
+              "then": null
+            }
+          ],
+          "ref": "n2",
+          "seq": 2,
+          "pos": [
+            370,
+            0
+          ]
+        }
+      ]
+    }
+  ]
+}
