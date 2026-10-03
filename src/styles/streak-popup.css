@@ -5,7 +5,7 @@
    появление контента, и новый вид карточек заморозок (целиком тапабельны,
    кнопка покупки живёт в шторке rwInfoOverlay). */
 
-/* ── Скелетон (.rwGhost): та же реальная разметка окна (.rwHero/.rwNode/
+/* ── Скелетон (.rwGhost): та же реальная разметка окна (.rwHero/.rwBlock/
    .rwFreezeCard/.rwClaimBtn — см. RewardsPopup.jsx, RewardsPath.jsx), просто
    текст/иконки спрятаны (visibility: hidden — бокс остаётся на месте, не
    display: none), а поверх того же бокса лежит ::after с бегущим бликом
@@ -18,13 +18,10 @@
 }
 
 .rwGhost h2,
+.rwGhost .rwHeroLabel,
 .rwGhost .rwHeroSub,
 .rwGhost .rwHeroIcon,
 .rwGhost .rwTrackLabels span,
-.rwGhost .rwNodeDay,
-.rwGhost .rwNodeReward,
-.rwGhost .rwNodeIcon,
-.rwGhost .rwNodeLock,
 .rwGhost .rwFreezeCardName,
 .rwGhost .rwFreezeCardStatus,
 .rwGhost .rwFreezeCardIcon,
@@ -34,13 +31,10 @@
 }
 
 .rwGhost h2::after,
+.rwGhost .rwHeroLabel::after,
 .rwGhost .rwHeroSub::after,
 .rwGhost .rwHeroIcon::after,
 .rwGhost .rwTrackLabels span::after,
-.rwGhost .rwNodeDay::after,
-.rwGhost .rwNodeReward::after,
-.rwGhost .rwNodeIcon::after,
-.rwGhost .rwNodeLock::after,
 .rwGhost .rwFreezeCardName::after,
 .rwGhost .rwFreezeCardStatus::after,
 .rwGhost .rwFreezeCardIcon::after,
@@ -55,23 +49,17 @@
   animation: rwShimmer 1.4s ease-in-out infinite;
 }
 
-/* Иконки (🏆 в hero, 🎫/🔒 в нодах) — блик небольшим кругом по центру бокса:
-   сам бокс у них блочный/широкий, и inset: 0 с radius 50% растягивал блик
-   в странный эллипс на всю ширину блока. */
-.rwGhost .rwHeroIcon::after,
-.rwGhost .rwNodeIcon::after,
-.rwGhost .rwNodeLock::after {
+/* Иконка (🏆 в шапке) — блик небольшим кругом по центру бокса: сам бокс блочный, и inset: 0 с radius 50% растягивал блик
+   в странный эллипс. */
+.rwGhost .rwHeroIcon::after {
   inset: auto;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
 }
-
-.rwGhost .rwNodeIcon::after,
-.rwGhost .rwNodeLock::after { width: 20px; height: 20px; }
 
 .rwGhost .rwTrack {
   background: linear-gradient(100deg, #1a1e26 30%, #262d3a 50%, #1a1e26 70%);
@@ -116,24 +104,31 @@
 .rwFreezeRow { display: flex; gap: 8px; margin-bottom: 10px; }
 
 .rwFreezeCard {
+  --c: 79, 179, 238; /* заморозка — небесный, авто заморозка — фиолетовый (ступени «Моей памяти») */
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   min-width: 0;
-  padding: 9px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(182, 254, 59, 0.22);
-  background: #14171c;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 0;
+  background: linear-gradient(to right, rgba(var(--c), 0.14) 0, transparent 90px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(var(--c), 0.7),
+    inset 3px 0 0 0 rgba(var(--c), 0.7),
+    inset 12px 0 14px -10px rgba(var(--c), 0.45);
   color: #f2f5f7;
   text-align: left;
   font-family: inherit;
   cursor: pointer;
 }
+.rwFreezeCard + .rwFreezeCard { --c: 139, 92, 246; }
 
 .rwFreezeCard:disabled { cursor: default; }
 
-.rwFreezeCardIcon { display: flex; flex-shrink: 0; color: #9cd7ff; }
+.rwFreezeCardIcon { display: flex; flex-shrink: 0; color: rgb(var(--c)); }
+.rwFreezeCardIcon svg { width: 26px; height: 26px; }
 
 .rwFreezeCardBody {
   display: flex;
@@ -143,11 +138,10 @@
 }
 
 .rwFreezeCardName {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.15;
+  overflow-wrap: anywhere; /* «Авто заморозка» на узком экране переносится на вторую строку, а не обрезается */
 }
 
 .rwFreezeCardStatus {
@@ -206,13 +200,11 @@
 }
 
 /* ── Скелетон: гасим цветные обводки и свечения ──
-   Золотая рамка/свечение вехи и лаймовые рамки заморозок не должны «гореть»
+   Золотая рамка шапки и цветные рамки заморозок не должны «гореть»
    на заглушках — в ghost-режиме всё нейтральное, цвет приходит с данными.
    Блок в конце файла намеренно: побеждает более ранние правила при равной
    специфичности (.rwFreezeCard объявлен выше в этом же файле). */
-.rwGhost,
-.rwGhost .rwNode,
-.rwGhost .rwNodeMilestone {
+.rwGhost {
   border-color: #232838;
   box-shadow: none;
 }

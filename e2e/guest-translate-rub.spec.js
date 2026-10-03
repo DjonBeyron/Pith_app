@@ -123,9 +123,9 @@ test('перевод фразы: настоящее касание (CDP) тож�
   await expect(page.locator('.feedSlideWrapActive .feedPhrase')).toContainText('Keep going') // слайд тот же
 })
 
-test('подсказка «потри фразу»: на 5-м видео новичку, трение гасит её насовсем', async ({ page }) => {
+test('подсказка «потри фразу»: только после пяти открытых фраз (не подряд), трение гасит её насовсем', async ({ page }) => {
   test.slow()
-  // У каждой фразы ленты есть перевод — подсказка показывается на любом пятом видео
+  // У каждой фразы ленты есть перевод — подсказка показывается на любой открытой фразе
   await page.route('**/rest/v1/curricula*', async route => {
     const res = await route.fetch()
     const rows = await res.json()
@@ -141,12 +141,15 @@ test('подсказка «потри фразу»: на 5-м видео нов�
     await page.waitForTimeout(900)
   }
   const next = async () => { await page.keyboard.press('ArrowDown'); await page.waitForTimeout(900) }
-  await open()
-  for (let n = 2; n <= 4; n++) { await next(); await open(); await expect(hint).toHaveCount(0) }
-  await next() // 5-е видео
+  // Видео листаем, фразы не открываем — подсказки нет, сколько ни листай (раньше она приходила на 5-м видео)
+  for (let n = 0; n < 6; n++) { await next(); await expect(hint).toHaveCount(0) }
+  // Открываем фразы через одну: 1-я, 2-я, 3-я, 4-я — подсказки ещё нет
+  for (let n = 1; n <= 4; n++) { await open(); await expect(hint).toHaveCount(0); await next(); await next() }
+  // 5-я открытая (не подряд — между ними были пролистанные) — подсказка
   await open()
   await expect(hint).toHaveCount(1, { timeout: 5000 })
   await expect(hint).toContainText('Потри фразу')
+  expect(await page.evaluate(() => localStorage.getItem('pithy_rub_opened_v1'))).toBe('5')
   await rub(page, active)
   await expect(hint).toHaveCount(0)
   expect(await page.evaluate(() => localStorage.getItem('pithy_rub_hint_seen_v1'))).toBe('1')

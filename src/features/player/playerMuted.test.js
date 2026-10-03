@@ -18,4 +18,11 @@ describe('беззвучный плеер', () => {
     expect(read('./LessonPlayer.jsx')).toMatch(/PlayerMutedContext\.Provider value=\{muted\}/)
     expect(read('./modules/audio/AudioModule.jsx')).toMatch(/<audio ref=\{audioRef\} src=\{src\} preload="auto" muted=\{muted\} \/>/)
   })
+
+  it('тот же флаг глушит озвучку слов и звуки интерфейса (чат, «верно»/«неверно»): проводка в useLessonWordAudio', () => {
+    const src = read('./word-audio/useLessonWordAudio.js')
+    expect(src).toMatch(/setWordAudioMuted\(muted\)/)
+    expect(src).toMatch(/setSoundsMuted\(muted\)/)
+    expect(src).toMatch(/return \(\) => setSoundsMuted\(false\)/) // выход из урока снимает беззвучие
+  })
 })

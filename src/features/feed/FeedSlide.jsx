@@ -22,7 +22,7 @@ export default function FeedSlide({
   difficulty, myDifficulty, onVoteDifficulty,
   soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
   showSlowHint = false, onSlowHintSeen,
-  showRubHint = false, onRubHintSeen, // обучающая подсказка «потри фразу» (useRubHint)
+  showRubHint = false, onRubHintSeen, onPhraseOpened, // обучающая подсказка «потри фразу» (useRubHint): показ, «воспользовался», «фраза открыта»
   knowledge = null, // { stepOf, settledOf } — память слов: цвет слов по ступеням (feedKnowledge.js)
   recall = null,    // повторение слов фразы (useFeedRecall): что к повтору, запас вариантов, лимиты
   onLearnChanged,   // ответ на проверку слова изменил память — лента обновит данные «Моего обучения»
@@ -64,13 +64,15 @@ export default function FeedSlide({
         fallback={<div className="feedSlideHint">здесь будет видео фразы</div>}
       />
 
+      <div className="feedPauseGuard" aria-hidden="true" />
+
       <div className="feedPhraseBlock">
         {/* Шариками спойлера накрыта только сама фраза — строка перевода не
             спойлер, ей не нужны шарики (меньше высота = меньше шариков). Сама строка спрятана за фразой
             и выкатывается, когда фразу потёрли */}
         <div className="feedPhraseStack">
           {showRubHint && revealed && trPhase === 'off' && !!mod.titleTranslation && <RubHint />}
-          <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={() => setRevealed(true)}>
+          <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={() => { setRevealed(true); onPhraseOpened?.() }}>
             <div className="feedPhrase" {...rubProps}>
               <PhraseWords
                 title={mod.title}

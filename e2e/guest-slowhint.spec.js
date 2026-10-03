@@ -1,12 +1,20 @@
 import { test, expect } from './fixtures.js'
 
-// Подсказка «Зажми, чтобы замедлить» (features/feed/useSlowMotionHint.js, slowmoHintPlan.js): новичок видит её на 3-м
-// видео ленты при самом первом посещении; если три видео подряд пролистал, не воспользовавшись, — подсказка пропадает
-// насовсем (флаг сохраняется). Листаем клавишей ↓ (Swiper слушает её), как в тесте «Помнишь?».
+// Подсказка «Зажми, чтобы замедлить» (features/feed/useSlowMotionHint.js, useFeedHint.js, slowmoHintPlan.js): новичок видит
+// её на 3-м видео ленты при самом первом посещении, но ТОЛЬКО при включённом звуке (замедление имеет смысл со звуком);
+// если три видео подряд пролистал, не воспользовавшись, — подсказка пропадает насовсем (флаг сохраняется). Листаем клавишей ↓
+// (Swiper слушает её), как в тесте «Помнишь?». Звук включаем кнопкой в шапке ленты — она есть у тех, кто уже включал звук раньше.
+const soundOnInit = page => page.addInitScript(() => {
+  try { localStorage.setItem('pithy_sound_ever_v1', '1') } catch { /* нет localStorage */ }
+})
+const turnSoundOn = page => page.getByRole('button', { name: 'Включить звук' }).first().click()
+
 test('подсказка «замедлить»: на 3-м видео, после трёх игноров — навсегда пропадает', async ({ page }) => {
   test.slow()
+  await soundOnInit(page)
   await page.goto('/')
   await expect(page.locator('.feedSlideWrapActive')).toBeVisible({ timeout: 30_000 })
+  await turnSoundOn(page)
   const hint = page.locator('.feedSlowHint')
   const next = async () => { await page.keyboard.press('ArrowDown'); await page.waitForTimeout(900) }
   await page.waitForTimeout(900)
@@ -27,6 +35,20 @@ test('подсказка «замедлить»: на 3-м видео, посл�
   await next()
   await next()
   await expect(hint).toHaveCount(0) // и дальше не возвращается
+})
+
+test('подсказка «замедлить»: без звука не показывается и игноры не копит; включил звук — появляется', async ({ page }) => {
+  test.slow()
+  await soundOnInit(page)
+  await page.goto('/')
+  await expect(page.locator('.feedSlideWrapActive')).toBeVisible({ timeout: 30_000 })
+  const hint = page.locator('.feedSlowHint')
+  const next = async () => { await page.keyboard.press('ArrowDown'); await page.waitForTimeout(900) }
+  await page.waitForTimeout(900)
+  for (let i = 0; i < 5; i++) { await next(); await expect(hint).toHaveCount(0) } // видео 2–6 без звука
+  expect(await page.evaluate(() => localStorage.getItem('pithy_slowmo_hint_ignored_v1'))).toBe(null) // не показывалась — не игнор
+  await turnSoundOn(page)
+  await expect(hint).toHaveCount(1)
 })
 
 test('подсказка «замедлить»: уже воспользовался — её нет', async ({ page }) => {

@@ -1,0 +1,185 @@
+/* ── «Ежедневные награды»: шапка серии и путь дней в языке вкладки «Моя память» ──
+   Разметка — RewardsPopup.jsx (шапка) и RewardsPath.jsx (путь). Дни — крупные блоки с текстурой (пыль, зерно, узор),
+   цветной обводкой и свечением слева, как ступени памяти; блоки идут «лесенкой» (влево → вправо → обратно), от общего
+   ствола слева к каждому — провод с раздувом у входа. Цвет блока — статус дня: зелёный — ждёт забора (две обводки
+   толщиной 2,5 px и мягкое дыхание свечения), приглушённый зелёный — забрано, серый — ещё не наступил, золотой — веха
+   (билеты), с эхо-кольцом снаружи. Высоты блоков одинаковые: по ним CSS сам считает, до какого места ствол зелёный
+   (--lime-n — номер последней ступени, в которую вход совершён). Только transform/opacity; анимация — дыхание свечения. */
+
+/* Узор вкладок на самом заднем фоне окна — тот же, что на вкладках «Профиль» и «Рейтинг» (tab-top.css) */
+.rwOverlay { isolation: isolate; }
+.rwOverlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--v2-tex);
+  opacity: 0.375;
+  pointer-events: none;
+}
+
+/* ── Шапка: серия ───────────────────────────────────────────────────── */
+.rwHero {
+  position: relative;
+  margin-bottom: 26px;
+  padding: 18px 18px 16px;
+  border-radius: 20px;
+  text-align: left;
+  background:
+    linear-gradient(to right, rgba(255, 210, 87, 0.12) 0, transparent 130px),
+    var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 210, 87, 0.55),
+    inset 3px 0 0 0 rgba(255, 210, 87, 0.55),
+    inset 14px 0 18px -10px rgba(255, 210, 87, 0.45);
+}
+.rwHeroTop { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.rwHeroLabel { display: block; font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #b6fe3b; }
+.rwHero h2 { margin: 4px 0 0; font-size: 22px; font-weight: 800; line-height: 1; color: #f2f5f7; }
+.rwHeroNum { margin-right: 4px; font-size: 54px; font-weight: 800; line-height: 0.9; }
+.rwHeroIcon { display: flex; flex-shrink: 0; color: #ffd257; filter: drop-shadow(0 0 14px rgba(255, 210, 87, 0.45)); }
+.rwHeroSub { margin: 0 0 12px; font-size: 14px; line-height: 1.4; color: #9aa3ad; }
+.rwHeroSub b { color: #b6fe3b; }
+/* Дорожка прогресса: тёмная капсула с тонким светлым контуром — пустая часть хорошо видна (как у полосок «Моей памяти») */
+.rwTrack { width: 100%; height: 12px; box-sizing: border-box; border-radius: 6px; background: #090b0e; box-shadow: inset 0 0 0 1px #3d4654; overflow: hidden; }
+.rwFill { height: 100%; border-radius: 6px; background: linear-gradient(to right, rgba(182, 254, 59, 0.7), #b6fe3b); box-shadow: 0 0 12px rgba(182, 254, 59, 0.5); transition: width 0.6s ease; }
+.rwTrackLabels { display: flex; justify-content: space-between; margin-top: 7px; font-size: 11px; font-weight: 700; color: #8b95a1; }
+
+/* ── Путь дней ───────────────────────────────────────────────────────── */
+.rwPath { --row-h: 84px; --gap: 20px; --pitch: calc(var(--row-h) + var(--gap)); position: relative; }
+.rwPathList { position: relative; display: flex; flex-direction: column; gap: var(--gap); padding-left: 14px; }
+/* Ствол слева: серый на всю длину, зелёный — поверх, до последней ступени, в которую вход уже совершён */
+.rwPathList::before, .rwPathList::after {
+  content: '';
+  position: absolute;
+  left: 12.5px;
+  top: calc(var(--row-h) / 2);
+  width: 3px;
+  border-radius: 2px;
+}
+.rwPathList::before { bottom: calc(var(--row-h) / 2); background: #2a3142; }
+.rwPathList::after {
+  height: max(0px, calc(var(--lime-n, -1) * var(--pitch)));
+  background: #b6fe3b;
+  box-shadow: 0 0 9px rgba(182, 254, 59, 0.5);
+}
+
+.rwStep {
+  --off: calc(7% + var(--k, 0) * 8%); /* сдвиг блока вправо: 7% / 15% / 23% — как лесенка ступеней памяти */
+  --accent: #5d667a;
+  --wire: #2f3748;
+  position: relative;
+  height: var(--row-h);
+}
+.rwStep--ready { --accent: #b6fe3b; --wire: #b6fe3b; }
+.rwStep--done { --accent: #8aa65a; --wire: rgba(182, 254, 59, 0.55); }
+.rwStep--gold { --accent: #ffd257; }
+.rwStep--gold.rwStep--locked { --accent: #c4a24a; }
+/* Провод от ствола к блоку: тонкий, у входа в блок раздувается (клин), цвет — от ствола к цвету блока */
+.rwStep::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: calc(50% - 8px);
+  width: var(--off);
+  height: 16px;
+  background: linear-gradient(to right, var(--wire), var(--accent));
+  clip-path: polygon(0 41%, calc(100% - 26px) 41%, 100% 0, 100% 100%, calc(100% - 26px) 59%, 0 59%);
+}
+
+.rwBlock {
+  --tint: rgba(93, 102, 122, 0.14);
+  --ring: #2f3748;
+  --w: 1px;
+  --glow: transparent;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 77%;
+  height: 100%;
+  margin-left: var(--off);
+  padding: 0 14px 0 16px;
+  border-radius: 16px;
+  background: linear-gradient(to right, var(--tint) 0, transparent 90px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+  /* Первая обводка по краю, слева толще и со свечением внутрь — там в блок входит провод (как у ступеней памяти) */
+  box-shadow:
+    inset 0 0 0 var(--w) var(--ring),
+    inset 3px 0 0 0 var(--ring),
+    inset 14px 0 16px -10px var(--glow);
+}
+.rwStep--ready .rwBlock { --tint: rgba(182, 254, 59, 0.15); --ring: rgba(182, 254, 59, 0.95); --w: 2.5px; --glow: rgba(182, 254, 59, 0.5); }
+.rwStep--done .rwBlock { --tint: rgba(182, 254, 59, 0.06); --ring: rgba(182, 254, 59, 0.32); --glow: rgba(182, 254, 59, 0.18); }
+.rwStep--gold .rwBlock { --tint: rgba(255, 210, 87, 0.14); --ring: rgba(255, 210, 87, 0.5); --glow: rgba(255, 210, 87, 0.3); }
+.rwStep--gold.rwStep--ready .rwBlock { --tint: rgba(255, 210, 87, 0.17); --ring: rgba(255, 210, 87, 0.95); --w: 2.5px; --glow: rgba(255, 210, 87, 0.5); }
+.rwStep--gold.rwStep--done .rwBlock { --tint: rgba(255, 210, 87, 0.07); --ring: rgba(255, 210, 87, 0.3); }
+/* Веха — вторая обводка снаружи с зазором (эхо-кольцо, как у сильной ступени памяти) */
+.rwStep--gold .rwBlock::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 21px;
+  border: 1px solid rgba(255, 210, 87, 0.4);
+  pointer-events: none;
+}
+/* Ждёт забора — свечение вокруг блока мягко «дышит» (только opacity) */
+.rwStep--ready .rwBlock::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  box-shadow: 0 0 24px 2px rgba(182, 254, 59, 0.34);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: rwGlow 2.6s ease-in-out infinite;
+}
+.rwStep--gold.rwStep--ready .rwBlock::after { box-shadow: 0 0 26px 3px rgba(255, 210, 87, 0.4); }
+@keyframes rwGlow { 50% { opacity: 1; } }
+
+/* Номер дня — крупно цветом блока (как цифры «3 · 2 · 1» у ступеней памяти) */
+.rwNum { display: flex; flex-direction: column; align-items: center; min-width: 40px; font-size: 32px; font-weight: 800; line-height: 0.95; color: var(--accent); }
+.rwNum i { margin-bottom: 3px; font-size: 9.5px; font-style: normal; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8b95a1; }
+.rwBody { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.rwReward { display: inline-flex; align-items: center; gap: 4px; overflow: hidden; font-size: 17px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; color: #f2f5f7; }
+.rwStep--gold .rwReward { color: #ffd257; }
+.rwStep--done .rwReward { color: #aab3bd; }
+.rwStep--locked .rwReward { color: #8b95a1; }
+.rwRewardTicket { flex-shrink: 0; width: 15px; height: 15px; }
+.rwSub { font-size: 11.5px; font-weight: 600; color: #8b95a1; }
+.rwStep--ready .rwSub { color: var(--accent); }
+.rwStep--locked .rwNum { color: #6b7487; }
+.rwStep--gold.rwStep--locked .rwNum { color: #b69a52; }
+.rwMark { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.rwStep--ready .rwMark { background: rgba(182, 254, 59, 0.14); }
+.rwStep--gold.rwStep--ready .rwMark { background: rgba(255, 210, 87, 0.14); }
+.rwStep--locked .rwMark { box-shadow: inset 0 0 0 1px #3d4654; color: #6b7487; }
+.rwMarkTicket { width: 22px; height: 22px; }
+.rwStep--locked .rwMarkTicket { opacity: 0.55; }
+
+/* ── Скелетон: те же блоки, содержимое спрятано, силуэт блестит ── */
+.rwGhost .rwBlock > * { visibility: hidden; }
+.rwGhost .rwBlock {
+  background: linear-gradient(100deg, #1a1e26 30%, #262d3a 50%, #1a1e26 70%);
+  background-size: 250% 100%;
+  animation: rwShimmer 1.4s ease-in-out infinite;
+  box-shadow: none;
+}
+.rwGhost .rwBlock::before, .rwGhost .rwBlock::after { display: none; }
+.rwGhost .rwStep::before { background: #2f3748; }
+
+/* Узкие экраны (320 px): блок чуть компактнее, чтобы награда вехи «20 XP + 1 🎫» и подпись помещались */
+@media (max-width: 350px) {
+  .rwBlock { gap: 9px; padding: 0 10px 0 12px; }
+  .rwNum { min-width: 34px; font-size: 28px; }
+  .rwReward { font-size: 15px; }
+  .rwSub { font-size: 10.5px; }
+  .rwMark { width: 32px; height: 32px; }
+  .rwMarkTicket { width: 19px; height: 19px; }
+  .rwHeroNum { font-size: 46px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rwStep--ready .rwBlock::after { animation: none; opacity: 0.8; }
+  .rwFill { transition: none; }
+}

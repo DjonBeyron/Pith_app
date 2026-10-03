@@ -9,6 +9,7 @@ import {
 } from '../../shared/api/streakApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
+import { plural } from '../../shared/lib/plural.js'
 
 const RESET_INFO_KEY = 'pithy_streak_reset_info'
 
@@ -159,8 +160,13 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
 
         <div className={loading ? undefined : 'rwFadeIn'}>
           <section className={`rwHero${loading ? ' rwGhost' : ''}`}>
-            <div className="rwHeroIcon"><Trophy size={40} /></div>
-            <h2>Серия {streak} {streak === 1 ? 'день' : 'дней'}</h2>
+            <div className="rwHeroTop">
+              <div className="rwHeroText">
+                <span className="rwHeroLabel">Серия</span>
+                <h2><span className="rwHeroNum">{streak}</span> {plural(streak, 'день', 'дня', 'дней')}</h2>
+              </div>
+              <div className="rwHeroIcon"><Trophy size={56} strokeWidth={1.6} /></div>
+            </div>
             {loading || nextMilestone ? (
               <>
                 <p className="rwHeroSub">
@@ -187,7 +193,7 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
             ) : <p className="rwHeroSub">Ты прошёл все известные вехи — так держать!</p>}
           </section>
 
-          <RewardsPath key={loading ? 'ghost' : 'real'} ghost={loading} days={days} focusDay={focusDay} />
+          <RewardsPath key={loading ? 'ghost' : 'real'} ghost={loading} days={days} focusDay={focusDay} streak={streak} />
         </div>
 
         {loading && loadError && (

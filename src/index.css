@@ -168,6 +168,7 @@
 @import './styles/auth.css';
 @import './styles/xp.css';
 @import './styles/streak.css';
+@import './styles/rewards-ladder.css';
 @import './styles/streak-claim.css';
 @import './styles/streak-popup.css';
 @import './styles/streak-gate.css';

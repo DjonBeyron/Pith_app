@@ -102,9 +102,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   // Обучающая подсказка «зажми лайк — замедли»: появляется на 3-м видео при первом посещении ленты и пропадает
   // насовсем после трёх проигнорированных видео; активна только в «Рекомендациях» (тут же живёт activeIdx) —
   // «Мои уроки» её не показывают.
-  const { showHint: showSlowHint, markSeenNow: markSlowHintSeen } = useSlowMotionHint(activeIdx)
-  // Вторая подсказка — «потри фразу, чтобы появился перевод»: на 5-м видео (useRubHint.js)
-  const { showHint: showRubHint, markSeenNow: markRubHintSeen } = useRubHint(activeIdx)
+  const { showHint: showSlowHint, markSeenNow: markSlowHintSeen } = useSlowMotionHint(activeIdx, soundReady)
+  // Вторая подсказка — «потри фразу, чтобы появился перевод»: после пяти открытых фраз (useRubHint.js)
+  const { showHint: showRubHint, markSeenNow: markRubHintSeen, noteOpened: noteRubOpened } = useRubHint(activeIdx)
   // Аналитика: сколько видео фразы было на экране (feed_view)
   useFeedTracking(feedActive && !openModule && len > 0 && activeIdx >= 0 ? feedModules[moduleOf(activeIdx, len)] : null)
 
@@ -157,6 +157,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
         onSlowHintSeen={markSlowHintSeen}
         showRubHint={showRubHint && rel === 0}
         onRubHintSeen={markRubHintSeen}
+        onPhraseOpened={noteRubOpened}
         onToggleLike={() => toggle(m.id, 'liked')}
         onToggleSave={() => toggle(m.id, 'saved')}
         onLearn={() => { track('feed_learn', { module_id: m.id }); setOpenModule(m) }}

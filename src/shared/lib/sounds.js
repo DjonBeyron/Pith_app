@@ -42,11 +42,17 @@ export function unlockAudio() {
   }
 }
 
+// Беззвучный режим колоды повторения («Не могу слушать»): пока включён, звуки интерфейса — сообщения чата, «верно»/
+// «неверно», закрепление — молчат. Выставляет плеер (useLessonWordAudio.js), при выходе из урока сбрасывается
+let muted = false
+export function setSoundsMuted(value) { muted = !!value }
+
 // where — кто просит звук ('word-choice', 'феед', 'таблица'…). В отчёт
 // дебага уходит вместе с итогом: по одному «OK» нельзя было понять, почему
 // ученик звука не услышал — промис play() резолвится в момент СТАРТА, а
 // дальше элемент мог встать на паузу или оборваться (см. soundTrace.js).
 export function playSound(name, where = null) {
+  if (muted) return
   let audio = htmlCache[name]
   if (!audio) {
     audio = new Audio(`/sounds/${name}.mp3`)

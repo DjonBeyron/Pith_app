@@ -93,8 +93,9 @@
 .rcCheckSoft { background: #9aa3ad; }
 .rcNote { margin-left: auto; color: #9aa3ad; font-size: 10.5px; font-weight: 700; line-height: 1.25; text-align: right; }
 .rcNoteBad { color: #f0b35a; }
-/* Слово перешло на ступень выше: пометка цвета новой ступени, появляется вместе с вспышкой полоски */
-.rcNoteUp { color: var(--wt-c, #b6fe3b); animation: rcNoteIn 0.5s ease 0.1s backwards; }
+/* Слово перешло на ступень выше: пометка цвета новой ступени. Место под неё занято в плашке с самого ответа (строка уже в
+   разметке) — плашка не прыгает; проявляется она, когда полоска слова вспыхивает (≈2,2 с после ответа, ReviewWordBar) */
+.rcNoteUp { color: var(--wt-c, #b6fe3b); animation: rcNoteIn 0.5s ease 2.15s backwards; }
 @keyframes rcNoteIn { from { opacity: 0; transform: translateY(4px); } }
 /* Чип слова — тот же .memChip / .reviewBar, что в итоге повторения, но по размеру плашки */
 .wtPlateRc .reviewBar { padding: 5px 9px; border-radius: 7px; font-size: 12.5px; }

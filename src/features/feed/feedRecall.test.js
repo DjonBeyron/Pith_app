@@ -146,20 +146,25 @@ describe('цвет и время плашки', () => {
   })
 })
 
-describe('recallGrowth — заботливая пометка при переходе на ступень', () => {
-  it('ступень выросла — слово окрепло и новое название', () => {
-    expect(recallGrowth({ phase: 'ok', step: 2, from: 2, to: 3 })).toEqual(['слово окрепло', '→ «Знакомые»'])
-    expect(recallGrowth({ phase: 'ok', step: 4, from: 4, to: 5 })).toEqual(['слово окрепло', '→ «Усвоенные»'])
+describe('recallGrowth — пометка «слово засело в памяти» при переходе на ступень', () => {
+  it('ступень выросла — две строки пометки', () => {
+    expect(recallGrowth({ phase: 'ok', step: 2, from: 2, to: 3 })).toEqual(['слово засело', 'в памяти'])
+    expect(recallGrowth({ phase: 'ok', step: 4, from: 4, to: 5 })).toEqual(['слово засело', 'в памяти'])
   })
-  it('ушло в постоянную память — «закрепилось навсегда»', () => {
-    expect(recallGrowth({ phase: 'ok', step: 5, from: 5, to: 5, perm: true })).toEqual(['закрепилось', 'навсегда'])
+  it('ушло в постоянную память — «слово засело навсегда»', () => {
+    expect(recallGrowth({ phase: 'ok', step: 5, from: 5, to: 5, perm: true })).toEqual(['слово засело', 'навсегда'])
   })
-  it('шаг внутри ступени, ошибка, «долго», ответ сервера не пришёл — без пометки', () => {
+  it('шаг внутри ступени, ошибка, «долго» — без пометки', () => {
     expect(recallGrowth({ phase: 'ok', step: 1, from: 1, to: 2 })).toBe(null)
     expect(recallGrowth({ phase: 'hard', step: 2, from: 2, to: 2 })).toBe(null)
     expect(recallGrowth({ phase: 'bad', step: 3, from: 3, to: 2 })).toBe(null)
-    expect(recallGrowth({ phase: 'ok', step: 2 })).toBe(null)
     expect(recallGrowth({ phase: 'ok', step: 5, from: 5, to: 5, perm: true, wasSettled: true })).toBe(null)
+  })
+  it('место закладывается сразу: до ответа сервера пометка считается так же, как без сервера', () => {
+    expect(recallGrowth({ phase: 'ok', step: 2 })).toEqual(['слово засело', 'в памяти'])
+    expect(recallGrowth({ phase: 'ok', step: 5 })).toEqual(['слово засело', 'навсегда'])
+    expect(recallGrowth({ phase: 'ok', step: 1 })).toBe(null)
+    expect(recallGrowth({ phase: 'ok', step: 5, wasSettled: true })).toBe(null)
   })
 })
 

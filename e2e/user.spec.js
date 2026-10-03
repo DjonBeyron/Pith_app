@@ -263,3 +263,25 @@ test('«Сколько минут в день» меняется в настро
   await openSettings(page)
   await expect(page.getByRole('button', { name: '15 минут в день · изменить' })).toBeVisible({ timeout: 30_000 })
 })
+
+test('«Ежедневные награды»: крупная «лесенка» блоков в языке «Моей памяти», блоки одной высоты', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  await page.locator('.pvStreakBtn').click()
+  await expect(page.locator('.rwHero')).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('.rwHero.rwGhost')).toHaveCount(0, { timeout: 30_000 }) // вехи загрузились, скелетона нет
+  await expect(page.locator('.rwHeroLabel')).toHaveText('Серия')
+  const geo = await page.evaluate(() => [...document.querySelectorAll('.rwStep')].map(st => {
+    const b = st.querySelector('.rwBlock').getBoundingClientRect()
+    return { h: Math.round(b.height), w: Math.round(b.width), x: Math.round(b.left) }
+  }))
+  expect(geo.length).toBeGreaterThanOrEqual(5)
+  expect(new Set(geo.map(g => g.h)).size, 'блоки одной высоты — по ней считается ствол').toBe(1)
+  expect(geo[0].h, 'блоки крупные (раньше ~50 px)').toBeGreaterThanOrEqual(80)
+  expect(geo[0].w, 'и широкие (раньше 104 px)').toBeGreaterThanOrEqual(240)
+  expect(new Set(geo.map(g => g.x)).size, 'ступени идут лесенкой, а не колонкой').toBeGreaterThanOrEqual(3)
+  // Ствол слева и провода к блокам; кнопка «Забрать» — большая «таблетка»
+  expect(await page.locator('.rwPathList').evaluate(el => getComputedStyle(el, '::before').width)).toBe('3px')
+  expect(await page.locator('.rwStep').first().evaluate(el => getComputedStyle(el, '::before').clipPath)).toContain('polygon')
+  expect(await page.locator('.rwClaimBtn').evaluate(el => getComputedStyle(el).borderRadius)).toBe('999px')
+})

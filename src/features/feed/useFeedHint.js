@@ -7,15 +7,22 @@ import { shouldArm, swipeAway, MAX_IGNORED } from './slowmoHintPlan.js'
 // запрошенные 0.3с сверху: 140 + 300 ≈ 450мс.
 const ARM_DELAY_MS = 450
 
-// Обучающая подсказка ленты (общая часть: «зажми — замедли», «потри фразу»). Появляется на armAt-м видео при первом
-// посещении (slowmoHintPlan.js) и висит на следующих, пока ею не воспользуются. maxIgnored видео с подсказкой пролистаны
-// без неё (игнор) — подсказка убирается насовсем: новичок её не хочет. Счётчик игноров переживает перезапуск приложения
-// (ленту могут бросить на втором видео — тогда в следующий раз всё равно armAt-е видео). Воспользовался — тоже насовсем.
+// Обучающая подсказка ленты (общая часть: «зажми — замедли», «потри фразу»). Появляется, когда «набралось» armAt
+// единиц, и висит на следующих видео, пока ею не воспользуются. maxIgnored видео с подсказкой пролистаны без неё
+// (игнор) — подсказка убирается насовсем: новичок её не хочет. Счётчик игноров переживает перезапуск приложения.
+// Воспользовался — тоже насовсем (slowmoHintPlan.js — чистые правила).
+// Что такое «единица», решает вызывающий:
+//   — по умолчанию — видео, показанное в этом посещении ленты (подсказка замедления: на 3-м видео);
+//   — units (число) — своё достижение: например, сколько фраз человек открыл (подсказка «потри фразу»: после 5 открытых,
+//     не обязательно подряд). Достигла armAt — подсказка показывается сразу.
+// enabled — условие показа: false — подсказка скрыта и видео, с которых ушли, в игнор не идут (замедление — только при
+// включённом звуке; нет звука — человек подсказки и не видел).
 // cfg: { seenKey, ignoredKey, armAt, maxIgnored?, serverSeen?: () => bool, onRetire?: () => void } — ключи localStorage и
 // (для подсказки замедления) флаг в профиле: уже видел на другом устройстве / запомнить на сервере.
 // → { showHint, markSeenNow } — markSeenNow зовут, когда подсказкой реально воспользовались
-export function useFeedHint(activeIdx, cfg) {
+export function useFeedHint(activeIdx, cfg, { enabled = true, units = null } = {}) {
   const { seenKey, ignoredKey, armAt, maxIgnored = MAX_IGNORED } = cfg
+  const byUnits = units !== null
   const cfgRef = useRef(cfg)
   useEffect(() => { cfgRef.current = cfg })
   const readSeen = () => {
@@ -30,10 +37,12 @@ export function useFeedHint(activeIdx, cfg) {
   const [armed, setArmed] = useState(false)
   const viewedRef = useRef(0) // видео, показанных в этом посещении ленты
   const armedRef = useRef(false)
+  const enabledRef = useRef(enabled)
   const prevIdxRef = useRef(activeIdx)
   const armTimer = useRef(null)
 
-  useEffect(() => { armedRef.current = armed })
+  const isArmed = byUnits ? units >= armAt : armed
+  useEffect(() => { armedRef.current = isArmed; enabledRef.current = enabled })
 
   // Убрать насовсем: воспользовались или проигнорировали трижды
   const retire = useCallback(() => {
@@ -54,19 +63,20 @@ export function useFeedHint(activeIdx, cfg) {
     viewedRef.current += 1
     if (seen) return
     if (armedRef.current) {
-      // Ушли с видео, на котором висела подсказка, не воспользовавшись ею
+      // Ушли с видео, на котором висела подсказка, не воспользовавшись ею (скрытая из-за enabled — не в счёт)
+      if (!enabledRef.current) return
       const r = swipeAway(readIgnored(), maxIgnored)
       try { localStorage.setItem(ignoredKey, String(r.ignored)) } catch { /* нет localStorage */ }
       // eslint-disable-next-line react-hooks/set-state-in-effect -- реакция на смену слайда (внешнее событие ленты), а не каскад состояний
       if (r.retire) retire()
       return
     }
-    if (shouldArm({ viewed: viewedRef.current, seen }, armAt)) {
+    if (!byUnits && shouldArm({ viewed: viewedRef.current, seen }, armAt)) {
       armTimer.current = setTimeout(() => setArmed(true), ARM_DELAY_MS)
     }
   }, [activeIdx, seen, retire]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => clearTimeout(armTimer.current), [])
 
-  return { showHint: armed && !seen, markSeenNow: retire }
+  return { showHint: enabled && isArmed && !seen, markSeenNow: retire }
 }

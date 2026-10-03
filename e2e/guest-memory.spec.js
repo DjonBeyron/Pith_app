@@ -12,13 +12,13 @@ const today = () => new Date().toLocaleDateString('sv') // YYYY-MM-DD по ча�
 // Память гостя кладётся ОДИН раз за вкладку (флаг в sessionStorage): скрипт
 // инициализации срабатывает на каждой загрузке страницы и иначе вернул бы
 // память, которую приложение уже перенесло и стёрло
-const seedMemory = page => page.addInitScript(d => {
+const seedMemory = (page, step = 1) => page.addInitScript(([d, st]) => {
   if (sessionStorage.getItem('e2e_guest_seeded')) return
   sessionStorage.setItem('e2e_guest_seeded', '1')
   localStorage.setItem('pithy_guest_memory_v1', JSON.stringify({
-    keep: { word: 'keep', step: 1, due_on: d, last_card_id: null, reviews: 0, lapses: 0 },
+    keep: { word: 'keep', step: st, due_on: d, last_card_id: null, reviews: 0, lapses: 0 },
   }))
-}, today())
+}, [today(), step])
 
 test.beforeEach(() => test.skip(!isLocalBackend(), 'модуль «Keep going · E2E-ОБУЧЕНИЕ» есть только в сиде локального стека'))
 
@@ -192,6 +192,27 @@ test('лента: срок слова настал, пока фраза уже �
   // и тап по нему — проверка, а не обычный перевод
   await slide.locator('.fwWord', { hasText: 'Keep' }).click({ force: true }) // дышит — см. выше
   await expect(slide.locator('.wtPlate .rcCap')).toHaveText('Закрепить знание')
+})
+
+test('лента: слово перешло на ступень — место под пометку занято сразу, плашка не прыгает, текст «засело в памяти»', async ({ page }) => {
+  test.slow()
+  await seedMemory(page, 2) // шаг 2 → верный ответ даёт шаг 3 = «Знакомые»: новая ступень
+  await page.goto('/')
+  const slide = page.locator('.feedSlideWrapActive')
+  await expect(slide.locator('.feedPhrase')).toContainText('Keep going', { timeout: 30_000 })
+  await slide.locator('.phraseBubbleWrap').click()
+  await slide.locator('.fwWord', { hasText: 'Keep' }).click({ force: true })
+  const plate = slide.locator('.wtPlate')
+  await plate.getByRole('button', { name: 'держать', exact: true }).click()
+  // Пометка уже в разметке с ответа (проявится позже, вместе со вспышкой полоски) — место занято, плашка не меняет размер
+  const note = plate.locator('.rcNoteUp')
+  await expect(note).toHaveText(/слово засело\s*в памяти/)
+  const before = await plate.boundingBox()
+  await expect(plate.locator('.reviewBar')).toHaveClass(/reviewBar--settle/, { timeout: 10_000 }) // полоска доиграла переход ступени
+  const after = await plate.boundingBox()
+  expect(Math.abs(after.height - before.height), 'высота плашки не прыгает').toBeLessThan(1.5)
+  expect(Math.abs(after.width - before.width), 'ширина плашки не прыгает').toBeLessThan(1.5)
+  expect(await note.evaluate(el => getComputedStyle(el).opacity), 'пометка к этому моменту проявилась').toBe('1')
 })
 
 test('лента: ошибка в проверке слова — без галочки, «вернёмся завтра», шаг не растёт', async ({ page }) => {

@@ -103,14 +103,17 @@ export function recallColor(r) {
   return LEVEL_COLOR[levelOf(r.to ?? r.step)]
 }
 
-// Слово перешло на следующую ступень (или навсегда закрепилось): две короткие строки заботливой пометки
-// на плашке — иначе смена цвета полоски выглядела бы просто «другой анимацией». Нет перехода — null
+// Слово перешло на следующую ступень (или навсегда закрепилось): две короткие строки пометки на плашке — «слово
+// засело в памяти», чтобы смена цвета полоски читалась не как «другая анимация», а как «знаю гораздо лучше». Нет перехода — null.
+// Место под пометку закладывается СРАЗУ, как только дан верный ответ, — до ответа сервера считаем так же, как считает
+// recallResult без сервера (верно: шаг +1, шаг 5 → постоянная память); иначе плашка прыгала бы, когда пометка появится
 export function recallGrowth(r) {
-  if (!r || r.phase !== 'ok' || r.to == null) return null
-  if (r.perm && !r.wasSettled) return ['закрепилось', 'навсегда']
-  const to = levelOf(r.to)
-  if (r.perm || to <= levelOf(r.from ?? r.step)) return null
-  return ['слово окрепло', `→ «${LEVELS[to - 1].short}»`]
+  if (!r || r.phase !== 'ok') return null
+  const res = r.to == null ? recallResult({ outcome: 'good', step: r.step, wasSettled: r.wasSettled, res: null }) : r
+  if (res.perm && !r.wasSettled) return ['слово засело', 'навсегда']
+  const to = levelOf(res.to)
+  if (res.perm || to <= levelOf(r.from ?? r.step)) return null
+  return ['слово засело', 'в памяти']
 }
 
 // Сколько результат висит на экране (мс): ok дольше; сменилась ступень — ждём, пока доедет полоска слова
