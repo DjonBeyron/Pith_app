@@ -26,7 +26,7 @@ export function phraseInfo(words, stepOf) {
 // Шаг памяти слова фразы или null
 export const tokenStep = (text, stepOf) => stepOf?.get(wordKey(text)) ?? null
 
-// Ступень цвета слова фразы — как во вкладке «Память»: 1 небесный, 2 жёлтый, 3 салатовый, 'P' —
+// Ступень цвета слова фразы — как во вкладке «Память»: 1 небесный, 2 салатовый, 3 золотистый, 'P' —
 // постоянная память (фиолетовый); слова нет в памяти — null (остаётся белым, серого нет)
 export function tokenLevel(text, stepOf, settledOf = null) {
   const key = wordKey(text)

@@ -164,6 +164,25 @@ test('лента: слово к повтору дышит после откры�
   await expect(slide.locator('.rcCap')).toHaveCount(0)
 })
 
+test('лента: дневной лимит «дыхания» выбран — слово не дышит, но тап человека всё равно открывает проверку', async ({ page }) => {
+  test.slow()
+  await seedMemory(page)
+  // 3 предложения за сегодня уже были (RECALL_PER_DAY) — сама приманка больше не показывается
+  await page.addInitScript(d => localStorage.setItem('pithy_feed_recall_v1', JSON.stringify({ date: d, count: 3 })), today())
+  await page.goto('/')
+  const slide = page.locator('.feedSlideWrapActive')
+  await expect(slide.locator('.feedPhrase')).toContainText('Keep going', { timeout: 30_000 })
+  await slide.locator('.phraseBubbleWrap').click()
+  const keep = slide.locator('.fwWord', { hasText: 'Keep' })
+  await expect(keep).toHaveClass(/fwKnown--1/)
+  await page.waitForTimeout(600) // дыхание, если бы оно было, уже началось бы
+  await expect(slide.locator('.fwDue')).toHaveCount(0)
+  await keep.click()
+  const plate = slide.locator('.wtPlate')
+  await expect(plate.locator('.rcCap')).toHaveText('Закрепить знание')
+  await expect(plate.locator('.rcOpt')).toHaveCount(3)
+})
+
 test('лента: срок слова настал, пока фраза уже открыта — слово начинает дышать само', async ({ page }) => {
   test.slow()
   // Память гостя: keep повторять только завтра — сегодня фраза «пустая»

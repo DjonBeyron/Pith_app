@@ -33,7 +33,7 @@ test('всё повторено: «Памяти пора отдыхать» в �
   const periods = await page.locator('.memWires .memTearSpark').evaluateAll(els => els.map(el => el.style.getPropertyValue('--p')))
   expect(new Set(periods).size).toBe(4)
   const strokes = await page.locator('.memWires svg g path[fill="none"]').evaluateAll(els => els.map(el => el.getAttribute('stroke')))
-  expect(new Set(strokes)).toEqual(new Set(['#4fb3ee', '#e2cd78', '#b6fe3b']))
+  expect(new Set(strokes)).toEqual(new Set(['#4fb3ee', '#f1bd3c', '#b6fe3b']))
   // Спящий мозг: значок, три «Z»; в нижней панели — три мелких «Z» у мозга
   await expect(main.locator('.lrSleep svg')).toBeVisible()
   await expect(main.locator('.lrZ')).toHaveCount(3)

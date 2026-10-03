@@ -78,9 +78,11 @@
   --off: calc(7% + var(--k, 0) * 8%); /* сдвиг блока вправо: 7% / 15% / 23% — как лесенка ступеней памяти */
   --accent: #5d667a;
   --wire: #2f3748;
+  --dot: #4a5367; /* узел на стволе — сплошной цвет, не бледнеет: у забранных дней провод полупрозрачный, а точка нет */
   position: relative;
   height: var(--row-h);
 }
+.rwStep--on { --dot: #b6fe3b; }
 .rwStep--ready { --accent: #b6fe3b; --wire: #b6fe3b; }
 .rwStep--done { --accent: #8aa65a; --wire: rgba(182, 254, 59, 0.55); }
 .rwStep--gold { --accent: #ffd257; }
@@ -94,9 +96,35 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--wire);
+  background: var(--dot);
 }
 .rwStep--on::after { box-shadow: 0 0 10px rgba(182, 254, 59, 0.55); }
+/* «Ты здесь»: между последним забранным днём и следующим — маленький зелёный треугольник на стволе (дышит) и от него тонкая
+   пунктирная линия вправо, в несколько раз тоньше проводов. top считается от границы строк (в зазоре между ними) */
+.rwNow { position: absolute; left: 0; right: 0; top: calc(var(--now) * var(--pitch) - var(--gap) / 2); height: 0; pointer-events: none; }
+.rwNow::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: -6px;
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent #b6fe3b;
+  filter: drop-shadow(0 0 4px rgba(182, 254, 59, 0.75));
+  transform-origin: 30% 50%;
+  animation: rwNowPulse 1.8s ease-in-out infinite;
+}
+.rwNow::after {
+  content: '';
+  position: absolute;
+  left: 24px;
+  right: 0;
+  top: -0.5px;
+  height: 1px;
+  background: repeating-linear-gradient(to right, rgba(182, 254, 59, 0.7) 0 6px, transparent 6px 11px);
+}
+@keyframes rwNowPulse { 50% { transform: scale(1.3); opacity: 0.65; } }
+
 /* Провод от ствола к блоку: тонкий, у входа в блок раздувается (клин), цвет — от ствола к цвету блока */
 .rwStep::before {
   content: '';
@@ -203,6 +231,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rwNow::before { animation: none; }
   .rwStep--ready .rwBlock::after { animation: none; opacity: 0.8; }
   .rwFill { transition: none; }
 }

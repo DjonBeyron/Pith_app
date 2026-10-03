@@ -133,8 +133,8 @@
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
 }
-.memSheetLevel--2 { --c: #e2cd78; }
-.memSheetLevel--3 { --c: #b6fe3b; }
+.memSheetLevel--2 { --c: #b6fe3b; }
+.memSheetLevel--3 { --c: #f1bd3c; }
 .memSheetLevel--Perm { --c: #a78bfa; }
 .memSheetMeter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .memSheetSeg { height: 5px; border-radius: 3px; background: #262b33; }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   cleanExtraLetters, layoutOf, litChars, keyboardModel, typedMax,
-  appendChar, removeLast, typedMatches, letterCount, letterForm,
+  appendChar, removeLast, typedMatches, letterCount, letterForm, capitalizeFirst,
 } from './typeWordKeys.js'
 
 const litLetters = model => model.rows.flat().filter(k => k.lit).map(k => k.ch).sort().join('')
@@ -65,14 +65,24 @@ describe('«Напечатай слово»: ввод и проверка', () =
   it('печать добавляет символ, переполнение и мёртвое не проходят', () => {
     const max = typedMax('cat') // 3 + запас
     expect(max).toBe(6)
-    expect(appendChar('ca', 't', max)).toBe('cat')
-    expect(appendChar('abcdef', 'x', max)).toBe('abcdef')
+    expect(appendChar('Ca', 't', max)).toBe('Cat')
+    expect(appendChar('Abcdef', 'x', max)).toBe('Abcdef')
+  })
+
+  it('первая напечатанная буква — заглавная, остальные как есть', () => {
+    expect(appendChar('', 't', 10)).toBe('T')
+    expect(appendChar('T', 'r', 10)).toBe('Tr')
+    expect(appendChar('', 'ё', 10)).toBe('Ё')
+    // после стирания всего слова снова с заглавной
+    expect(appendChar(removeLast('T'), 'q', 10)).toBe('Q')
+    expect(capitalizeFirst('london')).toBe('London')
+    expect(capitalizeFirst('')).toBe('')
   })
 
   it('пробел — не первым и не двойным', () => {
     expect(appendChar('', ' ', 10)).toBe('')
-    expect(appendChar('ice ', ' ', 10)).toBe('ice ')
-    expect(appendChar('ice', ' ', 10)).toBe('ice ')
+    expect(appendChar('Ice ', ' ', 10)).toBe('Ice ')
+    expect(appendChar('Ice', ' ', 10)).toBe('Ice ')
   })
 
   it('стирание убирает последний символ', () => {

@@ -8,7 +8,7 @@
   /* Цвет ступени памяти слова на карточке (класс --lvlN ставит ReviewScreen): оттенок фона,
      точки закрытого слова, акцент «худа» чата карточки */
   --rv-c: var(--lvl3);
-  --rv-rgb: 182, 254, 59;
+  --rv-rgb: var(--lvl3-rgb);
   position: fixed;
   inset: 0;
   z-index: 300;
@@ -57,8 +57,8 @@
   pointer-events: none;
 }
 .reviewScreen--lvl1 { --rv-c: var(--lvl1); --rv-rgb: var(--lvl1-rgb); }
-.reviewScreen--lvl2 { --rv-c: var(--lvl2); --rv-rgb: 226, 205, 120; }
-.reviewScreen--lvl3 { --rv-c: var(--lvl3); --rv-rgb: 182, 254, 59; }
+.reviewScreen--lvl2 { --rv-c: var(--lvl2); --rv-rgb: var(--lvl2-rgb); }
+.reviewScreen--lvl3 { --rv-c: var(--lvl3); --rv-rgb: var(--lvl3-rgb); }
 
 /* ── Шапка: «назад» слева, по центру фраза ── */
 .reviewHead {

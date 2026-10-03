@@ -29,7 +29,7 @@ export default function PhraseWords({ title, entries, activeIndex, enabled, onPi
             className={(on ? 'fwWord fwWordOn' : 'fwWord') + known + (lure ? ' fwDue' : '') + (on && tint ? ' fwTint' : '')}
             style={on && tint ? { '--wt-c': tint } : undefined}
             onClick={enabled
-              ? e => { e.stopPropagation(); onPick(t.index, tr, e.currentTarget, lure) }
+              ? e => { e.stopPropagation(); onPick(t.index, tr, e.currentTarget) }
               : undefined}
           >
             {t.text}

@@ -24,8 +24,8 @@
 .memCountNum--2,
 .memCountNum--3 { opacity: 0; animation: memCountCycle 9s ease-out infinite; }
 .memCountNum--1 { color: var(--lvl1); text-shadow: 0 0 10px rgba(var(--lvl1-rgb), 0.7); }
-.memCountNum--2 { color: #e2cd78; text-shadow: 0 0 10px rgba(226, 205, 120, 0.75); animation-delay: 3s; }
-.memCountNum--3 { color: #b6fe3b; text-shadow: 0 0 10px rgba(182, 254, 59, 0.7); animation-delay: 6s; }
+.memCountNum--2 { color: #b6fe3b; text-shadow: 0 0 10px rgba(182, 254, 59, 0.7); animation-delay: 3s; }
+.memCountNum--3 { color: #f1bd3c; text-shadow: 0 0 10px rgba(241, 189, 60, 0.75); animation-delay: 6s; }
 @keyframes memCountCycle {
   0% { opacity: 0; }
   5% { opacity: 1; }
@@ -125,7 +125,7 @@
 }
 .memCountStep b { font-weight: 800; color: var(--c); }
 .memCountStep--1 { --c: var(--lvl1); }
-.memCountStep--2 { --c: #e2cd78; }
+.memCountStep--2 { --c: #b6fe3b; }
 .memCountStep--3 { --c: #a78bfa; }
 
 @media (prefers-reduced-motion: reduce) {

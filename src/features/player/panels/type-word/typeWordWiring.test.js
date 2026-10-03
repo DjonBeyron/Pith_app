@@ -63,8 +63,8 @@ describe('type_word — плеер', () => {
 
   it('три попытки; напечатанное слово ВСЕГДА уходит в чат, на верном — как у автора', () => {
     expect(panel).toContain('wc < 3')
-    expect(panel).toContain("onAnswered?.(word, 'correct', true)")
-    expect(panel).toContain("onAnswered?.(word, 'hint', true)")
+    expect(panel).toContain("onAnswered?.(shownWord, 'correct', true)")
+    expect(panel).toContain("onAnswered?.(shownWord, 'hint', true)")
   })
 
   it('клавиатура: нажимаются только светящиеся клавиши, стирание есть', () => {

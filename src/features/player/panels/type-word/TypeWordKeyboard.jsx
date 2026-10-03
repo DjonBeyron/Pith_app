@@ -2,7 +2,7 @@ import { Delete } from 'lucide-react'
 
 // Клавиатура «Напечатай слово» — минималистичная, как на iPhone: ряды букв, стирание
 // справа внизу. Светятся (нажимаются) только буквы слова и добавленные автором,
-// остальные тусклые и неактивные. Ряд со знаками (апостроф, é…) и пробел — только
+// остальные тусклые и неактивные — тускнеет сама буква (.twKeyLabel), фон клавиши у всех один. Ряд со знаками (апостроф, é…) и пробел — только
 // если слову они нужны (см. keyboardModel в shared/lib/typeWordKeys.js).
 function Key({ k, disabled, onKey }) {
   return (
@@ -16,7 +16,7 @@ function Key({ k, disabled, onKey }) {
       onMouseDown={e => e.preventDefault()}
       onClick={() => onKey(k.ch)}
     >
-      {k.ch === ' ' ? 'пробел' : k.ch}
+      <span className="twKeyLabel">{k.ch === ' ' ? 'пробел' : k.ch}</span>
     </button>
   )
 }
@@ -39,7 +39,7 @@ export default function TypeWordKeyboard({ model, disabled, onKey, onBackspace }
                 onMouseDown={e => e.preventDefault()}
                 onClick={onBackspace}
               >
-                <Delete size={20} strokeWidth={1.8} />
+                <span className="twKeyLabel"><Delete size={20} strokeWidth={1.8} /></span>
               </button>
             )}
           </div>

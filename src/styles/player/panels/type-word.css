@@ -11,11 +11,13 @@
 
 /* ── Напечатанное слово ─────────────────────────────────── */
 .twAnswerRow {
+  position: relative;
   min-height: 56px;
   flex-wrap: nowrap;
   gap: 0;
 }
 
+/* Пока ничего не напечатано — только мигающий курсор в центре строки, там, где появится первая буква (подсказки нет) */
 .twTyped {
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
   font-size: 24px;
@@ -82,21 +84,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.06s, background 0.06s, opacity 0.2s;
 }
 
-.twKey:active:not(:disabled) {
-  background: #5a5f6c;
-  transform: scale(0.94);
-}
-
-/* Нужные слову буквы — нормальные; остальные тусклые и мёртвые */
-.twKeyDim {
-  opacity: 0.3;
-  background: #2a2d35;
-  box-shadow: none;
-  cursor: default;
-}
+/* Тускнеет сама буква, а не фон клавиши: нужные слову — яркие, остальные тусклые и мёртвые; нажатая буква на миг гаснет и
+   плавно возвращается. Фон у всех клавиш один */
+.twKeyLabel { display: flex; align-items: center; justify-content: center; opacity: 1; transition: opacity 0.4s ease; }
+.twKeyDim { cursor: default; }
+.twKeyDim .twKeyLabel { opacity: 0.28; }
+.twKey:active:not(:disabled) .twKeyLabel { opacity: 0.25; transition-duration: 0s; }
 
 /* Стирание — справа внизу, чуть шире буквы; после последней попытки (замок) тускнеет вместе со всеми */
 .twKeyAction {
@@ -106,7 +101,8 @@
   flex: none;
   background: #2f323b;
 }
-.twKeyAction:disabled { opacity: 0.3; cursor: default; }
+.twKeyAction:disabled { cursor: default; }
+.twKeyAction:disabled .twKeyLabel { opacity: 0.28; }
 
 /* Нижний ряд — знаки вне раскладки и пробел, только если слову нужны */
 .twRowBottom .twKey { flex: 0 0 var(--tw-key); }
@@ -119,5 +115,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .twCaret { animation: none; }
-  .twKey { transition: none; }
+  .twKeyLabel { transition: none; }
 }

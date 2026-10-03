@@ -14,7 +14,8 @@ const SERVER_WAIT_MS = 6000
 //   позволяют (useFeedRecall.claim); больше ничего в кадре. Срок мог настать и пока человек уже на
 //   открытой фразе (память обновилась: возврат в приложение, «прожить день») — слово начинает
 //   дышать в тот же момент, повторно открывать фразу не нужно;
-//   тап по нему — та же линия и плашка, но сначала проверка «Закрепить знание» (onPick);
+//   тап по нему — та же линия и плашка, но сначала проверка «Закрепить знание» (onPick); тап человека открывает её
+//   ВСЕГДА (лимиты — только для дыхания), пока слово на этой фразе не отвечено;
 //   ответ (answer) — исход в память (source 'feed': бюджет дня, без XP и серии), результат на
 //   плашке, салют на «верно и быстро», через ≈3 с плашка сама уходит (softClose);
 //   дальше слово — обычное: повторный тап даёт обычный перевод.
@@ -66,8 +67,10 @@ export function useSlideRecall({ recall, mod, active, revealed, knowledge, wp, o
   }, [stepOf, settledOf, words])
   const levelOf = useCallback(text => tokenLevel(text, merged.stepOf, merged.settledOf), [merged])
 
-  function onPick(index, tr, el, isLure) {
-    const options = isLure && cand && index === cand.index ? quizOptions(cand.tr, recall.pool) : null
+  // Лимиты (3 в день, раз в 5 видео) касаются только «дыхания» слова — приманки, которую показываем сами. Человек
+  // тапнул по слову со сроком «сегодня» сам — проверка открывается всегда, пока на этой фразе слово не отвечено
+  function onPick(index, tr, el) {
+    const options = cand && index === cand.index && !words?.[cand.key] ? quizOptions(cand.tr, recall.pool) : null
     if (!options) { pickWord(index, tr, el); return }
     pickWord(index, tr, el, {
       recall: {

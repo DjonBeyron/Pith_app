@@ -148,7 +148,7 @@ export default function ReviewScreen({ focusWords = null, phrase: phraseProp = n
   else if (r.phase === 'finishing') body = <ReviewLoading text="Подвожу итог…" />
 
   // Ступень памяти слова на карточке красит фон, точки закрытого слова и «худ» чата (memory-ladder.css):
-  // новое — небесный, знакомое — жёлтый, усвоенное — салатовый. Пока нет карточки (загрузка) — ступень
+  // новое — небесный, знакомое — салатовый, усвоенное — золотистый. Пока нет карточки (загрузка) — ступень
   // со вкладки «Память» (start), а после последней — та, что была
   const step = r.phase === 'run' && item ? r.info?.memory.find(m => m.word === item.word)?.step : null
   const nowLevel = r.phase === 'run' && item ? levelOf(step ?? 5) : r.phase === 'phrase' ? 3 : null

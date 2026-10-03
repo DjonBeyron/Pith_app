@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTypeWord } from './useTypeWord.js'
 import TypeWordKeyboard from './TypeWordKeyboard.jsx'
-import { letterCount, letterForm } from '../../../../shared/lib/typeWordKeys.js'
+import { letterCount, letterForm, capitalizeFirst } from '../../../../shared/lib/typeWordKeys.js'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
@@ -23,6 +23,8 @@ export default function TypeWordPanel({
   const tw = useTypeWord(node)
   const d = node.typeData?.type_word ?? {}
   const { word, typed, result, frozen } = tw
+  // В чат слово уходит с заглавной, как его печатает ученик (первая буква всегда заглавная)
+  const shownWord = capitalizeFirst(word.trim())
   const [show, setShow]               = useState(false)
   const [showCounter, setShowCounter] = useState(false)
   const panelRef   = useRef(null)
@@ -67,8 +69,8 @@ export default function TypeWordPanel({
       later(() => {
         if (isRewardOn('type_word', d)) fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
         closeWith('type_correct', () => {
-          // В чат — слово так, как его написал автор (регистр: London), а не как напечатал ученик
-          onAnswered?.(word, 'correct', true)
+          // В чат — слово с заглавной; остальной регистр — как написал автор (iPhone), а не как напечатал ученик
+          onAnswered?.(shownWord, 'correct', true)
           if (d.responseCorrect?.trim()) onAnswered?.(d.responseCorrect, 'hint', true)
         })
       })
@@ -90,7 +92,7 @@ export default function TypeWordPanel({
       later(() => closeWith('type_wrong', () => {
         if (typed.trim()) onAnswered?.(typed, 'wrong_final', true)
         // Раскрываем слово: после трёх попыток важнее увидеть верное написание
-        if (word.trim()) onAnswered?.(word, 'hint', true)
+        if (shownWord) onAnswered?.(shownWord, 'hint', true)
       }))
     }
   }
@@ -120,8 +122,7 @@ export default function TypeWordPanel({
           <div className={`phraseCounter${showCounter ? ' phraseCounterVisible' : ''}`}>
             букв: {typed.replace(/\s/g, '').length} из {letterCount(word)}
           </div>
-          <div className={rowCls} aria-live="polite">
-            {typed === '' && <span className="phraseAnswerPlaceholder">Напечатай слово...</span>}
+          <div className={rowCls} aria-live="polite" aria-label="Напечатай слово">
             {typed !== '' && <span className="twTyped" data-testid="tw-typed">{typed}</span>}
             {!frozen && <span className="twCaret" aria-hidden="true" />}
           </div>

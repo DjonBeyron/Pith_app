@@ -34,8 +34,8 @@
 .memIntroText { margin: 0; font-size: 14px; line-height: 1.45; color: #8b95a1; }
 .memIntroStrong { font-weight: 700; color: #eef1f4; }
 .memIntroLv1 { color: var(--lvl1); }
-.memIntroLv2 { color: #e2cd78; }
-.memIntroLv3 { color: #b6fe3b; }
+.memIntroLv2 { color: #b6fe3b; }
+.memIntroLv3 { color: #f1bd3c; }
 .memIntroPerm { color: #a78bfa; }
 /* Кнопка — как «Повторить», но без пульса: окно и так в фокусе */
 .memIntroCta { margin-top: 4px; animation: none; }

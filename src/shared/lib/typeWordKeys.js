@@ -58,11 +58,19 @@ export function typedMax(word) {
   return normalizeAnswerText(word).length + 3
 }
 
-// Печать символа: мёртвые клавиши и переполнение игнорируются, пробел — не первым и не двойным
+// Заглавная первая буква (слово «ß» и подобные, у которых заглавная — две буквы, не трогаем)
+export function capitalizeFirst(text) {
+  const first = text.charAt(0)
+  const up = first.toLocaleUpperCase()
+  return up.length === first.length ? up + text.slice(1) : text
+}
+
+// Печать символа: мёртвые клавиши и переполнение игнорируются, пробел — не первым и не двойным.
+// Первая напечатанная буква — заглавная (как в начале предложения)
 export function appendChar(typed, ch, max) {
   if (typed.length >= max) return typed
   if (ch === ' ' && (typed === '' || typed.endsWith(' '))) return typed
-  return typed + ch
+  return typed === '' ? capitalizeFirst(ch) : typed + ch
 }
 
 export function removeLast(typed) {

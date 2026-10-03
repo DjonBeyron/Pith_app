@@ -6,7 +6,7 @@
 // связи обратно, из ступени к кнопке «Повторить».
 // Чистые функции: прямоугольники меряет MemoryLadderWires.jsx.
 
-export const WIRE_COLORS = { accent: '#b6fe3b', levels: ['#4fb3ee', '#e2cd78', '#b6fe3b'], perm: '#8b5cf6' }
+export const WIRE_COLORS = { accent: '#b6fe3b', levels: ['#4fb3ee', '#b6fe3b', '#f1bd3c'], perm: '#8b5cf6' }
 
 // Толщина связи растёт плавно по всему пути: от шапки «Повторить» (W_MIN) до
 // пятиугольника «Закреплённые слова» (W_MAX) — слово крепнет по дороге вниз

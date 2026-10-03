@@ -46,8 +46,8 @@ describe('tearWire — оборванный кабель в режиме сна'
   it('у каждого конца — три провода цветов ступеней, торчат не сильно и не сходятся в разрыве', () => {
     expect(tear.strands).toHaveLength(6)
     const colors = c => tear.strands.slice(c * 3, c * 3 + 3).map(s => s.color).sort()
-    const levels = ['#4fb3ee', '#b6fe3b', '#e2cd78']
-    expect(colors(0)).toEqual(levels) // справа от разрыва: синий, жёлтый, салатовый
+    const levels = ['#4fb3ee', '#b6fe3b', '#f1bd3c']
+    expect(colors(0)).toEqual(levels) // справа от разрыва: синий, золотистый, салатовый
     expect(colors(1)).toEqual(levels) // слева — тоже все три, но порядок другой
     expect(tear.strands.slice(0, 3).map(s => s.color)).not.toEqual(tear.strands.slice(3).map(s => s.color))
     const removed = pieces.filter(p => !tear.pieces.includes(p))
