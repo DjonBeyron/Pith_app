@@ -42,7 +42,7 @@ export function triggerAnchor(node, i, triggerMeasures) {
   return { x: node.x + w + PORT_OFFSET, y: getThenY(node, i, triggerMeasures) }
 }
 
-// Выход сигнала (signals[] у table/phrase_assembly, см. NodeSignalsPicker.jsx)
+// Выход сигнала (signals[] у table/phrase_assembly/type_word, см. NodeSignalsPicker.jsx)
 // для КОНКРЕТНОГО слота — та же форма, что triggerAnchor, но читает
 // signalMeasures вместо triggerMeasures (строки слотов измеряются отдельно,
 // см. onSignalMeasure). Не-max и не измеренный max — фолбэк с разводкой по слотам.

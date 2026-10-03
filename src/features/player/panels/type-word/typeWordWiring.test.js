@@ -24,6 +24,7 @@ const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), '
 const panel         = read('./TypeWordPanel.jsx')
 const keyboard      = read('./TypeWordKeyboard.jsx')
 const hook          = read('./useTypeWord.js')
+const typed         = read('./TypeWordTyped.jsx')
 const playerPanels  = read('../../PlayerPanels.jsx')
 const panelNodes    = read('../../usePlayerPanelNodes.js')
 const lessonPlayer  = read('../../LessonPlayer.jsx')
@@ -31,6 +32,7 @@ const answerFields  = read('../../../canvas/NodeAnswerFields.jsx')
 const contentEditor = read('../../../canvas/NodeContentEditor.jsx')
 const picker        = read('../../../canvas/NodeTypeWordPicker.jsx')
 const schema        = read('../../../canvas/lesson-io/lessonSchema.js')
+const signalConnections = read('../../../canvas/CanvasSignalConnections.jsx')
 const css           = read('../../../../styles/player/panels/type-word.css')
 const indexCss      = read('../../../../index.css')
 
@@ -46,11 +48,13 @@ describe('type_word — плеер', () => {
     expect(panelNodes).toContain('node.pa || node.fb || node.tw ||')
   })
 
-  it('PlayerPanels.jsx рендерит TypeWordPanel для twNode, без сигналов; LessonPlayer пробрасывает', () => {
+  it('PlayerPanels.jsx рендерит TypeWordPanel для twNode и передаёт сигналы ошибок; LessonPlayer пробрасывает', () => {
     expect(playerPanels).toContain("import TypeWordPanel       from './panels/type-word/TypeWordPanel.jsx'")
     const block = playerPanels.slice(playerPanels.indexOf('{twNode && ('), playerPanels.indexOf('{pcNode &&'))
     expect(block).toContain('<TypeWordPanel')
-    expect(block).not.toContain('onSignalFired')
+    for (const prop of ['nodes={nodes}', 'onSignalFired={onSignalFired}', 'hasSignalFired={hasSignalFired}']) {
+      expect(block).toContain(prop)
+    }
     expect(lessonPlayer).toContain('twNode={panels.node.tw}')
     expect(lessonPlayer).toContain("setTwPanelHeight={panels.setHeight('tw')}")
   })
@@ -65,6 +69,22 @@ describe('type_word — плеер', () => {
     expect(panel).toContain('wc < 3')
     expect(panel).toContain("onAnswered?.(shownWord, 'correct', true)")
     expect(panel).toContain("onAnswered?.(shownWord, 'hint', true)")
+  })
+
+  it('сигналы ошибок: хук ищет первую неверную букву, «бесплатная» ошибка не тратит попытку', () => {
+    expect(hook).toContain('typedMismatchSlot(typed, word)')
+    expect(hook).toContain('signalForSlot(signals, slot, nodes)')
+    expect(hook).toContain('hasSignalFired?.(found.node.id)')
+    expect(hook).toContain('onSignalFired?.(found.node, signalState.dismissOverlay, node.id)')
+    expect(hook).toContain("return 'signal'")
+    // пока сигнал играет — клавиши молчат; стёрли помеченную букву — мигание гаснет
+    expect(hook).toContain('signalState.freeze')
+    expect(hook).toContain('signalState.onRemoved(letters - 1)')
+    // панель на 'signal' выходит до звука, счёта попыток и статистики
+    expect(panel).toContain("if (!r || r === 'signal') return")
+    expect(panel).toContain('useTypeWord(node, nodes, onSignalFired, hasSignalFired)')
+    expect(panel).toContain('<TypeWordTyped typed={typed} blinkIndex={tw.blinkIndex} />')
+    expect(typed).toContain('signalBlinkChip')
   })
 
   it('клавиатура: нажимаются только светящиеся клавиши, стирание есть', () => {
@@ -101,6 +121,18 @@ describe('type_word — редактор', () => {
     expect(answerFields).toContain('<NodeTypeWordPicker')
     expect(contentEditor).toContain("node.type === 'type_word'")
     expect(contentEditor).toContain("node.type !== 'type_word'")
+  })
+
+  it('сигналы в редакторе: пикер слотов-букв, порты на холсте, поле signals в схеме', () => {
+    expect(picker).toContain('<NodeSignalsPicker')
+    expect(picker).toContain('slots={typeWordSlots(word)}')
+    const block = answerFields.slice(answerFields.indexOf("node.type === 'type_word'"), answerFields.indexOf("node.type === 'table'"))
+    expect(block).toContain('onSignalsChange={s => updateTypeData({ signals: s })}')
+    expect(block).toContain('onSignalMeasure={onSignalMeasure}')
+    expect(signalConnections).toContain('typeWordSlots(t.word)')
+    expect(signalConnections).toContain("node.type === 'phrase_assembly' || node.type === 'type_word'")
+    const doc = schema.slice(schema.indexOf('  type_word: {'), schema.indexOf('  photo_choice: {'))
+    expect(doc).toContain('signals:')
   })
 
   it('пикер пишет в поля word / extraLetters и в пару type_correct / type_wrong', () => {
@@ -147,5 +179,31 @@ describe('type_word — обменный JSON', () => {
     expect(back.typeData.type_word).toMatchObject({ word: 'tries', extraLetters: 'xz', responseWrong: 'Мимо' })
     expect(back.triggers.map(t => t.if)).toEqual(['type_correct', 'type_wrong'])
     expect(back.triggers[0].then).toBeTruthy()
+  })
+
+  it('сигналы ошибок type_word едут в файле как ref и возвращаются id ноды-спутника', () => {
+    const nodes = [
+      {
+        id: 'tw', seq: 1, x: 0, y: 0, size: 'max', type: 'type_word',
+        typeData: { type_word: {
+          word: 'tries', extraLetters: '', responseCorrect: '', responseWrong: '', replyToSeq: null,
+          signals: [{ slot: 2, ref: 'hint' }],
+        } },
+        triggers: [{ id: 't1', if: 'type_correct', then: null }, { id: 't2', if: 'type_wrong', then: null }],
+      },
+      {
+        id: 'hint', seq: 2, x: 0, y: 300, size: 'max', type: 'text',
+        typeData: { text: { content: 'Перед -es буква y превращается в i' } }, triggers: [],
+      },
+    ]
+    const json = exportLesson(nodes)
+    const exported = json.nodes.find(n => n.type === 'type_word')
+    expect(exported.data.signals).toHaveLength(1)
+    expect(exported.data.signals[0]).toMatchObject({ slot: 2 })
+    expect(exported.data.signals[0].ref).toBe(json.nodes.find(n => n.type === 'text').ref)
+    const back = importLesson(json).nodes
+    const tw = back.find(n => n.type === 'type_word')
+    const hint = back.find(n => n.type === 'text')
+    expect(tw.typeData.type_word.signals).toEqual([{ slot: 2, ref: hint.id }])
   })
 })

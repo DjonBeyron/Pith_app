@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTypeWord } from './useTypeWord.js'
 import TypeWordKeyboard from './TypeWordKeyboard.jsx'
+import TypeWordTyped from './TypeWordTyped.jsx'
 import { letterCount, letterForm, capitalizeFirst } from '../../../../shared/lib/typeWordKeys.js'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { usePanelHeight } from '../usePanelHeight.js'
@@ -16,11 +17,14 @@ const SEE_RESULT_MS = 700
 // Панель «Напечатай слово»: за основу взята «Собери фразу» (тот же корпус панели,
 // строка ответа, «Проверить», тот же подъём/спуск с историей), но вместо банка слов
 // — клавиатура как на iPhone, где светятся только нужные буквы (TypeWordKeyboard.jsx).
-// Три попытки, как у «Собери фразу»; сигналов ошибок нет.
+// Три попытки, как у «Собери фразу»; сигналы ошибок — тоже как у неё (см. useTypeWord.js).
 export default function TypeWordPanel({
   node, onDone, onAnswered, onRevealAnswer, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
+  // Сигналы ошибок: nodes — все ноды урока (резолв ref), onSignalFired(node, release,
+  // exerciseNodeId) — рисует сигнал сообщением в ленте, hasSignalFired(nodeId) — один раз за урок
+  nodes = [], onSignalFired, hasSignalFired,
 }) {
-  const tw = useTypeWord(node)
+  const tw = useTypeWord(node, nodes, onSignalFired, hasSignalFired)
   const d = node.typeData?.type_word ?? {}
   const { word, typed, result, frozen } = tw
   // В чат слово уходит с заглавной, как его печатает ученик (первая буква всегда заглавная)
@@ -58,7 +62,9 @@ export default function TypeWordPanel({
 
   function onCheck() {
     const r = tw.check()
-    if (!r) return
+    // 'signal' — сигнал ошибки автора уже показан: попытка «бесплатная», ни звука, ни счёта,
+    // ни статистики, панель не закрывается (см. useTypeWord.js)
+    if (!r || r === 'signal') return
     onChecked?.(r, typed)
     playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'напечатай слово')
 
@@ -123,7 +129,7 @@ export default function TypeWordPanel({
             букв: {typed.replace(/\s/g, '').length} из {letterCount(word)}
           </div>
           <div className={rowCls} aria-live="polite" aria-label="Напечатай слово">
-            {typed !== '' && <span className="twTyped" data-testid="tw-typed">{typed}</span>}
+            <TypeWordTyped typed={typed} blinkIndex={tw.blinkIndex} />
             {!frozen && <span className="twCaret" aria-hidden="true" />}
           </div>
           <TypeWordKeyboard model={tw.model} disabled={frozen} onKey={tw.press} onBackspace={tw.backspace} />

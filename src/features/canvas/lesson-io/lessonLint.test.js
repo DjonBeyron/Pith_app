@@ -45,6 +45,28 @@ describe('lintLesson', () => {
     expect(warnings.some(w => w.includes('n3'))).toBe(true)
   })
 
+  it('нода-сигнал (signals[].ref) достижима и не считается «недостижимой от старта»', () => {
+    const nodes = [
+      node('n1', 1, 'type_word', { word: 'tries', signals: [{ slot: 2, ref: 'n3' }] }, [
+        { if: 'type_correct', then: 'n2' }, { if: 'type_wrong', then: 'n2' },
+      ]),
+      node('n2', 2, 'text', { content: 'Дальше' }, []),
+      node('n3', 3, 'text', { content: 'Тут подвох: y меняется на i' }, []),
+    ]
+    expect(lintLesson(nodes)).toEqual([])
+  })
+
+  it('сигнал на ноду без ссылки на неё ниоткуда остаётся недостижимым; счётная похвала в сигнале ловится', () => {
+    const nodes = [
+      node('n1', 1, 'type_word', { word: 'tries', signals: [{ slot: 2, ref: 'n3' }] }, []),
+      node('n2', 2, 'text', { content: 'Лишняя' }, []),
+      node('n3', 3, 'text', { content: 'Ни одной ошибки!' }, []),
+    ]
+    const warnings = lintLesson(nodes)
+    expect(warnings.some(w => w.includes('Недостижимо') && w.includes('n2') && !w.includes('n3'))).toBe(true)
+    expect(warnings.some(w => w.includes('n3') && w.includes('счётная похвала'))).toBe(true)
+  })
+
   it('ловит text сразу после audio', () => {
     const nodes = [
       node('n1', 1, 'audio', { text: 'Привет' }, [{ if: 'played', then: 'n2' }]),

@@ -122,11 +122,14 @@ export default function NodeAnswerFields({
           onExtraChange={v => updateTypeData({ extraLetters: v })}
           onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
           onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+          signals={tData.signals ?? []}
+          onSignalsChange={s => updateTypeData({ signals: s })}
           triggers={node.triggers ?? []}
           allNodes={allNodes}
           nodeId={node.id}
           onTriggersChange={triggers => onUpdate({ triggers })}
           onTriggerMeasure={onTriggerMeasure}
+          onSignalMeasure={onSignalMeasure}
         />
         <NodeLessonLink
           value={tData.statLessonId ?? null}

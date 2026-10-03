@@ -15,11 +15,11 @@ import { wordOptionEvent } from './useAnswerStats.js'
 //
 // fill_blanks (FillBlanksPanel) сигналов ошибок не знает вовсе (см.
 // PROJECT.md) — nodes/onSignalFired/hasSignalFired ей не нужны, в отличие от
-// PhraseAssemblyPanel/TableManualPanel ниже.
+// PhraseAssemblyPanel/TypeWordPanel/TableManualPanel.
 export default function PlayerPanels({
   wcNode, paNode, fbNode, twNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
-  // Сигналы ошибок (см. PROJECT.md) — table-manual и «Собери фразу» резолвят
+  // Сигналы ошибок (см. PROJECT.md) — table-manual, «Собери фразу» и «Напечатай слово» резолвят
   // signals[].ref по полному списку нод урока; onSignalFired(node, release,
   // exerciseNodeId) — мост до ленты (LessonPlayer/useSignalMessages.js),
   // рисует сигнал как обычное сообщение и зовёт release, когда оно доиграло;
@@ -125,6 +125,9 @@ export default function PlayerPanels({
         <TypeWordPanel
           key={`${twNode.id}:${epoch}:${twNode.visit ?? 0}`}
           node={twNode}
+          nodes={nodes}
+          onSignalFired={onSignalFired}
+          hasSignalFired={hasSignalFired}
           xpAmount={xpMap.get(twNode.id) ?? 0}
           onDone={result => { setTwPanelHeight(0); onNodeDone(twNode.id, result) }}
           /* Напечатанное слово ВСЕГДА уходит пузырём справа (как «Собери фразу»); третий

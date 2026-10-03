@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   cleanExtraLetters, layoutOf, litChars, keyboardModel, typedMax,
   appendChar, removeLast, typedMatches, letterCount, letterForm, capitalizeFirst,
+  typedMismatchSlot, wordLetters,
 } from './typeWordKeys.js'
 
 const litLetters = model => model.rows.flat().filter(k => k.lit).map(k => k.ch).sort().join('')
@@ -101,5 +102,23 @@ describe('«Напечатай слово»: ввод и проверка', () =
   it('число букв и склонение', () => {
     expect(letterCount('ice cream')).toBe(8)
     expect([1, 2, 5, 11, 21, 24].map(letterForm)).toEqual(['буква', 'буквы', 'букв', 'букв', 'буква', 'буквы'])
+  })
+
+  it('слот сигнала — позиция первой неверной буквы, регистр не важен', () => {
+    expect(typedMismatchSlot('Trys', 'tries')).toBe(2)   // y вместо i
+    expect(typedMismatchSlot('tris', 'tries')).toBe(3)
+    expect(typedMismatchSlot('Xries', 'tries')).toBe(0)
+    expect(typedMismatchSlot('Tries', 'tries')).toBe(null)
+  })
+
+  it('короче слова или лишние буквы в конце — не ошибка в букве (null), слот не придумываем', () => {
+    expect(typedMismatchSlot('Tr', 'tries')).toBe(null)
+    expect(typedMismatchSlot('Triess', 'tries')).toBe(null)
+    expect(typedMismatchSlot('', 'tries')).toBe(null)
+  })
+
+  it('пробелы не считаются буквами: слоты идут по буквам фразы', () => {
+    expect(wordLetters('Ice cream').join('')).toBe('icecream')
+    expect(typedMismatchSlot('Ice crean', 'ice cream')).toBe(7)
   })
 })

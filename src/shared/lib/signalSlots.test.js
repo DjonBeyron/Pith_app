@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { phraseAssemblySlots, tableSlots, signalForSlot } from './signalSlots.js'
+import { phraseAssemblySlots, tableSlots, typeWordSlots, signalForSlot } from './signalSlots.js'
 
 describe('phraseAssemblySlots', () => {
   it('один слот на слово, по порядку', () => {
@@ -13,6 +13,21 @@ describe('phraseAssemblySlots', () => {
   it('пусто без слов', () => {
     expect(phraseAssemblySlots([])).toEqual([])
     expect(phraseAssemblySlots(undefined)).toEqual([])
+  })
+})
+
+describe('typeWordSlots', () => {
+  it('один слот на букву слова, по порядку, без пробелов и регистра', () => {
+    expect(typeWordSlots('Tries')).toEqual([
+      { index: 0, label: 't' }, { index: 1, label: 'r' }, { index: 2, label: 'i' },
+      { index: 3, label: 'e' }, { index: 4, label: 's' },
+    ])
+    expect(typeWordSlots('ice cream').map(s => s.label).join('')).toBe('icecream')
+  })
+
+  it('пусто без слова', () => {
+    expect(typeWordSlots('')).toEqual([])
+    expect(typeWordSlots(undefined)).toEqual([])
   })
 })
 

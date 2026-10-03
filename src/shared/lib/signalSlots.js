@@ -1,4 +1,5 @@
 import { deriveAnswerTokens } from './tableCellMatch.js'
+import { wordLetters } from './typeWordKeys.js'
 
 // Список слотов «Собери фразу» и «Таблица» (ручной режим) — общий для
 // редактора холста (пикер signals у NodeTablePicker/NodePhraseAssemblyPicker,
@@ -17,6 +18,13 @@ export function phraseAssemblySlots(words) {
   return (words ?? []).map((w, i) => ({ index: i, label: w }))
 }
 
+// type_word («Напечатай слово»): один слот на БУКВУ слова (без пробелов, регистр не важен) —
+// ровно та позиция, которую вернёт typedMismatchSlot (typeWordKeys.js) для первой неверной
+// буквы. Автор вешает сигнал на букву, где ученики чаще всего ошибаются (y вместо i в tries)
+export function typeWordSlots(word) {
+  return wordLetters(word).map((ch, i) => ({ index: i, label: ch }))
+}
+
 // table (ручной режим): один слот на ячейку-токен ИЛИ слово вне таблицы —
 // ровно то же разбиение, что уже использует сборка ответа в TableManualPanel
 export function tableSlots(answer, cells) {
@@ -29,7 +37,7 @@ export function tableSlots(answer, cells) {
 
 // Сигнал автора для конкретного слота (если есть и ссылается на живую ноду
 // урока) — общий поиск для проверки ответа в обеих панелях. signals — сырое
-// поле typeData.<table|phrase_assembly>.signals: [{slot, ref}], ref — id
+// поле typeData.<table|phrase_assembly|type_word>.signals: [{slot, ref}], ref — id
 // ноды-сигнала внутри ЭТОГО урока (не путать с экспортным ref вида "n3" —
 // тот резолвится обратно в id при импорте, см. importLesson.js).
 export function signalForSlot(signals, slotIndex, nodes) {

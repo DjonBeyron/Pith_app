@@ -83,6 +83,22 @@ export function typedMatches(typed, word) {
   return expected !== '' && normalizeAnswerText(typed) === expected
 }
 
+// Буквы слова без пробелов и без учёта регистра — по ним считаются слоты сигналов ошибок
+// (слот = позиция буквы, см. typeWordSlots в signalSlots.js)
+export const wordLetters = text => [...normalizeAnswerText(text).replace(/\s/g, '')]
+
+// Первая НЕВЕРНАЯ буква напечатанного — слот сигнала ошибки автора (signals[].slot). Смотрим
+// только на буквы, которые есть и у ученика, и в слове: «tr» вместо «tries» или лишняя буква
+// в конце — это не ошибка в конкретной букве, а обычная неверная попытка (null).
+// Возвращает позицию буквы (без пробелов) или null
+export function typedMismatchSlot(typed, word) {
+  const got = wordLetters(typed)
+  const want = wordLetters(word)
+  const n = Math.min(got.length, want.length)
+  for (let i = 0; i < n; i++) if (got[i] !== want[i]) return i
+  return null
+}
+
 // Сколько в слове букв (без пробелов) — для подсказки «слово из N букв»
 export function letterCount(word) {
   return normalizeAnswerText(word).replace(/\s/g, '').length

@@ -40,7 +40,7 @@ describe('fill_blanks — резолвится как модуль ленты и
     expect(playerPanels).toContain('{fbNode && (')
     expect(playerPanels).toContain('<FillBlanksPanel')
     // Сигналов у этого модуля нет — панель их не принимает вовсе
-    const fbBlock = playerPanels.slice(playerPanels.indexOf('{fbNode && ('), playerPanels.indexOf('{pcNode &&'))
+    const fbBlock = playerPanels.slice(playerPanels.indexOf('{fbNode && ('), playerPanels.indexOf('{twNode &&'))
     expect(fbBlock).not.toContain('onSignalFired')
     expect(fbBlock).not.toContain('hasSignalFired')
   })
@@ -139,7 +139,7 @@ describe('fill_blanks — собранная фраза ВСЕГДА уходи�
   })
 
   it('PlayerPanels.jsx передаёт onAnswerToChat безусловно, без галочки', () => {
-    const fbBlock = playerPanels.slice(playerPanels.indexOf('{fbNode && ('), playerPanels.indexOf('{pcNode &&'))
+    const fbBlock = playerPanels.slice(playerPanels.indexOf('{fbNode && ('), playerPanels.indexOf('{twNode &&'))
     expect(fbBlock).not.toContain('sendAnswerToChat')
     expect(fbBlock).toContain('onAnswerToChat={(text, result, arriving) => handlePhraseAnswer(fbNode.id, text, result, arriving)}')
   })

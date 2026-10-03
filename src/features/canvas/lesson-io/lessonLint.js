@@ -83,6 +83,11 @@ function computeVisitOrder(nodes) {
 // Reachability с отметкой «путь включал хотя бы один *_wrong переход» —
 // нужно, чтобы поймать счётную похвалу, до которой можно дойти после ошибки
 // (см. принцип: похвала — утверждение о ПУТИ, а не о ноде).
+//
+// Ноды-сигналы (signals[].ref у table / phrase_assembly / type_word) в основной поток не
+// входят — на них нет переходов, но они достижимы: проигрываются при ошибке в слоте
+// достигнутого задания. Поэтому ссылка из signals достигнутой ноды — ещё один старт обхода,
+// помеченный как «после ошибки» (сигнал по определению показывается после неверного ответа).
 function reachability(nodes, startRef) {
   const byRef = new Map(nodes.map(n => [n.ref, n]))
   const reached = new Set()
@@ -96,9 +101,13 @@ function reachability(nodes, startRef) {
     seenStates.add(key)
     reached.add(ref)
     if (wrong) reachedViaWrong.add(ref)
-    for (const t of byRef.get(ref).triggers ?? []) {
+    const node = byRef.get(ref)
+    for (const t of node.triggers ?? []) {
       if (!t.then) continue
       queue.push([t.then, wrong || WRONG_TRIGGERS.has(t.if)])
+    }
+    for (const s of node.data?.signals ?? []) {
+      if (s?.ref) queue.push([s.ref, true])
     }
   }
   return { reached, reachedViaWrong }

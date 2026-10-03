@@ -1,15 +1,19 @@
 import { useRef, useEffect } from 'react'
 import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
+import NodeSignalsPicker from './NodeSignalsPicker.jsx'
+import { typeWordSlots } from '../../shared/lib/signalSlots.js'
 import { cleanExtraLetters, litChars } from '../../shared/lib/typeWordKeys.js'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 // Редактор ноды «Напечатай слово»: само слово, дополнительные буквы (их админ выбирает
 // вручную — они тоже светятся на клавиатуре и работают как «ловушки»), тексты ответов
-// и пара триггеров верно/неверно. Сигналов ошибок здесь нет, как и у «Составь
-// предложение». Напечатанное слово всегда уходит в чат — отдельной галочки нет.
+// сигналы ошибок (слот = буква слова: подсказка на первую неверную букву, как у «Собери
+// фразу») и пара триггеров верно/неверно. Напечатанное слово всегда уходит в чат —
+// отдельной галочки нет.
 export default function NodeTypeWordPicker({
   word = '', extraLetters = '', responseCorrect = '', responseWrong = '',
   onWordChange, onExtraChange, onResponseCorrectChange, onResponseWrongChange,
+  signals = [], onSignalsChange, onSignalMeasure,
   triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
   const rowRefs = useRef(new Map())
@@ -112,6 +116,13 @@ export default function NodeTypeWordPicker({
           />
         </div>
       </div>
+      <NodeSignalsPicker
+        slots={typeWordSlots(word)}
+        signals={signals}
+        onChange={onSignalsChange}
+        otherNodes={allNodes.filter(n => n.id !== nodeId)}
+        onSignalMeasure={onSignalMeasure}
+      />
       <NodeCorrectWrongTriggers
         correctThen={correctThen} wrongThen={wrongThen}
         correctKey="type_correct" wrongKey="type_wrong"
