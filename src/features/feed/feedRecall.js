@@ -87,9 +87,10 @@ export const recallOutcome = (isRight, timeMs) =>
 export const recallState = outcome => (outcome === 'good' ? 'ok' : outcome === 'hard' ? 'hard' : 'bad')
 
 // Что показать, когда ответ сервера известен (res — ответ reviewWord, null — не дошёл: считаем сами).
-// from — шаг до ответа (как на экране), to — после, perm — слово теперь в постоянной памяти
+// from — шаг до ответа, to — после, perm — слово теперь в постоянной памяти. Ответ сервера главнее экрана: данные ленты могли
+// устареть, и полоска слова ехала бы от чужого шага (на верном ответе она «уменьшалась»), поэтому from берём у сервера (prev_step)
 export function recallResult({ outcome, step, wasSettled, res }) {
-  if (res?.ok) return { from: step, to: res.step, perm: !!res.settled_on }
+  if (res?.ok) return { from: res.prev_step ?? step, to: res.step, perm: !!res.settled_on }
   if (outcome === 'again') return { from: step, to: Math.max(1, step - 1), perm: false }
   if (outcome === 'hard') return { from: step, to: step, perm: wasSettled }
   return { from: step, to: Math.min(5, step + 1), perm: step >= 5 }

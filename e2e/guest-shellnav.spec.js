@@ -96,3 +96,10 @@ test('нижняя панель: огонёк над кубком только �
   expect(box.flameBottom).toBeLessThanOrEqual(box.cupTop + 4)
   expect(box.events).toBe('none')
 })
+
+test('гостю значок «Профиль» не мерцает — ежедневных наград у гостя нет', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.shellV2Nav')).toBeVisible({ timeout: 30_000 })
+  await page.waitForTimeout(800) // профиль гостя не грузится — ждать нечего, но даём время на случайное появление
+  await expect(page.locator('.shellV2NavSpark')).toHaveCount(0)
+})

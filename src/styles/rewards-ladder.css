@@ -55,6 +55,7 @@
 .rwPathList::before, .rwPathList::after {
   content: '';
   position: absolute;
+  z-index: 0; /* ствол лежит ПОД узлами-точками и проводами (.rwStep — z-index 1): зелёная часть (::after) идёт в DOM последней и иначе рисовалась бы поверх них */
   left: 12.5px;
   top: calc(var(--row-h) / 2 - var(--ext-top));
   width: 3px;
@@ -80,6 +81,7 @@
   --wire: #2f3748;
   --dot: #4a5367; /* узел на стволе — сплошной цвет, не бледнеет: у забранных дней провод полупрозрачный, а точка нет */
   position: relative;
+  z-index: 1;
   height: var(--row-h);
 }
 .rwStep--on { --dot: #b6fe3b; }
@@ -101,7 +103,7 @@
 .rwStep--on::after { box-shadow: 0 0 10px rgba(182, 254, 59, 0.55); }
 /* «Ты здесь»: между последним забранным днём и следующим — маленький зелёный треугольник на стволе (дышит) и от него тонкая
    пунктирная линия вправо, в несколько раз тоньше проводов. top считается от границы строк (в зазоре между ними) */
-.rwNow { position: absolute; left: 0; right: 0; top: calc(var(--now) * var(--pitch) - var(--gap) / 2); height: 0; pointer-events: none; }
+.rwNow { position: absolute; z-index: 2; left: 0; right: 0; top: calc(var(--now) * var(--pitch) - var(--gap) / 2); height: 0; pointer-events: none; }
 .rwNow::before {
   content: '';
   position: absolute;
@@ -123,7 +125,8 @@
   height: 1px;
   background: repeating-linear-gradient(to right, rgba(182, 254, 59, 0.7) 0 6px, transparent 6px 11px);
 }
-@keyframes rwNowPulse { 50% { transform: scale(1.3); opacity: 0.65; } }
+/* Пульсирует только размером — прозрачность не меняется */
+@keyframes rwNowPulse { 50% { transform: scale(1.3); } }
 
 /* Провод от ствола к блоку: тонкий, у входа в блок раздувается (клин), цвет — от ствола к цвету блока */
 .rwStep::before {
@@ -191,7 +194,8 @@
 .rwNum { display: flex; flex-direction: column; align-items: center; min-width: 40px; font-size: 32px; font-weight: 800; line-height: 0.95; color: var(--accent); }
 .rwNum i { margin-bottom: 3px; font-size: 9.5px; font-style: normal; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8b95a1; }
 .rwBody { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
-.rwReward { display: inline-flex; align-items: center; gap: 4px; overflow: hidden; font-size: 17px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; color: #f2f5f7; }
+.rwReward { display: flex; flex-wrap: wrap; align-items: center; column-gap: 5px; font-size: 17px; font-weight: 800; line-height: 1.15; white-space: nowrap; color: #f2f5f7; }
+.rwRewardPart { display: inline-flex; align-items: center; gap: 4px; }
 .rwStep--gold .rwReward { color: #ffd257; }
 .rwStep--done .rwReward { color: #aab3bd; }
 .rwStep--locked .rwReward { color: #8b95a1; }

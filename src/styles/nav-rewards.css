@@ -1,0 +1,33 @@
+/* «Профиль» в нижней панели, пока есть неполученная ежедневная награда (ShellNav.jsx, useRewardsDot.js): значок мягко
+   золотится и дышит, у его верхнего края мерцают две крошечные звёздочки — тот же приём, что огонёк над кубком (nav-race.css)
+   и Z у спящего мозга. Тёплый золотой — цвет блока «Ежедневные награды» в профиле. Только transform и opacity — композитор */
+.shellV2NavProfile { position: relative; display: flex; width: 22px; height: 22px; }
+.shellV2NavProfile > svg {
+  color: #ffd257;
+  filter: drop-shadow(0 0 4px rgba(255, 210, 87, 0.55));
+  animation: navGiftPulse 2.8s ease-in-out infinite;
+}
+.shellV2NavSpark { position: absolute; inset: 0; pointer-events: none; }
+.shellV2NavSpark i {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  width: 8px;
+  height: 8px;
+  background: #ffe9a8;
+  /* четырёхлучевая звёздочка */
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  opacity: 0;
+  animation: navSparkle 2.8s ease-in-out infinite;
+}
+.shellV2NavSpark i + i { top: 7px; right: -9px; width: 5px; height: 5px; animation-delay: -1.4s; }
+@keyframes navGiftPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes navSparkle {
+  0%, 100% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  35% { opacity: 1; transform: scale(1) rotate(45deg); }
+  65% { opacity: 0; transform: scale(0.4) rotate(90deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shellV2NavProfile > svg, .shellV2NavSpark i { animation: none; }
+  .shellV2NavSpark i { opacity: 0.9; transform: none; }
+}

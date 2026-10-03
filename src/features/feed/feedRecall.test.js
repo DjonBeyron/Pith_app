@@ -110,6 +110,15 @@ describe('исход ответа', () => {
 })
 
 describe('recallResult', () => {
+  it('стартовый шаг — серверный prev_step, а не устаревший шаг с экрана (верный ответ не «уменьшает» полоску)', () => {
+    // на экране слово было на шаге 4, а на сервере уже на 3 (вернули ошибкой в колоде): верный ответ даёт 3 → 4, не 4 → 3
+    expect(recallResult({ outcome: 'good', step: 4, wasSettled: false, res: { ok: true, prev_step: 3, step: 4, settled_on: null } }))
+      .toEqual({ from: 3, to: 4, perm: false })
+    // сервер не применил ответ (слово не по сроку): шаг не меняется — и полоска тоже
+    expect(recallResult({ outcome: 'good', step: 3, wasSettled: false, res: { ok: true, prev_step: 4, step: 4, applied: false, settled_on: null } }))
+      .toEqual({ from: 4, to: 4, perm: false })
+  })
+
   it('берёт шаг и постоянную память из ответа сервера', () => {
     expect(recallResult({ outcome: 'good', step: 2, wasSettled: false, res: { ok: true, prev_step: 2, step: 3, settled_on: null } }))
       .toEqual({ from: 2, to: 3, perm: false })

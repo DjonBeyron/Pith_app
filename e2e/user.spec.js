@@ -285,3 +285,71 @@ test('«Ежедневные награды»: крупная «лесенка»
   expect(await page.locator('.rwStep').first().evaluate(el => getComputedStyle(el, '::before').clipPath)).toContain('polygon')
   expect(await page.locator('.rwClaimBtn').evaluate(el => getComputedStyle(el).borderRadius)).toBe('999px')
 })
+
+test('«Ежедневные награды»: ствол под точками, маркер «ты здесь» пульсирует без прозрачности, большая награда вехи не обрезается на 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+  // Веха с наградой как у «года» (1000 XP + 50 билетов) — в окне, чтобы проверить перенос на узком экране
+  await page.route(/\/rest\/v1\/streak_milestones/, async route => {
+    const res = await route.fetch()
+    const list = await res.json()
+    await route.fulfill({
+      response: res,
+      json: [...list.filter(m => m.day_number !== 10), { day_number: 10, xp_reward: 1000, ticket_reward: 50, special: false, label: null }],
+    })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  await page.locator('.pvStreakBtn').click()
+  await expect(page.locator('.rwHero.rwGhost')).toHaveCount(0, { timeout: 30_000 })
+  // Ствол лежит ПОД узлами-точками и проводами: ступени выше ствола по z-index
+  const z = await page.evaluate(() => ({
+    step: getComputedStyle(document.querySelector('.rwStep')).zIndex,
+    trunk: getComputedStyle(document.querySelector('.rwPathList'), '::after').zIndex,
+  }))
+  expect(Number(z.step), 'узлы выше ствола').toBeGreaterThan(Number(z.trunk))
+  // Маркер «ты здесь» — один, между последним забранным днём и следующим; пульсирует только размером
+  await expect(page.locator('.rwNow')).toHaveCount(1)
+  const props = await page.evaluate(() => {
+    const a = document.getAnimations().find(x => x.animationName === 'rwNowPulse')
+    return a ? [...new Set(a.effect.getKeyframes().flatMap(k => Object.keys(k)))] : null
+  })
+  expect(props, 'анимация маркера есть').not.toBeNull()
+  expect(props).toContain('transform')
+  expect(props, 'прозрачность маркера не меняется').not.toContain('opacity')
+  // Награда «1000 XP + 50 🎫» на 320 px: переносится, а не обрезается; блоки одной высоты
+  const bad = await page.evaluate(() => [...document.querySelectorAll('.rwReward')].filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.textContent))
+  expect(bad, 'награды не обрезаются').toEqual([])
+  await expect(page.locator('.rwReward', { hasText: '1000 XP' })).toBeVisible()
+  const heights = await page.evaluate(() => [...new Set([...document.querySelectorAll('.rwBlock')].map(b => Math.round(b.getBoundingClientRect().height)))])
+  expect(heights).toHaveLength(1)
+})
+
+test('«Заморозка» и «Авто заморозка»: шторка закрывается обратной анимацией появления, а не рывком', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Профиль', exact: true }).click()
+  await page.locator('.pvStreakBtn').click()
+  await expect(page.locator('.rwHero.rwGhost')).toHaveCount(0, { timeout: 30_000 })
+  for (const name of ['Заморозка', 'Авто заморозка']) {
+    await page.locator('.rwFreezeCard', { hasText: name }).first().click()
+    await expect(page.locator('.rwInfoCard')).toBeVisible()
+    await expect(page.locator('.rwInfoCard--out')).toHaveCount(0)
+    await page.locator('.rwInfoOverlay').click({ position: { x: 4, y: 4 } }) // тап по затемнению
+    // Сразу после закрытия шторка ещё в разметке и играет «появление наоборот»; потом уходит
+    await expect(page.locator('.rwInfoCard--out')).toHaveCount(1, { timeout: 250 })
+    expect(await page.locator('.rwInfoCard--out').evaluate(el => getComputedStyle(el).animationDirection)).toBe('reverse')
+    await expect(page.locator('.rwInfoOverlay')).toHaveCount(0, { timeout: 2000 })
+  }
+})
+
+test('нижняя панель: у «Профиля» мерцают звёздочки, пока есть неполученная награда', async ({ page }) => {
+  // У e2e-user серия дошла дальше последнего забранного дня (сид) — значок «Профиль» золотится и мерцает
+  await page.goto('/')
+  const profile = page.getByRole('button', { name: 'Профиль', exact: true })
+  await expect(profile.locator('.shellV2NavProfile .shellV2NavSpark i')).toHaveCount(2, { timeout: 30_000 })
+  // Мерцание — только transform/opacity (композитор)
+  const props = await profile.evaluate(el => {
+    const a = el.querySelector('.shellV2NavSpark i').getAnimations().find(x => x.animationName === 'navSparkle')
+    return a ? [...new Set(a.effect.getKeyframes().flatMap(k => Object.keys(k)))].filter(k => !['offset', 'computedOffset', 'easing', 'composite'].includes(k)) : null
+  })
+  expect(props?.sort()).toEqual(['opacity', 'transform'])
+})

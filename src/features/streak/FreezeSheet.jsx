@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Snowflake, ShieldCheck, Crown, ChevronDown } from 'lucide-react'
 import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 
@@ -10,13 +10,34 @@ import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 // (сколько раз сработает, как дружит с PRO) ушли под «Подробнее»: раньше они
 // лежали двумя абзацами сверху, и главное — что эта штука вообще делает —
 // в них тонуло.
+//
+// Закрывается не рывком: после kind → null шторка ещё EXIT_MS остаётся в разметке с классом --out и проигрывает
+// анимацию появления в обратную сторону (pop-spring.css: popSpringIn reverse) — как окна худа (hudPopupState.js)
+const EXIT_MS = 360 // = длительность обратной анимации карточки в pop-spring.css
 export default function FreezeSheet({
   kind, profile, isPro, busy, onBuyFreeze, onBuyAutoFreeze, onWantPro, onClose,
 }) {
   const [more, setMore] = useState(false)
-  if (!kind) return null
+  const [lastKind, setLastKind] = useState(kind)
+  const [prevKind, setPrevKind] = useState(kind)
+  const [closing, setClosing] = useState(false)
+  // Подстройка состояния при смене пропа прямо в рендере (как в useHudPopupExit): открыли — запомнили вид, закрыли — пошла
+  // обратная анимация (при «меньше движения» шторка просто пропадает)
+  if (kind !== prevKind) {
+    setPrevKind(kind)
+    if (kind) { setLastKind(kind); setClosing(false) }
+    else setClosing(!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+  }
+  useEffect(() => {
+    if (!closing) return undefined
+    const t = setTimeout(() => setClosing(false), EXIT_MS)
+    return () => clearTimeout(t)
+  }, [closing])
+  const shownKind = kind ?? (closing ? lastKind : null)
+  const out = !kind && closing
+  if (!shownKind) return null
 
-  const freeze = kind === 'freeze'
+  const freeze = shownKind === 'freeze'
   const hasFreeze = !!profile?.has_freeze_charge
   const autoLeft = profile?.auto_freeze_charges_left ?? 0
   const autoActive = isPro || autoLeft > 0
@@ -25,8 +46,8 @@ export default function FreezeSheet({
   const taken = freeze ? hasFreeze : autoActive
 
   return (
-    <div className="rwInfoOverlay" onClick={onClose}>
-      <div className="rwInfoCard" onClick={e => e.stopPropagation()}>
+    <div className={`rwInfoOverlay${out ? ' rwInfoOverlay--out' : ''}`} onClick={out ? undefined : onClose}>
+      <div className={`rwInfoCard${out ? ' rwInfoCard--out' : ''}`} onClick={e => e.stopPropagation()}>
         <h3 className="rwSheetTitle">
           {freeze ? <Snowflake size={18} /> : <ShieldCheck size={18} />}
           {freeze ? 'Заморозка' : 'Авто-защита'}

@@ -8,7 +8,8 @@ import { requestLearnHome } from '../shared/lib/learnHomeEvent.js'
 // (learnDot): иконка залита цветом, светится и мягко пульсирует — без числа,
 // число давило бы долгом (PROJECT.md → «Вкладки»). Когда всё повторено (learnSleeping) — мозг спит:
 // из-за значка выплывают три мелких «Z». Активная супергонка (raceFlame) — над кубком «Рейтинга» мерцает
-// огонёк с искрами (nav-race.css). Вынесено из ShellV2.jsx
+// огонёк с искрами (nav-race.css). «Профиль» с неполученной ежедневной наградой (rewardsDot) — золотится, дышит и
+// мерцает двумя звёздочками (nav-rewards.css). Вынесено из ShellV2.jsx
 
 // Силуэт мозга под контуром иконки Brain (lucide) — заливка «есть что повторить»
 const BRAIN_FILL = 'M12 4.2c-1-1.4-3.6-1.6-5 .1-1.8.1-3.2 1.6-3 3.4-1.6 1-2 3.2-.9 4.7-1 1.6-.4 3.8 1.3 4.6.3 2 2.3 3.3 4.2 2.9 1 1 2.6 1.2 3.4.2.8 1 2.4.8 3.4-.2 1.9.4 3.9-.9 4.2-2.9 1.7-.8 2.3-3 1.3-4.6 1.1-1.5.7-3.7-.9-4.7.2-1.8-1.2-3.3-3-3.4-1.4-1.7-4-1.5-5-.1z'
@@ -28,7 +29,7 @@ function useFadeOut(on) {
   return fading
 }
 
-export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false, raceFlame = false, isRealAdmin, userMode }) {
+export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false, raceFlame = false, rewardsDot = false, isRealAdmin, userMode }) {
   const cls = (id, extra = '') => `shellV2NavBtn${tab === id ? ' shellV2NavBtnActive' : ''}${extra}`
   const dueFading = useFadeOut(!!learnDot) // повторить стало нечего — мозг ещё мягко гаснет
   const due = learnDot || dueFading
@@ -57,7 +58,12 @@ export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false,
         Память
       </button>
       <button className={cls('profile')} onClick={() => setTab('profile')}>
-        <UserRound />
+        {rewardsDot ? (
+          <span className="shellV2NavProfile">
+            <span className="shellV2NavSpark" aria-hidden="true"><i /><i /></span>
+            <UserRound />
+          </span>
+        ) : <UserRound />}
         Профиль
       </button>
       <button className={cls('rating')} onClick={() => setTab('rating')}>

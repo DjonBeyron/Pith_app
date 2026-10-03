@@ -80,10 +80,12 @@ export default function RewardsPath({ days, focusDay, streak = 0, ghost = false 
               <span className="rwBody">
                 <b className="rwReward">
                   {d.milestone ? (
+                    // Две части награды (XP и билеты) — отдельные куски: на узком экране или при большой награде (1000 XP + 50 🎫 у
+                    // вехи «год») вторая уходит на новую строку, а не обрезается многоточием
                     <>
-                      {d.xp > 0 && `${d.xp} XP`}
-                      {d.xp > 0 && d.tickets > 0 && ' + '}
-                      {d.tickets > 0 && <>{d.tickets} <TicketIcon className="rwRewardTicket" /></>}
+                      {d.xp > 0 && <span className="rwRewardPart">{d.xp} XP</span>}
+                      {d.xp > 0 && d.tickets > 0 && ' '}
+                      {d.tickets > 0 && <span className="rwRewardPart">{d.xp > 0 && '+ '}{d.tickets} <TicketIcon className="rwRewardTicket" /></span>}
                     </>
                   ) : `+${d.xp} XP`}
                 </b>
