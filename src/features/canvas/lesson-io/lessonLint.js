@@ -10,7 +10,7 @@
 // СРАЗУ, не проходя импорт в редактор и не заходя в админку (см.
 // scripts/lint-lesson.mjs — тот же код, запущенный из командной строки).
 
-const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong'])
+const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong'])
 const PRAISE_RE = /три из трёх|ни одной ошибки|без единой ошибки|все верно|всё верно/i
 const SCENE_HINT_RE = /сцен|фото|кадр|ракурс|свет|персонаж|стикер|горизонт|вертикал/i
 
@@ -23,6 +23,7 @@ function answerTextOf(n) {
   const d = n.data ?? {}
   if (n.type === 'phrase_assembly' && d.words?.length) return d.words.join(' ')
   if (n.type === 'table' && d.answer) return d.answer
+  if (n.type === 'type_word' && d.word) return d.word
   if (n.type === 'word_choice') return d.options?.find(o => o.isCorrect)?.text ?? null
   if (n.type === 'photo_choice') {
     const idx = d.correctIndexes?.[0]

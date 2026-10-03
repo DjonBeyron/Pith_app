@@ -16,6 +16,7 @@ const MEDIA_LABEL = {
   phrase_assembly:  'Собрать фразу',
   table:            'Собрать фразу',
   fill_blanks:      'Составь предложение',
+  type_word:        'Напечатай слово',
 }
 
 const REPLY_THEME = {
@@ -26,14 +27,14 @@ const REPLY_THEME = {
 }
 
 // Находит ноду, на которую ссылается replyToSeq. Общая для всех типов нод с
-// цитатой (сейчас: text, sticker, phrase_assembly) — раньше была скопирована
+// цитатой (сейчас: text, sticker, phrase_assembly, fill_blanks, type_word) — раньше была скопирована
 // в каждый модуль отдельно.
 export function findReplyNode(replyToSeq, lessonNodes) {
   if (!(replyToSeq > 0)) return null
   return lessonNodes?.find(n => n.seq === replyToSeq) ?? null
 }
 
-// Для phrase_assembly/table/fill_blanks: какая попытка ученика в чате
+// Для phrase_assembly/table/fill_blanks/type_word: какая попытка ученика в чате
 // СЧИТАЕТСЯ финальным сообщением по этой ноде — верная, если она вообще
 // была, иначе последняя НЕВЕРНАЯ (wrong_final). 'hint' — это реплика
 // УЧИТЕЛЯ (responseWrong/раскрытие ответа после трёх попыток), а не ответ
@@ -67,10 +68,10 @@ export function resolveReply(replyNode, teacherName, allWordChoiceStates, allPho
       thumbSrc: null, crop: null,
     }
   }
-  // Таблица в ручном режиме и «Составь предложение» отдают ответ тем же
-  // handlePhraseAnswer, что и «Собери фразу» (общий phraseStates, keyed по
+  // Таблица в ручном режиме, «Составь предложение» и «Напечатай слово» отдают ответ
+  // тем же handlePhraseAnswer, что и «Собери фразу» (общий phraseStates, keyed по
   // nodeId) — значит и цитата на них показывает ответ ученика
-  if (rType === 'phrase_assembly' || rType === 'table' || rType === 'fill_blanks') {
+  if (rType === 'phrase_assembly' || rType === 'table' || rType === 'fill_blanks' || rType === 'type_word') {
     const attempt = resolvePhraseAttempt(allPhraseStates?.[replyNode.id])
     return {
       name:  'Вы:',

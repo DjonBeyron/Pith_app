@@ -75,6 +75,9 @@ export function makeNode(seq, x, y, wantType) {
       // translation — необязательный русский перевод той же фразы (те же
       // "___"), для кнопки-подсказки в плеере (см. FillBlanksPanel.jsx)
       fill_blanks:     { template: '', blanks: [], translation: '', responseCorrect: '', responseWrong: '', replyToSeq: null },
+      // Напечатай слово: слово + дополнительные буквы (светятся на клавиатуре вместе с буквами
+      // слова, выбираются вручную, см. TypeWordPanel.jsx)
+      type_word:       { word: '', extraLetters: '', responseCorrect: '', responseWrong: '', replyToSeq: null },
       pin_message:     { content: '' },
       system:          { content: '' },
       // Реакция как в мессенджере: своего пузыря нет, эмодзи прилипает к

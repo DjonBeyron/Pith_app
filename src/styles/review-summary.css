@@ -41,8 +41,20 @@
    Цвет плавно перетекает при смене ступени (рамка — тем же сроком) */
 .reviewBar { transition: box-shadow 0.6s ease; }
 .reviewBar .memChipFill { will-change: opacity; transition: width 1.9s cubic-bezier(0.37, 0, 0.3, 1), background-color 0.6s ease; }
-.reviewBar--settle .memChipFill { transition: width 0.9s cubic-bezier(0.45, 0, 0.2, 1), background-color 0.6s ease; }
 .reviewBar--still .memChipFill { transition: none; }
+/* Трубки: на переходе ступени вся трубка уезжает влево, справа выезжает следующая (ReviewWordBar.jsx). Размер дорожке
+   задаёт одна текущая трубка (в потоке) — плашка вокруг не раздувается; вторая (.reviewBar--next) лежит рядом абсолютно
+   с зазором 12 px (справа при росте ступени, слева при падении), сдвиг дорожки — на ширину + зазор; Track обрезает
+   выехавшее. В новой трубке заливка растёт быстрее (.reviewBar--fast): пока она въезжает, прогресс «пробивает» дальше
+   до места слова */
+.reviewBarTrack { width: 100%; overflow: hidden; }
+.reviewBarRail { position: relative; width: 100%; }
+.reviewBarRail > .reviewBar--next { position: absolute; top: 0; left: calc(100% + 12px); }
+.reviewBarRail--down > .reviewBar--next { left: auto; right: calc(100% + 12px); }
+.reviewBarRail--slide { transform: translateX(calc(-100% - 12px)); transition: transform 0.8s cubic-bezier(0.65, 0, 0.25, 1); will-change: transform; }
+.reviewBarRail--down.reviewBarRail--slide { transform: translateX(calc(100% + 12px)); }
+.reviewBar--fast .memChipFill { transition: width 0.8s cubic-bezier(0.37, 0, 0.3, 1), background-color 0.6s ease; }
+.reviewBar--fast .reviewBarEdge { transition-duration: 0.8s; }
 .reviewBarLevel { position: relative; font-size: 11px; font-weight: 700; color: #8b95a1; }
 
 /* Строка серии: место занято сразу (в DOM с самого начала, невидима) — когда она проявляется, окно не растёт */
@@ -105,16 +117,11 @@
   transition: left 1.9s cubic-bezier(0.37, 0, 0.3, 1);
 }
 .reviewBar--still .reviewBarEdge { transition: none; }
-.reviewBar--settle .reviewBarEdge { transition-duration: 0.9s; }
 .reviewBar--grow .reviewBarEdge { animation: reviewEdgeBlink 0.7s ease-in-out infinite; }
 @keyframes reviewEdgeBlink { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
-/* Переход на следующую ступень: полная полоска вспыхивает и чуть вздувается, название ступени «выскакивает» */
-.reviewBar--flash { animation: reviewBarPop 1.1s ease-out; }
-.reviewBar--flash .memChipFill { animation: reviewFillFlash 1.1s ease-out; }
-.reviewBar--up .reviewBarLevel { animation: reviewLvlPop 0.6s cubic-bezier(0.34, 1.4, 0.64, 1); }
-@keyframes reviewBarPop { 35% { transform: scale(1.03); } }
-@keyframes reviewFillFlash { 0%, 100% { opacity: 0.3; } 35% { opacity: 0.95; } }
-@keyframes reviewLvlPop { from { opacity: 0; transform: translateY(5px) scale(0.9); } }
+/* Переход на следующую ступень: полная заливка перед отъездом вспыхивает */
+.reviewBar--flash .memChipFill { animation: reviewFillFlash 0.45s ease-out; }
+@keyframes reviewFillFlash { 0%, 100% { opacity: 0.3; } 45% { opacity: 0.95; } }
 @keyframes reviewFillBlink { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.68; } }
 
 /* Слово повторено, а ступень не изменилась: заливка дважды мягко вспыхивает — слово учтено (обводка не мигает) */
@@ -123,7 +130,8 @@
   .reviewSummary.lessonSummaryOverlay, .reviewSummary .reviewSumCard { transition: none; }
   .reviewBar, .reviewBar .memChipFill { transition: none; }
   .reviewBar--kept .memChipFill, .reviewBar--grow .memChipFill, .reviewBar--grow .reviewBarEdge,
-  .reviewBar--flash, .reviewBar--flash .memChipFill, .reviewBar--up .reviewBarLevel { animation: none; }
+  .reviewBar--flash .memChipFill { animation: none; }
+  .reviewBarRail--slide { transition: none; }
   .reviewBar--grow .reviewBarEdge { opacity: 1; }
   .reviewBarEdge { transition: none; }
 }

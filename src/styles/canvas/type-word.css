@@ -1,0 +1,42 @@
+/* ── NodeTypeWordPicker — canvas node editor ───────────────────────── */
+
+.nodeTwWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 10px;
+}
+
+.nodeTwLabel {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nodeTwHint {
+  margin: 0;
+  font-size: 11px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* Буква клавиатуры в редакторе: серая — из самого слова, зелёная — добавлена вручную */
+.nodeTwLetter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: #1c1f27;
+  border: 1px solid #2a2d35;
+  color: #c8cad2;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.nodeTwLetterExtra {
+  border-color: rgba(182, 254, 59, 0.45);
+  color: #b6fe3b;
+}

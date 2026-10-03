@@ -10,6 +10,7 @@ import ReactionModule   from './reaction/ReactionModule.jsx'
 import WordChoiceModule      from './word-choice/WordChoiceModule.jsx'
 import PhraseAssemblyModule  from './phrase-assembly/PhraseAssemblyModule.jsx'
 import FillBlanksModule      from './fill-blanks/FillBlanksModule.jsx'
+import TypeWordModule        from './type-word/TypeWordModule.jsx'
 import PinMessageModule      from './pin-message/PinMessageModule.jsx'
 import PhotoChoiceModule     from './photo-choice/PhotoChoiceModule.jsx'
 import RegistrationModule    from './registration/RegistrationModule.jsx'
@@ -30,6 +31,7 @@ const MODULE_MAP = {
   word_choice:     WordChoiceModule,
   phrase_assembly: PhraseAssemblyModule,
   fill_blanks:     FillBlanksModule,
+  type_word:       TypeWordModule,
   pin_message:     PinMessageModule,
   photo_choice:    PhotoChoiceModule,
   registration:    RegistrationModule,

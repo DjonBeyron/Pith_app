@@ -96,6 +96,16 @@ describe('resolveReply', () => {
     expect(r.theme.border).toBe('#b6fe3b')
   })
 
+  it('type_word — цитата показывает напечатанное слово ученика; без ответа — ярлык модуля', () => {
+    const target = node(1, 'type_word')
+    const ok = resolveReply(target, 'Учитель', {}, {}, { n1: [{ text: 'tries', result: 'correct' }] })
+    expect(ok).toMatchObject({ name: 'Вы:', label: 'tries' })
+    expect(ok.theme.border).toBe('#b6fe3b')
+    const wrong = resolveReply(target, 'Учитель', {}, {}, { n1: [{ text: 'trys', result: 'wrong_final' }] })
+    expect(wrong.theme.border).toBe('#f87171')
+    expect(resolveReply(target, 'Учитель', {}, {}, {}).label).toBe('Напечатай слово')
+  })
+
   it('table — та же логика, что phrase_assembly (общий handlePhraseAnswer); wrong_final — цвет ошибки', () => {
     const target = node(1, 'table')
     const states = { n1: [{ text: 'wrong final', result: 'wrong_final' }] }

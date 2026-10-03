@@ -6,8 +6,8 @@
 // У нас значение — исход ответа: верно / неверно / особый переход варианта /
 // обычное продолжение (доиграло, таймер, фото показано).
 
-const CORRECT = new Set(['word_correct', 'phrase_correct', 'photo_correct', 'table_correct'])
-const WRONG   = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong'])
+const CORRECT = new Set(['word_correct', 'phrase_correct', 'photo_correct', 'table_correct', 'type_correct'])
+const WRONG   = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong'])
 // Обычные переходы — не про ответ, а про течение урока
 const PLAIN   = new Set(['played', 'timer', 'timer_after_play', 'photo_shown', 'reg_submit', 'reg_cancel'])
 

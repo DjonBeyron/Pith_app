@@ -73,6 +73,13 @@ describe('buildXpMap — кому достаётся XP урока', () => {
     expect([...map.values()].every(v => v >= 1)).toBe(true)
   })
 
+  it('type_word получает долю XP наравне с остальными, галочка reward: false её снимает', () => {
+    const nodes = [node('a', 'type_word'), node('b', 'phrase_assembly')]
+    expect([...buildXpMap(nodes, 10).values()]).toEqual([5, 5])
+    const off = [{ ...node('a', 'type_word'), typeData: { type_word: { reward: false } } }, node('b', 'phrase_assembly')]
+    expect([...buildXpMap(off, 10).keys()]).toEqual(['b'])
+  })
+
   it('у урока не задан XP — карта пустая, награды нет ни у кого', () => {
     expect(buildXpMap([node('p', 'phrase_assembly')], 0).size).toBe(0)
   })

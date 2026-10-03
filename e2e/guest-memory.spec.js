@@ -207,8 +207,22 @@ test('лента: слово перешло на ступень — место �
   // Пометка уже в разметке с ответа (проявится позже, вместе со вспышкой полоски) — место занято, плашка не меняет размер
   const note = plate.locator('.rcNoteUp')
   await expect(note).toHaveText(/слово засело\s*в памяти/)
+  // Плашка сама появляется с масштабом (wtPlateIn, 0,75 → 1): замер до конца появления даёт «прыжок» высоты, которого нет
+  await plate.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)))
   const before = await plate.boundingBox()
-  await expect(plate.locator('.reviewBar')).toHaveClass(/reviewBar--settle/, { timeout: 10_000 }) // полоска доиграла переход ступени
+  // Переход ступени — «трубки»: заливка дошла до края, вся трубка поехала влево, справа въехала следующая (две трубки в ряд)
+  const rail = plate.locator('.reviewBarRail')
+  await expect(rail).toHaveClass(/reviewBarRail--slide/, { timeout: 10_000 })
+  await expect(plate.locator('.reviewBar')).toHaveCount(2)
+  const mid = await plate.boundingBox()
+  expect(Math.abs(mid.width - before.width), 'плашка не раздувается, пока едут трубки').toBeLessThan(1.5)
+  expect(Math.abs(mid.height - before.height), 'и не вытягивается').toBeLessThan(1.5)
+  const labels = await plate.locator('.reviewBarLevel').allTextContents()
+  expect(labels, 'слева прежняя ступень, справа следующая').toEqual(['Новые слова', 'Знакомые слова'])
+  // Встала на место прежней: трубка одна, ступень новая, заливка — место слова на ней (шаг 3 = четверть)
+  await expect(plate.locator('.reviewBar')).toHaveCount(1, { timeout: 10_000 })
+  await expect(plate.locator('.reviewBarLevel')).toHaveText('Знакомые слова')
+  await expect(plate.locator('.memChipFill')).toHaveAttribute('style', /width: 25%/)
   const after = await plate.boundingBox()
   expect(Math.abs(after.height - before.height), 'высота плашки не прыгает').toBeLessThan(1.5)
   expect(Math.abs(after.width - before.width), 'ширина плашки не прыгает').toBeLessThan(1.5)

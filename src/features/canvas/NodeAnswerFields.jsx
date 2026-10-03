@@ -1,14 +1,15 @@
 import NodeWordChoicePicker     from './NodeWordChoicePicker.jsx'
 import NodePhraseAssemblyPicker from './NodePhraseAssemblyPicker.jsx'
 import NodeFillBlanksPicker     from './NodeFillBlanksPicker.jsx'
+import NodeTypeWordPicker       from './NodeTypeWordPicker.jsx'
 import NodeTablePicker          from './NodeTablePicker.jsx'
 import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
 import NodeLessonLink           from './NodeLessonLink.jsx'
 import NodeRewardCheckbox       from './NodeRewardCheckbox.jsx'
 import { isRewardOn }           from '../../shared/lib/nodeReward.js'
 
-// Поля интерактивных типов-ответов (word_choice/phrase_assembly/table/
-// photo_choice): каждый — свой пикер вариантов + привязка к уроку для
+// Поля интерактивных типов-ответов (word_choice/phrase_assembly/fill_blanks/type_word/
+// table/photo_choice): каждый — свой пикер вариантов + привязка к уроку для
 // анализа знаний (NodeLessonLink, кроме word_choice — у него свой
 // statLessonId прямо в пикере) + чекбокс награды. Вынесено из
 // NodeContentEditor.jsx — там же остаются простые типы (текст/медиа) и
@@ -91,6 +92,34 @@ export default function NodeAnswerFields({
           onTemplateChange={v => updateTypeData({ template: v })}
           onBlanksChange={b => updateTypeData({ blanks: b })}
           onTranslationChange={v => updateTypeData({ translation: v })}
+          onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
+          onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
+          triggers={node.triggers ?? []}
+          allNodes={allNodes}
+          nodeId={node.id}
+          onTriggersChange={triggers => onUpdate({ triggers })}
+          onTriggerMeasure={onTriggerMeasure}
+        />
+        <NodeLessonLink
+          value={tData.statLessonId ?? null}
+          onChange={v => updateTypeData({ statLessonId: v })}
+          moduleLessons={moduleLessons}
+        />
+        <NodeRewardCheckbox lessonXp={lessonXp} checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
+      </>
+    )
+  }
+
+  if (node.type === 'type_word') {
+    return (
+      <>
+        <NodeTypeWordPicker
+          word={tData.word ?? ''}
+          extraLetters={tData.extraLetters ?? ''}
+          responseCorrect={tData.responseCorrect ?? ''}
+          responseWrong={tData.responseWrong ?? ''}
+          onWordChange={v => updateTypeData({ word: v })}
+          onExtraChange={v => updateTypeData({ extraLetters: v })}
           onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
           onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
           triggers={node.triggers ?? []}

@@ -48,20 +48,30 @@
 /* ── Путь дней ───────────────────────────────────────────────────────── */
 .rwPath { --row-h: 84px; --gap: 20px; --pitch: calc(var(--row-h) + var(--gap)); position: relative; }
 .rwPathList { position: relative; display: flex; flex-direction: column; gap: var(--gap); padding-left: 14px; }
-/* Ствол слева: серый на всю длину, зелёный — поверх, до последней ступени, в которую вход уже совершён */
+/* Ствол слева: серый на всю длину, зелёный — поверх, до последней ступени, в которую вход уже совершён. Концы не рубятся:
+   вверху (если выше есть ещё забранные дни, --more-above) ствол уходит за первую ступень и растворяется, внизу продолжается за
+   последнюю на 36 px и тоже растворяется (дальше — новые дни); зелёная часть к концу плавно гаснет в серую, а не сменяется скачком */
+.rwPathList { --ext-top: calc(var(--more-above, 0) * 24px); }
 .rwPathList::before, .rwPathList::after {
   content: '';
   position: absolute;
   left: 12.5px;
-  top: calc(var(--row-h) / 2);
+  top: calc(var(--row-h) / 2 - var(--ext-top));
   width: 3px;
   border-radius: 2px;
 }
-.rwPathList::before { bottom: calc(var(--row-h) / 2); background: #2a3142; }
+.rwPathList::before {
+  bottom: calc(var(--row-h) / 2 - 36px);
+  background: #2a3142;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ext-top), #000 calc(100% - 36px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ext-top), #000 calc(100% - 36px), transparent 100%);
+}
 .rwPathList::after {
-  height: max(0px, calc(var(--lime-n, -1) * var(--pitch)));
+  height: calc(var(--ext-top) + max(0px, calc(var(--lime-n, -1) * var(--pitch))));
   background: #b6fe3b;
   box-shadow: 0 0 9px rgba(182, 254, 59, 0.5);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ext-top), #000 calc(100% - 32px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--ext-top), #000 calc(100% - 32px), transparent 100%);
 }
 
 .rwStep {
@@ -75,6 +85,18 @@
 .rwStep--done { --accent: #8aa65a; --wire: rgba(182, 254, 59, 0.55); }
 .rwStep--gold { --accent: #ffd257; }
 .rwStep--gold.rwStep--locked { --accent: #c4a24a; }
+/* Узел на стволе в месте, где провод уходит к блоку: точка цвета провода (без тёмного кольца — оно разрывало бы ствол) */
+.rwStep::after {
+  content: '';
+  position: absolute;
+  left: -4.5px;
+  top: calc(50% - 4.5px);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--wire);
+}
+.rwStep--on::after { box-shadow: 0 0 10px rgba(182, 254, 59, 0.55); }
 /* Провод от ствола к блоку: тонкий, у входа в блок раздувается (клин), цвет — от ствола к цвету блока */
 .rwStep::before {
   content: '';
@@ -167,6 +189,7 @@
 }
 .rwGhost .rwBlock::before, .rwGhost .rwBlock::after { display: none; }
 .rwGhost .rwStep::before { background: #2f3748; }
+.rwGhost .rwStep::after { background: #2f3748; box-shadow: none; }
 
 /* Узкие экраны (320 px): блок чуть компактнее, чтобы награда вехи «20 XP + 1 🎫» и подпись помещались */
 @media (max-width: 350px) {

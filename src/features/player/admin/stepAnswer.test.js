@@ -90,6 +90,25 @@ describe('fill_blanks', () => {
   })
 })
 
+describe('type_word', () => {
+  const TW = { word: 'tries', extraLetters: 'xz', responseCorrect: 'Верно', responseWrong: 'Мимо' }
+
+  it('верно — type_correct, общий канал ответа (kind: phrase)', () => {
+    expect(pickStepAnswer(node('type_word', TW), true, first))
+      .toMatchObject({ kind: 'phrase', result: 'type_correct', variantId: null, correct: true, responseText: 'Верно' })
+  })
+
+  it('неверно — type_wrong с репликой на ошибку', () => {
+    expect(pickStepAnswer(node('type_word', TW), false, first))
+      .toMatchObject({ result: 'type_wrong', correct: false, responseText: 'Мимо' })
+  })
+
+  it('слова нет — проверять не на чем, идём как верный', () => {
+    expect(pickStepAnswer(node('type_word', { word: ' ' }), false, first))
+      .toMatchObject({ result: 'type_correct', correct: true })
+  })
+})
+
 describe('photo_choice', () => {
   const PC = { photos: [{ id: 'p0' }, { id: 'p1' }, { id: 'p2' }], correctIndexes: [1] }
 

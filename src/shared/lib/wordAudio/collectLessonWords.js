@@ -10,7 +10,8 @@ import { parseTemplateSegments } from '../fillBlanksTemplate.js'
 //    ответа и ловушки;
 //  - fill_blanks: ЦЕЛОЕ слово с верным ответом в пропуске (для «tr___s» —
 //    «tries», а не «ie»: озвучивается слово, а не буквы);
-//  - word_choice: только верные варианты (озвучивается лишь верный ответ).
+//  - word_choice: только верные варианты (озвучивается лишь верный ответ);
+//  - type_word: само печатаемое слово (озвучивается, когда ученик напечатал верно).
 // Возвращает Map key → текст для показа (первое написание в уроке).
 
 // Маркеры границ целевого пропуска в собранном тексте — вырезаются
@@ -52,6 +53,8 @@ function wordsOfNode(node) {
       const blanks = fb.blanks ?? []
       return blanks.map((_, i) => blankWord(fb.template ?? '', blanks, i))
     }
+    case 'type_word':
+      return [td.type_word?.word ?? '']
     case 'word_choice':
       return (td.word_choice?.options ?? []).filter(o => o.isCorrect).map(o => o.text)
     default:

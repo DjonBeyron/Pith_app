@@ -19,6 +19,7 @@ export const TYPED_PAIRS = {
   word_choice:     ['word_correct',   'word_wrong'],
   phrase_assembly: ['phrase_correct', 'phrase_wrong'],
   fill_blanks:     ['fill_correct',   'fill_wrong'],
+  type_word:       ['type_correct',   'type_wrong'],
   photo_choice:    ['photo_correct',  'photo_wrong'],
   registration:    ['reg_submit',     'reg_cancel'],
   table:           ['table_correct',  'table_wrong'],

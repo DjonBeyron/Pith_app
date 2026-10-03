@@ -85,6 +85,11 @@ describe('collectLessonWords — слова урока для озвучки', (
     expect(m.has('hello')).toBe(false)       // текстовые ноды не участвуют
   })
 
+  it('type_word: печатаемое слово озвучивается, дополнительные буквы — нет', () => {
+    const m = collectLessonWords([{ type: 'type_word', typeData: { type_word: { word: 'Tries', extraLetters: 'xz' } } }])
+    expect([...m.keys()]).toEqual(['tries'])
+  })
+
   it('missingWordAudio — чего в базе нет', () => {
     const wanted = collectLessonWords(nodes)
     const lib = new Map([['he', { key: 'he' }], ['tries', { key: 'tries' }]])

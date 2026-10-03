@@ -74,6 +74,20 @@ export function pickStepAnswer(node, wantCorrect, rnd = Math.random) {
     }
   }
 
+  if (t === 'type_word') {
+    // Напечатать слово нечем «ошибиться» кликом — «неверно» просто считает результат
+    // неверным; слово без текста проверять не на чем — идём как верный. Общий канал
+    // ответа в чате с «Собери фразу» (phraseStates)
+    const correct = wantCorrect || !(d.word ?? '').trim()
+    return {
+      kind: 'phrase',
+      correct,
+      variantId: null,
+      result: correct ? 'type_correct' : 'type_wrong',
+      responseText: (correct ? d.responseCorrect : d.responseWrong) ?? '',
+    }
+  }
+
   if (t === 'photo_choice') {
     const photos  = d.photos ?? []
     const correctIdx = d.correctIndexes ?? []

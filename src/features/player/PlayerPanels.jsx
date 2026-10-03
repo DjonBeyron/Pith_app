@@ -1,6 +1,7 @@
 import ChooseWordPanel     from './panels/choose-word/ChooseWordPanel.jsx'
 import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.jsx'
 import FillBlanksPanel     from './panels/fill-blanks/FillBlanksPanel.jsx'
+import TypeWordPanel       from './panels/type-word/TypeWordPanel.jsx'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
 import TableDictatorPanel  from './panels/table-dictator/TableDictatorPanel.jsx'
@@ -8,7 +9,7 @@ import TableManualPanel    from './panels/table-manual/TableManualPanel.jsx'
 import { wordOptionEvent } from './useAnswerStats.js'
 
 // Нижние панели ответов: выбор слова, сборка фразы, составь предложение,
-// выбор фото, регистрация, таблица. Каждая привязана к последней видимой
+// напечатай слово, выбор фото, регистрация, таблица. Каждая привязана к последней видимой
 // ноде своего типа и живёт до ответа. Вынесены из LessonPlayer.jsx —
 // самодостаточный кусок разметки, который упирался в потолок размера файла.
 //
@@ -16,7 +17,7 @@ import { wordOptionEvent } from './useAnswerStats.js'
 // PROJECT.md) — nodes/onSignalFired/hasSignalFired ей не нужны, в отличие от
 // PhraseAssemblyPanel/TableManualPanel ниже.
 export default function PlayerPanels({
-  wcNode, paNode, fbNode, pcNode, regNode, tableNode,
+  wcNode, paNode, fbNode, twNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
   // Сигналы ошибок (см. PROJECT.md) — table-manual и «Собери фразу» резолвят
   // signals[].ref по полному списку нод урока; onSignalFired(node, release,
@@ -35,7 +36,7 @@ export default function PlayerPanels({
   onNodeDone, record, wrongRef,
   handleWordAnswer, handleWordPick, handleWordReveal, handlePhraseAnswer, revealPhraseAnswers, handleRegAnswer,
   handlePhotoPick, handleXpEarned, onTableToChat, onTableLanded,
-  setWcPanelHeight, setPaPanelHeight, setFbPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
+  setWcPanelHeight, setPaPanelHeight, setFbPanelHeight, setTwPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
 }) {
   return (
     <>
@@ -118,6 +119,30 @@ export default function PlayerPanels({
           }}
           onXpEarned={(amount, opts) => handleXpEarned(amount, fbNode.id, opts)}
           onHeightChange={setFbPanelHeight}
+        />
+      )}
+      {twNode && (
+        <TypeWordPanel
+          key={`${twNode.id}:${epoch}:${twNode.visit ?? 0}`}
+          node={twNode}
+          xpAmount={xpMap.get(twNode.id) ?? 0}
+          onDone={result => { setTwPanelHeight(0); onNodeDone(twNode.id, result) }}
+          /* Напечатанное слово ВСЕГДА уходит пузырём справа (как «Собери фразу»); третий
+             аргумент — arriving: пузырь встаёт невидимым, onRevealAnswer проявляет его на
+             остановке истории */
+          onAnswered={(text, result, arriving) => handlePhraseAnswer(twNode.id, text, result, arriving)}
+          onRevealAnswer={() => revealPhraseAnswers(twNode.id)}
+          onChecked={(result, text) => {
+            if (result === 'wrong') wrongRef.current += 1
+            record({
+              nodeId: twNode.id,
+              lessonId: twNode.typeData?.type_word?.statLessonId ?? null,
+              type: result,
+              option: text,
+            })
+          }}
+          onXpEarned={(amount, opts) => handleXpEarned(amount, twNode.id, opts)}
+          onHeightChange={setTwPanelHeight}
         />
       )}
       {pcNode && !photoChoiceStates[pcNode.id] && (

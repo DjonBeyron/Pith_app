@@ -44,6 +44,8 @@ export default function RewardsPath({ days, focusDay, streak = 0, ghost = false 
   const rows = ghost ? GHOST_DAYS : days
   // Номер последней ступени, в которую вход уже совершён: до неё ствол зелёный (CSS: --lime-n)
   const limeN = rows.reduce((n, d, i) => (d.visited ? i : n), -1)
+  // Выше первой показанной ступени есть ещё забранные дни — ствол уходит вверх и растворяется, а не обрывается
+  const moreAbove = !ghost && (rows[0]?.day ?? 1) > 1
 
   useEffect(() => {
     if (ghost) return // скелетон никуда не скроллим — ждём реальные данные
@@ -57,7 +59,7 @@ export default function RewardsPath({ days, focusDay, streak = 0, ghost = false 
 
   return (
     <div className={`rwPath${ghost ? ' rwGhost' : ''}`}>
-      <div className="rwPathList" style={{ '--lime-n': limeN }}>
+      <div className="rwPathList" style={{ '--lime-n': limeN, '--more-above': moreAbove ? 1 : 0 }}>
         {rows.map((d, i) => (
           <div
             key={d.day}

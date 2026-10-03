@@ -5,11 +5,11 @@ import { useRegistrationSkip } from './useRegistrationSkip.js'
 // панели (на неё приподнимаются сообщения) и что скипнуть залогиненному.
 // Вынесено из LessonPlayer.jsx — он у потолка размера файла.
 const KIND_TYPE = {
-  wc: 'word_choice', pa: 'phrase_assembly', fb: 'fill_blanks', pc: 'photo_choice',
+  wc: 'word_choice', pa: 'phrase_assembly', fb: 'fill_blanks', tw: 'type_word', pc: 'photo_choice',
   reg: 'registration', table: 'table', pin: 'pin_message',
 }
 
-const PANEL_KINDS = ['wc', 'pa', 'fb', 'pc', 'reg', 'table']
+const PANEL_KINDS = ['wc', 'pa', 'fb', 'tw', 'pc', 'reg', 'table']
 
 // Нода, которая живёт только в ленте и панель снизу не открывает
 function isChatOnly(node) {
@@ -41,7 +41,7 @@ export function pickPanelNodes(visibleNodes) {
 }
 
 export function usePlayerPanelNodes(visibleNodes, { onNodeDone, panelShown }) {
-  const [heights, setHeights] = useState({ wc: 0, pa: 0, fb: 0, pc: 0, reg: 0, table: 0 })
+  const [heights, setHeights] = useState({ wc: 0, pa: 0, fb: 0, tw: 0, pc: 0, reg: 0, table: 0 })
 
   const node = pickPanelNodes(visibleNodes)
 
@@ -50,8 +50,8 @@ export function usePlayerPanelNodes(visibleNodes, { onNodeDone, panelShown }) {
 
   // Таймер ответа стартует с появления панели (SKILL_ANALYSIS.md §4)
   useEffect(() => {
-    [node.wc, node.pa, node.fb, node.pc].forEach(n => { if (n) panelShown(n.id) })
-  }, [node.wc?.id, node.pa?.id, node.fb?.id, node.pc?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    [node.wc, node.pa, node.fb, node.tw, node.pc].forEach(n => { if (n) panelShown(n.id) })
+  }, [node.wc?.id, node.pa?.id, node.fb?.id, node.tw?.id, node.pc?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const setHeight = kind => h => setHeights(prev => (prev[kind] === h ? prev : { ...prev, [kind]: h }))
 
@@ -60,14 +60,14 @@ export function usePlayerPanelNodes(visibleNodes, { onNodeDone, panelShown }) {
   const activeKind = PANEL_KINDS.find(k => node[k])
 
   // «Ручная» панель сборки (table-manual, «Собери фразу», «Составь
-  // предложение») перекрывает низ ленты и требует продолжительного внимания —
+  // предложение», «Напечатай слово») перекрывает низ ленты и требует продолжительного внимания —
   // на это время закреп выше по ленте блюрится (см. PinMessageBanner.jsx).
   // Простые панели (word_choice/photo_choice/registration/table-«Диктант»)
   // сюда не входят. Значение производное от node — само становится false,
   // как только нода панели перестаёт быть последней в ленте (ответ принят),
   // сбрасывать вручную ничего не нужно.
   const manualPanelOpen = !!(
-    node.pa || node.fb ||
+    node.pa || node.fb || node.tw ||
     (node.table && (node.table.typeData?.table?.mode ?? 'dictator') === 'manual')
   )
 
@@ -78,6 +78,6 @@ export function usePlayerPanelNodes(visibleNodes, { onNodeDone, panelShown }) {
     offset: activeKind ? heights[activeKind] : 0,
     manualPanelOpen,
     // Последняя активная панельная нода — у неё свой карандаш правки
-    editNode: node.table ?? node.reg ?? node.pc ?? node.fb ?? node.pa ?? node.wc,
+    editNode: node.table ?? node.reg ?? node.pc ?? node.tw ?? node.fb ?? node.pa ?? node.wc,
   }
 }
