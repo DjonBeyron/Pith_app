@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { analyzeWaveform, probeAudioDuration } from '../../../../shared/lib/audioUtils.js'
+import { analyzeWaveform, probeAudioDuration, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { logAudioDurationReady } from './audioDebug.js'
 import { getAudioMeta } from '../../../../shared/lib/audioMetaCache.js'
 
@@ -23,7 +23,8 @@ export function useAudioMeta(node, file, src) {
   // считали в прошлый раз — спектр и таймер есть ещё до скачивания
   const cached   = useMemo(() => getAudioMeta(file?.id ?? stored.file_id), [file?.id, stored.file_id])
   const initWave = stored.waveformData?.length ? stored.waveformData : (file?.waveformData ?? cached?.waveformData ?? null)
-  const initDur  = stored.duration || file?.duration || cached?.duration || null
+  // Нет сохранённой длительности — из длины волны (кадр = 1/WAVEFORM_FPS с)
+  const initDur  = stored.duration || file?.duration || cached?.duration || (initWave?.length ? initWave.length / WAVEFORM_FPS : null)
 
   const [waveData,  setWaveData]  = useState(initWave)
   const [duration,  setDuration]  = useState(initDur)

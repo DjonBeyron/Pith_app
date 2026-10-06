@@ -1,6 +1,7 @@
+import { pLog } from '../../shared/lib/debug.js'
 import { enqueuePosterCapture } from './posterQueue.js'
 import { fetchBlobWithRetry } from './preloadFetch.js'
-import { analyzeWaveform, probeAudioDuration } from '../../shared/lib/audioUtils.js'
+import { analyzeWaveform, probeAudioDuration, WAVEFORM_FPS } from '../../shared/lib/audioUtils.js'
 import { getAudioMeta, setAudioMeta } from '../../shared/lib/audioMetaCache.js'
 
 // У каких файлов снимается кадр-постер, и какие выгружаются по мере ухода из
@@ -52,10 +53,16 @@ export function makePreloadFetch(ctx) {
     // таймаут и держала всё 4 с; у пузыря длительность есть и из живого
     // <audio> (adoptElementDuration), в предрисовке она успевает
     if (!waveformData) waveformData = await analyzeWaveform(blobUrl).catch(() => null)
-    if (!publish({ waveformData, duration, metaDone: true })) return
+    // Длительность — сразу из самой волны (кадр = 1/WAVEFORM_FPS с): таймер
+    // готов вместе со спектром, не дожидаясь пробы (iOS без жеста её не
+    // отдаёт). Проба идёт следом; точное значение подменяет оценку, только
+    // если расходится заметно (≥1 с) — иначе подпись «00:09» дёргалась бы
+    const approx = waveformData?.length ? waveformData.length / WAVEFORM_FPS : null
+    if (!publish({ waveformData, duration: duration ?? approx, metaDone: true })) return
     if (!duration) {
-      duration = await probeAudioDuration(blobUrl).catch(() => null)
-      if (duration) publish({ duration })
+      const probed = await probeAudioDuration(blobUrl).catch(() => null)
+      if (probed && (!approx || Math.abs(probed - approx) >= 1)) { duration = probed; publish({ duration }) }
+      else duration = approx
     }
     if (!cached || cached.duration !== duration || cached.waveformData !== waveformData) setAudioMeta(id, { duration, waveformData })
   }
@@ -155,6 +162,7 @@ export function makePreloadFetch(ctx) {
   function enqueuePoster(id, blobUrl, gen) {
     enqueuePosterCapture(blobUrl, posterUrl => {
       const entry = blobUrlsRef.current[id]
+      if (!posterUrl) pLog(`[poster] кадр не снят: ${String(id).slice(-12)} (таймаут/декодер) — нода покажется без постера`)
       if (genRef.current !== gen || !entry?.blobUrl || entry.posterUrl) {
         // gen changed, file evicted (eviction captures its own poster), or poster already set
         if (posterUrl) URL.revokeObjectURL(posterUrl)

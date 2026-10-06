@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('./preloadFetch.js', () => ({ fetchBlobWithRetry: vi.fn() }))
 vi.mock('./posterQueue.js', () => ({ enqueuePosterCapture: vi.fn() }))
 vi.mock('../../shared/lib/audioUtils.js', () => ({
-  probeAudioDuration: vi.fn(async () => 1.5), analyzeWaveform: vi.fn(async () => [1, 2]),
+  probeAudioDuration: vi.fn(async () => 1.5), analyzeWaveform: vi.fn(async () => [1, 2]), WAVEFORM_FPS: 30,
 }))
 const { fetchBlobWithRetry } = await import('./preloadFetch.js')
 const { enqueuePosterCapture } = await import('./posterQueue.js')

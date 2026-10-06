@@ -175,10 +175,13 @@ export default function PlayerFeed({ children, panelOpen = false }) {
         // .playerMsgBubble--pick — выбранное слово, улетевшее в чат: звук уже
         // сыграл тап по варианту, message-in поверх него звучит грязно
         const pickBubble  = el.querySelector('.playerMsgBubble--pick')
+        // Ответ ученика (строка справа): у него свой звук «верно/неверно»,
+        // «новое сообщение» — только у реплик учителя слева
+        const studentRow  = el.classList.contains('playerMsgRowRight')
 
         // Bubble sound fires 60ms before animation end (at 130ms of 190ms duration).
         // Photo-choice answer sound fires at END — needs to wait for the photo to be visible.
-        if (hasBubble && !photoAnswer && !pickBubble) {
+        if (hasBubble && !photoAnswer && !pickBubble && !studentRow) {
           setTimeout(() => {
             pLog('[feed] sound message-in fired (-60ms)')
             playSound('message-in', 'лента: новое сообщение')

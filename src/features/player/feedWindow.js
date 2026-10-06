@@ -12,8 +12,8 @@
 // клик открывает ещё FEED_PAGE записей (якорь), а когда дошли до начала живой
 // сессии — зовёт страницу истории чекпойнта (useGraphPlayer.requestMoreHistory).
 
-export const FEED_WINDOW = 12
-export const FEED_PAGE   = 8
+export const FEED_WINDOW = 16 // ~12 строк (сигналы и реакции — записи без строки)
+export const FEED_PAGE   = 12
 // Якорь «с самого начала»: все записи, включая подгружаемые страницы истории
 // чекпойнта (они встают в начало массива, и ключевой якорь их бы прятал)
 export const ANCHOR_ALL  = '__all__'

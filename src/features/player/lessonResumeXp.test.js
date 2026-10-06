@@ -100,7 +100,7 @@ describe('«Продолжить урок» — история чата восс
   })
 
   it('изначально показывается не вся история сразу, а последняя страница', () => {
-    expect(graphPlayer).toContain('const HISTORY_PAGE = 8')
+    expect(graphPlayer).toContain('const HISTORY_PAGE = 12')
     expect(graphPlayer).toContain('historyNodes.slice(-HISTORY_PAGE)')
     expect(graphPlayer).toContain('const requestMoreHistory = useCallback')
   })

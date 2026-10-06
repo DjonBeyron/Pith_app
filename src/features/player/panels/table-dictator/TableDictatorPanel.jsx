@@ -85,7 +85,8 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   const [extrasAssembled, setExtrasAssembled] = useState([])
   const [activeExtraKeys, setActiveExtraKeys] = useState(new Set())
   const [result,          setResult]          = useState(null)
-  useEffect(() => { if (result) playSound(result === 'correct' ? 'answer-correct' : 'answer-wrong', 'таблица-диктор') }, [result])
+  // Авто-сборка диктора: звук только у ошибки — успех собрал не ученик
+  useEffect(() => { if (result === 'wrong') playSound('answer-wrong', 'таблица-диктор') }, [result])
   const [panelH,          setPanelH]          = useState(0)
 
   const audioRef          = useRef(null)

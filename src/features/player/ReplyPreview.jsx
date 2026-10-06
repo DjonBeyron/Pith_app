@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { nodeFileKey } from './preloadQueue.js'
 import { resolveReply } from './replyResolve.js'
 
 // Player frame reference dimensions
@@ -18,7 +19,7 @@ function cropK(type) { return THUMB_H / playerFH(type) }
 
 function getThumbSrc(node, lessonFiles) {
   if (!node) return null
-  const fileId = node.typeData?.[node.type]?.file_id
+  const fileId = nodeFileKey(node)
   if (!fileId) return null
   const file = lessonFiles.find(f => f.id === fileId)
   if (!file) return null

@@ -41,6 +41,18 @@ export function forwardReachable(node, byId) {
   return reach
 }
 
+// Ключ файла ноды для прогрева и blobMap: file_id, а без него — сама ссылка
+// r2Url. Уроки, пришедшие из черновика (lesson-drafts) или с «подложенными»
+// файлами, несут только r2Url — раньше такие ноды в очередь прогрева не
+// попадали вовсе: кружок/голосовые/фото стримились с R2 прямо в чат (чёрный
+// кружок, поздние фото и тайминги), а гейт «печатает» считал их готовыми
+export function nodeFileKey(node) {
+  const td = node?.typeData?.[node.type]
+  if (!td) return null
+  if (td.file_id) return td.file_id
+  return isValidUrl(td.r2Url) ? td.r2Url : null
+}
+
 export function nodeDownloads(node, files) {
   if (node.type === 'photo_choice') {
     return (node.typeData?.photo_choice?.photos ?? [])
@@ -51,7 +63,7 @@ export function nodeDownloads(node, files) {
       })
       .filter(Boolean)
   }
-  const fileId = node.typeData?.[node.type]?.file_id
+  const fileId = nodeFileKey(node)
   if (!fileId) return []
   const f   = files.find(fl => fl.id === fileId)
   const url = f?.r2Url ?? node.typeData?.[node.type]?.r2Url ?? null

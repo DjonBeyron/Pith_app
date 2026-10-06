@@ -3,6 +3,7 @@ import NodeEditPencil from './admin/NodeEditPencil.jsx'
 import { mergeFeedOrder } from '../../shared/lib/feedOrder.js'
 import { useFeedWindow } from './useFeedWindow.js'
 import { entryKey } from './feedWindow.js'
+import { nodeFileKey } from './preloadQueue.js'
 
 // Сообщения ленты: видимые ноды графа урока + сигнальные сообщения
 // (useSignalMessages.js), вперемешку в хронологическом порядке (см.
@@ -42,7 +43,7 @@ export default function PlayerFeedNodes({
     : feedWindow.entries
 
   function renderNode(node, isPending) {
-    const fileId = node.typeData?.[node.type]?.file_id ?? null
+    const fileId = nodeFileKey(node)
     const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
     // Реакция рисуется ВНУТРИ чужого пузыря (порталом, см. ReactionModule) —
     // своей строки в ленте у неё нет вовсе. Пустой слот-обёртка всё равно
@@ -118,7 +119,7 @@ export default function PlayerFeedNodes({
   }
 
   function renderSignal(key, node) {
-    const fileId = node.typeData?.[node.type]?.file_id ?? null
+    const fileId = nodeFileKey(node)
     const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
     return (
       <div key={key} data-entry-key={key}>

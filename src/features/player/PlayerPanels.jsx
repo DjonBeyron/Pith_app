@@ -1,4 +1,5 @@
 import ChooseWordPanel     from './panels/choose-word/ChooseWordPanel.jsx'
+import { nodeFileKey } from './preloadQueue.js'
 import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.jsx'
 import FillBlanksPanel     from './panels/fill-blanks/FillBlanksPanel.jsx'
 import TypeWordPanel       from './panels/type-word/TypeWordPanel.jsx'
@@ -203,7 +204,7 @@ export default function PlayerPanels({
               ? (arriving, sent) => onTableToChat?.(tableNode.id, arriving, sent) : undefined}
             onLandedInChat={() => onTableLanded?.(tableNode.id)}
             node={tableNode}
-            file={filesWithBlobs.find(f => f.id === tableNode.typeData?.table?.file_id) ?? null}
+            file={filesWithBlobs.find(f => f.id === nodeFileKey(tableNode)) ?? null}
             onDone={(trigger, variantId) => { setTablePanelHeight(0); onNodeDone(tableNode.id, trigger, variantId) }}
             xpAmount={xpMap.get(tableNode.id) ?? 0}
             onXpEarned={(amount, opts) => handleXpEarned(amount, tableNode.id, opts)}

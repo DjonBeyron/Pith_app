@@ -66,10 +66,13 @@ export default function TypeWordPanel({
     // ни статистики, панель не закрывается (см. useTypeWord.js)
     if (!r || r === 'signal') return
     onChecked?.(r, typed)
-    playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'напечатай слово')
+    if (r !== 'correct') playSound('answer-wrong', 'напечатай слово')
 
     if (r === 'correct') {
-      playWord(wordKey(word)) // услышать слово целиком — награда за верно напечатанное
+      // Услышать слово целиком — награда за верно напечатанное; «верно» звучит
+      // ПОСЛЕ слова, а не поверх него (нет озвучки — сразу)
+      const correct = () => playSound('answer-correct', 'напечатай слово')
+      if (!playWord(wordKey(word), { onEnded: correct })) correct()
       // Пузырь в чате будет всегда — XP ждёт его и летит от него
       if (xpAmount > 0) onXpEarned?.(xpAmount, { expectBubble: true })
       later(() => {

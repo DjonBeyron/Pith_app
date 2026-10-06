@@ -26,10 +26,15 @@ let muted = false           // «Не могу слушать» (повторе�
 let gen = 0                 // смена урока обесценивает идущую предзагрузку
 export const WAIT_MS = 250  // звук не пошёл дольше — зовём onWait (кнопка ▶ показывает крутилку загрузки)
 
+let currentEnded = null // «слово доиграло/прервано» для hooks.onEnded текущего слова
+
 function stopCurrent() {
   if (!current) return
   try { current.pause(); current.currentTime = 0 } catch { /* элемент мог быть выгружен */ }
   current = null
+  const ended = currentEnded
+  currentEnded = null
+  ended?.()
 }
 
 async function prepare(key, url, myGen) {
@@ -74,7 +79,8 @@ export async function preloadWordAudio(keys) {
 // слово с опозданием «прилипло» бы к следующему тапу).
 // hooks (необязательно): onWait — звук не пошёл за WAIT_MS (грузится с сервера),
 // onDone — звук пошёл, не удался или его прервали другим словом (после onWait
-// всегда приходит onDone)
+// всегда приходит onDone); onEnded — слово ДОИГРАЛО (или не удалось/прервано):
+// для звуков, которые не должны накладываться на слово («верно» в «напечатай слово»)
 export function playWord(key, hooks = null) {
   if (!key) return false
   stopCurrent()
@@ -90,10 +96,14 @@ export function playWord(key, hooks = null) {
   }
   current = a
   let finished = false
+  let endedFired = false
+  const ended = () => { if (endedFired) return; endedFired = true; if (currentEnded === ended) currentEnded = null; hooks?.onEnded?.() }
+  currentEnded = ended
   const done = () => { if (finished) return; finished = true; clearTimeout(waitTimer); hooks?.onDone?.() }
   const waitTimer = hooks?.onWait ? setTimeout(() => { if (!finished) hooks.onWait() }, WAIT_MS) : 0
   a.onplaying = () => { done(); pLog(`[word-audio] играет «${key}» (${a.src.startsWith('blob:') ? 'blob' : 'url'}, ${a.duration.toFixed(2)}с)`) }
-  a.play().then(done).catch(e => { done(); pLog(`[word-audio] play «${key}» не удался: ${e.message}`) })
+  a.onended = ended
+  a.play().then(done).catch(e => { done(); ended(); pLog(`[word-audio] play «${key}» не удался: ${e.message}`) })
   return true
 }
 

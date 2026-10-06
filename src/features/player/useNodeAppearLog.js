@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { nodeFileKey } from './preloadQueue.js'
 
 // Журнал появления нод в переписке: во сколько нода показалась и был ли к
 // этому моменту готов её медиа-блоб. Это диагностика предзагрузки — по нему
@@ -21,7 +22,7 @@ export function useNodeAppearLog(visibleNodes, blobMap, addMsgTs, openTimeRef) {
       const t = `+${((Date.now() - openTimeRef.current) / 1000).toFixed(1)}`
       newNodes.forEach(n => {
         addMsgTs(n.seq, t)
-        const fileId = n.typeData?.[n.type]?.file_id ?? null
+        const fileId = nodeFileKey(n)
         const entry  = fileId ? blobMap[fileId] : null
         nodeAppearLogRef.current.push({
           seq: n.seq, type: n.type, appearTs: t,
