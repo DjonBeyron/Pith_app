@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import LessonLaunchCard from '../lessons/LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
+import { revokePayloadBlobs } from '../player/preloadQueue.js'
+import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
 import EnergyPaywall from '../lessons/EnergyPaywall.jsx'
 import { startLesson } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
@@ -12,6 +14,7 @@ import { dbg } from '../../shared/lib/debug.js'
 export default function RaceRunner({ lessonIds = [], onRaceFinish, onClosed }) {
   const [idx,        setIdx]        = useState(0)
   const [playerData, setPlayerData] = useState(null)
+  usePayloadBlobsRelease(playerData) // blob-ы payload — отзыв после каждого урока гонки
   const [noEnergy,   setNoEnergy]   = useState(null)
   const totalsRef = useRef({ errors: 0, timeMs: 0 })
 
@@ -31,7 +34,7 @@ export default function RaceRunner({ lessonIds = [], onRaceFinish, onClosed }) {
         onStart={async (data) => {
           // Энергию решает сервер (новый урок → -1, пересдача бесплатно)
           const res = await startLesson(lessonId)
-          if (res?.ok === false) { setNoEnergy({ nextAt: res.next_at }); return }
+          if (res?.ok === false) { revokePayloadBlobs(data); setNoEnergy({ nextAt: res.next_at }); return }
           refreshProfile()
           setPlayerData(data)
         }}

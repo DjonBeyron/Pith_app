@@ -1,10 +1,11 @@
-import { useRef, useLayoutEffect, useEffect } from 'react'
+import { useRef, useState, useLayoutEffect, useEffect } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
 import { playSound } from '../../shared/lib/sounds.js'
 import { wheelScrollShift } from './feedWheel.js'
 import { traceFeedClose } from './panels/tracePanelSync.js'
 import { traceSlideIn, watchLastTop } from './traceSlideIn.js'
 import { useFeedRowFreeze } from './useFeedRowFreeze.js'
+import { FeedRefsContext } from './feedRefs.js'
 
 // Double scaleY(-1) trick: outer container flipped → scrollTop=0 = visual bottom.
 // Inner content flipped back → messages appear normal.
@@ -69,6 +70,14 @@ export default function PlayerFeed({ children, panelOpen = false }) {
   // Положение опоры (последнего сообщения) в последнем кадре ДО вставки —
   // «старое место» для трассы прилёта; пишет watchLastTop (только в трейсе)
   const lastTopRef   = useRef(null)
+  // Элементы ленты для хуков-потомков (feedRefs.js) — в state, чтобы их
+  // можно было читать в рендере (ref в рендере читать нельзя)
+  const [feedEls, setFeedEls] = useState(null)
+  useLayoutEffect(() => {
+    // Один раз после монтирования — осознанный setState в layout-эффекте
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFeedEls({ outer: outerRef.current, inner: innerRef.current })
+  }, [])
 
   // Колесо мыши в перевёрнутом контейнере крутило ленту в обратную сторону:
   // браузер прибавляет deltaY к scrollTop, не зная про scaleY(-1), и «вниз»
@@ -193,7 +202,9 @@ export default function PlayerFeed({ children, panelOpen = false }) {
   return (
     <div className="playerFeed" ref={outerRef}>
       <div className="playerFeedInner" ref={innerRef}>
-        {children}
+        <FeedRefsContext.Provider value={feedEls}>
+          {children}
+        </FeedRefsContext.Provider>
       </div>
     </div>
   )

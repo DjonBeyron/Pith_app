@@ -8,6 +8,7 @@ import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { revokePayloadBlobs } from '../player/preloadQueue.js'
+import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
 import { getCompletedLessons, markLessonCompleted } from '../../shared/lib/completedLessons.js'
 import { seedGuestWordOf } from '../../shared/lib/memory/guestMemory.js'
 import { lessonWordOf } from '../../shared/lib/memory/wordLessons.js'
@@ -64,6 +65,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const [titleEditing, setTitleEditing] = useState(false)
   const [launchId,        setLaunchId]        = useState(null)
   const [playerData,      setPlayerData]      = useState(null)
+  usePayloadBlobsRelease(playerData) // blob логотипа — отзыв после закрытия плеера
   const [playingLessonId, setPlayingLessonId] = useState(null)
   const [completedIds,    setCompletedIds]    = useState(() => getCompletedLessons())
   // Только что пройденный урок — для анимации прилёта XP в графе модуля.

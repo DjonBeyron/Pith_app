@@ -3,6 +3,7 @@ import LessonLaunchCard from './LessonLaunchCard.jsx'
 import EnergyPaywall from './EnergyPaywall.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
 import { revokePayloadBlobs } from '../player/preloadQueue.js'
+import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
 import { startLesson } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { markLessonCompleted } from '../../shared/lib/completedLessons.js'
@@ -17,6 +18,7 @@ import { markLessonCompleted } from '../../shared/lib/completedLessons.js'
 // по нему возвращает себе сплошной фон, см. LessonNavOverlay.jsx
 export default function StandaloneLessonRunner({ lessonId, lessonTitle = '', onExit, onStarted }) {
   const [playerData, setPlayerData] = useState(null)
+  usePayloadBlobsRelease(playerData) // blob логотипа — отзыв после закрытия плеера
   const [noEnergy,   setNoEnergy]   = useState(null)
 
   async function handleStart(data) {

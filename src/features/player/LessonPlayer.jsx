@@ -124,12 +124,6 @@ export default function LessonPlayer({
   useEffect(() => { if (!openTimeRef.current) openTimeRef.current = Date.now() }, [])
   // Пока урок открыт, фон приложения замирает (shared/lib/lessonOpen.js)
   useLessonOpenFlag()
-  // Логотип учителя приходит blob-ссылкой из карточки запуска (владение
-  // передано плееру) — отзываем при размонтировании. Отложенно, как blob-ы
-  // прогрева: StrictMode в dev размонтирует и монтирует снова синхронно
-  useEffect(() => () => {
-    if (typeof teacherLogo === 'string' && teacherLogo.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(teacherLogo), 0)
-  }, [teacherLogo])
 
   // Предикат «нода прогрета» приходит из usePlayerPreload ниже (тому нужны
   // visibleNodes графа) — связываем через ref

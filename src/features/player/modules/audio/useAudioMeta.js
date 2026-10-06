@@ -79,10 +79,10 @@ export function useAudioMeta(node, file, src) {
     if (metaFromPreload) timer = setTimeout(() => { if (!cancelled && !waveDoneRef.current) setWaveReady(true) }, META_WAIT_MS)
     else run()
     return () => { cancelled = true; clearTimeout(timer) }
-    // file?.blobUrl/metaDone читаются как условие «ждать ли прогрев» на момент
-    // смены src — их изменение обрабатывает эффект выше
+    // file?.metaDone обрабатывает эффект выше; error/evicted — повод
+    // перестать ждать прогрев и посчитать самим
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src])
+  }, [src, file?.error, file?.evicted])
 
   // Длительность из метаданных самого <audio>, как только они есть
   function adoptElementDuration(audio) {

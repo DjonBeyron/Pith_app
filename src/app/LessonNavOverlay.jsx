@@ -18,6 +18,11 @@ export default function LessonNavOverlay() {
   // прямоугольник. Как только урок пошёл, фон возвращается: под плеером
   // ничего просвечивать не должно
   const [started, setStarted] = useState(false)
+  // Смена урока/модуля в слое — снова карточка запуска, снова прозрачный фон
+  // (подстройка состояния при смене входа — в рендере, как советует React)
+  const overlayKey = overlay ? (overlay.lessonId ?? overlay.moduleId ?? null) : null
+  const [prevKey, setPrevKey] = useState(overlayKey)
+  if (overlayKey !== prevKey) { setPrevKey(overlayKey); setStarted(false) }
   if (!overlay) return null
 
   return (

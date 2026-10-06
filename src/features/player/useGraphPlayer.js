@@ -152,7 +152,11 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
       const warm = isReaction || !warmRef?.current || warmRef.current(next.id)
       if (!warm && Date.now() < deadline) {
         if (!waited) pLog(`[graph] «печатает» держим: #${next.seq} ещё не прогрета`)
-        addTimer(() => tryReveal(deadline, true), WARM_POLL_MS)
+        // Отработавший тик — вон из списка: иначе до 40 мёртвых id на ноду
+        const id = addTimer(() => {
+          timersRef.current = timersRef.current.filter(t => t !== id)
+          tryReveal(deadline, true)
+        }, WARM_POLL_MS)
         return
       }
       if (waited) pLog(`[graph] #${next.seq}: ${warm ? 'прогрета' : 'порог ожидания истёк'} (+${Math.round(Date.now() - deadline + WARM_MAX_MS)} мс)`)

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useFeedEls } from './feedRefs.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { ANCHOR_ALL, FEED_WINDOW, entryKey, olderAnchor, windowStart } from './feedWindow.js'
 
@@ -20,6 +21,7 @@ const BOTTOM_PX = 80
 
 export function useFeedWindow(entries, { hasMoreHistory = false, onLoadMoreHistory } = {}) {
   const [anchorKey, setAnchorKey] = useState(null)
+  const feedEls = useFeedEls() // своя лента (feedRefs.js), не document
 
   // Пришло новое сообщение, а ученик стоит внизу ленты — раскрытое окно
   // схлопывается обратно до хвоста (лента перевёрнута: scrollTop≈0 — низ).
@@ -30,8 +32,8 @@ export function useFeedWindow(entries, { hasMoreHistory = false, onLoadMoreHisto
   let anchor = anchorKey
   if (count !== prevCount) {
     setPrevCount(count)
-    if (anchorKey != null && count > prevCount && typeof document !== 'undefined') {
-      const feed = document.querySelector('.playerFeed')
+    if (anchorKey != null && count > prevCount) {
+      const feed = feedEls?.outer
       if (feed && feed.scrollTop < BOTTOM_PX) {
         pLog('[window] новое сообщение внизу — окно схлопнуто до хвоста')
         setAnchorKey(null)
@@ -45,8 +47,8 @@ export function useFeedWindow(entries, { hasMoreHistory = false, onLoadMoreHisto
   // Нельзя размонтировать строку, в которой сейчас играет звук/видео: окно
   // сдвигается новым сообщением, а ученик слушает старое голосовое выше.
   // Чтение DOM в рендере — только чтение, без побочных эффектов
-  if (start > 0 && typeof document !== 'undefined') {
-    const rows = document.querySelectorAll('.playerFeedInner [data-entry-key]')
+  if (start > 0 && feedEls?.inner) {
+    const rows = feedEls.inner.querySelectorAll('[data-entry-key]')
     for (const row of rows) {
       const media = row.querySelector('audio, video')
       if (!media || media.paused || media.muted) continue
