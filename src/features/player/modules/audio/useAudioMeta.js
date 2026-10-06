@@ -14,6 +14,8 @@ import { logAudioDurationReady } from './audioDebug.js'
 // ссылка → blob прогрева и обратно) не сбрасываются и не считаются заново —
 // именно этот пересчёт выглядел как «спектр перестраивается».
 // waveReady=false — волна ещё считается, AudioWave прозрачный.
+const META_WAIT_MS = 4000
+
 export function useAudioMeta(node, file, src) {
   const stored   = node.typeData?.audio ?? {}
   const initWave = stored.waveformData?.length ? stored.waveformData : (file?.waveformData ?? null)
@@ -41,12 +43,15 @@ export function useAudioMeta(node, file, src) {
     if (file?.metaDone && !file?.waveformData && !waveDoneRef.current) setWaveReady(true)
   }, [file?.waveformData, file?.duration, file?.metaDone])
 
-  // Считаем сами — только когда ждать прогрев не от кого
+  // Считаем сами — когда ждать прогрев не от кого, либо он не отвечает
+  // дольше META_WAIT_MS (раньше при blob без metaDone ждали вечно: волна
+  // могла так и остаться прозрачной)
   useEffect(() => {
     if (!src) return
     const metaFromPreload = !!file?.blobUrl && !file?.metaDone
-    if (metaFromPreload) return
     let cancelled = false
+    let timer = null
+    const run = () => {
     if (!waveDoneRef.current) {
       analyzeWaveform(src).then(wd => {
         if (cancelled) return
@@ -66,7 +71,10 @@ export function useAudioMeta(node, file, src) {
         logAudioDurationReady('асинхронно, probeAudioDuration', d)
       }).catch(() => {})
     }
-    return () => { cancelled = true }
+    }
+    if (metaFromPreload) timer = setTimeout(run, META_WAIT_MS)
+    else run()
+    return () => { cancelled = true; clearTimeout(timer) }
     // file?.blobUrl/metaDone читаются как условие «ждать ли прогрев» на момент
     // смены src — их изменение обрабатывает эффект выше
     // eslint-disable-next-line react-hooks/exhaustive-deps

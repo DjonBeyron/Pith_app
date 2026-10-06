@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/refs */
 /* eslint-disable react-hooks/set-state-in-effect */
+import { WARM_MAX_MS, WARM_POLL_MS } from './preloadWarm.js'
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 import { appendVisit, forgetNodeKeys } from './graphPlayerVisits.js'
 import { useGraphStepControls } from './useGraphStepControls.js'
@@ -43,7 +44,10 @@ const HISTORY_PAGE = 8
 // historyIds — id нод, показанных ДО startNodeId в прошлой сессии
 // (useLessonResume.js/checkpoint) — восстанавливаются в ленту как read-only
 // история (node.isHistory=true), без повторного запуска их триггеров/XP.
-export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = null, historyIds = null, paused = false } = {}) {
+// warmRef — ref на предикат «нода прогрета» (usePlayerPreload.isNodeWarm,
+// preloadWarm.js): после обычной паузы «печатает» показ ждёт готовности
+// файлов следующей ноды, но не дольше WARM_MAX_MS (слабая сеть)
+export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = null, historyIds = null, paused = false, warmRef = null } = {}) {
   const [visibleNodes, setVisibleNodes] = useState([])
   const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
@@ -141,7 +145,20 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     if (force) { revealNode(next); return }
     scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
     pendingMsRef.current = delay
-    addTimer(() => revealNode(next), delay)
+    // Пауза «печатает» прошла, а файлы ноды ещё не прогреты (blob/постер/мета)
+    // — держим точки, опрашивая готовность, но не дольше WARM_MAX_MS: дальше
+    // показываем как есть, работают запасные пути модулей
+    const tryReveal = (deadline, waited) => {
+      const warm = isReaction || !warmRef?.current || warmRef.current(next.id)
+      if (!warm && Date.now() < deadline) {
+        if (!waited) pLog(`[graph] «печатает» держим: #${next.seq} ещё не прогрета`)
+        addTimer(() => tryReveal(deadline, true), WARM_POLL_MS)
+        return
+      }
+      if (waited) pLog(`[graph] #${next.seq}: ${warm ? 'прогрета' : 'порог ожидания истёк'} (+${Math.round(Date.now() - deadline + WARM_MAX_MS)} мс)`)
+      revealNode(next)
+    }
+    addTimer(() => tryReveal(Date.now() + WARM_MAX_MS, false), delay)
   }
 
   // Переход с задержкой: пауза после конца медиа (offsetMs) и «таймер после

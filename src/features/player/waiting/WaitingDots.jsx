@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { playSound } from '../../../shared/lib/sounds.js'
 
 // Индикатор «учитель печатает» — рисуется на время фиксированной паузы
 // TYPING_DELAY_MS перед следующим сообщением (см. useGraphPlayer.js,
@@ -14,6 +15,10 @@ import { useEffect, useState } from 'react'
 // обратная CSS-анимация (playerWaitingRowOut, см. feed.css) — то же число
 // зашито в её длительность, держи оба места синхронно.
 const EXIT_MS = 150
+// Звук «печатает»: тихие щелчки с затуханием, записанным в сам файл (на iOS
+// громкость HTMLAudio не регулируется). Пауза затянулась (ждём прогрев
+// файлов, useGraphPlayer.js) — второй, ещё тише; дальше тишина
+const SOUND_2_AT_MS = 1450
 
 export default function WaitingDots({ visible }) {
   // 'shown' | 'closing' | 'hidden'. visible пришёл другим, чем в прошлый
@@ -32,6 +37,15 @@ export default function WaitingDots({ visible }) {
   useEffect(() => {
     if (state !== 'closing') return
     const id = setTimeout(() => setState('hidden'), EXIT_MS)
+    return () => clearTimeout(id)
+  }, [state])
+
+  // Звук — на каждое появление; тихий второй — если точки держатся дольше
+  // обычной паузы (ждём прогрев следующей ноды)
+  useEffect(() => {
+    if (state !== 'shown') return
+    playSound('typing-1', 'печатает')
+    const id = setTimeout(() => playSound('typing-2', 'печатает: ждём файлы'), SOUND_2_AT_MS)
     return () => clearTimeout(id)
   }, [state])
 

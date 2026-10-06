@@ -10,7 +10,7 @@ import { traceSoundRequest, traceSoundStarted, traceSoundFailed } from './soundT
 let ctx = null
 const htmlCache = {}
 
-const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-message']
+const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-message', 'typing-1', 'typing-2']
 
 // Call during lesson warmup (no gesture needed).
 // Creates AudioContext (suspended) + HTMLAudioElements preloaded into memory.

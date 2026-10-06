@@ -115,8 +115,11 @@ describe('сколько времени у элемента есть на дек
     // новое сообщение, и получает свою короткую паузу REACTION_DELAY_MS,
     // без индикатора «печатает…» (см. useGraphPlayer.js)
     expect(GRAPH).toContain('const delay = isReaction ? REACTION_DELAY_MS : TYPING_DELAY_MS')
-    expect(GRAPH).toContain('addTimer(() => revealNode(next), delay)')
-    console.log(`[preRenderBudget] на декодирование до показа: ${delay} мс`)
+    // После задержки показ ждёт прогрева файлов ноды (preloadWarm.js), но не
+    // дольше WARM_MAX_MS — «печатает» не может висеть бесконечно на слабой сети
+    expect(GRAPH).toContain('addTimer(() => tryReveal(Date.now() + WARM_MAX_MS, false), delay)')
+    expect(GRAPH).toContain('if (!warm && Date.now() < deadline)')
+    console.log(`[preRenderBudget] на декодирование до показа: ${delay} мс (+ до WARM_MAX_MS ожидания прогрева)`)
   })
 
   it('первая нода урока показывается без предрисовки вообще', () => {

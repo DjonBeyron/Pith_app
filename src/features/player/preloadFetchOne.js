@@ -25,6 +25,8 @@ export function makePreloadFetch(ctx) {
   // подрастания, когда таймер «появляется позже». metaDone — анализ прошёл,
   // даже если ничего не вышло (тогда AudioModule считает сам)
   async function analyzeAudioMeta(id, blobUrl, gen) {
+    if (blobUrlsRef.current[id]?.metaStarted) return
+    blobUrlsRef.current[id].metaStarted = true
     const [duration, waveformData] = await Promise.all([
       probeAudioDuration(blobUrl).catch(() => null),
       analyzeWaveform(blobUrl).catch(() => null),
@@ -110,18 +112,38 @@ export function makePreloadFetch(ctx) {
     if (!POSTER_TYPES.has(nodeType)) return
 
     // Background: still frame for <video poster> / eviction placeholder, one at a time.
+    enqueuePoster(id, blobUrl, gen)
+  }
+
+  // Постер в фоне (по одному, posterQueue.js). posterDone ставится и при
+  // неудаче — готовность ноды (preloadWarm.js) ждёт «захват отработал», а не
+  // «постер есть»: иначе битый ролик держал бы «печатает» до порога
+  function enqueuePoster(id, blobUrl, gen) {
     enqueuePosterCapture(blobUrl, posterUrl => {
-      if (!posterUrl) return
       const entry = blobUrlsRef.current[id]
       if (genRef.current !== gen || !entry?.blobUrl || entry.posterUrl) {
         // gen changed, file evicted (eviction captures its own poster), or poster already set
-        URL.revokeObjectURL(posterUrl)
+        if (posterUrl) URL.revokeObjectURL(posterUrl)
         return
       }
-      entry.posterUrl = posterUrl
-      setBlobMap(prev => ({ ...prev, [id]: { ...prev[id], posterUrl } }))
-    })
+      entry.posterDone = true
+      if (posterUrl) entry.posterUrl = posterUrl
+      setBlobMap(prev => ({ ...prev, [id]: { ...prev[id], posterDone: true, ...(posterUrl ? { posterUrl } : {}) } }))
+    }, () => genRef.current === gen)
   }
+
+  // Файлы, пришедшие из карточки запуска готовыми (handoff), но без меты
+  // голосового / постера — карточка могла отдать их плееру раньше, чем
+  // досчитала: раньше такие голосовые оставались без волны навсегда
+  function finishHandoff(items, gen) {
+    for (const item of items) {
+      const entry = blobUrlsRef.current[item.id]
+      if (!entry?.blobUrl) continue
+      if (item.nodeType === 'audio' && !entry.metaDone) analyzeAudioMeta(item.id, entry.blobUrl, gen)
+      if (POSTER_TYPES.has(item.nodeType) && !entry.posterUrl && !entry.posterDone) enqueuePoster(item.id, entry.blobUrl, gen)
+    }
+  }
+  fetchOne.finishHandoff = finishHandoff
 
   return fetchOne
 }

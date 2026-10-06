@@ -136,6 +136,20 @@ export default function NodeContentEditor({ lessonXp = 0,
         />
       )}
       {node.type === 'audio' && (
+        <label
+          className="nodeStickerSound"
+          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={tData.showText !== false}
+            onChange={e => updateTypeData({ showText: e.target.checked })}
+          />
+          <span className="nodeStickerSoundLabel">Печатать текст в чате под голосовым (снять — только звук)</span>
+        </label>
+      )}
+      {node.type === 'audio' && (
         <NodeAudioTts
           fileId={fileId}
           text={tData.text ?? ''}

@@ -56,7 +56,12 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     return () => URL.revokeObjectURL(url)
   }, [file?.localFile])
 
-  const src    = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
+  // Как у голосового (useAudioSource.js): после первого кадра источник
+  // фиксируется — подмена прямая ссылка → blob прогрева во время игры
+  // перезагружала элемент (пустой кадр, рассинхрон звука и картинки)
+  const [loadedSrc, setLoadedSrc] = useState(null)
+  const rawSrc = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? node.typeData?.circle?.r2Url ?? null
+  const src    = loadedSrc ?? rawSrc
 
   // Кружок ещё не загружен, смотрит админ — держим сценарий живым
   useMissingMediaFallback(adminPreview && !src && !pending, onDone)
@@ -216,6 +221,9 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
             <div ref={frRef} className="circleFrame"
               style={isAndroid && poster ? { backgroundImage: `url(${poster})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
             >
+              {/* Ни постера, ни первого кадра — тот же скелетон с бликом, что и
+                  без src: иначе до декодирования круг стоял пустым */}
+              {!poster && !loadedSrc && <div className="feedSkeleton" />}
               <video
                 {...VIDEO_GUARD}
                 ref={vRef} src={src} poster={poster}
@@ -229,7 +237,12 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
                   const v = e.currentTarget
                   setIntr({ w: v.videoWidth, h: v.videoHeight })
                 }}
-                onLoadedData={videoAutoSound ? handleCircleLoaded : undefined}
+                onLoadedData={e => {
+                  const v = e.currentTarget
+                  if (v.getAttribute('src')) setLoadedSrc(v.getAttribute('src'))
+                  if (videoAutoSound) handleCircleLoaded()
+                }}
+                onError={() => setLoadedSrc(null)}
                 onPlaying={handlePlaying}
                 onEnded={handleEnded}
               />

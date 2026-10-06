@@ -215,3 +215,8 @@
 }
 
 .playerUnrevealed { opacity: 0; }
+
+/* Кольцо загрузки в кнопке (LoadRing, AudioPlayIcons.jsx): файл ещё качается
+   или звук буферизует. Только transform — дёшево для слабых устройств */
+.playerAudioRing { animation: playerAudioRingSpin 0.9s linear infinite; }
+@keyframes playerAudioRingSpin { to { transform: rotate(360deg); } }

@@ -44,12 +44,17 @@ export function fmtAudioTime(sec) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
-export function probeAudioDuration(url) {
+// timeoutMs — iOS без жеста бывает скуп на loadedmetadata у отдельного
+// Audio(): без предела промис не завершался никогда, и вместе с ним
+// (Promise.all в прогреве) пропадала уже посчитанная волна голосового
+export function probeAudioDuration(url, timeoutMs = 4000) {
   return new Promise(resolve => {
     const a = new Audio(url)
     a.preload = 'metadata'
-    a.addEventListener('loadedmetadata', () => resolve(a.duration), { once: true })
-    a.addEventListener('error',          () => resolve(null),       { once: true })
+    const done = v => { clearTimeout(timer); a.removeAttribute('src'); resolve(v) }
+    const timer = setTimeout(() => done(null), timeoutMs)
+    a.addEventListener('loadedmetadata', () => done(a.duration), { once: true })
+    a.addEventListener('error',          () => done(null),       { once: true })
   })
 }
 
@@ -57,8 +62,13 @@ export async function analyzeWaveform(url) {
   const resp        = await fetch(url)
   const arrayBuffer = await resp.arrayBuffer()
   const audioCtx    = new (window.AudioContext || window.webkitAudioContext)()
-  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
-  audioCtx.close()
+  let audioBuffer
+  try {
+    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+  } finally {
+    // Контекст закрываем и при ошибке декодирования: на iOS их число ограничено
+    audioCtx.close().catch(() => {})
+  }
   const frameSize = Math.floor(audioBuffer.sampleRate / WAVEFORM_FPS)
   const data = audioBuffer.getChannelData(0)
   const rms  = []

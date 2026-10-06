@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import AudioWave from './AudioWave.jsx'
 import { speechBounds } from './audioWaveParts.js'
-import { PlayTriangle, PauseIcon } from './AudioPlayIcons.jsx'
+import { PlayTriangle, PauseIcon, LoadRing } from './AudioPlayIcons.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { fmtAudioTime, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -23,7 +23,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // в чат уже растушёванным. Раньше растушёвка включалась по старту печати —
   // сообщение появлялось с резким низом и щёлкало в размытый через секунду.
   // Ленивая инициализация, потому что node.typeData разбирается ниже
-  const [isFading,        setIsFading]        = useState(() => !!node.typeData?.audio?.text)
+  const [isFading,        setIsFading]        = useState(() => !!node.typeData?.audio?.text && node.typeData?.audio?.showText !== false)
+  const [buffering,       setBuffering]       = useState(false) // звук пошёл, но данные не успевают (слабая сеть)
   const [textStarted,     setTextStarted]     = useState(false)
   const [revealedCharIdx, setRevealedCharIdx] = useState(-1)
   // Расшифровку показали целиком хотя бы раз — дальше её НЕ перепечатываем.
@@ -46,7 +47,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // Отрицательный офсет триггера played — запустить следующую ноду до конца звука
   usePlayedOffset(playedOffsetMs(node), () => audioRef.current, onDone)
 
-  const text           = node.typeData?.audio?.text         ?? ''
+  // showText === false — автор выключил печать расшифровки (чекбокс в канвасе)
+  const text           = node.typeData?.audio?.showText === false ? '' : (node.typeData?.audio?.text ?? '')
   const highlights     = node.typeData?.audio?.highlights   ?? []
   const wordTimings    = node.typeData?.audio?.wordTimings  ?? null
   const storedWaveform = node.typeData?.audio?.waveformData ?? null
@@ -58,6 +60,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
   // Откуда берётся звук и почему адрес фиксируется — useAudioSource.js
   const { src, locked: srcLocked, lock: lockSrc, unlock: unlockSrc } = useAudioSource(node, file)
+  const downloading = !!file && !file.blobUrl && !file.evicted && !file.error && !file.localFile && !srcLocked
   // Волна, длительность, готовность волны — useAudioMeta.js (нода → прогрев → сами)
   const { waveData, duration, waveReady, adoptElementDuration } = useAudioMeta(node, file, src)
 
@@ -119,6 +122,11 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       setIsPlaying(true)
       ensureTick()
     }
+    const onWaiting = () => setBuffering(true)
+    const onFlowing = () => setBuffering(false)
+    audio.addEventListener('waiting', onWaiting)
+    audio.addEventListener('playing', onFlowing)
+    audio.addEventListener('canplay', onFlowing)
     audio.addEventListener('pause', onPause)
     audio.addEventListener('play', onPlay)
     audio.addEventListener('loadeddata', onLoaded)
@@ -128,6 +136,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     if (audio.readyState >= 1) onMeta()
     if (audio.readyState >= 2) onLoaded()
     return () => {
+      audio.removeEventListener('waiting', onWaiting)
+      audio.removeEventListener('playing', onFlowing)
+      audio.removeEventListener('canplay', onFlowing)
       audio.removeEventListener('pause', onPause)
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('loadeddata', onLoaded)
@@ -320,7 +331,10 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
               disabled={!src}
               aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
             >
-              {isPlaying ? <PauseIcon /> : <PlayTriangle />}
+              {/* Файл ещё качается прогревом (blob нет, звук в элемент не загружен) —
+                  вместо ▶ кольцо; то же — пока элемент буферизует после play().
+                  Нажать можно и так: звук пойдёт потоком с сервера */}
+              {buffering || (downloading && !isPlaying) ? <LoadRing /> : isPlaying ? <PauseIcon /> : <PlayTriangle />}
             </button>
             <div className="playerAudioWaveCol">
               <AudioWave ref={waveRef} waveData={waveData} ready={waveReady} />

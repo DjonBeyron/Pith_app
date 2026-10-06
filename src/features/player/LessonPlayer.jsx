@@ -29,6 +29,7 @@ import { useAdmin } from '../../app/AdminContext.jsx'
 import { downloadDebugLog, copyDebugLog } from './downloadDebugLog.js'
 import PlayerOverlays from './PlayerOverlays.jsx'
 import { useLessonOpenFlag } from '../../shared/lib/lessonOpen.js'
+import { isWeakDevice } from '../../shared/lib/deviceTier.js'
 import HintBar from './HintBar.jsx'
 import { useFinalHints } from './useFinalHints.js'
 import { useLessonFinish, finishStatsOf } from './useLessonFinish.js'
@@ -124,7 +125,11 @@ export default function LessonPlayer({
   // Пока урок открыт, фон приложения замирает (shared/lib/lessonOpen.js)
   useLessonOpenFlag()
 
+  // Предикат «нода прогрета» приходит из usePlayerPreload ниже (тому нужны
+  // visibleNodes графа) — связываем через ref
+  const warmRef = useRef(null)
   const graph = useGraphPlayer(graphNodes, {
+    warmRef,
     startNodeId: resumeState.startNodeId ?? startNodeId,
     historyIds: resumeState.historyIds ?? historyIds,
     onCheckpoint: (nodeId, vIds) => resumeState.checkpoint(nodeId, Math.round(lessonProgress(mainIndex, [{ id: nodeId }]) * 100), earnedXpRef.current, vIds),
@@ -160,7 +165,9 @@ export default function LessonPlayer({
     setXpEvents(prev => prev.filter(e => e.id !== id))
   }
 
-  const { blobMap, addMsgTs, debugItems, warmupPct } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap })
+  // bufferSize: слабому устройству — меньше файлов в памяти (как в карточке запуска)
+  const { blobMap, addMsgTs, debugItems, warmupPct, isNodeWarm } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap, bufferSize: isWeakDevice() ? 3 : 5 })
+  useEffect(() => { warmRef.current = isNodeWarm }, [isNodeWarm])
   useLessonWordAudio(nodes, warmupPct, muted) // озвучка слов при тапе — после прогрева первых нод; muted — беззвучный режим повторения
 
   // Журнал появления нод + готовности их медиа — useNodeAppearLog.js

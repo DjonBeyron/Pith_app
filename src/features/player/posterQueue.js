@@ -5,9 +5,13 @@ import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 // не блокирует ни загрузку файлов, ни готовность нод — постер дописывается когда успеет.
 let chain = Promise.resolve()
 
-export function enqueuePosterCapture(blobUrl, onDone) {
+// isAlive — проверка в момент, когда очередь дошла до этого файла: урок
+// закрыт/пересобран (поколение сменилось) — захват пропускается, а не
+// занимает до 4 с декодера. Раньше хвосты из карточки запуска доигрывали
+// уже в сессии плеера и задерживали постеры показанных нод
+export function enqueuePosterCapture(blobUrl, onDone, isAlive = () => true) {
   chain = chain
-    .then(() => capturePosterFrame(blobUrl, 4000))
+    .then(() => (isAlive() ? capturePosterFrame(blobUrl, 4000) : null))
     .catch(() => null)
     .then(posterUrl => { onDone(posterUrl) })
 }

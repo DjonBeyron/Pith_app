@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { forwardReachable, buildItemQueue, revokeEntry } from './preloadQueue.js'
 import { usePreloadProgress } from './usePreloadProgress.js'
+import { isNodeWarm as isNodeWarmPure } from './preloadWarm.js'
 import { makePreloadFetch, POSTER_TYPES, EVICT_TYPES } from './preloadFetchOne.js'
 
 const LOOKAHEAD    = 3
@@ -90,12 +91,15 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       if (genRef.current !== gen) return
       const candidates = justLoadedId ? revealed.filter(id => id !== justLoadedId) : revealed
       if (!candidates.length) break
-      // Evict the file with the lowest nodeIdx (furthest back in history)
-      const evictId = candidates.reduce((minId, id) => {
-        const a = queueRef.current.find(i => i.id === id)?.nodeIdx ?? Infinity
-        const b = queueRef.current.find(i => i.id === minId)?.nodeIdx ?? Infinity
-        return a < b ? id : minId
-      }, candidates[0])
+      // Выгружаем самый давний ПО ПОКАЗУ (место ноды в ленте), а не по BFS-
+      // индексу: в циклах «ошибся → подсказка → снова тот же вопрос» и после
+      // «Продолжить урок» маленький индекс бывал у только что показанной ноды
+      const order = new Map(visibleNodesRef.current.map((n, i) => [n.id, i]))
+      const rank = id => {
+        const item = queueRef.current.find(i => i.id === id)
+        return order.get(item?.nodeId) ?? item?.nodeIdx ?? Infinity
+      }
+      const evictId = candidates.reduce((minId, id) => (rank(id) < rank(minId) ? id : minId), candidates[0])
       if (evictingIdsRef.current.has(evictId)) {
         revealed = revealed.filter(id => id !== evictId)
         continue
@@ -159,13 +163,23 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // Загрузка одного файла очереди (+ мета голосового и постер в фоне) —
   // preloadFetchOne.js. Собирается в момент вызова (из pump, то есть из
   // эффектов), а не при рендере: те же рефы, сеттеры и функции этого хука
-  function fetchOne(item, gen) {
+  function makeFetch() {
     return makePreloadFetch({
       genRef, blobUrlsRef, setBlobMap, setReadyNodeIds, inFlightRef,
       debugItemsRef, bytesLoadedRef, bytesTotalRef, tick, throttledTick, markFailed,
       ts, checkNodeReady, evictFarthestIfNeeded, pump,
-    })(item, gen)
+    })
   }
+  function fetchOne(item, gen) {
+    return makeFetch()(item, gen)
+  }
+
+  // «Нода прогрета» для графа урока (preloadWarm.js): blob + постер + мета.
+  // Читает рефы в момент вызова — стабильна, в зависимости эффектов не попадает
+  const isNodeWarm = useCallback(nodeId => {
+    const items = queueRef.current.filter(i => i.nodeId === nodeId)
+    return isNodeWarmPure(items, blobUrlsRef.current)
+  }, [])
 
   // ─── visibleNodes: reorder queue + eviction check ────────────────────────
   useEffect(() => {
@@ -242,8 +256,9 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     setWarmupNodeIds(warmupIds)
     setInitialized(true)
     // Диагностика handoff: сколько файлов уже пришло с блобами из карточки запуска
-    const handoff = queueRef.current.filter(i => blobUrlsRef.current[i.id]?.blobUrl).length
-    pLog(`[preload] очередь: ${queueRef.current.length} файлов, с handoff-блобами: ${handoff}, warmup-нод: ${warmupIds.length}`)
+    const handoffItems = queueRef.current.filter(i => blobUrlsRef.current[i.id]?.blobUrl)
+    pLog(`[preload] очередь: ${queueRef.current.length} файлов, с handoff-блобами: ${handoffItems.length}, warmup-нод: ${warmupIds.length}`)
+    if (handoffItems.length) makeFetch().finishHandoff(handoffItems, gen)
     const pcItems = queueRef.current.filter(i => i.nodeType === 'photo_choice')
     if (pcItems.length) {
       const pcBlobs = pcItems.filter(i => blobUrlsRef.current[i.id]?.blobUrl).length
@@ -308,5 +323,5 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // Дебаг-оверлей живёт в ref и «дёргается» через setDebugTick — чтение при рендере намеренное
   // eslint-disable-next-line react-hooks/refs
   const debugItems = [...debugItemsRef.current.values()]
-  return { blobMap, queueTotal, readyNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, addMsgTs, releaseBlobs, evictLog }
+  return { blobMap, queueTotal, readyNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, addMsgTs, releaseBlobs, evictLog, isNodeWarm }
 }
