@@ -30,6 +30,11 @@ export function useAudioMeta(node, file, src) {
   const [waveReady, setWaveReady] = useState(!!initWave)
   const waveDoneRef     = useRef(!!initWave)
   const durationDoneRef = useRef(!!initDur)
+  // Срок прозрачности волны — один, от монтирования. Раньше таймер жил в
+  // эффекте ниже и перезапускался на каждую смену src (прямая ссылка → blob
+  // прогрева), а в ветке «считаем сами» его не было вовсе: на слабой сети
+  // пузырь приходил в чат и стоял без волны ещё секунды
+  const waveDeadlineRef = useRef(null) // ставится в первом эффекте ниже (не в рендере)
 
   // Мета из прогрева доехала после монтирования (blob скачался позже пузыря)
   useEffect(() => {
@@ -56,6 +61,7 @@ export function useAudioMeta(node, file, src) {
   // придёт из метаданных самого <audio>, adoptElementDuration ниже)
   useEffect(() => {
     if (!src) return
+    if (waveDeadlineRef.current == null) waveDeadlineRef.current = Date.now() + META_WAIT_MS
     const metaFromPreload = !!file && !file.metaDone && !file.error && !file.evicted && !file.localFile
     let cancelled = false
     let timer = null
@@ -80,8 +86,13 @@ export function useAudioMeta(node, file, src) {
       }).catch(() => {})
     }
     }
-    if (metaFromPreload) timer = setTimeout(() => { if (!cancelled && !waveDoneRef.current) setWaveReady(true) }, META_WAIT_MS)
-    else run()
+    if (!metaFromPreload) run()
+    // Срок один на всё время жизни пузыря (waveDeadlineRef), в обеих ветках:
+    // и пока ждём прогрев, и пока считаем сами по прямой ссылке
+    if (!waveDoneRef.current) {
+      timer = setTimeout(() => { if (!cancelled && !waveDoneRef.current) setWaveReady(true) },
+        Math.max(0, waveDeadlineRef.current - Date.now()))
+    }
     return () => { cancelled = true; clearTimeout(timer) }
     // file?.metaDone обрабатывает эффект выше; error/evicted — повод
     // перестать ждать прогрев и посчитать самим

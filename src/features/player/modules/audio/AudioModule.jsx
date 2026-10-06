@@ -7,12 +7,17 @@ import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { fmtAudioTime, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
+import { buildSpans, decorStyle } from '../../../../shared/lib/textHighlight.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
 import { useAudioMeta } from './useAudioMeta.js'
 import { usePlayerMuted } from '../../playerMuted.js'
 import { logAudioMount, logAudioPlayStart, makeAudioHeartbeat, makeGapWatch, attachAudioEventLog, logAudioEnded } from './audioDebug.js'
+
+// Одна и та же пустая ссылка на все рендеры: иначе useMemo по highlights
+// пересчитывался бы каждый кадр печати
+const NO_HIGHLIGHTS = []
 
 // Волна — один canvas (AudioWave.jsx), спектр статичен всегда: живой
 // эквалайзер на ~70 div-полосках с will-change был главным источником
@@ -49,7 +54,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
   // showText === false — автор выключил печать расшифровки (чекбокс в канвасе)
   const text           = node.typeData?.audio?.showText === false ? '' : (node.typeData?.audio?.text ?? '')
-  const highlights     = node.typeData?.audio?.highlights   ?? []
+  const highlights     = node.typeData?.audio?.highlights   ?? NO_HIGHLIGHTS
   const wordTimings    = node.typeData?.audio?.wordTimings  ?? null
   const storedWaveform = node.typeData?.audio?.waveformData ?? null
   const storedDuration = node.typeData?.audio?.duration     ?? null
@@ -57,6 +62,12 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // Печать под звук: время каждого символа считает charTimings.js — по
   // позициям слов в САМОМ тексте, а не по реконструкции «слова через пробел»
   const charTimings = useMemo(() => buildCharTimings(text, wordTimings), [wordTimings, text])
+  // Призрак ширины (см. разметку ниже) — с теми же жирностью/курсивом, что у
+  // выделений в самой расшифровке: обычный текст в призраке уже жирного слова,
+  // и пузырь дорастал до него, когда слово допечатывалось (в конце — рывком,
+  // вместе с остатком текста), а волна пересчитывалась под новую ширину
+  const ghostSpans = useMemo(() => buildSpans(text.replace(/\n/g, ' '), highlights)
+    .map((s, i) => <span key={i} style={decorStyle(s)}>{s.text}</span>), [text, highlights])
 
   // Откуда берётся звук и почему адрес фиксируется — useAudioSource.js
   const { src, locked: srcLocked, lock: lockSrc, unlock: unlockSrc } = useAudioSource(node, file)
@@ -243,8 +254,12 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       }
       hb(audio, ct, total, waveRef.current?.getState(), capturedText ? `${idx + 1}/${capturedText.length}` : null)
 
-      // Таймер меняется раз в секунду — не трогаем DOM, пока строка та же
-      const left = fmtAudioTime(Math.max(0, total - ct))
+      // Таймер меняется раз в секунду — не трогаем DOM, пока строка та же.
+      // Отсчёт — от того же числа, что показано в подписи (d), а не от живой
+      // audio.duration: они расходятся на доли секунды (VBR), и при округлении
+      // подпись «00:07» на первом же кадре перепрыгивала в «00:08». Живая
+      // длительность остаётся у заливки (total), там точность важнее
+      const left = fmtAudioTime(Math.max(0, (d || total) - ct))
       if (timeRef.current && timeRef.current.textContent !== left) timeRef.current.textContent = left
       rafRef.current = requestAnimationFrame(tick)
     }
@@ -323,7 +338,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
               из них, хотя текста внутри много. Сама видимая расшифровка
               (.playerAudioTextSection ниже) переносы всё равно сохраняет —
               меняется только то, ПО ЧЕМУ считается ширина пузыря. */}
-          {text && <div className="playerAudioTextGhost" aria-hidden="true">{text.replace(/\n/g, ' ')}</div>}
+          {text && <div className="playerAudioTextGhost" aria-hidden="true">{ghostSpans}</div>}
           <div className="playerAudioRow">
             <button
               className="playerAudioBtn"

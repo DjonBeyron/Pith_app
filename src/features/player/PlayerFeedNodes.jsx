@@ -74,8 +74,13 @@ export default function PlayerFeedNodes({
         // Без этого 8+ восстановленных строк разом слетались вниз и звучали
         // почти хором в момент открытия плеера — видимый «скачок»
         data-no-slide={node.isHistory ? 'true' : undefined}
+        // Ширина — как у строк ленты (её боковые поля --feed-pad): при width:100%
+        // предрисованный пузырь был шире, и при показе canvas волны голосового
+        // сужался — спектр пересэмплировался прямо в момент появления
         style={isPending ? {
-          position: 'fixed', bottom: '-100vh', left: 0, width: '100%',
+          position: 'fixed', bottom: '-100vh',
+          left: 'var(--feed-pad, 10px)', right: 'var(--feed-pad, 10px)',
+          maxWidth: 'calc(600px - 2 * var(--feed-pad, 10px))', margin: '0 auto',
           pointerEvents: 'none', visibility: 'hidden',
         } : undefined}
       >

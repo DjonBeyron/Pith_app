@@ -35,18 +35,26 @@ export function makePreloadFetch(ctx) {
     const cached = getAudioMeta(id)
     let duration = cached?.duration ?? null
     let waveformData = cached?.waveformData ?? null
-    if (!duration || !waveformData) {
-      ;[duration, waveformData] = await Promise.all([
-        duration ? Promise.resolve(duration) : probeAudioDuration(blobUrl).catch(() => null),
-        waveformData ? Promise.resolve(waveformData) : analyzeWaveform(blobUrl).catch(() => null),
-      ])
-      setAudioMeta(id, { duration, waveformData })
+    const publish = patch => {
+      if (genRef.current !== gen) return false
+      const entry = blobUrlsRef.current[id]
+      if (!entry?.blobUrl) return false
+      blobUrlsRef.current[id] = { ...entry, ...patch }
+      setBlobMap(prev => ({ ...prev, [id]: blobUrlsRef.current[id] }))
+      return true
     }
-    if (genRef.current !== gen) return
-    const entry = blobUrlsRef.current[id]
-    if (!entry?.blobUrl) return
-    blobUrlsRef.current[id] = { ...entry, duration, waveformData, metaDone: true }
-    setBlobMap(prev => ({ ...prev, [id]: blobUrlsRef.current[id] }))
+    // Волна — главное: публикуем, как только посчитана, и это же «мета
+    // готова» для гейта показа. Длительность — отдельно и best effort: iOS
+    // без жеста не отдаёт loadedmetadata отдельному Audio(), проба уходила в
+    // таймаут и держала всё 4 с; у пузыря длительность есть и из живого
+    // <audio> (adoptElementDuration), в предрисовке она успевает
+    if (!waveformData) waveformData = await analyzeWaveform(blobUrl).catch(() => null)
+    if (!publish({ waveformData, duration, metaDone: true })) return
+    if (!duration) {
+      duration = await probeAudioDuration(blobUrl).catch(() => null)
+      if (duration) publish({ duration })
+    }
+    if (!cached || cached.duration !== duration || cached.waveformData !== waveformData) setAudioMeta(id, { duration, waveformData })
   }
 
   // Картинка декодируется в памяти сразу после скачивания; элемент держим в
