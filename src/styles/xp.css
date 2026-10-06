@@ -334,9 +334,9 @@
   font-weight: 800;
   color: #b6fe3b;
   letter-spacing: 0.02em;
-  text-shadow:
-    0 0 12px rgba(182, 254, 59, 0.7),
-    0 2px 6px rgba(0, 0, 0, 0.6);
+  /* Одна лёгкая тень: широкое свечение 12px перерастеризовывало текст на
+     каждом шаге масштаба полёта — дорого на телефоне */
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   white-space: nowrap;
   line-height: 1;
 }

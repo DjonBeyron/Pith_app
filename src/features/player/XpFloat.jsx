@@ -5,6 +5,7 @@ const WAVE_AMP   = 36     // px horizontal swing amplitude
 const WAVE_FREQ  = 2.5    // sine cycles during flight
 // opacity/scale: rises 0→1 in first PEAK_AT, falls 1→0 in the rest
 const PEAK_AT    = 0.42
+const KEYFRAMES  = 48     // ключевых кадров на полёт (волна по X гладкая и при 48)
 
 function easeInOut(t) {
   return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
@@ -44,40 +45,27 @@ function XpParticle({ amount, rect, onDone }) {
     // летим к верхнему краю плеера
     const travelY = startY
 
-    let startTs = null
-    let rafId
-
-    function tick(ts) {
-      if (!startTs) startTs = ts
-      const raw      = (ts - startTs) / DURATION
-      const progress = Math.min(raw, 1)
-
-      // Y: linear from startY → 0
-      const y = startY - travelY * progress
-
-      // X: sinusoidal wave, starts at 0 offset
-      const x = startX + Math.sin(progress * Math.PI * WAVE_FREQ) * WAVE_AMP
-
-      // opacity & scale: bell curve peaking at PEAK_AT
-      const bellRaw = progress < PEAK_AT
+    // Траектория считается один раз в ключевые кадры, а летит частица на
+    // компоузере (Web Animations). Раньше каждый кадр писал transform/opacity
+    // из rAF главного потока — и когда в тот же момент приходило сообщение
+    // (рендер React, раскладка, въезд строки), кадры rAF опаздывали, и
+    // частица дёргалась. Анимация transform/opacity на компоузере от
+    // загрузки главного потока не зависит
+    const frames = []
+    for (let i = 0; i <= KEYFRAMES; i++) {
+      const progress = i / KEYFRAMES
+      const y = startY - travelY * progress                               // linear from startY → 0
+      const x = startX + Math.sin(progress * Math.PI * WAVE_FREQ) * WAVE_AMP // sinusoidal wave
+      const bellRaw = progress < PEAK_AT                                   // bell curve peaking at PEAK_AT
         ? progress / PEAK_AT
         : 1 - (progress - PEAK_AT) / (1 - PEAK_AT)
-      const bell    = easeInOut(Math.max(0, Math.min(1, bellRaw)))
-      const opacity = bell
-      const scale   = 0.4 + bell * 0.6
-
-      el.style.transform  = `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${scale})`
-      el.style.opacity    = opacity
-
-      if (progress < 1) {
-        rafId = requestAnimationFrame(tick)
-      } else {
-        onDone?.()
-      }
+      const bell  = easeInOut(Math.max(0, Math.min(1, bellRaw)))
+      const scale = 0.4 + bell * 0.6
+      frames.push({ transform: `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${scale})`, opacity: bell })
     }
-
-    rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
+    const anim = el.animate(frames, { duration: DURATION, easing: 'linear', fill: 'forwards' })
+    anim.onfinish = () => onDone?.()
+    return () => anim.cancel()
   }, []) // eslint-disable-line
 
   return (

@@ -37,6 +37,8 @@ const CHECKPOINT_THRESHOLD = 6
 // скролла — остальное подгружается по requestMoreHistory (кнопка/скролл
 // вверх в LessonPlayer.jsx)
 const HISTORY_PAGE = 12
+// Сверх порога прогрева: полёт XP (ожидание пузыря ответа до 2,2 с + 1,6 с)
+const HOLD_EXTRA_MS = 2500
 
 // paused — шаговый режим админа (правка из канваса): переходы замирают.
 // Запланированный переход не теряется: он запоминается и отыгрывается, когда
@@ -47,7 +49,9 @@ const HISTORY_PAGE = 12
 // warmRef — ref на предикат «нода прогрета» (usePlayerPreload.isNodeWarm,
 // preloadWarm.js): после обычной паузы «печатает» показ ждёт готовности
 // файлов следующей ноды, но не дольше WARM_MAX_MS (слабая сеть)
-export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = null, historyIds = null, paused = false, warmRef = null } = {}) {
+// holdRef — ref-счётчик «что-то ещё летит» (XP-частицы, LessonPlayer): пока
+// > 0, следующее сообщение не показывается, но не дольше HOLD_MAX_MS
+export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = null, historyIds = null, paused = false, warmRef = null, holdRef = null } = {}) {
   const [visibleNodes, setVisibleNodes] = useState([])
   const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
@@ -150,8 +154,9 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     // показываем как есть, работают запасные пути модулей
     const tryReveal = (deadline, waited) => {
       const warm = isReaction || !warmRef?.current || warmRef.current(next.id)
-      if (!warm && Date.now() < deadline) {
-        if (!waited) pLog(`[graph] «печатает» держим: #${next.seq} ещё не прогрета`)
+      const held = !isReaction && (holdRef?.current ?? 0) > 0 && Date.now() < deadline + HOLD_EXTRA_MS
+      if ((!warm && Date.now() < deadline) || held) {
+        if (!waited) pLog(`[graph] «печатает» держим: #${next.seq} ${held ? 'летит XP' : 'ещё не прогрета'}`)
         // Отработавший тик — вон из списка: иначе до 40 мёртвых id на ноду
         const id = addTimer(() => {
           timersRef.current = timersRef.current.filter(t => t !== id)
