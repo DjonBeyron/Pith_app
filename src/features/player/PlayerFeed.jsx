@@ -124,16 +124,19 @@ export default function PlayerFeed({ children, panelOpen = false }) {
     const rows = [...inner.querySelectorAll('.playerMsgRow')]
       .filter(el => !el.closest('[data-pending]'))
     const rowCount = rows.length
-    if (rowCount === prevRowCount.current) return
-
     const prevEls = prevElsRef.current
+    // Новизну строк считаем по НАБОРУ элементов, а не по их числу: окно ленты
+    // (useFeedWindow.js) вытесняет самую старую строку на каждую новую, и число
+    // строк не меняется. Раньше эффект здесь выходил по «число то же» — без
+    // въезда, звука, толчка истории и удержания прокрутки, а на следующем шаге
+    // та же строка считалась новой повторно (толчок вдвое больше, лишние звуки)
+    // Таблица, которая превращается из панели, отмечена data-no-slide: она
+    // встаёт сразу на своё место, без въезда снизу. Иначе превращение целится
+    // в едущий пузырь и приходится ждать конца его анимации
+    const newRows      = rows.filter(el => !prevEls.has(el) && !el.closest('[data-no-slide]'))
+    const existingRows = rows.filter(el =>  prevEls.has(el))
 
-    if (rowCount > prevRowCount.current) {
-      // Таблица, которая превращается из панели, отмечена data-no-slide: она
-      // встаёт сразу на своё место, без въезда снизу. Иначе превращение целится
-      // в едущий пузырь и приходится ждать конца его анимации
-      const newRows      = rows.filter(el => !prevEls.has(el) && !el.closest('[data-no-slide]'))
-      const existingRows = rows.filter(el =>  prevEls.has(el))
+    if (newRows.length) {
 
       // Measure how far existing rows already jumped (layout reflow before this effect).
       // Место, занятое новой строкой, меряем по факту: от нижнего края
