@@ -1,3 +1,4 @@
+import { isLessonOpen } from '../shared/lib/lessonOpen.js'
 import { useState, useEffect } from 'react'
 import { APP_VERSION } from '../shared/lib/version.js'
 import { haptic } from '../shared/lib/haptics.js'
@@ -34,6 +35,9 @@ export default function UpdateToast({ tab }) {
   useEffect(() => {
     let stopped = false
     async function check() {
+      // Посреди урока новую версию не предлагаем: тост лежит выше плеера, а
+      // «Обновить» перезагрузило бы страницу на середине чата
+      if (isLessonOpen()) return
       try {
         const res = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' })
         if (!res.ok) return

@@ -1,3 +1,4 @@
+import { isLessonOpen, onLessonOpenChange } from '../../shared/lib/lessonOpen.js'
 import { useState, useEffect, useCallback } from 'react'
 import { listWordMemory, listRecentReviews, getMemoryProfile, importGuestMemory, listPhraseRows } from '../../shared/api/memoryApi.js'
 import { fetchStartedModules } from '../../shared/api/moduleSocialApi.js'
@@ -41,10 +42,18 @@ export function useLearnData(isLoggedIn) {
     // Вход/выход: сперва перенести память гостя (если была), потом перечитать
     const move = isLoggedIn && hasGuestMemory() ? importGuestMemory() : Promise.resolve()
     move.then(reload).catch(() => {})
-    const onVisible = () => { if (document.visibilityState === 'visible') reload() }
+    // Возврат из фона посреди урока: 8 запросов и перерисовка всей оболочки
+    // (с плеером внутри) — откладываем до закрытия урока
+    let deferred = false
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      if (isLessonOpen()) { deferred = true; return }
+      reload()
+    }
     document.addEventListener('visibilitychange', onVisible)
     const offMemory = onMemoryChanged(reload)
-    return () => { document.removeEventListener('visibilitychange', onVisible); offMemory() }
+    const offLesson = onLessonOpenChange(open => { if (!open && deferred) { deferred = false; reload() } })
+    return () => { document.removeEventListener('visibilitychange', onVisible); offMemory(); offLesson() }
   }, [isLoggedIn, reload])
 
   return { view, error, reload }

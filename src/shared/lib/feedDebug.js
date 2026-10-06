@@ -1,3 +1,4 @@
+import { isLessonOpen, onLessonOpenChange } from './lessonOpen.js'
 import { APP_VERSION } from './version.js'
 import { isWeakDevice, markWeakDevice, probeGpu } from './deviceTier.js'
 
@@ -108,7 +109,8 @@ export function startStallWatch() {
   window.addEventListener('pagehide', () => fdbg('pagehide'))
 
   let last = performance.now()
-  setInterval(() => {
+  let timer = null
+  const tickFn = () => {
     const now = performance.now()
     const gap = now - last
     last = now
@@ -119,7 +121,13 @@ export function startStallWatch() {
     }
     const sinceVis = lastVisChangeAt ? (now - lastVisChangeAt).toFixed(0) : 'n/a'
     fdbg(`stall: главный поток встал на ${gap.toFixed(0)}мс (через ${sinceVis}мс после visibilitychange, hidden=${document.hidden})`)
-  }, STALL_TICK_MS)
+  }
+  // Сторож нужен ленте; во время урока его 20 тиков в секунду — лишние
+  // пробуждения главного потока у чата. На урок останавливаем, после — снова
+  const arm = () => { if (!timer) { last = performance.now(); timer = setInterval(tickFn, STALL_TICK_MS) } }
+  const disarm = () => { if (timer) { clearInterval(timer); timer = null } }
+  if (!isLessonOpen()) arm()
+  onLessonOpenChange(open => (open ? disarm() : arm()))
 }
 
 // ── Сторож размера окна (Android в браузере) ──────────────────────────────

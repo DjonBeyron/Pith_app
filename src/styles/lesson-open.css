@@ -1,0 +1,14 @@
+/* Урок открыт (html.lessonOpen — shared/lib/lessonOpen.js): всё под плеером
+   замирает. Вкладки оболочки смонтированы всегда, и скрытая вкладка гасит
+   свои бесконечные анимации через .shellV2TabHidden, но АКТИВНАЯ вкладка под
+   плеером (урок из «Памяти» через слой перехода, повторение внутри «Памяти»,
+   лента под CurriculumView) и нижняя панель (navDuePulse, navFlameFlicker,
+   navGiftPulse, navZFloat) крутились весь урок — компоузер и главный поток
+   тратились на то, чего не видно. Пауза, а не animation:none — состояние
+   анимаций сохраняется и после урока они продолжают с того же места.
+   Сам плеер (.playerStage: лента, панели, итоги) и экран повторения
+   (.reviewScreen, в нём свои плееры) — исключены. */
+html.lessonOpen .shellV2Nav *,
+html.lessonOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *) {
+  animation-play-state: paused !important;
+}

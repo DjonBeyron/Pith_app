@@ -1,3 +1,4 @@
+import { isLessonOpen } from '../../shared/lib/lessonOpen.js'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
@@ -86,7 +87,8 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
   }, [visible, load])
 
   useEffect(() => {
-    const onVis = () => { if (document.visibilityState === 'visible' && visible) load() }
+    // Под открытым уроком (лента «видима» под CurriculumView) не перезагружаем
+    const onVis = () => { if (document.visibilityState === 'visible' && visible && !isLessonOpen()) load() }
     document.addEventListener('visibilitychange', onVis)
     return () => document.removeEventListener('visibilitychange', onVis)
   }, [visible, load])

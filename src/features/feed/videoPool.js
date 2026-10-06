@@ -18,6 +18,7 @@
 
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { VIDEO_CANVAS } from '../../shared/lib/videoCanvasMode.js'
+import { onLessonOpenChange } from '../../shared/lib/lessonOpen.js'
 
 const POOL_SIZE = 4
 const slots = [] // { el, key, used }
@@ -82,6 +83,20 @@ function ensure() {
   if (slots.length) return
   for (let i = 0; i < POOL_SIZE; i++) slots.push({ el: makeVideo(), key: null, used: 0 })
   disableMediaSessionControls()
+
+  // На время урока запаркованные элементы (все 4 — лента под уроком всегда
+  // отпущена) отдают декодер и буфер: src выгружается. Разблокировка звука
+  // привязана к элементу, а не к src, и не теряется; следующая аренда видит
+  // readyState=0 и ставит src заново (SlideVideo)
+  onLessonOpenChange(open => {
+    if (!open) return
+    for (const { el } of slots) {
+      if (el.dataset.parked !== '1' || !el.getAttribute('src')) continue
+      el.removeAttribute('src')
+      el.load()
+      fdbg(`vid ${(el.dataset.url || '—').slice(-8)} урок: src выгружен из парковки`)
+    }
+  })
 
   // Сворачивание приложения: iOS ещё ~секунду тянет звук видео после ухода в
   // фон (пока сам не заморозит WebView) — глушим мгновенно по visibilitychange,

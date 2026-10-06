@@ -28,6 +28,7 @@ import { useAnswerStats } from './useAnswerStats.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { downloadDebugLog, copyDebugLog } from './downloadDebugLog.js'
 import PlayerOverlays from './PlayerOverlays.jsx'
+import { useLessonOpenFlag } from '../../shared/lib/lessonOpen.js'
 import HintBar from './HintBar.jsx'
 import { useFinalHints } from './useFinalHints.js'
 import { useLessonFinish, finishStatsOf } from './useLessonFinish.js'
@@ -120,6 +121,8 @@ export default function LessonPlayer({
   // запрещён react-hooks/purity); все потребители читают ref после маунта
   const openTimeRef      = useRef(0)
   useEffect(() => { if (!openTimeRef.current) openTimeRef.current = Date.now() }, [])
+  // Пока урок открыт, фон приложения замирает (shared/lib/lessonOpen.js)
+  useLessonOpenFlag()
 
   const graph = useGraphPlayer(graphNodes, {
     startNodeId: resumeState.startNodeId ?? startNodeId,

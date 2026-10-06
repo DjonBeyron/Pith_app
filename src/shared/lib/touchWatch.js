@@ -1,4 +1,5 @@
 import { fdbg } from './feedDebug.js'
+import { isLessonOpen } from './lessonOpen.js'
 
 // Сторож жестов (отчёт DBG): жалоба — на Android в модуле уроков палец, попавший на блок, не листает схему. Для каждого
 // свайпа (≥ 24 px) пишем, на каком элементе он начался, какой у того touch-action, какой прокручиваемый контейнер был
@@ -26,7 +27,9 @@ export function startTouchWatch() {
   document.addEventListener('touchstart', e => {
     const p = e.touches[0]
     const target = e.target instanceof Element ? e.target : null
-    if (!p || e.touches.length > 1 || !target) { g = null; return }
+    // Во время урока сторож молчит: getComputedStyle по цепочке предков на
+    // каждый тап — лишняя работа у чата, а жалоба была про схему модуля
+    if (!p || e.touches.length > 1 || !target || isLessonOpen()) { g = null; return }
     const sc = scrollerOf(target)
     g = { y: p.clientY, target, sc, top0: sc ? sc.scrollTop : 0, canceled: false, prevented: false }
   }, { capture: true, passive: true })
