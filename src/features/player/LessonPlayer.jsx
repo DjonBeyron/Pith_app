@@ -129,6 +129,10 @@ export default function LessonPlayer({
   // Предикат «нода прогрета» приходит из usePlayerPreload ниже (тому нужны
   // visibleNodes графа) — связываем через ref
   const warmRef = useRef(null)
+  // Сколько начислений XP ещё в пути (ждут пузырь ответа или летят): граф
+  // держит следующее сообщение, пока полёт не закончен (useGraphPlayer holdRef).
+  // Объявлен ДО useGraphPlayer — он передаётся туда (const: иначе TDZ)
+  const xpBusyRef = useRef(0)
   const graph = useGraphPlayer(graphNodes, {
     warmRef,
     holdRef: xpBusyRef,
@@ -157,9 +161,6 @@ export default function LessonPlayer({
   // появится в переписке, иначе от последнего места тапа (его панели пометили
   // через rememberTap). Начисление при этом не ждёт ничего — счётчик в шапке
   // растёт сразу, откладывается только полёт. opts.expectBubble — см. xpAnchor.js
-  // Сколько начислений XP ещё в пути (ждут пузырь ответа или летят): граф
-  // держит следующее сообщение, пока полёт не закончен (useGraphPlayer holdRef)
-  const xpBusyRef = useRef(0)
   function handleXpEarned(amount, nodeId = null, opts = undefined) {
     xpBusyRef.current++
     setEarnedXp(prev => { earnedXpRef.current = prev + amount; return prev + amount })
