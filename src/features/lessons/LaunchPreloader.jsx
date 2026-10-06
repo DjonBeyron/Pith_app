@@ -56,16 +56,22 @@ export default function LaunchPreloader({
   const [choice, setChoice] = useState(resumeEntryNode ? null : 'start')
   const choosing = !choice
   const entryNode = choice === 'resume' ? resumeEntryNode : null
-  const { blobMap, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, releaseBlobs } = usePlayerPreload(
-    choosing ? NO_NODES : nodes, files, entryNode ? [entryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null }
+  const preloadNodes = choosing ? NO_NODES : nodes
+  const { blobMap, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, initializedFor, debugItems, releaseBlobs } = usePlayerPreload(
+    preloadNodes, files, entryNode ? [entryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null }
   )
   // Жест выбора: разблокировка звука и прогретый элемент таблиц — только здесь,
   // в обработчике тапа (iOS); сам старт придёт позже, из эффекта по готовности
+  // picked — выбор сделан на карточке с чекпойнтом (автостарт по готовности).
+  // Отдельно от resumeEntryNode: «Начать заново» обнуляет чекпойнт у родителя
+  // (onRestartProgress → resumeOffer=null), и по нему выбор не отличить
+  const [picked, setPicked] = useState(false)
   function pick(next) {
     preloadSounds()
     unlockAudio()
     primeAudio()
     if (next === 'start') onRestartProgress()
+    setPicked(true)
     setChoice(next)
   }
 
@@ -110,7 +116,10 @@ export default function LaunchPreloader({
   // потом «оживал». Захват/мета ограничены таймаутами, зависнуть не могут
   const nodeTotal   = warmupNodeIds.length
   const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id) && warmNodeIds.has(id)).length
-  const loaded      = initialized && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
+  // initializedFor === preloadNodes — очередь уже пересобрана под выбранный
+  // список (в первом рендере после выбора состояние прогрева ещё от пустой
+  // очереди, и «готово» было бы ложным)
+  const loaded      = initialized && initializedFor === preloadNodes && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
   // Показанный процент — плавный (не быстрее 1 с на всю шкалу, useSmoothPct)
   // и крутится только когда карточка видна (visible), не за каркасом.
   // Кнопка открывается вместе с ним: «Начать урок» при баре на 40 % — тот
@@ -121,10 +130,10 @@ export default function LaunchPreloader({
   // Выбор сделан и прогрев готов — стартуем сами, второй тап не нужен
   const autoStartedRef = useRef(false)
   useEffect(() => {
-    if (!resumeEntryNode || choosing || !canStart || dissolving || autoStartedRef.current) return
+    if (!picked || choosing || !canStart || dissolving || autoStartedRef.current) return
     autoStartedRef.current = true
     handleStart(choice === 'resume')
-  }, [canStart, choosing, choice, dissolving]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [picked, canStart, choosing, choice, dissolving]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Стиль обычной кнопки старта — общий для LaunchCtaSlot (mayResume) и для
   // простой <button> (когда «Продолжить» в принципе невозможно)
@@ -258,8 +267,8 @@ export default function LaunchPreloader({
           onPrimary={() => handleStart()}
         />
       ) : (
-        <button onClick={() => handleStart()} disabled={!canStart || dissolving} style={startBtnStyle}>
-          {canStart ? '▶ Начать урок' : 'Загрузка...'}
+        <button onClick={() => handleStart()} disabled={!canStart || dissolving || picked} style={startBtnStyle}>
+          {canStart && !picked ? '▶ Начать урок' : 'Загрузка...'}
         </button>
       )}
     </>

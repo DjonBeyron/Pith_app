@@ -17,7 +17,7 @@ describe('warmupPlan', () => {
 
   it('с точкой «Продолжить» — достижимое от неё вперёд, прогрев по пути, гейт поднят', () => {
     const p = warmupPlan(queue, 'd', byId, 2)
-    expect(p.queue.map(i => i.id)).toEqual(['d', 'e', 'a', 'b', 'c'])
+    expect(p.queue.map(i => i.id)).toEqual(['d', 'e', 'a', 'b', 'c']) // по близости к точке входа, потом остальное
     expect(p.warmupIds).toEqual(['d', 'e'])
     expect(p.allowUpTo).toBe(5) // max nodeIdx (4) + 1 — иначе pump не пустил бы d/e
   })

@@ -177,7 +177,7 @@ export default function LessonPlayer({
   }
 
   // bufferSize: слабому устройству — меньше файлов в памяти (как в карточке запуска)
-  const { blobMap, addMsgTs, debugItems, warmupPct, isNodeWarm } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap, bufferSize: isWeakDevice() ? 3 : 5 })
+  const { blobMap, addMsgTs, debugItems, warmupPct, isNodeWarm } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap, bufferSize: isWeakDevice() ? 3 : 5, entryNodeId: resumeState.startNodeId ?? startNodeId ?? null })
   useEffect(() => { warmRef.current = isNodeWarm }, [isNodeWarm])
   useLessonWordAudio(nodes, warmupPct, muted) // озвучка слов при тапе — после прогрева первых нод; muted — беззвучный режим повторения
 

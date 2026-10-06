@@ -47,6 +47,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
 
   const [warmupNodeIds, setWarmupNodeIds] = useState([])
   const [initialized, setInitialized]     = useState(false)
+  const [initializedFor, setInitializedFor] = useState(null) // список нод, под который построена очередь
 
   useEffect(() => { visibleNodesRef.current = visibleNodes }, [visibleNodes])
 
@@ -273,6 +274,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     const warmupIds = plan.warmupIds
     setWarmupNodeIds(warmupIds)
     setInitialized(true)
+    setInitializedFor(nodes)
     // Диагностика handoff: сколько файлов уже пришло с блобами из карточки запуска
     const handoffItems = queueRef.current.filter(i => blobUrlsRef.current[i.id]?.blobUrl)
     pLog(`[preload] очередь: ${queueRef.current.length} файлов, с handoff-блобами: ${handoffItems.length}, warmup-нод: ${warmupIds.length}`)
@@ -341,5 +343,5 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // Дебаг-оверлей живёт в ref и «дёргается» через setDebugTick — чтение при рендере намеренное
   // eslint-disable-next-line react-hooks/refs
   const debugItems = [...debugItemsRef.current.values()]
-  return { blobMap, queueTotal, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, addMsgTs, releaseBlobs, evictLog, isNodeWarm }
+  return { blobMap, queueTotal, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, initializedFor, debugItems, addMsgTs, releaseBlobs, evictLog, isNodeWarm }
 }

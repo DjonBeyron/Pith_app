@@ -106,7 +106,11 @@ export function warmupPlan(queue, entryNodeId, byId, lookahead) {
     return { queue, warmupIds: ids, allowUpTo: lookahead }
   }
   const reach = forwardReachable(entry, byId)
-  const active = queue.filter(i => reach.has(i.nodeId))
+  // reach — Set в порядке обхода в ширину ОТ ТОЧКИ ВХОДА: ближайшие по пути
+  // ноды первыми (а не по BFS от начала урока, где ближняя к точке нода
+  // может стоять далеко позади чужих веток)
+  const rank = new Map([...reach].map((id, i) => [id, i]))
+  const active = queue.filter(i => reach.has(i.nodeId)).sort((a, b) => rank.get(a.nodeId) - rank.get(b.nodeId))
   const speculative = queue.filter(i => !reach.has(i.nodeId))
   const warmupIds = []
   for (const i of active) {
