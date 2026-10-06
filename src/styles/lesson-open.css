@@ -7,8 +7,13 @@
    тратились на то, чего не видно. Пауза, а не animation:none — состояние
    анимаций сохраняется и после урока они продолжают с того же места.
    Сам плеер (.playerStage: лента, панели, итоги) и экран повторения
-   (.reviewScreen, в нём свои плееры) — исключены. */
+   (.reviewScreen, в нём свои плееры) — исключены. Псевдоэлементы — отдельными
+   строками: `*` их не покрывает (lrCtaShine на ::after, navDueGlow на ::before). */
 html.lessonOpen .shellV2Nav *,
-html.lessonOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *) {
+html.lessonOpen .shellV2Nav *::before,
+html.lessonOpen .shellV2Nav *::after,
+html.lessonOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *),
+html.lessonOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *)::before,
+html.lessonOpen .shellV2Content *:not(.playerStage, .playerStage *, .reviewScreen, .reviewScreen *)::after {
   animation-play-state: paused !important;
 }
