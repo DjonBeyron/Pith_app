@@ -271,5 +271,9 @@ export default function PlayerBubble({ className, children, follow = false }) {
     return () => { ro.disconnect(); clearTimeout(unlock); clearTimeout(st.tid) }
   }, [])
 
-  return <div ref={ref} className={className}>{children}</div>
+  // Блик верного ответа — свой обрезающий слой (overflow: hidden у него, а не
+  // у пузыря: на пузыре может висеть эмодзи-реакция за краем); внутри него
+  // ::before едет transform'ом, см. text.css
+  const sheen = className?.includes('playerMsgBubble--responseOk')
+  return <div ref={ref} className={className}>{children}{sheen && <i className="playerSheen" aria-hidden="true" />}</div>
 }

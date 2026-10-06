@@ -80,19 +80,30 @@
    Блик заметнее ровно потому, что ДВИЖЕТСЯ: глаз ловит движение даже на
    краю поля зрения, а ровный ореол — нет.
 
-   Блик — отдельный слой ::before РОВНО по размеру пузыря, с наследованным
-   скруглением. Двигается сам градиент (background-position), а не элемент:
-   уехавший в сторону слой пришлось бы обрезать через overflow: hidden на
-   пузыре, а этого делать нельзя — на пузыре может висеть эмодзи-реакция,
-   выступающая за его край (reaction.css), и её бы срезало.
+   Блик — отдельный слой .playerSheen РОВНО по размеру пузыря (PlayerBubble
+   вставляет его у верного ответа), с наследованным скруглением и своим
+   overflow: hidden. Внутри него ::before втрое шире и едет transform'ом —
+   на компоузере, без перерисовки пузыря каждый кадр (раньше двигался сам
+   градиент через background-position, и блик дёргался, когда в тот же
+   момент приходило сообщение). Обрезать сам пузырь нельзя: на нём может
+   висеть эмодзи-реакция, выступающая за край (reaction.css).
    Пузырь при этом не масштабируется и не прозрачнеет: буквы на своём слое
    теряют субпиксельное сглаживание и заметно «толстеют» (этим мы уже
    намучились в таблице). */
-.playerMsgBubble--responseOk::before {
-  content: '';
+.playerSheen {
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.playerSheen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 300%;
   pointer-events: none;
   /* БЕЛЫЙ, а не брендовый лайм. Лаймовая полоса на тёмно-синем пузыре по
      яркости почти совпадала с самим фоном — движение было, а блеска не
@@ -108,21 +119,21 @@
     rgba(255, 255, 255, 0.18) 57%,
     rgba(255, 255, 255, 0)    64%
   );
-  background-size: 300% 100%;
-  background-position: 100% 0;
+  transform: translateX(-66.7%);
+  will-change: transform, opacity;
   opacity: 0;
   /* Два прохода подряд, без паузы между ними */
   animation: answerSheen 0.7s cubic-bezier(0.35, 0, 0.25, 1) 0.05s 2 both;
 }
 
-/* Проход — СЛЕВА НАПРАВО. Направление задаёт убывающая background-position:
-   дорожка втрое шире пузыря, и пока позиция идёт от 100% к −20%, светлая
-   полоса переезжает от левого края к правому. */
+/* Проход — СЛЕВА НАПРАВО: слой из положения «правый край дорожки под
+   пузырём» (−66.7 %) уходит к «левый край под пузырём» (+6.7 %), светлая
+   полоса в его середине переезжает по пузырю слева направо */
 @keyframes answerSheen {
-  0%   { background-position: 100% 0; opacity: 0; }
+  0%   { transform: translateX(-66.7%); opacity: 0; }
   10%  { opacity: 1; }
   80%  { opacity: 1; }
-  100% { background-position: -20% 0; opacity: 0; }
+  100% { transform: translateX(6.7%); opacity: 0; }
 }
 
 /* Галочка вспыхивает ПОСЛЕ блика, а не вместе с ним: два движения в одной
@@ -137,19 +148,20 @@
     answerMarkFlash 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.45s both;
 }
 
+/* Без text-shadow в кадрах: тень перерастеризовывает знак каждый кадр */
 @keyframes answerMarkFlash {
-  0%   { color: #b6fe3b; text-shadow: none; transform: scale(1); }
-  40%  { color: #ffffff; text-shadow: 0 0 12px rgba(255, 255, 255, 0.9); transform: scale(1.45); }
-  100% { color: #b6fe3b; text-shadow: none; transform: scale(1); }
+  0%   { color: #b6fe3b; transform: scale(1); }
+  40%  { color: #ffffff; transform: scale(1.45); }
+  100% { color: #b6fe3b; transform: scale(1); }
 }
 
 /* Кому движение противопоказано — блик не ездит, но верный ответ всё равно
    должен себя обозначить: даём ту же белую вспышку без перемещения. Полностью
    гасить нечего — это не украшение, а сигнал «ответ принят». */
 @media (prefers-reduced-motion: reduce) {
-  .playerMsgBubble--responseOk::before {
+  .playerSheen::before {
     background-image: linear-gradient(100deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.16));
-    background-position: 0 0;
+    transform: translateX(-33.3%);
     animation: answerSheenStill 0.7s ease-out 0.05s both;
   }
   @keyframes answerSheenStill {

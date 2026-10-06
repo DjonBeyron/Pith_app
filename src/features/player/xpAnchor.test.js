@@ -94,7 +94,7 @@ describe('двойной блеск на верном ответе', () => {
   it('блик белый, а не брендовый лайм', () => {
     // Лаймовая полоса на тёмно-синем пузыре по яркости почти совпадала с
     // фоном: движение было, блеска не читалось
-    const sheen = css.slice(css.indexOf('.playerMsgBubble--responseOk::before'))
+    const sheen = css.slice(css.indexOf('.playerSheen::before'))
     const block = sheen.slice(0, sheen.indexOf('}'))
     expect(block).toContain('rgba(255, 255, 255, 0.95)')
     expect(block).not.toMatch(/182, 254, 59/)
@@ -106,10 +106,13 @@ describe('двойной блеск на верном ответе', () => {
     // Ровно два прохода, а не бесконечный повтор
     const run = css.match(/animation: answerSheen ([\d.]+)s [^;]*?\s2 both/)
     expect(run, 'блик должен идти двумя тактами').toBeTruthy()
-    // Слева направо: позиция дорожки убывает от 100% к отрицательной
+    // Слева направо и на компоузере: слой втрое шире пузыря едет transform'ом
+    // от «правый край дорожки под пузырём» к «левый край под пузырём»
+    // (не background-position — тот перерисовывал пузырь каждый кадр)
     const frames = css.slice(css.indexOf('@keyframes answerSheen'))
-    expect(frames.slice(0, frames.indexOf('}\n'))).toContain('background-position: 100% 0')
-    expect(frames).toContain('background-position: -20% 0')
+    expect(frames.slice(0, frames.indexOf('}\n'))).toContain('transform: translateX(-66.7%)')
+    expect(frames).toContain('transform: translateX(6.7%)')
+    expect(frames.slice(0, frames.indexOf('\n}'))).not.toContain('background-position')
     // Галочка стартует не раньше конца второго прохода
     const delay = parseFloat(css.match(/answerMarkFlash [\d.]+s [^;]*?\s([\d.]+)s both/)[1])
     const one   = parseFloat(run[1])
@@ -118,16 +121,21 @@ describe('двойной блеск на верном ответе', () => {
   })
 
   it('пузырю не режут края — на нём может висеть эмодзи-реакция', () => {
-    // ::before лежит ровно по пузырю (inset: 0) и наследует скругление,
-    // поэтому overflow: hidden не нужен. С ним срезало бы эмодзи реакции,
-    // выступающее за край (reaction.css)
-    const sheen = css.slice(css.indexOf('.playerMsgBubble--responseOk::before'))
+    // Обрезает уехавший слой свой контейнер .playerSheen (ровно по пузырю,
+    // inset: 0, скругление наследует), а не сам пузырь: overflow: hidden на
+    // пузыре срезал бы эмодзи реакции, выступающее за край (reaction.css)
+    const sheen = css.slice(css.indexOf('.playerSheen {'))
     const block = sheen.slice(0, sheen.indexOf('}'))
     expect(block).toContain('inset: 0')
     expect(block).toContain('border-radius: inherit')
     expect(block).toContain('pointer-events: none')
+    expect(block).toContain('overflow: hidden')
     const okRule = css.match(/\.playerMsgBubble--responseOk \{[^}]*\}/)
     expect(okRule?.[0] ?? '').not.toContain('overflow: hidden')
+    // Слой вставляет PlayerBubble у верного ответа
+    const bubble = read('../../features/player/PlayerBubble.jsx')
+    expect(bubble).toContain("className?.includes('playerMsgBubble--responseOk')")
+    expect(bubble).toContain('className="playerSheen"')
   })
 
   it('у кого движение выключено — вспышка на месте, но НЕ пустота', () => {
