@@ -39,8 +39,11 @@ export default function useSmoothPct(target, active = true) {
       if (barRef.current)  barRef.current.style.width = next + '%'
       if (textRef.current) textRef.current.textContent = Math.round(next) + '%'
       if (next >= 100) setReached(true)
+      // Цель упала ниже 100 (карточка с чекпойнтом: после выбора прогрев
+      // начинается заново) — «дошли» сбрасывается, бар честно идёт снова
+      else if (target < 100) setReached(false)
       // Догнали цель — останавливаемся; новая цель перезапустит эффект
-      else if (next !== target) raf = requestAnimationFrame(tick)
+      if (next < 100 && next !== target) raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
