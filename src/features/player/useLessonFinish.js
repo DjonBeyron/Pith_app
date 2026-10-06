@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { awardModuleTicket } from '../../shared/api/ticketApi.js'
 import { starsFromErrors, setLocalStars } from '../../shared/lib/lessonStars.js'
 import { saveLessonStars } from '../../shared/api/starsApi.js'
@@ -37,6 +38,10 @@ export function useLessonFinish({
   setBaseXp, setEarnedXp, setStarsRes, setShowSummary, setTicketRes, clearProgress,
   memoryWord = null, setNewWord = () => {},
 }) {
+  // Закрыли плеер крестиком в первые 2 с итогов — начислений не делаем
+  const finishTimerRef = useRef(null)
+  useEffect(() => () => clearTimeout(finishTimerRef.current), [])
+
   function finishSummary() {
     // Прогон из канваса — инструмент автора, а не прохождение урока: ни экрана
     // итогов, ни начислений (XP, звёзды, золотой билет), ни записи в анализ
@@ -48,7 +53,7 @@ export function useLessonFinish({
     }
     // Урок реально пройден целиком — чекпойнт «докуда дошёл» больше не нужен
     clearProgress?.()
-    setTimeout(async () => {
+    finishTimerRef.current = setTimeout(async () => {
       // Звёзды обычного урока: считаются и гостю, и залогиненному; локальный
       // стор обновляется сразу (схема модуля покажет без похода на сервер)
       let stars = null

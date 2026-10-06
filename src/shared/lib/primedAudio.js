@@ -110,4 +110,7 @@ export function stopPrimed() {
   if (!el) return
   el.onended = null
   try { el.pause() } catch { /* уже остановлен */ }
+  // Данные последней таблицы не держим после панели: следующий playPrimed
+  // ставит src заново, а между ними элемент живёт в body пустым
+  if (el.getAttribute('src')) { el.removeAttribute('src'); try { el.load() } catch { /* ignore */ } }
 }

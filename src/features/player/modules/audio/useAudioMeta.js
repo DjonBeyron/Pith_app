@@ -43,12 +43,16 @@ export function useAudioMeta(node, file, src) {
     if (file?.metaDone && !file?.waveformData && !waveDoneRef.current) setWaveReady(true)
   }, [file?.waveformData, file?.duration, file?.metaDone])
 
-  // Считаем сами — когда ждать прогрев не от кого, либо он не отвечает
-  // дольше META_WAIT_MS (раньше при blob без metaDone ждали вечно: волна
-  // могла так и остаться прозрачной)
+  // Считаем сами — только когда ждать прогрев не от кого: файла нет в очереди
+  // прогрева (file == null — редактор/локальный файл/нет записи). Если файл
+  // в очереди, мету принесёт прогрев (даже если blob ещё качается) — второе
+  // скачивание того же файла ради волны по прямой ссылке на слабой сети
+  // удваивало трафик и держало волну прозрачной десятки секунд. Прогрев
+  // молчит дольше META_WAIT_MS — показываем базовую форму (длительность
+  // придёт из метаданных самого <audio>, adoptElementDuration ниже)
   useEffect(() => {
     if (!src) return
-    const metaFromPreload = !!file?.blobUrl && !file?.metaDone
+    const metaFromPreload = !!file && !file.metaDone && !file.error && !file.evicted && !file.localFile
     let cancelled = false
     let timer = null
     const run = () => {
@@ -72,7 +76,7 @@ export function useAudioMeta(node, file, src) {
       }).catch(() => {})
     }
     }
-    if (metaFromPreload) timer = setTimeout(run, META_WAIT_MS)
+    if (metaFromPreload) timer = setTimeout(() => { if (!cancelled && !waveDoneRef.current) setWaveReady(true) }, META_WAIT_MS)
     else run()
     return () => { cancelled = true; clearTimeout(timer) }
     // file?.blobUrl/metaDone читаются как условие «ждать ли прогрев» на момент

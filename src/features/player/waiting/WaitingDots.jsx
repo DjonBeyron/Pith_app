@@ -17,8 +17,10 @@ import { playSound } from '../../../shared/lib/sounds.js'
 const EXIT_MS = 150
 // Звук «печатает»: тихие щелчки с затуханием, записанным в сам файл (на iOS
 // громкость HTMLAudio не регулируется). Пауза затянулась (ждём прогрев
-// файлов, useGraphPlayer.js) — второй, ещё тише; дальше тишина
-const SOUND_2_AT_MS = 1450
+// файлов, useGraphPlayer.js) — второй, ещё тише; дальше тишина. 1900 мс —
+// заведомо после конца первого (1,45 с) и обычной паузы 1400 мс с учётом
+// задержки монтирования (замер: p90 показа точек 1646 мс при CPU×4)
+const SOUND_2_AT_MS = 1900
 
 export default function WaitingDots({ visible }) {
   // 'shown' | 'closing' | 'hidden'. visible пришёл другим, чем в прошлый

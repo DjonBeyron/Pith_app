@@ -2,6 +2,7 @@ import { useState } from 'react'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import EnergyPaywall from './EnergyPaywall.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
+import { revokePayloadBlobs } from '../player/preloadQueue.js'
 import { startLesson } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { markLessonCompleted } from '../../shared/lib/completedLessons.js'
@@ -20,7 +21,7 @@ export default function StandaloneLessonRunner({ lessonId, lessonTitle = '', onE
 
   async function handleStart(data) {
     const res = await startLesson(lessonId)
-    if (res?.ok === false) { setNoEnergy({ nextAt: res.next_at }); return }
+    if (res?.ok === false) { revokePayloadBlobs(data); setNoEnergy({ nextAt: res.next_at }); return }
     refreshProfile()
     setPlayerData(data)
     onStarted?.()

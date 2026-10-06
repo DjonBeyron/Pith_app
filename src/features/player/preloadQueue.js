@@ -70,3 +70,12 @@ export function revokeEntry(entry) {
   if (entry.blobUrl)   URL.revokeObjectURL(entry.blobUrl)
   if (entry.posterUrl) URL.revokeObjectURL(entry.posterUrl)
 }
+
+// Плеер так и не открылся (сервер отказал: нет энергии) — карточка запуска
+// уже отдала blob-ы в payload и сама их не отзовёт. Отзываем здесь
+export function revokePayloadBlobs(payload) {
+  Object.values(payload?.blobMap ?? {}).forEach(revokeEntry)
+  if (typeof payload?.teacherLogo === 'string' && payload.teacherLogo.startsWith('blob:')) {
+    URL.revokeObjectURL(payload.teacherLogo)
+  }
+}

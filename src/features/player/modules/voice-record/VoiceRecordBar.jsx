@@ -73,9 +73,11 @@ export default function VoiceRecordBar({ onSend }) {
 
   useEffect(() => {
     let audioCtx = null
+    let cancelled = false // панель закрыли, пока браузер спрашивал доступ
     pLog('VoiceRecordBar mount — requesting mic. RECORD_MIME:', RECORD_MIME || '(none)')
     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
       .then(stream => {
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
         pLog('mic: getUserMedia OK, tracks:', stream.getAudioTracks().length)
         streamRef.current = stream
         audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -91,6 +93,7 @@ export default function VoiceRecordBar({ onSend }) {
         console.warn('[VoiceRec] mic:', err.message)
       })
     return () => {
+      cancelled = true
       if (rafRef.current)      cancelAnimationFrame(rafRef.current)
       if (playRafRef.current)  cancelAnimationFrame(playRafRef.current)
       if (recTimerRef.current) clearInterval(recTimerRef.current)

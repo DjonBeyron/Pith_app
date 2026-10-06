@@ -7,6 +7,7 @@ import ModuleGraph from './ModuleGraph.jsx'
 import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
+import { revokePayloadBlobs } from '../player/preloadQueue.js'
 import { getCompletedLessons, markLessonCompleted } from '../../shared/lib/completedLessons.js'
 import { seedGuestWordOf } from '../../shared/lib/memory/guestMemory.js'
 import { lessonWordOf } from '../../shared/lib/memory/wordLessons.js'
@@ -307,6 +308,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             // пейволл вместо плеера
             const res = await startLesson(launchId)
             if (res?.ok === false) {
+              revokePayloadBlobs(data) // файлы прогрева плееру не достались — отпускаем
               setLaunchId(null)
               setNoEnergy({ nextAt: res.next_at })
               return

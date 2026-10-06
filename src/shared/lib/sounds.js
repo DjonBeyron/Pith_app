@@ -1,5 +1,6 @@
 import { pLog } from './debug.js'
 import { traceSoundRequest, traceSoundStarted, traceSoundFailed } from './soundTrace.js'
+import { onLessonOpenChange } from './lessonOpen.js'
 
 // Hybrid approach for iOS (CriOS) compatibility:
 // - AudioContext.resume() in gesture handler properly unlocks the page for all audio.
@@ -9,6 +10,13 @@ import { traceSoundRequest, traceSoundStarted, traceSoundFailed } from './soundT
 
 let ctx = null
 const htmlCache = {}
+
+// Контекст нужен только для разблокировки звука жестом в начале урока
+// (unlockAudio). После урока он оставался в running и держал аудиосессию
+// системы активной — на паузу; следующий урок снова разбудит его жестом
+onLessonOpenChange(open => {
+  if (!open && ctx && ctx.state === 'running') ctx.suspend().catch(() => {})
+})
 
 const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-message', 'typing-1', 'typing-2']
 

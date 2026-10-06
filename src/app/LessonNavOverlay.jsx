@@ -8,6 +8,8 @@ import CurriculumView from '../features/lessons/CurriculumView.jsx'
 // уроки». Сознательно не размонтирует то, что было открыто до него —
 // оверлей просто перекрывает (см. план фичи): проще, чем городить paused-
 // проп в LessonPlayer ради живого состояния под оверлеем.
+// key по id урока/модуля: смена урока в слое (ещё один lesson_ref, возврат по
+// стеку) даёт свежий экземпляр, а не прежний плеер с чужим состоянием.
 export default function LessonNavOverlay() {
   const { overlay, handleExit } = useLessonNav()
   // Пока показана только карточка «Начать урок», слой прозрачный: под ней
@@ -21,9 +23,10 @@ export default function LessonNavOverlay() {
   return (
     <div className={`lessonNavOverlay${overlay.kind === 'lesson' && !started ? ' lessonNavOverlay--launch' : ''}`}>
       {overlay.kind === 'lesson' ? (
-        <StandaloneLessonRunner lessonId={overlay.lessonId} lessonTitle={overlay.lessonTitle} onExit={handleExit} onStarted={() => setStarted(true)} />
+        <StandaloneLessonRunner key={overlay.lessonId} lessonId={overlay.lessonId} lessonTitle={overlay.lessonTitle} onExit={handleExit} onStarted={() => setStarted(true)} />
       ) : (
         <CurriculumView
+          key={overlay.moduleId}
           curriculumId={overlay.moduleId}
           curriculumTitle={overlay.moduleTitle}
           onBack={handleExit}

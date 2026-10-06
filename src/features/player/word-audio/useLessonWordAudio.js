@@ -30,14 +30,16 @@ export function useLessonWordAudio(nodes, warmupPct, muted = false) {
 
   useEffect(() => {
     if (startedRef.current) return
+    let alive = true // урок закрыли, пока ждали список озвучки — не прогревать
     const start = async () => {
       if (startedRef.current) return
       startedRef.current = true
       await listWordAudio()
+      if (!alive) return
       preloadWordAudio([...collectLessonWords(nodes).keys()])
     }
-    if (warmupPct >= 100) { start(); return }
+    if (warmupPct >= 100) { start(); return () => { alive = false } }
     const t = setTimeout(start, FALLBACK_MS)
-    return () => clearTimeout(t)
+    return () => { alive = false; clearTimeout(t) }
   }, [warmupPct, nodes])
 }
