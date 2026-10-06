@@ -1,14 +1,25 @@
 import PlayerMessage from './PlayerMessage.jsx'
 import NodeEditPencil from './admin/NodeEditPencil.jsx'
 import { mergeFeedOrder } from '../../shared/lib/feedOrder.js'
+import { useFeedWindow } from './useFeedWindow.js'
+import { entryKey } from './feedWindow.js'
 
 // Сообщения ленты: видимые ноды графа урока + сигнальные сообщения
 // (useSignalMessages.js), вперемешку в хронологическом порядке (см.
 // shared/lib/feedOrder.js — сигнал, сработавший раньше, не должен оказаться
 // в чате НИЖЕ более поздних сообщений графа), + pending-нода, которая
-// пре-рендерится за экраном с тем же key (React сохраняет DOM и уже
-// декодированный кадр видео, когда нода становится активной). Вынесено из
-// LessonPlayer.jsx — он упирался в потолок размера файла.
+// пре-рендерится за экраном с тем же key. Вынесено из LessonPlayer.jsx — он
+// упирался в потолок размера файла.
+//
+// В DOM живёт только хвост ленты (useFeedWindow.js) — старые сообщения
+// остаются в visibleNodes, но не рендерятся, пока их не раскроют кнопкой.
+//
+// Pending-нода рендерится В ТОМ ЖЕ массиве детей, что и показанные (последним
+// элементом), — только так React сохраняет её fiber и DOM при показе (тот же
+// key в том же списке). Раньше она шла отдельным ребёнком фрагмента после
+// map, и React монтировал ноду заново: 1.4 с предрисовки пропадали, <img>/
+// <video>/<audio> создавались с нуля в момент появления (замер: 0 из 98
+// показов сохранили DOM) — фото и стикеры выходили пустыми на первый кадр.
 export default function PlayerFeedNodes({
   visibleNodes, pendingNode, nodes, filesWithBlobs, teacherName,
   states, bottomOffset, videoAutoSound, isAdmin,
@@ -23,8 +34,12 @@ export default function PlayerFeedNodes({
   hasMoreHistory = false, onLoadMoreHistory,
 }) {
   const merged = mergeFeedOrder(visibleNodes, signalItems)
+  const feedWindow = useFeedWindow(merged, { hasMoreHistory, onLoadMoreHistory })
   const trailingPending = pendingNode && !visibleNodes.some(v => v.id === pendingNode.id)
     ? pendingNode : null
+  const list = trailingPending
+    ? [...feedWindow.entries, { kind: 'node', node: trailingPending, pending: true }]
+    : feedWindow.entries
 
   function renderNode(node, isPending) {
     const fileId = node.typeData?.[node.type]?.file_id ?? null
@@ -52,6 +67,7 @@ export default function PlayerFeedNodes({
           ? `playerMsgSlot${adminEdit.editId === node.id ? ' playerMsgSlotActive' : ''}`
           : undefined}
         data-pending={isPending ? 'true' : undefined}
+        data-entry-key={node.id}
         // Восстановленная история («Продолжить урок») встаёт сразу на своё
         // место — без въезда снизу и без звука «новое сообщение» (тот же
         // приём, что у превращения таблицы в сообщение, PlayerFeed.jsx).
@@ -100,7 +116,7 @@ export default function PlayerFeedNodes({
     const fileId = node.typeData?.[node.type]?.file_id ?? null
     const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
     return (
-      <div key={key}>
+      <div key={key} data-entry-key={key}>
         <PlayerMessage
           node={node}
           file={file}
@@ -120,15 +136,14 @@ export default function PlayerFeedNodes({
 
   return (
     <>
-      {hasMoreHistory && (
-        <button className="playerLoadHistoryBtn" onClick={onLoadMoreHistory}>
+      {feedWindow.hasOlder && (
+        <button className="playerLoadHistoryBtn" onClick={feedWindow.showOlder}>
           Показать более раннюю историю
         </button>
       )}
-      {merged.map(entry => entry.kind === 'signal'
-        ? renderSignal(entry.key, entry.node)
-        : renderNode(entry.node, false))}
-      {trailingPending && renderNode(trailingPending, true)}
+      {list.map(entry => entry.kind === 'signal'
+        ? renderSignal(entryKey(entry), entry.node)
+        : renderNode(entry.node, !!entry.pending))}
     </>
   )
 }

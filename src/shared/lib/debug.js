@@ -15,6 +15,16 @@ const logLines = []
 // Use pLog() for player events so they can be downloaded even without enabling debug.
 const playerLines = []
 
+// Потолок буферов: за долгий урок сюда пишут заморозка строк, ResizeObserver
+// каждого пузыря, датчик производительности раз в секунду — без предела
+// журнал рос всю сессию и сам становился утечкой. Старое вытесняется пачкой,
+// а не по строке, чтобы не делать shift() на каждую запись
+const MAX_LINES = 3000
+function pushCapped(lines, line) {
+  lines.push(line)
+  if (lines.length > MAX_LINES) lines.splice(0, lines.length - MAX_LINES + 500)
+}
+
 export function isDebugOn() {
   return enabled
 }
@@ -78,14 +88,14 @@ function toText(arg) {
 export function dbg(...args) {
   if (!enabled) return
   console.log('[HETA]', ...args)
-  logLines.push(`[${stamp()}] ${args.map(toText).join(' ')}`)
+  pushCapped(logLines, `[${stamp()}] ${args.map(toText).join(' ')}`)
 }
 
 // Always-on player logger — collects regardless of debug flag.
 // Use for player/voice-record events that need to be inspected on mobile.
 export function pLog(...args) {
   const line = `[${stamp()}] ${args.map(toText).join(' ')}`
-  playerLines.push(line)
+  pushCapped(playerLines, line)
   if (enabled) console.log('[PLAYER]', ...args)
 }
 

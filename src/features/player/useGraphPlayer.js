@@ -48,6 +48,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
   const [historyShown, setHistoryShown] = useState(0)
+  const historyShownRef = useRef(0)
 
   const nodeMapRef  = useRef({})
   // Сколько раз каждая нода уже показывалась. Сценарий бывает цикличным
@@ -297,6 +298,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     historyRef.current = historyNodes
     const initialPage = historyNodes.slice(-HISTORY_PAGE).map(n => ({ ...n, isHistory: true }))
     setHistoryShown(initialPage.length)
+    historyShownRef.current = initialPage.length
     if (startNodeId && entry.seq > 1) {
       pLog(`[graph] возобновление: лента стартует с #${entry.seq}, восстановлено истории ${historyNodes.length}/${(historyIds ?? []).length} нод (показано сразу ${initialPage.length})`)
     }
@@ -312,17 +314,21 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   // следующая пачка HISTORY_PAGE, старше уже показанных. НЕ трогает
   // visitedIdsRef/seenIdsRef — те уже содержат ПОЛНУЮ историю с момента
   // инициализации, подгрузка меняет только то, что нарисовано в ленте
+  // Сколько уже показано — в ref, а не читается внутри апдейтера
+  // setHistoryShown: setVisibleNodes из апдейтера — побочный эффект, и в dev
+  // под StrictMode (апдейтеры зовутся дважды) каждая страница добавлялась два
+  // раза — дубли ключей в ленте («Encountered two children with the same key»)
   const requestMoreHistory = useCallback(() => {
-    setHistoryShown(shown => {
-      const total = historyRef.current.length
-      if (shown >= total) return shown
-      const nextShown = Math.min(total, shown + HISTORY_PAGE)
-      const older = historyRef.current
-        .slice(total - nextShown, total - shown)
-        .map(n => ({ ...n, isHistory: true }))
-      setVisibleNodes(prev => [...older, ...prev])
-      return nextShown
-    })
+    const total = historyRef.current.length
+    const shown = historyShownRef.current
+    if (shown >= total) return
+    const nextShown = Math.min(total, shown + HISTORY_PAGE)
+    const older = historyRef.current
+      .slice(total - nextShown, total - shown)
+      .map(n => ({ ...n, isHistory: true }))
+    historyShownRef.current = nextShown
+    setHistoryShown(nextShown)
+    setVisibleNodes(prev => [...older, ...prev])
   }, [])
   const hasMoreHistory = historyShown < historyRef.current.length
 
