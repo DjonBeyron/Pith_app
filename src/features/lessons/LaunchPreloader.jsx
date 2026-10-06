@@ -48,7 +48,7 @@ export default function LaunchPreloader({
   // прогрев для начала урока НЕ был готов заранее, это осознанный компромисс:
   // «Продолжить» — основная, зелёная кнопка, более вероятный выбор
   const resumeEntryNode = resumeOffer?.nodeId ? nodes.find(n => n.id === resumeOffer.nodeId) : null
-  const { blobMap, readyNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, releaseBlobs } = usePlayerPreload(
+  const { blobMap, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, releaseBlobs } = usePlayerPreload(
     nodes, files, resumeEntryNode ? [resumeEntryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize }
   )
 
@@ -87,8 +87,12 @@ export default function LaunchPreloader({
 
   // Готовность — по нодам; бар — по скачанным байтам warmup-файлов (честный и плавный).
   // initialized=false until the hook has built its queue — prevents false "ready" flash.
+  // Готова — не «байты пришли», а «прогрета»: постер кружка/видео/стикера
+  // снят, мета голосового посчитана (preloadWarm.js). Первая нода показывается
+  // без предрисовки — кружок без постера выходил в чат тёмным кругом и лишь
+  // потом «оживал». Захват/мета ограничены таймаутами, зависнуть не могут
   const nodeTotal   = warmupNodeIds.length
-  const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id)).length
+  const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id) && warmNodeIds.has(id)).length
   const loaded      = initialized && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
   // Показанный процент — плавный (не быстрее 1 с на всю шкалу, useSmoothPct)
   // и крутится только когда карточка видна (visible), не за каркасом.

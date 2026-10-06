@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useMemo, useCallback, useEffect, useRef, useState } from 'react'
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { forwardReachable, buildItemQueue, revokeEntry } from './preloadQueue.js'
@@ -18,6 +18,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
 
   const [blobMap, setBlobMap] = useState(() => ({ ...(initialBlobMap ?? {}) }))
   const [queueTotal, setQueueTotal] = useState(0)
+  const [queueItems, setQueueItems] = useState([]) // зеркало queueRef для расчётов в рендере
   const [readyNodeIds, setReadyNodeIds] = useState(() => new Set())
 
   // Eviction
@@ -174,6 +175,17 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     return makeFetch()(item, gen)
   }
 
+  // То же для карточки запуска — множество прогретых нод, пересчитывается
+  // по blobMap (постер/мета доезжают после байтов)
+  const warmNodeIds = useMemo(() => {
+    const byNode = new Map()
+    for (const it of queueItems) {
+      if (!byNode.has(it.nodeId)) byNode.set(it.nodeId, [])
+      byNode.get(it.nodeId).push(it)
+    }
+    return new Set([...byNode].filter(([, items]) => isNodeWarmPure(items, blobMap)).map(([id]) => id))
+  }, [queueItems, blobMap])
+
   // «Нода прогрета» для графа урока (preloadWarm.js): blob + постер + мета.
   // Читает рефы в момент вызова — стабильна, в зависимости эффектов не попадает
   const isNodeWarm = useCallback(nodeId => {
@@ -249,6 +261,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     // Count only items within the warmup gate (nodeIdx < initialLookahead)
     const warmup = queueRef.current.filter(item => item.nodeIdx < initialLookahead).length
     setQueueTotal(warmup || queueRef.current.length)
+    setQueueItems(queueRef.current)
     // Expose the exact node IDs being warmed up (BFS order, ≤ initialLookahead nodes)
     const warmupIds = [...new Set(
       queueRef.current.filter(i => i.nodeIdx < initialLookahead).map(i => i.nodeId)
@@ -323,5 +336,5 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // Дебаг-оверлей живёт в ref и «дёргается» через setDebugTick — чтение при рендере намеренное
   // eslint-disable-next-line react-hooks/refs
   const debugItems = [...debugItemsRef.current.values()]
-  return { blobMap, queueTotal, readyNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, addMsgTs, releaseBlobs, evictLog, isNodeWarm }
+  return { blobMap, queueTotal, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, addMsgTs, releaseBlobs, evictLog, isNodeWarm }
 }

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { analyzeWaveform, probeAudioDuration } from '../../../../shared/lib/audioUtils.js'
 import { logAudioDurationReady } from './audioDebug.js'
+import { getAudioMeta } from '../../../../shared/lib/audioMetaCache.js'
 
 // Откуда у голосового волна и длительность — вынесено из AudioModule.jsx
 // (упёрся в потолок 400 строк). Три источника по убыванию приоритета:
@@ -18,8 +19,11 @@ const META_WAIT_MS = 4000
 
 export function useAudioMeta(node, file, src) {
   const stored   = node.typeData?.audio ?? {}
-  const initWave = stored.waveformData?.length ? stored.waveformData : (file?.waveformData ?? null)
-  const initDur  = stored.duration || file?.duration || null
+  // Третий источник на старте — кэш устройства по id файла (audioMetaCache.js):
+  // считали в прошлый раз — спектр и таймер есть ещё до скачивания
+  const cached   = useMemo(() => getAudioMeta(file?.id ?? stored.file_id), [file?.id, stored.file_id])
+  const initWave = stored.waveformData?.length ? stored.waveformData : (file?.waveformData ?? cached?.waveformData ?? null)
+  const initDur  = stored.duration || file?.duration || cached?.duration || null
 
   const [waveData,  setWaveData]  = useState(initWave)
   const [duration,  setDuration]  = useState(initDur)

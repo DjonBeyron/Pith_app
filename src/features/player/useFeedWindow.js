@@ -65,7 +65,16 @@ export function useFeedWindow(entries, { hasMoreHistory = false, onLoadMoreHisto
 
   const hasOlder = start > 0 || hasMoreHistory
 
-  const showOlder = () => {
+  // Раскрытие истории вставляет строки в начало DOM (визуальный верх =
+  // дальний край прокрутки). Chrome при этом «якорит» и сдвигает scrollTop на
+  // высоту вставки — читаемое место уезжает. Запоминаем scrollTop на клике и
+  // возвращаем микрозадачей: клик — дискретное событие, React коммитит его
+  // обновление синхронно до неё, отрисовки между ними нет. Лента берётся от
+  // кнопки (она внутри ленты), а не из контекста: значения хука менять нельзя
+  const showOlder = e => {
+    const outer = e?.currentTarget?.closest?.('.playerFeed') ?? null
+    const before = outer ? outer.scrollTop : null
+    if (outer) queueMicrotask(() => { outer.scrollTop = before })
     if (start > 0) {
       const next = olderAnchor(entries, start)
       pLog(`[window] раскрыть раньше: start ${start} → якорь ${next === ANCHOR_ALL ? 'всё' : next.slice(0, 8)}`)

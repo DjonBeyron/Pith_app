@@ -1,12 +1,16 @@
 import { enqueuePosterCapture } from './posterQueue.js'
 import { fetchBlobWithRetry } from './preloadFetch.js'
 import { analyzeWaveform, probeAudioDuration } from '../../shared/lib/audioUtils.js'
+import { getAudioMeta, setAudioMeta } from '../../shared/lib/audioMetaCache.js'
 
 // У каких файлов снимается кадр-постер, и какие выгружаются по мере ухода из
 // окна чата (usePlayerPreload.js берёт отсюда же)
 export const POSTER_TYPES = new Set(['video', 'circle', 'sticker'])
 // Only heavy media is evicted — photos/stickers are small, photo_choice panels are special
 export const EVICT_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'table'])
+// Картинки декодируем заранее (Image.decode): иначе blob готов, а пузырь всё
+// равно выходит пустым на первый кадр — декодирование шло уже в чате
+export const DECODE_TYPES = new Set(['photo', 'sticker', 'photo_choice'])
 
 // Загрузка одного файла очереди прогрева: скачивание с повторами и прогрессом,
 // публикация blob-ссылки, мета голосового, выгрузка дальних, постер в фоне.
@@ -27,15 +31,33 @@ export function makePreloadFetch(ctx) {
   async function analyzeAudioMeta(id, blobUrl, gen) {
     if (blobUrlsRef.current[id]?.metaStarted) return
     blobUrlsRef.current[id].metaStarted = true
-    const [duration, waveformData] = await Promise.all([
-      probeAudioDuration(blobUrl).catch(() => null),
-      analyzeWaveform(blobUrl).catch(() => null),
-    ])
+    // Считали раньше (этот или другой урок с тем же файлом) — берём из кэша
+    const cached = getAudioMeta(id)
+    let duration = cached?.duration ?? null
+    let waveformData = cached?.waveformData ?? null
+    if (!duration || !waveformData) {
+      ;[duration, waveformData] = await Promise.all([
+        duration ? Promise.resolve(duration) : probeAudioDuration(blobUrl).catch(() => null),
+        waveformData ? Promise.resolve(waveformData) : analyzeWaveform(blobUrl).catch(() => null),
+      ])
+      setAudioMeta(id, { duration, waveformData })
+    }
     if (genRef.current !== gen) return
     const entry = blobUrlsRef.current[id]
     if (!entry?.blobUrl) return
     blobUrlsRef.current[id] = { ...entry, duration, waveformData, metaDone: true }
     setBlobMap(prev => ({ ...prev, [id]: blobUrlsRef.current[id] }))
+  }
+
+  // Картинка декодируется в памяти сразу после скачивания; элемент держим в
+  // записи, чтобы декодированный кадр не вытеснился из кэша до показа
+  function decodeImage(id, blobUrl) {
+    if (typeof Image === 'undefined') return
+    const im = new Image()
+    im.src = blobUrl
+    const done = () => { const e = blobUrlsRef.current[id]; if (e?.blobUrl === blobUrl) e.decodedImg = im }
+    if (im.decode) im.decode().then(done).catch(() => {})
+    else im.onload = done
   }
 
   async function fetchOne(item, gen) {
@@ -101,6 +123,7 @@ export function makePreloadFetch(ctx) {
     setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
     pump(gen)
     if (nodeType === 'audio') analyzeAudioMeta(id, blobUrl, gen)
+    if (DECODE_TYPES.has(nodeType)) decodeImage(id, blobUrl)
 
     if (EVICT_TYPES.has(nodeType)) await evictFarthestIfNeeded(gen, id)
 
