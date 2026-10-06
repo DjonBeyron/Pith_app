@@ -201,7 +201,7 @@ describe('«Продолжить урок» — решение и прогрев
     expect(launch).toContain('const resumeEntryNode = resumeOffer?.nodeId ? nodes.find(n => n.id === resumeOffer.nodeId) : null')
     // Сперва выбор, потом прогрев выбранной точки (entryNodeId → preloadQueue.warmupPlan)
     expect(launch).toContain("const preloadNodes = choosing ? NO_NODES : nodes")
-    expect(launch).toContain("preloadNodes,\n    files, entryNode ? [entryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null }")
+    expect(launch).toContain("preloadNodes, files, entryNode ? [entryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null }")
     // Готовность — только когда очередь пересобрана под выбранный список
     expect(launch).toContain('initializedFor === preloadNodes')
   })
