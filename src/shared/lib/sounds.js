@@ -1,6 +1,12 @@
 import { pLog } from './debug.js'
 import { traceSoundRequest, traceSoundStarted, traceSoundFailed } from './soundTrace.js'
 import { onLessonOpenChange } from './lessonOpen.js'
+import { APP_VERSION } from './version.js'
+
+// Адрес звука с версией приложения: файлы кэшируются на сутки (vercel.json),
+// и после замены звука телефон играл старый из кэша — новая версия = новый
+// адрес, перечитывается ровно один раз после деплоя
+export const soundUrl = name => `/sounds/${name}.mp3?v=${APP_VERSION}`
 
 // Hybrid approach for iOS (CriOS) compatibility:
 // - AudioContext.resume() in gesture handler properly unlocks the page for all audio.
@@ -33,7 +39,7 @@ const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-message
 // Зовётся из App.jsx с задержкой, чтобы не толкаться с первым видео ленты
 export function warmSoundFiles() {
   if (typeof fetch !== 'function') return
-  for (const name of ALL_SOUNDS) fetch(`/sounds/${name}.mp3`, { cache: 'force-cache' }).catch(() => {})
+  for (const name of ALL_SOUNDS) fetch(soundUrl(name), { cache: 'force-cache' }).catch(() => {})
 }
 
 // Call during lesson warmup (no gesture needed).
@@ -45,7 +51,7 @@ export function preloadSounds() {
   }
   ALL_SOUNDS.forEach(name => {
     if (htmlCache[name]) return
-    const a = new Audio(`/sounds/${name}.mp3`)
+    const a = new Audio(soundUrl(name))
     a.preload = 'auto'
     a.load()
     htmlCache[name] = a
@@ -79,7 +85,7 @@ export function playSound(name, where = null) {
   if (muted) return
   let audio = htmlCache[name]
   if (!audio) {
-    audio = new Audio(`/sounds/${name}.mp3`)
+    audio = new Audio(soundUrl(name))
     htmlCache[name] = audio
   }
   const rec = traceSoundRequest(name, audio, { откуда: where, состояниеCtx: ctx?.state ?? null })

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { soundUrl } from '../../shared/lib/sounds.js'
 import PushToggle from '../profile/PushToggle.jsx'
 import InstallSlides from '../../shared/ui/InstallSlides.jsx'
 import MemorySettings from '../learn/MemorySettings.jsx'
@@ -51,7 +52,7 @@ export default function SettingsTab({ learnView = null, onLearnChanged = () => {
 }
 
 function SoundRow({ label, file }) {
-  const src = `/sounds/${file}`
+  const src = soundUrl(file.replace(/\.mp3$/, ''))
 
   function handlePlay() {
     const audio = new Audio(src)
