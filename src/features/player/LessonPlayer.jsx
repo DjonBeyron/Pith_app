@@ -157,10 +157,13 @@ export default function LessonPlayer({
   // через rememberTap). Начисление при этом не ждёт ничего — счётчик в шапке
   // растёт сразу, откладывается только полёт. opts.expectBubble — см. xpAnchor.js
   function handleXpEarned(amount, nodeId = null, opts = undefined) {
-    playSound('xp-gain', 'XP в уроке')
     setEarnedXp(prev => { earnedXpRef.current = prev + amount; return prev + amount })
-    resolveXpOrigin(nodeId, origin =>
-      setXpEvents(prev => [...prev, { id: Date.now() + Math.random(), amount, rect: origin }]), opts)
+    // Звук — вместе с вылетом частицы (она ждёт пузырь ответа ~2 с, см.
+    // xpAnchor.js), а не в момент ответа: иначе накладывался на «верно»
+    resolveXpOrigin(nodeId, origin => {
+      playSound('xp-gain', 'XP в уроке')
+      setXpEvents(prev => [...prev, { id: Date.now() + Math.random(), amount, rect: origin }])
+    }, opts)
   }
 
   function dismissXpEvent(id) {

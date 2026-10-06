@@ -126,9 +126,6 @@ export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Нагр
       } else {
         if (numRef.current)   numRef.current.textContent   = '0'
         if (xpNumRef.current) xpNumRef.current.textContent = totalXp + ' XP'
-        // Новый уровень — звук в момент, когда бар доехал и блок уровня вот-вот
-        // появится (один компонент на итоги урока, повторения и награду серии)
-        if (finalLevel.level > startLevel.level) playSound('level-up', 'новый уровень')
         if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
         // Switch shimmer to slow after fill
         if (barFillRef.current) {
@@ -149,7 +146,12 @@ export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Нагр
             el.style.opacity     = '0'
             el.style.marginBottom = '0'
           }
-          setTimeout(() => onDone?.(), 950)
+          setTimeout(() => {
+            // Новый уровень — звук ровно к появлению блока уровня (его показывает
+            // onDone; один компонент на итоги урока, повторения и награду серии)
+            if (finalLevel.level > startLevel.level) playSound('level-up', 'новый уровень')
+            onDone?.()
+          }, 950)
         }, 400)
       }
     }

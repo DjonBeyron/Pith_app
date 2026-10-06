@@ -136,10 +136,18 @@ export default function PlayerFeed({ children, panelOpen = false }) {
       const existingRows = rows.filter(el =>  prevEls.has(el))
 
       // Measure how far existing rows already jumped (layout reflow before this effect).
-      // wrapper div height + CSS gap (4px) = exact shift amount.
+      // Место, занятое новой строкой, меряем по факту: от нижнего края
+      // предыдущего соседа в потоке до её нижнего края (высота + зазор ленты,
+      // если браузер его добавил). Формула «offsetHeight + 4» ошибалась на
+      // зазор, когда его не было, — и компенсация прокрутки ниже сдвигала
+      // читаемые строки на 4 px
       let shiftPx = 0
       newRows.forEach(el => {
-        shiftPx += (el.parentElement?.offsetHeight ?? el.offsetHeight) + 4
+        const wrap = el.parentElement ?? el
+        let prev = wrap.previousElementSibling
+        while (prev && (prev.hasAttribute('data-pending') || prev.tagName === 'BUTTON')) prev = prev.previousElementSibling
+        const r = wrap.getBoundingClientRect()
+        shiftPx += prev ? Math.max(0, r.bottom - prev.getBoundingClientRect().bottom) : r.height
       })
 
       // Ученик читает историю выше: сообщение встаёт внизу молча — без
