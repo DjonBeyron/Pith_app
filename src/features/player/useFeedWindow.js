@@ -19,6 +19,16 @@ import { ANCHOR_ALL, FEED_WINDOW, entryKey, olderAnchor, windowStart } from './f
 //   showOlder — клик по кнопке
 const BOTTOM_PX = 80
 
+// Копия ноды с isHistory — одна на исходный объект: новая копия на каждый
+// рендер = новый проп node у всех строк старше хвоста, и memo строк ленты
+// (PlayerFeedNodes) их перерисовывал на каждый рендер LessonPlayer
+const HISTORY_COPY = new WeakMap()
+function asHistory(node) {
+  let copy = HISTORY_COPY.get(node)
+  if (!copy) { copy = { ...node, isHistory: true }; HISTORY_COPY.set(node, copy) }
+  return copy
+}
+
 export function useFeedWindow(entries, { hasMoreHistory = false, onLoadMoreHistory } = {}) {
   const [anchorKey, setAnchorKey] = useState(null)
   const feedEls = useFeedEls() // своя лента (feedRefs.js), не document
@@ -60,7 +70,7 @@ export function useFeedWindow(entries, { hasMoreHistory = false, onLoadMoreHisto
   const tailStart = Math.max(0, count - FEED_WINDOW)
   const slice = entries.slice(start).map((entry, i) => {
     const old = start + i < tailStart && entry.kind === 'node' && !entry.node.isHistory
-    return old ? { ...entry, node: { ...entry.node, isHistory: true } } : entry
+    return old ? { ...entry, node: asHistory(entry.node) } : entry
   })
 
   const hasOlder = start > 0 || hasMoreHistory
