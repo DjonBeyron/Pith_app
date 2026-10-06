@@ -112,13 +112,17 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
         let posterUrl = entry.posterUrl
         if (!posterUrl) posterUrl = await capturePosterFrame(entry.blobUrl, 2000)
         if (genRef.current !== gen) { evictingIdsRef.current.delete(evictId); return }
-        URL.revokeObjectURL(entry.blobUrl)
         blobUrlsRef.current[evictId] = { blobUrl: null, posterUrl, evicted: true }
       } else {
-        URL.revokeObjectURL(entry.blobUrl)
         blobUrlsRef.current[evictId] = { blobUrl: null, evicted: true }
       }
       setBlobMap(prev => ({ ...prev, [evictId]: blobUrlsRef.current[evictId] }))
+      // Отзыв — ПОСЛЕ того, как React докоммитит новый blobMap: раскрытая
+      // кнопкой «показать раньше» старая строка могла смонтировать <audio>
+      // с этим blob в том же рендере, что и попала под вытеснение — отзыв до
+      // коммита ронял её загрузку (ERR_FILE_NOT_FOUND), а так элемент успевает
+      // переключиться на прямую ссылку и blob-запрос просто отменяется
+      setTimeout(() => URL.revokeObjectURL(entry.blobUrl), 1000)
       evictingIdsRef.current.delete(evictId)
     }
   }
