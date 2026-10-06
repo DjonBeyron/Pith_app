@@ -22,23 +22,23 @@ import { nodeFileKey } from './preloadQueue.js'
 // map, и React монтировал ноду заново: 1.4 с предрисовки пропадали, <img>/
 // <video>/<audio> создавались с нуля в момент появления (замер: 0 из 98
 // показов сохранили DOM) — фото и стикеры выходили пустыми на первый кадр.
-// Колбэки на ноду — стабильные между рендерами (WeakMap по объекту ноды):
-// инлайн-стрелки давали всем сообщениям новые пропсы на каждый рендер
+// Колбэки на запись ленты — стабильные между рендерами (WeakMap по объекту
+// ноды): инлайн-стрелки давали всем сообщениям новые пропсы на каждый рендер
 // LessonPlayer (0,8–0,9 раз/с), и вся лента перерисовывалась (профиль:
-// PlayerMessage 5110 рендеров за урок). Ключ — сама нода и пара обработчиков
+// PlayerMessage 5110 рендеров за урок). id — что передать в done (id ноды
+// или ключ сигнала), done/onTrReveal — обработчики, по ним же кэш
 const CB = new WeakMap()
-function nodeCallbacks(node, onNodeDone, onTrReveal) {
+function nodeCallbacks(node, id, done, onTrReveal) {
   let byHandlers = CB.get(node)
   if (!byHandlers) { byHandlers = new Map(); CB.set(node, byHandlers) }
-  const key = onNodeDone
-  let cbs = byHandlers.get(key)
+  let cbs = byHandlers.get(done)
   if (!cbs || cbs.onTrRevealSrc !== onTrReveal) {
     cbs = {
       onTrRevealSrc: onTrReveal,
-      onDone: result => onNodeDone(node.id, result),
+      onDone: result => done(id, result),
       onTrReveal: () => onTrReveal(node.id),
     }
-    byHandlers.set(key, cbs)
+    byHandlers.set(done, cbs)
   }
   return cbs
 }
@@ -70,7 +70,7 @@ export default function PlayerFeedNodes({
   function renderNode(node, isPending) {
     const fileId = nodeFileKey(node)
     const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
-    const cbs    = nodeCallbacks(node, onNodeDone, onTrReveal)
+    const cbs    = nodeCallbacks(node, node.id, onNodeDone, onTrReveal)
     // Реакция рисуется ВНУТРИ чужого пузыря (порталом, см. ReactionModule) —
     // своей строки в ленте у неё нет вовсе. Пустой слот-обёртка всё равно
     // добавлял бы gap ленты (4px): лента дёргалась на ровном месте
@@ -147,6 +147,7 @@ export default function PlayerFeedNodes({
   function renderSignal(key, node) {
     const fileId = nodeFileKey(node)
     const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
+    const cbs    = nodeCallbacks(node, key, onMessageDone, onTrReveal)
     return (
       <div key={key} data-entry-key={key}>
         <MemoMessage
@@ -158,8 +159,8 @@ export default function PlayerFeedNodes({
           bottomOffset={bottomOffset}
           videoAutoSound={videoAutoSound}
           adminPreview={isAdmin}
-          onDone={() => onMessageDone(key)}
-          onTrReveal={() => onTrReveal(node.id)}
+          onDone={cbs.onDone}
+          onTrReveal={cbs.onTrReveal}
           onOpenLessonRef={onOpenLessonRef}
         />
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import PlayerTopBar from './PlayerTopBar.jsx'
 import PlayerFeed from './PlayerFeed.jsx'
 import PlayerFeedNodes from './PlayerFeedNodes.jsx'
@@ -106,7 +106,8 @@ export default function LessonPlayer({
   // Переход по ноде lesson_ref (карточка-ссылка в чате) — пауза этого урока
   // и открытие целевого поверх всего (LessonNavOverlay.jsx)
   const { openRef } = useLessonNav()
-  const handleOpenLessonRef = target => openRef(target, lessonId)
+  // useCallback: уходит пропсом в каждую строку ленты (memo в PlayerFeedNodes)
+  const handleOpenLessonRef = useCallback(target => openRef(target, lessonId), [openRef, lessonId])
 
   // Конец урока: начисление XP/звёзд/билета, запись анализа — useLessonFinish.js
   const { finishSummary } = useLessonFinish({
@@ -185,9 +186,9 @@ export default function LessonPlayer({
   // Журнал появления нод + готовности их медиа — useNodeAppearLog.js
   const nodeAppearLogRef = useNodeAppearLog(visibleNodes, blobMap, addMsgTs, openTimeRef)
 
-  const combinedLogData = () => ({ nodeAppearLog: nodeAppearLogRef.current, debugItems, events: getEvents() })
-  const downloadCombinedLog = () => downloadDebugLog(combinedLogData())
-  const copyCombinedLog     = () => copyDebugLog(combinedLogData())
+  const combinedLogData = useCallback(() => ({ nodeAppearLog: nodeAppearLogRef.current, debugItems, events: getEvents() }), [nodeAppearLogRef, debugItems, getEvents])
+  const downloadCombinedLog = useCallback(() => downloadDebugLog(combinedLogData()), [combinedLogData])
+  const copyCombinedLog     = useCallback(() => copyDebugLog(combinedLogData()), [combinedLogData])
 
   const filesWithBlobs = useMemo(() => withBlobs(files, blobMap), [files, blobMap])
 
@@ -247,7 +248,11 @@ export default function LessonPlayer({
   useDebugStepBridge(step)
 
   // Общие пропсы ленты PlayerFeedNodes.jsx (обычные ноды + сигнальные сообщения вперемешку)
-  const feedShared = { nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin, onTrReveal: registerHint, onOpenLessonRef: handleOpenLessonRef }
+  // useMemo — иначе новый объект каждый рендер, и memo строк ленты бесполезен
+  const feedShared = useMemo(() => ({
+    nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin,
+    onTrReveal: registerHint, onOpenLessonRef: handleOpenLessonRef,
+  }), [nodes, filesWithBlobs, teacherName, panels.offset, videoAutoSound, isAdmin, registerHint, handleOpenLessonRef])
 
   return (
     /* На десктопе playerStage/playerPhone превращают плеер в «телефон» по
