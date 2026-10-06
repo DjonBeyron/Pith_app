@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
 import { primeAudio } from '../../shared/lib/primedAudio.js'
@@ -20,6 +20,7 @@ import useSmoothPct from './useSmoothPct.js'
 // 400 строк).
 const WARMUP_TARGET = 5
 const NO_NODES = [] // стабильный пустой список: до выбора прогрев не строит очередь
+const NO_IDS   = []
 
 export default function LaunchPreloader({
   lessonData, title, info, dissolving, onDissolve, examIntro = false,
@@ -57,8 +58,20 @@ export default function LaunchPreloader({
   const choosing = !choice
   const entryNode = choice === 'resume' ? resumeEntryNode : null
   const preloadNodes = choosing ? NO_NODES : nodes
+  // «Продолжить»: в ленте при старте, кроме точки входа, сразу стоит история
+  // (хвост visitedIds без последнего — он и есть точка входа; страницу
+  // HISTORY_PAGE из этого списка берёт сам прогрев) — её файлы тоже должны
+  // быть готовы ДО старта, иначе строки истории выходили пустыми (чёрные
+  // кружки, фото без картинки, голосовые без волны). «Сначала» — без истории
+  const historyIds = useMemo(
+    () => (choice === 'resume' && resumeOffer ? (resumeOffer.visitedIds ?? []).slice(0, -1) : NO_IDS),
+    [choice, resumeOffer],
+  )
+  // Стабильный список: новый литерал [entryNode] на каждом рендере заново
+  // гонял эффект переупорядочивания очереди в usePlayerPreload
+  const cardVisible = useMemo(() => (entryNode ? [entryNode] : NO_NODES), [entryNode])
   const { blobMap, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, initializedFor, debugItems, releaseBlobs } = usePlayerPreload(
-    preloadNodes, files, entryNode ? [entryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null }
+    preloadNodes, files, cardVisible, { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null, historyIds }
   )
   // Жест выбора: разблокировка звука и прогретый элемент таблиц — только здесь,
   // в обработчике тапа (iOS); сам старт придёт позже, из эффекта по готовности

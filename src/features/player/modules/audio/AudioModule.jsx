@@ -12,6 +12,7 @@ import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
 import { useAudioMeta } from './useAudioMeta.js'
+import { useStuckPlayRecovery } from './useStuckPlayRecovery.js'
 import { usePlayerMuted } from '../../playerMuted.js'
 import { logAudioMount, logAudioPlayStart, makeAudioHeartbeat, makeGapWatch, attachAudioEventLog, logAudioEnded } from './audioDebug.js'
 
@@ -48,6 +49,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const timeRef         = useRef(null)
   // Ручка волны: setProgress(0..1) — см. AudioWave.jsx
   const waveRef         = useRef(null)
+  // Элемент завис после прерывания аудиосессии (наушники) — пересоздаём, см. useStuckPlayRecovery.js
+  const { elKey, watch: watchPlay } = useStuckPlayRecovery(audioRef, () => toggle())
 
   // Отрицательный офсет триггера played — запустить следующую ноду до конца звука
   usePlayedOffset(playedOffsetMs(node), () => audioRef.current, onDone)
@@ -157,9 +160,10 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       detachEvents()
     }
     // lockSrc стабилен (useCallback с пустыми deps) — подписку не пересобирает;
-    // adoptElementDuration — функция хука, читает только рефы
+    // adoptElementDuration — функция хука, читает только рефы. elKey —
+    // пересозданный элемент должен получить те же подписки
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, lockSrc])
+  }, [src, lockSrc, elKey])
 
   // Один цикл кадров на элемент, и не больше. Возобновление приходит с двух
   // сторон сразу: событие 'play' и промис audio.play() — если каждая заведёт
@@ -291,7 +295,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
     audio.addEventListener('ended', onEnded, { once: true })
     pLog('AudioModule: calling audio.play(), readyState=', audio.readyState, 'networkState=', audio.networkState)
-    audio.play().then(() => {
+    const playing = audio.play()
+    watchPlay(audio, playing)
+    playing.then(() => {
       pLog('AudioModule: play() resolved OK')
       setIsPlaying(true)
       // ensureTick, а не свой rAF: событие 'play' уже могло поднять цикл,
@@ -330,7 +336,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   return (
     <div className="playerMsgRow">
       <PlayerBubble className={bubbleClass}>
-        {src && <audio ref={audioRef} src={src} preload="auto" muted={muted} />}
+        {src && <audio key={elKey} ref={audioRef} src={src} preload="auto" muted={muted} />}
         <div className="playerAudio">
           {/* Призрак полного текста — держит финальную ширину пузыря СРАЗУ,
               с первого рендера, даже пока сама расшифровка ещё не появилась

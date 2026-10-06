@@ -14,6 +14,18 @@
 
 export const FEED_WINDOW = 16 // ~12 строк (сигналы и реакции — записи без строки)
 export const FEED_PAGE   = 12
+// Страница истории чекпойнта («Продолжить урок», useGraphPlayer.js): сколько
+// нод, показанных ДО точки входа, попадает в ленту сразу при старте — остальное
+// по requestMoreHistory. Та же цифра нужна прогреву (usePlayerPreload.js):
+// карточка запуска греет ровно те ноды истории, что окажутся на экране
+export const HISTORY_PAGE = 12
+
+// Id нод истории, которые окажутся в ленте при старте: хвост списка (без
+// самой точки входа — её в historyIds уже нет, см. useLessonResume.resume)
+// из нод, которые в уроке ещё существуют — так же считает useGraphPlayer
+export function historyPageIds(historyIds, hasNode) {
+  return (historyIds ?? []).filter(hasNode).slice(-HISTORY_PAGE)
+}
 // Якорь «с самого начала»: все записи, включая подгружаемые страницы истории
 // чекпойнта (они встают в начало массива, и ключевой якорь их бы прятал)
 export const ANCHOR_ALL  = '__all__'

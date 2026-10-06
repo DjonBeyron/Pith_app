@@ -98,26 +98,36 @@ export function revokePayloadBlobs(payload) {
 // нод по реальному пути от неё, а гейт по BFS-индексу поднимается, чтобы их
 // пропустить (у середины урока индексы большие). Раньше карточка с чекпойнтом
 // ждала прогрева НАЧАЛА урока, а точка возобновления прогревалась «как
-// получится»
-export function warmupPlan(queue, entryNodeId, byId, lookahead) {
+// получится».
+// historyIds — ноды истории, которые окажутся в ленте при старте (порядок
+// ленты, feedWindow.historyPageIds): их файлы — ПЕРВЫМИ в очереди и целиком
+// в прогреве (сверх lookahead), иначе при «Продолжить» строки истории
+// выходили пустыми — чёрные кружки, фото без картинки, голосовые без волны
+export function warmupPlan(queue, entryNodeId, byId, lookahead, historyIds = []) {
+  const histRank = new Map(historyIds.map((id, i) => [id, i]))
+  const history = queue.filter(i => histRank.has(i.nodeId)).sort((a, b) => histRank.get(a.nodeId) - histRank.get(b.nodeId))
+  const rest = history.length ? queue.filter(i => !histRank.has(i.nodeId)) : queue
+  const warmupIds = [...new Set(history.map(i => i.nodeId))]
   const entry = entryNodeId ? byId[entryNodeId] : null
+  let ordered = rest
   if (!entry) {
-    const ids = [...new Set(queue.filter(i => i.nodeIdx < lookahead).map(i => i.nodeId))]
-    return { queue, warmupIds: ids, allowUpTo: lookahead }
-  }
-  const reach = forwardReachable(entry, byId)
-  // reach — Set в порядке обхода в ширину ОТ ТОЧКИ ВХОДА: ближайшие по пути
-  // ноды первыми (а не по BFS от начала урока, где ближняя к точке нода
-  // может стоять далеко позади чужих веток)
-  const rank = new Map([...reach].map((id, i) => [id, i]))
-  const active = queue.filter(i => reach.has(i.nodeId)).sort((a, b) => rank.get(a.nodeId) - rank.get(b.nodeId))
-  const speculative = queue.filter(i => !reach.has(i.nodeId))
-  const warmupIds = []
-  for (const i of active) {
-    if (!warmupIds.includes(i.nodeId)) warmupIds.push(i.nodeId)
-    if (warmupIds.length >= lookahead) break
+    for (const i of rest) if (i.nodeIdx < lookahead && !warmupIds.includes(i.nodeId)) warmupIds.push(i.nodeId)
+  } else {
+    const reach = forwardReachable(entry, byId)
+    // reach — Set в порядке обхода в ширину ОТ ТОЧКИ ВХОДА: ближайшие по пути
+    // ноды первыми (а не по BFS от начала урока, где ближняя к точке нода
+    // может стоять далеко позади чужих веток)
+    const rank = new Map([...reach].map((id, i) => [id, i]))
+    const active = rest.filter(i => reach.has(i.nodeId)).sort((a, b) => rank.get(a.nodeId) - rank.get(b.nodeId))
+    const speculative = rest.filter(i => !reach.has(i.nodeId))
+    let ahead = 0
+    for (const i of active) {
+      if (ahead >= lookahead) break
+      if (!warmupIds.includes(i.nodeId)) { warmupIds.push(i.nodeId); ahead++ }
+    }
+    ordered = [...active, ...speculative]
   }
   const warmSet = new Set(warmupIds)
-  const maxIdx = active.filter(i => warmSet.has(i.nodeId)).reduce((m, i) => Math.max(m, i.nodeIdx), -1)
-  return { queue: [...active, ...speculative], warmupIds, allowUpTo: Math.max(lookahead, maxIdx + 1) }
+  const maxIdx = queue.filter(i => warmSet.has(i.nodeId)).reduce((m, i) => Math.max(m, i.nodeIdx), -1)
+  return { queue: history.length ? [...history, ...ordered] : ordered, warmupIds, allowUpTo: Math.max(lookahead, maxIdx + 1) }
 }

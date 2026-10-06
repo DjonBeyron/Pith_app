@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ANCHOR_ALL, FEED_PAGE, FEED_WINDOW, entryKey, olderAnchor, windowStart } from './feedWindow.js'
+import { ANCHOR_ALL, FEED_PAGE, FEED_WINDOW, HISTORY_PAGE, entryKey, historyPageIds, olderAnchor, windowStart } from './feedWindow.js'
 
 const node = id => ({ kind: 'node', node: { id } })
 const sig  = key => ({ kind: 'signal', key, node: { id: 'sig-' + key } })
@@ -41,6 +41,14 @@ describe('feedWindow', () => {
     expect(s1).toBe(s0 - FEED_PAGE)
     expect(olderAnchor(e, FEED_PAGE)).toBe(ANCHOR_ALL)
     expect(olderAnchor(e, FEED_PAGE - 3)).toBe(ANCHOR_ALL)
+  })
+
+  it('страница истории на старте: хвост HISTORY_PAGE из существующих нод, порядок ленты', () => {
+    const ids = Array.from({ length: 20 }, (_, i) => 'h' + i)
+    expect(historyPageIds(ids, () => true)).toEqual(ids.slice(-HISTORY_PAGE))
+    // удалённая из урока нода выпадает ДО отсчёта страницы — как в useGraphPlayer
+    expect(historyPageIds(ids, id => id !== 'h19')).toEqual(ids.slice(-HISTORY_PAGE - 1, -1))
+    expect(historyPageIds(null, () => true)).toEqual([])
   })
 
   it('сигналы считаются записями окна наравне с нодами', () => {

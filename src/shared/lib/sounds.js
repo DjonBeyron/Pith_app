@@ -1,6 +1,7 @@
 import { pLog } from './debug.js'
 import { traceSoundRequest, traceSoundStarted, traceSoundFailed } from './soundTrace.js'
-import { onLessonOpenChange } from './lessonOpen.js'
+import { onLessonOpenChange, isLessonOpen } from './lessonOpen.js'
+import { resetPrimed } from './primedAudio.js'
 import { APP_VERSION } from './version.js'
 
 // Адрес звука с версией приложения: файлы кэшируются на сутки (vercel.json),
@@ -21,8 +22,42 @@ const htmlCache = {}
 // (unlockAudio). После урока он оставался в running и держал аудиосессию
 // системы активной — на паузу; следующий урок снова разбудит его жестом
 onLessonOpenChange(open => {
-  if (!open && ctx && ctx.state === 'running') ctx.suspend().catch(() => {})
+  if (open) return
+  disarmGesture()
+  if (ctx && ctx.state === 'running') ctx.suspend().catch(() => {})
 })
+
+// Прерывание аудиосессии iOS (отключились Bluetooth-наушники, звонок):
+// контекст уходит в WebKit-состояние 'interrupted', а каждый СУЩЕСТВУЮЩИЙ
+// <audio> помечается прерванным — его play() дальше молча ничего не делает,
+// и «конец прерывания» при смене маршрута может не прийти вовсе. Жалоба с
+// iPhone: после переподключения наушников звуки интерфейса пропали до
+// перезагрузки страницы — элементы в htmlCache создаются один раз. Поэтому:
+// кэш выбрасываем (следующий playSound создаст свежие элементы в новых
+// сессиях), прогретый элемент таблиц тоже, а контекст резюмим на ближайшем
+// касании в уроке
+function onCtxStateChange() {
+  pLog(`[sound] AudioContext state → ${ctx.state}`)
+  if (ctx.state !== 'interrupted') return
+  evictAll('прерывание аудиосессии')
+  resetPrimed()
+  if (isLessonOpen()) armGesture()
+}
+
+let gestureArmed = false
+function onGesture() { disarmGesture(); unlockAudio() }
+function armGesture() {
+  if (gestureArmed || typeof document === 'undefined') return
+  gestureArmed = true
+  document.addEventListener('pointerdown', onGesture, true)
+  document.addEventListener('touchend', onGesture, true)
+}
+function disarmGesture() {
+  if (!gestureArmed) return
+  gestureArmed = false
+  document.removeEventListener('pointerdown', onGesture, true)
+  document.removeEventListener('touchend', onGesture, true)
+}
 
 // message-in — новое сообщение в чате; answer-correct/wrong — ответ в
 // упражнении (выбор слова, собери фразу, таблица, составь предложение,
@@ -47,6 +82,7 @@ export function warmSoundFiles() {
 export function preloadSounds() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)()
+    ctx.onstatechange = onCtxStateChange
     pLog(`[sound] AudioContext created state=${ctx.state}`)
   }
   ALL_SOUNDS.forEach(name => {
@@ -65,7 +101,8 @@ export function preloadSounds() {
 export function unlockAudio() {
   if (!ctx) return
   pLog(`[sound] unlockAudio — ctx.state=${ctx.state}`)
-  if (ctx.state === 'suspended') {
+  // Не только 'suspended': после прерывания iOS держит 'interrupted'
+  if (ctx.state !== 'running') {
     ctx.resume()
       .then(() => pLog(`[sound] AudioContext running`))
       .catch(e => pLog(`[sound] resume FAILED: ${e.message}`))
@@ -91,7 +128,33 @@ export function playSound(name, where = null) {
   const rec = traceSoundRequest(name, audio, { откуда: where, состояниеCtx: ctx?.state ?? null })
   // Only seek to start if not already there — avoids iOS re-decode stall on fresh objects
   if (audio.currentTime > 0) audio.currentTime = 0
+  // Прерванный элемент (см. onCtxStateChange) на старых iOS не отказывает, а
+  // ВИСИТ: промис не резолвится, событий нет. Ждём HANG_MS — не пошёл, так и
+  // стоит на паузе — выбрасываем, чтобы следующий раз создать свежий
+  let settled = false
+  const hang = setTimeout(() => { if (!settled && audio.paused) evict(name, audio, 'play() завис') }, HANG_MS)
   audio.play()
-    .then(() => { traceSoundStarted(rec); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
-    .catch(e => { traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`) })
+    .then(() => { settled = true; clearTimeout(hang); traceSoundStarted(rec); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
+    .catch(e => {
+      settled = true; clearTimeout(hang)
+      traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`)
+      // AbortError бывает и от второго playSound подряд (xp-gain на каждый
+      // шарик) — элемент при этом играет; выбрасываем только стоящий на паузе
+      if ((e?.name === 'NotAllowedError' || e?.name === 'AbortError') && audio.paused) evict(name, audio, e.name)
+    })
+}
+
+const HANG_MS = 1500
+
+function evict(name, audio, why) {
+  if (htmlCache[name] !== audio) return
+  delete htmlCache[name]
+  pLog(`[sound] ${name} выброшен из кэша (${why}) — следующий раз создадим свежий элемент`)
+}
+
+function evictAll(why) {
+  const names = Object.keys(htmlCache)
+  if (!names.length) return
+  names.forEach(n => delete htmlCache[n])
+  pLog(`[sound] кэш звуков сброшен (${why}): ${names.join(', ')}`)
 }

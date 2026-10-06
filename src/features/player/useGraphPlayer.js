@@ -6,6 +6,7 @@ import { appendVisit, forgetNodeKeys } from './graphPlayerVisits.js'
 import { useGraphStepControls } from './useGraphStepControls.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { freshNode } from './freshNode.js'
+import { HISTORY_PAGE } from './feedWindow.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
@@ -34,10 +35,9 @@ const CHECKPOINT_THRESHOLD = 6
 
 // Восстановление истории при «Продолжить урок» (historyIds ниже) — не всю
 // сразу: у длинного урока это могут быть сотни нод разом в DOM. Изначально
-// показываем только «хвост» — столько, сколько обычно видно на экране без
-// скролла — остальное подгружается по requestMoreHistory (кнопка/скролл
-// вверх в LessonPlayer.jsx)
-const HISTORY_PAGE = 12
+// показываем только «хвост» — HISTORY_PAGE (feedWindow.js, та же цифра у
+// прогрева карточки запуска) — остальное подгружается по requestMoreHistory
+// (кнопка/скролл вверх в LessonPlayer.jsx)
 // Сверх порога прогрева: полёт XP (ожидание пузыря ответа до 2,2 с + 1,6 с)
 const HOLD_EXTRA_MS = 2500
 

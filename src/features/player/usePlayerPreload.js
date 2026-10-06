@@ -1,10 +1,11 @@
 import { useMemo, useCallback, useEffect, useRef, useState } from 'react'
-import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { forwardReachable, buildItemQueue, revokeEntry, warmupPlan } from './preloadQueue.js'
 import { usePreloadProgress } from './usePreloadProgress.js'
 import { isNodeWarm as isNodeWarmPure } from './preloadWarm.js'
-import { makePreloadFetch, POSTER_TYPES, EVICT_TYPES } from './preloadFetchOne.js'
+import { makePreloadFetch, EVICT_TYPES } from './preloadFetchOne.js'
+import { makeEvict } from './preloadEvict.js'
+import { historyPageIds } from './feedWindow.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
@@ -12,9 +13,21 @@ export const CHAT_BUFFER_SIZE = 5
 const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice', 'table'])
 // POSTER_TYPES / EVICT_TYPES — в preloadFetchOne.js (там же и загрузка файла)
 
+// opts.historyIds — id нод, показанных ДО точки входа (useLessonResume /
+// payload карточки запуска, порядок ленты). Страница истории, что окажется в
+// ленте при старте (feedWindow.historyPageIds), прогревается ПЕРВОЙ и целиком
+// (preloadQueue.warmupPlan) — карточка запуска не стартует урок, пока история
+// не готова, а плеер не выгружает её файлы на первом кадре (graceRef)
 export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
-  const { initialLookahead = LOOKAHEAD, initialBlobMap = null, bufferSize = CHAT_BUFFER_SIZE, entryNodeId = null } = opts
+  const { initialLookahead = LOOKAHEAD, initialBlobMap = null, bufferSize = CHAT_BUFFER_SIZE, entryNodeId = null, historyIds = null } = opts
   const initRef = useRef(initialBlobMap ?? {})
+  // Страница истории на экране при старте — из нод, которые в уроке есть
+  const historyPage = useMemo(() => {
+    if (!historyIds?.length) return []
+    const ids = new Set(nodes.map(n => n.id))
+    return historyPageIds(historyIds, id => ids.has(id))
+  }, [nodes, historyIds])
+  const historyKey = historyPage.join(',')
 
   const [blobMap, setBlobMap] = useState(() => ({ ...(initialBlobMap ?? {}) }))
   const [queueTotal, setQueueTotal] = useState(0)
@@ -39,6 +52,12 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const inFlightRef    = useRef(0)
   const byIdRef        = useRef({})
   const startTimeRef   = useRef(0) // выставляется в Date.now() при rebuild-эффекте
+  // Запас буфера на старт с историей: столько тяжёлых файлов истории на
+  // экране сверх bufferSize. Тает на единицу с каждым новым сообщением —
+  // история выгружается постепенно, самая давняя первой, а не вся разом
+  const graceRef       = useRef(0)
+  const historySetRef  = useRef(new Set()) // ноды истории в плане прогрева
+  const lastVisibleRef = useRef(null)
 
   // Байтовый прогресс, процент прогрева, реестр загрузок — usePreloadProgress.js
   const {
@@ -63,22 +82,14 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     tick()
   }
 
-  // ─── Eviction ────────────────────────────────────────────────────────────
+  // ─── Eviction (preloadEvict.js) ──────────────────────────────────────────
   // Counts only revealed (visible) evictable files against the buffer limit.
   // Preloaded-ahead files are free — they only enter the count once revealed.
-
-  function revealedEvictableFids() {
-    const visNodeIds = new Set(visibleNodesRef.current.map(n => n.id))
-    return Object.entries(blobUrlsRef.current)
-      .filter(([id, entry]) => {
-        if (!entry?.blobUrl) return false
-        if (evictingIdsRef.current.has(id)) return false
-        const item = queueRef.current.find(i => i.id === id)
-        if (!item) return false
-        if (!EVICT_TYPES.has(item.nodeType)) return false
-        return visNodeIds.has(item.nodeId)
-      })
-      .map(([id]) => id)
+  function evictFarthestIfNeeded(gen, justLoadedId) {
+    return makeEvict({
+      genRef, blobUrlsRef, setBlobMap, queueRef, visibleNodesRef, evictingIdsRef,
+      evictLogRef, setEvictLog, ts, limit: () => bufferSize + graceRef.current,
+    })(gen, justLoadedId)
   }
 
   // Returns true when all queue items for this node have a blobUrl or errored out.
@@ -86,52 +97,6 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     const items = queueRef.current.filter(i => i.nodeId === nodeId)
     if (!items.length) return true
     return items.every(i => blobUrlsRef.current[i.id]?.blobUrl || blobUrlsRef.current[i.id]?.error)
-  }
-
-  async function evictFarthestIfNeeded(gen, justLoadedId) {
-    let revealed = revealedEvictableFids()
-    while (revealed.length > bufferSize) {
-      if (genRef.current !== gen) return
-      const candidates = justLoadedId ? revealed.filter(id => id !== justLoadedId) : revealed
-      if (!candidates.length) break
-      // Выгружаем самый давний ПО ПОКАЗУ (место ноды в ленте), а не по BFS-
-      // индексу: в циклах «ошибся → подсказка → снова тот же вопрос» и после
-      // «Продолжить урок» маленький индекс бывал у только что показанной ноды
-      const order = new Map(visibleNodesRef.current.map((n, i) => [n.id, i]))
-      const rank = id => {
-        const item = queueRef.current.find(i => i.id === id)
-        return order.get(item?.nodeId) ?? item?.nodeIdx ?? Infinity
-      }
-      const evictId = candidates.reduce((minId, id) => (rank(id) < rank(minId) ? id : minId), candidates[0])
-      if (evictingIdsRef.current.has(evictId)) {
-        revealed = revealed.filter(id => id !== evictId)
-        continue
-      }
-      evictingIdsRef.current.add(evictId)
-      revealed = revealed.filter(id => id !== evictId)
-      const item  = queueRef.current.find(i => i.id === evictId)
-      const entry = blobUrlsRef.current[evictId]
-      if (!entry || !item) { evictingIdsRef.current.delete(evictId); continue }
-      const log = { ts: ts(), id: evictId, seq: item.nodeSeq, type: item.nodeType }
-      evictLogRef.current = [...evictLogRef.current, log]
-      setEvictLog([...evictLogRef.current])
-      if (POSTER_TYPES.has(item.nodeType)) {
-        let posterUrl = entry.posterUrl
-        if (!posterUrl) posterUrl = await capturePosterFrame(entry.blobUrl, 2000)
-        if (genRef.current !== gen) { evictingIdsRef.current.delete(evictId); return }
-        blobUrlsRef.current[evictId] = { blobUrl: null, posterUrl, evicted: true }
-      } else {
-        blobUrlsRef.current[evictId] = { blobUrl: null, evicted: true }
-      }
-      setBlobMap(prev => ({ ...prev, [evictId]: blobUrlsRef.current[evictId] }))
-      // Отзыв — ПОСЛЕ того, как React докоммитит новый blobMap: раскрытая
-      // кнопкой «показать раньше» старая строка могла смонтировать <audio>
-      // с этим blob в том же рендере, что и попала под вытеснение — отзыв до
-      // коммита ронял её загрузку (ERR_FILE_NOT_FOUND), а так элемент успевает
-      // переключиться на прямую ссылку и blob-запрос просто отменяется
-      setTimeout(() => URL.revokeObjectURL(entry.blobUrl), 1000)
-      evictingIdsRef.current.delete(evictId)
-    }
   }
 
   // ─── Download ────────────────────────────────────────────────────────────
@@ -220,11 +185,17 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
 
     const lastVisible = visibleNodes[visibleNodes.length - 1]
     if (!lastVisible) return
+    // Новое сообщение в ленте — запас буфера под историю тает на единицу
+    if (lastVisibleRef.current && lastVisibleRef.current !== lastVisible.id && graceRef.current > 0) graceRef.current--
+    lastVisibleRef.current = lastVisible.id
     const reach     = forwardReachable(lastVisible, byIdRef.current)
     const loaded    = cursorRef.current
     const remaining = queueRef.current.slice(loaded)
-    const active      = remaining.filter(item =>  reach.has(item.nodeId))
-    const speculative = remaining.filter(item => !reach.has(item.nodeId))
+    // История стартовой ленты от точки входа обычно недостижима — но её место
+    // в очереди первое (warmupPlan), в «спекулятивный» хвост не отодвигаем
+    const keep = item => reach.has(item.nodeId) || historySetRef.current.has(item.nodeId)
+    const active      = remaining.filter(item =>  keep(item))
+    const speculative = remaining.filter(item => !keep(item))
     if (speculative.length > 0) {
       queueRef.current = [...queueRef.current.slice(0, loaded), ...active, ...speculative]
     }
@@ -263,11 +234,15 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     // Count only items within the warmup gate (nodeIdx < initialLookahead)
     // Прогрев — от точки входа (preloadQueue.warmupPlan): начало урока или
     // точка «Продолжить»; очередь и гейт под неё
-    const plan = warmupPlan(queueRef.current, entryNodeId, byIdRef.current, initialLookahead)
+    const plan = warmupPlan(queueRef.current, entryNodeId, byIdRef.current, initialLookahead, historyPage)
     queueRef.current = plan.queue
     allowUpToRef.current = Math.max(allowUpToRef.current, plan.allowUpTo)
     const warmSet = new Set(plan.warmupIds)
     warmupSetRef.current = warmSet
+    historySetRef.current = new Set(historyPage)
+    const historyEvictable = queueRef.current.filter(i => historySetRef.current.has(i.nodeId) && EVICT_TYPES.has(i.nodeType))
+    graceRef.current = historyEvictable.length
+    lastVisibleRef.current = visibleNodesRef.current[visibleNodesRef.current.length - 1]?.id ?? null
     const warmup = queueRef.current.filter(item => warmSet.has(item.nodeId)).length
     setQueueTotal(warmup || queueRef.current.length)
     setQueueItems(queueRef.current)
@@ -277,7 +252,8 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     setInitializedFor(nodes)
     // Диагностика handoff: сколько файлов уже пришло с блобами из карточки запуска
     const handoffItems = queueRef.current.filter(i => blobUrlsRef.current[i.id]?.blobUrl)
-    pLog(`[preload] очередь: ${queueRef.current.length} файлов, с handoff-блобами: ${handoffItems.length}, warmup-нод: ${warmupIds.length}`)
+    pLog(`[preload] очередь: ${queueRef.current.length} файлов, с handoff-блобами: ${handoffItems.length}, warmup-нод: ${warmupIds.length}` +
+      (historyPage.length ? ` (история: ${historyPage.length} нод, ${historyEvictable.length} тяжёлых файлов сверх буфера на старт)` : ''))
     if (handoffItems.length) makeFetch().finishHandoff(handoffItems, gen)
     const pcItems = queueRef.current.filter(i => i.nodeType === 'photo_choice')
     if (pcItems.length) {
@@ -318,7 +294,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       clearTimeout(safetyTimer)
       cancelFlush()
     }
-  }, [nodes, files, entryNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nodes, files, entryNodeId, historyKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Размонтирование: blob-ссылки освобождаются на следующем такте и только
   // если хук не смонтировался снова. StrictMode в dev «размонтирует» и тут же

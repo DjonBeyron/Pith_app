@@ -105,6 +105,20 @@ export function playPrimed(src, { onEnded } = {}) {
   }
 }
 
+// Системное прерывание аудиосессии (отключились наушники, звонок): iOS
+// помечает прерванным каждый СУЩЕСТВУЮЩИЙ media-элемент, и прогретый в том
+// числе — его play() дальше молча ничего не делает. Выбрасываем элемент и
+// прогреваем новый на ближайшем касании. Зовёт sounds.js по statechange
+export function resetPrimed() {
+  if (!el) return
+  stopPrimed()
+  el.remove()
+  el = null
+  ready = false
+  pLog('[primed] элемент сброшен после прерывания аудиосессии — прогреем новый на следующем касании')
+  armGesture()
+}
+
 // Панель ушла — снимаем за собой, иначе следующий разбор получит чужой onended
 export function stopPrimed() {
   if (!el) return

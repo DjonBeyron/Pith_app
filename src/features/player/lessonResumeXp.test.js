@@ -101,7 +101,10 @@ describe('«Продолжить урок» — история чата восс
   })
 
   it('изначально показывается не вся история сразу, а последняя страница', () => {
-    expect(graphPlayer).toContain('const HISTORY_PAGE = 12')
+    // Цифра одна на граф и прогрев (feedWindow.js): карточка запуска греет
+    // ровно те ноды истории, что окажутся в ленте при старте
+    expect(read('./feedWindow.js')).toContain('export const HISTORY_PAGE = 12')
+    expect(graphPlayer).toContain("import { HISTORY_PAGE } from './feedWindow.js'")
     expect(graphPlayer).toContain('historyNodes.slice(-HISTORY_PAGE)')
     expect(graphPlayer).toContain('const requestMoreHistory = useCallback')
   })
@@ -203,7 +206,9 @@ describe('«Продолжить урок» — решение и прогрев
     expect(launch).toContain('const resumeEntryNode = resumeOffer?.nodeId ? nodes.find(n => n.id === resumeOffer.nodeId) : null')
     // Сперва выбор, потом прогрев выбранной точки (entryNodeId → preloadQueue.warmupPlan)
     expect(launch).toContain("const preloadNodes = choosing ? NO_NODES : nodes")
-    expect(launch).toContain("preloadNodes, files, entryNode ? [entryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null }")
+    expect(launch).toContain("preloadNodes, files, cardVisible, { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null, historyIds }")
+    // История стартовой ленты греется вместе с точкой входа — только при «Продолжить»
+    expect(launch).toContain("choice === 'resume' && resumeOffer ? (resumeOffer.visitedIds ?? []).slice(0, -1) : NO_IDS")
     // Готовность — только когда очередь пересобрана под выбранный список
     expect(launch).toContain('initializedFor === preloadNodes')
   })

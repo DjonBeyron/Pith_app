@@ -20,6 +20,7 @@ import { useLessonModule } from './useLessonModule.js'
 import { useCanvasLessonLoad } from './useCanvasLessonLoad.js'
 import { useAudioMetaBackfill } from './useAudioMetaBackfill.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
+import { unlockLessonAudio } from '../../shared/lib/lessonAudioUnlock.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
 // module — { id, title, isPro } модуля, из схемы которого открыли урок:
@@ -335,7 +336,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           zoneToolActive={zoneToolActive}
           onZoneToolDone={() => setZoneToolActive(false)}
           moduleLessons={linkableLessons}
-          onPlayFrom={id => { setPlayFrom(id); setShowPlayer(true) }}
+          onPlayFrom={id => { unlockLessonAudio(); setPlayFrom(id); setShowPlayer(true) }}
           visibleTypes={filter.types}
           onlyMissingMedia={filter.onlyMissingMedia}
           debugLinks={debugLinks}

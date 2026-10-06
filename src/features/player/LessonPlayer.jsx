@@ -179,7 +179,10 @@ export default function LessonPlayer({
   }
 
   // bufferSize: слабому устройству — меньше файлов в памяти (как в карточке запуска)
-  const { blobMap, addMsgTs, debugItems, warmupPct, isNodeWarm } = usePlayerPreload(nodes, files, visibleNodes, { initialBlobMap, bufferSize: isWeakDevice() ? 3 : 5, entryNodeId: resumeState.startNodeId ?? startNodeId ?? null })
+  const { blobMap, addMsgTs, debugItems, warmupPct, isNodeWarm } = usePlayerPreload(nodes, files, visibleNodes, {
+    initialBlobMap, bufferSize: isWeakDevice() ? 3 : 5, entryNodeId: resumeState.startNodeId ?? startNodeId ?? null,
+    historyIds: resumeState.historyIds ?? historyIds, // те же, что у графа: файлы стартовой истории не выгружаются на первом кадре
+  })
   useEffect(() => { warmRef.current = isNodeWarm }, [isNodeWarm])
   useLessonWordAudio(nodes, warmupPct, muted) // озвучка слов при тапе — после прогрева первых нод; muted — беззвучный режим повторения
 

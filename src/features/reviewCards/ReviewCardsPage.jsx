@@ -4,6 +4,7 @@ import ProductionList from '../production/ProductionList.jsx'
 import ReviewCardStrip from './ReviewCardStrip.jsx'
 import ReviewLessonSource from './ReviewLessonSource.jsx'
 import ReviewCardPreview from './ReviewCardPreview.jsx'
+import { unlockLessonAudio } from '../../shared/lib/lessonAudioUnlock.js'
 import { useReviewCards } from './useReviewCards.js'
 import { isTaskNode } from './reviewCardCopy.js'
 
@@ -70,7 +71,7 @@ export default function ReviewCardsPage({ lessonId, moduleLessons = [], onBack, 
           canDraft={rc.lessonNodes.some(isTaskNode)}
           lessonShown={lessonShown}
           onToggleLesson={() => setLessonShown(v => !v)}
-          onPreview={() => setPreviewing(true)}
+          onPreview={() => { unlockLessonAudio(); setPreviewing(true) }}
           onRemove={handleRemove}
           disabled={busy}
         />

@@ -25,6 +25,38 @@ describe('warmupPlan', () => {
   it('неизвестная точка входа — как без неё', () => {
     expect(warmupPlan(queue, 'zzz', byId, 3).warmupIds).toEqual(['a', 'b', 'c'])
   })
+
+  // «Продолжить»: на экране при старте — история (b, c) и точка входа d.
+  // Её файлы — первыми, в порядке ленты, и целиком в прогреве сверх lookahead
+  it('история — первой в очереди (порядок ленты) и вся в прогреве сверх lookahead', () => {
+    const p = warmupPlan(queue, 'd', byId, 1, ['b', 'c'])
+    expect(p.queue.map(i => i.id)).toEqual(['b', 'c', 'd', 'e', 'a'])
+    expect(p.warmupIds).toEqual(['b', 'c', 'd']) // история целиком + lookahead=1 по пути
+    expect(p.allowUpTo).toBe(4) // max nodeIdx среди прогрева (d=3) + 1
+  })
+
+  it('порядок истории — как в ленте, а не по BFS; ноды без файлов в прогрев не попадают', () => {
+    // В ленте показывали c, потом b (цикл «ошибся → снова вопрос»); x — нода без файла
+    const p = warmupPlan(queue, 'd', byId, 2, ['x', 'c', 'b'])
+    expect(p.queue.slice(0, 2).map(i => i.id)).toEqual(['c', 'b'])
+    expect(p.warmupIds).toEqual(['c', 'b', 'd', 'e'])
+  })
+
+  it('нода истории, достижимая и от точки входа (цикл), в очереди один раз — в истории', () => {
+    const cyc = [node('a', 'b'), node('b', 'c'), node('c', 'b')]
+    const cById = Object.fromEntries(cyc.map(n => [n.id, n]))
+    const cq = cyc.map((n, i) => ({ id: n.id, nodeId: n.id, nodeIdx: i, nodeType: 'audio' }))
+    const p = warmupPlan(cq, 'c', cById, 3, ['a', 'b'])
+    expect(p.queue.map(i => i.id)).toEqual(['a', 'b', 'c'])
+    expect(p.warmupIds).toEqual(['a', 'b', 'c'])
+  })
+
+  it('без точки входа история тоже первой, остальное — как раньше', () => {
+    const p = warmupPlan(queue, null, byId, 2, ['e'])
+    expect(p.queue.map(i => i.id)).toEqual(['e', 'a', 'b', 'c', 'd'])
+    expect(p.warmupIds).toEqual(['e', 'a', 'b'])
+    expect(p.allowUpTo).toBe(5)
+  })
 })
 
 describe('nodeFileKey', () => {

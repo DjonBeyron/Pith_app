@@ -2,6 +2,7 @@ import CanvasXpField from './CanvasXpField.jsx'
 import WordAudioButton from './word-audio/WordAudioButton.jsx'
 import AudioMetaBackfillBadge from './AudioMetaBackfillBadge.jsx'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
+import { unlockLessonAudio } from '../../shared/lib/lessonAudioUnlock.js'
 
 // Правая группа кнопок шапки канваса — вынесена из CanvasPage.jsx (тот упирался
 // в потолок 400 строк). Сама логика (что открывается по клику) остаётся в
@@ -41,7 +42,8 @@ export default function CanvasHeaderActions({
           }}
         >⛃{filter.activeCount ? ` ${filter.activeCount}` : ''}</button>
       )}
-      <button className="canvasPagePlay" onClick={() => { setPlayFrom(null); setShowPlayer(true) }}>▶</button>
+      {/* unlockLessonAudio — в самом тапе: плеер тут открывается без карточки запуска, иначе на iOS звуки интерфейса молчат */}
+      <button className="canvasPagePlay" onClick={() => { unlockLessonAudio(); setPlayFrom(null); setShowPlayer(true) }}>▶</button>
       <button
         className="canvasPageShare"
         title="Поделиться уроком в JSON и импортировать готовый сценарий"
