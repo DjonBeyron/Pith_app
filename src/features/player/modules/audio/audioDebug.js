@@ -43,6 +43,7 @@ export function makeAudioHeartbeat() {
     if (lastCt >= 0 && ct - lastCt < 0.5) return
     const rate = lastCt >= 0 && wall > lastWall ? ((ct - lastCt) * 1000 / (wall - lastWall)).toFixed(2) : '—'
     lastCt = ct; lastWall = wall
+    if (typeof wave === 'function') wave = wave() // ленивое состояние волны
     const progress = total > 0 ? ct / total : 0
     pLog(`[audio-hb] ct=${ct.toFixed(2)}s total=${total.toFixed(2)}s прогресс=${(progress * 100).toFixed(0)}% rate=${rate} `
       + `rs=${audio.readyState} buf=${bufferedEnd(audio).toFixed(1)}s paused=${audio.paused} `

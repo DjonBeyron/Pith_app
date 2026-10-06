@@ -83,8 +83,12 @@ export function resolveXpOrigin(nodeId, done, { expectBubble } = {}) {
     const late = Date.now() - t0 > limit
     if (el) {
       const arriving = !!el.closest?.('.playerMsgRowArriving')
-      const busy = el.getAnimations
-        ? el.getAnimations({ subtree: true }).some(a => a.playState === 'running')
+      // Ждём только въезд СТРОКИ, не всё поддерево: там же блик верного ответа
+      // (2×0,7 с) и вспышка галочки (с задержкой 1,45 с) — XP стартовал
+      // через 1,3–2,2 с, а опрос поддерева каждый кадр сбрасывал стили
+      const row = el.closest?.('.playerMsgRow') ?? el
+      const busy = row.getAnimations
+        ? row.getAnimations().some(a => a.playState === 'running')
         : false
       if ((!busy && !arriving) || late) { done(originRect(el)); return }
     } else if (late) {

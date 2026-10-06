@@ -199,6 +199,10 @@ export default function LessonPlayer({
     phraseStates, handlePhraseAnswer, revealPhraseAnswers,
     regStates, handleRegAnswer,
   } = answers
+  // Один объект на те же состояния — иначе новый литерал на каждый рендер
+  // ронял мемоизацию всей ленты (PlayerFeedNodes)
+  const feedStates = useMemo(() => ({ photoChoiceStates, wordChoiceStates, phraseStates, regStates, tableSent: answers.tableSent, tableArriving: answers.tableArriving }),
+    [photoChoiceStates, wordChoiceStates, phraseStates, regStates, answers.tableSent, answers.tableArriving])
 
   // Ответ «выбери фото» — photoPick.js
   const handlePhotoPick = (nodeId, idx, isCorrect) => pickPhoto(
@@ -281,7 +285,7 @@ export default function LessonPlayer({
             hasMoreHistory={hasMoreHistory}
             onLoadMoreHistory={requestMoreHistory}
             {...feedShared}
-            states={{ photoChoiceStates, wordChoiceStates, phraseStates, regStates, tableSent: answers.tableSent, tableArriving: answers.tableArriving }}
+            states={feedStates}
             onNodeDone={onNodeDone}
             signalItems={signalMessages.items}
             onMessageDone={signalMessages.onMessageDone}

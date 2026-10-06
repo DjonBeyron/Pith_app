@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import PlayerMessage from './PlayerMessage.jsx'
 import NodeEditPencil from './admin/NodeEditPencil.jsx'
 import { mergeFeedOrder } from '../../shared/lib/feedOrder.js'
@@ -21,6 +22,30 @@ import { nodeFileKey } from './preloadQueue.js'
 // map, и React монтировал ноду заново: 1.4 с предрисовки пропадали, <img>/
 // <video>/<audio> создавались с нуля в момент появления (замер: 0 из 98
 // показов сохранили DOM) — фото и стикеры выходили пустыми на первый кадр.
+// Колбэки на ноду — стабильные между рендерами (WeakMap по объекту ноды):
+// инлайн-стрелки давали всем сообщениям новые пропсы на каждый рендер
+// LessonPlayer (0,8–0,9 раз/с), и вся лента перерисовывалась (профиль:
+// PlayerMessage 5110 рендеров за урок). Ключ — сама нода и пара обработчиков
+const CB = new WeakMap()
+function nodeCallbacks(node, onNodeDone, onTrReveal) {
+  let byHandlers = CB.get(node)
+  if (!byHandlers) { byHandlers = new Map(); CB.set(node, byHandlers) }
+  const key = onNodeDone
+  let cbs = byHandlers.get(key)
+  if (!cbs || cbs.onTrRevealSrc !== onTrReveal) {
+    cbs = {
+      onTrRevealSrc: onTrReveal,
+      onDone: result => onNodeDone(node.id, result),
+      onTrReveal: () => onTrReveal(node.id),
+    }
+    byHandlers.set(key, cbs)
+  }
+  return cbs
+}
+const NOOP = () => {}
+
+const MemoMessage = memo(PlayerMessage)
+
 export default function PlayerFeedNodes({
   visibleNodes, pendingNode, nodes, filesWithBlobs, teacherName,
   states, bottomOffset, videoAutoSound, isAdmin,
@@ -45,19 +70,20 @@ export default function PlayerFeedNodes({
   function renderNode(node, isPending) {
     const fileId = nodeFileKey(node)
     const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
+    const cbs    = nodeCallbacks(node, onNodeDone, onTrReveal)
     // Реакция рисуется ВНУТРИ чужого пузыря (порталом, см. ReactionModule) —
     // своей строки в ленте у неё нет вовсе. Пустой слот-обёртка всё равно
     // добавлял бы gap ленты (4px): лента дёргалась на ровном месте
     if (node.type === 'reaction') {
       return (
-        <PlayerMessage
+        <MemoMessage
           key={node.id}
           node={node}
           lessonNodes={nodes}
           teacherName={teacherName}
           pending={isPending}
-          onDone={isPending ? () => {} : result => onNodeDone(node.id, result)}
-          onTrReveal={() => onTrReveal(node.id)}
+          onDone={isPending ? NOOP : cbs.onDone}
+          onTrReveal={cbs.onTrReveal}
         />
       )
     }
@@ -91,7 +117,7 @@ export default function PlayerFeedNodes({
             active={adminEdit.editId === node.id}
           />
         )}
-        <PlayerMessage
+        <MemoMessage
           node={node}
           file={file}
           lessonFiles={filesWithBlobs}
@@ -110,8 +136,8 @@ export default function PlayerFeedNodes({
           videoAutoSound={videoAutoSound}
           adminPreview={isAdmin}
           pending={isPending}
-          onDone={isPending ? () => {} : result => onNodeDone(node.id, result)}
-          onTrReveal={() => onTrReveal(node.id)}
+          onDone={isPending ? NOOP : cbs.onDone}
+          onTrReveal={cbs.onTrReveal}
           onOpenLessonRef={onOpenLessonRef}
         />
       </div>
@@ -123,7 +149,7 @@ export default function PlayerFeedNodes({
     const file   = filesWithBlobs.find(f => f.id === fileId) ?? null
     return (
       <div key={key} data-entry-key={key}>
-        <PlayerMessage
+        <MemoMessage
           node={node}
           file={file}
           lessonFiles={filesWithBlobs}

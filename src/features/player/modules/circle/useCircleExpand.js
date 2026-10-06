@@ -30,7 +30,7 @@ export function useCircleExpand({ wrapRef, vRef, dims, bottomOffset, doneFiredRe
     // Block tap while feed is animating new messages (190ms slide-in)
     const feedInner = wrapRef.current?.closest('.playerFeedInner')
     if (feedInner) {
-      const feedAnimating = [...feedInner.querySelectorAll('.playerMsgRow')]
+      const feedAnimating = [feedInner, ...feedInner.querySelectorAll('.playerMsgRow')]
         .some(el => el.getAnimations().some(a => a.playState === 'running'))
       if (feedAnimating) return
     }

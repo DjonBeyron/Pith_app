@@ -25,6 +25,20 @@ function pushCapped(lines, line) {
   if (lines.length > MAX_LINES) lines.splice(0, lines.length - MAX_LINES + 500)
 }
 
+// Дублировать dbg()/pLog() в консоль — отдельный ключ: PlayerTopBar включает
+// сбор журнала (setDebug) каждому, кто открыл урок, и console.log шёл 4–5 раз
+// в секунду у всех (профиль: 1,6–1,9 % главного потока). Для живой отладки:
+// localStorage.pithy_debug_console = '1' (или ?console=1)
+const CONSOLE_KEY = 'pithy_debug_console'
+let mirror = false
+try {
+  const q = typeof location !== 'undefined' && new URLSearchParams(location.search).get('console')
+  if (q === '1' || q === '0') localStorage.setItem(CONSOLE_KEY, q)
+  mirror = localStorage.getItem(CONSOLE_KEY) === '1'
+} catch {
+  // нет localStorage — только журнал в памяти
+}
+
 export function isDebugOn() {
   return enabled
 }
@@ -87,7 +101,7 @@ function toText(arg) {
 
 export function dbg(...args) {
   if (!enabled) return
-  console.log('[HETA]', ...args)
+  if (mirror) console.log('[HETA]', ...args)
   pushCapped(logLines, `[${stamp()}] ${args.map(toText).join(' ')}`)
 }
 
@@ -96,7 +110,7 @@ export function dbg(...args) {
 export function pLog(...args) {
   const line = `[${stamp()}] ${args.map(toText).join(' ')}`
   pushCapped(playerLines, line)
-  if (enabled) console.log('[PLAYER]', ...args)
+  if (enabled && mirror) console.log('[PLAYER]', ...args)
 }
 
 export function clearPlayerLog() {

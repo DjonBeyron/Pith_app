@@ -33,9 +33,14 @@ export function usePreloadProgress(queueRef, initialLookahead, warmupSetRef = nu
     return total ? Math.round(loaded / total * 100) : 100
   }
 
+  // Процент — сразу (одинаковое значение рендер не вызывает), реестр отладки
+  // — не чаще раза в 300 мс: каждый кусок загрузки перерисовывал LessonPlayer
+  // и всю ленту (профиль: ~31 % его рендеров)
+  const debugTimerRef = useRef(null)
   const tick = () => {
     setWarmupPct(computeWarmupPct())
-    setDebugTick(t => t + 1)
+    if (debugTimerRef.current) return
+    debugTimerRef.current = setTimeout(() => { debugTimerRef.current = null; setDebugTick(t => t + 1) }, 300)
   }
 
   // Шторм чанков при скачивании → не чаще одного обновления state в 100 мс

@@ -44,6 +44,25 @@ const EASE_PUSH  = 'cubic-bezier(0, 0, 0.2, 1)'
 export const MSG_SOUND_AT = SLIDE_MS - 60
 const SOUND_AT   = MSG_SOUND_AT
 
+// Кадры новой строки ОТНОСИТЕЛЬНО обёртки ленты, которая сама едет кадрами
+// slideFrames(push, true): до касания строка летит одна (TRAVEL−push → 0 поверх
+// стоящей обёртки), после — стоит на месте и едет вместе с обёрткой.
+// Абсолютно это те же TRAVEL → push → 0, что и раньше
+function newRowFrames(push) {
+  const contact = Math.max(0, TRAVEL - push) / TRAVEL
+  if (contact <= 0) {
+    return [
+      { transform: `translateY(${TRAVEL - push}px)`, easing: EASE_PUSH },
+      { transform: 'translateY(0)' },
+    ]
+  }
+  return [
+    { transform: `translateY(${TRAVEL - push}px)`, easing: EASE_FLY },
+    { transform: 'translateY(0)', offset: contact, easing: EASE_PUSH },
+    { transform: 'translateY(0)' },
+  ]
+}
+
 // Кадры для прилетающего пузыря и для истории. Оба используют ОДНИ И ТЕ ЖЕ
 // значения и кривую на второй фазе — иначе после касания они бы разъезжались
 function slideFrames(push, forHistory) {
@@ -165,7 +184,11 @@ export default function PlayerFeed({ children, panelOpen = false }) {
         return
       }
 
-      // New rows: slide in from below.
+      // New rows: slide in from below. Их кадры — ОТНОСИТЕЛЬНО обёртки ленты:
+      // толчок истории теперь едет на самой .playerFeedInner (один слой вместо
+      // анимации на каждой видимой строке — профиль: ~9 слоёв на въезд, в 2,5
+      // раза больше работы композитора на кадр), и новая строка до касания
+      // идёт одна (TRAVEL−shift → 0), а после — вместе с обёрткой
       newRows.forEach((el, i) => {
         pLog(`[feed] slide-in START row+${i} (rowCount=${rowCount})`)
         // .stickerWrap — sticker module has no playerMsgBubble, uses its own container
@@ -189,7 +212,7 @@ export default function PlayerFeed({ children, panelOpen = false }) {
         }
 
         const anim = el.animate(
-          slideFrames(shiftPx, false),
+          newRowFrames(shiftPx),
           { duration: SLIDE_MS, fill: 'backwards' },
         )
         if (photoAnswer) {
@@ -207,9 +230,12 @@ export default function PlayerFeed({ children, panelOpen = false }) {
       // fill:'backwards' держит стартовый кадр с первой отрисовки, без прыжка.
       if (existingRows.length && shiftPx > 0) {
         pLog(`[feed] толчок ${shiftPx}px, касание на ${Math.round(Math.max(0, TRAVEL - shiftPx) / TRAVEL * SLIDE_MS)}мс`)
-        existingRows.forEach(el => {
-          el.animate(slideFrames(shiftPx, true), { duration: SLIDE_MS, fill: 'backwards' })
-        })
+        // Вся история — одной анимацией обёртки. scaleY(-1) обёртки входит в
+        // кадры: иначе WAAPI перекрыл бы переворот на время анимации
+        inner.animate(
+          slideFrames(shiftPx, true).map(f => ({ ...f, transform: `scaleY(-1) ${f.transform}` })),
+          { duration: SLIDE_MS, fill: 'backwards' },
+        )
         // Прилёт в открытую панель (подсказка/сигнал над таблицей) — покадрово:
         // глазом видно микро-опускание истории в первые кадры (traceSlideIn.js)
         if (panelOpen) {

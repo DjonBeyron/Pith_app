@@ -54,7 +54,8 @@ describe('сигналы ошибок — сигнал играет сообще
     const src = read('../../PlayerFeedNodes.jsx')
     const renderSignal = src.slice(src.indexOf('function renderSignal'), src.indexOf('return (\n    <>'))
     expect(src).toContain('mergeFeedOrder')
-    expect(renderSignal).toContain('<PlayerMessage')
+    expect(src).toContain('memo(PlayerMessage)')
+    expect(renderSignal).toContain('<MemoMessage')
     expect(renderSignal).not.toMatch(/node\.type\s*===/) // никакого «text/audio/photo/...» вручную для сигнала
   })
 

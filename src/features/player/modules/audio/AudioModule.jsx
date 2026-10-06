@@ -252,7 +252,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
         setRevealedCharIdx(idx)
         if (idx >= 0) setTextStarted(true)
       }
-      hb(audio, ct, total, waveRef.current?.getState(), capturedText ? `${idx + 1}/${capturedText.length}` : null)
+      // getState читает clientWidth (принудительная раскладка) — только для
+      // строки лога раз в 0,5 с, не каждый кадр (профиль: 1,6 % главного потока)
+      hb(audio, ct, total, () => waveRef.current?.getState(), capturedText ? `${idx + 1}/${capturedText.length}` : null)
 
       // Таймер меняется раз в секунду — не трогаем DOM, пока строка та же.
       // Отсчёт — от того же числа, что показано в подписи (d), а не от живой
