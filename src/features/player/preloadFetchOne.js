@@ -21,18 +21,21 @@ export function makePreloadFetch(ctx) {
   const {
     genRef, blobUrlsRef, setBlobMap, setReadyNodeIds, inFlightRef,
     debugItemsRef, bytesLoadedRef, bytesTotalRef, tick, throttledTick, markFailed,
-    ts, checkNodeReady, evictFarthestIfNeeded, pump,
+    ts, checkNodeReady, evictFarthestIfNeeded, pump, byIdRef,
   } = ctx
 
   // Длительность и волна голосового — сразу после скачивания, а не при показе
   // (прогрев): пузырь монтируется с таймером и волной с первого кадра, без
   // подрастания, когда таймер «появляется позже». metaDone — анализ прошёл,
   // даже если ничего не вышло (тогда AudioModule считает сам)
-  async function analyzeAudioMeta(id, blobUrl, gen) {
+  async function analyzeAudioMeta(id, blobUrl, gen, nodeId = null) {
     if (blobUrlsRef.current[id]?.metaStarted) return
     blobUrlsRef.current[id].metaStarted = true
-    // Считали раньше (этот или другой урок с тем же файлом) — берём из кэша
-    const cached = getAudioMeta(id)
+    // Мета сохранена в ноде (редактор/досчёт в канвасе) — декодировать нечего
+    const stored = nodeId ? byIdRef?.current?.[nodeId]?.typeData?.audio : null
+    const cached = stored?.waveformData?.length
+      ? { duration: stored.duration || null, waveformData: stored.waveformData }
+      : getAudioMeta(id) // считали раньше (этот или другой урок с тем же файлом)
     let duration = cached?.duration ?? null
     let waveformData = cached?.waveformData ?? null
     const publish = patch => {
@@ -130,7 +133,7 @@ export function makePreloadFetch(ctx) {
     blobUrlsRef.current[id] = { blobUrl, posterUrl: null }
     setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
     pump(gen)
-    if (nodeType === 'audio') analyzeAudioMeta(id, blobUrl, gen)
+    if (nodeType === 'audio') analyzeAudioMeta(id, blobUrl, gen, nodeId)
     if (DECODE_TYPES.has(nodeType)) decodeImage(id, blobUrl)
 
     if (EVICT_TYPES.has(nodeType)) await evictFarthestIfNeeded(gen, id)
@@ -170,7 +173,7 @@ export function makePreloadFetch(ctx) {
     for (const item of items) {
       const entry = blobUrlsRef.current[item.id]
       if (!entry?.blobUrl) continue
-      if (item.nodeType === 'audio' && !entry.metaDone) analyzeAudioMeta(item.id, entry.blobUrl, gen)
+      if (item.nodeType === 'audio' && !entry.metaDone) analyzeAudioMeta(item.id, entry.blobUrl, gen, item.nodeId)
       if (POSTER_TYPES.has(item.nodeType) && !entry.posterUrl && !entry.posterDone) enqueuePoster(item.id, entry.blobUrl, gen)
     }
   }

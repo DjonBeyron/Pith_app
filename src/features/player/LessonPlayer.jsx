@@ -30,6 +30,7 @@ import { downloadDebugLog, copyDebugLog } from './downloadDebugLog.js'
 import PlayerOverlays from './PlayerOverlays.jsx'
 import { useLessonOpenFlag } from '../../shared/lib/lessonOpen.js'
 import { isWeakDevice } from '../../shared/lib/deviceTier.js'
+import { playSound } from '../../shared/lib/sounds.js'
 import HintBar from './HintBar.jsx'
 import { useFinalHints } from './useFinalHints.js'
 import { useLessonFinish, finishStatsOf } from './useLessonFinish.js'
@@ -156,6 +157,7 @@ export default function LessonPlayer({
   // через rememberTap). Начисление при этом не ждёт ничего — счётчик в шапке
   // растёт сразу, откладывается только полёт. opts.expectBubble — см. xpAnchor.js
   function handleXpEarned(amount, nodeId = null, opts = undefined) {
+    playSound('xp-gain', 'XP в уроке')
     setEarnedXp(prev => { earnedXpRef.current = prev + amount; return prev + amount })
     resolveXpOrigin(nodeId, origin =>
       setXpEvents(prev => [...prev, { id: Date.now() + Math.random(), amount, rect: origin }]), opts)

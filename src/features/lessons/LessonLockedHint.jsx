@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { playSound } from '../../shared/lib/sounds.js'
 import { Lock, LockOpen, TriangleAlert, X } from 'lucide-react'
 
 // Тап по закрытому уроку в схеме модуля. Два шага в одной карточке:
@@ -15,6 +16,8 @@ import { Lock, LockOpen, TriangleAlert, X } from 'lucide-react'
 // Невидимый шаг — inert: его кнопки не ловят ни тап, ни фокус.
 export default function LessonLockedHint({ onClose, onUnlock, onDiagnostics }) {
   const [warning, setWarning] = useState(false)
+  // Открытие окна — со звуком (по тапу, звук разрешён)
+  useEffect(() => { playSound('lesson-locked', 'окно закрытого урока') }, [])
 
   return (
     <div className="lessonLockedOverlay" onClick={onClose}>

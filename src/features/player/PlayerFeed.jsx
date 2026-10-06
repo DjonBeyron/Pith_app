@@ -65,10 +65,6 @@ function slideFrames(push, forHistory) {
 // Ученик прокрутил переписку вверх дальше этого — новое сообщение не должно
 // двигать то, что он читает
 const READING_PX = 80
-// Браузер сам удерживает прокрутку при вставке (scroll anchoring: Chrome,
-// Firefox) — тогда scrollTop не трогаем; Safari — компенсируем вручную
-const BROWSER_ANCHORS = typeof CSS !== 'undefined' && CSS.supports?.('overflow-anchor: auto')
-
 export default function PlayerFeed({ children, panelOpen = false }) {
   const outerRef     = useRef(null)
   const innerRef     = useRef(null)
@@ -148,10 +144,10 @@ export default function PlayerFeed({ children, panelOpen = false }) {
 
       // Ученик читает историю выше: сообщение встаёт внизу молча — без
       // въезда и толчка переписки, а прокрутка остаётся на том же месте
-      // (в Safari — руками, в Chrome это делает scroll anchoring)
+      // (якорение браузера у ленты выключено, см. feed.css — держим сами)
       const outer = outerRef.current
       if (outer && outer.scrollTop > READING_PX && shiftPx > 0) {
-        if (!BROWSER_ANCHORS) outer.scrollTop += shiftPx
+        outer.scrollTop += shiftPx
         pLog(`[feed] сообщение ниже читаемого места: без въезда, scrollTop ${Math.round(outer.scrollTop)}`)
         prevElsRef.current   = new Set(rows)
         prevRowCount.current = rowCount

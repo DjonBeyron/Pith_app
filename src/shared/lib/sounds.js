@@ -18,7 +18,23 @@ onLessonOpenChange(open => {
   if (!open && ctx && ctx.state === 'running') ctx.suspend().catch(() => {})
 })
 
-const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-message', 'typing-1', 'typing-2']
+// message-in — новое сообщение в чате; answer-correct/wrong — ответ в
+// упражнении (выбор слова, собери фразу, таблица, составь предложение,
+// напечатай слово, выбери фото); pin-message — закреп; typing-1/2 — «учитель
+// печатает» (второй тише, при затянувшемся ожидании файлов); xp-gain —
+// начисление XP в уроке и каждый прилёт шарика в XP-бар итогов; level-up —
+// новый уровень везде, где он случается (итоги урока/повторения, награда
+// серии); lesson-locked — окно «Как открыть уроки» по тапу на закрытый урок
+const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-message', 'typing-1', 'typing-2', 'xp-gain', 'level-up', 'lesson-locked']
+
+// Прогрев файлов при старте приложения: обычный fetch кладёт mp3 в HTTP-кэш
+// (iOS без жеста не грузит медиа-элементы, а fetch — грузит); к первому
+// жесту preloadSounds() создаёт Audio уже из кэша, без похода в сеть.
+// Зовётся из App.jsx с задержкой, чтобы не толкаться с первым видео ленты
+export function warmSoundFiles() {
+  if (typeof fetch !== 'function') return
+  for (const name of ALL_SOUNDS) fetch(`/sounds/${name}.mp3`, { cache: 'force-cache' }).catch(() => {})
+}
 
 // Call during lesson warmup (no gesture needed).
 // Creates AudioContext (suspended) + HTMLAudioElements preloaded into memory.

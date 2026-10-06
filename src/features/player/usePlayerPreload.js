@@ -168,7 +168,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     return makePreloadFetch({
       genRef, blobUrlsRef, setBlobMap, setReadyNodeIds, inFlightRef,
       debugItemsRef, bytesLoadedRef, bytesTotalRef, tick, throttledTick, markFailed,
-      ts, checkNodeReady, evictFarthestIfNeeded, pump,
+      ts, checkNodeReady, evictFarthestIfNeeded, pump, byIdRef,
     })
   }
   function fetchOne(item, gen) {

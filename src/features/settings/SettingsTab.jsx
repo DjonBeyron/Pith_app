@@ -40,6 +40,10 @@ export default function SettingsTab({ learnView = null, onLearnChanged = () => {
           <SoundRow label="Верный ответ"         file="answer-correct.mp3" />
           <SoundRow label="Неверный ответ"       file="answer-wrong.mp3" />
           <SoundRow label="Закрепить сообщение"  file="pin-message.mp3" />
+          <SoundRow label="Учитель печатает"     file="typing-1.mp3" />
+          <SoundRow label="Начисление XP"        file="xp-gain.mp3" />
+          <SoundRow label="Новый уровень"        file="level-up.mp3" />
+          <SoundRow label="Окно закрытого урока" file="lesson-locked.mp3" />
         </div>
       </section>
     </div>

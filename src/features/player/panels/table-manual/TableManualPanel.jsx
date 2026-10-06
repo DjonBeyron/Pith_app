@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { playSound } from '../../../../shared/lib/sounds.js'
 import CellOptionsMenu from './CellOptionsMenu.jsx'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 import { makeManualCheck } from './manualCheck.js'
@@ -113,6 +114,7 @@ export default function TableManualPanel({
   useEffect(() => {
     pLog(`[tm] result → ${result ?? 'null'}${result === 'correct' ? ' — запускаем салют' : ''}`)
     if (result === 'correct') fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
+    if (result) playSound(result === 'correct' ? 'answer-correct' : 'answer-wrong', 'таблица вручную')
   }, [result])
 
   // Подъём/спуск с историей — общий хук (usePanelRiseDrop.js → panelRise.js):

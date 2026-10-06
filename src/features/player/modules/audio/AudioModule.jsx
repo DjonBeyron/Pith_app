@@ -259,8 +259,11 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       // audio.duration: они расходятся на доли секунды (VBR), и при округлении
       // подпись «00:07» на первом же кадре перепрыгивала в «00:08». Живая
       // длительность остаётся у заливки (total), там точность важнее
-      const left = fmtAudioTime(Math.max(0, (d || total) - ct))
-      if (timeRef.current && timeRef.current.textContent !== left) timeRef.current.textContent = left
+      // Длительность ещё не известна (поток с сервера, метаданных нет) —
+      // подпись остаётся пустой, а не «00:01» от заглушки total=1
+      const known = d || (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null)
+      const left = known ? fmtAudioTime(Math.max(0, known - ct)) : null
+      if (left && timeRef.current && timeRef.current.textContent !== left) timeRef.current.textContent = left
       rafRef.current = requestAnimationFrame(tick)
     }
 

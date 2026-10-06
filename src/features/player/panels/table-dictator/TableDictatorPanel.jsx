@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { playSound } from '../../../../shared/lib/sounds.js'
 import { useTableDictatorRaf } from './useTableDictatorRaf.js'
 import { useTableDictatorAutostart } from './useTableDictatorAutostart.js'
 import TableDictatorView from './TableDictatorView.jsx'
@@ -84,6 +85,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   const [extrasAssembled, setExtrasAssembled] = useState([])
   const [activeExtraKeys, setActiveExtraKeys] = useState(new Set())
   const [result,          setResult]          = useState(null)
+  useEffect(() => { if (result) playSound(result === 'correct' ? 'answer-correct' : 'answer-wrong', 'таблица-диктор') }, [result])
   const [panelH,          setPanelH]          = useState(0)
 
   const audioRef          = useRef(null)

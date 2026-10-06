@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { Languages } from 'lucide-react'
+import { playSound } from '../../../../shared/lib/sounds.js'
 import CellOptionsMenu from '../table-manual/CellOptionsMenu.jsx'
 import FillBlank from './FillBlank.jsx'
 import { parseTemplateSegments, blankKind, BLANK_DOT_COUNT } from '../../../../shared/lib/fillBlanksTemplate.js'
@@ -65,6 +66,8 @@ export default function FillBlanksPanel({
   const [show,         setShow]         = useState(false)
   const [picked,       setPicked]       = useState({})   // index → выбранный текст
   const [result,       setResult]       = useState(null) // null | 'correct' | 'wrong'
+  // Звук ответа — как у «собери фразу»/«выбери слово»
+  useEffect(() => { if (result) playSound(result === 'correct' ? 'answer-correct' : 'answer-wrong', 'составь предложение') }, [result])
   const [blankMenu,    setBlankMenu]    = useState(null) // { index, options, rect }
   // Кнопка перевода: сама появляется (scale 0→1) спустя 1с после монтирования
   // панели, независимо от show/анимации выезда — раскрытие/закрытие перевода

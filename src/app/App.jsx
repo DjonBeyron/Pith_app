@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { warmSoundFiles } from '../shared/lib/sounds.js'
 import ShellV2 from './ShellV2.jsx'
 import LessonNavOverlay from './LessonNavOverlay.jsx'
 import AppPerfProbe from './AppPerfProbe.jsx'
@@ -12,6 +13,12 @@ export default function App() {
   // (см. shared/lib/debugToolsEnabled.js): в репозитории он выключен, локально
   // включается строкой VITE_DEBUG_TOOLS=1 в .env.local. Значение известно на
   // этапе сборки, поэтому Vite вырезает и ветку, и сам чанк целиком
+  // Звуки интерфейса — в HTTP-кэш сразу после старта (sounds.js)
+  useEffect(() => {
+    const id = setTimeout(warmSoundFiles, 2500)
+    return () => clearTimeout(id)
+  }, [])
+
   useEffect(() => {
     // Условие написано ЛИТЕРАЛЬНО, а не через импортированный DEBUG_TOOLS_ON:
     // Vite подставляет значения import.meta.env на этапе сборки и сворачивает
