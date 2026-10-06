@@ -83,6 +83,7 @@ describe('«Продолжить урок» — история чата восс
   const progressApi = read('../../shared/lib/lessonProgressApi.js')
   const resumeHook  = read('./useLessonResume.js')
   const graphPlayer = read('./useGraphPlayer.js')
+  const fresh = read('./freshNode.js')
   const migration   = read('../../../supabase/migrations/20260919090000_lesson_progress_visited_ids.sql')
 
   it('миграция добавляет visited_ids идемпотентно (if not exists)', () => {
@@ -110,7 +111,8 @@ describe('«Продолжить урок» — история чата восс
   })
 
   it('isHistory — снимок в ленте, не часть самой ноды (иначе терялся бы при freshVisible)', () => {
-    expect(graphPlayer).toContain('visit: n.visit, isHistory: n.isHistory')
+    expect(graphPlayer).toContain('freshNode(n, nodeMapRef.current[n.id] ?? n)')
+    expect(fresh).toContain('visit: n.visit, isHistory: n.isHistory')
   })
 })
 

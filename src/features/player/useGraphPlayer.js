@@ -5,6 +5,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } fr
 import { appendVisit, forgetNodeKeys } from './graphPlayerVisits.js'
 import { useGraphStepControls } from './useGraphStepControls.js'
 import { pLog } from '../../shared/lib/debug.js'
+import { freshNode } from './freshNode.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
@@ -366,7 +367,8 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     // visit — номер показа этой ноды, он живёт в снимке, а не в самой ноде.
     // isHistory — так же: снимок-флаг «это восстановленная история», не
     // часть самой ноды урока, иначе бы потерялся при подмешивании свежей
-    () => visibleNodes.map(n => ({ ...(nodeMapRef.current[n.id] ?? n), visit: n.visit, isHistory: n.isHistory })),
+    // Копия кэшируется по снимку (freshNode.js) — иначе memo строк ленты не работал
+    () => visibleNodes.map(n => freshNode(n, nodeMapRef.current[n.id] ?? n)),
     [visibleNodes, nodes], // eslint-disable-line react-hooks/exhaustive-deps
   )
   const freshPending = pendingNode ? (nodeMapRef.current[pendingNode.id] ?? pendingNode) : null

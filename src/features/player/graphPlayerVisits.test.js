@@ -32,8 +32,10 @@ describe('возврат на ту же ноду (ошибся → подска�
     const panels = read('./PlayerPanels.jsx')
     expect(panels).toContain('key={`${tableNode.id}:${epoch}:${tableNode.visit ?? 0}`}')
     const graph = read('./useGraphPlayer.js')
+    const fresh = read('./freshNode.js')
     expect(graph).toContain('visitsRef.current.set(next.id, visit)')
-    expect(graph).toContain('visit: n.visit')
+    expect(graph).toContain('freshNode(n, nodeMapRef.current[n.id] ?? n)')
+    expect(fresh).toContain('visit: n.visit')
   })
 
   it('сработавшие триггеры ноды забываются — второй заход снова ведёт дальше', () => {
