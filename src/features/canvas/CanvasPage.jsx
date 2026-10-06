@@ -18,6 +18,7 @@ import { useCanvasSave } from './useCanvasSave.js'
 import { useCanvasDirty } from './useCanvasDirty.js'
 import { useLessonModule } from './useLessonModule.js'
 import { useCanvasLessonLoad } from './useCanvasLessonLoad.js'
+import { useAudioMetaBackfill } from './useAudioMetaBackfill.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 
@@ -110,6 +111,10 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
 
   // Мигающая точка на «Сохранить» — useCanvasDirty.js
   const { dirty, markDirty, syncDirty, save: handleSave } = useCanvasDirty(lessonId, saveToServer)
+
+  // Голосовые без волны/длительности (импорт, подложенные файлы) — досчёт в
+  // фоне по одной, результат в ноды через boardApiRef; индикатор в шапке
+  const audioBackfill = useAudioMetaBackfill({ nodes: panelNodes, files, boardApiRef, lessonId, loading })
 
   // Правка ноды из правой панели плеера (только админ, только прогон из
   // канваса): ноды живут внутри CanvasBoard, поэтому идём туда через ref —
@@ -216,6 +221,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           switchToProduction={switchToProduction} switchToCards={switchToCards} switchToWordCard={switchToWordCard} hasUnsynced={hasUnsynced}
           hasUnsyncedLogo={hasUnsyncedLogo} setShowPanel={setShowPanel}
           zoneToolActive={zoneToolActive} onToggleZoneTool={() => setZoneToolActive(v => !v)}
+          audioBackfill={audioBackfill}
         />
       </div>
 

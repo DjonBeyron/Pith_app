@@ -1,5 +1,6 @@
 import CanvasXpField from './CanvasXpField.jsx'
 import WordAudioButton from './word-audio/WordAudioButton.jsx'
+import AudioMetaBackfillBadge from './AudioMetaBackfillBadge.jsx'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 
 // Правая группа кнопок шапки канваса — вынесена из CanvasPage.jsx (тот упирался
@@ -14,6 +15,7 @@ export default function CanvasHeaderActions({
   switchToProduction, switchToCards, switchToWordCard, hasUnsynced, hasUnsyncedLogo, setShowPanel,
   zoneToolActive, onToggleZoneTool,
   lessonId, title,
+  audioBackfill,
 }) {
   return (
     <div className="canvasPageActions">
@@ -78,6 +80,9 @@ export default function CanvasHeaderActions({
       {isAdmin && (
         <WordAudioButton lessonId={lessonId} title={title} boardApiRef={boardApiRef} loading={loading} />
       )}
+      {/* «Спектр: 3/12…» — пока useAudioMetaBackfill.js досчитывает мету
+          голосовых; когда всё есть — пусто */}
+      <AudioMetaBackfillBadge progress={audioBackfill} />
       <button
         className="canvasPageTools"
         title="Ещё действия с холстом"
