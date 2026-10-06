@@ -13,7 +13,7 @@
 export default function LaunchCtaSlot({
   showSecondRow = false, pctLabel = '', pct = 0,
   primaryLabel, primaryClassName, primaryStyle, primaryDisabled = false, onPrimary,
-  onGhost, ghostLabel = 'Начать заново',
+  onGhost, ghostLabel = 'Начать заново', ghostDisabled = false,
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -41,7 +41,8 @@ export default function LaunchCtaSlot({
       <button
         className="resumeLessonBtnGhost"
         onClick={onGhost}
-        style={{ visibility: showSecondRow ? 'visible' : 'hidden' }}
+        disabled={ghostDisabled}
+        style={{ visibility: showSecondRow ? 'visible' : 'hidden', opacity: ghostDisabled ? 0.4 : undefined }}
       >{ghostLabel}</button>
     </div>
   )

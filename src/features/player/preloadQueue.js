@@ -91,3 +91,29 @@ export function revokePayloadBlobs(payload) {
     URL.revokeObjectURL(payload.teacherLogo)
   }
 }
+
+// План прогрева карточки запуска. Без точки входа — первые lookahead медиа-нод
+// по BFS от начала урока. С точкой входа («Продолжить урок»): очередь
+// переставляется (достижимое от точки — вперёд), прогрев — первые lookahead
+// нод по реальному пути от неё, а гейт по BFS-индексу поднимается, чтобы их
+// пропустить (у середины урока индексы большие). Раньше карточка с чекпойнтом
+// ждала прогрева НАЧАЛА урока, а точка возобновления прогревалась «как
+// получится»
+export function warmupPlan(queue, entryNodeId, byId, lookahead) {
+  const entry = entryNodeId ? byId[entryNodeId] : null
+  if (!entry) {
+    const ids = [...new Set(queue.filter(i => i.nodeIdx < lookahead).map(i => i.nodeId))]
+    return { queue, warmupIds: ids, allowUpTo: lookahead }
+  }
+  const reach = forwardReachable(entry, byId)
+  const active = queue.filter(i => reach.has(i.nodeId))
+  const speculative = queue.filter(i => !reach.has(i.nodeId))
+  const warmupIds = []
+  for (const i of active) {
+    if (!warmupIds.includes(i.nodeId)) warmupIds.push(i.nodeId)
+    if (warmupIds.length >= lookahead) break
+  }
+  const warmSet = new Set(warmupIds)
+  const maxIdx = active.filter(i => warmSet.has(i.nodeId)).reduce((m, i) => Math.max(m, i.nodeIdx), -1)
+  return { queue: [...active, ...speculative], warmupIds, allowUpTo: Math.max(lookahead, maxIdx + 1) }
+}

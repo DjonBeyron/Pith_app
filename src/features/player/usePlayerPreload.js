@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useEffect, useRef, useState } from 'react'
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 import { pLog } from '../../shared/lib/debug.js'
-import { forwardReachable, buildItemQueue, revokeEntry } from './preloadQueue.js'
+import { forwardReachable, buildItemQueue, revokeEntry, warmupPlan } from './preloadQueue.js'
 import { usePreloadProgress } from './usePreloadProgress.js'
 import { isNodeWarm as isNodeWarmPure } from './preloadWarm.js'
 import { makePreloadFetch, POSTER_TYPES, EVICT_TYPES } from './preloadFetchOne.js'
@@ -13,7 +13,7 @@ const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo
 // POSTER_TYPES / EVICT_TYPES — в preloadFetchOne.js (там же и загрузка файла)
 
 export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
-  const { initialLookahead = LOOKAHEAD, initialBlobMap = null, bufferSize = CHAT_BUFFER_SIZE } = opts
+  const { initialLookahead = LOOKAHEAD, initialBlobMap = null, bufferSize = CHAT_BUFFER_SIZE, entryNodeId = null } = opts
   const initRef = useRef(initialBlobMap ?? {})
 
   const [blobMap, setBlobMap] = useState(() => ({ ...(initialBlobMap ?? {}) }))
@@ -32,6 +32,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const queueRef       = useRef([])
   const cursorRef      = useRef(0)
   const allowUpToRef   = useRef(initialLookahead)
+  const warmupSetRef   = useRef(null) // ноды прогрева по плану (warmupPlan) — для процента бара
   // Сколько элементов уже взято «вперёд по пути» с последнего переупорядочивания
   // очереди (см. гейт в pump и эффект visibleNodes)
   const aheadRef       = useRef(0)
@@ -42,7 +43,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // Байтовый прогресс, процент прогрева, реестр загрузок — usePreloadProgress.js
   const {
     debugItemsRef, bytesTotalRef, bytesLoadedRef, warmupPct, tick, throttledTick, cancelFlush, markFailed,
-  } = usePreloadProgress(queueRef, initialLookahead)
+  } = usePreloadProgress(queueRef, initialLookahead, warmupSetRef)
 
   const [warmupNodeIds, setWarmupNodeIds] = useState([])
   const [initialized, setInitialized]     = useState(false)
@@ -259,13 +260,17 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     bytesLoadedRef.current = new Map()
     tick()
     // Count only items within the warmup gate (nodeIdx < initialLookahead)
-    const warmup = queueRef.current.filter(item => item.nodeIdx < initialLookahead).length
+    // Прогрев — от точки входа (preloadQueue.warmupPlan): начало урока или
+    // точка «Продолжить»; очередь и гейт под неё
+    const plan = warmupPlan(queueRef.current, entryNodeId, byIdRef.current, initialLookahead)
+    queueRef.current = plan.queue
+    allowUpToRef.current = Math.max(allowUpToRef.current, plan.allowUpTo)
+    const warmSet = new Set(plan.warmupIds)
+    warmupSetRef.current = warmSet
+    const warmup = queueRef.current.filter(item => warmSet.has(item.nodeId)).length
     setQueueTotal(warmup || queueRef.current.length)
     setQueueItems(queueRef.current)
-    // Expose the exact node IDs being warmed up (BFS order, ≤ initialLookahead nodes)
-    const warmupIds = [...new Set(
-      queueRef.current.filter(i => i.nodeIdx < initialLookahead).map(i => i.nodeId)
-    )]
+    const warmupIds = plan.warmupIds
     setWarmupNodeIds(warmupIds)
     setInitialized(true)
     // Диагностика handoff: сколько файлов уже пришло с блобами из карточки запуска
@@ -311,7 +316,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       clearTimeout(safetyTimer)
       cancelFlush()
     }
-  }, [nodes, files]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nodes, files, entryNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Размонтирование: blob-ссылки освобождаются на следующем такте и только
   // если хук не смонтировался снова. StrictMode в dev «размонтирует» и тут же

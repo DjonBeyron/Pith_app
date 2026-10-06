@@ -199,7 +199,8 @@ describe('«Продолжить урок» — решение и прогрев
 
   it('прогрев целится в точку возобновления, если она есть — не всегда в начало', () => {
     expect(launch).toContain('const resumeEntryNode = resumeOffer?.nodeId ? nodes.find(n => n.id === resumeOffer.nodeId) : null')
-    expect(launch).toContain('nodes, files, resumeEntryNode ? [resumeEntryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize }')
+    // Сперва выбор, потом прогрев выбранной точки (entryNodeId → preloadQueue.warmupPlan)
+    expect(launch).toContain("choosing ? NO_NODES : nodes, files, entryNode ? [entryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null }")
   })
 
   it('LaunchCtaSlot — брендовая кнопка «Продолжить», рендерится вместо «Начать урок»', () => {
@@ -217,7 +218,8 @@ describe('«Продолжить урок» — решение и прогрев
 
   it('«Начать заново» стирает чекпойнт ДО старта — плеер не найдёт его повторно', () => {
     expect(launch).toContain('onRestartProgress={() => { clearLessonProgress(lessonId); setResumeOffer(null) }}')
-    expect(launch).toContain('onGhost={() => { onRestartProgress(); handleStart() }}')
+    expect(launch).toContain("onGhost={() => pick('start')}")
+    expect(launch).toContain("if (next === 'start') onRestartProgress()")
   })
 
   it('оба запуска (модуль и отдельный урок) прокидывают startNodeId/historyIds/resumedXp в плеер', () => {

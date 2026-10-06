@@ -7,7 +7,9 @@ import { useRef, useState } from 'react'
 // для «⬇ лог»/оверлея и троттлинг обновлений state под шторм чанков.
 const FALLBACK_SIZE = 500 * 1024 // вес файла с неизвестным размером в байтовом прогрессе
 
-export function usePreloadProgress(queueRef, initialLookahead) {
+// warmupSetRef — ref на Set id нод прогрева (план preloadQueue.warmupPlan);
+// без него — первые initialLookahead по BFS
+export function usePreloadProgress(queueRef, initialLookahead, warmupSetRef = null) {
   // Debug overlay: one item per download, updated in place
   const debugItemsRef = useRef(new Map())
   const [, setDebugTick] = useState(0)
@@ -22,7 +24,8 @@ export function usePreloadProgress(queueRef, initialLookahead) {
     let loaded = 0
     let total  = 0
     for (const it of queueRef.current) {
-      if (it.nodeIdx >= initialLookahead) continue
+      const warm = warmupSetRef?.current ? warmupSetRef.current.has(it.nodeId) : it.nodeIdx < initialLookahead
+      if (!warm) continue
       const size = bytesTotalRef.current.get(it.id) || it.size || FALLBACK_SIZE
       total  += size
       loaded += Math.min(bytesLoadedRef.current.get(it.id) ?? 0, size)

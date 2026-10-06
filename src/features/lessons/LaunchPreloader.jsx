@@ -19,6 +19,7 @@ import useSmoothPct from './useSmoothPct.js'
 // списания энергии. Вынесено из LessonLaunchCard.jsx (тот упирался в потолок
 // 400 строк).
 const WARMUP_TARGET = 5
+const NO_NODES = [] // стабильный пустой список: до выбора прогрев не строит очередь
 
 export default function LaunchPreloader({
   lessonData, title, info, dissolving, onDissolve, examIntro = false,
@@ -48,9 +49,25 @@ export default function LaunchPreloader({
   // прогрев для начала урока НЕ был готов заранее, это осознанный компромисс:
   // «Продолжить» — основная, зелёная кнопка, более вероятный выбор
   const resumeEntryNode = resumeOffer?.nodeId ? nodes.find(n => n.id === resumeOffer.nodeId) : null
+  // Есть чекпойнт — сперва выбор («Продолжить» / «Начать заново»), и только
+  // потом прогрев выбранной точки: раньше карточка грела точку возобновления,
+  // и «Начать заново» уходил в урок с неготовыми файлами. До выбора в прогрев
+  // не передаём ноды (очередь пуста), после — урок стартует сам, как прогреется
+  const [choice, setChoice] = useState(resumeEntryNode ? null : 'start')
+  const choosing = !choice
+  const entryNode = choice === 'resume' ? resumeEntryNode : null
   const { blobMap, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, debugItems, releaseBlobs } = usePlayerPreload(
-    nodes, files, resumeEntryNode ? [resumeEntryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize }
+    choosing ? NO_NODES : nodes, files, entryNode ? [entryNode] : [], { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null }
   )
+  // Жест выбора: разблокировка звука и прогретый элемент таблиц — только здесь,
+  // в обработчике тапа (iOS); сам старт придёт позже, из эффекта по готовности
+  function pick(next) {
+    preloadSounds()
+    unlockAudio()
+    primeAudio()
+    if (next === 'start') onRestartProgress()
+    setChoice(next)
+  }
 
   // Start decoding UI sounds while lesson files are loading — no gesture needed for decode.
   // By the time the user taps "Start", AudioBuffers are ready and AudioContext just needs resume().
@@ -99,7 +116,15 @@ export default function LaunchPreloader({
   // Кнопка открывается вместе с ним: «Начать урок» при баре на 40 % — тот
   // же «мгновенный» скачок, только другой стороной
   const { barRef, textRef, reached } = useSmoothPct(loaded ? 100 : Math.min(warmupPct, 99), visible)
-  const canStart    = loaded && reached
+  const canStart    = loaded && reached && !choosing
+
+  // Выбор сделан и прогрев готов — стартуем сами, второй тап не нужен
+  const autoStartedRef = useRef(false)
+  useEffect(() => {
+    if (!resumeEntryNode || choosing || !canStart || dissolving || autoStartedRef.current) return
+    autoStartedRef.current = true
+    handleStart(choice === 'resume')
+  }, [canStart, choosing, choice, dissolving]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Стиль обычной кнопки старта — общий для LaunchCtaSlot (mayResume) и для
   // простой <button> (когда «Продолжить» в принципе невозможно)
@@ -169,9 +194,11 @@ export default function LaunchPreloader({
           {/* Слово то же, что в каркасе до загрузки сценария («Загрузка
               урока…»): подмена «Загрузка» → «Подготовка» на полпути читалась
               как смена этапа, хотя это одна и та же загрузка */}
-          {canStart
-            ? 'Урок готов к запуску'
-            : <>Загрузка урока: <span ref={textRef}>0%</span></>}
+          {choosing
+            ? 'Продолжить с того места или начать заново?'
+            : canStart
+              ? 'Урок готов к запуску'
+              : <>Загрузка урока: <span ref={textRef}>0%</span></>}
         </span>
       </div>
 
@@ -210,11 +237,12 @@ export default function LaunchPreloader({
           primaryClassName="resumeLessonBtnPrimary"
           // Тот же принцип, что у startBtnStyle: до готовности — серый текст без
           // зелёной плашки (раньше зелёная на 50% — та же «плашка до кнопки»)
-          primaryStyle={canStart ? undefined : { background: 'transparent', color: '#666', cursor: 'default', opacity: 0 }}
-          primaryLabel={canStart ? 'Продолжить' : 'Загрузка...'}
-          primaryDisabled={!canStart}
-          onPrimary={() => handleStart(true)}
-          onGhost={() => { onRestartProgress(); handleStart() }}
+          primaryStyle={choosing ? undefined : { background: 'transparent', color: '#666', cursor: 'default', opacity: 0 }}
+          primaryLabel={choosing ? 'Продолжить' : 'Загрузка...'}
+          primaryDisabled={!choosing}
+          ghostDisabled={!choosing}
+          onPrimary={() => pick('resume')}
+          onGhost={() => pick('start')}
         />
       ) : examIntro ? (
         <ExamIntroDialog canStart={canStart} onStart={() => handleStart()} />
