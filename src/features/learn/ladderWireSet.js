@@ -4,16 +4,18 @@
 // MemoryLadderWires.jsx.
 import {
   ladderLinks, fullPts, orthPoints, polyLen, lengthTo, insertOn, dist, taper, flarePath, bulbR, mixColor, widthAt,
-  WIRE_COLORS, W_MIN, W_MAX, FLARE_L,
+  WIRE_COLORS, TEMP_COLOR, W_MIN, W_MAX, FLARE_L,
 } from './ladderWires.js'
 
 const R = 12 // радиус скругления углов
 
 // Ствол (шапка → круг → ствол → «Усвоенные»), отводы в «Новые» и «Знакомые»
-// (толщина — как у ствола в точке отвода, цвет — к цвету ступени), связь
+// (толщина — как у ствола в точке отвода, цвет — от цвета ствола в этой точке к цвету ступени), связь
 // «Усвоенные» → пятиугольник (до W_MAX), трубы и точки на концах. Внутри круга
 // (между его левым и правым краем на горизонтали центра) отрезков нет: круг —
-// непрозрачный блок, а длина сквозь него в толщине учтена.
+// непрозрачный блок, а длина сквозь него в толщине учтена. Цвет ствола: шапка (accent) → у входа в круг
+// TEMP_COLOR (временная память); от выхода из круга TEMP_COLOR → золотистый «Усвоенных» — в круге линия
+// меняет цвет, бутоны входа и выхода — цвета временной памяти.
 // → { pieces: [{ x1, y1, x2, y2, w, color }], dots: [{ x, y, r, color }],
 //      flares: [{ d, color }] (трубы у элементов), widths: [w0, w1, w2] — толщина там, где шарик каждой ступени
 //      стартует (у самой ступени), tearAt: { x, y } — выход из круга слева (от него отсчитывается разрыв сна) }
@@ -32,7 +34,11 @@ export function ladderWireSet(rects) {
   const total = trunkLen + (fin ? polyLen(fin) : 0)
   const C = WIRE_COLORS
   const inCircle = p => Math.abs(p.y1 - cy) < 0.5 && Math.abs(p.y2 - cy) < 0.5 && (p.x1 + p.x2) / 2 > circle.l && (p.x1 + p.x2) / 2 < circle.r
-  const pieces = taper(trunk, { s0: 0, s1: trunkLen / total, c0: C.accent, c1: C.levels[2] }).filter(p => !inCircle(p))
+  // Цвет ствола по длине от шапки: до входа в круг accent → TEMP_COLOR, после выхода TEMP_COLOR → золотистый
+  const [lenR, lenL] = [lengthTo(trunk, gateR), lengthTo(trunk, gateL)]
+  const colorAt = len => (len <= lenR ? mixColor(C.accent, TEMP_COLOR, len / (lenR || 1))
+    : len >= lenL ? mixColor(TEMP_COLOR, C.levels[2], (len - lenL) / ((trunkLen - lenL) || 1)) : TEMP_COLOR)
+  const pieces = taper(trunk, { s0: 0, s1: trunkLen / total, colorAt }).filter(p => !inCircle(p))
   const flares = []
   // Конец связи у элемента: труба (если прямого участка хватает) → радиус бутона
   const grow = (pts, atEnd, w, color) => {
@@ -46,8 +52,8 @@ export function ladderWireSet(rects) {
   }
   // Толщина и цвет ствола в точке P
   const at = P => {
-    const s = lengthTo(trunk, P) / total
-    return { w: widthAt(s), color: mixColor(C.accent, C.levels[2], s / (trunkLen / total)) }
+    const len = lengthTo(trunk, P)
+    return { w: widthAt(len / total), color: colorAt(len) }
   }
   const dots = [{ x: head.pts[0][0], y: head.pts[0][1], r: grow(head.pts, false, W_MIN, C.accent), color: C.accent }]
   // Вход в круг справа и выход слева — трубы смотрят в круг, толщина по длине пути
@@ -62,7 +68,7 @@ export function ladderWireSet(rects) {
     const s = i === 2 ? trunkLen / total : lengthTo(trunk, [trunkX, end[1] - R]) / total
     if (i < 2) {
       const branch = orthPoints([[trunkX, end[1] - R], [trunkX, end[1]], end], R)
-      pieces.push(...taper(branch, { s0: s, s1: s, c0: C.levels[2], c1: C.levels[i] }))
+      pieces.push(...taper(branch, { s0: s, s1: s, c0: at([trunkX, end[1] - R]).color, c1: C.levels[i] }))
     }
     const w = widthAt(s)
     widths.push(w)

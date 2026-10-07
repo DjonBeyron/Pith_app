@@ -9,7 +9,7 @@
 // кольцо вынесено за блок, r — радиус, w — толщина. У первой ступени колец нет
 const M = 16
 const RINGS = {
-  2: [{ inset: 5, r: 21, w: 1.25, color: 'rgba(182, 254, 59, 0.24)', f: 'memTurbA' }],
+  2: [{ inset: 5, r: 21, w: 1.25, color: 'rgba(79, 179, 238, 0.24)', f: 'memTurbA' }], // небесный — «Знакомые»
   3: [
     { inset: 5, r: 21, w: 1.5, color: 'rgba(241, 189, 60, 0.26)', f: 'memTurbA' },
     { inset: 10, r: 26, w: 1, color: 'rgba(241, 189, 60, 0.13)', f: 'memTurbB' },

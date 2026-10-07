@@ -10,7 +10,14 @@
 // через круг к кнопке «Повторить».
 // Чистые функции: прямоугольники меряет MemoryLadderWires.jsx.
 
-export const WIRE_COLORS = { accent: '#b6fe3b', levels: ['#4fb3ee', '#b6fe3b', '#f1bd3c'], perm: '#8b5cf6' }
+// Цвета ступеней — идентичность уровня: Новые — салатовый, Знакомые — небесный, Усвоенные — золотистый,
+// Постоянная — фиолетовый (в CSS те же — --lvl1/--lvl2/--lvl3/--lvlP в memory-ladder.css). accent — цвет шапки /
+// кнопки «Повторить» (акцент приложения, совпадает с первой ступенью по оттенку, но это не уровень)
+export const WIRE_COLORS = { accent: '#b6fe3b', levels: ['#b6fe3b', '#4fb3ee', '#f1bd3c'], perm: '#8b5cf6' }
+// Временная память (круг-счётчик): нейтральный серебристо-белый — не спорит ни с цветами ступеней, ни с
+// фиолетовой постоянной. В CSS — --temp / --temp-rgb (memory-ladder.css). Связь шапка → круг приходит к этому
+// цвету, от круга к стволу уходит от него к цветам ступеней: в круге линия «меняет цвет»
+export const TEMP_COLOR = '#dbe6f5'
 
 // Толщина связи растёт плавно по всему пути: от шапки «Повторить» (W_MIN) до
 // пятиугольника «Закреплённые слова» (W_MAX) — слово крепнет по дороге вниз
@@ -178,8 +185,9 @@ export function mixColor(a, b, t) {
 }
 
 // Полилиния → короткие отрезки (не длиннее maxLen) с толщиной и цветом,
-// плавно меняющимися по длине: s0 → s1 — доля всего пути (толщина), c0 → c1 — цвет
-export function taper(poly, { s0, s1, c0, c1, maxLen = 8 }) {
+// плавно меняющимися по длине: s0 → s1 — доля всего пути (толщина), c0 → c1 — цвет;
+// colorAt(len) — вместо c0/c1 цвет по длине от начала ломаной (ствол с «переключением» цвета в круге)
+export function taper(poly, { s0, s1, c0, c1, colorAt, maxLen = 8 }) {
   const total = polyLen(poly) || 1
   const pieces = []
   let acc = 0
@@ -189,8 +197,10 @@ export function taper(poly, { s0, s1, c0, c1, maxLen = 8 }) {
     for (let k = 0; k < n; k++) {
       const at = t => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
       const [p, q] = [at(k / n), at((k + 1) / n)]
-      const t = (acc + L * (k + 0.5) / n) / total
-      pieces.push({ x1: f(p[0]), y1: f(p[1]), x2: f(q[0]), y2: f(q[1]), w: widthAt(s0 + (s1 - s0) * t), color: mixColor(c0, c1, t) })
+      const len = acc + L * (k + 0.5) / n
+      const t = len / total
+      const color = colorAt ? colorAt(len) : mixColor(c0, c1, t)
+      pieces.push({ x1: f(p[0]), y1: f(p[1]), x2: f(q[0]), y2: f(q[1]), w: widthAt(s0 + (s1 - s0) * t), color })
     }
     acc += L
   }

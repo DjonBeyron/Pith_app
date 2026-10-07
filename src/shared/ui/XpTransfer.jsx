@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCurrentLevel, getNextLevel } from '../lib/xpLevels.js'
 import { particleShares, departGap } from '../lib/xpTransferPlan.js'
-import { playSound } from '../lib/sounds.js'
+import { playSound, warmSound } from '../lib/sounds.js'
 
 // XP-transfer анимация: счётчик «+N XP» → шарики летят по одному в XP-бар → бар растёт → блок награды
 // схлопывается → onDone. Шариков столько же, сколько XP, но не больше десяти (xpTransferPlan.js: получил 3 —
@@ -45,6 +45,8 @@ export default function XpTransfer({ earnedXp, baseXp, onDone, label = 'Нагр
   // rAF loop: счётчик, шарики и полоска идут по плану (xpTransferPlan.js)
   useEffect(() => {
     if (!earnedXp) return
+    // Первый шарик прилетит через ~0,7 с: греем xp-gain заранее, чтобы его звук не опаздывал на iOS (sounds.js)
+    warmSound('xp-gain')
     const shares = particleShares(earnedXp)
     const gap = departGap(shares.length)
     // Шарик: когда вылетает, сколько XP уносит и до какой отметки полоски доедет после прилёта

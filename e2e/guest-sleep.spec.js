@@ -41,8 +41,6 @@ test('всё повторено: «Памяти пора отдыхать» в �
   await expect(nav).toHaveClass(/shellV2NavBtn--sleep/)
   await expect(nav.locator('.shellV2NavZzz i')).toHaveCount(3)
   await expect(nav).not.toHaveClass(/shellV2NavBtnDue/)
-  // Искры над пятиугольником не летят, пока мозг спит
-  await expect(page.locator('.memSparkBox')).toHaveCount(0)
   // Заголовок — заглавными и всегда в одну строку, не вылезая из блока, на любой ширине
   const title = main.locator('.lrMainTitle')
   expect(await title.evaluate(el => getComputedStyle(el).textTransform)).toBe('uppercase')
@@ -161,14 +159,12 @@ test('есть начатая фраза: запаса нет — раздел �
   await expect(page.locator('.lrScreen')).not.toHaveClass(/lrScreen--bare/)
 })
 
-test('есть что повторить: мозг не спит, искры летят', async ({ page }) => {
+test('есть что повторить: мозг не спит', async ({ page }) => {
   await seed(page, { due: day(0) })
   await page.goto('/?tab=learn')
   await expect(page.locator('.lrMain')).toContainText('Сегодня повторяем', { timeout: 30_000 })
   await expect(page.locator('.lrSleep')).toHaveCount(0)
   await expect(page.locator('.shellV2NavZzz')).toHaveCount(0)
-  await expect(page.locator('.memSparkBox')).toHaveCount(1)
-  await expect(page.locator('.memSpark')).toHaveCount(6)
 })
 
 test('счётчик временной памяти: три точки — только если слов больше нуля', async ({ page }) => {

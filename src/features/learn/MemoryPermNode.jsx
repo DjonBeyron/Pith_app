@@ -1,7 +1,6 @@
 import { useId } from 'react'
 import { Maximize2 } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
-import MemorySparks from './MemorySparks.jsx'
 
 // Контур финала модуля (MgFinalNode.jsx), сдвинутый в коробку 240×212; на
 // экране — в масштабе 3/4. Холст svg больше коробки на 24 px со всех сторон
@@ -20,10 +19,9 @@ const PERM_PATH = 'M 5.4 118.0 L 16.6 42.4 A 43.8 43.8 0 0 1 60.0 4.6 L 186.0 4.
 // Фиолетовый пятиугольник «N Слов в постоянной памяти» под ступенями (форма
 // финала модуля): сюда уходят усвоенные слова, вспомненные на месячной
 // проверке. Четыре контура с затуханием наружу — как обводки ступеней (1 / 2 /
-// 3). В фоне, кроме узора приложения, — еле видная сеть нейронов (memory-perm.css). Над ним взлетают искры, как от костра
-// (MemorySparks.jsx) — и при пустой постоянной памяти, но не пока мозг спит (sparks=false: в шапке
-// плывут «Z», две анимации никогда не идут вместе). Тап — четвёртая вкладка страницы уровней
-export default function MemoryPermNode({ count, sparks = true, onOpen }) {
+// 3). В фоне, кроме узора приложения, — один крупный полупрозрачный нейрон под текстом (memory-perm.css,
+// без анимации). Тап — четвёртая вкладка страницы уровней
+export default function MemoryPermNode({ count, onOpen }) {
   // id градиента — только буквы и цифры: url(#…) в SVG надёжен без спецсимволов
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
   const grad = 'memPermGrad' + uid
@@ -51,7 +49,6 @@ export default function MemoryPermNode({ count, sparks = true, onOpen }) {
             style={{ strokeWidth: r.w, opacity: r.o, filter: `url(#${r.f})` }} />
         ))}
       </svg>
-      {sparks && <MemorySparks />}
       <span className="memExpand memExpand--perm" aria-hidden="true"><Maximize2 /></span>
       <span className="memPermText">
         <b>{count}</b>

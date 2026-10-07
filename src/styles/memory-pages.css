@@ -26,7 +26,7 @@
   cursor: pointer;
 }
 .memTab b { display: block; font-size: 16px; }
-.memTab--2 { --c: #b6fe3b; }
+.memTab--2 { --c: var(--lvl2); }
 .memTab--3 { --c: #f1bd3c; }
 .memTab--Perm { --c: #a78bfa; }
 .memTab[aria-selected='true'] { background: #1a1d22; color: var(--c); box-shadow: inset 0 -2px 0 var(--c); }
@@ -40,7 +40,7 @@
   border-radius: 14px;
   background: linear-gradient(to bottom, var(--tint) 0, transparent 70px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
 }
-.memHead--2 { --c: #b6fe3b; --tint: rgba(182, 254, 59, 0.15); }
+.memHead--2 { --c: var(--lvl2); --tint: rgba(var(--lvl2-rgb), 0.15); }
 .memHead--3 { --c: #f1bd3c; --tint: rgba(241, 189, 60, 0.18); }
 .memHead b { display: block; margin-bottom: 4px; font-size: 16px; color: var(--c); }
 .memHead p { margin: 0; font-size: 13px; line-height: 1.4; color: #c9d0d7; }
@@ -54,7 +54,7 @@
    вниз — получается компактная кнопка «развернуть описание» */
 .memHeadWrap { --c: var(--lvl1); --tint: rgba(var(--lvl1-rgb), 0.16); --ease: cubic-bezier(0.4, 0, 0.2, 1); position: relative; padding-bottom: 0; transition: padding-bottom 0.32s var(--ease); }
 .memHeadWrap--shut { padding-bottom: 32px; }
-.memHeadWrap.memHead--2 { --c: #b6fe3b; --tint: rgba(182, 254, 59, 0.15); }
+.memHeadWrap.memHead--2 { --c: var(--lvl2); --tint: rgba(var(--lvl2-rgb), 0.15); }
 .memHeadWrap.memHead--3 { --c: #f1bd3c; --tint: rgba(241, 189, 60, 0.18); }
 .memHeadWrap.memHead--Perm { --c: #8b5cf6; --tint: rgba(139, 92, 246, 0.22); }
 .memHeadFold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.32s var(--ease), opacity 0.25s ease 0.04s, visibility 0s; }

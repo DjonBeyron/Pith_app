@@ -135,6 +135,8 @@ export function playSound(name, where = null) {
     htmlCache[name] = audio
     lateMade.add(name)
   }
+  // Вклинились посреди прогрева (warmSound): он больше не ставит на паузу, звук включаем сами
+  if (warming.delete(name)) audio.muted = false
   const rec = traceSoundRequest(name, audio, { откуда: where, состояниеCtx: ctx?.state ?? null })
   // Only seek to start if not already there — avoids iOS re-decode stall on fresh objects
   if (audio.currentTime > 0) audio.currentTime = 0
@@ -150,10 +152,33 @@ export function playSound(name, where = null) {
     .catch(e => { traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`) })
 }
 
+// Прогрев звука БЕЗ слышимого звука: беззвучный play() → pause() → в начало. Зачем: на iOS первый
+// play() элемента, который давно доиграл (или ещё не играл), стартует с задержкой 100–700 мс, пока
+// декодер заново не прогреется; у остальных повторов элемент «тёплый» — звук первого шарика XP в
+// итогах урока «опаздывал» относительно прилёта, остальные шли в такт (XpTransfer.jsx зовёт это при
+// показе итогов, за 0,7 с до первого прилёта). muted-автозапуск iOS разрешает без жеста. После прогрева
+// элемент стоит на 0 → playSound не делает seek (currentTime > 0 — тот самый повторный декод).
+// Не трогает элемент, который сейчас играет; если playSound успел вклиниться посреди прогрева —
+// прогрев ничего не останавливает (playSound снимает метку и сам включает звук)
+const warming = new Set()
+export function warmSound(name) {
+  const audio = htmlCache[name]
+  if (!audio || !audio.paused || warming.has(name)) return
+  warming.add(name)
+  audio.muted = true
+  const finish = () => {
+    if (warming.delete(name)) { audio.pause(); audio.currentTime = 0 }
+    audio.muted = false
+  }
+  pLog(`[sound] warm ${name}`)
+  try { audio.play().then(finish, finish) } catch { finish() }
+}
+
 function evictAll(why) {
   const names = Object.keys(htmlCache)
   if (!names.length) return
   names.forEach(n => delete htmlCache[n])
   lateMade.clear()
+  warming.clear()
   pLog(`[sound] кэш звуков сброшен (${why}): ${names.join(', ')}`)
 }

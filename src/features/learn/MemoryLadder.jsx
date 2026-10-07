@@ -47,7 +47,7 @@ export default function MemoryLadder({ ladder, sleeping = false, onOpen, onWord,
           </div>
         ))}
       </div>
-      <MemoryPermNode count={ladder.permanent.length} sparks={!sleeping} onOpen={() => onOpen(4)} />
+      <MemoryPermNode count={ladder.permanent.length} onOpen={() => onOpen(4)} />
       <MemoryLadderWires today={today} sleeping={sleeping} />
     </div>
   )

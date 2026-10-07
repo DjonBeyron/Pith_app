@@ -4,6 +4,7 @@ import { ladderWireSet } from './ladderWireSet.js'
 import { tearWire } from './ladderTear.js'
 
 const MAX_BALLS = 3 // на ступень: больше — каша из шариков
+const SPARK_R = 2.6 // радиус искры на кончике провода порванного кабеля (режим сна), px
 
 // Слой линий «Моей памяти» поверх зоны лестницы (родитель слоя): меряет
 // шапку (.lrMain), круг-счётчик (.memCount), ступени (.memLvl) и пятиугольник (.memPerm), рисует
@@ -18,8 +19,8 @@ const MAX_BALLS = 3 // на ступень: больше — каша из ша�
 // в скрытой вкладке (ширина 0) не меряет. Зона — через СВОЙ элемент слоя:
 // ref родителя в эффекте ребёнка при монтировании ещё пуст (React цепляет
 // ref родителя после эффектов детей) — так линии пропадали после «Назад».
-// today — число сегодняшних слов по ступеням. sleeping — мозг спит: кабель оборван (ladderTear.js): разрыв на
-// горизонтали левее круга, по три провода цветов ступеней у концов, искры на кончиках
+// today — число сегодняшних слов по ступеням. sleeping — мозг спит: кабель оборван (ladderTear.js): крупный разрыв на
+// горизонтали левее круга, по три провода цветов ступеней у концов, искры (SPARK_R) на кончиках
 export default function MemoryLadderWires({ today, sleeping = false }) {
   const [geo, setGeo] = useState(null) // { links, pieces, dots, flares, widths, tearAt }
   const layerRef = useRef(null)
@@ -62,7 +63,7 @@ export default function MemoryLadderWires({ today, sleeping = false }) {
           {geo.flares.map((fl, k) => <path key={`f${k}`} d={fl.d} fill={fl.color} stroke="none" />)}
           {geo.dots.map((d, k) => <circle key={k} cx={d.x} cy={d.y} r={d.r} fill={d.color} />)}
         </g>
-        {tear?.sparks.map((s, k) => <circle key={`k${k}`} className="memTearSpark" cx={s.x} cy={s.y} r="1.6" style={{ '--p': `${s.period}s`, '--d': `${s.delay}s` }} />)}
+        {tear?.sparks.map((s, k) => <circle key={`k${k}`} className="memTearSpark" cx={s.x} cy={s.y} r={SPARK_R} style={{ '--p': `${s.period}s`, '--d': `${s.delay}s` }} />)}
       </svg>
       {[0, 1, 2].flatMap(i => Array.from({ length: Math.min(today[i] ?? 0, MAX_BALLS) }, (_, k) => (
         <span key={`${i}-${k}`} className="memBall" style={{
