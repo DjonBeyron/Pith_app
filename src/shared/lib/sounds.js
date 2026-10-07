@@ -17,6 +17,10 @@ export const soundUrl = name => `/sounds/${name}.mp3?v=${APP_VERSION}`
 
 let ctx = null
 const htmlCache = {}
+// Элементы, которые playSound создал САМ (кэш был пуст) — то есть вне жеста.
+// Такой элемент не «разрешённый»: при ближайшем жесте его заменяет свежий из
+// preloadSounds (см. там)
+const lateMade = new Set()
 
 // Контекст нужен только для разблокировки звука жестом в начале урока
 // (unlockAudio). После урока он оставался в running и держал аудиосессию
@@ -33,9 +37,11 @@ onLessonOpenChange(open => {
 // и «конец прерывания» при смене маршрута может не прийти вовсе. Жалоба с
 // iPhone: после переподключения наушников звуки интерфейса пропали до
 // перезагрузки страницы — элементы в htmlCache создаются один раз. Поэтому:
-// кэш выбрасываем (следующий playSound создаст свежие элементы в новых
-// сессиях), прогретый элемент таблиц тоже, а контекст резюмим на ближайшем
-// касании в уроке
+// кэш выбрасываем, прогретый элемент таблиц тоже, а на ближайшем касании в
+// уроке резюмим контекст И пересоздаём элементы ПРЯМО В ЖЕСТЕ (onGesture →
+// preloadSounds): так же, как при старте урока, — это проверенный путь.
+// Элемент, созданный в playSound вне жеста, на iOS стартует с задержкой
+// ~700 мс, а то и вовсе без разрешения
 function onCtxStateChange() {
   pLog(`[sound] AudioContext state → ${ctx.state}`)
   if (ctx.state !== 'interrupted') return
@@ -45,7 +51,7 @@ function onCtxStateChange() {
 }
 
 let gestureArmed = false
-function onGesture() { disarmGesture(); unlockAudio() }
+function onGesture() { disarmGesture(); preloadSounds(); unlockAudio() }
 function armGesture() {
   if (gestureArmed || typeof document === 'undefined') return
   gestureArmed = true
@@ -80,6 +86,9 @@ export function warmSoundFiles() {
 // Call during lesson warmup (no gesture needed).
 // Creates AudioContext (suspended) + HTMLAudioElements preloaded into memory.
 export function preloadSounds() {
+  // Созданное вне жеста (playSound при пустом кэше после прерывания) меняем
+  // на свежее — мы сейчас, как правило, внутри жеста
+  if (lateMade.size) { lateMade.forEach(n => delete htmlCache[n]); lateMade.clear() }
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)()
     ctx.onstatechange = onCtxStateChange
@@ -124,37 +133,27 @@ export function playSound(name, where = null) {
   if (!audio) {
     audio = new Audio(soundUrl(name))
     htmlCache[name] = audio
+    lateMade.add(name)
   }
   const rec = traceSoundRequest(name, audio, { откуда: where, состояниеCtx: ctx?.state ?? null })
   // Only seek to start if not already there — avoids iOS re-decode stall on fresh objects
   if (audio.currentTime > 0) audio.currentTime = 0
-  // Прерванный элемент (см. onCtxStateChange) на старых iOS не отказывает, а
-  // ВИСИТ: промис не резолвится, событий нет. Ждём HANG_MS — не пошёл, так и
-  // стоит на паузе — выбрасываем, чтобы следующий раз создать свежий
-  let settled = false
-  const hang = setTimeout(() => { if (!settled && audio.paused) evict(name, audio, 'play() завис') }, HANG_MS)
+  // Элемент из кэша НЕ выбрасываем ни по отказу play(), ни по «долго не
+  // стартует» (раньше: NotAllowedError/AbortError/сторож 1,5 с, v3.2.1855).
+  // Новый <audio>, созданный здесь, вне жеста, не лучше жестового из
+  // preloadSounds: на медленной сети (play() ещё грузит файл) каждый звук
+  // выбрасывал недогруженный элемент, и звуки так и не прогревались — «в
+  // других уроках нет звуков». Выбрасывает кэш только прерывание сессии
+  // (onCtxStateChange), пересоздаёт — следующий жест
   audio.play()
-    .then(() => { settled = true; clearTimeout(hang); traceSoundStarted(rec); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
-    .catch(e => {
-      settled = true; clearTimeout(hang)
-      traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`)
-      // AbortError бывает и от второго playSound подряд (xp-gain на каждый
-      // шарик) — элемент при этом играет; выбрасываем только стоящий на паузе
-      if ((e?.name === 'NotAllowedError' || e?.name === 'AbortError') && audio.paused) evict(name, audio, e.name)
-    })
-}
-
-const HANG_MS = 1500
-
-function evict(name, audio, why) {
-  if (htmlCache[name] !== audio) return
-  delete htmlCache[name]
-  pLog(`[sound] ${name} выброшен из кэша (${why}) — следующий раз создадим свежий элемент`)
+    .then(() => { traceSoundStarted(rec); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
+    .catch(e => { traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`) })
 }
 
 function evictAll(why) {
   const names = Object.keys(htmlCache)
   if (!names.length) return
   names.forEach(n => delete htmlCache[n])
+  lateMade.clear()
   pLog(`[sound] кэш звуков сброшен (${why}): ${names.join(', ')}`)
 }
