@@ -9,7 +9,9 @@ import {
 import { tearSpan } from './ladderTear.js'
 
 const R = 12 // радиус скругления углов
-const FADE = 12 // длина перехода цвета зелёный → бело-серый, px
+const FADE = 12 // переход серый → зелёный внутри вырезанного окна разрыва, px
+const FADE_LEVEL = 64 // переход цвета ствола ниже отвода в ступень (зелёный → небесный → золотистый), px
+const smooth = t => t * t * (3 - 2 * t) // плавный старт и финиш без «шва» в начале и конце перехода
 
 // Ствол (шапка → круг → ствол → «Усвоенные»), отводы в «Новые» и «Знакомые»
 // (толщина — как у ствола в точке отвода, цвет — сплошь цвет ступени), связь
@@ -47,16 +49,22 @@ export function ladderWireSet(rects, { sleeping = false } = {}) {
   const trunkX = branches[2].pts[1][0]
   const { xr, xl } = tearSpan(circle.l, trunkX + R)
   const endY = i => branches[i].pts[branches[i].pts.length - 1][1]
+  // [начало перехода, конец, цвет до, цвет после] по длине ствола. Серый → зелёный — вокруг центра разрыва. У отводов
+  // переход идёт НИЖЕ уровня отвода (ствол на уровне отвода ещё чисто цвета его ступени — вертикальное начало отвода
+  // ложится без шва) и плавный (smoothstep, FADE_LEVEL px), но не длиннее 80 % расстояния до следующей границы
+  const lv0 = lengthTo(trunk, [trunkX, endY(0)])
+  const lv1 = lengthTo(trunk, [trunkX, endY(1)])
+  const tearC = sleeping ? lengthTo(trunk, [(xr + xl) / 2, cy]) : null
   const stops = [
-    ...(sleeping ? [[lengthTo(trunk, [(xr + xl) / 2, cy]), TEMP_COLOR, C.accent]] : []),
-    [lengthTo(trunk, [trunkX, endY(0)]), C.levels[0], C.levels[1]],
-    [lengthTo(trunk, [trunkX, endY(1)]), C.levels[1], C.levels[2]],
+    ...(sleeping ? [[tearC - FADE / 2, tearC + FADE / 2, TEMP_COLOR, C.accent]] : []),
+    [lv0, lv0 + Math.min(FADE_LEVEL, (lv1 - lv0) * 0.8), C.levels[0], C.levels[1]],
+    [lv1, lv1 + Math.min(FADE_LEVEL, (lengthTo(trunk, [trunkX, endY(2)]) - lv1) * 0.8), C.levels[1], C.levels[2]],
   ]
   const colorAt = len => {
     let color = sleeping ? TEMP_COLOR : C.accent
-    for (const [L, from, to] of stops) {
-      if (len <= L - FADE / 2) return color
-      if (len < L + FADE / 2) return mixColor(from, to, (len - L + FADE / 2) / FADE)
+    for (const [a, b, from, to] of stops) {
+      if (len <= a) return color
+      if (len < b) return mixColor(from, to, smooth((len - a) / (b - a)))
       color = to
     }
     return color
@@ -78,12 +86,12 @@ export function ladderWireSet(rects, { sleeping = false } = {}) {
     const len = lengthTo(trunk, P)
     return { w: widthAt(len / total), color: colorAt(len) }
   }
-  // Бутон у шапки: центр на радиус ниже нижней грани, труба — от него вниз; цвет линии в её начале (сон — серый)
-  const H0 = bulbR(W_MIN)
+  // Вход в шапку — ПОЛУТОЧКА на нижней грани (центр на грани, видна нижняя половина), без трубы-«капли»; цвет линии
+  // в её начале (сон — серый). Рисует MemoryLadderWires.jsx как полукруг (half), не завися от порядка слоёв
+  const H0 = bulbR(W_MIN) + 1
   const [hx, hy] = head.pts[0]
   const headColor = colorAt(0)
-  flares.push({ d: flarePath([hx, hy + H0], [0, -1], W_MIN, FLARE_L, H0), color: headColor })
-  const dots = [{ x: hx, y: hy + H0, r: H0, color: headColor }]
+  const dots = [{ x: hx, y: hy, r: H0, color: headColor, half: true }]
   // Вход в круг справа и выход слева — трубы смотрят в круг, толщина по длине пути
   const [inR, outL] = [at(gateR), at(gateL)]
   dots.push({ x: gateR[0], y: gateR[1], r: grow(head.pts, true, inR.w, inR.color), color: inR.color })

@@ -181,7 +181,8 @@ describe('связи памяти: толщина растёт от шапки �
 
   it('«нейрон»: у каждого элемента труба раздува и бутон шире линии', () => {
     const { flares, dots } = ladderWireSet(rects)
-    expect(flares).toHaveLength(8)
+    // трубы у всех, кроме входа в шапку (там полуточка без трубы): 7
+    expect(flares).toHaveLength(7)
     expect(flares.every(fl => fl.d.startsWith('M ') && fl.d.endsWith('Z'))).toBe(true)
     // у пятиугольника бутон — толщина линии W_MAX + 2·BULB
     expect(dots.at(-1).r).toBe(bulbR(W_MAX))
@@ -224,7 +225,7 @@ describe('связи памяти: цвет и числа', () => {
       edge: -22,
     }
   }
-  const finite = o => Object.values(o).every(v => typeof v === 'string' ? !/NaN/.test(v) : Number.isFinite(v))
+  const finite = o => Object.values(o).every(v => typeof v === 'string' ? !/NaN/.test(v) : typeof v === 'boolean' || Number.isFinite(v))
 
   it('ни у одного отрезка, раздува и бутона нет NaN — на разных ширинах, со сном и без', () => {
     for (const w of widths) for (const sleeping of [false, true]) {
@@ -254,14 +255,18 @@ describe('связи памяти: цвет и числа', () => {
     expect(set.dots.slice(0, 3).map(d => d.color)).toEqual([GREEN, GREEN, GREEN])
     const trunk = trunkOf(set)
     expect(trunk.length).toBeGreaterThan(20)
-    // отвод в «Новые» на y = 290, в «Знакомые» на 370 (переход ±6 px вокруг уровня отвода), «Усвоенные» на 450
-    expect(trunk.filter(p => p.y2 <= 283).every(p => p.color === GREEN)).toBe(true)
-    expect(trunk.filter(p => p.y1 >= 297 && p.y2 <= 363).every(p => p.color === BLUE)).toBe(true)
-    expect(trunk.filter(p => p.y1 >= 377).every(p => p.color === GOLD)).toBe(true)
-    // в переходе — смесь соседних цветов, без серого
-    const fade = trunk.find(p => p.y1 >= 284 && p.y2 <= 296)
-    expect(fade.color).toMatch(/^rgb\(/)
-    expect(fade.color).not.toBe(GRAY)
+    // отвод в «Новые» на y = 290, в «Знакомые» на 370, «Усвоенные» на 450; переход цвета — НИЖЕ уровня отвода
+    // (≈ 64 px, плавный): до уровня отвода ствол чисто цвета его ступени
+    expect(trunk.filter(p => p.y2 <= 290).every(p => p.color === GREEN)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 356 && p.y2 <= 370).every(p => p.color === BLUE)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 434).every(p => p.color === GOLD)).toBe(true)
+    // в переходе — смесь соседних цветов, без серого, и цвет меняется постепенно (не скачком)
+    const mid = trunk.filter(p => p.y1 >= 292 && p.y2 <= 354)
+    expect(mid.length).toBeGreaterThan(5)
+    expect(mid.every(p => /^rgb\(/.test(p.color) && p.color !== GRAY)).toBe(true)
+    const red = c => Number(c.match(/\d+/)[0])
+    expect(new Set(mid.map(p => p.color)).size).toBeGreaterThan(5)
+    for (let i = 1; i < mid.length; i++) expect(Math.abs(red(mid[i].color) - red(mid[i - 1].color))).toBeLessThan(40)
     // отводы и бутоны ступеней — сплошь цвета ступени; вход в «Усвоенные» золотистый
     for (const [i, c] of [GREEN, BLUE].entries()) {
       const y = 290 + 80 * i
@@ -283,18 +288,20 @@ describe('связи памяти: цвет и числа', () => {
     expect(set.dots.slice(0, 3).map(d => d.color)).toEqual([GRAY, GRAY, GRAY]) // бутоны у шапки, входа и выхода круга
     expect(set.flares[0].color).toBe(GRAY)
     const trunk = trunkOf(set)
-    expect(trunk.filter(p => p.y2 <= 283).every(p => p.color === GREEN)).toBe(true)
-    expect(trunk.filter(p => p.y1 >= 297 && p.y2 <= 363).every(p => p.color === BLUE)).toBe(true)
-    expect(trunk.filter(p => p.y1 >= 377).every(p => p.color === GOLD)).toBe(true)
+    expect(trunk.filter(p => p.y2 <= 290).every(p => p.color === GREEN)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 356 && p.y2 <= 370).every(p => p.color === BLUE)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 434).every(p => p.color === GOLD)).toBe(true)
     // провода в разрыве — по-прежнему цвета ступеней
     expect(new Set(t.strands.map(s => s.color))).toEqual(new Set([GREEN, BLUE, GOLD]))
   })
 
-  it('бутон у шапки — целиком под нижней гранью (центр ниже грани на радиус), труба от него вниз', () => {
+  it('вход в шапку — полуточка на нижней грани (центр на грани), без трубы-«капли»', () => {
     const { dots, flares } = ladderWireSet(rects)
-    expect(dots[0].y).toBe(hero.b + dots[0].r)
-    expect(dots[0].r).toBe(bulbR(W_MIN))
-    expect(flares[0].d).toMatch(/^M /)
+    expect(dots[0].half).toBe(true)
+    expect(dots[0].y).toBe(hero.b)
+    expect(dots[0].r).toBeGreaterThan(bulbR(W_MIN))
+    // первая труба в списке — у входа в круг, а не у шапки (у шапки трубы нет)
+    expect(flares.every(f => !f.d.startsWith(`M ${dots[0].x}`))).toBe(true)
   })
 })
 

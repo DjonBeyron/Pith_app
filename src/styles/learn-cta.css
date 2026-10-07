@@ -1,6 +1,11 @@
 /* Кнопка «Повторить» вкладки «Память» (LearnMainAction.jsx → Cta): вынесена
    из learn.css, когда тот дошёл до 250 строк */
 
+/* Узор фона кнопки «Повторить» горит ярче общего тёмного узора кнопок (--v2-tex-d: чёрные линии 9 процентов, на
+   салатовом еле видны): светлые линии, 60 процентов, чуть толще. Тот же рисунок, что в shell-v2.css. Выключается
+   вместе с остальными текстурами (perf-flags.css) */
+:root { --lr-cta-tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='60'%3E%3Cg fill='none' stroke='white' stroke-opacity='.6' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M26 30 C28 18 44 14 54 22 C64 30 60 44 46 46 C34 48 25 41 26 30 Z'/%3E%3Cpath d='M34 30 C36 24 44 22 49 26 C54 30 52 37 45 38 C38 39 33 35 34 30 Z'/%3E%3Cpath d='M60 8 C72 2 84 8 88 16'/%3E%3Cpath d='M2 52 C10 46 20 48 26 54'/%3E%3Cpath d='M74 42 l5 5 -5 5 -5 -5 z'/%3E%3Cpath d='M10 12 l6 6'/%3E%3C/g%3E%3C/svg%3E"); }
+
 /* Кнопка «Повторить» — как «Изучить фразу» в ленте (.feedLearnBtn):
    градиент, тёмные узоры, редкий блик, мягкий «пульс» и три обводки вокруг,
    вспыхивающие по очереди (обёртка нужна: у кнопки overflow: hidden под блик) */
@@ -17,7 +22,7 @@
   border: none;
   border-radius: 999px;
   background:
-    var(--v2-dust-d), var(--v2-grain-d), var(--v2-tex-d),
+    var(--v2-dust-d), var(--v2-grain-d), var(--lr-cta-tex),
     linear-gradient(180deg, #ceff73 0%, #b6fe3b 45%, #9ce922 100%);
   color: #0d1500;
   font: inherit;

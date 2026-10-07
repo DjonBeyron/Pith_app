@@ -62,7 +62,10 @@ export default function MemoryLadderWires({ today, sleeping = false }) {
           ))}
           {tear?.strands.map((s, k) => <path key={`s${k}`} className="memStrand" d={s.d} fill="none" stroke={s.color} strokeWidth={s.w} />)}
           {geo.flares.map((fl, k) => <path key={`f${k}`} d={fl.d} fill={fl.color} stroke="none" />)}
-          {geo.dots.map((d, k) => <circle key={k} cx={d.x} cy={d.y} r={d.r} fill={d.color} />)}
+          {geo.dots.map((d, k) => (d.half
+            // полуточка на нижней грани шапки: нижний полукруг (дуга против часовой — через низ)
+            ? <path key={k} d={`M ${d.x - d.r} ${d.y} A ${d.r} ${d.r} 0 0 0 ${d.x + d.r} ${d.y} Z`} fill={d.color} />
+            : <circle key={k} cx={d.x} cy={d.y} r={d.r} fill={d.color} />))}
         </g>
         <MemoryTearSparks sparks={tear?.sparks} />
       </svg>
