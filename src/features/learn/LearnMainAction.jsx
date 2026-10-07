@@ -23,10 +23,12 @@ function Cta({ onClick, children }) {
   )
 }
 
-function Hero({ mod = '', title, sub, children }) {
+// flash — заголовок «моргает» зелёным как неоновая вывеска с коротким замыканием (режим сна): копия текста в
+// ::after через data-text (learn-sleep.css), для скринридера текст один
+function Hero({ mod = '', title, sub, flash = false, children }) {
   return (
     <div className={'lrMain' + mod}>
-      <p className="lrMainTitle">{title}</p>
+      <p className="lrMainTitle" data-text={flash ? title : undefined}>{title}</p>
       {sub && <p className="lrMainSub">{sub}</p>}
       {children}
     </div>
@@ -69,7 +71,7 @@ export default function LearnMainAction({ view, onStart, onChanged }) {
     )
   }
   return (
-    <Hero mod=" lrMainDone" title="Памяти пора отдыхать" sub="Сегодня все слова записаны в твою память">
+    <Hero mod=" lrMainDone" flash title="Памяти пора отдыхать" sub="Сегодня все слова записаны в твою память">
       <SleepingBrain />
     </Hero>
   )

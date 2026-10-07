@@ -242,32 +242,52 @@ describe('связи памяти: цвет и числа', () => {
     }
   })
 
-  it('без сна: зелёная до выхода из круга, бело-серая после трубы; бутоны входа/выхода — цвета линии', () => {
+  // Ствол (x = −11; к нему примешиваются вертикальные начала отводов — они сплошь цвета ступени) и строка круга
+  const trunkOf = set => set.pieces.filter(p => p.x1 === p.x2 && p.x1 === -11)
+  const rowOf = ps => ps.filter(p => Math.abs(p.y1 - 178) < 0.5 && Math.abs(p.y2 - 178) < 0.5)
+  const [GREEN, BLUE, GOLD, GRAY] = ['#b6fe3b', '#4fb3ee', '#f1bd3c', '#dbe6f5']
+
+  it('без сна: зелёная от шапки через круг до отвода в «Новые», дальше небесная, после отвода в «Знакомые» — золотистая', () => {
     const set = ladderWireSet(rects)
-    const row = set.pieces.filter(p => Math.abs(p.y1 - 178) < 0.5 && Math.abs(p.y2 - 178) < 0.5)
-    const left = row.filter(p => p.x1 < circle.l - 1), right = row.filter(p => p.x1 > circle.r)
-    expect(right.every(p => p.color === '#b6fe3b')).toBe(true)
-    expect(left.filter(p => p.x1 < circle.l - 40).every(p => p.color === '#dbe6f5')).toBe(true)
-    expect(set.dots[1].color).toBe('#b6fe3b')
-    expect(set.dots[2].color).toBe('#b6fe3b')
-    // ствол бело-серый до первого отвода (ниже к x = −11 примешиваются отрезки отводов), у «Усвоенных» — золотистый
-    const trunk = set.pieces.filter(p => p.x1 === p.x2 && p.x1 === -11)
+    const row = rowOf(set.pieces)
+    expect(row.every(p => p.color === GREEN)).toBe(true) // шапка → круг и выход из круга → ствол
+    expect(set.dots.slice(0, 3).map(d => d.color)).toEqual([GREEN, GREEN, GREEN])
+    const trunk = trunkOf(set)
     expect(trunk.length).toBeGreaterThan(20)
-    expect(trunk.filter(p => p.y1 < 270).every(p => p.color === '#dbe6f5')).toBe(true)
-    // последний отрезок перед «Усвоенными» — почти золотистый (середина отрезка чуть не доходит до конца), бутон — золотистый
-    expect(set.pieces.find(p => Math.abs(p.x2 - blocks[2].l) < 9 && Math.abs(p.y1 - 450) < 1).color).toMatch(/^rgb\(2[34]\d, 19\d, [5-9]\d\)$/)
-    expect(set.dots[5].color).toBe('#f1bd3c')
+    // отвод в «Новые» на y = 290, в «Знакомые» на 370 (переход ±6 px вокруг уровня отвода), «Усвоенные» на 450
+    expect(trunk.filter(p => p.y2 <= 283).every(p => p.color === GREEN)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 297 && p.y2 <= 363).every(p => p.color === BLUE)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 377).every(p => p.color === GOLD)).toBe(true)
+    // в переходе — смесь соседних цветов, без серого
+    const fade = trunk.find(p => p.y1 >= 284 && p.y2 <= 296)
+    expect(fade.color).toMatch(/^rgb\(/)
+    expect(fade.color).not.toBe(GRAY)
+    // отводы и бутоны ступеней — сплошь цвета ступени; вход в «Усвоенные» золотистый
+    for (const [i, c] of [GREEN, BLUE].entries()) {
+      const y = 290 + 80 * i
+      expect(set.pieces.filter(p => Math.abs(p.y1 - y) < 0.5 && Math.abs(p.y2 - y) < 0.5 && p.x1 > -11).every(p => p.color === c)).toBe(true)
+    }
+    expect(set.pieces.find(p => Math.abs(p.x2 - blocks[2].l) < 9 && Math.abs(p.y1 - 450) < 1).color).toBe(GOLD)
+    expect(set.dots.slice(3, 6).map(d => d.color)).toEqual([GREEN, BLUE, GOLD])
   })
 
-  it('сон: зелёная до разрыва, бело-серая после (переход в вырезанном окне)', () => {
+  it('сон: «мёртвая» сторона от разрыва вверх к шапке серая, от разрыва вниз — зелёная/небесная/золотистая', () => {
     const set = ladderWireSet(rects, { sleeping: true })
     const t = tearWire(set.pieces, set.tearAt)
     const xs = set.pieces.filter(p => !t.pieces.includes(p)).flatMap(p => [p.x1, p.x2])
     const [gr, gl] = [Math.max(...xs), Math.min(...xs)]
-    const row = t.pieces.filter(p => Math.abs(p.y1 - 178) < 0.5 && Math.abs(p.y2 - 178) < 0.5 && p.x1 < circle.l + 1)
-    expect(row.filter(p => Math.min(p.x1, p.x2) >= gr).every(p => p.color === '#b6fe3b')).toBe(true)
-    expect(row.filter(p => Math.max(p.x1, p.x2) <= gl).every(p => p.color === '#dbe6f5')).toBe(true)
-    expect(set.dots[2].color).toBe('#b6fe3b')
+    const row = rowOf(t.pieces)
+    expect(row.filter(p => p.x1 > circle.r).every(p => p.color === GRAY)).toBe(true) // шапка → круг
+    expect(row.filter(p => Math.min(p.x1, p.x2) >= gr && p.x1 <= circle.l).every(p => p.color === GRAY)).toBe(true) // выход → разрыв
+    expect(row.filter(p => Math.max(p.x1, p.x2) <= gl).every(p => p.color === GREEN)).toBe(true) // разрыв → ствол
+    expect(set.dots.slice(0, 3).map(d => d.color)).toEqual([GRAY, GRAY, GRAY]) // бутоны у шапки, входа и выхода круга
+    expect(set.flares[0].color).toBe(GRAY)
+    const trunk = trunkOf(set)
+    expect(trunk.filter(p => p.y2 <= 283).every(p => p.color === GREEN)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 297 && p.y2 <= 363).every(p => p.color === BLUE)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 377).every(p => p.color === GOLD)).toBe(true)
+    // провода в разрыве — по-прежнему цвета ступеней
+    expect(new Set(t.strands.map(s => s.color))).toEqual(new Set([GREEN, BLUE, GOLD]))
   })
 
   it('бутон у шапки — целиком под нижней гранью (центр ниже грани на радиус), труба от него вниз', () => {

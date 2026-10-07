@@ -88,7 +88,7 @@
 }
 .lrMainTitle { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.25; }
 .lrMainSub { margin: 0; font-size: 13px; color: #8b95a1; line-height: 1.4; }
-.lrMainDone .lrMainTitle { color: #b6fe3b; }
+.lrMainDone .lrMainTitle { color: #f2f5f8; } /* белая; зелёное «замыкание» — слой ::after в learn-sleep.css */
 .lrMainPhrase .lrMainTitle { color: #ffd257; }
 
 /* Подводка гостя к входу (память пока только в этом браузере) */

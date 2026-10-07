@@ -25,12 +25,42 @@
    самого блока (cqi — доля ширины контейнера), справа место под мозг */
 .lrMainDone { container-type: inline-size; padding-right: 76px; }
 .lrMainDone .lrMainTitle {
+  position: relative;
   font-size: clamp(11px, 6.1cqi, 21px);
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
 }
+/* «Неоновая вывеска с коротким замыканием»: надпись белая (learn.css), поверх — точная копия текста зелёным
+   (::after, content: attr(data-text) — LearnMainAction.jsx ставит data-text только в режиме сна; «/ ''» — без
+   альтернативного текста, чтобы скринридер не читал дважды). Анимируется только opacity слоя: цикл 10 с, 72 % —
+   слой невидим (надпись белая), затем 3–4 быстрых неравных мигания (steps, 60–120 мс) и медленное затухание
+   зелёного в белый ≈ 2 с (ease-out — как число в круге-счётчике: быстро загорается, медленно тускнеет).
+   text-shadow статичен (виден только вместе с opacity) */
+.lrMainDone .lrMainTitle::after {
+  content: attr(data-text) / '';
+  position: absolute;
+  inset: 0;
+  color: #b6fe3b;
+  text-shadow: 0 0 6px rgba(182, 254, 59, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  animation: lrTitleShort 10s linear infinite;
+}
+@keyframes lrTitleShort {
+  0%, 72% { opacity: 0; animation-timing-function: steps(1, end); }
+  72.8% { opacity: 1; animation-timing-function: steps(1, end); }
+  73.4% { opacity: 0.15; animation-timing-function: steps(1, end); }
+  74% { opacity: 1; animation-timing-function: steps(1, end); }
+  75.2% { opacity: 0; animation-timing-function: steps(1, end); }
+  75.9% { opacity: 0.8; animation-timing-function: steps(1, end); }
+  76.5% { opacity: 0.2; animation-timing-function: steps(1, end); }
+  77.1% { opacity: 1; animation-timing-function: ease-out; }
+  96%, 100% { opacity: 0; }
+}
+.shellV2TabHidden .lrMainDone .lrMainTitle::after { animation: none; }
+@media (prefers-reduced-motion: reduce) { .lrMainDone .lrMainTitle::after { animation: none; } }
 
 /* Мозг: крупнее (46 px), по центру блока по вертикали, линия тоньше (strokeWidth в SleepingBrain.jsx) */
 .lrSleep {
