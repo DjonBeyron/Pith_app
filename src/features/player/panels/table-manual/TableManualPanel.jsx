@@ -21,6 +21,9 @@ import { useSignalState } from '../signal-overlay/useSignalState.js'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
 import { orderAnswers } from '../../useAnswerOrder.js'
 import { normalizeAnswerText } from '../../../../shared/lib/tableCellMatch.js'
+import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
+import { solveManualAssembly } from './solveCorrect.js'
+import { useSolveAfterRender } from '../useSolveAfterRender.js'
 
 // onAnswerToChat(text, result) — галочка «отправить ответ ученика в чат»:
 // собранная фраза уходит пузырём справа. Верная — сразу; неверная — ОДИН раз,
@@ -208,6 +211,20 @@ export default function TableManualPanel({
     },
   })
 
+  // Авто-ответ админа: бокс целиком (solveCorrect.js) — фаза extra и кнопка
+  // «Проверить» выводятся из assembled сами; check — после коммита, когда
+  // фабрика проверки замкнула новый assembled (useSolveAfterRender)
+  const armSolve = useSolveAfterRender(assembled, check)
+  function solveCorrect(rect) {
+    if (result || signalState.freeze) return
+    const items = solveManualAssembly({ tokens, cells, shuffledExtras })
+    if (!items) return
+    rememberTap(rect)
+    setCellMenu(null)
+    armSolve()
+    setAssembled(items)
+  }
+
   if (!table) return null
 
   const boxCls = [
@@ -225,6 +242,7 @@ export default function TableManualPanel({
       <div className="tmSpacer" style={spacerStyle({ show, panelH, opening: rise.opening, givenToBubble: toChatCtl.givenToBubble, released: toChatCtl.spacerReleased })} />
       <div ref={panelRef}
         className={`tmPanel${show ? ' tmPanelVisible' : ''}${!show && toChatCtl.toChat ? ' tmPanelToChat' : ''}`}>
+        <SolveCorrectButton onSolve={solveCorrect} disabled={!!result || signalState.freeze} />
         <div className="tmPanelInner">
 
           {/* Бокс сборки: нажимая на чип — удаляем его из ответа */}

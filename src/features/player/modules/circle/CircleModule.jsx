@@ -7,6 +7,7 @@ import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudG
 import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
 import { useCircleExpand, getSmallPx } from './useCircleExpand.js'
 import { useCircleLoopPause } from './useCircleLoopPause.js'
+import { getLessonMuted } from '../../lessonVolume.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -109,7 +110,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     // (ref для этого и существует); компилятор осторожничает из-за передачи
     // vRef в useCircleExpand выше
     // eslint-disable-next-line react-hooks/immutability
-    v.muted = false
+    v.muted = getLessonMuted() // «без звука» в шапке урока — первый проход немой
     v.loop  = false
 
     function playAfterAnimation() {

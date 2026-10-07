@@ -28,6 +28,7 @@ import { useAnswerStats } from './useAnswerStats.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { downloadDebugLog, copyDebugLog } from './downloadDebugLog.js'
 import PlayerOverlays from './PlayerOverlays.jsx'
+import AudioGlow from './AudioGlow.jsx'
 import { useLessonOpenFlag } from '../../shared/lib/lessonOpen.js'
 import { isWeakDevice } from '../../shared/lib/deviceTier.js'
 import { playSound } from '../../shared/lib/sounds.js'
@@ -350,6 +351,7 @@ export default function LessonPlayer({
             active={adminEdit.editId === panels.editNode.id}
           />
         )}
+        <AudioGlow /> {/* свечение-эквалайзер снизу чата на речь (audioLevel.js) */}
       </div>
 
       <PlayerOverlays

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { getLessonMuted } from '../../lessonVolume.js'
 
 const EDGE_GAP = 24
 
@@ -119,7 +120,7 @@ export function useCircleExpand({ wrapRef, vRef, dims, bottomOffset, doneFiredRe
     setTimeout(() => {
       const v2 = vRef.current
       if (!v2 || !expandedRef.current) return
-      v2.muted = false
+      v2.muted = getLessonMuted() // «без звука» в шапке урока — раскрытый кружок немой
       v2.play()
         .catch(err => {
           console.warn('CircleModule: unmuted play failed:', err.message)

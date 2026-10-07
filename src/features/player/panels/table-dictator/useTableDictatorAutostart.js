@@ -5,6 +5,7 @@ import { logAudioPlayRejected } from './dictatorDebug.js'
 import { timelineEndSec } from '../../../../shared/lib/tableDictatorTiming.js'
 import { registerDebugClock } from '../../../debugTools/debugMedia.js'
 import { playPrimed, stopPrimed } from '../../../../shared/lib/primedAudio.js'
+import { getVoiceRate } from '../../lessonVolume.js'
 
 // Как прогон стартует без тапа пользователя: обычный автозапуск <audio>, и
 // подстраховка часами (silentClock.js) без звука, когда играть нечем/нечему —
@@ -14,8 +15,11 @@ import { playPrimed, stopPrimed } from '../../../../shared/lib/primedAudio.js'
 // audioRef.current.currentTime и подмены на часы не замечает.
 // Вынесено из TableDictatorPanel.jsx — там же остаются startRun/handleEnded/
 // slideDown, на чьи актуальные версии (через ref) эта логика опирается.
+// muted («без звука» шапки/повторения) и скорость голоса (lessonVolume.js)
+// ставятся запасному элементу и часам в момент старта; дальше их держит
+// useDictatorVolume.js
 export function useTableDictatorAutostart({
-  audioSrc, timeline, tData, audioRef, hasPlayedRef, endedRef, startedRef, slideDownRef, setHudVisible,
+  audioSrc, timeline, tData, audioRef, hasPlayedRef, endedRef, startedRef, slideDownRef, setHudVisible, muted = false,
 }) {
   const autoPlayFired = useRef(false)
   const clockRef       = useRef(null)
@@ -33,7 +37,7 @@ export function useTableDictatorAutostart({
   function runWithClock() {
     if (clockRef.current || !canRunClock) return
     hasPlayedRef.current = true
-    const clock = createSilentClock(silentDur, { onEnded: () => endedRef.current?.() })
+    const clock = createSilentClock(silentDur, { onEnded: () => endedRef.current?.(), rate: getVoiceRate() })
     clockRef.current = clock
     audioRef.current = clock
     // Без озвучки прогон крутят часы, а не <audio> — покадровый дебаг-тулбар
@@ -60,7 +64,7 @@ export function useTableDictatorAutostart({
       // конкретному <audio>, а этот родился вместе с панелью, без жеста.
       // Пробуем тот же файл на прогретом на старте урока (primedAudio.js) —
       // таймлайн читает currentTime из audioRef и подмены не замечает
-      const primed = playPrimed(audioSrc, { onEnded: () => endedRef.current?.() })
+      const primed = playPrimed(audioSrc, { onEnded: () => endedRef.current?.(), muted, rate: getVoiceRate() })
       if (primed) {
         hasPlayedRef.current = true
         audioRef.current = primed

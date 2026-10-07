@@ -22,9 +22,18 @@ import { pLog } from '../../shared/lib/debug.js'
 //    каждый их цикл глушил бы голосовое, которое ученик как раз слушает;
 //  · немую петлю и не останавливаем — слушать она не мешает, а пауза
 //    превратила бы живой кружок в стоп-кадр.
+//
+// «Немой» здесь — немая ПЕТЛЯ, а не речь с выключенным звуком: при кнопке
+// «без звука» в шапке урока (lessonVolume.js) голосовое тоже muted, но оно
+// по-прежнему речь — помечено data-voice (AudioModule) — и глушит/глушится
+// как со звуком, иначе при mute менялись бы тайминги переписки.
+export function isSilentMedia(m) {
+  return !!m.muted && !m.hasAttribute?.('data-voice')
+}
+
 export function shouldYieldTo(started, other) {
-  if (!started || started.muted) return false
-  if (!other || other === started || other.paused || other.muted) return false
+  if (!started || isSilentMedia(started)) return false
+  if (!other || other === started || other.paused || isSilentMedia(other)) return false
   return true
 }
 

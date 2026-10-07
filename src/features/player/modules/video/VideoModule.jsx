@@ -7,6 +7,7 @@ import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
 import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
 import { useVideoFullscreen } from './useVideoFullscreen.jsx'
+import { getLessonMuted } from '../../lessonVolume.js'
 
 export default function VideoModule({ node, file, onDone, videoAutoSound, adminPreview = false, pending = false }) {
   const [objectUrl, setObjectUrl] = useState(null)
@@ -103,7 +104,8 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
     if (!videoAutoSound || firstPlayDoneRef.current || node.isHistory) return
     const v = videoRef.current
     if (!v) return
-    v.muted = false
+    // «Без звука» в шапке урока — первый проход тоже немой, но идёт как обычно
+    v.muted = getLessonMuted()
     v.loop  = false
 
     function playAfterAnimation() {

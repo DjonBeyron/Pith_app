@@ -6,6 +6,7 @@ import { DEBUG_TOOLS_ON } from '../../shared/lib/debugToolsEnabled.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 import { useShowDebugUi } from './useShowDebugUi.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
+import LessonVolumeButtons from './LessonVolumeButtons.jsx'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
 const CROP_FRAME  = 80
@@ -121,6 +122,8 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
           {title ? `изучаем ${title}` : 'онлайн'}
         </span>
       </div>
+      {/* «Без звука» и скорость голоса — состояние в lessonVolume.js */}
+      <LessonVolumeButtons />
       {showDebugUi && (
         <button
           className="playerTopBarDebugBtn"

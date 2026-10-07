@@ -83,7 +83,10 @@ export function armPrimeOnGesture() { armGesture() }
 // Запасной путь, когда родному <audio> отказали. Возвращает готовый к работе
 // элемент (таймлайн дальше читает его currentTime) либо null — тогда прогона
 // со звуком не будет и остаются часы.
-export function playPrimed(src, { onEnded } = {}) {
+// muted/rate — «без звука» и скорость голоса из шапки урока (player/lessonVolume.js;
+// сюда приходят значениями, shared/lib фич не импортирует); дальше их держит
+// в актуальном состоянии useDictatorVolume.js панели
+export function playPrimed(src, { onEnded, muted = false, rate = 1 } = {}) {
   if (!el || !ready || !src) {
     pLog(`[primed] запасной путь недоступен: элемент=${el ? 'есть' : 'нет'} прогрет=${ready} src=${src ? 'есть' : 'нет'}`)
     // Раз уж не прогрелись — попробуем на ближайшем касании, чтобы следующая
@@ -93,7 +96,10 @@ export function playPrimed(src, { onEnded } = {}) {
   }
   try {
     el.onended = onEnded ?? null
-    el.muted = false
+    el.muted = !!muted
+    el.preservesPitch = true
+    el.webkitPreservesPitch = true
+    el.playbackRate = rate > 0 ? rate : 1
     el.src = src
     el.currentTime = 0
     el.play().catch(e => pLog(`[primed] запасной путь тоже отказал: ${e?.name ?? e}`))

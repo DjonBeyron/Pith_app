@@ -17,6 +17,9 @@ import { blankMatches } from './fillBlanksCheck.js'
 import { blankWord } from '../../../../shared/lib/wordAudio/collectLessonWords.js'
 import { playWord } from '../../word-audio/wordAudioPlayer.js'
 import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
+import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
+import { correctPicks } from './solveCorrect.js'
+import { useSolveAfterRender } from '../useSolveAfterRender.js'
 
 // Точки-плейсхолдер в переводе — тусклый неинтерактивный двойник пропуска:
 // та же логика количества (blankKind по индексу ИЗ template, не перевода —
@@ -157,6 +160,18 @@ export default function FillBlanksPanel({
     setResult, setWrongIndices, onAnswered, onAnswerToChat, onChecked, closePanelWith,
   })
 
+  // Авто-ответ админа: все пропуски разом (solveCorrect.js), check — после
+  // коммита, когда фабрика проверки замкнула новый picked (useSolveAfterRender)
+  const armSolve = useSolveAfterRender(picked, check)
+  function solveCorrect(rect) {
+    if (result) return
+    rememberTap(rect)
+    setBlankMenu(null)
+    setWrongIndices([])
+    armSolve()
+    setPicked(correctPicks(blanks, blankOptions))
+  }
+
   const filledCount = Object.keys(picked).length
 
   if (!template || blanksCount === 0) return null
@@ -176,6 +191,8 @@ export default function FillBlanksPanel({
         }}
       />
       <div ref={panelRef} className={`fbPanel${show ? ' fbPanelVisible' : ''}`}>
+        {/* слева — правый верхний угол занят кнопкой перевода (.fbTrBtn) */}
+        <SolveCorrectButton side="left" onSolve={solveCorrect} disabled={!!result} />
         <div className="fbInner">
           {/* Кнопка перевода — маленькая, в правом верхнем углу панели
               (absolute, вне потока — см. fill-blanks.css .fbTrBtn); фраза

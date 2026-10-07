@@ -8,6 +8,9 @@ import { usePanelHeight } from '../usePanelHeight.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
+import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
+import { correctPlacement } from './solveCorrect.js'
+import { useSolveAfterRender } from '../useSolveAfterRender.js'
 
 // Ученик видит итог в панели (зелёный/красный, тряска), потом панель уезжает
 const SEE_RESULT_MS = 700
@@ -33,7 +36,7 @@ export default function PhraseAssemblyPanel({
   nodes = [], onSignalFired, hasSignalFired,
 }) {
   const {
-    shuffled, placed, usedIdxs, result, isAnswered, pickChip, removePlaced, checkAnswer,
+    shuffled, placed, usedIdxs, result, isAnswered, pickChip, placeAll, removePlaced, checkAnswer,
     blinkIndex, freeze,
   } = usePhraseAssembly(node, nodes, onSignalFired, hasSignalFired)
   const [show, setShow]               = useState(false)
@@ -131,6 +134,33 @@ export default function PhraseAssemblyPanel({
     return () => clearTimeout(id)
   }, [isAnswered]) // eslint-disable-line
 
+  // Кнопка «Проверить» — один путь и для ученика, и для авто-ответа админа
+  function handleCheck() {
+    const r = checkAnswer()
+    // 'signal' — сигнал ошибки автора уже показан (useSignalState.js
+    // внутри usePhraseAssembly.js), попытка «бесплатная»: ни звук, ни
+    // счётчик неверных, ни статистика её не видят, панель не закрылась
+    if (!r || r === 'signal') return
+    onChecked?.(r, placed.map(p => p.word).join(' '))
+    playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'собери фразу')
+    if (r === 'correct' && xpAmount > 0 && !xpFiredRef.current) {
+      xpFiredRef.current = true
+      // Пузырь с фразой в чате будет всегда — XP ждёт его и летит от него
+      onXpEarned?.(xpAmount, { expectBubble: true })
+    }
+  }
+
+  // Авто-ответ админа: строка ответа целиком (solveCorrect.js), проверка —
+  // после коммита, когда checkAnswer видит новый placed (useSolveAfterRender)
+  const armSolve = useSolveAfterRender(placed, handleCheck)
+  function solveCorrect(rect) {
+    const items = correctPlacement(shuffled, words)
+    if (!items || isAnswered || freeze) return
+    rememberTap(rect)
+    armSolve()
+    placeAll(items)
+  }
+
   return (
     <>
       {/* Распорка: на подъёме и спуске высота меняется РАЗОМ — движение
@@ -147,6 +177,7 @@ export default function PhraseAssemblyPanel({
         ref={panelRef}
         className={`phrasePanel${show ? ' phrasePanelVisible' : ''}`}
       >
+        <SolveCorrectButton onSolve={solveCorrect} disabled={isAnswered || freeze} />
         <div className="phraseInner">
           <div className={`phraseCounter${showCounter ? ' phraseCounterVisible' : ''}`}>
             выбрано {placed.length} {wordForm(placed.length)} из {wordsTotal}
@@ -165,20 +196,7 @@ export default function PhraseAssemblyPanel({
           </div>
           <button
             className="phraseCheckBtn"
-            onClick={() => {
-              const r = checkAnswer()
-              // 'signal' — сигнал ошибки автора уже показан (useSignalState.js
-              // внутри usePhraseAssembly.js), попытка «бесплатная»: ни звук, ни
-              // счётчик неверных, ни статистика её не видят, панель не закрылась
-              if (!r || r === 'signal') return
-              onChecked?.(r, placed.map(p => p.word).join(' '))
-              playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'собери фразу')
-              if (r === 'correct' && xpAmount > 0 && !xpFiredRef.current) {
-                xpFiredRef.current = true
-                // Пузырь с фразой в чате будет всегда — XP ждёт его и летит от него
-                onXpEarned?.(xpAmount, { expectBubble: true })
-              }
-            }}
+            onClick={handleCheck}
             disabled={placed.length === 0 || isAnswered || freeze}
           >
             Проверить

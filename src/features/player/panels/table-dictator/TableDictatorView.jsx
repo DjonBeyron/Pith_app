@@ -12,6 +12,7 @@ export default function TableDictatorView({
   highlighted, usedCells, revealedIds, flashDur, chipsVisible,
   shuffledExtras, chipStyles, extrasAssembledKeys, activeExtraKeys, hasExtraLayers,
   audioRef, onPlay, onPause, onEnded, onError,
+  children = null, // поверх вёрстки панели (админская кнопка «собрать верный ответ»)
 }) {
   const hudClass = ['tdHud', !waveformData && 'tdHudPulse', hudVisible && 'tdHudVisible']
     .filter(Boolean).join(' ')
@@ -36,6 +37,7 @@ export default function TableDictatorView({
       <div className="tdSpacer" style={spacerStyle({ show, panelH, opening, givenToBubble, released })} />
       <div ref={panelRef}
         className={`tdPanel${show ? ' tdPanelVisible' : ''}${!show && toChat ? ' tdPanelToChat' : ''}`}>
+        {children}
         <div className="tdPanelInner">
 
           {/* HUD-спектр — САМЫЙ ВЕРХ: над боксом сборки и над таблицей */}

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { VIDEO_GUARD } from '../../../../shared/lib/videoHudGuard.js'
 import { useVideoMirror } from '../../videoMirror.js'
+import { getLessonMuted } from '../../lessonVolume.js'
 
 // Полноэкранный просмотр видео по тапу — портал в document.body (position:fixed
 // должен считаться от вьюпорта, а не от containing block PlayerFeed's scaleY(-1)).
@@ -89,7 +90,7 @@ export function useVideoFullscreen({ src, frame0, crop, intrinsic, frameDims, mi
     pLog('VideoModule: fsSrc set → fs.readyState=', fs.readyState)
     if (progressRef.current) progressRef.current.style.width = '0%'
     fs.currentTime = 0
-    fs.muted = false
+    fs.muted = getLessonMuted() // «без звука» в шапке урока — и полный экран немой
     startRaf()
     fs.play().catch(() => {
       pLog('VideoModule: FS unmuted failed → muted')

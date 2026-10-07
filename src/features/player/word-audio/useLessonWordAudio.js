@@ -3,6 +3,7 @@ import { listWordAudio } from '../../../shared/lib/wordAudio/wordAudioApi.js'
 import { collectLessonWords } from '../../../shared/lib/wordAudio/collectLessonWords.js'
 import { preloadWordAudio, releaseWordAudio, setWordAudioMuted } from './wordAudioPlayer.js'
 import { setSoundsMuted } from '../../../shared/lib/sounds.js'
+import { useLessonMuted } from '../lessonVolume.js'
 
 // Через сколько после старта урока запускать дорожку слов, даже если прогрев
 // первых нод так и не дошёл до 100% (сеть/ошибка файла) — слова не должны
@@ -13,15 +14,19 @@ const FALLBACK_MS = 6000
 // (гостю тоже, RLS select для всех), затем прогрев mp3 слов урока ПОСЛЕ
 // прогрева первых нод (warmupPct=100) — чтобы не отбирать сеть у очереди
 // файлов урока. При выходе из урока всё отпускается. muted — «Не могу слушать» в повторении: слова при тапах и
-// звуки интерфейса (чат, «верно»/«неверно») не звучат
+// звуки интерфейса (чат, «верно»/«неверно») не звучат.
+// Кнопка «без звука» в шапке урока (lessonVolume.js) глушит звуки интерфейса
+// тем же setSoundsMuted; слова при ней ИГРАЮТ, но muted (хуки onEnded/onDone
+// у playWord срабатывают как обычно) — это делает сам wordAudioPlayer
 export function useLessonWordAudio(nodes, warmupPct, muted = false) {
   const startedRef = useRef(false)
+  const lessonMuted = useLessonMuted()
 
   useEffect(() => {
     setWordAudioMuted(muted)
-    setSoundsMuted(muted)
+    setSoundsMuted(muted || lessonMuted)
     return () => setSoundsMuted(false)
-  }, [muted])
+  }, [muted, lessonMuted])
 
   useEffect(() => {
     listWordAudio()

@@ -31,6 +31,7 @@ describe('стыки разнесённых панелей', () => {
   const slide    = read('./table-dictator/dictatorSlideDown.js')
   const reset    = read('./table-dictator/dictatorRunReset.js')
   const legacy   = read('./table-dictator/useDictatorLegacyAssemble.js')
+  const solve    = read('./table-dictator/useDictatorSolve.js')
 
   it('ручная таблица зовёт свою проверку и отдаёт ей всё, что та ждёт', () => {
     expect(manual).toContain("import { makeManualCheck } from './manualCheck.js'")
@@ -46,6 +47,8 @@ describe('стыки разнесённых панелей', () => {
       ['makeDictatorSlideDown',      slide,  'const slideDown = makeDictatorSlideDown'],
       ['resetDictatorRun',           reset,  'resetDictatorRun('],
       ['useDictatorLegacyAssemble',  legacy, 'useDictatorLegacyAssemble('],
+      // Авто-ответ админа: перемотка прогона трогает те же рефы/сеттеры, что RAF
+      ['useDictatorSolve',           solve,  'const solveCorrect = useDictatorSolve('],
     ]) {
       const wants = paramNames(mod, `export function ${name}`)
       const gives = paramNames(dictator, callSite)

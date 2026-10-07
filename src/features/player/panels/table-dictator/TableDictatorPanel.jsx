@@ -16,6 +16,10 @@ import { onDictatorEnded, runDictatorCheck } from './dictatorFlow.js'
 import { useDictatorLegacyAssemble } from './useDictatorLegacyAssemble.js'
 import { resetDictatorRun } from './dictatorRunReset.js'
 import { useDictatorWordVoice } from './useDictatorWordVoice.js'
+import { useDictatorVolume } from './useDictatorVolume.js'
+import { useDictatorSolve } from './useDictatorSolve.js'
+import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
+import { usePlayerMuted } from '../../playerMuted.js'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
 import { orderAnswers } from '../../useAnswerOrder.js'
 
@@ -212,12 +216,16 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   useEffect(() => { pLog(`[td-state] playing=${playing} phase=${phase} chips=${chipsVisible} result=${result} asm=${assembled.length} ext=${extrasAssembled.length} activeExt=${activeExtraKeys.size} checkAt=${checkAt} hasExtraL=${hasExtraLayers}`) }, [playing, phase, chipsVisible, result, assembled, extrasAssembled, activeExtraKeys]) // eslint-disable-line
 
   // Как прогон стартует без тапа (автозапуск/подстраховка часами без звука) — useTableDictatorAutostart.js
+  // «Без звука» (повторение || кнопка в шапке урока) — диктор молчит, прогон идёт
+  const muted = usePlayerMuted()
   const { runWithClock } = useTableDictatorAutostart({
-    audioSrc, timeline, tData, audioRef, hasPlayedRef, endedRef, startedRef, slideDownRef, setHudVisible,
+    audioSrc, timeline, tData, audioRef, hasPlayedRef, endedRef, startedRef, slideDownRef, setHudVisible, muted,
 
   })
   // Озвучка слов, падающих в бокс — по галочке ноды (useDictatorWordVoice.js)
   useDictatorWordVoice(tData.voiceWords === true, assembled, extrasAssembled)
+  // muted/скорость голоса на ведущем элементе (audio/прогретый/часы) — useDictatorVolume.js
+  useDictatorVolume(audioRef, muted, playing, audioSrc)
 
   useDictatorLegacyAssemble({
     chipsVisible, checkAt, hasExtraLayers, checkDelay,
@@ -288,6 +296,16 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
     slideDown(closeTriggerRef.current ?? 'table_correct', closeVariantRef.current)
   }
 
+  // Авто-ответ админа: перемотать прогон в конец и проверить — useDictatorSolve.js
+  const solveCorrect = useDictatorSolve({
+    tokens, shuffledExtras, hasExtras, checkOut, checkDelay, result,
+    audioRef, rafRef, timers, assembledRef,
+    rfxPhaseRef, rfxChipsRef, rfxAssembRef, rfxCheckRef, rfxCloseRef, closedRef,
+    checkRef, closeRef,
+    setPlaying, setHudVisible, setHighlighted, setActiveExtraKeys, setPhase, setChipsVisible,
+    setAssembled, setExtrasAssembled, setUsedCells,
+  })
+
   if (!table) return null
 
   return (
@@ -329,7 +347,9 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
         // Файл не открылся — прогон продолжаем по часам, без звука
         runWithClock()
       }}
-    />
+    >
+      <SolveCorrectButton onSolve={solveCorrect} disabled={!!result} />
+    </TableDictatorView>
     </>
   )
 }

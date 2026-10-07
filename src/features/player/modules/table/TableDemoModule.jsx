@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import TableChatBubble from './TableChatBubble.jsx'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
+import { useAudioGlowSource } from '../../useAudioGlowSource.js'
 
 // Таблица в режиме «Показ»: приходит в ленту обычным сообщением от учителя —
 // пузырь во всю ширину чата с уголком слева, — а не выкатывающейся снизу
@@ -23,6 +24,9 @@ export default function TableDemoModule({ node, file, onDone, pending = false, a
   }, [file?.localFile])
 
   const src = objectUrl ?? file?.blobUrl ?? file?.r2Url ?? tData.r2Url ?? null
+  // Голос диктора в ленте → свечение-эквалайзер снизу чата (AudioGlow.jsx)
+  const audioRef = useRef(null)
+  useAudioGlowSource(audioRef, tData.waveformData ?? null, src)
 
   // Автор ещё не приложил запись, а сценарий смотрит админ — отпускаем цепочку
   // заглушкой, как у остальных нод без медиа
@@ -39,6 +43,7 @@ export default function TableDemoModule({ node, file, onDone, pending = false, a
     <TableChatBubble table={table} caption={tData.chatCaption ?? ''}>
       {src && (
         <audio
+          ref={audioRef}
           src={src}
           autoPlay={!pending}
           preload="auto"

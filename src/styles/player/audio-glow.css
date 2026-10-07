@@ -1,0 +1,82 @@
+/* Свечение-эквалайзер снизу чата урока (AudioGlow.jsx). Один цвет —
+   фиолетовый постоянной памяти (#8b5cf6 / #a78bfa, см. --lvlP в
+   memory-ladder.css и WIRE_COLORS.perm в learn/ladderWires.js).
+
+   Слой лежит внутри .lessonPlayer (на десктопе — в рамке «телефона»), у
+   нижней кромки, кликов не ловит. z-index 95: над растушёвкой низа (90),
+   панелями ответа (80), салютом (85) и «печатает» (70) — «поверх всего» у
+   низа чата; но под полноэкранными слоями того же контейнера: диалог
+   закрепа (200), видео (251), фото (400). Итоги урока и «+N XP» — соседи
+   .lessonPlayer с z 10000, они тоже выше.
+
+   Только transform/opacity: высоты столбиков — scaleY из rAF (AudioGlow.jsx),
+   подложка — opacity. В покое слой скрыт целиком (visibility) и без
+   will-change — никаких слоёв GPU, пока ничего не звучит. */
+.audioGlow {
+  --glow:    139, 92, 246;   /* #8b5cf6 */
+  --glow-hi: 167, 139, 250;  /* #a78bfa */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(58px + env(safe-area-inset-bottom, 0px));
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 95;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease, visibility 0s linear 0.28s;
+}
+
+.audioGlowOn {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.22s ease;
+}
+
+/* Общая подложка — слабое свечение по нижней кромке; opacity 0.15..0.75
+   ведёт AudioGlow.jsx по уровню речи */
+.audioGlowBase {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  background: linear-gradient(to top,
+    rgba(var(--glow), 0.30) 0%, rgba(var(--glow), 0.10) 40%, transparent 100%);
+}
+
+.audioGlowBars {
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  bottom: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Столбик-лепесток: растёт от нижней кромки, высота — scaleY(0..1).
+   Мягкий: плотный только у самой кромки, к верху сходит на нет — «небольшое
+   свечение», а не забор */
+.audioGlowBar {
+  flex: 1 1 0;
+  height: 100%;
+  border-radius: 999px 999px 0 0;
+  transform-origin: center bottom;
+  transform: scaleY(0.02);
+  background: linear-gradient(to top,
+    rgba(var(--glow), 0.42) 0%, rgba(var(--glow-hi), 0.16) 45%, rgba(var(--glow-hi), 0.04) 80%, transparent 100%);
+}
+
+.audioGlowOn .audioGlowBar,
+.audioGlowOn .audioGlowBase {
+  will-change: transform, opacity;
+}
+
+/* Меньше движения: пока звучит речь — тусклое статичное свечение, без
+   покадровых записей (AudioGlow.jsx их не делает) */
+@media (prefers-reduced-motion: reduce) {
+  .audioGlowOn .audioGlowBar  { transform: scaleY(0.3); will-change: auto; }
+  .audioGlowOn .audioGlowBase { opacity: 0.3; will-change: auto; }
+}
