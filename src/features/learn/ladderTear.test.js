@@ -74,29 +74,34 @@ describe('tearWire — оборванный кабель в режиме сна'
     expect(colors(1)).toEqual(levels) // слева — тоже все три, но порядок другой
     expect(tear.strands.slice(0, 3).map(s => s.color)).not.toEqual(tear.strands.slice(3).map(s => s.color))
     expect(gap).toBeGreaterThan(40)
-    // провода крупные (10–20 px), но каждый короче половины разрыва — с противоположными не смыкаются
+    // провода длинные (10–20 px), но каждый короче половины разрыва — с противоположными не смыкаются; тонкие (≈1 px)
     for (const st of tear.strands) {
       expect(reach(st)).toBeGreaterThanOrEqual(10)
       expect(reach(st)).toBeLessThanOrEqual(20)
       expect(reach(st)).toBeLessThan(gap / 2)
-      expect(st.w).toBeGreaterThanOrEqual(2.2)
+      expect(st.w).toBeGreaterThanOrEqual(0.8)
+      expect(st.w).toBeLessThanOrEqual(1.2)
     }
   })
 
-  it('искры — на кончиках проводов (не на всех), у каждой свой период и сдвиг', () => {
-    expect(tear.sparks.length).toBeGreaterThanOrEqual(3)
-    expect(tear.sparks.length).toBeLessThan(tear.strands.length)
-    const tips = tear.strands.map(s => s.d.split(' ').slice(-2).map(Number))
-    for (const sp of tear.sparks) {
-      expect(tips.some(([x, y]) => Math.abs(x - sp.x) < 0.2 && Math.abs(y - sp.y) < 0.2)).toBe(true)
-    }
-    expect(new Set(tear.sparks.map(s => s.period)).size).toBe(tear.sparks.length)
-    expect(new Set(tear.sparks.map(s => s.delay)).size).toBe(tear.sparks.length)
+  it('искрение — от концов разрыва (ladderSparks): разряды, звёздочки, искорки, дуга между концами', () => {
+    const sp = tear.sparks
+    expect(sp.bolts).toHaveLength(4)
+    expect(sp.stars).toHaveLength(2)
+    expect(sp.flies).toHaveLength(6)
+    const right = Math.max(...xs), left = Math.min(...xs)
+    // разряды и звёздочки начинаются ровно в концах разрыва, дуга — от правого конца к левому
+    const start = d => d.split(' ').slice(1, 3).map(Number)
+    expect(sp.bolts.slice(0, 2).every(b => start(b.d)[0] === right && start(b.d)[1] === y0)).toBe(true)
+    expect(sp.bolts.slice(2).every(b => start(b.d)[0] === left && start(b.d)[1] === y0)).toBe(true)
+    expect(start(sp.arc.d)).toEqual([right, y0])
+    expect(sp.arc.d.split(' ').slice(-2).map(Number)).toEqual([left, y0])
+    expect(tearWire(pieces, tearAt).sparks).toEqual(sp) // детерминированно
   })
 
   it('нет отрезков в окне разрыва — ничего не меняется', () => {
     const none = tearWire(pieces.filter(p => Math.abs(p.y1 - y0) > 1), tearAt)
     expect(none.strands).toEqual([])
-    expect(none.sparks).toEqual([])
+    expect(none.sparks).toBeNull()
   })
 })

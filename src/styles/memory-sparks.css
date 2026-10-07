@@ -1,0 +1,40 @@
+/* Искрение на оборванных концах кабеля в режиме сна «Моей памяти» (features/learn/MemoryTearSparks.jsx,
+   данные — ladderSparks.js). Короткие зигзаги-разряды с тонким почти белым ядром и бледным жёлтым ореолом
+   (второй path того же контура, без фильтров), звёздочка-вспышка на кончике, летящие искорки-чёрточки и редкая
+   дуга через разрыв. Мерцание нерегулярное: steps(1, end) с неравными интервалами и длинными паузами, у каждого
+   элемента свои период и сдвиг (--p, --d). Только opacity и transform; в скрытой вкладке и при «уменьшить
+   движение» стоит; под плеером урока гасит html.lessonOpen (lesson-open.css) */
+.memSparks { pointer-events: none; }
+.memSparks path,
+.memSparks line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.memSparkCore { stroke: #fff3c4; stroke-width: 0.9; }
+.memSparkHalo { stroke: #ffd257; stroke-width: 3; opacity: 0.32; }
+.memBolt,
+.memStar,
+.memFly,
+.memArc { opacity: 0; }
+/* Разряд: рисунок A — одна короткая вспышка с дрожанием в начале периода и длинная пауза; B — две вспышки в разных
+   местах периода, вторая слабее */
+.memBolt { animation: memBoltA var(--p, 4s) steps(1, end) var(--d, 0s) infinite; }
+.memBolt--b { animation-name: memBoltB; }
+@keyframes memBoltA { 0% { opacity: 0; } 2% { opacity: 1; } 4% { opacity: 0; } 5% { opacity: 0.7; } 8%, 100% { opacity: 0; } }
+@keyframes memBoltB { 0% { opacity: 0; } 1.5% { opacity: 0.9; } 3% { opacity: 0; } 52% { opacity: 0; } 53% { opacity: 1; } 54.5% { opacity: 0; } 56% { opacity: 0.5; } 57%, 100% { opacity: 0; } }
+/* Звёздочка на кончике — 1–2 кадра в момент первого разряда этого конца (те же --p/--d) */
+.memStar { stroke: #fff; stroke-width: 0.9; animation: memStarFlash var(--p, 4s) steps(1, end) var(--d, 0s) infinite; }
+@keyframes memStarFlash { 0% { opacity: 0; } 1% { opacity: 1; } 2.5%, 100% { opacity: 0; } }
+/* Летящая искорка: отлетает по дуге (излом --mx/--my, конец --tx/--ty) и гаснет; остаток периода невидима */
+.memFly { stroke: #ffe27a; stroke-width: 1; animation: memFly var(--p, 4s) cubic-bezier(0.2, 0.6, 0.6, 1) var(--d, 0s) infinite; }
+@keyframes memFly {
+  0% { transform: translate(0, 0); opacity: 0; }
+  3% { opacity: 1; }
+  14% { transform: translate(var(--mx), var(--my)); opacity: 0.9; }
+  26%, 100% { transform: translate(var(--tx), var(--ty)); opacity: 0; }
+}
+/* Дуга через разрыв — раз в несколько секунд, на 1–2 кадра, с коротким эхом */
+.memArc { animation: memArcFlash var(--p, 8s) steps(1, end) var(--d, 0s) infinite; }
+@keyframes memArcFlash { 0% { opacity: 0; } 0.8% { opacity: 1; } 1.6% { opacity: 0; } 2.4% { opacity: 0.6; } 3%, 100% { opacity: 0; } }
+.shellV2TabHidden .memSparks * { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .memSparks * { animation: none; }
+  .memBolt { opacity: 0.6; }
+}

@@ -6,20 +6,26 @@ import {
   ladderLinks, fullPts, orthPoints, polyLen, lengthTo, insertOn, dist, taper, flarePath, bulbR, mixColor, widthAt,
   WIRE_COLORS, TEMP_COLOR, W_MIN, W_MAX, FLARE_L,
 } from './ladderWires.js'
+import { tearSpan } from './ladderTear.js'
 
 const R = 12 // радиус скругления углов
+const FADE = 12 // длина перехода цвета зелёный → бело-серый, px
 
 // Ствол (шапка → круг → ствол → «Усвоенные»), отводы в «Новые» и «Знакомые»
 // (толщина — как у ствола в точке отвода, цвет — от цвета ствола в этой точке к цвету ступени), связь
 // «Усвоенные» → пятиугольник (до W_MAX), трубы и точки на концах. Внутри круга
 // (между его левым и правым краем на горизонтали центра) отрезков нет: круг —
-// непрозрачный блок, а длина сквозь него в толщине учтена. Цвет ствола: шапка (accent) → у входа в круг
-// TEMP_COLOR (временная память); от выхода из круга TEMP_COLOR → золотистый «Усвоенных» — в круге линия
-// меняет цвет, бутоны входа и выхода — цвета временной памяти.
+// непрозрачный блок, а длина сквозь него в толщине учтена.
+// Цвет ствола: от шапки — зелёный (accent) сплошной; после границы — бело-серый TEMP_COLOR (временная память) с
+// коротким переходом FADE; граница — сразу за трубой выхода из круга, а в режиме сна (sleeping) — центр разрыва
+// кабеля (tearSpan): до разрыва линия зелёная, после — бело-серая. Последний отрезок в «Усвоенные» — к золотистому.
+// Бутоны и трубы всегда цвета линии в своей точке (у входа в круг и выхода — зелёные).
+// Бутон у шапки — целиком под нижней гранью (центр на радиус ниже грани): шапка лежит над слоем линий, и точка на
+// самой грани была бы видна лишь наполовину.
 // → { pieces: [{ x1, y1, x2, y2, w, color }], dots: [{ x, y, r, color }],
 //      flares: [{ d, color }] (трубы у элементов), widths: [w0, w1, w2] — толщина там, где шарик каждой ступени
 //      стартует (у самой ступени), tearAt: { x, y } — выход из круга слева (от него отсчитывается разрыв сна) }
-export function ladderWireSet(rects) {
+export function ladderWireSet(rects, { sleeping = false } = {}) {
   const links = ladderLinks(rects)
   const [head, ...rest] = links
   const branches = rest.slice(0, 3)
@@ -34,10 +40,17 @@ export function ladderWireSet(rects) {
   const total = trunkLen + (fin ? polyLen(fin) : 0)
   const C = WIRE_COLORS
   const inCircle = p => Math.abs(p.y1 - cy) < 0.5 && Math.abs(p.y2 - cy) < 0.5 && (p.x1 + p.x2) / 2 > circle.l && (p.x1 + p.x2) / 2 < circle.r
-  // Цвет ствола по длине от шапки: до входа в круг accent → TEMP_COLOR, после выхода TEMP_COLOR → золотистый
-  const [lenR, lenL] = [lengthTo(trunk, gateR), lengthTo(trunk, gateL)]
-  const colorAt = len => (len <= lenR ? mixColor(C.accent, TEMP_COLOR, len / (lenR || 1))
-    : len >= lenL ? mixColor(TEMP_COLOR, C.levels[2], (len - lenL) / ((trunkLen - lenL) || 1)) : TEMP_COLOR)
+  // Граница цвета по длине ствола: центр разрыва (сон) либо конец трубы выхода из круга
+  const trunkX = branches[2].pts[1][0]
+  const { xr, xl } = tearSpan(circle.l, trunkX + R)
+  const lenL = lengthTo(trunk, gateL)
+  const lenB = sleeping ? lengthTo(trunk, [(xr + xl) / 2, cy]) : lenL + FLARE_L + FADE / 2
+  // Последний прямой участок в «Усвоенные» (от скругления у ствола) — переход к золотистому
+  const end3 = branches[2].pts[branches[2].pts.length - 1]
+  const lenB3 = lengthTo(trunk, [trunkX, end3[1] - R])
+  const colorAt = len => (len <= lenB - FADE / 2 ? C.accent
+    : len < lenB + FADE / 2 ? mixColor(C.accent, TEMP_COLOR, (len - lenB + FADE / 2) / FADE)
+      : len <= lenB3 ? TEMP_COLOR : mixColor(TEMP_COLOR, C.levels[2], (len - lenB3) / ((trunkLen - lenB3) || 1)))
   const pieces = taper(trunk, { s0: 0, s1: trunkLen / total, colorAt }).filter(p => !inCircle(p))
   const flares = []
   // Конец связи у элемента: труба (если прямого участка хватает) → радиус бутона
@@ -55,7 +68,11 @@ export function ladderWireSet(rects) {
     const len = lengthTo(trunk, P)
     return { w: widthAt(len / total), color: colorAt(len) }
   }
-  const dots = [{ x: head.pts[0][0], y: head.pts[0][1], r: grow(head.pts, false, W_MIN, C.accent), color: C.accent }]
+  // Бутон у шапки: центр на радиус ниже нижней грани, труба — от него вниз
+  const H0 = bulbR(W_MIN)
+  const [hx, hy] = head.pts[0]
+  flares.push({ d: flarePath([hx, hy + H0], [0, -1], W_MIN, FLARE_L, H0), color: C.accent })
+  const dots = [{ x: hx, y: hy + H0, r: H0, color: C.accent }]
   // Вход в круг справа и выход слева — трубы смотрят в круг, толщина по длине пути
   const [inR, outL] = [at(gateR), at(gateL)]
   dots.push({ x: gateR[0], y: gateR[1], r: grow(head.pts, true, inR.w, inR.color), color: inR.color })
@@ -63,7 +80,6 @@ export function ladderWireSet(rects) {
   const widths = []
   branches.forEach((l, i) => {
     const end = l.pts[l.pts.length - 1]
-    const trunkX = l.pts[1][0]
     // Отвод начинается там, где ствол доходит до его скругления; «Усвоенные» — конец ствола
     const s = i === 2 ? trunkLen / total : lengthTo(trunk, [trunkX, end[1] - R]) / total
     if (i < 2) {

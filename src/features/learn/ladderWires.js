@@ -178,7 +178,10 @@ export function insertOn(poly, P) {
   return poly
 }
 
-const hex = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16))
+// Цвет → [r, g, b]: «#rrggbb» или «rgb(r, g, b)» — mixColor сам возвращает rgb(), и этот результат
+// подмешивается дальше (отвод от цвета ствола в точке отвода); раньше rgb() давал NaN, stroke «rgb(NaN…)» не
+// рисовался, и отводы к «Новым» и «Знакомым» пропадали
+const hex = c => (c.startsWith('rgb') ? c.match(/[\d.]+/g).slice(0, 3).map(Number) : [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)))
 export function mixColor(a, b, t) {
   const [x, y] = [hex(a), hex(b)]
   return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * t)).join(', ')})`

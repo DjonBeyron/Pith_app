@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { levelOf, levelFill, lineFills, findLadderWord, buildLadder, wordLevel, pageTabs, LEVEL_TITLES, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
 import { orth, ladderLinks, flarePath, bulbR, ballPath, FIN_TOP, orthPoints, taper, mixColor, W_MIN, W_MAX, ballScale, haloScale, BALL_D, BALL_GROW, HALO_D, HALO_GROW, ENTRY_LEG, HERO_OUT } from './ladderWires.js'
 import { ladderWireSet } from './ladderWireSet.js'
+import { tearWire } from './ladderTear.js'
 
 // Прямоугольники как на телефоне: шапка на всю ширину, под ней круг-счётчик 100×100 по центру, три ступени
 // лесенкой, пятиугольник; ствол — за левым краем слоя (edge −22 → x = −11)
@@ -139,6 +140,9 @@ describe('связи памяти: толщина растёт от шапки �
     expect(pieces[0].w).toBeGreaterThanOrEqual(W_MIN)
     expect(pieces.at(-1).w).toBeLessThanOrEqual(W_MAX)
     expect(mixColor('#000000', '#ffffff', 0.5)).toBe('rgb(128, 128, 128)')
+    // результат mixColor — rgb(): его подмешивают дальше (отводы от цвета ствола), NaN недопустим
+    expect(mixColor('rgb(0, 0, 0)', '#ffffff', 0.5)).toBe('rgb(128, 128, 128)')
+    expect(mixColor('rgb(219, 230, 245)', '#b6fe3b', 0)).toBe('rgb(219, 230, 245)')
   })
 
   it('ствол тоньше всего у шапки, толще всего у пятиугольника; отвод ниже — толще', () => {
@@ -204,6 +208,73 @@ describe('связи памяти: толщина растёт от шапки �
     expect(haloScale(3.2) * HALO_D).toBeCloseTo(3.2 * HALO_GROW, 2)
     expect(HALO_GROW).toBeGreaterThan(BALL_GROW * 2)
     widths.forEach(w => expect(haloScale(W_MIN)).toBeLessThan(haloScale(w)))
+  })
+})
+
+describe('связи памяти: цвет и числа', () => {
+  const widths = [320, 393, 430]
+  const layout = w => {
+    const zone = w - 44
+    const cl = Math.round(zone / 2 - 50)
+    return {
+      hero: { l: 0, t: 0, r: zone, b: 100 },
+      circle: { l: cl, t: 128, r: cl + 100, b: 228 },
+      blocks: [0, 1, 2].map(i => ({ l: zone * (0.075 + 0.1425 * i), t: 260 + 110 * i, r: zone * (0.715 + 0.1425 * i), b: 350 + 110 * i })),
+      fin: { l: 40, t: 620, r: zone - 40, b: 860 },
+      edge: -22,
+    }
+  }
+  const finite = o => Object.values(o).every(v => typeof v === 'string' ? !/NaN/.test(v) : Number.isFinite(v))
+
+  it('ни у одного отрезка, раздува и бутона нет NaN — на разных ширинах, со сном и без', () => {
+    for (const w of widths) for (const sleeping of [false, true]) {
+      const set = ladderWireSet(layout(w), { sleeping })
+      expect(set.pieces.length).toBeGreaterThan(40)
+      for (const p of set.pieces) expect(finite(p)).toBe(true)
+      for (const d of set.dots) expect(finite(d)).toBe(true)
+      for (const fl of set.flares) expect(fl.d).not.toMatch(/NaN/)
+      expect(set.widths.every(Number.isFinite)).toBe(true)
+      expect(finite(set.tearAt)).toBe(true)
+      // отводы к «Новым» и «Знакомым» нарисованы (отрезки у левого бока первых двух ступеней)
+      const bl = layout(w).blocks
+      expect(set.pieces.some(p => Math.abs(p.x2 - bl[0].l) < 9 && Math.abs(p.y1 - 305) < 1)).toBe(true)
+      expect(set.pieces.some(p => Math.abs(p.x2 - bl[1].l) < 9 && Math.abs(p.y1 - 415) < 1)).toBe(true)
+    }
+  })
+
+  it('без сна: зелёная до выхода из круга, бело-серая после трубы; бутоны входа/выхода — цвета линии', () => {
+    const set = ladderWireSet(rects)
+    const row = set.pieces.filter(p => Math.abs(p.y1 - 178) < 0.5 && Math.abs(p.y2 - 178) < 0.5)
+    const left = row.filter(p => p.x1 < circle.l - 1), right = row.filter(p => p.x1 > circle.r)
+    expect(right.every(p => p.color === '#b6fe3b')).toBe(true)
+    expect(left.filter(p => p.x1 < circle.l - 40).every(p => p.color === '#dbe6f5')).toBe(true)
+    expect(set.dots[1].color).toBe('#b6fe3b')
+    expect(set.dots[2].color).toBe('#b6fe3b')
+    // ствол бело-серый до первого отвода (ниже к x = −11 примешиваются отрезки отводов), у «Усвоенных» — золотистый
+    const trunk = set.pieces.filter(p => p.x1 === p.x2 && p.x1 === -11)
+    expect(trunk.length).toBeGreaterThan(20)
+    expect(trunk.filter(p => p.y1 < 270).every(p => p.color === '#dbe6f5')).toBe(true)
+    // последний отрезок перед «Усвоенными» — почти золотистый (середина отрезка чуть не доходит до конца), бутон — золотистый
+    expect(set.pieces.find(p => Math.abs(p.x2 - blocks[2].l) < 9 && Math.abs(p.y1 - 450) < 1).color).toMatch(/^rgb\(2[34]\d, 19\d, [5-9]\d\)$/)
+    expect(set.dots[5].color).toBe('#f1bd3c')
+  })
+
+  it('сон: зелёная до разрыва, бело-серая после (переход в вырезанном окне)', () => {
+    const set = ladderWireSet(rects, { sleeping: true })
+    const t = tearWire(set.pieces, set.tearAt)
+    const xs = set.pieces.filter(p => !t.pieces.includes(p)).flatMap(p => [p.x1, p.x2])
+    const [gr, gl] = [Math.max(...xs), Math.min(...xs)]
+    const row = t.pieces.filter(p => Math.abs(p.y1 - 178) < 0.5 && Math.abs(p.y2 - 178) < 0.5 && p.x1 < circle.l + 1)
+    expect(row.filter(p => Math.min(p.x1, p.x2) >= gr).every(p => p.color === '#b6fe3b')).toBe(true)
+    expect(row.filter(p => Math.max(p.x1, p.x2) <= gl).every(p => p.color === '#dbe6f5')).toBe(true)
+    expect(set.dots[2].color).toBe('#b6fe3b')
+  })
+
+  it('бутон у шапки — целиком под нижней гранью (центр ниже грани на радиус), труба от него вниз', () => {
+    const { dots, flares } = ladderWireSet(rects)
+    expect(dots[0].y).toBe(hero.b + dots[0].r)
+    expect(dots[0].r).toBe(bulbR(W_MIN))
+    expect(flares[0].d).toMatch(/^M /)
   })
 })
 

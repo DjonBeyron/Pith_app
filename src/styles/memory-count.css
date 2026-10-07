@@ -35,7 +35,8 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-/* Обводка — крупный пунктир: 6 штрихов на круг, толщина 3 px, края каждого растушёваны (угловой градиент с периодом
+/* Обводка — крупный пунктир: 6 штрихов на круг, тонкие (кольцо-маска ≈1.3 px + 0.6 px растушёвки по краю — на DPR 2–3
+   без мерцания при вращении), края каждого растушёваны (угловой градиент с периодом
    60°: пустой промежуток 22° → 7° растушёвки → ядро штриха 24° → 7° растушёвки), кольцо вырезано маской. Слой статичный —
    вращается только transform (композитор): один оборот 50 с, линейно, бесконечно; число и точки внутри не вращаются */
 .memCount::before,
@@ -44,8 +45,8 @@
   position: absolute;
   inset: -1px;
   border-radius: 50%;
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 2.5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 2.5px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.9px), #000 calc(100% - 1.3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 1.9px), #000 calc(100% - 1.3px));
   pointer-events: none;
 }
 .memCount::before {

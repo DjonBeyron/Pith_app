@@ -26,13 +26,17 @@ test('всё повторено: «Памяти пора отдыхать» в �
   const main = page.locator('.lrMain')
   await expect(main).toContainText('Памяти пора отдыхать', { timeout: 30_000 })
   await expect(main).toContainText('Сегодня все слова записаны в твою память')
-  // Связь от шапки к ступеням оборвана, как порванный кабель: небольшой разрыв, по три провода цветов ступеней у концов,
-  // на кончиках части проводов — жёлтые искры с разным периодом (у каждой свой тайминг)
-  expect(await page.locator('.memWires svg g path[fill="none"]').count()).toBe(6)
-  await expect(page.locator('.memWires .memTearSpark')).toHaveCount(4)
-  const periods = await page.locator('.memWires .memTearSpark').evaluateAll(els => els.map(el => el.style.getPropertyValue('--p')))
+  // Связь от круга к ступеням оборвана, как порванный кабель: крупный разрыв, по три тонких провода цветов ступеней у
+  // концов, на концах — электрическое искрение (4 зигзага-разряда, 2 звёздочки, 6 летящих искорок, дуга через разрыв)
+  // с разными периодами (у каждого элемента свой тайминг)
+  expect(await page.locator('.memWires .memStrand').count()).toBe(6)
+  await expect(page.locator('.memWires .memBolt')).toHaveCount(4)
+  await expect(page.locator('.memWires .memStar')).toHaveCount(2)
+  await expect(page.locator('.memWires .memFly')).toHaveCount(6)
+  await expect(page.locator('.memWires .memArc')).toHaveCount(1)
+  const periods = await page.locator('.memWires .memBolt').evaluateAll(els => els.map(el => el.style.getPropertyValue('--p')))
   expect(new Set(periods).size).toBe(4)
-  const strokes = await page.locator('.memWires svg g path[fill="none"]').evaluateAll(els => els.map(el => el.getAttribute('stroke')))
+  const strokes = await page.locator('.memWires .memStrand').evaluateAll(els => els.map(el => el.getAttribute('stroke')))
   expect(new Set(strokes)).toEqual(new Set(['#4fb3ee', '#f1bd3c', '#b6fe3b']))
   // Спящий мозг: значок, три «Z»; в нижней панели — три мелких «Z» у мозга
   await expect(main.locator('.lrSleep svg')).toBeVisible()
