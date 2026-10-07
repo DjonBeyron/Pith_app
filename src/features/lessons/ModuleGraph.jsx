@@ -9,6 +9,7 @@ import MgLessonBody from './MgLessonBody.jsx'
 import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { useLessonsProgress } from './useLessonsProgress.js'
 import LessonLockedHint from './LessonLockedHint.jsx'
+import { preloadSounds, playSound } from '../../shared/lib/sounds.js'
 import { useChainScroll } from './useChainScroll.js'
 import { useChainArcs } from './useChainArcs.js'
 import { MgBtns, MgRenameInput } from './MgControls.jsx'
@@ -63,7 +64,7 @@ export default function ModuleGraph({
   // Геометрия линий (пути для ChainLines и маршруты полёта XP) — useChainArcs.js
   // arcsReady — было ли уже хоть одно измерение: пока false, схема скрыта
   // (opacity), чтобы узлы не появлялись раньше соединяющих их линий.
-  const { arcs, ready: arcsReady } = useChainArcs({ containerRef, startRef, finalRef, lessonRefs, lessons })
+  const { arcs, ready: arcsReady } = useChainArcs({ containerRef, startRef, finalRef, lessonRefs })
 
   // Начатые уроки (без старта и финала) → процент: полоска вместо подписи.
   // Пока не пришли — схема скрыта вместе с линиями (полоска не дорисовывается)
@@ -208,7 +209,11 @@ export default function ModuleGraph({
     // Не-админ: пока диагностика (Старт) не пройдена, остальные уроки
     // визуально «под замком» (locked выше) — раньше замок был декорацией,
     // сам клик всё равно запускал урок. Теперь блокируем и объясняем почему.
-    if (!isAdmin && id !== start.id && !startDoneShown && !unlocked) { setLockedHint(true); return }
+    // Звук — синхронно в самом тапе (жест), а не в эффекте окна: на iOS
+    // play() вне жеста у свежего элемента стартовал с задержкой ~700 мс.
+    // preloadSounds() идемпотентен — создаст элемент, если первого касания
+    // (usePreloadSoundsOnTap) ещё не было
+    if (!isAdmin && id !== start.id && !startDoneShown && !unlocked) { preloadSounds(); playSound('lesson-locked', 'тап по закрытому уроку'); setLockedHint(true); return }
     // У не-админа нет управляющих кнопок — клик по блоку сразу запускает урок.
     if (!isAdmin) { onPlay(id); return }
     if (window.matchMedia('(hover: none)').matches) setTapped(p => p === id ? null : id)

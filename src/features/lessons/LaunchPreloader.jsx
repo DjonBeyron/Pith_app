@@ -9,6 +9,7 @@ import ExamIntroDialog from './ExamIntroDialog.jsx'
 import LaunchCtaSlot from './LaunchCtaSlot.jsx'
 import LaunchDebugPanel from './LaunchDebugPanel.jsx'
 import LaunchSkeleton from './LaunchSkeleton.jsx'
+import LaunchProgress from './LaunchProgress.jsx'
 import LaunchEnergyRow from './LaunchEnergyRow.jsx'
 import { isWeakDevice } from './launchHelpers.js'
 import useSmoothPct from './useSmoothPct.js'
@@ -134,10 +135,15 @@ export default function LaunchPreloader({
   // очереди, и «готово» было бы ложным)
   const loaded      = initialized && initializedFor === preloadNodes && logoReady && (nodeReady >= nodeTotal || nodeTotal === 0)
   // Показанный процент — плавный (не быстрее 1 с на всю шкалу, useSmoothPct)
-  // и крутится только когда карточка видна (visible), не за каркасом.
+  // и крутится только когда карточка видна (visible), не за каркасом, и не
+  // во время выбора «Продолжить / Сначала» (choosing — там спиннер, бар
+  // стартует с 0 после выбора). Процент берём только от очереди под текущий
+  // список нод: у пустой очереди (до выбора) он 100, и первый рендер после
+  // выбора показал бы 99 % от устаревшего значения.
   // Кнопка открывается вместе с ним: «Начать урок» при баре на 40 % — тот
   // же «мгновенный» скачок, только другой стороной
-  const { barRef, textRef, reached } = useSmoothPct(loaded ? 100 : Math.min(warmupPct, 99), visible)
+  const livePct = initializedFor === preloadNodes ? warmupPct : 0
+  const { barRef, textRef, reached } = useSmoothPct(choosing ? 0 : loaded ? 100 : Math.min(livePct, 99), visible && !choosing)
   const canStart    = loaded && reached && !choosing
 
   // Выбор сделан и прогрев готов — стартуем сами, второй тап не нужен
@@ -204,25 +210,9 @@ export default function LaunchPreloader({
     <>
       <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 600 }}>{title || name}</h2>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ height: 6, borderRadius: 3, background: '#333', overflow: 'hidden' }}>
-          {/* Ширину и цифру ниже ведёт useSmoothPct прямо в DOM (ref),
-              покадрово и без ре-рендеров; в JSX — только стартовые «0%»,
-              React их не перезаписывает (значение в JSX не меняется).
-              Без transition: покадровая запись сама и есть анимация */}
-          <div ref={barRef} style={{ height: '100%', borderRadius: 3, width: '0%', background: '#b6fe3b' }} />
-        </div>
-        <span style={{ color: '#888', fontSize: 12 }}>
-          {/* Слово то же, что в каркасе до загрузки сценария («Загрузка
-              урока…»): подмена «Загрузка» → «Подготовка» на полпути читалась
-              как смена этапа, хотя это одна и та же загрузка */}
-          {choosing
-            ? 'Продолжить с того места или начать заново?'
-            : canStart
-              ? 'Урок готов к запуску'
-              : <>Загрузка урока: <span ref={textRef}>0%</span></>}
-        </span>
-      </div>
+      {/* До выбора «Продолжить / Сначала» — спиннер, после — бар с процентом
+          (LaunchProgress.jsx); высота блока одна и та же */}
+      <LaunchProgress choosing={choosing} canStart={canStart} barRef={barRef} textRef={textRef} />
 
       <LaunchEnergyRow info={info} dissolving={dissolving} />
 

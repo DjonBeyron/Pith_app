@@ -1,34 +1,52 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
 
-// Геометрия линий графа модуля: меряет реальные ректы нодов и строит
-// SVG-пути (левые старт→урок с точками, правые урок→финал со стрелкой и
-// частичным зелёным заполнением). Пересчёт — по кадру после рендера и при
-// каждом ресайзе контейнера. Возвращает массив arcs для ChainLines/XpFlight.
-export function useChainArcs({ containerRef, startRef, finalRef, lessonRefs, lessons }) {
+// Бокс нода в координатах контейнера — ПО РАСКЛАДКЕ (offsetLeft/offsetTop по
+// цепочке offsetParent до контейнера), а не getBoundingClientRect: тот отдаёт
+// рект с учётом transform-анимаций. Пульс Старта после диагностики
+// (mgNodePulse, scale(1.03) обёртки .mgGlow) растягивал его рект на ~5px, и
+// пересчёт линий, попавший в эти 0.9с (подъехал прогресс/звёзды, сменилась
+// высота карточки), рисовал линию от сдвинутой точки — и так оставлял.
+function layoutBox(el, cont) {
+  let x = 0, y = 0
+  for (let n = el; n && n !== cont; n = n.offsetParent) {
+    x += n.offsetLeft
+    y += n.offsetTop
+    const p = n.offsetParent
+    if (p && p !== cont) { x += p.clientLeft; y += p.clientTop }
+  }
+  return { x, y, w: el.offsetWidth, h: el.offsetHeight }
+}
+
+// Геометрия линий графа модуля: меряет раскладку нодов и строит SVG-пути
+// (левые старт→урок с точками, правые урок→финал со стрелкой и частичным
+// зелёным заполнением). Пересчёт — синхронно после каждого коммита (до
+// отрисовки кадра) и при каждом ресайзе контейнера. Возвращает массив arcs
+// для ChainLines/XpFlight.
+export function useChainArcs({ containerRef, startRef, finalRef, lessonRefs }) {
   const [arcs, setArcs] = useState([])
   // true после первого УСПЕШНОГО замера (не сбрасывается обратно) — ModuleGraph
   // держит схему невидимой (opacity, без смены layout/измерений), пока линии
   // не посчитаны ни разу: раньше узлы появлялись, а линии — кадром позже.
   const [ready, setReady] = useState(false)
+  // Снимок последних дуг: тот же результат — без setState (замер идёт после
+  // каждого коммита, иначе он сам бы порождал бесконечные ре-рендеры)
+  const lastKey = useRef('')
 
   const drawLines = useCallback(() => {
     const cont = containerRef.current
     if (!cont || !startRef.current || !finalRef.current) return
-    const cr = cont.getBoundingClientRect()
 
     const mid = (el, side) => {
-      const r = el.getBoundingClientRect()
-      const x = r.left - cr.left
-      const y = r.top  - cr.top
+      const b = layoutBox(el, cont)
       return side === 'left'
-        ? { x, y: y + r.height / 2 }
-        : { x: x + r.width, y: y + r.height / 2 }
+        ? { x: b.x, y: b.y + b.h / 2 }
+        : { x: b.x + b.w, y: b.y + b.h / 2 }
     }
 
     const pTop    = mid(startRef.current, 'left')
     const pBottom = mid(finalRef.current, 'right')
 
-    const cw = cr.width
+    const cw = cont.offsetWidth
     const leftSpace  = Math.min(pTop.x,    ...lessonRefs.current.filter(Boolean).map(el => mid(el,'left').x))
     const rightSpace = cw - Math.max(pBottom.x, ...lessonRefs.current.filter(Boolean).map(el => mid(el,'right').x))
     // Правый изгиб уже левого (26 против 40) и жёстко клэмпится к cw - 10:
@@ -81,15 +99,21 @@ export function useChainArcs({ containerRef, startRef, finalRef, lessonRefs, les
         dots: [{ x: pR.x, y: pR.y }],
       })
     })
+    const key = JSON.stringify(newArcs)
+    if (key === lastKey.current) return
+    lastKey.current = key
     setArcs(newArcs)
     setReady(true)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const id = requestAnimationFrame(drawLines)
-    return () => cancelAnimationFrame(id)
-  }, [lessons, drawLines])
+  // После КАЖДОГО коммита, до кадра: снятие замка (появилась награда), прогресс,
+  // звёзды, сила памяти меняют высоту карточек прямо в этом рендере — линии
+  // переезжают в том же кадре, что и ноды. Раньше это ловил ResizeObserver →
+  // rAF → setState: ноды уже сдвинулись, линии догоняли на 1–2 кадра позже —
+  // и выглядело как «дёрганье» линий при разблокировании
+  useLayoutEffect(drawLines)
 
+  // Ресайз контейнера не из React (поворот экрана, шрифты) — по кадру
   useEffect(() => {
     const ro = new ResizeObserver(() => requestAnimationFrame(drawLines))
     if (containerRef.current) ro.observe(containerRef.current)

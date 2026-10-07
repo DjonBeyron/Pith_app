@@ -206,6 +206,14 @@ describe('«Продолжить урок» — решение и прогрев
     expect(launch).toContain('const resumeEntryNode = resumeOffer?.nodeId ? nodes.find(n => n.id === resumeOffer.nodeId) : null')
     // Сперва выбор, потом прогрев выбранной точки (entryNodeId → preloadQueue.warmupPlan)
     expect(launch).toContain("const preloadNodes = choosing ? NO_NODES : nodes")
+    // До выбора — спиннер вместо бара (процент показывать нечего), после —
+    // бар с 0, не с устаревшим 100 % пустой очереди
+    const progress = read('../../features/lessons/LaunchProgress.jsx')
+    expect(progress).toContain('{choosing ? (')
+    expect(progress).toContain('className="launchSpinnerRow"')
+    expect(launch).toContain('const livePct = initializedFor === preloadNodes ? warmupPct : 0')
+    expect(launch).toContain('useSmoothPct(choosing ? 0 : loaded ? 100 : Math.min(livePct, 99), visible && !choosing)')
+    expect(read('../../styles/launch-progress.css')).toContain('.launchSpinnerRow {\n  position: relative;\n  height: 6px;')
     expect(launch).toContain("preloadNodes, files, cardVisible, { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null, historyIds }")
     // История стартовой ленты греется вместе с точкой входа — только при «Продолжить»
     expect(launch).toContain("choice === 'resume' && resumeOffer ? (resumeOffer.visitedIds ?? []).slice(0, -1) : NO_IDS")

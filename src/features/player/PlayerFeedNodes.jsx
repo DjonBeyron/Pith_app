@@ -132,7 +132,13 @@ export default function PlayerFeedNodes({
           regState={states.regStates[node.id] ?? null}
           tableSent={states.tableSent[node.id] ?? null}
           tableArriving={!!states.tableArriving?.[node.id]}
-          bottomOffset={bottomOffset}
+          // Высота панели снизу нужна ТОЛЬКО кружку (useCircleExpand: предел
+          // раскрытия). Остальным строкам проп не передаём: иначе каждое
+          // открытие/закрытие панели (и каждый рост панели по ходу ответа —
+          // usePanelHeight) меняло проп у ВСЕХ строк и сбрасывало их memo —
+          // в замере 13 PlayerMessage + 9 PlayerBubble перерисовывались в
+          // первые кадры подъёма панели
+          bottomOffset={node.type === 'circle' ? bottomOffset : 0}
           videoAutoSound={videoAutoSound}
           adminPreview={isAdmin}
           pending={isPending}
@@ -156,7 +162,7 @@ export default function PlayerFeedNodes({
           lessonFiles={filesWithBlobs}
           lessonNodes={nodes}
           teacherName={teacherName}
-          bottomOffset={bottomOffset}
+          bottomOffset={0}
           videoAutoSound={videoAutoSound}
           adminPreview={isAdmin}
           onDone={cbs.onDone}

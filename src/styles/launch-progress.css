@@ -1,0 +1,31 @@
+/* Спиннер карточки запуска вместо бара, пока на карточке с чекпойнтом не
+   выбрано «Продолжить / Сначала» (LaunchProgress.jsx). Ряд ровно той же
+   высоты, что жёлоб бара (6px) — карточка не прыгает при смене на бар; сам
+   кружок 16px центрирован и выступает по 5px в зазоры сверху/снизу (там
+   gap 8px — не задевает ни заголовок, ни подпись). Цвета — как у спиннера
+   схемы модуля (.lessonsMapSpinner): полупрозрачное кольцо + брендовый лайм */
+.launchSpinnerRow {
+  position: relative;
+  height: 6px;
+}
+
+.launchSpinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #b6fe3b;
+  animation: launchSpin 780ms linear infinite;
+}
+
+@keyframes launchSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launchSpinner { animation-duration: 2.4s; }
+}

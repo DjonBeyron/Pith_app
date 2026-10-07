@@ -4,6 +4,7 @@ import { useCurriculumLessons } from './useCurriculumLessons.js'
 import { useModuleAnalysis } from './useModuleAnalysis.js'
 import ModuleTitleEditor from '../admin/ModuleTitleEditor.jsx'
 import ModuleGraph from './ModuleGraph.jsx'
+import { usePreloadSoundsOnTap } from './usePreloadSoundsOnTap.js'
 import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayer.jsx'
@@ -84,6 +85,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
   const [unlocked, setUnlocked] = useState(() => isModuleUnlocked(curriculumId))
   const didInitRef = useRef(false)
   const { isAdmin } = useAdmin()
+  usePreloadSoundsOnTap() // звук «закрытый урок» готов к первому тапу по схеме
   const { user } = useAuth()
 
   // Приоритеты уроков (анализ знаний) + звёзды + память слов — useModuleAnalysis.js

@@ -84,7 +84,8 @@ describe('замок и его снятие', () => {
   it('замок снимается со всех уроков модуля разом', () => {
     expect(graph).toContain('const locked = !startDoneShown && !unlocked')
     expect(graph).toContain(
-      'if (!isAdmin && id !== start.id && !startDoneShown && !unlocked) { setLockedHint(true); return }')
+      'if (!isAdmin && id !== start.id && !startDoneShown && !unlocked) { preloadSounds(); playSound(')
+    expect(graph).toContain("'тап по закрытому уроку'); setLockedHint(true); return }")
   })
 
   it('предупреждение говорит, что откроются все уроки и чем это хуже', () => {
@@ -92,6 +93,17 @@ describe('замок и его снятие', () => {
     expect(hint).toContain('слабые места')
     // И что решение не тупиковое — диагностику можно пройти позже
     expect(hint).toContain('Её можно пройти в любой момент')
+  })
+
+  it('звук закрытого урока — синхронно в тапе (жест), не в эффекте окна', () => {
+    // Эффект при монтировании — не жест: на iOS первый play() опаздывал на
+    // ~700 мс, а в StrictMode-dev звучал дважды
+    expect(graph).toContain("preloadSounds(); playSound('lesson-locked', 'тап по закрытому уроку'); setLockedHint(true); return }")
+    expect(hint).not.toContain('playSound')
+    expect(hint).not.toContain('useEffect')
+    // К первому тапу элемент уже создан и load()-нут — по первому касанию схемы
+    expect(read('./CurriculumView.jsx')).toContain('usePreloadSoundsOnTap()')
+    expect(read('./usePreloadSoundsOnTap.js')).toContain("document.addEventListener('pointerdown', onTap, true)")
   })
 
   it('два равноправных пути: главная кнопка сразу запускает диагностику', () => {
@@ -151,8 +163,10 @@ describe('карточка запуска урока', () => {
   it('подпись под баром не меняет слово на полпути', () => {
     // Было «Загрузка урока…» → «Подготовка: 42%»: читалось как смена этапа,
     // хотя это одна и та же загрузка
-    expect(card).toContain('Загрузка урока: <span ref={textRef}>0%</span>')
-    expect(card).not.toContain('Подготовка:')
+    // Блок прогресса вынесен в LaunchProgress.jsx
+    const progress = read('./LaunchProgress.jsx')
+    expect(progress).toContain('Загрузка урока: <span ref={textRef}>0%</span>')
+    expect(card + progress).not.toContain('Подготовка:')
     // Включая проценты: без них «0%» появлялось отдельным элементом позже
     expect(read('./LaunchSkeleton.jsx')).toContain('Загрузка урока: 0%')
   })

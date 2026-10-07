@@ -4,6 +4,7 @@ import { playSound } from '../../../../shared/lib/sounds.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { useAnswerOrder } from '../../useAnswerOrder.js'
+import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
 
 const PHOTO_COLORS = [
   '#6366f1','#ec4899','#f59e0b','#10b981',
@@ -47,7 +48,7 @@ function GalleryTile({ ph, index, lessonFiles, onClick }) {
     >
       {src
         ? <img
-            src={src} className="pcGalleryImg" alt={ph.label}
+            src={src} className="pcGalleryImg" alt={ph.label} decoding="async"
             onLoad={() => pLog(`[pc-gallery] #${index + 1} показана через ${Math.round(performance.now() - pickTsRef.current)}мс (${kindRef.current})`)}
             onError={() => pLog(`[pc-gallery] #${index + 1} ОШИБКА загрузки img (${kindRef.current})`)}
           />
@@ -88,28 +89,44 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
 
   useEffect(() => () => onHeightChange?.(0), []) // eslint-disable-line
 
-  // Предекодирование фото при монтировании панели — до открытия галереи. img onLoad
-  // означает «байты пришли», но пиксели декодируются лишь при первой отрисовке, и на
-  // слабом устройстве грид секунду пустой. decode() заранее + живые ссылки на Image
-  // держат декодированные битмапы в кэше — галерея рисуется мгновенно.
+  // Подъём с историей — тот же хук, что у «выбери слово» (usePanelRiseDrop.js →
+  // panelRise.js): распорка меняет высоту РАЗОМ, движение играют два трансформа
+  // (панель + лента). Раньше распорка анимировала height той же кривой — это
+  // layout + перерисовка всей ленты КАЖДЫЙ кадр подъёма (замер: 24 layout и
+  // paint за 0.4 с против 2–3 у «выбери слово»), на телефоне — рывки
+  const rise = usePanelRiseDrop({ show, panelRef, spacerSel: '.pcPanelSpacer', panelH: panelHeight, label: 'pc' })
+
+  // Предекодирование фото — до открытия галереи, но ПОСЛЕ подъёма панели
+  // (rise.opening → false): img onLoad означает «байты пришли», пиксели
+  // декодируются лишь при первой отрисовке, и на слабом устройстве грид
+  // секунду пустой. decode() заранее + живые ссылки на Image держат битмапы в
+  // кэше — галерея рисуется мгновенно. Запускать в момент монтирования нельзя:
+  // четыре декода шли параллельно с въездом панели и отнимали у него кадры.
+  // Декодируем по одному (цепочкой), а не все разом — ровнее по кадрам
   const decodedRef = useRef([])
   useEffect(() => {
+    if (rise.opening) return
     let cancelled = false
-    decodedRef.current = photos.map((ph, i) => {
+    decodedRef.current = []
+    let chain = Promise.resolve()
+    photos.forEach((ph, i) => {
       const f = ph.fileId ? lessonFiles.find(lf => lf.id === ph.fileId) : null
       const url = f?.blobUrl ?? f?.r2Url ?? ph.photoUrl ?? null
-      if (!url) return null
-      const t0 = performance.now()
-      const img = new Image()
-      img.src = url
-      img.decode()
-        .then(() => { if (!cancelled) pLog(`[pc-gallery] предекод #${i + 1}: ${Math.round(performance.now() - t0)}мс`) })
-        .catch(e => { if (!cancelled) pLog(`[pc-gallery] предекод #${i + 1} ошибка: ${e.message}`) })
-      return img
+      if (!url) return
+      chain = chain.then(() => {
+        if (cancelled) return
+        const t0 = performance.now()
+        const img = new Image()
+        img.src = url
+        decodedRef.current.push(img)
+        return img.decode()
+          .then(() => { if (!cancelled) pLog(`[pc-gallery] предекод #${i + 1}: ${Math.round(performance.now() - t0)}мс`) })
+          .catch(e => { if (!cancelled) pLog(`[pc-gallery] предекод #${i + 1} ошибка: ${e.message}`) })
+      })
     })
     return () => { cancelled = true; decodedRef.current = [] }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [rise.opening])
 
   // Диагностика в лог плеера: при открытии галереи — сколько фото готово из блобов,
   // а сколько пойдёт из сети (значит, предзагрузка их не успела/не покрыла)
@@ -133,14 +150,11 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
 
   return (
     <>
+      {/* Распорка: высота разом, без height-анимации — движение истории
+          целиком играет трансформ ленты (panelRise.js) */}
       <div
         className="pcPanelSpacer"
-        style={{
-          height: show ? panelHeight : 0,
-          transition: show
-            ? 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
-            : 'height 0.28s cubic-bezier(0.4, 0, 1, 1)',
-        }}
+        style={{ height: show ? panelHeight : 0, transition: 'none' }}
       />
       {galleryOpen && (
         <div className="pcGalleryOverlay" onClick={() => setGalleryOpen(false)}>

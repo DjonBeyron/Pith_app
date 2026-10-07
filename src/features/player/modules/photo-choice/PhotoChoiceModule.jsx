@@ -51,7 +51,7 @@ export default function PhotoChoiceModule({ node, lessonFiles, photoChoiceState 
           style={src ? {} : { background: PHOTO_COLORS[selected % PHOTO_COLORS.length] }}
         >
           {src
-            ? <img src={src} className="pcAnswerImg" alt="" />
+            ? <img src={src} className="pcAnswerImg" alt="" decoding="async" />
             : <span className="pcAnswerIdx">{selected + 1}</span>
           }
         </div>
