@@ -236,7 +236,7 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     })
     ghost.parentNode.insertBefore(frame, ghost)
 
-    // Единственная анимация всего перехода. onfinish берём с неё же: вешать
+    // Главная анимация перехода (transform). onfinish берём с неё же: вешать
     // пустышку на клон нельзя — анимация opacity, даже из 1 в 1, поднимает его
     // на отдельный слой и на это время отключает субпиксельное сглаживание
     // Рамка едет ТРАНСФОРМОМ, а не left/top/width/height. Те четыре свойства
@@ -256,10 +256,18 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
       width: `${to.width}px`, height: `${to.height}px`,
       transformOrigin: 'top left',
     })
+    // Две анимации, а не одна. border-radius не композитится, и стоит ему быть
+    // в тех же кадрах, что и transform, Chrome отказывается от композитора для
+    // ВСЕЙ анимации (compositeFailed: border-*-radius): рамка едет на главном
+    // потоке и перерисовывается каждый кадр, любая задача React рвёт движение.
+    // Врозь transform идёт на композиторе, а скругление (пустой коробке его
+    // перерисовать ничего не стоит) доигрывает рядом — на глаз то же самое
+    const flightOpts = { duration: FLIGHT_MS, easing: SPACER_EASE, fill: 'forwards' }
     const anim = frame.animate([
-      { transform: `translate(${at.left - to.left}px, ${at.top - to.top}px) scale(${sx}, ${sy})`, borderRadius: '0px' },
-      { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: cs.borderRadius },
-    ], { duration: FLIGHT_MS, easing: SPACER_EASE, fill: 'forwards' })
+      { transform: `translate(${at.left - to.left}px, ${at.top - to.top}px) scale(${sx}, ${sy})` },
+      { transform: 'translate(0px, 0px) scale(1, 1)' },
+    ], flightOpts)
+    frame.animate([{ borderRadius: '0px' }, { borderRadius: cs.borderRadius }], flightOpts)
 
     // Тотальная трасса на время превращения — видно и цифры, и пропуски кадров
     traceMorph(ghost, target)
