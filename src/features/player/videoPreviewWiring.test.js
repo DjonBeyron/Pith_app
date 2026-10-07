@@ -35,7 +35,7 @@ describe('какие модули отдают постер в <video>', () => {
     expect(tags[0]).not.toContain('poster=')
     expect(CIRCLE).toContain('const poster = file?.posterUrl')
     expect(CIRCLE).toContain('<img src={poster}')
-    expect(CIRCLE).toContain('style={{ ...videoStyle, ...VIDEO_GUARD_STYLE }}')
+    expect(CIRCLE).toContain('style={{ ...posterStyle, ...VIDEO_GUARD_STYLE }}')
     // стоп-кадр уходит только когда видео показало первый кадр
     expect(CIRCLE).toContain('const framed = useFirstFrame(vRef, src)')
     expect(CIRCLE).toContain('!mirror && !!poster && !framed')

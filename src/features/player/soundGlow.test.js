@@ -5,7 +5,7 @@ const listeners = new Set()
 vi.mock('../../shared/lib/sounds.js', () => ({
   onSoundPlayed: cb => { listeners.add(cb); return () => listeners.delete(cb) },
 }))
-const { startUiSoundGlow, soundImpulse, SOUND_GLOW_AMP, DEFAULT_SOUND_SEC } = await import('./soundGlow.js')
+const { startUiSoundGlow, soundImpulse, SOUND_GLOW_AMP, SOUND_GLOW_PROFILE, DEFAULT_SOUND_SEC, MAX_SOUND_SEC } = await import('./soundGlow.js')
 const { subscribeAudioLevel, hasPlayingSources, _audioLevelTestHooks } = await import('./audioLevel.js')
 
 let queue = []
@@ -26,12 +26,16 @@ describe('soundImpulse: огибающая импульса', () => {
     expect(soundImpulse(0.1, 0, 0.7)).toBe(0)
   })
 
-  it('амплитуды заданы для всех звуков интерфейса', () => {
+  it('амплитуды и полосы заданы для всех звуков интерфейса', () => {
     for (const n of ['message-in', 'answer-correct', 'answer-wrong', 'pin-message', 'typing-1', 'typing-2', 'xp-gain', 'level-up', 'lesson-locked']) {
       expect(SOUND_GLOW_AMP[n]).toBeGreaterThan(0)
       expect(SOUND_GLOW_AMP[n]).toBeLessThanOrEqual(1)
+      expect(typeof SOUND_GLOW_PROFILE[n]).toBe('string')
     }
     expect(SOUND_GLOW_AMP['answer-correct']).toBeGreaterThan(SOUND_GLOW_AMP['message-in'])
+    expect(SOUND_GLOW_PROFILE['message-in']).toBe('ui-low')
+    expect(SOUND_GLOW_PROFILE['xp-gain']).toBe('ui-high')
+    expect(SOUND_GLOW_PROFILE['level-up']).toBe('ui-all')
   })
 })
 
@@ -41,12 +45,12 @@ describe('startUiSoundGlow: звук интерфейса → источник �
     const stop = startUiSoundGlow(() => clock)
     const got = []
     subscribeAudioLevel((l, a) => got.push([l, a]))
-    fire('answer-correct', 0.5)
+    fire('answer-correct', 0.4)
     expect(hasPlayingSources()).toBe(true)
     clock = 1060; frame(1060)
     expect(got.at(-1)[1]).toBe(true)
     expect(got.at(-1)[0]).toBeGreaterThan(0.1)
-    vi.advanceTimersByTime(600)
+    vi.advanceTimersByTime(500)
     expect(hasPlayingSources()).toBe(false)
     expect(got.at(-1)).toEqual([0, false])
     stop()
@@ -62,6 +66,16 @@ describe('startUiSoundGlow: звук интерфейса → источник �
     vi.advanceTimersByTime(DEFAULT_SOUND_SEC * 1000 - 50)
     expect(hasPlayingSources()).toBe(true)  // второй старт продлил источник
     vi.advanceTimersByTime(200)
+    expect(hasPlayingSources()).toBe(false)
+    stop()
+  })
+
+  it('импульс не дольше 0.45 с даже у длинного файла (level-up 2 с)', () => {
+    expect(MAX_SOUND_SEC).toBeLessThanOrEqual(0.45)
+    const stop = startUiSoundGlow(() => 0)
+    subscribeAudioLevel(() => {})
+    fire('level-up', 2.0)
+    vi.advanceTimersByTime(MAX_SOUND_SEC * 1000 + 50)
     expect(hasPlayingSources()).toBe(false)
     stop()
   })

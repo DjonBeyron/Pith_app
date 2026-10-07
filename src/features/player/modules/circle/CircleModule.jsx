@@ -10,29 +10,15 @@ import { useCircleExpand, getSmallPx } from './useCircleExpand.js'
 import { useCircleLoopPause } from './useCircleLoopPause.js'
 import { getLessonMuted } from '../../lessonVolume.js'
 import { useVideoGlowSource } from '../../useVideoGlowSource.js'
+import { circleFit } from './circleFit.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
 
-function calcStyle(intrinsic, dims, crop) {
-  if (!intrinsic || !dims) return {
-    position: 'absolute', inset: 0, objectFit: 'cover',
-    transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
-    transformOrigin: 'center center',
-  }
-  const ma = intrinsic.w / intrinsic.h, fa = dims.w / dims.h
-  const d = ma > fa ? { w: dims.h * ma, h: dims.h } : { w: dims.w, h: dims.w / ma }
-  return {
-    position: 'absolute', left: '50%', top: '50%',
-    width: d.w + 'px', height: d.h + 'px',
-    transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale})`,
-    transformOrigin: 'center center',
-  }
-}
-
 export default function CircleModule({ node, file, onDone, bottomOffset = 0, videoAutoSound, adminPreview = false, pending = false }) {
   const [objectUrl, setObjectUrl]   = useState(null)
   const [intr, setIntr]             = useState(null)
+  const [posterSize, setPosterSize] = useState(null)  // naturalWidth/Height стоп-кадра
   const [dims, setDims]             = useState(null)
   const [mutedLoop, setMutedLoop]   = useState(false)  // videoAutoSound: true after first play
 
@@ -202,7 +188,11 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     ...(collapsing && !expanded ? { zIndex: 10 } : {}),
   }
 
-  const videoStyle = calcStyle(intr, dims, crop)
+  // Видео и стоп-кадр — одна функция геометрии (circleFit.js). Размер кадра у
+  // видео — из его метаданных, у постера — свой naturalWidth/Height (постер
+  // снят в размере кадра), чтобы стоп-кадр не ждал loadedmetadata
+  const videoStyle = circleFit({ box: dims, mediaW: intr?.w, mediaH: intr?.h, crop })
+  const posterStyle = circleFit({ box: dims, mediaW: posterSize?.w ?? intr?.w, mediaH: posterSize?.h ?? intr?.h, crop })
   // На десктопе кадры показывает canvas, а сам <video> прячется: иначе
   // Яндекс.Браузер вешает поверх кружка свою панель (см. videoMirror.js)
   const mirror = useWideScreen()
@@ -265,7 +255,15 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
               )}
               {showPosterImg && (
                 <img src={poster} alt="" draggable={false} className="circleMedia"
-                  style={{ ...videoStyle, ...VIDEO_GUARD_STYLE }} />
+                  onLoad={e => {
+                    const { naturalWidth: w, naturalHeight: h } = e.currentTarget
+                    setPosterSize({ w, h })
+                    // Постер снят с кадра видео — пропорции обязаны совпасть
+                    if (intr && w && h && Math.abs(w / h - intr.w / intr.h) > 0.01) {
+                      pLog(`[circle] пропорции постера ${w}x${h} ≠ видео ${intr.w}x${intr.h}`)
+                    }
+                  }}
+                  style={{ ...posterStyle, ...VIDEO_GUARD_STYLE }} />
               )}
             </div>
 

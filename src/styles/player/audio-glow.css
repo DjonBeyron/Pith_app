@@ -2,27 +2,22 @@
    постоянной памяти (#8b5cf6 / #a78bfa, см. --lvlP в memory-ladder.css и
    WIRE_COLORS.perm в learn/ladderWires.js).
 
-   Читается как ОДНОРОДНАЯ мягкая масса света у нижней кромки, а не как
-   столбики: узлы (.audioGlowBar) шире шага сетки и перекрываются (left/width
-   — из audioGlowShape.js, inline), у каждого — эллиптический градиент от
-   плотного низа к прозрачному верху и краям, так что соседи сливаются без
-   зазоров. Мягкость — самими градиентами, без filter/blur. Яркость по
-   горизонтали «гуляет» через opacity узлов и сдвиг подложки.
+   Один <canvas> низкого разрешения (192×56), растянутый на всю ширину и
+   высоту слоя: залитый гладкий контур без швов, билинейное сглаживание при
+   растягивании (image-rendering по умолчанию) прячет ступеньки. Выше у
+   левого и правого нижних углов, ниже в центре (audioGlowShape.js).
 
    Слой лежит внутри .lessonPlayer (на десктопе — в рамке «телефона»), у
    нижней кромки, кликов не ловит. Небольшой: 44px + safe-area — высота
-   пиковых «языков», обычная речь ≈ 26–34px. z-index 95: над растушёвкой низа
-   (90), панелями ответа (80), салютом (85) и «печатает» (70); под
-   полноэкранными слоями того же контейнера: диалог закрепа (200), видео
-   (251), фото (400). Итоги урока и «+N XP» — соседи .lessonPlayer с z 10000.
+   пиковых «языков» в углах, центр ≈ 35–40 % от этого. z-index 95: над
+   растушёвкой низа (90), панелями ответа (80), салютом (85) и «печатает»
+   (70); под полноэкранными слоями того же контейнера: диалог закрепа (200),
+   видео (251), фото (400). Итоги урока и «+N XP» — соседи .lessonPlayer с
+   z 10000.
 
-   Только transform/opacity: высоты узлов — scaleY, яркость — opacity,
-   подложка — opacity + translateX (всё из rAF в AudioGlow.jsx). В покое слой
-   скрыт целиком (visibility) и без will-change — никаких слоёв GPU, пока
-   ничего не звучит. */
+   В покое слой скрыт целиком (visibility), canvas не перерисовывается, rAF
+   нет; гаснет быстро (≤150 мс) — свет не должен жить дольше звука. */
 .audioGlow {
-  --glow:    139, 92, 246;   /* #8b5cf6 */
-  --glow-hi: 167, 139, 250;  /* #a78bfa */
   position: absolute;
   left: 0;
   right: 0;
@@ -33,67 +28,24 @@
   z-index: 95;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.28s ease, visibility 0s linear 0.28s;
+  transition: opacity 0.15s ease-out, visibility 0s linear 0.15s;
 }
 
 .audioGlowOn {
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.22s ease;
+  transition: opacity 0.1s ease-out;
 }
 
-/* Подложка — единый горизонтальный градиент по низу с лёгкой «гуляющей»
-   яркостью: вдвое шире слоя, узор периодичен по половине ширины, rAF
-   двигает его translateX(0…-50%) по кругу бесшовно; вертикальный спад —
-   маской. opacity 0.2..0.8 — по уровню звука */
-.audioGlowBase {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 200%;
-  height: 100%;
-  opacity: 0.2;
-  background: linear-gradient(to right,
-    rgba(var(--glow), 0.14) 0%, rgba(var(--glow), 0.34) 12%, rgba(var(--glow), 0.18) 24%,
-    rgba(var(--glow), 0.30) 38%, rgba(var(--glow), 0.14) 50%,
-    rgba(var(--glow), 0.34) 62%, rgba(var(--glow), 0.18) 74%,
-    rgba(var(--glow), 0.30) 88%, rgba(var(--glow), 0.14) 100%);
-  -webkit-mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.45) 40%, transparent 100%);
-  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.45) 40%, transparent 100%);
-}
-
-.audioGlowBars {
+.audioGlowCanvas {
   position: absolute;
   inset: 0;
-}
-
-/* Узел массы: растёт от нижней кромки (scaleY), яркость — opacity. Эллипс
-   плотный у самой кромки по центру, к верху и краям сходит на нет. Профиль
-   — колокол (остановки по гауссиане), а не конус: конусы с острой вершиной
-   в сумме дают рябь ~17 % по низу (видны полосы), колокола при таком
-   перекрытии — ~4 %, и соседи складываются в ровную полосу света.
-   Умеренные альфы: в сумме низ не пересвечивается (mix-blend-mode: normal) */
-.audioGlowBar {
-  position: absolute;
-  bottom: 0;
+  width: 100%;
   height: 100%;
-  opacity: 0.35;
-  transform-origin: center bottom;
-  transform: scaleY(0.12);
-  mix-blend-mode: normal;
-  background: radial-gradient(ellipse 70% 100% at 50% 100%,
-    rgba(var(--glow-hi), 0.50) 0%, rgba(var(--glow-hi), 0.42) 20%, rgba(var(--glow), 0.27) 40%,
-    rgba(var(--glow), 0.12) 60%, rgba(var(--glow), 0.04) 80%, transparent 100%);
+  display: block;
 }
 
-.audioGlowOn .audioGlowBar,
-.audioGlowOn .audioGlowBase {
-  will-change: transform, opacity;
-}
-
-/* Меньше движения: пока звучит речь — тусклое статичное свечение, без
-   покадровых записей (AudioGlow.jsx их не делает) */
+/* Меньше движения: AudioGlow.jsx рисует одну статичную тусклую полосу */
 @media (prefers-reduced-motion: reduce) {
-  .audioGlowOn .audioGlowBar  { transform: scaleY(0.4); opacity: 0.5; will-change: auto; }
-  .audioGlowOn .audioGlowBase { opacity: 0.35; will-change: auto; }
+  .audioGlowOn .audioGlowCanvas { opacity: 0.6; }
 }

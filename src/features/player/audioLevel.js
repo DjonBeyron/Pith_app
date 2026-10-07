@@ -1,30 +1,36 @@
 import { WAVEFORM_FPS } from '../../shared/lib/audioUtils.js'
 
-// Общий «уровень речи» урока для свечения-эквалайзера снизу чата (AudioGlow.jsx).
-// Чистое состояние без React: источники звука (голосовое, озвучка слова,
-// диктор таблицы) регистрируют функцию getLevel(now) → 0..1 и снимают себя,
-// когда замолкают; один общий rAF-цикл живёт ТОЛЬКО пока есть играющие
-// источники и подписчик, не чаще 30 кадров/с, берёт максимум по источникам,
-// сглаживает (быстрая атака, медленный спад) и отдаёт подписчику число.
+// Общий «уровень звука» урока для свечения снизу чата (AudioGlow.jsx).
+// Чистое состояние без React: источники (голосовое, слово, диктор таблицы,
+// видео/кружок/стикер со звуком, звуки интерфейса) регистрируют
+// getLevel(now) → 0..1 и, если есть, getBands(now, out4) — настоящий спектр по
+// 4 полосам (shared/lib/audioSpectrum.js), иначе полосы синтезируются по
+// характеру источника (profile). Один общий rAF-цикл живёт ТОЛЬКО пока есть
+// играющие источники и подписчик, не чаще LEVEL_FPS, берёт максимум по
+// источникам, сглаживает (быстрая атака, БЫСТРЫЙ спад — свет гаснет вместе
+// со звуком, не тянется) и отдаёт подписчику уровень + полосы.
 //
-// НЕ Web Audio (createMediaElementSource/AnalyserNode): на iOS это переводит
-// вывод в категорию soloAmbient — звук уходит в разговорный динамик или
-// молчит (см. sounds.js). Уровень берётся из ПРЕДРАСЧИТАННЫХ данных: у
-// голосовых и диктанта есть waveformData (RMS по кадрам WAVEFORM_FPS), у
-// коротких mp3 слов — синтезированная огибающая речи (speechEnvelope).
-// Звуки интерфейса (sounds.js) сюда не публикуются — свечение только на речь.
+// НЕ Web Audio на живом <audio> (createMediaElementSource/AnalyserNode): на
+// iOS это переводит вывод в категорию soloAmbient — звук уходит в
+// разговорный динамик или молчит (см. sounds.js). Уровень — из
+// ПРЕДРАСЧИТАННЫХ данных: waveformData (RMS по кадрам WAVEFORM_FPS) или
+// синтезированная огибающая; спектр — из офлайн-разбора файла.
 
 export const LEVEL_FPS = 30
+export const BANDS = 4
 const FRAME_MS = 1000 / LEVEL_FPS
-const ATTACK  = 0.55   // доля пути к новому уровню за кадр, когда он выше
-const RELEASE = 0.14   // …и когда ниже — спад медленнее, чем всплеск
+const ATTACK  = 0.6    // доля пути к новому уровню за кадр, когда он выше
+const RELEASE = 0.42   // …и когда ниже: за 8 кадров из 1 → 0.013
 
-const sources   = new Map()   // id → { getLevel }
-const listeners = new Set()   // fn(level 0..1, active, now)
+const sources   = new Map()   // id → { getLevel, getBands, profile }
+const listeners = new Set()   // fn(level 0..1, active, now, bands Float32Array(4))
 let rafId = 0
 let running = false
 let lastFrameAt = -Infinity
 let smoothed = 0
+const bands = new Float32Array(BANDS)
+const frameMax = new Float32Array(BANDS)
+const tmp = new Float32Array(BANDS)
 let visibilityHooked = false
 
 // Окружение подменяется в тестах (fake rAF/время/скрытая вкладка)
@@ -45,9 +51,9 @@ export function levelFromWave(wd, t, fps = WAVEFORM_FPS) {
   return Math.pow(clamp01(wd[i] / 255), 0.55)
 }
 
-// Огибающая «речи» для источников без волны (короткий mp3 слова): плавный
-// псевдошум 0.35..0.85 по времени, короткий вход, затухание на последних
-// 0.15с, если длительность известна (у <audio> до метаданных она NaN)
+// Огибающая «речи» для источников без волны (короткий mp3 слова, видео):
+// плавный псевдошум 0.35..0.85 по времени, короткий вход, затухание на
+// последних 0.15с, если длительность известна (у <audio> до метаданных NaN)
 export function speechEnvelope(t, duration = 0) {
   if (!(t >= 0)) return 0
   const noise = Math.sin(t * 9.3) * 0.6 + Math.sin(t * 23.7 + 1.1) * 0.25 + Math.sin(t * 3.1 + 2.3) * 0.15
@@ -57,9 +63,27 @@ export function speechEnvelope(t, duration = 0) {
   return clamp01(base) * head * tail
 }
 
-export function publishLevel(id, { playing, getLevel }) {
+// Синтезированные полосы по характеру источника, когда настоящего спектра
+// нет: доли [низ, низ-середина, середина-верх, верх] от уровня + лёгкое
+// независимое колебание каждой полосы, чтобы картинка жила
+export const BAND_PROFILES = {
+  voice:     [0.75, 0.9, 0.6, 0.35],   // речь: низ + середина, сверху «шипение»
+  'ui-low':  [1, 0.7, 0.25, 0.1],
+  'ui-mid':  [0.2, 0.5, 1, 0.6],
+  'ui-high': [0.1, 0.25, 0.6, 1],
+  'ui-all':  [1, 1, 1, 1],
+}
+const WOBBLE_HZ = [5.1, 7.7, 11.3, 17]
+export function synthBands(level, t, profile = 'voice', out = new Float32Array(BANDS)) {
+  const p = BAND_PROFILES[profile] ?? BAND_PROFILES.voice
+  for (let k = 0; k < BANDS; k++) out[k] = clamp01(level * p[k] * (0.8 + 0.2 * Math.sin(t * WOBBLE_HZ[k] + k * 1.7)))
+  return out
+}
+
+// { playing, getLevel(now) → 0..1, getBands?(now, out4) → true если заполнил, profile? }
+export function publishLevel(id, { playing, getLevel, getBands = null, profile = 'voice' }) {
   if (!playing || typeof getLevel !== 'function') { unpublishLevel(id); return }
-  sources.set(id, { getLevel })
+  sources.set(id, { getLevel, getBands: typeof getBands === 'function' ? getBands : null, profile })
   start()
 }
 
@@ -70,8 +94,9 @@ export function unpublishLevel(id) {
 
 export function hasPlayingSources() { return sources.size > 0 }
 
-// fn(level, active, now): active=false приходит один раз, когда цикл встал
-// (источников не осталось / вкладка скрыта) — подписчик гасит свечение
+// fn(level, active, now, bands): active=false приходит один раз, когда цикл
+// встал (источников не осталось / вкладка скрыта) — подписчик гасит свечение
+// СРАЗУ, не дожидаясь спада сглаживания
 export function subscribeAudioLevel(fn) {
   listeners.add(fn)
   hookVisibility()
@@ -97,7 +122,8 @@ function stop() {
   env.caf(rafId)
   rafId = 0
   smoothed = 0
-  listeners.forEach(fn => fn(0, false, 0))
+  bands.fill(0)
+  listeners.forEach(fn => fn(0, false, 0, bands))
 }
 
 function tick(now) {
@@ -107,12 +133,16 @@ function tick(now) {
   if (now - lastFrameAt < FRAME_MS - 1) return
   lastFrameAt = now
   let max = 0
+  frameMax.fill(0)
   for (const s of sources.values()) {
     const v = clamp01(s.getLevel(now))
     if (v > max) max = v
+    if (!(s.getBands && s.getBands(now, tmp))) synthBands(v, now / 1000, s.profile, tmp)
+    for (let k = 0; k < BANDS; k++) { const b = clamp01(tmp[k]); if (b > frameMax[k]) frameMax[k] = b }
   }
   smoothed += (max - smoothed) * (max > smoothed ? ATTACK : RELEASE)
-  listeners.forEach(fn => fn(smoothed, true, now))
+  for (let k = 0; k < BANDS; k++) bands[k] += (frameMax[k] - bands[k]) * (frameMax[k] > bands[k] ? ATTACK : RELEASE)
+  listeners.forEach(fn => fn(smoothed, true, now, bands))
 }
 
 // Скрытая вкладка: цикл стоит (rAF там и так заморожен, но подписчика надо
@@ -127,7 +157,7 @@ function hookVisibility() {
 export function _audioLevelTestHooks(partial = null) {
   if (partial) env = { ...env, ...partial }
   return {
-    reset() { sources.clear(); listeners.clear(); running = false; rafId = 0; smoothed = 0; lastFrameAt = -Infinity },
+    reset() { sources.clear(); listeners.clear(); running = false; rafId = 0; smoothed = 0; bands.fill(0); lastFrameAt = -Infinity },
     isRunning: () => running,
   }
 }
