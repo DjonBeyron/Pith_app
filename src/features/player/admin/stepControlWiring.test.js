@@ -28,7 +28,8 @@ describe('пауза замораживает всю цепочку', () => {
   it('снятие паузы доигрывает то, что было запланировано', () => {
     const eff = GRAPH.slice(GRAPH.indexOf('pausedRef.current = paused'))
     expect(eff).toContain('clearTimers()')
-    expect(eff).toContain('scheduleReveal.current(planned.nodeId)')
+    // ...с той же длиной точек, что была назначена (старт урока — FIRST_TYPING_MS)
+    expect(eff).toContain('scheduleReveal.current(planned.nodeId, false, planned.delayMs ?? null)')
     expect(eff).toContain('activateTimerTrigger.current(n)')
   })
 

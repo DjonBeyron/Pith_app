@@ -14,6 +14,8 @@ const GRAPH   = read('./useGraphPlayer.js')
 
 const CONCURRENCY = Number(PRELOAD.match(/const CONCURRENCY\s*=\s*(\d+)/)[1])
 const TYPING_MS   = Number(GRAPH.match(/const TYPING_DELAY_MS = (\d+)/)[1])
+// Точки перед ПЕРВОЙ нодой урока — короче обычных (useGraphPlayer.js)
+const FIRST_MS    = Number(GRAPH.match(/export const FIRST_TYPING_MS = (\d+)/)[1])
 
 const RUNS = 150
 const BANDS   = [150, 600, 2000]        // КБ/с: слабый 3G, обычный 4G, wi-fi
@@ -44,14 +46,14 @@ function simulate({ sizes, decodes, durations, bandKbps, warm }) {
   // Гипотетика для сравнения: если бы каждый кадр снимался сразу после скачивания
   const posterParallel = dlDone.map((t, i) => t + decodes[i])
 
-  // Показ: первая нода появляется сразу, каждая следующая — после проигрывания
-  // предыдущей плюс задержка «печатает»
+  // Показ: первая нода — после коротких стартовых точек FIRST_MS, каждая
+  // следующая — после проигрывания предыдущей плюс задержка «печатает»
   const reveal = []
-  let t = 0
+  let t = FIRST_MS
   for (let i = 0; i < n; i++) { reveal[i] = t; t += durations[i] + TYPING_MS }
 
-  // tail — всё, кроме самой первой ноды: она показывается в t=0 и постера не
-  // имеет никогда, поэтому её отделяем, чтобы она не красила общую картину
+  // tail — всё, кроме самой первой ноды: у неё на постер только FIRST_MS
+  // (а раньше — ничего), поэтому её отделяем, чтобы она не красила общую картину
   let lateSerial = 0, lateParallel = 0, lateBytes = 0, tailSerial = 0, tailBytes = 0
   for (let i = 0; i < n; i++) {
     if (posterSerial[i]   > reveal[i]) { lateSerial++; if (i) tailSerial++ }
@@ -109,15 +111,27 @@ describe('постер против показа — сетка сценарие
       'без байтов, %': g.bytesPct.toFixed(1),
       'без постера кроме 1-й ноды, %': g.tailSerialPct.toFixed(1),
       'без байтов кроме 1-й ноды, %': g.tailBytesPct.toFixed(1),
+      '1-я нода без постера, %': g.firstLatePct.toFixed(1),
     }))
     console.table(rows)
     expect(grid.length).toBe(MODES.length * BANDS.length * DECODES.length)
     expect(grid.reduce((s, g) => s + g.runs, 0)).toBe(grid.length * RUNS)
   })
 
-  it('первое сообщение урока не успевает получить постер никогда', () => {
-    for (const g of grid) {
-      expect(g.firstLatePct, `${g.warm ? 'прогрето' : 'качается'} ${g.band}КБ/с ${g.dec}мс`).toBe(100)
+  // Раньше первая нода показывалась в t=0 и постера не имела никогда. Теперь
+  // перед ней FIRST_MS точек: прогретая первая нода с быстрым/средним
+  // декодером успевает всегда, на слабой сети без прогрева — по-прежнему никогда
+  it('первое сообщение: без прогрева на слабой сети постер опаздывает всегда, с прогревом — успевает', () => {
+    for (const g of grid.filter(x => !x.warm && x.band === Math.min(...BANDS))) {
+      expect(g.firstLatePct, `качается ${g.band}КБ/с ${g.dec}мс`).toBe(100)
+    }
+    for (const g of grid.filter(x => x.warm && x.dec < Math.max(...DECODES))) {
+      expect(g.firstLatePct, `прогрето ${g.band}КБ/с ${g.dec}мс`).toBe(0)
+    }
+    // Медленный декодер (до 900×1,4 = 1260 мс) в FIRST_MS укладывается не всегда
+    for (const g of grid.filter(x => x.warm && x.dec === Math.max(...DECODES))) {
+      expect(g.firstLatePct).toBeGreaterThan(0)
+      expect(g.firstLatePct).toBeLessThan(100)
     }
   })
 
@@ -153,10 +167,10 @@ describe('постер против показа — сетка сценарие
     expect(Math.max(...cold.map(g => g.tailBytesPct))).toBeGreaterThan(0)
   })
 
-  it('при полном прогреве без постера остаётся только первая нода', () => {
+  it('при полном прогреве без постера может остаться только первая нода (медленный декодер)', () => {
     for (const g of grid.filter(x => x.warm)) {
       expect(g.tailSerialPct, `прогрето ${g.band}КБ/с ${g.dec}мс`).toBe(0)
-      expect(g.firstLatePct).toBe(100)
+      expect(g.serialPct).toBeLessThanOrEqual(g.firstLatePct / (4 + 1)) // ≤ доля первой ноды среди 4..8
     }
   })
 })

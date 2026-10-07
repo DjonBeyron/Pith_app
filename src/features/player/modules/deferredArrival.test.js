@@ -23,7 +23,10 @@ describe('отложенный приход ответа «выбери слов
 
   it('PlayerFeed не въезжает такие строки и не толкает историю', () => {
     expect(feed).toContain("!el.closest('[data-no-slide]')")
-    expect(feed).toContain('if (existingRows.length && shiftPx > 0)')
+    // толчок обёртки — по месту, занятому новыми строками (у arriving оно 0);
+    // истории может и не быть (первая нода урока), обёртка едет всё равно
+    expect(feed).toContain('if (shiftPx > 0) {')
+    expect(feed).toContain('if (panelOpen && existingRows.length) {')
   })
 
   it('панель вставляет пузыри с arriving одним тиком с закрытием, проявление — с остановки истории (хук)', () => {

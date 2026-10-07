@@ -22,13 +22,24 @@ const FRAME_MS = 1000 / LEVEL_FPS
 const ATTACK  = 0.6    // доля пути к новому уровню за кадр, когда он выше
 const RELEASE = 0.42   // …и когда ниже: за 8 кадров из 1 → 0.013
 
-const sources   = new Map()   // id → { getLevel, getBands, profile }
+// Порог «микро-звука»: источник тише MIN_LEVEL считается неактивным — не
+// поддерживает свечение, нулевой вклад (паузы между словами голосового не
+// дают «остаточного» света). Гистерезис, чтобы не мигало на границе: включается
+// при уровне ≥ MIN_LEVEL, выключается при < MIN_LEVEL_OFF. Полоса ниже
+// BAND_FLOOR — 0 (и у источника, и в сглаженном выходе)
+export const MIN_LEVEL     = 0.12
+export const MIN_LEVEL_OFF = 0.08
+export const BAND_FLOOR    = 0.08
+
+const sources   = new Map()   // id → { getLevel, getBands, profile, on }
 const listeners = new Set()   // fn(level 0..1, active, now, bands Float32Array(4))
 let rafId = 0
 let running = false
 let lastFrameAt = -Infinity
 let smoothed = 0
-const bands = new Float32Array(BANDS)
+let shown = false             // подписчикам сейчас сказано «светим» (active=true)
+const bandsSm = new Float32Array(BANDS)   // сглаженные полосы (состояние)
+const bands = new Float32Array(BANDS)     // выход: сглаженные, ниже BAND_FLOOR → 0
 const frameMax = new Float32Array(BANDS)
 const tmp = new Float32Array(BANDS)
 let visibilityHooked = false
@@ -83,7 +94,7 @@ export function synthBands(level, t, profile = 'voice', out = new Float32Array(B
 // { playing, getLevel(now) → 0..1, getBands?(now, out4) → true если заполнил, profile? }
 export function publishLevel(id, { playing, getLevel, getBands = null, profile = 'voice' }) {
   if (!playing || typeof getLevel !== 'function') { unpublishLevel(id); return }
-  sources.set(id, { getLevel, getBands: typeof getBands === 'function' ? getBands : null, profile })
+  sources.set(id, { getLevel, getBands: typeof getBands === 'function' ? getBands : null, profile, on: sources.get(id)?.on ?? false })
   start()
 }
 
@@ -94,9 +105,10 @@ export function unpublishLevel(id) {
 
 export function hasPlayingSources() { return sources.size > 0 }
 
-// fn(level, active, now, bands): active=false приходит один раз, когда цикл
-// встал (источников не осталось / вкладка скрыта) — подписчик гасит свечение
-// СРАЗУ, не дожидаясь спада сглаживания
+// fn(level, active, now, bands): active=false приходит, когда свечения нет —
+// цикл встал (источников не осталось / вкладка скрыта) либо все источники
+// тихие (< порога) и хвост спада иссяк; подписчик гасит свет СРАЗУ. active=true
+// приходит снова, когда какой-то источник вновь громче порога
 export function subscribeAudioLevel(fn) {
   listeners.add(fn)
   hookVisibility()
@@ -122,6 +134,8 @@ function stop() {
   env.caf(rafId)
   rafId = 0
   smoothed = 0
+  shown = false
+  bandsSm.fill(0)
   bands.fill(0)
   listeners.forEach(fn => fn(0, false, 0, bands))
 }
@@ -136,12 +150,27 @@ function tick(now) {
   frameMax.fill(0)
   for (const s of sources.values()) {
     const v = clamp01(s.getLevel(now))
+    s.on = v >= (s.on ? MIN_LEVEL_OFF : MIN_LEVEL)   // гистерезис
+    if (!s.on) continue                              // тихий источник — нулевой вклад
     if (v > max) max = v
     if (!(s.getBands && s.getBands(now, tmp))) synthBands(v, now / 1000, s.profile, tmp)
-    for (let k = 0; k < BANDS; k++) { const b = clamp01(tmp[k]); if (b > frameMax[k]) frameMax[k] = b }
+    for (let k = 0; k < BANDS; k++) { const b = clamp01(tmp[k]); if (b >= BAND_FLOOR && b > frameMax[k]) frameMax[k] = b }
   }
   smoothed += (max - smoothed) * (max > smoothed ? ATTACK : RELEASE)
-  for (let k = 0; k < BANDS; k++) bands[k] += (frameMax[k] - bands[k]) * (frameMax[k] > bands[k] ? ATTACK : RELEASE)
+  let live = false
+  for (let k = 0; k < BANDS; k++) {
+    bandsSm[k] += (frameMax[k] - bandsSm[k]) * (frameMax[k] > bandsSm[k] ? ATTACK : RELEASE)
+    bands[k] = bandsSm[k] < BAND_FLOOR ? 0 : bandsSm[k]
+    if (bands[k] > 0) live = true
+  }
+  if (!live) {
+    // Все тихие и хвост спада иссяк: гасим один раз, цикл продолжает ждать
+    smoothed = 0
+    bandsSm.fill(0)
+    if (shown) { shown = false; listeners.forEach(fn => fn(0, false, now, bands)) }
+    return
+  }
+  shown = true
   listeners.forEach(fn => fn(smoothed, true, now, bands))
 }
 
@@ -157,7 +186,7 @@ function hookVisibility() {
 export function _audioLevelTestHooks(partial = null) {
   if (partial) env = { ...env, ...partial }
   return {
-    reset() { sources.clear(); listeners.clear(); running = false; rafId = 0; smoothed = 0; bands.fill(0); lastFrameAt = -Infinity },
+    reset() { sources.clear(); listeners.clear(); running = false; rafId = 0; smoothed = 0; shown = false; bandsSm.fill(0); bands.fill(0); lastFrameAt = -Infinity },
     isRunning: () => running,
   }
 }

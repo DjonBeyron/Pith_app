@@ -5,7 +5,7 @@ const listeners = new Set()
 vi.mock('../../shared/lib/sounds.js', () => ({
   onSoundPlayed: cb => { listeners.add(cb); return () => listeners.delete(cb) },
 }))
-const { startUiSoundGlow, soundImpulse, SOUND_GLOW_AMP, SOUND_GLOW_PROFILE, DEFAULT_SOUND_SEC, MAX_SOUND_SEC } = await import('./soundGlow.js')
+const { startUiSoundGlow, soundImpulse, SOUND_GLOW_AMP, SOUND_GLOW_PROFILE, SOUND_GLOW_IGNORED, DEFAULT_SOUND_SEC, MAX_SOUND_SEC } = await import('./soundGlow.js')
 const { subscribeAudioLevel, hasPlayingSources, _audioLevelTestHooks } = await import('./audioLevel.js')
 
 let queue = []
@@ -26,16 +26,21 @@ describe('soundImpulse: огибающая импульса', () => {
     expect(soundImpulse(0.1, 0, 0.7)).toBe(0)
   })
 
-  it('амплитуды и полосы заданы для всех звуков интерфейса', () => {
-    for (const n of ['message-in', 'answer-correct', 'answer-wrong', 'pin-message', 'typing-1', 'typing-2', 'xp-gain', 'level-up', 'lesson-locked']) {
+  it('амплитуды и полосы заданы для звуков интерфейса, кроме исключённых', () => {
+    for (const n of ['answer-correct', 'answer-wrong', 'pin-message', 'xp-gain', 'level-up', 'lesson-locked']) {
       expect(SOUND_GLOW_AMP[n]).toBeGreaterThan(0)
       expect(SOUND_GLOW_AMP[n]).toBeLessThanOrEqual(1)
       expect(typeof SOUND_GLOW_PROFILE[n]).toBe('string')
     }
-    expect(SOUND_GLOW_AMP['answer-correct']).toBeGreaterThan(SOUND_GLOW_AMP['message-in'])
-    expect(SOUND_GLOW_PROFILE['message-in']).toBe('ui-low')
+    expect(SOUND_GLOW_AMP['level-up']).toBeGreaterThan(SOUND_GLOW_AMP['pin-message'])
+    expect(SOUND_GLOW_PROFILE['answer-wrong']).toBe('ui-low')
     expect(SOUND_GLOW_PROFILE['xp-gain']).toBe('ui-high')
     expect(SOUND_GLOW_PROFILE['level-up']).toBe('ui-all')
+  })
+
+  it('приход сообщения и «печатает» исключены: нет ни амплитуды, ни профиля', () => {
+    expect([...SOUND_GLOW_IGNORED].sort()).toEqual(['message-in', 'typing-1', 'typing-2'])
+    for (const n of SOUND_GLOW_IGNORED) { expect(SOUND_GLOW_AMP[n]).toBeUndefined(); expect(SOUND_GLOW_PROFILE[n]).toBeUndefined() }
   })
 })
 
@@ -56,13 +61,26 @@ describe('startUiSoundGlow: звук интерфейса → источник �
     stop()
   })
 
+  it('message-in, typing-1 и typing-2 не публикуют импульс вообще', () => {
+    const stop = startUiSoundGlow(() => 0)
+    subscribeAudioLevel(() => {})
+    for (const n of ['message-in', 'typing-1', 'typing-2']) {
+      fire(n, 0.3)
+      expect(hasPlayingSources()).toBe(false)
+      expect(queue.length).toBe(0)   // цикл свечения даже не запускался
+    }
+    fire('xp-gain', 0.3)             // остальные звуки — как раньше
+    expect(hasPlayingSources()).toBe(true)
+    stop()
+  })
+
   it('без метаданных (0 с) — импульс на длительность по умолчанию; повтор того же звука переставляет таймер', () => {
     const stop = startUiSoundGlow(() => 0)
     subscribeAudioLevel(() => {})
-    fire('message-in', 0)
+    fire('xp-gain', 0)
     vi.advanceTimersByTime(DEFAULT_SOUND_SEC * 1000 - 50)
     expect(hasPlayingSources()).toBe(true)
-    fire('message-in', 0)
+    fire('xp-gain', 0)
     vi.advanceTimersByTime(DEFAULT_SOUND_SEC * 1000 - 50)
     expect(hasPlayingSources()).toBe(true)  // второй старт продлил источник
     vi.advanceTimersByTime(200)

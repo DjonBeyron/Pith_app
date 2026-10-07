@@ -19,14 +19,13 @@ import { useSignalMessages } from './useSignalMessages.js'
 import { usePlayerPanelNodes } from './usePlayerPanelNodes.js'
 import { usePlayerPreload } from './usePlayerPreload.js'
 import { useLessonWordAudio } from './word-audio/useLessonWordAudio.js'
-import { useNodeAppearLog } from './useNodeAppearLog.js'
+import { usePlayerDebugLog } from './usePlayerDebugLog.js'
 import { usePlayerFiles, withBlobs } from './usePlayerFiles.js'
 import { useInstantNodesDone } from './useInstantNodesDone.js'
 import { pickPhoto } from './photoPick.js'
 import { useDebugStepBridge } from './admin/useDebugStepBridge.js'
 import { useAnswerStats } from './useAnswerStats.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
-import { downloadDebugLog, copyDebugLog } from './downloadDebugLog.js'
 import PlayerOverlays from './PlayerOverlays.jsx'
 import AudioGlow from './AudioGlow.jsx'
 import { useLessonOpenFlag } from '../../shared/lib/lessonOpen.js'
@@ -53,6 +52,7 @@ export default function LessonPlayer({
   videoAutoSound = false,
   initialBlobMap = null,
   muted = false, // повторение, «Не могу слушать»: голосовые играют без звука (playerMuted.js)
+  startTyping = true, // false — первая нода сразу, без точек «печатает» 1 с (повторение, см. useGraphPlayer FIRST_TYPING_MS)
   lessonXp = 0,
   lessonId = null,
   startNodeId = null, // админский прогон с середины ИЛИ «Продолжить» из LessonLaunchCard.jsx
@@ -142,6 +142,7 @@ export default function LessonPlayer({
     historyIds: resumeState.historyIds ?? historyIds,
     onCheckpoint: (nodeId, vIds) => resumeState.checkpoint(nodeId, Math.round(lessonProgress(mainIndex, [{ id: nodeId }]) * 100), earnedXpRef.current, vIds),
     paused: stepState.paused,
+    firstTyping: startTyping,
     onFinish: () => {
       if (onFinishStats) {
         // Супергонка: отдаём счёт ошибок/времени и сразу выходим — XP и
@@ -187,12 +188,8 @@ export default function LessonPlayer({
   useEffect(() => { warmRef.current = isNodeWarm }, [isNodeWarm])
   useLessonWordAudio(nodes, warmupPct, muted) // озвучка слов при тапе — после прогрева первых нод; muted — беззвучный режим повторения
 
-  // Журнал появления нод + готовности их медиа — useNodeAppearLog.js
-  const nodeAppearLogRef = useNodeAppearLog(visibleNodes, blobMap, addMsgTs, openTimeRef)
-
-  const combinedLogData = useCallback(() => ({ nodeAppearLog: nodeAppearLogRef.current, debugItems, events: getEvents() }), [nodeAppearLogRef, debugItems, getEvents])
-  const downloadCombinedLog = useCallback(() => downloadDebugLog(combinedLogData()), [combinedLogData])
-  const copyCombinedLog     = useCallback(() => copyDebugLog(combinedLogData()), [combinedLogData])
+  // Журнал появления нод + кнопки «⬇ лог»/«копировать лог» — usePlayerDebugLog.js
+  const { downloadCombinedLog, copyCombinedLog } = usePlayerDebugLog({ visibleNodes, blobMap, addMsgTs, openTimeRef, debugItems, getEvents })
 
   const filesWithBlobs = useMemo(() => withBlobs(files, blobMap), [files, blobMap])
 
@@ -300,7 +297,8 @@ export default function LessonPlayer({
             onMessageDone={signalMessages.onMessageDone}
             adminEdit={adminEdit}
           />
-          {!holdForResume && visibleNodes.length === 0 && (
+          {/* По nodes, не visibleNodes: первую секунду лента пуста намеренно — точки перед первой нодой */}
+          {!holdForResume && nodes.length === 0 && (
             <p className="playerEmpty">Нод нет — добавь ноды в редакторе</p>
           )}
         </PlayerFeed>

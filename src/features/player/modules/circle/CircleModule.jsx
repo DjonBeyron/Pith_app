@@ -23,7 +23,6 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   const [mutedLoop, setMutedLoop]   = useState(false)  // videoAutoSound: true after first play
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
-  const isAndroid = /android/i.test(navigator.userAgent)
 
   // Отрицательный офсет триггера played — следующая нода стартует до конца кружка
   usePlayedOffset(playedOffsetMs(node), () => vRef.current, () => onDone?.())
@@ -199,12 +198,14 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   // Зеркало сообщает, когда в canvas легла настоящая (не чёрная) картинка:
   // до этого без постера держим скелетон, а не пустой тёмный круг (Android)
   const [mirrorSrc, setMirrorSrc] = useState(null)
-  useVideoMirror(vRef, mirrorRef, mirror && !!src, poster, () => setMirrorSrc(src))
-  // Без зеркала (iPhone) стоп-кадр — своя <img> с геометрией видео поверх него,
-  // пока видео не показало кадр: UA-постер у <video poster> на iOS рисуется не
-  // как само видео (object-fit/размер до loadedmetadata), кадр «прыгал»
+  useVideoMirror(vRef, mirrorRef, mirror && !!src, null, () => setMirrorSrc(src))
+  // Стоп-кадр везде — своя <img> с геометрией кадра (posterStyle) поверх видео/
+  // canvas, пока видео не показало кадр (iPhone: useFirstFrame, Android:
+  // зеркало нарисовало настоящий кадр). Ни UA-poster (iOS рисует иначе), ни
+  // CSS-фон (был без кропа ноды — кадр «прыгал» при замене canvas), ни
+  // постер в canvas: canvas хранит только живые кадры
   const framed = useFirstFrame(vRef, src)
-  const showPosterImg = !mirror && !!poster && !framed
+  const showPosterImg = !!poster && (mirror ? mirrorSrc !== src : !framed)
   const showSkeleton = !poster && !(mirror ? mirrorSrc === src : loadedSrc)
 
   return (
@@ -222,9 +223,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            <div ref={frRef} className="circleFrame"
-              style={isAndroid && poster ? { backgroundImage: `url(${poster})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-            >
+            <div ref={frRef} className="circleFrame">
               {/* Ни постера, ни первого кадра — тот же скелетон с бликом, что и
                   без src: иначе до декодирования круг стоял пустым */}
               {showSkeleton && <div className="feedSkeleton" />}
@@ -251,7 +250,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
                 onEnded={handleEnded}
               />
               {mirror && (
-                <canvas ref={mirrorRef} className="circleMedia" style={videoStyle} aria-hidden="true" />
+                <canvas ref={mirrorRef} className="circleMedia" style={intr ? videoStyle : posterStyle} aria-hidden="true" />
               )}
               {showPosterImg && (
                 <img src={poster} alt="" draggable={false} className="circleMedia"
