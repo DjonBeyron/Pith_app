@@ -8,12 +8,12 @@ import MemoryCount from './MemoryCount.jsx'
 
 const SHOWN = 3 // слов на ступени главного экрана — остальные в «Все слова»
 
-// Главный экран «Моей памяти»: шапка (children — LearnMainAction), справа
-// счётчик слов во временной памяти (MemoryCount), три ступени лесенкой (новые → знакомые →
-// усвоенные) и пятиугольник постоянной памяти; линии и шарики — слоем поверх
-// (MemoryLadderWires). Число, название или ⤢ ступени — onOpen(1..3) (все
+// Главный экран «Моей памяти»: шапка (children — LearnMainAction), под ней по центру
+// круг-счётчик слов во временной памяти (MemoryCount), три ступени лесенкой (новые → знакомые →
+// усвоенные) и пятиугольник постоянной памяти; линии и шарики — слоем под блоками
+// (MemoryLadderWires: шапка → круг → ствол → ступени). Число, название или ⤢ ступени — onOpen(1..3) (все
 // слова ступени), пятиугольник — onOpen(4), слово — onWord. sleeping — мозг спит (всё повторено):
-// искры над пятиугольником не летят, в шапке плывут «Z» (они сменяют друг друга, вместе не идут), а связь от шапки к
+// искры над пятиугольником не летят, в шапке плывут «Z» (они сменяют друг друга, вместе не идут), а связь от круга к
 // ступеням оборвана, как порванный кабель (ladderTear.js)
 export default function MemoryLadder({ ladder, sleeping = false, onOpen, onWord, children }) {
   const today = ladder.levels.map(l => l.words.filter(w => w.today).length)
@@ -21,8 +21,8 @@ export default function MemoryLadder({ ladder, sleeping = false, onOpen, onWord,
     <div className="memZone">
       <MemoryTurbulence />
       {children}
+      <MemoryCount total={ladder.total} />
       <div className="memStairs">
-        <MemoryCount total={ladder.total} />
         {ladder.levels.map(l => (
           <div key={l.id} className={`memStair memStair--${l.id}`}>
             <div className={`memLvl memLvl--${l.id}`}>

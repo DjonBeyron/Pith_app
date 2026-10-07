@@ -1,9 +1,13 @@
 // Линии «Моей памяти» — как связи на схеме модуля: ортогональные, со
 // скруглёнными углами, точки на концах, цвет «откуда → куда» градиентом.
-// Ствол: от низа шапки «Сегодня» вниз, влево к краю экрана и отводами в
-// левый бок каждой ступени; от низа «Родных» — в верх пятиугольника
-// постоянной памяти. Шарики — слова сегодняшнего повторения: бегут по
-// связи обратно, из ступени к кнопке «Повторить».
+// Путь: из правой части низа шапки «Сегодня» вниз до уровня центра круга-счётчика,
+// налево — в круг с его правой стороны; из левой стороны круга — налево к стволу у
+// края экрана, вниз и отводами в левый бок каждой ступени; от низа «Усвоенных» — в
+// верх пятиугольника постоянной памяти. Внутри круга линия не рисуется (круг —
+// непрозрачный блок), но длина пути считается сквозь него: толщина и цвет растут
+// по одной функции от шапки до пятиугольника, без скачка на круге.
+// Шарики — слова сегодняшнего повторения: бегут по связи обратно, из ступени
+// через круг к кнопке «Повторить».
 // Чистые функции: прямоугольники меряет MemoryLadderWires.jsx.
 
 export const WIRE_COLORS = { accent: '#b6fe3b', levels: ['#4fb3ee', '#b6fe3b', '#f1bd3c'], perm: '#8b5cf6' }
@@ -12,6 +16,7 @@ export const WIRE_COLORS = { accent: '#b6fe3b', levels: ['#4fb3ee', '#b6fe3b', '
 // пятиугольника «Закреплённые слова» (W_MAX) — слово крепнет по дороге вниз
 export const W_MIN = 1.25
 export const W_MAX = 4.5
+export const widthAt = s => f(W_MIN + (W_MAX - W_MIN) * s) // s — доля всего пути (0 — шапка, 1 — пятиугольник)
 
 // Шарик слова к повтору: светлое ядро (BALL_D px) + мягкий ореол (HALO_D px),
 // оба во вложенных элементах .memBallDot / .memBallGlow (memory-ladder.css).
@@ -35,11 +40,14 @@ export const BULB = 4.5
 const r1 = x => Math.round(x * 10) / 10
 export const bulbR = w => r1(w / 2 + BULB)
 
-// Прямой участок перед входом в пятиугольник: раздув (FLARE_L) + скругление угла
-const ENTRY_LEG = FLARE_L + 12
+// Прямой участок перед входом в элемент: раздув (FLARE_L) + скругление угла
+export const ENTRY_LEG = FLARE_L + 12
 
 // Ствол — на этом расстоянии от левого края экрана (не зависит от сдвига ступеней)
 export const TRUNK_INSET = 11
+
+// Выход из шапки — на этом расстоянии от её правого края (правее круга не меньше ENTRY_LEG)
+export const HERO_OUT = 36
 
 // Верх контура пятиугольника — доля высоты его коробки (MemoryPermNode.jsx: фигура заполняет коробку, верх — у самого края)
 export const FIN_TOP = 0
@@ -64,16 +72,22 @@ export function orth(pts, R = 12) {
 const midX = r => (r.l + r.r) / 2
 const midY = r => (r.t + r.b) / 2
 
-// Прямоугольники { l, t, r, b } — в координатах слоя линий. edge — левый
-// край экрана в тех же координатах (слой правее края — отрицательный):
+// Прямоугольники { l, t, r, b } — в координатах слоя линий: hero — шапка, circle —
+// круг-счётчик (под шапкой, по центру), blocks — ступени, fin — пятиугольник. edge —
+// левый край экрана в тех же координатах (слой правее края — отрицательный):
 // ствол идёт вдоль края экрана на расстоянии TRUNK_INSET.
-// → [{ pts, from, to }]: три отвода в ступени и связь «Родные» → пятиугольник
-export function ladderLinks({ hero, blocks, fin, edge = 0 }) {
+// → [{ pts, from, to }]: [0] шапка → круг (вход справа), [1..3] круг (выход слева) →
+// ствол → ступени, [4] «Усвоенные» → пятиугольник
+export function ladderLinks({ hero, circle, blocks, fin, edge = 0 }) {
   const trunkX = edge + TRUNK_INSET
-  const y0 = hero.b + 14
-  const links = blocks.map((b, i) => ({
-    pts: [[midX(hero), hero.b], [midX(hero), y0], [trunkX, y0], [trunkX, midY(b)], [b.l, midY(b)]],
-    from: WIRE_COLORS.accent, to: WIRE_COLORS.levels[i],
+  const cy = midY(circle)
+  // Выход из шапки — правее круга хотя бы на ENTRY_LEG (раздув + скругление); тесно — зажимаем
+  const xOut = Math.max(circle.r + ENTRY_LEG, Math.min(hero.r - HERO_OUT, hero.r - 12))
+  const C = WIRE_COLORS
+  const links = [{ pts: [[xOut, hero.b], [xOut, cy], [circle.r, cy]], from: C.accent, to: C.accent }]
+  blocks.forEach((b, i) => links.push({
+    pts: [[circle.l, cy], [trunkX, cy], [trunkX, midY(b)], [b.l, midY(b)]],
+    from: C.accent, to: C.levels[i],
   }))
   if (fin) {
     const b3 = blocks[2]
@@ -82,10 +96,14 @@ export function ladderLinks({ hero, blocks, fin, edge = 0 }) {
     // участок ENTRY_LEG (раздув + скругление); зазор мал — горизонталь посередине
     const gap = top[1] - b3.b
     const y = gap >= 50 ? top[1] - ENTRY_LEG : b3.b + gap / 2
-    links.push({ pts: [[midX(b3), b3.b], [midX(b3), y], [top[0], y], top], from: WIRE_COLORS.levels[2], to: WIRE_COLORS.perm })
+    links.push({ pts: [[midX(b3), b3.b], [midX(b3), y], [top[0], y], top], from: C.levels[2], to: C.perm })
   }
   return links
 }
+
+// Полный путь шапка → ступень одной ломаной: точки входа/выхода круга лежат на
+// одной горизонтали с соседями, поэтому выпадают (иначе скругление на прямой)
+export const fullPts = (head, link) => [...head.pts.slice(0, -1), ...link.pts.slice(1)]
 
 // Труба раздува: P — точка на элементе, dir — единичный вектор К элементу, w —
 // толщина линии у начала трубы, L — её длина, H — радиус бутона у элемента
@@ -103,8 +121,8 @@ export function flarePath(P, dir, w, L, H, n = 10) {
   return 'M ' + [...left, ...right.reverse()].map(p => `${f(p[0])} ${f(p[1])}`).join(' L ') + ' Z'
 }
 
-// Путь шарика — та же связь задом наперёд: из ступени к шапке
-export const ballPath = link => orth([...link.pts].reverse())
+// Путь шарика — та же связь задом наперёд: из ступени через круг к шапке
+export const ballPath = (head, link) => orth(fullPts(head, link).reverse())
 
 // Точки той же скруглённой ломаной, что orth: дуга угла — n кусками
 export function orthPoints(pts, R = 12, n = 6) {
@@ -124,18 +142,35 @@ export function orthPoints(pts, R = 12, n = 6) {
   return out
 }
 
-const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1])
-const polyLen = poly => poly.slice(1).reduce((n, p, i) => n + dist(poly[i], p), 0)
-// Длина полилинии от начала до точки (X, Y) на её вертикальном отрезке x = X
-function lengthTo(poly, X, Y) {
+export const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1])
+export const polyLen = poly => poly.slice(1).reduce((n, p, i) => n + dist(poly[i], p), 0)
+
+// Точка P лежит на отрезке a–b (с допуском)
+function onSeg(a, b, P) {
+  const L2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2 || 1
+  const t = Math.max(0, Math.min(1, ((P[0] - a[0]) * (b[0] - a[0]) + (P[1] - a[1]) * (b[1] - a[1])) / L2))
+  return dist(P, [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]) < 0.05
+}
+
+// Длина полилинии от начала до точки P на ней (P не на ломаной — вся длина)
+export function lengthTo(poly, P) {
   let acc = 0
   for (let i = 1; i < poly.length; i++) {
-    const a = poly[i - 1], b = poly[i]
-    if (Math.abs(a[0] - X) < 0.01 && Math.abs(b[0] - X) < 0.01 && (Y - a[1]) * (Y - b[1]) <= 0) return acc + Math.abs(Y - a[1])
-    acc += dist(a, b)
+    if (onSeg(poly[i - 1], poly[i], P)) return acc + dist(poly[i - 1], P)
+    acc += dist(poly[i - 1], poly[i])
   }
   return acc
 }
+
+// Вставить точку P в ломаную на тот отрезок, где она лежит (отрезки потом режутся
+// ровно по ней — края круга совпадают с концами отрезков)
+export function insertOn(poly, P) {
+  for (let i = 1; i < poly.length; i++) {
+    if (onSeg(poly[i - 1], poly[i], P)) return [...poly.slice(0, i), P, ...poly.slice(i)]
+  }
+  return poly
+}
+
 const hex = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16))
 export function mixColor(a, b, t) {
   const [x, y] = [hex(a), hex(b)]
@@ -155,60 +190,9 @@ export function taper(poly, { s0, s1, c0, c1, maxLen = 8 }) {
       const at = t => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
       const [p, q] = [at(k / n), at((k + 1) / n)]
       const t = (acc + L * (k + 0.5) / n) / total
-      pieces.push({ x1: f(p[0]), y1: f(p[1]), x2: f(q[0]), y2: f(q[1]), w: f(W_MIN + (W_MAX - W_MIN) * (s0 + (s1 - s0) * t)), color: mixColor(c0, c1, t) })
+      pieces.push({ x1: f(p[0]), y1: f(p[1]), x2: f(q[0]), y2: f(q[1]), w: widthAt(s0 + (s1 - s0) * t), color: mixColor(c0, c1, t) })
     }
     acc += L
   }
   return pieces
-}
-
-// Весь рисунок связей: ствол (от шапки до «Усвоенных»), отводы в «Новые» и
-// «Знакомые» (толщина — как у ствола в точке отвода, цвет — к цвету ступени),
-// связь «Усвоенные» → пятиугольник (до W_MAX) и точки на концах.
-// → { pieces: [{ x1, y1, x2, y2, w, color }], dots: [{ x, y, r, color }],
-//      flares: [{ d, color }] (трубы у элементов), widths: [w0, w1, w2] } — widths: толщина линии там, где шарик каждой
-//      ступени стартует (у самой ступени)
-export function ladderWireSet(rects) {
-  const links = ladderLinks(rects)
-  const R = 12
-  const trunk = orthPoints(links[2].pts, R)
-  const fin = links[3] ? orthPoints(links[3].pts, R) : null
-  const trunkLen = polyLen(trunk)
-  const total = trunkLen + (fin ? polyLen(fin) : 0)
-  const C = WIRE_COLORS
-  const pieces = taper(trunk, { s0: 0, s1: trunkLen / total, c0: C.accent, c1: C.levels[2] })
-  const flares = []
-  // Конец связи у элемента: труба (если прямого участка хватает) → радиус бутона
-  const grow = (pts, atEnd, w, color) => {
-    const n = pts.length
-    const [A, C1, O] = atEnd ? [pts[n - 1], pts[n - 2], pts[n - 3]] : [pts[0], pts[1], pts[2]]
-    const seg = dist(A, C1)
-    const L = Math.min(FLARE_L, seg - Math.min(R, seg / 2, dist(C1, O) / 2))
-    const H = bulbR(w)
-    if (L >= 5) flares.push({ d: flarePath(A, [(A[0] - C1[0]) / seg, (A[1] - C1[1]) / seg], w, L, H), color })
-    return H
-  }
-  const dots = [{ x: links[2].pts[0][0], y: links[2].pts[0][1], r: grow(links[2].pts, false, W_MIN, C.accent), color: C.accent }]
-  const widths = []
-  links.slice(0, 3).forEach((l, i) => {
-    const end = l.pts[l.pts.length - 1]
-    const trunkX = l.pts[3][0]
-    // Отвод начинается там, где ствол доходит до его скругления; «Усвоенные» — конец ствола
-    const s = i === 2 ? trunkLen / total : lengthTo(trunk, trunkX, end[1] - R) / total
-    if (i < 2) {
-      const branch = orthPoints([[trunkX, end[1] - R], [trunkX, end[1]], end], R)
-      pieces.push(...taper(branch, { s0: s, s1: s, c0: C.levels[2], c1: C.levels[i] }))
-    }
-    const w = f(W_MIN + (W_MAX - W_MIN) * s)
-    widths.push(w)
-    dots.push({ x: end[0], y: end[1], r: grow(l.pts, true, w, C.levels[i]), color: C.levels[i] })
-  })
-  if (fin) {
-    pieces.push(...taper(fin, { s0: trunkLen / total, s1: 1, c0: C.levels[2], c1: C.perm }))
-    const [a, z] = [links[3].pts[0], links[3].pts[links[3].pts.length - 1]]
-    const wFin = f(W_MIN + (W_MAX - W_MIN) * trunkLen / total)
-    dots.push({ x: a[0], y: a[1], r: grow(links[3].pts, false, wFin, C.levels[2]), color: C.levels[2] },
-      { x: z[0], y: z[1], r: grow(links[3].pts, true, W_MAX, C.perm), color: C.perm })
-  }
-  return { pieces, dots, flares, widths }
 }

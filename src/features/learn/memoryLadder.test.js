@@ -1,6 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import { levelOf, levelFill, lineFills, findLadderWord, buildLadder, wordLevel, pageTabs, LEVEL_TITLES, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
-import { orth, ladderLinks, flarePath, bulbR, ballPath, FIN_TOP, orthPoints, taper, mixColor, ladderWireSet, W_MIN, W_MAX, ballScale, haloScale, BALL_D, BALL_GROW, HALO_D, HALO_GROW } from './ladderWires.js'
+import { orth, ladderLinks, flarePath, bulbR, ballPath, FIN_TOP, orthPoints, taper, mixColor, W_MIN, W_MAX, ballScale, haloScale, BALL_D, BALL_GROW, HALO_D, HALO_GROW, ENTRY_LEG, HERO_OUT } from './ladderWires.js'
+import { ladderWireSet } from './ladderWireSet.js'
+
+// Прямоугольники как на телефоне: шапка на всю ширину, под ней круг-счётчик 100×100 по центру, три ступени
+// лесенкой, пятиугольник; ствол — за левым краем слоя (edge −22 → x = −11)
+const hero = { l: 0, t: 0, r: 300, b: 100 }
+const circle = { l: 100, t: 128, r: 200, b: 228 }
+const blocks = [
+  { l: 0, t: 260, r: 200, b: 320 }, { l: 50, t: 340, r: 250, b: 400 }, { l: 100, t: 420, r: 300, b: 480 },
+]
+const fin = { l: 0, t: 520, r: 180, b: 679 }
+const rects = { hero, circle, blocks, fin, edge: -22 }
 
 describe('ступени памяти', () => {
   it('шаг → ступень: 1–2 новые, 3–4 знакомые, 5 усвоенные', () => {
@@ -65,23 +76,27 @@ describe('линии памяти', () => {
     expect(orth([[0, 0], [0, 6], [30, 6]], 10)).toBe('M 0 0 L 0 3 Q 0 6 3 6 L 30 6')
   })
 
-  it('ствол от низа шапки — в левый бок каждой ступени, от «Родных» — в верх пятиугольника', () => {
-    const hero = { l: 0, t: 0, r: 300, b: 100 }
-    const blocks = [
-      { l: 0, t: 140, r: 200, b: 200 }, { l: 50, t: 220, r: 250, b: 280 }, { l: 100, t: 300, r: 300, b: 360 },
-    ]
-    const fin = { l: 0, t: 400, r: 180, b: 559 }
-    const links = ladderLinks({ hero, blocks, fin, edge: -22 })
-    expect(links).toHaveLength(4)
-    expect(links[1].pts).toEqual([[150, 100], [150, 114], [-11, 114], [-11, 250], [50, 250]])
-    expect(links[3].pts.at(-1)).toEqual([90, 400 + 159 * FIN_TOP])
-    expect(links[3].pts[0]).toEqual([200, 360])
+  it('из правой части шапки вниз и налево — в круг справа; из круга слева — к стволу и в левый бок каждой ступени', () => {
+    const links = ladderLinks(rects)
+    expect(links).toHaveLength(5)
+    // шапка → круг: выход в HERO_OUT от правого края шапки, вниз до центра круга (y 178), налево в правую точку круга
+    expect(links[0].pts).toEqual([[300 - HERO_OUT, 100], [300 - HERO_OUT, 178], [200, 178]])
+    expect(300 - HERO_OUT - 200).toBeGreaterThanOrEqual(ENTRY_LEG)
+    // круг → ступень: из левой точки круга налево к стволу, вниз, в левый бок ступени
+    expect(links[2].pts).toEqual([[100, 178], [-11, 178], [-11, 370], [50, 370]])
+    expect(links[4].pts.at(-1)).toEqual([90, 520 + 159 * FIN_TOP])
+    expect(links[4].pts[0]).toEqual([200, 480])
     // большой зазор — последний прямой участок 36px (раздув 24 + скругление 12): вход в пятиугольник с тем же раздувом
-    const roomy = ladderLinks({ hero, blocks, fin: { l: 0, t: 440, r: 180, b: 599 }, edge: -22 })
-    expect(roomy[3].pts.at(-1)[1] - roomy[3].pts.at(-2)[1]).toBe(36)
-    // шарик бежит обратно: из ступени к шапке
-    expect(ballPath(links[0]).startsWith('M 0 170')).toBe(true)
-    expect(ballPath(links[0]).endsWith('L 150 100')).toBe(true)
+    const roomy = ladderLinks({ ...rects, fin: { l: 0, t: 560, r: 180, b: 719 } })
+    expect(roomy[4].pts.at(-1)[1] - roomy[4].pts.at(-2)[1]).toBe(36)
+    // шарик бежит обратно: из ступени через круг к шапке
+    expect(ballPath(links[0], links[1]).startsWith('M 0 290')).toBe(true)
+    expect(ballPath(links[0], links[1]).endsWith(`L ${300 - HERO_OUT} 100`)).toBe(true)
+  })
+
+  it('узкая шапка: выход зажимается, но остаётся правее круга на прямой участок под раздув', () => {
+    const links = ladderLinks({ ...rects, hero: { l: 0, t: 0, r: 240, b: 100 } })
+    expect(links[0].pts[0][0]).toBe(200 + ENTRY_LEG)
   })
 })
 
@@ -109,13 +124,7 @@ describe('страница уровней', () => {
   })
 })
 
-describe('связи памяти: толщина растёт от шапки до пятиугольника', () => {
-  const hero = { l: 0, t: 0, r: 300, b: 100 }
-  const blocks = [
-    { l: 0, t: 140, r: 200, b: 200 }, { l: 50, t: 220, r: 250, b: 280 }, { l: 100, t: 300, r: 300, b: 360 },
-  ]
-  const fin = { l: 0, t: 400, r: 180, b: 559 }
-
+describe('связи памяти: толщина растёт от шапки через круг до пятиугольника', () => {
   it('точки скруглённой ломаной — от начала до конца, угол — дугой', () => {
     const pts = orthPoints([[0, 0], [0, 40], [30, 40]], 10, 4)
     expect(pts[0]).toEqual([0, 0])
@@ -133,20 +142,42 @@ describe('связи памяти: толщина растёт от шапки �
   })
 
   it('ствол тоньше всего у шапки, толще всего у пятиугольника; отвод ниже — толще', () => {
-    const { pieces, dots } = ladderWireSet({ hero, blocks, fin, edge: -22 })
+    const { pieces, dots } = ladderWireSet(rects)
     const widths = pieces.map(p => p.w)
     expect(Math.min(...widths)).toBeCloseTo(W_MIN, 0)
     expect(Math.max(...widths)).toBeCloseTo(W_MAX, 0)
     const at = y => pieces.find(p => p.x1 === p.x2 && p.x1 === -11 && p.y1 <= y && p.y2 >= y).w
-    expect(at(240)).toBeGreaterThan(at(150))
-    // точки: начало у шапки + концы трёх ступеней + начало и конец связи в пятиугольник
-    expect(dots).toHaveLength(6)
-    expect(dots[2].r).toBeGreaterThanOrEqual(dots[1].r)
+    expect(at(360)).toBeGreaterThan(at(250))
+    // точки: начало у шапки + вход и выход круга + концы трёх ступеней + начало и конец связи в пятиугольник
+    expect(dots).toHaveLength(8)
+    expect(dots[4].r).toBeGreaterThanOrEqual(dots[3].r)
+  })
+
+  it('внутри круга отрезков нет; толщина по длине пути растёт монотонно и без скачка на круге', () => {
+    const { pieces, dots, tearAt } = ladderWireSet(rects)
+    const onRow = pieces.filter(p => Math.abs(p.y1 - 178) < 0.5 && Math.abs(p.y2 - 178) < 0.5)
+    expect(onRow.some(p => (p.x1 + p.x2) / 2 > 100 && (p.x1 + p.x2) / 2 < 200)).toBe(false)
+    // отрезки режутся ровно по краям круга
+    expect(onRow.some(p => Math.min(p.x1, p.x2) === 200)).toBe(true)
+    expect(onRow.some(p => Math.max(p.x1, p.x2) === 100)).toBe(true)
+    // ствол (до первого отвода) — толщина не убывает от шапки до «Усвоенных»
+    const branchStart = pieces.findIndex((p, i) => i > 0 && p.w < pieces[i - 1].w)
+    const trunk = branchStart < 0 ? pieces : pieces.slice(0, branchStart)
+    expect(trunk.length).toBeGreaterThan(40)
+    trunk.slice(1).forEach((p, i) => expect(p.w).toBeGreaterThanOrEqual(trunk[i].w))
+    // скачок на круге — только за счёт 100 px невидимого пути сквозь него
+    const inR = onRow.find(p => Math.min(p.x1, p.x2) === 200), outL = onRow.find(p => Math.max(p.x1, p.x2) === 100)
+    expect(outL.w - inR.w).toBeGreaterThan(0)
+    expect(outL.w - inR.w).toBeLessThan((W_MAX - W_MIN) * 0.25)
+    // бутоны входа и выхода круга — на его краях, по центру; выход толще входа
+    expect([dots[1].x, dots[1].y, dots[2].x, dots[2].y]).toEqual([200, 178, 100, 178])
+    expect(dots[2].r).toBeGreaterThan(dots[1].r)
+    expect(tearAt).toEqual({ x: 100, y: 178 })
   })
 
   it('«нейрон»: у каждого элемента труба раздува и бутон шире линии', () => {
-    const { flares, dots } = ladderWireSet({ hero, blocks, fin, edge: -22 })
-    expect(flares).toHaveLength(6)
+    const { flares, dots } = ladderWireSet(rects)
+    expect(flares).toHaveLength(8)
     expect(flares.every(fl => fl.d.startsWith('M ') && fl.d.endsWith('Z'))).toBe(true)
     // у пятиугольника бутон — толщина линии W_MAX + 2·BULB
     expect(dots.at(-1).r).toBe(bulbR(W_MAX))
@@ -160,7 +191,7 @@ describe('связи памяти: толщина растёт от шапки �
   })
 
   it('шарик: старт на 115% толщины линии у ступени и сжатие вместе с линией до шапки', () => {
-    const { widths } = ladderWireSet({ hero, blocks, fin, edge: -22 })
+    const { widths } = ladderWireSet(rects)
     expect(widths).toHaveLength(3)
     // чем ниже ступень, тем толще линия у неё, а значит и крупнее шарик на старте
     expect(widths[0]).toBeLessThan(widths[1])

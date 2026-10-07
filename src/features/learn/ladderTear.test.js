@@ -1,23 +1,25 @@
 import { describe, it, expect } from 'vitest'
-import { ladderLinks, ladderWireSet } from './ladderWires.js'
+import { ladderWireSet } from './ladderWireSet.js'
 import { tearWire, TEAR_FROM, TEAR_LEN } from './ladderTear.js'
+import { FLARE_L } from './ladderWires.js'
 
-// Те же прямоугольники, что на телефоне 393 px: шапка на всю ширину, три ступени лесенкой, пятиугольник
+// Те же прямоугольники, что на телефоне 393 px: шапка на всю ширину, круг-счётчик 100×100 по центру под ней, три
+// ступени лесенкой, пятиугольник
 const rects = {
   hero: { l: 0, t: 0, r: 354, b: 100 },
-  blocks: [{ l: 40, t: 160, r: 260, b: 250 }, { l: 90, t: 270, r: 300, b: 360 }, { l: 140, t: 380, r: 350, b: 470 }],
-  fin: { l: 80, t: 520, r: 320, b: 760 },
+  circle: { l: 127, t: 128, r: 227, b: 228 },
+  blocks: [{ l: 40, t: 260, r: 260, b: 350 }, { l: 90, t: 370, r: 300, b: 460 }, { l: 140, t: 480, r: 350, b: 570 }],
+  fin: { l: 80, t: 620, r: 320, b: 860 },
   edge: 0,
 }
 
 describe('tearWire — оборванный кабель в режиме сна', () => {
-  const links = ladderLinks(rects)
-  const { pieces } = ladderWireSet(rects)
-  const tear = tearWire(pieces, links[0].pts)
-  const y0 = links[0].pts[1][1]
-  const mx = links[0].pts[0][0]
+  const { pieces, tearAt } = ladderWireSet(rects)
+  const tear = tearWire(pieces, tearAt)
+  const y0 = tearAt.y // горизонталь центра круга
+  const mx = tearAt.x // выход из круга слева
 
-  it('на горизонтали у шапки вырезан разрыв, остальное цело', () => {
+  it('разрыв — на горизонтали левее круга, остальное цело', () => {
     expect(tear.pieces.length).toBeLessThan(pieces.length)
     const removed = pieces.filter(p => !tear.pieces.includes(p))
     expect(removed.length).toBeGreaterThan(0)
@@ -28,6 +30,12 @@ describe('tearWire — оборванный кабель в режиме сна'
       expect(Math.max(p.x1, p.x2)).toBeLessThanOrEqual(mx - TEAR_FROM + 8)
       expect(Math.min(p.x1, p.x2)).toBeGreaterThanOrEqual(mx - TEAR_FROM - TEAR_LEN - 8)
     }
+    // труба-раздув у круга (24 px) цела: разрыв дальше неё
+    expect(TEAR_FROM).toBeGreaterThan(FLARE_L + 8)
+    // участок шапка → круг (правее круга) не тронут
+    const right = pieces.filter(p => (p.x1 + p.x2) / 2 > rects.circle.r)
+    expect(right.length).toBeGreaterThan(0)
+    expect(right.every(p => tear.pieces.includes(p))).toBe(true)
   })
 
   it('разрыв заметен: не меньше ширины окна минус отрезок', () => {
@@ -71,7 +79,7 @@ describe('tearWire — оборванный кабель в режиме сна'
   })
 
   it('нет отрезков в окне разрыва — ничего не меняется', () => {
-    const none = tearWire(pieces.filter(p => Math.abs(p.y1 - y0) > 1), links[0].pts)
+    const none = tearWire(pieces.filter(p => Math.abs(p.y1 - y0) > 1), tearAt)
     expect(none.strands).toEqual([])
     expect(none.sparks).toEqual([])
   })

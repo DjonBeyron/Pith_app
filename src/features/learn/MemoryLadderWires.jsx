@@ -1,26 +1,27 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { ladderLinks, ladderWireSet, ballPath, ballScale, haloScale, WIRE_COLORS, W_MIN } from './ladderWires.js'
+import { ladderLinks, ballPath, ballScale, haloScale, WIRE_COLORS, W_MIN } from './ladderWires.js'
+import { ladderWireSet } from './ladderWireSet.js'
 import { tearWire } from './ladderTear.js'
 
 const MAX_BALLS = 3 // на ступень: больше — каша из шариков
 
 // Слой линий «Моей памяти» поверх зоны лестницы (родитель слоя): меряет
-// шапку (.lrMain), ступени (.memLvl) и пятиугольник (.memPerm), рисует
-// связи (ladderWires.js: толщина плавно растёт от шапки до пятиугольника —
+// шапку (.lrMain), круг-счётчик (.memCount), ступени (.memLvl) и пятиугольник (.memPerm), рисует
+// связи (ladderWireSet.js: толщина плавно растёт от шапки через круг до пятиугольника —
 // короткими отрезками, общая прозрачность на группе, чтобы стыки не темнели)
 // (у каждого элемента линия раздувается «трубой» и кончается кружком — как
 // отросток нервной клетки) и шарики — слова сегодняшнего повторения бегут из
-// своей ступени к кнопке.
+// своей ступени через круг к кнопке.
 // Шарик — светлое ядро 115% толщины линии у ступени + ореол; оба сжимаются
 // вместе с линией до её толщины у шапки (--s0 → --s1 и --h0 → --h1: масштаб во
 // вложенных элементах в CSS-анимации, на кадр ничего не считается). Меряет после каждого рендера и при смене размеров;
 // в скрытой вкладке (ширина 0) не меряет. Зона — через СВОЙ элемент слоя:
 // ref родителя в эффекте ребёнка при монтировании ещё пуст (React цепляет
 // ref родителя после эффектов детей) — так линии пропадали после «Назад».
-// today — число сегодняшних слов по ступеням. sleeping — мозг спит: кабель от шапки оборван (ladderTear.js): разрыв на
-// стволе у шапки, по три провода цветов ступеней у концов, искры на кончиках
+// today — число сегодняшних слов по ступеням. sleeping — мозг спит: кабель оборван (ladderTear.js): разрыв на
+// горизонтали левее круга, по три провода цветов ступеней у концов, искры на кончиках
 export default function MemoryLadderWires({ today, sleeping = false }) {
-  const [geo, setGeo] = useState(null) // { links, pieces, dots }
+  const [geo, setGeo] = useState(null) // { links, pieces, dots, flares, widths, tearAt }
   const layerRef = useRef(null)
 
   useLayoutEffect(() => {
@@ -29,15 +30,16 @@ export default function MemoryLadderWires({ today, sleeping = false }) {
     const measure = () => {
       const box = zone.getBoundingClientRect()
       const hero = zone.querySelector('.lrMain')
+      const circle = zone.querySelector('.memCount')
       const blocks = [...zone.querySelectorAll('.memLvl')]
-      if (!box.width || !hero || blocks.length !== 3) return
+      if (!box.width || !hero || !circle || blocks.length !== 3) return
       const rel = el => {
         const r = el.getBoundingClientRect()
         return { l: r.left - box.left, t: r.top - box.top, r: r.right - box.left, b: r.bottom - box.top }
       }
       const fin = zone.querySelector('.memPerm')
       const edge = (zone.parentElement?.getBoundingClientRect().left ?? box.left) - box.left
-      const rects = { hero: rel(hero), blocks: blocks.map(rel), fin: fin && rel(fin), edge }
+      const rects = { hero: rel(hero), circle: rel(circle), blocks: blocks.map(rel), fin: fin && rel(fin), edge }
       const next = { links: ladderLinks(rects), ...ladderWireSet(rects) }
       setGeo(prev => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next))
     }
@@ -48,7 +50,7 @@ export default function MemoryLadderWires({ today, sleeping = false }) {
   })
 
   if (!geo) return <div className="memWires" ref={layerRef} aria-hidden="true" />
-  const tear = sleeping ? tearWire(geo.pieces, geo.links[0].pts) : null
+  const tear = sleeping ? tearWire(geo.pieces, geo.tearAt) : null
   return (
     <div className="memWires" ref={layerRef} aria-hidden="true">
       <svg>
@@ -64,7 +66,7 @@ export default function MemoryLadderWires({ today, sleeping = false }) {
       </svg>
       {[0, 1, 2].flatMap(i => Array.from({ length: Math.min(today[i] ?? 0, MAX_BALLS) }, (_, k) => (
         <span key={`${i}-${k}`} className="memBall" style={{
-          offsetPath: `path('${ballPath(geo.links[i])}')`,
+          offsetPath: `path('${ballPath(geo.links[0], geo.links[i + 1])}')`,
           '--s0': ballScale(geo.widths[i]),
           '--s1': ballScale(W_MIN),
           '--h0': haloScale(geo.widths[i]),
