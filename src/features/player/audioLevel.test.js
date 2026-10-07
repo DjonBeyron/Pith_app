@@ -131,12 +131,49 @@ describe('levelFromWave / speechEnvelope', () => {
   })
 })
 
-describe('audioGlowShape: столбики', () => {
-  it('высоты в 0.02..1, у каждого столбика своя форма, в тишине — ножка', async () => {
-    const { barHeight, BAR_COUNT } = await import('./audioGlowShape.js')
-    const hs = Array.from({ length: BAR_COUNT }, (_, i) => barHeight(i, 1, 1.37))
-    for (const h of hs) { expect(h).toBeGreaterThanOrEqual(0.02); expect(h).toBeLessThanOrEqual(1) }
-    expect(new Set(hs.map(h => h.toFixed(3))).size).toBeGreaterThan(BAR_COUNT / 2)
-    for (let i = 0; i < BAR_COUNT; i++) expect(barHeight(i, 0, 5)).toBe(0.02)
+describe('audioGlowShape: однородная масса', () => {
+  it('узлы шире шага и перекрывают соседей без зазоров', async () => {
+    const { BARS, BAR_COUNT, BAR_SPAN } = await import('./audioGlowShape.js')
+    expect(BAR_COUNT).toBeLessThanOrEqual(18)
+    expect(BAR_SPAN).toBeGreaterThanOrEqual(1.6) // перекрытие ≥ 60 %
+    for (let i = 1; i < BAR_COUNT; i++) {
+      const prev = BARS[i - 1], cur = BARS[i]
+      expect(cur.left).toBeLessThan(prev.left + prev.width) // соседи перекрываются
+      expect(cur.left + cur.width).toBeGreaterThan(prev.left + prev.width)
+    }
+    expect(BARS[0].left).toBeLessThan(0)                          // крайние уходят за край
+    expect(BARS[BAR_COUNT - 1].left + BARS[BAR_COUNT - 1].width).toBeGreaterThan(100)
+  })
+
+  it('высота и яркость в пределах, соседи близки (нет полос), в тишине — тусклая низкая масса', async () => {
+    const { barShape, BAR_COUNT, MIN_SCALE, MIN_ALPHA } = await import('./audioGlowShape.js')
+    for (const t of [0.3, 1.37, 4.9]) {
+      const shapes = Array.from({ length: BAR_COUNT }, (_, i) => barShape(i, 1, t))
+      for (const { scale, alpha } of shapes) {
+        expect(scale).toBeGreaterThanOrEqual(MIN_SCALE); expect(scale).toBeLessThanOrEqual(1)
+        expect(alpha).toBeGreaterThanOrEqual(MIN_ALPHA); expect(alpha).toBeLessThanOrEqual(1)
+      }
+      // Гладкость по горизонтали: соседние узлы отличаются немного
+      for (let i = 1; i < BAR_COUNT; i++) {
+        expect(Math.abs(shapes[i].scale - shapes[i - 1].scale)).toBeLessThan(0.2)
+        expect(Math.abs(shapes[i].alpha - shapes[i - 1].alpha)).toBeLessThan(0.2)
+      }
+      // …но яркость по длине «гуляет», а не ровная
+      const alphas = shapes.map(s => s.alpha)
+      expect(Math.max(...alphas) - Math.min(...alphas)).toBeGreaterThan(0.1)
+    }
+    for (let i = 0; i < BAR_COUNT; i++) {
+      const s = barShape(i, 0, 5)
+      expect(s.alpha).toBe(MIN_ALPHA)
+      expect(s.scale).toBeLessThan(0.3)
+    }
+  })
+
+  it('сдвиг подложки идёт по кругу в 0..-50 % (узор периодичен)', async () => {
+    const { baseShift } = await import('./audioGlowShape.js')
+    for (let t = 0; t < 30; t += 0.37) {
+      expect(baseShift(t)).toBeLessThanOrEqual(0)
+      expect(baseShift(t)).toBeGreaterThan(-50)
+    }
   })
 })

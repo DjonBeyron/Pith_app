@@ -27,11 +27,23 @@ function videoTags(src) {
 }
 
 describe('какие модули отдают постер в <video>', () => {
-  it('кружок: постер из предзагрузки подставлен', () => {
+  it('кружок: постер из предзагрузки — своя <img> с геометрией видео, а не UA-poster', () => {
     const tags = videoTags(CIRCLE).filter(t => t.includes('circleMedia'))
     expect(tags.length).toBe(1)
-    expect(tags[0]).toContain('poster={poster}')
+    // UA-постер iOS рисуется не как само видео (object-fit/размер до
+    // loadedmetadata) — кадр «прыгал» при смене на видео
+    expect(tags[0]).not.toContain('poster=')
     expect(CIRCLE).toContain('const poster = file?.posterUrl')
+    expect(CIRCLE).toContain('<img src={poster}')
+    expect(CIRCLE).toContain('style={{ ...videoStyle, ...VIDEO_GUARD_STYLE }}')
+    // стоп-кадр уходит только когда видео показало первый кадр
+    expect(CIRCLE).toContain('const framed = useFirstFrame(vRef, src)')
+    expect(CIRCLE).toContain('!mirror && !!poster && !framed')
+  })
+
+  it('кружок на Android: скелетон держится, пока зеркало не нарисовало настоящий кадр', () => {
+    expect(CIRCLE).toContain('!(mirror ? mirrorSrc === src : loadedSrc)')
+    expect(CIRCLE).toContain('useVideoMirror(vRef, mirrorRef, mirror && !!src, poster, () => setMirrorSrc(src))')
   })
 
   it('стикер: постер из предзагрузки подставлен', () => {

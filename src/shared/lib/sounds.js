@@ -123,6 +123,21 @@ export function unlockAudio() {
 let muted = false
 export function setSoundsMuted(value) { muted = !!value }
 
+// Подписка «звук стартовал»: cb(name, durationSec) после успешного play()
+// (durationSec = 0, пока метаданных ещё нет). Для свечения снизу чата
+// (player/soundGlow.js): shared/lib фич не импортирует, поэтому публикацию
+// уровня делает подписчик. Возвращает функцию отписки
+const playedListeners = new Set()
+export function onSoundPlayed(cb) {
+  playedListeners.add(cb)
+  return () => { playedListeners.delete(cb) }
+}
+function notifyPlayed(name, audio) {
+  if (!playedListeners.size) return
+  const d = audio.duration
+  playedListeners.forEach(cb => cb(name, d > 0 && Number.isFinite(d) ? d : 0))
+}
+
 // where — кто просит звук ('word-choice', 'феед', 'таблица'…). В отчёт
 // дебага уходит вместе с итогом: по одному «OK» нельзя было понять, почему
 // ученик звука не услышал — промис play() резолвится в момент СТАРТА, а
@@ -148,7 +163,7 @@ export function playSound(name, where = null) {
   // других уроках нет звуков». Выбрасывает кэш только прерывание сессии
   // (onCtxStateChange), пересоздаёт — следующий жест
   audio.play()
-    .then(() => { traceSoundStarted(rec); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
+    .then(() => { traceSoundStarted(rec); notifyPlayed(name, audio); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
     .catch(e => { traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`) })
 }
 

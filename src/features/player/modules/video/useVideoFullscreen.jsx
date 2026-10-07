@@ -4,6 +4,7 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import { VIDEO_GUARD } from '../../../../shared/lib/videoHudGuard.js'
 import { useVideoMirror } from '../../videoMirror.js'
 import { getLessonMuted } from '../../lessonVolume.js'
+import { useVideoGlowSource } from '../../useVideoGlowSource.js'
 
 // Полноэкранный просмотр видео по тапу — портал в document.body (position:fixed
 // должен считаться от вьюпорта, а не от containing block PlayerFeed's scaleY(-1)).
@@ -26,6 +27,8 @@ export function useVideoFullscreen({ src, frame0, crop, intrinsic, frameDims, mi
 
   // На десктопе кадры показывает canvas, а сам <video> прячется (см. videoMirror.js)
   useVideoMirror(fsVideoRef, fsMirrorRef, mirror && fsVisible && !!fsSrc, frame0)
+  // Звук полноэкранного видео → свечение снизу чата (открыт тапом — звук задуман всегда)
+  useVideoGlowSource(fsVideoRef, fsSrc, () => fsOpenRef.current)
 
   function getFsMediaStyle() {
     if (!intrinsic || !frameDims) {

@@ -5,9 +5,11 @@ import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
 import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
+import { useFirstFrame } from '../../useFirstFrame.js'
 import { useCircleExpand, getSmallPx } from './useCircleExpand.js'
 import { useCircleLoopPause } from './useCircleLoopPause.js'
 import { getLessonMuted } from '../../lessonVolume.js'
+import { useVideoGlowSource } from '../../useVideoGlowSource.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -99,6 +101,8 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   // Раскрытие кружка на весь экран по тапу/свайпу — useCircleExpand.js
   const { expanded, collapsing, expandTransform, expandedRef, handleTap, collapse, onTouchStart, onTouchEnd } =
     useCircleExpand({ wrapRef, vRef, dims, bottomOffset, doneFiredRef, stopRaf, onDone })
+  // Звук кружка → свечение снизу чата (первый проход videoAutoSound или раскрыт тапом; немая петля не светит)
+  useVideoGlowSource(vRef, src, () => (videoAutoSound && !firstPlayDoneRef.current && !node.isHistory) || !!expandedRef.current)
 
   // videoAutoSound: called on onLoadedData — sets up MutationObserver then unmuted play
   function handleCircleLoaded() {
@@ -202,7 +206,16 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   // На десктопе кадры показывает canvas, а сам <video> прячется: иначе
   // Яндекс.Браузер вешает поверх кружка свою панель (см. videoMirror.js)
   const mirror = useWideScreen()
-  useVideoMirror(vRef, mirrorRef, mirror && !!src, poster)
+  // Зеркало сообщает, когда в canvas легла настоящая (не чёрная) картинка:
+  // до этого без постера держим скелетон, а не пустой тёмный круг (Android)
+  const [mirrorSrc, setMirrorSrc] = useState(null)
+  useVideoMirror(vRef, mirrorRef, mirror && !!src, poster, () => setMirrorSrc(src))
+  // Без зеркала (iPhone) стоп-кадр — своя <img> с геометрией видео поверх него,
+  // пока видео не показало кадр: UA-постер у <video poster> на iOS рисуется не
+  // как само видео (object-fit/размер до loadedmetadata), кадр «прыгал»
+  const framed = useFirstFrame(vRef, src)
+  const showPosterImg = !mirror && !!poster && !framed
+  const showSkeleton = !poster && !(mirror ? mirrorSrc === src : loadedSrc)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
@@ -224,10 +237,10 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
             >
               {/* Ни постера, ни первого кадра — тот же скелетон с бликом, что и
                   без src: иначе до декодирования круг стоял пустым */}
-              {!poster && !loadedSrc && <div className="feedSkeleton" />}
+              {showSkeleton && <div className="feedSkeleton" />}
               <video
                 {...VIDEO_GUARD}
-                ref={vRef} src={src} poster={poster}
+                ref={vRef} src={src}
                 className={`circleMedia${mirror ? ' videoMirrorSource' : ''}`}
                 style={mirror ? VIDEO_GUARD_STYLE : { ...videoStyle, ...VIDEO_GUARD_STYLE }}
                 playsInline preload="auto"
@@ -249,6 +262,10 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
               />
               {mirror && (
                 <canvas ref={mirrorRef} className="circleMedia" style={videoStyle} aria-hidden="true" />
+              )}
+              {showPosterImg && (
+                <img src={poster} alt="" draggable={false} className="circleMedia"
+                  style={{ ...videoStyle, ...VIDEO_GUARD_STYLE }} />
               )}
             </div>
 

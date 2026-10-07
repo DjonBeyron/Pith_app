@@ -6,8 +6,10 @@ import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
 import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
+import { frameLooksBlack } from '../../../../shared/lib/frameBlack.js'
 import { useVideoFullscreen } from './useVideoFullscreen.jsx'
 import { getLessonMuted } from '../../lessonVolume.js'
+import { useVideoGlowSource } from '../../useVideoGlowSource.js'
 
 export default function VideoModule({ node, file, onDone, videoAutoSound, adminPreview = false, pending = false }) {
   const [objectUrl, setObjectUrl] = useState(null)
@@ -70,6 +72,8 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
   const { fsPortal, handleTap, fsVideoRef } = useVideoFullscreen({
     src, frame0, crop, intrinsic, frameDims, mirror, doneFiredRef, fireDone, frameRef, videoRef,
   })
+  // Звук видео в пузыре → свечение снизу чата (первый проход videoAutoSound; немая петля не светит)
+  useVideoGlowSource(videoRef, src, () => videoAutoSound && !firstPlayDoneRef.current && !node.isHistory)
 
   // Отрицательный офсет триггера played — следующая нода стартует до конца
   // видео; смотрим оба элемента, ролик может играть и в полном экране
@@ -83,6 +87,9 @@ export default function VideoModule({ node, file, onDone, videoAutoSound, adminP
   // Used as the FS overlay during the ~90ms gap before the FS video is ready.
   function captureFrame0(videoEl) {
     if (!videoEl || !videoEl.videoWidth) return
+    // Android: drawImage на loadeddata бывает чёрным (кадр ещё не презентован) —
+    // такой frame0 и в зеркале, и в полноэкранном слое вышел бы чёрной вспышкой
+    if (frameLooksBlack(videoEl)) { pLog('[frame0] кадр чёрный — не берём'); return }
     try {
       const c = document.createElement('canvas')
       c.width = videoEl.videoWidth

@@ -88,8 +88,17 @@ describe('canvas-зеркало видео на десктопе', () => {
   })
 
   it('до первого кадра рисуется постер, чтобы не мелькала пустота', () => {
-    expect(MIRROR).toContain('if (stopped || painted) return')
+    expect(MIRROR).toContain('if (stopped || st.painted) return')
     expect(MIRROR).toContain('img.src = posterUrl')
+  })
+
+  it('чёрный кадр декодера не рисуется поверх постера (Android)', () => {
+    expect(MIRROR).toContain('frameLooksBlack(v)')
+    expect(MIRROR).toContain('GUARD_MS')
+    // кадр берётся и по событиям — у неподвижного видео rVFC может молчать
+    expect(MIRROR).toContain("'loadeddata', 'seeked', 'canplay', 'playing', 'timeupdate'")
+    // модуль узнаёт, что в canvas настоящая картинка (скелетон до этого)
+    expect(MIRROR).toContain('onFrameRef.current?.()')
   })
 
   it('источник кадров остаётся в потоке — из display:none кадров не будет', () => {
