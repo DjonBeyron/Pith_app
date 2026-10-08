@@ -50,7 +50,8 @@ describe('авто-таблица звучит без свежего жеста'
 
   it('отказ родному элементу — не приговор: играет прогретый', () => {
     expect(auto).toContain("import { playPrimed, stopPrimed } from '../../../../shared/lib/primedAudio.js'")
-    expect(auto).toContain('const primed = playPrimed(audioSrc, { onEnded: () => endedRef.current?.() })')
+    // muted/rate — «без звука» и скорость голоса из шапки урока (lessonVolume.js)
+    expect(auto).toContain('const primed = playPrimed(audioSrc, { onEnded: () => endedRef.current?.(), muted, rate: getVoiceRate() })')
     // Таймлайн читает currentTime из audioRef и подмены не замечает
     expect(auto).toContain('audioRef.current = primed')
     expect(auto).toContain('hasPlayedRef.current = true')

@@ -93,6 +93,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
               teacherLogoCrop={teacher?.crop}
               initialBlobMap={initialBlobMap}
               muted={muted}
+              startTyping={false} /* точки «печатает» уже отстояли выше (typing) — вторых не нужно */
               recordStats={false}
               onFinishStats={({ wrong, timeMs }) => setAnswered({ result: wrong > 0 ? 'wrong' : 'correct', timeMs })}
               onSummaryClose={() => {}}

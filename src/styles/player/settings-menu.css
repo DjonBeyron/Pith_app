@@ -1,0 +1,103 @@
+/* Шестерёнка в шапке урока и поповер «Настройки» (LessonSettingsMenu.jsx).
+   Кнопка — те же .lvBtn/.lvIcon, что у «без звука» (volume-menu.css), чтобы
+   шапка читалась одним набором. Поповер — портал в .lessonPlayer
+   (usePlayerPopover.js): top/right/max-height приходят инлайном по рамке
+   плеера, привязка к шапке, а не к кнопке — справа от шестерёнки могут стоять
+   другие кнопки, и меню не должно уезжать за край на 320px. z-index 500 — в
+   контексте плеера выше всего: панелей ответа (80), растушёвки (90), свечения
+   (95), фото (400). Бесконечных анимаций нет */
+.smWrap { flex-shrink: 0; display: flex; align-items: center; }
+
+.smMenu {
+  position: absolute;
+  z-index: 500;
+  width: 280px;
+  max-width: calc(100% - 16px);
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border-radius: 12px;
+  background: #1f232a;
+  border: 1px solid #2d313a;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  animation: smMenuIn 0.14s ease-out;
+}
+@keyframes smMenuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.smSection + .smSection {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #2d313a;
+}
+
+.smTitle {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9aa0b4;
+}
+.smSub {
+  padding: 8px 10px 2px;
+  font-size: 11px;
+  color: #9aa0b4;
+}
+
+.smRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #e0e0e0;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.smRow:active, .smRow:focus-visible { background: rgba(255, 255, 255, 0.08); outline: none; }
+@media (hover: hover) {
+  .smRow:hover { background: rgba(255, 255, 255, 0.08); }
+}
+.smIcon { flex-shrink: 0; color: #9aa0b4; font-size: 14px; }
+.smCopyState--ok  { color: #b6fe3b; font-size: 12px; }
+.smCopyState--err { color: #ff9a8a; font-size: 12px; }
+
+/* Тумблер: дорожка 36×20 и движок; включён — акцентный зелёный */
+.smSwitch {
+  position: relative;
+  flex-shrink: 0;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #3a3f4a;
+  transition: background-color 0.15s;
+}
+.smSwitch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e8eaee;
+  transition: transform 0.15s;
+}
+.smSwitch--on { background: #6fa81f; }
+.smSwitch--on::after { transform: translateX(16px); background: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .smMenu { animation: none; }
+  .smSwitch, .smSwitch::after { transition: none; }
+}

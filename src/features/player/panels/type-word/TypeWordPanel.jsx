@@ -10,6 +10,9 @@ import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
 import { playWord } from '../../word-audio/wordAudioPlayer.js'
 import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
+import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
+import { typeWholeWord } from './solveCorrect.js'
+import { useSolveAfterRender } from '../useSolveAfterRender.js'
 
 // Ученик видит итог в панели (зелёный/красный, тряска), потом панель уезжает
 const SEE_RESULT_MS = 700
@@ -106,6 +109,16 @@ export default function TypeWordPanel({
     }
   }
 
+  // Авто-ответ админа: слово целиком, как будто напечатано по буквам
+  // (solveCorrect.js); проверка — после коммита, когда tw.check видит новый
+  // typed (useSolveAfterRender). XP тут и так летит от пузыря — тап не нужен
+  const armSolve = useSolveAfterRender(typed, onCheck)
+  function solveCorrect() {
+    if (frozen || result) return
+    armSolve()
+    tw.setAll(typeWholeWord(word))
+  }
+
   if (!word.trim()) return null
 
   const rowCls = [
@@ -127,6 +140,7 @@ export default function TypeWordPanel({
         }}
       />
       <div ref={panelRef} className={`phrasePanel${show ? ' phrasePanelVisible' : ''}`}>
+        <SolveCorrectButton onSolve={solveCorrect} disabled={frozen || !!result} />
         <div className="phraseInner">
           <div className={`phraseCounter${showCounter ? ' phraseCounterVisible' : ''}`}>
             букв: {typed.replace(/\s/g, '').length} из {letterCount(word)}

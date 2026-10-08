@@ -1,0 +1,35 @@
+/* Админская кнопка «собрать верный ответ» в нижних панелях ответа
+   (features/player/admin/SolveCorrectButton.jsx). Панели — position: fixed,
+   поэтому absolute кладёт кнопку в их угол ПОВЕРХ содержимого, не участвуя в
+   потоке: высота панели (usePanelHeight/offsetHeight) и спейсер под лентой
+   её не замечают. Полупрозрачная, чтобы не спорить с вариантами ответа. */
+
+.solveCorrectBtn {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 40;                 /* над вариантами/боксом панели (у них z-index нет или ≤ 10) */
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(182 254 59 / 35%);
+  border-radius: 7px;
+  background: rgb(14 16 19 / 78%);
+  color: var(--player-accent, #b6fe3b);
+  opacity: 0.55;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: opacity 0.12s, border-color 0.12s;
+}
+
+.solveCorrectBtn:hover,
+.solveCorrectBtn:focus-visible { opacity: 1; border-color: var(--player-accent, #b6fe3b); }
+
+.solveCorrectBtn:disabled { opacity: 0.2; cursor: default; }
+
+/* «Составь предложение»: правый верхний угол занят кнопкой перевода
+   (.fbTrBtn, fill-blanks.css) — волшебная палочка встаёт слева */
+.solveCorrectBtn--left { right: auto; left: 8px; }

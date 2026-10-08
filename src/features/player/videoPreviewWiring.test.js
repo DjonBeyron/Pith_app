@@ -27,11 +27,23 @@ function videoTags(src) {
 }
 
 describe('какие модули отдают постер в <video>', () => {
-  it('кружок: постер из предзагрузки подставлен', () => {
+  it('кружок: постер из предзагрузки — своя <img> с геометрией видео, а не UA-poster', () => {
     const tags = videoTags(CIRCLE).filter(t => t.includes('circleMedia'))
     expect(tags.length).toBe(1)
-    expect(tags[0]).toContain('poster={poster}')
+    // UA-постер iOS рисуется не как само видео (object-fit/размер до
+    // loadedmetadata) — кадр «прыгал» при смене на видео
+    expect(tags[0]).not.toContain('poster=')
     expect(CIRCLE).toContain('const poster = file?.posterUrl')
+    expect(CIRCLE).toContain('<img src={poster}')
+    expect(CIRCLE).toContain('style={{ ...posterStyle, ...VIDEO_GUARD_STYLE }}')
+    // стоп-кадр уходит только когда видео показало первый кадр
+    expect(CIRCLE).toContain('const framed = useFirstFrame(vRef, src)')
+    expect(CIRCLE).toContain('!!poster && (mirror ? mirrorSrc !== src : !framed)')
+  })
+
+  it('кружок на Android: скелетон держится, пока зеркало не нарисовало настоящий кадр', () => {
+    expect(CIRCLE).toContain('!(mirror ? mirrorSrc === src : loadedSrc)')
+    expect(CIRCLE).toContain('useVideoMirror(vRef, mirrorRef, mirror && !!src, null, () => setMirrorSrc(src))')
   })
 
   it('стикер: постер из предзагрузки подставлен', () => {
@@ -49,7 +61,9 @@ describe('какие модули отдают постер в <video>', () => {
   })
 
   it('у видео нет и запасной картинки под элементом — в отличие от кружка', () => {
-    expect(CIRCLE).toContain('backgroundImage: `url(${poster})`')
+    // кружок: <img> с posterStyle (кроп ноды), а не CSS-фон без кропа
+    expect(CIRCLE).toContain('<img src={poster}')
+    expect(CIRCLE).not.toContain('backgroundImage')
     expect(VIDEO).not.toContain('backgroundImage')
   })
 
@@ -114,7 +128,8 @@ describe('сколько времени у элемента есть на дек
     // reaction: она прилипает к уже показанному пузырю, а не открывает
     // новое сообщение, и получает свою короткую паузу REACTION_DELAY_MS,
     // без индикатора «печатает…» (см. useGraphPlayer.js)
-    expect(GRAPH).toContain('const delay = isReaction ? REACTION_DELAY_MS : TYPING_DELAY_MS')
+    // delayMs — своя длина точек (старт урока, FIRST_TYPING_MS), иначе обычная
+    expect(GRAPH).toContain('const delay = delayMs ?? (isReaction ? REACTION_DELAY_MS : TYPING_DELAY_MS)')
     // После задержки показ ждёт прогрева файлов ноды (preloadWarm.js), но не
     // дольше WARM_MAX_MS — «печатает» не может висеть бесконечно на слабой сети
     expect(GRAPH).toContain('addTimer(() => tryReveal(Date.now() + WARM_MAX_MS, false), delay)')
@@ -122,10 +137,18 @@ describe('сколько времени у элемента есть на дек
     console.log(`[preRenderBudget] на декодирование до показа: ${delay} мс (+ до WARM_MAX_MS ожидания прогрева)`)
   })
 
-  it('первая нода урока показывается без предрисовки вообще', () => {
+  // Раньше первая нода клалась в ленту прямо при инициализации — без
+  // предрисовки, без въезда и без звука. Теперь она идёт тем же путём, что и
+  // остальные (scheduleReveal: pending за экраном → точки → показ), только
+  // точки короче — FIRST_TYPING_MS, см. playerStartTyping.test.js
+  it('первая нода урока тоже предрисовывается — на время FIRST_TYPING_MS', () => {
+    const first = Number(GRAPH.match(/export const FIRST_TYPING_MS = (\d+)/)?.[1])
+    expect(first).toBeGreaterThan(0)
     const init = GRAPH.slice(GRAPH.indexOf('const entry = findEntry'))
-    expect(init).toContain('setVisibleNodes([...initialPage, entry])')
-    expect(init).not.toContain('setPendingNode(entry)')
+    expect(init).toContain('setVisibleNodes(initialPage)')
+    expect(init).not.toContain('setVisibleNodes([...initialPage, entry])')
+    expect(init).toContain('scheduleReveal.current(entry.id, !firstTyping, FIRST_TYPING_MS)')
+    console.log(`[preRenderBudget] первая нода: ${first} мс точек на декодирование`)
   })
 
   it('инлайновое видео грузится с preload="auto" и без своей заглушки', () => {

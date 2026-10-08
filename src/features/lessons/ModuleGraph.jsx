@@ -23,6 +23,10 @@ const START_REVEAL_MS = 500
 // (90мс × номер) + сам блеск 0.7с, с запасом — чтобы класс не сняли на полпути
 const UNLOCK_ANIM_MS = 1800
 
+// Наведение нужно только админу (кнопки на карточке). У ученика на телефоне тап даёт
+// эмулированный mouseenter — без этого он зря перерисовывал бы всю схему
+const noop = () => {}
+
 
 export default function ModuleGraph({
   lessons,
@@ -115,12 +119,17 @@ export default function ModuleGraph({
 
   // «Затишье» блеска: во время скролла и полёта XP анимация блика на паузе и
   // погашена — перерисовки блика не конкурируют со скроллом/кружками (лагало).
-  const [calm, setCalm] = useState(false)
+  // Класс --scrolling ставится прямо на элемент (classList), а НЕ через
+  // useState: раньше каждое начало и конец прокрутки давало полный ре-рендер
+  // схемы (все карточки, линии) + замер раскладки useChainArcs после коммита —
+  // на слабом Android 0.3–0.7 с главного потока ровно в момент, когда палец
+  // начинает листать, и скролл «не брался». Без состояния — ни ре-рендера, ни замера
   const calmTimer = useRef(null)
   const handleScroll = useCallback(() => {
-    setCalm(true) // повторные true React схлопывает без ререндера
+    const el = scrollRef.current
+    if (el) el.classList.add('moduleGraphScroll--scrolling')
     clearTimeout(calmTimer.current)
-    calmTimer.current = setTimeout(() => setCalm(false), 180)
+    calmTimer.current = setTimeout(() => scrollRef.current?.classList.remove('moduleGraphScroll--scrolling'), 180)
   }, [])
   useEffect(() => {
     // Фолбэк-скроллер — окно (см. useChainScroll): слушаем и его
@@ -245,7 +254,7 @@ export default function ModuleGraph({
     <div className="moduleGraphEdge moduleGraphEdge--top" aria-hidden="true" />
     <div className="moduleGraphEdge moduleGraphEdge--bottom" aria-hidden="true" />
     <div ref={scrollRef}
-      className={`moduleGraphScroll${animHold || !arcsReady || !progressReady ? ' moduleGraphScroll--held' : ''}${calm || justCompleted ? ' moduleGraphScroll--calm' : ''}`}
+      className={`moduleGraphScroll${animHold || !arcsReady || !progressReady ? ' moduleGraphScroll--held' : ''}${justCompleted ? ' moduleGraphScroll--calm' : ''}`}
       onScroll={handleScroll}
       onClick={() => setTapped(null)}>
       <div ref={containerRef} className="moduleGraphInner">
@@ -259,7 +268,7 @@ export default function ModuleGraph({
           renameInput={renameInputEl}
           btns={btnsFor(start, 'start')}
           nodeRef={startRef}
-          onHover={setHovered}
+          onHover={isAdmin ? setHovered : noop}
           onClick={handleClick}
           onPlay={onPlay}
         />
@@ -282,8 +291,8 @@ export default function ModuleGraph({
                 ref={el => { lessonRefs.current[i] = el }}
                 className={`mgNode mgNode--lesson${pKey ? ` mgLesson--${pKey}` : ''}${done ? ' mgNode--lesson--done' : ''}${locked ? ' mgNode--locked' : ''}${unlockAnim ? ' mgNode--unlocking' : ''}${justCompleted?.id === l.id && !animHold ? ' mgNode--justDone' : ''}`}
                 style={unlockAnim ? { '--unlock-i': i } : undefined}
-                onMouseEnter={() => setHovered(l.id)}
-                onMouseLeave={() => setHovered(null)}
+                onMouseEnter={isAdmin ? () => setHovered(l.id) : undefined}
+                onMouseLeave={isAdmin ? () => setHovered(null) : undefined}
                 onClick={e => { e.stopPropagation(); handleClick(l.id) }}
               >
                 {/* Мелкий порядковый номер — в левом верхнем углу карточки */}
@@ -330,7 +339,7 @@ export default function ModuleGraph({
           nodeRef={finalRef}
           knobRef={knobRef}
           flashRef={flashRef}
-          onHover={setHovered}
+          onHover={isAdmin ? setHovered : noop}
           onClick={handleClick}
         />
 

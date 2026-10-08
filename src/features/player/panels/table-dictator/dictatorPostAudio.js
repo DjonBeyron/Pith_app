@@ -1,6 +1,14 @@
 import { pLog } from '../../../../shared/lib/debug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
 import { mapWordLayersToChips, answerOrderOf, wordGreenAt, extrasStartWithGap, resultHoldSec, layerShots } from '../../../../shared/lib/tableDictatorTiming.js'
+import { getVoiceRate } from '../../lessonVolume.js'
+
+// Хвост после конца аудио идёт таймерами, а не по currentTime, — скорость
+// голоса (lessonVolume.js) сюда не приходит сама: секунды таймлайна делим на
+// rate, иначе на 2× подсветка после записи шла бы вдвое медленнее самой
+// записи. Делится ВСЁ в секундах таймлайна, включая 0.3с «в бокс»: проверка
+// считается от pendingAssembleEnd в тех же единицах и иначе обогнала бы слово
+const toMs = (sec, rate) => Math.max(0, (sec * 1000) / rate)
 
 // Клип слова/ячейки может стоять ПОСЛЕ конца аудио (10с-хвост таймлайна) — целиком
 // (слово, которого физически нет в записи) или НАПОЛОВИНУ (начался во время игры,
@@ -8,7 +16,7 @@ import { mapWordLayersToChips, answerOrderOf, wordGreenAt, extrasStartWithGap, r
 // остановлен (ended) и сам такие клипы не гасит — ON и OFF планируем раздельно
 // таймерами от момента окончания аудио, иначе конец свечения (длина слоя) теряется.
 function scheduleLayer(layer, {
-  cells, chipKey, tEnd, timers, addedCellsRef, assembledRef, extrasStart, inBoxDelayMs = 300,
+  cells, chipKey, tEnd, timers, addedCellsRef, assembledRef, extrasStart, inBoxDelayMs = 300, rate = 1,
   setAssembled, setExtrasAssembled, setHighlighted, setUsedCells, setActiveExtraKeys, setRevealedIds,
 }) {
   // Собственный 👁 клипа подсветки (только у cell-слоя) выключен — подсветка+выбор
@@ -52,7 +60,7 @@ function scheduleLayer(layer, {
             assembledRef.current.push(val)
             setAssembled(prev => [...prev, val])
             glowAssembled(cellKey, `ЯЧЕЙКА "${val}"`)
-          }, 300)
+          }, 300 / rate)
           timers.current.push(id)
         } else if (layer.word) {
           const key = chipKey ?? null
@@ -67,10 +75,10 @@ function scheduleLayer(layer, {
           const id = setTimeout(() => {
             setExtrasAssembled(prev => [...prev, { value: layer.word, key }])
             glowAssembled(key, `СЛОВО "${layer.word}"`)
-          }, inBoxDelayMs)
+          }, inBoxDelayMs / rate)
           timers.current.push(id)
         }
-      }, Math.max(0, onDelay) * 1000))
+      }, toMs(onDelay, rate)))
     }
 
     // OFF: конец клипа (длина свечения) приходится на хвост после аудио — не важно,
@@ -88,7 +96,7 @@ function scheduleLayer(layer, {
           glowOff(key, `СЛОВО "${layer.word}"`)
           setActiveExtraKeys(prev => { const s = new Set(prev); s.delete(key); return s })
         }
-      }, offDelay * 1000))
+      }, toMs(offDelay, rate)))
     }
   })
 
@@ -101,12 +109,12 @@ function scheduleLayer(layer, {
     if (revealOnDelay >= -0.02) {
       timers.current.push(setTimeout(() => {
         setRevealedIds(prev => new Set(prev ?? []).add(layer.cellId))
-      }, Math.max(0, revealOnDelay) * 1000))
+      }, toMs(revealOnDelay, rate)))
     }
     if (revealOffDelay > 0.02) {
       timers.current.push(setTimeout(() => {
         setRevealedIds(prev => { const s = new Set(prev ?? []); s.delete(layer.cellId); return s })
-      }, revealOffDelay * 1000))
+      }, toMs(revealOffDelay, rate)))
     }
   }
 }
@@ -144,6 +152,7 @@ export function schedulePostAudioCheck({
   setHighlighted, setUsedCells, setActiveExtraKeys, setRevealedIds, checkRef, closeRef,
 }) {
   const tEnd = Number.isFinite(audioRef.current?.duration) ? audioRef.current.duration : checkAt
+  const rate = getVoiceRate() // скорость голоса на момент конца записи (см. toMs)
   const extrasStart = extrasStartWithGap(timeline?.layers)
   const chipByLayer = mapWordLayersToChips(timeline?.layers, shuffledExtras)
 
@@ -156,7 +165,7 @@ export function schedulePostAudioCheck({
   if (!rfxChipsRef.current) {
     rfxChipsRef.current = true
     const slideDelay = extrasStart != null ? Math.max(0, extrasStart - tEnd) : 0
-    timers.current.push(setTimeout(() => { setPhase('extras'); setChipsVisible(true) }, slideDelay * 1000))
+    timers.current.push(setTimeout(() => { setPhase('extras'); setChipsVisible(true) }, toMs(slideDelay, rate)))
   }
 
   // Слова с одинаковым стартом падают в бокс в порядке ответа: планируем их в
@@ -175,7 +184,7 @@ export function schedulePostAudioCheck({
     if (!layer.cellId && !layer.word) continue
     scheduleLayer(layer, {
       cells, chipKey: chipByLayer.get(layer.id), tEnd, timers, addedCellsRef, assembledRef,
-      extrasStart,
+      extrasStart, rate,
       inBoxDelayMs: layer.word ? 300 + (wordSeq++) : 300,
       setAssembled, setExtrasAssembled, setHighlighted, setUsedCells, setActiveExtraKeys, setRevealedIds,
     })
@@ -189,7 +198,7 @@ export function schedulePostAudioCheck({
 
   if (!rfxCheckRef.current) {
     rfxCheckRef.current = true
-    const d = Math.max(0, (checkTime - tEnd) * 1000)
+    const d = toMs(checkTime - tEnd, rate)
     if (shift > 0.001) {
       pLog(`[td-auto] ended: проверка сдвинута на +${Math.round(shift * 1000)}мс — ждём досборку до ${pendingEnd.toFixed(2)}s`)
     }
@@ -201,7 +210,7 @@ export function schedulePostAudioCheck({
     rfxCloseRef.current = true
     // Результат держится ровно длину клипа «Проверить», считая от момента
     // самой проверки: сдвинулась проверка — сдвинулся и показ, длина та же
-    const d = Math.max(0, (checkTime - tEnd + hold) * 1000)
+    const d = toMs(checkTime - tEnd + hold, rate)
     pLog(`[td-auto] ended: закрытие через ${Math.round(d)}мс (результат виден ${hold.toFixed(2)}s = длина клипа проверки)`)
     timers.current.push(setTimeout(() => closeRef.current?.(), d))
   }

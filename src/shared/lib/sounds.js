@@ -3,6 +3,11 @@ import { traceSoundRequest, traceSoundStarted, traceSoundFailed } from './soundT
 import { onLessonOpenChange, isLessonOpen } from './lessonOpen.js'
 import { resetPrimed } from './primedAudio.js'
 import { APP_VERSION } from './version.js'
+import { getSoundVolume, onSoundVolumeChange, needsGain, loadGainBuffer, playWithGain } from './soundVolume.js'
+
+// Громкость звуков интерфейса — глобальная настройка админа (audioSettings.js →
+// soundVolume.js). Экспорт — для админского блока и тестов
+export { getSoundVolume, setSoundVolumes, volumeUnsupported, canBoostPlay, VOLUME_MAX } from './soundVolume.js'
 
 // Адрес звука с версией приложения: файлы кэшируются на сутки (vercel.json),
 // и после замены звука телефон играл старый из кэша — новая версия = новый
@@ -72,7 +77,7 @@ function disarmGesture() {
 // начисление XP в уроке и каждый прилёт шарика в XP-бар итогов; level-up —
 // новый уровень везде, где он случается (итоги урока/повторения, награда
 // серии); lesson-locked — окно «Как открыть уроки» по тапу на закрытый урок
-const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-message', 'typing-1', 'typing-2', 'xp-gain', 'level-up', 'lesson-locked']
+export const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-message', 'typing-1', 'typing-2', 'xp-gain', 'level-up', 'lesson-locked']
 
 // Прогрев файлов при старте приложения: обычный fetch кладёт mp3 в HTTP-кэш
 // (iOS без жеста не грузит медиа-элементы, а fetch — грузит); к первому
@@ -102,7 +107,18 @@ export function preloadSounds() {
     htmlCache[name] = a
     pLog(`[sound] preload ${name}`)
   })
+  warmGainBuffers()
 }
+
+// Звуки с громкостью, требующей Web Audio (< 1 на iOS с Audio Session API, > 1
+// усиление — см. playSound): заранее декодируем их буферы, чтобы первый звук не ждал
+function warmGainBuffers() {
+  if (!ctx) return
+  for (const name of ALL_SOUNDS) {
+    if (needsGain(getSoundVolume(name))) loadGainBuffer(ctx, name, soundUrl(name)).catch(() => {})
+  }
+}
+onSoundVolumeChange(warmGainBuffers)
 
 // Call synchronously in gesture handler — resumes AudioContext.
 // iOS gesture unlock is page-wide: after this, HTMLAudioElement.play() from
@@ -123,12 +139,61 @@ export function unlockAudio() {
 let muted = false
 export function setSoundsMuted(value) { muted = !!value }
 
+// Фильтр «пользователь отключил этот звук» (шестерёнка в шапке урока): fn(name)
+// → false = не играть. Регистрирует features/player/lessonPrefs.js — shared/lib
+// фичи не импортирует. Без фильтра играет всё
+let soundFilter = null
+export function setSoundFilter(fn) { soundFilter = typeof fn === 'function' ? fn : null }
+
+// Подписка «звук стартовал»: cb(name, durationSec) после успешного play()
+// (durationSec = 0, пока метаданных ещё нет). Для свечения снизу чата
+// (player/soundGlow.js): shared/lib фич не импортирует, поэтому публикацию
+// уровня делает подписчик. Возвращает функцию отписки
+const playedListeners = new Set()
+export function onSoundPlayed(cb) {
+  playedListeners.add(cb)
+  return () => { playedListeners.delete(cb) }
+}
+function notifyPlayed(name, duration) {
+  if (!playedListeners.size) return
+  const d = duration
+  playedListeners.forEach(cb => cb(name, d > 0 && Number.isFinite(d) ? d : 0))
+}
+
 // where — кто просит звук ('word-choice', 'феед', 'таблица'…). В отчёт
 // дебага уходит вместе с итогом: по одному «OK» нельзя было понять, почему
 // ученик звука не услышал — промис play() резолвится в момент СТАРТА, а
 // дальше элемент мог встать на паузу или оборваться (см. soundTrace.js).
-export function playSound(name, where = null) {
+// opts.ignoreFilter — предпрослушивание на ползунке админа: пользовательский
+// выключатель («Звук печатанья», «Звук получения XP») не должен делать ползунок немым
+export function playSound(name, where = null, opts = null) {
   if (muted) return
+  if (!opts?.ignoreFilter && soundFilter && !soundFilter(name)) { pLog(`[sound] ${name} отключён в настройках`); return }
+  const volume = getSoundVolume(name)
+  // Громкость < 1 и есть Audio Session API (iOS 16.4+): <audio>.volume на iPhone
+  // игнорируется — играем через Web Audio с GainNode. Громкость > 1 (усиление) —
+  // тоже Web Audio: <audio>.volume выше 1.0 не бывает. Громкость 1 (по умолчанию)
+  // и всё остальное — прежний путь <audio>
+  if (ctx && needsGain(volume)) { playGain(name, where, volume); return }
+  playHtml(name, where, volume)
+}
+
+function playGain(name, where, volume) {
+  const rec = traceSoundRequest(name, null, { откуда: where, состояниеCtx: ctx.state, путь: 'webaudio', громкость: volume })
+  playWithGain(ctx, name, soundUrl(name), volume)
+    .then(duration => {
+      traceSoundStarted(rec); rec.итог = 'прозвучал'
+      notifyPlayed(name, duration)
+      pLog(`[sound] ${name} OK webaudio ×${volume}${where ? ` (${where})` : ''}`)
+    })
+    .catch(e => {
+      traceSoundFailed(rec, e.message)
+      pLog(`[sound] ${name} webaudio FAILED: ${e.message} — играем <audio> (громкость не применится)`)
+      playHtml(name, where, volume)
+    })
+}
+
+function playHtml(name, where, volume) {
   let audio = htmlCache[name]
   if (!audio) {
     audio = new Audio(soundUrl(name))
@@ -137,6 +202,8 @@ export function playSound(name, where = null) {
   }
   // Вклинились посреди прогрева (warmSound): он больше не ставит на паузу, звук включаем сами
   if (warming.delete(name)) audio.muted = false
+  const vol = volume > 1 ? 1 : volume   // <audio>.volume — только 0..1 (выше бросает IndexSizeError)
+  if (audio.volume !== vol) audio.volume = vol   // Android/десктоп; на iOS игнорируется
   const rec = traceSoundRequest(name, audio, { откуда: where, состояниеCtx: ctx?.state ?? null })
   // Only seek to start if not already there — avoids iOS re-decode stall on fresh objects
   if (audio.currentTime > 0) audio.currentTime = 0
@@ -148,7 +215,7 @@ export function playSound(name, where = null) {
   // других уроках нет звуков». Выбрасывает кэш только прерывание сессии
   // (onCtxStateChange), пересоздаёт — следующий жест
   audio.play()
-    .then(() => { traceSoundStarted(rec); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
+    .then(() => { traceSoundStarted(rec); notifyPlayed(name, audio.duration); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
     .catch(e => { traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`) })
 }
 

@@ -10,6 +10,15 @@ import { HISTORY_PAGE } from './feedWindow.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
+// Старт урока — тот же цикл, что у любой следующей ноды: лента пустая (или
+// только восстановленная история), точки «печатает» и первая нода въезжает
+// снизу со звуком. Раньше entry клалась в visibleNodes прямо при
+// инициализации — лента считала её «уже существующей» строкой, и ни въезда,
+// ни звука у первого сообщения не было (особенно заметно на кружке/видео).
+// Пауза короче обычной: ученик только что нажал «Начать», ждать 1,4 с
+// нечего. Отключается опцией firstTyping=false (повторение: у карточки свои
+// точки до монтирования плеера, см. ReviewTurn.jsx)
+export const FIRST_TYPING_MS = 1000
 // Реакция (эмодзи) не открывает новое сообщение — она прилипает к уже
 // показанному пузырю. Полный TYPING_DELAY_MS перед ней выглядит как
 // самостоятельный цикл «печатает», хотя на экране пока ничего не появляется:
@@ -52,7 +61,9 @@ const HOLD_EXTRA_MS = 2500
 // файлов следующей ноды, но не дольше WARM_MAX_MS (слабая сеть)
 // holdRef — ref-счётчик «что-то ещё летит» (XP-частицы, LessonPlayer): пока
 // > 0, следующее сообщение не показывается, но не дольше HOLD_MAX_MS
-export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = null, historyIds = null, paused = false, warmRef = null, holdRef = null } = {}) {
+// firstTyping — первая нода идёт через точки FIRST_TYPING_MS (см. выше);
+// false — показывается сразу при инициализации, как раньше
+export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = null, historyIds = null, paused = false, warmRef = null, holdRef = null, firstTyping = true } = {}) {
   const [visibleNodes, setVisibleNodes] = useState([])
   const [pendingNode,  setPendingNode]  = useState(null)
   const [isWaiting,   setIsWaiting]   = useState(false)
@@ -127,8 +138,10 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   }
 
   // force — шаг «вперёд» админа: показать не дожидаясь «печатает…» и не
-  // спрашивая паузу
-  scheduleReveal.current = (nextNodeId, force = false) => {
+  // спрашивая паузу. delayMs — своя длительность точек вместо обычной
+  // (старт урока: FIRST_TYPING_MS); помнится в scheduledRef, чтобы снятие
+  // паузы переиграло её той же длины
+  scheduleReveal.current = (nextNodeId, force = false, delayMs = null) => {
     const next = nodeMapRef.current[nextNodeId]
     // Переход ведёт на ноду, которой в уроке нет — сценарий на этом встаёт.
     // Молча выходить нельзя: со стороны это выглядит как «плеер завис»
@@ -136,19 +149,19 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
       pLog(`[graph] ⚠ переход в никуда: нет ноды ${String(nextNodeId).slice(0, 8)} — сценарий остановился`)
       return
     }
-    if (pausedRef.current && !force) {
-      scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
-      pendingMsRef.current = TYPING_DELAY_MS
-      return
-    }
-    setPendingNode(next)   // pre-render node off-screen so video can decode
     // Реакция — без индикатора «печатает…» и с короткой паузой вместо полной
     // задержки набора текста (см. REACTION_DELAY_MS выше)
     const isReaction = next.type === 'reaction'
-    const delay = isReaction ? REACTION_DELAY_MS : TYPING_DELAY_MS
+    const delay = delayMs ?? (isReaction ? REACTION_DELAY_MS : TYPING_DELAY_MS)
+    if (pausedRef.current && !force) {
+      scheduledRef.current = { type: 'reveal', nodeId: nextNodeId, delayMs }
+      pendingMsRef.current = delay
+      return
+    }
+    setPendingNode(next)   // pre-render node off-screen so video can decode
     setIsWaiting(!isReaction)
     if (force) { revealNode(next); return }
-    scheduledRef.current = { type: 'reveal', nodeId: nextNodeId }
+    scheduledRef.current = { type: 'reveal', nodeId: nextNodeId, delayMs }
     pendingMsRef.current = delay
     // Пауза «печатает» прошла, а файлы ноды ещё не прогреты (blob/постер/мета)
     // — держим точки, опрашивая готовность, но не дольше WARM_MAX_MS: дальше
@@ -212,7 +225,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     const planned = scheduledRef.current
     if (!planned) return
     scheduledRef.current = null
-    if (planned.type === 'reveal') scheduleReveal.current(planned.nodeId)
+    if (planned.type === 'reveal') scheduleReveal.current(planned.nodeId, false, planned.delayMs ?? null)
     else {
       const n = nodeMapRef.current[planned.nodeId]
       if (n) activateTimerTrigger.current(n)
@@ -329,11 +342,16 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     if (startNodeId && entry.seq > 1) {
       pLog(`[graph] возобновление: лента стартует с #${entry.seq}, восстановлено истории ${historyNodes.length}/${(historyIds ?? []).length} нод (показано сразу ${initialPage.length})`)
     }
-    visitedIdsRef.current = [...historyNodes.map(n => n.id), entry.id]
-    setVisibleNodes([...initialPage, entry])
+    visitedIdsRef.current = historyNodes.map(n => n.id)
     seenIdsRef.current = new Set(visitedIdsRef.current)
-    setIsWaiting(false)
-    activateTimerTrigger.current(entry)
+    setVisibleNodes(initialPage)
+    // Сама entry — живая нода, и приходит она тем же путём, что и все
+    // следующие (scheduleReveal → tryReveal → revealNode): предрисовка за
+    // экраном, точки FIRST_TYPING_MS, гейт прогрева, въезд со звуком, её
+    // таймер-триггер. Для ленты это новая строка — отсюда анимация.
+    // «Показать сейчас» (revealNow) во время этих точек работает как обычно.
+    // firstTyping=false (повторение) — force: показ сразу, без точек
+    scheduleReveal.current(entry.id, !firstTyping, FIRST_TYPING_MS)
     return clearTimers
   }, [nodesKey, startNodeId, historyIds]) // eslint-disable-line react-hooks/exhaustive-deps
 

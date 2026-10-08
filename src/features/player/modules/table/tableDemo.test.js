@@ -130,7 +130,8 @@ describe('проверка фразы ждёт досборку', () => {
   it('проверка сдвигается до конца досборки, закрытие — следом', () => {
     const post = read('../../panels/table-dictator/dictatorPostAudio.js')
     expect(post).toContain('const checkTime  = Math.max(checkAt, pendingEnd + 0.05)')
-    expect(post).toContain('const d = Math.max(0, (checkTime - tEnd + hold) * 1000)')
+    // toMs: секунды таймлайна / скорость голоса (lessonVolume.js), не меньше 0
+    expect(post).toContain('const d = toMs(checkTime - tEnd + hold, rate)')
   })
 
   it('уже собранные ячейки досборку не удлиняют', () => {

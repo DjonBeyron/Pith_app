@@ -8,6 +8,7 @@ import { useSpeechLaneGame } from './useSpeechLaneGame.js'
 import { useStageOrientation } from './useStageOrientation.js'
 import { useAudioSource } from '../audio/useAudioSource.js'
 import { holdLandscape, landscapeDebugState } from './useLandscapeWatch.js'
+import { usePlayerMuted } from '../../playerMuted.js'
 
 // Те же числа держит CSS (speech-lane-overlay.css) — сторож в тестах
 export const EXPAND_MS   = 1500
@@ -24,6 +25,7 @@ export default function SpeechLaneOverlay({ bubbleRef, node, file, score, rotati
   const [phase, setPhase] = useState('expand')   // expand → draw → play → fireworks → collapse
   const [full, setFull] = useState(false)
   const { src } = useAudioSource(node, file)
+  const muted = usePlayerMuted()
   const { mode, sign } = useStageOrientation(rotation)
   const tData = node.typeData?.rotate_phone ?? {}
   const lit = useMemo(() => litWindows(score.layers, tData.wordTimings, score.audioClips), [score, tData.wordTimings])
@@ -87,7 +89,8 @@ export default function SpeechLaneOverlay({ bubbleRef, node, file, score, rotati
         </div>
       )}
       {phase === 'fireworks' && <BurstConfetti count={40} size={5} zIndex={10001} />}
-      {src && <audio ref={audioRef} src={src} preload="auto" />}
+      {/* «Без звука» (шапка урока / повторение): игра идёт по часам, звук просто немой */}
+      {src && <audio ref={audioRef} src={src} preload="auto" muted={muted} />}
     </div>,
     document.body,
   )

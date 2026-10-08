@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { shouldYieldTo, shouldBlock, SOLO_LOCK } from './useSoloMedia.js'
+import { shouldYieldTo, shouldBlock, isSilentMedia, SOLO_LOCK } from './useSoloMedia.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
@@ -43,6 +43,19 @@ describe('в переписке звучит что-то одно', () => {
   it('пустые аргументы ничего не ломают', () => {
     expect(shouldYieldTo(null, voice())).toBe(false)
     expect(shouldYieldTo(voice(), null)).toBe(false)
+  })
+
+  // «Без звука» в шапке урока (lessonVolume.js): голосовое muted, но это
+  // речь (data-voice), а не петля — правила переписки при mute не меняются
+  it('голосовое без звука — всё ещё речь: глушит и глушится, как со звуком', () => {
+    const mutedVoice = (over = {}) => voice({ muted: true, hasAttribute: a => a === 'data-voice', ...over })
+    expect(isSilentMedia(mutedVoice())).toBe(false)
+    expect(isSilentMedia(loop({ hasAttribute: () => false }))).toBe(true)
+    expect(isSilentMedia(voice())).toBe(false)
+    expect(shouldYieldTo(mutedVoice({ name: 'new' }), mutedVoice({ name: 'old' }))).toBe(true)
+    expect(shouldYieldTo(mutedVoice(), voice())).toBe(true)
+    expect(shouldYieldTo(voice(), mutedVoice())).toBe(true)
+    expect(shouldYieldTo(mutedVoice(), loop({ hasAttribute: () => false }))).toBe(false)
   })
 })
 

@@ -1,5 +1,7 @@
 import { cachedWordAudio } from '../../../shared/lib/wordAudio/wordAudioApi.js'
 import { pLog } from '../../../shared/lib/debug.js'
+import { publishLevel, unpublishLevel, speechEnvelope } from '../audioLevel.js'
+import { getLessonMuted, applyVoiceRate, subscribeLessonVolume } from '../lessonVolume.js'
 
 // Проигрыватель слов в уроке (PROJECT.md, «Озвучка слов»). Один на плеер,
 // без React: модули зовут playWord(key) прямо из обработчика тапа.
@@ -28,9 +30,21 @@ export const WAIT_MS = 250  // звук не пошёл дольше — зов�
 
 let currentEnded = null // «слово доиграло/прервано» для hooks.onEnded текущего слова
 
+// Кнопки шапки урока (lessonVolume.js): «без звука» — слово играет, но muted
+// (хуки onEnded/onDone идут как обычно, в отличие от «Не могу слушать» выше);
+// скорость голоса — playbackRate. Звучащее слово подхватывает смену сразу
+subscribeLessonVolume(() => {
+  if (!current) return
+  try { current.muted = getLessonMuted() } catch { /* выгружен */ }
+  applyVoiceRate(current)
+})
+
+const GLOW_ID = 'word-audio' // ключ источника в audioLevel.js (слово играет одно, ключ один)
+
 function stopCurrent() {
   if (!current) return
   try { current.pause(); current.currentTime = 0 } catch { /* элемент мог быть выгружен */ }
+  unpublishLevel(GLOW_ID)
   current = null
   const ended = currentEnded
   currentEnded = null
@@ -95,9 +109,13 @@ export function playWord(key, hooks = null) {
     players.set(key, a)
   }
   current = a
+  // Свечение-эквалайзер (audioLevel.js): у mp3 слова волны нет — синтезированная огибающая, пока играет
+  publishLevel(GLOW_ID, { playing: true, getLevel: () => speechEnvelope(a.currentTime, a.duration) })
+  a.muted = getLessonMuted()
+  applyVoiceRate(a)
   let finished = false
   let endedFired = false
-  const ended = () => { if (endedFired) return; endedFired = true; if (currentEnded === ended) currentEnded = null; hooks?.onEnded?.() }
+  const ended = () => { if (endedFired) return; endedFired = true; unpublishLevel(GLOW_ID); if (currentEnded === ended) currentEnded = null; hooks?.onEnded?.() }
   currentEnded = ended
   const done = () => { if (finished) return; finished = true; clearTimeout(waitTimer); hooks?.onDone?.() }
   const waitTimer = hooks?.onWait ? setTimeout(() => { if (!finished) hooks.onWait() }, WAIT_MS) : 0

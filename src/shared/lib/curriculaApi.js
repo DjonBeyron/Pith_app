@@ -70,7 +70,7 @@ export async function loadCurriculumTitleData(id) {
   const q = cols => supabase.from('curricula').select(cols).eq('id', id).single()
   let { data, error } = await q(`${TITLE_COLS}, feed_catch_enabled`)
   if (error && /feed_catch_enabled/.test(error.message)) {
-    dbg('[DB WARN] нет колонки feed_catch_enabled — применить миграцию 20261008120000_feed_catch.sql')
+    dbg('[DB WARN] нет колонки feed_catch_enabled — применить миграцию 20261008130000_feed_catch.sql')
     ;({ data, error } = await q(TITLE_COLS))
   }
   if (error) {
@@ -93,7 +93,7 @@ export async function saveCurriculumTitleData(id, { title, titleTranslation, wor
   const upd = r => supabase.from('curricula').update(r).eq('id', id)
   let { error } = await upd(feedCatchEnabled === undefined ? row : { ...row, feed_catch_enabled: feedCatchEnabled !== false })
   if (error && /feed_catch_enabled/.test(error.message)) {
-    dbg('[DB WARN] нет колонки feed_catch_enabled — применить миграцию 20261008120000_feed_catch.sql')
+    dbg('[DB WARN] нет колонки feed_catch_enabled — применить миграцию 20261008130000_feed_catch.sql')
     ;({ error } = await upd(row))
   }
   if (error) {
@@ -151,7 +151,7 @@ export async function loadCurricula() {
     .select(CURRICULA_COLS_TR)
     .order('created_at', { ascending: false })
   if (error && /title_translation|word_translations|feed_catch_enabled/.test(error.message)) {
-    dbg('[DB WARN] нет колонок переводов / ловли слов — применить миграции 20260725140000_module_translations.sql, 20261008120000_feed_catch.sql')
+    dbg('[DB WARN] нет колонок переводов / ловли слов — применить миграции 20260725140000_module_translations.sql, 20261008130000_feed_catch.sql')
     ;({ data, error } = await supabase
       .from('curricula')
       .select(CURRICULA_COLS)

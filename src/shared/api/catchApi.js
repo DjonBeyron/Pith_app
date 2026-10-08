@@ -7,7 +7,7 @@ import { wordKey } from '../lib/wordAudio/wordKey.js'
 import { catchGuestHeard, catchGuestHelp, guestCatchCounts } from '../lib/memory/guestCatch.js'
 
 // «Ловля слов в ленте»: сигналы в память от слайда с заданием «напечатай
-// расслышанные слова» (миграция 20261008120000_feed_catch.sql). Шаг слова
+// расслышанные слова» (миграция 20261008130000_feed_catch.sql). Шаг слова
 // не меняется ни одним из них — только журнал review_events (source
 // 'feed_catch') и, при «Помочь памяти», срок на завтра. Слово передаём как
 // есть — нормализует сервер (word_key); гостю нормализуем сами (wordKey) и
@@ -16,7 +16,7 @@ import { catchGuestHeard, catchGuestHelp, guestCatchCounts } from '../lib/memory
 
 const isGuest = async () => !(await viewSession())?.user
 const today = () => localDate(new Date())
-const MIGRATION_HINT = 'применить миграцию 20261008120000_feed_catch.sql'
+const MIGRATION_HINT = 'применить миграцию 20261008130000_feed_catch.sql'
 
 // Напечатал слово сам — «услышано в живой речи».
 // → { ok, word, heard } | { ok: false, reason } | null

@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { warmSoundFiles } from '../shared/lib/sounds.js'
+// Личные настройки звука из шестерёнки урока: при загрузке регистрируют фильтр звуков (lessonPrefs.js)
+import '../features/player/lessonPrefs.js'
 import ShellV2 from './ShellV2.jsx'
 import LessonNavOverlay from './LessonNavOverlay.jsx'
 import AppPerfProbe from './AppPerfProbe.jsx'

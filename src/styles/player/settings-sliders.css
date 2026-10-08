@@ -1,0 +1,94 @@
+/* Админский блок «Громкость звуков интерфейса / Чувствительность эквалайзера»
+   в меню-шестерёнке шапки урока (settings/AdminAudioSliders.jsx). Лежит внутри
+   тёмной карточки .smMenu (settings-menu.css), акцент — #b6fe3b. Ползунок
+   рисуем сами одинаково на iOS/Android/десктопе: дорожка 4px с заливкой до
+   значения (--as-fill задаёт JS), движок 20px. touch-action: pan-y у строки —
+   меню прокручивается вертикально; у самого ползунка manipulation — тянется
+   по горизонтали без зума/задержки. Бесконечных анимаций нет */
+.asBlock { padding: 0 10px 6px; }
+
+.asTitle {
+  padding: 6px 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+.asTitle--eq { margin-top: 10px; padding-top: 10px; border-top: 1px solid #2d313a; }
+
+.asNote {
+  margin: 4px 0 2px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 154, 138, 0.12);
+  font-size: 11px;
+  line-height: 1.3;
+  color: #ff9a8a;
+}
+
+.asRow { padding: 5px 0 1px; touch-action: pan-y; }
+.asHint { margin-top: -2px; font-size: 10px; line-height: 1.3; color: #9aa0b4; }
+.asHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; }
+.asLabel { color: #c9ccd6; }
+.asValue { min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; color: #b6fe3b; }
+
+.asRange {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.asRange:focus { outline: none; }
+.asRange:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(182, 254, 59, 0.35); }
+.asRange:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px rgba(182, 254, 59, 0.35); }
+
+.asRange::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #b6fe3b 0, #b6fe3b var(--as-fill, 0%), #3a3f4a var(--as-fill, 0%), #3a3f4a 100%);
+}
+.asRange::-moz-range-track { height: 4px; border-radius: 2px; background: #3a3f4a; }
+.asRange::-moz-range-progress { height: 4px; border-radius: 2px; background: #b6fe3b; }
+
+.asRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border: none;
+  border-radius: 50%;
+  background: #b6fe3b;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+.asRange::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: #b6fe3b;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.asFoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.asReset {
+  padding: 6px 12px;
+  border: 1px solid #3a3f4a;
+  border-radius: 8px;
+  background: none;
+  color: #e0e0e0;
+  font-size: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.asReset:active { background: rgba(255, 255, 255, 0.08); }
+.asStatus { font-size: 11px; color: #9aa0b4; text-align: right; }
+.asStatus--saved { color: #b6fe3b; }
+.asStatus--error { color: #ff9a8a; }

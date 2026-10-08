@@ -7,6 +7,8 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
+import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
+import { pickCorrectOption } from './solveCorrect.js'
 
 // Порядок после тапа (PROJECT.md, «история знает высоту ответа заранее»):
 // 700мс ученик видит цвет варианта → ОДНИМ тиком: салют, пузыри ответа встают
@@ -82,6 +84,29 @@ export default function ChooseWordPanel({
     return 'dimmed'
   }
 
+  // Тап по варианту — один путь и для ученика, и для авто-ответа админа
+  // (SolveCorrectButton → верный вариант, rect кнопки вместо rect варианта)
+  function tapOption(opt, rect) {
+    const snd = opt.isCorrect ? 'answer-correct' : 'answer-wrong'
+    pLog(`[word-choice] tap isCorrect=${opt.isCorrect} → sound=${snd}`)
+    playSound(snd, 'выбор слова')
+    rememberTap(rect)
+    if (opt.isCorrect && xpAmount > 0 && !xpFiredRef.current) {
+      xpFiredRef.current = true
+      // Пузырь ответа будет, если в чат уходит выбранное слово или
+      // есть реплика на верный — XP тогда ждёт его и летит от него
+      const expectBubble = !!onPickToChat || !!wcData.responseCorrect?.trim()
+      onXpEarned?.(xpAmount, { expectBubble })
+    }
+    if (!isAnswered) onPicked?.(opt)
+    handlePick(opt)
+  }
+
+  function solveCorrect(rect) {
+    const opt = pickCorrectOption(options)
+    if (opt && !isAnswered) tapOption(opt, rect)
+  }
+
   return (
     <>
       {/* Распорка: высота меняется РАЗОМ в обе стороны — движение истории
@@ -95,27 +120,14 @@ export default function ChooseWordPanel({
         ref={panelRef}
         className={`chooseWordPanel${show ? ' chooseWordPanelVisible' : ''}`}
       >
+        <SolveCorrectButton onSolve={solveCorrect} disabled={isAnswered || !pickCorrectOption(options)} />
         <div className="chooseWordInner">
           {options.map(opt => (
             <ChooseWordOption
               key={opt.id}
               text={opt.text}
               state={getState(opt)}
-              onClick={(e) => {
-                const snd = opt.isCorrect ? 'answer-correct' : 'answer-wrong'
-                pLog(`[word-choice] tap isCorrect=${opt.isCorrect} → sound=${snd}`)
-                playSound(snd, 'выбор слова')
-                rememberTap(e.currentTarget.getBoundingClientRect())
-                if (opt.isCorrect && xpAmount > 0 && !xpFiredRef.current) {
-                  xpFiredRef.current = true
-                  // Пузырь ответа будет, если в чат уходит выбранное слово или
-                  // есть реплика на верный — XP тогда ждёт его и летит от него
-                  const expectBubble = !!onPickToChat || !!wcData.responseCorrect?.trim()
-                  onXpEarned?.(xpAmount, { expectBubble })
-                }
-                if (!isAnswered) onPicked?.(opt)
-                handlePick(opt)
-              }}
+              onClick={e => tapOption(opt, e.currentTarget.getBoundingClientRect())}
               disabled={isAnswered}
             />
           ))}

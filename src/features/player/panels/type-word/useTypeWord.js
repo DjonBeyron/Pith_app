@@ -42,6 +42,14 @@ export function useTypeWord(node, nodes = [], onSignalFired, hasSignalFired) {
     if (result === 'wrong') setResult(null)
   }
 
+  // Авто-ответ админа (SolveCorrectButton): строка целиком вместо нажатий по
+  // буквам (solveCorrect.js) — замок и сигнал держат так же, как press
+  function setAll(text) {
+    if (frozen) return
+    setTyped(text)
+    if (result === 'wrong') setResult(null)
+  }
+
   // Мигание гаснет, когда стёрли именно помеченную букву (индекс — позиция буквы без пробелов)
   function backspace() {
     if (frozen) return
@@ -76,6 +84,6 @@ export function useTypeWord(node, nodes = [], onSignalFired, hasSignalFired) {
   return {
     typed, result, isAnswered, frozen, model, word,
     blinkIndex: signalState.blinkIndex,
-    press, backspace, check, lock: () => setLocked(true),
+    press, backspace, setAll, check, lock: () => setLocked(true),
   }
 }

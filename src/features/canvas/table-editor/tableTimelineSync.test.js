@@ -231,7 +231,8 @@ describe('длина клипа «Проверить» = сколько виде
   it('закрытие отсчитывается от момента проверки, а не от метки конца', () => {
     const raf  = read('../../player/panels/table-dictator/useTableDictatorRaf.js')
     const post = read('../../player/panels/table-dictator/dictatorPostAudio.js')
-    expect(raf).toContain('setTimeout(() => closeRef.current?.(), hold * 1000)')
-    expect(post).toContain('(checkTime - tEnd + hold) * 1000')
+    // Секунды таймлайна → реальные: делятся на скорость голоса (lessonVolume.js)
+    expect(raf).toContain('setTimeout(() => closeRef.current?.(), (hold * 1000) / getVoiceRate())')
+    expect(post).toContain('toMs(checkTime - tEnd + hold, rate)')
   })
 })

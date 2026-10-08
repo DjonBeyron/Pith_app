@@ -196,3 +196,22 @@ describe('узор схемы в попапах', () => {
     expect((read('./LessonLaunchCard.jsx') + read('./LaunchPreloader.jsx'))).not.toContain("background: '#1a1a1a'")
   })
 })
+
+// Android: палец на карточке не листал схему — каждое начало/конец прокрутки
+// давало setState → полный ре-рендер всех карточек + замер линий (0.3–0.7 с на
+// слабом телефоне). Затишье блика теперь — класс на элементе, без состояния
+describe('схема модуля: прокрутка не ре-рендерит граф', () => {
+  const graph = read('./ModuleGraph.jsx')
+  const css = read('../../styles/lessons-chain-textures.css')
+
+  it('затишье блика — classList, а не useState', () => {
+    expect(graph).not.toContain('setCalm')
+    expect(graph).toContain("el.classList.add('moduleGraphScroll--scrolling')")
+    expect(css).toContain('.moduleGraphScroll--scrolling .mgNode--lesson::after')
+  })
+
+  it('наведение мыши перерисовывает схему только у админа', () => {
+    expect(graph).toContain('onMouseEnter={isAdmin ? () => setHovered(l.id) : undefined}')
+    expect(graph).toContain('onHover={isAdmin ? setHovered : noop}')
+  })
+})

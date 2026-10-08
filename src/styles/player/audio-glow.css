@@ -1,0 +1,60 @@
+/* Свечение в нижних углах чата урока (AudioGlow.jsx). Один цвет — фиолетовый
+   постоянной памяти (#8b5cf6 / #a78bfa, см. --lvlP в memory-ladder.css и
+   WIRE_COLORS.perm в learn/ladderWires.js).
+
+   Два маленьких <canvas> (48×75 «пикселей»), растянутых до 96×150 px: левый
+   прижат к нижнему левому углу, правый — к нижнему правому (рисунок правого —
+   зеркальная копия, зеркалит JS через drawImage). Внутри — тонкая КАЙМА по
+   краю экрана: идёт по скруглению угла телефона (радиус 44 px,
+   SCREEN_CORNER_R в audioGlowShape.js) и продолжается прямыми участками вверх
+   по боковой кромке (до ≈ 143 px от низа) и внутрь по низу (до ≈ 92 px от
+   края); в центре низа пусто. Растягивание билинейное (image-rendering по
+   умолчанию) — прячет ступеньки. Размеры тут и CSS_W/CSS_H в audioGlowShape.js
+   держат одно соотношение.
+
+   НИКАКОГО background / mix-blend-mode / filter у слоя и canvas: вне свечения
+   пиксели прозрачны (на Android непрозрачный фон canvas = чёрный прямоугольник).
+
+   Слой лежит внутри .lessonPlayer (на десктопе — в рамке «телефона»), у
+   нижней кромки, кликов не ловит. z-index 95: над растушёвкой низа (90),
+   панелями ответа (80), салютом (85) и «печатает» (70); под полноэкранными
+   слоями того же контейнера: диалог закрепа (200), видео (251), фото (400).
+   Итоги урока и «+N XP» — соседи .lessonPlayer с z 10000.
+
+   В покое слой скрыт целиком (visibility), canvas не перерисовывается, rAF
+   нет; гаснет быстро (≤150 мс) — свет не должен жить дольше звука. */
+.audioGlow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 150px;
+  pointer-events: none;
+  z-index: 95;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease-out, visibility 0s linear 0.15s;
+}
+
+.audioGlowOn {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.1s ease-out;
+}
+
+.audioGlowCanvas {
+  position: absolute;
+  bottom: 0;
+  width: 96px;
+  height: 150px;
+  display: block;
+  pointer-events: none;
+}
+
+.audioGlowCanvasL { left: 0; }
+.audioGlowCanvasR { right: 0; }
+
+/* Меньше движения: AudioGlow.jsx рисует одну статичную кайму, тусклее */
+@media (prefers-reduced-motion: reduce) {
+  .audioGlowOn .audioGlowCanvas { opacity: 0.6; }
+}

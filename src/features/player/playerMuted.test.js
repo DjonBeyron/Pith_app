@@ -14,15 +14,32 @@ describe('беззвучный плеер', () => {
     expect(renderToStaticMarkup(createElement(PlayerMutedContext.Provider, { value: true }, createElement(Probe)))).toBe('<i>true</i>')
   })
 
-  it('LessonPlayer раздаёт флаг, голосовое ставит его на свой <audio>', () => {
+  it('LessonPlayer раздаёт флаг, голосовое ставит его на свой <audio> (и помечает себя речью для useSoloMedia)', () => {
     expect(read('./LessonPlayer.jsx')).toMatch(/PlayerMutedContext\.Provider value=\{muted\}/)
-    expect(read('./modules/audio/AudioModule.jsx')).toMatch(/<audio key=\{elKey\} ref=\{audioRef\} src=\{src\} preload="auto" muted=\{muted\} \/>/)
+    expect(read('./modules/audio/AudioModule.jsx')).toMatch(/<audio key=\{elKey\} ref=\{audioRef\} src=\{src\} preload="auto" muted=\{muted\} data-voice="" \/>/)
   })
 
-  it('тот же флаг глушит озвучку слов и звуки интерфейса (чат, «верно»/«неверно»): проводка в useLessonWordAudio', () => {
+  it('«Не могу слушать» глушит озвучку слов (не играет) и звуки интерфейса; кнопка «без звука» урока — только звуки интерфейса здесь (слова глушит сам wordAudioPlayer, muted)', () => {
     const src = read('./word-audio/useLessonWordAudio.js')
     expect(src).toMatch(/setWordAudioMuted\(muted\)/)
-    expect(src).toMatch(/setSoundsMuted\(muted\)/)
+    expect(src).toMatch(/setSoundsMuted\(muted \|\| lessonMuted\)/)
     expect(src).toMatch(/return \(\) => setSoundsMuted\(false\)/) // выход из урока снимает беззвучие
+  })
+
+  it('usePlayerMuted = контекст повторения || «без звука» из шапки урока (lessonVolume.js)', () => {
+    const src = read('./playerMuted.js')
+    expect(src).toMatch(/useLessonMuted\(\)/)
+    expect(src).toMatch(/return review \|\| lesson/)
+  })
+
+  it('диктант таблицы, видео, кружок, стикер и тренажёр уважают «без звука»', () => {
+    // audioSrc в deps: <audio> монтируется позже первого рендера — иначе автозапуск через 800 мс шёл бы со звуком
+    expect(read('./panels/table-dictator/TableDictatorPanel.jsx')).toMatch(/useDictatorVolume\(audioRef, muted, playing, audioSrc\)/)
+    expect(read('./modules/video/VideoModule.jsx')).toMatch(/v\.muted = getLessonMuted\(\)/)
+    expect(read('./modules/video/useVideoFullscreen.jsx')).toMatch(/fs\.muted = getLessonMuted\(\)/)
+    expect(read('./modules/circle/CircleModule.jsx')).toMatch(/v\.muted = getLessonMuted\(\)/)
+    expect(read('./modules/circle/useCircleExpand.js')).toMatch(/v2\.muted = getLessonMuted\(\)/)
+    expect(read('./modules/sticker/StickerModule.jsx')).toMatch(/v\.muted = !turnOn \|\| getLessonMuted\(\)/)
+    expect(read('./modules/rotate-phone/SpeechLaneOverlay.jsx')).toMatch(/<audio ref=\{audioRef\} src=\{src\} preload="auto" muted=\{muted\} \/>/)
   })
 })

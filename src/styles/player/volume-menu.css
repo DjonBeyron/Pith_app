@@ -1,0 +1,114 @@
+/* Кнопки звука в шапке урока (LessonVolumeButtons.jsx): «без звука» и
+   скорость голоса с выпадающим меню. Та же подложка, что у BackButton
+   (back-button.css), чтобы шапка читалась одним набором кнопок. Никаких
+   бесконечных анимаций — только короткие переходы цвета/нажатия */
+.lvWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.lvBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  color: #d4d6dc;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s cubic-bezier(0.34, 1.6, 0.5, 1), background-color 0.15s, color 0.15s;
+}
+.lvBtn:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.2); transition-duration: 0.06s; }
+.lvBtn:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: 2px; }
+@media (hover: hover) {
+  .lvBtn:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+}
+
+.lvIcon { width: 17px; height: 17px; }
+
+/* Звук выключен — заметно, но без тревоги: приглушённый значок и красноватая обводка */
+.lvBtn--muted { color: #ff9a8a; box-shadow: inset 0 0 0 1px rgba(255, 154, 138, 0.45); }
+
+/* Скорость: текст «1×»; не 1× — подсвечена акцентом, чтобы не забыть, что ускорено */
+.lvBtnRate {
+  padding: 0 7px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.lvBtn--on { color: #b6fe3b; box-shadow: inset 0 0 0 1px rgba(182, 254, 59, 0.45); }
+
+/* Поповер под кнопкой, прижат к правому краю кнопок: справа в шапке места
+   мало, и меню не должно уезжать за экран на 320px. Портал в .lessonPlayer
+   (usePlayerPopover.js), top/right приходят инлайном; z-index 500 — выше
+   панелей ответа, растушёвки, свечения и фото плеера */
+.lvMenu {
+  position: absolute;
+  z-index: 500;
+  min-width: 210px;
+  padding: 6px;
+  border-radius: 12px;
+  background: #1f232a;
+  border: 1px solid #2d313a;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  animation: lvMenuIn 0.14s ease-out;
+}
+@keyframes lvMenuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.lvMenuTitle {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  color: #9aa0b4;
+  white-space: nowrap;
+}
+
+.lvMenuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.lvMenuItem:active, .lvMenuItem:focus-visible { background: rgba(255, 255, 255, 0.08); outline: none; }
+@media (hover: hover) {
+  .lvMenuItem:hover { background: rgba(255, 255, 255, 0.08); }
+}
+.lvMenuItem--on { color: #b6fe3b; }
+.lvMenuHint { color: #9aa0b4; font-size: 12px; }
+.lvMenuCheck { color: #b6fe3b; font-size: 13px; }
+
+@media (max-width: 400px) {
+  .lvWrap { gap: 4px; }
+  .lvBtn { height: 30px; min-width: 30px; border-radius: 9px; }
+  .lvBtnRate { padding: 0 6px; font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lvBtn { transition: none; }
+  .lvBtn:active { transform: none; }
+  .lvMenu { animation: none; }
+}

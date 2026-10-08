@@ -106,7 +106,9 @@
 /* «Затишье» (скролл идёт или играет церемония с полётом кружков): блик
    на паузе и погашен — не отвлекает от XP-анимации */
 .moduleGraphScroll--calm .mgNode--lesson::after,
-.moduleGraphScroll--calm .mgHexFill::after {
+.moduleGraphScroll--calm .mgHexFill::after,
+.moduleGraphScroll--scrolling .mgNode--lesson::after,
+.moduleGraphScroll--scrolling .mgHexFill::after {
   animation-play-state: paused;
   opacity: 0;
 }

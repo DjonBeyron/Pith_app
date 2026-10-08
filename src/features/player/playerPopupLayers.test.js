@@ -20,6 +20,25 @@ const screens = [
 ]
 const top = Math.max(...screens)
 
+// Меню шапки (скорость, шестерёнка) — порталом в .lessonPlayer: в его контексте
+// наложения они обязаны быть выше всего, что там лежит: панелей ответа (80),
+// растушёвки низа (90), свечения (95), фото (400)
+describe('меню шапки урока — выше слоёв внутри плеера', () => {
+  const inPlayer = [
+    zOf(read('../../styles/player/panels/choose-word.css'), '.chooseWordPanel') || 80,
+    zOf(read('../../styles/player/layout.css'), '.lessonPlayer::after'),
+    zOf(read('../../styles/player/audio-glow.css'), '.audioGlow') || 95,
+    zOf(read('../../styles/player/modules/photo.css'), '.photoFullOverlay'),
+  ]
+  it('слои плеера найдены', () => {
+    expect(inPlayer.every(z => z > 0)).toBe(true)
+    expect(Math.max(...inPlayer)).toBeGreaterThanOrEqual(400)
+  })
+  it.each([['settings-menu.css', '.smMenu'], ['volume-menu.css', '.lvMenu']])('%s %s выше фото-оверлея и всего остального', (file, sel) => {
+    expect(zOf(read(`../../styles/player/${file}`), sel)).toBeGreaterThan(Math.max(...inPlayer))
+  })
+})
+
 describe('слои всплывающего из плеера', () => {
   it('экраны найдены', () => {
     expect(screens.every(z => z > 0)).toBe(true)

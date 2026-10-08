@@ -89,7 +89,11 @@
 @import './styles/review-cards-source.css';
 @import './styles/player/layout.css';
 @import './styles/player/admin-edit.css';
+@import './styles/player/admin-solve.css';
 @import './styles/player/topbar.css';
+@import './styles/player/volume-menu.css';
+@import './styles/player/settings-menu.css';
+@import './styles/player/settings-sliders.css';
 @import './styles/player/feed.css';
 @import './styles/player/resume-lesson.css';
 @import './styles/player/lesson-ref.css';
@@ -140,6 +144,7 @@
 @import './styles/player/panels/push-prompt.css';
 @import './styles/player/modules/voice-record.css';
 @import './styles/player/hints.css';
+@import './styles/player/audio-glow.css';
 /* после стилей плеера: review.css переопределяет плеер внутри карточки */
 @import './styles/review.css';
 @import './styles/review-actions.css';

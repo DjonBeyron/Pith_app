@@ -3,6 +3,9 @@ import { WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { logHudState } from './dictatorDebug.js'
 import { glowOn, glowOff, glowAssembled } from './dictatorGlowDebug.js'
+import { getVoiceRate } from '../../lessonVolume.js'
+import { publishLevel, unpublishLevel, levelFromWave } from '../../audioLevel.js'
+import { requestSpectrum, peekSpectrum, spectrumBandsAt } from '../../../../shared/lib/audioSpectrum.js'
 import { EXTRA_LEAD_IN_S, extrasStartWithGap, mapWordLayersToChips, answerOrderOf, wordGreenAt, lastWordClipEnd, computeRevealedCellIds, sameIdSet, resultHoldSec, layerShots } from '../../../../shared/lib/tableDictatorTiming.js'
 
 const HUD_OFFSETS    = [-1, 0, 1]
@@ -19,6 +22,18 @@ export function useTableDictatorRaf({
 }) {
   useEffect(() => {
     if (!playing) { cancelAnimationFrame(rafRef.current); return }
+    // Голос диктора → свечение-эквалайзер снизу чата (audioLevel.js) по той же волне,
+    // что у HUD-баров; часы без звука (silentClock, не элемент) — не источник
+    const glowEl = audioRef.current?.tagName ? audioRef.current : null
+    // Спектр по полосам (audioSpectrum.js) — лениво по адресу файла элемента
+    // (в т.ч. прогретого из primedAudio.js); пока не готов — синтез
+    const glowKey = glowEl ? (glowEl.currentSrc || glowEl.src || null) : null
+    if (glowKey) requestSpectrum(glowKey)
+    if (glowEl) publishLevel(glowEl, {
+      playing: true,
+      getLevel: () => levelFromWave(waveformData, glowEl.currentTime),
+      getBands: (now, out) => spectrumBandsAt(peekSpectrum(glowKey), glowEl.currentTime, out),
+    })
 
     // Heartbeat: раз в ~0.5с пишем время аудио + активные ячейки/фазу (throttle, не спамим кадрами)
     let lastHb = -1
@@ -257,7 +272,8 @@ export function useTableDictatorRaf({
           if (hold != null && !rfxCloseRef.current) {
             rfxCloseRef.current = true
             pLog(`[td-raf] закрытие через ${hold.toFixed(2)}s (длина клипа проверки)`)
-            timers.current.push(setTimeout(() => closeRef.current?.(), hold * 1000))
+            // Секунды таймлайна → реальные: скорость голоса (lessonVolume.js)
+            timers.current.push(setTimeout(() => closeRef.current?.(), (hold * 1000) / getVoiceRate()))
           }
         }
       }
@@ -278,6 +294,6 @@ export function useTableDictatorRaf({
     }
     barSmoothRef.current = [0, 0, 0]
     rafRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafRef.current)
+    return () => { cancelAnimationFrame(rafRef.current); if (glowEl) unpublishLevel(glowEl) }
   }, [playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers]) // eslint-disable-line
 }

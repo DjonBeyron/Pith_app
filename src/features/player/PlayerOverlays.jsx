@@ -3,6 +3,8 @@ import XpFloat from './XpFloat.jsx'
 import LessonSummary from './LessonSummary.jsx'
 import { HINT_LIMIT } from './useFinalHints.js'
 import { useShowDebugUi } from './useShowDebugUi.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
+import { usePref, hudVisible } from './lessonPrefs.js'
 import { usePerfProbe } from './usePerfProbe.js'
 
 // Номер версии виден прямо в плеере: после деплоя сразу понятно, что открыт
@@ -26,6 +28,11 @@ export default function PlayerOverlays({
   // Датчик производительности (fps, число анимаций и т.п.) — строка под
   // штампом версии и та же строка раз в секунду в pLog (usePerfProbe.js)
   const perfSummary = usePerfProbe(showDebugUi)
+  // Админ прячет штамп и fps переключателем из шестерёнки (lessonPrefs.js);
+  // датчик при этом работает — строки идут в лог. У остальных — как раньше
+  const { isAdmin } = useAdmin()
+  const hud = usePref('hud')
+  const showHud = showDebugUi && hudVisible(isAdmin, hud)
 
   return (
     <>
@@ -41,8 +48,8 @@ export default function PlayerOverlays({
           onClose={onSummaryClose}
         />
       )}
-      {showDebugUi && <div className="playerVersionStamp">{buildStamp()}</div>}
-      {showDebugUi && perfSummary && <div className="playerPerfStamp">{perfSummary}</div>}
+      {showHud && <div className="playerVersionStamp">{buildStamp()}</div>}
+      {showHud && perfSummary && <div className="playerPerfStamp">{perfSummary}</div>}
     </>
   )
 }

@@ -6,6 +6,8 @@ import HighlightedText from '../../../../shared/ui/HighlightedText.jsx'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
 import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
+import { getLessonMuted } from '../../lessonVolume.js'
+import { useVideoGlowSource } from '../../useVideoGlowSource.js'
 
 // Canvas sticker crop is set in a 200×200 frame; player stickerWrap is 160×160
 const CROP_K = 160 / 200  // 0.8
@@ -57,6 +59,8 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
   // Стикер со звуком ждёт конца первого проигрывания — без файла этого не
   // случится, поэтому админу отпускаем цепочку по таймеру
   useMissingMediaFallback(adminPreview && !src && !pending, onDone)
+  // Звук видео-стикера → свечение снизу чата (первый проход autoSound или звук включён тапом)
+  useVideoGlowSource(videoRef, src, () => autoSound && !firstPlayDoneRef.current)
   const poster  = file?.posterUrl ?? undefined
   const isVideo = node.typeData?.sticker?.isVideo ?? false
   const crop    = node.typeData?.sticker?.crop ?? { x: 0, y: 0, scale: 1 }
@@ -88,7 +92,8 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
     const v = videoRef.current
     if (!isVideo || !v) return
     const turnOn = v.muted
-    v.muted = !turnOn
+    // «Без звука» в шапке урока — тап не включает звук, остальное как обычно
+    v.muted = !turnOn || getLessonMuted()
     setSoundOn(turnOn)
     if (turnOn) v.play().catch(() => {})
   }
@@ -123,7 +128,7 @@ export default function StickerModule({ node, file, lessonNodes = [], lessonFile
     if (!autoSound || firstPlayDoneRef.current) return
     const v = videoRef.current
     if (!v) return
-    v.muted = false; v.loop = false
+    v.muted = getLessonMuted(); v.loop = false
 
     function playAfterAnimation() {
       setTimeout(() => {

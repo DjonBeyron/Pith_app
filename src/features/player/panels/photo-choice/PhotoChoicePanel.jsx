@@ -5,6 +5,8 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { useAnswerOrder } from '../../useAnswerOrder.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
+import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
+import { correctPhotoIndex } from './solveCorrect.js'
 
 const PHOTO_COLORS = [
   '#6366f1','#ec4899','#f59e0b','#10b981',
@@ -148,6 +150,10 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
     setGalleryOpen(false)
   }
 
+  // Авто-ответ админа: тот же handlePick, что у плитки галереи, с первым
+  // верным фото (solveCorrect.js); галерею открывать незачем
+  const solveIdx = correctPhotoIndex(photos, correctIndexes)
+
   return (
     <>
       {/* Распорка: высота разом, без height-анимации — движение истории
@@ -183,6 +189,7 @@ export default function PhotoChoicePanel({ node, lessonFiles = [], onPick, onHei
         ref={panelRef}
         className={`pcPanel${show ? ' pcPanelVisible' : ''}`}
       >
+        <SolveCorrectButton onSolve={rect => handlePick(solveIdx, rect)} disabled={solveIdx == null} />
         <button className="pcAttachBtn" onClick={() => setGalleryOpen(true)}>
           <span className="pcAttachIcon"><Paperclip size={16} /></span>
           <span className="pcAttachLabel">Прикрепи фото</span>

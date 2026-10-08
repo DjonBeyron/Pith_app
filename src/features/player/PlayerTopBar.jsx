@@ -5,7 +5,11 @@ import { armPrimeOnGesture } from '../../shared/lib/primedAudio.js'
 import { DEBUG_TOOLS_ON } from '../../shared/lib/debugToolsEnabled.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 import { useShowDebugUi } from './useShowDebugUi.js'
+import { useCopyLog } from './useCopyLog.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
 import BackButton from '../../shared/ui/BackButton.jsx'
+import LessonVolumeButtons from './LessonVolumeButtons.jsx'
+import LessonSettingsMenu from './LessonSettingsMenu.jsx'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
 const CROP_FRAME  = 80
@@ -15,23 +19,12 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
   const [intrinsic, setIntrinsic] = useState(null)
   // Кнопки «⬇ лог»/«⧉ копия» — часть диагностического набора урока (вторая
   // половина, штамп версии, живёт в PlayerOverlays). Кто его видит — см.
-  // useShowDebugUi
+  // useShowDebugUi. У админа лог переехал в шестерёнку (LessonSettingsMenu),
+  // здесь остаётся ученику, если админ включил диагностику для всех
   const showDebugUi = useShowDebugUi()
-  // Внутри Telegram WebView синтетический клик по <a download> на части
-  // устройств не срабатывает молча (файл просто не появляется) — копия в
-  // буфер работает там, где скачивание нет. copyState — краткая подпись
-  // результата под кнопкой вместо тихого «ничего не произошло»
-  const [copyState, setCopyState] = useState(null) // null | 'ok' | 'err'
-
-  async function handleCopy() {
-    try {
-      await onCopyLog?.()
-      setCopyState('ok')
-    } catch {
-      setCopyState('err')
-    }
-    setTimeout(() => setCopyState(null), 1500)
-  }
+  const { isAdmin } = useAdmin()
+  const showLogBtns = showDebugUi && !isAdmin
+  const [copyState, handleCopy] = useCopyLog(onCopyLog)
 
   // Сброс размеров при смене лого — подстройка состояния прямо в рендере
   // (паттерн из доков React вместо setState в эффекте)
@@ -121,7 +114,12 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
           {title ? `изучаем ${title}` : 'онлайн'}
         </span>
       </div>
-      {showDebugUi && (
+      {/* «Без звука» и скорость голоса — состояние в lessonVolume.js */}
+      <LessonVolumeButtons />
+      {/* Шестерёнка: переключатели звука/эквалайзера; у админа — ещё лог,
+          fps и версия, ползунки (состояние — lessonPrefs.js) */}
+      <LessonSettingsMenu onDownloadLog={onDownloadLog} onCopyLog={onCopyLog} />
+      {showLogBtns && (
         <button
           className="playerTopBarDebugBtn"
           onClick={onDownloadLog}
@@ -129,7 +127,7 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
           aria-label="Скачать лог"
         >⬇ лог</button>
       )}
-      {showDebugUi && (
+      {showLogBtns && (
         <button
           className="playerTopBarDebugBtn"
           onClick={handleCopy}

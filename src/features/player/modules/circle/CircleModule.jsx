@@ -5,36 +5,24 @@ import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback } from '../../useMissingMediaFallback.js'
 import { VIDEO_GUARD, VIDEO_GUARD_STYLE } from '../../../../shared/lib/videoHudGuard.js'
 import { useWideScreen, useVideoMirror } from '../../videoMirror.js'
+import { useFirstFrame } from '../../useFirstFrame.js'
 import { useCircleExpand, getSmallPx } from './useCircleExpand.js'
 import { useCircleLoopPause } from './useCircleLoopPause.js'
+import { getLessonMuted } from '../../lessonVolume.js'
+import { useVideoGlowSource } from '../../useVideoGlowSource.js'
+import { circleFit } from './circleFit.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
 
-function calcStyle(intrinsic, dims, crop) {
-  if (!intrinsic || !dims) return {
-    position: 'absolute', inset: 0, objectFit: 'cover',
-    transform: `translate(${crop.x}px,${crop.y}px) scale(${crop.scale})`,
-    transformOrigin: 'center center',
-  }
-  const ma = intrinsic.w / intrinsic.h, fa = dims.w / dims.h
-  const d = ma > fa ? { w: dims.h * ma, h: dims.h } : { w: dims.w, h: dims.w / ma }
-  return {
-    position: 'absolute', left: '50%', top: '50%',
-    width: d.w + 'px', height: d.h + 'px',
-    transform: `translate(calc(-50% + ${crop.x}px), calc(-50% + ${crop.y}px)) scale(${crop.scale})`,
-    transformOrigin: 'center center',
-  }
-}
-
 export default function CircleModule({ node, file, onDone, bottomOffset = 0, videoAutoSound, adminPreview = false, pending = false }) {
   const [objectUrl, setObjectUrl]   = useState(null)
   const [intr, setIntr]             = useState(null)
+  const [posterSize, setPosterSize] = useState(null)  // naturalWidth/Height стоп-кадра
   const [dims, setDims]             = useState(null)
   const [mutedLoop, setMutedLoop]   = useState(false)  // videoAutoSound: true after first play
 
   const crop = node.typeData?.circle?.crop ?? { x: 0, y: 0, scale: 1 }
-  const isAndroid = /android/i.test(navigator.userAgent)
 
   // Отрицательный офсет триггера played — следующая нода стартует до конца кружка
   usePlayedOffset(playedOffsetMs(node), () => vRef.current, () => onDone?.())
@@ -98,6 +86,8 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
   // Раскрытие кружка на весь экран по тапу/свайпу — useCircleExpand.js
   const { expanded, collapsing, expandTransform, expandedRef, handleTap, collapse, onTouchStart, onTouchEnd } =
     useCircleExpand({ wrapRef, vRef, dims, bottomOffset, doneFiredRef, stopRaf, onDone })
+  // Звук кружка → свечение снизу чата (первый проход videoAutoSound или раскрыт тапом; немая петля не светит)
+  useVideoGlowSource(vRef, src, () => (videoAutoSound && !firstPlayDoneRef.current && !node.isHistory) || !!expandedRef.current)
 
   // videoAutoSound: called on onLoadedData — sets up MutationObserver then unmuted play
   function handleCircleLoaded() {
@@ -109,7 +99,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     // (ref для этого и существует); компилятор осторожничает из-за передачи
     // vRef в useCircleExpand выше
     // eslint-disable-next-line react-hooks/immutability
-    v.muted = false
+    v.muted = getLessonMuted() // «без звука» в шапке урока — первый проход немой
     v.loop  = false
 
     function playAfterAnimation() {
@@ -197,11 +187,26 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     ...(collapsing && !expanded ? { zIndex: 10 } : {}),
   }
 
-  const videoStyle = calcStyle(intr, dims, crop)
+  // Видео и стоп-кадр — одна функция геометрии (circleFit.js). Размер кадра у
+  // видео — из его метаданных, у постера — свой naturalWidth/Height (постер
+  // снят в размере кадра), чтобы стоп-кадр не ждал loadedmetadata
+  const videoStyle = circleFit({ box: dims, mediaW: intr?.w, mediaH: intr?.h, crop })
+  const posterStyle = circleFit({ box: dims, mediaW: posterSize?.w ?? intr?.w, mediaH: posterSize?.h ?? intr?.h, crop })
   // На десктопе кадры показывает canvas, а сам <video> прячется: иначе
   // Яндекс.Браузер вешает поверх кружка свою панель (см. videoMirror.js)
   const mirror = useWideScreen()
-  useVideoMirror(vRef, mirrorRef, mirror && !!src, poster)
+  // Зеркало сообщает, когда в canvas легла настоящая (не чёрная) картинка:
+  // до этого без постера держим скелетон, а не пустой тёмный круг (Android)
+  const [mirrorSrc, setMirrorSrc] = useState(null)
+  useVideoMirror(vRef, mirrorRef, mirror && !!src, null, () => setMirrorSrc(src))
+  // Стоп-кадр везде — своя <img> с геометрией кадра (posterStyle) поверх видео/
+  // canvas, пока видео не показало кадр (iPhone: useFirstFrame, Android:
+  // зеркало нарисовало настоящий кадр). Ни UA-poster (iOS рисует иначе), ни
+  // CSS-фон (был без кропа ноды — кадр «прыгал» при замене canvas), ни
+  // постер в canvas: canvas хранит только живые кадры
+  const framed = useFirstFrame(vRef, src)
+  const showPosterImg = !!poster && (mirror ? mirrorSrc !== src : !framed)
+  const showSkeleton = !poster && !(mirror ? mirrorSrc === src : loadedSrc)
 
   return (
     <div className="playerMsgRow playerMsgRowCircle">
@@ -218,15 +223,13 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            <div ref={frRef} className="circleFrame"
-              style={isAndroid && poster ? { backgroundImage: `url(${poster})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-            >
+            <div ref={frRef} className="circleFrame">
               {/* Ни постера, ни первого кадра — тот же скелетон с бликом, что и
                   без src: иначе до декодирования круг стоял пустым */}
-              {!poster && !loadedSrc && <div className="feedSkeleton" />}
+              {showSkeleton && <div className="feedSkeleton" />}
               <video
                 {...VIDEO_GUARD}
-                ref={vRef} src={src} poster={poster}
+                ref={vRef} src={src}
                 className={`circleMedia${mirror ? ' videoMirrorSource' : ''}`}
                 style={mirror ? VIDEO_GUARD_STYLE : { ...videoStyle, ...VIDEO_GUARD_STYLE }}
                 playsInline preload="auto"
@@ -247,7 +250,19 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
                 onEnded={handleEnded}
               />
               {mirror && (
-                <canvas ref={mirrorRef} className="circleMedia" style={videoStyle} aria-hidden="true" />
+                <canvas ref={mirrorRef} className="circleMedia" style={intr ? videoStyle : posterStyle} aria-hidden="true" />
+              )}
+              {showPosterImg && (
+                <img src={poster} alt="" draggable={false} className="circleMedia"
+                  onLoad={e => {
+                    const { naturalWidth: w, naturalHeight: h } = e.currentTarget
+                    setPosterSize({ w, h })
+                    // Постер снят с кадра видео — пропорции обязаны совпасть
+                    if (intr && w && h && Math.abs(w / h - intr.w / intr.h) > 0.01) {
+                      pLog(`[circle] пропорции постера ${w}x${h} ≠ видео ${intr.w}x${intr.h}`)
+                    }
+                  }}
+                  style={{ ...posterStyle, ...VIDEO_GUARD_STYLE }} />
               )}
             </div>
 

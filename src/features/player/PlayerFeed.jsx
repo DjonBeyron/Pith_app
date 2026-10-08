@@ -228,7 +228,10 @@ export default function PlayerFeed({ children, panelOpen = false }) {
       // Existing rows: FLIP — отбрасываем их назад, туда где они стояли, и
       // ведём вверх, но НЕ сразу: до точки касания они стоят (см. slideFrames).
       // fill:'backwards' держит стартовый кадр с первой отрисовки, без прыжка.
-      if (existingRows.length && shiftPx > 0) {
+      // Обёртка едет и когда истории ещё нет (первая нода урока после точек
+      // «печатает»): вторая фаза пути новой строки — «вместе с обёрткой», и
+      // без этой анимации кружок/видео выше TRAVEL въезжали бы на 5px вместо 200
+      if (shiftPx > 0) {
         pLog(`[feed] толчок ${shiftPx}px, касание на ${Math.round(Math.max(0, TRAVEL - shiftPx) / TRAVEL * SLIDE_MS)}мс`)
         // Вся история — одной анимацией обёртки. scaleY(-1) обёртки входит в
         // кадры: иначе WAAPI перекрыл бы переворот на время анимации
@@ -238,7 +241,7 @@ export default function PlayerFeed({ children, panelOpen = false }) {
         )
         // Прилёт в открытую панель (подсказка/сигнал над таблицей) — покадрово:
         // глазом видно микро-опускание истории в первые кадры (traceSlideIn.js)
-        if (panelOpen) {
+        if (panelOpen && existingRows.length) {
           const old = lastTopRef.current   // последний кадр ДО вставки (watchLastTop)
           traceSlideIn({
             anchor: existingRows[existingRows.length - 1], fresh: newRows[0],

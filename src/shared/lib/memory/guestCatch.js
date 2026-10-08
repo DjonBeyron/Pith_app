@@ -2,7 +2,7 @@ import { localDate } from './dailyPick.js'
 import { MEM_KEY, LOG_KEY, LOG_DAYS, read, write, addDays } from './guestMemory.js'
 
 // «Ловля слов в ленте» для ГОСТЯ — зеркало серверных RPC memory_catch_heard /
-// memory_catch_help / memory_catch_counts (миграция 20261008120000_feed_catch.sql)
+// memory_catch_help / memory_catch_counts (миграция 20261008130000_feed_catch.sql)
 // над локальной памятью и журналом гостя (guestMemory.js). Шаг слова не меняется
 // ни от чего — только журнал и, при «Помочь памяти», срок на завтра.
 //

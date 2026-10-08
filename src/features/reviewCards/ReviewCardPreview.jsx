@@ -39,6 +39,7 @@ export default function ReviewCardPreview({ index, nodes, files, onClose }) {
             key={run}
             nodes={nodes}
             files={files}
+            startTyping={false} /* как в повторении: карточка без стартовых точек */
             recordStats={false}
             onFinishStats={({ wrong }) => setResult(wrong > 0 ? 'wrong' : 'correct')}
             onSummaryClose={() => {}}

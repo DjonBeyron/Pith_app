@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useFeedEls } from './feedRefs.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { ANCHOR_ALL, FEED_WINDOW, entryKey, olderAnchor, windowStart } from './feedWindow.js'
+import { isSilentMedia } from './useSoloMedia.js'
 
 // Окно ленты (см. feedWindow.js): какие записи mergeFeedOrder реально рендерить.
 //
@@ -61,7 +62,8 @@ export function useFeedWindow(entries, { hasMoreHistory = false, onLoadMoreHisto
     const rows = feedEls.inner.querySelectorAll('[data-entry-key]')
     for (const row of rows) {
       const media = row.querySelector('audio, video')
-      if (!media || media.paused || media.muted) continue
+      // Немая петля не держит строку; голосовое при «без звука» — держит
+      if (!media || media.paused || isSilentMedia(media)) continue
       const i = entries.findIndex(e => entryKey(e) === row.dataset.entryKey)
       if (i >= 0 && i < start) start = i
     }

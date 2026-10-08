@@ -49,6 +49,14 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
     if (result === 'wrong') setResult(null)
   }
 
+  // Авто-ответ админа (SolveCorrectButton): строка ответа целиком, той же
+  // формы, что кладёт pickChip (solveCorrect.js), без озвучки каждого слова
+  function placeAll(items) {
+    if (isAnswered || signalState.freeze) return
+    setPlaced(items)
+    setResult(null)
+  }
+
   function removePlaced(pos) {
     if (isAnswered || signalState.freeze) return
     // Удаление любого чипа — та же самая, уже существующая механика (нет
@@ -99,7 +107,7 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
 
   return {
     shuffled, placed, usedIdxs, result, isAnswered,
-    pickChip, removePlaced, checkAnswer,
+    pickChip, placeAll, removePlaced, checkAnswer,
     blinkIndex: signalState.blinkIndex,
     freeze: signalState.freeze,
   }

@@ -12,8 +12,10 @@ import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
 import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
 import { useAudioMeta } from './useAudioMeta.js'
+import { useAudioGlowSource } from '../../useAudioGlowSource.js'
 import { useStuckPlayRecovery } from './useStuckPlayRecovery.js'
 import { usePlayerMuted } from '../../playerMuted.js'
+import { useMediaVoiceRate } from '../../lessonVolume.js'
 import { logAudioMount, logAudioPlayStart, makeAudioHeartbeat, makeGapWatch, attachAudioEventLog, logAudioEnded } from './audioDebug.js'
 
 // Одна и та же пустая ссылка на все рендеры: иначе useMemo по highlights
@@ -77,6 +79,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const downloading = !!file && !file.blobUrl && !file.evicted && !file.error && !file.localFile && !srcLocked
   // Волна, длительность, готовность волны — useAudioMeta.js (нода → прогрев → сами)
   const { waveData, duration, waveReady, adoptElementDuration } = useAudioMeta(node, file, src)
+  // Скорость голоса из шапки урока (lessonVolume.js) — на элемент, при смене src/элемента и на лету
+  useMediaVoiceRate(audioRef, [src, elKey])
+  useAudioGlowSource(audioRef, waveData, src, elKey) // уровень речи → свечение-эквалайзер снизу чата (AudioGlow.jsx)
 
   // Аудио ещё не загружено, а сценарий смотрит админ: показываем текст, будто
   // сообщение звучит, и по окончании заглушки отпускаем цепочку дальше
@@ -336,7 +341,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   return (
     <div className="playerMsgRow">
       <PlayerBubble className={bubbleClass}>
-        {src && <audio key={elKey} ref={audioRef} src={src} preload="auto" muted={muted} />}
+        {/* data-voice: это речь, а не немая петля — для useSoloMedia при «без звука» */}
+        {src && <audio key={elKey} ref={audioRef} src={src} preload="auto" muted={muted} data-voice="" />}
         <div className="playerAudio">
           {/* Призрак полного текста — держит финальную ширину пузыря СРАЗУ,
               с первого рендера, даже пока сама расшифровка ещё не появилась

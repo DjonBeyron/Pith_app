@@ -67,6 +67,20 @@ describe('шаги дебага проигрывателя графа', () => {
     expect([t.state.pending, t.state.waiting]).toEqual([null, false])
   })
 
+  // Старт урока: лента пуста, идут точки FIRST_TYPING_MS перед первой нодой
+  // (useGraphPlayer.js) — назначенный reveal с delayMs; шаги не должны виснуть
+  it('стартовые точки: «показать сейчас» показывает первую ноду, «сдвинуть время» докручивает 1 с, «назад» — некуда', () => {
+    const t = setup({ scheduled: { type: 'reveal', nodeId: 'a', delayMs: 1000 }, pendingMs: 1000, visible: [], nodes: { a } })
+    expect(t.api.stepBack()).toBe(null)
+    expect(t.api.stepTime(400)).toBe(false)
+    expect(t.api.stepTime(600)).toBe(true)
+    expect(t.log.revealed).toEqual(['a'])
+    const u = setup({ scheduled: { type: 'reveal', nodeId: 'a', delayMs: 1000 }, pendingMs: 1000, visible: [], nodes: { a } })
+    expect(u.api.revealNow()).toBe(true)
+    expect(u.log.revealed).toEqual(['a'])
+    expect(u.state.waiting).toBe(true) // точки гасит сам revealNode графа, не шаг
+  })
+
   it('«шаг назад» с одним сообщением — некуда', () => {
     expect(setup({ visible: [a] }).api.stepBack()).toBe(null)
   })
