@@ -4,8 +4,9 @@ import { canOfferCatch, shownCatchToday, markCatchShown, CATCH_GAP } from './fee
 
 // «Ловля слов» на уровне всей ленты — зеркало useFeedRecall.js, только лимиты показа:
 // onSlide(moduleId) зовёт лента при смене слайда — считаются только настоящие смены фразы (перенос круга
-// держит ту же фразу и не в счёт); claim(moduleId) спрашивает слайд, когда фраза подходит под задание
-// (feedCatch.js → catchEligible): можно ли поставить его сейчас. Не чаще раза в 5 видео и не больше 3 в день
+// держит ту же фразу и не в счёт); claim(moduleId, ahead) спрашивает слайд, когда фраза подходит под задание
+// (feedCatch.js → catchEligible): можно ли поставить его сейчас. ahead — слайд ещё только следующий за активным
+// (готовим чип до свайпа, чтобы он был в первом же кадре): до него ещё одно пролистывание, его и считаем вперёд. Не чаще раза в 5 видео и не больше 3 в день
 // (свой ключ localStorage, независимо от «Помнишь?»); фраза, на которой задание уже поставили, при возврате
 // к ней получает его снова — без нового счёта. Первая фраза после входа в ленту может предложить сразу.
 // locked/setLocked — на активном слайде открыта панель набора: FeedSwiper не листает (FeedTab передаёт
@@ -25,13 +26,13 @@ export function useFeedCatch() {
       s.last = moduleId
       s.swipes += 1
     },
-    claim(moduleId) {
+    claim(moduleId, ahead = false) {
       const s = state.current
       if (s.offered.has(moduleId)) return true
       const today = localToday()
-      if (!canOfferCatch({ swipes: s.swipes, shown: shownCatchToday(today) })) return false
+      if (!canOfferCatch({ swipes: s.swipes + (ahead ? 1 : 0), shown: shownCatchToday(today) })) return false
       markCatchShown(today)
-      s.swipes = 0
+      s.swipes = ahead ? -1 : 0 // впереди ещё пролистывание до этой фразы — после него счёт равен 0, как при обычном claim
       s.offered.add(moduleId)
       return true
     },

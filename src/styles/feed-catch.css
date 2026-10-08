@@ -1,18 +1,18 @@
 /* «Ловля слов» в ленте (features/feed/catch, спек v2) — общая часть: чип вместо шариков, обёртка-перехват тапа,
-   гашение блока фразы в ленте, накрытие слайда (.catchCover: полоска + шторка одним блоком) и сдвиг контролов видео,
-   пока оно открыто.
+   гашение блока фразы в ленте, накрытие слайда (.catchCover: полоска + шторка одним блоком и одной анимацией) и
+   сдвиг контролов видео, пока оно открыто.
    Шторка — feed-catch-sheet.css, полоска фразы — feed-catch-strip.css. Анимируются только opacity и transform. */
 
 /* ── Обёртка фразы, когда задание есть ──────────────────────────────── */
 /* Шариков под чипом нет: на их месте невидимая копия фразы (.catchPhraseGhost — держит ту же ширину/высоту, раскладка
    не прыгает), поверх неё чип. Якорь для чипа, сжата по ширине фразы (inline-block) — чип растягивается ровно на неё;
-   min-width — чтобы подпись чипа («Проверь, что услышал», ~165px) не обрезалась многоточием на короткой фразе.
+   min-width — чтобы подпись чипа («всё ли удалось услышать», ~165px) не обрезалась многоточием на короткой фразе.
    Тап по любому месту блока открывает шторку (FeedSlide) */
 .catchSpoilerWrap {
   position: relative;
   display: inline-block;
   max-width: 100%;
-  min-width: min(172px, 100%);
+  min-width: min(200px, 100%);
   vertical-align: top;
   cursor: pointer;
 }
@@ -23,7 +23,8 @@
 
 /* ── Чип вместо шариков ─────────────────────────────────────────────── */
 /* На всю ширину блока фразы (.catchSpoilerWrap), по вертикали по центру, текст по центру. Фон сплошной тёмный.
-   Мягкое «дыхание» масштаба зовёт нажать; пока шторка открыта — гаснет.
+   Мягкое «дыхание» масштаба зовёт нажать; пока шторка открыта — гаснет. Высота фиксированная (текст — два
+   абсолютных span'а, друг друга сменяющих, см. ниже), ширина — по блоку фразы, от текста не зависит.
    Тень без большого blur: слой с масштабной анимацией и тенью 18px композитор пересчитывал бы дорого */
 .catchOverChip {
   position: absolute;
@@ -32,7 +33,9 @@
   right: 0;
   z-index: 3;
   transform: translateY(-50%);
-  padding: 8px 12px;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 12px;
   background: #1a1d22;
@@ -42,9 +45,7 @@
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   text-shadow: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   cursor: pointer;
@@ -58,8 +59,40 @@
   pointer-events: none;
   animation: none;
 }
+.catchOverChipHidden .catchChipText { animation: none; }
 @keyframes catchChipBreath {
   50% { transform: translateY(-50%) scale(1.03); }
+}
+
+/* Текст чипа: два слоя друг над другом, кроссфейд 400мс. Цикл 3.8с: «Проверь,» 1.2с → 0.4с кроссфейд → «всё ли
+   удалось услышать» 1.8с → 0.4с кроссфейд (проценты ниже считаны от 3.8с). Анимируется только opacity. Без анимации
+   (лента не на экране, шторка открыта) виден «Проверь,» */
+.catchChipText {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: 3.8s linear infinite;
+}
+.catchChipA { animation-name: catchChipA; }
+.catchChipB { opacity: 0; animation-name: catchChipB; }
+@keyframes catchChipA {
+  0%, 31.58% { opacity: 1; }
+  42.11%, 89.47% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes catchChipB {
+  0%, 31.58% { opacity: 0; }
+  42.11%, 89.47% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* ── Блок фразы в ленте, пока накрытие открыто ──────────────────────── */
@@ -76,16 +109,22 @@
 }
 
 /* Лента не на экране (другая вкладка нижней панели, «Мои уроки», лента под уроком — .feedV2--paused / .feedViewHidden,
-   FeedTab.jsx): бесконечные анимации «Ловли» — дыхание чипа и курсор строки ввода — стоят. visibility: hidden
+   FeedTab.jsx): бесконечные анимации «Ловли» — дыхание чипа, цикл его текста и курсор строки ввода — стоят. visibility: hidden
    анимацию не останавливает, композитор просыпался бы под скрытой лентой каждый кадр (как у feedSkelShine) */
 .feedV2--paused .catchOverChip,
 .feedViewHidden .catchOverChip,
+.feedV2--paused .catchChipText,
+.feedViewHidden .catchChipText,
 .feedV2--paused .catchCaret,
 .feedViewHidden .catchCaret { animation: none; }
 
 /* ── Накрытие: полоска + шторка ─────────────────────────────────────── */
 /* Один блок у нижней навигации: колонка «полоска, затем шторка». z-index выше HUD (5), плашки перевода (6)
-   и тоста (7). Сам блок касаний не ловит — только его дети (между ними зазоров нет) */
+   и тоста (7). Сам блок касаний не ловит — только его дети (между ними зазоров нет).
+   ОДИН элемент — одна анимация: блок целиком (полоска и шторка вместе) выезжает снизу и так же уезжает (transform 260мс,
+   без задержек); у детей собственных transform/transition появления нет. Выезд — торможением (ease-out), уход —
+   разгоном (ease-in): у торможения последние пиксели ползут, и уход «застревал» в конце, а размонтирование по
+   transitionend (CatchCover) приходится ровно на последний кадр. will-change — только пока блок едет (.catchCoverMoving) */
 .catchCover {
   position: absolute;
   left: 0;
@@ -95,8 +134,15 @@
   display: flex;
   flex-direction: column;
   pointer-events: none;
+  transform: translateY(calc(100% + 24px));
+  transition: transform 260ms cubic-bezier(0.4, 0, 1, 1);
 }
 .catchCover > * { pointer-events: auto; }
+.catchCoverShown {
+  transform: translateY(0);
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.catchCoverMoving { will-change: transform; }
 
 /* ── Сдвиг контролов видео, пока накрытие открыто ───────────────────── */
 /* Иконка паузы и чипы звука (SlideVideo.jsx, базовые правила в feed-media.css) поднимаются на половину высоты
@@ -116,6 +162,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .catchOverChip { animation: none; }
+  .catchCover { transition: none; }
+  .catchCoverMoving { will-change: auto; }
   .feedSlide .slidePauseIcon,
   .feedSlide .feedSoundChip { transition: none; }
 }

@@ -1,22 +1,17 @@
 /* Шторка «Напечатать» «Ловли слов» (features/feed/catch/CatchSheet.jsx) — нижняя часть накрытия .catchCover
-   (feed-catch.css). Фон и ободок как у панелей плеера (.phrasePanel). Выезжает снизу: transform 260мс,
-   .catchCoverShown ставит CatchCover кадром позже монтирования. Внутри: клавиатура TypeWordKeyboard, главная кнопка
+   (feed-catch.css). Фон и ободок как у панелей плеера (.phrasePanel). Выезжает вместе с полоской: анимацию (transform
+   260мс, .catchCoverShown) делает сам .catchCover, у шторки собственной нет. Внутри: клавиатура TypeWordKeyboard, главная кнопка
    (.phraseCheckBtn — лаймовая рамка, как «Проверить» в плеере), две текстовые кнопки, на финале — тело сворачивается,
    раскрывается ряд с одной «Готово».
    Фон сплошной (без alpha и backdrop-filter). Попап подтверждения (.catchConfirmLayer, feed-catch-confirm.css) —
-   абсолютный слой поверх шторки, её высоту не меняет. Без will-change: шторка едет только при открытии/закрытии,
-   постоянный will-change держал бы её (с клавиатурой) отдельным слоем всё время. */
+   абсолютный слой поверх шторки, её высоту не меняет. will-change у .catchCover только на время перехода. */
 
 .catchSheet {
   position: relative;
-  z-index: 2; /* выше полоски: она выезжает из-под шторки */
   background: #1a1d22;
   border-top: 1px solid #2a2d35;
-  transform: translateY(105%);
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
   touch-action: manipulation;
 }
-.catchCoverShown .catchSheet { transform: translateY(0); }
 
 /* Тело и ряд «Готово» складываются высотой (grid 0fr ↔ 1fr, 260мс — как выезд шторки): на «Проверить» тело
    (клавиатура и кнопки) сворачивается, а ряд «Готово» раскрывается теми же 260мс — суммарная высота шторки меняется
@@ -141,7 +136,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .catchSheet,
   .catchSheetFold { transition: none; }
   .catchSheetFoldOpen .catchDoneRow .catchMainBtn { animation: none; }
   .catchPrevBtn { transition: none; }

@@ -51,6 +51,8 @@
 }
 
 .acPhone .catchCover {
+  transform: none;
+  transition: none;
   position: static;
   margin-top: auto;
   pointer-events: auto;

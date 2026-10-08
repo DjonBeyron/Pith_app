@@ -6,7 +6,7 @@ import { catchKeyboard } from './catchLetters.js'
 import { getForcedCatch, clearForcedCatch, forcedKnowledge, onForcedCatch } from './catchForce.js'
 import * as cs from './catchState.js'
 
-export const CATCH_COVER_OUT_MS = 300 // шторка и полоска уезжают вниз (feed-catch-sheet.css: 260мс + запас)
+export const CATCH_COVER_OUT_MS = 400 // страховка: накрытие размонтируется по transitionend (CatchCover), но не позже этого (feed-catch.css: уход 260мс)
 const LEARN_SYNC_DELAY_MS = 450 // память «Моего обучения» обновляем после ухода накрытия и проявления фразы (200мс)
 
 // «Ловля слов» на одном слайде ленты (спек v2: чип поверх шариков → шторка с клавиатурой + полоска фразы,
@@ -17,16 +17,22 @@ const LEARN_SYNC_DELAY_MS = 450 // память «Моего обучения» 
 // Сигналы (catchApi): при check — за каждое своё слово (уровень ≥2), набранное верно и без подсказки → catchHeard;
 // при help — сразу catchHelp (своё слово); при reveal — ничего. Пока накрытие в DOM — onLock(true): лента не свайпается
 // (снимается, когда накрытие размонтировано, а не в кадре старта ухода — onLock перерисовывает всю ленту).
-// «Готово» идёт строго по порядку, без работы в первых кадрах анимации ухода: накрытие уезжает (CATCH_COVER_OUT_MS) →
-// размонтирование (finished: слайд становится обычным открытым, фраза проявляется 200мс) → через LEARN_SYNC_DELAY_MS
-// память «Моего обучения» обновляется (onLearnChanged), если был сигнал.
+// «Готово» идёт строго по порядку, без работы в первых кадрах анимации ухода: накрытие уезжает одним блоком (260мс) →
+// размонтирование по transitionend (coverGone; страховка — таймер CATCH_COVER_OUT_MS; finished: слайд становится
+// обычным открытым, фраза проявляется 200мс) → через LEARN_SYNC_DELAY_MS память «Моего обучения» обновляется
+// (onLearnChanged), если был сигнал.
+// Когда решать. Чип должен быть в самом первом кадре слайда, иначе при свайпе сначала виден спойлер (картинка покоя),
+// а потом он превращается в плашку: FeedSwiper даёт active=true только после конца анимации свайпа. Поэтому решение
+// «задание есть» принимается раньше: ahead (слайд — следующий за активным) или active; принудительное — уже у любого
+// соседа (near, лимитов у него нет). Пройденный слайд (near, но не ahead) новое задание не получает — иначе он занял
+// бы лимит, который ждёт следующий.
 // Принудительное задание (Админ → Ловля → «Отправить в ленту», catchForce.js): на слайде своей фразы знание слов =
 // уровни из песочницы (не память), задание есть всегда (recall/флаг модуля не важны), feedCatch.claim обходится (лимиты
 // не считаются), сигналы в память — только при writeMemory; «Готово» и «Раскрыть» снимают его (разово).
 // → { active, open, mounted, phase, done, finished, revealed, shift, words, cur, curIndex, typed, typedBy, helped, helpedSet, model,
 //     results, isLast, hasPrev, openSheet(), setCurrent(index), press(ch), backspace(), next(), prev(), check(), help(),
-//     reveal(), finish() }
-export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, onLock, onLearnChanged }) {
+//     reveal(), finish(), coverGone() }
+export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = false, knowledge, recallIndex, onLock, onLearnChanged }) {
   // sessionStorage читаем на монтирование/смену фразы и когда админ выставил задание заново (forcedTick), не в каждом рендере
   const [forcedTick, setForcedTick] = useState(0)
   useEffect(() => onForcedCatch(() => setForcedTick(t => t + 1)), [])
@@ -45,7 +51,8 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   // мелькания шариков и лишнего рендера. claim идемпотентен для одного модуля (offered Set в useFeedCatch), повторный
   // рендер (StrictMode, пересборка) безопасен; ref хранит id фразы с заданием — при смене модуля сравнение даёт false
   const claimedRef = useRef(null)
-  if (active && eligible && claimedRef.current !== mod.id && (forced || feedCatch?.claim(mod.id))) claimedRef.current = mod.id
+  const mayDecide = forced ? active || near : active || ahead
+  if (mayDecide && eligible && claimedRef.current !== mod.id && (forced || feedCatch?.claim(mod.id, !active))) claimedRef.current = mod.id
   const claimed = claimedRef.current === mod.id
 
   const [st, setSt] = useState(() => cs.initialCatch(mod.id))
@@ -67,8 +74,8 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   useEffect(() => { lockRef.current = onLock })
   useEffect(() => () => lockRef.current?.(false), [])
 
-  // Накрытие остаётся в DOM ещё CATCH_COVER_OUT_MS после закрытия — доигрывает уход вниз
-  // (closing поднимается при рендере в момент закрытия, таймер его гасит)
+  // Накрытие остаётся в DOM, пока доигрывает уход вниз: CatchCover сообщает о конце перехода (coverGone), таймер
+  // CATCH_COVER_OUT_MS — страховка (closing поднимается при рендере в момент закрытия)
   const [closing, setClosing] = useState(false)
   const [prevOpen, setPrevOpen] = useState(open)
   if (prevOpen !== open) {
@@ -81,6 +88,7 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
     return () => clearTimeout(t)
   }, [closing])
   const mounted = open || closing
+  const coverGone = () => setClosing(false)
 
   // Блокировка свайпа — пока накрытие в DOM на активном слайде (снимается после ухода накрытия, не в его первом кадре)
   useEffect(() => { lockRef.current?.(mounted) }, [mounted])
@@ -179,6 +187,6 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
     shift: cs.shiftOn(s, words), words,
     cur, curIndex: s.cur, typed: s.cur == null ? '' : cs.typedOf(s, s.cur), typedBy: s.typedBy,
     helped, helpedSet: s.helped, model, results: s.results, isLast: cs.isLast(s, words), hasPrev,
-    openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish,
+    openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish, coverGone,
   }
 }

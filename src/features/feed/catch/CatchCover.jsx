@@ -3,21 +3,25 @@ import CatchStrip from './CatchStrip.jsx'
 import CatchSheet from './CatchSheet.jsx'
 
 // «Накрытие» слайда в режиме «Ловли слов»: полоска фразы (CatchStrip) над шторкой набора (CatchSheet), одним блоком
-// у нижней навигации (feed-catch.css: .catchCover). Открытие: шторка выезжает снизу (260мс), полоска — через ~120мс
-// из-под неё (z-index ниже шторки); закрытие (open=false) — обе уезжают вниз, родитель размонтирует блок
-// после CATCH_COVER_OUT_MS (useSlideCatch.mounted). Высота блока (шторка + полоска) уходит в onHeight(px) из
+// у нижней навигации (feed-catch.css: .catchCover). Это ОДИН элемент с одной анимацией: выезжает снизу целиком
+// (transform 260мс), у детей собственных анимаций появления/ухода нет. Закрытие (open=false) — он так же уезжает вниз,
+// по окончании перехода (transitionend) вызывается onClosed — родитель размонтирует блок (useSlideCatch.coverGone;
+// таймер CATCH_COVER_OUT_MS там — только страховка). will-change: transform стоит лишь на время перехода
+// (.catchCoverMoving). Высота блока (шторка + полоска) уходит в onHeight(px) из
 // ResizeObserver — FeedSlide кладёт её в --catch-cover-h, чтобы сдвинуть иконку паузы и чипы звука (0, когда закрыто);
 // одинаковая высота подряд наружу не уходит (ResizeObserver шлёт и субпиксельный шум), любая другая — уходит сразу.
 // Второй аргумент onHeight(h, follow): follow=true, когда высота меняется кадр за кадром (сворачивание клавиатуры на
-// «Проверить», раскрытие линии/факта) — тогда иконки следуют за ней без собственного перехода (иначе каждый кадр
+// «Проверить») — тогда иконки следуют за ней без собственного перехода (иначе каждый кадр
 // перезапускал бы их 260мс-переход — дрожание); одиночный скачок (follow=false) едет плавным переходом 260мс.
 // live — лента видна и слайд активен: canvas массы шариков в полоске живёт; false (ушли на другую вкладку) — спит.
+// Canvas живёт и пока блок уезжает (live не зависит от open): иначе в первом кадре ухода он снимал бы картинку покоя
+// (toDataURL) на главном потоке; при размонтировании картинка не снимается.
 // Остальные пропсы — для CatchStrip (title, words, cur, typedBy, phase, results, onPick) и CatchSheet
 // (hasPrev/onPrev — «Предыдущее слово»).
 const FOLLOW_GAP_MS = 120
 
 export default function CatchCover({
-  open, onHeight, live = true,
+  open, onHeight, onClosed, live = true,
   title, words, cur, typedBy, phase, results, onPick,
   helped, model, isLast, hasPrev, shift, onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
 }) {
@@ -31,6 +35,13 @@ export default function CatchCover({
     return () => cancelAnimationFrame(id)
   }, [open])
   const shown = open && ticked
+  // Положение, в котором закончился последний переход: пока оно не совпало с желаемым — блок едет (will-change)
+  const [settled, setSettled] = useState(false)
+  function onTransitionEnd(e) {
+    if (e.target !== e.currentTarget || e.propertyName !== 'transform') return
+    setSettled(shown)
+    if (!open) onClosed?.()
+  }
 
   const heightRef = useRef(onHeight)
   useEffect(() => { heightRef.current = onHeight })
@@ -60,10 +71,13 @@ export default function CatchCover({
 
   const curWord = cur == null ? null : words.find(w => w.index === cur) ?? null
   return (
-    <div className={`catchCover${shown ? ' catchCoverShown' : ''}`} ref={ref}>
+    <div
+      className={`catchCover${shown ? ' catchCoverShown' : ''}${shown !== settled ? ' catchCoverMoving' : ''}`}
+      ref={ref} onTransitionEnd={onTransitionEnd}
+    >
       <CatchStrip
         title={title} words={words} cur={cur} typedBy={typedBy} phase={phase} results={results}
-        live={open && live} onPick={onPick}
+        live={live} onPick={onPick}
       />
       <CatchSheet
         phase={phase} cur={curWord} helped={helped} model={model} isLast={isLast} hasPrev={hasPrev} shift={shift}

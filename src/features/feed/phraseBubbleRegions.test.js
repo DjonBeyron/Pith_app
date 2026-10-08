@@ -151,6 +151,13 @@ describe('needsRebuild: когда пересобирать сетку шари�
     expect(needsRebuild({ ...base, sig: '' }, base)).toBe(true)
     expect(needsRebuild(base, { ...base, sig: regionsKey([word(0, 0, 40)]) })).toBe(true)
   })
+  it('подпись другая, а регионы сдвинулись меньше чем на 1px (шум округления) — не нужна', () => {
+    const a = { ...base, sig: 'x', regions: [word(10, 0, 40.2)] }
+    const b = { ...base, sig: 'y', regions: [word(10.4, 0, 40.6)] }
+    expect(needsRebuild(a, b)).toBe(false)
+    expect(needsRebuild(a, { ...b, regions: [word(12, 0, 40)] })).toBe(true)
+    expect(needsRebuild(a, { ...b, regions: [word(10, 0, 40), word(60, 0, 20)] })).toBe(true)
+  })
   it('размер изменился на 2px и больше — нужна', () => {
     expect(needsRebuild(base, { ...base, w: 203 })).toBe(true)
     expect(needsRebuild(base, { ...base, h: 44 })).toBe(true)

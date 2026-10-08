@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { CATCH_COLLAPSE_MS, CATCH_EXPLODE_STEP_MS, CATCH_COMPARE_GAP_MS, explodeAt, compareDelay } from './catchTiming.js'
+import {
+  CATCH_COLLAPSE_MS, CATCH_EXPLODE_STEP_MS, CATCH_COMPARE_GAP_MS, CATCH_RULE_MS, explodeAt, compareDelay, factDelay,
+} from './catchTiming.js'
 
 describe('тайминги финала «Ловли»', () => {
   it('взрывы начинаются только после сворачивания клавиатуры, дальше по шагу слева направо', () => {
@@ -11,5 +13,10 @@ describe('тайминги финала «Ловли»', () => {
     expect(compareDelay(4)).toBe(explodeAt(3) + CATCH_COMPARE_GAP_MS)
     expect(compareDelay(1)).toBe(explodeAt(0) + CATCH_COMPARE_GAP_MS)
     expect(compareDelay(0)).toBe(compareDelay(1))
+  })
+
+  it('факт печатается после линии', () => {
+    expect(factDelay(4)).toBe(compareDelay(4) + CATCH_RULE_MS)
+    expect(factDelay(4)).toBeGreaterThan(compareDelay(4))
   })
 })

@@ -122,7 +122,7 @@ export default function AdminCatchTab() {
 
           {sb.memoryNote && <p className="aeHint acMemory">{sb.memoryNote}</p>}
           <div className="acLog" aria-label="Лог действий">
-            {sb.log.length === 0 ? <span className="aeHint">Лог действий пуст — нажми чип «Проверь, что услышал»</span>
+            {sb.log.length === 0 ? <span className="aeHint">Лог действий пуст — нажми чип «Проверь, всё ли удалось услышать.»</span>
               : sb.log.map((t, i) => <div key={i}>{t}</div>)}
           </div>
         </>

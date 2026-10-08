@@ -15,7 +15,8 @@ import { explodeAt } from './catchTiming.js'
 // Фраза всегда в одну строку (white-space: nowrap) и по центру полоски: не влезла по ширине — уменьшается ВСЯ целиком
 // (fit.scale → font-size, word-spacing в em уменьшается вместе с ним; catchFit.js), переносится только если и при
 // минимальном масштабе не влезает (fit.wrap). Масштаб считает тот же наблюдатель, что и замер слов: пока масштаб
-// меняется, regions не отдаём (они были бы по старой раскладке) — отчёт приходит со следующим кадром наблюдателя.
+// меняется или ещё не применён к DOM, regions не отдаём (они были бы по старой раскладке) — отчёт приходит со
+// следующим срабатыванием наблюдателя (второй проход), поэтому шарики собираются по готовой раскладке один раз.
 // Тап по облачку не взрывает его: onTap отдаёт событие сюда, слово ищется по координате тапа среди span'ов → onPick(index).
 // Активное слово — подчёркивание с треугольником (.catchUnderline) ниже облачка, шириной в облачко целиком (слово +
 // запас): положение — из rect span'а относительно обёртки, пишется прямо в style (transform/width, переход 200мс),
@@ -24,6 +25,8 @@ import { explodeAt } from './catchTiming.js'
 // (шаг CATCH_EXPLODE_STEP_MS): таймер наращивает счётчик взорванных, слова под ещё не взорванным облачком скрыты
 // (.catchWordWait). Верно набранные слова — цветом уровня (LEVEL_CLASS).
 // live — canvas живёт (накрытие открыто и лента видна); false → спит картинкой покоя, состояние не трогается
+const MAX_FIT_STEPS = 4 // подряд смен масштаба, после которых фразу больше не подгоняем, пока не пришёл замер
+
 export default function CatchStripPhrase({
   title, words, cur = null, result = false, results = null, live = true, regions = null, fit = FIT_NONE, onFit, onMeasure, onPick,
 }) {
@@ -46,10 +49,15 @@ export default function CatchStripPhrase({
     const phrase = phraseRef.current
     const wrap = wrapRef.current
     if (!phrase || !wrap) return
+    let steps = 0 // подряд сменённых масштабов без замера: предохранитель от петли «замер → масштаб → замер»
     const ro = new ResizeObserver(() => {
       const cur = fitRef.current
-      const next = nextFit(cur, naturalWidth(phrase, cur.scale), wrap.clientWidth)
-      if (next !== cur) { fitRef.current = next; onFitRef.current?.(next); return }
+      // Масштаб ещё не применён к DOM (React не успел перерисовать) — меряем нечего: слова лежат по старой раскладке,
+      // отчёт был бы лишним (ещё одна сборка шариков); наблюдатель сработает снова, когда размеры изменятся
+      if (parseFloat(phrase.style.fontSize) !== fontPx(cur.scale)) return
+      const next = steps < MAX_FIT_STEPS ? nextFit(cur, naturalWidth(phrase, cur.scale), wrap.clientWidth) : cur
+      if (next !== cur) { steps++; fitRef.current = next; onFitRef.current?.(next); return }
+      steps = 0
       measureRef.current?.(measureWords(phrase))
     })
     ro.observe(wrap)

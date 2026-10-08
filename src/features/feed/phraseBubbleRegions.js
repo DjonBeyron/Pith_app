@@ -90,10 +90,18 @@ export const hasExplode = explode => explode === true || (typeof explode === 'nu
 // Подпись набора регионов для зависимостей эффектов (координаты с точностью до 0.5px — субпиксельный шум не пересобирает сетку)
 export const regionsKey = regions => (regions ? regions.map(r => `${Math.round(r.x * 2)},${Math.round(r.y * 2)},${Math.round(r.w * 2)},${Math.round(r.h * 2)}`).join('|') : '')
 
+// Наборы регионов совпадают с точностью до 1px (по каждой координате): замер слов дрожит на доли пикселя
+// (округление sig до 0.5px переключается от шума), а облачко от этого не меняется
+const regionsClose = (a, b) => a.length === b.length
+  && a.every((r, i) => Math.abs(r.x - b[i].x) < 1 && Math.abs(r.y - b[i].y) < 1 && Math.abs(r.w - b[i].w) < 1 && Math.abs(r.h - b[i].h) < 1)
+
 // Нужно ли пересобирать сетку: изменился набор регионов (sig = regionsKey) или размер блока заметно (≥ 2px — ResizeObserver
-// иногда шлёт субпиксельный шум). prev/next — { w, h, sig }; prev == null — ещё не собирали
+// иногда шлёт субпиксельный шум). prev/next — { w, h, sig, regions? }; prev == null — ещё не собирали. Если подпись другая,
+// но оба набора регионов переданы и различаются меньше чем на 1px — пересборка не нужна (шум округления подписи)
 export function needsRebuild(prev, next) {
   if (!next.w || !next.h) return false
   if (!prev) return true
-  return prev.sig !== next.sig || Math.abs(prev.w - next.w) >= 2 || Math.abs(prev.h - next.h) >= 2
+  if (Math.abs(prev.w - next.w) >= 2 || Math.abs(prev.h - next.h) >= 2) return true
+  if (prev.sig === next.sig) return false
+  return !(prev.regions && next.regions && regionsClose(prev.regions, next.regions))
 }

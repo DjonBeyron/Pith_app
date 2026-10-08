@@ -143,7 +143,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
         module={m}
         slideKey={i}
         active={rel === 0}
-        near={Math.abs(rel) <= 1}
+        near={Math.abs(rel) <= 1} ahead={rel === 1}
         tabVisible={feedActive}
         gradIdx={moduleOf(i, len) % 4}
         reaction={reactions[m.id]}

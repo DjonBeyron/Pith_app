@@ -18,7 +18,7 @@ import CatchCover from './catch/CatchCover.jsx'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером (перевод фразы появляется, когда её потёрли пальцем —
 // useTranslationReveal), HUD (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
-// «Ловля слов» (catch/): если лента поставила на фразу задание, вместо шариков — чип «Проверь, что услышал» на всю ширину
+// «Ловля слов» (catch/): если лента поставила на фразу задание, вместо шариков — чип «Проверь, всё ли удалось услышать.» на всю ширину
 // невидимой фразы (ни canvas, ни картинки покоя); тап по чипу или по блоку открывает накрытие (CatchCover: полоска фразы + шторка
 // набора) и блокирует свайп (onLock). Пока оно открыто — класс feedSlideCatchOpen и --catch-cover-h (его высота):
 // иконка паузы и чипы звука сдвигаются вверх (feed-catch.css). «Готово» → слайд обычный открытый (revealed).
@@ -27,7 +27,7 @@ const PHRASE_OPENED_DELAY_MS = 260 // после «Готово» и размо�
 
 export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, saveCount = 0, repostCount = 0, tabVisible = true,
-  active = false, near = false, slideKey,
+  active = false, near = false, ahead = false, slideKey,
   difficulty, myDifficulty, onVoteDifficulty,
   soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked, onToggleLike, onToggleSave, onLearn,
   showSlowHint = false, onSlowHintSeen,
@@ -52,7 +52,7 @@ export default function FeedSlide({
   // переводит opened в true, и приманка повторения снова работает как у обычной открытой фразы
   const rc = useSlideRecall({ recall, mod, active, revealed: opened, knowledge, wp: wordTr, onChanged: onLearnChanged })
   // «Ловля слов»: задание ставится, если на слайде нет слова «Помнишь?» (rc.candIndex) — оно главнее
-  const ct = useSlideCatch({ feedCatch: catchFeed, mod, active, knowledge, recallIndex: rc.candIndex, onLock, onLearnChanged })
+  const ct = useSlideCatch({ feedCatch: catchFeed, mod, active, near, ahead, knowledge, recallIndex: rc.candIndex, onLock, onLearnChanged })
   // «Готово» на финале задания идёт по порядку (useSlideCatch): накрытие уезжает (260мс) → размонтируется → ТОЛЬКО ТОГДА
   // слайд = обычный открытый (ct.finished: спойлер не рендерится, на его месте слова фразы) и блок фразы проявляется
   // (200мс). До этого момента в кадрах ухода накрытия ни тяжёлого рендера фразы, ни setState ленты (v3.2.1876: рывок)
@@ -175,7 +175,7 @@ export default function FeedSlide({
 
       {ct.mounted && (
         <CatchCover
-          open={ct.open} onHeight={setCoverH} live={active && tabVisible}
+          open={ct.open} onHeight={setCoverH} onClosed={ct.coverGone} live={active && tabVisible}
           title={mod.title} words={ct.words} cur={ct.curIndex} typedBy={ct.typedBy} phase={ct.phase} results={ct.results}
           onPick={ct.setCurrent} helped={ct.helped} model={ct.model} isLast={ct.isLast} hasPrev={ct.hasPrev} shift={ct.shift}
           onKey={ct.press} onBackspace={ct.backspace} onNext={ct.next} onPrev={ct.prev} onCheck={ct.check}

@@ -1,11 +1,11 @@
 /* Полоска фразы «Ловли слов» (features/feed/catch/CatchStrip.jsx + CatchStripPhrase.jsx) — верхняя часть накрытия
-   .catchCover (feed-catch.css), вплотную к шторке. Появляется через ~120мс после шторки и выезжает снизу из-под неё
-   (z-index ниже шторки, translateY из спрятанного положения), уходит той же кривой 260мс. Внутри: фраза под
-   облачками шариков по словам (PhraseBubbleSpoiler — те же стили feed-bubble-spoiler.css, что и в ленте), подчёркивание
-   активного слова с треугольником ниже облачка (.catchUnderline, цвет по уровню --cu-c, позицию пишет JS в transform),
-   строка набранного, на финале — облачка раскрываются по очереди, затем линия, цвета набранного и факт.
+   .catchCover (feed-catch.css), вплотную к шторке. Своей анимации появления нет: выезжает и уезжает вместе со шторкой,
+   одним блоком (.catchCover). Внутри: фраза под облачками шариков по словам (PhraseBubbleSpoiler — те же стили
+   feed-bubble-spoiler.css, что и в ленте), подчёркивание активного слова с треугольником ниже облачка (.catchUnderline,
+   цвет по уровню --cu-c, позицию пишет JS в transform), слот линии и факта (.catchCmpSlot, всегда на месте), строка
+   набранного; на финале — облачка раскрываются по очереди, затем линия, цвета набранного и факт.
    Фон сплошной (без alpha и backdrop-filter), анимируются только opacity и transform (+ width подчёркивания при
-   смене слова — одно маленькое изменение раз в слово). */
+   смене слова — одно маленькое изменение раз в слово; width факта — посимвольная печать на финале). */
 
 .catchStrip {
   position: relative;
@@ -16,12 +16,6 @@
   /* Промежуток между словами фразы и строки набранного: ~0.9em сверх обычного пробела (≈ 20px при 17px) — между
      облачками явный просвет. В em: при уменьшении шрифта (масштаб, catchFit.js) промежуток уменьшается вместе с ним */
   --catch-ws: 0.9em;
-  transform: translateY(calc(100% + 24px));
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-.catchCoverShown .catchStrip {
-  transform: translateY(0);
-  transition-delay: 120ms;
 }
 
 /* ── Фраза под массой шариков ───────────────────────────────────────── */
@@ -109,23 +103,27 @@
 }
 
 /* ── Финал: линия, цвета набранного, факт ───────────────────────────── */
-/* После раскрытия всех облачков (задержка --catch-cmp-delay ставит CatchStrip): тонкая линия и строка факта
-   раскрываются высотой (.catchFold: grid 0fr → 1fr — строка набранного при этом не двигается), цвета набранного
-   плавно проявляются из белого (animation backwards: до старта слово остаётся белым), «—» выплывает */
-.catchFold {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 260ms cubic-bezier(0.22, 1, 0.36, 1) var(--catch-cmp-delay, 0ms);
+/* Между фразой и строкой набранного — слот .catchCmpSlot фиксированной высоты 24px: он есть ВСЕГДА (во время набора
+   пустой и прозрачный), поэтому на финале ничего не раздвигается и не прыгает, строка набранного стоит на месте.
+   После раскрытия всех облачков (задержка --catch-cmp-delay ставит CatchStrip): линия рисуется от центра к краям
+   (scaleX 0→1, 220мс), затем факт «Расслышал N из M слов» пропечатывается по символам (ширина шагами steps(), задержка
+   --catch-fact-delay = после линии); цвета набранного плавно проявляются из белого (animation backwards: до старта
+   слово остаётся белым), «—» выплывает */
+.catchCmpSlot {
+  position: relative;
+  height: 24px;
 }
-.catchFoldOpen { grid-template-rows: 1fr; }
-.catchFold > div { min-height: 0; overflow: hidden; }
-
 .catchCompareRule {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 2px;
   height: 1px;
-  margin: 2px 0 6px;
   background: rgba(255, 255, 255, 0.14);
-  animation: catchFadeUp 220ms ease-out var(--catch-cmp-delay, 0ms) both;
+  transform: scaleX(0);
+  transform-origin: center;
 }
+.catchStripResult .catchCompareRule { animation: catchRuleDraw 220ms ease-out var(--catch-cmp-delay, 0ms) both; }
 .catchCmpOk,
 .catchCmpBad { animation: catchToColor 320ms ease-out var(--catch-cmp-delay, 0ms) backwards; }
 .catchCmpOk { color: #7be38f; }
@@ -135,17 +133,45 @@
   animation: catchFadeUp 220ms ease-out var(--catch-cmp-delay, 0ms) both;
 }
 
+/* Факт по центру слота: обёртка inline-block по ширине полного текста (ghost держит место, невидим), поверх него слева
+   печатается тот же текст — span с overflow: hidden, white-space: nowrap и шириной, растущей шагами (--n символов, ch —
+   ширина «0», с запасом на самый длинный текст, обрезается самим текстом) */
 .catchFact {
-  padding-top: 6px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 5px;
   font-size: 12.5px;
   font-weight: 600;
+  line-height: 18px;
+  text-align: center;
   color: rgba(255, 255, 255, 0.72);
-  animation: catchFadeUp 220ms ease-out var(--catch-cmp-delay, 0ms) both;
+}
+.catchFactIn {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+.catchFactGhost { visibility: hidden; }
+.catchFactType {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 0;
+  animation: catchFactType calc(var(--n, 20) * 28ms) steps(var(--n, 20), end) var(--catch-fact-delay, 0ms) both;
 }
 
 /* Слово под ещё не раскрытым облачком (финал, CatchStripPhrase): прячем, пока до него не дошла очередь */
 .catchWordWait { visibility: hidden; }
 
+@keyframes catchRuleDraw {
+  to { transform: scaleX(1); }
+}
+@keyframes catchFactType {
+  to { width: calc(var(--n, 20) * 1ch); }
+}
 @keyframes catchFadeUp {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -155,12 +181,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .catchStrip,
-  .catchUnderline,
-  .catchFold { transition: none; }
-  .catchCompareRule,
+  .catchUnderline { transition: none; }
+  .catchStripResult .catchCompareRule,
   .catchCmpOk,
   .catchCmpBad,
   .catchCmpMiss,
-  .catchFact { animation: none; }
+  .catchFactType { animation: none; }
+  .catchStripResult .catchCompareRule { transform: none; }
+  .catchFactType { width: auto; }
 }
