@@ -2,7 +2,7 @@
 // сплошная масса для ленты или облачка по словам для «Ловли слов». Отрисовка и взрыв — phraseBubbleDraw.js, константы —
 // phraseBubbleConsts.js, геометрия регионов — phraseBubbleRegions.js.
 
-import { padRegions, regionLimits } from './phraseBubbleRegions.js'
+import { padRegions, regionLimits, flightLimits } from './phraseBubbleRegions.js'
 import {
   SPACING, RADIUS, AMP_MAX, PULSE_AMP, WANDER_Y_SCALE, WIGGLE_SECOND_RATIO,
   FRINGE_DEPTH_MAX, FRINGE_DEPTH_MAX_Y, MARGIN_X, MARGIN_Y, REGION_DENSITY, REGION_RADIUS_SCALE,
@@ -91,7 +91,7 @@ export function buildGrid(contentW, contentH, regions = null) {
   const bubbles = []
   const byRegion = Array.isArray(regions)
   let lim = null
-  let flightLim = null // те же границы в координатах холста (MARGIN) — на шарике, для разлёта при взрыве (phraseBubbleFlight.js)
+  let flightLim = null // границы РАЗЛЁТА при взрыве в координатах холста (MARGIN; flightLimits — только в сторону ещё живого соседа)
   const push = (ax, ay, sizeScale, region) => {
     const r = RADIUS * sizeScale * (0.6 + Math.random() * 0.8) * (byRegion ? REGION_RADIUS_SCALE : 1)
     let amp = (1.3 + Math.random() * (AMP_MAX - 1.3)) * (byRegion ? REGION_WANDER_SCALE : 1)
@@ -119,9 +119,11 @@ export function buildGrid(contentW, contentH, regions = null) {
   }
   if (byRegion) {
     const limits = regionLimits(regions)
+    const flights = flightLimits(regions)
     padRegions(regions).forEach((p, i) => {
       lim = limits[i]
-      flightLim = { x0: lim.x0 + MARGIN_X, x1: lim.x1 + MARGIN_X, y0: lim.y0 + MARGIN_Y, y1: lim.y1 + MARGIN_Y }
+      const f = flights[i]
+      flightLim = { x0: f.x0 + MARGIN_X, x1: f.x1 + MARGIN_X, y0: f.y0 + MARGIN_Y, y1: f.y1 + MARGIN_Y }
       const caps = {
         l: Math.max(0, p.x - lim.x0), r: Math.max(0, lim.x1 - (p.x + p.w)),
         t: Math.max(0, p.y - lim.y0), b: Math.max(0, lim.y1 - (p.y + p.h)),

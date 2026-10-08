@@ -27,7 +27,11 @@
 
 /* ── Чип вместо шариков ─────────────────────────────────────────────── */
 /* На всю ширину блока фразы (.catchSpoilerWrap), по вертикали по центру. Две строки по центру («Проверь» /
-   «всё ли удалось услышать») постоянно, без смены и кроссфейда. Фон сплошной тёмный. Мягкое «дыхание» масштаба
+   «всё ли удалось услышать») постоянно, без смены и кроссфейда. Фон — как у блока первого уровня памяти «Новые слова»
+   (.memLvl--1 в memory-ladder.css: тот же стек слоёв — слабая салатовая подсветка слева, пыль, зерно, топо-узор приложения
+   на #14171c; готовые токены --v2-dust/--v2-grain/--v2-tex из shell-v2.css, узор не копируется). Узор — только
+   background-image (статичный, без filter/mask/теней); читаемость текста держат сами штрихи (белые 5.5% на тёмном).
+   Мягкое «дыхание» масштаба
    зовёт нажать; пока шторка открыта — гаснет. Высота фиксированная 46px (две строки по 15px + воздух), ширина — по
    блоку фразы, от текста не зависит; обрезания нет.
    Теней у чипа нет вовсе (ни box-shadow, ни text-shadow, ни filter, в том числе в :active) — только тонкая рамка
@@ -49,7 +53,7 @@
   padding: 0 10px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 12px;
-  background: #1a1d22;
+  background: linear-gradient(to right, rgba(var(--lvl1-rgb, 182, 254, 59), 0.1) 0, transparent 64px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
   color: #fff;
   font: inherit;
   font-size: 12px;
@@ -65,7 +69,7 @@
   transition: opacity 200ms ease;
   -webkit-tap-highlight-color: transparent;
 }
-.catchOverChip:active { background: #23272e; box-shadow: none; text-shadow: none; filter: none; }
+.catchOverChip:active { background-color: #1c2026; box-shadow: none; text-shadow: none; filter: none; }
 .catchOverChipHidden {
   opacity: 0;
   pointer-events: none;

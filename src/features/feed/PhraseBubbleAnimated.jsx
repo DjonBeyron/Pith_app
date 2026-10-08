@@ -1,54 +1,50 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextSpoilerId, setSpoilerStat, clearSpoilerStat, countRebuild, countStill } from './spoilerStats.js'
-import { drawFloat, renderStillImage } from './phraseBubbleDraw.js'
+import { drawFloat, renderStillImage, shiftBubbles, EXPLODE_MARGIN } from './phraseBubbleDraw.js'
 import { buildGrid } from './phraseBubbleGrid.js'
+import { warmUp } from './phraseBubbleWarm.js'
 import { MARGIN_X, MARGIN_Y } from './phraseBubbleConsts.js'
 import { hasExplode, regionsKey, needsRebuild } from './phraseBubbleRegions.js'
 import { usePhraseBubbleExplode } from './usePhraseBubbleExplode.js'
 
-// Шарики-спойлер поверх фразы модуля (замена blur+зерна) для способных
-// устройств — на слабых и при prefers-reduced-motion вместо этого компонента
-// монтируется PhraseBubbleStatic (см. PhraseBubbleSpoiler.jsx-переключатель).
-// Плотная сетка мелких шариков почти полностью перекрывает текст и
-// колышется поштучно (wiggle: две синусоиды + дыхание радиуса); тап — шарики
-// разлетаются короткой вспышкой, текст открывается сразу по тапу (unlocked),
-// канвас пропадает, когда шарики догорят (revealed). onUnlock зовётся в
-// момент тапа — родитель может синхронно показать что-то ещё (FeedSlide:
-// подпись выкатывается из-под фразы).
+// Шарики-спойлер поверх фразы модуля (замена blur+зерна) для способных устройств — на слабых и при
+// prefers-reduced-motion вместо него монтируется PhraseBubbleStatic (см. PhraseBubbleSpoiler.jsx). Плотная сетка мелких
+// шариков почти полностью перекрывает текст и колышется поштучно (wiggle: две синусоиды + дыхание радиуса); тап — шарики
+// разлетаются короткой вспышкой, текст открывается сразу по тапу (unlocked), канвас пропадает, когда шарики догорят
+// (revealed). onUnlock зовётся в момент тапа — родитель может синхронно показать что-то ещё (FeedSlide: подпись).
 //
-// CANVAS ЖИВЁТ ТОЛЬКО У АКТИВНОГО СЛАЙДА ВИДИМОЙ ЛЕНТЫ (live). Соседи в
-// виртуальном окне, лента под уроком, «Мои уроки», профиль — везде вместо
-// canvas одна статичная <img> (renderStillImage). Бисекция на iPhone
-// показала, что даже спящие canvas-элементы (по одному на 5 слайдов, dpr=3)
-// делали дёрганой системную анимацию сворачивания приложения — с любого
-// экрана, потому что лента остаётся смонтированной под ними. А попытка
-// заменить поштучный wiggle дрейфом групп-картинок читалась как «качаются
-// слои точек» — поэтому на экране остаётся настоящий canvas, а не имитация.
+// CANVAS ЖИВЁТ ТОЛЬКО У АКТИВНОГО СЛАЙДА ВИДИМОЙ ЛЕНТЫ (live). Соседи в виртуальном окне, лента под уроком, «Мои уроки»,
+// профиль — везде вместо canvas одна статичная <img> (renderStillImage). Бисекция на iPhone показала, что даже спящие
+// canvas (по одному на 5 слайдов, dpr=3) делали дёрганой системную анимацию сворачивания приложения. Подмена картинка ↔
+// canvas без скачка: картинка рисуется с ТЕКУЩИХ позиций шариков (drawFloat с dt=0), canvas стартует с тех же фаз; первый
+// кадр — в useLayoutEffect, до показа. Плавание — 30 кадров/с, взрыв — 60. Геометрия и отрисовка — phraseBubbleDraw.js.
+// Картинка покоя (toDataURL, миллисекунды главного потока) снимается ТОЛЬКО когда холста нет: при засыпании живого холста и
+// при сборке сетки, пока на экране картинка. Пока холст живой, пересборка сетки картинку не снимает — url null до засыпания.
 //
-// Подмена картинка ↔ canvas без скачка: картинка рисуется с ТЕКУЩИХ позиций
-// шариков (drawFloat с dt=0), canvas стартует с тех же фаз; первый кадр —
-// в useLayoutEffect, до показа. Плавание — 30 кадров/с (медленный дрейф
-// неотличим от 60, а GPU занят вдвое меньше), взрыв — 60.
-// Геометрия и отрисовка — phraseBubbleDraw.js.
-// Картинка покоя (renderStillImage → toDataURL, миллисекунды главного потока) снимается ТОЛЬКО когда холста нет: при
-// засыпании живого холста и при сборке сетки, пока на экране картинка. Пока холст живой, пересборка сетки (смена
-// regions/размера) картинку не снимает — url остаётся null до засыпания.
-//
-// Режим «Ловли слов» (catch/CatchStripPhrase): onTap(e) — задан → тап НЕ взрывает, а отдаётся родителю (он ищет
-// слово по координате); explode — команда на взрыв: true — всё сразу, число n — взорваны первые n облачков, массив —
-// индексы взорванных (usePhraseBubbleExplode.js); текст открывается с первого взрыва. regions — прямоугольники слов
-// { x, y, w, h } относительно текстового блока: шарики лежат отдельными облачками над словами (buildGrid), между
-// словами промежуток чистый; пересборка сетки при смене regions (не сразу, а раз за кадр: несколько смен подряд —
-// одна сборка; пока regions — пустой массив, слова ещё не измерены, сетку не строим). Без regions — одна сплошная масса,
-// как в ленте. В режиме regions холст рисуется с dpr не выше 2 и ~20 кадров/с (медленный дрейф мелких облачков неразличим
-// с 30; узлов в облачках в 1/REGION_DENSITY раз меньше, чем в ленте, — phraseBubbleConsts.js).
+// Режим «Ловли слов» (catch/CatchStripPhrase): onTap(e) — задан → тап НЕ взрывает, а отдаётся родителю (он ищет слово по
+// координате); explode — команда на взрыв: true — всё сразу, число n — взорваны первые n облачков, массив — индексы
+// (usePhraseBubbleExplode.js); текст открывается с первого взрыва. regions — прямоугольники слов { x, y, w, h } относительно
+// текстового блока: шарики лежат отдельными облачками над словами (buildGrid), между словами промежуток чистый; пересборка
+// сетки при смене regions — не сразу, а раз за кадр; пока regions — пустой массив, слова ещё не измерены, сетку не строим.
+// Без regions — одна сплошная масса, как в ленте. В режиме regions: dpr не выше 2 и ~20 кадров/с (узлов в 1/REGION_DENSITY
+// раз меньше, чем в ленте — phraseBubbleConsts.js); холст СРАЗУ с запасом взрыва (EXPLODE_MARGIN вокруг фразы; шарики
+// сдвинуты в его координаты при сборке) — на взрыве его не ресайзим (реаллокация backing store на первом кадре давала рывок),
+// частицам есть куда лететь вбок. Холст касаний не ловит (иначе накрыл бы клавиатуру ниже) — тап ловит прозрачная зона
+// вокруг обёртки (.phraseBubbleWrapHit, как у прежнего холста); плавание чистит только центр. Скорости частиц готовятся
+// заранее, в простое (warmUp, phraseBubbleWarm.js).
 const REGION_DPR_MAX = 2          // облачка по словам: площадь холста при dpr 3 была бы ×2.25 зря
 const REGION_FRAME_MS = 1000 / 20 // облачка по словам рисуем ~20 кадров/с (было 24; лента — 30, см. frame ниже)
 
+// Запас холста сверх малого MARGIN (у облачек по словам он EXPLODE_MARGIN) и размер картинки покоя (она всегда с малым
+// запасом: прозрачные поля взрыва в PNG не нужны)
+const extraOf = size => ({ x: size.px - MARGIN_X, y: size.py - MARGIN_Y })
+const stillSize = size => { const e = extraOf(size); return { w: size.w - e.x * 2, h: size.h - e.y * 2 } }
+
 // Картинка покоя с текущих позиций шариков (счётчик для DBG — spoilerStats.js)
-function stillUrl(bubbles, w, h, dpr) {
+function stillUrl(bubbles, size) {
   countStill()
-  return renderStillImage(bubbles, w, h, dpr)
+  const e = extraOf(size), s = stillSize(size)
+  return renderStillImage(bubbles, s.w, s.h, size.dpr, -e.x, -e.y)
 }
 
 export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlock, onTap, explode = false, regions = null, children }) {
@@ -56,7 +52,8 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
   const wrapRef = useRef(null)
   const canvasRef = useRef(null)
   const bubblesRef = useRef([])
-  const sizeRef = useRef({ w: 0, h: 0, dpr: 1 })
+  const sizeRef = useRef({ w: 0, h: 0, dpr: 1, px: MARGIN_X, py: MARGIN_Y }) // px/py — запас холста вокруг текста
+  const warmRef = useRef(null) // отмена подготовки скоростей взрыва (warmUp) для текущей сетки
   const lastBuiltRef = useRef(null) // { w, h, sig } последней сборки сетки (needsRebuild)
   const rafRef = useRef(0)
   const [still, setStill] = useState(null)       // { url, w, h } — картинка покоя
@@ -72,6 +69,9 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
   const command = tapped ? true : explode
   if (hasExplode(command) && !exploding && !unlocked) setExploding(true)
 
+  const wide = Array.isArray(regions) // облачка по словам: холст с запасом взрыва, касаний не ловит
+  const canvasCls = ['phraseBubbleCanvas', exploding && 'phraseBubbleCanvasExploding', wide && 'phraseBubbleCanvasWide']
+    .filter(Boolean).join(' ')
   const showCanvas = !revealed && (exploding || (live && !unlocked))
   const ready = !!still
 
@@ -84,13 +84,13 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
 
   // Холст под размер из sizeRef (сброс width/height очищает контекст)
   function fitCanvas(canvas) {
-    const { w, h, dpr } = sizeRef.current
+    const { w, h, dpr, px, py } = sizeRef.current
     canvas.width = Math.round(w * dpr)
     canvas.height = Math.round(h * dpr)
     canvas.style.width = w + 'px'
     canvas.style.height = h + 'px'
-    canvas.style.left = -MARGIN_X + 'px'
-    canvas.style.top = -MARGIN_Y + 'px'
+    canvas.style.left = -px + 'px'
+    canvas.style.top = -py + 'px'
   }
 
   // Отчёт в реестр DBG-панели (spoilerStats.js): шарики и живой ли холст
@@ -126,24 +126,35 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
       const next = { w: rect.width, h: rect.height, sig: regionsKey(regs), regions: regs }
       if (!needsRebuild(lastBuiltRef.current, next)) return
       lastBuiltRef.current = next
-      const w = rect.width + MARGIN_X * 2
-      const h = rect.height + MARGIN_Y * 2
+      const byRegions = Array.isArray(regs)
+      const px = byRegions ? EXPLODE_MARGIN : MARGIN_X
+      const py = byRegions ? EXPLODE_MARGIN : MARGIN_Y
+      const w = rect.width + px * 2
+      const h = rect.height + py * 2
       // Полный DPR (до 3): на Retina шарики радиусом 1-2px иначе смазаны; облачка по словам — не выше 2
-      const dpr = Math.min(window.devicePixelRatio || 1, Array.isArray(regs) ? REGION_DPR_MAX : 3)
-      sizeRef.current = { w, h, dpr }
+      const dpr = Math.min(window.devicePixelRatio || 1, byRegions ? REGION_DPR_MAX : 3)
+      sizeRef.current = { w, h, dpr, px, py }
       countRebuild()
-      bubblesRef.current = buildGrid(rect.width, rect.height, regs)
+      const grid = buildGrid(rect.width, rect.height, regs)
+      if (byRegions) shiftBubbles(grid, px - MARGIN_X, py - MARGIN_Y) // сразу в координаты холста с запасом взрыва
+      bubblesRef.current = grid
+      warmRef.current?.()
+      warmRef.current = byRegions ? warmUp(grid) : null
       // Живой холст уже на экране — картинка покоя не нужна (её снимет засыпание), подгоняем размер холста,
       // следующий кадр цикла дорисует. Во время взрыва сюда не попасть: unlocked снимает наблюдатель
       const canvas = canvasRef.current
-      setStill({ url: canvas ? null : stillUrl(bubblesRef.current, w, h, dpr), w, h })
+      const sm = stillSize(sizeRef.current)
+      setStill({ url: canvas ? null : stillUrl(grid, sizeRef.current), w: sm.w, h: sm.h })
       if (canvas) fitCanvas(canvas)
     }
     layoutRef.current = layout
     layout()
     const ro = new ResizeObserver(scheduleLayout)
     ro.observe(wrap)
-    return () => { ro.disconnect(); cancelAnimationFrame(frameRef.current); frameRef.current = 0; layoutRef.current = null }
+    return () => {
+      ro.disconnect(); cancelAnimationFrame(frameRef.current); frameRef.current = 0; layoutRef.current = null
+      warmRef.current?.(); warmRef.current = null
+    }
   }, [unlocked])
   const firstRegionsRef = useRef(true)
   useLayoutEffect(() => {
@@ -162,9 +173,11 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
     const ctx = canvas.getContext('2d')
     // Размер читаем из sizeRef на каждом кадре: ресайз меняет его (и холст) на лету
     const draw = dt => {
-      const { w, h, dpr } = sizeRef.current
+      const { w, h, dpr, px, py } = sizeRef.current
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, w, h)
+      // Шарики лежат в полях MARGIN вокруг текста — запас взрыва вокруг них (облачка по словам) не чистим
+      const ex = px - MARGIN_X, ey = py - MARGIN_Y
+      ctx.clearRect(ex, ey, w - ex * 2, h - ey * 2)
       drawFloat(ctx, bubblesRef.current, dt)
     }
     fitCanvas(canvas)
@@ -196,7 +209,7 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
       if (canvas.classList.contains('phraseBubbleCanvasExploding')) return
       // Слайд ушёл с экрана: картинка покоя — с тех позиций, где шарики
       // остановились, чтобы возврат canvas продолжил движение без скачка
-      setStill(s => s ? { ...s, url: stillUrl(bubblesRef.current, s.w, s.h, sizeRef.current.dpr) } : s)
+      setStill(s => s ? { ...s, url: stillUrl(bubblesRef.current, sizeRef.current) } : s)
     }
   }, [live, unlocked, exploding, ready])
 
@@ -213,7 +226,8 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
   }
 
   return (
-    <div className="phraseBubbleWrap" ref={wrapRef} onClick={tap}>
+    <div className={wide ? 'phraseBubbleWrap phraseBubbleWrapHit' : 'phraseBubbleWrap'} ref={wrapRef} onClick={tap}
+      style={wide ? { '--pb-mx': MARGIN_X + 'px', '--pb-my': MARGIN_Y + 'px' } : undefined}>
       {/* Текст спрятан (visibility, не display) до тапа — сам текст
           блокирован, а не просто прикрыт сверху. Открывается сразу по тапу */}
       <div className={unlocked ? 'phraseBubbleText' : 'phraseBubbleText phraseBubbleTextHidden'}>
@@ -221,10 +235,9 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
       </div>
       {/* Во время взрыва холст на 120px шире фразы со всех сторон и лежит
           поверх строки «перевести» — касания он не ловит (иначе на Android
-          тап по переводу уходил в холст, пока шарики разлетаются) */}
+          тап по переводу уходил в холст, пока шарики разлетаются). У облачек по словам такой холст с самого начала */}
       {showCanvas && (
-        <canvas className={exploding ? 'phraseBubbleCanvas phraseBubbleCanvasExploding' : 'phraseBubbleCanvas'}
-          ref={canvasRef} aria-hidden="true" />
+        <canvas className={canvasCls} ref={canvasRef} aria-hidden="true" />
       )}
       {!showCanvas && !unlocked && still?.url && (
         <img

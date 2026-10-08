@@ -1,20 +1,42 @@
 import { useLayoutEffect, useRef } from 'react'
-import { EXPLODE_MARGIN, drawFloat, drawExplode, launchBubbles, shiftBubbles } from './phraseBubbleDraw.js'
-import { MARGIN_X, MARGIN_Y } from './phraseBubbleConsts.js'
+import { EXPLODE_MARGIN, drawExplode, launchBubbles, startBubbles, shiftBubbles } from './phraseBubbleDraw.js'
+import { MARGIN_X, MARGIN_Y, EXPLODE_MS } from './phraseBubbleConsts.js'
 import { explodedRegions } from './phraseBubbleRegions.js'
-import { EXPLODE_MS } from './phraseBubbleConsts.js'
 import { thinForLaunch } from './phraseBubbleFlight.js'
+import { groupByRegion, prepareExplosion, buildSprites, drawSprites } from './phraseBubbleWarm.js'
 import { noteParticles } from './spoilerStats.js'
 
 const EXPLODE_SAFETY_MS = EXPLODE_MS * 2 // один взрыв длится EXPLODE_MS — с двойным запасом
 const SAFETY_PER_REGION_MS = EXPLODE_MS  // облачка взрываются по очереди (CatchStripPhrase; шаг меньше EXPLODE_MS) — запас на каждое
 
+// Размер холста под взрыв. Размер/позицию трогаем, только если они отличаются: присваивание canvas.width (даже тем же
+// числом) очищает и переразмещает backing store — это и был рывок первого кадра взрыва
+function fitExplodeCanvas(canvas, w, h, dpr) {
+  const pw = Math.round(w * dpr), ph = Math.round(h * dpr)
+  if (canvas.width !== pw) canvas.width = pw
+  if (canvas.height !== ph) canvas.height = ph
+  canvas.style.width = w + 'px'
+  canvas.style.height = h + 'px'
+  canvas.style.left = -EXPLODE_MARGIN + 'px'
+  canvas.style.top = -EXPLODE_MARGIN + 'px'
+}
+
+// Убрать из списка полёта догоревшие частицы (на месте): кадр не ходит по мёртвым, а «сколько в воздухе» — это длина списка
+function dropDead(list) {
+  let n = 0
+  for (let i = 0; i < list.length; i++) if (list[i].t < EXPLODE_MS) list[n++] = list[i]
+  list.length = n
+}
+
 // Взрыв шариков на том же холсте (вынесено из PhraseBubbleAnimated.jsx). Запускается, когда exploding стало true:
 // первый кадр — до показа, в том же тике открываем текст (setUnlocked + onUnlock).
 // explode — команда на взрыв, её можно менять по ходу (читается на каждом кадре): true — взрывается всё сразу
 // (тап, прежнее поведение); число n — взорваны первые n облачков (regions); массив — индексы взорванных облачков.
-// Облачка, до которых очередь не дошла, продолжают плавать на этом же холсте; каждое взрывается от своего центра.
-// Без regions (сплошная масса) всё взрывается сразу, от центра холста. Закончили — setRevealed(true) (холст убирается)
+// Облачка, до которых очередь не дошла, висят на этом же холсте статичными спрайтами (phraseBubbleWarm.js; дрейф на время
+// взрыва замирает — перерисовывать ~1400 дуг на 60 к/с ради него не нужно); каждое взрывается от своего центра.
+// Облачка по словам: холст уже с запасом EXPLODE_MARGIN (PhraseBubbleAnimated), скорости частиц подготовлены в простое —
+// на старте облачка остаётся startBubbles. Без regions (сплошная масса) холст на взрыве расширяется до EXPLODE_MARGIN, всё
+// взрывается сразу от центра. Закончили — setRevealed(true) (холст убирается)
 export function usePhraseBubbleExplode({
   exploding, explode, wrapRef, canvasRef, bubblesRef, sizeRef, setUnlocked, setRevealed, onUnlock,
 }) {
@@ -29,58 +51,57 @@ export function usePhraseBubbleExplode({
     const wrap = wrapRef.current
     const canvas = canvasRef.current
     if (!wrap || !canvas) return
-    const rect = wrap.getBoundingClientRect()
-    const dpr = sizeRef.current.dpr || 1
-    // Запас пошире (EXPLODE_MARGIN вместо MARGIN_X/Y), иначе шарикам некуда лететь
-    const w = rect.width + EXPLODE_MARGIN * 2
-    const h = rect.height + EXPLODE_MARGIN * 2
-    canvas.width = Math.round(w * dpr)
-    canvas.height = Math.round(h * dpr)
-    canvas.style.width = w + 'px'
-    canvas.style.height = h + 'px'
-    canvas.style.left = -EXPLODE_MARGIN + 'px'
-    canvas.style.top = -EXPLODE_MARGIN + 'px'
     const bubbles = bubblesRef.current
-    shiftBubbles(bubbles, EXPLODE_MARGIN - MARGIN_X, EXPLODE_MARGIN - MARGIN_Y)
+    const byRegion = bubbles.length > 0 && bubbles[0].region != null
+    const size = sizeRef.current
+    const dpr = size.dpr || 1
+    let w = size.w, h = size.h
+    if (!(byRegion && size.px === EXPLODE_MARGIN)) {
+      // Запас пошире (EXPLODE_MARGIN вместо MARGIN_X/Y), иначе шарикам некуда лететь
+      const rect = wrap.getBoundingClientRect()
+      w = rect.width + EXPLODE_MARGIN * 2
+      h = rect.height + EXPLODE_MARGIN * 2
+      shiftBubbles(bubbles, EXPLODE_MARGIN - (size.px ?? MARGIN_X), EXPLODE_MARGIN - (size.py ?? MARGIN_Y))
+    }
+    fitExplodeCanvas(canvas, w, h, dpr)
 
     // Группы запуска: облачко = группа; сплошная масса = одна группа на весь холст
-    const byRegion = bubbles.length > 0 && bubbles[0].region != null
-    const groups = []
-    for (const b of bubbles) (groups[byRegion ? b.region : 0] ??= []).push(b)
-    const pending = new Set(groups.keys())
-    for (let g = 0; g < groups.length; g++) if (!groups[g]) pending.delete(g)
+    const groups = byRegion ? groupByRegion(bubbles) : [bubbles]
+    if (byRegion) prepareExplosion(bubbles) // обычно уже готово в простое (warmUp) — тогда ничего не делает
+    const pending = new Set()
+    groups.forEach((list, g) => { if (list) pending.add(g) })
     const flying = []
-    let floating = bubbles
     const launch = set => {
-      let any = false
       for (const g of [...pending]) {
-        if (!set.has(g) && byRegion) continue
+        if (byRegion && !set.has(g)) continue
         const list = groups[g]
         // Частиц в воздухе сразу не больше MAX_PARTICLES на весь холст: лишние из облачка пропадают в момент взрыва
-        // (flying = true — из плавающих выбыли, но в список полёта не попали); считаем только живых
-        const alive = flying.reduce((n, b) => (b.t < EXPLODE_MS ? n + 1 : n), 0)
-        const fly = byRegion ? thinForLaunch(list, alive) : list // сплошная масса ленты (тап) — как раньше, без прореживания
+        // (flying = true — из плавающих выбыли, но в список полёта не попали); flying содержит только живых
+        const fly = byRegion ? thinForLaunch(list, flying.length) : list // сплошная масса ленты (тап) — без прореживания
         for (const b of list) b.flying = true
-        if (byRegion) {
-          const xs = list.map(b => b.ax), ys = list.map(b => b.ay)
-          launchBubbles(fly, (Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2)
-        } else {
-          launchBubbles(fly, w / 2, h / 2)
-        }
-        noteParticles(alive + fly.length)
-        flying.push(...fly)
+        if (byRegion) startBubbles(fly)
+        else launchBubbles(fly, w / 2, h / 2)
+        for (const b of fly) flying.push(b)
+        noteParticles(flying.length)
         pending.delete(g)
-        any = true
       }
-      if (any) floating = bubbles.filter(b => !b.flying)
     }
 
     const ctx = canvas.getContext('2d')
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     const count = groups.length
-    launch(explodedRegions(explodeRef.current, count))
-    drawFloat(ctx, floating, 0)
-    drawExplode(ctx, flying, 0, w, h)
+    let command = explodeRef.current
+    launch(explodedRegions(command, count))
+    // Оставшиеся облачка — статичные спрайты с текущих фаз (одно построение на весь взрыв)
+    const sprites = byRegion && pending.size ? buildSprites(groups, dpr, g => pending.has(g)) : null
+    const paint = dt => {
+      ctx.clearRect(0, 0, w, h)
+      if (sprites && pending.size) drawSprites(ctx, sprites, pending)
+      const done = drawExplode(ctx, flying, dt, w, h)
+      dropDead(flying)
+      return done
+    }
+    paint(0)
     setUnlocked(true)
     unlockRef.current?.()
 
@@ -90,11 +111,12 @@ export function usePhraseBubbleExplode({
       // шарика и «Cannot read properties of undefined (reading 'push')» в drawExplode
       const dt = Math.max(0, Math.min(32, now - last))
       last = now
-      if (pending.size) launch(explodedRegions(explodeRef.current, count))
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, w, h)
-      if (floating.length && pending.size) drawFloat(ctx, floating, dt)
-      if (drawExplode(ctx, flying, dt, w, h) && !pending.size) { setRevealed(true); return }
+      // Команда меняется редко (раз на облачко) — Set регионов строим только тогда
+      if (pending.size && explodeRef.current !== command) {
+        command = explodeRef.current
+        launch(explodedRegions(command, count))
+      }
+      if (paint(dt) && !pending.size) { setRevealed(true); return }
       rafRef.current = requestAnimationFrame(frame)
     }
     rafRef.current = requestAnimationFrame(frame)

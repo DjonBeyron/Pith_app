@@ -25,6 +25,23 @@
   pointer-events: none;
 }
 
+/* Облачка по словам («Ловля слов»): холст сразу с запасом взрыва 120px вокруг фразы (PhraseBubbleAnimated.jsx), чтобы
+   на взрыве не ресайзить backing store и чтобы частицы свободно летели вбок. Такой холст касаний не ловит (накрыл бы
+   клавиатуру под полоской), а тап по облачку ловит прозрачная зона вокруг обёртки — того же размера, что был у холста
+   с малым запасом (--pb-mx/--pb-my = MARGIN_X/Y); событие всплывает в onClick обёртки */
+.phraseBubbleCanvasWide {
+  pointer-events: none;
+}
+.phraseBubbleWrapHit::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: calc(-1 * var(--pb-my, 0px));
+  bottom: calc(-1 * var(--pb-my, 0px));
+  left: calc(-1 * var(--pb-mx, 0px));
+  right: calc(-1 * var(--pb-mx, 0px));
+}
+
 /* Картинка покоя (PhraseBubbleAnimated.jsx): снимок сетки с текущих позиций
    шариков вместо canvas — у соседей в виртуальном окне, под уроком, на других
    вкладках. Canvas живёт только у активного слайда видимой ленты: бисекция на
