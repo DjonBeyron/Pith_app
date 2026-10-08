@@ -61,14 +61,18 @@ export async function saveCurriculumLessons(id, lessonIds) {
 }
 
 // Название и переводы одного модуля (для редактора названия): читаем прямо
-// перед открытием, чтобы не тащить их через пропы из разных экранов
+// перед открытием, чтобы не тащить их через пропы из разных экранов. Плюс
+// флаг «Ловля слов в ленте» (feed_catch_enabled, миграция 20261008120000) —
+// без миграции читаем без него (в ответе колонки не будет = считается включённым)
+const TITLE_COLS = 'title, title_translation, word_translations'
 export async function loadCurriculumTitleData(id) {
   dbg('[DB READ] curricula title data', id)
-  const { data, error } = await supabase
-    .from('curricula')
-    .select('title, title_translation, word_translations')
-    .eq('id', id)
-    .single()
+  const q = cols => supabase.from('curricula').select(cols).eq('id', id).single()
+  let { data, error } = await q(`${TITLE_COLS}, feed_catch_enabled`)
+  if (error && /feed_catch_enabled/.test(error.message)) {
+    dbg('[DB WARN] нет колонки feed_catch_enabled — применить миграцию 20261008120000_feed_catch.sql')
+    ;({ data, error } = await q(TITLE_COLS))
+  }
   if (error) {
     dbg('[DB ERROR] curricula title data', error.message)
     throw error
@@ -78,19 +82,20 @@ export async function loadCurriculumTitleData(id) {
 
 // Название + переводы одним сохранением (редактор названия модуля, админ):
 // title, полный перевод фразы и пословный перевод [{ w, t }] в порядке слов.
-// Пустые переводы слов не храним — массив остаётся коротким.
-export async function saveCurriculumTitleData(id, { title, titleTranslation, wordTranslations }) {
+// Пустые переводы слов не храним — массив остаётся коротким. feedCatchEnabled
+// (флаг «Ловля слов в ленте») пишется в том же update; если колонки ещё нет —
+// повторяем без неё, чтобы не ломать сохранение переводов
+export async function saveCurriculumTitleData(id, { title, titleTranslation, wordTranslations, feedCatchEnabled }) {
   const words = (wordTranslations ?? []).filter(e => (e?.t ?? '').trim() !== '')
     .map(e => ({ w: e.w, t: e.t.trim() }))
-  dbg('[DB WRITE] curricula title+translations', id, title, words.length)
-  const { error } = await supabase
-    .from('curricula')
-    .update({
-      title,
-      title_translation: (titleTranslation ?? '').trim() || null,
-      word_translations: words,
-    })
-    .eq('id', id)
+  dbg('[DB WRITE] curricula title+translations', id, title, words.length, { feedCatchEnabled })
+  const row = { title, title_translation: (titleTranslation ?? '').trim() || null, word_translations: words }
+  const upd = r => supabase.from('curricula').update(r).eq('id', id)
+  let { error } = await upd(feedCatchEnabled === undefined ? row : { ...row, feed_catch_enabled: feedCatchEnabled !== false })
+  if (error && /feed_catch_enabled/.test(error.message)) {
+    dbg('[DB WARN] нет колонки feed_catch_enabled — применить миграцию 20261008120000_feed_catch.sql')
+    ;({ error } = await upd(row))
+  }
   if (error) {
     dbg('[DB ERROR] curricula title+translations', error.message)
     throw error
@@ -124,9 +129,10 @@ export async function updateCurriculumVideo(id, videoUrl, posterUrl) {
 }
 
 const CURRICULA_COLS = 'id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, preview_only, difficulty, difficulty_votes, save_count, repost_count, is_pro'
-// Колонки переводов названия появляются миграцией 20260725140000 — пока она не
-// применена, читаем список без них (иначе вся лента падала бы на 400)
-const CURRICULA_COLS_TR = `${CURRICULA_COLS}, title_translation, word_translations`
+// Колонки переводов названия появляются миграцией 20260725140000, флаг «Ловля
+// слов в ленте» — миграцией 20261008120000; пока они не применены, читаем
+// список без них (иначе вся лента падала бы на 400)
+const CURRICULA_COLS_TR = `${CURRICULA_COLS}, title_translation, word_translations, feed_catch_enabled`
 
 // В каком модуле лежит урок. Нужно для «назад» из редактора: урок можно
 // открыть и не из схемы модуля (всплывашка «продолжить редактирование» после
@@ -144,8 +150,8 @@ export async function loadCurricula() {
     .from('curricula')
     .select(CURRICULA_COLS_TR)
     .order('created_at', { ascending: false })
-  if (error && /title_translation|word_translations/.test(error.message)) {
-    dbg('[DB WARN] нет колонок переводов — применить миграцию 20260725140000_module_translations.sql')
+  if (error && /title_translation|word_translations|feed_catch_enabled/.test(error.message)) {
+    dbg('[DB WARN] нет колонок переводов / ловли слов — применить миграции 20260725140000_module_translations.sql, 20261008120000_feed_catch.sql')
     ;({ data, error } = await supabase
       .from('curricula')
       .select(CURRICULA_COLS)

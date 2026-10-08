@@ -4,12 +4,13 @@ import { Delete } from 'lucide-react'
 // справа внизу. Светятся (нажимаются) только буквы слова и добавленные автором,
 // остальные тусклые и неактивные — тускнеет сама буква (.twKeyLabel), фон клавиши у всех один. Ряд со знаками (апостроф, é…) и пробел — только
 // если слову они нужны (см. keyboardModel в shared/lib/typeWordKeys.js).
-function Key({ k, disabled, onKey }) {
+// helped (лента, «Помочь памяти»): запутыватели (k.lure) трясутся, тускнеют и становятся мёртвыми (стили — .twHelped).
+function Key({ k, disabled, helped, onKey }) {
   return (
     <button
       type="button"
-      className={`twKey${k.lit ? '' : ' twKeyDim'}${k.ch === ' ' ? ' twKeySpace' : ''}`}
-      disabled={disabled || !k.lit}
+      className={`twKey${k.lit ? '' : ' twKeyDim'}${k.lure ? ' twKeyLure' : ''}${k.ch === ' ' ? ' twKeySpace' : ''}`}
+      disabled={disabled || !k.lit || (helped && !!k.lure)}
       aria-label={k.ch === ' ' ? 'пробел' : k.ch}
       data-key={k.ch}
       // Фокус не уводим с экрана: клавиши — просто тапы, системной клавиатуре тут не место
@@ -21,15 +22,15 @@ function Key({ k, disabled, onKey }) {
   )
 }
 
-export default function TypeWordKeyboard({ model, disabled, onKey, onBackspace }) {
+export default function TypeWordKeyboard({ model, disabled, helped = false, onKey, onBackspace }) {
   const bottom = [...model.extraKeys, ...(model.space ? [{ ch: ' ', lit: true }] : [])]
   return (
-    <div className="twKeyboard" role="group" aria-label="Клавиатура" style={{ '--tw-cols': model.cols }}>
+    <div className={`twKeyboard${helped ? ' twHelped' : ''}`} role="group" aria-label="Клавиатура" style={{ '--tw-cols': model.cols }}>
       {model.rows.map((row, ri) => {
         const last = ri === model.rows.length - 1
         return (
           <div key={ri} className={`twRow twRow${ri}`}>
-            {row.map(k => <Key key={k.ch} k={k} disabled={disabled} onKey={onKey} />)}
+            {row.map(k => <Key key={k.ch} k={k} disabled={disabled} helped={helped} onKey={onKey} />)}
             {last && (
               <button
                 type="button"
@@ -47,7 +48,7 @@ export default function TypeWordKeyboard({ model, disabled, onKey, onBackspace }
       })}
       {bottom.length > 0 && (
         <div className="twRow twRowBottom">
-          {bottom.map(k => <Key key={k.ch} k={k} disabled={disabled} onKey={onKey} />)}
+          {bottom.map(k => <Key key={k.ch} k={k} disabled={disabled} helped={helped} onKey={onKey} />)}
         </div>
       )}
     </div>

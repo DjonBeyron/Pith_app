@@ -66,6 +66,8 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
           repostCount: r.repost_count ?? 0,
           // Превью-статус: виден в ленте, но «Изучить фразу» скрыта (см. FeedSlide)
           previewOnly: !!r.preview_only,
+          // «Ловля слов в ленте» на этой фразе (feed_catch_enabled; нет колонки — включено)
+          feedCatchEnabled: r.feed_catch_enabled !== false,
         })))
       })
       // Сбой перезагрузки (сеть) — существующий список НЕ стираем

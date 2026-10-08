@@ -15,6 +15,7 @@
 @import './styles/feed-knowledge.css';
 @import './styles/feed-word-translate.css';
 @import './styles/feed-recall.css';
+@import './styles/feed-catch.css';
 @import './styles/feed-media.css';
 @import './styles/feed-swiper.css';
 @import './styles/feed-video-loader.css';
@@ -183,6 +184,7 @@
 @import './styles/admin-errors.css';
 @import './styles/admin-decks.css';
 @import './styles/admin-review.css';
+@import './styles/admin-catch.css';
 @import './styles/admin-analytics.css';
 /* debug-toolbar.css здесь НЕ подключается: его импортирует сам
    DebugToolbar.jsx, и стили уезжают вместе с dev-чанком тулбара, а не

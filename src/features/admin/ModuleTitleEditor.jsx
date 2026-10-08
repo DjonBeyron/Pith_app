@@ -20,6 +20,7 @@ export default function ModuleTitleEditor({ moduleId, initialTitle = '', onClose
   const [title,   setTitle]   = useState(initialTitle)
   const [full,    setFull]    = useState('')
   const [rows,    setRows]    = useState(() => buildWordRows(initialTitle, []))
+  const [catchOn, setCatchOn] = useState(true) // «Ловля слов в ленте» (feed_catch_enabled)
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
   const [err,     setErr]     = useState('')
@@ -33,6 +34,7 @@ export default function ModuleTitleEditor({ moduleId, initialTitle = '', onClose
         setTitle(t)
         setFull(d.title_translation ?? '')
         setRows(buildWordRows(t, d.word_translations ?? []))
+        setCatchOn(d.feed_catch_enabled !== false) // нет колонки — включено
         setLoading(false)
       })
       .catch(e => { if (alive) { setErr(friendlyError(e)); setLoading(false) } })
@@ -55,7 +57,7 @@ export default function ModuleTitleEditor({ moduleId, initialTitle = '', onClose
     setErr('')
     try {
       await saveCurriculumTitleData(moduleId, {
-        title: t, titleTranslation: full, wordTranslations: rows,
+        title: t, titleTranslation: full, wordTranslations: rows, feedCatchEnabled: catchOn,
       })
       onSaved?.(t)
       onClose()
@@ -112,6 +114,12 @@ export default function ModuleTitleEditor({ moduleId, initialTitle = '', onClose
                 ))}
               </div>
             )}
+
+            <label className="mteCheck">
+              <input type="checkbox" checked={catchOn} onChange={e => setCatchOn(e.target.checked)} />
+              <span>Ловля слов в ленте</span>
+              <span className="mteCheckHint">задание «напечатай расслышанные слова» на этой фразе</span>
+            </label>
 
             {err && <div className="mteErr">{err}</div>}
 

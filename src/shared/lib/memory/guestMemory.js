@@ -12,9 +12,11 @@ import { lessonWordOf } from './wordLessons.js'
 //   от 7 дней — разброс ±1 день
 //   постоянная память (миграция 20260926120000_memory_settled.sql): верный
 //   ответ в срок на шаге 5 → settled_on = сегодня; again / fail → null
-const MEM_KEY = 'pithy_guest_memory_v1'
-const LOG_KEY = 'pithy_guest_reviews_v1'
-const LOG_DAYS = 30
+// Ключи и read/write экспортированы для guestCatch.js (ловля слов в ленте) — он
+// пишет в ту же память и тот же журнал гостя
+export const MEM_KEY = 'pithy_guest_memory_v1'
+export const LOG_KEY = 'pithy_guest_reviews_v1'
+export const LOG_DAYS = 30
 
 export const intervalFor = step => ({ 1: 1, 2: 3, 3: 7, 4: 16 })[step] ?? 35
 
@@ -57,10 +59,10 @@ export function applyReview(row, outcome, today, rand = Math.random) {
   }
 }
 
-function read(key, fallback) {
+export function read(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? fallback } catch { return fallback }
 }
-function write(key, value) {
+export function write(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* приватный режим — память не сохранится */ }
 }
 

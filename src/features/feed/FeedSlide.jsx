@@ -11,9 +11,18 @@ import { useWordTranslate } from './useWordTranslate.js'
 import { useSlideRecall } from './useSlideRecall.js'
 import { useTranslationReveal } from './useTranslationReveal.js'
 import FeedHud from './FeedHud.jsx'
+import { useSlideCatch } from './catch/useSlideCatch.js'
+import CatchChip from './catch/CatchChip.jsx'
+import CatchMaskedWords from './catch/CatchMaskedWords.jsx'
+import CatchPanel from './catch/CatchPanel.jsx'
+
+// Маски слов спадают за это время (feed-catch.css) — потом слайд становится обычным открытым
+const CATCH_REVEAL_MS = 320
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером (перевод фразы появляется, когда её потёрли пальцем —
 // useTranslationReveal), HUD (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
+// «Ловля слов» (catch/): если лента поставила на фразу задание, вместо спойлера на всю фразу каждое слово под своей
+// маской (CatchMaskedWords), тап по слову открывает панель набора (CatchPanel) и блокирует свайп (onLock).
 // Состояние лайков живёт в FeedTab, спойлер локален для каждой копии
 // слайда в круге.
 export default function FeedSlide({
@@ -26,6 +35,8 @@ export default function FeedSlide({
   knowledge = null, // { stepOf, settledOf } — память слов: цвет слов по ступеням (feedKnowledge.js)
   recall = null,    // повторение слов фразы (useFeedRecall): что к повтору, запас вариантов, лимиты
   onLearnChanged,   // ответ на проверку слова изменил память — лента обновит данные «Моего обучения»
+  catchFeed = null, // «Ловля слов» на уровне ленты (useFeedCatch): лимиты, claim
+  onLock,           // панель набора открыта → лента не свайпается (только у активного слайда)
 }) {
   // revealed — фраза уже открыта (слова становятся кликабельными сразу, перевод фразы можно тереть)
   const [revealed, setRevealed] = useState(false)
@@ -36,6 +47,14 @@ export default function FeedSlide({
   const { pick, close } = wordTr
   // Слово фразы со сроком «сегодня»: дышит, по тапу — проверка вместо перевода (useSlideRecall)
   const rc = useSlideRecall({ recall, mod, active, revealed, knowledge, wp: wordTr, onChanged: onLearnChanged })
+  // «Ловля слов»: задание ставится, если на слайде нет слова «Помнишь?» (rc.candIndex) — оно главнее
+  const ct = useSlideCatch({ feedCatch: catchFeed, mod, active, knowledge, recallIndex: rc.candIndex, onLock, onLearnChanged })
+  // Задание закончено (все слова набраны или «Раскрыть фразу») → маски спадают, слайд = обычный открытый
+  useEffect(() => {
+    if (!ct.done) return
+    const t = setTimeout(() => { setRevealed(true); onPhraseOpened?.() }, CATCH_REVEAL_MS)
+    return () => clearTimeout(t)
+  }, [ct.done]) // eslint-disable-line react-hooks/exhaustive-deps
   // Перевод фразы: спрятан, пока её не потёрли; стрелка прячет его обратно, подпись «перевести» остаётся до ухода со слайда
   const { phase: trPhase, setSub, rubProps, toggle: toggleTr } = useTranslationReveal({ active, modId: mod.id, enabled: revealed && !!mod.titleTranslation, onRubbed: onRubHintSeen })
   // Ушли с этого слайда свайпом — подсказку убираем. Отдельно закрываем её и
@@ -46,6 +65,20 @@ export default function FeedSlide({
 
   // Уроки контента = между Стартом и Финалом
   const lessonsCount = Math.max(0, mod.lessonIds.length - 2)
+
+  // Открытая фраза по словам — под спойлером и после задания ловли одна и та же
+  const phraseWords = (
+    <PhraseWords
+      title={mod.title}
+      entries={mod.wordTranslations}
+      activeIndex={pick && !(pick.closing && !pick.soft) ? pick.index : -1}
+      enabled={revealed}
+      onPick={rc.onPick}
+      levelOf={rc.levelOf}
+      lureIndex={rc.lureIndex}
+      tint={rc.tint}
+    />
+  )
 
   return (
     <section className={`feedSlide feedGrad${gradIdx}`} ref={rootRef}>
@@ -72,20 +105,26 @@ export default function FeedSlide({
             и выкатывается, когда фразу потёрли */}
         <div className="feedPhraseStack">
           {showRubHint && revealed && trPhase === 'off' && !!mod.titleTranslation && <RubHint />}
-          <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={() => { setRevealed(true); onPhraseOpened?.() }}>
-            <div className="feedPhrase" {...rubProps}>
-              <PhraseWords
-                title={mod.title}
-                entries={mod.wordTranslations}
-                activeIndex={pick && !(pick.closing && !pick.soft) ? pick.index : -1}
-                enabled={revealed}
-                onPick={rc.onPick}
-                levelOf={rc.levelOf}
-                lureIndex={rc.lureIndex}
-                tint={rc.tint}
-              />
-            </div>
-          </PhraseBubbleSpoiler>
+          {ct.active && !revealed ? (
+            <>
+              <CatchChip ownCount={ct.ownCount} remaining={ct.done ? 0 : ct.remaining} total={ct.words.length} started={ct.open} />
+              <div className="feedPhrase feedPhraseCatch">
+                <CatchMaskedWords
+                  title={mod.title}
+                  words={ct.words}
+                  typedIndexes={ct.done ? new Set(ct.words.map(w => w.index)) : ct.typedIndexes}
+                  currentIndex={ct.current?.index ?? -1}
+                  onPick={ct.pickWord}
+                />
+              </div>
+            </>
+          ) : ct.active ? (
+            <div className="feedPhrase" {...rubProps}>{phraseWords}</div>
+          ) : (
+            <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={() => { setRevealed(true); onPhraseOpened?.() }}>
+              <div className="feedPhrase" {...rubProps}>{phraseWords}</div>
+            </PhraseBubbleSpoiler>
+          )}
           {!!mod.titleTranslation && (
             <div ref={setSub} className={trPhase === 'off' ? 'feedPhraseSub' : 'feedPhraseSub feedPhraseSubOpen'}>
               <PhraseTranslationRow
@@ -100,6 +139,14 @@ export default function FeedSlide({
       </div>
 
       {pick && <WordTranslateLine key={pick.id} pick={pick} onClose={close} onAnswer={rc.answer} />}
+
+      {ct.open && (
+        <CatchPanel
+          current={ct.current} typed={ct.typed} helped={ct.helped} model={ct.model}
+          wrongFlash={ct.wrongFlash} remaining={ct.remaining}
+          onKey={ct.press} onBackspace={ct.backspace} onHelp={ct.help} onCheck={ct.check} onReveal={ct.reveal}
+        />
+      )}
 
       <FeedHud
         module={mod}

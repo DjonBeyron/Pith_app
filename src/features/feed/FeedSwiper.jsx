@@ -31,7 +31,7 @@ import { useSwipeGesture } from './useSwipeGesture.js'
 // (preventInteractionOnTransition ниже)
 const SPEED = 260
 
-export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, onActiveIdx, renderSlide }) {
+export default function FeedSwiper({ feedModules, pinnedId, active, locked = false, activeIdx, onActiveIdx, renderSlide }) {
   const len = feedModules.length
   const cycles = circleCycles(len)
   const total = len * cycles
@@ -122,13 +122,15 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
 
   // Лента не на экране (другая вкладка, «Мои уроки», слой урока): жесты,
   // колесо и клавиатура выключены — клавиатура Swiper слушает весь документ,
-  // стрелки на другой вкладке листали бы скрытую ленту
+  // стрелки на другой вкладке листали бы скрытую ленту. locked — на активном
+  // слайде открыта панель набора «Ловли слов» (useFeedCatch.locked): листать нельзя, пока она открыта
   useEffect(() => {
     swipeTraceVisible(active)
     const s = swiperRef.current
     if (!s || s.destroyed) return
-    s.allowTouchMove = active
-    if (active) { s.mousewheel.enable(); s.keyboard.enable() } else { s.mousewheel.disable(); s.keyboard.disable() }
+    const on = active && !locked
+    s.allowTouchMove = on
+    if (on) { s.mousewheel.enable(); s.keyboard.enable() } else { s.mousewheel.disable(); s.keyboard.disable() }
     // Палец ещё на ленте, а она уходит с экрана (вторым пальцем нажали
     // вкладку): жест отменяем и возвращаем слайд на место. allowTouchMove
     // Swiper проверяет только на движении — отпускание он бы доиграл уже на
@@ -140,8 +142,8 @@ export default function FeedSwiper({ feedModules, pinnedId, active, activeIdx, o
       d.startMoving = false
       swipeProgrammatic('жест отменён: лента ушла с экрана', () => s.slideTo(s.activeIndex, 0, false))
     }
-    swipeEvent(active ? 'вернулась на экран' : 'ушла с экрана', `слайд ${s.activeIndex}`)
-  }, [active])
+    swipeEvent(!active ? 'ушла с экрана' : locked ? 'свайп заблокирован (ловля слов)' : 'вернулась на экран', `слайд ${s.activeIndex}`)
+  }, [active, locked])
 
   useEffect(() => () => swipeTraceDetach(), [])
 

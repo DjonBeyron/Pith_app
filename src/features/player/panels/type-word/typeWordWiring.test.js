@@ -88,7 +88,7 @@ describe('type_word — плеер', () => {
   })
 
   it('клавиатура: нажимаются только светящиеся клавиши, стирание есть', () => {
-    expect(keyboard).toContain('disabled={disabled || !k.lit}')
+    expect(keyboard).toContain('disabled={disabled || !k.lit || (helped && !!k.lure)}')
     expect(keyboard).toContain('aria-label="Стереть"')
     expect(hook).toContain('if (frozen) return')
   })

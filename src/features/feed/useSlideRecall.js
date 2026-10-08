@@ -22,7 +22,9 @@ const SERVER_WAIT_MS = 6000
 // wp — useWordTranslate слайда; knowledge — { stepOf, settledOf }; onChanged — память изменилась
 // (лента обновит данные «Моего обучения» — после ухода плашки, чтобы порядок ленты не прыгнул под ней).
 // revealed — фраза открыта (шарики разлетелись).
-// → { lureIndex, levelOf, tint, onPick, answer }
+// candIndex — index слова-кандидата к повтору (−1 — нет), независимо от revealed/лимитов: «Ловля слов» (useSlideCatch)
+// уступает этому слову слайд.
+// → { lureIndex, candIndex, levelOf, tint, onPick, answer }
 export function useSlideRecall({ recall, mod, active, revealed, knowledge, wp, onChanged }) {
   const { pick, pickWord, patch, softClose } = wp
   const cand = useMemo(
@@ -106,5 +108,5 @@ export function useSlideRecall({ recall, mod, active, revealed, knowledge, wp, o
     })
   }
 
-  return { lureIndex, levelOf, tint: recallColor(pick?.recall), onPick, answer }
+  return { lureIndex, candIndex: cand?.index ?? -1, levelOf, tint: recallColor(pick?.recall), onPick, answer }
 }

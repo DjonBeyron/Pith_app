@@ -122,3 +122,32 @@ describe('«Напечатай слово»: ввод и проверка', () =
     expect(typedMismatchSlot('Ice crean', 'ice cream')).toBe(7)
   })
 })
+
+describe('keyboardModel: lure (лишние светящиеся клавиши)', () => {
+  const lureOf = model => [...model.rows.flat(), ...model.extraKeys].filter(k => k.lure).map(k => k.ch).sort().join('')
+
+  it('без дополнительных букв lure-клавиш нет', () => {
+    expect(lureOf(keyboardModel('tries'))).toBe('')
+  })
+
+  it('lure — светится, но буквы нет в слове', () => {
+    const m = keyboardModel('cat', 'xz')
+    expect(lureOf(m)).toBe('xz')
+    expect(m.rows.flat().find(k => k.ch === 'c')).toMatchObject({ lit: true, lure: false })
+    expect(m.rows.flat().find(k => k.ch === 'x')).toMatchObject({ lit: true, lure: true })
+    expect(m.rows.flat().find(k => k.ch === 'q')).toMatchObject({ lit: false, lure: false })
+  })
+
+  it('дополнительная буква, которая есть в слове, — не lure; дополнительные знаки вне раскладки — lure', () => {
+    expect(lureOf(keyboardModel('cat', 'ca'))).toBe('')
+    const m = keyboardModel("don't", 'é')
+    expect(m.extraKeys.find(k => k.ch === "'").lure).toBe(false)
+    expect(m.extraKeys.find(k => k.ch === 'é').lure).toBe(true)
+  })
+
+  it('пробел — не lure', () => {
+    const m = keyboardModel('ice cream', 'z')
+    expect(m.space).toBe(true)
+    expect(lureOf(m)).toBe('z')
+  })
+})

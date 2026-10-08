@@ -134,6 +134,25 @@
   font-size: 13px;
 }
 
+/* Переключатель «Ловля слов в ленте» (feed_catch_enabled) */
+.mteCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mteCheck input { accent-color: #b6fe3b; }
+
+.mteCheckHint {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9aa3ad;
+}
+
 .mteErr {
   margin-top: 10px;
   color: #ff8f8f;

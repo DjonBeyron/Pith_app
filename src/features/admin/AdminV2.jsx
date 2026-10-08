@@ -9,6 +9,7 @@ import AdminAnalyticsTab from './AdminAnalyticsTab.jsx'
 import AdminTeacherTab from './AdminTeacherTab.jsx'
 import AdminDecksTab from './AdminDecksTab.jsx'
 import AdminReviewTab from './AdminReviewTab.jsx'
+import AdminCatchTab from './AdminCatchTab.jsx'
 import AdminAchievementsTab from './AdminAchievementsTab.jsx'
 import AdminToggles from './AdminToggles.jsx'
 import { APP_VERSION } from '../../shared/lib/version.js'
@@ -18,7 +19,7 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 // «Стрик» (вехи наград), «Учитель» (общий учитель всех уроков), «Ошибки»
 // (ошибки клиентов из client_errors), «Аналитика» (отчёт по app_events) и
 // «Колоды» (слова без колоды карточек повтора, AdminDecksTab), «Повторение»
-// (временный вход в плеер повторения + своя память слов, AdminReviewTab) и «Достижения» (выдать/снять себе достижение,
+// (временный вход в плеер повторения + своя память слов, AdminReviewTab), «Ловля» (песочница «Ловли слов», AdminCatchTab) и «Достижения» (выдать/снять себе достижение,
 // AdminAchievementsTab). Открытая субвкладка запоминается
 // на устройстве; тумблеры («Режим пользователя», «Я новенький» — имитация первого входа, newbieSim.js, и др.) — в одном
 // сворачиваемом блоке «Переключатели» (AdminToggles).
@@ -27,13 +28,13 @@ import { APP_VERSION } from '../../shared/lib/version.js'
 // через onModuleOpened, чтобы повторный заход в админку не открывал её снова
 // Какая субвкладка открыта — запоминается на этом устройстве: админка открывается там же, где её оставили
 const SUB_KEY = 'pithy_admin_sub_v1'
-const SUBS = ['modules', 'files', 'push', 'race', 'streak', 'teacher', 'errors', 'analytics', 'decks', 'review', 'achievements']
+const SUBS = ['modules', 'files', 'push', 'race', 'streak', 'teacher', 'errors', 'analytics', 'decks', 'review', 'catch', 'achievements']
 function storedSub() {
   try { const v = localStorage.getItem(SUB_KEY); return SUBS.includes(v) ? v : 'modules' } catch { return 'modules' }
 }
 
 export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, openModule = null, onModuleOpened }) {
-  const [sub, setSubState] = useState(storedSub) // modules | files | push | race | streak | teacher | errors | analytics | decks | review | achievements
+  const [sub, setSubState] = useState(storedSub) // modules | files | push | race | streak | teacher | errors | analytics | decks | review | catch | achievements
   const setSub = id => {
     setSubState(id)
     try { localStorage.setItem(SUB_KEY, id) } catch { /* приватный режим — запомнится до перезагрузки */ }
@@ -82,6 +83,9 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
         <button className={sub === 'review' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('review')}>
           Повторение
         </button>
+        <button className={sub === 'catch' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('catch')}>
+          Ловля
+        </button>
         <button className={sub === 'achievements' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('achievements')}>
           Достижения
         </button>
@@ -104,6 +108,7 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
       {sub === 'analytics' && <div className="shellV2Panel"><AdminAnalyticsTab /></div>}
       {sub === 'decks' && <div className="shellV2Panel"><AdminDecksTab onOpenCards={onOpenCards} /></div>}
       {sub === 'review' && <div className="shellV2Panel"><AdminReviewTab /></div>}
+      {sub === 'catch' && <div className="shellV2Panel"><AdminCatchTab /></div>}
       {sub === 'achievements' && <div className="shellV2Panel"><AdminAchievementsTab /></div>}
     </div>
   )

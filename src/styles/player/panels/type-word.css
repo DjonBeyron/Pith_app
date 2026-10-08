@@ -91,6 +91,7 @@
 .twKeyLabel { display: flex; align-items: center; justify-content: center; opacity: 1; transition: opacity 0.4s ease; }
 .twKeyDim { cursor: default; }
 .twKeyDim .twKeyLabel { opacity: 0.28; }
+/* .twKeyLure — лишняя светящаяся клавиша (в ленте «Поймай слово»): пока не помогли — выглядит как обычная яркая */
 .twKey:active:not(:disabled) .twKeyLabel { opacity: 0.25; transition-duration: 0s; }
 
 /* Стирание — справа внизу, чуть шире буквы; после последней попытки (замок) тускнеет вместе со всеми */
@@ -113,7 +114,25 @@
   text-transform: none;
 }
 
+/* «Помочь памяти» (лента): запутыватели один раз трясутся и тускнеют до уровня неактивных,
+   неактивные одновременно тускнеют ещё сильнее. Только opacity/transform */
+.twHelped .twKeyLure .twKeyLabel {
+  opacity: 0.28;
+  transition: opacity 0.4s ease, color 0.4s ease;
+  animation: twLureShake 0.5s ease-in-out 1;
+}
+.twHelped .twKeyDim .twKeyLabel { opacity: 0.12; transition: opacity 0.4s ease, color 0.4s ease; }
+
+@keyframes twLureShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .twCaret { animation: none; }
+  .twHelped .twKeyLure .twKeyLabel { animation: none; }
   .twKeyLabel { transition: none; }
 }

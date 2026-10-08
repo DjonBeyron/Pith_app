@@ -43,12 +43,15 @@ export function keyboardModel(word, extra = '') {
   const base = ROWS[layoutOf(word, extra)]
   const inBase = new Set(base.join(''))
   const extraKeys = [...lit].filter(ch => ch !== ' ' && !inBase.has(ch))
+  // lure — клавиша светится, но её нет в слове (лишняя буква автора / запутыватель ленты)
+  const own = new Set(wordChars(word))
+  const lure = ch => lit.has(ch) && !own.has(ch)
   return {
     // Сколько клавиш в самом длинном ряду: от этого зависит ширина КАЖДОЙ клавиши (как на iPhone —
     // короткие ряды не растягиваются, а встают по центру)
     cols: Math.max(...base.map(row => row.length)),
-    rows: base.map(row => [...row].map(ch => ({ ch, lit: lit.has(ch) }))),
-    extraKeys: extraKeys.map(ch => ({ ch, lit: true })),
+    rows: base.map(row => [...row].map(ch => ({ ch, lit: lit.has(ch), lure: lure(ch) }))),
+    extraKeys: extraKeys.map(ch => ({ ch, lit: true, lure: lure(ch) })),
     space: lit.has(' '),
   }
 }

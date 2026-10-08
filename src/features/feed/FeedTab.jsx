@@ -26,6 +26,7 @@ import { onLessonsHome } from '../../shared/lib/lessonsHomeEvent.js'
 import { onOpenModule } from '../../shared/lib/openModuleEvent.js'
 import { useFeedKnowledge } from './useFeedKnowledge.js'
 import { useFeedRecall } from './useFeedRecall.js'
+import { useFeedCatch } from './catch/useFeedCatch.js'
 import FeedEmptyState from './FeedEmptyState.jsx'
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
@@ -34,7 +35,7 @@ import FeedEmptyState from './FeedEmptyState.jsx'
 // learnView — данные «Моего обучения»: по памяти слов лента подсвечивает
 // знакомое, ставит метки и выбирает порядок рекомендаций (feedKnowledge.js),
 // слово фразы со сроком «сегодня» дышит и по тапу проверяется прямо в переводе по словам
-// (useFeedRecall); onLearnChanged — после ответа
+// (useFeedRecall); «Ловля слов» — напечатать расслышанные слова фразы (catch/useFeedCatch); onLearnChanged — после ответа
 export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, learnView = null, onLearnChanged }) {
   const [view, setView] = useState('feed') // feed | mine
   // Открытый модуль (схема Старт → уроки → Финал) поверх ленты
@@ -66,6 +67,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   const { rank, knowledgeOf } = useFeedKnowledge(learnView)
   const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds, visible, rank)
   const recall = useFeedRecall(learnView, modules)
+  const catchFeed = useFeedCatch() // «Ловля слов» (catch/): лимиты и блокировка свайпа, пока открыта панель набора
   // Уроки-закладки грузятся здесь же, рядом с модулями, а не при открытии
   // «Моих уроков»: иначе их запрос стартовал на секунды позже и строка
   // появлялась после модулей (особенно заметно на телефоне)
@@ -164,6 +166,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
         knowledge={knowledgeOf(m)}
         recall={recall}
         onLearnChanged={onLearnChanged}
+        catchFeed={catchFeed}
+        onLock={rel === 0 ? catchFeed.setLocked : undefined}
       />
     )
   }
@@ -220,8 +224,9 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
             feedModules={feedModules}
             pinnedId={pinnedId}
             active={feedActive}
+            locked={catchFeed.locked}
             activeIdx={activeIdx}
-            onActiveIdx={idx => { setActiveIdx(idx); recall.onSlide(feedModules[moduleOf(idx, len)]?.id) }}
+            onActiveIdx={idx => { const id = feedModules[moduleOf(idx, len)]?.id; setActiveIdx(idx); recall.onSlide(id); catchFeed.onSlide(id) }}
             renderSlide={renderSlide}
           />
         )}
