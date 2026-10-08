@@ -3,7 +3,7 @@ import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/ap
 import { hasUnclaimedStreak } from '../features/streak/streakClaim.js'
 
 // Есть ли неполученная ежедневная награда — для значка «Профиль» в нижней панели (ShellNav.jsx): серия дошла дальше
-// последнего забранного дня. Профиль берём из общего кэша, как верхние бейджи (LevelBadge, TicketBadge): после «Забрать»
+// последнего полученного дня. Профиль берём из общего кэша, как верхние бейджи (LevelBadge, TicketBadge): после «Забрать»
 // окно наград обновляет кэш — значок гаснет сам. Гостю награды не положены — точки нет.
 export function useRewardsDot(isLoggedIn) {
   const [profile, setProfile] = useState(getCachedProfile)

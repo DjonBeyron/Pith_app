@@ -166,17 +166,8 @@
    Проявление — прозрачность + лёгкий скейл, как у ручной таблицы
    (.tmCheckBtn); задержки нет — отката, который надо переждать, тут нет */
 .fbCheckBtn {
-  display: block;
-  margin: 12px auto 0;
-  padding: 7px 22px;
-  background: #12141d;
-  border: 2px solid #b6fe3b;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #b6fe3b;
-  font-family: inherit;
-  cursor: pointer;
+  /* Размер, форма, рамка и шрифт — общие (.phraseCheckBtn, phrase-assembly.css) */
+  margin-top: 10px;
   opacity: 1;
   transform: scale(1);
   transition:
@@ -185,8 +176,6 @@
     transform .22s cubic-bezier(0.22, 1, 0.36, 1),
     visibility 0s;
 }
-.fbCheckBtn:hover:not(:disabled) { background: #b6fe3b; color: #000; }
-.fbCheckBtn:disabled { opacity: .35; cursor: default; }
 /* После :disabled — у той тоже opacity, скрытая кнопка обязана победить */
 .fbCheckBtn.fbCheckBtnHidden {
   visibility: hidden;

@@ -34,10 +34,24 @@ describe('манифест приложения', () => {
 describe('сервис-воркер push-sw.js', () => {
   const sw = readFileSync(resolve(PUBLIC, 'push-sw.js'), 'utf8')
 
-  it('есть fetch-обработчик — только для загрузки страниц, без кэша', () => {
+  it('есть fetch-обработчик — только для загрузки страниц (navigate)', () => {
     expect(sw).toMatch(/addEventListener\('fetch'/)
     expect(sw).toMatch(/request\.mode === 'navigate'/)
-    expect(sw).not.toMatch(/caches\.|cache\.put|cache\.add/)
+  })
+
+  it('кэширует только офлайн-страницу (кэш offline-*), ничего больше', () => {
+    expect(sw).toMatch(/OFFLINE_CACHE = 'offline-v\d+'/)
+    expect(sw).toMatch(/OFFLINE_URL = '\/offline\.html'/)
+    expect(sw).not.toMatch(/cache\.put|addAll/)
+    expect(sw.match(/c\.add\(/g)).toHaveLength(1)
+    expect(existsSync(resolve(PUBLIC, 'offline.html'))).toBe(true)
+  })
+
+  it('офлайн-страница самодостаточна: без внешних ресурсов, с кнопкой «Повторить»', () => {
+    const html = readFileSync(resolve(PUBLIC, 'offline.html'), 'utf8')
+    expect(html).not.toMatch(/(src|href)="https?:/)
+    expect(html).toMatch(/Повторить/)
+    expect(html).toMatch(/location\.reload\(\)/)
   })
 
   it('push-уведомления на месте', () => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Frown, Trophy, Snowflake, ShieldCheck, Gift } from 'lucide-react'
 import RewardsPath from './RewardsPath.jsx'
 import RewardClaimPopup from './RewardClaimPopup.jsx'
+import { pointerIndex } from './streakClaim.js'
 import FreezeSheet from './FreezeSheet.jsx'
 import TicketIcon from '../../shared/ui/TicketIcon.jsx'
 import {
@@ -78,7 +79,7 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
     ? Math.round(((streak - prevMilestoneDay) / (nextMilestone.day_number - prevMilestoneDay)) * 100)
     : 100
 
-  const windowStart = Math.max(1, nextClaimDay - 3) // до 3 уже забранных дней видны сверху карты
+  const windowStart = Math.max(1, nextClaimDay - 3) // до 3 уже полученных дней видны сверху карты
   const windowEnd = nextMilestone
     ? Math.min(nextMilestone.day_number, nextClaimDay + WINDOW_SIZE - 1)
     : nextClaimDay + WINDOW_SIZE - 1
@@ -90,12 +91,15 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
       xp: m ? m.xp_reward : 5,
       tickets: m ? m.ticket_reward : 0,
       milestone: !!m,
-      // 'done' — уже забран; 'ready' — прожит и ждёт забора (может быть
+      // 'done' — уже получен; 'ready' — прожит и ждёт забора (может быть
       // несколько таких дней сразу); 'locked' — день ещё не наступил
       status: day < nextClaimDay ? 'done' : day <= streak ? 'ready' : 'locked',
       visited: day <= streak, // вход в этот день уже был совершён — красит линию перед нодой
     })
   }
+
+  // Указатель «ты здесь» — впереди последнего полученного / доступного к получению дня (правило — в pointerIndex)
+  const pointerIdx = days.length ? pointerIndex(days[0].day, days[days.length - 1].day, lastClaimed, streak) : -1
 
   // Куда автоскроллить путь при открытии: на «текущий» день серии, а если
   // окно его не показывает — на последний ready-день в окне.
@@ -193,7 +197,7 @@ export default function RewardsPopup({ profile, onClose, onWantPro }) {
             ) : <p className="rwHeroSub">Ты прошёл все известные вехи — так держать!</p>}
           </section>
 
-          <RewardsPath key={loading ? 'ghost' : 'real'} ghost={loading} days={days} focusDay={focusDay} streak={streak} />
+          <RewardsPath key={loading ? 'ghost' : 'real'} ghost={loading} days={days} focusDay={focusDay} pointerIdx={pointerIdx} streak={streak} />
         </div>
 
         {loading && loadError && (

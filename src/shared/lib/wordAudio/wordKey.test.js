@@ -76,7 +76,7 @@ describe('collectLessonWords — слова урока для озвучки', (
   it('собирает слова из четырёх типов нод, без дублей, только латиницу', () => {
     const m = collectLessonWords(nodes)
     expect([...m.keys()].sort()).toEqual([
-      'again', 'am', 'cook', 'goes', 'he', 'here', 'i', 'is', 'pizza', 'tried', 'tries', 'try',
+      'again', 'am', 'cook', 'cooks', 'goes', 'he', 'here', 'i', 'is', 'pizza', 'tried', 'tries', 'try', 'trys',
     ])
     expect(m.get('here')).toBe('here')       // пунктуация снята
     expect(m.get('i')).toBe('I')             // показ — как в уроке
@@ -97,5 +97,26 @@ describe('collectLessonWords — слова урока для озвучки', (
     expect(missing.has('he')).toBe(false)
     expect(missing.has('again')).toBe(true)
     expect(missing.size).toBe(wanted.size - 2)
+  })
+})
+
+describe('fill_blanks: слова с принудительными переносами \\n', () => {
+  const fb = (template, blanks) => [{ type: 'fill_blanks', typeData: { fill_blanks: { template, blanks } } }]
+
+  it('blankWord: \\n делит слова, как пробел («one\\ntwo» — два слова)', () => {
+    expect(blankWord('one\n___\ntwo', [{ answer: 'x' }], 0)).toBe('x')
+    expect(blankWord('go to\ntr___s\nnow', [{ answer: 'ie' }], 0)).toBe('tries')
+    expect(blankWord('one\ntr___', [{ answer: 'y' }], 0)).toBe('try')
+  })
+
+  it('blankWord: подстановка values вместо верного ответа; остальные пропуски слова — верные', () => {
+    const blanks = [{ answer: 'ie' }, { answer: 's' }]
+    expect(blankWord('tr___\n___', blanks, 0, { 0: 'y' })).toBe('try')
+    expect(blankWord('tr___ed ___', blanks, 0, { 0: 'y' })).toBe('tryed')
+  })
+
+  it('collectLessonWords: слова вокруг \\n не склеиваются, берутся все варианты меню', () => {
+    const m = collectLessonWords(fb('She\ncook___\nnow', [{ answer: 's', options: ['s', 'ed'] }]))
+    expect([...m.keys()].sort()).toEqual(['cooked', 'cooks'])
   })
 })

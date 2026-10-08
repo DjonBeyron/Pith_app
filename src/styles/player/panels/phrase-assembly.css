@@ -117,21 +117,52 @@
 
 .phraseAnswerChip:disabled { cursor: default; }
 
+/* Слово из снимка неверной проверки (wrongChips.js) — красное, пока идёт тряска.
+   Слова, добавленные ПОСЛЕ проверки, этого класса не получают */
+.phraseAnswerChipErr { color: #f87171; }
+
 /* ── Chip pool ───────────────────────────────────────────── */
+/* Банк слов (PhraseBank.jsx): чипы в порядке банка, при ≥ 4 чипах — ровно две строки,
+   сбалансированные по ширине (разрыв строки включает bankRows.js через .phraseBankBrOn).
+   Строки по центру, зазор в строке 8px (column-gap), между строками тоже 8px — его дают margin
+   чипов (4px + 4px), а не row-gap: разрыв (нулевой высоты) не должен добавлять зазоров.
+   Высота чипа 38px фиксирована, «две строки» = 2 × 46px; использованные чипы остаются на месте,
+   поэтому банк не меняет высоту по ходу ответа. */
 .phrasePool {
+  --phrase-chip-h: 38px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 0;
   justify-content: center;
+  align-content: center;
+  margin: -4px 0; /* вертикальные margin чипов (4px) не должны раздувать отступы панели */
+}
+.phrasePoolTwo { min-height: calc(2 * (var(--phrase-chip-h) + 8px)); }
+
+.phraseBankBr { display: none; }
+.phraseBankBrOn {
+  display: block;
+  flex: 0 0 100%;
+  height: 0;
 }
 
 .phraseChip {
+  box-sizing: border-box;
+  height: var(--phrase-chip-h);
+  margin: 4px 0;
+  flex: 0 0 auto;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
   background: #12141d;
   border: 2px solid #2a2d35;
   border-radius: 12px;
-  padding: 8px 16px;
+  padding: 0 16px;
   font-size: 14px;
   font-weight: 600;
+  line-height: 1;
   color: #e0e0e0;
   cursor: pointer;
   /* Не inherit: слово в банке и оно же в собранной фразе должны быть
@@ -152,26 +183,62 @@
 }
 
 /* ── Check button ────────────────────────────────────────── */
-.phraseCheckBtn {
+/* ЕДИНСТВЕННЫЙ источник вида кнопки «Проверить» во всех панелях ответа плеера:
+   «Собери фразу» и «Напечатай слово» (.phraseCheckBtn), «Таблица вручную»
+   (.tmCheckBtn), «Составь предложение» (.fbCheckBtn) и шторка «Ловли слов»
+   (.phraseCheckBtn.catchMainBtn). Высота 46px, радиус, лаймовая рамка, шрифт
+   clamp(13px, 3.6vw, 16px)/700, на всю ширину контента панели, одна строка.
+   В других файлах у этих классов остаются только отступ и показ/скрытие (opacity,
+   transform, visibility, transition) — размер, форму и шрифт там не переопределять
+   (проверяет phraseCheckBtnSingleSource.test.js). index.css подключает этот файл РАНЬШЕ
+   table-manual.css и fill-blanks.css: их transition с задержкой выигрывает у общего. */
+.phraseCheckBtn,
+.tmCheckBtn,
+.fbCheckBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   width: 100%;
+  height: 46px;
+  margin: 0;
+  padding: 0 16px;
   background: #12141d;
   border: 2px solid #b6fe3b;
   border-radius: 12px;
-  padding: 12px;
-  font-size: 13px; /* как .tmCheckBtn */
+  font-family: inherit;
+  /* 320px: «Проверить» ≈ 70px при 13px в 252px под текстом; потолок 16px от 445px */
+  font-size: clamp(13px, 3.6vw, 16px);
   font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
   color: #b6fe3b;
   cursor: pointer;
-  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   transition: background .15s, color .15s;
 }
 
-.phraseCheckBtn:hover:not(:disabled) {
+.phraseCheckBtn:hover:not(:disabled),
+.tmCheckBtn:hover:not(:disabled),
+.fbCheckBtn:hover:not(:disabled) {
   background: #b6fe3b;
   color: #000;
 }
 
-.phraseCheckBtn:disabled {
+/* Нажатие: то же заполнение (на тач-экране :hover «залипает» после тапа, а
+   :active срабатывает сразу) и лёгкое вжатие */
+.phraseCheckBtn:active:not(:disabled),
+.tmCheckBtn:active:not(:disabled),
+.fbCheckBtn:active:not(:disabled) {
+  background: #b6fe3b;
+  color: #000;
+  transform: scale(0.98);
+}
+
+.phraseCheckBtn:disabled,
+.tmCheckBtn:disabled,
+.fbCheckBtn:disabled {
   opacity: .35;
   cursor: default;
 }

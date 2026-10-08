@@ -1,10 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { firstMismatchSlot } from '../../../../shared/lib/signalMismatch.js'
 import { signalForSlot } from '../../../../shared/lib/signalSlots.js'
 import { useSignalState } from '../signal-overlay/useSignalState.js'
 import { useAnswerOrder } from '../../useAnswerOrder.js'
 import { playWord } from '../../word-audio/wordAudioPlayer.js'
 import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
+import { snapshotWrongIds } from './wrongChips.js'
+
+// Сколько держится итог неверной проверки (тряска строки + красные слова снимка)
+const WRONG_SHOW_MS = 700
 
 const wordMatches = (word, expected) => (word ?? '').toLowerCase() === expected.toLowerCase()
 
@@ -33,6 +37,11 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
   // placed: [{ shuffleIdx, word, distractorId }, ...]
   const [placed, setPlaced] = useState([])
   const [result, setResult] = useState(null) // 'correct' | 'wrong' | null
+  // Снимок id чипов на момент неверной проверки (wrongChips.js): красными бывают только они,
+  // слово, добавленное после проверки, в снимке не числится. Сбрасывается любым изменением ответа
+  const [wrongIds, setWrongIds] = useState(null)
+  const wrongTimer = useRef(null)
+  useEffect(() => () => clearTimeout(wrongTimer.current), [])
 
   // Сигнал ошибки автора: пока его оверлей играет (freeze), ни новый чип, ни
   // удаление из зоны ответа не проходят — см. useSignalState.js
@@ -41,12 +50,21 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
   const usedIdxs   = useMemo(() => new Set(placed.map(p => p.shuffleIdx)), [placed])
   const isAnswered = result === 'correct'
 
+  // Любое изменение ответа гасит итог неверной проверки сразу: и красное, и таймер. Таймер
+  // обязан умирать здесь — иначе устаревший сброс ('wrong' → null от прошлой проверки)
+  // срабатывал бы поверх уже новой (в т.ч. верной) проверки
+  function clearWrong() {
+    clearTimeout(wrongTimer.current)
+    setWrongIds(null)
+    setResult(null)
+  }
+
   function pickChip(shuffleIdx) {
     if (usedIdxs.has(shuffleIdx) || isAnswered || signalState.freeze) return
     const chip = shuffled[shuffleIdx]
     playWord(wordKey(chip.text)) // озвучка слова при добавлении (удаление — молча)
     setPlaced(p => [...p, { shuffleIdx, word: chip.text, distractorId: chip.distractorId }])
-    if (result === 'wrong') setResult(null)
+    if (result === 'wrong' || wrongIds) clearWrong()
   }
 
   // Авто-ответ админа (SolveCorrectButton): строка ответа целиком, той же
@@ -54,7 +72,7 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
   function placeAll(items) {
     if (isAnswered || signalState.freeze) return
     setPlaced(items)
-    setResult(null)
+    clearWrong()
   }
 
   function removePlaced(pos) {
@@ -64,7 +82,7 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
     // только если убрали именно помеченный чип (см. nextBlinkIndex)
     signalState.onRemoved(pos)
     setPlaced(p => p.filter((_, i) => i !== pos))
-    setResult(null)
+    clearWrong()
   }
 
   function checkAnswer() {
@@ -72,6 +90,7 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
     // «Проверить»: React мог ещё не успеть перерисовать disabled на кнопке
     // между двумя быстрыми кликами (см. useSignalMessages.js)
     if (placed.length === 0 || isAnswered || signalState.freeze) return null
+    clearTimeout(wrongTimer.current) // таймер сброса прошлой неверной проверки не должен пережить эту
     const placedWords = placed.map(p => p.word)
     const full = placedWords.length === words.length
 
@@ -100,13 +119,17 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
     // Собранное НЕ чистим — только тряска (phraseAnswerErr, 700мс), как у
     // таблиц (manualCheck.js): ученик видит, что именно собрал не так, и
     // правит по месту, а не собирает всё заново
+    setWrongIds(snapshotWrongIds(placed))
     setResult('wrong')
-    setTimeout(() => setResult(null), 700)
+    wrongTimer.current = setTimeout(() => {
+      setResult(r => (r === 'wrong' ? null : r))
+      setWrongIds(null)
+    }, WRONG_SHOW_MS)
     return 'wrong'
   }
 
   return {
-    shuffled, placed, usedIdxs, result, isAnswered,
+    shuffled, placed, usedIdxs, result, wrongIds, isAnswered,
     pickChip, placeAll, removePlaced, checkAnswer,
     blinkIndex: signalState.blinkIndex,
     freeze: signalState.freeze,

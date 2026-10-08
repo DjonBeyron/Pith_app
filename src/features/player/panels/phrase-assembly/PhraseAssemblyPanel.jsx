@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { usePhraseAssembly } from './usePhraseAssembly.js'
-import PhraseWordChip from './PhraseWordChip.jsx'
+import PhraseBank from './PhraseBank.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { rememberTap } from '../../xpAnchor.js'
@@ -37,7 +37,7 @@ export default function PhraseAssemblyPanel({
 }) {
   const {
     shuffled, placed, usedIdxs, result, isAnswered, pickChip, placeAll, removePlaced, checkAnswer,
-    blinkIndex, freeze,
+    blinkIndex, freeze, wrongIds,
   } = usePhraseAssembly(node, nodes, onSignalFired, hasSignalFired)
   const [show, setShow]               = useState(false)
   const [showCounter, setShowCounter] = useState(false)
@@ -182,18 +182,13 @@ export default function PhraseAssemblyPanel({
           <div className={`phraseCounter${showCounter ? ' phraseCounterVisible' : ''}`}>
             выбрано {placed.length} {wordForm(placed.length)} из {wordsTotal}
           </div>
-          <PhraseAnswerRow placed={placed} result={result} blinkIndex={blinkIndex} freeze={freeze} onRemove={removePlaced} />
-          <div className="phrasePool">
-            {shuffled.map((chip, i) => (
-              <PhraseWordChip
-                key={i}
-                word={chip.text}
-                used={usedIdxs.has(i)}
-                disabled={isAnswered || freeze}
-                onClick={e => { rememberTap(e.currentTarget.getBoundingClientRect()); pickChip(i) }}
-              />
-            ))}
-          </div>
+          <PhraseAnswerRow placed={placed} result={result} wrongIds={wrongIds} blinkIndex={blinkIndex} freeze={freeze} onRemove={removePlaced} />
+          <PhraseBank
+            chips={shuffled}
+            usedIdxs={usedIdxs}
+            disabled={isAnswered || freeze}
+            onPick={(i, rect) => { rememberTap(rect); pickChip(i) }}
+          />
           <button
             className="phraseCheckBtn"
             onClick={handleCheck}

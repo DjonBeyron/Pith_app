@@ -8,7 +8,7 @@ import { parseTemplateSegments } from '../fillBlanksTemplate.js'
 //  - phrase_assembly: слова фразы и ловушки;
 //  - table: значения ячеек, варианты меню ячейки, слова вне таблицы из
 //    ответа и ловушки;
-//  - fill_blanks: ЦЕЛОЕ слово с верным ответом в пропуске (для «tr___s» —
+//  - fill_blanks: ЦЕЛОЕ слово для каждого варианта пропуска (для «tr___s» —
 //    «tries», а не «ie»: озвучивается слово, а не буквы);
 //  - word_choice: только верные варианты (озвучивается лишь верный ответ);
 //  - type_word: само печатаемое слово (озвучивается, когда ученик напечатал верно).
@@ -18,14 +18,18 @@ import { parseTemplateSegments } from '../fillBlanksTemplate.js'
 const MARK_L = ''
 const MARK_R = ''
 
-// Слово шаблона, в которое входит пропуск index, с подставленными верными
-// ответами всех пропусков. Пропуск-слово («She ___ to cook») — сам ответ
-export function blankWord(template, blanks, index) {
+// Слово шаблона, в которое входит пропуск index, с подставленными значениями
+// пропусков: values (необязательно) — {индекс: текст}, что подставить вместо
+// верного ответа (выбор ученика, любой вариант меню); не заданный — верный
+// ответ. Пропуск-слово («She ___ to cook») — сам подставленный текст.
+// Слова режутся по ЛЮБЫМ пробельным символам, включая принудительный перенос
+// строки \n из шаблона («one\ntwo» — два слова, не одно)
+export function blankWord(template, blanks, index, values = null) {
   const segs = parseTemplateSegments(template)
   const text = segs.map(s => {
     if (s.type === 'text') return s.value
-    const ans = blanks[s.index]?.answer ?? ''
-    return s.index === index ? `${MARK_L}${ans}${MARK_R}` : ans
+    const val = values?.[s.index] ?? blanks[s.index]?.answer ?? ''
+    return s.index === index ? `${MARK_L}${val}${MARK_R}` : val
   }).join('')
   const token = text.split(/\s+/).find(t => t.includes(MARK_L))
   return token ? token.replace(new RegExp(`[${MARK_L}${MARK_R}]`, 'g'), '') : ''
@@ -51,7 +55,12 @@ function wordsOfNode(node) {
     case 'fill_blanks': {
       const fb = td.fill_blanks ?? {}
       const blanks = fb.blanks ?? []
-      return blanks.map((_, i) => blankWord(fb.template ?? '', blanks, i))
+      // Целое слово КАЖДОГО варианта меню (не только верного): ученик слышит
+      // любой выбор, и слова неверных вариантов тоже должны быть в списке
+      // «нужна озвучка» и прогреваться заранее (как варианты ячейки таблицы)
+      return blanks.flatMap((b, i) => [b.answer, ...(b.options ?? [])]
+        .filter(v => v != null && v !== '')
+        .map(v => blankWord(fb.template ?? '', blanks, i, { [i]: v })))
     }
     case 'type_word':
       return [td.type_word?.word ?? '']

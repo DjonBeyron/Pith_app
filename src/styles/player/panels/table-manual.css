@@ -242,21 +242,10 @@
 .cellMenuItem:active { background: rgba(182, 254, 59, 0.14); color: #b6fe3b; }
 
 /* ── Кнопка «Проверить» ──────────────────────────────────────────── */
-/* Тот же вид, что у «собери фразу» (.phraseCheckBtn), только компактнее:
-   под таблицей места меньше, а панель и так высокая. Показывается вместе
-   со списком слов вне таблицы. */
+/* Размер, форма, рамка и шрифт — общие (.phraseCheckBtn, phrase-assembly.css);
+   здесь только показ/скрытие. Показывается вместе со списком слов вне
+   таблицы; отступ сверху даёт .tmStage (margin-bottom 10px). */
 .tmCheckBtn {
-  display: block;
-  margin: 0 auto;
-  padding: 7px 22px;
-  background: #12141d;
-  border: 2px solid #b6fe3b;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #b6fe3b;
-  font-family: inherit;
-  cursor: pointer;
   opacity: 1;
   transform: scale(1);
   /* Проявление: прозрачность + лёгкий скейл. Задержка .42s — ровно длина
@@ -271,9 +260,6 @@
     visibility 0s linear .42s;
 }
 .tmCheckBtnNoWait { transition-delay: 0s; }
-
-.tmCheckBtn:hover:not(:disabled) { background: #b6fe3b; color: #000; }
-.tmCheckBtn:disabled { opacity: .35; cursor: default; }
 
 /* Кнопка есть в разметке всегда — до режима слов она лишь невидима.
    visibility, а не display: none, именно ради высоты: место под кнопку

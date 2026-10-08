@@ -131,3 +131,37 @@ describe('makeFillBlanksCheck — «отправить ответ в чат» (o
     expect(onAnswerToChat).not.toHaveBeenCalled()
   })
 })
+
+// Принудительные переносы \n в шаблоне не влияют ни на сверку, ни на текст ответа
+describe('makeFillBlanksCheck — переносы строки \\n в шаблоне', () => {
+  const template = 'He\ntr___s a new\nrecipe every ___.'
+  const blanks = [
+    { options: ['ie', 'y'], answer: 'ie' },
+    { options: ['week', 'weeks'], answer: 'week' },
+  ]
+  const run = (picked, tpl) => {
+    const setResult = vi.fn(), onAnswerToChat = vi.fn(), onChecked = vi.fn()
+    const timers = { current: [] }
+    makeFillBlanksCheck({
+      picked, blanks, tData: { template: tpl }, wrongCount: { current: 0 }, timers, xpAmount: 0,
+      setResult, onAnswerToChat, onChecked, closePanelWith: (_t, send) => send(false),
+    })()
+    return { setResult, onAnswerToChat, onChecked, timers }
+  }
+
+  it('верность не зависит от \\n: те же выборы — тот же результат, что без переносов', () => {
+    const flat = template.replace(/\n/g, ' ')
+    for (const picked of [{ 0: 'ie', 1: 'week' }, { 0: 'y', 1: 'week' }, { 0: 'ie' }]) {
+      expect(run(picked, template).setResult.mock.calls).toEqual(run(picked, flat).setResult.mock.calls)
+    }
+    expect(run({ 0: 'ie', 1: 'week' }, template).setResult).toHaveBeenCalledWith('correct')
+  })
+
+  it('собранная фраза в чат уходит с теми же переносами', () => {
+    vi.useFakeTimers()
+    const { onAnswerToChat } = run({ 0: 'ie', 1: 'week' }, template)
+    vi.advanceTimersByTime(600)
+    vi.useRealTimers()
+    expect(onAnswerToChat).toHaveBeenCalledWith('He\ntries a new\nrecipe every week.', 'correct', false)
+  })
+})

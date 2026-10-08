@@ -212,3 +212,25 @@ describe('распорка «Составь предложение» — в об
     expect(feed.slice(feed.indexOf('.tmSpacer {'), feed.indexOf('.tmSpacer {') + 400)).toContain('margin-bottom: calc((env(safe-area-inset-bottom, 0px) + var(--wait-slot, 0px)) * -1);')
   })
 })
+
+// Переносы строки \n автора (фраза, перевод, пузыри чата) и озвучка каждого выбора
+describe('«Составь предложение» — переносы \\n и озвучка выбора', () => {
+  const lines = read('../../../../styles/player/panels/fill-blanks-lines.css')
+  const bubbles = read('../../modules/AnswerBubbles.jsx')
+  const indexCss = read('../../../../index.css')
+
+  it('фраза, перевод и пузыри ленты — white-space: pre-line (подключён в index.css)', () => {
+    expect(lines).toMatch(/\.fbSentence,\s*\.fbTranslation \{\s*white-space: pre-line;/)
+    expect(lines).toMatch(/\.playerMsgBubble--keepLines \{\s*white-space: pre-line;/)
+    expect(indexCss).toContain("@import './styles/player/panels/fill-blanks-lines.css';")
+    expect(feedModule).toContain('keepLines')
+    expect(bubbles).toContain('keepLines = false')
+  })
+
+  it('выбор варианта: озвучка через blankPickWordKey, без проверки верности; нет озвучки — stopWord', () => {
+    const pick = panel.slice(panel.indexOf('function pickOption(value)'), panel.indexOf('// Подъём/спуск с историей'))
+    expect(pick).toContain('blankPickWordKey({ fbData, picked, index, value })')
+    expect(pick).toContain('if (key) playWord(key); else stopWord()')
+    expect(pick).not.toContain('blankMatches')
+  })
+})

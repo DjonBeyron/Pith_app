@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Brain } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
 import { setVacation } from '../../shared/api/memoryApi.js'
 import SleepingBrain from './SleepingBrain.jsx'
@@ -59,7 +60,7 @@ export default function LearnMainAction({ view, onStart, onChanged }) {
   if (picked.length) {
     return (
       <Hero title={`Сегодня повторяем ${words(picked.length)}`} sub="чтобы они ушли в долгую память">
-        <Cta onClick={onStart}>Повторить<span className="lrCtaCount">{words(picked.length)}</span></Cta>
+        <Cta onClick={onStart}><Brain className="lrCtaIcon" size={16} aria-hidden="true" />Повторить<span className="lrCtaCount">{words(picked.length)}</span></Cta>
       </Hero>
     )
   }

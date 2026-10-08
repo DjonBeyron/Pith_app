@@ -30,7 +30,10 @@ import { useDeferredArrival } from './useDeferredArrival.js'
 // уехала (таблица: manualClose.js → usePlayerAnswers.revealPhraseAnswers);
 // проявление играет useDeferredArrival. Строкам с флагом — data-no-slide +
 // .playerMsgRowArriving (PlayerFeed их не толкает)
-export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true, replyNode = null, lessonFiles, teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates }) {
+// keepLines — сохранять принудительные переносы строки \n в тексте пузырей
+// (white-space: pre-line); нужен «Составь предложение», где автор сам рвёт
+// фразу на строки. По умолчанию выключен: у остальных модулей \n нет
+export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true, keepLines = false, replyNode = null, lessonFiles, teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates }) {
   const rowsRef = useRef([])
   const anyArriving = (bubbles ?? []).some(b => b.arriving)
   // Какие именно строки отложены — въезжать должны только они, а не старые
@@ -38,6 +41,7 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
   const arrivingIdx = (bubbles ?? []).map((b, i) => (b.arriving ? i : -1)).filter(i => i >= 0)
   useDeferredArrival(anyArriving, rowsRef, { indices: arrivingIdx })
   const list = bubbles ?? []
+  const lines = keepLines ? ' playerMsgBubble--keepLines' : ''
 
   if (!list.length) return null
 
@@ -73,7 +77,7 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
                 <BurstConfetti count={30} size={4} zIndex={85} portalTo=".lessonPlayer" />
               )}
               <div className="reactionBubbleWrap" {...xpAnchor(nodeId)}>
-                <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk">
+                <PlayerBubble className={`playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk${lines}`}>
                   {quote}
                   {b.text}
                 </PlayerBubble>
@@ -84,7 +88,7 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
 
         if (b.result === 'wrong_final') return (
           <div key={i} {...rowProps(b, i, 'playerMsgRow playerMsgRowRight')}>
-            <PlayerBubble className="playerMsgBubble playerMsgBubble--response playerMsgBubble--responseErr">
+            <PlayerBubble className={`playerMsgBubble playerMsgBubble--response playerMsgBubble--responseErr${lines}`}>
               {quote}
               {b.text}
             </PlayerBubble>
@@ -93,13 +97,13 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
 
         if (b.result === 'hint') return (
           <div key={i} {...rowProps(b, i, 'playerMsgRow')}>
-            <PlayerBubble className="playerMsgBubble">{b.text}</PlayerBubble>
+            <PlayerBubble className={`playerMsgBubble${lines}`}>{b.text}</PlayerBubble>
           </div>
         )
 
         return (
           <div key={i} {...rowProps(b, i, 'playerMsgRow')}>
-            <PlayerBubble className="playerMsgBubble playerMsgBubble--teacherErr">
+            <PlayerBubble className={`playerMsgBubble playerMsgBubble--teacherErr${lines}`}>
               {b.text}
             </PlayerBubble>
           </div>

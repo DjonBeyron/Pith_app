@@ -8,6 +8,7 @@ import { debugAddWord, debugRemoveWord } from '../../shared/api/memoryDebugApi.j
 import { localToday } from '../review/reviewDecks.js'
 import AdminLearnControls from './AdminLearnControls.jsx'
 import { onDeckSaved } from '../reviewCards/deckSavedEvent.js'
+import { readOnlyProblems, writeOnlyProblems } from './decksAdminPrefs.js'
 
 // Админ → «Колоды»: слова без колоды повтора или с колодой меньше минимума
 // (этап 3 системы повторения, PROJECT.md → «Колоды»). Слово без колоды не
@@ -19,7 +20,7 @@ const STATUS_TEXT = { none: 'нет колоды', few: 'мало', ok: 'гот�
 export default function AdminDecksTab({ onOpenCards }) {
   const [rows, setRows] = useState(null) // null — загрузка
   const [err, setErr] = useState('')
-  const [onlyProblems, setOnlyProblems] = useState(true)
+  const [onlyProblems, setOnlyProblems] = useState(readOnlyProblems) // галочка помнится между перезагрузками (decksAdminPrefs.js)
   const [memory, setMemory] = useState(() => new Map()) // своя память: word → строка
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
@@ -66,7 +67,7 @@ export default function AdminDecksTab({ onOpenCards }) {
         </p>
       )}
       <label className="adkFilter">
-        <input type="checkbox" checked={onlyProblems} onChange={e => setOnlyProblems(e.target.checked)} />
+        <input type="checkbox" checked={onlyProblems} onChange={e => { setOnlyProblems(e.target.checked); writeOnlyProblems(e.target.checked) }} />
         только без колоды и с малой колодой
       </label>
       {note && <p className="aeHint">{note}</p>}

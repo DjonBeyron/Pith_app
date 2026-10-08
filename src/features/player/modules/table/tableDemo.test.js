@@ -341,14 +341,14 @@ describe('кнопка «Проверить» в ручной таблице', (
     expect(panel).not.toMatch(/Кнопки «Проверить» нет/)
   })
 
-  it('выглядит как кнопка «собери фразу», только компактнее', () => {
+  it('выглядит как кнопка «собери фразу»: вид общий (phrase-assembly.css), здесь только показ/скрытие', () => {
     const css   = read('../../../../styles/player/panels/table-manual.css')
     const phrase = read('../../../../styles/player/panels/phrase-assembly.css')
-    const block = css.slice(css.indexOf('.tmCheckBtn {'), css.indexOf('.tmCheckBtn:hover'))
-    expect(block).toContain('border: 2px solid #b6fe3b')
-    expect(block).toContain('color: #b6fe3b')
+    const block = css.slice(css.indexOf('.tmCheckBtn {'), css.indexOf('.tmCheckBtnNoWait'))
     expect(phrase).toContain('border: 2px solid #b6fe3b')
-    // компактнее: меньше внутренний отступ, чем у полноразмерной
-    expect(block).toContain('padding: 7px 22px')
+    expect(phrase).toMatch(/\.phraseCheckBtn,\s*\.tmCheckBtn,\s*\.fbCheckBtn \{/)
+    // свой размер и рамку не задаёт — только проявление (см. phraseCheckBtnSingleSource.test.js)
+    expect(block).not.toContain('padding')
+    expect(block).not.toContain('border')
   })
 })

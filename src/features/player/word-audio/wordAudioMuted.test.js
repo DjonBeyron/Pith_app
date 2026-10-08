@@ -12,7 +12,7 @@ class FakeAudio {
   load() {}
 }
 globalThis.Audio = FakeAudio
-const { playWord, setWordAudioMuted, releaseWordAudio } = await import('./wordAudioPlayer.js')
+const { playWord, stopWord, setWordAudioMuted, releaseWordAudio } = await import('./wordAudioPlayer.js')
 
 describe('беззвучный режим повторения глушит озвучку слов', () => {
   beforeEach(() => { releaseWordAudio(); plays.length = 0 })
@@ -35,5 +35,24 @@ describe('беззвучный режим повторения глушит оз
     setWordAudioMuted(true)
     releaseWordAudio()
     expect(playWord('keep')).toBe(true)
+  })
+})
+
+describe('stopWord и смена слова', () => {
+  beforeEach(() => { releaseWordAudio(); plays.length = 0 })
+
+  it('слово без озвучки (null) не останавливает прежнее само — это делает stopWord', () => {
+    expect(playWord('keep', { onEnded: () => plays.push('ended') })).toBe(true)
+    expect(playWord(null)).toBe(false)
+    expect(plays).toEqual(['https://audio.test/keep.mp3'])
+    stopWord()
+    expect(plays).toEqual(['https://audio.test/keep.mp3', 'ended'])
+  })
+
+  it('новое слово глушит предыдущее (onEnded прежнего зовётся)', () => {
+    const ended = []
+    playWord('keep', { onEnded: () => ended.push(1) })
+    playWord('keep')
+    expect(ended).toEqual([1])
   })
 })

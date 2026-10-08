@@ -7,6 +7,12 @@
       ]
     },
     {
+      "source": "/(push-sw\\.js|net-guard\\.js|offline\\.html)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {

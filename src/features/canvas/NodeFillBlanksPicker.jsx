@@ -4,7 +4,8 @@ import { countBlanks } from '../../shared/lib/fillBlanksTemplate.js'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 // Редактор ноды «Составь предложение»: textarea с шаблоном фразы (пропуски —
-// буквально "___") + по одной карточке настроек на каждый найденный пропуск
+// буквально "___"; Enter = принудительный перенос строки \n, он же в переводе —
+// плеер сохраняет его, см. fill-blanks-lines.css) + по одной карточке настроек на каждый найденный пропуск
 // (варианты выбора + отметка верного), тексты ответов, пара триггеров
 // верно/неверно. Сигналов ошибок здесь нет — пользователь явно исключил их
 // для этого модуля (см. PROJECT.md), в отличие от table/phrase_assembly.
@@ -85,7 +86,7 @@ export default function NodeFillBlanksPicker({
         className="nodeTextInput"
         value={template}
         onChange={e => onTemplateChange(e.target.value)}
-        placeholder={'Фраза с пропусками, например: She ___ to cook every weekend.\nПропуск — ровно три подчёркивания ___ (можно внутри слова: tr___s)'}
+        placeholder={'Фраза с пропусками, например: She ___ to cook every weekend.\nПропуск — ровно три подчёркивания ___ (можно внутри слова: tr___s)\nEnter — перенос строки в плеере'}
         onClick={e => e.stopPropagation()}
         rows={3}
         {...NO_AUTOCORRECT}
@@ -97,7 +98,7 @@ export default function NodeFillBlanksPicker({
         className="nodeTextInput"
         value={translation}
         onChange={e => onTranslationChange?.(e.target.value)}
-        placeholder={'Необязательный русский перевод (кнопка-подсказка в плеере). Те же пропуски "___", то же их число, что в фразе выше'}
+        placeholder={'Необязательный русский перевод (кнопка-подсказка в плеере). Те же пропуски "___", то же их число, что в фразе выше. Enter — перенос строки'}
         onClick={e => e.stopPropagation()}
         rows={2}
         {...NO_AUTOCORRECT}

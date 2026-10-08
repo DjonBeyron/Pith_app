@@ -16,6 +16,9 @@ export default function FillBlanksModule({ node, phraseState, lessonNodes = [], 
       nodeId={node?.id ?? null}
       /* салют даёт сама панель (FillBlanksPanel, fireBurst при уходе) */
       confetti={false}
+      /* автор рвёт фразу на строки (\n в шаблоне) — собранная фраза и
+         раскрытие верного ответа в ленте сохраняют эти переносы */
+      keepLines
       replyNode={replyNode}
       lessonFiles={lessonFiles}
       teacherName={teacherName}

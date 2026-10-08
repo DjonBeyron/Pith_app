@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>HETA</title>
+    <!-- Сторож белого экрана без сети (public/net-guard.js): ОБЫЧНЫЙ скрипт, синхронно в <head> — работает,
+         даже если бандл не загрузился. Рисует оверлей #offlineGuard (стили .ng* ниже) -->
+    <script src="/net-guard.js"></script>
     <!-- Запуск с домашнего экрана как полноценное приложение (без UI браузера).
          iOS 26 всегда оставляет системную зону высотой со статус-бар — либо
          сверху (black), либо снизу (black-translucent), поделить нельзя.
@@ -103,6 +106,28 @@
       #splash.splash-out .splash-version { animation: splashOut 350ms ease forwards; }
       @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
       @keyframes splashZoom { from { opacity: 1; } to { opacity: 1; transform: scale(1.6); } }
+      /* Экран «Нет интернета / Слабый интернет»: оверлей net-guard.js (#offlineGuard) и компонент
+         NetworkProblem.jsx используют одни и те же классы. Лежит инлайном, чтобы рисоваться без бандла и
+         без app-CSS. Анимация одна, бесконечная, только transform/opacity (кольцо-пульс) */
+      .ngScreen {
+        position: fixed; inset: 0; z-index: 2147483600; background: #0b0d10;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 14px; padding: 24px; box-sizing: border-box; text-align: center;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #f2f5f7;
+      }
+      .ngPulse { position: relative; width: 18px; height: 18px; border-radius: 50%; background: #b6fe3b; margin-bottom: 6px; }
+      .ngPulse::after {
+        content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #b6fe3b;
+        animation: ngPulse 1.6s ease-out infinite;
+      }
+      @keyframes ngPulse { from { transform: scale(1); opacity: 0.8; } to { transform: scale(3); opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) { .ngPulse::after { animation: none; opacity: 0; } }
+      .ngTitle { margin: 0; font-size: 20px; font-weight: 700; }
+      .ngText { margin: 0; max-width: 300px; font-size: 14px; line-height: 1.4; color: rgba(242, 245, 247, 0.6); }
+      .ngBtn {
+        margin-top: 6px; padding: 13px 32px; border: none; border-radius: 12px; background: #b6fe3b;
+        color: #0d0f14; font: 700 14px system-ui, -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -163,6 +188,9 @@
              иначе не будет первого кадра видео, по которому сплэш и
              снимается, и лого висело бы до страховки */
           window.__pithySplashGone = true;
+          /* Единая точка «приложение готово» для сторожа сети (public/net-guard.js): он сам
+             проверит, что #root не пуст, и уберёт оверлей «Нет интернета» */
+          if (window.__netGuardDone) window.__netGuardDone();
           try { window.dispatchEvent(new Event('pithy:splash-gone')); } catch (e) { /* ignore */ }
           var el = document.getElementById('splash');
           if (!el) return;

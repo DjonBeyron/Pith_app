@@ -124,3 +124,33 @@ describe('blankKind', () => {
     expect(blankKind('Без пропусков', 0)).toBe('word')
   })
 })
+
+// Принудительные переносы строки \n (автор жмёт Enter в редакторе ноды):
+// пропуски нумеруются и ведут себя ровно так же, как без переносов
+describe('переносы строки \\n в шаблоне', () => {
+  const flat = 'She ___ to cook and he tr___s a recipe.'
+  const lines = 'She ___ to cook\nand he tr___s\na recipe.'
+
+  it('индексы и число пропусков те же, что без \\n', () => {
+    const idx = t => parseTemplateSegments(t).filter(s => s.type === 'blank').map(s => s.index)
+    expect(idx(lines)).toEqual(idx(flat))
+    expect(countBlanks(lines)).toBe(countBlanks(flat))
+  })
+
+  it('\\n остаётся внутри текстовых сегментов — разбор по строкам делает белый-пробел CSS', () => {
+    const segs = parseTemplateSegments(lines)
+    expect(segs.filter(s => s.type === 'text').map(s => s.value).join('')).toContain('cook\nand he tr')
+    expect(segs.map(s => (s.type === 'text' ? s.value : '___')).join('')).toBe(lines)
+  })
+
+  it('перенос рядом с пропуском = граница слова: kind "word", а не "letters"', () => {
+    expect(blankKind('She\n___\nto cook', 0)).toBe('word')
+    expect(blankKind('tr___s\nx', 0)).toBe('letters')
+  })
+
+  it('сборка ответа/раскрытия сохраняет \\n как есть', () => {
+    const blanks = [{ answer: 'likes' }, { answer: 'ie' }]
+    expect(buildRevealedText(lines, blanks)).toBe('She likes to cook\nand he tries\na recipe.')
+    expect(buildPickedText(lines, { 0: 'like', 1: 'y' })).toBe('She like to cook\nand he trys\na recipe.')
+  })
+})

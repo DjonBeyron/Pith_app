@@ -41,6 +41,8 @@
   transform: translateX(-130%);
   animation: lrCtaShine 7s linear infinite;
 }
+/* Мозг слева от «Повторить» — та же иконка, что у «Память» в нижней панели; цвет текста кнопки, сжиматься не даёт */
+.lrCtaIcon { flex: none; }
 .lrCtaCount { padding: 3px 9px; border-radius: 999px; background: rgba(13, 21, 0, 0.14); font-size: 13px; font-weight: 700; }
 @keyframes lrCtaShine { 0% { transform: translateX(-130%); } 14%, 100% { transform: translateX(130%); } }
 /* Пульс — только масштаб (композитор); расходящийся круг из box-shadow

@@ -125,6 +125,10 @@ export function playWord(key, hooks = null) {
   return true
 }
 
+// Заглушить звучащее слово (новый выбор без озвучки не должен оставлять
+// прежнее слово звучать поверх)
+export function stopWord() { stopCurrent() }
+
 // Беззвучный режим повторения: включили — звучащее слово смолкает, новые не запускаются
 export function setWordAudioMuted(value) {
   muted = !!value

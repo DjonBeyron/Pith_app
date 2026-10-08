@@ -3,6 +3,8 @@ import { TriangleAlert } from 'lucide-react'
 import { APP_VERSION } from '../shared/lib/version.js'
 import { getErrorLines } from '../shared/lib/errorTrap.js'
 import { reportError } from '../shared/lib/errorReport.js'
+import NetworkProblem from './NetworkProblem.jsx'
+import { isChunkLoadError } from './networkGuard.js'
 
 // Классовый ErrorBoundary (у хуков аналога componentDidCatch нет): любая
 // ошибка рендера показывает этот экран вместо белой страницы. Стили инлайном
@@ -75,6 +77,8 @@ export default class ErrorBoundary extends Component {
 
   render() {
     if (!this.state.error) return this.props.children
+    // Не догрузился ленивый чанк (нет/слабая сеть) — это не баг кода, а сеть: понятный экран вместо «ошибки»
+    if (isChunkLoadError(this.state.error)) return <NetworkProblem />
     return (
       <div style={S.wrap}>
         <TriangleAlert style={S.icon} />
