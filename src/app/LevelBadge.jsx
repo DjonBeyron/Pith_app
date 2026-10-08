@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Layers, Zap } from 'lucide-react'
-import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
+import { getCachedProfile, ensureProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { getCurrentLevel, getNextLevel } from '../shared/lib/xpLevels.js'
 import { isHudPopupOpen, toggleHudPopup, subscribeHudPopup, useHudOutsideDismiss, useHudPopupExit } from './hudPopupState.js'
@@ -14,7 +14,7 @@ export default function LevelBadge() {
 
   useEffect(() => {
     const unsubscribe = subscribeProfile(setProfile)
-    if (!getCachedProfile()) refreshProfile()
+    ensureProfile()
     return unsubscribe
   }, [])
 

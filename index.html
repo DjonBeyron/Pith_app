@@ -63,8 +63,8 @@
          <link> ждал бы загрузки шрифтов перед самым первым кадром — и до лого
          мелькала чернота. Сплэшу шрифты не нужны (system-ui), а контент ленты
          догрузит их за анимацией сплэша. noscript — фолбэк без JS. -->
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,600,700&subset=latin" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="https://fonts.googleapis.com/css?family=Comfortaa:400,600,700" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,600,700&subset=latin" rel="stylesheet" media="print" onload="this.media='all'" onerror="this.media='all'">
+    <link href="https://fonts.googleapis.com/css?family=Comfortaa:400,600,700" rel="stylesheet" media="print" onload="this.media='all'" onerror="this.media='all'">
     <noscript>
       <link href="https://fonts.googleapis.com/css?family=Montserrat:400,600,700&subset=latin" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css?family=Comfortaa:400,600,700" rel="stylesheet">
@@ -75,19 +75,26 @@
          (масштаб+фейд), открывая Рекомендации. Логотип — заглушка, заменим. -->
     <style>
       /* Фон первого кадра (#0b0d10) задан выше, в самом начале <head> (до net-guard.js) */
-      /* Появление в два шага, без скачка от чёрного: сначала плавно проявляется
-         фон приложения (opacity 0→1), затем — лого и слово */
+      /* Сплэш НЕПРОЗРАЧНЫЙ с самого первого кадра и повторяет стартовый экран iOS
+         (public/splash/startup-*.png, scripts/make-brand-assets.mjs): тот же фон, то же лого
+         92px, центр на 19px выше середины — переход «система → страница» без скачка.
+         Раньше фон проявлялся через opacity 0→1 (350мс), а лого — только с 300-й мс: под
+         полупрозрачным сплэшем просвечивал уже отрисованный интерфейс (кэшированный бандл),
+         лого на миг пропадало и возвращалось другого размера — это и было «микро-мигание».
+         Проявляется теперь только подпись версии (она мелкая и в стартовом экране iOS её нет) */
       #splash {
         position: fixed; inset: 0; z-index: 2147483000;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 16px; background: #0b0d10;
-        opacity: 0; animation: splashBgIn 350ms ease forwards;
+        background: #0b0d10;
       }
       #splash .splash-logo {
-        width: 148px; height: 148px;
+        width: 92px; height: 92px; margin-bottom: 38px;
         filter: drop-shadow(0 10px 34px rgba(158, 118, 255, 0.25));
+        animation: splashGlowIn 500ms ease-out;
       }
-      #splash .splash-logo { opacity: 0; animation: splashItemIn 300ms ease 300ms forwards; }
+      /* Свечение лого проявляется само (в стартовом экране iOS его нет): ключевой кадр только «from»,
+         конечное значение — обычный filter выше, поэтому оно же остаётся при уходе (splash-out) */
+      @keyframes splashGlowIn { from { filter: drop-shadow(0 10px 34px rgba(158, 118, 255, 0)); } }
       /* Версия — внизу по центру, тише слова/лого (маленькая и приглушённая,
          чтобы не спорить с логотипом за внимание) */
       #splash .splash-version {
@@ -97,7 +104,6 @@
         color: rgba(242, 245, 247, 0.4);
         opacity: 0; animation: splashItemIn 300ms ease 300ms forwards;
       }
-      @keyframes splashBgIn { to { opacity: 1; } }
       @keyframes splashItemIn { to { opacity: 1; } }
       /* Уход: фон растворяется, лого «наезжает» (масштаб вверх) — полёт в экран.
          splash-out переопределяет анимации появления, поэтому opacity лого в
@@ -107,7 +113,7 @@
       #splash.splash-out .splash-version { animation: splashOut 350ms ease forwards; }
       @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
       @keyframes splashZoom { from { opacity: 1; } to { opacity: 1; transform: scale(1.6); } }
-      /* Экран «Нет интернета / Слабый интернет»: оверлей net-guard.js (#offlineGuard), компонент NetworkProblem.jsx
+      /* Экран «Нет подключения / Слабое соединение»: оверлей net-guard.js (#offlineGuard), компонент NetworkProblem.jsx
          и public/offline.html используют одни и те же классы и одну разметку кабеля (networkCableSvg.js). Лежит
          инлайном, чтобы рисоваться без бандла и без app-CSS. Блок «ng-cable-css» — копия в offline.html (сверяет
          networkGuard.test.js). Анимация: оборванный кабель (порт «режима сна» вкладки «Моя память»), только
@@ -120,7 +126,7 @@
       }
       .ngBody { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; }
       .ngTitle { margin: 0; font-size: 20px; font-weight: 700; }
-      .ngText { margin: 0; max-width: 260px; font-size: 14px; line-height: 1.4; color: rgba(242, 245, 247, 0.6); }
+      .ngText { margin: 0; max-width: 280px; text-wrap: balance; font-size: 14px; line-height: 1.4; color: rgba(242, 245, 247, 0.6); }
       .ngBtn {
         margin-top: 6px; padding: 13px 32px; border: none; border-radius: 12px; background: #b6fe3b;
         color: #0d0f14; font: 700 14px system-ui, -apple-system, "Segoe UI", sans-serif; cursor: pointer;
@@ -207,7 +213,7 @@
              снимается, и лого висело бы до страховки */
           window.__pithySplashGone = true;
           /* Единая точка «приложение готово» для сторожа сети (public/net-guard.js): он сам
-             проверит, что #root не пуст, и уберёт оверлей «Нет интернета» */
+             проверит, что #root не пуст, и уберёт оверлей «Нет подключения» */
           if (window.__netGuardDone) window.__netGuardDone();
           try { window.dispatchEvent(new Event('pithy:splash-gone')); } catch (e) { /* ignore */ }
           var el = document.getElementById('splash');
@@ -215,7 +221,27 @@
           el.classList.add('splash-out');
           setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
         }
-        function maybeHide() { if (appReady && cssReady) hide(); }
+        /* Шрифты (Montserrat/Comfortaa) грузятся неблокирующе: таблица стилей Google приходит позже,
+           файлы начинают качаться только после раскладки со свежим CSS. Без ожидания сплэш уходил бы,
+           пока подписи ещё невидимы/в запасном шрифте, и после улёта они «перескакивали». Опрашиваем
+           раз в 50мс: пока не доехала таблица (media=print) или document.fonts.status === 'loading' —
+           держим сплэш, но не дольше 1.2с (потом всё равно уходим) */
+        var fontWait = false;
+        function hideWhenFonts() {
+          if (fontWait) return; fontWait = true;
+          var t1 = performance.now(), logged = false;
+          function tick() {
+            var f = document.fonts;
+            var pending = !!document.querySelector('link[href*="fonts.googleapis.com"][media="print"]') ||
+              !!(f && f.status === 'loading');
+            if (!pending || performance.now() - t1 > 1200) { hide(); return; }
+            if (!logged) { logged = true; slog('ждём шрифты (до 1200мс)'); }
+            setTimeout(tick, 50);
+          }
+          requestAnimationFrame(function () { setTimeout(tick, 0); });
+          setTimeout(function () { if (!done && !logged) tick(); }, 200);
+        }
+        function maybeHide() { if (appReady && cssReady) hideWhenFonts(); }
         window.__pithyCssReady = function () {
           if (!cssReady) slog('CSS бандла загружен');
           cssReady = true; maybeHide();

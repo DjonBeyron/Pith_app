@@ -109,6 +109,13 @@ describe('fill_blanks: слова с принудительными перено
     expect(blankWord('one\ntr___', [{ answer: 'y' }], 0)).toBe('try')
   })
 
+  it('blankWord: подстановка нескольких слов — целиком, с краевыми кусками', () => {
+    expect(blankWord('She ___ to cook.', [{ answer: 'is going' }], 0)).toBe('is going')
+    expect(blankWord('She tr___s.', [{ answer: 'ie' }], 0)).toBe('tries.')
+    expect(blankWord('a ___ b', [{ answer: '' }], 0)).toBe('')
+    expect(blankWord('x', [], 5)).toBe('')
+  })
+
   it('blankWord: подстановка values вместо верного ответа; остальные пропуски слова — верные', () => {
     const blanks = [{ answer: 'ie' }, { answer: 's' }]
     expect(blankWord('tr___\n___', blanks, 0, { 0: 'y' })).toBe('try')

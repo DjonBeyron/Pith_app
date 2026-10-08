@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import EnergyPaywall from './EnergyPaywall.jsx'
-import LessonPlayer from '../player/LessonPlayer.jsx'
+import LessonPlayer from '../player/LessonPlayerLazy.jsx'
 import { revokePayloadBlobs } from '../player/preloadQueue.js'
 import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
 import { startLesson } from '../../shared/api/profileApi.js'

@@ -14,10 +14,18 @@ import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
 // выбрал, иначе верным ответом. Принудительные переносы строки \n шаблона
 // слова не склеивают (blankWord режет по любым пробельным).
 //
+// Озвучка ВКЛЮЧЕНА ПО УМОЛЧАНИЮ: у нод без поля voiceWords (все старые и новые) слово
+// звучит; выключает только явное voiceWords === false (галочка в редакторе).
+// Раньше было наоборот (звучало только при === true) — и в готовых уроках,
+// где галочку никто не ставил, выбор молчал.
+export function voiceWordsOn(fbData) {
+  return fbData?.voiceWords !== false
+}
+
 // Возвращает ключ слова в библиотеке (wordKey.js) или null — «озвучки нет»
-// (voiceWords выключен у ноды, слово не латиницей и т.п.).
+// (озвучка выключена галочкой, слово не латиницей и т.п.).
 export function blankPickWordKey({ fbData, picked, index, value }) {
-  if (fbData?.voiceWords !== true) return null
+  if (!voiceWordsOn(fbData)) return null
   const blanks = fbData.blanks ?? []
   if (!blanks[index] || value == null || String(value).trim() === '') return null
   return wordKey(blankWord(fbData.template ?? '', blanks, index, { ...picked, [index]: value }))

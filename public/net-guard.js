@@ -2,7 +2,7 @@
    (без type=module) — отработает, даже если бандл приложения не загрузился.
    Показывает оверлей #offlineGuard, если: сети нет (navigator.onLine === false) — СРАЗУ (тик 100мс); ИЛИ сеть
    «есть, но молчит»: через 1.5с без готового приложения стучимся крошечным запросом (/favicon.svg, без кэша), и если
-   за 1.5с ответа нет — «Слабый интернет» (≈3с, а не 8с); ИЛИ не загрузился скрипт/стиль приложения (ошибка ресурса
+   за 1.5с ответа нет — «Слабое соединение» (≈3с, а не 8с); ИЛИ не загрузился скрипт/стиль приложения (ошибка ресурса
    своего домена) и прошло 2.5с; ИЛИ приложение не нарисовалось в #root за 8с. Медленная, но живая сеть (запрос
    ответил) экран не вызывает. Прячет оверлей, как только в #root что-то появилось; на событие online — перезагрузка;
    пока оверлей висит из-за молчащей сети, раз в 3с повторяет запрос: ответили — прячет оверлей (перезагрузка, если
@@ -14,6 +14,12 @@
   var BOOT_TIMEOUT = 8000, SLOW_DELAY = 2500, PROBE_AT = 1500, PROBE_WAIT = 1500, REPROBE = 3000
   var t0 = Date.now(), failedAt = null, kind = null, el = null, finished = false
   var probed = false, probeFailed = false
+  /* зеркало NETWORK_TEXTS (src/app/networkGuard.js) */
+  var TEXTS = {
+    offline: { title: 'Нет подключения', text: 'Проверь соединение с интернетом. Как только оно появится, мы продолжим' },
+    slow: { title: 'Слабое соединение', text: 'Проверь соединение с интернетом — мы продолжим сами' },
+    retry: 'Повторить'
+  }
   var CABLE = [
     '<svg class="ngCable" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid meet" aria-hidden="true">',
     '<g transform="translate(195 422) rotate(-63.4)">',
@@ -52,6 +58,7 @@
   }
   window.__netGuardDecide = decide
   window.__ngCableSvg = CABLE
+  window.__ngTexts = TEXTS
 
   function hide() {
     kind = null
@@ -66,15 +73,15 @@
       el.id = 'offlineGuard'
       el.className = 'ngScreen'
       el.setAttribute('role', 'alert')
-      el.innerHTML = CABLE + '<div class="ngBody"><h1 class="ngTitle"></h1>' +
-        '<p class="ngText">Проверь соединение — мы подключимся сами</p>' +
-        '<button type="button" class="ngBtn">Повторить</button></div>'
+      el.innerHTML = CABLE + '<div class="ngBody"><h1 class="ngTitle"></h1><p class="ngText"></p>' +
+        '<button type="button" class="ngBtn">' + TEXTS.retry + '</button></div>'
       el.querySelector('.ngBtn').onclick = function () { location.reload() }
       document.body.appendChild(el)
     }
     if (kind !== next) {
       kind = next
-      el.querySelector('.ngTitle').textContent = next === 'offline' ? 'Нет интернета' : 'Слабый интернет'
+      el.querySelector('.ngTitle').textContent = TEXTS[next].title
+      el.querySelector('.ngText').textContent = TEXTS[next].text
     }
   }
 

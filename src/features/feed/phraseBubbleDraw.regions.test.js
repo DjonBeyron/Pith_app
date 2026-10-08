@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildGrid } from './phraseBubbleGrid.js'
 import { drawFloat } from './phraseBubbleDraw.js'
-import { MARGIN_X, MARGIN_Y, REGION_DENSITY } from './phraseBubbleConsts.js'
+import { MARGIN_X, MARGIN_Y, REGION_DENSITY, FEED_DENSITY } from './phraseBubbleConsts.js'
 import { REGION_PAD } from './phraseBubbleRegions.js'
 
 // Почему «Ловля» слипалась в единую массу: зазор между словами фразы 5-9px, а шарик на пике (радиус с дыханием +
@@ -105,7 +105,7 @@ describe('buildGrid: облачка не слипаются', () => {
     expect(Math.min(...ext.map(e => e.x0))).toBeLessThan(-REGION_PAD)
   })
 
-  it('плотность внутри слова = REGION_DENSITY × плотность ленты (±10%), вне облачков — ноль', () => {
+  it('плотность внутри слова = REGION_DENSITY / FEED_DENSITY × плотность сплошной массы (±10%), вне облачков — ноль', () => {
     // Слово побольше и усреднение по запускам: на 40×20 край сетки (±1 ряд) давал бы шум больше допуска
     const W = 120, H = 40
     const inRect = b => {
@@ -119,8 +119,9 @@ describe('buildGrid: облачка не слипаются', () => {
       inWord += buildGrid(W + 160, H, [word(0, 0, W, H), word(W + 120, 0, 40, H)]).filter(b => b.region === 0 && inRect(b)).length
     }
     const ratio = inWord / solid
-    expect(ratio).toBeGreaterThan(REGION_DENSITY * 0.9)
-    expect(ratio).toBeLessThan(REGION_DENSITY * 1.1)
+    const want = REGION_DENSITY / FEED_DENSITY
+    expect(ratio).toBeGreaterThan(want * 0.9)
+    expect(ratio).toBeLessThan(want * 1.1)
     const cloud = buildGrid(200, 20, [word(0, 0, 40), word(160, 0, 40)])
     expect(cloud.filter(b => b.ax - MARGIN_X > 40 + 25 && b.ax - MARGIN_X < 160 - 25)).toHaveLength(0)
   })

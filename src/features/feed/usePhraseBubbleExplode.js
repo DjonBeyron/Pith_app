@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react'
 import { EXPLODE_MARGIN, launchBubbles, startBubbles, shiftBubbles, clearExplodePools } from './phraseBubbleDraw.js'
 import { MARGIN_X, MARGIN_Y, EXPLODE_MS } from './phraseBubbleConsts.js'
 import { explodedRegions } from './phraseBubbleRegions.js'
-import { thinForLaunch } from './phraseBubbleFlight.js'
+import { thinForLaunch, thinForFeed } from './phraseBubbleFlight.js'
 import { groupByRegion, prepareExplosion, buildSprites, freeSprites, spriteBytes, paintExplosion } from './phraseBubbleWarm.js'
 import { noteParticles, noteGpu, canvasBytes } from './spoilerStats.js'
 import { watchAppLifecycle, isAppAway } from './bubbleLifecycle.js'
@@ -30,7 +30,7 @@ function dropCanvas(canvas) {
 // dpr 1; дрейф на время взрыва замирает — перерисовывать ~1400 дуг на 60 к/с ради него не нужно); каждое взрывается от
 // своего центра. Порядок слоёв кадра (paintExplosion): сначала живые облачки, поверх них частицы — облачка справа налево,
 // самое левое сверху; разлёт ничем не ограничен, частицы летят поверх живых соседей. Частиц в воздухе ≤ MAX_PARTICLES.
-// Без regions (сплошная масса ленты) всё взрывается сразу от центра одной группой.
+// Без regions (сплошная масса ленты) всё взрывается сразу от центра одной группой, частиц ≤ FEED_MAX_PARTICLES (thinForFeed).
 // Приложение ушло в фон / под системную шторку (bubbleLifecycle.js): rAF и страховочный таймер останавливаются, холст и
 // спрайты освобождаются сразу; при возврате облачка просто снимаются (взрыв за это время всё равно бы доиграл).
 export function usePhraseBubbleExplode({
@@ -88,8 +88,9 @@ export function usePhraseBubbleExplode({
         if (byRegion && !set.has(g)) continue
         const list = groups[g]
         // Частиц в воздухе сразу не больше MAX_PARTICLES на весь холст: лишние из облачка пропадают в момент взрыва
-        // (flying = true — из плавающих выбыли, но в полёт не попали)
-        const fly = byRegion ? thinForLaunch(list, alive()) : list // сплошная масса ленты (тап) — без прореживания
+        // (flying = true — из плавающих выбыли, но в полёт не попали). Сплошная масса ленты (тап) — свой потолок
+        // FEED_MAX_PARTICLES, оставшиеся частицы крупнее (thinForFeed)
+        const fly = byRegion ? thinForLaunch(list, alive()) : thinForFeed(list)
         for (const b of list) b.flying = true
         if (byRegion) startBubbles(fly)
         else launchBubbles(fly, w / 2, h / 2)

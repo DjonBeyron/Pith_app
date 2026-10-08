@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
+import { getCachedProfile, ensureProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { hasUnclaimedStreak } from '../features/streak/streakClaim.js'
 
 // Есть ли неполученная ежедневная награда — для значка «Профиль» в нижней панели (ShellNav.jsx): серия дошла дальше
@@ -10,7 +10,7 @@ export function useRewardsDot(isLoggedIn) {
   useEffect(() => {
     if (!isLoggedIn) return undefined
     const unsubscribe = subscribeProfile(setProfile)
-    if (!getCachedProfile()) refreshProfile()
+    ensureProfile()
     return unsubscribe
   }, [isLoggedIn])
   return isLoggedIn && hasUnclaimedStreak(profile)

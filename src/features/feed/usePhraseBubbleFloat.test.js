@@ -36,13 +36,14 @@ beforeEach(() => {
 })
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
 
-function mount(regions = [{ x: 0, y: 0, w: 40, h: 20 }]) {
+function mount(regions = [{ x: 0, y: 0, w: 40, h: 20 }], scroller = null) {
   const canvas = fakeCanvas()
+  if (scroller) canvas.closest = sel => (sel === '.feedSwiper' ? scroller : null)
   const onSleep = vi.fn()
   usePhraseBubbleFloat({
     live: true, unlocked: false, exploding: false, ready: true,
     canvasRef: { current: canvas }, bubblesRef: { current: buildGrid(40, 20, regions) },
-    sizeRef: { current: { w: 68, h: 38, dpr: 1.5 } }, regionsRef: { current: regions },
+    sizeRef: { current: { w: 68, h: 38, dpr: 1.5 } },
     isMounted: () => true, idRef: { current: 9 }, fit: vi.fn(), onSleep,
   })
   const cleanup = react.effects[0]()
@@ -87,5 +88,19 @@ describe('usePhraseBubbleFloat: плавание и уход приложени�
     cleanup()
     expect(onSleep).not.toHaveBeenCalled()
     expect(canvas.width).toBe(300)
+  })
+
+  it('лента листается (data-scrolling=1 на .feedSwiper): кадры не рисуются, после жеста плавание продолжается; частота ~20/с', () => {
+    const scroller = { dataset: { scrolling: '1' } }
+    mount(null, scroller)
+    const first = draws.n
+    vi.advanceTimersByTime(1000)
+    expect(draws.n).toBe(first) // жест/анимация Swiper — ни одного кадра
+    scroller.dataset.scrolling = ''
+    const before = draws.n
+    vi.advanceTimersByTime(1000)
+    const per = draws.n - before
+    expect(per).toBeGreaterThanOrEqual(15)
+    expect(per).toBeLessThanOrEqual(25)
   })
 })

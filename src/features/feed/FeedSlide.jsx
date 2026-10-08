@@ -11,6 +11,7 @@ import { useWordTranslate } from './useWordTranslate.js'
 import { useSlideRecall } from './useSlideRecall.js'
 import { useTranslationReveal } from './useTranslationReveal.js'
 import { usePhrasePlate } from './usePhrasePlate.js'
+import { phraseSurface } from './phraseSurface.js'
 import FeedHud from './FeedHud.jsx'
 import { useSlideCatch } from './catch/useSlideCatch.js'
 import { useCatchPrepare } from './catch/useCatchPrepare.js'
@@ -113,6 +114,7 @@ export default function FeedSlide({
   const stackRef = useRef(null)
   usePhrasePlate(stackRef, `${revealed}|${ct.active}|${mod.id}|${!!mod.titleTranslation}`)
   const plateOn = revealed && (!ct.mounted || rise) // на «Готово» — сразу, под накрытием (feedPhrasePlateNow: без fade)
+  const surface = phraseSurface({ ctActive: ct.active, revealed }) // что на месте фразы: шарики / чип ловли / открытая фраза
   const plateCls = `feedPhrasePlate${plateOn ? ' feedPhrasePlateOn' : ''}${rise ? ' feedPhrasePlateNow' : ''}${trPhase === 'open' ? ' feedPhrasePlateTr' : ''}`
   // Ушли с этого слайда свайпом — подсказку убираем. Отдельно закрываем её и
   // при подмене модуля в той же копии слайда (лента крутится по кругу и
@@ -169,9 +171,9 @@ export default function FeedSlide({
         <div className="feedPhraseStack" ref={stackRef}>
           <i className={plateCls} aria-hidden="true" />
           {showRubHint && revealed && !ct.mounted && trPhase === 'off' && !!mod.titleTranslation && <RubHint />}
-          {revealed ? (
+          {surface === 'plain' ? (
             <div className="feedPhrase" {...rubProps}>{phraseWords}</div>
-          ) : ct.active ? (
+          ) : surface === 'chip' ? (
             // Задание есть: шариков нет вовсе (ни canvas, ни картинки покоя) — на их месте невидимая копия фразы той же
             // ширины/высоты (раскладка не прыгает) и чип поверх; тап по блоку открывает шторку. Живёт только canvas полоски
             <div className="catchSpoilerWrap" onClick={e => { e.stopPropagation(); ct.openSheet() }}>
@@ -206,7 +208,7 @@ export default function FeedSlide({
           title={mod.title} words={ct.words} cur={ct.curIndex} typedBy={ct.typedBy} phase={ct.phase} results={ct.results}
           onPick={ct.setCurrent} helped={ct.helped} model={ct.model} isLast={ct.isLast} hasPrev={ct.hasPrev} shift={ct.shift}
           onKey={ct.press} onBackspace={ct.backspace} onNext={ct.next} onPrev={ct.prev} onCheck={ct.check}
-          onHelp={ct.help} onReveal={ct.reveal} onFinish={ct.finish}
+          onHelp={ct.help} onReveal={ct.reveal} onLater={ct.later} onFinish={ct.finish}
         />
       )}
 

@@ -161,6 +161,7 @@
 @import './styles/review-phrase.css';
 @import './styles/strength-dots.css';
 @import './styles/learn.css';
+@import './styles/learn-minutes.css';
 @import './styles/learn-sleep.css';
 @import './styles/nav-race.css';
 @import './styles/nav-rewards.css';
@@ -183,6 +184,7 @@
 @import './styles/rating-v2.css';
 @import './styles/rating-achievements.css';
 @import './styles/rating-podium.css';
+@import './styles/rating-popup.css';
 @import './styles/race-v2.css';
 @import './styles/settings.css';
 @import './styles/auth.css';

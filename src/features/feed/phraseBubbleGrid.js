@@ -5,7 +5,7 @@
 import { padRegions, regionLimits, flightLimits } from './phraseBubbleRegions.js'
 import {
   SPACING, RADIUS, AMP_MAX, PULSE_AMP, WANDER_Y_SCALE, WIGGLE_SECOND_RATIO,
-  FRINGE_DEPTH_MAX, FRINGE_DEPTH_MAX_Y, MARGIN_X, MARGIN_Y, REGION_DENSITY, REGION_RADIUS_SCALE,
+  FRINGE_DEPTH_MAX, FRINGE_DEPTH_MAX_Y, MARGIN_X, MARGIN_Y, REGION_DENSITY, REGION_RADIUS_SCALE, FEED_DENSITY, FEED_RADIUS_SCALE,
 } from './phraseBubbleConsts.js'
 
 // Режим «облачка по словам» (regions): шарики колеблются слабее и бахрома мельче, чтобы облачко не заплывало на соседа
@@ -15,10 +15,10 @@ const FRINGE_DENSITY = 1.4 // узлов бахромы на SPACING длины 
 const MIN_FRINGE_DEPTH = 0.3 // глубже этого бахромы с края нет смысла — сторона без бахромы
 
 // Узлы одного прямоугольника (x0, y0, w, h — относительно текстового блока): сетка + бахрома. region — номер облачка
-// (null у сплошной ленты; у облачка узлов в REGION_DENSITY раз меньше — шаг сетки больше, бахромы меньше). caps — сколько px бахрома может выйти за прямоугольник с каждой стороны ({ l, r, t, b },
+// (null у сплошной ленты — узлов FEED_DENSITY от «полной» сетки; у облачка в REGION_DENSITY раз меньше — шаг сетки больше, бахромы меньше). caps — сколько px бахрома может выйти за прямоугольник с каждой стороны ({ l, r, t, b },
 // Infinity — без ограничения): у стороны, где вплотную сосед, бахромы нет совсем
 function rectNodes(push, x0, y0, contentW, contentH, region, caps) {
-  const density = region == null ? 1 : REGION_DENSITY
+  const density = region == null ? FEED_DENSITY : REGION_DENSITY
   const step = SPACING / Math.sqrt(density)
   const cols = Math.ceil(contentW / step) + 1
   const rows = Math.ceil(contentH / step) + 1
@@ -93,7 +93,7 @@ export function buildGrid(contentW, contentH, regions = null) {
   let lim = null
   let flightLim = null // границы РАЗЛЁТА при взрыве в координатах холста (MARGIN; flightLimits сейчас бесконечные — разлёт свободный)
   const push = (ax, ay, sizeScale, region) => {
-    const r = RADIUS * sizeScale * (0.6 + Math.random() * 0.8) * (byRegion ? REGION_RADIUS_SCALE : 1)
+    const r = RADIUS * sizeScale * (0.6 + Math.random() * 0.8) * (byRegion ? REGION_RADIUS_SCALE : FEED_RADIUS_SCALE)
     let amp = (1.3 + Math.random() * (AMP_MAX - 1.3)) * (byRegion ? REGION_WANDER_SCALE : 1)
     if (byRegion) {
       amp = fitAmp(lim, ax - MARGIN_X, ay - MARGIN_Y, r, amp)

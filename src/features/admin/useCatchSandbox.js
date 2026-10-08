@@ -114,11 +114,18 @@ export function useCatchSandbox({ title, moduleId, writeMemory, savedLevels = nu
     addLog('Раскрыть — сигналов нет')
   }
 
+  // «Спроси позже»: в песочнице то же, что в ленте, но без паузы (кулдаун для тестовых заданий не применяется) и без сигналов
+  function later() {
+    if (st.phase !== 'type' || st.done) return
+    setSt(cs.later)
+    addLog('Спроси позже — сигналов в память нет, пауза не ставится (тест)')
+  }
+
   const finish = () => { setSt(cs.finish); addLog('Готово — фраза открыта') }
 
   return {
     words, levelOf, setLevel, open: st.open, phase: st.phase, done: st.done, revealed: st.revealed,
     cur, curIndex: st.cur, typedBy: st.typedBy, helped, shift: cs.shiftOn(st, words), model, results: st.results, isLast: cs.isLast(st, words), hasPrev,
-    log, memoryNote, openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish, reset,
+    log, memoryNote, openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, later, finish, reset,
   }
 }

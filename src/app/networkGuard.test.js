@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import vm from 'node:vm'
 import {
-  decideNetworkState, isChunkLoadError, networkKindNow, SLOW_SHOW_DELAY_MS, BOOT_TIMEOUT_MS,
+  decideNetworkState, isChunkLoadError, networkKindNow, SLOW_SHOW_DELAY_MS, BOOT_TIMEOUT_MS, NETWORK_TEXTS,
 } from './networkGuard.js'
 import { NETWORK_CABLE_SVG } from './networkCableSvg.js'
 
@@ -128,3 +128,65 @@ describe('единый вид экрана «нет связи»: три коп�
   })
 })
 
+describe('тексты экрана «нет связи»: одни и те же во всех копиях', () => {
+  const read = f => readFileSync(resolve(PUBLIC, f), 'utf8')
+  const ctx = { navigator: { onLine: true }, location: { origin: 'https://x' }, Date, setInterval: () => 0, clearInterval: () => {}, setTimeout: () => 0 }
+  ctx.window = { addEventListener: () => {} }
+  ctx.document = { getElementById: () => null, body: null, addEventListener: () => {} }
+  vm.runInNewContext(read('net-guard.js'), ctx)
+
+  it('простые и дружелюбные: «Нет подключения» / «Слабое соединение», на «ты», без прежних «Нет интернета»', () => {
+    expect(NETWORK_TEXTS.offline.title).toBe('Нет подключения')
+    expect(NETWORK_TEXTS.offline.text).toBe('Проверь соединение с интернетом. Как только оно появится, мы продолжим')
+    expect(NETWORK_TEXTS.slow.title).toBe('Слабое соединение')
+    expect(NETWORK_TEXTS.slow.text).toBe('Проверь соединение с интернетом — мы продолжим сами')
+    expect(NETWORK_TEXTS.retry).toBe('Повторить')
+  })
+
+  it('net-guard.js (оверлей) совпадает с NETWORK_TEXTS', () => {
+    expect(JSON.parse(JSON.stringify(ctx.window.__ngTexts))).toEqual(NETWORK_TEXTS)
+  })
+
+  it('offline.html содержит те же строки (заголовок/подпись обоих видов, кнопка)', () => {
+    const html = read('offline.html')
+    for (const k of ['offline', 'slow']) {
+      expect(html).toContain(`'${NETWORK_TEXTS[k].title}'`)
+      expect(html).toContain(`'${NETWORK_TEXTS[k].text}'`)
+    }
+    expect(html).toContain(`>${NETWORK_TEXTS.offline.title}</h1>`) // без JS видно текст «нет сети»
+    expect(html).toContain(`>${NETWORK_TEXTS.offline.text}</p>`)
+    expect(html).toContain(`>${NETWORK_TEXTS.retry}</a>`)
+  })
+
+  it('NetworkProblem.jsx берёт тексты из NETWORK_TEXTS, а не пишет свои', () => {
+    const jsx = readFileSync(resolve(import.meta.dirname, 'NetworkProblem.jsx'), 'utf8')
+    expect(jsx).toMatch(/NETWORK_TEXTS\[kind\]/)
+    expect(jsx).not.toMatch(/Нет интернета|Слабый интернет|Проверь соединение —/)
+  })
+})
+
+describe('стартовый сплэш index.html: без скачков фона и лого', () => {
+  const index = readFileSync(resolve(PUBLIC, '../index.html'), 'utf8')
+  const splashCss = index.match(/#splash \{[^}]*\}/)?.[0] ?? ''
+  const bodyCss = readFileSync(resolve(PUBLIC, '../src/styles/base.css'), 'utf8').match(/\nbody \{[^}]*\}/)?.[0] ?? ''
+
+  it('сплэш непрозрачный с первого кадра: без opacity/анимации на самом #splash (иначе под ним просвечивает интерфейс)', () => {
+    expect(splashCss).toMatch(/background: #0b0d10/)
+    expect(splashCss).not.toMatch(/opacity|animation/)
+  })
+
+  it('лого повторяет стартовый экран iOS (scripts/make-brand-assets.mjs: 92px, на 19px выше центра) и видно сразу', () => {
+    const logo = index.match(/#splash \.splash-logo \{[^}]*\}/)?.[0] ?? ''
+    expect(logo).toMatch(/width: 92px; height: 92px; margin-bottom: 38px/)
+    expect(logo).not.toMatch(/opacity/)
+  })
+
+  it('все этапы запуска одного цвета: html/body до CSS, body в base.css, манифест, theme-color', () => {
+    expect(index).toMatch(/html, body \{ margin: 0; background: #0b0d10; \}/)
+    expect(bodyCss).toMatch(/background: #0b0d10/)
+    expect(index).toMatch(/name="theme-color" content="#0b0d10"/)
+    const manifest = JSON.parse(readFileSync(resolve(PUBLIC, 'manifest.webmanifest'), 'utf8'))
+    expect(manifest.background_color).toBe('#0b0d10')
+    expect(manifest.theme_color).toBe('#0b0d10')
+  })
+})

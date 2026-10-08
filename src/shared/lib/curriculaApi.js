@@ -1,5 +1,6 @@
 import { supabase } from '../api/supabase.js'
 import { dbg } from './debug.js'
+import { shareInFlight } from './shareInFlight.js'
 
 // isPro передаётся только при создании про-модуля (upsert не трогает
 // колонки, которых нет в объекте — существующим модулям флаг не сбросит).
@@ -144,7 +145,7 @@ export async function findLessonModule(lessonId) {
   return m ? { id: m.id, title: m.title, isPro: !!m.is_pro } : null
 }
 
-export async function loadCurricula() {
+async function fetchCurriculaRows() {
   dbg('[DB READ] curricula list')
   let { data, error } = await supabase
     .from('curricula')
@@ -164,3 +165,8 @@ export async function loadCurricula() {
   dbg('[DB OK] curricula loaded', data?.length, 'rows')
   return data ?? []
 }
+
+// На старте список просят лента, «Память» и «Профиль» разом — один запрос на всех
+// (shareInFlight.js). Каждый получает свои копии строк: потребители вправе их менять
+const sharedCurricula = shareInFlight(fetchCurriculaRows)
+export const loadCurricula = () => sharedCurricula().then(rows => rows.map(r => ({ ...r })))

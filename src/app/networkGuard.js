@@ -2,7 +2,7 @@
 // ЗЕРКАЛО: public/net-guard.js (ES5, грузится синхронно в <head> и должен работать, даже когда бандл не загрузился)
 // дублирует decideNetworkState и константы ниже. Меняешь здесь — меняй там (networkGuard.test.js сверяет оба).
 
-// Слабый интернет показываем не сразу, а через паузу — чтобы не мигало при медленной, но живой сети
+// «Слабое соединение» показываем не сразу, а через паузу — чтобы не мигало при медленной, но живой сети
 export const SLOW_SHOW_DELAY_MS = 2500
 // Приложение не смонтировалось за это время — считаем, что бандл не доехал
 export const BOOT_TIMEOUT_MS = 8000
@@ -22,6 +22,14 @@ export function decideNetworkState({ online, mounted, resourceFailedMs = null, e
 // Что написать на экране, когда загрузка уже сорвалась внутри работающего приложения (ленивый чанк)
 export function networkKindNow() {
   return typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'slow'
+}
+
+// Тексты экрана «нет связи» (тон приложения — на «ты»). ЗЕРКАЛА: public/net-guard.js (TEXTS) и public/offline.html
+// (скрипт sync) — копии строк, networkGuard.test.js сверяет их с этим объектом. Менять парно.
+export const NETWORK_TEXTS = {
+  offline: { title: 'Нет подключения', text: 'Проверь соединение с интернетом. Как только оно появится, мы продолжим' },
+  slow: { title: 'Слабое соединение', text: 'Проверь соединение с интернетом — мы продолжим сами' },
+  retry: 'Повторить',
 }
 
 // Ошибка загрузки ленивого модуля (React.lazy / import()): текст зависит от браузера

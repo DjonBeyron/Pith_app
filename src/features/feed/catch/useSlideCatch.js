@@ -3,6 +3,7 @@ import { catchHeard, catchHelp } from '../../../shared/api/catchApi.js'
 import { track } from '../../../shared/lib/analytics/track.js'
 import { catchWords, catchEligible, catchSignal } from './feedCatch.js'
 import { catchKeyboard } from './catchLetters.js'
+import { isPhraseLaterPaused, noteLater, resetLaterStreak } from './catchLater.js'
 import { getForcedCatch, clearForcedCatch, forcedKnowledge, onForcedCatch } from './catchForce.js'
 import * as cs from './catchState.js'
 
@@ -10,7 +11,7 @@ export const CATCH_COVER_OUT_MS = 500 // страховка: накрытие р
 const LEARN_SYNC_DELAY_MS = 450 // память «Моего обучения» обновляем после ухода накрытия и проявления фразы (200мс)
 // Действия, которые хук отдаёт наружу: через стабильные обёртки (см. конец хука), чтобы набор клавиш не менял пропсы
 // мемоизированных детей (CatchSheet, CatchStripPhrase, PhraseWords) — иначе каждая клавиша перерисовывала бы весь слайд
-const ACTIONS = ['openSheet', 'setCurrent', 'press', 'backspace', 'next', 'prev', 'check', 'help', 'reveal', 'finish', 'coverGone']
+const ACTIONS = ['openSheet', 'setCurrent', 'press', 'backspace', 'next', 'prev', 'check', 'help', 'reveal', 'later', 'finish', 'coverGone']
 
 // «Ловля слов» на одном слайде ленты (спек v2: чип поверх шариков → шторка с клавиатурой + полоска фразы,
 // слова по порядку, «Проверить» — финал со сравнением). Решение «задание есть на этом слайде»: слова фразы с уровнями
@@ -18,7 +19,10 @@ const ACTIONS = ['openSheet', 'setCurrent', 'press', 'backspace', 'next', 'prev'
 // и лента разрешила (feedCatch.claim — лимиты, один раз на модуль). Переходы состояния — catchState.js (чистые),
 // здесь — их связка с React, сигналы в память и аналитика.
 // Сигналы (catchApi): при check — за каждое своё слово (уровень ≥2), набранное верно и без подсказки → catchHeard;
-// при help — сразу catchHelp (своё слово); при reveal — ничего. Пока накрытие в DOM — onLock(true): лента не свайпается
+// при help — сразу catchHelp (своё слово); при reveal и later — ничего. «Спроси позже» (later) — нейтральный сигнал «не сейчас»:
+// шторка уходит как при «Готово», память слов не трогается, задание не сгорает — фраза встаёт на паузу (catchLater.js: 3 часа,
+// 3 раза подряд — 7 суток; на паузе eligible=false и claim не зовётся, так что лимит ленты не тратится), аналитика feed_catch_later.
+// Принудительные (админские) задания паузу не создают и не проверяют. Пока накрытие в DOM — onLock(true): лента не свайпается
 // (снимается, когда накрытие размонтировано, а не в кадре старта ухода — onLock перерисовывает всю ленту).
 // «Готово» идёт строго по порядку, без работы в первых кадрах анимации ухода: фраза под накрытием уже подготовлена
 // (FeedSlide + useCatchPrepare: открытая, под скрытым блоком) и на done открывается мгновенно, накрытие уезжает вниз
@@ -35,8 +39,8 @@ const ACTIONS = ['openSheet', 'setCurrent', 'press', 'backspace', 'next', 'prev'
 // уровни из песочницы (не память), задание есть всегда (recall/флаг модуля не важны), feedCatch.claim обходится (лимиты
 // не считаются), сигналы в память — только при writeMemory; «Готово» и «Раскрыть» снимают его (разово).
 // → { active, open, mounted, phase, done, finished, revealed, shift, words, cur, curIndex, typed, typedBy, helped, helpedSet, model,
-//     results, isLast, hasPrev, openSheet(), setCurrent(index), press(ch), backspace(), next(), prev(), check(), help(),
-//     reveal(), finish(), coverGone() } — функции стабильны (одни и те же между рендерами, всегда зовут свежую версию)
+//     results, isLast, hasPrev, postponed (закрыто через «Спроси позже»), openSheet(), setCurrent(index), press(ch), backspace(),
+//     next(), prev(), check(), help(), reveal(), later(), finish(), coverGone() } — функции стабильны (одни и те же между рендерами, всегда зовут свежую версию)
 export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = false, knowledge, recallIndex, onLock, onLearnChanged }) {
   // sessionStorage читаем на монтирование/смену фразы и когда админ выставил задание заново (forcedTick), не в каждом рендере
   const [forcedTick, setForcedTick] = useState(0)
@@ -50,7 +54,9 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
     [forced, mod.title, knowledge],
   )
   const words = useMemo(() => catchWords(mod.title, effKnowledge), [mod.title, effKnowledge])
-  const eligible = forced ? true : catchEligible(words, { enabled: mod.feedCatchEnabled, recallIndex })
+  // Пауза «Спроси позже» (localStorage, catchLater.js): читаем на смену фразы, не в каждом рендере; для тестового задания нет
+  const paused = useMemo(() => !forced && isPhraseLaterPaused(mod.id), [mod.id, forced])
+  const eligible = forced ? true : !paused && catchEligible(words, { enabled: mod.feedCatchEnabled, recallIndex })
   const writeSignals = !forced || forced.writeMemory
   // Решение «задание есть» принимается синхронно в рендере — первый же кадр слайда с заданием уже показывает чип, без
   // мелькания шариков и лишнего рендера. claim идемпотентен для одного модуля (offered Set в useFeedCatch), повторный
@@ -58,7 +64,7 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
   const claimedRef = useRef(null)
   const mayDecide = forced ? active || near : active || ahead
   if (mayDecide && eligible && claimedRef.current !== mod.id && (forced || feedCatch?.claim(mod.id, !active))) claimedRef.current = mod.id
-  const claimed = claimedRef.current === mod.id
+  const claimed = claimedRef.current === mod.id && !paused // фраза с паузой, вернувшаяся в ту же копию слайда, чип не получает
 
   const [st, setSt] = useState(() => cs.initialCatch(mod.id))
   // Админ выставил задание заново — состояние слайда с нуля (сброс при рендере)
@@ -150,6 +156,7 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
     if (s.phase !== 'type' || s.done) return
     const { state, results } = cs.check(s, words)
     setSt(state)
+    if (!forced) resetLaterStreak(mod.id) // попытка сделана — «позже подряд» прервалось
     for (const r of results) {
       const w = cs.wordAt(words, r.index)
       if (writeSignals && r.ok && w && catchSignal(w.level, s.helped.has(r.index)) === 'heard') {
@@ -176,7 +183,20 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
     if (s.phase !== 'type' || s.done) return
     update(p => cs.reveal(p, words))
     if (forced) clearForcedCatch()
+    else resetLaterStreak(mod.id)
     track('feed_catch_reveal', { typed: s.typedBy.size, total: words.length })
+  }
+
+  // «Спроси позже»: нейтральный сигнал «не сейчас» — ни ошибка, ни успех. В память слов ничего (ни уровней, ни интервалов,
+  // ни heard/unheard); шторка и полоска закрываются как при «Готово», фраза открывается обычной (FeedSlide готовит её под
+  // накрытием, useCatchPrepare). Фраза остаётся кандидатом, но на паузе (noteLater: 3 часа; 3 раза подряд — 7 суток).
+  // Тестовое задание: пауза не пишется, задание снимается разово
+  function later() {
+    if (s.phase !== 'type' || s.done) return
+    update(cs.later)
+    if (forced) clearForcedCatch()
+    const r = forced ? null : noteLater(mod.id)
+    track('feed_catch_later', { module_id: mod.id, typed: s.typedBy.size, total: words.length, helped: s.helped.size, streak: r?.n ?? 0, long: !!r?.long })
   }
 
   // «Готово»: накрытие уезжает вниз (содержимое уходит в заливку), слайд становится обычным открытым (FeedSlide: revealed=true)
@@ -188,12 +208,12 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
   }
 
   // Стабильные действия: обёртки создаются один раз и зовут последнюю версию функций (ref обновляется после каждого рендера)
-  const latest = useRef({ openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish, coverGone })
-  useEffect(() => { latest.current = { openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish, coverGone } })
+  const latest = useRef({ openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, later, finish, coverGone })
+  useEffect(() => { latest.current = { openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, later, finish, coverGone } })
   const [stable] = useState(() => Object.fromEntries(ACTIONS.map(name => [name, (...args) => latest.current[name](...args)])))
 
   return {
-    active: claimed, open, mounted, phase: s.phase, done: s.done, finished, revealed: s.revealed, forced: !!forced,
+    active: claimed, open, mounted, phase: s.phase, done: s.done, postponed: s.later, finished, revealed: s.revealed, forced: !!forced,
     shift: cs.shiftOn(s, words), words,
     cur, curIndex: s.cur, typed: s.cur == null ? '' : cs.typedOf(s, s.cur), typedBy: s.typedBy,
     helped, helpedSet: s.helped, model, results: s.results, isLast: cs.isLast(s, words), hasPrev,

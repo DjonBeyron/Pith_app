@@ -28,18 +28,22 @@ function measureUnder(root) {
   return cover && stack ? coversPhrase(cover.getBoundingClientRect(), stack.getBoundingClientRect()) : false
 }
 
-// ct — результат useSlideCatch (open, phase, done); opened — фраза уже открыта; rootRef — корень слайда
+// ct — результат useSlideCatch (open, phase, done, postponed, mounted); opened — фраза уже открыта; rootRef — корень слайда
 export function useCatchPrepare({ ct, opened, rootRef, onPrepare }) {
   const prepareRef = useRef(onPrepare)
   useEffect(() => { prepareRef.current = onPrepare })
-  const armed = ct.open && ct.phase === 'result' && !ct.done && !opened
+  // «Спроси позже» (ct.postponed): задание закрыто с этапа набора, шторка уже уходит — готовить нечего ждать, фраза
+  // открывается тут же (таймер 0, в первых кадрах ухода накрытие ещё целиком закрывает фразу), иначе после ухода накрытия
+  // она проявлялась бы fade'ом
+  const armed = (ct.open && ct.phase === 'result' && !ct.done && !opened) || (ct.postponed && ct.mounted && !opened)
+  const delay = ct.postponed ? 0 : CATCH_PREPARE_DELAY_MS
   useEffect(() => {
     if (!armed) return
     const t = setTimeout(() => {
       const root = rootRef.current
       if (root) root.dataset.catchUnder = measureUnder(root) ? '1' : '0'
       prepareRef.current()
-    }, CATCH_PREPARE_DELAY_MS)
+    }, delay)
     return () => clearTimeout(t)
-  }, [armed, rootRef])
+  }, [armed, delay, rootRef])
 }

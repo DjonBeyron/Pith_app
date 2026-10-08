@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getCachedProfile, refreshProfile, subscribeProfile } from '../../shared/api/profileCache.js'
+import { getCachedProfile, refreshOrJoinProfile, subscribeProfile } from '../../shared/api/profileCache.js'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fetchFeedSocial } from '../../shared/api/moduleSocialApi.js'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
@@ -16,7 +16,7 @@ export function useProfileV2Data() {
 
   useEffect(() => {
     const unsubscribe = subscribeProfile(setProfile)
-    refreshProfile()
+    refreshOrJoinProfile()
     return unsubscribe
   }, [])
 

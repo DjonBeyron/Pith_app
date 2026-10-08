@@ -2,7 +2,7 @@
 // import() у пользователей с открытой вкладкой падает. Лечение — один раз
 // перезагрузить страницу (флаг в sessionStorage, чтобы не зациклиться).
 // Без сети перезагрузка бессмысленна (страница не загрузится) — тогда просто
-// пробрасываем ошибку: ErrorBoundary покажет NetworkProblem («Нет интернета»)
+// пробрасываем ошибку: ErrorBoundary покажет NetworkProblem («Нет подключения»)
 export function lazyRetry(importFn, key) {
   return importFn().catch(err => {
     const k = `pithy_lazy_reload_${key}`

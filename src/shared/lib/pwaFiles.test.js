@@ -40,7 +40,7 @@ describe('сервис-воркер push-sw.js', () => {
   })
 
   it('кэширует только офлайн-страницу (кэш offline-*), ничего больше', () => {
-    expect(sw).toMatch(/OFFLINE_CACHE = 'offline-v2'/) // версия поднимается при каждом изменении offline.html
+    expect(sw).toMatch(/OFFLINE_CACHE = 'offline-v3'/) // версия поднимается при каждом изменении offline.html
     expect(sw).toMatch(/OFFLINE_URL = '\/offline\.html'/)
     expect(sw).not.toMatch(/cache\.put|addAll/)
     expect(sw.match(/c\.add\(/g)).toHaveLength(1)

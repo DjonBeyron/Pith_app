@@ -98,3 +98,18 @@ export function thinForLaunch(list, alive, max = MAX_PARTICLES) {
   const stride = list.length / room
   return Array.from({ length: room }, (_, i) => list[Math.floor(i * stride)])
 }
+
+// Сплошная масса ленты (тап по фразе): одна группа на всю фразу, поэтому свой потолок — FEED_MAX_PARTICLES (в «Ловле» ≤ 320
+// на весь холст). Было: взлетали ВСЕ узлы (~12 тыс. на фразу в две строки — до 460 тыс. квадратиков за секунду взрыва).
+// Оставшиеся частицы чуть крупнее (FEED_THIN_GROW), чтобы разлёт не казался реже: покрытие ∝ число × радиус²
+export const FEED_MAX_PARTICLES = 2400
+export const FEED_THIN_GROW = 1.25
+export function thinForFeed(list, max = FEED_MAX_PARTICLES) {
+  if (list.length <= max) return list
+  const stride = list.length / max
+  return Array.from({ length: max }, (_, i) => {
+    const b = list[Math.floor(i * stride)]
+    b.r *= FEED_THIN_GROW
+    return b
+  })
+}

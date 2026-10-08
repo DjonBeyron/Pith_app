@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ArrowLeft } from 'lucide-react'
-import LessonPlayer from '../player/LessonPlayer.jsx'
+import LessonPlayer from '../player/LessonPlayerLazy.jsx'
 import ReviewHeader from './ReviewHeader.jsx'
 import ReviewProgress from './ReviewProgress.jsx'
 import { cardHasAudio, endsQueue } from './reviewSession.js'
@@ -87,6 +87,7 @@ export default function ReviewTurn({ session, item, phrase, title = '', teacher,
         <div className="reviewCardFrame">
           {!typing && (
             <LessonPlayer
+              fallback={null} /* чанк плеера обычно уже прогрет; пока нет — карточка пустая, а не чёрный экран поверх рамки */
               nodes={item.card.nodes}
               teacherName={teacher?.name}
               teacherLogo={teacher?.logo}

@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js'
 import { dbg } from '../lib/debug.js'
+import { shareInFlight } from '../lib/shareInFlight.js'
 
 // ── Супергонка: клиентский API ──
 // Таблица races читается всеми (анонс публичен), пишет только админ.
@@ -30,7 +31,7 @@ export async function deleteRace(id) {
 
 // Актуальная гонка для пользователя: ближайшая будущая или идущая; если таких
 // нет — последняя завершённая (для показа итогов). null — гонок нет вообще.
-export async function fetchCurrentRace() {
+async function fetchCurrentRaceRow() {
   const { data, error } = await supabase
     .from('races').select('*')
     .not('starts_at', 'is', null)
@@ -48,6 +49,11 @@ export async function fetchCurrentRace() {
     '→ выбрана:', picked ? `«${picked.title}» ${picked.starts_at} — ${picked.ends_at}` : 'нет')
   return picked
 }
+
+// Лента, «Рейтинг» и попапы гонки спрашивают её на старте одновременно — один запрос
+// на всех (shareInFlight.js); каждому своя копия строки
+const sharedCurrentRace = shareInFlight(fetchCurrentRaceRow)
+export const fetchCurrentRace = () => sharedCurrentRace().then(r => (r ? { ...r } : r))
 
 // Моя запись в гонке (RLS отдаёт только свою): null — ещё не финишировал.
 export async function fetchMyEntry(raceId) {

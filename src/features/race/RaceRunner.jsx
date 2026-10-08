@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import LessonLaunchCard from '../lessons/LessonLaunchCard.jsx'
-import LessonPlayer from '../player/LessonPlayer.jsx'
+import LessonPlayer from '../player/LessonPlayerLazy.jsx'
 import { revokePayloadBlobs } from '../player/preloadQueue.js'
 import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
 import EnergyPaywall from '../lessons/EnergyPaywall.jsx'

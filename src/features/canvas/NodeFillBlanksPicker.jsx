@@ -13,7 +13,7 @@ import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 // галочки на это здесь больше нет, см. PlayerPanels.jsx.
 export default function NodeFillBlanksPicker({
   template = '', blanks = [], translation = '',
-  responseCorrect = '', responseWrong = '', voiceWords = false,
+  responseCorrect = '', responseWrong = '', voiceWords = true,
   onVoiceWordsChange, onTemplateChange, onBlanksChange, onTranslationChange,
   onResponseCorrectChange, onResponseWrongChange,
   triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
@@ -157,9 +157,14 @@ export default function NodeFillBlanksPicker({
           />
         </div>
       </div>
-      {/* Озвучка верно выбранного слова из библиотеки слов (FillBlanksPanel.jsx,
-          целым словом — «tries», не «ie»). По умолчанию выключено */}
-      <label className="nodeVoiceWords" onClick={e => e.stopPropagation()}>
+      {/* Озвучка КАЖДОГО выбранного варианта из библиотеки слов (FillBlanksPanel.jsx,
+          целым словом — «tries», не «ie»). По умолчанию ВКЛЮЧЕНО (нет поля = да),
+          снять галочку — отключить */}
+      <label
+        className="nodeVoiceWords"
+        title="Включено по умолчанию: каждый выбранный вариант звучит целым словом из библиотеки слов. Сними галочку, чтобы отключить"
+        onClick={e => e.stopPropagation()}
+      >
         <input
           type="checkbox"
           checked={voiceWords}

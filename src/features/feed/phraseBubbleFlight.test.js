@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { buildGrid } from './phraseBubbleGrid.js'
 import { drawExplode, launchBubbles, shiftBubbles, EXPLODE_MARGIN } from './phraseBubbleDraw.js'
-import { flightExtent, limitFlight, thinForLaunch, MAX_PARTICLES, PER_CLOUD_MAX, EXPLODE_POWER_MAX } from './phraseBubbleFlight.js'
+import { flightExtent, limitFlight, thinForLaunch, thinForFeed, FEED_MAX_PARTICLES, FEED_THIN_GROW, MAX_PARTICLES, PER_CLOUD_MAX, EXPLODE_POWER_MAX } from './phraseBubbleFlight.js'
 import { EXPLODE_MS, EXPLODE_SLOW, MARGIN_X, MARGIN_Y } from './phraseBubbleConsts.js'
 
 // Разлёт частиц взрыва. Облачка взрываются слева направо, а разлёт НЕ ограничен живыми соседями (flightLimits — ±Infinity):
@@ -212,5 +212,20 @@ describe('thinForLaunch: не больше MAX_PARTICLES частиц в воз�
     expect(out.length).toBeLessThan(cloud.length)
     const left = out.filter(b => b.ax < cx).length
     expect(Math.abs(left - (out.length - left)) / out.length).toBeLessThan(0.3)
+  })
+})
+
+describe('thinForFeed: потолок частиц взрыва сплошной массы ленты', () => {
+  const mk = n => Array.from({ length: n }, () => ({ r: 1 }))
+  it('маленькая масса — как есть', () => {
+    const l = mk(300)
+    expect(thinForFeed(l)).toBe(l)
+  })
+  it('большая — равномерная выборка ровно на FEED_MAX_PARTICLES, оставшиеся крупнее', () => {
+    const l = mk(12000)
+    const fly = thinForFeed(l)
+    expect(fly).toHaveLength(FEED_MAX_PARTICLES)
+    expect(fly.every(b => b.r === FEED_THIN_GROW)).toBe(true)
+    expect(l.filter(b => b.r === 1).length).toBe(12000 - FEED_MAX_PARTICLES)
   })
 })

@@ -87,7 +87,7 @@ export default function NodeAnswerFields({
           translation={tData.translation ?? ''}
           responseCorrect={tData.responseCorrect ?? ''}
           responseWrong={tData.responseWrong ?? ''}
-          voiceWords={tData.voiceWords === true}
+          voiceWords={tData.voiceWords !== false}
           onVoiceWordsChange={on => updateTypeData({ voiceWords: on })}
           onTemplateChange={v => updateTypeData({ template: v })}
           onBlanksChange={b => updateTypeData({ blanks: b })}

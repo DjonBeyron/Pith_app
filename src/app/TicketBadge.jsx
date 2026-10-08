@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Gem, GraduationCap } from 'lucide-react'
-import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
+import { getCachedProfile, ensureProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { isHudPopupOpen, toggleHudPopup, subscribeHudPopup, useHudOutsideDismiss, useHudPopupExit } from './hudPopupState.js'
 import TicketIcon from '../shared/ui/TicketIcon.jsx'
@@ -14,7 +14,7 @@ export default function TicketBadge() {
 
   useEffect(() => {
     const unsubscribe = subscribeProfile(setProfile)
-    if (!getCachedProfile()) refreshProfile()
+    ensureProfile()
     return unsubscribe
   }, [])
 

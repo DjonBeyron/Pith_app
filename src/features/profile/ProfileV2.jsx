@@ -22,6 +22,7 @@ import { useAuth } from '../../shared/lib/useAuth.js'
 import { useUnseenCustomization } from './useUnseenCustomization.js'
 import { useScrollCalm } from './useScrollCalm.js'
 import { hasUnclaimedStreak } from '../streak/streakClaim.js'
+import { onProfileHome } from '../../shared/lib/profileHomeEvent.js'
 
 // Профиль (ui v2, тёмная тема по макету profile.html) — «кто я?»: аватар, ник и уровень, XP-бар, энергия, подписка,
 // «Ежедневные награды» (блестит, пока награда не получена), «Кастомизация профиля» (блестит, пока есть открытая и не
@@ -54,6 +55,14 @@ export default function ProfileV2({ visible = true, userEmail, onOpenCanvas, lea
   useEffect(() => {
     if (visible) reload()
   }, [visible, reload])
+
+  // Нажатие на активную вкладку «Профиль» в нижней панели = назад на главный экран профиля
+  // из «Кастомизации» (достижения), настроек или схемы модуля (profileHomeEvent.js)
+  useEffect(() => onProfileHome(() => {
+    setShowCustomize(false)
+    setShowSettings(false)
+    setOpenModule(null)
+  }), [])
 
   if (openModule) {
     return (

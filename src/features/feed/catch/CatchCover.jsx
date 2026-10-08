@@ -32,7 +32,7 @@ const FOLLOW_GAP_MS = 120
 export default function CatchCover({
   open, onHeight, onClosed, live = true,
   title, words, cur, typedBy, phase, results, onPick,
-  helped, model, isLast, hasPrev, shift, onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
+  helped, model, isLast, hasPrev, shift, onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onLater, onFinish,
 }) {
   const ref = useRef(null)
   // Первый кадр — в спрятанном положении (translateY 105%, заливка 1), иначе переходу нечего играть; закрытие — сразу
@@ -101,7 +101,7 @@ export default function CatchCover({
       <CatchSheet
         phase={phase} cur={curWord} helped={helped} model={model} isLast={isLast} hasPrev={hasPrev} shift={shift}
         onKey={onKey} onBackspace={onBackspace} onNext={onNext} onPrev={onPrev} onCheck={onCheck}
-        onHelp={onHelp} onReveal={onReveal} onFinish={onFinish}
+        onHelp={onHelp} onReveal={onReveal} onLater={onLater} onFinish={onFinish}
       />
       <i className="catchCoverVeil" aria-hidden="true" />
     </div>

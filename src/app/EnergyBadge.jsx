@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Zap, RefreshCw, Clock } from 'lucide-react'
-import { getCachedProfile, refreshProfile, subscribeProfile } from '../shared/api/profileCache.js'
+import { getCachedProfile, ensureProfile, subscribeProfile } from '../shared/api/profileCache.js'
 import { useAuth } from '../shared/lib/useAuth.js'
 import { calcEnergy, ENERGY_CAP, ENERGY_TICK_MS } from '../shared/lib/energyCalc.js'
 import { energyColor } from '../shared/lib/energyColors.js'
@@ -31,7 +31,7 @@ export default function EnergyBadge() {
 
   useEffect(() => {
     const unsubscribe = subscribeProfile(setProfile)
-    if (!getCachedProfile()) refreshProfile()
+    ensureProfile()
     return unsubscribe
   }, [])
 

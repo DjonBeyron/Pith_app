@@ -14,6 +14,7 @@ import { launchEnergyInfo } from './launchEnergy.js'
 import { getLessonProgress, clearLessonProgress } from '../../shared/lib/lessonProgressApi.js'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { extractFileIds } from './launchHelpers.js'
+import { prefetchLessonPlayer } from '../player/lessonPlayerPrefetch.js'
 
 // retake=true — урок уже пройден (энергия: пересдача). Выбора «с обновлением
 // анализа / без записи» больше нет — ответы только добавляются.
@@ -41,6 +42,7 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
   // за доли секунды, читалось как дефект, а не как загрузка
   const [minTimeElapsed, setMinTimeElapsed] = useState(false)
   useEffect(() => {
+    prefetchLessonPlayer() // чанк плеера (лениво) — пока крутится каркас, а не после тапа «Начать»
     const t = setTimeout(() => setMinTimeElapsed(true), 1200)
     return () => clearTimeout(t)
   }, [])

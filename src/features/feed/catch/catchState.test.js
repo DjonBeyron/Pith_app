@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  initialCatch, openSheet, setCurrent, press, backspace, next, prev, help, check, reveal, finish, closeSheet,
+  initialCatch, openSheet, setCurrent, press, backspace, next, prev, help, check, reveal, finish, later, closeSheet,
   wordAt, typedOf, isLast, isFirst, shiftOn, okCount,
 } from './catchState.js'
 import { catchWords } from './feedCatch.js'
@@ -201,5 +201,28 @@ describe('быстрый набор: серия press в одном тике', (
     s = backspace(backspace(s))
     s = burst(s, 'ar')
     expect(typedOf(s, 0)).toBe('Car')
+  })
+})
+
+describe('«Спроси позже»', () => {
+  it('закрывает шторку и завершает слайд без результатов', () => {
+    const s = later(typeAll(openSheet(initialCatch('m1'), words), 'i'))
+    expect(s).toMatchObject({ open: false, done: true, later: true, phase: 'type', results: null, revealed: false })
+    expect(typedOf(s, 0)).toBe('I')
+  })
+  it('работает с первого слова, без набора и подсказок', () => {
+    const s = later(openSheet(initialCatch(), words))
+    expect(s.done && s.later).toBe(true)
+    expect(s.helped.size).toBe(0)
+  })
+  it('на финале и после «Готово» не срабатывает', () => {
+    const r = reveal(openSheet(initialCatch(), words), words)
+    expect(later(r)).toBe(r)
+    const d = finish(r)
+    expect(later(d)).toBe(d)
+  })
+  it('повторный вызов — то же состояние', () => {
+    const s = later(openSheet(initialCatch(), words))
+    expect(later(s)).toBe(s)
   })
 })

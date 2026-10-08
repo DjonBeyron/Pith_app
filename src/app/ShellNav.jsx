@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Cog, Video, UserRound, Trophy, Brain, Flame } from 'lucide-react'
 import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
 import { requestLearnHome } from '../shared/lib/learnHomeEvent.js'
+import { requestProfileHome } from '../shared/lib/profileHomeEvent.js'
+import { navTapAction } from './navTap.js'
 
 // Нижняя панель оболочки: Уроки / Память / Профиль / Рейтинг (+ Админ).
 // «Память» зовёт, когда есть что повторить сегодня или новое слово из урока
@@ -57,7 +59,9 @@ export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false,
         )}
         Память
       </button>
-      <button className={cls('profile')} onClick={() => setTab('profile')}>
+      <button className={cls('profile')}
+        // Уже в «Профиле» — повторное нажатие = «назад» из подэкрана (достижения, настройки, схема модуля)
+        onClick={() => { if (navTapAction(tab, 'profile') === 'home') requestProfileHome(); setTab('profile') }}>
         {rewardsDot ? (
           <span className="shellV2NavProfile">
             <span className="shellV2NavSpark" aria-hidden="true"><i /><i /></span>

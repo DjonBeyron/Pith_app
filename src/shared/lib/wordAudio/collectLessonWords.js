@@ -23,7 +23,9 @@ const MARK_R = ''
 // верного ответа (выбор ученика, любой вариант меню); не заданный — верный
 // ответ. Пропуск-слово («She ___ to cook») — сам подставленный текст.
 // Слова режутся по ЛЮБЫМ пробельным символам, включая принудительный перенос
-// строки \n из шаблона («one\ntwo» — два слова, не одно)
+// строки \n из шаблона («one\ntwo» — два слова, не одно). Подставленный текст
+// из нескольких слов («is going» вместо одного слова) берётся ЦЕЛИКОМ, вместе с
+// прилипшими к нему кусками слова по краям — раньше терялось всё после первого пробела
 export function blankWord(template, blanks, index, values = null) {
   const segs = parseTemplateSegments(template)
   const text = segs.map(s => {
@@ -31,8 +33,14 @@ export function blankWord(template, blanks, index, values = null) {
     const val = values?.[s.index] ?? blanks[s.index]?.answer ?? ''
     return s.index === index ? `${MARK_L}${val}${MARK_R}` : val
   }).join('')
-  const token = text.split(/\s+/).find(t => t.includes(MARK_L))
-  return token ? token.replace(new RegExp(`[${MARK_L}${MARK_R}]`, 'g'), '') : ''
+  const l = text.indexOf(MARK_L)
+  const r = text.indexOf(MARK_R)
+  if (l < 0 || r < l) return ''
+  let from = l
+  while (from > 0 && !/\s/.test(text[from - 1])) from -= 1
+  let to = r + 1
+  while (to < text.length && !/\s/.test(text[to])) to += 1
+  return text.slice(from, to).replace(new RegExp(`[${MARK_L}${MARK_R}]`, 'g'), '')
 }
 
 function wordsOfNode(node) {

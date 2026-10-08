@@ -15,13 +15,13 @@ import { usePhraseBubbleFloat } from './usePhraseBubbleFloat.js'
 // (revealed). onUnlock зовётся в момент тапа — родитель может синхронно показать что-то ещё (FeedSlide: подпись).
 //
 // ДВА СЛОЯ ХОЛСТОВ. Постоянный лёгкий холст плавания (запас MARGIN_X/Y ≈ 14/9px вокруг фразы; облачка по словам — dpr ≤ 1.5,
-// лента — ≤ 3) живёт ТОЛЬКО у активного слайда видимой ленты (live). Холст взрыва (запас EXPLODE_MARGIN = 120px, dpr 1)
+// лента — ≤ 2) живёт ТОЛЬКО у активного слайда видимой ленты (live). Холст взрыва (запас EXPLODE_MARGIN = 120px, dpr 1)
 // монтируется только на время взрыва, после него уничтожается (usePhraseBubbleExplode.js); холст плавания на старте
 // взрыва освобождается. Соседи в виртуальном окне, лента под уроком, «Мои уроки», профиль — вместо canvas одна статичная <img>
 // (renderStillImage, dpr ≤ STILL_DPR_MAX; при размонтировании слайда src сбрасывается). Бисекция на iPhone показала, что даже
 // спящие canvas (по одному на 5 слайдов, dpr=3) делали дёрганой системную анимацию сворачивания приложения. Подмена картинка ↔
 // canvas без скачка: картинка рисуется с ТЕКУЩИХ позиций шариков (drawFloat с dt=0), canvas стартует с тех же фаз; первый
-// кадр — в useLayoutEffect, до показа. Плавание — 30 кадров/с (лента) или ~20 (облачка), взрыв — 60; уход приложения в фон /
+// кадр — в useLayoutEffect, до показа. Плавание — ~20 кадров/с (и лента, и облачка; пока лента листается — пауза), взрыв — 60; уход приложения в фон /
 // под шторку iOS останавливает все циклы (bubbleLifecycle.js). Геометрия и отрисовка — phraseBubbleDraw.js. Цикл плавания —
 // usePhraseBubbleFloat.js. Картинка покоя (toDataURL, миллисекунды главного потока) снимается ТОЛЬКО когда холста нет: при
 // засыпании живого холста и при сборке сетки, пока на экране картинка. Пока холст живой, пересборка сетки картинку не снимает.
@@ -35,7 +35,7 @@ import { usePhraseBubbleFloat } from './usePhraseBubbleFloat.js'
 // ниже) — тап ловит прозрачная зона вокруг обёртки (.phraseBubbleWrapHit). Скорости частиц готовятся заранее, в простое
 // (warmUp, phraseBubbleWarm.js).
 const REGION_DPR_MAX = 1.5 // облачка по словам: площадь холста плавания растёт ×dpr²; 2 → 1.5 это −44% при почти той же чёткости
-const FEED_DPR_MAX = 3     // сплошная масса ленты: шарики радиусом 1-2px на Retina иначе смазаны
+const FEED_DPR_MAX = 2     // сплошная масса ленты: было 3 — площадь холста ×(2/3)² = −56%; шарики теперь крупнее (FEED_RADIUS_SCALE), 2 хватает
 const STILL_DPR_MAX = 2    // картинка покоя: декодированная = w·h·dpr²·4 байт у каждого соседнего слайда
 
 // Картинка покоя с текущих позиций шариков (счётчик для DBG — spoilerStats.js)
@@ -165,7 +165,7 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
 
   // Плавание на живом холсте (usePhraseBubbleFloat.js); уход холста — картинка покоя с текущих позиций
   usePhraseBubbleFloat({
-    live, unlocked, exploding, ready, canvasRef, bubblesRef, sizeRef, regionsRef, isMounted: () => mountedRef.current, idRef, fit: fitCanvas,
+    live, unlocked, exploding, ready, canvasRef, bubblesRef, sizeRef, isMounted: () => mountedRef.current, idRef, fit: fitCanvas,
     onSleep: () => setStill(st => st ? { ...st, url: stillUrl(bubblesRef.current, sizeRef.current) } : st),
   })
 

@@ -9,9 +9,10 @@ import { appendChar, removeLast, typedMatches, catchTypedMax, needsShift } from 
 //   helped   — index'ы слов, для которых нажали «Подсказать»
 //   revealed — финал наступил через «Раскрыть» (сигналы «услышано» не шлём)
 //   results  — [{ index, ok, typed }] после check/reveal, до этого null
-//   done     — «Готово» нажато: шторка закрыта, слайд становится обычным открытым
+//   done     — «Готово» (или «Спроси позже») нажато: шторка закрыта, слайд становится обычным открытым
+//   later    — задание закрыто через «Спроси позже»: нейтрально, results нет, сигналов в память нет
 export function initialCatch(modId = null) {
-  return { modId, open: false, phase: 'type', cur: null, typedBy: new Map(), helped: new Set(), revealed: false, results: null, done: false }
+  return { modId, open: false, phase: 'type', cur: null, typedBy: new Map(), helped: new Set(), revealed: false, results: null, done: false, later: false }
 }
 
 // Слово задания по index (words — catchWords(title, knowledge))
@@ -107,6 +108,13 @@ export function reveal(s, words) {
 export function finish(s) {
   if (s.done || s.phase !== 'result') return s
   return { ...s, open: false, done: true }
+}
+
+// «Спроси позже» на этапе набора: нейтральный выход — шторка закрывается, слайд становится обычным открытым (как после
+// «Готово»), но задание не засчитано и не показано как проверенное: results остаётся null, набранное не сравнивается
+export function later(s) {
+  if (s.done || s.phase !== 'type') return s
+  return { ...s, open: false, done: true, later: true }
 }
 
 // Слайд ушёл с экрана: шторку закрываем; набранное, активное слово и фаза остаются

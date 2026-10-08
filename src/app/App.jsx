@@ -5,12 +5,17 @@ import '../features/player/lessonPrefs.js'
 import ShellV2 from './ShellV2.jsx'
 import LessonNavOverlay from './LessonNavOverlay.jsx'
 import AppPerfProbe from './AppPerfProbe.jsx'
+import { useAdmin } from './AdminContext.jsx'
+import { useIdlePrewarm } from './useIdlePrewarm.js'
 
 // Этап 6 миграции завершён: старая оболочка вынесена в old/ (вне git и
 // сборки), приложение — это новая оболочка ShellV2.
 // LessonNavOverlay — полноэкранный слой перехода по ноде-ссылке (lesson_ref):
 // рендерится поверх ShellV2, когда открыт (LessonNavContext.jsx)
 export default function App() {
+  // Прогрев чанков плеера/повторения/админки в простое после ленты (useIdlePrewarm.js)
+  useIdlePrewarm(useAdmin().isRealAdmin)
+
   // Дебаг-тулбар покадровой отладки — за общим выключателем DEBUG_TOOLS_ON
   // (см. shared/lib/debugToolsEnabled.js): в репозитории он выключен, локально
   // включается строкой VITE_DEBUG_TOOLS=1 в .env.local. Значение известно на

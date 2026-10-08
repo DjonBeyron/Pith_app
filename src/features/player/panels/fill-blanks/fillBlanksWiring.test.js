@@ -232,5 +232,14 @@ describe('«Составь предложение» — переносы \\n и 
     expect(pick).toContain('blankPickWordKey({ fbData, picked, index, value })')
     expect(pick).toContain('if (key) playWord(key); else stopWord()')
     expect(pick).not.toContain('blankMatches')
+    // озвучка не заперта за галочкой «=== true»: по умолчанию включена
+    expect(pick).not.toContain('voiceWords === true')
+  })
+
+  it('редактор: галочка по умолчанию включена (нет поля = да), снимает только явное false', () => {
+    const picker = read('../../../canvas/NodeFillBlanksPicker.jsx')
+    const fields = read('../../../canvas/NodeAnswerFields.jsx')
+    expect(fields).toContain('voiceWords={tData.voiceWords !== false}')
+    expect(picker).toContain('voiceWords = true,')
   })
 })

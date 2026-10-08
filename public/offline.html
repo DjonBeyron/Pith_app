@@ -21,7 +21,7 @@
   }
   .ngBody { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; }
   .ngTitle { margin: 0; font-size: 20px; font-weight: 700; }
-  .ngText { margin: 0; max-width: 260px; font-size: 14px; line-height: 1.4; color: rgba(242, 245, 247, 0.6); }
+  .ngText { margin: 0; max-width: 280px; text-wrap: balance; font-size: 14px; line-height: 1.4; color: rgba(242, 245, 247, 0.6); }
   .ngBtn {
     margin-top: 6px; padding: 13px 32px; border-radius: 12px; background: #b6fe3b; color: #0d0f14;
     font: 700 14px system-ui, -apple-system, "Segoe UI", sans-serif; text-decoration: none;
@@ -74,8 +74,8 @@
 </g>
 </svg>
 <div class="ngBody">
-<h1 class="ngTitle" id="title">Нет интернета</h1>
-<p class="ngText">Проверь соединение — мы подключимся сами</p>
+<h1 class="ngTitle" id="title">Нет подключения</h1>
+<p class="ngText" id="text">Проверь соединение с интернетом. Как только оно появится, мы продолжим</p>
 <a class="ngBtn" href="/" id="retry">Повторить</a>
 </div>
 </div>
@@ -84,8 +84,17 @@
      даёт (navigator.onLine там true), поэтому раз в 3с стучимся крошечным запросом мимо кэша (запросы воркер
      не перехватывает, только загрузку страницы); ответила картинка — говорим воркеру «сеть жива» (он на ~20с
      перестаёт торопиться с офлайн-страницей) и перезагружаемся */
-  var title = document.getElementById('title')
-  function sync() { title.textContent = navigator.onLine === false ? 'Нет интернета' : 'Слабый интернет' }
+  var title = document.getElementById('title'), text = document.getElementById('text')
+  /* зеркало NETWORK_TEXTS (src/app/networkGuard.js): без сети — «Нет подключения», сеть есть, но молчит — «Слабое соединение» */
+  var TEXTS = {
+    offline: { title: 'Нет подключения', text: 'Проверь соединение с интернетом. Как только оно появится, мы продолжим' },
+    slow: { title: 'Слабое соединение', text: 'Проверь соединение с интернетом — мы продолжим сами' }
+  }
+  function sync() {
+    var t = TEXTS[navigator.onLine === false ? 'offline' : 'slow']
+    title.textContent = t.title
+    text.textContent = t.text
+  }
   sync()
   window.addEventListener('offline', sync)
   window.addEventListener('online', function () { location.reload() })

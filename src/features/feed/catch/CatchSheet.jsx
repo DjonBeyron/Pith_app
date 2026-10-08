@@ -6,8 +6,9 @@ import { shouldConfirm, noteConfirmShown } from './catchConfirm.js'
 // Шторка «Напечатать» «Ловли слов» — внизу слайда над навигацией (feed-catch-sheet.css). Пока печатаем
 // (phase 'type'): клавиатура с запутывателями (TypeWordKeyboard, model = catchKeyboard(слово, уровень), helped гасит
 // запутыватели, shift — подписи клавиш заглавные, когда следующая буква будет заглавной), главная кнопка «Следующее
-// слово» (на последнем слове — «Проверить»), под ней две текстовые: «Раскрыть» и «Подсказать» (скрыта на уровне 0 и
-// после использования на этом слове). Обе — через попап подтверждения (CatchConfirmPopup) первые разы (catchConfirm.js:
+// слово» (на последнем слове — «Проверить»), под ней текстовые: «Раскрыть», «Подсказать» (скрыта на уровне 0 и
+// после использования на этом слове) и «Спроси позже» (onLater: нейтральный пропуск задания, без попапа — действие
+// обратимо и ничем не наказывает; сигнал и пауза — useSlideCatch.later). «Раскрыть» и «Подсказать» — через попап подтверждения (CatchConfirmPopup) первые разы (catchConfirm.js:
 // shouldConfirm/noteConfirmShown), потом сразу. Высота шторки постоянная для всех слов (три ряда клавиш всегда,
 // ряд текстовых кнопок min-height, даже когда «Подсказать» скрыта) — ничего не прыгает между словами.
 // Слева от главной — «Предыдущее слово» (вернуться и поправить): на первом слове (!hasPrev) схлопнута, главная во всю
@@ -19,7 +20,7 @@ import { shouldConfirm, noteConfirmShown } from './catchConfirm.js'
 // hasPrev — активное слово не первое; shift — следующая буква будет заглавной (первое слово фразы, пока пусто)
 function CatchSheet({
   phase = 'type', cur, helped = false, model, isLast = false, hasPrev = false, shift = false,
-  onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
+  onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onLater, onFinish,
 }) {
   const [confirm, setConfirm] = useState(null) // 'reveal' | 'hint' | null — попап открыт
   const act = kind => (kind === 'reveal' ? onReveal : onHelp)
@@ -66,6 +67,9 @@ function CatchSheet({
               <button type="button" className="catchTextBtn" disabled={!!confirm} onClick={() => ask('reveal')}>Раскрыть</button>
               {cur && cur.level > 0 && !helped && (
                 <button type="button" className="catchTextBtn" disabled={!!confirm} onClick={() => ask('hint')}>Подсказать</button>
+              )}
+              {onLater && (
+                <button type="button" className="catchTextBtn" disabled={!!confirm} onClick={onLater}>Спроси позже</button>
               )}
             </div>
           </div>

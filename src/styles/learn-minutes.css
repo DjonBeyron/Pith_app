@@ -1,0 +1,78 @@
+/* Шторка «Сколько минут в день?» (MinutesSheet + MinutesThanks). Вынесено из
+   learn.css. Анимируются только opacity и transform; «уменьшить движение» —
+   те же экраны без анимации */
+.lrMinAsk { display: flex; flex-direction: column; gap: 10px; transition: opacity 0.3s ease, transform 0.3s ease; }
+.lrMinAskOut { opacity: 0; transform: scale(0.98); }
+.lrMinutes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 2px; }
+.lrMinute {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 6px;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  background: #1a1d22;
+  color: #e8ecf0;
+  font: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.lrMinute b { font-size: 17px; }
+.lrMinute span { font-size: 11px; color: #8b95a1; }
+.lrMinuteOn { border-color: #b6fe3b; }
+.lrMinuteOn b { color: #b6fe3b; }
+/* После тапа: остальные притухают, ввод заблокирован, на выбранном — галочка */
+.lrMinutesLocked { pointer-events: none; }
+.lrMinutesLocked .lrMinute:not(.lrMinutePicked) { opacity: 0.4; }
+.lrMinuteTick {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  padding: 3px;
+  border-radius: 50%;
+  background: #b6fe3b;
+  fill: none;
+  stroke: #0d1500;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.18s ease, transform 0.26s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.lrMinutePicked .lrMinuteTick { opacity: 1; transform: scale(1); }
+
+/* «Спасибо» + мягкое ожидание: три пульсирующие точки */
+.lrThanks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 4px;
+  text-align: center;
+  animation: lrThanksIn 0.35s ease both;
+}
+.lrThanksDots { display: flex; gap: 8px; margin-top: 12px; }
+.lrThanksDots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #b6fe3b;
+  animation: lrThanksDot 1.2s ease-in-out infinite;
+}
+.lrThanksDots i:nth-child(2) { animation-delay: 0.15s; }
+.lrThanksDots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes lrThanksIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes lrThanksDot { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.7); } 40% { opacity: 1; transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lrMinAsk, .lrMinute, .lrMinuteTick { transition: none; }
+  .lrThanks { animation: none; }
+  .lrThanksDots i { animation: none; opacity: 0.7; }
+}

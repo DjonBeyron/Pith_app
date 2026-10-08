@@ -34,6 +34,7 @@ import { useLearnData } from '../features/learn/useLearnData.js'
 import { useMemoryFresh } from '../features/learn/memoryFresh.js'
 import MinutesAsk from '../features/learn/MinutesAsk.jsx'
 import { onOpenModule } from '../shared/lib/openModuleEvent.js'
+import { onProfileHome } from '../shared/lib/profileHomeEvent.js'
 
 // Код-сплиттинг: админка нужна только is_admin — обычный пользователь этот
 // chunk даже не скачивает (см. PROJECT.md, этап 2). Редакторы — там же, в
@@ -90,6 +91,8 @@ export default function ShellV2() {
   // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
   // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
   useEffect(() => onOpenModule(() => setTab('feed')), [])
+  // Нажатие на активный «Профиль» закрывает и настройки гостя (у залогиненного это делает ProfileV2)
+  useEffect(() => onProfileHome(() => setGuestSettings(false)), [])
   // ?tab= прочитан при старте — убираем из адреса (перезагрузка не должна
   // снова открывать ту же вкладку)
   useEffect(() => {

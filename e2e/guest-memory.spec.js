@@ -44,7 +44,8 @@ test('гость проходит урок-слово → слово в его �
   // вторым шагом «Сохрани прогресс»
   const ask = page.getByRole('dialog', { name: 'Минуты в день' })
   await ask.getByRole('button', { name: /10 мин/ }).click({ timeout: 15_000 })
-  await expect(ask).toContainText('Сохрани прогресс')
+  await expect(ask).toContainText('Спасибо за ответ') // ~2 с «настраиваем», потом гостю — «Сохрани прогресс»
+  await expect(ask).toContainText('Сохрани прогресс', { timeout: 15_000 })
   await ask.getByRole('button', { name: 'Позже' }).click()
   await expect(ask).toHaveCount(0)
 

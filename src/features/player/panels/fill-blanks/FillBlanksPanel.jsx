@@ -121,13 +121,12 @@ export default function FillBlanksPanel({
   function pickOption(value) {
     const index = blankMenu.index
     setBlankMenu(null)
-    // Озвучка — по галочке ноды, КАЖДЫЙ выбор (верный или нет), ЦЕЛЫМ словом
-    // («tries», не «ie»). Синхронно в тапе (жест для iOS); предыдущее слово
-    // глушится всегда, даже если у нового нет озвучки (fillBlanksVoice.js)
-    if (fbData.voiceWords === true) {
-      const key = blankPickWordKey({ fbData, picked, index, value })
-      if (key) playWord(key); else stopWord()
-    }
+    // Озвучка — КАЖДЫЙ выбор (верный или нет), ЦЕЛЫМ словом («tries», не «ie»);
+    // включена по умолчанию, отключает только галочка ноды (voiceWords === false,
+    // см. fillBlanksVoice.js). Синхронно в тапе (жест для iOS); предыдущее слово
+    // глушится всегда, даже если у нового нет озвучки
+    const key = blankPickWordKey({ fbData, picked, index, value })
+    if (key) playWord(key); else stopWord()
     setPicked(prev => ({ ...prev, [index]: value }))
     setWrongIndices(prev => prev.filter(i => i !== index))
   }

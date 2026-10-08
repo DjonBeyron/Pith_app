@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react'
 import { useRatingData } from './useRatingData.js'
 import RaceBanner from '../race/RaceBanner.jsx'
 import RacePage from '../race/RacePage.jsx'
+import UserStatsPopup from './UserStatsPopup.jsx'
 import UserBadge from '../../shared/ui/UserBadge.jsx'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
 
@@ -30,6 +31,8 @@ function RatingStats({ level, xp, streak }) {
 // Достижения и примерка косметики живут в Профиле → «Кастомизация».
 export default function RatingTab({ visible = true, openRaceTick = 0 }) {
   const [showRace, setShowRace] = useState(false)
+  // Тап по строке → попап игрока: { row, place } (row — строка рейтинга)
+  const [picked, setPicked] = useState(null)
   // Вкладка смонтирована всегда (см. ShellV2) — грузим данные сразу при
   // старте приложения, не дожидаясь клика по табу, чтобы переход был
   // мгновенным и без дёрганья вёрстки. visible нужен отдельно — для повторной
@@ -50,6 +53,20 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
   }
 
   const inTop = myId && rows.some(r => r.user_id === myId)
+
+  // Строка — кнопка: тап/Enter открывает попап игрока
+  const openProps = (row, place) => ({
+    role: 'button', tabIndex: 0,
+    onClick: () => setPicked({ row, place }),
+    onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPicked({ row, place }) } },
+  })
+  // Своя строка вне топа-100 — в том же виде, что строки get_leaderboard
+  const myRow = myId && {
+    user_id: myId, nickname: profile?.nickname || 'Ты', avatar_seed: profile?.avatar_seed,
+    cosmetics, medal_place: achievements.find(a => a.kind === 'race_winner')?.meta?.place ?? null,
+    is_pro: !!(profile?.has_subscription || profile?.is_admin),
+    xp: profile?.xp ?? 0, current_streak: profile?.current_streak ?? 0,
+  }
 
   return (
     <div className="ratingWrap">
@@ -79,7 +96,7 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
               const place = i + 1
               const lvl = getCurrentLevel(r.xp)
               return (
-                <div key={r.user_id} className="ratingRow" data-place={place <= 3 ? place : undefined}>
+                <div key={r.user_id} className="ratingRow" data-place={place <= 3 ? place : undefined} {...openProps(r, place)}>
                   <span className="ratingPlace" data-place={place <= 3 ? place : undefined}>{place}</span>
                   <UserBadge
                     nickname={r.nickname || 'Без имени'}
@@ -99,7 +116,7 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
             {myId && !inTop && myRank?.rank && (
               <>
                 <div className="ratingGap">···</div>
-                <div className="ratingRow">
+                <div className="ratingRow" {...openProps(myRow, myRank.rank)}>
                   <span className="ratingPlace">{myRank.rank}</span>
                   <UserBadge
                     nickname={profile?.nickname || 'Ты'}
@@ -121,6 +138,8 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
           </div>
         )}
       </div>
+
+      {picked && <UserStatsPopup key={picked.row.user_id} row={picked.row} place={picked.place} onClose={() => setPicked(null)} />}
     </div>
   )
 }

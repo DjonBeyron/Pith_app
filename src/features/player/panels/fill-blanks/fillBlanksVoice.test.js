@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { blankPickWordKey } from './fillBlanksVoice.js'
+import { blankPickWordKey, voiceWordsOn } from './fillBlanksVoice.js'
 
 const fbData = (extra = {}) => ({
   template: 'He tr___s to ___ and\nher ___.',
@@ -44,9 +44,22 @@ describe('blankPickWordKey — что озвучить при выборе ва�
     expect(blankPickWordKey({ fbData: d, picked: {}, index: 0, value: 'goes' })).toBe('goes')
   })
 
-  it('озвучка у ноды выключена → null', () => {
+  it('озвучка ВКЛЮЧЕНА по умолчанию: нет поля / undefined / true → слово; выключает только явное false', () => {
+    const noField = fbData(); delete noField.voiceWords
+    expect(voiceWordsOn(noField)).toBe(true)
+    expect(blankPickWordKey({ fbData: noField, picked: {}, index: 0, value: 'ie' })).toBe('tries')
+    expect(blankPickWordKey({ fbData: fbData({ voiceWords: undefined }), picked: {}, index: 0, value: 'ie' })).toBe('tries')
+    expect(blankPickWordKey({ fbData: fbData({ voiceWords: null }), picked: {}, index: 0, value: 'ie' })).toBe('tries')
     expect(blankPickWordKey({ fbData: fbData({ voiceWords: false }), picked: {}, index: 0, value: 'ie' })).toBeNull()
-    expect(blankPickWordKey({ fbData: fbData({ voiceWords: undefined }), picked: {}, index: 0, value: 'ie' })).toBeNull()
+    expect(voiceWordsOn({ voiceWords: false })).toBe(false)
+    expect(voiceWordsOn(undefined)).toBe(true)
+  })
+
+  it('вариант из нескольких слов озвучивается целиком, а не по первому слову', () => {
+    const d = fbData({ template: 'She ___ to cook.', blanks: [{ options: ['is going', 'goes'], answer: 'goes' }] })
+    expect(blankPickWordKey({ fbData: d, picked: {}, index: 0, value: 'is going' })).toBe('is going')
+    const d2 = fbData({ template: 'Is she ___?', blanks: [{ options: ['New York'], answer: 'New York' }] })
+    expect(blankPickWordKey({ fbData: d2, picked: {}, index: 0, value: 'New York' })).toBe('new york')
   })
 
   it('кириллица, пусто, несуществующий пропуск → null (тишина)', () => {

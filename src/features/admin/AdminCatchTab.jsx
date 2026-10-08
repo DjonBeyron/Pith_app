@@ -84,7 +84,7 @@ export default function AdminCatchTab() {
         <button className="aeRefresh" onClick={sendFeed} disabled={!mod || sb.words.length === 0}>Отправить в ленту</button>
       </div>
       <p className="aeHint">
-        Фраза встанет первой в ленте с заданием по этим уровням, без лимитов. Один раз: после «Готово» или «Раскрыть» задание снимается
+        Фраза встанет первой в ленте с заданием по этим уровням, без лимитов. Один раз: после «Готово», «Раскрыть» или «Спроси позже» задание снимается
       </p>
       {feedNote && <p className="aeHint">{feedNote}</p>}
       {help && <AdminCatchHelp />}
