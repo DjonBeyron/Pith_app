@@ -2,10 +2,11 @@
    .catchCover (feed-catch.css), вплотную к шторке. Своей анимации появления нет: выезжает и уезжает вместе со шторкой,
    одним блоком (.catchCover). Внутри: фраза под облачками шариков по словам (PhraseBubbleSpoiler — те же стили
    feed-bubble-spoiler.css, что и в ленте), подчёркивание активного слова с треугольником ниже облачка (.catchUnderline,
-   цвет по уровню --cu-c, позицию пишет JS в transform), слот линии и факта (.catchCmpSlot, всегда на месте), строка
-   набранного; на финале — облачка раскрываются по очереди, затем линия, цвета набранного и факт.
+   цвет по уровню --cu-c, позицию пишет JS в transform), слот линии (.catchCmpSlot, всегда на месте), строка
+   набранного, под ней слот факта (.catchFactSlot, всегда на месте); на финале — облачка раскрываются по очереди,
+   затем линия, цвета набранного и факт (плавно проявляется).
    Фон сплошной (без alpha и backdrop-filter), анимируются только opacity и transform (+ width подчёркивания при
-   смене слова — одно маленькое изменение раз в слово; width факта — посимвольная печать на финале). */
+   смене слова — одно маленькое изменение раз в слово). */
 
 .catchStrip {
   position: relative;
@@ -75,8 +76,8 @@
 /* Те же слова (со знаками), тот же шрифт (17px/700, масштаб — style от CatchTypedLine), тот же word-spacing и то же
    центрирование, что у фразы, поэтому пробелы занимают столько же места, а слот каждого слова (.catchTypedWord)
    растянут минимум до ширины слова-оригинала (min-width ставит CatchTypedLine) — набранное встаёт колонками под
-   своими облачками. Одна строка (nowrap), как у фразы; перенос — только в том же запасном случае (.catchTypedLineWrap). Текст слота по левому краю; текущее — лаймом с курсором (.twCaret
-   из type-word.css). Высота одной строки держится min-height, чтобы полоска не прыгала, пока ничего не набрано */
+   своими облачками. Одна строка (nowrap), как у фразы; перенос — только в том же запасном случае (.catchTypedLineWrap). Текст слота по левому краю; набранное лаймом (#b6fe3b) на всём протяжении набора — не белеет при
+   переходе к следующему слову, активное слово отличается курсором (.twCaret из type-word.css) и слотом. Высота одной строки держится min-height, чтобы полоска не прыгала, пока ничего не набрано */
 .catchTypedLine {
   min-height: 1.6em;
   margin-top: 2px;
@@ -94,8 +95,8 @@
   display: inline-block;
   vertical-align: top;
   white-space: pre;
+  color: #b6fe3b;
 }
-.catchTypedWordCur { color: #b6fe3b; }
 .catchCaret {
   display: inline-block;
   height: 1.05em;
@@ -103,21 +104,21 @@
 }
 
 /* ── Финал: линия, цвета набранного, факт ───────────────────────────── */
-/* Между фразой и строкой набранного — слот .catchCmpSlot фиксированной высоты 24px: он есть ВСЕГДА (во время набора
-   пустой и прозрачный), поэтому на финале ничего не раздвигается и не прыгает, строка набранного стоит на месте.
+/* Между фразой и строкой набранного — слот .catchCmpSlot фиксированной высоты 14px с линией; под строкой набранного —
+   слот факта .catchFactSlot фиксированной высоты 24px. Оба есть ВСЕГДА (во время набора пустые и прозрачные), поэтому
+   на финале ничего не раздвигается и не прыгает, строка набранного стоит на месте.
    После раскрытия всех облачков (задержка --catch-cmp-delay ставит CatchStrip): линия рисуется от центра к краям
-   (scaleX 0→1, 220мс), затем факт «Расслышал N из M слов» пропечатывается по символам (ширина шагами steps(), задержка
-   --catch-fact-delay = после линии); цвета набранного плавно проявляются из белого (animation backwards: до старта
-   слово остаётся белым), «—» выплывает */
+   (scaleX 0→1, 220мс), затем факт «Расслышал N из M слов» плавно проявляется (opacity 220мс, без печати; задержка
+   --catch-fact-delay = после линии); цвета набранного плавно перетекают из лайма в цвет вердикта, «—» выплывает */
 .catchCmpSlot {
   position: relative;
-  height: 24px;
+  height: 14px;
 }
 .catchCompareRule {
   position: absolute;
   left: 0;
   right: 0;
-  top: 2px;
+  top: 6px;
   height: 1px;
   background: rgba(255, 255, 255, 0.14);
   transform: scaleX(0);
@@ -133,34 +134,16 @@
   animation: catchFadeUp 220ms ease-out var(--catch-cmp-delay, 0ms) both;
 }
 
-/* Факт по центру слота: обёртка inline-block по ширине полного текста (ghost держит место, невидим), поверх него слева
-   печатается тот же текст — span с overflow: hidden, white-space: nowrap и шириной, растущей шагами (--n символов, ch —
-   ширина «0», с запасом на самый длинный текст, обрезается самим текстом) */
+/* Слот факта под строкой набранного: фиксированная высота, текст по центру. Сам факт (CatchFact) монтируется только
+   на финале и проявляется через opacity с задержкой --catch-fact-delay */
+.catchFactSlot { height: 24px; }
 .catchFact {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 5px;
   font-size: 12.5px;
   font-weight: 600;
-  line-height: 18px;
+  line-height: 24px;
   text-align: center;
   color: rgba(255, 255, 255, 0.72);
-}
-.catchFactIn {
-  position: relative;
-  display: inline-block;
-  white-space: nowrap;
-}
-.catchFactGhost { visibility: hidden; }
-.catchFactType {
-  position: absolute;
-  left: 0;
-  top: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  width: 0;
-  animation: catchFactType calc(var(--n, 20) * 28ms) steps(var(--n, 20), end) var(--catch-fact-delay, 0ms) both;
+  animation: catchFactIn 220ms ease-out var(--catch-fact-delay, 0ms) both;
 }
 
 /* Слово под ещё не раскрытым облачком (финал, CatchStripPhrase): прячем, пока до него не дошла очередь */
@@ -169,15 +152,16 @@
 @keyframes catchRuleDraw {
   to { transform: scaleX(1); }
 }
-@keyframes catchFactType {
-  to { width: calc(var(--n, 20) * 1ch); }
+@keyframes catchFactIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 @keyframes catchFadeUp {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes catchToColor {
-  from { color: #e8eaee; }
+  from { color: #b6fe3b; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -186,7 +170,6 @@
   .catchCmpOk,
   .catchCmpBad,
   .catchCmpMiss,
-  .catchFactType { animation: none; }
+  .catchFact { animation: none; }
   .catchStripResult .catchCompareRule { transform: none; }
-  .catchFactType { width: auto; }
 }

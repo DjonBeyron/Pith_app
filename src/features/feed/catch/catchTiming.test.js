@@ -15,7 +15,7 @@ describe('тайминги финала «Ловли»', () => {
     expect(compareDelay(0)).toBe(compareDelay(1))
   })
 
-  it('факт печатается после линии', () => {
+  it('факт проявляется после линии', () => {
     expect(factDelay(4)).toBe(compareDelay(4) + CATCH_RULE_MS)
     expect(factDelay(4)).toBeGreaterThan(compareDelay(4))
   })

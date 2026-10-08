@@ -11,11 +11,12 @@ import { FIT_NONE } from './catchFit.js'
 // слов (onMeasure → metrics), он же отдаёт облачкам их прямоугольники (regions). Фраза всегда в одну строку: если с
 // большими промежутками между словами она не влезает, масштаб (fit — catchFit.js; считает CatchStripPhrase) уменьшает её
 // целиком, и тот же масштаб получает строка набранного — слоты остаются точно под облачками.
-// Между фразой и строкой набранного — слот .catchCmpSlot фиксированной высоты (24px): он есть ВСЕГДА, во время набора
-// пустой и прозрачный, поэтому на финале ничего не раздвигается.
-// Финал (phase 'result'): клавиатура уехала, облачка раскрываются по очереди; после последнего в слоте рисуется линия
-// (.catchCompareRule, scaleX 0→1), печатается факт «Расслышал N из M слов» (CatchFact), цвета набранного (верные
-// зелёным, неверные красным, пропущенные «—») проявляются в строке набранного — она та же и остаётся на своём месте.
+// Между фразой и строкой набранного — слот .catchCmpSlot (14px) с линией, под строкой набранного — слот факта
+// .catchFactSlot (24px): оба есть ВСЕГДА, во время набора пустые и прозрачные, поэтому на финале ничего не раздвигается.
+// Финал (phase 'result'): клавиатура уехала, облачка раскрываются по очереди; после последнего рисуется линия
+// (.catchCompareRule, scaleX 0→1), затем под строкой набранного плавно проявляется факт «Расслышал N из M слов»
+// (CatchFact), цвета набранного (верные зелёным, неверные красным, пропущенные «—») проявляются в строке набранного —
+// она та же и остаётся на своём месте.
 // words — catchWords(title, knowledge): [{ index, text, key, level }]; typedBy — Map index → строка;
 // results — [{ index, ok, typed }] на финале; live — canvas облачков живёт (накрытие открыто и лента видна)
 export default function CatchStrip({ title, words, cur = null, typedBy, phase = 'type', results = null, live = true, onPick }) {
@@ -39,11 +40,13 @@ export default function CatchStrip({ title, words, cur = null, typedBy, phase = 
       />
       <div className="catchCmpSlot">
         <div className="catchCompareRule" aria-hidden="true" />
-        {result && <CatchFact ok={okCount} total={words.length} />}
       </div>
       <CatchTypedLine
         title={title} widths={metrics?.widths} fit={fit} typedBy={typedBy} cur={cur} result={result} results={results}
       />
+      <div className="catchFactSlot">
+        {result && <CatchFact ok={okCount} total={words.length} />}
+      </div>
     </div>
   )
 }

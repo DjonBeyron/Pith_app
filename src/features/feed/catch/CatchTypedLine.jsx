@@ -7,7 +7,8 @@ import { fontPx, FIT_NONE } from './catchFit.js'
 // font-size и word-spacing) и по центру: пробелы — разделителями (обычным текстом, с тем же word-spacing), каждое
 // слово — слотом .catchTypedWord с min-width = ширина этого слова в оригинале (widths — measureWords: { [index]: px })
 // и текстом по левому краю. Набранное встаёт колонками под своими словами; пустой слот — пустое место той же ширины
-// (ZWSP держит базовую линию). Текущее слово — лаймом с курсором.
+// (ZWSP держит базовую линию). Набранное — лаймом на всём протяжении набора (не белеет при переходе к следующему слову),
+// активное слово отличается курсором и слотом.
 // Финал (result): та же строка и те же слоты — набранное перекрашивается: верные зелёным, неверные красным,
 // пропущенные «—»; цвет проявляется с задержкой --catch-cmp-delay (после раскрытия всех облачков).
 // title — фраза; typedBy — Map index → строка; cur — активное слово; results — [{ index, ok, typed }] на финале
@@ -34,7 +35,7 @@ export default function CatchTypedLine({
           const typed = typedBy?.get(u.index) ?? ''
           const on = u.index === cur
           word = (
-            <span className={on ? 'catchTypedWord catchTypedWordCur' : 'catchTypedWord'} style={style}>
+            <span className="catchTypedWord" style={style}>
               {typed || '​'}
               {on && <i className="twCaret catchCaret" aria-hidden="true" />}
             </span>
