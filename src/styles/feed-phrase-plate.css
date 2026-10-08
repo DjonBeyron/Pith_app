@@ -1,0 +1,32 @@
+/* Подложка под фразой в ленте (FeedSlide.jsx: <i class="feedPhrasePlate">, геометрия — usePhrasePlate.js).
+   Когда фраза открыта (шарики раскрылись) — под ней быстро проступает полупрозрачная плашка той формы, что чип
+   «Проверь, что услышал» (скругление 12px, чуть шире текста), цвет — полупрозрачный #1a1d22. Когда по фразе потёрли и
+   выехал перевод — плашка плавно вырастает вниз и накрывает строку перевода; стрелка «скрыть» возвращает её к фразе.
+   Пока фраза под шариками или идёт «Ловля» (там чип сам непрозрачный) — плашки нет (opacity 0).
+   Один элемент: меняются opacity, width, height (абсолютный, ни на что не влияет, дёшево). scaleY нельзя — исказил бы
+   скругление. pointer-events: none — трение по фразе и тапы по переводу идут сквозь неё. will-change не ставим. */
+.feedPhraseStack { isolation: isolate; } /* z-index: -1 подложки — над фоном слайда, но под фразой, спойлером и переводом */
+
+.feedPhrasePlate {
+  position: absolute;
+  left: -10px;
+  top: var(--pp-y, -5px);
+  z-index: -1;
+  box-sizing: border-box;
+  width: var(--pp-w, 100%);
+  height: var(--pp-h, 100%);
+  border-radius: 12px;
+  background: rgba(26, 29, 34, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease, width 220ms ease, height 220ms ease;
+}
+.feedPhrasePlateOn { opacity: 1; }
+.feedPhrasePlateTr {
+  width: var(--pp-w2, var(--pp-w, 100%));
+  height: var(--pp-h2, var(--pp-h, 100%));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedPhrasePlate { transition: opacity 200ms ease; }
+}

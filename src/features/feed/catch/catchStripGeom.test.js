@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { hitWordIndex, underlineBox, UNDERLINE_GAP } from './catchStripGeom.js'
+import { REGION_PAD } from '../phraseBubbleRegions.js'
 
 // Две строки: «Hello world» / «again»
 const rects = [
@@ -30,10 +31,10 @@ describe('hitWordIndex', () => {
 })
 
 describe('underlineBox', () => {
-  it('координаты относительно обёртки, под низом слова, по его ширине', () => {
+  it('координаты относительно обёртки, под низом слова, по ширине облачка (слово + запас с обеих сторон)', () => {
     const wrap = { left: 4, top: 100 }
     const span = { left: 58, top: 110, right: 100, bottom: 130 }
-    expect(underlineBox(span, wrap)).toEqual({ x: 54, y: 30 + UNDERLINE_GAP, w: 42 })
-    expect(underlineBox(span, wrap, 0)).toEqual({ x: 54, y: 30, w: 42 })
+    expect(underlineBox(span, wrap)).toEqual({ x: 54 - REGION_PAD, y: 30 + UNDERLINE_GAP, w: 42 + REGION_PAD * 2 })
+    expect(underlineBox(span, wrap, 0, 0)).toEqual({ x: 54, y: 30, w: 42 })
   })
 })

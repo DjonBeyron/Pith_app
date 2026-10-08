@@ -94,8 +94,11 @@ describe('buildGrid: regions', () => {
 })
 
 describe('reachForGap / regionLimits: на сколько облачко может выйти за слово', () => {
-  it('половина зазора минус чистый пиксель; зазор < 6px — ровно половина (касание на середине); без соседа — без ограничения', () => {
-    expect(reachForGap(20)).toBe(9)
+  it('половина зазора минус чистый зазор (1px; с большого зазора ≥ 12px — полпикселя); зазор < 6px — ровно половина (касание на середине); без соседа — без ограничения', () => {
+    expect(reachForGap(20)).toBe(9.5)
+    expect(reachForGap(14)).toBe(6.5)
+    expect(reachForGap(12)).toBe(5.5)
+    expect(reachForGap(10)).toBe(4)
     expect(reachForGap(6)).toBe(2)
     expect(reachForGap(5)).toBe(2.5)
     expect(reachForGap(0)).toBe(0)
@@ -105,8 +108,8 @@ describe('reachForGap / regionLimits: на сколько облачко мож�
 
   it('два слова в строке: границы смотрят друг на друга по половине зазора, наружу — без ограничения', () => {
     const [a, b] = regionLimits([word(0, 0, 40), word(60, 0, 40)])
-    expect(a.x1).toBe(49)
-    expect(b.x0).toBe(51)
+    expect(a.x1).toBe(49.5)
+    expect(b.x0).toBe(50.5)
     expect(a.x0).toBe(-Infinity)
     expect(b.x1).toBe(Infinity)
   })
@@ -116,6 +119,14 @@ describe('reachForGap / regionLimits: на сколько облачко мож�
     expect(a.y1).toBe(20 + 4) // зазор 10px → 4
     expect(b.y0).toBe(30 - 4)
     expect(c.y0).toBe(-Infinity)
+  })
+
+  it('большой промежуток (14px): запас облачка полный с обеих сторон, соседи не пересекаются', () => {
+    const [pa, pb] = padRegions([word(0, 0, 40), word(54, 0, 40)])
+    expect(pa.x).toBe(-REGION_PAD)
+    expect(pa.x + pa.w).toBe(40 + REGION_PAD)
+    expect(pb.x).toBe(54 - REGION_PAD)
+    expect(pb.x - (pa.x + pa.w)).toBe(14 - REGION_PAD * 2)
   })
 
   it('padRegions не выходит за допустимый вынос: запас по сторонам ≤ reachForGap', () => {

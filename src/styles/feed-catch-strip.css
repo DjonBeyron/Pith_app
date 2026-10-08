@@ -13,6 +13,9 @@
   padding: 12px 16px 10px;
   border-radius: 18px 18px 0 0;
   background: #1a1d22;
+  /* Промежуток между словами фразы и строки набранного: ~0.9em сверх обычного пробела (≈ 20px при 17px) — между
+     облачками явный просвет. В em: при уменьшении шрифта (масштаб, catchFit.js) промежуток уменьшается вместе с ним */
+  --catch-ws: 0.9em;
   transform: translateY(calc(100% + 24px));
   transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -23,16 +26,22 @@
 
 /* ── Фраза под массой шариков ───────────────────────────────────────── */
 /* Обёртка — якорь подчёркивания; строки пореже, чем в ленте (line-height): под активным словом ещё полоска и
-   треугольник (~13px), которым нужно место между строками. Шрифт/размер — .feedPhrase, как в ленте */
+   треугольник (~14px), которым нужно место под строкой. Шрифт — .feedPhrase, как в ленте; размер пишет JS (масштаб
+   «в одну строку», catchFit.js). Фраза — по центру полоски (блок спойлера inline-block по ширине строки) и всегда
+   в одну строку (nowrap); перенос — только запасной вариант, если и при минимальном масштабе не влезает */
 .catchStripPhraseWrap {
   position: relative;
-  padding-bottom: 10px; /* место под подчёркивание последней строки */
+  padding-bottom: 12px; /* место под подчёркивание последней строки */
+  text-align: center;
 }
 .catchStripPhrase {
   line-height: 1.75;
+  white-space: nowrap;
+  word-spacing: var(--catch-ws);
   text-shadow: none;
   touch-action: manipulation;
 }
+.catchStripPhrase.catchStripPhraseWrapText { white-space: normal; }
 .catchStripPhrase span { transition: color 320ms ease; }
 
 /* Цвет уровня слова для подчёркивания: 0 серый, 1 зелёный, 2 синий, 3 золотой, 4 фиолетовый */
@@ -43,7 +52,7 @@
 .catchLvl4 { --cu-c: #a78bfa; }
 
 /* Подчёркивание активного слова: полоска 3px + треугольник вниз по центру (::after). Лежит в левом верхнем углу
-   обёртки, на место под словом его двигает transform (width — ширина слова), оба — переход 200мс при смене слова.
+   обёртки, на место под облачком его двигает transform (width — ширина облачка: слово + запас), оба — переход 200мс при смене слова.
    z-index выше холста массы (1) — полоска видна по нижнему краю бахромы */
 .catchUnderline {
   position: absolute;
@@ -69,9 +78,10 @@
 }
 
 /* ── Строка набранного под фразой ───────────────────────────────────── */
-/* Те же токены и тот же шрифт, что у фразы (17px/700 от .feedPhrase), поэтому знаки и пробелы занимают столько же места,
-   а слот каждого слова (.catchTypedWord) растянут минимум до ширины слова-оригинала (min-width ставит CatchTypedLine) —
-   набранное встаёт колонками под своими облачками. Текст слота по левому краю; текущее — лаймом с курсором (.twCaret
+/* Те же слова (со знаками), тот же шрифт (17px/700, масштаб — style от CatchTypedLine), тот же word-spacing и то же
+   центрирование, что у фразы, поэтому пробелы занимают столько же места, а слот каждого слова (.catchTypedWord)
+   растянут минимум до ширины слова-оригинала (min-width ставит CatchTypedLine) — набранное встаёт колонками под
+   своими облачками. Одна строка (nowrap), как у фразы; перенос — только в том же запасном случае (.catchTypedLineWrap). Текст слота по левому краю; текущее — лаймом с курсором (.twCaret
    из type-word.css). Высота одной строки держится min-height, чтобы полоска не прыгала, пока ничего не набрано */
 .catchTypedLine {
   min-height: 1.6em;
@@ -81,7 +91,11 @@
   line-height: 1.6;
   color: #e8eaee;
   text-shadow: none;
+  text-align: center;
+  white-space: nowrap;
+  word-spacing: var(--catch-ws);
 }
+.catchTypedLine.catchTypedLineWrap { white-space: normal; }
 .catchTypedWord {
   display: inline-block;
   vertical-align: top;

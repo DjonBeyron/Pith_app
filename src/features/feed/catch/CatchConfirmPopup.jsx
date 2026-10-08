@@ -2,7 +2,7 @@ import { useId } from 'react'
 import { confirmCopy } from './catchConfirm.js'
 
 // Мини-табличка подтверждения «Ловли слов» — слой поверх шторки (рендерится внутри .catchSheet, высоту не меняет):
-// затемнение на всю шторку, карточка по центру, тап по затемнению = отмена.
+// прозрачный слой на всю шторку (без затемнения, тап по нему = отмена), непрозрачная карточка по центру.
 // kind: 'reveal' | 'hint'; memory — слово своё (подсказка сдвинет повтор на завтра).
 export default function CatchConfirmPopup({ kind, memory = false, onConfirm, onCancel }) {
   const titleId = useId()

@@ -3,11 +3,14 @@ import { plural } from '../../../shared/lib/plural.js'
 import CatchStripPhrase from './CatchStripPhrase.jsx'
 import CatchTypedLine from './CatchTypedLine.jsx'
 import { compareDelay } from './catchTiming.js'
+import { FIT_NONE } from './catchFit.js'
 
 // Полоска фразы «Ловли слов» — отдельный блок над шторкой (feed-catch-strip.css). Сверху фраза: шарики отдельными
 // облачками над каждым словом, с подчёркиванием активного (CatchStripPhrase: тап по облачку → onPick(index)). Под
 // ней строка набранного (CatchTypedLine) — слова стоят колонками ПОД своими облачками: ширины слотов берутся из замера
-// слов (onMeasure → metrics), он же отдаёт облачкам их прямоугольники (regions).
+// слов (onMeasure → metrics), он же отдаёт облачкам их прямоугольники (regions). Фраза всегда в одну строку: если с
+// большими промежутками между словами она не влезает, масштаб (fit — catchFit.js; считает CatchStripPhrase) уменьшает её
+// целиком, и тот же масштаб получает строка набранного — слоты остаются точно под облачками.
 // Финал (phase 'result'): клавиатура уехала, облачка раскрываются по очереди; после последнего проявляются линия
 // (.catchCompareRule), цвета набранного (верные зелёным, неверные красным, пропущенные «—») и строка факта
 // «Расслышал N из M слов» — линия и факт раскрываются высотой (.catchFold), строка набранного остаётся на месте.
@@ -18,6 +21,7 @@ export default function CatchStrip({ title, words, cur = null, typedBy, phase = 
   // Замер слов приходит из наблюдателя за размерами; неизменившийся замер состояние не трогает
   const [metrics, setMetrics] = useState(null)
   const onMeasure = m => setMetrics(prev => (prev && prev.sig === m.sig ? prev : m))
+  const [fit, setFit] = useState(FIT_NONE)
   const okCount = results?.filter(r => r.ok).length ?? 0
 
   return (
@@ -29,12 +33,14 @@ export default function CatchStrip({ title, words, cur = null, typedBy, phase = 
     >
       <CatchStripPhrase
         title={title} words={words} cur={cur} result={result} results={results} live={live}
-        regions={metrics?.regions ?? null} onMeasure={onMeasure} onPick={onPick}
+        regions={metrics?.regions ?? null} fit={fit} onFit={setFit} onMeasure={onMeasure} onPick={onPick}
       />
       <div className={result ? 'catchFold catchFoldOpen' : 'catchFold'} aria-hidden="true">
         <div><div className="catchCompareRule" /></div>
       </div>
-      <CatchTypedLine title={title} widths={metrics?.widths} typedBy={typedBy} cur={cur} result={result} results={results} />
+      <CatchTypedLine
+        title={title} widths={metrics?.widths} fit={fit} typedBy={typedBy} cur={cur} result={result} results={results}
+      />
       <div className={result ? 'catchFold catchFoldOpen' : 'catchFold'}>
         <div>
           {result && (

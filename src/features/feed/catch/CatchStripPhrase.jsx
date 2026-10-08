@@ -1,26 +1,33 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { splitTitleTokens } from '../../../shared/lib/titleWords.js'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import PhraseBubbleSpoiler from '../PhraseBubbleSpoiler.jsx'
 import { LEVEL_CLASS } from './feedCatch.js'
 import { hitWordIndex, underlineBox } from './catchStripGeom.js'
-import { measureWords } from './catchWordRects.js'
+import { measureWords, naturalWidth } from './catchWordRects.js'
+import { phraseUnits } from './catchPhraseUnits.js'
+import { nextFit, fontPx, FIT_NONE } from './catchFit.js'
 import { explodeAt } from './catchTiming.js'
 
 // Фраза в полоске «Ловли слов» (CatchStrip.jsx): шарики лежат отдельными облачками над каждым словом (один canvas на
-// всю фразу, на слабых устройствах — по статичной маске на слово), между словами — чистый промежуток. Прямоугольники
+// всю фразу, на слабых устройствах — по статичной маске на слово), между словами — нарочно большой чистый промежуток
+// (word-spacing в feed-catch-strip.css); знаки препинания прилипают к своему слову (phraseUnits). Прямоугольники
 // слов (regions) меряются здесь же по span'ам (data-index) через ResizeObserver и уходят наверх в onMeasure — CatchStrip
 // отдаёт их обратно сюда (regions) и в строку набранного (ширины слотов). Шрифт — .feedPhrase (как в ленте).
+// Фраза всегда в одну строку (white-space: nowrap) и по центру полоски: не влезла по ширине — уменьшается ВСЯ целиком
+// (fit.scale → font-size, word-spacing в em уменьшается вместе с ним; catchFit.js), переносится только если и при
+// минимальном масштабе не влезает (fit.wrap). Масштаб считает тот же наблюдатель, что и замер слов: пока масштаб
+// меняется, regions не отдаём (они были бы по старой раскладке) — отчёт приходит со следующим кадром наблюдателя.
 // Тап по облачку не взрывает его: onTap отдаёт событие сюда, слово ищется по координате тапа среди span'ов → onPick(index).
-// Активное слово — подчёркивание с треугольником (.catchUnderline) ниже облачка: положение — из rect span'а
-// относительно обёртки, пишется прямо в style (transform/width, переход 200мс), пересчёт при смене cur и ресайзе.
+// Активное слово — подчёркивание с треугольником (.catchUnderline) ниже облачка, шириной в облачко целиком (слово +
+// запас): положение — из rect span'а относительно обёртки, пишется прямо в style (transform/width, переход 200мс),
+// пересчёт при смене cur, масштаба и ресайзе.
 // Финал (result): клавиатура сначала уезжает (CATCH_COLLAPSE_MS), затем облачка раскрываются по очереди слева направо
 // (шаг CATCH_EXPLODE_STEP_MS): таймер наращивает счётчик взорванных, слова под ещё не взорванным облачком скрыты
 // (.catchWordWait). Верно набранные слова — цветом уровня (LEVEL_CLASS).
 // live — canvas живёт (накрытие открыто и лента видна); false → спит картинкой покоя, состояние не трогается
 export default function CatchStripPhrase({
-  title, words, cur = null, result = false, results = null, live = true, regions = null, onMeasure, onPick,
+  title, words, cur = null, result = false, results = null, live = true, regions = null, fit = FIT_NONE, onFit, onMeasure, onPick,
 }) {
-  const tokens = splitTitleTokens(title)
+  const units = phraseUnits(title)
   const wrapRef = useRef(null)
   const phraseRef = useRef(null)
   const ulRef = useRef(null)
@@ -28,14 +35,24 @@ export default function CatchStripPhrase({
   const okOf = index => results?.find(r => r.index === index)?.ok ?? false
   const showUnderline = !result && cur != null
 
-  // Замер слов: первый отчёт приходит сразу после подключения наблюдателя (до отрисовки кадра); дальше — при смене
-  // размеров фразы или любого слова (шрифт подгрузился, перенос строк). setState только в колбэке наблюдателя
+  // Замер: масштаб (уместить фразу в одну строку), затем слова. Первый отчёт приходит сразу после подключения
+  // наблюдателя (до отрисовки кадра); дальше — при смене размеров обёртки, фразы или любого слова (шрифт подгрузился,
+  // масштаб применился). setState только в колбэке наблюдателя
   const measureRef = useRef(onMeasure)
-  useEffect(() => { measureRef.current = onMeasure })
+  const fitRef = useRef(fit)
+  const onFitRef = useRef(onFit)
+  useLayoutEffect(() => { measureRef.current = onMeasure; fitRef.current = fit; onFitRef.current = onFit })
   useLayoutEffect(() => {
     const phrase = phraseRef.current
-    if (!phrase) return
-    const ro = new ResizeObserver(() => measureRef.current?.(measureWords(phrase)))
+    const wrap = wrapRef.current
+    if (!phrase || !wrap) return
+    const ro = new ResizeObserver(() => {
+      const cur = fitRef.current
+      const next = nextFit(cur, naturalWidth(phrase, cur.scale), wrap.clientWidth)
+      if (next !== cur) { fitRef.current = next; onFitRef.current?.(next); return }
+      measureRef.current?.(measureWords(phrase))
+    })
+    ro.observe(wrap)
     ro.observe(phrase)
     phrase.querySelectorAll('[data-index]').forEach(el => ro.observe(el))
     return () => ro.disconnect()
@@ -57,8 +74,9 @@ export default function CatchStripPhrase({
     place()
     const ro = new ResizeObserver(place)
     ro.observe(wrap)
+    ro.observe(phrase)
     return () => ro.disconnect()
-  }, [cur, showUnderline, title])
+  }, [cur, showUnderline, title, fit.scale])
 
   // Финал: счётчик взорванных облачков растёт по таймерам (setState в колбэках таймеров)
   const count = words.length
@@ -83,19 +101,22 @@ export default function CatchStripPhrase({
     if (index != null) onPick(index)
   }
 
-  // Сколько слов стоит до токена: знак после слова k открывается вместе с ним (когда exploded > k)
-  let wordsBefore = 0
+  const phraseCls = fit.wrap ? 'feedPhrase catchStripPhrase catchStripPhraseWrapText' : 'feedPhrase catchStripPhrase'
   return (
     <div className="catchStripPhraseWrap" ref={wrapRef}>
       <PhraseBubbleSpoiler active={live} onTap={result ? undefined : tap} explode={exploded} regions={regions ?? []}>
-        <div className="feedPhrase catchStripPhrase" ref={phraseRef}>
-          {tokens.map((t, i) => {
-            const wait = result && exploded < count && (t.word ? t.index : wordsBefore - 1) >= exploded
-            if (!t.word) return <span key={i} className={wait ? 'catchWordWait' : undefined}>{t.text}</span>
-            wordsBefore++
-            const lvl = result && okOf(t.index) ? LEVEL_CLASS(levelOf(t.index)) : ''
+        <div className={phraseCls} ref={phraseRef} style={{ fontSize: fontPx(fit.scale) }}>
+          {units.map(u => {
+            // Слово (со своими знаками) под ещё не взорванным облачком скрыто
+            const wait = result && exploded < count && u.index >= exploded
+            const lvl = result && okOf(u.index) ? LEVEL_CLASS(levelOf(u.index)) : ''
             const cls = [lvl, wait ? 'catchWordWait' : ''].filter(Boolean).join(' ')
-            return <span key={i} className={cls || undefined} data-index={t.index}>{t.text}</span>
+            return (
+              <Fragment key={u.index}>
+                <span className={cls || undefined} data-index={u.index}>{u.text}</span>
+                {u.gap}
+              </Fragment>
+            )
           })}
         </div>
       </PhraseBubbleSpoiler>

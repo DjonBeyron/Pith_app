@@ -10,6 +10,7 @@ import WordTranslateLine from './WordTranslateLine.jsx'
 import { useWordTranslate } from './useWordTranslate.js'
 import { useSlideRecall } from './useSlideRecall.js'
 import { useTranslationReveal } from './useTranslationReveal.js'
+import { usePhrasePlate } from './usePhrasePlate.js'
 import FeedHud from './FeedHud.jsx'
 import { useSlideCatch } from './catch/useSlideCatch.js'
 import CatchOverChip from './catch/CatchOverChip.jsx'
@@ -82,6 +83,11 @@ export default function FeedSlide({
   }, [])
   // Перевод фразы: спрятан, пока её не потёрли; стрелка прячет его обратно, подпись «перевести» остаётся до ухода со слайда
   const { phase: trPhase, setSub, rubProps, toggle: toggleTr } = useTranslationReveal({ active, modId: mod.id, enabled: revealed && !!mod.titleTranslation, onRubbed: onRubHintSeen })
+  // Подложка под фразой: проступает, когда фраза открыта; с открытым переводом накрывает и его (feed-phrase-plate.css).
+  // Геометрию (по тексту, не по блоку) usePhrasePlate кладёт в CSS-переменные стопки без setState
+  const stackRef = useRef(null)
+  usePhrasePlate(stackRef, `${revealed}|${ct.active}|${mod.id}|${!!mod.titleTranslation}`)
+  const plateCls = `feedPhrasePlate${revealed && !ct.mounted ? ' feedPhrasePlateOn' : ''}${trPhase === 'open' ? ' feedPhrasePlateTr' : ''}`
   // Ушли с этого слайда свайпом — подсказку убираем. Отдельно закрываем её и
   // при подмене модуля в той же копии слайда (лента крутится по кругу и
   // переиспользует смонтированные слайды — иначе остался бы чужой перевод)
@@ -133,7 +139,8 @@ export default function FeedSlide({
         {/* Шариками спойлера накрыта только сама фраза — строка перевода не
             спойлер, ей не нужны шарики (меньше высота = меньше шариков). Сама строка спрятана за фразой
             и выкатывается, когда фразу потёрли */}
-        <div className="feedPhraseStack">
+        <div className="feedPhraseStack" ref={stackRef}>
+          <i className={plateCls} aria-hidden="true" />
           {showRubHint && revealed && trPhase === 'off' && !!mod.titleTranslation && <RubHint />}
           {revealed ? (
             <div className="feedPhrase" {...rubProps}>{phraseWords}</div>

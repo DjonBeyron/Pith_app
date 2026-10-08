@@ -1,6 +1,8 @@
 // Геометрия полоски фразы «Ловли слов» (CatchStripPhrase.jsx) — без DOM: работает с готовыми прямоугольниками
 // (getBoundingClientRect), чтобы проверяться тестами (catchStripGeom.test.js).
 
+import { REGION_PAD, REGION_VPAD } from '../phraseBubbleRegions.js'
+
 // Слово под точкой тапа по массе шариков. rects — [{ index, left, top, right, bottom }] span'ов слов.
 // Сначала точное попадание с допуском pad (палец шире буквы, строки узкие); иначе — ближайшее по горизонтали слово
 // в той строке, куда попал палец (тап в пробел между словами); мимо всех строк → null
@@ -16,12 +18,13 @@ export function hitWordIndex(rects, x, y, pad = 6) {
   return best
 }
 
-// Зазор между низом слова и подчёркиванием: ниже бахромы массы шариков (MARGIN_Y канваса ≈ 9px — полоска
-// ложится по её нижнему краю, а не поверх плотной части)
-export const UNDERLINE_GAP = 5
+// Зазор между низом слова и подчёркиванием: запас облачка снизу (REGION_VPAD) + ещё 3px — полоска ложится по нижнему
+// краю бахромы облачка, а не поверх плотной части
+export const UNDERLINE_GAP = REGION_VPAD + 3
 
-// Положение подчёркивания под словом относительно обёртки полоски: { x, y, w } — левый край, верх (низ слова + gap),
-// ширина слова. span/wrap — прямоугольники (clientRect) span'а слова и обёртки
-export function underlineBox(span, wrap, gap = UNDERLINE_GAP) {
-  return { x: span.left - wrap.left, y: span.bottom - wrap.top + gap, w: span.right - span.left }
+// Положение подчёркивания под облачком относительно обёртки полоски: { x, y, w } — левый край, верх (низ слова + gap),
+// ширина. Подчёркивание стоит под облачком целиком, а не только под словом: ширина слова + запас облачка (padX =
+// REGION_PAD) с каждой стороны. span/wrap — прямоугольники (clientRect) span'а слова и обёртки
+export function underlineBox(span, wrap, gap = UNDERLINE_GAP, padX = REGION_PAD) {
+  return { x: span.left - wrap.left - padX, y: span.bottom - wrap.top + gap, w: span.right - span.left + padX * 2 }
 }

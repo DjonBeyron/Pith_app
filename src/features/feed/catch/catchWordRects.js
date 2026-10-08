@@ -17,3 +17,14 @@ export function measureWords(phrase) {
   }
   return { regions, widths, sig: `${regionsKey(regions)}#${Object.values(widths).map(w => Math.round(w * 2)).join(',')}` }
 }
+
+// Естественная ширина фразы в одну строку при масштабе 1 (catchFit.js): phrase — блок фразы, scale — масштаб, применённый
+// сейчас. Ширина меряется при white-space: nowrap (на время замера — прямо в style), блок спойлера — inline-block по
+// содержимому, поэтому его ширина и есть длина строки; делим на масштаб: ширина строки растёт пропорционально шрифту
+export function naturalWidth(phrase, scale) {
+  const prev = phrase.style.whiteSpace
+  phrase.style.whiteSpace = 'nowrap'
+  const w = (phrase.closest('.phraseBubbleWrap') ?? phrase).getBoundingClientRect().width
+  phrase.style.whiteSpace = prev
+  return w / scale
+}

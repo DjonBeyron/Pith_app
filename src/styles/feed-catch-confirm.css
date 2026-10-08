@@ -1,6 +1,7 @@
 /* Попап-подтверждение «Раскрыть» / «Подсказать» в шторке «Ловли слов»
    (features/feed/catch/CatchConfirmPopup.jsx). Абсолютный слой поверх шторки (.catchSheet — position: relative):
-   затемнение на всю шторку + карточка по центру; высоту шторки не меняет. Появление карточки — общая «пружинка»
+   слой прозрачный (без затемнения — клавиатура под карточкой выглядит как обычно), только ловит тап-отмену; карточка
+   по центру непрозрачная, со своей тенью и ободком; высоту шторки не меняет. Появление карточки — общая «пружинка»
    popSpringIn (pop-spring.css). Анимируются только opacity и transform. */
 .catchConfirmLayer {
   position: absolute;
@@ -12,8 +13,7 @@
   box-sizing: border-box;
   padding: 12px 14px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.45);
-  animation: popFadeIn 0.18s ease-out backwards;
+  background: transparent;
 }
 
 .catchConfirm {
@@ -24,8 +24,8 @@
   padding: 14px 16px 10px;
   border-radius: 16px;
   background: #24262c;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 10px 28px rgba(0, 0, 0, 0.6);
   color: #fff;
   transform-origin: 50% 50%;
   animation: popSpringIn 0.45s backwards;

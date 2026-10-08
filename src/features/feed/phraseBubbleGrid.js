@@ -9,8 +9,8 @@ import {
 } from './phraseBubbleConsts.js'
 
 // Режим «облачка по словам» (regions): шарики колеблются слабее и бахрома мельче, чтобы облачко не заплывало на соседа
-const REGION_WANDER_SCALE = 0.4
-const REGION_FRINGE_SCALE = 0.5
+const REGION_WANDER_SCALE = 0.35
+const REGION_FRINGE_SCALE = 0.45
 const FRINGE_DENSITY = 1.4 // узлов бахромы на SPACING длины края
 const MIN_FRINGE_DEPTH = 0.3 // глубже этого бахромы с края нет смысла — сторона без бахромы
 
