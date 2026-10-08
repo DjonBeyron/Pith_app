@@ -17,8 +17,8 @@ import CatchCover from './catch/CatchCover.jsx'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером (перевод фразы появляется, когда её потёрли пальцем —
 // useTranslationReveal), HUD (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
-// «Ловля слов» (catch/): если лента поставила на фразу задание, поверх шариков чип «Проверь, что услышал»; тап по чипу
-// или по шарикам (перехват на capture — шарики не разлетаются) открывает накрытие (CatchCover: полоска фразы + шторка
+// «Ловля слов» (catch/): если лента поставила на фразу задание, вместо шариков — чип «Проверь, что услышал» на всю ширину
+// невидимой фразы (ни canvas, ни картинки покоя); тап по чипу или по блоку открывает накрытие (CatchCover: полоска фразы + шторка
 // набора) и блокирует свайп (onLock). Пока оно открыто — класс feedSlideCatchOpen и --catch-cover-h (его высота):
 // иконка паузы и чипы звука сдвигаются вверх (feed-catch.css). «Готово» → слайд обычный открытый (revealed).
 // Состояние лайков живёт в FeedTab, спойлер локален для каждой копии слайда в круге.
@@ -138,12 +138,12 @@ export default function FeedSlide({
           {revealed ? (
             <div className="feedPhrase" {...rubProps}>{phraseWords}</div>
           ) : ct.active ? (
-            // Задание есть: тап по шарикам перехватываем на capture — спойлер не разлетается, открывается шторка.
-            // Пока накрытие в DOM — canvas ленты спит (active=false → картинка покоя): живёт только масса в полоске
-            <div className="catchSpoilerWrap" onClickCapture={e => { e.stopPropagation(); ct.openSheet() }}>
-              <PhraseBubbleSpoiler active={active && !ct.mounted} tabVisible={tabVisible}>
+            // Задание есть: шариков нет вовсе (ни canvas, ни картинки покоя) — на их месте невидимая копия фразы той же
+            // ширины/высоты (раскладка не прыгает) и чип поверх; тап по блоку открывает шторку. Живёт только canvas полоски
+            <div className="catchSpoilerWrap" onClick={e => { e.stopPropagation(); ct.openSheet() }}>
+              <div className="catchPhraseGhost" aria-hidden="true">
                 <div className="feedPhrase">{phraseWords}</div>
-              </PhraseBubbleSpoiler>
+              </div>
               <CatchOverChip hidden={ct.open || ct.done} onOpen={ct.openSheet} />
             </div>
           ) : (

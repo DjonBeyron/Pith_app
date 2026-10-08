@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
-import { MARGIN_X, MARGIN_Y, EXPLODE_MARGIN, drawFloat, drawExplode, launchBubbles, shiftBubbles } from './phraseBubbleDraw.js'
+import { EXPLODE_MARGIN, drawFloat, drawExplode, launchBubbles, shiftBubbles } from './phraseBubbleDraw.js'
+import { MARGIN_X, MARGIN_Y } from './phraseBubbleConsts.js'
 import { explodedRegions } from './phraseBubbleRegions.js'
 
 const EXPLODE_SAFETY_MS = 1500 // взрыв ~0.75с — с двойным запасом

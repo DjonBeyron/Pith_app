@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextSpoilerId, setSpoilerStat, clearSpoilerStat } from './spoilerStats.js'
-import { MARGIN_X, MARGIN_Y, buildGrid, drawFloat, renderStillImage } from './phraseBubbleDraw.js'
-import { hasExplode, regionsKey } from './phraseBubbleRegions.js'
+import { drawFloat, renderStillImage } from './phraseBubbleDraw.js'
+import { buildGrid } from './phraseBubbleGrid.js'
+import { MARGIN_X, MARGIN_Y } from './phraseBubbleConsts.js'
+import { hasExplode, regionsKey, needsRebuild } from './phraseBubbleRegions.js'
 import { usePhraseBubbleExplode } from './usePhraseBubbleExplode.js'
 
 // Шарики-спойлер поверх фразы модуля (замена blur+зерна) для способных
@@ -40,7 +42,7 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
   const canvasRef = useRef(null)
   const bubblesRef = useRef([])
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 })
-  const lastBuiltRef = useRef({ w: -1, h: -1 })
+  const lastBuiltRef = useRef(null) // { w, h, sig } последней сборки сетки (needsRebuild)
   const rafRef = useRef(0)
   const [still, setStill] = useState(null)       // { url, w, h } — картинка покоя
   const [exploding, setExploding] = useState(false)
@@ -92,15 +94,13 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
   useLayoutEffect(() => {
     const wrap = wrapRef.current
     if (!wrap || unlocked) return
-    // Другие регионы — сетку пересобираем, даже если размер блока тот же
-    lastBuiltRef.current = { w: -1, h: -1 }
     function layout() {
       const rect = wrap.getBoundingClientRect()
-      const last = lastBuiltRef.current
-      // ResizeObserver иногда шлёт субпиксельный шум — не пересобираем
-      if (Math.abs(last.w - rect.width) < 2 && Math.abs(last.h - rect.height) < 2) return
-      if (!rect.width || !rect.height) return
-      lastBuiltRef.current = { w: rect.width, h: rect.height }
+      // Пересборка — при другом наборе регионов (даже если размер блока тот же: сетка без регионов — сплошная масса)
+      // или заметной смене размера (ResizeObserver иногда шлёт субпиксельный шум — его needsRebuild не считает)
+      const next = { w: rect.width, h: rect.height, sig: regionsSig }
+      if (!needsRebuild(lastBuiltRef.current, next)) return
+      lastBuiltRef.current = next
       const w = rect.width + MARGIN_X * 2
       const h = rect.height + MARGIN_Y * 2
       // Полный DPR (до 3): на Retina шарики радиусом 1-2px иначе смазаны

@@ -41,15 +41,12 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   const words = useMemo(() => catchWords(mod.title, effKnowledge), [mod.title, effKnowledge])
   const eligible = forced ? true : catchEligible(words, { enabled: mod.feedCatchEnabled, recallIndex })
   const writeSignals = !forced || forced.writeMemory
-  const [offered, setOffered] = useState(null) // id фразы, на которой задание поставлено
-  const claimed = offered === mod.id
-
-  // Заявка уходит в таймер: setState прямо в теле эффекта запрещён, лишний кадр тут не заметен
-  useEffect(() => {
-    if (!active || !eligible || claimed || (!forced && !feedCatch)) return
-    const t = setTimeout(() => { if (forced || feedCatch.claim(mod.id)) setOffered(mod.id) }, 0)
-    return () => clearTimeout(t)
-  }, [active, eligible, claimed, mod.id, feedCatch, forced])
+  // Решение «задание есть» принимается синхронно в рендере — первый же кадр слайда с заданием уже показывает чип, без
+  // мелькания шариков и лишнего рендера. claim идемпотентен для одного модуля (offered Set в useFeedCatch), повторный
+  // рендер (StrictMode, пересборка) безопасен; ref хранит id фразы с заданием — при смене модуля сравнение даёт false
+  const claimedRef = useRef(null)
+  if (active && eligible && claimedRef.current !== mod.id && (forced || feedCatch?.claim(mod.id))) claimedRef.current = mod.id
+  const claimed = claimedRef.current === mod.id
 
   const [st, setSt] = useState(() => cs.initialCatch(mod.id))
   // Админ выставил задание заново — состояние слайда с нуля (сброс при рендере)

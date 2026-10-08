@@ -4,8 +4,8 @@ import CatchOverChip from '../feed/catch/CatchOverChip.jsx'
 import CatchStrip from '../feed/catch/CatchStrip.jsx'
 import CatchSheet from '../feed/catch/CatchSheet.jsx'
 
-// «Телефон» песочницы Ловли: блок 390 px с тёмным фоном. Сверху — имитация спойлера фразы (серый блок с узором
-// шариков + настоящий CatchOverChip), по тапу ниже в потоке встают настоящие CatchStrip и CatchSheet
+// «Телефон» песочницы Ловли: блок 390 px с тёмным фоном. Сверху — имитация спойлера фразы (серый блок под настоящим
+// CatchOverChip — как в ленте, шариков под чипом нет), по тапу ниже в потоке встают настоящие CatchStrip и CatchSheet
 // (в ленте они абсолютные и с анимациями — admin-catch.css переопределяет внутри .acPhone).
 // После «Готово» вместо спойлера — открытая фраза цветами уровней. sb — результат useCatchSandbox.
 // live — вкладка админки на экране: canvas массы шариков в полоске живёт; иначе спит (как в ленте по tabVisible).
@@ -21,7 +21,7 @@ export default function AdminCatchPhone({ title, sb, live = true }) {
             })}
           </div>
         ) : (
-          <div className="acSpoiler bubblePattern" onClick={sb.openSheet}>
+          <div className="acSpoiler" onClick={sb.openSheet}>
             <CatchOverChip hidden={sb.open} onOpen={sb.openSheet} />
           </div>
         )}

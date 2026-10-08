@@ -1,16 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import {
-  padRegions, explodedRegions, hasExplode, regionsKey, REGION_PAD, REGION_VPAD, REGION_MIN_GAP,
+  padRegions, explodedRegions, hasExplode, regionsKey, REGION_PAD, REGION_VPAD, reachForGap, regionLimits, needsRebuild,
 } from './phraseBubbleRegions.js'
-import { buildGrid, MARGIN_X } from './phraseBubbleDraw.js'
+import { buildGrid } from './phraseBubbleGrid.js'
+import { MARGIN_X } from './phraseBubbleConsts.js'
 
 const word = (x, y, w, h = 20) => ({ x, y, w, h })
 
 describe('padRegions: запас облачка вокруг слова', () => {
   it('слова далеко друг от друга — полный запас по сторонам, по вертикали свой', () => {
-    const [a, b] = padRegions([word(0, 0, 40), word(40 + REGION_MIN_GAP + 10, 0, 30)])
+    const [a, b] = padRegions([word(0, 0, 40), word(40 + 18, 0, 30)])
     expect(a).toEqual({ x: -REGION_PAD, y: -REGION_VPAD, w: 40 + REGION_PAD * 2, h: 20 + REGION_VPAD * 2 })
-    expect(b.x).toBe(40 + REGION_MIN_GAP + 10 - REGION_PAD)
+    expect(b.x).toBe(40 + 18 - REGION_PAD)
   })
 
   it('слова ближе 8px — запас режется по зазору, облачка не достают друг до друга', () => {
@@ -89,5 +90,58 @@ describe('buildGrid: regions', () => {
 
   it('пустой массив regions — режим облачек без слов: шариков нет', () => {
     expect(buildGrid(100, 20, [])).toEqual([])
+  })
+})
+
+describe('reachForGap / regionLimits: на сколько облачко может выйти за слово', () => {
+  it('половина зазора минус чистый пиксель; зазор < 6px — ровно половина (касание на середине); без соседа — без ограничения', () => {
+    expect(reachForGap(20)).toBe(9)
+    expect(reachForGap(6)).toBe(2)
+    expect(reachForGap(5)).toBe(2.5)
+    expect(reachForGap(0)).toBe(0)
+    expect(reachForGap(-3)).toBe(0)
+    expect(reachForGap(null)).toBe(Infinity)
+  })
+
+  it('два слова в строке: границы смотрят друг на друга по половине зазора, наружу — без ограничения', () => {
+    const [a, b] = regionLimits([word(0, 0, 40), word(60, 0, 40)])
+    expect(a.x1).toBe(49)
+    expect(b.x0).toBe(51)
+    expect(a.x0).toBe(-Infinity)
+    expect(b.x1).toBe(Infinity)
+  })
+
+  it('слово на строке ниже ограничивает по вертикали только тех, кто над ним по горизонтали', () => {
+    const [a, b, c] = regionLimits([word(0, 0, 40), word(10, 30, 40), word(200, 30, 40)])
+    expect(a.y1).toBe(20 + 4) // зазор 10px → 4
+    expect(b.y0).toBe(30 - 4)
+    expect(c.y0).toBe(-Infinity)
+  })
+
+  it('padRegions не выходит за допустимый вынос: запас по сторонам ≤ reachForGap', () => {
+    const regions = [word(0, 0, 40), word(46, 0, 30)]
+    const [pa, pb] = padRegions(regions)
+    const [la, lb] = regionLimits(regions)
+    expect(pa.x + pa.w).toBeLessThanOrEqual(la.x1)
+    expect(pb.x).toBeGreaterThanOrEqual(lb.x0)
+  })
+})
+
+describe('needsRebuild: когда пересобирать сетку шариков', () => {
+  const base = { w: 200, h: 40, sig: 'a' }
+  it('первая сборка — нужна; нулевой размер — нет', () => {
+    expect(needsRebuild(null, base)).toBe(true)
+    expect(needsRebuild(null, { w: 0, h: 40, sig: 'a' })).toBe(false)
+  })
+  it('те же размер и регионы, шум < 2px — не нужна', () => {
+    expect(needsRebuild(base, { w: 201, h: 40.5, sig: 'a' })).toBe(false)
+  })
+  it('другие регионы при том же размере — нужна (регионы пришли после первого замера)', () => {
+    expect(needsRebuild({ ...base, sig: '' }, base)).toBe(true)
+    expect(needsRebuild(base, { ...base, sig: regionsKey([word(0, 0, 40)]) })).toBe(true)
+  })
+  it('размер изменился на 2px и больше — нужна', () => {
+    expect(needsRebuild(base, { ...base, w: 203 })).toBe(true)
+    expect(needsRebuild(base, { ...base, h: 44 })).toBe(true)
   })
 })

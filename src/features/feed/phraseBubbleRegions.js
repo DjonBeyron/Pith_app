@@ -5,30 +5,67 @@
 
 export const REGION_PAD = 4      // запас облачка по сторонам слова, px
 export const REGION_VPAD = 3     // запас сверху и снизу
-export const REGION_MIN_GAP = 8  // слова ближе — запас сокращается
-const REGION_CLEAR = 1           // зазор, который оставляем чистым, когда запас режется по зазору
+export const REGION_TOUCH_GAP = 6 // зазор меньше этого — облачка могут соприкасаться (по середине зазора), но не заходить дальше
+const REGION_CLEAR = 1           // чистый зазор, который оставляем между облачками, когда слова не вплотную
 
 // Слова на одной строке: по вертикали пересекаются больше чем на половину меньшей высоты
 const sameLine = (a, b) => Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > Math.min(a.h, b.h) / 2
+// Перекрытие по горизонтали — слово выше/ниже стоит «над» этим (для зазора по вертикали)
+const overlapsX = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0
 
-// Запас с одной стороны: зазор до соседа на этой стороне (gap) ≥ REGION_MIN_GAP — полный запас; меньше — половина зазора
-// (минус чистый миллиметр), чтобы два соседних облачка вместе не съедали промежуток между словами; нет соседа — полный
-const padForGap = gap => (gap == null || gap >= REGION_MIN_GAP ? REGION_PAD : Math.max(0, gap / 2 - REGION_CLEAR))
+// На сколько px облачко (с радиусом, покачиванием и бахромой — всем, что реально рисуется) может выйти за край слова
+// в сторону соседа с зазором gap: половина зазора минус чистый пиксель; зазор меньше REGION_TOUCH_GAP — ровно половина
+// (облачка касаются на середине зазора, не дальше). Нет соседа (gap == null) — без ограничения
+export const reachForGap = gap => {
+  if (gap == null) return Infinity
+  return Math.max(0, gap < REGION_TOUCH_GAP ? gap / 2 : gap / 2 - REGION_CLEAR)
+}
 
-// Прямоугольники слов → прямоугольники облачков: каждый расширен на запас; слева/справа запас зависит от ближайшего
-// соседа на той же строке. Порядок и число регионов сохраняются
-export function padRegions(regions) {
+// Запас сетки с одной стороны: полный, но не больше допустимого выноса за слово (и не заходя на чистый пиксель)
+const padFor = (full, gap) => (gap == null ? full : Math.min(full, Math.max(0, gap / 2 - REGION_CLEAR)))
+
+// Зазоры от каждого слова до ближайшего соседа с четырёх сторон: слева/справа — слова той же строки, сверху/снизу —
+// слова другой строки, лежащие над/под ним по горизонтали. null — соседа с этой стороны нет
+function sideGaps(regions) {
   return regions.map((r, i) => {
-    let gapL = null
-    let gapR = null
+    const g = { l: null, r: null, t: null, b: null }
+    const put = (k, v) => { if (g[k] == null || v < g[k]) g[k] = v }
     regions.forEach((o, j) => {
-      if (i === j || !sameLine(r, o)) return
-      if (o.x >= r.x + r.w - 0.5) { const g = o.x - (r.x + r.w); if (gapR == null || g < gapR) gapR = g }
-      else if (o.x + o.w <= r.x + 0.5) { const g = r.x - (o.x + o.w); if (gapL == null || g < gapL) gapL = g }
+      if (i === j) return
+      if (sameLine(r, o)) {
+        if (o.x >= r.x + r.w - 0.5) put('r', o.x - (r.x + r.w))
+        else if (o.x + o.w <= r.x + 0.5) put('l', r.x - (o.x + o.w))
+      } else if (overlapsX(r, o)) {
+        if (o.y >= r.y + r.h - 0.5) put('b', o.y - (r.y + r.h))
+        else if (o.y + o.h <= r.y + 0.5) put('t', r.y - (o.y + o.h))
+      }
     })
-    const l = padForGap(gapL)
-    const rt = padForGap(gapR)
-    return { x: r.x - l, y: r.y - REGION_VPAD, w: r.w + l + rt, h: r.h + REGION_VPAD * 2 }
+    return g
+  })
+}
+
+// Прямоугольники слов → прямоугольники облачков: каждый расширен на запас; запас с каждой стороны зависит от зазора до
+// ближайшего соседа с этой стороны. Порядок и число регионов сохраняются
+export function padRegions(regions) {
+  return sideGaps(regions).map((g, i) => {
+    const r = regions[i]
+    const l = padFor(REGION_PAD, g.l)
+    const rt = padFor(REGION_PAD, g.r)
+    const t = padFor(REGION_VPAD, g.t)
+    const b = padFor(REGION_VPAD, g.b)
+    return { x: r.x - l, y: r.y - t, w: r.w + l + rt, h: r.h + t + b }
+  })
+}
+
+// Границы, дальше которых не должен заходить НИ ОДИН шарик облачка (с учётом радиуса, дыхания и покачивания): слово ± reachForGap
+// по каждой стороне; без соседа с стороны — ±Infinity. Используется buildGrid: прижимает амплитуду узлов и режет бахрому
+export function regionLimits(regions) {
+  return sideGaps(regions).map((g, i) => {
+    const r = regions[i]
+    return {
+      x0: r.x - reachForGap(g.l), x1: r.x + r.w + reachForGap(g.r),
+      y0: r.y - reachForGap(g.t), y1: r.y + r.h + reachForGap(g.b),
+    }
   })
 }
 
@@ -45,3 +82,11 @@ export const hasExplode = explode => explode === true || (typeof explode === 'nu
 
 // Подпись набора регионов для зависимостей эффектов (координаты с точностью до 0.5px — субпиксельный шум не пересобирает сетку)
 export const regionsKey = regions => (regions ? regions.map(r => `${Math.round(r.x * 2)},${Math.round(r.y * 2)},${Math.round(r.w * 2)},${Math.round(r.h * 2)}`).join('|') : '')
+
+// Нужно ли пересобирать сетку: изменился набор регионов (sig = regionsKey) или размер блока заметно (≥ 2px — ResizeObserver
+// иногда шлёт субпиксельный шум). prev/next — { w, h, sig }; prev == null — ещё не собирали
+export function needsRebuild(prev, next) {
+  if (!next.w || !next.h) return false
+  if (!prev) return true
+  return prev.sig !== next.sig || Math.abs(prev.w - next.w) >= 2 || Math.abs(prev.h - next.h) >= 2
+}
