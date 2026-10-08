@@ -1,48 +1,80 @@
 /* «Ловля слов» в ленте (features/feed/catch, спек v2) — общая часть: чип поверх шариков, обёртка-перехват тапа,
-   накрытие слайда (.catchCover: полоска + шторка одним блоком) и сдвиг контролов видео, пока оно открыто.
+   гашение блока фразы в ленте, накрытие слайда (.catchCover: полоска + шторка одним блоком) и сдвиг контролов видео,
+   пока оно открыто.
    Шторка — feed-catch-sheet.css, полоска фразы — feed-catch-strip.css. Анимируются только opacity и transform. */
 
 /* ── Обёртка спойлера, когда задание есть ───────────────────────────── */
-/* Якорь для чипа; тап по любому месту (шарики или чип) открывает шторку (перехват на capture в FeedSlide) */
+/* Якорь для чипа, сжата по ширине спойлера (он inline-block) — чип растягивается ровно на область шариков;
+   тап по любому месту (шарики или чип) открывает шторку (перехват на capture в FeedSlide) */
 .catchSpoilerWrap {
   position: relative;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
 }
 
 /* ── Чип поверх шариков ─────────────────────────────────────────────── */
-/* По центру фразы, выше canvas/картинки спойлера (они без z-index внутри .phraseBubbleWrap). Мягкое «дыхание»
-   масштаба зовёт нажать; пока шторка открыта — гаснет (фраза под накрытием всё равно не видна) */
+/* На всю ширину области шариков (left/right с выносом на MARGIN_X ставит CatchOverChip — холст шире текста ровно на
+   столько), по вертикали по центру, текст по центру; выше canvas/картинки спойлера (они z-index 1 внутри
+   .phraseBubbleWrap). Фон сплошной тёмный. Мягкое «дыхание» масштаба зовёт нажать; пока шторка открыта — гаснет.
+   Тень без большого blur: слой с масштабной анимацией и тенью 18px композитор пересчитывал бы дорого */
 .catchOverChip {
   position: absolute;
   top: 50%;
-  left: 50%;
+  left: 0;
+  right: 0;
   z-index: 3;
-  transform: translate(-50%, -50%);
-  padding: 7px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.6);
+  transform: translateY(-50%);
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: #1a1d22;
   color: #fff;
   font: inherit;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
+  text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-shadow: none;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   animation: catchChipBreath 2.4s ease-in-out infinite;
   transition: opacity 200ms ease;
   -webkit-tap-highlight-color: transparent;
 }
-.catchOverChip:active { background: rgba(0, 0, 0, 0.78); }
+.catchOverChip:active { background: #23272e; }
 .catchOverChipHidden {
   opacity: 0;
   pointer-events: none;
   animation: none;
 }
 @keyframes catchChipBreath {
-  50% { transform: translate(-50%, -50%) scale(1.045); }
+  50% { transform: translateY(-50%) scale(1.03); }
 }
+
+/* ── Блок фразы в ленте, пока накрытие открыто ──────────────────────── */
+/* Шарики в ленте гаснут (FeedSlide: ct.mounted → .feedPhraseBlockHidden) — живёт только масса в полоске; после
+   «Готово» блок возвращается уже с открытой фразой тем же переходом 200мс. После угасания — visibility: hidden
+   (с задержкой на длину перехода): картинку покоя dpr×3 и чип под накрытием композитор не держит в слоях вовсе;
+   при возврате visibility снимается сразу, и проявление идёт обычным переходом opacity */
+.feedPhraseBlock { transition: opacity 200ms ease, visibility 0s; }
+.feedPhraseBlockHidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 200ms ease, visibility 0s linear 200ms;
+}
+
+/* Лента не на экране (другая вкладка нижней панели, «Мои уроки», лента под уроком — .feedV2--paused / .feedViewHidden,
+   FeedTab.jsx): бесконечные анимации «Ловли» — дыхание чипа и курсор строки ввода — стоят. visibility: hidden
+   анимацию не останавливает, композитор просыпался бы под скрытой лентой каждый кадр (как у feedSkelShine) */
+.feedV2--paused .catchOverChip,
+.feedViewHidden .catchOverChip,
+.feedV2--paused .catchCaret,
+.feedViewHidden .catchCaret { animation: none; }
 
 /* ── Накрытие: полоска + шторка ─────────────────────────────────────── */
 /* Один блок у нижней навигации: колонка «полоска, затем шторка». z-index выше HUD (5), плашки перевода (6)

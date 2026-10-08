@@ -8,11 +8,15 @@ import { shouldConfirm, noteConfirmShown } from './catchConfirm.js'
 // запутыватели), главная кнопка «Следующее слово» (на последнем слове — «Проверить»), под ней две текстовые:
 // «Раскрыть» и «Подсказать» (скрыта на уровне 0 и после использования на этом слове). Обе — через попап
 // подтверждения (CatchConfirmPopup) первые разы (catchConfirm.js: shouldConfirm/noteConfirmShown), потом сразу.
+// Слева от главной — «Предыдущее слово» (вернуться и поправить): на первом слове (!hasPrev) схлопнута, главная во всю
+// ширину; на остальных плавно раскрывается (flex-basis, feed-catch-sheet.css). Без onPrev кнопки в DOM нет.
+// Попап подтверждения — абсолютный слой поверх шторки (.catchConfirmLayer), высоту шторки не меняет.
 // Финал (phase 'result'): клавиатура скрыта, одна кнопка «Готово».
-// cur — активное слово { text, level, ... } или null; isLast — активное слово последнее во фразе
+// cur — активное слово { text, level, ... } или null; isLast — активное слово последнее во фразе;
+// hasPrev — активное слово не первое
 export default function CatchSheet({
-  phase = 'type', cur, helped = false, model, isLast = false,
-  onKey, onBackspace, onNext, onCheck, onHelp, onReveal, onFinish,
+  phase = 'type', cur, helped = false, model, isLast = false, hasPrev = false,
+  onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
 }) {
   const [confirm, setConfirm] = useState(null) // 'reveal' | 'hint' | null — попап открыт
   const act = kind => (kind === 'reveal' ? onReveal : onHelp)
@@ -38,17 +42,23 @@ export default function CatchSheet({
         ) : (
           <>
             {cur && model && <TypeWordKeyboard model={model} helped={helped} onKey={onKey} onBackspace={onBackspace} />}
-            {confirm && (
-              <CatchConfirmPopup
-                kind={confirm}
-                memory={(cur?.level ?? 0) >= 2}
-                onConfirm={confirmOk}
-                onCancel={() => setConfirm(null)}
-              />
-            )}
-            <button type="button" className="phraseCheckBtn catchMainBtn" disabled={!cur} onClick={isLast ? onCheck : onNext}>
-              {isLast ? 'Проверить' : 'Следующее слово'}
-            </button>
+            <div className="catchMainRow">
+              {onPrev && (
+                <button
+                  type="button"
+                  className={`catchPrevBtn${hasPrev ? ' catchPrevShown' : ''}`}
+                  disabled={!hasPrev || !cur}
+                  tabIndex={hasPrev ? 0 : -1}
+                  aria-hidden={!hasPrev}
+                  onClick={onPrev}
+                >
+                  Предыдущее слово
+                </button>
+              )}
+              <button type="button" className="phraseCheckBtn catchMainBtn" disabled={!cur} onClick={isLast ? onCheck : onNext}>
+                {isLast ? 'Проверить' : 'Следующее слово'}
+              </button>
+            </div>
             <div className="catchTextBtns">
               <button type="button" className="catchTextBtn" disabled={!!confirm} onClick={() => ask('reveal')}>Раскрыть</button>
               {cur && cur.level > 0 && !helped && (
@@ -58,6 +68,14 @@ export default function CatchSheet({
           </>
         )}
       </div>
+      {confirm && !result && (
+        <CatchConfirmPopup
+          kind={confirm}
+          memory={(cur?.level ?? 0) >= 2}
+          onConfirm={confirmOk}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
     </div>
   )
 }

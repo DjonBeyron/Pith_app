@@ -1,37 +1,39 @@
-/* Полоска фразы «Ловли слов» (features/feed/catch/CatchStrip.jsx) — верхняя часть накрытия .catchCover
-   (feed-catch.css), вплотную к шторке. Появляется через ~120мс после шторки и выезжает снизу из-под неё
-   (z-index ниже шторки, translateY из спрятанного положения). Внутри: фраза с туманом на каждом слове
-   (.fwMasked + .fwMaskPattern.bubblePattern — узор шариков из feed-bubble-spoiler.css), подчёркивание активного
-   слова с треугольником (.catchUnderline, цвет по уровню --cu-c), строка ввода, на финале — сравнение и факт. */
+/* Полоска фразы «Ловли слов» (features/feed/catch/CatchStrip.jsx + CatchStripPhrase.jsx) — верхняя часть накрытия
+   .catchCover (feed-catch.css), вплотную к шторке. Появляется через ~120мс после шторки и выезжает снизу из-под неё
+   (z-index ниже шторки, translateY из спрятанного положения), уходит той же кривой 260мс. Внутри: фраза под ОДНОЙ
+   живой массой шариков (PhraseBubbleSpoiler — те же стили feed-bubble-spoiler.css, что и в ленте), подчёркивание
+   активного слова с треугольником ниже массы (.catchUnderline, цвет по уровню --cu-c, позицию пишет JS в transform),
+   строка ввода, на финале — оригинал, линия, набранное (проявляются одно за другим) и факт.
+   Фон сплошной (без alpha и backdrop-filter), анимируются только opacity и transform (+ width подчёркивания при
+   смене слова — одно маленькое изменение раз в слово). */
 
 .catchStrip {
   position: relative;
   z-index: 1;
   padding: 12px 16px 10px;
   border-radius: 18px 18px 0 0;
-  background: rgba(14, 16, 20, 0.86);
+  background: #1a1d22;
   transform: translateY(calc(100% + 24px));
-  opacity: 0;
-  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
-  will-change: transform;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .catchCoverShown .catchStrip {
   transform: translateY(0);
-  opacity: 1;
   transition-delay: 120ms;
 }
 
-/* ── Фраза с туманами ───────────────────────────────────────────────── */
-/* Строки пореже: под активным словом ещё подчёркивание и треугольник (~12px) */
+/* ── Фраза под массой шариков ───────────────────────────────────────── */
+/* Обёртка — якорь подчёркивания; строки пореже, чем в ленте (line-height): под активным словом ещё полоска и
+   треугольник (~13px), которым нужно место между строками. Шрифт/размер — .feedPhrase, как в ленте */
+.catchStripPhraseWrap {
+  position: relative;
+  padding-bottom: 10px; /* место под подчёркивание последней строки */
+}
 .catchStripPhrase {
-  line-height: 1.8;
+  line-height: 1.75;
   text-shadow: none;
   touch-action: manipulation;
 }
-.catchStrip .fwWord {
-  position: relative;
-  transition: color 320ms ease;
-}
+.catchStripPhrase span { transition: color 320ms ease; }
 
 /* Цвет уровня слова для подчёркивания: 0 серый, 1 зелёный, 2 синий, 3 золотой, 4 фиолетовый */
 .catchLvl0 { --cu-c: #8b8f9a; }
@@ -40,40 +42,20 @@
 .catchLvl3 { --cu-c: #f1bd3c; }
 .catchLvl4 { --cu-c: #a78bfa; }
 
-/* Замаскированное слово: текст прозрачный (место занято — ширина фразы не меняется) */
-.catchStrip .fwWord.fwMasked { color: transparent; }
-
-/* Узор поверх слова: чуть шире самого слова, мягкие края (та же маска-градиент, что у статичного спойлера).
-   Всегда в DOM: спадание тумана на финале — переход opacity, а не размонтирование */
-.fwMaskPattern {
-  position: absolute;
-  inset: -3px -6px;
-  border-radius: 10px;
-  opacity: 0;
-  pointer-events: none;
-  -webkit-mask-image:
-    linear-gradient(to right, transparent, #000 7px, #000 calc(100% - 7px), transparent),
-    linear-gradient(to bottom, transparent, #000 5px, #000 calc(100% - 5px), transparent);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent, #000 7px, #000 calc(100% - 7px), transparent),
-    linear-gradient(to bottom, transparent, #000 5px, #000 calc(100% - 5px), transparent);
-  mask-composite: intersect;
-  transition: opacity 320ms ease;
-}
-.fwMasked .fwMaskPattern { opacity: 0.94; }
-.catchCur .fwMaskPattern { opacity: 0.8; }
-
-/* Подчёркивание активного слова: полоска 3px под словом + треугольник вниз по центру (::after) */
+/* Подчёркивание активного слова: полоска 3px + треугольник вниз по центру (::after). Лежит в левом верхнем углу
+   обёртки, на место под словом его двигает transform (width — ширина слова), оба — переход 200мс при смене слова.
+   z-index выше холста массы (1) — полоска видна по нижнему краю бахромы */
 .catchUnderline {
   position: absolute;
-  left: 2px;
-  right: 2px;
-  bottom: -7px;
+  left: 0;
+  top: 0;
+  z-index: 2;
   height: 3px;
+  width: 0;
   border-radius: 2px;
   background: var(--cu-c, #8b8f9a);
   pointer-events: none;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), width 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .catchUnderline::after {
   content: '';
@@ -94,7 +76,7 @@
   align-items: center;
   gap: 0 12px;
   min-height: 30px;
-  margin-top: 8px;
+  margin-top: 2px;
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
   font-size: 20px;
   font-weight: 700;
@@ -110,19 +92,30 @@
   vertical-align: -4px;
 }
 
-/* ── Финал: набранное против фразы, факт ────────────────────────────── */
+/* ── Финал: оригинал, линия, набранное, факт ────────────────────────── */
+/* Одно за другим: оригинал проявляется первым (220мс, снизу на 6px), линия и набранное — через 150мс.
+   Класс .catchStripOrig ставится на фразу в момент финала — анимация стартует вместе со взрывом шариков */
+.catchStripOrig {
+  animation: catchFadeUp 220ms ease-out both;
+}
+.catchCompareRule {
+  height: 1px;
+  margin: 0 0 8px;
+  background: rgba(255, 255, 255, 0.14);
+  animation: catchFadeUp 220ms ease-out 150ms both;
+}
 .catchCompareLine {
   display: flex;
   flex-wrap: wrap;
   gap: 0 12px;
   min-height: 30px;
-  margin-top: 8px;
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1.3;
   white-space: pre;
+  animation: catchFadeUp 220ms ease-out 150ms both;
 }
 .catchCmpOk { color: #7be38f; }
 .catchCmpBad { color: #ff6b6b; }
@@ -133,8 +126,19 @@
   font-size: 12.5px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.72);
+  animation: catchFadeUp 220ms ease-out 150ms both;
+}
+
+@keyframes catchFadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .catchStrip { transition: none; }
+  .catchStrip,
+  .catchUnderline { transition: none; }
+  .catchStripOrig,
+  .catchCompareRule,
+  .catchCompareLine,
+  .catchFact { animation: none; }
 }

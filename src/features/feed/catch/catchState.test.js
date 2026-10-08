@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  initialCatch, openSheet, setCurrent, press, backspace, next, help, check, reveal, finish, closeSheet,
+  initialCatch, openSheet, setCurrent, press, backspace, next, prev, help, check, reveal, finish, closeSheet,
   wordAt, typedOf, isLast, okCount,
 } from './catchState.js'
 import { catchWords } from './feedCatch.js'
@@ -74,6 +74,19 @@ describe('next / isLast', () => {
     s = next(typeAll(s, 'cats'), words)
     expect(s.phase).toBe('result')
     expect(s.results.map(r => r.ok)).toEqual([false, false, true])
+  })
+})
+
+describe('prev', () => {
+  it('возвращает к предыдущему слову, набранное сохраняется; на первом слове и на финале — без изменений', () => {
+    let s = typeAll(openSheet(initialCatch(), words), 'i')
+    expect(prev(s, words)).toBe(s)
+    s = next(s, words)
+    const back = prev(s, words)
+    expect(back.cur).toBe(0)
+    expect(typedOf(back, 0)).toBe('I')
+    const fin = reveal(s, words)
+    expect(prev(fin, words)).toBe(fin)
   })
 })
 

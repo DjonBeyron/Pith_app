@@ -6,12 +6,15 @@ import CatchSheet from './CatchSheet.jsx'
 // у нижней навигации (feed-catch.css: .catchCover). Открытие: шторка выезжает снизу (260мс), полоска — через ~120мс
 // из-под неё (z-index ниже шторки); закрытие (open=false) — обе уезжают вниз, родитель размонтирует блок
 // после CATCH_COVER_OUT_MS (useSlideCatch.mounted). Высота блока (шторка + полоска) уходит в onHeight(px) из
-// ResizeObserver — FeedSlide кладёт её в --catch-cover-h, чтобы сдвинуть иконку паузы и чипы звука (0, когда закрыто).
-// Остальные пропсы — для CatchStrip (title, words, cur, typedBy, phase, results, onPick) и CatchSheet.
+// ResizeObserver — FeedSlide кладёт её в --catch-cover-h, чтобы сдвинуть иконку паузы и чипы звука (0, когда закрыто);
+// одинаковая высота подряд наружу не уходит (ResizeObserver шлёт и субпиксельный шум).
+// live — лента видна и слайд активен: canvas массы шариков в полоске живёт; false (ушли на другую вкладку) — спит.
+// Остальные пропсы — для CatchStrip (title, words, cur, typedBy, phase, results, onPick) и CatchSheet
+// (hasPrev/onPrev — «Предыдущее слово»).
 export default function CatchCover({
-  open, onHeight,
+  open, onHeight, live = true,
   title, words, cur, typedBy, phase, results, onPick,
-  helped, model, isLast, onKey, onBackspace, onNext, onCheck, onHelp, onReveal, onFinish,
+  helped, model, isLast, hasPrev, onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
 }) {
   const ref = useRef(null)
   // Первый кадр — в спрятанном положении, иначе переходу transform нечего играть; закрытие — сразу (сброс при рендере)
@@ -29,7 +32,13 @@ export default function CatchCover({
   useLayoutEffect(() => {
     const el = ref.current
     if (!el || !open) { heightRef.current?.(0); return }
-    const report = () => heightRef.current?.(Math.round(el.getBoundingClientRect().height))
+    let last = -1
+    const report = () => {
+      const h = Math.round(el.getBoundingClientRect().height)
+      if (h === last) return
+      last = h
+      heightRef.current?.(h)
+    }
     report()
     const ro = new ResizeObserver(report)
     ro.observe(el)
@@ -39,10 +48,13 @@ export default function CatchCover({
   const curWord = cur == null ? null : words.find(w => w.index === cur) ?? null
   return (
     <div className={`catchCover${shown ? ' catchCoverShown' : ''}`} ref={ref}>
-      <CatchStrip title={title} words={words} cur={cur} typedBy={typedBy} phase={phase} results={results} onPick={onPick} />
+      <CatchStrip
+        title={title} words={words} cur={cur} typedBy={typedBy} phase={phase} results={results}
+        live={open && live} onPick={onPick}
+      />
       <CatchSheet
-        phase={phase} cur={curWord} helped={helped} model={model} isLast={isLast}
-        onKey={onKey} onBackspace={onBackspace} onNext={onNext} onCheck={onCheck}
+        phase={phase} cur={curWord} helped={helped} model={model} isLast={isLast} hasPrev={hasPrev}
+        onKey={onKey} onBackspace={onBackspace} onNext={onNext} onPrev={onPrev} onCheck={onCheck}
         onHelp={onHelp} onReveal={onReveal} onFinish={onFinish}
       />
     </div>

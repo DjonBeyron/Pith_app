@@ -16,7 +16,8 @@ export const CATCH_COVER_OUT_MS = 300 // шторка и полоска уезж
 // при help — сразу catchHelp (своё слово); при reveal — ничего. Пока шторка открыта — onLock(true): лента не свайпается.
 // Память «Моего обучения» обновляется (onLearnChanged) после «Готово», если был сигнал.
 // → { active, open, mounted, phase, done, revealed, words, cur, curIndex, typed, typedBy, helped, helpedSet, model,
-//     results, isLast, openSheet(), setCurrent(index), press(ch), backspace(), next(), check(), help(), reveal(), finish() }
+//     results, isLast, hasPrev, openSheet(), setCurrent(index), press(ch), backspace(), next(), prev(), check(), help(),
+//     reveal(), finish() }
 export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, onLock, onLearnChanged }) {
   const words = useMemo(() => catchWords(mod.title, knowledge), [mod.title, knowledge])
   const eligible = catchEligible(words, { enabled: mod.feedCatchEnabled, recallIndex })
@@ -72,6 +73,7 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   const cur = s.cur == null ? null : cs.wordAt(words, s.cur)
   const helped = s.cur != null && s.helped.has(s.cur)
   const model = useMemo(() => (cur ? catchKeyboard(cur.text, cur.level) : null), [cur])
+  const hasPrev = s.cur != null && words.length > 0 && words[0].index !== s.cur // активное слово не первое
   const started = useRef(null) // id фразы, за которую уже ушло feed_catch_start
 
   function openSheet() {
@@ -90,6 +92,12 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
     if (cs.isLast(s, words)) { check(); return }
     update(p => cs.next(p, words))
     track('feed_catch_next', { level: cur.level, typed: cs.typedOf(s, s.cur).length > 0 })
+  }
+
+  // «Предыдущее слово»: вернуться и поправить (набранное у обоих слов остаётся)
+  function prev() {
+    if (!cur || s.phase !== 'type' || !hasPrev) return
+    update(p => cs.prev(p, words))
   }
 
   // «Проверить» → финал. Сигнал «услышано» — за своё слово, набранное верно и без подсказки
@@ -135,7 +143,7 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   return {
     active: claimed, open, mounted, phase: s.phase, done: s.done, revealed: s.revealed, words,
     cur, curIndex: s.cur, typed: s.cur == null ? '' : cs.typedOf(s, s.cur), typedBy: s.typedBy,
-    helped, helpedSet: s.helped, model, results: s.results, isLast: cs.isLast(s, words),
-    openSheet, setCurrent, press, backspace, next, check, help, reveal, finish,
+    helped, helpedSet: s.helped, model, results: s.results, isLast: cs.isLast(s, words), hasPrev,
+    openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish,
   }
 }

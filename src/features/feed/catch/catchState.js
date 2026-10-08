@@ -67,6 +67,14 @@ export function next(s, words) {
   return { ...s, cur: words[i + 1].index }
 }
 
+// «Предыдущее слово»: активным становится предыдущее по порядку (набранное сохраняется); на первом слове — без изменений
+export function prev(s, words) {
+  if (s.done || s.phase !== 'type' || s.cur == null) return s
+  const i = words.findIndex(w => w.index === s.cur)
+  if (i <= 0) return s
+  return { ...s, cur: words[i - 1].index }
+}
+
 // «Подсказать» — один раз на активное слово
 export function help(s) {
   if (s.done || s.phase !== 'type' || s.cur == null || s.helped.has(s.cur)) return s

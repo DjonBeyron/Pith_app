@@ -31,7 +31,10 @@ const EXPLODE_SAFETY_MS = 1500 // взрыв ~0.75с — с двойным за�
 // в useLayoutEffect, до показа. Плавание — 30 кадров/с (медленный дрейф
 // неотличим от 60, а GPU занят вдвое меньше), взрыв — 60.
 // Геометрия и отрисовка — phraseBubbleDraw.js.
-export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlock, children }) {
+//
+// Режим «Ловли слов» (catch/CatchStripPhrase): onTap(e) — задан → тап НЕ взрывает, а отдаётся родителю (он ищет
+// слово по координате); explode — стал true → шарики разлетаются так же, как по тапу (текст открывается).
+export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlock, onTap, explode = false, children }) {
   const live = active && tabVisible
   const wrapRef = useRef(null)
   const canvasRef = useRef(null)
@@ -45,6 +48,13 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
   const [revealed, setRevealed] = useState(false)
   const idRef = useRef(null)
   if (idRef.current === null) idRef.current = nextSpoilerId()
+
+  // Внешняя команда «взорвись» (проп explode): переход ловим при рендере (не в эффекте — правило react-hooks)
+  const [prevExplode, setPrevExplode] = useState(explode)
+  if (explode !== prevExplode) {
+    setPrevExplode(explode)
+    if (explode && !exploding && !unlocked) setExploding(true)
+  }
 
   const showCanvas = !revealed && (exploding || (live && !unlocked))
   const ready = !!still
@@ -202,13 +212,15 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exploding])
 
-  function explode() {
+  // Тап: с onTap — решает родитель (слово по координате), иначе взрыв
+  function tap(e) {
+    if (onTap) { onTap(e); return }
     if (exploding || unlocked) return
     setExploding(true)
   }
 
   return (
-    <div className="phraseBubbleWrap" ref={wrapRef} onClick={explode}>
+    <div className="phraseBubbleWrap" ref={wrapRef} onClick={tap}>
       {/* Текст спрятан (visibility, не display) до тапа — сам текст
           блокирован, а не просто прикрыт сверху. Открывается сразу по тапу */}
       <div className={unlocked ? 'phraseBubbleText' : 'phraseBubbleText phraseBubbleTextHidden'}>

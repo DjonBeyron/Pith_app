@@ -25,7 +25,7 @@ function sandboxKnowledge(baseWords, levels, defaultIndex) {
 // лимитов, lock и аналитики. Уровни слов задаёт админ (по умолчанию все 0, первое слово — 2).
 // writeMemory — слать ли реальные сигналы (catchHeard/catchHelp) в СВОЮ память; иначе только лог.
 // → тот же API, что у useSlideCatch (open, phase, cur, typedBy, model, results, openSheet/setCurrent/press/.../finish)
-//   плюс words, levelOf, setLevel, log, memoryNote, reset
+//   плюс hasPrev/prev, words, levelOf, setLevel, log, memoryNote, reset
 export function useCatchSandbox({ title, moduleId, writeMemory }) {
   const baseWords = useMemo(() => catchWords(title, null), [title])
   const defaultIndex = baseWords[0]?.index ?? -1
@@ -53,6 +53,7 @@ export function useCatchSandbox({ title, moduleId, writeMemory }) {
   const cur = st.cur == null ? null : cs.wordAt(words, st.cur)
   const helped = st.cur != null && st.helped.has(st.cur)
   const model = useMemo(() => (cur ? catchKeyboard(cur.text, cur.level) : null), [cur])
+  const hasPrev = st.cur != null && words.length > 0 && words[0].index !== st.cur // активное слово не первое
 
   const levelOf = w => levels[w.index] ?? (w.index === defaultIndex ? 2 : 0)
   const setLevel = (index, level) => setLevels(l => ({ ...l, [index]: level }))
@@ -102,6 +103,12 @@ export function useCatchSandbox({ title, moduleId, writeMemory }) {
     setSt(p => cs.next(p, words))
   }
 
+  // «Предыдущее слово»: вернуться и поправить (набранное у обоих слов остаётся)
+  function prev() {
+    if (!cur || st.phase !== 'type' || !hasPrev) return
+    setSt(p => cs.prev(p, words))
+  }
+
   function help() {
     if (!cur || helped || st.phase !== 'type' || st.done) return
     setSt(cs.help)
@@ -119,7 +126,7 @@ export function useCatchSandbox({ title, moduleId, writeMemory }) {
 
   return {
     words, levelOf, setLevel, open: st.open, phase: st.phase, done: st.done, revealed: st.revealed,
-    cur, curIndex: st.cur, typedBy: st.typedBy, helped, model, results: st.results, isLast: cs.isLast(st, words),
-    log, memoryNote, openSheet, setCurrent, press, backspace, next, check, help, reveal, finish, reset,
+    cur, curIndex: st.cur, typedBy: st.typedBy, helped, model, results: st.results, isLast: cs.isLast(st, words), hasPrev,
+    log, memoryNote, openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish, reset,
   }
 }

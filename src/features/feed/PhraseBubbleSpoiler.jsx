@@ -9,12 +9,17 @@ import PhraseBubbleStatic from './PhraseBubbleStatic.jsx'
 // prefers-reduced-motion — лёгкая CSS/SVG-заглушка без JS-анимации
 // (PhraseBubbleStatic). Решение снимается один раз при монтировании
 // (useState с ленивым инициализатором) — устройство не «слабеет» посреди
-// сессии, а лишний рендер-чек на каждый рендер не нужен
-export default function PhraseBubbleSpoiler({ active, tabVisible = true, onUnlock, children }) {
+// сессии, а лишний рендер-чек на каждый рендер не нужен.
+// onTap(e) / explode — режим «Ловли слов» (тап отдаётся родителю, взрыв по команде), см. оба компонента
+export default function PhraseBubbleSpoiler({ active, tabVisible = true, onUnlock, onTap, explode = false, children }) {
   // perfFlags.noBubbles — бисекция лага сворачивания (shared/lib/perfFlags.js)
   const [useStatic] = useState(() =>
     perfFlags.noBubbles || isWeakDevice() || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
-  if (useStatic) return <PhraseBubbleStatic onUnlock={onUnlock}>{children}</PhraseBubbleStatic>
-  return <PhraseBubbleAnimated active={active} tabVisible={tabVisible} onUnlock={onUnlock}>{children}</PhraseBubbleAnimated>
+  if (useStatic) return <PhraseBubbleStatic onUnlock={onUnlock} onTap={onTap} explode={explode}>{children}</PhraseBubbleStatic>
+  return (
+    <PhraseBubbleAnimated active={active} tabVisible={tabVisible} onUnlock={onUnlock} onTap={onTap} explode={explode}>
+      {children}
+    </PhraseBubbleAnimated>
+  )
 }

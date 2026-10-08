@@ -8,7 +8,8 @@ import CatchSheet from '../feed/catch/CatchSheet.jsx'
 // шариков + настоящий CatchOverChip), по тапу ниже в потоке встают настоящие CatchStrip и CatchSheet
 // (в ленте они абсолютные и с анимациями — admin-catch.css переопределяет внутри .acPhone).
 // После «Готово» вместо спойлера — открытая фраза цветами уровней. sb — результат useCatchSandbox.
-export default function AdminCatchPhone({ title, sb }) {
+// live — вкладка админки на экране: canvas массы шариков в полоске живёт; иначе спит (как в ленте по tabVisible).
+export default function AdminCatchPhone({ title, sb, live = true }) {
   return (
     <div className="acPhone">
       <div className="acPhrase">
@@ -29,11 +30,11 @@ export default function AdminCatchPhone({ title, sb }) {
         <div className="catchCover catchCoverShown">
           <CatchStrip
             title={title} words={sb.words} cur={sb.curIndex} typedBy={sb.typedBy}
-            phase={sb.phase} results={sb.results} onPick={sb.setCurrent}
+            phase={sb.phase} results={sb.results} live={live} onPick={sb.setCurrent}
           />
           <CatchSheet
-            phase={sb.phase} cur={sb.cur} helped={sb.helped} model={sb.model} isLast={sb.isLast}
-            onKey={sb.press} onBackspace={sb.backspace} onNext={sb.next} onCheck={sb.check}
+            phase={sb.phase} cur={sb.cur} helped={sb.helped} model={sb.model} isLast={sb.isLast} hasPrev={sb.hasPrev}
+            onKey={sb.press} onBackspace={sb.backspace} onNext={sb.next} onPrev={sb.prev} onCheck={sb.check}
             onHelp={sb.help} onReveal={sb.reveal} onFinish={sb.finish}
           />
         </div>

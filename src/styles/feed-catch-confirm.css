@@ -1,18 +1,33 @@
 /* Попап-подтверждение «Раскрыть» / «Подсказать» в шторке «Ловли слов»
-   (features/feed/catch/CatchConfirmPopup.jsx). Мини-карточка над кнопками шторки.
-   Появление — общая «пружинка» popSpringIn (pop-spring.css), растёт от нижнего края.
-   Анимируются только opacity и transform. */
+   (features/feed/catch/CatchConfirmPopup.jsx). Абсолютный слой поверх шторки (.catchSheet — position: relative):
+   затемнение на всю шторку + карточка по центру; высоту шторки не меняет. Появление карточки — общая «пружинка»
+   popSpringIn (pop-spring.css). Анимируются только opacity и transform. */
+.catchConfirmLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.45);
+  animation: popFadeIn 0.18s ease-out backwards;
+}
+
 .catchConfirm {
   --pop-dy: 14px;
   box-sizing: border-box;
-  margin: 0 0 10px;
+  width: 100%;
+  max-width: 420px;
   padding: 14px 16px 10px;
   border-radius: 16px;
-  background: rgba(30, 30, 34, 0.96);
+  background: #24262c;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   color: #fff;
-  transform-origin: 50% 100%;
+  transform-origin: 50% 50%;
   animation: popSpringIn 0.45s backwards;
 }
 

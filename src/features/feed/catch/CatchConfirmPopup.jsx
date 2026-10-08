@@ -1,18 +1,21 @@
 import { useId } from 'react'
 import { confirmCopy } from './catchConfirm.js'
 
-// Мини-табличка подтверждения внутри шторки «Ловли слов» — над кнопками.
+// Мини-табличка подтверждения «Ловли слов» — слой поверх шторки (рендерится внутри .catchSheet, высоту не меняет):
+// затемнение на всю шторку, карточка по центру, тап по затемнению = отмена.
 // kind: 'reveal' | 'hint'; memory — слово своё (подсказка сдвинет повтор на завтра).
 export default function CatchConfirmPopup({ kind, memory = false, onConfirm, onCancel }) {
   const titleId = useId()
   const { title, text, ok, cancel } = confirmCopy(kind, memory)
   return (
-    <div className="catchConfirm" role="dialog" aria-labelledby={titleId}>
-      <div className="catchConfirmTitle" id={titleId}>{title}</div>
-      <p className="catchConfirmText">{text}</p>
-      <div className="catchConfirmActions">
-        <button type="button" className="catchConfirmCancel" onClick={onCancel}>{cancel}</button>
-        <button type="button" className="catchConfirmOk" onClick={onConfirm}>{ok}</button>
+    <div className="catchConfirmLayer" onClick={onCancel}>
+      <div className="catchConfirm" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={e => e.stopPropagation()}>
+        <div className="catchConfirmTitle" id={titleId}>{title}</div>
+        <p className="catchConfirmText">{text}</p>
+        <div className="catchConfirmActions">
+          <button type="button" className="catchConfirmCancel" onClick={onCancel}>{cancel}</button>
+          <button type="button" className="catchConfirmOk" onClick={onConfirm}>{ok}</button>
+        </div>
       </div>
     </div>
   )

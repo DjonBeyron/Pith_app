@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Zap } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
 import SlideVideo from './SlideVideo.jsx'
@@ -58,8 +58,10 @@ export default function FeedSlide({
     const t = setTimeout(() => { setRevealed(true); onPhraseOpened?.() }, 0)
     return () => clearTimeout(t)
   }, [ct.done]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Высота накрытия (шторка + полоска) — в CSS-переменную слайда, 0 когда закрыто
-  const [coverH, setCoverH] = useState(0)
+  // Высота накрытия (шторка + полоска) — в CSS-переменную слайда прямо через style.setProperty, без setState:
+  // иначе каждое измерение перерисовывало бы весь слайд (видео, HUD, фраза). CatchCover шлёт 0 при закрытии/размонтировании,
+  // до первого открытия переменной нет — в CSS fallback 0px
+  const setCoverH = useCallback(h => rootRef.current?.style.setProperty('--catch-cover-h', `${h}px`), [])
   // Перевод фразы: спрятан, пока её не потёрли; стрелка прячет его обратно, подпись «перевести» остаётся до ухода со слайда
   const { phase: trPhase, setSub, rubProps, toggle: toggleTr } = useTranslationReveal({ active, modId: mod.id, enabled: revealed && !!mod.titleTranslation, onRubbed: onRubHintSeen })
   // Ушли с этого слайда свайпом — подсказку убираем. Отдельно закрываем её и
@@ -88,7 +90,6 @@ export default function FeedSlide({
   return (
     <section
       className={`feedSlide feedGrad${gradIdx}${ct.open ? ' feedSlideCatchOpen' : ''}`}
-      style={{ '--catch-cover-h': `${ct.open ? coverH : 0}px` }}
       ref={rootRef}
     >
       <SlideVideo
@@ -108,7 +109,9 @@ export default function FeedSlide({
 
       <div className="feedPauseGuard" aria-hidden="true" />
 
-      <div className="feedPhraseBlock">
+      {/* Пока накрытие «Ловли» в DOM (ct.mounted) блок фразы гаснет (opacity 200мс, feed-catch.css) — шарики в ленте
+          не живут одновременно с массой в полоске; после «Готово» он возвращается уже с открытой фразой */}
+      <div className={`feedPhraseBlock${ct.mounted ? ' feedPhraseBlockHidden' : ''}`}>
         {/* Шариками спойлера накрыта только сама фраза — строка перевода не
             спойлер, ей не нужны шарики (меньше высота = меньше шариков). Сама строка спрятана за фразой
             и выкатывается, когда фразу потёрли */}
@@ -117,9 +120,10 @@ export default function FeedSlide({
           {revealed ? (
             <div className="feedPhrase" {...rubProps}>{phraseWords}</div>
           ) : ct.active ? (
-            // Задание есть: тап по шарикам перехватываем на capture — спойлер не разлетается, открывается шторка
+            // Задание есть: тап по шарикам перехватываем на capture — спойлер не разлетается, открывается шторка.
+            // Пока накрытие в DOM — canvas ленты спит (active=false → картинка покоя): живёт только масса в полоске
             <div className="catchSpoilerWrap" onClickCapture={e => { e.stopPropagation(); ct.openSheet() }}>
-              <PhraseBubbleSpoiler active={active} tabVisible={tabVisible}>
+              <PhraseBubbleSpoiler active={active && !ct.mounted} tabVisible={tabVisible}>
                 <div className="feedPhrase">{phraseWords}</div>
               </PhraseBubbleSpoiler>
               <CatchOverChip hidden={ct.open} onOpen={ct.openSheet} />
@@ -146,10 +150,10 @@ export default function FeedSlide({
 
       {ct.mounted && (
         <CatchCover
-          open={ct.open} onHeight={setCoverH}
+          open={ct.open} onHeight={setCoverH} live={active && tabVisible}
           title={mod.title} words={ct.words} cur={ct.curIndex} typedBy={ct.typedBy} phase={ct.phase} results={ct.results}
-          onPick={ct.setCurrent} helped={ct.helped} model={ct.model} isLast={ct.isLast}
-          onKey={ct.press} onBackspace={ct.backspace} onNext={ct.next} onCheck={ct.check}
+          onPick={ct.setCurrent} helped={ct.helped} model={ct.model} isLast={ct.isLast} hasPrev={ct.hasPrev}
+          onKey={ct.press} onBackspace={ct.backspace} onNext={ct.next} onPrev={ct.prev} onCheck={ct.check}
           onHelp={ct.help} onReveal={ct.reveal} onFinish={ct.finish}
         />
       )}

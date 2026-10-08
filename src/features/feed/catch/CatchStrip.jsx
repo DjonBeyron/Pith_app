@@ -1,41 +1,21 @@
-import { splitTitleTokens } from '../../../shared/lib/titleWords.js'
 import { plural } from '../../../shared/lib/plural.js'
-import { LEVEL_CLASS } from './feedCatch.js'
+import CatchStripPhrase from './CatchStripPhrase.jsx'
 
-// Полоска фразы «Ловли слов» — отдельный блок над шторкой (feed-catch-strip.css). Пока печатаем (phase 'type'):
-// у каждого слова свой туман (.fwMasked + .fwMaskPattern.bubblePattern), знаки без тумана; активное слово
-// подчёркнуто (.catchUnderline — полоска 3px + треугольник вниз, цвет по уровню через .catchLvl0..4); тап по слову →
-// onPick(index). Под фразой строка ввода (.catchTypedLine): набранное по порядку слов, активное — лаймом с курсором.
-// Финал (phase 'result'): туманы спадают, слова, набранные верно, — цветом уровня (LEVEL_CLASS); ниже набранное:
-// верные зелёным, неверные красным, пропущенные — «—»; строка факта «Расслышал N из M слов».
+// Полоска фразы «Ловли слов» — отдельный блок над шторкой (feed-catch-strip.css). Сверху фраза под одной живой
+// массой шариков с подчёркиванием активного слова (CatchStripPhrase: тап по массе → onPick(index)). Пока печатаем
+// (phase 'type'): под фразой строка ввода (.catchTypedLine) — набранное по порядку слов, активное лаймом с курсором.
+// Финал (phase 'result'): шарики разлетаются, оригинал проявляется первым, через ~150мс — набранное
+// (.catchCompareLine: верные зелёным, неверные красным, пропущенные «—»), между ними тонкая линия
+// (.catchCompareRule); строка факта «Расслышал N из M слов».
 // words — catchWords(title, knowledge): [{ index, text, key, level }]; typedBy — Map index → строка;
-// results — [{ index, ok, typed }] на финале
-export default function CatchStrip({ title, words, cur = null, typedBy, phase = 'type', results = null, onPick }) {
-  const tokens = splitTitleTokens(title)
-  const wordOf = index => words.find(w => w.index === index) ?? null
-  const resultOf = index => results?.find(r => r.index === index) ?? null
+// results — [{ index, ok, typed }] на финале; live — canvas массы живёт (накрытие открыто и лента видна)
+export default function CatchStrip({ title, words, cur = null, typedBy, phase = 'type', results = null, live = true, onPick }) {
   const result = phase === 'result'
+  const resultOf = index => results?.find(r => r.index === index) ?? null
 
   return (
     <div className={`catchStrip${result ? ' catchStripResult' : ''}`} role="group" aria-label="Фраза">
-      <div className="feedPhrase catchStripPhrase">
-        {tokens.map((t, i) => {
-          if (!t.word) return <span key={i}>{t.text}</span>
-          const w = wordOf(t.index)
-          const level = w?.level ?? 0
-          const r = resultOf(t.index)
-          const cls = result
-            ? `fwWord ${r?.ok ? LEVEL_CLASS(level) : ''}`.trim()
-            : `fwWord fwMasked catchLvl${level}${t.index === cur ? ' catchCur' : ''}`
-          return (
-            <span key={i} className={cls} onClick={result ? undefined : e => { e.stopPropagation(); onPick?.(t.index) }}>
-              {t.text}
-              <i className="fwMaskPattern bubblePattern" aria-hidden="true" />
-              {!result && t.index === cur && <i className="catchUnderline" aria-hidden="true" />}
-            </span>
-          )
-        })}
-      </div>
+      <CatchStripPhrase title={title} words={words} cur={cur} result={result} results={results} live={live} onPick={onPick} />
 
       {!result ? (
         <div className="catchTypedLine" aria-live="polite">
@@ -53,6 +33,7 @@ export default function CatchStrip({ title, words, cur = null, typedBy, phase = 
         </div>
       ) : (
         <>
+          <div className="catchCompareRule" aria-hidden="true" />
           <div className="catchCompareLine" aria-label="Набранное">
             {words.map(w => {
               const r = resultOf(w.index)
