@@ -1,6 +1,6 @@
 /* Полоска фразы «Ловли слов» (features/feed/catch/CatchStrip.jsx + CatchStripPhrase.jsx) — верхняя часть накрытия
-   .catchCover (feed-catch.css), вплотную к шторке. Своей анимации появления нет: проявляется и гаснет вместе со шторкой
-   одним блоком (.catchCover, opacity + заливка .catchCoverVeil). Внутри: фраза под облачками шариков по словам (PhraseBubbleSpoiler — те же стили
+   .catchCover (feed-catch.css), вплотную к шторке. Своей анимации появления нет: выезжает и уезжает вместе со шторкой
+   одним блоком (.catchCover, transform + заливка .catchCoverVeil, меняющая opacity в такт движению). Внутри: фраза под облачками шариков по словам (PhraseBubbleSpoiler — те же стили
    feed-bubble-spoiler.css, что и в ленте), подчёркивание активного слова с треугольником ниже облачка (.catchUnderline,
    цвет по уровню --cu-c, позицию пишет JS в transform), слот линии (.catchCmpSlot, всегда на месте), строка
    набранного, под ней слот факта (.catchFactSlot, всегда на месте); на финале — облачка раскрываются по очереди,

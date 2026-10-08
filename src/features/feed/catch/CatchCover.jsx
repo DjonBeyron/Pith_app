@@ -3,22 +3,24 @@ import CatchStrip from './CatchStrip.jsx'
 import CatchSheet from './CatchSheet.jsx'
 
 // «Накрытие» слайда в режиме «Ловли слов»: полоска фразы (CatchStrip) над шторкой набора (CatchSheet), одним блоком
-// у нижней навигации (feed-catch.css: .catchCover). Панель НЕ ДВИЖЕТСЯ (раньше выезжала transform'ом 260мс — тяжело для iOS):
-// она стоит на месте, а поверх всего накрытия лежит слой-заливка .catchCoverVeil цвета панели (#1a1d22), и анимируется
-// только opacity. ОТКРЫТИЕ: монтируется с opacity 0 и заливкой 1; за 120мс блок проявляется, затем заливка гаснет (220мс) —
-// содержимое (облачка, клавиатура) проступает «из заливки». УХОД (open=false, «Готово»): заливка за 180мс (ease-in)
-// закрывает всю панель, затем всё накрытие гаснет (140мс) и открывает готовую фразу (она подготовлена под ним,
-// useCatchPrepare). По окончании перехода opacity самого блока (transitionend) вызывается onClosed — родитель размонтирует
-// блок (useSlideCatch.coverGone; таймер CATCH_COVER_OUT_MS там — страховка; при prefers-reduced-motion переходов нет,
-// onClosed зовётся сразу). will-change нет. Высота блока (шторка + полоска) уходит в onHeight(px) из
-// ResizeObserver — FeedSlide кладёт её в --catch-cover-h, чтобы сдвинуть иконку паузы и чипы звука (0, когда закрыто); высота
-// теперь появляется сразу, а не вместе с выездом, поэтому иконки едут собственным переходом (260мс) параллельно проявлению;
+// у нижней навигации (feed-catch.css: .catchCover). Панель ДВИЖЕТСЯ (transform 260мс) и при этом её содержимое проявляется
+// через слой-заливку .catchCoverVeil цвета панели (#1a1d22, поверх всего): сама панель и её фон всегда opacity 1, а заливка
+// меняет только opacity, синхронно с движением (тот же старт, те же 260мс). ОТКРЫТИЕ: монтируется спрятанной (translateY 105%,
+// заливка 1), кадром позже (rAF, ticked) получает .catchCoverShown — панель выезжает снизу, заливка плавно идёт к 0, к
+// последнему кадру выезда всё внутри на 100%. УХОД (open=false, «Готово»): панель уезжает вниз (ускоряющаяся кривая — не
+// «залипает» в конце), заливка за те же 260мс идёт от 0 к 1; под панелью открывается готовая фраза (useCatchPrepare).
+// По окончании transform (transitionend самого блока) вызывается onClosed — родитель размонтирует блок
+// (useSlideCatch.coverGone; таймер CATCH_COVER_OUT_MS там — страховка; при prefers-reduced-motion переходов нет, onClosed
+// зовётся сразу). will-change: transform стоит лишь на время перехода (.catchCoverMoving), у заливки его нет.
+// Высота блока (шторка + полоска) уходит в onHeight(px) из ResizeObserver — FeedSlide кладёт её в --catch-cover-h, чтобы
+// сдвинуть иконку паузы и чипы звука (0, когда закрыто). Первый раз высота уходит в том же коммите, где блок получает
+// .catchCoverShown, поэтому иконки (переход 260мс) стартуют в одном кадре с выездом и едут синхронно — ничего не прыгает;
 // одинаковая высота подряд наружу не уходит (ResizeObserver шлёт и субпиксельный шум), любая другая — уходит сразу.
 // Второй аргумент onHeight(h, follow): follow=true, когда высота меняется кадр за кадром (сворачивание клавиатуры на
 // «Проверить») — тогда иконки следуют за ней без собственного перехода (иначе каждый кадр
 // перезапускал бы их 260мс-переход — дрожание); одиночный скачок (follow=false) едет плавным переходом 260мс.
 // live — лента видна и слайд активен: canvas массы шариков в полоске живёт; false (ушли на другую вкладку) — спит.
-// Canvas живёт и пока накрытие гаснет (live не зависит от open): иначе в первом кадре ухода он снимал бы картинку покоя
+// Canvas живёт и пока блок уезжает (live не зависит от open): иначе в первом кадре ухода он снимал бы картинку покоя
 // (toDataURL) на главном потоке; при размонтировании картинка не снимается.
 // Остальные пропсы — для CatchStrip (title, words, cur, typedBy, phase, results, onPick) и CatchSheet
 // (hasPrev/onPrev — «Предыдущее слово»).
@@ -30,8 +32,8 @@ export default function CatchCover({
   helped, model, isLast, hasPrev, shift, onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
 }) {
   const ref = useRef(null)
-  // Первый кадр — в начальном состоянии (блок прозрачен, заливка полная), иначе переходу opacity нечего играть; закрытие —
-  // сразу (сброс при рендере)
+  // Первый кадр — в спрятанном положении (translateY 105%, заливка 1), иначе переходу нечего играть; закрытие — сразу
+  // (сброс при рендере)
   const [ticked, setTicked] = useState(false)
   if (!open && ticked) setTicked(false)
   useEffect(() => {
@@ -40,10 +42,12 @@ export default function CatchCover({
     return () => cancelAnimationFrame(id)
   }, [open])
   const shown = open && ticked
-  // Размонтирование — по концу перехода opacity самого блока (последний при уходе: заливка 180мс → гашение 140мс); переходы
-  // детей (заливка, иконки) всплывают сюда же, их отсекаем по target
+  // Положение, в котором закончился последний переход: пока оно не совпало с желаемым — блок едет (will-change)
+  const [settled, setSettled] = useState(false)
+  // Размонтирование — по концу transform самого блока; opacity заливки (она всплывает сюда же) отсекаем по target/propertyName
   function onTransitionEnd(e) {
-    if (e.target !== e.currentTarget || e.propertyName !== 'opacity') return
+    if (e.target !== e.currentTarget || e.propertyName !== 'transform') return
+    setSettled(shown)
     if (!open) onClosed?.()
   }
   // prefers-reduced-motion: переходов нет, transitionend не придёт — размонтируем сразу после ухода
@@ -59,7 +63,7 @@ export default function CatchCover({
   useEffect(() => { heightRef.current = onHeight })
   useLayoutEffect(() => {
     const el = ref.current
-    if (!el || !open) { heightRef.current?.(0); return }
+    if (!el || !shown) { heightRef.current?.(0); return }
     let last = -1
     let lastAt = 0
     let streak = 0
@@ -79,12 +83,12 @@ export default function CatchCover({
     const ro = new ResizeObserver(report)
     ro.observe(el)
     return () => { ro.disconnect(); heightRef.current?.(0) }
-  }, [open])
+  }, [shown])
 
   const curWord = cur == null ? null : words.find(w => w.index === cur) ?? null
   return (
     <div
-      className={shown ? 'catchCover catchCoverShown' : 'catchCover'}
+      className={`catchCover${shown ? ' catchCoverShown' : ''}${shown !== settled ? ' catchCoverMoving' : ''}`}
       ref={ref} onTransitionEnd={onTransitionEnd}
     >
       <CatchStrip
