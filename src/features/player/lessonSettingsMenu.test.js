@@ -21,12 +21,20 @@ describe('шестерёнка в шапке: подключение', () => {
     expect(bar.indexOf('<LessonVolumeButtons />')).toBeLessThan(bar.indexOf('<LessonSettingsMenu'))
   })
 
-  it('стили подключены в index.css, поповер привязан к шапке и не шире экрана', () => {
+  it('стили подключены в index.css, поповер не шире экрана и лежит выше всех слоёв плеера', () => {
     expect(read('../../index.css')).toContain("@import './styles/player/settings-menu.css'")
     expect(css).toMatch(/\.smMenu \{[^}]*max-width: calc\(100% - 16px\)/)
     expect(css).toMatch(/\.smMenu \{[^}]*position: absolute/)
     // .smWrap без position: relative — иначе поповер привязался бы к кнопке и мог выехать за край
     expect(css).not.toMatch(/\.smWrap \{[^}]*position/)
+  })
+
+  it('поповер — портал в .lessonPlayer (не в шапке z-index 5): тап по нему не считается «вне»', () => {
+    expect(menu).toContain('createPortal(')
+    expect(menu).toContain('usePlayerPopover(wrapRef')
+    expect(menu).toContain('!menuRef.current?.contains(e.target)')
+    expect(read('./usePlayerPopover.js')).toContain("el.closest('.lessonPlayer')")
+    expect(read('./LessonVolumeButtons.jsx')).toContain('createPortal(')
   })
 
   it('три переключателя для всех — role=switch с aria-checked, подписи по ТЗ', () => {
@@ -85,7 +93,7 @@ describe('что именно гасят настройки', () => {
 
   it('звуки: playSound спрашивает фильтр, а lessonPrefs его регистрирует (shared не импортирует features)', () => {
     expect(sounds).toContain('export function setSoundFilter(fn)')
-    expect(sounds).toContain('if (soundFilter && !soundFilter(name))')
+    expect(sounds).toContain('soundFilter && !soundFilter(name)')
     expect(prefs).toContain('setSoundFilter(isSoundEnabledByUser)')
     expect(sounds).not.toMatch(/from '\.\.\/\.\.\/features/)
     // модуль подключён при старте приложения — фильтр работает и вне урока (шарики XP в итогах)

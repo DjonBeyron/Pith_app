@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Громкость звуков интерфейса: 1 → путь <audio>; <1 + audioSession → Web Audio
-// (GainNode); <1 без audioSession → audio.volume
+// (GainNode); <1 без audioSession → audio.volume; >1 (усиление) → Web Audio везде,
+// кроме iPhone без audioSession (там как 1)
 const created = []
 const el = name => created.find(a => a.src.includes(name))   // элементы живут в кэше sounds.js между тестами
 const played = name => el(name)?.played ?? 0
@@ -33,7 +34,7 @@ globalThis.document = { documentElement: { classList: { toggle() {} } }, addEven
 globalThis.fetch = vi.fn(() => Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)) }))
 
 const { playSound, preloadSounds, onSoundPlayed, setSoundsMuted, setSoundVolumes, getSoundVolume, ALL_SOUNDS } = await import('./sounds.js')
-const { volumeUnsupported, canGainPlay } = await import('./soundVolume.js')
+const { volumeUnsupported, canGainPlay, canBoostPlay } = await import('./soundVolume.js')
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve() }
 const setNav = nav => vi.stubGlobal('navigator', nav)
 
@@ -44,13 +45,15 @@ beforeEach(() => {
 })
 
 describe('громкость звуков интерфейса', () => {
-  it('нет значения = 1; setSoundVolumes заменяет состояние, ≥1 и мусор отбрасываются', () => {
+  it('нет значения = 1; setSoundVolumes заменяет состояние, ровно 1 и мусор отбрасываются, выше 1 зажимается в 3', () => {
     expect(getSoundVolume('xp-gain')).toBe(1)
-    setSoundVolumes({ 'xp-gain': 0.5, 'level-up': 1, 'pin-message': 'x', 'answer-wrong': 7 })
+    setSoundVolumes({ 'xp-gain': 0.5, 'level-up': 1, 'pin-message': 'x', 'answer-wrong': 7, 'typing-1': 1.5, 'typing-2': -2 })
     expect(getSoundVolume('xp-gain')).toBe(0.5)
     expect(getSoundVolume('level-up')).toBe(1)
     expect(getSoundVolume('pin-message')).toBe(1)
-    expect(getSoundVolume('answer-wrong')).toBe(1)
+    expect(getSoundVolume('answer-wrong')).toBe(3)
+    expect(getSoundVolume('typing-1')).toBe(1.5)
+    expect(getSoundVolume('typing-2')).toBe(0)
     setSoundVolumes({})
     expect(getSoundVolume('xp-gain')).toBe(1)
     expect(ALL_SOUNDS).toHaveLength(9)
@@ -118,6 +121,63 @@ describe('громкость звуков интерфейса', () => {
     expect(graph).toHaveLength(0)
     setNav({ userAgent: 'Mozilla/5.0 (Linux; Android 14)', platform: 'Linux armv8l', maxTouchPoints: 5 })
     expect(volumeUnsupported()).toBe(false)   // Android: <audio>.volume работает
+  })
+
+  it('усиление 1.5 на десктопе/Android (без audioSession) → Web Audio GainNode(1.5); <audio>.volume не трогаем выше 1', async () => {
+    setNav({ userAgent: 'Mozilla/5.0 (Linux; Android 14)', platform: 'Linux armv8l', maxTouchPoints: 5 })
+    expect(canBoostPlay()).toBe(true)
+    preloadSounds()
+    setSoundVolumes({ 'typing-1': 1.5 })
+    const before = played('typing-1')
+    playSound('typing-1', 'админ-ползунок')
+    await flush()
+    expect(graph).toHaveLength(1)
+    expect(graph[0].to.gain.value).toBe(1.5)
+    expect(played('typing-1')).toBe(before)
+  })
+
+  it('усиление: iPhone без audioSession → играет как 1 через <audio> (volume ≤ 1, без исключения), с audioSession — GainNode', async () => {
+    setNav({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0)', platform: 'iPhone', maxTouchPoints: 5 })
+    expect(canBoostPlay()).toBe(false)
+    preloadSounds()
+    setSoundVolumes({ 'xp-gain': 2 })
+    const before = played('xp-gain')
+    playSound('xp-gain')
+    await flush()
+    expect(graph).toHaveLength(0)
+    expect(played('xp-gain')).toBe(before + 1)
+    expect(el('xp-gain').volume).toBe(1)
+    setNav({ userAgent: 'iPhone', platform: 'iPhone', audioSession: { type: 'auto' } })
+    expect(canBoostPlay()).toBe(true)
+    playSound('xp-gain')
+    await flush()
+    expect(graph).toHaveLength(1)
+    expect(graph[0].to.gain.value).toBe(2)
+  })
+
+  it('Web Audio не удался при усилении — откат на <audio> с volume 1', async () => {
+    preloadSounds()
+    fetch.mockImplementation(() => Promise.resolve({ ok: false, status: 404 }))
+    setSoundVolumes({ 'typing-2': 2 })
+    playSound('typing-2')
+    await flush()
+    expect(graph).toHaveLength(0)
+    expect(el('typing-2').volume).toBe(1)
+    fetch.mockImplementation(() => Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)) }))
+  })
+
+  it('фильтр «пользователь отключил звук» гасит звук, кроме предпрослушивания (ignoreFilter)', async () => {
+    const { setSoundFilter } = await import('./sounds.js')
+    preloadSounds()
+    setSoundFilter(n => n !== 'typing-1')
+    const before = played('typing-1')
+    playSound('typing-1')
+    await flush()
+    expect(played('typing-1')).toBe(before)
+    playSound('typing-1', 'админ-ползунок', { ignoreFilter: true })
+    await flush()
+    expect(played('typing-1')).toBe(before + 1)
+    setSoundFilter(null)
   })
 
   it('вернули громкость 1 — <audio>.volume снова 1', async () => {

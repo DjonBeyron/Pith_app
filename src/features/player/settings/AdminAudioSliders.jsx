@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useAdmin } from '../../../app/AdminContext.jsx'
-import { preloadSounds, unlockAudio, volumeUnsupported } from '../../../shared/lib/sounds.js'
+import { preloadSounds, unlockAudio, volumeUnsupported, canBoostPlay } from '../../../shared/lib/sounds.js'
 import { EQ_MIN, EQ_MAX } from '../../../shared/lib/audioSettings.js'
 import AudioSliderRow from './AudioSliderRow.jsx'
 import { useAudioSettings } from './useAudioSettings.js'
@@ -11,18 +11,25 @@ import { previewSound, cancelSoundPreview } from './soundPreview.js'
 // эквалайзера — ГЛОБАЛЬНО для всех пользователей (app_settings, см.
 // audioSettings.js). Ползунок применяется сразу локально и проигрывает звук с
 // выбранной громкостью (не чаще 250 мс, soundPreview.js); в базу уходит через 600 мс после
-// последнего изменения. Не-админу — ничего
+// последнего изменения. Не-админу — ничего.
+//
+// names — какие звуки двигает ползунок (первый играет в превью и показывает
+// значение). «Звук печатанья» — один ползунок на typing-1 и typing-2: для
+// ученика это один звук (второй — он же тише, при затянувшемся ожидании файлов),
+// в базе остаются оба ключа с одним значением. boost — ползунок до 200 %: эти
+// файлы записаны тихо, и без усиления их не слышно ни на 100 %; усиление идёт через
+// Web Audio (на iPhone без Audio Session API его нет — ползунок остаётся до 100 %)
 const SOUNDS = [
-  ['message-in', 'Сообщение учителя'],
-  ['answer-correct', 'Верный ответ'],
-  ['answer-wrong', 'Неверный ответ'],
-  ['pin-message', 'Закреп'],
-  ['typing-1', 'Печатает 1'],
-  ['typing-2', 'Печатает 2'],
-  ['xp-gain', 'Начисление XP'],
-  ['level-up', 'Новый уровень'],
-  ['lesson-locked', 'Закрытый урок'],
+  { names: ['message-in'], label: 'Сообщение учителя' },
+  { names: ['answer-correct'], label: 'Верный ответ' },
+  { names: ['answer-wrong'], label: 'Неверный ответ' },
+  { names: ['pin-message'], label: 'Закреп' },
+  { names: ['typing-1', 'typing-2'], label: 'Звук печатанья', boost: true },
+  { names: ['xp-gain'], label: 'Начисление XP', boost: true },
+  { names: ['level-up'], label: 'Новый уровень' },
+  { names: ['lesson-locked'], label: 'Закрытый урок' },
 ]
+const BOOST_MAX_PCT = 200
 const STATUS_TEXT = { dirty: 'изменено…', saving: 'сохраняю…', saved: 'сохранено для всех', error: 'ошибка сохранения' }
 
 // Ползунок — жест: на iOS звук надо разблокировать прямо в нём
@@ -44,19 +51,23 @@ function Sliders() {
       {volumeUnsupported() && (
         <div className="asNote">На этом устройстве громкость не регулируется (iOS без Audio Session API)</div>
       )}
-      {SOUNDS.map(([name, label]) => {
+      {SOUNDS.map(({ names, label, boost }) => {
+        const name = names[0]
+        const canBoost = !!boost && canBoostPlay()
+        const max = canBoost ? BOOST_MAX_PCT : 100
         const pct = Math.round((volumes[name] ?? 1) * 100)
         return (
           <AudioSliderRow
             key={name}
             label={label}
-            value={pct}
+            value={Math.min(pct, max)}
             min={0}
-            max={100}
+            max={max}
             step={5}
             display={`${pct} %`}
+            hint={boost && !canBoost ? 'усиление недоступно на этом устройстве' : null}
             onPointerDown={unlock}
-            onChange={p => { unlock(); setVolume(name, p / 100); previewSound(name) }}
+            onChange={p => { unlock(); setVolume(names, p / 100); previewSound(name) }}
           />
         )
       })}

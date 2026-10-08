@@ -1,10 +1,12 @@
 import { getAudioSettingsRows, saveAudioSettingRow, UI_SOUND_VOLUME_KEY, EQ_SENSITIVITY_KEY } from '../api/audioSettingsApi.js'
-import { setSoundVolumes } from './soundVolume.js'
+import { setSoundVolumes, VOLUME_MAX } from './soundVolume.js'
 
 // Глобальные настройки звука для ВСЕХ пользователей (пишет админ, читают все;
 // БД: app_settings.ui_sound_volume и app_settings.eq_sensitivity):
-//  - громкость каждого звука интерфейса 0..1 (нет ключа = 1) — применяется в
-//    sounds.js через soundVolume.js;
+//  - громкость каждого звука интерфейса 0..VOLUME_MAX=3 (нет ключа = 1; выше 1 —
+//    усиление через Web Audio, нужно тихо записанным typing-*/xp-gain) — применяется
+//    в sounds.js через soundVolume.js. Звук печатанья — ОДИН ползунок админа, но в
+//    базе два ключа (typing-1 и typing-2, оба ставятся одним значением);
 //  - чувствительность свечения-эквалайзера eqSensitivity 0.3…3 (1 = как есть) —
 //    читает features/player/audioLevel.js.
 //
@@ -27,7 +29,7 @@ function cleanVolumes(raw) {
   const out = {}
   if (raw && typeof raw === 'object') {
     for (const [k, v] of Object.entries(raw)) {
-      if (typeof v === 'number' && Number.isFinite(v) && v < 1) out[k] = round2(clamp(v, 0, 1))
+      if (typeof v === 'number' && Number.isFinite(v) && v !== 1) out[k] = round2(clamp(v, 0, VOLUME_MAX))
     }
   }
   return out
@@ -80,12 +82,15 @@ export function prefetchAudioSettings() {
 }
 
 // Локальные правки (применяются сразу); в базу уходит отдельно — save*()
+// name — имя звука или массив имён (один ползунок на несколько файлов — «печатает»)
 export function setUiSoundVolume(name, value) {
   dirty = true
   const volumes = { ...state.volumes }
-  const v = round2(clamp(Number(value), 0, 1))
-  if (v >= 1 || !Number.isFinite(v)) delete volumes[name]
-  else volumes[name] = v
+  const v = round2(clamp(Number(value), 0, VOLUME_MAX))
+  for (const n of Array.isArray(name) ? name : [name]) {
+    if (v === 1 || !Number.isFinite(v)) delete volumes[n]
+    else volumes[n] = v
+  }
   commit({ volumes })
 }
 export function resetUiSoundVolumes() { dirty = true; commit({ volumes: {} }) }

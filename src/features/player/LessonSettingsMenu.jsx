@@ -1,17 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Settings } from 'lucide-react'
 import { haptic } from '../../shared/lib/haptics.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { usePref, setPref } from './lessonPrefs.js'
 import { useCopyLog } from './useCopyLog.js'
+import { usePlayerPopover } from './usePlayerPopover.js'
 import AdminAudioSliders from './settings/AdminAudioSliders.jsx'
 
 // Шестерёнка в шапке урока (PlayerTopBar.jsx) и поповер «Настройки».
 // Для всех — переключатели звука печатанья, звука XP и эквалайзера; у админа
 // сверху ещё раздел «Админ»: лог, датчик fps и версия, ползунки звука.
-// Состояние переключателей — lessonPrefs.js (localStorage). Поповер привязан
-// к шапке (position: relative у .playerTopBar), а не к кнопке: справа от
-// шестерёнки могут стоять другие кнопки, и меню не должно уезжать за экран.
+// Состояние переключателей — lessonPrefs.js (localStorage). Поповер рисуется
+// порталом в .lessonPlayer (usePlayerPopover.js) — иначе он оставался в слое шапки
+// (z-index 5) и уходил под панели ответа, свечение и фото; позиция — под шапкой
+// у правого края, а не у кнопки: справа от шестерёнки могут стоять другие
+// кнопки, и меню не должно уезжать за экран.
 // Закрытие — тапом вне, по Esc; фокус на первый пункт при открытии и обратно
 // на шестерёнку при Esc (тот же паттерн, что у меню скорости).
 
@@ -33,27 +37,30 @@ function SwitchRow({ label, pref }) {
 
 export default function LessonSettingsMenu({ onDownloadLog, onCopyLog }) {
   const { isAdmin } = useAdmin()
-  const [open, setOpen] = useState(false)
   const [copyState, handleCopy] = useCopyLog(onCopyLog)
   const wrapRef = useRef(null)
   const btnRef = useRef(null)
+  const menuRef = useRef(null)
+  const { open, host, style, toggle, close } = usePlayerPopover(wrapRef, { gap: 4, rightInset: 8, barSelector: '.playerTopBar' })
 
   useEffect(() => {
     if (!open) return
-    const onDown = e => { if (!wrapRef.current?.contains(e.target)) setOpen(false) }
+    const onDown = e => {
+      if (!wrapRef.current?.contains(e.target) && !menuRef.current?.contains(e.target)) close()
+    }
     const onKey = e => {
       if (e.key !== 'Escape') return
-      setOpen(false)
+      close()
       btnRef.current?.focus()
     }
     document.addEventListener('pointerdown', onDown, true)
     document.addEventListener('keydown', onKey)
-    wrapRef.current?.querySelector('.smMenu button')?.focus()
+    menuRef.current?.querySelector('button')?.focus()
     return () => {
       document.removeEventListener('pointerdown', onDown, true)
       document.removeEventListener('keydown', onKey)
     }
-  }, [open])
+  }, [open, close])
 
   return (
     <div className="smWrap" ref={wrapRef}>
@@ -61,7 +68,7 @@ export default function LessonSettingsMenu({ onDownloadLog, onCopyLog }) {
         type="button"
         ref={btnRef}
         className={`lvBtn${open ? ' lvBtn--on' : ''}`}
-        onClick={() => { haptic(); setOpen(o => !o) }}
+        onClick={() => { haptic(); toggle() }}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label="Настройки"
@@ -69,15 +76,15 @@ export default function LessonSettingsMenu({ onDownloadLog, onCopyLog }) {
       >
         <Settings className="lvIcon" />
       </button>
-      {open && (
-        <div className="smMenu" role="dialog" aria-label="Настройки">
+      {open && createPortal(
+        <div className="smMenu" role="dialog" aria-label="Настройки" ref={menuRef} style={style}>
           {isAdmin && (
             <section className="smSection" aria-label="Админ">
               <div className="smTitle">Админ</div>
               <button
                 type="button"
                 className="smRow"
-                onClick={() => { haptic(); onDownloadLog?.(); setOpen(false) }}
+                onClick={() => { haptic(); onDownloadLog?.(); close() }}
               >
                 <span>Скачать лог</span>
                 <span className="smIcon" aria-hidden="true">⬇</span>
@@ -104,7 +111,8 @@ export default function LessonSettingsMenu({ onDownloadLog, onCopyLog }) {
             <SwitchRow label="Звук получения XP" pref="xp" />
             <SwitchRow label="Эквалайзер" pref="equalizer" />
           </section>
-        </div>
+        </div>,
+        host,
       )}
     </div>
   )

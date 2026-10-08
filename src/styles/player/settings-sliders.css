@@ -26,6 +26,7 @@
 }
 
 .asRow { padding: 5px 0 1px; touch-action: pan-y; }
+.asHint { margin-top: -2px; font-size: 10px; line-height: 1.3; color: #9aa0b4; }
 .asHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; }
 .asLabel { color: #c9ccd6; }
 .asValue { min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; color: #b6fe3b; }

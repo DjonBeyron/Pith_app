@@ -71,7 +71,7 @@ describe('трассировка звука', () => {
 
   it('в отчёте видно, КТО просил звук', () => {
     const sounds = read('../../shared/lib/sounds.js')
-    expect(sounds).toContain('export function playSound(name, where = null)')
+    expect(sounds).toContain('export function playSound(name, where = null')
     expect(sounds).toContain('откуда: where')
     expect(read('./debugReport.js')).toContain('звук: getSoundLog()')
   })

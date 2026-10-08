@@ -3,11 +3,11 @@ import { traceSoundRequest, traceSoundStarted, traceSoundFailed } from './soundT
 import { onLessonOpenChange, isLessonOpen } from './lessonOpen.js'
 import { resetPrimed } from './primedAudio.js'
 import { APP_VERSION } from './version.js'
-import { getSoundVolume, onSoundVolumeChange, canGainPlay, loadGainBuffer, playWithGain } from './soundVolume.js'
+import { getSoundVolume, onSoundVolumeChange, needsGain, loadGainBuffer, playWithGain } from './soundVolume.js'
 
 // Громкость звуков интерфейса — глобальная настройка админа (audioSettings.js →
 // soundVolume.js). Экспорт — для админского блока и тестов
-export { getSoundVolume, setSoundVolumes, volumeUnsupported } from './soundVolume.js'
+export { getSoundVolume, setSoundVolumes, volumeUnsupported, canBoostPlay, VOLUME_MAX } from './soundVolume.js'
 
 // Адрес звука с версией приложения: файлы кэшируются на сутки (vercel.json),
 // и после замены звука телефон играл старый из кэша — новая версия = новый
@@ -110,12 +110,12 @@ export function preloadSounds() {
   warmGainBuffers()
 }
 
-// Звуки с громкостью < 1 на устройстве с Audio Session API играют через Web
-// Audio (см. playSound): заранее декодируем их буферы, чтобы первый звук не ждал
+// Звуки с громкостью, требующей Web Audio (< 1 на iOS с Audio Session API, > 1
+// усиление — см. playSound): заранее декодируем их буферы, чтобы первый звук не ждал
 function warmGainBuffers() {
-  if (!ctx || !canGainPlay()) return
+  if (!ctx) return
   for (const name of ALL_SOUNDS) {
-    if (getSoundVolume(name) < 1) loadGainBuffer(ctx, name, soundUrl(name)).catch(() => {})
+    if (needsGain(getSoundVolume(name))) loadGainBuffer(ctx, name, soundUrl(name)).catch(() => {})
   }
 }
 onSoundVolumeChange(warmGainBuffers)
@@ -164,14 +164,17 @@ function notifyPlayed(name, duration) {
 // дебага уходит вместе с итогом: по одному «OK» нельзя было понять, почему
 // ученик звука не услышал — промис play() резолвится в момент СТАРТА, а
 // дальше элемент мог встать на паузу или оборваться (см. soundTrace.js).
-export function playSound(name, where = null) {
+// opts.ignoreFilter — предпрослушивание на ползунке админа: пользовательский
+// выключатель («Звук печатанья», «Звук получения XP») не должен делать ползунок немым
+export function playSound(name, where = null, opts = null) {
   if (muted) return
-  if (soundFilter && !soundFilter(name)) { pLog(`[sound] ${name} отключён в настройках`); return }
+  if (!opts?.ignoreFilter && soundFilter && !soundFilter(name)) { pLog(`[sound] ${name} отключён в настройках`); return }
   const volume = getSoundVolume(name)
   // Громкость < 1 и есть Audio Session API (iOS 16.4+): <audio>.volume на iPhone
-  // игнорируется — играем через Web Audio с GainNode. Громкость 1 (по умолчанию)
+  // игнорируется — играем через Web Audio с GainNode. Громкость > 1 (усиление) —
+  // тоже Web Audio: <audio>.volume выше 1.0 не бывает. Громкость 1 (по умолчанию)
   // и всё остальное — прежний путь <audio>
-  if (volume < 1 && ctx && canGainPlay()) { playGain(name, where, volume); return }
+  if (ctx && needsGain(volume)) { playGain(name, where, volume); return }
   playHtml(name, where, volume)
 }
 
@@ -199,7 +202,8 @@ function playHtml(name, where, volume) {
   }
   // Вклинились посреди прогрева (warmSound): он больше не ставит на паузу, звук включаем сами
   if (warming.delete(name)) audio.muted = false
-  if (audio.volume !== volume) audio.volume = volume   // Android/десктоп; на iOS игнорируется
+  const vol = volume > 1 ? 1 : volume   // <audio>.volume — только 0..1 (выше бросает IndexSizeError)
+  if (audio.volume !== vol) audio.volume = vol   // Android/десктоп; на iOS игнорируется
   const rec = traceSoundRequest(name, audio, { откуда: where, состояниеCtx: ctx?.state ?? null })
   // Only seek to start if not already there — avoids iOS re-decode stall on fresh objects
   if (audio.currentTime > 0) audio.currentTime = 0

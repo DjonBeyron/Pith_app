@@ -9,22 +9,30 @@
 // navigator.audioSession.type = 'playback' (Safari 16.4+). Без этого API на
 // iOS громкость не регулируется вовсе — админ видит пометку (volumeUnsupported).
 // Звук с громкостью 1 идёт старым путём <audio>, ничего не меняется.
+//
+// Громкость бывает и ВЫШЕ 1 (усиление, до VOLUME_MAX): часть звуков записана
+// очень тихо (typing-*, xp-gain), и админ должен слышать их, настраивая. <audio>.volume
+// выше 1.0 не бывает, поэтому усиление — только Web Audio (GainNode.gain > 1): на
+// десктопе/Android оно доступно всегда, на iPhone — как и понижение, при
+// Audio Session API (canBoostPlay). Нет такого пути — звук играет как при 1.
 
-const volumes = {}            // name → 0..1
+export const VOLUME_MAX = 3
+const volumes = {}            // name → 0..VOLUME_MAX, кроме 1 (1 = нет ключа)
 const subs = new Set()
 
-const clamp01 = v => (v > 1 ? 1 : v < 0 ? 0 : v)
+const clampVol = v => (v > VOLUME_MAX ? VOLUME_MAX : v < 0 ? 0 : v)
 
 export function getSoundVolume(name) {
   const v = volumes[name]
   return typeof v === 'number' ? v : 1
 }
 
-// map целиком заменяет состояние: { name: 0..1 }; нечисловое и ≥1 отбрасывается
+// map целиком заменяет состояние: { name: 0..VOLUME_MAX }; нечисловое и ровно 1
+// отбрасывается, остальное зажимается в 0..VOLUME_MAX
 export function setSoundVolumes(map) {
   for (const k of Object.keys(volumes)) delete volumes[k]
   for (const [k, v] of Object.entries(map ?? {})) {
-    if (typeof v === 'number' && Number.isFinite(v) && v < 1) volumes[k] = clamp01(v)
+    if (typeof v === 'number' && Number.isFinite(v) && v !== 1) volumes[k] = clampVol(v)
   }
   subs.forEach(fn => fn())
 }
@@ -47,6 +55,14 @@ export const canGainPlay = () => !!nav()?.audioSession
 
 // iPhone без Audio Session API: громкость < 1 не применится
 export const volumeUnsupported = () => isIos() && !canGainPlay()
+
+// Усиление (> 1) возможно: Web Audio есть везде, кроме iPhone без Audio Session API
+// (там он играет в soloAmbient и молчит при беззвучном режиме)
+export const canBoostPlay = () => !isIos() || canGainPlay()
+
+// Нужен ли звуку с такой громкостью путь Web Audio: понижение — только где <audio>.volume
+// не работает (iOS с Audio Session API), усиление — везде, где Web Audio допустим
+export const needsGain = volume => (volume > 1 ? canBoostPlay() : volume < 1 && canGainPlay())
 
 let sessionSet = false
 function setPlaybackSession() {
