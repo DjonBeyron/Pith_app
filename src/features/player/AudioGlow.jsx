@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { subscribeAudioLevel } from './audioLevel.js'
 import { startUiSoundGlow } from './soundGlow.js'
 import {
-  POINTS, CANVAS_W as W, CANVAS_H as H, CSS_H, SCALE, OX, OY, glowContour, contourDelta, innerX, innerY,
+  POINTS, ARC_FIRST, ARC_LAST, CANVAS_W as W, CANVAS_H as H, CSS_H, SCALE, OX, OY, glowContour, contourDelta, innerX, innerY,
 } from './audioGlowShape.js'
 import { LAYERS } from './audioGlowLayers.js'
 
@@ -93,7 +93,11 @@ function makePainter(ctx, ctxR, source) {
   const layerPath = (c, s) => {
     ctx.beginPath()
     ctx.moveTo(cx(OX[0]), cy(OY[0]))
-    for (let i = 1; i < POINTS; i++) ctx.lineTo(cx(OX[i]), cy(OY[i]))   // по кромке экрана
+    // Внешняя граница — по кромке экрана до ПРЯМОГО угла (не по дуге скругления): иначе на Android с прямыми
+    // углами вьюпорта между дугой и углом остаётся чёрный клин, похожий на имитацию скругления
+    for (let i = 1; i < ARC_FIRST; i++) ctx.lineTo(cx(OX[i]), cy(OY[i]))   // боковая прямая вниз
+    ctx.lineTo(cx(0), cy(0))                                              // угол экрана
+    for (let i = ARC_LAST + 1; i < POINTS; i++) ctx.lineTo(cx(OX[i]), cy(OY[i]))   // нижняя прямая внутрь
     let px = cx(innerX(c, POINTS - 1, s)), py = cy(innerY(c, POINTS - 1, s))
     ctx.lineTo(px, py)
     for (let i = POINTS - 2; i >= 0; i--) {                              // назад по внутренней границе

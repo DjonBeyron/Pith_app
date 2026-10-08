@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   bandShapes, glowContour, contourDelta, contourReach, innerX, innerY,
   POINTS, CANVAS_W, CANVAS_H, CSS_W, CSS_H, SCALE, SCREEN_CORNER_R as R, SIDE_TOP, BOTTOM_REACH, T_MAX, T_BASE, BASE_LEN,
-  OX, OY, NX, NY,
+  OX, OY, NX, NY, ARC_FIRST, ARC_LAST,
 } from './audioGlowShape.js'
 import { LAYERS, LAYER_COUNT, accumulatedAlpha } from './audioGlowLayers.js'
 
@@ -190,5 +190,17 @@ describe('слои заливки: альфа от кромки внутрь', (
     expect(LAYERS[0].scale).toBe(1)
     expect(LAYERS.at(-1).scale).toBeCloseTo(1 / LAYER_COUNT, 5)
     for (const l of LAYERS) { expect(l.alpha).toBeGreaterThan(0); expect(l.alpha).toBeLessThan(1) }
+  })
+})
+
+describe('внешняя граница заливается до прямого угла', () => {
+  it('точки ARC_FIRST…ARC_LAST лежат на дуге скругления радиуса R с центром (R, R); остальные — на прямых кромках', () => {
+    for (let i = 0; i < POINTS; i++) {
+      const onArc = i >= ARC_FIRST && i <= ARC_LAST
+      const d = Math.hypot(OX[i] - R, OY[i] - R)
+      if (onArc) expect(Math.abs(d - R)).toBeLessThan(0.01)
+      else expect(OX[i] === 0 || OY[i] === 0).toBe(true)   // боковая (x=0) или нижняя (y=0) кромка
+    }
+    expect(ARC_LAST - ARC_FIRST).toBeGreaterThan(3)
   })
 })
