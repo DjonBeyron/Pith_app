@@ -23,7 +23,13 @@
 // v5: расширен список GPU (бюджетные Mali-G/Adreno 5xx–610/PowerVR GE83xx) —
 // новый ключ, чтобы телефоны, уже решившие «не слабый» по старому списку,
 // пересчитали решение
-const KEY = 'pithy_weak_device_v5'
+// v6: на iOS бенчмарк больше не участвует в решении. GPU там всегда «Apple
+// GPU» (ни один паттерн не матчится), staticGuess отключён, так что
+// единственным путём в «слабые» оставался шумный бенчмарк при холодном
+// старте — и мощный iPhone, один раз показав >6мс на первом кадре,
+// навсегда получал статичный спойлер (решение кэшируется). Новый ключ,
+// чтобы такие телефоны пересчитали
+const KEY = 'pithy_weak_device_v6'
 const BENCH_ARCS = 3000
 const BENCH_THRESHOLD_MS = 6
 
@@ -110,13 +116,28 @@ function benchmarkIsSlow() {
   }
 }
 
+// Чистое решение (без побочных эффектов) — вынесено для теста. На iOS
+// доверяем только GPU-строке: iPhone/iPad «слабыми» в смысле списка выше не
+// бывают, а бенчмарк/ядра там дают ложные срабатывания (см. шапку файла).
+// Возвращает причину: 'gpu' | 'static' | 'bench' | null (не слабое)
+export function decideWeak({ ios, gpu, staticWeak, benchSlow }) {
+  if (gpuLooksWeak(gpu)) return 'gpu'
+  if (ios) return null
+  if (staticWeak()) return 'static'
+  if (benchSlow()) return 'bench'
+  return null
+}
+
 let weak = null
+let reason = 'нет'
 try {
   const cached = localStorage.getItem(KEY)
-  if (cached !== null) weak = cached === '1'
+  if (cached !== null) { weak = cached === '1'; reason = 'cache' }
 } catch { /* приватный режим/квота — не критично, посчитаем заново */ }
 if (weak === null) {
-  weak = gpuLooksWeak(probeGpu()) || staticGuess() || benchmarkIsSlow()
+  const r = decideWeak({ ios: isIOS(), gpu: probeGpu(), staticWeak: staticGuess, benchSlow: benchmarkIsSlow })
+  weak = r !== null
+  if (r) reason = r
   try { localStorage.setItem(KEY, weak ? '1' : '0') } catch { /* не критично */ }
 }
 
@@ -124,11 +145,17 @@ export function isWeakDevice() {
   return weak
 }
 
+// Для DBG: откуда взялось решение (gpu/static/bench/fps/cache/нет)
+export function weakDeviceReason() {
+  return reason
+}
+
 // Зовётся из FPS-монитора, когда реально накопилось измерение — доп.
 // подстраховка сверх остальных сигналов (мог не поймать «тормозит под
 // нагрузкой», хоть сам по себе рисует быстро). Помечает слабым насовсем
 export function markWeakDevice() {
-  if (weak) return
+  if (weak || isIOS()) return
   weak = true
+  reason = 'fps'
   try { localStorage.setItem(KEY, '1') } catch { /* не критично */ }
 }

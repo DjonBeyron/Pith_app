@@ -1,6 +1,6 @@
-/* Админ → Ловля (AdminCatchTab.jsx): песочница механики «Ловля слов». Каркас общий с admin-errors.css
-   (aeWrap/aeHead/aeHint), строки счётчиков — arvRow из admin-review.css. Панель набора в песочнице стоит
-   в потоке под фразой (в ленте она абсолютная, feed-catch.css) — переопределяем только внутри .acPhone */
+/* Админ → Ловля (AdminCatchTab.jsx): песочница механики «Ловля слов» (спек v2). Каркас общий с admin-errors.css
+   (aeWrap/aeHead/aeHint), строки счётчиков — arvRow из admin-review.css. Накрытие (полоска + шторка) в песочнице
+   стоит в потоке под «спойлером» (в ленте оно абсолютное, feed-catch.css) — переопределяем только внутри .acPhone */
 
 .acSelect {
   padding: 8px 10px;
@@ -27,10 +27,13 @@
 }
 .acLevel select { background: #1a1d22; color: #e0e0e0; border: 1px solid #333; border-radius: 6px; font: inherit; }
 
-/* «Телефон»: тёмный слайд шириной 390px по центру */
+/* «Телефон»: тёмный слайд 390×700 по центру; спойлер сверху, накрытие (полоска + шторка) прижато к низу */
 .acPhone {
   width: min(390px, 100%);
+  height: 700px;
   margin: 4px auto;
+  display: flex;
+  flex-direction: column;
   background: #0b0d11;
   border: 1px solid #2a2d35;
   border-radius: 18px;
@@ -38,13 +41,61 @@
 }
 .acPhrase { padding: 28px 16px 20px; }
 
-.acPhone .catchPanel {
-  position: static;
-  max-height: none;
-  transform: none;
-  transition: none;
-  border-radius: 0;
+/* Имитация спойлера фразы: серый блок с узором шариков (.bubblePattern), поверх — чип */
+.acSpoiler {
+  position: relative;
+  min-height: 72px;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
 }
+
+.acPhone .catchCover {
+  position: static;
+  margin-top: auto;
+  pointer-events: auto;
+}
+.acPhone .catchStrip,
+.acPhone .catchSheet {
+  transform: none;
+  opacity: 1;
+  transition: none;
+}
+.acPhone .catchStrip { border-radius: 0; }
+.acPhone .catchSheetInner { max-height: 360px; }
+
+/* Кнопка «?» в шапке и раскрывающаяся справка (AdminCatchHelp.jsx) */
+.acHelpBtn {
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border: 1px solid #444;
+  border-radius: 50%;
+  background: none;
+  color: #bbb;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.acHelpBtn:hover, .acHelpBtnOn { border-color: #b6fe3b; color: #b6fe3b; }
+.acHelp {
+  padding: 12px 14px;
+  border: 1px solid #2a2d35;
+  border-radius: 10px;
+  background: #14171c;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #c8ccd6;
+}
+.acHelp h4 { margin: 14px 0 4px; font-size: 14px; color: #fff; }
+.acHelp h4:first-child { margin-top: 0; }
+.acHelp p { margin: 4px 0; }
+.acHelp ul { margin: 4px 0; padding-left: 18px; }
+.acHelp li { margin: 3px 0; }
+.acHelp code { color: #b6fe3b; word-break: break-all; }
+.acHelpTable { width: 100%; border-collapse: collapse; margin: 6px 0; }
+.acHelpTable th, .acHelpTable td { padding: 4px 8px; border: 1px solid #2a2d35; text-align: left; }
+.acHelpTable th { color: #fff; }
 
 .acMemory { word-break: break-all; }
 .acLog {

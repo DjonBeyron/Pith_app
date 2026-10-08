@@ -1,0 +1,1 @@
+- [Линт: set-state-in-effect](feedback_lint_set_state_in_effect.md) — синхронный setState в useEffect = ошибка линта; паттерны обхода (сброс при рендере, rAF/таймер, ref)

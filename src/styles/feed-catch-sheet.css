@@ -1,0 +1,69 @@
+/* Шторка «Напечатать» «Ловли слов» (features/feed/catch/CatchSheet.jsx) — нижняя часть накрытия .catchCover
+   (feed-catch.css). Фон и ободок как у панелей плеера (.phrasePanel). Выезжает снизу: transform 260мс,
+   .catchCoverShown ставит CatchCover кадром позже монтирования. Внутри: клавиатура TypeWordKeyboard, главная кнопка
+   (.phraseCheckBtn — лаймовая рамка, как «Проверить» в плеере), две текстовые кнопки, на финале — одна «Готово».
+   Попап подтверждения (.catchConfirm, feed-catch-confirm.css) встаёт над кнопками в потоке. */
+
+.catchSheet {
+  position: relative;
+  z-index: 2; /* выше полоски: она выезжает из-под шторки */
+  background: #1a1d22;
+  border-top: 1px solid #2a2d35;
+  transform: translateY(105%);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  touch-action: manipulation;
+}
+.catchCoverShown .catchSheet { transform: translateY(0); }
+
+/* Не выше ~46% слайда — тап по видео над накрытием ставит паузу как раньше; при переполнении — прокрутка внутри */
+.catchSheetInner {
+  max-width: 600px;
+  max-height: 46vh;
+  overflow-y: auto;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 10px;
+}
+
+/* Главная кнопка: «Следующее слово» / «Проверить» / «Готово» */
+.catchMainBtn {
+  width: 100%;
+  min-height: 46px;
+}
+.catchMainBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Две текстовые кнопки под главной: «Раскрыть» и «Подсказать» */
+.catchTextBtns {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin-top: -2px;
+}
+.catchTextBtn {
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.catchTextBtn:active { color: #fff; }
+.catchTextBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catchSheet { transition: none; }
+}

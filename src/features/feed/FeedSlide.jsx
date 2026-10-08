@@ -12,19 +12,16 @@ import { useSlideRecall } from './useSlideRecall.js'
 import { useTranslationReveal } from './useTranslationReveal.js'
 import FeedHud from './FeedHud.jsx'
 import { useSlideCatch } from './catch/useSlideCatch.js'
-import CatchChip from './catch/CatchChip.jsx'
-import CatchMaskedWords from './catch/CatchMaskedWords.jsx'
-import CatchPanel from './catch/CatchPanel.jsx'
-
-// Маски слов спадают за это время (feed-catch.css) — потом слайд становится обычным открытым
-const CATCH_REVEAL_MS = 320
+import CatchOverChip from './catch/CatchOverChip.jsx'
+import CatchCover from './catch/CatchCover.jsx'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером (перевод фразы появляется, когда её потёрли пальцем —
 // useTranslationReveal), HUD (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
-// «Ловля слов» (catch/): если лента поставила на фразу задание, вместо спойлера на всю фразу каждое слово под своей
-// маской (CatchMaskedWords), тап по слову открывает панель набора (CatchPanel) и блокирует свайп (onLock).
-// Состояние лайков живёт в FeedTab, спойлер локален для каждой копии
-// слайда в круге.
+// «Ловля слов» (catch/): если лента поставила на фразу задание, поверх шариков чип «Проверь, что услышал»; тап по чипу
+// или по шарикам (перехват на capture — шарики не разлетаются) открывает накрытие (CatchCover: полоска фразы + шторка
+// набора) и блокирует свайп (onLock). Пока оно открыто — класс feedSlideCatchOpen и --catch-cover-h (его высота):
+// иконка паузы и чипы звука сдвигаются вверх (feed-catch.css). «Готово» → слайд обычный открытый (revealed).
+// Состояние лайков живёт в FeedTab, спойлер локален для каждой копии слайда в круге.
 export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, saveCount = 0, repostCount = 0, tabVisible = true,
   active = false, near = false, slideKey,
@@ -38,8 +35,9 @@ export default function FeedSlide({
   catchFeed = null, // «Ловля слов» на уровне ленты (useFeedCatch): лимиты, claim
   onLock,           // панель набора открыта → лента не свайпается (только у активного слайда)
 }) {
-  // revealed — фраза уже открыта (слова становятся кликабельными сразу, перевод фразы можно тереть)
-  const [revealed, setRevealed] = useState(false)
+  // revealed — фраза уже открыта (слова становятся кликабельными сразу, перевод фразы можно тереть);
+  // «Готово» на финале «Ловли слов» (ct.done) открывает её так же
+  const [opened, setRevealed] = useState(false)
   // Пословный перевод названия: тап по слову — линия с подложкой (см.
   // WordTranslateLine). Координаты считаются относительно самого слайда
   const rootRef = useRef(null)
@@ -49,12 +47,13 @@ export default function FeedSlide({
   const rc = useSlideRecall({ recall, mod, active, revealed, knowledge, wp: wordTr, onChanged: onLearnChanged })
   // «Ловля слов»: задание ставится, если на слайде нет слова «Помнишь?» (rc.candIndex) — оно главнее
   const ct = useSlideCatch({ feedCatch: catchFeed, mod, active, knowledge, recallIndex: rc.candIndex, onLock, onLearnChanged })
-  // Задание закончено (все слова набраны или «Раскрыть фразу») → маски спадают, слайд = обычный открытый
+  const revealed = opened || ct.done
+  // «Готово» на финале задания → слайд = обычный открытый (спойлер больше не рендерится), фраза считается открытой
   useEffect(() => {
-    if (!ct.done) return
-    const t = setTimeout(() => { setRevealed(true); onPhraseOpened?.() }, CATCH_REVEAL_MS)
-    return () => clearTimeout(t)
+    if (ct.done) onPhraseOpened?.()
   }, [ct.done]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Высота накрытия (шторка + полоска) — в CSS-переменную слайда, 0 когда закрыто
+  const [coverH, setCoverH] = useState(0)
   // Перевод фразы: спрятан, пока её не потёрли; стрелка прячет его обратно, подпись «перевести» остаётся до ухода со слайда
   const { phase: trPhase, setSub, rubProps, toggle: toggleTr } = useTranslationReveal({ active, modId: mod.id, enabled: revealed && !!mod.titleTranslation, onRubbed: onRubHintSeen })
   // Ушли с этого слайда свайпом — подсказку убираем. Отдельно закрываем её и
@@ -81,7 +80,11 @@ export default function FeedSlide({
   )
 
   return (
-    <section className={`feedSlide feedGrad${gradIdx}`} ref={rootRef}>
+    <section
+      className={`feedSlide feedGrad${gradIdx}${ct.open ? ' feedSlideCatchOpen' : ''}`}
+      style={{ '--catch-cover-h': `${ct.open ? coverH : 0}px` }}
+      ref={rootRef}
+    >
       <SlideVideo
         videoUrl={mod.videoUrl}
         posterUrl={mod.posterUrl}
@@ -105,21 +108,16 @@ export default function FeedSlide({
             и выкатывается, когда фразу потёрли */}
         <div className="feedPhraseStack">
           {showRubHint && revealed && trPhase === 'off' && !!mod.titleTranslation && <RubHint />}
-          {ct.active && !revealed ? (
-            <>
-              <CatchChip ownCount={ct.ownCount} remaining={ct.done ? 0 : ct.remaining} total={ct.words.length} started={ct.open} />
-              <div className="feedPhrase feedPhraseCatch">
-                <CatchMaskedWords
-                  title={mod.title}
-                  words={ct.words}
-                  typedIndexes={ct.done ? new Set(ct.words.map(w => w.index)) : ct.typedIndexes}
-                  currentIndex={ct.current?.index ?? -1}
-                  onPick={ct.pickWord}
-                />
-              </div>
-            </>
-          ) : ct.active ? (
+          {revealed ? (
             <div className="feedPhrase" {...rubProps}>{phraseWords}</div>
+          ) : ct.active ? (
+            // Задание есть: тап по шарикам перехватываем на capture — спойлер не разлетается, открывается шторка
+            <div className="catchSpoilerWrap" onClickCapture={e => { e.stopPropagation(); ct.openSheet() }}>
+              <PhraseBubbleSpoiler active={active} tabVisible={tabVisible}>
+                <div className="feedPhrase">{phraseWords}</div>
+              </PhraseBubbleSpoiler>
+              <CatchOverChip hidden={ct.open} onOpen={ct.openSheet} />
+            </div>
           ) : (
             <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={() => { setRevealed(true); onPhraseOpened?.() }}>
               <div className="feedPhrase" {...rubProps}>{phraseWords}</div>
@@ -140,11 +138,13 @@ export default function FeedSlide({
 
       {pick && <WordTranslateLine key={pick.id} pick={pick} onClose={close} onAnswer={rc.answer} />}
 
-      {ct.open && (
-        <CatchPanel
-          current={ct.current} typed={ct.typed} helped={ct.helped} model={ct.model}
-          wrongFlash={ct.wrongFlash} remaining={ct.remaining}
-          onKey={ct.press} onBackspace={ct.backspace} onHelp={ct.help} onCheck={ct.check} onReveal={ct.reveal}
+      {ct.mounted && (
+        <CatchCover
+          open={ct.open} onHeight={setCoverH}
+          title={mod.title} words={ct.words} cur={ct.curIndex} typedBy={ct.typedBy} phase={ct.phase} results={ct.results}
+          onPick={ct.setCurrent} helped={ct.helped} model={ct.model} isLast={ct.isLast}
+          onKey={ct.press} onBackspace={ct.backspace} onNext={ct.next} onCheck={ct.check}
+          onHelp={ct.help} onReveal={ct.reveal} onFinish={ct.finish}
         />
       )}
 

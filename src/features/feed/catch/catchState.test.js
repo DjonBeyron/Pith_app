@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { initialCatch, pickWord, press, backspace, help, check, reveal, closePanel, remainingOf, wordAt } from './catchState.js'
+import {
+  initialCatch, openSheet, setCurrent, press, backspace, next, help, check, reveal, finish, closeSheet,
+  wordAt, typedOf, isLast, okCount,
+} from './catchState.js'
 import { catchWords } from './feedCatch.js'
 
 // Фраза из трёх слов; память не нужна — уровни тут не важны
@@ -10,100 +13,125 @@ function typeAll(s, text) {
   return s
 }
 
-describe('pickWord', () => {
-  it('открывает панель и делает слово текущим', () => {
-    const s = pickWord(initialCatch('m1'), words, 1)
+describe('openSheet / setCurrent', () => {
+  it('открывает шторку, активное — первое слово', () => {
+    const s = openSheet(initialCatch('m1'), words)
     expect(s.open).toBe(true)
-    expect(s.current).toBe(1)
-    expect(s.typed).toBe('')
+    expect(s.cur).toBe(0)
+    expect(s.phase).toBe('type')
+    expect(openSheet(s, words)).toBe(s)
   })
-  it('несуществующее и уже набранное слово — игнор', () => {
-    const s0 = initialCatch()
-    expect(pickWord(s0, words, 7)).toBe(s0)
-    const typed = { ...s0, typedIdx: new Set([1]) }
-    expect(pickWord(typed, words, 1)).toBe(typed)
+  it('после закрытия и повторного открытия активное слово сохраняется', () => {
+    let s = next(openSheet(initialCatch(), words), words)
+    s = openSheet(closeSheet(s), words)
+    expect(s.open).toBe(true)
+    expect(s.cur).toBe(1)
   })
-  it('смена слова сбрасывает набранное', () => {
-    let s = pickWord(initialCatch(), words, 1)
-    s = typeAll(s, 'li')
-    s = pickWord(s, words, 2)
-    expect(s.current).toBe(2)
-    expect(s.typed).toBe('')
+  it('setCurrent: любое слово фразы, набранное не теряется; несуществующее — игнор', () => {
+    let s = typeAll(openSheet(initialCatch(), words), 'i')
+    s = setCurrent(s, words, 2)
+    expect(s.cur).toBe(2)
+    expect(typedOf(s, 0)).toBe('I')
+    expect(setCurrent(s, words, 2)).toBe(s)
+    expect(setCurrent(s, words, 9)).toBe(s)
   })
 })
 
 describe('press / backspace', () => {
-  it('печатает только когда есть текущее слово, первая буква заглавная', () => {
+  it('печатает только при открытой шторке с активным словом, первая буква заглавная', () => {
     const s0 = initialCatch()
     expect(press(s0, words, 'l')).toBe(s0)
-    const s = typeAll(pickWord(s0, words, 1), 'li')
-    expect(s.typed).toBe('Li')
-    expect(backspace(s).typed).toBe('L')
+    const s = typeAll(setCurrent(openSheet(s0, words), words, 1), 'li')
+    expect(typedOf(s, 1)).toBe('Li')
+    expect(typedOf(backspace(s), 1)).toBe('L')
     expect(backspace(s0)).toBe(s0)
   })
   it('не растёт бесконечно (typedMax)', () => {
-    const s = typeAll(pickWord(initialCatch(), words, 1), 'likeeeeeeeeeee')
-    expect(s.typed.length).toBe('like'.length + 3)
+    const s = typeAll(setCurrent(openSheet(initialCatch(), words), words, 1), 'likeeeeeeeeeee')
+    expect(typedOf(s, 1).length).toBe('like'.length + 3)
+  })
+  it('у каждого слова своё набранное', () => {
+    let s = typeAll(openSheet(initialCatch(), words), 'i')
+    s = typeAll(next(s, words), 'like')
+    expect(typedOf(s, 0)).toBe('I')
+    expect(typedOf(s, 1)).toBe('Like')
   })
 })
 
-describe('check', () => {
-  it('пусто → null, неверно → wrong (набранное остаётся)', () => {
-    const s = pickWord(initialCatch(), words, 1)
-    expect(check(s, words)).toEqual({ state: s, result: null })
-    const wrong = typeAll(s, 'lake')
-    const r = check(wrong, words)
-    expect(r.result).toBe('wrong')
-    expect(r.state.typed).toBe('Lake')
+describe('next / isLast', () => {
+  it('переходит по порядку, пустое набранное сохраняется как пустое', () => {
+    let s = openSheet(initialCatch(), words)
+    expect(isLast(s, words)).toBe(false)
+    s = next(s, words)
+    expect(s.cur).toBe(1)
+    expect(typedOf(s, 0)).toBe('')
+    s = next(s, words)
+    expect(s.cur).toBe(2)
+    expect(isLast(s, words)).toBe(true)
   })
-  it('верно → слово набрано, текущее сброшено, панель открыта, пока есть слова', () => {
-    const r = check(typeAll(pickWord(initialCatch(), words, 1), 'LIKE'), words)
-    expect(r.result).toBe('correct')
-    expect([...r.state.typedIdx]).toEqual([1])
-    expect(r.state.current).toBeNull()
-    expect(r.state.open).toBe(true)
-    expect(r.state.done).toBe(false)
-    expect(remainingOf(r.state, words)).toBe(2)
-  })
-  it('последнее слово → done и панель закрыта', () => {
-    let s = initialCatch()
-    for (const w of words) s = check(typeAll(pickWord(s, words, w.index), w.text), words).state
-    expect(s.done).toBe(true)
-    expect(s.open).toBe(false)
-    expect(remainingOf(s, words)).toBe(0)
-  })
-  it('после done ничего не меняется', () => {
-    const s = reveal(pickWord(initialCatch(), words, 0))
-    expect(pickWord(s, words, 1)).toBe(s)
-    expect(check(s, words).result).toBeNull()
+  it('на последнем слове next = check (финал)', () => {
+    let s = setCurrent(openSheet(initialCatch(), words), words, 2)
+    s = next(typeAll(s, 'cats'), words)
+    expect(s.phase).toBe('result')
+    expect(s.results.map(r => r.ok)).toEqual([false, false, true])
   })
 })
 
-describe('help / reveal / closePanel', () => {
-  it('help — один раз на текущее слово', () => {
+describe('check / reveal', () => {
+  it('check: результаты по каждому слову, регистр не важен', () => {
+    let s = typeAll(openSheet(initialCatch(), words), 'i')
+    s = typeAll(next(s, words), 'lake')
+    s = typeAll(next(s, words), 'CATS')
+    const { state, results } = check(s, words)
+    expect(state.phase).toBe('result')
+    expect(state.revealed).toBe(false)
+    expect(results).toEqual([
+      { index: 0, ok: true, typed: 'I' },
+      { index: 1, ok: false, typed: 'Lake' },
+      { index: 2, ok: true, typed: 'Cats' },
+    ])
+    expect(okCount(results)).toBe(2)
+    expect(check(state, words).state).toBe(state)
+  })
+  it('reveal: тот же финал, но revealed=true', () => {
+    const s = reveal(typeAll(openSheet(initialCatch(), words), 'i'), words)
+    expect(s.phase).toBe('result')
+    expect(s.revealed).toBe(true)
+    expect(s.results[0]).toEqual({ index: 0, ok: true, typed: 'I' })
+    expect(reveal(s, words)).toBe(s)
+  })
+  it('на финале печать, next и setCurrent ничего не меняют', () => {
+    const s = reveal(openSheet(initialCatch(), words), words)
+    expect(press(s, words, 'x')).toBe(s)
+    expect(next(s, words)).toBe(s)
+    expect(setCurrent(s, words, 1)).toBe(s)
+    expect(help(s)).toBe(s)
+  })
+})
+
+describe('help / finish / closeSheet', () => {
+  it('help — один раз на активное слово', () => {
     const s0 = initialCatch()
     expect(help(s0)).toBe(s0)
-    const s = help(pickWord(s0, words, 2))
+    const s = help(setCurrent(openSheet(s0, words), words, 2))
     expect(s.helped.has(2)).toBe(true)
     expect(help(s)).toBe(s)
   })
-  it('reveal закрывает панель и заканчивает задание, набранные остаются', () => {
-    const typed = check(typeAll(pickWord(initialCatch(), words, 0), 'i'), words).state
-    const s = reveal(pickWord(typed, words, 1))
+  it('finish только на финале: шторка закрыта, done', () => {
+    const typing = openSheet(initialCatch(), words)
+    expect(finish(typing)).toBe(typing)
+    const s = finish(check(typing, words).state)
     expect(s.done).toBe(true)
     expect(s.open).toBe(false)
-    expect(s.current).toBeNull()
-    expect(s.typedIdx.has(0)).toBe(true)
+    expect(openSheet(s, words)).toBe(s)
   })
-  it('closePanel при уходе со слайда: панель закрыта, текущее сброшено, набранные остаются', () => {
+  it('closeSheet при уходе со слайда: шторка закрыта, набранное и активное остаются', () => {
     const s0 = initialCatch()
-    expect(closePanel(s0)).toBe(s0)
-    const typed = check(typeAll(pickWord(s0, words, 0), 'i'), words).state
-    const s = closePanel(typeAll(pickWord(typed, words, 1), 'li'))
+    expect(closeSheet(s0)).toBe(s0)
+    const s = closeSheet(typeAll(next(openSheet(s0, words), words), 'li'))
     expect(s.open).toBe(false)
-    expect(s.current).toBeNull()
-    expect(s.typed).toBe('')
-    expect(s.typedIdx.has(0)).toBe(true)
+    expect(s.cur).toBe(1)
+    expect(typedOf(s, 1)).toBe('Li')
     expect(s.done).toBe(false)
   })
   it('wordAt', () => {

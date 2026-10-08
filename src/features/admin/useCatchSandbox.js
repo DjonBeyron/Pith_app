@@ -1,10 +1,9 @@
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { catchHeard, catchHelp } from '../../shared/api/catchApi.js'
 import { catchWords, catchSignal } from '../feed/catch/feedCatch.js'
 import { catchKeyboard } from '../feed/catch/catchLetters.js'
 import * as cs from '../feed/catch/catchState.js'
 
-const WRONG_FLASH_MS = 700
 const LOG_MAX = 40
 // Шаг и «постоянная память» для каждого уровня песочницы (0 — слова нет в памяти)
 const STEP_OF_LEVEL = { 1: 1, 2: 3, 3: 5, 4: 5 }
@@ -22,20 +21,18 @@ function sandboxKnowledge(baseWords, levels, defaultIndex) {
   return { stepOf, settledOf }
 }
 
-// Состояние песочницы «Ловли»: те же чистые переходы catchState.js, что и в useSlideCatch, но без ленты,
+// Состояние песочницы «Ловли» (спек v2): те же чистые переходы catchState.js, что и в useSlideCatch, но без ленты,
 // лимитов, lock и аналитики. Уровни слов задаёт админ (по умолчанию все 0, первое слово — 2).
 // writeMemory — слать ли реальные сигналы (catchHeard/catchHelp) в СВОЮ память; иначе только лог.
-// → { words, levels-доступ, ownCount, current, typed, helped, model, st, wrongFlash, log, memoryNote, ... }
+// → тот же API, что у useSlideCatch (open, phase, cur, typedBy, model, results, openSheet/setCurrent/press/.../finish)
+//   плюс words, levelOf, setLevel, log, memoryNote, reset
 export function useCatchSandbox({ title, moduleId, writeMemory }) {
   const baseWords = useMemo(() => catchWords(title, null), [title])
   const defaultIndex = baseWords[0]?.index ?? -1
   const [levels, setLevels] = useState({}) // { index: 0..4 }, пусто — значения по умолчанию
   const [st, setSt] = useState(() => cs.initialCatch(moduleId))
-  const [wrongFlash, setWrongFlash] = useState(false)
   const [log, setLog] = useState([])
   const [memoryNote, setMemoryNote] = useState('')
-  const flashT = useRef(0)
-  useEffect(() => () => clearTimeout(flashT.current), [])
 
   const knowledge = useMemo(() => sandboxKnowledge(baseWords, levels, defaultIndex), [baseWords, levels, defaultIndex])
   const words = useMemo(() => catchWords(title, knowledge), [title, knowledge])
@@ -53,73 +50,76 @@ export function useCatchSandbox({ title, moduleId, writeMemory }) {
     setMemoryNote('')
   }
 
-  const current = st.current == null ? null : cs.wordAt(words, st.current)
-  const helped = st.current != null && st.helped.has(st.current)
-  const model = useMemo(() => (current ? catchKeyboard(current.text, current.level) : null), [current])
+  const cur = st.cur == null ? null : cs.wordAt(words, st.cur)
+  const helped = st.cur != null && st.helped.has(st.cur)
+  const model = useMemo(() => (cur ? catchKeyboard(cur.text, cur.level) : null), [cur])
 
   const levelOf = w => levels[w.index] ?? (w.index === defaultIndex ? 2 : 0)
   const setLevel = (index, level) => setLevels(l => ({ ...l, [index]: level }))
 
   const reset = () => {
-    clearTimeout(flashT.current)
-    setWrongFlash(false)
     setSt(cs.initialCatch(moduleId))
     setLog([])
     setMemoryNote('')
   }
 
-  function unflash() { if (wrongFlash) setWrongFlash(false) }
-
   // Сигнал в память: пишем только при включённом переключателе; результат — jsonb как текст
   function signal(kind, w) {
-    if (!writeMemory) { addLog(`${kind === 'help' ? 'Помочь памяти' : 'Услышано'}: «${w.text}» (в память не пишем)`); return }
+    const name = kind === 'help' ? 'Подсказать' : 'Услышано'
+    if (!writeMemory) { addLog(`${name}: «${w.text}» (в память не пишем)`); return }
     const call = kind === 'help' ? catchHelp : catchHeard
     call(w.key, moduleId)
       .then(r => setMemoryNote(`${kind} «${w.key}» → ${JSON.stringify(r)}`))
       .catch(e => setMemoryNote(`${kind} «${w.key}» → ошибка: ${e?.message ?? e}`))
-    addLog(`${kind === 'help' ? 'Помочь памяти' : 'Услышано'}: «${w.text}» → в память`)
+    addLog(`${name}: «${w.text}» → в память`)
   }
 
-  const pickWord = index => {
-    setSt(p => cs.pickWord(p, words, index))
+  const openSheet = () => { setSt(p => cs.openSheet(p, words)); addLog('Шторка открыта') }
+  const setCurrent = index => {
+    setSt(p => cs.setCurrent(p, words, index))
     const w = cs.wordAt(words, index)
-    if (w) addLog(`Выбрано слово «${w.text}» (уровень ${w.level})`)
+    if (w) addLog(`Активное слово «${w.text}» (уровень ${w.level})`)
   }
-  const press = ch => { unflash(); setSt(p => cs.press(p, words, ch)) }
-  const backspace = () => { unflash(); setSt(cs.backspace) }
-
-  function help() {
-    if (!current || helped || st.done) return
-    setSt(cs.help)
-    if (catchSignal(current.level, true) === 'help') signal('help', current)
-    else addLog(`Помочь памяти: «${current.text}» (уровень ${current.level} — сигнала нет)`)
-  }
+  const press = ch => setSt(p => cs.press(p, words, ch))
+  const backspace = () => setSt(cs.backspace)
 
   function check() {
-    const { state, result } = cs.check(st, words)
-    if (result === null) return
-    if (result === 'wrong') {
-      clearTimeout(flashT.current)
-      setWrongFlash(true)
-      flashT.current = setTimeout(() => setWrongFlash(false), WRONG_FLASH_MS)
-      addLog(`Неверно: «${current.text}»`)
-      return
-    }
+    if (st.phase !== 'type' || st.done) return
+    const { state, results } = cs.check(st, words)
     setSt(state)
-    if (catchSignal(current.level, helped) === 'heard') signal('heard', current)
-    else addLog(`Верно: «${current.text}» (${helped ? 'с помощью' : `уровень ${current.level} — сигнала нет`})`)
-    if (state.done) addLog('Все слова набраны — фраза открыта')
+    for (const r of results) {
+      const w = cs.wordAt(words, r.index)
+      if (!w) continue
+      if (r.ok && catchSignal(w.level, st.helped.has(r.index)) === 'heard') signal('heard', w)
+      else addLog(`${r.ok ? 'Верно' : r.typed ? 'Неверно' : 'Пропущено'}: «${w.text}»${r.ok ? ' (сигнала нет)' : ''}`)
+    }
+    addLog(`Проверить: ${cs.okCount(results)} из ${words.length}`)
+  }
+
+  function next() {
+    if (!cur || st.phase !== 'type') return
+    if (cs.isLast(st, words)) { check(); return }
+    setSt(p => cs.next(p, words))
+  }
+
+  function help() {
+    if (!cur || helped || st.phase !== 'type' || st.done) return
+    setSt(cs.help)
+    if (catchSignal(cur.level, true) === 'help') signal('help', cur)
+    else addLog(`Подсказать: «${cur.text}» (уровень ${cur.level} — сигнала нет)`)
   }
 
   function reveal() {
-    if (st.done) return
-    setSt(cs.reveal)
-    addLog('Раскрыть фразу — ненабранные не засчитаны')
+    if (st.phase !== 'type' || st.done) return
+    setSt(p => cs.reveal(p, words))
+    addLog('Раскрыть — сигналов нет')
   }
 
+  const finish = () => { setSt(cs.finish); addLog('Готово — фраза открыта') }
+
   return {
-    words, levelOf, setLevel, current, helped, model, typed: st.typed, open: st.open, done: st.done,
-    typedIndexes: st.typedIdx, remaining: cs.remainingOf(st, words), wrongFlash, log, memoryNote,
-    pickWord, press, backspace, help, check, reveal, reset,
+    words, levelOf, setLevel, open: st.open, phase: st.phase, done: st.done, revealed: st.revealed,
+    cur, curIndex: st.cur, typedBy: st.typedBy, helped, model, results: st.results, isLast: cs.isLast(st, words),
+    log, memoryNote, openSheet, setCurrent, press, backspace, next, check, help, reveal, finish, reset,
   }
 }

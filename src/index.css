@@ -16,6 +16,9 @@
 @import './styles/feed-word-translate.css';
 @import './styles/feed-recall.css';
 @import './styles/feed-catch.css';
+@import './styles/feed-catch-sheet.css';
+@import './styles/feed-catch-strip.css';
+@import './styles/feed-catch-confirm.css';
 @import './styles/feed-media.css';
 @import './styles/feed-swiper.css';
 @import './styles/feed-video-loader.css';

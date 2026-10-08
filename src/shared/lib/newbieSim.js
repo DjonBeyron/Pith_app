@@ -19,7 +19,7 @@ const NB = 'nb:'
 const SHARED = new Set([
   FLAG, 'pithy_user_mode_v1', 'pithy_admin_sub_v1',
   'pithy_player_debug_ui_v1', 'pithy_audio_static_waveform_v1', 'pithy_word_choice_voice_v1', 'pithy_debug', 'pithy_perf_flags',
-  'pithy_weak_device_v5', 'pithy_motion_ok_v1',
+  'pithy_weak_device_v6', 'pithy_motion_ok_v1',
   'pithy_anon_id', 'pithy_events_queue', 'pithy_login_guard_v1',
   'pithy_last_edited_lesson', 'pithy_last_editor_mode', 'pithy_table_templates',
 ])

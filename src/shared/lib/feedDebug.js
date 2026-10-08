@@ -1,6 +1,6 @@
 import { isLessonOpen, onLessonOpenChange } from './lessonOpen.js'
 import { APP_VERSION } from './version.js'
-import { isWeakDevice, markWeakDevice, probeGpu } from './deviceTier.js'
+import { isWeakDevice, markWeakDevice, probeGpu, weakDeviceReason } from './deviceTier.js'
 
 // Дебаг ленты: кольцевой лог событий + снимок окружения (размеры окна,
 // безопасные зоны iPhone, standalone-режим). Открывается кнопкой DBG
@@ -166,7 +166,7 @@ export function collectEnv() {
     `version: ${APP_VERSION}`,
     `time: ${new Date().toISOString()}`,
     `device: ${probeDevice()}`,
-    `weakDevice: ${isWeakDevice()}`,
+    `weakDevice: ${isWeakDevice()} (причина: ${weakDeviceReason()})`,
     `fps: ${fpsSnapshot()}`,
     `ua: ${navigator.userAgent}`,
     `standalone: navigator=${String(window.navigator.standalone ?? 'n/a')} media=${window.matchMedia('(display-mode: standalone)').matches}`,

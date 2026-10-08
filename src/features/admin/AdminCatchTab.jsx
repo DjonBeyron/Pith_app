@@ -1,22 +1,27 @@
 import { useState, useEffect } from 'react'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { listCatchCounts } from '../../shared/api/catchApi.js'
-import { catchOwnCount } from '../feed/catch/feedCatch.js'
-import CatchChip from '../feed/catch/CatchChip.jsx'
-import CatchMaskedWords from '../feed/catch/CatchMaskedWords.jsx'
-import CatchPanel from '../feed/catch/CatchPanel.jsx'
 import { useCatchSandbox } from './useCatchSandbox.js'
+import AdminCatchPhone from './AdminCatchPhone.jsx'
+import AdminCatchHelp from './AdminCatchHelp.jsx'
 
-const LEVELS = [0, 1, 2, 3, 4]
+const LEVELS = [
+  [0, 'серый'], [1, 'зелёный'], [2, 'синий'], [3, 'золотой'], [4, 'фиолетовый'],
+]
+// Ключ счётчиков попапов «Раскрыть»/«Подсказать» (catchConfirm.js его не экспортирует, файлы ленты не трогаем)
+const CONFIRM_KEY = 'pithy_catch_confirm_v1'
 
-// Админ → «Ловля»: песочница механики «Ловля слов» без ленты и без реальной памяти. Берём фразу модуля,
-// для каждого слова админ выбирает уровень 0–4 (как будто слово так сильно в памяти), и ловит слова на
-// настоящих CatchChip / CatchMaskedWords / CatchPanel. Сигналы в СВОЮ память — только если включён переключатель.
+// Админ → «Ловля»: песочница механики «Ловля слов» (спек v2) без ленты и без реальной памяти. Берём фразу модуля,
+// для каждого слова админ выбирает уровень 0–4 (как будто слово так сильно в памяти) и ловит слова на настоящих
+// компонентах в «телефоне» 390px (AdminCatchPhone). Сигналы в СВОЮ память — только если включён переключатель.
+// Кнопка «?» раскрывает справку для автора (AdminCatchHelp).
 export default function AdminCatchTab() {
   const [mods, setMods] = useState(null) // null — загрузка
   const [modId, setModId] = useState('')
   const [write, setWrite] = useState(false)
   const [counts, setCounts] = useState(null)
+  const [help, setHelp] = useState(false)
+  const [popupNote, setPopupNote] = useState('')
 
   useEffect(() => {
     loadCurricula()
@@ -36,18 +41,26 @@ export default function AdminCatchTab() {
     setCounts([...m.entries()].sort((a, b) => b[1] - a[1]))
   }
 
+  function resetPopups() {
+    try {
+      localStorage.removeItem(CONFIRM_KEY)
+      setPopupNote('Счётчики попапов сброшены — «Раскрыть» и «Подсказать» снова спросят подтверждение')
+    } catch {
+      setPopupNote('Не удалось сбросить: localStorage недоступен')
+    }
+  }
+
   return (
     <div className="aeWrap">
       <div className="aeHead">
         <span className="aeTitle">Ловля слов (песочница)</span>
+        <button
+          className={`acHelpBtn${help ? ' acHelpBtnOn' : ''}`} aria-expanded={help} aria-label="Справка"
+          onClick={() => setHelp(h => !h)}
+        >?</button>
         <button className="aeRefresh" onClick={sb.reset}>Сбросить</button>
       </div>
-      <p className="aeHint">
-        Песочница: тут нет ленты, лимитов и реальной памяти — уровень каждого слова задаёшь сам. Уровни и число
-        запутывателей на клавиатуре: 0 — нет; 1 — 1; 2 — 2–3; 3 — 4–5; 4 — вся клавиатура. «Помочь памяти» —
-        сигнал «не расслышал» (слово завтра первой карточкой), верный набор своего слова (уровень 2+) без помощи —
-        «услышано в живой речи».
-      </p>
+      {help && <AdminCatchHelp />}
 
       <select className="acSelect" value={modId} onChange={e => setModId(e.target.value)} aria-label="Фраза">
         {(mods ?? []).map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
@@ -59,6 +72,19 @@ export default function AdminCatchTab() {
         Писать сигналы в память (мою)
       </label>
 
+      <div className="arvActions">
+        <button className="aeRefresh" onClick={resetPopups}>Сбросить счётчики попапов</button>
+        <button className="aeRefresh" onClick={showCounts}>Показать счётчики «услышано»</button>
+      </div>
+      {popupNote && <p className="aeHint">{popupNote}</p>}
+      {counts?.length === 0 && <p className="aeHint">Счётчиков пока нет</p>}
+      {(counts ?? []).map(([word, n]) => (
+        <div key={word} className="aeRow arvRow">
+          <span className="arvWord">{word}</span>
+          <span className="arvMeta">· {n}</span>
+        </div>
+      ))}
+
       {mod && sb.words.length === 0 && <p className="aeHint">У фразы нет слов</p>}
 
       {mod && sb.words.length > 0 && (
@@ -68,65 +94,21 @@ export default function AdminCatchTab() {
               <label key={w.index} className="acLevel">
                 <span>{w.text}</span>
                 <select value={sb.levelOf(w)} onChange={e => sb.setLevel(w.index, Number(e.target.value))}>
-                  {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                  {LEVELS.map(([l, name]) => <option key={l} value={l}>{l} {name}</option>)}
                 </select>
               </label>
             ))}
           </div>
 
-          <div className="acPhone">
-            <div className="acPhrase">
-              <CatchChip
-                ownCount={catchOwnCount(sb.words)}
-                remaining={sb.done ? 0 : sb.remaining}
-                total={sb.words.length}
-                started={sb.open}
-              />
-              <div className="feedPhrase feedPhraseCatch">
-                <CatchMaskedWords
-                  title={mod.title}
-                  words={sb.words}
-                  typedIndexes={sb.done ? new Set(sb.words.map(w => w.index)) : sb.typedIndexes}
-                  currentIndex={sb.current?.index ?? -1}
-                  onPick={sb.pickWord}
-                />
-              </div>
-            </div>
-            {sb.open && (
-              <CatchPanel
-                current={sb.current}
-                typed={sb.typed}
-                helped={sb.helped}
-                model={sb.model}
-                wrongFlash={sb.wrongFlash}
-                remaining={sb.remaining}
-                onKey={sb.press}
-                onBackspace={sb.backspace}
-                onHelp={sb.help}
-                onCheck={sb.check}
-                onReveal={sb.reveal}
-              />
-            )}
-          </div>
+          <AdminCatchPhone title={mod.title} sb={sb} />
 
           {sb.memoryNote && <p className="aeHint acMemory">{sb.memoryNote}</p>}
           <div className="acLog" aria-label="Лог действий">
-            {sb.log.length === 0 ? <span className="aeHint">Лог действий пуст — тапни слово под маской</span>
+            {sb.log.length === 0 ? <span className="aeHint">Лог действий пуст — нажми чип «Проверь, что услышал»</span>
               : sb.log.map((t, i) => <div key={i}>{t}</div>)}
           </div>
         </>
       )}
-
-      <div className="arvActions">
-        <button className="aeRefresh" onClick={showCounts}>Показать счётчики «услышано»</button>
-      </div>
-      {counts?.length === 0 && <p className="aeHint">Счётчиков пока нет</p>}
-      {(counts ?? []).map(([word, n]) => (
-        <div key={word} className="aeRow arvRow">
-          <span className="arvWord">{word}</span>
-          <span className="arvMeta">· {n}</span>
-        </div>
-      ))}
     </div>
   )
 }

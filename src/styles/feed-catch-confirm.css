@@ -1,0 +1,72 @@
+/* Попап-подтверждение «Раскрыть» / «Подсказать» в шторке «Ловли слов»
+   (features/feed/catch/CatchConfirmPopup.jsx). Мини-карточка над кнопками шторки.
+   Появление — общая «пружинка» popSpringIn (pop-spring.css), растёт от нижнего края.
+   Анимируются только opacity и transform. */
+.catchConfirm {
+  --pop-dy: 14px;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+  padding: 14px 16px 10px;
+  border-radius: 16px;
+  background: rgba(30, 30, 34, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  transform-origin: 50% 100%;
+  animation: popSpringIn 0.45s backwards;
+}
+
+.catchConfirmTitle {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.catchConfirmText {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.catchConfirmActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.catchConfirmOk,
+.catchConfirmCancel {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.catchConfirmOk {
+  background: #b6fe3b;
+  color: #111;
+}
+
+.catchConfirmCancel {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.catchConfirmOk:active,
+.catchConfirmCancel:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catchConfirm { animation: popFadeIn 0.2s ease-out backwards; }
+}

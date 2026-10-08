@@ -1,21 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { catchHeard, catchHelp } from '../../../shared/api/catchApi.js'
 import { track } from '../../../shared/lib/analytics/track.js'
-import { catchWords, catchEligible, catchOwnCount, catchSignal } from './feedCatch.js'
+import { catchWords, catchEligible, catchSignal } from './feedCatch.js'
 import { catchKeyboard } from './catchLetters.js'
 import * as cs from './catchState.js'
 
-const WRONG_FLASH_MS = 700 // красная тряска строки при неверном «Проверить»
+export const CATCH_COVER_OUT_MS = 300 // шторка и полоска уезжают вниз (feed-catch-sheet.css: 260мс + запас)
 
-// «Ловля слов» на одном слайде ленты (спек: «напечатай слова фразы, которые расслышал»).
-// Решение «задание есть на этом слайде»: слова фразы с уровнями по памяти (catchWords), фраза подходит
-// (catchEligible: задание включено у модуля, нет слова «Помнишь?», есть свои слова ≥2) и лента разрешила
-// (feedCatch.claim — лимиты, один раз на модуль). Переходы состояния — catchState.js (чистые), здесь —
-// их связка с React, сигналы в память (catchApi: напечатал сам → «услышано», «Помочь памяти» → «не расслышал»)
-// и аналитика. Пока панель открыта — onLock(true): лента не свайпается. Память «Моего обучения»
-// обновляется (onLearnChanged), когда задание закончено, если был сигнал.
-// → { active, open, words, ownCount, current, typed, helped, model, typedIndexes, remaining, done, wrongFlash,
-//     pickWord(index), press(ch), backspace(), help(), check() → 'correct'|'wrong'|null, reveal() }
+// «Ловля слов» на одном слайде ленты (спек v2: чип поверх шариков → шторка с клавиатурой + полоска фразы,
+// слова по порядку, «Проверить» — финал со сравнением). Решение «задание есть на этом слайде»: слова фразы с уровнями
+// по памяти (catchWords), фраза подходит (catchEligible: включено у модуля, нет слова «Помнишь?», есть свои слова ≥2)
+// и лента разрешила (feedCatch.claim — лимиты, один раз на модуль). Переходы состояния — catchState.js (чистые),
+// здесь — их связка с React, сигналы в память и аналитика.
+// Сигналы (catchApi): при check — за каждое своё слово (уровень ≥2), набранное верно и без подсказки → catchHeard;
+// при help — сразу catchHelp (своё слово); при reveal — ничего. Пока шторка открыта — onLock(true): лента не свайпается.
+// Память «Моего обучения» обновляется (onLearnChanged) после «Готово», если был сигнал.
+// → { active, open, mounted, phase, done, revealed, words, cur, curIndex, typed, typedBy, helped, helpedSet, model,
+//     results, isLast, openSheet(), setCurrent(index), press(ch), backspace(), next(), check(), help(), reveal(), finish() }
 export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, onLock, onLearnChanged }) {
   const words = useMemo(() => catchWords(mod.title, knowledge), [mod.title, knowledge])
   const eligible = catchEligible(words, { enabled: mod.feedCatchEnabled, recallIndex })
@@ -30,21 +31,36 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   }, [active, eligible, claimed, mod.id, feedCatch])
 
   const [st, setSt] = useState(() => cs.initialCatch(mod.id))
-  // Лента подменила фразу в этой копии слайда — состояние с нуля; слайд ушёл с экрана — панель закрыта
+  // Лента подменила фразу в этой копии слайда — состояние с нуля; слайд ушёл с экрана — шторка закрыта
   // (сброс при рендере, не в эффекте — как в useTranslationReveal)
   if (st.modId !== mod.id) setSt(cs.initialCatch(mod.id))
-  else if (!active && st.open) setSt(cs.closePanel(st))
-  const s = st.modId !== mod.id ? cs.initialCatch(mod.id) : active ? st : cs.closePanel(st)
+  else if (!active && st.open) setSt(cs.closeSheet(st))
+  const s = st.modId !== mod.id ? cs.initialCatch(mod.id) : active ? st : cs.closeSheet(st)
   const update = fn => setSt(p => (p.modId === mod.id ? fn(p) : p))
 
-  // Блокировка свайпа — пока панель открыта на активном слайде
+  // Блокировка свайпа — пока шторка открыта на активном слайде
   const open = active && s.open
   const lockRef = useRef(onLock)
   useEffect(() => { lockRef.current = onLock })
   useEffect(() => { lockRef.current?.(open) }, [open])
   useEffect(() => () => lockRef.current?.(false), [])
 
-  // Был сигнал в память — сообщаем ленте, когда задание закончено (или слайд размонтирован)
+  // Накрытие остаётся в DOM ещё CATCH_COVER_OUT_MS после закрытия — доигрывает уход вниз
+  // (closing поднимается при рендере в момент закрытия, таймер его гасит)
+  const [closing, setClosing] = useState(false)
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (prevOpen !== open) {
+    setPrevOpen(open)
+    if (!open) setClosing(true)
+  }
+  useEffect(() => {
+    if (!closing) return
+    const t = setTimeout(() => setClosing(false), CATCH_COVER_OUT_MS)
+    return () => clearTimeout(t)
+  }, [closing])
+  const mounted = open || closing
+
+  // Был сигнал в память — сообщаем ленте после «Готово» (или когда слайд размонтирован)
   const dirty = useRef(false)
   const changedRef = useRef(onLearnChanged)
   useEffect(() => { changedRef.current = onLearnChanged })
@@ -53,71 +69,73 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   }, [s.done])
   useEffect(() => () => { if (dirty.current) changedRef.current?.() }, [])
 
-  const [wrongFlash, setWrongFlash] = useState(false)
-  const flashT = useRef(0)
-  useEffect(() => () => clearTimeout(flashT.current), [])
-  function flash() {
-    clearTimeout(flashT.current)
-    setWrongFlash(true)
-    flashT.current = setTimeout(() => setWrongFlash(false), WRONG_FLASH_MS)
-  }
-
-  const current = s.current == null ? null : cs.wordAt(words, s.current)
-  const helped = s.current != null && s.helped.has(s.current)
-  const model = useMemo(() => (current ? catchKeyboard(current.text, current.level) : null), [current])
+  const cur = s.cur == null ? null : cs.wordAt(words, s.cur)
+  const helped = s.cur != null && s.helped.has(s.cur)
+  const model = useMemo(() => (cur ? catchKeyboard(cur.text, cur.level) : null), [cur])
   const started = useRef(null) // id фразы, за которую уже ушло feed_catch_start
 
-  function pickWord(index) {
-    if (s.done || s.typedIdx.has(index)) return
-    update(p => cs.pickWord(p, words, index))
+  function openSheet() {
+    if (s.done || s.open) return
+    update(p => cs.openSheet(p, words))
     if (started.current !== mod.id) { started.current = mod.id; track('feed_catch_start', { module_id: mod.id }) }
   }
 
-  function press(ch) {
-    if (wrongFlash) setWrongFlash(false)
-    update(p => cs.press(p, words, ch))
+  const setCurrent = index => update(p => cs.setCurrent(p, words, index))
+  const press = ch => update(p => cs.press(p, words, ch))
+  const backspace = () => update(cs.backspace)
+
+  // «Следующее слово»; на последнем слове — это «Проверить»
+  function next() {
+    if (!cur || s.phase !== 'type') return
+    if (cs.isLast(s, words)) { check(); return }
+    update(p => cs.next(p, words))
+    track('feed_catch_next', { level: cur.level, typed: cs.typedOf(s, s.cur).length > 0 })
   }
 
-  function backspace() {
-    if (wrongFlash) setWrongFlash(false)
-    update(cs.backspace)
-  }
-
-  // «Помочь памяти»: запутыватели гаснут; своё слово (≥2) — сигнал «не расслышал» сразу, не ждём набора
-  function help() {
-    if (!current || helped || s.done) return
-    update(cs.help)
-    if (catchSignal(current.level, true) === 'help') {
-      dirty.current = true
-      catchHelp(current.key, mod.id).catch(() => {})
-    }
-  }
-
-  // «Проверить»: верно → маска слова спадает, сигнал «услышано» (своё слово без помощи); неверно — тряска
+  // «Проверить» → финал. Сигнал «услышано» — за своё слово, набранное верно и без подсказки
   function check() {
-    const { state, result } = cs.check(s, words)
-    if (result === null) return null
-    track('feed_catch_word', { level: current.level, helped, ok: result === 'correct' })
-    if (result === 'wrong') { flash(); return result }
+    if (s.phase !== 'type' || s.done) return
+    const { state, results } = cs.check(s, words)
     setSt(state)
-    if (catchSignal(current.level, helped) === 'heard') {
-      dirty.current = true
-      catchHeard(current.key, mod.id).catch(() => {})
+    for (const r of results) {
+      const w = cs.wordAt(words, r.index)
+      if (r.ok && w && catchSignal(w.level, s.helped.has(r.index)) === 'heard') {
+        dirty.current = true
+        catchHeard(w.key, mod.id).catch(() => {})
+      }
     }
-    if (state.done) track('feed_catch_finish', { typed: state.typedIdx.size, total: words.length })
-    return result
+    track('feed_catch_check', { ok: cs.okCount(results), total: words.length, helped: s.helped.size })
   }
 
-  // «Раскрыть фразу»: всё открывается, ненабранные слова не засчитываются
+  // «Подсказать»: запутыватели гаснут; своё слово (≥2) — сигнал «не расслышал» сразу, не ждём набора
+  function help() {
+    if (!cur || helped || s.phase !== 'type' || s.done) return
+    update(cs.help)
+    if (catchSignal(cur.level, true) === 'help') {
+      dirty.current = true
+      catchHelp(cur.key, mod.id).catch(() => {})
+    }
+    track('feed_catch_hint', { level: cur.level })
+  }
+
+  // «Раскрыть»: тот же финал, сигналов нет
   function reveal() {
-    if (s.done) return
-    update(cs.reveal)
-    track('feed_catch_reveal', { typed: s.typedIdx.size, total: words.length })
+    if (s.phase !== 'type' || s.done) return
+    update(p => cs.reveal(p, words))
+    track('feed_catch_reveal', { typed: s.typedBy.size, total: words.length })
+  }
+
+  // «Готово»: шторка уезжает, слайд становится обычным открытым (FeedSlide: revealed=true)
+  function finish() {
+    if (s.phase !== 'result' || s.done) return
+    update(cs.finish)
+    track('feed_catch_finish', { ok: cs.okCount(s.results), total: words.length, revealed: s.revealed })
   }
 
   return {
-    active: claimed, open, words, ownCount: catchOwnCount(words), current, typed: s.typed, helped, model,
-    typedIndexes: s.typedIdx, remaining: cs.remainingOf(s, words), done: s.done, wrongFlash,
-    pickWord, press, backspace, help, check, reveal,
+    active: claimed, open, mounted, phase: s.phase, done: s.done, revealed: s.revealed, words,
+    cur, curIndex: s.cur, typed: s.cur == null ? '' : cs.typedOf(s, s.cur), typedBy: s.typedBy,
+    helped, helpedSet: s.helped, model, results: s.results, isLast: cs.isLast(s, words),
+    openSheet, setCurrent, press, backspace, next, check, help, reveal, finish,
   }
 }

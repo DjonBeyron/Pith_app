@@ -1,152 +1,79 @@
-/* «Ловля слов» в ленте (features/feed/catch: CatchMaskedWords, CatchChip, CatchPanel, useSlideCatch).
-   Каждое слово фразы накрыто своей маской с узором шариков (общий .bubblePattern, feed-bubble-spoiler.css),
-   чип над фразой подсказывает что делать, панель набора выезжает снизу слайда. Анимируются только
-   opacity и transform. */
+/* «Ловля слов» в ленте (features/feed/catch, спек v2) — общая часть: чип поверх шариков, обёртка-перехват тапа,
+   накрытие слайда (.catchCover: полоска + шторка одним блоком) и сдвиг контролов видео, пока оно открыто.
+   Шторка — feed-catch-sheet.css, полоска фразы — feed-catch-strip.css. Анимируются только opacity и transform. */
 
-/* ── Маски слов ─────────────────────────────────────────────────────── */
-/* Контейнер фразы в режиме ловли: слова — якорь для маски, цвет слова проявляется за 320мс, когда маска спала
-   (у .fwWord свой переход 120мс — здесь перекрываем) */
-.feedPhraseCatch .fwWord {
+/* ── Обёртка спойлера, когда задание есть ───────────────────────────── */
+/* Якорь для чипа; тап по любому месту (шарики или чип) открывает шторку (перехват на capture в FeedSlide) */
+.catchSpoilerWrap {
   position: relative;
-  transition: color 320ms ease, text-shadow 320ms ease;
 }
 
-/* Замаскированное слово: текст прозрачный (место занято — ширина фразы не меняется), тени нет —
-   иначе силуэт букв читался бы сквозь узор */
-.feedPhraseCatch .fwWord.fwMasked {
-  color: transparent;
-  text-shadow: none;
-}
-
-/* Узор поверх слова: чуть шире самого слова, мягкие края (та же маска-градиент, что у статичного спойлера,
-   только короче — элемент маленький). Всегда в DOM: спадание маски — переход opacity, а не размонтирование */
-.fwMaskPattern {
+/* ── Чип поверх шариков ─────────────────────────────────────────────── */
+/* По центру фразы, выше canvas/картинки спойлера (они без z-index внутри .phraseBubbleWrap). Мягкое «дыхание»
+   масштаба зовёт нажать; пока шторка открыта — гаснет (фраза под накрытием всё равно не видна) */
+.catchOverChip {
   position: absolute;
-  inset: -4px -6px;
-  border-radius: 10px;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  padding: 7px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-shadow: none;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  animation: catchChipBreath 2.4s ease-in-out infinite;
+  transition: opacity 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.catchOverChip:active { background: rgba(0, 0, 0, 0.78); }
+.catchOverChipHidden {
   opacity: 0;
   pointer-events: none;
-  -webkit-mask-image:
-    linear-gradient(to right, transparent, #000 7px, #000 calc(100% - 7px), transparent),
-    linear-gradient(to bottom, transparent, #000 5px, #000 calc(100% - 5px), transparent);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent, #000 7px, #000 calc(100% - 7px), transparent),
-    linear-gradient(to bottom, transparent, #000 5px, #000 calc(100% - 5px), transparent);
-  mask-composite: intersect;
-  transition: opacity 320ms ease;
+  animation: none;
 }
-.fwMasked .fwMaskPattern { opacity: 0.94; }
-
-/* Текущее слово (его сейчас печатают): тонкое лаймовое кольцо и мягкое «дыхание» узора */
-.fwWord.fwCatching { box-shadow: 0 0 0 1.5px rgba(182, 254, 59, 0.8); }
-.fwCatching .fwMaskPattern { animation: catchMaskBreath 1.6s ease-in-out infinite; }
-@keyframes catchMaskBreath { 50% { opacity: 0.55; } }
-
-/* ── Чип над фразой ─────────────────────────────────────────────────── */
-.catchChip {
-  display: inline-block;
-  max-width: 100%;
-  margin-bottom: 8px;
-  padding: 5px 10px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.3;
-  text-shadow: none;
+@keyframes catchChipBreath {
+  50% { transform: translate(-50%, -50%) scale(1.045); }
 }
 
-/* ── Панель набора ──────────────────────────────────────────────────── */
-/* Внизу слайда над нижней навигацией; фон и ободок как у панелей плеера (.phrasePanel). z-index выше HUD (5),
-   плашки перевода (6) и тоста (7). Не выше ~46% слайда — тап по видео над панелью ставит паузу как раньше */
-.catchPanel {
+/* ── Накрытие: полоска + шторка ─────────────────────────────────────── */
+/* Один блок у нижней навигации: колонка «полоска, затем шторка». z-index выше HUD (5), плашки перевода (6)
+   и тоста (7). Сам блок касаний не ловит — только его дети (между ними зазоров нет) */
+.catchCover {
   position: absolute;
   left: 0;
   right: 0;
   bottom: var(--v2-nav-h);
   z-index: 8;
-  max-height: 46%;
-  overflow-y: auto;
-  background: #1a1d22;
-  border-top: 1px solid #2a2d35;
-  border-radius: 18px 18px 0 0;
-  transform: translateY(105%);
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
-  touch-action: manipulation;
-}
-.catchPanelVisible { transform: translateY(0); }
-
-.catchPanelInner {
-  max-width: 600px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px 10px;
+  pointer-events: none;
 }
+.catchCover > * { pointer-events: auto; }
 
-/* Строка набранного — центрируем слово (в плеере строка такая же, но слева) */
-.catchAnswerRow {
-  justify-content: center;
-  align-items: center;
+/* ── Сдвиг контролов видео, пока накрытие открыто ───────────────────── */
+/* Иконка паузы и чипы звука (SlideVideo.jsx, базовые правила в feed-media.css) поднимаются на половину высоты
+   накрытия (--catch-cover-h ставит FeedSlide, 0 когда закрыто) — остаются по центру ВИДИМОЙ части видео и не
+   пересекаются с полоской фразы. Формула с переменной стоит и в закрытом состоянии: тогда возврат тоже плавный */
+.feedSlide .slidePauseIcon {
+  transform: translate(-50%, calc(-50% - var(--catch-cover-h, 0px) / 2));
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-
-/* Между словами: клавиатуры нет, одна подсказка на её месте */
-.catchNext {
-  min-height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
-}
-
-.catchBtns {
-  display: flex;
-  gap: 8px;
-}
-.catchCheckBtn { flex: 1 1 0; width: auto; }
-
-/* «Помочь памяти» — вторичная: тёмная, без лаймовой рамки */
-.catchHelpBtn {
-  flex: 1 1 0;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #e8eaee;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.catchHelpBtn:active { background: rgba(255, 255, 255, 0.14); }
-
-/* «Раскрыть фразу» — текстовая ссылка, подпись под ней */
-.catchRevealBtn {
-  align-self: center;
-  padding: 4px 8px;
-  border: none;
-  background: none;
-  color: rgba(255, 255, 255, 0.55);
-  font: inherit;
-  font-size: 12.5px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-.catchRevealNote {
-  margin-top: -6px;
-  text-align: center;
-  font-size: 11px;
-  color: #555d72;
+.feedSlide .feedSoundChip {
+  transform: translate(-50%, calc(46px - var(--catch-cover-h, 0px) / 2));
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .catchPanel { transition: none; }
-  .fwCatching .fwMaskPattern { animation: none; }
+  .catchOverChip { animation: none; }
+  .feedSlide .slidePauseIcon,
+  .feedSlide .feedSoundChip { transition: none; }
 }

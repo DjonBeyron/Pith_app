@@ -12,7 +12,7 @@ describe('режим «новенький»: песочница ключей', (
   it('админка, отладка, настройки устройства и служебные — общие, не трогаются', () => {
     for (const k of [
       'pithy_newbie_sim_v1', 'pithy_user_mode_v1', 'pithy_admin_sub_v1', 'pithy_player_debug_ui_v1', 'pithy_debug',
-      'pithy_weak_device_v5', 'pithy_motion_ok_v1', 'pithy_anon_id', 'pithy_events_queue', 'pithy_lazy_reload_foo',
+      'pithy_weak_device_v6', 'pithy_motion_ok_v1', 'pithy_anon_id', 'pithy_events_queue', 'pithy_lazy_reload_foo',
     ]) expect(sandboxKey(k)).toBe(k)
   })
 
