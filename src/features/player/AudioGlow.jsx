@@ -2,25 +2,27 @@ import { useEffect, useRef } from 'react'
 import { subscribeAudioLevel } from './audioLevel.js'
 import { startUiSoundGlow } from './soundGlow.js'
 import {
-  POINTS, CANVAS_W as W, CANVAS_H as H, glowContour, contourDelta, contourPeak, pointX, pointY,
+  POINTS, CANVAS_W as W, CANVAS_H as H, CSS_H, SCALE, OX, OY, glowContour, contourDelta, innerX, innerY,
 } from './audioGlowShape.js'
+import { LAYERS } from './audioGlowLayers.js'
 
-// Свечение в нижних углах чата урока: два зеркальных фиолетовых «облака»
-// (цвет постоянной памяти, --lvlP / WIRE_COLORS.perm), прижатых к нижнему
-// левому и правому углам; заходят вверх вдоль боковой стороны и немного
-// внутрь по низу, в центре низа пусто. Форма следует спектру: низкие частоты —
-// ядро в углу, средние — вылет вверх, высокие — верхушка (audioGlowShape.js).
+// Свечение в нижних углах чата урока: тонкая фиолетовая КАЙМА (цвет
+// постоянной памяти, --lvlP / WIRE_COLORS.perm) вдоль края экрана, идущая по
+// скруглению угла телефона и продолжающаяся прямыми участками вверх по боковой
+// кромке и внутрь по низу; левый и правый углы зеркальны. Тихий звук — базовая
+// заполненная дуга (угол «сформирован»), громкий — толщина растёт внутрь,
+// вылет вверх до ≈143 px; полосы спектра задают форму (audioGlowShape.js).
 // Реагирует на ВСЕ звуки урока — источники в audioLevel.js (спектр —
 // shared/lib/audioSpectrum.js), звуки интерфейса — soundGlow.js.
 //
-// Два маленьких <canvas> (W×H каждый), растянутых CSS до ≈ 68×150 px —
-// билинейное сглаживание прячет ступеньки. Рисуется ОДИН (левый), правый —
-// его зеркальная копия через drawImage. Ни одного React-рендера во время
-// игры: уровень и полосы приходят из общего rAF-цикла (≤30 к/с), перерисовка
-// лишь если контур сдвинулся заметно (≥ MIN_DELTA). Размер canvas фиксирован;
-// никаких filter/blur/shadowBlur. В покое слой скрыт (visibility), rAF нет,
-// canvas не трогаем. Стили — audio-glow.css
-const MIN_DELTA = 0.015
+// Два маленьких <canvas> (48×75, растянуты CSS до 96×150 — билинейное
+// сглаживание прячет ступеньки). Рисуется ОДИН (левый), правый — его
+// зеркальная копия через drawImage. Ни одного React-рендера во время игры:
+// уровень и полосы приходят из общего rAF-цикла (≤30 к/с), перерисовка лишь
+// если контур сдвинулся заметно (≥ MIN_DELTA, 0.02 ≈ 0.8 px толщины). Размер canvas фиксирован;
+// никаких filter/blur/shadowBlur/градиентов. В покое слой скрыт (visibility),
+// rAF нет, canvas не трогаем. Стили — audio-glow.css
+const MIN_DELTA = 0.02
 
 export default function AudioGlow() {
   const rootRef  = useRef(null)
@@ -79,31 +81,23 @@ export default function AudioGlow() {
 
 const STATIC_BANDS = new Float32Array([0.5, 0.5, 0.35, 0.25])
 
-// Слои одного контура с масштабом: накопление source-over даёт мягкую кромку
-// и спад прозрачности по высоте — у низа экрана перекрываются все 6 слоёв
-// (≈ 90 % непрозрачности), у верхней точки амплитуды — только самый внешний
-// (≈ 5 %). Альфа слоя меняется по вертикали (градиент от низа к ВЕРХУ ТЕКУЩЕГО
-// контура): 0.32 → 0.20 → 0.09 → 0.05 ⇒ суммарно по краю ≈ .90 / .59 / .17 / .05
-const LAYERS = [1, 0.82, 0.64, 0.47, 0.31, 0.16]
-const GRADIENT = [
-  [0,    'rgba(167, 139, 250, 0.32)'],   // #a78bfa у кромки экрана
-  [0.35, 'rgba(139, 92, 246, 0.20)'],    // #8b5cf6
-  [0.7,  'rgba(139, 92, 246, 0.09)'],
-  [1,    'rgba(139, 92, 246, 0.05)'],
-]
-
-// Левый canvas рисуем сами (6 заливок гладкого контура: квадратичные дуги
-// через середины отрезков), правый — зеркальная копия через drawImage.
-// clearRect перед каждой отрисовкой — прозрачность вне свечения. Один
-// createLinearGradient на кадр: он растянут по пику текущего контура
+// Левый canvas рисуем сами: LAYER_COUNT слоёв каймы (audioGlowLayers.js), каждый —
+// замкнутый путь «внешняя кромка экрана → внутренняя граница назад» с
+// толщиной × scale слоя; внутренняя граница — квадратичные дуги через
+// середины отрезков. Накопление слоёв даёт альфу ≈ 0.90 у кромки → 0.05 внутри.
+// Правый — зеркальная копия через drawImage. clearRect перед каждой отрисовкой
 function makePainter(ctx, ctxR, source) {
-  const contourPath = (c, s) => {
+  const cx = x => x * SCALE
+  const cy = y => (CSS_H - y) * SCALE
+
+  const layerPath = (c, s) => {
     ctx.beginPath()
-    ctx.moveTo(0, H)
-    let px = pointX(c[0] * s, 0) * W, py = H - pointY(c[0] * s, 0) * H
+    ctx.moveTo(cx(OX[0]), cy(OY[0]))
+    for (let i = 1; i < POINTS; i++) ctx.lineTo(cx(OX[i]), cy(OY[i]))   // по кромке экрана
+    let px = cx(innerX(c, POINTS - 1, s)), py = cy(innerY(c, POINTS - 1, s))
     ctx.lineTo(px, py)
-    for (let i = 1; i < POINTS; i++) {
-      const x = pointX(c[i] * s, i) * W, y = H - pointY(c[i] * s, i) * H
+    for (let i = POINTS - 2; i >= 0; i--) {                              // назад по внутренней границе
+      const x = cx(innerX(c, i, s)), y = cy(innerY(c, i, s))
       ctx.quadraticCurveTo(px, py, (px + x) / 2, (py + y) / 2)
       px = x; py = y
     }
@@ -112,12 +106,12 @@ function makePainter(ctx, ctxR, source) {
   }
 
   return c => {
-    const peak = Math.max(contourPeak(c), 0.05)
-    const grad = ctx.createLinearGradient(0, H, 0, H * (1 - peak))
-    for (const [offset, color] of GRADIENT) grad.addColorStop(offset, color)
     ctx.clearRect(0, 0, W, H)
-    ctx.fillStyle = grad
-    for (const s of LAYERS) { contourPath(c, s); ctx.fill() }
+    for (const layer of LAYERS) {
+      ctx.fillStyle = layer.color
+      layerPath(c, layer.scale)
+      ctx.fill()
+    }
     ctxR.clearRect(0, 0, W, H)
     ctxR.setTransform(-1, 0, 0, 1, W, 0)
     ctxR.drawImage(source, 0, 0)

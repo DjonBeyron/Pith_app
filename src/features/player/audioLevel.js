@@ -1,4 +1,5 @@
 import { WAVEFORM_FPS } from '../../shared/lib/audioUtils.js'
+import { getEqSensitivity } from '../../shared/lib/audioSettings.js'
 
 // Общий «уровень звука» урока для свечения снизу чата (AudioGlow.jsx).
 // Чистое состояние без React: источники (голосовое, слово, диктор таблицы,
@@ -148,13 +149,20 @@ function tick(now) {
   lastFrameAt = now
   let max = 0
   frameMax.fill(0)
+  // Чувствительность свечения (глобальная настройка админа, 0.3…3, 1 = как
+  // есть): множитель уровня и полос ДО порогов MIN_LEVEL/BAND_FLOOR и до формы —
+  // больше: тихий звук проходит порог и даёт больший вылет, меньше — наоборот
+  const sens = getEqSensitivity()
   for (const s of sources.values()) {
-    const v = clamp01(s.getLevel(now))
+    const v = clamp01(s.getLevel(now) * sens)
     s.on = v >= (s.on ? MIN_LEVEL_OFF : MIN_LEVEL)   // гистерезис
     if (!s.on) continue                              // тихий источник — нулевой вклад
     if (v > max) max = v
-    if (!(s.getBands && s.getBands(now, tmp))) synthBands(v, now / 1000, s.profile, tmp)
-    for (let k = 0; k < BANDS; k++) { const b = clamp01(tmp[k]); if (b >= BAND_FLOOR && b > frameMax[k]) frameMax[k] = b }
+    // Настоящий спектр масштабируем сами; синтез строится от уже умноженного уровня
+    const real = !!(s.getBands && s.getBands(now, tmp))
+    if (!real) synthBands(v, now / 1000, s.profile, tmp)
+    const sensBands = real ? sens : 1
+    for (let k = 0; k < BANDS; k++) { const b = clamp01(tmp[k] * sensBands); if (b >= BAND_FLOOR && b > frameMax[k]) frameMax[k] = b }
   }
   smoothed += (max - smoothed) * (max > smoothed ? ATTACK : RELEASE)
   let live = false

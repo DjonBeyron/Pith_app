@@ -94,10 +94,14 @@ describe('лог и версия в шапке урока', () => {
   it('набор закрыт общим условием, а не висит всегда', () => {
     expect(hook).toContain('return isAdmin || forEveryone')
     // Штамп версии поверх чата тоже висел у всех и всегда, мимо переключателя
-    expect(overlays).toContain('{showDebugUi && <div className="playerVersionStamp">{buildStamp()}</div>}')
+    // (теперь ещё и за «Показывать FPS и версию» админа — hudVisible)
+    expect(overlays).toContain('const showHud = showDebugUi && hudVisible(isAdmin, hud)')
+    expect(overlays).toContain('{showHud && <div className="playerVersionStamp">{buildStamp()}</div>}')
     // Кнопка раньше рисовалась вообще без проверки — из-за этого она
-    // оставалась на экране и в «режиме пользователя»
-    expect(bar).toContain('{showDebugUi && (')
+    // оставалась на экране и в «режиме пользователя». Админу она больше не
+    // нужна в шапке (лог в шестерёнке), ученику — по тому же условию
+    expect(bar).toContain('const showLogBtns = showDebugUi && !isAdmin')
+    expect(bar).toContain('{showLogBtns && (')
     const btn = bar.slice(bar.indexOf('className="playerTopBarDebugBtn"'))
     expect(btn.slice(0, btn.indexOf('>⬇ лог<'))).toContain('onClick={onDownloadLog}')
   })

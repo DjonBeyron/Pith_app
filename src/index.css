@@ -91,6 +91,8 @@
 @import './styles/player/admin-solve.css';
 @import './styles/player/topbar.css';
 @import './styles/player/volume-menu.css';
+@import './styles/player/settings-menu.css';
+@import './styles/player/settings-sliders.css';
 @import './styles/player/feed.css';
 @import './styles/player/resume-lesson.css';
 @import './styles/player/lesson-ref.css';

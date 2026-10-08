@@ -24,6 +24,7 @@ import StreakGateOverlay from '../features/streak/StreakGateOverlay.jsx'
 import LessonEditorOverlays from './LessonEditorOverlays.jsx'
 import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
 import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
+import { prefetchAudioSettings } from '../shared/lib/audioSettings.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
 import { wordChoiceVoice } from '../shared/lib/wordChoiceVoice.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
@@ -109,6 +110,8 @@ export default function ShellV2() {
     prefetchPlayerDebugUi()
     // Заморозка спектра голосовых (тоже глобальная настройка) — по той же причине
     prefetchAudioStaticWaveform()
+    // Глобальные настройки звука (громкость звуков интерфейса, чувствительность эквалайзера)
+    prefetchAudioSettings()
     wordChoiceVoice.prefetch() // озвучка в «Выбери слово» — тоже глобальный флаг
     // Датчик движения: согласие уже давали — тихо продлеваем на первом касании
     armMotionOnGesture()

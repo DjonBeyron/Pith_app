@@ -11,7 +11,7 @@ class FakeAudio {
   removeEventListener() {}
 }
 globalThis.Audio = FakeAudio
-const { playSound, onSoundPlayed, setSoundsMuted } = await import('./sounds.js')
+const { playSound, onSoundPlayed, setSoundsMuted, setSoundFilter } = await import('./sounds.js')
 const tick = () => new Promise(r => setTimeout(r, 0))
 
 describe('onSoundPlayed: подписка на старт звука интерфейса (для свечения снизу чата)', () => {
@@ -54,5 +54,41 @@ describe('onSoundPlayed: подписка на старт звука интер�
     await tick()
     expect(calls).toBe(0)
     off2()
+  })
+})
+
+// Фильтр «пользователь отключил звук» (шестерёнка в шапке урока, lessonPrefs.js)
+describe('setSoundFilter: отключённый пользователем звук не играет', () => {
+  beforeEach(() => { nextDuration = 0.42; rejectPlay = false; setSoundsMuted(false); setSoundFilter(null) })
+
+  it('без фильтра играет всё (по умолчанию пропускает всё)', async () => {
+    const got = []
+    const off = onSoundPlayed(name => got.push(name))
+    playSound('typing-1')
+    await tick()
+    expect(got).toEqual(['typing-1'])
+    off()
+  })
+
+  it('фильтр вернул false — play() не вызывается, свечение не будится; остальные звуки играют', async () => {
+    const got = []
+    const off = onSoundPlayed(name => got.push(name))
+    setSoundFilter(name => name !== 'xp-gain')
+    playSound('xp-gain')
+    playSound('answer-correct')
+    await tick()
+    expect(got).toEqual(['answer-correct'])
+    off()
+  })
+
+  it('setSoundFilter(null) снимает фильтр; не-функция тоже', async () => {
+    const got = []
+    const off = onSoundPlayed(name => got.push(name))
+    setSoundFilter(() => false)
+    setSoundFilter('мусор')
+    playSound('level-up')
+    await tick()
+    expect(got).toEqual(['level-up'])
+    off()
   })
 })

@@ -51,7 +51,7 @@ describe('все источники звука урока публикуют у�
   it('звуки интерфейса — через onSoundPlayed из sounds.js (shared/lib фич не импортирует)', () => {
     const sounds = read('../../shared/lib/sounds.js')
     expect(sounds).toContain('export function onSoundPlayed(cb)')
-    expect(sounds).toContain('notifyPlayed(name, audio)')
+    expect(sounds).toContain('notifyPlayed(name, audio.duration)')
     expect(sounds).not.toMatch(/from '\.\.\/\.\.\/features/)
     expect(read('./AudioGlow.jsx')).toContain('startUiSoundGlow()')
   })

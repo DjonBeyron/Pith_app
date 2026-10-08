@@ -2,13 +2,15 @@
    постоянной памяти (#8b5cf6 / #a78bfa, см. --lvlP в memory-ladder.css и
    WIRE_COLORS.perm в learn/ladderWires.js).
 
-   Два маленьких <canvas> (48×104 «пикселя»), растянутых до 68×150 px: левый
+   Два маленьких <canvas> (48×75 «пикселей»), растянутых до 96×150 px: левый
    прижат к нижнему левому углу, правый — к нижнему правому (рисунок правого —
-   зеркальная копия, зеркалит JS через drawImage, не CSS). Каждое «облако»
-   заходит вверх вдоль боковой стороны (до ≈ 144px) и лишь немного внутрь по
-   низу (≈ 58px, ≤ 16 % ширины); в центре низа пусто (audioGlowShape.js).
-   Растягивание билинейное (image-rendering по умолчанию) — прячет ступеньки.
-   Размеры тут и CANVAS_W/CANVAS_H в audioGlowShape.js держат одно соотношение.
+   зеркальная копия, зеркалит JS через drawImage). Внутри — тонкая КАЙМА по
+   краю экрана: идёт по скруглению угла телефона (радиус 44 px,
+   SCREEN_CORNER_R в audioGlowShape.js) и продолжается прямыми участками вверх
+   по боковой кромке (до ≈ 143 px от низа) и внутрь по низу (до ≈ 92 px от
+   края); в центре низа пусто. Растягивание билинейное (image-rendering по
+   умолчанию) — прячет ступеньки. Размеры тут и CSS_W/CSS_H в audioGlowShape.js
+   держат одно соотношение.
 
    НИКАКОГО background / mix-blend-mode / filter у слоя и canvas: вне свечения
    пиксели прозрачны (на Android непрозрачный фон canvas = чёрный прямоугольник).
@@ -43,7 +45,7 @@
 .audioGlowCanvas {
   position: absolute;
   bottom: 0;
-  width: 68px;
+  width: 96px;
   height: 150px;
   display: block;
   pointer-events: none;
@@ -52,7 +54,7 @@
 .audioGlowCanvasL { left: 0; }
 .audioGlowCanvasR { right: 0; }
 
-/* Меньше движения: AudioGlow.jsx рисует одну статичную «L»-форму, тусклее */
+/* Меньше движения: AudioGlow.jsx рисует одну статичную кайму, тусклее */
 @media (prefers-reduced-motion: reduce) {
   .audioGlowOn .audioGlowCanvas { opacity: 0.6; }
 }
