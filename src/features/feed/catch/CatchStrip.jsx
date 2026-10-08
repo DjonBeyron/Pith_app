@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import CatchStripPhrase from './CatchStripPhrase.jsx'
 import CatchTypedLine from './CatchTypedLine.jsx'
 import CatchFact from './CatchFact.jsx'
@@ -11,8 +11,8 @@ import { FIT_NONE } from './catchFit.js'
 // слов (onMeasure → metrics), он же отдаёт облачкам их прямоугольники (regions). Фраза всегда в одну строку: если с
 // большими промежутками между словами она не влезает, масштаб (fit — catchFit.js; считает CatchStripPhrase) уменьшает её
 // целиком, и тот же масштаб получает строка набранного — слоты остаются точно под облачками.
-// Между фразой и строкой набранного — слот .catchCmpSlot (14px) с линией, под строкой набранного — слот факта
-// .catchFactSlot (24px): оба есть ВСЕГДА, во время набора пустые и прозрачные, поэтому на финале ничего не раздвигается.
+// Между фразой и строкой набранного — слот .catchCmpSlot (8px) с линией по центру, под строкой набранного — слот факта
+// .catchFactSlot (44px): оба есть ВСЕГДА, во время набора пустые и прозрачные, поэтому на финале ничего не раздвигается.
 // Финал (phase 'result'): клавиатура уехала, облачка раскрываются по очереди; после последнего рисуется линия
 // (.catchCompareRule, scaleX 0→1), затем под строкой набранного плавно проявляется факт «Расслышал N из M слов»
 // (CatchFact), цвета набранного (верные зелёным, неверные красным, пропущенные «—») проявляются в строке набранного —
@@ -23,7 +23,8 @@ export default function CatchStrip({ title, words, cur = null, typedBy, phase = 
   const result = phase === 'result'
   // Замер слов приходит из наблюдателя за размерами; неизменившийся замер состояние не трогает
   const [metrics, setMetrics] = useState(null)
-  const onMeasure = m => setMetrics(prev => (prev && prev.sig === m.sig ? prev : m))
+  // Стабильный колбэк: CatchStripPhrase мемоизирован и не должен перерисовываться на каждую набранную букву
+  const onMeasure = useCallback(m => setMetrics(prev => (prev && prev.sig === m.sig ? prev : m)), [])
   const [fit, setFit] = useState(FIT_NONE)
   const okCount = results?.filter(r => r.ok).length ?? 0
 

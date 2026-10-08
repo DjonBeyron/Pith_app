@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import { Heart, Bookmark, Check, Fingerprint } from 'lucide-react'
 import { logRepost } from '../../shared/api/moduleSocialApi.js'
 import { useSlowMotion } from './useSlowMotion.js'
@@ -11,7 +11,7 @@ const SLOW_HINT_SEEN_MS = 400 // сколько держать зону, что�
 // (MyLessonSlide) — вынесен сюда, чтобы не дублировать кнопки и логику.
 // showSlowHint/onSlowHintSeen (обучающая подсказка про замедление) передаёт
 // только FeedSlide — в «Моих уроках» её не показываем (см. useSlowMotionHint.js).
-export default function FeedHud({
+function FeedHud({
   module: mod, slideKey, active, soundOn,
   reaction, likeCount, saveCount = 0, repostCount = 0,
   onToggleLike, onToggleSave,
@@ -133,3 +133,6 @@ export default function FeedHud({
     </>
   )
 }
+
+// memo: см. SlideVideo — набор слова в «Ловле» не должен перерисовывать HUD (пропсы от ленты стабильны)
+export default memo(FeedHud)

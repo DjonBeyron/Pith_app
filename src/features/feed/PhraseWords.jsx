@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { splitTitleTokens, wordTranslation } from '../../shared/lib/titleWords.js'
 
 // Название модуля в ленте, разбитое на слова: слово, у которого есть перевод,
@@ -12,7 +13,7 @@ import { splitTitleTokens, wordTranslation } from '../../shared/lib/titleWords.j
 // вкладке «Память» (.fwKnown--1|2|3|P, только цвет — ширина фразы не меняется); нет — белое.
 // lureIndex — слово со сроком «сегодня»: мягко «дышит» (.fwDue) и по тапу открывает проверку.
 // tint — цвет плашки повторения: открытое слово заливается им вместо лайма
-export default function PhraseWords({ title, entries, activeIndex, enabled, onPick, levelOf = null, lureIndex = -1, tint = null }) {
+function PhraseWords({ title, entries, activeIndex, enabled, onPick, levelOf = null, lureIndex = -1, tint = null }) {
   const tokens = splitTitleTokens(title)
   return (
     <>
@@ -39,3 +40,6 @@ export default function PhraseWords({ title, entries, activeIndex, enabled, onPi
     </>
   )
 }
+
+// memo: слова фразы не зависят от набора «Ловли» (onPick в FeedSlide — стабильная обёртка)
+export default memo(PhraseWords)

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildGrid } from './phraseBubbleGrid.js'
 import { drawFloat } from './phraseBubbleDraw.js'
-import { MARGIN_X, MARGIN_Y } from './phraseBubbleConsts.js'
+import { MARGIN_X, MARGIN_Y, REGION_DENSITY } from './phraseBubbleConsts.js'
 import { REGION_PAD } from './phraseBubbleRegions.js'
 
 // Почему «Ловля» слипалась в единую массу: зазор между словами фразы 5-9px, а шарик на пике (радиус с дыханием +
@@ -50,7 +50,7 @@ describe('buildGrid: облачка не слипаются', () => {
     const two = [word(0, 0, 40), word(54, 0, 40)]
     const mean = (list, f) => list.reduce((s, b) => s + f(b), 0) / list.length
     let nodes = 0, nodesAlone = 0, amp = 0, ampAlone = 0
-    const RUNS = 6
+    const RUNS = 24 // узлов в облачке стало меньше (REGION_DENSITY) — для среднего амплитуды нужно больше запусков, иначе шум ~1%
     for (let k = 0; k < RUNS; k++) {
       const alone = buildGrid(40, 20, [word(0, 0, 40)])
       const grid = buildGrid(94, 20, two)
@@ -105,19 +105,31 @@ describe('buildGrid: облачка не слипаются', () => {
     expect(Math.min(...ext.map(e => e.x0))).toBeLessThan(-REGION_PAD)
   })
 
-  it('плотность внутри слова — как у сплошной ленты, вне облачков — ноль', () => {
-    const solid = buildGrid(40, 20, null).filter(b => {
+  it('плотность внутри слова = REGION_DENSITY × плотность ленты (±10%), вне облачков — ноль', () => {
+    // Слово побольше и усреднение по запускам: на 40×20 край сетки (±1 ряд) давал бы шум больше допуска
+    const W = 120, H = 40
+    const inRect = b => {
       const x = b.ax - MARGIN_X, y = b.ay - MARGIN_Y
-      return x >= 0 && x <= 40 && y >= 0 && y <= 20
-    })
+      return x >= 0 && x <= W && y >= 0 && y <= H
+    }
+    let solid = 0, inWord = 0
+    const RUNS = 8
+    for (let k = 0; k < RUNS; k++) {
+      solid += buildGrid(W, H, null).filter(inRect).length
+      inWord += buildGrid(W + 160, H, [word(0, 0, W, H), word(W + 120, 0, 40, H)]).filter(b => b.region === 0 && inRect(b)).length
+    }
+    const ratio = inWord / solid
+    expect(ratio).toBeGreaterThan(REGION_DENSITY * 0.9)
+    expect(ratio).toBeLessThan(REGION_DENSITY * 1.1)
     const cloud = buildGrid(200, 20, [word(0, 0, 40), word(160, 0, 40)])
-    const inWord = cloud.filter(b => {
-      const x = b.ax - MARGIN_X, y = b.ay - MARGIN_Y
-      return b.region === 0 && x >= 0 && x <= 40 && y >= 0 && y <= 20
-    })
-    expect(inWord.length).toBeGreaterThan(solid.length * 0.9)
-    expect(inWord.length).toBeLessThan(solid.length * 1.1)
     expect(cloud.filter(b => b.ax - MARGIN_X > 40 + 25 && b.ax - MARGIN_X < 160 - 25)).toHaveLength(0)
+  })
+
+  it('типичная фраза из 5 слов (17px, зазоры ~20px): не больше 1500 узлов (было ~6000 — тормозило набор)', () => {
+    const h = 20
+    let x = 0
+    const regions = [48, 57, 38, 66, 48].map(w => { const r = word(x, 0, w, h); x += w + 20; return r })
+    expect(buildGrid(x - 20, h, regions).length).toBeLessThanOrEqual(1500)
   })
 
   it('число узлов с regions не больше, чем у сплошной сетки того же блока (две строки по 30px, слова 20px, зазоры ~5px)', () => {

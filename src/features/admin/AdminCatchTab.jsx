@@ -5,6 +5,7 @@ import { useCatchSandbox } from './useCatchSandbox.js'
 import AdminCatchPhone from './AdminCatchPhone.jsx'
 import AdminCatchHelp from './AdminCatchHelp.jsx'
 import { setForcedCatch, sendToFeed } from '../feed/catch/catchForce.js'
+import { readCatchPrefs, writeCatchPrefs, resolveModuleId, withLevels } from './catchAdminPrefs.js'
 
 const LEVELS = [
   [0, 'серый'], [1, 'зелёный'], [2, 'синий'], [3, 'золотой'], [4, 'фиолетовый'],
@@ -16,12 +17,14 @@ const CONFIRM_KEY = 'pithy_catch_confirm_v1'
 // для каждого слова админ выбирает уровень 0–4 (как будто слово так сильно в памяти) и ловит слова на настоящих
 // компонентах в «телефоне» 390px (AdminCatchPhone). Сигналы в СВОЮ память — только если включён переключатель.
 // Кнопка «?» раскрывает справку для автора (AdminCatchHelp).
+// Выбор помнится между заходами (catchAdminPrefs.js, localStorage): фраза, уровни слов по каждой фразе, переключатель
+// записи в память и раскрытая справка. «Сбросить» чистит только ввод в песочнице, сохранённый выбор не трогает.
 export default function AdminCatchTab() {
   const [mods, setMods] = useState(null) // null — загрузка
-  const [modId, setModId] = useState('')
-  const [write, setWrite] = useState(false)
+  const [prefs, setPrefs] = useState(readCatchPrefs)
+  const [modId, setModId] = useState(prefs.moduleId)
+  const { write, help } = prefs
   const [counts, setCounts] = useState(null)
-  const [help, setHelp] = useState(false)
   const [popupNote, setPopupNote] = useState('')
   const [feedNote, setFeedNote] = useState('')
 
@@ -30,13 +33,19 @@ export default function AdminCatchTab() {
       .then(rows => {
         const list = rows.filter(r => r.title)
         setMods(list)
-        setModId(list[0]?.id ?? '')
+        setModId(resolveModuleId(prefs.moduleId, list)) // сохранённой фразы уже нет — первая
       })
       .catch(() => setMods([]))
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const mod = mods?.find(m => m.id === modId) ?? null
-  const sb = useCatchSandbox({ title: mod?.title ?? '', moduleId: mod?.id ?? null, writeMemory: write })
+  const save = next => { setPrefs(next); writeCatchPrefs(next) }
+  const sb = useCatchSandbox({
+    title: mod?.title ?? '', moduleId: mod?.id ?? null, writeMemory: write,
+    savedLevels: prefs.levelsByModule[modId] ?? null,
+    onLevelsChange: (id, levels) => save(withLevels(prefs, id, levels)),
+  })
+  const pickModule = id => { setModId(id); save({ ...prefs, moduleId: id }) }
 
   async function showCounts() {
     const m = await listCatchCounts()
@@ -69,7 +78,7 @@ export default function AdminCatchTab() {
         <span className="aeTitle">Ловля слов (песочница)</span>
         <button
           className={`acHelpBtn${help ? ' acHelpBtnOn' : ''}`} aria-expanded={help} aria-label="Справка"
-          onClick={() => setHelp(h => !h)}
+          onClick={() => save({ ...prefs, help: !help })}
         >?</button>
         <button className="aeRefresh" onClick={sb.reset}>Сбросить</button>
         <button className="aeRefresh" onClick={sendFeed} disabled={!mod || sb.words.length === 0}>Отправить в ленту</button>
@@ -80,13 +89,13 @@ export default function AdminCatchTab() {
       {feedNote && <p className="aeHint">{feedNote}</p>}
       {help && <AdminCatchHelp />}
 
-      <select className="acSelect" value={modId} onChange={e => setModId(e.target.value)} aria-label="Фраза">
+      <select className="acSelect" value={modId} onChange={e => pickModule(e.target.value)} aria-label="Фраза">
         {(mods ?? []).map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
       </select>
       {mods && mods.length === 0 && <p className="aeHint">Нет фраз (модулей с названием)</p>}
 
       <label className="acSwitch">
-        <input type="checkbox" checked={write} onChange={e => setWrite(e.target.checked)} />
+        <input type="checkbox" checked={write} onChange={e => save({ ...prefs, write: e.target.checked })} />
         Писать сигналы в память (мою)
       </label>
 

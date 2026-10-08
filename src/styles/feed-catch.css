@@ -122,8 +122,8 @@
 .feedViewHidden .catchOverChip,
 .feedV2--paused .catchChipText,
 .feedViewHidden .catchChipText,
-.feedV2--paused .catchCaret,
-.feedViewHidden .catchCaret { animation: none; }
+.feedV2--paused .catchCaret::after,
+.feedViewHidden .catchCaret::after { animation: none; }
 
 /* ── Накрытие: полоска + шторка ─────────────────────────────────────── */
 /* Один блок у нижней навигации: колонка «полоска, затем шторка». z-index выше HUD (5), плашки перевода (6)

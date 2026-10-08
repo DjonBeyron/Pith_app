@@ -1,9 +1,13 @@
 // Тайминги финала «Ловли слов» (спек: сначала клавиатура уезжает, и только потом шарики раскрываются облачко за облачком).
-// Согласованы с CSS (feed-catch-sheet.css: сворачивание шторки 260мс; feed-catch-strip.css: линия/факт/цвета).
+// Согласованы с CSS (feed-catch-sheet.css: сворачивание шторки 260мс; feed-catch-strip.css: линия/факт/цвета) и с длиной
+// растворения одного облачка EXPLODE_MS (phraseBubbleConsts.js): соседние облачка не накладываются во времени больше, чем
+// на CATCH_EXPLODE_OVERLAP от его длины (0.6: пространственно облачка не пересекаются — разлёт ограничен половиной зазора, phraseBubbleFlight.js, — поэтому по времени можно наползать).
+import { EXPLODE_MS } from '../phraseBubbleConsts.js'
 
 export const CATCH_COLLAPSE_MS = 280      // шторка сворачивается 260мс (+ запас) — взрывы начинаются после
-export const CATCH_EXPLODE_STEP_MS = 120  // шаг между облачками, слева направо
-export const CATCH_COMPARE_GAP_MS = 380   // после взрыва последнего облачка — линия, набранное, факт
+export const CATCH_EXPLODE_OVERLAP = 0.6  // насколько (доля EXPLODE_MS) растворение следующего облачка может налезать на предыдущее
+export const CATCH_EXPLODE_STEP_MS = Math.ceil(EXPLODE_MS * (1 - CATCH_EXPLODE_OVERLAP)) // шаг между облачками, слева направо
+export const CATCH_COMPARE_GAP_MS = 640   // линия, цвета набранного — когда последнее облачко уже на последней трети растворения
 export const CATCH_RULE_MS = 220          // линия рисуется (scaleX 0→1); факт начинает проявляться после неё
 
 // Через сколько мс после «Проверить» начинает взрываться i-е облачко (i с нуля)
@@ -13,4 +17,5 @@ export const explodeAt = i => CATCH_COLLAPSE_MS + i * CATCH_EXPLODE_STEP_MS
 export const compareDelay = n => explodeAt(Math.max(0, n - 1)) + CATCH_COMPARE_GAP_MS
 
 // Через сколько мс после «Проверить» факт «Расслышал N из M слов» начинает проявляться (fade): когда линия уже нарисована
-export const factDelay = n => compareDelay(n) + CATCH_RULE_MS
+// И последнее облачко полностью растворилось (факт появляется после последнего облачка, не поверх него)
+export const factDelay = n => Math.max(compareDelay(n) + CATCH_RULE_MS, explodeAt(Math.max(0, n - 1)) + EXPLODE_MS)

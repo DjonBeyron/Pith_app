@@ -8,6 +8,12 @@ let seq = 0
 // шторке «Ловли слов» не должны расти — автор смотрит на них в DBG
 let rebuilds = 0
 let stills = 0
+// «Ловля слов»: наибольшее число частиц взрыва в воздухе разом и число рендеров слайда с открытым накрытием (на каждой
+// клавише без оптимизации росло бы на 1; теперь клавиша слайд не перерисовывает)
+let peakParticles = 0
+let keyRenders = 0
+let heavyRenders = 0 // рендеры тяжёлого видео-слоя (SlideVideo), пока накрытие открыто: после оптимизации на клавише не растут
+let catchMounted = false
 
 export function nextSpoilerId() {
   return ++seq
@@ -26,6 +32,15 @@ export function countRebuild() { rebuilds++ }
 
 export function countStill() { stills++ }
 
+export function noteParticles(n) { if (n > peakParticles) peakParticles = n }
+
+export function countKeyRender() { keyRenders++ }
+
+// Накрытие «Ловли» на экране или нет (FeedSlide) — SlideVideo считает свои рендеры только пока оно открыто
+export function setCatchMounted(v) { catchMounted = v }
+
+export function countHeavyRender() { if (catchMounted) heavyRenders++ }
+
 export function spoilerStats() {
   let canvases = 0, animating = 0, bubbles = 0, animatingBubbles = 0
   for (const s of stats.values()) {
@@ -33,5 +48,5 @@ export function spoilerStats() {
     bubbles += s.bubbles
     if (s.warm) { animating++; animatingBubbles += s.bubbles }
   }
-  return `canvases=${canvases} (тёплых=${animating}) bubbles=${bubbles} (тёплых=${animatingBubbles}) rebuilds=${rebuilds} stills=${stills}`
+  return `canvases=${canvases} (тёплых=${animating}) nodes=${bubbles} (тёплых=${animatingBubbles}) particles=${peakParticles} keyRenders=${keyRenders} (SlideVideo=${heavyRenders}) rebuilds=${rebuilds} stills=${stills}`
 }

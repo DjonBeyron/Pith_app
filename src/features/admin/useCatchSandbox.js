@@ -10,12 +10,14 @@ const LOG_MAX = 40
 // Состояние песочницы «Ловли» (спек v2): те же чистые переходы catchState.js, что и в useSlideCatch, но без ленты,
 // лимитов, lock и аналитики. Уровни слов задаёт админ (по умолчанию все 0, первое слово — 2).
 // writeMemory — слать ли реальные сигналы (catchHeard/catchHelp) в СВОЮ память; иначе только лог.
+// savedLevels — сохранённые уровни слов ЭТОЙ фразы (catchAdminPrefs.js): подхватываются при смене фразы; onLevelsChange(moduleId,
+// levels) — админ поменял уровень, вкладка сохраняет. «Сбросить» (reset) уровни не трогает — только ввод в песочнице.
 // → тот же API, что у useSlideCatch (open, phase, cur, typedBy, model, results, openSheet/setCurrent/press/.../finish)
 //   плюс hasPrev/prev, words, levelOf, setLevel, log, memoryNote, reset
-export function useCatchSandbox({ title, moduleId, writeMemory }) {
+export function useCatchSandbox({ title, moduleId, writeMemory, savedLevels = null, onLevelsChange }) {
   const baseWords = useMemo(() => catchWords(title, null), [title])
   const defaultIndex = baseWords[0]?.index ?? -1
-  const [levels, setLevels] = useState({}) // { index: 0..4 }, пусто — значения по умолчанию
+  const [levels, setLevels] = useState(savedLevels ?? {}) // { index: 0..4 }, пусто — значения по умолчанию
   const [st, setSt] = useState(() => cs.initialCatch(moduleId))
   const [log, setLog] = useState([])
   const [memoryNote, setMemoryNote] = useState('')
@@ -30,7 +32,7 @@ export function useCatchSandbox({ title, moduleId, writeMemory }) {
   const key = `${moduleId}|${title}`
   if (seenKey !== key) {
     setSeenKey(key)
-    setLevels({})
+    setLevels(savedLevels ?? {})
     setSt(cs.initialCatch(moduleId))
     setLog([])
     setMemoryNote('')
@@ -42,7 +44,11 @@ export function useCatchSandbox({ title, moduleId, writeMemory }) {
   const hasPrev = st.cur != null && words.length > 0 && words[0].index !== st.cur // активное слово не первое
 
   const levelOf = w => levels[w.index] ?? (w.index === defaultIndex ? 2 : 0)
-  const setLevel = (index, level) => setLevels(l => ({ ...l, [index]: level }))
+  const setLevel = (index, level) => {
+    const next = { ...levels, [index]: level }
+    setLevels(next)
+    onLevelsChange?.(moduleId, next)
+  }
 
   const reset = () => {
     setSt(cs.initialCatch(moduleId))

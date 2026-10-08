@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, memo } from 'react'
 import PhraseBubbleSpoiler from '../PhraseBubbleSpoiler.jsx'
 import { LEVEL_CLASS } from './feedCatch.js'
 import { hitWordIndex, underlineBox } from './catchStripGeom.js'
@@ -27,7 +27,7 @@ import { explodeAt } from './catchTiming.js'
 // live — canvas живёт (накрытие открыто и лента видна); false → спит картинкой покоя, состояние не трогается
 const MAX_FIT_STEPS = 4 // подряд смен масштаба, после которых фразу больше не подгоняем, пока не пришёл замер
 
-export default function CatchStripPhrase({
+function CatchStripPhrase({
   title, words, cur = null, result = false, results = null, live = true, regions = null, fit = FIT_NONE, onFit, onMeasure, onPick,
 }) {
   const units = phraseUnits(title)
@@ -132,3 +132,6 @@ export default function CatchStripPhrase({
     </div>
   )
 }
+
+// memo: фраза с облачками зависит только от слов/активного слова/масштаба; набор в строке под ней её не трогает (onPick и onMeasure стабильны)
+export default memo(CatchStripPhrase)

@@ -2,9 +2,12 @@ import { useLayoutEffect, useRef } from 'react'
 import { EXPLODE_MARGIN, drawFloat, drawExplode, launchBubbles, shiftBubbles } from './phraseBubbleDraw.js'
 import { MARGIN_X, MARGIN_Y } from './phraseBubbleConsts.js'
 import { explodedRegions } from './phraseBubbleRegions.js'
+import { EXPLODE_MS } from './phraseBubbleConsts.js'
+import { thinForLaunch } from './phraseBubbleFlight.js'
+import { noteParticles } from './spoilerStats.js'
 
-const EXPLODE_SAFETY_MS = 1500 // взрыв ~0.75с — с двойным запасом
-const SAFETY_PER_REGION_MS = 300 // облачка взрываются по очереди (CatchStripPhrase) — запас на каждое
+const EXPLODE_SAFETY_MS = EXPLODE_MS * 2 // один взрыв длится EXPLODE_MS — с двойным запасом
+const SAFETY_PER_REGION_MS = EXPLODE_MS  // облачка взрываются по очереди (CatchStripPhrase; шаг меньше EXPLODE_MS) — запас на каждое
 
 // Взрыв шариков на том же холсте (вынесено из PhraseBubbleAnimated.jsx). Запускается, когда exploding стало true:
 // первый кадр — до показа, в том же тике открываем текст (setUnlocked + onUnlock).
@@ -53,13 +56,19 @@ export function usePhraseBubbleExplode({
       for (const g of [...pending]) {
         if (!set.has(g) && byRegion) continue
         const list = groups[g]
+        // Частиц в воздухе сразу не больше MAX_PARTICLES на весь холст: лишние из облачка пропадают в момент взрыва
+        // (flying = true — из плавающих выбыли, но в список полёта не попали); считаем только живых
+        const alive = flying.reduce((n, b) => (b.t < EXPLODE_MS ? n + 1 : n), 0)
+        const fly = byRegion ? thinForLaunch(list, alive) : list // сплошная масса ленты (тап) — как раньше, без прореживания
+        for (const b of list) b.flying = true
         if (byRegion) {
           const xs = list.map(b => b.ax), ys = list.map(b => b.ay)
-          launchBubbles(list, (Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2)
+          launchBubbles(fly, (Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2)
         } else {
-          launchBubbles(list, w / 2, h / 2)
+          launchBubbles(fly, w / 2, h / 2)
         }
-        flying.push(...list)
+        noteParticles(alive + fly.length)
+        flying.push(...fly)
         pending.delete(g)
         any = true
       }

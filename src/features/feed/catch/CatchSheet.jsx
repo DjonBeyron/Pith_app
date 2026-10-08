@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import TypeWordKeyboard from '../../player/panels/type-word/TypeWordKeyboard.jsx'
 import CatchConfirmPopup from './CatchConfirmPopup.jsx'
 import { shouldConfirm, noteConfirmShown } from './catchConfirm.js'
@@ -17,7 +17,7 @@ import { shouldConfirm, noteConfirmShown } from './catchConfirm.js'
 // момент, когда шторке можно менять высоту), вместо него раскрывается ряд с одной кнопкой «Готово».
 // cur — активное слово { text, level, ... } или null; isLast — активное слово последнее во фразе;
 // hasPrev — активное слово не первое; shift — следующая буква будет заглавной (первое слово фразы, пока пусто)
-export default function CatchSheet({
+function CatchSheet({
   phase = 'type', cur, helped = false, model, isLast = false, hasPrev = false, shift = false,
   onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
 }) {
@@ -89,3 +89,6 @@ export default function CatchSheet({
     </div>
   )
 }
+
+// memo: клавиатура не зависит от набранного (typedBy ей не передаётся), действия хука стабильны — клавиша перерисовывает только строку набранного
+export default memo(CatchSheet)

@@ -15,6 +15,7 @@ import FeedHud from './FeedHud.jsx'
 import { useSlideCatch } from './catch/useSlideCatch.js'
 import CatchOverChip from './catch/CatchOverChip.jsx'
 import CatchCover from './catch/CatchCover.jsx'
+import { countKeyRender, setCatchMounted } from './spoilerStats.js'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером (перевод фразы появляется, когда её потёрли пальцем —
 // useTranslationReveal), HUD (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
@@ -23,7 +24,13 @@ import CatchCover from './catch/CatchCover.jsx'
 // набора) и блокирует свайп (onLock). Пока оно открыто — класс feedSlideCatchOpen и --catch-cover-h (его высота):
 // иконка паузы и чипы звука сдвигаются вверх (feed-catch.css). «Готово» → слайд обычный открытый (revealed).
 // Состояние лайков живёт в FeedTab, спойлер локален для каждой копии слайда в круге.
+// Производительность набора: состояние «Ловли» (набранное, активное слово) живёт здесь, в useSlideCatch, поэтому каждая
+// клавиша перерисовывает FeedSlide. Тяжёлые дети обёрнуты в React.memo (SlideVideo, FeedHud, PhraseWords; внутри накрытия —
+// CatchStripPhrase и CatchSheet), а их пропсы стабильны: действия хука — стабильные обёртки, onPick слов — обёртка над
+// ref, заглушка видео — константа. На клавише реально перерисовывается только оболочка слайда и строка набранного.
 const PHRASE_OPENED_DELAY_MS = 260 // после «Готово» и размонтирования накрытия: фраза уже проявляется (200мс)
+// Заглушка видео — один элемент на модуль: новый JSX в пропсе ломал бы React.memo у SlideVideo на каждой клавише «Ловли»
+const VIDEO_FALLBACK = <div className="feedSlideHint">здесь будет видео фразы</div>
 
 export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, saveCount = 0, repostCount = 0, tabVisible = true,
@@ -53,6 +60,17 @@ export default function FeedSlide({
   const rc = useSlideRecall({ recall, mod, active, revealed: opened, knowledge, wp: wordTr, onChanged: onLearnChanged })
   // «Ловля слов»: задание ставится, если на слайде нет слова «Помнишь?» (rc.candIndex) — оно главнее
   const ct = useSlideCatch({ feedCatch: catchFeed, mod, active, near, ahead, knowledge, recallIndex: rc.candIndex, onLock, onLearnChanged })
+  // Счётчики для DBG-сводки (spoilerStats): рендеры слайда, пока накрытие открыто (после коммита — не в теле рендера)
+  useEffect(() => { if (ct.mounted) countKeyRender() })
+  useEffect(() => {
+    if (!ct.mounted) return
+    setCatchMounted(true)
+    return () => setCatchMounted(false)
+  }, [ct.mounted])
+  // onPick слов фразы — стабильная обёртка (rc.onPick каждый рендер новая функция и ломала бы memo у PhraseWords)
+  const rcRef = useRef(rc)
+  useEffect(() => { rcRef.current = rc })
+  const onWordPick = useCallback((...args) => rcRef.current.onPick(...args), [])
   // «Готово» на финале задания идёт по порядку (useSlideCatch): накрытие уезжает (260мс) → размонтируется → ТОЛЬКО ТОГДА
   // слайд = обычный открытый (ct.finished: спойлер не рендерится, на его месте слова фразы) и блок фразы проявляется
   // (200мс). До этого момента в кадрах ухода накрытия ни тяжёлого рендера фразы, ни setState ленты (v3.2.1876: рывок)
@@ -104,7 +122,7 @@ export default function FeedSlide({
       entries={mod.wordTranslations}
       activeIndex={pick && !(pick.closing && !pick.soft) ? pick.index : -1}
       enabled={revealed}
-      onPick={rc.onPick}
+      onPick={onWordPick}
       levelOf={rc.levelOf}
       lureIndex={rc.lureIndex}
       tint={rc.tint}
@@ -128,7 +146,7 @@ export default function FeedSlide({
         onSoundOn={onSoundOn}
         onSoundOff={onSoundOff}
         onSoundBlocked={onSoundBlocked}
-        fallback={<div className="feedSlideHint">здесь будет видео фразы</div>}
+        fallback={VIDEO_FALLBACK}
       />
 
       <div className="feedPauseGuard" aria-hidden="true" />

@@ -8,6 +8,9 @@ import * as cs from './catchState.js'
 
 export const CATCH_COVER_OUT_MS = 400 // страховка: накрытие размонтируется по transitionend (CatchCover), но не позже этого (feed-catch.css: уход 260мс)
 const LEARN_SYNC_DELAY_MS = 450 // память «Моего обучения» обновляем после ухода накрытия и проявления фразы (200мс)
+// Действия, которые хук отдаёт наружу: через стабильные обёртки (см. конец хука), чтобы набор клавиш не менял пропсы
+// мемоизированных детей (CatchSheet, CatchStripPhrase, PhraseWords) — иначе каждая клавиша перерисовывала бы весь слайд
+const ACTIONS = ['openSheet', 'setCurrent', 'press', 'backspace', 'next', 'prev', 'check', 'help', 'reveal', 'finish', 'coverGone']
 
 // «Ловля слов» на одном слайде ленты (спек v2: чип поверх шариков → шторка с клавиатурой + полоска фразы,
 // слова по порядку, «Проверить» — финал со сравнением). Решение «задание есть на этом слайде»: слова фразы с уровнями
@@ -31,7 +34,7 @@ const LEARN_SYNC_DELAY_MS = 450 // память «Моего обучения» 
 // не считаются), сигналы в память — только при writeMemory; «Готово» и «Раскрыть» снимают его (разово).
 // → { active, open, mounted, phase, done, finished, revealed, shift, words, cur, curIndex, typed, typedBy, helped, helpedSet, model,
 //     results, isLast, hasPrev, openSheet(), setCurrent(index), press(ch), backspace(), next(), prev(), check(), help(),
-//     reveal(), finish(), coverGone() }
+//     reveal(), finish(), coverGone() } — функции стабильны (одни и те же между рендерами, всегда зовут свежую версию)
 export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = false, knowledge, recallIndex, onLock, onLearnChanged }) {
   // sessionStorage читаем на монтирование/смену фразы и когда админ выставил задание заново (forcedTick), не в каждом рендере
   const [forcedTick, setForcedTick] = useState(0)
@@ -182,11 +185,16 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
     track('feed_catch_finish', { ok: cs.okCount(s.results), total: words.length, revealed: s.revealed })
   }
 
+  // Стабильные действия: обёртки создаются один раз и зовут последнюю версию функций (ref обновляется после каждого рендера)
+  const latest = useRef({ openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish, coverGone })
+  useEffect(() => { latest.current = { openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish, coverGone } })
+  const [stable] = useState(() => Object.fromEntries(ACTIONS.map(name => [name, (...args) => latest.current[name](...args)])))
+
   return {
     active: claimed, open, mounted, phase: s.phase, done: s.done, finished, revealed: s.revealed, forced: !!forced,
     shift: cs.shiftOn(s, words), words,
     cur, curIndex: s.cur, typed: s.cur == null ? '' : cs.typedOf(s, s.cur), typedBy: s.typedBy,
     helped, helpedSet: s.helped, model, results: s.results, isLast: cs.isLast(s, words), hasPrev,
-    openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish, coverGone,
+    ...stable,
   }
 }

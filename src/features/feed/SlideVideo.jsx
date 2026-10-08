@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, memo } from 'react'
 import { Play, VolumeX, Volume2 } from 'lucide-react'
 import { leaseVideo, releaseVideo, unlockAllForSound, kickSurface, rebuildSurface, prepareReturn } from './videoPool.js'
 import { useVideoStall } from './useVideoStall.js'
@@ -7,6 +7,7 @@ import { useFeedVideoCanvas } from './useFeedVideoCanvas.js'
 import { VIDEO_CANVAS } from '../../shared/lib/videoCanvasMode.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { useFeedPaused, getFeedPaused } from './feedPauseState.js'
+import { countHeavyRender } from './spoilerStats.js'
 
 const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга при частых тапах по чипу звука
 
@@ -16,10 +17,11 @@ const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга пр�
 // видео загруженным и на первом кадре — поэтому при свайпе старт мгновенный,
 // без ожидания загрузки. Элементы пула не пересоздаются, звук не гаснет.
 // Тап по видео — пауза/продолжить (сбрасывается при уходе со слайда).
-export default function SlideVideo({
+function SlideVideo({
   videoUrl, posterUrl, slideKey, active = false, near = false, tabVisible = true,
   soundOn = false, soundEverOn = false, onSoundOn, onSoundOff, onSoundBlocked, fallback = null,
 }) {
+  countHeavyRender() // DBG: рендеры видео-слоя, пока открыта «Ловля» (spoilerStats.js)
   // Пауза общая для «Рекомендаций» и «Моих уроков» (feedPauseState.js)
   const [paused, setPaused] = useFeedPaused()
   const rootRef = useRef(null)
@@ -318,3 +320,6 @@ export default function SlideVideo({
     </div>
   )
 }
+
+// memo: слайд перерисовывается на каждую клавишу «Ловли» (состояние набора живёт в FeedSlide), а видео-слой от этого не меняется
+export default memo(SlideVideo)

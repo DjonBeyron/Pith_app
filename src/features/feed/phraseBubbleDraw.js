@@ -3,7 +3,11 @@
 // (покой без canvas: картинка с текущих позиций) и drawExplode (взрыв: fill по бакетам альфы). Сетка (buildGrid) —
 // phraseBubbleGrid.js, константы — phraseBubbleConsts.js. Компонент решает КОГДА рисовать, этот модуль — ЧТО и КАК.
 
-import { PULSE_AMP, WANDER_Y_SCALE, WIGGLE_SECOND_RATIO } from './phraseBubbleConsts.js'
+import { PULSE_AMP, WANDER_Y_SCALE, WIGGLE_SECOND_RATIO, EXPLODE_MS } from './phraseBubbleConsts.js'
+import {
+  EXPLODE_POWER_MIN, EXPLODE_POWER_MAX, EXPLODE_FRICTION_PER_MS, EXPLODE_GRAVITY, EXPLODE_LIFT, EXPLODE_POS_K,
+  limitFlight, clampToLim,
+} from './phraseBubbleFlight.js'
 
 const BUBBLE_COLOR = 'rgb(248,250,252)'
 // Таблица готовых sin/cos вместо живых Math.sin/cos на каждый шарик каждый
@@ -22,31 +26,39 @@ function fastSin(x) {
 function fastCos(x) {
   return fastSin(x + Math.PI / 2)
 }
-const EXPLODE_MS = 750
-const ALPHA_BINS = 14
+// Бакетов альфы (= максимум fill() за кадр взрыва): было 14, 10 различимо так же, а заливок меньше
+const ALPHA_BINS = 10
 // Взрыв: холст на время вспышки увеличивается до этого запаса (см. explode()) —
 // шарики летят с трением (замедляются) и гаснут по мере приближения к новой,
 // уже далёкой границе, поэтому растворяются плавно, а не упираются в край
 export const EXPLODE_MARGIN = 120
 const EXPLODE_FADE_ZONE = 46
-export const EXPLODE_POWER_MIN = 6
-export const EXPLODE_POWER_MAX = 14
-const EXPLODE_FRICTION_PER_MS = 0.992
+// Физика полёта (трение, снос, дальность и ограничение границами облачка) — phraseBubbleFlight.js; длительность — EXPLODE_MS
 
-// Сдвиг всех шариков (холст на время взрыва шире — координаты переезжают на новые поля)
+// Сдвиг всех шариков (холст на время взрыва шире — координаты переезжают на новые поля). Границы облачков (b.lim) —
+// один объект на облачко: сдвигаются вместе с шариками, каждая ровно один раз
 export function shiftBubbles(list, dx, dy) {
-  for (const b of list) { b.ax += dx; b.ay += dy }
+  const lims = new Set()
+  for (const b of list) {
+    b.ax += dx; b.ay += dy
+    if (b.lim && !lims.has(b.lim)) {
+      lims.add(b.lim)
+      b.lim.x0 += dx; b.lim.x1 += dx; b.lim.y0 += dy; b.lim.y1 += dy
+    }
+  }
 }
 
-// Запуск взрыва для набора шариков: каждый летит от центра (cx, cy) с разбросом угла и силы; t = 0
+// Запуск взрыва для набора шариков: каждый летит от центра (cx, cy) с разбросом угла и силы; t = 0. У шариков облачка
+// (есть lim) разлёт ограничен границами облачка (limitFlight): не залетают на соседей
 export function launchBubbles(list, cx, cy) {
   for (const b of list) {
     const angle = Math.atan2(b.ay - cy, b.ax - cx) + (Math.random() - 0.5) * 0.7
     const power = EXPLODE_POWER_MIN + Math.random() * (EXPLODE_POWER_MAX - EXPLODE_POWER_MIN)
     b.vx = Math.cos(angle) * power
-    b.vy = Math.sin(angle) * power - 2
+    b.vy = Math.sin(angle) * power - EXPLODE_LIFT
     b.t = 0
     b.flying = true
+    limitFlight(b, cy)
   }
 }
 
@@ -88,9 +100,11 @@ export function drawFloat(ctx, bubbles, dt) {
 }
 // Взрыв: та же идея, но альфа у каждого шарика своя (время + затухание к
 // краю), поэтому один fill() не подходит — группируем по «бакетам» альфы
-// (ALPHA_BINS штук) и делаем fill() на бакет вместо fill() на шарик
+// (ALPHA_BINS штук) и делаем fill() на бакет вместо fill() на шарик. Бакеты — общие массивы (очищаются каждый кадр),
+// без аллокаций на кадр
+const BUCKETS = Array.from({ length: ALPHA_BINS + 1 }, () => [])
 export function drawExplode(ctx, bubbles, dt, w, h) {
-  const buckets = Array.from({ length: ALPHA_BINS + 1 }, () => [])
+  for (const list of BUCKETS) list.length = 0
   let allDone = true
   for (const b of bubbles) {
     b.t += dt
@@ -100,9 +114,12 @@ export function drawExplode(ctx, bubbles, dt, w, h) {
     // а не летит по прямой бесконечно (что и упиралось бы в границу)
     const decay = EXPLODE_FRICTION_PER_MS ** dt
     b.vx *= decay
-    b.vy = b.vy * decay + 0.01 * dt
-    b.ax += b.vx * dt * 0.06
-    b.ay += b.vy * dt * 0.06
+    b.vy = b.vy * decay + EXPLODE_GRAVITY * dt
+    // sx/sy < 1 — путь урезан границами облачка (limitFlight); у шарика без ограничений их нет
+    b.ax += b.vx * dt * EXPLODE_POS_K * (b.sx ?? 1)
+    b.ay += b.vy * dt * EXPLODE_POS_K * (b.sy ?? 1)
+    clampToLim(b)
+    // Прозрачность падает к концу пути: время жизни и расстояние до края холста
     const timeAlpha = Math.max(0, 1 - (Math.max(0, b.t) / EXPLODE_MS) ** 1.5)
     // Доп. затухание по расстоянию до новой (увеличенной) границы холста —
     // гарантирует, что альфа уйдёт в 0 раньше, чем шарик долетит до края
@@ -110,11 +127,11 @@ export function drawExplode(ctx, bubbles, dt, w, h) {
     const edgeAlpha = Math.max(0, Math.min(1, distToEdge / EXPLODE_FADE_ZONE))
     const alpha = timeAlpha * edgeAlpha
     if (!(alpha > 0.01)) continue // и NaN: бакета под него нет
-    buckets[Math.round(alpha * ALPHA_BINS)].push(b)
+    BUCKETS[Math.round(alpha * ALPHA_BINS)].push(b)
   }
   ctx.fillStyle = BUBBLE_COLOR
   for (let bin = ALPHA_BINS; bin >= 1; bin--) {
-    const list = buckets[bin]
+    const list = BUCKETS[bin]
     if (!list.length) continue
     ctx.globalAlpha = bin / ALPHA_BINS
     ctx.beginPath()

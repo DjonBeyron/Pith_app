@@ -5,7 +5,7 @@
 import { padRegions, regionLimits } from './phraseBubbleRegions.js'
 import {
   SPACING, RADIUS, AMP_MAX, PULSE_AMP, WANDER_Y_SCALE, WIGGLE_SECOND_RATIO,
-  FRINGE_DEPTH_MAX, FRINGE_DEPTH_MAX_Y, MARGIN_X, MARGIN_Y,
+  FRINGE_DEPTH_MAX, FRINGE_DEPTH_MAX_Y, MARGIN_X, MARGIN_Y, REGION_DENSITY, REGION_RADIUS_SCALE,
 } from './phraseBubbleConsts.js'
 
 // Режим «облачка по словам» (regions): шарики колеблются слабее и бахрома мельче, чтобы облачко не заплывало на соседа
@@ -15,18 +15,20 @@ const FRINGE_DENSITY = 1.4 // узлов бахромы на SPACING длины 
 const MIN_FRINGE_DEPTH = 0.3 // глубже этого бахромы с края нет смысла — сторона без бахромы
 
 // Узлы одного прямоугольника (x0, y0, w, h — относительно текстового блока): сетка + бахрома. region — номер облачка
-// (null у сплошной ленты). caps — сколько px бахрома может выйти за прямоугольник с каждой стороны ({ l, r, t, b },
+// (null у сплошной ленты; у облачка узлов в REGION_DENSITY раз меньше — шаг сетки больше, бахромы меньше). caps — сколько px бахрома может выйти за прямоугольник с каждой стороны ({ l, r, t, b },
 // Infinity — без ограничения): у стороны, где вплотную сосед, бахромы нет совсем
 function rectNodes(push, x0, y0, contentW, contentH, region, caps) {
-  const cols = Math.ceil(contentW / SPACING) + 1
-  const rows = Math.ceil(contentH / SPACING) + 1
-  const jitter = SPACING * 0.55
+  const density = region == null ? 1 : REGION_DENSITY
+  const step = SPACING / Math.sqrt(density)
+  const cols = Math.ceil(contentW / step) + 1
+  const rows = Math.ceil(contentH / step) + 1
+  const jitter = step * 0.55
   for (let ry = 0; ry < rows; ry++) {
     for (let rx = 0; rx < cols; rx++) {
-      const offsetX = (ry % 2) * (SPACING / 2)
+      const offsetX = (ry % 2) * (step / 2)
       push(
-        MARGIN_X + x0 + rx * SPACING + offsetX - SPACING / 2 + (Math.random() - 0.5) * jitter,
-        MARGIN_Y + y0 + ry * SPACING - SPACING / 2 + (Math.random() - 0.5) * jitter,
+        MARGIN_X + x0 + rx * step + offsetX - step / 2 + (Math.random() - 0.5) * jitter,
+        MARGIN_Y + y0 + ry * step - step / 2 + (Math.random() - 0.5) * jitter,
         1,
         region,
       )
@@ -48,7 +50,7 @@ function rectNodes(push, x0, y0, contentW, contentH, region, caps) {
     const fullDepth = s.full * depthScale
     const depthMax = Math.min(fullDepth, s.cap)
     if (depthMax < MIN_FRINGE_DEPTH) continue
-    const count = Math.round((s.len / SPACING) * FRINGE_DENSITY * (depthMax / fullDepth))
+    const count = Math.round((s.len / SPACING) * FRINGE_DENSITY * density * (depthMax / fullDepth))
     for (let i = 0; i < count; i++) {
       const along = Math.random() * s.len
       const x = s.ny !== 0 ? along : s.nx > 0 ? contentW : 0
@@ -89,8 +91,9 @@ export function buildGrid(contentW, contentH, regions = null) {
   const bubbles = []
   const byRegion = Array.isArray(regions)
   let lim = null
+  let flightLim = null // те же границы в координатах холста (MARGIN) — на шарике, для разлёта при взрыве (phraseBubbleFlight.js)
   const push = (ax, ay, sizeScale, region) => {
-    const r = RADIUS * sizeScale * (0.6 + Math.random() * 0.8)
+    const r = RADIUS * sizeScale * (0.6 + Math.random() * 0.8) * (byRegion ? REGION_RADIUS_SCALE : 1)
     let amp = (1.3 + Math.random() * (AMP_MAX - 1.3)) * (byRegion ? REGION_WANDER_SCALE : 1)
     if (byRegion) {
       amp = fitAmp(lim, ax - MARGIN_X, ay - MARGIN_Y, r, amp)
@@ -108,6 +111,9 @@ export function buildGrid(contentW, contentH, regions = null) {
       vy: 0,
       t: 0,
       region: byRegion ? region : null,
+      lim: flightLim,
+      sx: 1,
+      sy: 1,
       flying: false,
     })
   }
@@ -115,6 +121,7 @@ export function buildGrid(contentW, contentH, regions = null) {
     const limits = regionLimits(regions)
     padRegions(regions).forEach((p, i) => {
       lim = limits[i]
+      flightLim = { x0: lim.x0 + MARGIN_X, x1: lim.x1 + MARGIN_X, y0: lim.y0 + MARGIN_Y, y1: lim.y1 + MARGIN_Y }
       const caps = {
         l: Math.max(0, p.x - lim.x0), r: Math.max(0, lim.x1 - (p.x + p.w)),
         t: Math.max(0, p.y - lim.y0), b: Math.max(0, lim.y1 - (p.y + p.h)),

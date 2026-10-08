@@ -76,10 +76,12 @@
 /* Те же слова (со знаками), тот же шрифт (17px/700, масштаб — style от CatchTypedLine), тот же word-spacing и то же
    центрирование, что у фразы, поэтому пробелы занимают столько же места, а слот каждого слова (.catchTypedWord)
    растянут минимум до ширины слова-оригинала (min-width ставит CatchTypedLine) — набранное встаёт колонками под
-   своими облачками. Одна строка (nowrap), как у фразы; перенос — только в том же запасном случае (.catchTypedLineWrap). Текст слота по левому краю; набранное лаймом (#b6fe3b) на всём протяжении набора — не белеет при
-   переходе к следующему слову, активное слово отличается курсором (.twCaret из type-word.css) и слотом. Высота одной строки держится min-height, чтобы полоска не прыгала, пока ничего не набрано */
+   своими облачками. Одна строка (nowrap), как у фразы; перенос — только в том же запасном случае (.catchTypedLineWrap).
+   Текст слота по левому краю; набранное лаймом (#b6fe3b) на всём протяжении набора — не белеет при переходе к следующему
+   слову, активное слово отличается курсором (.catchCaret) и слотом. Высота одной строки держится min-height, чтобы
+   полоска не прыгала, пока ничего не набрано */
 .catchTypedLine {
-  min-height: 1.6em;
+  min-height: 1.6em; /* = line-height: пустая строка (ничего не набрано) той же высоты, полоска не прыгает */
   margin-top: 2px;
   font-size: 17px;
   font-weight: 700;
@@ -91,34 +93,58 @@
   word-spacing: var(--catch-ws);
 }
 .catchTypedLine.catchTypedLineWrap { white-space: normal; }
+/* Слоты всех слов одинаковы: одна и та же line-height, общая базовая линия (vertical-align: baseline), min-height = высота
+   строки (пустой слот с ZWSP не ниже заполненного). Курсор НЕ влияет на раскладку (см. .catchCaret ниже), поэтому текст
+   активного слота стоит на одной линии с уже набранными словами */
 .catchTypedWord {
+  position: relative;
   display: inline-block;
-  vertical-align: top;
+  vertical-align: baseline;
+  min-height: 1.6em;
+  line-height: 1.6;
   white-space: pre;
   color: #b6fe3b;
 }
+/* Мигающий курсор конца набранного: нулевая высота в потоке (вклад в строку нулевой), сама чёрточка — ::after, absolute от
+   базовой линии. Раньше это был inline-block высотой 26px (.twCaret из type-word.css) — он раздвигал строку слота и
+   опускал текст активного слова ниже набранных. Анимация мигания — та же twCaretBlink */
 .catchCaret {
   display: inline-block;
+  position: relative;
+  width: 2px;
+  height: 0;
+  margin-left: 2px;
+  vertical-align: baseline;
+}
+.catchCaret::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.22em;
+  width: 2px;
   height: 1.05em;
-  vertical-align: -0.2em;
+  border-radius: 1px;
+  background: #b6fe3b;
+  animation: twCaretBlink 1.1s steps(1) infinite;
 }
 
 /* ── Финал: линия, цвета набранного, факт ───────────────────────────── */
-/* Между фразой и строкой набранного — слот .catchCmpSlot фиксированной высоты 14px с линией; под строкой набранного —
-   слот факта .catchFactSlot фиксированной высоты 24px. Оба есть ВСЕГДА (во время набора пустые и прозрачные), поэтому
+/* Между фразой и строкой набранного — слот .catchCmpSlot фиксированной высоты 8px с линией по центру; под строкой
+   набранного — слот факта .catchFactSlot фиксированной высоты 44px. Оба есть ВСЕГДА (во время набора пустые и прозрачные), поэтому
    на финале ничего не раздвигается и не прыгает, строка набранного стоит на месте.
    После раскрытия всех облачков (задержка --catch-cmp-delay ставит CatchStrip): линия рисуется от центра к краям
    (scaleX 0→1, 220мс), затем факт «Расслышал N из M слов» плавно проявляется (opacity 220мс, без печати; задержка
    --catch-fact-delay = после линии); цвета набранного плавно перетекают из лайма в цвет вердикта, «—» выплывает */
 .catchCmpSlot {
   position: relative;
-  height: 14px;
+  height: 8px;
 }
 .catchCompareRule {
   position: absolute;
   left: 0;
   right: 0;
-  top: 6px;
+  top: 50%;
+  margin-top: -0.5px; /* линия ровно по центру слота: от облачков выше и текста ниже её отделяют края слота и поля строк */
   height: 1px;
   background: rgba(255, 255, 255, 0.14);
   transform: scaleX(0);
@@ -134,15 +160,17 @@
   animation: catchFadeUp 220ms ease-out var(--catch-cmp-delay, 0ms) both;
 }
 
-/* Слот факта под строкой набранного: фиксированная высота, текст по центру. Сам факт (CatchFact) монтируется только
-   на финале и проявляется через opacity с задержкой --catch-fact-delay */
-.catchFactSlot { height: 24px; }
+/* Слот факта под строкой набранного: фиксированная высота 44px, текст по центру слота — 14px от строки набранного сверху
+   (padding-top) и ~10px до края снизу. Тусклее и мельче, чем раньше (13px/600, 50% белого). Сам факт (CatchFact) монтируется
+   только на финале и проявляется через opacity с задержкой --catch-fact-delay */
+.catchFactSlot { height: 44px; }
 .catchFact {
-  font-size: 12.5px;
+  padding-top: 14px;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 24px;
+  line-height: 20px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.5);
   animation: catchFactIn 220ms ease-out var(--catch-fact-delay, 0ms) both;
 }
 
@@ -166,6 +194,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .catchUnderline { transition: none; }
+  .catchCaret::after { animation: none; }
   .catchStripResult .catchCompareRule,
   .catchCmpOk,
   .catchCmpBad,
