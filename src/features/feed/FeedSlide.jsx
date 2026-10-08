@@ -44,13 +44,19 @@ export default function FeedSlide({
   const wordTr = useWordTranslate(rootRef)
   const { pick, close } = wordTr
   // Слово фразы со сроком «сегодня»: дышит, по тапу — проверка вместо перевода (useSlideRecall)
-  const rc = useSlideRecall({ recall, mod, active, revealed, knowledge, wp: wordTr, onChanged: onLearnChanged })
+  // Сюда идёт opened (состояние), а не revealed: revealed считается ниже из ct.done, а ct зависит от rc.candIndex —
+  // обращение к const до объявления роняло весь слайд (ReferenceError, v3.2.1873). После «Готово» эффект ниже
+  // переводит opened в true, и приманка повторения снова работает как у обычной открытой фразы
+  const rc = useSlideRecall({ recall, mod, active, revealed: opened, knowledge, wp: wordTr, onChanged: onLearnChanged })
   // «Ловля слов»: задание ставится, если на слайде нет слова «Помнишь?» (rc.candIndex) — оно главнее
   const ct = useSlideCatch({ feedCatch: catchFeed, mod, active, knowledge, recallIndex: rc.candIndex, onLock, onLearnChanged })
   const revealed = opened || ct.done
   // «Готово» на финале задания → слайд = обычный открытый (спойлер больше не рендерится), фраза считается открытой
+  // (setState через таймер, а не прямо в эффекте — правило react-hooks; кадр задержки здесь не заметен)
   useEffect(() => {
-    if (ct.done) onPhraseOpened?.()
+    if (!ct.done) return
+    const t = setTimeout(() => { setRevealed(true); onPhraseOpened?.() }, 0)
+    return () => clearTimeout(t)
   }, [ct.done]) // eslint-disable-line react-hooks/exhaustive-deps
   // Высота накрытия (шторка + полоска) — в CSS-переменную слайда, 0 когда закрыто
   const [coverH, setCoverH] = useState(0)

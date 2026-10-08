@@ -76,8 +76,9 @@ export function flyPanelToChat(panelEl, nodeId, { send, reveal, onLanded, onComp
     const target = row?.querySelector('.playerMsgBubble--table') ?? row
     if (!target) {
       pLog('[fly] пузыря в ленте нет — показываем сообщение без превращения')
+      // Рамка перелёта (frame) создаётся ниже, здесь её ещё нет — раньше тут стоял frame?.remove(),
+      // и это был ReferenceError (обращение к const до объявления), а не безопасный no-op
       ghost.remove()
-      frame?.remove()
       reveal?.()
       finish()
       return

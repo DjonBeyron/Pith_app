@@ -32,6 +32,9 @@ export default defineConfig([
       // grew to thousands of lines over time). Soft target is 250 lines (see CLAUDE.md) —
       // this is the hard limit that actually fails `npm run lint`.
       'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
+      // Обращение к const/let до объявления — ReferenceError в рантайме при каждом рендере (так в v3.2.1873
+      // упала вся лента: FeedSlide передал revealed в хук выше его объявления). Функции хойстятся, ссылки из вложенных функций безопасны (variables: false) — ловим только тот же скоуп
+      'no-use-before-define': ['error', { functions: false, classes: false, variables: false, allowNamedExports: true }],
     },
   },
   {
