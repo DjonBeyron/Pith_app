@@ -35,14 +35,14 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px 10px;
+  padding: 12px 14px 26px; /* снизу воздух над нижней панелью: кнопки не прижаты к навигации */
 }
 
 /* Ряд «Готово» (финал): раскрывается вместо тела; кнопка проявляется чуть позже начала раскрытия */
 .catchDoneRow {
   max-width: 600px;
   margin: 0 auto;
-  padding: 12px 14px 10px;
+  padding: 12px 14px 26px; /* «Готово» не прижата к нижней панели */
 }
 .catchSheetFoldOpen .catchDoneRow .catchMainBtn { animation: catchDoneIn 200ms ease-out 120ms both; }
 @keyframes catchDoneIn {

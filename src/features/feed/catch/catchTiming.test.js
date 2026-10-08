@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   CATCH_COLLAPSE_MS, CATCH_EXPLODE_STEP_MS, CATCH_EXPLODE_OVERLAP, CATCH_COMPARE_GAP_MS, CATCH_RULE_MS,
   CATCH_COLOR_MS, CATCH_COMPRESS_HOLD_MS, CATCH_FACT_FADE_MS, CATCH_GLINT_IN_MS, CATCH_GLINT_HOLD_MS, CATCH_GLINT_OUT_MS,
-  CATCH_FACT_GLINT_MS, explodeAt, compareDelay, factDelay, compressDelay,
+  CATCH_FACT_GLINT_MS, CATCH_COMPRESS_MS, CATCH_GLINT_GAP_MS, explodeAt, compareDelay, factDelay, compressDelay, glintDelay,
 } from './catchTiming.js'
 import { EXPLODE_MS } from '../phraseBubbleConsts.js'
 
@@ -52,5 +52,13 @@ describe('тайминги финала «Ловли»', () => {
     expect(CATCH_FACT_FADE_MS).toBe(220)
     expect(+(CATCH_GLINT_IN_MS / CATCH_FACT_GLINT_MS * 100).toFixed(2)).toBe(14.63)
     expect(+((CATCH_GLINT_IN_MS + CATCH_GLINT_HOLD_MS) / CATCH_FACT_GLINT_MS * 100).toFixed(2)).toBe(45.12)
+  })
+
+  it('блик строки факта — позже всего: после сжатия фраз к центру плюс пауза, а сама строка проявляется раньше', () => {
+    for (const n of [1, 3, 5, 8]) {
+      expect(glintDelay(n)).toBe(compressDelay(n) + CATCH_COMPRESS_MS + CATCH_GLINT_GAP_MS)
+      expect(glintDelay(n)).toBeGreaterThan(factDelay(n) + CATCH_FACT_FADE_MS) // строка уже видна тусклой, когда блик стартует
+      expect(glintDelay(n)).toBeGreaterThan(compressDelay(n) + CATCH_COMPRESS_MS - 1) // сжатие закончилось
+    }
   })
 })

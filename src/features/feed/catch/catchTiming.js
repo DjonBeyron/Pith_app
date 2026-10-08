@@ -19,6 +19,7 @@ export const CATCH_GLINT_IN_MS = 120
 export const CATCH_GLINT_HOLD_MS = 250
 export const CATCH_GLINT_OUT_MS = 450
 export const CATCH_FACT_GLINT_MS = CATCH_GLINT_IN_MS + CATCH_GLINT_HOLD_MS + CATCH_GLINT_OUT_MS // 820
+export const CATCH_GLINT_GAP_MS = 200     // пауза между концом сжатия фраз к центру и белым бликом строки факта
 
 // Через сколько мс после «Проверить» начинает взрываться i-е облачко (i с нуля)
 export const explodeAt = i => CATCH_COLLAPSE_MS + i * CATCH_EXPLODE_STEP_MS
@@ -34,3 +35,8 @@ export const factDelay = n => Math.max(compareDelay(n) + CATCH_RULE_MS, explodeA
 // промежутки → обычный пробел, CATCH_COMPRESS_MS): когда последнее облачко растворилось, цвета сравнения перетекли и
 // факт уже проявляется, плюс короткая пауза, чтобы сравнение успели увидеть в прежней раскладке
 export const compressDelay = n => Math.max(factDelay(n), compareDelay(n) + CATCH_COLOR_MS) + CATCH_COMPRESS_HOLD_MS
+
+// Через сколько мс после «Проверить» белый блик строки факта «Тебе удалось расслышать N из M слов» (сама строка проявляется
+// тусклой раньше, factDelay): когда в финале всё отработало — облачка растворились, цвета перетекли и обе фразы сжались к
+// центру (compressDelay + CATCH_COMPRESS_MS), плюс короткая пауза. Блик один, он закрывает финал
+export const glintDelay = n => compressDelay(n) + CATCH_COMPRESS_MS + CATCH_GLINT_GAP_MS

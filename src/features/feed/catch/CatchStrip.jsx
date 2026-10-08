@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import CatchStripPhrase from './CatchStripPhrase.jsx'
 import CatchTypedLine from './CatchTypedLine.jsx'
 import CatchFact from './CatchFact.jsx'
-import { compareDelay, factDelay, compressDelay } from './catchTiming.js'
+import { compareDelay, factDelay, compressDelay, glintDelay } from './catchTiming.js'
 import { FIT_NONE } from './catchFit.js'
 
 // Полоска фразы «Ловли слов» — отдельный блок над шторкой (feed-catch-strip.css). Сверху фраза: шарики отдельными
@@ -31,7 +31,7 @@ export default function CatchStrip({ title, words, cur = null, typedBy, phase = 
   const okCount = results?.filter(r => r.ok).length ?? 0
   const n = words.length
   const delays = {
-    '--catch-cmp-delay': `${compareDelay(n)}ms`, '--catch-fact-delay': `${factDelay(n)}ms`, '--catch-compress-delay': `${compressDelay(n)}ms`,
+    '--catch-cmp-delay': `${compareDelay(n)}ms`, '--catch-fact-delay': `${factDelay(n)}ms`, '--catch-compress-delay': `${compressDelay(n)}ms`, '--catch-glint-delay': `${glintDelay(n)}ms`,
   }
 
   return (
