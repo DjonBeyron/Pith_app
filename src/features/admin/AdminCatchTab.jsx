@@ -4,6 +4,7 @@ import { listCatchCounts } from '../../shared/api/catchApi.js'
 import { useCatchSandbox } from './useCatchSandbox.js'
 import AdminCatchPhone from './AdminCatchPhone.jsx'
 import AdminCatchHelp from './AdminCatchHelp.jsx'
+import { setForcedCatch, sendToFeed } from '../feed/catch/catchForce.js'
 
 const LEVELS = [
   [0, 'серый'], [1, 'зелёный'], [2, 'синий'], [3, 'золотой'], [4, 'фиолетовый'],
@@ -22,6 +23,7 @@ export default function AdminCatchTab() {
   const [counts, setCounts] = useState(null)
   const [help, setHelp] = useState(false)
   const [popupNote, setPopupNote] = useState('')
+  const [feedNote, setFeedNote] = useState('')
 
   useEffect(() => {
     loadCurricula()
@@ -50,6 +52,17 @@ export default function AdminCatchTab() {
     }
   }
 
+  // «Отправить в ленту»: уровни ВСЕХ слов песочницы (в т.ч. дефолтные) → принудительное задание → лента поворачивается к фразе
+  function sendFeed() {
+    const levels = Object.fromEntries(sb.words.map(w => [w.index, sb.levelOf(w)]))
+    if (!setForcedCatch({ moduleId: mod.id, levels, writeMemory: write })) {
+      setFeedNote('Не удалось: sessionStorage недоступен')
+      return
+    }
+    setFeedNote('')
+    sendToFeed(mod.id)
+  }
+
   return (
     <div className="aeWrap">
       <div className="aeHead">
@@ -59,7 +72,12 @@ export default function AdminCatchTab() {
           onClick={() => setHelp(h => !h)}
         >?</button>
         <button className="aeRefresh" onClick={sb.reset}>Сбросить</button>
+        <button className="aeRefresh" onClick={sendFeed} disabled={!mod || sb.words.length === 0}>Отправить в ленту</button>
       </div>
+      <p className="aeHint">
+        Фраза встанет первой в ленте с заданием по этим уровням, без лимитов. Один раз: после «Готово» или «Раскрыть» задание снимается
+      </p>
+      {feedNote && <p className="aeHint">{feedNote}</p>}
       {help && <AdminCatchHelp />}
 
       <select className="acSelect" value={modId} onChange={e => setModId(e.target.value)} aria-label="Фраза">

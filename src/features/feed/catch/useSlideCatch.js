@@ -3,6 +3,7 @@ import { catchHeard, catchHelp } from '../../../shared/api/catchApi.js'
 import { track } from '../../../shared/lib/analytics/track.js'
 import { catchWords, catchEligible, catchSignal } from './feedCatch.js'
 import { catchKeyboard } from './catchLetters.js'
+import { getForcedCatch, clearForcedCatch, forcedKnowledge, onForcedCatch } from './catchForce.js'
 import * as cs from './catchState.js'
 
 export const CATCH_COVER_OUT_MS = 300 // шторка и полоска уезжают вниз (feed-catch-sheet.css: 260мс + запас)
@@ -19,23 +20,44 @@ const LEARN_SYNC_DELAY_MS = 450 // память «Моего обучения» 
 // «Готово» идёт строго по порядку, без работы в первых кадрах анимации ухода: накрытие уезжает (CATCH_COVER_OUT_MS) →
 // размонтирование (finished: слайд становится обычным открытым, фраза проявляется 200мс) → через LEARN_SYNC_DELAY_MS
 // память «Моего обучения» обновляется (onLearnChanged), если был сигнал.
+// Принудительное задание (Админ → Ловля → «Отправить в ленту», catchForce.js): на слайде своей фразы знание слов =
+// уровни из песочницы (не память), задание есть всегда (recall/флаг модуля не важны), feedCatch.claim обходится (лимиты
+// не считаются), сигналы в память — только при writeMemory; «Готово» и «Раскрыть» снимают его (разово).
 // → { active, open, mounted, phase, done, finished, revealed, shift, words, cur, curIndex, typed, typedBy, helped, helpedSet, model,
 //     results, isLast, hasPrev, openSheet(), setCurrent(index), press(ch), backspace(), next(), prev(), check(), help(),
 //     reveal(), finish() }
 export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, onLock, onLearnChanged }) {
-  const words = useMemo(() => catchWords(mod.title, knowledge), [mod.title, knowledge])
-  const eligible = catchEligible(words, { enabled: mod.feedCatchEnabled, recallIndex })
+  // sessionStorage читаем на монтирование/смену фразы и когда админ выставил задание заново (forcedTick), не в каждом рендере
+  const [forcedTick, setForcedTick] = useState(0)
+  useEffect(() => onForcedCatch(() => setForcedTick(t => t + 1)), [])
+  const forced = useMemo(() => {
+    const f = getForcedCatch()
+    return f?.moduleId === mod.id ? f : null
+  }, [mod.id, forcedTick]) // eslint-disable-line react-hooks/exhaustive-deps
+  const effKnowledge = useMemo(
+    () => (forced ? forcedKnowledge(catchWords(mod.title, null), forced.levels) : knowledge),
+    [forced, mod.title, knowledge],
+  )
+  const words = useMemo(() => catchWords(mod.title, effKnowledge), [mod.title, effKnowledge])
+  const eligible = forced ? true : catchEligible(words, { enabled: mod.feedCatchEnabled, recallIndex })
+  const writeSignals = !forced || forced.writeMemory
   const [offered, setOffered] = useState(null) // id фразы, на которой задание поставлено
   const claimed = offered === mod.id
 
   // Заявка уходит в таймер: setState прямо в теле эффекта запрещён, лишний кадр тут не заметен
   useEffect(() => {
-    if (!active || !eligible || claimed || !feedCatch) return
-    const t = setTimeout(() => { if (feedCatch.claim(mod.id)) setOffered(mod.id) }, 0)
+    if (!active || !eligible || claimed || (!forced && !feedCatch)) return
+    const t = setTimeout(() => { if (forced || feedCatch.claim(mod.id)) setOffered(mod.id) }, 0)
     return () => clearTimeout(t)
-  }, [active, eligible, claimed, mod.id, feedCatch])
+  }, [active, eligible, claimed, mod.id, feedCatch, forced])
 
   const [st, setSt] = useState(() => cs.initialCatch(mod.id))
+  // Админ выставил задание заново — состояние слайда с нуля (сброс при рендере)
+  const [seenForced, setSeenForced] = useState(forced)
+  if (seenForced !== forced) {
+    setSeenForced(forced)
+    if (forced) setSt(cs.initialCatch(mod.id))
+  }
   // Лента подменила фразу в этой копии слайда — состояние с нуля; слайд ушёл с экрана — шторка закрыта
   // (сброс при рендере, не в эффекте — как в useTranslationReveal)
   if (st.modId !== mod.id) setSt(cs.initialCatch(mod.id))
@@ -120,7 +142,7 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
     setSt(state)
     for (const r of results) {
       const w = cs.wordAt(words, r.index)
-      if (r.ok && w && catchSignal(w.level, s.helped.has(r.index)) === 'heard') {
+      if (writeSignals && r.ok && w && catchSignal(w.level, s.helped.has(r.index)) === 'heard') {
         dirty.current = true
         catchHeard(w.key, mod.id).catch(() => {})
       }
@@ -132,7 +154,7 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   function help() {
     if (!cur || helped || s.phase !== 'type' || s.done) return
     update(cs.help)
-    if (catchSignal(cur.level, true) === 'help') {
+    if (writeSignals && catchSignal(cur.level, true) === 'help') {
       dirty.current = true
       catchHelp(cur.key, mod.id).catch(() => {})
     }
@@ -143,6 +165,7 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   function reveal() {
     if (s.phase !== 'type' || s.done) return
     update(p => cs.reveal(p, words))
+    if (forced) clearForcedCatch()
     track('feed_catch_reveal', { typed: s.typedBy.size, total: words.length })
   }
 
@@ -150,11 +173,12 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   function finish() {
     if (s.phase !== 'result' || s.done) return
     update(cs.finish)
+    if (forced) clearForcedCatch()
     track('feed_catch_finish', { ok: cs.okCount(s.results), total: words.length, revealed: s.revealed })
   }
 
   return {
-    active: claimed, open, mounted, phase: s.phase, done: s.done, finished, revealed: s.revealed,
+    active: claimed, open, mounted, phase: s.phase, done: s.done, finished, revealed: s.revealed, forced: !!forced,
     shift: cs.shiftOn(s, words), words,
     cur, curIndex: s.cur, typed: s.cur == null ? '' : cs.typedOf(s, s.cur), typedBy: s.typedBy,
     helped, helpedSet: s.helped, model, results: s.results, isLast: cs.isLast(s, words), hasPrev,

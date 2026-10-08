@@ -56,6 +56,13 @@ export default function FeedSlide({
   // слайд = обычный открытый (ct.finished: спойлер не рендерится, на его месте слова фразы) и блок фразы проявляется
   // (200мс). До этого момента в кадрах ухода накрытия ни тяжёлого рендера фразы, ни setState ленты (v3.2.1876: рывок)
   const revealed = opened || ct.finished
+  // Админ отправил эту фразу в ленту принудительно (Админ → «Ловля» → «Отправить в ленту»), а фраза в этой сессии
+  // уже была открыта — закрываем её обратно, иначе задание негде показать (чип живёт только над шариками)
+  useEffect(() => {
+    if (!ct.forced || !opened || ct.done) return
+    const t = setTimeout(() => setRevealed(false), 0)
+    return () => clearTimeout(t)
+  }, [ct.forced]) // eslint-disable-line react-hooks/exhaustive-deps
   // Состояние «фраза открыта» и сигнал ленте — позже, когда фраза уже проявилась (setState через таймер, правило react-hooks)
   useEffect(() => {
     if (!ct.finished) return

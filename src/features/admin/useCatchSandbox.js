@@ -2,24 +2,10 @@ import { useMemo, useState } from 'react'
 import { catchHeard, catchHelp } from '../../shared/api/catchApi.js'
 import { catchWords, catchSignal } from '../feed/catch/feedCatch.js'
 import { catchKeyboard } from '../feed/catch/catchLetters.js'
+import { forcedKnowledge } from '../feed/catch/catchForce.js'
 import * as cs from '../feed/catch/catchState.js'
 
 const LOG_MAX = 40
-// Шаг и «постоянная память» для каждого уровня песочницы (0 — слова нет в памяти)
-const STEP_OF_LEVEL = { 1: 1, 2: 3, 3: 5, 4: 5 }
-
-// Знание песочницы из выбранных уровней: levels — { [index слова]: 0..4 }; baseWords — слова фразы
-function sandboxKnowledge(baseWords, levels, defaultIndex) {
-  const stepOf = new Map()
-  const settledOf = new Set()
-  for (const w of baseWords) {
-    const lvl = levels[w.index] ?? (w.index === defaultIndex ? 2 : 0)
-    if (!lvl || !w.key) continue
-    stepOf.set(w.key, STEP_OF_LEVEL[lvl])
-    if (lvl === 4) settledOf.add(w.key)
-  }
-  return { stepOf, settledOf }
-}
 
 // Состояние песочницы «Ловли» (спек v2): те же чистые переходы catchState.js, что и в useSlideCatch, но без ленты,
 // лимитов, lock и аналитики. Уровни слов задаёт админ (по умолчанию все 0, первое слово — 2).
@@ -34,7 +20,7 @@ export function useCatchSandbox({ title, moduleId, writeMemory }) {
   const [log, setLog] = useState([])
   const [memoryNote, setMemoryNote] = useState('')
 
-  const knowledge = useMemo(() => sandboxKnowledge(baseWords, levels, defaultIndex), [baseWords, levels, defaultIndex])
+  const knowledge = useMemo(() => forcedKnowledge(baseWords, levels, defaultIndex), [baseWords, levels, defaultIndex])
   const words = useMemo(() => catchWords(title, knowledge), [title, knowledge])
 
   const addLog = text => setLog(l => [text, ...l].slice(0, LOG_MAX))

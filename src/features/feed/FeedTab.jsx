@@ -27,6 +27,7 @@ import { onOpenModule } from '../../shared/lib/openModuleEvent.js'
 import { useFeedKnowledge } from './useFeedKnowledge.js'
 import { useFeedRecall } from './useFeedRecall.js'
 import { useFeedCatch } from './catch/useFeedCatch.js'
+import { onFeedJump } from './catch/catchForce.js'
 import FeedEmptyState from './FeedEmptyState.jsx'
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
@@ -64,6 +65,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   }, [openModule, refreshStarted])
   // Просьба открыть модуль извне (мостик из итога повторения) — openModuleEvent.js
   useEffect(() => onOpenModule(m => { if (m?.id) setOpenModule(m) }), [])
+  // Поворот к фразе извне (pithy:feed-jump): вернуться из «Моих уроков» в «Рекомендации», закрыть схему модуля
+  useEffect(() => onFeedJump(() => { setView('feed'); setOpenModule(null) }), [])
   const { rank, knowledgeOf } = useFeedKnowledge(learnView)
   const { modules, error, feedModules: circleModules, len: circleLen, pinnedId, jumpTo } = useFeedModules(startedIds, visible, rank)
   const recall = useFeedRecall(learnView, modules)

@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { rankFeed, latchRank } from './feedKnowledge.js'
+import { onFeedJump } from './catch/catchForce.js'
 
 // Загрузка модулей (curricula) + «пин» на фразу (deep-link репоста /?m=<id>,
 // либо программный поворот из поиска — см. jumpTo) + расчёт круга
@@ -111,6 +112,10 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
 
   // Поворот ленты к фразе (используется поиском): просто меняем закреплённый id
   function jumpTo(id) { setPinnedId(id) }
+
+  // Поворот извне (Админ → Ловля → «Отправить в ленту», catchForce.sendToFeed): событие pithy:feed-jump.
+  // Лента скрыта — pinnedId всё равно обновится, круг пересоберётся от него и покажет фразу первой
+  useEffect(() => onFeedJump(d => { if (d?.moduleId) setPinnedId(d.moduleId) }), [])
 
   // Круг рекомендаций — только не начатые модули, по карте памяти
   let feedModules = rankFeed((modules ?? []).filter(m => !startedIds.has(m.id)), rank ?? undefined)
