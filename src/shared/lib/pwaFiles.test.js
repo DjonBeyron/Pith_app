@@ -40,11 +40,17 @@ describe('сервис-воркер push-sw.js', () => {
   })
 
   it('кэширует только офлайн-страницу (кэш offline-*), ничего больше', () => {
-    expect(sw).toMatch(/OFFLINE_CACHE = 'offline-v\d+'/)
+    expect(sw).toMatch(/OFFLINE_CACHE = 'offline-v2'/) // версия поднимается при каждом изменении offline.html
     expect(sw).toMatch(/OFFLINE_URL = '\/offline\.html'/)
     expect(sw).not.toMatch(/cache\.put|addAll/)
     expect(sw.match(/c\.add\(/g)).toHaveLength(1)
     expect(existsSync(resolve(PUBLIC, 'offline.html'))).toBe(true)
+  })
+
+  it('навигация не ждёт молчащую сеть дольше ~2.5с и отдаёт офлайн-страницу сразу без сети', () => {
+    expect(sw).toMatch(/NAV_TIMEOUT_MS = 2500/)
+    expect(sw).toMatch(/navigator\.onLine === false/)
+    expect(sw).toMatch(/type === 'net-ok'/)
   })
 
   it('офлайн-страница самодостаточна: без внешних ресурсов, с кнопкой «Повторить»', () => {

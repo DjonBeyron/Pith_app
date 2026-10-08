@@ -1,13 +1,21 @@
 // Сервис-воркер: push-уведомления + «прослойка» для установки на Android + офлайн-фолбэк загрузки страницы.
-// Кэширует РОВНО ОДИН файл — /offline.html (кэш offline-v1); приложение, ассеты и API всегда идут с сервера,
+// Кэширует РОВНО ОДИН файл — /offline.html (кэш offline-v2); приложение, ассеты и API всегда идут с сервера,
 // поэтому проверка свежего деплоя по номеру версии работает как раньше.
 // Обработчик fetch — для Chrome на Android (сайты с fetch-обработчиком он ставит как WebAPK надёжнее) и для
-// офлайна: ЗАГРУЗКА СТРАНИЦЫ (navigate) идёт в сеть как есть, а если сети нет — вместо белого/системного экрана
-// iOS показываем закешированный /offline.html. Всё остальное (видео, картинки, API, Supabase) не перехватывается.
+// офлайна: ЗАГРУЗКА СТРАНИЦЫ (navigate) идёт в сеть, но НЕ ЖДЁТ её дольше NAV_TIMEOUT_MS: нет сети (navigator.onLine
+// === false) — офлайн-страница сразу; сеть «есть, но молчит» (Wi-Fi без интернета: запрос висит ~10с и больше) —
+// офлайн-страница через 2.5с; ошибка сети — сразу. Раньше воркер ждал ошибку fetch, и iOS показывал белый экран
+// ~10с. Офлайн-страница сама стучится в сеть и перезагружается, когда та ответила, и шлёт воркеру {type:'net-ok'} —
+// тогда на PATIENT_MS ожидание страницы снимается до 15с (медленная, но живая сеть не зациклится). Если офлайн-страницы
+// нет в кэше — ждём сеть как раньше. Всё остальное (видео, картинки, API, Supabase) не перехватывается.
 // Меняешь offline.html — подними версию OFFLINE_CACHE (старые offline-* кэши чистятся при activate).
 
-const OFFLINE_CACHE = 'offline-v1'
+const OFFLINE_CACHE = 'offline-v2'
 const OFFLINE_URL = '/offline.html'
+const NAV_TIMEOUT_MS = 2500
+const PATIENT_MS = 20000
+const PATIENT_TIMEOUT_MS = 15000
+let patientUntil = 0
 
 // Кладём офлайн-страницу в кэш; ошибка (например, сети нет в момент установки) не ломает установку воркера
 const cacheOffline = () =>
@@ -15,14 +23,29 @@ const cacheOffline = () =>
     .then(c => c.match(OFFLINE_URL).then(hit => hit || c.add(new Request(OFFLINE_URL, { cache: 'reload' }))))
     .catch(() => {})
 
-self.addEventListener('fetch', e => {
-  if (e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request).catch(() =>
-        caches.match(OFFLINE_URL, { cacheName: OFFLINE_CACHE }).then(r => r || Response.error())
-      )
-    )
+const offlinePage = () => caches.match(OFFLINE_URL, { cacheName: OFFLINE_CACHE })
+
+// Страница: сеть или (по таймауту / ошибке / отсутствию сети) офлайн-страница
+function navigate(request) {
+  if (self.navigator.onLine === false) {
+    return offlinePage().then(r => r || fetch(request))
   }
+  const wait = Date.now() < patientUntil ? PATIENT_TIMEOUT_MS : NAV_TIMEOUT_MS
+  return new Promise(resolve => {
+    let done = false
+    const settle = res => { if (!done) { done = true; clearTimeout(timer); resolve(res) } }
+    const timer = setTimeout(() => offlinePage().then(r => r && settle(r)).catch(() => {}), wait)
+    fetch(request).then(settle, () => offlinePage().then(r => settle(r || Response.error())))
+  })
+}
+
+self.addEventListener('fetch', e => {
+  if (e.request.mode === 'navigate') e.respondWith(navigate(e.request))
+})
+
+// Офлайн-страница сообщила, что сеть отвечает, — на время перестаём торопить загрузку страницы
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'net-ok') patientUntil = Date.now() + PATIENT_MS
 })
 
 self.addEventListener('install', e => e.waitUntil(cacheOffline().then(() => self.skipWaiting())))

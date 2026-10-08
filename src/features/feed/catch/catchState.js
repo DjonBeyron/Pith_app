@@ -1,4 +1,4 @@
-import { appendChar, removeLast, typedMatches, catchTypedMax } from '../../../shared/lib/typeWordKeys.js'
+import { appendChar, removeLast, typedMatches, catchTypedMax, needsShift } from '../../../shared/lib/typeWordKeys.js'
 
 // Состояние задания «Ловля слов» на одном слайде (спек v2) — чистые переходы без React
 // (useSlideCatch.js держит это в useState и дёргает сигналы/аналитику). Проверяется catchState.test.js.
@@ -47,7 +47,7 @@ function withTyped(s, index, typed) {
 export const isFirst = (s, words) => s.cur != null && words.length > 0 && words[0].index === s.cur
 
 // «Шифт» клавиатуры: следующая буква будет заглавной (слово первое во фразе и ещё ничего не набрано)
-export const shiftOn = (s, words) => s.phase === 'type' && isFirst(s, words) && typedOf(s, s.cur) === ''
+export const shiftOn = (s, words) => s.phase === 'type' && needsShift(typedOf(s, s.cur), { capitalize: isFirst(s, words) })
 
 export function press(s, words, ch) {
   const w = s.cur == null ? null : wordAt(words, s.cur)

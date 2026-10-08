@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   cleanExtraLetters, layoutOf, litChars, keyboardModel, typedMax, catchTypedMax,
-  appendChar, removeLast, typedMatches, letterCount, letterForm, capitalizeFirst,
+  appendChar, removeLast, typedMatches, letterCount, letterForm, capitalizeFirst, needsShift,
   typedMismatchSlot, wordLetters,
 } from './typeWordKeys.js'
 
@@ -114,6 +114,18 @@ describe('«Напечатай слово»: ввод и проверка', () =
     expect(appendChar('', 't', 10, { capitalize: false })).toBe('t')
     expect(appendChar('', 't', 10, { capitalize: true })).toBe('T')
     expect(appendChar('t', 'r', 10, { capitalize: false })).toBe('tr')
+  })
+
+  it('needsShift: шифт только при пустом вводе; после первой буквы (и после пробела) — строчные', () => {
+    expect(needsShift('')).toBe(true)
+    expect(needsShift('T')).toBe(false)
+    expect(needsShift('Ice ')).toBe(false)
+    // лента: не первое слово фразы — заглавной нет вообще
+    expect(needsShift('', { capitalize: false })).toBe(false)
+    expect(needsShift('', { capitalize: true })).toBe(true)
+    // клавиатура и набор согласованы: при шифте печатается заглавная, без — буква как есть
+    expect(appendChar('', 'i', 10)).toBe('I')
+    expect(appendChar('Ice ', 'c', 10)).toBe('Ice c')
   })
 
   it('пробел — не первым и не двойным', () => {

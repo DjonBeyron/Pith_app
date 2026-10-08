@@ -107,6 +107,7 @@
 @import './styles/player/modules/audio.css';
 @import './styles/player/modules/circle.css';
 @import './styles/player/modules/text.css';
+@import './styles/player/modules/text-width.css';
 @import './styles/player/modules/photo.css';
 @import './styles/player/modules/video.css';
 @import './styles/player/modules/pin-message.css';

@@ -5,59 +5,105 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0b0d10">
 <title>HETA</title>
-<!-- Офлайн-фолбэк: сервис-воркер (push-sw.js) отдаёт эту страницу, когда сама загрузка приложения не удалась
-     из-за сети. Самодостаточный файл: никаких внешних шрифтов/картинок/скриптов. Стили и логотип — инлайном.
-     Кнопка «Повторить» — обычная ссылка (работает даже без JS и при будущем строгом CSP); скрипт ниже
-     лишь добавляет авто-перезагрузку на событие online. Тексты/анимация — как в оверлее index.html (.ng*) -->
+<!-- Офлайн-фолбэк: сервис-воркер (push-sw.js) отдаёт эту страницу, когда загрузка приложения не удалась из-за
+     сети (нет сети СРАЗУ, молчит сеть — через 2.5с). Самодостаточный файл: в кэше воркера лежит только он, поэтому
+     никаких внешних шрифтов/картинок/скриптов — стили и SVG инлайном. Вид = оверлей index.html (.ng*): блок
+     «ng-cable-css» и разметка кабеля (svg.ngCable) — КОПИИ (из index.html и src/app/networkCableSvg.js), их
+     сверяет networkGuard.test.js. Кнопка «Повторить» — обычная ссылка (работает даже без JS); скрипт ниже
+     перезагружает страницу сам, как только сеть отвечает (событие online или удачный пинг /favicon.svg) -->
 <style>
   html, body { margin: 0; height: 100%; background: #0b0d10; }
-  body {
+  .ngScreen {
+    position: fixed; inset: 0; background: #0b0d10; overflow: hidden;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 14px; padding: 24px; box-sizing: border-box; text-align: center;
+    padding: 24px; box-sizing: border-box; text-align: center;
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #f2f5f7;
   }
-  .logo { width: 96px; height: 96px; margin-bottom: 10px; }
-  .pulse { position: relative; width: 18px; height: 18px; border-radius: 50%; background: #b6fe3b; margin-bottom: 6px; }
-  .pulse::after {
-    content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #b6fe3b;
-    animation: pulse 1.6s ease-out infinite;
-  }
-  @keyframes pulse { from { transform: scale(1); opacity: 0.8; } to { transform: scale(3); opacity: 0; } }
-  @media (prefers-reduced-motion: reduce) { .pulse::after { animation: none; opacity: 0; } }
-  h1 { margin: 0; font-size: 20px; font-weight: 700; }
-  p { margin: 0; max-width: 300px; font-size: 14px; line-height: 1.4; color: rgba(242, 245, 247, 0.6); }
-  .btn {
+  .ngBody { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .ngTitle { margin: 0; font-size: 20px; font-weight: 700; }
+  .ngText { margin: 0; max-width: 260px; font-size: 14px; line-height: 1.4; color: rgba(242, 245, 247, 0.6); }
+  .ngBtn {
     margin-top: 6px; padding: 13px 32px; border-radius: 12px; background: #b6fe3b; color: #0d0f14;
-    font-size: 14px; font-weight: 700; text-decoration: none;
+    font: 700 14px system-ui, -apple-system, "Segoe UI", sans-serif; text-decoration: none;
   }
+  /* ng-cable-css */
+  .ngCable { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .ngWs, .ngWc, .ngStrand, .ngHalo, .ngCore, .ngStar, .ngFly { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .ngWs { stroke-width: 9; opacity: 0.14; }
+  .ngWc { stroke-width: 3.4; opacity: 0.9; }
+  .ngL { stroke: #b6fe3b; }
+  .ngR { stroke: #cfd6dc; }
+  .ngStrand { stroke-width: 0.8; }
+  .ngCore { stroke: #fff3c4; stroke-width: 0.7; }
+  .ngHalo { stroke: #ffd257; stroke-width: 2.4; opacity: 0.32; }
+  .ngStar { stroke: #fff; stroke-width: 0.7; }
+  .ngFly { stroke: #ffe27a; stroke-width: 0.8; }
+  .ngBolt, .ngFly { opacity: 0; }
+  .ngBolt { animation: ngBoltA var(--p) steps(1, end) var(--d) infinite; }
+  .ngB { animation-name: ngBoltB; }
+  .ngFly { animation: ngFly var(--p) cubic-bezier(0.2, 0.6, 0.6, 1) var(--d) infinite; }
+  @keyframes ngBoltA { 0% { opacity: 0; } 2% { opacity: 1; } 4% { opacity: 0; } 5% { opacity: 0.7; } 8%, 100% { opacity: 0; } }
+  @keyframes ngBoltB { 0% { opacity: 0; } 1.5% { opacity: 0.9; } 3% { opacity: 0; } 52% { opacity: 0; } 53% { opacity: 1; } 54.5% { opacity: 0; } 56% { opacity: 0.5; } 57%, 100% { opacity: 0; } }
+  @keyframes ngFly { 0% { transform: translate(0, 0); opacity: 0; } 3% { opacity: 1; } 14% { transform: translate(var(--mx), var(--my)); opacity: 0.9; } 26%, 100% { transform: translate(var(--tx), var(--ty)); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .ngBolt, .ngFly { animation: none; } .ngBolt { opacity: 0.6; } .ngFly { opacity: 0; } }
+  /* /ng-cable-css */
 </style>
 </head>
 <body>
-<svg class="logo" aria-hidden="true" viewBox="28 20 255 255" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="Frame 1">
-<g id="Group 11">
-<g id="Group 2">
-<path id="Vector" d="M207.812 89.4452C257.092 129.527 238.629 214.164 173.757 222.662C155.26 225.049 136.362 220.692 120.754 211.343C136.913 219.69 155.711 222.645 173.206 219.239C209.298 213.029 231.818 176.52 225.39 141.513C223.905 133.183 220.85 125.187 216.426 118.108C212.019 111.014 206.243 104.854 199.582 99.9622C192.454 94.3531 200.617 83.8527 207.812 89.4452Z" fill="#BFABFF" fill-opacity="0.29"/>
-<path id="Vector_2" d="M108.584 209.857C55.214 168.841 74.0946 83.9028 141.955 73.8866C160.619 71.0653 180.935 74.3039 196.176 85.7725C180.534 75.389 160.568 73.3858 142.573 77.1919C115.262 82.751 93.3259 103.218 88.2343 130.812C84.8621 148.024 88.5682 166.47 98.3173 180.944C103.108 188.122 109.302 194.265 116.397 199.023C123.759 204.315 116.046 215.166 108.617 209.874L108.584 209.857Z" fill="#9E76FF" fill-opacity="0.25"/>
+<div class="ngScreen" role="alert">
+<svg class="ngCable" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+<g transform="translate(195 422) rotate(-63.4)">
+<path class="ngWs ngL" d="M-760 0C-727.2 26.7 -702.8 26.7 -670 0S-612.8 -26.7 -580 0S-522.8 26.7 -490 0S-432.8 -26.7 -400 0S-342.8 26.7 -310 0S-252.8 -26.7 -220 0C-203.6 13.3 -189.3 20 -175 20"/>
+<path class="ngWc ngL" d="M-760 0C-727.2 26.7 -702.8 26.7 -670 0S-612.8 -26.7 -580 0S-522.8 26.7 -490 0S-432.8 -26.7 -400 0S-342.8 26.7 -310 0S-252.8 -26.7 -220 0C-203.6 13.3 -189.3 20 -175 20"/>
+<g transform="translate(-175 20) scale(2.2)">
+<path class="ngStrand" stroke="#4fb3ee" d="M0 0Q7.8 -6 14 -7.7"/><path class="ngStrand" stroke="#b6fe3b" d="M0 0Q5.4 4 10.3 3.8"/><path class="ngStrand" stroke="#f1bd3c" d="M0 0Q7.6 8.9 9.9 13.8"/>
+<g class="ngBolt" style="--p:3.7s;--d:0.4s"><path class="ngHalo" d="M 0 0 L 2.6 -0.7 L 5.7 -1.4 L 8.6 -4 L 11.5 -5.9 L 13.8 -7.4"/><path class="ngCore" d="M 0 0 L 2.6 -0.7 L 5.7 -1.4 L 8.6 -4 L 11.5 -5.9 L 13.8 -7.4"/><path class="ngStar" d="M 0 0 L 2.5 1.1 M 0 0 L -0.3 2.3 M 0 0 L -3 -0.1 M 0 0 L 0.5 -2.1"/></g>
+<g class="ngBolt ngB" style="--p:5.9s;--d:2.2s"><path class="ngHalo" d="M 0 0 L 3 0.3 L 6.5 -0.8 L 10.9 -0.8 L 15.4 -0.4 L 18.4 -0.9"/><path class="ngCore" d="M 0 0 L 3 0.3 L 6.5 -0.8 L 10.9 -0.8 L 15.4 -0.4 L 18.4 -0.9"/></g>
+<line class="ngFly" x2="2" y2="0.1" style="--p:2.9s;--d:0.2s;--mx:5.4px;--my:2.7px;--tx:11.1px;--ty:0.5px"/>
 </g>
-<g id="HETA">
-<path id="Vector_3" d="M206.711 173.02C205.255 172.729 204.114 172.122 203.288 171.199C202.463 170.228 202.05 169.063 202.05 167.703C202.05 166.781 202.269 165.809 202.706 164.79L220.113 122.91C220.696 121.453 221.812 120.725 223.463 120.725C225.017 120.725 226.11 121.453 226.741 122.91L244.148 164.79C244.585 165.809 244.804 166.781 244.804 167.703C244.804 169.014 244.391 170.155 243.566 171.126C242.74 172.098 241.599 172.729 240.142 173.02L233.879 157.798H212.975L206.711 173.02ZM231.766 151.898L223.304 131.562H223.075L215.087 151.898H231.766Z" fill="white"/>
-<path id="Vector_4" d="M179.333 127.426H161.561C161.561 123.396 163.455 121.381 167.243 121.381H203.878C203.878 125.411 201.985 127.426 198.197 127.426H186.179V167.339C186.179 169.184 185.597 170.592 184.431 171.563C183.266 172.535 181.567 173.02 179.333 173.02V127.426Z" fill="white"/>
-<path id="Vector_5" d="M118.518 124.585C118.518 123.663 118.858 122.91 119.538 122.327C120.217 121.696 121.043 121.381 122.014 121.381H154.28C154.28 123.42 153.867 124.925 153.042 125.896C152.216 126.867 150.929 127.353 149.181 127.353H125.364V143.668H145.758C145.758 145.707 145.345 147.212 144.52 148.184C143.694 149.155 142.432 149.64 140.733 149.64H125.364V166.392H150.711C152.41 166.392 153.673 166.878 154.498 167.849C155.324 168.82 155.736 170.325 155.736 172.365H122.014C121.043 172.365 120.217 172.073 119.538 171.491C118.858 170.859 118.518 170.082 118.518 169.16V124.585Z" fill="#BE74FF" fill-opacity="0.53"/>
-<path id="Vector_6" d="M68.8 126.406C68.8 124.561 69.3827 123.153 70.548 122.182C71.7134 121.211 73.4128 120.725 75.6464 120.725V143.668H101.503V126.406C101.503 124.561 102.085 123.153 103.251 122.182C104.416 121.211 106.115 120.725 108.349 120.725V167.339C108.349 169.184 107.766 170.592 106.601 171.563C105.436 172.535 103.736 173.02 101.503 173.02V149.713H75.6464V167.339C75.6464 169.184 75.0638 170.592 73.8984 171.563C72.7331 172.535 71.0336 173.02 68.8 173.02V126.406Z" fill="white"/>
+<g transform="rotate(180)">
+<path class="ngWs ngR" d="M-760 0C-727.2 26.7 -702.8 26.7 -670 0S-612.8 -26.7 -580 0S-522.8 26.7 -490 0S-432.8 -26.7 -400 0S-342.8 26.7 -310 0S-252.8 -26.7 -220 0C-203.6 13.3 -189.3 20 -175 20"/>
+<path class="ngWc ngR" d="M-760 0C-727.2 26.7 -702.8 26.7 -670 0S-612.8 -26.7 -580 0S-522.8 26.7 -490 0S-432.8 -26.7 -400 0S-342.8 26.7 -310 0S-252.8 -26.7 -220 0C-203.6 13.3 -189.3 20 -175 20"/>
+<g transform="translate(-175 20) scale(2.2)">
+<path class="ngStrand" stroke="#b6fe3b" d="M0 0Q5.4 -5.6 7.5 -9.4"/><path class="ngStrand" stroke="#f1bd3c" d="M0 0Q9 4.4 17.9 1.8"/><path class="ngStrand" stroke="#4fb3ee" d="M0 0Q6.5 7.6 10.2 9.5"/>
+<g class="ngBolt ngB" style="--p:4.6s;--d:1.3s"><path class="ngHalo" d="M 0 0 L 3.6 -2.1 L 7.9 -3.4 L 11.6 -2.8 L 15.4 -4.2"/><path class="ngCore" d="M 0 0 L 3.6 -2.1 L 7.9 -3.4 L 11.6 -2.8 L 15.4 -4.2"/><path class="ngStar" d="M 0 0 L 0.6 2.6 M 0 0 L -2.5 1.2 M 0 0 L -0.1 -2.4 M 0 0 L 2.8 -0.8"/></g>
+<g class="ngBolt" style="--p:3.1s;--d:3.6s"><path class="ngHalo" d="M 0 0 L 3.5 2.3 L 6.6 2.9 L 9.7 4.2 L 12.8 6.3"/><path class="ngCore" d="M 0 0 L 3.5 2.3 L 6.6 2.9 L 9.7 4.2 L 12.8 6.3"/></g>
+<line class="ngFly" x2="1.9" y2="-0.6" style="--p:4.3s;--d:1.7s;--mx:5px;--my:1.1px;--tx:8.6px;--ty:-2.5px"/>
 </g>
 </g>
 </g>
 </svg>
-<div class="pulse"></div>
-<h1 id="title">Нет интернета</h1>
-<p>Проверь соединение — мы подключимся сами</p>
-<a class="btn" href="/" id="retry">Повторить</a>
+<div class="ngBody">
+<h1 class="ngTitle" id="title">Нет интернета</h1>
+<p class="ngText">Проверь соединение — мы подключимся сами</p>
+<a class="ngBtn" href="/" id="retry">Повторить</a>
+</div>
+</div>
 <script>
-  /* «Повторить» = перезагрузка; на возвращение сети — перезагружаемся сами */
-  document.getElementById('retry').addEventListener('click', function (e) { e.preventDefault(); location.reload() })
+  /* «Повторить» = перезагрузка; сеть вернулась — перезагружаемся сами. Wi-Fi без интернета события online не
+     даёт (navigator.onLine там true), поэтому раз в 3с стучимся крошечным запросом мимо кэша (запросы воркер
+     не перехватывает, только загрузку страницы); ответила картинка — говорим воркеру «сеть жива» (он на ~20с
+     перестаёт торопиться с офлайн-страницей) и перезагружаемся */
+  var title = document.getElementById('title')
+  function sync() { title.textContent = navigator.onLine === false ? 'Нет интернета' : 'Слабый интернет' }
+  sync()
+  window.addEventListener('offline', sync)
   window.addEventListener('online', function () { location.reload() })
-  if (navigator.onLine) document.getElementById('title').textContent = 'Слабый интернет'
+  document.getElementById('retry').addEventListener('click', function (e) { e.preventDefault(); location.reload() })
+  function next() { setTimeout(probe, 3000) }
+  function probe() {
+    if (document.hidden || typeof fetch !== 'function') return next()
+    var ac = typeof AbortController === 'function' ? new AbortController() : null
+    var t = setTimeout(function () { if (ac) ac.abort() }, 2500)
+    fetch('/favicon.svg?_=' + Date.now(), { cache: 'no-store', signal: ac ? ac.signal : undefined })
+      .then(function (r) {
+        clearTimeout(t)
+        if (!r.ok || !/svg/.test(r.headers.get('content-type') || '')) return next()
+        try { navigator.serviceWorker.controller.postMessage({ type: 'net-ok' }) } catch (e) { /* без воркера — ок */ }
+        location.reload()
+      }, function () { clearTimeout(t); next() })
+  }
+  setTimeout(probe, 800)
 </script>
 </body>
 </html>

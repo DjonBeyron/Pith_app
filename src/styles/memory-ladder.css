@@ -148,27 +148,32 @@
 .memChipMuted { opacity: 0.55; }
 
 /* ── Линии и шарики ────────────────────────────────────────────────── */
-.memWires { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.memWires { position: absolute; inset: 0; z-index: 1; pointer-events: none; contain: layout style; }
 .memWires svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 /* Отрезки связи — со своей толщиной и цветом (ladderWireSet); прозрачность —
    на всей группе, иначе круглые концы отрезков темнели бы бусинами */
 .memWire { stroke-linecap: round; opacity: 0.85; }
 /* Провода порванного кабеля (режим сна, ladderTear.js) — те же стили группы; искрение на концах — memory-sparks.css */
-/* Шарик слова к повтору. Внешний элемент — точка 0×0: только движение по
-   пути (offset-path) и появление; ядро и ореол лежат в нём по центру и
-   масштабируются САМИ, внутри. Так масштаб не зависит от того, в каком порядке
-   браузер совмещает transform и offset-path (на тонкой линии ошибка порядка
-   утащила бы шарик с пути). Ядро — светлое (тонкий цветной шарик на линии
-   того же цвета не виден), ореол — цвета ступени */
+/* Шарик слова к повтору (бежит не больше трёх: по одному на ступень, MAX_FLYING_BALLS в ladderBalls.js).
+   Внешний элемент — точка 0×0: движение по пути и появление; ядро и ореол лежат в нём по центру и
+   масштабируются САМИ, внутри (порядок transform не путается с движением). Ядро — светлое (тонкий цветной
+   шарик на линии того же цвета не виден), ореол — цвета ступени.
+   Движение — НЕ offset-path: offset-distance анимируется только в главном потоке (на телефоне — рваные кадры).
+   Вместо него translate3d по ключевым кадрам пути memBallPath0..2, их строит ladderBallTrack.js и кладёт
+   <style> внутрь слоя (имя — в --track); easing запечён в положение кадров, поэтому здесь linear. Прозрачность
+   (memBallRun) — отдельной анимацией с прежней кривой. Всё — transform/opacity на композиторе; will-change только
+   на этих трёх элементах */
 .memBall {
   position: absolute;
   left: 0;
   top: 0;
   width: 0;
   height: 0;
-  offset-rotate: 0deg;
+  will-change: transform, opacity;
   /* backwards: в задержку перед стартом шарик уже в первом кадре (невидим), а не стоит крупной точкой */
-  animation: memBallRun var(--dur, 2.6s) cubic-bezier(0.45, 0, 0.55, 1) var(--delay, 0s) infinite backwards;
+  animation:
+    memBallRun var(--dur, 2.6s) cubic-bezier(0.45, 0, 0.55, 1) var(--delay, 0s) infinite backwards,
+    var(--track) var(--dur, 2.6s) linear var(--delay, 0s) infinite backwards;
 }
 .memBallDot,
 .memBallGlow {
@@ -197,10 +202,10 @@
    / haloScale в ladderWires.js. Кривая та же, что у движения (кадры 0 → 74%),
    поэтому размер и толщина линии совпадают в любой точке пути */
 @keyframes memBallRun {
-  0% { offset-distance: 0%; opacity: 0; }
+  0% { opacity: 0; }
   6% { opacity: 1; }
-  74% { offset-distance: 100%; opacity: 1; }
-  75%, 100% { offset-distance: 100%; opacity: 0; }
+  74% { opacity: 1; }
+  75%, 100% { opacity: 0; }
 }
 @keyframes memBallDotScale {
   0% { transform: scale(var(--s0, 1)); }
@@ -210,6 +215,9 @@
   0% { transform: scale(var(--h0, 1)); }
   74%, 100% { transform: scale(var(--h1, 1)); }
 }
+/* Слой линий вне экрана или приложение в фоне (data-idle, useBallsActive.js) — шарики на паузе */
+.memWires[data-idle] .memBall,
+.memWires[data-idle] .memBall i { animation-play-state: paused; }
 /* Скрытая вкладка — шарики не крутятся */
 .shellV2TabHidden .memBall { display: none; }
 @media (prefers-reduced-motion: reduce) {

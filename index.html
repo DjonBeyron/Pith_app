@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>HETA</title>
+    <!-- Тёмный фон ДО любых скриптов и запросов: пока синхронный net-guard.js (ниже) качается, а сеть
+         молчит, парсер стоит — без этого правила экран был бы белым. Цвет = фон приложения/сплэша/манифеста -->
+    <style>html, body { margin: 0; background: #0b0d10; }</style>
     <!-- Сторож белого экрана без сети (public/net-guard.js): ОБЫЧНЫЙ скрипт, синхронно в <head> — работает,
          даже если бандл не загрузился. Рисует оверлей #offlineGuard (стили .ng* ниже) -->
     <script src="/net-guard.js"></script>
@@ -71,9 +74,7 @@
          подаёт сигнал window.__pithyReady, когда лента готова, и сплэш «улетает»
          (масштаб+фейд), открывая Рекомендации. Логотип — заглушка, заменим. -->
     <style>
-      /* Чёрный фон первого кадра — в тон системному launch screen, чтобы не
-         было скачка; цвет приложения проявляется сплэшем (см. splashBgIn) */
-      html, body { margin: 0; background: #000; }
+      /* Фон первого кадра (#0b0d10) задан выше, в самом начале <head> (до net-guard.js) */
       /* Появление в два шага, без скачка от чёрного: сначала плавно проявляется
          фон приложения (opacity 0→1), затем — лого и слово */
       #splash {
@@ -106,28 +107,45 @@
       #splash.splash-out .splash-version { animation: splashOut 350ms ease forwards; }
       @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
       @keyframes splashZoom { from { opacity: 1; } to { opacity: 1; transform: scale(1.6); } }
-      /* Экран «Нет интернета / Слабый интернет»: оверлей net-guard.js (#offlineGuard) и компонент
-         NetworkProblem.jsx используют одни и те же классы. Лежит инлайном, чтобы рисоваться без бандла и
-         без app-CSS. Анимация одна, бесконечная, только transform/opacity (кольцо-пульс) */
+      /* Экран «Нет интернета / Слабый интернет»: оверлей net-guard.js (#offlineGuard), компонент NetworkProblem.jsx
+         и public/offline.html используют одни и те же классы и одну разметку кабеля (networkCableSvg.js). Лежит
+         инлайном, чтобы рисоваться без бандла и без app-CSS. Блок «ng-cable-css» — копия в offline.html (сверяет
+         networkGuard.test.js). Анимация: оборванный кабель (порт «режима сна» вкладки «Моя память»), только
+         opacity/transform на ~6 элементах, без filter/blur; при prefers-reduced-motion стоит */
       .ngScreen {
-        position: fixed; inset: 0; z-index: 2147483600; background: #0b0d10;
+        position: fixed; inset: 0; z-index: 2147483600; background: #0b0d10; overflow: hidden;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 14px; padding: 24px; box-sizing: border-box; text-align: center;
+        padding: 24px; box-sizing: border-box; text-align: center;
         font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #f2f5f7;
       }
-      .ngPulse { position: relative; width: 18px; height: 18px; border-radius: 50%; background: #b6fe3b; margin-bottom: 6px; }
-      .ngPulse::after {
-        content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #b6fe3b;
-        animation: ngPulse 1.6s ease-out infinite;
-      }
-      @keyframes ngPulse { from { transform: scale(1); opacity: 0.8; } to { transform: scale(3); opacity: 0; } }
-      @media (prefers-reduced-motion: reduce) { .ngPulse::after { animation: none; opacity: 0; } }
+      .ngBody { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; }
       .ngTitle { margin: 0; font-size: 20px; font-weight: 700; }
-      .ngText { margin: 0; max-width: 300px; font-size: 14px; line-height: 1.4; color: rgba(242, 245, 247, 0.6); }
+      .ngText { margin: 0; max-width: 260px; font-size: 14px; line-height: 1.4; color: rgba(242, 245, 247, 0.6); }
       .ngBtn {
         margin-top: 6px; padding: 13px 32px; border: none; border-radius: 12px; background: #b6fe3b;
         color: #0d0f14; font: 700 14px system-ui, -apple-system, "Segoe UI", sans-serif; cursor: pointer;
       }
+      /* ng-cable-css */
+      .ngCable { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+      .ngWs, .ngWc, .ngStrand, .ngHalo, .ngCore, .ngStar, .ngFly { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .ngWs { stroke-width: 9; opacity: 0.14; }
+      .ngWc { stroke-width: 3.4; opacity: 0.9; }
+      .ngL { stroke: #b6fe3b; }
+      .ngR { stroke: #cfd6dc; }
+      .ngStrand { stroke-width: 0.8; }
+      .ngCore { stroke: #fff3c4; stroke-width: 0.7; }
+      .ngHalo { stroke: #ffd257; stroke-width: 2.4; opacity: 0.32; }
+      .ngStar { stroke: #fff; stroke-width: 0.7; }
+      .ngFly { stroke: #ffe27a; stroke-width: 0.8; }
+      .ngBolt, .ngFly { opacity: 0; }
+      .ngBolt { animation: ngBoltA var(--p) steps(1, end) var(--d) infinite; }
+      .ngB { animation-name: ngBoltB; }
+      .ngFly { animation: ngFly var(--p) cubic-bezier(0.2, 0.6, 0.6, 1) var(--d) infinite; }
+      @keyframes ngBoltA { 0% { opacity: 0; } 2% { opacity: 1; } 4% { opacity: 0; } 5% { opacity: 0.7; } 8%, 100% { opacity: 0; } }
+      @keyframes ngBoltB { 0% { opacity: 0; } 1.5% { opacity: 0.9; } 3% { opacity: 0; } 52% { opacity: 0; } 53% { opacity: 1; } 54.5% { opacity: 0; } 56% { opacity: 0.5; } 57%, 100% { opacity: 0; } }
+      @keyframes ngFly { 0% { transform: translate(0, 0); opacity: 0; } 3% { opacity: 1; } 14% { transform: translate(var(--mx), var(--my)); opacity: 0.9; } 26%, 100% { transform: translate(var(--tx), var(--ty)); opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) { .ngBolt, .ngFly { animation: none; } .ngBolt { opacity: 0.6; } .ngFly { opacity: 0; } }
+      /* /ng-cable-css */
     </style>
   </head>
   <body>

@@ -5,6 +5,7 @@ import vm from 'node:vm'
 import {
   decideNetworkState, isChunkLoadError, networkKindNow, SLOW_SHOW_DELAY_MS, BOOT_TIMEOUT_MS,
 } from './networkGuard.js'
+import { NETWORK_CABLE_SVG } from './networkCableSvg.js'
 
 const PUBLIC = resolve(import.meta.dirname, '../../public')
 
@@ -54,9 +55,9 @@ describe('isChunkLoadError / networkKindNow', () => {
 
 describe('зеркало public/net-guard.js', () => {
   const src = readFileSync(resolve(PUBLIC, 'net-guard.js'), 'utf8')
-  const ctx = { navigator: { onLine: true }, location: { origin: 'https://x' }, Date, setInterval: () => 0, clearInterval: () => {} }
+  const ctx = { navigator: { onLine: true }, location: { origin: 'https://x' }, Date, setInterval: () => 0, clearInterval: () => {}, setTimeout: () => 0, clearTimeout: () => {} }
   ctx.window = { addEventListener: () => {} }
-  ctx.document = { getElementById: () => null, body: null }
+  ctx.document = { getElementById: () => null, body: null, addEventListener: () => {} }
   vm.runInNewContext(src, ctx)
 
   it('константы совпадают', () => {
@@ -81,3 +82,49 @@ describe('зеркало public/net-guard.js', () => {
     expect(html).toMatch(/__netGuardDone/)
   })
 })
+
+describe('единый вид экрана «нет связи»: три копии кабеля и CSS', () => {
+  const norm = t => t.replace(/>\s+</g, '><').trim()
+  const cssBlock = t => t.match(/\/\* ng-cable-css \*\/([\s\S]*?)\/\* \/ng-cable-css \*\//)?.[1]
+    .split('\n').map(l => l.trim()).filter(Boolean).join('\n')
+  const offline = readFileSync(resolve(PUBLIC, 'offline.html'), 'utf8')
+  const index = readFileSync(resolve(PUBLIC, '../index.html'), 'utf8')
+
+  it('разметка в net-guard.js и offline.html совпадает с networkCableSvg.js', () => {
+    const ctx = { navigator: { onLine: true }, location: { origin: 'https://x' }, Date, setInterval: () => 0, clearInterval: () => {}, setTimeout: () => 0 }
+    ctx.window = { addEventListener: () => {} }
+    ctx.document = { getElementById: () => null, body: null, addEventListener: () => {} }
+    vm.runInNewContext(readFileSync(resolve(PUBLIC, 'net-guard.js'), 'utf8'), ctx)
+    expect(ctx.window.__ngCableSvg).toBe(NETWORK_CABLE_SVG)
+    expect(norm(offline)).toContain(NETWORK_CABLE_SVG)
+  })
+
+  it('CSS кабеля в offline.html и index.html одинаков', () => {
+    expect(cssBlock(index)).toBeTruthy()
+    expect(cssBlock(offline)).toBe(cssBlock(index))
+  })
+
+  it('анимация лёгкая: без filter/blur, только opacity/transform, не больше 8 анимируемых элементов', () => {
+    const css = cssBlock(index)
+    expect(css).not.toMatch(/filter|blur|backdrop/)
+    expect(css).toMatch(/prefers-reduced-motion/)
+    expect(NETWORK_CABLE_SVG).not.toMatch(/filter|<animate|<script/)
+    expect((NETWORK_CABLE_SVG.match(/class="(ngBolt|ngFly)/g) ?? []).length).toBeLessThanOrEqual(8)
+    for (const kf of css.match(/@keyframes [^{]+\{(?:[^{}]*\{[^}]*\})+[^}]*\}/g) ?? []) {
+      expect(kf.replace(/@keyframes \S+|var\([^)]*\)/g, '')).not.toMatch(/(?<![-\w])(?!opacity|transform)(left|top|width|height|margin|stroke-width|fill|color)\s*:/)
+    }
+  })
+
+  it('index.html: тёмный фон задан раньше синхронного net-guard.js (иначе белый экран, пока он качается)', () => {
+    const bg = index.indexOf('background: #0b0d10')
+    expect(bg).toBeGreaterThan(-1)
+    expect(bg).toBeLessThan(index.indexOf('<script src="/net-guard.js">'))
+  })
+
+  it('net-guard.js: офлайн без ожидания, «молчащая сеть» — пинг через 1.5с + 1.5с', () => {
+    const src = readFileSync(resolve(PUBLIC, 'net-guard.js'), 'utf8')
+    expect(src).toMatch(/PROBE_AT = 1500, PROBE_WAIT = 1500/)
+    expect(src).toMatch(/setInterval\(check, 100\)/)
+  })
+})
+

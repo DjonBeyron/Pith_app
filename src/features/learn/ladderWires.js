@@ -128,8 +128,9 @@ export function flarePath(P, dir, w, L, H, n = 10) {
   return 'M ' + [...left, ...right.reverse()].map(p => `${f(p[0])} ${f(p[1])}`).join(' L ') + ' Z'
 }
 
-// Путь шарика — та же связь задом наперёд: из ступени через круг к шапке
-export const ballPath = (head, link) => orth(fullPts(head, link).reverse())
+// Путь шарика — та же связь задом наперёд: из ступени через круг к шапке (опорные точки и path для тестов/отладки)
+export const ballPoints = (head, link) => fullPts(head, link).reverse()
+export const ballPath = (head, link) => orth(ballPoints(head, link))
 
 // Точки той же скруглённой ломаной, что orth: дуга угла — n кусками
 export function orthPoints(pts, R = 12, n = 6) {

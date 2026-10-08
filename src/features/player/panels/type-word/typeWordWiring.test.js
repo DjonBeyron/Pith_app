@@ -83,8 +83,14 @@ describe('type_word — плеер', () => {
     // панель на 'signal' выходит до звука, счёта попыток и статистики
     expect(panel).toContain("if (!r || r === 'signal') return")
     expect(panel).toContain('useTypeWord(node, nodes, onSignalFired, hasSignalFired)')
-    expect(panel).toContain('<TypeWordTyped typed={typed} blinkIndex={tw.blinkIndex} />')
+    expect(panel).toContain('<TypeWordTyped typed={typed} blinkIndex={tw.blinkIndex} caret={!frozen} />')
     expect(typed).toContain('signalBlinkChip')
+  })
+
+  it('регистр: клавиатура плеера следует за needsShift (заглавные при пустом вводе), курсор внутри TypeWordTyped', () => {
+    expect(panel).toContain('shift={needsShift(typed)}')
+    expect(panel).toContain('<TypeWordTyped typed={typed} blinkIndex={tw.blinkIndex} caret={!frozen} />')
+    expect(panel).not.toContain('className="twCaret"')
   })
 
   it('клавиатура: нажимаются только светящиеся клавиши, стирание есть', () => {

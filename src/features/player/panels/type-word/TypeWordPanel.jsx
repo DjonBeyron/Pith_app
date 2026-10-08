@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTypeWord } from './useTypeWord.js'
 import TypeWordKeyboard from './TypeWordKeyboard.jsx'
 import TypeWordTyped from './TypeWordTyped.jsx'
-import { letterCount, letterForm, capitalizeFirst } from '../../../../shared/lib/typeWordKeys.js'
+import { letterCount, letterForm, capitalizeFirst, needsShift } from '../../../../shared/lib/typeWordKeys.js'
 import { playSound } from '../../../../shared/lib/sounds.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
@@ -146,11 +146,10 @@ export default function TypeWordPanel({
             букв: {typed.replace(/\s/g, '').length} из {letterCount(word)}
           </div>
           <div className={rowCls} aria-live="polite" aria-label="Напечатай слово">
-            <TypeWordTyped typed={typed} blinkIndex={tw.blinkIndex} />
-            {/* key: на каждый ввод/стирание курсор перемонтируется и снова мигает с сплошной фазы (виден, пока печатают) */}
-            {!frozen && <span key={typed.length} className="twCaret" aria-hidden="true" />}
+            {/* Курсор внутри TypeWordTyped и вне потока (absolute): его появление/исчезновение текст не сдвигает */}
+            <TypeWordTyped typed={typed} blinkIndex={tw.blinkIndex} caret={!frozen} />
           </div>
-          <TypeWordKeyboard model={tw.model} disabled={frozen} onKey={tw.press} onBackspace={tw.backspace} />
+          <TypeWordKeyboard model={tw.model} disabled={frozen} shift={needsShift(typed)} onKey={tw.press} onBackspace={tw.backspace} />
           <button
             className="phraseCheckBtn"
             onClick={onCheck}

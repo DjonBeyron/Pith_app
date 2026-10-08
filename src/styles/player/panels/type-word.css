@@ -17,11 +17,20 @@
   gap: 0;
 }
 
-/* Пока ничего не напечатано — только мигающий курсор в центре строки, там, где появится первая буква (подсказки нет) */
+/* Строка набранного: инлайн-контейнер для курсора (position: relative). Сам курсор — вне потока, раскладку не меняет.
+   Пока ничего не напечатано — только мигающий курсор в центре строки (в слоте с ZWSP), там, где появится первая буква */
+.twLine {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .twTyped {
+  display: inline-block;
   font-family: 'Montserrat', 'Comfortaa', sans-serif;
   font-size: 24px;
   font-weight: 700;
+  line-height: 32px;
   letter-spacing: 0.08em;
   color: #e8eaee;
   white-space: pre;
@@ -31,16 +40,24 @@
 .twAnswerOk .twTyped { color: #b6fe3b; }
 .phraseAnswerErr .twTyped { color: #f87171; }
 
-/* Мигающий курсор — как в строке ввода телефона. TypeWordPanel перемонтирует его (key) на каждый ввод/стирание: цикл
-   twCaretBlink начинается со сплошной фазы, так что во время набора курсор виден, а мигает лишь после паузы */
+/* Мигающий курсор — как в строке ввода телефона и .catchCaret в «Ловле слов»: ВНЕ потока (absolute), ни ширины, ни margin,
+   ни высоты в раскладке — текст не двигается ни на пиксель, когда курсор появляется, мигает и исчезает (после
+   «Проверить», замок после последней попытки, сигнал). left: 100% — сразу после последней буквы (+2px), по вертикали — по
+   центру строки. TypeWordTyped перемонтирует его (key) на каждый ввод/стирание: цикл twCaretBlink начинается со сплошной
+   фазы, так что во время набора курсор виден, а мигает лишь после паузы. Перемещения (transition) у курсора нет */
 .twCaret {
+  position: absolute;
+  left: calc(100% + 2px);
+  top: 50%;
   width: 2px;
   height: 26px;
-  margin-left: 2px;
+  margin-top: -13px;
   border-radius: 1px;
   background: #b6fe3b;
+  pointer-events: none;
   animation: twCaretBlink 1.1s steps(1) infinite;
 }
+.twTypedEmpty + .twCaret { left: 0; }
 
 @keyframes twCaretBlink {
   0%, 55% { opacity: 1; }
@@ -106,7 +123,7 @@
 .twKeyAction:disabled { cursor: default; }
 .twKeyAction:disabled .twKeyLabel { opacity: 0.28; }
 
-/* Подписи клавиш ленты («Ловля слов», TypeWordKeyboard shift): по умолчанию (плеер) — ЗАГЛАВНЫЕ из .twKey; .twLower —
+/* Подписи клавиш (плеер и лента «Ловля слов», TypeWordKeyboard shift): без shift — ЗАГЛАВНЫЕ из .twKey; .twLower —
    строчные, .twShift — заглавные (следующая буква будет заглавной, как шифт на iPhone) */
 .twLower .twKey { text-transform: none; }
 .twShift .twKey { text-transform: uppercase; }

@@ -7,7 +7,7 @@ const catchCss = read('../../../styles/feed-catch.css')
 const stripCss = read('../../../styles/feed-catch-strip.css')
 const twCss = read('../../../styles/player/panels/type-word.css')
 const typedLine = read('./CatchTypedLine.jsx')
-const twPanel = read('../../player/panels/type-word/TypeWordPanel.jsx')
+const twTyped = read('../../player/panels/type-word/TypeWordTyped.jsx')
 const twKeyboard = read('../../player/panels/type-word/TypeWordKeyboard.jsx')
 
 const rule = (css, selector) => {
@@ -35,13 +35,22 @@ describe('заливка накрытия: первые 10% пути стоит 
 describe('курсор: сплошной при наборе, мигает после паузы', () => {
   it('курсор ловли и плеера перемонтируются по длине набранного (key)', () => {
     expect(typedLine).toContain('<i key={typed.length} className="catchCaret"')
-    expect(twPanel).toContain('<span key={typed.length} className="twCaret"')
+    expect(twTyped).toContain('<i key={typed.length} className="twCaret"')
   })
   it('цикл мигания общий и начинается с сплошной фазы; у курсора нет transition на позицию', () => {
     expect(twCss).toMatch(/@keyframes twCaretBlink \{\s*0%, 55% \{ opacity: 1; \}/)
     expect(rule(stripCss, '.catchCaret')).toContain('animation: twCaretBlink 1.1s steps(1) infinite;')
     expect(rule(stripCss, '.catchCaret')).not.toContain('transition')
     expect(rule(twCss, '.twCaret')).not.toContain('transition')
+  })
+  it('курсор плеера вне потока, как у ловли: не сдвигает текст ни при появлении, ни при исчезновении', () => {
+    const caret = rule(twCss, '.twCaret')
+    expect(caret).toContain('position: absolute;')
+    expect(caret).toContain('left: calc(100% + 2px);')
+    expect(caret).not.toMatch(/margin-(left|right)/)
+    expect(rule(twCss, '.twLine')).toContain('position: relative;')
+    // курсор не внутри data-testid="tw-typed" — текст слова остаётся ровно набранным
+    expect(twTyped).toContain('{caret && <i key={typed.length}')
   })
   it('разбор фразы строкой набранного мемоизирован и не пересчитывается на каждую букву', () => {
     expect(typedLine).toContain('useMemo(() => phraseUnits(title), [title])')
