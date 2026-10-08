@@ -66,9 +66,9 @@ describe('press / backspace', () => {
     expect(shiftOn(initialCatch(), words)).toBe(false)
     expect(shiftOn(reveal(openSheet(initialCatch(), words), words), words)).toBe(false)
   })
-  it('не растёт бесконечно (typedMax)', () => {
+  it('не растёт бесконечно: максимум длина слова + 1 (catchTypedMax)', () => {
     const s = typeAll(setCurrent(openSheet(initialCatch(), words), words, 1), 'likeeeeeeeeeee')
-    expect(typedOf(s, 1)).toBe('likeeee')
+    expect(typedOf(s, 1)).toBe('likee') // «like» — 4 буквы, можно 5, 6-я игнорируется
   })
   it('у каждого слова своё набранное', () => {
     let s = typeAll(openSheet(initialCatch(), words), 'i')

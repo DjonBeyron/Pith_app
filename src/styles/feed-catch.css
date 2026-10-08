@@ -114,8 +114,8 @@
    анимацию не останавливает, композитор просыпался бы под скрытой лентой каждый кадр (как у feedSkelShine) */
 .feedV2--paused .catchOverChip,
 .feedViewHidden .catchOverChip,
-.feedV2--paused .catchCaret::after,
-.feedViewHidden .catchCaret::after { animation: none; }
+.feedV2--paused .catchCaret,
+.feedViewHidden .catchCaret { animation: none; }
 
 /* ── Накрытие: полоска + шторка ─────────────────────────────────────── */
 /* Один блок у нижней навигации: колонка «полоска, затем шторка». z-index выше HUD (5), плашки перевода (6)
@@ -150,22 +150,28 @@
 .catchCoverShown > * { pointer-events: auto; }
 .catchCoverMoving { will-change: transform; }
 
-/* Заливка поверх всего накрытия (полоска + шторка): тот же цвет и верхние скругления, что у полоски; касаний не ловит.
-   z-index выше любого содержимого блока (подтверждение шторки — 5). Кривые и длительность — те же, что у движения блока */
+/* Заливка поверх ВСЕГО накрытия (полоска + шторка + подтверждение + холсты): тот же цвет и верхние скругления, что у
+   полоски; касаний не ловит. Должна перекрывать любой элемент внутри, поэтому: (1) z-index выше любого содержимого
+   блока (подтверждение шторки — 5, холсты и подчёркивание — 1–2), а сам .catchCover — изолированный контекст наложения
+   (isolation), так что внутренние z-index не могут её обойти; (2) заливка вынесена в собственный композитный слой
+   (translateZ(0)) — в Safari слои с canvas иначе могут рисоваться поверх непромотированных соседей; (3) opacity идёт
+   ЛИНЕЙНО на всю длину движения (260мс): при выезде всё внутри становится видимым на 100% только к последнему кадру,
+   при уходе в первом кадре всё на 100%, к последнему залито полностью — ease-out открывал бы содержимое уже к середине.
+   Старт и длительность — те же, что у движения блока */
+.catchCover { isolation: isolate; }
 .catchCoverVeil {
   position: absolute;
   inset: 0;
-  z-index: 20;
+  z-index: 1000;
   border-radius: 18px 18px 0 0;
   background: #1a1d22;
   pointer-events: none !important;
   opacity: 1;
-  transition: opacity 260ms cubic-bezier(0.4, 0, 1, 1);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  transition: opacity 260ms linear;
 }
-.catchCoverShown .catchCoverVeil {
-  opacity: 0;
-  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
+.catchCoverShown .catchCoverVeil { opacity: 0; }
 
 /* ── Сдвиг контролов видео, пока накрытие открыто ───────────────────── */
 /* Иконка паузы и чипы звука (SlideVideo.jsx, базовые правила в feed-media.css) поднимаются на половину высоты

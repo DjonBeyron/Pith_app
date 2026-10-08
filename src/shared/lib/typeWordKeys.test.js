@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  cleanExtraLetters, layoutOf, litChars, keyboardModel, typedMax,
+  cleanExtraLetters, layoutOf, litChars, keyboardModel, typedMax, catchTypedMax,
   appendChar, removeLast, typedMatches, letterCount, letterForm, capitalizeFirst,
   typedMismatchSlot, wordLetters,
 } from './typeWordKeys.js'
@@ -87,6 +87,17 @@ describe('«Напечатай слово»: ввод и проверка', () =
     expect(max).toBe(6)
     expect(appendChar('Ca', 't', max)).toBe('Cat')
     expect(appendChar('Abcdef', 'x', max)).toBe('Abcdef')
+  })
+
+  it('catchTypedMax: длина слова + 1 (ловля), typedMax плеера остался +3', () => {
+    expect(catchTypedMax('like')).toBe(5)
+    expect(typedMax('like')).toBe(7)
+    expect(catchTypedMax("don't")).toBe(6) // апостроф — символ длины
+    expect(catchTypedMax('well-known')).toBe(11) // дефис — тоже
+    // на слове из 4 букв максимум 5 символов, 6-й игнорируется
+    const max = catchTypedMax('like')
+    const typed = [...'likeeee'].reduce((t, ch) => appendChar(t, ch, max), '')
+    expect(typed).toBe('Likee')
   })
 
   it('первая напечатанная буква — заглавная, остальные как есть', () => {

@@ -69,6 +69,12 @@ export function typedMax(word) {
   return normalizeAnswerText(word).length + 3
 }
 
+// То же для «Ловли слов» (лента): запас всего одна буква — длина слова (апостроф, дефис, пробел считаются символами,
+// как в typedMax) + 1. Плеер «Напечатай слово» по-прежнему берёт typedMax (+3)
+export function catchTypedMax(word) {
+  return normalizeAnswerText(word).length + 1
+}
+
 // Заглавная первая буква (слово «ß» и подобные, у которых заглавная — две буквы, не трогаем)
 export function capitalizeFirst(text) {
   const first = text.charAt(0)

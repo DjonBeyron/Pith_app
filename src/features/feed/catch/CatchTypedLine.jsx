@@ -7,8 +7,8 @@ import { fontPx, FIT_NONE } from './catchFit.js'
 // font-size и word-spacing) и по центру: пробелы — разделителями (обычным текстом, с тем же word-spacing), каждое
 // слово — слотом .catchTypedWord с min-width = ширина этого слова в оригинале (widths — measureWords: { [index]: px })
 // и текстом по левому краю. Набранное встаёт колонками под своими словами; пустой слот — пустое место той же ширины
-// (ZWSP держит базовую линию; курсор .catchCaret высоты в потоке не имеет — базовая линия у всех слотов общая). Набранное — лаймом на всём протяжении набора (не белеет при переходе к следующему слову),
-// активное слово отличается курсором и слотом.
+// (ZWSP держит базовую линию; курсор .catchCaret вообще вне потока — absolute, раскладку не меняет). Набранное — лаймом
+// на всём протяжении набора (не белеет при переходе к следующему слову), активное слово отличается курсором и слотом.
 // Финал (result): та же строка и те же слоты — набранное перекрашивается: верные зелёным, неверные красным,
 // пропущенные «—»; цвет проявляется с задержкой --catch-cmp-delay (после раскрытия всех облачков). Позже строка вместе
 // с фразой сжимается к центру (word-spacing, --catch-compress-delay): слоты и ширины те же, колонки под словами сохраняются.
@@ -35,10 +35,15 @@ export default function CatchTypedLine({
         } else {
           const typed = typedBy?.get(u.index) ?? ''
           const on = u.index === cur
+          // Текст — во внутреннем .catchTypedText (position: relative): курсор лежит в нём absolute (left: 100% — сразу
+          // после последней буквы) и в потоке места не занимает, так что слот и строка не меняют ширину при его
+          // появлении/исчезновении/мигании. Пустой слот: курсор в начале слота (.catchTypedTextEmpty)
           word = (
             <span className="catchTypedWord" style={style}>
-              {typed || '​'}
-              {on && <i className="catchCaret" aria-hidden="true" />}
+              <span className={typed ? 'catchTypedText' : 'catchTypedText catchTypedTextEmpty'}>
+                {typed || '​'}
+                {on && <i className="catchCaret" aria-hidden="true" />}
+              </span>
             </span>
           )
         }

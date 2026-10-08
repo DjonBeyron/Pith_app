@@ -107,28 +107,26 @@
   white-space: pre;
   color: #b6fe3b;
 }
-/* Мигающий курсор конца набранного: нулевая высота в потоке (вклад в строку нулевой), сама чёрточка — ::after, absolute от
-   базовой линии. Раньше это был inline-block высотой 26px (.twCaret из type-word.css) — он раздвигал строку слота и
-   опускал текст активного слова ниже набранных. Анимация мигания — та же twCaretBlink */
+/* Текст слова внутри слота — инлайн-контейнер для курсора (position: relative). Сам ничего не меняет в раскладке */
+.catchTypedText { position: relative; }
+/* Мигающий курсор конца набранного: ВНЕ потока (absolute) — ни ширины, ни margin, ни высоты в раскладке, поэтому слот и
+   строка не меняют размер, когда курсор появляется (возврат «Предыдущее слово»), исчезает (следующее слово, финал) и мигает.
+   left: 100% — сразу после последней буквы (+1px зазор), по вертикали — по центру строки текста. Мигание — только opacity
+   (twCaretBlink). Пустой слот (.catchTypedTextEmpty: только ZWSP) — курсор в начале слота, ширину слота держит min-width
+   оригинального слова, а не курсор */
 .catchCaret {
-  display: inline-block;
-  position: relative;
-  width: 2px;
-  height: 0;
-  margin-left: 2px;
-  vertical-align: baseline;
-}
-.catchCaret::after {
-  content: '';
   position: absolute;
-  left: 0;
-  bottom: -0.22em;
+  left: calc(100% + 1px);
+  top: 50%;
   width: 2px;
   height: 1.05em;
+  margin-top: -0.52em;
   border-radius: 1px;
   background: #b6fe3b;
+  pointer-events: none;
   animation: twCaretBlink 1.1s steps(1) infinite;
 }
+.catchTypedTextEmpty .catchCaret { left: 0; }
 
 /* ── Финал: линия, цвета набранного, факт ───────────────────────────── */
 /* Между фразой и строкой набранного — слот .catchCmpSlot фиксированной высоты 8px с линией по центру; под строкой
@@ -230,7 +228,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .catchUnderline { transition: none; }
-  .catchCaret::after { animation: none; }
+  .catchCaret { animation: none; }
   .catchStripResult .catchCompareRule,
   .catchCmpOk,
   .catchCmpBad,

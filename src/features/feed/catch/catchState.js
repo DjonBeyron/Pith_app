@@ -1,4 +1,4 @@
-import { appendChar, removeLast, typedMatches, typedMax } from '../../../shared/lib/typeWordKeys.js'
+import { appendChar, removeLast, typedMatches, catchTypedMax } from '../../../shared/lib/typeWordKeys.js'
 
 // Состояние задания «Ловля слов» на одном слайде (спек v2) — чистые переходы без React
 // (useSlideCatch.js держит это в useState и дёргает сигналы/аналитику). Проверяется catchState.test.js.
@@ -53,7 +53,7 @@ export function press(s, words, ch) {
   const w = s.cur == null ? null : wordAt(words, s.cur)
   if (!w || s.done || s.phase !== 'type') return s
   const was = typedOf(s, s.cur)
-  const typed = appendChar(was, ch, typedMax(w.text), { capitalize: isFirst(s, words) })
+  const typed = appendChar(was, ch, catchTypedMax(w.text), { capitalize: isFirst(s, words) })
   return typed === was ? s : withTyped(s, s.cur, typed)
 }
 
