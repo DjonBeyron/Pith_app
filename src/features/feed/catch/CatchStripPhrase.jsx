@@ -23,7 +23,8 @@ import { explodeAt } from './catchTiming.js'
 // пересчёт при смене cur, масштаба и ресайзе.
 // Финал (result): клавиатура сначала уезжает (CATCH_COLLAPSE_MS), затем облачка раскрываются по очереди слева направо
 // (шаг CATCH_EXPLODE_STEP_MS): таймер наращивает счётчик взорванных, слова под ещё не взорванным облачком скрыты
-// (.catchWordWait). Верно набранные слова — цветом уровня (LEVEL_CLASS).
+// (.catchWordWait). Верно набранные слова — цветом уровня (LEVEL_CLASS). После всех облачков и сравнения промежутки между
+// словами плавно сжимаются (CSS word-spacing у .catchStripResult, см. CatchStrip) — замеры в result отключены.
 // live — canvas живёт (накрытие открыто и лента видна); false → спит картинкой покоя, состояние не трогается
 const MAX_FIT_STEPS = 4 // подряд смен масштаба, после которых фразу больше не подгоняем, пока не пришёл замер
 
@@ -44,13 +45,17 @@ function CatchStripPhrase({
   const measureRef = useRef(onMeasure)
   const fitRef = useRef(fit)
   const onFitRef = useRef(onFit)
-  useLayoutEffect(() => { measureRef.current = onMeasure; fitRef.current = fit; onFitRef.current = onFit })
+  const resultRef = useRef(result)
+  useLayoutEffect(() => { measureRef.current = onMeasure; fitRef.current = fit; onFitRef.current = onFit; resultRef.current = result })
   useLayoutEffect(() => {
     const phrase = phraseRef.current
     const wrap = wrapRef.current
     if (!phrase || !wrap) return
     let steps = 0 // подряд сменённых масштабов без замера: предохранитель от петли «замер → масштаб → замер»
     const ro = new ResizeObserver(() => {
+      // Финал: облачек уже нет, замеры не нужны. Сжатие промежутков (word-spacing, feed-catch-strip.css) меняет ширину фразы
+      // каждый кадр — без этой ранней отсечки наблюдатель пересчитал бы масштаб и regions (второй проход)
+      if (resultRef.current) return
       const cur = fitRef.current
       // Масштаб ещё не применён к DOM (React не успел перерисовать) — меряем нечего: слова лежат по старой раскладке,
       // отчёт был бы лишним (ещё одна сборка шариков); наблюдатель сработает снова, когда размеры изменятся

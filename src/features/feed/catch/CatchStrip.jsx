@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import CatchStripPhrase from './CatchStripPhrase.jsx'
 import CatchTypedLine from './CatchTypedLine.jsx'
 import CatchFact from './CatchFact.jsx'
-import { compareDelay, factDelay } from './catchTiming.js'
+import { compareDelay, factDelay, compressDelay } from './catchTiming.js'
 import { FIT_NONE } from './catchFit.js'
 
 // Полоска фразы «Ловли слов» — отдельный блок над шторкой (feed-catch-strip.css). Сверху фраза: шарики отдельными
@@ -12,11 +12,13 @@ import { FIT_NONE } from './catchFit.js'
 // большими промежутками между словами она не влезает, масштаб (fit — catchFit.js; считает CatchStripPhrase) уменьшает её
 // целиком, и тот же масштаб получает строка набранного — слоты остаются точно под облачками.
 // Между фразой и строкой набранного — слот .catchCmpSlot (8px) с линией по центру, под строкой набранного — слот факта
-// .catchFactSlot (44px): оба есть ВСЕГДА, во время набора пустые и прозрачные, поэтому на финале ничего не раздвигается.
+// .catchFactSlot (58px: 28px воздуха над текстом факта): оба есть ВСЕГДА, во время набора пустые и прозрачные, поэтому на финале ничего не раздвигается.
 // Финал (phase 'result'): клавиатура уехала, облачка раскрываются по очереди; после последнего рисуется линия
 // (.catchCompareRule, scaleX 0→1), затем под строкой набранного плавно проявляется факт «Расслышал N из M слов»
 // (CatchFact), цвета набранного (верные зелёным, неверные красным, пропущенные «—») проявляются в строке набранного —
-// она та же и остаётся на своём месте.
+// она та же и остаётся на своём месте. Затем (--catch-compress-delay = compressDelay) обе строки одновременно сжимаются
+// к центру: word-spacing из широкого (--catch-ws) в обычный пробел (--catch-ws-end), 450мс; одно правило
+// .catchStripResult в CSS на обе строки, слоты набранного остаются под своими словами (одинаковые ширины и промежутки).
 // words — catchWords(title, knowledge): [{ index, text, key, level }]; typedBy — Map index → строка;
 // results — [{ index, ok, typed }] на финале; live — canvas облачков живёт (накрытие открыто и лента видна)
 export default function CatchStrip({ title, words, cur = null, typedBy, phase = 'type', results = null, live = true, onPick }) {
@@ -27,11 +29,15 @@ export default function CatchStrip({ title, words, cur = null, typedBy, phase = 
   const onMeasure = useCallback(m => setMetrics(prev => (prev && prev.sig === m.sig ? prev : m)), [])
   const [fit, setFit] = useState(FIT_NONE)
   const okCount = results?.filter(r => r.ok).length ?? 0
+  const n = words.length
+  const delays = {
+    '--catch-cmp-delay': `${compareDelay(n)}ms`, '--catch-fact-delay': `${factDelay(n)}ms`, '--catch-compress-delay': `${compressDelay(n)}ms`,
+  }
 
   return (
     <div
       className={`catchStrip${result ? ' catchStripResult' : ''}`}
-      style={result ? { '--catch-cmp-delay': `${compareDelay(words.length)}ms`, '--catch-fact-delay': `${factDelay(words.length)}ms` } : undefined}
+      style={result ? delays : undefined}
       role="group"
       aria-label="Фраза"
     >

@@ -4,15 +4,19 @@
    Шторка — feed-catch-sheet.css, полоска фразы — feed-catch-strip.css. Анимируются только opacity и transform. */
 
 /* ── Обёртка фразы, когда задание есть ──────────────────────────────── */
-/* Шариков под чипом нет: на их месте невидимая копия фразы (.catchPhraseGhost — держит ту же ширину/высоту, раскладка
-   не прыгает), поверх неё чип. Якорь для чипа, сжата по ширине фразы (inline-block) — чип растягивается ровно на неё;
-   min-width — чтобы подпись чипа («всё ли удалось услышать», ~165px) не обрезалась многоточием на короткой фразе.
+/* Шариков под чипом нет: на их месте невидимая копия фразы (.catchPhraseGhost — держит ту же ширину/высоту) и поверх
+   неё чип. Якорь для чипа, сжата по ширине фразы (inline-flex) — чип растягивается ровно на неё; min-width — чтобы
+   подпись чипа («всё ли удалось услышать», ~145px) не упиралась в края на короткой фразе. min-height 46px (= высота чипа)
+   и центровка по вертикали: чип выше однострочной фразы, и без этого он наезжал бы на перевод и подложку под ней —
+   теперь блок сам занимает высоту чипа, а фраза стоит в его центре.
    Тап по любому месту блока открывает шторку (FeedSlide) */
 .catchSpoilerWrap {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   max-width: 100%;
   min-width: min(200px, 100%);
+  min-height: 46px;
   vertical-align: top;
   cursor: pointer;
 }
@@ -22,9 +26,10 @@
 }
 
 /* ── Чип вместо шариков ─────────────────────────────────────────────── */
-/* На всю ширину блока фразы (.catchSpoilerWrap), по вертикали по центру, текст по центру. Фон сплошной тёмный.
-   Мягкое «дыхание» масштаба зовёт нажать; пока шторка открыта — гаснет. Высота фиксированная (текст — два
-   абсолютных span'а, друг друга сменяющих, см. ниже), ширина — по блоку фразы, от текста не зависит.
+/* На всю ширину блока фразы (.catchSpoilerWrap), по вертикали по центру. Две строки по центру («Проверь» /
+   «всё ли удалось услышать») постоянно, без смены и кроссфейда. Фон сплошной тёмный. Мягкое «дыхание» масштаба
+   зовёт нажать; пока шторка открыта — гаснет. Высота фиксированная 46px (две строки по 15px + воздух), ширина — по
+   блоку фразы, от текста не зависит; обрезания нет.
    Теней у чипа нет вовсе (ни box-shadow, ни text-shadow, ни filter, в том числе в :active) — только тонкая рамка
    1px rgba(255,255,255,0.16), она не тень. Чип лежит рядом с фразой, а не внутри неё, так что text-shadow от
    .feedPhrase (feed-bubble-spoiler.css) не наследует; text-shadow: none стоит явно и на тексте чипа */
@@ -36,18 +41,21 @@
   z-index: 3;
   transform: translateY(-50%);
   box-sizing: border-box;
-  height: 34px;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  padding: 0 10px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 12px;
   background: #1a1d22;
   color: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.25;
   text-align: center;
-  overflow: hidden;
   text-shadow: none;
   box-shadow: none;
   filter: none;
@@ -63,50 +71,25 @@
   pointer-events: none;
   animation: none;
 }
-.catchOverChipHidden .catchChipText { animation: none; }
+.catchChipLine {
+  display: block;
+  white-space: nowrap;
+  text-shadow: none;
+}
 @keyframes catchChipBreath {
   50% { transform: translateY(-50%) scale(1.03); }
 }
 
-/* Текст чипа: два слоя друг над другом, кроссфейд 500мс (ease-in-out). Цикл 4.0с: «Проверь» 1.2с → 0.5с кроссфейд →
-   «всё ли удалось услышать» 1.8с → 0.5с кроссфейд (проценты ниже считаны от 4.0с: 1.2/4 = 30%, 1.7/4 = 42.5%,
-   3.5/4 = 87.5%). Анимируется только opacity. Без анимации (лента не на экране, шторка открыта) виден «Проверь» */
-.catchChipText {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-shadow: none;
-  animation-duration: 4s;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-}
-.catchChipA { animation-name: catchChipA; }
-.catchChipB { opacity: 0; animation-name: catchChipB; }
-@keyframes catchChipA {
-  0%, 30% { opacity: 1; }
-  42.5%, 87.5% { opacity: 0; }
-  100% { opacity: 1; }
-}
-@keyframes catchChipB {
-  0%, 30% { opacity: 0; }
-  42.5%, 87.5% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
 /* ── Блок фразы в ленте, пока накрытие открыто ──────────────────────── */
-/* Шарики в ленте гаснут (FeedSlide: ct.mounted → .feedPhraseBlockHidden) — живёт только масса в полоске; после
-   «Готово» блок возвращается уже с открытой фразой тем же переходом 200мс. После угасания — visibility: hidden
-   (с задержкой на длину перехода): картинку покоя dpr×3 и чип под накрытием композитор не держит в слоях вовсе;
-   при возврате visibility снимается сразу, и проявление идёт обычным переходом opacity */
+/* Шарики в ленте гаснут (FeedSlide: ct.mounted → .feedPhraseBlockHidden) — живёт только масса в полоске. На финале
+   FeedSlide заранее «готовит» открытую фразу внутри скрытого блока (слова, подложка — useCatchPrepare), а в момент «Готово»
+   (ct.done) снимает скрытие МГНОВЕННО — .feedPhraseBlockRise: opacity 1 и visibility visible без перехода. Накрытие
+   (z-index 8) непрозрачно и лежит выше блока (z-index 4), поэтому в первый кадр ничего не мелькает, а по мере ухода
+   накрытия фраза открывается. Если накрытие не закрывает блок целиком (useCatchPrepare ставит на слайд
+   data-catch-under="0"), фраза проявляется быстрым fade 120мс — надёжный запасной вариант.
+   После угасания — visibility: hidden (с задержкой на длину перехода): картинку покоя dpr×3 и чип под накрытием
+   композитор не держит в слоях вовсе; при возврате (без подготовки: «Готово» нажали раньше, чем фраза подготовилась)
+   visibility снимается сразу, и проявление идёт обычным переходом opacity 200мс */
 .feedPhraseBlock { transition: opacity 200ms ease, visibility 0s; }
 .feedPhraseBlockHidden {
   opacity: 0;
@@ -114,14 +97,18 @@
   pointer-events: none;
   transition: opacity 200ms ease, visibility 0s linear 200ms;
 }
+.feedPhraseBlockRise {
+  opacity: 1;
+  visibility: visible;
+  transition: none;
+}
+.feedSlide[data-catch-under="0"] .feedPhraseBlockRise { transition: opacity 120ms ease, visibility 0s; }
 
 /* Лента не на экране (другая вкладка нижней панели, «Мои уроки», лента под уроком — .feedV2--paused / .feedViewHidden,
-   FeedTab.jsx): бесконечные анимации «Ловли» — дыхание чипа, цикл его текста и курсор строки ввода — стоят. visibility: hidden
+   FeedTab.jsx): бесконечные анимации «Ловли» — дыхание чипа и курсор строки ввода — стоят. visibility: hidden
    анимацию не останавливает, композитор просыпался бы под скрытой лентой каждый кадр (как у feedSkelShine) */
 .feedV2--paused .catchOverChip,
 .feedViewHidden .catchOverChip,
-.feedV2--paused .catchChipText,
-.feedViewHidden .catchChipText,
 .feedV2--paused .catchCaret::after,
 .feedViewHidden .catchCaret::after { animation: none; }
 

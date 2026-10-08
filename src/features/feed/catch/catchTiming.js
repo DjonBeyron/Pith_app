@@ -9,6 +9,9 @@ export const CATCH_EXPLODE_OVERLAP = 0.6  // насколько (доля EXPLOD
 export const CATCH_EXPLODE_STEP_MS = Math.ceil(EXPLODE_MS * (1 - CATCH_EXPLODE_OVERLAP)) // шаг между облачками, слева направо
 export const CATCH_COMPARE_GAP_MS = 640   // линия, цвета набранного — когда последнее облачко уже на последней трети растворения
 export const CATCH_RULE_MS = 220          // линия рисуется (scaleX 0→1); факт начинает проявляться после неё
+export const CATCH_COLOR_MS = 320         // цвета набранного перетекают из лайма в цвет вердикта (feed-catch-strip.css: catchToColor)
+export const CATCH_COMPRESS_HOLD_MS = 150 // сравнение «постоит» перед сжатием промежутков
+export const CATCH_COMPRESS_MS = 450      // длительность сжатия word-spacing к центру (то же число в feed-catch-strip.css)
 
 // Через сколько мс после «Проверить» начинает взрываться i-е облачко (i с нуля)
 export const explodeAt = i => CATCH_COLLAPSE_MS + i * CATCH_EXPLODE_STEP_MS
@@ -19,3 +22,8 @@ export const compareDelay = n => explodeAt(Math.max(0, n - 1)) + CATCH_COMPARE_G
 // Через сколько мс после «Проверить» факт «Расслышал N из M слов» начинает проявляться (fade): когда линия уже нарисована
 // И последнее облачко полностью растворилось (факт появляется после последнего облачка, не поверх него)
 export const factDelay = n => Math.max(compareDelay(n) + CATCH_RULE_MS, explodeAt(Math.max(0, n - 1)) + EXPLODE_MS)
+
+// Через сколько мс после «Проверить» обе строки (оригинал и набранное) начинают сжиматься к центру (word-spacing: широкие
+// промежутки → обычный пробел, CATCH_COMPRESS_MS): когда последнее облачко растворилось, цвета сравнения перетекли и
+// факт уже проявляется, плюс короткая пауза, чтобы сравнение успели увидеть в прежней раскладке
+export const compressDelay = n => Math.max(factDelay(n), compareDelay(n) + CATCH_COLOR_MS) + CATCH_COMPRESS_HOLD_MS

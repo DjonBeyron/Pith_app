@@ -13,22 +13,24 @@ import { useTranslationReveal } from './useTranslationReveal.js'
 import { usePhrasePlate } from './usePhrasePlate.js'
 import FeedHud from './FeedHud.jsx'
 import { useSlideCatch } from './catch/useSlideCatch.js'
+import { useCatchPrepare } from './catch/useCatchPrepare.js'
 import CatchOverChip from './catch/CatchOverChip.jsx'
 import CatchCover from './catch/CatchCover.jsx'
 import { countKeyRender, setCatchMounted } from './spoilerStats.js'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером (перевод фразы появляется, когда её потёрли пальцем —
 // useTranslationReveal), HUD (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
-// «Ловля слов» (catch/): если лента поставила на фразу задание, вместо шариков — чип «Проверь» → «всё ли удалось услышать» на всю ширину
-// невидимой фразы (ни canvas, ни картинки покоя); тап по чипу или по блоку открывает накрытие (CatchCover: полоска фразы + шторка
-// набора) и блокирует свайп (onLock). Пока оно открыто — класс feedSlideCatchOpen и --catch-cover-h (его высота):
-// иконка паузы и чипы звука сдвигаются вверх (feed-catch.css). «Готово» → слайд обычный открытый (revealed).
+// «Ловля слов» (catch/): если лента поставила на фразу задание, вместо шариков — чип в две строки «Проверь» / «всё ли удалось
+// услышать» на всю ширину невидимой фразы (ни canvas, ни картинки покоя); тап по чипу или по блоку открывает накрытие
+// (CatchCover: полоска фразы + шторка набора) и блокирует свайп (onLock). Пока оно открыто — класс feedSlideCatchOpen и
+// --catch-cover-h (его высота): иконка паузы и чипы звука сдвигаются вверх (feed-catch.css). «Готово» → слайд обычный
+// открытый (revealed); фраза под уходящим накрытием уже готова (useCatchPrepare, ниже).
 // Состояние лайков живёт в FeedTab, спойлер локален для каждой копии слайда в круге.
 // Производительность набора: состояние «Ловли» (набранное, активное слово) живёт здесь, в useSlideCatch, поэтому каждая
 // клавиша перерисовывает FeedSlide. Тяжёлые дети обёрнуты в React.memo (SlideVideo, FeedHud, PhraseWords; внутри накрытия —
 // CatchStripPhrase и CatchSheet), а их пропсы стабильны: действия хука — стабильные обёртки, onPick слов — обёртка над
 // ref, заглушка видео — константа. На клавише реально перерисовывается только оболочка слайда и строка набранного.
-const PHRASE_OPENED_DELAY_MS = 260 // после «Готово» и размонтирования накрытия: фраза уже проявляется (200мс)
+const PHRASE_OPENED_DELAY_MS = 260 // после размонтирования накрытия: тяжёлые побочные эффекты открытия (onPhraseOpened) — не в кадрах ухода
 // Заглушка видео — один элемент на модуль: новый JSX в пропсе ломал бы React.memo у SlideVideo на каждой клавише «Ловли»
 const VIDEO_FALLBACK = <div className="feedSlideHint">здесь будет видео фразы</div>
 
@@ -46,7 +48,7 @@ export default function FeedSlide({
   onLock,           // панель набора открыта → лента не свайпается (только у активного слайда)
 }) {
   // revealed — фраза уже открыта (слова становятся кликабельными сразу, перевод фразы можно тереть);
-  // «Готово» на финале «Ловли слов» (ct.finished — после ухода накрытия) открывает её так же
+  // «Ловля слов»: фраза открывается заранее, под накрытием (useCatchPrepare), а «Готово» (ct.finished) довершает так же
   const [opened, setRevealed] = useState(false)
   // Пословный перевод названия: тап по слову — линия с подложкой (см.
   // WordTranslateLine). Координаты считаются относительно самого слайда
@@ -71,10 +73,15 @@ export default function FeedSlide({
   const rcRef = useRef(rc)
   useEffect(() => { rcRef.current = rc })
   const onWordPick = useCallback((...args) => rcRef.current.onPick(...args), [])
-  // «Готово» на финале задания идёт по порядку (useSlideCatch): накрытие уезжает (260мс) → размонтируется → ТОЛЬКО ТОГДА
-  // слайд = обычный открытый (ct.finished: спойлер не рендерится, на его месте слова фразы) и блок фразы проявляется
-  // (200мс). До этого момента в кадрах ухода накрытия ни тяжёлого рендера фразы, ни setState ленты (v3.2.1876: рывок)
+  // Финал задания идёт по порядку (useSlideCatch): на «Проверить»/«Раскрыть» через ~320мс фраза «готовится» — opened=true,
+  // слова и подложка монтируются внутри ещё скрытого блока (useCatchPrepare; дёшево, вне кадров ухода). «Готово» (ct.done) →
+  // блок снимается со скрытия мгновенно (feedPhraseBlockRise) под непрозрачным накрытием, оно уезжает (260мс) и открывает
+  // уже готовую фразу — без пустого места и «второго акта». Тяжёлое (onPhraseOpened, onLock(false), память) — ПОСЛЕ
+  // размонтирования накрытия (ct.finished), не в кадрах ухода (v3.2.1876: рывок). Не успела подготовиться — как раньше:
+  // после ухода накрытия фраза проявляется fade 200мс
   const revealed = opened || ct.finished
+  useCatchPrepare({ ct, opened, rootRef, onPrepare: () => setRevealed(true) })
+  const rise = ct.mounted && ct.done && opened // накрытие уезжает над уже подготовленной фразой
   // Админ отправил эту фразу в ленту принудительно (Админ → «Ловля» → «Отправить в ленту»), а фраза в этой сессии
   // уже была открыта — закрываем её обратно, иначе задание негде показать (чип живёт только над шариками)
   useEffect(() => {
@@ -82,7 +89,7 @@ export default function FeedSlide({
     const t = setTimeout(() => setRevealed(false), 0)
     return () => clearTimeout(t)
   }, [ct.forced]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Состояние «фраза открыта» и сигнал ленте — позже, когда фраза уже проявилась (setState через таймер, правило react-hooks)
+  // Сигнал ленте «фраза открыта» (и состояние, если не успели подготовить) — после ухода накрытия (setState через таймер, правило react-hooks)
   useEffect(() => {
     if (!ct.finished) return
     const t = setTimeout(() => { setRevealed(true); onPhraseOpened?.() }, PHRASE_OPENED_DELAY_MS)
@@ -105,7 +112,8 @@ export default function FeedSlide({
   // Геометрию (по тексту, не по блоку) usePhrasePlate кладёт в CSS-переменные стопки без setState
   const stackRef = useRef(null)
   usePhrasePlate(stackRef, `${revealed}|${ct.active}|${mod.id}|${!!mod.titleTranslation}`)
-  const plateCls = `feedPhrasePlate${revealed && !ct.mounted ? ' feedPhrasePlateOn' : ''}${trPhase === 'open' ? ' feedPhrasePlateTr' : ''}`
+  const plateOn = revealed && (!ct.mounted || rise) // на «Готово» — сразу, под накрытием (feedPhrasePlateNow: без fade)
+  const plateCls = `feedPhrasePlate${plateOn ? ' feedPhrasePlateOn' : ''}${rise ? ' feedPhrasePlateNow' : ''}${trPhase === 'open' ? ' feedPhrasePlateTr' : ''}`
   // Ушли с этого слайда свайпом — подсказку убираем. Отдельно закрываем её и
   // при подмене модуля в той же копии слайда (лента крутится по кругу и
   // переиспользует смонтированные слайды — иначе остался бы чужой перевод)
@@ -152,14 +160,15 @@ export default function FeedSlide({
       <div className="feedPauseGuard" aria-hidden="true" />
 
       {/* Пока накрытие «Ловли» в DOM (ct.mounted) блок фразы гаснет (opacity 200мс, feed-catch.css) — шарики в ленте
-          не живут одновременно с массой в полоске; после «Готово» он возвращается уже с открытой фразой */}
-      <div className={`feedPhraseBlock${ct.mounted ? ' feedPhraseBlockHidden' : ''}`}>
+          не живут одновременно с массой в полоске; на «Готово» с подготовленной фразой (rise) скрытие снимается мгновенно
+          под уходящим накрытием, иначе — после его ухода, fade 200мс */}
+      <div className={`feedPhraseBlock${ct.mounted && !rise ? ' feedPhraseBlockHidden' : ''}${rise ? ' feedPhraseBlockRise' : ''}`}>
         {/* Шариками спойлера накрыта только сама фраза — строка перевода не
             спойлер, ей не нужны шарики (меньше высота = меньше шариков). Сама строка спрятана за фразой
             и выкатывается, когда фразу потёрли */}
         <div className="feedPhraseStack" ref={stackRef}>
           <i className={plateCls} aria-hidden="true" />
-          {showRubHint && revealed && trPhase === 'off' && !!mod.titleTranslation && <RubHint />}
+          {showRubHint && revealed && !ct.mounted && trPhase === 'off' && !!mod.titleTranslation && <RubHint />}
           {revealed ? (
             <div className="feedPhrase" {...rubProps}>{phraseWords}</div>
           ) : ct.active ? (

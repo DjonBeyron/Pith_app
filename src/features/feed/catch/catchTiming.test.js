@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   CATCH_COLLAPSE_MS, CATCH_EXPLODE_STEP_MS, CATCH_EXPLODE_OVERLAP, CATCH_COMPARE_GAP_MS, CATCH_RULE_MS,
-  explodeAt, compareDelay, factDelay,
+  CATCH_COLOR_MS, CATCH_COMPRESS_HOLD_MS, explodeAt, compareDelay, factDelay, compressDelay,
 } from './catchTiming.js'
 import { EXPLODE_MS } from '../phraseBubbleConsts.js'
 
@@ -33,5 +33,15 @@ describe('тайминги финала «Ловли»', () => {
     }
     expect(factDelay(4)).toBeGreaterThan(compareDelay(4))
     expect(factDelay(0)).toBe(factDelay(1))
+  })
+
+  it('сжатие к центру стартует после последнего облачка, цветов сравнения и факта', () => {
+    for (const n of [1, 2, 4, 7]) {
+      expect(compressDelay(n)).toBeGreaterThanOrEqual(factDelay(n) + CATCH_COMPRESS_HOLD_MS)
+      expect(compressDelay(n)).toBeGreaterThanOrEqual(compareDelay(n) + CATCH_COLOR_MS + CATCH_COMPRESS_HOLD_MS)
+      expect(compressDelay(n)).toBeGreaterThanOrEqual(explodeAt(n - 1) + EXPLODE_MS)
+    }
+    expect(compressDelay(4)).toBeGreaterThan(compressDelay(2))
+    expect(compressDelay(0)).toBe(compressDelay(1))
   })
 })
