@@ -187,3 +187,17 @@ describe('keyboardModel: lure (лишние светящиеся клавиши)
     expect(lureOf(m)).toBe('z')
   })
 })
+
+describe('быстрая печать: серия appendChar подряд (плеер, setTyped(t => appendChar(t, ch, max)))', () => {
+  const burst = (chars, max) => [...chars].reduce((t, ch) => appendChar(t, ch, max), '')
+
+  it('10 нажатий подряд — все 10 символов, пока не упёрлись в лимит', () => {
+    expect(burst('abcdefghij', typedMax('abcdefghijkl'))).toBe('Abcdefghij')
+  })
+  it('на лимите лишние нажатия игнорируются', () => {
+    expect(burst('abcdefghij', 4)).toBe('Abcd')
+  })
+  it('двойной пробел в серии не проходит, остальное идёт по порядку', () => {
+    expect(burst('a  b', 10)).toBe('A b')
+  })
+})

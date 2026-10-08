@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useMemo } from 'react'
 import { phraseUnits } from './catchPhraseUnits.js'
 import { fontPx, FIT_NONE } from './catchFit.js'
 
@@ -12,11 +12,15 @@ import { fontPx, FIT_NONE } from './catchFit.js'
 // Финал (result): та же строка и те же слоты — набранное перекрашивается: верные зелёным, неверные красным,
 // пропущенные «—»; цвет проявляется с задержкой --catch-cmp-delay (после раскрытия всех облачков). Позже строка вместе
 // с фразой сжимается к центру (word-spacing, --catch-compress-delay): слоты и ширины те же, колонки под словами сохраняются.
+// Курсор мигает только после паузы: key={typed.length} перемонтирует его на каждый ввод/стирание, анимация начинается
+// заново с сплошной фазы (opacity 1, 0–55% цикла = 0.6с), поэтому при быстром наборе он всегда виден на новом месте.
 // title — фраза; typedBy — Map index → строка; cur — активное слово; results — [{ index, ok, typed }] на финале
 export default function CatchTypedLine({
   title, widths = null, fit = FIT_NONE, typedBy, cur = null, result = false, results = null,
 }) {
   const resultOf = index => results?.find(r => r.index === index) ?? null
+  // Разбор фразы на слова — только при смене фразы, не на каждую набранную букву
+  const units = useMemo(() => phraseUnits(title), [title])
   return (
     <div
       className={`catchTypedLine${result ? ' catchTypedLineResult' : ''}${fit.wrap ? ' catchTypedLineWrap' : ''}`}
@@ -24,7 +28,7 @@ export default function CatchTypedLine({
       aria-live="polite"
       aria-label={result ? 'Набранное' : undefined}
     >
-      {phraseUnits(title).map(u => {
+      {units.map(u => {
         const style = { minWidth: widths?.[u.index] }
         let word
         if (result) {
@@ -42,7 +46,7 @@ export default function CatchTypedLine({
             <span className="catchTypedWord" style={style}>
               <span className={typed ? 'catchTypedText' : 'catchTypedText catchTypedTextEmpty'}>
                 {typed || '​'}
-                {on && <i className="catchCaret" aria-hidden="true" />}
+                {on && <i key={typed.length} className="catchCaret" aria-hidden="true" />}
               </span>
             </span>
           )

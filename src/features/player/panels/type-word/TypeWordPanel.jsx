@@ -147,7 +147,8 @@ export default function TypeWordPanel({
           </div>
           <div className={rowCls} aria-live="polite" aria-label="Напечатай слово">
             <TypeWordTyped typed={typed} blinkIndex={tw.blinkIndex} />
-            {!frozen && <span className="twCaret" aria-hidden="true" />}
+            {/* key: на каждый ввод/стирание курсор перемонтируется и снова мигает с сплошной фазы (виден, пока печатают) */}
+            {!frozen && <span key={typed.length} className="twCaret" aria-hidden="true" />}
           </div>
           <TypeWordKeyboard model={tw.model} disabled={frozen} onKey={tw.press} onBackspace={tw.backspace} />
           <button

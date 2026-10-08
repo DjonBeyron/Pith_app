@@ -172,3 +172,34 @@ describe('help / finish / closeSheet', () => {
     expect(wordAt(words, 9)).toBeNull()
   })
 })
+
+describe('быстрый набор: серия press в одном тике', () => {
+  // React кладёт функциональные обновления update(p => press(p, words, ch)) в очередь и применяет по порядку к
+  // результату предыдущего — моделируем это свёрткой по состоянию. Первое слово длинное (лимит 21 буква)
+  const long = catchWords('Internationalization is fun', null)
+  const burst = (s, chars, w = long) => [...chars].reduce((st, ch) => press(st, w, ch), s)
+  const open = () => openSheet(initialCatch(), long)
+
+  it('10 нажатий подряд дают все 10 символов', () => {
+    const s = burst(open(), 'internatio')
+    expect(typedOf(s, 0)).toBe('Internatio')
+    expect(typedOf(s, 0)).toHaveLength(10)
+  })
+  it('серия не зависит от разбиения на «тики»', () => {
+    const all = burst(open(), 'internatio')
+    const split = burst(burst(open(), 'inter'), 'natio')
+    expect(typedOf(split, 0)).toBe(typedOf(all, 0))
+  })
+  it('сверх лимита (оригинал + 1 буква) лишнее молча отбрасывается, состояние не меняется', () => {
+    let s = next(openSheet(initialCatch(), words), words) // слово «like» → лимит 5
+    s = burst(s, 'likelikelike', words)
+    expect(typedOf(s, 1)).toBe('likel')
+    expect(press(s, words, 'x')).toBe(s)
+  })
+  it('нажатия и стирание вперемешку идут строго по порядку', () => {
+    let s = burst(open(), 'cat')
+    s = backspace(backspace(s))
+    s = burst(s, 'ar')
+    expect(typedOf(s, 0)).toBe('Car')
+  })
+})
