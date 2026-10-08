@@ -6,6 +6,7 @@ import { catchKeyboard } from './catchLetters.js'
 import * as cs from './catchState.js'
 
 export const CATCH_COVER_OUT_MS = 300 // шторка и полоска уезжают вниз (feed-catch-sheet.css: 260мс + запас)
+const LEARN_SYNC_DELAY_MS = 450 // память «Моего обучения» обновляем после ухода накрытия и проявления фразы (200мс)
 
 // «Ловля слов» на одном слайде ленты (спек v2: чип поверх шариков → шторка с клавиатурой + полоска фразы,
 // слова по порядку, «Проверить» — финал со сравнением). Решение «задание есть на этом слайде»: слова фразы с уровнями
@@ -13,9 +14,12 @@ export const CATCH_COVER_OUT_MS = 300 // шторка и полоска уезж
 // и лента разрешила (feedCatch.claim — лимиты, один раз на модуль). Переходы состояния — catchState.js (чистые),
 // здесь — их связка с React, сигналы в память и аналитика.
 // Сигналы (catchApi): при check — за каждое своё слово (уровень ≥2), набранное верно и без подсказки → catchHeard;
-// при help — сразу catchHelp (своё слово); при reveal — ничего. Пока шторка открыта — onLock(true): лента не свайпается.
-// Память «Моего обучения» обновляется (onLearnChanged) после «Готово», если был сигнал.
-// → { active, open, mounted, phase, done, revealed, words, cur, curIndex, typed, typedBy, helped, helpedSet, model,
+// при help — сразу catchHelp (своё слово); при reveal — ничего. Пока накрытие в DOM — onLock(true): лента не свайпается
+// (снимается, когда накрытие размонтировано, а не в кадре старта ухода — onLock перерисовывает всю ленту).
+// «Готово» идёт строго по порядку, без работы в первых кадрах анимации ухода: накрытие уезжает (CATCH_COVER_OUT_MS) →
+// размонтирование (finished: слайд становится обычным открытым, фраза проявляется 200мс) → через LEARN_SYNC_DELAY_MS
+// память «Моего обучения» обновляется (onLearnChanged), если был сигнал.
+// → { active, open, mounted, phase, done, finished, revealed, shift, words, cur, curIndex, typed, typedBy, helped, helpedSet, model,
 //     results, isLast, hasPrev, openSheet(), setCurrent(index), press(ch), backspace(), next(), prev(), check(), help(),
 //     reveal(), finish() }
 export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, onLock, onLearnChanged }) {
@@ -39,11 +43,9 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   const s = st.modId !== mod.id ? cs.initialCatch(mod.id) : active ? st : cs.closeSheet(st)
   const update = fn => setSt(p => (p.modId === mod.id ? fn(p) : p))
 
-  // Блокировка свайпа — пока шторка открыта на активном слайде
   const open = active && s.open
   const lockRef = useRef(onLock)
   useEffect(() => { lockRef.current = onLock })
-  useEffect(() => { lockRef.current?.(open) }, [open])
   useEffect(() => () => lockRef.current?.(false), [])
 
   // Накрытие остаётся в DOM ещё CATCH_COVER_OUT_MS после закрытия — доигрывает уход вниз
@@ -61,13 +63,24 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   }, [closing])
   const mounted = open || closing
 
-  // Был сигнал в память — сообщаем ленте после «Готово» (или когда слайд размонтирован)
+  // Блокировка свайпа — пока накрытие в DOM на активном слайде (снимается после ухода накрытия, не в его первом кадре)
+  useEffect(() => { lockRef.current?.(mounted) }, [mounted])
+
+  // «Готово» отработало и накрытие ушло — слайд можно делать обычным открытым (FeedSlide), память — позже
+  const finished = s.done && !mounted
+
+  // Был сигнал в память — сообщаем ленте после «Готово», когда накрытие ушло и фраза проявилась (или когда слайд
+  // размонтирован раньше — тогда сразу): перерисовка ленты/ранга не попадает в анимацию ухода
   const dirty = useRef(false)
   const changedRef = useRef(onLearnChanged)
   useEffect(() => { changedRef.current = onLearnChanged })
   useEffect(() => {
-    if (s.done && dirty.current) { dirty.current = false; changedRef.current?.() }
-  }, [s.done])
+    if (!finished) return
+    const t = setTimeout(() => {
+      if (dirty.current) { dirty.current = false; changedRef.current?.() }
+    }, LEARN_SYNC_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [finished])
   useEffect(() => () => { if (dirty.current) changedRef.current?.() }, [])
 
   const cur = s.cur == null ? null : cs.wordAt(words, s.cur)
@@ -141,7 +154,8 @@ export function useSlideCatch({ feedCatch, mod, active, knowledge, recallIndex, 
   }
 
   return {
-    active: claimed, open, mounted, phase: s.phase, done: s.done, revealed: s.revealed, words,
+    active: claimed, open, mounted, phase: s.phase, done: s.done, finished, revealed: s.revealed,
+    shift: cs.shiftOn(s, words), words,
     cur, curIndex: s.cur, typed: s.cur == null ? '' : cs.typedOf(s, s.cur), typedBy: s.typedBy,
     helped, helpedSet: s.helped, model, results: s.results, isLast: cs.isLast(s, words), hasPrev,
     openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish,

@@ -75,6 +75,25 @@
   transition: opacity 320ms ease;
 }
 
+/* Облачко одного слова (PhraseBubbleStatic с regions — «Ловля слов» на слабых устройствах): тот же узор, но края
+   маски короче — иначе мягкая кайма 18px съела бы узкое слово. Положение и размер задаёт style (left/top/width/height) */
+.phraseBubbleStaticWord {
+  position: absolute;
+  z-index: 1;
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 5px, #000 calc(100% - 5px), transparent),
+    linear-gradient(to bottom, transparent, #000 4px, #000 calc(100% - 4px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 5px, #000 calc(100% - 5px), transparent),
+    linear-gradient(to bottom, transparent, #000 4px, #000 calc(100% - 4px), transparent);
+  mask-composite: intersect;
+  opacity: 0.94;
+  transition: opacity 320ms ease;
+}
+
 .phraseBubbleStaticFading {
   opacity: 0;
   pointer-events: none; /* гаснущий узор не перехватывает тап по строке перевода */

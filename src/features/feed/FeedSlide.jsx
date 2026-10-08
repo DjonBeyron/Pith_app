@@ -22,6 +22,8 @@ import CatchCover from './catch/CatchCover.jsx'
 // набора) и блокирует свайп (onLock). Пока оно открыто — класс feedSlideCatchOpen и --catch-cover-h (его высота):
 // иконка паузы и чипы звука сдвигаются вверх (feed-catch.css). «Готово» → слайд обычный открытый (revealed).
 // Состояние лайков живёт в FeedTab, спойлер локален для каждой копии слайда в круге.
+const PHRASE_OPENED_DELAY_MS = 260 // после «Готово» и размонтирования накрытия: фраза уже проявляется (200мс)
+
 export default function FeedSlide({
   module: mod, gradIdx, reaction, likeCount, saveCount = 0, repostCount = 0, tabVisible = true,
   active = false, near = false, slideKey,
@@ -36,7 +38,7 @@ export default function FeedSlide({
   onLock,           // панель набора открыта → лента не свайпается (только у активного слайда)
 }) {
   // revealed — фраза уже открыта (слова становятся кликабельными сразу, перевод фразы можно тереть);
-  // «Готово» на финале «Ловли слов» (ct.done) открывает её так же
+  // «Готово» на финале «Ловли слов» (ct.finished — после ухода накрытия) открывает её так же
   const [opened, setRevealed] = useState(false)
   // Пословный перевод названия: тап по слову — линия с подложкой (см.
   // WordTranslateLine). Координаты считаются относительно самого слайда
@@ -44,24 +46,33 @@ export default function FeedSlide({
   const wordTr = useWordTranslate(rootRef)
   const { pick, close } = wordTr
   // Слово фразы со сроком «сегодня»: дышит, по тапу — проверка вместо перевода (useSlideRecall)
-  // Сюда идёт opened (состояние), а не revealed: revealed считается ниже из ct.done, а ct зависит от rc.candIndex —
+  // Сюда идёт opened (состояние), а не revealed: revealed считается ниже из ct.finished, а ct зависит от rc.candIndex —
   // обращение к const до объявления роняло весь слайд (ReferenceError, v3.2.1873). После «Готово» эффект ниже
   // переводит opened в true, и приманка повторения снова работает как у обычной открытой фразы
   const rc = useSlideRecall({ recall, mod, active, revealed: opened, knowledge, wp: wordTr, onChanged: onLearnChanged })
   // «Ловля слов»: задание ставится, если на слайде нет слова «Помнишь?» (rc.candIndex) — оно главнее
   const ct = useSlideCatch({ feedCatch: catchFeed, mod, active, knowledge, recallIndex: rc.candIndex, onLock, onLearnChanged })
-  const revealed = opened || ct.done
-  // «Готово» на финале задания → слайд = обычный открытый (спойлер больше не рендерится), фраза считается открытой
-  // (setState через таймер, а не прямо в эффекте — правило react-hooks; кадр задержки здесь не заметен)
+  // «Готово» на финале задания идёт по порядку (useSlideCatch): накрытие уезжает (260мс) → размонтируется → ТОЛЬКО ТОГДА
+  // слайд = обычный открытый (ct.finished: спойлер не рендерится, на его месте слова фразы) и блок фразы проявляется
+  // (200мс). До этого момента в кадрах ухода накрытия ни тяжёлого рендера фразы, ни setState ленты (v3.2.1876: рывок)
+  const revealed = opened || ct.finished
+  // Состояние «фраза открыта» и сигнал ленте — позже, когда фраза уже проявилась (setState через таймер, правило react-hooks)
   useEffect(() => {
-    if (!ct.done) return
-    const t = setTimeout(() => { setRevealed(true); onPhraseOpened?.() }, 0)
+    if (!ct.finished) return
+    const t = setTimeout(() => { setRevealed(true); onPhraseOpened?.() }, PHRASE_OPENED_DELAY_MS)
     return () => clearTimeout(t)
-  }, [ct.done]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ct.finished]) // eslint-disable-line react-hooks/exhaustive-deps
   // Высота накрытия (шторка + полоска) — в CSS-переменную слайда прямо через style.setProperty, без setState:
   // иначе каждое измерение перерисовывало бы весь слайд (видео, HUD, фраза). CatchCover шлёт 0 при закрытии/размонтировании,
   // до первого открытия переменной нет — в CSS fallback 0px
-  const setCoverH = useCallback(h => rootRef.current?.style.setProperty('--catch-cover-h', `${h}px`), [])
+  // follow=true — высота меняется кадр за кадром (клавиатура сворачивается на «Проверить»): иконки едут без собственного
+  // перехода (--catch-icon-ms: 0), иначе — плавно 260мс (feed-catch.css)
+  const setCoverH = useCallback((h, follow = false) => {
+    const st = rootRef.current?.style
+    if (!st) return
+    st.setProperty('--catch-cover-h', `${h}px`)
+    st.setProperty('--catch-icon-ms', follow ? '0ms' : '260ms')
+  }, [])
   // Перевод фразы: спрятан, пока её не потёрли; стрелка прячет его обратно, подпись «перевести» остаётся до ухода со слайда
   const { phase: trPhase, setSub, rubProps, toggle: toggleTr } = useTranslationReveal({ active, modId: mod.id, enabled: revealed && !!mod.titleTranslation, onRubbed: onRubHintSeen })
   // Ушли с этого слайда свайпом — подсказку убираем. Отдельно закрываем её и
@@ -126,7 +137,7 @@ export default function FeedSlide({
               <PhraseBubbleSpoiler active={active && !ct.mounted} tabVisible={tabVisible}>
                 <div className="feedPhrase">{phraseWords}</div>
               </PhraseBubbleSpoiler>
-              <CatchOverChip hidden={ct.open} onOpen={ct.openSheet} />
+              <CatchOverChip hidden={ct.open || ct.done} onOpen={ct.openSheet} />
             </div>
           ) : (
             <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={() => { setRevealed(true); onPhraseOpened?.() }}>
@@ -152,7 +163,7 @@ export default function FeedSlide({
         <CatchCover
           open={ct.open} onHeight={setCoverH} live={active && tabVisible}
           title={mod.title} words={ct.words} cur={ct.curIndex} typedBy={ct.typedBy} phase={ct.phase} results={ct.results}
-          onPick={ct.setCurrent} helped={ct.helped} model={ct.model} isLast={ct.isLast} hasPrev={ct.hasPrev}
+          onPick={ct.setCurrent} helped={ct.helped} model={ct.model} isLast={ct.isLast} hasPrev={ct.hasPrev} shift={ct.shift}
           onKey={ct.press} onBackspace={ct.backspace} onNext={ct.next} onPrev={ct.prev} onCheck={ct.check}
           onHelp={ct.help} onReveal={ct.reveal} onFinish={ct.finish}
         />

@@ -43,11 +43,17 @@ function withTyped(s, index, typed) {
   return { ...s, typedBy }
 }
 
+// Заглавная первая буква — только у первого слова фразы; остальные слова печатаются строчными
+export const isFirst = (s, words) => s.cur != null && words.length > 0 && words[0].index === s.cur
+
+// «Шифт» клавиатуры: следующая буква будет заглавной (слово первое во фразе и ещё ничего не набрано)
+export const shiftOn = (s, words) => s.phase === 'type' && isFirst(s, words) && typedOf(s, s.cur) === ''
+
 export function press(s, words, ch) {
   const w = s.cur == null ? null : wordAt(words, s.cur)
   if (!w || s.done || s.phase !== 'type') return s
   const was = typedOf(s, s.cur)
-  const typed = appendChar(was, ch, typedMax(w.text))
+  const typed = appendChar(was, ch, typedMax(w.text), { capitalize: isFirst(s, words) })
   return typed === was ? s : withTyped(s, s.cur, typed)
 }
 

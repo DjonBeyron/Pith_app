@@ -5,17 +5,20 @@ import { shouldConfirm, noteConfirmShown } from './catchConfirm.js'
 
 // Шторка «Напечатать» «Ловли слов» — внизу слайда над навигацией (feed-catch-sheet.css). Пока печатаем
 // (phase 'type'): клавиатура с запутывателями (TypeWordKeyboard, model = catchKeyboard(слово, уровень), helped гасит
-// запутыватели), главная кнопка «Следующее слово» (на последнем слове — «Проверить»), под ней две текстовые:
-// «Раскрыть» и «Подсказать» (скрыта на уровне 0 и после использования на этом слове). Обе — через попап
-// подтверждения (CatchConfirmPopup) первые разы (catchConfirm.js: shouldConfirm/noteConfirmShown), потом сразу.
+// запутыватели, shift — подписи клавиш заглавные, когда следующая буква будет заглавной), главная кнопка «Следующее
+// слово» (на последнем слове — «Проверить»), под ней две текстовые: «Раскрыть» и «Подсказать» (скрыта на уровне 0 и
+// после использования на этом слове). Обе — через попап подтверждения (CatchConfirmPopup) первые разы (catchConfirm.js:
+// shouldConfirm/noteConfirmShown), потом сразу. Высота шторки постоянная для всех слов (три ряда клавиш всегда,
+// ряд текстовых кнопок min-height, даже когда «Подсказать» скрыта) — ничего не прыгает между словами.
 // Слева от главной — «Предыдущее слово» (вернуться и поправить): на первом слове (!hasPrev) схлопнута, главная во всю
 // ширину; на остальных плавно раскрывается (flex-basis, feed-catch-sheet.css). Без onPrev кнопки в DOM нет.
 // Попап подтверждения — абсолютный слой поверх шторки (.catchConfirmLayer), высоту шторки не меняет.
-// Финал (phase 'result'): клавиатура скрыта, одна кнопка «Готово».
+// Финал (phase 'result'): тело шторки (клавиатура и кнопки) сворачивается высотой ~260мс (.catchSheetFold — единственный
+// момент, когда шторке можно менять высоту), вместо него раскрывается ряд с одной кнопкой «Готово».
 // cur — активное слово { text, level, ... } или null; isLast — активное слово последнее во фразе;
-// hasPrev — активное слово не первое
+// hasPrev — активное слово не первое; shift — следующая буква будет заглавной (первое слово фразы, пока пусто)
 export default function CatchSheet({
-  phase = 'type', cur, helped = false, model, isLast = false, hasPrev = false,
+  phase = 'type', cur, helped = false, model, isLast = false, hasPrev = false, shift = false,
   onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
 }) {
   const [confirm, setConfirm] = useState(null) // 'reveal' | 'hint' | null — попап открыт
@@ -36,12 +39,12 @@ export default function CatchSheet({
   const result = phase === 'result'
   return (
     <div className="catchSheet" role="group" aria-label={result ? 'Результат' : 'Напечатай, что услышал'}>
-      <div className="catchSheetInner">
-        {result ? (
-          <button type="button" className="phraseCheckBtn catchMainBtn" onClick={onFinish}>Готово</button>
-        ) : (
-          <>
-            {cur && model && <TypeWordKeyboard model={model} helped={helped} onKey={onKey} onBackspace={onBackspace} />}
+      <div className={result ? 'catchSheetFold' : 'catchSheetFold catchSheetFoldOpen'} inert={result || undefined}>
+        <div className="catchSheetFoldIn">
+          <div className="catchSheetInner">
+            {cur && model && (
+              <TypeWordKeyboard model={model} helped={helped} shift={shift} onKey={onKey} onBackspace={onBackspace} />
+            )}
             <div className="catchMainRow">
               {onPrev && (
                 <button
@@ -65,8 +68,15 @@ export default function CatchSheet({
                 <button type="button" className="catchTextBtn" disabled={!!confirm} onClick={() => ask('hint')}>Подсказать</button>
               )}
             </div>
-          </>
-        )}
+          </div>
+        </div>
+      </div>
+      <div className={result ? 'catchSheetFold catchSheetFoldOpen catchDoneFold' : 'catchSheetFold catchDoneFold'} inert={!result || undefined}>
+        <div className="catchSheetFoldIn">
+          <div className="catchDoneRow">
+            <button type="button" className="phraseCheckBtn catchMainBtn" onClick={onFinish}>Готово</button>
+          </div>
+        </div>
       </div>
       {confirm && !result && (
         <CatchConfirmPopup

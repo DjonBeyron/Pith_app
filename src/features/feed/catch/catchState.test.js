@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   initialCatch, openSheet, setCurrent, press, backspace, next, prev, help, check, reveal, finish, closeSheet,
-  wordAt, typedOf, isLast, okCount,
+  wordAt, typedOf, isLast, isFirst, shiftOn, okCount,
 } from './catchState.js'
 import { catchWords } from './feedCatch.js'
 
@@ -41,20 +41,40 @@ describe('press / backspace', () => {
   it('печатает только при открытой шторке с активным словом, первая буква заглавная', () => {
     const s0 = initialCatch()
     expect(press(s0, words, 'l')).toBe(s0)
-    const s = typeAll(setCurrent(openSheet(s0, words), words, 1), 'li')
-    expect(typedOf(s, 1)).toBe('Li')
-    expect(typedOf(backspace(s), 1)).toBe('L')
+    const s = typeAll(openSheet(s0, words), 'i')
+    expect(typedOf(s, 0)).toBe('I')
+    expect(typedOf(backspace(s), 0)).toBe('')
     expect(backspace(s0)).toBe(s0)
+  })
+  it('заглавная буква только у первого слова фразы, остальные — строчные', () => {
+    const s = typeAll(setCurrent(openSheet(initialCatch(), words), words, 1), 'li')
+    expect(typedOf(s, 1)).toBe('li')
+    expect(typedOf(backspace(s), 1)).toBe('l')
+    expect(typedOf(typeAll(setCurrent(s, words, 2), 'cats'), 2)).toBe('cats')
+    expect(typedOf(typeAll(setCurrent(s, words, 0), 'i'), 0)).toBe('I')
+  })
+  it('shiftOn: шифт только когда следующая буква будет заглавной (первое слово и пусто)', () => {
+    let s = openSheet(initialCatch(), words)
+    expect(isFirst(s, words)).toBe(true)
+    expect(shiftOn(s, words)).toBe(true)
+    s = typeAll(s, 'i')
+    expect(shiftOn(s, words)).toBe(false)
+    expect(shiftOn(backspace(s), words)).toBe(true)
+    s = setCurrent(s, words, 1)
+    expect(isFirst(s, words)).toBe(false)
+    expect(shiftOn(s, words)).toBe(false)
+    expect(shiftOn(initialCatch(), words)).toBe(false)
+    expect(shiftOn(reveal(openSheet(initialCatch(), words), words), words)).toBe(false)
   })
   it('не растёт бесконечно (typedMax)', () => {
     const s = typeAll(setCurrent(openSheet(initialCatch(), words), words, 1), 'likeeeeeeeeeee')
-    expect(typedOf(s, 1).length).toBe('like'.length + 3)
+    expect(typedOf(s, 1)).toBe('likeeee')
   })
   it('у каждого слова своё набранное', () => {
     let s = typeAll(openSheet(initialCatch(), words), 'i')
     s = typeAll(next(s, words), 'like')
     expect(typedOf(s, 0)).toBe('I')
-    expect(typedOf(s, 1)).toBe('Like')
+    expect(typedOf(s, 1)).toBe('like')
   })
 })
 
@@ -100,8 +120,8 @@ describe('check / reveal', () => {
     expect(state.revealed).toBe(false)
     expect(results).toEqual([
       { index: 0, ok: true, typed: 'I' },
-      { index: 1, ok: false, typed: 'Lake' },
-      { index: 2, ok: true, typed: 'Cats' },
+      { index: 1, ok: false, typed: 'lake' },
+      { index: 2, ok: true, typed: 'cats' },
     ])
     expect(okCount(results)).toBe(2)
     expect(check(state, words).state).toBe(state)
@@ -144,7 +164,7 @@ describe('help / finish / closeSheet', () => {
     const s = closeSheet(typeAll(next(openSheet(s0, words), words), 'li'))
     expect(s.open).toBe(false)
     expect(s.cur).toBe(1)
-    expect(typedOf(s, 1)).toBe('Li')
+    expect(typedOf(s, 1)).toBe('li')
     expect(s.done).toBe(false)
   })
   it('wordAt', () => {

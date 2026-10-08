@@ -1,7 +1,8 @@
 /* Шторка «Напечатать» «Ловли слов» (features/feed/catch/CatchSheet.jsx) — нижняя часть накрытия .catchCover
    (feed-catch.css). Фон и ободок как у панелей плеера (.phrasePanel). Выезжает снизу: transform 260мс,
    .catchCoverShown ставит CatchCover кадром позже монтирования. Внутри: клавиатура TypeWordKeyboard, главная кнопка
-   (.phraseCheckBtn — лаймовая рамка, как «Проверить» в плеере), две текстовые кнопки, на финале — одна «Готово».
+   (.phraseCheckBtn — лаймовая рамка, как «Проверить» в плеере), две текстовые кнопки, на финале — тело сворачивается,
+   раскрывается ряд с одной «Готово».
    Фон сплошной (без alpha и backdrop-filter). Попап подтверждения (.catchConfirmLayer, feed-catch-confirm.css) —
    абсолютный слой поверх шторки, её высоту не меняет. Без will-change: шторка едет только при открытии/закрытии,
    постоянный will-change держал бы её (с клавиатурой) отдельным слоем всё время. */
@@ -17,7 +18,20 @@
 }
 .catchCoverShown .catchSheet { transform: translateY(0); }
 
-/* Не выше ~46% слайда — тап по видео над накрытием ставит паузу как раньше; при переполнении — прокрутка внутри */
+/* Тело и ряд «Готово» складываются высотой (grid 0fr ↔ 1fr, 260мс — как выезд шторки): на «Проверить» тело
+   (клавиатура и кнопки) сворачивается, а ряд «Готово» раскрывается теми же 260мс — суммарная высота шторки меняется
+   плавно и только в этот момент. Чем занят внутренний слой — min-height: 0 и overflow: hidden, иначе сетка не схлопнется */
+.catchSheetFold {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.catchSheetFoldOpen { grid-template-rows: 1fr; }
+.catchSheetFoldIn { min-height: 0; overflow: hidden; }
+
+/* Высота шторки одна для всех слов: клавиатура всегда в три ряда (знаки вне раскладки встают в последний ряд, см.
+   keyboardModel), главная кнопка одной высоты, ряд текстовых кнопок держит min-height и когда «Подсказать» скрыта.
+   Не выше ~46% слайда — тап по видео над накрытием ставит паузу как раньше; при переполнении — прокрутка внутри */
 .catchSheetInner {
   max-width: 600px;
   max-height: 46vh;
@@ -27,6 +41,18 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px 14px 10px;
+}
+
+/* Ряд «Готово» (финал): раскрывается вместо тела; кнопка проявляется чуть позже начала раскрытия */
+.catchDoneRow {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 12px 14px 10px;
+}
+.catchSheetFoldOpen .catchDoneRow .catchMainBtn { animation: catchDoneIn 200ms ease-out 120ms both; }
+@keyframes catchDoneIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Главная кнопка: «Следующее слово» / «Проверить» / «Готово» */
@@ -89,8 +115,10 @@
 /* Две текстовые кнопки под главной: «Раскрыть» и «Подсказать» */
 .catchTextBtns {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: 22px;
+  min-height: 32px;
   margin-top: -2px;
 }
 .catchTextBtn {
@@ -113,6 +141,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .catchSheet { transition: none; }
+  .catchSheet,
+  .catchSheetFold { transition: none; }
+  .catchSheetFoldOpen .catchDoneRow .catchMainBtn { animation: none; }
   .catchPrevBtn { transition: none; }
 }

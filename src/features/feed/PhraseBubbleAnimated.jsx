@@ -1,11 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextSpoilerId, setSpoilerStat, clearSpoilerStat } from './spoilerStats.js'
-import {
-  MARGIN_X, MARGIN_Y, EXPLODE_MARGIN, EXPLODE_POWER_MIN, EXPLODE_POWER_MAX,
-  buildGrid, drawFloat, drawExplode, renderStillImage,
-} from './phraseBubbleDraw.js'
-
-const EXPLODE_SAFETY_MS = 1500 // взрыв ~0.75с — с двойным запасом
+import { MARGIN_X, MARGIN_Y, buildGrid, drawFloat, renderStillImage } from './phraseBubbleDraw.js'
+import { hasExplode, regionsKey } from './phraseBubbleRegions.js'
+import { usePhraseBubbleExplode } from './usePhraseBubbleExplode.js'
 
 // Шарики-спойлер поверх фразы модуля (замена blur+зерна) для способных
 // устройств — на слабых и при prefers-reduced-motion вместо этого компонента
@@ -33,8 +30,11 @@ const EXPLODE_SAFETY_MS = 1500 // взрыв ~0.75с — с двойным за�
 // Геометрия и отрисовка — phraseBubbleDraw.js.
 //
 // Режим «Ловли слов» (catch/CatchStripPhrase): onTap(e) — задан → тап НЕ взрывает, а отдаётся родителю (он ищет
-// слово по координате); explode — стал true → шарики разлетаются так же, как по тапу (текст открывается).
-export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlock, onTap, explode = false, children }) {
+// слово по координате); explode — команда на взрыв: true — всё сразу, число n — взорваны первые n облачков, массив —
+// индексы взорванных (usePhraseBubbleExplode.js); текст открывается с первого взрыва. regions — прямоугольники слов
+// { x, y, w, h } относительно текстового блока: шарики лежат отдельными облачками над словами (buildGrid), между
+// словами промежуток чистый; пересборка сетки при смене regions. Без regions — одна сплошная масса, как в ленте.
+export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlock, onTap, explode = false, regions = null, children }) {
   const live = active && tabVisible
   const wrapRef = useRef(null)
   const canvasRef = useRef(null)
@@ -49,12 +49,11 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
   const idRef = useRef(null)
   if (idRef.current === null) idRef.current = nextSpoilerId()
 
-  // Внешняя команда «взорвись» (проп explode): переход ловим при рендере (не в эффекте — правило react-hooks)
-  const [prevExplode, setPrevExplode] = useState(explode)
-  if (explode !== prevExplode) {
-    setPrevExplode(explode)
-    if (explode && !exploding && !unlocked) setExploding(true)
-  }
+  // Внешняя команда «взорвись» (проп explode): переход ловим при рендере (не в эффекте — правило react-hooks).
+  // Тап (без onTap) взрывает всё сразу: tapped → команда true
+  const [tapped, setTapped] = useState(false)
+  const command = tapped ? true : explode
+  if (hasExplode(command) && !exploding && !unlocked) setExploding(true)
 
   const showCanvas = !revealed && (exploding || (live && !unlocked))
   const ready = !!still
@@ -87,9 +86,14 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
   // Раскладка: сетка по размеру блока + картинка покоя. Пересчёт при ресайзе,
   // кроме взрыва (по тапу слова становятся кликабельными и текст чуть меняет
   // ширину — пересборка сетки в этот момент оборвала бы вспышку)
+  const regionsSig = regionsKey(regions)
+  const regionsRef = useRef(regions)
+  useLayoutEffect(() => { regionsRef.current = regions }) // раньше сборки сетки ниже: эффекты идут по порядку
   useLayoutEffect(() => {
     const wrap = wrapRef.current
     if (!wrap || unlocked) return
+    // Другие регионы — сетку пересобираем, даже если размер блока тот же
+    lastBuiltRef.current = { w: -1, h: -1 }
     function layout() {
       const rect = wrap.getBoundingClientRect()
       const last = lastBuiltRef.current
@@ -102,7 +106,7 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
       // Полный DPR (до 3): на Retina шарики радиусом 1-2px иначе смазаны
       const dpr = Math.min(window.devicePixelRatio || 1, 3)
       sizeRef.current = { w, h, dpr }
-      bubblesRef.current = buildGrid(rect.width, rect.height)
+      bubblesRef.current = buildGrid(rect.width, rect.height, regionsRef.current)
       setStill({ url: renderStillImage(bubblesRef.current, w, h, dpr), w, h })
       // Живой холст уже на экране — подгоняем размер, следующий кадр цикла
       // дорисует. Во время взрыва сюда не попасть: unlocked снимает наблюдатель
@@ -113,7 +117,7 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
     const ro = new ResizeObserver(layout)
     ro.observe(wrap)
     return () => ro.disconnect()
-  }, [unlocked])
+  }, [unlocked, regionsSig])
 
   // Плавание на живом холсте. При уходе (слайд не активен / лента скрыта /
   // взрыв) — цикл гасим и переснимаем картинку покоя с текущих позиций
@@ -154,69 +158,16 @@ export default function PhraseBubbleAnimated({ active, tabVisible = true, onUnlo
     }
   }, [live, unlocked, exploding, ready])
 
-  // Взрыв на том же холсте: первый кадр — до показа, в том же тике открываем текст
-  useLayoutEffect(() => {
-    if (!exploding) return
-    const wrap = wrapRef.current
-    const canvas = canvasRef.current
-    if (!wrap || !canvas) return
-    const rect = wrap.getBoundingClientRect()
-    const dpr = sizeRef.current.dpr || 1
-    // Запас пошире (EXPLODE_MARGIN вместо MARGIN_X/Y), иначе шарикам некуда лететь
-    const w = rect.width + EXPLODE_MARGIN * 2
-    const h = rect.height + EXPLODE_MARGIN * 2
-    canvas.width = Math.round(w * dpr)
-    canvas.height = Math.round(h * dpr)
-    canvas.style.width = w + 'px'
-    canvas.style.height = h + 'px'
-    canvas.style.left = -EXPLODE_MARGIN + 'px'
-    canvas.style.top = -EXPLODE_MARGIN + 'px'
-    const shiftX = EXPLODE_MARGIN - MARGIN_X
-    const shiftY = EXPLODE_MARGIN - MARGIN_Y
-    const cx = w / 2, cy = h / 2
-    const bubbles = bubblesRef.current
-    for (const b of bubbles) {
-      // Мутируем частицы в ref намеренно — это mutable-состояние canvas-анимации
-      // eslint-disable-next-line react-hooks/immutability
-      b.ax += shiftX
-      b.ay += shiftY
-      const angle = Math.atan2(b.ay - cy, b.ax - cx) + (Math.random() - 0.5) * 0.7
-      const power = EXPLODE_POWER_MIN + Math.random() * (EXPLODE_POWER_MAX - EXPLODE_POWER_MIN)
-      b.vx = Math.cos(angle) * power
-      b.vy = Math.sin(angle) * power - 2
-      b.t = 0
-    }
-    const ctx = canvas.getContext('2d')
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    drawExplode(ctx, bubbles, 0, w, h)
-    setUnlocked(true)
-    onUnlock?.()
-
-    let last = performance.now()
-    function frame(now) {
-      // Время кадра rAF бывает чуть раньше performance.now() из эффекта — dt < 0 давал NaN в альфе
-      // шарика и «Cannot read properties of undefined (reading 'push')» в drawExplode
-      const dt = Math.max(0, Math.min(32, now - last))
-      last = now
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, w, h)
-      if (drawExplode(ctx, bubbles, dt, w, h)) { setRevealed(true); return }
-      rafRef.current = requestAnimationFrame(frame)
-    }
-    rafRef.current = requestAnimationFrame(frame)
-    // Страховка: взрыв длится ~0.75с; если кадры встали (фон, троттлинг),
-    // холст всё равно убираем — иначе он висел бы поверх строки перевода
-    const safety = setTimeout(() => setRevealed(true), EXPLODE_SAFETY_MS)
-    return () => { cancelAnimationFrame(rafRef.current); clearTimeout(safety) }
-    // onUnlock — колбэк родителя, зовётся один раз в момент тапа
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exploding])
+  // Взрыв на том же холсте (команда — проп explode или тап)
+  usePhraseBubbleExplode({
+    exploding, explode: command, wrapRef, canvasRef, bubblesRef, sizeRef, setUnlocked, setRevealed, onUnlock,
+  })
 
   // Тап: с onTap — решает родитель (слово по координате), иначе взрыв
   function tap(e) {
     if (onTap) { onTap(e); return }
     if (exploding || unlocked) return
-    setExploding(true)
+    setTapped(true)
   }
 
   return (

@@ -6,6 +6,8 @@
 // по бакетам альфы). Компонент решает КОГДА рисовать, этот
 // модуль — ЧТО и КАК.
 
+import { padRegions } from './phraseBubbleRegions.js'
+
 const SPACING = 1.27
 const RADIUS = 0.55
 // Максимальные множители радиуса у основной сетки/бахромы (см. buildGrid:
@@ -64,39 +66,24 @@ export const EXPLODE_POWER_MIN = 6
 export const EXPLODE_POWER_MAX = 14
 const EXPLODE_FRICTION_PER_MS = 0.992
 
-// contentW/H — размер самого текста (без MARGIN); координаты шариков сразу
-// смещены на MARGIN, чтобы попасть в систему координат холста. Джиттер узла
-// сетки + разброс радиуса уводят рисунок от ровного прямоугольного растра —
-// читается как абстрактное скопление, а не сетка/решётка. Дополнительно по
-// периметру рассеяна «бахрома» шариков за пределами прямоугольника — без неё
-// общий силуэт всё равно читался бы как прямоугольник с явными углами
-export function buildGrid(contentW, contentH) {
+// Режим «облачка по словам» (regions): шарики колеблются слабее и бахрома мельче, чтобы облачко не заплывало на соседа
+const REGION_WANDER_SCALE = 0.4
+const REGION_FRINGE_SCALE = 0.5
+
+// Узлы одного прямоугольника (x0, y0, w, h — относительно текстового блока): сетка + бахрома. region — номер облачка
+// (null у сплошной ленты)
+function rectNodes(push, x0, y0, contentW, contentH, region) {
   const cols = Math.ceil(contentW / SPACING) + 1
   const rows = Math.ceil(contentH / SPACING) + 1
   const jitter = SPACING * 0.55
-  const bubbles = []
-  const push = (ax, ay, sizeScale) => {
-    bubbles.push({
-      ax,
-      ay,
-      r: RADIUS * sizeScale * (0.6 + Math.random() * 0.8),
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.7 + Math.random() * 0.5,
-      amp: 1.3 + Math.random() * (AMP_MAX - 1.3),
-      pulseOffset: Math.random() * Math.PI * 2,
-      vx: 0,
-      vy: 0,
-      t: 0,
-    })
-  }
-
   for (let ry = 0; ry < rows; ry++) {
     for (let rx = 0; rx < cols; rx++) {
       const offsetX = (ry % 2) * (SPACING / 2)
       push(
-        MARGIN_X + rx * SPACING + offsetX - SPACING / 2 + (Math.random() - 0.5) * jitter,
-        MARGIN_Y + ry * SPACING - SPACING / 2 + (Math.random() - 0.5) * jitter,
+        MARGIN_X + x0 + rx * SPACING + offsetX - SPACING / 2 + (Math.random() - 0.5) * jitter,
+        MARGIN_Y + y0 + ry * SPACING - SPACING / 2 + (Math.random() - 0.5) * jitter,
         1,
+        region,
       )
     }
   }
@@ -106,6 +93,7 @@ export function buildGrid(contentW, contentH) {
   // подальше — произведение двух random() даёт спад плотности) плюс
   // случайный сдвиг вдоль края. Шарики бахромы чуть мельче — истончаются к краю.
   // На верхнем/нижнем краю (ny !== 0) глубина меньше — та же логика тоньше-по-высоте
+  const depthScale = region == null ? 1 : REGION_FRINGE_SCALE
   const perimeter = 2 * (contentW + contentH)
   const fringeCount = Math.round((perimeter / SPACING) * 1.4)
   for (let i = 0; i < fringeCount; i++) {
@@ -115,18 +103,67 @@ export function buildGrid(contentW, contentH) {
     else if (t < contentW + contentH) { x = contentW; y = t - contentW; nx = 1; ny = 0 }
     else if (t < 2 * contentW + contentH) { x = contentW - (t - contentW - contentH); y = contentH; nx = 0; ny = 1 }
     else { x = 0; y = contentH - (t - 2 * contentW - contentH); nx = -1; ny = 0 }
-    const depthMax = ny !== 0 ? FRINGE_DEPTH_MAX_Y : FRINGE_DEPTH_MAX
+    const depthMax = (ny !== 0 ? FRINGE_DEPTH_MAX_Y : FRINGE_DEPTH_MAX) * depthScale
     const depth = Math.random() * Math.random() * depthMax
     const tangentJitter = (Math.random() - 0.5) * SPACING * 1.5
     const tx = -ny, ty = nx
     push(
-      MARGIN_X + x + nx * depth + tx * tangentJitter,
-      MARGIN_Y + y + ny * depth + ty * tangentJitter,
+      MARGIN_X + x0 + x + nx * depth + tx * tangentJitter,
+      MARGIN_Y + y0 + y + ny * depth + ty * tangentJitter,
       0.55 + Math.random() * 0.5,
+      region,
     )
   }
+}
 
+// contentW/H — размер самого текста (без MARGIN); координаты шариков сразу
+// смещены на MARGIN, чтобы попасть в систему координат холста. Джиттер узла
+// сетки + разброс радиуса уводят рисунок от ровного прямоугольного растра —
+// читается как абстрактное скопление, а не сетка/решётка. Дополнительно по
+// периметру рассеяна «бахрома» шариков за пределами прямоугольника — без неё
+// общий силуэт всё равно читался бы как прямоугольник с явными углами.
+// regions (необязательно) — прямоугольники слов { x, y, w, h } относительно текстового блока: тогда узлы сетки и
+// бахромы генерируются только внутри каждого прямоугольника (padRegions — с запасом, не доставая до соседа), у шариков
+// поле region = номер облачка. Без regions — одна сплошная масса, как раньше
+export function buildGrid(contentW, contentH, regions = null) {
+  const bubbles = []
+  const byRegion = Array.isArray(regions)
+  const push = (ax, ay, sizeScale, region) => {
+    bubbles.push({
+      ax,
+      ay,
+      r: RADIUS * sizeScale * (0.6 + Math.random() * 0.8),
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.7 + Math.random() * 0.5,
+      amp: (1.3 + Math.random() * (AMP_MAX - 1.3)) * (byRegion ? REGION_WANDER_SCALE : 1),
+      pulseOffset: Math.random() * Math.PI * 2,
+      vx: 0,
+      vy: 0,
+      t: 0,
+      region: byRegion ? region : null,
+      flying: false,
+    })
+  }
+  if (byRegion) padRegions(regions).forEach((r, i) => rectNodes(push, r.x, r.y, r.w, r.h, i))
+  else rectNodes(push, 0, 0, contentW, contentH, null)
   return bubbles
+}
+
+// Сдвиг всех шариков (холст на время взрыва шире — координаты переезжают на новые поля)
+export function shiftBubbles(list, dx, dy) {
+  for (const b of list) { b.ax += dx; b.ay += dy }
+}
+
+// Запуск взрыва для набора шариков: каждый летит от центра (cx, cy) с разбросом угла и силы; t = 0
+export function launchBubbles(list, cx, cy) {
+  for (const b of list) {
+    const angle = Math.atan2(b.ay - cy, b.ax - cx) + (Math.random() - 0.5) * 0.7
+    const power = EXPLODE_POWER_MIN + Math.random() * (EXPLODE_POWER_MAX - EXPLODE_POWER_MIN)
+    b.vx = Math.cos(angle) * power
+    b.vy = Math.sin(angle) * power - 2
+    b.t = 0
+    b.flying = true
+  }
 }
 
 // Покой без canvas: картинка сетки с ТЕКУЩИХ позиций шариков (drawFloat с

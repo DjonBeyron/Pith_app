@@ -2,8 +2,11 @@ import { Delete } from 'lucide-react'
 
 // Клавиатура «Напечатай слово» — минималистичная, как на iPhone: ряды букв, стирание
 // справа внизу. Светятся (нажимаются) только буквы слова и добавленные автором,
-// остальные тусклые и неактивные — тускнеет сама буква (.twKeyLabel), фон клавиши у всех один. Ряд со знаками (апостроф, é…) и пробел — только
-// если слову они нужны (см. keyboardModel в shared/lib/typeWordKeys.js).
+// остальные тусклые и неактивные — тускнеет сама буква (.twKeyLabel), фон клавиши у всех один. Знаки вне раскладки
+// (апостроф, é…) стоят в последнем ряду слева от «z»; нижний ряд — только пробел, если слову он нужен
+// (см. keyboardModel в shared/lib/typeWordKeys.js).
+// shift (лента «Ловля слов»): null — как в плеере (подписи всегда ЗАГЛАВНЫЕ, CSS text-transform); true/false — подписи
+// следуют за регистром: true — заглавные (следующая буква будет заглавной, как шифт на iPhone), false — строчные.
 // helped (лента, «Помочь памяти»): запутыватели (k.lure) трясутся, тускнеют и становятся мёртвыми (стили — .twHelped).
 function Key({ k, disabled, helped, onKey }) {
   return (
@@ -22,14 +25,17 @@ function Key({ k, disabled, helped, onKey }) {
   )
 }
 
-export default function TypeWordKeyboard({ model, disabled, helped = false, onKey, onBackspace }) {
-  const bottom = [...model.extraKeys, ...(model.space ? [{ ch: ' ', lit: true }] : [])]
+export default function TypeWordKeyboard({ model, disabled, helped = false, shift = null, onKey, onBackspace }) {
+  const bottom = model.space ? [{ ch: ' ', lit: true }] : []
+  const caseCls = shift === null ? '' : shift ? ' twShift' : ' twLower'
   return (
-    <div className={`twKeyboard${helped ? ' twHelped' : ''}`} role="group" aria-label="Клавиатура" style={{ '--tw-cols': model.cols }}>
+    <div className={`twKeyboard${helped ? ' twHelped' : ''}${caseCls}`} role="group" aria-label="Клавиатура" style={{ '--tw-cols': model.cols }}>
       {model.rows.map((row, ri) => {
         const last = ri === model.rows.length - 1
+        // Последний ряд со знаками слева от «z» сдвинут левее, чтобы поместиться рядом со «Стереть» (.twRowLong)
+        const long = last && model.lastExtra > 0
         return (
-          <div key={ri} className={`twRow twRow${ri}`}>
+          <div key={ri} className={`twRow twRow${ri}${long ? ' twRowLong' : ''}`} style={long ? { '--tw-n': row.length } : undefined}>
             {row.map(k => <Key key={k.ch} k={k} disabled={disabled} helped={helped} onKey={onKey} />)}
             {last && (
               <button

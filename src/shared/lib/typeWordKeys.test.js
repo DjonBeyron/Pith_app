@@ -15,7 +15,7 @@ describe('«Напечатай слово»: клавиатура', () => {
     expect(model.rows.flat()).toHaveLength(26)
     expect(model.rows.map(r => r.length)).toEqual([10, 9, 7])
     expect(model.cols).toBe(10)
-    expect(model.extraKeys).toEqual([])
+    expect(model.lastExtra).toBe(0)
     expect(model.space).toBe(false)
   })
 
@@ -34,21 +34,40 @@ describe('«Напечатай слово»: клавиатура', () => {
     expect(layoutOf('hello')).toBe('en')
   })
 
-  it('знаки вне раскладки уходят в нижний ряд, пробел — если он в слове', () => {
+  it('знаки вне раскладки встают в начало последнего ряда (слева от «z»), отдельного нижнего ряда нет', () => {
     const model = keyboardModel("don't", '')
-    expect(model.extraKeys.map(k => k.ch)).toEqual(["'"])
+    expect(model.rows).toHaveLength(3)
+    expect(model.rows[2].map(k => k.ch).join('')).toBe("'zxcvbnm")
+    expect(model.lastExtra).toBe(1)
     expect(model.space).toBe(false)
 
     const phrase = keyboardModel('ice cream')
     expect(phrase.space).toBe(true)
-    expect(phrase.extraKeys).toEqual([])
+    expect(phrase.lastExtra).toBe(0)
+    expect(phrase.rows.map(r => r.length)).toEqual([10, 9, 7])
 
-    expect(keyboardModel('café').extraKeys.map(k => k.ch)).toEqual(['é'])
-    expect(keyboardModel('ёж').extraKeys.map(k => k.ch)).toEqual(['ё'])
+    expect(keyboardModel('café').rows[2][0]).toMatchObject({ ch: 'é', lit: true })
+    expect(keyboardModel('ёж').rows[2][0].ch).toBe('ё')
+    expect(keyboardModel('ёж').rows).toHaveLength(3)
+  })
+
+  it('высота панели не зависит от слова: три ряда клавиш и с апострофом, и без него', () => {
+    for (const w of ['cat', "don't", 'café', 'well-known', 'кот', "ё'ж"]) expect(keyboardModel(w).rows).toHaveLength(3)
+  })
+
+  it('cols учитывает удлинённый последний ряд вместе со «Стереть» (1.5 клавиши)', () => {
+    expect(keyboardModel('cat').cols).toBe(10)
+    // 7 + апостроф + 1.5 «Стереть» помещаются в 10 колонок
+    expect(keyboardModel("don't").cols).toBe(10)
+    // два знака вне раскладки: 9 клавиш + 1.5 → 11 колонок
+    const two = keyboardModel("well-don't")
+    expect(two.rows[2]).toHaveLength(9)
+    expect(two.cols).toBe(11)
+    expect(keyboardModel('кот').cols).toBe(12)
   })
 
   it('типографский апостроф считается обычным', () => {
-    expect(keyboardModel('don’t').extraKeys.map(k => k.ch)).toEqual(["'"])
+    expect(keyboardModel('don’t').rows[2][0].ch).toBe("'")
   })
 
   it('cleanExtraLetters: уникальные символы нижнего регистра', () => {
@@ -78,6 +97,12 @@ describe('«Напечатай слово»: ввод и проверка', () =
     expect(appendChar(removeLast('T'), 'q', 10)).toBe('Q')
     expect(capitalizeFirst('london')).toBe('London')
     expect(capitalizeFirst('')).toBe('')
+  })
+
+  it('capitalize: false — первая буква остаётся как есть (слова фразы кроме первого, лента)', () => {
+    expect(appendChar('', 't', 10, { capitalize: false })).toBe('t')
+    expect(appendChar('', 't', 10, { capitalize: true })).toBe('T')
+    expect(appendChar('t', 'r', 10, { capitalize: false })).toBe('tr')
   })
 
   it('пробел — не первым и не двойным', () => {
@@ -124,7 +149,7 @@ describe('«Напечатай слово»: ввод и проверка', () =
 })
 
 describe('keyboardModel: lure (лишние светящиеся клавиши)', () => {
-  const lureOf = model => [...model.rows.flat(), ...model.extraKeys].filter(k => k.lure).map(k => k.ch).sort().join('')
+  const lureOf = model => model.rows.flat().filter(k => k.lure).map(k => k.ch).sort().join('')
 
   it('без дополнительных букв lure-клавиш нет', () => {
     expect(lureOf(keyboardModel('tries'))).toBe('')
@@ -141,8 +166,8 @@ describe('keyboardModel: lure (лишние светящиеся клавиши)
   it('дополнительная буква, которая есть в слове, — не lure; дополнительные знаки вне раскладки — lure', () => {
     expect(lureOf(keyboardModel('cat', 'ca'))).toBe('')
     const m = keyboardModel("don't", 'é')
-    expect(m.extraKeys.find(k => k.ch === "'").lure).toBe(false)
-    expect(m.extraKeys.find(k => k.ch === 'é').lure).toBe(true)
+    expect(m.rows.flat().find(k => k.ch === "'").lure).toBe(false)
+    expect(m.rows.flat().find(k => k.ch === 'é').lure).toBe(true)
   })
 
   it('пробел — не lure', () => {

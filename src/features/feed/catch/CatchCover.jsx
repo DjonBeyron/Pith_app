@@ -7,14 +7,19 @@ import CatchSheet from './CatchSheet.jsx'
 // из-под неё (z-index ниже шторки); закрытие (open=false) — обе уезжают вниз, родитель размонтирует блок
 // после CATCH_COVER_OUT_MS (useSlideCatch.mounted). Высота блока (шторка + полоска) уходит в onHeight(px) из
 // ResizeObserver — FeedSlide кладёт её в --catch-cover-h, чтобы сдвинуть иконку паузы и чипы звука (0, когда закрыто);
-// одинаковая высота подряд наружу не уходит (ResizeObserver шлёт и субпиксельный шум).
+// одинаковая высота подряд наружу не уходит (ResizeObserver шлёт и субпиксельный шум), любая другая — уходит сразу.
+// Второй аргумент onHeight(h, follow): follow=true, когда высота меняется кадр за кадром (сворачивание клавиатуры на
+// «Проверить», раскрытие линии/факта) — тогда иконки следуют за ней без собственного перехода (иначе каждый кадр
+// перезапускал бы их 260мс-переход — дрожание); одиночный скачок (follow=false) едет плавным переходом 260мс.
 // live — лента видна и слайд активен: canvas массы шариков в полоске живёт; false (ушли на другую вкладку) — спит.
 // Остальные пропсы — для CatchStrip (title, words, cur, typedBy, phase, results, onPick) и CatchSheet
 // (hasPrev/onPrev — «Предыдущее слово»).
+const FOLLOW_GAP_MS = 120
+
 export default function CatchCover({
   open, onHeight, live = true,
   title, words, cur, typedBy, phase, results, onPick,
-  helped, model, isLast, hasPrev, onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
+  helped, model, isLast, hasPrev, shift, onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
 }) {
   const ref = useRef(null)
   // Первый кадр — в спрятанном положении, иначе переходу transform нечего играть; закрытие — сразу (сброс при рендере)
@@ -33,11 +38,19 @@ export default function CatchCover({
     const el = ref.current
     if (!el || !open) { heightRef.current?.(0); return }
     let last = -1
+    let lastAt = 0
+    let streak = 0
     const report = () => {
       const h = Math.round(el.getBoundingClientRect().height)
       if (h === last) return
+      const now = performance.now()
+      // Третье изменение подряд с паузами до 120мс — высота анимируется кадр за кадром: следуем без перехода
+      // (одна-две поправки после раскладки остаются обычным плавным переходом)
+      streak = last !== -1 && now - lastAt < FOLLOW_GAP_MS ? streak + 1 : 0
+      const follow = streak >= 2
       last = h
-      heightRef.current?.(h)
+      lastAt = now
+      heightRef.current?.(h, follow)
     }
     report()
     const ro = new ResizeObserver(report)
@@ -53,7 +66,7 @@ export default function CatchCover({
         live={open && live} onPick={onPick}
       />
       <CatchSheet
-        phase={phase} cur={curWord} helped={helped} model={model} isLast={isLast} hasPrev={hasPrev}
+        phase={phase} cur={curWord} helped={helped} model={model} isLast={isLast} hasPrev={hasPrev} shift={shift}
         onKey={onKey} onBackspace={onBackspace} onNext={onNext} onPrev={onPrev} onCheck={onCheck}
         onHelp={onHelp} onReveal={onReveal} onFinish={onFinish}
       />

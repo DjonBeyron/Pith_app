@@ -10,15 +10,16 @@ import PhraseBubbleStatic from './PhraseBubbleStatic.jsx'
 // (PhraseBubbleStatic). Решение снимается один раз при монтировании
 // (useState с ленивым инициализатором) — устройство не «слабеет» посреди
 // сессии, а лишний рендер-чек на каждый рендер не нужен.
-// onTap(e) / explode — режим «Ловли слов» (тап отдаётся родителю, взрыв по команде), см. оба компонента
-export default function PhraseBubbleSpoiler({ active, tabVisible = true, onUnlock, onTap, explode = false, children }) {
+// onTap(e) / explode / regions — режим «Ловли слов» (тап отдаётся родителю, взрыв по команде, облачка по словам), см. оба
+// компонента: explode — true | число взорванных облачков | массив их индексов; regions — прямоугольники слов
+export default function PhraseBubbleSpoiler({ active, tabVisible = true, onUnlock, onTap, explode = false, regions = null, children }) {
   // perfFlags.noBubbles — бисекция лага сворачивания (shared/lib/perfFlags.js)
   const [useStatic] = useState(() =>
     perfFlags.noBubbles || isWeakDevice() || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
-  if (useStatic) return <PhraseBubbleStatic onUnlock={onUnlock} onTap={onTap} explode={explode}>{children}</PhraseBubbleStatic>
+  if (useStatic) return <PhraseBubbleStatic onUnlock={onUnlock} onTap={onTap} explode={explode} regions={regions}>{children}</PhraseBubbleStatic>
   return (
-    <PhraseBubbleAnimated active={active} tabVisible={tabVisible} onUnlock={onUnlock} onTap={onTap} explode={explode}>
+    <PhraseBubbleAnimated active={active} tabVisible={tabVisible} onUnlock={onUnlock} onTap={onTap} explode={explode} regions={regions}>
       {children}
     </PhraseBubbleAnimated>
   )

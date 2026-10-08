@@ -126,7 +126,7 @@ export function useCatchSandbox({ title, moduleId, writeMemory }) {
 
   return {
     words, levelOf, setLevel, open: st.open, phase: st.phase, done: st.done, revealed: st.revealed,
-    cur, curIndex: st.cur, typedBy: st.typedBy, helped, model, results: st.results, isLast: cs.isLast(st, words), hasPrev,
+    cur, curIndex: st.cur, typedBy: st.typedBy, helped, shift: cs.shiftOn(st, words), model, results: st.results, isLast: cs.isLast(st, words), hasPrev,
     log, memoryNote, openSheet, setCurrent, press, backspace, next, prev, check, help, reveal, finish, reset,
   }
 }

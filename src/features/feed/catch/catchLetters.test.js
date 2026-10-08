@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { LURE_COUNT, SIMILAR, lureLetters, catchKeyboard } from './catchLetters.js'
 
 const WORDS = ['cat', 'tries', 'because', 'believe', 'world', "don't", 'ice cream', 'zoo', 'quick']
-const keysOf = model => [...model.rows.flat(), ...model.extraKeys]
+const keysOf = model => model.rows.flat()
 const lureKeys = model => keysOf(model).filter(k => k.lure).map(k => k.ch)
 const litKeys = model => keysOf(model).filter(k => k.lit).map(k => k.ch)
 

@@ -35,23 +35,31 @@ export function litChars(word, extra = '') {
   return new Set([...wordChars(word), ...cleanExtraLetters(extra)])
 }
 
-// Модель клавиатуры: ряды букв основной раскладки + нижний ряд для всего, чего в
-// раскладке нет (апостроф, дефис, é/ñ/ё…) и пробела — он появляется, только если нужен слову.
-// Ряды всегда одни и те же для одного слова, поэтому панель не меняет высоту по ходу ответа.
+// Модель клавиатуры: ряды букв основной раскладки. Всё, чего в раскладке нет (апостроф, дефис, é/ñ/ё…), встаёт
+// в НАЧАЛО последнего ряда — слева от «z» (у кириллицы слева от «я»), отдельного нижнего ряда для знаков нет:
+// число рядов клавиш всегда три, и высота панели не зависит от слова. Нижний ряд — только пробел, если он нужен слову
+// (space). Ряды всегда одни и те же для одного слова, поэтому панель не меняет высоту по ходу ответа.
 export function keyboardModel(word, extra = '') {
   const lit = litChars(word, extra)
   const base = ROWS[layoutOf(word, extra)]
   const inBase = new Set(base.join(''))
-  const extraKeys = [...lit].filter(ch => ch !== ' ' && !inBase.has(ch))
   // lure — клавиша светится, но её нет в слове (лишняя буква автора / запутыватель ленты)
   const own = new Set(wordChars(word))
   const lure = ch => lit.has(ch) && !own.has(ch)
+  const key = ch => ({ ch, lit: lit.has(ch), lure: lure(ch) })
+  const rows = base.map(row => [...row].map(key))
+  const extraKeys = [...lit].filter(ch => ch !== ' ' && !inBase.has(ch)).map(key)
+  const lastIdx = rows.length - 1
+  rows[lastIdx] = [...extraKeys, ...rows[lastIdx]]
   return {
+    rows,
+    // Сколько клавиш в последнем ряду стало сверх раскладки (знаки слева от «z»): панель сдвигает такой ряд левее,
+    // чтобы он поместился рядом с «Стереть» (TypeWordKeyboard, .twRowLong)
+    lastExtra: extraKeys.length,
     // Сколько клавиш в самом длинном ряду: от этого зависит ширина КАЖДОЙ клавиши (как на iPhone —
-    // короткие ряды не растягиваются, а встают по центру)
-    cols: Math.max(...base.map(row => row.length)),
-    rows: base.map(row => [...row].map(ch => ({ ch, lit: lit.has(ch), lure: lure(ch) }))),
-    extraKeys: extraKeys.map(ch => ({ ch, lit: true, lure: lure(ch) })),
+    // короткие ряды не растягиваются, а встают по центру). Последний ряд считается вместе со «Стереть» (1.5 клавиши):
+    // удлинённый знаками ряд не заходит под неё
+    cols: Math.max(...rows.map(row => row.length), Math.ceil(rows[lastIdx].length + 1.5)),
     space: lit.has(' '),
   }
 }
@@ -69,11 +77,13 @@ export function capitalizeFirst(text) {
 }
 
 // Печать символа: мёртвые клавиши и переполнение игнорируются, пробел — не первым и не двойным.
-// Первая напечатанная буква — заглавная (как в начале предложения)
-export function appendChar(typed, ch, max) {
+// Первая напечатанная буква — заглавная (как в начале предложения); capitalize: false (лента, не первое слово
+// фразы) оставляет её как есть
+export function appendChar(typed, ch, max, { capitalize = true } = {}) {
   if (typed.length >= max) return typed
   if (ch === ' ' && (typed === '' || typed.endsWith(' '))) return typed
-  return typed === '' ? capitalizeFirst(ch) : typed + ch
+  if (typed !== '') return typed + ch
+  return capitalize ? capitalizeFirst(ch) : ch
 }
 
 export function removeLast(typed) {

@@ -33,7 +33,7 @@ export default function AdminCatchPhone({ title, sb, live = true }) {
             phase={sb.phase} results={sb.results} live={live} onPick={sb.setCurrent}
           />
           <CatchSheet
-            phase={sb.phase} cur={sb.cur} helped={sb.helped} model={sb.model} isLast={sb.isLast} hasPrev={sb.hasPrev}
+            phase={sb.phase} cur={sb.cur} helped={sb.helped} model={sb.model} isLast={sb.isLast} hasPrev={sb.hasPrev} shift={sb.shift}
             onKey={sb.press} onBackspace={sb.backspace} onNext={sb.next} onPrev={sb.prev} onCheck={sb.check}
             onHelp={sb.help} onReveal={sb.reveal} onFinish={sb.finish}
           />

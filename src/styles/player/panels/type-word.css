@@ -105,7 +105,20 @@
 .twKeyAction:disabled { cursor: default; }
 .twKeyAction:disabled .twKeyLabel { opacity: 0.28; }
 
-/* Нижний ряд — знаки вне раскладки и пробел, только если слову нужны */
+/* Подписи клавиш ленты («Ловля слов», TypeWordKeyboard shift): по умолчанию (плеер) — ЗАГЛАВНЫЕ из .twKey; .twLower —
+   строчные, .twShift — заглавные (следующая буква будет заглавной, как шифт на iPhone) */
+.twLower .twKey { text-transform: none; }
+.twShift .twKey { text-transform: uppercase; }
+
+/* Последний ряд со знаками вне раскладки слева от «z» (апостроф, é…): ряд на одну-две клавиши длиннее обычного и под
+   «Стереть» (1.5 клавиши, absolute справа) не заходит — прижимаем его влево и центрируем в оставшемся месте. Ширина
+   клавиши при этом та же, что в других словах: меняется только отступ слева (%, как и у --tw-key, от ширины ряда) */
+.twRowLong { justify-content: flex-start; }
+.twRowLong > :first-child {
+  margin-left: calc((100% - var(--tw-n) * var(--tw-key) - (var(--tw-n) - 1) * var(--tw-gap) - 1.5 * var(--tw-key) - var(--tw-gap)) / 2);
+}
+
+/* Нижний ряд — только пробел, если слову нужен */
 .twRowBottom .twKey { flex: 0 0 var(--tw-key); }
 .twRowBottom .twKeySpace {
   flex: 1 1 auto;
@@ -114,21 +127,23 @@
   text-transform: none;
 }
 
-/* «Помочь памяти» (лента): запутыватели один раз трясутся и тускнеют до уровня неактивных,
-   неактивные одновременно тускнеют ещё сильнее. Только opacity/transform */
+/* «Подсказать» (лента, «Ловля слов»): запутыватели один раз мягко трясутся (~0.9с, пять затухающих колебаний) и
+   плавно (0.8с) тускнеют до уровня неактивных, неактивные одновременно тускнеют ещё сильнее. Только opacity/transform */
 .twHelped .twKeyLure .twKeyLabel {
   opacity: 0.28;
-  transition: opacity 0.4s ease, color 0.4s ease;
-  animation: twLureShake 0.5s ease-in-out 1;
+  transition: opacity 0.8s ease, color 0.8s ease;
+  animation: twLureShake 0.9s ease-in-out 1;
 }
-.twHelped .twKeyDim .twKeyLabel { opacity: 0.12; transition: opacity 0.4s ease, color 0.4s ease; }
+.twHelped .twKeyDim .twKeyLabel { opacity: 0.12; transition: opacity 0.8s ease, color 0.8s ease; }
 
 @keyframes twLureShake {
   0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-2px); }
-  40% { transform: translateX(2px); }
-  60% { transform: translateX(-2px); }
-  80% { transform: translateX(2px); }
+  10% { transform: translateX(-1.5px); }
+  25% { transform: translateX(1.5px); }
+  40% { transform: translateX(-1.2px); }
+  55% { transform: translateX(1px); }
+  70% { transform: translateX(-0.6px); }
+  85% { transform: translateX(0.4px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
