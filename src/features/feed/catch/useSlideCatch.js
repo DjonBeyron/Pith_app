@@ -6,7 +6,7 @@ import { catchKeyboard } from './catchLetters.js'
 import { getForcedCatch, clearForcedCatch, forcedKnowledge, onForcedCatch } from './catchForce.js'
 import * as cs from './catchState.js'
 
-export const CATCH_COVER_OUT_MS = 400 // страховка: накрытие размонтируется по transitionend (CatchCover), но не позже этого (feed-catch.css: уход 260мс)
+export const CATCH_COVER_OUT_MS = 500 // страховка: накрытие размонтируется по transitionend (CatchCover), но не позже этого (feed-catch.css: уход = заливка 180мс + гашение 140мс = 320мс)
 const LEARN_SYNC_DELAY_MS = 450 // память «Моего обучения» обновляем после ухода накрытия и проявления фразы (200мс)
 // Действия, которые хук отдаёт наружу: через стабильные обёртки (см. конец хука), чтобы набор клавиш не менял пропсы
 // мемоизированных детей (CatchSheet, CatchStripPhrase, PhraseWords) — иначе каждая клавиша перерисовывала бы весь слайд
@@ -21,8 +21,9 @@ const ACTIONS = ['openSheet', 'setCurrent', 'press', 'backspace', 'next', 'prev'
 // при help — сразу catchHelp (своё слово); при reveal — ничего. Пока накрытие в DOM — onLock(true): лента не свайпается
 // (снимается, когда накрытие размонтировано, а не в кадре старта ухода — onLock перерисовывает всю ленту).
 // «Готово» идёт строго по порядку, без работы в первых кадрах анимации ухода: фраза под накрытием уже подготовлена
-// (FeedSlide + useCatchPrepare: открытая, под скрытым блоком) и на done открывается мгновенно, накрытие уезжает одним
-// блоком (260мс) → размонтирование по transitionend (coverGone; страховка — таймер CATCH_COVER_OUT_MS; finished: слайд
+// (FeedSlide + useCatchPrepare: открытая, под скрытым блоком) и на done открывается мгновенно, накрытие не движется:
+// заливка цветом панели закрывает его (180мс), затем оно гаснет (140мс) и открывает фразу → размонтирование по transitionend
+// (coverGone; страховка — таймер CATCH_COVER_OUT_MS; finished: слайд
 // становится обычным открытым, onPhraseOpened) → через LEARN_SYNC_DELAY_MS память «Моего обучения» обновляется
 // (onLearnChanged), если был сигнал.
 // Когда решать. Чип должен быть в самом первом кадре слайда, иначе при свайпе сначала виден спойлер (картинка покоя),
@@ -78,7 +79,7 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
   useEffect(() => { lockRef.current = onLock })
   useEffect(() => () => lockRef.current?.(false), [])
 
-  // Накрытие остаётся в DOM, пока доигрывает уход вниз: CatchCover сообщает о конце перехода (coverGone), таймер
+  // Накрытие остаётся в DOM, пока доигрывает уход (заливка → гашение): CatchCover сообщает о конце перехода (coverGone), таймер
   // CATCH_COVER_OUT_MS — страховка (closing поднимается при рендере в момент закрытия)
   const [closing, setClosing] = useState(false)
   const [prevOpen, setPrevOpen] = useState(open)
@@ -178,7 +179,7 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
     track('feed_catch_reveal', { typed: s.typedBy.size, total: words.length })
   }
 
-  // «Готово»: шторка уезжает, слайд становится обычным открытым (FeedSlide: revealed=true)
+  // «Готово»: накрытие заливается цветом панели и гаснет, слайд становится обычным открытым (FeedSlide: revealed=true)
   function finish() {
     if (s.phase !== 'result' || s.done) return
     update(cs.finish)

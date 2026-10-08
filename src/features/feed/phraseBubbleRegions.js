@@ -32,14 +32,13 @@ export const reachForGap = gap => {
 const padFor = (full, gap) => (gap == null ? full : Math.min(full, Math.max(0, gap / 2 - clearFor(gap))))
 
 // Зазоры от каждого слова до ближайшего соседа с четырёх сторон: слева/справа — слова той же строки, сверху/снизу —
-// слова другой строки, лежащие над/под ним по горизонтали. null — соседа с этой стороны нет. use(i, j) — учитывать ли
-// соседа j для слова i (по умолчанию всех; flightLimits — только ещё живых)
-function sideGaps(regions, use = () => true) {
+// слова другой строки, лежащие над/под ним по горизонтали. null — соседа с этой стороны нет
+function sideGaps(regions) {
   return regions.map((r, i) => {
     const g = { l: null, r: null, t: null, b: null }
     const put = (k, v) => { if (g[k] == null || v < g[k]) g[k] = v }
     regions.forEach((o, j) => {
-      if (i === j || !use(i, j)) return
+      if (i === j) return
       if (sameLine(r, o)) {
         if (o.x >= r.x + r.w - 0.5) put('r', o.x - (r.x + r.w))
         else if (o.x + o.w <= r.x + 0.5) put('l', r.x - (o.x + o.w))
@@ -77,23 +76,12 @@ export function regionLimits(regions) {
   })
 }
 
-// Разлёт частиц при ВЗРЫВЕ ограничен иначе, чем покачивание: облачка взрываются по очереди слева направо (по индексу), поэтому
-// для облачка i все соседи с меньшим индексом уже растворились (туда и наружу частицы летят свободно, как у спойлера ленты),
-// а соседи с большим индексом ещё живы — на них залетать нельзя. Частица доходит до ALIVE_REACH зазора (не до середины:
-// край живого соседа остаётся чистым с запасом на его выступ — бахрому и покачивание)
-export const ALIVE_REACH = 0.75
-const aliveReach = gap => (gap == null ? Infinity : Math.max(0, gap * ALIVE_REACH))
-
-// Границы разлёта { x0, x1, y0, y1 } (координаты текстового блока) для каждого облачка: слово ± aliveReach до ЖИВОГО соседа
-// с этой стороны; сторона без живого соседа — ±Infinity (ограничивает только край холста взрыва)
+// Разлёт частиц при ВЗРЫВЕ НЕ ограничен: границы { x0, x1, y0, y1 } (координаты текстового блока) для каждого облачка — ±Infinity
+// по всем сторонам. Раньше разлёт зажимался в сторону ещё живого соседа (слово + 0.75 зазора, ALIVE_REACH), и частицы упирались в
+// него; теперь они летят поверх живых соседей (порядок слоёв — drawExplode: левые облачка выше правых), а ограничивает только край
+// холста взрыва (затухание и зажим положения в drawExplode)
 export function flightLimits(regions) {
-  return sideGaps(regions, (i, j) => j > i).map((g, i) => {
-    const r = regions[i]
-    return {
-      x0: r.x - aliveReach(g.l), x1: r.x + r.w + aliveReach(g.r),
-      y0: r.y - aliveReach(g.t), y1: r.y + r.h + aliveReach(g.b),
-    }
-  })
+  return regions.map(() => ({ x0: -Infinity, x1: Infinity, y0: -Infinity, y1: Infinity }))
 }
 
 // Какие регионы уже взорваны: explode — true (все) | число n (первые n по порядку) | массив индексов; count — сколько регионов

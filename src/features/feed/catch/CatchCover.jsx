@@ -3,18 +3,22 @@ import CatchStrip from './CatchStrip.jsx'
 import CatchSheet from './CatchSheet.jsx'
 
 // «Накрытие» слайда в режиме «Ловли слов»: полоска фразы (CatchStrip) над шторкой набора (CatchSheet), одним блоком
-// у нижней навигации (feed-catch.css: .catchCover). Это ОДИН элемент с одной анимацией: выезжает снизу целиком
-// (transform 260мс), у детей собственных анимаций появления/ухода нет. Закрытие (open=false) — он так же уезжает вниз,
-// по окончании перехода (transitionend) вызывается onClosed — родитель размонтирует блок (useSlideCatch.coverGone;
-// таймер CATCH_COVER_OUT_MS там — только страховка). will-change: transform стоит лишь на время перехода
-// (.catchCoverMoving). Высота блока (шторка + полоска) уходит в onHeight(px) из
-// ResizeObserver — FeedSlide кладёт её в --catch-cover-h, чтобы сдвинуть иконку паузы и чипы звука (0, когда закрыто);
+// у нижней навигации (feed-catch.css: .catchCover). Панель НЕ ДВИЖЕТСЯ (раньше выезжала transform'ом 260мс — тяжело для iOS):
+// она стоит на месте, а поверх всего накрытия лежит слой-заливка .catchCoverVeil цвета панели (#1a1d22), и анимируется
+// только opacity. ОТКРЫТИЕ: монтируется с opacity 0 и заливкой 1; за 120мс блок проявляется, затем заливка гаснет (220мс) —
+// содержимое (облачка, клавиатура) проступает «из заливки». УХОД (open=false, «Готово»): заливка за 180мс (ease-in)
+// закрывает всю панель, затем всё накрытие гаснет (140мс) и открывает готовую фразу (она подготовлена под ним,
+// useCatchPrepare). По окончании перехода opacity самого блока (transitionend) вызывается onClosed — родитель размонтирует
+// блок (useSlideCatch.coverGone; таймер CATCH_COVER_OUT_MS там — страховка; при prefers-reduced-motion переходов нет,
+// onClosed зовётся сразу). will-change нет. Высота блока (шторка + полоска) уходит в onHeight(px) из
+// ResizeObserver — FeedSlide кладёт её в --catch-cover-h, чтобы сдвинуть иконку паузы и чипы звука (0, когда закрыто); высота
+// теперь появляется сразу, а не вместе с выездом, поэтому иконки едут собственным переходом (260мс) параллельно проявлению;
 // одинаковая высота подряд наружу не уходит (ResizeObserver шлёт и субпиксельный шум), любая другая — уходит сразу.
 // Второй аргумент onHeight(h, follow): follow=true, когда высота меняется кадр за кадром (сворачивание клавиатуры на
 // «Проверить») — тогда иконки следуют за ней без собственного перехода (иначе каждый кадр
 // перезапускал бы их 260мс-переход — дрожание); одиночный скачок (follow=false) едет плавным переходом 260мс.
 // live — лента видна и слайд активен: canvas массы шариков в полоске живёт; false (ушли на другую вкладку) — спит.
-// Canvas живёт и пока блок уезжает (live не зависит от open): иначе в первом кадре ухода он снимал бы картинку покоя
+// Canvas живёт и пока накрытие гаснет (live не зависит от open): иначе в первом кадре ухода он снимал бы картинку покоя
 // (toDataURL) на главном потоке; при размонтировании картинка не снимается.
 // Остальные пропсы — для CatchStrip (title, words, cur, typedBy, phase, results, onPick) и CatchSheet
 // (hasPrev/onPrev — «Предыдущее слово»).
@@ -26,7 +30,8 @@ export default function CatchCover({
   helped, model, isLast, hasPrev, shift, onKey, onBackspace, onNext, onPrev, onCheck, onHelp, onReveal, onFinish,
 }) {
   const ref = useRef(null)
-  // Первый кадр — в спрятанном положении, иначе переходу transform нечего играть; закрытие — сразу (сброс при рендере)
+  // Первый кадр — в начальном состоянии (блок прозрачен, заливка полная), иначе переходу opacity нечего играть; закрытие —
+  // сразу (сброс при рендере)
   const [ticked, setTicked] = useState(false)
   if (!open && ticked) setTicked(false)
   useEffect(() => {
@@ -35,13 +40,20 @@ export default function CatchCover({
     return () => cancelAnimationFrame(id)
   }, [open])
   const shown = open && ticked
-  // Положение, в котором закончился последний переход: пока оно не совпало с желаемым — блок едет (will-change)
-  const [settled, setSettled] = useState(false)
+  // Размонтирование — по концу перехода opacity самого блока (последний при уходе: заливка 180мс → гашение 140мс); переходы
+  // детей (заливка, иконки) всплывают сюда же, их отсекаем по target
   function onTransitionEnd(e) {
-    if (e.target !== e.currentTarget || e.propertyName !== 'transform') return
-    setSettled(shown)
+    if (e.target !== e.currentTarget || e.propertyName !== 'opacity') return
     if (!open) onClosed?.()
   }
+  // prefers-reduced-motion: переходов нет, transitionend не придёт — размонтируем сразу после ухода
+  const closedRef = useRef(onClosed)
+  useEffect(() => { closedRef.current = onClosed })
+  useEffect(() => {
+    if (open || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const t = setTimeout(() => closedRef.current?.(), 0)
+    return () => clearTimeout(t)
+  }, [open])
 
   const heightRef = useRef(onHeight)
   useEffect(() => { heightRef.current = onHeight })
@@ -72,7 +84,7 @@ export default function CatchCover({
   const curWord = cur == null ? null : words.find(w => w.index === cur) ?? null
   return (
     <div
-      className={`catchCover${shown ? ' catchCoverShown' : ''}${shown !== settled ? ' catchCoverMoving' : ''}`}
+      className={shown ? 'catchCover catchCoverShown' : 'catchCover'}
       ref={ref} onTransitionEnd={onTransitionEnd}
     >
       <CatchStrip
@@ -84,6 +96,7 @@ export default function CatchCover({
         onKey={onKey} onBackspace={onBackspace} onNext={onNext} onPrev={onPrev} onCheck={onCheck}
         onHelp={onHelp} onReveal={onReveal} onFinish={onFinish}
       />
+      <i className="catchCoverVeil" aria-hidden="true" />
     </div>
   )
 }

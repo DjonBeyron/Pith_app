@@ -1,7 +1,7 @@
 /* «Ловля слов» в ленте (features/feed/catch, спек v2) — общая часть: чип вместо шариков, обёртка-перехват тапа,
-   гашение блока фразы в ленте, накрытие слайда (.catchCover: полоска + шторка одним блоком и одной анимацией) и
-   сдвиг контролов видео, пока оно открыто.
-   Шторка — feed-catch-sheet.css, полоска фразы — feed-catch-strip.css. Анимируются только opacity и transform. */
+   гашение блока фразы в ленте, накрытие слайда (.catchCover: полоска + шторка одним блоком, не движется — проявляется и гаснет через opacity
+   и слой-заливку .catchCoverVeil) и сдвиг контролов видео, пока оно открыто.
+   Шторка — feed-catch-sheet.css, полоска фразы — feed-catch-strip.css. Анимируются только opacity и transform (у накрытия — только opacity). */
 
 /* ── Обёртка фразы, когда задание есть ──────────────────────────────── */
 /* Шариков под чипом нет: на их месте невидимая копия фразы (.catchPhraseGhost — держит ту же ширину/высоту) и поверх
@@ -88,8 +88,8 @@
 /* Шарики в ленте гаснут (FeedSlide: ct.mounted → .feedPhraseBlockHidden) — живёт только масса в полоске. На финале
    FeedSlide заранее «готовит» открытую фразу внутри скрытого блока (слова, подложка — useCatchPrepare), а в момент «Готово»
    (ct.done) снимает скрытие МГНОВЕННО — .feedPhraseBlockRise: opacity 1 и visibility visible без перехода. Накрытие
-   (z-index 8) непрозрачно и лежит выше блока (z-index 4), поэтому в первый кадр ничего не мелькает, а по мере ухода
-   накрытия фраза открывается. Если накрытие не закрывает блок целиком (useCatchPrepare ставит на слайд
+   (z-index 8) непрозрачно и лежит выше блока (z-index 4), поэтому в первый кадр ничего не мелькает: сначала накрытие заливается цветом панели (180мс), затем гаснет (140мс) и фраза
+   открывается. Если накрытие не закрывает блок целиком (useCatchPrepare ставит на слайд
    data-catch-under="0"), фраза проявляется быстрым fade 120мс — надёжный запасной вариант.
    После угасания — visibility: hidden (с задержкой на длину перехода): картинку покоя dpr×3 и чип под накрытием
    композитор не держит в слоях вовсе; при возврате (без подготовки: «Готово» нажали раньше, чем фраза подготовилась)
@@ -119,10 +119,13 @@
 /* ── Накрытие: полоска + шторка ─────────────────────────────────────── */
 /* Один блок у нижней навигации: колонка «полоска, затем шторка». z-index выше HUD (5), плашки перевода (6)
    и тоста (7). Сам блок касаний не ловит — только его дети (между ними зазоров нет).
-   ОДИН элемент — одна анимация: блок целиком (полоска и шторка вместе) выезжает снизу и так же уезжает (transform 260мс,
-   без задержек); у детей собственных transform/transition появления нет. Выезд — торможением (ease-out), уход —
-   разгоном (ease-in): у торможения последние пиксели ползут, и уход «застревал» в конце, а размонтирование по
-   transitionend (CatchCover) приходится ровно на последний кадр. will-change — только пока блок едет (.catchCoverMoving) */
+   Панель НЕ ДВИЖЕТСЯ (выезд translateY 260мс был тяжёлым для iOS): блок стоит на своём месте, а поверх него лежит слой-заливка
+   .catchCoverVeil цвета панели (#1a1d22). Анимируется только opacity:
+   · ОТКРЫТИЕ (монтирование → .catchCoverShown кадром позже): блок 0→1 за 120мс, затем заливка 1→0 за 220мс (задержка 120мс) —
+     содержимое проступает «из заливки»;
+   · УХОД («Готово», класс снят): заливка 0→1 за 180мс (ease-in) закрывает всю панель, затем блок 1→0 за 140мс (задержка 180мс)
+     и открывает готовую фразу под собой. Последний переход — opacity блока: по его transitionend CatchCover размонтирует блок.
+   will-change нет. Пока блок не «Shown» (появляется или уходит), дети касаний не ловят */
 .catchCover {
   position: absolute;
   left: 0;
@@ -132,15 +135,32 @@
   display: flex;
   flex-direction: column;
   pointer-events: none;
-  transform: translateY(calc(100% + 24px));
-  transition: transform 260ms cubic-bezier(0.4, 0, 1, 1);
+  opacity: 0;
+  transition: opacity 140ms ease-out 180ms;
 }
-.catchCover > * { pointer-events: auto; }
+.catchCover > * { pointer-events: none; }
 .catchCoverShown {
-  transform: translateY(0);
-  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 1;
+  transition: opacity 120ms ease-out;
 }
-.catchCoverMoving { will-change: transform; }
+.catchCoverShown > * { pointer-events: auto; }
+
+/* Заливка поверх всего накрытия (полоска + шторка): тот же цвет и верхние скругления, что у полоски; касаний не ловит.
+   z-index выше любого содержимого блока (подтверждение шторки — 5) */
+.catchCoverVeil {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  border-radius: 18px 18px 0 0;
+  background: #1a1d22;
+  pointer-events: none !important;
+  opacity: 1;
+  transition: opacity 180ms ease-in;
+}
+.catchCoverShown .catchCoverVeil {
+  opacity: 0;
+  transition: opacity 220ms ease-out 120ms;
+}
 
 /* ── Сдвиг контролов видео, пока накрытие открыто ───────────────────── */
 /* Иконка паузы и чипы звука (SlideVideo.jsx, базовые правила в feed-media.css) поднимаются на половину высоты
@@ -160,8 +180,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .catchOverChip { animation: none; }
-  .catchCover { transition: none; }
-  .catchCoverMoving { will-change: auto; }
+  .catchCover,
+  .catchCoverVeil { transition: none; }
   .feedSlide .slidePauseIcon,
   .feedSlide .feedSoundChip { transition: none; }
 }

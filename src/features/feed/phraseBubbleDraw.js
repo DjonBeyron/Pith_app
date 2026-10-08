@@ -1,7 +1,8 @@
 // Отрисовка и взрыв шариков-спойлера фразы (без React) — вынесено из PhraseBubbleAnimated.jsx, когда тот упёрся в
 // потолок 400 строк. Здесь: LUT для sin/cos, drawFloat (плавание: один Path2D + один fill за кадр), renderStillImage
 // (покой без canvas: картинка с текущих позиций), запуск частиц (prepareBubbles — скорости заранее, startBubbles — старт) и
-// drawExplode (взрыв: fill по бакетам альфы, мелкие частицы квадратиком). Сетка (buildGrid) —
+// drawExplode (взрыв: частицы каждого облачка отдельной группой справа налево, внутри группы — fill по бакетам альфы,
+// мелкие частицы квадратиком). Сетка (buildGrid) —
 // phraseBubbleGrid.js, константы — phraseBubbleConsts.js. Компонент решает КОГДА рисовать, этот модуль — ЧТО и КАК.
 
 import { PULSE_AMP, WANDER_Y_SCALE, WIGGLE_SECOND_RATIO, EXPLODE_MS } from './phraseBubbleConsts.js'
@@ -27,12 +28,12 @@ function fastSin(x) {
 function fastCos(x) {
   return fastSin(x + Math.PI / 2)
 }
-// Бакетов альфы (= максимум fill() за кадр взрыва): было 14, 10 различимо так же, а заливок меньше
-const ALPHA_BINS = 10
-// Взрыв: холст имеет этот запас вокруг фразы — шарики летят с трением (замедляются) и гаснут по мере приближения к
-// далёкой границе, поэтому растворяются плавно, а не упираются в край. Ленточный спойлер расширяет холст до него на
-// взрыве (usePhraseBubbleExplode.js); облачка по словам создают холст с этим запасом СРАЗУ (PhraseBubbleAnimated.jsx) —
-// ресайз backing store на первом кадре взрыва давал рывок
+// Бакетов альфы на ОБЛАЧКО (= максимум fill() за кадр взрыва на облачко): было 14, потом 10, теперь 6 — различимо так же,
+// а заливок меньше (облачек в воздухе одновременно ~2-3, итого ≤ ~18 мелких заливок вместо 10 больших, зато частиц ≤ 320)
+const ALPHA_BINS = 6
+// Взрыв: ОТДЕЛЬНЫЙ холст с этим запасом вокруг фразы (dpr 1, создаётся только на время взрыва и сразу уничтожается —
+// usePhraseBubbleExplode.js) — шарики летят с трением (замедляются) и гаснут по мере приближения к далёкой границе,
+// поэтому растворяются плавно, а не упираются в край. Постоянный холст покоя/плавания маленький (запас MARGIN_X/Y)
 export const EXPLODE_MARGIN = 120
 const EXPLODE_FADE_ZONE = 46
 // Частицы мельче этого радиуса рисуем квадратиком равной площади (rect дешевле arc: нет тесселяции окружности), крупнее — кругом
@@ -40,9 +41,10 @@ const RECT_MAX_R = 1.2
 const RECT_HALF = Math.sqrt(Math.PI) / 2 // полусторона квадрата той же площади, что круг радиуса 1
 // Начальный горизонтальный импульс сильнее вертикального на 25% — «выстрел» в бока
 const EXPLODE_VX_BOOST = 1.25
-// Физика полёта (трение, снос, дальность и ограничение границами облачка) — phraseBubbleFlight.js; длительность — EXPLODE_MS
+// Физика полёта (трение, снос, дальность) — phraseBubbleFlight.js; длительность — EXPLODE_MS. Разлёт НЕ ограничен живыми
+// соседями: частицы летят поверх них (порядок слоёв — drawExplode), ограничивает только край холста взрыва
 
-// Сдвиг всех шариков (холст на время взрыва шире — координаты переезжают на новые поля). Границы облачков (b.lim) —
+// Сдвиг всех шариков (холст взрыва шире постоянного — координаты переезжают на новые поля). Границы облачков (b.lim) —
 // один объект на облачко: сдвигаются вместе с шариками, каждая ровно один раз
 export function shiftBubbles(list, dx, dy) {
   const lims = new Set()
@@ -56,7 +58,7 @@ export function shiftBubbles(list, dx, dy) {
 }
 
 // Скорости для набора шариков (одно облачко): каждый летит от центра (cx, cy) с разбросом угла и силы; границы разлёта
-// (limitFlight) учтены сразу. Тяжёлая часть запуска (тригонометрия + предсказание дальности) — её зовут заранее, в простое,
+// (limitFlight; сейчас бесконечные) учтены сразу. Тяжёлая часть запуска (тригонометрия + предсказание дальности) — её зовут заранее, в простое,
 // а на старте облачка остаётся startBubbles
 export function prepareBubbles(list, cx, cy) {
   for (const b of list) {
@@ -87,7 +89,8 @@ export function launchBubbles(list, cx, cy) {
 // что даже спящие canvas-элементы (по одному на слайд, dpr=3) делали дёрганой
 // системную анимацию сворачивания приложения. Рисуем с текущих позиций и
 // продолжаем canvas с тех же фаз — подмена картинка ↔ canvas без скачка
-// dx/dy — сдвиг шариков в картинку (облачка по словам: холст с запасом взрыва, а картинка покоя — с малым запасом MARGIN)
+// dx/dy — сдвиг шариков в картинку (по умолчанию 0: холст плавания и картинка покоя в одних координатах). Вызывающий
+// ограничивает dpr картинки двумя (PhraseBubbleAnimated.jsx: STILL_DPR_MAX) — декодированная картинка = w·h·dpr²·4 байт
 export function renderStillImage(bubbles, w, h, dpr, dx = 0, dy = 0) {
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(w * dpr)
@@ -119,37 +122,18 @@ export function drawFloat(ctx, bubbles, dt) {
 }
 // Взрыв: та же идея, но альфа у каждого шарика своя (время + затухание к
 // краю), поэтому один fill() не подходит — группируем по «бакетам» альфы
-// (ALPHA_BINS штук) и делаем fill() на бакет вместо fill() на шарик. Бакеты — общие массивы (очищаются каждый кадр),
-// без аллокаций на кадр
+// (ALPHA_BINS штук) и делаем fill() на бакет вместо fill() на шарик. Бакеты — общие массивы (очищаются на каждое облачко),
+// без аллокаций на кадр.
+// lists — частицы В ВОЗДУХЕ по облачкам: lists[g] — список облачка g (облачка идут слева направо, номер растёт). Порядок слоёв:
+// облачки рисуются от ПРАВОГО к левому, самое левое — последним, то есть сверху: левые взорвались раньше и должны лежать
+// выше правых, а частицы не «упираются» в соседа (разлёт не ограничен), а летят поверх. Живые (ещё не взорванные) облачки
+// рисует вызывающий ДО этого вызова (спрайты, paintExplosion). Догоревшие частицы выбрасываются из списков на месте.
+// Сплошная масса ленты — одна группа: drawExplode(ctx, [list], …). Возвращает true, когда в воздухе никого не осталось
 const BUCKETS = Array.from({ length: ALPHA_BINS + 1 }, () => [])
-export function drawExplode(ctx, bubbles, dt, w, h) {
+export function clearExplodePools() {
   for (const list of BUCKETS) list.length = 0
-  let allDone = true
-  // Трение гасит скорость — шарик тормозит и почти останавливается, а не летит по прямой бесконечно (что и упиралось
-  // бы в границу). dt один на кадр, поэтому степень считаем раз, а не на каждую частицу
-  const decay = EXPLODE_FRICTION_PER_MS ** dt
-  const dG = EXPLODE_GRAVITY * dt
-  const kPos = dt * EXPLODE_POS_K
-  for (const b of bubbles) {
-    b.t += dt
-    if (b.t >= EXPLODE_MS) continue
-    allDone = false
-    b.vx *= decay
-    b.vy = b.vy * decay + dG
-    // sx/sy < 1 — путь урезан границами облачка (limitFlight); у шарика без ограничений их нет
-    b.ax += b.vx * kPos * (b.sx ?? 1)
-    b.ay += b.vy * kPos * (b.sy ?? 1)
-    clampToLim(b)
-    // Прозрачность падает к концу пути: время жизни и расстояние до края холста
-    const timeAlpha = Math.max(0, 1 - (Math.max(0, b.t) / EXPLODE_MS) ** 1.5)
-    // Доп. затухание по расстоянию до границы холста — гарантирует, что альфа уйдёт в 0 раньше, чем шарик долетит до края
-    const distToEdge = Math.min(b.ax, w - b.ax, b.ay, h - b.ay)
-    const edgeAlpha = Math.max(0, Math.min(1, distToEdge / EXPLODE_FADE_ZONE))
-    const alpha = timeAlpha * edgeAlpha
-    if (!(alpha > 0.01)) continue // и NaN: бакета под него нет
-    BUCKETS[Math.round(alpha * ALPHA_BINS)].push(b)
-  }
-  ctx.fillStyle = BUBBLE_COLOR
+}
+function fillBuckets(ctx) {
   for (let bin = ALPHA_BINS; bin >= 1; bin--) {
     const list = BUCKETS[bin]
     if (!list.length) continue
@@ -165,6 +149,47 @@ export function drawExplode(ctx, bubbles, dt, w, h) {
       }
     }
     ctx.fill()
+  }
+}
+export function drawExplode(ctx, lists, dt, w, h) {
+  let allDone = true
+  // Трение гасит скорость — шарик тормозит и почти останавливается, а не летит по прямой бесконечно (что и упиралось
+  // бы в границу). dt один на кадр, поэтому степень считаем раз, а не на каждую частицу
+  const decay = EXPLODE_FRICTION_PER_MS ** dt
+  const dG = EXPLODE_GRAVITY * dt
+  const kPos = dt * EXPLODE_POS_K
+  ctx.fillStyle = BUBBLE_COLOR
+  for (let g = lists.length - 1; g >= 0; g--) {
+    const list = lists[g]
+    if (!list || !list.length) continue
+    for (const bin of BUCKETS) bin.length = 0
+    let kept = 0
+    for (let i = 0; i < list.length; i++) {
+      const b = list[i]
+      b.t += dt
+      if (b.t >= EXPLODE_MS) continue // догорела — из списка выбрасываем
+      list[kept++] = b
+      allDone = false
+      b.vx *= decay
+      b.vy = b.vy * decay + dG
+      // sx/sy < 1 — путь урезан границами облачка (limitFlight); у шарика без ограничений их нет
+      b.ax += b.vx * kPos * (b.sx ?? 1)
+      b.ay += b.vy * kPos * (b.sy ?? 1)
+      clampToLim(b)
+      // Страховка: не дальше края холста (прозрачной к краю частица становится раньше — edgeAlpha ниже)
+      if (b.ax < 0) b.ax = 0; else if (b.ax > w) b.ax = w
+      if (b.ay < 0) b.ay = 0; else if (b.ay > h) b.ay = h
+      // Прозрачность падает к концу пути: время жизни и расстояние до края холста
+      const timeAlpha = Math.max(0, 1 - (Math.max(0, b.t) / EXPLODE_MS) ** 1.5)
+      // Доп. затухание по расстоянию до границы холста — гарантирует, что альфа уйдёт в 0 раньше, чем шарик долетит до края
+      const distToEdge = Math.min(b.ax, w - b.ax, b.ay, h - b.ay)
+      const edgeAlpha = Math.max(0, Math.min(1, distToEdge / EXPLODE_FADE_ZONE))
+      const alpha = timeAlpha * edgeAlpha
+      if (!(alpha > 0.01)) continue // и NaN: бакета под него нет
+      BUCKETS[Math.round(alpha * ALPHA_BINS)].push(b)
+    }
+    list.length = kept
+    fillBuckets(ctx)
   }
   ctx.globalAlpha = 1
   return allDone

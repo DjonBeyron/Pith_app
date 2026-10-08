@@ -3,10 +3,13 @@
 //  · скорости и дальность частиц каждого облачка (prepareBubbles: sin/cos + предсказание полёта на сотни частиц);
 //  · спрайты ещё не взорванных облачек (buildSprites): пока одно облачко взрывается, остальные висят статичным кадром и
 //    рисуются одним drawImage на облачко вместо ~1400 дуг за кадр (drawSprites). Спрайт — картинка облачка с ТЕКУЩИХ
-//    фаз (drawFloat с dt=0), строится на старте взрыва: дрейф в этот момент замирает без скачка.
+//    фаз (drawFloat с dt=0), строится на старте взрыва: дрейф в этот момент замирает без скачка. Спрайт маленький (по рамке
+//    облачка, не по всему холсту) и в dpr 1; спрайт запущенного облачка и все остальные в конце взрыва освобождаются
+//    (freeSprites: canvas.width = 0);
+//  · кадр взрыва (paintExplosion): сначала живые облачки (спрайты), поверх них частицы (drawExplode: справа налево).
 
 import { PULSE_AMP, WANDER_Y_SCALE, WIGGLE_SECOND_RATIO } from './phraseBubbleConsts.js'
-import { drawFloat, prepareBubbles } from './phraseBubbleDraw.js'
+import { drawFloat, prepareBubbles, drawExplode } from './phraseBubbleDraw.js'
 
 // Узлы по облачкам (разреженный массив по номеру региона)
 export function groupByRegion(bubbles) {
@@ -87,4 +90,31 @@ export function drawSprites(ctx, sprites, pending) {
     const s = sprites[g]
     if (s) ctx.drawImage(s.canvas, s.x, s.y, s.w, s.h)
   }
+}
+
+// Сколько байт занимают живые спрайты (dpr 1: w·h·4) — для строки gpu≈ в DBG
+export function spriteBytes(sprites) {
+  let n = 0
+  if (sprites) for (const s of sprites) if (s) n += s.w * s.h * 4
+  return n
+}
+
+// Освободить спрайт(ы) сразу, не дожидаясь сборщика мусора: нулевой холст не держит backing store. sprites — массив спрайтов
+// (null на месте не построенных); g — только номер g (облачко запущено), без g — все; обнуляет ячейки массива
+export function freeSprites(sprites, g) {
+  if (!sprites) return
+  for (let i = 0; i < sprites.length; i++) {
+    if ((g != null && i !== g) || !sprites[i]) continue
+    sprites[i].canvas.width = 0
+    sprites[i].canvas.height = 0
+    sprites[i] = null
+  }
+}
+
+// Кадр взрыва в порядке слоёв: сначала все ещё не взорванные облачки (спрайты pending), поверх них частицы — облачка справа
+// налево, самое левое последним (сверху; drawExplode). Очистку холста делает вызывающий. Возвращает drawExplode: true — в
+// воздухе никого не осталось
+export function paintExplosion(ctx, sprites, pending, lists, dt, w, h) {
+  if (sprites && pending.size) drawSprites(ctx, sprites, pending)
+  return drawExplode(ctx, lists, dt, w, h)
 }

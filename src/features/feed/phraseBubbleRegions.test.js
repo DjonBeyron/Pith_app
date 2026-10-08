@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  padRegions, explodedRegions, hasExplode, regionsKey, REGION_PAD, REGION_VPAD, reachForGap, regionLimits, flightLimits, ALIVE_REACH, needsRebuild,
+  padRegions, explodedRegions, hasExplode, regionsKey, REGION_PAD, REGION_VPAD, reachForGap, regionLimits, flightLimits, needsRebuild,
 } from './phraseBubbleRegions.js'
 import { buildGrid } from './phraseBubbleGrid.js'
 import { MARGIN_X } from './phraseBubbleConsts.js'
@@ -121,22 +121,13 @@ describe('reachForGap / regionLimits: на сколько облачко мож�
     expect(c.y0).toBe(-Infinity)
   })
 
-  it('flightLimits: ограничение только в сторону ещё живого соседа (с большим индексом), 0.75 зазора', () => {
-    expect(ALIVE_REACH).toBe(0.75)
-    const [a, b, c] = flightLimits([word(0, 0, 40), word(60, 0, 40), word(120, 0, 40)])
-    expect([a.x0, a.x1]).toEqual([-Infinity, 40 + 15]) // справа живой сосед
-    expect([b.x0, b.x1]).toEqual([-Infinity, 100 + 15]) // слева все растворились — без границы
-    expect([c.x0, c.x1]).toEqual([-Infinity, Infinity]) // последнее: живых соседей нет
-    for (const l of [a, b, c]) expect([l.y0, l.y1]).toEqual([-Infinity, Infinity]) // вверх-вниз свободно
-  })
-
-  it('flightLimits: слова вплотную — граница по общему краю; строка ниже — живой сосед снизу, выше — растворился', () => {
-    const [a, b] = flightLimits([word(0, 0, 40), word(40, 0, 40)])
-    expect(a.x1).toBe(40)
-    expect(b.x0).toBe(-Infinity)
-    const [t, u] = flightLimits([word(0, 0, 60), word(0, 30, 60)])
-    expect(t.y1).toBe(20 + 7.5)
-    expect(u.y0).toBe(-Infinity)
+  it('flightLimits: разлёт не ограничен ни в одну сторону — ±Infinity у каждого облачка (живые соседи не преграда)', () => {
+    const lims = flightLimits([word(0, 0, 40), word(60, 0, 40), word(120, 0, 40)])
+    expect(lims).toHaveLength(3)
+    for (const l of lims) expect([l.x0, l.x1, l.y0, l.y1]).toEqual([-Infinity, Infinity, -Infinity, Infinity])
+    // и для слов вплотную, и для строк друг под другом
+    for (const l of flightLimits([word(0, 0, 40), word(40, 0, 40), word(0, 30, 60)])) expect(l.x1).toBe(Infinity)
+    expect(flightLimits([])).toEqual([])
   })
 
   it('большой промежуток (14px): запас облачка полный с обеих сторон, соседи не пересекаются', () => {

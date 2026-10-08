@@ -1,16 +1,29 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { buildGrid } from './phraseBubbleGrid.js'
 import { drawExplode, launchBubbles, shiftBubbles, EXPLODE_MARGIN } from './phraseBubbleDraw.js'
-import { flightExtent, limitFlight, thinForLaunch, MAX_PARTICLES, EXPLODE_POWER_MAX } from './phraseBubbleFlight.js'
+import { flightExtent, limitFlight, thinForLaunch, MAX_PARTICLES, PER_CLOUD_MAX, EXPLODE_POWER_MAX } from './phraseBubbleFlight.js'
 import { EXPLODE_MS, EXPLODE_SLOW, MARGIN_X, MARGIN_Y } from './phraseBubbleConsts.js'
 
-// Разлёт частиц взрыва. Облачка взрываются слева направо, поэтому ограничен он ТОЛЬКО в сторону ещё живого соседа
-// (до 0.75 зазора, flightLimits), в сторону растворившихся и наружу — свободно, вверх-вниз тоже. Гоняем настоящие
-// launchBubbles + drawExplode на кадрах разной длины и смотрим положение каждой частицы в каждый момент.
+// Разлёт частиц взрыва. Облачка взрываются слева направо, а разлёт НЕ ограничен живыми соседями (flightLimits — ±Infinity):
+// частицы всех облачков летят во все стороны одинаково, поверх соседей. Гоняем настоящие launchBubbles + drawExplode
+// на кадрах разной длины и смотрим положение каждой частицы в каждый момент. Math.random подменён детерминированным
+// генератором — оценки экстремумов не флакают.
 
 const word = (x, y, w, h = 20) => ({ x, y, w, h })
 const mid = b => ({ x: (Math.min(...b.map(p => p.ax)) + Math.max(...b.map(p => p.ax))) / 2, y: (Math.min(...b.map(p => p.ay)) + Math.max(...b.map(p => p.ay))) / 2 })
 const OLD_REACH = 9.5 // прежний предел выноса при зазоре 20px: половина зазора минус 0.5px
+
+// mulberry32: детерминированный Math.random
+function seeded(seed) {
+  let a = seed
+  return () => {
+    a = (a + 0x6D2B79F5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+afterEach(() => vi.restoreAllMocks())
 
 // Холст-самописец: фигуры, которые реально рисуются (в координатах текстового блока); rect — мелкие частицы
 function recorder(shapes) {
@@ -18,12 +31,12 @@ function recorder(shapes) {
   return { beginPath() {}, moveTo() {}, fill() {}, arc: (x, y, r) => put(x, y, r), rect: (x, y, w) => put(x + w / 2, y + w / 2, w / 2) }
 }
 
-// Взрывает облачка по очереди с шагом stepMs (как в финале); после каждого кадра зовёт check(частицы, фигуры, время)
+// Взрывает облачка по очереди с шагом stepMs (как в финале); после каждого кадра зовёт check(списки по облачкам, фигуры, время)
 function simulate(grid, dt, stepMs, check) {
   shiftBubbles(grid, EXPLODE_MARGIN - MARGIN_X, EXPLODE_MARGIN - MARGIN_Y)
   const groups = []
   for (const b of grid) (groups[b.region] ??= []).push(b)
-  const flying = []
+  const lists = []
   const shapes = []
   const launched = new Set()
   for (let clock = 0; clock < groups.length * stepMs + EXPLODE_MS + 200; clock += dt) {
@@ -31,81 +44,80 @@ function simulate(grid, dt, stepMs, check) {
       if (clock >= g * stepMs && !launched.has(g)) {
         const c = mid(list)
         launchBubbles(list, c.x, c.y)
-        flying.push(...list)
+        lists[g] = list.slice()
         launched.add(g)
       }
     })
     shapes.length = 0
-    drawExplode(recorder(shapes), flying, dt, 800, 400)
-    check(flying, shapes, clock)
+    drawExplode(recorder(shapes), lists, dt, 800, 400)
+    check(lists, shapes, clock)
   }
-  return flying
+  return lists
 }
 
 const three = () => [word(0, 0, 40), word(60, 0, 40), word(120, 0, 40)] // зазоры 20px
 const X = b => b.ax - EXPLODE_MARGIN
 const Y = b => b.ay - EXPLODE_MARGIN
 
-describe('взрыв облачка: ограничен только разлёт в сторону ЖИВОГО соседа', () => {
+// Разлёт каждого облачка вбок от центра его слова: { left, right } — на сколько px частица ушла влево/вправо
+function spreads(regs, dt = 16) {
+  const out = regs.map(() => ({ left: 0, right: 0 }))
+  const centers = regs.map(r => r.x + r.w / 2)
+  simulate(buildGrid(regs[regs.length - 1].x + regs[regs.length - 1].w, 20, regs), dt, 300, lists => {
+    lists.forEach((list, g) => {
+      if (!list) return
+      for (const b of list) {
+        out[g].right = Math.max(out[g].right, X(b) - centers[g])
+        out[g].left = Math.max(out[g].left, centers[g] - X(b))
+      }
+    })
+  })
+  return out
+}
+
+describe('взрыв облачка: разлёт во все стороны, живые соседи не преграда', () => {
   for (const dt of [16, 7, 32]) {
-    it(`кадры по ${dt}мс: пока сосед справа жив, частицы не заходят в его тело (и в 0.75 зазора от слова)`, () => {
-      const regs = three()
-      let over = -Infinity, reach0 = -Infinity
-      simulate(buildGrid(160, 20, regs), dt, 300, (flying, shapes, clock) => {
-        for (const b of flying) {
-          if (b.region > 1 || clock >= (b.region + 1) * 300) continue // у последнего соседа нет; сосед уже взорван — не живой
-          const right = X(b) + b.r
-          over = Math.max(over, right - (regs[b.region + 1].x - 5)) // тело соседа начинается в regs[g+1].x; запас 5px = 0.25 зазора
-          if (b.region === 0) reach0 = Math.max(reach0, right)
-        }
-      })
-      expect(over).toBeLessThanOrEqual(1e-6)
-      expect(reach0).toBeGreaterThan(40 + OLD_REACH) // и вынос в сторону живого соседа больше прежней половины зазора
+    it(`кадры по ${dt}мс: разлёт вбок у ВСЕХ облачков не меньше, чем у последнего (−15%), и не больше (+15%)`, () => {
+      vi.spyOn(Math, 'random').mockImplementation(seeded(7))
+      const sp = spreads(three(), dt)
+      const last = sp[2]
+      for (const s of sp.slice(0, 2)) {
+        expect(s.right).toBeGreaterThanOrEqual(last.right * 0.85)
+        expect(s.right).toBeLessThanOrEqual(last.right * 1.15)
+        expect(s.left).toBeGreaterThanOrEqual(last.left * 0.85)
+        expect(s.left).toBeLessThanOrEqual(last.left * 1.15)
+      }
+      expect(last.right).toBeGreaterThan(40 + 2 * OLD_REACH) // и сам выстрел дальнобойный, как и был
     })
   }
 
-  it('слова вплотную (зазор 0): в сторону живого соседа общий край слов — граница', () => {
-    let over = -Infinity
-    simulate(buildGrid(80, 20, [word(0, 0, 40), word(40, 0, 40)]), 16, 200, (flying, _s, clock) => {
-      for (const b of flying) if (b.region === 0 && clock < 200) over = Math.max(over, X(b) + b.r - 40)
-    })
-    expect(over).toBeLessThanOrEqual(1e-6)
+  it('симметрия по направлению: у каждого облачка разлёт влево и вправо отличается не больше чем на 15%', () => {
+    vi.spyOn(Math, 'random').mockImplementation(seeded(11))
+    for (const s of spreads(three())) {
+      expect(s.left / s.right).toBeGreaterThan(0.85)
+      expect(s.left / s.right).toBeLessThan(1 / 0.85)
+    }
   })
 
-  it('в сторону растворившихся соседей и наружу — свободно: вынос ≥ 2× прежнего (прежний ≤ половина зазора)', () => {
-    let left0 = Infinity, right2 = -Infinity, left1 = Infinity, left2 = Infinity
-    simulate(buildGrid(160, 20, three()), 16, 300, flying => {
-      for (const b of flying) {
-        if (b.region === 0) left0 = Math.min(left0, X(b) - b.r)
-        if (b.region === 1) left1 = Math.min(left1, X(b) - b.r)
-        if (b.region === 2) { right2 = Math.max(right2, X(b) + b.r); left2 = Math.min(left2, X(b) - b.r) }
-      }
+  it('частицы первого облачка летят поверх живого соседа справа (тело соседа начинается в x=60)', () => {
+    vi.spyOn(Math, 'random').mockImplementation(seeded(3))
+    let right0 = -Infinity
+    simulate(buildGrid(160, 20, three()), 16, 300, (lists, _s, clock) => {
+      if (clock < 300) for (const b of lists[0]) right0 = Math.max(right0, X(b) + b.r)
     })
-    expect(left0).toBeLessThan(-2 * OLD_REACH - 30) // слева от первого соседа нет: летят далеко наружу
-    expect(right2).toBeGreaterThan(160 + 2 * OLD_REACH + 30)
-    expect(left1).toBeLessThan(60 - 2 * OLD_REACH) // вбок в сторону уже растворившегося соседа
-    expect(left2).toBeLessThan(120 - 2 * OLD_REACH)
+    expect(right0).toBeGreaterThan(60 + 10) // раньше упирались в 0.75 зазора (55)
   })
 
-  it('вверх и вниз — свободно (в пределах поля вокруг фразы)', () => {
-    let top = Infinity, bottom = -Infinity
-    simulate(buildGrid(160, 20, three()), 16, 300, flying => {
-      for (const b of flying) { top = Math.min(top, Y(b) - b.r); bottom = Math.max(bottom, Y(b) + b.r) }
+  it('вверх и вниз — свободно (в пределах поля вокруг фразы), у верхней и нижней строки одинаково', () => {
+    vi.spyOn(Math, 'random').mockImplementation(seeded(5))
+    let top = Infinity, bottom = -Infinity, over1 = -Infinity
+    simulate(buildGrid(60, 50, [word(0, 0, 60), word(0, 30, 60)]), 16, 300, (lists, _s, clock) => {
+      for (const b of lists[0] ?? []) { top = Math.min(top, Y(b) - b.r); over1 = Math.max(over1, clock < 300 ? Y(b) + b.r : -Infinity) }
+      for (const b of lists[1] ?? []) bottom = Math.max(bottom, Y(b) + b.r)
     })
     expect(top).toBeLessThan(-2 * OLD_REACH)
-    expect(bottom).toBeGreaterThan(20 + 2 * OLD_REACH)
-  })
-
-  it('две строки (зазор 10px): верхнее облачко не заходит вниз на живое нижнее, нижнее вверх летит свободно', () => {
-    let overDown = -Infinity, up1 = Infinity
-    simulate(buildGrid(60, 50, [word(0, 0, 60), word(0, 30, 60)]), 16, 300, (flying, _s, clock) => {
-      for (const b of flying) {
-        if (b.region === 0 && clock < 300) overDown = Math.max(overDown, Y(b) + b.r - (20 + 7.5)) // 0.75 × 10px
-        if (b.region === 1) up1 = Math.min(up1, Y(b) - b.r)
-      }
-    })
-    expect(overDown).toBeLessThanOrEqual(1e-6)
-    expect(up1).toBeLessThan(30 - 2 * 4)
+    expect(bottom).toBeGreaterThan(50 + 2 * OLD_REACH)
+    expect(over1).toBeGreaterThan(20 + 7.5) // верхнее облачко заходит вниз за прежнюю границу 0.75 зазора на живое нижнее
   })
 
   it('к концу жизни всё догорело: drawExplode сообщает о конце ровно за EXPLODE_MS', () => {
@@ -113,19 +125,21 @@ describe('взрыв облачка: ограничен только разлё�
     shiftBubbles(grid, EXPLODE_MARGIN - MARGIN_X, EXPLODE_MARGIN - MARGIN_Y)
     launchBubbles(grid, 100, 100)
     const ctx = recorder([])
+    const lists = [grid.slice()]
     let done = false
     let steps = 0
-    for (; !done && steps < 500; steps++) done = drawExplode(ctx, grid, 16, 800, 400)
+    for (; !done && steps < 500; steps++) done = drawExplode(ctx, lists, 16, 800, 400)
     expect(done).toBe(true)
     expect(steps * 16).toBeGreaterThanOrEqual(EXPLODE_MS)
     expect(steps * 16).toBeLessThan(EXPLODE_MS + 100)
+    expect(lists[0]).toHaveLength(0) // догоревшие выброшены
   })
 
   it('мелкие частицы рисуются квадратиком (rect), крупные — кругом (arc)', () => {
     const calls = { arc: 0, rect: 0 }
     const ctx = { beginPath() {}, moveTo() {}, fill() {}, arc() { calls.arc++ }, rect() { calls.rect++ } }
     const mk = r => ({ ax: 300, ay: 200, r, vx: 0, vy: 0, t: 0, sx: 1, sy: 1 })
-    drawExplode(ctx, [mk(0.5), mk(0.8), mk(2)], 16, 800, 400)
+    drawExplode(ctx, [[mk(0.5), mk(0.8), mk(2)]], 16, 800, 400)
     expect(calls).toEqual({ arc: 1, rect: 2 })
   })
 })
@@ -165,26 +179,36 @@ describe('физика полёта', () => {
   })
 })
 
-describe('thinForLaunch: не больше MAX_PARTICLES частиц в воздухе', () => {
+describe('thinForLaunch: не больше MAX_PARTICLES частиц в воздухе, облачка одинаково плотные', () => {
   const list = n => Array.from({ length: n }, (_, i) => ({ i }))
-  it('лимит 450', () => expect(MAX_PARTICLES).toBe(450))
-  it('влезает — список как есть', () => {
-    const l = list(300)
+  it('лимит 320, на облачко — треть лимита', () => {
+    expect(MAX_PARTICLES).toBe(320)
+    expect(PER_CLOUD_MAX).toBe(106)
+  })
+  it('мало узлов — список как есть', () => {
+    const l = list(80)
     expect(thinForLaunch(l, 100)).toBe(l)
   })
   it('не влезает — прореживание равномерно, суммарно не больше лимита', () => {
-    const out = thinForLaunch(list(500), 300)
-    expect(300 + out.length).toBeLessThanOrEqual(MAX_PARTICLES)
+    const out = thinForLaunch(list(500), 250)
+    expect(250 + out.length).toBeLessThanOrEqual(MAX_PARTICLES)
     expect(out.length).toBeGreaterThan(0)
     expect(out[1].i - out[0].i).toBeGreaterThan(1)
   })
   it('в воздухе уже под завязку — всё равно остаётся минимум на облачко', () => {
     expect(thinForLaunch(list(500), MAX_PARTICLES).length).toBeGreaterThanOrEqual(60)
   })
+  it('первое, второе и третье облачко взрываются с наползанием и получают поровну (а не первое — всё, третье — минимум)', () => {
+    const sizes = []
+    let alive = 0
+    for (let i = 0; i < 3; i++) { const n = thinForLaunch(list(232), alive).length; sizes.push(n); alive += n }
+    expect(sizes).toEqual([PER_CLOUD_MAX, PER_CLOUD_MAX, PER_CLOUD_MAX])
+    expect(alive).toBeLessThanOrEqual(MAX_PARTICLES)
+  })
   it('прореживание по индексу не смещено по направлению: слева и справа от центра облачка остаётся поровну', () => {
     const cloud = buildGrid(80, 20, [word(0, 0, 80)])
     const cx = mid(cloud).x
-    const out = thinForLaunch(cloud, 350) // room = 100 из ~250 узлов
+    const out = thinForLaunch(cloud, 0)
     expect(out.length).toBeLessThan(cloud.length)
     const left = out.filter(b => b.ax < cx).length
     expect(Math.abs(left - (out.length - left)) / out.length).toBeLessThan(0.3)

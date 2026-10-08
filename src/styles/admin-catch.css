@@ -51,12 +51,14 @@
 }
 
 .acPhone .catchCover {
-  transform: none;
+  opacity: 1;
   transition: none;
   position: static;
   margin-top: auto;
   pointer-events: auto;
 }
+/* Заливка проявления/ухода нужна только в ленте; в песочнице накрытие статично */
+.acPhone .catchCoverVeil { display: none; }
 .acPhone .catchStrip,
 .acPhone .catchSheet {
   transform: none;

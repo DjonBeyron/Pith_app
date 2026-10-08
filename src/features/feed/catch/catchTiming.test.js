@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   CATCH_COLLAPSE_MS, CATCH_EXPLODE_STEP_MS, CATCH_EXPLODE_OVERLAP, CATCH_COMPARE_GAP_MS, CATCH_RULE_MS,
-  CATCH_COLOR_MS, CATCH_COMPRESS_HOLD_MS, explodeAt, compareDelay, factDelay, compressDelay,
+  CATCH_COLOR_MS, CATCH_COMPRESS_HOLD_MS, CATCH_FACT_FADE_MS, CATCH_GLINT_IN_MS, CATCH_GLINT_HOLD_MS, CATCH_GLINT_OUT_MS,
+  CATCH_FACT_GLINT_MS, explodeAt, compareDelay, factDelay, compressDelay,
 } from './catchTiming.js'
 import { EXPLODE_MS } from '../phraseBubbleConsts.js'
 
@@ -43,5 +44,13 @@ describe('тайминги финала «Ловли»', () => {
     }
     expect(compressDelay(4)).toBeGreaterThan(compressDelay(2))
     expect(compressDelay(0)).toBe(compressDelay(1))
+  })
+
+  it('блик факта: один проход 120 + 250 + 450 = 820мс, проценты keyframes feed-catch-strip.css соответствуют этим числам', () => {
+    expect([CATCH_GLINT_IN_MS, CATCH_GLINT_HOLD_MS, CATCH_GLINT_OUT_MS]).toEqual([120, 250, 450])
+    expect(CATCH_FACT_GLINT_MS).toBe(820)
+    expect(CATCH_FACT_FADE_MS).toBe(220)
+    expect(+(CATCH_GLINT_IN_MS / CATCH_FACT_GLINT_MS * 100).toFixed(2)).toBe(14.63)
+    expect(+((CATCH_GLINT_IN_MS + CATCH_GLINT_HOLD_MS) / CATCH_FACT_GLINT_MS * 100).toFixed(2)).toBe(45.12)
   })
 })

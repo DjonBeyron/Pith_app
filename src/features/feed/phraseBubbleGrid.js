@@ -91,7 +91,7 @@ export function buildGrid(contentW, contentH, regions = null) {
   const bubbles = []
   const byRegion = Array.isArray(regions)
   let lim = null
-  let flightLim = null // границы РАЗЛЁТА при взрыве в координатах холста (MARGIN; flightLimits — только в сторону ещё живого соседа)
+  let flightLim = null // границы РАЗЛЁТА при взрыве в координатах холста (MARGIN; flightLimits сейчас бесконечные — разлёт свободный)
   const push = (ax, ay, sizeScale, region) => {
     const r = RADIUS * sizeScale * (0.6 + Math.random() * 0.8) * (byRegion ? REGION_RADIUS_SCALE : 1)
     let amp = (1.3 + Math.random() * (AMP_MAX - 1.3)) * (byRegion ? REGION_WANDER_SCALE : 1)

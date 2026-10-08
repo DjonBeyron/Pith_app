@@ -1,10 +1,10 @@
 /* Полоска фразы «Ловли слов» (features/feed/catch/CatchStrip.jsx + CatchStripPhrase.jsx) — верхняя часть накрытия
-   .catchCover (feed-catch.css), вплотную к шторке. Своей анимации появления нет: выезжает и уезжает вместе со шторкой,
-   одним блоком (.catchCover). Внутри: фраза под облачками шариков по словам (PhraseBubbleSpoiler — те же стили
+   .catchCover (feed-catch.css), вплотную к шторке. Своей анимации появления нет: проявляется и гаснет вместе со шторкой
+   одним блоком (.catchCover, opacity + заливка .catchCoverVeil). Внутри: фраза под облачками шариков по словам (PhraseBubbleSpoiler — те же стили
    feed-bubble-spoiler.css, что и в ленте), подчёркивание активного слова с треугольником ниже облачка (.catchUnderline,
    цвет по уровню --cu-c, позицию пишет JS в transform), слот линии (.catchCmpSlot, всегда на месте), строка
    набранного, под ней слот факта (.catchFactSlot, всегда на месте); на финале — облачка раскрываются по очереди,
-   затем линия, цвета набранного и факт (плавно проявляется).
+   затем линия, цвета набранного и факт (проявляется и один раз «блеснет» белым).
    Фон сплошной (без alpha и backdrop-filter), анимируются только opacity и transform (+ width подчёркивания при
    смене слова — одно маленькое изменение раз в слово). */
 
@@ -135,8 +135,8 @@
    набранного — слот факта .catchFactSlot фиксированной высоты 76px. Оба есть ВСЕГДА (во время набора пустые и прозрачные), поэтому
    на финале ничего не раздвигается и не прыгает, строка набранного стоит на месте.
    После раскрытия всех облачков (задержка --catch-cmp-delay ставит CatchStrip): линия рисуется от центра к краям
-   (scaleX 0→1, 220мс), затем факт «Расслышал N из M слов» плавно проявляется (opacity 220мс, без печати; задержка
-   --catch-fact-delay = после линии); цвета набранного плавно перетекают из лайма в цвет вердикта, «—» выплывает.
+   (scaleX 0→1, 220мс), затем факт «Тебе удалось расслышать N из M слов» проявляется тусклым (opacity 220мс, без печати;
+   задержка --catch-fact-delay = после взрыва последнего облачка и линии) и ОДИН раз «блеснет» белым; цвета набранного плавно перетекают из лайма в цвет вердикта, «—» выплывает.
    Сжатие к центру: когда сравнение уже видно (--catch-compress-delay = compressDelay), word-spacing ОБЕИХ строк — фразы
    и набранного — одним правилом и одним переходом (450мс, ease-in-out = CATCH_COMPRESS_MS) уходит из --catch-ws в
    --catch-ws-end. Слоты набранного стоят под словами оригинала (min-width = ширина слова, промежутки у строк одинаковые),
@@ -173,17 +173,35 @@
 }
 
 /* Слот факта под строкой набранного: фиксированная высота 76px — 46px воздуха от строки набранного сверху (padding-top),
-   строка 20px и ~10px до края снизу. Тусклый и мелкий (13px/600, 38% белого). Сам факт (CatchFact) монтируется
-   только на финале и проявляется через opacity с задержкой --catch-fact-delay */
+   строка 20px и ~10px до края снизу. Тусклый и мелкий (12px/600, 38% белого). Сам факт (CatchFact) монтируется только на
+   финале; два слоя одного текста, анимируется только opacity, задержка у обоих — --catch-fact-delay:
+   · .catchFactBase — тусклый текст (rgba 0.38): проявляется 220мс (0→1) и остаётся;
+   · .catchFactGlint — тот же текст белым (#fff) поверх, абсолютно, в той же строке: один проход ~820мс
+     (0→1 за 120мс, держится 250мс, 1→0 за 450мс; проценты ниже = 120/820, 370/820) и гаснет в 0 — остаётся тусклый.
+   animation-iteration-count: 1 (по умолчанию), fill-mode both: до старта слой невидим, после конца белый слой прозрачен */
 .catchFactSlot { height: 76px; }
 .catchFact {
+  position: relative;
   padding-top: 46px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 20px;
   text-align: center;
+}
+.catchFactBase {
+  display: block;
   color: rgba(255, 255, 255, 0.38);
   animation: catchFactIn 220ms ease-out var(--catch-fact-delay, 0ms) both;
+}
+.catchFactGlint {
+  position: absolute;
+  top: 46px;
+  left: 0;
+  right: 0;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  animation: catchFactGlint 820ms linear var(--catch-fact-delay, 0ms) 1 both;
 }
 
 /* Слово под ещё не раскрытым облачком (финал, CatchStripPhrase): прячем, пока до него не дошла очередь */
@@ -195,6 +213,12 @@
 @keyframes catchFactIn {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+@keyframes catchFactGlint {
+  0%     { opacity: 0; }
+  14.63% { opacity: 1; }
+  45.12% { opacity: 1; }
+  100%   { opacity: 0; }
 }
 @keyframes catchFadeUp {
   from { opacity: 0; transform: translateY(6px); }
@@ -211,7 +235,8 @@
   .catchCmpOk,
   .catchCmpBad,
   .catchCmpMiss,
-  .catchFact { animation: none; }
+  .catchFactBase { animation: none; }
+  .catchFactGlint { display: none; }
   .catchStripResult .catchCompareRule { transform: none; }
   /* Без анимаций сжатия нет: промежутки остаются широкими */
   .catchStripResult .catchStripPhrase,

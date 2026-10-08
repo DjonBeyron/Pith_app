@@ -2,7 +2,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { buildGrid } from './phraseBubbleGrid.js'
 import { shiftBubbles, EXPLODE_MARGIN } from './phraseBubbleDraw.js'
 import { MARGIN_X, MARGIN_Y, PULSE_AMP, WIGGLE_SECOND_RATIO } from './phraseBubbleConsts.js'
-import { groupByRegion, groupCenter, prepareExplosion, warmUp, buildSprites, drawSprites } from './phraseBubbleWarm.js'
+import {
+  groupByRegion, groupCenter, prepareExplosion, warmUp, buildSprites, drawSprites, freeSprites, spriteBytes, paintExplosion,
+} from './phraseBubbleWarm.js'
 
 const word = (x, y, w, h = 20) => ({ x, y, w, h })
 const grid = () => {
@@ -91,5 +93,62 @@ describe('спрайты ещё не взорванных облачек', () =>
     drawn.length = 0
     drawSprites(ctx, sprites, new Set([2]))
     expect(drawn).toEqual([['c', 5, 6, 7, 8]])
+  })
+})
+
+describe('порядок слоёв кадра взрыва (paintExplosion)', () => {
+  // Холст-самописец: что и в каком порядке рисуется. Частицы облачка g лежат около x = 100·(g+1) — по x видно, чьи они
+  const recorder = () => {
+    const calls = []
+    return {
+      calls,
+      drawImage: c => calls.push(`sprite:${c}`),
+      beginPath() {}, moveTo() {}, rect() {},
+      arc: x => calls.push(`p:${Math.round(x / 100)}`),
+      fill() { calls.push('fill') },
+    }
+  }
+  const particle = (g, k) => ({ ax: 100 * (g + 1) + k, ay: 200, r: 1.5, vx: 0, vy: 0, t: k * 400, sx: 1, sy: 1 })
+  const clouds = n => Array.from({ length: n }, (_, g) => [particle(g, 0), particle(g, 1), particle(g, 2)]) // разные t → разные альфа-бакеты
+
+  it('сначала все ещё не взорванные облачки, потом частицы — от правого облачка к левому, самое левое последним', () => {
+    const ctx = recorder()
+    const sprites = [null, null, null, { canvas: 'live3', x: 0, y: 0, w: 1, h: 1 }, { canvas: 'live4', x: 0, y: 0, w: 1, h: 1 }]
+    paintExplosion(ctx, sprites, new Set([3, 4]), clouds(3), 16, 800, 400)
+    const first = ctx.calls.findIndex(c => c.startsWith('p:'))
+    expect(ctx.calls.slice(0, first)).toEqual(['sprite:live3', 'sprite:live4']) // живые — до любых частиц
+    expect(ctx.calls.slice(first).some(c => c.startsWith('sprite'))).toBe(false)
+    const order = ctx.calls.filter(c => c.startsWith('p:')).map(c => Number(c.slice(2)))
+    expect(order[0]).toBe(3) // правое облачко (g=2, x≈300) — первым
+    expect(order.at(-1)).toBe(1) // левое (g=0, x≈100) — последним, то есть сверху
+    for (let i = 1; i < order.length; i++) expect(order[i]).toBeLessThanOrEqual(order[i - 1]) // группы не перемешаны
+    expect(new Set(order)).toEqual(new Set([1, 2, 3]))
+  })
+
+  it('внутри группы заливки по бакетам альфы, но группы между собой не перемешиваются; пустые облачка пропускаются', () => {
+    const ctx = recorder()
+    const lists = clouds(3)
+    lists[1] = [] // облачко уже догорело
+    paintExplosion(ctx, null, new Set(), lists, 16, 800, 400)
+    const order = ctx.calls.filter(c => c.startsWith('p:')).map(c => Number(c.slice(2)))
+    expect(order).not.toContain(2)
+    expect(order.at(-1)).toBe(1)
+    expect(ctx.calls.filter(c => c === 'fill').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('freeSprites: освобождает холсты (width = 0) и обнуляет ячейки; spriteBytes считает dpr 1', () => {
+    const mk = () => ({ canvas: { width: 10, height: 10 }, x: 0, y: 0, w: 10, h: 5 })
+    const sprites = [mk(), null, mk()]
+    expect(spriteBytes(sprites)).toBe(2 * 10 * 5 * 4)
+    const a = sprites[0].canvas
+    freeSprites(sprites, 0)
+    expect(a.width).toBe(0)
+    expect(sprites[0]).toBeNull()
+    expect(sprites[2]).not.toBeNull()
+    const c = sprites[2].canvas
+    freeSprites(sprites)
+    expect(c.width).toBe(0)
+    expect(sprites.every(x => x === null)).toBe(true)
+    expect(spriteBytes(null)).toBe(0)
   })
 })
