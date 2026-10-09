@@ -1,20 +1,34 @@
 // Эксперимент 10: движок Vosk (vosk-browser, WASM) с ЗАКРЫТЫМ словарём — распознавание на устройстве, где движок выбирает
-// только из заданных фраз. Грузится ТОЛЬКО по кнопке: динамический import уводит библиотеку (≈6 МБ) в отдельный чанк,
-// модель (≈40 МБ) качается воркером библиотеки по URL. Без React. Звук никуда не отправляется и не сохраняется.
+// только из заданных фраз. Грузится ТОЛЬКО по кнопке: динамический import уводит библиотеку (≈6 МБ) в отдельный чанк.
+// Модель скачивает и хранит само приложение (voskDownload.js / voskStorage.js), сюда она приходит готовым Blob и
+// передаётся библиотеке через blob-URL. Без React. Звук никуда не отправляется и не сохраняется.
+import { deleteLibraryStore } from './voskStorage.js'
 
 export const VOSK_MODEL_URL = 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-en-us-0.15.tar.gz'
-export const VOSK_URL_KEY = 'pithy_admin_voice_vosk_url_v1'
+export const VOSK_URL_KEY = 'pithy_admin_vosk_model_url_v1'
+const LEGACY_URL_KEY = 'pithy_admin_voice_vosk_url_v1' // прежний ключ (до своего хоста модели)
 const CHUNK = 4096 // кадров на один вызов ScriptProcessor
 const LOAD_TIMEOUT_MS = 180000
 
 export function readModelUrl(store = globalThis.localStorage) {
-  try { return store.getItem(VOSK_URL_KEY) || VOSK_MODEL_URL } catch { return VOSK_MODEL_URL }
+  try { return store.getItem(VOSK_URL_KEY) || store.getItem(LEGACY_URL_KEY) || VOSK_MODEL_URL } catch { return VOSK_MODEL_URL }
 }
 export function writeModelUrl(url, store = globalThis.localStorage) {
   try { store.setItem(VOSK_URL_KEY, url) } catch { /* приватный режим */ }
 }
+/** «Вернуть по умолчанию»: забываем сохранённый адрес (и прежний ключ) */
+export function resetModelUrl(store = globalThis.localStorage) {
+  try { store.removeItem(VOSK_URL_KEY); store.removeItem(LEGACY_URL_KEY) } catch { /* приватный режим */ }
+  return VOSK_MODEL_URL
+}
 
 const ms = t0 => Math.round(performance.now() - t0)
+
+/** Приблизительная память страницы, МБ (только Chrome: performance.memory; воркер с моделью сюда НЕ входит) */
+export function heapMb(perf = globalThis.performance) {
+  const u = perf?.memory?.usedJSHeapSize
+  return u > 0 ? Math.round(u / 1048576) : null
+}
 
 /** Библиотека (отдельный чанк). UMD-сборка отдаёт Model либо в самом модуле, либо в default, либо в globalThis.Vosk */
 export async function importVosk() {
@@ -24,21 +38,10 @@ export async function importVosk() {
   return api
 }
 
-/** Проверка адреса модели до загрузки (HEAD): { ok, status, size, type }; сеть/CORS не дали проверить — null (тогда пробуем грузить) */
-export async function probeModel(url, fetchFn = globalThis.fetch) {
-  try {
-    const r = await fetchFn(url, { method: 'HEAD' })
-    const n = Number(r.headers.get('content-length'))
-    return { ok: r.ok !== false, status: r.status ?? null, size: n > 0 ? n : null, type: r.headers.get('content-type') || '' }
-  } catch { return null }
-}
-
-/** Понятная причина, если по адресу явно не архив модели; иначе null */
-export function modelProblem(p) {
-  if (!p) return null
-  if (!p.ok) return `По адресу модели ответ ${p.status || 'ошибка'} — проверьте адрес`
-  if (/text\/html/i.test(p.type)) return 'По адресу не архив, а веб-страница — проверьте адрес модели'
-  return null
+/** Остановить модель: просим воркер освободить память и закрыться, и сразу гасим сам воркер (если завис на распаковке) */
+export function killModel(model) {
+  try { model.terminate() } catch { /* уже остановлен */ }
+  try { model.worker?.terminate() } catch { /* уже остановлен */ }
 }
 
 // Модель сама НЕ сообщает о битом/отсутствующем архиве (createModel из библиотеки в этом случае висит вечно) — поэтому свой Model:
@@ -46,27 +49,41 @@ export function modelProblem(p) {
 function openModel(api, url, ctl) {
   return new Promise((resolve, reject) => {
     const model = new api.Model(url)
-    const fail = msg => { clearTimeout(timer); try { model.terminate() } catch { /* уже остановлен */ } reject(new Error(msg)) }
-    const timer = setTimeout(() => fail('Модель не загрузилась за 3 минуты: проверьте адрес и сеть, архив должен быть tar.gz'), LOAD_TIMEOUT_MS)
+    const fail = msg => { clearTimeout(timer); killModel(model); reject(new Error(msg)) }
+    const timer = setTimeout(() => fail('Модель не загрузилась в память за 3 минуты: архив должен быть tar.gz с папкой модели внутри'), LOAD_TIMEOUT_MS)
     ctl.cancel = () => fail('Загрузка отменена')
     model.on('load', m => { if (m.result) { clearTimeout(timer); resolve(model) } else fail('Vosk не смог прочитать архив модели') })
     model.on('error', m => fail(m.error ? `Ошибка загрузки модели: ${m.error}` : 'Ошибка загрузки модели: архив не похож на модель Vosk (в нём нет файлов модели)'))
   })
 }
 
-/** Загрузка: библиотека, затем модель. onStage('lib' | 'model'); ctl.cancel() отменяет. Возвращает { model, libMs, modelMs, size } */
-export async function loadEngine(url, onStage = () => {}, ctl = {}) {
+/**
+ * Модель (Blob архива) → в память движка. onStage('lib' | 'model'); ctl.cancel() отменяет.
+ * Архив библиотеке отдаётся через blob-URL (она сама качает адрес воркером); URL освобождается сразу после загрузки.
+ * Возвращает { model, libMs, modelMs, size, heap } — modelMs это ТОЛЬКО «в память» (распаковка + загрузка), без скачивания.
+ */
+export async function loadEngine(blob, onStage = () => {}, ctl = {}) {
   onStage('lib')
   let t = performance.now()
   const api = await importVosk()
   const libMs = ms(t)
   onStage('model')
-  const probe = await probeModel(url)
-  const problem = modelProblem(probe)
-  if (problem) throw new Error(problem)
+  await deleteLibraryStore() // остатки прошлой распаковки (библиотека хранит её в IndexedDB по адресу; у blob-URL адрес каждый раз новый)
+  const objUrl = URL.createObjectURL(blob)
   t = performance.now()
-  const model = await openModel(api, url, ctl)
-  return { model, libMs, modelMs: ms(t), size: probe?.size ?? null }
+  try {
+    const model = await openModel(api, objUrl, ctl)
+    return { model, libMs, modelMs: ms(t), size: blob.size, heap: heapMb() }
+  } catch (e) {
+    setTimeout(() => { deleteLibraryStore() }, 600) // не загрузилась — недоразобранную копию в IndexedDB тоже убираем
+    throw e
+  } finally { URL.revokeObjectURL(objUrl) }
+}
+
+/** «Выгрузить движок»: остановить модель и воркер, стереть распакованную копию из IndexedDB */
+export function unloadEngine(model) {
+  if (model) killModel(model)
+  setTimeout(() => { deleteLibraryStore() }, 600) // воркеру нужно закрыть базу
 }
 
 /**
@@ -81,6 +98,7 @@ export async function startListening(model, grammar, cb) {
   let ctx
   try { ctx = new Ctx({ sampleRate: 16000 }) } catch { ctx = new Ctx() }
   const rec = new model.KaldiRecognizer(ctx.sampleRate, grammar)
+  try { rec.setWords(true) } catch { /* без пословных меток */ }
   const t0 = performance.now()
   const st = { firstPartialMs: null, chunks: 0, workMs: 0, audioMs: 0, stopAt: null, done: false }
   const free = () => {
@@ -101,6 +119,7 @@ export async function startListening(model, grammar, cb) {
     if (!text && st.stopAt == null) return // пустой результат на паузе — ждём речь дальше
     cb.onResult(text, {
       firstPartialMs: st.firstPartialMs, resultMs: ms(t0), afterStopMs: st.stopAt == null ? null : ms(st.stopAt), chunks: st.chunks,
+      words: m.result.result || [],
       loadPct: st.audioMs ? Math.round((st.workMs / st.audioMs) * 1000) / 10 : null,
     })
     free()

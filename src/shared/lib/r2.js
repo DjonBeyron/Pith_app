@@ -19,13 +19,14 @@ export async function authHeaders() {
 
 // Chrome's fetch() drops the connection for large PUT bodies (ERR_CONNECTION_RESET).
 // XHR doesn't have this limitation — use it for the actual upload to R2.
-function xhrPut(url, contentType, body) {
+function xhrPut(url, contentType, body, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('PUT', url)
     xhr.setRequestHeader('Content-Type', contentType)
     xhr.upload.onprogress = e => {
       if (e.lengthComputable) dbg('[R2] upload progress:', Math.round(e.loaded / e.total * 100) + '%', `${e.loaded}/${e.total}`)
+      if (e.lengthComputable && onProgress) onProgress(e.loaded, e.total)
     }
     xhr.onload  = () => {
       if (xhr.status < 200 || xhr.status >= 300) console.error('[R2] PUT failed, response body:', xhr.responseText)
@@ -37,7 +38,8 @@ function xhrPut(url, contentType, body) {
   })
 }
 
-export async function uploadToR2(file) {
+// onProgress(loaded, total) — необязательный: полоса загрузки (например, модель Vosk ≈40 МБ в админке «Голос»)
+export async function uploadToR2(file, onProgress) {
   dbg('[R2] uploadToR2 called', { fileName: file.name, contentType: file.type, sizeKb: Math.round(file.size / 1024) })
 
   const contentType = file.type || 'application/octet-stream'
@@ -59,7 +61,7 @@ export async function uploadToR2(file) {
   const { uploadUrl, publicUrl } = await fnRes.json();
   dbg('[R2] Got publicUrl:', publicUrl)
 
-  const status = await xhrPut(uploadUrl, contentType, file)
+  const status = await xhrPut(uploadUrl, contentType, file, onProgress)
   dbg('[R2] R2 upload status:', status)
   if (status < 200 || status >= 300) throw new Error(`Ошибка загрузки в R2: ${status}`);
 

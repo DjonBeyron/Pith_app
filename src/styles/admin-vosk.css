@@ -1,0 +1,12 @@
+/* Админ → Голос → эксперимент 10 «Vosk» (features/admin/speech/VoskLab, VoskModelBlock, VoskModelAddress, VoskVocabTest).
+   Общие классы с префиксами asp и ap — в admin-speech.css и admin-antipredict.css; здесь только то, чего там нет (префикс vk) */
+
+.vkBox { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; background: #12141a; border: 1px solid #23262d; }
+.vkStatus { font-size: 14px; color: #e0e0e0; }
+.vkBar { height: 10px; border-radius: 6px; background: #23262d; overflow: hidden; }
+.vkBar > i { display: block; height: 100%; background: #b6fe3b; transition: width 0.2s linear; }
+.vkAsk { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; border: 1px solid #f0b429; font-size: 13px; color: #f0b429; }
+.vkPre { margin: 6px 0; padding: 8px; border-radius: 8px; background: #0b0d11; color: #b6fe3b; font-size: 11px; line-height: 1.4; overflow-x: auto; white-space: pre; }
+.vkHeard { display: flex; flex-direction: column; gap: 2px; }
+.vkHeardText { font-size: 28px; line-height: 1.2; color: #fff; overflow-wrap: anywhere; }
+.apMore code { word-break: break-all; }
