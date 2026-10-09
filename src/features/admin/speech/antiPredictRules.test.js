@@ -51,7 +51,7 @@ describe('analyzeAttempt: движок «исправил» try → trying', () 
     expect(an.nbest.map(x => x.literal)).toEqual([[], ['try'], []])
   })
   it('таймлайн: «try» в interim на 800 мс, «trying» только в итоге (1450 мс)', () => {
-    expect(an.flip).toEqual({ key: 'trying', wrong: 'try', fromT: 800, toT: 1450, toFinal: true, from: 'I am try', to: 'I am trying' })
+    expect(an.changes.filter(c => c.kind === 'replace')).toEqual([{ kind: 'replace', from: 'try', to: 'trying', at: 1450, step: 'interim→final', idx: 2, dir: 'toRef', family: true }])
     expect(an.engineFixed).toBe(true)
     expect(an.fixedAt).toEqual({ t: 1450, final: true })
   })
@@ -109,7 +109,7 @@ describe('analyzeAttempt: остальные случаи', () => {
     expect(an.verdicts).toMatchObject({ all: true })
     expect(an.engineFixed).toBe(false)
     expect(an.literalSeen).toBe(false)
-    expect(an.flip).toBeNull()
+    expect(an.changes.filter(c => c.kind !== 'append')).toEqual([]) // слово «trying» только дописано в конце — не исправление
     expect(saidKind('trying', an)).toBe('ref')
     expect(judge('ref', an.verdicts.all)).toEqual({ good: true, label: 'верно принято' })
     expect(judge('ref', false)).toEqual({ good: false, label: 'ложно отклонило' })
@@ -156,8 +156,8 @@ describe('отчёты', () => {
   })
   it('поля журнала: режимы, число альтернатив, engineFixed, literalSeen', () => {
     const v = view()
-    expect(antiPredictLogFields({ view: v, extra: v.extra })).toEqual({ antipredict: ['alts', 'history'], nAlts: 3, engineFixed: true, literalSeen: true })
-    expect(antiPredictLogFields({})).toEqual({ antipredict: [], nAlts: 0, engineFixed: null, literalSeen: null })
+    expect(antiPredictLogFields({ view: v, extra: v.extra })).toMatchObject({ antipredict: ['alts', 'history'], nAlts: 3, engineFixed: true, literalSeen: true })
+    expect(antiPredictLogFields({})).toEqual({ antipredict: [], nAlts: 0, engineFixed: null, literalSeen: null, tx: null })
   })
   it('колонка журнала: старые записи → «—»', () => {
     expect(fmtAntiPredict({})).toBe('—')
@@ -173,7 +173,7 @@ describe('отчёты', () => {
     expect(text).toContain('maxAlternatives 10')
     expect(text).toContain('2. «I am try» 5% [литерально: try]')
     expect(text).toContain('800 «I am try» → 1450 «I am trying» [final]')
-    expect(text).toContain('Слово изменено движком: да — «try» → «trying» между 800 и 1450 мс (в final)')
+    expect(text).toContain('Слово изменено движком: да — «try» → «trying» (interim→final, 1450 мс)')
     expect(text).toContain('top-1 final: подтверждено — пропустило ошибку')
     expect(text).toContain('консенсус interim+final: НЕ подтверждено — поймало ошибку')
     expect(text).toContain('Устройство: Android 14, Chrome')

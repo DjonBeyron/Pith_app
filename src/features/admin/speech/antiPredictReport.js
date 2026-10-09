@@ -1,6 +1,7 @@
 // Поля журнала и текст «Скопировать сравнение» для экспериментов против домысливания движка (проба «Голос»). Чистые функции.
 import { analyzeAttempt, saidKind, judge } from './antiPredictRules.js'
 import { generateWrongForms } from './antiPredictModes.js'
+import { buildAttemptTexts, changesText } from './speechReportAttempts.js'
 
 /** Дополнительные поля записи журнала (третий аргумент logFields контроллера: { view, extra }) */
 export function antiPredictLogFields({ view, extra } = {}) {
@@ -13,6 +14,7 @@ export function antiPredictLogFields({ view, extra } = {}) {
   return {
     antipredict: extra?.modes ?? [], nAlts: view?.alternatives?.length ?? 0,
     engineFixed: an ? an.engineFixed : null, literalSeen: an ? an.literalSeen : null,
+    tx: view ? buildAttemptTexts(view, extra, an) : null, // тексты попытки (только в localStorage журнала и в отчёте)
   }
 }
 
@@ -58,8 +60,9 @@ export function comparisonText({ view, said, analysis, caps }) {
   L.push(`Гипотезы (${analysis.nbest.length}): ${analysis.nbest.map((a, i) => `${i + 1}. «${a.text}» ${fmtConfPct(a.confidence)}${a.literal.length ? ` [литерально: ${a.literal.join('/')}]` : ''}`).join(' | ')}`)
   if (view.segments?.length) L.push(`Сегменты: ${view.segments.map(s => `«${s.text}»${s.isFinal ? ` final ${s.tFinal} мс` : ' interim'}`).join(' + ')}`)
   L.push(`Interim (мс): ${analysis.timeline.length ? analysis.timeline.map(h => `${h.t} «${h.text}»${h.final ? ' [final]' : ''}`).join(' → ') : 'нет'}`)
-  const f = analysis.flip
-  L.push(`Слово изменено движком: ${analysis.engineFixed ? `да${f ? ` — «${f.wrong}» → «${f.key}» между ${f.fromT} и ${f.toT} мс (${f.toFinal ? 'в final' : 'уже в interim'})` : ' — слово появилось только в final'}` : 'нет'}`)
+  const fx = analysis.diff.fixed[0]
+  L.push(`Слово изменено движком: ${analysis.engineFixed ? `да — «${fx.from}» → «${fx.to}»${analysis.diff.reverse ? ' (обратное исправление: форма эталона заменена ошибочной)' : ''} (${fx.step}${fx.at != null ? `, ${fx.at} мс` : ''})` : 'нет'}`)
+  L.push(`Изменения между соседними текстами: ${changesText({ changes: analysis.changes, histN: analysis.timeline.length })}`)
   L.push(`Литеральная форма встречалась: ${analysis.literalSeen ? `да — ${analysis.where.join('; ')}` : 'нет'}`)
   L.push(`Вердикты (подтверждено = форма принята):${kind ? ` [говорил: ${kind === 'wrong' ? 'ошибочную форму' : 'верную форму'}]` : ''}`)
   for (const r of verdictRows(analysis, kind)) L.push(`  ${r.name}: ${verdictWord(r.ok)}${r.judge ? ` — ${r.judge.label}` : ''}${r.note ? ` (${r.note})` : ''}`)

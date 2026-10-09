@@ -7,7 +7,7 @@ import AntiPredictTable from './AntiPredictTable.jsx'
 const LANGS = ['en-US', 'en-GB']
 
 // Блок 2 пробы «Голос»: эталонная фраза, язык, кнопки «Сказать»/«Стоп»/«Ещё раз»; вывод — в SpeechOutput.
-export default function SpeechTestBlock({ caps, reference, setReference, lang, setLang, probe, cap, ap }) {
+export default function SpeechTestBlock({ caps, reference, setReference, lang, setLang, probe, cap, ap, series, onPickStep }) {
   const { view, start, stop, busy } = probe
   return (
     <section className="aspBlock">
@@ -30,7 +30,8 @@ export default function SpeechTestBlock({ caps, reference, setReference, lang, s
         ))}
       </div>
       <SpeechCaptureBlock mode={cap.mode} setMode={cap.setMode} state={cap.state} busy={busy} />
-      <AntiPredictBlock ap={ap} reference={reference} busy={busy} recognition={caps.recognition} onOneWord={word => start({ reference: word })} />
+      <AntiPredictBlock ap={ap} reference={reference} busy={busy} recognition={caps.recognition} onOneWord={word => start({ reference: word })}
+        series={series} lang={lang} onPickStep={onPickStep} onSay={() => start()} onStop={stop} view={view} />
       <div className="aspRow">
         <button className="aspSay" onClick={start} disabled={!caps.recognition || busy || !reference.trim()}>Сказать</button>
         <button className="aspStop" onClick={stop} disabled={!busy}>Стоп</button>

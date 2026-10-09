@@ -2,40 +2,35 @@ import { useState } from 'react'
 import { MODE_LABEL, capsReportLines } from '../../../shared/lib/speech/speechSupport.js'
 import { fmtCapture, fmtConf } from './speechCapture.js'
 import { fmtAntiPredict } from './antiPredictReport.js'
+import { attemptsBlock, allComparisonsText } from './speechReportAttempts.js'
+import { seriesLines } from './contextSeries.js'
+import { copyText } from './copyText.js'
+import AttemptDetails from './AttemptDetails.jsx'
 import { LOG_SHOW, DIALOG_LABEL, fmtMs, fmtAttempt, dialogCount, logReportLines, clearLog } from './speechLog.js'
 
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text)
-    return true
-  } catch { /* нет доступа к буферу — пробуем старый способ */ }
-  try {
-    const ta = document.createElement('textarea')
-    ta.value = text
-    ta.style.cssText = 'position:fixed;opacity:0'
-    document.body.appendChild(ta)
-    ta.select()
-    const ok = document.execCommand('copy')
-    ta.remove()
-    return ok
-  } catch { return false }
-}
-
 // Блок 4 пробы «Голос»: журнал попыток (localStorage этого устройства), счётчик диалогов разрешения, отчёт.
-export default function SpeechLogBlock({ log, setLog, caps, perm, since }) {
+export default function SpeechLogBlock({ log, setLog, caps, perm, since, series }) {
   const [note, setNote] = useState('')
+  const [open, setOpen] = useState(null) // t раскрытой попытки
   const [sure, yes] = dialogCount(log, since)
   const shown = log.slice(0, LOG_SHOW)
 
   async function copy() {
-    const text = [...capsReportLines(caps, perm), '', `Журнал (последние ${shown.length}):`, ...logReportLines(log)].join('\n')
+    const text = [...capsReportLines(caps, perm), '', `Журнал (последние ${shown.length}):`, ...logReportLines(log), '', ...attemptsBlock(log)].join('\n')
     setNote((await copyText(text)) ? 'Отчёт скопирован' : 'Не удалось скопировать — выделите текст вручную')
+  }
+
+  // Последние попытки с текстами + итог серии «длина контекста» — одним текстом ≤ ~6000 символов
+  async function copyAll() {
+    const head = [`ВСЕ СРАВНЕНИЯ · ${MODE_LABEL[caps.mode]} · ${caps.uaShort}`]
+    const text = allComparisonsText({ log, head, seriesLines: series ? seriesLines(series) : [] })
+    setNote((await copyText(text)) ? `Скопировано (${text.length} симв.)` : 'Не удалось скопировать — выделите текст вручную')
   }
 
   return (
     <section className="aspBlock">
       <h3 className="aspH">Журнал запросов микрофона</h3>
-      <p className="aeHint">Хранится только в этом браузере (localStorage), на сервер не уходит. Звук и текст не сохраняются.</p>
+      <p className="aeHint">Хранится только в этом браузере (localStorage), на сервер не уходит. Звук не сохраняется; тексты распознавания (стрелка ▸ у попытки) лежат только здесь, в этом браузере.</p>
       <div className="aspCount">
         Диалог разрешения за сеанс: <b>{sure}</b>{yes > 0 && <> (+{yes} возможно)</>}
         <span className="aspHint"> · сеанс = с открытия страницы приложения</span>
@@ -44,11 +39,12 @@ export default function SpeechLogBlock({ log, setLog, caps, perm, since }) {
         <div className="aspTableWrap">
           <table className="aspTable">
             <thead>
-              <tr><th>Время</th><th>Попытка</th><th>Режим</th><th>Разрешение до→после</th><th>start</th><th>audio</th><th>result</th><th>Уверен.</th><th>Захват</th><th>Эксперименты</th><th>Ошибка</th><th>Диалог</th></tr>
+              <tr><th></th><th>Время</th><th>Попытка</th><th>Режим</th><th>Разрешение до→после</th><th>start</th><th>audio</th><th>result</th><th>Уверен.</th><th>Захват</th><th>Эксперименты</th><th>Ошибка</th><th>Диалог</th></tr>
             </thead>
             <tbody>
-              {shown.map((e, i) => (
+              {shown.flatMap((e, i) => [
                 <tr key={`${e.t}-${i}`}>
+                  <td><button className="apOpen" aria-expanded={open === e.t} aria-label="Тексты попытки" disabled={!e.tx} onClick={() => setOpen(open === e.t ? null : e.t)}>{open === e.t ? '▾' : '▸'}</button></td>
                   <td>{new Date(e.t).toLocaleTimeString('ru-RU')}</td>
                   <td>{fmtAttempt(e)}</td>
                   <td>{e.mode === 'pwa' ? 'PWA' : 'браузер'}</td>
@@ -57,8 +53,9 @@ export default function SpeechLogBlock({ log, setLog, caps, perm, since }) {
                   <td>{fmtConf(e.conf)}</td><td>{fmtCapture(e)}</td><td>{fmtAntiPredict(e)}</td>
                   <td>{e.error || '—'}</td>
                   <td>{DIALOG_LABEL[e.dialog] || '?'}</td>
-                </tr>
-              ))}
+                </tr>,
+                open === e.t && <tr key={`${e.t}-${i}-d`} className="apDetRow"><td colSpan={13}><AttemptDetails entry={e} /></td></tr>,
+              ])}
             </tbody>
           </table>
         </div>
@@ -71,6 +68,7 @@ export default function SpeechLogBlock({ log, setLog, caps, perm, since }) {
       </div>
       <div className="aspRow">
         <button className="aeRefresh" onClick={copy}>Скопировать отчёт</button>
+        <button className="aeRefresh" onClick={copyAll}>Скопировать все сравнения</button>
         <button className="aeRefresh" onClick={() => { setLog(clearLog()); setNote('Журнал очищен') }}>Очистить журнал</button>
       </div>
       {note && <p className="aeHint">{note}</p>}

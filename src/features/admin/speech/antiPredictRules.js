@@ -3,6 +3,7 @@
 // если ошибочных форм нет — ключевыми считаются все слова эталона. ok = «слово подтверждено» (форма верна).
 import { tokenize, levenshtein, matchPhrase } from '../../../shared/lib/speech/speechMatch.js'
 import { matchConsensus } from '../../../shared/lib/speech/sayConsensus.js'
+import { buildChain, analyzeChain } from './attemptDiff.js'
 
 /** Для каждого токена эталона — ошибочные токены на его месте: Map(слово → Set). Фразы той же длины сравниваем по позиции,
  *  остальные — каждое «чужое» слово привязываем к ближайшему слову эталона (расстояние ≤ 3) */
@@ -41,18 +42,6 @@ export function classify(text, map, keys) {
 const confOf = a => (typeof a?.confidence === 'number' ? a.confidence : -1)
 const missedKeys = (items, keys) => keys.filter(k => items.some(it => it.word === k && !it.ok))
 
-/** Первое превращение «ошибочная форма → форма эталона» в истории interim/final: когда и в чём */
-function findFlip(timeline, keys) {
-  for (let i = 0; i < timeline.length; i++) {
-    for (const k of keys) {
-      if (timeline[i].state[k] !== 'wrong') continue
-      const j = timeline.findIndex((h, n) => n > i && h.state[k] === 'ref')
-      if (j >= 0) return { key: k, wrong: timeline[i].literal[0], fromT: timeline[i].t, toT: timeline[j].t, toFinal: !!timeline[j].final, from: timeline[i].text, to: timeline[j].text }
-    }
-  }
-  return null
-}
-
 /**
  * Разбор одной попытки. Вход: reference, wrong (фразы), view-подобный объект { final, alternatives, history, lastInterim }.
  * Нет итога → null.
@@ -65,7 +54,7 @@ export function analyzeAttempt({ reference, wrong = [], final, alternatives = []
   const alts = alternatives.length ? alternatives : [final]
   const nbest = alts.map((a, i) => ({ ...a, ...cls(a.text), top: i === 0 }))
   const timeline = history.map(h => ({ ...h, ...cls(h.text) }))
-  const flip = findFlip(timeline, keys)
+  const diff = analyzeChain(buildChain({ history, final, lastInterim }), reference)
 
   const exact = { exactWords: true }
   const top1Items = matchPhrase(reference, final.text, [], 1, exact).items
@@ -80,13 +69,19 @@ export function analyzeAttempt({ reference, wrong = [], final, alternatives = []
   strict.ok = consensus.ok && blockers.length === 0
 
   const where = []
-  nbest.forEach((a, i) => { if (a.literal.length) where.push(i === 0 ? `итог (№1) «${a.text}»` : `N-best №${i + 1} «${a.text}»`) })
-  timeline.filter(h => !h.final && h.literal.length).slice(0, 3).forEach(h => where.push(`interim ${h.t} мс «${h.text}»`))
-  const engineFixed = !!flip || consensus.fixed.length > 0
+  const places = [] // где встретилась ошибочная форма: top1 | alt#N | interim@мс (для компактного отчёта)
+  nbest.forEach((a, i) => {
+    if (!a.literal.length) return
+    where.push(i === 0 ? `итог (№1) «${a.text}»` : `N-best №${i + 1} «${a.text}»`)
+    places.push({ at: i === 0 ? 'top1' : `alt#${i + 1}`, word: a.literal[0] })
+  })
+  const lit = timeline.filter(h => !h.final && h.literal.length)
+  lit.slice(0, 3).forEach(h => where.push(`interim ${h.t} мс «${h.text}»`))
+  lit.forEach(h => places.push({ at: 'interim', t: h.t, word: h.literal[0] }))
   return {
-    keys, map, nbest, timeline, flip, engineFixed,
-    fixedAt: flip ? { t: flip.toT, final: flip.toFinal } : consensus.fixed.length ? { t: null, final: true } : null,
-    literalSeen: where.length > 0, where,
+    keys, map, nbest, timeline, diff, changes: diff.changes, engineFixed: diff.engineFixed,
+    fixedAt: diff.fixed[0] ? { t: diff.fixed[0].at, final: diff.fixed[0].step === 'interim→final' } : null,
+    literalSeen: where.length > 0, where, places,
     verdicts: { top1, consensus, strict, all: top1.ok && consensus.ok && strict.ok },
   }
 }

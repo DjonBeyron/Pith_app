@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
-import { AP_INTRO, MODE_INFO, ONE_WORD_INFO, RULES_INFO, LOCAL_STATUS } from './antiPredictInfo.js'
+import { AP_INTRO, MODE_INFO, ONE_WORD_INFO, RULES_INFO, LOCAL_STATUS, SERIES_HOWTO } from './antiPredictInfo.js'
 import { LANG_VARIANTS, UNSUPPORTED, modeSupported, activeModes, keyWordsOf, parseWrongList } from './antiPredictModes.js'
 import VoskLab from './VoskLab.jsx'
+import ContextSeriesBlock from './ContextSeriesBlock.jsx'
 import '../../../styles/admin-antipredict.css'
 
 // Строка режима: переключатель, описание, пометка «не поддерживается здесь» (серый) и своё содержимое (чипы языка, статус модели)
@@ -46,7 +47,7 @@ function OneWordCard({ reference, busy, recognition, onOneWord }) {
 const ORDER = [...MODE_INFO, ONE_WORD_INFO].sort((x, y) => x.n - y.n) // показываем по номерам 1…8
 
 // Блок «Эксперименты: против домысливания движка» (внутри «Проверки», перед кнопкой «Сказать»). Всё выключено по умолчанию.
-export default function AntiPredictBlock({ ap, reference, busy, recognition, onOneWord }) {
+export default function AntiPredictBlock({ ap, reference, busy, recognition, onOneWord, series, lang, onPickStep, onSay, onStop, view }) {
   const { settings, update, features } = ap
   const sup = id => modeSupported(id, features)
   const modes = activeModes(settings, features)
@@ -57,6 +58,8 @@ export default function AntiPredictBlock({ ap, reference, busy, recognition, onO
     <details className="apBox">
       <summary className="apSum">Эксперименты: против домысливания движка{modes.length ? ` (включено: ${modes.length})` : ''}</summary>
       <p className="aspHint">{AP_INTRO}</p>
+      <ol className="apHow" aria-label="Порядок действий">{SERIES_HOWTO.map(t => <li key={t}>{t}</li>)}</ol>
+      <ContextSeriesBlock series={series} lang={lang} reference={reference} busy={busy} view={view} onPick={onPickStep} onSay={onSay} onStop={onStop} />
       <label className="aspLabel">Ошибочные формы (через запятую) — для способов 7, 8 и правил
         <input className="aspInput" value={ap.wrongText} onChange={e => ap.setWrongText(e.target.value)} disabled={busy} spellCheck={false} autoCapitalize="off" />
       </label>

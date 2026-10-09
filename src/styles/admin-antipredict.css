@@ -24,3 +24,19 @@
 .apDiag .aspPair { flex-wrap: wrap; font-size: 13px; }
 .apDiag .aspPairKey { min-width: 0; }
 .apDiag .aspPair > span:not(.aspPairKey) { font-size: 13px; }
+
+/* Серия «влияет ли длина контекста» (ContextSeriesBlock), порядок действий, раскрытая строка журнала (AttemptDetails) */
+.apHow { margin: 0; padding: 8px 10px 8px 26px; border-radius: 10px; background: #14161b; border: 1px solid #b6fe3b44; font-size: 13px; line-height: 1.5; color: #e0e0e0; }
+.apHow li { margin: 2px 0; }
+.apSeries { border-color: #b6fe3b44; }
+.apStepWord { display: flex; flex-direction: column; gap: 6px; }
+.apStep { display: flex; flex-direction: column; gap: 2px; }
+.apStep .aspRow { flex-wrap: nowrap; }
+.apStepRef { flex: 1; min-width: 0; }
+.apSay { color: #b6fe3b; }
+.apConc { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.45; color: #e0e0e0; }
+.apOpen { padding: 2px 6px; min-width: 28px; font-size: 14px; background: transparent; border: 1px solid #2a2d35; border-radius: 6px; color: #e0e0e0; cursor: pointer; }
+.apOpen:disabled { opacity: 0.3; cursor: default; }
+.apDetRow td { white-space: normal; background: #12141a; }
+.apDet { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #e0e0e0; max-width: 330px; word-break: break-word; }
+.apDetList { margin: 0; padding-left: 16px; line-height: 1.45; }

@@ -7,7 +7,7 @@ import {
 
 // React-обвязка экспериментов «против домысливания»: выбранные режимы (localStorage), ошибочные формы, подпись «что я сказал»,
 // снимок настроек на момент тапа (getExtra → speechController.start({extra})) и состояние локальной модели Chrome (режим 6).
-export function useAntiPredict({ reference, lang }) {
+export function useAntiPredict({ reference, lang, series = null }) {
   const [settings, setSettings] = useState(readSettings)
   const [features] = useState(() => detectFeatures(window))
   const [wrongEdit, setWrongEdit] = useState(null) // { ref, text } — правка поля относится к эталону, при смене эталона сбрасывается
@@ -45,11 +45,18 @@ export function useAntiPredict({ reference, lang }) {
     setTick(n => n + 1)
   }, [localLang])
 
-  // Снимок на момент тапа. wordRef — режим «одно слово»: эталон = слово, ошибочные формы = его таблица
-  const getExtra = useCallback(wordRef => ({
-    v: 1, settings: effectiveSettings(settings, features), oneWord: !!wordRef, modes: activeModes(settings, features, !!wordRef),
-    wrong: wordRef ? wrongFormsOfWord(wordRef) : parseWrongList(wrongText, reference),
-  }), [settings, features, wrongText, reference])
+  // Снимок на момент тапа. wordRef — режим «одно слово»: эталон = слово, ошибочные формы = его таблица.
+  // series — активный шаг серии «длина контекста»: в серии альтернативы (10) и история interim включены автоматически
+  const getExtra = useCallback(wordRef => {
+    const s = series && !wordRef ? { ...settings, alts: true, history: true } : settings
+    const list = wordRef ? wrongFormsOfWord(wordRef) : parseWrongList(wrongText, reference)
+    return {
+      v: 1, settings: effectiveSettings(s, features), oneWord: !!wordRef, modes: activeModes(s, features, !!wordRef),
+      wrong: series && !wordRef ? [series.wrongPhrase, ...list.filter(w => w !== series.wrongPhrase)] : list,
+      said: wordRef ? said.trim() : (said.trim() || series?.wrongPhrase || ''), // «что я сказал» фиксируется на момент тапа
+      ...(series && !wordRef ? { series } : {}),
+    }
+  }, [settings, features, wrongText, reference, series, said])
 
   return { settings, update, features, wrongText, setWrongText, resetWrong, said, setSaid, getExtra, local, install, installing }
 }

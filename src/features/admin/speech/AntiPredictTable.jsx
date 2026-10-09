@@ -1,24 +1,12 @@
 import { useMemo, useState } from 'react'
 import { analyzeAttempt, saidKind } from './antiPredictRules.js'
 import { comparisonText, verdictRows, fmtConfPct } from './antiPredictReport.js'
+import { changesText } from './speechReportAttempts.js'
+import { copyText } from './copyText.js'
 import { tokenize } from '../../../shared/lib/speech/speechMatch.js'
 import { buildJsgf } from './antiPredictModes.js'
 
 const yn = v => (v == null ? 'нет данных' : v ? 'да' : 'нет')
-
-async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); return true } catch { /* пробуем старый способ */ }
-  try {
-    const ta = document.createElement('textarea')
-    ta.value = text
-    ta.style.cssText = 'position:fixed;opacity:0'
-    document.body.appendChild(ta)
-    ta.select()
-    const ok = document.execCommand('copy')
-    ta.remove()
-    return ok
-  } catch { return false }
-}
 
 function Applied({ view }) {
   const ap = view.applied
@@ -44,7 +32,7 @@ export default function AntiPredictTable({ view, said, caps }) {
     : null), [view.final, view.alternatives, view.history, view.lastInterim, view.reference, wrong])
   if (!view.runNo || !view.extra?.modes?.length) return null // без включённых режимов проба выглядит как раньше
   const kind = saidKind(said, an)
-  const f = an?.flip
+  const fx = an?.diff.fixed[0]
   const grammarOn = view.extra.settings?.grammar
   const inGrammar = view.final && [view.reference, ...(wrong ?? [])].some(p => tokenize(p).join(' ') === tokenize(view.final.text).join(' '))
 
@@ -87,9 +75,10 @@ export default function AntiPredictTable({ view, said, caps }) {
         ) : <p className="aspHint">Истории interim нет (движок не присылал промежуточных текстов).</p>}
         <div className="aspPair"><span className="aspPairKey">Слово изменено движком</span><span>
           <b>{an.engineFixed ? 'да' : 'нет'}</b>
-          {f && ` — «${f.wrong}» → «${f.key}» между ${f.fromT} и ${f.toT} мс (${f.toFinal ? 'только в итоговом ответе' : 'уже в промежуточном тексте'})`}
-          {!f && an.engineFixed && ' — слово появилось только в итоге, а в последнем interim его не было'}
+          {fx && ` — «${fx.from}» → «${fx.to}» (${fx.step}${fx.at != null ? `, ${fx.at} мс` : ''})${an.diff.reverse ? ' · ОБРАТНОЕ: форма эталона заменена ошибочной' : ''}`}
+          {!fx && an.timeline.length === 0 && ' — interim не было, сравнивать не с чем'}
         </span></div>
+        <div className="aspPair"><span className="aspPairKey">Изменения между текстами</span><span>{changesText({ changes: an.changes, histN: an.timeline.length })}</span></div>
         <div className="aspPair"><span className="aspPairKey">Литеральная форма встречалась</span><span>
           <b>{an.literalSeen ? 'да' : 'нет'}</b>{an.literalSeen && ` — ${an.where.join('; ')}`}
         </span></div>
