@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { getModel, fmtMb, fmtSpeed } from './voskDownload.js'
-import { peekCached, deleteModel, storageInfo, requestPersist, cacheAvailable } from './voskStorage.js'
-import { cellularWarning, errorText, MODEL_MB } from './voskErrors.js'
+import { getModel, fmtMb, fmtSpeed } from '../../../shared/lib/vosk/voskDownload.js'
+import { peekCached, deleteModel, storageInfo, requestPersist, cacheAvailable } from '../../../shared/lib/vosk/voskStorage.js'
+import { cellularWarning, errorText, MODEL_MB } from '../../../shared/lib/vosk/voskErrors.js'
+import VoskBackgroundStatus from './VoskBackgroundStatus.jsx'
 
 const isStandalone = () => globalThis.matchMedia?.('(display-mode: standalone)')?.matches || globalThis.navigator?.standalone === true
 
@@ -96,6 +97,7 @@ export default function VoskModelBlock({ url, locked, onCache, onFetched }) {
         <div className="aspHint">Хранилище сайта: занято {fmtMb(store.usage)} из {fmtMb(store.quota)}{store.persisted != null ? ` · закреплено: ${store.persisted ? 'да' : 'нет'}` : ''}</div>
       )}
       {persistMsg && <div className="aspHint">{persistMsg}</div>}
+      <VoskBackgroundStatus inCache={!!cached} locked={locked} onChanged={refresh} />
       <div className="aspHint">
         {isStandalone() ? 'Приложение открыто с экрана «Домой»: на iPhone для таких приложений действует более мягкое вытеснение, чем у вкладки Safari (7-дневная очистка к ним не применяется).'
           : 'iPhone: во вкладке Safari данные сайта без заходов могут стереться (правило 7 дней). Из приложения на экране «Домой» это не касается, но при нехватке места система всё равно может вытеснить кеш.'}

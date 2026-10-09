@@ -1,0 +1,60 @@
+/* ── Волны вокруг круга-микрофона «Сказать фразу» ────────────────────────────────────────────────────────────────────
+   Два слоя КРУГЛЫХ колец (по три) одного размера с кнопкой, оба в .sayWaveClip: он лежит под кнопкой и надписью, по размеру равен содержимому панели
+   (края корпуса .phraseInner: top −11 / bottom −12 / по бокам −16, центр колец — центр круга: 11 + 45 + 58 = 114px от верха) и ОБРЕЗАЕТ всё, что вылезло
+   (overflow:hidden) — максимальная амплитуда эквалайзера не выходит за модуль (на 320–390px по бокам запас больше 100px, по высоте предел 113px при ряду 115px).
+   Дополнительно радиус считает JS (sayRings.clampRadius) — в обычном случае клип ничего не режет, он страховка.
+   • .sayIdleWaves — ИСКУССТВЕННЫЕ волны покоя: чистый CSS (transform/opacity), небольшие (до ×1,6), расходятся по очереди.
+   • .sayEq — ЖИВОЙ эквалайзер: transform/opacity колец пишет useSayWaves.js прямо в style каждый кадр rAF. На кольцах НЕТ transition/animation —
+     запаздывание не должно прятаться в стилях. Слой показывается в режиме --live (тап был), искусственные волны в этот момент гаснут.
+   Без blur/filter/box-shadow.
+   ──────────────────────────────────────────────────────────────────── */
+
+.sayWaveClip {
+  position: absolute;
+  top: -11px;
+  bottom: -12px;
+  left: -16px;
+  right: -16px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sayWaveAnchor { position: absolute; left: 50%; top: 114px; width: 116px; height: 116px; margin: -58px 0 0 -58px; }
+.sayIdleWaves, .sayEq { position: absolute; inset: 0; }
+.sayIdleWaves i, .sayEq i {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid #b6fe3b;
+  background: rgba(182, 254, 59, 0.1);
+}
+
+/* Искусственные волны покоя */
+.sayIdleWaves { opacity: 1; transition: opacity .15s; }
+.sayIdleWaves i { opacity: 0; animation: sayWaveOut 3s ease-out infinite; }
+.sayIdleWaves i:nth-child(2) { animation-delay: 1s; }
+.sayIdleWaves i:nth-child(3) { animation-delay: 2s; }
+@keyframes sayWaveOut {
+  0%   { transform: scale(1);   opacity: .4; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Живой эквалайзер: стартовые значения рисует JS в кадре тапа; CSS даёт лишь будущий слой и will-change */
+.sayEq { opacity: 0; transition: opacity .25s; }
+.sayEq i { opacity: 0; will-change: transform, opacity; }
+
+/* Режимы: --live (идёт запись) — эквалайзер, искусственные волны гаснут; --calm (успех / микрофона не будет) — ничего; иначе — покой */
+.sayWaveClip--live .sayIdleWaves { opacity: 0; }
+.sayWaveClip--live .sayEq { opacity: 1; transition-duration: .1s; }
+.sayWaveClip--calm .sayIdleWaves { opacity: 0; }
+.sayWaveClip--calm .sayEq { opacity: 0; }
+
+/* «Уменьшить движение»: волны не бегут. В покое — один тихий статичный круг, при записи — статичный круг вместо эквалайзера (цикла JS нет) */
+@media (prefers-reduced-motion: reduce) {
+  .sayIdleWaves i { animation: none; }
+  .sayIdleWaves i:nth-child(1) { transform: scale(1.25); opacity: .18; }
+  .sayIdleWaves i:nth-child(n + 2) { display: none; }
+  .sayEq i { transform: scale(1.2) !important; opacity: .3 !important; }
+  .sayEq i:nth-child(n + 2) { display: none; }
+  .sayIdleWaves, .sayEq { transition: none; }
+}

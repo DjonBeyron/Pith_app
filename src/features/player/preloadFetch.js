@@ -1,4 +1,5 @@
 import { pLog } from '../../shared/lib/debug.js'
+import { begin as beginNetBusy } from '../../shared/lib/netBusy.js'
 
 const MAX_ATTEMPTS       = 3
 const RETRY_DELAY_MS     = 1200
@@ -17,7 +18,13 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 // Watchdog перезапускается на каждом чанке: обрывает соединение, если байты не приходят
 // STALL_TIMEOUT_MS подряд — иначе зависший стрим на мобильной сети висит вечно и навсегда
 // занимает слот параллельной загрузки. isAlive() — проверка поколения очереди: false → null.
-export async function fetchBlobWithRetry(url, { onProgress, isAlive }) {
+// Пока файл качается (включая паузы между попытками), сеть «занята» для фоновой предзагрузки модели Vosk (netBusy.js)
+export async function fetchBlobWithRetry(url, opts) {
+  const endBusy = beginNetBusy()
+  try { return await fetchWithAttempts(url, opts) } finally { endBusy() }
+}
+
+async function fetchWithAttempts(url, { onProgress, isAlive }) {
   let lastError = null
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     if (!isAlive()) return null

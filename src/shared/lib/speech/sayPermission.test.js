@@ -162,13 +162,13 @@ describe('planTap — start() зовётся только на begin', () => {
     expect(planTap({ view: idle, decision: p.decide() }).act).toBe('fallback')
   })
 
-  it('запись и «начали» — тап = стоп; до «начали», ожидание диалога и обработка игнорируются; число попыток не ограничено', () => {
+  it('запись и «можно остановить» — тап = стоп; до этого, ожидание диалога и обработка игнорируются; число попыток не ограничено', () => {
     const d = { action: 'listen' }
     expect(planTap({ view: listen, decision: d, go: true }).act).toBe('stop')
     expect(planTap({ view: listen, decision: d, go: false }).act).toBe('ignore')
     expect(planTap({ view: { ...emptyView, status: 'starting' }, decision: d, go: true }).act).toBe('ignore')
     expect(planTap({ view: { ...emptyView, status: 'retrying' }, decision: d }).act).toBe('ignore')
-    expect(planTap({ view: idle, decision: d, hold: true }).act).toBe('ignore') // квадрат с крестиком: тапы не принимаем
+    expect(planTap({ view: idle, decision: d, running: true }).act).toBe('ignore') // попытка идёт, старт в очереди: вторую запись не начинаем
     expect(planTap({ view: idle, decision: d }).act).toBe('begin')
   })
 })

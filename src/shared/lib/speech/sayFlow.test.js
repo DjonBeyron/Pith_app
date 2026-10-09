@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sayReducer, initialSayState, planTap, isGo } from './sayFlow.js'
-import { MORPH_MS } from './sayMorph.js'
+import { sayReducer, initialSayState, planTap, isGo, STOP_ARM_MS } from './sayFlow.js'
 import { emptyView } from './speechController.js'
 import { readSayData } from './sayPhraseData.js'
 
@@ -126,47 +125,86 @@ describe('причины неудач и серия (дефолтные отве
   })
 })
 
-describe('морфинг в круг и момент «начали» (горлышко подготовки микрофона вместо трёх точек)', () => {
+describe('тап по кругу: сразу «идёт запись»; «можно остановить» = движок слушает И прошла защита от двойного тапа', () => {
   const listening = (extra = {}) => ({ ...emptyView, status: 'listening', runNo: 1, attempt: 1, ...extra })
 
-  it('морфинг 420–520 мс; точек (dots/dotsDone) в состоянии больше нет', () => {
-    expect(MORPH_MS).toBeGreaterThanOrEqual(420)
-    expect(MORPH_MS).toBeLessThanOrEqual(520)
+  it('тап сразу переводит в run (круг и эквалайзер живые, не дожидаясь распознавания); защита 250–500 мс; морфинга, точек и failShow в состоянии нет', () => {
+    expect(STOP_ARM_MS).toBeGreaterThanOrEqual(250)
+    expect(STOP_ARM_MS).toBeLessThanOrEqual(500)
     const s = run()
-    expect(s).toMatchObject({ phase: 'run', morphDone: false })
-    expect(s).not.toHaveProperty('dots')
-    expect(s).not.toHaveProperty('dotsDone')
-    expect(sayReducer(s, { type: 'morphEnd' }).morphDone).toBe(true)
-    expect(sayReducer(initialSayState({ action: 'listen' }), { type: 'morphEnd' }).morphDone).toBe(false) // вне записи морфинга нет
+    expect(s).toMatchObject({ phase: 'run', armed: false, reply: null })
+    for (const gone of ['morphDone', 'failShow', 'dots', 'dotsDone']) expect(s).not.toHaveProperty(gone)
+    expect(sayReducer(s, { type: 'arm' }).armed).toBe(true)
+    expect(sayReducer(initialSayState({ action: 'listen' }), { type: 'arm' }).armed).toBe(false) // вне записи защиты нет
+    expect(sayReducer(s, { type: 'morphEnd' })).toBe(s) // старые действия морфинга больше не обрабатываются
   })
 
-  it('«начали» = морфинг завершён И движок слушает: audiostart раньше конца морфинга — ждём его; морфинг раньше audiostart — круг держится в подготовке', () => {
+  it('«можно остановить» = защита прошла И движок слушает: audiostart раньше конца защиты — ждём её; защита раньше audiostart — ждём audiostart', () => {
     let early = sayReducer(run(), { type: 'view', view: listening() })      // audiostart пришёл раньше
     expect(isGo(early)).toBe(false)
-    early = sayReducer(early, { type: 'morphEnd' })
+    early = sayReducer(early, { type: 'arm' })
     expect(isGo(early)).toBe(true)
-    let late = sayReducer(run(), { type: 'morphEnd' })                       // морфинг кончился, audiostart ещё нет
+    let late = sayReducer(run(), { type: 'arm' })                            // защита кончилась, audiostart ещё нет
     expect(isGo(late)).toBe(false)
     late = sayReducer(late, { type: 'view', view: listening() })
     expect(isGo(late)).toBe(true)
   })
 
-  it('автоповтор (attempt > 1) морфинга не повторяет: «начали» сразу по audiostart', () => {
+  it('автоповтор (attempt > 1) защиту не повторяет: «можно остановить» сразу по audiostart', () => {
     const s = sayReducer(run(), { type: 'view', view: listening({ attempt: 2 }) })
     expect(isGo(s)).toBe(true)
   })
 
-  it('тап до «начали» игнорируется, после — «стоп»; во время ожидания разрешения — игнор', () => {
+  it('тап до «можно остановить» игнорируется, после — «стоп»; во время ожидания разрешения — игнор; тап при идущей попытке не запускает вторую запись', () => {
     expect(planTap({ view: { ...emptyView, status: 'listening' }, decision: { action: 'listen' }, go: false })).toEqual({ act: 'ignore' })
     expect(planTap({ view: { ...emptyView, status: 'listening' }, decision: { action: 'listen' }, go: true })).toEqual({ act: 'stop' })
     expect(planTap({ view: { ...emptyView, status: 'starting' }, decision: { action: 'listen' }, go: true })).toEqual({ act: 'ignore' })
+    // старт стоит в очереди перезапуска (статус ещё idle), но попытка уже идёт — второй begin нельзя
+    expect(planTap({ view: emptyView, decision: { action: 'listen' }, running: true })).toEqual({ act: 'ignore' })
+    expect(planTap({ view: emptyView, decision: { action: 'listen' }, running: false })).toEqual({ act: 'begin' })
     expect(planTap({ view: emptyView, decision: { action: 'fallback', reason: 'denied' } })).toEqual({ act: 'fallback', reason: 'denied' })
     expect(planTap({ view: emptyView, decision: { action: 'explain' } })).toEqual({ act: 'explain' })
   })
 
-  it('сворачивание сбрасывает морфинг', () => {
-    const s = sayReducer(sayReducer(run(), { type: 'morphEnd' }), { type: 'interrupt' })
-    expect(s).toMatchObject({ morphDone: false, phase: 'idle' })
+  it('сворачивание сбрасывает защиту', () => {
+    const s = sayReducer(sayReducer(run(), { type: 'arm' }), { type: 'interrupt' })
+    expect(s).toMatchObject({ armed: false, phase: 'idle' })
+  })
+})
+
+describe('реплика ученика в чат (state.reply) после неудачной попытки', () => {
+  const fail = (s, view) => sayReducer(s, { type: 'view', view })
+
+  it('неверно сказали: reply = распознанный текст (с заглавной), n = номер неудачи; рядом с подсказкой hint', () => {
+    const s = fail(run(), done('banana apple'))
+    expect(s.reply).toEqual({ text: 'Banana apple', n: 1 })
+    expect(s.hint.kind).toBe('mismatch')
+    const again = fail(sayReducer(s, { type: 'begin', data }), done('i am trying', { runNo: 2 }))
+    expect(again.reply).toEqual({ text: 'I am trying', n: 2 })
+    expect(again.hint.kind).toBe('partial')
+  })
+
+  it('реплика есть и при выключенных подсказках (hintsOn=false): подсказки нет, реплика уходит', () => {
+    const off = readSayData({ phrase: 'I am trying to please both', hintsOn: false })
+    const s = fail(sayReducer(initialSayState({ action: 'listen' }), { type: 'begin', data: off }), done('banana'))
+    expect(s.hint).toBe(null)
+    expect(s.reply).toEqual({ text: 'Banana', n: 1 })
+  })
+
+  it('тишина, ошибка движка и «остановили до речи» — реплики нет (только подсказка); успех и новая попытка реплику снимают', () => {
+    const quiet = fail(run(), { ...emptyView, status: 'error', runNo: 1, error: 'no-speech' })
+    expect(quiet).toMatchObject({ phase: 'failed', reply: null })
+    expect(quiet.hint.kind).toBe('silence')
+    expect(fail(run(), { ...emptyView, status: 'done', runNo: 1, final: null }).reply).toBe(null)
+    expect(fail(run(), { ...emptyView, status: 'error', runNo: 1, error: 'network', attempt: 3 }).reply).toBe(null)
+    const wrong = fail(run(), done('banana'))
+    expect(sayReducer(wrong, { type: 'begin', data }).reply).toBe(null)
+    expect(fail(sayReducer(wrong, { type: 'begin', data }), done('I am trying to please both', { runNo: 2 })).reply).toBe(null)
+  })
+
+  it('отказ микрофона (not-allowed): ни реплики, ни крестика — режим «Микрофон выключен»', () => {
+    const den = fail(run(), { ...emptyView, status: 'error', runNo: 1, error: 'not-allowed', attempt: 1 })
+    expect(den).toMatchObject({ phase: 'fallback', reply: null })
   })
 })
 

@@ -8,6 +8,7 @@ import AppPerfProbe from './AppPerfProbe.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useIdlePrewarm } from './useIdlePrewarm.js'
 import { useResumeHeal } from './resumeHeal.js'
+import { useVoskBackground } from '../shared/lib/vosk/useVoskBackground.js'
 import { confirmBoot } from '../shared/lib/shellClient.js'
 
 // Этап 6 миграции завершён: старая оболочка вынесена в old/ (вне git и
@@ -19,6 +20,8 @@ export default function App() {
   useIdlePrewarm(useAdmin().isRealAdmin)
   // Возврат из фона: снять остатки блокировок и проверить, что панель вкладок кликабельна (resumeHeal.js)
   useResumeHeal()
+  // Тихая фоновая предзагрузка модели Vosk (≈39 МБ) в кэш — без интерфейса, только в простое (shared/lib/vosk/voskBackground.js)
+  useVoskBackground()
 
   // Дебаг-тулбар покадровой отладки — за общим выключателем DEBUG_TOOLS_ON
   // (см. shared/lib/debugToolsEnabled.js): в репозитории он выключен, локально

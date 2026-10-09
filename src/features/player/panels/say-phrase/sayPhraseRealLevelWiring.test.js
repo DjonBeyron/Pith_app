@@ -19,9 +19,9 @@ describe('say_phrase — реальный уровень для колец (ад
     expect(begin.indexOf('real.open()')).toBeLessThan(begin.indexOf('ctrl.start('))
     expect(begin).not.toMatch(/await|\.then\(/)
     expect(hook).toMatch(/if \(s\.phase === 'run'\) return[\s\S]*real\.close\(\)/) // попытка кончилась
-    expect(hook).toMatch(/clearTimeout\(morphRef\.current\); real\.close\(\) \}/) // панель закрыта
+    expect(hook).toMatch(/clearTimeout\(armRef\.current\); real\.close\(\) \}/) // панель закрыта
     expect(hook).toMatch(/const interrupt = \(\) => \{ ctrl\.reset\(\); voice\.signal\('end', nowMs\(\)\); real\.close\(\)/) // сворачивание
-    expect(hook).toContain('voice: levels')
+    expect(hook).toContain('level: levels') // заменяемый источник уровня отдаётся панели (sayLevelSource.js)
     expect(hook).toContain("realLevel: realLevelLabel(wantReal, null)") // пометка «реальный уровень: вкл/выкл» для админской строки
   })
 

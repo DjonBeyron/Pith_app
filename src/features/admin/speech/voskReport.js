@@ -1,6 +1,6 @@
 // «Тест закрытого словаря» Vosk: эталон «trying», словарь try / trying / [unk]. Чистые функции: разбор попытки, вывод и
 // компактный текст «Скопировать результат Vosk». Без React.
-import { fmtMb } from './voskDownload.js'
+import { fmtMb } from '../../../shared/lib/vosk/voskDownload.js'
 
 export const TEST_REFERENCE = 'trying'
 export const TEST_WORDS = ['try', 'trying']

@@ -1,138 +1,68 @@
-/* ── Кнопка микрофона «Сказать фразу»: морфинг в квадрат, две половины «Слушаю / Стоп», итог, кольца-волны ───────────────
-   ОДИН элемент .sayMicBtn в области фиксированной высоты .sayMicBox (116px = сторона квадрата; say-phrase.css). Всегда ЗЕЛЁНАЯ
-   (лаймовая заливка, как .phraseCheckBtn в активном состоянии); тёмной не бывает, кроме выключенной (микрофона не будет).
-   МОРФИНГ «туда» sayMorphIn (520 мс, одна анимация с процентами на ОДНОМ элементе; числа — MORPH_STOPS в sayMorph.js, их сверяет
-   sayMorph.test.js): ШАГ 1 (0–30%) прямоугольник сужается до стороны квадрата, высота и углы те же; иконка и текст прямоугольника
-   не едут, а гаснут (opacity). ШАГ 2 (30–100%) «резина»: пружина как у окошка по «уху» (popSpringIn, pop-spring.css — те же кривые
-   и доли времени 42% / 72%): высота и ширина вылетают с перелётом (≈7%), недолёт, покой; углы 12 → 24 → 20 → 22px. Обратно sayMorphOut
-   (400 мс) — мягко, без пружины. Layout-анимация (width/height/border-radius) — только у этой кнопки в области фиксированной высоты:
-   соседей не двигает. Внутри квадрата — слой .sayCells (две половины с линией), слой итога .sayResult (галочка «Верно» / крестик)
-   и красный слой .sayRed: к красному цвету переходим ТОЛЬКО через opacity слоя (background-color не анимируем).
-   Кольца-волны — три скруглённых квадрата вокруг кнопки: масштаб и прозрачность берутся из --say-lvl/--say-lvl2/--say-lvl3 (пишет
-   useSayRings в rAF, значения и k — sayRings.js); у них НЕТ transition по transform — значения идут каждый кадр. Без blur/filter/box-shadow.
+/* ── Круг-микрофон «Сказать фразу» ───────────────────────────────────────────────────────────────────────────────────
+   ОДИН круглый элемент .sayMicBtn (116px) в области фиксированной высоты .sayMicBox (say-phrase.css): форма не меняется НИКОГДА, внутри в обычном
+   состоянии только значок микрофона. Всегда ЗЕЛЁНЫЙ (лайм, как .phraseCheckBtn в активном состоянии); тёмным бывает только выключенный
+   (микрофона не будет). Пульс — transform: scale() на самой кнопке: в покое слегка (sayBtnPulse), пока идёт запись заметно сильнее и быстрее
+   (sayBtnPulseLive, класс --live ставится В ТОМ ЖЕ КАДРЕ, что тап). Нажатие — вжатие БЕЗ перехода (:active гасит анимацию и transition).
+   Два слоя внутри: .sayFaceMic (значок) и .sayFaceDone (галочка и «Готово»), на успехе плавно сменяют друг друга (opacity + scale).
+   Волны вокруг круга, надпись над ним — say-phrase-waves.css / say-phrase.css. Layout-анимаций нет: только transform/opacity.
    ──────────────────────────────────────────────────────────────────── */
 
 .sayPanel .sayMicBtn {
   position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 100%;
-  height: 52px;
+  top: 0;
+  left: 50%;
+  margin: 0 0 0 -58px;
+  width: 116px;
+  height: 116px;
   padding: 0;
-  border-radius: 12px;
+  border-radius: 50%;
   overflow: hidden;
   background: #b6fe3b;
-  border: 0; /* рамка .phraseCheckBtn (лайм на лайме) под красным слоем неудачи светилась бы зелёной каймой; у выключенной — своя */
+  border: 0; /* рамка .phraseCheckBtn (лайм на лайме) у круга не нужна; у выключенного — своя */
   color: #000;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  animation: sayBtnPulse 2.6s ease-in-out infinite;
   transition: background .15s, color .15s, opacity .2s;
 }
-/* Мгновенная реакция на нажатие: вжатие БЕЗ перехода (общий переход .15s делал нажатие «вязким») */
-.sayPanel .sayMicBtn:active:not(:disabled) { transition: none; transform: scale(.97); }
-
-/* ── Морфинг ── */
-.sayPanel .sayMicBtn--in { width: 116px; height: 116px; border-radius: 22px; animation: sayMorphIn .52s both; pointer-events: none; }
-.sayPanel .sayMicBtn--in:active:not(:disabled) { transform: none; } /* квадрат нажатий не принимает; «Стоп» — отдельная зона внутри */
-.sayPanel .sayMicBtn--out { animation: sayMorphOut .4s both; }
-@keyframes sayMorphIn {
-  0%     { width: 100%;  height: 52px;  border-radius: 12px; animation-timing-function: cubic-bezier(.4, 0, .2, 1); }
-  30%    { width: 116px; height: 52px;  border-radius: 12px; animation-timing-function: cubic-bezier(.25, .8, .35, 1); }
-  59.4%  { width: 126px; height: 124px; border-radius: 24px; animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
-  80.4%  { width: 113px; height: 112px; border-radius: 20px; animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
-  100%   { width: 116px; height: 116px; border-radius: 22px; }
+.sayPanel .sayMicBtn--live { animation: sayBtnPulseLive .75s ease-in-out infinite; }
+.sayPanel .sayMicBtn:active:not(:disabled) { animation: none; transition: none; transform: scale(.95); }
+@keyframes sayBtnPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
 }
-@keyframes sayMorphOut {
-  0%   { width: 116px; height: 116px; border-radius: 22px; animation-timing-function: cubic-bezier(.4, 0, .2, 1); }
-  100% { width: 100%;  height: 52px;  border-radius: 12px; }
+@keyframes sayBtnPulseLive {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
 }
 
-/* ── Слои содержимого. Прямоугольник: иконка слева от текста; в начале сужения слой гаснет (иконка НЕ едет) ── */
-.sayRectLayer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px; opacity: 1; transition: opacity .2s .2s; }
-.sayPanel .sayMicBtn--in .sayRectLayer { opacity: 0; transition: opacity .14s; }
-.sayMicIcon { flex: none; }
-.sayMicText { flex: none; white-space: nowrap; }
-
-/* Квадрат: две половины, линия между ними. Слой проступает быстро, в момент, когда сужение кончилось и начинается пружина */
-.sayCells, .sayResult { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .1s; }
-.sayMicBtn--prep .sayCells, .sayMicBtn--listening .sayCells { opacity: 1; transition: opacity .12s .14s; }
-.sayCell {
+/* ── Содержимое круга ── */
+.sayFace {
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 50%;
-  box-sizing: border-box;
+  inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding-left: 12px;
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1;
-}
-.sayCellTop { top: 0; }
-.sayCellStop { bottom: 0; } /* единственная нажимаемая зона квадрата — нижняя половина, и только пока слушаем */
-.sayMicBtn--listening .sayCellStop { pointer-events: auto; cursor: pointer; }
-.sayCellStop:active { background: rgba(0, 0, 0, .12); }
-.sayCellIcon { flex: none; width: 26px; display: flex; align-items: center; justify-content: center; }
-.sayCellText { white-space: nowrap; }
-.sayCellTop .sayCellText { opacity: 0; transition: opacity .15s; } /* «Слушаю» — когда И морфинг завершён, И движок слушает (режим listening) */
-.sayMicBtn--listening .sayCellTop .sayCellText { opacity: 1; }
-.sayMicBtn--prep .sayCellStop { opacity: .45; } /* «Стоп» ещё нельзя: приглушена до начала записи */
-.sayDivider { position: absolute; left: 10px; right: 10px; top: 50%; height: 1px; margin-top: -.5px; background: rgba(0, 0, 0, .3); }
-
-/* Итог: галочка с «Верно» по центру (зелёный фон остаётся) / крестик на красном слое. Квадрат при этом НЕ меняет форму */
-.sayResult { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 18px; font-weight: 800; line-height: 1; }
-.sayMicBtn--ok .sayResult, .sayMicBtn--fail .sayResult { opacity: 1; transition: opacity .18s .06s; }
-.sayRed { position: absolute; inset: 0; background: #ff6b5e; opacity: 0; pointer-events: none; transition: opacity .25s; }
-.sayMicBtn--fail .sayRed { opacity: 1; }
-
-/* «Попытка N» — справа вверху области кнопки (абсолютно: кнопку и высоту не двигает); после первой неудачи */
-.sayAttempt {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 1;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 16px;
-  white-space: nowrap;
-  color: rgba(255, 255, 255, .45);
-  opacity: 0;
+  justify-content: center;
+  gap: 4px;
   pointer-events: none;
-  transition: opacity .2s;
+  transition: opacity .22s, transform .3s cubic-bezier(.22, 1, .36, 1);
 }
-.sayAttempt--on { opacity: 1; }
-@media (max-width: 340px) { .sayAttempt { font-size: 11px; } }
+.sayFaceMic { opacity: 1; transform: scale(1); }
+.sayFaceDone { opacity: 0; transform: scale(.6); font-size: 18px; font-weight: 800; line-height: 1; }
+.sayMicBtn--ok .sayFaceMic { opacity: 0; transform: scale(.5); }
+.sayMicBtn--ok .sayFaceDone { opacity: 1; transform: scale(1); transition-delay: .06s; }
 
-/* ── Кольца-волны вокруг квадрата: ближнее плотнее (.55), дальше тусклее (.32 / .16 при уровне 1). Видны только в квадрате ── */
-.sayRings { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .2s; }
-.sayMicBox--prep .sayRings, .sayMicBox--listening .sayRings { opacity: 1; transition-delay: .3s; }
-.sayRing {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 116px;
-  height: 116px;
-  margin: -58px 0 0 -58px;
-  box-sizing: border-box;
-  border-radius: 22px;
-  border: 3px solid #b6fe3b;
-  background: rgba(182, 254, 59, 0.12);
-  will-change: transform, opacity;
-}
-.sayRing1 { transform: scale(calc(1 + var(--say-lvl, 0) * 0.75));  opacity: calc(0.55 * (0.35 + 0.65 * var(--say-lvl, 0))); }
-.sayRing2 { transform: scale(calc(1 + var(--say-lvl2, 0) * 0.85)); opacity: calc(0.32 * (0.35 + 0.65 * var(--say-lvl2, 0))); }
-.sayRing3 { transform: scale(calc(1 + var(--say-lvl3, 0) * 0.95)); opacity: calc(0.16 * (0.35 + 0.65 * var(--say-lvl3, 0))); }
-
-/* Прошло («Верно»): кнопка выключена на время ухода панели — остаётся зелёной, без приглушения */
+/* Итог и «микрофона не будет»: круг не пульсирует */
+.sayPanel .sayMicBtn--ok, .sayPanel .sayMicBtn--off { animation: none; }
+/* Прошло («Готово»): кнопка выключена на время ухода панели — остаётся зелёной, без приглушения */
 .sayPanel .sayMicBtn--ok:disabled { opacity: 1; }
 /* Микрофона не будет: перечёркнутая иконка, тёмная приглушённая кнопка с серой рамкой (единственный не зелёный вид) */
 .sayPanel .sayMicBtn--off:disabled { opacity: .85; background: #12141d; border: 2px solid #3a3e4a; color: #7d8398; }
 
 @media (prefers-reduced-motion: reduce) {
-  .sayPanel .sayMicBtn--in, .sayPanel .sayMicBtn--out { animation: none; }
-  .sayPanel .sayMicBtn, .sayRectLayer, .sayCells, .sayResult, .sayCellText, .sayRed, .sayAttempt, .sayRings, .sayLabel, .saySkipLink { transition: none !important; }
-  .sayRing { transform: none !important; }
+  .sayPanel .sayMicBtn, .sayPanel .sayMicBtn--live { animation: none; }
+  .sayFace { transition: opacity .2s; }
+  .sayFaceMic, .sayFaceDone, .sayMicBtn--ok .sayFaceMic, .sayMicBtn--ok .sayFaceDone { transform: none; }
 }

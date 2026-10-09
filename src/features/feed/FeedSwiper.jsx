@@ -7,6 +7,7 @@ import { circleCycles, midSlide, moduleOf, pickSlideAfterRebuild, recentreTarget
 import { swipeEvent, swipeProgrammatic, swipeTraceAttach, swipeTraceDetach, swipeTraceVisible } from './feedSwipeTrace.js'
 import { FEEL } from './feedSwipeFeel.js'
 import { useSwipeGesture } from './useSwipeGesture.js'
+import { setFeedActive } from '../../shared/lib/netBusy.js'
 
 // Вертикальная лента на Swiper (замена нативного скролла со scroll-snap).
 //
@@ -146,6 +147,10 @@ export default function FeedSwiper({ feedModules, pinnedId, active, locked = fal
   }, [active, locked])
 
   useEffect(() => () => swipeTraceDetach(), [])
+
+  // Видео ленты качает сам браузер — счётчик загрузок его не видит. Пока лента на экране, фоновые загрузки (netBusy.js)
+  // ждут; FeedSwiper размонтируется вместе со схемой модуля («Изучить фразу») — тогда флаг тоже снимается
+  useEffect(() => { setFeedActive(active); return () => setFeedActive(false) }, [active])
 
   // Элементы слайдов создаются на весь круг (так устроен Virtual в React), но
   // содержимое — только рядом с активным: остальные Virtual всё равно не

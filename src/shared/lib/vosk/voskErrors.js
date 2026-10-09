@@ -14,9 +14,11 @@ const TEXT = {
   cancelled: () => 'Скачивание отменено',
   nocache: () => 'Кеш браузера недоступен (нужен https) — модель не сохранится на устройстве',
   blocked: () => 'Модель ещё не скачана — нажмите «Скачать модель»',
+  range: (_s, d) => d || 'Сервер не поддерживает докачку кусками (Range)',
+  changed: () => 'Файл модели на сервере изменился — качаем заново',
 }
 
-/** Ошибка с кодом: http | cors | network | stall | incomplete | html | format | quota | nocache | cancelled | blocked */
+/** Ошибка с кодом: http | cors | network | stall | incomplete | html | format | quota | nocache | cancelled | blocked | range | changed */
 export class VoskError extends Error {
   constructor(code, { status = null, detail = '' } = {}) {
     super((TEXT[code] || (() => detail || 'Неизвестная ошибка'))(status, detail))
@@ -46,7 +48,7 @@ export async function diagnoseFetchFailure(url, { fetchFn = globalThis.fetch, on
 /** Ошибки, при которых повторная попытка имеет смысл */
 export function isRetryable(e) {
   if (!(e instanceof VoskError)) return false
-  if (e.code === 'network' || e.code === 'stall' || e.code === 'incomplete') return true
+  if (e.code === 'network' || e.code === 'stall' || e.code === 'incomplete' || e.code === 'changed') return true
   return e.code === 'http' && (e.status >= 500 || e.status === 408 || e.status === 429)
 }
 

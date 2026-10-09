@@ -2,27 +2,12 @@
 // только из заданных фраз. Грузится ТОЛЬКО по кнопке: динамический import уводит библиотеку (≈6 МБ) в отдельный чанк.
 // Модель скачивает и хранит само приложение (voskDownload.js / voskStorage.js), сюда она приходит готовым Blob и
 // передаётся библиотеке через blob-URL. Без React. Звук никуда не отправляется и не сохраняется.
-import { deleteLibraryStore } from './voskStorage.js'
+import { deleteLibraryStore } from '../../../shared/lib/vosk/voskStorage.js'
 import { autoStopDue } from './voskTiming.js'
 import { createAudioSession } from '../../../shared/lib/speech/speechAudioSession.js'
 
-export const VOSK_MODEL_URL = 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-en-us-0.15.tar.gz'
-export const VOSK_URL_KEY = 'pithy_admin_vosk_model_url_v1'
-const LEGACY_URL_KEY = 'pithy_admin_voice_vosk_url_v1' // прежний ключ (до своего хоста модели)
 const CHUNK = 4096 // кадров на один вызов ScriptProcessor
 const LOAD_TIMEOUT_MS = 180000
-
-export function readModelUrl(store = globalThis.localStorage) {
-  try { return store.getItem(VOSK_URL_KEY) || store.getItem(LEGACY_URL_KEY) || VOSK_MODEL_URL } catch { return VOSK_MODEL_URL }
-}
-export function writeModelUrl(url, store = globalThis.localStorage) {
-  try { store.setItem(VOSK_URL_KEY, url) } catch { /* приватный режим */ }
-}
-/** «Вернуть по умолчанию»: забываем сохранённый адрес (и прежний ключ) */
-export function resetModelUrl(store = globalThis.localStorage) {
-  try { store.removeItem(VOSK_URL_KEY); store.removeItem(LEGACY_URL_KEY) } catch { /* приватный режим */ }
-  return VOSK_MODEL_URL
-}
 
 const ms = t0 => Math.round(performance.now() - t0)
 

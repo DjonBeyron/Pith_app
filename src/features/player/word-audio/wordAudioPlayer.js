@@ -4,6 +4,7 @@ import { publishLevel, unpublishLevel, speechEnvelope } from '../audioLevel.js'
 import { getLessonMuted, applyVoiceRate, subscribeLessonVolume } from '../lessonVolume.js'
 import { isMicBusy } from '../../../shared/lib/soundQuiet.js'
 import { logElementSound } from '../../../shared/lib/soundLog.js'
+import { begin as beginNetBusy } from '../../../shared/lib/netBusy.js'
 
 // Проигрыватель слов в уроке (PROJECT.md, «Озвучка слов»). Один на плеер,
 // без React: модули зовут playWord(key) прямо из обработчика тапа.
@@ -55,6 +56,7 @@ function stopCurrent() {
 
 async function prepare(key, url, myGen) {
   let src = url
+  const endBusy = beginNetBusy() // сеть занята озвучкой — фоновая предзагрузка модели Vosk ждёт (netBusy.js)
   try {
     // Как файлы урока: blob в памяти → play() без сети. CORS на localhost
     // может не пустить — тогда прямой URL, браузер докачает при play()
@@ -66,7 +68,7 @@ async function prepare(key, url, myGen) {
       blobUrls.set(key, src)
       blobCount += 1
     } else urlCount += 1
-  } catch { urlCount += 1 /* прямой URL ниже */ }
+  } catch { urlCount += 1 /* прямой URL ниже */ } finally { endBusy() }
   if (myGen !== gen) return
   const a = new Audio(src)
   a.preload = 'auto'

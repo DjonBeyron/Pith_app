@@ -4,11 +4,12 @@
 //
 // phase: idle (готов) | explain (пояснение перед самым первым запросом) | run (запись/ожидание) |
 //        passed (прошло порог) | failed (не прошло/ошибка; микрофон снова доступен) | fallback (микрофона не будет, см. fallbackReason)
-// Морфинг кнопки в квадрат (sayMorph.js, MORPH_MS) — «горлышко» подготовки микрофона: движок стартует во время морфинга, а «начали»
-// (isGo) наступает, когда И морфинг завершён (morphDone), И движок уже слушает (audiostart). audiostart раньше — ждём конец
-// морфинга; позже — квадрат уже готов и держится в подготовке (кольца спокойно «дышат»), пока не придёт audiostart.
-// Неудача кладёт в state.hint подсказку для чата (sayHints.js; null — отключена в ноде или ошибка требует действия пользователя) и
-// включает failShow: квадрат-кнопка показывает крестик FAIL_HOLD_MS (таймер ставит хук), потом действие 'failEnd' → снова прямоугольник.
+// Круг-микрофон реагирует на тап СРАЗУ (phase 'run' ставит begin в том же тапе — эквалайзер живой, не дожидаясь событий распознавания).
+// «Можно остановить» (isGo) = движок уже слушает (audiostart) И прошла короткая защита от двойного тапа (STOP_ARM_MS, действие 'arm'):
+// иначе второй тап по кругу сразу обрывал бы только начатую запись.
+// Неудача (phase 'failed') сразу возвращает кружку к «Попробуйте сказать ещё раз» — ни крестика, ни красного слоя, ни паузы-показа.
+// Она кладёт в state.reply реплику ученика (то, что распознал движок, sayReply.js; null — тишина/ошибка) и в state.hint подсказку
+// для чата (sayHints.js; null — отключена в ноде или ошибка требует действия пользователя). Число попыток НЕ ограничено (taps — для аналитики).
 // explainKind — какой попап перед запросом микрофона (full | short, см. sayPermission.decideMic); realLevel — пометка для строки админа
 // («вкл» / «выкл» / «ошибка …»: опциональный реальный уровень звука для колец, sayRealLevel.js).
 import { emptyView } from './speechController.js'
@@ -16,11 +17,15 @@ import { judgeRun, interimDiffers, failReason, SAY_EVENTS } from './sayResult.js
 import { isDeniedCode } from './sayTexts.js'
 import { adminHeardLine } from './sayAdmin.js'
 import { buildHint } from './sayHints.js'
+import { userReply } from './sayReply.js'
+
+/** Защита от двойного тапа: столько мс после тапа повторный тап по кругу ещё НЕ останавливает запись */
+export const STOP_ARM_MS = 350
 
 export function initialSayState(decision) {
   const base = {
     phase: 'idle', taps: 0, view: emptyView, verdict: null, errorCode: null, fallbackReason: null, autoRetries: 0,
-    explainer: false, explainKind: null, failShow: false, realLevel: null, audioSession: null, data: null, settledRun: 0, event: null, failStreak: 0, morphDone: false, adminLine: null, hint: null, hintNo: 0,
+    explainer: false, explainKind: null, realLevel: null, audioSession: null, data: null, settledRun: 0, event: null, failStreak: 0, armed: false, adminLine: null, hint: null, hintNo: 0, reply: null,
   }
   return decision?.action === 'fallback' ? { ...base, phase: 'fallback', fallbackReason: decision.reason } : base
 }
@@ -35,14 +40,15 @@ function settle(s, v) {
     const reason = failReason({ errorCode, verdict })
     const h = buildHint(s.data, { errorCode, verdict })
     const hintNo = h ? s.hintNo + 1 : s.hintNo
+    const text = verdict ? userReply(verdict) : null
     return {
-      ...s, ...mark, phase: 'failed', failShow: true, verdict, errorCode, failStreak, hintNo, hint: h ? { ...h, n: hintNo } : null,
+      ...s, ...mark, phase: 'failed', verdict, errorCode, failStreak, hintNo, hint: h ? { ...h, n: hintNo } : null, reply: text ? { text, n: failStreak } : null,
       event: ev({ passed: false, reason, failStreak, ratioPct: verdict?.ratioPct, engineFixed: verdict?.engineFixed?.length || undefined, hintKind: h?.kind }),
     }
   }
   if (v.status === 'error') {
     if (isDeniedCode(v.error)) {
-      return { ...s, ...mark, phase: 'fallback', fallbackReason: 'denied', verdict: null, errorCode: null, hint: null, event: ev({ passed: false, reason: 'denied' }) }
+      return { ...s, ...mark, phase: 'fallback', fallbackReason: 'denied', verdict: null, errorCode: null, hint: null, reply: null, event: ev({ passed: false, reason: 'denied' }) }
     }
     return failed(v.error, null)
   }
@@ -50,7 +56,7 @@ function settle(s, v) {
   const verdict = judgeRun(v, s.data)
   if (!verdict.passed) return failed(null, verdict)
   return {
-    ...s, ...mark, phase: 'passed', verdict, errorCode: null, failStreak: 0, hint: null,
+    ...s, ...mark, phase: 'passed', verdict, errorCode: null, failStreak: 0, hint: null, reply: null,
     event: ev({ passed: true, ratioPct: verdict.ratioPct, interimDiffers: interimDiffers(v.lastInterim, v.final?.text), engineFixed: verdict.engineFixed?.length || undefined }),
   }
 }
@@ -72,9 +78,8 @@ export function sayReducer(s, a) {
       if (v.status === 'idle') return { ...s, view: v } // сброс контроллера не стирает строку админа
       return withAdminLine(s, { ...s, view: v })
     }
-    case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, morphDone: false, failShow: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, adminLine: null, hint: null }
-    case 'morphEnd': return s.phase === 'run' ? { ...s, morphDone: true } : s
-    case 'failEnd': return s.failShow ? { ...s, failShow: false } : s
+    case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, armed: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, adminLine: null, hint: null, reply: null }
+    case 'arm': return s.phase === 'run' ? { ...s, armed: true } : s
     case 'realStatus': return s.realLevel === a.status ? s : { ...s, realLevel: a.status }
     case 'explain': return { ...s, phase: 'explain', explainer: true, explainKind: a.kind === 'short' ? 'short' : 'full' }
     case 'explainCancel': return s.phase === 'explain' ? { ...s, phase: 'idle' } : s // закрыли попап мимо кнопки: ничего не просили, флаг пояснения не ставим
@@ -82,25 +87,24 @@ export function sayReducer(s, a) {
     case 'enable': return { ...s, phase: 'idle', fallbackReason: null }
     // Запись прервали (сворачивание/уход со страницы): попытка не тратится, панель снова готова
     case 'interrupt':
-      return s.phase === 'run' ? { ...s, phase: 'idle', taps: Math.max(0, s.taps - 1), view: emptyView, morphDone: false, failShow: false } : s
+      return s.phase === 'run' ? { ...s, phase: 'idle', taps: Math.max(0, s.taps - 1), view: emptyView, armed: false } : s
     default: return s
   }
 }
 
-/** «Начали»: морфинг в квадрат завершён И распознавание слушает. Повторные автопопытки (attempt > 1) морфинга не повторяют — ждут только audiostart */
-export const isGo = s => s.phase === 'run' && s.view?.status === 'listening' && (s.morphDone || (s.view.attempt ?? 1) > 1)
+/** «Можно остановить»: распознавание слушает И прошла защита от двойного тапа. Автопопытки (attempt > 1) защиту не повторяют — ждут только audiostart */
+export const isGo = s => s.phase === 'run' && s.view?.status === 'listening' && (s.armed || (s.view.attempt ?? 1) > 1)
 
 /**
  * Что делать по тапу на микрофон (чистое решение; start() зовёт только 'begin').
- *  stop — «начали» и идёт запись: тап = «стоп» (принять сказанное); ignore — ждём морфинг/диалог ОС/обработку;
+ *  stop — «можно остановить» и идёт запись: тап = «стоп» (принять сказанное); ignore — ждём защиту от двойного тапа/диалог ОС/обработку;
  *  fallback — микрофона не будет (start() НЕ вызываем); explain — попап перед запросом ОС (kind: full | short); begin — start() прямо в этом тапе
- * decision — результат sayPermission.decide(); go — isGo(state); hold — идёт показ крестика после неудачи (тапы игнорируются).
- * Число попыток не ограничено: после неудачи микрофон снова доступен
+ * decision — результат sayPermission.decide(); go — isGo(state); running — идёт попытка (phase 'run'): пока движок не начал слушать (старт стоит в очереди
+ * перезапуска, диалог ОС), повторный тап по кругу НЕ запускает вторую запись. Число попыток не ограничено: после неудачи микрофон снова доступен сразу
  */
-export function planTap({ view, decision, go = false, hold = false }) {
-  if (hold) return { act: 'ignore' } // квадрат с крестиком (FAIL_HOLD_MS): кнопки нет, ждём возвращения прямоугольника
+export function planTap({ view, decision, go = false, running = false }) {
   const status = view?.status
-  if (status === 'starting' || status === 'listening' || status === 'retrying') {
+  if (running || status === 'starting' || status === 'listening' || status === 'retrying') {
     return { act: status === 'listening' && go ? 'stop' : 'ignore' }
   }
   if (decision.action === 'fallback') return { act: 'fallback', reason: decision.reason }

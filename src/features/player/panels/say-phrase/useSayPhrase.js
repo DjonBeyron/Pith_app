@@ -3,17 +3,16 @@ import { createSpeechController, isBusy } from '../../../../shared/lib/speech/sp
 import { getRecognitionCtor, queryMicPermission } from '../../../../shared/lib/speech/speechSupport.js'
 import { sayPermission } from '../../../../shared/lib/speech/sayPermission.js'
 import { SAY_EVENTS, sayEventProps } from '../../../../shared/lib/speech/sayResult.js'
-import { sayReducer, initialSayState, planTap, isGo } from '../../../../shared/lib/speech/sayFlow.js'
-import { morphDelay, FAIL_HOLD_MS } from '../../../../shared/lib/speech/sayMorph.js'
+import { sayReducer, initialSayState, planTap, isGo, STOP_ARM_MS } from '../../../../shared/lib/speech/sayFlow.js'
 import { QUIET_TAIL_MS } from '../../../../shared/lib/speech/sayHints.js'
 import { createVoiceLevel } from '../../../../shared/lib/speech/sayVoiceLevel.js'
 import { createBrowserRealLevel, levelSource, isRealLevelOn, realLevelLabel } from '../../../../shared/lib/speech/sayRealLevel.js'
+import { createLevelSource } from '../../../../shared/lib/speech/sayLevelSource.js'
 import { holdSoundQuiet } from '../../../../shared/lib/soundQuiet.js'
 import { createAudioSession } from '../../../../shared/lib/speech/speechAudioSession.js'
 import { sayAudioSessionType } from '../../../../shared/lib/speech/sayAudioSession.js'
 import { stopWord } from '../../word-audio/wordAudioPlayer.js'
 
-const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 
 // Состояние панели «Сказать фразу» (React-обвязка над sayFlow.js + speechController.js + sayPermission.js).
@@ -21,20 +20,24 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // не работает) и гасится на результате, ошибке, тишине, сворачивании, уходе. Разрешения читает/пишет один общий
 // sayPermission (флаги пояснения, отказа, «Не могу говорить»). onEvent(name, props) — аналитика: только числа/флаги,
 // ни звука, ни текста фразы.
-// Голос ученика видят КОЛЬЦА вокруг квадрата «Слушаю / Стоп» (SayStage/useSayRings): уровень по умолчанию СИНТЕТИЧЕСКИЙ, по событиям
-// распознавания (sayVoiceLevel.js, без getUserMedia); за админским флагом — РЕАЛЬНЫЙ (sayRealLevel.js: поток открывается в этом же тапе
-// перед запуском распознавания, закрывается вместе с попыткой). Источник отдаёт хук как voice. Эквалайзер-свечение плеера модуль НЕ включает.
+// Голос ученика видит ЭКВАЛАЙЗЕР вокруг круга-микрофона (SayStage/useSayWaves). Его питает ЗАМЕНЯЕМЫЙ источник уровня (sayLevelSource.js:
+// подписка → значение 0..1 каждый кадр), хук отдаёт его как level. Сейчас (системное распознавание) в нём: уровень по умолчанию СИНТЕТИЧЕСКИЙ,
+// по событиям распознавания (sayVoiceLevel.js, без getUserMedia); за админским флагом — РЕАЛЬНЫЙ (sayRealLevel.js: поток открывается в этом же
+// тапе перед запуском распознавания, закрывается вместе с попыткой). ТОЧКА ПОДКЛЮЧЕНИЯ VOSK — строка `const [levels] = useState(...)` ниже: для
+// Vosk сюда встаёт createLevelSource с RMS из его аудиопотока (отдельный этап, сейчас не подключено). Эквалайзер-свечение плеера модуль НЕ включает.
 // Звуки приложения на время попытки (от тапа до результата + QUIET_TAIL_MS) молчат — soundQuiet.js; сам тап по микрофону
 // помечен data-no-unlock, чтобы разблокировка звука не стартовала вместе с записью (SayStage.jsx).
 // Перезапуск: speechController ждёт end прошлого экземпляра и RESTART_COOLDOWN_MS (стратегия 'M', speechRestart.js) — прозрачно: тап в эту паузу ставится в очередь и стартует по её окончании;
 // «глухая» попытка после успешной автоматически пересоздаётся один раз (speechDeaf.js).
-// Морфинг кнопки в квадрат (MORPH_MS) — «горлышко» подготовки микрофона: таймер morphEnd; «начали» = isGo (морфинг завершён И движок слушает).
-// После неудачи квадрат с крестиком держится FAIL_HOLD_MS (failShow), потом таймер failEnd возвращает прямоугольник.
+// Круг реагирует на тап СРАЗУ: 'begin' ставит phase 'run' в том же тапе. «Можно остановить» = isGo (движок слушает И прошла защита от
+// двойного тапа STOP_ARM_MS: таймер 'arm'). После неудачи круг сразу снова готов (никаких пауз-показов); реплика и подсказка уходят в чат (панель).
 export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   const [s, dispatch] = useReducer(sayReducer, perm, p => initialSayState(p.decide()))
   const [voice] = useState(createVoiceLevel)
   const [real] = useState(() => createBrowserRealLevel(st => { if (st !== 'off') dispatch({ type: 'realStatus', status: realLevelLabel(true, st) }) }))
-  const [levels] = useState(() => levelSource(voice, real))
+  // ИСТОЧНИК УРОВНЯ (заменяемый). Системное распознавание: реальный RMS, если админ включил флаг и поток жив, иначе синтетический по событиям.
+  // Vosk: createLevelSource(t => levelFromRms(rmsOf(bytes))) на анализаторе его же аудиопотока — см. sayLevelSource.js
+  const [levels] = useState(() => { const sys = levelSource(voice, real); return createLevelSource(t => sys.ringLevel(t)) })
   const [ctrl] = useState(() => createSpeechController({
     createRecognition: () => { const Ctor = getRecognitionCtor(); return new Ctor() },
     queryPerm: queryMicPermission,
@@ -47,8 +50,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     getRestart: () => 'M', // новый экземпляр — только после end прошлого + RESTART_COOLDOWN_MS (iOS: второй запуск сразу после первого бывает «глухим»); тап в это окно встаёт в очередь
   }))
   const quietRef = useRef({ release: null, timer: 0 })
-  const morphRef = useRef(0)
-  const failRef = useRef(0)
+  const armRef = useRef(0)
   const eventRef = useRef(onEvent)
   const stateRef = useRef(s)
   useEffect(() => { eventRef.current = onEvent; stateRef.current = s })
@@ -67,20 +69,13 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   }, [s.settledRun]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (s.event) emit(s.event.name, s.event.extra) }, [s.event]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Попытка кончилась: кольца гаснут (источник уровня сбрасываем, реальный поток микрофона закрываем); таймер морфинга больше не нужен
+  // Попытка кончилась: эквалайзер гаснет (источник уровня сбрасываем, реальный поток микрофона закрываем); таймер защиты от двойного тапа больше не нужен
   useEffect(() => {
     if (s.phase === 'run') return
-    clearTimeout(morphRef.current)
+    clearTimeout(armRef.current)
     voice.signal('stop', nowMs())
     real.close()
   }, [s.phase, voice, real])
-
-  // Неудача: квадрат держит крестик FAIL_HOLD_MS, потом снова прямоугольная кнопка
-  useEffect(() => {
-    if (!s.failShow) return undefined
-    failRef.current = setTimeout(() => dispatch({ type: 'failEnd' }), FAIL_HOLD_MS)
-    return () => clearTimeout(failRef.current)
-  }, [s.failShow])
 
   // Окно тишины звуков приложения: открывается в begin() (синхронно в тапе), закрывается через QUIET_TAIL_MS после конца попытки
   useEffect(() => {
@@ -91,7 +86,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   }, [s.phase])
   useEffect(() => {
     const q = quietRef.current
-    return () => { clearTimeout(q.timer); q.timer = 0; q.release?.(); q.release = null; clearTimeout(morphRef.current); real.close() }
+    return () => { clearTimeout(q.timer); q.timer = 0; q.release?.(); q.release = null; clearTimeout(armRef.current); real.close() }
   }, [real])
 
   useEffect(() => {
@@ -117,7 +112,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
 
   // Начать попытку. Вызывать СИНХРОННО из обработчика тапа (жест нужен iPhone для recognition.start()). Порядок: сначала то, без чего
   // не стартует и не нарисуется нажатие (окно тишины, begin, ctrl.start), аналитику откладываем — её запись не должна задерживать
-  // ни старт записи, ни первый кадр морфинга
+  // ни старт записи, ни первый кадр эквалайзера (круг и волны перерисовываются синхронно, в конце этого же обработчика тапа)
   const begin = useCallback(() => {
     const q = quietRef.current
     stopWord() // эталонное «Послушать» не должно звучать, пока слушаем
@@ -127,15 +122,15 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     if (wantReal) real.open() // реальный уровень (админский флаг): поток микрофона открываем в этом же тапе, ДО recognition.start(), промис не ждём
     dispatch({ type: 'begin', data, realLevel: realLevelLabel(wantReal, null), audioSession: sayAudioSessionType() })
     ctrl.start({ reference: data.phrase, lang: data.lang })
-    clearTimeout(morphRef.current)
-    morphRef.current = setTimeout(() => dispatch({ type: 'morphEnd' }), morphDelay(reducedMotion()))
+    clearTimeout(armRef.current)
+    armRef.current = setTimeout(() => dispatch({ type: 'arm' }), STOP_ARM_MS)
     const taps = s.taps + 1
     setTimeout(() => emit(SAY_EVENTS.start, { taps }), 0)
   }, [ctrl, real, emit, data, s.taps])
 
   // Тап по микрофону: «начали» и идёт запись — «стоп» (принять сказанное), иначе по решению sayPermission
   const tapMic = useCallback(() => {
-    const plan = planTap({ view: s.view, decision: perm.decide(), go: isGo(s), hold: s.failShow })
+    const plan = planTap({ view: s.view, decision: perm.decide(), go: isGo(s), running: s.phase === 'run' })
     if (plan.act === 'stop') ctrl.stop()
     else if (plan.act === 'fallback') dispatch({ type: 'fallback', reason: plan.reason })
     else if (plan.act === 'explain') dispatch({ type: 'explain', kind: plan.kind })
@@ -155,7 +150,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   return {
     view: s.view, phase: s.phase, taps: s.taps, verdict: s.verdict, errorCode: s.errorCode,
     fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak,
-    go: isGo(s), adminLine: s.adminLine, hint: s.hint, voice: levels, failShow: s.failShow, explainKind: s.explainKind,
+    go: isGo(s), adminLine: s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
     tapMic, confirmExplain, cancelExplain, enableMic, emit, perm,
   }
 }

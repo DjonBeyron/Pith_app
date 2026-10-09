@@ -142,14 +142,13 @@ describe('данные ноды', () => {
 describe('micLabel и тексты панели (внутри панели нет подсказок)', () => {
   const base = { verdict: null, fallbackReason: null }
 
-  it('основные состояния: прямоугольник «Нажмите, чтобы говорить» → квадрат (подготовка → «Слушаю») → «Верно»; системные «Микрофон выключен»/«Проверка голоса недоступна»', () => {
+  it('основные состояния: «Нажмите, чтобы говорить» → «Произнесите фразу» (тап) → «Попробуйте сказать ещё раз» (неудача) → «Готово» в круге; системные «Микрофон выключен» / «Проверка голоса недоступна»', () => {
     expect(micLabel({ ...base, phase: 'idle' })).toEqual({ label: 'Нажмите, чтобы говорить', mode: 'idle' })
-    expect(micLabel({ ...base, phase: 'failed' })).toEqual({ label: 'Нажмите, чтобы говорить', mode: 'idle' }) // после неудачи (крестик уже показан) микрофон снова доступен
-    expect(micLabel({ ...base, phase: 'failed', failShow: true })).toEqual({ label: '', mode: 'fail' })      // пока держится крестик — квадрат
-    expect(micLabel({ ...base, phase: 'run' })).toEqual({ label: '', mode: 'prep' })                         // квадрат: морфинг идёт или движок ещё не слушает — подписи нет
-    expect(micLabel({ ...base, phase: 'run', go: true })).toEqual({ label: 'Слушаю', mode: 'listening' })
-    expect(micLabel({ ...base, phase: 'passed', verdict: { ratioPct: 100 } })).toMatchObject({ label: 'Верно', mode: 'ok' })
-    expect(micLabel({ ...base, phase: 'passed', verdict: { ratioPct: 80 } }).label).toBe('Засчитано')
+    expect(micLabel({ ...base, phase: 'explain' })).toEqual({ label: 'Нажмите, чтобы говорить', mode: 'idle' }) // идёт попап пояснения
+    expect(micLabel({ ...base, phase: 'failed' })).toEqual({ label: 'Попробуйте сказать ещё раз', mode: 'retry' }) // микрофон снова доступен сразу
+    expect(micLabel({ ...base, phase: 'run' })).toEqual({ label: 'Произнесите фразу', mode: 'prep' })              // эквалайзер уже живой, «стоп» ещё нельзя
+    expect(micLabel({ ...base, phase: 'run', go: true })).toEqual({ label: 'Произнесите фразу', mode: 'listening' })
+    expect(micLabel({ ...base, phase: 'passed' })).toEqual({ label: '', mode: 'ok' })                              // «Готово» рисует сам круг
     expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'denied' })).toEqual({ label: 'Микрофон выключен', mode: 'off' })
     expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'cant_speak' })).toEqual({ label: 'Микрофон выключен', mode: 'off' })
     expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'unsupported' })).toEqual({ label: 'Проверка голоса недоступна', mode: 'off' })
@@ -168,6 +167,8 @@ describe('micLabel и тексты панели (внутри панели не�
     const t = await import('./sayTexts.js')
     expect(t.EXPLAIN_BTN).toBe('Понятно, включить микрофон')
     expect(t.SAY_LABEL).toBe('Произнесите фразу')
+    expect(t.MIC_RETRY).toBe('Попробуйте сказать ещё раз')
+    expect(t.DONE).toBe('Готово')
     expect(t.CANT_SPEAK_LINK).toBe('Я не могу говорить')
   })
 

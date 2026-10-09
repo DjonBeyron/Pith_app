@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
-import { VOSK_MODEL_URL, resetModelUrl, writeModelUrl } from './voskEngine.js'
+import { VOSK_MODEL_URL, defaultModelUrl, resetModelUrl, writeModelUrl } from '../../../shared/lib/vosk/voskConfig.js'
 import { uploadToR2 } from '../../../shared/lib/r2.js'
-import { fmtMb } from './voskDownload.js'
+import { fmtMb } from '../../../shared/lib/vosk/voskDownload.js'
 
 const CORS_RULE = `[{
   "AllowedOrigins": ["https://<адрес приложения на Vercel>", "http://localhost:5173"],
@@ -37,7 +37,7 @@ export default function VoskModelAddress({ url, setUrl, locked }) {
         <input className="aspInput" value={url} onChange={e => change(e.target.value)} disabled={locked} spellCheck={false} autoCapitalize="off" />
       </label>
       <div className="aspRow">
-        {url !== VOSK_MODEL_URL && <button className="aeRefresh" disabled={locked} onClick={() => setUrl(resetModelUrl())}>Вернуть по умолчанию</button>}
+        {url !== defaultModelUrl() && <button className="aeRefresh" disabled={locked} onClick={() => setUrl(resetModelUrl())}>Вернуть по умолчанию</button>}
         <button className="aeRefresh" disabled={locked || !!up} onClick={() => fileRef.current?.click()}>Загрузить файл модели в наш бакет…</button>
         <input ref={fileRef} type="file" accept=".gz,.tgz,.zip,application/gzip,application/zip" hidden onChange={pick} />
       </div>
