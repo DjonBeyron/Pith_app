@@ -23,6 +23,7 @@ import { useLessonNav } from './LessonNavContext.jsx'
 import StreakGateOverlay from '../features/streak/StreakGateOverlay.jsx'
 import LessonEditorOverlays from './LessonEditorOverlays.jsx'
 import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
+import { shouldShowResumeToast } from '../shared/lib/resumeToastVisible.js'
 import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioSettings } from '../shared/lib/audioSettings.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
@@ -214,8 +215,8 @@ export default function ShellV2() {
       <MinutesAsk isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} onChanged={learn.reload} />
       <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} learnSleeping={learnSleeping} raceFlame={raceFlame} rewardsDot={rewardsDot} isRealAdmin={isRealAdmin} userMode={userMode || newbie} />
 
-      {/* Админу при запуске: вернуться к уроку, который правил в прошлый раз */}
-      {isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && !wordCardLesson && (
+      {/* Админу во вкладке «Админ»: вернуться к уроку, который правил в прошлый раз (resumeToastVisible.js) */}
+      {shouldShowResumeToast({ isAdmin, tab, resumeClosed, editorOpen: !!(canvasLesson || productionLesson || cardsLesson || wordCardLesson) }) && (
         <ResumeEditingToast
           onOpen={lesson => {
             setResumeClosed(true)

@@ -12,7 +12,10 @@ import { formatCount, podiumPlace } from '../../shared/lib/ratingStats.js'
 // что в строке (аватар/ник/место/уровень/XP/серия — берём из строки, они уже
 // есть), ниже — подробности с сервера (UserStatsBody). Закрытие: тап вне
 // окна, крестик, Esc, свайп вниз. Без blur — только затемнение и transform/opacity.
-const OUT_MS = 170
+// Открытие и закрытие — как у окошек верхнего худа (pop-spring.css, hud-pop-out.css):
+// окно схлопывается (класс --out) и размонтируется только после анимации.
+const OUT_MS = 340 // = hudPopOut в hud-pop-out.css (как EXIT_MS в app/hudPopupState.js)
+const SWIPE_OUT_MS = 300 // = затухание свайпнутой карточки и затемнения в pop-spring.css
 
 export default function UserStatsPopup({ row, place, onClose }) {
   const [out, setOut] = useState(null) // null | 'tap' | 'swipe'
@@ -21,8 +24,11 @@ export default function UserStatsPopup({ row, place, onClose }) {
 
   const close = useCallback(kind => {
     if (out) return
-    setOut(kind === 'swipe' ? 'swipe' : 'tap')
-    timer.current = setTimeout(onClose, OUT_MS)
+    // без анимаций (reduce motion) — закрываем сразу, как окошки худа
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { onClose(); return }
+    const swipe = kind === 'swipe'
+    setOut(swipe ? 'swipe' : 'tap')
+    timer.current = setTimeout(onClose, swipe ? SWIPE_OUT_MS : OUT_MS)
   }, [out, onClose])
   const [cardRef, swipeHandlers] = useSwipeClose(close)
 

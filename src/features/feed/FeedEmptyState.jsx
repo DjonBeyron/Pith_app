@@ -1,24 +1,26 @@
 // Лента «Рекомендации» без слайдов: фильтр сложности ничего не оставил /
-// все фразы уже начаты / модулей нет вовсе. Вынесено из FeedTab.jsx
+// все фразы уже начаты / уроков нет вовсе. Вынесено из FeedTab.jsx. Тексты — emptyTexts.js
+import { FEED_EMPTY as T } from './emptyTexts.js'
+
 export default function FeedEmptyState({ filterActive, circleLen, modulesCount, error, onResetFilter, onGoMine }) {
   return (
     <div className="feedV2Center">
       {filterActive && circleLen > 0 ? (
         <>
-          <div className="feedV2CenterTitle">Ничего не подошло</div>
-          <div className="feedV2CenterSub">Ни одна фраза не попала под фильтр сложности</div>
-          <button className="mlGoFeedBtn" onClick={onResetFilter}>Сбросить фильтр</button>
+          <div className="feedV2CenterTitle">{T.filter.title}</div>
+          <div className="feedV2CenterSub">{T.filter.sub}</div>
+          <button className="mlGoFeedBtn" onClick={onResetFilter}>{T.filter.reset}</button>
         </>
       ) : modulesCount > 0 ? (
         <>
-          <div className="feedV2CenterTitle">Все уроки начаты</div>
-          <div className="feedV2CenterSub">Продолжай обучение во вкладке «Мои уроки»</div>
-          <button className="mlGoFeedBtn" onClick={onGoMine}>Мои уроки</button>
+          <div className="feedV2CenterTitle">{T.allStarted.title}</div>
+          <div className="feedV2CenterSub">{T.allStarted.sub}</div>
+          <button className="mlGoFeedBtn" onClick={onGoMine}>{T.allStarted.go}</button>
         </>
       ) : (
         <>
-          <div className="feedV2CenterTitle">Лента пуста</div>
-          <div className="feedV2CenterSub">{error || 'На сервере пока нет модулей'}</div>
+          <div className="feedV2CenterTitle">{T.noLessons.title}</div>
+          <div className="feedV2CenterSub">{error || T.noLessons.sub}</div>
         </>
       )}
     </div>

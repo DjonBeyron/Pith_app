@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { inflateSync } from 'node:zlib'
+import { Buffer } from 'node:buffer'
 import { resolve } from 'node:path'
 import vm from 'node:vm'
 import {
@@ -8,6 +10,17 @@ import {
 import { NETWORK_CABLE_SVG } from './networkCableSvg.js'
 
 const PUBLIC = resolve(import.meta.dirname, '../../public')
+
+// Склеенные данные IDAT PNG (чанки: длина(4) тип(4) данные CRC(4))
+function pngIdat(buf) {
+  const out = []
+  for (let i = 8; i < buf.length;) {
+    const len = buf.readUInt32BE(i), type = buf.toString('latin1', i + 4, i + 8)
+    if (type === 'IDAT') out.push(buf.subarray(i + 8, i + 8 + len))
+    i += 12 + len
+  }
+  return out
+}
 
 describe('decideNetworkState', () => {
   const base = { online: true, mounted: false, resourceFailedMs: null, elapsedMs: 0 }
@@ -116,7 +129,7 @@ describe('единый вид экрана «нет связи»: три коп�
   })
 
   it('index.html: тёмный фон задан раньше синхронного net-guard.js (иначе белый экран, пока он качается)', () => {
-    const bg = index.indexOf('background: #0b0d10')
+    const bg = index.indexOf('background: #000;')
     expect(bg).toBeGreaterThan(-1)
     expect(bg).toBeLessThan(index.indexOf('<script src="/net-guard.js">'))
   })
@@ -171,7 +184,7 @@ describe('стартовый сплэш index.html: без скачков фон
   const bodyCss = readFileSync(resolve(PUBLIC, '../src/styles/base.css'), 'utf8').match(/\nbody \{[^}]*\}/)?.[0] ?? ''
 
   it('сплэш непрозрачный с первого кадра: без opacity/анимации на самом #splash (иначе под ним просвечивает интерфейс)', () => {
-    expect(splashCss).toMatch(/background: #0b0d10/)
+    expect(splashCss).toMatch(/background: #000;/)
     expect(splashCss).not.toMatch(/opacity|animation/)
   })
 
@@ -181,12 +194,42 @@ describe('стартовый сплэш index.html: без скачков фон
     expect(logo).not.toMatch(/opacity/)
   })
 
-  it('все этапы запуска одного цвета: html/body до CSS, body в base.css, манифест, theme-color', () => {
-    expect(index).toMatch(/html, body \{ margin: 0; background: #0b0d10; \}/)
-    expect(bodyCss).toMatch(/background: #0b0d10/)
-    expect(index).toMatch(/name="theme-color" content="#0b0d10"/)
-    const manifest = JSON.parse(readFileSync(resolve(PUBLIC, 'manifest.webmanifest'), 'utf8'))
-    expect(manifest.background_color).toBe('#0b0d10')
-    expect(manifest.theme_color).toBe('#0b0d10')
+  it('все этапы запуска ОДНОГО цвета (#000, как нативные чёрные кадры iOS): html/body до CSS, сплэш, экран «нет сети», body/html/shell, манифест, theme-color, offline.html', () => {
+    const read = f => readFileSync(resolve(PUBLIC, '../', f), 'utf8')
+    const css = f => read(f).replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(index).toMatch(/html, body \{ margin: 0; background: #000; color-scheme: dark; \}/)
+    expect(index).toMatch(/name="color-scheme" content="dark"/)
+    expect(index.match(/\.ngScreen \{[^}]*\}/)?.[0]).toMatch(/background: #000;/)
+    expect(bodyCss).toMatch(/background: #000;/)
+    expect(css('src/styles/base.css')).toMatch(/\nhtml \{\s*background: #000;/)
+    expect(css('src/styles/shell-v2.css').match(/\n\.shellV2 \{[^}]*\}/)?.[0]).toMatch(/background: #000;/)
+    expect(index).toMatch(/name="theme-color" content="#000000"/)
+    const manifest = JSON.parse(read('public/manifest.webmanifest'))
+    expect(manifest.background_color).toBe('#000000')
+    expect(manifest.theme_color).toBe('#000000')
+    const offline = read('public/offline.html')
+    expect(offline).toMatch(/html, body \{ margin: 0; height: 100%; background: #000; color-scheme: dark; \}/)
+    expect(offline.match(/\.ngScreen \{[^}]*\}/)?.[0]).toMatch(/background: #000;/)
+    expect(offline).toMatch(/name="theme-color" content="#000000"/)
+    // после «чёрного» запуска нигде не должен всплыть прежний #0b0d10 на этапах до ленты
+    for (const t of [index.match(/<style>html[^<]*<\/style>/)[0], splashCss, offline.match(/<style>[\s\S]*?<\/style>/)[0]]) {
+      expect(t).not.toMatch(/#0b0d10/i)
+    }
+  })
+
+  it('стартовые PNG iOS чисто чёрные (#000): первая и последняя строки целиком — тот же цвет, что у остальных этапов', () => {
+    const dir = resolve(PUBLIC, 'splash')
+    const files = readdirSync(dir).filter(f => f.endsWith('.png'))
+    expect(files.length).toBe(13)
+    for (const f of files) {
+      const png = readFileSync(resolve(dir, f))
+      expect([png.readUInt8(24), png.readUInt8(25)]).toEqual([8, 2]) // 8 бит, RGB без альфы: читаем байты напрямую
+      const raw = inflateSync(Buffer.concat(pngIdat(png)))
+      const rowLen = 1 + png.readUInt32BE(16) * 3
+      // первая строка — только фон: ни одного ненулевого байта цвета (кроме байта фильтра в начале строки)
+      expect(raw.subarray(1, rowLen).every(b => b === 0)).toBe(true)
+      // последняя строка тоже; середина по высоте — первый пиксель (левый край)
+      expect(raw.subarray(raw.length - rowLen + 1).every(b => b === 0)).toBe(true)
+    }
   })
 })

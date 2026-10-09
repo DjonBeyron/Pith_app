@@ -1,14 +1,24 @@
 import { describe, it, expect } from 'vitest'
 import {
-  normalizeStats, stepBars, formatCount, wordsLabel, phrasesLabel, daysLabel,
-  podiumPlace, isMissingFnError, isDeniedError, STEPS,
+  normalizeStats, rowWords, formatCount, wordsLabel, daysLabel,
+  podiumPlace, isMissingFnError, isDeniedError,
 } from './ratingStats.js'
+import { ACHIEVEMENTS } from './achievementKinds.js'
 
-const raw = { ok: true, words_new: 5, words_known: 3, words_solid: 2, words_perm: 10, phrases: 4, longest_streak: 12 }
+const raw = { ok: true, words_new: 5, words_known: 3, words_solid: 2, words_perm: 10, phrases: 4, longest_streak: 12, achievements: 3 }
 
 describe('normalizeStats', () => {
-  it('ответ RPC → счётчики и общее число слов в памяти', () => {
-    expect(normalizeStats(raw)).toEqual({ new: 5, known: 3, solid: 2, perm: 10, total: 20, phrases: 4, longestStreak: 12 })
+  it('ответ RPC → слова постоянной памяти, фразы, рекорд и достижения (ступени памяти не берём)', () => {
+    expect(normalizeStats(raw)).toEqual({ perm: 10, phrases: 4, longestStreak: 12, achievements: 3, achievementsTotal: ACHIEVEMENTS.length })
+  })
+  it('сервер без поля achievements (миграция не применена) → achievements: null', () => {
+    expect(normalizeStats({ ...raw, achievements: undefined }).achievements).toBeNull()
+    expect(normalizeStats({ ...raw, achievements: null }).achievements).toBeNull()
+    expect(normalizeStats({ ...raw, achievements: 'abc' }).achievements).toBeNull()
+  })
+  it('достижений не больше, чем знает клиент (как в профиле)', () => {
+    expect(normalizeStats({ ...raw, achievements: 99 }).achievements).toBe(ACHIEVEMENTS.length)
+    expect(normalizeStats({ ...raw, achievements: 0 }).achievements).toBe(0)
   })
   it('нет ответа / ok:false / не объект → null', () => {
     expect(normalizeStats(null)).toBeNull()
@@ -18,28 +28,23 @@ describe('normalizeStats', () => {
     expect(normalizeStats({ words_perm: 3 })).toBeNull()
   })
   it('мусор, отрицательные и дробные числа → безопасные целые', () => {
-    const s = normalizeStats({ ok: true, words_new: '7', words_known: -3, words_solid: null, words_perm: 2.9, phrases: 'abc' })
-    expect(s).toEqual({ new: 7, known: 0, solid: 0, perm: 2, total: 9, phrases: 0, longestStreak: 0 })
+    const s = normalizeStats({ ok: true, words_perm: 2.9, phrases: 'abc', longest_streak: -4 })
+    expect(s).toMatchObject({ perm: 2, phrases: 0, longestStreak: 0, achievements: null })
   })
 })
 
-describe('stepBars', () => {
-  it('четыре ступени в порядке Новые → Постоянная, доли от всех слов', () => {
-    const bars = stepBars(normalizeStats(raw))
-    expect(bars.map(b => b.key)).toEqual(['new', 'known', 'solid', 'perm'])
-    expect(bars.map(b => b.count)).toEqual([5, 3, 2, 10])
-    expect(bars[3].share).toBeCloseTo(0.5)
-    expect(bars[0].color).toBe('#b6fe3b')
-    expect(bars[3].color).toBe('#a78bfa')
+describe('rowWords', () => {
+  it('words_perm строки рейтинга → целое число', () => {
+    expect(rowWords({ words_perm: 120 })).toBe(120)
+    expect(rowWords({ words_perm: 0 })).toBe(0)
+    expect(rowWords({ words_perm: '45' })).toBe(45)
+    expect(rowWords({ words_perm: -3 })).toBe(0)
   })
-  it('пустая ступень — 0, маленькая — не тоньше 6%', () => {
-    const bars = stepBars(normalizeStats({ ok: true, words_new: 1, words_perm: 999 }))
-    expect(bars[1].share).toBe(0)
-    expect(bars[0].share).toBe(0.06)
-  })
-  it('без данных — нулевые полосы, не падает', () => {
-    expect(stepBars(null).every(b => b.share === 0 && b.count === 0)).toBe(true)
-    expect(stepBars(null)).toHaveLength(STEPS.length)
+  it('поля нет (миграция не применена) / мусор / нет строки → null', () => {
+    expect(rowWords({})).toBeNull()
+    expect(rowWords({ words_perm: null })).toBeNull()
+    expect(rowWords({ words_perm: 'abc' })).toBeNull()
+    expect(rowWords(undefined)).toBeNull()
   })
 })
 
@@ -53,9 +58,8 @@ describe('подписи', () => {
     expect(formatCount('abc')).toBe('0')
     expect(formatCount(undefined)).toBe('0')
   })
-  it('склонения слов, фраз и дней', () => {
+  it('склонения слов и дней', () => {
     expect([1, 2, 5, 11, 21].map(wordsLabel)).toEqual(['слово', 'слова', 'слов', 'слов', 'слово'])
-    expect([0, 1, 3, 12, 22].map(phrasesLabel)).toEqual(['фраз', 'фраза', 'фразы', 'фраз', 'фразы'])
     expect([1, 4, 7, 14].map(daysLabel)).toEqual(['день', 'дня', 'дней', 'дней'])
   })
   it('podiumPlace: только 1–3', () => {

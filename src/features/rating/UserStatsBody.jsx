@@ -1,15 +1,15 @@
-import { stepBars, formatCount, wordsLabel, daysLabel } from '../../shared/lib/ratingStats.js'
+import { Trophy } from 'lucide-react'
+import { formatCount, daysLabel } from '../../shared/lib/ratingStats.js'
 
-// Нижняя часть попапа игрока: плитки «слов знает» / «фраз выучено», ступени
-// памяти цветными полосками (цвета «Моей памяти») и подвал. Все состояния
+// Нижняя часть попапа игрока: плитки «знает слов» / «выучено фраз», строка
+// «Достижений: N из M» (если сервер прислал) и подвал с рекордом серии. Все состояния
 // (каркас, ошибка, «нет данных») занимают тот же блок .rpBody — окно не прыгает.
 
 function Skeleton() {
   return (
     <div className="rpSkel" aria-hidden="true">
       <div className="rpTiles"><i className="rpSkelTile" /><i className="rpSkelTile" /></div>
-      <i className="rpSkelLine rpSkelLine--title" />
-      {[0, 1, 2, 3].map(i => <i key={i} className="rpSkelLine" />)}
+      <i className="rpSkelLine" />
       <i className="rpSkelLine rpSkelLine--foot" />
     </div>
   )
@@ -28,7 +28,6 @@ function Note({ res, retry }) {
 }
 
 function Stats({ stats }) {
-  const bars = stepBars(stats)
   return (
     <>
       <div className="rpTiles">
@@ -43,19 +42,15 @@ function Stats({ stats }) {
           <small>целиком</small>
         </div>
       </div>
-      <p className="rpCap">Ступени памяти</p>
-      <div className="rpSteps">
-        {bars.map((b, i) => (
-          <div key={b.key} className="rpStep" style={{ '--c': b.color, '--i': i }} data-empty={b.count === 0 ? '1' : undefined}>
-            <span className="rpStepName">{b.label}</span>
-            <span className="rpTrack"><i className="rpFill" style={{ width: `${b.share * 100}%` }} /></span>
-            <b className="rpStepN">{formatCount(b.count)}</b>
-          </div>
-        ))}
-      </div>
+      {stats.achievements != null && (
+        <div className="rpAch">
+          <Trophy size={16} aria-hidden="true" />
+          <span>Достижений</span>
+          <b>{stats.achievements} из {stats.achievementsTotal}</b>
+        </div>
+      )}
       <p className="rpFoot">
-        Всего в памяти: {formatCount(stats.total)} {wordsLabel(stats.total)}
-        {stats.longestStreak > 0 && <> · рекорд серии {formatCount(stats.longestStreak)} {daysLabel(stats.longestStreak)}</>}
+        {stats.longestStreak > 0 && <>Рекорд серии: {formatCount(stats.longestStreak)} {daysLabel(stats.longestStreak)}</>}
       </p>
     </>
   )

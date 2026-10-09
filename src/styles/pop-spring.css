@@ -47,9 +47,11 @@
 }
 
 /* Выпадашки сверху справа (значки энергии/уровня/билетов, поиск ленты) —
-   выезд сверху, растут от своего угла */
+   выезд сверху, растут от своего угла. Попап игрока в «Рейтинге» (.rpCard) — то же
+   самое, только растёт из середины (origin переопределён в rating-popup.css) */
 .energyPop,
-.fsPanel {
+.fsPanel,
+.rpCard {
   --pop-dy: -10px;
   transform-origin: top right;
   animation: popSpringIn 0.45s backwards;
@@ -81,19 +83,21 @@
 .rcOverlay,
 .racePopupOverlay,
 .installSlidesOverlay,
-.lrSheetBack {
+.lrSheetBack,
+.rpBack {
   animation: popFadeIn 0.2s ease-out backwards;
 }
 
 /* Закрытие шторки заморозок (FreezeSheet.jsx): те же кадры, что при появлении, но в обратную сторону — карточка чуть
    подпрыгивает, сжимается до 0.88 и уезжает вниз, затемнение гаснет. Не нажимается, пока уходит */
 .rwInfoCard.rwInfoCard--out { animation: popSpringIn 0.36s reverse forwards; pointer-events: none; }
-.rwInfoOverlay.rwInfoOverlay--out { animation: popFadeIn 0.3s ease-in reverse forwards; pointer-events: none; }
+.rwInfoOverlay.rwInfoOverlay--out,
+.rpBack.rpBack--out { animation: popFadeIn 0.3s ease-in reverse forwards; pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .lessonLockedCard, .priorityLegendCard, .epCard, .ppCard, .resumeLessonCard,
   .pinDialogCard, .pushPromptCard, .rwInfoCard, .rcCard, .racePopupCard,
-  .installSlidesCard, .energyPop, .fsPanel, .lrSheet {
+  .installSlidesCard, .energyPop, .fsPanel, .rpCard, .lrSheet {
     animation: popFadeIn 0.2s ease-out backwards;
   }
 }

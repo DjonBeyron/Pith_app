@@ -6,7 +6,7 @@
   /* Полная высота нижнего бара: кнопки 40px (было 48 — обрезано сверху,
      нижний край бара на прежнем месте, см. --v2-nav-btn-h) + системный
      отступ. Роль «полосы-продолжения» под панелью играет нижняя системная
-     зона iOS, покрашенная фоном html (#0b0d10) — своя подложка не нужна */
+     зона iOS, покрашенная фоном html (#000) — своя подложка не нужна */
   --v2-nav-btn-h: 40px;
   --v2-nav-strip: 0px;
   --v2-nav-h: calc(var(--v2-nav-btn-h) + var(--v2-nav-strip) + env(safe-area-inset-bottom, 0px));
@@ -27,7 +27,7 @@
   z-index: 50;
   display: flex;
   flex-direction: column;
-  background: #0b0d10;
+  background: #000;
   color: #f2f5f7;
   /* Как в приложении: Montserrat только latin, кириллица падает в Comfortaa */
   font-family: 'Montserrat', 'Comfortaa', sans-serif;

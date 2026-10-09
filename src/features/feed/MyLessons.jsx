@@ -7,6 +7,7 @@ import { plural } from '../../shared/lib/plural.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import MyLessonSlide from './MyLessonSlide.jsx'
 import MyLessonRefSlide from './MyLessonRefSlide.jsx'
+import { FEED_EMPTY as T } from './emptyTexts.js'
 
 // «Мои уроки»: начатые модули (user_module_progress) в двух режимах —
 // видео-скролл (без HUD, прогресс-бар модуля снизу) и список с процентами.
@@ -112,9 +113,9 @@ export default function MyLessons({
         <div className="mlEmptyArt">
           <Zap fill="currentColor" />
         </div>
-        <div className="feedV2CenterTitle">Здесь пока пусто</div>
-        <div className="feedV2CenterSub">Начни обучение — выбери фразу в ленте<br />и нажми «Изучить фразу»</div>
-        <button className="mlGoFeedBtn" onClick={onGoFeed}>Смотреть ленту</button>
+        <div className="feedV2CenterTitle">{T.myLessons.title}</div>
+        <div className="feedV2CenterSub">{T.myLessons.sub[0]}<br />{T.myLessons.sub[1]}</div>
+        <button className="mlGoFeedBtn" onClick={onGoFeed}>{T.myLessons.go}</button>
       </div>
     )
   }
@@ -122,9 +123,9 @@ export default function MyLessons({
   if (started.length === 0 && visibleLessons.length === 0) {
     return (
       <div className="feedV2Center">
-        <div className="feedV2CenterTitle">Ничего не подошло</div>
-        <div className="feedV2CenterSub">Ни одна фраза не попала под фильтр сложности</div>
-        <button className="mlGoFeedBtn" onClick={onResetFilter}>Сбросить фильтр</button>
+        <div className="feedV2CenterTitle">{T.filter.title}</div>
+        <div className="feedV2CenterSub">{T.filter.sub}</div>
+        <button className="mlGoFeedBtn" onClick={onResetFilter}>{T.filter.reset}</button>
       </div>
     )
   }

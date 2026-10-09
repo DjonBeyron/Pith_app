@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { shouldShowResumeToast } from '../lib/resumeToastVisible.js'
 import { setLastEditedLesson, getLastEditedLesson, clearLastEditedLesson, updateLastEditedModule } from '../lib/lastEditedLesson.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
@@ -69,10 +70,23 @@ describe('всплывашка «продолжить редактировани
     expect(toast).toContain('onClick={() => setClosing(true)}>✕')
   })
 
-  it('показывается только админу и только когда редактор закрыт', () => {
+  it('показывается только админу, только во вкладке «Админ» и только когда редактор закрыт', () => {
+    const base = { isAdmin: true, tab: 'admin', resumeClosed: false, editorOpen: false }
+    expect(shouldShowResumeToast(base)).toBe(true)
+    expect(shouldShowResumeToast({ ...base, isAdmin: false })).toBe(false)
+    expect(shouldShowResumeToast({ ...base, resumeClosed: true })).toBe(false)
+    expect(shouldShowResumeToast({ ...base, editorOpen: true })).toBe(false)
+    // лента, уроки-память, рейтинг, профиль — плашки нет
+    for (const tab of ['feed', 'learn', 'rating', 'profile']) {
+      expect(shouldShowResumeToast({ ...base, tab })).toBe(false)
+    }
+  })
+
+  it('ShellV2 берёт условие из resumeToastVisible и ведёт кнопку в канвас урока', () => {
     const shell = read('../../app/ShellV2.jsx')
+    expect(shell).toContain('shouldShowResumeToast({')
     // Редактор — любой из четырёх: граф, продакшен, карточки повтора, справка слова
-    expect(shell).toContain('{isAdmin && !resumeClosed && !canvasLesson && !productionLesson && !cardsLesson && !wordCardLesson && (')
+    expect(shell).toContain('editorOpen: !!(canvasLesson || productionLesson || cardsLesson || wordCardLesson)')
     expect(shell).toContain('setCanvasLesson({ id: lesson.id, moduleLessons: [], module: lesson.module ?? null })')
   })
 

@@ -101,9 +101,12 @@ describe('замок и его снятие', () => {
     expect(graph).toContain("preloadSounds(); playSound('lesson-locked', 'тап по закрытому уроку'); setLockedHint(true); return }")
     expect(hint).not.toContain('playSound')
     expect(hint).not.toContain('useEffect')
-    // К первому тапу элемент уже создан и load()-нут — по первому касанию схемы
+    // К первому тапу элемент уже создан и load()-нут — по окончании первого ТАПА по схеме; не на
+    // pointerdown: тогда 9 Audio + AudioContext создавались в начале прокрутки и тормозили её
     expect(read('./CurriculumView.jsx')).toContain('usePreloadSoundsOnTap()')
-    expect(read('./usePreloadSoundsOnTap.js')).toContain("document.addEventListener('pointerdown', onTap, true)")
+    const preload = read('./usePreloadSoundsOnTap.js')
+    expect(preload).toContain("document.addEventListener('pointerup', onUp, true)")
+    expect(preload).not.toMatch(/addEventListener\('pointerdown', (?!onDown)/)
   })
 
   it('два равноправных пути: главная кнопка сразу запускает диагностику', () => {

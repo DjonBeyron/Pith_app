@@ -4,9 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>HETA</title>
-    <!-- Тёмный фон ДО любых скриптов и запросов: пока синхронный net-guard.js (ниже) качается, а сеть
-         молчит, парсер стоит — без этого правила экран был бы белым. Цвет = фон приложения/сплэша/манифеста -->
-    <style>html, body { margin: 0; background: #0b0d10; }</style>
+    <!-- ОДИН цвет на всех этапах запуска — чистый чёрный #000: системный кадр iOS до стартовой картинки,
+         зона статус-бара (apple-mobile-web-app-status-bar-style=black — нативный #000, CSS её не красит),
+         стартовые PNG (public/splash), этот фон, сплэш, экран «нет сети», манифест, theme-color и фон
+         приложения (base.css, .shellV2). Системные чёрные этапы перекрасить нельзя, поэтому под них
+         подогнано всё остальное — смены цвета при старте нет. Меняешь цвет — меняй везде сразу
+         (проверяет networkGuard.test.js) и перегенерируй PNG (scripts/make-brand-assets.mjs).
+         color-scheme: dark — чтобы холст/оверскролл/нативные элементы до загрузки CSS не были белыми.
+         Фон ДО любых скриптов и запросов: пока синхронный net-guard.js (ниже) качается, а сеть молчит,
+         парсер стоит — без этого правила экран был бы белым -->
+    <meta name="color-scheme" content="dark" />
+    <style>html, body { margin: 0; background: #000; color-scheme: dark; }</style>
     <!-- Сторож белого экрана без сети (public/net-guard.js): ОБЫЧНЫЙ скрипт, синхронно в <head> — работает,
          даже если бандл не загрузился. Рисует оверлей #offlineGuard (стили .ng* ниже) -->
     <script src="/net-guard.js"></script>
@@ -23,7 +31,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="HETA" />
-    <meta name="theme-color" content="#0b0d10" />
+    <meta name="theme-color" content="#000000" />
     <!-- Манифест — современный iOS строит стартовый экран веб-приложения из
          background_color + иконки (apple-touch-startup-image ниже он может
          игнорировать). После изменения нужно УДАЛИТЬ и заново добавить
@@ -74,7 +82,7 @@
          подаёт сигнал window.__pithyReady, когда лента готова, и сплэш «улетает»
          (масштаб+фейд), открывая Рекомендации. Логотип — заглушка, заменим. -->
     <style>
-      /* Фон первого кадра (#0b0d10) задан выше, в самом начале <head> (до net-guard.js) */
+      /* Фон первого кадра (#000) задан выше, в самом начале <head> (до net-guard.js) */
       /* Сплэш НЕПРОЗРАЧНЫЙ с самого первого кадра и повторяет стартовый экран iOS
          (public/splash/startup-*.png, scripts/make-brand-assets.mjs): тот же фон, то же лого
          92px, центр на 19px выше середины — переход «система → страница» без скачка.
@@ -85,7 +93,7 @@
       #splash {
         position: fixed; inset: 0; z-index: 2147483000;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        background: #0b0d10;
+        background: #000;
       }
       #splash .splash-logo {
         width: 92px; height: 92px; margin-bottom: 38px;
@@ -119,7 +127,7 @@
          networkGuard.test.js). Анимация: оборванный кабель (порт «режима сна» вкладки «Моя память»), только
          opacity/transform на ~6 элементах, без filter/blur; при prefers-reduced-motion стоит */
       .ngScreen {
-        position: fixed; inset: 0; z-index: 2147483600; background: #0b0d10; overflow: hidden;
+        position: fixed; inset: 0; z-index: 2147483600; background: #000; overflow: hidden;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         padding: 24px; box-sizing: border-box; text-align: center;
         font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #f2f5f7;

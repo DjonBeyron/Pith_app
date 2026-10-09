@@ -1,5 +1,5 @@
 // Сервис-воркер: push-уведомления + «прослойка» для установки на Android + офлайн-фолбэк загрузки страницы.
-// Кэширует РОВНО ОДИН файл — /offline.html (кэш offline-v3); приложение, ассеты и API всегда идут с сервера,
+// Кэширует РОВНО ОДИН файл — /offline.html (кэш offline-v4); приложение, ассеты и API всегда идут с сервера,
 // поэтому проверка свежего деплоя по номеру версии работает как раньше.
 // Обработчик fetch — для Chrome на Android (сайты с fetch-обработчиком он ставит как WebAPK надёжнее) и для
 // офлайна: ЗАГРУЗКА СТРАНИЦЫ (navigate) идёт в сеть, но НЕ ЖДЁТ её дольше NAV_TIMEOUT_MS: нет сети (navigator.onLine
@@ -10,7 +10,7 @@
 // нет в кэше — ждём сеть как раньше. Всё остальное (видео, картинки, API, Supabase) не перехватывается.
 // Меняешь offline.html — подними версию OFFLINE_CACHE (старые offline-* кэши чистятся при activate).
 
-const OFFLINE_CACHE = 'offline-v3'
+const OFFLINE_CACHE = 'offline-v4'
 const OFFLINE_URL = '/offline.html'
 const NAV_TIMEOUT_MS = 2500
 const PATIENT_MS = 20000

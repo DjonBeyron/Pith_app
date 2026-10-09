@@ -1,15 +1,18 @@
 import { useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, BookOpen } from 'lucide-react'
 import { useRatingData } from './useRatingData.js'
 import RaceBanner from '../race/RaceBanner.jsx'
 import RacePage from '../race/RacePage.jsx'
 import UserStatsPopup from './UserStatsPopup.jsx'
 import UserBadge from '../../shared/ui/UserBadge.jsx'
 import { getCurrentLevel } from '../../shared/lib/xpLevels.js'
+import { rowWords, formatCount, wordsLabel } from '../../shared/lib/ratingStats.js'
 
 // Уровень · XP · стрик — строкой, подписью под ником (UserBadge subtitle).
-// Порядок фиксирован: уровень, потом XP, потом дни подряд.
-function RatingStats({ level, xp, streak }) {
+// Порядок фиксирован: уровень, потом XP, потом дни подряд, в конце — сколько слов
+// знает игрок (фиолетовое; words_perm из get_leaderboard, null — сервер не прислал
+// или своя строка вне топа: тогда числа нет).
+function RatingStats({ level, xp, streak, words = null }) {
   return (
     <span className="ratingStats">
       <span className="ratingStatsLvl">Ур.{level}</span>
@@ -20,6 +23,14 @@ function RatingStats({ level, xp, streak }) {
           <span className="ratingStatsDot">·</span>
           <span className="ratingStatsStreak">
             <Sparkles className="ratingStatsStreakIcon" />{streak}
+          </span>
+        </>
+      )}
+      {words != null && (
+        <>
+          <span className="ratingStatsDot">·</span>
+          <span className="ratingStatsWords" title={`Знает ${formatCount(words)} ${wordsLabel(words)}`}>
+            <BookOpen className="ratingStatsWordsIcon" aria-hidden="true" />{formatCount(words)}
           </span>
         </>
       )}
@@ -108,7 +119,7 @@ export default function RatingTab({ visible = true, openRaceTick = 0 }) {
                     size={place <= 3 ? 44 : 38}
                     pro={!!r.is_pro}
                   />
-                  <RatingStats level={lvl.level} xp={r.xp} streak={r.current_streak} />
+                  <RatingStats level={lvl.level} xp={r.xp} streak={r.current_streak} words={rowWords(r)} />
                 </div>
               )
             })}

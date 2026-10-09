@@ -21,7 +21,7 @@ export default function ProfileSavedTab({ savedModules, loading, onOpenModule })
       {open && (loading ? (
         <div className="pvEmpty">Загрузка...</div>
       ) : savedModules.length === 0 ? (
-        <div className="pvEmpty">Сохраняй модули закладкой — те, что ещё не начал, появятся здесь</div>
+        <div className="pvEmpty">Сохраняй уроки закладкой — те, что ещё не начал, появятся здесь</div>
       ) : (
         <div className="pvSavedList">
           {savedModules.map(m => (

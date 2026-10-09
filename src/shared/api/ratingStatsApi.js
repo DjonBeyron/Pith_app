@@ -3,8 +3,9 @@ import { dbg } from '../lib/debug.js'
 import { normalizeStats, isMissingFnError, isDeniedError } from '../lib/ratingStats.js'
 
 // Подробности игрока для попапа «Рейтинга»: RPC leaderboard_user_stats
-// (миграция 20261008140000_leaderboard_user_stats.sql) — security definer,
-// отдаёт только счётчики слов по ступеням памяти и число выученных фраз.
+// (миграция 20261008140000_leaderboard_user_stats.sql, поле achievements —
+// 20261009100000_leaderboard_words.sql) — security definer, отдаёт только
+// счётчики: слова в постоянной памяти, выученные фразы, достижения, рекорд серии.
 // Результат — { state, stats }:
 //   ok      — stats разобраны (normalizeStats);
 //   missing — функции в БД ещё нет (миграция не применена) или игрок не найден;

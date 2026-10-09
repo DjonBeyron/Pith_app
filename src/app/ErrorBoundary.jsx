@@ -11,7 +11,7 @@ import { isChunkLoadError } from './networkGuard.js'
 // намеренно — экран ошибки не должен зависеть от загрузки app-CSS.
 const S = {
   wrap: {
-    position: 'fixed', inset: 0, background: '#0b0d10', color: '#e0e0e0',
+    position: 'fixed', inset: 0, background: '#000', color: '#e0e0e0',
     display: 'flex', flexDirection: 'column', alignItems: 'center',
     justifyContent: 'center', gap: 14, padding: 24, textAlign: 'center',
     fontFamily: 'inherit', zIndex: 99999,

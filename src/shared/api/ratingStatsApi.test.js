@@ -7,6 +7,7 @@ vi.mock('../lib/debug.js', () => ({ dbg: () => {} }))
 const { fetchUserStats, peekUserStats, clearUserStatsCache } = await import('./ratingStatsApi.js')
 
 const okData = { ok: true, words_new: 1, words_known: 2, words_solid: 3, words_perm: 4, phrases: 5, longest_streak: 6 }
+const okWithAch = { ...okData, achievements: 2 }
 
 beforeEach(() => { rpc.mockReset(); clearUserStatsCache(); vi.spyOn(console, 'error').mockImplementation(() => {}) })
 
@@ -16,10 +17,16 @@ describe('fetchUserStats', () => {
     const a = await fetchUserStats('u1')
     expect(a.state).toBe('ok')
     expect(a.stats.perm).toBe(4)
+    expect(a.stats.achievements).toBeNull() // в okData нет achievements — старая версия сервера
     expect(peekUserStats('u1')).toBe(a)
     await fetchUserStats('u1')
     expect(rpc).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('leaderboard_user_stats', { p_user: 'u1' })
+  })
+  it('новая версия сервера: достижения приходят в stats', async () => {
+    rpc.mockResolvedValue({ data: okWithAch, error: null })
+    const a = await fetchUserStats('u9')
+    expect(a.stats.achievements).toBe(2)
   })
   it('force обходит кэш', async () => {
     rpc.mockResolvedValue({ data: okData, error: null })

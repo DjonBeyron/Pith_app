@@ -13,7 +13,9 @@ import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const BG = '#0b0d10'
+// Фон стартовых экранов = фон всех этапов запуска (index.html, manifest, base.css): чистый чёрный, как
+// системные кадры iOS, которые перекрасить нельзя (см. комментарий в index.html)
+const BG = '#000000'
 
 const BROWSERS = [
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -21,7 +23,8 @@ const BROWSERS = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
 ]
-const browser = BROWSERS.find(p => existsSync(p))
+// NO_SANDBOX=1 — для запуска под root на Linux. BROWSER_PATH — свой путь к Chrome/Chromium (например, под Linux: BROWSER_PATH=/opt/pw-browsers/chromium)
+const browser = process.env.BROWSER_PATH || BROWSERS.find(p => existsSync(p))
 if (!browser) {
   console.error('Не найден Edge или Chrome — из чего рендерить PNG?')
   process.exit(1)
@@ -49,6 +52,7 @@ function shot(html, w, h, out, transparent = false) {
   writeFileSync(page, html, 'utf8')
   execFileSync(browser, [
     '--headless=new', '--disable-gpu', '--hide-scrollbars',
+    ...(process.env.NO_SANDBOX ? ['--no-sandbox'] : []), // Linux под root
     '--force-device-scale-factor=1',
     ...(transparent ? ['--default-background-color=00000000'] : []),
     `--screenshot=${join(work, 'shot.png')}`,
@@ -93,14 +97,17 @@ function splashHtml(w, h, dpr) {
   </style><div class="stage"><div class="wrap">${logoPlain}</div></div>`
 }
 
-console.log('Иконки приложения:')
-for (const size of [180, 192, 512]) {
-  shot(iconHtml(size), size, size, join(root, `public/icons/icon-${size}.png`))
-}
+// ONLY_SPLASH=1 — перерисовать только стартовые экраны (иконки не трогать)
+if (!process.env.ONLY_SPLASH) {
+  console.log('Иконки приложения:')
+  for (const size of [180, 192, 512]) {
+    shot(iconHtml(size), size, size, join(root, `public/icons/icon-${size}.png`))
+  }
 
-console.log('Иконки вкладки браузера:')
-for (const size of [32, 64]) {
-  shot(faviconHtml(size), size, size, join(root, `public/icons/favicon-${size}.png`), true)
+  console.log('Иконки вкладки браузера:')
+  for (const size of [32, 64]) {
+    shot(faviconHtml(size), size, size, join(root, `public/icons/favicon-${size}.png`), true)
+  }
 }
 
 console.log('Стартовые экраны iOS:')

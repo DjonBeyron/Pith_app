@@ -62,7 +62,7 @@ describe('что режим гасит, а что оставляет', () => {
   })
 
   it('всплывашка «продолжить редактирование» гаснет вместе с остальным', () => {
-    expect(shell).toContain('{isAdmin && !resumeClosed')
+    expect(shell).toContain('shouldShowResumeToast({ isAdmin, tab,')
   })
 
   it('вкладка «Файлы» внутри админки работает по настоящему статусу', () => {
