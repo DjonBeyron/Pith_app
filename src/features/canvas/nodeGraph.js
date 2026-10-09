@@ -78,6 +78,10 @@ export function makeNode(seq, x, y, wantType) {
       // Напечатай слово: слово + дополнительные буквы (светятся на клавиатуре вместе с буквами
       // слова, выбираются вручную, см. TypeWordPanel.jsx)
       type_word:       { word: '', extraLetters: '', responseCorrect: '', responseWrong: '', replyToSeq: null },
+      // Сказать фразу: phrase — английский эталон; translation — перевод по кнопке; keywords — ключевые слова через запятую
+      // (должны прозвучать обязательно); threshold — % слов эталона для «засчитано»; lang — язык распознавания;
+      // listenAudio — кнопка «Послушать» (озвучка из базы слов; по умолчанию включена, поле не нужно)
+      say_phrase:      { phrase: '', translation: '', keywords: '', threshold: 70, lang: 'en-US' },
       pin_message:     { content: '' },
       system:          { content: '' },
       // Реакция как в мессенджере: своего пузыря нет, эмодзи прилипает к

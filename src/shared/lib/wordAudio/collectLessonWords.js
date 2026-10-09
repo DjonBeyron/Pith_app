@@ -11,7 +11,9 @@ import { parseTemplateSegments } from '../fillBlanksTemplate.js'
 //  - fill_blanks: ЦЕЛОЕ слово для каждого варианта пропуска (для «tr___s» —
 //    «tries», а не «ie»: озвучивается слово, а не буквы);
 //  - word_choice: только верные варианты (озвучивается лишь верный ответ);
-//  - type_word: само печатаемое слово (озвучивается, когда ученик напечатал верно).
+//  - type_word: само печатаемое слово (озвучивается, когда ученик напечатал верно);
+//  - say_phrase: вся фраза целиком и каждое её слово (кнопка «Послушать» играет фразу одной записью, а если её нет — слова
+//    по очереди); пока у ноды не выключено listenAudio.
 // Возвращает Map key → текст для показа (первое написание в уроке).
 
 // Маркеры границ целевого пропуска в собранном тексте — вырезаются
@@ -72,6 +74,11 @@ function wordsOfNode(node) {
     }
     case 'type_word':
       return [td.type_word?.word ?? '']
+    case 'say_phrase': {
+      const sp = td.say_phrase ?? {}
+      const phrase = String(sp.phrase ?? '')
+      return sp.listenAudio === false ? [] : [phrase, ...phrase.split(/\s+/)]
+    }
     case 'word_choice':
       return (td.word_choice?.options ?? []).filter(o => o.isCorrect).map(o => o.text)
     default:

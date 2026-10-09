@@ -18,8 +18,8 @@
 /* Слои иконки: полоски и галочка друг над другом — для морфинга */
 .diffIcon {
   position: relative;
-  width: 25px;
-  height: 25px;
+  width: 31px; /* как .feedHudBtn svg (feed-hud.css) */
+  height: 31px;
 }
 
 /* Иконка «ухо»: белая = нет оценок, цвет = уровень сложности на слух */
@@ -174,7 +174,7 @@
 
 @keyframes diffIconPulse {
   0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.28); }
+  50%      { transform: scale(1.22); }
 }
 
 /* Свечение пульса — отдельный мягкий ореол под иконкой, вспыхивает
@@ -183,7 +183,7 @@
 .diffIconPulse::before {
   content: '';
   position: absolute;
-  inset: -7px;
+  inset: -9px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(182, 254, 59, 0.55) 0%, rgba(182, 254, 59, 0.2) 45%, rgba(182, 254, 59, 0) 70%);
   opacity: 0;

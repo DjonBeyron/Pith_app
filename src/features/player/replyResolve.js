@@ -17,6 +17,7 @@ const MEDIA_LABEL = {
   table:            'Собрать фразу',
   fill_blanks:      'Составь предложение',
   type_word:        'Напечатай слово',
+  say_phrase:       'Сказать фразу',
 }
 
 const REPLY_THEME = {
@@ -71,7 +72,7 @@ export function resolveReply(replyNode, teacherName, allWordChoiceStates, allPho
   // Таблица в ручном режиме, «Составь предложение» и «Напечатай слово» отдают ответ
   // тем же handlePhraseAnswer, что и «Собери фразу» (общий phraseStates, keyed по
   // nodeId) — значит и цитата на них показывает ответ ученика
-  if (rType === 'phrase_assembly' || rType === 'table' || rType === 'fill_blanks' || rType === 'type_word') {
+  if (rType === 'phrase_assembly' || rType === 'table' || rType === 'fill_blanks' || rType === 'type_word' || rType === 'say_phrase') {
     const attempt = resolvePhraseAttempt(allPhraseStates?.[replyNode.id])
     return {
       name:  'Вы:',

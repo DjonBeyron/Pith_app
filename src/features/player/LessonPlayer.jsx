@@ -310,7 +310,7 @@ export default function LessonPlayer({
             него по-прежнему резервирует --wait-slot — здесь только отрисовка */}
         <WaitingDots visible={isWaiting} />
         <PlayerPanels
-          wcNode={panels.node.wc} paNode={panels.node.pa} fbNode={panels.node.fb} twNode={panels.node.tw} pcNode={panels.node.pc}
+          wcNode={panels.node.wc} paNode={panels.node.pa} fbNode={panels.node.fb} twNode={panels.node.tw} spNode={panels.node.sp} pcNode={panels.node.pc}
           regNode={panels.node.reg} tableNode={panels.node.table}
           nodes={nodes}
           showRegPanel={panels.showRegPanel}
@@ -336,7 +336,7 @@ export default function LessonPlayer({
           setWcPanelHeight={panels.setHeight('wc')}
           setPaPanelHeight={panels.setHeight('pa')}
           setFbPanelHeight={panels.setHeight('fb')}
-          setTwPanelHeight={panels.setHeight('tw')}
+          setTwPanelHeight={panels.setHeight('tw')} setSpPanelHeight={panels.setHeight('sp')}
           setPcPanelHeight={panels.setHeight('pc')}
           setRegPanelHeight={panels.setHeight('reg')}
           setTablePanelHeight={panels.setHeight('table')}

@@ -20,7 +20,30 @@ describe('худ ленты: без подложек и теней', () => {
     const btn = block(hud, '.feedHudBtn')
     expect(btn).toMatch(/background: none/)
     expect(btn).not.toMatch(/border-radius/)
-    expect(block(hud, '.feedHudBtn::before')).toMatch(/inset: -10px/) // 25px + 2×10 = 45
+    expect(block(hud, '.feedHudBtn::before')).toMatch(/inset: -7px/) // 31px + 2×7 = 45
+  })
+})
+
+describe('худ ленты: размер иконок (+25%: 25px → 31px)', () => {
+  it('svg кнопок худа 31px, слой иконки уха тоже 31px (синхронно)', () => {
+    expect(block(hud, '.feedHudBtn svg')).toMatch(/width: 31px; height: 31px/)
+    expect(block(diff, '.diffIcon')).toMatch(/width: 31px;\s*height: 31px/)
+  })
+  it('подпись счётчика прежняя 10px, колонка gap 8px, воздух иконка—подпись 4px', () => {
+    expect(block(hud, '.feedHud')).toMatch(/gap: 8px/)
+    expect(block(hud, '.feedHudBtn')).toMatch(/font-size: 10px/)
+    expect(block(hud, '.feedHudBtn')).toMatch(/gap: 4px/)
+  })
+  it('зона касания ≥44px: 31 + 2×7', () => {
+    const inset = +block(hud, '.feedHudBtn::before').match(/inset: -(\d+)px/)[1]
+    expect(31 + 2 * inset).toBeGreaterThanOrEqual(44)
+  })
+  it('сердечки лайка стартуют у верха иконки и не уходят вправо за край (tx ≤ 10)', () => {
+    const fx = css('../../styles/feed-reactions-fx.css')
+    expect(block(fx, '.likeBurstHeart')).toMatch(/top: 3px/)
+    const txs = [...fx.matchAll(/--tx: (-?\d+)px/g)].map(m => +m[1])
+    expect(txs).toHaveLength(5)
+    expect(Math.max(...txs)).toBeLessThanOrEqual(10)
   })
 })
 

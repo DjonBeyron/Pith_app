@@ -12,9 +12,9 @@ export const CATCH_RULE_MS = 220          // линия рисуется (scaleX
 export const CATCH_COLOR_MS = 320         // цвета набранного перетекают из лайма в цвет вердикта (feed-catch-strip.css: catchToColor)
 export const CATCH_COMPRESS_HOLD_MS = 150 // сравнение «постоит» перед сжатием промежутков
 export const CATCH_COMPRESS_MS = 450      // длительность сжатия word-spacing к центру (то же число в feed-catch-strip.css)
-// Факт «Тебе удалось расслышать N из M слов»: тусклый «призрак» строки проявляется FACT_FADE_MS, а сама строка «зажигается»
-// блеском — шторка со светлой полосой на фронте один раз проходит слева направо за FACT_REVEAL_MS (keyframes catchFactCurtain /
-// catchFactLit / то же число в feed-catch-fact.css). Блеск стартует с паузой FACT_PAUSE_MS после проявления сравнения
+// Факт «Тебе удалось расслышать N из M слов»: тусклый «призрак» строки проявляется FACT_FADE_MS, а сами буквы «зажигаются»
+// блеском — градиент текста (background-clip: text) со «фронтом» один раз проходит слева направо за FACT_REVEAL_MS
+// (keyframes catchFactGlint, то же число в feed-catch-fact.css). Блеск стартует с паузой FACT_PAUSE_MS после проявления сравнения
 export const CATCH_FACT_FADE_MS = 220
 export const CATCH_FACT_REVEAL_MS = 800
 export const CATCH_FACT_PAUSE_MS = 400    // пауза сверх раскладки: сравнение оригинал/набранное успевают увидеть до блеска

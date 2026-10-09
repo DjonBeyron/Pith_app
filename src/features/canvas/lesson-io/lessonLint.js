@@ -10,6 +10,8 @@
 // СРАЗУ, не проходя импорт в редактор и не заходя в админку (см.
 // scripts/lint-lesson.mjs — тот же код, запущенный из командной строки).
 
+import { checkSayPhrase } from './lessonLintSay.js'
+
 const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong'])
 const PRAISE_RE = /три из трёх|ни одной ошибки|без единой ошибки|все верно|всё верно/i
 const SCENE_HINT_RE = /сцен|фото|кадр|ракурс|свет|персонаж|стикер|горизонт|вертикал/i
@@ -173,6 +175,8 @@ export function lintLesson(nodes) {
       warnings.push(`${n.ref} table (dictator): нет script — таблица останется немой`)
     }
   }
+
+  warnings.push(...checkSayPhrase(nodes, start))
 
   for (const n of nodes) {
     const d = n.data ?? {}

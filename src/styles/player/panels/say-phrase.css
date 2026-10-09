@@ -1,0 +1,145 @@
+/* ── Панель «Сказать фразу» ─────────────────────────────────────────────
+   Корпус (.phrasePanel/.phraseInner) и кнопки (.phraseCheckBtn) — те же классы, что у «Собери фразу»/«Напечатай слово»
+   (phrase-assembly.css): панель выглядит родной. Здесь — слова фразы, круглая кнопка микрофона со статусом и тихие ссылки.
+   ВЫСОТА ПАНЕЛИ ПОСТОЯННА во всех состояниях (готов / пояснение / слушаю / успех / неудача / запасной режим): тексты меняются
+   внутри блоков фиксированной высоты (.sayWords, .sayStage, .sayActions, .sayFoot), раскладка не прыгает.
+   Анимация «слушаю» — только opacity/transform (пульсирующий ободок), без filter/blur/box-shadow.
+   ──────────────────────────────────────────────────────────────────── */
+
+.sayPhraseSpacer {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.sayInner { gap: 8px; }
+
+/* Слова фразы: две строки места всегда; цвет — по результату проверки */
+.sayWords {
+  margin: 0;
+  min-height: 52px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 0 7px;
+  text-align: center;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 26px;
+  color: #e8eaee;
+}
+.sayWord { transition: color .2s; }
+.sayWord--ok { color: #b6fe3b; }
+.sayWord--miss { color: #f87171; }
+
+/* Середина: кнопка микрофона + статус. Высота фиксирована: 72 (кнопка) + 14 + 70 (текст: до 4 строк пояснения) */
+.sayStage {
+  height: 156px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.sayMic {
+  position: relative;
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #12141d;
+  border: 2px solid #b6fe3b;
+  color: #b6fe3b;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background .15s, color .15s, opacity .2s, transform .15s;
+}
+.sayMic:active:not(:disabled) { background: #b6fe3b; color: #000; transform: scale(0.96); }
+.sayMic--listening { background: #b6fe3b; color: #0c0e12; }
+.sayMic--busy:not(.sayMic--listening) { opacity: .6; }
+.sayMic:disabled { cursor: default; }
+.sayMic:disabled:not(.sayMic--off):not(.sayMic--listening) { opacity: .55; }
+.sayMic--off { border-color: #3a3e4a; color: #6b7184; opacity: .8; }
+
+/* Пульс «слушаю»: два кольца (два span, чтобы масштабы не перемножались) поверх кнопки, растут и гаснут. Только transform + opacity */
+.sayMicPulse {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid #b6fe3b;
+  pointer-events: none;
+  animation: sayPulse 1.5s ease-out infinite;
+  will-change: transform, opacity;
+}
+.sayMicPulse--b { animation-delay: .75s; }
+@keyframes sayPulse {
+  0%   { transform: scale(1);   opacity: .6; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sayMicPulse { animation: none; opacity: .35; }
+  .sayMicPulse--b { display: none; }
+}
+
+.sayInfo {
+  width: 100%;
+  height: 70px;
+  overflow: hidden;
+  text-align: center;
+}
+.sayInfo p { margin: 0; }
+.sayStatus { font-size: 13px; line-height: 17px; font-weight: 600; color: #9aa0b4; }
+.sayStatus--ok { color: #b6fe3b; }
+.sayStatus--warn { color: #f0b86a; }
+.sayHint { font-size: 12px; line-height: 16px; color: #7d8398; }
+.sayHeard {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 16px;
+  font-style: italic;
+  color: #c9ced9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ряд главных кнопок: места всегда на одну (46px), скрытый — visibility. Кнопки — .phraseCheckBtn, их вид не трогаем */
+.sayActions { display: flex; gap: 10px; min-height: 46px; }
+.sayActions--off { visibility: hidden; }
+.sayActionCell { flex: 1 1 0; min-width: 0; }
+
+/* Тихие ссылки внизу: «Послушать» слева, «Не могу говорить» справа */
+.sayFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 34px;
+}
+.sayLink,
+.sayInlineLink {
+  margin: 0;
+  background: none;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.sayLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  font-size: 13px;
+  color: #8c93a8;
+}
+.sayLink:disabled { cursor: default; }
+.sayLink--off { visibility: hidden; }
+.sayInlineLink { padding: 2px 0; font-size: 12px; line-height: 16px; color: #b6fe3b; text-decoration: underline; }

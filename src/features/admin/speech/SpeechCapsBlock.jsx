@@ -1,4 +1,4 @@
-import { MODE_LABEL, PERM_LABEL } from './speechSupport.js'
+import { MODE_LABEL, PERM_LABEL } from '../../../shared/lib/speech/speechSupport.js'
 
 // Блок 1 пробы «Голос»: что умеет это устройство. Только чтение возможностей, микрофон не включается.
 export default function SpeechCapsBlock({ caps, perm }) {

@@ -1,7 +1,7 @@
 import {
   MessageSquare, Mic, PlayCircle, Video, Image, Smile,
   Info, Pin, SpellCheck, Layers, Images, MicVocal, UserPlus, Table2, SmilePlus, Link2, Smartphone,
-  PenLine, Keyboard,
+  PenLine, Keyboard, Speech,
 } from 'lucide-react'
 
 // Справочник типов нод канваса (вынесен из NodeTypeSelect.jsx: react-refresh
@@ -25,6 +25,7 @@ export const NODE_TYPES = [
   { value: 'phrase_assembly', label: 'Собери фразу',        icon: Layers,        color: '#3a9888', group: 'interactive' },
   { value: 'fill_blanks',     label: 'Составь предложение', icon: PenLine,       color: '#c45a7a', group: 'interactive' },
   { value: 'type_word',       label: 'Напечатай слово',     icon: Keyboard,      color: '#b8a040', group: 'interactive' },
+  { value: 'say_phrase',      label: 'Сказать фразу',       icon: Speech,        color: '#d4684a', group: 'interactive' },
   { value: 'table',           label: 'Таблица',             icon: Table2,        color: '#8a6fd4', group: 'interactive' },
   { value: 'photo_choice',    label: 'Выбрать фото',        icon: Images,        color: '#2a94b4', group: 'interactive' },
   { value: 'voice_record',    label: 'Запись голоса',       icon: MicVocal,      color: '#a84a84', group: 'interactive' },
@@ -38,7 +39,7 @@ export const TYPE_COLOR = Object.fromEntries(NODE_TYPES.map(t => [t.value, t.col
 export const TYPE_SHORT = {
   text: 'Текст', audio: 'Голос', circle: 'Кружок', video: 'Видео', photo: 'Фото',
   sticker: 'Стикер', reaction: 'Реакция', system: 'Система', pin_message: 'Закреп',
-  word_choice: 'Слово', phrase_assembly: 'Фраза', fill_blanks: 'Пропуски', type_word: 'Печать', table: 'Таблица',
+  word_choice: 'Слово', phrase_assembly: 'Фраза', fill_blanks: 'Пропуски', type_word: 'Печать', say_phrase: 'Речь', table: 'Таблица',
   photo_choice: 'Фото-выбор', voice_record: 'Запись', registration: 'Регистрация',
   lesson_ref: 'Ссылка', rotate_phone: 'Поверни',
 }

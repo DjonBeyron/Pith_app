@@ -15,6 +15,154 @@
          парсер стоит — без этого правила экран был бы белым -->
     <meta name="color-scheme" content="dark" />
     <style>html, body { margin: 0; background: #000; color-scheme: dark; }</style>
+    <!-- ЖУРНАЛ СТАРТА (диагностика «моргания» на iPhone): ПЕРВЫЙ скрипт в <head> — раньше net-guard.js, inline (внешний файл
+         загрузился бы уже после первых событий). Только собирает: ничего не блокирует, не ходит в сеть и не меняет страницу
+         (кроме временного замера safe-area). Метки t — performance.now() (мс от начала навигации). Итог пишется в
+         localStorage 'pithy_start_logs_v1' (кольцо из 8 стартов, ≤12 КБ каждый) и window.__startLog; смотреть — Админ → «Старт».
+         Формат записи: ctx (контекст запуска), ev [[t, тип, детали]], sample — только ИЗМЕНИВШИЕСЯ поля (k=v), tick '=' —
+         «без изменений». Метки из приложения — window.__startMark(имя, детали). Тест-страж: startLogScript.test.js -->
+    <script>
+      (function () {
+        function run() {
+          var W = window, D = document, P = performance, KEY = 'pithy_start_logs_v1', RING = 8, LIM = 12000, T_RAF = 3000, T_END = 6000
+          var CAPS = { sample: 150, tick: 40, jank: 30, cls: 20, resize: 20, 'js-error': 10, rej: 10, 'res-error': 10, longtask: 10, 'res-slow': 10 }
+          var EV = [], CNT = {}, DROP = {}, CTX = {}, S = {}, closed = false, saves = 0, firstF = false, rafOn = false, rafUntil = T_RAF
+          var lastW = -1e9, prevTs = 0, lateDone = false
+          var REC = W.__startLog = { v: 1, id: new Date().toISOString(), ctx: CTX, ev: EV, drop: DROP, end: '' }
+          function now() { return Math.round(P.now() * 10) / 10 }
+          function cut(s, n) { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n) + '…' : s }
+          function r1(v) { return Math.round(v * 10) / 10 }
+          function mark(type, d, t) {
+            if (closed && !/^(pagehide|vis|beforeunload)$/.test(type)) return
+            if ((CNT[type] = (CNT[type] || 0) + 1) > (CAPS[type] || 30)) { DROP[type] = (DROP[type] || 0) + 1; return }
+            EV.push([t == null ? now() : r1(t), type, cut(d, 160)])
+          }
+          function on(tg, name, fn, cap) { try { tg.addEventListener(name, fn, cap) } catch (e) { /* ignore */ } }
+          function mm(q) { try { return W.matchMedia(q).matches } catch (e) { return null } }
+          function vp() { var v = W.visualViewport; return W.innerWidth + 'x' + W.innerHeight + (v ? ' vv=' + r1(v.width) + 'x' + r1(v.height) + '@' + r1(v.offsetTop) + (v.scale !== 1 ? ' z' + v.scale : '') : '') }
+          function sel(n) { return n ? String(n.nodeName || '').toLowerCase() + (n.id ? '#' + n.id : '') + (typeof n.className === 'string' && n.className ? '.' + n.className.split(' ')[0] : '') : '?' }
+          function box(b) { return b ? Math.round(b.x) + ',' + Math.round(b.y) + ',' + Math.round(b.width) + 'x' + Math.round(b.height) : '-' }
+          function stack() { try { return new Error().stack.split('\n').filter(function (s) { return s && s !== 'Error' }).slice(1, 4).map(function (s) { return cut(s.trim().replace(/https?:\/\/[^/]+/, ''), 70) }).join(' < ') } catch (e) { return '' } }
+          W.__startMark = function (name, d) { try { mark('mark:' + name, d) } catch (e) { /* ignore */ } }
+
+          /* --- контекст запуска --- */
+          var nav = (P.getEntriesByType && P.getEntriesByType('navigation')[0]) || {}, n = 1
+          try { n = (+sessionStorage.getItem('pithy_start_n') || 0) + 1; sessionStorage.setItem('pithy_start_n', n) } catch (e) { /* ignore */ }
+          CTX.ver = '__APP_VERSION__'; CTX.sa = navigator.standalone
+          CTX.ua = cut(navigator.userAgent.replace('Mozilla/5.0 ', ''), 110); CTX.scr = screen.width + 'x' + screen.height; CTX.dpr = W.devicePixelRatio
+          CTX.win = vp(); CTX.or = screen.orientation ? screen.orientation.type : W.orientation
+          CTX.vis = D.visibilityState + (D.hidden ? ' hidden' : ''); CTX.ref = cut(D.referrer, 80); CTX.url = cut(location.pathname + location.search, 60)
+          CTX.nav = nav.type; CTX.rc = nav.redirectCount; CTX.size = nav.transferSize; CTX.n = n; CTX.cold = n === 1
+          CTX.t0 = P.timeOrigin ? new Date(P.timeOrigin).toISOString() : ''
+          mark('start', 'rs=' + D.readyState)
+          function safe() { var e = D.createElement('div'), s, r; e.style.cssText = 'position:fixed;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'
+            D.documentElement.appendChild(e); s = getComputedStyle(e); r = [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft].join('/'); D.documentElement.removeChild(e); return r }
+
+          /* --- события жизненного цикла --- */
+          on(D, 'readystatechange', function () { mark('rs', D.readyState) })
+          on(D, 'DOMContentLoaded', function () { mark('dcl') })
+          on(W, 'load', function () { mark('load'); setTimeout(function () { var x = P.getEntriesByType('navigation')[0]; if (x) mark('nav-timing', 'resp=' + r1(x.responseStart) + ' domInt=' + r1(x.domInteractive) + ' dclEnd=' + r1(x.domContentLoadedEventEnd) + ' loadEnd=' + r1(x.loadEventEnd)) }, 0) })
+          on(W, 'pageshow', function (e) { mark('pageshow', 'persisted=' + e.persisted) })
+          on(W, 'pagehide', function (e) { mark('pagehide', 'persisted=' + e.persisted); save('pagehide') })
+          on(D, 'visibilitychange', function () { mark('vis', D.visibilityState); if (D.hidden) save('hidden') })
+          on(W, 'resize', function () { mark('resize', vp()) })
+          on(W, 'orientationchange', function () { mark('orient', screen.orientation ? screen.orientation.type : W.orientation) })
+          on(W, 'focus', function () { mark('focus') }); on(W, 'blur', function () { mark('blur') })
+          on(W, 'online', function () { mark('online') }); on(W, 'offline', function () { mark('offline') })
+          on(W, 'beforeunload', function () { mark('beforeunload') })
+          on(D, 'freeze', function () { mark('freeze') }); on(D, 'resume', function () { mark('resume') })
+          on(W, 'pithy:splash-gone', function () { mark('splash-gone'); if (!rafOn && P.now() < T_END) { rafOn = true; prevTs = 0; requestAnimationFrame(frame) } rafUntil = Math.max(rafUntil, Math.min(P.now() + 700, T_END)) })
+          on(W, 'error', function (e) { var t = e.target; if (t && t !== W && t.nodeName) mark('res-error', t.nodeName.toLowerCase() + ' ' + cut(t.src || t.href, 100)); else mark('js-error', cut(e.message, 100) + ' @' + cut(String(e.filename || '').split('/').pop(), 40) + ':' + e.lineno) }, true)
+          on(W, 'unhandledrejection', function (e) { mark('rej', cut(e.reason && (e.reason.message || e.reason), 120)) })
+
+          /* --- service worker: controller при старте, подмена, регистрация --- */
+          var sw = navigator.serviceWorker
+          CTX.sw = sw ? (sw.controller ? sw.controller.state : 'none') : 'unsupported'
+          if (sw) on(sw, 'controllerchange', function () { mark('sw-ctrl') })
+
+          /* --- ПОСЛЕ первого кадра (не задерживаем первую отрисовку): медиа-запросы, регистрация воркера, PerformanceObserver\n             (buffered — ранние записи не теряются), перехват history.* --- */
+          function po(type, fn) { try { var o = new PerformanceObserver(function (l) { try { l.getEntries().forEach(fn) } catch (e) { /* ignore */ } }); o.observe({ type: type, buffered: true }) } catch (e) { /* ignore */ } }
+          function late() {
+            if (lateDone) return; lateDone = true
+            try {
+              CTX.dm = mm('(display-mode: standalone)'); CTX.dark = mm('(prefers-color-scheme: dark)'); CTX.rm = mm('(prefers-reduced-motion: reduce)'); CTX.safe = safe()
+              if (sw && sw.getRegistration) sw.getRegistration().then(function (r) { mark('sw-reg', r ? 'active=' + (r.active && r.active.state) + ' waiting=' + (r.waiting && r.waiting.state) + ' installing=' + (r.installing && r.installing.state) : 'none') }, function () { /* ignore */ })
+            po('paint', function (e) { mark('paint', e.name, e.startTime) })
+            po('largest-contentful-paint', function (e) { mark('lcp', Math.round(e.size) + 'px2 ' + sel(e.element) + (e.url ? ' ' + cut(e.url, 50) : ''), e.startTime) })
+            po('longtask', function (e) { mark('longtask', Math.round(e.duration) + 'ms', e.startTime) })
+            po('layout-shift', function (e) { mark('cls', 'v=' + e.value.toFixed(4) + (e.hadRecentInput ? ' recentInput' : '') + ' ' + (e.sources || []).slice(0, 3).map(function (s) { return sel(s.node) + '@' + box(s.previousRect) + '>' + box(s.currentRect) }).join(' '), e.startTime) })
+
+            /* --- перехват history.* (location.reload/replace/assign браузер переопределять не даёт — смотри beforeunload и nav следующего старта) --- */
+            ;['pushState', 'replaceState', 'back', 'forward', 'go'].forEach(function (m) { try { var H = History.prototype, o = H[m]; H[m] = function () { mark('hist', m + ' ' + stack()); return o.apply(this, arguments) } } catch (e) { /* ignore */ } })
+            try {
+              var d = Object.getOwnPropertyDescriptor(location, 'reload'), o0 = location.reload
+              CTX.reloadHook = d && d.configurable ? 'hooked' : 'unforgeable'
+              if (d && d.configurable) Object.defineProperty(location, 'reload', { configurable: true, value: function () { mark('location.reload', stack()); save('reload-call'); return o0.apply(location, arguments) } })
+            } catch (e) { CTX.reloadHook = 'error' }
+            } catch (e) { /* ignore */ }
+          }
+          setTimeout(late, 500) /* запасной вызов: если кадров нет (страница скрыта) */
+
+          /* --- семплер кадров: первые ~3с (+0,7с после ухода сплэша, не дольше 6с). Пишет только изменившиеся поля --- */
+          function snap(t) {
+            var o = {}, sp = D.getElementById('splash'), rt = D.getElementById('root'), cs = getComputedStyle(D.documentElement), lg, k, out = []
+            function op(el) { return Math.round(parseFloat(getComputedStyle(el).opacity) * 100) / 100 }
+            o.bg = cs.backgroundColor.replace(/ /g, ''); o.bb = D.body ? getComputedStyle(D.body).backgroundColor.replace(/ /g, '') : '-'
+            o.so = sp ? op(sp) : '-'; o.sd = sp ? getComputedStyle(sp).display : '-'
+            o.fd = sp && sp.firstElementChild ? op(sp.firstElementChild) : '-'
+            lg = sp && sp.querySelector('.splash-logo, img, svg'); o.lg = lg ? box(lg.getBoundingClientRect()) : '-'
+            o.rt = rt ? rt.childElementCount : '-'; o.ng = (D.getElementById('offlineGuard') ? 'o' : '') + (D.getElementById('serverGuard') ? 's' : '') || '0'; o.fn = D.fonts ? D.fonts.status : '-'
+            for (k in o) if (S[k] !== String(o[k])) { S[k] = String(o[k]); out.push(k + '=' + S[k]) }
+            if (out.length) { lastW = t; mark('sample', out.join(' '), t) } else if (t - lastW >= 100) { lastW = t; mark('tick', '=', t) }
+          }
+          function frame(ts) {
+            try {
+              var t = now()
+              if (!firstF) { firstF = true; mark('raf-first', '', t); setTimeout(late, 0) } else if (prevTs && ts - prevTs > 40) mark('jank', Math.round(ts - prevTs) + 'ms', t)
+              prevTs = ts; snap(t)
+            } catch (e) { /* ignore */ }
+            if (P.now() < rafUntil) requestAnimationFrame(frame); else { rafOn = false; mark('raf-stop') }
+          }
+          rafOn = true; requestAnimationFrame(frame)
+
+          /* --- сохранение: кольцо из RING стартов, каждый ≤ LIM символов (самые частые повторы прореживаем) --- */
+          function fit(rec) {
+            var c = JSON.parse(JSON.stringify(rec)), k = 0
+            c.cut = {}
+            while (JSON.stringify(c).length > LIM && k++ < 30) {
+              var cnt = {}, top = '', j = 0
+              c.ev.forEach(function (e) { cnt[e[1]] = (cnt[e[1]] || 0) + 1 })
+              for (var i in cnt) if (!top || cnt[i] > cnt[top]) top = i
+              if (!top || cnt[top] < 6) break
+              c.ev = c.ev.filter(function (e) { if (e[1] !== top) return true; j++; var keep = j <= 2 || j > cnt[top] - 2 || j % 2; if (!keep) c.cut[top] = (c.cut[top] || 0) + 1; return keep })
+            }
+            while (JSON.stringify(c).length > LIM && c.ev.length > 10) { c.cut.mid = (c.cut.mid || 0) + Math.ceil(c.ev.length / 10); c.ev.splice(Math.floor(c.ev.length * 0.4), Math.ceil(c.ev.length / 10)) }
+            return c
+          }
+          function save(why) {
+            if (saves++ > 12 || W.__startLogOff) return /* __startLogOff — админка очистила журнал: эту запись больше не пишем */
+            try {
+              REC.end = why; REC.endT = now(); REC.splash = (W.__splashLog || []).slice(0, 30).map(function (s) { return cut(s, 140) })
+              var list = []
+              try { list = JSON.parse(localStorage.getItem(KEY)) } catch (e) { /* ignore */ }
+              if (!Array.isArray(list)) list = []
+              list = list.filter(function (r) { return r && r.id !== REC.id })
+              if (list.length && REC.gap == null) REC.gap = Date.parse(REC.id) - Date.parse(list[list.length - 1].id)
+              list.push(fit(REC))
+              localStorage.setItem(KEY, JSON.stringify(list.slice(-RING)))
+            } catch (e) { /* квота / приватный режим — журнал остаётся в window.__startLog */ }
+          }
+          setTimeout(function () {
+            try {
+              var sf = safe(); if (sf !== CTX.safe) mark('safe-changed', sf)
+              P.getEntriesByType('resource').filter(function (e) { return e.duration > 300 }).slice(0, 10).forEach(function (e) { mark('res-slow', cut(e.name.replace(/https?:\/\/[^/]+/, ''), 60) + ' ' + Math.round(e.startTime) + '>' + Math.round(e.responseEnd) + ' ' + (e.transferSize || 0) + 'B', e.responseEnd) })
+            } catch (e) { /* ignore */ }
+            save('t' + T_END); closed = true
+          }, T_END)
+        }
+        try { run() } catch (e) { /* журнал старта не должен ничего ломать */ }
+      })()
+    </script>
     <!-- Адрес нашего бэкенда (Supabase) для сторожа «сервер недоступен» (public/net-guard.js). Публичный URL,
          не секрет; Vite подставляет его при сборке (%VITE_SUPABASE_URL% — тот же env, что у клиента Supabase).
          Если переменной нет — остаётся текст «%VITE_…%», сторож это распознаёт и проверку не запускает -->
@@ -249,6 +397,7 @@
         if (cssLink) cssLink.addEventListener('error', window.__pithyCssReady);
         window.__pithyReady = function (why) {
           slog('приложение готово: ' + (why || '?'));
+          if (window.__startMark) window.__startMark('pithyReady', why); /* метка для журнала старта (Админ → «Старт») */
           setTimeout(function () { appReady = true; maybeHide(); },
             Math.max(0, MIN - (performance.now() - t0)));
         };

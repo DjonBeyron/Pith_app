@@ -1,0 +1,67 @@
+/* Админ → «Старт» (features/admin/start/AdminStartTab.jsx): журнал запуска приложения. Каркас общий с admin-errors.css
+   (aeWrap/aeHead/aeHint/aeRefresh); здесь только список стартов и подробный журнал (префикс ast) */
+
+.astHowto {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #2f3a1c;
+  border-radius: 10px;
+  background: #151a0f;
+  color: #cfe9a0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.astBtns { display: flex; flex-wrap: wrap; gap: 8px; }
+.astBtns .aeRefresh:disabled { opacity: 0.45; cursor: default; }
+
+.astRow {
+  background: #14161b;
+  border: 1px solid #23262d;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.astRowOpen { border-color: #3a4128; }
+.astRowHead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.astWhen { font-size: 14px; font-weight: 600; color: #e0e0e0; }
+.astTags { display: flex; flex-wrap: wrap; gap: 5px; }
+.astTag {
+  padding: 2px 8px;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #aaa;
+}
+.astTagCold { color: #7cc4ff; border-color: #25405a; }
+.astTagWarm { color: #f1bd3c; border-color: #4f4320; }
+.astTagOn { color: #b6fe3b; border-color: #35461c; }
+.astTagOff, .astTagWarn { color: #f87171; border-color: #5a2a2a; }
+.astSum { font-size: 12px; color: #999; line-height: 1.4; }
+
+.astDetail { display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px; }
+.astPre {
+  margin: 0;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 8px;
+  background: #0d0f12;
+  color: #cfd6dc;
+  font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+}

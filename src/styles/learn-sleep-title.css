@@ -1,46 +1,60 @@
-/* «Замыкание» надписи «Памяти пора отдыхать» (LearnMainAction.jsx, режим сна): текст мигает как неисправная
-   проводка В ТАКТ искрам на концах разорванного кабеля (memory-sparks.css). Периоды и задержки — те же CSS-переменные
-   --p / --d, что у разрядов (один источник — sparkTiming.js: BOLT_T[0] и ARC_T), поэтому мерцание начинается ровно с
-   вспышки разряда (его кадр — 2 % периода, у дуги 0,8 %; здесь мерцание стартует в те же доли) и повторяется с тем же
-   периодом; в паузах между вспышками надпись стабильна. Чистый CSS, только opacity и transform (текст рендерится как
-   текст, без filter и анимации text-shadow), steps(1, end) с неравными интервалами, JS-таймеров нет. Две независимые
-   анимации на двух вложенных элементах, потому что на одном они спорили бы за opacity: .lrMainTitle — с главным
-   разрядом (его же зелёная копия ::after), .lrMainFlick внутри — с редкой дугой, сильнее. Стоит в скрытой вкладке
-   (.shellV2TabHidden), при «уменьшить движение»; под плеером урока ставит на паузу html.lessonOpen (lesson-open.css) */
+/* «Замыкание» надписи «Памяти пора отдыхать» (LearnMainAction.jsx, режим сна): как короткое замыкание в проводке, В ТАКТ
+   искрам на концах разорванного кабеля (memory-sparks.css). Последовательность: белый текст → вспышка и неровный
+   дребезг (переходы ~60–110 мс) → ПОЛНОЕ ГАШЕНИЕ в чёрное (opacity 0, текст пропадает на ~0,9 с) → неровное включение
+   (3 мерцания) → стабильный белый. Периоды и задержки — CSS-переменные --p / --d из одного источника sparkTiming.js:
+   у главной последовательности сдвиг первого разряда BOLT_T[0] и период 2 × BOLT_T[0] (7,4 с — длинная
+   последовательность ~2,1 с, нужен покой ≥ 1 с, поэтому идёт с каждым вторым разрядом: старт совпадает с вспышкой разряда,
+   его кадр — 2 % от 3,7 с = 74 мс, здесь первая вспышка на 1 % от 7,4 с = те же 74 мс); у дуги ARC_T (8,5 с / 2 с) —
+   короткая сильная последовательность ~1,3 с. В паузах надпись стабильна. Чистый CSS, только opacity и transform
+   (текст рендерится как текст, без filter и анимации text-shadow), steps(1, end) с неравными интервалами, JS-таймеров нет.
+   Две анимации на двух вложенных элементах (на одном они спорили бы за opacity; множатся — при редком совпадении дуги с
+   главной последовательностью выходит ещё более «жёсткое» замыкание): .lrMainTitle — главная (с зелёной копией ::after),
+   .lrMainFlick внутри — дуга. Стоит в скрытой вкладке (.shellV2TabHidden) и при «уменьшить движение»; под плеером урока
+   ставит на паузу html.lessonOpen (lesson-open.css) */
 .lrMainDone .lrMainFlick { display: inline-block; } /* transform не действует на строчный элемент */
-.lrMainDone .lrMainTitle { animation: lrTitleBolt var(--p, 3.7s) steps(1, end) var(--d, 0s) infinite; }
+.lrMainDone .lrMainTitle { animation: lrTitleBolt var(--p, 7.4s) steps(1, end) var(--d, 0s) infinite; }
 .lrMainDone .lrMainFlick { animation: lrTitleArc var(--p, 8.5s) steps(1, end) var(--d, 0s) infinite; }
 
-/* Главный разряд (memBoltA: вспышка с 2 %, пауза с 4 %, эхо с 5 % до 8 %): ≈ 220 мс при периоде 3,7 с —
-   1 → .35 → 1 → .6 → 1 → .6 → 1 → .8 → 1 и микро-сдвиг на 1–2 кадра */
+/* Главная (1 % = 74 мс при 7,4 с). Мс от старта: 74 вспышка .35 · 164 вкл · 234 .5 · 344 вкл · 404 .25 · 504 .7 ·
+   584 .1 · 674–1560 ЧЁРНОЕ (886 мс) · 1560 .5 · 1660 0 · 1750 .8 · 1820 .2 · 1930 вкл · 2000 .6 · 2100 стабильно */
 @keyframes lrTitleBolt {
   0% { opacity: 1; transform: translateX(0); }
-  2% { opacity: 0.35; transform: translateX(0.5px); }
-  3.2% { opacity: 1; transform: translateX(0); }
-  4% { opacity: 0.6; transform: translateX(-0.5px); }
-  5% { opacity: 1; transform: translateX(0); }
-  5.8% { opacity: 0.6; }
-  6.8% { opacity: 1; }
-  7.6% { opacity: 0.8; }
-  8%, 100% { opacity: 1; transform: translateX(0); }
+  1% { opacity: 0.35; transform: translateX(0.5px); }
+  2.22% { opacity: 1; transform: translateX(0); }
+  3.16% { opacity: 0.5; transform: translateX(-0.5px); }
+  4.65% { opacity: 1; transform: translateX(0); }
+  5.46% { opacity: 0.25; transform: translateX(0.5px); }
+  6.81% { opacity: 0.7; transform: translateX(0); }
+  7.89% { opacity: 0.1; transform: translateX(-0.5px); }
+  9.11% { opacity: 0; transform: translateX(0); }
+  21.08% { opacity: 0.5; transform: translateX(0.5px); }
+  22.43% { opacity: 0; transform: translateX(0); }
+  23.65% { opacity: 0.8; transform: translateX(-0.5px); }
+  24.59% { opacity: 0.2; transform: translateX(0); }
+  26.08% { opacity: 1; transform: translateX(0.5px); }
+  27.03% { opacity: 0.6; transform: translateX(0); }
+  28.38%, 100% { opacity: 1; transform: translateX(0); }
 }
-/* Дуга (memArcFlash: вспышка с 0,8 %, эхо с 2,4 % до 3 %): ≈ 190 мс при периоде 8,5 с, глубже — до .15 */
+/* Дуга (1 % = 85 мс при 8,5 с), короче и резче. Мс: 68 вспышка .2 · 138 вкл · 198 .1 · 278–980 ЧЁРНОЕ (702 мс) ·
+   980 .4 · 1070 0 · 1130 .8 · 1200 .3 · 1290 стабильно */
 @keyframes lrTitleArc {
   0% { opacity: 1; transform: translateX(0); }
-  0.8% { opacity: 0.15; transform: translateX(-0.5px); }
-  1.2% { opacity: 1; transform: translateX(0); }
-  1.6% { opacity: 0.5; transform: translateX(0.5px); }
-  2% { opacity: 1; transform: translateX(0); }
-  2.4% { opacity: 0.25; transform: translateX(-0.5px); }
-  2.7% { opacity: 0.8; transform: translateX(0); }
-  3%, 100% { opacity: 1; transform: translateX(0); }
+  0.8% { opacity: 0.2; transform: translateX(-0.5px); }
+  1.62% { opacity: 1; transform: translateX(0); }
+  2.33% { opacity: 0.1; transform: translateX(0.5px); }
+  3.27% { opacity: 0; transform: translateX(0); }
+  11.53% { opacity: 0.4; transform: translateX(-0.5px); }
+  12.59% { opacity: 0; transform: translateX(0); }
+  13.29% { opacity: 0.8; transform: translateX(0.5px); }
+  14.12% { opacity: 0.3; transform: translateX(0); }
+  15.18%, 100% { opacity: 1; transform: translateX(0); }
 }
 
 /* Зелёная копия текста (::after, content: attr(data-text) — LearnMainAction.jsx ставит data-text только в режиме сна;
-   «/ ''» — без альтернативного текста, чтобы скринридер не читал дважды). Надпись белая (learn.css), копия невидима,
-   пока нет разряда; вспыхивает с ним (те же --p/--d): серия коротких неравных вспышек и затухание зелёного в белый
-   ≈ 0,8 с (как число в круге: быстро загорается, медленно тускнеет). Анимируется только opacity слоя; text-shadow
-   статичен (виден только вместе с opacity) */
+   «/ ''» — без альтернативного текста, чтобы скринридер не читал дважды). Надпись белая (learn.css), копия невидима в
+   покое; сидит внутри .lrMainTitle, поэтому гаснет и включается вместе с ним (его opacity множится на её), и ключевые
+   кадры у неё в те же моменты: зелёная вспышка и дребезг, в чёрном провале её не видно, при включении снова зелёная, потом
+   зелень плавно (≈ 0,6 с) остывает в белый. Анимируется только opacity слоя; text-shadow статичен */
 .lrMainDone .lrMainTitle::after {
   content: attr(data-text) / '';
   position: absolute;
@@ -49,18 +63,19 @@
   text-shadow: 0 0 6px rgba(182, 254, 59, 0.5);
   opacity: 0;
   pointer-events: none;
-  animation: lrTitleShort var(--p, 3.7s) linear var(--d, 0s) infinite;
+  animation: lrTitleShort var(--p, 7.4s) steps(1, end) var(--d, 0s) infinite;
 }
 @keyframes lrTitleShort {
-  0% { opacity: 0; animation-timing-function: steps(1, end); }
-  2% { opacity: 1; animation-timing-function: steps(1, end); }
-  3% { opacity: 0.15; animation-timing-function: steps(1, end); }
-  4% { opacity: 1; animation-timing-function: steps(1, end); }
-  5% { opacity: 0; animation-timing-function: steps(1, end); }
-  5.8% { opacity: 0.8; animation-timing-function: steps(1, end); }
-  6.8% { opacity: 0.2; animation-timing-function: steps(1, end); }
-  7.6% { opacity: 1; animation-timing-function: ease-out; }
-  24%, 100% { opacity: 0; }
+  0% { opacity: 0; }
+  1% { opacity: 1; }
+  2.22% { opacity: 0.2; }
+  3.16% { opacity: 1; }
+  4.65% { opacity: 0.15; }
+  5.46% { opacity: 1; }
+  9.11% { opacity: 0; }
+  21.08% { opacity: 1; }
+  26.08% { opacity: 1; animation-timing-function: ease-out; }
+  33.8%, 100% { opacity: 0; }
 }
 
 .shellV2TabHidden .lrMainDone .lrMainTitle,

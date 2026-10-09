@@ -1,0 +1,56 @@
+/* ── NodeSayPhrasePicker — поля ноды «Сказать фразу» (остальное — классы NodeTypeWordPicker/word-choice) ── */
+
+.nodeSayRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.nodeSayField {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nodeSayField input[type="range"] { width: 100%; accent-color: #b6fe3b; }
+
+.nodeSaySelect {
+  background: #12141d;
+  border: 1.5px solid #2a2d35;
+  border-radius: 7px;
+  padding: 4px 6px;
+  font-size: 12px;
+  color: #e0e0e0;
+  font-family: inherit;
+}
+
+.nodeSayCheck {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #c8cad2;
+  cursor: pointer;
+}
+
+.nodeSayWarn {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #f0b86a;
+}
+
+/* Превью «как проверит приложение»: слова фразы, ключевые — лаймом, ниже сколько слов нужно сказать */
+.nodeSayPreview {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: #12141d;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e0e0e0;
+}
+.nodeSayKey { color: #b6fe3b; font-weight: 700; }
+.nodeSayNeed { color: #666; font-size: 11px; }

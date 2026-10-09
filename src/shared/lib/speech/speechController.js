@@ -1,11 +1,11 @@
-// Контроллер попыток распознавания речи для пробы «Голос» (чистый JS, без React и без window — всё передаётся снаружи).
+// Контроллер попыток распознавания речи (общий для пробы «Голос» в админке и модуля «Сказать фразу»; чистый JS,
+// без React и без window — всё передаётся снаружи).
 // Одно нажатие «Сказать» = «заход» (run) с зафиксированными эталоном и языком; внутри — до MAX_ATTEMPTS попыток.
 // Каждая попытка = НОВЫЙ экземпляр recognition + свой attemptId; события чужого/закрытого экземпляра игнорируются.
 import {
   LISTEN_SILENCE_MS, PERMISSION_GUARD_MS, MAX_ATTEMPTS, RETRY_PAUSE_MS, STOP_FORCE_MS,
-  shouldRetry, isQuietCode, retryNotice, LOUD_HINT, NOTICE_WAIT_PERMISSION, NOTICE_BLOCKED,
+  shouldRetry, isQuietCode, retryNotice, LOUD_HINT, NOTICE_WAIT_PERMISSION, NOTICE_BLOCKED, toPercent,
 } from './speechPolicy.js'
-import { captureLogFields, toPercent } from './speechCapture.js'
 
 export const emptyView = {
   status: 'idle', // idle | starting | listening | retrying | done | error
@@ -20,7 +20,10 @@ const HANDLERS = ['onstart', 'onaudiostart', 'onspeechstart', 'onresult', 'onerr
 
 export function createSpeechController({
   createRecognition, queryPerm = async () => 'unavailable', getMode = () => 'browser',
-  capture = null, getCapture = () => 'plain', // capture — менеджер параллельного потока (режимы B/C), см. speechCaptureManager.js
+  // Необязательные хуки режимов захвата B/C (только проба «Голос», admin/speech): capture — менеджер параллельного
+  // потока (speechCaptureManager.js), getCapture — режим на момент тапа, logFields(mode, info) — доп. поля записи журнала.
+  // Модуль «Сказать фразу» их не передаёт: режим A (только SpeechRecognition), ничего параллельно с ним не открывается
+  capture = null, getCapture = () => 'plain', logFields = () => ({}),
   now = () => Date.now(), perfNow = () => Date.now(), onView = () => {}, onEntry = () => {},
 }) {
   let seq = 0     // счётчик attemptId (на каждый экземпляр recognition)
@@ -54,7 +57,7 @@ export function createSpeechController({
       t: a.startedAt, mode: getMode(), permBefore: a.permBefore, permAfter: 'unavailable',
       msStart: a.msStart, msAudio: a.msAudio, msResult: a.msResult, error,
       retry: a.retry, run: run?.no ?? null, last, outcome,
-      conf: toPercent(view.final?.confidence), ...captureLogFields(a.capMode, a.capInfo),
+      conf: toPercent(view.final?.confidence), ...logFields(a.capMode, a.capInfo),
     }
     Promise.resolve().then(queryPerm).catch(() => 'unavailable').then(p => { entry.permAfter = p; onEntry(entry) })
   }

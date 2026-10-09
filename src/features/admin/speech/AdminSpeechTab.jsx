@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getCapabilities, queryMicPermission, EXAMPLES } from './speechSupport.js'
+import { getCapabilities, queryMicPermission, EXAMPLES } from '../../../shared/lib/speech/speechSupport.js'
 import { readLog } from './speechLog.js'
 import { useSpeechProbe } from './useSpeechProbe.js'
 import { useSpeechCapture } from './useSpeechCapture.js'

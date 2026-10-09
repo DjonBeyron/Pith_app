@@ -1,4 +1,4 @@
-// Сравнение сказанной фразы с эталоном для пробы «Голос» (чистые функции, без React).
+// Сравнение сказанной фразы с эталоном (проба «Голос» и модуль «Сказать фразу»; чистые функции, без React).
 // Порядок слов не важен: слова эталона сопоставляются со словами услышанного жадно, лучшими парами первыми.
 
 // Сокращения → полная форма (чтобы «I'm» и «I am» совпадали). Апострофы приводим к ' заранее
@@ -62,11 +62,11 @@ export function tolerance(len) {
 }
 
 /**
- * Сравнить услышанное с эталоном.
+ * Сравнить услышанное с эталоном. passRatio — доля слов эталона для «засчитано» (по умолчанию 0,7; у модуля — порог ноды).
  * @returns {{matched: string[], missed: string[], extra: string[], items: {word: string, ok: boolean, heard: string|null}[],
  *   ratio: number, passed: boolean}} items — слова эталона по порядку (для раскраски)
  */
-export function matchPhrase(reference, heard, keywords = []) {
+export function matchPhrase(reference, heard, keywords = [], passRatio = PASS_RATIO) {
   const ref = tokenize(reference)
   const hyp = tokenize(heard)
   const pairs = []
@@ -91,15 +91,15 @@ export function matchPhrase(reference, heard, keywords = []) {
   // ключевое слово, которого нет в эталоне, не учитываем; слово из нескольких токенов — все токены должны совпасть
   const keys = [...new Set(keywords.flatMap(tokenize))].filter(k => ref.includes(k))
   const keysOk = keys.every(k => items.some(it => it.word === k && it.ok))
-  return { matched, missed, extra, items, ratio, passed: ref.length > 0 && ratio >= PASS_RATIO && keysOk }
+  return { matched, missed, extra, items, ratio, passed: ref.length > 0 && ratio >= passRatio - 1e-9 && keysOk }
 }
 
 /** Лучший из вариантов распознавания (maxAlternatives): больше ratio, при равенстве — меньше лишних слов */
-export function matchBest(reference, alternatives, keywords = []) {
+export function matchBest(reference, alternatives, keywords = [], passRatio = PASS_RATIO) {
   let best = null
   alternatives.forEach((text, index) => {
-    const r = matchPhrase(reference, text, keywords)
+    const r = matchPhrase(reference, text, keywords, passRatio)
     if (!best || r.ratio > best.ratio || (r.ratio === best.ratio && r.extra.length < best.extra.length)) best = { ...r, index, text }
   })
-  return best ?? { ...matchPhrase(reference, '', keywords), index: -1, text: '' }
+  return best ?? { ...matchPhrase(reference, '', keywords, passRatio), index: -1, text: '' }
 }

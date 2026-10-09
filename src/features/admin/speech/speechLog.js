@@ -1,7 +1,7 @@
 // Журнал попыток распознавания в localStorage ЭТОГО устройства (на сервер не уходит, звук и текст не хранятся).
-import { MODE_LABEL, PERM_LABEL } from './speechSupport.js'
+import { MODE_LABEL, PERM_LABEL } from '../../../shared/lib/speech/speechSupport.js'
 import { fmtCapture, fmtConf } from './speechCapture.js'
-import { MAX_ATTEMPTS } from './speechPolicy.js'
+import { MAX_ATTEMPTS } from '../../../shared/lib/speech/speechPolicy.js'
 
 export const LOG_KEY = 'pithy_admin_voice_probe_v1'
 export const LOG_KEEP = 50  // сколько записей хранить

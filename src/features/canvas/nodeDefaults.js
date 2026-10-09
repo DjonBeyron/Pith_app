@@ -20,6 +20,9 @@ export const TYPED_PAIRS = {
   phrase_assembly: ['phrase_correct', 'phrase_wrong'],
   fill_blanks:     ['fill_correct',   'fill_wrong'],
   type_word:       ['type_correct',   'type_wrong'],
+  // Сказать фразу: основной выход (сказал / «Получилось») и необязательная ветка «Не могу говорить» (пропуск; если не
+  // соединена — плеер идёт по основному). «Неверно» у речи нет: она тренировка и не штрафуется
+  say_phrase:      ['say_done',       'say_skip'],
   photo_choice:    ['photo_correct',  'photo_wrong'],
   registration:    ['reg_submit',     'reg_cancel'],
   table:           ['table_correct',  'table_wrong'],

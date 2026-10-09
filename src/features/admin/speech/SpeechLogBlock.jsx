@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MODE_LABEL, capsReportLines } from './speechSupport.js'
+import { MODE_LABEL, capsReportLines } from '../../../shared/lib/speech/speechSupport.js'
 import { fmtCapture, fmtConf } from './speechCapture.js'
 import { LOG_SHOW, DIALOG_LABEL, fmtMs, fmtAttempt, dialogCount, logReportLines, clearLog } from './speechLog.js'
 

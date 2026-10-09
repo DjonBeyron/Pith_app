@@ -24,6 +24,9 @@ export default function App() {
   // включается строкой VITE_DEBUG_TOOLS=1 в .env.local. Значение известно на
   // этапе сборки, поэтому Vite вырезает и ветку, и сам чанк целиком
   // Звуки интерфейса — в HTTP-кэш сразу после старта (sounds.js)
+  // Метка в журнале старта (Админ → «Старт»): App смонтирован (первый эффект)
+  useEffect(() => { window.__startMark?.('app-mounted') }, [])
+
   useEffect(() => {
     const id = setTimeout(warmSoundFiles, 2500)
     return () => clearTimeout(id)

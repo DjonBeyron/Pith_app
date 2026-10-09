@@ -1,4 +1,4 @@
-import { errorHelp } from './speechSupport.js'
+import { errorHelp } from '../../../shared/lib/speech/speechSupport.js'
 import SpeechResult from './SpeechResult.jsx'
 
 const fmtConf = c => (typeof c === 'number' ? `${Math.round(c * 100)}%` : 'нет данных')

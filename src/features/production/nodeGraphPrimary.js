@@ -146,6 +146,7 @@ const BRANCH_LABEL = {
   photo_wrong: '✗ Неверно',
   table_wrong: '✗ Неверно',
   type_wrong: '✗ Неверно',
+  say_skip: '↷ Не могу говорить',
   reg_cancel: '✕ Отмена',
 }
 const PRIMARY_LABEL = {
@@ -154,6 +155,7 @@ const PRIMARY_LABEL = {
   photo_correct: '✓ Верно',
   table_correct: '✓ Верно',
   type_correct: '✓ Верно',
+  say_done: '✓ Сказал(а)',
   reg_submit: '✓ Отправить',
 }
 

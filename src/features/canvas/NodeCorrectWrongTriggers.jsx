@@ -2,11 +2,12 @@
 // режим) и phrase_assembly: тот же блок дословно повторялся в
 // NodeTablePicker.jsx и NodePhraseAssemblyPicker.jsx (см. NodeDistractorList.jsx
 // с тем же поводом — оба файла упирались в потолок 400 строк из CLAUDE.md).
-export default function NodeCorrectWrongTriggers({ correctThen, wrongThen, correctKey, wrongKey, onSetTrigger, otherNodes, rowRefs }) {
+// okLabel/errLabel — свои подписи портов (по умолчанию «Верно/Неверно»; у «Сказать фразу» — «Сказал(а)/Не могу говорить»).
+export default function NodeCorrectWrongTriggers({ correctThen, wrongThen, correctKey, wrongKey, onSetTrigger, otherNodes, rowRefs, okLabel = '✓ Верно →', errLabel = '✗ Неверно →' }) {
   return (
     <div className="nodeWcTriggerWrap">
       <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set(correctKey, el)}>
-        <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
+        <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">{okLabel}</span>
         <select
           className="nodeWcTriggerSelect"
           value={correctThen}
@@ -20,7 +21,7 @@ export default function NodeCorrectWrongTriggers({ correctThen, wrongThen, corre
         </select>
       </div>
       <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set(wrongKey, el)}>
-        <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">✗ Неверно →</span>
+        <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">{errLabel}</span>
         <select
           className="nodeWcTriggerSelect"
           value={wrongThen}

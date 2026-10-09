@@ -1,4 +1,4 @@
-import { EXAMPLES } from './speechSupport.js'
+import { EXAMPLES } from '../../../shared/lib/speech/speechSupport.js'
 import SpeechOutput from './SpeechOutput.jsx'
 import SpeechCaptureBlock from './SpeechCaptureBlock.jsx'
 

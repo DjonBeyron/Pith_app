@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createCaptureManager } from './speechCaptureManager.js'
-import { setup, FakeRec, alt } from './speechTestKit.js'
-import { RETRY_PAUSE_MS } from './speechPolicy.js'
+import { setup, FakeRec, alt } from '../../../shared/lib/speech/speechTestKit.js'
+import { RETRY_PAUSE_MS } from '../../../shared/lib/speech/speechPolicy.js'
+import { captureLogFields } from './speechCapture.js'
 
 // Подставные getUserMedia / AudioContext / AnalyserNode: уровень задаём вручную (тишина 128, размах — 64/192)
 function fakeEnv() {
@@ -115,7 +116,7 @@ describe('контроллер + поток: привязка к attemptId', () 
   function build(mode = 'warm') {
     const env = fakeEnv()
     const capture = createCaptureManager(env)
-    const s = setup({ capture, getCapture: () => mode })
+    const s = setup({ capture, getCapture: () => mode, logFields: captureLogFields })
     return { env, capture, ...s }
   }
 

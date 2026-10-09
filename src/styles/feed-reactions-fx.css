@@ -11,20 +11,21 @@
 .likeBurstHeart {
   position: absolute;
   left: 50%;
-  top: 2px;
-  width: 12px;
-  height: 12px;
+  top: 3px; /* верхняя точка иконки 31px */
+  width: 15px;
+  height: 15px;
   color: #ff6a6a;
   opacity: 0;
   transform: translate(-50%, 0) scale(0.4);
   animation: likeBurstFly 0.7s ease-out forwards;
 }
 
-.likeBurstHeart:nth-child(1) { --tx: -16px; --ty: -30px; --rot: -20deg; width: 10px; height: 10px; animation-delay: 0s; }
-.likeBurstHeart:nth-child(2) { --tx: -7px;  --ty: -40px; --rot: -8deg;  width: 12px; height: 12px; animation-delay: 0.04s; }
-.likeBurstHeart:nth-child(3) { --tx: 2px;   --ty: -44px; --rot: 4deg;   width: 14px; height: 14px; animation-delay: 0.08s; }
-.likeBurstHeart:nth-child(4) { --tx: 11px;  --ty: -38px; --rot: 14deg;  width: 9px;  height: 9px;  animation-delay: 0.02s; }
-.likeBurstHeart:nth-child(5) { --tx: 18px;  --ty: -26px; --rot: 22deg;  width: 11px; height: 11px; animation-delay: 0.1s; }
+/* Разлёт ×1.25 под иконку 31px; вправо ближе (≤10), чтобы сердечки не вылезали за край экрана при right 6 */
+.likeBurstHeart:nth-child(1) { --tx: -18px; --ty: -38px; --rot: -20deg; width: 12px; height: 12px; animation-delay: 0s; }
+.likeBurstHeart:nth-child(2) { --tx: -9px; --ty: -50px; --rot: -8deg;  width: 15px; height: 15px; animation-delay: 0.04s; }
+.likeBurstHeart:nth-child(3) { --tx: 0px;   --ty: -55px; --rot: 4deg;   width: 17px; height: 17px; animation-delay: 0.08s; }
+.likeBurstHeart:nth-child(4) { --tx: 6px;   --ty: -47px; --rot: 14deg;  width: 11px; height: 11px; animation-delay: 0.02s; }
+.likeBurstHeart:nth-child(5) { --tx: 10px;  --ty: -32px; --rot: 22deg;  width: 14px; height: 14px; animation-delay: 0.1s; }
 
 @keyframes likeBurstFly {
   0%   { opacity: 0; transform: translate(-50%, 0) scale(0.4) rotate(0deg); }

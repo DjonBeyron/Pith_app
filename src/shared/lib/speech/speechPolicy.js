@@ -1,4 +1,4 @@
-// Правила попытки распознавания (проба «Голос»): таймеры, автоповторы, тексты статусов. Чистые данные и функции.
+// Правила попытки распознавания (общие для пробы «Голос» и модуля «Сказать фразу»): таймеры, автоповторы, тексты статусов. Чистые данные и функции.
 
 export const LISTEN_SILENCE_MS = 8000   // тишина после реального начала записи (audiostart) → «Не слышу речь»
 export const PERMISSION_GUARD_MS = 30000 // от тапа до audiostart: пока висит диалог разрешения микрофона
@@ -27,3 +27,6 @@ export function retryNotice(code, nextNo, max = MAX_ATTEMPTS) {
 
 export const NOTICE_WAIT_PERMISSION = 'Ждём разрешение микрофона…'
 export const NOTICE_BLOCKED = 'Браузер не дал запустить автоповтор без нажатия — нажмите «Ещё раз».'
+
+/** 0..1 → целые проценты; null/не число → null */
+export const toPercent = v => (typeof v === 'number' && Number.isFinite(v) ? Math.round(Math.min(1, Math.max(0, v)) * 100) : null)

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getRecognitionCtor, isStandalone, queryMicPermission } from './speechSupport.js'
+import { getRecognitionCtor, isStandalone, queryMicPermission } from '../../../shared/lib/speech/speechSupport.js'
 import { appendLog, dialogGuess } from './speechLog.js'
-import { createSpeechController, emptyView, isBusy } from './speechController.js'
+import { createSpeechController, emptyView, isBusy } from '../../../shared/lib/speech/speechController.js'
+import { captureLogFields } from './speechCapture.js'
 
 // Обёртка React над speechController: попытка по тапу («Сказать»), каждая попытка — новый экземпляр recognition.
 // Микрофон включается только внутри start(), гасится на результате, ошибке, «Стоп», таймерах, уходе со страницы и
@@ -14,6 +15,7 @@ export function useSpeechProbe({ reference, lang, onLogged, capture, getCapture 
     queryPerm: queryMicPermission,
     capture, // менеджер параллельного потока (режимы B/C) — закрывается вместе с попыткой
     getCapture,
+    logFields: captureLogFields, // поля режима захвата B/C в записи журнала
     getMode: () => (isStandalone() ? 'pwa' : 'browser'),
     now: () => Date.now(),
     perfNow: () => performance.now(),

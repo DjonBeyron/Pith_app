@@ -331,7 +331,7 @@ export default function NodeContentEditor({ lessonXp = 0,
       {node.type === 'registration' && (
         <NodeRegistrationTriggers onTriggerMeasure={onTriggerMeasure} />
       )}
-      {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'fill_blanks' && node.type !== 'type_word' && node.type !== 'photo_choice' && node.type !== 'registration' && node.type !== 'table' && (
+      {node.type !== 'word_choice' && node.type !== 'phrase_assembly' && node.type !== 'fill_blanks' && node.type !== 'type_word' && node.type !== 'say_phrase' && node.type !== 'photo_choice' && node.type !== 'registration' && node.type !== 'table' && (
         collapsibleTriggers ? (
           <div className="triggerCollapse">
             <button

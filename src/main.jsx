@@ -41,6 +41,8 @@ applyPerfFlagClasses()
 // сворачивании (см. analytics/track.js)
 initAnalytics()
 
+// Метка в журнале старта (inline-скрипт index.html, Админ → «Старт»): модули выполнены, запускаем рендер
+window.__startMark?.('main-render')
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>

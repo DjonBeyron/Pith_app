@@ -2,13 +2,14 @@ import NodeWordChoicePicker     from './NodeWordChoicePicker.jsx'
 import NodePhraseAssemblyPicker from './NodePhraseAssemblyPicker.jsx'
 import NodeFillBlanksPicker     from './NodeFillBlanksPicker.jsx'
 import NodeTypeWordPicker       from './NodeTypeWordPicker.jsx'
+import NodeSayPhrasePicker      from './NodeSayPhrasePicker.jsx'
 import NodeTablePicker          from './NodeTablePicker.jsx'
 import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
 import NodeLessonLink           from './NodeLessonLink.jsx'
 import NodeRewardCheckbox       from './NodeRewardCheckbox.jsx'
 import { isRewardOn }           from '../../shared/lib/nodeReward.js'
 
-// Поля интерактивных типов-ответов (word_choice/phrase_assembly/fill_blanks/type_word/
+// Поля интерактивных типов-ответов (word_choice/phrase_assembly/fill_blanks/type_word/say_phrase/
 // table/photo_choice): каждый — свой пикер вариантов + привязка к уроку для
 // анализа знаний (NodeLessonLink, кроме word_choice — у него свой
 // statLessonId прямо в пикере) + чекбокс награды. Вынесено из
@@ -135,6 +136,28 @@ export default function NodeAnswerFields({
           value={tData.statLessonId ?? null}
           onChange={v => updateTypeData({ statLessonId: v })}
           moduleLessons={moduleLessons}
+        />
+        <NodeRewardCheckbox lessonXp={lessonXp} checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
+      </>
+    )
+  }
+
+  if (node.type === 'say_phrase') {
+    return (
+      <>
+        <NodeSayPhrasePicker
+          phrase={tData.phrase ?? ''}
+          translation={tData.translation ?? ''}
+          keywords={tData.keywords ?? ''}
+          threshold={tData.threshold ?? 70}
+          lang={tData.lang ?? 'en-US'}
+          listenAudio={tData.listenAudio !== false}
+          onChange={patch => updateTypeData(patch)}
+          triggers={node.triggers ?? []}
+          allNodes={allNodes}
+          nodeId={node.id}
+          onTriggersChange={triggers => onUpdate({ triggers })}
+          onTriggerMeasure={onTriggerMeasure}
         />
         <NodeRewardCheckbox lessonXp={lessonXp} checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
       </>

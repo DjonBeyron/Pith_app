@@ -12,8 +12,8 @@ import { cardHasAudio } from '../review/reviewSession.js'
 export const MIN_CARDS = 3
 
 // Задание в карточке — нода со своей парой «верно/неверно». Регистрация —
-// не задание, в колоду не берём
-const TASK_TYPES = new Set(Object.keys(TYPED_PAIRS).filter(t => t !== 'registration'))
+// не задание, в колоду не берём. «Сказать фразу» (микрофон) в повторение не берём: в v1 только в уроках
+const TASK_TYPES = new Set(Object.keys(TYPED_PAIRS).filter(t => t !== 'registration' && t !== 'say_phrase'))
 
 // Что годится «контекстом» перед заданием в черновике: сообщение, которое
 // ученик видит/слышит прямо перед вопросом

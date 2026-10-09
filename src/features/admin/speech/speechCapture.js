@@ -2,6 +2,8 @@
 // getUserMedia по режиму, RMS/пик по данным AnalyserNode, запоминание режима, формат журнала. Без React и window.
 // Web Speech API не даёт управлять усилением — поэтому проверяем, помогает ли ПАРАЛЛЕЛЬНО открытый поток с AGC.
 
+import { toPercent } from '../../../shared/lib/speech/speechPolicy.js'
+
 export const CAPTURE_KEY = 'pithy_admin_voice_probe_mode_v1'
 export const CAPTURE_MODES = ['plain', 'warm', 'warmns']
 export const DEFAULT_CAPTURE = 'plain'
@@ -40,8 +42,8 @@ export function rmsFromBytes(bytes) {
 /** Пик попытки: max из предыдущего пика и текущего уровня */
 export const nextPeak = (peak, level) => (level > peak ? level : peak)
 
-/** 0..1 → целые проценты; null/не число → null */
-export const toPercent = v => (typeof v === 'number' && Number.isFinite(v) ? Math.round(Math.min(1, Math.max(0, v)) * 100) : null)
+// toPercent живёт в общем speechPolicy.js (его же использует контроллер) — здесь реэкспорт для прежних импортов
+export { toPercent }
 export const fmtPercent = p => (typeof p === 'number' ? `${p}%` : '—')
 
 export function readCaptureMode(store = globalThis.localStorage) {

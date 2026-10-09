@@ -1,13 +1,17 @@
+import { useEffect } from 'react'
 import ChooseWordPanel     from './panels/choose-word/ChooseWordPanel.jsx'
 import { nodeFileKey } from './preloadQueue.js'
 import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.jsx'
 import FillBlanksPanel     from './panels/fill-blanks/FillBlanksPanel.jsx'
 import TypeWordPanel       from './panels/type-word/TypeWordPanel.jsx'
+import SayPhrasePanelLazy from './panels/say-phrase/SayPhrasePanelLazy.jsx'
+import { prefetchSayPhrasePanel } from './panels/say-phrase/sayPhrasePrefetch.js'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
 import TableDictatorPanel  from './panels/table-dictator/TableDictatorPanel.jsx'
 import TableManualPanel    from './panels/table-manual/TableManualPanel.jsx'
 import { wordOptionEvent } from './useAnswerStats.js'
+import { startIdlePrewarm } from '../../shared/lib/idlePrewarm.js'
 
 // Нижние панели ответов: выбор слова, сборка фразы, составь предложение,
 // напечатай слово, выбор фото, регистрация, таблица. Каждая привязана к последней видимой
@@ -18,7 +22,7 @@ import { wordOptionEvent } from './useAnswerStats.js'
 // PROJECT.md) — nodes/onSignalFired/hasSignalFired ей не нужны, в отличие от
 // PhraseAssemblyPanel/TypeWordPanel/TableManualPanel.
 export default function PlayerPanels({
-  wcNode, paNode, fbNode, twNode, pcNode, regNode, tableNode,
+  wcNode, paNode, fbNode, twNode, spNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
   // Сигналы ошибок (см. PROJECT.md) — table-manual, «Собери фразу» и «Напечатай слово» резолвят
   // signals[].ref по полному списку нод урока; onSignalFired(node, release,
@@ -37,8 +41,11 @@ export default function PlayerPanels({
   onNodeDone, record, wrongRef,
   handleWordAnswer, handleWordPick, handleWordReveal, handlePhraseAnswer, revealPhraseAnswers, handleRegAnswer,
   handlePhotoPick, handleXpEarned, onTableToChat, onTableLanded,
-  setWcPanelHeight, setPaPanelHeight, setFbPanelHeight, setTwPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
+  setWcPanelHeight, setPaPanelHeight, setFbPanelHeight, setTwPanelHeight, setSpPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
 }) {
+  // Урок с «Сказать фразу»: чанк панели подгружаем тихо, в простое (микрофон не трогаем — он только по тапу в панели)
+  const hasSayPhrase = nodes.some(n => n.type === 'say_phrase')
+  useEffect(() => (hasSayPhrase ? startIdlePrewarm([prefetchSayPhrasePanel]) : undefined), [hasSayPhrase])
   return (
     <>
       {wcNode && (
@@ -147,6 +154,20 @@ export default function PlayerPanels({
           }}
           onXpEarned={(amount, opts) => handleXpEarned(amount, twNode.id, opts)}
           onHeightChange={setTwPanelHeight}
+        />
+      )}
+      {spNode && (
+        <SayPhrasePanelLazy
+          key={`${spNode.id}:${epoch}:${spNode.visit ?? 0}`}
+          node={spNode}
+          xpAmount={xpMap.get(spNode.id) ?? 0}
+          onDone={trigger => { setSpPanelHeight(0); onNodeDone(spNode.id, trigger) }}
+          /* Сказанная фраза уходит пузырём справа (как «Напечатай слово»); третий аргумент — arriving.
+             Ошибок и штрафов у модуля нет (record/wrongRef не нужны) — речь тренировка, а не экзамен */
+          onAnswered={(text, result, arriving) => handlePhraseAnswer(spNode.id, text, result, arriving)}
+          onRevealAnswer={() => revealPhraseAnswers(spNode.id)}
+          onXpEarned={(amount, opts) => handleXpEarned(amount, spNode.id, opts)}
+          onHeightChange={setSpPanelHeight}
         />
       )}
       {pcNode && !photoChoiceStates[pcNode.id] && (

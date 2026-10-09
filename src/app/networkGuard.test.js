@@ -176,7 +176,9 @@ describe('тексты экрана «нет связи»: одни и те же
 })
 
 describe('стартовый сплэш index.html: нечему не совпасть с нативным кадром iOS', () => {
-  const index = readFileSync(resolve(PUBLIC, '../index.html'), 'utf8')
+  // Журнал старта (первый inline-скрипт в <head>, startLogScript.test.js) ТОЛЬКО наблюдает за страницей: читает standalone,
+  // innerHeight, слушает resize — он не двигает лого, поэтому проверки «позиция не зависит от JS» его не касаются
+  const index = readFileSync(resolve(PUBLIC, '../index.html'), 'utf8').replace(/<script>[\s\S]*?<\/script>/, '')
   const splashCss = index.match(/#splash \{[^}]*\}/)?.[0] ?? ''
   const bodyCss = readFileSync(resolve(PUBLIC, '../src/styles/base.css'), 'utf8').match(/\nbody \{[^}]*\}/)?.[0] ?? ''
 

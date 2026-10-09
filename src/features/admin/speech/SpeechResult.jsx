@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { matchBest } from './speechMatch.js'
+import { matchBest } from '../../../shared/lib/speech/speechMatch.js'
 
 // Сравнение итога с эталоном: слова эталона зелёные (услышаны) / красные тусклые (пропущены), лишние — серым,
 // процент и вердикт. Берём лучшую из alternatives (maxAlternatives).
