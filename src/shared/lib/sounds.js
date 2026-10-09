@@ -4,6 +4,7 @@ import { onLessonOpenChange, isLessonOpen } from './lessonOpen.js'
 import { resetPrimed } from './primedAudio.js'
 import { APP_VERSION } from './version.js'
 import { getSoundVolume, onSoundVolumeChange, needsGain, loadGainBuffer, playWithGain } from './soundVolume.js'
+import { suppressSound } from './soundQuiet.js'
 
 // Громкость звуков интерфейса — глобальная настройка админа (audioSettings.js →
 // soundVolume.js). Экспорт — для админского блока и тестов
@@ -56,7 +57,12 @@ function onCtxStateChange() {
 }
 
 let gestureArmed = false
-function onGesture() { disarmGesture(); preloadSounds(); unlockAudio() }
+// Тап по микрофону «Сказать фразу» (data-no-unlock) разблокировкой звука не пользуемся: она ставит аудиосессию в игру ровно в
+// момент старта записи. Слушатель остаётся взведённым — сработает на ближайший другой жест
+function onGesture(e) {
+  if (e?.target?.closest?.('[data-no-unlock]')) return
+  disarmGesture(); preloadSounds(); unlockAudio()
+}
 function armGesture() {
   if (gestureArmed || typeof document === 'undefined') return
   gestureArmed = true
@@ -168,6 +174,8 @@ function notifyPlayed(name, duration) {
 // выключатель («Звук печатанья», «Звук получения XP») не должен делать ползунок немым
 export function playSound(name, where = null, opts = null) {
   if (muted) return
+  // Окно тишины на время записи голоса (soundQuiet.js): сообщение/XP откладываются, остальное не играет
+  if (suppressSound(name, () => playSound(name, where, opts))) { pLog(`[sound] ${name} подавлен: идёт запись голоса`); return }
   if (!opts?.ignoreFilter && soundFilter && !soundFilter(name)) { pLog(`[sound] ${name} отключён в настройках`); return }
   const volume = getSoundVolume(name)
   // Громкость < 1 и есть Audio Session API (iOS 16.4+): <audio>.volume на iPhone

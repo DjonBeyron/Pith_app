@@ -1,5 +1,6 @@
 // Поля ноды «Сказать фразу» (say_phrase): чтение и нормализация в одном месте — плеер, редактор, линтер и сборщик
-// слов для озвучки видят одни и те же значения по умолчанию. Чистые функции, без React.
+// слов для озвучки видят одни и те же значения по умолчанию. Старое поле showPhrase (фраза пузырём в чате) убрано: в данных
+// ноды оно может встретиться — его просто никто не читает. Чистые функции, без React.
 import { tokenize } from './speechMatch.js'
 
 export const THRESHOLD_MIN = 50
@@ -36,7 +37,7 @@ export function keywordsMissingInPhrase(phrase, keywords) {
 /** data = node.typeData.say_phrase (в плеере/редакторе) или data ноды в обменном JSON — то же самое */
 export function readSayData(data) {
   const d = data ?? {}
-  const strict = d.strict === true // «Строго»: все слова эталона и ни одной опечатки; по умолчанию выключено
+  const strict = d.strict === true // «Строго»: все слова, ни одной опечатки, консенсус interim+final; у новых нод включено в редакторе, отсутствие поля = выключено
   const threshold = strict ? THRESHOLD_MAX : clampThreshold(d.threshold)
   return {
     phrase: String(d.phrase ?? '').trim(),
@@ -46,7 +47,6 @@ export function readSayData(data) {
     passRatio: threshold / 100,
     lang: SAY_LANGS.includes(d.lang) ? d.lang : LANG_DEFAULT,
     listenAudio: d.listenAudio !== false, // по умолчанию включено; false — отключить
-    showPhrase: d.showPhrase !== false,   // фраза в чате пузырём ведущего; по умолчанию показываем, false — только эталон «под капотом»
     strict,
   }
 }

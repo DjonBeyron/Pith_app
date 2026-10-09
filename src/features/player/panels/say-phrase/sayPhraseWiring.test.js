@@ -1,14 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { TYPED_PAIRS } from '../../../canvas/nodeDefaults.js'
-import { NODE_TYPES, TYPE_SHORT } from '../../../canvas/nodeTypes.js'
 import { linkKind } from '../../../canvas/canvasLineStyle.js'
 import { REWARD_TYPES, rewardNodes } from '../../lessonXp.js'
 import { resolveModule } from '../../modules/index.js'
 import { pickStepAnswer } from '../../admin/stepAnswer.js'
 import { isTaskNode } from '../../../reviewCards/reviewCardCopy.js'
-import { sayPromptNode } from '../../modules/say-phrase/sayPromptNode.js'
 
 beforeEach(() => {
   const store = new Map()
@@ -28,17 +26,17 @@ const lessonPlayer = read('../../LessonPlayer.jsx')
 const panelNodes = read('../../usePlayerPanelNodes.js')
 const css = read('../../../../styles/player/panels/say-phrase.css')
 const indexCss = read('../../../../index.css')
-const answerFields = read('../../../canvas/NodeAnswerFields.jsx')
-const contentEditor = read('../../../canvas/NodeContentEditor.jsx')
 
 describe('say_phrase — проводка (плеер)', () => {
-  it('тип резолвится в модуль ленты; вопрос — текстовый пузырь с фразой и просьбой «Скажите фразу вслух»', () => {
+  it('тип резолвится в модуль ленты; сам модуль в чат НИЧЕГО не пишет — только ответ ученика (AnswerBubbles)', () => {
     expect(resolveModule('say_phrase')).not.toBe(null)
-    const n = sayPromptNode({ id: 'x', type: 'say_phrase' }, { phrase: 'I am here', translation: 'Я здесь' })
-    expect(n.type).toBe('text')
-    expect(n.typeData.text.content).toBe('I am here\nСкажите фразу вслух')
-    expect(n.typeData.text).toMatchObject({ pro: true, proText: 'Я здесь' })
-    expect(sayPromptNode({ id: 'x' }, { phrase: 'Hi', translation: '' }).typeData.text.pro).toBeUndefined()
+    const mod = read('../../modules/say-phrase/SayPhraseModule.jsx').replace(/\/\/.*$/gm, '')
+    expect(mod).toContain('<AnswerBubbles')
+    expect(mod).not.toMatch(/TextModule|sayPromptNode|useChatTones|showPhrase/)
+    for (const gone of ['sayPromptNode.js', 'sayPromptNode.test.js', 'sayChatTones.js']) {
+      expect(existsSync(fileURLToPath(new URL(`../../modules/say-phrase/${gone}`, import.meta.url))), gone).toBe(false)
+    }
+    expect(existsSync(fileURLToPath(new URL('../../../../shared/lib/speech/sayPanelDelay.js', import.meta.url)))).toBe(false)
   })
 
   it('usePlayerPanelNodes.js заводит kind "sp" на say_phrase, считает панель «ручной»; LessonPlayer пробрасывает ноду и высоту', () => {
@@ -128,27 +126,29 @@ describe('say_phrase — порядок появления, звук, попап
   const popupCss = read('../../../../styles/player/panels/say-phrase-popup.css')
   const popup = panelSrc['SayMicPopup.jsx']
 
-  it('панель монтируется ТОЛЬКО после паузы (не мигает): ленивая обёртка держит её за таймером panelDelayMs, чанк грузится сразу', () => {
+  it('панель поднимается сразу, как у других модулей: ни задержки 1,5/0,4 с, ни SAY_PANEL_DELAY, ни showPhrase; чанк грузится сразу', () => {
     const lazyW = panelSrc['SayPhrasePanelLazy.jsx']
-    expect(lazyW).toContain('panelDelayMs(showPhrase)')
-    expect(lazyW).toContain('return timeUp && Panel ? <Panel.C {...props} /> : null')
+    const code = lazyW.replace(/\/\/.*$/gm, '')
+    expect(code).not.toMatch(/setTimeout|timeUp|panelDelay|SAY_PANEL|showPhrase/)
+    expect(code).toContain('return Panel ? <Panel.C {...props} /> : null')
     expect(lazyW).toContain("lazyRetry(() => import('./SayPhrasePanel.jsx'), 'say-phrase-panel')")
-    expect(lazyW).toContain('clearTimeout(t)')
-    expect(lazyW.replace(/\/\/.*$/gm, '')).not.toMatch(/Suspense|React\.lazy|\blazy\(/) // Suspense придерживает показ на ~300 мс
+    expect(code).not.toMatch(/Suspense|React\.lazy|\blazy\(/) // Suspense придерживает показ на ~300 мс
     expect(lazyW).not.toMatch(/speechController|sayFlow|sayPermission/) // код распознавания в основной чанк не тянем
-    expect(read('../../../../shared/lib/speech/sayPanelDelay.js')).toContain('export const SAY_PANEL_DELAY_MS = 1500')
-    expect(read('../../../../shared/lib/speech/sayPanelDelay.js')).not.toMatch(/^import /m)
+    for (const [name, src] of Object.entries(panelSrc)) expect(src.replace(/\/\/.*$/gm, ''), name).not.toMatch(/showPhrase|sayChatTones|SAY_PANEL|sayPanelDelay/)
   })
 
-  it('SayPhraseModule: фраза в чате по showPhrase (по умолчанию да), раскраска слов из sayChatTones', () => {
-    const mod = read('../../modules/say-phrase/SayPhraseModule.jsx')
-    expect(mod).toContain('raw?.showPhrase !== false')
-    expect(mod).toContain('useChatTones(')
-    expect(body).toContain('setChatTones(node.id')
+  it('«Ещё раз» и «Получилось» удалены целиком: ни кнопок, ни самооценки, ни события say_phrase_self_ok, ни подсказок про них', () => {
+    for (const [name, src] of Object.entries(panelSrc)) {
+      const code = src.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
+      expect(code, name).not.toMatch(/Ещё раз|Получилось|self_ok|selfOk|onSelfOk|onRetry|canRetry|MAX_TAPS/)
+    }
+    const texts = read('../../../../shared/lib/speech/sayTexts.js').replace(/\/\/.*$/gm, '')
+    expect(texts).not.toMatch(/«Получилось»|«Ещё раз»/)
+    expect(read('../../../../shared/lib/speech/sayResult.js')).not.toContain('self_ok')
   })
 
-  it('звук: при проверке голосом приложение не играет answer-correct (только «Получилось»/админ); других Audio/playSound нет', () => {
-    expect(body).toContain("if (kind !== 'passed') playSound('answer-correct'")
+  it('звук: при проверке голосом приложение не играет answer-correct (только админская палочка); других Audio/playSound нет', () => {
+    expect(body).toContain("if (kind === 'solve') playSound('answer-correct'")
     expect(body.match(/playSound\(/g)).toHaveLength(1)
     for (const [name, src] of Object.entries(panelSrc)) {
       if (name === 'sayListen.js') continue // «Послушать» — по тапу, не в момент результата
@@ -180,12 +180,15 @@ describe('say_phrase — порядок появления, звук, попап
     expect(popup).toContain('sayPopCard--out')
   })
 
-  it('«Я не могу говорить»: по центру, подчёркнута, без рамки/фона, ≥44px', () => {
+  it('«Я не могу говорить»: по центру, подчёркнута, приглушена (opacity ≈ 0.45–0.5), без рамки/фона, ≥44px', () => {
     const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
     expect(code).toMatch(/\.sayFoot \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto minmax\(0, 1fr\)/)
     const skip = code.match(/\.saySkipLink \{[^}]*min-height: 44px[^}]*\}/)[0]
     expect(skip).toContain('text-decoration: underline')
     expect(skip).toMatch(/text-underline-offset: 3px/)
+    const op = Number(skip.match(/opacity: (\.?[\d.]+)/)[1])
+    expect(op).toBeGreaterThanOrEqual(0.45)
+    expect(op).toBeLessThanOrEqual(0.5)
     expect(code).toMatch(/\.sayLink,\s*\.saySkipLink \{[^}]*background: none;[^}]*border: 0/)
     expect(panelSrc['SayActions.jsx']).toContain('CANT_SPEAK_LINK')
   })
@@ -200,45 +203,37 @@ describe('say_phrase — порядок появления, звук, попап
     expect(read('../../lessonPrefs.js')).toContain('equalizerOn(pref, isForced ? 1 : 0)')
   })
 
-  it('распознанный текст — только админу: панель берёт строку из adminHeardLine, обычная раскладка текста не знает', () => {
-    expect(body).toContain('adminHeardLine({ isAdmin, phase, view })')
-    expect(body).toContain('{isAdmin && (')
+  it('распознанный текст — только админу: строка из reducer (sayFlow.adminLine), панель показывает её только при isAdmin, плашка ВНЕ раскладки', () => {
+    expect(body).toContain('const adminLine = isAdmin ? sp.adminLine : null')
+    expect(body).toContain('{adminLine && (')
+    expect(read('../../../../shared/lib/speech/sayFlow.js')).toContain('adminHeardLine({ isAdmin: true')
     for (const name of ['SayStage.jsx', 'SayActions.jsx', 'SayPhrasePanelLazy.jsx']) expect(panelSrc[name]).not.toMatch(/interim|heard|lastInterim/)
-    expect(panelSrc['SayStage.jsx']).not.toContain('say-heard')
-  })
-})
-
-describe('say_phrase — CSS и редактор', () => {
-  it('стили подключены; анимации только opacity/transform; без filter/blur/box-shadow; высота блоков постоянна', () => {
-    expect(indexCss).toContain("@import './styles/player/panels/say-phrase.css';")
-    const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
-    expect(code).not.toMatch(/filter\s*:|blur\(|box-shadow\s*:|backdrop-filter/)
-    const frames = [...code.matchAll(/@keyframes\s+(\w+)\s*\{([\s\S]*?)\}\s*\}/g)]
-    expect(frames.length).toBeGreaterThan(0)
-    for (const [, name, body] of frames) {
-      const props = [...body.matchAll(/([\w-]+)\s*:/g)].map(m => m[1])
-      expect(props.every(p => p === 'transform' || p === 'opacity'), name).toBe(true)
-    }
-    expect(css).toContain('.sayPhraseSpacer')
-    expect(css).toMatch(/\.sayLabel \{[^}]*height: 22px/)
-    expect(css).toMatch(/\.sayStage \{[^}]*height: 94px/)
-    expect(css).toMatch(/\.sayMicBtn \{[^}]*height: 52px/)
-    expect(css).toMatch(/\.sayInfo \{[^}]*height: 34px/)
-    expect(css).toMatch(/\.sayActions \{[^}]*min-height: 46px/)
-    expect(css).toMatch(/\.sayFoot \{[^}]*min-height: 44px/)
+    // плашка лежит в панели ДО корпуса (.phraseInner), а не внутри него, и в CSS абсолютная над панелью
+    expect(body.indexOf('sayAdminLine')).toBeLessThan(body.indexOf('phraseInner'))
+    const admin = css.match(/\.sayAdminLine \{[^}]*\}/)[0]
+    expect(admin).toMatch(/position: absolute/)
+    expect(admin).toMatch(/bottom: calc\(100% \+ 8px\)/)
+    expect(admin).toMatch(/pointer-events: none/)
+    expect(admin).not.toMatch(/(^|[^-])\bheight:/m) // высоты не резервирует (line-height — это не высота блока)
   })
 
-  it('кнопки панели — .phraseCheckBtn без своих размеров (единый вид «Проверить»)', () => {
-    expect(panelSrc['SayActions.jsx']).toContain('className="phraseCheckBtn"')
-    expect(panelSrc['SayStage.jsx']).toContain('phraseCheckBtn sayMicBtn')
-    expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\.phraseCheckBtn/)
+  it('звуки приложения: окно тишины на попытку (soundQuiet), тап по микрофону не запускает разблокировку звука', () => {
+    expect(hook).toContain("import { holdSoundQuiet } from '../../../../shared/lib/soundQuiet.js'")
+    expect(hook).toMatch(/if \(!q\.release\) q\.release = holdSoundQuiet\(\)/)
+    expect(hook).toContain('QUIET_TAIL_MS = 600')
+    expect(panelSrc['SayStage.jsx']).toContain('data-no-unlock=""')
+    expect(read('../../../../shared/lib/sounds.js')).toContain("suppressSound(name, () => playSound(name, where, opts))")
+    expect(read('../../../../shared/lib/sounds.js')).toContain("closest?.('[data-no-unlock]')")
+    expect(read('../../../../shared/lib/primedAudio.js')).toContain("closest?.('[data-no-unlock]')")
+    expect(read('../../../../shared/lib/soundQuiet.js')).not.toMatch(/^import /m)
   })
 
-  it('редактор: тип в меню, короткая подпись, пикер в NodeAnswerFields, нет общего блока триггеров', () => {
-    expect(NODE_TYPES.some(t => t.value === 'say_phrase')).toBe(true)
-    expect(TYPE_SHORT.say_phrase).toBeTruthy()
-    expect(answerFields).toContain("node.type === 'say_phrase'")
-    expect(answerFields).toContain('<NodeSayPhrasePicker')
-    expect(contentEditor).toContain("node.type !== 'say_phrase'")
+  it('«Не могу говорить»: флаг сессии из крошечного cantSpeakFlag.js; плеер пропускает пару через sayPairSkip.js', () => {
+    expect(body).toContain('setCantSpeakSession(true)')
+    expect(read('../../useGraphPlayer.js')).toContain("from './sayPairSkip.js'")
+    expect(read('../../useGraphPlayer.js')).toContain('sayRevealJump(nodeMapRef.current, nextNodeId)')
+    expect(read('../../useGraphPlayer.js')).toContain('saySuccessSkip(nodeMapRef.current, node, result)')
+    expect(read('../../sayPairSkip.js')).not.toMatch(/sayPermission|SpeechRecognition/)
+    expect(read('../../../../shared/lib/speech/cantSpeakFlag.js')).not.toMatch(/^import /m)
   })
 })

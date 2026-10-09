@@ -1,40 +1,32 @@
 import { describe, it, expect } from 'vitest'
-import { sayOutcome, judgeRun, interimDiffers, phraseWords, sayEventProps, MAX_TAPS, SAY_EVENTS } from './sayResult.js'
+import { sayOutcome, judgeRun, interimDiffers, failReason, sayEventProps, SAY_EVENTS } from './sayResult.js'
 import { readSayData, parseKeywords, clampThreshold, keywordsMissingInPhrase } from './sayPhraseData.js'
 import { sayStatus, micLabel } from './sayStatus.js'
 import { failureCopy } from './sayTexts.js'
 import { emptyView } from './speechController.js'
 
 describe('sayOutcome — правила результата (никогда не штрафуем)', () => {
-  it('прошёл с 1–2 нажатия без автоповторов → success, clean', () => {
-    expect(sayOutcome({ kind: 'passed', taps: 1 })).toMatchObject({ result: 'success', success: true, clean: true, penalty: false, trigger: 'say_done' })
-    expect(sayOutcome({ kind: 'passed', taps: 2 })).toMatchObject({ result: 'success', clean: true })
+  it('проверка пройдена → success, XP как раньше, триггер say_done', () => {
+    expect(sayOutcome({ kind: 'passed' })).toMatchObject({ result: 'success', success: true, penalty: false, trigger: 'say_done' })
   })
 
-  it('прошёл с 3 нажатия или после автоповторов связи → success без метки «чисто»', () => {
-    expect(sayOutcome({ kind: 'passed', taps: 3 })).toMatchObject({ result: 'success', clean: false })
-    expect(sayOutcome({ kind: 'passed', taps: 1, autoRetries: 2 })).toMatchObject({ result: 'success', clean: false })
-  })
-
-  it('«Получилось» (самооценка) → success без бонуса', () => {
-    expect(sayOutcome({ kind: 'self_ok', taps: 1 })).toMatchObject({ result: 'success', success: true, clean: false, penalty: false })
-  })
-
-  it('«Не могу говорить» / пропуск → skipped: без XP и без штрафа, урок идёт дальше', () => {
-    const o = sayOutcome({ kind: 'skip', taps: 3 })
-    expect(o).toMatchObject({ result: 'skipped', success: false, penalty: false, trigger: 'say_done' })
+  it('«Я не могу говорить» / пропуск → skipped: без XP и без штрафа, урок идёт дальше', () => {
+    expect(sayOutcome({ kind: 'skip' })).toMatchObject({ result: 'skipped', success: false, penalty: false, trigger: 'say_done' })
   })
 
   it('ветка say_skip используется, только если она соединена', () => {
     expect(sayOutcome({ kind: 'skip', hasSkipLink: true }).trigger).toBe('say_skip')
     expect(sayOutcome({ kind: 'skip', hasSkipLink: false }).trigger).toBe('say_done')
-    expect(sayOutcome({ kind: 'self_ok', hasSkipLink: true }).trigger).toBe('say_done')
+    expect(sayOutcome({ kind: 'solve', hasSkipLink: true }).trigger).toBe('say_done')
+  })
+
+  it('«Получилось»/«Ещё раз» удалены: ни kind self_ok, ни clean, ни MAX_TAPS, ни события say_phrase_self_ok', () => {
+    expect(sayOutcome({ kind: 'passed', taps: 3, autoRetries: 2 })).not.toHaveProperty('clean')
+    expect(Object.values(SAY_EVENTS)).not.toContain('say_phrase_self_ok')
   })
 
   it('ни один исход не штрафует', () => {
-    for (const kind of ['passed', 'self_ok', 'skip', 'solve']) {
-      for (const taps of [1, 2, MAX_TAPS]) expect(sayOutcome({ kind, taps }).penalty).toBe(false)
-    }
+    for (const kind of ['passed', 'skip', 'solve']) expect(sayOutcome({ kind }).penalty).toBe(false)
   })
 })
 
@@ -87,27 +79,23 @@ describe('judgeRun — порог и ключевые слова', () => {
   })
 })
 
-describe('phraseWords — раскраска слов как написал автор', () => {
-  it('услышанные ok, пропущенные miss; до проверки без тона', () => {
-    const d = readSayData({ phrase: 'I am trying to please both' })
-    const v = judgeRun({ ...emptyView, alternatives: [{ text: 'I am trying to please', confidence: 1 }] }, d)
-    expect(phraseWords(d.phrase, v).map(w => `${w.text}:${w.tone}`)).toEqual(['I:ok', 'am:ok', 'trying:ok', 'to:ok', 'please:ok', 'both:miss'])
-    expect(phraseWords(d.phrase, null).every(w => w.tone === null)).toBe(true)
-  })
-
-  it('сокращение «I’m» (два токена) — ok, только если услышаны оба; знаки препинания сохраняются', () => {
-    const d = readSayData({ phrase: "I'm here, please." })
-    const full = judgeRun({ ...emptyView, alternatives: [{ text: 'I am here please', confidence: 1 }] }, d)
-    expect(phraseWords(d.phrase, full).map(w => `${w.text}:${w.tone}`)).toEqual(["I'm:ok", 'here,:ok', 'please.:ok'])
-    const part = judgeRun({ ...emptyView, alternatives: [{ text: 'here please', confidence: 1 }] }, d)
-    expect(phraseWords(d.phrase, part)[0].tone).toBe('miss')
+describe('failReason — причина неудачи для подсказки и аналитики', () => {
+  it('тишина, связь, «почти» (≥50% слов), «не то»; коды ошибок как есть; без неудачи — null', () => {
+    expect(failReason({ errorCode: 'no-speech' })).toBe('silence')
+    expect(failReason({ errorCode: 'silence' })).toBe('silence')
+    expect(failReason({ errorCode: 'network' })).toBe('network')
+    expect(failReason({ errorCode: 'audio-capture' })).toBe('audio-capture')
+    expect(failReason({ verdict: { passed: false, ratio: 0.5 } })).toBe('partial')
+    expect(failReason({ verdict: { passed: false, ratio: 0.33 } })).toBe('mismatch')
+    expect(failReason({ verdict: { passed: true, ratio: 1 } })).toBe(null)
+    expect(failReason({})).toBe(null)
   })
 })
 
 describe('sayEventProps — формат аналитики', () => {
   it('поля attempts, passed, ratio, perm, explainer_shown; без текста и звука', () => {
-    const p = sayEventProps({ perm: 'granted', explained: true, taps: 2, autoRetries: 1, passed: true, ratioPct: 83, clean: false })
-    expect(p).toEqual({ perm: 'granted', explainer_shown: true, attempts: 2, auto_retries: 1, passed: true, ratio: 83, clean: false })
+    const p = sayEventProps({ perm: 'granted', explained: true, taps: 2, autoRetries: 1, passed: false, ratioPct: 83, reason: 'partial', failStreak: 2 })
+    expect(p).toEqual({ perm: 'granted', explainer_shown: true, attempts: 2, auto_retries: 1, passed: false, ratio: 83, reason: 'partial', fail_streak: 2 })
     for (const v of Object.values(p)) expect(['number', 'boolean', 'string']).toContain(typeof v)
   })
 
@@ -118,7 +106,7 @@ describe('sayEventProps — формат аналитики', () => {
 
   it('пустые поля опускаются; имена событий по заданию', () => {
     expect(sayEventProps({ perm: 'prompt', taps: 1 })).toEqual({ perm: 'prompt', attempts: 1 })
-    expect(Object.values(SAY_EVENTS)).toEqual(['say_phrase_start', 'say_phrase_result', 'say_phrase_skip', 'say_phrase_self_ok'])
+    expect(Object.values(SAY_EVENTS)).toEqual(['say_phrase_start', 'say_phrase_result', 'say_phrase_skip'])
     for (const name of Object.values(SAY_EVENTS)) expect(name).toMatch(/^[a-z][a-z0-9_]{1,39}$/) // как проверяет log_events на сервере
   })
 })
@@ -129,11 +117,11 @@ describe('данные ноды', () => {
     expect(readSayData(undefined).phrase).toBe('')
   })
 
-  it('showPhrase по умолчанию true (отсутствие = true), strict по умолчанию false; strict поднимает порог до 100%', () => {
-    expect(readSayData({ phrase: 'Hi' })).toMatchObject({ showPhrase: true, strict: false, passRatio: 0.7 })
-    expect(readSayData({ phrase: 'Hi', showPhrase: false })).toMatchObject({ showPhrase: false })
-    expect(readSayData({ phrase: 'Hi', showPhrase: 'no', strict: 'yes' })).toMatchObject({ showPhrase: true, strict: false })
+  it('strict у существующих нод (поля нет) = false; strict поднимает порог до 100%; старое поле showPhrase игнорируется', () => {
+    expect(readSayData({ phrase: 'Hi' })).toMatchObject({ strict: false, passRatio: 0.7 })
+    expect(readSayData({ phrase: 'Hi', strict: 'yes' })).toMatchObject({ strict: false })
     expect(readSayData({ phrase: 'Hi', strict: true, threshold: 60 })).toMatchObject({ strict: true, threshold: 100, passRatio: 1 })
+    expect(readSayData({ phrase: 'Hi', showPhrase: false })).not.toHaveProperty('showPhrase')
   })
 
   it('порог 50–100; en-GB; listenAudio=false отключает кнопку', () => {
@@ -155,35 +143,53 @@ describe('данные ноды', () => {
 describe('sayStatus и тексты', () => {
   const base = { view: emptyView, verdict: null, errorCode: null, fallbackReason: null }
 
-  it('основные состояния: подписи на плашке микрофона, строка под ней пуста', () => {
+  it('основные состояния: подписи на кнопке микрофона, подсказка под заголовком пуста', () => {
     expect(micLabel({ ...base, phase: 'idle' })).toEqual({ label: 'Нажмите, чтобы говорить', mode: 'idle' })
-    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'starting' } }).mode).toBe('busy')
-    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'listening', interim: 'I am' } })).toEqual({ label: 'Слушаю…', mode: 'listening' })
-    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'done' } })).toEqual({ label: 'Обрабатываем…', mode: 'busy' })
+    expect(micLabel({ ...base, phase: 'failed' })).toEqual({ label: 'Нажмите, чтобы говорить', mode: 'idle' }) // после неудачи микрофон снова доступен
+    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'starting' } }).mode).toBe('count')
+    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'listening' } }).mode).toBe('count') // слушаем, но три точки ещё не доиграли
+    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'listening', interim: 'I am' }, go: true })).toEqual({ label: 'Слушаю…', mode: 'listening' })
+    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'done' }, go: true })).toEqual({ label: 'Обрабатываем…', mode: 'busy' })
     expect(micLabel({ ...base, phase: 'passed', verdict: { ratioPct: 100 } })).toMatchObject({ label: 'Верно!', mode: 'ok' })
     expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'denied' })).toEqual({ label: 'Микрофон выключен', mode: 'off' })
-    expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'unsupported' }).mode).toBe('off')
+    expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'unsupported' })).toEqual({ label: 'Проверка голоса недоступна', mode: 'off' })
     for (const phase of ['idle', 'explain', 'passed']) expect(sayStatus({ ...base, phase }).status).toBe(null)
     expect(sayStatus({ ...base, phase: 'run', view: { ...emptyView, status: 'listening', interim: 'I am' } })).toMatchObject({ status: null })
     expect(sayStatus({ ...base, phase: 'run', view: { ...emptyView, status: 'retrying', notice: 'Слабая связь, пробуем ещё раз (2 из 3)…' } }).status).toMatch(/Слабая связь, пробуем ещё раз \(2 из 3\)/)
   })
 
-  it('сказанного текста в строке статуса нет вообще (его видит только админ — sayAdmin.js)', () => {
+  it('сказанного текста в подсказке нет вообще (его видит только админ — sayAdmin.js)', () => {
     const v = { ...emptyView, status: 'listening', interim: 'SECRET interim' }
     expect(JSON.stringify(sayStatus({ ...base, phase: 'run', view: v }))).not.toMatch(/SECRET/)
-    expect(JSON.stringify(sayStatus({ ...base, phase: 'failed', verdict: { missed: ['both'], heard: 'SECRET heard' } }))).not.toMatch(/SECRET/)
+    expect(JSON.stringify(sayStatus({ ...base, phase: 'failed', verdict: { passed: false, ratio: 0.5, missed: ['both'], heard: 'SECRET heard' } }))).not.toMatch(/SECRET/)
     expect(sayStatus({ ...base, phase: 'passed', verdict: { ratioPct: 100, heard: 'x' } })).not.toHaveProperty('heard')
   })
 
-  it('неудачи: тишина → «Говорите громче»; «Не расслышали: …» только при скрытой фразе; запасной режим — по причине', () => {
-    expect(sayStatus({ ...base, phase: 'failed', errorCode: 'no-speech' }).hint).toBe('Говорите громче и ближе к микрофону.')
-    const v = { missed: ['please', 'both'], heard: 'I am' }
-    expect(sayStatus({ ...base, phase: 'failed', verdict: v }).hint).toBe(null) // фраза в чате: слова подсвечены там
-    expect(sayStatus({ ...base, phase: 'failed', verdict: v, showPhrase: false }).hint).toBe('Не расслышали: please, both')
-    expect(sayStatus({ ...base, phase: 'fallback', fallbackReason: 'denied' }).status).toMatch(/настройках/)
+  it('дефолтные ответы модуля: тишина → «Не слышу вас…»; почти → «Почти! Не хватило: слова эталона»; не то → «Не совсем»; связь', () => {
+    expect(sayStatus({ ...base, phase: 'failed', errorCode: 'no-speech' })).toMatchObject({ status: 'Не слышу вас', hint: 'Говорите громче и ближе к микрофону', tone: 'warn' })
+    const almost = { passed: false, ratio: 0.67, missed: ['please', 'both'], heard: 'I am' }
+    expect(sayStatus({ ...base, phase: 'failed', verdict: almost })).toMatchObject({ status: 'Почти!', hint: 'Не хватило: please, both' })
+    expect(sayStatus({ ...base, phase: 'failed', verdict: { passed: false, ratio: 0.2, missed: ['a'] } })).toMatchObject({ status: 'Не совсем. Попробуйте ещё раз', hint: null })
+    expect(sayStatus({ ...base, phase: 'failed', errorCode: 'network' }).status).toMatch(/Слабая связь/)
+  })
+
+  it('после двух неудач подряд — мягкий совет «Скажите медленнее, по словам» (кроме «почти»: там слова эталона важнее)', () => {
+    const miss = { passed: false, ratio: 0.2, missed: ['a'] }
+    expect(sayStatus({ ...base, phase: 'failed', verdict: miss, failStreak: 1 }).hint).toBe(null)
+    expect(sayStatus({ ...base, phase: 'failed', verdict: miss, failStreak: 2 }).hint).toBe('Скажите медленнее, по словам')
+    expect(sayStatus({ ...base, phase: 'failed', verdict: { passed: false, ratio: 0.6, missed: ['both'] }, failStreak: 3 }).hint).toBe('Не хватило: both')
+    expect(sayStatus({ ...base, phase: 'failed', verdict: { passed: false, ratio: 0.6, missed: [] }, failStreak: 2 }).hint).toBe('Скажите медленнее, по словам')
+  })
+
+  it('отказ/недоступность: «Микрофон выключен. Включите в настройках», без упоминания удалённых кнопок', () => {
+    expect(sayStatus({ ...base, phase: 'fallback', fallbackReason: 'denied' }).status).toBe('Микрофон выключен. Включите в настройках')
     expect(sayStatus({ ...base, phase: 'fallback', fallbackReason: 'unsupported' }).status).toMatch(/недоступна/)
     expect(sayStatus({ ...base, phase: 'fallback', fallbackReason: 'cant_speak' }).status).toMatch(/без микрофона/)
-    expect(failureCopy('network').status).toMatch(/Слабая связь/)
+    const all = ['denied', 'unsupported', 'cant_speak'].map(r => sayStatus({ ...base, phase: 'fallback', fallbackReason: r }).status).join('|')
+    for (const code of ['network', 'no-start', 'start-failed', 'audio-capture', null]) {
+      const f = failureCopy({ reason: code, streak: 1 })
+      expect(`${f.status} ${f.hint ?? ''} ${all}`).not.toMatch(/Получилось|Ещё раз/)
+    }
   })
 
   it('пояснение про микрофон — тексты задания (показывает попап)', async () => {

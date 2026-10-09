@@ -1,49 +1,25 @@
-import { useMemo } from 'react'
-import TextModule from '../text/TextModule.jsx'
 import AnswerBubbles from '../AnswerBubbles.jsx'
-import { sayPromptNode } from './sayPromptNode.js'
-import { useChatTones } from './sayChatTones.js'
 
-// «Сказать фразу» в ленте: вопрос — пузырь учителя с фразой и просьбой сказать вслух (+ перевод по кнопке),
-// ответ ученика — тот же общий вид пузырей (AnswerBubbles.jsx, states.phraseStates), что у «Напечатай слово».
-// showPhrase=false (в редакторе ноды) — пузыря с фразой нет: эталон живёт «под капотом» (проверка, «Послушать»), в чат уходит
-// только ответ ученика. Слова в пузыре подсвечиваются по итогу проверки (sayChatTones.js).
-// Нода сама не «играет» и onDone не зовёт: ответом управляет панель (panels/say-phrase), без неё лента не пойдёт дальше.
+// «Сказать фразу» в ленте: САМ модуль в чат ничего не пишет — ни фразы, ни просьбы «Скажите вслух» (раньше был пузырь учителя;
+// убран: задание ученику формулирует ПРЕДЫДУЩЕЕ сообщение автора, текстовая нода перед модулем, а панель поднимается сразу).
+// Остаётся только ответ ученика — пузырь справа с эталонной фразой после успеха: общий вид AnswerBubbles.jsx (states.phraseStates),
+// как у «Напечатай слово». Нода сама не «играет» и onDone не зовёт: ответом управляет панель (panels/say-phrase),
+// без неё лента не пойдёт дальше. Старое поле showPhrase в данных ноды безопасно игнорируется.
 export default function SayPhraseModule({
-  node, phraseState, lessonNodes = [], lessonFiles = [], teacherName, onTrReveal,
+  node, phraseState, lessonFiles = [], teacherName,
   allWordChoiceStates, allPhotoChoiceStates, allPhraseStates,
 }) {
-  const raw = node.typeData?.say_phrase
-  const phrase = String(raw?.phrase ?? '').trim()
-  const translation = String(raw?.translation ?? '').trim()
-  const showPhrase = raw?.showPhrase !== false
-  const tones = useChatTones(node?.id ?? null)
-  const promptNode = useMemo(
-    () => (phrase && showPhrase ? sayPromptNode(node, { phrase, translation }, tones) : null),
-    [node, phrase, translation, showPhrase, tones],
-  )
   return (
-    <>
-      {promptNode && (
-        <TextModule
-          node={promptNode}
-          lessonNodes={lessonNodes}
-          lessonFiles={lessonFiles}
-          teacherName={teacherName}
-          onTrReveal={onTrReveal}
-        />
-      )}
-      <AnswerBubbles
-        bubbles={phraseState}
-        nodeId={node?.id ?? null}
-        /* салют даёт сама панель (SayPhrasePanel, fireBurst при уходе) */
-        confetti={false}
-        lessonFiles={lessonFiles}
-        teacherName={teacherName}
-        allWordChoiceStates={allWordChoiceStates}
-        allPhotoChoiceStates={allPhotoChoiceStates}
-        allPhraseStates={allPhraseStates}
-      />
-    </>
+    <AnswerBubbles
+      bubbles={phraseState}
+      nodeId={node?.id ?? null}
+      /* салют даёт сама панель (SayPhrasePanel, fireBurst при уходе) */
+      confetti={false}
+      lessonFiles={lessonFiles}
+      teacherName={teacherName}
+      allWordChoiceStates={allWordChoiceStates}
+      allPhotoChoiceStates={allPhotoChoiceStates}
+      allPhraseStates={allPhraseStates}
+    />
   )
 }

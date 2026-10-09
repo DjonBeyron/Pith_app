@@ -7,12 +7,14 @@
 // Флаги:
 //  - localStorage   pithy_say_explained_v1     — пояснение «зачем микрофон» уже видели (один раз в жизни устройства)
 //  - sessionStorage pithy_say_denied_session   — в этом запуске отказали: start() больше НЕ зовём
-//  - sessionStorage pithy_cant_speak_session   — «Не могу говорить»: следующие модули сразу в запасном режиме
+//  - sessionStorage pithy_cant_speak_session   — «Не могу говорить»: следующие say_phrase плеер пропускает сам (вместе с парой сообщений),
+//                                                запасной режим панели — только страховка, если до неё всё же дошли
 import { getRecognitionCtor, queryMicPermission } from './speechSupport.js'
+import { CANT_SPEAK_KEY } from './cantSpeakFlag.js'
 
 export const EXPLAINED_KEY = 'pithy_say_explained_v1'
 export const DENIED_KEY = 'pithy_say_denied_session'
-export const CANT_SPEAK_KEY = 'pithy_cant_speak_session'
+export { CANT_SPEAK_KEY } // ключ и чтение флага для плеера — в cantSpeakFlag.js (без импортов)
 
 const pick = name => { try { return globalThis[name] ?? null } catch { return null } }
 const read = (store, key) => { try { return store?.getItem(key) === '1' } catch { return false } }

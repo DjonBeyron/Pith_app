@@ -41,20 +41,21 @@ describe('say_phrase — линтер урока', () => {
     expect(w).toMatch(/ключевых слов нет во фразе/)
   })
 
-  it('перевод при скрытой фразе (showPhrase=false) — предупреждение: пузыря нет, перевод не покажется', () => {
-    const hidden = [good[0], ex('n2', 2, 'say_phrase', { phrase: 'I am trying to please both', translation: 'Я пытаюсь', showPhrase: false }, []), good[2]]
-    expect(lintLesson(hidden).join('\n')).toMatch(/n2 say_phrase: showPhrase=false/)
-    hidden[1] = ex('n2', 2, 'say_phrase', { phrase: 'I am trying to please both', showPhrase: false }, [])
-    expect(lintLesson(hidden).join('\n')).not.toMatch(/showPhrase=false/)
-  })
-
-  it('нет пояснения перед нодой / две подряд / первая нода урока', () => {
+  it('нет текстовой ноды-задания перед модулем (рекомендация, не ошибка) / две подряд / первая нода урока', () => {
     const noIntro = [ex('n1', 1, 'audio', { text: 'x' }, [{ if: 'played', then: 'n2' }]), good[1], good[2]]
-    expect(lintLesson(noIntro).join('\n')).toMatch(/n2 say_phrase: перед ней нет текстовой ноды-пояснения/)
+    expect(lintLesson(noIntro).join('\n')).toMatch(/n2 say_phrase: перед ней нет текстовой ноды-задания/)
     const twice = [good[0], good[1], ex('n3', 3, 'say_phrase', { phrase: 'Hello there' }, [])]
     twice[1] = { ...good[1], triggers: [{ if: 'say_done', then: 'n3' }] }
     expect(lintLesson(twice).join('\n')).toMatch(/n3 say_phrase: идёт сразу после другой say_phrase/)
     expect(lintLesson([ex('n1', 1, 'say_phrase', { phrase: 'Hello there' }, [])]).join('\n')).toMatch(/стоит первой нодой урока/)
+  })
+
+  it('замечание про задание — предупреждение (warnings), а не ошибка; поле showPhrase в старых данных ничего не ломает', () => {
+    const noIntro = [ex('n1', 1, 'audio', { text: 'x' }, [{ if: 'played', then: 'n2' }]), good[1], good[2]]
+    const w = lintLesson(noIntro)
+    expect(w.some(x => /задания.*рекомендация/.test(x))).toBe(true)
+    const old = [good[0], ex('n2', 2, 'say_phrase', { phrase: 'I am trying to please both', showPhrase: false, translation: 'x' }, [{ if: 'say_done', then: 'n3' }]), good[2]]
+    expect(lintLesson(old)).toEqual([])
   })
 })
 
@@ -90,25 +91,40 @@ describe('say_phrase — обмен JSON', () => {
     expect(lintLesson(fromCanvasNodes(back.nodes)).filter(w => /say_phrase.*(пуст|threshold|ключев)/.test(w))).toEqual([])
   })
 
-  it('showPhrase=false и strict=true: поля сохраняются туда и обратно; отсутствие полей = showPhrase true / strict false', () => {
-    const a = makeNode(1, 0, 0, 'say_phrase')
-    a.typeData.say_phrase = { ...a.typeData.say_phrase, phrase: "I'm trying to please both", showPhrase: false, strict: true }
-    const out = exportLesson([a], { title: 'Say' })
-    expect(out.nodes[0].data).toMatchObject({ showPhrase: false, strict: true })
+  it('strict: у НОВОЙ ноды включён, поле идёт туда и обратно; у существующей (поля нет) = выключено; старое showPhrase игнорируется', () => {
+    const fresh = makeNode(1, 0, 0, 'say_phrase')
+    expect(fresh.typeData.say_phrase.strict).toBe(true)
+    expect(fresh.typeData.say_phrase).not.toHaveProperty('showPhrase')
+    fresh.typeData.say_phrase.phrase = "I'm trying to please both"
+    const out = exportLesson([fresh], { title: 'Say' })
+    expect(out.nodes[0].data).toMatchObject({ strict: true })
     const back = importLesson(JSON.parse(JSON.stringify(out))).nodes[0].typeData.say_phrase
-    expect(back).toMatchObject({ showPhrase: false, strict: true })
-    expect(readSayData(back)).toMatchObject({ showPhrase: false, strict: true, threshold: 100 })
-    const plain = makeNode(2, 0, 0, 'say_phrase')
-    plain.typeData.say_phrase.phrase = 'Hello there'
-    const p = importLesson(JSON.parse(JSON.stringify(exportLesson([plain], { title: 'Say' })))).nodes[0].typeData.say_phrase
-    expect(readSayData(p)).toMatchObject({ showPhrase: true, strict: false })
+    expect(readSayData(back)).toMatchObject({ strict: true, threshold: 100 })
+    const legacy = readSayData({ phrase: 'Hello there', showPhrase: false })
+    expect(legacy).toMatchObject({ strict: false, passRatio: 0.7 })
+    expect(legacy).not.toHaveProperty('showPhrase')
   })
 
   it('легенда описывает тип, поля и триггеры; правило автора про say_phrase есть в зашитых принципах', () => {
     const legend = buildLegend()
-    expect(Object.keys(legend.nodes.say_phrase.fields)).toEqual(expect.arrayContaining(['phrase', 'translation', 'keywords', 'threshold', 'lang', 'listenAudio', 'showPhrase', 'strict']))
+    expect(Object.keys(legend.nodes.say_phrase.fields)).toEqual(expect.arrayContaining(['phrase', 'translation', 'keywords', 'threshold', 'lang', 'listenAudio', 'strict']))
     expect(Object.keys(legend.triggers)).toEqual(expect.arrayContaining(['say_done', 'say_skip']))
+    expect(Object.keys(legend.nodes.say_phrase.fields)).not.toContain('showPhrase')
     expect(PRINCIPLES.some(p => p.startsWith('say_phrase («Сказать фразу»)'))).toBe(true)
+  })
+
+  it('легенда и правило автора объясняют «пару сообщений вокруг say_phrase» (задание перед, успех после) и пропуск парой', () => {
+    const what = buildLegend().nodes.say_phrase.what
+    const rule = PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
+    for (const text of [what, rule]) {
+      expect(text).toMatch(/пара сообщений вокруг say_phrase/)
+      expect(text).toMatch(/задание/)
+      expect(text).toMatch(/успех/)
+      expect(text).toMatch(/Я не могу говорить/)
+      expect(text).not.toMatch(/«Получилось» засчитывает|можно нажать «Получилось»/)
+    }
+    expect(rule).toMatch(/САМ МОДУЛЬ НИЧЕГО В ЧАТ НЕ ПИШЕТ/)
+    expect(rule).not.toMatch(/showPhrase/)
   })
 })
 
@@ -126,13 +142,25 @@ describe('say_phrase — слова для озвучки (collectLessonWords)',
   })
 })
 
-describe('say_phrase — миграция правила автору', () => {
-  it('текст правила в миграции дословно равен зашитому принципу (БД и код не расходятся)', () => {
-    const sql = readFileSync(fileURLToPath(new URL('../../../../supabase/migrations/20261009110000_say_phrase_module.sql', import.meta.url)), 'utf8')
-    const rule = PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
-    expect(rule).toBeTruthy()
-    expect(sql).toContain(`'${rule.replace(/'/g, "''")}'`)
-    expect(sql).toMatch(/where not exists/) // идемпотентно
-    expect(sql).not.toMatch(/\b(create|alter|drop)\s+(table|policy|function)/i) // таблиц и политик не трогаем
+describe('say_phrase — миграции правила автору', () => {
+  const sql = name => readFileSync(fileURLToPath(new URL(`../../../../supabase/migrations/${name}`, import.meta.url)), 'utf8')
+  const rule = () => PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
+
+  it('v2 (текущая): текст правила в миграции дословно равен зашитому принципу; update по префиксу + вставка, если правила нет; идемпотентно', () => {
+    const v2 = sql('20261009120000_say_phrase_rules_v2.sql')
+    expect(rule()).toBeTruthy()
+    const quoted = `'${rule().replace(/'/g, "''")}'`
+    expect(v2.split(quoted)).toHaveLength(3) // ровно два вхождения: update и insert
+    expect(v2).toMatch(/update public\.lesson_rules\s+set rule_text = /)
+    expect(v2).toMatch(/where rule_text like 'say_phrase \(«Сказать фразу»\) — ученик ПРОИЗНОСИТ%'/)
+    expect(v2).toMatch(/where not exists/)
+    expect(v2).not.toMatch(/\b(create|alter|drop)\s+(table|policy|function)/i) // таблиц и политик не трогаем
+  })
+
+  it('v1 (уже применялась) не менялась: только вставка правила; её префикс совпадает с тем, по которому v2 находит строку', () => {
+    const v1 = sql('20261009110000_say_phrase_module.sql')
+    expect(v1).toMatch(/where not exists/)
+    expect(v1).toContain("ученик ПРОИЗНОСИТ английскую фразу в микрофон%'")
+    expect(rule().startsWith('say_phrase («Сказать фразу») — ученик ПРОИЗНОСИТ')).toBe(true)
   })
 })

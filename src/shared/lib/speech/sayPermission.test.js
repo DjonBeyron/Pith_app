@@ -121,27 +121,28 @@ describe('planTap — start() зовётся только на begin', () => {
   it('отказ в сессии: сколько ни тапай — fallback, begin никогда', async () => {
     const p = createSayPermission({ local: store(), session: store(), queryPerm: async () => 'granted', isSupported: () => true })
     p.markDenied()
-    const acts = [0, 1, 2, 3].map(taps => planTap({ view: idle, taps: taps % 3, decision: p.decide() }).act)
+    const acts = [0, 1, 2, 3].map(() => planTap({ view: idle, decision: p.decide() }).act)
     expect(acts).toEqual(['fallback', 'fallback', 'fallback', 'fallback'])
   })
 
   it('сценарий жизни: пояснение → begin → второй модуль без пояснения (micOk) → «Не могу говорить» → fallback', async () => {
     const p = createSayPermission({ local: store(), session: store(), queryPerm: async () => 'prompt', isSupported: () => true })
     await p.refresh()
-    expect(planTap({ view: idle, taps: 0, decision: p.decide() }).act).toBe('explain')
+    expect(planTap({ view: idle, decision: p.decide() }).act).toBe('explain')
     p.markExplained()
-    expect(planTap({ view: idle, taps: 0, decision: p.decide() }).act).toBe('begin')
+    expect(planTap({ view: idle, decision: p.decide() }).act).toBe('begin')
     p.markMicOk() // запись пошла
-    expect(planTap({ view: idle, taps: 0, decision: p.decide() }).act).toBe('begin') // следующий модуль
+    expect(planTap({ view: idle, decision: p.decide() }).act).toBe('begin') // следующий модуль
     p.setCantSpeak(true)
-    expect(planTap({ view: idle, taps: 0, decision: p.decide() }).act).toBe('fallback')
+    expect(planTap({ view: idle, decision: p.decide() }).act).toBe('fallback')
   })
 
-  it('во время записи тап = стоп; ожидание диалога и обработка игнорируются; после 3 попыток микрофон не включаем', () => {
+  it('запись и «начали» — тап = стоп; до «начали», ожидание диалога и обработка игнорируются; число попыток не ограничено', () => {
     const d = { action: 'listen' }
-    expect(planTap({ view: listen, taps: 1, decision: d }).act).toBe('stop')
-    expect(planTap({ view: { ...emptyView, status: 'starting' }, taps: 1, decision: d }).act).toBe('ignore')
-    expect(planTap({ view: { ...emptyView, status: 'retrying' }, taps: 1, decision: d }).act).toBe('ignore')
-    expect(planTap({ view: idle, taps: 3, decision: d }).act).toBe('ignore')
+    expect(planTap({ view: listen, decision: d, go: true }).act).toBe('stop')
+    expect(planTap({ view: listen, decision: d, go: false }).act).toBe('ignore')
+    expect(planTap({ view: { ...emptyView, status: 'starting' }, decision: d, go: true }).act).toBe('ignore')
+    expect(planTap({ view: { ...emptyView, status: 'retrying' }, decision: d }).act).toBe('ignore')
+    expect(planTap({ view: idle, decision: d }).act).toBe('begin')
   })
 })

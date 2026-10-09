@@ -19,7 +19,9 @@ describe('распознанный текст — только админу', ()
   })
 
   it('админ: живой interim во время записи', () => {
-    expect(adminHeardLine({ isAdmin: true, phase: 'run', view: { ...emptyView, status: 'listening', interim: "I'm tr" } }).text).toBe("Админ: слышу «I'm tr»")
+    const live = adminHeardLine({ isAdmin: true, phase: 'run', view: { ...emptyView, status: 'listening', interim: "I'm tr" } })
+    expect(live.text).toBe("Админ: слышу «I'm tr»")
+    expect(live.note).toBe('звуки приложения подавлены') // отметка: на время попытки звуки приложения молчат (soundQuiet.js)
     expect(adminHeardLine({ isAdmin: true, phase: 'run', view: { ...emptyView, status: 'listening' } })).toBe(null)
   })
 
@@ -32,5 +34,26 @@ describe('распознанный текст — только админу', ()
   it('админ: interim совпал с final — короткая строка «услышали»', () => {
     const l = adminHeardLine({ isAdmin: true, phase: 'failed', view: done({ lastInterim: "i'm trying" }) })
     expect(l.text).toBe("Админ: услышали «I'm trying» · 90%")
+  })
+})
+
+describe('строка админа: ошибки и корректировка движка', () => {
+  it('ошибка без текста: причина + прежний interim; финал без interim — только причина', () => {
+    expect(adminHeardLine({ isAdmin: true, phase: 'failed', errorCode: 'silence', view: { ...emptyView, lastInterim: 'I am' } }).text).toBe('Админ: silence · слышал «I am»')
+    expect(adminHeardLine({ isAdmin: true, phase: 'failed', errorCode: 'network', view: emptyView }).text).toBe('Админ: network')
+    expect(adminHeardLine({ isAdmin: true, phase: 'failed', verdict: null, errorCode: null, view: emptyView }).text).toBe('Админ: нет текста')
+  })
+
+  it('«слово X подтверждено только final» — корректировка движка (строгий режим)', () => {
+    const l = adminHeardLine({
+      isAdmin: true, phase: 'failed', view: done({ final: alt('I am trying to please both'), lastInterim: 'I am try to please both' }),
+      verdict: { engineFixed: ['trying'] },
+    })
+    expect(l.note).toBe('слово trying подтверждено только final (корректировка движка) · звуки приложения подавлены')
+    expect(adminHeardLine({ isAdmin: true, phase: 'passed', view: done(), verdict: { engineFixed: [] } }).note).toBe('звуки приложения подавлены')
+  })
+
+  it('не админ — по-прежнему ничего, даже с ошибкой и корректировкой', () => {
+    expect(adminHeardLine({ isAdmin: false, phase: 'failed', errorCode: 'silence', view: emptyView, verdict: { engineFixed: ['x'] } })).toBe(null)
   })
 })

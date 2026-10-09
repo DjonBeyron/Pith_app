@@ -7,17 +7,18 @@ import {
 import { tokenize } from '../../shared/lib/speech/speechMatch.js'
 
 // Редактор ноды «Сказать фразу»: ученик произносит английскую фразу в микрофон, приложение мягко сверяет её с эталоном.
-// Поля: phrase (обязательно), translation (по кнопке в чате), keywords (через запятую — обязательно должны прозвучать),
+// Фраза-эталон (phrase) — проверяемый текст «под капотом»: сам модуль её в чат НЕ пишет и в панели не показывает, задание ученику
+// формулирует текстовая нода-сообщение ПЕРЕД модулем (в нём должна быть сама фраза).
+// Поля: phrase (обязательно), translation (справочно), keywords (через запятую — обязательно должны прозвучать),
 // threshold (% слов эталона для «засчитано», 50–100, по умолчанию 70), lang (en-US / en-GB), listenAudio («Послушать»),
-// showPhrase («Показывать фразу в чате», по умолчанию да: выключено — пузыря с фразой нет, эталон только «под капотом»),
-// strict («Строго»: все слова эталона и без опечаток; по умолчанию выключено).
-// Выходы: «Сказал(а)» (основной; им же идёт «Получилось») и «Не могу говорить» (необязательная ветка пропуска —
-// если не соединена, плеер идёт по основному). «Неверно» нет: речь тренировка и не штрафуется.
+// strict («Строго»: порог 100%, слова точно, без опечаток + консенсус interim и final; у НОВЫХ нод включено).
+// Выходы: «Сказал(а)» (основной) и «Не могу говорить» (необязательная ветка пропуска — если не соединена, плеер идёт по основному;
+// без этой ветки сообщение-успех сразу после модуля при пропуске не показывается). «Неверно» нет: речь тренировка и не штрафуется.
 const LANG_LABEL = { 'en-US': 'Американский (en-US)', 'en-GB': 'Британский (en-GB)' }
 const stop = e => e.stopPropagation()
 
 export default function NodeSayPhrasePicker({
-  phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true, showPhrase = true, strict = false,
+  phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true, strict = false,
   onChange, triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
   const rowRefs = useRef(new Map())
@@ -67,7 +68,7 @@ export default function NodeSayPhrasePicker({
         className="nodeWcInput"
         value={translation}
         onChange={e => onChange({ translation: e.target.value })}
-        placeholder="Перевод (необязательно) — кнопкой на пузыре"
+        placeholder="Перевод (необязательно, справочно: ученику не показывается)"
         onClick={stop}
         {...NO_AUTOCORRECT}
       />
@@ -107,15 +108,8 @@ export default function NodeSayPhrasePicker({
         </p>
       )}
       <label className="nodeSayCheck" onClick={stop}>
-        <input type="checkbox" checked={showPhrase} onChange={e => onChange({ showPhrase: e.target.checked })} />
-        Показывать фразу в чате
-      </label>
-      {!showPhrase && (
-        <p className="nodeSayWarn nodeSayNote">Фразы в чате не будет (и перевода тоже): в панели «Произнесите фразу». Проверка, «Послушать» и аналитика работают как обычно.</p>
-      )}
-      <label className="nodeSayCheck" onClick={stop}>
         <input type="checkbox" checked={strict} onChange={e => onChange({ strict: e.target.checked })} />
-        Строго: все слова и без опечаток (порог 100%)
+        Строго: все слова точно, без опечаток, порог 100%, консенсус interim+final (слово, которое движок «домыслил» только в итоге, не засчитывается)
       </label>
       <label className="nodeSayCheck" onClick={stop}>
         <input type="checkbox" checked={listenAudio} onChange={e => onChange({ listenAudio: e.target.checked })} />
@@ -123,7 +117,9 @@ export default function NodeSayPhrasePicker({
       </label>
       <p className="nodeTwHint">
         Ученик нажимает на микрофон и говорит фразу. Порядок слов не важен, мелкие неточности прощаются; звук не записывается.
-        Штрафов нет: «Получилось» засчитывает, «Не могу говорить» пропускает.
+        Фразу ученику даёт текстовое сообщение ПЕРЕД модулем — напишите в нём, что и как сказать. Штрафов нет: «Я не могу говорить»
+        пропускает модуль (сообщение-успех сразу после него не показывается), а следующие такие модули плеер пропускает целиком —
+        вместе с заданием перед ними и успехом после.
       </p>
       <NodeCorrectWrongTriggers
         correctThen={doneThen} wrongThen={skipThen}

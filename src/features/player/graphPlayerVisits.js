@@ -24,3 +24,14 @@ export function forgetNodeKeys(fired, nodeId) {
   }
   return next
 }
+
+// Start from seq=1; fallback to lowest seq if seq=1 not found.
+// startNodeId — админский прогон с середины сценария («играть отсюда»).
+export function findEntry(nodes, startNodeId) {
+  return (
+    (startNodeId ? nodes.find(n => n.id === startNodeId) : null) ??
+    nodes.find(n => n.seq === 1) ??
+    nodes.slice().sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))[0] ??
+    null
+  )
+}

@@ -68,7 +68,10 @@ export function primeAudio() {
 function armGesture() {
   if (waitingGesture || ready || typeof document === 'undefined') return
   waitingGesture = true
-  const retry = () => {
+  const retry = e => {
+    // Тап по микрофону «Сказать фразу» (data-no-unlock): не прогреваем (это беззвучный wav, но он включает аудиосессию в момент
+    // старта записи); слушатель остаётся — прогрев случится на ближайшем другом касании
+    if (e?.target?.closest?.('[data-no-unlock]')) return
     document.removeEventListener('pointerdown', retry, true)
     document.removeEventListener('touchstart', retry, true)
     waitingGesture = false

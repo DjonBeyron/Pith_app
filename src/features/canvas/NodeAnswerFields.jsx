@@ -152,7 +152,6 @@ export default function NodeAnswerFields({
           threshold={tData.threshold ?? 70}
           lang={tData.lang ?? 'en-US'}
           listenAudio={tData.listenAudio !== false}
-          showPhrase={tData.showPhrase !== false}
           strict={tData.strict === true}
           onChange={patch => updateTypeData(patch)}
           triggers={node.triggers ?? []}

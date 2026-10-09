@@ -179,3 +179,36 @@ describe('модуль «Сказать фразу»: abort() после фин�
     expect(s.rec(0).stopped).toBe(1)
   })
 })
+
+describe('ранние события звука для эквалайзера (soundstart/soundend)', () => {
+  it('soundstart/soundend приходят в onSignal раньше speechstart и первого interim; таймер тишины они не продлевают', async () => {
+    const signals = []
+    const s = setup({ endOnFinal: 'abort', onSignal: k => signals.push(k) })
+    s.tap()
+    s.rec(0).onaudiostart()
+    s.rec(0).onsoundstart()
+    s.rec(0).onspeechstart()
+    s.rec(0).onresult({ results: [interimRes('i am')] })
+    s.rec(0).onsoundend()
+    expect(signals).toEqual(['audiostart', 'soundstart', 'speechstart', 'interim', 'soundend'])
+    // шум (soundstart без речи) не растягивает ожидание: тишина всё равно срабатывает через LISTEN_SILENCE_MS после audiostart
+    const q = setup()
+    q.tap()
+    q.rec(0).onaudiostart()
+    await q.tick(LISTEN_SILENCE_MS - 500)
+    q.rec(0).onsoundstart()
+    await q.tick(600)
+    expect(q.entries[0].error).toBe('silence')
+  })
+
+  it('события закрытого экземпляра игнорируются, обработчики снимаются при гашении попытки', () => {
+    const signals = []
+    const s = setup({ onSignal: k => signals.push(k) })
+    s.tap()
+    const first = s.rec(0)
+    s.ctrl.reset()
+    expect(first.onsoundstart).toBe(null)
+    expect(first.onsoundend).toBe(null)
+    expect(signals).toEqual([])
+  })
+})

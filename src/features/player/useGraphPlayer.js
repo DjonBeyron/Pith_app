@@ -2,11 +2,12 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { WARM_MAX_MS, WARM_POLL_MS } from './preloadWarm.js'
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
-import { appendVisit, forgetNodeKeys } from './graphPlayerVisits.js'
+import { appendVisit, forgetNodeKeys, findEntry } from './graphPlayerVisits.js'
 import { useGraphStepControls } from './useGraphStepControls.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { freshNode } from './freshNode.js'
 import { HISTORY_PAGE } from './feedWindow.js'
+import { sayRevealJump, saySuccessSkip, applySayJump } from './sayPairSkip.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
@@ -26,28 +27,13 @@ export const FIRST_TYPING_MS = 1000
 // одно новое сообщение (следующее ЗА реакцией). См. scheduleReveal ниже.
 const REACTION_DELAY_MS = 350
 
-// Start from seq=1; fallback to lowest seq if seq=1 not found.
-// startNodeId — админский прогон с середины сценария («играть отсюда»).
-function findEntry(nodes, startNodeId) {
-  return (
-    (startNodeId ? nodes.find(n => n.id === startNodeId) : null) ??
-    nodes.find(n => n.seq === 1) ??
-    nodes.slice().sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))[0] ??
-    null
-  )
-}
-
 // Чекпойнт «Продолжить урок» (useLessonResume.js): сколько РАЗНЫХ нод нужно
 // пройти, прежде чем предлагать резюм при следующем входе — меньше не имеет
 // смысла, разница со стартом с нуля незаметна
 const CHECKPOINT_THRESHOLD = 6
 
-// Восстановление истории при «Продолжить урок» (historyIds ниже) — не всю
-// сразу: у длинного урока это могут быть сотни нод разом в DOM. Изначально
-// показываем только «хвост» — HISTORY_PAGE (feedWindow.js, та же цифра у
-// прогрева карточки запуска) — остальное подгружается по requestMoreHistory
-// (кнопка/скролл вверх в LessonPlayer.jsx)
-// Сверх порога прогрева: полёт XP (ожидание пузыря ответа до 2,2 с + 1,6 с)
+// Сверх порога прогрева: полёт XP (ожидание пузыря ответа до 2,2 с + 1,6 с); историю «Продолжить урок» показываем «хвостом»
+// HISTORY_PAGE (feedWindow.js), остальное — по requestMoreHistory
 const HOLD_EXTRA_MS = 2500
 
 // paused — шаговый режим админа (правка из канваса): переходы замирают.
@@ -141,7 +127,16 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   // спрашивая паузу. delayMs — своя длительность точек вместо обычной
   // (старт урока: FIRST_TYPING_MS); помнится в scheduledRef, чтобы снятие
   // паузы переиграло её той же длины
-  scheduleReveal.current = (nextNodeId, force = false, delayMs = null) => {
+  scheduleReveal.current = (nextNodeId, force = false, delayMs = null, hops = 0) => {
+    // «Не могу говорить» в «Сказать фразу» (sayPairSkip.js): тройку задание → модуль → успех пропускаем целиком, один модуль закрываем сами
+    const jump = hops < 6 ? sayRevealJump(nodeMapRef.current, nextNodeId) : null
+    if (jump) {
+      applySayJump(jump, {
+        reveal: id => scheduleReveal.current(id, force, delayMs, hops + 1),
+        finish: (id, r) => { firedRef.current = forgetNodeKeys(firedRef.current, id); onNodeDone(id, r, null, force) },
+      })
+      return
+    }
     const next = nodeMapRef.current[nextNodeId]
     // Переход ведёт на ноду, которой в уроке нет — сценарий на этом встаёт.
     // Молча выходить нельзя: со стороны это выглядит как «плеер завис»
@@ -237,6 +232,12 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     const node = nodeMapRef.current[nodeId]
     if (!node) return
     const triggers = node.triggers ?? []
+
+    // Модуль «Сказать фразу» пропущен кнопкой «Я не могу говорить»: сообщение-успех сразу после него не показываем
+    const afterSay = saySuccessSkip(nodeMapRef.current, node, result)
+    if (afterSay && !firedRef.current.has(`${nodeId}:${result}`)) {
+      firedRef.current.add(`${nodeId}:${result}`); scheduleReveal.current(afterSay, force); return
+    }
 
     // Особый переход конкретного варианта ответа (nodeVariants.js) — если
     // задан, замещает собой обычный верно/неверно именно для этого варианта

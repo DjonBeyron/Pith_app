@@ -18,7 +18,7 @@ export const emptyView = {
 
 export const isBusy = view => view.status === 'starting' || view.status === 'listening' || view.status === 'retrying'
 
-const HANDLERS = ['onstart', 'onaudiostart', 'onspeechstart', 'onspeechend', 'onresult', 'onerror', 'onend']
+const HANDLERS = ['onstart', 'onaudiostart', 'onsoundstart', 'onsoundend', 'onspeechstart', 'onspeechend', 'onresult', 'onerror', 'onend']
 
 export function createSpeechController({
   createRecognition, queryPerm = async () => 'unavailable', getMode = () => 'browser',
@@ -28,7 +28,7 @@ export function createSpeechController({
   capture = null, getCapture = () => 'plain', logFields = () => ({}),
   now = () => Date.now(), perfNow = () => Date.now(), onView = () => {}, onEntry = () => {},
   // onSignal(kind) — события движка для синтетического уровня эквалайзера модуля «Сказать фразу» (sayVoiceLevel.js):
-  // 'audiostart' | 'speechstart' | 'interim' | 'final' | 'speechend' | 'end'. Реального уровня звука не берём (getUserMedia
+  // 'audiostart' | 'soundstart' | 'speechstart' | 'interim' | 'final' | 'speechend' | 'soundend' | 'end'. Реального уровня звука не берём (getUserMedia
   // рядом с SpeechRecognition на iPhone ломает распознавание). endOnFinal — чем гасить движок после финального результата:
   // 'stop' (проба «Голос», как раньше) или 'abort' (модуль: abort() не доигрывает системный хвост распознавания)
   onSignal = () => {}, endOnFinal = 'stop',
@@ -140,6 +140,10 @@ export function createSpeechController({
       rec.continuous = false
       rec.onstart = () => { if (live()) a.msStart ??= since() }
       rec.onaudiostart = () => { if (!live()) return; a.msAudio ??= since(); enterAudio(); arm(); onSignal('audiostart') }
+      // soundstart/soundend приходят РАНЬШЕ speechstart/interim (движок слышит звук, но ещё не решил, что это речь): для эквалайзера.
+      // Таймер тишины они не сбрасывают — фоновый шум не должен растягивать ожидание
+      rec.onsoundstart = () => { if (live()) onSignal('soundstart') }
+      rec.onsoundend = () => { if (live()) onSignal('soundend') }
       rec.onspeechstart = () => { if (!live()) return; enterAudio(); arm(); onSignal('speechstart') }
       rec.onspeechend = () => { if (live()) onSignal('speechend') }
       rec.onresult = ev => {
