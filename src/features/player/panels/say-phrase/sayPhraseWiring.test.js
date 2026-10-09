@@ -166,7 +166,11 @@ describe('say_phrase — порядок появления, звук, попап
     expect(popup).toContain('createPortal(')
     expect(popup).toContain('onClick={onConfirm}')
     expect(panelSrc['SayActions.jsx']).not.toContain('EXPLAIN_BTN')
-    expect(hook).toMatch(/const confirmExplain = useCallback\(\(\) => \{ perm\.markExplained\(\); begin\(\) \}/)
+    expect(hook).toMatch(/const confirmExplain = useCallback\(\(\) => \{ perm\.markExplained\(\); perm\.markPreShown\(\); begin\(\) \}/)
+    expect(body).toContain('<SayMicPopup kind={sp.explainKind}')
+    expect(popup).toContain("kind = 'full'")
+    expect(popup).toContain('EXPLAIN_SHORT_TEXT')
+    expect(popup).toContain('EXPLAIN_SHORT_BTN')
   })
 
   it('попап: пружина открытия, схлопывание как у худа, затемнение отдельным слоем; без blur/backdrop-filter/теней', () => {

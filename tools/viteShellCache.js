@@ -9,6 +9,8 @@ import { join, resolve, sep } from 'node:path'
 // по мере использования. Тесты: src/shared/lib/shellCachePlugin.test.js.
 export const STATIC_PRECACHE = ['manifest.webmanifest', 'net-guard.js'] // + всё из icons/ (favicon.svg НЕ кладём: net-guard пингует его мимо кеша)
 export const PRECACHE_LIMIT = 20 * 1024 * 1024
+// Тяжёлые чанки «только по кнопке» (Vosk из админки «Голос», ≈6 МБ) никогда не предзагружаем: иначе их скачал бы каждый пользователь
+export const NEVER_PRECACHE = /^assets\/vosk-/
 export const TOKENS = { id: '__BUILD_ID__', ver: '__APP_VERSION__', list: '__PRECACHE__' }
 
 const sha1 = buf => createHash('sha1').update(buf).digest('hex')
@@ -27,7 +29,7 @@ export function walk(dir, base = dir) {
 // Список предзагрузки: URL-ы с ведущим слэшем, '/' (index.html) первым. entryRe — что нужно для первого кадра при превышении лимита
 export function collectPrecache(files, { limit = PRECACHE_LIMIT, html = '' } = {}) {
   const wanted = files.filter(f =>
-    f.path.startsWith('assets/') || STATIC_PRECACHE.includes(f.path) || f.path.startsWith('icons/'))
+    (f.path.startsWith('assets/') && !NEVER_PRECACHE.test(f.path)) || STATIC_PRECACHE.includes(f.path) || f.path.startsWith('icons/'))
   const total = wanted.reduce((n, f) => n + f.size, 0)
   let picked = wanted
   let lazyOmitted = 0

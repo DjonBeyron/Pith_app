@@ -94,4 +94,5 @@ export const EXAMPLES = [
   "I don't know what to say",
   'She sells sea shells by the sea shore',
   'Could you tell me the way to the station',
+  "I'm trying", // для экспериментов «против домысливания»: ученик может сказать «I'm try»
 ]

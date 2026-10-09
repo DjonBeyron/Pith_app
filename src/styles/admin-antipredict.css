@@ -1,0 +1,26 @@
+/* Админ → Голос → «Эксперименты: против домысливания движка» (features/admin/speech/AntiPredictBlock, AntiPredictTable, VoskLab).
+   Использует общие классы пробы asp* из admin-speech.css; здесь только то, чего там нет (префикс ap) */
+
+.apBox { display: flex; flex-direction: column; gap: 8px; padding: 8px 10px; border: 1px solid #2a2d35; border-radius: 10px; background: #101216; }
+.apBox[open] { padding-bottom: 12px; }
+.apSum { cursor: pointer; font-size: 13px; font-weight: 600; color: #f0b429; padding: 4px 0; }
+
+.apCard { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; background: #14161b; border: 1px solid #23262d; font-size: 13px; color: #e0e0e0; }
+.apCard p { margin: 0; line-height: 1.45; }
+.apOff { opacity: 0.55; }
+.apNo { font-size: 12px; color: #f0b429; }
+.apToggle { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; color: #e0e0e0; cursor: pointer; }
+.apToggle input { width: 20px; height: 20px; accent-color: #b6fe3b; flex: none; }
+.apCardHead { font-size: 14px; color: #e0e0e0; }
+.apSmall { padding: 10px 16px; font-size: 14px; }
+.apWord { flex: 1; min-width: 120px; }
+
+.apDiag { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; background: #12141a; border: 1px solid #f0b42955; }
+.apKv th { width: 40%; color: #888; font-weight: 500; }
+.apKv td { color: #e0e0e0; }
+.apWrap { white-space: normal; min-width: 160px; }
+.apHit td { color: #f0b429; }
+.apCard code, .apDiag code { word-break: break-all; }
+.apDiag .aspPair { flex-wrap: wrap; font-size: 13px; }
+.apDiag .aspPairKey { min-width: 0; }
+.apDiag .aspPair > span:not(.aspPairKey) { font-size: 13px; }

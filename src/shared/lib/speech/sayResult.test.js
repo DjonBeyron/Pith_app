@@ -142,13 +142,14 @@ describe('данные ноды', () => {
 describe('micLabel и тексты панели (внутри панели нет подсказок)', () => {
   const base = { verdict: null, fallbackReason: null }
 
-  it('основные состояния: прямоугольник «Нажмите, чтобы говорить» → круг (подготовка → «Слушаю…») → «Верно!»; системные «Микрофон выключен»/«Проверка голоса недоступна»', () => {
+  it('основные состояния: прямоугольник «Нажмите, чтобы говорить» → квадрат (подготовка → «Слушаю») → «Верно»; системные «Микрофон выключен»/«Проверка голоса недоступна»', () => {
     expect(micLabel({ ...base, phase: 'idle' })).toEqual({ label: 'Нажмите, чтобы говорить', mode: 'idle' })
-    expect(micLabel({ ...base, phase: 'failed' })).toEqual({ label: 'Нажмите, чтобы говорить', mode: 'idle' }) // после неудачи микрофон снова доступен
-    expect(micLabel({ ...base, phase: 'run' })).toEqual({ label: '', mode: 'prep' })                         // круг: морфинг идёт или движок ещё не слушает — подписи нет
-    expect(micLabel({ ...base, phase: 'run', go: true })).toEqual({ label: 'Слушаю…', mode: 'listening' })
-    expect(micLabel({ ...base, phase: 'passed', verdict: { ratioPct: 100 } })).toMatchObject({ label: 'Верно!', mode: 'ok' })
-    expect(micLabel({ ...base, phase: 'passed', verdict: { ratioPct: 80 } }).label).toBe('Засчитано!')
+    expect(micLabel({ ...base, phase: 'failed' })).toEqual({ label: 'Нажмите, чтобы говорить', mode: 'idle' }) // после неудачи (крестик уже показан) микрофон снова доступен
+    expect(micLabel({ ...base, phase: 'failed', failShow: true })).toEqual({ label: '', mode: 'fail' })      // пока держится крестик — квадрат
+    expect(micLabel({ ...base, phase: 'run' })).toEqual({ label: '', mode: 'prep' })                         // квадрат: морфинг идёт или движок ещё не слушает — подписи нет
+    expect(micLabel({ ...base, phase: 'run', go: true })).toEqual({ label: 'Слушаю', mode: 'listening' })
+    expect(micLabel({ ...base, phase: 'passed', verdict: { ratioPct: 100 } })).toMatchObject({ label: 'Верно', mode: 'ok' })
+    expect(micLabel({ ...base, phase: 'passed', verdict: { ratioPct: 80 } }).label).toBe('Засчитано')
     expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'denied' })).toEqual({ label: 'Микрофон выключен', mode: 'off' })
     expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'cant_speak' })).toEqual({ label: 'Микрофон выключен', mode: 'off' })
     expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'unsupported' })).toEqual({ label: 'Проверка голоса недоступна', mode: 'off' })

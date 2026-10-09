@@ -20,6 +20,12 @@ describe('collectPrecache', () => {
     expect(lazyOmitted).toBe(0)
   })
 
+  it('тяжёлый чанк Vosk («только по кнопке») не предзагружается и не считается в total', () => {
+    const { urls, total } = collectPrecache([...FILES, f('assets/vosk-Cza5_fLh.js', 5800000)])
+    expect(urls.some(u => u.includes('vosk'))).toBe(false)
+    expect(total).toBe(collectPrecache(FILES).total)
+  })
+
   it('тяжелее лимита — только файлы из index.html (первый кадр), ленивые чанки докладываются по мере использования', () => {
     const html = '<script type="module" src="/assets/index-a.js"></script><link href="/assets/index-c.css" rel="stylesheet">'
     const { urls, lazyOmitted } = collectPrecache(FILES, { limit: 10000, html })

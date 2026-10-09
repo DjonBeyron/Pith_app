@@ -11,15 +11,17 @@ export const showHeardText = ({ isAdmin }) => !!isAdmin
 export const QUIET_NOTE = 'звуки приложения подавлены'
 
 const q = t => `«${t}»`
-const note = (...parts) => [...parts.filter(Boolean), QUIET_NOTE].join(' · ')
+/** Пометка про реальный уровень звука для колец (эксперимент, sayRealLevel.js): вкл / выкл / ошибка (тихий откат на синтетический) */
+export const realLevelNote = status => `реальный уровень: ${status || 'выкл'}`
 
 /**
  * Строка для админа или null (null — «нового сказать нечего», прежняя строка остаётся). phase — фаза панели, view — вид контроллера
  * (interim/lastInterim/final/alternatives), verdict/errorCode — итог попытки.
  * @returns {{text: string, note: string, title: string}|null} title — все варианты распознавания (всплывающая подсказка)
  */
-export function adminHeardLine({ isAdmin, phase, view, verdict = null, errorCode = null }) {
+export function adminHeardLine({ isAdmin, phase, view, verdict = null, errorCode = null, realLevel = null }) {
   if (!showHeardText({ isAdmin }) || !view) return null
+  const note = (...parts) => [...parts.filter(Boolean), QUIET_NOTE, realLevelNote(realLevel)].join(' · ')
   const final = view.final?.text || ''
   if (phase === 'run' && view.status === 'listening') {
     return view.interim ? { text: `Админ: слышу ${q(view.interim)}`, note: note(), title: '' } : null

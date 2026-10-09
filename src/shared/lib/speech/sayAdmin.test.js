@@ -21,7 +21,7 @@ describe('распознанный текст — только админу', ()
   it('админ: живой interim во время записи', () => {
     const live = adminHeardLine({ isAdmin: true, phase: 'run', view: { ...emptyView, status: 'listening', interim: "I'm tr" } })
     expect(live.text).toBe("Админ: слышу «I'm tr»")
-    expect(live.note).toBe('звуки приложения подавлены') // отметка: на время попытки звуки приложения молчат (soundQuiet.js)
+    expect(live.note).toBe('звуки приложения подавлены · реальный уровень: выкл') // отметка: на время попытки звуки приложения молчат (soundQuiet.js)
     expect(adminHeardLine({ isAdmin: true, phase: 'run', view: { ...emptyView, status: 'listening' } })).toBe(null)
   })
 
@@ -49,8 +49,9 @@ describe('строка админа: ошибки и корректировка 
       isAdmin: true, phase: 'failed', view: done({ final: alt('I am trying to please both'), lastInterim: 'I am try to please both' }),
       verdict: { engineFixed: ['trying'] },
     })
-    expect(l.note).toBe('слово trying подтверждено только final (корректировка движка) · звуки приложения подавлены')
-    expect(adminHeardLine({ isAdmin: true, phase: 'passed', view: done(), verdict: { engineFixed: [] } }).note).toBe('звуки приложения подавлены')
+    expect(l.note).toBe('слово trying подтверждено только final (корректировка движка) · звуки приложения подавлены · реальный уровень: выкл')
+    expect(adminHeardLine({ isAdmin: true, phase: 'passed', view: done(), verdict: { engineFixed: [] } }).note).toBe('звуки приложения подавлены · реальный уровень: выкл')
+    expect(adminHeardLine({ isAdmin: true, phase: 'passed', view: done(), realLevel: 'вкл' }).note).toBe('звуки приложения подавлены · реальный уровень: вкл')
   })
 
   it('не админ — по-прежнему ничего, даже с ошибкой и корректировкой', () => {

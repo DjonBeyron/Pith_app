@@ -4,13 +4,15 @@ import {
   ringScale, ringOpacity, breath, ringTarget, ringsStep, initialRings,
 } from './sayRings.js'
 import { createVoiceLevel } from './sayVoiceLevel.js'
+import { SQUARE_PX } from './sayMorph.js'
 
 describe('уровень → масштаб и прозрачность колец', () => {
-  it('масштаб от 1,0 до ≈1,9–2,2 (амплитуда большая), внешние кольца дальше; уровень вне 0..1 обрезается', () => {
+  it('масштаб от 1,0 до ≈1,7–2,0 (амплитуда большая, внешнее кольцо ≤ высоты панели 230 px), внешние кольца дальше; уровень вне 0..1 обрезается', () => {
     expect(ringScale(0, 0)).toBe(1)
     for (let i = 0; i < 3; i++) {
-      expect(ringScale(1, i)).toBeGreaterThanOrEqual(1.9)
-      expect(ringScale(1, i)).toBeLessThanOrEqual(2.2)
+      expect(ringScale(1, i)).toBeGreaterThanOrEqual(1.7)
+      expect(ringScale(1, i)).toBeLessThanOrEqual(2)
+      expect(ringScale(1, i) * SQUARE_PX).toBeLessThanOrEqual(230)
       expect(ringScale(2, i)).toBe(ringScale(1, i))
       expect(ringScale(-1, i)).toBe(1)
     }
@@ -56,15 +58,15 @@ describe('«дыхание» и цель колец', () => {
 })
 
 describe('инерция колец', () => {
-  it('внутреннее реагирует мгновенно, внешние с задержкой 40–90 мс и мягче затухают', () => {
+  it('внутреннее реагирует мгновенно, внешние отстают лишь на 1–2 кадра (раньше 40/90 мс — заметное запаздывание) и мягче затухают', () => {
     expect(RING_ATTACK_MS[0]).toBe(0)
-    expect(RING_ATTACK_MS[1]).toBeGreaterThanOrEqual(40)
-    expect(RING_ATTACK_MS[2]).toBeLessThanOrEqual(90)
+    expect(RING_ATTACK_MS[1]).toBeLessThanOrEqual(20)
+    expect(RING_ATTACK_MS[2]).toBeLessThanOrEqual(35)
     expect(RING_DECAY_MS[0]).toBeLessThan(RING_DECAY_MS[1])
     expect(RING_DECAY_MS[1]).toBeLessThan(RING_DECAY_MS[2])
     const up = ringsStep(initialRings(), 1, 16)
     expect(up[0]).toBe(1)
-    expect(up[1]).toBeGreaterThan(0.2)
+    expect(up[1]).toBeGreaterThan(0.5)
     expect(up[1]).toBeLessThan(up[0])
     expect(up[2]).toBeLessThan(up[1])
     const down = ringsStep([1, 1, 1], 0, 100)
@@ -77,6 +79,16 @@ describe('инерция колец', () => {
     for (let i = 0; i < 60; i++) l = ringsStep(l, 0.8, 16)
     l.forEach(v => expect(v).toBeCloseTo(0.8, 2))
     expect(ringsStep([0.2, 0.2, 0.2], 0.9, 0).slice(1)).toEqual([0.2, 0.2])
+  })
+})
+
+describe('реальный уровень: кольца без задержки', () => {
+  it('скачок уровня 0 → 0,9: внутреннее кольцо в тот же кадр, остальные за 2 кадра (32 мс) уже ≥ 55% цели', () => {
+    let l = ringsStep(initialRings(), 0.9, 16)
+    expect(l[0]).toBeCloseTo(0.9, 10)
+    l = ringsStep(l, 0.9, 16)
+    expect(l[1]).toBeGreaterThan(0.9 * 0.55)
+    expect(l[2]).toBeGreaterThan(0.9 * 0.55)
   })
 })
 

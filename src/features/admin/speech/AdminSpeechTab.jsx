@@ -3,9 +3,11 @@ import { getCapabilities, queryMicPermission, EXAMPLES } from '../../../shared/l
 import { readLog } from './speechLog.js'
 import { useSpeechProbe } from './useSpeechProbe.js'
 import { useSpeechCapture } from './useSpeechCapture.js'
+import { useAntiPredict } from './useAntiPredict.js'
 import SpeechCapsBlock from './SpeechCapsBlock.jsx'
 import SpeechTestBlock from './SpeechTestBlock.jsx'
 import SpeechLogBlock from './SpeechLogBlock.jsx'
+import SpeechSayBlock from './SpeechSayBlock.jsx'
 import SpeechMemo from './SpeechMemo.jsx'
 import SpeechCaptureMemo from './SpeechCaptureMemo.jsx'
 import '../../../styles/admin-speech.css'
@@ -22,7 +24,8 @@ export default function AdminSpeechTab() {
   const [lang, setLang] = useState('en-US')
   const [log, setLog] = useState(readLog)
   const cap = useSpeechCapture()
-  const probe = useSpeechProbe({ reference, lang, onLogged: setLog, capture: cap.manager, getCapture: cap.getMode })
+  const ap = useAntiPredict({ reference, lang })
+  const probe = useSpeechProbe({ reference, lang, onLogged: setLog, capture: cap.manager, getCapture: cap.getMode, getExtra: ap.getExtra })
   const { reset } = probe
 
   // Смена эталона/языка — прошлый итог, альтернативы и сравнение очищаем целиком
@@ -40,7 +43,8 @@ export default function AdminSpeechTab() {
       <div className="aeHead"><span className="aeTitle">Голос (проба распознавания речи)</span></div>
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
       <SpeechCapsBlock caps={caps} perm={perm} />
-      <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} cap={cap} />
+      <SpeechSayBlock />
+      <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} cap={cap} ap={ap} />
       <SpeechLogBlock log={log} setLog={setLog} caps={caps} perm={perm} since={SESSION_START} />
       <SpeechCaptureMemo />
       <SpeechMemo />

@@ -1,11 +1,13 @@
 import { EXAMPLES } from '../../../shared/lib/speech/speechSupport.js'
 import SpeechOutput from './SpeechOutput.jsx'
 import SpeechCaptureBlock from './SpeechCaptureBlock.jsx'
+import AntiPredictBlock from './AntiPredictBlock.jsx'
+import AntiPredictTable from './AntiPredictTable.jsx'
 
 const LANGS = ['en-US', 'en-GB']
 
 // Блок 2 пробы «Голос»: эталонная фраза, язык, кнопки «Сказать»/«Стоп»/«Ещё раз»; вывод — в SpeechOutput.
-export default function SpeechTestBlock({ caps, reference, setReference, lang, setLang, probe, cap }) {
+export default function SpeechTestBlock({ caps, reference, setReference, lang, setLang, probe, cap, ap }) {
   const { view, start, stop, busy } = probe
   return (
     <section className="aspBlock">
@@ -28,6 +30,7 @@ export default function SpeechTestBlock({ caps, reference, setReference, lang, s
         ))}
       </div>
       <SpeechCaptureBlock mode={cap.mode} setMode={cap.setMode} state={cap.state} busy={busy} />
+      <AntiPredictBlock ap={ap} reference={reference} busy={busy} recognition={caps.recognition} onOneWord={word => start({ reference: word })} />
       <div className="aspRow">
         <button className="aspSay" onClick={start} disabled={!caps.recognition || busy || !reference.trim()}>Сказать</button>
         <button className="aspStop" onClick={stop} disabled={!busy}>Стоп</button>
@@ -35,6 +38,7 @@ export default function SpeechTestBlock({ caps, reference, setReference, lang, s
       </div>
       {!caps.recognition && <p className="aeError">На этом устройстве распознавания речи в браузере нет — проверять нечего.</p>}
       <SpeechOutput view={view} busy={busy} onAgain={start} />
+      <AntiPredictTable view={view} said={ap.said} caps={caps} />
     </section>
   )
 }

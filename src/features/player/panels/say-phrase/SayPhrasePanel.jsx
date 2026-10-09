@@ -6,7 +6,7 @@ import SayActions from './SayActions.jsx'
 import { listenKeys, playListen } from './sayListen.js'
 import { readSayData } from '../../../../shared/lib/speech/sayPhraseData.js'
 import { sayOutcome, SAY_EVENTS, TRIGGER_SKIP } from '../../../../shared/lib/speech/sayResult.js'
-import { micLabel } from '../../../../shared/lib/speech/sayMic.js'
+import { micLabel, attemptText, isSquareMode } from '../../../../shared/lib/speech/sayMic.js'
 import { HINT_DELAY_MS } from '../../../../shared/lib/speech/sayHints.js'
 import { SAY_LABEL } from '../../../../shared/lib/speech/sayTexts.js'
 import { setCantSpeakSession } from '../../../../shared/lib/speech/cantSpeakFlag.js'
@@ -30,10 +30,11 @@ const SEE_RESULT_MS = 1100
 // ответа — как у «Напечатай слово»; поднимается сразу после предыдущей ноды (пузыря от самого модуля в чате НЕТ: задание ученику
 // формулирует сообщение автора перед модулем, фраза в панели не показывается). Микрофон — только по тапу (useSayPhrase.js),
 // штрафов нет (sayResult.js). Внутри панели НЕТ текстов-подсказок: заголовок «Произнесите фразу» (гаснет на нажатии, место остаётся),
-// по центру высоты панели — кнопка-морфинг с кольцами (SayStage.jsx), внизу тихие ссылки. Подсказки после неудачной попытки уходят
+// по центру высоты панели — кнопка-морфинг (прямоугольник ⇄ квадрат «Слушаю / Стоп») с кольцами (SayStage.jsx), внизу тихие ссылки. Подсказки после неудачной попытки уходят
 // в ЧАТ пузырями слева (onAnswered(text, 'hint'), как реплики «Собери фразу»; тексты — поля ноды, sayHints.js), с задержкой
 // HINT_DELAY_MS: пузырь приходит уже после окна тишины звуков приложения. «Ещё раз»/«Получилось» убраны: после неудачи микрофон снова
-// доступен, при отказе микрофона единственный выход — «Я не могу говорить». Пояснение про микрофон — попап SayMicPopup.
+// доступен, при отказе микрофона единственный выход — «Я не могу говорить». Попап перед запросом микрофона — SayMicPopup (полный
+// в первый раз, короткий дальше). Админская палочка «засчитать» — слева вверху (side="left"), «Попытка N» — справа от кнопки.
 // Админская строка «что услышал движок» — плашка НАД панелью (вне модуля, высоту не меняет), остаётся до новой записи.
 export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswer, onHeightChange, xpAmount = 0, onXpEarned }) {
   const raw = node.typeData?.say_phrase
@@ -126,7 +127,8 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   }
 
   const running = phase === 'run'
-  const mic = micLabel({ phase, verdict, fallbackReason: sp.fallbackReason, go: sp.go })
+  const mic = micLabel({ phase, verdict, fallbackReason: sp.fallbackReason, go: sp.go, failShow: sp.failShow })
+  const square = isSquareMode(mic.mode) // кнопка — квадрат: заголовок и «Я не могу говорить» плавно гаснут
   const adminLine = isAdmin ? sp.adminLine : null // распознанный текст — только админу (sayAdmin.js)
 
   if (!data.phrase) return null
@@ -142,7 +144,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
         }}
       />
       <div ref={panelRef} className={`phrasePanel sayPanel${show ? ' phrasePanelVisible' : ''}`}>
-        <SolveCorrectButton onSolve={() => finish('solve')} disabled={closing} />
+        <SolveCorrectButton side="left" onSolve={() => finish('solve')} disabled={closing} />
         {adminLine && (
           <div className="sayAdminLine" data-testid="say-admin-line" title={adminLine.title || undefined}>
             <span>{adminLine.text}</span>
@@ -151,12 +153,13 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
         )}
         <div className="phraseInner sayInner">
           <div className="sayBody">
-            <p className={`sayLabel${running || phase === 'passed' ? ' sayLabel--hidden' : ''}`} data-testid="say-label">{SAY_LABEL}</p>
+            <p className={`sayLabel${square ? ' sayLabel--hidden' : ''}`} data-testid="say-label">{SAY_LABEL}</p>
             <SayStage
               label={mic.label}
               mode={mic.mode}
               voice={sp.voice}
               disabled={closing || phase === 'passed'}
+              attempts={attemptText({ taps: sp.taps, failStreak: sp.failStreak, phase })}
               onTap={tapMic}
             />
             <SayActions
@@ -164,6 +167,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
               listenBusy={listening}
               closing={closing}
               canEnable={phase === 'fallback' && sp.fallbackReason === 'cant_speak'}
+              hideSkip={square}
               onListen={toggleListen}
               onSkip={() => finish('skip')}
               onEnable={sp.enableMic}
@@ -171,7 +175,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
           </div>
         </div>
       </div>
-      {pop.shown && <SayMicPopup closing={pop.closing} onConfirm={sp.confirmExplain} onCancel={sp.cancelExplain} />}
+      {pop.shown && <SayMicPopup kind={sp.explainKind} closing={pop.closing} onConfirm={sp.confirmExplain} onCancel={sp.cancelExplain} />}
     </>
   )
 }

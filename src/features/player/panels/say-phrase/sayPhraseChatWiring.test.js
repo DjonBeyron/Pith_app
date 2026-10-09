@@ -13,15 +13,15 @@ const body = panelSrc['SayPhrasePanel.jsx']
 const hook = panelSrc['useSayPhrase.js']
 
 describe('say_phrase — эквалайзер, морфинг, подсказки в чате', () => {
-  it('эквалайзер плеера этим модулем НЕ включается: ни forceEqualizer, ни публикации в audioLevel; голос видят только кольца (синтетический уровень по событиям, без getUserMedia)', () => {
+  it('эквалайзер плеера этим модулем НЕ включается: ни forceEqualizer, ни публикации в audioLevel; голос видят только кольца (уровень по событиям; реальный — только по админскому флагу в sayRealLevel.js)', () => {
     for (const [name, src] of Object.entries(panelSrc)) {
       const code = src.replace(/\/\/.*$/gm, '')
       expect(code, name).not.toMatch(/forceEqualizer|publishLevel|unpublishLevel|audioLevel|lessonPrefs|AudioGlow/)
       expect(code, name).not.toMatch(/AnalyserNode|AudioContext|getUserMedia/)
     }
     expect(hook).toContain('onSignal: kind => voice.signal(kind, nowMs())')
-    expect(hook).toContain('voice,') // уровень отдаётся панели для колец
-    expect(panelSrc['SayStage.jsx']).toContain('useSayRings(boxRef, { on: circle, listening: mode === \'listening\', voice })')
+    expect(hook).toContain('voice: levels') // источник уровня (синтетический или реальный) отдаётся панели для колец
+    expect(panelSrc['SayStage.jsx']).toContain("useSayRings(ringsRef, { on: mode === 'prep' || mode === 'listening', listening: mode === 'listening', voice })")
     expect(read('../../AudioGlowGate.jsx')).toContain('useEqualizerEnabled()') // настройка шапки действует как обычно
   })
 
@@ -32,7 +32,9 @@ describe('say_phrase — эквалайзер, морфинг, подсказк�
       const code = src.replace(/\/\/.*$/gm, '')
       expect(code, name).not.toMatch(/DOT_MS|dotsDone|dots\b|sayRecDot|sayMicDots|MIC_STARTING|MIC_PROCESSING/)
     }
-    expect(body).toContain("sayLabel${running || phase === 'passed' ? ' sayLabel--hidden' : ''}")
+    expect(body).toContain("sayLabel${square ? ' sayLabel--hidden' : ''}") // заголовок гаснет, пока кнопка — квадрат
+    expect(hook).toContain("dispatch({ type: 'failEnd' })") // после крестика (FAIL_HOLD_MS) — снова прямоугольник
+    expect(hook).toContain('FAIL_HOLD_MS')
   })
 
   it('в панели нет текстов-подсказок: ни sayStatus/sayInfo/«Почти!»/«Не хватило», подсказки уходят в ЧАТ через onAnswered(text, "hint") с задержкой после окна тишины', () => {

@@ -1,6 +1,7 @@
 // Журнал попыток распознавания в localStorage ЭТОГО устройства (на сервер не уходит, звук и текст не хранятся).
 import { MODE_LABEL, PERM_LABEL } from '../../../shared/lib/speech/speechSupport.js'
 import { fmtCapture, fmtConf } from './speechCapture.js'
+import { fmtAntiPredict } from './antiPredictReport.js'
 import { MAX_ATTEMPTS } from '../../../shared/lib/speech/speechPolicy.js'
 
 export const LOG_KEY = 'pithy_admin_voice_probe_v1'
@@ -59,6 +60,6 @@ export function logReportLines(log) {
   return log.slice(0, LOG_SHOW).map(e => {
     const t = new Date(e.t).toLocaleString('ru-RU')
     const perm = `${PERM_LABEL[e.permBefore] ? e.permBefore : '?'}→${e.permAfter || '?'}`
-    return `${t} | попытка ${fmtAttempt(e)} | ${MODE_LABEL[e.mode] || e.mode} | разрешение ${perm} | start ${fmtMs(e.msStart)} / audio ${fmtMs(e.msAudio)} / result ${fmtMs(e.msResult)} мс | уверенность ${fmtConf(e.conf)} | захват ${fmtCapture(e)} | ошибка: ${e.error || '—'} | исход: ${e.outcome || '—'} | диалог: ${DIALOG_LABEL[e.dialog] || '?'}`
+    return `${t} | попытка ${fmtAttempt(e)} | ${MODE_LABEL[e.mode] || e.mode} | разрешение ${perm} | start ${fmtMs(e.msStart)} / audio ${fmtMs(e.msAudio)} / result ${fmtMs(e.msResult)} мс | уверенность ${fmtConf(e.conf)} | захват ${fmtCapture(e)} | эксперименты ${fmtAntiPredict(e)} | ошибка: ${e.error || '—'} | исход: ${e.outcome || '—'} | диалог: ${DIALOG_LABEL[e.dialog] || '?'}`
   })
 }

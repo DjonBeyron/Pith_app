@@ -5,6 +5,7 @@ export const PERMISSION_GUARD_MS = 30000 // от тапа до audiostart: по�
 export const MAX_ATTEMPTS = 3           // всего попыток в одном нажатии «Сказать» (первая + 2 автоповтора)
 export const RETRY_PAUSE_MS = 700       // пауза перед автоповтором
 export const STOP_FORCE_MS = 2500       // iOS иногда не присылает end после stop()/результата — закрываем сами
+export const SEGMENT_SILENCE_MS = 1200  // режим continuous (эксперимент «По словам»): столько тишины после последнего результата — конец
 
 // Ошибки, после которых автоповтор имеет смысл (связь, тишина, системный abort).
 // not-allowed / audio-capture / language-not-supported / start-failed / no-start — нужно действие пользователя.
