@@ -8,6 +8,7 @@ import { errorText } from './voskErrors.js'
 import VoskModelAddress from './VoskModelAddress.jsx'
 import VoskModelBlock from './VoskModelBlock.jsx'
 import VoskVocabTest from './VoskVocabTest.jsx'
+import { setVoskModel, setVoskBusy, useVoskEngine } from './voskSession.js'
 import '../../../styles/admin-vosk.css'
 
 const STAGE = { lib: 'Загружаем библиотеку (≈6 МБ)…', model: 'Распаковываем модель и загружаем в память…' }
@@ -30,7 +31,10 @@ export default function VoskLab({ reference, wrong }) {
   const ctl = useRef({}) // ctl.cancel() — отмена загрузки в память
   const grammar = useMemo(() => buildVoskGrammar(reference, wrong), [reference, wrong])
 
-  useEffect(() => () => { sess.current?.cancel(); unloadEngine(model.current) }, [])
+  const shared = useVoskEngine()
+  const other = shared.busy && phase === 'ready' // «Тест 3» сейчас пишет — один микрофон на всех
+  useEffect(() => () => { sess.current?.cancel(); unloadEngine(model.current); setVoskModel(null) }, [])
+  useEffect(() => { if (phase === 'listening' || phase === 'testing') setVoskBusy(true); else if (phase === 'ready') setVoskBusy(false) }, [phase])
 
   async function loadIt() {
     setError(''); setPhase('loading')
@@ -38,6 +42,7 @@ export default function VoskLab({ reference, wrong }) {
       const m = dl?.blob ? dl : await getModel(url) // модель берём из кеша; из сети — никогда (качает только кнопка «Скачать»)
       const r = await loadEngine(m.blob, s => setStage(STAGE[s]), ctl.current)
       model.current = r.model
+      setVoskModel(r.model, { model: (url.split('/').pop() || 'модель'), modelMs: r.modelMs })
       setLoad({ libMs: r.libMs, modelMs: r.modelMs, size: r.size, heap: r.heap, from: dl?.from === 'network' ? 'network' : 'cache' })
       setPhase('ready')
     } catch (e) { setError(errorText(e)); setPhase('idle') }
@@ -57,7 +62,7 @@ export default function VoskLab({ reference, wrong }) {
   }
 
   function unload() { // «Выгрузить движок»: воркер, модель в памяти и её копия в IndexedDB освобождаются
-    sess.current?.cancel(); unloadEngine(model.current); model.current = null
+    sess.current?.cancel(); unloadEngine(model.current); model.current = null; setVoskModel(null)
     setPhase('idle'); setLoad(null); setPartial(''); setRes(null)
   }
   const onFetched = r => { setError(''); setDl(!r || r.from !== 'network' ? null : r.saveError ? r : { from: 'network', ms: r.ms, size: r.size }) } // Blob держим в памяти, только если в кеш не влезло
@@ -75,10 +80,10 @@ export default function VoskLab({ reference, wrong }) {
       <div className="aspRow">
         {phase === 'idle' && <button className="aspSay apSmall" disabled={!cache && !dl?.blob} onClick={loadIt}>Загрузить движок в память</button>}
         {phase === 'loading' && <><span className="aspHint">{stage}</span><button className="aeRefresh" onClick={() => ctl.current.cancel?.()}>Отменить</button></>}
-        {phase === 'ready' && <button className="aspSay apSmall" onClick={say}>Сказать (Vosk)</button>}
+        {phase === 'ready' && <button className="aspSay apSmall" disabled={other} onClick={say}>Сказать (Vosk)</button>}
         {phase === 'listening' && <button className="aspStop" onClick={() => sess.current?.stop()}>Стоп</button>}
         {phase === 'listening' && <span className="aspRec"><i className="aspDot" />слушаю…</span>}
-        {loaded && <button className="aeRefresh" disabled={phase === 'testing'} onClick={unload}>Выгрузить движок</button>}
+        {loaded && <button className="aeRefresh" disabled={phase === 'testing' || other} onClick={unload}>Выгрузить движок</button>}
       </div>
       {phase === 'idle' && !cache && !dl?.blob && <div className="aspHint">Сначала скачайте модель на устройство.</div>}
       {load && (
@@ -102,7 +107,7 @@ export default function VoskLab({ reference, wrong }) {
         </div>
       )}
       {error && <div className="aspErr"><b>{error}</b></div>}
-      <VoskVocabTest model={() => model.current} ready={phase === 'ready'} lock={b => setPhase(b ? 'testing' : 'ready')} meta={meta} />
+      <VoskVocabTest model={() => model.current} ready={phase === 'ready' && !other} lock={b => setPhase(b ? 'testing' : 'ready')} meta={meta} />
     </div>
   )
 }

@@ -1,8 +1,9 @@
 import { TEST_LANGS } from './antiPredictModes.js'
 import ContextSeriesBlock from './ContextSeriesBlock.jsx'
 import RestartSeriesBlock from './RestartSeriesBlock.jsx'
+import VoskSeriesBlock from './VoskSeriesBlock.jsx'
 
-// Раздел «Простые тесты» вкладки «Голос» — две серии, СРАЗУ видимые (не свёрнуты): тест 1 (длина контекста) и тест 2 (6 нажатий подряд).
+// Раздел «Простые тесты» вкладки «Голос» — три теста, СРАЗУ видимые (не свёрнуты): тест 1 (длина контекста) и тест 2 (6 нажатий подряд), тест 3 (Vosk, закрытый словарь — нужна загруженная модель).
 // Кнопки «Сказать»/«Стоп» и живая строка «Слышу/Услышали» стоят прямо в тесте; общие probe/series/restart приходят из AdminSpeechTab.
 export default function SimpleTestsBlock({ caps, reference, lang, setLang, probe, series, onPickStep, restart, dwell, onDwell }) {
   const { view, busy, start, stop } = probe
@@ -18,6 +19,7 @@ export default function SimpleTestsBlock({ caps, reference, lang, setLang, probe
       </div>
       <ContextSeriesBlock series={series} lang={lang} reference={reference} busy={busy || cooling} view={view} onPick={onPickStep} onSay={() => start()} onStop={stop} strategy={restart.strategy} dwell={dwell} onDwell={onDwell} />
       <RestartSeriesBlock rs={restart} probe={probe} recognition={caps.recognition} lang={lang} />
+      <VoskSeriesBlock />
     </section>
   )
 }

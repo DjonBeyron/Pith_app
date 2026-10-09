@@ -10,3 +10,15 @@
 .vkHeard { display: flex; flex-direction: column; gap: 2px; }
 .vkHeardText { font-size: 28px; line-height: 1.2; color: #fff; overflow-wrap: anywhere; }
 .apMore code { word-break: break-all; }
+
+/* «Тест 3. Vosk — закрытый словарь» (VoskSeriesBlock, VoskCtxPanel, VoskTrapsBlock, VoskPairsBlock, VoskCards, VoskSummary) */
+.vkWords { margin: 0; padding-left: 16px; font-size: 13px; line-height: 1.45; color: #e0e0e0; }
+.vkGate { display: flex; flex-direction: column; gap: 6px; }
+.vkSum { margin: 0; padding-left: 16px; font-size: 13px; line-height: 1.5; color: #e0e0e0; overflow-wrap: anywhere; }
+.vkSum li { margin: 3px 0; }
+.vkCount { font-size: 16px; font-weight: 700; color: #fff; }
+.vkTable td, .vkTable th { white-space: normal; text-align: left; }
+.vkSettings { display: flex; flex-direction: column; gap: 6px; }
+.vkSettings .aspLabelInline { min-width: 0; }
+.vkSettings .apToggle { flex-wrap: nowrap; }
+.vkSettings .apToggle span { flex: 1; min-width: 0; }
