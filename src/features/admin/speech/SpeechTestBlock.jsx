@@ -1,10 +1,11 @@
 import { EXAMPLES } from './speechSupport.js'
 import SpeechOutput from './SpeechOutput.jsx'
+import SpeechCaptureBlock from './SpeechCaptureBlock.jsx'
 
 const LANGS = ['en-US', 'en-GB']
 
 // Блок 2 пробы «Голос»: эталонная фраза, язык, кнопки «Сказать»/«Стоп»/«Ещё раз»; вывод — в SpeechOutput.
-export default function SpeechTestBlock({ caps, reference, setReference, lang, setLang, probe }) {
+export default function SpeechTestBlock({ caps, reference, setReference, lang, setLang, probe, cap }) {
   const { view, start, stop, busy } = probe
   return (
     <section className="aspBlock">
@@ -26,6 +27,7 @@ export default function SpeechTestBlock({ caps, reference, setReference, lang, s
             onClick={() => setLang(l)}>{l}</button>
         ))}
       </div>
+      <SpeechCaptureBlock mode={cap.mode} setMode={cap.setMode} state={cap.state} busy={busy} />
       <div className="aspRow">
         <button className="aspSay" onClick={start} disabled={!caps.recognition || busy || !reference.trim()}>Сказать</button>
         <button className="aspStop" onClick={stop} disabled={!busy}>Стоп</button>

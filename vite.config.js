@@ -24,6 +24,13 @@ const nonBlockingCss = {
   },
 }
 
+// Номер версии в подписи сплэша (index.html: v__APP_VERSION__) подставляем при сборке/в dev, а не скриптом в
+// браузере: модульный скрипт приходил позже первого кадра, и текст «выскакивал» посреди проявления лого
+const splashVersion = {
+  name: 'pithy-splash-version',
+  transformIndexHtml: html => html.replaceAll('__APP_VERSION__', APP_VERSION),
+}
+
 // version.json в корне сборки — клиент (UpdateToast) сравнивает его со своей
 // APP_VERSION раз в ~10 минут и предлагает обновиться: лечит вечную проблему
 // «кэш браузера показывает старую версию» (этап 3 плана стабилизации)
@@ -38,7 +45,7 @@ const emitVersionJson = {
 export default defineConfig({
   // debugSink — только dev: принимает отчёты и rrweb-записи от дебаг-тулбара
   // и кладёт их в _debug/ (папка вне git), чтобы Claude читал их прямо с диска
-  plugins: [react(), nonBlockingCss, emitVersionJson, debugSink()],
+  plugins: [react(), nonBlockingCss, splashVersion, emitVersionJson, debugSink()],
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },

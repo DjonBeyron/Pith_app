@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MODE_LABEL, capsReportLines } from './speechSupport.js'
+import { fmtCapture, fmtConf } from './speechCapture.js'
 import { LOG_SHOW, DIALOG_LABEL, fmtMs, fmtAttempt, dialogCount, logReportLines, clearLog } from './speechLog.js'
 
 async function copyText(text) {
@@ -42,7 +43,7 @@ export default function SpeechLogBlock({ log, setLog, caps, perm, since }) {
         <div className="aspTableWrap">
           <table className="aspTable">
             <thead>
-              <tr><th>Время</th><th>Попытка</th><th>Режим</th><th>Разрешение до→после</th><th>start</th><th>audio</th><th>result</th><th>Ошибка</th><th>Диалог</th></tr>
+              <tr><th>Время</th><th>Попытка</th><th>Режим</th><th>Разрешение до→после</th><th>start</th><th>audio</th><th>result</th><th>Уверен.</th><th>Захват</th><th>Ошибка</th><th>Диалог</th></tr>
             </thead>
             <tbody>
               {shown.map((e, i) => (
@@ -52,6 +53,7 @@ export default function SpeechLogBlock({ log, setLog, caps, perm, since }) {
                   <td>{e.mode === 'pwa' ? 'PWA' : 'браузер'}</td>
                   <td>{e.permBefore || '?'}→{e.permAfter || '?'}</td>
                   <td>{fmtMs(e.msStart)}</td><td>{fmtMs(e.msAudio)}</td><td>{fmtMs(e.msResult)}</td>
+                  <td>{fmtConf(e.conf)}</td><td>{fmtCapture(e)}</td>
                   <td>{e.error || '—'}</td>
                   <td>{DIALOG_LABEL[e.dialog] || '?'}</td>
                 </tr>
@@ -60,7 +62,7 @@ export default function SpeechLogBlock({ log, setLog, caps, perm, since }) {
           </table>
         </div>
       )}
-      <p className="aspHint">«Попытка» — №нажатия «Сказать» · номер записи из 3 (автоповторы при слабой связи/тишине); «итог» — последняя запись нажатия. Времена — миллисекунды от старта этой записи до первого события start / audiostart / result. «Диалог» — догадка: если разрешение было prompt и звук потом пошёл, диалог показывали; без Permissions API (часто iPhone) — «возможно», когда audiostart пришёл заметно позже start. Режим текущей страницы: {MODE_LABEL[caps.mode]}.</p>
+      <p className="aspHint">«Попытка» — №нажатия «Сказать» · номер записи из 3 (автоповторы при слабой связи/тишине); «итог» — последняя запись нажатия. Времена — миллисекунды от старта этой записи до первого события start / audiostart / result. «Диалог» — догадка: если разрешение было prompt и звук потом пошёл, диалог показывали; без Permissions API (часто iPhone) — «возможно», когда audiostart пришёл заметно позже start. «Захват» — режим эксперимента A/B/C и пик уровня звука (B/C), «Уверен.» — confidence итога. Режим текущей страницы: {MODE_LABEL[caps.mode]}.</p>
       <div className="aspHow">
         <b>Как читать.</b> Нажмите «Сказать» и разрешите микрофон. Закройте приложение полностью, откройте снова, нажмите «Сказать»:
         если разрешение (permissions: <code>granted→granted</code>) помнится и диалога нет — хорошо; если снова «да» в колонке «Диалог» —

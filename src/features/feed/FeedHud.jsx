@@ -3,10 +3,11 @@ import { Heart, Bookmark, Check, Fingerprint } from 'lucide-react'
 import { logRepost } from '../../shared/api/moduleSocialApi.js'
 import { useSlowMotion } from './useSlowMotion.js'
 import DifficultyBadge from './DifficultyBadge.jsx'
+import { useTapPop } from './useTapPop.js'
 
 const SLOW_HINT_SEEN_MS = 400 // сколько держать зону, чтобы подсказка засчиталась «увиденной»
 
-// HUD-колонка справа: лайк/закладка/репост/сложность + зона замедления 0.5x
+// HUD-колонка справа (иконки-силуэты: залиты, без подложек и теней, см. feed-hud.css): лайк/закладка/репост/сложность + зона замедления 0.5x
 // над лайком (useSlowMotion). Общий для ленты (FeedSlide) и «Моих уроков»
 // (MyLessonSlide) — вынесен сюда, чтобы не дублировать кнопки и логику.
 // showSlowHint/onSlowHintSeen (обучающая подсказка про замедление) передаёт
@@ -23,6 +24,8 @@ function FeedHud({
   const [likeBurst, setLikeBurst] = useState(false)
   const burstTimer = useRef(null)
   useEffect(() => () => clearTimeout(burstTimer.current), [])
+  const [savePop, popSave] = useTapPop()
+  const [sharePop, popShare] = useTapPop()
   const liked = !!reaction?.liked
   const saved = !!reaction?.saved
 
@@ -50,6 +53,7 @@ function FeedHud({
   }
 
   function share() {
+    popShare()
     const url = `${location.origin}/?m=${mod.id}`
     logRepost(mod.id)
     if (navigator.share) {
@@ -72,6 +76,7 @@ function FeedHud({
 
   // Тост с галочкой — только когда фраза действительно сохраняется
   function handleSave() {
+    popSave()
     if (!saved) showToast('Сохранено в закладки', 'check')
     onToggleSave()
   }
@@ -95,7 +100,7 @@ function FeedHud({
         <button
           className={liked ? `feedHudBtn feedHudBtnLikeOn${likeBurst ? ' feedHudBtnLikePulse' : ''}` : 'feedHudBtn'}
           onClick={handleLike}>
-          <Heart fill={liked ? 'currentColor' : 'none'} />
+          <Heart className="feedHudIcon" fill="currentColor" />
           <span>{likeCount > 0 ? likeCount : 'Лайк'}</span>
           {likeBurst && (
             <span className="likeBurst" aria-hidden="true">
@@ -106,13 +111,13 @@ function FeedHud({
           )}
         </button>
         <button
-          className={saved ? 'feedHudBtn feedHudBtnSaveOn' : 'feedHudBtn'}
+          className={`feedHudBtn${saved ? ' feedHudBtnSaveOn' : ''}${savePop ? ' feedHudBtnPop' : ''}`}
           onClick={handleSave} aria-label="Сохранить в закладки">
-          <Bookmark fill={saved ? 'currentColor' : 'none'} />
+          <Bookmark className="feedHudIcon" fill="currentColor" />
           {saveCount > 0 && <span>{saveCount}</span>}
         </button>
-        <button className="feedHudBtn" onClick={share} aria-label="Репост">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 5l7 7-7 7v-4C7 15 4 17 2 20c0-7 4-11 12-11V5z" /></svg>
+        <button className={sharePop ? 'feedHudBtn feedHudBtnPop' : 'feedHudBtn'} onClick={share} aria-label="Репост">
+          <svg className="feedHudIcon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 5l7 7-7 7v-4C7 15 4 17 2 20c0-7 4-11 12-11V5z" /></svg>
           {repostCount > 0 && <span>{repostCount}</span>}
         </button>
         <DifficultyBadge

@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { getCapabilities, queryMicPermission, EXAMPLES } from './speechSupport.js'
 import { readLog } from './speechLog.js'
 import { useSpeechProbe } from './useSpeechProbe.js'
+import { useSpeechCapture } from './useSpeechCapture.js'
 import SpeechCapsBlock from './SpeechCapsBlock.jsx'
 import SpeechTestBlock from './SpeechTestBlock.jsx'
 import SpeechLogBlock from './SpeechLogBlock.jsx'
 import SpeechMemo from './SpeechMemo.jsx'
+import SpeechCaptureMemo from './SpeechCaptureMemo.jsx'
 import '../../../styles/admin-speech.css'
 
 // «Сеанс» = с открытия страницы приложения (а не вкладки админки)
@@ -19,7 +21,8 @@ export default function AdminSpeechTab() {
   const [reference, setReference] = useState(EXAMPLES[0])
   const [lang, setLang] = useState('en-US')
   const [log, setLog] = useState(readLog)
-  const probe = useSpeechProbe({ reference, lang, onLogged: setLog })
+  const cap = useSpeechCapture()
+  const probe = useSpeechProbe({ reference, lang, onLogged: setLog, capture: cap.manager, getCapture: cap.getMode })
   const { reset } = probe
 
   // Смена эталона/языка — прошлый итог, альтернативы и сравнение очищаем целиком
@@ -37,8 +40,9 @@ export default function AdminSpeechTab() {
       <div className="aeHead"><span className="aeTitle">Голос (проба распознавания речи)</span></div>
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
       <SpeechCapsBlock caps={caps} perm={perm} />
-      <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} />
+      <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} cap={cap} />
       <SpeechLogBlock log={log} setLog={setLog} caps={caps} perm={perm} since={SESSION_START} />
+      <SpeechCaptureMemo />
       <SpeechMemo />
     </div>
   )

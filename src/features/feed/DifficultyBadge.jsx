@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { X, Check, Ear } from 'lucide-react'
+import { X, Check } from 'lucide-react'
 import { useHudPopupExit } from '../../app/hudPopupState.js'
+import { useTapPop } from './useTapPop.js'
 
 // Иконка сложности фразы (три полоски-«сигнал») = кнопка голосования.
 // Тап → панель выезжает от кнопки (scale от 0, origin у кнопки). Один
@@ -36,6 +37,7 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
   const [burst, setBurst] = useState(null) // уровень, на котором играют искры
   const [confirmed, setConfirmed] = useState(false)
   const timers = useRef([])
+  const [earPop, popEar] = useTapPop()
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
   const { shown, closing } = useHudPopupExit(open)
 
@@ -121,9 +123,17 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
           )}
         </div>
       )}
-      <button className="feedHudBtn" onClick={() => (open ? closePanel() : openPanel())} aria-label="Сложность фразы">
+      <button
+        className={earPop ? 'feedHudBtn feedHudBtnPop feedHudBtnPopSelf' : 'feedHudBtn'}
+        onClick={() => { popEar(); if (open) closePanel(); else openPanel() }}
+        aria-label="Сложность фразы">
         <span className={`diffIcon${confirmed ? ' diffIconConfirm' : ''}${intro ? ' diffIconPulse' : ''}`}>
-          <Ear className={`diffEarIcon${level ? ` diffL${level}` : ''}`} />
+          {/* Ухо — силуэт (заливка), внутренняя завитушка — тёмная «вырезка»; lucide Ear — контур */}
+          <svg className={`feedHudIcon diffEarIcon${level ? ` diffL${level}` : ''}`} viewBox="0 0 24 24" fill="currentColor"
+            strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 8.5a6.5 6.5 0 1 1 13 0c0 6-6 6-6 10a3.5 3.5 0 1 1-7 0" />
+            <path className="diffEarCut" d="M15 8.5a2.5 2.5 0 0 0-5 0v1a2 2 0 1 1 0 4" />
+          </svg>
           <Check className="diffCheck" strokeWidth={3} />
         </span>
       </button>

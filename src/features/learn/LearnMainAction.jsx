@@ -3,6 +3,7 @@ import { Brain } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
 import { setVacation } from '../../shared/api/memoryApi.js'
 import SleepingBrain from './SleepingBrain.jsx'
+import { titleFlicker } from './sparkTiming.js'
 
 // Шапка «Моей памяти» — главное действие по состоянию, одно:
 // «Отпуск» (+ вернуться) | память пуста | «Сегодня повторяем N слов» +
@@ -24,12 +25,16 @@ function Cta({ onClick, children }) {
   )
 }
 
-// flash — заголовок «моргает» зелёным как неоновая вывеска с коротким замыканием (режим сна): копия текста в
-// ::after через data-text (learn-sleep.css), для скринридера текст один
+// flash — заголовок «замыкает» как неисправная проводка (режим сна), в такт искрам разорванного кабеля: копия текста
+// в ::after через data-text мигает зелёным, сам текст дёргается по opacity (p — с главным разрядом, вложенный span — с
+// дугой); периоды и сдвиги --p/--d те же, что у искр (sparkTiming.js), стили — learn-sleep-title.css. Для скринридера
+// текст один
 function Hero({ mod = '', title, sub, flash = false, children }) {
   return (
     <div className={'lrMain' + mod}>
-      <p className="lrMainTitle" data-text={flash ? title : undefined}>{title}</p>
+      {flash
+        ? <p className="lrMainTitle" data-text={title} style={titleFlicker.bolt}><span className="lrMainFlick" style={titleFlicker.arc}>{title}</span></p>
+        : <p className="lrMainTitle">{title}</p>}
       {sub && <p className="lrMainSub">{sub}</p>}
       {children}
     </div>

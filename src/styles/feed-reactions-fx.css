@@ -11,7 +11,7 @@
 .likeBurstHeart {
   position: absolute;
   left: 50%;
-  top: 5px; /* верх иконки внутри подложки кнопки (padding 5px) */
+  top: 2px;
   width: 12px;
   height: 12px;
   color: #ff6a6a;

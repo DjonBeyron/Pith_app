@@ -3,7 +3,7 @@
 // широкий бледный ореол под тонким почти белым ядром (без фильтров). Анимируются только opacity группы и
 // transform летящих искорок; формы статичны. Элементов ≈ 19: 4 разряда (по 2 path), 2 звёздочки, 6 искорок,
 // 1 дуга через разрыв (2 path)
-const T = (period, delay) => ({ '--p': `${period}s`, '--d': `${delay}s` })
+import { timingVars as T } from './sparkTiming.js'
 
 function Glow({ d }) {
   return (

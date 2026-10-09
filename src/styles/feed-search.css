@@ -25,6 +25,12 @@
   filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
 }
 
+/* Лупа слегка залита (круг — полупрозрачно тем же цветом), контур и ножка прежние */
+.feedSearchBtn svg circle {
+  fill: currentColor;
+  fill-opacity: 0.35;
+}
+
 /* Точка-индикатор: фильтр активен, но кнопку не потерять среди HUD */
 .feedSearchDot {
   position: absolute;

@@ -50,7 +50,7 @@ export default function FeedTabsHeader({
       </div>
       {!soundOn && soundEverOn && (
         <button className="feedHeaderSoundBtn" onClick={handleHeaderSoundOn} aria-label="Включить звук">
-          <VolumeX />
+          <VolumeX fill="currentColor" />
         </button>
       )}
       {/* Лупа — поиск фразы + фильтр сложности (в стиле иконок нижней панели: без фона, с тенью) */}

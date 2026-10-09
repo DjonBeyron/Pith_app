@@ -1,24 +1,36 @@
-/* Сторож «белого экрана без сети». ES5, без зависимостей. Подключён СИНХРОННО в <head> index.html
+/* Сторож «белого экрана без сети» и «сервер недоступен». ES5, без зависимостей. Подключён СИНХРОННО в <head> index.html
    (без type=module) — отработает, даже если бандл приложения не загрузился.
-   Показывает оверлей #offlineGuard, если: сети нет (navigator.onLine === false) — СРАЗУ (тик 100мс); ИЛИ сеть
-   «есть, но молчит»: через 1.5с без готового приложения стучимся крошечным запросом (/favicon.svg, без кэша), и если
-   за 1.5с ответа нет — «Слабое соединение» (≈3с, а не 8с); ИЛИ не загрузился скрипт/стиль приложения (ошибка ресурса
-   своего домена) и прошло 2.5с; ИЛИ приложение не нарисовалось в #root за 8с. Медленная, но живая сеть (запрос
-   ответил) экран не вызывает. Прячет оверлей, как только в #root что-то появилось; на событие online — перезагрузка (только если оверлей уже показан или ресурс упал; иначе идёт обычная загрузка);
-   пока оверлей висит из-за молчащей сети, раз в 3с повторяет запрос: ответили — прячет оверлей (перезагрузка, если
-   ресурс уже упал с ошибкой). Стили оверлея (.ng*) лежат инлайном в index.html. Единая точка «приложение готово» —
-   window.__netGuardDone() (зовётся из скрипта сплэша в index.html при его уходе).
-   ЗЕРКАЛО логики: src/app/networkGuard.js (decideNetworkState и константы) — менять парно.
+   (1) Оверлей #offlineGuard, если: сети нет (navigator.onLine === false дольше 700мс подряд — iOS на холодном старте
+   может на миг отдать false) — тик 100мс; ИЛИ сеть «есть, но молчит»: через 1.5с без готового приложения стучимся
+   крошечным запросом (/favicon.svg, без кэша), и если за 1.5с ответа нет — «Что-то со связью» (≈3с, а не 8с); ИЛИ не загрузился
+   скрипт/стиль приложения (ошибка ресурса своего домена) и прошло 2.5с; ИЛИ приложение не нарисовалось в #root за 8с.
+   Медленная, но живая сеть (запрос ответил) экран не вызывает. Прячет оверлей, как только в #root что-то появилось; на
+   событие online — перезагрузка (только если оверлей уже показан или ресурс упал; иначе идёт обычная загрузка); пока
+   оверлей висит из-за молчащей сети, раз в 3с повторяет запрос: ответили — прячет оверлей (перезагрузка, если ресурс уже
+   упал с ошибкой). Единая точка «приложение готово» — window.__netGuardDone() (зовётся из скрипта сплэша в index.html).
+   (2) Экран #serverGuard «Нет связи с сервером» (страны, где Supabase доступен только через VPN): на холодном старте,
+   параллельно с загрузкой приложения, GET на <meta name="pithy-supabase-url">/auth/v1/health (no-cors, без ключа и
+   cookie). ЛЮБОЙ HTTP-ответ = сервер достижим и проверка навсегда заканчивается; только сетевая ошибка/таймаут 4с дважды
+   подряд (пауза 1.5с, всего ≤ ~9.5с) → экран; дальше проверка раз в 3.5с и по «Повторить», ответили — экран уходит сам,
+   а если приложение уже смонтировано (каркас без данных) — одна перезагрузка. После первого ответа экран в этой
+   сессии больше не появляется (пропала сеть потом — поведение прежнее, без блокирующего экрана).
+   Стили оверлеев (.ng*) лежат инлайном в index.html.
+   ЗЕРКАЛО логики: src/app/networkGuard.js (decideNetworkState, decideServerReach, serverHealthUrl и константы) — менять парно.
    Разметка CABLE — копия src/app/networkCableSvg.js (сверяет networkGuard.test.js) */
 (function () {
-  var BOOT_TIMEOUT = 8000, SLOW_DELAY = 2500, PROBE_AT = 1500, PROBE_WAIT = 1500, REPROBE = 3000
+  var BOOT_TIMEOUT = 8000, SLOW_DELAY = 2500, PROBE_AT = 1500, PROBE_WAIT = 1500, REPROBE = 3000, OFFLINE_CONFIRM = 700
   var t0 = Date.now(), failedAt = null, kind = null, el = null, finished = false
-  var probed = false, probeFailed = false
+  var probed = false, probeFailed = false, offlineSince = null
   /* зеркало NETWORK_TEXTS (src/app/networkGuard.js) */
   var TEXTS = {
-    offline: { title: 'Нет подключения', text: 'Проверь соединение с интернетом. Как только оно появится, мы продолжим' },
-    slow: { title: 'Слабое соединение', text: 'Проверь соединение с интернетом — мы продолжим сами' },
-    retry: 'Повторить'
+    offline: { title: 'Связь пропала', text: 'Проверь интернет или режим полёта — как только связь вернётся, мы продолжим сами' },
+    slow: { title: 'Что-то со связью', text: 'Подожди немного или проверь интернет и режим полёта — мы продолжим сами' },
+    server: {
+      title: 'Нет связи с сервером',
+      text: 'Наш сервер не отвечает, хотя интернет, похоже, есть. В некоторых странах приложение работает только через VPN — включи его, и мы продолжим сами'
+    },
+    retry: 'Повторить',
+    checking: 'Проверяем…'
   }
   var CABLE = [
     '<svg class="ngCable" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid meet" aria-hidden="true">',
@@ -49,9 +61,9 @@
   function mounted() { var r = root(); return !!(r && r.firstChild) }
 
   /* зеркало decideNetworkState (src/app/networkGuard.js) */
-  function decide(online, isMounted, failedMs, elapsed) {
+  function decide(online, isMounted, failedMs, elapsed, offlineMs) {
     if (isMounted) return 'none'
-    if (online === false) return 'offline'
+    if (online === false && (offlineMs === undefined || offlineMs >= OFFLINE_CONFIRM)) return 'offline'
     if (failedMs !== null && failedMs >= SLOW_DELAY) return 'slow'
     if (elapsed >= BOOT_TIMEOUT) return 'slow'
     return 'none'
@@ -66,17 +78,23 @@
     el = null
   }
 
+  /* Полноэкранный экран с кабелем (общая заготовка оверлея сторожа и экрана «сервер недоступен») */
+  function makeScreen(id) {
+    var node = document.createElement('div')
+    node.id = id
+    node.className = 'ngScreen'
+    node.setAttribute('role', 'alert')
+    node.innerHTML = CABLE + '<div class="ngBody"><h1 class="ngTitle"></h1><p class="ngText"></p>' +
+      '<button type="button" class="ngBtn">' + TEXTS.retry + '</button></div>'
+    document.body.appendChild(node)
+    return node
+  }
+
   function show(next) {
     if (!document.body) return /* ещё не разобран — повторим на следующем тике */
     if (!el) {
-      el = document.createElement('div')
-      el.id = 'offlineGuard'
-      el.className = 'ngScreen'
-      el.setAttribute('role', 'alert')
-      el.innerHTML = CABLE + '<div class="ngBody"><h1 class="ngTitle"></h1><p class="ngText"></p>' +
-        '<button type="button" class="ngBtn">' + TEXTS.retry + '</button></div>'
+      el = makeScreen('offlineGuard')
       el.querySelector('.ngBtn').onclick = function () { location.reload() }
-      document.body.appendChild(el)
     }
     if (kind !== next) {
       kind = next
@@ -112,7 +130,9 @@
     if (finished) return
     if (mounted()) { finished = true; hide(); clearInterval(timer); return }
     var online = navigator.onLine, elapsed = Date.now() - t0
-    var state = decide(online, false, failedAt === null ? null : Date.now() - failedAt, elapsed)
+    if (online === false) { if (offlineSince === null) offlineSince = Date.now() } else offlineSince = null
+    var state = decide(online, false, failedAt === null ? null : Date.now() - failedAt, elapsed,
+      offlineSince === null ? 0 : Date.now() - offlineSince)
     if (state === 'none' && probeFailed) state = 'slow'
     if (state === 'none' && !probed && online !== false && elapsed >= PROBE_AT) {
       probed = true
@@ -142,6 +162,95 @@
   })
   window.addEventListener('offline', check)
   document.addEventListener('DOMContentLoaded', check)
+
+  /* ───── «Сервер недоступен» (см. шапку, п. 2). Зеркало: decideServerReach / serverHealthUrl в networkGuard.js ───── */
+  var SRV_TIMEOUT = 4000, SRV_PAUSE = 1500, SRV_ATTEMPTS = 2, SRV_RECHECK = 3500, SRV_RECHECK_TIMEOUT = 6000
+  var srvUrl = null, srvEl = null, srvDone = false, srvResults = [], srvWaitOnline = false
+
+  function srvDecide(results, online) {
+    if (results.indexOf('ok') !== -1) return 'reachable'
+    if (online === false) return 'offline'
+    if (results.length >= SRV_ATTEMPTS) return 'unreachable'
+    return 'pending'
+  }
+  function srvHealthUrl(base) {
+    var b = String(base == null ? '' : base).replace(/^\s+|\s+$/g, '').replace(/\/+$/, '')
+    return /^https?:\/\/[^\s%]+$/.test(b) ? b + '/auth/v1/health' : null
+  }
+  window.__srvDecide = srvDecide
+  window.__srvHealthUrl = srvHealthUrl
+
+  /* Один GET: no-cors (ответ непрозрачный, CORS не мешает), без cookie/реферера/ключа. done(true) — пришёл ЛЮБОЙ
+     HTTP-ответ, done(false) — сетевая ошибка или таймаут */
+  function srvPing(timeout, done) {
+    var ac = typeof AbortController === 'function' ? new AbortController() : null
+    var settled = false, timer = null
+    function fin(ok) { if (settled) return; settled = true; clearTimeout(timer); done(ok) }
+    timer = setTimeout(function () { if (ac) ac.abort(); fin(false) }, timeout)
+    try {
+      fetch(srvUrl, { mode: 'no-cors', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', signal: ac ? ac.signal : undefined })
+        .then(function () { fin(true) }, function () { fin(false) })
+    } catch (e) { fin(false) } // eslint-disable-line no-unused-vars -- ES5-скрипт: catch без переменной нельзя
+  }
+
+  /* Сервер ответил: проверка закончена до конца сессии. Экран убираем; приложение уже стартовало без данных
+     (каркас) — одна перезагрузка, а если оно ещё грузится, всё продолжится само */
+  function srvReached() {
+    if (srvDone) return
+    srvDone = true
+    var wasShown = srvEl !== null
+    if (srvEl && srvEl.parentNode) srvEl.parentNode.removeChild(srvEl)
+    srvEl = null
+    if (wasShown && mounted()) location.reload()
+  }
+
+  function srvRecheck() {
+    if (srvDone) return
+    if (document.hidden) { setTimeout(srvRecheck, SRV_RECHECK); return } /* из фона не стучимся */
+    srvPing(SRV_RECHECK_TIMEOUT, function (ok) { if (ok) srvReached(); else setTimeout(srvRecheck, SRV_RECHECK) })
+  }
+
+  function srvShow() {
+    if (srvDone || srvEl) return
+    if (!document.body) { setTimeout(srvShow, 100); return }
+    srvEl = makeScreen('serverGuard')
+    var btn = srvEl.querySelector('.ngBtn')
+    srvEl.querySelector('.ngTitle').textContent = TEXTS.server.title
+    srvEl.querySelector('.ngText').textContent = TEXTS.server.text
+    btn.onclick = function () {
+      if (btn.disabled) return
+      btn.disabled = true
+      btn.textContent = TEXTS.checking
+      srvPing(SRV_RECHECK_TIMEOUT, function (ok) {
+        if (ok) { srvReached(); return }
+        btn.disabled = false
+        btn.textContent = TEXTS.retry
+      })
+    }
+    setTimeout(srvRecheck, SRV_RECHECK)
+  }
+
+  function srvAttempt() {
+    if (srvDone) return
+    srvPing(SRV_TIMEOUT, function (ok) {
+      if (srvDone) return
+      if (ok) { srvReached(); return }
+      srvResults.push('fail')
+      var d = srvDecide(srvResults, navigator.onLine)
+      if (d === 'unreachable') srvShow()
+      else if (d === 'pending') setTimeout(srvAttempt, SRV_PAUSE)
+      else srvWaitOnline = true /* сети нет совсем — этим занят экран «Связь пропала»; ждём события online */
+    })
+  }
+
+  var meta = typeof document.querySelector === 'function' && document.querySelector('meta[name="pithy-supabase-url"]')
+  srvUrl = srvHealthUrl(meta && meta.getAttribute('content'))
+  if (srvUrl && typeof fetch === 'function') {
+    window.addEventListener('online', function () {
+      if (srvWaitOnline && !srvDone) { srvWaitOnline = false; srvResults = []; srvAttempt() }
+    })
+    srvAttempt()
+  }
 
   /* Тик 100мс: без сети оверлей появляется на первом же тике после разбора <body> */
   var timer = setInterval(check, 100)

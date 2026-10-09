@@ -16,10 +16,12 @@
 @import './styles/feed-bubble-spoiler.css';
 @import './styles/feed-knowledge.css';
 @import './styles/feed-word-translate.css';
+@import './styles/feed-rub-hint.css';
 @import './styles/feed-recall.css';
 @import './styles/feed-catch.css';
 @import './styles/feed-catch-sheet.css';
 @import './styles/feed-catch-strip.css';
+@import './styles/feed-catch-fact.css';
 @import './styles/feed-catch-confirm.css';
 @import './styles/feed-media.css';
 @import './styles/feed-swiper.css';
@@ -164,6 +166,7 @@
 @import './styles/learn.css';
 @import './styles/learn-minutes.css';
 @import './styles/learn-sleep.css';
+@import './styles/learn-sleep-title.css';
 @import './styles/nav-race.css';
 @import './styles/nav-rewards.css';
 @import './styles/learn-cta.css';

@@ -15,6 +15,10 @@
          парсер стоит — без этого правила экран был бы белым -->
     <meta name="color-scheme" content="dark" />
     <style>html, body { margin: 0; background: #000; color-scheme: dark; }</style>
+    <!-- Адрес нашего бэкенда (Supabase) для сторожа «сервер недоступен» (public/net-guard.js). Публичный URL,
+         не секрет; Vite подставляет его при сборке (%VITE_SUPABASE_URL% — тот же env, что у клиента Supabase).
+         Если переменной нет — остаётся текст «%VITE_…%», сторож это распознаёт и проверку не запускает -->
+    <meta name="pithy-supabase-url" content="%VITE_SUPABASE_URL%" />
     <!-- Сторож белого экрана без сети (public/net-guard.js): ОБЫЧНЫЙ скрипт, синхронно в <head> — работает,
          даже если бандл не загрузился. Рисует оверлей #offlineGuard (стили .ng* ниже) -->
     <script src="/net-guard.js"></script>
@@ -43,10 +47,10 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="alternate icon" href="/icons/favicon-64.png" type="image/png" sizes="64x64">
     <link rel="alternate icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32">
-    <!-- Экран запуска iOS (пока качается HTML): без него система показывает
-         чёрный кадр перед сплэшем. PNG = фон сплэша + то же лого (генерятся
-         scripts/make-startup-images.ps1). iOS берёт картинку ТОЛЬКО при точном
-         совпадении размера с экраном — поэтому по ссылке на каждый iPhone -->
+    <!-- Экран запуска iOS (пока качается HTML): однотонный ЧИСТЫЙ ЧЁРНЫЙ #000 БЕЗ лого (генерятся
+         scripts/make-brand-assets.mjs, файлы ~0.5 КБ). Лого рисует только HTML-сплэш и плавно проявляет его
+         из чёрного — сопрягать нативный кадр с лого и страницу до пикселя больше не нужно, нечему не совпасть.
+         iOS берёт картинку ТОЛЬКО при точном совпадении размера с экраном — поэтому по ссылке на каждый iPhone -->
     <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/startup-640x1136.png">
     <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/startup-750x1334.png">
     <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1242x2208.png">
@@ -79,48 +83,41 @@
     </noscript>
     <!-- Стартовый сплэш: инлайновый CSS/SVG, рисуется на первом же кадре (до
          скачивания JS-бандла) — вместо чёрного экрана сразу видно лого. React
-         подаёт сигнал window.__pithyReady, когда лента готова, и сплэш «улетает»
-         (масштаб+фейд), открывая Рекомендации. Логотип — заглушка, заменим. -->
+         подаёт сигнал window.__pithyReady, когда лента готова, и сплэш растворяется
+         (opacity), открывая Рекомендации. Логотип — заглушка, заменим. -->
     <style>
       /* Фон первого кадра (#000) задан выше, в самом начале <head> (до net-guard.js) */
-      /* Сплэш НЕПРОЗРАЧНЫЙ с самого первого кадра и повторяет стартовый экран iOS
-         (public/splash/startup-*.png, scripts/make-brand-assets.mjs): тот же фон, то же лого
-         92px, центр на 19px выше середины — переход «система → страница» без скачка.
-         Раньше фон проявлялся через opacity 0→1 (350мс), а лого — только с 300-й мс: под
-         полупрозрачным сплэшем просвечивал уже отрисованный интерфейс (кэшированный бандл),
-         лого на миг пропадало и возвращалось другого размера — это и было «микро-мигание».
-         Проявляется теперь только подпись версии (она мелкая и в стартовом экране iOS её нет) */
+      /* Сплэш непрозрачный чёрный с первого кадра. Стартовый экран iOS (public/splash/startup-*.png) теперь
+         ТОЖЕ чистый чёрный без лого, поэтому передача «система → страница» ничем не отличается, а лого, свечение
+         и подпись версии вместе ПЛАВНО ПРОЯВЛЯЮТСЯ из чёрного одной анимацией (.splash-fade, только opacity,
+         280мс ease-out, без движения). Позиция лого не зависит от JS: flex по центру окна (inset: 0) —
+         никаких замеров зоны статус-бара, resize-пересчётов и позднего появления текста (версию подставляет Vite) */
       #splash {
         position: fixed; inset: 0; z-index: 2147483000;
+        background: #000;
+      }
+      #splash .splash-fade {
+        position: absolute; inset: 0;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        background: #000; box-sizing: border-box; /* padding-bottom ставит скрипт под #splash (зона статус-бара iOS) */
+        animation: splashIn 280ms ease-out;
       }
       #splash .splash-logo {
         width: 92px; height: 92px; margin-bottom: 38px;
         filter: drop-shadow(0 10px 34px rgba(158, 118, 255, 0.25));
-        animation: splashGlowIn 500ms ease-out;
       }
-      /* Свечение лого проявляется само (в стартовом экране iOS его нет): ключевой кадр только «from»,
-         конечное значение — обычный filter выше, поэтому оно же остаётся при уходе (splash-out) */
-      @keyframes splashGlowIn { from { filter: drop-shadow(0 10px 34px rgba(158, 118, 255, 0)); } }
-      /* Версия — внизу по центру, тише слова/лого (маленькая и приглушённая,
-         чтобы не спорить с логотипом за внимание) */
+      /* Ключевой кадр только «from»: конечное значение — обычная opacity 1 */
+      @keyframes splashIn { from { opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) { #splash .splash-fade { animation: none; } }
+      /* Версия — внизу по центру, тише лого (маленькая и приглушённая, чтобы не спорить с ним за внимание) */
       #splash .splash-version {
         position: absolute; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom, 0px));
         transform: translateX(-50%);
         font: 600 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
         color: rgba(242, 245, 247, 0.4);
-        opacity: 0; animation: splashItemIn 300ms ease 300ms forwards;
       }
-      @keyframes splashItemIn { to { opacity: 1; } }
-      /* Уход: фон растворяется, лого «наезжает» (масштаб вверх) — полёт в экран.
-         splash-out переопределяет анимации появления, поэтому opacity лого в
-         splashZoom держим явно (иначе он мгновенно исчез бы, вернувшись к 0) */
+      /* Уход — только растворение (opacity) поверх уже готовой ленты: ни масштаба, ни сдвигов */
       #splash.splash-out { animation: splashOut 350ms ease forwards; pointer-events: none; }
-      #splash.splash-out .splash-logo { animation: splashZoom 350ms ease forwards; }
-      #splash.splash-out .splash-version { animation: splashOut 350ms ease forwards; }
       @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
-      @keyframes splashZoom { from { opacity: 1; } to { opacity: 1; transform: scale(1.6); } }
       /* Экран «Нет подключения / Слабое соединение»: оверлей net-guard.js (#offlineGuard), компонент NetworkProblem.jsx
          и public/offline.html используют одни и те же классы и одну разметку кабеля (networkCableSvg.js). Лежит
          инлайном, чтобы рисоваться без бандла и без app-CSS. Блок «ng-cable-css» — копия в offline.html (сверяет
@@ -139,6 +136,7 @@
         margin-top: 6px; padding: 13px 32px; border: none; border-radius: 12px; background: #b6fe3b;
         color: #0d0f14; font: 700 14px system-ui, -apple-system, "Segoe UI", sans-serif; cursor: pointer;
       }
+      .ngBtn:disabled { opacity: 0.6; cursor: default; }
       /* ng-cable-css */
       .ngCable { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
       .ngWs, .ngWc, .ngStrand, .ngHalo, .ngCore, .ngStar, .ngFly { fill: none; stroke-linecap: round; stroke-linejoin: round; }
@@ -166,6 +164,7 @@
     <div id="root"></div>
 
     <div id="splash" aria-hidden="true">
+      <div class="splash-fade">
       <svg class="splash-logo" viewBox="28 20 255 255" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g id="Frame 1">
       <g id="Group 11">
@@ -182,44 +181,9 @@
       </g>
       </g>
       </svg>
-      <div class="splash-version" id="splash-version"></div>
+      <div class="splash-version" id="splash-version">v__APP_VERSION__</div>
+      </div>
     </div>
-
-    <script>
-      /* Лого сплэша должно стоять там же, где на стартовой картинке iOS (public/splash): она нарисована на ВЕСЬ
-         экран (центр лого на 19px выше середины экрана), а окно страницы в iOS-PWA с status-bar-style=black
-         начинается НИЖЕ системной зоны статус-бара (на 16 Pro ~60px; iOS 26 держит зону всегда). Центр окна
-         ниже центра экрана на половину зоны — без поправки лого «прыгало» вниз на ~30px при смене «система →
-         страница» (на Android картинки нет, поэтому там моргания не было). Зону измеряем: screen.height −
-         innerHeight (viewport-fit=cover: низ окна = низ экрана); padding-bottom = зона поднимает центр flex
-         на её половину. Только iOS-PWA (navigator.standalone) и портрет; зона 0 (окно на весь экран) — без
-         поправки. Пересчёт при resize: iOS уточняет размер окна уже после старта */
-      (function () {
-        var el = document.getElementById('splash'), last = -1
-        var LOG = window.__splashLog = window.__splashLog || []
-        if (!el || !navigator.standalone) return
-        function fit() {
-          if (!document.getElementById('splash')) { window.removeEventListener('resize', fit); return }
-          var zone = Math.round(window.screen.height - window.innerHeight)
-          if (window.innerWidth > window.innerHeight || zone < 0 || zone > 120) zone = 0
-          if (zone === last) return
-          last = zone
-          el.style.paddingBottom = zone + 'px'
-          LOG.push('[' + (performance.now() / 1000).toFixed(2) + '] splash: зона сверху ' + zone + 'px (screen ' +
-            window.screen.width + 'x' + window.screen.height + ', inner ' + window.innerWidth + 'x' + window.innerHeight + ')')
-        }
-        fit()
-        window.addEventListener('resize', fit)
-      })()
-    </script>
-
-    <script type="module">
-      // Версия — из единого источника правды (src/shared/lib/version.js),
-      // Vite бандлит этот импорт вместе с остальным модульным графом
-      import { APP_VERSION } from '/src/shared/lib/version.js'
-      var el = document.getElementById('splash-version')
-      if (el) el.textContent = 'v' + APP_VERSION
-    </script>
 
     <script>
       /* Координация сплэша: показать лого сразу, убрать когда приложение готово
@@ -232,9 +196,8 @@
          CSS готовым сразу. HARD — потолок на случай зависшего CSS.
          Все события пишем в window.__splashLog — DBG-панель ленты их покажет. */
       (function () {
-        /* MIN: появление двухшаговое (фон 350мс, лого к 600мс) — держим лого
-           ещё ~300мс, иначе при быстрой готовности оно улетало бы, едва успев
-           проявиться */
+        /* MIN: лого проявляется за 280мс (.splash-fade) — держим его ещё немного, иначе при быстрой
+           готовности оно уходило бы, едва успев проявиться */
         var t0 = performance.now(), MIN = 900, CAP = 6000, HARD = 8000, done = false;
         var appReady = false, cssReady = !document.querySelector('link[data-app-css]');
         var LOG = window.__splashLog = window.__splashLog || [];

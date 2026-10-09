@@ -1,0 +1,73 @@
+/* «Замыкание» надписи «Памяти пора отдыхать» (LearnMainAction.jsx, режим сна): текст мигает как неисправная
+   проводка В ТАКТ искрам на концах разорванного кабеля (memory-sparks.css). Периоды и задержки — те же CSS-переменные
+   --p / --d, что у разрядов (один источник — sparkTiming.js: BOLT_T[0] и ARC_T), поэтому мерцание начинается ровно с
+   вспышки разряда (его кадр — 2 % периода, у дуги 0,8 %; здесь мерцание стартует в те же доли) и повторяется с тем же
+   периодом; в паузах между вспышками надпись стабильна. Чистый CSS, только opacity и transform (текст рендерится как
+   текст, без filter и анимации text-shadow), steps(1, end) с неравными интервалами, JS-таймеров нет. Две независимые
+   анимации на двух вложенных элементах, потому что на одном они спорили бы за opacity: .lrMainTitle — с главным
+   разрядом (его же зелёная копия ::after), .lrMainFlick внутри — с редкой дугой, сильнее. Стоит в скрытой вкладке
+   (.shellV2TabHidden), при «уменьшить движение»; под плеером урока ставит на паузу html.lessonOpen (lesson-open.css) */
+.lrMainDone .lrMainFlick { display: inline-block; } /* transform не действует на строчный элемент */
+.lrMainDone .lrMainTitle { animation: lrTitleBolt var(--p, 3.7s) steps(1, end) var(--d, 0s) infinite; }
+.lrMainDone .lrMainFlick { animation: lrTitleArc var(--p, 8.5s) steps(1, end) var(--d, 0s) infinite; }
+
+/* Главный разряд (memBoltA: вспышка с 2 %, пауза с 4 %, эхо с 5 % до 8 %): ≈ 220 мс при периоде 3,7 с —
+   1 → .35 → 1 → .6 → 1 → .6 → 1 → .8 → 1 и микро-сдвиг на 1–2 кадра */
+@keyframes lrTitleBolt {
+  0% { opacity: 1; transform: translateX(0); }
+  2% { opacity: 0.35; transform: translateX(0.5px); }
+  3.2% { opacity: 1; transform: translateX(0); }
+  4% { opacity: 0.6; transform: translateX(-0.5px); }
+  5% { opacity: 1; transform: translateX(0); }
+  5.8% { opacity: 0.6; }
+  6.8% { opacity: 1; }
+  7.6% { opacity: 0.8; }
+  8%, 100% { opacity: 1; transform: translateX(0); }
+}
+/* Дуга (memArcFlash: вспышка с 0,8 %, эхо с 2,4 % до 3 %): ≈ 190 мс при периоде 8,5 с, глубже — до .15 */
+@keyframes lrTitleArc {
+  0% { opacity: 1; transform: translateX(0); }
+  0.8% { opacity: 0.15; transform: translateX(-0.5px); }
+  1.2% { opacity: 1; transform: translateX(0); }
+  1.6% { opacity: 0.5; transform: translateX(0.5px); }
+  2% { opacity: 1; transform: translateX(0); }
+  2.4% { opacity: 0.25; transform: translateX(-0.5px); }
+  2.7% { opacity: 0.8; transform: translateX(0); }
+  3%, 100% { opacity: 1; transform: translateX(0); }
+}
+
+/* Зелёная копия текста (::after, content: attr(data-text) — LearnMainAction.jsx ставит data-text только в режиме сна;
+   «/ ''» — без альтернативного текста, чтобы скринридер не читал дважды). Надпись белая (learn.css), копия невидима,
+   пока нет разряда; вспыхивает с ним (те же --p/--d): серия коротких неравных вспышек и затухание зелёного в белый
+   ≈ 0,8 с (как число в круге: быстро загорается, медленно тускнеет). Анимируется только opacity слоя; text-shadow
+   статичен (виден только вместе с opacity) */
+.lrMainDone .lrMainTitle::after {
+  content: attr(data-text) / '';
+  position: absolute;
+  inset: 0;
+  color: #b6fe3b;
+  text-shadow: 0 0 6px rgba(182, 254, 59, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  animation: lrTitleShort var(--p, 3.7s) linear var(--d, 0s) infinite;
+}
+@keyframes lrTitleShort {
+  0% { opacity: 0; animation-timing-function: steps(1, end); }
+  2% { opacity: 1; animation-timing-function: steps(1, end); }
+  3% { opacity: 0.15; animation-timing-function: steps(1, end); }
+  4% { opacity: 1; animation-timing-function: steps(1, end); }
+  5% { opacity: 0; animation-timing-function: steps(1, end); }
+  5.8% { opacity: 0.8; animation-timing-function: steps(1, end); }
+  6.8% { opacity: 0.2; animation-timing-function: steps(1, end); }
+  7.6% { opacity: 1; animation-timing-function: ease-out; }
+  24%, 100% { opacity: 0; }
+}
+
+.shellV2TabHidden .lrMainDone .lrMainTitle,
+.shellV2TabHidden .lrMainDone .lrMainFlick,
+.shellV2TabHidden .lrMainDone .lrMainTitle::after { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .lrMainDone .lrMainTitle,
+  .lrMainDone .lrMainFlick,
+  .lrMainDone .lrMainTitle::after { animation: none; }
+}

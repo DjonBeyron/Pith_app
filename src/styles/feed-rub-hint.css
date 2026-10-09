@@ -1,0 +1,87 @@
+/* Подсказка «потри фразу — появится перевод» (RubHint.jsx, useRubHint.js).
+   Надпись (.feedRubHint) стоит над фразой и не двигается. Отпечаток пальца (.feedRubFinger) ХОДИТ ПО САМОЙ ФРАЗЕ и
+   показывает жест: появляется у левого края, три раза трёт вправо-влево (с вертикальным ходом ±3px, как палец),
+   плавно гаснет, пауза — и по кругу, пока фразу не потёрли или не ушли со слайда (тогда RubHint размонтируется).
+   Траектория — по фактической ширине фразы: usePhrasePlate.js уже кладёт в CSS-переменные стопки --pp-w (текст + 20px)
+   и --pp-y / --pp-h (вертикаль) — повторно ничего не измеряем, кадры считает браузер.
+   Одна анимация на элемент, только transform (translate3d) и opacity; без filter/blur/box-shadow. Касаний не ловит —
+   жест трения идёт сквозь подсказку к фразе. Цикл 3.3 с: 0.25 появление + 2.1 три потирания (по 0.7) + 0.25 исчезновение
+   + 0.7 пауза. Гаснет, когда лента скрыта (как остальные бесконечные, feed-media.css) */
+.feedRubHint {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  margin-bottom: 10px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: feedRubHintIn 0.35s cubic-bezier(0.34, 1.25, 0.64, 1) 0.45s backwards;
+}
+@keyframes feedRubHintIn { from { opacity: 0; transform: translateY(6px) scale(0.9); } }
+
+/* Отпечаток: небольшой полупрозрачный кружок (фраза под ним читается), центр — на середине фразы по высоте.
+   --rf-w — ширина текста фразы; --rf-a / --rf-b — левая и правая точки хода (центр кружка; 14px — его радиус):
+   старт чуть правее левого края (10%), размах 75% ширины */
+.feedRubFinger {
+  --rf-w: max(60px, calc(var(--pp-w, 180px) - 20px));
+  --rf-a: calc(var(--rf-w) * 0.1 - 14px);
+  --rf-b: calc(var(--rf-w) * 0.85 - 14px);
+  position: absolute;
+  left: 0;
+  top: calc(var(--pp-y, 0px) + var(--pp-h, 28px) / 2 - 14px);
+  z-index: 6;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(var(--rf-a), 0, 0);
+  will-change: transform, opacity;
+  animation: feedRubFinger 3.3s linear 0.6s infinite;
+}
+.feedRubFingerIcon { width: 16px; height: 16px; }
+
+/* 3300 мс: 0–7.6% появление (250мс) · 7.6–71.2% три потирания по 700мс (A→B→A, ось y ±3px) · 71.2–78.8% исчезновение
+   (250мс) · 78.8–100% пауза (700мс), палец стоит в точке A невидимым. Тайминг сегментов — ease-in-out: на развороте
+   палец притормаживает, как живой */
+@keyframes feedRubFinger {
+  0%     { opacity: 0;    transform: translate3d(var(--rf-a), -3px, 0); animation-timing-function: ease-out; }
+  7.58%  { opacity: 0.9;  transform: translate3d(var(--rf-a), -3px, 0); animation-timing-function: ease-in-out; }
+  18.18% { opacity: 0.9;  transform: translate3d(var(--rf-b), 3px, 0);  animation-timing-function: ease-in-out; }
+  28.79% { opacity: 0.9;  transform: translate3d(var(--rf-a), -3px, 0); animation-timing-function: ease-in-out; }
+  39.39% { opacity: 0.9;  transform: translate3d(var(--rf-b), 3px, 0);  animation-timing-function: ease-in-out; }
+  50%    { opacity: 0.9;  transform: translate3d(var(--rf-a), -3px, 0); animation-timing-function: ease-in-out; }
+  60.61% { opacity: 0.9;  transform: translate3d(var(--rf-b), 3px, 0);  animation-timing-function: ease-in-out; }
+  71.21% { opacity: 0.9;  transform: translate3d(var(--rf-a), -3px, 0); animation-timing-function: ease-in; }
+  78.79% { opacity: 0;    transform: translate3d(var(--rf-a), -3px, 0); }
+  100%   { opacity: 0;    transform: translate3d(var(--rf-a), -3px, 0); }
+}
+.feedViewHidden .feedRubFinger, .feedV2--paused .feedRubFinger { animation: none; }
+
+/* Без движения: отпечаток спокойно лежит по центру фразы */
+@media (prefers-reduced-motion: reduce) {
+  .feedRubHint { animation: none; }
+  .feedRubFinger {
+    animation: none;
+    opacity: 0.8;
+    transform: translate3d(calc(var(--rf-w) * 0.5 - 14px), 0, 0);
+    will-change: auto;
+  }
+}

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { networkKindNow, NETWORK_TEXTS } from './networkGuard.js'
 import { NETWORK_CABLE_SVG } from './networkCableSvg.js'
 
-// Экран «Нет подключения / Слабое соединение» внутри работающего приложения: ленивый чанк не догрузился
+// Экран «Связь пропала / Что-то со связью» внутри работающего приложения: ленивый чанк не догрузился
 // (ErrorBoundary подставляет его вместо «Что-то пошло не так»). Разметка и стили (.ng*) — те же, что у
 // оверлея public/net-guard.js и страницы public/offline.html (оборванный кабель с искрами — networkCableSvg.js);
 // стили лежат инлайном в index.html, поэтому экран рисуется и без app-CSS.

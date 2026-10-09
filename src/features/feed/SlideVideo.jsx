@@ -307,7 +307,7 @@ function SlideVideo({
           обычному просмотру, всплывает только на паузе (см. soundEverOn) */}
       {!soundOn && active && (soundEverOn ? paused : true) && (
         <button className="feedSoundChip" onClick={tapSound}>
-          <VolumeX />
+          <VolumeX fill="currentColor" />
           Включить звук
         </button>
       )}

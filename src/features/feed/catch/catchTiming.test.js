@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import {
   CATCH_COLLAPSE_MS, CATCH_EXPLODE_STEP_MS, CATCH_EXPLODE_OVERLAP, CATCH_COMPARE_GAP_MS, CATCH_RULE_MS,
-  CATCH_COLOR_MS, CATCH_COMPRESS_HOLD_MS, CATCH_FACT_FADE_MS, CATCH_GLINT_IN_MS, CATCH_GLINT_HOLD_MS, CATCH_GLINT_OUT_MS,
-  CATCH_FACT_GLINT_MS, CATCH_COMPRESS_MS, CATCH_GLINT_GAP_MS, explodeAt, compareDelay, factDelay, compressDelay, glintDelay,
+  CATCH_COLOR_MS, CATCH_COMPRESS_HOLD_MS, CATCH_FACT_FADE_MS, CATCH_FACT_REVEAL_MS, CATCH_FACT_PAUSE_MS, CATCH_COMPRESS_MS, CATCH_GLINT_GAP_MS, explodeAt, compareDelay, factDelay, compressDelay, glintDelay,
 } from './catchTiming.js'
 import { EXPLODE_MS } from '../phraseBubbleConsts.js'
+
+const css = readFileSync(new URL('../../../styles/feed-catch-fact.css', import.meta.url), 'utf8')
 
 describe('тайминги финала «Ловли»', () => {
   it('взрывы начинаются только после сворачивания клавиатуры, дальше по шагу слева направо', () => {
@@ -46,19 +48,56 @@ describe('тайминги финала «Ловли»', () => {
     expect(compressDelay(0)).toBe(compressDelay(1))
   })
 
-  it('блик факта: один проход 120 + 250 + 450 = 820мс, проценты keyframes feed-catch-strip.css соответствуют этим числам', () => {
-    expect([CATCH_GLINT_IN_MS, CATCH_GLINT_HOLD_MS, CATCH_GLINT_OUT_MS]).toEqual([120, 250, 450])
-    expect(CATCH_FACT_GLINT_MS).toBe(820)
+  it('блеск факта: один проход 800мс, пауза 400мс сверх раскладки; числа совпадают с feed-catch-fact.css', () => {
+    expect(CATCH_FACT_REVEAL_MS).toBe(800)
     expect(CATCH_FACT_FADE_MS).toBe(220)
-    expect(+(CATCH_GLINT_IN_MS / CATCH_FACT_GLINT_MS * 100).toFixed(2)).toBe(14.63)
-    expect(+((CATCH_GLINT_IN_MS + CATCH_GLINT_HOLD_MS) / CATCH_FACT_GLINT_MS * 100).toFixed(2)).toBe(45.12)
+    expect(CATCH_FACT_PAUSE_MS).toBeGreaterThanOrEqual(350)
+    expect(CATCH_FACT_PAUSE_MS).toBeLessThanOrEqual(450)
+    expect(CATCH_FACT_REVEAL_MS).toBeGreaterThanOrEqual(700)
+    expect(CATCH_FACT_REVEAL_MS).toBeLessThanOrEqual(900)
+    expect(css).toMatch(new RegExp(`animation: catchFactCurtain ${CATCH_FACT_REVEAL_MS}ms `))
+    expect(css).toMatch(new RegExp(`animation: catchFactLit ${CATCH_FACT_REVEAL_MS}ms `))
+    expect(css).toMatch(new RegExp(`animation: catchFactIn ${CATCH_FACT_FADE_MS}ms `))
   })
 
-  it('блик строки факта — позже всего: после сжатия фраз к центру плюс пауза, а сама строка проявляется раньше', () => {
+  it('блеск строки факта — позже всего: после сжатия фраз к центру, паузы и ещё 400мс; призрак строки проявляется раньше', () => {
     for (const n of [1, 3, 5, 8]) {
-      expect(glintDelay(n)).toBe(compressDelay(n) + CATCH_COMPRESS_MS + CATCH_GLINT_GAP_MS)
-      expect(glintDelay(n)).toBeGreaterThan(factDelay(n) + CATCH_FACT_FADE_MS) // строка уже видна тусклой, когда блик стартует
-      expect(glintDelay(n)).toBeGreaterThan(compressDelay(n) + CATCH_COMPRESS_MS - 1) // сжатие закончилось
+      expect(glintDelay(n)).toBe(compressDelay(n) + CATCH_COMPRESS_MS + CATCH_GLINT_GAP_MS + CATCH_FACT_PAUSE_MS)
+      expect(glintDelay(n)).toBeGreaterThan(factDelay(n) + CATCH_FACT_FADE_MS) // призрак уже виден, когда блеск стартует
+      expect(glintDelay(n)).toBeGreaterThanOrEqual(compressDelay(n) + CATCH_COMPRESS_MS + CATCH_FACT_PAUSE_MS) // сжатие закончилось + пауза
     }
+  })
+})
+
+describe('CSS блеска факта (feed-catch-fact.css)', () => {
+  const block = css
+  const rules = block.replace(/\/\*[\s\S]*?\*\//g, '') // без комментариев
+
+  it('шторка двойным transform: оба слоя анимируются с одной кривой и одним временем, задержка --catch-glint-delay', () => {
+    const curtain = rules.match(/\.catchFactCurtain \{[^}]*\}/)[0]
+    const lit = rules.match(/\.catchFactLit \{[^}]*\}/)[0]
+    const timing = c => c.match(/animation: \w+ (\d+ms) (cubic-bezier\([^)]*\)) var\(--catch-glint-delay/).slice(1).join(' ')
+    expect(timing(curtain)).toBe(timing(lit))
+    expect(css).toMatch(/@keyframes catchFactCurtain \{\s*from \{ transform: translateX\(calc\(-100% - 20px\)\); \}\s*to\s+\{ transform: translateX\(20px\); \}/)
+    expect(css).toMatch(/@keyframes catchFactLit \{\s*from \{ transform: translateX\(calc\(100% \+ 20px\)\); \}\s*to\s+\{ transform: translateX\(-20px\); \}/)
+    expect(rules).toMatch(/\.catchFactClip \{[^}]*overflow: hidden/) // режет яркую копию по ДВИЖУЩЕМУСЯ фронту, а не по неподвижной строке
+    expect(rules).toMatch(/\.catchFactReveal \{[^}]*overflow: hidden/)
+    expect(rules).toMatch(/\.catchFactSweep \{[^}]*right: -20px;[^}]*width: 40px/) // полоса по центру фронта шторки
+  })
+
+  it('призрак тусклый (0.15-0.2), без тяжёлых эффектов и без остатков старого блика', () => {
+    const ghost = +rules.match(/\.catchFactBase \{[^}]*rgba\(255, 255, 255, ([\d.]+)\)/)[1]
+    expect(ghost).toBeGreaterThanOrEqual(0.15)
+    expect(ghost).toBeLessThanOrEqual(0.2)
+    expect(rules).not.toMatch(/mask-image|background-position|filter:|backdrop-filter|box-shadow|text-shadow/)
+    expect(css).not.toMatch(/catchFactGlint/)
+    expect(css).not.toMatch(/@keyframes catchFactGlint/)
+  })
+
+  it('prefers-reduced-motion: без анимации строка сразу яркая, полосы нет', () => {
+    const rm = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'))
+    expect(rm).toMatch(/\.catchFactCurtain,\s*\.catchFactLit \{ animation: none; \}/)
+    expect(rm).toMatch(/\.catchFactCurtain,\s*\.catchFactLit \{ transform: none; \}/)
+    expect(rm).toMatch(/\.catchFactSweep \{ display: none; \}/)
   })
 })

@@ -12,7 +12,7 @@ export class FakeRec {
 export const alt = (text, confidence = 0.9) => Object.assign([{ transcript: text, confidence }], { isFinal: true })
 export const interimRes = text => Object.assign([{ transcript: text, confidence: 0 }], { isFinal: false })
 
-export function setup() {
+export function setup(extra = {}) {
   FakeRec.all = []
   const views = []
   const entries = []
@@ -21,6 +21,7 @@ export function setup() {
     queryPerm: async () => 'granted',
     onView: v => views.push(v),
     onEntry: e => entries.push(e),
+    ...extra,
   })
   const last = () => views[views.length - 1]
   const rec = i => FakeRec.all[i]

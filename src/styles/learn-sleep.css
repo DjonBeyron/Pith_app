@@ -32,38 +32,7 @@
   text-transform: uppercase;
   white-space: nowrap;
 }
-/* «Неоновая вывеска с коротким замыканием»: надпись белая (learn.css), поверх — точная копия текста зелёным
-   (::after, content: attr(data-text) — LearnMainAction.jsx ставит data-text только в режиме сна; «/ ''» — без
-   альтернативного текста, чтобы скринридер не читал дважды). Анимируется только opacity слоя: цикл 10 с, 72 % —
-   слой невидим (надпись белая), затем 3–4 быстрых неравных мигания (steps, 60–120 мс) и медленное затухание
-   зелёного в белый ≈ 2 с (ease-out — как число в круге-счётчике: быстро загорается, медленно тускнеет).
-   text-shadow статичен (виден только вместе с opacity) */
-.lrMainDone .lrMainTitle::after {
-  content: attr(data-text) / '';
-  position: absolute;
-  inset: 0;
-  color: #b6fe3b;
-  text-shadow: 0 0 6px rgba(182, 254, 59, 0.5);
-  opacity: 0;
-  pointer-events: none;
-  animation: lrTitleShort 4.4s linear infinite;
-}
-/* Период 4.4 с — тот же порядок, что у разрядов в разрыве кабеля (3.1–5.9 с, memory-sparks.css): надпись вспыхивает
-   с ними примерно в такт. 0–68 % — белая; серия коротких неравных вспышек зелёным (68–77 %, по 40–110 мс); затем
-   зелёный быстро тускнеет до белого за ≈ 1 с (как число в круге: быстро загорается, медленно тускнеет) */
-@keyframes lrTitleShort {
-  0%, 68% { opacity: 0; animation-timing-function: steps(1, end); }
-  68.7% { opacity: 1; animation-timing-function: steps(1, end); }
-  70% { opacity: 0.15; animation-timing-function: steps(1, end); }
-  71.3% { opacity: 1; animation-timing-function: steps(1, end); }
-  73.6% { opacity: 0; animation-timing-function: steps(1, end); }
-  74.7% { opacity: 0.8; animation-timing-function: steps(1, end); }
-  76% { opacity: 0.2; animation-timing-function: steps(1, end); }
-  77% { opacity: 1; animation-timing-function: ease-out; }
-  98%, 100% { opacity: 0; }
-}
-.shellV2TabHidden .lrMainDone .lrMainTitle::after { animation: none; }
-@media (prefers-reduced-motion: reduce) { .lrMainDone .lrMainTitle::after { animation: none; } }
+/* «Замыкание» надписи (зелёная копия ::after и мерцание текста в такт искрам) — learn-sleep-title.css */
 
 /* Мозг: крупнее (46 px), по центру блока по вертикали, линия тоньше (strokeWidth в SleepingBrain.jsx) */
 .lrSleep {

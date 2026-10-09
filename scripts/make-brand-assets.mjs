@@ -1,12 +1,16 @@
 // Генерация растровых ассетов бренда из public/logo.svg:
 //   public/icons/icon-{180,192,512}.png — иконка приложения (PWA, apple-touch)
 //   public/icons/favicon-{32,64}.png     — вкладка браузера, знак без подложки
-//   public/splash/startup-WxH.png       — стартовые экраны iOS
+//   public/splash/startup-WxH.png       — стартовые экраны iOS: ЧИСТЫЙ ЧЁРНЫЙ #000 БЕЗ лого (по умолчанию)
 //
-// Рендерим через headless Edge/Chrome: браузер уже есть в системе, а тянуть
+// Иконки рендерим через headless Edge/Chrome: браузер уже есть в системе, а тянуть
 // в проект бинарные зависимости ради разовой перерисовки логотипа незачем.
 //   node scripts/make-brand-assets.mjs
+// Стартовые экраны по умолчанию браузер не используют: однотонный PNG собирается напрямую
+// (1 бит на пиксель, палитра из одного цвета — десятки байт после deflate). SPLASH_LOGO=1 — старый вид (с лого).
 import { execFileSync } from 'node:child_process'
+import { deflateSync } from 'node:zlib'
+import { Buffer } from 'node:buffer'
 import { mkdirSync, readFileSync, writeFileSync, rmSync, renameSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -25,7 +29,9 @@ const BROWSERS = [
 ]
 // NO_SANDBOX=1 — для запуска под root на Linux. BROWSER_PATH — свой путь к Chrome/Chromium (например, под Linux: BROWSER_PATH=/opt/pw-browsers/chromium)
 const browser = process.env.BROWSER_PATH || BROWSERS.find(p => existsSync(p))
-if (!browser) {
+// Браузер нужен только для иконок и для стартовых экранов с лого — проверяем в момент рендера
+function needBrowser() {
+  if (browser) return
   console.error('Не найден Edge или Chrome — из чего рендерить PNG?')
   process.exit(1)
 }
@@ -48,6 +54,7 @@ const work = join(tmpdir(), 'heta-brand')
 mkdirSync(work, { recursive: true })
 
 function shot(html, w, h, out, transparent = false) {
+  needBrowser()
   const page = join(work, 'page.html')
   writeFileSync(page, html, 'utf8')
   execFileSync(browser, [
@@ -84,8 +91,46 @@ function faviconHtml(size) {
   </style><div class="box">${logoFaviconPng}</div>`
 }
 
-// Стартовый экран: фон приложения + логотип без подложки, чуть выше центра —
-// как flex-центрированный блок «лого + подпись» в index.html
+// Однотонный PNG без браузера: 1 бит на пиксель, палитра из одного цвета, строки целиком из нулей.
+// Так iOS получает «пустую» стартовую картинку цвета фона: сравнивать HTML-сплэшу не с чем, а файл весит ~0.5 КБ
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+  return c >>> 0
+})
+function crc32(buf) {
+  let c = 0xffffffff
+  for (const b of buf) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8)
+  return (c ^ 0xffffffff) >>> 0
+}
+function pngChunk(type, data) {
+  const head = Buffer.alloc(4)
+  head.writeUInt32BE(data.length)
+  const body = Buffer.concat([Buffer.from(type, 'latin1'), data])
+  const tail = Buffer.alloc(4)
+  tail.writeUInt32BE(crc32(body))
+  return Buffer.concat([head, body, tail])
+}
+function solidPng(w, h, [r, g, b]) {
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(w, 0)
+  ihdr.writeUInt32BE(h, 4)
+  ihdr.set([1, 3, 0, 0, 0], 8) // глубина 1 бит, indexed-color, deflate, фильтры, без interlace
+  const rowBytes = 1 + Math.ceil(w / 8) // байт фильтра + биты индекса 0
+  const raw = Buffer.alloc(rowBytes * h)
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk('IHDR', ihdr),
+    pngChunk('PLTE', Buffer.from([r, g, b])),
+    pngChunk('IDAT', deflateSync(raw, { level: 9 })),
+    pngChunk('IEND', Buffer.alloc(0)),
+  ])
+}
+const BG_RGB = [0, 0, 0]
+
+// Стартовый экран С ЛОГО (SPLASH_LOGO=1, устаревший вид): фон приложения + логотип без подложки, чуть выше центра —
+// как flex-центрированный блок «лого + подпись» в index.html. По умолчанию лого на картинке НЕТ: HTML-сплэш
+// проявляет его сам из чёрного, и нативный кадр iOS с логотипом уже не нужно совмещать со страницей до пикселя
 function splashHtml(w, h, dpr) {
   const logoPx = Math.round(92 * dpr)
   const shift = Math.round(19 * dpr)
@@ -110,10 +155,16 @@ if (!process.env.ONLY_SPLASH) {
   }
 }
 
-console.log('Стартовые экраны iOS:')
+console.log(process.env.SPLASH_LOGO ? 'Стартовые экраны iOS (с лого):' : 'Стартовые экраны iOS (чистый чёрный, без лого):')
 for (const [cssW, cssH, dpr] of DEVICES) {
   const w = cssW * dpr, h = cssH * dpr
-  shot(splashHtml(w, h, dpr), w, h, join(root, `public/splash/startup-${w}x${h}.png`))
+  const out = join(root, `public/splash/startup-${w}x${h}.png`)
+  if (process.env.SPLASH_LOGO) shot(splashHtml(w, h, dpr), w, h, out)
+  else {
+    mkdirSync(dirname(out), { recursive: true })
+    writeFileSync(out, solidPng(w, h, BG_RGB))
+    console.log('  ' + out.replace(root, '.').replace(/\\/g, '/'))
+  }
 }
 
 rmSync(work, { recursive: true, force: true })

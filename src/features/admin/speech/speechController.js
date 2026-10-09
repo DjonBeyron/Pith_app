@@ -5,6 +5,7 @@ import {
   LISTEN_SILENCE_MS, PERMISSION_GUARD_MS, MAX_ATTEMPTS, RETRY_PAUSE_MS, STOP_FORCE_MS,
   shouldRetry, isQuietCode, retryNotice, LOUD_HINT, NOTICE_WAIT_PERMISSION, NOTICE_BLOCKED,
 } from './speechPolicy.js'
+import { captureLogFields, toPercent } from './speechCapture.js'
 
 export const emptyView = {
   status: 'idle', // idle | starting | listening | retrying | done | error
@@ -19,6 +20,7 @@ const HANDLERS = ['onstart', 'onaudiostart', 'onspeechstart', 'onresult', 'onerr
 
 export function createSpeechController({
   createRecognition, queryPerm = async () => 'unavailable', getMode = () => 'browser',
+  capture = null, getCapture = () => 'plain', // capture — менеджер параллельного потока (режимы B/C), см. speechCaptureManager.js
   now = () => Date.now(), perfNow = () => Date.now(), onView = () => {}, onEntry = () => {},
 }) {
   let seq = 0     // счётчик attemptId (на каждый экземпляр recognition)
@@ -36,7 +38,15 @@ export function createSpeechController({
       for (const h of HANDLERS) a.rec[h] = null
       try { a.rec.abort() } catch { /* уже остановлен */ }
     }
+    closeCapture(a)
     if (cur === a) cur = null
+  }
+
+  // Поток микрофона режимов B/C привязан к попытке: закрываем вместе с ней (повторный вызов безопасен)
+  function closeCapture(a) {
+    if (!capture || a.capClosed) return
+    a.capClosed = true
+    try { a.capInfo = capture.close(a.id) } catch { /* поток уже закрыт */ }
   }
 
   function record(a, error, last, outcome) {
@@ -44,6 +54,7 @@ export function createSpeechController({
       t: a.startedAt, mode: getMode(), permBefore: a.permBefore, permAfter: 'unavailable',
       msStart: a.msStart, msAudio: a.msAudio, msResult: a.msResult, error,
       retry: a.retry, run: run?.no ?? null, last, outcome,
+      conf: toPercent(view.final?.confidence), ...captureLogFields(a.capMode, a.capInfo),
     }
     Promise.resolve().then(queryPerm).catch(() => 'unavailable').then(p => { entry.permAfter = p; onEntry(entry) })
   }
@@ -89,7 +100,7 @@ export function createSpeechController({
     const a = {
       id: ++seq, retry, rec: null, startedAt: now(), t0: perfNow(), permBefore: 'unavailable',
       msStart: null, msAudio: null, msResult: null, done: false, gotFinal: false, userStop: false,
-      audio: false, lastInterim: '', permTimer: null, silenceTimer: null, forceTimer: null,
+      capMode: run.capture, capInfo: null, capClosed: false, audio: false, lastInterim: '', permTimer: null, silenceTimer: null, forceTimer: null,
     }
     cur = a
     const since = () => Math.round(perfNow() - a.t0)
@@ -144,6 +155,8 @@ export function createSpeechController({
       rec.onerror = ev => { if (live() && !a.gotFinal) conclude(a, ev?.error || 'unknown') }
       rec.onend = () => { if (live()) conclude(a, null) }
       a.permTimer = setTimeout(() => conclude(a, 'no-start'), PERMISSION_GUARD_MS)
+      // Режимы B/C: микрофон открываем СИНХРОННО в том же жесте, не дожидаясь, и сразу стартуем recognition
+      try { capture?.open(a.id, a.capMode) } catch { /* ошибка потока не блокирует распознавание */ }
       rec.start()
     } catch {
       conclude(a, 'start-failed')
@@ -160,7 +173,7 @@ export function createSpeechController({
     /** Вызывать прямо в обработчике тапа. reference и lang фиксируются на весь заход. */
     start({ reference, lang }) {
       cancel()
-      run = { no: ++runNo, reference, lang, retryTimer: null, lastError: null }
+      run = { no: ++runNo, reference, lang, capture: getCapture(), retryTimer: null, lastError: null }
       view = { ...emptyView, runNo, reference, lang, at: now() }
       onView(view)
       launch(0)
@@ -177,6 +190,7 @@ export function createSpeechController({
       clearTimeout(a.permTimer); clearTimeout(a.silenceTimer); clearTimeout(a.forceTimer)
       push({ notice: 'Останавливаем…' })
       try { a.rec.stop() } catch { /* ничего */ }
+      closeCapture(a)
       a.forceTimer = setTimeout(() => conclude(a, null), STOP_FORCE_MS)
     },
     /** Полный сброс: микрофон гасим, итог/альтернативы/сравнение очищаем (смена эталона/языка, уход со страницы) */
