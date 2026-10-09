@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { APP_VERSION } from '../../../shared/lib/version.js'
 import { refreshShellStatus, shellCommand } from '../../../shared/lib/shellClient.js'
 import { shellRows, shellState } from './shellStatusView.js'
+import VersionStamp from '../VersionStamp.jsx'
 
 // Админ → «Старт»: «Быстрый старт (кеш оболочки)». Service worker отдаёт страницу приложения из своего кеша мгновенно (убирает окно
 // «моргания» iOS между нативной картинкой и первым кадром). Здесь — статус и аварийные кнопки на случай, если что-то залипло.
@@ -48,6 +49,7 @@ export default function StartShellBlock() {
   return (
     <section className="astVar astShell">
       <div className="aeTitle">Быстрый старт (кеш оболочки)</div>
+      <VersionStamp className="astVersion" />
       <p className="aeHint">
         Приложение отдаётся из кеша на устройстве за единицы миллисекунд, а не ждёт сеть ~1 с. Новая версия подхватывается через плашку
         «Доступна новая версия» (не сразу после деплоя). Если что-то залипло — «Выключить» или адрес с <b>?nosw=1</b>.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { LOG_KEY, LOG_KEEP, readLog, appendLog, clearLog, dialogGuess, dialogCount } from './speechLog.js'
+import { LOG_KEY, LOG_KEEP, readLog, appendLog, clearLog, dialogGuess, dialogCount, fmtRestart, logReportLines } from './speechLog.js'
 
 function memStore(initial = {}) {
   const m = new Map(Object.entries(initial))
@@ -49,5 +49,18 @@ describe('dialogCount', () => {
   it('считает только записи сеанса', () => {
     const log = [{ t: 10, dialog: 'yes' }, { t: 9, dialog: 'maybe' }, { t: 1, dialog: 'yes' }, { t: 11, dialog: 'no' }]
     expect(dialogCount(log, 5)).toEqual([1, 1])
+  })
+})
+
+describe('колонка «Перезапуск»', () => {
+  it('стратегия, пауза, звук и метки глухой сессии; старые записи → «—»', () => {
+    expect(fmtRestart({})).toBe('—')
+    expect(fmtRestart({ strategy: 'S3', gapMs: 905, msSound: 320 })).toBe('S3 · пауза 905 мс · звук 320 мс')
+    expect(fmtRestart({ strategy: 'S2', gapMs: null, reused: true, deaf: true, deaf_retry: true })).toBe('S2 · тот же экземпляр · ГЛУХАЯ? · deaf_retry')
+  })
+  it('строка отчёта «Скопировать отчёт» содержит перезапуск', () => {
+    const line = logReportLines([{ t: 1, mode: 'pwa', strategy: 'S4', gapMs: 700, deaf: true, outcome: 'stopped' }])[0]
+    expect(line).toContain('перезапуск S4 · пауза 700 мс · ГЛУХАЯ?')
+    expect(line).toContain('исход: stopped')
   })
 })

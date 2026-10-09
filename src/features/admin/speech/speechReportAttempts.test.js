@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { analyzeAttempt } from './antiPredictRules.js'
 import {
-  buildAttemptTexts, thinTexts, attemptLine, attemptFields, attemptsBlock, allComparisonsText, changesText, TX_LIMITS,
+  buildAttemptTexts, thinTexts, attemptLine, attemptFields, attemptsBlock, allComparisonsText, changesText, firstSeenLine, TX_LIMITS,
 } from './speechReportAttempts.js'
 
 const REF = "I'm trying"
@@ -33,7 +33,7 @@ describe('buildAttemptTexts: что сохраняется в журнале', (
   it('изменение try→trying (interim→final), литеральная форма — в alt#2, alt#3 и interim@1.0s, вердикты и вид «говорил»', () => {
     expect(tx.changes).toEqual([{ kind: 'replace', from: 'try', to: 'trying', at: 2200, step: 'interim→final' }])
     expect(tx.literal).toEqual(['alt#2', 'alt#3', 'interim@1.0s'])
-    expect(tx.verdicts).toEqual({ top1: true, consensus: false, strict: false })
+    expect(tx.verdicts).toEqual({ top1: true, consensus: false, strict: false, first: false }) // «try» держалось 1,2 с → «первое увиденное» тоже поймало
     expect(tx.saidKind).toBe('wrong')
     expect(tx.fixed).toBe(true)
     expect(tx.histN).toBe(1)
@@ -79,8 +79,32 @@ describe('компактный формат строки', () => {
       '№2', `ref=«${REF}»`, "said=«I'm try»", 'en-US', 'alts+history', "top1=«I'm trying» 86%", "alts=«i'm try» 36 · «i'll try» 10",
       "interim-история: 1.0s «I'm try» → 2.2s «I'm trying» [final]",
       'final-vs-interim: try→trying (interim→final)', 'литерально: alt#2, alt#3, interim@1.0s',
-      'вердикты: top1=пропустило consensus=поймало strict=поймало',
+      'первое увиденное: «i am try» спорные: trying←try 1200мс*',
+      'вердикты: top1=пропустило consensus=поймало strict=поймало first=поймало',
     ].join(' | '))
+  })
+  it('мимолётное «try» (120 мс): первое увиденное принимает слово, спорное слово с выдержкой в отчёте, звёздочки нет', () => {
+    const v = makeView({ history: [{ t: 1000, text: "I'm try" }, { t: 1120, text: "I'm trying" }, { t: 2200, text: "I'm trying", final: true }], lastInterim: "I'm trying" })
+    const ln = attemptLine(entry(v, { ...extra, said: "I'm trying" }))
+    expect(ln).toContain('первое увиденное: «i am try» спорные: trying←try 120мс')
+    expect(ln).not.toContain('120мс*')
+    expect(ln).toContain('first=верно принято')
+    expect(entry(v).tx.first).toEqual({ text: 'i am try', dwell: 500, used: true, disputed: [['trying', 'try', 120, 0]] })
+  })
+  it('нет спорных слов — отдельного поля нет, в вердиктах first есть; старые записи без first не ломаются', () => {
+    const v = makeView({ history: [{ t: 1000, text: "I'm trying" }, { t: 1500, text: "I'm trying", final: true }], lastInterim: "I'm trying" })
+    const ln = attemptLine(entry(v))
+    expect(ln).not.toContain('первое увиденное:')
+    expect(ln).toContain('first=')
+    const old = entry()
+    delete old.tx.first
+    old.tx.verdicts = { top1: true, consensus: false, strict: false }
+    expect(attemptLine(old)).toContain('strict=поймало') // без first — как раньше
+    expect(attemptLine(old)).not.toContain('first=')
+  })
+  it('firstSeenLine: восстановленный текст, спорные слова, вердикт', () => {
+    const an = analyzeAttempt({ reference: REF, wrong: WRONG, final: a("I'm trying", 0.86), history: makeView().history, lastInterim: "I'm try" })
+    expect(firstSeenLine(an.verdicts.first.details)).toBe('восстановлено «i am try»; спорные: trying←«try» 1200 мс [не подтверждено]; выдержка 500 мс; вердикт: НЕ подтверждено (trying)')
   })
   it('исправление уже в ходе речи: interim→interim', () => {
     const v = makeView({ history: [{ t: 1000, text: "I'm try" }, { t: 2100, text: "I'm trying" }, { t: 2200, text: "I'm trying", final: true }], lastInterim: "I'm trying" })

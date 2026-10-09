@@ -56,10 +56,22 @@ export const fmtMs = v => (v == null ? '—' : String(v))
 /** «№3 · 2/3» — номер нажатия «Сказать» и номер попытки внутри него (старые записи без полей → «—») */
 export const fmtAttempt = e => (e.run != null ? `№${e.run} · ${(e.retry ?? 0) + 1}/${MAX_ATTEMPTS}${e.last ? ' итог' : ''}` : '—')
 
+/** Колонка «Перезапуск»: «S3 · пауза 905 мс · звук 320 мс · ГЛУХАЯ?»; старые записи без стратегии → «—». deaf_retry — попытка запущена авто-восстановлением */
+export function fmtRestart(e) {
+  if (!e?.strategy) return '—'
+  const p = [e.strategy]
+  if (e.gapMs != null) p.push(`пауза ${e.gapMs} мс`)
+  if (e.reused) p.push('тот же экземпляр')
+  if (e.msSound != null) p.push(`звук ${e.msSound} мс`)
+  if (e.deaf) p.push('ГЛУХАЯ?')
+  if (e.deaf_retry) p.push('deaf_retry')
+  return p.join(' · ')
+}
+
 export function logReportLines(log) {
   return log.slice(0, LOG_SHOW).map(e => {
     const t = new Date(e.t).toLocaleString('ru-RU')
     const perm = `${PERM_LABEL[e.permBefore] ? e.permBefore : '?'}→${e.permAfter || '?'}`
-    return `${t} | попытка ${fmtAttempt(e)} | ${MODE_LABEL[e.mode] || e.mode} | разрешение ${perm} | start ${fmtMs(e.msStart)} / audio ${fmtMs(e.msAudio)} / result ${fmtMs(e.msResult)} мс | уверенность ${fmtConf(e.conf)} | захват ${fmtCapture(e)} | эксперименты ${fmtAntiPredict(e)} | ошибка: ${e.error || '—'} | исход: ${e.outcome || '—'} | диалог: ${DIALOG_LABEL[e.dialog] || '?'}`
+    return `${t} | попытка ${fmtAttempt(e)} | ${MODE_LABEL[e.mode] || e.mode} | разрешение ${perm} | start ${fmtMs(e.msStart)} / audio ${fmtMs(e.msAudio)} / result ${fmtMs(e.msResult)} мс | уверенность ${fmtConf(e.conf)} | захват ${fmtCapture(e)} | эксперименты ${fmtAntiPredict(e)} | перезапуск ${fmtRestart(e)} | ошибка: ${e.error || '—'} | исход: ${e.outcome || '—'} | диалог: ${DIALOG_LABEL[e.dialog] || '?'}`
   })
 }

@@ -3,6 +3,7 @@
 // если ошибочных форм нет — ключевыми считаются все слова эталона. ok = «слово подтверждено» (форма верна).
 import { tokenize, levenshtein, matchPhrase } from '../../../shared/lib/speech/speechMatch.js'
 import { matchConsensus } from '../../../shared/lib/speech/sayConsensus.js'
+import { firstSeenRule } from '../../../shared/lib/speech/firstSeenRule.js'
 import { buildChain, analyzeChain } from './attemptDiff.js'
 
 /** Для каждого токена эталона — ошибочные токены на его месте: Map(слово → Set). Фразы той же длины сравниваем по позиции,
@@ -43,17 +44,18 @@ const confOf = a => (typeof a?.confidence === 'number' ? a.confidence : -1)
 const missedKeys = (items, keys) => keys.filter(k => items.some(it => it.word === k && !it.ok))
 
 /**
- * Разбор одной попытки. Вход: reference, wrong (фразы), view-подобный объект { final, alternatives, history, lastInterim }.
- * Нет итога → null.
+ * Разбор одной попытки. Вход: reference, wrong (фразы), view-подобный объект { final, alternatives, history, lastInterim }, dwellMs — выдержка правила
+ * «первое увиденное» (firstSeenRule.js). Нет итога → null.
  */
-export function analyzeAttempt({ reference, wrong = [], final, alternatives = [], history = [], lastInterim = '' }) {
+export function analyzeAttempt({ reference, wrong = [], final, alternatives = [], history = [], lastInterim = '', dwellMs }) {
   if (!final?.text) return null
   const map = wrongTokenMap(reference, wrong)
   const keys = keysOf(reference, map)
   const cls = text => classify(text, map, keys)
   const alts = alternatives.length ? alternatives : [final]
   const nbest = alts.map((a, i) => ({ ...a, ...cls(a.text), top: i === 0 }))
-  const timeline = history.map(h => ({ ...h, ...cls(h.text) }))
+  const timeline = history.filter(h => typeof h.text === 'string').map(h => ({ ...h, ...cls(h.text) })) // тексты; служебные события {t, kind} — отдельно (events)
+  const events = history.filter(h => h.kind).map(h => ({ t: h.t, kind: h.kind }))
   const diff = analyzeChain(buildChain({ history, final, lastInterim }), reference)
 
   const exact = { exactWords: true }
@@ -67,6 +69,8 @@ export function analyzeAttempt({ reference, wrong = [], final, alternatives = []
   top1.ok = top1.missed.length === 0
   consensus.ok = consensus.missed.length === 0
   strict.ok = consensus.ok && blockers.length === 0
+  const fs = firstSeenRule({ reference, history, final, lastInterim, dwellMs, keys }) // восстановленное «как слышал движок до исправления»
+  const first = { ok: fs.missed.length === 0, missed: fs.missed, used: fs.used, details: fs }
 
   const where = []
   const places = [] // где встретилась ошибочная форма: top1 | alt#N | interim@мс (для компактного отчёта)
@@ -79,10 +83,10 @@ export function analyzeAttempt({ reference, wrong = [], final, alternatives = []
   lit.slice(0, 3).forEach(h => where.push(`interim ${h.t} мс «${h.text}»`))
   lit.forEach(h => places.push({ at: 'interim', t: h.t, word: h.literal[0] }))
   return {
-    keys, map, nbest, timeline, diff, changes: diff.changes, engineFixed: diff.engineFixed,
+    keys, map, nbest, timeline, events, diff, changes: diff.changes, engineFixed: diff.engineFixed,
     fixedAt: diff.fixed[0] ? { t: diff.fixed[0].at, final: diff.fixed[0].step === 'interim→final' } : null,
     literalSeen: where.length > 0, where, places,
-    verdicts: { top1, consensus, strict, all: top1.ok && consensus.ok && strict.ok },
+    verdicts: { top1, consensus, strict, first, all: top1.ok && consensus.ok && strict.ok && first.ok },
   }
 }
 

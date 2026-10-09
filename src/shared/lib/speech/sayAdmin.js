@@ -36,6 +36,9 @@ export function adminHeardLine({ isAdmin, phase, view, verdict = null, errorCode
   const text = interimDiffers(view.lastInterim, final)
     ? `Админ: interim: ${q(view.lastInterim)} → final: ${q(final)}${conf}`
     : `Админ: услышали ${q(final)}${conf}`
-  const fixed = verdict?.engineFixed?.length ? `слово ${verdict.engineFixed.join(', ')} подтверждено только final (корректировка движка)` : ''
-  return { text, note: note(fixed), title: alts.length > 1 ? `Варианты: ${alts.map(q).join(' · ')}` : '' }
+  const dwell = verdict?.firstSeenBlocked ?? [] // слова, где ошибочная форма держалась в interim дольше выдержки («первое увиденное»)
+  const onlyFinal = (verdict?.engineFixed ?? []).filter(w => !dwell.includes(w))
+  const fixed = onlyFinal.length ? `слово ${onlyFinal.join(', ')} подтверждено только final (корректировка движка)` : ''
+  const seen = dwell.length ? `слово ${dwell.join(', ')}: ошибочная форма держалась в interim дольше выдержки («первое увиденное»)` : ''
+  return { text, note: note(fixed, seen), title: alts.length > 1 ? `Варианты: ${alts.map(q).join(' · ')}` : '' }
 }

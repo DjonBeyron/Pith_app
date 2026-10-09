@@ -1,14 +1,15 @@
 // Поля журнала и текст «Скопировать сравнение» для экспериментов против домысливания движка (проба «Голос»). Чистые функции.
 import { analyzeAttempt, saidKind, judge } from './antiPredictRules.js'
 import { generateWrongForms } from './antiPredictModes.js'
-import { buildAttemptTexts, changesText } from './speechReportAttempts.js'
+import { firstSeenNote } from '../../../shared/lib/speech/firstSeenRule.js'
+import { buildAttemptTexts, changesText, firstSeenLine } from './speechReportAttempts.js'
 
 /** Дополнительные поля записи журнала (третий аргумент logFields контроллера: { view, extra }) */
 export function antiPredictLogFields({ view, extra } = {}) {
   const an = view?.final
     ? analyzeAttempt({
       reference: view.reference, wrong: extra?.wrong ?? generateWrongForms(view.reference),
-      final: view.final, alternatives: view.alternatives, history: view.history, lastInterim: view.lastInterim,
+      final: view.final, alternatives: view.alternatives, history: view.history, lastInterim: view.lastInterim, dwellMs: extra?.settings?.dwell,
     })
     : null
   return {
@@ -42,7 +43,9 @@ export function verdictRows(an, kind) {
       note: !v.consensus.used ? 'interim короче итога — решил один final' : v.consensus.missed.length ? `нет слов: ${v.consensus.missed.join(', ')}` : v.consensus.fixed.length ? `исправлено движком: ${v.consensus.fixed.join(', ')}` : '' },
     { id: 'strict', name: 'N-best строго', ok: v.strict.ok,
       note: !v.strict.used ? 'альтернатив нет (включите «Больше альтернатив»)' : v.strict.blockers.length ? `ошибочная форма в №${v.strict.blockers.map(b => b.no).join(', №')} с confidence не ниже итога` : v.strict.suspect ? 'ошибочная форма есть среди альтернатив, но с меньшей уверенностью' : '' },
-    { id: 'all', name: 'все три вместе', ok: v.all, note: '' },
+    { id: 'first', name: `первое увиденное (выдержка ${v.first.details.dwellMs} мс)`, ok: v.first.ok,
+      note: !v.first.used ? 'interim не было — решил один итог' : firstSeenNote(v.first.details) || (v.first.missed.length ? `нет слов: ${v.first.missed.join(', ')}` : '') },
+    { id: 'all', name: 'все четыре вместе', ok: v.all, note: '' },
   ]
   return rows.map(r => ({ ...r, judge: judge(kind, r.ok) }))
 }
@@ -60,10 +63,12 @@ export function comparisonText({ view, said, analysis, caps }) {
   L.push(`Гипотезы (${analysis.nbest.length}): ${analysis.nbest.map((a, i) => `${i + 1}. «${a.text}» ${fmtConfPct(a.confidence)}${a.literal.length ? ` [литерально: ${a.literal.join('/')}]` : ''}`).join(' | ')}`)
   if (view.segments?.length) L.push(`Сегменты: ${view.segments.map(s => `«${s.text}»${s.isFinal ? ` final ${s.tFinal} мс` : ' interim'}`).join(' + ')}`)
   L.push(`Interim (мс): ${analysis.timeline.length ? analysis.timeline.map(h => `${h.t} «${h.text}»${h.final ? ' [final]' : ''}`).join(' → ') : 'нет'}`)
+  if (analysis.events.length) L.push(`События движка (мс): ${analysis.events.map(e => `${e.kind} ${e.t}`).join(' · ')}`)
   const fx = analysis.diff.fixed[0]
   L.push(`Слово изменено движком: ${analysis.engineFixed ? `да — «${fx.from}» → «${fx.to}»${analysis.diff.reverse ? ' (обратное исправление: форма эталона заменена ошибочной)' : ''} (${fx.step}${fx.at != null ? `, ${fx.at} мс` : ''})` : 'нет'}`)
   L.push(`Изменения между соседними текстами: ${changesText({ changes: analysis.changes, histN: analysis.timeline.length })}`)
   L.push(`Литеральная форма встречалась: ${analysis.literalSeen ? `да — ${analysis.where.join('; ')}` : 'нет'}`)
+  L.push(`Первое увиденное: ${firstSeenLine(analysis.verdicts.first.details)}`)
   L.push(`Вердикты (подтверждено = форма принята):${kind ? ` [говорил: ${kind === 'wrong' ? 'ошибочную форму' : 'верную форму'}]` : ''}`)
   for (const r of verdictRows(analysis, kind)) L.push(`  ${r.name}: ${verdictWord(r.ok)}${r.judge ? ` — ${r.judge.label}` : ''}${r.note ? ` (${r.note})` : ''}`)
   if (caps?.uaShort) L.push(`Устройство: ${caps.uaShort}`)

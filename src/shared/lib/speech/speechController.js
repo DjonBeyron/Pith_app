@@ -1,59 +1,63 @@
 // Контроллер попыток распознавания речи (общий для пробы «Голос» в админке и модуля «Сказать фразу»; чистый JS,
 // без React и без window — всё передаётся снаружи).
 // Одно нажатие «Сказать» = «заход» (run) с зафиксированными эталоном и языком; внутри — до MAX_ATTEMPTS попыток.
-// Каждая попытка = НОВЫЙ экземпляр recognition + свой attemptId; события чужого/закрытого экземпляра игнорируются.
+// Каждая попытка = НОВЫЙ экземпляр recognition (если стратегия перезапуска не S2/S5) + свой attemptId; события чужого/закрытого экземпляра игнорируются.
+// Следующий экземпляр не создаётся, пока прошлый не закрыт событием end и не прошла пауза стратегии (speechRestart.js); «глухая» вторая попытка
+// после успешной пересоздаётся один раз (speechDeaf.js, метка deaf_retry в журнале).
 import {
-  LISTEN_SILENCE_MS, PERMISSION_GUARD_MS, MAX_ATTEMPTS, RETRY_PAUSE_MS, STOP_FORCE_MS, SEGMENT_SILENCE_MS,
-  shouldRetry, isQuietCode, retryNotice, LOUD_HINT, NOTICE_WAIT_PERMISSION, NOTICE_BLOCKED, toPercent,
+  LISTEN_SILENCE_MS, PERMISSION_GUARD_MS, STOP_FORCE_MS, SEGMENT_SILENCE_MS, DEAF_WINDOW_MS,
+  planNext, NOTICE_WAIT_PERMISSION, NOTICE_PREPARE, toPercent,
 } from './speechPolicy.js'
-import { pushHistory, readSegments, segmentsText, segmentsConfidence } from './speechSegments.js'
+import { pushHistory, readSegments, segmentsText, segmentsConfidence, readResults } from './speechSegments.js'
+import { emptyView, isBusy } from './speechView.js'
+import { createRestartGate, resolveStrategy } from './speechRestart.js'
+import { isDeaf, wantsDeafTimer } from './speechDeaf.js'
+import { buildEntry, newAttempt } from './speechEntry.js'
+
+export { emptyView, isBusy }
 
 const ABORT_SETTLE_MS = 250 // после abort() ждём end не дольше этого: результат у нас уже есть
 
-export const emptyView = {
-  status: 'idle', // idle | starting | listening | retrying | done | error
-  interim: '', lastInterim: '', final: null, alternatives: [], usedInterim: false, // lastInterim — последний промежуточный текст попытки (диагностика админа)
-  error: null, hint: null, notice: null, needTap: false,
-  runNo: 0, reference: '', lang: '', at: null, attempt: 0, maxAttempts: MAX_ATTEMPTS, attemptId: 0,
-  history: [], segments: [], applied: null, extra: null, // диагностика пробы: история interim [{t,text,final?}] ≤80, сегменты continuous, что выставил configure, снимок extra из start()
-}
-
-export const isBusy = view => view.status === 'starting' || view.status === 'listening' || view.status === 'retrying'
-
-const HANDLERS = ['onstart', 'onaudiostart', 'onsoundstart', 'onsoundend', 'onspeechstart', 'onspeechend', 'onresult', 'onerror', 'onend']
+const HANDLERS = ['onstart', 'onaudiostart', 'onsoundstart', 'onsoundend', 'onspeechstart', 'onspeechend', 'onaudioend', 'onresult', 'onerror', 'onend']
 
 export function createSpeechController({
   createRecognition, queryPerm = async () => 'unavailable', getMode = () => 'browser',
-  // Необязательные хуки режимов захвата B/C (только проба «Голос», admin/speech): capture — менеджер параллельного
-  // потока (speechCaptureManager.js), getCapture — режим на момент тапа, logFields(mode, info) — доп. поля записи журнала.
-  // Модуль «Сказать фразу» их не передаёт: режим A (только SpeechRecognition), ничего параллельно с ним не открывается
+  // Хуки режимов захвата B/C (только проба «Голос»): capture — менеджер параллельного потока (speechCaptureManager.js), getCapture — режим на момент
+  // тапа, logFields(mode, info, ctx) — доп. поля записи журнала. Модуль «Сказать фразу» их не передаёт: ничего параллельно с распознаванием не открывается
   capture = null, getCapture = () => 'plain', logFields = () => ({}),
   now = () => Date.now(), perfNow = () => Date.now(), onView = () => {}, onEntry = () => {},
-  // onSignal(kind) — события движка для синтетического уровня эквалайзера модуля «Сказать фразу» (sayVoiceLevel.js):
-  // 'audiostart' | 'soundstart' | 'speechstart' | 'interim' | 'final' | 'speechend' | 'soundend' | 'end'. Реального уровня звука не берём (getUserMedia
-  // рядом с SpeechRecognition на iPhone ломает распознавание). endOnFinal — чем гасить движок после финального результата:
-  // 'stop' (проба «Голос», как раньше) или 'abort' (модуль: abort() не доигрывает системный хвост распознавания)
+  // onSignal(kind) — события движка для синтетического уровня эквалайзера модуля (sayVoiceLevel.js): 'audiostart' | 'soundstart' | 'speechstart' |
+  // 'interim' | 'final' | 'speechend' | 'soundend' | 'end' (getUserMedia рядом с SpeechRecognition на iPhone ломает распознавание — реальный звук не берём).
+  // endOnFinal — чем гасить движок после финала: 'stop' (проба) или 'abort' (модуль: abort() не доигрывает системный хвост)
   onSignal = () => {}, endOnFinal = 'stop',
-  // Только проба «Голос» (antiPredict*): maxAlternatives — число гипотез; configure(rec, {id, retry, reference, lang, extra}) — один раз на
-  // экземпляр перед start(), в try/catch (lang/continuous/phrases/grammars/processLocally…), вернуть можно описание применённого (view.applied);
-  // extra — из start({extra}). Хука нет по умолчанию. rec.continuous = true → итог из сегментов, конец через segmentSilenceMs тишины или «Стоп»
+  // Только проба «Голос» (antiPredict*): maxAlternatives — число гипотез; configure(rec, {id, retry, reference, lang, extra}) — перед каждым start(), в try/catch
+  // (lang/continuous/phrases/grammars…), вернуть можно описание применённого (view.applied); extra — из start({extra}). rec.continuous = true → итог из
+  // сегментов, конец через segmentSilenceMs тишины или «Стоп»
   maxAlternatives = 3, configure = null, segmentSilenceMs = SEGMENT_SILENCE_MS,
+  // Стратегия перезапуска на момент тапа: id 'S1'…'S5' / 'M' или объект (speechRestart.js). По умолчанию S1 — как раньше (без ожидания end и пауз)
+  getRestart = () => 'S1',
 }) {
   let seq = 0     // счётчик attemptId (на каждый экземпляр recognition)
   let runNo = 0   // номер нажатия «Сказать»
   let cur = null  // текущая попытка (всё, что не cur, — чужое и игнорируется)
-  let run = null  // текущий заход: { no, reference, lang, retryTimer, lastError }
+  let run = null  // текущий заход: { no, reference, lang, retryTimer, lastError, strat, deafTried }
   let view = emptyView
+  let prevOk = false     // прошлая попытка дала результат: условие авто-восстановления «глухой» сессии
+  let lastCloseAt = null // когда закрыли прошлый экземпляр (в журнал: gapMs — сколько прошло до нового запуска)
+  const pool = { rec: null } // экземпляр, который переиспользуют стратегии S2/S5
 
   const push = patch => { view = { ...view, ...patch }; onView(view) }
+  const gate = createRestartGate({ onChange: cooling => push({ cooling }), getStrategy: () => resolveStrategy(getRestart()) })
 
   function teardown(a) {
     if (!a) return
-    clearTimeout(a.permTimer); clearTimeout(a.silenceTimer); clearTimeout(a.forceTimer); clearTimeout(a.segTimer)
+    clearTimeout(a.permTimer); clearTimeout(a.silenceTimer); clearTimeout(a.forceTimer); clearTimeout(a.segTimer); clearTimeout(a.deafTimer)
     if (a.rec) {
       for (const h of HANDLERS) a.rec[h] = null
-      try { a.rec.abort() } catch { /* уже остановлен */ }
+      if (!(a.strat.waitEnd && a.ended)) { try { if (a.strat.stop) a.rec.stop(); else a.rec.abort() } catch { /* уже остановлен */ } }
+      gate.close(a.rec, a.ended) // следующий запуск — после end этого экземпляра и паузы стратегии
     }
+    lastCloseAt = perfNow()
     closeCapture(a)
     if (cur === a) cur = null
   }
@@ -66,12 +70,10 @@ export function createSpeechController({
   }
 
   function record(a, error, last, outcome) {
-    const entry = {
-      t: a.startedAt, mode: getMode(), permBefore: a.permBefore, permAfter: 'unavailable',
-      msStart: a.msStart, msAudio: a.msAudio, msResult: a.msResult, error,
-      retry: a.retry, run: run?.no ?? null, last, outcome,
-      conf: toPercent(view.final?.confidence), ...logFields(a.capMode, a.capInfo, { view, extra: run?.extra }),
-    }
+    const entry = buildEntry(a, {
+      error, last, outcome, runNo: run?.no ?? null, mode: getMode(), conf: toPercent(view.final?.confidence),
+      extra: logFields(a.capMode, a.capInfo, { view, extra: run?.extra }),
+    })
     Promise.resolve().then(queryPerm).catch(() => 'unavailable').then(p => { entry.permAfter = p; onEntry(entry) })
   }
 
@@ -89,49 +91,49 @@ export function createSpeechController({
       push({ interim: '', lastInterim: a.lastInterim, final: alt, alternatives: [alt], usedInterim: !a.continuous || !a.segs.some(x => x.isFinal), history: a.history })
       outcome = 'ok'; error = null
     } else if (stopped) { outcome = 'stopped'; error = null }
+    const heard = a.msSound != null || a.msResult != null
+    a.deaf = outcome !== 'ok' && (code === 'deaf' || isDeaf({ msAudio: a.msAudio, heard, listenedMs: a.msAudio == null ? 0 : Math.round(perfNow() - a.t0) - a.msAudio, userStop: a.userStop }))
+    const wasOk = prevOk
+    prevOk = outcome === 'ok'
     teardown(a)
     onSignal('end')
-    const again = outcome === 'error' && shouldRetry(error, a.retry)
-    record(a, error, !again, outcome)
-    if (again) {
-      const r = run
-      r.lastError = error
-      push({ status: 'retrying', phase: null, interim: '', error: null, hint: null, notice: retryNotice(error, a.retry + 2) })
-      r.retryTimer = setTimeout(() => {
-        if (run !== r) return
-        r.retryTimer = null
-        launch(a.retry + 1)
-      }, RETRY_PAUSE_MS)
-    } else if (outcome === 'error' && error === 'start-failed' && a.retry > 0) {
-      // автоповтор вне жеста браузер не дал запустить (iOS): честно просим нажать
-      const prev = run.lastError || error
-      push({ status: 'error', error: prev, hint: isQuietCode(prev) ? LOUD_HINT : null, notice: NOTICE_BLOCKED, needTap: true })
-    } else if (outcome === 'error') {
-      push({ status: 'error', error, hint: isQuietCode(error) ? LOUD_HINT : null, notice: null })
-    } else {
-      push({ status: 'done', error: null, hint: null, notice: null })
-    }
+    const next = planNext({ outcome, error, retry: a.retry, deaf: a.deaf, wasOk, deafTried: run.deafTried, lastError: run.lastError })
+    record(a, error, next.kind !== 'retry', outcome)
+    if (next.kind !== 'retry') { push(next.patch); return }
+    const r = run
+    r.lastError = next.lastError
+    if (next.viaDeaf) r.deafTried = true
+    push({ status: 'retrying', phase: null, interim: '', error: null, hint: null, notice: next.notice })
+    r.retryTimer = setTimeout(() => {
+      if (run !== r) return
+      r.retryTimer = null
+      gate.whenReady(() => { if (run === r) launch(a.retry + 1, next.viaDeaf ? { fresh: true, deafRetry: true } : {}) }, r.strat)
+    }, next.pause)
   }
 
-  function launch(retry) {
+  // o.fresh — не переиспользовать экземпляр (S2/S5); o.deafRetry — пометка в журнале
+  function launch(retry, o = {}) {
     teardown(cur) // гарантированно гасим предыдущий экземпляр
-    const a = {
-      id: ++seq, retry, rec: null, startedAt: now(), t0: perfNow(), permBefore: 'unavailable',
-      msStart: null, msAudio: null, msResult: null, done: false, gotFinal: false, userStop: false,
-      capMode: run.capture, capInfo: null, capClosed: false, audio: false, lastInterim: '', permTimer: null, silenceTimer: null, forceTimer: null,
-      history: [], continuous: false, segs: [], segText: '', segTimer: null,
-    }
+    const strat = run.strat
+    const reuse = strat.reuse && !o.fresh && !!pool.rec && gate.lastEndOk() // экземпляр, чей end не пришёл, не трогаем
+    const a = newAttempt(++seq, retry, {
+      startedAt: now(), t0: perfNow(), strat, reused: reuse, deafRetry: !!o.deafRetry, capMode: run.capture,
+      gapMs: lastCloseAt == null ? null : Math.round(perfNow() - lastCloseAt),
+    })
     cur = a
     const since = () => Math.round(perfNow() - a.t0)
     const live = () => cur === a && !a.done
-    const arm = () => {
-      clearTimeout(a.silenceTimer)
-      a.silenceTimer = setTimeout(() => conclude(a, 'silence'), LISTEN_SILENCE_MS)
+    const mark = kind => { a.history = pushHistory(a.history, { t: since(), kind }) } // служебное событие движка {t, kind}: «первое увиденное» сверяет с ним interim
+    const heard = () => { a.msSound ??= since(); clearTimeout(a.deafTimer) } // хоть какой-то звук/результат: сессия не глухая
+    // Глухая сессия (после успешной попытки, один раз): audiostart мгновенный, звука нет DEAF_WINDOW_MS — не ждём 8 с тишины, сразу пересоздаём
+    const armDeaf = () => {
+      if (a.deafTimer || !wantsDeafTimer({ prevOk, tried: run.deafTried, msAudio: a.msAudio, retry })) return
+      a.deafTimer = setTimeout(() => { if (live() && a.msSound == null && a.msResult == null) conclude(a, 'deaf') }, DEAF_WINDOW_MS)
     }
+    const arm = () => { clearTimeout(a.silenceTimer); a.silenceTimer = setTimeout(() => conclude(a, 'silence'), LISTEN_SILENCE_MS) }
     const enterAudio = () => { // реальное начало прослушивания: диалог разрешения позади
       if (a.audio) return
-      a.audio = true
-      clearTimeout(a.permTimer)
+      a.audio = true; clearTimeout(a.permTimer)
       push({ status: 'listening', phase: 'audio', notice: null })
     }
     // История interim: момент (мс от старта попытки) и текст каждого обновления; финал помечен final
@@ -143,7 +145,7 @@ export function createSpeechController({
       onSignal('final')
       trace(alts[0].text, true)
       push({ interim: '', lastInterim: a.lastInterim, final: alts[0], alternatives: alts, usedInterim: false, history: a.history, ...more })
-      try { if (endOnFinal === 'abort') a.rec.abort(); else a.rec.stop() } catch { /* уже останавливается */ }
+      try { if (endOnFinal === 'abort' && !strat.stop) a.rec.abort(); else a.rec.stop() } catch { /* уже останавливается */ }
       a.forceTimer = setTimeout(() => conclude(a, null), endOnFinal === 'abort' ? ABORT_SETTLE_MS : STOP_FORCE_MS)
     }
     // continuous: итог = склейка сегментов, конец — тишина segmentSilenceMs после последнего результата
@@ -157,16 +159,14 @@ export function createSpeechController({
     }
     Promise.resolve().then(queryPerm).catch(() => 'unavailable').then(p => { a.permBefore = p })
     push({
-      status: 'starting', phase: 'permission', interim: '', attempt: retry + 1, attemptId: a.id, history: [], segments: [], applied: null,
+      status: 'starting', phase: 'permission', preparing: false, interim: '', attempt: retry + 1, attemptId: a.id, history: [], segments: [], applied: null,
       ...(retry === 0 ? { notice: NOTICE_WAIT_PERMISSION } : {}),
     })
     try {
-      const rec = createRecognition()
+      const rec = reuse ? pool.rec : createRecognition()
+      pool.rec = strat.reuse ? rec : null
       a.rec = rec
-      rec.lang = run.lang
-      rec.interimResults = true
-      rec.maxAlternatives = maxAlternatives
-      rec.continuous = false
+      Object.assign(rec, { lang: run.lang, interimResults: true, maxAlternatives, continuous: false })
       if (configure) {
         try {
           const info = configure(rec, { id: a.id, retry, reference: run.reference, lang: run.lang, extra: run.extra })
@@ -175,34 +175,27 @@ export function createSpeechController({
         a.continuous = rec.continuous === true
       }
       rec.onstart = () => { if (live()) a.msStart ??= since() }
-      rec.onaudiostart = () => { if (!live()) return; a.msAudio ??= since(); enterAudio(); arm(); onSignal('audiostart') }
+      rec.onaudiostart = () => { if (!live()) return; a.msAudio ??= since(); enterAudio(); arm(); armDeaf(); onSignal('audiostart') }
       // soundstart/soundend приходят РАНЬШЕ speechstart/interim (движок слышит звук, но ещё не решил, что это речь): для эквалайзера.
       // Таймер тишины они не сбрасывают — фоновый шум не должен растягивать ожидание
-      rec.onsoundstart = () => { if (live()) onSignal('soundstart') }
-      rec.onsoundend = () => { if (live()) onSignal('soundend') }
-      rec.onspeechstart = () => { if (!live()) return; enterAudio(); arm(); if (a.segTimer) armSeg(); onSignal('speechstart') }
-      rec.onspeechend = () => { if (live()) onSignal('speechend') }
+      rec.onsoundstart = () => { if (live()) { heard(); mark('soundstart'); onSignal('soundstart') } }
+      rec.onsoundend = () => { if (live()) { mark('soundend'); onSignal('soundend') } }
+      rec.onspeechstart = () => { if (!live()) return; heard(); mark('speechstart'); enterAudio(); arm(); if (a.segTimer) armSeg(); onSignal('speechstart') }
+      rec.onspeechend = () => { if (live()) { mark('speechend'); onSignal('speechend') } }
+      rec.onaudioend = () => { if (live()) mark('audioend') }
       rec.onresult = ev => {
         if (!live() || a.gotFinal) return
         a.msResult ??= since()
+        heard()
         enterAudio()
         if (a.continuous) { onSegments(ev); return }
-        const finals = []
-        let interim = ''
-        for (let i = 0; i < ev.results.length; i++) {
-          const r = ev.results[i]
-          if (r.isFinal) finals.push(r)
-          else interim += (interim ? ' ' : '') + r[0].transcript
-        }
+        const { alts, interim } = readResults(ev.results)
         if (interim) a.lastInterim = interim
-        if (!finals.length) { arm(); onSignal('interim'); trace(interim, false); push({ interim, lastInterim: a.lastInterim, history: a.history }); return }
-        const alts = finals.length === 1
-          ? Array.from(finals[0]).map(x => ({ text: x.transcript.trim(), confidence: x.confidence }))
-          : [{ text: finals.map(r => r[0].transcript.trim()).join(' '), confidence: finals.reduce((s, r) => s + r[0].confidence, 0) / finals.length }]
+        if (!alts) { arm(); onSignal('interim'); trace(interim, false); push({ interim, lastInterim: a.lastInterim, history: a.history }); return }
         acceptFinal(alts)
       }
       rec.onerror = ev => { if (live() && !a.gotFinal) conclude(a, ev?.error || 'unknown') }
-      rec.onend = () => { if (live()) conclude(a, null) }
+      rec.onend = () => { a.ended = true; if (live()) conclude(a, null) }
       a.permTimer = setTimeout(() => conclude(a, 'no-start'), PERMISSION_GUARD_MS)
       // Режимы B/C: микрофон открываем СИНХРОННО в том же жесте, не дожидаясь, и сразу стартуем recognition
       try { capture?.open(a.id, a.capMode) } catch { /* ошибка потока не блокирует распознавание */ }
@@ -216,34 +209,38 @@ export function createSpeechController({
     teardown(cur)
     if (run) clearTimeout(run.retryTimer)
     run = null
+    gate.cancelWait()
   }
 
   return {
     /** Вызывать прямо в обработчике тапа. reference и lang фиксируются на весь заход. */
     start({ reference, lang, extra }) {
       cancel()
-      run = { no: ++runNo, reference, lang, extra, capture: getCapture(), retryTimer: null, lastError: null }
-      view = { ...emptyView, runNo, reference, lang, at: now(), extra: extra ?? null }
+      const r = { no: ++runNo, reference, lang, extra, capture: getCapture(), retryTimer: null, lastError: null, strat: resolveStrategy(getRestart()), deafTried: false }
+      run = r
+      view = { ...emptyView, runNo, reference, lang, at: now(), extra: extra ?? null, cooling: gate.cooling() }
       onView(view)
-      launch(0)
+      // Прошлый экземпляр ещё закрывается (или идёт пауза после end): нажатие встаёт в очередь и стартует по окончании паузы; иначе — сразу, в этом же жесте
+      if (!gate.whenReady(() => { if (run === r) launch(0) }, r.strat)) push({ status: 'starting', phase: 'permission', preparing: true, notice: NOTICE_PREPARE })
     },
     stop() {
-      if (run?.retryTimer) { // ждали автоповтор — просто отменяем его
-        clearTimeout(run.retryTimer); run.retryTimer = null
-        push({ status: 'done', error: null, hint: null, notice: null })
+      const retrying = !!run?.retryTimer
+      if (retrying || gate.cancelWait()) { // ждали автоповтор или конец паузы перед запуском — просто отменяем
+        if (retrying) { clearTimeout(run.retryTimer); run.retryTimer = null }
+        push({ status: 'done', error: null, hint: null, notice: null, preparing: false })
         return
       }
       const a = cur
       if (!a || a.done) return
       a.userStop = true
-      clearTimeout(a.permTimer); clearTimeout(a.silenceTimer); clearTimeout(a.forceTimer); clearTimeout(a.segTimer)
+      clearTimeout(a.permTimer); clearTimeout(a.silenceTimer); clearTimeout(a.forceTimer); clearTimeout(a.segTimer); clearTimeout(a.deafTimer)
       push({ notice: 'Останавливаем…' })
       try { a.rec.stop() } catch { /* ничего */ }
       closeCapture(a)
       a.forceTimer = setTimeout(() => conclude(a, null), STOP_FORCE_MS)
     },
     /** Полный сброс: микрофон гасим, итог/альтернативы/сравнение очищаем (смена эталона/языка, уход со страницы) */
-    reset() { cancel(); view = emptyView; onView(view) },
+    reset() { cancel(); view = { ...emptyView, cooling: gate.cooling() }; onView(view) },
     /** Идёт ли реальная запись (после audiostart), а не ожидание диалога разрешения */
     isAudioActive: () => !!cur && cur.audio,
   }

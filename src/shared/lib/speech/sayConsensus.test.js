@@ -80,3 +80,49 @@ describe('consensus interim+final («Строго»)', () => {
     expect(m.items.every(it => it.ok)).toBe(true)
   })
 })
+
+describe('«Строго» = консенсус И «первое увиденное» (history из контроллера)', () => {
+  const FIN = 'I am trying to please both'
+  const h = (t, text, final) => ({ t, text, ...(final ? { final: true } : {}) })
+  const withHistory = (history, lastInterim = FIN) => ({ ...view(FIN, lastInterim), history })
+  const held = [h(300, 'I am'), h(600, 'I am try'), h(1700, FIN), h(2000, FIN, true)] // «try» держится 1,1 с
+  const flash = [h(300, 'I am'), h(600, 'I am try'), h(720, FIN), h(1500, FIN, true)] // «try» 120 мс
+
+  it('консенсус пройден (interim = final), но «try» держалось 1,1 с → «trying» не засчитано', () => {
+    const r = judgeRun(withHistory(held), strict)
+    expect(r.consensus).toBe(true)
+    expect(r.firstSeenBlocked).toEqual(['trying'])
+    expect(r.engineFixed).toEqual(['trying'])
+    expect(r.items.find(it => it.word === 'trying')).toMatchObject({ ok: false, dwellBlocked: true })
+    expect(r.missed).toEqual(['trying'])
+    expect(r.passed).toBe(false)
+  })
+
+  it('мимолётное «try» 120 мс → обе проверки подтверждают, проходит', () => {
+    const r = judgeRun(withHistory(flash), strict)
+    expect(r).toMatchObject({ passed: true, firstSeenBlocked: [], engineFixed: [] })
+    expect(r.firstSeen.disputed).toHaveLength(1)
+  })
+
+  it('событие speechend на «try» блокирует даже короткую выдержку', () => {
+    const history = [h(300, 'I am'), h(600, 'I am try'), { t: 650, kind: 'speechend' }, h(720, FIN), h(1500, FIN, true)]
+    expect(judgeRun(withHistory(history), strict).passed).toBe(false)
+  })
+
+  it('оба должны подтвердить: консенсус отклоняет, даже если «первое увиденное» чисто', () => {
+    const r = judgeRun({ ...view(FIN, 'I am try to please both'), history: [h(300, FIN), h(800, FIN, true)] }, strict)
+    expect(r.firstSeenBlocked).toEqual([])
+    expect(r.engineFixed).toEqual(['trying'])
+    expect(r.passed).toBe(false)
+  })
+
+  it('не-строгая нода историю не учитывает: тот же ответ проходит, поведение прежнее', () => {
+    const r = judgeRun(withHistory(held), loose)
+    expect(r).toMatchObject({ passed: true, consensus: false, engineFixed: [] })
+    expect(r.firstSeenBlocked).toBeUndefined()
+  })
+
+  it('матч без истории (старый view) работает как раньше', () => {
+    expect(judgeRun(view(FIN, FIN), strict).passed).toBe(true)
+  })
+})

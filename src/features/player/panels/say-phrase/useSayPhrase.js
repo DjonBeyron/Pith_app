@@ -24,6 +24,8 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // перед запуском распознавания, закрывается вместе с попыткой). Источник отдаёт хук как voice. Эквалайзер-свечение плеера модуль НЕ включает.
 // Звуки приложения на время попытки (от тапа до результата + QUIET_TAIL_MS) молчат — soundQuiet.js; сам тап по микрофону
 // помечен data-no-unlock, чтобы разблокировка звука не стартовала вместе с записью (SayStage.jsx).
+// Перезапуск: speechController ждёт end прошлого экземпляра и RESTART_COOLDOWN_MS (стратегия 'M', speechRestart.js) — прозрачно: тап в эту паузу ставится в очередь и стартует по её окончании;
+// «глухая» попытка после успешной автоматически пересоздаётся один раз (speechDeaf.js).
 // Морфинг кнопки в квадрат (MORPH_MS) — «горлышко» подготовки микрофона: таймер morphEnd; «начали» = isGo (морфинг завершён И движок слушает).
 // После неудачи квадрат с крестиком держится FAIL_HOLD_MS (failShow), потом таймер failEnd возвращает прямоугольник.
 export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
@@ -38,6 +40,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     onView: view => dispatch({ type: 'view', view }),
     onSignal: kind => voice.signal(kind, nowMs()),
     endOnFinal: 'abort', // после финального результата гасим движок abort(), а не stop(): без системного «хвоста» распознавания
+    getRestart: () => 'M', // новый экземпляр — только после end прошлого + RESTART_COOLDOWN_MS (iOS: второй запуск сразу после первого бывает «глухим»); тап в это окно встаёт в очередь
   }))
   const quietRef = useRef({ release: null, timer: 0 })
   const morphRef = useRef(0)

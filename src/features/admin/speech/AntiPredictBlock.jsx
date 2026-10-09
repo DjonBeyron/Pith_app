@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { AP_INTRO, MODE_INFO, ONE_WORD_INFO, RULES_INFO, LOCAL_STATUS, SERIES_HOWTO } from './antiPredictInfo.js'
 import { LANG_VARIANTS, UNSUPPORTED, modeSupported, activeModes, keyWordsOf, parseWrongList } from './antiPredictModes.js'
+import { DWELL_MIN, DWELL_MAX } from '../../../shared/lib/speech/firstSeenRule.js'
 import VoskLab from './VoskLab.jsx'
 import ContextSeriesBlock from './ContextSeriesBlock.jsx'
 import '../../../styles/admin-antipredict.css'
@@ -93,7 +94,13 @@ export default function AntiPredictBlock({ ap, reference, busy, recognition, onO
         </ModeRow>
       )))}
 
-      <div className="apCard"><b>{RULES_INFO.n}. {RULES_INFO.title}</b><p className="aspHint">{RULES_INFO.text}</p></div>
+      <div className="apCard">
+        <b>{RULES_INFO.n}. {RULES_INFO.title}</b><p className="aspHint">{RULES_INFO.text}</p>
+        <label className="aspLabel">Выдержка правила «первое увиденное»: {settings.dwell} мс (200–1200)
+          <input type="range" min={DWELL_MIN} max={DWELL_MAX} step={50} value={settings.dwell} disabled={busy} aria-label="Выдержка, мс"
+            onChange={e => update({ dwell: Number(e.target.value) })} />
+        </label>
+      </div>
       <VoskLab reference={reference} wrong={wrong} />
     </details>
   )

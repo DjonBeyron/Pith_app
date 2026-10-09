@@ -6,7 +6,7 @@ import { attemptsBlock, allComparisonsText } from './speechReportAttempts.js'
 import { seriesLines } from './contextSeries.js'
 import { copyText } from './copyText.js'
 import AttemptDetails from './AttemptDetails.jsx'
-import { LOG_SHOW, DIALOG_LABEL, fmtMs, fmtAttempt, dialogCount, logReportLines, clearLog } from './speechLog.js'
+import { LOG_SHOW, DIALOG_LABEL, fmtMs, fmtAttempt, fmtRestart, dialogCount, logReportLines, clearLog } from './speechLog.js'
 
 // Блок 4 пробы «Голос»: журнал попыток (localStorage этого устройства), счётчик диалогов разрешения, отчёт.
 export default function SpeechLogBlock({ log, setLog, caps, perm, since, series }) {
@@ -39,7 +39,7 @@ export default function SpeechLogBlock({ log, setLog, caps, perm, since, series 
         <div className="aspTableWrap">
           <table className="aspTable">
             <thead>
-              <tr><th></th><th>Время</th><th>Попытка</th><th>Режим</th><th>Разрешение до→после</th><th>start</th><th>audio</th><th>result</th><th>Уверен.</th><th>Захват</th><th>Эксперименты</th><th>Ошибка</th><th>Диалог</th></tr>
+              <tr><th></th><th>Время</th><th>Попытка</th><th>Режим</th><th>Разрешение до→после</th><th>start</th><th>audio</th><th>result</th><th>Уверен.</th><th>Захват</th><th>Эксперименты</th><th>Перезапуск</th><th>Ошибка</th><th>Диалог</th></tr>
             </thead>
             <tbody>
               {shown.flatMap((e, i) => [
@@ -50,17 +50,17 @@ export default function SpeechLogBlock({ log, setLog, caps, perm, since, series 
                   <td>{e.mode === 'pwa' ? 'PWA' : 'браузер'}</td>
                   <td>{e.permBefore || '?'}→{e.permAfter || '?'}</td>
                   <td>{fmtMs(e.msStart)}</td><td>{fmtMs(e.msAudio)}</td><td>{fmtMs(e.msResult)}</td>
-                  <td>{fmtConf(e.conf)}</td><td>{fmtCapture(e)}</td><td>{fmtAntiPredict(e)}</td>
+                  <td>{fmtConf(e.conf)}</td><td>{fmtCapture(e)}</td><td>{fmtAntiPredict(e)}</td><td>{fmtRestart(e)}</td>
                   <td>{e.error || '—'}</td>
                   <td>{DIALOG_LABEL[e.dialog] || '?'}</td>
                 </tr>,
-                open === e.t && <tr key={`${e.t}-${i}-d`} className="apDetRow"><td colSpan={13}><AttemptDetails entry={e} /></td></tr>,
+                open === e.t && <tr key={`${e.t}-${i}-d`} className="apDetRow"><td colSpan={14}><AttemptDetails entry={e} /></td></tr>,
               ])}
             </tbody>
           </table>
         </div>
       )}
-      <p className="aspHint">«Попытка» — №нажатия «Сказать» · номер записи из 3 (автоповторы при слабой связи/тишине); «итог» — последняя запись нажатия. Времена — миллисекунды от старта этой записи до первого события start / audiostart / result. «Диалог» — догадка: если разрешение было prompt и звук потом пошёл, диалог показывали; без Permissions API (часто iPhone) — «возможно», когда audiostart пришёл заметно позже start. «Захват» — режим эксперимента A/B/C и пик уровня звука (B/C), «Уверен.» — confidence итога, «Эксперименты» — включённые способы против домысливания, число альтернатив, «исправил» (движок поменял слово между interim и итогом) и «литерально» (ошибочная форма встретилась где-либо). Режим текущей страницы: {MODE_LABEL[caps.mode]}.</p>
+      <p className="aspHint">«Попытка» — №нажатия «Сказать» · номер записи из 3 (автоповторы при слабой связи/тишине); «итог» — последняя запись нажатия. Времена — миллисекунды от старта этой записи до первого события start / audiostart / result. «Диалог» — догадка: если разрешение было prompt и звук потом пошёл, диалог показывали; без Permissions API (часто iPhone) — «возможно», когда audiostart пришёл заметно позже start. «Захват» — режим эксперимента A/B/C и пик уровня звука (B/C), «Уверен.» — confidence итога, «Эксперименты» — включённые способы против домысливания, число альтернатив, «исправил» (движок поменял слово между interim и итогом) и «литерально» (ошибочная форма встретилась где-либо). «Перезапуск» — стратегия S1…S5 (M — модуль), пауза от закрытия прошлого экземпляра до этого запуска, время первого звука, «ГЛУХАЯ?» (audiostart быстрее 120 мс и звука нет) и deaf_retry (попытка запущена авто-восстановлением). Режим текущей страницы: {MODE_LABEL[caps.mode]}.</p>
       <div className="aspHow">
         <b>Как читать.</b> Нажмите «Сказать» и разрешите микрофон. Закройте приложение полностью, откройте снова, нажмите «Сказать»:
         если разрешение (permissions: <code>granted→granted</code>) помнится и диалога нет — хорошо; если снова «да» в колонке «Диалог» —

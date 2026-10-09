@@ -4,8 +4,8 @@ import { createSpeechController } from './speechController.js'
 
 export class FakeRec {
   static all = []
-  constructor() { this.started = false; this.aborted = 0; this.stopped = 0; this.startError = null; FakeRec.all.push(this) }
-  start() { if (this.startError) throw this.startError; this.started = true }
+  constructor() { this.started = false; this.starts = 0; this.aborted = 0; this.stopped = 0; this.startError = null; FakeRec.all.push(this) }
+  start() { if (this.startError) throw this.startError; this.started = true; this.starts++ }
   stop() { this.stopped++ }
   abort() { this.aborted++ }
 }

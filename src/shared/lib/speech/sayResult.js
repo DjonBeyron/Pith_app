@@ -6,7 +6,7 @@
 //  - админская палочка (solve)                     → как успех, без аналитики
 // «Получилось»/«Ещё раз» убраны: после неудачи микрофон просто остаётся доступным (число нажатий считаем для аналитики).
 import { matchTop, tokenize } from './speechMatch.js'
-import { matchConsensus } from './sayConsensus.js'
+import { matchStrict } from './sayConsensus.js'
 
 export const TRIGGER_DONE = 'say_done'
 export const TRIGGER_SKIP = 'say_skip'
@@ -26,14 +26,15 @@ export function sayOutcome({ kind, hasSkipLink = false }) {
 /**
  * Сравнение услышанного с эталоном ноды; data — результат readSayData. Засчитываем ТОЛЬКО по главному варианту
  * распознавания (alts[0]): лучший из нескольких скрыл бы намеренную ошибку. В режиме «Строго» (data.strict) —
- * без допуска опечаток и с консенсусом interim+final (sayConsensus.js): слово, появившееся только в final, не засчитывается.
+ * без допуска опечаток, с консенсусом interim+final (sayConsensus.js: слово, появившееся только в final, не засчитывается) И с правилом «первое увиденное»
+ * (firstSeenRule.js по view.history: ошибочная форма держалась в interim дольше порога выдержки или стояла в конце речи — слово не засчитывается).
  * Остальные варианты (alternatives) нужны только админской строке.
  */
 export function judgeRun(view, data) {
   const alts = (view?.alternatives?.length ? view.alternatives : view?.final ? [view.final] : [])
     .map(a => a.text).filter(Boolean)
   const m = data.strict
-    ? { ...matchConsensus(data.phrase, alts[0] ?? '', view?.lastInterim ?? '', data.keywords, data.passRatio, { exactWords: true }), index: alts.length ? 0 : -1, text: alts[0] ?? '' }
+    ? { ...matchStrict(data.phrase, alts[0] ?? '', view?.lastInterim ?? '', view?.history ?? [], data.keywords, data.passRatio, { exactWords: true }), index: alts.length ? 0 : -1, text: alts[0] ?? '' }
     : { ...matchTop(data.phrase, alts, data.keywords, data.passRatio), consensus: false, engineFixed: [] }
   return { ...m, ratioPct: Math.round(m.ratio * 100), heard: m.text ?? '' }
 }

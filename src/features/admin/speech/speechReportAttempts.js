@@ -54,9 +54,22 @@ export function buildAttemptTexts(view, extra, an) {
     hist: picked.map(c => ({ t: c.t, text: cut(c.text, TX_LIMITS.alt), ...(c.final ? { final: true } : {}) })),
     changes: (an?.changes ?? []).slice(-TX_LIMITS.nChanges).map(c => ({ kind: c.kind, from: c.from ?? null, to: c.to ?? null, at: c.at, step: c.step })),
     literal: (an?.places ?? []).slice(0, TX_LIMITS.nLiteral).map(p => (p.at === 'interim' ? `interim@${sec(p.t)}` : p.at)),
-    verdicts: an ? { top1: an.verdicts.top1.ok, consensus: an.verdicts.consensus.ok, strict: an.verdicts.strict.ok } : null,
+    verdicts: an ? { top1: an.verdicts.top1.ok, consensus: an.verdicts.consensus.ok, strict: an.verdicts.strict.ok, first: an.verdicts.first.ok } : null,
+    first: an ? firstSeenTx(an.verdicts.first.details) : null,
     saidKind: kind, fixed: an ? an.engineFixed : null, dir: an?.diff.dir ?? null,
   }
+}
+
+/** Запись `tx.first`: восстановленный текст «как слышал движок до исправления», выдержка и спорные слова [слово, форма, мс, заблокировано] */
+const firstSeenTx = fs => ({
+  text: cut(fs.text, TX_LIMITS.text), dwell: fs.dwellMs, used: fs.used,
+  disputed: fs.disputed.slice(0, 3).map(d => [d.word, d.form, d.dwellMs, d.blocked ? 1 : 0]),
+})
+
+/** Строка «Первое увиденное» для отчётов: «восстановлено «i am try»; спорные: trying←«try» 1100 мс (стоп-слово) · вердикт» */
+export function firstSeenLine(fs) {
+  const dis = fs.disputed.map(d => `${d.word}←«${d.form}» ${d.dwellMs == null ? '? мс' : `${d.dwellMs} мс`}${d.atEnd ? ' на конце речи' : ''}${d.inFinal ? ' в итоге' : ''}${d.blocked ? ' [не подтверждено]' : ''}`)
+  return `восстановлено «${fs.text}»; спорные: ${dis.length ? dis.join(', ') : 'нет'}; выдержка ${fs.dwellMs} мс; ${!fs.used ? 'interim не было; ' : ''}вердикт: ${fs.ok ? 'подтверждено' : `НЕ подтверждено (${fs.missed.join(', ')})`}`
 }
 
 const quote = s => `«${s}»`
@@ -99,7 +112,8 @@ export function attemptFields(e, histMax = TX_LIMITS.nHist) {
     ['hist', 'interim', `interim-история: ${hist.length ? hist.map(h => `${sec(h.t)} ${quote(h.text)}${h.final ? ' [final]' : ''}`).join(' → ') : tx.histN ? `${tx.histN} шт.` : 'нет'}`],
     ['diff', 'изменения', `final-vs-interim: ${changesText(tx)}`],
     ['lit', 'литерально', tx.literal?.length ? `литерально: ${tx.literal.join(', ')}` : ''],
-    ['verd', 'вердикты', v ? `вердикты: top1=${verdictWord(tx.saidKind, v.top1)} consensus=${verdictWord(tx.saidKind, v.consensus)} strict=${verdictWord(tx.saidKind, v.strict)}` : 'вердиктов нет'],
+    ['first', 'первое увиденное', tx.first?.disputed?.length ? `первое увиденное: «${tx.first.text}» спорные: ${tx.first.disputed.map(d => `${d[0]}←${d[1]} ${d[2] == null ? '?' : d[2]}мс${d[3] ? '*' : ''}`).join(', ')}` : ''],
+    ['verd', 'вердикты', v ? `вердикты: top1=${verdictWord(tx.saidKind, v.top1)} consensus=${verdictWord(tx.saidKind, v.consensus)} strict=${verdictWord(tx.saidKind, v.strict)}${v.first == null ? '' : ` first=${verdictWord(tx.saidKind, v.first)}`}` : 'вердиктов нет'],
   ]
 }
 

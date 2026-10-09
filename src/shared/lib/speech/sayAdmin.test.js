@@ -54,6 +54,14 @@ describe('строка админа: ошибки и корректировка 
     expect(adminHeardLine({ isAdmin: true, phase: 'passed', view: done(), realLevel: 'вкл' }).note).toBe('звуки приложения подавлены · реальный уровень: вкл')
   })
 
+  it('«первое увиденное»: слово заблокировано выдержкой — отдельная пометка, не «только final»', () => {
+    const l = adminHeardLine({
+      isAdmin: true, phase: 'failed', view: done({ final: alt('I am trying'), lastInterim: 'I am trying' }),
+      verdict: { engineFixed: ['trying'], firstSeenBlocked: ['trying'] },
+    })
+    expect(l.note).toBe('слово trying: ошибочная форма держалась в interim дольше выдержки («первое увиденное») · звуки приложения подавлены · реальный уровень: выкл')
+  })
+
   it('не админ — по-прежнему ничего, даже с ошибкой и корректировкой', () => {
     expect(adminHeardLine({ isAdmin: false, phase: 'failed', errorCode: 'silence', view: emptyView, verdict: { engineFixed: ['x'] } })).toBe(null)
   })

@@ -40,3 +40,6 @@
 .apDetRow td { white-space: normal; background: #12141a; }
 .apDet { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #e0e0e0; max-width: 330px; word-break: break-word; }
 .apDetList { margin: 0; padding-left: 16px; line-height: 1.45; }
+
+/* Надёжность второго запуска: стратегии перезапуска и серия из 6 нажатий (RestartSeriesBlock), ползунок выдержки */
+.apCard input[type="range"] { width: 100%; accent-color: #b6fe3b; }

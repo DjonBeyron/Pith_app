@@ -123,8 +123,8 @@ export function conclusions(rows) {
 
 const ruleWord = ok => judge('wrong', ok)?.label.replace(' ошибку', '') ?? '?'
 
-/** Правила одной строки: «top1=пропустило consensus=поймало strict=поймало» */
-export const rulesText = v => (v ? `top1=${ruleWord(v.top1)} consensus=${ruleWord(v.consensus)} strict=${ruleWord(v.strict)}` : 'нет данных')
+/** Правила одной строки: «top1=пропустило consensus=поймало strict=поймало first=поймало» (first — «первое увиденное»; в старых записях нет) */
+export const rulesText = v => (v ? `top1=${ruleWord(v.top1)} consensus=${ruleWord(v.consensus)} strict=${ruleWord(v.strict)}${v.first == null ? '' : ` first=${ruleWord(v.first)}`}` : 'нет данных')
 
 /** Текст «Скопировать итог серии»: таблица каждого языка с данными + выводы + сравнение языков */
 export function seriesLines(state, langs = Object.keys(state.langs)) {

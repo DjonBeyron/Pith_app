@@ -5,6 +5,7 @@ import { createSpeechController, emptyView, isBusy } from '../../../shared/lib/s
 import { captureLogFields } from './speechCapture.js'
 import { configureRecognition } from './antiPredictModes.js'
 import { antiPredictLogFields } from './antiPredictReport.js'
+import { readStrategy } from './restartStrategies.js'
 
 // Обёртка React над speechController: попытка по тапу («Сказать»), каждая попытка — новый экземпляр recognition.
 // Микрофон включается только внутри start(), гасится на результате, ошибке, «Стоп», таймерах, уходе со страницы и
@@ -19,6 +20,7 @@ export function useSpeechProbe({ reference, lang, onLogged, capture, getCapture,
     getCapture,
     logFields: (mode, info, ctx) => ({ ...captureLogFields(mode, info), ...antiPredictLogFields(ctx) }), // поля режима захвата B/C и экспериментов «против домысливания»
     configure: (rec, ctx) => configureRecognition(rec, ctx, window), // без включённых режимов ничего не меняет
+    getRestart: () => readStrategy(), // выбранная в блоке «Надёжность второго запуска» стратегия перезапуска (S1 — как раньше)
     getMode: () => (isStandalone() ? 'pwa' : 'browser'),
     now: () => Date.now(),
     perfNow: () => performance.now(),

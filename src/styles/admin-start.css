@@ -92,5 +92,6 @@
 
 /* Быстрый старт (кеш оболочки): блок со статусом service worker'а */
 .astShell { border-color: #3a3a52; }
+.astVersion { font-size: 11px; line-height: 1.35; color: #777; overflow-wrap: anywhere; }
 .astShellRows { display: flex; flex-direction: column; gap: 6px; }
 .astShellRow { display: flex; flex-direction: column; gap: 2px; padding: 7px 10px; border-radius: 8px; background: #101216; overflow-wrap: anywhere; }

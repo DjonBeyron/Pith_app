@@ -14,7 +14,7 @@ import AdminAchievementsTab from './AdminAchievementsTab.jsx'
 import AdminSpeechTab from './speech/AdminSpeechTab.jsx'
 import AdminStartTab from './start/AdminStartTab.jsx'
 import AdminToggles from './AdminToggles.jsx'
-import { APP_VERSION } from '../../shared/lib/version.js'
+import VersionStamp from './VersionStamp.jsx'
 
 // Админ-раздел новой оболочки: субвкладки «Модули» (список с публикацией),
 // «Файлы» (таблица файлов R2), «Пуши» (рассылка), «Гонка» (супергонка),
@@ -98,7 +98,7 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
           Старт
         </button>
       </div>
-      <div className="avVersion">v{APP_VERSION}</div>
+      <VersionStamp />
       {sub === 'modules' && (
         <AdminModulesTab
           onOpenCanvas={onOpenCanvas}

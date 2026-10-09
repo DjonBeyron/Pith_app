@@ -2,18 +2,21 @@
 // настройки в localStorage, проверка поддержки на устройстве, ошибочные формы из эталона, JSGF/Vosk-грамматики и настройка
 // распознавателя через configure-хук speechController. Без React; window/localStorage передаются снаружи.
 import { tokenize } from '../../../shared/lib/speech/speechMatch.js'
+import { DWELL_DEFAULT, clampDwell } from '../../../shared/lib/speech/firstSeenRule.js'
 
 export const AP_KEY = 'pithy_admin_voice_antipredict_v1'
 export const LANG_VARIANTS = ['en-US', 'en-GB', 'en-AU', 'en-IN', 'en-CA', 'en']
 export const MAX_ALTS = 10 // в пробе по умолчанию 3 (speechController)
 export const BOOST = 5     // вес фраз Chrome 142+ (0–10): и верной фразе, и ошибочным — одинаковый, чтобы не было перекоса в одну сторону
 export const MODE_IDS = ['lang', 'alts', 'history', 'words', 'local', 'phrases', 'grammar']
-export const DEFAULT_SETTINGS = { lang: '', alts: false, history: false, words: false, local: false, phrases: false, grammar: false }
+// dwell — выдержка правила «первое увиденное» (п. 9), мс: не режим записи, а параметр решения
+export const DEFAULT_SETTINGS = { lang: '', alts: false, history: false, words: false, local: false, phrases: false, grammar: false, dwell: DWELL_DEFAULT }
 
 export function sanitizeSettings(raw) {
   const o = raw && typeof raw === 'object' ? raw : {}
   const s = { ...DEFAULT_SETTINGS, lang: LANG_VARIANTS.includes(o.lang) ? o.lang : '' }
   for (const k of MODE_IDS) if (k !== 'lang') s[k] = o[k] === true
+  s.dwell = o.dwell == null ? DWELL_DEFAULT : clampDwell(o.dwell)
   return s
 }
 

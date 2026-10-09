@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { analyzeAttempt, saidKind } from './antiPredictRules.js'
 import { comparisonText, verdictRows, fmtConfPct } from './antiPredictReport.js'
-import { changesText } from './speechReportAttempts.js'
+import { changesText, firstSeenLine } from './speechReportAttempts.js'
 import { copyText } from './copyText.js'
 import { tokenize } from '../../../shared/lib/speech/speechMatch.js'
 import { buildJsgf } from './antiPredictModes.js'
@@ -27,9 +27,10 @@ function Applied({ view }) {
 export default function AntiPredictTable({ view, said, caps }) {
   const [note, setNote] = useState('')
   const wrong = view.extra?.wrong
+  const dwell = view.extra?.settings?.dwell
   const an = useMemo(() => (view.final
-    ? analyzeAttempt({ reference: view.reference, wrong: wrong ?? [], final: view.final, alternatives: view.alternatives, history: view.history, lastInterim: view.lastInterim })
-    : null), [view.final, view.alternatives, view.history, view.lastInterim, view.reference, wrong])
+    ? analyzeAttempt({ reference: view.reference, wrong: wrong ?? [], final: view.final, alternatives: view.alternatives, history: view.history, lastInterim: view.lastInterim, dwellMs: dwell })
+    : null), [view.final, view.alternatives, view.history, view.lastInterim, view.reference, wrong, dwell])
   if (!view.runNo || !view.extra?.modes?.length) return null // без включённых режимов проба выглядит как раньше
   const kind = saidKind(said, an)
   const fx = an?.diff.fixed[0]
@@ -79,6 +80,8 @@ export default function AntiPredictTable({ view, said, caps }) {
           {!fx && an.timeline.length === 0 && ' — interim не было, сравнивать не с чем'}
         </span></div>
         <div className="aspPair"><span className="aspPairKey">Изменения между текстами</span><span>{changesText({ changes: an.changes, histN: an.timeline.length })}</span></div>
+        {an.events.length > 0 && <div className="aspPair"><span className="aspPairKey">События движка (мс)</span><span>{an.events.map(e => `${e.kind} ${e.t}`).join(' · ')}</span></div>}
+        <div className="aspPair"><span className="aspPairKey">Первое увиденное</span><span>{firstSeenLine(an.verdicts.first.details)}</span></div>
         <div className="aspPair"><span className="aspPairKey">Литеральная форма встречалась</span><span>
           <b>{an.literalSeen ? 'да' : 'нет'}</b>{an.literalSeen && ` — ${an.where.join('; ')}`}
         </span></div>
