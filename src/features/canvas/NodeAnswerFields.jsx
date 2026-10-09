@@ -153,6 +153,8 @@ export default function NodeAnswerFields({
           lang={tData.lang ?? 'en-US'}
           listenAudio={tData.listenAudio !== false}
           strict={tData.strict === true}
+          hintsOn={tData.hintsOn !== false}
+          hints={{ hintSilence: tData.hintSilence, hintMismatch: tData.hintMismatch, hintPartial: tData.hintPartial }}
           onChange={patch => updateTypeData(patch)}
           triggers={node.triggers ?? []}
           allNodes={allNodes}

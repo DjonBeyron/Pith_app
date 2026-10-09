@@ -4,20 +4,20 @@
 //
 // phase: idle (готов) | explain (пояснение перед самым первым запросом) | run (запись/ожидание) |
 //        passed (прошло порог) | failed (не прошло/ошибка; микрофон снова доступен) | fallback (микрофона не будет, см. fallbackReason)
-// Три точки после тапа (dots 1..3, потом dotsDone): таймер «начали», маскирует задержку старта распознавания; «начали» (isGo) —
-// когда точки доиграли И движок уже слушает (audiostart).
+// Морфинг кнопки в круг (sayMorph.js, MORPH_MS) — «горлышко» подготовки микрофона: движок стартует во время морфинга, а «начали»
+// (isGo) наступает, когда И морфинг завершён (morphDone), И движок уже слушает (audiostart). audiostart раньше — ждём конец
+// морфинга; позже — круг уже готов и держится в подготовке (кольца спокойно «дышат»), пока не придёт audiostart.
+// Неудача кладёт в state.hint подсказку для чата (sayHints.js; null — отключена в ноде или ошибка требует действия пользователя).
 import { emptyView } from './speechController.js'
 import { judgeRun, interimDiffers, failReason, SAY_EVENTS } from './sayResult.js'
 import { isDeniedCode } from './sayTexts.js'
 import { adminHeardLine } from './sayAdmin.js'
-
-export const DOT_MS = 350   // одна точка (всего три → «начали» через 1050 мс после тапа)
-export const DOTS = 3
+import { buildHint } from './sayHints.js'
 
 export function initialSayState(decision) {
   const base = {
     phase: 'idle', taps: 0, view: emptyView, verdict: null, errorCode: null, fallbackReason: null, autoRetries: 0,
-    explainer: false, data: null, settledRun: 0, event: null, failStreak: 0, dots: 0, dotsDone: false, adminLine: null,
+    explainer: false, data: null, settledRun: 0, event: null, failStreak: 0, morphDone: false, adminLine: null, hint: null, hintNo: 0,
   }
   return decision?.action === 'fallback' ? { ...base, phase: 'fallback', fallbackReason: decision.reason } : base
 }
@@ -30,11 +30,16 @@ function settle(s, v) {
   const failed = (errorCode, verdict) => {
     const failStreak = s.failStreak + 1
     const reason = failReason({ errorCode, verdict })
-    return { ...s, ...mark, phase: 'failed', verdict, errorCode, failStreak, event: ev({ passed: false, reason, failStreak, ratioPct: verdict?.ratioPct, engineFixed: verdict?.engineFixed?.length || undefined }) }
+    const h = buildHint(s.data, { errorCode, verdict })
+    const hintNo = h ? s.hintNo + 1 : s.hintNo
+    return {
+      ...s, ...mark, phase: 'failed', verdict, errorCode, failStreak, hintNo, hint: h ? { ...h, n: hintNo } : null,
+      event: ev({ passed: false, reason, failStreak, ratioPct: verdict?.ratioPct, engineFixed: verdict?.engineFixed?.length || undefined, hintKind: h?.kind }),
+    }
   }
   if (v.status === 'error') {
     if (isDeniedCode(v.error)) {
-      return { ...s, ...mark, phase: 'fallback', fallbackReason: 'denied', verdict: null, errorCode: null, event: ev({ passed: false, reason: 'denied' }) }
+      return { ...s, ...mark, phase: 'fallback', fallbackReason: 'denied', verdict: null, errorCode: null, hint: null, event: ev({ passed: false, reason: 'denied' }) }
     }
     return failed(v.error, null)
   }
@@ -42,7 +47,7 @@ function settle(s, v) {
   const verdict = judgeRun(v, s.data)
   if (!verdict.passed) return failed(null, verdict)
   return {
-    ...s, ...mark, phase: 'passed', verdict, errorCode: null, failStreak: 0,
+    ...s, ...mark, phase: 'passed', verdict, errorCode: null, failStreak: 0, hint: null,
     event: ev({ passed: true, ratioPct: verdict.ratioPct, interimDiffers: interimDiffers(v.lastInterim, v.final?.text), engineFixed: verdict.engineFixed?.length || undefined }),
   }
 }
@@ -64,26 +69,25 @@ export function sayReducer(s, a) {
       if (v.status === 'idle') return { ...s, view: v } // сброс контроллера не стирает строку админа
       return withAdminLine(s, { ...s, view: v })
     }
-    case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, dots: 1, dotsDone: false, adminLine: null }
-    case 'dot': return s.phase === 'run' ? { ...s, dots: Math.max(s.dots, Math.min(DOTS, a.n)) } : s
-    case 'dotsDone': return s.phase === 'run' ? { ...s, dots: DOTS, dotsDone: true } : s
+    case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, morphDone: false, adminLine: null, hint: null }
+    case 'morphEnd': return s.phase === 'run' ? { ...s, morphDone: true } : s
     case 'explain': return { ...s, phase: 'explain', explainer: true }
     case 'explainCancel': return s.phase === 'explain' ? { ...s, phase: 'idle' } : s // закрыли попап мимо кнопки: ничего не просили, флаг пояснения не ставим
     case 'fallback': return a.onlyIdle && s.phase !== 'idle' ? s : { ...s, phase: 'fallback', fallbackReason: a.reason }
     case 'enable': return { ...s, phase: 'idle', fallbackReason: null }
     // Запись прервали (сворачивание/уход со страницы): попытка не тратится, панель снова готова
     case 'interrupt':
-      return s.phase === 'run' ? { ...s, phase: 'idle', taps: Math.max(0, s.taps - 1), view: emptyView, dots: 0, dotsDone: false } : s
+      return s.phase === 'run' ? { ...s, phase: 'idle', taps: Math.max(0, s.taps - 1), view: emptyView, morphDone: false } : s
     default: return s
   }
 }
 
-/** «Начали»: точки доиграли И распознавание слушает. Повторные автопопытки (attempt > 1) точки не повторяют — ждут только audiostart */
-export const isGo = s => s.phase === 'run' && s.view?.status === 'listening' && (s.dotsDone || (s.view.attempt ?? 1) > 1)
+/** «Начали»: морфинг в круг завершён И распознавание слушает. Повторные автопопытки (attempt > 1) морфинга не повторяют — ждут только audiostart */
+export const isGo = s => s.phase === 'run' && s.view?.status === 'listening' && (s.morphDone || (s.view.attempt ?? 1) > 1)
 
 /**
  * Что делать по тапу на микрофон (чистое решение; start() зовёт только 'begin').
- *  stop — «начали» и идёт запись: тап = «стоп» (принять сказанное); ignore — ждём точки/диалог ОС/обработку;
+ *  stop — «начали» и идёт запись: тап = «стоп» (принять сказанное); ignore — ждём морфинг/диалог ОС/обработку;
  *  fallback — микрофона не будет (start() НЕ вызываем); explain — пояснение; begin — start() прямо в этом тапе
  * decision — результат sayPermission.decide(); go — isGo(state). Число попыток не ограничено: после неудачи микрофон снова доступен
  */

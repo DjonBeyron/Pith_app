@@ -4,6 +4,8 @@ import { collapseTicks, collapseSame, rowText, thinEvents, fmtT, fullEvents } fr
 // Текстовый отчёт о старте — то, что админ копирует и присылает. Чистые функции (тесты — formatStartLog.test.js).
 export const yn = v => (v === true ? 'да' : v === false ? 'нет' : '?')
 export const ms = v => (v === null || v === undefined ? '—' : `${fmtT(v)} мс`)
+// Оболочка приложения: из кеша service worker'а («быстрый старт») или с сети; build — BUILD_ID кеша; в скобках причина, если с сети
+export const shellText = c => (c.shell ? `${c.shell}${c.shellBuild ? ` (build ${c.shellBuild})` : ''}${c.shell !== 'cache' && c.shellWhy ? ` [${c.shellWhy}]` : ''}${typeof c.shellMs === 'number' ? ` ${c.shellMs}мс` : ''}` : '?')
 export const gapText = g => {
   if (typeof g !== 'number' || Number.isNaN(g)) return null
   if (g < 120000) return `${Math.round(g / 1000)} с`
@@ -36,7 +38,7 @@ function headerLines(rec, prev) {
   const { stats, suspects } = analyzeStartLog(rec, prev)
   const gap = gapText(rec.gap)
   return [
-    `=== СТАРТ ${rec.id} · v${c.ver || '?'} · ВАРИАНТ=${c.variant || '?'} · ${c.cold === false ? `ТЁПЛЫЙ (загрузка №${c.n} в этой сессии)` : 'ХОЛОДНЫЙ (№1 в сессии)'} ===`,
+    `=== СТАРТ ${rec.id} · v${c.ver || '?'} · ВАРИАНТ=${c.variant || '?'} · оболочка=${shellText(c)} · ${c.cold === false ? `ТЁПЛЫЙ (загрузка №${c.n} в этой сессии)` : 'ХОЛОДНЫЙ (№1 в сессии)'} ===`,
     `вариант запуска: ${c.variant || '? (запись до эксперимента)'} · применено: ${c.vfx || '?'} (cs/tc = есть ли meta color-scheme / theme-color, sch = inline color-scheme)`,
     `навигация: ${c.nav || '?'} · redirects=${c.rc ?? '?'} · transferSize=${c.size ?? '?'}${gap ? ` · с прошлого старта: ${gap}` : ''}`,
     `режим: navigator.standalone=${yn(c.sa)} · display-mode:standalone=${yn(c.dm)} · visibility=${c.vis || '?'} · referrer=${c.ref || '-'} · url=${c.url || '?'}`,

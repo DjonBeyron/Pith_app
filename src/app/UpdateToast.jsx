@@ -1,17 +1,17 @@
-import { isLessonOpen } from '../shared/lib/lessonOpen.js'
 import { useState, useEffect } from 'react'
-import { APP_VERSION } from '../shared/lib/version.js'
 import { haptic } from '../shared/lib/haptics.js'
+import { purgeShellAndReload } from '../shared/lib/shellClient.js'
+import { useUpdateAvailable } from './useUpdateAvailable.js'
 
-const CHECK_MS = 10 * 60 * 1000 // раз в 10 минут + при возврате вкладки в фокус
-
-// Плашка «Доступна новая версия»: сравнивает /version.json (генерируется при
-// сборке, см. vite.config.js) со своей APP_VERSION. На dev-сервере файла нет —
-// fetch тихо падает, плашка не показывается.
+// Плашка «Доступна новая версия». Основной сигнал — сообщение service worker'а: он уже поставил кеш новой сборки
+// (кеш оболочки, public/push-sw.js), и reload отдаст её мгновенно. Без кеша оболочки (dev, воркер выключен) — как раньше,
+// по /version.json (генерируется при сборке, см. vite.config.js). Логика «когда показать» — useUpdateAvailable.js.
+// Автоматической перезагрузки нет: только по тапу «Обновить».
 // tab — активная вкладка оболочки. Нужна не сама по себе: по её смене снятая
 // кнопкой «Позже» плашка возвращается (обновиться всё-таки надо).
 export default function UpdateToast({ tab }) {
-  const [available, setAvailable] = useState(false)
+  const how = useUpdateAvailable()
+  const available = how !== null
   const [offline, setOffline] = useState(false)
   // Вкладка, на которой нажали «Позже». Пока сидим на ней — плашки нет;
   // ушли на другую — снова показываем. Сравнение с prevTab, а не просто
@@ -32,30 +32,6 @@ export default function UpdateToast({ tab }) {
     return () => window.removeEventListener('online', onOnline)
   }, [])
 
-  useEffect(() => {
-    let stopped = false
-    async function check() {
-      // Посреди урока новую версию не предлагаем: тост лежит выше плеера, а
-      // «Обновить» перезагрузило бы страницу на середине чата
-      if (isLessonOpen()) return
-      try {
-        const res = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' })
-        if (!res.ok) return
-        const { v } = await res.json()
-        if (!stopped && v && v !== APP_VERSION) setAvailable(true)
-      } catch { /* оффлайн или dev — молчим */ }
-    }
-    check()
-    const id = setInterval(check, CHECK_MS)
-    const onVis = () => { if (document.visibilityState === 'visible') check() }
-    document.addEventListener('visibilitychange', onVis)
-    return () => {
-      stopped = true
-      clearInterval(id)
-      document.removeEventListener('visibilitychange', onVis)
-    }
-  }, [])
-
   // Без сети reload() либо зависает, либо кидает в браузерную страницу
   // «нет соединения» — вместо этого явно предупреждаем и не трогаем страницу
   function handleClick() {
@@ -63,7 +39,8 @@ export default function UpdateToast({ tab }) {
     if (!navigator.onLine) { setOffline(true); return }
     // Небольшая пауза перед reload: страница успевает показать нажатие кнопки,
     // а системный импакт — доиграть до сноса документа
-    setTimeout(() => window.location.reload(), 90)
+    // 'stuck': воркер новую сборку не поставил — сбрасываем кеш оболочки, иначе reload отдал бы старую версию из него
+    setTimeout(() => (how === 'stuck' ? purgeShellAndReload() : window.location.reload()), 90)
   }
 
   // «Позже» прячет плашку, но не насовсем: смена вкладки предложит снова

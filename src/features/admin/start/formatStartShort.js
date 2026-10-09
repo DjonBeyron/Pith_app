@@ -1,6 +1,6 @@
 import { analyzeStartLog } from './analyzeStartLog.js'
 import { collapseSame, rowText, fmtT, fullEvents, parseKv } from './startLogEvents.js'
-import { yn, ms, gapText } from './formatStartLog.js'
+import { yn, ms, gapText, shellText } from './formatStartLog.js'
 
 // «Скопировать коротко»: отчёт ≤ ~6000 символов, который не обрежет чат. Контекст (3 строки), итог, подозрения и таймлайн ТОЛЬКО
 // окна «за 300 мс до ухода сплэша … +2 с после» + важные события вне окна (с «!», safe-area, resize, pageshow, visibility,
@@ -15,7 +15,7 @@ function head(rec, prev) {
   const { stats } = analyzeStartLog(rec, prev)
   const gap = gapText(rec.gap)
   return [
-    `=== СТАРТ ${rec.id} · v${c.ver || '?'} · ВАРИАНТ=${c.variant || '?'} (${c.vfx || '?'}) · ${c.cold === false ? `ТЁПЛЫЙ №${c.n}` : 'ХОЛОДНЫЙ'} · nav=${c.nav || '?'} · standalone=${yn(c.sa)}/${yn(c.dm)}${gap ? ` · с прошлого: ${gap}` : ''} ===`,
+    `=== СТАРТ ${rec.id} · v${c.ver || '?'} · ВАРИАНТ=${c.variant || '?'} (${c.vfx || '?'}) · оболочка=${shellText(c)} · ${c.cold === false ? `ТЁПЛЫЙ №${c.n}` : 'ХОЛОДНЫЙ'} · nav=${c.nav || '?'} · standalone=${yn(c.sa)}/${yn(c.dm)}${gap ? ` · с прошлого: ${gap}` : ''} ===`,
     `экран ${c.scr || '?'}@${c.dpr || '?'}x · окно ${c.win || '?'} · safe-area(t/r/b/l) ${c.safe || '?'} · sw=${c.sw || '?'} · ${(c.ua || '').slice(0, 70)}`,
     `итог: кадр ${ms(stats.firstFrame)} · сплэш ушёл ${ms(stats.splashGone)} · CLS ${stats.cls} · jank ${stats.jank}${stats.jankMax ? `(до ${stats.jankMax})` : ''} · ошибок ${stats.errors} · запись: ${rec.end || '?'} на ${ms(rec.endT)}`,
   ]

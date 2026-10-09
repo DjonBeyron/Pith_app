@@ -1,5 +1,7 @@
 import { useRef, useEffect } from 'react'
 import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
+import NodeSayHints from './NodeSayHints.jsx'
+import NodeSayCantSpeakNote from './NodeSayCantSpeakNote.jsx'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 import {
   THRESHOLD_MIN, THRESHOLD_MAX, THRESHOLD_DEFAULT, SAY_LANGS, LANG_DEFAULT, keywordsMissingInPhrase, parseKeywords,
@@ -11,7 +13,8 @@ import { tokenize } from '../../shared/lib/speech/speechMatch.js'
 // формулирует текстовая нода-сообщение ПЕРЕД модулем (в нём должна быть сама фраза).
 // Поля: phrase (обязательно), translation (справочно), keywords (через запятую — обязательно должны прозвучать),
 // threshold (% слов эталона для «засчитано», 50–100, по умолчанию 70), lang (en-US / en-GB), listenAudio («Послушать»),
-// strict («Строго»: порог 100%, слова точно, без опечаток + консенсус interim и final; у НОВЫХ нод включено).
+// strict («Строго»: порог 100%, слова точно, без опечаток + консенсус interim и final; у НОВЫХ нод включено), подсказки в чат после
+// неудачи (hintsOn + hintSilence/hintMismatch/hintPartial — блок NodeSayHints) и пояснение про «Я не могу говорить» (NodeSayCantSpeakNote).
 // Выходы: «Сказал(а)» (основной) и «Не могу говорить» (необязательная ветка пропуска — если не соединена, плеер идёт по основному;
 // без этой ветки сообщение-успех сразу после модуля при пропуске не показывается). «Неверно» нет: речь тренировка и не штрафуется.
 const LANG_LABEL = { 'en-US': 'Американский (en-US)', 'en-GB': 'Британский (en-GB)' }
@@ -19,7 +22,7 @@ const stop = e => e.stopPropagation()
 
 export default function NodeSayPhrasePicker({
   phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true, strict = false,
-  onChange, triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
+  hintsOn = true, hints = {}, onChange, triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
   const rowRefs = useRef(new Map())
 
@@ -115,12 +118,12 @@ export default function NodeSayPhrasePicker({
         <input type="checkbox" checked={listenAudio} onChange={e => onChange({ listenAudio: e.target.checked })} />
         Кнопка «Послушать» (озвучка фразы из базы слов)
       </label>
+      <NodeSayHints hintsOn={hintsOn} values={hints} onChange={onChange} />
       <p className="nodeTwHint">
         Ученик нажимает на микрофон и говорит фразу. Порядок слов не важен, мелкие неточности прощаются; звук не записывается.
-        Фразу ученику даёт текстовое сообщение ПЕРЕД модулем — напишите в нём, что и как сказать. Штрафов нет: «Я не могу говорить»
-        пропускает модуль (сообщение-успех сразу после него не показывается), а следующие такие модули плеер пропускает целиком —
-        вместе с заданием перед ними и успехом после.
+        Фразу ученику даёт текстовое сообщение ПЕРЕД модулем — напишите в нём, что и как сказать. Штрафов нет.
       </p>
+      <NodeSayCantSpeakNote />
       <NodeCorrectWrongTriggers
         correctThen={doneThen} wrongThen={skipThen}
         correctKey="say_done" wrongKey="say_skip"

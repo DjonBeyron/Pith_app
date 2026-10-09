@@ -127,6 +127,15 @@
             if (lateDone) return; lateDone = true
             try {
               CTX.dm = mm('(display-mode: standalone)'); CTX.dark = mm('(prefers-color-scheme: dark)'); CTX.rm = mm('(prefers-reduced-motion: reduce)'); CTX.safe = safe()
+              /* оболочка из кеша service worker'а или с сети (быстрый старт): воркер отвечает на shell-status, nav = как отдана ЭТА страница */
+              CTX.shell = sw ? (sw.controller ? '?' : 'network') : 'none'
+              try {
+                if (sw && sw.controller) {
+                  var mc = new MessageChannel()
+                  mc.port1.onmessage = function (e) { var d = e.data || {}, nv = d.nav || {}; CTX.shell = nv.source || '?'; CTX.shellBuild = nv.build || d.build || ''; CTX.shellWhy = nv.why || (d.enabled === false ? 'off' : ''); CTX.shellMs = nv.ms; mark('shell', CTX.shell + ' ' + CTX.shellBuild + ' ' + CTX.shellWhy + ' ' + nv.ms + 'ms') }
+                  sw.controller.postMessage({ type: 'shell-status' }, [mc.port2])
+                }
+              } catch (e) { /* без MessageChannel / воркера — shell остаётся '?' */ }
               if (sw && sw.getRegistration) sw.getRegistration().then(function (r) { mark('sw-reg', r ? 'active=' + (r.active && r.active.state) + ' waiting=' + (r.waiting && r.waiting.state) + ' installing=' + (r.installing && r.installing.state) : 'none') }, function () { /* ignore */ })
             po('paint', function (e) { mark('paint', e.name, e.startTime) })
             po('largest-contentful-paint', function (e) { mark('lcp', Math.round(e.size) + 'px2 ' + sel(e.element) + (e.url ? ' ' + cut(e.url, 50) : ''), e.startTime) })
@@ -238,6 +247,9 @@
          не секрет; Vite подставляет его при сборке (%VITE_SUPABASE_URL% — тот же env, что у клиента Supabase).
          Если переменной нет — остаётся текст «%VITE_…%», сторож это распознаёт и проверку не запускает -->
     <meta name="pithy-supabase-url" content="%VITE_SUPABASE_URL%" />
+    <!-- Метка сборки: при сборке плагин (tools/viteShellCache.js) подставляет сюда BUILD_ID кеша оболочки (service worker). Страница сверяет её с
+         BUILD_ID воркера (плашка «Доступна новая версия», boot-ok, журнал старта). В dev остаётся токен — кеш оболочки выключен -->
+    <meta name="pithy-build" content="__BUILD_ID__" />
     <!-- Сторож белого экрана без сети (public/net-guard.js): ОБЫЧНЫЙ скрипт, синхронно в <head> — работает,
          даже если бандл не загрузился. Рисует оверлей #offlineGuard (стили .ng* ниже) -->
     <script src="/net-guard.js"></script>

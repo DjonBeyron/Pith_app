@@ -6,7 +6,8 @@ import SayActions from './SayActions.jsx'
 import { listenKeys, playListen } from './sayListen.js'
 import { readSayData } from '../../../../shared/lib/speech/sayPhraseData.js'
 import { sayOutcome, SAY_EVENTS, TRIGGER_SKIP } from '../../../../shared/lib/speech/sayResult.js'
-import { sayStatus, micLabel } from '../../../../shared/lib/speech/sayStatus.js'
+import { micLabel } from '../../../../shared/lib/speech/sayMic.js'
+import { HINT_DELAY_MS } from '../../../../shared/lib/speech/sayHints.js'
 import { SAY_LABEL } from '../../../../shared/lib/speech/sayTexts.js'
 import { setCantSpeakSession } from '../../../../shared/lib/speech/cantSpeakFlag.js'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
@@ -28,15 +29,17 @@ const SEE_RESULT_MS = 1100
 // сохраняется, на наш сервер уходит только результат. Корпус панели, кнопка (.phraseCheckBtn), подъём/спуск с историей и пузырь
 // ответа — как у «Напечатай слово»; поднимается сразу после предыдущей ноды (пузыря от самого модуля в чате НЕТ: задание ученику
 // формулирует сообщение автора перед модулем, фраза в панели не показывается). Микрофон — только по тапу (useSayPhrase.js),
-// штрафов нет (sayResult.js). Заголовок «Произнесите фразу», под ним подсказки после попыток (sayTexts.js), по центру высоты панели —
-// кнопка-морфинг (SayStage.jsx), внизу тихие ссылки. «Ещё раз»/«Получилось» убраны: после неудачи микрофон снова доступен,
-// при отказе микрофона единственный выход — «Я не могу говорить». Пояснение про микрофон — попап SayMicPopup.
+// штрафов нет (sayResult.js). Внутри панели НЕТ текстов-подсказок: заголовок «Произнесите фразу» (гаснет на нажатии, место остаётся),
+// по центру высоты панели — кнопка-морфинг с кольцами (SayStage.jsx), внизу тихие ссылки. Подсказки после неудачной попытки уходят
+// в ЧАТ пузырями слева (onAnswered(text, 'hint'), как реплики «Собери фразу»; тексты — поля ноды, sayHints.js), с задержкой
+// HINT_DELAY_MS: пузырь приходит уже после окна тишины звуков приложения. «Ещё раз»/«Получилось» убраны: после неудачи микрофон снова
+// доступен, при отказе микрофона единственный выход — «Я не могу говорить». Пояснение про микрофон — попап SayMicPopup.
 // Админская строка «что услышал движок» — плашка НАД панелью (вне модуля, высоту не меняет), остаётся до новой записи.
 export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswer, onHeightChange, xpAmount = 0, onXpEarned }) {
   const raw = node.typeData?.say_phrase
   const data = useMemo(() => readSayData(raw), [raw])
   const sp = useSayPhrase({ data, onEvent: track })
-  const { phase, view, verdict } = sp
+  const { phase, verdict } = sp
   const { isAdmin } = useAdmin()
   const pop = useHudPopupExit(phase === 'explain')
   const [show, setShow] = useState(false)
@@ -46,6 +49,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   const panelRef = useRef(null)
   const closingRef = useRef(false)
   const stopListenRef = useRef(null)
+  const hintTimer = useRef(0)
   const panelHeight = usePanelHeight(panelRef, onHeightChange)
   const rise = usePanelRiseDrop({ show, panelRef, spacerSel: '.sayPhraseSpacer', panelH: panelHeight, label: 'sp' })
 
@@ -55,10 +59,19 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   }, [])
   // База озвучки слов может догрузиться уже после показа панели — кнопка «Послушать» появится сама
   useEffect(() => subscribeWordAudio(() => bumpLib(n => n + 1)), [])
-  useEffect(() => () => stopListenRef.current?.(), [])
+  useEffect(() => () => { stopListenRef.current?.(); clearTimeout(hintTimer.current) }, [])
 
   const keys = data.listenAudio ? listenKeys(data.phrase) : []
   const hasSkipLink = (node.triggers ?? []).some(t => t.if === TRIGGER_SKIP && t.then)
+
+  // Подсказка после неудачи → в чат слева. n растёт с каждой подсказкой, поэтому эффект срабатывает ровно один раз на неудачу
+  const hintNo = sp.hint?.n ?? 0
+  useEffect(() => {
+    if (!hintNo) return undefined
+    const text = sp.hint.text
+    hintTimer.current = setTimeout(() => onAnswered?.(text, 'hint'), HINT_DELAY_MS)
+    return () => clearTimeout(hintTimer.current)
+  }, [hintNo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Уход панели: пузырь ответа встаёт в ленту НЕВИДИМЫМ (arriving) тем же тиком, что и setShow(false); на остановке
   // истории хук проявляет его, после въезда закрывает ноду (как у «Напечатай слово»)
@@ -75,6 +88,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   function finish(kind) {
     if (closingRef.current) return
     closingRef.current = true
+    clearTimeout(hintTimer.current)
     setClosing(true)
     stopListenRef.current?.()
     const out = sayOutcome({ kind, hasSkipLink })
@@ -106,13 +120,13 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   }
 
   function tapMic() {
+    clearTimeout(hintTimer.current) // новая попытка: подсказка о прошлой уже не нужна
     stopListenRef.current?.()
     sp.tapMic()
   }
 
   const running = phase === 'run'
-  const info = sayStatus({ phase, view, verdict, errorCode: sp.errorCode, fallbackReason: sp.fallbackReason, failStreak: sp.failStreak })
-  const mic = micLabel({ phase, view, verdict, fallbackReason: sp.fallbackReason, go: sp.go })
+  const mic = micLabel({ phase, verdict, fallbackReason: sp.fallbackReason, go: sp.go })
   const adminLine = isAdmin ? sp.adminLine : null // распознанный текст — только админу (sayAdmin.js)
 
   if (!data.phrase) return null
@@ -137,12 +151,11 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
         )}
         <div className="phraseInner sayInner">
           <div className="sayBody">
-            <p className="sayLabel" data-testid="say-label">{SAY_LABEL}</p>
+            <p className={`sayLabel${running || phase === 'passed' ? ' sayLabel--hidden' : ''}`} data-testid="say-label">{SAY_LABEL}</p>
             <SayStage
               label={mic.label}
               mode={mic.mode}
-              dots={sp.dots}
-              info={info}
+              voice={sp.voice}
               disabled={closing || phase === 'passed'}
               onTap={tapMic}
             />

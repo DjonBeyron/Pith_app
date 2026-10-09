@@ -107,7 +107,7 @@ describe('say_phrase — обмен JSON', () => {
 
   it('легенда описывает тип, поля и триггеры; правило автора про say_phrase есть в зашитых принципах', () => {
     const legend = buildLegend()
-    expect(Object.keys(legend.nodes.say_phrase.fields)).toEqual(expect.arrayContaining(['phrase', 'translation', 'keywords', 'threshold', 'lang', 'listenAudio', 'strict']))
+    expect(Object.keys(legend.nodes.say_phrase.fields)).toEqual(expect.arrayContaining(['phrase', 'translation', 'keywords', 'threshold', 'lang', 'listenAudio', 'strict', 'hintsOn', 'hintSilence', 'hintMismatch', 'hintPartial']))
     expect(Object.keys(legend.triggers)).toEqual(expect.arrayContaining(['say_done', 'say_skip']))
     expect(Object.keys(legend.nodes.say_phrase.fields)).not.toContain('showPhrase')
     expect(PRINCIPLES.some(p => p.startsWith('say_phrase («Сказать фразу»)'))).toBe(true)
@@ -125,6 +125,72 @@ describe('say_phrase — обмен JSON', () => {
     }
     expect(rule).toMatch(/САМ МОДУЛЬ НИЧЕГО В ЧАТ НЕ ПИШЕТ/)
     expect(rule).not.toMatch(/showPhrase/)
+  })
+})
+
+describe('say_phrase — подсказки в чат: поля ноды, JSON, линтер, редактор, правило автору', () => {
+  const hinted = () => {
+    const n = makeNode(1, 0, 0, 'say_phrase')
+    n.typeData.say_phrase = { ...n.typeData.say_phrase, phrase: 'I am trying to please both', hintsOn: false, hintSilence: 'Громче!', hintMismatch: 'Не то.', hintPartial: 'Верно: {ok}; нет: {missed}' }
+    return n
+  }
+
+  it('поля hintsOn/hintSilence/hintMismatch/hintPartial идут туда и обратно через JSON', () => {
+    const out = exportLesson([hinted()], { title: 'Say' })
+    expect(out.nodes[0].data).toMatchObject({ hintsOn: false, hintSilence: 'Громче!', hintMismatch: 'Не то.', hintPartial: 'Верно: {ok}; нет: {missed}' })
+    const back = importLesson(JSON.parse(JSON.stringify(out))).nodes[0].typeData.say_phrase
+    expect(readSayData(back)).toMatchObject({ hintsOn: false, hintSilence: 'Громче!', hintMismatch: 'Не то.', hintPartial: 'Верно: {ok}; нет: {missed}' })
+  })
+
+  it('дефолты: нет полей = подсказки включены со стандартными текстами; новая нода получает hintsOn: true', () => {
+    expect(readSayData({ phrase: 'Hi there' })).toMatchObject({
+      hintsOn: true,
+      hintSilence: 'Не слышу вас. Говорите громче и ближе к микрофону.',
+      hintMismatch: 'Не совсем. Попробуйте ещё раз, чуть медленнее.',
+      hintPartial: 'Почти! Верно: {ok}. Не хватило: {missed}.',
+    })
+    expect(makeNode(1, 0, 0, 'say_phrase').typeData.say_phrase.hintsOn).toBe(true)
+  })
+
+  it('линтер: неизвестная {подстановка} в подсказке — замечание; {ok} и {missed} — нет', () => {
+    const base = text => [
+      ex('n1', 1, 'text', { content: 'Скажем вслух' }, [{ if: 'timer', then: 'n2' }]),
+      ex('n2', 2, 'say_phrase', { phrase: 'I am here', hintPartial: text }, [{ if: 'say_done', then: 'n3' }]),
+      ex('n3', 3, 'text', { content: 'Дальше' }, []),
+    ]
+    expect(lintLesson(base('Верно: {ok}, нет: {missed}'))).toEqual([])
+    expect(lintLesson(base('Привет, {name}')).join('\n')).toMatch(/n2 say_phrase: в hintPartial неизвестные подстановки \{name\}/)
+  })
+
+  it('легенда описывает {ok}/{missed} и «подсказки в чате пузырём слева»; правило автору — тоже, плюс простое пояснение про «Я не могу говорить»', () => {
+    const f = buildLegend().nodes.say_phrase.fields
+    expect(f.hintPartial).toMatch(/\{ok\}/)
+    expect(f.hintPartial).toMatch(/\{missed\}/)
+    expect(f.hintsOn).toMatch(/Нет поля = включены/)
+    const r = PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
+    for (const word of ['hintsOn', 'hintSilence', 'hintMismatch', 'hintPartial', '{ok}', '{missed}', 'пузырём слева', 'на весь урок', 'одну короткую текстовую ноду с заданием', 'ноду «Получилось!»', 'пропущены не будут']) {
+      expect(r, word).toContain(word)
+    }
+  })
+
+  it('редактор: блок «Подсказки в чате» (переключатель + три поля, дефолты как placeholder, пояснение про {ok}/{missed}) и блок про «Я не могу говорить»', () => {
+    const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
+    const hints = read('../NodeSayHints.jsx')
+    expect(hints).toContain('Подсказки в чате')
+    expect(hints).toContain("onChange({ hintsOn: e.target.checked })")
+    for (const k of ['hintSilence', 'hintMismatch', 'hintPartial']) expect(hints).toContain(k)
+    expect(hints).toContain('placeholder={f.def}')
+    expect(hints).toMatch(/\{'\{ok\}'\} и \{'\{missed\}'\} подставляются автоматически/)
+    expect(hints).toContain('HINT_PARTIAL_DEFAULT')
+    const note = read('../NodeSayCantSpeakNote.jsx')
+    expect(note).toContain('Это запоминается на весь урок')
+    expect(note).toContain('ПЕРЕД ним (задание)')
+    expect(note).toContain('ПОСЛЕ него (успех)')
+    expect(note).toContain('одну короткую текстовую ноду с заданием')
+    const picker = read('../NodeSayPhrasePicker.jsx')
+    expect(picker).toContain('<NodeSayHints')
+    expect(picker).toContain('<NodeSayCantSpeakNote')
+    expect(read('../NodeAnswerFields.jsx')).toContain('hintsOn={tData.hintsOn !== false}')
   })
 })
 
@@ -146,15 +212,23 @@ describe('say_phrase — миграции правила автору', () => {
   const sql = name => readFileSync(fileURLToPath(new URL(`../../../../supabase/migrations/${name}`, import.meta.url)), 'utf8')
   const rule = () => PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
 
-  it('v2 (текущая): текст правила в миграции дословно равен зашитому принципу; update по префиксу + вставка, если правила нет; идемпотентно', () => {
-    const v2 = sql('20261009120000_say_phrase_rules_v2.sql')
+  it('v3 (текущая): текст правила в миграции дословно равен зашитому принципу; update по префиксу + вставка, если правила нет; идемпотентно', () => {
+    const v3 = sql('20261009130000_say_phrase_rules_v3.sql')
     expect(rule()).toBeTruthy()
     const quoted = `'${rule().replace(/'/g, "''")}'`
-    expect(v2.split(quoted)).toHaveLength(3) // ровно два вхождения: update и insert
-    expect(v2).toMatch(/update public\.lesson_rules\s+set rule_text = /)
+    expect(v3.split(quoted)).toHaveLength(3) // ровно два вхождения: update и insert
+    expect(v3).toMatch(/update public\.lesson_rules\s+set rule_text = /)
+    expect(v3).toMatch(/where rule_text like 'say_phrase \(«Сказать фразу»\) — ученик ПРОИЗНОСИТ%'/)
+    expect(v3).toMatch(/where not exists/)
+    expect(v3).not.toMatch(/\b(create|alter|drop)\s+(table|policy|function)/i) // таблиц и политик не трогаем
+    expect(v3.split('\n').length).toBeLessThan(90) // SQL Editor не обрезает вставку
+  })
+
+  it('v2 (уже могла быть применена) не менялась и ищет строку по тому же префиксу, что и v3', () => {
+    const v2 = sql('20261009120000_say_phrase_rules_v2.sql')
     expect(v2).toMatch(/where rule_text like 'say_phrase \(«Сказать фразу»\) — ученик ПРОИЗНОСИТ%'/)
-    expect(v2).toMatch(/where not exists/)
-    expect(v2).not.toMatch(/\b(create|alter|drop)\s+(table|policy|function)/i) // таблиц и политик не трогаем
+    expect(v2).not.toContain('hintPartial')
+    expect(v2).toContain('«Ещё раз»/«Получилось»')
   })
 
   it('v1 (уже применялась) не менялась: только вставка правила; её префикс совпадает с тем, по которому v2 находит строку', () => {

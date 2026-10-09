@@ -6,14 +6,18 @@ import { leaseVideo } from './videoPool.js'
 // нормальной; отпустили — обратно на 1x. Доступно только при включённом
 // звуке — без него эффект не слышен и бессмысленен. Общий для ленты
 // (FeedSlide) и «Моих уроков» (MyLessonSlide) — оба держат видео в одном
-// пуле (videoPool) под своим slideKey.
+// пуле (videoPool) под своим slideKey. Зоны две: над лайком (feedSlowZone) и правая полоса в «Ловле слов» (FeedSlowStrip).
 export function useSlowMotion(slideKey, active, soundOn) {
   const [slowMotion, setSlowMotion] = useState(false)
 
+  // e — событие pointerdown зоны; null — зовёт по таймеру удержания правая полоса «Ловли» (FeedSlowStrip), которая сама
+  // уже захватила указатель
   function startSlowMotion(e) {
     if (!active || !soundOn) return
-    e.preventDefault()
-    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* не критично */ }
+    if (e) {
+      e.preventDefault()
+      try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* не критично */ }
+    }
     const v = leaseVideo(slideKey)
     v.playbackRate = 0.5
     v.preservesPitch = true

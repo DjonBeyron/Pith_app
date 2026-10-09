@@ -1,0 +1,100 @@
+/* ── Кнопка микрофона «Сказать фразу»: морфинг в круг, иконка, кольца-волны ─────────────────────────────────
+   ОДИН элемент .sayMicBtn в области фиксированной высоты .sayMicBox (= диаметру круга, 104px; say-phrase.css). Всегда ЗЕЛЁНАЯ
+   (лаймовая заливка, как .phraseCheckBtn в активном состоянии); тёмной/с обводкой не бывает, кроме выключенной (микрофона не будет).
+   МОРФИНГ (порядок — sayMorph.js, его проверяет sayPhraseCssWiring.test.js), одна анимация с процентами на ОДНОМ элементе:
+     ШАГ 1 (0–50%)   ширина прямоугольника сужается до ширины круга; высота и скругление углов не меняются;
+     ШАГ 2 (50–100%) ширина уже равна кругу; ТОЛЬКО теперь растут скругление (до полного) и высота до диаметра круга;
+     обратно (sayMorphOut) — в обратном порядке: высота и углы возвращаются, затем ширина растёт до ширины кнопки.
+   Layout-анимация (width/height/border-radius) — только у этой кнопки в области фиксированной высоты: соседей не двигает.
+   Иконка микрофона — одна: из позиции слева от текста едет в центр круга и растёт (transform; сдвиг --say-icon-dx замеряет SayStage),
+   текст гаснет по opacity, «Слушаю…» проявляется под иконкой после морфинга. Кольца-волны — три круга вокруг круга, их масштаб и
+   прозрачность берутся из --say-lvl/--say-lvl2/--say-lvl3 (пишет useSayRings в rAF, значения и k — sayRings.js): только
+   transform/opacity, без blur/filter/box-shadow. prefers-reduced-motion — без анимаций.
+   ──────────────────────────────────────────────────────────────────── */
+
+.sayPanel .sayMicBtn {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  height: 52px;
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #b6fe3b;
+  border-color: #b6fe3b;
+  color: #000;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: background .15s, color .15s, opacity .2s;
+}
+/* Мгновенная реакция на нажатие: вжатие БЕЗ перехода (общий переход .15s делал нажатие «вязким») */
+.sayPanel .sayMicBtn:active:not(:disabled) { transition: none; transform: scale(.97); }
+
+/* ── Морфинг ── */
+.sayPanel .sayMicBtn--in { width: 104px; height: 104px; border-radius: 52px; animation: sayMorphIn .48s both; }
+.sayPanel .sayMicBtn--out { animation: sayMorphOut .48s both; }
+.sayPanel .sayMicBtn--prep { pointer-events: none; } /* пока морфинг и запуск движка — нажатия не принимаются */
+@keyframes sayMorphIn {
+  0%   { width: 100%;  height: 52px;  border-radius: 12px; animation-timing-function: cubic-bezier(.4, 0, .2, 1); }
+  50%  { width: 104px; height: 52px;  border-radius: 12px; animation-timing-function: cubic-bezier(.4, 0, .2, 1); }
+  100% { width: 104px; height: 104px; border-radius: 52px; }
+}
+@keyframes sayMorphOut {
+  0%   { width: 104px; height: 104px; border-radius: 52px; animation-timing-function: cubic-bezier(.4, 0, .2, 1); }
+  50%  { width: 104px; height: 52px;  border-radius: 12px; animation-timing-function: cubic-bezier(.4, 0, .2, 1); }
+  100% { width: 100%;  height: 52px;  border-radius: 12px; }
+}
+
+/* ── Иконка и подписи ── */
+.sayMicRow { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.sayMicIcon { flex: none; transition: transform .26s cubic-bezier(.4, 0, .2, 1) .22s; } /* обратно — во второй половине морфинга */
+.sayMicText { flex: none; white-space: nowrap; transition: opacity .2s .24s; }
+.sayPanel .sayMicBtn--in .sayMicIcon { transform: translate(var(--say-icon-dx, 0px), -9px) scale(1.5); transition: transform .3s cubic-bezier(.4, 0, .2, 1); }
+.sayPanel .sayMicBtn--in .sayMicText { opacity: 0; transition: opacity .15s; }
+.sayMicCaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% + 14px);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s;
+}
+.sayPanel .sayMicBtn--listening .sayMicCaption { opacity: 1; transition-delay: .05s; }
+
+/* ── Кольца-волны вокруг круга: ближнее плотнее (.55), дальше тусклее (.32 / .16 при уровне 1). Видны только в круге ── */
+.sayRings { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.sayMicBox--prep .sayRings, .sayMicBox--listening .sayRings { opacity: 1; transition-delay: .3s; }
+.sayRing {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 104px;
+  height: 104px;
+  margin: -52px 0 0 -52px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px solid #b6fe3b;
+  background: rgba(182, 254, 59, 0.12);
+  will-change: transform, opacity;
+}
+.sayRing1 { transform: scale(calc(1 + var(--say-lvl, 0) * 0.95));  opacity: calc(0.55 * (0.35 + 0.65 * var(--say-lvl, 0))); }
+.sayRing2 { transform: scale(calc(1 + var(--say-lvl2, 0) * 1.05)); opacity: calc(0.32 * (0.35 + 0.65 * var(--say-lvl2, 0))); }
+.sayRing3 { transform: scale(calc(1 + var(--say-lvl3, 0) * 1.15)); opacity: calc(0.16 * (0.35 + 0.65 * var(--say-lvl3, 0))); }
+
+/* Прошло («Верно!»): кнопка выключена на время ухода панели — остаётся зелёной, без приглушения */
+.sayPanel .sayMicBtn--ok:disabled { opacity: 1; }
+/* Микрофона не будет: перечёркнутая иконка, тёмная приглушённая кнопка с серой рамкой (единственный не зелёный вид) */
+.sayPanel .sayMicBtn--off:disabled { opacity: .85; background: #12141d; border-color: #3a3e4a; color: #7d8398; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sayPanel .sayMicBtn--in, .sayPanel .sayMicBtn--out { animation: none; }
+  .sayPanel .sayMicBtn, .sayMicIcon, .sayMicText, .sayMicCaption, .sayRings, .sayLabel { transition: none !important; }
+  .sayRing { transform: none !important; }
+}

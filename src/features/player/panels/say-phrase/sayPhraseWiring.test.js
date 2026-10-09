@@ -180,10 +180,10 @@ describe('say_phrase — порядок появления, звук, попап
     expect(popup).toContain('sayPopCard--out')
   })
 
-  it('«Я не могу говорить»: по центру, подчёркнута, приглушена (opacity ≈ 0.45–0.5), без рамки/фона, ≥44px', () => {
+  it('«Я не могу говорить»: по центру, подчёркнута, приглушена (opacity ≈ 0.45–0.5), без рамки/фона, опущена к низу корпуса (≈7px текста от края), зона касания шире текста', () => {
     const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
     expect(code).toMatch(/\.sayFoot \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto minmax\(0, 1fr\)/)
-    const skip = code.match(/\.saySkipLink \{[^}]*min-height: 44px[^}]*\}/)[0]
+    const skip = code.match(/\.saySkipLink \{[^}]*min-height: 30px[^}]*\}/)[0]
     expect(skip).toContain('text-decoration: underline')
     expect(skip).toMatch(/text-underline-offset: 3px/)
     const op = Number(skip.match(/opacity: (\.?[\d.]+)/)[1])
@@ -191,16 +191,16 @@ describe('say_phrase — порядок появления, звук, попап
     expect(op).toBeLessThanOrEqual(0.5)
     expect(code).toMatch(/\.sayLink,\s*\.saySkipLink \{[^}]*background: none;[^}]*border: 0/)
     expect(panelSrc['SayActions.jsx']).toContain('CANT_SPEAK_LINK')
-  })
-
-  it('эквалайзер: на время попытки принудительно включён и получает синтетический уровень; rAF и getUserMedia в модуле нет', () => {
-    expect(hook).toContain('forceEqualizer()')
-    expect(hook).toContain("publishLevel(VOICE_SOURCE")
-    expect(hook).toContain('onSignal: kind => voice.signal(kind, nowMs())')
-    expect(hook).toMatch(/unmount|stopEq\(eq, voice\)/)
-    for (const [name, src] of Object.entries(panelSrc)) expect(src.replace(/\/\/.*$/gm, ''), name).not.toMatch(/requestAnimationFrame\(\(\) => .*level|AnalyserNode|AudioContext/)
-    expect(read('../../AudioGlowGate.jsx')).toContain('useEqualizerEnabled()')
-    expect(read('../../lessonPrefs.js')).toContain('equalizerOn(pref, isForced ? 1 : 0)')
+    // ряд опущен до низа .phraseInner (bottom −12px = нижний padding корпуса; safe-area лежит ещё ниже): отступ текста = (высота ряда − строка) / 2
+    const foot = code.match(/\.sayFoot \{[^}]*\}/)[0]
+    const bottom = Number(foot.match(/bottom: (-?\d+)px/)[1])
+    const rowH = Number(foot.match(/height: (\d+)px/)[1])
+    const lineH = Number(skip.match(/line-height: (\d+)px/)[1])
+    expect(bottom).toBe(-12)
+    const gap = (rowH - lineH) / 2
+    expect(gap).toBeGreaterThanOrEqual(6)
+    expect(gap).toBeLessThanOrEqual(8)
+    expect(code).toMatch(/\.saySkipLink::after \{ content: ''; position: absolute; inset: -14px/)
   })
 
   it('распознанный текст — только админу: строка из reducer (sayFlow.adminLine), панель показывает её только при isAdmin, плашка ВНЕ раскладки', () => {
@@ -220,7 +220,8 @@ describe('say_phrase — порядок появления, звук, попап
   it('звуки приложения: окно тишины на попытку (soundQuiet), тап по микрофону не запускает разблокировку звука', () => {
     expect(hook).toContain("import { holdSoundQuiet } from '../../../../shared/lib/soundQuiet.js'")
     expect(hook).toMatch(/if \(!q\.release\) q\.release = holdSoundQuiet\(\)/)
-    expect(hook).toContain('QUIET_TAIL_MS = 600')
+    expect(hook).toContain("import { QUIET_TAIL_MS } from '../../../../shared/lib/speech/sayHints.js'")
+    expect(read('../../../../shared/lib/speech/sayHints.js')).toContain('QUIET_TAIL_MS = 600')
     expect(panelSrc['SayStage.jsx']).toContain('data-no-unlock=""')
     expect(read('../../../../shared/lib/sounds.js')).toContain("suppressSound(name, () => playSound(name, where, opts))")
     expect(read('../../../../shared/lib/sounds.js')).toContain("closest?.('[data-no-unlock]')")

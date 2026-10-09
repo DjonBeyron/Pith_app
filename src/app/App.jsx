@@ -8,6 +8,7 @@ import AppPerfProbe from './AppPerfProbe.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useIdlePrewarm } from './useIdlePrewarm.js'
 import { useResumeHeal } from './resumeHeal.js'
+import { confirmBoot } from '../shared/lib/shellClient.js'
 
 // Этап 6 миграции завершён: старая оболочка вынесена в old/ (вне git и
 // сборки), приложение — это новая оболочка ShellV2.
@@ -25,7 +26,8 @@ export default function App() {
   // этапе сборки, поэтому Vite вырезает и ветку, и сам чанк целиком
   // Звуки интерфейса — в HTTP-кэш сразу после старта (sounds.js)
   // Метка в журнале старта (Админ → «Старт»): App смонтирован (первый эффект)
-  useEffect(() => { window.__startMark?.('app-mounted') }, [])
+  // и сообщение воркеру boot-ok: запуск из кеша оболочки удался (shellClient.js — защита от залипания кеша)
+  useEffect(() => { window.__startMark?.('app-mounted'); confirmBoot() }, [])
 
   useEffect(() => {
     const id = setTimeout(warmSoundFiles, 2500)

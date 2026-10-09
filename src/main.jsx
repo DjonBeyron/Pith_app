@@ -11,21 +11,19 @@ import { startStallWatch, startViewportWatch } from './shared/lib/feedDebug.js'
 import { startTouchWatch } from './shared/lib/touchWatch.js'
 import { applyPerfFlagClasses } from './shared/lib/perfFlags.js'
 import { initAnalytics } from './shared/lib/analytics/track.js'
+import { initShellClient } from './shared/lib/shellClient.js'
 import './index.css'
 // Побочный эффект: вешает слушатель beforeinstallprompt как можно раньше
 // (см. pwaInstall.js) — событие приходит один раз за загрузку, ловить надо
 // сразу, ещё до рендера React
 import './shared/lib/pwaInstall.js'
 
-// Регистрируем сервис-воркер СРАЗУ при загрузке (не только когда пользователь
-// включит пуши в профиле, как раньше) — Android/Chromium считает сайт
-// «устанавливаемым» (предлагает «Установить приложение», а не просто
-// закладку) только если на странице уже есть зарегистрированный service
-// worker. Сама регистрация не спрашивает разрешение на уведомления —
-// это отдельный шаг в push.js/subscribePush(), вызывается только по тапу
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/push-sw.js').catch(() => {})
-}
+// Сервис-воркер нужен всегда (не только когда пользователь включит пуши в профиле): Android/Chromium считает сайт
+// «устанавливаемым» только если на странице есть зарегистрированный service worker, а кеш оболочки (быстрый старт)
+// отдаёт страницу мгновенно. Регистрация идёт ПОСЛЕ загрузки (install качает все файлы сборки), там же проверка новой
+// версии воркера и плашка «Доступна новая версия» — см. shared/lib/shellClient.js. Сама регистрация не спрашивает
+// разрешение на уведомления — это отдельный шаг в push.js/subscribePush(), вызывается только по тапу
+initShellClient()
 
 // Глобальный перехват ошибок — до рендера, чтобы поймать и ошибки старта
 initErrorTrap()

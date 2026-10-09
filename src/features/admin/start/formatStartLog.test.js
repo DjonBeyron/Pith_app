@@ -7,12 +7,15 @@ describe('formatStartLog', () => {
   const lines = text.split('\n')
 
   it('заголовок с контекстом', () => {
-    expect(lines[0]).toBe('=== СТАРТ 2026-10-09T10:00:00.000Z · v2.0.9 · ВАРИАНТ=? · ХОЛОДНЫЙ (№1 в сессии) ===')
+    expect(lines[0]).toBe('=== СТАРТ 2026-10-09T10:00:00.000Z · v2.0.9 · ВАРИАНТ=? · оболочка=? · ХОЛОДНЫЙ (№1 в сессии) ===')
     expect(text).toContain('навигация: navigate · redirects=0 · transferSize=900')
     expect(text).toContain('navigator.standalone=да · display-mode:standalone=да')
     expect(text).toContain('screen=402x874@3x · окно=402x814 · safe-area(t/r/b/l)=59px/0px/34px/0px · orientation=portrait-primary')
     expect(text).toContain('dark=да · reducedMotion=нет · sw-controller=activated · location.reload=unforgeable')
     expect(text).toContain('итог: первый кадр 40 мс · сплэш ушёл 1200 мс · CLS 0 · jank 0')
+    const withShell = shell => formatStartLog((r => ({ ...r, ctx: { ...r.ctx, ...shell } }))(goodRec()))
+    expect(withShell({ shell: 'cache', shellBuild: '2.0.9-ab12cd34', shellMs: 3 })).toContain('оболочка=cache (build 2.0.9-ab12cd34) 3мс')
+    expect(withShell({ shell: 'network', shellWhy: 'nocache' })).toContain('оболочка=network [nocache]')
   })
 
   it('«Подозрения» стоят над таймлайном', () => {

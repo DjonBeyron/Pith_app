@@ -5,7 +5,7 @@ import { Buffer } from 'node:buffer'
 import { resolve } from 'node:path'
 
 // Сторож установки как приложения (PWA): манифест полный и ссылается на существующие иконки нужного размера,
-// у иконки maskable — свой файл (не копия «any»), сервис-воркер с fetch-обработчиком, который ничего не кэширует
+// у иконки maskable — свой файл (не копия «any»), сервис-воркер с fetch-обработчиком (кеш оболочки включается только в сборке)
 const PUBLIC = resolve(import.meta.dirname, '../../../public')
 const manifest = JSON.parse(readFileSync(resolve(PUBLIC, 'manifest.webmanifest'), 'utf8'))
 const pngSize = file => {
@@ -56,12 +56,29 @@ describe('сервис-воркер push-sw.js', () => {
     expect(sw).toMatch(/request\.mode === 'navigate'/)
   })
 
-  it('кэширует только офлайн-страницу (кэш offline-*), ничего больше', () => {
-    expect(sw).toMatch(/OFFLINE_CACHE = 'offline-v7'/) // версия поднимается при каждом изменении offline.html
+  it('офлайн-страница: кэш offline-*, версия поднимается при каждом изменении offline.html', () => {
+    expect(sw).toMatch(/OFFLINE_CACHE = 'offline-v7'/)
     expect(sw).toMatch(/OFFLINE_URL = '\/offline\.html'/)
-    expect(sw).not.toMatch(/cache\.put|addAll/)
     expect(sw.match(/c\.add\(/g)).toHaveLength(1)
     expect(existsSync(resolve(PUBLIC, 'offline.html'))).toBe(true)
+  })
+
+  it('кеш оболочки: исходник с токенами (в dev и тестах выключен), логика решений вынесена в sw-core.js', () => {
+    expect(sw).toMatch(/const BUILD_ID = '__BUILD_ID__'/)
+    expect(sw).toMatch(/const APP_VER = '__APP_VERSION__'/)
+    expect(sw).toMatch(/const PRECACHE = '__PRECACHE__'/)
+    expect(sw).toMatch(/importScripts\('\/sw-core\.js'\)/)
+    expect(sw).toMatch(/const ON = Core\.configured\(BUILD_ID, PRECACHE\)/)
+    expect(sw).toMatch(/skipWaiting/)
+    expect(sw).toMatch(/clients\.claim/)
+    expect(existsSync(resolve(PUBLIC, 'sw-core.js'))).toBe(true)
+  })
+
+  it('vercel.json: sw-core.js (importScripts) не кешируется браузером, как и сам воркер', () => {
+    const vercel = JSON.parse(readFileSync(resolve(PUBLIC, '../vercel.json'), 'utf8'))
+    const rule = vercel.headers.find(h => h.source.includes('push-sw'))
+    expect(rule.source).toContain('sw-core')
+    expect(rule.headers[0]).toEqual({ key: 'Cache-Control', value: 'no-cache' })
   })
 
   it('пути /lab/ (лаборатория запуска) не перехватывает: ранний выход без respondWith ПЕРЕД логикой навигации', () => {
@@ -158,5 +175,6 @@ describe('стартовые картинки iOS', () => {
     const SRC = resolve(import.meta.dirname, '../..')
     expect(readFileSync(resolve(SRC, 'main.jsx'), 'utf8')).not.toMatch(/reload|controllerchange/)
     expect(readFileSync(resolve(PUBLIC, 'push-sw.js'), 'utf8')).not.toMatch(/\.reload\(/)
+    expect(readFileSync(resolve(PUBLIC, 'sw-core.js'), 'utf8')).not.toMatch(/\.reload\(/)
   })
 })

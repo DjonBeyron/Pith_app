@@ -3,15 +3,14 @@ import { createSpeechController, isBusy } from '../../../../shared/lib/speech/sp
 import { getRecognitionCtor, queryMicPermission } from '../../../../shared/lib/speech/speechSupport.js'
 import { sayPermission } from '../../../../shared/lib/speech/sayPermission.js'
 import { SAY_EVENTS, sayEventProps } from '../../../../shared/lib/speech/sayResult.js'
-import { sayReducer, initialSayState, planTap, isGo, DOT_MS } from '../../../../shared/lib/speech/sayFlow.js'
-import { createVoiceLevel, FADE_MS } from '../../../../shared/lib/speech/sayVoiceLevel.js'
+import { sayReducer, initialSayState, planTap, isGo } from '../../../../shared/lib/speech/sayFlow.js'
+import { morphDelay } from '../../../../shared/lib/speech/sayMorph.js'
+import { QUIET_TAIL_MS } from '../../../../shared/lib/speech/sayHints.js'
+import { createVoiceLevel } from '../../../../shared/lib/speech/sayVoiceLevel.js'
 import { holdSoundQuiet } from '../../../../shared/lib/soundQuiet.js'
 import { stopWord } from '../../word-audio/wordAudioPlayer.js'
-import { publishLevel, unpublishLevel } from '../../audioLevel.js'
-import { forceEqualizer } from '../../lessonPrefs.js'
 
-const VOICE_SOURCE = 'say-voice' // id источника уровня в audioLevel.js (эквалайзер-свечение снизу чата)
-const QUIET_TAIL_MS = 600  // звуки приложения молчат ещё столько после показа результата (хвост системного сигнала конца записи)
+const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 
 // Состояние панели «Сказать фразу» (React-обвязка над sayFlow.js + speechController.js + sayPermission.js).
@@ -19,11 +18,12 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // не работает) и гасится на результате, ошибке, тишине, сворачивании, уходе. Разрешения читает/пишет один общий
 // sayPermission (флаги пояснения, отказа, «Не могу говорить»). onEvent(name, props) — аналитика: только числа/флаги,
 // ни звука, ни текста фразы.
-// Эквалайзер плеера (свечение снизу чата) во время попытки реагирует на голос ученика: уровень СИНТЕТИЧЕСКИЙ, по событиям
-// распознавания (sayVoiceLevel.js, без getUserMedia), и включён принудительно, даже если выключен в шестерёнке.
+// Голос ученика видят КОЛЬЦА вокруг круга «Слушаю…» (SayStage/useSayRings): уровень СИНТЕТИЧЕСКИЙ, по событиям распознавания
+// (sayVoiceLevel.js, без getUserMedia), его отдаёт хук как voice. Эквалайзер-свечение плеера этот модуль НЕ включает (настройка шапки
+// действует как обычно).
 // Звуки приложения на время попытки (от тапа до результата + QUIET_TAIL_MS) молчат — soundQuiet.js; сам тап по микрофону
 // помечен data-no-unlock, чтобы разблокировка звука не стартовала вместе с записью (SayStage.jsx).
-// Три точки после тапа: таймеры DOT_MS×3 (sayFlow: dots/dotsDone) маскируют задержку старта распознавания; «начали» = isGo.
+// Морфинг кнопки в круг (MORPH_MS) — «горлышко» подготовки микрофона: таймер morphEnd; «начали» = isGo (морфинг завершён И движок слушает).
 export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   const [s, dispatch] = useReducer(sayReducer, perm, p => initialSayState(p.decide()))
   const [voice] = useState(createVoiceLevel)
@@ -35,9 +35,8 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     onSignal: kind => voice.signal(kind, nowMs()),
     endOnFinal: 'abort', // после финального результата гасим движок abort(), а не stop(): без системного «хвоста» распознавания
   }))
-  const eqRef = useRef({ release: null, timer: 0 })
   const quietRef = useRef({ release: null, timer: 0 })
-  const dotsRef = useRef([])
+  const morphRef = useRef(0)
   const eventRef = useRef(onEvent)
   const stateRef = useRef(s)
   useEffect(() => { eventRef.current = onEvent; stateRef.current = s })
@@ -56,36 +55,23 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   }, [s.settledRun]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (s.event) emit(s.event.name, s.event.extra) }, [s.event]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Эквалайзер: на время попытки включаем принудительно и публикуем синтетический уровень; после попытки даём ему
-  // затухнуть (FADE_MS) и отпускаем — настройка пользователя снова действует. Вне попытки источника нет — общий rAF стоит
+  // Попытка кончилась: кольца гаснут (источник уровня сбрасываем); таймер морфинга больше не нужен
   useEffect(() => {
-    const eq = eqRef.current
-    if (s.phase === 'run') {
-      clearTimeout(eq.timer)
-      if (!eq.release) {
-        eq.release = forceEqualizer()
-        publishLevel(VOICE_SOURCE, { playing: true, getLevel: n => voice.level(n), profile: 'voice' })
-      }
-      return undefined
-    }
-    if (eq.release) eq.timer = setTimeout(() => stopEq(eq, voice), FADE_MS + 120)
-    return undefined
+    if (s.phase === 'run') return
+    clearTimeout(morphRef.current)
+    voice.signal('stop', nowMs())
   }, [s.phase, voice])
-  useEffect(() => { const eq = eqRef.current; return () => stopEq(eq, voice) }, [voice])
 
-  // Окно тишины звуков приложения: открывается в begin() (синхронно в тапе), закрывается через QUIET_TAIL_MS после конца попытки;
-  // точки таймера «начали» гасим, как только попытка закончилась
+  // Окно тишины звуков приложения: открывается в begin() (синхронно в тапе), закрывается через QUIET_TAIL_MS после конца попытки
   useEffect(() => {
     const q = quietRef.current
     if (s.phase === 'run') return undefined
-    dotsRef.current.forEach(clearTimeout)
-    dotsRef.current = []
     if (q.release && !q.timer) q.timer = setTimeout(() => { q.release?.(); q.release = null; q.timer = 0 }, QUIET_TAIL_MS)
     return undefined
   }, [s.phase])
   useEffect(() => {
     const q = quietRef.current
-    return () => { clearTimeout(q.timer); q.timer = 0; q.release?.(); q.release = null; dotsRef.current.forEach(clearTimeout) }
+    return () => { clearTimeout(q.timer); q.timer = 0; q.release?.(); q.release = null; clearTimeout(morphRef.current) }
   }, [])
 
   useEffect(() => {
@@ -111,7 +97,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
 
   // Начать попытку. Вызывать СИНХРОННО из обработчика тапа (жест нужен iPhone для recognition.start()). Порядок: сначала то, без чего
   // не стартует и не нарисуется нажатие (окно тишины, begin, ctrl.start), аналитику откладываем — её запись не должна задерживать
-  // ни старт записи, ни первый кадр с точками
+  // ни старт записи, ни первый кадр морфинга
   const begin = useCallback(() => {
     const q = quietRef.current
     stopWord() // эталонное «Послушать» не должно звучать, пока слушаем
@@ -119,12 +105,8 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     if (!q.release) q.release = holdSoundQuiet()
     dispatch({ type: 'begin', data })
     ctrl.start({ reference: data.phrase, lang: data.lang })
-    dotsRef.current.forEach(clearTimeout)
-    dotsRef.current = [
-      setTimeout(() => dispatch({ type: 'dot', n: 2 }), DOT_MS),
-      setTimeout(() => dispatch({ type: 'dot', n: 3 }), 2 * DOT_MS),
-      setTimeout(() => dispatch({ type: 'dotsDone' }), 3 * DOT_MS),
-    ]
+    clearTimeout(morphRef.current)
+    morphRef.current = setTimeout(() => dispatch({ type: 'morphEnd' }), morphDelay(reducedMotion()))
     const taps = s.taps + 1
     setTimeout(() => emit(SAY_EVENTS.start, { taps }), 0)
   }, [ctrl, emit, data, s.taps])
@@ -150,16 +132,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   return {
     view: s.view, phase: s.phase, taps: s.taps, verdict: s.verdict, errorCode: s.errorCode,
     fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak,
-    dots: s.dots, go: isGo(s), adminLine: s.adminLine,
+    go: isGo(s), adminLine: s.adminLine, hint: s.hint, voice,
     tapMic, confirmExplain, cancelExplain, enableMic, emit, perm,
   }
-}
-
-function stopEq(eq, voice) {
-  clearTimeout(eq.timer)
-  if (!eq.release) return
-  eq.release()
-  eq.release = null
-  unpublishLevel(VOICE_SOURCE)
-  voice.signal('stop', nowMs())
 }

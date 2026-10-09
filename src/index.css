@@ -19,6 +19,7 @@
 @import './styles/feed-rub-hint.css';
 @import './styles/feed-recall.css';
 @import './styles/feed-catch.css';
+@import './styles/feed-slow-strip.css';
 @import './styles/feed-catch-sheet.css';
 @import './styles/feed-catch-strip.css';
 @import './styles/feed-catch-fact.css';
@@ -151,6 +152,7 @@
 @import './styles/player/panels/fill-blanks-lines.css';
 @import './styles/player/panels/type-word.css';
 @import './styles/player/panels/say-phrase.css';
+@import './styles/player/panels/say-phrase-mic.css';
 @import './styles/player/panels/say-phrase-popup.css';
 @import './styles/player/panels/signal-blink-chip.css';
 @import './styles/player/panels/registration.css';

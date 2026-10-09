@@ -6,6 +6,7 @@ import { copyText } from './copyText.js'
 import StartLogRow from './StartLogRow.jsx'
 import StartVariantBlock from './StartVariantBlock.jsx'
 import StartLabBlock from './StartLabBlock.jsx'
+import StartShellBlock from './StartShellBlock.jsx'
 import '../../../styles/admin-start.css'
 
 // Админ → «Старт»: журнал запуска приложения на этом устройстве (его пишет inline-скрипт в начале index.html).
@@ -39,6 +40,7 @@ export default function AdminStartTab() {
 
   return (
     <div className="aeWrap">
+      <StartShellBlock />
       <StartVariantBlock />
       <StartLabBlock />
       <div className="aeHead">

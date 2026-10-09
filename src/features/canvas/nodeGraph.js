@@ -82,8 +82,9 @@ export function makeNode(seq, x, y, wantType) {
       // сообщение автора перед модулем); translation — справочный перевод; keywords — ключевые слова через запятую (должны прозвучать
       // обязательно); threshold — % слов эталона для «засчитано»; lang — язык распознавания; listenAudio — кнопка «Послушать» (озвучка
       // из базы слов; по умолчанию включена, поле не нужно); strict — «Строго» (100% слов, без опечаток, консенсус interim+final):
-      // у НОВЫХ нод включено, у существующих отсутствие поля = выключено (поведение не меняется)
-      say_phrase:      { phrase: '', translation: '', keywords: '', threshold: 70, lang: 'en-US', strict: true },
+      // у НОВЫХ нод включено, у существующих отсутствие поля = выключено (поведение не меняется); hintsOn — подсказки в чат после неудачной
+      // попытки (нет поля = включены; тексты hintSilence/hintMismatch/hintPartial пустые = стандартные, см. sayTexts.js)
+      say_phrase:      { phrase: '', translation: '', keywords: '', threshold: 70, lang: 'en-US', strict: true, hintsOn: true },
       pin_message:     { content: '' },
       system:          { content: '' },
       // Реакция как в мессенджере: своего пузыря нет, эмодзи прилипает к

@@ -56,7 +56,7 @@ export function failReason({ errorCode = null, verdict = null } = {}) {
 }
 
 /** Свойства события аналитики. Только числа/строки/булевы — текста фразы и звука здесь нет */
-export function sayEventProps({ perm, explained, taps, autoRetries, passed, ratioPct, reason, failStreak, interimDiffers: differs, engineFixed }) {
+export function sayEventProps({ perm, explained, taps, autoRetries, passed, ratioPct, reason, failStreak, interimDiffers: differs, engineFixed, hintKind }) {
   const p = {}
   if (perm != null) p.perm = perm
   if (explained != null) p.explainer_shown = !!explained
@@ -66,6 +66,7 @@ export function sayEventProps({ perm, explained, taps, autoRetries, passed, rati
   if (ratioPct != null) p.ratio = ratioPct
   if (reason) p.reason = reason
   if (failStreak) p.fail_streak = failStreak
+  if (hintKind) p.hint_kind = hintKind // какая подсказка ушла в чат: silence | mismatch | partial (нет подсказки — поля нет)
   if (differs != null) p.interim_differs = !!differs // без текста: только «движок исправил слово или нет»
   if (engineFixed) p.engine_fixed = engineFixed     // сколько слов подтвердил только final (строгий режим), числом
   return p

@@ -1,8 +1,10 @@
 import { readSayData, parseKeywords, keywordsMissingInPhrase, THRESHOLD_MIN, THRESHOLD_MAX } from '../../../shared/lib/speech/sayPhraseData.js'
 
+const HINT_FIELDS = ['hintSilence', 'hintMismatch', 'hintPartial']
+
 // «Сказать фразу» (say_phrase): пустая фраза, порог вне 50–100, ключевые слова не из фразы, нет текстовой ноды-задания перед
 // модулем (рекомендация, не ошибка: модуль сам ничего в чат не пишет, фразу ученику даёт сообщение перед ним), две подряд,
-// нода первая в уроке. Правила — как в принципе из lessonRulesDefaults.js
+// нода первая в уроке, неизвестные {подстановки} в подсказках чата. Правила — как в принципе из lessonRulesDefaults.js
 export function checkSayPhrase(nodes, start) {
   const out = []
   const parentsOf = new Map()
@@ -17,6 +19,10 @@ export function checkSayPhrase(nodes, start) {
     const lost = keywordsMissingInPhrase(d.phrase, d.keywords)
     if (parseKeywords(d.keywords).length && lost.length) {
       out.push(`${n.ref} say_phrase: ключевых слов нет во фразе (проверка их не учтёт): ${lost.join(', ')}`)
+    }
+    for (const f of HINT_FIELDS) {
+      const bad = [...new Set(String(d[f] ?? '').match(/\{[^{}]*\}/g) ?? [])].filter(x => x !== '{ok}' && x !== '{missed}')
+      if (bad.length) out.push(`${n.ref} say_phrase: в ${f} неизвестные подстановки ${bad.join(', ')} — работают только {ok} и {missed}`)
     }
     const parents = parentsOf.get(n.ref) ?? []
     if (n.ref === start?.ref) out.push(`${n.ref} say_phrase: стоит первой нодой урока — сначала нужна текстовая нода-задание`)

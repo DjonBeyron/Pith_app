@@ -17,6 +17,7 @@ import { useSlideCatch } from './catch/useSlideCatch.js'
 import { useCatchPrepare } from './catch/useCatchPrepare.js'
 import CatchOverChip from './catch/CatchOverChip.jsx'
 import CatchCover from './catch/CatchCover.jsx'
+import { useCatchSlowHint } from './catch/useCatchSlowHint.js'
 import { countKeyRender, setCatchMounted } from './spoilerStats.js'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером (перевод фразы появляется, когда её потёрли пальцем —
@@ -63,6 +64,9 @@ export default function FeedSlide({
   const rc = useSlideRecall({ recall, mod, active, revealed: opened, knowledge, wp: wordTr, onChanged: onLearnChanged })
   // «Ловля слов»: задание ставится, если на слайде нет слова «Помнишь?» (rc.candIndex) — оно главнее
   const ct = useSlideCatch({ feedCatch: catchFeed, mod, active, near, ahead, knowledge, recallIndex: rc.candIndex, onLock, onLearnChanged })
+  // Пока накрытие открыто, правая полоса видео над ним — зона замедления (FeedSlowStrip в FeedHud, едет по --catch-cover-h);
+  // подсказка о ней — свой счётчик (useCatchSlowHint)
+  const slowHint = useCatchSlowHint(ct.open && active, soundOn)
   // Счётчики для DBG-сводки (spoilerStats): рендеры слайда, пока накрытие открыто (после коммита — не в теле рендера)
   useEffect(() => { if (ct.mounted) countKeyRender() })
   useEffect(() => {
@@ -228,6 +232,7 @@ export default function FeedSlide({
         onVoteDifficulty={onVoteDifficulty}
         showSlowHint={showSlowHint}
         onSlowHintSeen={onSlowHintSeen}
+        catchStrip={ct.mounted} showCatchHint={slowHint.showHint} onCatchHintSeen={slowHint.retire}
       />
 
       {/* Превью-статус модуля: виден в ленте, но учить пока нельзя (см. useFeedModules) */}

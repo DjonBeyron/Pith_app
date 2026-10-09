@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { sayReducer, initialSayState, planTap, isGo, DOT_MS, DOTS } from './sayFlow.js'
+import { sayReducer, initialSayState, planTap, isGo } from './sayFlow.js'
+import { MORPH_MS } from './sayMorph.js'
 import { emptyView } from './speechController.js'
 import { readSayData } from './sayPhraseData.js'
 
@@ -70,7 +71,7 @@ describe('sayReducer', () => {
   })
 })
 
-describe('пояснение, причины неудач, три точки, строка админа', () => {
+describe('пояснение, причины неудач, строка админа', () => {
   it('попап пояснения: закрыли мимо кнопки → снова готов, флаг пояснения не ставится; «Понятно» → запись', () => {
     const e = sayReducer(initialSayState({ action: 'explain' }), { type: 'explain' })
     expect(sayReducer(e, { type: 'explainCancel' })).toMatchObject({ phase: 'idle' })
@@ -125,37 +126,32 @@ describe('причины неудач и серия (дефолтные отве
   })
 })
 
-describe('три точки и момент «начали» (маскируют задержку старта распознавания)', () => {
+describe('морфинг в круг и момент «начали» (горлышко подготовки микрофона вместо трёх точек)', () => {
   const listening = (extra = {}) => ({ ...emptyView, status: 'listening', runNo: 1, attempt: 1, ...extra })
 
-  it('тайминг: три точки по 350 мс, «начали» через 1050 мс (≤1,2 с)', () => {
-    expect(DOT_MS).toBe(350)
-    expect(DOTS).toBe(3)
-    expect(DOT_MS * DOTS).toBeLessThanOrEqual(1200)
+  it('морфинг 420–520 мс; точек (dots/dotsDone) в состоянии больше нет', () => {
+    expect(MORPH_MS).toBeGreaterThanOrEqual(420)
+    expect(MORPH_MS).toBeLessThanOrEqual(520)
+    const s = run()
+    expect(s).toMatchObject({ phase: 'run', morphDone: false })
+    expect(s).not.toHaveProperty('dots')
+    expect(s).not.toHaveProperty('dotsDone')
+    expect(sayReducer(s, { type: 'morphEnd' }).morphDone).toBe(true)
+    expect(sayReducer(initialSayState({ action: 'listen' }), { type: 'morphEnd' }).morphDone).toBe(false) // вне записи морфинга нет
   })
 
-  it('begin зажигает первую точку сразу, дальше по очереди; dotsDone — третья горит', () => {
-    let s = run()
-    expect(s).toMatchObject({ dots: 1, dotsDone: false })
-    s = sayReducer(s, { type: 'dot', n: 2 }); expect(s.dots).toBe(2)
-    s = sayReducer(s, { type: 'dot', n: 3 }); expect(s.dots).toBe(3)
-    s = sayReducer(s, { type: 'dotsDone' }); expect(s).toMatchObject({ dots: 3, dotsDone: true })
-    expect(sayReducer(initialSayState({ action: 'listen' }), { type: 'dot', n: 2 }).dots).toBe(0) // вне записи точки не нужны
-  })
-
-  it('«начали» = точки доиграли И движок слушает: audiostart раньше точек — всё равно ждём точки; точки раньше audiostart — держим третью горящей', () => {
+  it('«начали» = морфинг завершён И движок слушает: audiostart раньше конца морфинга — ждём его; морфинг раньше audiostart — круг держится в подготовке', () => {
     let early = sayReducer(run(), { type: 'view', view: listening() })      // audiostart пришёл раньше
     expect(isGo(early)).toBe(false)
-    early = sayReducer(early, { type: 'dotsDone' })
+    early = sayReducer(early, { type: 'morphEnd' })
     expect(isGo(early)).toBe(true)
-    let late = sayReducer(run(), { type: 'dotsDone' })                       // точки доиграли, audiostart ещё нет
+    let late = sayReducer(run(), { type: 'morphEnd' })                       // морфинг кончился, audiostart ещё нет
     expect(isGo(late)).toBe(false)
-    expect(late.dots).toBe(3)
     late = sayReducer(late, { type: 'view', view: listening() })
     expect(isGo(late)).toBe(true)
   })
 
-  it('автоповтор (attempt > 1) точки не повторяет: «начали» сразу по audiostart', () => {
+  it('автоповтор (attempt > 1) морфинга не повторяет: «начали» сразу по audiostart', () => {
     const s = sayReducer(run(), { type: 'view', view: listening({ attempt: 2 }) })
     expect(isGo(s)).toBe(true)
   })
@@ -168,9 +164,9 @@ describe('три точки и момент «начали» (маскируют
     expect(planTap({ view: emptyView, decision: { action: 'explain' } })).toEqual({ act: 'explain' })
   })
 
-  it('сворачивание гасит точки', () => {
-    const s = sayReducer(run(), { type: 'interrupt' })
-    expect(s).toMatchObject({ dots: 0, dotsDone: false, phase: 'idle' })
+  it('сворачивание сбрасывает морфинг', () => {
+    const s = sayReducer(sayReducer(run(), { type: 'morphEnd' }), { type: 'interrupt' })
+    expect(s).toMatchObject({ morphDone: false, phase: 'idle' })
   })
 })
 

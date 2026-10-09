@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, memo } from 'react'
-import { Heart, Bookmark, Check, Fingerprint } from 'lucide-react'
+import { Heart, Bookmark, Check } from 'lucide-react'
 import { logRepost } from '../../shared/api/moduleSocialApi.js'
 import { useSlowMotion } from './useSlowMotion.js'
 import DifficultyBadge from './DifficultyBadge.jsx'
+import FeedSlowStrip from './FeedSlowStrip.jsx'
+import SlowHint from './SlowHint.jsx'
 import { useTapPop } from './useTapPop.js'
 
 const SLOW_HINT_SEEN_MS = 400 // сколько держать зону, чтобы подсказка засчиталась «увиденной»
@@ -12,12 +14,15 @@ const SLOW_HINT_SEEN_MS = 400 // сколько держать зону, что�
 // (MyLessonSlide) — вынесен сюда, чтобы не дублировать кнопки и логику.
 // showSlowHint/onSlowHintSeen (обучающая подсказка про замедление) передаёт
 // только FeedSlide — в «Моих уроках» её не показываем (см. useSlowMotionHint.js).
+// catchStrip (только FeedSlide): накрытие «Ловли слов» в DOM — рисуем правую полосу замедления над ним (FeedSlowStrip) на
+// том же useSlowMotion; showCatchHint/onCatchHintSeen — её собственная подсказка с отдельным счётчиком (useCatchSlowHint.js)
 function FeedHud({
   module: mod, slideKey, active, soundOn,
   reaction, likeCount, saveCount = 0, repostCount = 0,
   onToggleLike, onToggleSave,
   difficulty, myDifficulty, onVoteDifficulty,
   showSlowHint = false, onSlowHintSeen,
+  catchStrip = false, showCatchHint = false, onCatchHintSeen,
 }) {
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
@@ -34,11 +39,18 @@ function FeedHud({
   // реально удержал зону и застал эффект (не мгновенный тап) — SLOW_HINT_SEEN_MS
   // держим меньше, чем длится сам жест, чтобы «увидеть» замедление успело
   const slowHintTimer = useRef(null)
+  function armSeen(onSeen) {
+    clearTimeout(slowHintTimer.current)
+    if (onSeen) slowHintTimer.current = setTimeout(onSeen, SLOW_HINT_SEEN_MS)
+  }
   function handleSlowStart(e) {
     startSlowMotion(e)
-    if (showSlowHint) {
-      slowHintTimer.current = setTimeout(() => onSlowHintSeen?.(), SLOW_HINT_SEEN_MS)
-    }
+    if (showSlowHint) armSeen(onSlowHintSeen)
+  }
+  // Правая полоса «Ловли» — то же замедление; «увидена» засчитывается её подсказке (а не обычной)
+  function handleStripHold() {
+    startSlowMotion(null)
+    if (showCatchHint) armSeen(onCatchHintSeen)
   }
   function handleSlowEnd(e) {
     stopSlowMotion(e)
@@ -83,6 +95,9 @@ function FeedHud({
 
   return (
     <>
+      {catchStrip && (
+        <FeedSlowStrip active={active} showHint={showCatchHint} onHoldStart={handleStripHold} onHoldEnd={handleSlowEnd} />
+      )}
       <div className="feedHud">
         <div
           className="feedSlowZone"
@@ -92,10 +107,7 @@ function FeedHud({
           aria-hidden="true"
         />
         {showSlowHint && (
-          <div className="feedSlowHint" aria-hidden="true">
-            <Fingerprint className="feedSlowHintIcon" />
-            <span className="feedSlowHintText">Зажми, чтобы замедлить</span>
-          </div>
+          <SlowHint />
         )}
         <button
           className={liked ? `feedHudBtn feedHudBtnLikeOn${likeBurst ? ' feedHudBtnLikePulse' : ''}` : 'feedHudBtn'}

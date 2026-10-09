@@ -1,0 +1,47 @@
+/* Правая полоса замедления в режиме «Ловли слов» (FeedSlowStrip.jsx, рисуется в FeedHud, пока накрытие .catchCover в DOM).
+   Полоса — пятая часть ширины слайда справа, ПЕРЕКРЫВАЕТ видео над накрытием: удержание — замедление 0.5x (useSlowMotion,
+   та же механика, что у зоны над лайком), короткое касание — пауза. Невидима.
+   Геометрия. Элемент занимает всю высоту слайда над нижней панелью (top: 0 … bottom: var(--v2-nav-h)) и смещён вверх на
+   высоту накрытия --catch-cover-h — ту же переменную, что двигает иконку паузы и чипы звука (feed-catch.css; её кладёт
+   FeedSlide.setCoverH на слайд, 0 когда накрытие закрыто). Так НИЖНЯЯ граница полосы в покое равна ВЕРХНЕЙ границе накрытия
+   (с точностью до долей пикселя), а видимая часть (от верха экрана) укорачивается вместе с его высотой — и когда клавиатура
+   сворачивается на «Проверить», кадр за кадром. Анимируется только transform; переход тот же, что у накрытия: 260мс, выезд
+   (слайд .feedSlideCatchOpen) cubic-bezier(0.22, 1, 0.36, 1), уход cubic-bezier(0.4, 0, 1, 1); длительность —
+   --catch-icon-ms (0мс, пока высота меняется кадр за кадром, как у иконок). Высоту не анимируем (layout).
+   Допуск в движении: накрытие прячется на 105% своей высоты (feed-catch.css), полоса идёт ровно на 100% — в середине пути
+   их края расходятся не больше чем на 5% высоты накрытия (≤ 22px при 438px, полоса чуть выше), на концах совпадают; зона
+   невидима, а сама подсказка появляется уже после выезда */
+.feedSlowStrip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: var(--v2-nav-h);
+  width: 20%;
+  z-index: 4;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateY(calc(var(--catch-cover-h, 0px) * -1));
+  transition: transform var(--catch-icon-ms, 260ms) cubic-bezier(0.4, 0, 1, 1);
+}
+.feedSlideCatchOpen .feedSlowStrip { transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+.feedSlide:not(.feedSlideCatchOpen) .feedSlowStrip { pointer-events: none; }
+
+/* Подсказка «Зажми, чтобы замедлить» (SlowHint.jsx, базовые правила — feed-media.css .feedSlowHint) в режиме «Ловли»: сидит
+   в самом низу полосы, т.е. прямо над верхней границей накрытия, отпечаток по центру полосы, плашка с текстом слева от него;
+   едет вместе с полосой и накрытием. Полоску фразы не перекрывает (она ниже границы), колонка худа в этом режиме целиком
+   под накрытием. Селектор с .feedSlowStrip — чтобы перебить базовые left/bottom/margin/transform (feed-media.css
+   подключён позже). Движения внутри подсказки — анимации самого отпечатка и плашки (transform + opacity, feed-media.css) */
+.feedSlowStrip .feedSlowHintCatch {
+  left: auto;
+  right: 22px; /* центр отпечатка (30px) на оси полосы: 20% ширины, на 375px — 75px */
+  bottom: 12px;
+  margin-bottom: 0;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedSlowStrip { transition: none; }
+}

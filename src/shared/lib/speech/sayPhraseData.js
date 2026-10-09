@@ -1,7 +1,8 @@
 // Поля ноды «Сказать фразу» (say_phrase): чтение и нормализация в одном месте — плеер, редактор, линтер и сборщик
-// слов для озвучки видят одни и те же значения по умолчанию. Старое поле showPhrase (фраза пузырём в чате) убрано: в данных
+// слов для озвучки видят одни и те же значения по умолчанию (в т.ч. подсказки в чат: hintsOn, hintSilence, hintMismatch, hintPartial). Старое поле showPhrase (фраза пузырём в чате) убрано: в данных
 // ноды оно может встретиться — его просто никто не читает. Чистые функции, без React.
 import { tokenize } from './speechMatch.js'
+import { HINT_DEFAULTS } from './sayTexts.js'
 
 export const THRESHOLD_MIN = 50
 export const THRESHOLD_MAX = 100
@@ -34,6 +35,9 @@ export function keywordsMissingInPhrase(phrase, keywords) {
   return parseKeywords(keywords).filter(k => { const t = tokenize(k); return !t.length || t.some(w => !words.has(w)) })
 }
 
+/** Текст подсказки из ноды: пустое/нет поля → стандартный текст (sayTexts.js) */
+const hintText = (value, kind) => (typeof value === 'string' && value.trim() ? value.trim() : HINT_DEFAULTS[kind])
+
 /** data = node.typeData.say_phrase (в плеере/редакторе) или data ноды в обменном JSON — то же самое */
 export function readSayData(data) {
   const d = data ?? {}
@@ -48,5 +52,10 @@ export function readSayData(data) {
     lang: SAY_LANGS.includes(d.lang) ? d.lang : LANG_DEFAULT,
     listenAudio: d.listenAudio !== false, // по умолчанию включено; false — отключить
     strict,
+    // Подсказки в чат после неудачной попытки: hintsOn отсутствует = включены; пустой текст = стандартный (sayHints.js)
+    hintsOn: d.hintsOn !== false,
+    hintSilence: hintText(d.hintSilence, 'silence'),
+    hintMismatch: hintText(d.hintMismatch, 'mismatch'),
+    hintPartial: hintText(d.hintPartial, 'partial'),
   }
 }

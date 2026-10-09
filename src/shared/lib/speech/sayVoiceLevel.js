@@ -1,33 +1,29 @@
-// Синтетический «уровень голоса» для эквалайзера плеера в модуле «Сказать фразу» (чистая логика, без React и без DOM).
+// Синтетический «уровень голоса» для колец вокруг круга «Слушаю…» в модуле «Сказать фразу» (чистая логика, без React и без DOM).
 // РЕАЛЬНЫЙ уровень не снимаем: getUserMedia/AnalyserNode рядом с SpeechRecognition на iPhone ломает распознавание и меняет
 // маршрут звука. Вместо этого уровень 0..1 управляется СОБЫТИЯМИ распознавания (speechController.onSignal):
 //   audiostart            → тихий «idle» (слушаем, голоса нет);
-//   soundstart            → звук пошёл: поднимаемся к «речи» за ATTACK_MS. Это САМОЕ РАННЕЕ событие голоса — приходит, когда
-//                           движок только услышал звук, раньше speechstart и первого interim (те запаздывают на 0,5–1,5 с);
+//   soundstart            → звук пошёл: «речь» включается СРАЗУ. Это САМОЕ РАННЕЕ событие голоса — приходит, когда движок только
+//                           услышал звук, раньше speechstart и первого interim (те запаздывают на 0,5–1,5 с);
 //   speechstart           → то же самое (если soundstart не пришёл — на части движков его нет);
 //   interim / final       → всплеск амплитуды (нарастает за ATTACK_MS, затухает за ~DECAY_MS) — оживляет картинку, но НЕ старт;
 //   soundend              → звук кончился: плавно (DECAY_MS) к idle;
 //   speechend / end       → плавно к нулю за FADE_MS.
-// Чувствительность: уровень УСИЛЕН ×GAIN с мягким ограничением до 1 (boost), «пол» idle поднят — эквалайзер заметно живее.
+// ringLevel(t) — то, что видят кольца: голос БЕЗ пола idle (тишина = 0, «дыхание» добавляет sayRings.js), чувствительность выше
+// прежнего эквалайзера ×2 (RING_GAIN 4) и сжатие динамики корнем (level' = level^0.5): даже шёпот поднимает кольца заметно.
 // Дрожание — детерминированный шум от времени (синусы), без Math.random: картинка одинакова при одинаковых событиях.
-// Время t — в мс одной шкалы (rAF-метка performance.now); вызывающий передаёт то же время в signal() и level().
-export const GAIN = 2              // усиление чувствительности (×2) до мягкого ограничения
-export const KNEE = 0.7            // с этого уровня после усиления ограничение плавно загибает кривую к 1
-export const IDLE_LEVEL = 0.14     // слушаем, но голоса нет (до усиления; после ×2 = 0,28, выше порога MIN_LEVEL эквалайзера)
-export const SPEECH_LEVEL = 0.3    // ровная «речь» между всплесками (до усиления; после ×2 = 0,6 — запас под всплески)
-export const BURST_LEVEL = 0.45    // добавка всплеска на каждый interim/final (до усиления)
+// Время t — в мс одной шкалы (rAF-метка performance.now); вызывающий передаёт то же время в signal() и ringLevel().
+export const IDLE_LEVEL = 0.14     // слушаем, но голоса нет (внутренняя шкала; кольца её вычитают)
+export const SPEECH_LEVEL = 0.3    // ровная «речь» между всплесками (внутренняя шкала)
+export const BURST_LEVEL = 0.45    // добавка всплеска на каждый interim/final
+export const RING_GAIN = 4         // чувствительность колец: ×2 к прежним ×2 эквалайзера (шёпот: (SPEECH−IDLE)×4 = 0,64 → корень 0,8)
 export const DECAY_MS = 200        // спад всплеска (постоянная времени экспоненты)
 export const ATTACK_MS = 45        // подъём к «речи» после soundstart/speechstart и нарастание всплеска (быстрая атака 40–60 мс)
-export const RISE_MS = ATTACK_MS   // прежнее имя
 export const FADE_MS = 350         // затухание к нулю после speechend/end
 
 const clamp01 = v => (v > 1 ? 1 : v > 0 ? v : 0)
 
-/** Усиление ×GAIN с мягким ограничением: до KNEE линейно, дальше плавно (tanh) к 1 и никогда не выше */
-export function boost(x) {
-  const v = Math.max(0, x) * GAIN
-  return v <= KNEE ? v : KNEE + (1 - KNEE) * Math.tanh((v - KNEE) / (1 - KNEE))
-}
+/** Сжатие динамики: усиление ×RING_GAIN и корень (level' = level^0.5) → тихий голос поднимает кольца сильно, громкий — до 1 */
+export function squash(x) { return Math.sqrt(clamp01(Math.max(0, x) * RING_GAIN)) }
 
 /** Дрожание 0.85..1.15 как функция времени: несколько несоизмеримых синусов */
 export function jitter(tMs) {
@@ -61,13 +57,17 @@ export function createVoiceLevel() {
     return IDLE_LEVEL + burst
   }
 
-  function level(t) {
+  // Уровень колец 0..1. Речь включается мгновенно (без атаки) — «soundstart → не меньше 0,5 сразу»; тишина (idle) = 0
+  function ringLevel(t) {
     if (state === 'off') return 0
+    let x
     if (state === 'fading') {
       const k = 1 - (t - since) / FADE_MS
-      return k <= 0 ? 0 : clamp01(boost(fadeFrom) * k * jitter(t))
-    }
-    return clamp01(boost(raw(t)) * jitter(t))
+      x = k <= 0 ? 0 : Math.max(0, fadeFrom - IDLE_LEVEL) * k
+    } else if (state === 'speaking') x = SPEECH_LEVEL - IDLE_LEVEL + burstAtTime(t)
+    else x = burstAtTime(t)
+    const v = squash(x)
+    return v > 0 ? clamp01(v * jitter(t)) : 0
   }
 
   function fade(t) {
@@ -111,7 +111,7 @@ export function createVoiceLevel() {
         default: break
       }
     },
-    level,
+    ringLevel,
     /** Есть ли что показывать (не off и затухание не доиграно) */
     isLive: t => state !== 'off' && !(state === 'fading' && t - since >= FADE_MS),
     state: () => state,
