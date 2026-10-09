@@ -1,52 +1,13 @@
 // Правило «первое увиденное (с выдержкой)»: движок сначала показывает в interim то, что услышал, а потом «исправляет» по языковой модели
 // (сказал «try» — на экране «I'm try», через секунду «I'm trying»). Восстанавливаем гипотезу «как слышал движок ДО исправления» и решаем, что слово
 // эталона произнесено верно, только если ошибочная («буквальная») форма этого слова не продержалась в interim дольше порога выдержки подряд
-// и не стояла на экране в момент конца речи (событие speechend/soundend). Мимолётное «try» посреди «trying» (<200–500 мс) исправлением речи не считается.
+// и не стояла на экране в момент конца речи (событие speechend/soundend). Мимолётное «try» посреди «trying» (короче порога) исправлением речи не считается; порог 0 — ловится любое появление.
 // Вход: history — записи {t, text, final?} и служебные {t, kind} из speechController (мс от старта попытки). Чистая функция, без React.
 import { tokenize } from './speechMatch.js'
 import { sameFamily } from './wordFamily.js'
+import { DWELL_DEFAULT, DWELL_MIN, DWELL_MAX, END_EVENTS, clampDwell, snapshotsOf, formStats, isBlocked } from './flashDwell.js'
 
-export const DWELL_DEFAULT = 500
-export const DWELL_MIN = 200
-export const DWELL_MAX = 1200
-export const END_EVENTS = ['speechend', 'soundend']
-
-export const clampDwell = v => {
-  const n = Number(v)
-  return Number.isFinite(n) ? Math.min(DWELL_MAX, Math.max(DWELL_MIN, Math.round(n))) : DWELL_DEFAULT
-}
-
-// Тексты по порядку: interim из истории + итог. Нет истории — единственный lastInterim без времени (t: null)
-function snapshotsOf({ history = [], final, lastInterim = '' }) {
-  const texts = history.filter(h => typeof h?.text === 'string' && h.text).map(h => ({ t: typeof h.t === 'number' ? h.t : null, text: h.text, final: !!h.final }))
-  if (!texts.some(x => !x.final) && lastInterim) texts.unshift({ t: null, text: lastInterim, final: false })
-  if (final?.text && !texts.some(x => x.final)) texts.push({ t: texts.length ? texts[texts.length - 1].t : null, text: final.text, final: true })
-  return texts.map(x => ({ ...x, tokens: tokenize(x.text) }))
-}
-
-// Самый долгий непрерывный показ формы (мс): серия снимков подряд, где она есть, до первого снимка без неё. null — время неизвестно
-function longestDwell(snaps, has) {
-  let best = 0
-  for (let i = 0; i < snaps.length; i++) {
-    if (!has[i] || (i > 0 && has[i - 1])) continue
-    let j = i
-    while (j + 1 < snaps.length && has[j + 1]) j++
-    const t0 = snaps[i].t
-    const t1 = j + 1 < snaps.length ? snaps[j + 1].t : snaps[j].t
-    if (t0 == null || t1 == null) return null
-    best = Math.max(best, t1 - t0)
-  }
-  return best
-}
-
-// Стояла ли форма на экране в момент любого из событий конца речи: активный снимок = последний с t ≤ момента события
-function shownAtEnd(snaps, has, endTimes) {
-  return endTimes.some(te => {
-    let k = -1
-    snaps.forEach((s, i) => { if (s.t != null && s.t <= te) k = i })
-    return k >= 0 && has[k]
-  })
-}
+export { DWELL_DEFAULT, DWELL_MIN, DWELL_MAX, END_EVENTS, clampDwell } // константы порога живут в flashDwell.js (порог 0–1200 мс, 0 = любое появление формы)
 
 /**
  * @param {{reference: string, history?: object[], final?: {text: string}, lastInterim?: string, dwellMs?: number, keys?: string[]}} p
@@ -54,7 +15,7 @@ function shownAtEnd(snaps, has, endTimes) {
  * @returns {{used: boolean, dwellMs: number, text: string, words: object[], disputed: object[], blocked: string[], missed: string[], ok: boolean}}
  *   used — был хоть один interim до итога (иначе судить по выдержке нечем: решает один итог);
  *   text — восстановленная гипотеза (самая ранняя форма каждого слова эталона; «…» — слова не было);
- *   words[{word, state: 'confirmed'|'literal'|'absent', form, firstAt}]; disputed[{word, form, dwellMs (null — время неизвестно), atEnd, inFinal, blocked}] — слова,
+ *   words[{word, state: 'confirmed'|'literal'|'absent', form, firstAt}]; disputed[{word, form, dwellMs (null — время неизвестно), atEnd, inFinal, blocked, firstAt, interim}] — слова,
  *   у которых в interim показывалась буквальная форма
  */
 export function firstSeenRule({ reference, history = [], final, lastInterim = '', dwellMs = DWELL_DEFAULT, keys = null }) {
@@ -62,7 +23,6 @@ export function firstSeenRule({ reference, history = [], final, lastInterim = ''
   const ref = [...new Set(tokenize(reference))]
   const snaps = snapshotsOf({ history, final, lastInterim })
   const endTimes = history.filter(h => END_EVENTS.includes(h?.kind) && typeof h.t === 'number').map(h => h.t)
-  const lastIdx = snaps.length - 1
   const words = []
   const disputed = []
   for (const word of ref) {
@@ -70,13 +30,10 @@ export function firstSeenRule({ reference, history = [], final, lastInterim = ''
     const hasExact = snaps.map(s => s.tokens.includes(word))
     let blocked = false
     for (const form of literals) {
-      const has = snaps.map(s => s.tokens.includes(form))
-      const ms = longestDwell(snaps, has)
-      const inFinal = lastIdx >= 0 && snaps[lastIdx].final && has[lastIdx]
-      const atEnd = shownAtEnd(snaps, has, endTimes)
-      const block = inFinal || atEnd || ms == null || ms > dwell
+      const st = formStats(snaps, form, endTimes)
+      const block = isBlocked(st, dwell)
       blocked = blocked || block
-      disputed.push({ word, form, dwellMs: ms, atEnd, inFinal, blocked: block })
+      disputed.push({ word, form, dwellMs: st.dwellMs, atEnd: st.atEnd, inFinal: st.inFinal, blocked: block, firstAt: st.firstAt, interim: st.interim })
     }
     // самая ранняя форма из семьи (точная предпочтительнее при равенстве)
     let first = null

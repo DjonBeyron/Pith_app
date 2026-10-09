@@ -26,7 +26,7 @@ describe('firstSeenRule: фикстуры', () => {
     expect(r.blocked).toEqual(['trying'])
     expect(r.missed).toEqual(['trying'])
     expect(r.text).toBe('i am try') // как слышал движок до исправления
-    expect(r.disputed).toEqual([{ word: 'trying', form: 'try', dwellMs: 1100, atEnd: true, inFinal: false, blocked: true }])
+    expect(r.disputed).toEqual([{ word: 'trying', form: 'try', dwellMs: 1100, atEnd: true, inFinal: false, blocked: true, firstAt: 600, interim: true }])
     expect(firstSeenNote(r)).toBe('trying: «try» держалась 1100 мс, на момент конца речи')
   })
 
@@ -41,7 +41,7 @@ describe('firstSeenRule: фикстуры', () => {
     const history = [h(300, "I'm"), h(600, "I'm try"), h(720, "I'm trying"), ev(1400, 'speechend'), h(1600, "I'm trying", true)]
     const r = firstSeenRule({ reference: REF, history, final: { text: "I'm trying" } })
     expect(r.ok).toBe(true)
-    expect(r.disputed).toEqual([{ word: 'trying', form: 'try', dwellMs: 120, atEnd: false, inFinal: false, blocked: false }])
+    expect(r.disputed).toEqual([{ word: 'trying', form: 'try', dwellMs: 120, atEnd: false, inFinal: false, blocked: false, firstAt: 600, interim: true }])
     expect(r.words.find(w => w.word === 'trying')).toMatchObject({ state: 'confirmed', form: 'try', firstAt: 600 })
     expect(r.text).toBe('i am try') // самая ранняя форма всё равно «try»
     expect(firstSeenNote(r)).toBe('мимолётно (≤500 мс): trying←«try» 120 мс')
@@ -54,7 +54,9 @@ describe('firstSeenRule: порог выдержки и события конц�
   it('порог настраивается: 300 мс держится дольше порога 200, но не дольше 500', () => {
     expect(firstSeenRule({ reference: REF, history: quick, final: { text: "I'm trying" }, dwellMs: 500 }).ok).toBe(true)
     expect(firstSeenRule({ reference: REF, history: quick, final: { text: "I'm trying" }, dwellMs: 200 }).ok).toBe(false)
-    expect(firstSeenRule({ reference: REF, history: quick, final: { text: "I'm trying" }, dwellMs: 50 }).dwellMs).toBe(200) // зажато в 200–1200
+    expect(firstSeenRule({ reference: REF, history: quick, final: { text: "I'm trying" }, dwellMs: 50 }).dwellMs).toBe(50) // зажато в 0–1200
+    expect(firstSeenRule({ reference: REF, history: quick, final: { text: "I'm trying" }, dwellMs: 0 }).ok).toBe(false) // 0 = любое появление ошибочной формы
+    expect(firstSeenRule({ reference: REF, history: quick, final: { text: "I'm trying" }, dwellMs: -5 }).dwellMs).toBe(0)
   })
 
   it('форма на экране в момент speechend блокирует даже короткую выдержку (событие soundend — так же)', () => {

@@ -89,7 +89,7 @@ export function analyzeChain(chain, reference) {
       const ch = { ...c, at: chain[i].t, step, idx: i }
       if (c.kind === 'replace') {
         ch.dir = ref.includes(c.to) && !ref.includes(c.from) ? 'toRef' : ref.includes(c.from) && !ref.includes(c.to) ? 'fromRef' : 'other'
-        ch.family = inFamily(c.from) || inFamily(c.to)
+        ch.family = (inFamily(c.from) || inFamily(c.to)) && sameFamily(c.from, c.to) // оба слова — формы одного слова: «i → trying» (весь короткий текст заменили) исправлением не считаем
       }
       changes.push(ch)
     }

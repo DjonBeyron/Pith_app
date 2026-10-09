@@ -3,7 +3,7 @@ import { MODE_LABEL, capsReportLines } from '../../../shared/lib/speech/speechSu
 import { fmtCapture, fmtConf } from './speechCapture.js'
 import { fmtAntiPredict } from './antiPredictReport.js'
 import { attemptsBlock, allComparisonsText } from './speechReportAttempts.js'
-import { seriesLines } from './contextSeries.js'
+import { seriesFullLines } from './controlSeries.js'
 import { copyText } from './copyText.js'
 import AttemptDetails from './AttemptDetails.jsx'
 import { LOG_SHOW, DIALOG_LABEL, fmtMs, fmtAttempt, fmtRestart, dialogCount, logReportLines, clearLog } from './speechLog.js'
@@ -23,7 +23,7 @@ export default function SpeechLogBlock({ log, setLog, caps, perm, since, series 
   // Последние попытки с текстами + итог серии «длина контекста» — одним текстом ≤ ~6000 символов
   async function copyAll() {
     const head = [`ВСЕ СРАВНЕНИЯ · ${MODE_LABEL[caps.mode]} · ${caps.uaShort}`]
-    const text = allComparisonsText({ log, head, seriesLines: series ? seriesLines(series) : [] })
+    const text = allComparisonsText({ log, head, seriesLines: series ? seriesFullLines(series, undefined, false) : [] })
     setNote((await copyText(text)) ? `Скопировано (${text.length} симв.)` : 'Не удалось скопировать — выделите текст вручную')
   }
 

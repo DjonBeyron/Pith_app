@@ -6,6 +6,7 @@ import { saidKind, judge } from './antiPredictRules.js'
 import { tokenize } from '../../../shared/lib/speech/speechMatch.js'
 import { buildChain } from './attemptDiff.js'
 import { fmtAudioNote } from '../../../shared/lib/soundLog.js'
+import { packForm, unpackForms, flashText } from '../../../shared/lib/speech/flashDwell.js'
 
 export const TX_LIMITS = { ref: 120, said: 80, text: 90, alt: 90, nAlts: 10, nHist: 12, nChanges: 6, nLiteral: 6 }
 export const REPORT_ATTEMPTS = 12 // сколько попыток в блоке отчёта
@@ -48,7 +49,7 @@ export function buildAttemptTexts(view, extra, an) {
   const kind = saidKind(extra?.said, an)
   return {
     ref: cut(view.reference, TX_LIMITS.ref), said: cut(extra?.said, TX_LIMITS.said), lang: view.applied?.lang ?? view.lang,
-    modes: extra?.modes ?? [], series: extra?.series ? { step: extra.series.step, wrongPhrase: cut(extra.series.wrongPhrase, TX_LIMITS.ref) } : null,
+    modes: extra?.modes ?? [], series: extra?.series ? { step: extra.series.step, wrongPhrase: cut(extra.series.wrongPhrase, TX_LIMITS.ref), ...(extra.series.mode === 'control' ? { mode: 'control' } : {}) } : null,
     top1: an ? { text: cut(view.final.text, TX_LIMITS.text), conf: pct(view.final.confidence) } : null,
     alts: an ? an.nbest.slice(0, TX_LIMITS.nAlts).map(a => ({ text: cut(a.text, TX_LIMITS.alt), conf: pct(a.confidence) })) : [],
     lastInterim: cut(view.lastInterim, TX_LIMITS.text), histN: hist.length,
@@ -57,6 +58,7 @@ export function buildAttemptTexts(view, extra, an) {
     literal: (an?.places ?? []).slice(0, TX_LIMITS.nLiteral).map(p => (p.at === 'interim' ? `interim@${sec(p.t)}` : p.at)),
     verdicts: an ? { top1: an.verdicts.top1.ok, consensus: an.verdicts.consensus.ok, strict: an.verdicts.strict.ok, first: an.verdicts.first.ok } : null,
     first: an ? firstSeenTx(an.verdicts.first.details) : null,
+    flash: an ? an.flash.forms.slice(0, 3).map(packForm) : null, // мелькание ошибочной формы в interim: [слово, форма, мс подряд, с какого мс, конец речи, в итоге, в interim]
     saidKind: kind, fixed: an ? an.engineFixed : null, dir: an?.diff.dir ?? null,
   }
 }
@@ -114,6 +116,7 @@ export function attemptFields(e, histMax = TX_LIMITS.nHist) {
     ['diff', 'изменения', `final-vs-interim: ${changesText(tx)}`],
     ['lit', 'литерально', tx.literal?.length ? `литерально: ${tx.literal.join(', ')}` : ''],
     ['first', 'первое увиденное', tx.first?.disputed?.length ? `первое увиденное: «${tx.first.text}» спорные: ${tx.first.disputed.map(d => `${d[0]}←${d[1]} ${d[2] == null ? '?' : d[2]}мс${d[3] ? '*' : ''}`).join(', ')}` : ''],
+    ['flash', 'мелькание', tx.flash ? `ошибочная форма ${flashText(unpackForms(tx.flash))}` : ''],
     ['snd', 'звуки до записи', fmtAudioNote(e)],
     ['verd', 'вердикты', v ? `вердикты: top1=${verdictWord(tx.saidKind, v.top1)} consensus=${verdictWord(tx.saidKind, v.consensus)} strict=${verdictWord(tx.saidKind, v.strict)}${v.first == null ? '' : ` first=${verdictWord(tx.saidKind, v.first)}`}` : 'вердиктов нет'],
   ]

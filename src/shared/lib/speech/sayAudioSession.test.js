@@ -6,19 +6,19 @@ const memStore = () => { const m = new Map(); return { getItem: k => (m.has(k) ?
 const broken = () => ({ getItem() { throw new Error('denied') }, setItem() { throw new Error('quota') }, removeItem() { throw new Error('x') } })
 
 describe('флаг админа «аудиосессия play-and-record для модуля» (pithy_say_audiosession_v1)', () => {
-  it('по умолчанию ВЫКЛ; включение и выключение; тип для контроллера', () => {
+  it('по умолчанию ВКЛ; выключение админом и возврат; тип для контроллера', () => {
     const st = memStore()
     expect(SAY_AUDIOSESSION_KEY).toBe('pithy_say_audiosession_v1')
-    expect(isSayAudioSessionOn(st)).toBe(false)
-    expect(sayAudioSessionType(st)).toBe(null)
-    setSayAudioSessionOn(true, st)
     expect(isSayAudioSessionOn(st)).toBe(true)
     expect(sayAudioSessionType(st)).toBe('play-and-record')
     setSayAudioSessionOn(false, st)
     expect(isSayAudioSessionOn(st)).toBe(false)
+    expect(sayAudioSessionType(st)).toBe(null)
+    setSayAudioSessionOn(true, st)
+    expect(isSayAudioSessionOn(st)).toBe(true)
   })
-  it('localStorage недоступен — выкл, ничего не падает', () => {
-    expect(isSayAudioSessionOn(broken())).toBe(false)
+  it('localStorage недоступен — по умолчанию вкл, ничего не падает', () => {
+    expect(isSayAudioSessionOn(broken())).toBe(true)
     expect(() => setSayAudioSessionOn(true, broken())).not.toThrow()
   })
   it('sayFlow: begin запоминает тип для админской плашки', () => {

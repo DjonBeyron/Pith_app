@@ -63,7 +63,7 @@ describe('простой вид: «Услышали» есть, широких �
       expect(list).toHaveLength(3)
       for (const t of list) expect(t).not.toMatch(/interim|n-best|top-?1|consensus|audiostart/i)
     }
-    expect(SERIES_HOWTO.join(' ')).toContain('Шаг 1')
+    expect(SERIES_HOWTO.join(' ')).toContain('Контроль')
     expect(RESTART_HOWTO.join(' ')).toMatch(/S1/)
   })
 })

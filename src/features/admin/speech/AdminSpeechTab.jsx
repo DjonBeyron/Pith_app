@@ -7,7 +7,7 @@ import { useAntiPredict } from './useAntiPredict.js'
 import { useContextSeries } from './useContextSeries.js'
 import { useRestartSeries } from './useRestartSeries.js'
 import { useTabSilence } from './useTabSilence.js'
-import { wrongPhrase } from './contextSeries.js'
+import { phraseFor } from './controlSeries.js'
 import SpeechCapsBlock from './SpeechCapsBlock.jsx'
 import SimpleTestsBlock from './SimpleTestsBlock.jsx'
 import SpeechTestBlock from './SpeechTestBlock.jsx'
@@ -48,12 +48,12 @@ export default function AdminSpeechTab() {
   const changeReference = useCallback(v => { reset(); setReference(v) }, [reset])
   const changeLang = useCallback(v => { reset(); setLang(v) }, [reset])
   // Шаг серии: эталон шага + «что я сказал» = ошибочная фраза шага (чтобы правила сразу оценили «поймало/пропустило»)
-  const pickStep = useCallback(i => {
-    const ref = series.state.cfg.refs[i]
-    changeReference(ref)
-    setSaid(wrongPhrase(ref, series.state.cfg.word, series.state.cfg.wrong) ?? '')
+  // В режиме «контроль» говорим эталон (правильно), «что я сказал» = эталон; mode можно передать явно (переключатель режима в тот же тап)
+  const pickStep = useCallback((i, mode = series.state.mode) => {
+    changeReference(series.state.cfg.refs[i])
+    setSaid(phraseFor(series.state.cfg, i, mode) ?? '')
     setStep(i)
-  }, [series.state.cfg, changeReference, setSaid, setStep])
+  }, [series.state.cfg, series.state.mode, changeReference, setSaid, setStep])
 
   useEffect(() => {
     let alive = true
@@ -67,7 +67,7 @@ export default function AdminSpeechTab() {
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
       <SpeechCapsBlock caps={caps} perm={perm} />
       <SpeechSayBlock />
-      <SimpleTestsBlock caps={caps} reference={reference} lang={lang} setLang={changeLang} probe={probe} series={series} onPickStep={pickStep} restart={restartApi} />
+      <SimpleTestsBlock caps={caps} reference={reference} lang={lang} setLang={changeLang} probe={probe} series={series} onPickStep={pickStep} restart={restartApi} dwell={ap.settings.dwell} onDwell={v => ap.update({ dwell: v })} />
       <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} cap={cap} ap={ap} />
       <SpeechLogBlock log={log} setLog={setLog} caps={caps} perm={perm} since={SESSION_START} series={series.state} />
       <SpeechCaptureMemo />

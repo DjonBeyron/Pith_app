@@ -79,7 +79,7 @@ describe('компактный формат строки', () => {
       '№2', `ref=«${REF}»`, "said=«I'm try»", 'en-US', 'alts+history', "top1=«I'm trying» 86%", "alts=«i'm try» 36 · «i'll try» 10",
       "interim-история: 1.0s «I'm try» → 2.2s «I'm trying» [final]",
       'final-vs-interim: try→trying (interim→final)', 'литерально: alt#2, alt#3, interim@1.0s',
-      'первое увиденное: «i am try» спорные: trying←try 1200мс*',
+      'первое увиденное: «i am try» спорные: trying←try 1200мс*', 'ошибочная форма мелькала «try» 1200 мс',
       'вердикты: top1=пропустило consensus=поймало strict=поймало first=поймало',
     ].join(' | '))
   })

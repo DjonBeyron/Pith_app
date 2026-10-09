@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react'
-import { analyzeAttempt, saidKind } from './antiPredictRules.js'
+import { analyzeAttempt, saidKind, focusOf } from './antiPredictRules.js'
 import { comparisonText, verdictRows, fmtConfPct } from './antiPredictReport.js'
 import { changesText, firstSeenLine } from './speechReportAttempts.js'
+import { flashText, catchesAt } from '../../../shared/lib/speech/flashDwell.js'
 import { copyText } from './copyText.js'
 import { tokenize } from '../../../shared/lib/speech/speechMatch.js'
 import { buildJsgf } from './antiPredictModes.js'
+
+// «ошибочная форма мелькала «try» 280 мс — при пороге 500 мс правило пропустило»; не мелькала — так и пишем
+const flashLine = (fl, dwell) => `${flashText(fl.forms)}${fl.forms.length ? ` — при пороге ${dwell} мс правило ${catchesAt(fl.forms, dwell) ? 'поймало' : 'пропустило'}` : ''}`
 
 const yn = v => (v == null ? 'нет данных' : v ? 'да' : 'нет')
 
@@ -28,12 +32,13 @@ export default function AntiPredictTable({ view, said, caps }) {
   const [note, setNote] = useState('')
   const wrong = view.extra?.wrong
   const dwell = view.extra?.settings?.dwell
+  const focus = useMemo(() => focusOf(view.extra), [view.extra])
   const an = useMemo(() => (view.final
-    ? analyzeAttempt({ reference: view.reference, wrong: wrong ?? [], final: view.final, alternatives: view.alternatives, history: view.history, lastInterim: view.lastInterim, dwellMs: dwell })
-    : null), [view.final, view.alternatives, view.history, view.lastInterim, view.reference, wrong, dwell])
+    ? analyzeAttempt({ reference: view.reference, wrong: wrong ?? [], final: view.final, alternatives: view.alternatives, history: view.history, lastInterim: view.lastInterim, dwellMs: dwell, focus })
+    : null), [view.final, view.alternatives, view.history, view.lastInterim, view.reference, wrong, dwell, focus])
   if (!view.runNo || !view.extra?.modes?.length) return null // без включённых режимов проба выглядит как раньше
   const kind = saidKind(said, an)
-  const fx = an?.diff.fixed[0]
+  const fx = an?.fixed[0]
   const grammarOn = view.extra.settings?.grammar
   const inGrammar = view.final && [view.reference, ...(wrong ?? [])].some(p => tokenize(p).join(' ') === tokenize(view.final.text).join(' '))
 
@@ -82,6 +87,7 @@ export default function AntiPredictTable({ view, said, caps }) {
         <div className="aspPair"><span className="aspPairKey">Изменения между текстами</span><span>{changesText({ changes: an.changes, histN: an.timeline.length })}</span></div>
         {an.events.length > 0 && <div className="aspPair"><span className="aspPairKey">События движка (мс)</span><span>{an.events.map(e => `${e.kind} ${e.t}`).join(' · ')}</span></div>}
         <div className="aspPair"><span className="aspPairKey">Первое увиденное</span><span>{firstSeenLine(an.verdicts.first.details)}</span></div>
+        <div className="aspPair"><span className="aspPairKey">Ошибочная форма мелькала</span><span data-testid="diag-flash">{flashLine(an.flash, an.verdicts.first.details.dwellMs)}</span></div>
         <div className="aspPair"><span className="aspPairKey">Литеральная форма встречалась</span><span>
           <b>{an.literalSeen ? 'да' : 'нет'}</b>{an.literalSeen && ` — ${an.where.join('; ')}`}
         </span></div>

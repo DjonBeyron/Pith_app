@@ -53,7 +53,7 @@ export function useAntiPredict({ reference, lang, series = null }) {
     return {
       v: 1, settings: effectiveSettings(s, features), oneWord: !!wordRef, modes: activeModes(s, features, !!wordRef),
       wrong: series && !wordRef ? [series.wrongPhrase, ...list.filter(w => w !== series.wrongPhrase)] : list,
-      said: wordRef ? said.trim() : (said.trim() || series?.wrongPhrase || ''), // «что я сказал» фиксируется на момент тапа
+      said: wordRef ? said.trim() : (said.trim() || series?.said || series?.wrongPhrase || ''), // «что я сказал» фиксируется на момент тапа
       ...(series && !wordRef ? { series } : {}),
     }
   }, [settings, features, wrongText, reference, series, said])

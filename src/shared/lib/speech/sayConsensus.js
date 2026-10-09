@@ -7,6 +7,7 @@
 // выдержки или стояла на экране в момент конца речи): слово засчитывается, только если подтвердили оба. Чистые функции.
 import { matchPhrase, tokenize } from './speechMatch.js'
 import { firstSeenRule } from './firstSeenRule.js'
+import { readSayDwell } from './sayDwell.js'
 
 // Пересчёт итога по списку слов эталона items (после того как часть слов перестала считаться подтверждёнными)
 function rescore(fin, items, keywords, passRatio) {
@@ -38,11 +39,12 @@ export function matchConsensus(reference, finalText, interimText, keywords = [],
 }
 
 /**
- * «Строго» модуля: matchConsensus + правило «первое увиденное» по истории interim (history — view.history контроллера, dwellMs — порог выдержки).
+ * «Строго» модуля: matchConsensus + правило «первое увиденное» по истории interim (history — view.history контроллера, dwellMs — порог мелькания; не задан —
+ * настройка админа readSayDwell(): localStorage `pithy_say_dwell_v1`, по умолчанию 500 мс, 0 = любое появление ошибочной формы).
  * Слово, у которого ошибочная форма держалась дольше порога или стояла в конце речи, не засчитывается (dwellBlocked); такие слова добавляются в engineFixed.
  * @returns результат matchConsensus + { firstSeen (результат firstSeenRule), firstSeenBlocked: string[] }
  */
-export function matchStrict(reference, finalText, interimText, history = [], keywords = [], passRatio = 1, opts = { exactWords: true }, dwellMs) {
+export function matchStrict(reference, finalText, interimText, history = [], keywords = [], passRatio = 1, opts = { exactWords: true }, dwellMs = readSayDwell()) {
   const base = matchConsensus(reference, finalText, interimText, keywords, passRatio, opts)
   const fs = firstSeenRule({ reference, history, final: { text: finalText }, lastInterim: interimText, dwellMs })
   const hit = base.items.filter(it => it.ok && fs.blocked.includes(it.word)).map(it => it.word)

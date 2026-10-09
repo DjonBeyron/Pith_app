@@ -38,9 +38,11 @@ describe('analyzeAttempt: четвёртое правило «первое ув�
     expect(an.verdicts.first.details.disputed).toMatchObject([{ word: 'trying', form: 'try', dwellMs: 120, atEnd: false, blocked: false }])
   })
 
-  it('параметр dwell: порог 100 мс делает и мимолётное «try» спорным (по умолчанию 500; зажато 200–1200)', () => {
-    expect(run(FLASH, { dwellMs: 100 }).verdicts.first.details.dwellMs).toBe(200)
+  it('параметр dwell: порог 100 мс делает и мимолётное «try» спорным (по умолчанию 500; зажато 0–1200)', () => {
+    expect(run(FLASH, { dwellMs: 100 }).verdicts.first.details.dwellMs).toBe(100)
     expect(run(FLASH, { dwellMs: 200 }).verdicts.first.ok).toBe(true) // 120 мс не дольше 200
+    expect(run(FLASH, { dwellMs: 100 }).verdicts.first.ok).toBe(false) // а 100 мс — уже дольше
+    expect(run(FLASH, { dwellMs: 0 }).verdicts.first.ok).toBe(false) // 0 = любое появление формы
     const quick = [h(300, "I'm try"), h(700, "I'm trying"), h(1200, "I'm trying", true)] // 400 мс
     expect(run(quick, { dwellMs: 500 }).verdicts.first.ok).toBe(true)
     expect(run(quick, { dwellMs: 300 }).verdicts.first.ok).toBe(false)
@@ -89,10 +91,11 @@ describe('таблица вердиктов и отчёты', () => {
 })
 
 describe('настройка dwell', () => {
-  it('по умолчанию 500, зажимается 200–1200, мусор → 500', () => {
+  it('по умолчанию 500, зажимается 0–1200, мусор → 500', () => {
     expect(DEFAULT_SETTINGS.dwell).toBe(500)
     expect(sanitizeSettings({ dwell: 900 }).dwell).toBe(900)
-    expect(sanitizeSettings({ dwell: 20 }).dwell).toBe(200)
+    expect(sanitizeSettings({ dwell: 20 }).dwell).toBe(20)
+    expect(sanitizeSettings({ dwell: -40 }).dwell).toBe(0)
     expect(sanitizeSettings({ dwell: 99999 }).dwell).toBe(1200)
     expect(sanitizeSettings({ dwell: 'abc' }).dwell).toBe(500)
     expect(sanitizeSettings(null).dwell).toBe(500)
