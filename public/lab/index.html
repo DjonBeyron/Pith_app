@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru" style="background:#101216">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Список страниц «Лаборатории запуска» (Админ → «Старт»). ОБЫЧНАЯ страница, не веб-клип: открывать в Safari.
+         Каждая из пяти страниц ЛАБ-N — отдельный веб-клип со своими стартовыми картинками (см. l1…l5.html) -->
+    <title>Лаборатория запуска</title>
+    <style>
+      html, body { margin: 0; background: #101216; color: #e6e9ec; font: 16px/1.5 -apple-system, system-ui, sans-serif; }
+      main { max-width: 560px; margin: 0 auto; padding: 20px 16px 48px; }
+      h1 { margin: 0 0 12px; font-size: 22px; }
+      h2 { margin: 24px 0 8px; font-size: 17px; }
+      ol { margin: 0; padding-left: 22px; }
+      li { margin-bottom: 8px; }
+      .lab { display: block; margin: 0 0 10px; padding: 14px 16px; border: 1px solid #2a2d35; border-radius: 12px; background: #171a20; color: #fff; text-decoration: none; }
+      .lab b { display: block; font-size: 18px; }
+      .lab span { font-size: 14px; color: #a8b0b8; }
+      .note { padding: 10px 12px; border-radius: 10px; background: #1d2412; color: #cfe9a0; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Лаборатория запуска</h1>
+      <p>Пять крошечных страниц, чтобы понять, почему при запуске с иконки на iPhone на один кадр мелькает серый экран. Каждая страница — отдельная иконка на «Домой».</p>
+      <h2>Что делать (для каждой из пяти страниц)</h2>
+      <ol>
+        <li>Открой страницу ниже <b>в Safari</b> (не в приложении HETA).</li>
+        <li>Нажми «Поделиться» → «На экран Домой» → «Добавить». Имя иконки будет ЛАБ-1…ЛАБ-5.</li>
+        <li>Закрой Safari и полностью закрой всё лишнее (смахни приложения вверх).</li>
+        <li>Запусти иконку ЛАБ-N с экрана «Домой» <b>3 раза</b>, каждый раз закрывая её смахиванием вверх.</li>
+        <li>Смотри только на момент <b>ПЕРЕД</b> появлением белой надписи (она проявляется примерно через секунду). Запиши: моргает или нет.</li>
+      </ol>
+      <p class="note">ЛАБ-2: запиши ещё, видишь ли ты на запуске СИНИЙ экран, и в каком порядке идут кадры (синий, серая вспышка, чёрный). ЛАБ-5: первый запуск с иконки — прогрев (внизу будет подпись «service worker активен» со второго раза); оценивай запуски со второго.</p>
+      <h2>Страницы</h2>
+      <a class="lab" href="/lab/l1.html"><b>ЛАБ-1 контроль</b><span>Чёрные стартовые картинки, чёрная страница без скриптов.</span></a>
+      <a class="lab" href="/lab/l2.html"><b>ЛАБ-2 цвет PNG</b><span>Стартовые картинки ярко-синие, страница чёрная.</span></a>
+      <a class="lab" href="/lab/l3.html"><b>ЛАБ-3 всё серое</b><span>Картинки и страница серого цвета вспышки.</span></a>
+      <a class="lab" href="/lab/l4.html"><b>ЛАБ-4 без картинок</b><span>Вообще без стартовых картинок.</span></a>
+      <a class="lab" href="/lab/l5.html"><b>ЛАБ-5 быстрый кеш</b><span>Как ЛАБ-1, но страницу отдаёт кеш (быстрее ответ).</span></a>
+      <h2>Что отправить</h2>
+      <p>По каждой странице: «моргает» или «нет» (из трёх запусков). Для ЛАБ-2 — видишь ли синий экран и в каком порядке кадры.</p>
+    </main>
+  </body>
+</html>

@@ -8,9 +8,10 @@
 // ~10с. Офлайн-страница сама стучится в сеть и перезагружается, когда та ответила, и шлёт воркеру {type:'net-ok'} —
 // тогда на PATIENT_MS ожидание страницы снимается до 15с (медленная, но живая сеть не зациклится). Если офлайн-страницы
 // нет в кэше — ждём сеть как раньше. Всё остальное (видео, картинки, API, Supabase) не перехватывается.
+// Пути /lab/ («Лаборатория запуска», Админ → «Старт») воркер НЕ перехватывает: у них свой lab-sw.js и чистый эксперимент без нашей навигации.
 // Меняешь offline.html — подними версию OFFLINE_CACHE (старые offline-* кэши чистятся при activate).
 
-const OFFLINE_CACHE = 'offline-v6'
+const OFFLINE_CACHE = 'offline-v7'
 const OFFLINE_URL = '/offline.html'
 const NAV_TIMEOUT_MS = 4000
 const PATIENT_MS = 20000
@@ -40,6 +41,7 @@ function navigate(request) {
 }
 
 self.addEventListener('fetch', e => {
+  if (new URL(e.request.url).pathname.startsWith('/lab/')) return // лаборатория запуска: ранний выход, без respondWith
   if (e.request.mode === 'navigate') e.respondWith(navigate(e.request))
 })
 

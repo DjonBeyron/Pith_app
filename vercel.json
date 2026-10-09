@@ -13,6 +13,19 @@
       ]
     },
     {
+      "source": "/lab/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/lab/lab-sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/lab/" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {

@@ -57,11 +57,19 @@ describe('сервис-воркер push-sw.js', () => {
   })
 
   it('кэширует только офлайн-страницу (кэш offline-*), ничего больше', () => {
-    expect(sw).toMatch(/OFFLINE_CACHE = 'offline-v6'/) // версия поднимается при каждом изменении offline.html
+    expect(sw).toMatch(/OFFLINE_CACHE = 'offline-v7'/) // версия поднимается при каждом изменении offline.html
     expect(sw).toMatch(/OFFLINE_URL = '\/offline\.html'/)
     expect(sw).not.toMatch(/cache\.put|addAll/)
     expect(sw.match(/c\.add\(/g)).toHaveLength(1)
     expect(existsSync(resolve(PUBLIC, 'offline.html'))).toBe(true)
+  })
+
+  it('пути /lab/ (лаборатория запуска) не перехватывает: ранний выход без respondWith ПЕРЕД логикой навигации', () => {
+    const fetchBlock = sw.slice(sw.indexOf("addEventListener('fetch'"))
+    const early = fetchBlock.indexOf("startsWith('/lab/')")
+    expect(early).toBeGreaterThan(-1)
+    expect(fetchBlock.slice(early, fetchBlock.indexOf('\n', early))).toMatch(/return/)
+    expect(early).toBeLessThan(fetchBlock.indexOf('respondWith'))
   })
 
   it('навигация не ждёт молчащую сеть дольше ~4с и отдаёт офлайн-страницу сразу без сети', () => {

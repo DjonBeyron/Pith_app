@@ -8,6 +8,9 @@
 //   node scripts/make-brand-assets.mjs
 // Стартовые экраны по умолчанию браузер не используют: однотонный PNG собирается напрямую
 // (обычный 8-bit RGB, truecolor, без палитры и альфы; одни нули сжимаются deflate до ~3–11 КБ). SPLASH_LOGO=1 — старый вид (с лого).
+// LAB=1 — только наборы «Лаборатории запуска» (Админ → «Старт», public/lab/*.html): public/lab/splash-blue (#0a2a66) и
+// public/lab/splash-gray (#1b1b1b), те же 13 размеров, truecolor RGB, без лого. Остальное (иконки, основные PNG) не трогает.
+//   LAB=1 node scripts/make-brand-assets.mjs
 import { execFileSync } from 'node:child_process'
 import { deflateSync } from 'node:zlib'
 import { Buffer } from 'node:buffer'
@@ -142,8 +145,11 @@ function splashHtml(w, h, dpr) {
   </style><div class="stage"><div class="wrap">${logoPlain}</div></div>`
 }
 
+// Наборы лаборатории запуска: [папка, цвет RGB]
+const LAB_SETS = [['splash-blue', [10, 42, 102]], ['splash-gray', [27, 27, 27]]]
+
 // ONLY_SPLASH=1 — перерисовать только стартовые экраны (иконки не трогать)
-if (!process.env.ONLY_SPLASH) {
+if (!process.env.ONLY_SPLASH && !process.env.LAB) {
   console.log('Иконки приложения:')
   for (const size of [180, 192, 512]) {
     shot(iconHtml(size), size, size, join(root, `public/icons/icon-${size}.png`))
@@ -155,8 +161,20 @@ if (!process.env.ONLY_SPLASH) {
   }
 }
 
-console.log(process.env.SPLASH_LOGO ? 'Стартовые экраны iOS (с лого):' : 'Стартовые экраны iOS (чистый чёрный, без лого):')
-for (const [cssW, cssH, dpr] of DEVICES) {
+if (process.env.LAB) {
+  for (const [dir, rgb] of LAB_SETS) {
+    console.log(`Лаборатория запуска, public/lab/${dir} (rgb ${rgb.join(',')}):`)
+    for (const [cssW, cssH, dpr] of DEVICES) {
+      const out = join(root, `public/lab/${dir}/startup-${cssW * dpr}x${cssH * dpr}.png`)
+      mkdirSync(dirname(out), { recursive: true })
+      writeFileSync(out, solidPng(cssW * dpr, cssH * dpr, rgb))
+      console.log('  ' + out.replace(root, '.').replace(/\\/g, '/'))
+    }
+  }
+}
+
+if (!process.env.LAB) console.log(process.env.SPLASH_LOGO ? 'Стартовые экраны iOS (с лого):' : 'Стартовые экраны iOS (чистый чёрный, без лого):')
+for (const [cssW, cssH, dpr] of process.env.LAB ? [] : DEVICES) {
   const w = cssW * dpr, h = cssH * dpr
   const out = join(root, `public/splash/startup-${w}x${h}.png`)
   if (process.env.SPLASH_LOGO) shot(splashHtml(w, h, dpr), w, h, out)

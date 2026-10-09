@@ -5,6 +5,7 @@ import { formatStartShort } from './formatStartShort.js'
 import { copyText } from './copyText.js'
 import StartLogRow from './StartLogRow.jsx'
 import StartVariantBlock from './StartVariantBlock.jsx'
+import StartLabBlock from './StartLabBlock.jsx'
 import '../../../styles/admin-start.css'
 
 // Админ → «Старт»: журнал запуска приложения на этом устройстве (его пишет inline-скрипт в начале index.html).
@@ -39,6 +40,7 @@ export default function AdminStartTab() {
   return (
     <div className="aeWrap">
       <StartVariantBlock />
+      <StartLabBlock />
       <div className="aeHead">
         <span className="aeTitle">Старт приложения (журнал {list.length}/8)</span>
         <button className="aeRefresh" onClick={() => { setList(readStartLogs()); setNote('Обновлено') }}>Обновить</button>

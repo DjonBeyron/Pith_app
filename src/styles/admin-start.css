@@ -31,6 +31,13 @@
 .astVarTitle { font-size: 14px; font-weight: 600; color: #e0e0e0; }
 .astVarText { font-size: 12px; line-height: 1.4; color: #999; }
 
+/* Блок «Лаборатория запуска» (StartLabBlock.jsx) */
+.astLab { border-color: #2f3a52; }
+.astLabLink { display: inline-block; text-decoration: none; }
+.astLabList { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; font-size: 12px; line-height: 1.45; color: #b8c0c8; }
+.astLabPages { display: flex; flex-direction: column; gap: 6px; }
+.astLabPage { display: flex; flex-direction: column; gap: 3px; padding: 9px 12px; border: 1px solid #2a2d35; border-radius: 10px; background: #101216; text-decoration: none; }
+
 .astRow {
   background: #14161b;
   border: 1px solid #23262d;
