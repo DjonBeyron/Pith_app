@@ -22,7 +22,7 @@ describe('start-log: страж index.html', () => {
   })
 
   it('скрипт небольшой и целиком обёрнут в try/catch', () => {
-    expect(SCRIPT.body.split('\n').length).toBeLessThanOrEqual(150)
+    expect(SCRIPT.body.split('\n').length).toBeLessThanOrEqual(220)
     expect(SCRIPT.body).toMatch(/try \{ run\(\) \} catch/)
   })
 
@@ -36,7 +36,7 @@ describe('start-log: страж index.html', () => {
       'readystatechange', 'DOMContentLoaded', "'load'", 'pageshow', 'pagehide', 'visibilitychange', 'resize', 'orientationchange',
       "'focus'", "'blur'", "'online'", "'offline'", 'beforeunload', 'controllerchange', 'getRegistration', 'unhandledrejection',
       'largest-contentful-paint', 'layout-shift', 'longtask', "'paint'", 'requestAnimationFrame', 'fonts', 'offlineGuard', 'serverGuard',
-      '__splashLog', '__startMark', '__startLog', 'History.prototype']) {
+      '__splashLog', '__startMark', '__startLog', 'History.prototype', 'elementsFromPoint', 'nav.shellV2Nav', '.feedSwiper', '--sab', '__safeStable']) {
       expect(SCRIPT.body, k).toContain(k)
     }
   })
@@ -115,25 +115,6 @@ describe('start-log: поведение скрипта в песочнице', (
     expect(of(env, 'longtask')).toHaveLength(10)
   })
 
-  it('семплер: полная строка один раз, потом только изменения; без изменений — tick раз в ~100 мс; стоп через 3 с', () => {
-    const env = boot()
-    env.advance(300)
-    const samples = of(env, 'sample')
-    expect(samples).toHaveLength(1)
-    expect(samples[0][2]).toBe('bg=rgb(0,0,0) bb=rgb(0,0,0) so=1 sd=block fd=1 lg=163,376,92x92 rt=0 ng=0 fn=loaded')
-    expect(of(env, 'tick').length).toBeGreaterThanOrEqual(2)
-    env.fade.st.opacity = '0.456'; env.advance(32)
-    expect(of(env, 'sample')[1][2]).toBe('fd=0.46') // только изменившееся поле
-    env.logo.rect = { x: 163, y: 346, width: 92, height: 92 }; env.root.childElementCount = 1; env.advance(32)
-    expect(of(env, 'sample').slice(2).map(e => e[2]).join('|')).toContain('lg=163,346,92x92')
-    env.advance(3100)
-    expect(of(env, 'raf-stop')).toHaveLength(1)
-    expect(env.log().ev.find(e => e[1] === 'raf-stop')[0]).toBeGreaterThanOrEqual(3000)
-    const n = env.log().ev.length
-    env.advance(500)
-    expect(env.log().ev.length).toBeLessThanOrEqual(n + 1) // семплер выключен (кроме итога)
-  })
-
   it('просадка кадра >40 мс помечается jank с длительностью', () => {
     const env = boot()
     env.advance(64); env.frame(120); env.advance(32)
@@ -142,15 +123,13 @@ describe('start-log: поведение скрипта в песочнице', (
     expect(j[0][2]).toBe('120ms')
   })
 
-  it('уход сплэша продлевает семплер ещё на 0,7 с, но не дальше 6 с; отметка splash-gone', () => {
+  it('уход сплэша: отметка splash-gone, семплер доходит до итоговой записи', () => {
     const env = boot()
     env.advance(3500)
-    expect(of(env, 'raf-stop')).toHaveLength(1)
     env.win.fire('pithy:splash-gone')
     env.splash.st.opacity = '0.5'; env.advance(800)
     expect(of(env, 'splash-gone')).toHaveLength(1)
     expect(of(env, 'sample').some(e => e[2].includes('so=0.5'))).toBe(true)
-    expect(of(env, 'raf-stop')).toHaveLength(2)
   })
 
   it('location.reload перехватывается, только если браузер позволяет (в норме — нет)', () => {

@@ -1,4 +1,5 @@
 import { fmtT, parseKv, replaySamples, fullEvents } from './startLogEvents.js'
+import { layoutSuspects } from './analyzeStartLayout.js'
 
 // Автоподсветка подозрительных мест в журнале старта (чистая функция, ничего не читает снаружи).
 // Возвращает { suspects: [{ level: 'warn' | 'info', t, code, text }], stats }.
@@ -61,7 +62,10 @@ function eventSuspects(rec, ev, add, firstFrame) {
       case 'hist': add('info', t, 'hist', `history.${d}`); break
       case 'beforeunload': if (t < 6000) add('warn', t, 'unload', 'beforeunload до конца записи: страница уходит (перезагрузка/переход)'); break
       case 'pagehide': if (t < 6000) add('warn', t, 'pagehide', `pagehide на старте (${d})`); break
-      case 'safe-changed': add('warn', t, 'safe-area', `safe-area-inset изменился после первого кадра: ${d} (было ${ctx.safe})`); break
+      case 'safe-changed': add('warn', t, 'safe-area', `safe-area-inset изменился после первого кадра: ${d} (было ${ctx.safe})`); break // старые записи; новые пишут sa в семплах
+      case 'sab-freeze': add('info', t, 'sab', `--sab зафиксирован в ${d} (раскладка больше не зависит от env)`); break
+      case 'sab-unfreeze': add('info', t, 'sab', '--sab снят (поворот/смена ширины окна)'); break
+      case 'sab-drift': add('warn', t, 'sab-drift', `env(safe-area-inset-bottom) ушёл от зафиксированного: ${d}`); break
       default:
     }
   }
@@ -89,6 +93,7 @@ export function analyzeStartLog(rec, prev = null) {
     errors: ev.filter(e => /^(js-error|rej|res-error)$/.test(e[1])).length,
   }
   stateSuspects(ev, add)
+  layoutSuspects(ev, add)
   eventSuspects(rec, ev, add, firstFrame)
 
   if (ctx.nav === 'reload') add('warn', 0, 'nav', `тип навигации reload — страницу перезагрузили${prev?.ctx?.nav ? ` (прошлый старт: ${prev.ctx.nav})` : ''}`)

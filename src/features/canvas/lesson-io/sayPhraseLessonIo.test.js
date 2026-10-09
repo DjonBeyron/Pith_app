@@ -6,6 +6,7 @@ import { importLesson } from './importLesson.js'
 import { buildLegend } from './lessonSchema.js'
 import { lintLesson, fromCanvasNodes } from './lessonLint.js'
 import { PRINCIPLES } from './lessonRulesDefaults.js'
+import { readSayData } from '../../../shared/lib/speech/sayPhraseData.js'
 import { collectLessonWords } from '../../../shared/lib/wordAudio/collectLessonWords.js'
 import { makeNode } from '../nodeGraph.js'
 import { makeDefaultTriggers, TYPED_PAIRS } from '../nodeDefaults.js'
@@ -38,6 +39,13 @@ describe('say_phrase — линтер урока', () => {
     expect(w).toMatch(/n2 say_phrase: пустая phrase/)
     expect(w).toMatch(/threshold 20 вне 50–100/)
     expect(w).toMatch(/ключевых слов нет во фразе/)
+  })
+
+  it('перевод при скрытой фразе (showPhrase=false) — предупреждение: пузыря нет, перевод не покажется', () => {
+    const hidden = [good[0], ex('n2', 2, 'say_phrase', { phrase: 'I am trying to please both', translation: 'Я пытаюсь', showPhrase: false }, []), good[2]]
+    expect(lintLesson(hidden).join('\n')).toMatch(/n2 say_phrase: showPhrase=false/)
+    hidden[1] = ex('n2', 2, 'say_phrase', { phrase: 'I am trying to please both', showPhrase: false }, [])
+    expect(lintLesson(hidden).join('\n')).not.toMatch(/showPhrase=false/)
   })
 
   it('нет пояснения перед нодой / две подряд / первая нода урока', () => {
@@ -82,9 +90,23 @@ describe('say_phrase — обмен JSON', () => {
     expect(lintLesson(fromCanvasNodes(back.nodes)).filter(w => /say_phrase.*(пуст|threshold|ключев)/.test(w))).toEqual([])
   })
 
+  it('showPhrase=false и strict=true: поля сохраняются туда и обратно; отсутствие полей = showPhrase true / strict false', () => {
+    const a = makeNode(1, 0, 0, 'say_phrase')
+    a.typeData.say_phrase = { ...a.typeData.say_phrase, phrase: "I'm trying to please both", showPhrase: false, strict: true }
+    const out = exportLesson([a], { title: 'Say' })
+    expect(out.nodes[0].data).toMatchObject({ showPhrase: false, strict: true })
+    const back = importLesson(JSON.parse(JSON.stringify(out))).nodes[0].typeData.say_phrase
+    expect(back).toMatchObject({ showPhrase: false, strict: true })
+    expect(readSayData(back)).toMatchObject({ showPhrase: false, strict: true, threshold: 100 })
+    const plain = makeNode(2, 0, 0, 'say_phrase')
+    plain.typeData.say_phrase.phrase = 'Hello there'
+    const p = importLesson(JSON.parse(JSON.stringify(exportLesson([plain], { title: 'Say' })))).nodes[0].typeData.say_phrase
+    expect(readSayData(p)).toMatchObject({ showPhrase: true, strict: false })
+  })
+
   it('легенда описывает тип, поля и триггеры; правило автора про say_phrase есть в зашитых принципах', () => {
     const legend = buildLegend()
-    expect(Object.keys(legend.nodes.say_phrase.fields)).toEqual(expect.arrayContaining(['phrase', 'translation', 'keywords', 'threshold', 'lang', 'listenAudio']))
+    expect(Object.keys(legend.nodes.say_phrase.fields)).toEqual(expect.arrayContaining(['phrase', 'translation', 'keywords', 'threshold', 'lang', 'listenAudio', 'showPhrase', 'strict']))
     expect(Object.keys(legend.triggers)).toEqual(expect.arrayContaining(['say_done', 'say_skip']))
     expect(PRINCIPLES.some(p => p.startsWith('say_phrase («Сказать фразу»)'))).toBe(true)
   })

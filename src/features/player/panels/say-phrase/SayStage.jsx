@@ -1,29 +1,30 @@
-import { Mic, MicOff, Square } from 'lucide-react'
+import { Mic, MicOff, Check } from 'lucide-react'
 
-// Середина панели «Сказать фразу»: большая круглая кнопка микрофона и статус-строки под ней. Высота блока постоянна
-// во всех состояниях (CSS .sayStage/.sayInfo): тексты внутри меняются, раскладка не прыгает.
-// Анимация «слушаю» — пульсирующий ободок (.sayMicPulse): только opacity + transform, без blur/filter/box-shadow.
-// busy — пока ждём диалог/обрабатываем: кнопка спокойная; нажатие во время записи = «стоп» (принять сказанное).
-// off — микрофона не будет (отказ, нет распознавания, «Не могу говорить»): кнопка перечёркнута и не нажимается.
-export default function SayStage({ info, listening, busy, off, disabled, onTap, extra = null }) {
-  const cls = `sayMic${listening ? ' sayMic--listening' : ''}${busy && !listening ? ' sayMic--busy' : ''}${off ? ' sayMic--off' : ''}`
+// Середина панели «Сказать фразу»: кнопка-плашка микрофона на всю ширину (вид — общий .phraseCheckBtn, как «Проверить» у
+// остальных панелей, высота 52px) с иконкой и подписью + строка статуса под ней. Высота блока постоянна во всех состояниях
+// (CSS .sayStage/.sayInfo): тексты меняются, раскладка не прыгает. Состояния плашки (mode из micLabel в sayStatus.js):
+//  idle «Нажмите, чтобы говорить» | listening «Слушаю…» (пульс иконки и ободка — только opacity/transform) |
+//  busy «Обрабатываем…» | ok «Верно!» | off «Микрофон выключен» (перечёркнутая иконка, не нажимается).
+// Нажатие во время записи = «стоп» (принять сказанное).
+export default function SayStage({ label, mode, info, disabled, onTap }) {
+  const off = mode === 'off'
+  const Icon = off ? MicOff : mode === 'ok' ? Check : Mic
   return (
     <div className="sayStage">
       <button
         type="button"
-        className={cls}
+        className={`phraseCheckBtn sayMicBtn sayMicBtn--${mode}`}
         onClick={onTap}
         disabled={disabled || off}
-        aria-label={listening ? 'Остановить запись' : 'Сказать фразу'}
+        aria-label={mode === 'listening' ? 'Остановить запись' : label}
       >
-        {listening && <><span className="sayMicPulse" aria-hidden="true" /><span className="sayMicPulse sayMicPulse--b" aria-hidden="true" /></>}
-        {listening ? <Square size={24} fill="currentColor" /> : off ? <MicOff size={28} /> : <Mic size={30} />}
+        {mode === 'listening' && <span className="sayMicRing" aria-hidden="true" />}
+        <Icon className="sayMicIcon" size={22} aria-hidden="true" />
+        <span className="sayMicText" data-testid="say-mic-label">{label}</span>
       </button>
       <div className="sayInfo" aria-live="polite">
-        <p className={`sayStatus sayStatus--${info.tone}`} data-testid="say-status">{info.status}</p>
+        {info.status && <p className={`sayStatus sayStatus--${info.tone}`} data-testid="say-status">{info.status}</p>}
         {info.hint && <p className="sayHint" data-testid="say-hint">{info.hint}</p>}
-        {extra}
-        {info.heard && <p className="sayHeard" data-testid="say-heard">{info.heard}</p>}
       </div>
     </div>
   )

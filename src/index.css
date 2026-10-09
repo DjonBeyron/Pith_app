@@ -151,6 +151,7 @@
 @import './styles/player/panels/fill-blanks-lines.css';
 @import './styles/player/panels/type-word.css';
 @import './styles/player/panels/say-phrase.css';
+@import './styles/player/panels/say-phrase-popup.css';
 @import './styles/player/panels/signal-blink-chip.css';
 @import './styles/player/panels/registration.css';
 @import './styles/player/panels/push-prompt.css';

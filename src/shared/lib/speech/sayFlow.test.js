@@ -69,3 +69,38 @@ describe('sayReducer', () => {
     expect(sayReducer(f, { type: 'enable' })).toMatchObject({ phase: 'idle', fallbackReason: null })
   })
 })
+
+describe('порядок появления панели и пояснение', () => {
+  it('сначала фраза в чате, панель через 1500 мс; без фразы в чате (showPhrase=false) — коротко, 400 мс', async () => {
+    const { SAY_PANEL_DELAY_MS, SAY_PANEL_DELAY_NO_PHRASE_MS, panelDelayMs } = await import('./sayFlow.js')
+    expect(SAY_PANEL_DELAY_MS).toBe(1500)
+    expect(SAY_PANEL_DELAY_NO_PHRASE_MS).toBe(400)
+    expect(panelDelayMs(true)).toBe(1500)
+    expect(panelDelayMs(undefined)).toBe(1500)
+    expect(panelDelayMs(false)).toBe(400)
+    expect(panelDelayMs(readSayData({ phrase: 'Hi' }).showPhrase)).toBe(1500)
+    expect(panelDelayMs(readSayData({ phrase: 'Hi', showPhrase: false }).showPhrase)).toBe(400)
+  })
+
+  it('попап пояснения: закрыли мимо кнопки → снова готов, флаг пояснения не ставится; «Понятно» → запись', () => {
+    const e = sayReducer(initialSayState({ action: 'explain' }), { type: 'explain' })
+    expect(sayReducer(e, { type: 'explainCancel' })).toMatchObject({ phase: 'idle' })
+    expect(sayReducer(run(), { type: 'explainCancel' }).phase).toBe('run') // чужую фазу не трогаем
+    expect(sayReducer(e, { type: 'begin', data })).toMatchObject({ phase: 'run', taps: 1 })
+  })
+
+  it('событие результата несёт interimDiffers: движок «исправил» слово (interim ≠ final) — без текста', () => {
+    const a = sayReducer(run(), { type: 'view', view: done('I am trying to please both', { lastInterim: 'I am try to please both' }) })
+    expect(a.event.extra.interimDiffers).toBe(true)
+    const b = sayReducer(run(), { type: 'view', view: done('I am trying to please both', { lastInterim: 'i am trying to please both' }) })
+    expect(b.event.extra.interimDiffers).toBe(false)
+  })
+
+  it('«Строго»: намеренная ошибка не проходит, обычный режим проходит', () => {
+    const loose = readSayData({ phrase: "I'm trying to please both", keywords: 'please' })
+    const strict = readSayData({ phrase: "I'm trying to please both", keywords: 'please', strict: true })
+    const view = done("I'm try to please both")
+    expect(sayReducer(sayReducer(initialSayState({ action: 'listen' }), { type: 'begin', data: loose }), { type: 'view', view }).phase).toBe('passed')
+    expect(sayReducer(sayReducer(initialSayState({ action: 'listen' }), { type: 'begin', data: strict }), { type: 'view', view }).phase).toBe('failed')
+  })
+})

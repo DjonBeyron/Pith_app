@@ -64,7 +64,32 @@ export function setPref(name, value) {
 export function usePref(name) {
   return useSyncExternalStore(subscribeLessonPrefs, () => getPref(name), () => true)
 }
-export function useEqualizerEnabled() { return usePref('equalizer') }
+
+// Принудительное включение эквалайзера модулем (счётчик: модулей может быть несколько). «Сказать фразу» включает его на время
+// попытки записи — свечение реагирует на голос ученика, даже если в шестерёнке эквалайзер выключен; сама настройка не меняется
+// (в localStorage ничего не пишется) и снова действует, как только модуль отпустил (forceEqualizer() возвращает функцию-отпускание)
+let forced = 0
+export function forceEqualizer() {
+  let released = false
+  forced += 1
+  emit()
+  return () => {
+    if (released) return
+    released = true
+    forced = Math.max(0, forced - 1)
+    emit()
+  }
+}
+export const isEqualizerForced = () => forced > 0
+
+/** Чистое правило: свечение включено, если оно включено в шестерёнке ИЛИ его принудительно держит модуль */
+export const equalizerOn = (pref, forcedCount) => !!pref || forcedCount > 0
+
+export function useEqualizerEnabled() {
+  const pref = usePref('equalizer')
+  const isForced = useSyncExternalStore(subscribeLessonPrefs, isEqualizerForced, () => false)
+  return equalizerOn(pref, isForced ? 1 : 0)
+}
 
 // Единственная точка решения «играть ли звук»: её регистрирует setSoundFilter,
 // и playSound (sounds.js) молчит, если пользователь отключил этот звук

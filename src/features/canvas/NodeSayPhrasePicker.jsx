@@ -8,14 +8,16 @@ import { tokenize } from '../../shared/lib/speech/speechMatch.js'
 
 // Редактор ноды «Сказать фразу»: ученик произносит английскую фразу в микрофон, приложение мягко сверяет её с эталоном.
 // Поля: phrase (обязательно), translation (по кнопке в чате), keywords (через запятую — обязательно должны прозвучать),
-// threshold (% слов эталона для «засчитано», 50–100, по умолчанию 70), lang (en-US / en-GB), listenAudio («Послушать»).
+// threshold (% слов эталона для «засчитано», 50–100, по умолчанию 70), lang (en-US / en-GB), listenAudio («Послушать»),
+// showPhrase («Показывать фразу в чате», по умолчанию да: выключено — пузыря с фразой нет, эталон только «под капотом»),
+// strict («Строго»: все слова эталона и без опечаток; по умолчанию выключено).
 // Выходы: «Сказал(а)» (основной; им же идёт «Получилось») и «Не могу говорить» (необязательная ветка пропуска —
 // если не соединена, плеер идёт по основному). «Неверно» нет: речь тренировка и не штрафуется.
 const LANG_LABEL = { 'en-US': 'Американский (en-US)', 'en-GB': 'Британский (en-GB)' }
 const stop = e => e.stopPropagation()
 
 export default function NodeSayPhrasePicker({
-  phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true,
+  phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true, showPhrase = true, strict = false,
   onChange, triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
   const rowRefs = useRef(new Map())
@@ -48,7 +50,7 @@ export default function NodeSayPhrasePicker({
   // Превью «как проверит приложение»: слова фразы (ключевые — зелёным) и сколько слов нужно сказать при этом пороге
   const keySet = new Set(parseKeywords(keywords).flatMap(tokenize))
   const total = tokenize(phrase).length
-  const need = Math.ceil(total * threshold / 100 - 1e-9)
+  const need = strict ? total : Math.ceil(total * threshold / 100 - 1e-9)
   const others = allNodes.filter(n => n.id !== nodeId)
 
   return (
@@ -83,9 +85,9 @@ export default function NodeSayPhrasePicker({
       )}
       <div className="nodeSayRow">
         <label className="nodeSayField" onClick={stop}>
-          <span className="nodeTwLabel">Порог: {threshold}% слов</span>
+          <span className="nodeTwLabel">Порог: {strict ? 100 : threshold}% слов{strict ? ' (строго)' : ''}</span>
           <input
-            type="range" min={THRESHOLD_MIN} max={THRESHOLD_MAX} step={5} value={threshold}
+            type="range" min={THRESHOLD_MIN} max={THRESHOLD_MAX} step={5} value={strict ? THRESHOLD_MAX : threshold} disabled={strict}
             onChange={e => onChange({ threshold: Number(e.target.value) })}
           />
         </label>
@@ -104,6 +106,17 @@ export default function NodeSayPhrasePicker({
           <span className="nodeSayNeed">— нужно сказать {need} из {total} слов{keySet.size ? ', ключевые обязательны' : ''}</span>
         </p>
       )}
+      <label className="nodeSayCheck" onClick={stop}>
+        <input type="checkbox" checked={showPhrase} onChange={e => onChange({ showPhrase: e.target.checked })} />
+        Показывать фразу в чате
+      </label>
+      {!showPhrase && (
+        <p className="nodeSayWarn nodeSayNote">Фразы в чате не будет (и перевода тоже): в панели «Произнесите фразу». Проверка, «Послушать» и аналитика работают как обычно.</p>
+      )}
+      <label className="nodeSayCheck" onClick={stop}>
+        <input type="checkbox" checked={strict} onChange={e => onChange({ strict: e.target.checked })} />
+        Строго: все слова и без опечаток (порог 100%)
+      </label>
       <label className="nodeSayCheck" onClick={stop}>
         <input type="checkbox" checked={listenAudio} onChange={e => onChange({ listenAudio: e.target.checked })} />
         Кнопка «Послушать» (озвучка фразы из базы слов)

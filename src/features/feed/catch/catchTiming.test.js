@@ -48,13 +48,13 @@ describe('тайминги финала «Ловли»', () => {
     expect(compressDelay(0)).toBe(compressDelay(1))
   })
 
-  it('блеск факта: один проход 800мс, пауза 400мс сверх раскладки; числа совпадают с feed-catch-fact.css', () => {
-    expect(CATCH_FACT_REVEAL_MS).toBe(800)
+  it('блеск факта: один проход 1000мс (фронт + хвост затухания), пауза 400мс сверх раскладки; числа совпадают с feed-catch-fact.css', () => {
+    expect(CATCH_FACT_REVEAL_MS).toBe(1000)
     expect(CATCH_FACT_FADE_MS).toBe(220)
     expect(CATCH_FACT_PAUSE_MS).toBeGreaterThanOrEqual(350)
     expect(CATCH_FACT_PAUSE_MS).toBeLessThanOrEqual(450)
-    expect(CATCH_FACT_REVEAL_MS).toBeGreaterThanOrEqual(700)
-    expect(CATCH_FACT_REVEAL_MS).toBeLessThanOrEqual(900)
+    expect(CATCH_FACT_REVEAL_MS).toBeGreaterThanOrEqual(900)
+    expect(CATCH_FACT_REVEAL_MS).toBeLessThanOrEqual(1200)
     expect(css).toMatch(new RegExp(`catchFactGlint ${CATCH_FACT_REVEAL_MS}ms `))
     expect(css).toMatch(new RegExp(`catchFactIn ${CATCH_FACT_FADE_MS}ms `))
   })
@@ -89,18 +89,35 @@ describe('CSS блеска факта (feed-catch-fact.css): блестит са
     expect(rules).toMatch(/\.catchFactSlot \{ height: 76px; \}/)
   })
 
-  it('градиент: слева итог 0.9, пик ≤ 1.0 у фронта, справа тусклый призрак 0.15-0.2; один проход background-position', () => {
-    const alphas = [...text.matchAll(/linear-gradient\(([\s\S]*?)\);/g)][0][1].match(/rgba\(255, 255, 255, ([\d.]+)\)/g).map(c => +c.match(/([\d.]+)\)$/)[1])
-    expect(alphas).toEqual([0.9, 1, 0.18])
-    expect(alphas[2]).toBeGreaterThanOrEqual(0.15)
-    expect(alphas[2]).toBeLessThanOrEqual(0.2)
-    expect(text).toMatch(/background-position: 100% 0/) // до блеска фронт за левым краем — строка тусклая
-    expect(css).toMatch(/@keyframes catchFactGlint \{\s*from \{ background-position: 100% 0; \}\s*to\s+\{ background-position: 0 0; \}/)
-    expect(text).toMatch(/catchFactGlint \d+ms [^;]*var\(--catch-glint-delay[^;]*1 both/) // один проход, ждёт --catch-glint-delay
+  it('градиент: серый 0.38 | хвост затухания | пик 1.0 | тот же серый; призрак до блеска = итог после блеска', () => {
+    const grad = [...text.matchAll(/linear-gradient\(([\s\S]*?)\);/g)][0][1]
+    const stops = [...grad.matchAll(/rgba\(255, 255, 255, ([\d.]+)\) calc\(50% ([+-]) (\d+)px\)/g)].map(m => ({ a: +m[1], x: (m[2] === '-' ? -1 : 1) * +m[3] }))
+    expect(stops.length).toBeGreaterThanOrEqual(4)
+    const first = stops[0], last = stops[stops.length - 1]
+    const peak = stops.reduce((p, c) => (c.a > p.a ? c : p))
+    expect(first.a).toBe(0.38) // то, что остаётся за хвостом = серый покоя (как до v3.2.1890)
+    expect(last.a).toBe(first.a) // впереди фронта (призрак) — тот же серый: до и после блеска строка выглядит одинаково
+    expect(peak.a).toBe(1)
+    expect(stops.indexOf(peak)).toBeGreaterThan(0)
+    expect(stops.indexOf(peak)).toBeLessThan(stops.length - 1)
+    for (let i = 1; i < stops.indexOf(peak) + 1; i++) expect(stops[i].a).toBeGreaterThan(stops[i - 1].a) // хвост: яркость монотонно растёт к фронту
+    for (let i = 1; i < stops.length; i++) expect(stops[i].x).toBeGreaterThan(stops[i - 1].x)
+    const tail = peak.x - first.x // длина хвоста затухания, px; ~0.4 px/мс → 300–500мс
+    expect(tail).toBeGreaterThanOrEqual(120)
+    expect(tail).toBeLessThanOrEqual(200)
+    // геометрия: размер = 2 ширины + P; к концу прохода хвост (P/2 ≥ длина хвоста) целиком за правым краем строки
+    const size = +text.match(/background-size: calc\(200% \+ (\d+)px\)/)[1]
+    expect(size / 2).toBeGreaterThanOrEqual(-first.x)
+    // старт: серая зона за фронтом начинается ровно у левого края строки (нет мёртвого разгона), конец — позиция 0
+    const lead = +text.match(/background-position: calc\(100% \+ (\d+)px\) 0/)[1]
+    expect(lead).toBe(size / 2 - last.x)
+    expect(css).toMatch(new RegExp(`@keyframes catchFactGlint \\{\\s*from \\{ background-position: calc\\(100% \\+ ${lead}px\\) 0; \\}\\s*to\\s+\\{ background-position: 0 0; \\}`))
+    expect(text).toMatch(/catchFactGlint \d+ms linear var\(--catch-glint-delay[^;]*1 both/) // один проход, ждёт --catch-glint-delay
     expect(text).toMatch(/catchFactIn 220ms ease-out var\(--catch-fact-delay/)
+    expect(rules).not.toMatch(/rgba\(255, 255, 255, 0\.9\)|rgba\(255, 255, 255, 0\.18\)/) // ни «яркого итога 0.9», ни старого призрака 0.18
   })
 
-  it('prefers-reduced-motion: без анимации строка сразу яркая (левая, равномерная часть градиента)', () => {
+  it('prefers-reduced-motion: без анимации строка сразу в сером покоя (левая, равномерная часть градиента)', () => {
     const rm = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'))
     expect(rm).toMatch(/\.catchFactText \{ animation: none; background-position: 0 0; \}/)
   })

@@ -38,3 +38,17 @@ export function badRec() {
   ]
   return r
 }
+
+// Старт «как у пользователя на iPhone 16 Pro»: safe-area 0 → 34px приходит НА ХОДУ (t=2400), панель прыгает; сплэш ушёл на 3624,
+// в растворении кадры на 16 мс, под сплэшем меняется слой; журнал длинный (чтобы проверить «коротко»)
+const L1 = 'bg=rgb(0,0,0) bb=rgb(0,0,0) so=1 sd=block fd=0.06 lg=163,376,92x92 rt=0 ng=0 fn=loaded sa=0px/0px/0px/0px iw=402x812 ch=812 fh=812 vv=402x812@0 sy=0/0/0 nv=- fe=- fw=- r0=- ep=splash eu=div#root/rgba(0,0,0,0) eo=html/rgb(0,0,0) vs=- vo=- vr=- vp=- ps=0'
+export function jumpRec() {
+  const ev = [[3, 'start', 'rs=loading'], [816, 'start', 'script'], [1089, 'raf-first', ''], [1089, 'sample', L1], [1200, 'sample', 'fd=0.5'], [1356, 'sample', 'fd=1']]
+  for (let t = 1456; t < 3600; t += 100) ev.push([t, 'tick', '='])
+  ev.push([1700, 'sample', 'rt=1 nv=0,772,402x40/fixed fe=0,0,402x812 r0=0,0,402x812 eu=div#feedV2/rgba(0,0,0,0)'])
+  ev.push([2400, 'sample', 'sa=0px/0px/34px/0px nv=0,738,402x74/fixed'])
+  ev.push([3624, 'mark:pithyReady', 'первый кадр видео'], [3640, 'splash-gone', ''])
+  for (let i = 0; i < 24; i++) ev.push([3656 + i * 16, 'sample', `so=${(0.97 - i * 0.04).toFixed(2)} dt=16`])
+  ev.push([4000, 'sample', 'so=- sd=none ep=div#feedV2'], [4300, 'sample', 'eo=div#feedV2/rgb(11,13,16) vs=rs4,ct1,pa0'], [5000, 'sab-freeze', '34px'], [5640, 'raf-stop', ''])
+  return goodRec({ id: '2026-10-09T11:00:00.000Z', ctx: { ...CTX, win: '402x812', safe: '0px/0px/0px/0px', cold: true }, ev, splash: ['[0.82] splash: первый кадр', '[3.64] splash: улетает'], end: 'end', endT: 5700 })
+}

@@ -7,16 +7,18 @@ import {
   shouldRetry, isQuietCode, retryNotice, LOUD_HINT, NOTICE_WAIT_PERMISSION, NOTICE_BLOCKED, toPercent,
 } from './speechPolicy.js'
 
+const ABORT_SETTLE_MS = 250 // после abort() ждём end не дольше этого: результат у нас уже есть
+
 export const emptyView = {
   status: 'idle', // idle | starting | listening | retrying | done | error
-  interim: '', final: null, alternatives: [], usedInterim: false,
+  interim: '', lastInterim: '', final: null, alternatives: [], usedInterim: false, // lastInterim — последний промежуточный текст попытки (диагностика админа)
   error: null, hint: null, notice: null, needTap: false,
   runNo: 0, reference: '', lang: '', at: null, attempt: 0, maxAttempts: MAX_ATTEMPTS, attemptId: 0,
 }
 
 export const isBusy = view => view.status === 'starting' || view.status === 'listening' || view.status === 'retrying'
 
-const HANDLERS = ['onstart', 'onaudiostart', 'onspeechstart', 'onresult', 'onerror', 'onend']
+const HANDLERS = ['onstart', 'onaudiostart', 'onspeechstart', 'onspeechend', 'onresult', 'onerror', 'onend']
 
 export function createSpeechController({
   createRecognition, queryPerm = async () => 'unavailable', getMode = () => 'browser',
@@ -25,6 +27,11 @@ export function createSpeechController({
   // Модуль «Сказать фразу» их не передаёт: режим A (только SpeechRecognition), ничего параллельно с ним не открывается
   capture = null, getCapture = () => 'plain', logFields = () => ({}),
   now = () => Date.now(), perfNow = () => Date.now(), onView = () => {}, onEntry = () => {},
+  // onSignal(kind) — события движка для синтетического уровня эквалайзера модуля «Сказать фразу» (sayVoiceLevel.js):
+  // 'audiostart' | 'speechstart' | 'interim' | 'final' | 'speechend' | 'end'. Реального уровня звука не берём (getUserMedia
+  // рядом с SpeechRecognition на iPhone ломает распознавание). endOnFinal — чем гасить движок после финального результата:
+  // 'stop' (проба «Голос», как раньше) или 'abort' (модуль: abort() не доигрывает системный хвост распознавания)
+  onSignal = () => {}, endOnFinal = 'stop',
 }) {
   let seq = 0     // счётчик attemptId (на каждый экземпляр recognition)
   let runNo = 0   // номер нажатия «Сказать»
@@ -72,10 +79,11 @@ export function createSpeechController({
     if (a.gotFinal) { outcome = 'ok'; error = null } else if (a.lastInterim && (code == null || stopped)) {
       // iOS иногда заканчивает без финала: берём последний промежуточный текст
       const alt = { text: a.lastInterim.trim(), confidence: null }
-      push({ interim: '', final: alt, alternatives: [alt], usedInterim: true })
+      push({ interim: '', lastInterim: a.lastInterim, final: alt, alternatives: [alt], usedInterim: true })
       outcome = 'ok'; error = null
     } else if (stopped) { outcome = 'stopped'; error = null }
     teardown(a)
+    onSignal('end')
     const again = outcome === 'error' && shouldRetry(error, a.retry)
     record(a, error, !again, outcome)
     if (again) {
@@ -131,8 +139,9 @@ export function createSpeechController({
       rec.maxAlternatives = 3
       rec.continuous = false
       rec.onstart = () => { if (live()) a.msStart ??= since() }
-      rec.onaudiostart = () => { if (!live()) return; a.msAudio ??= since(); enterAudio(); arm() }
-      rec.onspeechstart = () => { if (!live()) return; enterAudio(); arm() }
+      rec.onaudiostart = () => { if (!live()) return; a.msAudio ??= since(); enterAudio(); arm(); onSignal('audiostart') }
+      rec.onspeechstart = () => { if (!live()) return; enterAudio(); arm(); onSignal('speechstart') }
+      rec.onspeechend = () => { if (live()) onSignal('speechend') }
       rec.onresult = ev => {
         if (!live() || a.gotFinal) return
         a.msResult ??= since()
@@ -145,15 +154,18 @@ export function createSpeechController({
           else interim += (interim ? ' ' : '') + r[0].transcript
         }
         if (interim) a.lastInterim = interim
-        if (!finals.length) { arm(); push({ interim }); return }
+        if (!finals.length) { arm(); onSignal('interim'); push({ interim, lastInterim: a.lastInterim }); return }
         const alts = finals.length === 1
           ? Array.from(finals[0]).map(x => ({ text: x.transcript.trim(), confidence: x.confidence }))
           : [{ text: finals.map(r => r[0].transcript.trim()).join(' '), confidence: finals.reduce((s, r) => s + r[0].confidence, 0) / finals.length }]
         a.gotFinal = true
         clearTimeout(a.silenceTimer)
-        push({ interim: '', final: alts[0], alternatives: alts, usedInterim: false })
-        try { rec.stop() } catch { /* уже останавливается */ }
-        a.forceTimer = setTimeout(() => conclude(a, null), STOP_FORCE_MS)
+        onSignal('final')
+        push({ interim: '', lastInterim: a.lastInterim, final: alts[0], alternatives: alts, usedInterim: false })
+        // Результат уже у нас: модуль гасит движок abort() (без хвоста распознавания), проба — stop(), как раньше.
+        // Событие end после abort() придёт (conclude подхватит), а если нет — страхует forceTimer
+        try { if (endOnFinal === 'abort') rec.abort(); else rec.stop() } catch { /* уже останавливается */ }
+        a.forceTimer = setTimeout(() => conclude(a, null), endOnFinal === 'abort' ? ABORT_SETTLE_MS : STOP_FORCE_MS)
       }
       rec.onerror = ev => { if (live() && !a.gotFinal) conclude(a, ev?.error || 'unknown') }
       rec.onend = () => { if (live()) conclude(a, null) }

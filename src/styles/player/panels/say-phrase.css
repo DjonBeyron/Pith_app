@@ -1,9 +1,10 @@
 /* ── Панель «Сказать фразу» ─────────────────────────────────────────────
    Корпус (.phrasePanel/.phraseInner) и кнопки (.phraseCheckBtn) — те же классы, что у «Собери фразу»/«Напечатай слово»
-   (phrase-assembly.css): панель выглядит родной. Здесь — слова фразы, круглая кнопка микрофона со статусом и тихие ссылки.
-   ВЫСОТА ПАНЕЛИ ПОСТОЯННА во всех состояниях (готов / пояснение / слушаю / успех / неудача / запасной режим): тексты меняются
-   внутри блоков фиксированной высоты (.sayWords, .sayStage, .sayActions, .sayFoot), раскладка не прыгает.
-   Анимация «слушаю» — только opacity/transform (пульсирующий ободок), без filter/blur/box-shadow.
+   (phrase-assembly.css): панель выглядит родной. Здесь — надпись «Произнесите фразу» (сама фраза — пузырём в чате),
+   кнопка-плашка микрофона с иконкой и текстом, строка статуса и тихие ссылки. Попап пояснения про микрофон — say-phrase-popup.css.
+   ВЫСОТА ПАНЕЛИ ПОСТОЯННА во всех состояниях (готов / слушаю / успех / неудача / запасной режим): тексты меняются
+   внутри блоков фиксированной высоты (.sayLabel, .sayStage, .sayActions, .sayFoot), раскладка не прыгает.
+   Анимация «слушаю» — только opacity/transform (пульс ободка и иконки), без filter/blur/box-shadow.
    ──────────────────────────────────────────────────────────────────── */
 
 .sayPhraseSpacer {
@@ -13,101 +14,89 @@
 
 .sayInner { gap: 8px; }
 
-/* Слова фразы: две строки места всегда; цвет — по результату проверки */
-.sayWords {
+/* «Произнесите фразу»: одна строка, спокойный цвет */
+.sayLabel {
   margin: 0;
-  min-height: 52px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-content: center;
-  gap: 0 7px;
+  height: 22px;
   text-align: center;
-  font-family: 'Montserrat', 'Comfortaa', sans-serif;
-  font-size: 19px;
-  font-weight: 700;
-  line-height: 26px;
-  color: #e8eaee;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: #aab0c0;
 }
-.sayWord { transition: color .2s; }
-.sayWord--ok { color: #b6fe3b; }
-.sayWord--miss { color: #f87171; }
 
-/* Середина: кнопка микрофона + статус. Высота фиксирована: 72 (кнопка) + 14 + 70 (текст: до 4 строк пояснения) */
+/* Середина: кнопка-плашка 52px + строка статуса 34px (статус 17 + подсказка 16) */
 .sayStage {
-  height: 156px;
+  height: 94px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  gap: 8px;
 }
 
-.sayMic {
+/* Плашка микрофона: вид — общий .phraseCheckBtn (рамка, радиус, цвет); здесь высота 52px, иконка + текст и состояния */
+.sayPanel .sayMicBtn {
   position: relative;
   flex: 0 0 auto;
-  width: 72px;
-  height: 72px;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #12141d;
-  border: 2px solid #b6fe3b;
-  color: #b6fe3b;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  height: 52px;
+  gap: 10px;
   transition: background .15s, color .15s, opacity .2s, transform .15s;
 }
-.sayMic:active:not(:disabled) { background: #b6fe3b; color: #000; transform: scale(0.96); }
-.sayMic--listening { background: #b6fe3b; color: #0c0e12; }
-.sayMic--busy:not(.sayMic--listening) { opacity: .6; }
-.sayMic:disabled { cursor: default; }
-.sayMic:disabled:not(.sayMic--off):not(.sayMic--listening) { opacity: .55; }
-.sayMic--off { border-color: #3a3e4a; color: #6b7184; opacity: .8; }
-
-/* Пульс «слушаю»: два кольца (два span, чтобы масштабы не перемножались) поверх кнопки, растут и гаснут. Только transform + opacity */
-.sayMicPulse {
+.sayMicIcon { flex: 0 0 auto; }
+.sayMicText { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Слушаю: заливка + пульс ободка и иконки */
+.sayPanel .sayMicBtn--listening { background: #b6fe3b; color: #0c0e12; }
+.sayPanel .sayMicBtn--listening .sayMicIcon { animation: sayIconPulse 1s ease-in-out infinite alternate; will-change: transform, opacity; }
+.sayMicRing {
   position: absolute;
   inset: -2px;
-  border-radius: 50%;
+  border-radius: 12px;
   border: 2px solid #b6fe3b;
   pointer-events: none;
-  animation: sayPulse 1.5s ease-out infinite;
+  animation: sayRingPulse 1.4s ease-out infinite;
   will-change: transform, opacity;
 }
-.sayMicPulse--b { animation-delay: .75s; }
-@keyframes sayPulse {
-  0%   { transform: scale(1);   opacity: .6; }
-  100% { transform: scale(1.45); opacity: 0; }
+@keyframes sayRingPulse {
+  0%   { transform: scale(1, 1);       opacity: .7; }
+  100% { transform: scale(1.04, 1.32); opacity: 0; }
 }
+@keyframes sayIconPulse {
+  from { transform: scale(1);    opacity: 1; }
+  to   { transform: scale(1.18); opacity: .65; }
+}
+/* Обрабатываем / включаем: спокойная, не нажимается */
+.sayPanel .sayMicBtn--busy { opacity: .6; pointer-events: none; }
+/* Прошло: зелёная заливка (кнопка выключена — общий disabled гасит до .35, возвращаем) */
+.sayPanel .sayMicBtn--ok:disabled { opacity: 1; background: #b6fe3b; color: #0c0e12; }
+/* Микрофона не будет: перечёркнутая иконка, серая рамка */
+.sayPanel .sayMicBtn--off:disabled { opacity: .85; border-color: #3a3e4a; color: #7d8398; }
 @media (prefers-reduced-motion: reduce) {
-  .sayMicPulse { animation: none; opacity: .35; }
-  .sayMicPulse--b { display: none; }
+  .sayPanel .sayMicBtn--listening .sayMicIcon { animation: none; }
+  .sayMicRing { animation: none; opacity: .35; }
 }
 
 .sayInfo {
-  width: 100%;
-  height: 70px;
+  height: 34px;
   overflow: hidden;
   text-align: center;
 }
 .sayInfo p { margin: 0; }
-.sayStatus { font-size: 13px; line-height: 17px; font-weight: 600; color: #9aa0b4; }
+.sayStatus { font-size: 13px; line-height: 17px; font-weight: 600; color: #9aa0b4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sayStatus--ok { color: #b6fe3b; }
 .sayStatus--warn { color: #f0b86a; }
-.sayHint { font-size: 12px; line-height: 16px; color: #7d8398; }
-.sayHeard {
-  margin-top: 2px;
-  font-size: 12px;
-  line-height: 16px;
-  font-style: italic;
-  color: #c9ced9;
-  white-space: nowrap;
+.sayHint { font-size: 12px; line-height: 16px; color: #7d8398; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Админ: что услышал движок (interim → final). Только у админа; две строки постоянной высоты (28px), не двигает раскладку */
+.sayAdminLine {
+  margin: 0;
+  height: 28px;
+  font-size: 11px;
+  line-height: 14px;
+  color: #6b7184;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 /* Ряд главных кнопок: места всегда на одну (46px), скрытый — visibility. Кнопки — .phraseCheckBtn, их вид не трогаем */
@@ -115,15 +104,17 @@
 .sayActions--off { visibility: hidden; }
 .sayActionCell { flex: 1 1 0; min-width: 0; }
 
-/* Тихие ссылки внизу: «Послушать» слева, «Не могу говорить» справа */
+/* Тихие ссылки внизу: «Послушать» слева, «Я не могу говорить» по центру (подчёркнута), справа «Включить» в режиме без микрофона */
 .sayFoot {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  min-height: 34px;
+  min-height: 44px;
 }
+.sayFootSide { display: flex; align-items: center; }
+.sayFootSide--end { justify-content: flex-end; }
 .sayLink,
-.sayInlineLink {
+.saySkipLink {
   margin: 0;
   background: none;
   border: 0;
@@ -135,11 +126,26 @@
 .sayLink {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 4px;
-  font-size: 13px;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 2px;
+  font-size: 12px;
+  white-space: nowrap;
   color: #8c93a8;
 }
 .sayLink:disabled { cursor: default; }
 .sayLink--off { visibility: hidden; }
-.sayInlineLink { padding: 2px 0; font-size: 12px; line-height: 16px; color: #b6fe3b; text-decoration: underline; }
+/* «Я не могу говорить»: по центру, подчёркнута, приглушённый цвет (как .catchTextBtn), без рамки и фона, зона касания ≥44px */
+.saySkipLink {
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.saySkipLink:active { color: #fff; }
+.saySkipLink:disabled { opacity: .4; cursor: default; }

@@ -1,0 +1,67 @@
+/* ── Попап «Нужен микрофон» (SayMicPopup.jsx) ───────────────────────────
+   Модальная карточка по центру экрана ПЕРЕД системным диалогом микрофона (сам диалог ОС встроить/стилизовать нельзя).
+   Вид и анимации — как у попапа игрока в «Рейтинге» (rating-popup.css) и окошек худа: «пружинка» popSpringIn (pop-spring.css)
+   при открытии, схлопывание hudPopOut + заливка hudPopFlood (hud-pop-out.css) при закрытии. Затемнение — отдельный слой
+   .sayPopDim РЯДОМ с окном: анимируется только его opacity, окно лежит поверх и не затемняется. Без blur/backdrop-filter и теней. */
+.sayPopRoot {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+}
+.sayPopRoot--out { pointer-events: none; }
+
+.sayPopDim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.62); animation: sayPopDimIn 0.28s ease-out backwards; }
+.sayPopDim--out { animation: sayPopDimOut 0.3s ease-out forwards; }
+@keyframes sayPopDimIn { from { opacity: 0; } }
+@keyframes sayPopDimOut { to { opacity: 0; } }
+
+.sayPopCard {
+  position: relative;
+  box-sizing: border-box;
+  width: min(100%, 340px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 18px 18px;
+  border-radius: 20px;
+  background: #14171c;
+  border: 1px solid #2a313b;
+  color: #e8ecf0;
+  text-align: center;
+  transform-origin: 50% 50%;
+  animation: popSpringIn 0.45s backwards;
+  will-change: transform;
+}
+.sayPopCard--out { pointer-events: none; animation: hudPopOut 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards; }
+.sayPopCard--out::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: #14171c;
+  opacity: 0;
+  animation: hudPopFlood 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards;
+}
+
+.sayPopIcon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid #b6fe3b;
+  color: #b6fe3b;
+}
+.sayPopText { margin: 0; font-size: 15px; line-height: 1.45; color: #c9ced9; }
+.sayPopBtn { margin-top: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sayPopCard { animation: popFadeIn 0.2s ease-out backwards; }
+  .sayPopCard--out, .sayPopCard--out::after { animation: none; }
+  .sayPopDim { animation-duration: 0.2s; }
+}

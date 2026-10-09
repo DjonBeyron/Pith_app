@@ -1,10 +1,10 @@
 import { analyzeStartLog } from './analyzeStartLog.js'
-import { collapseTicks, fmtT, fullEvents } from './startLogEvents.js'
+import { collapseTicks, collapseSame, rowText, thinEvents, fmtT, fullEvents } from './startLogEvents.js'
 
 // Текстовый отчёт о старте — то, что админ копирует и присылает. Чистые функции (тесты — formatStartLog.test.js).
-const yn = v => (v === true ? 'да' : v === false ? 'нет' : '?')
-const ms = v => (v === null || v === undefined ? '—' : `${fmtT(v)} мс`)
-const gapText = g => {
+export const yn = v => (v === true ? 'да' : v === false ? 'нет' : '?')
+export const ms = v => (v === null || v === undefined ? '—' : `${fmtT(v)} мс`)
+export const gapText = g => {
   if (typeof g !== 'number' || Number.isNaN(g)) return null
   if (g < 120000) return `${Math.round(g / 1000)} с`
   return g < 7200000 ? `${Math.round(g / 60000)} мин` : `${Math.round(g / 3600000)} ч`
@@ -49,18 +49,22 @@ function headerLines(rec, prev) {
 }
 
 // Таймлайн: `t=123ms | событие | детали`; серии «без изменений» схлопнуты
-function timelineLines(rec) {
+function timelineLines(rec, compact) {
+  if (compact) return collapseSame(thinEvents(fullEvents(rec))).map(rowText) // «Скопировать все»: tick реже, одинаковые подряд — одной строкой
   return collapseTicks(fullEvents(rec)).map(e => {
     if (e.tick) return e.n > 1 ? `t=${fmtT(e.t)}..${fmtT(e.to)}ms | tick | без изменений (x${e.n})` : `t=${fmtT(e.t)}ms | tick | без изменений`
     return `t=${fmtT(e.t)}ms | ${e.type} | ${e.detail}`
   })
 }
 
-export function formatStartLog(rec, prev = null) {
-  return [...headerLines(rec, prev), '', '--- ТАЙМЛАЙН (sample = только изменившиеся поля: bg/bb фон html/body, so/sd прозрачность/display сплэша, fd проявление лого, lg рамка лого x,y,wxh, rt детей в #root, ng экран связи, fn шрифты) ---', ...timelineLines(rec)].join('\n')
+export const SAMPLE_LEGEND = 'sample = только изменившиеся поля: bg/bb фон html/body, so/sd/dt сплэш (прозрачность/display/мс кадра), fd проявление лого, lg рамка лого x,y,wxh, rt детей в #root, ng экран связи, fn шрифты, sa safe-area t/r/b/l, iw/ch/fh/vv размеры окна (innerW×H / clientHeight / fixed-область / visualViewport), sy scrollY/body/html, nv нижняя панель x,y,wxh/position, fe/fw лента .feedV2/.feedSwiper, r0 первый элемент #root, ep верхний элемент в центре, eu элемент под центром БЕЗ сплэша / его фон, eo первый непрозрачный слой под центром, k1..k4 то же в углах, vs видео (rs readyState, ct время>0, pa пауза), vo/vr/vp/ps его прозрачность/рамка/постер'
+
+// compact: для «Скопировать все» — tick реже, повторы схлопнуты
+export function formatStartLog(rec, prev = null, compact = false) {
+  return [...headerLines(rec, prev), '', `--- ТАЙМЛАЙН (${SAMPLE_LEGEND}) ---`, ...timelineLines(rec, compact)].join('\n')
 }
 
 // Несколько стартов подряд, старые первыми; предыдущий старт нужен для сравнения типа навигации
 export function formatStartLogs(list) {
-  return list.map((r, i) => formatStartLog(r, list[i - 1] || null)).join('\n\n\n')
+  return list.map((r, i) => formatStartLog(r, list[i - 1] || null, true)).join('\n\n\n')
 }

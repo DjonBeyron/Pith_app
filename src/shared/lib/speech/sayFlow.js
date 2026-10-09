@@ -5,8 +5,10 @@
 // phase: idle (готов) | explain (пояснение перед самым первым запросом) | run (запись/ожидание) |
 //        passed (прошло порог) | failed (не прошло/ошибка) | fallback (микрофона не будет, см. fallbackReason)
 import { emptyView } from './speechController.js'
-import { judgeRun, SAY_EVENTS, MAX_TAPS } from './sayResult.js'
+import { judgeRun, interimDiffers, SAY_EVENTS, MAX_TAPS } from './sayResult.js'
 import { isDeniedCode } from './sayTexts.js'
+
+export { SAY_PANEL_DELAY_MS, SAY_PANEL_DELAY_NO_PHRASE_MS, panelDelayMs } from './sayPanelDelay.js' // пауза перед подъёмом панели
 
 export function initialSayState(decision) {
   const base = {
@@ -33,7 +35,7 @@ function settle(s, v) {
   const verdict = judgeRun(v, s.data)
   return {
     ...s, ...mark, phase: verdict.passed ? 'passed' : 'failed', verdict, errorCode: null,
-    event: ev({ passed: verdict.passed, ratioPct: verdict.ratioPct }),
+    event: ev({ passed: verdict.passed, ratioPct: verdict.ratioPct, interimDiffers: interimDiffers(v.lastInterim, v.final?.text) }),
   }
 }
 
@@ -49,6 +51,7 @@ export function sayReducer(s, a) {
     }
     case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data }
     case 'explain': return { ...s, phase: 'explain', explainer: true }
+    case 'explainCancel': return s.phase === 'explain' ? { ...s, phase: 'idle' } : s // закрыли попап мимо кнопки: ничего не просили, флаг пояснения не ставим
     case 'fallback': return a.onlyIdle && s.phase !== 'idle' ? s : { ...s, phase: 'fallback', fallbackReason: a.reason }
     case 'enable': return { ...s, phase: 'idle', fallbackReason: null }
     // Запись прервали (сворачивание/уход со страницы): попытка не тратится, панель снова готова

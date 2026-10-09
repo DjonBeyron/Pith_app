@@ -2,9 +2,12 @@ import { useMemo } from 'react'
 import TextModule from '../text/TextModule.jsx'
 import AnswerBubbles from '../AnswerBubbles.jsx'
 import { sayPromptNode } from './sayPromptNode.js'
+import { useChatTones } from './sayChatTones.js'
 
 // «Сказать фразу» в ленте: вопрос — пузырь учителя с фразой и просьбой сказать вслух (+ перевод по кнопке),
 // ответ ученика — тот же общий вид пузырей (AnswerBubbles.jsx, states.phraseStates), что у «Напечатай слово».
+// showPhrase=false (в редакторе ноды) — пузыря с фразой нет: эталон живёт «под капотом» (проверка, «Послушать»), в чат уходит
+// только ответ ученика. Слова в пузыре подсвечиваются по итогу проверки (sayChatTones.js).
 // Нода сама не «играет» и onDone не зовёт: ответом управляет панель (panels/say-phrase), без неё лента не пойдёт дальше.
 export default function SayPhraseModule({
   node, phraseState, lessonNodes = [], lessonFiles = [], teacherName, onTrReveal,
@@ -13,7 +16,12 @@ export default function SayPhraseModule({
   const raw = node.typeData?.say_phrase
   const phrase = String(raw?.phrase ?? '').trim()
   const translation = String(raw?.translation ?? '').trim()
-  const promptNode = useMemo(() => (phrase ? sayPromptNode(node, { phrase, translation }) : null), [node, phrase, translation])
+  const showPhrase = raw?.showPhrase !== false
+  const tones = useChatTones(node?.id ?? null)
+  const promptNode = useMemo(
+    () => (phrase && showPhrase ? sayPromptNode(node, { phrase, translation }, tones) : null),
+    [node, phrase, translation, showPhrase, tones],
+  )
   return (
     <>
       {promptNode && (

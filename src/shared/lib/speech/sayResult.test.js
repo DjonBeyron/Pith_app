@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { sayOutcome, judgeRun, phraseWords, sayEventProps, MAX_TAPS, SAY_EVENTS } from './sayResult.js'
+import { sayOutcome, judgeRun, interimDiffers, phraseWords, sayEventProps, MAX_TAPS, SAY_EVENTS } from './sayResult.js'
 import { readSayData, parseKeywords, clampThreshold, keywordsMissingInPhrase } from './sayPhraseData.js'
-import { sayStatus } from './sayStatus.js'
+import { sayStatus, micLabel } from './sayStatus.js'
 import { failureCopy } from './sayTexts.js'
 import { emptyView } from './speechController.js'
 
@@ -59,8 +59,27 @@ describe('judgeRun — порог и ключевые слова', () => {
     expect(judgeRun(view('I am trying to both'), readSayData({ phrase: d.phrase })).passed).toBe(true)
   })
 
-  it('берётся лучший вариант из альтернатив распознавания', () => {
-    expect(judgeRun(view('banana', 'I am trying to please both'), d).passed).toBe(true)
+  it('решение — ТОЛЬКО по главному варианту (alts[0]); лучший из остальных не выбирается', () => {
+    expect(judgeRun(view('banana', 'I am trying to please both'), d).passed).toBe(false)
+    expect(judgeRun(view('I am trying to please both', 'banana'), d).passed).toBe(true)
+    expect(judgeRun(view('banana', 'I am trying to please both'), d).heard).toBe('banana')
+  })
+
+  it('намеренная ошибка: «I\'m try to please both» при эталоне «I\'m trying…» — обычный режим проходит (5/6), «Строго» — нет', () => {
+    const ref = readSayData({ phrase: "I'm trying to please both", keywords: 'please' })
+    const strict = readSayData({ phrase: "I'm trying to please both", keywords: 'please', strict: true, threshold: 50 })
+    const v = view("I'm try to please both")
+    expect(judgeRun(v, ref)).toMatchObject({ passed: true, ratioPct: 83, missed: ['trying'] })
+    expect(judgeRun(v, strict)).toMatchObject({ passed: false, ratioPct: 83 })
+    expect(judgeRun(view("I'm trying to please both"), strict).passed).toBe(true)
+    // регистр, знаки и сокращения («I'm» = «I am») нормализуются и в строгом режиме
+    expect(judgeRun(view('i am trying, to PLEASE both!'), strict).passed).toBe(true)
+  })
+
+  it('interimDiffers: движок «исправил» слово (interim «try» → final «trying») — для админской диагностики', () => {
+    expect(interimDiffers("I'm try", "I'm trying")).toBe(true)
+    expect(interimDiffers("i'm trying", "I'm trying!")).toBe(false)
+    expect(interimDiffers('', "I'm trying")).toBe(false)
   })
 
   it('пустое услышанное не проходит', () => {
@@ -92,6 +111,11 @@ describe('sayEventProps — формат аналитики', () => {
     for (const v of Object.values(p)) expect(['number', 'boolean', 'string']).toContain(typeof v)
   })
 
+  it('interim_differs — флаг без текста', () => {
+    expect(sayEventProps({ passed: true, interimDiffers: true })).toEqual({ passed: true, interim_differs: true })
+    expect(sayEventProps({ passed: true, interimDiffers: false }).interim_differs).toBe(false)
+  })
+
   it('пустые поля опускаются; имена событий по заданию', () => {
     expect(sayEventProps({ perm: 'prompt', taps: 1 })).toEqual({ perm: 'prompt', attempts: 1 })
     expect(Object.values(SAY_EVENTS)).toEqual(['say_phrase_start', 'say_phrase_result', 'say_phrase_skip', 'say_phrase_self_ok'])
@@ -103,6 +127,13 @@ describe('данные ноды', () => {
   it('значения по умолчанию: порог 70, en-US, «Послушать» включена', () => {
     expect(readSayData({ phrase: ' Hello ' })).toMatchObject({ phrase: 'Hello', threshold: 70, passRatio: 0.7, lang: 'en-US', listenAudio: true, keywords: [] })
     expect(readSayData(undefined).phrase).toBe('')
+  })
+
+  it('showPhrase по умолчанию true (отсутствие = true), strict по умолчанию false; strict поднимает порог до 100%', () => {
+    expect(readSayData({ phrase: 'Hi' })).toMatchObject({ showPhrase: true, strict: false, passRatio: 0.7 })
+    expect(readSayData({ phrase: 'Hi', showPhrase: false })).toMatchObject({ showPhrase: false })
+    expect(readSayData({ phrase: 'Hi', showPhrase: 'no', strict: 'yes' })).toMatchObject({ showPhrase: true, strict: false })
+    expect(readSayData({ phrase: 'Hi', strict: true, threshold: 60 })).toMatchObject({ strict: true, threshold: 100, passRatio: 1 })
   })
 
   it('порог 50–100; en-GB; listenAudio=false отключает кнопку', () => {
@@ -124,21 +155,42 @@ describe('данные ноды', () => {
 describe('sayStatus и тексты', () => {
   const base = { view: emptyView, verdict: null, errorCode: null, fallbackReason: null }
 
-  it('основные состояния', () => {
-    expect(sayStatus({ ...base, phase: 'idle' }).status).toMatch(/Нажмите на микрофон/)
-    expect(sayStatus({ ...base, phase: 'explain' }).status).toMatch(/Мы не записываем и не сохраняем звук/)
-    expect(sayStatus({ ...base, phase: 'run', view: { ...emptyView, status: 'listening', interim: 'I am' } })).toMatchObject({ status: 'Слушаю…', heard: 'I am' })
+  it('основные состояния: подписи на плашке микрофона, строка под ней пуста', () => {
+    expect(micLabel({ ...base, phase: 'idle' })).toEqual({ label: 'Нажмите, чтобы говорить', mode: 'idle' })
+    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'starting' } }).mode).toBe('busy')
+    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'listening', interim: 'I am' } })).toEqual({ label: 'Слушаю…', mode: 'listening' })
+    expect(micLabel({ ...base, phase: 'run', view: { ...emptyView, status: 'done' } })).toEqual({ label: 'Обрабатываем…', mode: 'busy' })
+    expect(micLabel({ ...base, phase: 'passed', verdict: { ratioPct: 100 } })).toMatchObject({ label: 'Верно!', mode: 'ok' })
+    expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'denied' })).toEqual({ label: 'Микрофон выключен', mode: 'off' })
+    expect(micLabel({ ...base, phase: 'fallback', fallbackReason: 'unsupported' }).mode).toBe('off')
+    for (const phase of ['idle', 'explain', 'passed']) expect(sayStatus({ ...base, phase }).status).toBe(null)
+    expect(sayStatus({ ...base, phase: 'run', view: { ...emptyView, status: 'listening', interim: 'I am' } })).toMatchObject({ status: null })
     expect(sayStatus({ ...base, phase: 'run', view: { ...emptyView, status: 'retrying', notice: 'Слабая связь, пробуем ещё раз (2 из 3)…' } }).status).toMatch(/Слабая связь, пробуем ещё раз \(2 из 3\)/)
-    expect(sayStatus({ ...base, phase: 'passed', verdict: { ratioPct: 100, heard: 'ok' } })).toMatchObject({ status: 'Верно!', tone: 'ok' })
   })
 
-  it('неудачи: тишина → «Говорите громче»; порог не пройден → что не хватило; запасной режим — по причине', () => {
+  it('сказанного текста в строке статуса нет вообще (его видит только админ — sayAdmin.js)', () => {
+    const v = { ...emptyView, status: 'listening', interim: 'SECRET interim' }
+    expect(JSON.stringify(sayStatus({ ...base, phase: 'run', view: v }))).not.toMatch(/SECRET/)
+    expect(JSON.stringify(sayStatus({ ...base, phase: 'failed', verdict: { missed: ['both'], heard: 'SECRET heard' } }))).not.toMatch(/SECRET/)
+    expect(sayStatus({ ...base, phase: 'passed', verdict: { ratioPct: 100, heard: 'x' } })).not.toHaveProperty('heard')
+  })
+
+  it('неудачи: тишина → «Говорите громче»; «Не расслышали: …» только при скрытой фразе; запасной режим — по причине', () => {
     expect(sayStatus({ ...base, phase: 'failed', errorCode: 'no-speech' }).hint).toBe('Говорите громче и ближе к микрофону.')
-    expect(sayStatus({ ...base, phase: 'failed', verdict: { missed: ['please', 'both'], heard: 'I am' } }).hint).toBe('Не хватило: please, both')
+    const v = { missed: ['please', 'both'], heard: 'I am' }
+    expect(sayStatus({ ...base, phase: 'failed', verdict: v }).hint).toBe(null) // фраза в чате: слова подсвечены там
+    expect(sayStatus({ ...base, phase: 'failed', verdict: v, showPhrase: false }).hint).toBe('Не расслышали: please, both')
     expect(sayStatus({ ...base, phase: 'fallback', fallbackReason: 'denied' }).status).toMatch(/настройках/)
     expect(sayStatus({ ...base, phase: 'fallback', fallbackReason: 'unsupported' }).status).toMatch(/недоступна/)
     expect(sayStatus({ ...base, phase: 'fallback', fallbackReason: 'cant_speak' }).status).toMatch(/без микрофона/)
     expect(failureCopy('network').status).toMatch(/Слабая связь/)
+  })
+
+  it('пояснение про микрофон — тексты задания (показывает попап)', async () => {
+    const t = await import('./sayTexts.js')
+    expect(t.EXPLAIN_BTN).toBe('Понятно, включить микрофон')
+    expect(t.SAY_LABEL).toBe('Произнесите фразу')
+    expect(t.CANT_SPEAK_LINK).toBe('Я не могу говорить')
   })
 
   it('честная формулировка: не обещаем, что звук не покидает телефон', async () => {

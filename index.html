@@ -17,17 +17,17 @@
     <style>html, body { margin: 0; background: #000; color-scheme: dark; }</style>
     <!-- ЖУРНАЛ СТАРТА (диагностика «моргания» на iPhone): ПЕРВЫЙ скрипт в <head> — раньше net-guard.js, inline (внешний файл
          загрузился бы уже после первых событий). Только собирает: ничего не блокирует, не ходит в сеть и не меняет страницу
-         (кроме временного замера safe-area). Метки t — performance.now() (мс от начала навигации). Итог пишется в
+         (кроме замера safe-area: невидимый элемент-зонд, и фиксации --sab, см. ниже). Метки t — performance.now() (мс от начала навигации). Итог пишется в
          localStorage 'pithy_start_logs_v1' (кольцо из 8 стартов, ≤12 КБ каждый) и window.__startLog; смотреть — Админ → «Старт».
-         Формат записи: ctx (контекст запуска), ev [[t, тип, детали]], sample — только ИЗМЕНИВШИЕСЯ поля (k=v), tick '=' —
+         Формат записи: ctx (контекст запуска), ev [[t, тип, детали]], sample — только ИЗМЕНИВШИЕСЯ поля (k=v; в растворении сплэша — каждый кадр), tick '=' —
          «без изменений». Метки из приложения — window.__startMark(имя, детали). Тест-страж: startLogScript.test.js -->
     <script>
       (function () {
         function run() {
-          var W = window, D = document, P = performance, KEY = 'pithy_start_logs_v1', RING = 8, LIM = 12000, T_RAF = 3000, T_END = 6000
-          var CAPS = { sample: 150, tick: 40, jank: 30, cls: 20, resize: 20, 'js-error': 10, rej: 10, 'res-error': 10, longtask: 10, 'res-slow': 10 }
-          var EV = [], CNT = {}, DROP = {}, CTX = {}, S = {}, closed = false, saves = 0, firstF = false, rafOn = false, rafUntil = T_RAF
-          var lastW = -1e9, prevTs = 0, lateDone = false
+          var W = window, D = document, P = performance, KEY = 'pithy_start_logs_v1', RING = 8, LIM = 24000, T_MAX = 12000, T_AFTER = 2000, T_MID = 6000
+          var CAPS = { sample: 400, tick: 80, jank: 30, cls: 20, resize: 20, 'js-error': 10, rej: 10, 'res-error': 10, longtask: 10, 'res-slow': 10, video: 12 }
+          var EV = [], CNT = {}, DROP = {}, CTX = {}, S = {}, closed = false, saves = 0, firstF = false, rafOn = false, rafUntil = T_MAX
+          var lastW = -1e9, prevTs = 0, lateDone = false, goneT = -1, lastDeep = -1e9, PR = null, saBot = 0, saFh = 0, saPrev = null, saT = 0, frozen = false, frozenV = 0, vw0 = 0
           var REC = W.__startLog = { v: 1, id: new Date().toISOString(), ctx: CTX, ev: EV, drop: DROP, end: '' }
           function now() { return Math.round(P.now() * 10) / 10 }
           function cut(s, n) { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n) + '…' : s }
@@ -35,7 +35,7 @@
           function mark(type, d, t) {
             if (closed && !/^(pagehide|vis|beforeunload)$/.test(type)) return
             if ((CNT[type] = (CNT[type] || 0) + 1) > (CAPS[type] || 30)) { DROP[type] = (DROP[type] || 0) + 1; return }
-            EV.push([t == null ? now() : r1(t), type, cut(d, 160)])
+            EV.push([t == null ? now() : r1(t), type, cut(d, type === 'sample' ? 700 : 160)])
           }
           function on(tg, name, fn, cap) { try { tg.addEventListener(name, fn, cap) } catch (e) { /* ignore */ } }
           function mm(q) { try { return W.matchMedia(q).matches } catch (e) { return null } }
@@ -55,8 +55,19 @@
           CTX.nav = nav.type; CTX.rc = nav.redirectCount; CTX.size = nav.transferSize; CTX.n = n; CTX.cold = n === 1
           CTX.t0 = P.timeOrigin ? new Date(P.timeOrigin).toISOString() : ''
           mark('start', 'rs=' + D.readyState)
-          function safe() { var e = D.createElement('div'), s, r; e.style.cssText = 'position:fixed;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'
-            D.documentElement.appendChild(e); s = getComputedStyle(e); r = [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft].join('/'); D.documentElement.removeChild(e); return r }
+          /* зонд safe-area: невидимый fixed-элемент (padding = env(), высота 100% = высота fixed-области); живёт, пока работает семплер */
+          function unprobe() { if (PR) { try { D.documentElement.removeChild(PR) } catch (e) { /* ignore */ } PR = null } }
+          function safe() {
+            if (!PR) { PR = D.createElement('div'); PR.style.cssText = 'position:fixed;left:0;top:0;width:0;height:100%;box-sizing:border-box;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; D.documentElement.appendChild(PR) }
+            var s = getComputedStyle(PR), r = [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft].join('/')
+            saBot = parseFloat(s.paddingBottom) || 0; saFh = Math.round(PR.getBoundingClientRect().height)
+            if (!rafOn) unprobe()
+            return r
+          }
+          /* --sab: нижний safe-area-inset, зафиксированный в px, когда iOS отдал его стабильно (>0 и ≥300 мс без изменений): раскладка (shell-v2.css) читает var(--sab), поэтому
+             позднее «мигание» env() её не двигает. Поворот/смена ширины окна — снимаем, чтобы взять новое значение. 0 не фиксируем: на устройствах без выреза остаётся живой env() */
+          function unfreeze() { if (!frozen) return; frozen = false; try { D.documentElement.style.removeProperty('--sab') } catch (e) { /* ignore */ } saT = now(); mark('sab-unfreeze') }
+          W.__safeStable = function () { var n = P.now(); return n >= 2500 || n - saT >= 300 } /* для сплэша: не уходим, пока safe-area ещё меняется (но не дольше 2,5 с) */
 
           /* --- события жизненного цикла --- */
           on(D, 'readystatechange', function () { mark('rs', D.readyState) })
@@ -65,13 +76,14 @@
           on(W, 'pageshow', function (e) { mark('pageshow', 'persisted=' + e.persisted) })
           on(W, 'pagehide', function (e) { mark('pagehide', 'persisted=' + e.persisted); save('pagehide') })
           on(D, 'visibilitychange', function () { mark('vis', D.visibilityState); if (D.hidden) save('hidden') })
-          on(W, 'resize', function () { mark('resize', vp()) })
-          on(W, 'orientationchange', function () { mark('orient', screen.orientation ? screen.orientation.type : W.orientation) })
+          on(W, 'resize', function () { mark('resize', vp()); if (frozen && W.innerWidth !== vw0) unfreeze() })
+          on(W, 'orientationchange', function () { mark('orient', screen.orientation ? screen.orientation.type : W.orientation); unfreeze() })
+          ;['loadeddata', 'playing', 'timeupdate'].forEach(function (n) { var seen = false; on(D, n, function (e) { var v = e.target; if (seen || !v || v.nodeName !== 'VIDEO') return; seen = true; mark('video', n + ' ' + sel(v) + ' rs=' + v.readyState + ' ct=' + r1(v.currentTime || 0) + ' paused=' + (v.paused ? 1 : 0)) }, true) })
           on(W, 'focus', function () { mark('focus') }); on(W, 'blur', function () { mark('blur') })
           on(W, 'online', function () { mark('online') }); on(W, 'offline', function () { mark('offline') })
           on(W, 'beforeunload', function () { mark('beforeunload') })
           on(D, 'freeze', function () { mark('freeze') }); on(D, 'resume', function () { mark('resume') })
-          on(W, 'pithy:splash-gone', function () { mark('splash-gone'); if (!rafOn && P.now() < T_END) { rafOn = true; prevTs = 0; requestAnimationFrame(frame) } rafUntil = Math.max(rafUntil, Math.min(P.now() + 700, T_END)) })
+          on(W, 'pithy:splash-gone', function () { mark('splash-gone'); goneT = P.now(); rafUntil = Math.min(goneT + T_AFTER, T_MAX); if (!rafOn && goneT < T_MAX) { rafOn = true; prevTs = 0; requestAnimationFrame(frame) } })
           on(W, 'error', function (e) { var t = e.target; if (t && t !== W && t.nodeName) mark('res-error', t.nodeName.toLowerCase() + ' ' + cut(t.src || t.href, 100)); else mark('js-error', cut(e.message, 100) + ' @' + cut(String(e.filename || '').split('/').pop(), 40) + ':' + e.lineno) }, true)
           on(W, 'unhandledrejection', function (e) { mark('rej', cut(e.reason && (e.reason.message || e.reason), 120)) })
 
@@ -103,25 +115,53 @@
           }
           setTimeout(late, 500) /* запасной вызов: если кадров нет (страница скрыта) */
 
-          /* --- семплер кадров: первые ~3с (+0,7с после ухода сплэша, не дольше 6с). Пишет только изменившиеся поля --- */
-          function snap(t) {
-            var o = {}, sp = D.getElementById('splash'), rt = D.getElementById('root'), cs = getComputedStyle(D.documentElement), lg, k, out = []
-            function op(el) { return Math.round(parseFloat(getComputedStyle(el).opacity) * 100) / 100 }
-            o.bg = cs.backgroundColor.replace(/ /g, ''); o.bb = D.body ? getComputedStyle(D.body).backgroundColor.replace(/ /g, '') : '-'
+          /* --- семплер кадров: до (уход сплэша + 2 с), но не дольше 12 с. Пишет только изменившиеся поля; пока сплэш растворяется (so<1)
+             — каждый кадр (so, dt). Дорогие замеры (rect панели/ленты/видео, слои под точками экрана) — раз в 100 мс, а в растворении и после ухода сплэша — каждый кадр --- */
+          function op(el) { return Math.round(parseFloat(getComputedStyle(el).opacity) * 100) / 100 }
+          function bgOf(el) { return getComputedStyle(el).backgroundColor.replace(/ /g, '') }
+          function opaque(c) { var m = /^rgba\(.*,([\d.]+)\)$/.exec(c); return !m || parseFloat(m[1]) >= 0.99 }
+          function pt(x, y, sp) { var l = D.elementsFromPoint ? D.elementsFromPoint(x, y) : [D.elementFromPoint(x, y)], o = [], i; for (i = 0; i < l.length && o.length < 14; i++) if (l[i] && !(sp && sp.contains(l[i]))) o.push(l[i]); return o }
+          function opq(l) { for (var i = 0; i < l.length; i++) if (opaque(bgOf(l[i]))) return l[i] }
+          function lay(el) { return el ? sel(el) + '/' + bgOf(el) : '-' }
+          function deep(o, sp, rt) {
+            var nv = D.querySelector('nav.shellV2Nav'), fe = D.querySelector('.feedV2'), fw = D.querySelector('.feedSwiper'), r0 = rt && rt.firstElementChild, w = W.innerWidth, h = W.innerHeight, c, v, pb, i, ks = [[2, 2], [w - 3, 2], [2, h - 3], [w - 3, h - 3]]
+            o.nv = nv ? box(nv.getBoundingClientRect()) + '/' + getComputedStyle(nv).position : '-'
+            o.fe = fe ? box(fe.getBoundingClientRect()) : '-'; o.fw = fw ? box(fw.getBoundingClientRect()) : '-'; o.r0 = r0 ? box(r0.getBoundingClientRect()) : '-'
+            c = D.elementFromPoint(w / 2, h / 2); o.ep = c && sp && sp.contains(c) ? 'splash' : sel(c); c = pt(w / 2, h / 2, sp); o.eu = lay(c[0]); o.eo = lay(opq(c))
+            for (i = 0; i < 4; i++) o['k' + (i + 1)] = lay(opq(pt(ks[i][0], ks[i][1], sp)))
+            for (i = 0; i < c.length; i++) if (c[i].nodeName === 'VIDEO') { v = c[i]; break }
+            v = v || D.querySelector('.feedV2 video'); pb = v && v.parentNode && v.parentNode.querySelector('.feedPosterBg')
+            o.vs = v ? 'rs' + v.readyState + ',ct' + (v.currentTime > 0 ? 1 : 0) + ',pa' + (v.paused ? 1 : 0) : '-'; o.vo = v ? op(v) : '-'; o.vr = v ? box(v.getBoundingClientRect()) : '-'
+            o.vp = v ? (v.poster ? 'P' : '') + (getComputedStyle(v).backgroundImage !== 'none' ? 'B' : '') || '0' : '-'; o.ps = pb ? 'bg,' + op(pb) : '0'
+          }
+          function snap(t, dt) {
+            var o = {}, sp = D.getElementById('splash'), rt = D.getElementById('root'), cs = getComputedStyle(D.documentElement), lg, k, out = [], vv = W.visualViewport, diss, wide
+            o.bg = cs.backgroundColor.replace(/ /g, ''); o.bb = D.body ? bgOf(D.body) : '-'
             o.so = sp ? op(sp) : '-'; o.sd = sp ? getComputedStyle(sp).display : '-'
             o.fd = sp && sp.firstElementChild ? op(sp.firstElementChild) : '-'
             lg = sp && sp.querySelector('.splash-logo, img, svg'); o.lg = lg ? box(lg.getBoundingClientRect()) : '-'
             o.rt = rt ? rt.childElementCount : '-'; o.ng = (D.getElementById('offlineGuard') ? 'o' : '') + (D.getElementById('serverGuard') ? 's' : '') || '0'; o.fn = D.fonts ? D.fonts.status : '-'
-            for (k in o) if (S[k] !== String(o[k])) { S[k] = String(o[k]); out.push(k + '=' + S[k]) }
-            if (out.length) { lastW = t; mark('sample', out.join(' '), t) } else if (t - lastW >= 100) { lastW = t; mark('tick', '=', t) }
+            o.sa = safe(); o.iw = W.innerWidth + 'x' + W.innerHeight; o.ch = D.documentElement.clientHeight; o.fh = saFh
+            o.vv = vv ? r1(vv.width) + 'x' + r1(vv.height) + '@' + r1(vv.offsetTop) + (vv.scale !== 1 ? 'z' + vv.scale : '') : '-'
+            o.sy = r1(W.pageYOffset || 0) + '/' + (D.body ? D.body.scrollTop : 0) + '/' + D.documentElement.scrollTop
+            diss = typeof o.so === 'number' && o.so < 1; if (diss) o.dt = Math.round(dt || 0)
+            if (diss || goneT >= 0 || t - lastDeep >= 100) { lastDeep = t; try { deep(o, sp, rt) } catch (e) { mark('snap-error', cut(e.message, 80)) } }
+            if (saPrev !== null && o.sa !== saPrev) saT = t
+            saPrev = o.sa
+            if (!frozen && saBot > 0 && t - saT >= 300) { frozen = true; frozenV = saBot; vw0 = W.innerWidth; D.documentElement.style.setProperty('--sab', saBot + 'px'); mark('sab-freeze', saBot + 'px') }
+            else if (frozen && saBot !== frozenV && S.drift !== String(saBot)) { S.drift = String(saBot); mark('sab-drift', 'env=' + saBot + 'px frozen=' + frozenV + 'px') }
+            for (k in o) if (S[k] !== String(o[k]) || (diss && (k === 'so' || k === 'dt'))) { S[k] = String(o[k]); out.push(k + '=' + S[k]) }
+            wide = t < 4000 || goneT >= 0 ? 100 : 250
+            if (out.length) { lastW = t; mark('sample', out.join(' '), t) } else if (t - lastW >= wide) { lastW = t; mark('tick', '=', t) }
           }
           function frame(ts) {
+            var t, dt = 0
             try {
-              var t = now()
-              if (!firstF) { firstF = true; mark('raf-first', '', t); setTimeout(late, 0) } else if (prevTs && ts - prevTs > 40) mark('jank', Math.round(ts - prevTs) + 'ms', t)
-              prevTs = ts; snap(t)
+              t = now()
+              if (!firstF) { firstF = true; mark('raf-first', '', t); setTimeout(late, 0) } else if (prevTs) { dt = ts - prevTs; if (dt > 40) mark('jank', Math.round(dt) + 'ms', t) }
+              prevTs = ts; snap(t, dt)
             } catch (e) { /* ignore */ }
-            if (P.now() < rafUntil) requestAnimationFrame(frame); else { rafOn = false; mark('raf-stop') }
+            if (P.now() < rafUntil) requestAnimationFrame(frame); else { rafOn = false; mark('raf-stop'); unprobe(); setTimeout(finish, 50) }
           }
           rafOn = true; requestAnimationFrame(frame)
 
@@ -152,13 +192,15 @@
               localStorage.setItem(KEY, JSON.stringify(list.slice(-RING)))
             } catch (e) { /* квота / приватный режим — журнал остаётся в window.__startLog */ }
           }
-          setTimeout(function () {
-            try {
-              var sf = safe(); if (sf !== CTX.safe) mark('safe-changed', sf)
-              P.getEntriesByType('resource').filter(function (e) { return e.duration > 300 }).slice(0, 10).forEach(function (e) { mark('res-slow', cut(e.name.replace(/https?:\/\/[^/]+/, ''), 60) + ' ' + Math.round(e.startTime) + '>' + Math.round(e.responseEnd) + ' ' + (e.transferSize || 0) + 'B', e.responseEnd) })
-            } catch (e) { /* ignore */ }
-            save('t' + T_END); closed = true
-          }, T_END)
+          /* итог: когда семплер закончил (сплэш ушёл + 2 с или 12 с) — медленные ресурсы и финальная запись; закрываем журнал.
+             Промежуточная запись на T_MID — на случай, если приложение убьют раньше */
+          function finish() {
+            if (closed) return
+            try { P.getEntriesByType('resource').filter(function (e) { return e.duration > 300 }).slice(0, 10).forEach(function (e) { mark('res-slow', cut(e.name.replace(/https?:\/\/[^/]+/, ''), 60) + ' ' + Math.round(e.startTime) + '>' + Math.round(e.responseEnd) + ' ' + (e.transferSize || 0) + 'B', e.responseEnd) }) } catch (e) { /* ignore */ }
+            save('end'); closed = true
+          }
+          setTimeout(function () { if (!closed) save('t' + T_MID) }, T_MID)
+          setTimeout(function () { if (!closed) { unprobe(); finish() } }, T_MAX + 500) /* запасной финал: если кадры не шли (скрытая страница) */
         }
         try { run() } catch (e) { /* журнал старта не должен ничего ломать */ }
       })()
@@ -381,8 +423,11 @@
             var f = document.fonts;
             var pending = !!document.querySelector('link[href*="fonts.googleapis.com"][media="print"]') ||
               !!(f && f.status === 'loading');
-            if (!pending || performance.now() - t1 > 1200) { hide(); return; }
-            if (!logged) { logged = true; slog('ждём шрифты (до 1200мс)'); }
+            /* safe-area ещё «плывёт» (iOS отдаёт нижний inset не сразу) — не уходим, пока он не простоял 300мс
+               (скрипт журнала в начале <head>: window.__safeStable; сам отпускает не позже 2,5с от старта) */
+            var safeMoving = !!(window.__safeStable && !window.__safeStable());
+            if ((!pending && !safeMoving) || performance.now() - t1 > 1200) { hide(); return; }
+            if (!logged) { logged = true; slog(safeMoving && !pending ? 'ждём safe-area (до 1200мс)' : 'ждём шрифты (до 1200мс)'); }
             setTimeout(tick, 50);
           }
           requestAnimationFrame(function () { setTimeout(tick, 0); });

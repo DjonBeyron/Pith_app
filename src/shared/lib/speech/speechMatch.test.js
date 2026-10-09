@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tokenize, levenshtein, tolerance, matchPhrase, matchBest } from './speechMatch.js'
+import { tokenize, levenshtein, tolerance, matchPhrase, matchBest, matchTop } from './speechMatch.js'
 
 const REF = 'I am trying to please both'
 
@@ -112,5 +112,28 @@ describe('matchBest', () => {
     const r = matchBest(REF, [])
     expect(r.index).toBe(-1)
     expect(r.passed).toBe(false)
+  })
+})
+
+describe('matchPhrase exactWords («Строго») и matchTop', () => {
+  const REF2 = "I'm trying to please both"
+
+  it('по умолчанию опечатка допустима, exactWords — только точное слово (после нормализации)', () => {
+    expect(matchPhrase(REF2, "I'm tryin to please both").passed).toBe(true)
+    const exact = matchPhrase(REF2, "I'm tryin to please both", [], 1, { exactWords: true })
+    expect(exact).toMatchObject({ passed: false, missed: ['trying'] })
+    expect(matchPhrase(REF2, "I AM trying, to please BOTH!", [], 1, { exactWords: true }).passed).toBe(true)
+  })
+
+  it('«I\'m try to please both»: порог 70 без строгости проходит (5/6), со строгостью — нет', () => {
+    expect(matchPhrase(REF2, "I'm try to please both", [], 0.7).passed).toBe(true)
+    expect(matchPhrase(REF2, "I'm try to please both", [], 1, { exactWords: true }).passed).toBe(false)
+  })
+
+  it('matchTop смотрит только первую альтернативу; matchBest выбирает самую выгодную (проба «Голос»)', () => {
+    const alts = ["I'm try to please both", REF2]
+    expect(matchBest(REF2, alts, [], 1).passed).toBe(true)
+    expect(matchTop(REF2, alts, [], 1)).toMatchObject({ passed: false, index: 0, text: alts[0] })
+    expect(matchTop(REF2, [])).toMatchObject({ passed: false, index: -1, text: '' })
   })
 })

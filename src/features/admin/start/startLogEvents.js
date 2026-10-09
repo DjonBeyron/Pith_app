@@ -58,3 +58,29 @@ export function collapseTicks(ev) {
 export function fullEvents(rec) {
   return sortEvents([...(rec.ev || []), ...splashLineEvents(rec.splash)])
 }
+
+// Для компактного «Скопировать все»: tick не чаще раза в 500 мс, медленных ресурсов — первые 5
+export function thinEvents(ev) {
+  let lastTick = -1e9, slow = 0
+  return ev.filter(e => {
+    if (e[1] === 'tick') { if (e[0] - lastTick < 500) return false; lastTick = e[0] }
+    return !(e[1] === 'res-slow' && ++slow > 5)
+  })
+}
+
+// Подряд идущие ОДИНАКОВЫЕ строки (тип + детали, время не в счёт) схлопываем: [{ t, to, type, detail, n }]
+export function collapseSame(ev) {
+  const out = []
+  for (const e of ev) {
+    const last = out[out.length - 1]
+    if (last && last.type === e[1] && last.detail === e[2]) { last.n++; last.to = e[0]; continue }
+    out.push({ t: e[0], to: e[0], type: e[1], detail: e[2], n: 1 })
+  }
+  return out
+}
+
+// Строка таймлайна: `t=123ms | тип | детали`, для серий — `t=123..456ms | тип | детали (x3)`
+export function rowText(r) {
+  const when = r.n > 1 ? `t=${fmtT(r.t)}..${fmtT(r.to)}ms` : `t=${fmtT(r.t)}ms`
+  return r.type === 'tick' ? `${when} | tick | без изменений${r.n > 1 ? ` (x${r.n})` : ''}` : `${when} | ${r.type} | ${r.detail}${r.n > 1 ? ` (x${r.n})` : ''}`
+}

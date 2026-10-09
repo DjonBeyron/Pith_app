@@ -6,7 +6,7 @@ import { tearSparks } from './ladderSparks.js'
 
 // Страж «замыкания» надписи «Памяти пора отдыхать»: мерцание текста идёт в такт искрам на концах разорванного кабеля —
 // тот же сдвиг и кратный период (CSS-переменные --p / --d из одного модуля sparkTiming.js), только opacity/transform,
-// чистый CSS; последовательность: дребезг → полное гашение в чёрное (600–1200 мс) → неровное включение → покой
+// чистый CSS; последовательность: дребезг → ПЛАВНОЕ затухание в тёмно-слабый (не в ноль, 500–900 мс) → выдержка → неровное включение → покой
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 const css = rel => read(rel).replace(/\/\*[\s\S]*?\*\//g, '')
 const title = css('../../styles/learn-sleep-title.css')
@@ -62,11 +62,12 @@ describe('мерцание — только opacity и transform, без JS, в 
     for (const name of ['lrTitleBolt', 'lrTitleArc', 'lrTitleShort']) expect(kf(name)).not.toMatch(/text-shadow|filter/)
     expect(title).not.toMatch(/transition/)
   })
-  it('последовательность: дребезг → гашение в чёрное 600–1200 мс → неровное включение → покой ≥ 1 с', () => {
-    for (const [name, period, seqMin, seqMax] of [['lrTitleBolt', BOLT_T[0][0] * TITLE_BOLT_K, 1900, 2500], ['lrTitleArc', ARC_T[0], 1000, 1400]]) {
-      // кадры по порядку: [мс от старта, opacity]; steps(1, end) — значение держится до следующего кадра
+  it('последовательность: дребезг → плавное затухание 500–900 мс в тёмно-слабый (не в ноль) → выдержка → неровное включение → покой ≥ 3 с', () => {
+    for (const [name, period, seqMin, seqMax] of [['lrTitleBolt', BOLT_T[0][0] * TITLE_BOLT_K, 2200, 2900], ['lrTitleArc', ARC_T[0], 1400, 2000]]) {
+      // кадры по порядку: [мс от старта, opacity, функция времени до следующего кадра]
       const frames = [...kf(name).matchAll(/([\d.,%\s]+)\{([^}]*)\}/g)].map(m => ({
         at: m[1].split(',').map(x => parseFloat(x) / 100 * period * 1000), op: parseFloat(m[2].match(/opacity:\s*([\d.]+)/)[1]),
+        ease: /animation-timing-function:\s*ease-in-out/.test(m[2]),
       }))
       expect(frames[0].at[0], `${name}: старт в покое`).toBe(0)
       expect(frames[0].op).toBe(1)
@@ -75,31 +76,45 @@ describe('мерцание — только opacity и transform, без JS, в 
       expect(end.at[1], `${name}: кадр до конца периода`).toBeCloseTo(period * 1000, 3)
       expect(end.at[0], `${name}: длительность последовательности`).toBeGreaterThan(seqMin)
       expect(end.at[0], `${name}: длительность последовательности`).toBeLessThan(seqMax)
-      expect(period * 1000 - end.at[0], `${name}: покой между последовательностями`).toBeGreaterThanOrEqual(1000)
+      expect(period * 1000 - end.at[0], `${name}: покой между последовательностями`).toBeGreaterThanOrEqual(3000)
       expect(frames[1].at[0] / 1000, `${name}: вспышка в самом начале периода`).toBeLessThan(0.2)
-      // самое длинное подряд идущее гашение (opacity ≤ .05)
-      let dark = 0
-      frames.forEach((f, i) => {
-        if (f.op > 0.05) return
-        const next = frames[i + 1]
-        dark = Math.max(dark, (next ? next.at[0] : period * 1000) - f.at[0])
-      })
-      expect(dark, `${name}: гашение, мс`).toBeGreaterThanOrEqual(600)
-      expect(dark, `${name}: гашение, мс`).toBeLessThanOrEqual(1200)
-      // замедленные неровные переходы: до и после гашения интервалы 50–120 мс
+      // надпись не пропадает: нигде ноль, минимум — «погасшая лампа» 0.1–0.2
+      const min = Math.min(...frames.map(f => f.op))
+      expect(min, `${name}: минимум opacity`).toBeGreaterThanOrEqual(0.1)
+      expect(min, `${name}: минимум opacity`).toBeLessThanOrEqual(0.2)
+      // плавное затухание: единственный ключевой кадр с ease-in-out, 1 → минимум за 500–900 мс
+      const fi = frames.findIndex(f => f.ease)
+      expect(frames.filter(f => f.ease).length, `${name}: одно плавное затухание`).toBe(1)
+      expect(frames[fi].op, `${name}: затухание начинается с белого`).toBe(1)
+      const dark = frames[fi + 1]
+      expect(dark.op, `${name}: затухание до минимума`).toBe(min)
+      const fade = dark.at[0] - frames[fi].at[0]
+      expect(fade, `${name}: плавное затухание, мс`).toBeGreaterThanOrEqual(500)
+      expect(fade, `${name}: плавное затухание, мс`).toBeLessThanOrEqual(900)
+      // выдержка тёмным 600–900 мс (до следующего кадра)
+      const hold = frames[fi + 2].at[0] - dark.at[0]
+      expect(hold, `${name}: выдержка тёмным, мс`).toBeGreaterThanOrEqual(600)
+      expect(hold, `${name}: выдержка тёмным, мс`).toBeLessThanOrEqual(900)
+      // замедленные неровные переходы (steps) до и после затухания: интервалы 50–120 мс
       const gaps = frames.slice(1, -1).map((f, i) => frames[i + 2].at[0] - f.at[0]).filter(g => g < 400)
       for (const g of gaps) { expect(g, `${name}: интервал мерцания`).toBeGreaterThanOrEqual(50); expect(g).toBeLessThanOrEqual(120) }
       expect(new Set(gaps.map(g => Math.round(g))).size, `${name}: интервалы неравные`).toBeGreaterThan(3)
-      // после гашения — минимум 2 неровных мерцания (включения/выключения), и до гашения тоже дребезг
-      const idx = frames.findIndex(f => f.op <= 0.05 && frames[frames.indexOf(f) + 1]?.at[0] - f.at[0] >= 600)
-      expect(frames.slice(idx + 1).filter(f => f.op > 0.05 && f.op < 1).length, `${name}: мерцание при включении`).toBeGreaterThanOrEqual(2)
-      expect(frames.slice(1, idx).length, `${name}: дребезг до гашения`).toBeGreaterThanOrEqual(3)
+      // до затухания — дребезг (≥ 3 перехода), после выдержки — минимум 3 неровных мерцания, затем белый
+      expect(frames.slice(1, fi).length, `${name}: дребезг до затухания`).toBeGreaterThanOrEqual(3)
+      expect(frames.slice(fi + 2, -1).filter(f => f.op > min && f.op < 1).length, `${name}: мерцание при включении`).toBeGreaterThanOrEqual(3)
     }
   })
-  it('зелёная копия гаснет вместе с текстом: в провале она под нулевым opacity родителя, в покое её нет', () => {
+  it('главная и дуга кратны периоду разряда, ключи и затухание синхронны с зелёной копией', () => {
+    const k = parseFloat(titleFlicker.bolt['--p']) / BOLT_T[0][0]
+    expect(Math.abs(k - Math.round(k))).toBeLessThan(1e-9)
+    const fade = /(\d+\.?\d*)%\s*\{[^}]*ease-in-out/
+    expect(kf('lrTitleBolt').match(fade)[1]).toBe(kf('lrTitleShort').match(fade)[1]) // зелёная уходит вместе с текстом
+  })
+  it('зелёная копия гаснет вместе с текстом: в тёмной выдержке её нет, в покое её нет', () => {
     const g = kf('lrTitleShort')
     expect(g).toMatch(/0% \{ opacity: 0; \}/)
-    expect(g).toMatch(/33\.8%, 100% \{ opacity: 0; \}/)
+    expect(g).toMatch(/41\.5%, 100% \{ opacity: 0; \}/)
+    expect(g).toMatch(/18\.57% \{ opacity: 0; \}/) // к концу затухания текста зелёная копия уже погашена
     expect(title).toMatch(/\.lrMainTitle::after \{[^}]*animation: lrTitleShort var\(--p/)
   })
   it('в скрытой вкладке и при «уменьшить движение» стоит; JS-таймеров в разметке нет', () => {

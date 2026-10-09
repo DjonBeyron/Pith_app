@@ -80,7 +80,8 @@ export function makeNode(seq, x, y, wantType) {
       type_word:       { word: '', extraLetters: '', responseCorrect: '', responseWrong: '', replyToSeq: null },
       // Сказать фразу: phrase — английский эталон; translation — перевод по кнопке; keywords — ключевые слова через запятую
       // (должны прозвучать обязательно); threshold — % слов эталона для «засчитано»; lang — язык распознавания;
-      // listenAudio — кнопка «Послушать» (озвучка из базы слов; по умолчанию включена, поле не нужно)
+      // listenAudio — кнопка «Послушать» (озвучка из базы слов; по умолчанию включена, поле не нужно); showPhrase — фраза в чате
+      // пузырём (по умолчанию да, поле не нужно; false — только эталон «под капотом»); strict — «Строго» (100% слов, без опечаток; по умолчанию нет)
       say_phrase:      { phrase: '', translation: '', keywords: '', threshold: 70, lang: 'en-US' },
       pin_message:     { content: '' },
       system:          { content: '' },

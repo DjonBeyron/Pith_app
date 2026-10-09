@@ -142,3 +142,40 @@ describe('автоповторы', () => {
   })
 })
 
+
+describe('модуль «Сказать фразу»: abort() после финала и события для эквалайзера', () => {
+  it('endOnFinal=abort: после финального результата движок гасится abort(), а не stop(); итог приходит без ожидания 2,5 с', async () => {
+    const signals = []
+    const s = setup({ endOnFinal: 'abort', onSignal: k => signals.push(k) })
+    s.tap()
+    s.rec(0).onaudiostart()
+    s.rec(0).onspeechstart()
+    s.rec(0).onresult({ results: [interimRes('i am')] })
+    s.rec(0).onresult({ results: [alt('I am here')] })
+    expect(s.rec(0).aborted).toBeGreaterThan(0)
+    expect(s.rec(0).stopped).toBe(0)
+    await s.tick(300)
+    expect(s.last()).toMatchObject({ status: 'done', lastInterim: 'i am' })
+    expect(s.last().final.text).toBe('I am here')
+    expect(signals).toEqual(['audiostart', 'speechstart', 'interim', 'final', 'end'])
+  })
+
+  it('по умолчанию (проба «Голос») — stop(), как раньше', () => {
+    const s = setup()
+    s.tap()
+    s.rec(0).onaudiostart()
+    s.rec(0).onresult({ results: [alt('I am here')] })
+    expect(s.rec(0).stopped).toBe(1)
+  })
+
+  it('onspeechend сообщает событие; ручной «стоп» по-прежнему stop() (результат нужен)', () => {
+    const signals = []
+    const s = setup({ endOnFinal: 'abort', onSignal: k => signals.push(k) })
+    s.tap()
+    s.rec(0).onaudiostart()
+    s.rec(0).onspeechend()
+    s.ctrl.stop()
+    expect(signals).toContain('speechend')
+    expect(s.rec(0).stopped).toBe(1)
+  })
+})

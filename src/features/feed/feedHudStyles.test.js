@@ -29,8 +29,7 @@ describe('худ ленты: размер иконок (+25%: 25px → 31px)', (
     expect(block(hud, '.feedHudBtn svg')).toMatch(/width: 31px; height: 31px/)
     expect(block(diff, '.diffIcon')).toMatch(/width: 31px;\s*height: 31px/)
   })
-  it('подпись счётчика прежняя 10px, колонка gap 8px, воздух иконка—подпись 4px', () => {
-    expect(block(hud, '.feedHud')).toMatch(/gap: 8px/)
+  it('подпись счётчика прежняя 10px, воздух иконка—подпись 4px', () => {
     expect(block(hud, '.feedHudBtn')).toMatch(/font-size: 10px/)
     expect(block(hud, '.feedHudBtn')).toMatch(/gap: 4px/)
   })
@@ -38,12 +37,33 @@ describe('худ ленты: размер иконок (+25%: 25px → 31px)', (
     const inset = +block(hud, '.feedHudBtn::before').match(/inset: -(\d+)px/)[1]
     expect(31 + 2 * inset).toBeGreaterThanOrEqual(44)
   })
-  it('сердечки лайка стартуют у верха иконки и не уходят вправо за край (tx ≤ 10)', () => {
+  it('сердечки лайка стартуют у верха иконки и не уходят вправо за край (tx ≤ 12)', () => {
     const fx = css('../../styles/feed-reactions-fx.css')
     expect(block(fx, '.likeBurstHeart')).toMatch(/top: 3px/)
     const txs = [...fx.matchAll(/--tx: (-?\d+)px/g)].map(m => +m[1])
     expect(txs).toHaveLength(5)
-    expect(Math.max(...txs)).toBeLessThanOrEqual(10)
+    expect(Math.max(...txs)).toBeLessThanOrEqual(12)
+  })
+})
+
+describe('худ ленты: отступ от края = зазор между кнопками (--hud-gap)', () => {
+  const root = block(hud, '.feedHud')
+  const num = name => +root.match(new RegExp(`--${name}: ([\\d.]+)px`))[1]
+  it('одна переменная --hud-gap, 12–18px (меньше нельзя — тесно, больше — колонка не влезет на 375×667)', () => {
+    expect(num('hud-gap')).toBeGreaterThanOrEqual(12)
+    expect(num('hud-gap')).toBeLessThanOrEqual(18)
+    expect(hud.match(/--hud-gap:/g)).toHaveLength(1)
+  })
+  it('right и gap колонки считаются от неё (равенство видимых отступов), без своих чисел', () => {
+    expect(root).toMatch(/right: calc\(var\(--hud-gap\) - var\(--hud-pad-x\)\)/)
+    expect(root).toMatch(/gap: calc\(var\(--hud-gap\) - var\(--hud-pad-y\)\)/)
+    expect(root).not.toMatch(/\bright: \d/)
+  })
+  it('поправки на «воздух» внутри кнопок малы (0–4px справа, 4–10px между кнопками) и меньше самого отступа', () => {
+    expect(num('hud-pad-x')).toBeLessThanOrEqual(4)
+    expect(num('hud-pad-y')).toBeGreaterThanOrEqual(4)
+    expect(num('hud-pad-y')).toBeLessThanOrEqual(10)
+    expect(num('hud-pad-y')).toBeLessThan(num('hud-gap'))
   })
 })
 

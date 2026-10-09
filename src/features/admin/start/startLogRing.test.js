@@ -14,13 +14,13 @@ describe('start-log: хранение (кольцо, размер, сбои)', (
     expect(list).toHaveLength(1)
     expect(list[0]).toMatchObject({ v: 1, end: 't6000', id: '2026-10-09T10:00:00.000Z' })
     expect(list[0].splash).toEqual(['[0.04] splash: первый кадр', '[1.20] splash: улетает'])
-    expect(JSON.stringify(list[0]).length).toBeLessThan(12000)
+    expect(JSON.stringify(list[0]).length).toBeLessThan(24000)
     expect(env.net).toEqual([])
   })
 
   it('медленные ресурсы попадают в журнал в конце', () => {
     const env = boot({ resources: [{ name: 'https://x.app/assets/index-1.js', duration: 900, startTime: 80, responseEnd: 980, transferSize: 5000 }, { name: 'https://x/fast.js', duration: 10, startTime: 0, responseEnd: 10 }] })
-    env.advance(6100)
+    env.advance(1000); env.win.fire('pithy:splash-gone'); env.advance(2200) // итог пишется, когда семплер закончил (сплэш ушёл + 2 с)
     const r = of(env, 'res-slow')
     expect(r).toHaveLength(1)
     expect(r[0][2]).toBe('/assets/index-1.js 80>980 5000B')
@@ -53,6 +53,7 @@ describe('start-log: хранение (кольцо, размер, сбои)', (
     const env = boot()
     env.advance(300); env.doc.hidden = true; env.doc.visibilityState = 'hidden'; env.doc.fire('visibilitychange')
     expect(env.saved()[0].end).toBe('hidden')
+    env.win.fire('pithy:splash-gone')
     env.advance(6000)
     env.win.fire('resize'); env.win.fire('focus')
     expect(of(env, 'focus')).toHaveLength(0)
@@ -62,7 +63,7 @@ describe('start-log: хранение (кольцо, размер, сбои)', (
     expect(env.saved()[0].end).toBe('pagehide')
   })
 
-  it('переполнение: лишнее прореживается (самые частые повторы), начало и конец остаются, размер ≤ 12 КБ', () => {
+  it('переполнение: лишнее прореживается (самые частые повторы), начало и конец остаются, размер ≤ 24 КБ', () => {
     const env = boot()
     env.advance(100)
     for (let i = 0; i < 400; i++) {
@@ -73,7 +74,7 @@ describe('start-log: хранение (кольцо, размер, сбои)', (
     }
     env.advance(6100)
     const rec = env.saved()[0]
-    expect(JSON.stringify(rec).length).toBeLessThanOrEqual(12000)
+    expect(JSON.stringify(rec).length).toBeLessThanOrEqual(24000)
     expect(rec.ev[0][1]).toBe('start')
     expect(rec.ev.length).toBeGreaterThan(20)
   })

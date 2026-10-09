@@ -1,7 +1,7 @@
 import { readSayData, parseKeywords, keywordsMissingInPhrase, THRESHOLD_MIN, THRESHOLD_MAX } from '../../../shared/lib/speech/sayPhraseData.js'
 
 // «Сказать фразу» (say_phrase): пустая фраза, порог вне 50–100, ключевые слова не из фразы, нет пояснения перед нодой,
-// две подряд, нода первая в уроке. Правила — как в принципе из lessonRulesDefaults.js
+// две подряд, нода первая в уроке, перевод при скрытой фразе (showPhrase=false). Правила — как в принципе из lessonRulesDefaults.js
 export function checkSayPhrase(nodes, start) {
   const out = []
   const parentsOf = new Map()
@@ -12,6 +12,9 @@ export function checkSayPhrase(nodes, start) {
     if (!readSayData(d).phrase) out.push(`${n.ref} say_phrase: пустая phrase — нечего проверять`)
     if (d.threshold != null && (Number(d.threshold) < THRESHOLD_MIN || Number(d.threshold) > THRESHOLD_MAX)) {
       out.push(`${n.ref} say_phrase: threshold ${d.threshold} вне ${THRESHOLD_MIN}–${THRESHOLD_MAX} — будет подтянут к границе`)
+    }
+    if (d.showPhrase === false && String(d.translation ?? '').trim()) {
+      out.push(`${n.ref} say_phrase: showPhrase=false — пузыря с фразой не будет, поэтому translation ученик не увидит`)
     }
     const lost = keywordsMissingInPhrase(d.phrase, d.keywords)
     if (parseKeywords(d.keywords).length && lost.length) {

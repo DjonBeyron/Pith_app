@@ -130,3 +130,42 @@ describe('hudVisible: переключатель «FPS и версия» тол�
     expect(hudVisible(false, true)).toBe(true)
   })
 })
+
+describe('принудительный эквалайзер модуля «Сказать фразу»', () => {
+  beforeEach(() => { store.clear(); failStorage = false })
+
+  it('equalizerOn: включён в шестерёнке ИЛИ удерживается модулем', async () => {
+    const m = await load()
+    expect(m.equalizerOn(true, 0)).toBe(true)
+    expect(m.equalizerOn(false, 0)).toBe(false)
+    expect(m.equalizerOn(false, 1)).toBe(true)
+    expect(m.equalizerOn(false, 2)).toBe(true)
+  })
+
+  it('forceEqualizer считает удержания, отпускание идемпотентно, настройка пользователя и localStorage не меняются', async () => {
+    const m = await load()
+    m.setPref('equalizer', false)
+    expect(store.get('pithy_pref_equalizer')).toBe('0')
+    expect(m.isEqualizerForced()).toBe(false)
+    const a = m.forceEqualizer()
+    const b = m.forceEqualizer()
+    expect(m.isEqualizerForced()).toBe(true)
+    expect(m.getPref('equalizer')).toBe(false) // настройка пользователя не тронута
+    a(); a()
+    expect(m.isEqualizerForced()).toBe(true) // второй модуль ещё держит
+    b()
+    expect(m.isEqualizerForced()).toBe(false) // после модуля снова действует выбор пользователя
+    expect(m.getPref('equalizer')).toBe(false)
+    expect(store.get('pithy_pref_equalizer')).toBe('0')
+  })
+
+  it('форс будит подписчиков настроек (AudioGlowGate перерисуется)', async () => {
+    const m = await load()
+    let n = 0
+    const off = m.subscribeLessonPrefs(() => { n += 1 })
+    const release = m.forceEqualizer()
+    release()
+    off()
+    expect(n).toBe(2)
+  })
+})

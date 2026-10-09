@@ -5,7 +5,7 @@
 //  - прошёл с 3 нажатия или после автоповторов связи         → success без метки
 //  - «Получилось» (ученик сказал вслух и подтвердил сам)      → success без метки
 //  - «Не могу говорить» / пропуск / 3 неудачи без «Получилось» → skipped: урок идёт дальше, XP нет, штрафа нет
-import { matchBest, tokenize } from './speechMatch.js'
+import { matchTop, tokenize } from './speechMatch.js'
 
 export const MAX_TAPS = 3        // нажатий на микрофон на одну ноду; дальше «Ещё раз» скрыт, остаются «Получилось» и «Не могу говорить»
 export const CLEAN_TAPS = 2      // пройти с этого нажатия или раньше — «чисто»
@@ -24,12 +24,23 @@ export function sayOutcome({ kind, taps = 1, autoRetries = 0, hasSkipLink = fals
   return { result: 'success', success: true, clean, penalty: false, trigger: TRIGGER_DONE }
 }
 
-/** Сравнение услышанного (все альтернативы распознавания) с эталоном ноды; data — результат readSayData */
+/**
+ * Сравнение услышанного с эталоном ноды; data — результат readSayData. Засчитываем ТОЛЬКО по главному варианту
+ * распознавания (alts[0]): лучший из нескольких скрыл бы намеренную ошибку. В режиме «Строго» (data.strict) —
+ * без допуска опечаток. Остальные варианты (alternatives) нужны только админской строке.
+ */
 export function judgeRun(view, data) {
   const alts = (view?.alternatives?.length ? view.alternatives : view?.final ? [view.final] : [])
     .map(a => a.text).filter(Boolean)
-  const m = matchBest(data.phrase, alts, data.keywords, data.passRatio)
+  const m = matchTop(data.phrase, alts, data.keywords, data.passRatio, { exactWords: !!data.strict })
   return { ...m, ratioPct: Math.round(m.ratio * 100), heard: m.text ?? '' }
+}
+
+/** Движок «исправил» слово: последний промежуточный текст отличается от итогового (после нормализации). Для админской диагностики */
+export function interimDiffers(lastInterim, finalText) {
+  const a = tokenize(lastInterim).join(' ')
+  const b = tokenize(finalText).join(' ')
+  return !!a && !!b && a !== b
 }
 
 /**
@@ -48,7 +59,7 @@ export function phraseWords(phrase, verdict) {
 }
 
 /** Свойства события аналитики. Только числа/строки/булевы — текста фразы и звука здесь нет */
-export function sayEventProps({ perm, explained, taps, autoRetries, passed, ratioPct, reason, clean }) {
+export function sayEventProps({ perm, explained, taps, autoRetries, passed, ratioPct, reason, clean, interimDiffers: differs }) {
   const p = {}
   if (perm != null) p.perm = perm
   if (explained != null) p.explainer_shown = !!explained
@@ -58,6 +69,7 @@ export function sayEventProps({ perm, explained, taps, autoRetries, passed, rati
   if (ratioPct != null) p.ratio = ratioPct
   if (clean != null) p.clean = !!clean
   if (reason) p.reason = reason
+  if (differs != null) p.interim_differs = !!differs // без текста: только «движок исправил слово или нет»
   return p
 }
 

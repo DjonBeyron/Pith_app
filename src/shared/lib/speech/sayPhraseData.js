@@ -36,7 +36,8 @@ export function keywordsMissingInPhrase(phrase, keywords) {
 /** data = node.typeData.say_phrase (в плеере/редакторе) или data ноды в обменном JSON — то же самое */
 export function readSayData(data) {
   const d = data ?? {}
-  const threshold = clampThreshold(d.threshold)
+  const strict = d.strict === true // «Строго»: все слова эталона и ни одной опечатки; по умолчанию выключено
+  const threshold = strict ? THRESHOLD_MAX : clampThreshold(d.threshold)
   return {
     phrase: String(d.phrase ?? '').trim(),
     translation: String(d.translation ?? '').trim(),
@@ -45,5 +46,7 @@ export function readSayData(data) {
     passRatio: threshold / 100,
     lang: SAY_LANGS.includes(d.lang) ? d.lang : LANG_DEFAULT,
     listenAudio: d.listenAudio !== false, // по умолчанию включено; false — отключить
+    showPhrase: d.showPhrase !== false,   // фраза в чате пузырём ведущего; по умолчанию показываем, false — только эталон «под капотом»
+    strict,
   }
 }

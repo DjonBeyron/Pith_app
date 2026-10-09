@@ -63,16 +63,17 @@ export function tolerance(len) {
 
 /**
  * Сравнить услышанное с эталоном. passRatio — доля слов эталона для «засчитано» (по умолчанию 0,7; у модуля — порог ноды).
+ * opts.exactWords — режим «Строго» модуля: допуск опечаток 0, слово должно совпасть точно (после нормализации регистра/знаков/сокращений).
  * @returns {{matched: string[], missed: string[], extra: string[], items: {word: string, ok: boolean, heard: string|null}[],
  *   ratio: number, passed: boolean}} items — слова эталона по порядку (для раскраски)
  */
-export function matchPhrase(reference, heard, keywords = [], passRatio = PASS_RATIO) {
+export function matchPhrase(reference, heard, keywords = [], passRatio = PASS_RATIO, opts = {}) {
   const ref = tokenize(reference)
   const hyp = tokenize(heard)
   const pairs = []
   ref.forEach((rw, i) => hyp.forEach((hw, j) => {
     const d = levenshtein(rw, hw)
-    if (d <= tolerance(rw.length)) pairs.push({ i, j, d })
+    if (d <= (opts.exactWords ? 0 : tolerance(rw.length))) pairs.push({ i, j, d })
   }))
   // лучшие пары первыми: меньше расстояние, затем ближе по позиции (одинаковые слова встают по порядку)
   pairs.sort((x, y) => x.d - y.d || Math.abs(x.i - x.j) - Math.abs(y.i - y.j) || x.i - y.i)
@@ -102,4 +103,13 @@ export function matchBest(reference, alternatives, keywords = [], passRatio = PA
     if (!best || r.ratio > best.ratio || (r.ratio === best.ratio && r.extra.length < best.extra.length)) best = { ...r, index, text }
   })
   return best ?? { ...matchPhrase(reference, '', keywords, passRatio), index: -1, text: '' }
+}
+
+/**
+ * Модуль «Сказать фразу»: решение «засчитано» принимаем ТОЛЬКО по главному варианту распознавания (первому — у него наибольшая
+ * уверенность). Лучший из трёх (matchBest) выбирал бы самый выгодный и скрывал намеренную ошибку ученика.
+ */
+export function matchTop(reference, alternatives, keywords = [], passRatio = PASS_RATIO, opts = {}) {
+  const text = alternatives[0] ?? ''
+  return { ...matchPhrase(reference, text, keywords, passRatio, opts), index: alternatives.length ? 0 : -1, text }
 }

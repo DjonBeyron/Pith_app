@@ -54,3 +54,5 @@
 }
 .nodeSayKey { color: #b6fe3b; font-weight: 700; }
 .nodeSayNeed { color: #666; font-size: 11px; }
+
+.nodeSayNote { margin-top: -2px; }

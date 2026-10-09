@@ -42,12 +42,16 @@ export function makeEnv(opts = {}) {
   }
   const win = makeTarget(), doc = makeTarget(), swTarget = makeTarget()
   // стили элементов меняет тест: el.st.opacity = '0.5'
-  const el = (id, st = {}, kids = []) => ({ id, st: { opacity: '1', display: 'block', backgroundColor: 'rgb(0, 0, 0)', ...st }, firstElementChild: kids[0] || null, childElementCount: 0, rect: { x: 0, y: 0, width: 0, height: 0 }, querySelector() { return kids[1] || null }, getBoundingClientRect() { return this.rect } })
+  const el = (id, st = {}, kids = [], nodeName = 'DIV') => ({ id, nodeName, className: '', st: { opacity: '1', display: 'block', backgroundColor: 'rgb(0, 0, 0)', ...st }, firstElementChild: kids[0] || null, childElementCount: 0, rect: { x: 0, y: 0, width: 0, height: 0 }, querySelector() { return kids[1] || null }, getBoundingClientRect() { return this.rect }, contains(n) { return n === this || kids.includes(n) } })
   const logo = el('logo'); logo.rect = { x: 163, y: 376, width: 92, height: 92 }
   const fade = el('fade'), splash = el('splash', {}, [fade, logo]), root = el('root')
   const elements = { splash, root }
-  const html = { st: { backgroundColor: 'rgb(0, 0, 0)' }, appendChild() {}, removeChild() {} }
-  const body = { st: { backgroundColor: 'rgb(0, 0, 0)' } }
+  // safe-area и «зонд» (высота fixed-области): env.pad.b = '0px' → потом '34px' имитирует позднее появление inset на iOS
+  const pad = { t: '59px', r: '0px', b: '34px', l: '0px', fh: 814 }
+  // элементы, которые находят querySelector (нижняя панель, лента...): env.q['nav.shellV2Nav'] = el(...)
+  const q = {}
+  const html = { nodeName: 'HTML', st: { backgroundColor: 'rgb(0, 0, 0)' }, clientHeight: 814, scrollTop: 0, style: { setProperty(k, v) { this[k] = v }, removeProperty(k) { delete this[k] } }, probes: 0, appendChild() { this.probes++ }, removeChild() { this.probes-- } }
+  const body = { nodeName: 'BODY', st: { backgroundColor: 'rgb(0, 0, 0)' }, scrollTop: 0 }
   const baseEpoch = opts.startEpoch ?? Date.parse('2026-10-09T10:00:00.000Z')
   const RealDate = Date
   function FakeDate(...a) { return a.length ? new RealDate(...a) : new RealDate(baseEpoch + clock) }
@@ -72,14 +76,19 @@ export function makeEnv(opts = {}) {
     location,
     localStorage, sessionStorage, history,
     matchMedia: q => ({ matches: /standalone|dark/.test(q) }),
-    getComputedStyle: e => ({ ...(e.st || {}), paddingTop: '59px', paddingRight: '0px', paddingBottom: '34px', paddingLeft: '0px' }),
+    getComputedStyle: e => ({ backgroundImage: 'none', position: 'static', ...(e.st || {}), paddingTop: pad.t, paddingRight: pad.r, paddingBottom: pad.b, paddingLeft: pad.l }),
+    pageYOffset: 0,
     setTimeout: (fn, ms = 0) => { timers.push({ fn, at: clock + ms }); return timers.length },
     requestAnimationFrame: fn => { rafs.push(fn) },
     fetch: () => { net.push('fetch') }, XMLHttpRequest: function () { net.push('xhr') },
     document: Object.assign(doc, {
       readyState: 'loading', visibilityState: 'visible', hidden: false, referrer: '', fonts: { status: 'loaded' },
-      documentElement: html, body, createElement: () => ({ style: {} }),
+      documentElement: html, body, createElement: () => ({ nodeName: 'DIV', style: {}, getBoundingClientRect: () => ({ x: 0, y: 0, width: 0, height: pad.fh }) }),
       getElementById: id => elements[id] || null,
+      querySelector: s => q[s] || null,
+      // слои под точкой экрана сверху вниз: сплэш (пока он в DOM), затем #root, затем html; тест может подменить env.stack
+      elementsFromPoint: () => (env.stack ? env.stack : [elements.splash, root, html].filter(Boolean)),
+      elementFromPoint: () => (env.stack ? env.stack[0] : elements.splash || root),
     }),
     __splashLog: opts.splashLog,
   })
@@ -93,8 +102,8 @@ export function makeEnv(opts = {}) {
     const cbs = rafs.splice(0)
     cbs.forEach(fn => fn(clock))
   }
-  return {
-    win, doc, swTarget, observers, store, entries, elements, splash, fade, logo, root, html, body, history, net, PerformanceObserver,
+  const env = {
+    pad, q, stack: null, win, doc, swTarget, observers, store, entries, elements, splash, fade, logo, root, html, body, history, net, PerformanceObserver,
     now: () => clock,
     run(code) { vm.runInContext(code, sandbox) },
     frame,
@@ -103,6 +112,8 @@ export function makeEnv(opts = {}) {
     log: () => sandbox.__startLog,
     saved: () => JSON.parse(store.pithy_start_logs_v1 || 'null'),
   }
+  env.el = el
+  return env
 }
 
 // Новое окружение с уже выполненным скриптом журнала

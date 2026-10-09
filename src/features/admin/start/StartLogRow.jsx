@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { formatStartLog, startSummary } from './formatStartLog.js'
+import { formatStartShort } from './formatStartShort.js'
 import { copyText } from './copyText.js'
 
 // Одна строка списка стартов: итог в одну линию, по тапу — полный журнал текстом и кнопка «Скопировать этот старт»
@@ -11,6 +12,11 @@ export default function StartLogRow({ rec, prev, open, onToggle, onNote }) {
 
   async function copy() {
     onNote((await copyText(body)) ? 'Старт скопирован' : 'Не удалось скопировать — выделите текст вручную')
+  }
+
+  async function copyShort() {
+    const text = formatStartShort(rec, prev)
+    onNote((await copyText(text)) ? `Коротко скопировано (${text.length} символов)` : 'Не удалось скопировать')
   }
 
   return (
@@ -28,6 +34,7 @@ export default function StartLogRow({ rec, prev, open, onToggle, onNote }) {
       {open && (
         <div className="astDetail">
           <pre className="astPre">{body}</pre>
+          <button className="aeRefresh" onClick={copyShort}>Скопировать коротко</button>
           <button className="aeRefresh" onClick={copy}>Скопировать этот старт</button>
         </div>
       )}

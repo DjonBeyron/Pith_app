@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fmtT, sortEvents, parseKv, replaySamples, splashLineEvents, collapseTicks, fullEvents } from './startLogEvents.js'
+import { fmtT, sortEvents, parseKv, replaySamples, splashLineEvents, collapseTicks, fullEvents, thinEvents, collapseSame, rowText } from './startLogEvents.js'
 
 describe('startLogEvents', () => {
   it('fmtT: до 100 мс — до одной цифры после запятой, дальше целые', () => {
@@ -35,5 +35,15 @@ describe('startLogEvents', () => {
   it('fullEvents: события + журнал сплэша на одной шкале', () => {
     const e = fullEvents({ ev: [[50, 'x', ''], [5, 'y', '']], splash: ['[0.02] s'] })
     expect(e.map(x => x[1])).toEqual(['y', 'splash-log', 'x'])
+  })
+  it('thinEvents: tick не чаще раза в 500 мс, res-slow — первые 5', () => {
+    const ev = [...Array.from({ length: 12 }, (_, i) => [i * 100, 'tick', '=']), ...Array.from({ length: 8 }, (_, i) => [2000 + i, 'res-slow', 'r' + i])]
+    const out = thinEvents(ev)
+    expect(out.filter(e => e[1] === 'tick').map(e => e[0])).toEqual([0, 500, 1000])
+    expect(out.filter(e => e[1] === 'res-slow')).toHaveLength(5)
+  })
+  it('collapseSame + rowText: одинаковые подряд строки в одну, разные — как есть', () => {
+    const rows = collapseSame([[1, 'sample', 'so=0.9 dt=16'], [17, 'sample', 'so=0.9 dt=16'], [33, 'sample', 'so=0.9 dt=16'], [40, 'sample', 'so=0.8'], [100, 'tick', '='], [200, 'tick', '=']])
+    expect(rows.map(rowText)).toEqual(['t=1..33ms | sample | so=0.9 dt=16 (x3)', 't=40ms | sample | so=0.8', 't=100..200ms | tick | без изменений (x2)'])
   })
 })
