@@ -13,6 +13,7 @@ class FakeAudio {
 }
 globalThis.Audio = FakeAudio
 const { playWord, stopWord, setWordAudioMuted, releaseWordAudio } = await import('./wordAudioPlayer.js')
+const { holdSilence, holdSoundQuiet, _resetSoundQuiet } = await import('../../../shared/lib/soundQuiet.js')
 
 describe('беззвучный режим повторения глушит озвучку слов', () => {
   beforeEach(() => { releaseWordAudio(); plays.length = 0 })
@@ -54,5 +55,26 @@ describe('stopWord и смена слова', () => {
     playWord('keep', { onEnded: () => ended.push(1) })
     playWord('keep')
     expect(ended).toEqual([1])
+  })
+})
+
+describe('озвучка молчит, пока идёт запись голоса / открыта вкладка «Голос» (soundQuiet.js)', () => {
+  beforeEach(() => { releaseWordAudio(); plays.length = 0; _resetSoundQuiet() })
+
+  it('holdSilence: тап по слову ничего не играет; после снятия — снова звучит', () => {
+    const release = holdSilence('admin-voice')
+    expect(playWord('keep')).toBe(false)
+    expect(plays).toHaveLength(0)
+    release()
+    expect(playWord('keep')).toBe(true)
+    expect(plays).toHaveLength(1)
+  })
+
+  it('окно записи модуля (holdSoundQuiet) тоже глушит озвучку; stopWord безопасен', () => {
+    const release = holdSoundQuiet()
+    expect(playWord('keep')).toBe(false)
+    stopWord()
+    release()
+    expect(plays).toHaveLength(0)
   })
 })

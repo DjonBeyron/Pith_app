@@ -4,19 +4,22 @@
 import { RESTART_COOLDOWN_MS, STOP_FORCE_MS } from './speechPolicy.js'
 
 // reuse — один экземпляр на все попытки (start() на том же объекте после end); stop — гасить stop() вместо abort(); waitEnd — ждать end прошлого
-// экземпляра; pauseMs — пауза после end. S1 = поведение до этой правки (по умолчанию)
+// экземпляра; pauseMs — пауза после end; audioSession — тип navigator.audioSession на время записи, audioReset — перед стартом 'auto' → 150 мс → тип
+// (speechAudioSession.js; без API S6/S7 деградируют до S3). S1 = поведение до правки аудиосессии
 export const STRATEGIES = {
   S1: { reuse: false, stop: false, waitEnd: false, pauseMs: 0 },
   S2: { reuse: true, stop: false, waitEnd: true, pauseMs: 0 },
   S3: { reuse: false, stop: false, waitEnd: true, pauseMs: 900 },
   S4: { reuse: false, stop: true, waitEnd: true, pauseMs: 700 },
   S5: { reuse: true, stop: false, waitEnd: true, pauseMs: 700 },
+  S6: { reuse: false, stop: false, waitEnd: true, pauseMs: 700, audioSession: 'play-and-record' },
+  S7: { reuse: false, stop: false, waitEnd: true, pauseMs: 700, audioSession: 'play-and-record', audioReset: true },
 }
 export const STRATEGY_IDS = Object.keys(STRATEGIES)
 /** Модуль «Сказать фразу»: новый экземпляр на попытку, но только после end прошлого + RESTART_COOLDOWN_MS (прозрачно для ученика) */
 export const MODULE_STRATEGY = { reuse: false, stop: false, waitEnd: true, pauseMs: RESTART_COOLDOWN_MS }
 
-/** id ('S1'…'S5', 'M') или объект настроек → { id, reuse, stop, waitEnd, pauseMs }; незнакомое → S1 */
+/** id ('S1'…'S7', 'M') или объект настроек → { id, reuse, stop, waitEnd, pauseMs }; незнакомое → S1 */
 export function resolveStrategy(x) {
   if (x && typeof x === 'object') return { id: x.id ?? 'custom', ...STRATEGIES.S1, ...x }
   if (x === 'M') return { id: 'M', ...MODULE_STRATEGY }

@@ -13,15 +13,17 @@ export const QUIET_NOTE = 'звуки приложения подавлены'
 const q = t => `«${t}»`
 /** Пометка про реальный уровень звука для колец (эксперимент, sayRealLevel.js): вкл / выкл / ошибка (тихий откат на синтетический) */
 export const realLevelNote = status => `реальный уровень: ${status || 'выкл'}`
+/** Пометка про аудиосессию (эксперимент, флаг pithy_say_audiosession_v1): «аудиосессия: play-and-record»; выключено — пусто */
+export const audioSessionNote = type => (type ? `аудиосессия: ${type}` : '')
 
 /**
  * Строка для админа или null (null — «нового сказать нечего», прежняя строка остаётся). phase — фаза панели, view — вид контроллера
  * (interim/lastInterim/final/alternatives), verdict/errorCode — итог попытки.
  * @returns {{text: string, note: string, title: string}|null} title — все варианты распознавания (всплывающая подсказка)
  */
-export function adminHeardLine({ isAdmin, phase, view, verdict = null, errorCode = null, realLevel = null }) {
+export function adminHeardLine({ isAdmin, phase, view, verdict = null, errorCode = null, realLevel = null, audioSession = null }) {
   if (!showHeardText({ isAdmin }) || !view) return null
-  const note = (...parts) => [...parts.filter(Boolean), QUIET_NOTE, realLevelNote(realLevel)].join(' · ')
+  const note = (...parts) => [...parts.filter(Boolean), QUIET_NOTE, realLevelNote(realLevel), audioSessionNote(audioSession)].filter(Boolean).join(' · ')
   const final = view.final?.text || ''
   if (phase === 'run' && view.status === 'listening') {
     return view.interim ? { text: `Админ: слышу ${q(view.interim)}`, note: note(), title: '' } : null

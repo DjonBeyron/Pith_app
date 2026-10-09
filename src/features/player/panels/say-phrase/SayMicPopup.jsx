@@ -10,6 +10,7 @@ import { EXPLAIN_TEXT, EXPLAIN_BTN, EXPLAIN_SHORT_TEXT, EXPLAIN_SHORT_BTN } from
 // Вид и анимации — как у попапа игрока в «Рейтинге» и окошек худа: «пружинка» popSpringIn при открытии, схлопывание hudPopOut
 // с заливкой при закрытии, затемнение — отдельный слой РЯДОМ с окном (плавный opacity), без blur/backdrop-filter. Закрытие:
 // кнопка, тап мимо окна (ничего не просим, флагов не ставим — попап покажем снова) или Esc. closing — окно уже схлопывается (классы --out).
+// data-no-unlock на корне: тап «Понятно, включить микрофон» сразу стартует запись, разблокировка звука (беззвучный wav) на нём запрещена.
 export default function SayMicPopup({ kind = 'full', closing, onConfirm, onCancel }) {
   const short = kind === 'short'
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function SayMicPopup({ kind = 'full', closing, onConfirm, onCance
     return () => window.removeEventListener('keydown', onKey)
   }, [closing, onCancel])
   return createPortal(
-    <div className={`sayPopRoot${closing ? ' sayPopRoot--out' : ''}`} onClick={closing ? undefined : onCancel} data-testid="say-mic-popup" data-kind={short ? 'short' : 'full'}>
+    <div className={`sayPopRoot${closing ? ' sayPopRoot--out' : ''}`} onClick={closing ? undefined : onCancel} data-no-unlock="" data-testid="say-mic-popup" data-kind={short ? 'short' : 'full'}>
       <div className={`sayPopDim${closing ? ' sayPopDim--out' : ''}`} aria-hidden="true" />
       <div
         className={`sayPopCard${closing ? ' sayPopCard--out' : ''}`}

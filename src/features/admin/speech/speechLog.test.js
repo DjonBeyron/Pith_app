@@ -64,3 +64,13 @@ describe('колонка «Перезапуск»', () => {
     expect(line).toContain('исход: stopped')
   })
 })
+
+describe('пометка «звуки до записи» в журнале', () => {
+  it('колонка «Перезапуск» и строка отчёта несут звуки до записи, звуки во время записи и тип аудиосессии', () => {
+    const e = { strategy: 'S6', gapMs: 705, deaf: true, audioBefore: 'unlock-wav×2, audio-play', audioAgo: 340, audioDuring: 'audio-play', audioSession: 'auto→play-and-record' }
+    expect(fmtRestart(e)).toBe('S6 · пауза 705 мс · ГЛУХАЯ? · звуки до записи: unlock-wav×2, audio-play (−340 мс) · во время записи: audio-play · аудиосессия: auto→play-and-record')
+    expect(fmtRestart({ strategy: 'S6', audioBefore: '' })).toBe('S6 · звуки до записи: нет')
+    expect(fmtRestart({ strategy: 'S3', gapMs: 905 })).toBe('S3 · пауза 905 мс') // запись без полей — как раньше
+    expect(logReportLines([{ t: 1, mode: 'pwa', ...e }])[0]).toContain('звуки до записи: unlock-wav×2, audio-play (−340 мс)')
+  })
+})

@@ -58,6 +58,7 @@
 .apLive { padding: 8px 10px; border-radius: 10px; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; background: #12141a; border: 1px dashed #4a4d55; color: #e0e0e0; }
 .apLive-final { border: 1px solid #b6fe3b; color: #b6fe3b; }
 .apLive-wait { font-weight: 400; color: #888; }
+.apLive-deaf { border: 1px solid #ff6b6b; color: #ff6b6b; }
 .apMore { font-size: 13px; color: #e0e0e0; }
 .apMore > summary { cursor: pointer; color: #888; padding: 4px 0; font-size: 13px; }
 .apMore[open] { display: flex; flex-direction: column; gap: 8px; }

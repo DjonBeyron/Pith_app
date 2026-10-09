@@ -17,13 +17,15 @@ async function okRun(s, i = 0, flush = true) {
 }
 
 describe('стратегии: таблица и разбор', () => {
-  it('S1…S5 заданы по ТЗ, S1 — прежнее поведение, незнакомое → S1', () => {
-    expect(STRATEGY_IDS).toEqual(['S1', 'S2', 'S3', 'S4', 'S5'])
+  it('S1…S7 заданы по ТЗ, S1 — прежнее поведение, незнакомое → S1', () => {
+    expect(STRATEGY_IDS).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'])
     expect(STRATEGIES.S1).toEqual({ reuse: false, stop: false, waitEnd: false, pauseMs: 0 })
     expect(STRATEGIES.S2).toMatchObject({ reuse: true, waitEnd: true, pauseMs: 0 })
     expect(STRATEGIES.S3).toMatchObject({ reuse: false, waitEnd: true, pauseMs: 900 })
     expect(STRATEGIES.S4).toMatchObject({ reuse: false, stop: true, waitEnd: true, pauseMs: 700 })
     expect(STRATEGIES.S5).toMatchObject({ reuse: true, waitEnd: true, pauseMs: 700 })
+    expect(STRATEGIES.S6).toEqual({ reuse: false, stop: false, waitEnd: true, pauseMs: 700, audioSession: 'play-and-record' })
+    expect(STRATEGIES.S7).toEqual({ ...STRATEGIES.S6, audioReset: true })
     expect(MODULE_STRATEGY).toMatchObject({ reuse: false, waitEnd: true, pauseMs: RESTART_COOLDOWN_MS })
     expect(RESTART_COOLDOWN_MS).toBe(600)
     expect(resolveStrategy('zzz').id).toBe('S1')

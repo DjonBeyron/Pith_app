@@ -144,3 +144,13 @@ describe('«Скопировать все сравнения» ≤ 6000 симв
     expect(allComparisonsText({ log: [], seriesLines: [] })).toContain('попыток с текстами нет')
   })
 })
+
+describe('«Скопировать все сравнения»: звуки до записи', () => {
+  it('строка попытки содержит «звуки до записи: …» и аудиосессию; без полей — ничего лишнего', () => {
+    const e = entry(makeView(), extra, { audioBefore: 'audio-play', audioAgo: 120, audioDuring: '', audioSession: 'auto→play-and-record' })
+    expect(attemptLine(e)).toContain('звуки до записи: audio-play (−120 мс) · аудиосессия: auto→play-and-record')
+    expect(allComparisonsText({ log: [e] })).toContain('звуки до записи: audio-play')
+    expect(attemptLine(entry())).not.toContain('звуки до записи')
+    expect(attemptFields(entry(makeView(), extra, { audioBefore: '' })).find(f => f[0] === 'snd')[2]).toBe('звуки до записи: нет')
+  })
+})

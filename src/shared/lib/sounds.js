@@ -4,7 +4,8 @@ import { onLessonOpenChange, isLessonOpen } from './lessonOpen.js'
 import { resetPrimed } from './primedAudio.js'
 import { APP_VERSION } from './version.js'
 import { getSoundVolume, onSoundVolumeChange, needsGain, loadGainBuffer, playWithGain } from './soundVolume.js'
-import { suppressSound } from './soundQuiet.js'
+import { suppressSound, isMicBusy } from './soundQuiet.js'
+import { logSound, logElementSound } from './soundLog.js' // диагностика: любое воспроизведение страницей пишется в кольцо soundLog.js (корреляция с «глухим» микрофоном)
 
 // Громкость звуков интерфейса — глобальная настройка админа (audioSettings.js →
 // soundVolume.js). Экспорт — для админского блока и тестов
@@ -61,6 +62,7 @@ let gestureArmed = false
 // момент старта записи. Слушатель остаётся взведённым — сработает на ближайший другой жест
 function onGesture(e) {
   if (e?.target?.closest?.('[data-no-unlock]')) return
+  if (isMicBusy()) return // идёт запись голоса / вкладка «Голос»: разблокировку не запускаем, слушатель остаётся до ближайшего другого касания
   disarmGesture(); preloadSounds(); unlockAudio()
 }
 function armGesture() {
@@ -102,6 +104,7 @@ export function preloadSounds() {
   if (lateMade.size) { lateMade.forEach(n => delete htmlCache[n]); lateMade.clear() }
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)()
+    logSound('audiocontext', 'create')
     ctx.onstatechange = onCtxStateChange
     pLog(`[sound] AudioContext created state=${ctx.state}`)
   }
@@ -130,10 +133,11 @@ onSoundVolumeChange(warmGainBuffers)
 // iOS gesture unlock is page-wide: after this, HTMLAudioElement.play() from
 // setTimeout fires instantly without the ~700ms first-play delay.
 export function unlockAudio() {
-  if (!ctx) return
+  if (!ctx || isMicBusy()) return
   pLog(`[sound] unlockAudio — ctx.state=${ctx.state}`)
   // Не только 'suspended': после прерывания iOS держит 'interrupted'
   if (ctx.state !== 'running') {
+    logSound('audiocontext', 'resume')
     ctx.resume()
       .then(() => pLog(`[sound] AudioContext running`))
       .catch(e => pLog(`[sound] resume FAILED: ${e.message}`))
@@ -188,6 +192,7 @@ export function playSound(name, where = null, opts = null) {
 
 function playGain(name, where, volume) {
   const rec = traceSoundRequest(name, null, { откуда: where, состояниеCtx: ctx.state, путь: 'webaudio', громкость: volume })
+  logSound('audiocontext', name)
   playWithGain(ctx, name, soundUrl(name), volume)
     .then(duration => {
       traceSoundStarted(rec); rec.итог = 'прозвучал'
@@ -222,6 +227,7 @@ function playHtml(name, where, volume) {
   // выбрасывал недогруженный элемент, и звуки так и не прогревались — «в
   // других уроках нет звуков». Выбрасывает кэш только прерывание сессии
   // (onCtxStateChange), пересоздаёт — следующий жест
+  logElementSound('audio-play', name, audio)
   audio.play()
     .then(() => { traceSoundStarted(rec); notifyPlayed(name, audio.duration); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
     .catch(e => { traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`) })
@@ -238,9 +244,10 @@ function playHtml(name, where, volume) {
 const warming = new Set()
 export function warmSound(name) {
   const audio = htmlCache[name]
-  if (!audio || !audio.paused || warming.has(name)) return
+  if (!audio || !audio.paused || warming.has(name) || isMicBusy()) return
   warming.add(name)
   audio.muted = true
+  logElementSound('audio-play', `warm:${name}`, audio)
   const finish = () => {
     if (warming.delete(name)) { audio.pause(); audio.currentTime = 0 }
     audio.muted = false

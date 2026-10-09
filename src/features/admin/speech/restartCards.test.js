@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { runHeard, runVerdict, runTime, runLine, strategyLine } from './restartCards.js'
+import { runHeard, runVerdict, runTime, runLine, strategyLine, runSounds, runGaveUp, GIVE_UP_TEXT } from './restartCards.js'
 import { emptyState, startSeries, addRun, tableRows, summarizeRun } from './restartSeries.js'
 
 const run = (over = {}) => ({ cls: 'ok', heard: 'hello', recovered: false, result: 1400, err: null, ...over })
@@ -41,5 +41,25 @@ describe('strategyLine: сводка по стратегии', () => {
     expect(strategyLine(tableRows(s)[0])).toBe('S1 — слышал 4 из 6, глухих 2')
     expect(strategyLine(tableRows(s)[4])).toBe('S5 — ещё не проверяли')
     expect(strategyLine({ id: 'S2', partial: false, stats: { ok: 3, n: 6, deafRuns: 0, err: 1 } })).toBe('S2 — слышал 3 из 6, глухих 0, ошибок 1')
+  })
+})
+
+describe('звуки до записи и сдавшееся восстановление в карточке попытки', () => {
+  it('runSounds: «звуки до записи: …» / «нет»; запись без поля — пусто', () => {
+    expect(runSounds(run({ snd: 'unlock-wav, audio-play' }))).toBe('звуки до записи: unlock-wav, audio-play')
+    expect(runSounds(run({ snd: 'нет' }))).toBe('звуки до записи: нет')
+    expect(runSounds(run())).toBe('')
+  })
+  it('summarizeRun берёт snd из первой попытки захода', () => {
+    const att = (retry, over) => ({ t: retry, run: 1, retry, strategy: 'S6', outcome: 'ok', error: null, msAudio: 800, msResult: 2000, last: true, ...over })
+    expect(summarizeRun([att(0, { audioBefore: 'audio-play×2' })]).snd).toBe('audio-play×2')
+    expect(summarizeRun([att(0, { audioBefore: '' })]).snd).toBe('нет')
+    expect(summarizeRun([att(0, {})]).snd).toBe(null)
+  })
+  it('runGaveUp: глухой заход из трёх попыток → просим закрыть и открыть приложение', () => {
+    expect(GIVE_UP_TEXT).toBe('Микрофон не слышит: закрой приложение и открой снова')
+    expect(runGaveUp(run({ cls: 'deaf', attempts: 3 }))).toBe(true)
+    expect(runGaveUp(run({ cls: 'deaf', attempts: 1 }))).toBe(false)
+    expect(runGaveUp(run({ cls: 'ok', attempts: 3 }))).toBe(false)
   })
 })

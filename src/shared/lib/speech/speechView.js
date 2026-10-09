@@ -7,6 +7,7 @@ export const emptyView = {
   error: null, hint: null, notice: null, needTap: false,
   runNo: 0, reference: '', lang: '', at: null, attempt: 0, maxAttempts: MAX_ATTEMPTS, attemptId: 0,
   history: [], segments: [], applied: null, extra: null, // диагностика пробы: история interim [{t,text,final?}] и служебных событий [{t,kind}] ≤80, сегменты continuous, что выставил configure, снимок extra из start()
+  deafGiveUp: false, // после DEAF_RETRY_MAX восстановлений микрофон всё ещё глухой (проба показывает «закрой приложение и открой снова», модуль молчит)
   cooling: false, preparing: false, // cooling — прошлый экземпляр ещё закрывается/пауза после end (новый запуск ждёт); preparing — наш запуск стоит в очереди на это время
 }
 

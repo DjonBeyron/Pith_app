@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { preloadSounds } from '../../shared/lib/sounds.js'
+import { isMicBusy } from '../../shared/lib/soundQuiet.js'
 
 // Схема модуля: по первому ТАПУ страницы создаём Audio-элементы звуков
 // (preloadSounds). Файлы уже в HTTP-кэше (warmSoundFiles в App.jsx), но iOS
@@ -27,7 +28,8 @@ export function usePreloadSoundsOnTap() {
       document.removeEventListener('pointerup', onUp, true)
       document.removeEventListener('touchend', onEnd, true)
     }
-    const fire = () => { off(); preloadSounds() }
+    // Идёт запись голоса / открыта вкладка «Голос»: ничего не создаём, слушатель остаётся до ближайшего свободного касания
+    const fire = () => { if (isMicBusy()) return; off(); preloadSounds() }
     const onUp = e => { if (Math.hypot(e.clientX - sx, e.clientY - sy) <= TAP_SLOP_PX) fire() }
     const onEnd = e => {
       const t = e.changedTouches?.[0]

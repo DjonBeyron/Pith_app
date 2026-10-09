@@ -6,11 +6,13 @@ import { ResultTable, CompareTable } from './SeriesTables.jsx'
 import SeriesStepCard from './SeriesStepCard.jsx'
 import LiveHeard from './LiveHeard.jsx'
 import { copyText } from './copyText.js'
+import { strategyLabel } from './restartStrategies.js'
 
 // Серия «влияет ли длина контекста»: шпаргалка из 3 шагов, 4 карточки шагов («что сказать» → «Услышали» → вывод простыми словами), «Сказать» с живой строкой
 // «Слышу…», «Языки рядом» строками, «Скопировать итог серии». Широкие таблицы, выводы и настройки эталонов — в «Подробнее».
+// strategy — выбранная стратегия перезапуска (читает её контроллер пробы на каждом тапе, поэтому «Тест 1» идёт на ней же).
 // Режимы 2 (10 альтернатив) и 3 (история interim) включаются на шагах серии автоматически (useAntiPredict.getExtra).
-export default function ContextSeriesBlock({ series, lang, reference, busy, view, onPick, onSay, onStop }) {
+export default function ContextSeriesBlock({ series, lang, reference, busy, view, onPick, onSay, onStop, strategy }) {
   const { state, step, setRef, setWord, clear } = series
   const { cfg } = state
   const [edit, setEdit] = useState({ word: cfg.word, wrong: cfg.wrong })
@@ -36,6 +38,7 @@ export default function ContextSeriesBlock({ series, lang, reference, busy, view
         {view?.status === 'listening' && <span className="aspRec"><i className="aspDot" />идёт запись…</span>}
       </div>
       <LiveHeard view={view} show={active && view?.reference === reference} />
+      {strategy && <p className="aspHint" data-testid="step-strategy">Перезапуск микрофона: <b>{strategyLabel(strategy)}</b> (выбирается в «Тесте 2» ниже и действует на все нажатия «Сказать»).</p>}
       {side.length > 0 && langsWith.length > 1 && (<><b className="apCardHead">Языки рядом</b><ul className="apConc">{side.map(t => <li key={t}>{t}</li>)}</ul></>)}
       <div className="aspRow">
         <button className="aeRefresh" onClick={copy}>Скопировать итог серии</button>

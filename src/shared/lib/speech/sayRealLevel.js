@@ -8,6 +8,8 @@
 // Поток открывается СИНХРОННО в том же тапе (до recognition.start(), промис не ждём); треки останавливаются и AudioContext закрывается
 // при конце попытки/результате/ошибке/уходе панели. Ошибка getUserMedia — тихий откат на синтетический уровень (status 'error:Имя').
 
+import { logSound } from '../soundLog.js'
+
 export const REAL_LEVEL_KEY = 'pithy_say_real_level_v1'
 export const REAL_FLOOR = 0.02   // RMS ниже — шум комнаты, кольца не трогает
 export const REAL_GAIN = 5       // (RMS − пол) × 5 → ровная речь с автоусилением (RMS ≈ 0,1–0,3) поднимает кольца почти до максимума
@@ -111,7 +113,7 @@ export function createRealLevel({ getUserMedia, createAudioContext, onStatus = (
 /** Реальный менеджер для браузера: микрофон и контекст берутся из window (нужны только в тапе) */
 export const createBrowserRealLevel = onStatus => createRealLevel({
   getUserMedia: c => navigator.mediaDevices.getUserMedia(c), // нет mediaDevices — бросит, менеджер поймает
-  createAudioContext: () => new (window.AudioContext || window.webkitAudioContext)(),
+  createAudioContext: () => { logSound('audiocontext', 'capture'); return new (window.AudioContext || window.webkitAudioContext)() },
   onStatus,
 })
 

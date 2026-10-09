@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { showHeardText, adminHeardLine } from './sayAdmin.js'
+import { showHeardText, adminHeardLine, audioSessionNote } from './sayAdmin.js'
 import { emptyView } from './speechController.js'
 
 const alt = (text, confidence = 0.9) => ({ text, confidence })
@@ -64,5 +64,14 @@ describe('строка админа: ошибки и корректировка 
 
   it('не админ — по-прежнему ничего, даже с ошибкой и корректировкой', () => {
     expect(adminHeardLine({ isAdmin: false, phase: 'failed', errorCode: 'silence', view: emptyView, verdict: { engineFixed: ['x'] } })).toBe(null)
+  })
+})
+
+describe('пометка про аудиосессию (эксперимент модуля)', () => {
+  it('флаг вкл → «аудиосессия: play-and-record» в конце заметки; выкл — заметка не меняется', () => {
+    expect(adminHeardLine({ isAdmin: true, phase: 'passed', view: done(), audioSession: 'play-and-record' }).note).toBe('звуки приложения подавлены · реальный уровень: выкл · аудиосессия: play-and-record')
+    expect(adminHeardLine({ isAdmin: true, phase: 'passed', view: done(), audioSession: null }).note).toBe('звуки приложения подавлены · реальный уровень: выкл')
+    expect(audioSessionNote('play-and-record')).toBe('аудиосессия: play-and-record')
+    expect(audioSessionNote(null)).toBe('')
   })
 })

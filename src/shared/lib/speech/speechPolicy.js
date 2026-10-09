@@ -11,6 +11,7 @@ export const RESTART_COOLDOWN_MS = 600  // модуль «Сказать фра�
 export const DEAF_AUDIO_MS = 120        // audiostart быстрее этого (при нормальных 450–1400 мс) — признак «глухой» сессии
 export const DEAF_WINDOW_MS = 4000      // и за столько после audiostart нет ни soundstart, ни speechstart, ни результата
 export const DEAF_RETRY_PAUSE_MS = 900  // авто-восстановление: пауза перед новым экземпляром
+export const DEAF_RETRY_MAX = 2         // сколько раз подряд пересоздаём «глухую» сессию (новый экземпляр + сброс audioSession + пауза), потом сдаёмся
 
 // Ошибки, после которых автоповтор имеет смысл (связь, тишина, системный abort).
 // not-allowed / audio-capture / language-not-supported / start-failed / no-start — нужно действие пользователя.
@@ -40,12 +41,13 @@ export const toPercent = v => (typeof v === 'number' && Number.isFinite(v) ? Mat
 
 /**
  * Что делать после завершённой попытки (чистое решение для speechController): повторить (kind 'retry': pause, notice, lastError, viaDeaf) или закончить заход
- * (kind 'final': patch для view). viaDeaf — «глухая» попытка после успешной: один раз новый экземпляр с увеличенной паузой (deaf_retry в журнале).
+ * (kind 'final': patch для view). viaDeaf — «глухая» попытка после успешной/глухой (wasHot): новый экземпляр с увеличенной паузой, не больше DEAF_RETRY_MAX раз
+ * за заход (deafRetries — сколько уже было; deaf_retry в журнале).
  * lastError — ошибка, из-за которой шли повторы (если автоповтор вне жеста iOS не запустится, показываем её)
  */
-export function planNext({ outcome, error, retry, deaf = false, wasOk = false, deafTried = false, lastError = null }) {
+export function planNext({ outcome, error, retry, deaf = false, wasOk = false, deafRetries = 0, lastError = null }) {
   if (outcome === 'error' && shouldRetry(error, retry)) {
-    const viaDeaf = deaf && wasOk && !deafTried
+    const viaDeaf = deaf && wasOk && deafRetries < DEAF_RETRY_MAX
     return {
       kind: 'retry', viaDeaf, lastError: viaDeaf ? 'no-speech' : error,
       pause: viaDeaf ? Math.max(RETRY_PAUSE_MS, DEAF_RETRY_PAUSE_MS) : RETRY_PAUSE_MS, notice: retryNotice(viaDeaf ? 'deaf' : error, retry + 2),

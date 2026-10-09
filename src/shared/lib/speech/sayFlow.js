@@ -20,7 +20,7 @@ import { buildHint } from './sayHints.js'
 export function initialSayState(decision) {
   const base = {
     phase: 'idle', taps: 0, view: emptyView, verdict: null, errorCode: null, fallbackReason: null, autoRetries: 0,
-    explainer: false, explainKind: null, failShow: false, realLevel: null, data: null, settledRun: 0, event: null, failStreak: 0, morphDone: false, adminLine: null, hint: null, hintNo: 0,
+    explainer: false, explainKind: null, failShow: false, realLevel: null, audioSession: null, data: null, settledRun: 0, event: null, failStreak: 0, morphDone: false, adminLine: null, hint: null, hintNo: 0,
   }
   return decision?.action === 'fallback' ? { ...base, phase: 'fallback', fallbackReason: decision.reason } : base
 }
@@ -58,7 +58,7 @@ function settle(s, v) {
 // Строка админа остаётся прежней, пока новое состояние не даёт новой (очищает её только 'begin')
 const withAdminLine = (prev, next) => ({
   ...next,
-  adminLine: adminHeardLine({ isAdmin: true, phase: next.phase, view: next.view, verdict: next.verdict, errorCode: next.errorCode, realLevel: next.realLevel }) ?? prev.adminLine,
+  adminLine: adminHeardLine({ isAdmin: true, phase: next.phase, view: next.view, verdict: next.verdict, errorCode: next.errorCode, realLevel: next.realLevel, audioSession: next.audioSession }) ?? prev.adminLine,
 })
 
 export function sayReducer(s, a) {
@@ -72,7 +72,7 @@ export function sayReducer(s, a) {
       if (v.status === 'idle') return { ...s, view: v } // сброс контроллера не стирает строку админа
       return withAdminLine(s, { ...s, view: v })
     }
-    case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, morphDone: false, failShow: false, realLevel: a.realLevel ?? null, adminLine: null, hint: null }
+    case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, morphDone: false, failShow: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, adminLine: null, hint: null }
     case 'morphEnd': return s.phase === 'run' ? { ...s, morphDone: true } : s
     case 'failEnd': return s.failShow ? { ...s, failShow: false } : s
     case 'realStatus': return s.realLevel === a.status ? s : { ...s, realLevel: a.status }

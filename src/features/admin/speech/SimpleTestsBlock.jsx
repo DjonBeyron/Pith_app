@@ -16,7 +16,7 @@ export default function SimpleTestsBlock({ caps, reference, lang, setLang, probe
           <button key={l} className={`aspChip${l === lang ? ' aspChipOn' : ''}`} disabled={busy} onClick={() => setLang(l)}>{l}</button>
         ))}
       </div>
-      <ContextSeriesBlock series={series} lang={lang} reference={reference} busy={busy || cooling} view={view} onPick={onPickStep} onSay={() => start()} onStop={stop} />
+      <ContextSeriesBlock series={series} lang={lang} reference={reference} busy={busy || cooling} view={view} onPick={onPickStep} onSay={() => start()} onStop={stop} strategy={restart.strategy} />
       <RestartSeriesBlock rs={restart} probe={probe} recognition={caps.recognition} lang={lang} />
     </section>
   )

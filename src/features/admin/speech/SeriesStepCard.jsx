@@ -1,4 +1,4 @@
-import { stepAsk, heardLine, confLine, plainVerdict, detailLines } from './seriesCards.js'
+import { stepAsk, heardLine, confLine, plainVerdict, detailLines, soundsLine } from './seriesCards.js'
 import { wrongPhrase, rulesText } from './contextSeries.js'
 
 // Карточка одного шага серии «длина контекста»: что нужно сказать, что услышали (крупно), вывод простыми словами, уверенность мелко;
@@ -16,6 +16,7 @@ export default function SeriesStepCard({ i, cfg, row, on, busy, onPick }) {
       <div className={`apHeard${row ? '' : ' apHeardNone'}`}>{heardLine(row)}</div>
       {verdict.text && <div className={`apVerdict apV-${verdict.tone}`}>{verdict.text}</div>}
       {confLine(row) && <div className="aspHint">{confLine(row)}</div>}
+      {soundsLine(row) && <div className="aspHint" data-testid="step-sounds">{soundsLine(row)}</div>}
       {more.length > 0 && (
         <details className="apMore">
           <summary>Подробнее</summary>

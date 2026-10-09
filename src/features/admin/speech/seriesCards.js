@@ -45,6 +45,9 @@ export function compareLines(state, langs) {
   return out
 }
 
+/** Звуки перед записью шага: «звуки до записи: audio-play» / «…: нет»; запись без поля — пусто */
+export const soundsLine = row => (row?.snd == null ? '' : `звуки до записи: ${row.snd}`)
+
 const secs = ms => (ms / 1000).toFixed(1)
 
 /** Строки «Подробнее» для карточки: правила (готовая строка rules), где литерально, другие варианты, как менялся текст по ходу речи */

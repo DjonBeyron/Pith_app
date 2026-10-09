@@ -5,6 +5,7 @@
 import { saidKind, judge } from './antiPredictRules.js'
 import { tokenize } from '../../../shared/lib/speech/speechMatch.js'
 import { buildChain } from './attemptDiff.js'
+import { fmtAudioNote } from '../../../shared/lib/soundLog.js'
 
 export const TX_LIMITS = { ref: 120, said: 80, text: 90, alt: 90, nAlts: 10, nHist: 12, nChanges: 6, nLiteral: 6 }
 export const REPORT_ATTEMPTS = 12 // сколько попыток в блоке отчёта
@@ -113,6 +114,7 @@ export function attemptFields(e, histMax = TX_LIMITS.nHist) {
     ['diff', 'изменения', `final-vs-interim: ${changesText(tx)}`],
     ['lit', 'литерально', tx.literal?.length ? `литерально: ${tx.literal.join(', ')}` : ''],
     ['first', 'первое увиденное', tx.first?.disputed?.length ? `первое увиденное: «${tx.first.text}» спорные: ${tx.first.disputed.map(d => `${d[0]}←${d[1]} ${d[2] == null ? '?' : d[2]}мс${d[3] ? '*' : ''}`).join(', ')}` : ''],
+    ['snd', 'звуки до записи', fmtAudioNote(e)],
     ['verd', 'вердикты', v ? `вердикты: top1=${verdictWord(tx.saidKind, v.top1)} consensus=${verdictWord(tx.saidKind, v.consensus)} strict=${verdictWord(tx.saidKind, v.strict)}${v.first == null ? '' : ` first=${verdictWord(tx.saidKind, v.first)}`}` : 'вердиктов нет'],
   ]
 }

@@ -1,4 +1,6 @@
 import { pLog } from './debug.js'
+import { isMicBusy } from './soundQuiet.js'
+import { logElementSound } from './soundLog.js'
 
 // Один <audio>, которому Safari РАЗРЕШИЛ играть со звуком.
 //
@@ -47,9 +49,12 @@ function ensureEl() {
 // итог прогрева виден не здесь, а в отчёте playPrimed.
 export function primeAudio() {
   if (typeof document === 'undefined' || ready) return
+  // Идёт запись голоса / открыта вкладка «Голос»: беззвучный wav переключил бы аудиосессию iOS, следующее распознавание стало бы «глухим» — прогреем на ближайшем свободном касании
+  if (isMicBusy()) { armGesture(); return }
   const a = ensureEl()
   a.muted = false
   a.src = SILENCE
+  logElementSound('unlock-wav', 'wav', a)
   a.play()
     .then(() => {
       a.pause()
@@ -71,7 +76,7 @@ function armGesture() {
   const retry = e => {
     // Тап по микрофону «Сказать фразу» (data-no-unlock): не прогреваем (это беззвучный wav, но он включает аудиосессию в момент
     // старта записи); слушатель остаётся — прогрев случится на ближайшем другом касании
-    if (e?.target?.closest?.('[data-no-unlock]')) return
+    if (e?.target?.closest?.('[data-no-unlock]') || isMicBusy()) return
     document.removeEventListener('pointerdown', retry, true)
     document.removeEventListener('touchstart', retry, true)
     waitingGesture = false
@@ -90,6 +95,7 @@ export function armPrimeOnGesture() { armGesture() }
 // сюда приходят значениями, shared/lib фич не импортирует); дальше их держит
 // в актуальном состоянии useDictatorVolume.js панели
 export function playPrimed(src, { onEnded, muted = false, rate = 1 } = {}) {
+  if (isMicBusy()) return null // во время записи голоса / на вкладке «Голос» ничего не играем
   if (!el || !ready || !src) {
     pLog(`[primed] запасной путь недоступен: элемент=${el ? 'есть' : 'нет'} прогрет=${ready} src=${src ? 'есть' : 'нет'}`)
     // Раз уж не прогрелись — попробуем на ближайшем касании, чтобы следующая
@@ -105,6 +111,7 @@ export function playPrimed(src, { onEnded, muted = false, rate = 1 } = {}) {
     el.playbackRate = rate > 0 ? rate : 1
     el.src = src
     el.currentTime = 0
+    logElementSound('audio-play', 'primed', el)
     el.play().catch(e => pLog(`[primed] запасной путь тоже отказал: ${e?.name ?? e}`))
     pLog('[primed] звук таблицы идёт через прогретый элемент')
     return el

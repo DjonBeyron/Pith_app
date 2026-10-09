@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { holdSoundQuiet, suppressSound, isSoundQuiet, suppressedCount, _resetSoundQuiet } from './soundQuiet.js'
+import { holdSoundQuiet, suppressSound, isSoundQuiet, suppressedCount, holdSilence, releaseSilence, isSilenced, isMicBusy, silenceReasons, _resetSoundQuiet } from './soundQuiet.js'
 
 beforeEach(() => _resetSoundQuiet())
 
@@ -45,5 +45,48 @@ describe('окно тишины звуков приложения на врем�
     const release = holdSoundQuiet()
     suppressSound('message-in', () => { throw new Error('x') })
     expect(() => release()).not.toThrow()
+  })
+})
+
+describe('полная тишина (вкладка «Голос»): holdSilence / releaseSilence', () => {
+  it('пока удержание взято — молчит всё: звуки перехватываются БЕЗ отложенных повторов; isMicBusy = true', () => {
+    expect(isSilenced()).toBe(false)
+    expect(isMicBusy()).toBe(false)
+    const release = holdSilence('admin-voice')
+    const msg = vi.fn()
+    expect(isSilenced()).toBe(true)
+    expect(isMicBusy()).toBe(true)
+    expect(isSoundQuiet()).toBe(false) // окно записи отдельно
+    expect(silenceReasons()).toEqual(['admin-voice'])
+    expect(suppressSound('message-in', msg)).toBe(true)
+    expect(suppressSound('answer-correct', msg)).toBe(true)
+    expect(suppressedCount()).toBe(2)
+    release()
+    expect(isSilenced()).toBe(false)
+    expect(msg).not.toHaveBeenCalled() // ничего не играет потом: тишина ничего не откладывает
+    expect(suppressSound('message-in', msg)).toBe(false)
+  })
+
+  it('счётчик по причине: два удержания держат до последнего; release() и releaseSilence(reason) безопасны при повторе', () => {
+    const a = holdSilence('tab'), b = holdSilence('tab')
+    a(); a()
+    expect(isSilenced()).toBe(true)
+    releaseSilence('tab')
+    expect(isSilenced()).toBe(false)
+    releaseSilence('tab') // лишний вызов — ничего
+    b()
+    expect(isSilenced()).toBe(false)
+  })
+
+  it('причины независимы; окно записи (holdSoundQuiet) тоже делает isMicBusy истинным', () => {
+    const a = holdSilence('one'), b = holdSilence('two')
+    a()
+    expect(isSilenced()).toBe(true)
+    b()
+    expect(isSilenced()).toBe(false)
+    const r = holdSoundQuiet()
+    expect(isMicBusy()).toBe(true)
+    r()
+    expect(isMicBusy()).toBe(false)
   })
 })

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { STRATEGY_IDS } from '../../../shared/lib/speech/speechRestart.js'
 import { RESTART_INTRO, STRATEGY_INFO, strategyLabel } from './restartStrategies.js'
 import { SERIES_SIZE, tableRows, conclusions, seriesLines } from './restartSeries.js'
-import { runLine, runVerdict, runTime, strategyLine } from './restartCards.js'
+import { runLine, runVerdict, runTime, strategyLine, runSounds, runGaveUp, GIVE_UP_TEXT } from './restartCards.js'
 import { RESTART_HOWTO } from './antiPredictInfo.js'
 import LiveHeard from './LiveHeard.jsx'
 import { copyText } from './copyText.js'
@@ -17,11 +17,13 @@ function RunCard({ run, i }) {
     <div className={`apRun apRun-${v.tone}`} data-testid="rs-run">
       <div className="apHeard">{runLine(run, i, SERIES_SIZE)}</div>
       <div className={`apVerdict apV-${v.tone}`}>{v.text}{runTime(run) ? <span className="aspHint"> · {runTime(run)}</span> : null}</div>
+      {runSounds(run) && <div className="aspHint" data-testid="rs-sounds">{runSounds(run)}</div>}
+      {runGaveUp(run) && <div className="apVerdict apV-deaf" data-testid="rs-giveup">{GIVE_UP_TEXT}</div>}
     </div>
   )
 }
 
-// «Тест 2. Не глохнет ли микрофон?» (надёжность второго запуска) пробы «Голос»: шпаргалка, переключатель стратегии (S1…S5), автотест «Серия из 6 нажатий подряд» с карточками попыток
+// «Тест 2. Не глохнет ли микрофон?» (надёжность второго запуска) пробы «Голос»: шпаргалка, переключатель стратегии (S1…S7, по умолчанию S6), автотест «Серия из 6 нажатий подряд» с карточками попыток
 // и живой строкой «Слышу…», сводка по стратегиям простыми строками; широкая таблица, выводы и объяснения — в «Подробнее».
 export default function RestartSeriesBlock({ rs, probe, recognition, lang }) {
   const [note, setNote] = useState('')

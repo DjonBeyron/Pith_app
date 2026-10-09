@@ -6,6 +6,8 @@ import { captureLogFields } from './speechCapture.js'
 import { configureRecognition } from './antiPredictModes.js'
 import { antiPredictLogFields } from './antiPredictReport.js'
 import { readStrategy } from './restartStrategies.js'
+import { createAudioSession } from '../../../shared/lib/speech/speechAudioSession.js'
+import { soundProbe } from '../../../shared/lib/soundLog.js'
 
 // Обёртка React над speechController: попытка по тапу («Сказать»), каждая попытка — новый экземпляр recognition.
 // Микрофон включается только внутри start(), гасится на результате, ошибке, «Стоп», таймерах, уходе со страницы и
@@ -20,7 +22,9 @@ export function useSpeechProbe({ reference, lang, onLogged, capture, getCapture,
     getCapture,
     logFields: (mode, info, ctx) => ({ ...captureLogFields(mode, info), ...antiPredictLogFields(ctx) }), // поля режима захвата B/C и экспериментов «против домысливания»
     configure: (rec, ctx) => configureRecognition(rec, ctx, window), // без включённых режимов ничего не меняет
-    getRestart: () => readStrategy(), // выбранная в блоке «Надёжность второго запуска» стратегия перезапуска (S1 — как раньше)
+    getRestart: () => readStrategy(), // выбранная в блоке «Надёжность второго запуска» стратегия перезапуска (по умолчанию S6; общая для «Теста 1», «Теста 2» и «Сказать»)
+    audioSession: createAudioSession(), // navigator.audioSession для S6/S7 и сброса при «глухом» повторе (нет API — S6/S7 как S3)
+    sounds: soundProbe, // в журнал: что играла страница до записи и во время неё (soundLog.js)
     getMode: () => (isStandalone() ? 'pwa' : 'browser'),
     now: () => Date.now(),
     perfNow: () => performance.now(),

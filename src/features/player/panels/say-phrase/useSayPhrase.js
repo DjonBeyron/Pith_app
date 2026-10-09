@@ -9,6 +9,8 @@ import { QUIET_TAIL_MS } from '../../../../shared/lib/speech/sayHints.js'
 import { createVoiceLevel } from '../../../../shared/lib/speech/sayVoiceLevel.js'
 import { createBrowserRealLevel, levelSource, isRealLevelOn, realLevelLabel } from '../../../../shared/lib/speech/sayRealLevel.js'
 import { holdSoundQuiet } from '../../../../shared/lib/soundQuiet.js'
+import { createAudioSession } from '../../../../shared/lib/speech/speechAudioSession.js'
+import { sayAudioSessionType } from '../../../../shared/lib/speech/sayAudioSession.js'
 import { stopWord } from '../../word-audio/wordAudioPlayer.js'
 
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -40,6 +42,8 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     onView: view => dispatch({ type: 'view', view }),
     onSignal: kind => voice.signal(kind, nowMs()),
     endOnFinal: 'abort', // после финального результата гасим движок abort(), а не stop(): без системного «хвоста» распознавания
+    audioSession: createAudioSession(), // navigator.audioSession: сброс при «глухом» повторе; на время записи — только по админскому флагу pithy_say_audiosession_v1 (по умолчанию выкл)
+    getAudioSessionType: () => sayAudioSessionType(),
     getRestart: () => 'M', // новый экземпляр — только после end прошлого + RESTART_COOLDOWN_MS (iOS: второй запуск сразу после первого бывает «глухим»); тап в это окно встаёт в очередь
   }))
   const quietRef = useRef({ release: null, timer: 0 })
@@ -121,7 +125,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     if (!q.release) q.release = holdSoundQuiet()
     const wantReal = isRealLevelOn()
     if (wantReal) real.open() // реальный уровень (админский флаг): поток микрофона открываем в этом же тапе, ДО recognition.start(), промис не ждём
-    dispatch({ type: 'begin', data, realLevel: realLevelLabel(wantReal, null) })
+    dispatch({ type: 'begin', data, realLevel: realLevelLabel(wantReal, null), audioSession: sayAudioSessionType() })
     ctrl.start({ reference: data.phrase, lang: data.lang })
     clearTimeout(morphRef.current)
     morphRef.current = setTimeout(() => dispatch({ type: 'morphEnd' }), morphDelay(reducedMotion()))

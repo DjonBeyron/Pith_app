@@ -36,6 +36,7 @@ const SEE_RESULT_MS = 1100
 // доступен, при отказе микрофона единственный выход — «Я не могу говорить». Попап перед запросом микрофона — SayMicPopup (полный
 // в первый раз, короткий дальше). Админская палочка «засчитать» — слева вверху (side="left"), «Попытка N» — справа от кнопки.
 // Админская строка «что услышал движок» — плашка НАД панелью (вне модуля, высоту не меняет), остаётся до новой записи.
+// data-no-unlock на корне панели ЦЕЛИКОМ: ни одно касание внутри неё (микрофон, «Послушать», «Я не могу говорить») не запускает беззвучный wav/resume — аудиосессию iOS не трогаем.
 export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswer, onHeightChange, xpAmount = 0, onXpEarned }) {
   const raw = node.typeData?.say_phrase
   const data = useMemo(() => readSayData(raw), [raw])
@@ -143,7 +144,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
           transition: show && !rise.opening ? 'height 0.26s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
         }}
       />
-      <div ref={panelRef} className={`phrasePanel sayPanel${show ? ' phrasePanelVisible' : ''}`}>
+      <div ref={panelRef} className={`phrasePanel sayPanel${show ? ' phrasePanelVisible' : ''}`} data-no-unlock="">
         <SolveCorrectButton side="left" onSolve={() => finish('solve')} disabled={closing} />
         {adminLine && (
           <div className="sayAdminLine" data-testid="say-admin-line" title={adminLine.title || undefined}>

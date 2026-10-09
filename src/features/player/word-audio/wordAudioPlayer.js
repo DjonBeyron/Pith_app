@@ -2,6 +2,8 @@ import { cachedWordAudio } from '../../../shared/lib/wordAudio/wordAudioApi.js'
 import { pLog } from '../../../shared/lib/debug.js'
 import { publishLevel, unpublishLevel, speechEnvelope } from '../audioLevel.js'
 import { getLessonMuted, applyVoiceRate, subscribeLessonVolume } from '../lessonVolume.js'
+import { isMicBusy } from '../../../shared/lib/soundQuiet.js'
+import { logElementSound } from '../../../shared/lib/soundLog.js'
 
 // Проигрыватель слов в уроке (PROJECT.md, «Озвучка слов»). Один на плеер,
 // без React: модули зовут playWord(key) прямо из обработчика тапа.
@@ -99,6 +101,7 @@ export function playWord(key, hooks = null) {
   if (!key) return false
   stopCurrent()
   if (muted) return false // беззвучный режим: слово не играем (звук включается обратно кнопкой на карточке)
+  if (isMicBusy()) return false // идёт запись голоса / вкладка «Голос»: озвучка молчит (soundQuiet.js)
   let a = players.get(key)
   if (!a) {
     const row = cachedWordAudio()?.get(key)
@@ -121,6 +124,7 @@ export function playWord(key, hooks = null) {
   const waitTimer = hooks?.onWait ? setTimeout(() => { if (!finished) hooks.onWait() }, WAIT_MS) : 0
   a.onplaying = () => { done(); pLog(`[word-audio] играет «${key}» (${a.src.startsWith('blob:') ? 'blob' : 'url'}, ${a.duration.toFixed(2)}с)`) }
   a.onended = ended
+  logElementSound('audio-play', `word:${key}`, a)
   a.play().then(done).catch(e => { done(); ended(); pLog(`[word-audio] play «${key}» не удался: ${e.message}`) })
   return true
 }

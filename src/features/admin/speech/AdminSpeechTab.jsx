@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { getCapabilities, queryMicPermission, EXAMPLES } from '../../../shared/lib/speech/speechSupport.js'
 import { readLog } from './speechLog.js'
 import { useSpeechProbe } from './useSpeechProbe.js'
@@ -6,6 +6,7 @@ import { useSpeechCapture } from './useSpeechCapture.js'
 import { useAntiPredict } from './useAntiPredict.js'
 import { useContextSeries } from './useContextSeries.js'
 import { useRestartSeries } from './useRestartSeries.js'
+import { useTabSilence } from './useTabSilence.js'
 import { wrongPhrase } from './contextSeries.js'
 import SpeechCapsBlock from './SpeechCapsBlock.jsx'
 import SimpleTestsBlock from './SimpleTestsBlock.jsx'
@@ -20,8 +21,10 @@ import '../../../styles/admin-speech.css'
 const SESSION_START = Math.round(performance.timeOrigin || Date.now())
 
 // Админ → «Голос»: пробная страница Web Speech API на реальных телефонах (перед модулем «Сказать фразу»).
-// Ничего не пишем в БД и не шлём на сервер, звук не сохраняем; микрофон — только по тапу «Сказать».
+// Ничего не пишем в БД и не шлём на сервер, звук не сохраняем; микрофон — только по тапу «Сказать». Пока вкладка видна, звуки приложения и «разблокировки» молчат (useTabSilence).
 export default function AdminSpeechTab() {
+  const rootRef = useRef(null)
+  useTabSilence(rootRef)
   const [caps] = useState(getCapabilities)
   const [perm, setPerm] = useState(null)
   const [reference, setReference] = useState(EXAMPLES[0])
@@ -59,7 +62,7 @@ export default function AdminSpeechTab() {
   }, [log]) // после каждой попытки состояние разрешения читаем заново
 
   return (
-    <div className="aeWrap">
+    <div className="aeWrap" ref={rootRef}>
       <div className="aeHead"><span className="aeTitle">Голос (проба распознавания речи)</span></div>
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
       <SpeechCapsBlock caps={caps} perm={perm} />

@@ -9,6 +9,14 @@ export function runHeard(run) {
   return run.cls === 'deaf' ? 'Ничего не услышал — микрофон глухой' : 'Ничего не услышал'
 }
 
+export const GIVE_UP_TEXT = 'Микрофон не слышит: закрой приложение и открой снова'
+
+/** Звуки перед записью простыми словами: «звуки до записи: unlock-wav, audio-play» / «звуки до записи: нет»; запись без поля — пусто */
+export const runSounds = run => (run.snd == null ? '' : `звуки до записи: ${run.snd}`)
+
+/** Заход, где все попытки (первая + 2 повтора) остались глухими — проба просит перезапустить приложение */
+export const runGaveUp = run => run.cls === 'deaf' && run.attempts >= 3
+
 /** Вывод простыми словами: { tone: 'ok'|'deaf'|'error', text } */
 export function runVerdict(run) {
   if (run.cls === 'ok') return { tone: 'ok', text: `✅ слышит${run.recovered ? ' (с первого раза было глухо, помог авто-повтор)' : ''}` }

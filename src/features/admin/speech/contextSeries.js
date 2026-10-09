@@ -78,6 +78,7 @@ export function buildRow(entry) {
     step: tx.series.step, ref: tx.ref, n: wordCount(tx.ref), said: tx.said || tx.series.wrongPhrase || '',
     top1: tx.top1.text, conf: tx.top1.conf, kind, fixed: tx.fixed === true, reverse: tx.dir === 'fromRef',
     verdicts: tx.verdicts ?? null, literal: tx.literal ?? [], alts: (tx.alts ?? []).slice(1, 4).map(a => `${a.text} ${a.conf ?? '?'}`), hist: (tx.hist ?? []).slice(0, 8), t: entry.t,
+    snd: typeof entry.audioBefore === 'string' ? entry.audioBefore || 'нет' : null, ses: entry.audioSession ?? null, // что играла страница за 6 с до записи / тип audioSession (soundLog.js)
   }
 }
 
@@ -137,6 +138,7 @@ export function seriesLines(state, langs = Object.keys(state.langs)) {
     out.push(`${lang}:`)
     for (const r of rows) {
       out.push(`  Шаг ${r.step + 1} · Услышали: «${r.top1}»${r.conf != null ? ` (${r.conf}%)` : ''} — ${plainVerdict(r, state.cfg).text}`)
+      if (r.snd != null) out.push(`    звуки до записи: ${r.snd}${r.ses ? ` | аудиосессия: ${r.ses}` : ''}`)
       out.push(`    ${r.n} сл. | ref=«${r.ref}» said=«${r.said}» | top1=«${r.top1}» ${r.conf ?? '?'}% ${KIND_LABEL[r.kind]}${r.fixed ? ' (interim исправлен)' : ''} | ${rulesText(r.verdicts)} | литерально: ${r.literal.length ? r.literal.join(', ') : 'нет'}${r.alts.length ? ` | alts: ${r.alts.join(' · ')}` : ''}`)
     }
     out.push(...conclusions(rows).map(c => `  > ${c}`))

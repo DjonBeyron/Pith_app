@@ -1,6 +1,6 @@
 // «Глухая» сессия распознавания (iOS 18, второй запуск подряд): audiostart приходит почти мгновенно (43–57 мс против обычных 450–1400),
 // но микрофон на деле ничего не захватывает — ни soundstart, ни speechstart, ни результата. Чистые функции для speechController.js.
-import { DEAF_AUDIO_MS, DEAF_WINDOW_MS, MAX_ATTEMPTS } from './speechPolicy.js'
+import { DEAF_AUDIO_MS, DEAF_WINDOW_MS, DEAF_RETRY_MAX, MAX_ATTEMPTS } from './speechPolicy.js'
 
 export const isFastAudio = ms => typeof ms === 'number' && ms < DEAF_AUDIO_MS
 
@@ -13,5 +13,8 @@ export function isDeaf({ msAudio, heard, listenedMs = 0, userStop = false }) {
   return !userStop || listenedMs >= DEAF_WINDOW_MS
 }
 
-/** Ставить ли таймер «глухой» (DEAF_WINDOW_MS после audiostart) для этой попытки: прошлая попытка была успешной, авто-восстановление ещё не использовано, повтор возможен */
-export const wantsDeafTimer = ({ prevOk, tried, msAudio, retry }) => !!prevOk && !tried && isFastAudio(msAudio) && retry + 1 < MAX_ATTEMPTS
+/**
+ * Ставить ли таймер «глухой» (DEAF_WINDOW_MS после audiostart) для этой попытки: прошлая попытка была успешной или сама глухой (hot — аудиосессия уже «горячая»),
+ * авто-восстановлений в этом заходе меньше DEAF_RETRY_MAX, повтор возможен
+ */
+export const wantsDeafTimer = ({ hot, retries = 0, msAudio, retry }) => !!hot && retries < DEAF_RETRY_MAX && isFastAudio(msAudio) && retry + 1 < MAX_ATTEMPTS

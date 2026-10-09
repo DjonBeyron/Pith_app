@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   SERIES_KEY, SERIES_SIZE, emptyState, summarizeRun, statsOf, startSeries, cancelSeries, addRun, clearResults, sanitizeState, readState, writeState,
-  tableRows, rankStrategies, conclusions, seriesLines,
+  tableRows, rankStrategies, conclusions, seriesLines, soundCorrelation,
 } from './restartSeries.js'
 
 const att = (run, retry, over = {}) => ({ t: run * 10 + retry, run, retry, strategy: 'S1', outcome: 'ok', error: null, msAudio: 800, msResult: 2000, gapMs: 700, last: true, ...over })
@@ -67,9 +67,9 @@ describe('таблица, лучшая стратегия и выводы', () =
     s = play(s, 'S3', Array.from({ length: 6 }, (_, i) => okRun(i + 1, 'S3', { msResult: 2500 })))
     return s
   }
-  it('строки S1…S5, нет данных → stats null; идущая серия помечена partial', () => {
+  it('строки S1…S7, нет данных → stats null; идущая серия помечена partial', () => {
     const rows = tableRows(startSeries(build(), 'S2', 'en-US'))
-    expect(rows.map(r => r.id)).toEqual(['S1', 'S2', 'S3', 'S4', 'S5'])
+    expect(rows.map(r => r.id)).toEqual(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'])
     expect(rows[0].stats).toMatchObject({ ok: 3, deafRuns: 3 })
     expect(rows[1]).toMatchObject({ partial: true, stats: { n: 0 } })
     expect(rows[3].stats).toBeNull()
@@ -79,7 +79,7 @@ describe('таблица, лучшая стратегия и выводы', () =
     const c = conclusions(build())
     expect(c[0]).toBe('Лучшая: S3 — 6 из 6 успешных, глухих запусков 0, до result ≈ 2.5 с.')
     expect(c[1]).toBe('S1 (как сейчас): 3 из 6, глухих 3 — проблема воспроизводится. S3 лучше на 3 успешных.')
-    expect(c.at(-1)).toBe('Серии нет для: S2, S4, S5.')
+    expect(c.at(-1)).toBe('Серии нет для: S2, S4, S5, S6, S7.')
   })
   it('S1 без глухих — проблема не воспроизвелась; пусто — подсказка', () => {
     const s = play(emptyState(), 'S1', Array.from({ length: 6 }, (_, i) => okRun(i + 1)))
@@ -115,5 +115,30 @@ describe('хранение', () => {
     expect(sanitizeState({ results: { S9: { runs: [] }, S2: { runs: [{ cls: 'zzz' }, { cls: 'ok' }] } }, active: { strategy: 'zz', runs: [] } }))
       .toEqual({ active: null, results: { S2: { at: null, lang: '', runs: [{ cls: 'ok' }] } } })
     expect(clearResults(s).results).toEqual({})
+  })
+})
+
+describe('звуки до записи в итоге серии', () => {
+  const snd = (n, s, audioBefore, over = {}) => okRun(n, s, { audioBefore, ...over })
+  const deafSnd = (n, s, audioBefore) => deafRun(n, s).map(a => ({ ...a, audioBefore }))
+
+  it('корреляция: глухие заходы после звука и после тишины считаются отдельно; нет данных о звуках → null', () => {
+    const runs = [snd(1, 'S6', ''), snd(2, 'S6', 'audio-play'), deafSnd(3, 'S6', 'unlock-wav'), deafSnd(4, 'S6', 'audio-play×2'), snd(5, 'S6', '')].map(summarizeRun)
+    expect(soundCorrelation(runs)).toEqual({ sound: { n: 3, deaf: 2 }, quiet: { n: 2, deaf: 0 } })
+    expect(soundCorrelation([summarizeRun(okRun(1))])).toBe(null)
+  })
+
+  it('«Скопировать итог»: по стратегии — звуки каждого захода и корреляция; в выводах — общая строка про гипотезу аудиосессии', () => {
+    const runs = [snd(1, 'S1', ''), deafSnd(2, 'S1', 'audio-play'), snd(3, 'S1', ''), deafSnd(4, 'S1', 'unlock-wav'), snd(5, 'S1', ''), snd(6, 'S1', 'audio-play')]
+    const st = play(emptyState(), 'S1', runs)
+    const text = seriesLines(st, 'en-US').join('\n')
+    expect(text).toContain('звуки до записи: 1) нет; 2) audio-play; 3) нет; 4) unlock-wav; 5) нет; 6) audio-play | глухо после звука: 2 из 3; после тишины: 0 из 3')
+    expect(conclusions(st).find(c => c.startsWith('Звуки до записи'))).toContain('гипотеза аудиосессии подтверждается')
+  })
+
+  it('без данных о звуках (старые записи) строк про звуки нет', () => {
+    const st = play(emptyState(), 'S1', Array.from({ length: 6 }, (_, i) => okRun(i + 1)))
+    expect(seriesLines(st).join('\n')).not.toContain('звуки до записи')
+    expect(conclusions(st).some(c => c.startsWith('Звуки до записи'))).toBe(false)
   })
 })

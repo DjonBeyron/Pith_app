@@ -1,6 +1,6 @@
 // «Серия из 6 нажатий подряд» по стратегиям перезапуска (проба «Голос», надёжность второго запуска). Пользователь говорит фразу 6 раз подряд, каждый
 // раз нажимая «Сказать»; результат каждого нажатия (заход со всеми автоповторами) — ok (пришёл текст) / deaf («глухой» запуск, нет звука) / error.
-// По стратегиям S1…S5 считаем: успешных из 6, глухих, среднее время до audiostart и result; выводим лучшую стратегию. Хранится в localStorage этого
+// По стратегиям S1…S7 считаем: успешных из 6, глухих, среднее время до audiostart и result; выводим лучшую стратегию. Хранится в localStorage этого
 // устройства, на сервер не уходит. Чистые функции без React.
 import { STRATEGY_IDS } from '../../../shared/lib/speech/speechRestart.js'
 
@@ -24,6 +24,7 @@ export function summarizeRun(attempts) {
     first: first.outcome === 'ok' ? 'ok' : first.deaf ? 'deaf' : first.outcome === 'stopped' ? 'stopped' : quiet ? 'quiet' : 'error',
     deafAttempts, attempts: list.length, recovered: !!done && list.some(e => e.deaf_retry),
     audio: num(first.msAudio), result: done ? num(done.msResult) : null, gap: num(first.gapMs),
+    snd: typeof first.audioBefore === 'string' ? first.audioBefore || 'нет' : null, // что играла страница за 6 с до первой попытки захода (soundLog.js); null — запись без поля
     heard: done?.tx?.top1?.text ?? null, err: done ? null : (first.error ?? null), // что услышали (для карточки попытки) и причина ошибки
   }
 }
@@ -91,6 +92,15 @@ export function rankStrategies(state) {
   return done.sort((a, b) => b.ok - a.ok || a.deafRuns - b.deafRuns || (a.result ?? 1e9) - (b.result ?? 1e9))
 }
 
+/** «Глухо после звука»: заходы, перед которыми страница что-то играла (snd ≠ «нет»), и заходы после тишины — сколько из них началось с глухой попытки. Нет данных о звуках → null */
+export function soundCorrelation(runs) {
+  const known = runs.filter(r => r.snd != null)
+  if (!known.length) return null
+  const part = list => ({ n: list.length, deaf: list.filter(r => r.first === 'deaf').length })
+  return { sound: part(known.filter(r => r.snd !== 'нет')), quiet: part(known.filter(r => r.snd === 'нет')) }
+}
+const corrText = c => `глухо после звука: ${c.sound.deaf} из ${c.sound.n}; после тишины: ${c.quiet.deaf} из ${c.quiet.n}`
+
 const sec = ms => (ms == null ? '?' : `${(ms / 1000).toFixed(1)} с`)
 
 export function conclusions(state) {
@@ -109,6 +119,8 @@ export function conclusions(state) {
   if (worse.length) out.push(`Глухие запуски остались у: ${worse.join(', ')}.`)
   const rec = ranked.filter(r => r.recovered > 0).map(r => `${r.id}: ${r.recovered}`)
   if (rec.length) out.push(`Авто-восстановление (deaf_retry) спасло заходов: ${rec.join(', ')}.`)
+  const all = soundCorrelation(STRATEGY_IDS.flatMap(id => state.results[id]?.runs ?? []))
+  if (all) out.push(`Звуки до записи (все серии): ${corrText(all)}. ${all.sound.n && all.sound.deaf / all.sound.n > (all.quiet.n ? all.quiet.deaf / all.quiet.n : 0) ? 'Перед глухими запусками чаще играл звук — гипотеза аудиосессии подтверждается.' : 'Явной связи со звуками нет.'}`)
   const missing = STRATEGY_IDS.filter(id => !state.results[id])
   if (missing.length) out.push(`Серии нет для: ${missing.join(', ')}.`)
   return out
@@ -122,7 +134,9 @@ export function seriesLines(state, label = '') {
   for (const row of tableRows(state)) {
     if (!row.stats) { out.push(`${row.id} | нет данных`); continue }
     const s = row.stats
+    const c = soundCorrelation(row.runs)
     out.push(`${row.id}${row.partial ? ' (идёт)' : ''} | ${s.ok}/${s.n} ок | глухих ${s.deafRuns} (попыток ${s.deafAttempts}) | ошибок ${s.err} | audiostart ≈ ${s.audio ?? '?'} мс | result ≈ ${s.result ?? '?'} мс | ${row.lang || '?'} | ${row.runs.map(r => CLS[r.cls] + (r.recovered ? '*' : '')).join(' ')}`)
+    if (c) out.push(`    звуки до записи: ${row.runs.map((r, i) => `${i + 1}) ${r.snd ?? '?'}`).join('; ')} | ${corrText(c)}`)
   }
   out.push('(* — заход спасён авто-повтором deaf_retry)')
   out.push(...conclusions(state).map(c => `> ${c}`))

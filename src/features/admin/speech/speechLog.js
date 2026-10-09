@@ -3,6 +3,7 @@ import { MODE_LABEL, PERM_LABEL } from '../../../shared/lib/speech/speechSupport
 import { fmtCapture, fmtConf } from './speechCapture.js'
 import { fmtAntiPredict } from './antiPredictReport.js'
 import { MAX_ATTEMPTS } from '../../../shared/lib/speech/speechPolicy.js'
+import { fmtAudioNote } from '../../../shared/lib/soundLog.js'
 
 export const LOG_KEY = 'pithy_admin_voice_probe_v1'
 export const LOG_KEEP = 50  // сколько записей хранить
@@ -56,7 +57,7 @@ export const fmtMs = v => (v == null ? '—' : String(v))
 /** «№3 · 2/3» — номер нажатия «Сказать» и номер попытки внутри него (старые записи без полей → «—») */
 export const fmtAttempt = e => (e.run != null ? `№${e.run} · ${(e.retry ?? 0) + 1}/${MAX_ATTEMPTS}${e.last ? ' итог' : ''}` : '—')
 
-/** Колонка «Перезапуск»: «S3 · пауза 905 мс · звук 320 мс · ГЛУХАЯ?»; старые записи без стратегии → «—». deaf_retry — попытка запущена авто-восстановлением */
+/** Колонка «Перезапуск»: «S3 · пауза 905 мс · звук 320 мс · ГЛУХАЯ? · звуки до записи: …»; старые записи без стратегии → «—». deaf_retry — попытка запущена авто-восстановлением */
 export function fmtRestart(e) {
   if (!e?.strategy) return '—'
   const p = [e.strategy]
@@ -65,6 +66,8 @@ export function fmtRestart(e) {
   if (e.msSound != null) p.push(`звук ${e.msSound} мс`)
   if (e.deaf) p.push('ГЛУХАЯ?')
   if (e.deaf_retry) p.push('deaf_retry')
+  const note = fmtAudioNote(e)
+  if (note) p.push(note)
   return p.join(' · ')
 }
 
