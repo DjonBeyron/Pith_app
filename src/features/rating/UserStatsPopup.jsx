@@ -12,10 +12,13 @@ import { formatCount, podiumPlace } from '../../shared/lib/ratingStats.js'
 // что в строке (аватар/ник/место/уровень/XP/серия — берём из строки, они уже
 // есть), ниже — подробности с сервера (UserStatsBody). Закрытие: тап вне
 // окна, крестик, Esc, свайп вниз. Без blur — только затемнение и transform/opacity.
-// Открытие и закрытие — как у окошек верхнего худа (pop-spring.css, hud-pop-out.css):
+// Открытие и закрытие окна — как у окошек верхнего худа (pop-spring.css, hud-pop-out.css):
 // окно схлопывается (класс --out) и размонтируется только после анимации.
+// Затемнение — отдельный слой-подложка .rpDim РЯДОМ с окном, а не фон родителя окна:
+// его opacity плавно растёт при открытии и так же тает при закрытии (rating-popup.css),
+// а само окно лежит поверх и затемнением не накрывается.
 const OUT_MS = 340 // = hudPopOut в hud-pop-out.css (как EXIT_MS в app/hudPopupState.js)
-const SWIPE_OUT_MS = 300 // = затухание свайпнутой карточки и затемнения в pop-spring.css
+const SWIPE_OUT_MS = 300 // = затухание свайпнутой карточки в pop-spring.css; затемнение тает 0.3 с (rpDimOut)
 
 export default function UserStatsPopup({ row, place, onClose }) {
   const [out, setOut] = useState(null) // null | 'tap' | 'swipe'
@@ -43,7 +46,8 @@ export default function UserStatsPopup({ row, place, onClose }) {
   const podium = podiumPlace(place)
 
   return createPortal(
-    <div className={`rpBack${out ? ' rpBack--out' : ''}`} onClick={() => close()}>
+    <div className={`rpRoot${out ? ' rpRoot--out' : ''}`} onClick={() => close()}>
+      <div className={`rpDim${out ? ' rpDim--out' : ''}`} aria-hidden="true" />
       <div
         ref={cardRef}
         className={`rpCard${out === 'tap' ? ' rpCard--out' : ''}${out === 'swipe' ? ' rpCard--swiped' : ''}`}

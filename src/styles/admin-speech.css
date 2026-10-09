@@ -91,3 +91,10 @@
 .aspHow { font-size: 12px; color: #aaa; line-height: 1.45; }
 .aspHow code, .aspMemo code { color: #b6fe3b; }
 .aspMemo { margin: 0; padding-left: 18px; font-size: 13px; color: #ccc; line-height: 1.5; }
+
+.aspOut { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid #23262d; }
+.aspRunHead { font-size: 12px; color: #888; }
+.aspPair { display: flex; gap: 8px; align-items: baseline; font-size: 14px; color: #e0e0e0; }
+.aspPairKey { flex: none; min-width: 72px; font-size: 12px; color: #888; }
+.aspPairVal { color: #ccc; }
+.aspNotice { padding: 8px 10px; border-radius: 8px; background: #1f2a14; color: #c8e68c; font-size: 13px; }

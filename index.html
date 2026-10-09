@@ -47,19 +47,19 @@
          чёрный кадр перед сплэшем. PNG = фон сплэша + то же лого (генерятся
          scripts/make-startup-images.ps1). iOS берёт картинку ТОЛЬКО при точном
          совпадении размера с экраном — поэтому по ссылке на каждый iPhone -->
-    <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/splash/startup-640x1136.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/splash/startup-750x1334.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1242x2208.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1125x2436.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/splash/startup-828x1792.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1242x2688.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1170x2532.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1284x2778.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1179x2556.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1290x2796.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1206x2622.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1320x2868.png">
-    <link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3)" href="/splash/startup-1260x2736.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/startup-640x1136.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/startup-750x1334.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1242x2208.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1125x2436.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/startup-828x1792.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1242x2688.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1170x2532.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1284x2778.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1179x2556.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1290x2796.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1206x2622.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1320x2868.png">
+    <link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/startup-1260x2736.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Montserrat latin only — Cyrillic falls back to Comfortaa.
@@ -93,7 +93,7 @@
       #splash {
         position: fixed; inset: 0; z-index: 2147483000;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        background: #000;
+        background: #000; box-sizing: border-box; /* padding-bottom ставит скрипт под #splash (зона статус-бара iOS) */
       }
       #splash .splash-logo {
         width: 92px; height: 92px; margin-bottom: 38px;
@@ -185,6 +185,34 @@
       <div class="splash-version" id="splash-version"></div>
     </div>
 
+    <script>
+      /* Лого сплэша должно стоять там же, где на стартовой картинке iOS (public/splash): она нарисована на ВЕСЬ
+         экран (центр лого на 19px выше середины экрана), а окно страницы в iOS-PWA с status-bar-style=black
+         начинается НИЖЕ системной зоны статус-бара (на 16 Pro ~60px; iOS 26 держит зону всегда). Центр окна
+         ниже центра экрана на половину зоны — без поправки лого «прыгало» вниз на ~30px при смене «система →
+         страница» (на Android картинки нет, поэтому там моргания не было). Зону измеряем: screen.height −
+         innerHeight (viewport-fit=cover: низ окна = низ экрана); padding-bottom = зона поднимает центр flex
+         на её половину. Только iOS-PWA (navigator.standalone) и портрет; зона 0 (окно на весь экран) — без
+         поправки. Пересчёт при resize: iOS уточняет размер окна уже после старта */
+      (function () {
+        var el = document.getElementById('splash'), last = -1
+        var LOG = window.__splashLog = window.__splashLog || []
+        if (!el || !navigator.standalone) return
+        function fit() {
+          if (!document.getElementById('splash')) { window.removeEventListener('resize', fit); return }
+          var zone = Math.round(window.screen.height - window.innerHeight)
+          if (window.innerWidth > window.innerHeight || zone < 0 || zone > 120) zone = 0
+          if (zone === last) return
+          last = zone
+          el.style.paddingBottom = zone + 'px'
+          LOG.push('[' + (performance.now() / 1000).toFixed(2) + '] splash: зона сверху ' + zone + 'px (screen ' +
+            window.screen.width + 'x' + window.screen.height + ', inner ' + window.innerWidth + 'x' + window.innerHeight + ')')
+        }
+        fit()
+        window.addEventListener('resize', fit)
+      })()
+    </script>
+
     <script type="module">
       // Версия — из единого источника правды (src/shared/lib/version.js),
       // Vite бандлит этот импорт вместе с остальным модульным графом
@@ -209,7 +237,7 @@
            проявиться */
         var t0 = performance.now(), MIN = 900, CAP = 6000, HARD = 8000, done = false;
         var appReady = false, cssReady = !document.querySelector('link[data-app-css]');
-        var LOG = window.__splashLog = [];
+        var LOG = window.__splashLog = window.__splashLog || [];
         function slog(m) { LOG.push('[' + (performance.now() / 1000).toFixed(2) + '] splash: ' + m); }
         slog('первый кадр (HTML разобран, cssReady=' + cssReady + ')');
         function hide() {

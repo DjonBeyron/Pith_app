@@ -10,6 +10,7 @@
 @import './styles/tab-top.css';
 @import './styles/lesson-nav-overlay.css';
 @import './styles/feed-v2.css';
+@import './styles/feed-hud.css';
 @import './styles/feed-phrase-plate.css';
 @import './styles/feed-reactions-fx.css';
 @import './styles/feed-bubble-spoiler.css';
@@ -184,6 +185,7 @@
 @import './styles/rating-v2.css';
 @import './styles/rating-achievements.css';
 @import './styles/rating-podium.css';
+@import './styles/shimmer.css';
 @import './styles/rating-popup.css';
 @import './styles/race-v2.css';
 @import './styles/settings.css';

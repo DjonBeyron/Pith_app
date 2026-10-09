@@ -62,12 +62,28 @@ describe('всплывашка «продолжить редактировани
   // уроку приходилось руками через модули
   it('само не исчезает — только по крестику или переходу', () => {
     expect(toast).not.toContain('HIDE_AFTER_MS')
-    expect(toast).toContain('onClose?.()')
+    expect(toast).toContain('onCloseRef.current?.()')
   })
 
   it('кнопка ведёт в урок, крестик просто закрывает', () => {
     expect(toast).toContain('onOpen(lesson)')
-    expect(toast).toContain('onClick={() => setClosing(true)}>✕')
+    expect(toast).toMatch(/className="resumeToastClose"[\s\S]{0,200}onClick=\{dismiss\}/)
+  })
+
+  // «Крестик кривой и срабатывает не с первого раза»: цель касания ≥44px, касание — по pointerup,
+  // анимация появления не двигает кнопки, над плашкой обновления, hover только для мыши
+  it('крестик: цель 44px, касание по pointerup, плашка выше .updateToast', () => {
+    const css = read('../../styles/resume-toast.css')
+    expect(toast).toContain("e.pointerType === 'touch'")
+    expect(toast).toMatch(/className="resumeToastClose"[\s\S]{0,120}onPointerUp=/)
+    expect(css).toMatch(/\.resumeToastClose \{[^}]*width: 44px;[^}]*height: 44px;[^}]*padding: 0;/)
+    expect(css).toMatch(/\.resumeToastClose \{[^}]*touch-action: manipulation/)
+    // анимация появления — только прозрачность (кнопки не уезжают из-под пальца)
+    expect(css).not.toMatch(/@keyframes resumeToastIn \{[^}]*transform/)
+    // z-index выше плашки обновления (950), иначе она перекрывает крестик
+    expect(Number(css.match(/\.resumeToast \{[^}]*z-index: (\d+)/)[1])).toBeGreaterThan(950)
+    // :hover — только в @media (hover: hover)
+    expect(css).toMatch(/@media \(hover: hover\) \{[\s\S]*\.resumeToastClose:hover/)
   })
 
   it('показывается только админу, только во вкладке «Админ» и только когда редактор закрыт', () => {

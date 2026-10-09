@@ -7,6 +7,7 @@ import LessonNavOverlay from './LessonNavOverlay.jsx'
 import AppPerfProbe from './AppPerfProbe.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useIdlePrewarm } from './useIdlePrewarm.js'
+import { useResumeHeal } from './resumeHeal.js'
 
 // Этап 6 миграции завершён: старая оболочка вынесена в old/ (вне git и
 // сборки), приложение — это новая оболочка ShellV2.
@@ -15,6 +16,8 @@ import { useIdlePrewarm } from './useIdlePrewarm.js'
 export default function App() {
   // Прогрев чанков плеера/повторения/админки в простое после ленты (useIdlePrewarm.js)
   useIdlePrewarm(useAdmin().isRealAdmin)
+  // Возврат из фона: снять остатки блокировок и проверить, что панель вкладок кликабельна (resumeHeal.js)
+  useResumeHeal()
 
   // Дебаг-тулбар покадровой отладки — за общим выключателем DEBUG_TOOLS_ON
   // (см. shared/lib/debugToolsEnabled.js): в репозитории он выключен, локально

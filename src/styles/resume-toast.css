@@ -1,36 +1,44 @@
-/* Всплывашка «продолжить редактирование» при запуске приложения (только
-   админу, см. ResumeEditingToast.jsx). Маленькая, поверх контента, уходит
-   сама — поэтому не перекрывает нижнюю навигацию и не ловит случайные тапы
-   мимо своих кнопок. */
+/* Всплывашка «продолжить редактирование» (только админу, см. ResumeEditingToast.jsx).
+   Маленькая, поверх контента, над нижней панелью; сама не уходит.
+   Расположение: по центру через margin auto (а не translateX(-50%)) — анимация появления только прозрачность,
+   кнопки не «уезжают» из-под пальца. Над плашкой «Доступна новая версия» (.updateToast, z-index 950, лежит на
+   ~этом же месте): она раньше перекрывала крестик, и тап уходил в неё. Дальше — .updateToast ~ .resumeToast */
 .resumeToast {
   position: fixed;
-  left: 50%;
-  bottom: 74px;
-  transform: translateX(-50%);
-  z-index: 300;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--v2-nav-h) + 8px);
+  margin: 0 auto;
+  width: fit-content;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  z-index: 960; /* выше .updateToast (950): крестик всегда ловит тап */
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: min(92vw, 420px);
-  padding: 8px 8px 8px 12px;
+  gap: 8px;
+  padding: 4px 2px 4px 14px;
   background: #12141a;
   border: 1px solid #242630;
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
-  animation: resumeToastIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: resumeToastIn 0.2s ease-out both;
 }
 
+/* Плашка обновления на экране — резервируем под неё место (её высота ≈ 56px + зазор), чтобы не накладывались */
+.updateToast ~ .resumeToast { bottom: calc(76px + env(safe-area-inset-bottom, 0px) + 56px + 8px); }
+
 @keyframes resumeToastIn {
-  from { opacity: 0; transform: translate(-50%, 12px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .resumeToastOut {
   animation: resumeToastOut 0.24s ease forwards;
+  pointer-events: none;
 }
 
 @keyframes resumeToastOut {
-  to { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 0; }
 }
 
 .resumeToastText {
@@ -58,27 +66,52 @@
 
 .resumeToastGo {
   flex-shrink: 0;
-  padding: 7px 12px;
-  border-radius: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
   border: 1px solid #2f4a2f;
   background: #0a0c10;
   color: #b6fe3b;
   font-size: 12px;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.resumeToastGo:hover { border-color: #b6fe3b; }
-
+/* Крестик: цель касания 44×44 (кнопка без рамки и фона), внутри кружок 28px с крестиком строго по центру.
+   Глобальный button { padding: 8px 12px } (base.css) обнуляем — раньше он сжимал содержимое 26px-кнопки и
+   сдвигал «✕» вниз-вправо */
 .resumeToastClose {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1px solid #1e2030;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: transparent;
-  color: #6a6f78;
-  font-size: 12px;
+  color: #8a909c;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.resumeToastClose:hover { color: #ccc; }
+.resumeToastX {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #2a2d38;
+  background: #0a0c10;
+  pointer-events: none; /* цель касания — вся кнопка, а не кружок */
+}
+
+.resumeToastClose:active .resumeToastX { background: #1b1e27; color: #e0e0e0; }
+
+/* :hover — только там, где он есть (мышь): на iOS «залипший» hover после тапа съедал первое нажатие */
+@media (hover: hover) {
+  .resumeToastGo:hover { border-color: #b6fe3b; }
+  .resumeToastClose:hover { color: #ccc; }
+}

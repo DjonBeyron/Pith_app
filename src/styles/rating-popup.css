@@ -1,19 +1,20 @@
-/* Попап игрока в «Рейтинге» (features/rating/UserStatsPopup.jsx). Открытие и
-   закрытие — те же, что у окошек верхнего худа (уровень · билеты · энергия):
-   popSpringIn 0.45s из pop-spring.css (карточка и затемнение подключены там
-   списками) и схлопывание hudPopOut 0.34s с заливкой цветом окна из
-   hud-pop-out.css (.rpCard--out). Тут — только то, что своё у попапа.
-   Без blur: затемнение + transform/opacity. Высота блока .rpBody фиксирована,
-   поэтому каркас, ошибка и данные не двигают окно. */
+/* Попап игрока в «Рейтинге» (features/rating/UserStatsPopup.jsx). Окно открывается и
+   закрывается так же, как окошки верхнего худа (уровень · билеты · энергия):
+   popSpringIn 0.45s из pop-spring.css (там .rpCard в общем списке) и схлопывание
+   hudPopOut 0.34s с заливкой цветом окна из hud-pop-out.css (.rpCard--out).
+   Затемнение — отдельный слой .rpDim РЯДОМ с окном (не фон его родителя): анимируется
+   только его opacity (0 → 1 за 0.28s, обратно за 0.3s), фон-цвет не анимируется, окно
+   лежит поверх и не затемняется. Без blur/backdrop-filter. Вёрстка .rpBody готова с
+   первого кадра (высота фиксирована), на месте ещё не пришедших значений — блеск .shim
+   (shimmer.css): ни каркас, ни данные, ни ошибка не двигают окно. */
 
 /* Строка рейтинга теперь кнопка */
 .ratingRow[role='button'] { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 0.12s ease-out; }
 .ratingRow[role='button']:active { transform: scale(0.985); }
 .ratingRow[role='button']:focus-visible { outline: 2px solid #b6fe3b; outline-offset: 2px; }
 
-@keyframes rpPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.9; } }
-
-.rpBack {
+/* Корень: сам ничего не рисует и не анимируется — только раскладка и клики мимо окна */
+.rpRoot {
   position: fixed;
   inset: 0;
   z-index: 300;
@@ -21,9 +22,18 @@
   align-items: center;
   justify-content: center;
   padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
-  background: rgba(0, 0, 0, 0.62);
 }
-.rpBack--out { pointer-events: none; }
+.rpRoot--out { pointer-events: none; }
+
+/* Подложка-затемнение: один слой, анимируется только opacity. Окно (.rpCard) идёт в DOM
+   после неё и лежит поверх. Появляется синхронно с окном, уходит синхронно с его закрытием */
+.rpDim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.62); animation: rpDimIn 0.28s ease-out backwards; }
+.rpDim--out { animation: rpDimOut 0.3s ease-out forwards; }
+@keyframes rpDimIn { from { opacity: 0; } }
+@keyframes rpDimOut { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rpDim { animation-duration: 0.2s; }
+}
 
 .rpCard {
   position: relative;
@@ -39,12 +49,12 @@
   color: #e8ecf0;
   will-change: transform;
 }
-/* Селекторы с .rpBack — чтобы перебить общие правила pop-spring.css / hud-pop-out.css, которые подключены позже */
-.rpBack .rpCard { transform-origin: 50% 50%; } /* окно по центру: растёт из середины и схлопывается в неё */
-.rpBack .rpCard--out { pointer-events: none; }
-.rpBack .rpCard--out::after { border-radius: 20px; }
-/* Закрыли свайпом: карточка уже уехала вниз (inline transform) — просто гаснет вместе с затемнением */
-.rpBack .rpCard--swiped { pointer-events: none; animation: popFadeIn 0.3s ease-in reverse forwards; }
+/* Селекторы с .rpRoot — чтобы перебить общие правила pop-spring.css / hud-pop-out.css, которые подключены позже */
+.rpRoot .rpCard { transform-origin: 50% 50%; } /* окно по центру: растёт из середины и схлопывается в неё */
+.rpRoot .rpCard--out { pointer-events: none; }
+.rpRoot .rpCard--out::after { border-radius: 20px; }
+/* Закрыли свайпом: карточка уже уехала вниз (inline transform) — просто гаснет, а затемнение тает отдельно (.rpDim--out) */
+.rpRoot .rpCard--swiped { pointer-events: none; animation: popFadeIn 0.3s ease-in reverse forwards; }
 
 .rpGrip { display: block; width: 36px; height: 4px; margin: -8px auto 8px; border-radius: 2px; background: #2f3742; }
 .rpClose {
@@ -117,9 +127,9 @@
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 70%, transparent);
 }
 .rpTile--phr { --c: #f1bd3c; }
-.rpTile b { font-size: 34px; font-weight: 800; line-height: 1.05; color: #fff; font-variant-numeric: tabular-nums; }
-.rpTile span { margin-top: 3px; font-size: 13px; font-weight: 800; color: var(--c); }
-.rpTile small { margin-top: 1px; font-size: 11px; font-weight: 600; color: #8b8f9a; }
+.rpTile b { width: 100%; height: 36px; font-size: 34px; font-weight: 800; line-height: 36px; color: #fff; font-variant-numeric: tabular-nums; }
+.rpTile > span { margin-top: 3px; font-size: 13px; font-weight: 800; color: var(--c); }
+.rpTile > small { margin-top: 1px; font-size: 11px; font-weight: 600; color: #8b8f9a; }
 
 /* «Достижений: N из M» */
 .rpAch {
@@ -135,7 +145,7 @@
   font-size: 13px;
   font-weight: 800;
 }
-.rpAch span { flex: 1; min-width: 0; color: #cdd3da; }
+.rpAch > span { flex: 1; min-width: 0; color: #cdd3da; }
 .rpAch b { font-variant-numeric: tabular-nums; color: #ffd257; }
 .rpFoot { display: flex; align-items: center; justify-content: center; height: 34px; margin: 10px 0 0; font-size: 11.5px; line-height: 1.4; color: #8b8f9a; text-align: center; }
 
@@ -143,11 +153,24 @@
 .ratingStatsWords { display: inline-flex; align-items: center; gap: 2px; font-size: 10px; font-weight: 700; color: #a78bfa; white-space: nowrap; }
 .ratingStatsWordsIcon { width: 10px; height: 10px; }
 
-/* Каркас и сообщения */
-.rpSkel i { display: block; background: #1c2128; border-radius: 10px; animation: rpPulse 1.2s ease-in-out infinite; }
-.rpSkelTile { height: 92px; border-radius: 16px !important; }
-.rpSkelLine { height: 40px; margin-top: 8px; border-radius: 14px !important; }
-.rpSkelLine--foot { width: 60%; height: 12px; margin: 10px auto 0; }
+/* Поле значения (UserStatsBody → Fld): плашка-блеск и значение в одной ячейке. Нет данных — блестит
+   плашка, значение прозрачно; пришли (data-ready) — значение проявляется, плашка тает. Размер поля
+   не зависит от состояния, раскладка не двигается. Только opacity */
+.rpFld { display: grid; place-items: center; width: 100%; }
+.rpFld > * { grid-area: 1 / 1; }
+.rpVal { opacity: 0; transition: opacity 0.25s ease-out; }
+.rpFld > .shim { transition: opacity 0.25s ease-out; }
+.rpFld[data-ready] > .rpVal { opacity: 1; }
+.rpFld[data-ready] > .shim { opacity: 0; }
+.rpPlate--num { width: 54px; height: 26px; }
+.rpAch .rpFld { justify-items: end; }
+.rpPlate--ach { width: 64px; height: 16px; border-radius: 6px; }
+.rpPlate--foot { width: 150px; height: 12px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) {
+  .rpVal, .rpFld > .shim { transition: none; }
+}
+
+/* Сообщения */
 .rpNote { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 100%; padding: 0 12px; text-align: center; }
 .rpNote p { margin: 0; font-size: 14px; line-height: 1.45; color: #aeb4bd; }
 .rpRetry {
