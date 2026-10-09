@@ -1,4 +1,4 @@
-// Тестовый стенд для inline-скрипта журнала старта (index.html, первый <script> в <head>): достаёт его текст и
+// Тестовый стенд для inline-скрипта журнала старта и скрипта варианта запуска (index.html, первые два <script> в <head>): достаёт его текст и
 // гоняет в vm-песочнице с поддельными window/document/performance и ручными часами. Нужен только тестам.
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -6,13 +6,14 @@ import vm from 'node:vm'
 
 const INDEX = resolve(import.meta.dirname, '../../../../index.html')
 
-// Текст index.html и позиция/текст первого <script> внутри <head>
+// Текст index.html и inline-скрипты внутри <head> по порядку: [0] — вариант запуска, [1] — журнал старта
 export function readIndex() { return readFileSync(INDEX, 'utf8') }
-export function firstHeadScript(html = readIndex()) {
+export function headScripts(html = readIndex()) {
   const head = html.slice(html.indexOf('<head>'), html.indexOf('</head>'))
-  const m = /<script([^>]*)>([\s\S]*?)<\/script>/.exec(head)
-  return m ? { attrs: m[1], body: m[2], index: html.indexOf(m[0]) } : null
+  return [...head.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)].map(m => ({ attrs: m[1], body: m[2], index: html.indexOf(m[0]) }))
 }
+export const variantScript = (html = readIndex()) => headScripts(html).find(s => s.body.includes('pithy_start_variant_v1')) || null
+export const firstHeadScript = (html = readIndex()) => headScripts(html).find(s => s.body.includes('pithy_start_logs_v1')) || null // скрипт ЖУРНАЛА
 
 function makeTarget() {
   const map = {}
@@ -50,7 +51,7 @@ export function makeEnv(opts = {}) {
   const pad = { t: '59px', r: '0px', b: '34px', l: '0px', fh: 814 }
   // элементы, которые находят querySelector (нижняя панель, лента...): env.q['nav.shellV2Nav'] = el(...)
   const q = {}
-  const html = { nodeName: 'HTML', st: { backgroundColor: 'rgb(0, 0, 0)' }, clientHeight: 814, scrollTop: 0, style: { setProperty(k, v) { this[k] = v }, removeProperty(k) { delete this[k] } }, probes: 0, appendChild() { this.probes++ }, removeChild() { this.probes-- } }
+  const html = { nodeName: 'HTML', st: { backgroundColor: 'rgb(0, 0, 0)' }, clientHeight: 814, scrollTop: 0, classes: [], classList: { add: c => html.classes.push(c) }, style: { setProperty(k, v) { this[k] = v }, removeProperty(k) { delete this[k] } }, probes: 0, appendChild() { this.probes++ }, removeChild() { this.probes-- } }
   const body = { nodeName: 'BODY', st: { backgroundColor: 'rgb(0, 0, 0)' }, scrollTop: 0 }
   const baseEpoch = opts.startEpoch ?? Date.parse('2026-10-09T10:00:00.000Z')
   const RealDate = Date
@@ -116,9 +117,11 @@ export function makeEnv(opts = {}) {
   return env
 }
 
-// Новое окружение с уже выполненным скриптом журнала
+// Новое окружение с уже выполненными скриптами head: вариант запуска, затем журнал (как на странице). opts.variant — выбранный вариант
 export function boot(opts = {}) {
   const env = makeEnv(opts)
+  if (opts.variant) env.store.pithy_start_variant_v1 = opts.variant
+  env.run(variantScript().body)
   env.run(firstHeadScript().body)
   return env
 }

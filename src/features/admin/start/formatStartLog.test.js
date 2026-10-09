@@ -7,7 +7,7 @@ describe('formatStartLog', () => {
   const lines = text.split('\n')
 
   it('заголовок с контекстом', () => {
-    expect(lines[0]).toBe('=== СТАРТ 2026-10-09T10:00:00.000Z · v2.0.9 · ХОЛОДНЫЙ (№1 в сессии) ===')
+    expect(lines[0]).toBe('=== СТАРТ 2026-10-09T10:00:00.000Z · v2.0.9 · ВАРИАНТ=? · ХОЛОДНЫЙ (№1 в сессии) ===')
     expect(text).toContain('навигация: navigate · redirects=0 · transferSize=900')
     expect(text).toContain('navigator.standalone=да · display-mode:standalone=да')
     expect(text).toContain('screen=402x874@3x · окно=402x814 · safe-area(t/r/b/l)=59px/0px/34px/0px · orientation=portrait-primary')

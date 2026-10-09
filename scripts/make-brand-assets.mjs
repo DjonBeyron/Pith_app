@@ -7,7 +7,7 @@
 // в проект бинарные зависимости ради разовой перерисовки логотипа незачем.
 //   node scripts/make-brand-assets.mjs
 // Стартовые экраны по умолчанию браузер не используют: однотонный PNG собирается напрямую
-// (1 бит на пиксель, палитра из одного цвета — десятки байт после deflate). SPLASH_LOGO=1 — старый вид (с лого).
+// (обычный 8-bit RGB, truecolor, без палитры и альфы; одни нули сжимаются deflate до ~3–11 КБ). SPLASH_LOGO=1 — старый вид (с лого).
 import { execFileSync } from 'node:child_process'
 import { deflateSync } from 'node:zlib'
 import { Buffer } from 'node:buffer'
@@ -91,8 +91,8 @@ function faviconHtml(size) {
   </style><div class="box">${logoFaviconPng}</div>`
 }
 
-// Однотонный PNG без браузера: 1 бит на пиксель, палитра из одного цвета, строки целиком из нулей.
-// Так iOS получает «пустую» стартовую картинку цвета фона: сравнивать HTML-сплэшу не с чем, а файл весит ~0.5 КБ
+// Однотонный PNG без браузера: 8 бит на канал, RGB (colorType 2), без палитры и альфы, фильтр 0, все пиксели одного цвета.
+// Раньше был 1-bit indexed (~0.5 КБ): iOS мог показать такую картинку не чисто чёрной (серой), поэтому теперь обычный truecolor
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
   let c = n
   for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
@@ -115,13 +115,13 @@ function solidPng(w, h, [r, g, b]) {
   const ihdr = Buffer.alloc(13)
   ihdr.writeUInt32BE(w, 0)
   ihdr.writeUInt32BE(h, 4)
-  ihdr.set([1, 3, 0, 0, 0], 8) // глубина 1 бит, indexed-color, deflate, фильтры, без interlace
-  const rowBytes = 1 + Math.ceil(w / 8) // байт фильтра + биты индекса 0
+  ihdr.set([8, 2, 0, 0, 0], 8) // глубина 8 бит, truecolor RGB, deflate, фильтры, без interlace
+  const rowBytes = 1 + w * 3 // байт фильтра 0 + RGB каждого пикселя
   const raw = Buffer.alloc(rowBytes * h)
+  if (r || g || b) for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) raw.set([r, g, b], y * rowBytes + 1 + x * 3)
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     pngChunk('IHDR', ihdr),
-    pngChunk('PLTE', Buffer.from([r, g, b])),
     pngChunk('IDAT', deflateSync(raw, { level: 9 })),
     pngChunk('IEND', Buffer.alloc(0)),
   ])

@@ -176,9 +176,9 @@ describe('тексты экрана «нет связи»: одни и те же
 })
 
 describe('стартовый сплэш index.html: нечему не совпасть с нативным кадром iOS', () => {
-  // Журнал старта (первый inline-скрипт в <head>, startLogScript.test.js) ТОЛЬКО наблюдает за страницей: читает standalone,
+  // Журнал старта (второй inline-скрипт в <head>, после скрипта варианта; startLogScript.test.js) ТОЛЬКО наблюдает за страницей: читает standalone,
   // innerHeight, слушает resize — он не двигает лого, поэтому проверки «позиция не зависит от JS» его не касаются
-  const index = readFileSync(resolve(PUBLIC, '../index.html'), 'utf8').replace(/<script>[\s\S]*?<\/script>/, '')
+  const index = readFileSync(resolve(PUBLIC, '../index.html'), 'utf8').replace(/<script>[\s\S]*?<\/script>/, '').replace(/<script>[\s\S]*?<\/script>/, '')
   const splashCss = index.match(/#splash \{[^}]*\}/)?.[0] ?? ''
   const bodyCss = readFileSync(resolve(PUBLIC, '../src/styles/base.css'), 'utf8').match(/\nbody \{[^}]*\}/)?.[0] ?? ''
 
@@ -219,7 +219,9 @@ describe('стартовый сплэш index.html: нечему не совпа
   it('все этапы запуска ОДНОГО цвета (#000, как нативные чёрные кадры iOS): html/body до CSS, сплэш, экран «нет сети», body/html/shell, манифест, theme-color, offline.html', () => {
     const read = f => readFileSync(resolve(PUBLIC, '../', f), 'utf8')
     const css = f => read(f).replace(/\/\*[\s\S]*?\*\//g, '')
-    expect(index).toMatch(/html, body \{ margin: 0; background: #000; color-scheme: dark; \}/)
+    expect(index).toMatch(/<style>html, body \{ margin: 0; background: #000; \}<\/style>/) // без CSS color-scheme: он красил холст в серый до фона
+    expect(index).toMatch(/<html lang="ru" style="background:#000;background-color:#000">/)
+    expect(index).toMatch(/<body style="background:#000;background-color:#000">/)
     expect(index).toMatch(/name="color-scheme" content="dark"/)
     expect(index).toMatch(/name="apple-mobile-web-app-status-bar-style" content="black"/)
     expect(index.match(/\.ngScreen \{[^}]*\}/)?.[0]).toMatch(/background: #000;/)

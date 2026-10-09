@@ -19,6 +19,7 @@ export function startSummary(rec, prev = null) {
     launch: ctx.cold === false ? 'тёплый' : 'холодный',
     nav: ctx.nav || '?',
     standalone: ctx.sa === true || ctx.dm === true,
+    variant: ctx.variant || null,
     stats,
     warns: suspects.filter(s => s.level === 'warn').length,
     parts: [
@@ -35,7 +36,8 @@ function headerLines(rec, prev) {
   const { stats, suspects } = analyzeStartLog(rec, prev)
   const gap = gapText(rec.gap)
   return [
-    `=== СТАРТ ${rec.id} · v${c.ver || '?'} · ${c.cold === false ? `ТЁПЛЫЙ (загрузка №${c.n} в этой сессии)` : 'ХОЛОДНЫЙ (№1 в сессии)'} ===`,
+    `=== СТАРТ ${rec.id} · v${c.ver || '?'} · ВАРИАНТ=${c.variant || '?'} · ${c.cold === false ? `ТЁПЛЫЙ (загрузка №${c.n} в этой сессии)` : 'ХОЛОДНЫЙ (№1 в сессии)'} ===`,
+    `вариант запуска: ${c.variant || '? (запись до эксперимента)'} · применено: ${c.vfx || '?'} (cs/tc = есть ли meta color-scheme / theme-color, sch = inline color-scheme)`,
     `навигация: ${c.nav || '?'} · redirects=${c.rc ?? '?'} · transferSize=${c.size ?? '?'}${gap ? ` · с прошлого старта: ${gap}` : ''}`,
     `режим: navigator.standalone=${yn(c.sa)} · display-mode:standalone=${yn(c.dm)} · visibility=${c.vis || '?'} · referrer=${c.ref || '-'} · url=${c.url || '?'}`,
     `экран: screen=${c.scr || '?'}@${c.dpr || '?'}x · окно=${c.win || '?'} · safe-area(t/r/b/l)=${c.safe || '?'} · orientation=${c.or ?? '?'}`,

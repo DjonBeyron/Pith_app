@@ -1,28 +1,34 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, it, expect } from 'vitest'
-import { readIndex, firstHeadScript, makeEnv, boot, evTypes as types, evOf as of } from './startLogHarness.js'
+import { readIndex, headScripts, firstHeadScript, makeEnv, boot, evTypes as types, evOf as of } from './startLogHarness.js'
 
 const SCRIPT = firstHeadScript()
 
 describe('start-log: страж index.html', () => {
   const html = readIndex()
 
-  it('это ПЕРВЫЙ <script> в <head>, inline, раньше net-guard.js и модульного скрипта', () => {
+  it('это ВТОРОЙ <script> в <head> (после крошечного скрипта варианта), inline, раньше net-guard.js и модульного скрипта', () => {
     expect(SCRIPT).toBeTruthy()
     expect(SCRIPT.attrs.trim()).toBe('') // обычный inline: без src / type=module / async
     expect(SCRIPT.body).toContain("'pithy_start_logs_v1'")
     expect(SCRIPT.index).toBeLessThan(html.indexOf('<script src="/net-guard.js">'))
     expect(SCRIPT.index).toBeLessThan(html.indexOf('type="module"'))
-    expect(html.slice(0, SCRIPT.index)).not.toMatch(/<script/)
+    expect(headScripts(html)[1].index).toBe(SCRIPT.index)
+    expect(html.slice(0, SCRIPT.index).match(/<script/g)).toHaveLength(1) // перед журналом — только скрипт варианта
   })
 
   it('чёрный фон html задан раньше скрипта (журнал не должен задерживать первый кадр)', () => {
     expect(html.indexOf('background: #000;')).toBeLessThan(SCRIPT.index)
   })
 
+  it('вариант запуска попадает в запись: ctx.variant и ctx.vfx, формат читает их', () => {
+    expect(SCRIPT.body).toMatch(/CTX\.variant = W\.__startVariant \|\| 'A'/)
+    expect(SCRIPT.body).toContain('CTX.vfx')
+  })
+
   it('скрипт небольшой и целиком обёрнут в try/catch', () => {
-    expect(SCRIPT.body.split('\n').length).toBeLessThanOrEqual(220)
+    expect(SCRIPT.body.split('\n').length).toBeLessThanOrEqual(225)
     expect(SCRIPT.body).toMatch(/try \{ run\(\) \} catch/)
   })
 

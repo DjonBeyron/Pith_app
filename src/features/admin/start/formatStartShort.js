@@ -15,7 +15,7 @@ function head(rec, prev) {
   const { stats } = analyzeStartLog(rec, prev)
   const gap = gapText(rec.gap)
   return [
-    `=== СТАРТ ${rec.id} · v${c.ver || '?'} · ${c.cold === false ? `ТЁПЛЫЙ №${c.n}` : 'ХОЛОДНЫЙ'} · nav=${c.nav || '?'} · standalone=${yn(c.sa)}/${yn(c.dm)}${gap ? ` · с прошлого: ${gap}` : ''} ===`,
+    `=== СТАРТ ${rec.id} · v${c.ver || '?'} · ВАРИАНТ=${c.variant || '?'} (${c.vfx || '?'}) · ${c.cold === false ? `ТЁПЛЫЙ №${c.n}` : 'ХОЛОДНЫЙ'} · nav=${c.nav || '?'} · standalone=${yn(c.sa)}/${yn(c.dm)}${gap ? ` · с прошлого: ${gap}` : ''} ===`,
     `экран ${c.scr || '?'}@${c.dpr || '?'}x · окно ${c.win || '?'} · safe-area(t/r/b/l) ${c.safe || '?'} · sw=${c.sw || '?'} · ${(c.ua || '').slice(0, 70)}`,
     `итог: кадр ${ms(stats.firstFrame)} · сплэш ушёл ${ms(stats.splashGone)} · CLS ${stats.cls} · jank ${stats.jank}${stats.jankMax ? `(до ${stats.jankMax})` : ''} · ошибок ${stats.errors} · запись: ${rec.end || '?'} на ${ms(rec.endT)}`,
   ]

@@ -14,6 +14,23 @@
 .astBtns { display: flex; flex-wrap: wrap; gap: 8px; }
 .astBtns .aeRefresh:disabled { opacity: 0.45; cursor: default; }
 
+.astTagVar { color: #c9a7ff; border-color: #43305f; }
+
+/* Блок «Эксперимент: вариант запуска» (StartVariantBlock.jsx) */
+.astVar { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #3a4128; border-radius: 12px; background: #14161b; }
+.astVarList { display: flex; flex-direction: column; gap: 6px; }
+.astVarBtn {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 10px 12px;
+  border: 1px solid #2a2d35; border-radius: 10px; background: #101216; color: #cfd6dc;
+  font: inherit; text-align: left; cursor: pointer;
+}
+.astVarBtnOn { border-color: #b6fe3b; background: #18200d; }
+.astVarId { flex: none; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #23262d; font-weight: 700; color: #e0e0e0; }
+.astVarBtnOn .astVarId { background: #b6fe3b; color: #0d0f14; }
+.astVarBody { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.astVarTitle { font-size: 14px; font-weight: 600; color: #e0e0e0; }
+.astVarText { font-size: 12px; line-height: 1.4; color: #999; }
+
 .astRow {
   background: #14161b;
   border: 1px solid #23262d;

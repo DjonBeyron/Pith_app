@@ -1,8 +1,14 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" style="background:#000;background-color:#000">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Фон ДО всего остального (даже до <title>): <style> + атрибуты style на <html> и <body> — к моменту, когда парсер дойдёт до
+         тега color-scheme (ниже), чёрный фон уже задан. HTML приходит кусками, и первый кадр мог нарисоваться между ними:
+         с color-scheme: dark, но без своего фона, WebKit красит холст в СВОЙ тёмно-серый (≈ #1c1c1e), а не в #000 — это и было «морганием».
+         Поэтому CSS color-scheme на html/body здесь НЕТ: тёмная схема задаётся только meta ниже (результат для страницы тот же).
+         Фон после этого ждёт только сетевой синхронный net-guard.js: пока он качается, а сеть молчит, парсер стоит — без правила экран был бы белым -->
+    <style>html, body { margin: 0; background: #000; }</style>
     <title>HETA</title>
     <!-- ОДИН цвет на всех этапах запуска — чистый чёрный #000: системный кадр iOS до стартовой картинки,
          зона статус-бара (apple-mobile-web-app-status-bar-style=black — нативный #000, CSS её не красит),
@@ -10,12 +16,33 @@
          приложения (base.css, .shellV2). Системные чёрные этапы перекрасить нельзя, поэтому под них
          подогнано всё остальное — смены цвета при старте нет. Меняешь цвет — меняй везде сразу
          (проверяет networkGuard.test.js) и перегенерируй PNG (scripts/make-brand-assets.mjs).
-         color-scheme: dark — чтобы холст/оверскролл/нативные элементы до загрузки CSS не были белыми.
-         Фон ДО любых скриптов и запросов: пока синхронный net-guard.js (ниже) качается, а сеть молчит,
-         парсер стоит — без этого правила экран был бы белым -->
+         color-scheme: dark — чтобы нативные элементы (select, скроллбары) были тёмными; ТОЛЬКО ПОСЛЕ <style> с фоном (см. выше).
+         theme-color — туда же, после стиля. Оба тега может снять вариант запуска B/E (скрипт ниже, Админ → «Старт»), поэтому
+         скрипт стоит ПОСЛЕ них -->
     <meta name="color-scheme" content="dark" />
-    <style>html, body { margin: 0; background: #000; color-scheme: dark; }</style>
-    <!-- ЖУРНАЛ СТАРТА (диагностика «моргания» на iPhone): ПЕРВЫЙ скрипт в <head> — раньше net-guard.js, inline (внешний файл
+    <meta name="theme-color" content="#000000" />
+    <!-- ВАРИАНТ ЗАПУСКА (эксперимент по поиску «моргания» iPhone, Админ → «Старт»): ПЕРВЫЙ скрипт в <head>, синхронный, без сети.
+         Читает localStorage 'pithy_start_variant_v1' (A..E, по умолчанию A) и применяет до первого кадра: класс startV-X на <html>
+         (стили C/D — в блоке рядом со сплэшем) и правки DOM. A — без правок, B — нет meta color-scheme/theme-color, C — лого сразу и без свечения, D — без лого, E — нет только
+         meta color-scheme. Журнал ниже пишет вариант в запись (window.__startVariant). Тест-страж: startVariantScript.test.js -->
+    <script>
+      (function () {
+        try {
+          var d = document, h = d.documentElement, v = 'A'
+          try { v = localStorage.getItem('pithy_start_variant_v1') } catch (e) { /* ignore */ }
+          v = /^[A-E]$/.test(v) ? v : 'A'
+          window.__startVariant = v
+          if (v === 'A') return
+          h.classList.add('startV-' + v)
+          if (v === 'B' || v === 'E') h.style.colorScheme = 'normal'
+          ;(v === 'B' ? ['color-scheme', 'theme-color'] : v === 'E' ? ['color-scheme'] : []).forEach(function (n) {
+            var m = d.querySelector('meta[name="' + n + '"]')
+            if (m && m.parentNode) m.parentNode.removeChild(m)
+          })
+        } catch (e) { /* вариант запуска не должен ничего ломать */ }
+      })()
+    </script>
+    <!-- ЖУРНАЛ СТАРТА (диагностика «моргания» на iPhone): ВТОРОЙ скрипт в <head> (после скрипта варианта) — раньше net-guard.js, inline (внешний файл
          загрузился бы уже после первых событий). Только собирает: ничего не блокирует, не ходит в сеть и не меняет страницу
          (кроме замера safe-area: невидимый элемент-зонд, и фиксации --sab, см. ниже). Метки t — performance.now() (мс от начала навигации). Итог пишется в
          localStorage 'pithy_start_logs_v1' (кольцо из 8 стартов, ≤12 КБ каждый) и window.__startLog; смотреть — Админ → «Старт».
@@ -49,6 +76,8 @@
           var nav = (P.getEntriesByType && P.getEntriesByType('navigation')[0]) || {}, n = 1
           try { n = (+sessionStorage.getItem('pithy_start_n') || 0) + 1; sessionStorage.setItem('pithy_start_n', n) } catch (e) { /* ignore */ }
           CTX.ver = '__APP_VERSION__'; CTX.sa = navigator.standalone
+          CTX.variant = W.__startVariant || 'A' /* вариант запуска (скрипт выше); vfx — что реально применено: есть ли meta color-scheme / theme-color, inline color-scheme */
+          CTX.vfx = 'cs' + (D.querySelector('meta[name="color-scheme"]') ? 1 : 0) + ' tc' + (D.querySelector('meta[name="theme-color"]') ? 1 : 0) + ' sch=' + (D.documentElement.style.colorScheme || '-')
           CTX.ua = cut(navigator.userAgent.replace('Mozilla/5.0 ', ''), 110); CTX.scr = screen.width + 'x' + screen.height; CTX.dpr = W.devicePixelRatio
           CTX.win = vp(); CTX.or = screen.orientation ? screen.orientation.type : W.orientation
           CTX.vis = D.visibilityState + (D.hidden ? ' hidden' : ''); CTX.ref = cut(D.referrer, 80); CTX.url = cut(location.pathname + location.search, 60)
@@ -225,7 +254,6 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="HETA" />
-    <meta name="theme-color" content="#000000" />
     <!-- Манифест — современный iOS строит стартовый экран веб-приложения из
          background_color + иконки (apple-touch-startup-image ниже он может
          игнорировать). После изменения нужно УДАЛИТЬ и заново добавить
@@ -308,6 +336,11 @@
       /* Уход — только растворение (opacity) поверх уже готовой ленты: ни масштаба, ни сдвигов */
       #splash.splash-out { animation: splashOut 350ms ease forwards; pointer-events: none; }
       @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
+      /* Варианты запуска (эксперимент, Админ → «Старт»; класс на <html> ставит первый скрипт в <head>). C — лого с первого кадра,
+         без проявления и без свечения; D — сплэш чистый #000 без лого и подписи до самого ухода. A/B/E сплэш не меняют */
+      html.startV-C #splash .splash-fade, html.startV-D #splash .splash-fade { animation: none; }
+      html.startV-C #splash .splash-logo { filter: none; }
+      html.startV-D #splash .splash-fade { visibility: hidden; }
       /* Экран «Нет подключения / Слабое соединение»: оверлей net-guard.js (#offlineGuard), компонент NetworkProblem.jsx
          и public/offline.html используют одни и те же классы и одну разметку кабеля (networkCableSvg.js). Лежит
          инлайном, чтобы рисоваться без бандла и без app-CSS. Блок «ng-cable-css» — копия в offline.html (сверяет
@@ -350,7 +383,7 @@
       /* /ng-cable-css */
     </style>
   </head>
-  <body>
+  <body style="background:#000;background-color:#000">
     <div id="root"></div>
 
     <div id="splash" aria-hidden="true">

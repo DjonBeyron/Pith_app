@@ -108,11 +108,11 @@ describe('стартовые картинки iOS', () => {
     expect(links).toHaveLength(IPHONES.length)
   })
 
-  it('файлы есть, пиксельный размер = css × ratio, весят мало (однотонный PNG, < 3 КБ)', () => {
+  it('файлы есть, пиксельный размер = css × ratio, весят немного (однотонный 8-bit RGB: предел deflate ~1000:1, самый большой ≈ 11 КБ, лимит 12 КБ)', () => {
     for (const { href } of links) {
       expect(existsSync(resolve(PUBLIC, href.replace(/^\//, ''))), href).toBe(true)
       expect(pngSize(href), href).toBe(href.match(/startup-(\d+x\d+)\.png/)[1])
-      expect(readFileSync(resolve(PUBLIC, href.replace(/^\//, ''))).length, href).toBeLessThan(3000)
+      expect(readFileSync(resolve(PUBLIC, href.replace(/^\//, ''))).length, href).toBeLessThan(12 * 1024)
     }
   })
 
@@ -120,9 +120,9 @@ describe('стартовые картинки iOS', () => {
     expect(readdirSync(resolve(PUBLIC, 'splash')).filter(f => f.endsWith('.png'))).toHaveLength(13)
     for (const { href } of links) {
       const png = pngInfo(readFileSync(resolve(PUBLIC, href.replace(/^\//, ''))))
-      expect([2, 3, 0]).toContain(png.colorType) // RGB / палитра / серый — альфы (4, 6) нет: фон не прозрачный
-      if (png.colorType === 3) expect([...png.palette.subarray(0, 3)], `${href}: цвет 0 палитры`).toEqual([0, 0, 0])
-      // сырые данные: байт фильтра 0 и нулевые пиксели во всех строках => индекс 0 (чёрный) / RGB 0,0,0 везде
+      // обычный truecolor: 8 бит на канал, RGB (colorType 2), без палитры (не 1-bit indexed) и без альфы
+      expect({ depth: png.depth, colorType: png.colorType, plte: !!png.palette }, `${href}: формат`).toEqual({ depth: 8, colorType: 2, plte: false })
+      // сырые данные: байт фильтра 0 и нулевые пиксели во всех строках => RGB 0,0,0 везде
       expect(png.raw.length, href).toBe(png.h * png.rowLen)
       expect(png.raw.every(b => b === 0), `${href}: есть ненулевые пиксели (лого?)`).toBe(true)
     }
@@ -137,6 +137,7 @@ describe('стартовые картинки iOS', () => {
   it('генератор по умолчанию рисует однотонный фон без лого (лого — только по SPLASH_LOGO=1)', () => {
     expect(script).toMatch(/process\.env\.SPLASH_LOGO/)
     expect(script).toMatch(/function solidPng/)
+    expect(script).toMatch(/ihdr\.set\(\[8, 2, 0, 0, 0\], 8\)/) // 8-bit truecolor RGB, не 1-bit indexed
     expect(script).toMatch(/const BG = '#000000'/)
   })
 

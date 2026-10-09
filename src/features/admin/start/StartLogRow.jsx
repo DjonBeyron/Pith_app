@@ -26,6 +26,7 @@ export default function StartLogRow({ rec, prev, open, onToggle, onNote }) {
         <span className="astTags">
           <span className={`astTag ${s.launch === 'холодный' ? 'astTagCold' : 'astTagWarm'}`}>{s.launch}</span>
           <span className="astTag">{s.nav}</span>
+          {s.variant && <span className="astTag astTagVar">вариант {s.variant}</span>}
           <span className={`astTag ${s.standalone ? 'astTagOn' : 'astTagOff'}`}>{s.standalone ? 'standalone' : 'не PWA'}</span>
           {s.warns > 0 && <span className="astTag astTagWarn">подозрений: {s.warns}</span>}
         </span>
