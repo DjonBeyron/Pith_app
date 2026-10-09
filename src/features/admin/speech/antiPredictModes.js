@@ -6,6 +6,7 @@ import { DWELL_DEFAULT, clampDwell } from '../../../shared/lib/speech/firstSeenR
 
 export const AP_KEY = 'pithy_admin_voice_antipredict_v1'
 export const LANG_VARIANTS = ['en-US', 'en-GB', 'en-AU', 'en-IN', 'en-CA', 'en']
+export const TEST_LANGS = ['en-US', 'en-GB'] // языки быстрого выбора в «Проверке» и в простых тестах
 export const MAX_ALTS = 10 // в пробе по умолчанию 3 (speechController)
 export const BOOST = 5     // вес фраз Chrome 142+ (0–10): и верной фразе, и ошибочным — одинаковый, чтобы не было перекоса в одну сторону
 export const MODE_IDS = ['lang', 'alts', 'history', 'words', 'local', 'phrases', 'grammar']

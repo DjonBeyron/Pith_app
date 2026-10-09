@@ -24,6 +24,7 @@ export function summarizeRun(attempts) {
     first: first.outcome === 'ok' ? 'ok' : first.deaf ? 'deaf' : first.outcome === 'stopped' ? 'stopped' : quiet ? 'quiet' : 'error',
     deafAttempts, attempts: list.length, recovered: !!done && list.some(e => e.deaf_retry),
     audio: num(first.msAudio), result: done ? num(done.msResult) : null, gap: num(first.gapMs),
+    heard: done?.tx?.top1?.text ?? null, err: done ? null : (first.error ?? null), // что услышали (для карточки попытки) и причина ошибки
   }
 }
 

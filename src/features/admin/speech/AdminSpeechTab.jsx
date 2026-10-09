@@ -8,6 +8,7 @@ import { useContextSeries } from './useContextSeries.js'
 import { useRestartSeries } from './useRestartSeries.js'
 import { wrongPhrase } from './contextSeries.js'
 import SpeechCapsBlock from './SpeechCapsBlock.jsx'
+import SimpleTestsBlock from './SimpleTestsBlock.jsx'
 import SpeechTestBlock from './SpeechTestBlock.jsx'
 import SpeechLogBlock from './SpeechLogBlock.jsx'
 import SpeechSayBlock from './SpeechSayBlock.jsx'
@@ -31,6 +32,8 @@ export default function AdminSpeechTab() {
   const restart = useRestartSeries()
   const { activeFor, record: recordSeries, setStep } = series
   const { record: recordRestart } = restart
+  // Старт серии из 6 нажатий снимает выбранный шаг теста 1, чтобы нажатия теста 2 не попадали в карточки теста 1 (эталон у них общий)
+  const restartApi = useMemo(() => ({ ...restart, start: lang => { setStep(null); restart.start(lang) } }), [restart, setStep])
   const activeSeries = useMemo(() => activeFor(reference), [activeFor, reference])
   const ap = useAntiPredict({ reference, lang, series: activeSeries })
   const onLogged = useCallback(entries => { setLog(entries); recordSeries(entries[0]); recordRestart(entries[0]) }, [recordSeries, recordRestart]) // стабильный: контроллер создаётся один раз
@@ -61,7 +64,8 @@ export default function AdminSpeechTab() {
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
       <SpeechCapsBlock caps={caps} perm={perm} />
       <SpeechSayBlock />
-      <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} cap={cap} ap={ap} series={series} onPickStep={pickStep} restart={restart} />
+      <SimpleTestsBlock caps={caps} reference={reference} lang={lang} setLang={changeLang} probe={probe} series={series} onPickStep={pickStep} restart={restartApi} />
+      <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} cap={cap} ap={ap} />
       <SpeechLogBlock log={log} setLog={setLog} caps={caps} perm={perm} since={SESSION_START} series={series.state} />
       <SpeechCaptureMemo />
       <SpeechMemo />

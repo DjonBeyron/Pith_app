@@ -12,7 +12,6 @@ import { startTouchWatch } from './shared/lib/touchWatch.js'
 import { applyPerfFlagClasses } from './shared/lib/perfFlags.js'
 import { initAnalytics } from './shared/lib/analytics/track.js'
 import { initShellClient } from './shared/lib/shellClient.js'
-import { noteVersionSeen } from './shared/lib/versionInfo.js'
 import './index.css'
 // Побочный эффект: вешает слушатель beforeinstallprompt как можно раньше
 // (см. pwaInstall.js) — событие приходит один раз за загрузку, ловить надо
@@ -25,9 +24,6 @@ import './shared/lib/pwaInstall.js'
 // версии воркера и плашка «Доступна новая версия» — см. shared/lib/shellClient.js. Сама регистрация не спрашивает
 // разрешение на уведомления — это отдельный шаг в push.js/subscribePush(), вызывается только по тапу
 initShellClient()
-
-// Версия и время её первого запуска на этом устройстве (localStorage) — для строки версии в админке, см. versionInfo.js
-noteVersionSeen()
 
 // Глобальный перехват ошибок — до рендера, чтобы поймать и ошибки старта
 initErrorTrap()

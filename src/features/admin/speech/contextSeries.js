@@ -3,6 +3,7 @@
 // Результаты каждого прогона складываются в таблицу «длина контекста → top-1 → буквально/исправлено → уверенность → вердикты правил»,
 // отдельно по каждому языку (en-US, en-GB…), чтобы сравнить. Хранится в localStorage этого устройства. Чистые функции без React.
 import { judge } from './antiPredictRules.js'
+import { plainVerdict } from './seriesCards.js'
 
 export const SERIES_KEY = 'pithy_admin_voice_series_v1'
 export const DEFAULT_WORD = 'trying'
@@ -76,7 +77,7 @@ export function buildRow(entry) {
   return {
     step: tx.series.step, ref: tx.ref, n: wordCount(tx.ref), said: tx.said || tx.series.wrongPhrase || '',
     top1: tx.top1.text, conf: tx.top1.conf, kind, fixed: tx.fixed === true, reverse: tx.dir === 'fromRef',
-    verdicts: tx.verdicts ?? null, literal: tx.literal ?? [], alts: (tx.alts ?? []).slice(1, 4).map(a => `${a.text} ${a.conf ?? '?'}`), t: entry.t,
+    verdicts: tx.verdicts ?? null, literal: tx.literal ?? [], alts: (tx.alts ?? []).slice(1, 4).map(a => `${a.text} ${a.conf ?? '?'}`), hist: (tx.hist ?? []).slice(0, 8), t: entry.t,
   }
 }
 
@@ -135,7 +136,8 @@ export function seriesLines(state, langs = Object.keys(state.langs)) {
     const rows = rowsOf(state, lang)
     out.push(`${lang}:`)
     for (const r of rows) {
-      out.push(`  ${r.n} сл. | ref=«${r.ref}» said=«${r.said}» | top1=«${r.top1}» ${r.conf ?? '?'}% ${KIND_LABEL[r.kind]}${r.fixed ? ' (interim исправлен)' : ''} | ${rulesText(r.verdicts)} | литерально: ${r.literal.length ? r.literal.join(', ') : 'нет'}${r.alts.length ? ` | alts: ${r.alts.join(' · ')}` : ''}`)
+      out.push(`  Шаг ${r.step + 1} · Услышали: «${r.top1}»${r.conf != null ? ` (${r.conf}%)` : ''} — ${plainVerdict(r, state.cfg).text}`)
+      out.push(`    ${r.n} сл. | ref=«${r.ref}» said=«${r.said}» | top1=«${r.top1}» ${r.conf ?? '?'}% ${KIND_LABEL[r.kind]}${r.fixed ? ' (interim исправлен)' : ''} | ${rulesText(r.verdicts)} | литерально: ${r.literal.length ? r.literal.join(', ') : 'нет'}${r.alts.length ? ` | alts: ${r.alts.join(' · ')}` : ''}`)
     }
     out.push(...conclusions(rows).map(c => `  > ${c}`))
   }

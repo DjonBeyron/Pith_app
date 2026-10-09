@@ -43,3 +43,24 @@
 
 /* Надёжность второго запуска: стратегии перезапуска и серия из 6 нажатий (RestartSeriesBlock), ползунок выдержки */
 .apCard input[type="range"] { width: 100%; accent-color: #b6fe3b; }
+
+/* Карточки шагов серий (SeriesStepCard, RestartSeriesBlock), живая строка «Слышу…» (LiveHeard), сворачиваемое «Подробнее» (.apMore) */
+.apStepCard, .apRun { display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 10px; background: #12141a; border: 1px solid #23262d; min-width: 0; }
+.apStepOn { border-color: #b6fe3b; }
+.apStepHead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.apStepTitle { font-size: 14px; color: #e0e0e0; min-width: 0; overflow-wrap: anywhere; }
+.apHeard { font-size: 18px; font-weight: 600; color: #fff; overflow-wrap: anywhere; line-height: 1.3; }
+.apHeardNone { font-size: 14px; font-weight: 400; color: #888; }
+.apVerdict { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.apV-ok { color: #b6fe3b; }
+.apV-fixed, .apV-other, .apV-error { color: #f0b429; }
+.apV-deaf { color: #ff6b6b; }
+.apLive { padding: 8px 10px; border-radius: 10px; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; background: #12141a; border: 1px dashed #4a4d55; color: #e0e0e0; }
+.apLive-final { border: 1px solid #b6fe3b; color: #b6fe3b; }
+.apLive-wait { font-weight: 400; color: #888; }
+.apMore { font-size: 13px; color: #e0e0e0; }
+.apMore > summary { cursor: pointer; color: #888; padding: 4px 0; font-size: 13px; }
+.apMore[open] { display: flex; flex-direction: column; gap: 8px; }
+.apRun-deaf { border-color: #ff6b6b55; }
+.apTestH { margin: 0; font-size: 16px; line-height: 1.3; font-weight: 700; color: #fff; }
+.apRun .apHeard { font-size: 15px; }

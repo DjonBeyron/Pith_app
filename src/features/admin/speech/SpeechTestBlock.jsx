@@ -3,12 +3,10 @@ import SpeechOutput from './SpeechOutput.jsx'
 import SpeechCaptureBlock from './SpeechCaptureBlock.jsx'
 import AntiPredictBlock from './AntiPredictBlock.jsx'
 import AntiPredictTable from './AntiPredictTable.jsx'
-import RestartSeriesBlock from './RestartSeriesBlock.jsx'
-
-const LANGS = ['en-US', 'en-GB']
+import { TEST_LANGS as LANGS } from './antiPredictModes.js'
 
 // Блок 2 пробы «Голос»: эталонная фраза, язык, кнопки «Сказать»/«Стоп»/«Ещё раз»; вывод — в SpeechOutput.
-export default function SpeechTestBlock({ caps, reference, setReference, lang, setLang, probe, cap, ap, series, onPickStep, restart }) {
+export default function SpeechTestBlock({ caps, reference, setReference, lang, setLang, probe, cap, ap }) {
   const { view, start, stop, busy } = probe
   const cooling = !!view.cooling && !busy // прошлый экземпляр ещё закрывается / пауза после end: «Сказать» заблокировано
   return (
@@ -32,9 +30,7 @@ export default function SpeechTestBlock({ caps, reference, setReference, lang, s
         ))}
       </div>
       <SpeechCaptureBlock mode={cap.mode} setMode={cap.setMode} state={cap.state} busy={busy} />
-      <RestartSeriesBlock rs={restart} probe={probe} recognition={caps.recognition} lang={lang} />
-      <AntiPredictBlock ap={ap} reference={reference} busy={busy || cooling} recognition={caps.recognition} onOneWord={word => start({ reference: word })}
-        series={series} lang={lang} onPickStep={onPickStep} onSay={() => start()} onStop={stop} view={view} />
+      <AntiPredictBlock ap={ap} reference={reference} busy={busy || cooling} recognition={caps.recognition} onOneWord={word => start({ reference: word })} />
       <div className="aspRow">
         <button className="aspSay" onClick={start} disabled={!caps.recognition || busy || cooling || !reference.trim()}>{cooling ? 'Подготовка микрофона…' : 'Сказать'}</button>
         <button className="aspStop" onClick={stop} disabled={!busy}>Стоп</button>
