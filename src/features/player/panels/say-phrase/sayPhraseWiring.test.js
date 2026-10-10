@@ -149,9 +149,10 @@ describe('say_phrase — порядок появления, звук, попап
     expect(read('../../../../shared/lib/speech/sayResult.js')).not.toContain('self_ok')
   })
 
-  it('звук: при проверке голосом приложение не играет answer-correct (только админская палочка); других Audio/playSound нет', () => {
+  it('звук: answer-correct играет в момент «Готово» (phase passed) и у админской палочки; других Audio/playSound нет', () => {
     expect(body).toContain("if (kind === 'solve') playSound('answer-correct'")
-    expect(body.match(/playSound\(/g)).toHaveLength(1)
+    expect(body).toMatch(/if \(phase !== 'passed'\) return\s*\n\s*playSound\('answer-correct'/)
+    expect(body.match(/playSound\(/g)).toHaveLength(2)
     for (const [name, src] of Object.entries(panelSrc)) {
       if (name === 'sayListen.js') continue // «Послушать» — по тапу, не в момент результата
       expect(src.replace(/\/\/.*$/gm, ''), name).not.toMatch(/new Audio\(|\.play\(\)/)

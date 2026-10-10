@@ -132,8 +132,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
       return
     }
     if (kind === 'wrong') { closeWith(out.trigger); return } // say_wrong: реплика и подсказка последней попытки уже в чате (эффект выше)
-    // Звук «верно» — только у админской палочки. При проверке голосом приложение молчит: любой наш звук рядом с концом записи
-    // ученик принимает за системный сигнал распознавания (окно тишины — soundQuiet.js)
+    // Звук «верно» при проверке голосом играет в момент «Готово» (эффект ниже); здесь — только админская палочка (окно тишины — soundQuiet.js)
     if (kind === 'solve') playSound('answer-correct', 'сказать фразу')
     if (xpAmount > 0) onXpEarned?.(xpAmount, { expectBubble: true })
     if (isRewardOn('say_phrase', raw)) fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
@@ -143,6 +142,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   // Проверка прошла → показываем «Верно!» и через паузу уезжаем
   useEffect(() => {
     if (phase !== 'passed') return
+    playSound('answer-correct', 'сказать фразу') // как у «Напечатай слово»: звук верного ответа вместе с «Готово» (микрофон уже закрыт, окно тишины soundQuiet отложит звук до конца хвоста)
     const t = setTimeout(() => finish('passed'), SEE_RESULT_MS)
     return () => clearTimeout(t)
   }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
