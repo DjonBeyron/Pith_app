@@ -11,7 +11,7 @@ import { readSayData } from '../../../../shared/lib/speech/sayPhraseData.js'
 import { sayOutcome, SAY_EVENTS } from '../../../../shared/lib/speech/sayResult.js'
 import { successReply } from '../../../../shared/lib/speech/sayReply.js'
 import { micLabel, isLiveMode } from '../../../../shared/lib/speech/sayMic.js'
-import { micVisualState } from '../../../../shared/lib/speech/sayMicState.js'
+import { micVisualState, hasMicAccess } from '../../../../shared/lib/speech/sayMicState.js'
 import { autoPopupWanted } from '../../../../shared/lib/speech/sayAutoPopup.js'
 import { HINT_DELAY_MS } from '../../../../shared/lib/speech/sayHints.js'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
@@ -161,8 +161,11 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
 
   const running = phase === 'run'
   const micTarget = micVisualState({ ...sp.access, phase }) // НАСТОЯЩЕЕ состояние: locked | ready | active | done | off (нет доступа / доступ выдан / запись / «Готово» / выключен) — по нему решения и автопопап
-  const micState = useDelayedMicState(micTarget, { settled: sp.perm.isChecked() }) // то, что видит ученик: переход locked → ready запаздывает на ~0,7 с (после системного диалога; sayReadyDelay.js), остальное — сразу
-  const mic = micLabel({ phase, fallbackReason: sp.fallbackReason, go: sp.go, exhausted: sp.exhausted, locked: micState === 'locked' })
+  // То, что видит ученик (sayReadyDelay.js): locked → ready запаздывает на ~0,7 с; ПЕРВЫЙ запрос доступа — заливка/рост/волны/подпись ждут, пока микрофон реально откроется (диалог подтверждён) + ~0,7 с.
+  // Запись при этом идёт по настоящему состоянию, задержка только в картинке: пока круг ещё locked, подпись и волны тоже «как в locked» (visualPhase idle)
+  const micState = useDelayedMicState(micTarget, { settled: sp.perm.isChecked(), noAccess: !hasMicAccess(sp.access), opened: sp.view?.status === 'listening' })
+  const visualPhase = micState === 'locked' && micTarget === 'active' ? 'idle' : phase
+  const mic = micLabel({ phase: visualPhase, fallbackReason: sp.fallbackReason, go: sp.go, exhausted: sp.exhausted, locked: micState === 'locked' })
   const noMic = phase === 'fallback' && sp.fallbackReason === 'browser' // Firefox: вместо круга — пояснение
   const hideSkip = isLiveMode(mic.mode) || mic.mode === 'ok' // идёт запись или итог: «Я не могу говорить» плавно гаснет, не отвлекая
   const adminLine = isAdmin ? sp.adminLine : null // распознанный текст — только админу (sayAdmin.js)

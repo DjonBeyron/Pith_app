@@ -11,11 +11,15 @@ const stage = read('./SayStage.jsx')
 
 describe('say_phrase — отложенный ready', () => {
   it('хук: удержание только при holdsReady, показанное синхронно догоняет настоящее во всех остальных случаях (сброс при рендере), setState в таймере', () => {
-    expect(hook).toContain("import { holdsReady, readyDelayLeft } from '../../../../shared/lib/speech/sayReadyDelay.js'")
-    expect(hook).toContain('const hold = holdsReady({ shown, target, settled: settled && wasSettled })')
-    expect(hook).toContain('if (!hold && shown !== target) setShown(target)')
-    expect(hook).toContain("timer = setTimeout(() => setShown('ready'), left)")
-    expect(hook).toContain('return hold ? \'locked\' : target')
+    expect(hook).toContain("import { holdKind, startsAsk, readyDelayLeft } from '../../../../shared/lib/speech/sayReadyDelay.js'")
+    expect(hook).toContain('const kind = holdKind({ shown, target, settled: settled && wasSettled, asked: askedNow })')
+    expect(hook).toContain('if (!kind && shown !== target) setShown(target)')
+    expect(hook).toContain("timer = setTimeout(() => setShown(kind === 'ready' ? 'ready' : 'active'), left)")
+    expect(hook).toContain("return kind ? 'locked' : target")
+    // первый запрос: нажатие запоминается в рендере, где цель стала active; отсчёт active стартует только когда микрофон открылся (opened)
+    expect(hook).toContain('const askedNow = target !== prev ? startsAsk({ shown, target, noAccess }) : asked')
+    expect(hook).toContain("const armed = kind === 'ready' || (kind === 'active' && opened)")
+    expect(hook).toContain('if (!kind || !armed) return undefined')
   })
 
   it('таймер и слушатели чистятся при размонтировании и смене цели; iPhone: возврат (focus / visibilitychange → visible) пересчитывает отсчёт, скрытие снимает таймер', () => {
@@ -29,7 +33,12 @@ describe('say_phrase — отложенный ready', () => {
 
   it('панель: решения (автопопап) читают настоящее micTarget, картинка и подпись — показанное micState; логика доступа и движков не тронута', () => {
     expect(panel).toContain('const micTarget = micVisualState({ ...sp.access, phase })')
-    expect(panel).toContain('const micState = useDelayedMicState(micTarget, { settled: sp.perm.isChecked() })')
+    expect(panel).toContain("const micState = useDelayedMicState(micTarget, { settled: sp.perm.isChecked(), noAccess: !hasMicAccess(sp.access), opened: sp.view?.status === 'listening' })")
+    // пока круг ещё locked, а запись идёт, подпись и волны тоже «как в locked»: картинка берёт фазу idle; запись и решения — по настоящим phase / micTarget
+    expect(panel).toContain("const visualPhase = micState === 'locked' && micTarget === 'active' ? 'idle' : phase")
+    expect(panel).toContain('const mic = micLabel({ phase: visualPhase,')
+    expect(panel).toContain('onTap={tapMic}')
+    expect(panel).toContain('sp.tapMic()')
     expect(panel).toContain('micState: micTarget, decision: sp.perm.decide()')
     expect(panel).toContain("locked: micState === 'locked'")
     expect(panel).toContain('state={micState}')

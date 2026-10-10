@@ -1,31 +1,47 @@
 import { describe, it, expect } from 'vitest'
-import { READY_DELAY_MS, holdsReady, readyDelayLeft } from './sayReadyDelay.js'
-import { micVisualState } from './sayMicState.js'
+import { READY_DELAY_MS, holdKind, startsAsk, readyDelayLeft } from './sayReadyDelay.js'
+import { micVisualState, hasMicAccess } from './sayMicState.js'
 import { createSayPermission, MIC_GRANTED_KEY, INTRO_SEEN_KEY } from './sayPermission.js'
 
 // Видимый переход locked → ready откладывается ТОЛЬКО на экране; настоящее состояние (micVisualState, decide()) меняется сразу.
 const store = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) } }
 const STATES = ['locked', 'ready', 'active', 'done', 'off']
 
-describe('holdsReady — какой переход задерживается', () => {
-  it('только показанный locked → настоящий ready; остальные пары — без удержания', () => {
+describe('holdKind — какой переход из показанного locked удерживаем', () => {
+  it('locked → ready — удерживаем; locked → active — только если это первый запрос доступа (asked); остальные пары — без удержания', () => {
     for (const shown of STATES) for (const target of STATES) {
-      expect(holdsReady({ shown, target }), `${shown} → ${target}`).toBe(shown === 'locked' && target === 'ready')
+      const want = shown !== 'locked' ? null : target === 'ready' ? 'ready' : null
+      expect(holdKind({ shown, target }), `${shown} → ${target}`).toBe(want)
+      const wantAsked = shown !== 'locked' ? null : target === 'ready' ? 'ready' : target === 'active' ? 'active' : null
+      expect(holdKind({ shown, target, asked: true }), `${shown} → ${target} (asked)`).toBe(wantAsked)
     }
   })
 
-  it('пока Permissions API не ответил (settled=false) — удержания нет: ready, пришедший с первым ответом при открытии модуля, показывается сразу', () => {
-    expect(holdsReady({ shown: 'locked', target: 'ready', settled: false })).toBe(false)
-    expect(holdsReady({ shown: 'locked', target: 'ready', settled: true })).toBe(true)
+  it('уже выданный доступ при монтировании: показано = настоящему (ready → ready) — задержки нет; отзыв доступа (ready → locked / off) — сразу; отказ (locked → off) — сразу, без показа активации', () => {
+    expect(holdKind({ shown: 'ready', target: 'ready' })).toBeNull()
+    expect(holdKind({ shown: 'ready', target: 'locked' })).toBeNull()
+    expect(holdKind({ shown: 'ready', target: 'off' })).toBeNull()
+    expect(holdKind({ shown: 'locked', target: 'off', asked: true })).toBeNull()
+    expect(holdKind({ shown: 'locked', target: 'done', asked: true })).toBeNull()
+    expect(holdKind({ shown: 'locked', target: 'locked' })).toBeNull()
   })
 
-  it('уже выданный доступ при монтировании: показано = настоящему (ready → ready) — задержки нет; отзыв доступа (ready → locked / off) и запись (locked → active) — сразу', () => {
-    expect(holdsReady({ shown: 'ready', target: 'ready' })).toBe(false)
-    expect(holdsReady({ shown: 'ready', target: 'locked' })).toBe(false)
-    expect(holdsReady({ shown: 'ready', target: 'off' })).toBe(false)
-    expect(holdsReady({ shown: 'locked', target: 'active' })).toBe(false)
-    expect(holdsReady({ shown: 'locked', target: 'off' })).toBe(false)
-    expect(holdsReady({ shown: 'locked', target: 'locked' })).toBe(false)
+  it('пока Permissions API не ответил (settled=false) — ready без удержания: ответ при открытии модуля показывается сразу', () => {
+    expect(holdKind({ shown: 'locked', target: 'ready', settled: false })).toBeNull()
+    expect(holdKind({ shown: 'locked', target: 'ready', settled: true })).toBe('ready')
+  })
+})
+
+describe('startsAsk — нажатие, с которого началась запись, это первый запрос доступа', () => {
+  it('да: показан серый locked, запись пошла (active), доступа на этот момент нет (iPhone без флага, Android prompt)', () => {
+    expect(startsAsk({ shown: 'locked', target: 'active', noAccess: true })).toBe(true)
+  })
+
+  it('нет: доступ уже есть (вводный попап на Android с granted, флаг при неизвестном ответе), повторная попытка из ready, другие цели', () => {
+    expect(startsAsk({ shown: 'locked', target: 'active', noAccess: false })).toBe(false)
+    expect(startsAsk({ shown: 'ready', target: 'active', noAccess: true })).toBe(false)
+    expect(startsAsk({ shown: 'locked', target: 'off', noAccess: true })).toBe(false)
+    expect(startsAsk({ shown: 'locked', target: 'ready', noAccess: true })).toBe(false)
   })
 })
 
@@ -72,7 +88,7 @@ describe('задержка только визуальная: настоящее
     expect(perm.decide().action).toBe('listen')                       // флаги и решение — без задержки
     const after = micVisualState({ ...perm.access(), phase: 'idle' })
     expect(after).toBe('ready')
-    expect(holdsReady({ shown: before, target: after })).toBe(true)  // а вот КАРТИНКА задерживается
+    expect(holdKind({ shown: before, target: after })).toBe('ready') // а вот КАРТИНКА задерживается
   })
 
   it('sayPermission.isChecked: false до первого ответа Permissions API, true после (и при ошибке запроса)', async () => {
@@ -90,13 +106,58 @@ describe('задержка только визуальная: настоящее
   it('отзыв доступа (query = denied) → настоящий locked; показанный ready не удерживается', () => {
     const target = micVisualState({ permission: 'denied', flag: true, sessionOk: true, phase: 'idle' })
     expect(target).toBe('locked')
-    expect(holdsReady({ shown: 'ready', target })).toBe(false)
-    expect(holdsReady({ shown: 'ready', target: micVisualState({ phase: 'fallback' }) })).toBe(false) // off — сразу
+    expect(holdKind({ shown: 'ready', target })).toBeNull()
+    expect(holdKind({ shown: 'ready', target: micVisualState({ phase: 'fallback' }) })).toBeNull() // off — сразу
   })
 
   it('при монтировании с уже выданным доступом: настоящий ready, показанное стартует равным ему — удержания нет', () => {
     const target = micVisualState({ permission: 'granted', phase: 'idle' })
     expect(target).toBe('ready')
-    expect(holdsReady({ shown: target, target })).toBe(false)
+    expect(holdKind({ shown: target, target })).toBeNull()
+  })
+})
+
+// Таймлайн первого запроса доступа (то, что делает хук): тап в попапе → запись идёт, картинка locked → микрофон открылся (opened) → отсчёт → active
+describe('первый запрос доступа: когда начинается активация на экране', () => {
+  const T0 = 1000          // тап в попапе: phase run, настоящее состояние active
+  const OPENED = 4200      // пользователь подтвердил системный диалог, микрофон открылся (view.status listening)
+
+  it('iPhone с подтверждением: до открытия микрофона ждём (отсчёта нет — он стартует только с opened); после — 700 мс от последнего из «открылся» и «приложение вернулось»', () => {
+    expect(startsAsk({ shown: 'locked', target: 'active', noAccess: true })).toBe(true)
+    // диалог закрылся (focus) уже после открытия — ждём ещё 700 мс от возврата
+    expect(readyDelayLeft({ ios: true, readyAt: OPENED, backAt: OPENED + 300, now: OPENED + 300 })).toBe(READY_DELAY_MS)
+    expect(readyDelayLeft({ ios: true, readyAt: OPENED, backAt: OPENED + 300, now: OPENED + READY_DELAY_MS })).toBe(300)
+    // возврат был раньше открытия — считаем от открытия
+    expect(readyDelayLeft({ ios: true, readyAt: OPENED, backAt: T0 + 100, now: OPENED })).toBe(READY_DELAY_MS)
+    expect(readyDelayLeft({ ios: true, readyAt: OPENED, backAt: T0 + 100, now: OPENED + READY_DELAY_MS })).toBe(0)
+  })
+
+  it('фон / возврат фокуса: пока приложение скрыто, активация не стартует (null), после возврата — 700 мс от возврата', () => {
+    expect(readyDelayLeft({ ios: true, readyAt: OPENED, now: OPENED + 50, visible: false })).toBeNull()
+    expect(readyDelayLeft({ ios: true, readyAt: OPENED, backAt: OPENED + 5000, now: OPENED + 5000, visible: true })).toBe(READY_DELAY_MS)
+  })
+
+  it('Android: отсечка 700 мс от открытия микрофона, без ожидания возврата фокуса', () => {
+    expect(readyDelayLeft({ ios: false, readyAt: OPENED, now: OPENED })).toBe(READY_DELAY_MS)
+    expect(readyDelayLeft({ ios: false, readyAt: OPENED, now: OPENED + READY_DELAY_MS })).toBe(0)
+    expect(readyDelayLeft({ ios: false, readyAt: OPENED, now: OPENED + 50, visible: false })).toBe(READY_DELAY_MS - 50)
+  })
+
+  it('доступ уже выдан (флаг / granted при монтировании, повторные попытки) — удержания нет; отказ (not-allowed → fallback → off) — сразу off, активация не показывается', () => {
+    const access = { permission: 'granted', flag: false, sessionOk: false }
+    const noAccess = !hasMicAccess(access)
+    expect(noAccess).toBe(false)
+    const run = micVisualState({ ...access, phase: 'run' })
+    expect(holdKind({ shown: 'ready', target: run, asked: startsAsk({ shown: 'ready', target: run, noAccess }) })).toBeNull()
+    const denied = micVisualState({ permission: 'prompt', phase: 'fallback' })
+    expect(denied).toBe('off')
+    expect(holdKind({ shown: 'locked', target: denied, asked: true })).toBeNull()
+  })
+
+  it('настоящее состояние во время удержания — active (запись и decide() идут сразу), доступ первого запроса на момент тапа определяется по hasMicAccess', () => {
+    for (const access of [{ permission: 'prompt' }, { permission: 'unavailable', flag: false }]) {
+      expect(hasMicAccess(access)).toBe(false)
+      expect(micVisualState({ ...access, phase: 'run' })).toBe('active')
+    }
   })
 })

@@ -136,7 +136,7 @@ describe('say_phrase — состояния круга', () => {
     const hook = panelSrc['useSayPhrase.js']
     const stage = panelSrc['SayStage.jsx']
     expect(body).toContain('micVisualState({ ...sp.access, phase })')
-    expect(body).toContain('useDelayedMicState(micTarget, { settled: sp.perm.isChecked() })') // картинка запаздывает, решения идут по настоящему micTarget
+    expect(body).toContain('useDelayedMicState(micTarget, { settled: sp.perm.isChecked(), noAccess') // картинка запаздывает, решения идут по настоящему micTarget
     expect(body).toContain("locked: micState === 'locked'")
     expect(body).toContain('state={micState}')
     expect(hook).toContain('access: perm.access()')

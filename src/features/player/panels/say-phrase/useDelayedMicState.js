@@ -1,31 +1,40 @@
 import { useState, useEffect } from 'react'
-import { holdsReady, readyDelayLeft } from '../../../../shared/lib/speech/sayReadyDelay.js'
+import { holdKind, startsAsk, readyDelayLeft } from '../../../../shared/lib/speech/sayReadyDelay.js'
 import { isIos } from '../../../../shared/lib/soundVolume.js'
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 const isVisible = () => typeof document === 'undefined' || document.visibilityState !== 'hidden'
 
-// Видимое состояние круга-микрофона с отложенным переходом locked → ready (правила и числа — sayReadyDelay.js). target — настоящее состояние (micVisualState): решения по доступу
-// (decide(), автопопап, тапы) читают именно его и работают сразу, задержка ТОЛЬКО в том, что видит ученик. Монтирование с уже выданным доступом (в том числе ответ Permissions API,
-// пришедший сразу после открытия модуля), active/done/off и отзыв доступа показываются без задержки. На iPhone отсчёт идёт от последнего из «цель стала ready» и «приложение вернулось» (focus / visibilitychange → visible: системный диалог закрыт).
-// Таймер и слушатели живут, пока идёт удержание; чистятся при размонтировании и когда цель сменилась (например, пошла запись).
-export function useDelayedMicState(target, { ios = isIos(), settled = true } = {}) {
+// Видимое состояние круга-микрофона с отложенным выходом из серого locked (правила и числа — sayReadyDelay.js). target — настоящее состояние (micVisualState): решения по доступу
+// (decide(), автопопап, тапы), запись и флаги читают именно его и работают сразу, задержка ТОЛЬКО в том, что видит ученик. Два удержания:
+//  ready  — locked → ready (доступ выдан без нажатия): 700 мс от появления ready;
+//  active — первый запрос доступа (запись пошла из locked, noAccess на момент нажатия): ждём opened (микрофон реально открылся = диалог подтверждён), затем 700 мс.
+// На iPhone отсчёт идёт от последнего из «можно показывать» и «приложение вернулось» (focus / visibilitychange → visible: системный диалог закрыт), пока приложение скрыто — ждём возврата.
+// Монтирование с выданным доступом (в том числе ответ Permissions API сразу после открытия модуля), повторные попытки, done/off (отказ), отзыв доступа — без задержки. Таймер и слушатели
+// живут, пока идёт удержание; чистятся при размонтировании и когда цель сменилась (отказ, итог, прерывание). settled — Permissions API уже ответил; opened — микрофон открылся.
+export function useDelayedMicState(target, { ios = isIos(), settled = true, noAccess = false, opened = false } = {}) {
   const [shown, setShown] = useState(target)
+  const [prev, setPrev] = useState(target)
+  const [asked, setAsked] = useState(false)
   const [wasSettled, setWasSettled] = useState(settled)
   if (settled !== wasSettled) setWasSettled(settled)
+  // Нажатие, с которого началась запись, запоминаем В ТОТ РЕНДЕР, где цель стала active: дальше флаг доступа изменится (микрофон откроется), а удержание должно жить до показа
+  const askedNow = target !== prev ? startsAsk({ shown, target, noAccess }) : asked
+  if (target !== prev) { setPrev(target); setAsked(askedNow) }
   // settled — Permissions API уже ответил; в самом рендере, где он ответил (wasSettled ещё false), ready — «доступ уже был при открытии модуля»: показываем сразу, без задержки
-  const hold = holdsReady({ shown, target, settled: settled && wasSettled })
-  if (!hold && shown !== target) setShown(target) // всё, кроме locked → ready, показываем сразу (сброс при рендере)
+  const kind = holdKind({ shown, target, settled: settled && wasSettled, asked: askedNow })
+  if (!kind && shown !== target) setShown(target) // всё, кроме удерживаемых переходов, показываем сразу (сброс при рендере)
+  const armed = kind === 'ready' || (kind === 'active' && opened) // active ждёт, пока микрофон реально откроется
 
   useEffect(() => {
-    if (!hold) return undefined
+    if (!kind || !armed) return undefined
     const readyAt = nowMs()
     let backAt = 0
     let timer = 0
     const schedule = () => {
       clearTimeout(timer)
       const left = readyDelayLeft({ ios, readyAt, backAt, now: nowMs(), visible: isVisible() })
-      if (left !== null) timer = setTimeout(() => setShown('ready'), left)
+      if (left !== null) timer = setTimeout(() => setShown(kind === 'ready' ? 'ready' : 'active'), left)
     }
     // вернулись (focus / visibilitychange → visible) — отсчёт заново от возврата; на iPhone скрылись (диалог / сворачивание) — таймер снимаем и ждём возврата
     const onChange = () => { if (isVisible()) { backAt = nowMs(); schedule() } else if (ios) clearTimeout(timer) }
@@ -33,7 +42,7 @@ export function useDelayedMicState(target, { ios = isIos(), settled = true } = {
     document.addEventListener('visibilitychange', onChange)
     schedule()
     return () => { clearTimeout(timer); window.removeEventListener('focus', onChange); document.removeEventListener('visibilitychange', onChange) }
-  }, [hold, ios])
+  }, [kind, armed, ios])
 
-  return hold ? 'locked' : target
+  return kind ? 'locked' : target
 }
