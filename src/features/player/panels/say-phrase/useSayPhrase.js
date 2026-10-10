@@ -1,6 +1,8 @@
 import { useReducer, useState, useEffect, useRef, useCallback } from 'react'
 import { createSpeechController, isBusy } from '../../../../shared/lib/speech/speechController.js'
 import { createSayRecognizer } from '../../../../shared/lib/speech/sayRecognizer.js'
+import { startPanelWarm } from '../../../../shared/lib/speech/sayPanelWarm.js'
+import { useVoskWait } from './useVoskWait.js'
 import { getRecognitionCtor, queryMicPermission } from '../../../../shared/lib/speech/speechSupport.js'
 import { sayPermission } from '../../../../shared/lib/speech/sayPermission.js'
 import { SAY_EVENTS, sayEventProps } from '../../../../shared/lib/speech/sayResult.js'
@@ -54,6 +56,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     onView: view => dispatch({ type: 'view', view }),
     getSession: () => sayAudioSessionType(), // тот же тип аудиосессии на время записи Vosk
   }))
+  const { note: waitNote, wait: waitVosk } = useVoskWait(ctrl) // админский режим «Только Vosk»: ожидание прогрева вместо системного (плашка админа)
   // ИСТОЧНИК УРОВНЯ (заменяемый). Vosk: реальный RMS кусков звука его же потока (ctrl.level, с первого куска, второго getUserMedia нет). Системное распознавание: реальный RMS, если
   // админ включил флаг и поток жив, иначе синтетический по событиям (sayVoiceLevel.js). ТОЧКА ПОДКЛЮЧЕНИЯ ВТОРОГО ИСТОЧНИКА — строка `const [levels] = useState(...)` ниже.
   const [levels] = useState(() => { const sys = levelSource(voice, real); return createLevelSource(t => ctrl.level(t) ?? sys.ringLevel(t)) })
@@ -98,14 +101,8 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   }, [real])
 
   useEffect(() => {
-    let alive = true
-    let unwarm = null
-    perm.refresh().then(() => {
-      if (!alive) return
-      const d = perm.decide() // query мог сказать 'denied' — сразу запасной режим, без попытки
-      if (d.action === 'fallback') dispatch({ type: 'fallback', reason: d.reason, onlyIdle: true })
-      else unwarm = ctrl.warm() // микрофон возможен: прогреваем Vosk (модель из кэша в память, в фоне), панель уйдёт — через 30 с освободим
-    })
+    // Прогрев Vosk сразу (не за perm.refresh(): на iPhone Permissions API бывает «глухим»); в запасном режиме не греем, а когда query скажет 'denied' — освобождаем (sayPanelWarm.js)
+    const unwarm = startPanelWarm({ perm, warm: why => ctrl.warm(why), onFallback: d => dispatch({ type: 'fallback', reason: d.reason, onlyIdle: true }) })
     // Сворачивание: гасим только реальную запись (iOS может мигнуть visibility, пока висит диалог разрешения)
     const interrupt = () => { ctrl.reset(); voice.signal('end', nowMs()); real.close(); dispatch({ type: 'interrupt' }) }
     const onHidden = () => { if (document.visibilityState === 'hidden' && ctrl.isAudioActive()) interrupt() }
@@ -113,8 +110,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     document.addEventListener('visibilitychange', onHidden)
     window.addEventListener('pagehide', onPageHide)
     return () => {
-      alive = false
-      unwarm?.()
+      unwarm()
       document.removeEventListener('visibilitychange', onHidden)
       window.removeEventListener('pagehide', onPageHide)
       ctrl.reset() // панель закрыта — микрофон не держим
@@ -127,6 +123,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   const begin = useCallback(() => {
     const q = quietRef.current
     stopWord() // эталонное «Послушать» не должно звучать, пока слушаем
+    if (waitVosk(data)) return // админский режим «Только Vosk» и Vosk не готов: ждём прогрев (плашка админа), на системное не уходим
     clearTimeout(q.timer); q.timer = 0
     if (!q.release) q.release = holdSoundQuiet()
     const pick = ctrl.choose(data) // какой движок пойдёт на эту попытку (синхронно, без ожидания): Vosk, если готов, иначе системное
@@ -138,7 +135,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     armRef.current = setTimeout(() => dispatch({ type: 'arm' }), STOP_ARM_MS)
     const taps = s.taps + 1
     setTimeout(() => emit(SAY_EVENTS.start, { taps }), 0)
-  }, [ctrl, real, emit, data, s.taps])
+  }, [ctrl, real, emit, data, s.taps, waitVosk])
 
   // Тап по микрофону: «начали» и идёт запись — «стоп» (принять сказанное), иначе по решению sayPermission
   const tapMic = useCallback(() => {
@@ -163,7 +160,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   return {
     view: s.view, phase: s.phase, taps: s.taps, verdict: s.verdict, errorCode: s.errorCode,
     fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak, exhausted: s.exhausted,
-    go: isGo(s), adminLine: s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
+    go: isGo(s), adminLine: waitNote ?? s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
     tapMic, confirmExplain, cancelExplain, enableMic, emit, perm,
   }
 }

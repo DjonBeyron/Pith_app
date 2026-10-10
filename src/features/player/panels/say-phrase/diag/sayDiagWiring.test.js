@@ -41,6 +41,13 @@ describe('SayAdminDiag: только админам и ничего не вес�
     // компоненты в features/player не знают админских подписей движка (их проверяет sayPhraseVoskWiring.test.js)
     for (const f of ['./useSayDiag.js', './SayDiagPanel.jsx', './SayAdminDiag.jsx']) expect(code(read(f)), f).not.toMatch(/\.acquire\(|getUserMedia|\.start\(|pickLabel|SAY_ENGINE_LABEL|SpeechSayEngine/)
   })
+  it('«Прогреть сейчас» ведёт в warmNow (ручной запуск / перезапуск прогрева); отчёт несёт журнал этапов; строки прогрева живут в группе «Прогрев Vosk»', () => {
+    const p = read('./SayDiagPanel.jsx')
+    expect(p).toContain('warmNowFromDiag()'); expect(p).toContain('Прогреть сейчас'); expect(p).toContain('Перезапустить прогрев')
+    expect(p).toContain('journal: warmJournal(ctx.info)')
+    expect(read('../../../../../shared/lib/speech/sayDiagContext.js')).toContain("runtime.warmNow('manual')")
+    expect(read('../../../../../shared/lib/speech/sayDiagRows.js')).toContain("group: 'warm'")
+  })
   it('«Загрузить модель сейчас» ведёт в voskBackground.forceBackground; «Скопировать отчёт» — в diagReport', () => {
     const p = read('./SayDiagPanel.jsx')
     expect(p).toContain('forceBackground()'); expect(p).toContain('diagReport(')

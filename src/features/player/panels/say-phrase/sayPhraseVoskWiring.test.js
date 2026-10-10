@@ -25,12 +25,22 @@ describe('useSayPhrase: выбор движка и уровень голоса',
   it('источник уровня: RMS Vosk (ctrl.level), а где его нет — прежний системный', () => {
     expect(hook).toContain('createLevelSource(t => ctrl.level(t) ?? sys.ringLevel(t))')
   })
-  it('прогрев Vosk — в эффекте монтирования панели и только если микрофон возможен; освобождение — в cleanup (после ctrl.reset)', () => {
-    const eff = hook.slice(hook.indexOf('useEffect(() => {\n    let alive'), hook.indexOf('// Начать попытку'))
-    expect(eff).toContain('else unwarm = ctrl.warm()')
-    expect(eff).toMatch(/alive = false\s+unwarm\?\.\(\)/)
+  it('прогрев Vosk — в эффекте монтирования панели через startPanelWarm (сразу, НЕ за perm.refresh()) и освобождается в cleanup; в запасном режиме не греется', () => {
+    const eff = hook.slice(hook.indexOf('useEffect(() => {\n    // Прогрев Vosk сразу'), hook.indexOf('// Начать попытку'))
+    expect(eff).toContain('const unwarm = startPanelWarm({ perm, warm: why => ctrl.warm(why)')
+    expect(eff).toMatch(/return \(\) => \{\s+unwarm\(\)/)
     expect(eff).toMatch(/ctrl\.reset\(\)/)
-    expect(hook.match(/ctrl\.warm\(\)/g)).toHaveLength(1)
+    expect(hook.match(/ctrl\.warm\(/g)).toHaveLength(1)
+    expect(code(hook)).not.toMatch(/perm\.refresh\(\)\.then/) // регресс: прогрев стоял за Permissions API, на iPhone он может не отвечать
+    const warm = code(read('shared/lib/speech/sayPanelWarm.js'))
+    expect(warm.indexOf("warm('panel')")).toBeLessThan(warm.indexOf('perm.refresh()'))
+  })
+  it('в режиме «Только Vosk» тап не уходит на системное: ожидание прогрева до begin-логики (без await в begin), микрофон в ожидании не открывается', () => {
+    const begin = hook.slice(hook.indexOf('const begin = useCallback'), hook.indexOf('// Тап по микрофону'))
+    expect(begin).toContain('if (waitVosk(data)) return')
+    expect(begin.indexOf('waitVosk(data)')).toBeLessThan(begin.indexOf('ctrl.choose('))
+    expect(hook).toContain('adminLine: waitNote ?? s.adminLine') // причина — в той же серой плашке админа над панелью
+    for (const f of ['shared/lib/speech/sayVoskWait.js', 'features/player/panels/say-phrase/useVoskWait.js']) expect(code(read(f)), f).not.toMatch(/getUserMedia|AudioContext|\.start\(/)
   })
   it('системный контроллер остаётся с прежними настройками (стратегия M, abort после финала, аудиосессия) — он только обёрнут', () => {
     expect(hook).toContain("endOnFinal: 'abort'")
@@ -50,9 +60,11 @@ describe('границы слоёв и бандл', () => {
     expect(users).toEqual(['shared/lib/vosk/voskEngine.js'])
     expect(code(read('shared/lib/vosk/voskEngine.js'))).not.toMatch(/^import[^\n]*vosk-browser/m)
   })
-  it('прогрев модели (acquire) зовёт только распознаватель модуля; панель-обёртка и App не тянут Vosk в основной бандл', () => {
-    const acquirers = files.filter(p => /\.acquire\(/.test(code(readFileSync(p, 'utf8')))).map(p => p.slice(src.length))
-    expect(acquirers).toEqual(['shared/lib/speech/sayRecognizer.js'])
+  it('прогрев модели (acquire) зовут только распознаватель модуля и ранний прогрев урока (sayLessonWarm.js, подгружается отдельным чанком); панель-обёртка и App не тянут Vosk в основной бандл', () => {
+    const acquirers = files.filter(p => /\.acquire\(/.test(code(readFileSync(p, 'utf8')))).map(p => p.slice(src.length)).sort()
+    expect(acquirers).toEqual(['shared/lib/speech/sayLessonWarm.js', 'shared/lib/speech/sayRecognizer.js'])
+    expect(code(read('features/player/useLessonWarmups.js'))).toContain("import('../../shared/lib/speech/sayLessonWarm.js')") // плеер урока не тянет runtime / движок статически
+    expect(code(read('features/player/PlayerPanels.jsx'))).not.toMatch(/voskRuntime|sayLessonWarm|voskEngine/)
     for (const f of ['app/App.jsx', 'features/player/panels/say-phrase/SayPhrasePanelLazy.jsx']) expect(code(read(f))).not.toMatch(/vosk-browser|voskEngine|voskRuntime|voskRecognizer|sayRecognizer/)
   })
   it('shared не импортирует из features (адаптер, runtime и выбор движка — чистый shared)', () => {

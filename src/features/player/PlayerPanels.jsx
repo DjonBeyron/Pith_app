@@ -1,17 +1,15 @@
-import { useEffect } from 'react'
 import ChooseWordPanel     from './panels/choose-word/ChooseWordPanel.jsx'
 import { nodeFileKey } from './preloadQueue.js'
 import PhraseAssemblyPanel from './panels/phrase-assembly/PhraseAssemblyPanel.jsx'
 import FillBlanksPanel     from './panels/fill-blanks/FillBlanksPanel.jsx'
 import TypeWordPanel       from './panels/type-word/TypeWordPanel.jsx'
 import SayPhrasePanelLazy from './panels/say-phrase/SayPhrasePanelLazy.jsx'
-import { prefetchSayPhrasePanel } from './panels/say-phrase/sayPhrasePrefetch.js'
+import { useLessonWarmups } from './useLessonWarmups.js'
 import PhotoChoicePanel    from './panels/photo-choice/PhotoChoicePanel.jsx'
 import RegistrationPanel   from './panels/registration/RegistrationPanel.jsx'
 import TableDictatorPanel  from './panels/table-dictator/TableDictatorPanel.jsx'
 import TableManualPanel    from './panels/table-manual/TableManualPanel.jsx'
 import { wordOptionEvent } from './useAnswerStats.js'
-import { startIdlePrewarm } from '../../shared/lib/idlePrewarm.js'
 
 // Нижние панели ответов: выбор слова, сборка фразы, составь предложение,
 // напечатай слово, выбор фото, регистрация, таблица. Каждая привязана к последней видимой
@@ -43,9 +41,8 @@ export default function PlayerPanels({
   handlePhotoPick, handleXpEarned, onTableToChat, onTableLanded,
   setWcPanelHeight, setPaPanelHeight, setFbPanelHeight, setTwPanelHeight, setSpPanelHeight, setPcPanelHeight, setRegPanelHeight, setTablePanelHeight,
 }) {
-  // Урок с «Сказать фразу»: чанк панели подгружаем тихо, в простое (микрофон не трогаем — он только по тапу в панели)
-  const hasSayPhrase = nodes.some(n => n.type === 'say_phrase')
-  useEffect(() => (hasSayPhrase ? startIdlePrewarm([prefetchSayPhrasePanel]) : undefined), [hasSayPhrase])
+  // Урок с «Сказать фразу»: тихо грузим чанк панели и заранее греем Vosk (useLessonWarmups.js; микрофон не трогаем — он только по тапу в панели)
+  useLessonWarmups(nodes)
   return (
     <>
       {wcNode && (

@@ -3,6 +3,7 @@
 // имеет своё объяснение + подсказку «что делать». level: ok (всё хорошо) | warn (работает запасной путь / ждём) | bad (поломка) | info (просто сведения).
 import { voskPhraseProblem } from '../vosk/sayVoskGrammar.js'
 import { bgStatusText } from '../vosk/voskBgStatus.js'
+import { STAGE_TEXT } from '../vosk/voskWarmStages.js'
 
 export const MARK = { ok: '✅', warn: '⚠️', bad: '❌', info: '•' }
 
@@ -28,7 +29,7 @@ export function explainBackground(s, inCache = false, stopped = false) {
   if (stopped || s.state === 'off') return { level: 'warn', text: 'остановлена админом на этом телефоне' }
   if (s.state === 'other') return { level: 'info', text: 'ведёт другая вкладка приложения' }
   if (s.state === 'check') return { level: 'info', text: 'проверяет кэш…' }
-  return { level: 'warn', text: 'ещё не запускалась (стартует через 5–8 с после запуска приложения, только в тишине)' }
+  return { level: 'warn', text: 'ещё не запускалась (стартует через 5–8 с после запуска приложения или сразу при входе в урок с модулем — только в тишине)' }
 }
 
 /** Модель в памяти: { level, text }. snap — voskRuntime.snapshot(), info — voskRuntime.info() */
@@ -57,15 +58,19 @@ export function explainPick(pick, c) {
   switch (reason) {
     case 'mode-system': return sys('warn', 'в админ-настройках выбран режим «Только системное»', 'Сменить: Админ → Голос → «Сказать фразу» → «Авто».')
     case 'phrase': return sys('warn', `фраза не подходит для Vosk: ${PHRASE_TEXT[voskPhraseProblem(c.phrase)] ?? 'неизвестная причина'}`, 'Простые числа (2, 25, 1998, 21st, 5%, $5, 3:30) Vosk читает.')
-    case 'broken': return sys('bad', `пауза после сбоя Vosk до ${clock(snap.brokenUntil)}. Причина: ${snap.brokenWhy || info.lastError || 'не записана'}`, 'Смена режима в админке снимает паузу сразу.')
+    case 'broken': return sys('bad', `пауза после сбоя Vosk до ${clock(snap.brokenUntil)}. Причина: ${snap.brokenWhy || info.lastError || 'не записана'}`, 'Пауза 1 минута, потом повтор сам; «Прогреть сейчас» или смена режима снимают её сразу.')
     case 'no-model': {
       const bg = explainBackground(c.bg, c.inCache, c.bgStopped)
-      return sys('bad', `модели Vosk ещё нет в кэше телефона. Фоновая загрузка: ${bg.text}.${onlyVosk}`, 'Нажмите «Загрузить модель сейчас», дождитесь «в кэше» и откройте панель заново.')
+      return sys('bad', `модели Vosk ещё нет в кэше телефона. Фоновая загрузка: ${bg.text}.${onlyVosk}`, 'Нажмите «Загрузить модель сейчас» и дождитесь «в кэше» — прогрев начнётся сам.')
     }
     case 'loading': return sys('warn', `модель из кэша ещё грузится в память (идёт ${whole(info.now - (info.warmAt || info.now))}, обычно 2–15 с).${onlyVosk}`, 'Через несколько секунд следующая попытка пойдёт на Vosk.')
     case 'no-lib': return sys('bad', 'не загрузилась библиотека Vosk (нужен интернет при первом запуске после обновления приложения)', 'Закройте приложение и откройте снова.')
     case 'not-loaded': {
-      if (snap.cached == null) return sys('warn', `кэш модели ещё не проверен — прогрев только начинается.${onlyVosk}`, 'Подождите 1–2 с.')
+      if (snap.cached == null) {
+        if (info.acquires === 0) return sys('bad', `кэш модели ещё не проверен: прогрев ни разу не запрашивали — ни урок, ни панель его не запустили.${onlyVosk}`, 'Нажмите «Прогреть сейчас» и пришлите отчёт.')
+        if (['checking-cache', 'importing-lib', 'loading-model'].includes(info.stage)) return sys('warn', `кэш модели ещё не проверен — идёт прогрев: ${STAGE_TEXT[info.stage]} (${whole(info.now - (info.stageAt || info.now))}).${onlyVosk}`, 'Подождите 1–2 с.')
+        return sys('warn', `кэш модели ещё не проверен — прогрев только начинается.${onlyVosk}`, 'Подождите 1–2 с.')
+      }
       const why = info.users > 0 ? 'прогрев не запустился' : 'панель не держит прогрев'
       const err = info.lastError ? ` Последняя ошибка: ${info.lastError}.` : ''
       return sys(info.lastError ? 'bad' : 'warn', `модель в кэше, но не загружена в память: ${why}.${err}${onlyVosk}`, 'Откройте панель заново; в режиме «Только системное» прогрева нет.')

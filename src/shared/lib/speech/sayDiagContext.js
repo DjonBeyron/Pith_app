@@ -38,3 +38,6 @@ export async function collectDiagContext({ phrase }, deps = {}) {
     pick: pickEngine({ mode, phrase, ...snap, now }), attempt: d.attempts.get(), gate: d.perm.decide(), env, perm,
   }
 }
+
+/** Кнопка «Прогреть сейчас» в окне диагностики: запустить / перезапустить прогрев вручную (паузу после сбоя снимает); результат виден в строках «Прогрев Vosk» */
+export const warmNowFromDiag = (runtime = voskRuntime) => runtime.warmNow('manual')

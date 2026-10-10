@@ -91,20 +91,24 @@ describe('voskRuntime: прогрев и освобождение', () => {
     expect(d.unload).toHaveBeenCalledTimes(1)
   })
 
-  it('ошибка загрузки (библиотека не подгрузилась офлайн): в журнал [say-vosk], Vosk не используем 10 мин и не пытаемся грузить заново, потом пробуем снова', async () => {
+  it('ошибка загрузки (библиотека не подгрузилась офлайн): в журнал [say-vosk], Vosk не используем 1 мин и не грузим заново; пока панель открыта, через минуту прогрев повторяется САМ', async () => {
+    expect(BROKEN_MS).toBe(60000)
     const load = vi.fn(async () => { throw new Error('Failed to fetch dynamically imported module') })
     const { rt, log, advance } = make({ load })
     rt.acquire(); await rt.whenReady()
-    expect(rt.snapshot()).toMatchObject({ loaded: false, brokenUntil: 1000 + BROKEN_MS })
+    expect(rt.snapshot()).toMatchObject({ loaded: false, brokenUntil: 1000 + BROKEN_MS, stage: 'failed' })
     expect(log.mock.calls.join('\n')).toContain('Failed to fetch dynamically imported module')
+    expect(log.mock.calls.join('\n')).toContain('1 мин')
     rt.acquire(); await rt.whenReady()
+    expect(load).toHaveBeenCalledTimes(1) // пауза идёт — повторный acquire не грузит
+    await advance(BROKEN_MS - 1000)
     expect(load).toHaveBeenCalledTimes(1)
-    await advance(BROKEN_MS + 1)
-    rt.acquire(); await rt.whenReady()
+    await advance(1001) // пауза кончилась — повтор без участия панели
+    await rt.whenReady()
     expect(load).toHaveBeenCalledTimes(2)
   })
 
-  it('markBroken (Vosk упал посреди попытки): модель выгружена, пауза 10 мин, clearBroken возвращает работу и греет модель, если панель открыта', async () => {
+  it('markBroken (Vosk упал посреди попытки): модель выгружена, пауза 1 мин, clearBroken возвращает работу и греет модель, если панель открыта', async () => {
     const { rt, d, model, log, advance } = make()
     rt.acquire(); await rt.whenReady()
     rt.markBroken('audio-capture: x')

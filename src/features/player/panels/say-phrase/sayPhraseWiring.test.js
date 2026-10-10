@@ -57,7 +57,8 @@ describe('say_phrase — проводка (плеер)', () => {
     expect(block).not.toContain('wrongRef') // речь не штрафуется
     expect(block).not.toContain('record(')  // и не пишет события анализа знаний
     expect(read('./SayPhrasePanelLazy.jsx')).toMatch(/lazyRetry\(\(\) => import\('\.\/SayPhrasePanel\.jsx'\)/)
-    expect(playerPanels).toContain('startIdlePrewarm([prefetchSayPhrasePanel])')
+    expect(playerPanels).toContain('useLessonWarmups(nodes)')
+    expect(read('../../useLessonWarmups.js')).toContain('idle: startIdlePrewarm, prefetchPanel: prefetchSayPhrasePanel')
   })
 
   it('награда XP: say_phrase в REWARD_TYPES; пара триггеров и вид связей', () => {

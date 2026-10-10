@@ -4,8 +4,9 @@
 import { SAY_ENGINE_LABEL } from './sayEngineMode.js'
 import { STOP_TEXT } from './sayAttemptLast.js'
 import { explainPick, explainBackground, explainMemory, explainGate, clock, sec, MARK } from './sayDiagExplain.js'
+import { warmStageRow, warmWhoRow, warmTail } from './sayDiagWarm.js'
 
-export const GROUP_TITLE = { engine: 'Движок', vosk: 'Vosk', phone: 'Телефон и браузер', app: 'Приложение' }
+export const GROUP_TITLE = { engine: 'Движок', vosk: 'Vosk', warm: 'Прогрев Vosk', phone: 'Телефон и браузер', app: 'Приложение' }
 const MB = b => `${(b / 1048576).toFixed(1).replace('.', ',')} МБ`
 const PERM = { granted: ['ok', 'разрешён'], prompt: ['info', 'спросит при первой попытке'], denied: ['bad', 'запрещён в настройках телефона'], unavailable: ['info', 'неизвестно (браузер не говорит)'] }
 const URL_SRC = { saved: 'сохранён админом в лаборатории', env: 'из настройки VITE_VOSK_MODEL_URL', builtin: 'встроенный запасной (github.io)' }
@@ -58,8 +59,11 @@ export function buildDiagRows(c) {
     { id: 'bg', group: 'vosk', label: 'Фоновая загрузка', ...bg },
     { id: 'url', group: 'vosk', label: 'Адрес модели', level: 'info', text: `${URL_SRC[c.urlSource] ?? c.urlSource}${c.urlHost ? ` (${c.urlHost})` : ''}` },
     { id: 'mem', group: 'vosk', label: 'Модель в памяти', ...mem },
-    { id: 'lib', group: 'vosk', label: 'Библиотека Vosk', level: c.snap.libReady ? 'ok' : 'info', text: c.snap.libReady ? 'загружена' : 'не загружена (подгружается вместе с моделью при открытии панели)' },
+    { id: 'lib', group: 'vosk', label: 'Библиотека Vosk', level: c.snap.libReady ? 'ok' : 'info', text: c.snap.libReady ? 'загружена' : 'не загружена (подгружается вместе с моделью: при входе в урок с модулем или открытии панели)' },
     { id: 'broken', group: 'vosk', label: 'Пауза после сбоя', ...brokenRow(c) },
+    { id: 'warm', group: 'warm', label: 'Этап', ...warmStageRow(c) },
+    { id: 'warmwho', group: 'warm', label: 'Запуск', ...warmWhoRow(c.info) },
+    { id: 'warmlog', group: 'warm', label: 'Последние события', ...warmTail(c.info) },
     { id: 'sys', group: 'phone', label: 'Системное распознавание', level: e.recognition ? 'ok' : 'bad', text: e.recognition ? 'поддерживается браузером' : 'браузер его не поддерживает' },
     { id: 'session', group: 'phone', label: 'Аудиосессия', level: e.audioSession ? 'ok' : 'warn', text: e.audioSession ? `включена (${e.sessionType})${e.sessionApi ? '' : ' — но браузер этого API не знает'}` : 'выключена админом' },
     { id: 'mic', group: 'phone', label: 'Микрофон', level: perm[0], text: perm[1] },
@@ -70,14 +74,15 @@ export function buildDiagRows(c) {
   return rows
 }
 
-/** Текст отчёта для отправки разработчику (то же, что в окне, плюс время и User-Agent) */
-export function diagReport(rows, { now = Date.now(), ua = '' } = {}) {
+/** Текст отчёта для отправки разработчику (то же, что в окне, плюс журнал этапов прогрева — journal = warmJournal(info) — и User-Agent) */
+export function diagReport(rows, { now = Date.now(), ua = '', journal = [] } = {}) {
   const lines = [`Диагностика «Сказать фразу», ${clock(now)}`]
   let group = ''
   for (const r of rows) {
     if (r.group !== group) { group = r.group; lines.push('', `${GROUP_TITLE[group] ?? group}:`) }
     lines.push(`${MARK[r.level] ?? MARK.info} ${r.label} — ${r.text}${r.hint ? ` (${r.hint})` : ''}`)
   }
+  if (journal.length) lines.push('', 'Журнал прогрева Vosk (этапы по времени):', ...journal.map(l => `  ${l}`))
   if (ua) lines.push('', `UA: ${ua}`)
   return lines.join('\n')
 }

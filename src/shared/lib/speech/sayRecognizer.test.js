@@ -46,14 +46,14 @@ describe('sayRecognizer: движок на каждую попытку', () => {
     expect(t.record).toHaveBeenCalledWith({ engine: 'system', reason: 'loading' }, 1000)
   })
 
-  it('режим админа: «Только системное» — системное даже при готовом Vosk, прогрев не запускается; «Авто» — прогрев идёт', () => {
+  it('режим админа: «Только системное» — системное даже при готовом Vosk; владелец прогрева считается в любом режиме (модель в «system» грузить или нет решает runtime — смена режима потом сработает), причина запроса передаётся', () => {
     const t = make({ mode: 'system' })
     expect(t.rec.choose(data)).toEqual({ engine: 'system', reason: 'mode-system' })
     t.rec.warm()()
-    expect(t.runtime.acquire).not.toHaveBeenCalled()
+    expect(t.runtime.acquire).toHaveBeenCalledWith('panel')
     const u = make()
-    const off = u.rec.warm()
-    expect(u.runtime.acquire).toHaveBeenCalledTimes(1); expect(typeof off).toBe('function')
+    const off = u.rec.warm('lesson')
+    expect(u.runtime.acquire).toHaveBeenCalledWith('lesson'); expect(typeof off).toBe('function')
   })
 
   it('фраза с простым числом идёт на Vosk (слова из numberWords.js), со сложным (десятичное, телефон) — на системное', () => {

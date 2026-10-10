@@ -1,6 +1,6 @@
 // Распознаватель модуля «Сказать фразу»: два движка за ОДНИМ интерфейсом speechController (start / stop / reset / isAudioActive) — Vosk (основной, закрытый словарь, на устройстве)
 // и системное распознавание (speechController, запасное, остаётся как есть). На каждой попытке движок выбирает чистая pickEngine по синхронному снимку voskRuntime: тап
-// НИЧЕГО не ждёт — не готов Vosk, эта попытка идёт на системном, без сообщений ученику. Vosk упал посреди попытки → onFail помечает «не работает» на 10 минут (voskRuntime), следующая
+// НИЧЕГО не ждёт — не готов Vosk, эта попытка идёт на системном, без сообщений ученику (единственное исключение — админский режим «Только Vosk»: waitVosk). Vosk упал посреди попытки → onFail помечает «не работает» на 1 минуту (voskRuntime), следующая
 // попытка идёт на системном. Выбор и причина запоминаются для админа (sayEngineLast.js, строка в настройках модуля и серая плашка над панелью).
 // Для админской диагностики в уроке попытка записывается в sayAttemptLast.js (движок, что услышали, тайминги, причина остановки). Все виды (view) обоих движков идут в один onView; runNo пронумерован здесь общим счётчиком (иначе у двух движков номера совпали бы, и sayFlow принял бы итог за уже обработанный).
 // Уровень голоса: level(t) отдаёт RMS Vosk, пока идёт его попытка, иначе null — вызывающий берёт прежний источник (синтетический / реальный по флагу админа).
@@ -12,6 +12,7 @@ import { pickEngine, pickLabel } from './sayEnginePick.js'
 import { readSayEngine } from './sayEngineMode.js'
 import { setLastEngine } from './sayEngineLast.js'
 import { sayAttemptLog } from './sayAttemptLast.js'
+import { needsVoskWait, startVoskWait } from './sayVoskWait.js'
 
 /**
  * createSystem(onView) → speechController с теми же настройками, что были у модуля (его создаёт хук); onView — общий приёмник видов.
@@ -52,8 +53,10 @@ export function createSayRecognizer({
       if (p.engine === 'vosk') vosk.start({ reference, lang, data })
       else system.start({ reference, lang })
     },
-    /** Панель смонтирована: прогреть Vosk (модель из кэша в память, фоном; в режиме «Только системное» — ничего). Возвращает release() — звать при закрытии панели */
-    warm: () => (getMode() === 'system' ? () => {} : runtime.acquire()),
+    /** Панель смонтирована: прогреть Vosk (модель из кэша в память, фоном). Режим «Только системное» runtime читает сам (владелец считается, модель не грузится — смена режима потом сработает). Возвращает release() — звать при закрытии панели */
+    warm: (why = 'panel') => runtime.acquire(why),
+    /** Режим «Только Vosk» (админ) и Vosk не готов: НЕ идём на системное — прогреваем и ждём до 20 с, этап виден в плашке админа (onNote). null — ждать не нужно, пусть идёт обычная попытка. Возвращает cancel() */
+    waitVosk: (data, onNote) => (needsVoskWait({ mode: getMode(), phrase: data?.phrase, snap: runtime.snapshot(), now: now() }) ? startVoskWait({ runtime, onNote, now }) : null),
     stop: () => { attempts.userStop(); engine().stop() },
     reset() { system.reset(); vosk.reset(); level.reset() },
     isAudioActive: () => engine().isAudioActive(),
