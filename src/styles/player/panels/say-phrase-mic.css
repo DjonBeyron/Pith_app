@@ -2,8 +2,7 @@
    ОДИН круглый элемент .sayMicBtn (100px) в области фиксированной высоты .sayMicBox (say-phrase.css): форма не меняется НИКОГДА. Внутри — значок микрофона
    (SayMicIcon.jsx) или, на успехе, галочка и «Готово». Размер, цвет круга и значок задаёт СОСТОЯНИЕ: класс .sayMicBox--{locked|ready|active|done|off} на корне
    (sayMicState.js), а сами значения лежат переменными в say-phrase-state.css (--mic-scale / --mic-bg / --mic-ink / --mic-rim) — здесь только как кнопка их применяет.
-   Масштаб — transform: scale(var(--mic-scale)) с transition (0,85 → 1 плавно; в запись 1,15 пружиной с перелётом); пульс ready — отдельная обёртка .sayMicPulse
-   (say-phrase-state.css), чтобы не спорить с этим transform. Нажатие — вжатие БЕЗ перехода (:active). Layout-анимаций нет: только transform/opacity и цвета.
+   Масштаб — transform: scale(var(--mic-scale)) с transition (0,85 → 1 плавно; в запись 1,15 пружиной с перелётом, заливка ≈0,6 с — say-phrase-state.css). Пульса в покое нет. Нажатие — вжатие БЕЗ перехода (:active). Layout-анимаций нет: только transform/opacity и цвета.
    Цвета --say-lime / --say-ink / --say-dark — на .sayPanel. Волны вокруг круга и надпись над ним — say-phrase-waves.css / say-phrase.css.
    ──────────────────────────────────────────────────────────────────── */
 

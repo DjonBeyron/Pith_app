@@ -41,6 +41,7 @@ import { useLessonNav } from '../../app/LessonNavContext.jsx'
 import { usePlayerAnswers } from './usePlayerAnswers.js'
 import { buildXpMap } from './lessonXp.js'
 import { resolveXpOrigin } from './xpAnchor.js'
+import { useSayCantXp } from './useSayCantXp.js'
 
 // Пустой список файлов по умолчанию — ОДИН на все рендеры: новый [] каждый раз
 // (usePlayerFiles → files → прогрев) зацикливал перерисовку у урока с медиа
@@ -155,7 +156,8 @@ export default function LessonPlayer({
       finishSummary()
     },
   })
-  const { visibleNodes, pendingNode, isWaiting, onNodeDone, requestMoreHistory, hasMoreHistory } = graph
+  const { visibleNodes, pendingNode, isWaiting, onNodeDone: graphNodeDone, requestMoreHistory, hasMoreHistory } = graph
+  const { onNodeDone, credit: creditXp, revoke: revokeXp } = useSayCantXp({ onNodeDone: graphNodeDone, xpMap, earnedXpRef, setEarnedXp }) // «Я не могу говорить» тихо засчитывает XP ноды как успех
   const progress = lessonProgress(mainIndex, visibleNodes)
   useLessonTracking({ lessonId, enabled: !edit, progress, finished: showSummary, resumed: !!startNodeId })
   const signalMessages = useSignalMessages() // сигналы ошибок — вне графа урока (useSignalMessages.js)
@@ -166,7 +168,8 @@ export default function LessonPlayer({
   // растёт сразу, откладывается только полёт. opts.expectBubble — см. xpAnchor.js
   function handleXpEarned(amount, nodeId = null, opts = undefined) {
     xpBusyRef.current++
-    setEarnedXp(prev => { earnedXpRef.current = prev + amount; return prev + amount })
+    const add = creditXp(nodeId, amount) // нода уже засчитана тихо («Я не могу говорить») — в счётчик не добавляем, полёт как обычно
+    setEarnedXp(prev => { earnedXpRef.current = prev + add; return prev + add })
     // Звук — вместе с вылетом частицы (она ждёт пузырь ответа ~2 с, см.
     // xpAnchor.js), а не в момент ответа: иначе накладывался на «верно»
     resolveXpOrigin(nodeId, origin => {
@@ -224,6 +227,7 @@ export default function LessonPlayer({
   // отыграла» и начисленный за ноду XP
   function rollbackNode(nodeId, wasWrong) {
     instantDoneRef.current.delete(nodeId)
+    revokeXp(nodeId)
     const xp = xpMap.get(nodeId) ?? 0
     if (xp > 0) earnedXpRef.current = Math.max(0, earnedXpRef.current - xp)
     if (wasWrong) wrongRef.current = Math.max(0, wrongRef.current - 1)

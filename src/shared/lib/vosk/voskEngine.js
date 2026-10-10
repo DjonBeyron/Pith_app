@@ -3,7 +3,8 @@
 // Модель скачивает и хранит само приложение (voskDownload.js / voskStorage.js), сюда она приходит готовым Blob и
 // передаётся библиотеке через blob-URL. Без React. Звук никуда не отправляется и не сохраняется.
 import { deleteLibraryStore } from './voskStorage.js'
-import { autoStopDue } from './voskTiming.js'
+import { autoStopDue, TAIL_SILENCE_MS, DRAIN_MAX_MS, VOICE_RMS } from './voskTiming.js'
+import { feedSilence } from './voskTail.js'
 import { createAudioSession } from '../speech/speechAudioSession.js'
 
 const CHUNK = 4096 // кадров на один вызов ScriptProcessor (по умолчанию; модуль «Сказать фразу» просит 2048 — уровень голоса чаще)
@@ -92,9 +93,12 @@ export function unloadEngine(model) {
  * opts: autoStopMs (>0 — сами просим итог, когда текст partial не менялся столько мс), maxMs (потолок записи), session ('play-and-record' — на время записи
  * ставим тип аудиосессии iOS, потом 'auto'; без API молча пропускаем), chunk (кадров на кусок: 1024/2048/4096/8192, по умолчанию 4096).
  * Сбой настройки после открытия микрофона (AudioContext, распознаватель) не оставляет микрофон и сессию занятыми: всё освобождается, ошибка летит наружу.
- * stats: { firstPartialMs, resultMs (от старта записи), afterStopMs, chunks, loadPct, words, micMs (getUserMedia), readyMs (от нажатия до первого звука),
- * audioStartMs (когда пошёл звук, от старта записи), stopBy: endpoint | auto | manual | max, session } — loadPct: доля реального времени,
- * которую главный поток тратит на передачу звука воркеру (сам распознаватель работает в воркере — его нагрузку страница не видит).
+ * stats: { firstPartialMs, resultMs (от старта записи), afterStopMs, chunks, loadPct, words (СЫРЫЕ слова Vosk: слово, conf, start, end), micMs (getUserMedia), readyMs (от нажатия до первого звука),
+ * audioStartMs (когда пошёл звук, от старта записи), stopBy: endpoint | auto | manual | max, session, tailMs (сколько мс тишины досланы перед итогом), drainMs (сколько ждали последний кусок звука
+ * после остановки), chunkMs (длина куска звука), maxGapMs / lateChunks (самый долгий промежуток между кусками и сколько кусков пришло с опозданием — провалы звука при занятой странице) } —
+ * loadPct: доля реального времени, которую главный поток тратит на передачу звука воркеру (сам распознаватель работает в воркере — его нагрузку страница не видит).
+ * Остановка: по тапу (manual) сначала дожидаемся ещё одного куска звука (до DRAIN_MAX_MS) — иначе последние до 128 мс речи, что сидят в буфере ScriptProcessor, пропали бы (авто-стоп и потолок
+ * этого не требуют: перед ними была пауза без голоса); потом выключаем микрофон, досылаем TAIL_SILENCE_MS тишины (иначе Vosk не отдаёт слабое конечное слово) и только тогда просим итог.
  */
 export async function startListening(model, grammar, cb, opts = {}) {
   const tap = performance.now()
@@ -120,11 +124,12 @@ export async function startListening(model, grammar, cb, opts = {}) {
   }
   try { rec.setWords(true) } catch { /* без пословных меток */ }
   const t0 = performance.now()
-  const st = { firstPartialMs: null, chunks: 0, workMs: 0, audioMs: 0, stopAt: null, done: false, text: '', changeAt: null, stopBy: null, audioStartMs: null, readyMs: null }
+  const st = { firstPartialMs: null, chunks: 0, workMs: 0, audioMs: 0, stopAt: null, done: false, text: '', changeAt: null, stopBy: null, audioStartMs: null, readyMs: null,
+    finalizing: false, drain: null, voiceAt: null, lastChunkAt: null, maxGapMs: 0, lateChunks: 0, chunkMs: null, tailMs: 0, drainMs: null }
   let timer = null
   const free = () => {
     st.done = true
-    clearInterval(timer)
+    clearInterval(timer); clearTimeout(st.drain)
     stream.getTracks().forEach(tr => tr.stop())
     try { node.disconnect(); src.disconnect() } catch { /* уже отключены */ }
     try { Promise.resolve(ctx.close()).catch(() => {}) } catch { /* уже закрыт */ }
@@ -145,6 +150,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
       firstPartialMs: st.firstPartialMs, resultMs: ms(t0), afterStopMs: st.stopAt == null ? null : ms(st.stopAt), chunks: st.chunks,
       words: m.result.result || [], micMs, readyMs: st.readyMs, audioStartMs: st.audioStartMs, stopBy: st.stopBy ?? 'endpoint', session: held ? opts.session : null,
       loadPct: st.audioMs ? Math.round((st.workMs / st.audioMs) * 1000) / 10 : null,
+      tailMs: st.tailMs, drainMs: st.drainMs, chunkMs: st.chunkMs, maxGapMs: Math.round(st.maxGapMs), lateChunks: st.lateChunks,
     })
     free()
   })
@@ -152,31 +158,49 @@ export async function startListening(model, grammar, cb, opts = {}) {
   const node = ctx.createScriptProcessor(CHUNKS.includes(opts.chunk) ? opts.chunk : CHUNK, 1, 1)
   const src = ctx.createMediaStreamSource(stream)
   node.onaudioprocess = ev => {
-    if (st.done || st.stopAt != null) return
+    if (st.done || st.finalizing) return
     const t = performance.now()
+    const dur = ev.inputBuffer.duration * 1000
     if (st.audioStartMs == null) { // первый кусок звука: когда началась запись (минус длина самого куска)
-      const dur = Math.round(ev.inputBuffer.duration * 1000)
-      st.audioStartMs = Math.max(0, ms(t0) - dur); st.readyMs = Math.max(0, ms(tap) - dur)
+      st.audioStartMs = Math.max(0, ms(t0) - Math.round(dur)); st.readyMs = Math.max(0, ms(tap) - Math.round(dur)); st.chunkMs = Math.round(dur)
     }
-    if (cb.onLevel) { try { cb.onLevel(bufferRms(ev.inputBuffer)) } catch { /* уровень не должен мешать распознаванию */ } }
+    if (st.lastChunkAt != null) { // промежуток между кусками заметно больше длины куска — страница была занята, часть звука могла пропасть
+      const gap = t - st.lastChunkAt
+      st.maxGapMs = Math.max(st.maxGapMs, gap)
+      if (gap > dur * 1.5) st.lateChunks++
+    }
+    st.lastChunkAt = t
+    const rms = bufferRms(ev.inputBuffer)
+    if (rms >= VOICE_RMS) st.voiceAt = t
+    if (cb.onLevel) { try { cb.onLevel(rms) } catch { /* уровень не должен мешать распознаванию */ } }
     try { rec.acceptWaveform(ev.inputBuffer) } catch (e) { cb.onError(`acceptWaveform: ${e?.message || e}`) }
     st.workMs += performance.now() - t
-    st.audioMs += ev.inputBuffer.duration * 1000
+    st.audioMs += dur
     st.chunks++
+    if (st.stopAt != null) finalize() // остановку просили раньше: этот кусок — последний, дальше хвост тишины и итог
   }
   src.connect(node)
   node.connect(ctx.destination) // без подключения к выходу ScriptProcessor в части браузеров не вызывается (на выход идёт тишина)
   try { cb.onReady?.({ micMs }) } catch { /* подписчик не должен ломать запись */ }
+  const finalize = () => { // последний кусок звука доставлен (или вышло время ожидания): выключаем микрофон, досылаем тишину, просим итог
+    if (st.done || st.finalizing) return
+    st.finalizing = true
+    clearTimeout(st.drain)
+    st.drainMs = ms(st.stopAt)
+    stream.getTracks().forEach(tr => tr.stop())
+    st.tailMs = feedSilence(rec, ctx.sampleRate, TAIL_SILENCE_MS)
+    try { rec.retrieveFinalResult() } catch { free(); cb.onResult('', {}) }
+  }
   const stop = (why = 'manual') => { // «Стоп» (или авто-стоп): просим итог по накопленному звуку
     if (st.done || st.stopAt != null) return
     st.stopAt = performance.now(); st.stopBy = why
     clearInterval(timer)
-    stream.getTracks().forEach(tr => tr.stop())
-    try { rec.retrieveFinalResult() } catch { free(); cb.onResult('', {}) }
+    if (why === 'manual') st.drain = setTimeout(finalize, DRAIN_MAX_MS) // тап: речь могла оборваться на слове, в буфере остался её хвост — ждём кусок
+    else finalize() // авто-стоп / потолок: перед этим уже была пауза без голоса, буфер пуст
   }
   if (opts.autoStopMs > 0 || opts.maxMs > 0) {
     timer = setInterval(() => {
-      const why = autoStopDue({ now: performance.now(), startedAt: t0, lastChangeAt: st.changeAt, text: st.text, autoStopMs: opts.autoStopMs, maxMs: opts.maxMs })
+      const why = autoStopDue({ now: performance.now(), startedAt: t0, lastChangeAt: st.changeAt, text: st.text, autoStopMs: opts.autoStopMs, maxMs: opts.maxMs, lastVoiceAt: st.voiceAt })
       if (why) stop(why)
     }, 100)
   }

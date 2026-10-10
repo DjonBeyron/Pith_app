@@ -34,7 +34,7 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // «глухая» попытка после успешной автоматически пересоздаётся один раз (speechDeaf.js).
 // Круг реагирует на тап СРАЗУ: 'begin' ставит phase 'run' в том же тапе. «Можно остановить» = isGo (движок слушает И прошла защита от
 // двойного тапа STOP_ARM_MS: таймер 'arm'). После неудачи круг сразу снова готов (никаких пауз-показов); реплика и подсказка уходят в чат (панель).
-// Вид круга «нет доступа / доступ выдан» (sayMicState.js) считает панель из access = perm.access() (ответ Permissions API, флаг «микрофон уже открывался» в localStorage, «работал в этом запуске»):
+// Вид круга «нет доступа / доступ выдан» (sayMicState.js) считает панель из access = perm.access() (ответ Permissions API, флаг «микрофон уже открывался» в localStorage, «работал в этом запуске», «вводный попап видели»):
 // флаг ставит markMicOk (запись реально пошла), сбрасывает markDenied (not-allowed) и query=denied; ответ query приходит асинхронно — bumpAccess перерисовывает панель.
 // После третьей засчитанной неудачи (exhausted, счёт — sayFlow.js) тап игнорируется: панель сама уходит по ветке «неверный».
 export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
@@ -150,9 +150,9 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     else if (plan.act === 'begin') begin()
   }, [ctrl, perm, begin, s])
 
-  // «Понятно, включить микрофон» / «Продолжить»: флаги (полное пояснение видели; в этом запуске попап был) + сразу попытка в этом же тапе
-  // (диалог ОС — по нему)
-  const confirmExplain = useCallback(() => { perm.markExplained(); perm.markPreShown(); begin() }, [perm, begin])
+  // «Разрешить доступ» / «Продолжить» / «Понятно, начать»: флаги (пояснение и вводный попап видели; в этом запуске попап был) + сразу попытка в этом же тапе
+  // (диалог ОС, если он нужен, — по нему; если доступ уже есть — запись просто стартует)
+  const confirmExplain = useCallback(() => { perm.markExplained(); perm.markIntroSeen(); perm.markPreShown(); begin() }, [perm, begin])
 
   // Закрыли попап мимо кнопки: ничего не просили и никаких флагов не ставим — попап покажем снова
   const cancelExplain = useCallback(() => dispatch({ type: 'explainCancel' }), [])

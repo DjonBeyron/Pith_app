@@ -13,7 +13,7 @@
 // exhausted=true — панель уходит по ветке «неверный» (SayPhrasePanel). Что тратит попытку (внутренний счёт attempts, ученику он НЕ показывается; taps — нажатия для аналитики):
 //  - завершённый прогон, где что-то РАСПОЗНАНО (в том числе неверное) — тратит;  - тишина (ничего не услышано) — НЕ тратит, но MAX_SILENCES тишин ПОДРЯД = одна неудача (silences);
 //  - ошибки движка и разрешения микрофона — НЕ тратят (и обрывают серию тишин).
-// explainKind — какой попап перед запросом микрофона (full | short, см. sayPermission.decideMic); realLevel — пометка для строки админа
+// explainKind — какой попап перед запросом микрофона (full | short | intro, см. sayPermission.pickExplainKind); realLevel — пометка для строки админа
 // («вкл» / «выкл» / «ошибка …»: опциональный реальный уровень звука для колец, sayRealLevel.js); engine — какой движок выбран на эту попытку ({engine: 'vosk'|'system', reason}, sayEnginePick.js): пометка для админа.
 import { emptyView } from './speechController.js'
 import { judgeRun, interimDiffers, failReason, SAY_EVENTS } from './sayResult.js'
@@ -102,7 +102,7 @@ export function sayReducer(s, a) {
       return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, armed: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, engine: a.engine ?? null, adminLine: null, hint: null, reply: null }
     case 'arm': return s.phase === 'run' ? { ...s, armed: true } : s
     case 'realStatus': return s.realLevel === a.status ? s : { ...s, realLevel: a.status }
-    case 'explain': return { ...s, phase: 'explain', explainer: true, explainKind: a.kind === 'short' ? 'short' : 'full' }
+    case 'explain': return { ...s, phase: 'explain', explainer: true, explainKind: a.kind === 'short' || a.kind === 'intro' ? a.kind : 'full' }
     case 'explainCancel': return s.phase === 'explain' ? { ...s, phase: 'idle' } : s // закрыли попап мимо кнопки: ничего не просили, флаг пояснения не ставим
     case 'fallback': return a.onlyIdle && s.phase !== 'idle' ? s : { ...s, phase: 'fallback', fallbackReason: a.reason }
     case 'enable': return { ...s, phase: 'idle', fallbackReason: null }
@@ -119,7 +119,7 @@ export const isGo = s => s.phase === 'run' && s.view?.status === 'listening' && 
 /**
  * Что делать по тапу на микрофон (чистое решение; start() зовёт только 'begin').
  *  stop — «можно остановить» и идёт запись: тап = «стоп» (принять сказанное); ignore — ждём защиту от двойного тапа/диалог ОС/обработку;
- *  fallback — микрофона не будет (start() НЕ вызываем); explain — попап перед запросом ОС (kind: full | short); begin — start() прямо в этом тапе
+ *  fallback — микрофона не будет (start() НЕ вызываем); explain — попап перед запросом ОС или вводный (kind: full | short | intro); begin — start() прямо в этом тапе
  * decision — результат sayPermission.decide(); go — isGo(state); running — идёт попытка (phase 'run'): пока движок не начал слушать (старт стоит в очереди
  * перезапуска, диалог ОС), повторный тап по кругу НЕ запускает вторую запись. Число попыток не ограничено: после неудачи микрофон снова доступен сразу
  */

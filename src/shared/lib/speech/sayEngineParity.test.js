@@ -91,13 +91,21 @@ describe('одна и та же оценка для системного дви�
     expect(quiet.sys.hint.kind).toBe('silence'); expect(quiet.vosk.hint.kind).toBe('silence'); expect(quiet.vosk.reply).toBeNull()
   })
 
-  it('слово ниже порога уверенности Vosk (0.3) = нераспознанное: «trying» с conf 0.2 не засчитано, как будто движок его не услышал', () => {
+  it('слово ниже порога уверенности Vosk (0.3) = нераспознанное: «i\'m» с conf 0.2 не засчитано, как будто движок его не услышал', () => {
     const d = readSayData({ phrase: "I'm trying", keywords: 'trying' })
-    const vosk = settle(d, voskView(d, "i'm trying", [[400, "i'm trying"]], [w("i'm", 0.9), w('trying', 0.2)]))
-    const sys = settle(d, systemView("i'm", [[400, "i'm"]]))
+    const vosk = settle(d, voskView(d, "i'm trying", [[400, "i'm trying"]], [w("i'm", 0.2), w('trying', 0.9)]))
+    const sys = settle(d, systemView('trying', [[400, 'trying']]))
     expect(vosk.phase).toBe('failed'); same(sys, vosk)
     // а при 0.3 слово принимается
-    expect(settle(d, voskView(d, "i'm trying", [[400, "i'm trying"]], [w("i'm", 0.9), w('trying', 0.3)])).phase).toBe('passed')
+    expect(settle(d, voskView(d, "i'm trying", [[400, "i'm trying"]], [w("i'm", 0.3), w('trying', 0.9)])).phase).toBe('passed')
+  })
+
+  it('ПОСЛЕДНЕЕ слово эталона проверяется мягче (0.15): «trying» с conf 0.2 принимается, с 0.1 — нет (как будто движок его не услышал)', () => {
+    const d = readSayData({ phrase: "I'm trying", keywords: 'trying' })
+    expect(settle(d, voskView(d, "i'm trying", [[400, "i'm trying"]], [w("i'm", 0.9), w('trying', 0.2)])).phase).toBe('passed')
+    const low = settle(d, voskView(d, "i'm trying", [[400, "i'm trying"]], [w("i'm", 0.9), w('trying', 0.1)]))
+    const sys = settle(d, systemView("i'm", [[400, "i'm"]]))
+    expect(low.phase).toBe('failed'); same(sys, low)
   })
 
   it('[unk] вместо слова не засчитывается как слово', () => {

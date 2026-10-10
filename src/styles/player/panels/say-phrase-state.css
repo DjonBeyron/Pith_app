@@ -1,56 +1,49 @@
 /* ── Состояния круга-микрофона «Сказать фразу» ────────────────────────────────────────────────────────────────────────
    Класс .sayMicBox--{state} на корне (SayStage.jsx; состояние считает sayMicState.micVisualState). Здесь — таблица значений состояний переменными, которые читают
    кнопка (say-phrase-mic.css), кольцо (say-phrase-ring.css) и слои волн (say-phrase-waves.css). Анимации — чистый CSS, только transform/opacity и цвета, React на кадр не участвует.
-     locked  нет доступа к микрофону:  серый круг, масштаб 0,85, перечёркнутая серая иконка, серая бегущая дуга (светлее серого трека), БЕЗ пульса и волн; тап открывает попап
-     ready   доступ выдан:             тёмный круг, масштаб 1, зелёная иконка, зелёные дуга и трек, круг ПУЛЬСИРУЕТ (.sayMicPulse); волн нет
-     active  идёт запись:              лайм-круг, масштаб 1,15 пружиной с перелётом, тёмная иконка, кольцо гаснет; три волны активации (waves.css), затем живой эквалайзер
+     locked  нет доступа к микрофону (или вводный попап ещё не видели): серый круг, масштаб 0,85, перечёркнутая серая иконка, серая бегущая дуга (светлее серого трека), БЕЗ пульса и волн; тап открывает попап
+     ready   доступ выдан:             тёмный круг, масштаб 1, зелёная иконка, СПЛОШНОЕ зелёное кольцо; ничего не движется (ни дуги, ни пульса); волн нет
+     active  идёт запись:              лайм-круг, масштаб 1,15 пружиной с перелётом, тёмная иконка, плавная заливка; кольцо остаётся зелёным (приглушено, растёт вместе с кругом); три волны активации (waves.css), затем живой эквалайзер
      done    «Готово»:                 лайм-круг 1,0 с галочкой, кольцо целиком зелёное
      off     микрофона не будет:       как locked, только дуга не бежит; кнопка выключена
    Возврат из записи (успех / неудача / стоп) — те же transition в обратную сторону: круг плавно темнеет и сжимается до 1.
+   Кольцо: --ring-track/-arc (+ -o) — серые трек и бегущая дуга; --ring-full-o — прозрачность сплошного зелёного кольца; --ring-scale — его размер.
    ──────────────────────────────────────────────────────────────────── */
+
+.sayPanel { --say-fill: .62s cubic-bezier(.3, .6, .35, 1); } /* заливка круга и цвет иконки при нажатии: ≈0,6 с, мягкий ease-out (было 0,32 с — резковато) */
 
 .sayMicBox--locked {
   --mic-scale: .85; --mic-bg: var(--say-gray); --mic-rim: var(--say-gray); --mic-ink: var(--say-gray-ink);
-  --ring-track: #6b7180; --ring-track-o: .45; --ring-arc: #c4c9d6; --ring-arc-o: .9;
+  --ring-track: #6b7180; --ring-track-o: .45; --ring-arc: #c4c9d6; --ring-arc-o: .9; --ring-full-o: 0; --ring-scale: 1;
 }
 .sayMicBox--ready {
   --mic-scale: 1; --mic-bg: var(--say-dark); --mic-rim: rgba(182, 254, 59, .4); --mic-ink: var(--say-lime);
-  --ring-track: var(--say-lime); --ring-track-o: .26; --ring-arc: var(--say-lime); --ring-arc-o: .95;
+  --ring-track: var(--say-lime); --ring-track-o: 0; --ring-arc: var(--say-lime); --ring-arc-o: 0; --ring-full-o: 1; --ring-scale: 1;
 }
 .sayMicBox--active {
   --mic-scale: 1.15; --mic-bg: var(--say-lime); --mic-rim: var(--say-lime); --mic-ink: var(--say-ink);
-  --ring-track: var(--say-lime); --ring-track-o: 0; --ring-arc: var(--say-lime); --ring-arc-o: 0;
+  --ring-track: var(--say-lime); --ring-track-o: 0; --ring-arc: var(--say-lime); --ring-arc-o: 0; --ring-full-o: .5; --ring-scale: 1.15;
 }
 .sayMicBox--done {
   --mic-scale: 1; --mic-bg: var(--say-lime); --mic-rim: var(--say-lime); --mic-ink: var(--say-ink);
-  --ring-track: var(--say-lime); --ring-track-o: 0; --ring-arc: var(--say-lime); --ring-arc-o: 0;
+  --ring-track: var(--say-lime); --ring-track-o: 0; --ring-arc: var(--say-lime); --ring-arc-o: 0; --ring-full-o: 1; --ring-scale: 1;
 }
 .sayMicBox--off {
   --mic-scale: .85; --mic-bg: var(--say-gray); --mic-rim: var(--say-gray); --mic-ink: #626879;
-  --ring-track: #6b7180; --ring-track-o: .3; --ring-arc: #c4c9d6; --ring-arc-o: 0;
+  --ring-track: #6b7180; --ring-track-o: .3; --ring-arc: #c4c9d6; --ring-arc-o: 0; --ring-full-o: 0; --ring-scale: 1;
 }
 
 /* Запись: круг растёт до 1,15 ПРУЖИНОЙ — затухающее колебание с небольшим перелётом (≈ 1,17 и лёгкий недолёт), 0,7 с. Safari 17.2+ / Chrome 113+ рисуют настоящую пружину linear(),
-   остальные (в том числе Safari 16) — одиночный перелёт cubic-bezier, 0,6 с. Заливка и цвет значка меняются за 0,32 с, одновременно с ростом */
+   остальные (в том числе Safari 16) — одиночный перелёт cubic-bezier, 0,6 с. Заливка, ободок и цвет значка меняются плавно (--say-fill, ≈0,62 с, ease-out), одновременно с ростом */
 .sayMicBox--active .sayMicBtn {
-  transition: transform .6s cubic-bezier(.34, 1.8, .55, 1), background .32s, border-color .32s, color .32s, opacity .2s;
+  transition: transform .6s cubic-bezier(.34, 1.8, .55, 1), background var(--say-fill), border-color var(--say-fill), color var(--say-fill), opacity .2s;
 }
 @supports (transition-timing-function: linear(0, 1)) {
   .sayMicBox--active .sayMicBtn {
-    transition: transform .7s linear(0, .108, .35, .625, .864, 1.036, 1.131, 1.163, 1.149, 1.112, 1.067, 1.026, .997, .98, .974, .975, .981, .988, .995, 1, 1.003, 1.004, 1), background .32s, border-color .32s, color .32s, opacity .2s;
+    transition: transform .7s linear(0, .108, .35, .625, .864, 1.036, 1.131, 1.163, 1.149, 1.112, 1.067, 1.026, .997, .98, .974, .975, .981, .988, .995, 1, 1.003, 1.004, 1), background var(--say-fill), border-color var(--say-fill), color var(--say-fill), opacity .2s;
   }
 }
 
-/* Пульс «доступ выдан»: на обёртке .sayMicPulse (на всю область круга, центр = центр круга), а не на кнопке — transform кнопки занят размером состояния */
-.sayMicPulse { position: absolute; inset: 0; pointer-events: none; }
-.sayMicPulse > * { pointer-events: auto; }
-.sayMicBox--ready .sayMicPulse { animation: sayBtnPulse 1.9s ease-in-out infinite; }
-@keyframes sayBtnPulse {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.07); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .sayMicBox--ready .sayMicPulse { animation: none; }
   .sayMicBox--active .sayMicBtn { transition: background .2s, border-color .2s, color .2s, opacity .2s; } /* без пружины: размер меняется сразу */
 }

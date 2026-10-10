@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { decideMic, micGate, createSayPermission, EXPLAINED_KEY, DENIED_KEY, PRE_SHOWN_KEY, CANT_SPEAK_KEY } from './sayPermission.js'
+import { decideMic, micGate, createSayPermission, EXPLAINED_KEY, DENIED_KEY, PRE_SHOWN_KEY, CANT_SPEAK_KEY, INTRO_SEEN_KEY, MIC_GRANTED_KEY } from './sayPermission.js'
 import { planTap } from './sayFlow.js'
 import { emptyView } from './speechController.js'
 
 const store = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k), m } }
 const base = { supported: true, cantSpeak: false, denied: false, perm: 'prompt', explained: false, micOk: false }
 
-describe('decideMic — чистое решение по тапу на микрофон: full / short / none / blocked', () => {
+describe('decideMic — чистое решение по тапу на микрофон: full / short / intro / none / blocked (вводный попап уже видели — introSeen по умолчанию true)', () => {
   const gate = x => micGate(decideMic({ ...base, ...x }))
 
   it('(а) самый первый раз на устройстве (prompt или iPhone без Permissions API, пояснения не было) → ПОЛНОЕ пояснение', () => {
@@ -44,8 +44,9 @@ describe('decideMic — чистое решение по тапу на микр�
 })
 
 describe('createSayPermission — один экземпляр состояния на запуск', () => {
-  function make({ perm = 'prompt', supported = true } = {}) {
+  function make({ perm = 'prompt', supported = true, intro = true } = {}) { // intro=true: вводный попап уже видели (сценарии до вводного не меняются)
     const local = store(), session = store()
+    if (intro) local.setItem(INTRO_SEEN_KEY, '1')
     const p = createSayPermission({ local, session, queryPerm: async () => perm, isSupported: () => supported })
     return { p, local, session }
   }
@@ -61,7 +62,7 @@ describe('createSayPermission — один экземпляр состояния
 
   it('перезапуск iPhone: новый экземпляр (память пуста), localStorage помнит пояснение → КОРОТКИЙ попап на первом нажатии запуска, потом без попапа', async () => {
     const local = store(), session = store()
-    local.setItem(EXPLAINED_KEY, '1')
+    local.setItem(EXPLAINED_KEY, '1'); local.setItem(INTRO_SEEN_KEY, '1')
     const p = createSayPermission({ local, session, queryPerm: async () => 'unavailable', isSupported: () => true })
     await p.refresh()
     expect(p.decide()).toEqual({ action: 'explain', kind: 'short' })
@@ -74,13 +75,13 @@ describe('createSayPermission — один экземпляр состояния
     expect(next.decide()).toEqual({ action: 'explain', kind: 'short' })
   })
 
-  it('resetHints (кнопка админа): чистит explained / denied / pre_shown / cant_speak и micOk — снова «первый раз»', async () => {
+  it('resetHints (кнопка админа): чистит explained / intro / granted / denied / pre_shown / cant_speak и micOk — снова «первый раз»', async () => {
     const { p, local, session } = make({ perm: 'unavailable' })
     await p.refresh()
     p.markExplained(); p.markPreShown(); p.markMicOk(); p.markDenied(); p.setCantSpeak(true)
     expect(p.decide().action).toBe('fallback')
     p.resetHints()
-    expect(local.m.has(EXPLAINED_KEY)).toBe(false)
+    for (const k of [EXPLAINED_KEY, INTRO_SEEN_KEY, MIC_GRANTED_KEY]) expect(local.m.has(k), k).toBe(false)
     for (const k of [DENIED_KEY, PRE_SHOWN_KEY, CANT_SPEAK_KEY]) expect(session.m.has(k), k).toBe(false)
     expect(p.decide()).toEqual({ action: 'explain', kind: 'full' })
   })
@@ -130,7 +131,8 @@ describe('createSayPermission — один экземпляр состояния
     expect(p.decide()).toEqual({ action: 'fallback', reason: 'unsupported' })
     const broken = { getItem() { throw new Error('x') }, setItem() { throw new Error('x') }, removeItem() { throw new Error('x') } }
     const q = createSayPermission({ local: broken, session: broken, queryPerm: async () => 'prompt', isSupported: () => true })
-    expect(() => { q.markExplained(); q.markDenied(); q.setCantSpeak(true) }).not.toThrow()
+    expect(() => { q.markExplained(); q.markIntroSeen(); q.markDenied(); q.setCantSpeak(true) }).not.toThrow()
+    expect(q.isIntroSeen()).toBe(false) // хранилище недоступно — вводный покажем снова, но приложение не падает
   })
 
   it('query бросает → unavailable', async () => {
@@ -151,7 +153,8 @@ describe('planTap — start() зовётся только на begin', () => {
   })
 
   it('сценарий жизни: полное пояснение → begin → второй модуль без попапа (micOk) → «Не могу говорить» → fallback', async () => {
-    const p = createSayPermission({ local: store(), session: store(), queryPerm: async () => 'prompt', isSupported: () => true })
+    const local = store(); local.setItem(INTRO_SEEN_KEY, '1')
+    const p = createSayPermission({ local, session: store(), queryPerm: async () => 'prompt', isSupported: () => true })
     await p.refresh()
     expect(planTap({ view: idle, decision: p.decide() })).toEqual({ act: 'explain', kind: 'full' })
     p.markExplained()

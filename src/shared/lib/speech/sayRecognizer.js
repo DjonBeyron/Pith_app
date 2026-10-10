@@ -48,7 +48,7 @@ export function createSayRecognizer({
       active = p.engine
       run++
       record(p, now())
-      attempts.begin(p)
+      attempts.begin(p, data)
       log(`попытка ${run}: ${pickLabel(p)}`)
       if (p.engine === 'vosk') vosk.start({ reference, lang, data })
       else system.start({ reference, lang })

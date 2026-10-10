@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { clampAutoStop, autoStopDue, afterSpeechMs, summarize, sec, timeLine, AUTOSTOP_DEFAULT, AUTOSTOP_PRESETS } from './voskTiming.js'
+import { clampAutoStop, autoStopDue, afterSpeechMs, summarize, sec, timeLine, AUTOSTOP_DEFAULT, AUTOSTOP_PRESETS, AUTOSTOP_PHRASE, VOICE_HOLD_MAX_MS } from './voskTiming.js'
 
 describe('авто-стоп', () => {
   it('диапазон 500–1500, по умолчанию 800, 0 — выключен', () => {
@@ -44,5 +44,20 @@ describe('задержки', () => {
     expect(line).toBe('старт записи 420 мс после «Сказать» · первый partial 2.7 с · итог 3.2 с · слово 1.71–2.25 с · итог через 0.8 с после слова · (авто-стоп)')
     expect(timeLine(null)).toBe('')
     expect(sec(null)).toBe('—')
+  })
+})
+
+describe('авто-стоп не обрывает идущую речь', () => {
+  const base = { startedAt: 0, autoStopMs: 1000, maxMs: 15000, text: "i'm trying to please", lastChangeAt: 2000 }
+  it('для фраз пауза 1000 мс (константа AUTOSTOP_PHRASE)', () => {
+    expect(AUTOSTOP_PHRASE).toBe(1000)
+    expect(autoStopDue({ ...base, now: 2900 })).toBeNull()
+    expect(autoStopDue({ ...base, now: 3000 })).toBe('auto')
+  })
+  it('голос был только что (partial отстал от речи) — ждём; тихо — стоп; шумная комната: не дольше VOICE_HOLD_MAX_MS сверх паузы', () => {
+    expect(autoStopDue({ ...base, now: 3100, lastVoiceAt: 3000 })).toBeNull() // говорят прямо сейчас
+    expect(autoStopDue({ ...base, now: 3100, lastVoiceAt: 2000 })).toBe('auto') // голос смолк 1.1 с назад
+    expect(autoStopDue({ ...base, now: 3000 + VOICE_HOLD_MAX_MS, lastVoiceAt: 3000 + VOICE_HOLD_MAX_MS - 50 })).toBe('auto') // шум не держит вечно
+    expect(autoStopDue({ ...base, now: 3100, lastVoiceAt: null })).toBe('auto')
   })
 })

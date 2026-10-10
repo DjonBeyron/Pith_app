@@ -96,6 +96,7 @@ describe('попап: вид в состоянии и пометка реаль�
   it('explain запоминает kind (full | short); по умолчанию full; отмена возвращает idle без флагов', () => {
     const s0 = idle()
     expect(sayReducer(s0, { type: 'explain', kind: 'short' })).toMatchObject({ phase: 'explain', explainKind: 'short', explainer: true })
+    expect(sayReducer(s0, { type: 'explain', kind: 'intro' })).toMatchObject({ phase: 'explain', explainKind: 'intro' }) // вводный попап (без системного запроса)
     expect(sayReducer(s0, { type: 'explain' }).explainKind).toBe('full')
     expect(sayReducer(sayReducer(s0, { type: 'explain', kind: 'short' }), { type: 'explainCancel' }).phase).toBe('idle')
     expect(planTap({ view: emptyView, decision: { action: 'explain', kind: 'short' } })).toEqual({ act: 'explain', kind: 'short' })

@@ -29,13 +29,13 @@ describe('voskRecognizer: интерфейс и виды как у speechControl
   beforeEach(() => { vi.useFakeTimers() })
   afterEach(() => { vi.useRealTimers() })
 
-  it('start: движок запускается СИНХРОННО в тапе (до любого await), грамматика из полей шага, авто-стоп 800 мс, потолок 15 с, аудиосессия из настройки, кусок 2048', () => {
+  it('start: движок запускается СИНХРОННО в тапе (до любого await), грамматика из полей шага, авто-стоп 1000 мс, потолок 15 с, аудиосессия из настройки, кусок 2048', () => {
     const t = make()
     t.rec.start({ reference: data.phrase, lang: 'en-US', data })
     expect(t.listen).toHaveBeenCalledTimes(1) // getUserMedia внутри listen вызывается в этом же стеке — жест не потерян
     expect(JSON.parse(t.ctl.grammar)).toEqual(["i'm trying", 'i am trying', "i'm try", 'i am try', "i'm tried", 'i am tried', "i'm tries", 'i am tries', '[unk]'])
     expect(t.ctl.opts).toEqual({ autoStopMs: SAY_AUTOSTOP_MS, maxMs: SAY_MAX_MS, session: 'play-and-record', chunk: SAY_CHUNK })
-    expect([SAY_AUTOSTOP_MS, SAY_MAX_MS, SAY_SILENCE_MS, SAY_STOP_FORCE_MS, SAY_CHUNK]).toEqual([800, 15000, 8000, 2500, 2048])
+    expect([SAY_AUTOSTOP_MS, SAY_MAX_MS, SAY_SILENCE_MS, SAY_STOP_FORCE_MS, SAY_CHUNK]).toEqual([1000, 15000, 8000, 2500, 2048])
     expect(t.last()).toMatchObject({ status: 'starting', phase: 'permission', attempt: 1, runNo: 1, reference: "I'm trying", lang: 'en-US' })
     expect(t.rec.isRunning()).toBe(true); expect(t.rec.isAudioActive()).toBe(false)
   })
@@ -180,7 +180,7 @@ describe('voskRecognizer + voskEngine: попытка целиком', () => {
   beforeEach(() => { vi.useFakeTimers() })
   afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
 
-  it('тап → уровень с первого куска → авто-стоп 800 мс → итог; микрофон, AudioContext и аудиосессия освобождены; второго getUserMedia нет', async () => {
+  it('тап → уровень с первого куска → авто-стоп 1000 мс → итог; микрофон, AudioContext и аудиосессия освобождены; второго getUserMedia нет', async () => {
     const handlers = {}
     const rec = { on: (n, f) => { handlers[n] = f }, setWords: vi.fn(), acceptWaveform: vi.fn(), remove: vi.fn(), retrieveFinalResult: vi.fn(() => { setTimeout(() => handlers.result({ result: { text: "i'm try", result: [w("i'm", 0.9), w('try', 0.8)] } }), 30) }) }
     const track = { stop: vi.fn() }
@@ -202,7 +202,7 @@ describe('voskRecognizer + voskEngine: попытка целиком', () => {
     proc.onaudioprocess({ inputBuffer: { duration: 0.128, getChannelData: () => Float32Array.from([0.4, -0.4, 0.4, -0.4]) } })
     expect(level.read()).toBeGreaterThan(0) // эквалайзер получает реальный уровень с первого же куска
     handlers.partialresult({ result: { partial: "i'm try" } })
-    await vi.advanceTimersByTimeAsync(1000)
+    await vi.advanceTimersByTimeAsync(1200)
     expect(rec.retrieveFinalResult).toHaveBeenCalledTimes(1)
     await vi.advanceTimersByTimeAsync(50)
     expect(views.at(-1)).toMatchObject({ status: 'done', final: { text: "i'm try" } })

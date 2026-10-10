@@ -69,7 +69,7 @@ describe('say_phrase — CSS и редактор', () => {
     expect(code).toMatch(/\.sayMicBox--locked \.sayMicSlash, \.sayMicBox--off \.sayMicSlash \{ stroke-dashoffset: 0; opacity: 1; \}/)
   })
 
-  it('кольцо вокруг круга: SVG-stroke — трек + дуга (≈ ¼ окружности, скруглённые концы); цвета и прозрачность — переменные состояния, меняются плавно; на «Готово» кольцо целиком зелёное', () => {
+  it('кольцо вокруг круга: SVG-stroke — трек + дуга (≈ ¼ окружности, скруглённые концы) + сплошное зелёное кольцо; значения — переменные состояния, меняются плавно; зелёное кольцо не исчезает в записи', () => {
     const ring = panelSrc['SayRing.jsx']
     expect(ring).toContain('className="sayRingTrack"')
     expect(ring).toContain('className="sayRingArc"')
@@ -78,10 +78,11 @@ describe('say_phrase — CSS и редактор', () => {
     expect(ring.replace(/\/\/.*$/gm, '')).not.toMatch(/useState|useEffect|requestAnimationFrame/) // без React на кадр
     const code = strip(ringCss)
     expect(code).toMatch(/\.sayRing \{[^}]*width: 128px;\s*height: 128px;\s*margin: -64px 0 0 -64px;[^}]*pointer-events: none/) // диаметр круга 100 → зазор 8 px
+    expect(code).toMatch(/\.sayRing \{[^}]*transform: scale\(var\(--ring-scale, 1\)\);\s*transition: transform \.6s/) // в записи кольцо растёт вместе с кругом
     expect(code).toMatch(/\.sayRingTrack \{ stroke: var\(--ring-track\); opacity: var\(--ring-track-o\); transition: stroke \.4s, opacity \.4s; \}/)
     expect(code).toMatch(/\.sayRingArc \{ stroke: var\(--ring-arc\); stroke-linecap: round; opacity: var\(--ring-arc-o\); transition: stroke \.4s, opacity \.4s; \}/)
-    expect(code).toMatch(/\.sayMicBox--done \.sayRingFull \{ opacity: \.85; \}/)
-    expect(code).toMatch(/\.sayRingSpin \{[^}]*animation: sayRingSpin 9s linear infinite/)
+    expect(code).toMatch(/\.sayRingFull \{ stroke: var\(--say-lime\); opacity: var\(--ring-full-o, 0\); transition: opacity \.4s; \}/)
+    expect(code).not.toMatch(/sayMicBox--done \.sayRingFull/) // «Готово» тоже через переменную
     expect(code.slice(code.indexOf('@media (prefers-reduced-motion: reduce)'))).toMatch(/\.sayRingSpin \{ animation: none; \}/)
     const stage = panelSrc['SayStage.jsx']
     expect(stage).toContain('<SayRing />')
@@ -103,9 +104,9 @@ describe('say_phrase — CSS и редактор', () => {
     expect(code).not.toMatch(/#ff6b5e|#ff3b30|\bsayRed\b|sayMicBtn--fail/)
   })
 
-  it('все анимации — только transform/opacity (layout не трогаем): круг пульсирует (ready), дуга кольца плывёт, три волны активации расходятся один раз (≤ ×1,7, ≈ 0,8 с суммарно)', () => {
+  it('все анимации — только transform/opacity (layout не трогаем): дуга серого кольца плывёт (только locked), три волны активации расходятся один раз (≤ ×1,7, ≈ 0,8 с суммарно)', () => {
     const all = [...frames(stateCss), ...frames(ringCss), ...frames(wavesCss)]
-    expect(all.map(f => f[1]).sort()).toEqual(['sayActWave', 'sayBtnPulse', 'sayRingSpin'])
+    expect(all.map(f => f[1]).sort()).toEqual(['sayActWave', 'sayRingSpin'])
     const act = strip(wavesCss).match(/@keyframes sayActWave[\s\S]*?\n\}/)[0]
     expect(Number(act.match(/100%\s*\{\s*transform:\s*scale\(([\d.]+)\)/)[1])).toBeLessThanOrEqual(1.7)
     expect(act).toMatch(/0%\s*\{\s*transform: scale\(1\);\s*opacity: 0;/) // до старта и после конца волны не видно
@@ -138,17 +139,6 @@ describe('say_phrase — CSS и редактор', () => {
     expect(css).toMatch(/\.sayCaptionLive \{[^}]*clip: rect\(0 0 0 0\)/)                  // aria-live-элемент виден только скринридеру
   })
 
-  it('«Я не могу говорить» плавно гаснет на время записи (opacity ≈ 180 мс), место не схлопывается, касания не принимает; админская палочка — слева', () => {
-    const code = strip(css)
-    expect(code).toMatch(/\.saySkipLink \{ transition: opacity \.18s; \}/)
-    expect(code).toMatch(/\.saySkipLink\.saySkipLink--hidden \{ opacity: 0; pointer-events: none; \}/)
-    expect(code).not.toMatch(/saySkipLink--hidden[^}]*(display|height|visibility)/)
-    expect(panelSrc['SayActions.jsx']).toContain("saySkipLink${hideSkip ? ' saySkipLink--hidden' : ''}")
-    expect(panelSrc['SayPhrasePanel.jsx']).toContain('hideSkip={hideSkip}')
-    expect(panelSrc['SayPhrasePanel.jsx']).toContain('<SolveCorrectButton side="left"')
-    expect(read('../../../../styles/player/admin-solve.css')).toMatch(/\.solveCorrectBtn--left \{ right: auto; left: 8px; \}/)
-  })
-
   it('волны: два слоя по три круглых кольца размером с круг записи (115); в покое волн нет вообще; волны активации играют по появлению --live, эквалайзер показывается в --live; у колец эквалайзера НЕТ transition/animation', () => {
     const code = strip(wavesCss)
     expect(code).toMatch(/\.sayWaveAnchor \{[^}]*top: 114px; width: 115px; height: 115px; margin: -57\.5px 0 0 -57\.5px/) // 11 + 53 + 50: центр круга
@@ -178,13 +168,12 @@ describe('say_phrase — CSS и редактор', () => {
     expect(panelSrc['SayStage.jsx']).toContain('aria-hidden="true" data-testid="say-waves"')
   })
 
-  it('«уменьшить движение»: без пружины, пульса, вращения дуги и волн активации — только смена цветов и размера; эквалайзер без JS-цикла (статичный круг)', () => {
+  it('«уменьшить движение»: без пружины, вращения дуги и волн активации — только смена цветов и размера; эквалайзер без JS-цикла (статичный круг)', () => {
     const media = strip(wavesCss).slice(strip(wavesCss).indexOf('@media (prefers-reduced-motion: reduce)'))
     expect(media).toMatch(/\.sayWaveClip--live \.sayActWaves i \{ animation: none; \}/)
     expect(media).toMatch(/\.sayEq i \{ transform: scale\(1\.2\) !important; opacity: \.3 !important; \}/)
     const st = strip(stateCss)
     const stMedia = st.slice(st.indexOf('@media (prefers-reduced-motion: reduce)'))
-    expect(stMedia).toMatch(/\.sayMicBox--ready \.sayMicPulse \{ animation: none; \}/)
     expect(stMedia).toMatch(/\.sayMicBox--active \.sayMicBtn \{ transition: background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}/) // размер сразу, без перехода
     expect(strip(micCss)).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.sayPanel \.sayMicBtn \{ transition: background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}/)
     expect(panelSrc['useSayWaves.js']).toContain('reducedMotion()')

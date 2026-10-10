@@ -7,6 +7,7 @@ import SayBrowserNote from './SayBrowserNote.jsx'
 import { listenKeys, playListen } from './sayListen.js'
 import { readSayData } from '../../../../shared/lib/speech/sayPhraseData.js'
 import { sayOutcome, SAY_EVENTS } from '../../../../shared/lib/speech/sayResult.js'
+import { successReply } from '../../../../shared/lib/speech/sayReply.js'
 import { micLabel, isLiveMode } from '../../../../shared/lib/speech/sayMic.js'
 import { micVisualState } from '../../../../shared/lib/speech/sayMicState.js'
 import { HINT_DELAY_MS } from '../../../../shared/lib/speech/sayHints.js'
@@ -133,7 +134,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
     if (kind === 'solve') playSound('answer-correct', 'сказать фразу')
     if (xpAmount > 0) onXpEarned?.(xpAmount, { expectBubble: true })
     if (isRewardOn('say_phrase', raw)) fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
-    closeWith(out.trigger, () => onAnswered?.(data.phrase, 'correct', true))
+    closeWith(out.trigger, () => onAnswered?.(kind === 'passed' ? successReply(sp.verdict, data.phrase) : data.phrase, 'correct', true)) // успех с пропущенными словами — услышанное, а не эталон (sayReply.successReply)
   }
 
   // Проверка прошла → показываем «Верно!» и через паузу уезжаем

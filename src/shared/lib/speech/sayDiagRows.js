@@ -1,12 +1,13 @@
 // Админская диагностика «Сказать фразу» в уроке — СТРОКИ окна и текст отчёта (чистые функции, без React). Контекст c собирает useSayDiag.js из живых источников
 // (voskRuntime, голосовые настройки админа, фоновая загрузка, журнал последней попытки, среда телефона); здесь только превращение его в строки «статус — пояснение»
-// с метками ✅ / ⚠️ / ❌ и в текст для копирования. Группы: engine (движок), vosk, phone (телефон / браузер), app.
+// с метками ✅ / ⚠️ / ❌ и в текст для копирования. Группы: engine (движок), raw (сырой результат последней попытки по словам — sayDiagRaw.js), vosk, phone (телефон / браузер), app.
 import { SAY_ENGINE_LABEL } from './sayEngineMode.js'
 import { STOP_TEXT } from './sayAttemptLast.js'
 import { explainPick, explainBackground, explainMemory, explainGate, clock, sec, MARK } from './sayDiagExplain.js'
 import { warmStageRow, warmWhoRow, warmTail } from './sayDiagWarm.js'
+import { rawRows } from './sayDiagRaw.js'
 
-export const GROUP_TITLE = { engine: 'Движок', vosk: 'Vosk', warm: 'Прогрев Vosk', phone: 'Телефон и браузер', app: 'Приложение' }
+export const GROUP_TITLE = { engine: 'Движок', raw: 'Последняя попытка: сырой результат', vosk: 'Vosk', warm: 'Прогрев Vosk', phone: 'Телефон и браузер', app: 'Приложение' }
 const MB = b => `${(b / 1048576).toFixed(1).replace('.', ',')} МБ`
 const PERM = { granted: ['ok', 'разрешён'], prompt: ['info', 'спросит при первой попытке'], denied: ['bad', 'запрещён в настройках телефона'], unavailable: ['info', 'неизвестно (браузер не говорит)'] }
 const URL_SRC = { saved: 'сохранён админом в лаборатории', env: 'из настройки VITE_VOSK_MODEL_URL', builtin: 'встроенный запасной (github.io)' }
@@ -55,6 +56,7 @@ export function buildDiagRows(c) {
     { id: 'gate', group: 'engine', label: 'Панель', ...gate },
     { id: 'mode', group: 'engine', label: 'Режим админа', level: c.mode === 'system' ? 'warn' : 'info', text: SAY_ENGINE_LABEL[c.mode] ?? c.mode },
     { id: 'last', group: 'engine', label: 'Последняя попытка', ...attemptRow(c.attempt) },
+    ...rawRows(c.attempt).map(r => ({ group: 'raw', ...r })),
     { id: 'cache', group: 'vosk', label: 'Модель в кэше', ...cacheRow(c) },
     { id: 'bg', group: 'vosk', label: 'Фоновая загрузка', ...bg },
     { id: 'url', group: 'vosk', label: 'Адрес модели', level: 'info', text: `${URL_SRC[c.urlSource] ?? c.urlSource}${c.urlHost ? ` (${c.urlHost})` : ''}` },

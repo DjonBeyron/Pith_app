@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cleanPartial, cleanResult, VOSK_MIN_CONF, UNK } from './voskResult.js'
+import { cleanPartial, cleanResult, judgeWords, VOSK_MIN_CONF, VOSK_TAIL_MIN_CONF, UNK } from './voskResult.js'
 import { VOSK_MIN_CONF as ADAPTER_MIN } from './voskResult.js'
 import { tokenize } from '../speech/speechMatch.js'
 
@@ -31,5 +31,20 @@ describe('voskResult: нормализация и порог увереннос�
     expect(cleanResult({ text: 'try', words: [] }).confidence).toBeNull()
     expect(cleanResult({ words: [{ word: 'try' }] })).toMatchObject({ text: 'try', confidence: null })
     expect(cleanResult()).toMatchObject({ text: '' })
+  })
+})
+
+describe('judgeWords: вердикт фильтра по каждому слову (для диагностики)', () => {
+  it('принято / [unk] / ниже порога; последнее слово эталона проверяется мягче, но только оно и только если совпадает с эталоном', () => {
+    const rows = judgeWords([w('please', 0.2), w('both', 0.2), w(UNK, 1)], { tailWord: 'both' })
+    expect(rows.map(r => [r.word, r.drop, r.need])).toEqual([['please', 'low', 0.3], ['both', null, 0.15], [UNK, 'unk', null]])
+    expect(judgeWords([w('both', 0.2), w('please', 0.9)], { tailWord: 'both' })[0]).toMatchObject({ drop: 'low', need: 0.3 }) // не последнее настоящее слово
+    expect(judgeWords([w('both', 0.1)], { tailWord: 'both' })[0]).toMatchObject({ drop: 'low', need: 0.15 })
+    expect(VOSK_TAIL_MIN_CONF).toBe(0.15)
+    expect(judgeWords(null)).toEqual([])
+  })
+  it('cleanResult отдаёт rows; слова без метки уверенности не отбрасываются', () => {
+    const r = cleanResult({ words: [w('both', 0.2), { word: 'x' }], tailWord: 'x' })
+    expect(r.rows).toHaveLength(2); expect(r.text).toBe('x'); expect(r.low).toBe(1)
   })
 })

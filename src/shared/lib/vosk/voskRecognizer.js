@@ -5,7 +5,7 @@
 //    interim / lastInterim — partial; final — итог { text, confidence }; history — [{t, text, final?}] и событие конца речи {t, kind:'speechend'} для правила «первое увиденное».
 //    lastInterim в итоге = текст итога: Vosk с закрытым словарём не «домысливает» слова языковой моделью, консенсус interim+final тут не нужен, а отставший на слово partial не должен
 //    отбрасывать последнее слово в «Строго». Пауза «первого увиденного» (мелькание ошибочной формы) по-прежнему считается по истории partial.
-//  • Слова с уверенностью ниже VOSK_MIN_CONF и [unk] в текст не идут (voskResult.js).
+//  • Слова с уверенностью ниже VOSK_MIN_CONF и [unk] в текст не идут (voskResult.js); последнее слово эталона проверяется мягче (VOSK_TAIL_MIN_CONF). Сырой результат (слова, уверенность, что отброшено) уходит в view.raw — для диагностики админа.
 //  • Остановка: движок сам (пауза в речи), авто-стоп (текст не менялся SAY_AUTOSTOP_MS), потолок SAY_MAX_MS, тишина SAY_SILENCE_MS без единого слова, тап по кругу (stop()).
 //    После stop итог должен прийти за SAY_STOP_FORCE_MS, иначе микрофон/контекст/аудиосессию освобождаем принудительно (cancel) и считаем сбоем.
 //  • Сбой (не отказ пользователя) → onFail(code, message): вызывающий пометит Vosk «не работает» — следующая попытка пойдёт на системном. Отказ микрофона (not-allowed) — не сбой Vosk.
@@ -14,11 +14,12 @@ import { emptyView } from '../speech/speechView.js'
 import { pushHistory } from '../speech/speechSegments.js'
 import { PERMISSION_GUARD_MS } from '../speech/speechPolicy.js'
 import { startListening } from './voskEngine.js'
-import { AUTOSTOP_DEFAULT } from './voskTiming.js'
+import { AUTOSTOP_PHRASE } from './voskTiming.js'
 import { buildSayGrammar } from './sayVoskGrammar.js'
-import { cleanPartial, cleanResult, VOSK_MIN_CONF } from './voskResult.js'
+import { cleanPartial, cleanResult, VOSK_MIN_CONF, VOSK_TAIL_MIN_CONF } from './voskResult.js'
+import { buildRaw } from './voskRaw.js'
 
-export const SAY_AUTOSTOP_MS = AUTOSTOP_DEFAULT // 800: текст не менялся столько — просим итог (как в лаборатории)
+export const SAY_AUTOSTOP_MS = AUTOSTOP_PHRASE // 1000: текст не менялся столько (и голоса нет — voskTiming.autoStopDue) — просим итог; для фраз дольше лабораторных 800 мс: пауза перед последним словом не конец
 export const SAY_MAX_MS = 15000                 // потолок одной попытки
 export const SAY_SILENCE_MS = 8000              // после открытия микрофона ни одного слова — тишина (как LISTEN_SILENCE_MS у системного)
 export const SAY_STOP_FORCE_MS = 2500           // после stop итог должен прийти за это время
@@ -66,18 +67,19 @@ export function createVoskRecognizer({
 
   function onResult(a, text, stats) {
     if (!live(a)) return
-    const r = cleanResult({ text, words: stats?.words, minConf })
+    const r = cleanResult({ text, words: stats?.words, minConf, tailWord: a.tailWord })
+    const raw = buildRaw({ rawText: text, stats, cleaned: r, partial: a.text, minConf, tailWord: a.tailWord, tailMinConf: VOSK_TAIL_MIN_CONF })
     const t = since(a)
     const tStop = stats?.afterStopMs != null ? Math.max(0, t - stats.afterStopMs) : t
     dispose(a, true)
     if (!r.text) { // тишина, либо всё распознанное — [unk] / ниже порога уверенности: для ученика это «не слышу вас»
-      push({ status: 'error', phase: null, interim: '', error: 'no-speech', hint: null, notice: null, history: a.hist })
+      push({ status: 'error', phase: null, interim: '', error: 'no-speech', hint: null, notice: null, history: a.hist, raw })
       return
     }
     a.hist = pushHistory(a.hist, { t: Math.max(0, Math.min(tStop, t - 1)), kind: 'speechend' })
     a.hist = pushHistory(a.hist, { t, text: r.text, final: true })
     const final = { text: r.text, confidence: r.confidence }
-    push({ status: 'done', phase: null, interim: '', lastInterim: r.text, final, alternatives: [final], usedInterim: false, error: null, hint: null, notice: null, history: a.hist })
+    push({ status: 'done', phase: null, interim: '', lastInterim: r.text, final, alternatives: [final], usedInterim: false, error: null, hint: null, notice: null, history: a.hist, raw })
   }
 
   function callbacks(a) {
@@ -111,7 +113,7 @@ export function createVoskRecognizer({
     /** Вызывать прямо в обработчике тапа. data — readSayData шага (грамматика); reference и lang фиксируются на заход */
     start({ reference, lang, data }) {
       cancel()
-      const a = { id: ++seq, t0: perfNow(), done: false, listening: false, stopping: false, wantStop: false, handle: null, hist: [], text: '', guard: 0, silence: 0, force: 0 }
+      const a = { id: ++seq, t0: perfNow(), done: false, listening: false, stopping: false, wantStop: false, handle: null, tailWord: '', hist: [], text: '', guard: 0, silence: 0, force: 0 }
       cur = a
       view = { ...emptyView, runNo: ++runNo, reference, lang, at: now(), attempt: 1, attemptId: a.id }
       push({ status: 'starting', phase: 'permission', notice: null })
@@ -120,7 +122,9 @@ export function createVoskRecognizer({
       if (!model) { fail(a, 'vosk-error', 'модель не в памяти'); return }
       let p
       try {
-        p = listen(model, buildSayGrammar(data ?? { phrase: reference }).json, callbacks(a), { autoStopMs: SAY_AUTOSTOP_MS, maxMs: SAY_MAX_MS, session: getSession(), chunk: SAY_CHUNK })
+        const g = buildSayGrammar(data ?? { phrase: reference })
+        a.tailWord = g.phrases[0]?.split(' ').at(-1) ?? ''
+        p = listen(model, g.json, callbacks(a), { autoStopMs: SAY_AUTOSTOP_MS, maxMs: SAY_MAX_MS, session: getSession(), chunk: SAY_CHUNK })
       } catch (e) { p = Promise.reject(e) }
       Promise.resolve(p).then(h => {
         if (!live(a)) { try { h?.cancel() } catch { /* уже освобождён */ } return } // пока открывался микрофон, попытку отменили

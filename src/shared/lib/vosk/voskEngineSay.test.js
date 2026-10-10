@@ -84,7 +84,7 @@ describe('startListening: уровень голоса, готовность, о�
     const r = rig({ audioSession: { type: 'auto' } })
     const h = await startListening(r.model, '[]', r.cb, { session: 'play-and-record' })
     h.stop()
-    await vi.advanceTimersByTimeAsync(20)
+    await vi.advanceTimersByTimeAsync(320) // тап ждёт последний кусок звука (до DRAIN_MAX_MS), потом итог
     expect(r.cb.onResult).toHaveBeenCalledTimes(1)
     expect(r.made.ctx.close).toHaveBeenCalledTimes(1)
     const r2 = rig({ audioSession: { type: 'auto' } })

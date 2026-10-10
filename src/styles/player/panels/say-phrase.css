@@ -70,9 +70,8 @@
 .sayAdminLine span { display: block; overflow-wrap: anywhere; }
 .sayAdminNote { color: #7d8398; font-size: 10px; line-height: 13px; }
 
-/* Тихие ссылки внизу: «Послушать» слева, «Я не могу говорить» по центру (приглушена, подчёркнута), справа «Включить». Ряд опущен до
-   нижнего края корпуса (bottom −12px = низ .phraseInner; safe-area iPhone лежит ещё ниже, ссылки её не трогают): текст стоит
-   в ≈7px от нижнего края. Зона касания шире видимого текста (::after) */
+/* Низ панели: «Послушать» слева (тихая ссылка), справа «Включить» (только в режиме «Не могу говорить»). Ряд опущен до нижнего края корпуса (bottom −12px = низ .phraseInner;
+   safe-area iPhone лежит ещё ниже, ссылки её не трогают): текст стоит в ≈7px от нижнего края. Зона касания шире видимого текста (::after) */
 .sayFoot {
   position: absolute;
   left: 0;
@@ -80,63 +79,68 @@
   bottom: -12px;
   height: 30px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
 }
 .sayFootSide { display: flex; align-items: center; }
 .sayFootSide--end { justify-content: flex-end; }
-.sayLink,
-.saySkipLink {
-  position: relative;
-  margin: 0;
-  background: none;
-  border: 0;
-  font-family: inherit;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.sayLink::after,
-.saySkipLink::after { content: ''; position: absolute; inset: -14px -6px -4px; }
 .sayLink {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   min-height: 30px;
+  margin: 0;
   padding: 0 2px;
+  background: none;
+  border: 0;
+  font-family: inherit;
   font-size: 12px;
   white-space: nowrap;
   color: #8c93a8;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
+.sayLink::after { content: ''; position: absolute; inset: -14px -6px -4px; }
 .sayLink:disabled { cursor: default; }
 .sayLink--off { visibility: hidden; }
-/* «Я не могу говорить»: по центру, подчёркнута, тусклая (opacity ≈ .48 от прежнего цвета), без рамки и фона */
-.saySkipLink {
-  min-height: 30px;
-  padding: 0 8px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 16px;
-  white-space: nowrap;
-  color: rgba(255, 255, 255, 0.6);
-  opacity: .48;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+/* «Я не могу говорить» — КНОПКА-ИКОНКА (SkipForward) в правом углу панели, чуть выше нижнего ряда (центр ≈ 34px над строкой «Послушать»): круглая 38px, приглушённая (рамка и значок серые, без заливки),
+   не спорит с главным кругом. Лежит у правого края тела панели: на 320–390px от центра круга ≥ 125px, а кольца эквалайзера не дальше 90px — не пересекаются. Зона касания 46px (::after).
+   Пока идёт запись (и на «Готово») плавно гаснет (opacity ≈ 180 мс), место не схлопывается, касания не принимает */
+.saySkipBtn {
+  position: absolute;
+  right: 0;
+  bottom: 28px;
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid rgba(140, 147, 168, 0.45);
+  background: rgba(255, 255, 255, 0.03);
+  color: #8c93a8;
+  opacity: .8;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity .18s, background .18s;
 }
-.saySkipLink:active { opacity: .8; }
-.saySkipLink:disabled { opacity: .25; cursor: default; }
-/* Пока идёт запись (и на «Готово»), «Я не могу говорить» плавно гаснет (opacity ≈ 180 мс), место не схлопывается, касания не принимает */
-.saySkipLink { transition: opacity .18s; }
-.saySkipLink.saySkipLink--hidden { opacity: 0; pointer-events: none; }
+.saySkipBtn::after { content: ''; position: absolute; inset: -4px; }
+.saySkipBtn:active { opacity: 1; background: rgba(255, 255, 255, 0.1); }
+.saySkipBtn:disabled { opacity: .3; cursor: default; }
+.saySkipBtn.saySkipBtn--hidden { opacity: 0; pointer-events: none; }
 
 /* Firefox (sayBrowser.js): вместо круга — спокойное пояснение по центру тела панели (ширина как у надписи над кругом, перенос строк, до 4 строк по 14px),
-   выход «Я не могу говорить» в этом состоянии единственный — заметнее обычного */
+   выход «Я не могу говорить» (иконка в правом углу) в этом состоянии единственный — заметнее обычного */
 .sayBrowserNote {
   position: absolute;
   top: 0;
   left: 8px;
   right: 8px;
-  bottom: 38px;
+  bottom: 56px; /* выше иконки «Я не могу говорить» в правом углу (тело 206px: иконка занимает 152–190px от верха) */
   margin: 0;
   display: flex;
   align-items: center;
@@ -148,4 +152,4 @@
   line-height: 20px;
   color: #a3a9bb;
 }
-.sayBody--noMic .saySkipLink { opacity: .85; }
+.sayBody--noMic .saySkipBtn { opacity: 1; border-color: rgba(163, 169, 187, 0.7); color: #a3a9bb; }

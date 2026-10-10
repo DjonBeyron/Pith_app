@@ -1,5 +1,5 @@
-/* ── Попап «Нужен доступ к микрофону» (SayMicPopup.jsx) ───────────────────────────
-   Модальная карточка по центру экрана ПЕРЕД системным диалогом микрофона (сам диалог ОС встроить/стилизовать нельзя).
+/* ── Попап перед записью (SayMicPopup.jsx: полный / короткий / вводный) ───────────────────────────
+   Модальная карточка по центру экрана ПЕРЕД системным диалогом микрофона (сам диалог ОС встроить/стилизовать нельзя) или вводная, если диалога не будет.
    Вид и анимации — как у попапа игрока в «Рейтинге» (rating-popup.css) и окошек худа: «пружинка» popSpringIn (pop-spring.css)
    при открытии, схлопывание hudPopOut + заливка hudPopFlood (hud-pop-out.css) при закрытии. Затемнение — отдельный слой
    .sayPopDim РЯДОМ с окном: анимируется только его opacity, окно лежит поверх и не затемняется. Без blur/backdrop-filter и теней. */
@@ -26,8 +26,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 22px 18px 18px;
+  gap: 12px;
+  padding: 20px 16px 16px;
   border-radius: 20px;
   background: #14171c;
   border: 1px solid #2a313b;
@@ -51,15 +51,45 @@
 .sayPopIcon {
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 2px solid #b6fe3b;
   color: #b6fe3b;
 }
-.sayPopTitle { margin: 0; font-size: 18px; line-height: 1.25; font-weight: 700; color: #f1f4f8; }
-.sayPopBody { display: flex; flex-direction: column; gap: 8px; }
-.sayPopText { margin: 0; font-size: 15px; line-height: 1.45; color: #c9ced9; }
+/* Вёрстка в духе окошка «Временная память» (memory-count.css): заголовок 16/800, вводная строка 13px приглушённая, под ней компактные блоки (#1b1f26, радиус 12, полоска слева), текст 13px */
+.sayPopTitle { margin: -4px 0 0; font-size: 16px; line-height: 1.25; font-weight: 800; color: #f1f4f8; }
+.sayPopBody { align-self: stretch; display: flex; flex-direction: column; gap: 6px; }
+.sayPopText { margin: 0; font-size: 13px; line-height: 1.4; color: #aeb6bf; }
+.sayPopLead { margin-bottom: 4px; }
+.sayPopBlock {
+  position: relative;
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 12px;
+  border-left: 3px solid #b6fe3b;
+  background: #1b1f26;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+  color: #c9d0d7;
+}
+.sayPopBlock--cant { border-left-color: #8c93a8; }
+/* Мини-вид кнопки «Я не могу говорить» (SayActions, .saySkipBtn): тот же значок в круглой рамке, стоит в строке текста */
+.sayPopNoBreak { white-space: nowrap; }
+.sayPopCantIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -3px 1px;
+  vertical-align: middle;
+  border-radius: 50%;
+  border: 1.5px solid rgba(140, 147, 168, 0.55);
+  background: rgba(255, 255, 255, 0.04);
+  color: #c4c9d6;
+}
+.sayPopSr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .sayPopBtn { margin-top: 2px; }
 /* «Не сейчас»: тихая текстовая кнопка под основной (то же, что тап мимо окна или Esc); зона касания шире текста */
 .sayPopLater {

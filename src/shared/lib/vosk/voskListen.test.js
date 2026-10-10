@@ -66,7 +66,7 @@ describe('startListening: авто-стоп и тайминги', () => {
     await vi.advanceTimersByTimeAsync(5000)
     expect(r.rec.retrieveFinalResult).not.toHaveBeenCalled()
     h.stop()
-    await vi.advanceTimersByTimeAsync(60)
+    await vi.advanceTimersByTimeAsync(400) // ожидание последнего куска звука до 300 мс + итог через 50 мс
     expect(r.cb.onResult.mock.calls[0][1]).toMatchObject({ stopBy: 'manual' })
     expect(r.cb.onResult.mock.calls[0][1].afterStopMs).toBeGreaterThanOrEqual(50)
   })

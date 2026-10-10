@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { hasMicAccess, micVisualState, MIC_STATES, MIC_SCALE } from './sayMicState.js'
 import { micLabel } from './sayMic.js'
-import { createSayPermission, MIC_GRANTED_KEY } from './sayPermission.js'
+import { createSayPermission, MIC_GRANTED_KEY, INTRO_SEEN_KEY } from './sayPermission.js'
 import { sayReducer, initialSayState } from './sayFlow.js'
 import { emptyView } from './speechController.js'
 import { readSayData } from './sayPhraseData.js'
@@ -70,6 +70,33 @@ describe('micVisualState — единое состояние кнопки на �
   })
 })
 
+describe('вводный попап: пока его не видели (introSeen=false) круг locked на любой платформе, даже при выданном доступе', () => {
+  it('до нажатия (idle / explain / failed) — locked независимо от доступа; run / passed / fallback важнее; introSeen по умолчанию true', () => {
+    for (const phase of ['idle', 'explain', 'failed']) {
+      for (const p of PERMS) for (const f of [false, true]) for (const ok of [false, true]) {
+        expect(micVisualState({ permission: p, flag: f, sessionOk: ok, introSeen: false, phase }), `${phase} ${p} ${f} ${ok}`).toBe('locked')
+      }
+    }
+    expect(micVisualState({ permission: 'granted', introSeen: false, phase: 'run' })).toBe('active')
+    expect(micVisualState({ permission: 'granted', introSeen: false, phase: 'passed' })).toBe('done')
+    expect(micVisualState({ permission: 'granted', introSeen: false, phase: 'fallback' })).toBe('off')
+    expect(micVisualState({ permission: 'granted' })).toBe('ready')
+    expect(micVisualState({ permission: 'granted', introSeen: true })).toBe('ready')
+  })
+
+  it('Android: granted без флага вводного → locked; «Понятно, начать» (markIntroSeen) → ready; resetHints возвращает locked', async () => {
+    const local = store()
+    const p = createSayPermission({ local, session: store(), queryPerm: async () => 'granted', isSupported: () => true })
+    await p.refresh()
+    const look = () => micVisualState({ ...p.access(), phase: 'idle' })
+    expect(look()).toBe('locked')
+    p.markIntroSeen()
+    expect(look()).toBe('ready')
+    p.resetHints()
+    expect(look()).toBe('locked')
+  })
+})
+
 describe('надпись над кругом в состоянии locked', () => {
   it('«Нужен доступ к микрофону» вместо «Нажмите, чтобы говорить» только до нажатия; остальные надписи те же', () => {
     expect(micLabel({ phase: 'idle', locked: true })).toEqual({ label: MIC_NEED_ACCESS, mode: 'idle' })
@@ -85,6 +112,7 @@ describe('жизненный цикл: доступ → запись → воз�
   const data = readSayData({ phrase: 'I am here', keywords: 'here', threshold: 70 })
   const make = (perm = 'unavailable') => {
     const local = store()
+    local.setItem(INTRO_SEEN_KEY, '1') // вводный попап уже видели (без него круг всегда locked — см. отдельный тест ниже)
     const p = createSayPermission({ local, session: store(), queryPerm: async () => perm, isSupported: () => true })
     return { p, local }
   }
@@ -118,7 +146,7 @@ describe('жизненный цикл: доступ → запись → воз�
     expect(look(p, s)).toBe('off')                  // в этом запуске микрофон выключен (кнопка недоступна, «Я не могу говорить»)
     p.markDenied()                                  // useSayPhrase: settledRun + fallbackReason denied
     expect(local.m.has(MIC_GRANTED_KEY)).toBe(false) // флаг сброшен
-    expect(p.access()).toEqual({ permission: 'unavailable', flag: false, sessionOk: false })
+    expect(p.access()).toEqual({ permission: 'unavailable', flag: false, sessionOk: false, introSeen: true })
     const next = createSayPermission({ local, session: store(), queryPerm: async () => 'unavailable', isSupported: () => true })
     await next.refresh()
     expect(micVisualState({ ...next.access(), phase: 'idle' })).toBe('locked') // п.1: серый круг, тап открывает попап
