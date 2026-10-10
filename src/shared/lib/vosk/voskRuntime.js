@@ -23,7 +23,7 @@ export const MAX_AUTO_RETRIES = 5           // сколько сбоев под�
 export function createVoskRuntime(deps = {}) {
   const d = {
     url: () => readModelUrl(), peek: peekCached, read: readCached, load: loadEngine, unload: unloadEngine, mode: () => readSayEngine(),
-    busy: beginNetBusy, watchCached: onBgCached, now: () => Date.now(), setTimer: setTimeout, clearTimer: clearTimeout, log: msg => pLog(`[say-vosk] ${msg}`),
+    busy: beginNetBusy, watchCached: onBgCached, now: () => Date.now(), setTimer: (fn, ms) => setTimeout(fn, ms), clearTimer: id => clearTimeout(id), log: msg => pLog(`[say-vosk] ${msg}`),
     ...deps,
   }
   const st = {

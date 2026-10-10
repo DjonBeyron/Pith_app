@@ -54,7 +54,7 @@ export function createSayRecognizer({
       else system.start({ reference, lang })
     },
     /** Панель смонтирована: прогреть Vosk (модель из кэша в память, фоном). Режим «Только системное» runtime читает сам (владелец считается, модель не грузится — смена режима потом сработает). Возвращает release() — звать при закрытии панели */
-    warm: (why = 'panel') => runtime.acquire(why),
+    warm: (why = 'panel') => { try { return runtime.acquire(why) } catch { return () => {} } }, // прогрев никогда не роняет урок
     /** Режим «Только Vosk» (админ) и Vosk не готов: НЕ идём на системное — прогреваем и ждём до 20 с, этап виден в плашке админа (onNote). null — ждать не нужно, пусть идёт обычная попытка. Возвращает cancel() */
     waitVosk: (data, onNote) => (needsVoskWait({ mode: getMode(), phrase: data?.phrase, snap: runtime.snapshot(), now: now() }) ? startVoskWait({ runtime, onNote, now }) : null),
     stop: () => { attempts.userStop(); engine().stop() },

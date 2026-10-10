@@ -27,14 +27,14 @@ function whenQuiet({ busy, run, maxMs, setTimer, clearTimer }) {
 export function startLessonWarm(deps = {}) {
   const d = {
     runtime: voskRuntime, background: () => startBackground(), idle: startIdlePrewarm, busy: netBusy, getMode: readSayEngine,
-    canWarm: () => sayPermission.decide().action !== 'fallback', setTimer: setTimeout, clearTimer: clearTimeout, ...deps,
+    canWarm: () => sayPermission.decide().action !== 'fallback', setTimer: (fn, ms) => setTimeout(fn, ms), clearTimer: id => clearTimeout(id), ...deps,
   }
   if (d.getMode() === 'system') return () => {}
   let release = null
   let cancelled = false
   let stopWait = () => {}
   d.background() // модели нет в кэше → качаем сразу (в кэше — проверка без чтения тела); «тишину» соблюдает сама загрузка
-  const acquire = () => { if (!cancelled && !release && d.canWarm()) release = d.runtime.acquire('lesson') }
+  const acquire = () => { if (!cancelled && !release && d.canWarm()) try { release = d.runtime.acquire('lesson') } catch { /* прогрев никогда не роняет урок */ } }
   const stopIdle = d.idle([() => { if (!cancelled) stopWait = whenQuiet({ busy: d.busy, run: acquire, maxMs: QUIET_MAX_MS, setTimer: d.setTimer, clearTimer: d.clearTimer }) }])
   return () => { cancelled = true; stopIdle(); stopWait(); release?.(); release = null }
 }
