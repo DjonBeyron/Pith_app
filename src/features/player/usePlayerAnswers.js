@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { clearSayVoices, revokeSayVoices } from '../../shared/lib/speech/sayVoiceStore.js'
 
 // Локальное состояние ответов игрока по типам интерактивных нод (что выбрал,
 // правильно/неправильно) — используется для подсветки в чате (PlayerMessage)
@@ -16,6 +17,10 @@ export function usePlayerAnswers() {
   // держит место под посадку — но видимым быть не должен: иначе таблица
   // разом видна и в панели, и в переписке
   const [tableArriving, setTableArriving]         = useState({})
+
+  // Голосовые ответы «Сказать фразу» (режим «голосовое с текстом») живут только в памяти на время этого урока:
+  // закрыли плеер — все клипы освобождаются (revokeObjectURL), ни на диск, ни в чекпойнт они не попадали
+  useEffect(() => clearSayVoices, [])
 
   // arriving — пузыри уже вставлены в ленту, но ещё НЕВИДИМЫ (место занято):
   // панель закрывается тем же тиком, и история опускается ровно до места,
@@ -42,11 +47,12 @@ export function usePlayerAnswers() {
   // arriving — то же, что у word_choice выше: пузырь уже в ленте, но невидим,
   // пока панель не уехала (AnswerBubbles / useDeferredArrival.js);
   // revealPhraseAnswers снимает флаг со всех пузырей ноды
-  function handlePhraseAnswer(nodeId, text, result, arriving = false) {
+  // voiceId — клип «голосового с текстом» из реестра sayVoiceStore (у остальных модулей его нет)
+  function handlePhraseAnswer(nodeId, text, result, arriving = false, voiceId = null) {
     setPhraseStates(prev => {
       const arr = prev[nodeId] ?? []
       if (result === 'wrong' && arr.some(b => b.result === 'wrong')) return prev
-      return { ...prev, [nodeId]: [...arr, { text, result, ...(arriving ? { arriving: true } : {}) }] }
+      return { ...prev, [nodeId]: [...arr, { text, result, ...(arriving ? { arriving: true } : {}), ...(voiceId ? { voiceId } : {}) }] }
     })
   }
 
@@ -85,7 +91,8 @@ export function usePlayerAnswers() {
   function resetNode(nodeId) {
     const drop = prev => { const n = { ...prev }; delete n[nodeId]; return n }
     setWordChoiceStates(drop)
-    setPhraseStates(drop)
+    // Шаг назад убирает голосовое вместе с пузырём и освобождает память (revoke идемпотентен — повторный вызов безопасен)
+    setPhraseStates(prev => { revokeSayVoices((prev[nodeId] ?? []).map(b => b.voiceId)); return drop(prev) })
     setPhotoChoiceStates(drop)
     setRegStates(drop)
     setTableSent(drop)

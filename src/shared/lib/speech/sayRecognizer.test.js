@@ -33,7 +33,7 @@ describe('sayRecognizer: движок на каждую попытку', () => {
     const pick = t.rec.choose(data)
     expect(pick).toEqual({ engine: 'vosk', reason: 'ready' })
     t.rec.start({ reference: data.phrase, lang: 'en-US', data, pick })
-    expect(t.vosk.start).toHaveBeenCalledWith({ reference: "I'm trying", lang: 'en-US', data })
+    expect(t.vosk.start).toHaveBeenCalledWith({ reference: "I'm trying", lang: 'en-US', data, record: false })
     expect(t.sys.start).not.toHaveBeenCalled()
     expect(t.record).toHaveBeenCalledWith({ engine: 'vosk', reason: 'ready' }, 1000)
   })

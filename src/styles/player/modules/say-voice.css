@@ -1,0 +1,46 @@
+/* ── «Сказать фразу»: пузырь-голосовое ученика (режим ноды «голосовое с текстом») ──────────────
+   SayVoiceReply.jsx внутри обычного пузыря ответа ученика (.playerMsgBubble--response, справа): цвет, скругление и блик — как у остальных
+   ответов ученика (text.css); ряд «кнопка + волна + время» — те же классы и AudioWave, что у голосового учителя (audio.css:
+   .playerAudioRow / .playerAudioBtn / .playerAudioWaveCol / .playerAudioDur), поэтому форма и пропорции совпадают. Под плеером — текст распознанного.
+   Ширина — под текст, но не уже min(52vw, 210px): иначе у короткой фразы волна сжималась бы в полоску. */
+.playerMsgBubble--voice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: fit-content;
+  min-width: min(52vw, 210px);
+  max-width: 80%;
+  padding: 8px 12px;
+  /* непройденные полоски волны (audioWaveParts.js): на синеватом фоне ответа стандартный #2a2d35 почти не виден */
+  --player-wave-muted: #3d4f66;
+}
+
+/* Знак ✓/✕ у голосового ставит хвост текста (ниже), а не пузырь: его ::after стал бы отдельной строкой под текстом */
+.playerMsgBubble--voice.playerMsgBubble--response::after { content: none !important; display: none !important; }
+
+.playerMsgBubble--voice .sayVoiceRow { align-items: center; }
+
+/* Текст распознанного — как в обычном пузыре ответа */
+.sayVoiceText {
+  font-size: 14px;
+  line-height: 1.45;
+  color: inherit;
+  overflow-wrap: break-word;
+}
+.sayVoiceText::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  margin-left: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: baseline;
+  animation: answerMarkIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.sayVoiceText--ok::after  { content: '✓'; color: #b6fe3b; }
+.sayVoiceText--err::after { content: '✕'; color: #f87171; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sayVoiceText::after { animation: none; }
+}

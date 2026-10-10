@@ -6,6 +6,7 @@ import { deleteLibraryStore } from './voskStorage.js'
 import { autoStopDue, TAIL_SILENCE_MS, DRAIN_MAX_MS, VOICE_RMS } from './voskTiming.js'
 import { feedSilence, feedSamples } from './voskTail.js'
 import { createGate } from './voskGate.js'
+import { createRecorder } from './voskRecord.js'
 import { createAudioSession } from '../speech/speechAudioSession.js'
 
 const CHUNK = 4096 // кадров на один вызов ScriptProcessor (по умолчанию; модуль «Сказать фразу» просит 2048 — уровень голоса чаще)
@@ -101,6 +102,8 @@ export function unloadEngine(model) {
  * Для «Сказать фразу» (медленная речь): gate (true — voskGate.js не отдаёт декодеру тишину дольше ≈0,4 с подряд, иначе его эндпойнтер сам обрывает запись на паузе 0,5–2 с), cleanPartial (как
  * считать текст для авто-стопа: без [unk] — «слово услышано» только настоящее), isComplete(текст) → true, когда в partial уже вся фраза: затвор открывается, а авто-стоп ждёт completeMs вместо autoStopMs
  * (stopBy 'full'). stats.gatedMs — сколько мс тишины не отдали движку.
+ * opts.record (true — только «Сказать фразу» с режимом «голосовое с текстом»): сырые куски звука ДО затвора копятся в памяти (voskRecord.js), а в stats.audio приходит клип
+ * { ok, blob (WAV 16 кГц), durationMs, peaks } либо { ok: false, reason }; без флага stats.audio = null и память не тратится. Звук нигде не сохраняется и не отправляется.
  * Остановка: по тапу (manual) сначала дожидаемся ещё одного куска звука (до DRAIN_MAX_MS) — иначе последние до 128 мс речи, что сидят в буфере ScriptProcessor, пропали бы (авто-стоп и потолок
  * этого не требуют: перед ними была пауза без голоса); потом выключаем микрофон, досылаем TAIL_SILENCE_MS тишины (иначе Vosk не отдаёт слабое конечное слово) и только тогда просим итог.
  */
@@ -131,8 +134,10 @@ export async function startListening(model, grammar, cb, opts = {}) {
   const st = { firstPartialMs: null, chunks: 0, workMs: 0, audioMs: 0, stopAt: null, done: false, text: '', changeAt: null, stopBy: null, audioStartMs: null, readyMs: null,
     finalizing: false, drain: null, complete: false, prev: null, voiceAt: null, lastChunkAt: null, maxGapMs: 0, lateChunks: 0, chunkMs: null, tailMs: 0, drainMs: null }
   let timer = null
+  const recorder = opts.record ? createRecorder({ rate: ctx.sampleRate, maxMs: opts.maxMs }) : null // запись для голосового ответа: тот же поток, второго микрофона нет
   const free = () => {
     st.done = true
+    recorder?.reset()
     clearInterval(timer); clearTimeout(st.drain)
     stream.getTracks().forEach(tr => tr.stop())
     try { node.disconnect(); src.disconnect() } catch { /* уже отключены */ }
@@ -156,6 +161,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
       words: m.result.result || [], micMs, readyMs: st.readyMs, audioStartMs: st.audioStartMs, stopBy: st.stopBy ?? 'endpoint', session: held ? opts.session : null,
       loadPct: st.audioMs ? Math.round((st.workMs / st.audioMs) * 1000) / 10 : null,
       tailMs: st.tailMs, drainMs: st.drainMs, chunkMs: st.chunkMs, maxGapMs: Math.round(st.maxGapMs), lateChunks: st.lateChunks, gatedMs: gate?.droppedMs ?? 0,
+      audio: recorder ? recorder.finish() : null,
     })
     free()
   })
@@ -179,6 +185,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     const rms = bufferRms(ev.inputBuffer)
     if (rms >= VOICE_RMS) st.voiceAt = t
     if (cb.onLevel) { try { cb.onLevel(rms) } catch { /* уровень не должен мешать распознаванию */ } }
+    if (recorder) { try { recorder.push(ev.inputBuffer.getChannelData(0)) } catch { /* запись не должна мешать распознаванию */ } }
     const g = gate ? gate.push(rms, dur, { open: st.complete }) : null
     if (g?.preroll && st.prev) feedSamples(rec, st.prev, ctx.sampleRate) // голос вернулся после долгой тишины: предыдущий кусок мог начинать слово тише порога
     st.prev = null

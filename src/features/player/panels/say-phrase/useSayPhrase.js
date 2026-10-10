@@ -15,6 +15,7 @@ import { createSayQuiet } from '../../../../shared/lib/speech/sayQuietWindow.js'
 import { createAudioSession } from '../../../../shared/lib/speech/speechAudioSession.js'
 import { sayAudioSessionType } from '../../../../shared/lib/speech/sayAudioSession.js'
 import { stopWord } from '../../word-audio/wordAudioPlayer.js'
+import { pauseSayVoices } from '../../../../shared/lib/speech/sayVoicePause.js'
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 
@@ -118,13 +119,14 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   // ни старт записи, ни первый кадр эквалайзера (круг и волны перерисовываются синхронно, в конце этого же обработчика тапа)
   const begin = useCallback(() => {
     stopWord() // эталонное «Послушать» не должно звучать, пока слушаем
+    pauseSayVoices() // и свои голосовые в чате (режим «голосовое с текстом») тоже: динамик не должен попасть в микрофон
     if (waitVosk(data)) return // админский режим «Только Vosk» и Vosk не готов: ждём прогрев (плашка админа), на системное не уходим
     quiet.open()
     const pick = ctrl.choose(data) // какой движок пойдёт на эту попытку (синхронно, без ожидания): Vosk, если готов, иначе системное
     const wantReal = isRealLevelOn() && pick.engine === 'system' // отдельный реальный уровень — только для системного: у Vosk микрофон один, уровень берётся из его потока
     if (wantReal) real.open() // реальный уровень (админский флаг): поток микрофона открываем в этом же тапе, ДО recognition.start(), промис не ждём
     dispatch({ type: 'begin', data, realLevel: realLevelLabel(wantReal, null), audioSession: sayAudioSessionType(), engine: pick })
-    ctrl.start({ reference: data.phrase, lang: data.lang, data, pick })
+    ctrl.start({ reference: data.phrase, lang: data.lang, data, pick, recordAudio: data.voiceReply === true && pick.engine === 'vosk' }) // запись для голосового ответа — только из потока Vosk (на системном второго getUserMedia нет)
     clearTimeout(armRef.current)
     armRef.current = setTimeout(() => dispatch({ type: 'arm' }), STOP_ARM_MS)
     const taps = s.taps + 1
@@ -161,7 +163,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   return {
     view: s.view, phase: s.phase, taps: s.taps, verdict: s.verdict, errorCode: s.errorCode,
     fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak, exhausted: s.exhausted,
-    go: isGo(s), access: perm.access(), adminLine: waitNote ?? s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
+    engine: s.engine?.engine ?? null, go: isGo(s), access: perm.access(), adminLine: waitNote ?? s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
     tapMic, openExplain, confirmExplain, cancelExplain, enableMic, emit, perm,
   }
 }

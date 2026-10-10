@@ -21,7 +21,14 @@ function accentOf(canvas) {
   if (!c) { c = getComputedStyle(canvas).getPropertyValue('--player-accent').trim() || ACCENT; accents.set(canvas, c) }
   return c
 }
+// Цвет непройденных полосок — --player-wave-muted (у пузыря-голосового ученика светлее: фон ответа синеватее, #2a2d35 на нём тонул); по умолчанию — прежний
 const MUTED = '#2a2d35'
+const mutedColors = new WeakMap()
+function mutedOf(canvas) {
+  let c = mutedColors.get(canvas)
+  if (!c) { c = getComputedStyle(canvas).getPropertyValue('--player-wave-muted').trim() || MUTED; mutedColors.set(canvas, c) }
+  return c
+}
 
 export function barCountFor(width) {
   return Math.max(8, Math.floor(width / (BAR_W + BAR_GAP)))
@@ -63,7 +70,7 @@ export function drawAudioWave(canvas, waveData, progress = 0, greenAlpha = 1) {
     const isGreen = i < green
     ctx.beginPath()
     ctx.roundRect(i * (BAR_W + BAR_GAP), h - barH, BAR_W, barH, [2, 2, 1, 1])
-    if (!isGreen || greenAlpha < 1) { ctx.fillStyle = MUTED; ctx.fill() }
+    if (!isGreen || greenAlpha < 1) { ctx.fillStyle = mutedOf(canvas); ctx.fill() }
     if (isGreen) {
       ctx.globalAlpha = greenAlpha
       ctx.fillStyle = accentOf(canvas)

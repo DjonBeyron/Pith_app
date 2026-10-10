@@ -159,9 +159,10 @@ export default function PlayerPanels({
           node={spNode}
           xpAmount={xpMap.get(spNode.id) ?? 0}
           onDone={trigger => { setSpPanelHeight(0); onNodeDone(spNode.id, trigger) }}
-          /* Сказанная фраза уходит пузырём справа (как «Напечатай слово»); третий аргумент — arriving.
+          /* Сказанная фраза уходит пузырём справа (как «Напечатай слово»); третий аргумент — arriving, четвёртый — voiceId
+             («голосовое с текстом»: клип в реестре сессии sayVoiceStore.js, в чекпойнт не пишется).
              Ошибок и штрафов у модуля нет (record/wrongRef не нужны) — речь тренировка, а не экзамен */
-          onAnswered={(text, result, arriving) => handlePhraseAnswer(spNode.id, text, result, arriving)}
+          onAnswered={(text, result, arriving, voiceId) => handlePhraseAnswer(spNode.id, text, result, arriving, voiceId)}
           onRevealAnswer={() => revealPhraseAnswers(spNode.id)}
           onXpEarned={(amount, opts) => handleXpEarned(amount, spNode.id, opts)}
           onHeightChange={setSpPanelHeight}

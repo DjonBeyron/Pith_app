@@ -17,7 +17,7 @@ describe('say_phrase — три неудачи → say_wrong', () => {
     expect(read('../type-word/TypeWordPanel.jsx')).toContain('const SEE_RESULT_MS = 700')
     // тайминг: пузыри через HINT_DELAY_MS (после окна тишины звуков), затем пауза; нет пузырей (подсказки выключены, тишина) — только пауза
     expect(body).toContain("if (sp.exhausted) wrongTimer.current = setTimeout(() => finish('wrong'), (reply || hint ? HINT_DELAY_MS : 0) + WRONG_PAUSE_MS)")
-    expect(body.indexOf('wrongTimer.current = setTimeout')).toBeLessThan(body.indexOf("if (reply) onAnswered?.(reply, 'wrong_final')"))
+    expect(body.indexOf('wrongTimer.current = setTimeout')).toBeLessThan(body.indexOf("if (reply) onAnswered?.(reply, 'wrong_final', false, voiceId)"))
   })
 
   it('закрытие по неверной ветке: итог say_wrong без XP, салюта, пузыря «верно» и звука; таймер снимается при уходе панели и при любом другом выходе (finish)', () => {
@@ -25,7 +25,7 @@ describe('say_phrase — три неудачи → say_wrong', () => {
     const wrongBranch = body.slice(body.indexOf("if (kind === 'wrong')"), body.indexOf('// Звук «верно»'))
     expect(wrongBranch).not.toMatch(/onXpEarned|fireBurst|playSound|onAnswered/)
     expect(body).toMatch(/closingRef\.current = true\s*clearTimeout\(wrongTimer\.current\)/)
-    expect(body).toContain('clearTimeout(wrongTimer.current) }, [])')
+    expect(body).toContain('clearTimeout(wrongTimer.current); revokeSayVoice(pendingVoice.current) }, [])')
   })
 
   it('после третьей неудачи микрофон заблокирован: и в хуке (тап игнорируется), и в круге (disabled), и в reducer (begin не начинает запись)', () => {
@@ -46,7 +46,7 @@ describe('say_phrase — три неудачи → say_wrong', () => {
   })
 
   it('реплика ученика уходит в чат на каждой попытке красным пузырём (wrong_final), нейтрального нет', () => {
-    expect(body).toContain("onAnswered?.(reply, 'wrong_final')")
+    expect(body).toContain("onAnswered?.(reply, 'wrong_final', false, voiceId)")
     expect(code(body)).not.toMatch(/'neutral'|"neutral"/)
   })
 })

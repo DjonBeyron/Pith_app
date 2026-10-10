@@ -19,7 +19,7 @@ describe('useSayPhrase: выбор движка и уровень голоса',
     expect(begin.indexOf('ctrl.choose(')).toBeLessThan(begin.indexOf('real.open()'))
     expect(begin.indexOf('real.open()')).toBeLessThan(begin.indexOf('ctrl.start('))
     expect(begin).toContain('engine: pick })') // пометка движка в состояние (плашка админа)
-    expect(begin).toContain('ctrl.start({ reference: data.phrase, lang: data.lang, data, pick })')
+    expect(begin).toContain('ctrl.start({ reference: data.phrase, lang: data.lang, data, pick, recordAudio: data.voiceReply === true && pick.engine === \'vosk\' })')
     expect(code(begin)).not.toMatch(/await|\.then\(|setTimeout\([^)]*choose/) // выбор не ждёт ничего
   })
   it('источник уровня: RMS Vosk (ctrl.level), а где его нет — прежний системный', () => {

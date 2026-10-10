@@ -3,7 +3,7 @@ import { Mic } from 'lucide-react'
 import SayCantIcon from './SayCantIcon.jsx'
 import {
   EXPLAIN_TITLE, EXPLAIN_LINES, EXPLAIN_BTN, EXPLAIN_SHORT_TITLE, EXPLAIN_SHORT_LINES, EXPLAIN_SHORT_BTN,
-  INTRO_TITLE, INTRO_LINES, INTRO_BTN, EXPLAIN_CANT, EXPLAIN_LATER, CANT_SPEAK_LINK,
+  INTRO_TITLE, INTRO_LINES, INTRO_BTN, EXPLAIN_CANT, EXPLAIN_LATER, CANT_SPEAK_LINK, pickPopupLines,
 } from '../../../../shared/lib/speech/sayTexts.js'
 
 const NBSP = ' ' // «на [иконка] в»: предлог, иконка и следующее слово не рвутся на строки
@@ -20,12 +20,14 @@ const TEXTS = {
 // тихая «Не сейчас» и основная кнопка. kind (sayPermission.pickExplainKind): 'full' — первый раз, дальше системный запрос ОС | 'short' — перед каждым следующим ожидаемым запросом ОС | 'intro' — ВВОДНЫЙ:
 // системного запроса не будет (доступ уже есть / платформа не спрашивает), кнопка «Понятно, начать». Системный диалог ОС (iOS/Android) встроить в своё окно или стилизовать нельзя — его рисует ОС; мы показываем
 // свой попап до него и вызываем диалог ТОЛЬКО по кнопке внутри попапа (recognition.start() — в её тапе, жест сохраняется; см. useSayPhrase.confirmExplain), сам автопоказ микрофон не трогает.
+// Проп voice (boolean, из данных ноды voiceReply): меняет только строку приватности (sayTexts.pickPopupLines); всё остальное одинаково.
 // Закрытие: «Не сейчас», тап мимо карточки (глушим и сам тап, и следующий click — как у окошек худа, useHudOutsideDismiss) или Esc: во всех случаях ничего не просим и флагов не ставим.
 // Появление — пружинка popSpringIn, уход — короткое растворение (closing — карточка уже уходит, классы --out); без затемнения, blur и теней. data-no-unlock на корне: тап основной кнопки сразу стартует
 // запись, разблокировка звука (беззвучный wav) на нём запрещена.
-export default function SayMicPopup({ kind = 'full', closing, onConfirm, onCancel }) {
+export default function SayMicPopup({ kind = 'full', voice = false, closing, onConfirm, onCancel }) {
   const k = TEXTS[kind] ? kind : 'full'
-  const { title, lines, btn } = TEXTS[k]
+  const { title, btn } = TEXTS[k]
+  const lines = pickPopupLines(k, voice) // voice (нода с «Голосовое с текстом»): вместо «Запись не сохраняется.» — «остаётся только на вашем телефоне до конца урока»
   const cardRef = useRef(null)
   useEffect(() => {
     if (closing) return undefined

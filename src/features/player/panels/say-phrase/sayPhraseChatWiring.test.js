@@ -105,14 +105,14 @@ describe('say_phrase — чат: реплика ученика и подсказ
   })
 
   it('неудача → в чат: сначала реплика ученика (wrong_final, как неверные ответы «Напечатай слово»), затем подсказка (hint); обе через HINT_DELAY_MS', () => {
-    expect(body).toContain("if (reply) onAnswered?.(reply, 'wrong_final')")
+    expect(body).toContain("if (reply) onAnswered?.(reply, 'wrong_final', false, voiceId)") // 4-й аргумент — voiceId («голосовое с текстом»; null — обычный текст)
     expect(body).toContain("if (hint) onAnswered?.(hint, 'hint')")
-    expect(body.indexOf("onAnswered?.(reply, 'wrong_final')")).toBeLessThan(body.indexOf("onAnswered?.(hint, 'hint')"))
+    expect(body.indexOf("onAnswered?.(reply, 'wrong_final', false, voiceId)")).toBeLessThan(body.indexOf("onAnswered?.(hint, 'hint')"))
     expect(body).toContain('HINT_DELAY_MS')
     expect(body).toContain('[failNo]')
     expect(read('../../../../shared/lib/speech/sayHints.js')).toContain('HINT_DELAY_MS = QUIET_TAIL_MS + 60')
     // тот же путь и тот же тег, что у остальных модулей: handlePhraseAnswer → AnswerBubbles рисует wrong_final справа, hint — слева
-    expect(playerPanels).toContain('handlePhraseAnswer(spNode.id, text, result, arriving)')
+    expect(playerPanels).toContain('handlePhraseAnswer(spNode.id, text, result, arriving, voiceId)')
     const bubbles = read('../../modules/AnswerBubbles.jsx')
     expect(bubbles).toMatch(/b\.result === 'wrong_final'\) return \(\s*<div key=\{i\} \{\.\.\.rowProps\(b, i, 'playerMsgRow playerMsgRowRight'\)\}>/)
     expect(bubbles).toMatch(/b\.result === 'hint'\) return \(\s*<div key=\{i\} \{\.\.\.rowProps\(b, i, 'playerMsgRow'\)\}>/)
@@ -120,10 +120,10 @@ describe('say_phrase — чат: реплика ученика и подсказ
   })
 
   it('новая попытка и «Я не могу говорить» не теряют реплику: flushPending отправляет её сразу, отменяя только подсказку; успех реплику не шлёт', () => {
-    expect(body).toMatch(/function flushPending\(\) \{\s*clearTimeout\(hintTimer\.current\)\s*const reply = pendingReply\.current\s*pendingReply\.current = null\s*if \(reply\) onAnswered\?\.\(reply, 'wrong_final'\)/)
+    expect(body).toMatch(/function flushPending\(\) \{\s*clearTimeout\(hintTimer\.current\)\s*const reply = pendingReply\.current\s*const voiceId = pendingVoice\.current\s*pendingReply\.current = null\s*pendingVoice\.current = null\s*if \(reply\) onAnswered\?\.\(reply, 'wrong_final', false, voiceId\)/)
     expect(body).toMatch(/function tapMic\(\) \{\s*flushPending\(\)/)
     expect(body).toMatch(/closingRef\.current = true\s*clearTimeout\(wrongTimer\.current\)\s*flushPending\(\)/)
-    expect(body).toContain("onAnswered?.(kind === 'passed' ? successReply(sp.verdict, data.phrase) : data.phrase, 'correct', true)") // после успеха — пузырь: эталон, если все слова услышаны, иначе услышанное (successReply); палочка админа — эталон
+    expect(body).toContain("onAnswered?.(kind === 'passed' ? successReply(sp.verdict, data.phrase) : data.phrase, 'correct', true, voiceId)") // после успеха — пузырь: эталон, если все слова услышаны, иначе услышанное (successReply); палочка админа — эталон
     expect(body).toContain("import { successReply } from '../../../../shared/lib/speech/sayReply.js'")
   })
 })

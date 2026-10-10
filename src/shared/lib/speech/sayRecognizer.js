@@ -42,15 +42,15 @@ export function createSayRecognizer({
 
   return {
     choose,
-    /** Вызывать прямо в тапе. data — readSayData шага; pick — результат choose() (чтобы решение, показанное в панели, и запуск совпали) */
-    start({ reference, lang, data, pick }) {
+    /** Вызывать прямо в тапе. data — readSayData шага; pick — результат choose() (чтобы решение, показанное в панели, и запуск совпали); recordAudio — копить звук для голосового ответа (только Vosk: на системном второго getUserMedia НЕ открываем) */
+    start({ reference, lang, data, pick, recordAudio = false }) {
       const p = pick ?? choose(data)
       active = p.engine
       run++
       record(p, now())
       attempts.begin(p, data)
       log(`попытка ${run}: ${pickLabel(p)}`)
-      if (p.engine === 'vosk') vosk.start({ reference, lang, data })
+      if (p.engine === 'vosk') vosk.start({ reference, lang, data, record: recordAudio })
       else system.start({ reference, lang })
     },
     /** Панель смонтирована: прогреть Vosk (модель из кэша в память, фоном). Режим «Только системное» runtime читает сам (владелец считается, модель не грузится — смена режима потом сработает). Возвращает release() — звать при закрытии панели */

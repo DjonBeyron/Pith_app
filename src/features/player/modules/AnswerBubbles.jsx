@@ -5,6 +5,9 @@ import { xpAnchor } from '../xpAnchor.js'
 import { resolvePhraseAttempt } from '../replyResolve.js'
 import { useRef } from 'react'
 import { useDeferredArrival } from './useDeferredArrival.js'
+import SayVoiceReply from './say-phrase/SayVoiceReply.jsx'
+import { useSayVoiceVersion } from './say-phrase/useSayVoiceVersion.js'
+import { getSayVoice } from '../../../shared/lib/speech/sayVoiceStore.js'
 
 // Пузыри ответа ученика в ленте: собранная фраза справа и реплики учителя
 // слева. Верность показывает только значок в пузыре (галочка/крестик) — своей
@@ -30,11 +33,14 @@ import { useDeferredArrival } from './useDeferredArrival.js'
 // уехала (таблица: manualClose.js → usePlayerAnswers.revealPhraseAnswers);
 // проявление играет useDeferredArrival. Строкам с флагом — data-no-slide +
 // .playerMsgRowArriving (PlayerFeed их не толкает)
+// b.voiceId — «Сказать фразу», режим ноды «голосовое с текстом»: реплика ученика (верная и неверная) идёт голосовым пузырём (SayVoiceReply: плеер + текст под ним);
+// клипа в реестре сессии уже нет (выселен лимитом, шаг назад админа) — тот же пузырь «только текст». Звук живёт только в памяти до конца урока (sayVoiceStore.js)
 // keepLines — сохранять принудительные переносы строки \n в тексте пузырей
 // (white-space: pre-line); нужен «Составь предложение», где автор сам рвёт
 // фразу на строки. По умолчанию выключен: у остальных модулей \n нет
 export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true, keepLines = false, replyNode = null, lessonFiles, teacherName, allWordChoiceStates, allPhotoChoiceStates, allPhraseStates }) {
   const rowsRef = useRef([])
+  useSayVoiceVersion() // клип выселен/отозван — пузыри перерисовываются без плеера
   const anyArriving = (bubbles ?? []).some(b => b.arriving)
   // Какие именно строки отложены — въезжать должны только они, а не старые
   // попытки той же ноды (хук запоминает список, пока флаг стоит)
@@ -42,6 +48,9 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
   useDeferredArrival(anyArriving, rowsRef, { indices: arrivingIdx })
   const list = bubbles ?? []
   const lines = keepLines ? ' playerMsgBubble--keepLines' : ''
+  const voiceOf = b => (b.voiceId && getSayVoice(b.voiceId) ? b.voiceId : null) // есть ли у реплики живой клип
+  const body = b => (voiceOf(b) ? <SayVoiceReply voiceId={b.voiceId} text={b.text} result={b.result} /> : b.text)
+  const voiceCls = b => (voiceOf(b) ? ' playerMsgBubble--voice' : '')
 
   if (!list.length) return null
 
@@ -77,9 +86,9 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
                 <BurstConfetti count={30} size={4} zIndex={85} portalTo=".lessonPlayer" />
               )}
               <div className="reactionBubbleWrap" {...xpAnchor(nodeId)}>
-                <PlayerBubble className={`playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk${lines}`}>
+                <PlayerBubble className={`playerMsgBubble playerMsgBubble--response playerMsgBubble--responseOk${voiceCls(b)}${lines}`}>
                   {quote}
-                  {b.text}
+                  {body(b)}
                 </PlayerBubble>
               </div>
             </div>
@@ -88,9 +97,9 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
 
         if (b.result === 'wrong_final') return (
           <div key={i} {...rowProps(b, i, 'playerMsgRow playerMsgRowRight')}>
-            <PlayerBubble className={`playerMsgBubble playerMsgBubble--response playerMsgBubble--responseErr${lines}`}>
+            <PlayerBubble className={`playerMsgBubble playerMsgBubble--response playerMsgBubble--responseErr${voiceCls(b)}${lines}`}>
               {quote}
-              {b.text}
+              {body(b)}
             </PlayerBubble>
           </div>
         )

@@ -20,7 +20,7 @@ describe('SayAdminDiag: только админам и ничего не вес�
   it('в панели одна строка импорта и одна строка монтирования; компонент решает по тому же признаку isAdmin, что и плашка', () => {
     expect(panel.split('\n').filter(l => l.includes('SayAdminDiag'))).toHaveLength(2)
     expect(panel).toContain("import SayAdminDiag from './diag/SayAdminDiag.jsx'")
-    expect(panel).toContain('<SayAdminDiag phrase={data.phrase} />')
+    expect(panel).toContain('<SayAdminDiag phrase={data.phrase} voice={voiceOn} />')
     const comp = read('./SayAdminDiag.jsx')
     expect(comp).toContain('useAdmin()'); expect(comp).toContain('return isAdmin ?')
   })

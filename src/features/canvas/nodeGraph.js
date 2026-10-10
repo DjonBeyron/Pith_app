@@ -83,7 +83,7 @@ export function makeNode(seq, x, y, wantType) {
       // обязательно); threshold — % слов эталона для «засчитано»; lang — язык распознавания; listenAudio — кнопка «Послушать» (озвучка
       // из базы слов; по умолчанию включена, поле не нужно); strict — «Строго» (100% слов, без опечаток, консенсус interim+final):
       // у НОВЫХ нод включено, у существующих отсутствие поля = выключено (поведение не меняется); hintsOn — подсказки в чат после неудачной
-      // попытки (нет поля = включены; тексты hintSilence/hintMismatch/hintPartial пустые = стандартные, см. sayTexts.js)
+      // попытки (нет поля = включены; тексты hintSilence/hintMismatch/hintPartial пустые = стандартные, см. sayTexts.js); voiceReply — «голосовое с текстом» (реплика ученика ещё и голосовым; нет поля = только текст, по умолчанию не пишем)
       say_phrase:      { phrase: '', translation: '', keywords: '', threshold: 70, lang: 'en-US', strict: true, hintsOn: true },
       pin_message:     { content: '' },
       system:          { content: '' },

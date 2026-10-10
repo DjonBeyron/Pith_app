@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react'
 import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
 import NodeSayHints from './NodeSayHints.jsx'
 import NodeSayCantSpeakNote from './NodeSayCantSpeakNote.jsx'
+import NodeSayVoiceReply from './NodeSayVoiceReply.jsx'
 import InfoPopup from '../../shared/ui/InfoPopup.jsx'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 import {
@@ -15,6 +16,7 @@ import { findWrongOut, setSayExit } from '../../shared/lib/speech/sayTriggers.js
 // формулирует текстовая нода-сообщение ПЕРЕД модулем (в нём должна быть сама фраза).
 // Поля: phrase (обязательно), translation (справочно), keywords (через запятую — обязательно должны прозвучать),
 // threshold (% слов эталона для «засчитано», 50–100, по умолчанию 70), lang (en-US / en-GB), listenAudio («Послушать»),
+// voiceReply («Голосовое с текстом», NodeSayVoiceReply: реплика ученика в чате ещё и голосовым; нет поля = только текст),
 // strict («Строго»: порог 100%, слова точно, без опечаток + консенсус interim и final; у НОВЫХ нод включено), подсказки в чат после
 // неудачи (hintsOn + hintSilence/hintMismatch/hintPartial — блок NodeSayHints) и пояснение про «Я не могу говорить» (NodeSayCantSpeakNote).
 // Поясняющие тексты в панели НЕ висят абзацами: рядом с короткой меткой поля стоит значок «i» (InfoPopup) — текст открывается попапом.
@@ -25,7 +27,7 @@ const LANG_LABEL = { 'en-US': 'Американский (en-US)', 'en-GB': 'Бр
 const stop = e => e.stopPropagation()
 
 export default function NodeSayPhrasePicker({
-  phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true, strict = false,
+  phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true, strict = false, voiceReply = false,
   hintsOn = true, hints = {}, onChange, triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
   const rowRefs = useRef(new Map())
@@ -147,6 +149,7 @@ export default function NodeSayPhrasePicker({
           <p>Ученик может послушать озвучку фразы — она берётся из базы слов.</p>
         </InfoPopup>
       </div>
+      <NodeSayVoiceReply voiceReply={voiceReply} onChange={onChange} />
       <NodeSayHints hintsOn={hintsOn} values={hints} onChange={onChange} />
       <NodeSayCantSpeakNote />
       <NodeCorrectWrongTriggers

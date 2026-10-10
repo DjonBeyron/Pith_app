@@ -53,7 +53,7 @@ describe('say_phrase — проводка (плеер)', () => {
     const block = playerPanels.slice(playerPanels.indexOf('{spNode && ('), playerPanels.indexOf('{pcNode &&')).replace(/\/\*[\s\S]*?\*\//g, '')
     expect(block).toContain('<SayPhrasePanelLazy')
     expect(block).toContain("onDone={trigger => { setSpPanelHeight(0); onNodeDone(spNode.id, trigger) }}")
-    expect(block).toContain('handlePhraseAnswer(spNode.id, text, result, arriving)')
+    expect(block).toContain('handlePhraseAnswer(spNode.id, text, result, arriving, voiceId)')
     expect(block).not.toContain('wrongRef') // речь не штрафуется
     expect(block).not.toContain('record(')  // и не пишет события анализа знаний
     expect(read('./SayPhrasePanelLazy.jsx')).toMatch(/lazyRetry\(\(\) => import\('\.\/SayPhrasePanel\.jsx'\)/)

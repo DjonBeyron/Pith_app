@@ -215,15 +215,12 @@ describe('say_phrase — миграции правила автору', () => {
   const sql = name => readFileSync(fileURLToPath(new URL(`../../../../supabase/migrations/${name}`, import.meta.url)), 'utf8')
   const rule = () => PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
 
-  it('v4 (текущая): текст правила в миграции дословно равен зашитому принципу (одна копия в $rule$); update по префиксу, вставка, если строки нет; идемпотентно', () => {
+  it('v4 (уже могла быть применена) не менялась: свой текст правила без voiceReply, тот же префикс поиска; текущая — v5 (sayVoiceReply.test.js)', () => {
     const v4 = sql('20261010120000_say_phrase_rules_v4.sql')
-    expect(rule()).toBeTruthy()
-    expect(rule()).not.toContain('$rule$')
-    expect(v4.split(`$rule$${rule()}$rule$`)).toHaveLength(2) // ровно одно вхождение: переменная t используется и в update, и в insert
     expect(v4).toMatch(/update public\.lesson_rules\s+set rule_text = t\s+where rule_text like 'say_phrase \(«Сказать фразу»\) — ученик ПРОИЗНОСИТ%'/)
-    expect(v4).toMatch(/if not found then\s+insert into public\.lesson_rules \(rule_text, sort_order, category\) values \(t, 250, 'principle'\)/)
-    expect(v4).not.toMatch(/\b(create|alter|drop)\s+(table|policy|function)/i) // таблиц и политик не трогаем
-    expect(v4.split('\n').length).toBeLessThan(90) // SQL Editor не обрезает вставку
+    expect(v4).toContain('hintPartial')
+    expect(v4).not.toContain('voiceReply')
+    expect(rule()).not.toContain('$rule$')
   })
 
   it('v3 (уже могла быть применена) не менялась: свой текст правила («на весь урок», say_skip) и тот же префикс поиска', () => {

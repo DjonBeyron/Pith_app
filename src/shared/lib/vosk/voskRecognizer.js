@@ -11,6 +11,7 @@
 //    лишь когда вся фраза уже сказана (затвор открыт) либо в шумной комнате, где тишины «нет».
 //    После stop итог должен прийти за SAY_STOP_FORCE_MS, иначе микрофон/контекст/аудиосессию освобождаем принудительно (cancel) и считаем сбоем.
 //  • Сбой (не отказ пользователя) → onFail(code, message): вызывающий пометит Vosk «не работает» — следующая попытка пойдёт на системном. Отказ микрофона (not-allowed) — не сбой Vosk.
+//  • Режим «голосовое с текстом»: start({ record: true }) просит движок копить сырой звук потока в памяти (voskRecord.js); клип попадает в итоговый вид как view.audio ({ ok, blob, durationMs, peaks } либо { ok: false, reason }). Без record view.audio нет.
 //  • Уровень голоса: onLevel(rms) каждого куска звука — в sayVoskLevel.js; второго getUserMedia нет.
 import { emptyView } from '../speech/speechView.js'
 import { pushHistory } from '../speech/speechSegments.js'
@@ -82,7 +83,7 @@ export function createVoskRecognizer({
     a.hist = pushHistory(a.hist, { t: Math.max(0, Math.min(tStop, t - 1)), kind: 'speechend' })
     a.hist = pushHistory(a.hist, { t, text: r.text, final: true })
     const final = { text: r.text, confidence: r.confidence }
-    push({ status: 'done', phase: null, interim: '', lastInterim: r.text, final, alternatives: [final], usedInterim: false, error: null, hint: null, notice: null, history: a.hist, raw })
+    push({ status: 'done', phase: null, interim: '', lastInterim: r.text, final, alternatives: [final], usedInterim: false, error: null, hint: null, notice: null, history: a.hist, raw, audio: stats?.audio ?? null })
   }
 
   function callbacks(a) {
@@ -113,8 +114,8 @@ export function createVoskRecognizer({
   function cancel() { if (cur) { dispose(cur); cur = null } }
 
   return {
-    /** Вызывать прямо в обработчике тапа. data — readSayData шага (грамматика); reference и lang фиксируются на заход */
-    start({ reference, lang, data }) {
+    /** Вызывать прямо в обработчике тапа. data — readSayData шага (грамматика); reference и lang фиксируются на заход; record — копить звук для голосового ответа */
+    start({ reference, lang, data, record = false }) {
       cancel()
       const a = { id: ++seq, t0: perfNow(), done: false, listening: false, stopping: false, wantStop: false, handle: null, tailWord: '', hist: [], text: '', guard: 0, silence: 0, force: 0 }
       cur = a
@@ -129,7 +130,7 @@ export function createVoskRecognizer({
         a.tailWord = g.phrases[0]?.split(' ').at(-1) ?? ''
         p = listen(model, g.json, callbacks(a), {
           autoStopMs: SAY_AUTOSTOP_MS, completeMs: SAY_FULL_MS, maxMs: SAY_MAX_MS, session: getSession(), chunk: SAY_CHUNK,
-          gate: true, cleanPartial, isComplete: sayCompleteCheck(data ?? { phrase: reference }),
+          gate: true, cleanPartial, isComplete: sayCompleteCheck(data ?? { phrase: reference }), record: !!record,
         })
       } catch (e) { p = Promise.reject(e) }
       Promise.resolve(p).then(h => {

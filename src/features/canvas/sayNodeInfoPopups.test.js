@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import NodeSayPhrasePicker from './NodeSayPhrasePicker.jsx'
 import NodeSayHints from './NodeSayHints.jsx'
 import NodeSayCantSpeakNote from './NodeSayCantSpeakNote.jsx'
+import NodeSayVoiceReply from './NodeSayVoiceReply.jsx'
 
 // Пояснения в редакторе ноды say_phrase живут в попапах «i» (shared/ui/InfoPopup.jsx), а не абзацами в панели.
 // Закрытый InfoPopup в разметку текст не кладёт — значит ВСЁ, что видно в отрисованной панели, это короткие метки/значения.
@@ -27,10 +28,10 @@ describe('say_phrase в редакторе — пояснения только �
     for (const a of [...attrs(html, 'placeholder'), ...attrs(html, 'aria-label')]) expect(a.length, a).toBeLessThanOrEqual(MAX_VISIBLE)
   })
 
-  it('в панели есть кнопки «Пояснение»: фраза, ключевые слова, порог, «Строго», «Послушать», подсказки (+3 поля), два выхода', () => {
+  it('в панели есть кнопки «Пояснение»: фраза, ключевые слова, порог, «Строго», «Послушать», «Голосовое с текстом», подсказки (+3 поля), два выхода', () => {
     const html = panel()
-    expect((html.match(/aria-label="Пояснение"/g) ?? []).length).toBe(10)
-    for (const id of ['phrase', 'keywords', 'threshold', 'strict', 'listen', 'hints', 'hintSilence', 'hintMismatch', 'hintPartial', 'exits']) {
+    expect((html.match(/aria-label="Пояснение"/g) ?? []).length).toBe(11)
+    for (const id of ['phrase', 'keywords', 'threshold', 'strict', 'listen', 'voice', 'hints', 'hintSilence', 'hintMismatch', 'hintPartial', 'exits']) {
       expect(html, id).toContain(`data-testid="say-info-${id}"`)
     }
     expect(html).toContain('data-testid="say-cant-speak-note"')
@@ -38,14 +39,14 @@ describe('say_phrase в редакторе — пояснения только �
 
   it('ни один попап не раскрыт сам: текстов пояснений в разметке нет', () => {
     const html = panel()
-    for (const w of ['Порядок слов не важен', 'после третьей неудачной попытки', 'подставляются автоматически', 'домыслил', 'role="dialog"']) {
+    for (const w of ['Порядок слов не важен', 'после третьей неудачной попытки', 'подставляются автоматически', 'домыслил', 'Vosk', 'role="dialog"']) {
       expect(html, w).not.toContain(w)
     }
   })
 
   it('короткие метки на месте: поля, чекбоксы и красная/жёлтая строка про ключевые слова не во фразе', () => {
     const t = texts(panel())
-    for (const w of ['Фраза-эталон', 'Ключевые слова (через запятую)', 'Строго', 'Кнопка «Послушать»', 'Подсказки в чате', '✓ Верно →', '✗ Неверно →']) expect(t, w).toContain(w)
+    for (const w of ['Фраза-эталон', 'Ключевые слова (через запятую)', 'Строго', 'Кнопка «Послушать»', 'Голосовое с текстом', 'Подсказки в чате', '✓ Верно →', '✗ Неверно →']) expect(t, w).toContain(w)
     expect(t.some(x => x.startsWith('Нет в фразе (проверка их не учтёт): missing'))).toBe(true)
   })
 
@@ -62,6 +63,15 @@ describe('say_phrase в редакторе — пояснения только �
     expect((html.match(/placeholder="[^"]+"/g) ?? []).length).toBe(3)
   })
 
+  it('NodeSayVoiceReply: только метка-чекбокс и «i»; галка шлёт voiceReply', () => {
+    const html = renderToStaticMarkup(createElement(NodeSayVoiceReply, { voiceReply: true, onChange: noop }))
+    expect(texts(html)).toEqual(['Голосовое с текстом'])
+    expect(html).toContain('checked=""')
+    expect((html.match(/aria-label="Пояснение"/g) ?? []).length).toBe(1)
+    expect(read('./NodeSayVoiceReply.jsx')).toContain('onChange({ voiceReply: e.target.checked })')
+    expect(read('./NodeAnswerFields.jsx')).toContain('voiceReply={tData.voiceReply === true}')
+  })
+
   it('NodeSayCantSpeakNote: только метка и «i»', () => {
     const html = renderToStaticMarkup(createElement(NodeSayCantSpeakNote))
     expect(texts(html)).toEqual(['Два выхода и «Я не могу говорить»'])
@@ -69,7 +79,7 @@ describe('say_phrase в редакторе — пояснения только �
   })
 
   it('сторож по исходнику: вне <InfoPopup> нет абзацев-пояснений (nodeTwHint) и строк-литералов длиннее порога (комментарии не считаются)', () => {
-    for (const f of ['NodeSayPhrasePicker.jsx', 'NodeSayHints.jsx', 'NodeSayCantSpeakNote.jsx']) {
+    for (const f of ['NodeSayPhrasePicker.jsx', 'NodeSayHints.jsx', 'NodeSayCantSpeakNote.jsx', 'NodeSayVoiceReply.jsx']) {
       const outside = read(`./${f}`).replace(/\/\/.*$/gm, '').replace(/<InfoPopup[\s\S]*?<\/InfoPopup>/g, '<InfoPopup/>')
       expect(outside, f).not.toContain('nodeTwHint') // абзац-пояснение; короткие <p> предупреждения/превью остаются
       for (const m of outside.matchAll(/'([^'\n]{40,})'|"([^"\n]{40,})"|`([^`\n]{40,})`/g)) {
@@ -83,9 +93,9 @@ describe('say_phrase в редакторе — пояснения только �
 
 describe('say_phrase в редакторе — тексты пояснений сохранены в попапах', () => {
   it('смысл прежних абзацев на месте (попапы в исходниках)', () => {
-    const all = ['NodeSayPhrasePicker.jsx', 'NodeSayHints.jsx', 'NodeSayCantSpeakNote.jsx'].map(f => read(`./${f}`)).join('\n')
+    const all = ['NodeSayPhrasePicker.jsx', 'NodeSayHints.jsx', 'NodeSayCantSpeakNote.jsx', 'NodeSayVoiceReply.jsx'].map(f => read(`./${f}`)).join('\n')
     for (const w of ['Порядок слов не важен', 'Штрафов нет', 'ПЕРЕД модулем', 'Консенсус interim+final', 'домыслил', 'тишина попытку не тратит',
-      'всегда ведёт по «Верно»', 'Пропуск разовый', 'микрофон выключен', 'подставляются автоматически']) {
+      'всегда ведёт по «Верно»', 'Пропуск разовый', 'микрофон выключен', 'подставляются автоматически', 'нигде не сохраняется', 'не восстанавливаются']) {
       expect(all, w).toContain(w)
     }
   })
