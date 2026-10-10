@@ -34,21 +34,39 @@ describe('say_phrase — состояния круга', () => {
     expect(strip(micCss)).toMatch(/\.sayPanel \{ --say-dark: #12141d; --say-gray: #2f333d; --say-gray-ink: #8a90a2; \}/)
   })
 
-  it('запись: круг растёт ПРУЖИНОЙ с перелётом (linear() и запасной cubic-bezier для Safari 16); нажатие — без перехода; возврат из записи — быстрая плавная смена цвета без пружины', () => {
+  it('размер круга и кольца: ПЛАВНО в обе стороны одной кривой --size-t (в запись — мягкий ease-out с едва заметным перелётом ≈0,55 с, из записи — ease-in-out ≈0,5 с); нажатие — отдельное свойство scale, не transform', () => {
     const code = strip(stateCss)
-    // цвет кнопки под диском меняется сразу (его не видно), заливку и цвет значка ведут анимации (CSS-анимации, а не transition: их не обрывает :active { transition: none })
-    expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn \{\s*transition: transform \.6s cubic-bezier\(\.34, 1\.8, \.55, 1\), background 0s, border-color \.2s, color 0s/)
-    const sup = code.match(/@supports \(transition-timing-function: linear\(0, 1\)\) \{[\s\S]*?\n\}/)[0]
-    const pts = sup.match(/linear\(([^)]*)\)\s*,\s*background/)[1].split(',').map(Number)
-    expect(Math.max(...pts)).toBeGreaterThan(1.1)   // перелёт ≈ 16%
-    expect(Math.max(...pts)).toBeLessThan(1.3)
-    expect(pts[0]).toBe(0)
-    expect(pts[pts.length - 1]).toBe(1)             // пружина оседает точно в цель
-    expect(pts.slice(8).some(v => v < 1)).toBe(true) // и успевает «недолететь» после первого перелёта (колебание)
-    expect(strip(micCss)).toMatch(/\.sayPanel \.sayMicBtn:active:not\(:disabled\) \{ transition: none; transform: scale\(calc\(var\(--mic-scale\) \* \.95\)\); \}/)
-    expect(strip(micCss)).toMatch(/\.sayPanel \.sayMicBtn--done:disabled, \.sayPanel \.sayMicBtn--off:disabled \{ opacity: 1; \}/)
-    // возврат: базовый transition кнопки — цвет и значок плавно за .32s (без пружины и без «раскрытия»)
-    expect(strip(micCss).match(/\.sayPanel \.sayMicBtn \{[^}]*\}/)[0]).toMatch(/transition: transform \.45s cubic-bezier\(\.22, 1, \.36, 1\), background \.32s, border-color \.32s, color \.32s/)
+    const mic = strip(micCss)
+    const ring = strip(ringCss)
+    const secs = v => Number(v.match(/([\d.]+)s/)[1])
+    // из записи и все остальные переходы (0,85 → 1, в «Готово»): ease-in-out ≈0,5 с, без перелёта
+    const out = code.match(/\.sayPanel \{ --size-t: ([\d.]+s) cubic-bezier\(([^)]*)\); \}/)
+    expect(secs(out[1])).toBeGreaterThanOrEqual(0.45)
+    expect(secs(out[1])).toBeLessThanOrEqual(0.55)
+    const [ox1, oy1, ox2, oy2] = out[2].split(',').map(Number)
+    expect(oy1).toBe(0)                       // ease-in: старт плавный (нет рывка вниз сразу после конца записи)
+    expect(oy2).toBe(1)                       // и без перелёта ниже 1,0
+    expect(ox1).toBeGreaterThan(0)
+    expect(ox2).toBeLessThan(1)
+    // в запись: мягкий ease-out ≈0,5–0,6 с, перелёт едва заметный (y2 чуть выше 1, но не пружина)
+    const inn = code.match(/\.sayMicBox--active \{[^}]*--size-t: ([\d.]+s) cubic-bezier\(([^)]*)\);/)
+    expect(secs(inn[1])).toBeGreaterThanOrEqual(0.5)
+    expect(secs(inn[1])).toBeLessThanOrEqual(0.6)
+    const [ix1, iy1, , iy2] = inn[2].split(',').map(Number)
+    expect(iy1).toBeGreaterThan(ix1)          // ease-out: старт быстрее линейного
+    expect(iy2).toBeGreaterThan(1)            // едва заметный перелёт …
+    expect(iy2).toBeLessThanOrEqual(1.1)      // … не пружина
+    expect(code).not.toMatch(/linear\(0, /)   // пружины linear() больше нет
+    // круг и кольцо читают ОДНУ переменную; transition берётся из состояния-приёмника, поэтому смена класса не сбрасывает размер
+    expect(mic.match(/\.sayPanel \.sayMicBtn \{[^}]*\}/)[0]).toMatch(/transition: transform var\(--size-t\), scale \.12s ease-out, background \.32s, border-color \.32s, color \.32s/)
+    expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn \{\s*transition: transform var\(--size-t\), scale \.12s ease-out, background 0s, border-color \.2s, color 0s/)
+    expect(ring.match(/\.sayRing \{[^}]*\}/)[0]).toMatch(/transition: transform var\(--size-t/)
+    // нажатие не трогает transform и не отключает transition (на iPhone :active и клик идут впритык и обрывали бы размер)
+    expect(mic).toMatch(/\.sayPanel \.sayMicBtn:active:not\(:disabled\) \{ scale: \.95; \}/)
+    expect(mic).not.toMatch(/:active[^{]*\{[^}]*(transition: none|transform:)/)
+    expect(mic).toMatch(/\.sayPanel \.sayMicBtn--done:disabled, \.sayPanel \.sayMicBtn--off:disabled \{ opacity: 1; \}/)
+    // prefers-reduced-motion: размер меняется за .2 с, без «роста»
+    expect(code).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.sayPanel, \.sayPanel \.sayMicBox--active \{ --size-t: \.2s ease-out; \}/)
   })
 
   it('заливка при нажатии идёт КОЛЬЦОМ от края круга к центру: диск прежнего цвета (::before) сжимается scale(1 → 0) ≈0,6–0,7 с, ease-out, лайм приходит от края; значок темнеет синхронно; без @property и mask', () => {
@@ -62,9 +80,6 @@ describe('say_phrase — состояния круга', () => {
     expect(x2).toBeLessThan(1)
     expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn::before \{ animation: sayIris var\(--say-fill\) both; \}/)
     expect(code).toMatch(/@keyframes sayIris \{\s*from \{ transform: scale\(1\); \}\s*to\s+\{ transform: scale\(0\); \}/)
-    // значок: анимация цвета на ту же длительность; пока лайм не дошёл — прежний цвет, потом тёмный
-    expect(code).toMatch(/\.sayMicBox--active \.sayFaceMic \{ animation: sayIconInk var\(--say-fill-t\) ease-in-out both; \}/)
-    expect(code).toMatch(/0%, 20%\s*\{ color: var\(--from-ink, var\(--say-lime\)\); \}[\s\S]*50%, 100% \{ color: var\(--say-ink\); \}/)
     // диск: в покое сжат в точку; цвет «прежнего» круга — тёмный (из ready) или серый (из locked, класс --from-locked)
     const disc = strip(micCss).match(/\.sayPanel \.sayMicBtn::before \{[^}]*\}/)[0]
     expect(disc).toMatch(/border-radius: 50%/)
@@ -76,7 +91,33 @@ describe('say_phrase — состояния круга', () => {
     expect(panelSrc['SayStage.jsx']).toContain("from === 'locked' ? ' sayMicBox--from-locked' : ''")
     // prefers-reduced-motion: без заливки кольцом (диск скрыт, анимации значка нет), смена цвета за .2 с
     expect(strip(micCss)).toMatch(/\.sayPanel \.sayMicBtn::before \{ display: none; \}/)
-    expect(code).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.sayMicBox--active \.sayMicBtn \{ transition: background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}[^}]*\n\s*\.sayMicBox--active \.sayFaceMic \{ animation: none; \}/)
+    expect(code).toMatch(/prefers-reduced-motion: reduce\) \{[\s\S]*\.sayMicBox--active \.sayMicBtn \{ transition: transform var\(--size-t\), background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}[^}]*\n\s*\.sayMicBox--active \.sayFaceMic \{ animation: none; \}/)
+  })
+
+  it('значок при заливке: схлопывается до нуля (ease-in) в первой половине заливки, при нуле меняет цвет на тёмный, после заливки возвращается 0 → 1 с лёгким перелётом ≈0,3 с — только transform и цвет', () => {
+    const code = strip(stateCss)
+    expect(code).toMatch(/\.sayMicBox--active \.sayFaceMic \{ animation: sayIconPop var\(--say-icon-t\) linear both; \}/)
+    const total = Number(code.match(/--say-icon-t: ([\d.]+)s/)[1])
+    const fill = Number(code.match(/--say-fill-t: ([\d.]+)s/)[1])
+    const kf = code.match(/@keyframes sayIconPop \{([\s\S]*?)\n\}/)[1]
+    const frame = pct => kf.match(new RegExp(`\\n\\s*${pct}%\\s*\\{([^}]*)\\}`, 'm') ) ?? kf.match(new RegExp(`${pct}%\\s*\\{([^}]*)\\}`))
+    const at = pct => frame(pct)[1]
+    // 0%: размер 1, прежний цвет, кривая ease-in до нуля
+    expect(at(0)).toMatch(/transform: scale\(1\);[^;]*--from-ink[^;]*;\s*animation-timing-function: cubic-bezier\(\.5, 0, \.75, 0\)/)
+    // ноль достигается в первой половине заливки; цвет меняется, пока значок нулевой
+    const zeroAt = 0.34 * total
+    expect(zeroAt).toBeLessThanOrEqual(fill / 2 + 0.01)
+    expect(at(34)).toMatch(/transform: scale\(0\);[^;]*--from-ink/)
+    expect(at(35)).toMatch(/transform: scale\(0\);\s*color: var\(--say-ink\)/)
+    // держится нулевым до конца заливки (69% от общего времени ≈ --say-fill-t) и возвращается с перелётом (y1 > 1) за 0,25–0,35 с
+    expect(Math.abs(0.69 * total - fill)).toBeLessThan(0.02)
+    expect(at(69)).toMatch(/transform: scale\(0\);\s*color: var\(--say-ink\);\s*animation-timing-function: cubic-bezier\(\.34, 1\.45, \.64, 1\)/)
+    expect(at(100)).toMatch(/transform: scale\(1\);\s*color: var\(--say-ink\)/)
+    const back = (1 - 0.69) * total
+    expect(back).toBeGreaterThanOrEqual(0.25)
+    expect(back).toBeLessThanOrEqual(0.35)
+    expect(kf).not.toMatch(/opacity|filter|background|@property/) // только transform и цвет
+    expect(code).not.toContain('sayIconInk')
   })
 
   it('в покое ничего не движется: пульса круга нет (ни обёртки .sayMicPulse, ни keyframes), кнопка лежит прямо в .sayMicBox; дуга кольца бежит только в locked', () => {
@@ -95,6 +136,7 @@ describe('say_phrase — состояния круга', () => {
     const hook = panelSrc['useSayPhrase.js']
     const stage = panelSrc['SayStage.jsx']
     expect(body).toContain('micVisualState({ ...sp.access, phase })')
+    expect(body).toContain('useDelayedMicState(micTarget, { settled: sp.perm.isChecked() })') // картинка запаздывает, решения идут по настоящему micTarget
     expect(body).toContain("locked: micState === 'locked'")
     expect(body).toContain('state={micState}')
     expect(hook).toContain('access: perm.access()')

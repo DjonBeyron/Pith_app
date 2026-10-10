@@ -2,7 +2,7 @@
    ОДИН круглый элемент .sayMicBtn (100px) в области фиксированной высоты .sayMicBox (say-phrase.css): форма не меняется НИКОГДА. Внутри — значок микрофона
    (SayMicIcon.jsx) или, на успехе, галочка и «Готово». Размер, цвет круга и значок задаёт СОСТОЯНИЕ: класс .sayMicBox--{locked|ready|active|done|off} на корне
    (sayMicState.js), а сами значения лежат переменными в say-phrase-state.css (--mic-scale / --mic-bg / --mic-ink / --mic-rim) — здесь только как кнопка их применяет.
-   Масштаб — transform: scale(var(--mic-scale)) с transition (0,85 → 1 плавно; в запись 1,15 пружиной с перелётом; заливка кольцом от края к центру ≈0,6 с — say-phrase-state.css). Пульса в покое нет. Нажатие — вжатие БЕЗ перехода (:active). Layout-анимаций нет: только transform/opacity и цвета.
+   Масштаб — transform: scale(var(--mic-scale)) с transition общей кривой --size-t (0,85 → 1 и из записи 1,15 → 1 ease-in-out ≈0,5 с; в запись 1 → 1,15 мягкий ease-out ≈0,55 с; заливка кольцом от края к центру ≈0,6 с и схлопывание значка — say-phrase-state.css). Пульса в покое нет. Нажатие — лёгкое вжатие отдельным свойством scale (:active). Layout-анимаций нет: только transform/opacity и цвета.
    Цвета --say-lime / --say-ink / --say-dark — на .sayPanel. Волны вокруг круга и надпись над ним — say-phrase-waves.css / say-phrase.css.
    ──────────────────────────────────────────────────────────────────── */
 
@@ -25,7 +25,7 @@
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   transform: scale(var(--mic-scale));
-  transition: transform .45s cubic-bezier(.22, 1, .36, 1), background .32s, border-color .32s, color .32s, opacity .2s; /* возврат из записи: цвет круга и значка плавно за .32s (быстро, без «раскрытия») */
+  transition: transform var(--size-t), scale .12s ease-out, background .32s, border-color .32s, color .32s, opacity .2s; /* размер — общая кривая состояния --size-t (say-phrase-state.css, одна на круг и кольцо); возврат из записи: цвет круга и значка плавно за .32s */
 }
 /* Слой «прежний цвет круга» для заливки кольцом (say-phrase-state.css): диск на весь круг, вне записи сжат в точку и не виден */
 .sayPanel .sayMicBtn::before {
@@ -39,8 +39,8 @@
 }
 /* hover/active общего .phraseCheckBtn красят круг в лайм и значок в чёрный — на тач-экране :hover «залипает» после тапа, поэтому возвращаем цвета состояния */
 .sayPanel .sayMicBtn:hover:not(:disabled), .sayPanel .sayMicBtn:active:not(:disabled) { background: var(--mic-bg); color: var(--mic-ink); }
-/* Нажатие: вжатие сразу, без перехода; отпустили — круг пойдёт к размеру состояния (в запись — пружиной) */
-.sayPanel .sayMicBtn:active:not(:disabled) { transition: none; transform: scale(calc(var(--mic-scale) * .95)); }
+/* Нажатие: лёгкое вжатие отдельным свойством scale (не transform!): оно не перебивает transition размера состояния и не обрывает его при смене класса (iPhone: :active и клик идут впритык) */
+.sayPanel .sayMicBtn:active:not(:disabled) { scale: .95; }
 
 /* ── Содержимое круга ── */
 /* Значок микрофона: капсула — заливка, дужка и ножка — толстая скруглённая линия; всё цветом кнопки (currentColor) */
@@ -70,7 +70,7 @@
 .sayPanel .sayMicBtn--done:disabled, .sayPanel .sayMicBtn--off:disabled { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
-  .sayPanel .sayMicBtn { transition: background .2s, border-color .2s, color .2s, opacity .2s; } /* размер меняется сразу, без пружины; смена цвета за .2s */
+  .sayPanel .sayMicBtn { transition: transform var(--size-t), background .2s, border-color .2s, color .2s, opacity .2s; } /* размер без роста — смена за .2s (--size-t в say-phrase-state.css); смена цвета за .2s */
   .sayPanel .sayMicBtn::before { display: none; } /* заливки кольцом нет */
   .sayFace { transition: opacity .2s; }
   .sayFaceMic, .sayFaceDone, .sayMicBtn--done .sayFaceMic, .sayMicBtn--done .sayFaceDone { transform: none; }

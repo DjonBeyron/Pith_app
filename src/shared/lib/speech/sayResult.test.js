@@ -178,30 +178,25 @@ describe('micLabel и тексты панели (внутри панели не�
     expect(t.CANT_SPEAK_LINK).toBe('Я не могу говорить')
   })
 
-  it('попап: полный вариант объясняет ЗАЧЕМ (ученик говорит вслух, приложение слушает и проверяет), что доступ нужен один раз и что звук не хранится; две короткие строки', async () => {
+  it('попап: полный вариант — ОДНА короткая строка без объяснений про урок: приложение слушает, запись не сохраняется', async () => {
     const { EXPLAIN_LINES } = await import('./sayTexts.js')
-    expect(EXPLAIN_LINES).toHaveLength(2)
-    expect(EXPLAIN_LINES[0]).toMatch(/произнесёте фразу вслух/)
-    expect(EXPLAIN_LINES[0]).toMatch(/послушает и проверит/)
-    expect(EXPLAIN_LINES[1]).toMatch(/один раз/)
-    expect(EXPLAIN_LINES[1]).toMatch(/Запись не сохраняется и не отправляется на наш сервер/)
-    for (const l of EXPLAIN_LINES) expect(l.length, l).toBeLessThanOrEqual(90) // короткие предложения, без технических деталей
-    expect(EXPLAIN_LINES.join(' ')).not.toMatch(/API|getUserMedia|WebKit|Vosk|движок/i)
+    expect(EXPLAIN_LINES).toEqual(['Приложение послушает вас. Запись не сохраняется.'])
+    expect(EXPLAIN_LINES[0].length).toBeLessThanOrEqual(60) // одна короткая строка, а не абзац
+    expect(EXPLAIN_LINES.join(' ')).not.toMatch(/API|getUserMedia|WebKit|Vosk|движок|фразу вслух|проверит|один раз|сервер/i)
   })
 
-  it('попап: короткий вариант (повторные показы) — тот же заголовок, 2 фразы, ждите запрос телефона; честная формулировка: не обещаем, что звук вообще не покидает телефон', async () => {
+  it('попап: короткий вариант (повторные показы) — тот же заголовок, одна строка «телефон спросит — нажмите «Разрешить»»; про «не покидает телефон» не обещаем', async () => {
     const { EXPLAIN_SHORT_LINES, EXPLAIN_SHORT_TITLE, EXPLAIN_TITLE, EXPLAIN_LINES, INTRO_LINES } = await import('./sayTexts.js')
     expect(EXPLAIN_SHORT_TITLE).toBe(EXPLAIN_TITLE)
-    expect(EXPLAIN_SHORT_LINES).toHaveLength(2)
-    expect(EXPLAIN_SHORT_LINES[1]).toMatch(/нажмите «Разрешить»/)
+    expect(EXPLAIN_SHORT_LINES).toEqual(['Телефон спросит разрешение — нажмите «Разрешить».'])
+    expect(EXPLAIN_SHORT_LINES[0].length).toBeLessThanOrEqual(60)
     const all = [...EXPLAIN_LINES, ...EXPLAIN_SHORT_LINES, ...INTRO_LINES].join(' ')
-    expect(all).toMatch(/на наш сервер/)
     expect(all).not.toMatch(/не покидает|никуда не отправляется|никуда не уходит/)
   })
 
-  it('попап: вводный вариант не обещает запрос системы (нет слов «разрешить»/«спросит»), две строки; строка про «Я не могу говорить» общая для всех видов и обещает, что прогресс не пострадает', async () => {
+  it('попап: вводный вариант не обещает запрос системы (нет слов «разрешить»/«спросит»), одна строка; строка про «Я не могу говорить» общая для всех видов и обещает, что прогресс не пострадает', async () => {
     const { INTRO_TITLE, INTRO_LINES, INTRO_BTN, EXPLAIN_CANT } = await import('./sayTexts.js')
-    expect(INTRO_LINES).toHaveLength(2)
+    expect(INTRO_LINES).toEqual(['Приложение послушает вас. Запись не сохраняется.'])
     expect(`${INTRO_TITLE} ${INTRO_LINES.join(' ')} ${INTRO_BTN}`).not.toMatch(/разреш|спросит|доступ/i)
     expect(EXPLAIN_CANT).toHaveLength(3) // до иконки, слово «в» рядом с ней и остаток
     expect(EXPLAIN_CANT.join(' ')).toBe('Нажмите на в правом нижнем углу, если не можете говорить сейчас. Это не повлияет на ваш прогресс.') // иконка стоит между «на» и «в»

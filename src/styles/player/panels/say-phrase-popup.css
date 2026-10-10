@@ -22,9 +22,9 @@
   width: min(100%, 340px);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px 12px;
-  border-radius: 18px;
+  gap: 16px;               /* воздух между заголовком, текстом, блоком и кнопками */
+  padding: 22px 20px 20px;
+  border-radius: 20px;
   background: #14171c;
   border: 1px solid #2a313b;
   color: #e8ecf0;
@@ -52,7 +52,7 @@
   transform: rotate(45deg);
 }
 
-.sayPopHead { display: flex; align-items: center; gap: 8px; }
+.sayPopHead { display: flex; align-items: center; gap: 10px; }
 .sayPopIcon {
   flex: none;
   display: grid;
@@ -63,19 +63,20 @@
   border: 1.5px solid #b6fe3b;
   color: #b6fe3b;
 }
-/* Вёрстка в духе окошка «Временная память» (memory-count.css), но плотнее: заголовок 15/800, текст 13px приглушённый, блок про «Я не могу говорить» #1b1f26 с полоской слева */
-.sayPopTitle { margin: 0; font-size: 15px; line-height: 1.25; font-weight: 800; color: #f1f4f8; }
-.sayPopBody { display: flex; flex-direction: column; gap: 6px; }
-.sayPopText { margin: 0; font-size: 13px; line-height: 1.4; color: #aeb6bf; }
+/* Вёрстка в духе окошка «Временная память» (memory-count.css), но с воздухом (решение владельца 2026-10-10: «слишком сжато»): заголовок 15/800, одна короткая строка 14px приглушённая
+   (межстрочный 1,5), блок про «Я не могу говорить» #1b1f26 с полоской слева. Отступы: карточка 22/20/20, зазоры между блоками 16, внутри тела 14, кнопки по 48px. */
+.sayPopTitle { margin: 0; font-size: 15px; line-height: 1.3; font-weight: 800; color: #f1f4f8; }
+.sayPopBody { display: flex; flex-direction: column; gap: 14px; }
+.sayPopText { margin: 0; font-size: 14px; line-height: 1.5; color: #aeb6bf; }
 .sayPopBlock {
   position: relative;
   margin: 0;
-  padding: 7px 10px;
+  padding: 12px 14px;
   border-radius: 12px;
   border-left: 3px solid #b6fe3b;
   background: #1b1f26;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: #c9d0d7;
 }
 .sayPopBlock--cant { border-left-color: #8c93a8; }
@@ -95,14 +96,15 @@
 }
 .sayPopSr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Низ карточки: слева тихая «Не сейчас» (= тап мимо окна или Esc), справа основная кнопка на всю оставшуюся ширину */
-.sayPopActions { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
-.sayPopActions .sayPopBtn { flex: 1; min-width: 0; margin: 0; }
+/* Низ карточки: слева тихая «Не сейчас» (= тап мимо окна или Esc) отдельно от основной кнопки (зазор 14px), справа основная кнопка на всю оставшуюся ширину; обе высотой 48px */
+.sayPopActions { display: flex; align-items: center; gap: 14px; margin-top: 2px; }
+.sayPopActions .sayPopBtn { flex: 1; min-width: 0; height: 48px; margin: 0; }
 .sayPopLater {
   position: relative;
   flex: none;
+  min-height: 48px;
   margin: 0;
-  padding: 10px 8px;
+  padding: 0 6px;
   background: none;
   border: 0;
   font-family: inherit;
@@ -115,6 +117,14 @@
   touch-action: manipulation;
 }
 .sayPopLater:disabled { cursor: default; }
+
+/* Узкие экраны (320 × 568: над модулем ≈ 327px): воздух остаётся (зазоры 14, отступы 20/20/18, кнопки 48), но заголовок в одну строку (мельче значок и шрифт), чтобы карточка не упиралась в верх экрана */
+@media (max-width: 359px) {
+  .sayPopCard { gap: 14px; padding: 20px 20px 18px; }
+  .sayPopHead { gap: 8px; }
+  .sayPopIcon { width: 24px; height: 24px; }
+  .sayPopTitle { font-size: 14px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .sayPopCard { animation: none; } /* без анимации появления: карточка просто есть */

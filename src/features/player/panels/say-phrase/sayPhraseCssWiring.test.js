@@ -43,7 +43,7 @@ describe('say_phrase — CSS и редактор', () => {
     expect(base).toMatch(/background: var\(--mic-bg\)/)
     expect(base).toMatch(/color: var\(--mic-ink\)/)
     expect(base).toMatch(/transform: scale\(var\(--mic-scale\)\)/)
-    expect(base).toMatch(/transition: transform \.45s/)
+    expect(base).toMatch(/transition: transform var\(--size-t\)/) // общая кривая размера состояния (say-phrase-state.css)
     expect(code).toMatch(/\.sayPanel \{ --say-lime: #b6fe3b; --say-ink: #101a08; \}/) // лайм-заливка записи; значок и «Готово» на ней — тёмные
     // ни морфинга, ни квадрата, ни прямоугольника: размеры и скругление задаёт только базовое правило
     const all = strip(micCss + stateCss + wavesCss + css)
@@ -78,7 +78,7 @@ describe('say_phrase — CSS и редактор', () => {
     expect(ring.replace(/\/\/.*$/gm, '')).not.toMatch(/useState|useEffect|requestAnimationFrame/) // без React на кадр
     const code = strip(ringCss)
     expect(code).toMatch(/\.sayRing \{[^}]*width: 128px;\s*height: 128px;\s*margin: -64px 0 0 -64px;[^}]*pointer-events: none/) // диаметр круга 100 → зазор 8 px
-    expect(code).toMatch(/\.sayRing \{[^}]*transform: scale\(var\(--ring-scale, 1\)\);\s*transition: transform \.6s/) // в записи кольцо растёт вместе с кругом
+    expect(code).toMatch(/\.sayRing \{[^}]*transform: scale\(var\(--ring-scale, 1\)\);\s*transition: transform var\(--size-t, \.5s ease\);/) // в записи кольцо растёт вместе с кругом, по той же кривой, что и круг
     expect(code).toMatch(/\.sayRingTrack \{ stroke: var\(--ring-track\); opacity: var\(--ring-track-o\); transition: stroke \.4s, opacity \.4s; \}/)
     expect(code).toMatch(/\.sayRingArc \{ stroke: var\(--ring-arc\); stroke-linecap: round; opacity: var\(--ring-arc-o\); transition: stroke \.4s, opacity \.4s; \}/)
     expect(code).toMatch(/\.sayRingFull \{ stroke: var\(--say-lime\); opacity: var\(--ring-full-o, 0\); transition: opacity \.4s; \}/)
@@ -106,7 +106,7 @@ describe('say_phrase — CSS и редактор', () => {
 
   it('все анимации — только transform/opacity (layout не трогаем): дуга серого кольца плывёт (только locked), три волны активации расходятся один раз (≤ ×1,7, ≈ 0,8 с суммарно)', () => {
     const all = [...frames(stateCss), ...frames(ringCss), ...frames(wavesCss)]
-    expect(all.map(f => f[1]).sort()).toEqual(['sayActWave', 'sayIconInk', 'sayIris', 'sayRingSpin'])
+    expect(all.map(f => f[1]).sort()).toEqual(['sayActWave', 'sayIconPop', 'sayIris', 'sayRingSpin'])
     const act = strip(wavesCss).match(/@keyframes sayActWave[\s\S]*?\n\}/)[0]
     expect(Number(act.match(/100%\s*\{\s*transform:\s*scale\(([\d.]+)\)/)[1])).toBeLessThanOrEqual(1.7)
     expect(act).toMatch(/0%\s*\{\s*transform: scale\(1\);\s*opacity: 0;/) // до старта и после конца волны не видно
@@ -118,7 +118,7 @@ describe('say_phrase — CSS и редактор', () => {
     expect(w).not.toMatch(/animation:[^;]*infinite/)     // одноразовый: бесконечных волн нет совсем
     for (const [, name, body] of all) {
       const props = [...body.matchAll(/([\w-]+)\s*:/g)].map(m => m[1]).filter(p => p !== 'animation-timing-function')
-      const allowed = name === 'sayIconInk' ? ['color'] : ['transform', 'opacity'] // цвет значка при заливке (sayIconInk) — единственная анимация цвета, layout не трогает
+      const allowed = name === 'sayIconPop' ? ['transform', 'color'] : ['transform', 'opacity'] // значок при заливке (sayIconPop): размер и цвет — единственная анимация цвета, layout не трогает
       expect(props.every(p => allowed.includes(p)), name).toBe(true)
     }
   })
@@ -175,8 +175,8 @@ describe('say_phrase — CSS и редактор', () => {
     expect(media).toMatch(/\.sayEq i \{ transform: scale\(1\.2\) !important; opacity: \.3 !important; \}/)
     const st = strip(stateCss)
     const stMedia = st.slice(st.indexOf('@media (prefers-reduced-motion: reduce)'))
-    expect(stMedia).toMatch(/\.sayMicBox--active \.sayMicBtn \{ transition: background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}/) // размер сразу, без перехода
-    expect(strip(micCss)).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.sayPanel \.sayMicBtn \{ transition: background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}/)
+    expect(stMedia).toMatch(/\.sayMicBox--active \.sayMicBtn \{ transition: transform var\(--size-t\), background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}/) // размер за .2 с (--size-t), без роста
+    expect(strip(micCss)).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.sayPanel \.sayMicBtn \{ transition: transform var\(--size-t\), background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}/)
     expect(panelSrc['useSayWaves.js']).toContain('reducedMotion()')
   })
 

@@ -86,9 +86,24 @@ describe('попап перед записью — три вида и мини-�
     expect(popupCss).toMatch(/\.sayPopSr \{[^}]*clip: rect\(0 0 0 0\)/)
   })
 
+  it('воздух в карточке (решение владельца): отступы ≥20px, зазоры между блоками 14–18px, кнопки ≥48px, межстрочный ≥1,45, «Не сейчас» отдельно от основной; на узких экранах (<360px) зазоры не меньше 14', () => {
+    const card = popupCss.match(/\.sayPopCard \{[^}]*\}/)[0]
+    expect(card).toMatch(/gap: 16px;/)
+    expect(card).toMatch(/padding: 22px 20px 20px;/)
+    expect(popupCss).toMatch(/\.sayPopBody \{[^}]*gap: 14px;/)
+    expect(popupCss).toMatch(/\.sayPopText \{[^}]*line-height: 1\.5;/)
+    expect(popupCss).toMatch(/\.sayPopBlock \{[^}]*padding: 12px 14px;[^}]*line-height: 1\.5;/)
+    expect(popupCss).toMatch(/\.sayPopActions \{[^}]*gap: 14px;/)
+    expect(popupCss).toMatch(/\.sayPopActions \.sayPopBtn \{[^}]*height: 48px;/)
+    expect(popupCss).toMatch(/\.sayPopLater \{[^}]*min-height: 48px;/)
+    const narrow = popupCss.match(/@media \(max-width: 359px\) \{[\s\S]*?\n\}/)[0]
+    expect(narrow).toMatch(/\.sayPopCard \{ gap: 14px; padding: 20px 20px 18px; \}/)
+    expect(narrow).toMatch(/\.sayPopTitle \{ font-size: 14px; \}/) // заголовок в одну строку, карточка 320×568 не упирается в верх
+  })
+
   it('вёрстка компактной карточки: значок микрофона и заголовок 15/800 в одной строке, текст 13px приглушённый, блок про «не могу говорить» #1b1f26 с полоской слева; кнопки как раньше', () => {
     expect(popupCss).toMatch(/\.sayPopTitle \{[^}]*font-size: 15px;[^}]*font-weight: 800/)
-    expect(popupCss).toMatch(/\.sayPopText \{[^}]*font-size: 13px;[^}]*color: #aeb6bf/)
+    expect(popupCss).toMatch(/\.sayPopText \{[^}]*font-size: 14px;[^}]*line-height: 1\.5;[^}]*color: #aeb6bf/)
     expect(popupCss).toMatch(/\.sayPopBlock \{[^}]*border-radius: 12px;[^}]*border-left: 3px solid #b6fe3b;[^}]*background: #1b1f26/)
     expect(popupCss).toMatch(/\.sayPopCantIcon \{[^}]*border-radius: 50%/)
     expect(popupCss).toMatch(/\.sayPopHead \{ display: flex; align-items: center;/)
@@ -159,7 +174,7 @@ describe('автопоказ попапа: проводка', () => {
 
   it('панель отдаёт хуку решение autoPopupWanted (панель показана, не закрывается, фаза, нажатия, вид кнопки, sayPermission.decide()) и openExplain', () => {
     expect(panel).toContain('useSayAutoPopup({ visible: show, phase, open: sp.openExplain')
-    expect(panel).toContain('autoPopupWanted({ visible: show, closing, phase, taps: sp.taps, micState, decision: sp.perm.decide() })')
+    expect(panel).toContain('autoPopupWanted({ visible: show, closing, phase, taps: sp.taps, micState: micTarget, decision: sp.perm.decide() })')
   })
 
   it('хук: один таймер на секунду от появления модуля (autoPopupDelay), чистится при размонтировании и потере условий, один раз за монтирование; микрофон не трогает', () => {

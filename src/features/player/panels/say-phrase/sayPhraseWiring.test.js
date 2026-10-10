@@ -118,7 +118,7 @@ describe('say_phrase — микрофон: только по тапу, мини�
     const panel = panelSrc['SayPhrasePanel.jsx']
     expect(panel).toContain("import { track } from '../../../../shared/lib/analytics/track.js'")
     expect(panel).toContain('onEvent: track')
-    expect(read('../../../../shared/lib/speech/sayTexts.js')).toContain('Запись не сохраняется и не отправляется на наш сервер')
+    expect(read('../../../../shared/lib/speech/sayTexts.js')).toContain('Приложение послушает вас. Запись не сохраняется.')
   })
 })
 

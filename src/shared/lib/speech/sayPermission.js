@@ -68,15 +68,18 @@ export function createSayPermission({
 } = {}) {
   let perm = 'unavailable' // последний ответ query (он асинхронный, а start() нужен синхронно в тапе — поэтому кэш)
   let micOk = false        // в ЭТОМ запуске приложения распознавание реально началось (диалог ОС позади)
+  let checked = false      // Permissions API хотя бы раз ответил (или не смог): до этого perm — просто «не знаем», и «доступ выдан» на кнопке — не новость (useDelayedMicState)
 
   return {
     /** Обновить кэш разрешения (диалога не вызывает). Звать при показе панели и после попытки */
     async refresh() {
       try { perm = await queryPerm() } catch { perm = 'unavailable' }
+      checked = true
       if (perm === 'denied') write(local, MIC_GRANTED_KEY, false) // доступ отозвали в настройках: «уже разрешали» больше не верим
       return perm
     },
     getPerm: () => perm,
+    isChecked: () => checked,
     isExplained: () => read(local, EXPLAINED_KEY),
     isIntroSeen: () => read(local, INTRO_SEEN_KEY),
     isDenied: () => read(session, DENIED_KEY),
