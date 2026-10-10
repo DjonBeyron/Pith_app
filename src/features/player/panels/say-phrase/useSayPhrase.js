@@ -32,6 +32,7 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // «глухая» попытка после успешной автоматически пересоздаётся один раз (speechDeaf.js).
 // Круг реагирует на тап СРАЗУ: 'begin' ставит phase 'run' в том же тапе. «Можно остановить» = isGo (движок слушает И прошла защита от
 // двойного тапа STOP_ARM_MS: таймер 'arm'). После неудачи круг сразу снова готов (никаких пауз-показов); реплика и подсказка уходят в чат (панель).
+// После третьей засчитанной неудачи (exhausted, счёт — sayFlow.js) тап игнорируется: панель сама уходит по ветке «неверный».
 export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   const [s, dispatch] = useReducer(sayReducer, perm, p => initialSayState(p.decide()))
   const [voice] = useState(createVoiceLevel)
@@ -141,6 +142,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
 
   // Тап по микрофону: «начали» и идёт запись — «стоп» (принять сказанное), иначе по решению sayPermission
   const tapMic = useCallback(() => {
+    if (s.exhausted) return // три неудачи уже были: панель уходит по ветке «неверный», новая запись не нужна
     const plan = planTap({ view: s.view, decision: perm.decide(), go: isGo(s), running: s.phase === 'run' })
     if (plan.act === 'stop') ctrl.stop()
     else if (plan.act === 'fallback') dispatch({ type: 'fallback', reason: plan.reason })
@@ -160,7 +162,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
 
   return {
     view: s.view, phase: s.phase, taps: s.taps, verdict: s.verdict, errorCode: s.errorCode,
-    fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak,
+    fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak, exhausted: s.exhausted,
     go: isGo(s), adminLine: s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
     tapMic, confirmExplain, cancelExplain, enableMic, emit, perm,
   }

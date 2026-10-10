@@ -89,14 +89,13 @@ export function pickStepAnswer(node, wantCorrect, rnd = Math.random) {
   }
 
   if (t === 'say_phrase') {
-    // Речь — тренировка без «неверно»: шаг «верно» = сказал, «неверно» = «Не могу говорить» (ветка say_skip, если она соединена,
-    // иначе обычный выход). Ошибкой урока это не считается (correct всегда true) — как в самой панели
-    const skip = !wantCorrect && (node.triggers ?? []).some(tr => tr.if === 'say_skip' && tr.then)
+    // Речь — тренировка без штрафов: шаг «верно» = сказал (выход say_done), «неверно» = три неудачи (выход say_wrong; если ветка не соединена,
+    // плеер идёт по существующему выходу — sayPairSkip.sayExit). Ошибкой урока это не считается (correct всегда true) — как в самой панели
     return {
       kind: 'phrase',
       correct: true,
       variantId: null,
-      result: skip ? 'say_skip' : 'say_done',
+      result: wantCorrect ? 'say_done' : 'say_wrong',
       responseText: wantCorrect ? (d.phrase ?? '') : '',
     }
   }

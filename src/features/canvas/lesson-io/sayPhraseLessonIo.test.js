@@ -26,7 +26,7 @@ const ex = (ref, seq, type, data, triggers = []) => ({ ref, seq, type, data, tri
 describe('say_phrase — линтер урока', () => {
   const good = [
     ex('n1', 1, 'text', { content: 'Скажем вслух' }, [{ if: 'timer', then: 'n2' }]),
-    ex('n2', 2, 'say_phrase', { phrase: 'I am trying to please both', keywords: 'please', threshold: 70 }, [{ if: 'say_done', then: 'n3' }, { if: 'say_skip', then: 'n3' }]),
+    ex('n2', 2, 'say_phrase', { phrase: 'I am trying to please both', keywords: 'please', threshold: 70 }, [{ if: 'say_done', then: 'n3' }, { if: 'say_wrong', then: 'n3' }]),
     ex('n3', 3, 'text', { content: 'Дальше' }, []),
   ]
 
@@ -66,26 +66,26 @@ describe('say_phrase — обмен JSON', () => {
     return n
   }
 
-  it('узел есть в списке типов, у него пара триггеров say_done/say_skip', () => {
+  it('узел есть в списке типов, у него пара триггеров say_done («верный») / say_wrong («неверный»)', () => {
     expect(NODE_TYPES.find(t => t.value === 'say_phrase')).toMatchObject({ label: 'Сказать фразу', group: 'interactive' })
-    expect(TYPED_PAIRS.say_phrase).toEqual(['say_done', 'say_skip'])
-    expect(makeDefaultTriggers('say_phrase').map(t => t.if)).toEqual(['say_done', 'say_skip'])
+    expect(TYPED_PAIRS.say_phrase).toEqual(['say_done', 'say_wrong'])
+    expect(makeDefaultTriggers('say_phrase').map(t => t.if)).toEqual(['say_done', 'say_wrong'])
   })
 
   it('экспорт → импорт: поля phrase/translation/keywords/threshold/lang/listenAudio и переходы сохраняются', () => {
     const a = node()
     const b = makeNode(2, 400, 0, 'text')
     b.typeData.text.content = 'Дальше'
-    a.triggers = [{ id: 't1', if: 'say_done', then: b.id }, { id: 't2', if: 'say_skip', then: b.id }]
+    a.triggers = [{ id: 't1', if: 'say_done', then: b.id }, { id: 't2', if: 'say_wrong', then: b.id }]
     const out = exportLesson([a, b], { title: 'Say' })
     const exported = out.nodes[0]
     expect(exported.type).toBe('say_phrase')
     expect(exported.data).toMatchObject({ phrase: 'I am trying to please both', translation: 'Я пытаюсь угодить обоим', keywords: 'please, both', threshold: 80, lang: 'en-GB', listenAudio: false })
-    expect(exported.triggers.map(t => t.if)).toEqual(['say_done', 'say_skip'])
+    expect(exported.triggers.map(t => t.if)).toEqual(['say_done', 'say_wrong'])
     const back = importLesson(JSON.parse(JSON.stringify(out)))
     const n = back.nodes.find(x => x.type === 'say_phrase')
     expect(n.typeData.say_phrase).toMatchObject({ phrase: 'I am trying to please both', keywords: 'please, both', threshold: 80, lang: 'en-GB', listenAudio: false })
-    expect(n.triggers.map(t => t.if)).toEqual(['say_done', 'say_skip'])
+    expect(n.triggers.map(t => t.if)).toEqual(['say_done', 'say_wrong'])
     expect(n.triggers.every(t => t.then)).toBe(true)
     expect(back.warnings.filter(w => /неизвестный тип/.test(w))).toEqual([])
     expect(lintLesson(fromCanvasNodes(back.nodes)).filter(w => /say_phrase.*(пуст|threshold|ключев)/.test(w))).toEqual([])
@@ -108,7 +108,8 @@ describe('say_phrase — обмен JSON', () => {
   it('легенда описывает тип, поля и триггеры; правило автора про say_phrase есть в зашитых принципах', () => {
     const legend = buildLegend()
     expect(Object.keys(legend.nodes.say_phrase.fields)).toEqual(expect.arrayContaining(['phrase', 'translation', 'keywords', 'threshold', 'lang', 'listenAudio', 'strict', 'hintsOn', 'hintSilence', 'hintMismatch', 'hintPartial']))
-    expect(Object.keys(legend.triggers)).toEqual(expect.arrayContaining(['say_done', 'say_skip']))
+    expect(Object.keys(legend.triggers)).toEqual(expect.arrayContaining(['say_done', 'say_wrong']))
+    expect(legend.triggers.say_wrong).toMatch(/трёх неудачных попыток/)
     expect(Object.keys(legend.nodes.say_phrase.fields)).not.toContain('showPhrase')
     expect(PRINCIPLES.some(p => p.startsWith('say_phrase («Сказать фразу»)'))).toBe(true)
   })
@@ -168,7 +169,7 @@ describe('say_phrase — подсказки в чат: поля ноды, JSON, 
     expect(f.hintPartial).toMatch(/\{missed\}/)
     expect(f.hintsOn).toMatch(/Нет поля = включены/)
     const r = PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
-    for (const word of ['hintsOn', 'hintSilence', 'hintMismatch', 'hintPartial', '{ok}', '{missed}', 'пузырём слева', 'на весь урок', 'одну короткую текстовую ноду с заданием', 'ноду «Получилось!»', 'пропущены не будут']) {
+    for (const word of ['hintsOn', 'hintSilence', 'hintMismatch', 'hintPartial', '{ok}', '{missed}', 'пузырём слева', 'три неудачные', 'say_wrong', 'ВСЕГДА ведёт по say_done', 'одну короткую текстовую ноду с заданием', 'ноду «Получилось!»', 'пропуск разовый']) {
       expect(r, word).toContain(word)
     }
   })
@@ -183,10 +184,10 @@ describe('say_phrase — подсказки в чат: поля ноды, JSON, 
     expect(hints).toMatch(/\{'\{ok\}'\} и \{'\{missed\}'\} подставляются автоматически/)
     expect(hints).toContain('HINT_PARTIAL_DEFAULT')
     const note = read('../NodeSayCantSpeakNote.jsx')
-    expect(note).toContain('Это запоминается на весь урок')
-    expect(note).toContain('ПЕРЕД ним (задание)')
-    expect(note).toContain('ПОСЛЕ него (успех)')
-    expect(note).toContain('одну короткую текстовую ноду с заданием')
+    expect(note).toContain('после третьей неудачной попытки')
+    expect(note).toContain('всегда ведёт по «Верно»')
+    expect(note).toContain('Пропуск разовый')
+    expect(note).not.toContain('на весь урок')
     const picker = read('../NodeSayPhrasePicker.jsx')
     expect(picker).toContain('<NodeSayHints')
     expect(picker).toContain('<NodeSayCantSpeakNote')
@@ -212,16 +213,22 @@ describe('say_phrase — миграции правила автору', () => {
   const sql = name => readFileSync(fileURLToPath(new URL(`../../../../supabase/migrations/${name}`, import.meta.url)), 'utf8')
   const rule = () => PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
 
-  it('v3 (текущая): текст правила в миграции дословно равен зашитому принципу; update по префиксу + вставка, если правила нет; идемпотентно', () => {
-    const v3 = sql('20261009130000_say_phrase_rules_v3.sql')
+  it('v4 (текущая): текст правила в миграции дословно равен зашитому принципу (одна копия в $rule$); update по префиксу, вставка, если строки нет; идемпотентно', () => {
+    const v4 = sql('20261010120000_say_phrase_rules_v4.sql')
     expect(rule()).toBeTruthy()
-    const quoted = `'${rule().replace(/'/g, "''")}'`
-    expect(v3.split(quoted)).toHaveLength(3) // ровно два вхождения: update и insert
-    expect(v3).toMatch(/update public\.lesson_rules\s+set rule_text = /)
+    expect(rule()).not.toContain('$rule$')
+    expect(v4.split(`$rule$${rule()}$rule$`)).toHaveLength(2) // ровно одно вхождение: переменная t используется и в update, и в insert
+    expect(v4).toMatch(/update public\.lesson_rules\s+set rule_text = t\s+where rule_text like 'say_phrase \(«Сказать фразу»\) — ученик ПРОИЗНОСИТ%'/)
+    expect(v4).toMatch(/if not found then\s+insert into public\.lesson_rules \(rule_text, sort_order, category\) values \(t, 250, 'principle'\)/)
+    expect(v4).not.toMatch(/\b(create|alter|drop)\s+(table|policy|function)/i) // таблиц и политик не трогаем
+    expect(v4.split('\n').length).toBeLessThan(90) // SQL Editor не обрезает вставку
+  })
+
+  it('v3 (уже могла быть применена) не менялась: свой текст правила («на весь урок», say_skip) и тот же префикс поиска', () => {
+    const v3 = sql('20261009130000_say_phrase_rules_v3.sql')
     expect(v3).toMatch(/where rule_text like 'say_phrase \(«Сказать фразу»\) — ученик ПРОИЗНОСИТ%'/)
-    expect(v3).toMatch(/where not exists/)
-    expect(v3).not.toMatch(/\b(create|alter|drop)\s+(table|policy|function)/i) // таблиц и политик не трогаем
-    expect(v3.split('\n').length).toBeLessThan(90) // SQL Editor не обрезает вставку
+    expect(v3).toContain('на весь урок')
+    expect(v3).not.toContain('say_wrong')
   })
 
   it('v2 (уже могла быть применена) не менялась и ищет строку по тому же префиксу, что и v3', () => {

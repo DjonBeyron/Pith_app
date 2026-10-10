@@ -64,17 +64,18 @@ describe('say_phrase — проводка (плеер)', () => {
     expect(REWARD_TYPES).toContain('say_phrase')
     expect(rewardNodes([{ type: 'say_phrase', typeData: { say_phrase: {} } }])).toHaveLength(1)
     expect(rewardNodes([{ type: 'say_phrase', typeData: { say_phrase: { reward: false } } }])).toHaveLength(0)
-    expect(TYPED_PAIRS.say_phrase).toEqual(['say_done', 'say_skip'])
+    expect(TYPED_PAIRS.say_phrase).toEqual(['say_done', 'say_wrong'])
     expect(linkKind('say_done')).toBe('correct')
-    expect(linkKind('say_skip')).toBe('plain')
+    expect(linkKind('say_wrong')).toBe('wrong')
+    expect(linkKind('say_skip')).toBe('wrong') // старое имя второго выхода читается как «неверный»
   })
 
-  it('шаговый прогон админа: «верно» → say_done без ошибки; «неверно» → say_skip только если ветка соединена', () => {
-    const node = { type: 'say_phrase', typeData: { say_phrase: { phrase: 'Hi there' } }, triggers: [{ if: 'say_done', then: 'a' }, { if: 'say_skip', then: null }] }
+  it('шаговый прогон админа: «верно» → say_done, «неверно» → say_wrong (без штрафа урока; соединён ли выход — решает плеер, sayPairSkip.sayExit)', () => {
+    const node = { type: 'say_phrase', typeData: { say_phrase: { phrase: 'Hi there' } }, triggers: [{ if: 'say_done', then: 'a' }, { if: 'say_wrong', then: null }] }
     expect(pickStepAnswer(node, true)).toMatchObject({ kind: 'phrase', correct: true, result: 'say_done', responseText: 'Hi there' })
-    expect(pickStepAnswer(node, false)).toMatchObject({ correct: true, result: 'say_done', responseText: '' })
-    const linked = { ...node, triggers: [{ if: 'say_done', then: 'a' }, { if: 'say_skip', then: 'b' }] }
-    expect(pickStepAnswer(linked, false)).toMatchObject({ correct: true, result: 'say_skip' })
+    expect(pickStepAnswer(node, false)).toMatchObject({ correct: true, result: 'say_wrong', responseText: '' })
+    const linked = { ...node, triggers: [{ if: 'say_done', then: 'a' }, { if: 'say_wrong', then: 'b' }] }
+    expect(pickStepAnswer(linked, false)).toMatchObject({ correct: true, result: 'say_wrong' })
   })
 
   it('в повторение (колоды карточек) «Сказать фразу» не берётся', () => {
@@ -233,12 +234,14 @@ describe('say_phrase — порядок появления, звук, попап
     expect(read('../../../../shared/lib/soundQuiet.js')).not.toMatch(/^import /m)
   })
 
-  it('«Не могу говорить»: флаг сессии из крошечного cantSpeakFlag.js; плеер пропускает пару через sayPairSkip.js', () => {
-    expect(body).toContain('setCantSpeakSession(true)')
+  it('«Не могу говорить» и два выхода: итог say_cant без флага сессии; плеер решает в sayPairSkip.sayExit (крошечный sayTriggers.js без импортов)', () => {
+    expect(body).not.toContain('setCantSpeakSession')
+    expect(body).not.toContain('sessionStorage')
     expect(read('../../useGraphPlayer.js')).toContain("from './sayPairSkip.js'")
-    expect(read('../../useGraphPlayer.js')).toContain('sayRevealJump(nodeMapRef.current, nextNodeId)')
-    expect(read('../../useGraphPlayer.js')).toContain('saySuccessSkip(nodeMapRef.current, node, result)')
-    expect(read('../../sayPairSkip.js')).not.toMatch(/sayPermission|SpeechRecognition/)
+    expect(read('../../useGraphPlayer.js')).toContain('sayExit(nodeMapRef.current, node, result)')
+    expect(read('../../useGraphPlayer.js')).not.toMatch(/sayRevealJump|saySuccessSkip|applySayJump/)
+    expect(read('../../sayPairSkip.js').replace(/\/\/.*$/gm, '')).not.toMatch(/sayPermission|SpeechRecognition|sessionStorage|isCantSpeakSession/)
+    expect(read('../../../../shared/lib/speech/sayTriggers.js')).not.toMatch(/^import /m)
     expect(read('../../../../shared/lib/speech/cantSpeakFlag.js')).not.toMatch(/^import /m)
   })
 })

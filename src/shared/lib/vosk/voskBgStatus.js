@@ -15,6 +15,11 @@ export function setBgStatus(patch) {
 }
 export const resetBgStatus = () => setBgStatus({ ...INITIAL_STATUS })
 export function subscribeBgStatus(fn) { subs.add(fn); return () => subs.delete(fn) }
+/** Один раз сообщить, когда статус стал «в кэше» (переход, а не каждый шаг прогресса). Возвращает отписку. Для прогрева модели, если фоновая загрузка закончилась при открытой панели */
+export function onBgCached(fn) {
+  let was = snap.state === 'cached'
+  return subscribeBgStatus(() => { const now = snap.state === 'cached'; const fire = now && !was; was = now; if (fire) fn() })
+}
 export const useBgStatus = () => useSyncExternalStore(subscribeBgStatus, getBgStatus)
 
 /** Одна строка для админа. inCache — модель уже лежит в кэше (по peek), даже если фоновая загрузка в этой сессии ничего не качала */

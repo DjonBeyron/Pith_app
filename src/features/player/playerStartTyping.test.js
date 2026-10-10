@@ -43,7 +43,7 @@ describe('старт урока: точки перед первой нодой',
   })
 
   it('scheduleReveal принимает свою длину точек и помнит её для снятия паузы', () => {
-    expect(GRAPH).toContain('scheduleReveal.current = (nextNodeId, force = false, delayMs = null, hops = 0) => {')
+    expect(GRAPH).toContain('scheduleReveal.current = (nextNodeId, force = false, delayMs = null) => {')
     expect(GRAPH).toContain('const delay = delayMs ?? (isReaction ? REACTION_DELAY_MS : TYPING_DELAY_MS)')
     expect(GRAPH).toContain("scheduledRef.current = { type: 'reveal', nodeId: nextNodeId, delayMs }")
     expect(GRAPH).toContain('scheduleReveal.current(planned.nodeId, false, planned.delayMs ?? null)')

@@ -15,6 +15,11 @@ export function readModelUrl(store = globalThis.localStorage, env = import.meta.
   const def = defaultModelUrl(env)
   try { return store.getItem(VOSK_URL_KEY) || store.getItem(LEGACY_URL_KEY) || def } catch { return def }
 }
+/** Откуда взят адрес модели (для диагностики): 'saved' — админ сохранил свой в лаборатории; 'env' — VITE_VOSK_MODEL_URL (Vercel); 'builtin' — встроенный запасной (github.io) */
+export function modelUrlSource(store = globalThis.localStorage, env = import.meta.env) {
+  try { if (store.getItem(VOSK_URL_KEY) || store.getItem(LEGACY_URL_KEY)) return 'saved' } catch { /* приватный режим */ }
+  return defaultModelUrl(env) === VOSK_MODEL_URL ? 'builtin' : 'env'
+}
 export function writeModelUrl(url, store = globalThis.localStorage) {
   try { store.setItem(VOSK_URL_KEY, url) } catch { /* приватный режим */ }
 }

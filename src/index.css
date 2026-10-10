@@ -156,6 +156,7 @@
 @import './styles/player/panels/say-phrase-ring.css';
 @import './styles/player/panels/say-phrase-waves.css';
 @import './styles/player/panels/say-phrase-popup.css';
+@import './styles/player/panels/say-phrase-diag.css';
 @import './styles/player/panels/signal-blink-chip.css';
 @import './styles/player/panels/registration.css';
 @import './styles/player/panels/push-prompt.css';

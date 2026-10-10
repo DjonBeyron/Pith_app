@@ -7,6 +7,7 @@ import {
   THRESHOLD_MIN, THRESHOLD_MAX, THRESHOLD_DEFAULT, SAY_LANGS, LANG_DEFAULT, keywordsMissingInPhrase, parseKeywords,
 } from '../../shared/lib/speech/sayPhraseData.js'
 import { tokenize } from '../../shared/lib/speech/speechMatch.js'
+import { findWrongOut, setSayExit } from '../../shared/lib/speech/sayTriggers.js'
 
 // Редактор ноды «Сказать фразу»: ученик произносит английскую фразу в микрофон, приложение мягко сверяет её с эталоном.
 // Фраза-эталон (phrase) — проверяемый текст «под капотом»: сам модуль её в чат НЕ пишет и в панели не показывает, задание ученику
@@ -15,8 +16,9 @@ import { tokenize } from '../../shared/lib/speech/speechMatch.js'
 // threshold (% слов эталона для «засчитано», 50–100, по умолчанию 70), lang (en-US / en-GB), listenAudio («Послушать»),
 // strict («Строго»: порог 100%, слова точно, без опечаток + консенсус interim и final; у НОВЫХ нод включено), подсказки в чат после
 // неудачи (hintsOn + hintSilence/hintMismatch/hintPartial — блок NodeSayHints) и пояснение про «Я не могу говорить» (NodeSayCantSpeakNote).
-// Выходы: «Сказал(а)» (основной) и «Не могу говорить» (необязательная ветка пропуска — если не соединена, плеер идёт по основному;
-// без этой ветки сообщение-успех сразу после модуля при пропуске не показывается). «Неверно» нет: речь тренировка и не штрафуется.
+// Выходы: «Верно» (say_done: проверка пройдена; им же идёт «Я не могу говорить», но сообщение-успех сразу после модуля пропускается) и «Неверно»
+// (say_wrong: после третьей неудачной попытки; не соединён — плеер идёт по «Верно»). Штрафов нет: речь тренировка. Старое имя второго выхода — say_skip
+// (до перехода на пару верно/неверно): здесь читается как say_wrong и при первом же изменении связей переименовывается.
 const LANG_LABEL = { 'en-US': 'Американский (en-US)', 'en-GB': 'Британский (en-GB)' }
 const stop = e => e.stopPropagation()
 
@@ -28,27 +30,17 @@ export default function NodeSayPhrasePicker({
 
   useEffect(() => {
     if (!onTriggerMeasure) return
-    const offsets = ['say_done', 'say_skip'].map(k => {
+    const offsets = ['say_done', 'say_wrong'].map(k => {
       const el = rowRefs.current.get(k)
       return el ? el.offsetTop + el.offsetHeight / 2 : 0
     })
     onTriggerMeasure(offsets)
   })
 
+  // Выход «неверный»: say_wrong, а в старых уроках — say_skip (sayTriggers.js); первая же правка связи переименовывает его в say_wrong
   const doneThen = (triggers.find(t => t.if === 'say_done') ?? triggers[0])?.then ?? ''
-  const skipThen = (triggers.find(t => t.if === 'say_skip') ?? triggers[1])?.then ?? ''
-
-  function setTrigger(ifVal, then) {
-    const existing = {
-      say_done: triggers.find(t => t.if === 'say_done') ?? triggers[0],
-      say_skip: triggers.find(t => t.if === 'say_skip') ?? triggers[1],
-    }
-    existing[ifVal] = { ...existing[ifVal], then: then || null }
-    onTriggersChange([
-      { id: existing.say_done?.id ?? crypto.randomUUID(), if: 'say_done', then: existing.say_done?.then ?? null },
-      { id: existing.say_skip?.id ?? crypto.randomUUID(), if: 'say_skip', then: existing.say_skip?.then ?? null },
-    ])
-  }
+  const wrongThen = findWrongOut(triggers)?.then ?? ''
+  const setTrigger = (ifVal, then) => onTriggersChange(setSayExit(triggers, ifVal, then))
 
   const lostKeywords = keywordsMissingInPhrase(phrase, keywords)
   // Превью «как проверит приложение»: слова фразы (ключевые — зелёным) и сколько слов нужно сказать при этом пороге
@@ -125,9 +117,8 @@ export default function NodeSayPhrasePicker({
       </p>
       <NodeSayCantSpeakNote />
       <NodeCorrectWrongTriggers
-        correctThen={doneThen} wrongThen={skipThen}
-        correctKey="say_done" wrongKey="say_skip"
-        okLabel="✓ Сказал(а) →" errLabel="↷ Не могу говорить →"
+        correctThen={doneThen} wrongThen={wrongThen}
+        correctKey="say_done" wrongKey="say_wrong"
         onSetTrigger={setTrigger} otherNodes={others} rowRefs={rowRefs}
       />
     </div>

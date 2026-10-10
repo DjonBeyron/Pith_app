@@ -26,6 +26,9 @@ const IRREGULAR = [
 // Формы из таблицы WRONG, которых нет в словаре распознавателя (Vosk молча выкинет слово из фразы) — в закрытый словарь их не кладём
 const NOT_WORDS = new Set(['goed', 'childs', 'peoples'])
 
+// Множественное / 3-е лицо без -s: cats → cat, но watches → watch, boxes → box (а не watche / boxe)
+const stripS = w => (/(ch|sh|x|z|ss)es$/.test(w) ? w.slice(0, -2) : w.slice(0, -1))
+
 export const coreOf = w => String(w ?? '').toLowerCase().replace(/[^a-z']/g, '')
 
 /** Ошибочные формы ОДНОГО слова (по таблице, затем по суффиксам -ing / -ed / -s). Не знаем слово — [] */
@@ -38,7 +41,7 @@ export function wrongFormsOfWord(word) {
     if (/([b-df-hj-np-tv-z])\1$/.test(stem)) stem = stem.slice(0, -1) // running → run
     out.push(stem)
   } else if (w.length > 4 && w.endsWith('ed')) out.push(w.slice(0, -2).replace(/([b-df-hj-np-tv-z])\1$/, '$1'))
-  else if (w.length >= 5 && w.endsWith('s') && !/(ss|us|is)$/.test(w) && !NO_S.has(w)) out.push(w.slice(0, -1))
+  else if (w.length >= 5 && w.endsWith('s') && !/(ss|us|is)$/.test(w) && !NO_S.has(w)) out.push(stripS(w))
   return out.filter(x => x.length > 1 && x !== w)
 }
 
@@ -60,7 +63,8 @@ function addSuffix(w, suf) {
 
 // Служебные слова: от них «-ed / -ing» не строим (the → thing — бессмыслица); только то, что есть в таблице WRONG (am → is / are)
 const FUNCTION_WORDS = new Set(('the and but for from with into onto than then them they their there here this that these those what who whom whose where when why how '
-  + 'you your yours him his her hers its our ours not yes can will would should could may might must very too also just some any every each both all').split(' '))
+  + 'you your yours him his her hers its our ours not yes can will would should could may might must very too also just some any every each both all '
+  + 'she one two six ten few many much more most such only even ever once about after again because before between through under over while until among around during').split(' '))
 
 /**
  * ВСЕ другие формы слова для закрытого словаря. Таблица WRONG (trying → try / tried / tries) главнее всего; затем неправильные глаголы (see → saw / seen);
@@ -77,7 +81,7 @@ export function formsOfWord(word) {
   if (group) return group.filter(x => x !== w && ok(x))
   const out = [...fromTable]
   if (FUNCTION_WORDS.has(w)) return []
-  if (w.length >= 4 && w.endsWith('s') && !/(ss|us|is)$/.test(w) && !NO_S.has(w)) out.push(w.endsWith('ies') ? `${w.slice(0, -3)}y` : w.slice(0, -1))
+  if (w.length >= 4 && w.endsWith('s') && !/(ss|us|is)$/.test(w) && !NO_S.has(w)) out.push(w.endsWith('ies') ? `${w.slice(0, -3)}y` : stripS(w))
   else if (!/[^aeiou]ing$/.test(w) && !w.endsWith('ed') && !w.endsWith('s')) out.push(addSuffix(w, 's'), addSuffix(w, 'ed'), addSuffix(w, 'ing'))
   return [...new Set(out.filter(x => fromTable.includes(x) || sameFamily(x, w)))].filter(ok)
 }

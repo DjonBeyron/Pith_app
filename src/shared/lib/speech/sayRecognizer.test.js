@@ -56,9 +56,10 @@ describe('sayRecognizer: движок на каждую попытку', () => {
     expect(u.runtime.acquire).toHaveBeenCalledTimes(1); expect(typeof off).toBe('function')
   })
 
-  it('фраза с цифрами → системное (Vosk цифр не выдаёт)', () => {
+  it('фраза с простым числом идёт на Vosk (слова из numberWords.js), со сложным (десятичное, телефон) — на системное', () => {
     const t = make()
-    expect(t.rec.choose(readSayData({ phrase: 'I have 2 cats' }))).toEqual({ engine: 'system', reason: 'phrase' })
+    expect(t.rec.choose(readSayData({ phrase: 'I have 2 cats' }))).toEqual({ engine: 'vosk', reason: 'ready' })
+    expect(t.rec.choose(readSayData({ phrase: 'It is 2.5 cats' }))).toEqual({ engine: 'system', reason: 'phrase' })
   })
 
   it('номер захода общий для обоих движков (иначе sayFlow принял бы итог за уже обработанный); сброс (idle) проходит как есть; чужой движок молчит', () => {

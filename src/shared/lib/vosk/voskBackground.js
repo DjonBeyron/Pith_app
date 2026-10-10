@@ -1,13 +1,14 @@
 // Планировщик тихой фоновой предзагрузки модели Vosk в Cache Storage (этап 1; движок и библиотека vosk-browser здесь НЕ грузятся).
 // Решения «можно ли качать» — voskBgPolicy.js, сами куски и докачка — voskBgDownload.js, один экземпляр на все вкладки — voskBgLock.js,
 // «занята ли сеть» — netBusy.js. Здесь: проверка кэша → замок → цикл попыток (до 5 за сессию, пауза 5/10/20/40/60 с) → статус для админа.
-// Пользователю ничего не показывается; ошибки пишутся в журнал плеера (pLog «[vosk-bg]»).
+// Пользователю ничего не показывается; ошибки пишутся в журнал плеера (pLog «[vosk-bg]»). Админская кнопка «Загрузить модель сейчас» (forceBackground) качает вне очереди: не ждёт тишины
+// (лента / видео / файлы урока / фон / экономия трафика), но по-прежнему не качает офлайн.
 import { pLog } from '../debug.js'
 import * as netBusy from '../netBusy.js'
 import { readModelUrl } from './voskConfig.js'
 import { VoskError, isRetryable, errorText } from './voskErrors.js'
 import { peekCached, cacheAvailable, requestPersist, deleteModel } from './voskStorage.js'
-import { canStart, envSnapshot, isStopped, nextDelay, pollDelay, chunkPause, MAX_ATTEMPTS } from './voskBgPolicy.js'
+import { canStart, envSnapshot, isStopped, setStopped, nextDelay, pollDelay, chunkPause, MAX_ATTEMPTS } from './voskBgPolicy.js'
 import { backgroundDownload } from './voskBgDownload.js'
 import { clearParts } from './voskParts.js'
 import { acquireLock } from './voskBgLock.js'
@@ -64,7 +65,7 @@ async function attempts(signal, d) {
   const gate = async () => {
     for (;;) {
       if (signal.aborted) throw new VoskError('cancelled')
-      const v = canStart(d.snapshot())
+      const v = d.force && d.nav?.onLine !== false ? { ok: true } : canStart(d.snapshot())
       if (v.ok) { if (getBgStatus().state !== 'downloading') setBgStatus({ state: 'downloading', reason: null }); return }
       if (v.reason === 'off') throw new VoskError('cancelled')
       if (getBgStatus().reason !== v.reason || getBgStatus().state !== 'waiting') { setBgStatus({ state: 'waiting', reason: v.reason }); d.log(`ждём: ${v.reason}`) }
@@ -73,7 +74,7 @@ async function attempts(signal, d) {
   }
   const ctx = {
     fetchFn: d.fetchFn, cachesApi: d.cachesApi, signal, gate, now: d.now, chunkBytes: d.chunkBytes, stallMs: d.stallMs,
-    pause: () => d.sleep(chunkPause(d.rand()), signal), watchBusy: d.watchBusy, shouldYield: () => d.busy.net() || d.busy.feed(),
+    pause: () => d.sleep(chunkPause(d.rand()), signal), watchBusy: d.watchBusy, shouldYield: () => !d.force && (d.busy.net() || d.busy.feed()),
     log: d.log,
     onProgress: ({ loaded, total, mode }) => setBgStatus({ state: 'downloading', reason: null, loaded, total, mode, pct: total > 0 ? Math.min(100, Math.floor((loaded / total) * 100)) : null }),
   }
@@ -113,6 +114,13 @@ export function abortBackground() {
   if (!c) return Promise.resolve()
   c.ctl.abort()
   return c.promise
+}
+
+/** Админ (диагностика в уроке): «Загрузить модель сейчас» — остановить текущий запуск (он мог ждать тишины), снять флаг «стоп» и начать заново вне очереди (force). Промис — до конца загрузки */
+export async function forceBackground(deps = {}) {
+  setStopped(false, deps.store)
+  await abortBackground()
+  return startBackground({ ...deps, force: true })
 }
 
 /** Админ: «Сбросить кэш модели» — остановить загрузку, стереть модель и куски, статус в начало; без флага «стоп» — запустить заново */

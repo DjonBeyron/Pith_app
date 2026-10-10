@@ -20,9 +20,10 @@ export const TYPED_PAIRS = {
   phrase_assembly: ['phrase_correct', 'phrase_wrong'],
   fill_blanks:     ['fill_correct',   'fill_wrong'],
   type_word:       ['type_correct',   'type_wrong'],
-  // Сказать фразу: основной выход (сказал / «Получилось») и необязательная ветка «Не могу говорить» (пропуск; если не
-  // соединена — плеер идёт по основному). «Неверно» у речи нет: она тренировка и не штрафуется
-  say_phrase:      ['say_done',       'say_skip'],
+  // Сказать фразу: «верный» (проверка пройдена; им же идёт «Я не могу говорить») и «неверный» (после третьей неудачной попытки). Не соединён
+  // один из выходов — плеер идёт по существующему. Штрафов нет: речь тренировка. Старое имя второго выхода в сохранённых уроках — say_skip,
+  // плеер и редактор читают его как say_wrong (sayTriggers.js)
+  say_phrase:      ['say_done',       'say_wrong'],
   photo_choice:    ['photo_correct',  'photo_wrong'],
   registration:    ['reg_submit',     'reg_cancel'],
   table:           ['table_correct',  'table_wrong'],

@@ -9,7 +9,10 @@
 // иначе второй тап по кругу сразу обрывал бы только начатую запись.
 // Неудача (phase 'failed') сразу возвращает кружку к «Попробуйте сказать ещё раз» — ни крестика, ни красного слоя, ни паузы-показа.
 // Она кладёт в state.reply реплику ученика (то, что распознал движок, sayReply.js; null — тишина/ошибка) и в state.hint подсказку
-// для чата (sayHints.js; null — отключена в ноде или ошибка требует действия пользователя). Число попыток НЕ ограничено (taps — для аналитики).
+// для чата (sayHints.js; null — отключена в ноде или ошибка требует действия пользователя). ЗАСЧИТАННЫХ попыток MAX_FAILED_ATTEMPTS (три); после третьей неудачи
+// exhausted=true — панель уходит по ветке «неверный» (SayPhrasePanel). Что тратит попытку (внутренний счёт attempts, ученику он НЕ показывается; taps — нажатия для аналитики):
+//  - завершённый прогон, где что-то РАСПОЗНАНО (в том числе неверное) — тратит;  - тишина (ничего не услышано) — НЕ тратит, но MAX_SILENCES тишин ПОДРЯД = одна неудача (silences);
+//  - ошибки движка и разрешения микрофона — НЕ тратят (и обрывают серию тишин).
 // explainKind — какой попап перед запросом микрофона (full | short, см. sayPermission.decideMic); realLevel — пометка для строки админа
 // («вкл» / «выкл» / «ошибка …»: опциональный реальный уровень звука для колец, sayRealLevel.js); engine — какой движок выбран на эту попытку ({engine: 'vosk'|'system', reason}, sayEnginePick.js): пометка для админа.
 import { emptyView } from './speechController.js'
@@ -18,14 +21,28 @@ import { isDeniedCode } from './sayTexts.js'
 import { adminHeardLine } from './sayAdmin.js'
 import { buildHint } from './sayHints.js'
 import { userReply } from './sayReply.js'
+import { isQuietCode } from './speechPolicy.js'
 
 /** Защита от двойного тапа: столько мс после тапа повторный тап по кругу ещё НЕ останавливает запись */
 export const STOP_ARM_MS = 350
+/** Сколько засчитанных неудач до ветки «неверный» и сколько тишин подряд считаются одной неудачей */
+export const MAX_FAILED_ATTEMPTS = 3
+export const MAX_SILENCES = 3
+
+/**
+ * Как итог неудачной попытки влияет на счёт. Чистая функция: { attempts, silences } до → после.
+ * spoke — движок что-то распознал (verdict с непустым текстом); quiet — тишина (no-speech / silence / ничего не пришло)
+ */
+export function nextCounts({ attempts, silences }, { spoke, quiet }) {
+  if (spoke) return { attempts: attempts + 1, silences: 0 }
+  if (!quiet) return { attempts, silences: 0 }
+  return silences + 1 >= MAX_SILENCES ? { attempts: attempts + 1, silences: 0 } : { attempts, silences: silences + 1 }
+}
 
 export function initialSayState(decision) {
   const base = {
     phase: 'idle', taps: 0, view: emptyView, verdict: null, errorCode: null, fallbackReason: null, autoRetries: 0,
-    explainer: false, explainKind: null, realLevel: null, audioSession: null, engine: null, data: null, settledRun: 0, event: null, failStreak: 0, armed: false, adminLine: null, hint: null, hintNo: 0, reply: null,
+    explainer: false, explainKind: null, realLevel: null, audioSession: null, engine: null, data: null, settledRun: 0, event: null, failStreak: 0, attempts: 0, silences: 0, exhausted: false, armed: false, adminLine: null, hint: null, hintNo: 0, reply: null,
   }
   return decision?.action === 'fallback' ? { ...base, phase: 'fallback', fallbackReason: decision.reason } : base
 }
@@ -37,13 +54,16 @@ function settle(s, v) {
   const ev = (extra) => ({ name: SAY_EVENTS.result, extra: { autoRetries, ...extra }, n: (s.event?.n ?? 0) + 1 })
   const failed = (errorCode, verdict) => {
     const failStreak = s.failStreak + 1
+    const spoke = !!verdict?.heard?.trim()
+    const counts = nextCounts(s, { spoke, quiet: !spoke && (isQuietCode(errorCode) || (!errorCode && !!verdict)) })
+    const exhausted = counts.attempts >= MAX_FAILED_ATTEMPTS
     const reason = failReason({ errorCode, verdict })
     const h = buildHint(s.data, { errorCode, verdict })
     const hintNo = h ? s.hintNo + 1 : s.hintNo
     const text = verdict ? userReply(verdict) : null
     return {
-      ...s, ...mark, phase: 'failed', verdict, errorCode, failStreak, hintNo, hint: h ? { ...h, n: hintNo } : null, reply: text ? { text, n: failStreak } : null,
-      event: ev({ passed: false, reason, failStreak, ratioPct: verdict?.ratioPct, engineFixed: verdict?.engineFixed?.length || undefined, hintKind: h?.kind }),
+      ...s, ...mark, ...counts, exhausted, phase: 'failed', verdict, errorCode, failStreak, hintNo, hint: h ? { ...h, n: hintNo } : null, reply: text ? { text, n: failStreak } : null,
+      event: ev({ passed: false, reason, failStreak, ratioPct: verdict?.ratioPct, engineFixed: verdict?.engineFixed?.length || undefined, hintKind: h?.kind, exhausted }),
     }
   }
   if (v.status === 'error') {
@@ -56,7 +76,7 @@ function settle(s, v) {
   const verdict = judgeRun(v, s.data)
   if (!verdict.passed) return failed(null, verdict)
   return {
-    ...s, ...mark, phase: 'passed', verdict, errorCode: null, failStreak: 0, hint: null, reply: null,
+    ...s, ...mark, phase: 'passed', verdict, errorCode: null, failStreak: 0, silences: 0, hint: null, reply: null,
     event: ev({ passed: true, ratioPct: verdict.ratioPct, interimDiffers: interimDiffers(v.lastInterim, v.final?.text), engineFixed: verdict.engineFixed?.length || undefined }),
   }
 }
@@ -78,7 +98,8 @@ export function sayReducer(s, a) {
       if (v.status === 'idle') return { ...s, view: v } // сброс контроллера не стирает строку админа
       return withAdminLine(s, { ...s, view: v })
     }
-    case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, armed: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, engine: a.engine ?? null, adminLine: null, hint: null, reply: null }
+    case 'begin': if (s.exhausted) return s // три неудачи уже были: панель уходит по ветке «неверный», новая запись не начинается
+      return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, armed: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, engine: a.engine ?? null, adminLine: null, hint: null, reply: null }
     case 'arm': return s.phase === 'run' ? { ...s, armed: true } : s
     case 'realStatus': return s.realLevel === a.status ? s : { ...s, realLevel: a.status }
     case 'explain': return { ...s, phase: 'explain', explainer: true, explainKind: a.kind === 'short' ? 'short' : 'full' }

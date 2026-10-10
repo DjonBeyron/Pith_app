@@ -2,7 +2,7 @@
 // режим) и phrase_assembly: тот же блок дословно повторялся в
 // NodeTablePicker.jsx и NodePhraseAssemblyPicker.jsx (см. NodeDistractorList.jsx
 // с тем же поводом — оба файла упирались в потолок 400 строк из CLAUDE.md).
-// okLabel/errLabel — свои подписи портов (по умолчанию «Верно/Неверно»; у «Сказать фразу» — «Сказал(а)/Не могу говорить»).
+// okLabel/errLabel — свои подписи портов.
 export default function NodeCorrectWrongTriggers({ correctThen, wrongThen, correctKey, wrongKey, onSetTrigger, otherNodes, rowRefs, okLabel = '✓ Верно →', errLabel = '✗ Неверно →' }) {
   return (
     <div className="nodeWcTriggerWrap">

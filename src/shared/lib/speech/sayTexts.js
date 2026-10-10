@@ -13,6 +13,8 @@ export const SAY_LABEL = 'Произнесите фразу'          // пок�
 export const MIC_RETRY = 'Попробуйте сказать ещё раз'  // после неудачной попытки
 export const MIC_OFF = 'Микрофон выключен'
 export const MIC_UNAVAILABLE = 'Проверка голоса недоступна'
+// Firefox не поддерживается (sayBrowser.js): вместо круга-микрофона панель показывает это пояснение (SayBrowserNote.jsx), выход — «Я не могу говорить»
+export const BROWSER_NOTE = 'Для распознавания голоса нужен другой браузер — откройте приложение в Safari или Chrome.'
 export const CANT_SPEAK_LINK = 'Я не могу говорить'
 export const DONE = 'Готово'                          // в круге рядом с галочкой при успехе
 export const MIC_STOP_ARIA = 'Остановить запись'      // aria-label круга, пока идёт запись и тап уже останавливает её

@@ -12,7 +12,7 @@ const data = readSayData({ phrase: 'I am trying to please both', keywords: 'plea
 const alt = text => ({ text, confidence: 0.9 })
 const done = (text, runNo = 1) => ({ ...emptyView, status: 'done', runNo, attempt: 1, final: alt(text), alternatives: [alt(text)] })
 const listening = { ...emptyView, status: 'listening', runNo: 1, attempt: 1 }
-const look = s => micLabel({ phase: s.phase, fallbackReason: s.fallbackReason, go: isGo(s) })
+const look = s => micLabel({ phase: s.phase, fallbackReason: s.fallbackReason, go: isGo(s), exhausted: s.exhausted })
 const begin = s => sayReducer(s, { type: 'begin', data })
 const idle = () => initialSayState({ action: 'listen' })
 
@@ -45,15 +45,20 @@ describe('надпись над кругом и режим круга по со�
     expect(look(s).label).toBe(SAY_LABEL) // надпись снова «Произнесите фразу»
   })
 
-  it('три и больше неудач подряд: каждый раз «Попробуйте сказать ещё раз», микрофон снова доступен (число попыток не ограничено, счёт — для аналитики)', () => {
+  it('первые две неудачи: каждый раз «Попробуйте сказать ещё раз», микрофон снова доступен; третья — надписи нет (панель уходит по ветке «неверный»)', () => {
     let s = idle()
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 2; i++) {
       s = begin(s)
       s = sayReducer(s, { type: 'view', view: done('banana', i) })
-      expect(look(s).mode).toBe('retry')
+      expect(look(s)).toEqual({ label: MIC_RETRY, mode: 'retry' })
       expect(s.reply).toEqual({ text: 'Banana', n: i }) // каждая попытка уходит в чат
     }
-    expect(s.taps).toBe(4)
+    s = sayReducer(begin(s), { type: 'view', view: done('banana', 3) })
+    expect(s.exhausted).toBe(true)
+    expect(look(s)).toEqual({ label: '', mode: 'retry' })
+    expect(s.reply).toEqual({ text: 'Banana', n: 3 }) // реплика последней попытки тоже уходит в чат
+    expect(begin(s)).toBe(s)                          // новая запись после третьей неудачи не начинается
+    expect(s.taps).toBe(3)
   })
 
   it('успех: в круге «Готово» и галочка (режим ok), надписи над кругом нет; одна надпись для 100% и неполного совпадения', () => {

@@ -120,7 +120,7 @@ describe('say_phrase — чат: реплика ученика и подсказ
   it('новая попытка и «Я не могу говорить» не теряют реплику: flushPending отправляет её сразу, отменяя только подсказку; успех реплику не шлёт', () => {
     expect(body).toMatch(/function flushPending\(\) \{\s*clearTimeout\(hintTimer\.current\)\s*const reply = pendingReply\.current\s*pendingReply\.current = null\s*if \(reply\) onAnswered\?\.\(reply, 'wrong_final'\)/)
     expect(body).toMatch(/function tapMic\(\) \{\s*flushPending\(\)/)
-    expect(body).toMatch(/closingRef\.current = true\s*flushPending\(\)/)
+    expect(body).toMatch(/closingRef\.current = true\s*clearTimeout\(wrongTimer\.current\)\s*flushPending\(\)/)
     expect(body).toContain("onAnswered?.(data.phrase, 'correct', true)") // после успеха — прежний пузырь с эталонной фразой
   })
 })

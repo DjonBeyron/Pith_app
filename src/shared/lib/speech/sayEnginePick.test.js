@@ -13,8 +13,9 @@ describe('pickEngine: движок на каждую попытку (все ве
   it('«Только системное» → системное, даже если Vosk готов', () => {
     expect(pickEngine({ ...READY, mode: 'system' })).toEqual({ engine: 'system', reason: 'mode-system' })
   })
-  it('фраза с цифрами / не латиницей / пустая → системное', () => {
-    for (const phrase of ['I have 2 cats', 'Привет', '']) expect(pickEngine({ ...READY, phrase })).toEqual({ engine: 'system', reason: 'phrase' })
+  it('фраза с чужими буквами / сложными числами / пустая → системное; простые числа Vosk годятся', () => {
+    for (const phrase of ['Привет', '', 'Call 555-1234', 'It costs 2.5 dollars', 'I have 12345 cats', 'See you at 3:30 pm']) expect(pickEngine({ ...READY, phrase }), phrase).toEqual({ engine: 'system', reason: 'phrase' })
+    for (const phrase of ['I have 2 cats', 'It was 1998', 'He is 21st', 'It costs $5', 'About 50%', 'At 3:30']) expect(pickEngine({ ...READY, phrase }), phrase).toEqual({ engine: 'vosk', reason: 'ready' })
   })
   it('Vosk недавно сбоил → системное до конца паузы; потом снова Vosk', () => {
     expect(pickEngine({ ...READY, brokenUntil: 5000 })).toEqual({ engine: 'system', reason: 'broken' })

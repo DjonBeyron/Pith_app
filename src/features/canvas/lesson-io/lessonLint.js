@@ -12,7 +12,7 @@
 
 import { checkSayPhrase } from './lessonLintSay.js'
 
-const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong'])
+const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
 const PRAISE_RE = /три из трёх|ни одной ошибки|без единой ошибки|все верно|всё верно/i
 const SCENE_HINT_RE = /сцен|фото|кадр|ракурс|свет|персонаж|стикер|горизонт|вертикал/i
 

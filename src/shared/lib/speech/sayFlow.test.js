@@ -114,14 +114,14 @@ describe('причины неудач и серия (дефолтные отве
     expect(ok).toMatchObject({ phase: 'passed', failStreak: 0 })
   })
 
-  it('после неудачи тап по микрофону снова начинает попытку: число попыток не ограничено (счёт идёт для аналитики)', () => {
+  it('после неудачи тап по микрофону снова начинает попытку (до третьей засчитанной неудачи)', () => {
     let s = run()
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 2; i++) {
       s = fail(s, done('banana', { runNo: i }))
       expect(planTap({ view: s.view, decision: { action: 'listen' } })).toEqual({ act: 'begin' })
       s = sayReducer(s, { type: 'begin', data })
     }
-    expect(s.taps).toBe(7)
+    expect(s.taps).toBe(3)
   })
 })
 

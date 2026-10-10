@@ -7,7 +7,8 @@ import { useGraphStepControls } from './useGraphStepControls.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { freshNode } from './freshNode.js'
 import { HISTORY_PAGE } from './feedWindow.js'
-import { sayRevealJump, saySuccessSkip, applySayJump } from './sayPairSkip.js'
+import { sayExit } from './sayPairSkip.js'
+import { setCantSpeakSession } from '../../shared/lib/speech/cantSpeakFlag.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
@@ -127,16 +128,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   // спрашивая паузу. delayMs — своя длительность точек вместо обычной
   // (старт урока: FIRST_TYPING_MS); помнится в scheduledRef, чтобы снятие
   // паузы переиграло её той же длины
-  scheduleReveal.current = (nextNodeId, force = false, delayMs = null, hops = 0) => {
-    // «Не могу говорить» в «Сказать фразу» (sayPairSkip.js): тройку задание → модуль → успех пропускаем целиком, один модуль закрываем сами
-    const jump = hops < 6 ? sayRevealJump(nodeMapRef.current, nextNodeId) : null
-    if (jump) {
-      applySayJump(jump, {
-        reveal: id => scheduleReveal.current(id, force, delayMs, hops + 1),
-        finish: (id, r) => { firedRef.current = forgetNodeKeys(firedRef.current, id); onNodeDone(id, r, null, force) },
-      })
-      return
-    }
+  scheduleReveal.current = (nextNodeId, force = false, delayMs = null) => {
     const next = nodeMapRef.current[nextNodeId]
     // Переход ведёт на ноду, которой в уроке нет — сценарий на этом встаёт.
     // Молча выходить нельзя: со стороны это выглядит как «плеер завис»
@@ -233,10 +225,15 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     if (!node) return
     const triggers = node.triggers ?? []
 
-    // Модуль «Сказать фразу» пропущен кнопкой «Я не могу говорить»: сообщение-успех сразу после него не показываем
-    const afterSay = saySuccessSkip(nodeMapRef.current, node, result)
-    if (afterSay && !firedRef.current.has(`${nodeId}:${result}`)) {
-      firedRef.current.add(`${nodeId}:${result}`); scheduleReveal.current(afterSay, force); return
+    // Модуль «Сказать фразу» закрыт (say_done | say_wrong | say_cant): два выхода «верный»/«неверный», «Я не могу говорить» = «верный» без сообщения-успеха
+    // (sayPairSkip.sayExit). Дедуп по итогу; шаг назад админа забывает ключи ноды (useGraphStepControls.stepBack)
+    const sayTo = sayExit(nodeMapRef.current, node, result)
+    if (sayTo) {
+      const key = `${nodeId}:${result}`
+      if (firedRef.current.has(key)) return
+      firedRef.current.add(key)
+      scheduleReveal.current(sayTo.then, force)
+      return
     }
 
     // Особый переход конкретного варианта ответа (nodeVariants.js) — если
@@ -323,6 +320,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     visitsRef.current = new Map()
     seenIdsRef.current = new Set()
     finishedRef.current = false
+    setCantSpeakSession(false) // старый сессионный флаг «Не могу говорить» на старте урока не живёт (теперь это разовое решение внутри модуля, sayPairSkip.sayExit)
     const entry = findEntry(nodes, startNodeId)
     const ids = new Set(nodes.map(n => n.id))
     const broken = nodes.reduce((sum, n) =>

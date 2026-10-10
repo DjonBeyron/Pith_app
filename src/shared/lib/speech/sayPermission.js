@@ -8,10 +8,11 @@
 //  - localStorage   pithy_say_explained_v1     — ПОЛНОЕ пояснение «зачем микрофон» уже видели (один раз в жизни устройства)
 //  - sessionStorage pithy_say_pre_shown_session — в этом запуске уже показывали попап перед системным запросом (нужен iPhone, где query недоступен)
 //  - sessionStorage pithy_say_denied_session   — в этом запуске отказали: start() больше НЕ зовём
-//  - sessionStorage pithy_cant_speak_session   — «Не могу говорить»: следующие say_phrase плеер пропускает сам (вместе с парой сообщений),
-//                                                запасной режим панели — только страховка, если до неё всё же дошли
+//  - sessionStorage pithy_cant_speak_session   — СТАРЫЙ сессионный флаг «Не могу говорить» (панель его больше не ставит: теперь это разовое решение
+//                                                внутри модуля, sayPairSkip.sayExit; плеер сбрасывает флаг на старте урока). Ветка оставлена как страховка
 import { getRecognitionCtor, queryMicPermission } from './speechSupport.js'
 import { CANT_SPEAK_KEY } from './cantSpeakFlag.js'
+import { isFirefoxBrowser } from './sayBrowser.js'
 
 export const EXPLAINED_KEY = 'pithy_say_explained_v1'
 export const DENIED_KEY = 'pithy_say_denied_session'
@@ -24,14 +25,15 @@ const write = (store, key, on) => { try { if (on) store?.setItem(key, '1'); else
 
 /**
  * Что делать по тапу на микрофон. Чистая функция. Попап (свой) показываем ПЕРЕД системным запросом ОС, который ожидается:
- *  fallback — blocked: start() НЕ вызываем, запасной режим (reason: unsupported | cant_speak | denied)
+ *  fallback — blocked: start() НЕ вызываем, запасной режим (reason: browser (Firefox) | unsupported | cant_speak | denied)
  *  explain  — попап с кнопкой (диалог ОС — уже по её тапу); kind 'full' — самый первый раз на устройстве (зачем микрофон, «не записываем»),
  *             kind 'short' — «Сейчас появится запрос… нажмите «Разрешить»» (каждый следующий ожидаемый запрос)
  *  listen   — none: сразу слушаем (диалога ОС не будет — разрешено или уже работал в этом запуске)
  * perm — granted | prompt | denied | unavailable; micOk — в этом запуске приложения микрофон уже работал; preShown — в этом запуске уже
  * показывали попап (iPhone без Permissions API: диалог ОС один раз за запуск, дальше micOk). perm=prompt → диалог ожидается всегда.
  */
-export function decideMic({ supported, cantSpeak, denied, perm, explained, micOk, preShown = false }) {
+export function decideMic({ supported, cantSpeak, denied, perm, explained, micOk, preShown = false, browserBlocked = false }) {
+  if (browserBlocked) return { action: 'fallback', reason: 'browser' } // Firefox: распознавание не поддерживается — пояснение «откройте в Safari или Chrome» и обычный выход
   if (!supported) return { action: 'fallback', reason: 'unsupported' }
   if (cantSpeak) return { action: 'fallback', reason: 'cant_speak' }
   if (denied || (perm === 'denied' && !micOk)) return { action: 'fallback', reason: 'denied' }
@@ -46,7 +48,7 @@ export const micGate = d => (d.action === 'fallback' ? 'blocked' : d.action === 
 
 export function createSayPermission({
   local = pick('localStorage'), session = pick('sessionStorage'),
-  queryPerm = queryMicPermission, isSupported = () => !!getRecognitionCtor(),
+  queryPerm = queryMicPermission, isSupported = () => !!getRecognitionCtor(), isBlockedBrowser = isFirefoxBrowser,
 } = {}) {
   let perm = 'unavailable' // последний ответ query (он асинхронный, а start() нужен синхронно в тапе — поэтому кэш)
   let micOk = false        // в ЭТОМ запуске приложения распознавание реально началось (диалог ОС позади)
@@ -79,7 +81,7 @@ export function createSayPermission({
     decide() {
       const r = decideMic({
         supported: isSupported(), cantSpeak: read(session, CANT_SPEAK_KEY), denied: read(session, DENIED_KEY),
-        perm, explained: read(local, EXPLAINED_KEY), micOk, preShown: read(session, PRE_SHOWN_KEY),
+        perm, explained: read(local, EXPLAINED_KEY), micOk, preShown: read(session, PRE_SHOWN_KEY), browserBlocked: isBlockedBrowser(),
       })
       if (r.reason === 'denied' && !read(session, DENIED_KEY)) write(session, DENIED_KEY, true)
       return r

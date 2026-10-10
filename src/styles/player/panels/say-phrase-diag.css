@@ -1,0 +1,76 @@
+/* ── Админская диагностика «Сказать фразу» в уроке (SayAdminDiag) ────────
+   Кнопка «i» 26 px в правом верхнем углу панели (слева — админская палочка) и окно ПОВЕРХ: всё абсолютное относительно панели (.phrasePanel — position: fixed),
+   поэтому высоту панели и раскладку модуля не двигает. Окно встаёт над панелью (как серая плашка «движок: …»), занимает ширину экрана минус 8 px с краёв
+   (на 320 px — 304 px), не шире 380 px, внутри прокручивается. Обычному пользователю не рендерится. Без filter/blur/box-shadow. */
+.sayDiag { display: contents; }
+
+.sayDiagBtn {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 40;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #3a3f4b;
+  border-radius: 7px;
+  background: rgb(14 16 19 / 78%);
+  color: #a3a9bb;
+  opacity: 0.6;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: opacity 0.12s, border-color 0.12s;
+}
+.sayDiagBtn:hover,
+.sayDiagBtn:focus-visible,
+.sayDiagBtn--on { opacity: 1; border-color: #8c93a8; }
+
+.sayDiagPop {
+  position: absolute;
+  z-index: 60;
+  bottom: calc(100% + 8px);
+  left: 8px;
+  right: 8px;
+  max-width: 380px;
+  margin-left: auto;
+  box-sizing: border-box;
+  max-height: min(62vh, 440px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 10px 10px;
+  border: 1px solid #2a2d35;
+  border-radius: 12px;
+  background: rgb(24 26 31 / 98%);
+  color: #c9cddb;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: left;
+}
+.sayDiagWait { margin: 4px 0; color: #8c93a8; }
+.sayDiagGroup { margin: 0 0 6px; }
+.sayDiagTitle { margin: 6px 0 3px; font-size: 10px; line-height: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #7d8398; }
+.sayDiagRow { display: flex; gap: 6px; padding: 2px 0; }
+.sayDiagMark { flex: none; width: 18px; text-align: center; }
+.sayDiagText { min-width: 0; overflow-wrap: anywhere; }
+.sayDiagText b { font-weight: 600; color: #e4e7f0; }
+.sayDiagHint { display: block; font-style: normal; color: #8c93a8; }
+.sayDiagRow--bad .sayDiagText b { color: #ff8f8f; }
+.sayDiagRow--warn .sayDiagText b { color: #ffd479; }
+.sayDiagActions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sayDiagAct {
+  flex: 1 1 130px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #3a3f4b;
+  border-radius: 9px;
+  background: #20232a;
+  color: #e4e7f0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sayDiagAct:disabled { opacity: 0.45; cursor: default; }

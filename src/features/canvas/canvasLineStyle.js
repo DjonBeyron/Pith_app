@@ -7,9 +7,9 @@
 // обычное продолжение (доиграло, таймер, фото показано).
 
 const CORRECT = new Set(['word_correct', 'phrase_correct', 'photo_correct', 'table_correct', 'type_correct', 'say_done'])
-const WRONG   = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong'])
+const WRONG   = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
 // Обычные переходы — не про ответ, а про течение урока
-const PLAIN   = new Set(['played', 'timer', 'timer_after_play', 'photo_shown', 'reg_submit', 'reg_cancel', 'say_skip'])
+const PLAIN   = new Set(['played', 'timer', 'timer_after_play', 'photo_shown', 'reg_submit', 'reg_cancel'])
 
 export const LINK_COLORS = {
   correct: '#4ade80',   // верный ответ — тот же зелёный, что в плеере

@@ -146,7 +146,8 @@ const BRANCH_LABEL = {
   photo_wrong: '✗ Неверно',
   table_wrong: '✗ Неверно',
   type_wrong: '✗ Неверно',
-  say_skip: '↷ Не могу говорить',
+  say_wrong: '✗ Неверно',
+  say_skip: '✗ Неверно', // старое имя выхода «неверный» в сохранённых уроках
   reg_cancel: '✕ Отмена',
 }
 const PRIMARY_LABEL = {
@@ -155,7 +156,7 @@ const PRIMARY_LABEL = {
   photo_correct: '✓ Верно',
   table_correct: '✓ Верно',
   type_correct: '✓ Верно',
-  say_done: '✓ Сказал(а)',
+  say_done: '✓ Верно',
   reg_submit: '✓ Отправить',
 }
 

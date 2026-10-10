@@ -128,3 +128,24 @@
 /* Пока идёт запись (и на «Готово»), «Я не могу говорить» плавно гаснет (opacity ≈ 180 мс), место не схлопывается, касания не принимает */
 .saySkipLink { transition: opacity .18s; }
 .saySkipLink.saySkipLink--hidden { opacity: 0; pointer-events: none; }
+
+/* Firefox (sayBrowser.js): вместо круга — спокойное пояснение по центру тела панели (ширина как у надписи над кругом, перенос строк, до 4 строк по 14px),
+   выход «Я не могу говорить» в этом состоянии единственный — заметнее обычного */
+.sayBrowserNote {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  bottom: 38px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #a3a9bb;
+}
+.sayBody--noMic .saySkipLink { opacity: .85; }

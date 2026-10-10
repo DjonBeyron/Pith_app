@@ -2,7 +2,7 @@
 // и системное распознавание (speechController, запасное, остаётся как есть). На каждой попытке движок выбирает чистая pickEngine по синхронному снимку voskRuntime: тап
 // НИЧЕГО не ждёт — не готов Vosk, эта попытка идёт на системном, без сообщений ученику. Vosk упал посреди попытки → onFail помечает «не работает» на 10 минут (voskRuntime), следующая
 // попытка идёт на системном. Выбор и причина запоминаются для админа (sayEngineLast.js, строка в настройках модуля и серая плашка над панелью).
-// Все виды (view) обоих движков идут в один onView; runNo пронумерован здесь общим счётчиком (иначе у двух движков номера совпали бы, и sayFlow принял бы итог за уже обработанный).
+// Для админской диагностики в уроке попытка записывается в sayAttemptLast.js (движок, что услышали, тайминги, причина остановки). Все виды (view) обоих движков идут в один onView; runNo пронумерован здесь общим счётчиком (иначе у двух движков номера совпали бы, и sayFlow принял бы итог за уже обработанный).
 // Уровень голоса: level(t) отдаёт RMS Vosk, пока идёт его попытка, иначе null — вызывающий берёт прежний источник (синтетический / реальный по флагу админа).
 import { createVoskRecognizer } from '../vosk/voskRecognizer.js'
 import { voskRuntime } from '../vosk/voskRuntime.js'
@@ -11,6 +11,7 @@ import { pLog } from '../debug.js'
 import { pickEngine, pickLabel } from './sayEnginePick.js'
 import { readSayEngine } from './sayEngineMode.js'
 import { setLastEngine } from './sayEngineLast.js'
+import { sayAttemptLog } from './sayAttemptLast.js'
 
 /**
  * createSystem(onView) → speechController с теми же настройками, что были у модуля (его создаёт хук); onView — общий приёмник видов.
@@ -18,12 +19,13 @@ import { setLastEngine } from './sayEngineLast.js'
  */
 export function createSayRecognizer({
   createSystem, onView, getSession = () => null, runtime = voskRuntime, getMode = readSayEngine, now = Date.now,
-  createVosk = createVoskRecognizer, level = createRmsLevel(), record = setLastEngine, log = msg => pLog(`[say-vosk] ${msg}`),
+  createVosk = createVoskRecognizer, level = createRmsLevel(), record = setLastEngine, attempts = sayAttemptLog, log = msg => pLog(`[say-vosk] ${msg}`),
 }) {
   let active = 'system'
   let run = 0
   // Вид чужого (не текущего) движка не пропускаем; сброс (idle) — всегда. Номер захода — общий
   const forward = name => v => {
+    attempts.view(name, v) // админская диагностика: что было на последней попытке (sayAttemptLast.js)
     if (v.status === 'idle') { onView(v); return }
     if (name === active) onView({ ...v, runNo: run })
   }
@@ -45,13 +47,14 @@ export function createSayRecognizer({
       active = p.engine
       run++
       record(p, now())
+      attempts.begin(p)
       log(`попытка ${run}: ${pickLabel(p)}`)
       if (p.engine === 'vosk') vosk.start({ reference, lang, data })
       else system.start({ reference, lang })
     },
     /** Панель смонтирована: прогреть Vosk (модель из кэша в память, фоном; в режиме «Только системное» — ничего). Возвращает release() — звать при закрытии панели */
     warm: () => (getMode() === 'system' ? () => {} : runtime.acquire()),
-    stop: () => engine().stop(),
+    stop: () => { attempts.userStop(); engine().stop() },
     reset() { system.reset(); vosk.reset(); level.reset() },
     isAudioActive: () => engine().isAudioActive(),
     /** Уровень голоса 0..1 от Vosk, пока идёт его попытка; иначе null (тогда уровень даёт системный источник) */

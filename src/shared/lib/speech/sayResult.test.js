@@ -9,14 +9,13 @@ describe('sayOutcome — правила результата (никогда н�
     expect(sayOutcome({ kind: 'passed' })).toMatchObject({ result: 'success', success: true, penalty: false, trigger: 'say_done' })
   })
 
-  it('«Я не могу говорить» / пропуск → skipped: без XP и без штрафа, урок идёт дальше', () => {
-    expect(sayOutcome({ kind: 'skip' })).toMatchObject({ result: 'skipped', success: false, penalty: false, trigger: 'say_done' })
+  it('«Я не могу говорить» / пропуск → skipped: без XP и без штрафа, итог say_cant (плеер сам ведёт по «верному» выходу без сообщения-успеха)', () => {
+    expect(sayOutcome({ kind: 'skip' })).toMatchObject({ result: 'skipped', success: false, penalty: false, trigger: 'say_cant' })
   })
 
-  it('ветка say_skip используется, только если она соединена', () => {
-    expect(sayOutcome({ kind: 'skip', hasSkipLink: true }).trigger).toBe('say_skip')
-    expect(sayOutcome({ kind: 'skip', hasSkipLink: false }).trigger).toBe('say_done')
-    expect(sayOutcome({ kind: 'solve', hasSkipLink: true }).trigger).toBe('say_done')
+  it('три неудачи → wrong: итог say_wrong (ветка «неверный»), без XP и без штрафа; админская палочка — как успех', () => {
+    expect(sayOutcome({ kind: 'wrong' })).toMatchObject({ result: 'wrong', success: false, penalty: false, trigger: 'say_wrong' })
+    expect(sayOutcome({ kind: 'solve' }).trigger).toBe('say_done')
   })
 
   it('«Получилось»/«Ещё раз» удалены: ни kind self_ok, ни clean, ни MAX_TAPS, ни события say_phrase_self_ok', () => {
@@ -25,7 +24,7 @@ describe('sayOutcome — правила результата (никогда н�
   })
 
   it('ни один исход не штрафует', () => {
-    for (const kind of ['passed', 'skip', 'solve']) expect(sayOutcome({ kind }).penalty).toBe(false)
+    for (const kind of ['passed', 'skip', 'solve', 'wrong']) expect(sayOutcome({ kind }).penalty).toBe(false)
   })
 })
 

@@ -3,12 +3,12 @@ import { useSayPhrase } from './useSayPhrase.js'
 import SayStage from './SayStage.jsx'
 import SayMicPopup from './SayMicPopup.jsx'
 import SayActions from './SayActions.jsx'
+import SayBrowserNote from './SayBrowserNote.jsx'
 import { listenKeys, playListen } from './sayListen.js'
 import { readSayData } from '../../../../shared/lib/speech/sayPhraseData.js'
-import { sayOutcome, SAY_EVENTS, TRIGGER_SKIP } from '../../../../shared/lib/speech/sayResult.js'
+import { sayOutcome, SAY_EVENTS } from '../../../../shared/lib/speech/sayResult.js'
 import { micLabel, isLiveMode } from '../../../../shared/lib/speech/sayMic.js'
 import { HINT_DELAY_MS } from '../../../../shared/lib/speech/sayHints.js'
-import { setCantSpeakSession } from '../../../../shared/lib/speech/cantSpeakFlag.js'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
 import { useHudPopupExit } from '../../../../app/hudPopupState.js'
 import { subscribeWordAudio } from '../../../../shared/lib/wordAudio/wordAudioApi.js'
@@ -19,9 +19,12 @@ import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
 import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
+import SayAdminDiag from './diag/SayAdminDiag.jsx'
 
 // Ученик видит итог в панели («Верно!»), потом панель уезжает
 const SEE_RESULT_MS = 1100
+// После третьей неудачи: пауза, чтобы ученик увидел последнюю реплику и подсказку в чате, и панель уходит по ветке «неверный» (как SEE_RESULT_MS у «Напечатай слово»)
+const WRONG_PAUSE_MS = 700
 
 // Панель «Сказать фразу»: ученик произносит фразу в микрофон, приложение мягко сверяет её с эталоном (Web Speech API: порядок слов
 // не важен, опечатки допустимы, порог и ключевые слова — из ноды; «Строго» — консенсус interim+final). Звук не записывается и не
@@ -35,6 +38,10 @@ const SEE_RESULT_MS = 1100
 // ведущего слева (onAnswered(text, 'hint'); тексты — поля ноды, sayHints.js). Оба сообщения идут через HINT_DELAY_MS: пузыри приходят уже после
 // окна тишины звуков приложения; если ученик нажал на круг раньше — реплика уходит сразу, подсказка о прошлой попытке отменяется.
 // «Ещё раз»/«Получилось» убраны: после неудачи микрофон сразу снова доступен, при отказе микрофона единственный выход — «Я не могу говорить».
+// ТРИ засчитанные неудачи (счёт внутренний и ученику НЕ показывается: sayFlow.js — распознано что-то, пусть неверное; тишина не тратит, три тишины подряд = одна) →
+// реплика и подсказка уходят в чат как обычно, через WRONG_PAUSE_MS панель закрывается итогом say_wrong (ветка «неверный»), микрофон до этого заблокирован.
+// «Я не могу говорить» — итог say_cant: плеер идёт по ветке «верный» и пропускает сообщение-успех сразу после модуля (sayPairSkip.sayExit; флага в сессии нет).
+// Firefox (sayBrowser.js): вместо круга — пояснение «откройте в Safari или Chrome» (SayBrowserNote), выход тот же — «Я не могу говорить».
 // Попап перед запросом микрофона — SayMicPopup (полный в первый раз, короткий дальше). Админская палочка «засчитать» — слева вверху
 // (side="left"). Админская строка «что услышал движок» — плашка НАД панелью (вне модуля, высоту не меняет), остаётся до новой записи.
 // data-no-unlock на корне панели ЦЕЛИКОМ: ни одно касание внутри неё (микрофон, «Послушать», «Я не могу говорить») не запускает беззвучный wav/resume — аудиосессию iOS не трогаем.
@@ -53,6 +60,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   const closingRef = useRef(false)
   const stopListenRef = useRef(null)
   const hintTimer = useRef(0)
+  const wrongTimer = useRef(0) // закрытие по ветке «неверный» после третьей неудачи
   const pendingReply = useRef(null) // реплика ученика, ещё не ушедшая в чат (ждёт HINT_DELAY_MS)
   const panelHeight = usePanelHeight(panelRef, onHeightChange)
   const rise = usePanelRiseDrop({ show, panelRef, spacerSel: '.sayPhraseSpacer', panelH: panelHeight, label: 'sp' })
@@ -63,17 +71,18 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   }, [])
   // База озвучки слов может догрузиться уже после показа панели — кнопка «Послушать» появится сама
   useEffect(() => subscribeWordAudio(() => bumpLib(n => n + 1)), [])
-  useEffect(() => () => { stopListenRef.current?.(); clearTimeout(hintTimer.current) }, [])
+  useEffect(() => () => { stopListenRef.current?.(); clearTimeout(hintTimer.current); clearTimeout(wrongTimer.current) }, [])
 
   const keys = data.listenAudio ? listenKeys(data.phrase) : []
-  const hasSkipLink = (node.triggers ?? []).some(t => t.if === TRIGGER_SKIP && t.then)
 
-  // Неудача → в чат: реплика ученика (справа) и подсказка ведущего (слева). failNo растёт с каждой неудачей, поэтому эффект срабатывает ровно один раз на неудачу
+  // Неудача → в чат: реплика ученика (справа) и подсказка ведущего (слева). failNo растёт с каждой неудачей, поэтому эффект срабатывает ровно один раз на неудачу.
+  // Третья засчитанная неудача (sp.exhausted): после реплики и подсказки — пауза WRONG_PAUSE_MS и закрытие по ветке «неверный»
   const failNo = sp.failStreak
   useEffect(() => {
     if (!failNo || phase !== 'failed') return undefined
     const reply = sp.reply?.text
     const hint = sp.hint?.text
+    if (sp.exhausted) wrongTimer.current = setTimeout(() => finish('wrong'), (reply || hint ? HINT_DELAY_MS : 0) + WRONG_PAUSE_MS)
     if (!reply && !hint) return undefined
     pendingReply.current = reply || null
     hintTimer.current = setTimeout(() => {
@@ -103,20 +112,21 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
     setShow(false)
   }
 
-  // kind: passed | skip | solve (админская палочка: как успех, но без аналитики). Единственная точка выхода; правила результата — sayOutcome (штрафа нет никогда)
+  // kind: passed | skip | wrong (три неудачи) | solve (админская палочка: как успех, но без аналитики). Единственная точка выхода; правила результата — sayOutcome (штрафа нет никогда)
   function finish(kind) {
     if (closingRef.current) return
     closingRef.current = true
+    clearTimeout(wrongTimer.current)
     flushPending()
     setClosing(true)
     stopListenRef.current?.()
-    const out = sayOutcome({ kind, hasSkipLink })
+    const out = sayOutcome({ kind })
     if (kind === 'skip') {
-      setCantSpeakSession(true) // дальше в этой сессии плеер сам пропускает say_phrase вместе с парой сообщений (sayPairSkip.js)
       sp.emit(SAY_EVENTS.skip, { reason: sp.fallbackReason || 'user' })
-      closeWith(out.trigger)
+      closeWith(out.trigger) // say_cant: ветка «верный» без сообщения-успеха (sayPairSkip.sayExit), ничего не запоминается
       return
     }
+    if (kind === 'wrong') { closeWith(out.trigger); return } // say_wrong: реплика и подсказка последней попытки уже в чате (эффект выше)
     // Звук «верно» — только у админской палочки. При проверке голосом приложение молчит: любой наш звук рядом с концом записи
     // ученик принимает за системный сигнал распознавания (окно тишины — soundQuiet.js)
     if (kind === 'solve') playSound('answer-correct', 'сказать фразу')
@@ -145,7 +155,8 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   }
 
   const running = phase === 'run'
-  const mic = micLabel({ phase, fallbackReason: sp.fallbackReason, go: sp.go })
+  const mic = micLabel({ phase, fallbackReason: sp.fallbackReason, go: sp.go, exhausted: sp.exhausted })
+  const noMic = phase === 'fallback' && sp.fallbackReason === 'browser' // Firefox: вместо круга — пояснение
   const hideSkip = isLiveMode(mic.mode) || mic.mode === 'ok' // идёт запись или итог: «Я не могу говорить» плавно гаснет, не отвлекая
   const adminLine = isAdmin ? sp.adminLine : null // распознанный текст — только админу (sayAdmin.js)
 
@@ -163,6 +174,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
       />
       <div ref={panelRef} className={`phrasePanel sayPanel${show ? ' phrasePanelVisible' : ''}`} data-no-unlock="">
         <SolveCorrectButton side="left" onSolve={() => finish('solve')} disabled={closing} />
+        <SayAdminDiag phrase={data.phrase} />
         {adminLine && (
           <div className="sayAdminLine" data-testid="say-admin-line" title={adminLine.title || undefined}>
             <span>{adminLine.text}</span>
@@ -170,14 +182,16 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
           </div>
         )}
         <div className="phraseInner sayInner">
-          <div className="sayBody">
-            <SayStage
-              label={mic.label}
-              mode={mic.mode}
-              level={sp.level}
-              disabled={closing || phase === 'passed'}
-              onTap={tapMic}
-            />
+          <div className={`sayBody${noMic ? ' sayBody--noMic' : ''}`}>
+            {noMic ? <SayBrowserNote /> : (
+              <SayStage
+                label={mic.label}
+                mode={mic.mode}
+                level={sp.level}
+                disabled={closing || phase === 'passed' || sp.exhausted}
+                onTap={tapMic}
+              />
+            )}
             <SayActions
               canListen={keys.length > 0 && !running && phase !== 'passed' && !closing}
               listenBusy={listening}
