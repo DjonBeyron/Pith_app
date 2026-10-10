@@ -3,34 +3,36 @@
    кнопка (say-phrase-mic.css), кольцо (say-phrase-ring.css) и слои волн (say-phrase-waves.css). Анимации — чистый CSS, только transform/opacity и цвета, React на кадр не участвует.
      locked  нет доступа к микрофону (или вводный попап ещё не видели): серый круг, масштаб 0,85, перечёркнутая серая иконка, серая бегущая дуга (светлее серого трека), БЕЗ пульса и волн; тап открывает попап
      ready   доступ выдан:             тёмный круг, масштаб 1, зелёная иконка, СПЛОШНОЕ зелёное кольцо; ничего не движется (ни дуги, ни пульса); волн нет
-     active  идёт запись:              лайм-круг, масштаб 1,15 пружиной с перелётом, тёмная иконка, плавная заливка; кольцо остаётся зелёным (приглушено, растёт вместе с кругом); три волны активации (waves.css), затем живой эквалайзер
+     active  идёт запись:              лайм-круг, масштаб 1,15 (рост синхронно с заливкой), тёмная иконка, плавная заливка; кольцо остаётся зелёным (приглушено, растёт вместе с кругом); три волны активации и циклические волны (waves.css), живой эквалайзер
      done    «Готово»:                 лайм-круг 1,0 с галочкой, кольцо целиком зелёное
      off     микрофона не будет:       как locked, только дуга не бежит; кнопка выключена
-   Заливка при нажатии: лайм приходит КОЛЬЦОМ от края круга к центру («диафрагма», ≈0,66 с, ease-out), без @property и mask. Кнопка в active сразу лаймовая, поверх неё диск ПРЕЖНЕГО цвета (::before,
-   --from-bg: тёмный из ready, серый из locked; класс --from-locked ставит SayStage) сжимается scale(1 → 0) — между краем диска и краем круга виден растущий лаймовый поясок. Значок за это время «схлопывается»
-   (scale 1 → 0, ease-in, в первой половине заливки), при нулевом размере сменяет цвет на тёмный и, как только круг залит целиком, возвращается к 1 с лёгким перелётом (sayIconPop, ≈0,3 с).
-   Это CSS-анимации, а не transition: нажатие (:active) их не обрывает. Возврат из записи (успех / неудача / стоп): круг и значок плавно меняют цвет за .32s, размер 1,15 → 1 — плавно (--size-t, без зеркального раскрытия).
-   РАЗМЕР круга и кольца (--mic-scale / --ring-scale) меняется одним transition с общей кривой --size-t состояния: В запись — мягкий ease-out ≈0,55 с с едва заметным перелётом, ИЗ записи (и все остальные
-   переходы) — ease-in-out ≈0,5 с. Transition берётся из состояния-ПРИЁМНИКА, поэтому смена класса не обрывает и не сбрасывает размер; нажатие (:active) трогает не transform, а отдельное свойство scale.
+   Заливка при нажатии: лайм приходит КОЛЬЦОМ от края круга к центру («диафрагма», 0,85 с, ease-in-out --say-ease), без @property и mask. Кнопка в active сразу лаймовая, поверх неё диск ПРЕЖНЕГО цвета (::before,
+   --from-bg: тёмный из ready, серый из locked; класс --from-locked ставит SayStage) сжимается scale(1 → 0) — между краем диска и краем круга виден растущий лаймовый поясок. Старт МЯГКИЙ: у кривой нулевая начальная
+   скорость (≈0,8 % пути за первые 50 мс, ≤ 1,3 px радиуса за кадр на всём пути; прежняя ease-out давала 2,1 px уже в первом кадре) — это и убирает «дёрганый» старт. Ободок круга в ready непрозрачный (--mic-rim), а не
+   полупрозрачный лайм: под ним лежит фон кнопки, который в active лаймовый сразу, и полупрозрачный ободок в первом кадре вспыхивал бы. Значок за это время «схлопывается» (scale 1 → 0, ease-in-out) к моменту, когда заливка
+   доходит до его краёв (≈0,38 с, заливка там ≈ 45 %), при нулевом размере сменяет цвет на тёмный и, как только круг залит целиком (0,85 с), возвращается к 1 с лёгким перелётом (sayIconPop, ≈0,3 с).
+   Слои (::before, значок) выносятся на GPU will-change: transform ТОЛЬКО в active. Это CSS-анимации, а не transition: нажатие (:active) их не обрывает. Возврат из записи (успех / неудача / стоп): круг и значок плавно меняют цвет за .32s, размер 1,15 → 1 — плавно (--size-t, без зеркального раскрытия).
+   РАЗМЕР круга и кольца (--mic-scale / --ring-scale) меняется одним transition с общей кривой --size-t состояния: В запись — --size-in (та же длительность и кривая, что у заливки: рост и заливка идут синхронно, без перелёта),
+   ИЗ записи (и все остальные переходы) — ease-in-out ≈0,5 с. Transition берётся из состояния-ПРИЁМНИКА, поэтому смена класса не обрывает и не сбрасывает размер; нажатие (:active) трогает не transform, а отдельное свойство scale.
    Кольцо: --ring-track/-arc (+ -o) — серые трек и бегущая дуга; --ring-full-o — прозрачность сплошного зелёного кольца; --ring-scale — его размер.
    ──────────────────────────────────────────────────────────────────── */
 
-.sayPanel { --say-fill-t: .66s; --say-fill: var(--say-fill-t) cubic-bezier(.3, .45, .35, 1); } /* заливка круга кольцом от края к центру: ≈0,66 с, мягкий ease-out */
-.sayPanel { --say-icon-t: .96s; } /* значок: схлопывается за первую половину заливки, ждёт её конца (0,66 с) и возвращается ≈0,3 с — кадры sayIconPop завязаны на эти 0,96 с */
-.sayPanel { --size-t: .5s cubic-bezier(.4, 0, .2, 1); } /* размер круга и кольца: ease-in-out ≈0,5 с (из записи, в покой, в «Готово», 0,85 → 1) */
+.sayPanel { --say-ease: cubic-bezier(.37, 0, .63, 1); --say-fill-t: .85s; --say-fill: var(--say-fill-t) var(--say-ease); } /* заливка кольцом от края к центру: 0,85 с, ease-in-out (старт с нулевой скоростью) */
+.sayPanel { --say-icon-t: 1.15s; } /* значок: схлопывается к ≈0,38 с, ждёт конца заливки (0,85 с) и возвращается ≈0,3 с — кадры sayIconPop завязаны на эти 1,15 с */
+.sayPanel { --size-t: .5s cubic-bezier(.4, 0, .2, 1); --size-in: var(--say-fill-t) var(--say-ease); } /* размер круга и кольца: ease-in-out ≈0,5 с (из записи, в покой, в «Готово», 0,85 → 1); --size-in — В запись, как заливка */
 
 .sayMicBox--locked {
   --mic-scale: .85; --mic-bg: var(--say-gray); --mic-rim: var(--say-gray); --mic-ink: var(--say-gray-ink);
   --ring-track: #6b7180; --ring-track-o: .45; --ring-arc: #c4c9d6; --ring-arc-o: .9; --ring-full-o: 0; --ring-scale: 1;
 }
 .sayMicBox--ready {
-  --mic-scale: 1; --mic-bg: var(--say-dark); --mic-rim: rgba(182, 254, 59, .4); --mic-ink: var(--say-lime);
+  --mic-scale: 1; --mic-bg: var(--say-dark); --mic-rim: #547229; /* лайм .4 поверх тёмного круга, но непрозрачный */ --mic-ink: var(--say-lime);
   --ring-track: var(--say-lime); --ring-track-o: 0; --ring-arc: var(--say-lime); --ring-arc-o: 0; --ring-full-o: 1; --ring-scale: 1;
 }
 .sayMicBox--active {
   --mic-scale: 1.15; --mic-bg: var(--say-lime); --mic-rim: var(--say-lime); --mic-ink: var(--say-ink);
   --ring-track: var(--say-lime); --ring-track-o: 0; --ring-arc: var(--say-lime); --ring-arc-o: 0; --ring-full-o: .5; --ring-scale: 1.15;
-  --size-t: .55s cubic-bezier(.22, .8, .3, 1.06); /* В запись 1 → 1,15: мягкий ease-out ≈0,55 с, перелёт ≈ 1,5% пути (без «дёрганья») */
+  --size-t: var(--size-in); /* В запись 1 → 1,15: та же длительность и кривая, что у заливки (0,85 с ease-in-out, без перелёта): рост и заливка синхронны, старт без рывка */
 }
 .sayMicBox--done {
   --mic-scale: 1; --mic-bg: var(--say-lime); --mic-rim: var(--say-lime); --mic-ink: var(--say-ink);
@@ -41,31 +43,32 @@
   --ring-track: #6b7180; --ring-track-o: .3; --ring-arc: #c4c9d6; --ring-arc-o: 0; --ring-full-o: 0; --ring-scale: 1;
 }
 
-/* Запись: размер ведёт общий --size-t (выше); цвет кнопки под диском меняется сразу (его не видно), ободок темнеет за .2с; заливку и цвет значка ведут анимации ниже */
+/* Запись: размер ведёт общий --size-t (выше); цвет кнопки под диском меняется сразу (его не видно), ободок разгорается за .4с (в такт заливке); заливку и цвет значка ведут анимации ниже */
 .sayMicBox--active .sayMicBtn {
-  transition: transform var(--size-t), scale .12s ease-out, background 0s, border-color .2s, color 0s, opacity .2s;
+  transition: transform var(--size-t), scale .12s ease-out, background 0s, border-color .4s, color 0s, opacity .2s;
 }
 
 /* Заливка кольцом: диск прежнего цвета сжимается от края к центру, лайм (фон кнопки) приходит от края внутрь. «Прежний» цвет — из ready (тёмный, значок лайм) или из locked (серый, серый значок) */
 .sayMicBox--from-locked { --from-bg: var(--say-gray); --from-ink: var(--say-gray-ink); }
-.sayMicBox--active .sayMicBtn::before { animation: sayIris var(--say-fill) both; }
-.sayMicBox--active .sayFaceMic { animation: sayIconPop var(--say-icon-t) linear both; }
+.sayMicBox--active .sayMicBtn::before { animation: sayIris var(--say-fill) both; will-change: transform; }
+.sayMicBox--active .sayFaceMic { animation: sayIconPop var(--say-icon-t) linear both; will-change: transform; }
 @keyframes sayIris {
   from { transform: scale(1); }
   to   { transform: scale(0); }
 }
-/* Значок: 0–34% (≈0,33 с) схлопывается до нуля (ease-in), пока лайм идёт к центру; на нуле (34–35%) цвет меняется на тёмный; ждёт, пока круг зальётся целиком (до 69% ≈ 0,66 с = --say-fill-t);
-   69–100% (≈0,3 с) возвращается 0 → 1 с лёгким перелётом (ease-out). Только transform и цвет. «Прежний» цвет — --from-ink (серый из locked, зелёный из ready). */
+/* Значок: 0–33% (≈0,38 с) схлопывается до нуля (ease-in-out: без «щелчка» в конце, ≤ 2,7 px размера за кадр), пока лайм идёт к центру и доходит до его краёв; на нуле (33–34%) цвет меняется на тёмный; ждёт, пока круг зальётся целиком (до 74% ≈ 0,85 с = --say-fill-t);
+   74–100% (≈0,3 с) возвращается 0 → 1 с лёгким перелётом (ease-out). Только transform и цвет. «Прежний» цвет — --from-ink (серый из locked, зелёный из ready). */
 @keyframes sayIconPop {
-  0%   { transform: scale(1); color: var(--from-ink, var(--say-lime)); animation-timing-function: cubic-bezier(.5, 0, .75, 0); }
-  34%  { transform: scale(0); color: var(--from-ink, var(--say-lime)); }
-  35%  { transform: scale(0); color: var(--say-ink); }
-  69%  { transform: scale(0); color: var(--say-ink); animation-timing-function: cubic-bezier(.34, 1.45, .64, 1); }
+  0%   { transform: scale(1); color: var(--from-ink, var(--say-lime)); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
+  33%  { transform: scale(0); color: var(--from-ink, var(--say-lime)); }
+  34%  { transform: scale(0); color: var(--say-ink); }
+  74%  { transform: scale(0); color: var(--say-ink); animation-timing-function: cubic-bezier(.34, 1.45, .64, 1); }
   100% { transform: scale(1); color: var(--say-ink); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sayPanel, .sayPanel .sayMicBox--active { --size-t: .2s ease-out; } /* размер без анимации-«роста»: смена за .2s */
+  .sayPanel { --size-in: .2s ease-out; }
+  .sayPanel, .sayPanel .sayMicBox--active { --size-t: .2s ease-out; } /* размер без анимации-«роста»: смена за .2s (и якорь волн — через --size-in) */
   .sayMicBox--active .sayMicBtn { transition: transform var(--size-t), background .2s, border-color .2s, color .2s, opacity .2s; } /* без кольца и схлопывания значка: смена цвета за .2s */
   .sayMicBox--active .sayFaceMic { animation: none; }
 }

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { NODE_TYPES, TYPE_SHORT } from '../../../canvas/nodeTypes.js'
-import { RING_K, RING_COUNT, CIRCLE_R } from '../../../../shared/lib/speech/sayRings.js'
+import { RING_K, RING_COUNT, CIRCLE_R, RING_R0 } from '../../../../shared/lib/speech/sayRings.js'
 
 // Проводка модуля «Сказать фразу»: CSS (раскладка, круглая кнопка, волны, надпись над кругом) и редактор. Остальная проводка — sayPhraseWiring.test.js
 const dir = fileURLToPath(new URL('.', import.meta.url))
@@ -21,7 +21,7 @@ const contentEditor = read('../../../canvas/NodeContentEditor.jsx')
 const frames = c => [...strip(c).matchAll(/@keyframes\s+(\w+)\s*\{([\s\S]*?)\n\}/g)]
 
 describe('say_phrase — CSS и редактор', () => {
-  it('стили подключены; без filter/blur/box-shadow; каждый CSS-файл ≤ 250 строк; круг 100 по центру тела', () => {
+  it('стили подключены; без filter/blur/box-shadow; каждый CSS-файл ≤ 250 строк; круг 85 по центру тела', () => {
     for (const f of ['say-phrase', 'say-phrase-mic', 'say-phrase-state', 'say-phrase-ring', 'say-phrase-waves']) expect(indexCss).toContain(`@import './styles/player/panels/${f}.css';`)
     for (const c of [css, micCss, stateCss, ringCss, wavesCss]) {
       expect(strip(c)).not.toMatch(/filter\s*:|blur\(|box-shadow\s*:|backdrop-filter/)
@@ -30,15 +30,16 @@ describe('say_phrase — CSS и редактор', () => {
     expect(css).toContain('.sayPhraseSpacer')
     expect(css).toMatch(/\.sayBody \{[^}]*height: 206px/)
     expect(css).toMatch(/\.sayCaption \{[^}]*height: 26px/)
-    expect(css).toMatch(/\.sayMicBox \{[^}]*top: 53px[^}]*height: 100px/) // (206 − 100) / 2: центр круга = центр тела = центр панели
+    expect(css).toMatch(/\.sayMicBox \{[^}]*top: 60\.5px[^}]*height: 85px/) // (206 − 85) / 2: центр круга = центр тела = центр панели
     expect(css).toMatch(/\.sayInner \{ padding: 11px 16px 12px/)         // рамка 1 + 11 сверху = 12 снизу: центр круга = центр панели
     expect(css).not.toContain('.sayInfo')                                // подсказок-текстов в панели нет
   })
 
-  it('кнопка ВСЕГДА круглая: 100×100, border-radius 50%, нигде в CSS не меняет ни размер, ни форму; цвет и размер — переменные состояния (--mic-scale / --mic-bg / --mic-ink)', () => {
+  it('кнопка ВСЕГДА круглая: 85×85 (прежние 100 × 0,85), border-radius 50%, нигде в CSS не меняет ни размер, ни форму; цвет и размер — переменные состояния (--mic-scale / --mic-bg / --mic-ink)', () => {
     const code = strip(micCss)
     const base = code.match(/\.sayPanel \.sayMicBtn \{[^}]*\}/)[0]
-    expect(base).toMatch(/width: 100px;\s*height: 100px/)
+    expect(base).toMatch(/width: 85px;\s*height: 85px/)
+    expect(base).toMatch(/margin: 0 0 0 -42\.5px/)
     expect(base).toMatch(/border-radius: 50%/)
     expect(base).toMatch(/background: var\(--mic-bg\)/)
     expect(base).toMatch(/color: var\(--mic-ink\)/)
@@ -77,7 +78,7 @@ describe('say_phrase — CSS и редактор', () => {
     expect(ring).toContain('LEN / 4') // четверть окружности
     expect(ring.replace(/\/\/.*$/gm, '')).not.toMatch(/useState|useEffect|requestAnimationFrame/) // без React на кадр
     const code = strip(ringCss)
-    expect(code).toMatch(/\.sayRing \{[^}]*width: 128px;\s*height: 128px;\s*margin: -64px 0 0 -64px;[^}]*pointer-events: none/) // диаметр круга 100 → зазор 8 px
+    expect(code).toMatch(/\.sayRing \{[^}]*width: 108\.8px;\s*height: 108\.8px;\s*margin: -54\.4px 0 0 -54\.4px;[^}]*pointer-events: none/) // 128 × 0,85; диаметр круга 85 → зазор 6,8 px
     expect(code).toMatch(/\.sayRing \{[^}]*transform: scale\(var\(--ring-scale, 1\)\);\s*transition: transform var\(--size-t, \.5s ease\);/) // в записи кольцо растёт вместе с кругом, по той же кривой, что и круг
     expect(code).toMatch(/\.sayRingTrack \{ stroke: var\(--ring-track\); opacity: var\(--ring-track-o\); transition: stroke \.4s, opacity \.4s; \}/)
     expect(code).toMatch(/\.sayRingArc \{ stroke: var\(--ring-arc\); stroke-linecap: round; opacity: var\(--ring-arc-o\); transition: stroke \.4s, opacity \.4s; \}/)
@@ -104,18 +105,18 @@ describe('say_phrase — CSS и редактор', () => {
     expect(code).not.toMatch(/#ff6b5e|#ff3b30|\bsayRed\b|sayMicBtn--fail/)
   })
 
-  it('все анимации — только transform/opacity (layout не трогаем): дуга серого кольца плывёт (только locked), три волны активации расходятся один раз (≤ ×1,7, ≈ 0,8 с суммарно)', () => {
+  it('все анимации — только transform/opacity (layout не трогаем): дуга серого кольца плывёт (только locked), три волны активации расходятся один раз (≤ ×1,6 от обводки, ≈ 0,8 с суммарно), циклические волны бесконечные (sayCycWave — единственная infinite-анимация волн)', () => {
     const all = [...frames(stateCss), ...frames(ringCss), ...frames(wavesCss)]
-    expect(all.map(f => f[1]).sort()).toEqual(['sayActWave', 'sayIconPop', 'sayIris', 'sayRingSpin'])
+    expect(all.map(f => f[1]).sort()).toEqual(['sayActWave', 'sayCycWave', 'sayIconPop', 'sayIris', 'sayRingSpin'])
     const act = strip(wavesCss).match(/@keyframes sayActWave[\s\S]*?\n\}/)[0]
-    expect(Number(act.match(/100%\s*\{\s*transform:\s*scale\(([\d.]+)\)/)[1])).toBeLessThanOrEqual(1.7)
+    expect(Number(act.match(/100%\s*\{\s*transform:\s*scale\(([\d.]+)\)/)[1])).toBeLessThanOrEqual(1.6)
     expect(act).toMatch(/0%\s*\{\s*transform: scale\(1\);\s*opacity: 0;/) // до старта и после конца волны не видно
     const w = strip(wavesCss)
     const dur = Number(w.match(/\.sayWaveClip--live \.sayActWaves i \{ animation: sayActWave ([\d.]+)s ease-out both; \}/)[1])
     const lastDelay = Number(w.match(/i:nth-child\(3\) \{ animation-delay: ([\d.]+)s; \}/)[1])
     expect(dur + lastDelay).toBeGreaterThanOrEqual(0.6)
     expect(dur + lastDelay).toBeLessThanOrEqual(0.9)     // эффект активации ≈ 600–900 мс
-    expect(w).not.toMatch(/animation:[^;]*infinite/)     // одноразовый: бесконечных волн нет совсем
+    expect([...w.matchAll(/animation:[^;]*infinite/g)].length).toBe(1) // бесконечная волна одна — циклическая (sayCycWave); у активации и эквалайзера повторов нет
     for (const [, name, body] of all) {
       const props = [...body.matchAll(/([\w-]+)\s*:/g)].map(m => m[1]).filter(p => p !== 'animation-timing-function')
       const allowed = name === 'sayIconPop' ? ['transform', 'color'] : ['transform', 'opacity'] // значок при заливке (sayIconPop): размер и цвет — единственная анимация цвета, layout не трогает
@@ -140,11 +141,11 @@ describe('say_phrase — CSS и редактор', () => {
     expect(css).toMatch(/\.sayCaptionLive \{[^}]*clip: rect\(0 0 0 0\)/)                  // aria-live-элемент виден только скринридеру
   })
 
-  it('волны: два слоя по три круглых кольца размером с круг записи (115); в покое волн нет вообще; волны активации играют по появлению --live, эквалайзер показывается в --live; у колец эквалайзера НЕТ transition/animation', () => {
+  it('волны: три слоя по три круглых кольца-обводки размером с внешнюю обводку круга; в покое волн нет вообще; волны активации играют по появлению --live, эквалайзер показывается в --live; у колец эквалайзера НЕТ transition/animation', () => {
     const code = strip(wavesCss)
-    expect(code).toMatch(/\.sayWaveAnchor \{[^}]*top: 114px; width: 115px; height: 115px; margin: -57\.5px 0 0 -57\.5px/) // 11 + 53 + 50: центр круга
-    expect(CIRCLE_R * 2).toBe(115)
-    expect(code).toMatch(/\.sayActWaves i, \.sayEq i \{[^}]*border-radius: 50%/)
+    expect(code).toMatch(/\.sayWaveAnchor \{[^}]*top: 114px;\s*width: 106\.25px;\s*height: 106\.25px;\s*margin: -53\.125px 0 0 -53\.125px/) // 11 + 60,5 + 42,5: центр круга; 106,25 = внешний диаметр обводки в покое
+    expect(CIRCLE_R * 2).toBeCloseTo(97.75, 6)
+    expect(code).toMatch(/\.sayActWaves i, \.sayEq i, \.sayCycWaves i \{[^}]*border-radius: 50%/)
     expect(code).toMatch(/\.sayActWaves i \{ opacity: 0; \}/)                  // вне записи волн не видно
     expect(code).toMatch(/\.sayWaveClip--live \.sayActWaves i \{ animation: sayActWave \.6s ease-out both; \}/)
     expect(code).toMatch(/\.sayWaveClip--live \.sayActWaves i:nth-child\(2\) \{ animation-delay: \.1s; \}/)
@@ -153,7 +154,7 @@ describe('say_phrase — CSS и редактор', () => {
     for (const [rule] of code.matchAll(/\.sayEq i[^{]*\{[^}]*\}/g)) expect(rule, rule).not.toMatch(/transition|animation/)
     expect(code).toMatch(/\.sayEq \{ opacity: 0; transition: opacity \.25s; \}/) // transition только у слоя-контейнера и только по opacity
     const stage = panelSrc['SayStage.jsx']
-    expect((stage.replace(/\/\/.*$/gm, '').match(/<i \/>/g) ?? []).length).toBe(RING_COUNT * 2)
+    expect((stage.replace(/\/\/.*$/gm, '').match(/<i \/>/g) ?? []).length).toBe(RING_COUNT * 3) // активация, эквалайзер, циклические
     const jsx = stage.replace(/\/\/.*$/gm, '')
     expect(jsx.indexOf('sayWaveClip')).toBeLessThan(jsx.indexOf('<SayCaption')) // слой волн лежит под надписью и кнопкой
     expect(jsx.indexOf('<SayCaption')).toBeLessThan(jsx.indexOf('sayMicBox'))
@@ -165,13 +166,14 @@ describe('say_phrase — CSS и редактор', () => {
     expect(clip).toMatch(/overflow: hidden/)
     expect(clip).toMatch(/pointer-events: none/)
     expect(clip).toMatch(/top: -11px;\s*bottom: -12px;\s*left: -16px;\s*right: -16px/) // края .phraseInner (padding 11 16 12)
-    expect(Math.max(...RING_K) * CIRCLE_R + CIRCLE_R).toBeLessThanOrEqual(90) // 78 px против 115 до верха/низа панели 230/2: клип — лишь страховка
+    expect((1 + Math.max(...RING_K)) * RING_R0).toBeLessThanOrEqual(90) // 85 px против 115 до верха/низа панели 230/2: клип — лишь страховка
     expect(panelSrc['SayStage.jsx']).toContain('aria-hidden="true" data-testid="say-waves"')
   })
 
-  it('«уменьшить движение»: без пружины, вращения дуги и волн активации — только смена цветов и размера; эквалайзер без JS-цикла (статичный круг)', () => {
+  it('«уменьшить движение»: без пружины, вращения дуги, волн активации и циклических волн — только смена цветов и размера; эквалайзер без JS-цикла (статичный круг)', () => {
     const media = strip(wavesCss).slice(strip(wavesCss).indexOf('@media (prefers-reduced-motion: reduce)'))
     expect(media).toMatch(/\.sayWaveClip--live \.sayActWaves i \{ animation: none; \}/)
+    expect(media).toMatch(/\.sayCycWaves \{ display: none; \}/)
     expect(media).toMatch(/\.sayEq i \{ transform: scale\(1\.2\) !important; opacity: \.3 !important; \}/)
     const st = strip(stateCss)
     const stMedia = st.slice(st.indexOf('@media (prefers-reduced-motion: reduce)'))

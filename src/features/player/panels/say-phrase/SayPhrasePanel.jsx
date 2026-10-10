@@ -161,9 +161,10 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
 
   const running = phase === 'run'
   const micTarget = micVisualState({ ...sp.access, phase }) // НАСТОЯЩЕЕ состояние: locked | ready | active | done | off (нет доступа / доступ выдан / запись / «Готово» / выключен) — по нему решения и автопопап
-  // То, что видит ученик (sayReadyDelay.js): locked → ready запаздывает на ~0,7 с; ПЕРВЫЙ запрос доступа — заливка/рост/волны/подпись ждут, пока микрофон реально откроется (диалог подтверждён) + ~0,7 с.
+  // То, что видит ученик (sayReadyDelay.js): locked → ready запаздывает на ~0,7 с; ПЕРВЫЙ запрос доступа — заливка/рост/волны/подпись ждут, пока микрофон реально откроется (диалог подтверждён) + ~0,7 с;
+  // запись кнопкой попапа без диалога — активация через ~0,5 с от нажатия (попап успевает закрыться; popup = сейчас открыт попап).
   // Запись при этом идёт по настоящему состоянию, задержка только в картинке: пока круг ещё locked, подпись и волны тоже «как в locked» (visualPhase idle)
-  const micState = useDelayedMicState(micTarget, { settled: sp.perm.isChecked(), noAccess: !hasMicAccess(sp.access), opened: sp.view?.status === 'listening' })
+  const micState = useDelayedMicState(micTarget, { settled: sp.perm.isChecked(), noAccess: !hasMicAccess(sp.access), opened: sp.view?.status === 'listening', popup: phase === 'explain' })
   const visualPhase = micState === 'locked' && micTarget === 'active' ? 'idle' : phase
   const mic = micLabel({ phase: visualPhase, fallbackReason: sp.fallbackReason, go: sp.go, exhausted: sp.exhausted, locked: micState === 'locked' })
   const noMic = phase === 'fallback' && sp.fallbackReason === 'browser' // Firefox: вместо круга — пояснение

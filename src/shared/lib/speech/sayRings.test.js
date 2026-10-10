@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  RING_K, RING_OPACITY, RING_ATTACK_MS, RING_DECAY_MS, BREATH_BASE, BREATH_SWING, TAP_KICK, CIRCLE_R, WAVE_MARGIN,
+  RING_K, RING_OPACITY, RING_ATTACK_MS, RING_DECAY_MS, BREATH_BASE, BREATH_SWING, TAP_KICK, CIRCLE_R, RING_R0, WAVE_MARGIN,
   NOISE_GATE, RESPONSE_GAMMA, RESPONSE_GAIN,
   ringScale, ringOpacity, ringFrame, clampRadius, breath, ringTarget, ringsStep, kickRings, voiceResponse,
 } from './sayRings.js'
@@ -10,21 +10,26 @@ import { createVoiceLevel } from './sayVoiceLevel.js'
 const PANEL = { width: 343, height: 230, cx: 171.5, cy: 115 }
 
 describe('уровень → масштаб и прозрачность колец', () => {
-  it('круг записи 115 px (100 × 1,15); масштаб от 1,0 до ≈1,3–1,6 (было 1,75–1,95), внешние кольца дальше; даже без клипа внешнее кольцо не больше половины высоты панели; уровень вне 0..1 обрезается', () => {
-    expect(CIRCLE_R * 2).toBe(115)
-    expect(CIRCLE_R * (1 + Math.max(...RING_K))).toBeLessThanOrEqual(PANEL.height / 2 - WAVE_MARGIN) // самое дальнее кольцо (≈ 90 px) укладывается в панель даже без клипа
+  it('круг записи 97,75 px (85 × 1,15), обводка вокруг него — внешний край 61,09 px (SVG 108,8: радиус 51 + 2,125, ×1,15); кольца стартуют с края обводки; масштаб от 1,0 до ≈1,25–1,4, внешние кольца дальше; даже без клипа внешнее кольцо не больше половины высоты панели; уровень вне 0..1 обрезается', () => {
+    expect(CIRCLE_R * 2).toBeCloseTo(97.75, 6)
+    expect(CIRCLE_R).toBeCloseTo(85 * 1.15 / 2, 6)
+    expect(RING_R0).toBeCloseTo((108.8 * 60 / 128 + 4.25 / 2) * 1.15, 1)          // внешний край обводки: радиус r=60 из viewBox 128 + половина толщины, ×1,15 в записи
+    expect(RING_R0 - CIRCLE_R).toBeGreaterThan(10)                               // зазор круг ↔ обводка: волны внутрь него не заходят (кольцо при масштабе 1 лежит по краю обводки)
+    expect(RING_R0 * (1 + Math.max(...RING_K))).toBeLessThanOrEqual(PANEL.height / 2 - WAVE_MARGIN) // самое дальнее кольцо (≈ 85 px) укладывается в панель даже без клипа
     expect(ringScale(0, 0)).toBe(1)
     for (let i = 0; i < 3; i++) {
-      expect(ringScale(1, i)).toBeGreaterThanOrEqual(1.3)
-      expect(ringScale(1, i)).toBeLessThanOrEqual(1.6)
-      expect(ringScale(1, i) * CIRCLE_R - CIRCLE_R).toBeLessThanOrEqual(33) // выступ за край круга ≤ 33 px (раньше 43–55)
-      expect(ringScale(1, i) * CIRCLE_R).toBeLessThanOrEqual(PANEL.height / 2)
+      expect(ringScale(1, i)).toBeGreaterThanOrEqual(1.25)
+      expect(ringScale(1, i)).toBeLessThanOrEqual(1.4)
+      expect(ringScale(1, i) * RING_R0 - RING_R0).toBeLessThanOrEqual(33 * 0.85) // выступ за внешний край обводки ≤ 28 px (прежние ≤ 33 × 0,85)
+      expect(ringScale(1, i) * RING_R0).toBeLessThanOrEqual(PANEL.height / 2)
       expect(ringScale(2, i)).toBe(ringScale(1, i))
       expect(ringScale(-1, i)).toBe(1)
     }
     expect(ringScale(1, 0)).toBeLessThan(ringScale(1, 1))
     expect(ringScale(1, 1)).toBeLessThan(ringScale(1, 2))
-    expect(RING_K).toEqual([0.31, 0.4, 0.49]) // выступы за край круга 115 ≈ 18 / 23 / 28 px — как были у круга 100
+    expect(RING_K).toEqual([0.25, 0.32, 0.39])
+    // выступы за обводку = прежние 18 / 23 / 28 px × 0,85 (визуальные пропорции прежние)
+    RING_K.forEach((k, i) => expect(k * RING_R0).toBeCloseTo([18, 23, 28][i] * 0.85, 0))
   })
 
   it('прозрачность при уровне 1 = 0,55 / 0,32 / 0,16: ближнее плотнее, каждое следующее тусклее; от уровня растёт', () => {
@@ -71,14 +76,14 @@ describe('clampRadius — амплитуда волн не выходит за �
       for (let i = 0; i < 3; i++) {
         for (const lvl of [0, 0.5, 1, 7]) {
           const f = ringFrame(lvl, i, box)
-          expect(f.scale * CIRCLE_R).toBeLessThanOrEqual(Math.max(CIRCLE_R, limit) + 1e-9)
+          expect(f.scale * RING_R0).toBeLessThanOrEqual(Math.max(RING_R0, limit) + 1e-9)
           expect(f.scale).toBeGreaterThanOrEqual(1)
         }
       }
     }
-    expect(ringFrame(1, 2, PANEL).scale).toBeCloseTo(ringScale(1, 2), 5) // 1,56 × 50 = 78: в большой панели клип ничего не режет
+    expect(ringFrame(1, 2, PANEL).scale).toBeCloseTo(ringScale(1, 2), 5) // 1,39 × 61,09 = 85: в большой панели клип ничего не режет
     const low = { width: 343, height: 140, cx: 171.5, cy: 70 }
-    expect(ringFrame(1, 2, low).scale).toBeCloseTo(68 / CIRCLE_R, 5)    // а в низком контейнере предел — расстояние до края минус запас
+    expect(ringFrame(1, 2, low).scale).toBeCloseTo(68 / RING_R0, 5)    // а в низком контейнере предел — расстояние до края минус запас
     expect(ringFrame(1, 0, null).scale).toBeCloseTo(ringScale(1, 0), 10)
     expect(ringFrame(0.5, 1, null).opacity).toBe(ringOpacity(0.5, 1))
   })
@@ -131,10 +136,10 @@ describe('отклик на голос (порог шума + степень < 1
     for (const v of [0.08, 0.1, 0.15, 0.2, 0.3, 0.5]) expect(voiceResponse(v)).toBeGreaterThan(v)
   })
 
-  it('тихая речь заметно двигает внутреннее кольцо: радиус ≥ 3 px выше, чем в тишине (при дыхании в пике)', () => {
-    const silent = ringFrame(BREATH_BASE + BREATH_SWING, 0, PANEL).scale * CIRCLE_R
-    const quiet = ringFrame(voiceResponse(0.1), 0, PANEL).scale * CIRCLE_R
-    expect(quiet - silent).toBeGreaterThanOrEqual(3)
+  it('тихая речь заметно двигает внутреннее кольцо: радиус ≥ 2,5 px (3 × 0,85) выше, чем в тишине (при дыхании в пике)', () => {
+    const silent = ringFrame(BREATH_BASE + BREATH_SWING, 0, PANEL).scale * RING_R0
+    const quiet = ringFrame(voiceResponse(0.1), 0, PANEL).scale * RING_R0
+    expect(quiet - silent).toBeGreaterThanOrEqual(2.5)
     expect(ringOpacity(voiceResponse(0.1), 0)).toBeGreaterThan(ringOpacity(BREATH_BASE, 0) * 1.4)
   })
 })
@@ -148,7 +153,7 @@ describe('мгновенный отклик на тап', () => {
     expect(k[1]).toBeGreaterThan(k[2])
     k[0] = 0
     expect(kickRings()[0]).toBe(TAP_KICK[0])
-    expect(ringFrame(kickRings()[0], 0, PANEL).scale).toBeGreaterThan(1.15)
+    expect(ringFrame(kickRings()[0], 0, PANEL).scale).toBeGreaterThan(1.1)
   })
 
   it('вспышка оседает до ожидания за 100–300 мс, дальше кольца «дышат»', () => {
@@ -204,7 +209,7 @@ describe('конвейер: событие распознавания → кол
     v.signal('soundstart', 1000)
     levels = ringsStep(levels, ringTarget({ voice: v.ringLevel(1000), t: 1000 }), 16)
     expect(levels[0]).toBeGreaterThanOrEqual(0.5)
-    expect(ringScale(levels[0], 0)).toBeGreaterThanOrEqual(1.3)
+    expect(ringScale(levels[0], 0)).toBeGreaterThanOrEqual(1.12)
     for (let t = 1016; t < 1120; t += 16) levels = ringsStep(levels, ringTarget({ voice: v.ringLevel(t), t }), 16)
     expect(levels[2]).toBeGreaterThan(0.6)
 

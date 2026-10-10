@@ -31,16 +31,17 @@ describe('say_phrase — состояния круга', () => {
     expect(rule('active')).toMatch(/--ring-track-o: 0;[^}]*--ring-arc-o: 0/)
     expect(rule('done')).toMatch(/--ring-full-o: 1/)
     expect(rule('off')).toMatch(/--ring-arc-o: 0;[^}]*--ring-full-o: 0/)
+    expect(rule('ready')).toMatch(/--mic-rim: #[0-9a-f]{6};/) // ободок ready непрозрачный: полупрозрачный в первом кадре заливки вспыхивал бы над лаймовым фоном кнопки
     expect(strip(micCss)).toMatch(/\.sayPanel \{ --say-dark: #12141d; --say-gray: #2f333d; --say-gray-ink: #8a90a2; \}/)
   })
 
-  it('размер круга и кольца: ПЛАВНО в обе стороны одной кривой --size-t (в запись — мягкий ease-out с едва заметным перелётом ≈0,55 с, из записи — ease-in-out ≈0,5 с); нажатие — отдельное свойство scale, не transform', () => {
+  it('размер круга и кольца: ПЛАВНО в обе стороны одной кривой --size-t (в запись — --size-in: та же длительность и кривая, что у заливки, ease-in-out с нулевой начальной скоростью, без перелёта; из записи — ease-in-out ≈0,5 с); нажатие — отдельное свойство scale, не transform', () => {
     const code = strip(stateCss)
     const mic = strip(micCss)
     const ring = strip(ringCss)
     const secs = v => Number(v.match(/([\d.]+)s/)[1])
     // из записи и все остальные переходы (0,85 → 1, в «Готово»): ease-in-out ≈0,5 с, без перелёта
-    const out = code.match(/\.sayPanel \{ --size-t: ([\d.]+s) cubic-bezier\(([^)]*)\); \}/)
+    const out = code.match(/\.sayPanel \{ --size-t: ([\d.]+s) cubic-bezier\(([^)]*)\); --size-in: var\(--say-fill-t\) var\(--say-ease\); \}/)
     expect(secs(out[1])).toBeGreaterThanOrEqual(0.45)
     expect(secs(out[1])).toBeLessThanOrEqual(0.55)
     const [ox1, oy1, ox2, oy2] = out[2].split(',').map(Number)
@@ -48,38 +49,42 @@ describe('say_phrase — состояния круга', () => {
     expect(oy2).toBe(1)                       // и без перелёта ниже 1,0
     expect(ox1).toBeGreaterThan(0)
     expect(ox2).toBeLessThan(1)
-    // в запись: мягкий ease-out ≈0,5–0,6 с, перелёт едва заметный (y2 чуть выше 1, но не пружина)
-    const inn = code.match(/\.sayMicBox--active \{[^}]*--size-t: ([\d.]+s) cubic-bezier\(([^)]*)\);/)
-    expect(secs(inn[1])).toBeGreaterThanOrEqual(0.5)
-    expect(secs(inn[1])).toBeLessThanOrEqual(0.6)
-    const [ix1, iy1, , iy2] = inn[2].split(',').map(Number)
-    expect(iy1).toBeGreaterThan(ix1)          // ease-out: старт быстрее линейного
-    expect(iy2).toBeGreaterThan(1)            // едва заметный перелёт …
-    expect(iy2).toBeLessThanOrEqual(1.1)      // … не пружина
+    // в запись: рост и заливка — ОДНА длительность и кривая (--size-in = --say-fill-t + --say-ease): синхронно, без перелёта, старт с нулевой скоростью
+    expect(code).toMatch(/\.sayMicBox--active \{[^}]*--size-t: var\(--size-in\);/)
+    const ease = code.match(/--say-ease: cubic-bezier\(([^)]*)\); --say-fill-t: ([\d.]+)s; --say-fill: var\(--say-fill-t\) var\(--say-ease\);/)
+    const [ex1, ey1, ex2, ey2] = ease[1].split(',').map(Number)
+    expect(ey1).toBe(0)                        // нулевая начальная скорость: первые кадры без рывка
+    expect(ey2).toBe(1)                        // без перелёта
+    expect(ex1).toBeGreaterThan(0.2)
+    expect(ex2).toBeLessThan(1)
+    expect(Number(ease[2])).toBeGreaterThanOrEqual(0.75)
+    expect(Number(ease[2])).toBeLessThanOrEqual(0.9)
     expect(code).not.toMatch(/linear\(0, /)   // пружины linear() больше нет
     // круг и кольцо читают ОДНУ переменную; transition берётся из состояния-приёмника, поэтому смена класса не сбрасывает размер
     expect(mic.match(/\.sayPanel \.sayMicBtn \{[^}]*\}/)[0]).toMatch(/transition: transform var\(--size-t\), scale \.12s ease-out, background \.32s, border-color \.32s, color \.32s/)
-    expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn \{\s*transition: transform var\(--size-t\), scale \.12s ease-out, background 0s, border-color \.2s, color 0s/)
+    expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn \{\s*transition: transform var\(--size-t\), scale \.12s ease-out, background 0s, border-color \.4s, color 0s/)
     expect(ring.match(/\.sayRing \{[^}]*\}/)[0]).toMatch(/transition: transform var\(--size-t/)
     // нажатие не трогает transform и не отключает transition (на iPhone :active и клик идут впритык и обрывали бы размер)
     expect(mic).toMatch(/\.sayPanel \.sayMicBtn:active:not\(:disabled\) \{ scale: \.95; \}/)
     expect(mic).not.toMatch(/:active[^{]*\{[^}]*(transition: none|transform:)/)
     expect(mic).toMatch(/\.sayPanel \.sayMicBtn--done:disabled, \.sayPanel \.sayMicBtn--off:disabled \{ opacity: 1; \}/)
-    // prefers-reduced-motion: размер меняется за .2 с, без «роста»
-    expect(code).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.sayPanel, \.sayPanel \.sayMicBox--active \{ --size-t: \.2s ease-out; \}/)
+    // prefers-reduced-motion: размер меняется за .2 с, без «роста» (и якорь волн — через --size-in)
+    expect(code).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.sayPanel \{ --size-in: \.2s ease-out; \}\s*\.sayPanel, \.sayPanel \.sayMicBox--active \{ --size-t: \.2s ease-out; \}/)
   })
 
-  it('заливка при нажатии идёт КОЛЬЦОМ от края круга к центру: диск прежнего цвета (::before) сжимается scale(1 → 0) ≈0,6–0,7 с, ease-out, лайм приходит от края; значок темнеет синхронно; без @property и mask', () => {
+  it('заливка при нажатии идёт КОЛЬЦОМ от края круга к центру: диск прежнего цвета (::before) сжимается scale(1 → 0) 0,75–0,9 с, ease-in-out (мягкий старт), лайм приходит от края; слои на GPU только в active; без @property и mask', () => {
     const code = strip(stateCss)
-    const fill = code.match(/--say-fill-t: ([\d.]+)s; --say-fill: var\(--say-fill-t\) (cubic-bezier\([^)]*\))/)
-    expect(Number(fill[1])).toBeGreaterThanOrEqual(0.6)
-    expect(Number(fill[1])).toBeLessThanOrEqual(0.7)
-    const [x1, y1, x2, y2] = fill[2].match(/[\d.]+/g).map(Number)
-    expect(y1).toBeGreaterThan(x1)  // ease-out: старт быстрее линейного …
-    expect(y2).toBe(1)              // … и плавно оседает в цель без перелёта
+    const fill = code.match(/--say-ease: cubic-bezier\(([^)]*)\); --say-fill-t: ([\d.]+)s/)
+    expect(Number(fill[2])).toBeGreaterThanOrEqual(0.75)
+    expect(Number(fill[2])).toBeLessThanOrEqual(0.9)
+    const [x1, y1, x2, y2] = fill[1].match(/[\d.]+/g).map(Number)
+    expect(y1).toBe(0)              // нулевая начальная скорость: за первые 50 мс заливка ≤ 1,5 % пути (прежняя ease-out давала 12 %) — и это убирает «дёрганый» старт
+    expect(x1).toBeGreaterThan(0.2)
+    expect(y2).toBe(1)              // плавно оседает в цель без перелёта
     expect(x2).toBeLessThan(1)
-    expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn::before \{ animation: sayIris var\(--say-fill\) both; \}/)
+    expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn::before \{ animation: sayIris var\(--say-fill\) both; will-change: transform; \}/)
     expect(code).toMatch(/@keyframes sayIris \{\s*from \{ transform: scale\(1\); \}\s*to\s+\{ transform: scale\(0\); \}/)
+    for (const [, sel, decl] of code.matchAll(/([^{}]+)\{([^{}]*)\}/g)) if (/will-change/.test(decl)) expect(sel, 'will-change только в записи').toContain('.sayMicBox--active') // GPU-слой без постоянной нагрузки
     // диск: в покое сжат в точку; цвет «прежнего» круга — тёмный (из ready) или серый (из locked, класс --from-locked)
     const disc = strip(micCss).match(/\.sayPanel \.sayMicBtn::before \{[^}]*\}/)[0]
     expect(disc).toMatch(/border-radius: 50%/)
@@ -94,26 +99,26 @@ describe('say_phrase — состояния круга', () => {
     expect(code).toMatch(/prefers-reduced-motion: reduce\) \{[\s\S]*\.sayMicBox--active \.sayMicBtn \{ transition: transform var\(--size-t\), background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}[^}]*\n\s*\.sayMicBox--active \.sayFaceMic \{ animation: none; \}/)
   })
 
-  it('значок при заливке: схлопывается до нуля (ease-in) в первой половине заливки, при нуле меняет цвет на тёмный, после заливки возвращается 0 → 1 с лёгким перелётом ≈0,3 с — только transform и цвет', () => {
+  it('значок при заливке: схлопывается до нуля (ease-in-out) к моменту, когда заливка доходит до его краёв, при нуле меняет цвет на тёмный, после заливки возвращается 0 → 1 с лёгким перелётом ≈0,3 с — только transform и цвет', () => {
     const code = strip(stateCss)
-    expect(code).toMatch(/\.sayMicBox--active \.sayFaceMic \{ animation: sayIconPop var\(--say-icon-t\) linear both; \}/)
+    expect(code).toMatch(/\.sayMicBox--active \.sayFaceMic \{ animation: sayIconPop var\(--say-icon-t\) linear both; will-change: transform; \}/)
     const total = Number(code.match(/--say-icon-t: ([\d.]+)s/)[1])
     const fill = Number(code.match(/--say-fill-t: ([\d.]+)s/)[1])
     const kf = code.match(/@keyframes sayIconPop \{([\s\S]*?)\n\}/)[1]
-    const frame = pct => kf.match(new RegExp(`\\n\\s*${pct}%\\s*\\{([^}]*)\\}`, 'm') ) ?? kf.match(new RegExp(`${pct}%\\s*\\{([^}]*)\\}`))
-    const at = pct => frame(pct)[1]
-    // 0%: размер 1, прежний цвет, кривая ease-in до нуля
-    expect(at(0)).toMatch(/transform: scale\(1\);[^;]*--from-ink[^;]*;\s*animation-timing-function: cubic-bezier\(\.5, 0, \.75, 0\)/)
-    // ноль достигается в первой половине заливки; цвет меняется, пока значок нулевой
-    const zeroAt = 0.34 * total
-    expect(zeroAt).toBeLessThanOrEqual(fill / 2 + 0.01)
-    expect(at(34)).toMatch(/transform: scale\(0\);[^;]*--from-ink/)
-    expect(at(35)).toMatch(/transform: scale\(0\);\s*color: var\(--say-ink\)/)
-    // держится нулевым до конца заливки (69% от общего времени ≈ --say-fill-t) и возвращается с перелётом (y1 > 1) за 0,25–0,35 с
-    expect(Math.abs(0.69 * total - fill)).toBeLessThan(0.02)
-    expect(at(69)).toMatch(/transform: scale\(0\);\s*color: var\(--say-ink\);\s*animation-timing-function: cubic-bezier\(\.34, 1\.45, \.64, 1\)/)
+    const at = pct => kf.match(new RegExp(`${pct}%\\s*\\{([^}]*)\\}`))[1]
+    // 0%: размер 1, прежний цвет, кривая ease-in-out до нуля (без «щелчка» в конце: скорость в нуле нулевая)
+    expect(at(0)).toMatch(/transform: scale\(1\);[^;]*--from-ink[^;]*;\s*animation-timing-function: cubic-bezier\(\.45, 0, \.55, 1\)/)
+    // ноль достигается ДО того, как лайм доходит до края значка: заливка там ≈ 45 % пути (≈ 0,40 с при 0,85 с), значок — к ≈ 0,38 с; цвет меняется, пока значок нулевой
+    const zeroAt = 0.33 * total
+    expect(zeroAt).toBeLessThanOrEqual(0.4)
+    expect(zeroAt).toBeLessThan(fill / 2)
+    expect(at(33)).toMatch(/transform: scale\(0\);[^;]*--from-ink/)
+    expect(at(34)).toMatch(/transform: scale\(0\);\s*color: var\(--say-ink\)/)
+    // держится нулевым до конца заливки (74% от общего времени ≈ --say-fill-t) и возвращается с перелётом (y1 > 1) за 0,25–0,35 с
+    expect(Math.abs(0.74 * total - fill)).toBeLessThan(0.02)
+    expect(at(74)).toMatch(/transform: scale\(0\);\s*color: var\(--say-ink\);\s*animation-timing-function: cubic-bezier\(\.34, 1\.45, \.64, 1\)/)
     expect(at(100)).toMatch(/transform: scale\(1\);\s*color: var\(--say-ink\)/)
-    const back = (1 - 0.69) * total
+    const back = (1 - 0.74) * total
     expect(back).toBeGreaterThanOrEqual(0.25)
     expect(back).toBeLessThanOrEqual(0.35)
     expect(kf).not.toMatch(/opacity|filter|background|@property/) // только transform и цвет

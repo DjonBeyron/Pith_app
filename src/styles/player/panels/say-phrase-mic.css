@@ -1,8 +1,8 @@
 /* ── Круг-микрофон «Сказать фразу» ───────────────────────────────────────────────────────────────────────────────────
-   ОДИН круглый элемент .sayMicBtn (100px) в области фиксированной высоты .sayMicBox (say-phrase.css): форма не меняется НИКОГДА. Внутри — значок микрофона
+   ОДИН круглый элемент .sayMicBtn (85px = прежние 100 × 0,85) в области фиксированной высоты .sayMicBox (say-phrase.css): форма не меняется НИКОГДА. Внутри — значок микрофона
    (SayMicIcon.jsx) или, на успехе, галочка и «Готово». Размер, цвет круга и значок задаёт СОСТОЯНИЕ: класс .sayMicBox--{locked|ready|active|done|off} на корне
    (sayMicState.js), а сами значения лежат переменными в say-phrase-state.css (--mic-scale / --mic-bg / --mic-ink / --mic-rim) — здесь только как кнопка их применяет.
-   Масштаб — transform: scale(var(--mic-scale)) с transition общей кривой --size-t (0,85 → 1 и из записи 1,15 → 1 ease-in-out ≈0,5 с; в запись 1 → 1,15 мягкий ease-out ≈0,55 с; заливка кольцом от края к центру ≈0,6 с и схлопывание значка — say-phrase-state.css). Пульса в покое нет. Нажатие — лёгкое вжатие отдельным свойством scale (:active). Layout-анимаций нет: только transform/opacity и цвета.
+   Масштаб — transform: scale(var(--mic-scale)) с transition общей кривой --size-t (0,85 → 1 и из записи 1,15 → 1 ease-in-out ≈0,5 с; в запись 1 → 1,15 — 0,85 с вместе с заливкой кольцом от края к центру и схлопыванием значка — say-phrase-state.css). Пульса в покое нет. Нажатие — лёгкое вжатие отдельным свойством scale (:active). Layout-анимаций нет: только transform/opacity и цвета.
    Цвета --say-lime / --say-ink / --say-dark — на .sayPanel. Волны вокруг круга и надпись над ним — say-phrase-waves.css / say-phrase.css.
    ──────────────────────────────────────────────────────────────────── */
 
@@ -12,14 +12,14 @@
   position: absolute;
   top: 0;
   left: 50%;
-  margin: 0 0 0 -50px;
-  width: 100px;
-  height: 100px;
+  margin: 0 0 0 -42.5px;
+  width: 85px;
+  height: 85px;
   padding: 0;
   border-radius: 50%;
   overflow: hidden;
   background: var(--mic-bg);
-  border: 2px solid var(--mic-rim); /* ободок ready; у остальных — того же цвета, что круг (box-sizing border-box: размер 100 не меняется) */
+  border: 1.7px solid var(--mic-rim); /* ободок ready (непрозрачный: под полупрозрачным вспыхивал бы фон кнопки); у остальных — того же цвета, что круг (box-sizing border-box: размер 85 не меняется) */
   color: var(--mic-ink);
   user-select: none;
   -webkit-user-select: none;
@@ -57,12 +57,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3.4px;
   pointer-events: none;
   transition: opacity .22s, transform .3s cubic-bezier(.22, 1, .36, 1);
 }
 .sayFaceMic { opacity: 1; transform: scale(1); }
-.sayFaceDone { opacity: 0; transform: scale(.6); font-size: 16px; font-weight: 800; line-height: 1; }
+.sayFaceDone { opacity: 0; transform: scale(.6); font-size: 13.6px; font-weight: 800; line-height: 1; }
 .sayMicBtn--done .sayFaceMic { opacity: 0; transform: scale(.5); }
 .sayMicBtn--done .sayFaceDone { opacity: 1; transform: scale(1); transition-delay: .06s; }
 

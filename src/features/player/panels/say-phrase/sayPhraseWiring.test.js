@@ -204,7 +204,7 @@ describe('say_phrase — порядок появления, звук, попап
   it('звуки приложения: окно тишины на попытку (soundQuiet), тап по микрофону не запускает разблокировку звука', () => {
     expect(hook).toContain("import { holdSoundQuiet } from '../../../../shared/lib/soundQuiet.js'")
     expect(hook).toMatch(/if \(!q\.release\) q\.release = holdSoundQuiet\(\)/)
-    expect(hook).toContain("import { QUIET_TAIL_MS } from '../../../../shared/lib/speech/sayHints.js'")
+    expect(hook).toContain("import { QUIET_TAIL_MS, STOP_MANUAL } from '../../../../shared/lib/speech/sayHints.js'")
     expect(read('../../../../shared/lib/speech/sayHints.js')).toContain('QUIET_TAIL_MS = 600')
     expect(panelSrc['SayStage.jsx']).toContain('data-no-unlock=""')
     expect(read('../../../../shared/lib/sounds.js')).toContain("suppressSound(name, () => playSound(name, where, opts))")

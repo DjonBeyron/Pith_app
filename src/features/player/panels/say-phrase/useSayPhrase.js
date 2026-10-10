@@ -7,7 +7,7 @@ import { getRecognitionCtor, queryMicPermission } from '../../../../shared/lib/s
 import { sayPermission } from '../../../../shared/lib/speech/sayPermission.js'
 import { SAY_EVENTS, sayEventProps } from '../../../../shared/lib/speech/sayResult.js'
 import { sayReducer, initialSayState, planTap, isGo, STOP_ARM_MS } from '../../../../shared/lib/speech/sayFlow.js'
-import { QUIET_TAIL_MS } from '../../../../shared/lib/speech/sayHints.js'
+import { QUIET_TAIL_MS, STOP_MANUAL } from '../../../../shared/lib/speech/sayHints.js'
 import { createVoiceLevel } from '../../../../shared/lib/speech/sayVoiceLevel.js'
 import { createBrowserRealLevel, levelSource, isRealLevelOn, realLevelLabel } from '../../../../shared/lib/speech/sayRealLevel.js'
 import { createLevelSource } from '../../../../shared/lib/speech/sayLevelSource.js'
@@ -144,7 +144,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   const tapMic = useCallback(() => {
     if (s.exhausted) return // три неудачи уже были: панель уходит по ветке «неверный», новая запись не нужна
     const plan = planTap({ view: s.view, decision: perm.decide(), go: isGo(s), running: s.phase === 'run' })
-    if (plan.act === 'stop') ctrl.stop()
+    if (plan.act === 'stop') { dispatch({ type: 'stop', reason: STOP_MANUAL }); ctrl.stop() } // причина «ученик остановил» — ДО ctrl.stop(): итог захода (settle) решает по ней, слать ли «не слышу вас…»
     else if (plan.act === 'fallback') dispatch({ type: 'fallback', reason: plan.reason })
     else if (plan.act === 'explain') dispatch({ type: 'explain', kind: plan.kind })
     else if (plan.act === 'begin') begin()

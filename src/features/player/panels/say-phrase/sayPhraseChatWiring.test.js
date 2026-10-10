@@ -60,7 +60,7 @@ describe('say_phrase — эквалайзер и источник уровня',
     expect(wave).toContain("window.addEventListener('resize', remeasure)")
     expect(wave).toContain("window.removeEventListener('resize', remeasure)")
     expect(wave).toContain('ringFrame(levels[i], i, box)')
-    expect(read('../../../../shared/lib/speech/sayRings.js')).toContain('clampRadius(ringScale(level, i) * CIRCLE_R, box)')
+    expect(read('../../../../shared/lib/speech/sayRings.js')).toContain('clampRadius(ringScale(level, i) * RING_R0, box)')
   })
 })
 

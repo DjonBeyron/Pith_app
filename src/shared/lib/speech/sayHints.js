@@ -22,6 +22,19 @@ export function hintKind({ errorCode = null, verdict = null } = {}) {
   return NO_HINT_CODES.has(r) ? null : 'silence'
 }
 
+// Причина остановки записи: 'manual' — ученик сам нажал на круг во время записи (sayFlow: действие 'stop'), 'auto' — остановил движок (тишина, таймаут, итог распознавания)
+export const STOP_MANUAL = 'manual'
+export const STOP_AUTO = 'auto'
+
+/** Распознано ли в заходе хоть что-то (итог или промежуточный текст): отличает настоящую попытку от остановки «в тишину» */
+export const heardAnything = view => !!(view?.final?.text?.trim() || view?.lastInterim?.trim())
+
+/**
+ * Можно ли слать в чат подсказку «не слышу вас…» / «не то». Ручная остановка ученика, когда распознавать было нечего, — это отмена, а не попытка: подсказки нет.
+ * Автоостановка (тишина / таймаут) и любая остановка с распознанным текстом — как раньше. Чистая функция.
+ */
+export const silenceHintAllowed = (stopReason, heard) => !(stopReason === STOP_MANUAL && !heard)
+
 const uniq = list => [...new Set(list ?? [])]
 
 // Слова сравнения — нормализованные (нижний регистр, «I'm» → i, am). Для подсказки возвращаем написание из фразы автора, где оно есть

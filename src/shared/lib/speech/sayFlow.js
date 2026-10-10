@@ -13,13 +13,15 @@
 // exhausted=true — панель уходит по ветке «неверный» (SayPhrasePanel). Что тратит попытку (внутренний счёт attempts, ученику он НЕ показывается; taps — нажатия для аналитики):
 //  - завершённый прогон, где что-то РАСПОЗНАНО (в том числе неверное) — тратит;  - тишина (ничего не услышано) — НЕ тратит, но MAX_SILENCES тишин ПОДРЯД = одна неудача (silences);
 //  - ошибки движка и разрешения микрофона — НЕ тратят (и обрывают серию тишин).
+//  - ЧТО ЗНАЧИТ ручная остановка: ученик нажал на круг во время записи (действие 'stop', stopReason 'manual'). Если к этому моменту ничего не распознано — это отмена: phase снова idle, попытка и серия тишин не меняются,
+//    подсказки и реплики в чат нет (sayHints.silenceHintAllowed). Если что-то распознано (даже неверное) — обычная попытка. Автоостановка по тишине / таймауту (stopReason null) — как раньше: «не слышу вас…».
 // explainKind — какой попап перед запросом микрофона (full | short | intro, см. sayPermission.pickExplainKind); realLevel — пометка для строки админа
 // («вкл» / «выкл» / «ошибка …»: опциональный реальный уровень звука для колец, sayRealLevel.js); engine — какой движок выбран на эту попытку ({engine: 'vosk'|'system', reason}, sayEnginePick.js): пометка для админа.
 import { emptyView } from './speechController.js'
 import { judgeRun, interimDiffers, failReason, SAY_EVENTS } from './sayResult.js'
 import { isDeniedCode } from './sayTexts.js'
 import { adminHeardLine } from './sayAdmin.js'
-import { buildHint } from './sayHints.js'
+import { buildHint, heardAnything, silenceHintAllowed, STOP_MANUAL } from './sayHints.js'
 import { userReply } from './sayReply.js'
 import { isQuietCode } from './speechPolicy.js'
 
@@ -42,7 +44,7 @@ export function nextCounts({ attempts, silences }, { spoke, quiet }) {
 export function initialSayState(decision) {
   const base = {
     phase: 'idle', taps: 0, view: emptyView, verdict: null, errorCode: null, fallbackReason: null, autoRetries: 0,
-    explainer: false, explainKind: null, realLevel: null, audioSession: null, engine: null, data: null, settledRun: 0, event: null, failStreak: 0, attempts: 0, silences: 0, exhausted: false, armed: false, adminLine: null, hint: null, hintNo: 0, reply: null,
+    explainer: false, explainKind: null, realLevel: null, audioSession: null, engine: null, data: null, settledRun: 0, event: null, failStreak: 0, attempts: 0, silences: 0, exhausted: false, armed: false, adminLine: null, hint: null, hintNo: 0, reply: null, stopReason: null,
   }
   return decision?.action === 'fallback' ? { ...base, phase: 'fallback', fallbackReason: decision.reason } : base
 }
@@ -65,6 +67,10 @@ function settle(s, v) {
       ...s, ...mark, ...counts, exhausted, phase: 'failed', verdict, errorCode, failStreak, hintNo, hint: h ? { ...h, n: hintNo } : null, reply: text ? { text, n: failStreak } : null,
       event: ev({ passed: false, reason, failStreak, ratioPct: verdict?.ratioPct, engineFixed: verdict?.engineFixed?.length || undefined, hintKind: h?.kind, exhausted }),
     }
+  }
+  // Ученик сам нажал «стоп», а распознавать было нечего: это отмена, не попытка. Подсказки и реплики в чат нет, попытка и серия тишин не меняются, круг снова готов (phase idle)
+  if (!silenceHintAllowed(s.stopReason, heardAnything(v)) && (v.status === 'done' || isQuietCode(v.error))) {
+    return { ...s, ...mark, phase: 'idle', verdict: null, errorCode: null, hint: null, reply: null, event: ev({ passed: false, reason: 'stopped' }) }
   }
   if (v.status === 'error') {
     if (isDeniedCode(v.error)) {
@@ -99,7 +105,8 @@ export function sayReducer(s, a) {
       return withAdminLine(s, { ...s, view: v })
     }
     case 'begin': if (s.exhausted) return s // три неудачи уже были: панель уходит по ветке «неверный», новая запись не начинается
-      return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, armed: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, engine: a.engine ?? null, adminLine: null, hint: null, reply: null }
+      return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, armed: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, engine: a.engine ?? null, adminLine: null, hint: null, reply: null, stopReason: null }
+    case 'stop': return s.phase === 'run' ? { ...s, stopReason: a.reason === STOP_MANUAL ? STOP_MANUAL : null } : s // ученик нажал «стоп» (planTap → stop): запоминаем причину до итога захода
     case 'arm': return s.phase === 'run' ? { ...s, armed: true } : s
     case 'realStatus': return s.realLevel === a.status ? s : { ...s, realLevel: a.status }
     case 'explain': return { ...s, phase: 'explain', explainer: true, explainKind: a.kind === 'short' || a.kind === 'intro' ? a.kind : 'full' }

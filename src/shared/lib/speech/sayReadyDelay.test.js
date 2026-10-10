@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { READY_DELAY_MS, holdKind, startsAsk, readyDelayLeft } from './sayReadyDelay.js'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { READY_DELAY_MS, POPUP_DELAY_MS, holdKind, startsAsk, startsAfterPopup, readyDelayLeft, activationLeft } from './sayReadyDelay.js'
 import { micVisualState, hasMicAccess } from './sayMicState.js'
 import { createSayPermission, MIC_GRANTED_KEY, INTRO_SEEN_KEY } from './sayPermission.js'
 
@@ -159,5 +161,59 @@ describe('первый запрос доступа: когда начинает�
       expect(hasMicAccess(access)).toBe(false)
       expect(micVisualState({ ...access, phase: 'run' })).toBe('active')
     }
+  })
+})
+
+// Нажатие кнопки в попапе: активация на экране стартует ПОСЛЕ закрытия попапа (340 мс) и короткой паузы — общая задержка ≈ 450–600 мс от нажатия
+describe('активация после попапа (POPUP_DELAY_MS)', () => {
+  const TAP = 5000
+  const popupExit = Number(/const EXIT_MS = (\d+)/.exec(readFileSync(fileURLToPath(new URL('../../../app/hudPopupState.js', import.meta.url)), 'utf8'))[1])
+
+  it('константа 450–600 мс и дольше закрытия попапа с запасом на паузу', () => {
+    expect(POPUP_DELAY_MS).toBeGreaterThanOrEqual(450)
+    expect(POPUP_DELAY_MS).toBeLessThanOrEqual(600)
+    expect(POPUP_DELAY_MS).toBeGreaterThanOrEqual(popupExit + 100) // попап (340 мс) успевает уйти, потом ещё пауза
+  })
+
+  it('startsAfterPopup: только из показанного locked в active и если в прошлом рендере был попап; повторная попытка с круга (ready) — без удержания', () => {
+    expect(startsAfterPopup({ shown: 'locked', target: 'active', wasPopup: true })).toBe(true)
+    expect(startsAfterPopup({ shown: 'locked', target: 'active', wasPopup: false })).toBe(false)
+    expect(startsAfterPopup({ shown: 'ready', target: 'active', wasPopup: true })).toBe(false)
+    expect(startsAfterPopup({ shown: 'locked', target: 'off', wasPopup: true })).toBe(false)
+    expect(startsAfterPopup({ shown: 'locked', target: 'ready', wasPopup: true })).toBe(false)
+  })
+
+  it('holdKind: locked → active удерживается и после попапа (afterPopup) без диалога; без попапа и без диалога — сразу, как раньше', () => {
+    expect(holdKind({ shown: 'locked', target: 'active', afterPopup: true })).toBe('active')
+    expect(holdKind({ shown: 'locked', target: 'active' })).toBeNull()
+    expect(holdKind({ shown: 'ready', target: 'active', afterPopup: true })).toBeNull()
+    expect(holdKind({ shown: 'locked', target: 'off', afterPopup: true })).toBeNull() // отказ — сразу
+  })
+
+  it('без системного диалога (доступ выдан / Android / вводный попап): ровно POPUP_DELAY_MS от нажатия, возврата в приложение не ждём — и на iPhone', () => {
+    for (const ios of [false, true]) {
+      expect(activationLeft({ afterPopup: true, ios, tapAt: TAP, readyAt: TAP, now: TAP })).toBe(POPUP_DELAY_MS)
+      expect(activationLeft({ afterPopup: true, ios, tapAt: TAP, readyAt: TAP, now: TAP + 300 })).toBe(POPUP_DELAY_MS - 300)
+      expect(activationLeft({ afterPopup: true, ios, tapAt: TAP, readyAt: TAP, now: TAP + POPUP_DELAY_MS })).toBe(0)
+      expect(activationLeft({ afterPopup: true, ios, tapAt: TAP, readyAt: TAP, now: TAP + 50, visible: false })).toBe(POPUP_DELAY_MS - 50)
+    }
+  })
+
+  it('первый запрос доступа после попапа: 700 мс от «открылся» (на iPhone — и от возврата), но не раньше нажатия + POPUP_DELAY_MS', () => {
+    const OPENED = TAP + 4000
+    expect(activationLeft({ asked: true, afterPopup: true, ios: true, tapAt: TAP, readyAt: OPENED, backAt: OPENED + 300, now: OPENED + 300 })).toBe(READY_DELAY_MS)
+    expect(activationLeft({ asked: true, afterPopup: true, ios: false, tapAt: TAP, readyAt: OPENED, now: OPENED })).toBe(READY_DELAY_MS)
+    // диалог подтвердили мгновенно (авторазрешение): 700 мс от «открылся» всё равно длиннее паузы после попапа — ждём их
+    expect(activationLeft({ asked: true, afterPopup: true, ios: false, tapAt: TAP, readyAt: TAP + 10, now: TAP + 10 })).toBe(READY_DELAY_MS)
+    // и если «открылся» раньше, чем пройдёт пауза после попапа, пауза от нажатия не сокращается
+    expect(activationLeft({ asked: true, afterPopup: true, ios: false, tapAt: TAP, readyAt: TAP - 400, now: TAP })).toBe(POPUP_DELAY_MS)
+    // приложение скрыто на iPhone — ждём возврата
+    expect(activationLeft({ asked: true, afterPopup: true, ios: true, tapAt: TAP, readyAt: OPENED, now: OPENED + 10, visible: false })).toBeNull()
+  })
+
+  it('без попапа (asked, как раньше) и ready — прежние числа; notBefore по умолчанию ничего не меняет', () => {
+    expect(activationLeft({ asked: true, ios: false, readyAt: 1000, now: 1000 })).toBe(READY_DELAY_MS)
+    expect(readyDelayLeft({ ios: false, readyAt: 1000, now: 1000, delay: 100 })).toBe(100)
+    expect(readyDelayLeft({ ios: false, readyAt: 1000, now: 1000, delay: 100, notBefore: 1400 })).toBe(400)
   })
 })

@@ -30,7 +30,7 @@ describe('«Я не могу говорить» — кнопка-иконка', 
     expect(css).not.toContain('saySkipLink')
   })
 
-  it('круглая ≈38px, приглушённая, в ПРАВОМ углу чуть выше нижнего ряда; зона касания ≥ 44px (::after)', () => {
+  it('круглая ≈38px, приглушённая, в ПРАВОМ углу на уровне нижнего ряда (на 12px ниже прежнего); зона касания ≥ 44px (::after)', () => {
     const btn = css.match(/\.saySkipBtn \{[^}]*\}/)[0]
     const w = Number(btn.match(/width: (\d+)px/)[1])
     expect(w).toBeGreaterThanOrEqual(36)
@@ -38,7 +38,16 @@ describe('«Я не могу говорить» — кнопка-иконка', 
     expect(btn).toMatch(new RegExp(`height: ${w}px`))
     expect(btn).toMatch(/border-radius: 50%/)
     expect(btn).toMatch(/position: absolute;\s*right: 0;\s*bottom: (\d+)px/)
-    expect(Number(btn.match(/bottom: (\d+)px/)[1])).toBeGreaterThan(24) // выше строки «Послушать» (ряд высотой 30px)
+    // опущена на 12px (было bottom 28 → стало 16; допуск 10–14): низ иконки внутри тела панели (206px) с запасом до нижнего края корпуса, на 320×568 не налезает на край и на «Послушать» (слева)
+    const bottom = Number(btn.match(/bottom: (\d+)px/)[1])
+    expect(28 - bottom).toBeGreaterThanOrEqual(10)
+    expect(28 - bottom).toBeLessThanOrEqual(14)
+    const FOOT_BOTTOM = 12 // .sayFoot { bottom: -12px }
+    const bodyBottomGap = bottom - FOOT_BOTTOM
+    expect(bodyBottomGap).toBeGreaterThanOrEqual(0)                          // не ниже тела панели
+    expect(206 - bodyBottomGap - w).toBeGreaterThan(152)                     // и не выше прежнего, не заходит на круг записи (низ круга ×1,15 ≈ 152px от верха тела)
+    expect(bottom - FOOT_BOTTOM + 12 + 1).toBeGreaterThanOrEqual(12)         // до нижнего края панели (корпус 12 + рамка 1) ≥ 12px
+    expect(css).toMatch(/\.sayFootSide--end \{[^}]*padding-right: 46px/)    // «Включить» (режим «не могу говорить») встаёт левее иконки, а не под неё
     expect(Number(btn.match(/opacity: ([\d.]+)/)[1])).toBeLessThanOrEqual(0.85) // приглушена, не спорит с кругом
     const inset = Number(css.match(/\.saySkipBtn::after \{ content: ''; position: absolute; inset: -(\d+)px; \}/)[1])
     expect(w + inset * 2).toBeGreaterThanOrEqual(44)
