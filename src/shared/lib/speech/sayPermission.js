@@ -6,6 +6,8 @@
 //
 // Флаги:
 //  - localStorage   pithy_say_explained_v1     — ПОЛНОЕ пояснение «зачем микрофон» уже видели (один раз в жизни устройства)
+//  - localStorage   pithy_say_mic_granted_v1   — микрофон на этом устройстве уже УСПЕШНО открывался (запись пошла): по нему кнопка показывает «доступ выдан»
+//                                                там, где Permissions API молчит (iPhone Safari). Сбрасывается при отказе (not-allowed / query=denied) и в админском сбросе
 //  - sessionStorage pithy_say_pre_shown_session — в этом запуске уже показывали попап перед системным запросом (нужен iPhone, где query недоступен)
 //  - sessionStorage pithy_say_denied_session   — в этом запуске отказали: start() больше НЕ зовём
 //  - sessionStorage pithy_cant_speak_session   — СТАРЫЙ сессионный флаг «Не могу говорить» (панель его больше не ставит: теперь это разовое решение
@@ -17,6 +19,7 @@ import { isFirefoxBrowser } from './sayBrowser.js'
 export const EXPLAINED_KEY = 'pithy_say_explained_v1'
 export const DENIED_KEY = 'pithy_say_denied_session'
 export const PRE_SHOWN_KEY = 'pithy_say_pre_shown_session'
+export const MIC_GRANTED_KEY = 'pithy_say_mic_granted_v1'
 export { CANT_SPEAK_KEY } // ключ и чтение флага для плеера — в cantSpeakFlag.js (без импортов)
 
 const pick = name => { try { return globalThis[name] ?? null } catch { return null } }
@@ -57,6 +60,7 @@ export function createSayPermission({
     /** Обновить кэш разрешения (диалога не вызывает). Звать при показе панели и после попытки */
     async refresh() {
       try { perm = await queryPerm() } catch { perm = 'unavailable' }
+      if (perm === 'denied') write(local, MIC_GRANTED_KEY, false) // доступ отозвали в настройках: «уже разрешали» больше не верим
       return perm
     },
     getPerm: () => perm,
@@ -65,6 +69,8 @@ export function createSayPermission({
     isPreShown: () => read(session, PRE_SHOWN_KEY),
     isCantSpeak: () => read(session, CANT_SPEAK_KEY),
     isMicOk: () => micOk,
+    /** Всё, что нужно кнопке для вида «нет доступа / доступ выдан» (sayMicState.micVisualState): ответ query, флаг «уже открывался» и «работал в этом запуске» */
+    access: () => ({ permission: perm, flag: read(local, MIC_GRANTED_KEY), sessionOk: micOk }),
     supported: () => isSupported(),
     markExplained: () => write(local, EXPLAINED_KEY, true),
     markPreShown: () => write(session, PRE_SHOWN_KEY, true),
@@ -72,10 +78,11 @@ export function createSayPermission({
     resetHints() {
       micOk = false
       write(local, EXPLAINED_KEY, false)
+      write(local, MIC_GRANTED_KEY, false)
       for (const k of [DENIED_KEY, PRE_SHOWN_KEY, CANT_SPEAK_KEY]) write(session, k, false)
     },
-    markMicOk() { micOk = true },
-    markDenied() { micOk = false; write(session, DENIED_KEY, true) },
+    markMicOk() { micOk = true; write(local, MIC_GRANTED_KEY, true) },
+    markDenied() { micOk = false; write(local, MIC_GRANTED_KEY, false); write(session, DENIED_KEY, true) },
     setCantSpeak: on => write(session, CANT_SPEAK_KEY, !!on),
     /** Решение по тапу (синхронное: кэш perm + флаги). 'denied' по query запоминаем в сессии, чтобы не донимать */
     decide() {

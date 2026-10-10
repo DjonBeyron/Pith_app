@@ -118,7 +118,7 @@ describe('say_phrase — микрофон: только по тапу, мини�
     const panel = panelSrc['SayPhrasePanel.jsx']
     expect(panel).toContain("import { track } from '../../../../shared/lib/analytics/track.js'")
     expect(panel).toContain('onEvent: track')
-    expect(read('../../../../shared/lib/speech/sayTexts.js')).toContain('Мы не записываем и не сохраняем звук')
+    expect(read('../../../../shared/lib/speech/sayTexts.js')).toContain('Запись не сохраняется и не отправляется на наш сервер')
   })
 })
 
@@ -171,8 +171,10 @@ describe('say_phrase — порядок появления, звук, попап
     expect(hook).toMatch(/const confirmExplain = useCallback\(\(\) => \{ perm\.markExplained\(\); perm\.markPreShown\(\); begin\(\) \}/)
     expect(body).toContain('<SayMicPopup kind={sp.explainKind}')
     expect(popup).toContain("kind = 'full'")
-    expect(popup).toContain('EXPLAIN_SHORT_TEXT')
+    expect(popup).toContain('EXPLAIN_SHORT_LINES')
     expect(popup).toContain('EXPLAIN_SHORT_BTN')
+    expect(popup).toContain('EXPLAIN_LATER')                                  // «Не сейчас» = тап мимо окна: ничего не просим, флагов нет
+    expect(popup).toMatch(/className="sayPopLater" onClick=\{onCancel\}/)
   })
 
   it('попап: пружина открытия, схлопывание как у худа, затемнение отдельным слоем; без blur/backdrop-filter/теней', () => {

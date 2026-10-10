@@ -10,20 +10,21 @@ import { createVoiceLevel } from './sayVoiceLevel.js'
 const PANEL = { width: 343, height: 230, cx: 171.5, cy: 115 }
 
 describe('уровень → масштаб и прозрачность колец', () => {
-  it('круг 100 px; масштаб от 1,0 до ≈1,3–1,6 (было 1,75–1,95), внешние кольца дальше; даже без клипа внешнее кольцо не больше половины высоты панели; уровень вне 0..1 обрезается', () => {
-    expect(CIRCLE_R).toBe(50)
+  it('круг записи 115 px (100 × 1,15); масштаб от 1,0 до ≈1,3–1,6 (было 1,75–1,95), внешние кольца дальше; даже без клипа внешнее кольцо не больше половины высоты панели; уровень вне 0..1 обрезается', () => {
+    expect(CIRCLE_R * 2).toBe(115)
+    expect(CIRCLE_R * (1 + Math.max(...RING_K))).toBeLessThanOrEqual(PANEL.height / 2 - WAVE_MARGIN) // самое дальнее кольцо (≈ 90 px) укладывается в панель даже без клипа
     expect(ringScale(0, 0)).toBe(1)
     for (let i = 0; i < 3; i++) {
       expect(ringScale(1, i)).toBeGreaterThanOrEqual(1.3)
       expect(ringScale(1, i)).toBeLessThanOrEqual(1.6)
-      expect(ringScale(1, i) * CIRCLE_R - CIRCLE_R).toBeLessThanOrEqual(30) // выступ за край круга ≤ 30 px (раньше 43–55)
+      expect(ringScale(1, i) * CIRCLE_R - CIRCLE_R).toBeLessThanOrEqual(33) // выступ за край круга ≤ 33 px (раньше 43–55)
       expect(ringScale(1, i) * CIRCLE_R).toBeLessThanOrEqual(PANEL.height / 2)
       expect(ringScale(2, i)).toBe(ringScale(1, i))
       expect(ringScale(-1, i)).toBe(1)
     }
     expect(ringScale(1, 0)).toBeLessThan(ringScale(1, 1))
     expect(ringScale(1, 1)).toBeLessThan(ringScale(1, 2))
-    expect(RING_K).toEqual([0.36, 0.46, 0.56])
+    expect(RING_K).toEqual([0.31, 0.4, 0.49]) // выступы за край круга 115 ≈ 18 / 23 / 28 px — как были у круга 100
   })
 
   it('прозрачность при уровне 1 = 0,55 / 0,32 / 0,16: ближнее плотнее, каждое следующее тусклее; от уровня растёт', () => {

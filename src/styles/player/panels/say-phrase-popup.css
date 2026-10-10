@@ -1,4 +1,4 @@
-/* ── Попап «Нужен микрофон» (SayMicPopup.jsx) ───────────────────────────
+/* ── Попап «Нужен доступ к микрофону» (SayMicPopup.jsx) ───────────────────────────
    Модальная карточка по центру экрана ПЕРЕД системным диалогом микрофона (сам диалог ОС встроить/стилизовать нельзя).
    Вид и анимации — как у попапа игрока в «Рейтинге» (rating-popup.css) и окошек худа: «пружинка» popSpringIn (pop-spring.css)
    при открытии, схлопывание hudPopOut + заливка hudPopFlood (hud-pop-out.css) при закрытии. Затемнение — отдельный слой
@@ -57,8 +57,26 @@
   border: 2px solid #b6fe3b;
   color: #b6fe3b;
 }
+.sayPopTitle { margin: 0; font-size: 18px; line-height: 1.25; font-weight: 700; color: #f1f4f8; }
+.sayPopBody { display: flex; flex-direction: column; gap: 8px; }
 .sayPopText { margin: 0; font-size: 15px; line-height: 1.45; color: #c9ced9; }
 .sayPopBtn { margin-top: 2px; }
+/* «Не сейчас»: тихая текстовая кнопка под основной (то же, что тап мимо окна или Esc); зона касания шире текста */
+.sayPopLater {
+  position: relative;
+  margin: -4px 0 0;
+  padding: 6px 12px;
+  background: none;
+  border: 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #8c93a8;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.sayPopLater:disabled { cursor: default; }
 
 @media (prefers-reduced-motion: reduce) {
   .sayPopCard { animation: popFadeIn 0.2s ease-out backwards; }

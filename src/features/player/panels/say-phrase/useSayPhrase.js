@@ -34,9 +34,12 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // «глухая» попытка после успешной автоматически пересоздаётся один раз (speechDeaf.js).
 // Круг реагирует на тап СРАЗУ: 'begin' ставит phase 'run' в том же тапе. «Можно остановить» = isGo (движок слушает И прошла защита от
 // двойного тапа STOP_ARM_MS: таймер 'arm'). После неудачи круг сразу снова готов (никаких пауз-показов); реплика и подсказка уходят в чат (панель).
+// Вид круга «нет доступа / доступ выдан» (sayMicState.js) считает панель из access = perm.access() (ответ Permissions API, флаг «микрофон уже открывался» в localStorage, «работал в этом запуске»):
+// флаг ставит markMicOk (запись реально пошла), сбрасывает markDenied (not-allowed) и query=denied; ответ query приходит асинхронно — bumpAccess перерисовывает панель.
 // После третьей засчитанной неудачи (exhausted, счёт — sayFlow.js) тап игнорируется: панель сама уходит по ветке «неверный».
 export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   const [s, dispatch] = useReducer(sayReducer, perm, p => initialSayState(p.decide()))
+  const [, bumpAccess] = useReducer(n => n + 1, 0) // перерисовка после ответа Permissions API (он асинхронный): вид круга считается из perm.access() при рендере
   const [voice] = useState(createVoiceLevel)
   const [real] = useState(() => createBrowserRealLevel(st => { if (st !== 'off') dispatch({ type: 'realStatus', status: realLevelLabel(true, st) }) }))
   // РАСПОЗНАВАТЕЛЬ: два движка за одним интерфейсом (sayRecognizer.js). Vosk — основной, когда к тапу готов (модель в кэше и в памяти), иначе системное распознавание (speechController
@@ -76,7 +79,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   useEffect(() => {
     if (!s.settledRun) return
     if (s.fallbackReason === 'denied') perm.markDenied() // отказ — запоминаем до конца запуска, start() больше не зовём
-    perm.refresh() // обновить кэш разрешения после попытки
+    Promise.resolve(perm.refresh()).then(bumpAccess).catch(() => {}) // обновить кэш разрешения после попытки и пересчитать вид круга (нет доступа / доступ выдан)
   }, [s.settledRun]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (s.event) emit(s.event.name, s.event.extra) }, [s.event]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -102,7 +105,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
 
   useEffect(() => {
     // Прогрев Vosk сразу (не за perm.refresh(): на iPhone Permissions API бывает «глухим»); в запасном режиме не греем, а когда query скажет 'denied' — освобождаем (sayPanelWarm.js)
-    const unwarm = startPanelWarm({ perm, warm: why => ctrl.warm(why), onFallback: d => dispatch({ type: 'fallback', reason: d.reason, onlyIdle: true }) })
+    const unwarm = startPanelWarm({ perm, warm: why => ctrl.warm(why), onFallback: d => dispatch({ type: 'fallback', reason: d.reason, onlyIdle: true }), onRefreshed: bumpAccess })
     // Сворачивание: гасим только реальную запись (iOS может мигнуть visibility, пока висит диалог разрешения)
     const interrupt = () => { ctrl.reset(); voice.signal('end', nowMs()); real.close(); dispatch({ type: 'interrupt' }) }
     const onHidden = () => { if (document.visibilityState === 'hidden' && ctrl.isAudioActive()) interrupt() }
@@ -160,7 +163,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   return {
     view: s.view, phase: s.phase, taps: s.taps, verdict: s.verdict, errorCode: s.errorCode,
     fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak, exhausted: s.exhausted,
-    go: isGo(s), adminLine: waitNote ?? s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
+    go: isGo(s), access: perm.access(), adminLine: waitNote ?? s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
     tapMic, confirmExplain, cancelExplain, enableMic, emit, perm,
   }
 }

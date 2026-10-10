@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { sayReducer, initialSayState, planTap, isGo } from './sayFlow.js'
-import { micLabel, isLiveMode, isCalmMode, LIVE_MODES } from './sayMic.js'
+import { micLabel, isLiveMode, LIVE_MODES } from './sayMic.js'
 import { MIC_IDLE, SAY_LABEL, MIC_RETRY, DONE, MIC_OFF, MIC_UNAVAILABLE } from './sayTexts.js'
 import { emptyView } from './speechController.js'
 import { readSayData } from './sayPhraseData.js'
@@ -67,7 +67,7 @@ describe('надпись над кругом и режим круга по со�
     expect(s.phase).toBe('passed')
     expect(look(s)).toEqual({ label: '', mode: 'ok' })
     expect(DONE).toBe('Готово')
-    expect(isCalmMode('ok')).toBe(true)
+    expect(isLiveMode('ok')).toBe(false)
     const soft = readSayData({ phrase: 'I am trying to please both', keywords: 'please', threshold: 50 })
     const s2 = sayReducer(sayReducer(idle(), { type: 'begin', data: soft }), { type: 'view', view: done('I am trying to please') })
     expect(s2.phase).toBe('passed')
@@ -79,7 +79,7 @@ describe('надпись над кругом и режим круга по со�
     const den = sayReducer(base, { type: 'view', view: { ...emptyView, status: 'error', runNo: 1, error: 'not-allowed', attempt: 1 } })
     expect(look(den)).toEqual({ label: MIC_OFF, mode: 'off' })
     expect(micLabel({ phase: 'fallback', fallbackReason: 'unsupported' })).toEqual({ label: MIC_UNAVAILABLE, mode: 'off' })
-    expect(isCalmMode('off')).toBe(true)
+    expect(isLiveMode('off')).toBe(false)
     expect(look(sayReducer(base, { type: 'interrupt' }))).toEqual({ label: MIC_IDLE, mode: 'idle' })
   })
 

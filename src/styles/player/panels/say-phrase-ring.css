@@ -1,12 +1,11 @@
 /* ── Кольцо вокруг круга-микрофона «Сказать фразу» (SayRing.jsx) ─────────────────────────────────────────────────────
-   Образец владельца: вокруг круга с зазором — серый «трек» и поверх него полупрозрачная салатовая дуга (≈ четверть окружности, скруглённые концы).
+   Вокруг круга с зазором — «трек» и поверх него дуга (≈ четверть окружности, скруглённые концы), медленно бегущая по кругу (sayRingSpin, 9 с).
    SVG 128×128 лежит в .sayMicBox по центру круга (диаметр круга 100 → зазор ≈ 8px, толщина обводки 5px), над слоем волн, касаний не принимает.
-   Состояние берётся из класса .sayMicBox--{mode} (SayStage): без JS и без перерисовки React на кадр, анимации — только transform/opacity.
-   • покой / повтор: серый трек + дуга (.sayRingArc, .6) медленно плывёт по кругу (sayRingSpin, 9с);
-   • запись (prep / listening): дуга гаснет, трек почти уходит (.1) — место занимает живой эквалайзер (say-phrase-waves.css), «каши» нет;
-   • «Готово» (ok): кольцо плавно становится целиком зелёным (.sayRingFull), дуга и трек уходят под него;
-   • «микрофона не будет» (off): только тусклый трек.
-   «Уменьшить движение»: дуга неподвижна.
+   Цвета трека и дуги и их прозрачность берутся ПЕРЕМЕННЫМИ состояния (say-phrase-state.css, класс .sayMicBox--{state}) и меняются плавно:
+   • locked (нет доступа): серый трек и чуть более светлая серая дуга — бежит по серому кольцу;  • ready (доступ выдан): трек и дуга зелёные;
+   • active (запись): дуга и трек гаснут — место занимает живой эквалайзер (say-phrase-waves.css);  • done («Готово»): кольцо целиком зелёное (.sayRingFull);
+   • off (микрофона не будет): только тусклый серый трек.
+   Без JS и без перерисовки React на кадр. «Уменьшить движение»: дуга неподвижна.
    ──────────────────────────────────────────────────────────────────── */
 
 .sayRing {
@@ -20,8 +19,8 @@
   pointer-events: none;
 }
 .sayRing circle { fill: none; stroke-width: 5; }
-.sayRingTrack { stroke: #9aa0b0; opacity: .36; transition: opacity .25s; }
-.sayRingArc { stroke: var(--say-lime); stroke-linecap: round; opacity: .6; transition: opacity .25s; }
+.sayRingTrack { stroke: var(--ring-track); opacity: var(--ring-track-o); transition: stroke .4s, opacity .4s; }
+.sayRingArc { stroke: var(--ring-arc); stroke-linecap: round; opacity: var(--ring-arc-o); transition: stroke .4s, opacity .4s; }
 .sayRingFull { stroke: var(--say-lime); opacity: 0; transition: opacity .3s; }
 .sayRingSpin { transform-origin: 64px 64px; animation: sayRingSpin 9s linear infinite; }
 @keyframes sayRingSpin {
@@ -29,11 +28,7 @@
   to   { transform: rotate(360deg); }
 }
 
-.sayMicBox--prep .sayRingArc, .sayMicBox--listening .sayRingArc, .sayMicBox--off .sayRingArc, .sayMicBox--ok .sayRingArc { opacity: 0; }
-.sayMicBox--prep .sayRingTrack, .sayMicBox--listening .sayRingTrack { opacity: .1; }
-.sayMicBox--off .sayRingTrack { opacity: .2; }
-.sayMicBox--ok .sayRingTrack { opacity: 0; }
-.sayMicBox--ok .sayRingFull { opacity: .85; }
+.sayMicBox--done .sayRingFull { opacity: .85; }
 
 @media (prefers-reduced-motion: reduce) {
   .sayRingSpin { animation: none; }

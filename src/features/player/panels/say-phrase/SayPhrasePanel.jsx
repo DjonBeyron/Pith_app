@@ -8,6 +8,7 @@ import { listenKeys, playListen } from './sayListen.js'
 import { readSayData } from '../../../../shared/lib/speech/sayPhraseData.js'
 import { sayOutcome, SAY_EVENTS } from '../../../../shared/lib/speech/sayResult.js'
 import { micLabel, isLiveMode } from '../../../../shared/lib/speech/sayMic.js'
+import { micVisualState } from '../../../../shared/lib/speech/sayMicState.js'
 import { HINT_DELAY_MS } from '../../../../shared/lib/speech/sayHints.js'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
 import { useHudPopupExit } from '../../../../app/hudPopupState.js'
@@ -42,7 +43,7 @@ const WRONG_PAUSE_MS = 700
 // реплика и подсказка уходят в чат как обычно, через WRONG_PAUSE_MS панель закрывается итогом say_wrong (ветка «неверный»), микрофон до этого заблокирован.
 // «Я не могу говорить» — итог say_cant: плеер идёт по ветке «верный» и пропускает сообщение-успех сразу после модуля (sayPairSkip.sayExit; флага в сессии нет).
 // Firefox (sayBrowser.js): вместо круга — пояснение «откройте в Safari или Chrome» (SayBrowserNote), выход тот же — «Я не могу говорить».
-// Попап перед запросом микрофона — SayMicPopup (полный в первый раз, короткий дальше). Админская палочка «засчитать» — слева вверху
+// Вид круга по доступу к микрофону (нет доступа / доступ выдан / запись / «Готово») — micVisualState (sayMicState.js), класс на корне круга (SayStage). Попап перед запросом микрофона — SayMicPopup (полный в первый раз, короткий дальше). Админская палочка «засчитать» — слева вверху
 // (side="left"). Админская строка «что услышал движок» — плашка НАД панелью (вне модуля, высоту не меняет), остаётся до новой записи.
 // data-no-unlock на корне панели ЦЕЛИКОМ: ни одно касание внутри неё (микрофон, «Послушать», «Я не могу говорить») не запускает беззвучный wav/resume — аудиосессию iOS не трогаем.
 export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswer, onHeightChange, xpAmount = 0, onXpEarned }) {
@@ -155,7 +156,8 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   }
 
   const running = phase === 'run'
-  const mic = micLabel({ phase, fallbackReason: sp.fallbackReason, go: sp.go, exhausted: sp.exhausted })
+  const micState = micVisualState({ ...sp.access, phase }) // locked | ready | active | done | off: вид круга (нет доступа / доступ выдан / запись / «Готово» / выключен)
+  const mic = micLabel({ phase, fallbackReason: sp.fallbackReason, go: sp.go, exhausted: sp.exhausted, locked: micState === 'locked' })
   const noMic = phase === 'fallback' && sp.fallbackReason === 'browser' // Firefox: вместо круга — пояснение
   const hideSkip = isLiveMode(mic.mode) || mic.mode === 'ok' // идёт запись или итог: «Я не могу говорить» плавно гаснет, не отвлекая
   const adminLine = isAdmin ? sp.adminLine : null // распознанный текст — только админу (sayAdmin.js)
@@ -187,6 +189,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
               <SayStage
                 label={mic.label}
                 mode={mic.mode}
+                state={micState}
                 level={sp.level}
                 disabled={closing || phase === 'passed' || sp.exhausted}
                 onTap={tapMic}

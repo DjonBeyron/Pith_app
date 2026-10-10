@@ -162,19 +162,39 @@ describe('micLabel и тексты панели (внутри панели не�
     expect(mod).not.toHaveProperty('sayStatus')
   })
 
-  it('пояснение про микрофон — тексты задания (показывает попап)', async () => {
+  it('тексты попапа разрешения и надписи — на месте; кнопки «Разрешить доступ» / «Продолжить» / «Не сейчас»', async () => {
     const t = await import('./sayTexts.js')
-    expect(t.EXPLAIN_BTN).toBe('Понятно, включить микрофон')
+    expect(t.EXPLAIN_TITLE).toBe('Нужен доступ к микрофону')
+    expect(t.EXPLAIN_BTN).toBe('Разрешить доступ')
+    expect(t.EXPLAIN_SHORT_BTN).toBe('Продолжить')
+    expect(t.EXPLAIN_LATER).toBe('Не сейчас')
+    expect(t.MIC_NEED_ACCESS).toBe('Нужен доступ к микрофону')
+    expect(t.MIC_ALLOW_ARIA).toBe('Нажмите, чтобы разрешить доступ к микрофону')
+    expect(t.MIC_IDLE).toBe('Нажмите, чтобы говорить')
     expect(t.SAY_LABEL).toBe('Произнесите фразу')
     expect(t.MIC_RETRY).toBe('Попробуйте сказать ещё раз')
     expect(t.DONE).toBe('Готово')
     expect(t.CANT_SPEAK_LINK).toBe('Я не могу говорить')
   })
 
-  it('честная формулировка: не обещаем, что звук не покидает телефон', async () => {
-    const { EXPLAIN_TEXT } = await import('./sayTexts.js')
-    expect(EXPLAIN_TEXT).toMatch(/не записываем и не сохраняем звук/)
-    expect(EXPLAIN_TEXT).toMatch(/распознаёт ваш телефон или браузер/)
-    expect(EXPLAIN_TEXT).not.toMatch(/не покидает/)
+  it('попап: полный вариант объясняет ЗАЧЕМ (ученик говорит вслух, приложение слушает и проверяет), что доступ нужен один раз и что звук не хранится; 3 короткие фразы', async () => {
+    const { EXPLAIN_LINES } = await import('./sayTexts.js')
+    expect(EXPLAIN_LINES).toHaveLength(3)
+    expect(EXPLAIN_LINES[0]).toMatch(/произнесёте фразу вслух/)
+    expect(EXPLAIN_LINES[0]).toMatch(/послушает и проверит/)
+    expect(EXPLAIN_LINES[1]).toMatch(/один раз/)
+    expect(EXPLAIN_LINES[2]).toMatch(/Запись не сохраняется и не отправляется на наш сервер/)
+    for (const l of EXPLAIN_LINES) expect(l.length, l).toBeLessThanOrEqual(90) // короткие предложения, без технических деталей
+    expect(EXPLAIN_LINES.join(' ')).not.toMatch(/API|getUserMedia|WebKit|Vosk|движок/i)
+  })
+
+  it('попап: короткий вариант (повторные показы) — тот же заголовок, 2 фразы, ждите запрос телефона; честная формулировка: не обещаем, что звук вообще не покидает телефон', async () => {
+    const { EXPLAIN_SHORT_LINES, EXPLAIN_SHORT_TITLE, EXPLAIN_TITLE, EXPLAIN_LINES } = await import('./sayTexts.js')
+    expect(EXPLAIN_SHORT_TITLE).toBe(EXPLAIN_TITLE)
+    expect(EXPLAIN_SHORT_LINES).toHaveLength(2)
+    expect(EXPLAIN_SHORT_LINES[1]).toMatch(/нажмите «Разрешить»/)
+    const all = [...EXPLAIN_LINES, ...EXPLAIN_SHORT_LINES].join(' ')
+    expect(all).toMatch(/на наш сервер/)
+    expect(all).not.toMatch(/не покидает|никуда не отправляется|никуда не уходит/)
   })
 })

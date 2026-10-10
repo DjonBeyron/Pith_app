@@ -39,6 +39,20 @@ describe('монтирование панели → прогрев → гото�
     expect(t.d.unload).toHaveBeenCalledTimes(1)
   })
 
+  it('onRefreshed: когда ответ Permissions API пришёл, панель получает сигнал пересчитать вид круга («нет доступа» / «доступ выдан»); после остановки — нет', async () => {
+    const t = setup()
+    const onRefreshed = vi.fn()
+    const stop = startPanelWarm({ perm: t.perms, warm: why => t.rec.warm(why), onFallback: vi.fn(), onRefreshed })
+    expect(onRefreshed).not.toHaveBeenCalled()
+    await t.runtime.whenReady()
+    expect(onRefreshed).toHaveBeenCalledTimes(1)
+    stop()
+    const late = vi.fn()
+    startPanelWarm({ perm: t.perms, warm: why => t.rec.warm(why), onFallback: vi.fn(), onRefreshed: late })()
+    await Promise.resolve(); await Promise.resolve()
+    expect(late).not.toHaveBeenCalled()
+  })
+
   it('H1: Permissions API не отвечает (refresh висит вечно) — прогрев всё равно идёт, не ждёт ответа', async () => {
     const t = setup({ perm: { decide: () => ({ action: 'listen' }), refresh: () => never() } })
     startPanelWarm({ perm: t.perms, warm: why => t.rec.warm(why), onFallback: vi.fn() })

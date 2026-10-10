@@ -12,6 +12,7 @@ const panelSrc = Object.fromEntries(panelFiles.map(f => [f, read(`./${f}`)]))
 const css = read('../../../../styles/player/panels/say-phrase.css')
 const micCss = read('../../../../styles/player/panels/say-phrase-mic.css')
 const wavesCss = read('../../../../styles/player/panels/say-phrase-waves.css')
+const stateCss = read('../../../../styles/player/panels/say-phrase-state.css')
 const ringCss = read('../../../../styles/player/panels/say-phrase-ring.css')
 const strip = c => c.replace(/\/\*[\s\S]*?\*\//g, '')
 const indexCss = read('../../../../index.css')
@@ -21,8 +22,8 @@ const frames = c => [...strip(c).matchAll(/@keyframes\s+(\w+)\s*\{([\s\S]*?)\n\}
 
 describe('say_phrase — CSS и редактор', () => {
   it('стили подключены; без filter/blur/box-shadow; каждый CSS-файл ≤ 250 строк; круг 100 по центру тела', () => {
-    for (const f of ['say-phrase', 'say-phrase-mic', 'say-phrase-ring', 'say-phrase-waves']) expect(indexCss).toContain(`@import './styles/player/panels/${f}.css';`)
-    for (const c of [css, micCss, ringCss, wavesCss]) {
+    for (const f of ['say-phrase', 'say-phrase-mic', 'say-phrase-state', 'say-phrase-ring', 'say-phrase-waves']) expect(indexCss).toContain(`@import './styles/player/panels/${f}.css';`)
+    for (const c of [css, micCss, stateCss, ringCss, wavesCss]) {
       expect(strip(c)).not.toMatch(/filter\s*:|blur\(|box-shadow\s*:|backdrop-filter/)
       expect(c.split('\n').length).toBeLessThanOrEqual(250)
     }
@@ -34,53 +35,41 @@ describe('say_phrase — CSS и редактор', () => {
     expect(css).not.toContain('.sayInfo')                                // подсказок-текстов в панели нет
   })
 
-  it('кнопка ВСЕГДА круглая: 100×100, border-radius 50%, нигде в CSS не меняет ни размер, ни форму; всегда зелёная (кроме выключенной)', () => {
+  it('кнопка ВСЕГДА круглая: 100×100, border-radius 50%, нигде в CSS не меняет ни размер, ни форму; цвет и размер — переменные состояния (--mic-scale / --mic-bg / --mic-ink)', () => {
     const code = strip(micCss)
     const base = code.match(/\.sayPanel \.sayMicBtn \{[^}]*\}/)[0]
     expect(base).toMatch(/width: 100px;\s*height: 100px/)
     expect(base).toMatch(/border-radius: 50%/)
-    expect(base).toMatch(/background: var\(--say-lime\)/)
-    expect(code).toMatch(/\.sayPanel \{ --say-lime: #b6fe3b; --say-ink: #101a08; \}/) // сплошной салатовый, как на образце; значок и «Готово» — тёмные
-    expect(base).toMatch(/border: 0;/)
-    expect(base).toMatch(/color: var\(--say-ink\)/)
+    expect(base).toMatch(/background: var\(--mic-bg\)/)
+    expect(base).toMatch(/color: var\(--mic-ink\)/)
+    expect(base).toMatch(/transform: scale\(var\(--mic-scale\)\)/)
+    expect(base).toMatch(/transition: transform \.45s/)
+    expect(code).toMatch(/\.sayPanel \{ --say-lime: #b6fe3b; --say-ink: #101a08; \}/) // лайм-заливка записи; значок и «Готово» на ней — тёмные
     // ни морфинга, ни квадрата, ни прямоугольника: размеры и скругление задаёт только базовое правило
-    const all = strip(micCss + wavesCss + css)
+    const all = strip(micCss + stateCss + wavesCss + css)
     expect(all).not.toMatch(/sayMorph|sayMicBtn--(in|out)|border-radius: (12|22|24|20)px|height: 52px|border-radius: 22px/)
     for (const [, selector, decl] of code.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
       if (!selector.includes('.sayMicBtn') || selector.trim() === '.sayPanel .sayMicBtn') continue
-      expect(selector.trim(), selector).not.toMatch(/\{/)
       expect(decl, selector).not.toMatch(/(^|[;\s])(width|height|border-radius)\s*:/)
     }
-    expect(code).toMatch(/\.sayPanel \.sayMicBtn--off:disabled \{[^}]*background: #12141d/) // единственный не зелёный вид
-    expect(code).not.toMatch(/sayMicBtn--(idle|retry|prep|listening)[^{]*\{[^}]*background: #12141d/)
+    expect(code).not.toMatch(/#ff6b5e|#ff3b30|\bsayRed\b|sayMicBtn--fail/) // красного слоя нет
   })
 
-  it('пульс: в покое слегка (transform scale), при записи сильнее и быстрее; нажатие без перехода; на успехе и «выключен» пульса нет', () => {
-    const code = strip(micCss)
-    const peak = name => Number(code.match(new RegExp(`@keyframes ${name}\\s*\\{[^@]*?50%\\s*\\{\\s*transform:\\s*scale\\(([\\d.]+)\\)`))[1])
-    expect(peak('sayBtnPulse')).toBeGreaterThan(1)
-    expect(peak('sayBtnPulseLive')).toBeGreaterThan(peak('sayBtnPulse'))
-    const sec = n => Number(code.match(new RegExp(`animation: ${n} ([\\d.]+)s`))[1])
-    expect(sec('sayBtnPulseLive')).toBeLessThan(sec('sayBtnPulse'))
-    expect(code).toMatch(/\.sayPanel \.sayMicBtn--live \{ animation: sayBtnPulseLive/)
-    expect(code).toMatch(/\.sayPanel \.sayMicBtn:active:not\(:disabled\) \{ animation: none; transition: none;/)
-    expect(code).toMatch(/\.sayPanel \.sayMicBtn--ok, \.sayPanel \.sayMicBtn--off \{ animation: none; \}/)
-    expect(code).toMatch(/\.sayPanel \.sayMicBtn--ok:disabled \{ opacity: 1; \}/)
-  })
-
-  it('значок микрофона — инлайн-SVG (капсула + U-дужка + ножка, толстые скруглённые линии), цвета только через CSS; перечёркнутый вариант — тот же компонент', () => {
+  it('значок микрофона — инлайн-SVG (капсула + U-дужка + ножка, толстые скруглённые линии), цвета только через CSS; черта «нет доступа» всегда в разметке и плавно прочерчивается/исчезает по состоянию', () => {
     const icon = panelSrc['SayMicIcon.jsx']
     expect(icon).toContain('<svg className="sayMicIcon"')
     expect(icon).toContain('className="sayMicBody"')
     expect(icon).toMatch(/className="sayMicStroke" d="M[^"]*a14\.5 14\.5/) // U-образная дужка и ножка одним штрихом
     expect(icon).toContain('sayMicSlash')
-    expect(icon.replace(/\/\/.*$/gm, '')).not.toMatch(/#[0-9a-f]{3,6}|rgb\(|lucide/i) // цветов в разметке нет
+    expect(icon.replace(/\/\/.*$/gm, '')).not.toMatch(/#[0-9a-f]{3,6}|rgb\(|lucide|off/i) // цветов в разметке нет, условного «off» тоже
     const code = strip(micCss)
     expect(code).toMatch(/\.sayMicBody \{ fill: currentColor; \}/)
     expect(code).toMatch(/\.sayMicStroke \{[^}]*stroke: currentColor; stroke-width: 3\.6; stroke-linecap: round/)
+    expect(code).toMatch(/\.sayMicSlash \{[^}]*stroke-dashoffset: 49; opacity: 0; transition: stroke-dashoffset \.38s/)
+    expect(code).toMatch(/\.sayMicBox--locked \.sayMicSlash, \.sayMicBox--off \.sayMicSlash \{ stroke-dashoffset: 0; opacity: 1; \}/)
   })
 
-  it('кольцо вокруг круга: SVG-stroke — серый трек + полупрозрачная салатовая дуга (≈ ¼ окружности, скруглённые концы); дуга гаснет при записи, на «Готово» кольцо целиком зелёное', () => {
+  it('кольцо вокруг круга: SVG-stroke — трек + дуга (≈ ¼ окружности, скруглённые концы); цвета и прозрачность — переменные состояния, меняются плавно; на «Готово» кольцо целиком зелёное', () => {
     const ring = panelSrc['SayRing.jsx']
     expect(ring).toContain('className="sayRingTrack"')
     expect(ring).toContain('className="sayRingArc"')
@@ -89,10 +78,9 @@ describe('say_phrase — CSS и редактор', () => {
     expect(ring.replace(/\/\/.*$/gm, '')).not.toMatch(/useState|useEffect|requestAnimationFrame/) // без React на кадр
     const code = strip(ringCss)
     expect(code).toMatch(/\.sayRing \{[^}]*width: 128px;\s*height: 128px;\s*margin: -64px 0 0 -64px;[^}]*pointer-events: none/) // диаметр круга 100 → зазор 8 px
-    expect(code).toMatch(/\.sayRingTrack \{ stroke: #9aa0b0; opacity: \.36;/)  // серый трек
-    expect(code).toMatch(/\.sayRingArc \{ stroke: var\(--say-lime\); stroke-linecap: round; opacity: \.6;/) // полупрозрачный салатовый
-    expect(code).toMatch(/\.sayMicBox--prep \.sayRingArc, \.sayMicBox--listening \.sayRingArc[^{]*\{ opacity: 0; \}/)
-    expect(code).toMatch(/\.sayMicBox--ok \.sayRingFull \{ opacity: \.85; \}/)
+    expect(code).toMatch(/\.sayRingTrack \{ stroke: var\(--ring-track\); opacity: var\(--ring-track-o\); transition: stroke \.4s, opacity \.4s; \}/)
+    expect(code).toMatch(/\.sayRingArc \{ stroke: var\(--ring-arc\); stroke-linecap: round; opacity: var\(--ring-arc-o\); transition: stroke \.4s, opacity \.4s; \}/)
+    expect(code).toMatch(/\.sayMicBox--done \.sayRingFull \{ opacity: \.85; \}/)
     expect(code).toMatch(/\.sayRingSpin \{[^}]*animation: sayRingSpin 9s linear infinite/)
     expect(code.slice(code.indexOf('@media (prefers-reduced-motion: reduce)'))).toMatch(/\.sayRingSpin \{ animation: none; \}/)
     const stage = panelSrc['SayStage.jsx']
@@ -104,23 +92,29 @@ describe('say_phrase — CSS и редактор', () => {
     const code = strip(micCss)
     const stage = panelSrc['SayStage.jsx'].replace(/\/\/.*$/gm, '')
     expect((stage.match(/<SayMicIcon /g) ?? []).length).toBe(1)
-    expect(stage).toContain('off={mode ===')
+    expect(stage).not.toMatch(/off=\{/) // перечёркивание — CSS по состоянию, не проп
     expect(stage).toContain('<Check ')
     expect(stage).not.toMatch(/<X |\bsayRed\b|sayResult/)
     expect(code).toMatch(/\.sayFaceMic \{ opacity: 1; transform: scale\(1\); \}/)
     expect(code).toMatch(/\.sayFaceDone \{ opacity: 0; transform: scale\(\.6\);/)
-    expect(code).toMatch(/\.sayMicBtn--ok \.sayFaceMic \{ opacity: 0;/)
-    expect(code).toMatch(/\.sayMicBtn--ok \.sayFaceDone \{ opacity: 1; transform: scale\(1\);/)
+    expect(code).toMatch(/\.sayMicBtn--done \.sayFaceMic \{ opacity: 0;/)
+    expect(code).toMatch(/\.sayMicBtn--done \.sayFaceDone \{ opacity: 1; transform: scale\(1\);/)
     expect(code).toMatch(/\.sayFace \{[^}]*transition: opacity \.22s, transform/)
-    expect(code).not.toMatch(/#ff6b5e|#ff3b30|\bsayRed\b|sayMicBtn--fail|transition:[^;]*background-color/)
+    expect(code).not.toMatch(/#ff6b5e|#ff3b30|\bsayRed\b|sayMicBtn--fail/)
   })
 
-  it('все анимации — только transform/opacity (layout не трогаем): кнопка пульсирует, дуга кольца плывёт, искусственные волны расходятся (мягко: ≤ ×1,5, прозрачность ≤ .22)', () => {
-    const all = [...frames(micCss), ...frames(ringCss), ...frames(wavesCss)]
-    expect(all.map(f => f[1]).sort()).toEqual(['sayBtnPulse', 'sayBtnPulseLive', 'sayRingSpin', 'sayWaveOut'])
-    const out = strip(wavesCss).match(/@keyframes sayWaveOut[\s\S]*?\n\}/)[0]
-    expect(Number(out.match(/scale\(([\d.]+)\);\s*opacity: 0/)[1])).toBeLessThanOrEqual(1.5)
-    expect(Number(out.match(/opacity: (\.\d+)/)[1])).toBeLessThanOrEqual(0.22)
+  it('все анимации — только transform/opacity (layout не трогаем): круг пульсирует (ready), дуга кольца плывёт, три волны активации расходятся один раз (≤ ×1,7, ≈ 0,8 с суммарно)', () => {
+    const all = [...frames(stateCss), ...frames(ringCss), ...frames(wavesCss)]
+    expect(all.map(f => f[1]).sort()).toEqual(['sayActWave', 'sayBtnPulse', 'sayRingSpin'])
+    const act = strip(wavesCss).match(/@keyframes sayActWave[\s\S]*?\n\}/)[0]
+    expect(Number(act.match(/100%\s*\{\s*transform:\s*scale\(([\d.]+)\)/)[1])).toBeLessThanOrEqual(1.7)
+    expect(act).toMatch(/0%\s*\{\s*transform: scale\(1\);\s*opacity: 0;/) // до старта и после конца волны не видно
+    const w = strip(wavesCss)
+    const dur = Number(w.match(/\.sayWaveClip--live \.sayActWaves i \{ animation: sayActWave ([\d.]+)s ease-out both; \}/)[1])
+    const lastDelay = Number(w.match(/i:nth-child\(3\) \{ animation-delay: ([\d.]+)s; \}/)[1])
+    expect(dur + lastDelay).toBeGreaterThanOrEqual(0.6)
+    expect(dur + lastDelay).toBeLessThanOrEqual(0.9)     // эффект активации ≈ 600–900 мс
+    expect(w).not.toMatch(/animation:[^;]*infinite/)     // одноразовый: бесконечных волн нет совсем
     for (const [, name, body] of all) {
       const props = [...body.matchAll(/([\w-]+)\s*:/g)].map(m => m[1]).filter(p => p !== 'animation-timing-function')
       expect(props.every(p => ['transform', 'opacity'].includes(p)), name).toBe(true)
@@ -155,15 +149,16 @@ describe('say_phrase — CSS и редактор', () => {
     expect(read('../../../../styles/player/admin-solve.css')).toMatch(/\.solveCorrectBtn--left \{ right: auto; left: 8px; \}/)
   })
 
-  it('волны: два слоя по три круглых кольца размером с кнопку; живой слой показывается только в режиме --live, искусственные в нём гаснут; у колец эквалайзера НЕТ transition/animation', () => {
+  it('волны: два слоя по три круглых кольца размером с круг записи (115); в покое волн нет вообще; волны активации играют по появлению --live, эквалайзер показывается в --live; у колец эквалайзера НЕТ transition/animation', () => {
     const code = strip(wavesCss)
-    expect(code).toMatch(/\.sayWaveAnchor \{[^}]*top: 114px; width: 100px; height: 100px; margin: -50px 0 0 -50px/) // 11 + 53 + 50: центр круга
-    expect(CIRCLE_R * 2).toBe(100)
-    expect(code).toMatch(/\.sayIdleWaves i, \.sayEq i \{[^}]*border-radius: 50%/)
-    expect(code).toMatch(/\.sayIdleWaves i:nth-child\(2\) \{ animation-delay: 1s; \}/)
-    expect(code).toMatch(/\.sayWaveClip--live \.sayIdleWaves \{ opacity: 0; \}/)
-    expect(code).toMatch(/\.sayWaveClip--live \.sayEq \{ opacity: 1; transition-duration: \.1s; \}/) // эквалайзер проявляется за 100 мс
-    expect(code).toMatch(/\.sayWaveClip--calm \.sayIdleWaves \{ opacity: 0; \}/)
+    expect(code).toMatch(/\.sayWaveAnchor \{[^}]*top: 114px; width: 115px; height: 115px; margin: -57\.5px 0 0 -57\.5px/) // 11 + 53 + 50: центр круга
+    expect(CIRCLE_R * 2).toBe(115)
+    expect(code).toMatch(/\.sayActWaves i, \.sayEq i \{[^}]*border-radius: 50%/)
+    expect(code).toMatch(/\.sayActWaves i \{ opacity: 0; \}/)                  // вне записи волн не видно
+    expect(code).toMatch(/\.sayWaveClip--live \.sayActWaves i \{ animation: sayActWave \.6s ease-out both; \}/)
+    expect(code).toMatch(/\.sayWaveClip--live \.sayActWaves i:nth-child\(2\) \{ animation-delay: \.1s; \}/)
+    expect(code).toMatch(/\.sayWaveClip--live \.sayEq \{ opacity: 1; transition-duration: \.1s; \}/) // эквалайзер проявляется за 100 мс, не ждёт конца активации
+    expect(code).not.toMatch(/sayIdleWaves|sayWaveClip--(calm|idle)/)             // искусственных волн покоя больше нет
     for (const [rule] of code.matchAll(/\.sayEq i[^{]*\{[^}]*\}/g)) expect(rule, rule).not.toMatch(/transition|animation/)
     expect(code).toMatch(/\.sayEq \{ opacity: 0; transition: opacity \.25s; \}/) // transition только у слоя-контейнера и только по opacity
     const stage = panelSrc['SayStage.jsx']
@@ -171,6 +166,7 @@ describe('say_phrase — CSS и редактор', () => {
     const jsx = stage.replace(/\/\/.*$/gm, '')
     expect(jsx.indexOf('sayWaveClip')).toBeLessThan(jsx.indexOf('<SayCaption')) // слой волн лежит под надписью и кнопкой
     expect(jsx.indexOf('<SayCaption')).toBeLessThan(jsx.indexOf('sayMicBox'))
+    expect(jsx).toContain('sayMicBox sayMicBox--${state}')
   })
 
   it('волны не выходят за модуль: клип размером с содержимое панели обрезает всё лишнее, касания не принимает; предел радиуса (RING_K × круг) укладывается в половину панели', () => {
@@ -182,11 +178,15 @@ describe('say_phrase — CSS и редактор', () => {
     expect(panelSrc['SayStage.jsx']).toContain('aria-hidden="true" data-testid="say-waves"')
   })
 
-  it('«уменьшить движение»: пульс кнопки отключён, искусственные волны не бегут (один статичный тихий круг), эквалайзер без JS-цикла (статичный круг)', () => {
+  it('«уменьшить движение»: без пружины, пульса, вращения дуги и волн активации — только смена цветов и размера; эквалайзер без JS-цикла (статичный круг)', () => {
     const media = strip(wavesCss).slice(strip(wavesCss).indexOf('@media (prefers-reduced-motion: reduce)'))
-    expect(media).toMatch(/\.sayIdleWaves i \{ animation: none; \}/)
+    expect(media).toMatch(/\.sayWaveClip--live \.sayActWaves i \{ animation: none; \}/)
     expect(media).toMatch(/\.sayEq i \{ transform: scale\(1\.2\) !important; opacity: \.3 !important; \}/)
-    expect(strip(micCss)).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.sayPanel \.sayMicBtn, \.sayPanel \.sayMicBtn--live \{ animation: none; \}/)
+    const st = strip(stateCss)
+    const stMedia = st.slice(st.indexOf('@media (prefers-reduced-motion: reduce)'))
+    expect(stMedia).toMatch(/\.sayMicBox--ready \.sayMicPulse \{ animation: none; \}/)
+    expect(stMedia).toMatch(/\.sayMicBox--active \.sayMicBtn \{ transition: background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}/) // размер сразу, без перехода
+    expect(strip(micCss)).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.sayPanel \.sayMicBtn \{ transition: background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}/)
     expect(panelSrc['useSayWaves.js']).toContain('reducedMotion()')
   })
 

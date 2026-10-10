@@ -1,11 +1,12 @@
 /* ── Волны вокруг круга-микрофона «Сказать фразу» ────────────────────────────────────────────────────────────────────
-   Два слоя КРУГЛЫХ колец (по три) одного размера с кнопкой (100px), оба в .sayWaveClip: он лежит под кнопкой, кольцом (SayRing) и надписью, по размеру равен
+   Два слоя КРУГЛЫХ колец (по три) размером с круг ЗАПИСИ (115px = 100 × 1,15), оба в .sayWaveClip: он лежит под кнопкой, кольцом (SayRing) и надписью, по размеру равен
    содержимому панели (края корпуса .phraseInner: top −11 / bottom −12 / по бокам −16, центр колец — центр круга: 11 + 53 + 50 = 114px от верха) и ОБРЕЗАЕТ
-   всё, что вылезло (overflow:hidden) — максимальная амплитуда эквалайзера (радиус до 78px) не выходит за модуль (на 320–390px по бокам запас больше 100px, по высоте предел 113px при ряду 115px).
-   Дополнительно радиус считает JS (sayRings.clampRadius) — в обычном случае клип ничего не режет, он страховка.
-   • .sayIdleWaves — ИСКУССТВЕННЫЕ волны покоя: чистый CSS (transform/opacity), мягкие (до ×1,5, прозрачность не выше .22 — не спорят с кольцом SayRing), расходятся по очереди.
+   всё, что вылезло (overflow:hidden) — максимальная амплитуда эквалайзера (радиус до 90px) не выходит за модуль (на 320–390px по бокам запас больше 100px, по высоте предел 112px при ряду 114px).
+   Дополнительно радиус считает JS (sayRings.clampRadius) — в обычном случае клип ничего не режет, он страховка. В покое («нет доступа», «доступ выдан») волн НЕТ вообще.
+   • .sayActWaves — ТРИ быстрые искусственные волны АКТИВАЦИИ: одноразовый чистый CSS (transform/opacity), запускаются САМИМ появлением режима --live (тап был) и играют ≈ 0,8 с
+     (по 0,6 с со сдвигом 0,1 с); перекрывают эквалайзер, но не ждут окончания — эквалайзер живой с первого кадра.
    • .sayEq — ЖИВОЙ эквалайзер: transform/opacity колец пишет useSayWaves.js прямо в style каждый кадр rAF. На кольцах НЕТ transition/animation —
-     запаздывание не должно прятаться в стилях. Слой показывается в режиме --live (тап был), искусственные волны в этот момент гаснут.
+     запаздывание не должно прятаться в стилях. Слой показывается в режиме --live (идёт запись).
    Без blur/filter/box-shadow.
    ──────────────────────────────────────────────────────────────────── */
 
@@ -18,9 +19,9 @@
   overflow: hidden;
   pointer-events: none;
 }
-.sayWaveAnchor { position: absolute; left: 50%; top: 114px; width: 100px; height: 100px; margin: -50px 0 0 -50px; }
-.sayIdleWaves, .sayEq { position: absolute; inset: 0; }
-.sayIdleWaves i, .sayEq i {
+.sayWaveAnchor { position: absolute; left: 50%; top: 114px; width: 115px; height: 115px; margin: -57.5px 0 0 -57.5px; }
+.sayActWaves, .sayEq { position: absolute; inset: 0; }
+.sayActWaves i, .sayEq i {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
@@ -29,32 +30,26 @@
   background: rgba(182, 254, 59, 0.1);
 }
 
-/* Искусственные волны покоя */
-.sayIdleWaves { opacity: 1; transition: opacity .15s; }
-.sayIdleWaves i { opacity: 0; animation: sayWaveOut 3s ease-out infinite; }
-.sayIdleWaves i:nth-child(2) { animation-delay: 1s; }
-.sayIdleWaves i:nth-child(3) { animation-delay: 2s; }
-@keyframes sayWaveOut {
-  0%   { transform: scale(1);   opacity: .22; }
-  100% { transform: scale(1.5); opacity: 0; }
+/* Волны активации: вне записи кольца невидимы и не анимируются; с появлением --live каждое проигрывается ОДИН раз (fill both: до задержки opacity 0, после конца — тоже 0) */
+.sayActWaves i { opacity: 0; }
+.sayWaveClip--live .sayActWaves i { animation: sayActWave .6s ease-out both; }
+.sayWaveClip--live .sayActWaves i:nth-child(2) { animation-delay: .1s; }
+.sayWaveClip--live .sayActWaves i:nth-child(3) { animation-delay: .2s; }
+@keyframes sayActWave {
+  0%   { transform: scale(1);   opacity: 0; }
+  15%  { opacity: .5; }
+  100% { transform: scale(1.7); opacity: 0; }
 }
 
 /* Живой эквалайзер: стартовые значения рисует JS в кадре тапа; CSS даёт лишь будущий слой и will-change */
 .sayEq { opacity: 0; transition: opacity .25s; }
 .sayEq i { opacity: 0; will-change: transform, opacity; }
-
-/* Режимы: --live (идёт запись) — эквалайзер, искусственные волны гаснут; --calm (успех / микрофона не будет) — ничего; иначе — покой */
-.sayWaveClip--live .sayIdleWaves { opacity: 0; }
 .sayWaveClip--live .sayEq { opacity: 1; transition-duration: .1s; }
-.sayWaveClip--calm .sayIdleWaves { opacity: 0; }
-.sayWaveClip--calm .sayEq { opacity: 0; }
 
-/* «Уменьшить движение»: волны не бегут. В покое — один тихий статичный круг, при записи — статичный круг вместо эквалайзера (цикла JS нет) */
+/* «Уменьшить движение»: волны активации не бегут; при записи — статичный круг вместо эквалайзера (цикла JS нет) */
 @media (prefers-reduced-motion: reduce) {
-  .sayIdleWaves i { animation: none; }
-  .sayIdleWaves i:nth-child(1) { transform: scale(1.25); opacity: .18; }
-  .sayIdleWaves i:nth-child(n + 2) { display: none; }
+  .sayWaveClip--live .sayActWaves i { animation: none; }
   .sayEq i { transform: scale(1.2) !important; opacity: .3 !important; }
   .sayEq i:nth-child(n + 2) { display: none; }
-  .sayIdleWaves, .sayEq { transition: none; }
+  .sayEq { transition: none; }
 }

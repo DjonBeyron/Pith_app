@@ -80,8 +80,8 @@ describe('say_phrase — круг-микрофон: без морфинга, б�
     const cap = panelSrc['SayCaption.jsx']
     expect(cap).toContain('aria-live="polite"')
     expect(cap).toContain('role="status"')
-    expect(cap).toContain("import { MIC_IDLE, SAY_LABEL, MIC_RETRY, MIC_OFF, MIC_UNAVAILABLE } from '../../../../shared/lib/speech/sayTexts.js'")
-    for (const text of ['Нажмите, чтобы говорить', 'Произнесите фразу', 'Попробуйте сказать ещё раз', 'Готово']) {
+    expect(cap).toContain("import { MIC_IDLE, MIC_NEED_ACCESS, SAY_LABEL, MIC_RETRY, MIC_OFF, MIC_UNAVAILABLE } from '../../../../shared/lib/speech/sayTexts.js'")
+    for (const text of ['Нажмите, чтобы говорить', 'Нужен доступ к микрофону', 'Нажмите, чтобы разрешить доступ к микрофону', 'Произнесите фразу', 'Попробуйте сказать ещё раз', 'Готово']) {
       for (const [name, src] of Object.entries(panelSrc)) expect(code(src), `${name}: «${text}»`).not.toContain(text)
     }
     expect(panelSrc['SayStage.jsx']).toContain('<SayCaption label={label} />')
