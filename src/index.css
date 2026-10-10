@@ -153,6 +153,7 @@
 @import './styles/player/panels/type-word.css';
 @import './styles/player/panels/say-phrase.css';
 @import './styles/player/panels/say-phrase-mic.css';
+@import './styles/player/panels/say-phrase-ring.css';
 @import './styles/player/panels/say-phrase-waves.css';
 @import './styles/player/panels/say-phrase-popup.css';
 @import './styles/player/panels/signal-blink-chip.css';

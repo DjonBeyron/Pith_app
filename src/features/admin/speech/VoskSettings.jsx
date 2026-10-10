@@ -1,6 +1,6 @@
 import { STYLES, STYLE_LABEL } from './voskGrammar.js'
 import { CONDS } from './voskSeries.js'
-import { AUTOSTOP_PRESETS } from './voskTiming.js'
+import { AUTOSTOP_PRESETS } from '../../../shared/lib/vosk/voskTiming.js'
 
 // Настройки «Теста 3»: стиль словаря, условие записи (метка идёт в карточку и в итог), авто-стоп, аудиосессия iPhone
 export default function VoskSettings({ state, patch, setAutoStop, busy }) {

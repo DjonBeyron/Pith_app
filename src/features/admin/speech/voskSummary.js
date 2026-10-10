@@ -3,7 +3,7 @@
 import { STYLES, STYLE_LABEL } from './voskGrammar.js'
 import { condLabel, CONDS } from './voskSeries.js'
 import { trapCount } from './voskTraps.js'
-import { summarize, sec } from './voskTiming.js'
+import { summarize, sec } from '../../../shared/lib/vosk/voskTiming.js'
 
 const count = (list, out) => list.filter(r => r.out === out).length
 

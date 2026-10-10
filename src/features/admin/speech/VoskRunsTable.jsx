@@ -1,6 +1,6 @@
 import { condLabel } from './voskSeries.js'
 import { verdictOf } from './voskClassify.js'
-import { sec } from './voskTiming.js'
+import { sec } from '../../../shared/lib/vosk/voskTiming.js'
 
 // Широкая таблица всех прогонов (только внутри «Подробнее»): тип, условие, что сказали, что услышали, уверенность, итог, время
 export default function VoskRunsTable({ runs }) {

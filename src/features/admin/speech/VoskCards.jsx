@@ -1,5 +1,5 @@
 import { verdictOf, wordLine } from './voskClassify.js'
-import { timeLine } from './voskTiming.js'
+import { timeLine } from '../../../shared/lib/vosk/voskTiming.js'
 import { condLabel } from './voskSeries.js'
 import { STYLE_LABEL } from './voskGrammar.js'
 

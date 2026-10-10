@@ -1,31 +1,33 @@
 /* ── Круг-микрофон «Сказать фразу» ───────────────────────────────────────────────────────────────────────────────────
-   ОДИН круглый элемент .sayMicBtn (116px) в области фиксированной высоты .sayMicBox (say-phrase.css): форма не меняется НИКОГДА, внутри в обычном
-   состоянии только значок микрофона. Всегда ЗЕЛЁНЫЙ (лайм, как .phraseCheckBtn в активном состоянии); тёмным бывает только выключенный
-   (микрофона не будет). Пульс — transform: scale() на самой кнопке: в покое слегка (sayBtnPulse), пока идёт запись заметно сильнее и быстрее
+   ОДИН круглый элемент .sayMicBtn (100px) в области фиксированной высоты .sayMicBox (say-phrase.css): форма не меняется НИКОГДА, внутри в обычном
+   состоянии только тёмный значок микрофона (SayMicIcon.jsx). Всегда СПЛОШНОЙ САЛАТОВЫЙ (лайм #b6fe3b, как .phraseCheckBtn в активном состоянии,
+   и как на образце владельца); тёмным бывает только выключенный (микрофона не будет). Цвета — переменные --say-lime / --say-ink на .sayPanel. Пульс — transform: scale() на самой кнопке: в покое слегка (sayBtnPulse), пока идёт запись заметно сильнее и быстрее
    (sayBtnPulseLive, класс --live ставится В ТОМ ЖЕ КАДРЕ, что тап). Нажатие — вжатие БЕЗ перехода (:active гасит анимацию и transition).
    Два слоя внутри: .sayFaceMic (значок) и .sayFaceDone (галочка и «Готово»), на успехе плавно сменяют друг друга (opacity + scale).
    Волны вокруг круга, надпись над ним — say-phrase-waves.css / say-phrase.css. Layout-анимаций нет: только transform/opacity.
    ──────────────────────────────────────────────────────────────────── */
 
+.sayPanel { --say-lime: #b6fe3b; --say-ink: #101a08; }
 .sayPanel .sayMicBtn {
   position: absolute;
   top: 0;
   left: 50%;
-  margin: 0 0 0 -58px;
-  width: 116px;
-  height: 116px;
+  margin: 0 0 0 -50px;
+  width: 100px;
+  height: 100px;
   padding: 0;
   border-radius: 50%;
   overflow: hidden;
-  background: #b6fe3b;
+  background: var(--say-lime);
   border: 0; /* рамка .phraseCheckBtn (лайм на лайме) у круга не нужна; у выключенного — своя */
-  color: #000;
+  color: var(--say-ink);
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   animation: sayBtnPulse 2.6s ease-in-out infinite;
   transition: background .15s, color .15s, opacity .2s;
 }
+.sayPanel .sayMicBtn:hover:not(:disabled), .sayPanel .sayMicBtn:active:not(:disabled) { background: var(--say-lime); color: var(--say-ink); } /* общий hover/active .phraseCheckBtn красит значок чёрным */
 .sayPanel .sayMicBtn--live { animation: sayBtnPulseLive .75s ease-in-out infinite; }
 .sayPanel .sayMicBtn:active:not(:disabled) { animation: none; transition: none; transform: scale(.95); }
 @keyframes sayBtnPulse {
@@ -38,6 +40,11 @@
 }
 
 /* ── Содержимое круга ── */
+/* Значок микрофона: капсула — заливка, дужка и ножка — толстая скруглённая линия; всё цветом --say-ink (у выключенной кнопки — её color) */
+.sayMicIcon { display: block; }
+.sayMicBody { fill: currentColor; }
+.sayMicStroke { fill: none; stroke: currentColor; stroke-width: 3.6; stroke-linecap: round; stroke-linejoin: round; }
+.sayMicSlash { stroke-width: 3.2; }
 .sayFace {
   position: absolute;
   inset: 0;
@@ -50,7 +57,7 @@
   transition: opacity .22s, transform .3s cubic-bezier(.22, 1, .36, 1);
 }
 .sayFaceMic { opacity: 1; transform: scale(1); }
-.sayFaceDone { opacity: 0; transform: scale(.6); font-size: 18px; font-weight: 800; line-height: 1; }
+.sayFaceDone { opacity: 0; transform: scale(.6); font-size: 16px; font-weight: 800; line-height: 1; }
 .sayMicBtn--ok .sayFaceMic { opacity: 0; transform: scale(.5); }
 .sayMicBtn--ok .sayFaceDone { opacity: 1; transform: scale(1); transition-delay: .06s; }
 

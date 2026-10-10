@@ -11,7 +11,7 @@
 // Она кладёт в state.reply реплику ученика (то, что распознал движок, sayReply.js; null — тишина/ошибка) и в state.hint подсказку
 // для чата (sayHints.js; null — отключена в ноде или ошибка требует действия пользователя). Число попыток НЕ ограничено (taps — для аналитики).
 // explainKind — какой попап перед запросом микрофона (full | short, см. sayPermission.decideMic); realLevel — пометка для строки админа
-// («вкл» / «выкл» / «ошибка …»: опциональный реальный уровень звука для колец, sayRealLevel.js).
+// («вкл» / «выкл» / «ошибка …»: опциональный реальный уровень звука для колец, sayRealLevel.js); engine — какой движок выбран на эту попытку ({engine: 'vosk'|'system', reason}, sayEnginePick.js): пометка для админа.
 import { emptyView } from './speechController.js'
 import { judgeRun, interimDiffers, failReason, SAY_EVENTS } from './sayResult.js'
 import { isDeniedCode } from './sayTexts.js'
@@ -25,7 +25,7 @@ export const STOP_ARM_MS = 350
 export function initialSayState(decision) {
   const base = {
     phase: 'idle', taps: 0, view: emptyView, verdict: null, errorCode: null, fallbackReason: null, autoRetries: 0,
-    explainer: false, explainKind: null, realLevel: null, audioSession: null, data: null, settledRun: 0, event: null, failStreak: 0, armed: false, adminLine: null, hint: null, hintNo: 0, reply: null,
+    explainer: false, explainKind: null, realLevel: null, audioSession: null, engine: null, data: null, settledRun: 0, event: null, failStreak: 0, armed: false, adminLine: null, hint: null, hintNo: 0, reply: null,
   }
   return decision?.action === 'fallback' ? { ...base, phase: 'fallback', fallbackReason: decision.reason } : base
 }
@@ -64,7 +64,7 @@ function settle(s, v) {
 // Строка админа остаётся прежней, пока новое состояние не даёт новой (очищает её только 'begin')
 const withAdminLine = (prev, next) => ({
   ...next,
-  adminLine: adminHeardLine({ isAdmin: true, phase: next.phase, view: next.view, verdict: next.verdict, errorCode: next.errorCode, realLevel: next.realLevel, audioSession: next.audioSession }) ?? prev.adminLine,
+  adminLine: adminHeardLine({ isAdmin: true, phase: next.phase, view: next.view, verdict: next.verdict, errorCode: next.errorCode, realLevel: next.realLevel, audioSession: next.audioSession, engine: next.engine }) ?? prev.adminLine,
 })
 
 export function sayReducer(s, a) {
@@ -78,7 +78,7 @@ export function sayReducer(s, a) {
       if (v.status === 'idle') return { ...s, view: v } // сброс контроллера не стирает строку админа
       return withAdminLine(s, { ...s, view: v })
     }
-    case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, armed: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, adminLine: null, hint: null, reply: null }
+    case 'begin': return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, armed: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, engine: a.engine ?? null, adminLine: null, hint: null, reply: null }
     case 'arm': return s.phase === 'run' ? { ...s, armed: true } : s
     case 'realStatus': return s.realLevel === a.status ? s : { ...s, realLevel: a.status }
     case 'explain': return { ...s, phase: 'explain', explainer: true, explainKind: a.kind === 'short' ? 'short' : 'full' }

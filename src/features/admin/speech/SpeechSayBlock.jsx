@@ -4,6 +4,7 @@ import { resetMicHints } from '../../../shared/lib/speech/sayPermission.js'
 import { isSayAudioSessionOn, setSayAudioSessionOn } from '../../../shared/lib/speech/sayAudioSession.js'
 import { readSayDwell, writeSayDwell } from '../../../shared/lib/speech/sayDwell.js'
 import { DWELL_PRESETS, DWELL_DEFAULT } from '../../../shared/lib/speech/flashDwell.js'
+import SpeechSayEngine from './SpeechSayEngine.jsx'
 
 // Тестовые настройки модуля «Сказать фразу» для админа (только в этом браузере, в БД ничего не пишем):
 //  1) «Реальный уровень микрофона для колец (эксперимент)» — флаг localStorage `pithy_say_real_level_v1`. Кольца вокруг квадрата в модуле
@@ -15,7 +16,8 @@ import { DWELL_PRESETS, DWELL_DEFAULT } from '../../../shared/lib/speech/flashDw
 //     в серой плашке админа над панелью. Побочный эффект — вывод на ресивер, только на время записи. iOS < 16.4 — переключатель ничего не делает.
 //  3) «Порог мелькания ошибочной формы (мс)» для режима «Строго» — localStorage `pithy_say_dwell_v1`, по умолчанию 500 (как было); пресеты 0/150/300/500. 0 = любое появление ошибочной формы
 //     в потоке interim засчитывается как ошибка. Выставляется после контрольной серии в «Тесте 1» (sayDwell.js, матчер matchStrict читает его сам).
-//  4) «Сбросить подсказки микрофона» — чистит флаги попапов (полное пояснение снова станет «первым разом»), отказа и «Не могу говорить».
+//  4) «Движок распознавания» (SpeechSayEngine.jsx) — Авто (Vosk, если готов) / Только системное / Только Vosk, localStorage `pithy_say_engine_v1`, строка «последняя попытка шла на: …».
+//  5) «Сбросить подсказки микрофона» — чистит флаги попапов (полное пояснение снова станет «первым разом»), отказа и «Не могу говорить».
 export default function SpeechSayBlock() {
   const [real, setReal] = useState(isRealLevelOn)
   const [sess, setSess] = useState(isSayAudioSessionOn)
@@ -28,6 +30,7 @@ export default function SpeechSayBlock() {
   return (
     <section className="aspBlock">
       <h3 className="aspH">Модуль «Сказать фразу»: настройки для тестов</h3>
+      <SpeechSayEngine />
       <div className="aspRow">
         <button type="button" className={`aspChip${real ? ' aspChipOn' : ''}`} onClick={toggle} aria-pressed={real} data-testid="say-real-toggle">
           Реальный уровень микрофона для колец (эксперимент): {real ? 'вкл' : 'выкл'}

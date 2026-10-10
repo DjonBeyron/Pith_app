@@ -23,11 +23,11 @@ describe('say_phrase — эквалайзер и источник уровня',
     expect(read('../../AudioGlowGate.jsx')).toContain('useEqualizerEnabled()') // настройка шапки действует как обычно
   })
 
-  it('уровень голоса — ЗАМЕНЯЕМЫЙ источник (подписка → значение каждый кадр): хук собирает его из levelSource, панель отдаёт в SayStage, SayStage — в useSayWaves; Vosk подключается в одной строке хука', () => {
+  it('уровень голоса — ЗАМЕНЯЕМЫЙ источник (подписка → значение каждый кадр): хук собирает его из levelSource, панель отдаёт в SayStage, SayStage — в useSayWaves; Vosk (реальный RMS его потока) подключён в одной строке хука', () => {
     expect(hook).toContain("import { createLevelSource } from '../../../../shared/lib/speech/sayLevelSource.js'")
-    expect(hook).toMatch(/const \[levels\] = useState\(\(\) => \{ const sys = levelSource\(voice, real\); return createLevelSource\(t => sys\.ringLevel\(t\)\) \}\)/)
+    expect(hook).toMatch(/const \[levels\] = useState\(\(\) => \{ const sys = levelSource\(voice, real\); return createLevelSource\(t => ctrl\.level\(t\) \?\? sys\.ringLevel\(t\)\) \}\)/)
     expect(hook).toContain('level: levels')
-    expect(hook).toContain('ТОЧКА ПОДКЛЮЧЕНИЯ VOSK')
+    expect(hook).toContain('ТОЧКА ПОДКЛЮЧЕНИЯ ВТОРОГО ИСТОЧНИКА')
     expect(body).toContain('level={sp.level}')
     expect(panelSrc['SayStage.jsx']).toContain("useSayWaves({ eqRef, clipRef, anchorRef }, { on: live, source: level })")
     expect(read('../../../../shared/lib/speech/sayLevelSource.js')).toContain('subscribe(listener)')

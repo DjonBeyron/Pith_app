@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { startListening } from './voskEngine.js'
+import { startListening } from '../../../shared/lib/vosk/voskEngine.js'
 import { copyText } from './copyText.js'
 import { TEST_GRAMMAR, TEST_WORDS, TEST_REFERENCE, makeAttempt, verdict, attemptLine, buildVoskReport } from './voskReport.js'
 

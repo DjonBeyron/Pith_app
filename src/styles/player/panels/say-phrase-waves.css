@@ -1,9 +1,9 @@
 /* ── Волны вокруг круга-микрофона «Сказать фразу» ────────────────────────────────────────────────────────────────────
-   Два слоя КРУГЛЫХ колец (по три) одного размера с кнопкой, оба в .sayWaveClip: он лежит под кнопкой и надписью, по размеру равен содержимому панели
-   (края корпуса .phraseInner: top −11 / bottom −12 / по бокам −16, центр колец — центр круга: 11 + 45 + 58 = 114px от верха) и ОБРЕЗАЕТ всё, что вылезло
-   (overflow:hidden) — максимальная амплитуда эквалайзера не выходит за модуль (на 320–390px по бокам запас больше 100px, по высоте предел 113px при ряду 115px).
+   Два слоя КРУГЛЫХ колец (по три) одного размера с кнопкой (100px), оба в .sayWaveClip: он лежит под кнопкой, кольцом (SayRing) и надписью, по размеру равен
+   содержимому панели (края корпуса .phraseInner: top −11 / bottom −12 / по бокам −16, центр колец — центр круга: 11 + 53 + 50 = 114px от верха) и ОБРЕЗАЕТ
+   всё, что вылезло (overflow:hidden) — максимальная амплитуда эквалайзера (радиус до 78px) не выходит за модуль (на 320–390px по бокам запас больше 100px, по высоте предел 113px при ряду 115px).
    Дополнительно радиус считает JS (sayRings.clampRadius) — в обычном случае клип ничего не режет, он страховка.
-   • .sayIdleWaves — ИСКУССТВЕННЫЕ волны покоя: чистый CSS (transform/opacity), небольшие (до ×1,6), расходятся по очереди.
+   • .sayIdleWaves — ИСКУССТВЕННЫЕ волны покоя: чистый CSS (transform/opacity), мягкие (до ×1,5, прозрачность не выше .22 — не спорят с кольцом SayRing), расходятся по очереди.
    • .sayEq — ЖИВОЙ эквалайзер: transform/opacity колец пишет useSayWaves.js прямо в style каждый кадр rAF. На кольцах НЕТ transition/animation —
      запаздывание не должно прятаться в стилях. Слой показывается в режиме --live (тап был), искусственные волны в этот момент гаснут.
    Без blur/filter/box-shadow.
@@ -18,14 +18,14 @@
   overflow: hidden;
   pointer-events: none;
 }
-.sayWaveAnchor { position: absolute; left: 50%; top: 114px; width: 116px; height: 116px; margin: -58px 0 0 -58px; }
+.sayWaveAnchor { position: absolute; left: 50%; top: 114px; width: 100px; height: 100px; margin: -50px 0 0 -50px; }
 .sayIdleWaves, .sayEq { position: absolute; inset: 0; }
 .sayIdleWaves i, .sayEq i {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 2px solid #b6fe3b;
+  border: 2px solid var(--say-lime);
   background: rgba(182, 254, 59, 0.1);
 }
 
@@ -35,8 +35,8 @@
 .sayIdleWaves i:nth-child(2) { animation-delay: 1s; }
 .sayIdleWaves i:nth-child(3) { animation-delay: 2s; }
 @keyframes sayWaveOut {
-  0%   { transform: scale(1);   opacity: .4; }
-  100% { transform: scale(1.6); opacity: 0; }
+  0%   { transform: scale(1);   opacity: .22; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 
 /* Живой эквалайзер: стартовые значения рисует JS в кадре тапа; CSS даёт лишь будущий слой и will-change */

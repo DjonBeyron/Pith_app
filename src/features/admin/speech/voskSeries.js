@@ -4,7 +4,7 @@
 import { STYLES, PAIR_PRESETS } from './voskGrammar.js'
 import { classifyKey, parseWords, confOfKey } from './voskClassify.js'
 import { classifyTrap, cleanTrapWord, TRAP_PRESETS } from './voskTraps.js'
-import { afterSpeechMs, clampAutoStop, AUTOSTOP_DEFAULT } from './voskTiming.js'
+import { afterSpeechMs, clampAutoStop, AUTOSTOP_DEFAULT } from '../../../shared/lib/vosk/voskTiming.js'
 
 export const VOSK_SERIES_KEY = 'pithy_admin_vosk_series_v1'
 export const MAX_RUNS = 150

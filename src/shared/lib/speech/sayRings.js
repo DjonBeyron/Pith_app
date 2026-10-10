@@ -4,15 +4,18 @@
 // кольца «дышат» (жизнь без событий). ГЛАВНОЕ: радиус любого кольца обрезается по границам контейнера (clampRadius) — волны никогда не выходят за панель.
 // Результат кадра (scale/opacity) хук useSayWaves пишет прямо в style колец (transform/opacity, без ререндеров React и без CSS transition на transform).
 export const RING_COUNT = 3
-export const CIRCLE_R = 58                          // радиус круга-кнопки, px (диаметр 116): кольцо при масштабе 1 лежит ровно по его краю
-export const RING_K = [0.75, 0.85, 0.95]            // масштаб кольца = 1 + уровень × k → до 1,75 / 1,85 / 1,95 при уровне 1 (радиус 101 / 107 / 113 px), если контейнер позволяет
+export const CIRCLE_R = 50                          // радиус круга-кнопки, px (диаметр 100): кольцо при масштабе 1 лежит ровно по его краю
+export const RING_K = [0.36, 0.46, 0.56]            // масштаб кольца = 1 + уровень × k → до 1,36 / 1,46 / 1,56 при уровне 1 (радиус 68 / 73 / 78 px: +18 / +23 / +28 px от края круга; было +43…+55)
 export const RING_OPACITY = [0.55, 0.32, 0.16]      // прозрачность при уровне 1: ближнее плотнее, каждое следующее тусклее
-export const RING_OPACITY_FLOOR = 0.35              // доля прозрачности при уровне 0 (opacity = base × (floor + (1 − floor) × уровень))
+export const RING_OPACITY_FLOOR = 0.25              // доля прозрачности при уровне 0 (opacity = base × (floor + (1 − floor) × уровень))
 export const RING_ATTACK_MS = [0, 16, 32]           // «инерция» подъёма: внутреннее — сразу, внешние на 1–2 кадра позже
 export const RING_DECAY_MS = [100, 180, 300]        // и спада: внешние гаснут мягче
 export const BREATH_PERIOD_MS = 1800
-export const BREATH_BASE = 0.18                     // уровень «ожидания»: кольца заметно живы и без голоса
-export const BREATH_SWING = 0.08
+export const BREATH_BASE = 0.1                      // уровень «ожидания»: кольца едва дышат без голоса (≈ +2 px), чтобы голос был заметно выше
+export const BREATH_SWING = 0.04
+export const NOISE_GATE = 0.04                      // порог шума: уровень ниже него = тишина (кольца не дёргаются от шума микрофона)
+export const RESPONSE_GAMMA = 0.5                   // кривая отклика: степень < 1 поднимает тихий голос (0,1 → ≈0,33, 0,2 → ≈0,53), громкий не «потолит» раньше времени
+export const RESPONSE_GAIN = 1.3                    // и общее усиление поверх кривой (результат обрезается до 1)
 export const TAP_KICK = [0.5, 0.4, 0.3]            // стартовые уровни колец в кадре тапа: мгновенная «вспышка», которая оседает до дыхания за 100–300 мс
 export const WAVE_MARGIN = 2                        // запас до края контейнера, px: кольцо не касается края панели
 
@@ -44,9 +47,16 @@ export function breath(t) {
   return BREATH_BASE + BREATH_SWING * Math.sin((t / BREATH_PERIOD_MS) * 2 * Math.PI)
 }
 
-/** Целевой уровень колец: голос, но не ниже «ожидания» (запись идёт — кольца живы и до первых событий распознавания) */
+/** Отклик на голос: порог шума → степень RESPONSE_GAMMA → усиление RESPONSE_GAIN, 0..1. Тихая речь поднимает кольца заметно, шум ниже порога — нет. Чистая функция */
+export function voiceResponse(voice) {
+  const v = clamp01(Number(voice) || 0)
+  if (v <= NOISE_GATE) return 0
+  return clamp01(Math.pow((v - NOISE_GATE) / (1 - NOISE_GATE), RESPONSE_GAMMA) * RESPONSE_GAIN)
+}
+
+/** Целевой уровень колец: отклик на голос, но не ниже «ожидания» (запись идёт — кольца живы и до первых событий распознавания) */
 export function ringTarget({ voice = 0, t = 0 }) {
-  return Math.max(clamp01(voice), breath(t))
+  return Math.max(voiceResponse(voice), breath(t))
 }
 
 /** Стартовые уровни в кадре тапа: волны отзываются мгновенно, не дожидаясь событий распознавания */

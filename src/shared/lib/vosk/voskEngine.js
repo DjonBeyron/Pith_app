@@ -2,11 +2,12 @@
 // только из заданных фраз. Грузится ТОЛЬКО по кнопке: динамический import уводит библиотеку (≈6 МБ) в отдельный чанк.
 // Модель скачивает и хранит само приложение (voskDownload.js / voskStorage.js), сюда она приходит готовым Blob и
 // передаётся библиотеке через blob-URL. Без React. Звук никуда не отправляется и не сохраняется.
-import { deleteLibraryStore } from '../../../shared/lib/vosk/voskStorage.js'
+import { deleteLibraryStore } from './voskStorage.js'
 import { autoStopDue } from './voskTiming.js'
-import { createAudioSession } from '../../../shared/lib/speech/speechAudioSession.js'
+import { createAudioSession } from '../speech/speechAudioSession.js'
 
-const CHUNK = 4096 // кадров на один вызов ScriptProcessor
+const CHUNK = 4096 // кадров на один вызов ScriptProcessor (по умолчанию; модуль «Сказать фразу» просит 2048 — уровень голоса чаще)
+const CHUNKS = [1024, 2048, 4096, 8192] // допустимые размеры opts.chunk
 const LOAD_TIMEOUT_MS = 180000
 
 const ms = t0 => Math.round(performance.now() - t0)
@@ -23,6 +24,17 @@ export async function importVosk() {
   const api = typeof mod.Model === 'function' ? mod : typeof mod.default?.Model === 'function' ? mod.default : globalThis.Vosk
   if (!api || typeof api.Model !== 'function') throw new Error('vosk-browser загрузился без класса Model')
   return api
+}
+
+/** RMS 0..1 одного куска звука (AudioBuffer из onaudioprocess, первый канал). Нет данных → 0. Берём каждый второй кадр — дёшево, а для уровня голоса хватает */
+export function bufferRms(buf) {
+  let d
+  try { d = buf?.getChannelData?.(0) } catch { d = null }
+  const n = d?.length || 0
+  if (!n) return 0
+  let sum = 0
+  for (let i = 0; i < n; i += 2) sum += d[i] * d[i]
+  return Math.min(1, Math.sqrt(sum / Math.ceil(n / 2)))
 }
 
 /** Остановить модель: просим воркер освободить память и закрыться, и сразу гасим сам воркер (если завис на распаковке) */
@@ -75,9 +87,11 @@ export function unloadEngine(model) {
 
 /**
  * Один сеанс слушания. Вызывать прямо в тапе (getUserMedia нужен жест). Возвращает { stop, cancel }.
- * cb: onPartial(text), onResult(text, stats), onError(msg). onResult приходит на endpoint Vosk (пауза в речи), по авто-стопу либо после stop().
+ * cb: onPartial(text), onResult(text, stats), onError(msg); необязательные onReady({ micMs }) — микрофон открыт и звук пошёл в движок (аналог audiostart),
+ * onLevel(rms 0..1) — громкость каждого куска звука (тот же поток, второго getUserMedia нет). onResult приходит на endpoint Vosk (пауза в речи), по авто-стопу либо после stop().
  * opts: autoStopMs (>0 — сами просим итог, когда текст partial не менялся столько мс), maxMs (потолок записи), session ('play-and-record' — на время записи
- * ставим тип аудиосессии iOS, потом 'auto'; без API молча пропускаем).
+ * ставим тип аудиосессии iOS, потом 'auto'; без API молча пропускаем), chunk (кадров на кусок: 1024/2048/4096/8192, по умолчанию 4096).
+ * Сбой настройки после открытия микрофона (AudioContext, распознаватель) не оставляет микрофон и сессию занятыми: всё освобождается, ошибка летит наружу.
  * stats: { firstPartialMs, resultMs (от старта записи), afterStopMs, chunks, loadPct, words, micMs (getUserMedia), readyMs (от нажатия до первого звука),
  * audioStartMs (когда пошёл звук, от старта записи), stopBy: endpoint | auto | manual | max, session } — loadPct: доля реального времени,
  * которую главный поток тратит на передачу звука воркеру (сам распознаватель работает в воркере — его нагрузку страница не видит).
@@ -93,9 +107,17 @@ export async function startListening(model, grammar, cb, opts = {}) {
   } catch (e) { release(); throw e }
   const micMs = ms(tap)
   const Ctx = window.AudioContext || window.webkitAudioContext
-  let ctx
-  try { ctx = new Ctx({ sampleRate: 16000 }) } catch { ctx = new Ctx() }
-  const rec = new model.KaldiRecognizer(ctx.sampleRate, grammar)
+  let ctx, rec
+  try {
+    try { ctx = new Ctx({ sampleRate: 16000 }) } catch { ctx = new Ctx() }
+    try { Promise.resolve(ctx.resume?.()).catch(() => {}) } catch { /* контекст и так работает */ }
+    rec = new model.KaldiRecognizer(ctx.sampleRate, grammar)
+  } catch (e) { // модель могли выгрузить, AudioContext не создался: микрофон и аудиосессию отпускаем
+    stream.getTracks().forEach(tr => tr.stop())
+    try { Promise.resolve(ctx?.close?.()).catch(() => {}) } catch { /* нечего закрывать */ }
+    release()
+    throw e
+  }
   try { rec.setWords(true) } catch { /* без пословных меток */ }
   const t0 = performance.now()
   const st = { firstPartialMs: null, chunks: 0, workMs: 0, audioMs: 0, stopAt: null, done: false, text: '', changeAt: null, stopBy: null, audioStartMs: null, readyMs: null }
@@ -105,7 +127,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     clearInterval(timer)
     stream.getTracks().forEach(tr => tr.stop())
     try { node.disconnect(); src.disconnect() } catch { /* уже отключены */ }
-    try { ctx.close() } catch { /* уже закрыт */ }
+    try { Promise.resolve(ctx.close()).catch(() => {}) } catch { /* уже закрыт */ }
     try { rec.remove() } catch { /* уже удалён */ }
     release()
   }
@@ -127,7 +149,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     free()
   })
   rec.on('error', m => { if (!st.done) { cb.onError(m.error || 'ошибка Vosk'); free() } })
-  const node = ctx.createScriptProcessor(CHUNK, 1, 1)
+  const node = ctx.createScriptProcessor(CHUNKS.includes(opts.chunk) ? opts.chunk : CHUNK, 1, 1)
   const src = ctx.createMediaStreamSource(stream)
   node.onaudioprocess = ev => {
     if (st.done || st.stopAt != null) return
@@ -136,6 +158,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
       const dur = Math.round(ev.inputBuffer.duration * 1000)
       st.audioStartMs = Math.max(0, ms(t0) - dur); st.readyMs = Math.max(0, ms(tap) - dur)
     }
+    if (cb.onLevel) { try { cb.onLevel(bufferRms(ev.inputBuffer)) } catch { /* уровень не должен мешать распознаванию */ } }
     try { rec.acceptWaveform(ev.inputBuffer) } catch (e) { cb.onError(`acceptWaveform: ${e?.message || e}`) }
     st.workMs += performance.now() - t
     st.audioMs += ev.inputBuffer.duration * 1000
@@ -143,6 +166,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
   }
   src.connect(node)
   node.connect(ctx.destination) // без подключения к выходу ScriptProcessor в части браузеров не вызывается (на выход идёт тишина)
+  try { cb.onReady?.({ micMs }) } catch { /* подписчик не должен ломать запись */ }
   const stop = (why = 'manual') => { // «Стоп» (или авто-стоп): просим итог по накопленному звуку
     if (st.done || st.stopAt != null) return
     st.stopAt = performance.now(); st.stopBy = why

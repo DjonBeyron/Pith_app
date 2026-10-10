@@ -5,7 +5,7 @@ import { condLabel } from './voskSeries.js'
 import { summaryLines } from './voskSummary.js'
 import { thresholdLines } from './voskThreshold.js'
 import { verdictOf } from './voskClassify.js'
-import { sec, STOP_BY } from './voskTiming.js'
+import { sec, STOP_BY } from '../../../shared/lib/vosk/voskTiming.js'
 
 export const VOSK_SERIES_MAX = 6000
 

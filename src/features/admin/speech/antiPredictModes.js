@@ -3,6 +3,7 @@
 // распознавателя через configure-хук speechController. Без React; window/localStorage передаются снаружи.
 import { tokenize } from '../../../shared/lib/speech/speechMatch.js'
 import { DWELL_DEFAULT, clampDwell } from '../../../shared/lib/speech/firstSeenRule.js'
+import { wrongFormsOfWord, coreOf } from '../../../shared/lib/speech/wordForms.js'
 
 export const AP_KEY = 'pithy_admin_voice_antipredict_v1'
 export const LANG_VARIANTS = ['en-US', 'en-GB', 'en-AU', 'en-IN', 'en-CA', 'en']
@@ -76,32 +77,8 @@ export function activeModes(settings, f, oneWord = false) {
 }
 
 // ---- ошибочные формы ----
-// Типичные ошибки учеников: слово эталона → чем его подменяют
-const WRONG = {
-  trying: ['try', 'tried', 'tries'], tried: ['try', 'trying'], tries: ['try', 'trying'],
-  going: ['go', 'goes', 'went'], goes: ['go', 'going'], go: ['goes', 'going'], went: ['go', 'goed'],
-  am: ['is', 'are'], is: ['are', 'am'], are: ['is', 'am'],
-  has: ['have'], have: ['has'], had: ['have'], was: ['were'], were: ['was'],
-  does: ['do'], do: ['does'], doing: ['do', 'does'], "doesn't": ["don't"], "don't": ["doesn't"],
-  want: ['wants'], wants: ['want'], like: ['likes'], likes: ['like'], children: ['childs'], people: ['peoples'],
-}
-const NO_S = new Set(['this', 'his', 'always', 'perhaps', 'its', 'yes', 'across', 'unless', 'sometimes'])
-
-const coreOf = w => w.toLowerCase().replace(/[^a-z']/g, '')
-
-/** Ошибочные формы ОДНОГО слова (по таблице, затем по суффиксам -ing / -ed / -s). Не знаем слово — [] */
-export function wrongFormsOfWord(word) {
-  const w = coreOf(word)
-  if (WRONG[w]) return [...WRONG[w]]
-  const out = []
-  if (w.length > 4 && w.endsWith('ing')) {
-    let stem = w.slice(0, -3)
-    if (/([b-df-hj-np-tv-z])\1$/.test(stem)) stem = stem.slice(0, -1) // running → run
-    out.push(stem)
-  } else if (w.length > 4 && w.endsWith('ed')) out.push(w.slice(0, -2).replace(/([b-df-hj-np-tv-z])\1$/, '$1'))
-  else if (w.length >= 5 && w.endsWith('s') && !/(ss|us|is)$/.test(w) && !NO_S.has(w)) out.push(w.slice(0, -1))
-  return out.filter(x => x.length > 1 && x !== w)
-}
+// Ошибочные формы слова (таблица, суффиксы) живут в shared: ими пользуется и закрытый словарь Vosk модуля «Сказать фразу» (wordForms.js)
+export { wrongFormsOfWord }
 
 const withCase = (orig, w) => (orig[0] === orig[0]?.toUpperCase() && /[A-Za-z]/.test(orig[0]) ? w[0].toUpperCase() + w.slice(1) : w)
 

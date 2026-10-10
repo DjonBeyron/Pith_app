@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { readState, writeState, addRun, makeRun, emptyState } from './voskSeries.js'
-import { clampAutoStop, NO_SPEECH_MS } from './voskTiming.js'
+import { clampAutoStop, NO_SPEECH_MS } from '../../../shared/lib/vosk/voskTiming.js'
 
 // React-обвязка «Теста 3» Vosk: настройки и прогоны (localStorage), запись одного прогона через engine.listen, живая строка partial.
 // Микрофон на каждый прогон открывается и закрывается (как в остальных тестах Vosk): поток не держим, чтобы на iPhone не висел оранжевый индикатор

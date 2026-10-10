@@ -8,8 +8,8 @@ import { HINT_FALLBACK, HINT_DEFAULTS } from './sayTexts.js'
 export const QUIET_TAIL_MS = 600          // звуки приложения молчат ещё столько после показа результата (хвост системного сигнала конца записи)
 export const HINT_DELAY_MS = QUIET_TAIL_MS + 60 // пузырь подсказки приходит ПОСЛЕ окна тишины: его звук «новое сообщение» уже не подавляется
 
-// Ошибки движка, которые лечит пользователь действием (занят микрофон, выключена диктовка, язык): текстовой подсказки нет
-const NO_HINT_CODES = new Set(['audio-capture', 'service-not-allowed', 'language-not-supported'])
+// Ошибки движка, которые лечит пользователь действием (занят микрофон, выключена диктовка, язык) или сбой Vosk (vosk-error: следующая попытка сама пойдёт на системном): текстовой подсказки нет
+const NO_HINT_CODES = new Set(['audio-capture', 'service-not-allowed', 'language-not-supported', 'vosk-error'])
 
 /**
  * Тип подсказки по итогу неудачной попытки: 'silence' (не слышу: тишина, сеть, запись не началась) | 'mismatch' (не то) |

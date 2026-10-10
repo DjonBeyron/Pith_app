@@ -31,8 +31,10 @@ describe('нет скачивания и загрузки без нажатия 
     expect(lab).not.toMatch(/useEffect\([^\n]*loadIt/)
   })
   it('библиотека vosk-browser подключается только динамически (в бандл приложения не входит)', () => {
-    for (const f of ['voskEngine.js', 'VoskLab.jsx', 'VoskModelBlock.jsx', 'VoskVocabTest.jsx']) expect(here(f)).not.toMatch(/^import[^\n]*['"]vosk-browser['"]/m)
-    expect(here('voskEngine.js')).toMatch(/await import\('vosk-browser'\)/)
+    for (const f of ['VoskLab.jsx', 'VoskModelBlock.jsx', 'VoskVocabTest.jsx']) expect(here(f)).not.toMatch(/^import[^\n]*['"]vosk-browser['"]/m)
+    const engine = root('src/shared/lib/vosk/voskEngine.js') // движок переехал в shared (этап 2: им пользуется и «Сказать фразу»)
+    expect(engine).not.toMatch(/^import[^\n]*['"]vosk-browser['"]/m)
+    expect(engine).toMatch(/await import\('vosk-browser'\)/)
   })
 })
 

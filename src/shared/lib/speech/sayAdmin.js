@@ -4,6 +4,7 @@
 // («I'm try → I'm trying»), и вторая строка с пометками (слова, подтверждённые только final; звуки приложения подавлены).
 // Строка НЕ очищается после результата/ошибки/таймаута — только в момент старта новой записи (sayFlow: 'begin').
 import { interimDiffers, failReason } from './sayResult.js'
+import { pickLabel } from './sayEnginePick.js'
 
 /** Единственное правило: показывать ли распознанный текст. isAdmin — эффективный админ плеера (useAdmin) */
 export const showHeardText = ({ isAdmin }) => !!isAdmin
@@ -16,14 +17,17 @@ export const realLevelNote = status => `реальный уровень: ${statu
 /** Пометка про аудиосессию (эксперимент, флаг pithy_say_audiosession_v1): «аудиосессия: play-and-record»; выключено — пусто */
 export const audioSessionNote = type => (type ? `аудиосессия: ${type}` : '')
 
+/** Пометка про движок попытки (sayEnginePick.js): «движок: Vosk» | «движок: системное (модели нет в кэше)»; нет данных — пусто */
+export const engineNote = pick => (pick ? `движок: ${pickLabel(pick)}` : '')
+
 /**
  * Строка для админа или null (null — «нового сказать нечего», прежняя строка остаётся). phase — фаза панели, view — вид контроллера
  * (interim/lastInterim/final/alternatives), verdict/errorCode — итог попытки.
  * @returns {{text: string, note: string, title: string}|null} title — все варианты распознавания (всплывающая подсказка)
  */
-export function adminHeardLine({ isAdmin, phase, view, verdict = null, errorCode = null, realLevel = null, audioSession = null }) {
+export function adminHeardLine({ isAdmin, phase, view, verdict = null, errorCode = null, realLevel = null, audioSession = null, engine = null }) {
   if (!showHeardText({ isAdmin }) || !view) return null
-  const note = (...parts) => [...parts.filter(Boolean), QUIET_NOTE, realLevelNote(realLevel), audioSessionNote(audioSession)].filter(Boolean).join(' · ')
+  const note = (...parts) => [...parts.filter(Boolean), QUIET_NOTE, realLevelNote(realLevel), audioSessionNote(audioSession), engineNote(engine)].filter(Boolean).join(' · ')
   const final = view.final?.text || ''
   if (phase === 'run' && view.status === 'listening') {
     return view.interim ? { text: `Админ: слышу ${q(view.interim)}`, note: note(), title: '' } : null

@@ -1,5 +1,6 @@
 import { useReducer, useState, useEffect, useRef, useCallback } from 'react'
 import { createSpeechController, isBusy } from '../../../../shared/lib/speech/speechController.js'
+import { createSayRecognizer } from '../../../../shared/lib/speech/sayRecognizer.js'
 import { getRecognitionCtor, queryMicPermission } from '../../../../shared/lib/speech/speechSupport.js'
 import { sayPermission } from '../../../../shared/lib/speech/sayPermission.js'
 import { SAY_EVENTS, sayEventProps } from '../../../../shared/lib/speech/sayResult.js'
@@ -21,10 +22,10 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // sayPermission (флаги пояснения, отказа, «Не могу говорить»). onEvent(name, props) — аналитика: только числа/флаги,
 // ни звука, ни текста фразы.
 // Голос ученика видит ЭКВАЛАЙЗЕР вокруг круга-микрофона (SayStage/useSayWaves). Его питает ЗАМЕНЯЕМЫЙ источник уровня (sayLevelSource.js:
-// подписка → значение 0..1 каждый кадр), хук отдаёт его как level. Сейчас (системное распознавание) в нём: уровень по умолчанию СИНТЕТИЧЕСКИЙ,
-// по событиям распознавания (sayVoiceLevel.js, без getUserMedia); за админским флагом — РЕАЛЬНЫЙ (sayRealLevel.js: поток открывается в этом же
-// тапе перед запуском распознавания, закрывается вместе с попыткой). ТОЧКА ПОДКЛЮЧЕНИЯ VOSK — строка `const [levels] = useState(...)` ниже: для
-// Vosk сюда встаёт createLevelSource с RMS из его аудиопотока (отдельный этап, сейчас не подключено). Эквалайзер-свечение плеера модуль НЕ включает.
+// подписка → значение 0..1 каждый кадр), хук отдаёт его как level. Когда идёт Vosk — это РЕАЛЬНЫЙ RMS кусков звука его же потока (с первого куска). На системном
+// распознавании: уровень по умолчанию СИНТЕТИЧЕСКИЙ, по событиям распознавания (sayVoiceLevel.js, без getUserMedia); за админским флагом — РЕАЛЬНЫЙ
+// (sayRealLevel.js: поток открывается в этом же тапе перед запуском распознавания, закрывается вместе с попыткой; при Vosk этот флаг не действует — микрофон один).
+// Движок (Vosk / системное) выбирает sayRecognizer.js на каждой попытке; прогрев модели Vosk — пока панель смонтирована (ctrl.warm). Эквалайзер-свечение плеера модуль НЕ включает.
 // Звуки приложения на время попытки (от тапа до результата + QUIET_TAIL_MS) молчат — soundQuiet.js; сам тап по микрофону
 // помечен data-no-unlock, чтобы разблокировка звука не стартовала вместе с записью (SayStage.jsx).
 // Перезапуск: speechController ждёт end прошлого экземпляра и RESTART_COOLDOWN_MS (стратегия 'M', speechRestart.js) — прозрачно: тап в эту паузу ставится в очередь и стартует по её окончании;
@@ -35,20 +36,26 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   const [s, dispatch] = useReducer(sayReducer, perm, p => initialSayState(p.decide()))
   const [voice] = useState(createVoiceLevel)
   const [real] = useState(() => createBrowserRealLevel(st => { if (st !== 'off') dispatch({ type: 'realStatus', status: realLevelLabel(true, st) }) }))
-  // ИСТОЧНИК УРОВНЯ (заменяемый). Системное распознавание: реальный RMS, если админ включил флаг и поток жив, иначе синтетический по событиям.
-  // Vosk: createLevelSource(t => levelFromRms(rmsOf(bytes))) на анализаторе его же аудиопотока — см. sayLevelSource.js
-  const [levels] = useState(() => { const sys = levelSource(voice, real); return createLevelSource(t => sys.ringLevel(t)) })
-  const [ctrl] = useState(() => createSpeechController({
-    createRecognition: () => { const Ctor = getRecognitionCtor(); return new Ctor() },
-    queryPerm: queryMicPermission,
-    getMode: () => 'say',
+  // РАСПОЗНАВАТЕЛЬ: два движка за одним интерфейсом (sayRecognizer.js). Vosk — основной, когда к тапу готов (модель в кэше и в памяти), иначе системное распознавание (speechController
+  // ниже — настройки прежние). Выбор на каждую попытку, тап ничего не ждёт; упал Vosk — следующая попытка на системном.
+  const [ctrl] = useState(() => createSayRecognizer({
+    createSystem: onView => createSpeechController({
+      createRecognition: () => { const Ctor = getRecognitionCtor(); return new Ctor() },
+      queryPerm: queryMicPermission,
+      getMode: () => 'say',
+      onView,
+      onSignal: kind => voice.signal(kind, nowMs()),
+      endOnFinal: 'abort', // после финального результата гасим движок abort(), а не stop(): без системного «хвоста» распознавания
+      audioSession: createAudioSession(), // navigator.audioSession: сброс при «глухом» повторе; на время записи — по админскому флагу pithy_say_audiosession_v1 (по умолчанию включён)
+      getAudioSessionType: () => sayAudioSessionType(),
+      getRestart: () => 'M', // новый экземпляр — только после end прошлого + RESTART_COOLDOWN_MS (iOS: второй запуск сразу после первого бывает «глухим»); тап в это окно встаёт в очередь
+    }),
     onView: view => dispatch({ type: 'view', view }),
-    onSignal: kind => voice.signal(kind, nowMs()),
-    endOnFinal: 'abort', // после финального результата гасим движок abort(), а не stop(): без системного «хвоста» распознавания
-    audioSession: createAudioSession(), // navigator.audioSession: сброс при «глухом» повторе; на время записи — только по админскому флагу pithy_say_audiosession_v1 (по умолчанию выкл)
-    getAudioSessionType: () => sayAudioSessionType(),
-    getRestart: () => 'M', // новый экземпляр — только после end прошлого + RESTART_COOLDOWN_MS (iOS: второй запуск сразу после первого бывает «глухим»); тап в это окно встаёт в очередь
+    getSession: () => sayAudioSessionType(), // тот же тип аудиосессии на время записи Vosk
   }))
+  // ИСТОЧНИК УРОВНЯ (заменяемый). Vosk: реальный RMS кусков звука его же потока (ctrl.level, с первого куска, второго getUserMedia нет). Системное распознавание: реальный RMS, если
+  // админ включил флаг и поток жив, иначе синтетический по событиям (sayVoiceLevel.js). ТОЧКА ПОДКЛЮЧЕНИЯ ВТОРОГО ИСТОЧНИКА — строка `const [levels] = useState(...)` ниже.
+  const [levels] = useState(() => { const sys = levelSource(voice, real); return createLevelSource(t => ctrl.level(t) ?? sys.ringLevel(t)) })
   const quietRef = useRef({ release: null, timer: 0 })
   const armRef = useRef(0)
   const eventRef = useRef(onEvent)
@@ -91,10 +98,12 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
 
   useEffect(() => {
     let alive = true
+    let unwarm = null
     perm.refresh().then(() => {
       if (!alive) return
       const d = perm.decide() // query мог сказать 'denied' — сразу запасной режим, без попытки
       if (d.action === 'fallback') dispatch({ type: 'fallback', reason: d.reason, onlyIdle: true })
+      else unwarm = ctrl.warm() // микрофон возможен: прогреваем Vosk (модель из кэша в память, в фоне), панель уйдёт — через 30 с освободим
     })
     // Сворачивание: гасим только реальную запись (iOS может мигнуть visibility, пока висит диалог разрешения)
     const interrupt = () => { ctrl.reset(); voice.signal('end', nowMs()); real.close(); dispatch({ type: 'interrupt' }) }
@@ -104,6 +113,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     window.addEventListener('pagehide', onPageHide)
     return () => {
       alive = false
+      unwarm?.()
       document.removeEventListener('visibilitychange', onHidden)
       window.removeEventListener('pagehide', onPageHide)
       ctrl.reset() // панель закрыта — микрофон не держим
@@ -118,10 +128,11 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     stopWord() // эталонное «Послушать» не должно звучать, пока слушаем
     clearTimeout(q.timer); q.timer = 0
     if (!q.release) q.release = holdSoundQuiet()
-    const wantReal = isRealLevelOn()
+    const pick = ctrl.choose(data) // какой движок пойдёт на эту попытку (синхронно, без ожидания): Vosk, если готов, иначе системное
+    const wantReal = isRealLevelOn() && pick.engine === 'system' // отдельный реальный уровень — только для системного: у Vosk микрофон один, уровень берётся из его потока
     if (wantReal) real.open() // реальный уровень (админский флаг): поток микрофона открываем в этом же тапе, ДО recognition.start(), промис не ждём
-    dispatch({ type: 'begin', data, realLevel: realLevelLabel(wantReal, null), audioSession: sayAudioSessionType() })
-    ctrl.start({ reference: data.phrase, lang: data.lang })
+    dispatch({ type: 'begin', data, realLevel: realLevelLabel(wantReal, null), audioSession: sayAudioSessionType(), engine: pick })
+    ctrl.start({ reference: data.phrase, lang: data.lang, data, pick })
     clearTimeout(armRef.current)
     armRef.current = setTimeout(() => dispatch({ type: 'arm' }), STOP_ARM_MS)
     const taps = s.taps + 1
