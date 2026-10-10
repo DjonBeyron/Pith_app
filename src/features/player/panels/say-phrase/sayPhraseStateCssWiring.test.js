@@ -34,17 +34,10 @@ describe('say_phrase — состояния круга', () => {
     expect(strip(micCss)).toMatch(/\.sayPanel \{ --say-dark: #12141d; --say-gray: #2f333d; --say-gray-ink: #8a90a2; \}/)
   })
 
-  it('запись: круг растёт ПРУЖИНОЙ с перелётом (linear() и запасной cubic-bezier для Safari 16), заливка и цвет значка меняются плавно; нажатие — без перехода; возврат — обычный ease без пружины', () => {
+  it('запись: круг растёт ПРУЖИНОЙ с перелётом (linear() и запасной cubic-bezier для Safari 16); нажатие — без перехода; возврат из записи — быстрая плавная смена цвета без пружины', () => {
     const code = strip(stateCss)
-    expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn \{\s*transition: transform \.6s cubic-bezier\(\.34, 1\.8, \.55, 1\), background var\(--say-fill\), border-color var\(--say-fill\), color var\(--say-fill\)/)
-    // заливка при нажатии — плавная: ≈0,55–0,7 с, ease-out (кривая без «разгона» в начале), цвет значка и ободок идут по той же переменной (синхронно)
-    const fill = code.match(/--say-fill: ([\d.]+)s (cubic-bezier\([^)]*\))/)
-    expect(Number(fill[1])).toBeGreaterThanOrEqual(0.55)
-    expect(Number(fill[1])).toBeLessThanOrEqual(0.7)
-    const [x1, y1, x2, y2] = fill[2].match(/[\d.]+/g).map(Number)
-    expect(y1).toBeGreaterThan(x1)  // ease-out: старт быстрее линейного …
-    expect(y2).toBe(1)              // … и плавно оседает в цель без перелёта
-    expect(x2).toBeLessThan(1)
+    // цвет кнопки под диском меняется сразу (его не видно), заливку и цвет значка ведут анимации (CSS-анимации, а не transition: их не обрывает :active { transition: none })
+    expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn \{\s*transition: transform \.6s cubic-bezier\(\.34, 1\.8, \.55, 1\), background 0s, border-color \.2s, color 0s/)
     const sup = code.match(/@supports \(transition-timing-function: linear\(0, 1\)\) \{[\s\S]*?\n\}/)[0]
     const pts = sup.match(/linear\(([^)]*)\)\s*,\s*background/)[1].split(',').map(Number)
     expect(Math.max(...pts)).toBeGreaterThan(1.1)   // перелёт ≈ 16%
@@ -54,6 +47,36 @@ describe('say_phrase — состояния круга', () => {
     expect(pts.slice(8).some(v => v < 1)).toBe(true) // и успевает «недолететь» после первого перелёта (колебание)
     expect(strip(micCss)).toMatch(/\.sayPanel \.sayMicBtn:active:not\(:disabled\) \{ transition: none; transform: scale\(calc\(var\(--mic-scale\) \* \.95\)\); \}/)
     expect(strip(micCss)).toMatch(/\.sayPanel \.sayMicBtn--done:disabled, \.sayPanel \.sayMicBtn--off:disabled \{ opacity: 1; \}/)
+    // возврат: базовый transition кнопки — цвет и значок плавно за .32s (без пружины и без «раскрытия»)
+    expect(strip(micCss).match(/\.sayPanel \.sayMicBtn \{[^}]*\}/)[0]).toMatch(/transition: transform \.45s cubic-bezier\(\.22, 1, \.36, 1\), background \.32s, border-color \.32s, color \.32s/)
+  })
+
+  it('заливка при нажатии идёт КОЛЬЦОМ от края круга к центру: диск прежнего цвета (::before) сжимается scale(1 → 0) ≈0,6–0,7 с, ease-out, лайм приходит от края; значок темнеет синхронно; без @property и mask', () => {
+    const code = strip(stateCss)
+    const fill = code.match(/--say-fill-t: ([\d.]+)s; --say-fill: var\(--say-fill-t\) (cubic-bezier\([^)]*\))/)
+    expect(Number(fill[1])).toBeGreaterThanOrEqual(0.6)
+    expect(Number(fill[1])).toBeLessThanOrEqual(0.7)
+    const [x1, y1, x2, y2] = fill[2].match(/[\d.]+/g).map(Number)
+    expect(y1).toBeGreaterThan(x1)  // ease-out: старт быстрее линейного …
+    expect(y2).toBe(1)              // … и плавно оседает в цель без перелёта
+    expect(x2).toBeLessThan(1)
+    expect(code).toMatch(/\.sayMicBox--active \.sayMicBtn::before \{ animation: sayIris var\(--say-fill\) both; \}/)
+    expect(code).toMatch(/@keyframes sayIris \{\s*from \{ transform: scale\(1\); \}\s*to\s+\{ transform: scale\(0\); \}/)
+    // значок: анимация цвета на ту же длительность; пока лайм не дошёл — прежний цвет, потом тёмный
+    expect(code).toMatch(/\.sayMicBox--active \.sayFaceMic \{ animation: sayIconInk var\(--say-fill-t\) ease-in-out both; \}/)
+    expect(code).toMatch(/0%, 20%\s*\{ color: var\(--from-ink, var\(--say-lime\)\); \}[\s\S]*50%, 100% \{ color: var\(--say-ink\); \}/)
+    // диск: в покое сжат в точку; цвет «прежнего» круга — тёмный (из ready) или серый (из locked, класс --from-locked)
+    const disc = strip(micCss).match(/\.sayPanel \.sayMicBtn::before \{[^}]*\}/)[0]
+    expect(disc).toMatch(/border-radius: 50%/)
+    expect(disc).toMatch(/background: var\(--from-bg, var\(--say-dark\)\)/)
+    expect(disc).toMatch(/transform: scale\(0\)/)
+    expect(code).toMatch(/\.sayMicBox--from-locked \{ --from-bg: var\(--say-gray\); --from-ink: var\(--say-gray-ink\); \}/)
+    expect(code + strip(micCss)).not.toMatch(/@property|mask|conic-gradient/) // надёжно в Safari 16+
+    // SayStage ставит --from-locked, когда в запись пришли из серого круга
+    expect(panelSrc['SayStage.jsx']).toContain("from === 'locked' ? ' sayMicBox--from-locked' : ''")
+    // prefers-reduced-motion: без заливки кольцом (диск скрыт, анимации значка нет), смена цвета за .2 с
+    expect(strip(micCss)).toMatch(/\.sayPanel \.sayMicBtn::before \{ display: none; \}/)
+    expect(code).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.sayMicBox--active \.sayMicBtn \{ transition: background \.2s, border-color \.2s, color \.2s, opacity \.2s; \}[^}]*\n\s*\.sayMicBox--active \.sayFaceMic \{ animation: none; \}/)
   })
 
   it('в покое ничего не движется: пульса круга нет (ни обёртки .sayMicPulse, ни keyframes), кнопка лежит прямо в .sayMicBox; дуга кольца бежит только в locked', () => {

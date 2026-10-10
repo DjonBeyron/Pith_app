@@ -1,0 +1,71 @@
+/* InfoPopup (shared/ui/InfoPopup.jsx): кнопка-иконка «i» и попап-пояснение. Попап — в духе окошка «Временная память»
+   (memory-count.css): сплошной тёмный фон, радиус 14, заголовок 14/800, текст 13px; уголок смотрит на кнопку */
+
+/* Кнопка: значок ≈22 px, зона касания 40×40 (::after без фона — не раздувает строку заголовка поля) */
+.infoPopBtn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin: 0 0 0 4px;
+  padding: 0;
+  border: 1px solid #2f3340;
+  border-radius: 50%;
+  background: #1a1d26;
+  color: #8f96a3;
+  cursor: pointer;
+  vertical-align: middle;
+  -webkit-tap-highlight-color: transparent;
+}
+.infoPopBtn::after { content: ''; position: absolute; inset: -9px; border-radius: 50%; }
+.infoPopBtn:hover, .infoPopBtn--on { border-color: #b6fe3b; color: #b6fe3b; }
+.infoPopBtn:focus-visible { outline: 2px solid #b6fe3b; outline-offset: 2px; }
+
+.infoPop {
+  position: fixed;
+  z-index: 5000;
+  box-sizing: border-box;
+  display: flex; /* maxHeight задаёт инлайн-стиль; прокручивается только тело — уголок ::before не обрезается */
+  flex-direction: column;
+  padding: 12px 14px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: #14171c; /* сплошной: не просвечивает */
+  color: #e8ecf0;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  animation: infoPopIn 0.16s ease-out backwards;
+}
+.infoPop--up { animation-name: infoPopInUp; }
+@keyframes infoPopIn { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes infoPopInUp { from { opacity: 0; transform: translateY(4px); } }
+
+/* Уголок: сверху (попап под кнопкой) или снизу (над кнопкой); --caret-x задаёт инлайн-стиль */
+.infoPop::before {
+  content: '';
+  position: absolute;
+  left: var(--caret-x, 50%);
+  width: 11px;
+  height: 11px;
+  margin-left: -5px;
+  background: #14171c;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transform: rotate(45deg);
+}
+.infoPop--down::before { top: -6px; border-right: 0; border-bottom: 0; border-top-left-radius: 3px; }
+.infoPop--up::before { bottom: -6px; border-left: 0; border-top: 0; border-bottom-right-radius: 3px; }
+
+.infoPopTitle { flex: 0 0 auto; margin: 0 0 6px; font-size: 14px; font-weight: 800; line-height: 1.25; color: #e8ecf0; }
+.infoPopBody { min-height: 0; overflow-y: auto; overscroll-behavior: contain; font-size: 13px; line-height: 1.45; color: #c9d0d7; }
+.infoPopBody p { margin: 0; }
+.infoPopBody p + p { margin-top: 7px; }
+.infoPopBody b { font-weight: 800; color: #e8ecf0; }
+.infoPopBody code { font-family: ui-monospace, monospace; font-size: 12px; color: #b6fe3b; }
+
+@media (prefers-reduced-motion: reduce) {
+  .infoPop, .infoPop--up { animation: none; }
+}

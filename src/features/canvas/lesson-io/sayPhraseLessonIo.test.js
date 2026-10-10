@@ -174,7 +174,7 @@ describe('say_phrase — подсказки в чат: поля ноды, JSON, 
     }
   })
 
-  it('редактор: блок «Подсказки в чате» (переключатель + три поля, дефолты как placeholder, пояснение про {ok}/{missed}) и блок про «Я не могу говорить»', () => {
+  it('редактор: блок «Подсказки в чате» (переключатель + три поля, дефолты как placeholder, пояснение про {ok}/{missed} в попапе «i») и блок про «Я не могу говорить» (текст в попапе)', () => {
     const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
     const hints = read('../NodeSayHints.jsx')
     expect(hints).toContain('Подсказки в чате')
@@ -183,11 +183,13 @@ describe('say_phrase — подсказки в чат: поля ноды, JSON, 
     expect(hints).toContain('placeholder={f.def}')
     expect(hints).toMatch(/\{'\{ok\}'\} и \{'\{missed\}'\} подставляются автоматически/)
     expect(hints).toContain('HINT_PARTIAL_DEFAULT')
+    expect(hints).toContain('<InfoPopup') // пояснения — в попапах, не абзацами (сторож — sayNodeInfoPopups.test.js)
     const note = read('../NodeSayCantSpeakNote.jsx')
     expect(note).toContain('после третьей неудачной попытки')
     expect(note).toContain('всегда ведёт по «Верно»')
     expect(note).toContain('Пропуск разовый')
     expect(note).not.toContain('на весь урок')
+    expect(note).toContain('<InfoPopup')
     const picker = read('../NodeSayPhrasePicker.jsx')
     expect(picker).toContain('<NodeSayHints')
     expect(picker).toContain('<NodeSayCantSpeakNote')

@@ -49,7 +49,7 @@ describe('say_phrase — CSS и редактор', () => {
     const all = strip(micCss + stateCss + wavesCss + css)
     expect(all).not.toMatch(/sayMorph|sayMicBtn--(in|out)|border-radius: (12|22|24|20)px|height: 52px|border-radius: 22px/)
     for (const [, selector, decl] of code.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-      if (!selector.includes('.sayMicBtn') || selector.trim() === '.sayPanel .sayMicBtn') continue
+      if (!selector.includes('.sayMicBtn') || selector.trim() === '.sayPanel .sayMicBtn' || selector.trim() === '.sayPanel .sayMicBtn::before') continue // ::before — диск заливки (inset, не размер кнопки)
       expect(decl, selector).not.toMatch(/(^|[;\s])(width|height|border-radius)\s*:/)
     }
     expect(code).not.toMatch(/#ff6b5e|#ff3b30|\bsayRed\b|sayMicBtn--fail/) // красного слоя нет
@@ -106,7 +106,7 @@ describe('say_phrase — CSS и редактор', () => {
 
   it('все анимации — только transform/opacity (layout не трогаем): дуга серого кольца плывёт (только locked), три волны активации расходятся один раз (≤ ×1,7, ≈ 0,8 с суммарно)', () => {
     const all = [...frames(stateCss), ...frames(ringCss), ...frames(wavesCss)]
-    expect(all.map(f => f[1]).sort()).toEqual(['sayActWave', 'sayRingSpin'])
+    expect(all.map(f => f[1]).sort()).toEqual(['sayActWave', 'sayIconInk', 'sayIris', 'sayRingSpin'])
     const act = strip(wavesCss).match(/@keyframes sayActWave[\s\S]*?\n\}/)[0]
     expect(Number(act.match(/100%\s*\{\s*transform:\s*scale\(([\d.]+)\)/)[1])).toBeLessThanOrEqual(1.7)
     expect(act).toMatch(/0%\s*\{\s*transform: scale\(1\);\s*opacity: 0;/) // до старта и после конца волны не видно
@@ -118,7 +118,8 @@ describe('say_phrase — CSS и редактор', () => {
     expect(w).not.toMatch(/animation:[^;]*infinite/)     // одноразовый: бесконечных волн нет совсем
     for (const [, name, body] of all) {
       const props = [...body.matchAll(/([\w-]+)\s*:/g)].map(m => m[1]).filter(p => p !== 'animation-timing-function')
-      expect(props.every(p => ['transform', 'opacity'].includes(p)), name).toBe(true)
+      const allowed = name === 'sayIconInk' ? ['color'] : ['transform', 'opacity'] // цвет значка при заливке (sayIconInk) — единственная анимация цвета, layout не трогает
+      expect(props.every(p => allowed.includes(p)), name).toBe(true)
     }
   })
 

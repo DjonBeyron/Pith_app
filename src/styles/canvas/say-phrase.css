@@ -59,15 +59,9 @@
 .nodeSayHints { display: flex; flex-direction: column; gap: 6px; }
 .nodeSayHintInput { resize: vertical; min-height: 40px; font-family: inherit; line-height: 1.35; }
 
-/* Пояснение про «Я не могу говорить»: спокойная рамка слева, текст — обычные подсказки редактора */
-.nodeSayNote {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 0;
-  padding: 6px 8px;
-  border-left: 2px solid #3a3e4a;
-  border-radius: 4px;
-  background: #12141d;
-}
-.nodeSayNote p { margin: 0; }
+/* Строка «метка поля + значок "i"» и строка «галка + значок "i"» (попап-пояснение — shared/ui/InfoPopup.jsx, info-popup.css) */
+.nodeSayLabelRow { display: flex; align-items: center; min-height: 22px; }
+.nodeSayCheckRow { display: flex; align-items: center; min-height: 22px; }
+
+/* Пояснение про «Я не могу говорить»: одна строка «метка + i», текст — в попапе */
+.nodeSayNote { display: flex; align-items: center; min-height: 22px; }

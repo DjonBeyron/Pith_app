@@ -1,88 +1,92 @@
 /* ── Попап перед записью (SayMicPopup.jsx: полный / короткий / вводный) ───────────────────────────
-   Модальная карточка по центру экрана ПЕРЕД системным диалогом микрофона (сам диалог ОС встроить/стилизовать нельзя) или вводная, если диалога не будет.
-   Вид и анимации — как у попапа игрока в «Рейтинге» (rating-popup.css) и окошек худа: «пружинка» popSpringIn (pop-spring.css)
-   при открытии, схлопывание hudPopOut + заливка hudPopFlood (hud-pop-out.css) при закрытии. Затемнение — отдельный слой
-   .sayPopDim РЯДОМ с окном: анимируется только его opacity, окно лежит поверх и не затемняется. Без blur/backdrop-filter и теней. */
+   Компактная карточка-«облако» НАД модулем: лежит ВНУТРИ панели (.phrasePanel — position: fixed, containing block для absolute), поэтому следует за ней, высоту панели и раскладку не двигает
+   (абсолютный слой), круг не перекрывает. ПЕРЕД системным диалогом микрофона (сам диалог ОС встроить/стилизовать нельзя) или вводная, если диалога не будет. Появляется сама через секунду после
+   появления модуля или по тапу на круг. Затемнения нет (лента остаётся видна), тап мимо карточки закрывает (перехват в SayMicPopup). Появление — «пружинка» popSpringIn (pop-spring.css), от нижней середины,
+   уход — короткое растворение. Ширина: экран минус 12px с краёв (на 320px — 296px), не шире 340px. Без blur/backdrop-filter и теней. */
 .sayPopRoot {
-  position: fixed;
-  inset: 0;
-  z-index: 300;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 12px);
+  z-index: 60;
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  padding: 0 12px;
+  pointer-events: none; /* слой не ловит касания — только сама карточка */
 }
-.sayPopRoot--out { pointer-events: none; }
-
-.sayPopDim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.62); animation: sayPopDimIn 0.28s ease-out backwards; }
-.sayPopDim--out { animation: sayPopDimOut 0.3s ease-out forwards; }
-@keyframes sayPopDimIn { from { opacity: 0; } }
-@keyframes sayPopDimOut { to { opacity: 0; } }
 
 .sayPopCard {
+  --pop-dy: 10px;
   position: relative;
   box-sizing: border-box;
   width: min(100%, 340px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 16px 16px;
-  border-radius: 20px;
+  gap: 8px;
+  padding: 12px 14px 12px;
+  border-radius: 18px;
   background: #14171c;
   border: 1px solid #2a313b;
   color: #e8ecf0;
-  text-align: center;
-  transform-origin: 50% 50%;
+  text-align: left;
+  pointer-events: auto;
+  transform-origin: 50% 100%;
   animation: popSpringIn 0.45s backwards;
   will-change: transform;
 }
-.sayPopCard--out { pointer-events: none; animation: hudPopOut 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards; }
-.sayPopCard--out::after {
-  content: '';
+.sayPopCard--out { pointer-events: none; animation: sayPopOut 0.2s ease-in forwards; }
+@keyframes sayPopOut { to { opacity: 0; transform: translateY(6px) scale(0.96); } }
+
+/* Хвостик-стрелка вниз к модулю: повёрнутый квадрат с рамкой только снизу-справа, по центру нижнего края */
+.sayPopTail {
   position: absolute;
-  inset: 0;
-  border-radius: 20px;
+  left: 50%;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
   background: #14171c;
-  opacity: 0;
-  animation: hudPopFlood 0.34s cubic-bezier(0.55, 0, 0.45, 1) forwards;
+  border: solid #2a313b;
+  border-width: 0 1px 1px 0;
+  border-radius: 0 0 3px;
+  transform: rotate(45deg);
 }
 
+.sayPopHead { display: flex; align-items: center; gap: 8px; }
 .sayPopIcon {
+  flex: none;
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: 2px solid #b6fe3b;
+  border: 1.5px solid #b6fe3b;
   color: #b6fe3b;
 }
-/* Вёрстка в духе окошка «Временная память» (memory-count.css): заголовок 16/800, вводная строка 13px приглушённая, под ней компактные блоки (#1b1f26, радиус 12, полоска слева), текст 13px */
-.sayPopTitle { margin: -4px 0 0; font-size: 16px; line-height: 1.25; font-weight: 800; color: #f1f4f8; }
-.sayPopBody { align-self: stretch; display: flex; flex-direction: column; gap: 6px; }
+/* Вёрстка в духе окошка «Временная память» (memory-count.css), но плотнее: заголовок 15/800, текст 13px приглушённый, блок про «Я не могу говорить» #1b1f26 с полоской слева */
+.sayPopTitle { margin: 0; font-size: 15px; line-height: 1.25; font-weight: 800; color: #f1f4f8; }
+.sayPopBody { display: flex; flex-direction: column; gap: 6px; }
 .sayPopText { margin: 0; font-size: 13px; line-height: 1.4; color: #aeb6bf; }
-.sayPopLead { margin-bottom: 4px; }
 .sayPopBlock {
   position: relative;
   margin: 0;
-  padding: 9px 11px;
+  padding: 7px 10px;
   border-radius: 12px;
   border-left: 3px solid #b6fe3b;
   background: #1b1f26;
   font-size: 13px;
   line-height: 1.45;
-  text-align: left;
   color: #c9d0d7;
 }
 .sayPopBlock--cant { border-left-color: #8c93a8; }
-/* Мини-вид кнопки «Я не могу говорить» (SayActions, .saySkipBtn): тот же значок в круглой рамке, стоит в строке текста */
+/* Мини-вид кнопки «Я не могу говорить» (SayActions, .saySkipBtn): тот же значок SayCantIcon в круглой рамке, стоит в строке текста; «на [значок] в» не рвутся на строки */
 .sayPopNoBreak { white-space: nowrap; }
 .sayPopCantIcon {
   display: inline-grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  margin: -3px 1px;
+  width: 24px;
+  height: 24px;
+  margin: -4px 1px;
   vertical-align: middle;
   border-radius: 50%;
   border: 1.5px solid rgba(140, 147, 168, 0.55);
@@ -90,17 +94,21 @@
   color: #c4c9d6;
 }
 .sayPopSr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.sayPopBtn { margin-top: 2px; }
-/* «Не сейчас»: тихая текстовая кнопка под основной (то же, что тап мимо окна или Esc); зона касания шире текста */
+
+/* Низ карточки: слева тихая «Не сейчас» (= тап мимо окна или Esc), справа основная кнопка на всю оставшуюся ширину */
+.sayPopActions { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.sayPopActions .sayPopBtn { flex: 1; min-width: 0; margin: 0; }
 .sayPopLater {
   position: relative;
-  margin: -4px 0 0;
-  padding: 6px 12px;
+  flex: none;
+  margin: 0;
+  padding: 10px 8px;
   background: none;
   border: 0;
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   color: #8c93a8;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -109,7 +117,6 @@
 .sayPopLater:disabled { cursor: default; }
 
 @media (prefers-reduced-motion: reduce) {
-  .sayPopCard { animation: popFadeIn 0.2s ease-out backwards; }
-  .sayPopCard--out, .sayPopCard--out::after { animation: none; }
-  .sayPopDim { animation-duration: 0.2s; }
+  .sayPopCard { animation: none; } /* без анимации появления: карточка просто есть */
+  .sayPopCard--out { animation: none; opacity: 0; }
 }

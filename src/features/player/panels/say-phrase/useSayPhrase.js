@@ -154,6 +154,13 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   // (диалог ОС, если он нужен, — по нему; если доступ уже есть — запись просто стартует)
   const confirmExplain = useCallback(() => { perm.markExplained(); perm.markIntroSeen(); perm.markPreShown(); begin() }, [perm, begin])
 
+  // Автопоказ попапа (useSayAutoPopup, через секунду после появления модуля): только ПОКАЗЫВАЕМ попап того же вида, что открыл бы тап на круг. Микрофон и start() не трогаем — они идут по кнопке в попапе (confirmExplain)
+  const openExplain = useCallback(() => {
+    if (stateRef.current.phase !== 'idle') return
+    const d = perm.decide()
+    if (d.action === 'explain') dispatch({ type: 'explain', kind: d.kind })
+  }, [perm])
+
   // Закрыли попап мимо кнопки: ничего не просили и никаких флагов не ставим — попап покажем снова
   const cancelExplain = useCallback(() => dispatch({ type: 'explainCancel' }), [])
 
@@ -164,6 +171,6 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     view: s.view, phase: s.phase, taps: s.taps, verdict: s.verdict, errorCode: s.errorCode,
     fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak, exhausted: s.exhausted,
     go: isGo(s), access: perm.access(), adminLine: waitNote ?? s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
-    tapMic, confirmExplain, cancelExplain, enableMic, emit, perm,
+    tapMic, openExplain, confirmExplain, cancelExplain, enableMic, emit, perm,
   }
 }

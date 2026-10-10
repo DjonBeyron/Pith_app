@@ -2,6 +2,7 @@
 // какое решение приняла оценка. Строки для окна (sayDiagRows.buildDiagRows) и для «Скопировать отчёт»; чистые функции, без React. Данные пишет sayAttemptLast.js (поля raw и verdict).
 // Главный вопрос, на который это отвечает: слова «both» нет в итоге — Vosk его вообще не выдал (нет в сыром ответе) или выдал, а фильтр уверенности выбросил (строка «ОТБРОШЕНО»).
 import { tokenize } from './speechMatch.js'
+import { suspectedUnknownWords, unknownWordHint } from './sayDiagUnk.js'
 
 const q = t => `«${t}»`
 const c2 = n => (typeof n === 'number' ? n.toFixed(2).replace('.', ',') : null)
@@ -45,18 +46,21 @@ function audioText(raw) {
 }
 
 /** Почему не услышано слово: нет в сыром ответе Vosk или отброшено фильтром */
-function missedWhy(word, raw) {
+function missedWhy(word, raw, unk = []) {
   const hit = raw?.rows?.find(w => tokenize(w.word).includes(word))
   if (!raw) return null
+  if (unk.includes(word)) return 'Vosk его не выдал — на его месте [unk]'
   return hit ? (hit.drop ? 'Vosk выдал, но отбросил наш фильтр' : 'Vosk выдал и принял, но слово не совпало по правилам оценки') : 'Vosk его не выдал'
 }
 
 function verdictRow(a) {
   const v = a.verdict
-  const miss = v.missed.length ? `, не услышаны: ${v.missed.map(w => `${w} (${missedWhy(w, a.raw) ?? 'нет данных'})`).join('; ')}` : ''
+  const unk = suspectedUnknownWords(a) // слова эталона, которых нет в словаре Vosk (sayDiagUnk.js)
+  const miss = v.missed.length ? `, не услышаны: ${v.missed.map(w => `${w} (${missedWhy(w, a.raw, unk) ?? 'нет данных'})`).join('; ')}` : ''
   const text = `${v.passed ? 'засчитано' : 'не засчитано'}: совпало ${v.matched} из ${v.total} слов (${v.ratioPct}%), порог ${v.threshold}%${v.strict ? ' («Строго»)' : ''}${miss}`
   const level = v.passed ? (v.missed.length ? 'warn' : 'ok') : 'bad'
-  return { id: 'rawverdict', label: 'Решение оценки', level, text, ...(v.passed && v.missed.length ? { hint: 'Порог допускает пропуск слов: ученику в чат уходит услышанное, а не эталон.' } : {}) }
+  const hint = [v.passed && v.missed.length ? 'Порог допускает пропуск слов: ученику в чат уходит услышанное, а не эталон.' : '', ...unk.map(unknownWordHint)].filter(Boolean).join(' ')
+  return { id: 'rawverdict', label: 'Решение оценки', level, text, ...(hint ? { hint } : {}) }
 }
 
 /** Строки группы «raw» для последней попытки a (sayAttemptLast.get()). Пока попытки нет / идёт / данных нет — одна пояснительная строка (группа в окне видна всегда) */

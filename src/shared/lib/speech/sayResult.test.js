@@ -203,8 +203,9 @@ describe('micLabel и тексты панели (внутри панели не�
     const { INTRO_TITLE, INTRO_LINES, INTRO_BTN, EXPLAIN_CANT } = await import('./sayTexts.js')
     expect(INTRO_LINES).toHaveLength(2)
     expect(`${INTRO_TITLE} ${INTRO_LINES.join(' ')} ${INTRO_BTN}`).not.toMatch(/разреш|спросит|доступ/i)
-    expect(EXPLAIN_CANT).toHaveLength(3) // до иконки, тире рядом с ней и после
-    expect(EXPLAIN_CANT.join(' ')).toMatch(/Не можете говорить/)
-    expect(EXPLAIN_CANT.join(' ')).toMatch(/не повлияет на ваш прогресс/)
+    expect(EXPLAIN_CANT).toHaveLength(3) // до иконки, слово «в» рядом с ней и остаток
+    expect(EXPLAIN_CANT.join(' ')).toBe('Нажмите на в правом нижнем углу, если не можете говорить сейчас. Это не повлияет на ваш прогресс.') // иконка стоит между «на» и «в»
+    expect(EXPLAIN_CANT[0]).toBe('Нажмите на')
+    expect(EXPLAIN_CANT[1]).toBe('в')
   })
 })

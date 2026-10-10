@@ -162,10 +162,10 @@ describe('say_phrase — порядок появления, звук, попап
     expect(hook).toContain("endOnFinal: 'abort'")
   })
 
-  it('пояснение про микрофон — отдельный попап (портал в body), а не блок в панели; start() — только в тапе основной кнопки (вводный вид тоже)', () => {
+  it('пояснение про микрофон — отдельный попап-карточка над модулем (SayMicPopup), а не блок в разметке тела панели; start() — только в тапе основной кнопки (вводный вид тоже)', () => {
     expect(body).toContain('<SayMicPopup')
     expect(body).toContain('useHudPopupExit(phase ===')
-    expect(popup).toContain('createPortal(')
+    expect(popup).not.toContain('createPortal(') // карточка лежит внутри панели, поверх неё (absolute), а не в body
     expect(popup).toContain('onClick={onConfirm}')
     expect(panelSrc['SayActions.jsx']).not.toContain('EXPLAIN_BTN')
     expect(hook).toMatch(/const confirmExplain = useCallback\(\(\) => \{ perm\.markExplained\(\); perm\.markIntroSeen\(\); perm\.markPreShown\(\); begin\(\) \}/)
@@ -177,14 +177,13 @@ describe('say_phrase — порядок появления, звук, попап
     expect(popup).toMatch(/className="sayPopLater" onClick=\{onCancel\}/)
   })
 
-  it('попап: пружина открытия, схлопывание как у худа, затемнение отдельным слоем; без blur/backdrop-filter/теней', () => {
+  it('попап: пружина открытия, короткое растворение при уходе, без затемнения; без blur/backdrop-filter/теней', () => {
     expect(popupCss).toContain('animation: popSpringIn 0.45s backwards')
-    expect(popupCss).toContain('animation: hudPopOut 0.34s')
-    expect(popupCss).toContain('hudPopFlood')
-    expect(popupCss).toMatch(/\.sayPopDim \{[^}]*background: rgba\(0, 0, 0, 0\.62\)/)
+    expect(popupCss).toContain('animation: sayPopOut 0.2s')
+    expect(popupCss).not.toContain('sayPopDim') // затемнения нет: карточка лёгкая, лента остаётся видна
     expect(popupCss.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/filter\s*:|blur\(|box-shadow\s*:|backdrop-filter/)
     expect(indexCss).toContain("@import './styles/player/panels/say-phrase-popup.css';")
-    expect(popup).toContain('sayPopDim')
+    expect(popup).not.toContain('sayPopDim')
     expect(popup).toContain('sayPopCard--out')
   })
 

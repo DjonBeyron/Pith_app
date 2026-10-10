@@ -1,10 +1,11 @@
-import { Volume2, Mic, SkipForward } from 'lucide-react'
+import { Volume2, Mic } from 'lucide-react'
+import SayCantIcon from './SayCantIcon.jsx'
 import { CANT_SPEAK_LINK } from '../../../../shared/lib/speech/sayTexts.js'
 
 // Нижняя часть панели «Сказать фразу»: «Послушать» слева (тихая ссылка), справа «Включить» (только если микрофон выключили кнопкой «Я не могу говорить»)
-// и КНОПКА-ИКОНКА «Я не могу говорить» (SkipForward — «пропустить») в правом углу, чуть выше нижней строки (say-phrase.css). Без текста: aria-label и title
-// «Я не могу говорить», круглая 38px приглушённая, зона касания ≥ 44px (::after). Та же иконка стоит в мини-виде в попапе разрешения (SayMicPopup). Пока кнопка микрофона — квадрат,
-// пока идёт запись или итог, иконка плавно гаснет (hideSkip, opacity; место не схлопывается, касания не принимает). Скрытые элементы остаются в DOM (visibility):
+// и КНОПКА-ИКОНКА «Я не могу говорить» (SayCantIcon — речевой пузырь, перечёркнутый косой чертой, 24px) в правом углу, чуть выше нижней строки (say-phrase.css). Без текста: aria-label и title
+// «Я не могу говорить», круглая 38px приглушённая, зона касания ≥ 44px (::after). Та же иконка стоит в мини-виде в попапе разрешения (SayMicPopup). Пока
+// идёт запись или итог, иконка плавно гаснет (hideSkip, opacity; место не схлопывается, касания не принимает). Скрытые элементы остаются в DOM (visibility):
 // раскладка и высота панели не меняются. «Ещё раз» и «Получилось» убраны: после неудачи просто снова доступна кнопка микрофона,
 // а при отказе микрофона/недоступном распознавании единственный выход — «Я не могу говорить».
 export default function SayActions({ canListen, listenBusy, closing, canEnable, hideSkip = false, onListen, onSkip, onEnable }) {
@@ -33,7 +34,7 @@ export default function SayActions({ canListen, listenBusy, closing, canEnable, 
         title={CANT_SPEAK_LINK}
         data-testid="say-skip"
       >
-        <SkipForward size={18} strokeWidth={2.2} aria-hidden="true" />
+        <SayCantIcon size={24} />
       </button>
     </div>
   )

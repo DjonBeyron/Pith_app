@@ -128,6 +128,7 @@
 @import './styles/canvas/fill-blanks.css';
 @import './styles/canvas/type-word.css';
 @import './styles/canvas/say-phrase.css';
+@import './styles/info-popup.css';
 @import './styles/canvas/table.css';
 @import './styles/canvas/table-editor-modal.css';
 @import './styles/canvas/table-editor-builder.css';
