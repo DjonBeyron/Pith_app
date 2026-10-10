@@ -142,7 +142,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   // Проверка прошла → показываем «Верно!» и через паузу уезжаем
   useEffect(() => {
     if (phase !== 'passed') return
-    playSound('answer-correct', 'сказать фразу') // как у «Напечатай слово»: звук верного ответа вместе с «Готово» (микрофон уже закрыт, окно тишины soundQuiet отложит звук до конца хвоста)
+    playSound('answer-correct', 'сказать фразу') // как у «Напечатай слово»: звук верного ответа вместе с «Готово» (Vosk: окна тишины уже нет, играет сразу; системное: звук откладывается до конца хвоста — answer-correct в DEFER_NAMES soundQuiet.js)
     const t = setTimeout(() => finish('passed'), SEE_RESULT_MS)
     return () => clearTimeout(t)
   }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps

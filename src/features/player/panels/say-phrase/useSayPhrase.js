@@ -7,11 +7,11 @@ import { getRecognitionCtor, queryMicPermission } from '../../../../shared/lib/s
 import { sayPermission } from '../../../../shared/lib/speech/sayPermission.js'
 import { SAY_EVENTS, sayEventProps } from '../../../../shared/lib/speech/sayResult.js'
 import { sayReducer, initialSayState, planTap, isGo, STOP_ARM_MS } from '../../../../shared/lib/speech/sayFlow.js'
-import { QUIET_TAIL_MS, STOP_MANUAL } from '../../../../shared/lib/speech/sayHints.js'
+import { STOP_MANUAL } from '../../../../shared/lib/speech/sayHints.js'
 import { createVoiceLevel } from '../../../../shared/lib/speech/sayVoiceLevel.js'
 import { createBrowserRealLevel, levelSource, isRealLevelOn, realLevelLabel } from '../../../../shared/lib/speech/sayRealLevel.js'
 import { createLevelSource } from '../../../../shared/lib/speech/sayLevelSource.js'
-import { holdSoundQuiet } from '../../../../shared/lib/soundQuiet.js'
+import { createSayQuiet } from '../../../../shared/lib/speech/sayQuietWindow.js'
 import { createAudioSession } from '../../../../shared/lib/speech/speechAudioSession.js'
 import { sayAudioSessionType } from '../../../../shared/lib/speech/sayAudioSession.js'
 import { stopWord } from '../../word-audio/wordAudioPlayer.js'
@@ -28,7 +28,7 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // распознавании: уровень по умолчанию СИНТЕТИЧЕСКИЙ, по событиям распознавания (sayVoiceLevel.js, без getUserMedia); за админским флагом — РЕАЛЬНЫЙ
 // (sayRealLevel.js: поток открывается в этом же тапе перед запуском распознавания, закрывается вместе с попыткой; при Vosk этот флаг не действует — микрофон один).
 // Движок (Vosk / системное) выбирает sayRecognizer.js на каждой попытке; прогрев модели Vosk — пока панель смонтирована (ctrl.warm). Эквалайзер-свечение плеера модуль НЕ включает.
-// Звуки приложения на время попытки (от тапа до результата + QUIET_TAIL_MS) молчат — soundQuiet.js; сам тап по микрофону
+// Звуки приложения на время попытки (от тапа до результата; у системного ещё QUIET_TAIL_MS, у Vosk хвоста нет) молчат — soundQuiet.js / sayQuietWindow.js; сам тап по микрофону
 // помечен data-no-unlock, чтобы разблокировка звука не стартовала вместе с записью (SayStage.jsx).
 // Перезапуск: speechController ждёт end прошлого экземпляра и RESTART_COOLDOWN_MS (стратегия 'M', speechRestart.js) — прозрачно: тап в эту паузу ставится в очередь и стартует по её окончании;
 // «глухая» попытка после успешной автоматически пересоздаётся один раз (speechDeaf.js).
@@ -63,7 +63,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   // ИСТОЧНИК УРОВНЯ (заменяемый). Vosk: реальный RMS кусков звука его же потока (ctrl.level, с первого куска, второго getUserMedia нет). Системное распознавание: реальный RMS, если
   // админ включил флаг и поток жив, иначе синтетический по событиям (sayVoiceLevel.js). ТОЧКА ПОДКЛЮЧЕНИЯ ВТОРОГО ИСТОЧНИКА — строка `const [levels] = useState(...)` ниже.
   const [levels] = useState(() => { const sys = levelSource(voice, real); return createLevelSource(t => ctrl.level(t) ?? sys.ringLevel(t)) })
-  const quietRef = useRef({ release: null, timer: 0 })
+  const [quiet] = useState(createSayQuiet) // окно тишины звуков на попытку (sayQuietWindow.js)
   const armRef = useRef(0)
   const eventRef = useRef(onEvent)
   const stateRef = useRef(s)
@@ -91,17 +91,10 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     real.close()
   }, [s.phase, voice, real])
 
-  // Окно тишины звуков приложения: открывается в begin() (синхронно в тапе), закрывается через QUIET_TAIL_MS после конца попытки
-  useEffect(() => {
-    const q = quietRef.current
-    if (s.phase === 'run') return undefined
-    if (q.release && !q.timer) q.timer = setTimeout(() => { q.release?.(); q.release = null; q.timer = 0 }, QUIET_TAIL_MS)
-    return undefined
-  }, [s.phase])
-  useEffect(() => {
-    const q = quietRef.current
-    return () => { clearTimeout(q.timer); q.timer = 0; q.release?.(); q.release = null; clearTimeout(armRef.current); real.close() }
-  }, [real])
+  // Окно тишины звуков приложения: открывается в begin() (синхронно в тапе), закрывается после конца попытки: у Vosk сразу (микрофон уже закрыт до итога), у системного — через QUIET_TAIL_MS.
+  // «Верно» в момент «Готово» не пропадает: у Vosk окна уже нет, у системного звук откладывается до конца хвоста (soundQuiet.js)
+  useEffect(() => { if (s.phase !== 'run') quiet.close(s.engine) }, [s.phase, s.engine, quiet])
+  useEffect(() => () => { quiet.dispose(); clearTimeout(armRef.current); real.close() }, [real, quiet])
 
   useEffect(() => {
     // Прогрев Vosk сразу (не за perm.refresh(): на iPhone Permissions API бывает «глухим»); в запасном режиме не греем, а когда query скажет 'denied' — освобождаем (sayPanelWarm.js)
@@ -124,11 +117,9 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
   // не стартует и не нарисуется нажатие (окно тишины, begin, ctrl.start), аналитику откладываем — её запись не должна задерживать
   // ни старт записи, ни первый кадр эквалайзера (круг и волны перерисовываются синхронно, в конце этого же обработчика тапа)
   const begin = useCallback(() => {
-    const q = quietRef.current
     stopWord() // эталонное «Послушать» не должно звучать, пока слушаем
     if (waitVosk(data)) return // админский режим «Только Vosk» и Vosk не готов: ждём прогрев (плашка админа), на системное не уходим
-    clearTimeout(q.timer); q.timer = 0
-    if (!q.release) q.release = holdSoundQuiet()
+    quiet.open()
     const pick = ctrl.choose(data) // какой движок пойдёт на эту попытку (синхронно, без ожидания): Vosk, если готов, иначе системное
     const wantReal = isRealLevelOn() && pick.engine === 'system' // отдельный реальный уровень — только для системного: у Vosk микрофон один, уровень берётся из его потока
     if (wantReal) real.open() // реальный уровень (админский флаг): поток микрофона открываем в этом же тапе, ДО recognition.start(), промис не ждём
@@ -138,7 +129,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     armRef.current = setTimeout(() => dispatch({ type: 'arm' }), STOP_ARM_MS)
     const taps = s.taps + 1
     setTimeout(() => emit(SAY_EVENTS.start, { taps }), 0)
-  }, [ctrl, real, emit, data, s.taps, waitVosk])
+  }, [ctrl, real, emit, data, s.taps, waitVosk, quiet])
 
   // Тап по микрофону: «начали» и идёт запись — «стоп» (принять сказанное), иначе по решению sayPermission
   const tapMic = useCallback(() => {

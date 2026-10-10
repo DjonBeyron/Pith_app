@@ -11,7 +11,7 @@ describe('окно тишины звуков приложения на врем�
     expect(replay).not.toHaveBeenCalled()
   })
 
-  it('пока окно открыто, звук перехвачен; message-in и xp-gain играют ОДИН раз после закрытия, остальные отброшены', () => {
+  it('пока окно открыто, звук перехвачен; message-in, xp-gain и answer-correct играют ОДИН раз после закрытия, остальные отброшены', () => {
     const release = holdSoundQuiet()
     const msg = vi.fn(), xp = vi.fn(), ok = vi.fn(), typing = vi.fn()
     expect(suppressSound('message-in', msg)).toBe(true)
@@ -24,9 +24,21 @@ describe('окно тишины звуков приложения на врем�
     release()
     expect(msg).toHaveBeenCalledTimes(1)
     expect(xp).toHaveBeenCalledTimes(1)
-    expect(ok).not.toHaveBeenCalled()
+    expect(ok).toHaveBeenCalledTimes(1) // «верно» в хвосте окна не пропадает (причина «звука нет» в «Сказать фразу», v3.2.1924)
     expect(typing).not.toHaveBeenCalled()
     expect(isSoundQuiet()).toBe(false)
+  })
+
+  it('answer-wrong в окне отбрасывается (в «Сказать фразу» он не играется); полная тишина не откладывает и answer-correct', () => {
+    const wrong = vi.fn(), ok = vi.fn()
+    const release = holdSoundQuiet()
+    suppressSound('answer-wrong', wrong)
+    release()
+    expect(wrong).not.toHaveBeenCalled()
+    const off = holdSilence('tab')
+    suppressSound('answer-correct', ok)
+    off()
+    expect(ok).not.toHaveBeenCalled()
   })
 
   it('несколько владельцев: окно закрывается, когда отпустил последний; повторный release безопасен', () => {

@@ -202,11 +202,20 @@ describe('say_phrase — порядок появления, звук, попап
     expect(admin).not.toMatch(/(^|[^-])\bheight:/m) // высоты не резервирует (line-height — это не высота блока)
   })
 
-  it('звуки приложения: окно тишины на попытку (soundQuiet), тап по микрофону не запускает разблокировку звука', () => {
-    expect(hook).toContain("import { holdSoundQuiet } from '../../../../shared/lib/soundQuiet.js'")
-    expect(hook).toMatch(/if \(!q\.release\) q\.release = holdSoundQuiet\(\)/)
-    expect(hook).toContain("import { QUIET_TAIL_MS, STOP_MANUAL } from '../../../../shared/lib/speech/sayHints.js'")
-    expect(read('../../../../shared/lib/speech/sayHints.js')).toContain('QUIET_TAIL_MS = 600')
+  it('звуки приложения: окно тишины на попытку (sayQuietWindow + soundQuiet), хвост у Vosk 0, «верно» откладывается, тап по микрофону не запускает разблокировку звука', () => {
+    expect(hook).toContain("import { createSayQuiet } from '../../../../shared/lib/speech/sayQuietWindow.js'")
+    expect(hook).toContain('const [quiet] = useState(createSayQuiet)')
+    expect(hook).toMatch(/quiet\.open\(\)/)
+    expect(hook).toContain("if (s.phase !== 'run') quiet.close(s.engine)") // окно закрывается по концу попытки с учётом движка
+    expect(hook).toContain('quiet.dispose()') // панель ушла — окно не залипает
+    expect(hook).not.toMatch(/holdSoundQuiet|import \{[^}]*QUIET_TAIL_MS/)
+    const win = read('../../../../shared/lib/speech/sayQuietWindow.js')
+    expect(win).toContain("import { holdSoundQuiet } from '../soundQuiet.js'")
+    expect(win).toContain('quietTailMs(engine)')
+    const hints = read('../../../../shared/lib/speech/sayHints.js')
+    expect(hints).toContain('QUIET_TAIL_MS = 600')
+    expect(hints).toContain("quietTailMs = engine => (engine?.engine === 'vosk' ? 0 : QUIET_TAIL_MS)")
+    expect(read('../../../../shared/lib/soundQuiet.js')).toContain("new Set(['message-in', 'xp-gain', 'answer-correct'])") // «верно» в хвосте окна не пропадает (v3.2.1924: звука не было)
     expect(panelSrc['SayStage.jsx']).toContain('data-no-unlock=""')
     expect(read('../../../../shared/lib/sounds.js')).toContain("suppressSound(name, () => playSound(name, where, opts))")
     expect(read('../../../../shared/lib/sounds.js')).toContain("closest?.('[data-no-unlock]')")
