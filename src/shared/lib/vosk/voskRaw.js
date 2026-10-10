@@ -13,6 +13,6 @@ export function buildRaw({ rawText, stats, cleaned, partial = '', minConf, tailW
     rows: (cleaned?.rows ?? []).map(w => ({ word: w.word, conf: num(w.conf), start: num(w.start), end: num(w.end), need: w.need ?? null, drop: w.drop ?? null })),
     rawText: String(rawText ?? '').trim(), kept: cleaned?.text ?? '', partial, minConf, tailMinConf, tailWord,
     stopBy: s.stopBy ?? null, tailMs: num(s.tailMs), drainMs: num(s.drainMs), afterStopMs: num(s.afterStopMs), resultMs: num(s.resultMs),
-    chunkMs: num(s.chunkMs), maxGapMs: num(s.maxGapMs), lateChunks: num(s.lateChunks), chunks: num(s.chunks), firstPartialMs: num(s.firstPartialMs),
+    chunkMs: num(s.chunkMs), maxGapMs: num(s.maxGapMs), lateChunks: num(s.lateChunks), chunks: num(s.chunks), firstPartialMs: num(s.firstPartialMs), gatedMs: num(s.gatedMs),
   }
 }

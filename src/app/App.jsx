@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { warmSoundFiles } from '../shared/lib/sounds.js'
+import { installAudioRestore } from '../shared/lib/audioRestore.js'
 // Личные настройки звука из шестерёнки урока: при загрузке регистрируют фильтр звуков (lessonPrefs.js)
 import '../features/player/lessonPrefs.js'
 import ShellV2 from './ShellV2.jsx'
@@ -31,6 +32,9 @@ export default function App() {
   // Метка в журнале старта (Админ → «Старт»): App смонтирован (первый эффект)
   // и сообщение воркеру boot-ok: запуск из кеша оболочки удался (shellClient.js — защита от залипания кеша)
   useEffect(() => { window.__startMark?.('app-mounted'); confirmBoot() }, [])
+
+  // После микрофона / вкладки «Голос»: аудиосессия обратно в 'auto', контекст звуков разбужен (audioRestore.js)
+  useEffect(() => installAudioRestore(), [])
 
   useEffect(() => {
     const id = setTimeout(warmSoundFiles, 2500)

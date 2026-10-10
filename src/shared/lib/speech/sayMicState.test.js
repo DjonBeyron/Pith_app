@@ -63,10 +63,11 @@ describe('micVisualState — единое состояние кнопки на �
     }
   })
 
-  it('без аргументов — locked; результат всегда из MIC_STATES; масштаб 0,85 / 1 / 1,15 / 1 / 0,85', () => {
+  it('без аргументов — locked; результат всегда из MIC_STATES; масштаб 0,765 / 1 / 1,15 / 1 / 0,765 (locked и off — на 10 % меньше прежних 0,85)', () => {
     expect(micVisualState()).toBe('locked')
     for (const phase of ['idle', 'explain', 'run', 'passed', 'failed', 'fallback', 'xxx']) expect(MIC_STATES).toContain(state('granted', true, true, phase))
-    expect(MIC_SCALE).toEqual({ locked: 0.85, ready: 1, active: 1.15, done: 1, off: 0.85 })
+    expect(MIC_SCALE).toEqual({ locked: 0.765, ready: 1, active: 1.15, done: 1, off: 0.765 })
+    expect(MIC_SCALE.locked).toBeCloseTo(0.85 * 0.9, 10)
   })
 })
 

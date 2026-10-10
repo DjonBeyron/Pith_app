@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { createXpLedger } from './xpLedger.js'
-import { SAY_DONE, SAY_WRONG, SAY_CANT } from '../../shared/lib/speech/sayTriggers.js'
+import { SAY_DONE, SAY_CANT } from '../../shared/lib/speech/sayTriggers.js'
 import { text, word, say, makePlayer, playLesson } from './sayCantXpModel.js'
 
 // Хук без React-рантайма: useState отдаёт значение, useCallback — саму функцию (тот же приём, что в useGraphStepControls.test.js)
@@ -14,7 +14,7 @@ const oneModule = () => [
   text('t0', 's'), say('s', 'ok', 'bad'), text('ok', 'w'), text('bad', 'w'), word('w', 'end'), text('end'),
 ]
 
-describe('XP при «Я не могу говорить» = как при верном прохождении модуля', () => {
+describe('XP при «Я не могу говорить» = как при верном прохождении модуля (три неудачи, say_wrong, — sayWrongXp.test.js)', () => {
   it('один модуль: say_cant даёт те же XP, звёзды и показанный путь без сообщения-успеха, что и say_done', () => {
     const done = playLesson(oneModule(), 30, { s: SAY_DONE })
     const cant = playLesson(oneModule(), 30, { s: SAY_CANT })
@@ -24,13 +24,6 @@ describe('XP при «Я не могу говорить» = как при вер
     expect(cant.wrong).toBe(done.wrong)
     expect(done.shown).toEqual(['t0', 's', 'ok', 'w', 'end'])
     expect(cant.shown).toEqual(['t0', 's', 'w', 'end']) // сообщение-успех пропущено (оно XP не давало)
-  })
-
-  it('say_wrong (три неудачи) не получает компенсации: XP как и раньше только за остальные ноды', () => {
-    const wrong = playLesson(oneModule(), 30, { s: SAY_WRONG })
-    expect(wrong.xp).toBe(15)
-    expect(wrong.p.deltas).toEqual([15])
-    expect(wrong.shown).toEqual(['t0', 's', 'bad', 'w', 'end'])
   })
 
   it('XP начисляется в момент закрытия модуля, не на конце: чекпойнт и гостевой итог (earnedXpRef) видят его сразу', () => {
@@ -128,14 +121,6 @@ describe('без двойного начисления', () => {
     expect(p.deltas).toEqual([15, 15]) // первое прохождение + одно новое, не три
   })
 
-  it('say_wrong не помечает ноду: последующий say_cant получит свою долю, а say_wrong сам XP не даёт', () => {
-    const p = makePlayer(oneModule(), 30)
-    p.sayPanel('s', SAY_WRONG)
-    expect(p.deltas).toEqual([])
-    p.sayPanel('s', SAY_CANT)
-    expect(p.deltas).toEqual([15])
-  })
-
   it('повтор урока — новый плеер: реестр и счётчик свои, ничего не переносится', () => {
     const a = makePlayer(oneModule(), 30)
     a.sayPanel('s', SAY_CANT)
@@ -194,10 +179,10 @@ describe('подключение в LessonPlayer.jsx', () => {
     expect(back).toContain('revokeXp(nodeId)')
   })
 
-  it('сам хук ловит только итог say_cant и берёт долю из xpMap', () => {
+  it('сам хук ловит итоги say_cant и say_wrong (не say_done) и берёт долю из xpMap', () => {
     const hook = read('useSayCantXp.js')
-    expect(hook).toContain('result === SAY_CANT')
+    expect(hook).toContain('result === SAY_CANT || result === SAY_WRONG')
+    expect(hook).not.toContain('SAY_DONE')
     expect(hook).toContain('xpMap.get(nodeId)')
-    expect(hook).not.toContain('SAY_WRONG')
   })
 })

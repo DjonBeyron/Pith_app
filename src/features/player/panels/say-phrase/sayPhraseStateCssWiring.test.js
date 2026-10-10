@@ -14,14 +14,17 @@ const ringCss = read('../../../../styles/player/panels/say-phrase-ring.css')
 const strip = c => c.replace(/\/\*[\s\S]*?\*\//g, '')
 
 describe('say_phrase — состояния круга', () => {
-  it('состояния круга (locked / ready / active / done / off): масштаб 0,85 / 1 / 1,15 / 1 / 0,85, цвета переменными; серый без доступа, тёмный круг с зелёной иконкой при доступе, лайм-заливка с тёмной иконкой в записи', () => {
+  it('состояния круга (locked / ready / active / done / off): масштаб круга 0,765 / 1 / 1,15 / 1 / 0,765 (locked и off — на 10 % меньше прежних 0,85), кольцо в них ×0,9, цвета переменными; серый без доступа, тёмный круг с зелёной иконкой при доступе, лайм-заливка с тёмной иконкой в записи', () => {
     const code = strip(stateCss)
     const rule = name => code.match(new RegExp(`\\.sayMicBox--${name} \\{[^}]*\\}`))[0]
-    expect(rule('locked')).toMatch(/--mic-scale: \.85;[^}]*--mic-bg: var\(--say-gray\)[^}]*--mic-ink: var\(--say-gray-ink\)/)
+    expect(rule('locked')).toMatch(/--mic-scale: \.765;[^}]*--mic-bg: var\(--say-gray\)[^}]*--mic-ink: var\(--say-gray-ink\)/)
     expect(rule('ready')).toMatch(/--mic-scale: 1;[^}]*--mic-bg: var\(--say-dark\)[^}]*--mic-ink: var\(--say-lime\)/)
     expect(rule('active')).toMatch(/--mic-scale: 1\.15;[^}]*--mic-bg: var\(--say-lime\)[^}]*--mic-ink: var\(--say-ink\)/)
     expect(rule('done')).toMatch(/--mic-scale: 1;[^}]*--mic-bg: var\(--say-lime\)[^}]*--mic-ink: var\(--say-ink\)/)
-    expect(rule('off')).toMatch(/--mic-scale: \.85;[^}]*--mic-bg: var\(--say-gray\)/)
+    expect(rule('off')).toMatch(/--mic-scale: \.765;[^}]*--mic-bg: var\(--say-gray\)/)
+    for (const n of ['locked', 'off']) expect(rule(n)).toMatch(/--ring-scale: \.9;/) // круг + кольцо + иконка (внутри круга) ещё на 10 % меньше: .85 × .9 = .765, кольцо 1 × .9
+    for (const n of ['ready', 'done']) expect(rule(n)).toMatch(/--ring-scale: 1;/)
+    expect(rule('active')).toMatch(/--ring-scale: 1\.15;/)
     // без доступа — серый трек и ЧУТЬ светлее серая бегущая дуга; с доступом (покой) — сплошное зелёное кольцо, дуги и трека нет; в записи зелёное кольцо НЕ исчезает (приглушено); на «Готово» полностью
     expect(rule('locked')).toMatch(/--ring-track: #6b7180;[^}]*--ring-arc: #c4c9d6;[^}]*--ring-full-o: 0/)
     expect(rule('ready')).toMatch(/--ring-track-o: 0;[^}]*--ring-arc-o: 0;[^}]*--ring-full-o: 1/)

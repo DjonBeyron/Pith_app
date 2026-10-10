@@ -59,7 +59,7 @@ describe('«Я не могу говорить» — кнопка-иконка', 
     expect(css).not.toMatch(/saySkipBtn--hidden[^}]*(display|height|visibility)/)
     expect(css).toMatch(/\.sayBody--noMic \.saySkipBtn \{[^}]*opacity: 1;/)
     expect(css).toMatch(/\.sayFoot \{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/) // «Послушать» и «Включить»; иконка вынута из сетки (absolute)
-    expect(css).toMatch(/\.sayFoot \{[^}]*bottom: -12px/) // нижний ряд как раньше
+    expect(css).toMatch(/\.sayFoot \{[^}]*bottom: calc\(-1 \* var\(--say-pad-b\)\)/) // нижний ряд как раньше: у нижнего края корпуса (--say-pad-b = 12px)
     expect(panelSrc['SayPhrasePanel.jsx']).toContain('hideSkip={hideSkip}')
     expect(panelSrc['SayPhrasePanel.jsx']).toContain('<SolveCorrectButton side="left"')
     expect(read('../../../../styles/player/admin-solve.css')).toMatch(/\.solveCorrectBtn--left \{ right: auto; left: 8px; \}/)

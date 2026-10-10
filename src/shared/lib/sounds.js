@@ -4,7 +4,7 @@ import { onLessonOpenChange, isLessonOpen } from './lessonOpen.js'
 import { resetPrimed } from './primedAudio.js'
 import { APP_VERSION } from './version.js'
 import { getSoundVolume, onSoundVolumeChange, needsGain, loadGainBuffer, playWithGain } from './soundVolume.js'
-import { suppressSound, isMicBusy } from './soundQuiet.js'
+import { suppressSound, isMicBusy, silenceReasons } from './soundQuiet.js'
 import { logSound, logElementSound } from './soundLog.js' // диагностика: любое воспроизведение страницей пишется в кольцо soundLog.js (корреляция с «глухим» микрофоном)
 
 // Громкость звуков интерфейса — глобальная настройка админа (audioSettings.js →
@@ -23,6 +23,7 @@ export const soundUrl = name => `/sounds/${name}.mp3?v=${APP_VERSION}`
 // - After ctx.resume() in gesture, HTMLAudioElement.play() from setTimeout is instant.
 
 let ctx = null
+export const soundCtxState = () => ctx?.state ?? null // состояние общего контекста звуков (диагностика, soundDiag.js)
 const htmlCache = {}
 // Элементы, которые playSound создал САМ (кэш был пуст) — то есть вне жеста.
 // Такой элемент не «разрешённый»: при ближайшем жесте его заменяет свежий из
@@ -179,7 +180,7 @@ function notifyPlayed(name, duration) {
 export function playSound(name, where = null, opts = null) {
   if (muted) return
   // Окно тишины на время записи голоса (soundQuiet.js): сообщение/XP откладываются, остальное не играет
-  if (suppressSound(name, () => playSound(name, where, opts))) { pLog(`[sound] ${name} подавлен: идёт запись голоса`); return }
+  if (suppressSound(name, () => playSound(name, where, opts))) { pLog(`[sound] ${name} подавлен: ${silenceReasons().length ? `полная тишина (${silenceReasons().join(', ')})` : 'идёт запись голоса'}`); return }
   if (!opts?.ignoreFilter && soundFilter && !soundFilter(name)) { pLog(`[sound] ${name} отключён в настройках`); return }
   const volume = getSoundVolume(name)
   // Громкость < 1 и есть Audio Session API (iOS 16.4+): <audio>.volume на iPhone

@@ -44,7 +44,7 @@ export function makePlayer(nodes, lessonXp) {
     const xp = xpMap.get(id) ?? 0
     if (xp > 0) earnedXpRef.current = Math.max(0, earnedXpRef.current - xp)
   }
-  // Панель «Сказать фразу» (SayPhrasePanel.finish): XP — только на успехе; say_wrong и say_cant сами XP не начисляют
+  // Панель «Сказать фразу» (SayPhrasePanel.finish): XP — только на успехе; say_wrong и say_cant сами XP не начисляют (их тихо засчитывает хук)
   const sayPanel = (id, outcome) => {
     if (outcome === SAY_DONE) { const xp = xpMap.get(id) ?? 0; if (xp > 0) handleXpEarned(xp, id) }
     sx.onNodeDone(id, outcome)

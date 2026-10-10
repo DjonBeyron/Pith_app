@@ -4,7 +4,8 @@
 // передаётся библиотеке через blob-URL. Без React. Звук никуда не отправляется и не сохраняется.
 import { deleteLibraryStore } from './voskStorage.js'
 import { autoStopDue, TAIL_SILENCE_MS, DRAIN_MAX_MS, VOICE_RMS } from './voskTiming.js'
-import { feedSilence } from './voskTail.js'
+import { feedSilence, feedSamples } from './voskTail.js'
+import { createGate } from './voskGate.js'
 import { createAudioSession } from '../speech/speechAudioSession.js'
 
 const CHUNK = 4096 // кадров на один вызов ScriptProcessor (по умолчанию; модуль «Сказать фразу» просит 2048 — уровень голоса чаще)
@@ -97,6 +98,9 @@ export function unloadEngine(model) {
  * audioStartMs (когда пошёл звук, от старта записи), stopBy: endpoint | auto | manual | max, session, tailMs (сколько мс тишины досланы перед итогом), drainMs (сколько ждали последний кусок звука
  * после остановки), chunkMs (длина куска звука), maxGapMs / lateChunks (самый долгий промежуток между кусками и сколько кусков пришло с опозданием — провалы звука при занятой странице) } —
  * loadPct: доля реального времени, которую главный поток тратит на передачу звука воркеру (сам распознаватель работает в воркере — его нагрузку страница не видит).
+ * Для «Сказать фразу» (медленная речь): gate (true — voskGate.js не отдаёт декодеру тишину дольше ≈0,4 с подряд, иначе его эндпойнтер сам обрывает запись на паузе 0,5–2 с), cleanPartial (как
+ * считать текст для авто-стопа: без [unk] — «слово услышано» только настоящее), isComplete(текст) → true, когда в partial уже вся фраза: затвор открывается, а авто-стоп ждёт completeMs вместо autoStopMs
+ * (stopBy 'full'). stats.gatedMs — сколько мс тишины не отдали движку.
  * Остановка: по тапу (manual) сначала дожидаемся ещё одного куска звука (до DRAIN_MAX_MS) — иначе последние до 128 мс речи, что сидят в буфере ScriptProcessor, пропали бы (авто-стоп и потолок
  * этого не требуют: перед ними была пауза без голоса); потом выключаем микрофон, досылаем TAIL_SILENCE_MS тишины (иначе Vosk не отдаёт слабое конечное слово) и только тогда просим итог.
  */
@@ -125,7 +129,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
   try { rec.setWords(true) } catch { /* без пословных меток */ }
   const t0 = performance.now()
   const st = { firstPartialMs: null, chunks: 0, workMs: 0, audioMs: 0, stopAt: null, done: false, text: '', changeAt: null, stopBy: null, audioStartMs: null, readyMs: null,
-    finalizing: false, drain: null, voiceAt: null, lastChunkAt: null, maxGapMs: 0, lateChunks: 0, chunkMs: null, tailMs: 0, drainMs: null }
+    finalizing: false, drain: null, complete: false, prev: null, voiceAt: null, lastChunkAt: null, maxGapMs: 0, lateChunks: 0, chunkMs: null, tailMs: 0, drainMs: null }
   let timer = null
   const free = () => {
     st.done = true
@@ -139,7 +143,8 @@ export async function startListening(model, grammar, cb, opts = {}) {
   rec.on('partialresult', m => {
     if (st.done || !m.result.partial) return
     st.firstPartialMs ??= ms(t0)
-    if (m.result.partial !== st.text) { st.text = m.result.partial; st.changeAt = performance.now() }
+    const text = opts.cleanPartial ? opts.cleanPartial(m.result.partial) : m.result.partial
+    if (text !== st.text) { st.text = text; st.changeAt = performance.now(); st.complete = !!(text && opts.isComplete?.(text)) }
     cb.onPartial(m.result.partial)
   })
   rec.on('result', m => {
@@ -150,11 +155,12 @@ export async function startListening(model, grammar, cb, opts = {}) {
       firstPartialMs: st.firstPartialMs, resultMs: ms(t0), afterStopMs: st.stopAt == null ? null : ms(st.stopAt), chunks: st.chunks,
       words: m.result.result || [], micMs, readyMs: st.readyMs, audioStartMs: st.audioStartMs, stopBy: st.stopBy ?? 'endpoint', session: held ? opts.session : null,
       loadPct: st.audioMs ? Math.round((st.workMs / st.audioMs) * 1000) / 10 : null,
-      tailMs: st.tailMs, drainMs: st.drainMs, chunkMs: st.chunkMs, maxGapMs: Math.round(st.maxGapMs), lateChunks: st.lateChunks,
+      tailMs: st.tailMs, drainMs: st.drainMs, chunkMs: st.chunkMs, maxGapMs: Math.round(st.maxGapMs), lateChunks: st.lateChunks, gatedMs: gate?.droppedMs ?? 0,
     })
     free()
   })
   rec.on('error', m => { if (!st.done) { cb.onError(m.error || 'ошибка Vosk'); free() } })
+  const gate = opts.gate ? createGate() : null
   const node = ctx.createScriptProcessor(CHUNKS.includes(opts.chunk) ? opts.chunk : CHUNK, 1, 1)
   const src = ctx.createMediaStreamSource(stream)
   node.onaudioprocess = ev => {
@@ -173,7 +179,11 @@ export async function startListening(model, grammar, cb, opts = {}) {
     const rms = bufferRms(ev.inputBuffer)
     if (rms >= VOICE_RMS) st.voiceAt = t
     if (cb.onLevel) { try { cb.onLevel(rms) } catch { /* уровень не должен мешать распознаванию */ } }
-    try { rec.acceptWaveform(ev.inputBuffer) } catch (e) { cb.onError(`acceptWaveform: ${e?.message || e}`) }
+    const g = gate ? gate.push(rms, dur, { open: st.complete }) : null
+    if (g?.preroll && st.prev) feedSamples(rec, st.prev, ctx.sampleRate) // голос вернулся после долгой тишины: предыдущий кусок мог начинать слово тише порога
+    st.prev = null
+    if (!g || g.feed) { try { rec.acceptWaveform(ev.inputBuffer) } catch (e) { cb.onError(`acceptWaveform: ${e?.message || e}`) } }
+    else { try { st.prev = new Float32Array(ev.inputBuffer.getChannelData(0)) } catch { /* без предзвука */ } }
     st.workMs += performance.now() - t
     st.audioMs += dur
     st.chunks++
@@ -200,7 +210,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
   }
   if (opts.autoStopMs > 0 || opts.maxMs > 0) {
     timer = setInterval(() => {
-      const why = autoStopDue({ now: performance.now(), startedAt: t0, lastChangeAt: st.changeAt, text: st.text, autoStopMs: opts.autoStopMs, maxMs: opts.maxMs, lastVoiceAt: st.voiceAt })
+      const why = autoStopDue({ now: performance.now(), startedAt: t0, lastChangeAt: st.changeAt, text: st.text, autoStopMs: opts.autoStopMs, maxMs: opts.maxMs, lastVoiceAt: st.voiceAt, complete: st.complete, completeMs: opts.completeMs })
       if (why) stop(why)
     }, 100)
   }

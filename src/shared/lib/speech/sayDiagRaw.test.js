@@ -70,6 +70,12 @@ describe('rawRows: сырой результат последней попытк
     expect(rows.rawstop).toMatchObject({ level: 'warn' }); expect(rows.rawstop.text).toContain('НЕ досылали')
   })
 
+  it('остановка «фраза сказана целиком» и «долгие паузы движку не отдавали» понятны в строке «Остановка»', () => {
+    const rows = byId(rawRows(attemptFor(WORDS, { stopBy: 'full', tailMs: 400, afterStopMs: 25, chunkMs: 128, chunks: 80, maxGapMs: 140, lateChunks: 0, gatedMs: 5300 })))
+    expect(rows.rawstop.text).toContain('фраза сказана целиком'); expect(rows.rawstop.text).toContain('5300 мс тишины пропущено')
+    expect(byId(rawRows(attemptFor(WORDS))).rawstop.text).not.toContain('пропущено')
+  })
+
   it('окно и «Скопировать отчёт» содержат группу с пословным разбором', () => {
     const c = { now: 1, version: 'x', phrase: data.phrase, mode: 'auto', snap: { cached: true, loaded: true, loading: false, libReady: true, broken: false, brokenUntil: 0, brokenWhy: '' }, info: { users: 1, now: 1, lastError: '' },
       bg: { state: 'idle' }, bgStopped: false, cache: null, cacheApi: true, urlSource: 'env', urlHost: '', pick: { engine: 'vosk', reason: 'ready' }, attempt: attemptFor(WORDS), gate: { action: 'listen' },

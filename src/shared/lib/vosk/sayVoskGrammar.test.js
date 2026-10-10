@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildSayGrammar, sayGrammarPhrases, isVoskPhrase, voskPhraseProblem, MAX_GRAMMAR_PHRASES, UNK } from './sayVoskGrammar.js'
+import { buildSayGrammar, sayGrammarPhrases, isVoskPhrase, voskPhraseProblem, MAX_GRAMMAR_PHRASES, UNK, sayCompleteCheck } from './sayVoskGrammar.js'
 import { readSayData } from '../speech/sayPhraseData.js'
 
 const data = (o = {}) => readSayData({ phrase: "I'm trying", ...o })
@@ -95,5 +95,23 @@ describe('sayVoskGrammar: числа в словаре', () => {
     expect(sayGrammarPhrases(data({ phrase: '50% off' }))[0]).toBe('fifty percent off')
     expect(sayGrammarPhrases(data({ phrase: '$5 please' }))[0]).toBe('five dollars please')
     expect(sayGrammarPhrases(data({ phrase: 'At 3:30' })).slice(0, 1)).toEqual(['at three thirty'])
+  })
+})
+
+describe('sayCompleteCheck: «вся фраза услышана» (быстрая остановка)', () => {
+  it("слова partial в точности равны эталону: «i'm» = «i am», регистр и знаки не важны; недосказанная, лишняя и ошибочная форма — нет", () => {
+    const ok = sayCompleteCheck(data({ phrase: "I'm trying to please both" }))
+    expect(ok("i'm trying to please both")).toBe(true)
+    expect(ok('I am trying to please both')).toBe(true)
+    expect(ok("i'm trying to please")).toBe(false)
+    expect(ok("i'm try to please both")).toBe(false)
+    expect(ok("i'm trying to please both both")).toBe(false)
+    expect(ok('')).toBe(false)
+  })
+  it('числа: любое верное прочтение; пустой эталон не совпадает ни с чем', () => {
+    const ok = sayCompleteCheck(data({ phrase: 'In 1998' }))
+    expect(ok('in nineteen ninety eight')).toBe(true)
+    expect(ok('in one thousand nine hundred ninety eight')).toBe(true)
+    expect(sayCompleteCheck({ phrase: '' })('anything')).toBe(false)
   })
 })

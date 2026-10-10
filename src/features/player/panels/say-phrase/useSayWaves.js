@@ -1,5 +1,5 @@
 import { useLayoutEffect } from 'react'
-import { kickRings, ringsStep, ringTarget, ringFrame } from '../../../../shared/lib/speech/sayRings.js'
+import { restRings, ringsStep, ringTarget, ringFrame, eqEnvelope } from '../../../../shared/lib/speech/sayRings.js'
 
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -14,7 +14,7 @@ function measure(clip, anchor) {
 
 // Живой эквалайзер вокруг круга-микрофона: пока идёт запись (on), КАЖДЫЙ кадр rAF общего источника уровня (sayLevelSource.js) пересчитывает три
 // кольца и пишет transform/opacity ПРЯМО в style элементов — без setState и ререндеров React. Первый кадр рисуется синхронно в layout-эффекте тапа
-// (kickRings: «вспышка» в том же кадре, до первого события распознавания), дальше кольца «дышат» (ringTarget) и следуют за уровнем. Радиус каждого
+// (restRings: уровень «дыхания», прозрачность 0), дальше кольца «дышат» (ringTarget), следуют за уровнем и ПЛАВНО проявляются за EQ_FADE_MS (eqEnvelope: без «включения на ходу» поверх волн активации). Радиус каждого
 // кольца обрезан по контейнеру (ringFrame → clampRadius): размеры меряем при старте и на resize/смене ориентации. Источник уровня заменяем
 // (синтетический по событиям / реальный RMS / Vosk) — хук о нём ничего не знает. «Уменьшить движение»: цикла нет, кольца неподвижны (CSS).
 // Вне записи цикла нет вовсе; значения колец остаются, пока слой гаснет по opacity (SayStage / say-phrase-waves.css).
@@ -24,10 +24,11 @@ export function useSayWaves({ eqRef, clipRef, anchorRef }, { on, source }) {
     if (!on || !eq || !source || reducedMotion()) return undefined
     const rings = [...eq.children]
     let box = measure(clipRef.current, anchorRef.current)
-    let levels = kickRings()
+    let levels = restRings()
     let last = 0
-    const paint = () => rings.forEach((el, i) => {
-      const f = ringFrame(levels[i], i, box)
+    const t0 = performance.now() // шкала rAF-меток и performance.now одна: отсчёт проявления от тапа
+    const paint = (t = t0) => rings.forEach((el, i) => {
+      const f = ringFrame(levels[i], i, box, eqEnvelope(t - t0))
       el.style.transform = `scale(${f.scale.toFixed(3)})`
       el.style.opacity = f.opacity.toFixed(3)
     })
@@ -37,7 +38,7 @@ export function useSayWaves({ eqRef, clipRef, anchorRef }, { on, source }) {
     const unsubscribe = source.subscribe((level, t) => {
       levels = ringsStep(levels, ringTarget({ voice: level, t }), last ? t - last : 16)
       last = t
-      paint()
+      paint(t)
     })
     return () => { unsubscribe(); window.removeEventListener('resize', remeasure) }
   }, [on, source, eqRef, clipRef, anchorRef])

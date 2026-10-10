@@ -8,11 +8,11 @@ import { useLingerFlag } from './useLingerFlag.js'
 import { isLiveMode } from '../../../../shared/lib/speech/sayMic.js'
 import { MIC_STOP_ARIA, MIC_ALLOW_ARIA, DONE } from '../../../../shared/lib/speech/sayTexts.js'
 
-// Середина панели «Сказать фразу»: надпись над кругом (SayCaption) и КРУГЛАЯ кнопка-микрофон (.sayMicBox, ровно по центру высоты панели).
+// Середина панели «Сказать фразу»: надпись над кругом (SayCaption) и КРУГЛАЯ кнопка-микрофон (.sayMicBox в .sayMicStage — по центру области между низом надписи и низом корпуса).
 // Вид кнопки задаёт СОСТОЯНИЕ state (sayMicState.micVisualState) — класс .sayMicBox--{state} на корне, дальше всё чистым CSS (say-phrase-state.css):
-//  locked нет доступа к микрофону (или вводный попап ещё не видели): серый круг ×0,85, перечёркнутая серая иконка, серая бегущая дуга, без пульса и волн; тап открывает попап |
+//  locked нет доступа к микрофону (или вводный попап ещё не видели): серый круг ×0,765 (кольцо ×0,9), перечёркнутая серая иконка, серая бегущая дуга, без пульса и волн; тап открывает попап |
 //  ready доступ выдан: тёмный круг, зелёная иконка, СПЛОШНОЕ зелёное кольцо (без дуги, вращения и пульса), волн нет | active запись: круг ×1,15 (0,85 с, синхронно с заливкой), салатовая заливка приходит КОЛЬЦОМ от края к центру (0,85 с, мягкий старт; цвет «прежнего» диска — по классу --from-locked),
-//  значок темнеет, три быстрые волны активации (.sayActWaves, одноразовый CSS), ЖИВОЙ эквалайзер (.sayEq; useSayWaves: rAF + transform прямо на DOM, радиус обрезан по контейнеру) и ЦИКЛИЧЕСКИЕ волны (.sayCycWaves, медленные, бесконечные, чистый CSS;
+//  значок темнеет, три волны активации (.sayActWaves, одноразовый CSS), ЖИВОЙ эквалайзер (.sayEq; useSayWaves: rAF + transform прямо на DOM, радиус обрезан по контейнеру) и ЦИКЛИЧЕСКИЕ волны (.sayCycWaves, медленные, бесконечные, чистый CSS; стартуют вместе с активацией и проступают плавно, без задержки и без «дыры» между ними;
 //  после конца записи гаснут через useLingerFlag); все волны стартуют от внешней обводки круга (SayRing); зелёное кольцо остаётся (приглушено) |
 //  done «Готово» с галочкой на салатовом круге | off микрофона не будет. Вокруг круга кольцо (SayRing): цвета — по состоянию, бегущая серая дуга только в locked.
 // Все слои волн лежат в .sayWaveClip (overflow:hidden, размером с панель): даже при ошибке расчёта волны не выйдут за модуль. Режим mode (micLabel) остаётся для надписи и логики:
@@ -44,27 +44,29 @@ export default function SayStage({ label, mode, state, level, disabled, onTap })
         </span>
       </div>
       <SayCaption label={label} />
-      <div className={`sayMicBox sayMicBox--${state}${from === 'locked' ? ' sayMicBox--from-locked' : ''}`}>
-        <SayRing />
-        <button
-          type="button"
-          className={`phraseCheckBtn sayMicBtn sayMicBtn--${state}`}
-          onClick={onTap}
-          disabled={disabled || mode === 'off'}
-          aria-label={aria}
-          data-no-unlock=""
-          data-testid="say-mic"
-          data-mode={mode}
-          data-state={state}
-        >
-          <span className="sayFace sayFaceMic">
-            <SayMicIcon data-testid="say-mic-icon" />
-          </span>
-          <span className="sayFace sayFaceDone" aria-hidden="true" data-testid="say-done">
-            <Check size={32} strokeWidth={3.2} />
-            <span className="sayDoneText">{DONE}</span>
-          </span>
-        </button>
+      <div className="sayMicStage">
+        <div className={`sayMicBox sayMicBox--${state}${from === 'locked' ? ' sayMicBox--from-locked' : ''}`}>
+          <SayRing />
+          <button
+            type="button"
+            className={`phraseCheckBtn sayMicBtn sayMicBtn--${state}`}
+            onClick={onTap}
+            disabled={disabled || mode === 'off'}
+            aria-label={aria}
+            data-no-unlock=""
+            data-testid="say-mic"
+            data-mode={mode}
+            data-state={state}
+          >
+            <span className="sayFace sayFaceMic">
+              <SayMicIcon data-testid="say-mic-icon" />
+            </span>
+            <span className="sayFace sayFaceDone" aria-hidden="true" data-testid="say-done">
+              <Check size={32} strokeWidth={3.2} />
+              <span className="sayDoneText">{DONE}</span>
+            </span>
+          </button>
+        </div>
       </div>
     </>
   )

@@ -13,6 +13,7 @@ import SimpleTestsBlock from './SimpleTestsBlock.jsx'
 import SpeechTestBlock from './SpeechTestBlock.jsx'
 import SpeechLogBlock from './SpeechLogBlock.jsx'
 import SpeechSayBlock from './SpeechSayBlock.jsx'
+import SoundDiagBlock from './SoundDiagBlock.jsx'
 import SpeechMemo from './SpeechMemo.jsx'
 import SpeechCaptureMemo from './SpeechCaptureMemo.jsx'
 import '../../../styles/admin-speech.css'
@@ -66,6 +67,7 @@ export default function AdminSpeechTab() {
       <div className="aeHead"><span className="aeTitle">Голос (проба распознавания речи)</span></div>
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
       <SpeechCapsBlock caps={caps} perm={perm} />
+      <SoundDiagBlock />
       <SpeechSayBlock />
       <SimpleTestsBlock caps={caps} reference={reference} lang={lang} setLang={changeLang} probe={probe} series={series} onPickStep={pickStep} restart={restartApi} dwell={ap.settings.dwell} onDwell={v => ap.update({ dwell: v })} />
       <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} cap={cap} ap={ap} />

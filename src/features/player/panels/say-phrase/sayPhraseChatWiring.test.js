@@ -33,12 +33,14 @@ describe('say_phrase — эквалайзер и источник уровня',
     expect(read('../../../../shared/lib/speech/sayLevelSource.js')).toContain('subscribe(listener)')
   })
 
-  it('мгновенный отклик: эквалайзер включается по режиму prep (phase run) в том же тапе, а не по событиям распознавания; первый кадр рисуется синхронно (layout-эффект + kickRings)', () => {
+  it('мгновенный отклик: эквалайзер включается по режиму prep (phase run) в том же тапе, а не по событиям распознавания; первый кадр рисуется синхронно (layout-эффект + restRings, без вспышки)', () => {
     const wave = panelSrc['useSayWaves.js']
     expect(read('../../../../shared/lib/speech/sayMic.js')).toContain("export const LIVE_MODES = ['prep', 'listening']")
     expect(read('../../../../shared/lib/speech/sayMic.js')).toContain("case 'run': return { label: SAY_LABEL, mode: go ? 'listening' : 'prep' }")
     expect(wave).toContain('useLayoutEffect')
-    expect(wave).toContain('let levels = kickRings()')
+    expect(wave).toContain('let levels = restRings()')
+    expect(wave).toContain('eqEnvelope(t - t0)') // плавное проявление от тапа, а не включение «на ходу»
+    expect(wave).not.toMatch(/kickRings|TAP_KICK/)
     expect(wave.indexOf('paint()')).toBeLessThan(wave.indexOf('source.subscribe')) // кадр тапа — до первого rAF
     expect(hook).toMatch(/dispatch\(\{ type: 'begin'[^\n]*\)\n\s*ctrl\.start\(/) // phase 'run' ставится в том же тапе
   })
@@ -59,7 +61,7 @@ describe('say_phrase — эквалайзер и источник уровня',
     expect(wave).toContain('getBoundingClientRect')
     expect(wave).toContain("window.addEventListener('resize', remeasure)")
     expect(wave).toContain("window.removeEventListener('resize', remeasure)")
-    expect(wave).toContain('ringFrame(levels[i], i, box)')
+    expect(wave).toContain('ringFrame(levels[i], i, box, eqEnvelope(t - t0))')
     expect(read('../../../../shared/lib/speech/sayRings.js')).toContain('clampRadius(ringScale(level, i) * RING_R0, box)')
   })
 })

@@ -16,9 +16,17 @@ const holds = new Set()
 const silences = new Map() // причина → сколько удержаний
 const deferred = new Map() // имя звука → replay() (последний запрос, по одному на имя)
 let dropped = 0
+const freeListeners = new Set()
+const notifyFree = () => { if (!isMicBusy()) freeListeners.forEach(fn => { try { fn() } catch { /* подписчик не должен ломать звук */ } }) }
+
+/** Подписка «микрофон/тишина отпущены» (закрылось последнее удержание): fn() — например, вернуть аудиосессию в 'auto' и разбудить контекст звуков (audioRestore.js). Возвращает отписку */
+export function onMicFree(fn) { freeListeners.add(fn); return () => { freeListeners.delete(fn) } }
 
 export const isSoundQuiet = () => holds.size > 0
 export const suppressedCount = () => dropped
+let lastDrop = null // последний проглоченный звук {name, at, silence} — для диагностики звука (soundDiag.js)
+export const lastSuppressed = () => lastDrop
+export const deferredNames = () => [...deferred.keys()]
 
 /** Полная тишина: пока есть хоть одно удержание, не играет ничего и не разблокируется */
 export const isSilenced = () => silences.size > 0
@@ -37,6 +45,7 @@ export function releaseSilence(reason = 'tab') {
   const n = silences.get(reason)
   if (n == null) return
   if (n <= 1) silences.delete(reason); else silences.set(reason, n - 1)
+  notifyFree()
 }
 
 /** Открыть окно тишины. Возвращает release() (повторный вызов безопасен); когда закрылось последнее удержание — играют отложенные */
@@ -48,17 +57,19 @@ export function holdSoundQuiet() {
     const replay = [...deferred.values()]
     deferred.clear()
     replay.forEach(fn => { try { fn() } catch { /* звук необязателен */ } })
+    notifyFree()
   }
 }
 
 /** Для playSound(): true — окно открыто, звук перехвачен (replay сыграет его позже, если он из отложенных) */
 export function suppressSound(name, replay) {
-  if (silences.size) { dropped += 1; return true } // полная тишина: ничего не откладываем
+  if (silences.size) { dropped += 1; lastDrop = { name, at: Date.now(), silence: true }; return true } // полная тишина: ничего не откладываем
   if (!holds.size) return false
   dropped += 1
+  lastDrop = { name, at: Date.now(), silence: false }
   if (DEFER_NAMES.has(name)) deferred.set(name, replay)
   return true
 }
 
 /** Только для тестов */
-export function _resetSoundQuiet() { holds.clear(); silences.clear(); deferred.clear(); dropped = 0 }
+export function _resetSoundQuiet() { holds.clear(); silences.clear(); deferred.clear(); dropped = 0; lastDrop = null; freeListeners.clear() }

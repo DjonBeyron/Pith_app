@@ -1,12 +1,14 @@
 // Тайминги Vosk-теста и авто-стоп. Чистые функции без React и браузера.
-// Эндпойнтинг Vosk (итог «сам», когда пауза в речи) стоит в декодере, а не в нашем коде: на практике это ≈0,5–1 с тишины после слова.
+// Эндпойнтинг Vosk (итог «сам», когда пауза в речи) стоит в декодере (правила model.conf: 0,5 / 1,0 / 2,0 с тишины после слова), vosk-browser настроить его не даёт —
+// модуль «Сказать фразу» держит его в узде сам: voskGate.js не пускает в декодер долгую тишину.
 // Чтобы итог приходил быстрее, приложение само просит итог («как кнопка Стоп»), когда ТЕКСТ partial не менялся N мс (авто-стоп).
 
 export const AUTOSTOP_MIN = 500
 export const AUTOSTOP_MAX = 1500
 export const AUTOSTOP_DEFAULT = 800
 export const AUTOSTOP_PRESETS = [0, 500, 800, 1000, 1500] // 0 — выключен (итог даёт движок сам или кнопка «Стоп»)
-export const AUTOSTOP_PHRASE = 1000 // для целых фраз («Сказать фразу»): пауза перед последним словом до 1 с — ещё речь, а не конец
+export const AUTOSTOP_PHRASE = 2500 // «Сказать фразу», слово уже услышано, фраза ещё не вся: пауза между словами до 2,5 с — ещё речь (медленная речь), а не конец
+export const AUTOSTOP_FULL = 800 // «Сказать фразу», в partial уже ВСЕ слова эталона: ждать больше нечего, останавливаемся быстро
 export const NO_SPEECH_MS = 10000 // запись, в которой так и не заговорили, закрываем сами (потолок записи)
 
 // Хвост речи. Vosk выдаёт последнее слово только когда «видит» после него тишину: если оборвать звук на слове, декодер достраивает конец повтором последнего кадра и слабое
@@ -29,20 +31,22 @@ export function clampAutoStop(v) {
 }
 
 /**
- * Пора ли самим просить итог: 'max' — запись длится дольше потолка maxMs; 'auto' — текст partial есть и не менялся autoStopMs;
- * иначе null. Пока ни одного partial не было (не заговорили), авто-стоп не срабатывает — только потолок.
+ * Пора ли самим просить итог: 'max' — запись длится дольше потолка maxMs; 'full' — слова эталона услышаны ВСЕ (complete) и текст не менялся completeMs;
+ * 'auto' — текст partial есть и не менялся autoStopMs; иначе null. Пока ни одного слова не было (не заговорили), авто-стоп не срабатывает — только потолок.
  * lastVoiceAt — когда в последний раз был громкий кусок звука (VOICE_RMS): пока голос ещё идёт, а текст отстал, авто-стоп ждёт (не дольше VOICE_HOLD_MAX_MS).
  */
-export function autoStopDue({ now, startedAt, lastChangeAt, text, autoStopMs = 0, maxMs = 0, lastVoiceAt = null }) {
+export function autoStopDue({ now, startedAt, lastChangeAt, text, autoStopMs = 0, maxMs = 0, lastVoiceAt = null, complete = false, completeMs = 0 }) {
   if (maxMs > 0 && now - startedAt >= maxMs) return 'max'
-  if (autoStopMs > 0 && text && lastChangeAt != null && now - lastChangeAt >= autoStopMs) {
-    const speaking = lastVoiceAt != null && now - lastVoiceAt < VOICE_GRACE_MS && now - lastChangeAt < autoStopMs + VOICE_HOLD_MAX_MS
-    return speaking ? null : 'auto'
+  const full = complete && completeMs > 0 && completeMs < autoStopMs
+  const wait = full ? completeMs : autoStopMs
+  if (wait > 0 && text && lastChangeAt != null && now - lastChangeAt >= wait) {
+    const speaking = lastVoiceAt != null && now - lastVoiceAt < VOICE_GRACE_MS && now - lastChangeAt < wait + VOICE_HOLD_MAX_MS
+    return speaking ? null : full ? 'full' : 'auto'
   }
   return null
 }
 
-/** Сколько мс прошло между концом последнего слова и итогом (null — не знаем). audioStartMs — когда начался звук, от старта записи */
+/** Сколько мс прошло между концом последнего слова и итогом (null — не знаем). audioStartMs — когда начался звук, от старта записи. Для лаборатории (затвор тишины там выключен) */
 export function afterSpeechMs({ resultMs, audioStartMs, words }) {
   const last = (words || []).at(-1)
   const end = Array.isArray(last) ? last[3] : last?.end
@@ -50,7 +54,7 @@ export function afterSpeechMs({ resultMs, audioStartMs, words }) {
   return Math.max(0, Math.round(resultMs - audioStartMs - end * 1000))
 }
 
-export const STOP_BY = { endpoint: 'движок сам', auto: 'авто-стоп', manual: 'кнопка «Стоп»', max: 'потолок записи' }
+export const STOP_BY = { endpoint: 'движок сам', auto: 'авто-стоп', full: 'фраза сказана целиком', manual: 'кнопка «Стоп»', max: 'потолок записи' }
 
 /** Медиана и максимум по числам (пустые/не числа отбрасываем). n = 0 → { n: 0 } */
 export function summarize(list) {

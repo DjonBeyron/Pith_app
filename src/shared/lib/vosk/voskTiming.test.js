@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { clampAutoStop, autoStopDue, afterSpeechMs, summarize, sec, timeLine, AUTOSTOP_DEFAULT, AUTOSTOP_PRESETS, AUTOSTOP_PHRASE, VOICE_HOLD_MAX_MS } from './voskTiming.js'
+import { clampAutoStop, autoStopDue, afterSpeechMs, summarize, sec, timeLine, AUTOSTOP_DEFAULT, AUTOSTOP_PRESETS, AUTOSTOP_PHRASE, AUTOSTOP_FULL, STOP_BY, VOICE_HOLD_MAX_MS } from './voskTiming.js'
 
 describe('авто-стоп', () => {
   it('диапазон 500–1500, по умолчанию 800, 0 — выключен', () => {
@@ -48,16 +48,28 @@ describe('задержки', () => {
 })
 
 describe('авто-стоп не обрывает идущую речь', () => {
-  const base = { startedAt: 0, autoStopMs: 1000, maxMs: 15000, text: "i'm trying to please", lastChangeAt: 2000 }
-  it('для фраз пауза 1000 мс (константа AUTOSTOP_PHRASE)', () => {
-    expect(AUTOSTOP_PHRASE).toBe(1000)
-    expect(autoStopDue({ ...base, now: 2900 })).toBeNull()
-    expect(autoStopDue({ ...base, now: 3000 })).toBe('auto')
+  const base = { startedAt: 0, autoStopMs: AUTOSTOP_PHRASE, maxMs: 20000, text: "i'm trying to please", lastChangeAt: 2000 }
+  it('для фраз пауза 2500 мс (константа AUTOSTOP_PHRASE): медленная речь с паузами 1,5–2,4 с между словами не обрывается', () => {
+    expect(AUTOSTOP_PHRASE).toBe(2500)
+    expect(autoStopDue({ ...base, now: 2000 + 2400 })).toBeNull()
+    expect(autoStopDue({ ...base, now: 2000 + 2500 })).toBe('auto')
+    expect(autoStopDue({ ...base, now: 9000, text: '', lastChangeAt: null })).toBeNull() // слов ещё нет — ждём молча (до SAY_SILENCE_MS в адаптере)
+  })
+  it('вся фраза услышана (complete) — стоп за AUTOSTOP_FULL (800 мс), причина «full»; не вся — по-прежнему 2500; completeMs не длиннее обычной паузы', () => {
+    const f = { ...base, complete: true, completeMs: AUTOSTOP_FULL }
+    expect(AUTOSTOP_FULL).toBe(800)
+    expect(autoStopDue({ ...f, now: 2000 + 799 })).toBeNull()
+    expect(autoStopDue({ ...f, now: 2000 + 800 })).toBe('full')
+    expect(autoStopDue({ ...base, completeMs: AUTOSTOP_FULL, now: 2000 + 800 })).toBeNull() // complete=false
+    expect(autoStopDue({ ...f, completeMs: 5000, now: 2000 + 2500 })).toBe('auto') // «быстрее» не может быть медленнее
+    expect(autoStopDue({ ...f, now: 2000 + 850, lastVoiceAt: 2000 + 800 })).toBeNull() // голос идёт — и тут ждём
+    expect(STOP_BY.full).toMatch(/целиком/)
   })
   it('голос был только что (partial отстал от речи) — ждём; тихо — стоп; шумная комната: не дольше VOICE_HOLD_MAX_MS сверх паузы', () => {
-    expect(autoStopDue({ ...base, now: 3100, lastVoiceAt: 3000 })).toBeNull() // говорят прямо сейчас
-    expect(autoStopDue({ ...base, now: 3100, lastVoiceAt: 2000 })).toBe('auto') // голос смолк 1.1 с назад
-    expect(autoStopDue({ ...base, now: 3000 + VOICE_HOLD_MAX_MS, lastVoiceAt: 3000 + VOICE_HOLD_MAX_MS - 50 })).toBe('auto') // шум не держит вечно
-    expect(autoStopDue({ ...base, now: 3100, lastVoiceAt: null })).toBe('auto')
+    const T = 2000 + AUTOSTOP_PHRASE // момент, когда пауза выдержана
+    expect(autoStopDue({ ...base, now: T + 100, lastVoiceAt: T })).toBeNull() // говорят прямо сейчас
+    expect(autoStopDue({ ...base, now: T + 100, lastVoiceAt: 2000 })).toBe('auto') // голос смолк давно
+    expect(autoStopDue({ ...base, now: T + VOICE_HOLD_MAX_MS, lastVoiceAt: T + VOICE_HOLD_MAX_MS - 50 })).toBe('auto') // шум не держит вечно
+    expect(autoStopDue({ ...base, now: T + 100, lastVoiceAt: null })).toBe('auto')
   })
 })

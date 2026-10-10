@@ -70,3 +70,10 @@ export function buildSayGrammar(data) {
   const lines = [...new Set(phrases.flatMap(p => [p, tokenize(p).join(' ')]).filter(Boolean))]
   return { json: JSON.stringify([...lines, UNK]), phrases, words: [...new Set(lines.flatMap(l => l.split(' ')))] }
 }
+
+/** Проверка «вся фраза услышана»: text → true, если его слова (tokenize: «i'm» = «i am», числа словами) в точности равны одному из верных прочтений фразы. Для быстрой остановки (voskTiming.AUTOSTOP_FULL) и открытия затвора тишины */
+export function sayCompleteCheck(data) {
+  const readings = readingsOfText(String(data?.phrase ?? '')) ?? [data?.phrase]
+  const ok = new Set(readings.slice(0, 1 + MAX_ALT_READINGS).map(r => tokenize(r).join(' ')).filter(Boolean))
+  return text => ok.size > 0 && ok.has(tokenize(text).join(' '))
+}

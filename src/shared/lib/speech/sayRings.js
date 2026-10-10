@@ -2,6 +2,8 @@
 // (sayLevelSource.js: синтетический по событиям распознавания, реальный по флагу админа, в будущем RMS из аудиопотока Vosk), здесь — как три круглых
 // кольца-волны следуют за ним: внутреннее реагирует мгновенно, внешние запаздывают лишь на 1–2 кадра (RING_ATTACK_MS) и гаснут мягче; пока голоса нет,
 // кольца «дышат» (жизнь без событий). Кольца стартуют с радиуса ВНЕШНЕЙ ОБВОДКИ круга (RING_R0) и идут наружу: внутри обводки волн нет. ГЛАВНОЕ: радиус любого кольца обрезается по границам контейнера (clampRadius) — волны никогда не выходят за панель.
+// Старт записи: кольца начинают с уровня «дыхания» и ПЛАВНО проявляются (eqEnvelope: прозрачность × smoothstep за EQ_FADE_MS) — раньше стартовая «вспышка» (kick) падала в первые 100–300 мс и совпадала с волнами активации. Потолок: до края клипа
+// волн от центра круга 96 px (круг стоит в центре области между подписью и низом корпуса), радиус не больше 96 − WAVE_MARGIN; самое большое кольцо — 84,9 px.
 // Размеры (всё ×0,85 от прежних): круг 85 px, в записи ×1,15 = 97,75 px (CIRCLE_R 48,875); обводка вокруг него — SVG 108,8 px, толщина 4,25 px, внешний край 53,1 px, в записи ×1,15 = 61,1 px (RING_R0).
 // Результат кадра (scale/opacity) хук useSayWaves пишет прямо в style колец (transform/opacity, без ререндеров React и без CSS transition на transform).
 export const RING_COUNT = 3
@@ -18,7 +20,7 @@ export const BREATH_SWING = 0.04
 export const NOISE_GATE = 0.04                      // порог шума: уровень ниже него = тишина (кольца не дёргаются от шума микрофона)
 export const RESPONSE_GAMMA = 0.5                   // кривая отклика: степень < 1 поднимает тихий голос (0,1 → ≈0,33, 0,2 → ≈0,53), громкий не «потолит» раньше времени
 export const RESPONSE_GAIN = 1.3                    // и общее усиление поверх кривой (результат обрезается до 1)
-export const TAP_KICK = [0.5, 0.4, 0.3]            // стартовые уровни колец в кадре тапа: мгновенная «вспышка», которая оседает до дыхания за 100–300 мс
+export const EQ_FADE_MS = 500                       // плавное проявление эквалайзера после тапа: прозрачность колец растёт от нуля (smoothstep) за 0,5 с — он не «включается на ходу» поверх волн активации и циклических
 export const WAVE_MARGIN = 2                        // запас до края контейнера, px: кольцо не касается края панели
 
 const clamp01 = v => (v > 1 ? 1 : v > 0 ? v : 0)
@@ -38,10 +40,17 @@ export function clampRadius(radius, box, margin = WAVE_MARGIN) {
   return Math.max(0, Math.min(radius, room))
 }
 
-/** Кадр кольца i: масштаб относительно внешней обводки (внешний радиус кольца обрезан по контейнеру, но не меньше самой обводки — внутрь она не заходит) и прозрачность */
-export function ringFrame(level, i, box) {
+/** Плавное проявление эквалайзера: 0 → 1 по smoothstep за EQ_FADE_MS с момента тапа (since — мс от старта записи; нет данных — сразу 1) */
+export function eqEnvelope(since) {
+  if (!(since < EQ_FADE_MS)) return 1
+  const x = clamp01(since / EQ_FADE_MS)
+  return x * x * (3 - 2 * x)
+}
+
+/** Кадр кольца i: масштаб относительно внешней обводки (внешний радиус кольца обрезан по контейнеру, но не меньше самой обводки — внутрь она не заходит) и прозрачность (env — проявление после тапа, eqEnvelope) */
+export function ringFrame(level, i, box, env = 1) {
   const radius = clampRadius(ringScale(level, i) * RING_R0, box)
-  return { scale: Math.max(1, radius / RING_R0), opacity: ringOpacity(level, i) }
+  return { scale: Math.max(1, radius / RING_R0), opacity: ringOpacity(level, i) * env }
 }
 
 /** «Ожидание» кольца во время записи: BREATH_BASE ± BREATH_SWING, период BREATH_PERIOD_MS; t — мс одной шкалы с rAF */
@@ -61,8 +70,8 @@ export function ringTarget({ voice = 0, t = 0 }) {
   return Math.max(voiceResponse(voice), breath(t))
 }
 
-/** Стартовые уровни в кадре тапа: волны отзываются мгновенно, не дожидаясь событий распознавания */
-export const kickRings = () => TAP_KICK.slice()
+/** Стартовые уровни в кадре тапа: «дыхание» (BREATH_BASE) — кольца живы до первых событий распознавания и не вспыхивают */
+export const restRings = () => Array.from({ length: RING_COUNT }, () => BREATH_BASE)
 
 /** Один кадр сглаживания: каждое кольцо тянется к target со своей инерцией подъёма/спада (экспонента). dt — мс с прошлого кадра */
 export function ringsStep(prev, target, dt) {

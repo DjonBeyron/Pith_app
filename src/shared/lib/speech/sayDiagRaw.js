@@ -8,7 +8,7 @@ const q = t => `«${t}»`
 const c2 = n => (typeof n === 'number' ? n.toFixed(2).replace('.', ',') : null)
 const span = w => (typeof w.start === 'number' && typeof w.end === 'number' ? `, время ${c2(w.start)}–${c2(w.end)} с` : '')
 
-const STOP_BY_RU = { endpoint: 'движок сам (пауза в речи)', auto: 'авто-стоп (текст перестал меняться)', manual: 'нажатие на круг', max: 'потолок времени записи' }
+const STOP_BY_RU = { endpoint: 'движок сам (пауза в речи)', auto: 'авто-стоп (текст перестал меняться)', full: 'авто-стоп (фраза сказана целиком)', manual: 'нажатие на круг', max: 'потолок времени записи' }
 
 function dropWhy(w, raw) {
   if (w.drop === 'unk') return 'это [unk] — Vosk услышал что-то не из нашего списка слов'
@@ -36,6 +36,7 @@ function stopText(raw) {
     if (raw.drainMs != null) bits.push(`последний кусок звука ждали ${raw.drainMs} мс`)
     if (raw.afterStopMs != null) bits.push(`итог пришёл через ${raw.afterStopMs} мс после запроса`)
   } else bits.push('итог выдал сам Vosk, хвост тишины мы не досылали')
+  if (raw.gatedMs) bits.push(`долгие паузы движку не отдавали (${raw.gatedMs} мс тишины пропущено — иначе он сам обрывал медленную речь)`)
   return bits.join('; ')
 }
 
