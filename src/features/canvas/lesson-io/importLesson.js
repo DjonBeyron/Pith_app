@@ -1,5 +1,6 @@
 import { dbg } from '../../../shared/lib/debug.js'
 import { checkNodes, formatIntegrity } from '../canvasIntegrity.js'
+import { applyMarkup } from '../../../shared/lib/lessonMarkup.js'
 import { FORMAT } from './lessonSchema.js'
 import { NODE_TYPES } from '../nodeTypes.js'
 import { makeNode, renumber, findFreeSpot, NODE_SLOT } from '../nodeGraph.js'
@@ -92,7 +93,7 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
     const { x, y } = findFreeSpot(built.map(b => b.node), rawX, rawY)
     if (y !== rawY) nudged++
     const node = makeNode(built.length + 1, x, y, raw.type)
-    const data = withIds(raw.type, raw.data ?? {})
+    const data = withIds(raw.type, applyMarkup(raw.data ?? {}))
     node.typeData = { ...node.typeData, [raw.type]: { ...node.typeData[raw.type], ...data } }
     if (raw.size) node.size = raw.size
     if (raw.note != null) node.note = raw.note

@@ -10,6 +10,7 @@
 // СРАЗУ, не проходя импорт в редактор и не заходя в админку (см.
 // scripts/lint-lesson.mjs — тот же код, запущенный из командной строки).
 
+import { applyMarkup } from '../../../shared/lib/lessonMarkup.js'
 import { checkSayPhrase } from './lessonLintSay.js'
 import { checkAnswersAndLimits } from './lessonLintAnswers.js'
 
@@ -116,7 +117,9 @@ function reachability(nodes, startRef) {
   return { reached, reachedViaWrong }
 }
 
-export function lintLesson(nodes) {
+export function lintLesson(rawNodes) {
+  // Метки {g:..} в тексте → чистый текст + highlights, как это делает импорт (иначе длина текста и подсветки считались бы с фигурными скобками)
+  const nodes = rawNodes?.map(n => (n?.data ? { ...n, data: applyMarkup(n.data) } : n))
   const warnings = []
   if (!nodes?.length) return warnings
 
