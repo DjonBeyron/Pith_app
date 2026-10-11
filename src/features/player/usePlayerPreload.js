@@ -288,7 +288,9 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       })
     }, SAFETY_MS)
 
-    if (queueRef.current.length && files.length) pump(gen)
+    // Качаем, если в очереди что-то есть: файлы могут быть и БЕЗ записей в files — у нод со ссылкой r2Url вместо file_id (импорт урока из JSON,
+    // nodeFileKey). Раньше стояло ещё `&& files.length`: у такого урока таблица files пуста, загрузка не начиналась, и карточка запуска висела вечно
+    if (queueRef.current.length) pump(gen)
     return () => {
       genRef.current++
       clearTimeout(safetyTimer)
