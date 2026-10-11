@@ -789,31 +789,8 @@
         480
       ],
       "data": {
-        "content": "Бывает) Главное — без окончания: You try to dance",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 49,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 49,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 33,
-            "opacity": 1
-          },
-          {
-            "end": 49,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 33,
-            "opacity": 1
-          }
-        ]
+        "content": "Не страшно — главное, без окончания: {g:You try to dance}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -1075,7 +1052,7 @@
         0
       ],
       "data": {
-        "content": "С {t:he, she, it} буква {b:y} меняется на {b:i}, и в конце добавляется {g:es}",
+        "content": "С he, she, it у {g:try} буква {b:y} меняется на {b:i}, и в конце добавляется {g:es}",
         "hardWrap": false
       },
       "triggers": [
@@ -1166,27 +1143,8 @@
         960
       ],
       "data": {
-        "content": "С he, she, it буква y превращается в i",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 38,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 21,
-            "mode": "bold",
-            "start": 20
-          },
-          {
-            "end": 38,
-            "mode": "bold",
-            "start": 37
-          }
-        ]
+        "content": "С he, she, it у слова меняется последняя буква 🤔",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -1367,7 +1325,7 @@
         480
       ],
       "data": {
-        "content": "С {t:she} форма {g:tries}: {b:y} меняется на {b:i} и добавляется {g:es}. Вот так: {g:she tries tennis}",
+        "content": "С she форма {g:tr}{p:i}{g:es} — {b:y} меняется на {b:i} и добавляется {g:es}. Вот так: {g:she tries tennis}",
         "hardWrap": false
       },
       "triggers": [
@@ -1485,31 +1443,8 @@
         480
       ],
       "data": {
-        "content": "Бывает) Следи за окончанием: She tries tennis",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 45,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 45,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 29,
-            "opacity": 1
-          },
-          {
-            "end": 45,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 29,
-            "opacity": 1
-          }
-        ]
+        "content": "Почти 🙂 Следи за окончанием: {g:She tries tennis}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -1647,69 +1582,8 @@
         0
       ],
       "data": {
-        "content": "Вот, это верно 🎯\nonce - один раз\ntwice - дважды",
-        "hardWrap": true,
-        "highlights": [
-          {
-            "end": 48,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 22,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 22,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 39,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 34,
-            "opacity": 1
-          },
-          {
-            "end": 39,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 34,
-            "opacity": 1
-          },
-          {
-            "start": 25,
-            "end": 33,
-            "mode": "text",
-            "color": "#fdfcfc",
-            "opacity": 1
-          },
-          {
-            "start": 25,
-            "end": 33,
-            "mode": "italic"
-          },
-          {
-            "start": 42,
-            "end": 48,
-            "mode": "text",
-            "color": "#fdfcfc",
-            "opacity": 1
-          },
-          {
-            "start": 42,
-            "end": 48,
-            "mode": "italic"
-          }
-        ]
+        "content": "{g:once} — {t:один раз}\n{g:twice} — {t:дважды}",
+        "hardWrap": true
       },
       "triggers": [
         {
@@ -2098,24 +1972,15 @@
     },
     {
       "ref": "n61",
-      "type": "text",
+      "type": "reaction",
       "seq": 47,
       "pos": [
         30220,
         0
       ],
       "data": {
-        "content": "Звучит чётко)",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "mode": "text",
-            "color": "#ffffff",
-            "opacity": 0.75,
-            "start": 0,
-            "end": 13
-          }
-        ]
+        "emoji": "🔥",
+        "target": "student"
       },
       "triggers": [
         {
@@ -2134,59 +1999,8 @@
         480
       ],
       "data": {
-        "content": "Ничего) Главное — tried, а не try: We tried chess",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 49,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 23,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 23,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 33,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 30,
-            "opacity": 1
-          },
-          {
-            "end": 33,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 30,
-            "opacity": 1
-          },
-          {
-            "end": 49,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 35,
-            "opacity": 1
-          },
-          {
-            "end": 49,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 35,
-            "opacity": 1
-          }
-        ]
+        "content": "Не страшно. Главное — {g:tried}, а не {g:try}: {g:We tried chess}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -2762,45 +2576,8 @@
         480
       ],
       "data": {
-        "content": "Бывает) Тут два слова: will try. They will try karaoke",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 54,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 31,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 23,
-            "opacity": 1
-          },
-          {
-            "end": 31,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 23,
-            "opacity": 1
-          },
-          {
-            "end": 54,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 33,
-            "opacity": 1
-          },
-          {
-            "end": 54,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 33,
-            "opacity": 1
-          }
-        ]
+        "content": "Хм, тут два слова: {g:will try}. {g:They will try karaoke}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -3183,28 +2960,7 @@
           "scale": 1
         },
         "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/a050a2d9-da7e-47f7-8de6-fb69055099ec.png",
-        "caption": "Последнее задание. Собери фразу я стараюсь изо всех сил, прямо сейчас",
-        "highlights": [
-          {
-            "end": 69,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "start": 32,
-            "end": 55,
-            "mode": "text",
-            "color": "#fdfcfc",
-            "opacity": 1
-          },
-          {
-            "start": 32,
-            "end": 55,
-            "mode": "italic"
-          }
-        ]
+        "caption": "Ну и последнее) Собери фразу: {t:«я сейчас стараюсь изо всех сил»}"
       },
       "triggers": [
         {
@@ -3263,7 +3019,7 @@
         480
       ],
       "data": {
-        "content": "{g:my best} значит изо всех сил. И помни: рядом стоит {g:am}, {g:is} или {g:are}",
+        "content": "{g:my best} значит {t:изо всех сил}. И помни: рядом стоит {g:am}, {g:is} или {g:are}",
         "hardWrap": false
       },
       "triggers": [
@@ -3276,15 +3032,24 @@
     },
     {
       "ref": "n96",
-      "type": "reaction",
+      "type": "text",
       "seq": 73,
       "pos": [
         48500,
         0
       ],
       "data": {
-        "emoji": "🎉",
-        "target": "student"
+        "content": "Вот это темп 😏",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "start": 0,
+            "end": 15,
+            "mode": "text",
+            "color": "#ffffff",
+            "opacity": 0.75
+          }
+        ]
       },
       "triggers": [
         {
@@ -3597,45 +3362,8 @@
         480
       ],
       "data": {
-        "content": "Ничего) Прямо сейчас — это am trying: I am trying my best",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 57,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 36,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 27,
-            "opacity": 1
-          },
-          {
-            "end": 36,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 27,
-            "opacity": 1
-          },
-          {
-            "end": 57,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 38,
-            "opacity": 1
-          },
-          {
-            "end": 57,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 38,
-            "opacity": 1
-          }
-        ]
+        "content": "Бывает) Прямо сейчас — это {g:am trying}: {g:I am trying my best}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -4196,45 +3924,8 @@
         480
       ],
       "data": {
-        "content": "Ничего) Вот пример: I try to cook. Своё слово после try to — любое",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 66,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 33,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 20,
-            "opacity": 1
-          },
-          {
-            "end": 33,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 20,
-            "opacity": 1
-          },
-          {
-            "end": 58,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 52,
-            "opacity": 1
-          },
-          {
-            "end": 58,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 52,
-            "opacity": 1
-          }
-        ]
+        "content": "Ничего. Вот пример: {g:I try to cook}. Своё слово после {g:try to} — любое",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -4253,7 +3944,7 @@
         0
       ],
       "data": {
-        "content": "Раунд на время ⏱ Если не вышло по времени — без штрафа, идём дальше\nКстати, брат: {t:«он каждое утро пытается встать пораньше»}",
+        "content": "Раунд на время ⏱ Не успеешь — без штрафа\n{t:«брат каждое утро пытается встать пораньше»}",
         "hardWrap": true
       },
       "triggers": [
@@ -4514,7 +4205,7 @@
         0
       ],
       "data": {
-        "content": "Кстати, Маша: {t:«завтра она попробует суп»}",
+        "content": "Кстати, Маша: {t:«завтра она попробует суп»} Собери по-английски",
         "hardWrap": false
       },
       "triggers": [
@@ -4699,7 +4390,7 @@
       "seq": 138,
       "pos": [
         67900,
-        480
+        960
       ],
       "note": "ОЗВУЧКА: Гончарное дело по-английски — pottery. Слушай слово: pottery",
       "needs": "audio — озвучка реплики",
@@ -4786,34 +4477,11 @@
       "seq": 109,
       "pos": [
         68460,
-        960
+        480
       ],
       "data": {
-        "content": "Ничего) Слово сложное. Вся фраза: We will try pottery",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 53,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 53,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 34,
-            "opacity": 1
-          },
-          {
-            "end": 53,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 34,
-            "opacity": 1
-          }
-        ]
+        "content": "Слово сложное, не страшно 🙂 Вся фраза: {g:We will try pottery}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -4957,73 +4625,8 @@
         480
       ],
       "data": {
-        "content": "Ничего) Пример: She tries to help. С she и he добавляем -s",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 58,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 33,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 16,
-            "opacity": 1
-          },
-          {
-            "end": 33,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 16,
-            "opacity": 1
-          },
-          {
-            "end": 40,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 37,
-            "opacity": 1
-          },
-          {
-            "end": 40,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 37,
-            "opacity": 1
-          },
-          {
-            "end": 45,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 43,
-            "opacity": 1
-          },
-          {
-            "end": 45,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 43,
-            "opacity": 1
-          },
-          {
-            "end": 58,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 56,
-            "opacity": 1
-          },
-          {
-            "end": 58,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 56,
-            "opacity": 1
-          }
-        ]
+        "content": "Почти) Пример: {g:She tries to help}. С she и he добавляем {g:-s}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -5153,31 +4756,8 @@
         480
       ],
       "data": {
-        "content": "Ничего) Вот пример: I am trying to relax",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 40,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 40,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 20,
-            "opacity": 1
-          },
-          {
-            "end": 40,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 20,
-            "opacity": 1
-          }
-        ]
+        "content": "Ничего, держи пример: {g:I am trying to relax}",
+        "hardWrap": false
       },
       "triggers": [
         {
