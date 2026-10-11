@@ -50,7 +50,9 @@ describe('ритм: подсказки ветки ошибки', () => {
 describe('базовая подложка текста', () => {
   const base = { start: 0, end: 5, mode: 'text', color: '#ffffff', opacity: 0.75 }
   it('нода с текстом без базового highlight — замечание; с ним — нет', () => {
-    expect(checkFlow([{ ref: 'a', type: 'text', data: { content: 'Текст' }, triggers: [] }]).join()).toContain('[R-base] a')
+    const styled = { ref: 'b', type: 'text', data: { content: 'Ок', highlights: [{ ...base, end: 2 }] }, triggers: [] }
+    expect(checkFlow([{ ref: 'a', type: 'text', data: { content: 'Текст' }, triggers: [] }, styled]).join()).toContain('[R-base] a')
+    expect(checkFlow([{ ref: 'a', type: 'text', data: { content: 'Текст' }, triggers: [] }])).toEqual([]) // без раскраски вообще — не трогаем
     expect(checkFlow([{ ref: 'a', type: 'text', data: { content: 'Текст', highlights: [base] }, triggers: [] }])).toEqual([])
   })
 })

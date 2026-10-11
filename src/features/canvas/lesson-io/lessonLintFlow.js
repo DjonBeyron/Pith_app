@@ -87,6 +87,8 @@ const BASE = h => h.mode === 'text' && String(h.color).toLowerCase() === '#fffff
 /** У каждой ноды с текстом базовый серый highlight (#ffffff, 0.75) покрывает весь текст (если нет — importLesson/редактор покажут текст без подложки) */
 function checkBaseHighlight(nodes) {
   const out = []
+  // Урок совсем без раскраски (черновик/тестовый набросок) не трогаем: правило про единообразие стиля там не к месту
+  if (!nodes.some(n => n.data?.highlights?.length)) return out
   for (const n of nodes) {
     const d = n.data ?? {}
     const text = d.content ?? d.text ?? d.caption
