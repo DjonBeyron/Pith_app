@@ -38,6 +38,14 @@ export default function LessonRulesPanel({ onClose }) {
     } catch { setCopied('Не удалось скопировать') }
     setTimeout(() => setCopied(''), 2500)
   }
+  // Выгрузка правил целиком (JSON) — Claude сохраняет её в lesson-drafts/rules.json и генерирует/проверяет уроки по твоим актуальным правилам
+  async function copyRulesJson() {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(rules, null, 1))
+      setCopied('Правила скопированы — вставь их в чат с Claude')
+    } catch { setCopied('Не удалось скопировать') }
+    setTimeout(() => setCopied(''), 2500)
+  }
   function handleAdd() {
     const text = newText.trim()
     if (!text) return
@@ -58,6 +66,7 @@ export default function LessonRulesPanel({ onClose }) {
         </select>
         <label className="lrActiveCheck"><input type="checkbox" checked={onlyActive} onChange={e => setOnlyActive(e.target.checked)} /> Только включённые</label>
         <button className="lrBtn lrBtnPrimary" disabled={busy || !rules.length} onClick={copyPrompt}>📋 Промпт для ИИ</button>
+        <button className="lrBtn" disabled={busy || !rules.length} onClick={copyRulesJson}>⬇ Правила для Claude</button>
         {copied && <span className="lioMeta">{copied}</span>}
         <span className="lioMeta">{busy ? '…' : `${shown.length} из ${rules.length}`}</span>
         {error && <span className="lioError">{error}</span>}

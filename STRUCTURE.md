@@ -1037,6 +1037,12 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `src/features/canvas/lesson-io/lessonLintFlow.js` (+`.test.js`) | Проверки «ритма» урока для `lintLesson`: `R-text-run` (больше двух text-нод подряд по основному потоку) и `R-tautology` (ответ задания дословно уже написан в двух предыдущих нодах). Ветки ошибок/пропуска не считаются |
 | `src/features/canvas/lesson-io/RuleCard.jsx` | Правая колонка окна правил: карточка одного правила (название, группа, кто проверяет, серьёзность, текст, примеры «❌ нельзя / ✅ можно»), черновик и «Сохранить» |
 | `src/features/canvas/lesson-io/authorPrompt.js` (+`.test.js`) | Сборка промпта для ИИ-автора урока из правил окна правил (формула, правила R1…Rn с серьёзностью и примерами «нельзя / можно», чек-лист, процесс «план → JSON → отчёт», легенда формата нод без дублей). Кнопка «📋 Промпт для ИИ» |
+| `src/features/canvas/lesson-io/judgePrompt.js` (+`.test.js`) | Промпт ИИ-судьи (правила, которые не ловит линтер, + урок) и разбор его JSON-ответа (`parseVerdict`) |
+| `scripts/lesson-rules.mjs` | Загрузчик правил для скриптов: `lesson-drafts/rules.json` (выгрузка из окна правил) или зашитые дефолты |
+| `scripts/lesson-prompt.mjs` | Печатает промпт автора урока из правил (`"тема"`) или промпт судьи (`--judge урок.json`) |
+| `scripts/lesson-gate.mjs` | Шлюз качества: JSON, импорт редактора, seq (`--fix-seq`), линтер правил, список «что озвучить руками». Выход 1 — есть замечания |
+| `.claude/agents/pithy-lesson-judge.md` | Агент-судья: в чистом контексте проверяет урок по правилам, возвращает JSON нарушений |
+| `.claude/skills/make-lesson/SKILL.md` | Навык `/make-lesson`: промпт → план → урок → шлюз → судья → цикл исправления → отчёт |
 | `src/features/canvas/lesson-io/ruleMeta.js` (+`.test.js`) | Справочники окна правил: «кто проверяет» (🤖/⚖️/✍️), серьёзность, название из текста, группа по ключевым словам, фильтры/поиск |
 | `supabase/migrations/20261011110000_lesson_rules_fields.sql` | Необязательные поля правил `lesson_rules`: `title`, `rule_group`, `checker` (auto/judge/manual), `severity` (error/warn), `bad_example`, `good_example`. API читает и без неё (запасной набор колонок) |
 | `timeLimit.js` | Лимит времени на ответ (`timeLimitSec` у word_choice/phrase_assembly): границы 3–60 с и `readTimeLimit` (мусор/0 → без таймера) |
