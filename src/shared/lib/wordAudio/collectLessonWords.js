@@ -1,3 +1,4 @@
+import { phraseVariants } from '../phraseVariants.js'
 import { wordKey, cleanWordText } from './wordKey.js'
 import { deriveAnswerTokens } from '../tableCellMatch.js'
 import { parseTemplateSegments } from '../fillBlanksTemplate.js'
@@ -50,7 +51,7 @@ function wordsOfNode(node) {
   switch (node.type) {
     case 'phrase_assembly': {
       const pa = td.phrase_assembly ?? {}
-      return [...(pa.words ?? []), ...(pa.distractors ?? []).map(d => d.text)]
+      return [...phraseVariants(pa).flat(), ...(pa.distractors ?? []).map(d => d.text)] // слова всех верных порядков (answers) тоже лежат в банке
     }
     case 'table': {
       const t = td.table ?? {}

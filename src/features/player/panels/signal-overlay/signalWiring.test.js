@@ -63,13 +63,13 @@ describe('сигналы ошибок — сигнал играет сообще
     const src = read('../../LessonPlayer.jsx')
     expect(src).toContain('useSignalMessages()')
     expect(src).toMatch(/<PlayerFeedNodes[\s\S]{0,600}signalItems=\{signalMessages\.items\}/)
-    expect(src).toMatch(/<PlayerPanels[\s\S]{0,900}onSignalFired=\{\(node, release, exerciseNodeId\) =>\s*\n\s*signalMessages\.fireForExercise\(node, release, exerciseNodeId, visibleNodes\)/)
+    expect(src).toMatch(/<PlayerPanels[\s\S]{0,900}onSignalFired=\{\(node, release, exerciseNodeId, after\) =>\s*\n\s*signalMessages\.fireForExercise\(node, release, exerciseNodeId, visibleNodes, after\)/)
     expect(src).toMatch(/<PlayerPanels[\s\S]{0,1200}hasSignalFired=\{signalMessages\.hasFired\}/)
   })
 
   it('useSignalMessages.fireForExercise находит индекс ноды упражнения в visibleNodes и вставляет сигнал ПЕРЕД её слотом', () => {
     const src = read('../../useSignalMessages.js')
-    expect(src).toContain('const fireForExercise = useCallback((node, onReleased, exerciseNodeId, visibleNodes)')
+    expect(src).toContain('const fireForExercise = useCallback((node, onReleased, exerciseNodeId, visibleNodes, after = false)')
     expect(src).toContain('visibleNodes.findIndex(n => n.id === exerciseNodeId)')
     expect(src).toMatch(/return \{ items, fire, fireForExercise, onMessageDone: release, hasFired \}/)
   })
@@ -110,8 +110,8 @@ describe('сигналы ошибок — сигнал играет сообще
     expect(src).toContain('onSignalFired')
     expect(src).toContain('hasSignalFired')
     expect(src).toContain('signalForSlot')
-    // onSignalFired проверяется внутри if(full) — не на частичной сборке
-    expect(src).toMatch(/if \(full\) \{[\s\S]*if \(found && !hasSignalFired\?\.\(found\.node\.id\)\)[\s\S]*onSignalFired\?\.\(found\.node, signalState\.dismissOverlay, node\.id\)/)
+    // onSignalFired проверяется внутри if(verdict.full) — не на частичной сборке
+    expect(src).toMatch(/if \(verdict\.full\) \{[\s\S]*if \(found && !hasSignalFired\?\.\(found\.node\.id\)\)[\s\S]*onSignalFired\?\.\(found\.node, signalState\.dismissOverlay, node\.id\)/)
   })
 
   it('PhraseAssemblyPanel не рендерит оверлей, пробрасывает hasSignalFired и не шлёт статистику на result === "signal"', () => {

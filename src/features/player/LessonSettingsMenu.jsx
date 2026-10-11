@@ -110,6 +110,7 @@ export default function LessonSettingsMenu({ onDownloadLog, onCopyLog }) {
             <SwitchRow label="Звук печатанья" pref="typing" />
             <SwitchRow label="Звук получения XP" pref="xp" />
             <SwitchRow label="Эквалайзер" pref="equalizer" />
+            <SwitchRow label="Таймер на быстрых вопросах" pref="timer" />
           </section>
         </div>,
         host,

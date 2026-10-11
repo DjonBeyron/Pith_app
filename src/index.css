@@ -157,6 +157,7 @@
 @import './styles/player/panels/say-phrase-mic.css';
 @import './styles/player/panels/say-phrase-state.css';
 @import './styles/player/panels/say-phrase-ring.css';
+@import './styles/player/panels/answer-timer.css';
 @import './styles/player/panels/say-phrase-waves.css';
 @import './styles/player/panels/say-phrase-popup.css';
 @import './styles/player/panels/say-phrase-diag.css';

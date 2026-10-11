@@ -57,6 +57,7 @@ export function explainPick(pick, c) {
   const onlyVosk = c.mode === 'vosk' ? ' Режим «Только Vosk» тап не ждёт: эта попытка всё равно на системном.' : ''
   switch (reason) {
     case 'mode-system': return sys('warn', 'в админ-настройках выбран режим «Только системное»', 'Сменить: Админ → Голос → «Сказать фразу» → «Авто».')
+    case 'free': return sys('ok', 'свободная фраза по шаблону (pattern): ученик говорит своё, у Vosk словарь закрытый — такие попытки всегда идут на системном', 'Так и задумано: Vosk здесь не используется, голосовой ответ («голосовое с текстом») у такой ноды тоже не записывается.')
     case 'phrase': return sys('warn', `фраза не подходит для Vosk: ${PHRASE_TEXT[voskPhraseProblem(c.phrase)] ?? 'неизвестная причина'}`, 'Простые числа (2, 25, 1998, 21st, 5%, $5, 3:30) Vosk читает.')
     case 'broken': return sys('bad', `пауза после сбоя Vosk до ${clock(snap.brokenUntil)}. Причина: ${snap.brokenWhy || info.lastError || 'не записана'}`, 'Пауза 1 минута, потом повтор сам; «Прогреть сейчас» или смена режима снимают её сразу.')
     case 'no-model': {

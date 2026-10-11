@@ -11,6 +11,7 @@
 // scripts/lint-lesson.mjs — тот же код, запущенный из командной строки).
 
 import { checkSayPhrase } from './lessonLintSay.js'
+import { checkAnswersAndLimits } from './lessonLintAnswers.js'
 
 const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
 const PRAISE_RE = /три из трёх|ни одной ошибки|без единой ошибки|все верно|всё верно/i
@@ -177,6 +178,7 @@ export function lintLesson(nodes) {
   }
 
   warnings.push(...checkSayPhrase(nodes, start))
+  warnings.push(...checkAnswersAndLimits(nodes))
 
   for (const n of nodes) {
     const d = n.data ?? {}

@@ -10,6 +10,7 @@
 import { matchTop, tokenize } from './speechMatch.js'
 import { matchStrict } from './sayConsensus.js'
 import { pickReference } from './sayReading.js'
+import { matchPattern } from './sayPattern.js'
 import { SAY_DONE, SAY_WRONG, SAY_CANT } from './sayTriggers.js'
 
 export const TRIGGER_DONE = SAY_DONE
@@ -34,6 +35,10 @@ export function sayOutcome({ kind }) {
 export function judgeRun(view, data) {
   const alts = (view?.alternatives?.length ? view.alternatives : view?.final ? [view.final] : [])
     .map(a => a.text).filter(Boolean)
+  if (data.pattern) { // свободная фраза: сверяем с шаблоном, а не с эталоном; «Строго» — только точные слова
+    const m = matchPattern(data.pattern, alts[0] ?? '', { exact: data.strict })
+    return { ...m, index: alts.length ? 0 : -1, text: alts[0] ?? '', consensus: false, engineFixed: [], ratioPct: Math.round(m.ratio * 100), heard: alts[0] ?? '' }
+  }
   const ref = pickReference(data.phrase, alts[0] ?? '') // числа в эталоне: лучшее из допустимых прочтений (sayReading.js)
   const m = data.strict
     ? { ...matchStrict(ref, alts[0] ?? '', view?.lastInterim ?? '', view?.history ?? [], data.keywords, data.passRatio, { exactWords: true }), index: alts.length ? 0 : -1, text: alts[0] ?? '' }

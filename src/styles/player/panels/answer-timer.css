@@ -1,0 +1,21 @@
+/* Полоска времени на ответ (AnswerTimerBar.jsx): тонкая линия по верхней кромке панели «Выбери слово» / «Собери фразу» */
+.answerTimer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  pointer-events: none;
+}
+.answerTimerFill {
+  height: 100%;
+  background: #b6fe3b;
+  transform-origin: left center;
+  transition: transform 0.1s linear, background-color 0.3s;
+}
+.answerTimerFill--low { background: #ff6b6b; }
+@media (prefers-reduced-motion: reduce) {
+  .answerTimerFill { transition: background-color 0.3s; }
+}

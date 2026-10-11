@@ -8,6 +8,7 @@ import SayActions from './SayActions.jsx'
 import SayBrowserNote from './SayBrowserNote.jsx'
 import { listenKeys, playListen } from './sayListen.js'
 import { readSayData } from '../../../../shared/lib/speech/sayPhraseData.js'
+import { signalForSlot } from '../../../../shared/lib/signalSlots.js'
 import { sayOutcome, SAY_EVENTS } from '../../../../shared/lib/speech/sayResult.js'
 import { successReply } from '../../../../shared/lib/speech/sayReply.js'
 import { takeVoice } from '../../../../shared/lib/speech/sayVoicePlan.js'
@@ -54,7 +55,9 @@ const WRONG_PAUSE_MS = 700
 // Вид круга по доступу к микрофону (нет доступа / доступ выдан / запись / «Готово») — micVisualState (sayMicState.js), класс на корне круга (SayStage); «доступ выдан» ученик видит с небольшой задержкой (useDelayedMicState). Попап перед запросом микрофона — SayMicPopup (карточка над модулем: полный в первый раз, короткий дальше; сам показывается через секунду, useSayAutoPopup). Админская палочка «засчитать» — слева вверху
 // (side="left"). Админская строка «что услышал движок» — плашка НАД панелью (вне модуля, высоту не меняет), остаётся до новой записи.
 // data-no-unlock на корне панели ЦЕЛИКОМ: ни одно касание внутри неё (микрофон, «Послушать», «Я не могу говорить») не запускает беззвучный wav/resume — аудиосессию iOS не трогаем.
-export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswer, onHeightChange, xpAmount = 0, onXpEarned }) {
+// Сигнал (signals[0] ноды, как у «Напечатай слово»): на ПЕРВОЙ неудачной попытке, где что-то распознано, вместо текстовой подсказки в ленту приходит нода-сигнал
+// (обычно голосовое учителя с эталоном), один раз за урок; пока она играет, микрофон закрыт (signalBusy), чтобы голос учителя не попал в запись.
+export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswer, onHeightChange, xpAmount = 0, onXpEarned, nodes = [], onSignalFired, hasSignalFired }) {
   const raw = node.typeData?.say_phrase
   const data = useMemo(() => readSayData(raw), [raw])
   const sp = useSayPhrase({ data, onEvent: track })
@@ -64,6 +67,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   const [show, setShow] = useState(false)
   const [closing, setClosing] = useState(false)
   const [listening, setListening] = useState(false) // играет эталон («Послушать»)
+  const [signalBusy, setSignalBusy] = useState(false) // играет сигнал-подсказка учителя: микрофон ждёт
   const [, bumpLib] = useState(0)
   const panelRef = useRef(null)
   const closingRef = useRef(false)
@@ -86,7 +90,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
   // Клип этой попытки → реестр сессии. Нет клипа (системное, Vosk не готов, тишина, лимит) — null, уйдёт обычный текст; причина — в pLog и админской диагностике
   const takeVoiceId = () => takeVoice({ voiceOn, engine: sp.engine, audio: sp.view?.audio }).id
 
-  const keys = data.listenAudio ? listenKeys(data.phrase) : []
+  const keys = data.listenAudio && !data.pattern ? listenKeys(data.phrase) : [] // у свободной фразы (pattern) эталон — только пример, «Послушать» не показываем
 
   // Неудача → в чат: реплика ученика (справа) и подсказка ведущего (слева). failNo растёт с каждой неудачей, поэтому эффект срабатывает ровно один раз на неудачу.
   // Третья засчитанная неудача (sp.exhausted): после реплики и подсказки — пауза WRONG_PAUSE_MS и закрытие по ветке «неверный»
@@ -98,6 +102,9 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
     const voiceId = takeVoiceId() // клип попытки в реестр (или причина «только текст» в диагностику); реплики нет — клип не нужен
     if (!reply) revokeSayVoice(voiceId)
     if (sp.exhausted) wrongTimer.current = setTimeout(() => finish('wrong'), (reply || hint ? HINT_DELAY_MS : 0) + WRONG_PAUSE_MS)
+    // Сигнал вместо текстовой подсказки: только на попытке, где что-то распознано, и только пока он не срабатывал за этот урок
+    const found = reply ? signalForSlot(raw?.signals, 0, nodes) : null
+    const useSignal = !!found && !hasSignalFired?.(found.node.id) && !!onSignalFired
     if (!reply && !hint) return undefined
     pendingReply.current = reply || null
     pendingVoice.current = reply ? voiceId : null
@@ -105,7 +112,8 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
       pendingReply.current = null
       pendingVoice.current = null
       if (reply) onAnswered?.(reply, 'wrong_final', false, voiceId)
-      if (hint) onAnswered?.(hint, 'hint')
+      if (useSignal) { setSignalBusy(true); onSignalFired(found.node, () => setSignalBusy(false), node.id, true) }
+      else if (hint) onAnswered?.(hint, 'hint')
     }, HINT_DELAY_MS)
     return () => clearTimeout(hintTimer.current)
   }, [failNo]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -217,7 +225,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
                 mode={mic.mode}
                 state={micState}
                 level={sp.level}
-                disabled={closing || phase === 'passed' || sp.exhausted}
+                disabled={closing || phase === 'passed' || sp.exhausted || signalBusy}
                 onTap={tapMic}
               />
             )}

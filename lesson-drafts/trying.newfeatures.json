@@ -1,0 +1,1340 @@
+{
+  "format": "pithy-lesson",
+  "version": 1,
+  "lesson": {
+    "title": "Trying · новые модули",
+    "nodeCount": 31
+  },
+  "nodes": [
+    {
+      "ref": "n1",
+      "type": "text",
+      "seq": 1,
+      "pos": [
+        0,
+        0
+      ],
+      "data": {
+        "content": "Короткий тест новых модулей: несколько ответов, таймер, своя фраза и голос после ошибки 🧪",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 90,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 46,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 29,
+            "opacity": 1
+          },
+          {
+            "end": 46,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 29,
+            "opacity": 1
+          },
+          {
+            "end": 54,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 48,
+            "opacity": 1
+          },
+          {
+            "end": 54,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 48,
+            "opacity": 1
+          },
+          {
+            "end": 66,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 56,
+            "opacity": 1
+          },
+          {
+            "end": 66,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 56,
+            "opacity": 1
+          },
+          {
+            "end": 87,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 69,
+            "opacity": 1
+          },
+          {
+            "end": 87,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 69,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n2"
+        }
+      ]
+    },
+    {
+      "ref": "n2",
+      "type": "system",
+      "seq": 2,
+      "pos": [
+        560,
+        null
+      ],
+      "data": {
+        "content": "Часть 1 · несколько верных ответов",
+        "highlights": [
+          {
+            "end": 34,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n3"
+        }
+      ]
+    },
+    {
+      "ref": "n3",
+      "type": "text",
+      "seq": 3,
+      "pos": [
+        1120,
+        0
+      ],
+      "data": {
+        "content": "Новое: у этого задания несколько верных ответов. Собери любой порядок слов 👇",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 77,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 47,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 23,
+            "opacity": 1
+          },
+          {
+            "end": 47,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 23,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n4"
+        }
+      ]
+    },
+    {
+      "ref": "n4",
+      "type": "text",
+      "seq": 4,
+      "pos": [
+        1680,
+        0
+      ],
+      "data": {
+        "content": "Маша спрашивает, пробуешь ли ты новое. Ответь: «да, я пробую каждый день»",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 73,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 73,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 47,
+            "opacity": 1
+          },
+          {
+            "end": 73,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 47,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n5"
+        }
+      ]
+    },
+    {
+      "ref": "n5",
+      "type": "phrase_assembly",
+      "seq": 5,
+      "pos": [
+        2240,
+        null
+      ],
+      "data": {
+        "words": [
+          "Yes",
+          "I",
+          "try",
+          "every",
+          "day"
+        ],
+        "distractors": [
+          {
+            "text": "tried"
+          },
+          {
+            "text": "she"
+          }
+        ],
+        "responseWrong": "Проверь форму глагола с I",
+        "answers": [
+          [
+            "I",
+            "try",
+            "every",
+            "day"
+          ],
+          [
+            "Every",
+            "day",
+            "I",
+            "try"
+          ]
+        ]
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n6"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n7"
+        }
+      ]
+    },
+    {
+      "ref": "n6",
+      "type": "reaction",
+      "seq": 6,
+      "pos": [
+        2800,
+        null
+      ],
+      "data": {
+        "emoji": "👍",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n8"
+        }
+      ]
+    },
+    {
+      "ref": "n7",
+      "type": "text",
+      "seq": 30,
+      "pos": [
+        3360,
+        0
+      ],
+      "data": {
+        "content": "Подойдут и Yes I try every day, и I try every day, и Every day I try",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 68,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 30,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 11,
+            "opacity": 1
+          },
+          {
+            "end": 30,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 11,
+            "opacity": 1
+          },
+          {
+            "end": 49,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 34,
+            "opacity": 1
+          },
+          {
+            "end": 49,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 34,
+            "opacity": 1
+          },
+          {
+            "end": 68,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 53,
+            "opacity": 1
+          },
+          {
+            "end": 68,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 53,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n8"
+        }
+      ]
+    },
+    {
+      "ref": "n8",
+      "type": "text",
+      "seq": 7,
+      "pos": [
+        3920,
+        0
+      ],
+      "data": {
+        "content": "Любой из трёх порядков засчитался бы 😏",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 39,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": "n9"
+        }
+      ]
+    },
+    {
+      "ref": "n9",
+      "type": "system",
+      "seq": 8,
+      "pos": [
+        5780,
+        null
+      ],
+      "data": {
+        "content": "Часть 2 · на время ⏱",
+        "highlights": [
+          {
+            "end": 20,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n10"
+        }
+      ]
+    },
+    {
+      "ref": "n10",
+      "type": "text",
+      "seq": 9,
+      "pos": [
+        6340,
+        0
+      ],
+      "data": {
+        "content": "Новое: таймер на ответ. Не успел — без штрафа, вопрос идёт дальше ⏱",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 67,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 22,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 7,
+            "opacity": 1
+          },
+          {
+            "end": 22,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 7,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n11"
+        }
+      ]
+    },
+    {
+      "ref": "n11",
+      "type": "text",
+      "seq": 10,
+      "pos": [
+        6900,
+        0
+      ],
+      "data": {
+        "content": "«Вчера она пыталась»",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 20,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 20,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 1
+          },
+          {
+            "end": 20,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1000,
+          "then": "n12"
+        }
+      ]
+    },
+    {
+      "ref": "n12",
+      "type": "word_choice",
+      "seq": 11,
+      "pos": [
+        7460,
+        null
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "She tries",
+            "isCorrect": false
+          },
+          {
+            "text": "She tried",
+            "isCorrect": true
+          },
+          {
+            "text": "She will try",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "timeLimitSec": 6
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n14"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n13"
+        }
+      ]
+    },
+    {
+      "ref": "n13",
+      "type": "text",
+      "seq": 29,
+      "pos": [
+        8020,
+        0
+      ],
+      "data": {
+        "content": "Вчера — это tried: She tried",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 28,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 17,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 12,
+            "opacity": 1
+          },
+          {
+            "end": 17,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 12,
+            "opacity": 1
+          },
+          {
+            "end": 28,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 19,
+            "opacity": 1
+          },
+          {
+            "end": 28,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 19,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n14"
+        }
+      ]
+    },
+    {
+      "ref": "n14",
+      "type": "text",
+      "seq": 12,
+      "pos": [
+        8580,
+        0
+      ],
+      "data": {
+        "content": "«Завтра он попробует суп»",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 25,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 25,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 1
+          },
+          {
+            "end": 25,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1000,
+          "then": "n15"
+        }
+      ]
+    },
+    {
+      "ref": "n15",
+      "type": "phrase_assembly",
+      "seq": 13,
+      "pos": [
+        9140,
+        null
+      ],
+      "data": {
+        "words": [
+          "He",
+          "will",
+          "try",
+          "soup"
+        ],
+        "distractors": [
+          {
+            "text": "tried"
+          },
+          {
+            "text": "tries"
+          },
+          {
+            "text": "we"
+          }
+        ],
+        "responseWrong": "Для завтра нужно will",
+        "timeLimitSec": 12
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n17"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n16"
+        }
+      ]
+    },
+    {
+      "ref": "n16",
+      "type": "text",
+      "seq": 28,
+      "pos": [
+        9700,
+        0
+      ],
+      "data": {
+        "content": "Завтра — это will try: He will try soup",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 39,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 21,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 13,
+            "opacity": 1
+          },
+          {
+            "end": 21,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 13,
+            "opacity": 1
+          },
+          {
+            "end": 39,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 23,
+            "opacity": 1
+          },
+          {
+            "end": 39,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 23,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n17"
+        }
+      ]
+    },
+    {
+      "ref": "n17",
+      "type": "text",
+      "seq": 14,
+      "pos": [
+        10260,
+        0
+      ],
+      "data": {
+        "content": "Время вышло или нет — штрафа ни там, ни там 🙂",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 46,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n18"
+        }
+      ]
+    },
+    {
+      "ref": "n18",
+      "type": "system",
+      "seq": 15,
+      "pos": [
+        12120,
+        null
+      ],
+      "data": {
+        "content": "Часть 3 · своя фраза",
+        "highlights": [
+          {
+            "end": 20,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n19"
+        }
+      ]
+    },
+    {
+      "ref": "n19",
+      "type": "text",
+      "seq": 16,
+      "pos": [
+        12680,
+        0
+      ],
+      "data": {
+        "content": "Новое: свободная фраза. Говори своё, приложение сверит по шаблону 🎤",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 68,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 22,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 7,
+            "opacity": 1
+          },
+          {
+            "end": 22,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 7,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n20"
+        }
+      ]
+    },
+    {
+      "ref": "n20",
+      "type": "text",
+      "seq": 17,
+      "pos": [
+        13240,
+        0
+      ],
+      "data": {
+        "content": "Скажи вслух, что ты пытаешься делать каждый день. Начни с I try to…",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 67,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 66,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 58,
+            "opacity": 1
+          },
+          {
+            "end": 66,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 58,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n21"
+        }
+      ]
+    },
+    {
+      "ref": "n21",
+      "type": "say_phrase",
+      "seq": 18,
+      "pos": [
+        13800,
+        null
+      ],
+      "data": {
+        "voiceReply": false,
+        "phrase": "I try to wake up early",
+        "translation": "Я пытаюсь вставать пораньше",
+        "pattern": "I (try|am trying) to **",
+        "hintMismatch": "Начни с «I try to» и добавь своё действие, любое"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n22"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n23"
+        }
+      ]
+    },
+    {
+      "ref": "n22",
+      "type": "text",
+      "seq": 19,
+      "pos": [
+        14360,
+        0
+      ],
+      "data": {
+        "content": "Засчиталось: это твоя фраза, не моя 😄",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 38,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n24"
+        }
+      ]
+    },
+    {
+      "ref": "n23",
+      "type": "text",
+      "seq": 27,
+      "pos": [
+        14920,
+        0
+      ],
+      "data": {
+        "content": "Шаблон такой: I try to и любое твоё действие, например I try to wake up early",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 77,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 22,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 14,
+            "opacity": 1
+          },
+          {
+            "end": 22,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 14,
+            "opacity": 1
+          },
+          {
+            "end": 77,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 55,
+            "opacity": 1
+          },
+          {
+            "end": 77,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 55,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 3000,
+          "then": "n24"
+        }
+      ]
+    },
+    {
+      "ref": "n24",
+      "type": "system",
+      "seq": 20,
+      "pos": [
+        16780,
+        null
+      ],
+      "data": {
+        "content": "Часть 4 · голос после первой ошибки",
+        "highlights": [
+          {
+            "end": 35,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n25"
+        }
+      ]
+    },
+    {
+      "ref": "n25",
+      "type": "text",
+      "seq": 21,
+      "pos": [
+        17340,
+        0
+      ],
+      "data": {
+        "content": "Новое: если с первого раза не вышло, фразу скажет голосом учитель",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 65,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 65,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 37,
+            "opacity": 1
+          },
+          {
+            "end": 65,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 37,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n26"
+        }
+      ]
+    },
+    {
+      "ref": "n26",
+      "type": "text",
+      "seq": 22,
+      "pos": [
+        17900,
+        0
+      ],
+      "data": {
+        "content": "Маша зовёт на гончарку 🏺 Ответь ей вслух: «мы попробуем гончарное дело»",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 72,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 72,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 43,
+            "opacity": 1
+          },
+          {
+            "end": 72,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 43,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n27"
+        }
+      ]
+    },
+    {
+      "ref": "n27",
+      "type": "say_phrase",
+      "seq": 23,
+      "pos": [
+        18460,
+        null
+      ],
+      "data": {
+        "voiceReply": true,
+        "phrase": "We will try pottery",
+        "translation": "Мы попробуем гончарное дело",
+        "keywords": "pottery",
+        "threshold": 70,
+        "signals": [
+          {
+            "slot": 0,
+            "ref": "n29"
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n28"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n30"
+        }
+      ]
+    },
+    {
+      "ref": "n28",
+      "type": "text",
+      "seq": 24,
+      "pos": [
+        19020,
+        0
+      ],
+      "data": {
+        "content": "Вот теперь это звучит 🔥",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 24,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n31"
+        }
+      ]
+    },
+    {
+      "ref": "n29",
+      "type": "audio",
+      "seq": 31,
+      "pos": [
+        18460,
+        480
+      ],
+      "note": "ОЗВУЧКА: Гончарное дело по-английски — pottery. Слушай: We will try pottery",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Гончарное дело по-английски — pottery. Слушай: We will try pottery",
+        "showText": true,
+        "highlights": [
+          {
+            "end": 66,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 37,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 30,
+            "opacity": 1
+          },
+          {
+            "end": 37,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 30,
+            "opacity": 1
+          },
+          {
+            "end": 66,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 47,
+            "opacity": 1
+          },
+          {
+            "end": 66,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 47,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n30",
+      "type": "text",
+      "seq": 26,
+      "pos": [
+        19580,
+        0
+      ],
+      "data": {
+        "content": "Эталон: We will try pottery. Гончарка — это pottery",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 51,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 27,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 8,
+            "opacity": 1
+          },
+          {
+            "end": 27,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 8,
+            "opacity": 1
+          },
+          {
+            "end": 51,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 44,
+            "opacity": 1
+          },
+          {
+            "end": 51,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 44,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n31"
+        }
+      ]
+    },
+    {
+      "ref": "n31",
+      "type": "text",
+      "seq": 25,
+      "pos": [
+        20140,
+        0
+      ],
+      "data": {
+        "content": "Тест окончен. Всё, что выше, — новые модули 🧪",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 46,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": null
+        }
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone-newfeat-1",
+      "x": -150,
+      "y": null,
+      "width": 4528,
+      "height": null,
+      "label": "Часть 1 · несколько верных ответов",
+      "color": "#b6fe3b"
+    },
+    {
+      "id": "zone-newfeat-2",
+      "x": 5630,
+      "y": null,
+      "width": 5088,
+      "height": null,
+      "label": "Часть 2 · на время",
+      "color": "#5fb8ff"
+    },
+    {
+      "id": "zone-newfeat-3",
+      "x": 11970,
+      "y": null,
+      "width": 3408,
+      "height": null,
+      "label": "Часть 3 · своя фраза",
+      "color": "#ff9f5f"
+    },
+    {
+      "id": "zone-newfeat-4",
+      "x": 16630,
+      "y": null,
+      "width": 3968,
+      "height": null,
+      "label": "Часть 4 · голос после первой ошибки",
+      "color": "#ff6fae"
+    }
+  ]
+}

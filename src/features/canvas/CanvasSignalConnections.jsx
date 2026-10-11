@@ -1,9 +1,9 @@
 import { memo } from 'react'
 import { nodeEntry, nodeBox, signalSlotAnchor } from './canvasPorts.js'
 import { connectionPath } from './canvasLinePath.js'
-import { tableSlots, phraseAssemblySlots, typeWordSlots } from '../../shared/lib/signalSlots.js'
+import { tableSlots, phraseAssemblySlots, typeWordSlots, sayPhraseSlots } from '../../shared/lib/signalSlots.js'
 
-// Дашед-связи «сигналов ошибок» (signals[] у table/phrase_assembly/type_word, см.
+// Дашед-связи «сигналов ошибок» (signals[] у table/phrase_assembly/type_word/say_phrase, см.
 // PROJECT.md) — визуально ДРУГОЙ вид линии, чем обычные сплошные бэзье
 // переходов (CanvasConnections.jsx): пунктир + подпись слота + значок
 // возврата у входа в ноду-сигнал (означает, что поток идёт «туда и
@@ -24,6 +24,7 @@ function slotsOf(node) {
   if (node.type === 'table') return tableSlots(t.answer, t.table?.cells)
   if (node.type === 'phrase_assembly') return phraseAssemblySlots(t.words)
   if (node.type === 'type_word') return typeWordSlots(t.word)
+  if (node.type === 'say_phrase') return sayPhraseSlots()
   return []
 }
 
@@ -31,7 +32,7 @@ function slotsOf(node) {
 // виден пикер NodeSignalsPicker.jsx: у phrase_assembly и type_word всегда, у table —
 // только в ручном режиме (в «Авто»/«Показ» слотов ответа нет вовсе)
 function isSignalCapable(node) {
-  if (node.type === 'phrase_assembly' || node.type === 'type_word') return true
+  if (node.type === 'phrase_assembly' || node.type === 'type_word' || node.type === 'say_phrase') return true
   if (node.type === 'table') return (node.typeData?.table?.mode ?? 'dictator') === 'manual'
   return false
 }
@@ -42,7 +43,7 @@ function CanvasSignalConnections({ nodes, triggerMeasures = {}, signalMeasures =
   const allBoxes = [...boxes.values()]
 
   const items = nodes.flatMap(node => {
-    if (node.type !== 'table' && node.type !== 'phrase_assembly' && node.type !== 'type_word') return []
+    if (node.type !== 'table' && node.type !== 'phrase_assembly' && node.type !== 'type_word' && node.type !== 'say_phrase') return []
     const signals = node.typeData?.[node.type]?.signals ?? []
     if (!signals.length) return []
     const slots = slotsOf(node)

@@ -14,6 +14,7 @@ export function userReply(verdict) {
  * Нет вердикта (админская палочка «засчитать», пропуск) или нет услышанного текста — эталон как был.
  */
 export function successReply(verdict, phrase) {
+  if (verdict?.pattern) return userReply(verdict) ?? phrase // шаблон: в чат идёт то, что ученик сказал сам, а не пример-эталон
   if (!verdict || !Array.isArray(verdict.missed) || verdict.missed.length === 0) return phrase
   return userReply(verdict) ?? phrase
 }

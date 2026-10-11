@@ -1,3 +1,4 @@
+import { parsePattern } from '../../../shared/lib/speech/sayPattern.js'
 import { readSayData, parseKeywords, keywordsMissingInPhrase, THRESHOLD_MIN, THRESHOLD_MAX } from '../../../shared/lib/speech/sayPhraseData.js'
 
 const HINT_FIELDS = ['hintSilence', 'hintMismatch', 'hintPartial']
@@ -23,6 +24,13 @@ export function checkSayPhrase(nodes, start) {
     for (const f of HINT_FIELDS) {
       const bad = [...new Set(String(d[f] ?? '').match(/\{[^{}]*\}/g) ?? [])].filter(x => x !== '{ok}' && x !== '{missed}')
       if (bad.length) out.push(`${n.ref} say_phrase: в ${f} неизвестные подстановки ${bad.join(', ')} — работают только {ok} и {missed}`)
+    }
+    // Свободная фраза (pattern): битый шаблон молча заменяется проверкой по эталону; голосовое с текстом у неё не записывается (системное распознавание)
+    if (d.pattern && !parsePattern(d.pattern).ok) out.push(`${n.ref} say_phrase: шаблон pattern не разобрался (${parsePattern(d.pattern).error}) — проверка пойдёт по эталону`)
+    if (readSayData(d).pattern && d.voiceReply === true) out.push(`${n.ref} say_phrase: у свободной фразы (pattern) voiceReply не работает — «голосовое с текстом» пишет только Vosk, а шаблон идёт на системное распознавание`)
+    for (const s of d.signals ?? []) {
+      if (s.slot !== 0) out.push(`${n.ref} say_phrase: у «Сказать фразу» один слот сигнала (0 — первая неудачная попытка), а указан ${s.slot}`)
+      if (s.ref && !nodes.some(x => x.ref === s.ref)) out.push(`${n.ref} say_phrase: сигнал ссылается на несуществующую ноду ${s.ref}`)
     }
     const parents = parentsOf.get(n.ref) ?? []
     if (n.ref === start?.ref) out.push(`${n.ref} say_phrase: стоит первой нодой урока — сначала нужна текстовая нода-задание`)

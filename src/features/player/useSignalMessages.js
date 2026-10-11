@@ -70,9 +70,11 @@ export function useSignalMessages() {
   // Удобный вход для панелей: exerciseNodeId — id САМОЙ ноды упражнения
   // (table/phrase_assembly), не ноды-сигнала — ищем её индекс в visibleNodes
   // сами, вызывающему коду (LessonPlayer.jsx) не нужно знать про afterVisibleCount
-  const fireForExercise = useCallback((node, onReleased, exerciseNodeId, visibleNodes) => {
+  // after=true — сигнал встаёт ПОСЛЕ слота упражнения (а не перед ним): так у «Сказать фразу» голос учителя приходит после
+  // реплики ученика, которую он только что сказал, а не над ней
+  const fireForExercise = useCallback((node, onReleased, exerciseNodeId, visibleNodes, after = false) => {
     const idx = visibleNodes.findIndex(n => n.id === exerciseNodeId)
-    fire(node, onReleased, idx >= 0 ? idx : visibleNodes.length)
+    fire(node, onReleased, idx >= 0 ? idx + (after ? 1 : 0) : visibleNodes.length)
   }, [fire])
 
   return { items, fire, fireForExercise, onMessageDone: release, hasFired }
