@@ -46,3 +46,11 @@ describe('ритм: подсказки ветки ошибки', () => {
     expect(checkFlow(nodes)).toEqual([])
   })
 })
+
+describe('базовая подложка текста', () => {
+  const base = { start: 0, end: 5, mode: 'text', color: '#ffffff', opacity: 0.75 }
+  it('нода с текстом без базового highlight — замечание; с ним — нет', () => {
+    expect(checkFlow([{ ref: 'a', type: 'text', data: { content: 'Текст' }, triggers: [] }]).join()).toContain('[R-base] a')
+    expect(checkFlow([{ ref: 'a', type: 'text', data: { content: 'Текст', highlights: [base] }, triggers: [] }])).toEqual([])
+  })
+})

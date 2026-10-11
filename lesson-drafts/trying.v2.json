@@ -216,7 +216,7 @@
         0
       ],
       "data": {
-        "content": "Давай попробуем печатать ⌨️ Тапай по светящимся буквам внизу. Как будет {t:«пытаюсь»}? Звучит как «трай»",
+        "content": "Давай попробуем печатать ⌨️ Тапай по светящимся буквам внизу. Как будет {t:«пытаюсь»}? Звучит как трай",
         "hardWrap": false
       },
       "triggers": [
@@ -1144,7 +1144,16 @@
       ],
       "data": {
         "content": "С he, she, it у слова меняется последняя буква 🤔",
-        "hardWrap": false
+        "hardWrap": false,
+        "highlights": [
+          {
+            "start": 0,
+            "end": 49,
+            "mode": "text",
+            "color": "#ffffff",
+            "opacity": 0.75
+          }
+        ]
       },
       "triggers": [
         {
@@ -1163,44 +1172,44 @@
         480
       ],
       "data": {
-        "content": "Ничего, непросто 😅 С he / she / it в try меняем y на i и добавляем es",
+        "content": "Непросто, согласен 😅 С he / she / it в try меняем y на i и добавляем es",
         "hardWrap": false,
         "highlights": [
           {
             "mode": "text",
             "color": "#ffffff",
             "start": 0,
-            "end": 70,
+            "end": 72,
             "opacity": 0.75
           },
           {
             "mode": "text",
             "color": "#b6fe3b",
-            "start": 38,
-            "end": 41,
+            "start": 40,
+            "end": 43,
             "opacity": 1
           },
           {
             "mode": "bold",
             "color": "#b6fe3b",
-            "start": 38,
-            "end": 41,
+            "start": 40,
+            "end": 43,
             "opacity": 1
           },
           {
             "mode": "bold",
-            "start": 49,
-            "end": 50
+            "start": 51,
+            "end": 52
           },
           {
             "mode": "bold",
-            "start": 54,
-            "end": 55
+            "start": 56,
+            "end": 57
           },
           {
             "mode": "bold",
-            "start": 68,
-            "end": 70
+            "start": 70,
+            "end": 72
           }
         ]
       },
@@ -2547,15 +2556,15 @@
         0
       ],
       "data": {
-        "content": "Ну вот, уже звучит 😏",
+        "content": "Ну вот, звучит 🙌",
         "hardWrap": false,
         "highlights": [
           {
+            "start": 0,
+            "end": 17,
             "mode": "text",
             "color": "#ffffff",
-            "opacity": 0.75,
-            "start": 0,
-            "end": 21
+            "opacity": 0.75
           }
         ]
       },
@@ -3039,12 +3048,12 @@
         0
       ],
       "data": {
-        "content": "Вот это темп 😏",
+        "content": "Ого, быстро 🚀",
         "hardWrap": false,
         "highlights": [
           {
             "start": 0,
-            "end": 15,
+            "end": 14,
             "mode": "text",
             "color": "#ffffff",
             "opacity": 0.75
@@ -3211,38 +3220,38 @@
         480
       ],
       "data": {
-        "content": "Ничего 😅 Тут y остаётся на месте, а дальше просто ing: try → trying",
+        "content": "Не страшно 😅 Тут y остаётся на месте, а дальше просто ing: try → trying",
         "hardWrap": false,
         "highlights": [
           {
             "mode": "text",
             "color": "#ffffff",
             "start": 0,
-            "end": 68,
+            "end": 72,
             "opacity": 0.75
           },
           {
             "mode": "bold",
-            "start": 14,
-            "end": 15
+            "start": 18,
+            "end": 19
           },
           {
             "mode": "bold",
-            "start": 51,
-            "end": 54
+            "start": 55,
+            "end": 58
           },
           {
             "mode": "text",
             "color": "#b6fe3b",
-            "start": 56,
-            "end": 68,
+            "start": 60,
+            "end": 72,
             "opacity": 1
           },
           {
             "mode": "bold",
             "color": "#b6fe3b",
-            "start": 56,
-            "end": 68,
+            "start": 60,
+            "end": 72,
             "opacity": 1
           }
         ]
@@ -3924,7 +3933,7 @@
         480
       ],
       "data": {
-        "content": "Ничего. Вот пример: {g:I try to cook}. Своё слово после {g:try to} — любое",
+        "content": "Смотри: {g:I try to cook}. Своё слово после {g:try to} — любое",
         "hardWrap": false
       },
       "triggers": [
@@ -3944,7 +3953,7 @@
         0
       ],
       "data": {
-        "content": "Раунд на время ⏱ Не успеешь — без штрафа\n{t:«брат каждое утро пытается встать пораньше»}",
+        "content": "Раунд на время ⏱ Не успеешь — без штрафа\nКстати, мой брат: {t:«он каждое утро пытается встать пораньше»}",
         "hardWrap": true
       },
       "triggers": [
@@ -4338,7 +4347,7 @@
         0
       ],
       "data": {
-        "content": "Мини-сцена 😄 Маша: «Завтра идём на гончарку, ты с нами? 🏺»\nОтветь вслух: {t:«мы попробуем гончарное дело»}",
+        "content": "Мини-сцена 😄 Маша пишет: завтра идём на гончарку, ты с нами? 🏺\nОтветь вслух: {t:«мы попробуем гончарное дело»}",
         "hardWrap": true
       },
       "triggers": [
@@ -4756,7 +4765,7 @@
         480
       ],
       "data": {
-        "content": "Ничего, держи пример: {g:I am trying to relax}",
+        "content": "Смотри пример: {g:I am trying to relax}",
         "hardWrap": false
       },
       "triggers": [

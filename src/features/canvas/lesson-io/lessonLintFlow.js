@@ -82,6 +82,22 @@ function checkTautology(nodes) {
   return out
 }
 
+const BASE = h => h.mode === 'text' && String(h.color).toLowerCase() === '#ffffff' && h.opacity === 0.75
+
+/** У каждой ноды с текстом базовый серый highlight (#ffffff, 0.75) покрывает весь текст (если нет — importLesson/редактор покажут текст без подложки) */
+function checkBaseHighlight(nodes) {
+  const out = []
+  for (const n of nodes) {
+    const d = n.data ?? {}
+    const text = d.content ?? d.text ?? d.caption
+    if (typeof text !== 'string' || !text.length || (n.type === 'audio' && d.showText === false)) continue
+    const covered = new Array(text.length).fill(false)
+    for (const h of (d.highlights ?? []).filter(BASE)) for (let i = Math.max(0, h.start); i < Math.min(text.length, h.end); i++) covered[i] = true
+    if (covered.some(c => !c)) out.push(`[R-base] ${n.ref} (${n.type}): нет базового серого highlight на весь текст — используй разметку {g:..} (она добавит подложку) или добавь {mode:text,color:#ffffff,opacity:0.75}`)
+  }
+  return out
+}
+
 export function checkFlow(nodes) {
-  return [...checkTextRuns(nodes), ...checkTautology(nodes)]
+  return [...checkTextRuns(nodes), ...checkTautology(nodes), ...checkBaseHighlight(nodes)]
 }
