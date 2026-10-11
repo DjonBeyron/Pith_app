@@ -15,11 +15,10 @@ describe('nodesNeedingAudioMeta', () => {
     expect(out).toEqual([{ nodeId: 'a', seq: 1, fileId: 'f1', url: 'https://r2.example/f1.mp3', localFile: null }])
   })
 
-  it('ноды без файла и voice_record — пропускаются', () => {
+  it('ноды без файла и других типов — пропускаются', () => {
     const out = nodesNeedingAudioMeta([
       node('a', 'audio', {}),
       node('b', 'audio', { file_id: null }),
-      node('c', 'voice_record', { file_id: 'f1' }),
       node('d', 'video', { file_id: 'f1' }),
     ], files)
     expect(out).toEqual([])

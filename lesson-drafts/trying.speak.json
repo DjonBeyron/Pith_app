@@ -3,7 +3,7 @@
   "version": 1,
   "lesson": {
     "title": "Trying · говорим",
-    "nodeCount": 89
+    "nodeCount": 93
   },
   "nodes": [
     {
@@ -551,7 +551,7 @@
     {
       "ref": "n9",
       "type": "text",
-      "seq": 89,
+      "seq": 93,
       "pos": [
         4480,
         480
@@ -585,7 +585,7 @@
     {
       "ref": "n10",
       "type": "text",
-      "seq": 88,
+      "seq": 92,
       "pos": [
         3920,
         480
@@ -877,7 +877,7 @@
     {
       "ref": "n16",
       "type": "text",
-      "seq": 87,
+      "seq": 91,
       "pos": [
         6720,
         480
@@ -1013,7 +1013,7 @@
     {
       "ref": "n19",
       "type": "text",
-      "seq": 86,
+      "seq": 90,
       "pos": [
         8400,
         480
@@ -1194,7 +1194,7 @@
     {
       "ref": "n24",
       "type": "text",
-      "seq": 85,
+      "seq": 89,
       "pos": [
         10640,
         480
@@ -1492,7 +1492,7 @@
     {
       "ref": "n33",
       "type": "text",
-      "seq": 84,
+      "seq": 88,
       "pos": [
         17160,
         480
@@ -1633,7 +1633,7 @@
     {
       "ref": "n37",
       "type": "text",
-      "seq": 83,
+      "seq": 87,
       "pos": [
         18840,
         480
@@ -1786,7 +1786,7 @@
     {
       "ref": "n41",
       "type": "text",
-      "seq": 82,
+      "seq": 86,
       "pos": [
         20520,
         480
@@ -1941,7 +1941,7 @@
     {
       "ref": "n45",
       "type": "text",
-      "seq": 81,
+      "seq": 85,
       "pos": [
         22200,
         480
@@ -2130,7 +2130,7 @@
     {
       "ref": "n50",
       "type": "text",
-      "seq": 80,
+      "seq": 84,
       "pos": [
         24440,
         480
@@ -2285,7 +2285,7 @@
     {
       "ref": "n54",
       "type": "text",
-      "seq": 79,
+      "seq": 83,
       "pos": [
         26120,
         480
@@ -2440,7 +2440,7 @@
     {
       "ref": "n58",
       "type": "text",
-      "seq": 78,
+      "seq": 82,
       "pos": [
         27800,
         480
@@ -2633,7 +2633,7 @@
     {
       "ref": "n63",
       "type": "text",
-      "seq": 77,
+      "seq": 81,
       "pos": [
         31900,
         480
@@ -2771,7 +2771,7 @@
     {
       "ref": "n67",
       "type": "text",
-      "seq": 76,
+      "seq": 80,
       "pos": [
         33580,
         480
@@ -2907,7 +2907,7 @@
     {
       "ref": "n70",
       "type": "text",
-      "seq": 75,
+      "seq": 79,
       "pos": [
         34700,
         480
@@ -3043,7 +3043,7 @@
     {
       "ref": "n73",
       "type": "text",
-      "seq": 74,
+      "seq": 78,
       "pos": [
         35820,
         480
@@ -3214,10 +3214,181 @@
     },
     {
       "ref": "n78",
-      "type": "text",
+      "type": "audio",
       "seq": 62,
       "pos": [
         39360,
+        null
+      ],
+      "note": "ОЗВУЧКА: Гончарное дело по-английски — pottery. Слушай ещё раз: pottery. Какое слово прозвучало?",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Гончарное дело по-английски — pottery. Слушай ещё раз: pottery. Какое слово прозвучало?",
+        "showText": true,
+        "highlights": [
+          {
+            "end": 87,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 37,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 30,
+            "opacity": 1
+          },
+          {
+            "end": 37,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 30,
+            "opacity": 1
+          },
+          {
+            "end": 62,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 55,
+            "opacity": 1
+          },
+          {
+            "end": 62,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 55,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n79"
+        }
+      ]
+    },
+    {
+      "ref": "n79",
+      "type": "word_choice",
+      "seq": 63,
+      "pos": [
+        39920,
+        null
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "poetry",
+            "isCorrect": false
+          },
+          {
+            "text": "pottery",
+            "isCorrect": true
+          },
+          {
+            "text": "pottage",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n81"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n80"
+        }
+      ]
+    },
+    {
+      "ref": "n80",
+      "type": "text",
+      "seq": 77,
+      "pos": [
+        40480,
+        0
+      ],
+      "data": {
+        "content": "Это pottery, звучит как «ПО-тэ-ри»: ударение на первый слог",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 59,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 11,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 4,
+            "opacity": 1
+          },
+          {
+            "end": 11,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 4,
+            "opacity": 1
+          },
+          {
+            "end": 34,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 24,
+            "opacity": 1
+          },
+          {
+            "end": 34,
+            "mode": "bold",
+            "color": "#ffffff",
+            "start": 24,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n82"
+        }
+      ]
+    },
+    {
+      "ref": "n81",
+      "type": "reaction",
+      "seq": 64,
+      "pos": [
+        41040,
+        null
+      ],
+      "data": {
+        "emoji": "🏺",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n82"
+        }
+      ]
+    },
+    {
+      "ref": "n82",
+      "type": "text",
+      "seq": 65,
+      "pos": [
+        41600,
         0
       ],
       "data": {
@@ -3251,16 +3422,16 @@
         {
           "if": "timer",
           "ms": 1800,
-          "then": "n79"
+          "then": "n83"
         }
       ]
     },
     {
-      "ref": "n79",
+      "ref": "n83",
       "type": "say_phrase",
-      "seq": 63,
+      "seq": 66,
       "pos": [
-        39920,
+        42160,
         null
       ],
       "data": {
@@ -3273,20 +3444,20 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n80"
+          "then": "n84"
         },
         {
           "if": "say_wrong",
-          "then": "n81"
+          "then": "n85"
         }
       ]
     },
     {
-      "ref": "n80",
+      "ref": "n84",
       "type": "text",
-      "seq": 64,
+      "seq": 67,
       "pos": [
-        40480,
+        42720,
         0
       ],
       "data": {
@@ -3306,73 +3477,80 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n82"
+          "then": "n87"
         }
       ]
     },
     {
-      "ref": "n81",
-      "type": "text",
-      "seq": 73,
+      "ref": "n85",
+      "type": "audio",
+      "seq": 75,
       "pos": [
-        40480,
-        480
+        43280,
+        null
       ],
+      "note": "ОЗВУЧКА: Слушай, как это звучит: We will try pottery",
+      "needs": "audio — озвучка реплики",
       "data": {
-        "content": "Эталон: We will try pottery. Будущее — это will try",
-        "hardWrap": false,
+        "text": "Слушай, как это звучит: We will try pottery",
+        "showText": true,
         "highlights": [
           {
-            "end": 51,
+            "end": 43,
             "mode": "text",
             "color": "#ffffff",
             "start": 0,
             "opacity": 0.75
           },
           {
-            "end": 27,
+            "end": 43,
             "mode": "text",
             "color": "#b6fe3b",
-            "start": 8,
+            "start": 24,
             "opacity": 1
           },
           {
-            "end": 27,
+            "end": 43,
             "mode": "bold",
             "color": "#b6fe3b",
-            "start": 8,
-            "opacity": 1
-          },
-          {
-            "end": 51,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 43,
-            "opacity": 1
-          },
-          {
-            "end": 51,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 43,
+            "start": 24,
             "opacity": 1
           }
         ]
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2800,
-          "then": "n82"
+          "if": "played",
+          "then": "n86"
         }
       ]
     },
     {
-      "ref": "n82",
-      "type": "text",
-      "seq": 65,
+      "ref": "n86",
+      "type": "reaction",
+      "seq": 76,
       "pos": [
-        41040,
+        43840,
+        null
+      ],
+      "data": {
+        "emoji": "😉",
+        "target": "teacher"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n87"
+        }
+      ]
+    },
+    {
+      "ref": "n87",
+      "type": "text",
+      "seq": 68,
+      "pos": [
+        44400,
         0
       ],
       "data": {
@@ -3406,16 +3584,16 @@
         {
           "if": "timer",
           "ms": 2400,
-          "then": "n83"
+          "then": "n88"
         }
       ]
     },
     {
-      "ref": "n83",
+      "ref": "n88",
       "type": "text",
-      "seq": 66,
+      "seq": 69,
       "pos": [
-        41600,
+        44960,
         0
       ],
       "data": {
@@ -3449,16 +3627,16 @@
         {
           "if": "timer",
           "ms": 1800,
-          "then": "n84"
+          "then": "n89"
         }
       ]
     },
     {
-      "ref": "n84",
+      "ref": "n89",
       "type": "say_phrase",
-      "seq": 67,
+      "seq": 70,
       "pos": [
-        42160,
+        45520,
         null
       ],
       "data": {
@@ -3471,20 +3649,20 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n85"
+          "then": "n90"
         },
         {
           "if": "say_wrong",
-          "then": "n86"
+          "then": "n91"
         }
       ]
     },
     {
-      "ref": "n85",
+      "ref": "n90",
       "type": "text",
-      "seq": 68,
+      "seq": 71,
       "pos": [
-        42720,
+        46080,
         0
       ],
       "data": {
@@ -3504,185 +3682,147 @@
         {
           "if": "timer",
           "ms": 1800,
-          "then": "n87"
+          "then": "n93"
         }
       ]
     },
     {
-      "ref": "n86",
-      "type": "text",
-      "seq": 72,
+      "ref": "n91",
+      "type": "audio",
+      "seq": 73,
       "pos": [
-        42720,
-        480
-      ],
-      "data": {
-        "content": "Эталон: She is trying to help",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 29,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 29,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 8,
-            "opacity": 1
-          },
-          {
-            "end": 29,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 8,
-            "opacity": 1
-          }
-        ]
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 2400,
-          "then": "n87"
-        }
-      ]
-    },
-    {
-      "ref": "n87",
-      "type": "text",
-      "seq": 69,
-      "pos": [
-        43280,
-        0
-      ],
-      "data": {
-        "content": "И напоследок твоё: запиши голосовое, что ты пытаешься делать каждый день. Начни с I try to…",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 91,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 90,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 82,
-            "opacity": 1
-          },
-          {
-            "end": 90,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 82,
-            "opacity": 1
-          }
-        ]
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 2400,
-          "then": "n88"
-        }
-      ]
-    },
-    {
-      "ref": "n88",
-      "type": "voice_record",
-      "seq": 70,
-      "pos": [
-        43840,
+        46640,
         null
       ],
-      "data": {},
+      "note": "ОЗВУЧКА: Слушай, как это звучит: She is trying to help",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Слушай, как это звучит: She is trying to help",
+        "showText": true,
+        "highlights": [
+          {
+            "end": 45,
+            "mode": "text",
+            "color": "#ffffff",
+            "start": 0,
+            "opacity": 0.75
+          },
+          {
+            "end": 45,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 24,
+            "opacity": 1
+          },
+          {
+            "end": 45,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 24,
+            "opacity": 1
+          }
+        ]
+      },
       "triggers": [
         {
           "if": "played",
-          "then": "n89"
+          "then": "n92"
         }
       ]
     },
     {
-      "ref": "n89",
-      "type": "text",
-      "seq": 71,
+      "ref": "n92",
+      "type": "reaction",
+      "seq": 74,
       "pos": [
-        44400,
+        47200,
+        null
+      ],
+      "data": {
+        "emoji": "😉",
+        "target": "teacher"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n93"
+        }
+      ]
+    },
+    {
+      "ref": "n93",
+      "type": "text",
+      "seq": 72,
+      "pos": [
+        47760,
         0
       ],
       "data": {
-        "content": "Голосовое ушло)\ntry + что-то → пробовать\ntry to + действие → пытаться",
+        "content": "Вот и всё)\ntry + что-то → пробовать\ntry to + действие → пытаться",
         "hardWrap": true,
         "highlights": [
           {
-            "end": 69,
+            "end": 64,
             "mode": "text",
             "color": "#ffffff",
             "start": 0,
             "opacity": 0.75
           },
           {
-            "end": 19,
+            "end": 14,
             "mode": "text",
             "color": "#b6fe3b",
-            "start": 16,
+            "start": 11,
             "opacity": 1
           },
           {
-            "end": 19,
+            "end": 14,
             "mode": "bold",
             "color": "#b6fe3b",
-            "start": 16,
+            "start": 11,
             "opacity": 1
           },
           {
-            "end": 40,
+            "end": 35,
             "mode": "text",
             "color": "#ffffff",
-            "start": 31,
+            "start": 26,
             "opacity": 1
           },
           {
-            "end": 40,
+            "end": 35,
             "mode": "bold",
             "color": "#ffffff",
-            "start": 31,
+            "start": 26,
             "opacity": 1
           },
           {
-            "end": 47,
+            "end": 42,
             "mode": "text",
             "color": "#b6fe3b",
-            "start": 41,
+            "start": 36,
             "opacity": 1
           },
           {
-            "end": 47,
+            "end": 42,
             "mode": "bold",
             "color": "#b6fe3b",
-            "start": 41,
+            "start": 36,
             "opacity": 1
           },
           {
-            "end": 69,
+            "end": 64,
             "mode": "text",
             "color": "#ffffff",
-            "start": 61,
+            "start": 56,
             "opacity": 1
           },
           {
-            "end": 69,
+            "end": 64,
             "mode": "bold",
             "color": "#ffffff",
-            "start": 61,
+            "start": 56,
             "opacity": 1
           }
         ]
@@ -3737,7 +3877,7 @@
       "id": "zone-speak-5",
       "x": 37530,
       "y": null,
-      "width": 7328,
+      "width": 10688,
       "height": null,
       "label": "Часть 5 · как в жизни",
       "color": "#a07fd4"

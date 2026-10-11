@@ -163,7 +163,6 @@
 @import './styles/player/panels/signal-blink-chip.css';
 @import './styles/player/panels/registration.css';
 @import './styles/player/panels/push-prompt.css';
-@import './styles/player/modules/voice-record.css';
 @import './styles/player/hints.css';
 @import './styles/player/audio-glow.css';
 /* после стилей плеера: review.css переопределяет плеер внутри карточки */

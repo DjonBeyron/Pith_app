@@ -25,7 +25,7 @@ const load = name => JSON.parse(readFileSync(
 const full = load('trying.full.json')
 const deckFile = load('trying.reviewCards.json')
 const TASK_TYPES = ['word_choice', 'phrase_assembly', 'fill_blanks', 'type_word', 'photo_choice', 'table']
-const SOUND_TYPES = ['audio', 'voice_record', 'circle', 'video', 'rotate_phone']
+const SOUND_TYPES = ['audio', 'circle', 'video', 'rotate_phone']
 
 describe('trying.full.json — урок', () => {
   it('читается импортом без предупреждений; seq в файле совпадает с тем, что посчитает редактор', () => {

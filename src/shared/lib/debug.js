@@ -106,7 +106,7 @@ export function dbg(...args) {
 }
 
 // Always-on player logger — collects regardless of debug flag.
-// Use for player/voice-record events that need to be inspected on mobile.
+// Use for player events that need to be inspected on mobile.
 export function pLog(...args) {
   const line = `[${stamp()}] ${args.map(toText).join(' ')}`
   pushCapped(playerLines, line)

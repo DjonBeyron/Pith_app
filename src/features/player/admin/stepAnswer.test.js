@@ -133,7 +133,7 @@ describe('остальные типы', () => {
   })
 
   it('обычные ноды ответа не требуют', () => {
-    for (const t of ['audio', 'text', 'video', 'photo', 'sticker', 'system', 'pin_message', 'voice_record']) {
+    for (const t of ['audio', 'text', 'video', 'photo', 'sticker', 'system', 'pin_message']) {
       expect(pickStepAnswer(node(t, {}), true, first)).toBe(null)
     }
   })

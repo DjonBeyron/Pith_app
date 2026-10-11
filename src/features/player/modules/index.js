@@ -1,5 +1,4 @@
 import AudioModule       from './audio/AudioModule.jsx'
-import VoiceRecordModule from './voice-record/VoiceRecordModule.jsx'
 import CircleModule     from './circle/CircleModule.jsx'
 import TextModule       from './text/TextModule.jsx'
 import PhotoModule      from './photo/PhotoModule.jsx'
@@ -21,7 +20,6 @@ import RotatePhoneModule     from './rotate-phone/RotatePhoneModule.jsx'
 
 const MODULE_MAP = {
   audio:        AudioModule,
-  voice_record: VoiceRecordModule,
   circle:          CircleModule,
   text:            TextModule,
   photo:           PhotoModule,
