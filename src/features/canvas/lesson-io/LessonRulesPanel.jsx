@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLessonRules } from './useLessonRules.js'
 import RuleCard from './RuleCard.jsx'
+import { buildAuthorPrompt } from './authorPrompt.js'
 import { CHECKERS, checkerOf, groupOf, ruleTitle, ruleMatches } from './ruleMeta.js'
 
 // Окно правил формирования урока на весь экран (ПК): слева группы, посередине список (название + значок «кто проверяет»),
@@ -17,6 +18,7 @@ export default function LessonRulesPanel({ onClose }) {
   const [onlyActive, setOnlyActive] = useState(false)
   const [selId, setSelId] = useState(null)
   const [newText, setNewText] = useState('')
+  const [copied, setCopied] = useState('')
 
   const groups = useMemo(() => [...new Set(rules.map(groupOf))].sort(), [rules])
   const shown = rules.filter(r => ruleMatches(r, { q, group, checker, onlyActive }))
@@ -27,6 +29,14 @@ export default function LessonRulesPanel({ onClose }) {
     if (!window.confirm('Удалить это правило? Оно пропадёт из легенды экспорта.')) return
     remove(id)
     setSelId(null)
+  }
+  async function copyPrompt() {
+    try {
+      const topic = window.prompt('Тема урока (можно оставить пустой — вставишь потом):', '') ?? ''
+      await navigator.clipboard.writeText(buildAuthorPrompt(rules, { topic }))
+      setCopied('Промпт скопирован')
+    } catch { setCopied('Не удалось скопировать') }
+    setTimeout(() => setCopied(''), 2500)
   }
   function handleAdd() {
     const text = newText.trim()
@@ -47,6 +57,8 @@ export default function LessonRulesPanel({ onClose }) {
           {CHECKERS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
         </select>
         <label className="lrActiveCheck"><input type="checkbox" checked={onlyActive} onChange={e => setOnlyActive(e.target.checked)} /> Только включённые</label>
+        <button className="lrBtn lrBtnPrimary" disabled={busy || !rules.length} onClick={copyPrompt}>📋 Промпт для ИИ</button>
+        {copied && <span className="lioMeta">{copied}</span>}
         <span className="lioMeta">{busy ? '…' : `${shown.length} из ${rules.length}`}</span>
         {error && <span className="lioError">{error}</span>}
         <button className="lioClose" onClick={onClose}>×</button>
