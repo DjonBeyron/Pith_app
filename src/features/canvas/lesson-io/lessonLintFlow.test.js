@@ -27,3 +27,22 @@ describe('ритм урока', () => {
     expect(checkFlow(nodes)).toEqual([])
   })
 })
+
+describe('ритм: подсказки ветки ошибки', () => {
+  it('текст подсказки, в который попадают только после ошибки, не считается пояснением', () => {
+    const nodes = [
+      { ref: 'q', type: 'phrase_assembly', data: { words: ['She', 'tries'] }, triggers: [{ if: 'phrase_wrong', then: 'h' }, { if: 'phrase_correct', then: 'n' }] },
+      { ref: 'h', type: 'text', data: { content: 'Вот так: she tries' }, triggers: [{ if: 'timer', then: 'n' }] },
+      { ref: 'n', type: 'text', data: { content: 'Дальше' }, triggers: [{ if: 'timer', then: 's' }] },
+      { ref: 's', type: 'say_phrase', data: { phrase: 'She tries' }, triggers: [] },
+    ]
+    expect(checkFlow(nodes)).toEqual([])
+  })
+  it('скрытая расшифровка audio — задание «на слух» не тавтология', () => {
+    const nodes = [
+      { ref: 'a', type: 'audio', data: { text: 'She is trying', showText: false }, triggers: [{ if: 'played', then: 'w' }] },
+      { ref: 'w', type: 'word_choice', data: { options: [{ text: 'She is trying', isCorrect: true }] }, triggers: [] },
+    ]
+    expect(checkFlow(nodes)).toEqual([])
+  })
+})

@@ -8,6 +8,7 @@ const EXERCISES = new Set(['word_choice', 'phrase_assembly', 'type_word', 'say_p
 
 const textOf = n => {
   const d = n?.data ?? {}
+  if (n?.type === 'audio' && d.showText === false) return '' // расшифровка скрыта: ученик слышит, а не читает — задание «на слух» не тавтология
   return String(d.content ?? d.text ?? d.caption ?? '')
 }
 
@@ -21,7 +22,21 @@ export function answersOf(n) {
   return []
 }
 
-const predecessors = (nodes, ref) => nodes.filter(m => (m.triggers ?? []).some(t => t.then === ref && !/wrong|skip|variant/.test(t.if)))
+/** Ноды, в которые попадают только через ветку ошибки/пропуска (подсказки «Бывает, смотри ещё раз»): основной поток их не читает */
+function wrongOnlySet(nodes) {
+  const incoming = new Map()
+  for (const m of nodes) for (const t of m.triggers ?? []) if (t.then) incoming.set(t.then, [...(incoming.get(t.then) ?? []), { from: m.ref, wrong: WRONG.test(t.if) }])
+  const set = new Set()
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const [ref, ins] of incoming) if (!set.has(ref) && ins.every(e => e.wrong || set.has(e.from))) { set.add(ref); grew = true }
+  }
+  return set
+}
+
+const WRONG = /wrong|skip|variant/
+const predecessors = (nodes, ref) => nodes.filter(m => (m.triggers ?? []).some(t => t.then === ref && !WRONG.test(t.if)))
 
 /** Цепочки из подряд идущих text-нод длиннее MAX_TEXT_RUN (по основному потоку: триггер → следующая нода) */
 function checkTextRuns(nodes) {
@@ -46,6 +61,7 @@ function checkTextRuns(nodes) {
 /** Тавтология: ответ задания дословно уже прозвучал в предыдущих нодах — ученик перепечатывает, а не думает */
 function checkTautology(nodes) {
   const out = []
+  const hint = wrongOnlySet(nodes)
   for (const n of nodes) {
     if (!EXERCISES.has(n.type)) continue
     const answers = answersOf(n).map(a => tokenize(a ?? '').join(' ')).filter(Boolean)
@@ -57,7 +73,7 @@ function checkTautology(nodes) {
       layer = layer.flatMap(p => predecessors(nodes, p.ref))
     }
     for (const p of near) {
-      if (EXERCISES.has(p.type)) continue // предыдущее задание — не «подсказка»
+      if (EXERCISES.has(p.type) || hint.has(p.ref)) continue // предыдущее задание и подсказки ветки ошибки — не «пояснение»
       const said = ` ${tokenize(textOf(p)).join(' ')} `
       const hit = answers.find(a => said.includes(` ${a} `))
       if (hit) { out.push(`[R-tautology] ${n.ref} (${n.type}): ответ «${hit}» уже написан в ${p.ref} — задание повторяет сказанное, а не развивает. Дай новую ситуацию/форму или убери ответ из пояснения`); break }
