@@ -12,6 +12,11 @@ describe('разметка выделений', () => {
     const { highlights } = parseMarkup('{u:try}')
     expect(highlights.map(h => h.mode)).toEqual(['text', 'text', 'bold', 'underline'])
   })
+  it('{t:} — перевод: белый #fdfcfc + italic, без bold', () => {
+    const { highlights } = parseMarkup('{t:«привет»}')
+    expect(highlights.slice(1).map(h => h.mode)).toEqual(['text', 'italic'])
+    expect(highlights[1].color).toBe('#fdfcfc')
+  })
   it('плашка {p:i} — bg+pin на одной букве', () => {
     const { highlights } = parseMarkup('tr{p:i}es')
     expect(highlights.find(h => h.pin)).toMatchObject({ start: 2, end: 3, mode: 'bg' })

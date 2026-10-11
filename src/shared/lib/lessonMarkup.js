@@ -1,12 +1,13 @@
 // Разметка выделений в тексте нод урока. ИИ плохо считает номера символов, поэтому вместо highlights [{start,end,...}]
 // он пишет метки прямо в тексте, а раскраску (и обязательные правила: базовый серый на весь текст, цвет всегда с bold) строит код.
-//   {g:слово}  зелёный + bold — английское слово/форма         {w:слово}  белый + bold — русское ядро, термин
+//   {g:слово}  зелёный + bold — английское слово/форма         {t:перевод} белый курсив (#fdfcfc), БЕЗ bold — русский перевод
+//   {w:слово}  белый + bold — русский термин/заголовок (НЕ перевод)
 //   {u:слово}  голубой + bold + подчёркивание — главный акцент {b:буква}  bold без цвета — буква внутри прозы
 //   {p:i}      плашка на 1–2 буквах внутри слова (y → i)       Метки не вкладываются друг в друга.
 // Чистые функции, без React. Если разметки в тексте нет — данные возвращаются как есть (ручные highlights не трогаем).
-const GREEN = '#b6fe3b', WHITE = '#ffffff', CYAN = '#6bfabc', DARK = '#12140d'
+const GREEN = '#b6fe3b', WHITE = '#ffffff', CYAN = '#6bfabc', DARK = '#12140d', TRANSLATION = '#fdfcfc'
 const TEXT_KEYS = ['content', 'text', 'caption']
-const MARK = /\{([gwubp]):([^}]*)\}/g
+const MARK = /\{([gwtubp]):([^}]*)\}/g
 
 const hl = (start, end, mode, color, opacity = 1, extra = {}) => ({ end, mode, ...(color ? { color } : {}), start, ...(opacity != null ? { opacity } : {}), ...extra })
 
@@ -33,6 +34,7 @@ export function parseMarkup(src) {
     if (a === b) continue
     if (k === 'g') highlights.push(hl(a, b, 'text', GREEN), hl(a, b, 'bold', GREEN))
     if (k === 'w') highlights.push(hl(a, b, 'text', WHITE), hl(a, b, 'bold', WHITE))
+    if (k === 't') highlights.push(hl(a, b, 'text', TRANSLATION), hl(a, b, 'italic', null, null))
     if (k === 'u') highlights.push(hl(a, b, 'text', CYAN), hl(a, b, 'bold', CYAN), hl(a, b, 'underline', CYAN))
     if (k === 'b') highlights.push(hl(a, b, 'bold', null, null))
     if (k === 'p') highlights.push(hl(a, b, 'bg', GREEN, 1, { pin: true }), hl(a, b, 'text', DARK))

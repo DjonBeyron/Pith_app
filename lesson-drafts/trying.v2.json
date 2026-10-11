@@ -3,7 +3,7 @@
   "version": 1,
   "lesson": {
     "title": "Trying",
-    "nodeCount": 146
+    "nodeCount": 138
   },
   "nodes": [
     {
@@ -140,7 +140,7 @@
         0
       ],
       "data": {
-        "content": "Начнём с глагола 🌱 {w:пытаюсь, пытаешься, пытаемся, пытаются} — для всех этих слов форма одна",
+        "content": "Начнём с глагола 🌱 {t:пытаюсь, пытаешься, пытаемся, пытаются} — для всех этих слов форма одна",
         "hardWrap": false
       },
       "triggers": [
@@ -216,7 +216,7 @@
         0
       ],
       "data": {
-        "content": "Давай попробуем печатать ⌨️ Тапай по светящимся буквам внизу. Как будет {w:«пытаюсь»}? Звучит как «трай»",
+        "content": "Давай попробуем печатать ⌨️ Тапай по светящимся буквам внизу. Как будет {t:«пытаюсь»}? Звучит как «трай»",
         "hardWrap": false
       },
       "triggers": [
@@ -260,7 +260,7 @@
     {
       "ref": "n9",
       "type": "text",
-      "seq": 133,
+      "seq": 132,
       "pos": [
         5780,
         960
@@ -275,6 +275,11 @@
             "start": 0,
             "end": 85,
             "opacity": 0.75
+          },
+          {
+            "start": 30,
+            "end": 31,
+            "mode": "bold"
           }
         ]
       },
@@ -289,7 +294,7 @@
     {
       "ref": "n10",
       "type": "text",
-      "seq": 132,
+      "seq": 131,
       "pos": [
         5220,
         480
@@ -363,7 +368,7 @@
         0
       ],
       "data": {
-        "content": "А теперь важное: у {g:try} два значения 👇\n{g:try} + что-то → {w:пробовать}\n{g:try} {u:to} + действие → {w:пытаться}",
+        "content": "А теперь важное: у {g:try} два значения 👇\n{g:try} + что-то → {t:пробовать}\n{g:try} {u:to} + действие → {t:пытаться}",
         "hardWrap": true
       },
       "triggers": [
@@ -399,18 +404,16 @@
             "opacity": 0.75
           },
           {
+            "start": 73,
             "end": 97,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 73,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 97,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 73,
-            "opacity": 1
+            "end": 97,
+            "mode": "italic"
           }
         ]
       },
@@ -467,7 +470,7 @@
     {
       "ref": "n16",
       "type": "text",
-      "seq": 134,
+      "seq": 133,
       "pos": [
         9140,
         960
@@ -538,7 +541,7 @@
     {
       "ref": "n17",
       "type": "text",
-      "seq": 131,
+      "seq": 130,
       "pos": [
         8580,
         480
@@ -681,7 +684,16 @@
         "caption": "Открой сейчас или сохрани на потом",
         "isModule": false,
         "targetId": "c4a1cd3a-c6df-4ffe-aaa6-e3f4255b7e24",
-        "targetTitle": "To"
+        "targetTitle": "To",
+        "highlights": [
+          {
+            "mode": "text",
+            "color": "#ffffff",
+            "opacity": 0.75,
+            "start": 0,
+            "end": 34
+          }
+        ]
       },
       "triggers": [
         {
@@ -699,7 +711,7 @@
         0
       ],
       "data": {
-        "content": "Теперь вслух 🎤 Скажи по-английски: {w:«Ты пытаешься танцевать»}",
+        "content": "Теперь вслух 🎤 Скажи по-английски: {t:«Ты пытаешься танцевать»}",
         "hardWrap": false
       },
       "triggers": [
@@ -771,7 +783,7 @@
     {
       "ref": "n24",
       "type": "text",
-      "seq": 130,
+      "seq": 129,
       "pos": [
         11380,
         480
@@ -898,7 +910,7 @@
     {
       "ref": "n28",
       "type": "text",
-      "seq": 129,
+      "seq": 128,
       "pos": [
         13620,
         480
@@ -929,18 +941,16 @@
             "opacity": 1
           },
           {
+            "start": 21,
             "end": 38,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 21,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 38,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 21,
-            "opacity": 1
+            "end": 38,
+            "mode": "italic"
           }
         ]
       },
@@ -1065,7 +1075,7 @@
         0
       ],
       "data": {
-        "content": "С {w:he, she, it} буква {p:y} меняется на {p:i}, и в конце добавляется {g:es}",
+        "content": "С {t:he, she, it} буква {b:y} меняется на {b:i}, и в конце добавляется {g:es}",
         "hardWrap": false
       },
       "triggers": [
@@ -1096,18 +1106,16 @@
             "opacity": 0.75
           },
           {
+            "start": 55,
             "end": 65,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 55,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 65,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 55,
-            "opacity": 1
+            "end": 65,
+            "mode": "italic"
           }
         ]
       },
@@ -1152,7 +1160,7 @@
     {
       "ref": "n35",
       "type": "text",
-      "seq": 135,
+      "seq": 134,
       "pos": [
         18840,
         960
@@ -1191,7 +1199,7 @@
     {
       "ref": "n36",
       "type": "text",
-      "seq": 128,
+      "seq": 127,
       "pos": [
         18280,
         480
@@ -1291,18 +1299,16 @@
             "opacity": 0.75
           },
           {
+            "start": 53,
             "end": 73,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 53,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 73,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 53,
-            "opacity": 1
+            "end": 73,
+            "mode": "italic"
           }
         ]
       },
@@ -1355,107 +1361,14 @@
     {
       "ref": "n40",
       "type": "text",
-      "seq": 127,
+      "seq": 126,
       "pos": [
         19960,
         480
       ],
       "data": {
-        "content": "she тоже относится к he и it, поэтому здесь нужен -s. Вот так, she tries tennis",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 79,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 50,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 3,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 0,
-            "opacity": 1
-          },
-          {
-            "end": 3,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 0,
-            "opacity": 1
-          },
-          {
-            "end": 3,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 1,
-            "opacity": 1
-          },
-          {
-            "end": 3,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 1,
-            "opacity": 1
-          },
-          {
-            "end": 28,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 26,
-            "opacity": 1
-          },
-          {
-            "end": 28,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 26,
-            "opacity": 1
-          },
-          {
-            "end": 52,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 50,
-            "opacity": 1
-          },
-          {
-            "end": 52,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 50,
-            "opacity": 1
-          },
-          {
-            "end": 79,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 52,
-            "opacity": 0.75
-          },
-          {
-            "end": 79,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 63,
-            "opacity": 1
-          },
-          {
-            "end": 79,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 63,
-            "opacity": 1
-          }
-        ]
+        "content": "С {t:she} форма {g:tries}: {b:y} меняется на {b:i} и добавляется {g:es}. Вот так: {g:she tries tennis}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -1494,7 +1407,7 @@
         0
       ],
       "data": {
-        "content": "Теперь вслух 🎤 Скажи по-английски: {w:«Она пробует теннис»}",
+        "content": "А теперь скажи сам 🎤 По-английски: {t:«Она пробует теннис»}",
         "hardWrap": false
       },
       "triggers": [
@@ -1566,7 +1479,7 @@
     {
       "ref": "n45",
       "type": "text",
-      "seq": 126,
+      "seq": 125,
       "pos": [
         21640,
         480
@@ -1626,20 +1539,19 @@
             "opacity": 0.75
           },
           {
+            "start": 20,
             "end": 39,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 20,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 39,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 20,
-            "opacity": 1
+            "end": 39,
+            "mode": "italic"
           }
-        ]
+        ],
+        "showText": false
       },
       "triggers": [
         {
@@ -1689,65 +1601,14 @@
     {
       "ref": "n48",
       "type": "text",
-      "seq": 125,
+      "seq": 124,
       "pos": [
         23320,
         480
       ],
       "data": {
-        "content": "Правильный ответ, He tries once. once значит один раз",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 53,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 31,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 31,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 37,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 33,
-            "opacity": 1
-          },
-          {
-            "end": 37,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 33,
-            "opacity": 1
-          },
-          {
-            "end": 53,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 45,
-            "opacity": 1
-          },
-          {
-            "end": 53,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 45,
-            "opacity": 1
-          }
-        ]
+        "content": "Вот как надо: {g:He tries once}. {g:once} — {t:один раз}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -1811,20 +1672,6 @@
             "opacity": 1
           },
           {
-            "end": 33,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 25,
-            "opacity": 1
-          },
-          {
-            "end": 33,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 25,
-            "opacity": 1
-          },
-          {
             "end": 39,
             "mode": "text",
             "color": "#b6fe3b",
@@ -1839,18 +1686,28 @@
             "opacity": 1
           },
           {
-            "end": 48,
+            "start": 25,
+            "end": 33,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 42,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 48,
-            "mode": "bold",
-            "color": "#ffffff",
+            "start": 25,
+            "end": 33,
+            "mode": "italic"
+          },
+          {
             "start": 42,
+            "end": 48,
+            "mode": "text",
+            "color": "#fdfcfc",
             "opacity": 1
+          },
+          {
+            "start": 42,
+            "end": 48,
+            "mode": "italic"
           }
         ]
       },
@@ -1937,6 +1794,13 @@
             "color": "#6bfabc",
             "start": 2,
             "opacity": 1
+          },
+          {
+            "start": 2,
+            "end": 19,
+            "mode": "text",
+            "color": "#6bfabc",
+            "opacity": 1
           }
         ]
       },
@@ -2014,18 +1878,16 @@
             "opacity": 0.75
           },
           {
+            "start": 71,
             "end": 95,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 71,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 95,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 71,
-            "opacity": 1
+            "end": 95,
+            "mode": "italic"
           }
         ]
       },
@@ -2087,7 +1949,7 @@
     {
       "ref": "n56",
       "type": "text",
-      "seq": 136,
+      "seq": 135,
       "pos": [
         28540,
         960
@@ -2116,7 +1978,7 @@
     {
       "ref": "n57",
       "type": "text",
-      "seq": 124,
+      "seq": 123,
       "pos": [
         28540,
         480
@@ -2194,7 +2056,7 @@
         0
       ],
       "data": {
-        "content": "Теперь вслух 🎤 Скажи по-английски: {w:«Мы пробовали шахматы»}",
+        "content": "Давай вслух 🎤 Как будет по-английски: {t:«Мы пробовали шахматы»}",
         "hardWrap": false
       },
       "triggers": [
@@ -2243,15 +2105,15 @@
         0
       ],
       "data": {
-        "content": "Получилось)",
+        "content": "Звучит чётко)",
         "hardWrap": false,
         "highlights": [
           {
-            "end": 11,
             "mode": "text",
             "color": "#ffffff",
+            "opacity": 0.75,
             "start": 0,
-            "opacity": 0.75
+            "end": 13
           }
         ]
       },
@@ -2266,7 +2128,7 @@
     {
       "ref": "n62",
       "type": "text",
-      "seq": 123,
+      "seq": 122,
       "pos": [
         30220,
         480
@@ -2416,18 +2278,16 @@
             "opacity": 1
           },
           {
+            "start": 33,
             "end": 39,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 33,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 39,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 33,
-            "opacity": 1
+            "end": 39,
+            "mode": "italic"
           }
         ]
       },
@@ -2477,37 +2337,14 @@
     {
       "ref": "n67",
       "type": "text",
-      "seq": 122,
+      "seq": 121,
       "pos": [
         33020,
         480
       ],
       "data": {
-        "content": "Правильный ответ, он пробовал дважды. tried, это прошедшее время",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 64,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 43,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 38,
-            "opacity": 1
-          },
-          {
-            "end": 43,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 38,
-            "opacity": 1
-          }
-        ]
+        "content": "Смотри: {t:он пробовал дважды}. {g:tried} — это прошедшее время",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -2698,18 +2535,16 @@
             "opacity": 0.75
           },
           {
+            "start": 69,
             "end": 92,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 69,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 92,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 69,
-            "opacity": 1
+            "end": 92,
+            "mode": "italic"
           }
         ]
       },
@@ -2766,7 +2601,7 @@
     {
       "ref": "n74",
       "type": "text",
-      "seq": 121,
+      "seq": 120,
       "pos": [
         37680,
         480
@@ -2849,7 +2684,7 @@
         0
       ],
       "data": {
-        "content": "Теперь вслух 🎤 Скажи по-английски: {w:«Они попробуют караоке»}",
+        "content": "Теперь ты 🎤 Скажи по-английски: {t:«Они попробуют караоке»}",
         "hardWrap": false
       },
       "triggers": [
@@ -2898,15 +2733,15 @@
         0
       ],
       "data": {
-        "content": "Получилось 😏",
+        "content": "Ну вот, уже звучит 😏",
         "hardWrap": false,
         "highlights": [
           {
-            "end": 13,
             "mode": "text",
             "color": "#ffffff",
+            "opacity": 0.75,
             "start": 0,
-            "opacity": 0.75
+            "end": 21
           }
         ]
       },
@@ -2921,7 +2756,7 @@
     {
       "ref": "n79",
       "type": "text",
-      "seq": 120,
+      "seq": 119,
       "pos": [
         39360,
         480
@@ -3054,7 +2889,7 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n84"
+          "then": "n85"
         },
         {
           "if": "phrase_wrong",
@@ -3065,51 +2900,14 @@
     {
       "ref": "n83",
       "type": "text",
-      "seq": 119,
+      "seq": 118,
       "pos": [
         41600,
         480
       ],
       "data": {
-        "content": "Правильный ответ, She will try soon. Она попробует скоро",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 56,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 35,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 35,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 56,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 37,
-            "opacity": 1
-          },
-          {
-            "end": 56,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 37,
-            "opacity": 1
-          }
-        ]
+        "content": "Вот как надо: {g:She will try soon}. {t:Она попробует скоро}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -3120,52 +2918,9 @@
       ]
     },
     {
-      "ref": "n84",
-      "type": "text",
-      "seq": 65,
-      "pos": [
-        41600,
-        0
-      ],
-      "data": {
-        "content": "ага, это значит она попробует скоро",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 35,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 35,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 16,
-            "opacity": 1
-          },
-          {
-            "end": 35,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 16,
-            "opacity": 1
-          }
-        ]
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1800,
-          "then": "n85"
-        }
-      ]
-    },
-    {
       "ref": "n85",
       "type": "system",
-      "seq": 66,
+      "seq": 65,
       "pos": [
         43460,
         0
@@ -3193,7 +2948,7 @@
     {
       "ref": "n86",
       "type": "text",
-      "seq": 67,
+      "seq": 66,
       "pos": [
         44020,
         0
@@ -3210,20 +2965,6 @@
             "opacity": 0.75
           },
           {
-            "end": 12,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 1
-          },
-          {
-            "end": 12,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 1
-          },
-          {
             "end": 49,
             "mode": "text",
             "color": "#b6fe3b",
@@ -3264,6 +3005,18 @@
             "color": "#b6fe3b",
             "start": 72,
             "opacity": 1
+          },
+          {
+            "start": 0,
+            "end": 12,
+            "mode": "text",
+            "color": "#fdfcfc",
+            "opacity": 1
+          },
+          {
+            "start": 0,
+            "end": 12,
+            "mode": "italic"
           }
         ]
       },
@@ -3278,7 +3031,7 @@
     {
       "ref": "n88",
       "type": "text",
-      "seq": 68,
+      "seq": 67,
       "pos": [
         45140,
         0
@@ -3298,7 +3051,7 @@
     {
       "ref": "n89",
       "type": "audio",
-      "seq": 69,
+      "seq": 68,
       "pos": [
         45700,
         0
@@ -3342,7 +3095,7 @@
     {
       "ref": "n90",
       "type": "word_choice",
-      "seq": 70,
+      "seq": 69,
       "pos": [
         46260,
         0
@@ -3378,79 +3131,14 @@
     {
       "ref": "n91",
       "type": "text",
-      "seq": 118,
+      "seq": 117,
       "pos": [
         46820,
         480
       ],
       "data": {
-        "content": "Правильный ответ, She is trying. Значит она пытается. Рядом с trying стоит is",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 77,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 31,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 31,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 52,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 40,
-            "opacity": 1
-          },
-          {
-            "end": 52,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 40,
-            "opacity": 1
-          },
-          {
-            "end": 31,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 25,
-            "opacity": 1
-          },
-          {
-            "end": 31,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 25,
-            "opacity": 1
-          },
-          {
-            "end": 24,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 22,
-            "opacity": 1
-          },
-          {
-            "end": 24,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 22,
-            "opacity": 1
-          }
-        ]
+        "content": "Смотри: {g:She is trying}, {t:она пытается}. Рядом с {g:trying} стоит {g:is}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -3463,7 +3151,7 @@
     {
       "ref": "n92",
       "type": "reaction",
-      "seq": 71,
+      "seq": 70,
       "pos": [
         46820,
         0
@@ -3483,7 +3171,7 @@
     {
       "ref": "n93",
       "type": "photo",
-      "seq": 72,
+      "seq": 71,
       "pos": [
         47380,
         0
@@ -3505,18 +3193,16 @@
             "opacity": 0.75
           },
           {
+            "start": 32,
             "end": 55,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 32,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 55,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 32,
-            "opacity": 1
+            "end": 55,
+            "mode": "italic"
           }
         ]
       },
@@ -3531,7 +3217,7 @@
     {
       "ref": "n94",
       "type": "phrase_assembly",
-      "seq": 73,
+      "seq": 72,
       "pos": [
         47940,
         0
@@ -3571,7 +3257,7 @@
     {
       "ref": "n95",
       "type": "text",
-      "seq": 117,
+      "seq": 116,
       "pos": [
         48500,
         480
@@ -3591,7 +3277,7 @@
     {
       "ref": "n96",
       "type": "reaction",
-      "seq": 74,
+      "seq": 73,
       "pos": [
         48500,
         0
@@ -3611,7 +3297,7 @@
     {
       "ref": "n97",
       "type": "text",
-      "seq": 75,
+      "seq": 74,
       "pos": [
         49060,
         0
@@ -3628,18 +3314,16 @@
             "opacity": 0.75
           },
           {
+            "start": 49,
             "end": 58,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 49,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 58,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 49,
-            "opacity": 1
+            "end": 58,
+            "mode": "italic"
           }
         ]
       },
@@ -3654,7 +3338,7 @@
     {
       "ref": "n98",
       "type": "type_word",
-      "seq": 76,
+      "seq": 75,
       "pos": [
         49620,
         0
@@ -3688,7 +3372,7 @@
     {
       "ref": "n99",
       "type": "text",
-      "seq": 137,
+      "seq": 136,
       "pos": [
         50740,
         960
@@ -3722,7 +3406,7 @@
     {
       "ref": "n100",
       "type": "text",
-      "seq": 138,
+      "seq": 137,
       "pos": [
         51300,
         960
@@ -3756,7 +3440,7 @@
     {
       "ref": "n101",
       "type": "text",
-      "seq": 116,
+      "seq": 115,
       "pos": [
         50180,
         480
@@ -3809,7 +3493,7 @@
     {
       "ref": "n102",
       "type": "reaction",
-      "seq": 77,
+      "seq": 76,
       "pos": [
         50180,
         0
@@ -3829,13 +3513,13 @@
     {
       "ref": "n103",
       "type": "text",
-      "seq": 78,
+      "seq": 77,
       "pos": [
         50740,
         0
       ],
       "data": {
-        "content": "Теперь вслух 🎤 Скажи по-английски: {w:«Я сейчас стараюсь изо всех сил»}",
+        "content": "И вслух 🎤 По-английски: {t:«Я сейчас стараюсь изо всех сил»}",
         "hardWrap": false
       },
       "triggers": [
@@ -3849,7 +3533,7 @@
     {
       "ref": "n104",
       "type": "say_phrase",
-      "seq": 79,
+      "seq": 78,
       "pos": [
         51300,
         0
@@ -3878,7 +3562,7 @@
     {
       "ref": "n105",
       "type": "text",
-      "seq": 80,
+      "seq": 79,
       "pos": [
         51860,
         0
@@ -3907,7 +3591,7 @@
     {
       "ref": "n106",
       "type": "text",
-      "seq": 115,
+      "seq": 114,
       "pos": [
         51860,
         480
@@ -3964,7 +3648,7 @@
     {
       "ref": "n108",
       "type": "text",
-      "seq": 81,
+      "seq": 80,
       "pos": [
         54280,
         0
@@ -3995,20 +3679,6 @@
             "opacity": 1
           },
           {
-            "end": 17,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 8,
-            "opacity": 1
-          },
-          {
-            "end": 17,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 8,
-            "opacity": 1
-          },
-          {
             "end": 26,
             "mode": "text",
             "color": "#b6fe3b",
@@ -4020,20 +3690,6 @@
             "mode": "bold",
             "color": "#b6fe3b",
             "start": 18,
-            "opacity": 1
-          },
-          {
-            "end": 36,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 29,
-            "opacity": 1
-          },
-          {
-            "end": 36,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 29,
             "opacity": 1
           },
           {
@@ -4051,18 +3707,40 @@
             "opacity": 1
           },
           {
-            "end": 72,
+            "start": 8,
+            "end": 17,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 60,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 72,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 60,
+            "start": 8,
+            "end": 17,
+            "mode": "italic"
+          },
+          {
+            "start": 29,
+            "end": 36,
+            "mode": "text",
+            "color": "#fdfcfc",
             "opacity": 1
+          },
+          {
+            "start": 29,
+            "end": 36,
+            "mode": "italic"
+          },
+          {
+            "start": 60,
+            "end": 72,
+            "mode": "text",
+            "color": "#fdfcfc",
+            "opacity": 1
+          },
+          {
+            "start": 60,
+            "end": 72,
+            "mode": "italic"
           }
         ]
       },
@@ -4077,7 +3755,7 @@
     {
       "ref": "n109",
       "type": "table",
-      "seq": 82,
+      "seq": 81,
       "pos": [
         54840,
         0
@@ -4252,7 +3930,7 @@
     {
       "ref": "n110",
       "type": "text",
-      "seq": 83,
+      "seq": 82,
       "pos": [
         55400,
         0
@@ -4269,18 +3947,16 @@
             "opacity": 0.75
           },
           {
+            "start": 21,
             "end": 35,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 21,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 35,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 21,
-            "opacity": 1
+            "end": 35,
+            "mode": "italic"
           }
         ]
       },
@@ -4295,7 +3971,7 @@
     {
       "ref": "n111",
       "type": "word_choice",
-      "seq": 84,
+      "seq": 83,
       "pos": [
         55960,
         0
@@ -4339,7 +4015,7 @@
     {
       "ref": "n112",
       "type": "system",
-      "seq": 85,
+      "seq": 84,
       "pos": [
         57820,
         0
@@ -4367,7 +4043,7 @@
     {
       "ref": "n113",
       "type": "text",
-      "seq": 86,
+      "seq": 85,
       "pos": [
         58380,
         0
@@ -4384,18 +4060,16 @@
             "opacity": 0.75
           },
           {
+            "start": 18,
             "end": 57,
             "mode": "text",
-            "color": "#ffffff",
-            "start": 18,
+            "color": "#fdfcfc",
             "opacity": 1
           },
           {
-            "end": 57,
-            "mode": "bold",
-            "color": "#ffffff",
             "start": 18,
-            "opacity": 1
+            "end": 57,
+            "mode": "italic"
           }
         ]
       },
@@ -4410,7 +4084,7 @@
     {
       "ref": "n114",
       "type": "rotate_phone",
-      "seq": 87,
+      "seq": 86,
       "pos": [
         58940,
         0
@@ -4419,7 +4093,16 @@
       "needs": "audio — озвучка диктора по script (с паузами для повторов ученика — их автор нарежет в тренажёре)",
       "data": {
         "content": "Переверни телефон и повторяй вслух за голосом 🎧",
-        "script": "try. try. try. I try. I try. I try. tries. tries. tries. She tries. She tries. She tries. tried. tried. tried. We tried. We tried. We tried. will try. will try. will try. They will try. They will try. They will try."
+        "script": "try. try. try. I try. I try. I try. tries. tries. tries. She tries. She tries. She tries. tried. tried. tried. We tried. We tried. We tried. will try. will try. will try. They will try. They will try. They will try.",
+        "highlights": [
+          {
+            "mode": "text",
+            "color": "#ffffff",
+            "opacity": 0.75,
+            "start": 0,
+            "end": 48
+          }
+        ]
       },
       "triggers": [
         {
@@ -4431,7 +4114,7 @@
     {
       "ref": "n115",
       "type": "text",
-      "seq": 88,
+      "seq": 87,
       "pos": [
         59500,
         0
@@ -4451,13 +4134,12 @@
     {
       "ref": "n116",
       "type": "say_phrase",
-      "seq": 89,
+      "seq": 88,
       "pos": [
         60060,
         0
       ],
       "data": {
-        "voiceReply": false,
         "hintSilence": "Не слышу тебя 🙂 Говори чуть громче и ближе к микрофону",
         "hintMismatch": "Начни с «I», «we» или «she», потом любая форма try, а дальше своё. Скажи ещё раз, не бойся",
         "hintPartial": "Почти получилось! Верно: {ok}. Не хватило: {missed}",
@@ -4479,7 +4161,7 @@
     {
       "ref": "n117",
       "type": "text",
-      "seq": 90,
+      "seq": 89,
       "pos": [
         60620,
         0
@@ -4508,7 +4190,7 @@
     {
       "ref": "n118",
       "type": "text",
-      "seq": 114,
+      "seq": 113,
       "pos": [
         60620,
         480
@@ -4565,13 +4247,13 @@
     {
       "ref": "n120",
       "type": "text",
-      "seq": 91,
+      "seq": 90,
       "pos": [
         61740,
         0
       ],
       "data": {
-        "content": "Раунд на время ⏱ Не успел — без штрафа, идём дальше\n{w:«Он каждое утро пытается встать пораньше»}",
+        "content": "Раунд на время ⏱ Если не вышло по времени — без штрафа, идём дальше\nКстати, брат: {t:«он каждое утро пытается встать пораньше»}",
         "hardWrap": true
       },
       "triggers": [
@@ -4585,7 +4267,7 @@
     {
       "ref": "n121",
       "type": "word_choice",
-      "seq": 92,
+      "seq": 91,
       "pos": [
         62300,
         0
@@ -4622,7 +4304,7 @@
     {
       "ref": "n122",
       "type": "text",
-      "seq": 113,
+      "seq": 112,
       "pos": [
         62860,
         480
@@ -4665,7 +4347,7 @@
     {
       "ref": "n123",
       "type": "text",
-      "seq": 93,
+      "seq": 92,
       "pos": [
         62860,
         0
@@ -4694,7 +4376,7 @@
     {
       "ref": "n124",
       "type": "audio",
-      "seq": 94,
+      "seq": 93,
       "pos": [
         63420,
         0
@@ -4713,7 +4395,7 @@
     {
       "ref": "n125",
       "type": "word_choice",
-      "seq": 95,
+      "seq": 94,
       "pos": [
         63980,
         0
@@ -4750,7 +4432,7 @@
     {
       "ref": "n126",
       "type": "text",
-      "seq": 112,
+      "seq": 111,
       "pos": [
         64540,
         480
@@ -4788,20 +4470,6 @@
             "opacity": 1
           },
           {
-            "end": 47,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 21,
-            "opacity": 1
-          },
-          {
-            "end": 47,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 21,
-            "opacity": 1
-          },
-          {
             "end": 72,
             "mode": "text",
             "color": "#b6fe3b",
@@ -4814,6 +4482,18 @@
             "color": "#b6fe3b",
             "start": 70,
             "opacity": 1
+          },
+          {
+            "start": 21,
+            "end": 47,
+            "mode": "text",
+            "color": "#fdfcfc",
+            "opacity": 1
+          },
+          {
+            "start": 21,
+            "end": 47,
+            "mode": "italic"
           }
         ]
       },
@@ -4828,37 +4508,14 @@
     {
       "ref": "n127",
       "type": "text",
-      "seq": 96,
+      "seq": 95,
       "pos": [
         64540,
         0
       ],
       "data": {
-        "content": "«Завтра она попробует суп»",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 26,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 26,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 1
-          },
-          {
-            "end": 26,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 1
-          }
-        ]
+        "content": "Кстати, Маша: {t:«завтра она попробует суп»}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -4871,7 +4528,7 @@
     {
       "ref": "n128",
       "type": "phrase_assembly",
-      "seq": 97,
+      "seq": 96,
       "pos": [
         65100,
         0
@@ -4927,7 +4584,7 @@
     {
       "ref": "n129",
       "type": "text",
-      "seq": 111,
+      "seq": 110,
       "pos": [
         65660,
         480
@@ -4984,13 +4641,13 @@
     {
       "ref": "n131",
       "type": "text",
-      "seq": 98,
+      "seq": 97,
       "pos": [
         66220,
         0
       ],
       "data": {
-        "content": "Мини-сцена 😄 Маша пишет: «Завтра идём на гончарку, ты с нами? 🏺»\nОтветь ей вслух: {w:«мы попробуем гончарное дело»}",
+        "content": "Мини-сцена 😄 Маша: «Завтра идём на гончарку, ты с нами? 🏺»\nОтветь вслух: {t:«мы попробуем гончарное дело»}",
         "hardWrap": true
       },
       "triggers": [
@@ -5004,7 +4661,7 @@
     {
       "ref": "n134",
       "type": "say_phrase",
-      "seq": 99,
+      "seq": 98,
       "pos": [
         67900,
         0
@@ -5039,7 +4696,7 @@
     {
       "ref": "n135",
       "type": "audio",
-      "seq": 139,
+      "seq": 138,
       "pos": [
         67900,
         480
@@ -5097,7 +4754,7 @@
     {
       "ref": "n136",
       "type": "text",
-      "seq": 100,
+      "seq": 99,
       "pos": [
         68460,
         0
@@ -5126,7 +4783,7 @@
     {
       "ref": "n137",
       "type": "text",
-      "seq": 110,
+      "seq": 109,
       "pos": [
         68460,
         960
@@ -5169,7 +4826,7 @@
     {
       "ref": "n138",
       "type": "text",
-      "seq": 101,
+      "seq": 100,
       "pos": [
         69020,
         0
@@ -5186,20 +4843,6 @@
             "opacity": 0.75
           },
           {
-            "end": 79,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 56,
-            "opacity": 1
-          },
-          {
-            "end": 79,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 56,
-            "opacity": 1
-          },
-          {
             "end": 92,
             "mode": "text",
             "color": "#b6fe3b",
@@ -5226,6 +4869,18 @@
             "color": "#b6fe3b",
             "start": 97,
             "opacity": 1
+          },
+          {
+            "start": 56,
+            "end": 79,
+            "mode": "text",
+            "color": "#fdfcfc",
+            "opacity": 1
+          },
+          {
+            "start": 56,
+            "end": 79,
+            "mode": "italic"
           }
         ]
       },
@@ -5240,13 +4895,12 @@
     {
       "ref": "n139",
       "type": "say_phrase",
-      "seq": 102,
+      "seq": 101,
       "pos": [
         69580,
         0
       ],
       "data": {
-        "voiceReply": false,
         "hintSilence": "Не слышу тебя 🙂 Говори чуть громче и ближе к микрофону",
         "hintMismatch": "С she и he глагол с окончанием: she tries, he tries. Начни так и добавь своё, не бойся",
         "hintPartial": "Почти получилось! Верно: {ok}. Не хватило: {missed}",
@@ -5268,7 +4922,7 @@
     {
       "ref": "n140",
       "type": "text",
-      "seq": 103,
+      "seq": 102,
       "pos": [
         70140,
         0
@@ -5297,7 +4951,7 @@
     {
       "ref": "n141",
       "type": "text",
-      "seq": 109,
+      "seq": 108,
       "pos": [
         70140,
         480
@@ -5382,7 +5036,7 @@
     {
       "ref": "n142",
       "type": "text",
-      "seq": 104,
+      "seq": 103,
       "pos": [
         70700,
         0
@@ -5399,20 +5053,6 @@
             "opacity": 0.75
           },
           {
-            "end": 39,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 27,
-            "opacity": 1
-          },
-          {
-            "end": 39,
-            "mode": "bold",
-            "color": "#ffffff",
-            "start": 27,
-            "opacity": 1
-          },
-          {
             "end": 80,
             "mode": "text",
             "color": "#b6fe3b",
@@ -5425,6 +5065,18 @@
             "color": "#b6fe3b",
             "start": 66,
             "opacity": 1
+          },
+          {
+            "start": 27,
+            "end": 39,
+            "mode": "text",
+            "color": "#fdfcfc",
+            "opacity": 1
+          },
+          {
+            "start": 27,
+            "end": 39,
+            "mode": "italic"
           }
         ]
       },
@@ -5439,13 +5091,12 @@
     {
       "ref": "n143",
       "type": "say_phrase",
-      "seq": 105,
+      "seq": 104,
       "pos": [
         71260,
         0
       ],
       "data": {
-        "voiceReply": false,
         "hintSilence": "Не слышу тебя 🙂 Говори чуть громче и ближе к микрофону",
         "hintMismatch": "Нужна пара из двух слов: «I am trying», дальше своё. Скажи ещё раз",
         "hintPartial": "Почти получилось! Верно: {ok}. Не хватило: {missed}",
@@ -5467,7 +5118,7 @@
     {
       "ref": "n144",
       "type": "text",
-      "seq": 106,
+      "seq": 105,
       "pos": [
         71820,
         0
@@ -5496,7 +5147,7 @@
     {
       "ref": "n145",
       "type": "text",
-      "seq": 108,
+      "seq": 107,
       "pos": [
         71820,
         480
@@ -5539,7 +5190,7 @@
     {
       "ref": "n146",
       "type": "text",
-      "seq": 107,
+      "seq": 106,
       "pos": [
         72380,
         0
