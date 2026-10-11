@@ -288,9 +288,9 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       })
     }, SAFETY_MS)
 
-    // Качаем, если в очереди что-то есть: файлы могут быть и БЕЗ записей в files — у нод со ссылкой r2Url вместо file_id (импорт урока из JSON,
-    // nodeFileKey). Раньше стояло ещё `&& files.length`: у такого урока таблица files пуста, загрузка не начиналась, и карточка запуска висела вечно
-    if (queueRef.current.length) pump(gen)
+    // Как и раньше, ждём таблицу files (files.length) — НО урок из JSON-импорта держит медиа по ссылке r2Url без записей в files (nodeFileKey):
+    // там таблица пуста всегда и без этого исключения карточка запуска висела вечно. Исключение узкое: вся очередь ключена URL-ами
+    if (queueRef.current.length && (files.length || queueRef.current.every(i => /^https?:/i.test(String(i.id))))) pump(gen)
     return () => {
       genRef.current++
       clearTimeout(safetyTimer)

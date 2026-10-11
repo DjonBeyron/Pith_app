@@ -14,9 +14,13 @@ describe('урок, у которого медиа-ноды со ссылкой 
     expect(buildItemQueue(nodes, [], MEDIA).map(i => i.url)).toEqual(['https://cdn.example/c.mp4', 'https://cdn.example/a.mp3'])
   })
 
-  it('usePlayerPreload запускает загрузку при непустой очереди и НЕ требует files.length (иначе карточка запуска висит вечно)', () => {
+  it('usePlayerPreload: пустая таблица files не блокирует закачку, только если вся очередь ключена URL (обычные уроки — как раньше)', () => {
     const src = readFileSync(fileURLToPath(new URL('./usePlayerPreload.js', import.meta.url)), 'utf8')
-    expect(src).toContain('if (queueRef.current.length) pump(gen)')
-    expect(src).not.toMatch(/queueRef\.current\.length && files\.length/)
+    expect(src).toContain('queueRef.current.length && (files.length || queueRef.current.every(')
+    expect(src).toContain('https?:')
+  })
+  it('ключи очереди r2Url-нод начинаются с http', () => {
+    const nodes = [{ id: 'a', seq: 1, type: 'audio', typeData: { audio: { r2Url: 'https://cdn.example/a.mp3' } }, triggers: [] }]
+    expect(buildItemQueue(nodes, [], MEDIA).every(i => /^https?:/i.test(String(i.id)))).toBe(true)
   })
 })
