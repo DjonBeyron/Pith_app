@@ -1,4 +1,5 @@
 import { parsePattern } from '../../../shared/lib/speech/sayPattern.js'
+import { tokenize } from '../../../shared/lib/speech/speechMatch.js'
 import { readSayData, parseKeywords, keywordsMissingInPhrase, THRESHOLD_MIN, THRESHOLD_MAX } from '../../../shared/lib/speech/sayPhraseData.js'
 
 const HINT_FIELDS = ['hintSilence', 'hintMismatch', 'hintPartial']
@@ -30,7 +31,12 @@ export function checkSayPhrase(nodes, start) {
     if (readSayData(d).pattern && d.voiceReply === true) out.push(`${n.ref} say_phrase: у свободной фразы (pattern) voiceReply не работает — «голосовое с текстом» пишет только Vosk, а шаблон идёт на системное распознавание`)
     for (const s of d.signals ?? []) {
       if (s.slot !== 0) out.push(`${n.ref} say_phrase: у «Сказать фразу» один слот сигнала (0 — первая неудачная попытка), а указан ${s.slot}`)
-      if (s.ref && !nodes.some(x => x.ref === s.ref)) out.push(`${n.ref} say_phrase: сигнал ссылается на несуществующую ноду ${s.ref}`)
+      const hint = nodes.find(x => x.ref === s.ref)
+      if (s.ref && !hint) out.push(`${n.ref} say_phrase: сигнал ссылается на несуществующую ноду ${s.ref}`)
+      // Подсказка помогает, а не отвечает за ученика: слово/звук можно, всю фразу-эталон целиком — нет
+      const want = tokenize(d.phrase).join(' ')
+      const said = tokenize(hint?.data?.text ?? hint?.data?.content ?? '').join(' ')
+      if (hint && tokenize(d.phrase).length >= 3 && said.includes(want)) out.push(`${n.ref} say_phrase: подсказка-сигнал ${s.ref} произносит всю фразу «${d.phrase}» — она должна помогать (слово, ударение), а не отвечать за ученика`)
     }
     const parents = parentsOf.get(n.ref) ?? []
     if (n.ref === start?.ref) out.push(`${n.ref} say_phrase: стоит первой нодой урока — сначала нужна текстовая нода-задание`)

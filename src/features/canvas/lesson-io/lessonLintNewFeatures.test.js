@@ -37,11 +37,17 @@ describe('линтер: свободная фраза и сигнал у «Ск�
     txt('n1', 1, 'n2'),
     ex('n2', 2, 'say_phrase', { phrase: 'I try to relax', ...data }, [{ if: 'say_done', then: 'n3' }, { if: 'say_wrong', then: 'n3' }]),
     txt('n3', 3),
-    ex('n4', 4, 'audio', { text: 'I try to relax' }),
+    ex('n4', 4, 'audio', { text: 'Слушай слово: relax' }),
   ]
 
   it('чистая нода с шаблоном и сигналом на слот 0', () => {
     expect(lintLesson(say({ pattern: 'I (try|am trying) to **', signals: [{ slot: 0, ref: 'n4' }] }))).toEqual([])
+  })
+
+  it('подсказка-сигнал не должна произносить всю фразу: слово можно, фразу целиком нет', () => {
+    const withHint = text => [...say({ phrase: 'We will try pottery', signals: [{ slot: 0, ref: 'n4' }] }).slice(0, 3), ex('n4', 4, 'audio', { text })]
+    expect(lintLesson(withHint('Гончарное дело — pottery. Слушай слово: pottery'))).toEqual([])
+    expect(lintLesson(withHint('Слушай: We will try pottery!')).join('\n')).toMatch(/произносит всю фразу/)
   })
 
   it('битый шаблон, voiceReply у шаблона, чужой слот и сигнал в никуда', () => {

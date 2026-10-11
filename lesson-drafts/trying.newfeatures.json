@@ -1162,14 +1162,14 @@
         18460,
         480
       ],
-      "note": "ОЗВУЧКА: Гончарное дело по-английски — pottery. Слушай: We will try pottery",
+      "note": "ОЗВУЧКА: Гончарное дело по-английски — pottery. Слушай слово: pottery",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Гончарное дело по-английски — pottery. Слушай: We will try pottery",
+        "text": "Гончарное дело по-английски — pottery. Слушай слово: pottery",
         "showText": true,
         "highlights": [
           {
-            "end": 66,
+            "end": 60,
             "mode": "text",
             "color": "#ffffff",
             "start": 0,
@@ -1190,17 +1190,17 @@
             "opacity": 1
           },
           {
-            "end": 66,
+            "end": 60,
             "mode": "text",
             "color": "#b6fe3b",
-            "start": 47,
+            "start": 53,
             "opacity": 1
           },
           {
-            "end": 66,
+            "end": 60,
             "mode": "bold",
             "color": "#b6fe3b",
-            "start": 47,
+            "start": 53,
             "opacity": 1
           }
         ]
