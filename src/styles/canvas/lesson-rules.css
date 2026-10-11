@@ -1,94 +1,62 @@
-/* ── Панель «Правила формирования урока» (lesson-io/LessonRulesPanel.jsx) ─
-   Переиспользует .lio* базовые классы окна (lesson-io.css: оверлей,
-   заголовок, кнопки, подсказка) — здесь только то, что специфично
-   для списка строк-правил. */
+/* ── Окно «Правила формирования урока» (lesson-io/LessonRulesPanel.jsx, RuleCard.jsx) ─ на весь экран, 3 колонки.
+   Базовые .lio* классы (заголовок, закрыть, мета) — из lesson-io.css. */
 
-.lrModal {
-  width: min(760px, 100%);
-  max-height: 88vh;
+.lrFull {
+  position: fixed; inset: 0; z-index: 1400;
+  background: #0e1013; color: #dfe2ea;
+  display: flex; flex-direction: column;
 }
-
-/* Оба раздела скроллятся ОДНИМ общим скроллом (а не каждая строка своим,
-   см. .lrTextarea ниже) — так весь список читается как одна лента сверху
-   вниз, а не как набор отдельных окошек. Скроллбар специально светлее
-   стандартного тёмного (ср. .lioText) — тонкий тёмный на тёмном фоне почти
-   не виден, а тут список — основной способ ориентироваться в правилах. */
-.lrSections {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-  min-height: 0;
-  padding-right: 6px;
-  scrollbar-width: thin;
-  scrollbar-color: #4a5064 #14161c;
+.lrTop {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 16px; border-bottom: 1px solid #22252c;
 }
-.lrSections::-webkit-scrollbar { width: 10px; }
-.lrSections::-webkit-scrollbar-track { background: #14161c; border-radius: 5px; }
-.lrSections::-webkit-scrollbar-thumb { background: #4a5064; border-radius: 5px; }
-.lrSections::-webkit-scrollbar-thumb:hover { background: #5c6478; }
-
-.lrSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.lrTop select, .lrSearch, .lrMetaRow select, .lrMetaRow input[list], .lrTitleInput {
+  background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 13px; padding: 7px 10px;
 }
-
-.lrSectionHead {
-  color: #e0e0e0;
-  font-size: 13px;
-  font-weight: 700;
+.lrSearch { flex: 1 1 220px; min-width: 160px; max-width: 420px; }
+.lrCols { flex: 1; min-height: 0; display: grid; grid-template-columns: 200px minmax(280px, 1fr) minmax(360px, 1.3fr); }
+.lrGroups, .lrListCol, .lrCardCol { overflow-y: auto; min-height: 0; padding: 12px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
+.lrGroups { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 4px; }
+.lrListCol { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 6px; }
+.lrGroupBtn {
+  display: flex; justify-content: space-between; text-align: left; padding: 8px 10px;
+  background: transparent; border: 1px solid transparent; border-radius: 8px; color: #b8bdca; font-size: 13px; cursor: pointer;
 }
-
-.lrHint {
-  color: #8a90a0;
-  font-size: 12px;
-  line-height: 1.5;
+.lrGroupBtn b { color: #6a6f78; font-weight: 600; }
+.lrGroupBtn:hover, .lrGroupBtn.on { background: #1a1d22; border-color: #2a2d35; color: #b6fe3b; }
+.lrItem {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer;
+  border: 1px solid #22252c; border-radius: 8px; font-size: 13px;
 }
+.lrItem:hover { border-color: #3a4050; }
+.lrItem.on { border-color: #b6fe3b; background: #14180d; }
+.lrItem.off { opacity: 0.45; }
+.lrItemTitle { flex: 1; min-width: 0; line-height: 1.35; }
+.lrItemCat { color: #6a6f78; font-size: 11px; }
+.lrSev { font-size: 11px; padding: 2px 6px; border-radius: 6px; background: #1a1d22; color: #9aa0b4; }
+.lrSev.error { background: #3a1a1a; color: #f87171; }
+.lrItemMove { display: flex; gap: 2px; }
+.lrItemMove button { width: 22px; height: 22px; padding: 0; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 6px; color: #9aa0b4; cursor: pointer; }
+.lrItemMove button:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.lrCard { display: flex; flex-direction: column; gap: 10px; }
+.lrTitleInput { font-size: 16px; font-weight: 700; width: 100%; }
+.lrMetaRow { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.lrMetaRow label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #8a90a0; }
+.lrMetaRow .lrActiveCheck { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; margin: 0 0 6px; }
+.lrLabel { color: #8a90a0; font-size: 12px; margin-bottom: 4px; }
+.lrExamples { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lrExBad .lrTextarea { border-color: #4a2424; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.lrExGood .lrTextarea { border-color: #2c4a24; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.lrCardActions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
+.lrBtnDanger:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
+.lrActiveCheck { display: flex; cursor: pointer; }
 
-.lrList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Телефон / узкое окно: колонки в одну, карточка под списком */
+@media (max-width: 900px) {
+  .lrCols { grid-template-columns: 1fr; overflow-y: auto; }
+  .lrGroups { flex-direction: row; flex-wrap: wrap; border-right: none; }
+  .lrExamples { grid-template-columns: 1fr; }
 }
-
-.lrRow {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 10px;
-  border: 1px solid #22252c;
-  border-radius: 10px;
-}
-
-/* Выключенное правило — видно в списке, но приглушено: не участвует в
-   экспорте, пока галочка не вернётся */
-.lrRowInactive { opacity: 0.45; }
-
-.lrRowSide {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding-top: 2px;
-}
-
-.lrActiveCheck { display: flex; margin-top: 4px; cursor: pointer; }
-
-.lrIconBtn {
-  width: 22px; height: 22px; padding: 0;
-  background: #1a1d22;
-  border: 1px solid #2a2d35;
-  border-radius: 6px;
-  color: #9aa0b4;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-}
-.lrIconBtn:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
-.lrIconBtn:disabled { opacity: 0.3; cursor: default; }
-.lrIconBtnDanger:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
 
 /* Растёт под весь текст (высоту выставляет AutoTextarea в JS) — никакого
    внутреннего скролла: правило целиком видно сразу, крутить приходится

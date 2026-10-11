@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  listLessonRules, createLessonRule, updateLessonRule,
+  listLessonRules, createLessonRule, updateLessonRule, patchLessonRule,
   setLessonRuleActive, setLessonRuleCategory, swapLessonRuleOrder, deleteLessonRule,
 } from '../../../shared/api/lessonRulesApi.js'
 
@@ -53,6 +53,7 @@ export function useLessonRules() {
   }), [run, rules])
 
   const edit     = useCallback((id, text)     => run(() => updateLessonRule(id, text)),         [run])
+  const patch    = useCallback((id, fields)   => run(() => patchLessonRule(id, fields)),         [run])
   const toggle   = useCallback((id, active)   => run(() => setLessonRuleActive(id, active)),     [run])
   const setCategory = useCallback((id, category) => run(() => setLessonRuleCategory(id, category)), [run])
   const remove   = useCallback(id             => run(() => deleteLessonRule(id)),                [run])
@@ -78,5 +79,5 @@ export function useLessonRules() {
   const principles = rules.filter(r => r.category === 'principle')
   const checklist  = rules.filter(r => r.category === 'checklist')
 
-  return { rules, principles, checklist, busy, error, add, edit, toggle, setCategory, remove, moveUp, moveDown }
+  return { rules, principles, checklist, busy, error, add, edit, patch, toggle, setCategory, remove, moveUp, moveDown }
 }
