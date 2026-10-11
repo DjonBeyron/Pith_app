@@ -17,11 +17,11 @@ import { readDiagEnv, readMicPermission } from './sayDiagEnv.js'
 const hostOf = url => { try { return new URL(url).host } catch { return '' } }
 
 /**
- * @param {{phrase: string, voice?: boolean}} p — voice: режим ноды «голосовое с текстом» включён
+ * @param {{phrase: string, voice?: boolean, free?: boolean}} p — voice: режим ноды «голосовое с текстом» включён; free: свободная фраза (pattern) — всегда системное распознавание
  * @param {object} [deps] подмена источников в тестах
  * @returns {Promise<object>} контекст для buildDiagRows
  */
-export async function collectDiagContext({ phrase, voice = false }, deps = {}) {
+export async function collectDiagContext({ phrase, voice = false, free = false }, deps = {}) {
   const d = {
     runtime: voskRuntime, perm: sayPermission, attempts: sayAttemptLog, now: Date.now, version: APP_VERSION,
     peek: peekCached, readUrl: readModelUrl, urlSource: modelUrlSource, bgStatus: getBgStatus, bgStopped: isStopped, getMode: readSayEngine,
@@ -36,7 +36,7 @@ export async function collectDiagContext({ phrase, voice = false }, deps = {}) {
   return {
     now, version: d.version, phrase, mode, snap, info: d.runtime.info(), cache, cacheApi: env.cacheApi,
     bg: d.bgStatus(), bgStopped: d.bgStopped(), urlSource: d.urlSource(), urlHost: hostOf(url),
-    pick: pickEngine({ mode, phrase, ...snap, now }), attempt: d.attempts.get(), gate: d.perm.decide(), env, perm, voice: { on: !!voice, attempt: d.voiceLast() },
+    pick: pickEngine({ mode, phrase, free, ...snap, now }), attempt: d.attempts.get(), gate: d.perm.decide(), env, perm, voice: { on: !!voice, attempt: d.voiceLast() },
   }
 }
 

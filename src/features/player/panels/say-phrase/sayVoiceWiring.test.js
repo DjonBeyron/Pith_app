@@ -55,7 +55,7 @@ describe('голосовой ответ: проводка в модуле', () =
     expect(panel).toContain("const voiceId = kind === 'passed' ? takeVoiceId() : null")
     expect(panel).toContain("onAnswered?.(reply, 'wrong_final', false, voiceId)")
     expect(panel).toContain('<SayMicPopup kind={sp.explainKind} voice={voiceOn}')
-    expect(panel).toContain('<SayAdminDiag phrase={data.phrase} voice={voiceOn} />')
+    expect(panel).toContain('<SayAdminDiag phrase={data.phrase} voice={voiceOn} free={!!data.pattern} />')
   })
 
   it('реплика не ушла в чат (панель закрыта раньше) — её клип освобождается, а не висит до конца урока', () => {

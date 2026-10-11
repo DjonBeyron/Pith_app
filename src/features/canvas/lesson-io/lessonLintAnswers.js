@@ -12,7 +12,7 @@ export function checkAnswersAndLimits(nodes) {
     if (n.type === 'phrase_assembly' && Array.isArray(d.answers) && d.answers.length) {
       const main = phraseVariants({ words: d.words }).at(0) ?? []
       const all = phraseVariants(d)
-      if (all.length - 1 < d.answers.length) out.push(`${n.ref} phrase_assembly: среди answers есть пустой ответ — он не учитывается`)
+      if (all.length - (main.length ? 1 : 0) < d.answers.length) out.push(`${n.ref} phrase_assembly: среди answers есть пустой ответ — он не учитывается`)
       const key = v => v.map(w => w.toLowerCase()).join(' ')
       const seen = new Set(main.length ? [key(main)] : [])
       for (const v of all.slice(main.length ? 1 : 0)) {
@@ -25,7 +25,7 @@ export function checkAnswersAndLimits(nodes) {
         if (text && used.has(text)) out.push(`${n.ref} phrase_assembly: ловушка «${text}» входит в один из верных ответов — это не ловушка, ученик не сможет её «ошибочно» выбрать`)
       }
     }
-    if (d.timeLimitSec != null) {
+    if (d.timeLimitSec != null && Number(d.timeLimitSec) !== 0) { // 0 = без таймера
       if (!WRONG_OF[n.type]) {
         out.push(`${n.ref} ${n.type}: timeLimitSec поддерживают только word_choice и phrase_assembly — поле игнорируется`)
         continue

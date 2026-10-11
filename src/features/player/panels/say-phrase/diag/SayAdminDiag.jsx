@@ -7,15 +7,15 @@ import SayDiagPanel from './SayDiagPanel.jsx'
 // Админская диагностика «Сказать фразу» прямо в уроке: маленькая кнопка «i» (26 px) в правом верхнем углу панели; нажатие открывает окно ПОВЕРХ (абсолютно: оно не растягивает модуль и не двигает
 // его раскладку, на 320 px не выходит за экран, внутри прокручивается). Закрыть — повторным нажатием на «i», тапом мимо или Esc. Обычному пользователю не рендерится вовсе (isAdmin — эффективный статус
 // из AdminContext, как у плашки «движок: …»). Пока окно закрыто — никаких таймеров (useSayDiag.js). Что показываем и почему — sayDiagRows.js / sayDiagExplain.js.
-export default function SayAdminDiag({ phrase, voice = false }) {
+export default function SayAdminDiag({ phrase, voice = false, free = false }) {
   const { isAdmin } = useAdmin()
-  return isAdmin ? <DiagInner phrase={phrase} voice={voice} /> : null
+  return isAdmin ? <DiagInner phrase={phrase} voice={voice} free={free} /> : null
 }
 
-function DiagInner({ phrase, voice }) {
+function DiagInner({ phrase, voice, free }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
-  const ctx = useSayDiag(open, phrase, voice)
+  const ctx = useSayDiag(open, phrase, voice, free)
 
   // Закрытие тапом мимо и по Esc — слушатели живут только пока окно открыто
   useEffect(() => {

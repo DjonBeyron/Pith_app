@@ -210,7 +210,7 @@ export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswe
       />
       <div ref={panelRef} className={`phrasePanel sayPanel${show ? ' phrasePanelVisible' : ''}`} data-no-unlock="">
         <SolveCorrectButton side="left" onSolve={() => finish('solve')} disabled={closing} />
-        <SayAdminDiag phrase={data.phrase} voice={voiceOn} />
+        <SayAdminDiag phrase={data.phrase} voice={voiceOn} free={!!data.pattern} />
         {adminLine && (
           <div className="sayAdminLine" data-testid="say-admin-line" title={adminLine.title || undefined}>
             <span>{adminLine.text}</span>
