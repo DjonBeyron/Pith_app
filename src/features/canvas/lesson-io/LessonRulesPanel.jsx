@@ -59,19 +59,23 @@ export default function LessonRulesPanel({ onClose }) {
     // закрыл бы заодно и родительскую панель «Поделиться / Импорт»
     <div className="lrFull" onMouseDown={e => e.stopPropagation()}>
       <div className="lrTop">
-        <span className="lioTitle">Правила формирования урока</span>
-        <input className="lrSearch" placeholder="Поиск по правилам…" value={q} onChange={e => setQ(e.target.value)} />
-        <select value={checker} onChange={e => setChecker(e.target.value)}>
-          <option value="">Все проверки</option>
-          {CHECKERS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
-        </select>
-        <label className="lrActiveCheck"><input type="checkbox" checked={onlyActive} onChange={e => setOnlyActive(e.target.checked)} /> Только включённые</label>
-        <button className="lrBtn lrBtnPrimary" disabled={busy || !rules.length} title={rules.length ? '' : 'Сначала загрузи правила в базу'} onClick={copyPrompt}>📋 Промпт для ИИ</button>
-        <button className="lrBtn" disabled={busy || !rules.length} title={rules.length ? '' : 'Сначала загрузи правила в базу'} onClick={copyRulesJson}>⬇ Правила для Claude</button>
-        {copied && <span className="lioMeta">{copied}</span>}
-        <span className="lioMeta">{busy ? '…' : `${shown.length} из ${rules.length}`}</span>
-        {error && <span className="lioError">{error}</span>}
-        <button className="lioClose" onClick={onClose}>×</button>
+        <div className="lrTopRow">
+          <span className="lioTitle">Правила формирования урока</span>
+          <input className="lrSearch" placeholder="Поиск по правилам…" value={q} onChange={e => setQ(e.target.value)} />
+          <select value={checker} onChange={e => setChecker(e.target.value)}>
+            <option value="">Все проверки</option>
+            {CHECKERS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+          </select>
+          <label className="lrActiveCheck"><input type="checkbox" checked={onlyActive} onChange={e => setOnlyActive(e.target.checked)} /> Только включённые</label>
+          <button className="lioClose lrTopClose" onClick={onClose}>×</button>
+        </div>
+        <div className="lrTopRow">
+          <button className="lrBtn lrBtnPrimary" disabled={busy || !rules.length} title={rules.length ? '' : 'Сначала загрузи правила в базу (жёлтая полоса ниже)'} onClick={copyPrompt}>📋 Промпт для ИИ</button>
+          <button className="lrBtn" disabled={busy || !rules.length} title={rules.length ? '' : 'Сначала загрузи правила в базу (жёлтая полоса ниже)'} onClick={copyRulesJson}>⬇ Правила для Claude</button>
+          {copied && <span className="lioMeta">{copied}</span>}
+          <span className="lioMeta">{busy ? 'загрузка…' : `${shown.length} из ${rules.length}`}</span>
+          {error && <span className="lioError">{error}</span>}
+        </div>
       </div>
 
       {!busy && !rules.length && (
