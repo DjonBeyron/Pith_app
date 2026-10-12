@@ -2,18 +2,22 @@
    Базовые .lio* классы (заголовок, закрыть, мета) — из lesson-io.css. */
 
 .lrFull {
-  position: fixed; inset: 0; z-index: 100500; /* выше отладочной панели админа (z-index 99999–100000), иначе она закрывает верх окна */
+  position: fixed; left: 0; right: 0; bottom: 0; top: 0; z-index: 100500; /* выше отладочной панели админа (z-index 99999–100000) */
+  height: 100dvh; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px);
   background: #0e1013; color: #dfe2ea;
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: column; overflow: hidden;
 }
 .lrTop { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #22252c; }
 .lrTopRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.lrTopClose { margin-left: auto; }
+.lrBack { padding: 8px 14px; background: #b6fe3b; border: none; border-radius: 8px; color: #0e1013; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.lrTop { flex: 0 0 auto; }
+.lrItemOn { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #8a90a0; cursor: pointer; min-width: 52px; }
+.lrItemOn input { cursor: pointer; }
 .lrTop select, .lrSearch, .lrMetaRow select, .lrMetaRow input[list], .lrTitleInput {
   background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 13px; padding: 7px 10px;
 }
 .lrSearch { flex: 1 1 220px; min-width: 160px; max-width: 420px; }
-.lrCols { flex: 1; min-height: 0; display: grid; grid-template-columns: 200px minmax(280px, 1fr) minmax(360px, 1.3fr); }
+.lrCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: 200px minmax(280px, 1fr) minmax(360px, 1.3fr); }
 .lrGroups, .lrListCol, .lrCardCol { overflow-y: auto; min-height: 0; padding: 12px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
 .lrGroups { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 4px; }
 .lrListCol { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 6px; }
@@ -55,7 +59,7 @@
 
 /* Телефон / узкое окно: колонки в одну, карточка под списком */
 @media (max-width: 900px) {
-  .lrCols { grid-template-columns: 1fr; overflow-y: auto; }
+  .lrCols { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; }
   .lrGroups { flex-direction: row; flex-wrap: wrap; border-right: none; }
   .lrExamples { grid-template-columns: 1fr; }
 }

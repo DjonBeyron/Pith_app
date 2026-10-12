@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useLessonRules } from './useLessonRules.js'
 import RuleCard from './RuleCard.jsx'
@@ -18,6 +18,13 @@ export default function LessonRulesPanel({ onClose }) {
   const [onlyActive, setOnlyActive] = useState(false)
   const [selId, setSelId] = useState(null)
   const [newText, setNewText] = useState('')
+
+  // Esc закрывает окно
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   const groups = useMemo(() => [...new Set(rules.map(groupOf))].sort(), [rules])
   const shown = rules.filter(r => ruleMatches(r, { q, group, checker, onlyActive }))
@@ -42,6 +49,7 @@ export default function LessonRulesPanel({ onClose }) {
     <div className="lrFull" onMouseDown={e => e.stopPropagation()}>
       <div className="lrTop">
         <div className="lrTopRow">
+          <button className="lrBack" onClick={onClose}>← Назад</button>
           <span className="lioTitle">Правила формирования урока</span>
           <input className="lrSearch" placeholder="Поиск по правилам…" value={q} onChange={e => setQ(e.target.value)} />
           <select value={checker} onChange={e => setChecker(e.target.value)}>
@@ -49,9 +57,9 @@ export default function LessonRulesPanel({ onClose }) {
             {CHECKERS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
           </select>
           <label className="lrActiveCheck"><input type="checkbox" checked={onlyActive} onChange={e => setOnlyActive(e.target.checked)} /> Только включённые</label>
-          <span className="lioMeta">{busy ? 'загрузка…' : `${shown.length} из ${rules.length}`}</span>
+          <span className="lioMeta">{busy ? 'загрузка…' : `показано ${shown.length} из ${rules.length} · включено ${rules.filter(r => r.active).length}`}</span>
           {error && <span className="lioError">{error}</span>}
-          <button className="lioClose lrTopClose" onClick={onClose}>×</button>
+
         </div>
       </div>
 
@@ -80,6 +88,10 @@ export default function LessonRulesPanel({ onClose }) {
             const c = checkerOf(r.checker)
             return (
               <div key={r.id} className={`lrItem${r.id === selId ? ' on' : ''}${r.active ? '' : ' off'}`} onClick={() => setSelId(r.id)}>
+                <label className="lrItemOn" title={r.active ? 'Правило включено (уходит в экспорт и промпт)' : 'Правило выключено'} onClick={e => e.stopPropagation()}>
+                  <input type="checkbox" checked={r.active} disabled={busy} onChange={e => toggle(r.id, e.target.checked)} />
+                  <span>{r.active ? 'вкл' : 'выкл'}</span>
+                </label>
                 <span className="lrItemIcon" title={c.hint}>{c.icon}</span>
                 <span className="lrItemTitle">{ruleTitle(r)}</span>
                 <span className={`lrSev ${r.severity}`}>{r.severity === 'error' ? 'ошибка' : 'совет'}</span>
