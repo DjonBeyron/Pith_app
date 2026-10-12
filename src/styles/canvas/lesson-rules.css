@@ -1,76 +1,76 @@
 /* ── Окно «Правила формирования урока» (lesson-io/LessonRulesPanel.jsx, RuleCard.jsx) ─ на весь экран, 3 колонки.
    Базовые .lio* классы (заголовок, закрыть, мета) — из lesson-io.css. */
 
-.lrFull {
+.rwFull {
   position: fixed; left: 0; right: 0; bottom: 0; top: 0; z-index: 100500; /* выше отладочной панели админа (z-index 99999–100000) */
   height: 100dvh; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px);
   background: #0e1013; color: #dfe2ea;
   display: flex; flex-direction: column; overflow: hidden;
 }
-.lrTop { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #22252c; margin-bottom: 12px; }
-.lrTopRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.lrBack { padding: 8px 14px; background: #b6fe3b; border: none; border-radius: 8px; color: #0e1013; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-.lrTop { flex: 0 0 auto; }
-.lrItemOn { min-width: 62px; padding: 3px 8px; font-size: 12px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 12px; color: #8a90a0; cursor: pointer; white-space: nowrap; }
-.lrItemOn.on { color: #b6fe3b; border-color: #3a4a20; }
-.lrToggle { padding: 7px 12px; background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #b8bdca; font-size: 13px; cursor: pointer; }
-.lrToggle.on { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 700; }
-.lrErr { padding: 8px 16px; background: #3a1a1a; color: #f87171; font-size: 13px; }
-.lrTop select, .lrSearch, .lrMetaRow select, .lrMetaRow input[list], .lrTitleInput {
+.rwTop { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #22252c; margin-bottom: 12px; }
+.rwTopRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rwBack { padding: 8px 14px; background: #b6fe3b; border: none; border-radius: 8px; color: #0e1013; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.rwTop { flex: 0 0 auto; }
+.rwItemOn { min-width: 62px; padding: 3px 8px; font-size: 12px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 12px; color: #8a90a0; cursor: pointer; white-space: nowrap; }
+.rwItemOn.on { color: #b6fe3b; border-color: #3a4a20; }
+.rwToggle { padding: 7px 12px; background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #b8bdca; font-size: 13px; cursor: pointer; }
+.rwToggle.on { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 700; }
+.rwErr { padding: 8px 16px; background: #3a1a1a; color: #f87171; font-size: 13px; }
+.rwTop select, .rwSearch, .rwMetaRow select, .rwMetaRow input[list], .rwTitleInput {
   background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 13px; padding: 7px 10px;
 }
-.lrSearch { flex: 1 1 220px; min-width: 160px; max-width: 420px; }
-.lrCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: 200px minmax(280px, 1fr) minmax(360px, 1.3fr); }
-.lrGroups, .lrListCol, .lrCardCol { overflow-y: auto; min-height: 0; padding: 12px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
-.lrGroups { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 4px; }
-.lrListCol { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 6px; }
-.lrGroupBtn {
+.rwSearch { flex: 1 1 220px; min-width: 160px; max-width: 420px; }
+.rwCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: 200px minmax(280px, 1fr) minmax(360px, 1.3fr); }
+.rwGroups, .rwListCol, .rwCardCol { overflow-y: auto; min-height: 0; padding: 12px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
+.rwGroups { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 4px; }
+.rwListCol { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 6px; }
+.rwGroupBtn {
   display: flex; justify-content: space-between; text-align: left; padding: 8px 10px;
   background: transparent; border: 1px solid transparent; border-radius: 8px; color: #b8bdca; font-size: 13px; cursor: pointer;
 }
-.lrGroupBtn b { color: #6a6f78; font-weight: 600; }
-.lrGroupBtn:hover, .lrGroupBtn.on { background: #1a1d22; border-color: #2a2d35; color: #b6fe3b; }
-.lrItem {
+.rwGroupBtn b { color: #6a6f78; font-weight: 600; }
+.rwGroupBtn:hover, .rwGroupBtn.on { background: #1a1d22; border-color: #2a2d35; color: #b6fe3b; }
+.rwItem {
   display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer;
   border: 1px solid #22252c; border-radius: 8px; font-size: 13px;
 }
-.lrItem:hover { border-color: #3a4050; }
-.lrItem.on { border-color: #b6fe3b; background: #14180d; }
-.lrItem.off { opacity: 0.45; }
-.lrItemTitle { flex: 1; min-width: 0; line-height: 1.35; }
-.lrItemCat { color: #6a6f78; font-size: 11px; }
-.lrSev { font-size: 11px; padding: 2px 6px; border-radius: 6px; background: #1a1d22; color: #9aa0b4; }
-.lrSev.error { background: #3a1a1a; color: #f87171; }
-.lrItemMove { display: flex; gap: 2px; }
-.lrItemMove button { width: 22px; height: 22px; padding: 0; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 6px; color: #9aa0b4; cursor: pointer; }
-.lrItemMove button:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
-.lrCard { display: flex; flex-direction: column; gap: 10px; }
-.lrTitleInput { font-size: 16px; font-weight: 700; width: 100%; }
-.lrMetaRow { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
-.lrMetaRow label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #8a90a0; }
-.lrMetaRow .lrActiveCheck { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; margin: 0 0 6px; }
-.lrLabel { color: #8a90a0; font-size: 12px; margin-bottom: 4px; }
-.lrExamples { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.lrExBad .lrTextarea { border-color: #4a2424; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
-.lrExGood .lrTextarea { border-color: #2c4a24; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
-.lrCardActions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
-.lrBtnDanger:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
-.lrActiveCheck { display: flex; cursor: pointer; }
+.rwItem:hover { border-color: #3a4050; }
+.rwItem.on { border-color: #b6fe3b; background: #14180d; }
+.rwItem.off { opacity: 0.45; }
+.rwItemTitle { flex: 1; min-width: 0; line-height: 1.35; }
+.rwItemCat { color: #6a6f78; font-size: 11px; }
+.rwSev { font-size: 11px; padding: 2px 6px; border-radius: 6px; background: #1a1d22; color: #9aa0b4; }
+.rwSev.error { background: #3a1a1a; color: #f87171; }
+.rwItemMove { display: flex; gap: 2px; }
+.rwItemMove button { width: 22px; height: 22px; padding: 0; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 6px; color: #9aa0b4; cursor: pointer; }
+.rwItemMove button:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.rwCard { display: flex; flex-direction: column; gap: 10px; }
+.rwTitleInput { font-size: 16px; font-weight: 700; width: 100%; }
+.rwMetaRow { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.rwMetaRow label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #8a90a0; }
+.rwMetaRow .rwActiveCheck { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; margin: 0 0 6px; }
+.rwLabel { color: #8a90a0; font-size: 12px; margin-bottom: 4px; }
+.rwExamples { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rwExBad .rwTextarea { border-color: #4a2424; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.rwExGood .rwTextarea { border-color: #2c4a24; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.rwCardActions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
+.rwBtnDanger:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
+.rwActiveCheck { display: flex; cursor: pointer; }
 
 /* Баннер «в базе нет правил» */
-.lrSeed { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; background: #1a1d12; border-bottom: 1px solid #3a4020; color: #d6dcae; font-size: 13px; }
+.rwSeed { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; background: #1a1d12; border-bottom: 1px solid #3a4020; color: #d6dcae; font-size: 13px; }
 
 /* Телефон / узкое окно: колонки в одну, карточка под списком */
 @media (max-width: 900px) {
-  .lrCols { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; }
-  .lrGroups { flex-direction: row; flex-wrap: wrap; border-right: none; }
-  .lrExamples { grid-template-columns: 1fr; }
+  .rwCols { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; }
+  .rwGroups { flex-direction: row; flex-wrap: wrap; border-right: none; }
+  .rwExamples { grid-template-columns: 1fr; }
 }
 
 /* Растёт под весь текст (высоту выставляет AutoTextarea в JS) — никакого
    внутреннего скролла: правило целиком видно сразу, крутить приходится
-   только общий список (.lrSections), а не каждую строку отдельно. */
-.lrTextarea {
+   только общий список (.rwSections), а не каждую строку отдельно. */
+.rwTextarea {
   width: 100%;
   padding: 10px 12px;
   background: #0a0c10;
@@ -82,16 +82,16 @@
   resize: none;
   overflow: hidden;
 }
-.lrTextarea:focus { outline: none; border-color: #3a4050; }
+.rwTextarea:focus { outline: none; border-color: #3a4050; }
 
-.lrRowActions {
+.rwRowActions {
   display: flex;
   flex-direction: column;
   gap: 6px;
   align-items: flex-end;
 }
 
-.lrBtn {
+.rwBtn {
   padding: 6px 12px;
   background: #1a1d22;
   border: 1px solid #2a2d35;
@@ -101,13 +101,13 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.lrBtn:disabled { opacity: 0.35; cursor: default; }
-.lrBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
-.lrBtnPrimary:hover:not(:disabled) { background: #c6ff5b; }
+.rwBtn:disabled { opacity: 0.35; cursor: default; }
+.rwBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
+.rwBtnPrimary:hover:not(:disabled) { background: #c6ff5b; }
 
-.lrEmpty { color: #6a6f78; font-size: 12px; padding: 12px 0; text-align: center; }
+.rwEmpty { color: #6a6f78; font-size: 12px; padding: 12px 0; text-align: center; }
 
-.lrAddRow {
+.rwAddRow {
   display: flex;
   gap: 8px;
   align-items: flex-start;

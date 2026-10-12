@@ -46,72 +46,72 @@ export default function LessonRulesPanel({ onClose }) {
   return createPortal(
     // stopPropagation: оверлей рендерится внутри LessonIoPanel (React-иерархия идёт через портал) — без него клик по фону
     // закрыл бы заодно и родительскую панель «Поделиться / Импорт»
-    <div className="lrFull" onMouseDown={e => e.stopPropagation()}>
-      <div className="lrTop">
-        <div className="lrTopRow">
-          <button className="lrBack" onClick={onClose}>← Назад</button>
+    <div className="rwFull" onMouseDown={e => e.stopPropagation()}>
+      <div className="rwTop">
+        <div className="rwTopRow">
+          <button className="rwBack" onClick={onClose}>← Назад</button>
           <span className="lioTitle">Правила формирования урока</span>
-          <input className="lrSearch" placeholder="Поиск по правилам…" value={q} onChange={e => setQ(e.target.value)} />
+          <input className="rwSearch" placeholder="Поиск по правилам…" value={q} onChange={e => setQ(e.target.value)} />
           <select value={checker} onChange={e => setChecker(e.target.value)}>
             <option value="">Все проверки</option>
             {CHECKERS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
           </select>
-          <button className={`lrToggle${onlyActive ? ' on' : ''}`} onClick={() => setOnlyActive(v => !v)}>{onlyActive ? '✓ Только включённые' : 'Только включённые'}</button>
+          <button className={`rwToggle${onlyActive ? ' on' : ''}`} onClick={() => setOnlyActive(v => !v)}>{onlyActive ? '✓ Только включённые' : 'Только включённые'}</button>
           <span className="lioMeta">{busy ? 'загрузка…' : `показано ${shown.length} из ${rules.length} · включено ${rules.filter(r => r.active).length}`}</span>
 
         </div>
       </div>
 
-      {error && rules.length > 0 && <div className="lrErr">{error}</div>}
+      {error && rules.length > 0 && <div className="rwErr">{error}</div>}
       {!busy && !rules.length && (
-        <div className="lrSeed">
+        <div className="rwSeed">
           {error ? `Не удалось загрузить правила: ${error}` : 'В базе пока нет правил — до этого момента в легенду шли стандартные, зашитые в код.'}
-          {!error && <button className="lrBtn lrBtnPrimary" onClick={seedDefaults}>Загрузить {SEED_RULES.length} стандартных правил в базу</button>}
+          {!error && <button className="rwBtn rwBtnPrimary" onClick={seedDefaults}>Загрузить {SEED_RULES.length} стандартных правил в базу</button>}
         </div>
       )}
       {!busy && rules.some(r => !r.title && SEED_RULES.some(x => x.text === r.text)) && (
-        <div className="lrSeed">
+        <div className="rwSeed">
           У части правил нет названий, групп и проверки (загружены раньше).
-          <button className="lrBtn lrBtnPrimary" onClick={enrichFromSeed}>Подтянуть названия, группы и примеры</button>
+          <button className="rwBtn rwBtnPrimary" onClick={enrichFromSeed}>Подтянуть названия, группы и примеры</button>
         </div>
       )}
-      <div className="lrCols">
-        <div className="lrGroups">
-          <button className={`lrGroupBtn${group === '' ? ' on' : ''}`} onClick={() => setGroup('')}>Все <b>{rules.length}</b></button>
+      <div className="rwCols">
+        <div className="rwGroups">
+          <button className={`rwGroupBtn${group === '' ? ' on' : ''}`} onClick={() => setGroup('')}>Все <b>{rules.length}</b></button>
           {groups.map(g => (
-            <button key={g} className={`lrGroupBtn${group === g ? ' on' : ''}`} onClick={() => setGroup(g)}>{g} <b>{countBy(g)}</b></button>
+            <button key={g} className={`rwGroupBtn${group === g ? ' on' : ''}`} onClick={() => setGroup(g)}>{g} <b>{countBy(g)}</b></button>
           ))}
         </div>
 
-        <div className="lrListCol">
+        <div className="rwListCol">
           {shown.map(r => {
             const c = checkerOf(r.checker)
             return (
-              <div key={r.id} className={`lrItem${r.id === selId ? ' on' : ''}${r.active ? '' : ' off'}`} onClick={() => setSelId(r.id)}>
-                <button className={`lrItemOn${r.active ? ' on' : ''}`} title={r.active ? 'Включено — уходит в экспорт и промпт. Нажми, чтобы выключить' : 'Выключено. Нажми, чтобы включить'}
+              <div key={r.id} className={`rwItem${r.id === selId ? ' on' : ''}${r.active ? '' : ' off'}`} onClick={() => setSelId(r.id)}>
+                <button className={`rwItemOn${r.active ? ' on' : ''}`} title={r.active ? 'Включено — уходит в экспорт и промпт. Нажми, чтобы выключить' : 'Выключено. Нажми, чтобы включить'}
                   onClick={e => { e.stopPropagation(); toggle(r.id, !r.active) }}>{r.active ? '● вкл' : '○ выкл'}</button>
-                <span className="lrItemIcon" title={c.hint}>{c.icon}</span>
-                <span className="lrItemTitle">{ruleTitle(r)}</span>
-                <span className={`lrSev ${r.severity}`}>{r.severity === 'error' ? 'ошибка' : 'совет'}</span>
-                <span className="lrItemCat">{r.category === 'checklist' ? 'чек-лист' : ''}</span>
-                <span className="lrItemMove">
+                <span className="rwItemIcon" title={c.hint}>{c.icon}</span>
+                <span className="rwItemTitle">{ruleTitle(r)}</span>
+                <span className={`rwSev ${r.severity}`}>{r.severity === 'error' ? 'ошибка' : 'совет'}</span>
+                <span className="rwItemCat">{r.category === 'checklist' ? 'чек-лист' : ''}</span>
+                <span className="rwItemMove">
                   <button title="Выше" disabled={busy} onClick={e => { e.stopPropagation(); moveUp(r.id) }}>↑</button>
                   <button title="Ниже" disabled={busy} onClick={e => { e.stopPropagation(); moveDown(r.id) }}>↓</button>
                 </span>
               </div>
             )
           })}
-          {!shown.length && !busy && <div className="lrEmpty">Ничего не найдено</div>}
-          <div className="lrAddRow">
-            <textarea className="lrTextarea" rows={2} placeholder="Новое правило…" value={newText} onChange={e => setNewText(e.target.value)} />
-            <button className="lrBtn lrBtnPrimary" disabled={busy || !newText.trim()} onClick={handleAdd}>Добавить</button>
+          {!shown.length && !busy && <div className="rwEmpty">Ничего не найдено</div>}
+          <div className="rwAddRow">
+            <textarea className="rwTextarea" rows={2} placeholder="Новое правило…" value={newText} onChange={e => setNewText(e.target.value)} />
+            <button className="rwBtn rwBtnPrimary" disabled={busy || !newText.trim()} onClick={handleAdd}>Добавить</button>
           </div>
         </div>
 
-        <div className="lrCardCol">
+        <div className="rwCardCol">
           {sel
             ? <RuleCard key={sel.id} rule={sel} groups={groups} busy={busy} onPatch={patch} onToggle={toggle} onMoveCategory={id => setCategory(id, sel.category === 'principle' ? 'checklist' : 'principle')} onDelete={handleDelete} />
-            : <div className="lrEmpty">Выбери правило слева — здесь откроется карточка с примерами «нельзя / можно»</div>}
+            : <div className="rwEmpty">Выбери правило слева — здесь откроется карточка с примерами «нельзя / можно»</div>}
         </div>
       </div>
     </div>,
