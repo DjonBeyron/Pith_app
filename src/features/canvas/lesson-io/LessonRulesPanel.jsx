@@ -9,6 +9,12 @@ import { CHECKERS, checkerOf, groupOf, ruleTitle, ruleMatches } from './ruleMeta
 // справа карточка выбранного правила с примерами «нельзя / можно». Хранится в Supabase (useLessonRules.js) и подставляется
 // в легенду экспорта: любая правка видна в следующем «Поделиться». На телефоне колонки складываются в одну (CSS).
 // Два вида по category: принципы — в момент написания ноды, чек-лист — по готовому черновику целиком (PROJECT.md, «Легенда…»).
+// Есть ли что довести до стандартного набора: нет правила, нет названия или не хватает примера
+const needsSeedUpdate = rules => SEED_RULES.some(seed => {
+  const r = rules.find(x => x.text === seed.text)
+  return !r || !r.title || (seed.bad && !r.bad) || (seed.good && !r.good)
+})
+
 export default function LessonRulesPanel({ onClose }) {
   const api = useLessonRules()
   const { rules, busy, error, seedDefaults, enrichFromSeed, add, patch, toggle, setCategory, remove, moveUp, moveDown } = api
@@ -69,10 +75,10 @@ export default function LessonRulesPanel({ onClose }) {
           {!error && <button className="rwBtn rwBtnPrimary" onClick={seedDefaults}>Загрузить {SEED_RULES.length} стандартных правил в базу</button>}
         </div>
       )}
-      {!busy && rules.some(r => !r.title && SEED_RULES.some(x => x.text === r.text)) && (
+      {!busy && needsSeedUpdate(rules) && (
         <div className="rwSeed">
-          У части правил нет названий, групп и проверки (загружены раньше).
-          <button className="rwBtn rwBtnPrimary" onClick={enrichFromSeed}>Подтянуть названия, группы и примеры</button>
+          В стандартном наборе есть новое: правила, группы, примеры.
+          <button className="rwBtn rwBtnPrimary" onClick={enrichFromSeed}>Обновить из стандартного набора</button>
         </div>
       )}
       <div className="rwCols">

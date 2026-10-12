@@ -40,15 +40,16 @@ const predecessors = (nodes, ref) => nodes.filter(m => (m.triggers ?? []).some(t
 
 /** Цепочки из подряд идущих text-нод длиннее MAX_TEXT_RUN (по основному потоку: триггер → следующая нода) */
 function checkTextRuns(nodes) {
+  const hint = wrongOnlySet(nodes) // подсказки ветки ошибки — исключение из правила «не больше двух текстов подряд»
   const byRef = new Map(nodes.map(n => [n.ref, n]))
   const out = []
   const seen = new Set()
   for (const n of nodes) {
-    if (n.type !== 'text' || seen.has(n.ref)) continue
+    if (n.type !== 'text' || seen.has(n.ref) || hint.has(n.ref)) continue
     if (predecessors(nodes, n.ref).some(p => p.type === 'text')) continue // идём только от начала цепочки
     const run = []
     let cur = n
-    while (cur && cur.type === 'text' && !seen.has(cur.ref)) {
+    while (cur && cur.type === 'text' && !seen.has(cur.ref) && !hint.has(cur.ref)) {
       run.push(cur); seen.add(cur.ref)
       const nextRef = (cur.triggers ?? []).find(t => t.then && !/wrong|skip|variant/.test(t.if))?.then
       cur = nextRef ? byRef.get(nextRef) : null
@@ -100,6 +101,30 @@ function checkBaseHighlight(nodes) {
   return out
 }
 
+const MAX_SAME = 2 // три одинаковых задания подряд — монотонно
+/** Три и больше одинаковых заданий подряд по основному потоку (между ними могут стоять реакции/тексты) */
+function checkSameType(nodes) {
+  const byRef = new Map(nodes.map(n => [n.ref, n]))
+  const targets = new Set(nodes.flatMap(n => (n.triggers ?? []).map(t => t.then)))
+  const start = nodes.find(n => !targets.has(n.ref)) ?? nodes[0] // старт — нода, в которую никто не ведёт
+  const path = []
+  const seen = new Set()
+  for (let cur = start; cur && !seen.has(cur.ref); ) {
+    seen.add(cur.ref); path.push(cur)
+    const next = (cur.triggers ?? []).find(t => t.then && !WRONG.test(t.if))?.then
+    cur = next ? byRef.get(next) : null
+  }
+  const ex = path.filter(n => EXERCISES.has(n.type))
+  const out = []
+  for (let i = 0; i < ex.length; ) {
+    let j = i
+    while (j + 1 < ex.length && ex[j + 1].type === ex[i].type) j++
+    if (j - i + 1 > MAX_SAME) out.push(`[R-same-type] ${ex.slice(i, j + 1).map(n => n.ref).join(' → ')}: ${j - i + 1} задания «${ex[i].type}» подряд (максимум ${MAX_SAME}) — чередуй типы заданий`)
+    i = j + 1
+  }
+  return out
+}
+
 export function checkFlow(nodes) {
-  return [...checkTextRuns(nodes), ...checkTautology(nodes), ...checkBaseHighlight(nodes)]
+  return [...checkTextRuns(nodes), ...checkTautology(nodes), ...checkBaseHighlight(nodes), ...checkSameType(nodes)]
 }

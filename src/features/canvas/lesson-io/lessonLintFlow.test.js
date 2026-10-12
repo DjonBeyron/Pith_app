@@ -56,3 +56,18 @@ describe('базовая подложка текста', () => {
     expect(checkFlow([{ ref: 'a', type: 'text', data: { content: 'Текст', highlights: [base] }, triggers: [] }])).toEqual([])
   })
 })
+
+describe('одинаковые задания подряд и ветки ошибки', () => {
+  const ex = (ref, type, then) => ({ ref, type, data: {}, triggers: then ? [{ if: 'word_correct', then }] : [] })
+  it('три одинаковых задания подряд — замечание, чередование — нет', () => {
+    expect(checkFlow([ex('a', 'word_choice', 'b'), ex('b', 'word_choice', 'c'), ex('c', 'word_choice')]).join()).toContain('[R-same-type] a → b → c')
+    expect(checkFlow([ex('a', 'word_choice', 'b'), ex('b', 'phrase_assembly', 'c'), ex('c', 'word_choice')])).toEqual([])
+  })
+  it('цепочка текстов внутри ветки ошибки не считается', () => {
+    const nodes = [
+      { ref: 'q', type: 'word_choice', data: { options: [] }, triggers: [{ if: 'word_wrong', then: 'h1' }, { if: 'word_correct', then: 'z' }] },
+      t('h1', 'раз', 'h2'), t('h2', 'два', 'h3'), t('h3', 'три', 'z'), t('z', 'дальше'),
+    ]
+    expect(checkFlow(nodes).filter(w => /text-run/.test(w))).toEqual([])
+  })
+})

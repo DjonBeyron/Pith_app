@@ -1,4 +1,5 @@
 import { useState, useRef, useLayoutEffect } from 'react'
+import RuleExample from './RuleExample.jsx'
 import { CHECKERS, SEVERITIES, ruleTitle, groupOf } from './ruleMeta.js'
 
 // Textarea, растущая под текст без своего скролла (правило может быть длинным абзацем)
@@ -47,14 +48,8 @@ export default function RuleCard({ rule, groups, busy, onPatch, onToggle, onMove
       <Auto value={d.text} onChange={set('text')} disabled={busy} />
 
       <div className="rwExamples">
-        <div className="rwEx rwExBad">
-          <div className="rwLabel">❌ Нельзя</div>
-          <Auto value={d.bad} onChange={set('bad')} disabled={busy} placeholder="Пример нарушения (кусок JSON или текст)" />
-        </div>
-        <div className="rwEx rwExGood">
-          <div className="rwLabel">✅ Можно</div>
-          <Auto value={d.good} onChange={set('good')} disabled={busy} placeholder="Как правильно" />
-        </div>
+        <RuleExample tone="bad" title="❌ Нельзя" value={d.bad} disabled={busy} onChange={v => setD(x => ({ ...x, bad: v }))} />
+        <RuleExample tone="good" title="✅ Можно" value={d.good} disabled={busy} onChange={v => setD(x => ({ ...x, good: v }))} />
       </div>
 
       <div className="rwCardActions">

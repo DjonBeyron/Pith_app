@@ -50,9 +50,19 @@
 .rwMetaRow label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #8a90a0; }
 .rwMetaRow .rwActiveCheck { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; margin: 0 0 6px; }
 .rwLabel { color: #8a90a0; font-size: 12px; margin-bottom: 4px; }
-.rwExamples { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.rwExBad .rwTextarea { border-color: #4a2424; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
-.rwExGood .rwTextarea { border-color: #2c4a24; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.rwExamples { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rwEx { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid #22252c; }
+.rwEx--bad { border-color: #4a2424; background: #140e0e; }
+.rwEx--good { border-color: #2c4a24; background: #0e140e; }
+/* Предпросмотр «как придёт в чат»: пузыри — те же классы, что в плеере */
+.rwChat { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: #0f1115; border-radius: 10px; }
+.rwPv { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.rwPv--reaction .rwPvEmoji { font-size: 34px; line-height: 1.2; }
+.rwPvTag { font-size: 10px; color: #8a90a0; padding: 1px 6px; border: 1px solid #2a2d35; border-radius: 6px; }
+.rwExRow { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 6px; align-items: start; }
+.rwExRow select { background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 12px; padding: 6px; }
+.rwExField { min-width: 0; }
+.rwExField .richTextField { min-height: 40px; }
 .rwCardActions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
 .rwBtnDanger:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
 .rwActiveCheck { display: flex; cursor: pointer; }
@@ -65,6 +75,7 @@
   .rwCols { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; }
   .rwGroups { flex-direction: row; flex-wrap: wrap; border-right: none; }
   .rwExamples { grid-template-columns: 1fr; }
+  .rwExRow { grid-template-columns: 1fr auto; }
 }
 
 /* Растёт под весь текст (высоту выставляет AutoTextarea в JS) — никакого

@@ -3,14 +3,15 @@
 // то и попадает в промпт — руками копировать и сверять ничего не нужно.
 import { buildLegend } from './lessonSchema.js'
 import { checkerOf, groupOf, ruleTitle } from './ruleMeta.js'
+import { exampleToPrompt } from './ruleExample.js'
 
 const SEV = { error: 'ОШИБКА — урок с этим нарушением не принимается', warn: 'совет' }
 
 function ruleBlock(r, n) {
   const c = checkerOf(r.checker)
   const lines = [`[R${n}] ${ruleTitle(r)}  (${SEV[r.severity] ?? SEV.warn}; проверяет: ${c.label})`, r.text.trim()]
-  if (r.bad?.trim()) lines.push('❌ НЕЛЬЗЯ:', r.bad.trim())
-  if (r.good?.trim()) lines.push('✅ МОЖНО:', r.good.trim())
+  if (r.bad?.trim()) lines.push('❌ НЕЛЬЗЯ:', exampleToPrompt(r.bad))
+  if (r.good?.trim()) lines.push('✅ МОЖНО:', exampleToPrompt(r.good))
   return lines.join('\n')
 }
 

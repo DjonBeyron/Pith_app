@@ -93,12 +93,18 @@ export function useLessonRules() {
     for (const r of SEED_RULES) await createLessonRuleFull(r, (++n[r.category]) * 10)
   }), [run])
 
-  // Правила уже в базе, но без названий/групп (загружены до структуры): подтягиваем структуру стандартного набора по совпадению текста
+  // Доводит базу до стандартного набора: недостающие правила (например, новая группа «Последовательности») создаёт, у существующих
+  // (по совпадению текста) заполняет пустые название/группу/проверку и примеры. Уже заданное автором не перезаписывает
   const enrichFromSeed = useCallback(() => run(async () => {
-    for (const r of rules) {
-      const seed = SEED_RULES.find(x => x.text === r.text)
-      if (!seed || r.title) continue
-      await patchLessonRule(r.id, { title: seed.title, group: seed.group, checker: seed.checker, severity: seed.severity, bad: seed.bad, good: seed.good })
+    const maxOrder = { principle: Math.max(0, ...rules.filter(r => r.category === 'principle').map(r => r.order)), checklist: Math.max(0, ...rules.filter(r => r.category === 'checklist').map(r => r.order)) }
+    for (const seed of SEED_RULES) {
+      const r = rules.find(x => x.text === seed.text)
+      if (!r) { await createLessonRuleFull(seed, (maxOrder[seed.category] += 10)); continue }
+      const fill = {}
+      if (!r.title) Object.assign(fill, { title: seed.title, group: seed.group, checker: seed.checker, severity: seed.severity })
+      if (!r.bad && seed.bad) fill.bad = seed.bad
+      if (!r.good && seed.good) fill.good = seed.good
+      if (Object.keys(fill).length) await patchLessonRule(r.id, fill)
     }
   }), [run, rules])
 

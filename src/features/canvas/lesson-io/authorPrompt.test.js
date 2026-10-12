@@ -9,8 +9,8 @@ describe('промпт для ИИ-автора', () => {
     expect(count).toBe(1)
     expect(text).toContain('[R1]')
     expect(text).toContain('ОШИБКА')
-    expect(text).toContain('❌ НЕЛЬЗЯ:\nПЛОХО')
-    expect(text).toContain('✅ МОЖНО:\nХОРОШО')
+    expect(text).toContain('❌ НЕЛЬЗЯ:\ntext: ПЛОХО')
+    expect(text).toContain('✅ МОЖНО:\ntext: ХОРОШО')
     expect(text).not.toContain('Выключенное')
   })
   it('чек-лист отдельно; тема, формула и процесс на месте; принципы легенды не дублируются', () => {
