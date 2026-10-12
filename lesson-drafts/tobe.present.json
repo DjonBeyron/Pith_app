@@ -173,7 +173,7 @@
       "note": "Таблица to be, шаг 1: пока только форма am",
       "data": {
         "mode": "demo",
-        "chatCaption": "to be: пока только am",
+        "chatCaption": "пока только am",
         "table": {
           "rows": [
             {
@@ -258,7 +258,7 @@
       "note": "ОЗВУЧКА: Смотри: после I всегда идёт am, а в живой речи его сжимают до I'm",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Смотри: после I всегда идёт am, а в живой речи его сжимают до I'm",
+        "text": "Смотри: после {g:I} всегда идёт {g:am}, а в живой речи его сжимают до {g:I'm}",
         "showText": false
       },
       "triggers": [
@@ -279,7 +279,7 @@
       "note": "Таблица to be, шаг 2: добавилась короткая форма I'm",
       "data": {
         "mode": "demo",
-        "chatCaption": "to be: и короче, I'm",
+        "chatCaption": "и короче, I'm",
         "table": {
           "rows": [
             {
@@ -667,7 +667,7 @@
       "note": "ОЗВУЧКА: I'm hungry",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "I'm hungry",
+        "text": "{g:I'm hungry}",
         "showText": false
       },
       "triggers": [
@@ -783,7 +783,7 @@
       "note": "ОЗВУЧКА: Ко мне подошли и спросили: how are you?",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Ко мне подошли и спросили: how are you?",
+        "text": "Ко мне подошли и спросили: {g:how are you}?",
         "showText": false
       },
       "triggers": [
@@ -915,7 +915,7 @@
       "note": "ОЗВУЧКА: Скажи что угодно про себя, начни с I'm, я проверю только произношение",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Скажи что угодно про себя, начни с I'm, я проверю только произношение",
+        "text": "Скажи что угодно про себя, начни с {g:I'm}, я проверю только произношение",
         "showText": false
       },
       "triggers": [
@@ -1023,7 +1023,7 @@
       "note": "Таблица to be, шаг 3: добавилась строка he, she, it",
       "data": {
         "mode": "demo",
-        "chatCaption": "to be: теперь про других",
+        "chatCaption": "теперь про других",
         "table": {
           "rows": [
             {
@@ -1256,10 +1256,12 @@
         25180,
         0
       ],
-      "note": "Таблица to be, шаг 4: полная таблица настоящего времени",
+      "note": "Таблица to be, шаг 4: полная таблица настоящего времени. ОЗВУЧКА таблицы: Ещё раз, всё вместе, без паники. С I идёт am, и говорим коротко I'm. С he, she, it идёт is, например she's. А с you, we, they идёт are, например we're. Это всё настоящее время",
+      "needs": "audio — озвучка таблицы по script",
       "data": {
-        "mode": "demo",
-        "chatCaption": "to be: вся таблица целиком",
+        "mode": "dictator",
+        "script": "Ещё раз, всё вместе, без паники. С I идёт am, и говорим коротко I'm. С he, she, it идёт is, например she's. А с you, we, they идёт are, например we're. Это всё настоящее время",
+        "chatCaption": "вся таблица целиком",
         "table": {
           "rows": [
             {
@@ -1469,7 +1471,7 @@
       "note": "ОЗВУЧКА: We're friends",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "We're friends",
+        "text": "{g:We're friends}",
         "showText": false
       },
       "triggers": [

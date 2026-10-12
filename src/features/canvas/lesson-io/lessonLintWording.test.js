@@ -25,4 +25,16 @@ describe('lessonLintWording', () => {
     expect(checkWordingRules(mk(() => 'почти')).join()).toMatch(/R-wording/)
     expect(checkWordingRules(mk(i => (i < 2 ? 'почти' : 'не совсем')))).toEqual([])
   })
+  it('R-audio-markup: английское слово в голосовом без выделения', () => {
+    const A = (c) => ({ ref: 'a', type: 'audio', data: applyMarkup({ text: c }), triggers: [] })
+    expect(checkWordingRules([A('На русский to часто не переводят')]).join()).toMatch(/R-audio-markup/)
+    expect(checkWordingRules([A('На русский {g:to} часто не переводят')])).toEqual([])
+  })
+  it('R-table-big: таблица-показ больше 7 ячеек', () => {
+    const cells = n => Array.from({ length: n }, (_, i) => ({ id: 'c' + i, row: 1, col: i, value: 'x' }))
+    const tb = (mode, n) => ({ ref: 't', type: 'table', data: { mode, table: { cells: cells(n) } }, triggers: [] })
+    expect(checkWordingRules([tb('demo', 8)]).join()).toMatch(/R-table-big/)
+    expect(checkWordingRules([tb('demo', 7)])).toEqual([])
+    expect(checkWordingRules([tb('dictator', 12)])).toEqual([])
+  })
 })

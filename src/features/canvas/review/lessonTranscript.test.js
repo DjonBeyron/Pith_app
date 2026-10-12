@@ -27,6 +27,14 @@ describe('лента урока', () => {
   })
 })
 
+describe('конец ветки ошибки', () => {
+  it('подсказка ведёт мимо реакции верной ветки сразу дальше: красным только сама подсказка', () => {
+    const l = [t('a', 'q'), q('q', 'r', 'h'), t('r', 'z'), t('h', 'z'), t('z', 'y'), t('y')]
+    const items = buildTranscript(l, { q: 'wrong' })
+    expect(items.filter(i => i.kind === 'node' && i.wrongBranch).map(i => i.ref)).toEqual(['h'])
+  })
+})
+
 describe('выбор конкретного варианта в «Выбери слово»', () => {
   const wc = { ref: 'w', seq: 2, type: 'word_choice', data: { options: [{ id: 'o1', text: 'tries', isCorrect: true }, { id: 'o2', text: 'try', isCorrect: false }, { id: 'o3', text: 'tried', isCorrect: false }] },
     triggers: [{ if: 'word_correct', then: 'z' }, { if: 'word_wrong', then: 'h' }, { if: 'o3', then: 'v' }] }

@@ -55,6 +55,26 @@ function checkWording(nodes) {
     : []
 }
 
+const LATIN = /[A-Za-z][A-Za-z'’-]*/g
+/** В голосовых (audio) правила выделений те же: английские слова в расшифровке размечены ({g:..}), даже если текст скрыт от ученика */
+function checkAudioMarkup(nodes) {
+  const out = []
+  for (const n of nodes.filter(m => m.type === 'audio')) {
+    const t = String(n.data?.text ?? '')
+    const bad = [...t.matchAll(LATIN)].filter(m => !covered(n, m.index, m.index + m[0].length, 'bold'))
+    if (bad.length) out.push(`[R-audio-markup] ${n.ref}: в расшифровке голосового английское «${bad[0][0]}» не выделено — разметь {g:..} так же, как в тексте (даже если расшифровка скрыта)`)
+  }
+  return out
+}
+
+const MAX_DEMO_CELLS = 7
+/** Таблица-показ (demo) с больше чем 7 ячейками — слишком плотно для голосового следом: режим авто (dictator), где голос подсвечивает нужные места */
+function checkBigDemoTable(nodes) {
+  return nodes.filter(n => n.type === 'table' && n.data?.mode === 'demo')
+    .filter(n => (n.data?.table?.cells ?? []).filter(c => !c.isHeader && String(c.value ?? '').trim()).length > MAX_DEMO_CELLS)
+    .map(n => `[R-table-big] ${n.ref}: в таблице-показе больше ${MAX_DEMO_CELLS} ячеек — переключи на режим авто (dictator) со script, чтобы голос подсвечивал нужные места`)
+}
+
 export function checkWordingRules(nodes) {
-  return [...checkQuotes(nodes), ...checkTense(nodes), ...checkRetry(nodes), ...checkWording(nodes)]
+  return [...checkQuotes(nodes), ...checkTense(nodes), ...checkRetry(nodes), ...checkWording(nodes), ...checkAudioMarkup(nodes), ...checkBigDemoTable(nodes)]
 }

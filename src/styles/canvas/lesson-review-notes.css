@@ -1,0 +1,18 @@
+/* ── Замечания в окне «Разбор урока» (canvas/review/NoteDialog, NotesWindow, кнопки в углу сообщения). Классы rvwNt*, rvwTool*, rvwSlotTools — только здесь */
+.rvwSlotTools { position: absolute; top: -2px; right: 6px; z-index: 5; display: flex; gap: 4px; }
+.rvwTool { padding: 2px 8px; font-size: 10px; background: #1a1d22ee; border: 1px solid #3a4050; border-radius: 10px; color: #dfe2ea; cursor: pointer; white-space: nowrap; }
+.rvwTool:hover { border-color: #b6fe3b; color: #b6fe3b; }
+.rvwNtBack { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 1600; background: #000a; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.rvwNtBox { width: min(520px, 100%); max-height: 90dvh; overflow: auto; background: #14161c; border: 1px solid #2a2d35; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; color: #dfe2ea; }
+.rvwNtWide { width: min(760px, 100%); }
+.rvwNtHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
+.rvwNtChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rvwNtChip { padding: 5px 10px; font-size: 12px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 14px; color: #b8bdca; cursor: pointer; }
+.rvwNtChip.on { background: #1f2d10; border-color: #b6fe3b; color: #b6fe3b; }
+.rvwNtText { width: 100%; box-sizing: border-box; background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 13px; padding: 8px 10px; resize: vertical; }
+.rvwNtBtns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rvwNtList { display: flex; flex-direction: column; gap: 8px; }
+.rvwNtScroll { max-height: 55dvh; overflow-y: auto; }
+.rvwNtItem { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: #1a1d22; border-radius: 8px; font-size: 13px; align-items: flex-start; }
+.rvwNtLink { font-size: 11px; color: #b6fe3b; cursor: pointer; }
+.rvwNtQuote { font-size: 12px; color: #8a90a0; white-space: pre-wrap; }

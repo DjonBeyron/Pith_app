@@ -29,6 +29,19 @@ export function findStart(nodes) {
   return pool.reduce((a, b) => ((a.seq ?? 0) <= (b.seq ?? 0) ? a : b), pool[0])
 }
 
+/** Все ноды, достижимые из `from` не через переходы «неверно» — то, что ученик увидит после верного ответа */
+function reachable(byRef, from) {
+  const set = new Set()
+  const stack = from ? [from] : []
+  while (stack.length) {
+    const r = stack.pop()
+    if (set.has(r) || !byRef.has(r)) continue
+    set.add(r)
+    for (const t of byRef.get(r).triggers ?? []) if (t.then && !WRONG.has(t.if)) stack.push(t.then)
+  }
+  return set
+}
+
 /**
  * Лента: [{ kind: 'node'|'student', ref, node, side, wrongBranch, hasWrong, choice }].
  * kind 'student' — пузырь ответа ученика после задания (верный или ошибочный); wrongBranch — нода лежит в ветке после ошибки.
@@ -39,10 +52,10 @@ export function buildTranscript(nodes, choices = {}) {
   const out = []
   const seen = new Set()
   let wrongBranch = false
-  let rejoin = null // нода, где ветка после ошибки сливается с основным потоком (куда вёл бы верный ответ)
+  let rejoin = new Set() // ноды основного потока (всё, что достижимо из верного ответа): первая из них — место, где ветка ошибки заканчивается
   for (let cur = findStart(nodes); cur && !seen.has(cur.ref) && out.length < MAX_ITEMS; ) {
     seen.add(cur.ref)
-    if (wrongBranch && cur.ref === rejoin) wrongBranch = false
+    if (wrongBranch && rejoin.has(cur.ref)) wrongBranch = false
     const trig = cur.triggers ?? []
     const wrongT = trig.find(t => WRONG.has(t.if) && t.then)
     const rightT = trig.find(t => CORRECT.has(t.if) && t.then)
@@ -56,8 +69,8 @@ export function buildTranscript(nodes, choices = {}) {
     let next
     if (exercise) {
       out.push({ kind: 'student', ref: cur.ref, node: cur, ok: choice === 'right', wrongBranch, pickedText: picked?.text ?? null })
-      if (variantT) { next = variantT.then; wrongBranch = choice === 'wrong'; rejoin = rightT?.then ?? null }
-      else if (choice === 'wrong' && wrongT) { next = wrongT.then; wrongBranch = true; rejoin = rightT?.then ?? null }
+      if (variantT) { next = variantT.then; wrongBranch = choice === 'wrong'; rejoin = reachable(byRef, rightT?.then) }
+      else if (choice === 'wrong' && wrongT) { next = wrongT.then; wrongBranch = true; rejoin = reachable(byRef, rightT?.then) }
       else { next = (rightT ?? trig.find(t => t.then))?.then; wrongBranch = false }
     } else {
       next = trig.find(t => t.then && !WRONG.has(t.if))?.then

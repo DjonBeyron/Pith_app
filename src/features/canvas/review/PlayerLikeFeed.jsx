@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PlayerMessage from '../../player/PlayerMessage.jsx'
 import PhraseBank from '../../player/panels/phrase-assembly/PhraseBank.jsx'
 import PhraseAnswerRow from '../../player/panels/phrase-assembly/PhraseAnswerRow.jsx'
@@ -8,6 +8,7 @@ import { TYPE_COLOR } from '../nodeTypes.js'
 import { PlayerMutedContext } from '../../player/playerMuted.js'
 import { Mic } from 'lucide-react'
 import { answerText } from './lessonTranscript.js'
+import { nodeCopyText } from './nodeCopyText.js'
 
 const NOOP = () => {}
 const NO_SET = new Set()
@@ -69,14 +70,34 @@ function StudentRow({ item }) {
 const HISTORY = new WeakMap()
 const asHistory = node => {
   let c = HISTORY.get(node)
-  if (!c) { c = { ...node, isHistory: true }; HISTORY.set(node, c) }
+  if (!c) {
+    c = { ...node, isHistory: true }
+    // Голосовое со скрытой расшифровкой в разборе показываем с текстом: автор должен видеть, что в нём сказано
+    if (node.type === 'audio' && node.typeData?.audio?.showText === false) c.typeData = { ...node.typeData, audio: { ...node.typeData.audio, showText: true } }
+    HISTORY.set(node, c)
+  }
   return c
 }
 
 // Копия ленты плеера: те же классы и те же модули сообщений (PlayerMessage), что в уроке, но без триггеров — ничего не играет и не переходит
 // дальше (звук выключен контекстом, файлов не передаём — медиа рисуются заглушками). Поверх каждого сообщения — выделение, номер, замечания и
 // переключатель «верно / неверно» на заданиях
-export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, onSelect, onChoice, onPick }) {
+// Мини-кнопки в углу выделенного сообщения (только режим разбора): копировать текст и оставить замечание
+function SlotTools({ item, count, onNote }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async e => {
+    e.stopPropagation()
+    try { await navigator.clipboard.writeText(nodeCopyText(item.node)); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch { /* буфер недоступен */ }
+  }
+  return (
+    <div className="rvwSlotTools" onClick={e => e.stopPropagation()}>
+      <button className="rvwTool" title="Скопировать текст" onClick={copy}>{copied ? '✓ скопировано' : '⧉ копировать'}</button>
+      <button className="rvwTool" title="Оставить замечание к этому сообщению" onClick={e => { e.stopPropagation(); onNote(item.ref) }}>✎{count ? ` ${count}` : ' замечание'}</button>
+    </div>
+  )
+}
+
+export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, onNote, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
   // К выбранному сообщению — каждый раз при выборе (в том числе повторном: selTick растёт при каждом клике)
   useEffect(() => {
@@ -105,6 +126,7 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
                     <div className="rvwSlotMeta">
                       <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
                     </div>
+                    {(on || noteCounts?.get(it.ref)) && <SlotTools item={it} count={noteCounts?.get(it.ref) ?? 0} onNote={onNote} />}
                     {exercise
                       ? <ExercisePanel node={it.node} item={it} onPick={onPick} onChoice={onChoice} />
                       : node.type === 'reaction'
