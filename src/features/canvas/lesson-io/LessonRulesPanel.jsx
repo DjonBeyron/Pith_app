@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLessonRules } from './useLessonRules.js'
 import RuleCard from './RuleCard.jsx'
 import { buildAuthorPrompt } from './authorPrompt.js'
+import { PRINCIPLES, PRE_SUBMIT_CHECKLIST } from './lessonRulesDefaults.js'
 import { CHECKERS, checkerOf, groupOf, ruleTitle, ruleMatches } from './ruleMeta.js'
 
 // Окно правил формирования урока на весь экран (ПК): слева группы, посередине список (название + значок «кто проверяет»),
@@ -11,7 +12,7 @@ import { CHECKERS, checkerOf, groupOf, ruleTitle, ruleMatches } from './ruleMeta
 // Два вида по category: принципы — в момент написания ноды, чек-лист — по готовому черновику целиком (PROJECT.md, «Легенда…»).
 export default function LessonRulesPanel({ onClose }) {
   const api = useLessonRules()
-  const { rules, busy, error, add, patch, toggle, setCategory, remove, moveUp, moveDown } = api
+  const { rules, busy, error, seedDefaults, add, patch, toggle, setCategory, remove, moveUp, moveDown } = api
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('')
   const [checker, setChecker] = useState('')
@@ -65,14 +66,20 @@ export default function LessonRulesPanel({ onClose }) {
           {CHECKERS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
         </select>
         <label className="lrActiveCheck"><input type="checkbox" checked={onlyActive} onChange={e => setOnlyActive(e.target.checked)} /> Только включённые</label>
-        <button className="lrBtn lrBtnPrimary" disabled={busy || !rules.length} onClick={copyPrompt}>📋 Промпт для ИИ</button>
-        <button className="lrBtn" disabled={busy || !rules.length} onClick={copyRulesJson}>⬇ Правила для Claude</button>
+        <button className="lrBtn lrBtnPrimary" disabled={busy || !rules.length} title={rules.length ? '' : 'Сначала загрузи правила в базу'} onClick={copyPrompt}>📋 Промпт для ИИ</button>
+        <button className="lrBtn" disabled={busy || !rules.length} title={rules.length ? '' : 'Сначала загрузи правила в базу'} onClick={copyRulesJson}>⬇ Правила для Claude</button>
         {copied && <span className="lioMeta">{copied}</span>}
         <span className="lioMeta">{busy ? '…' : `${shown.length} из ${rules.length}`}</span>
         {error && <span className="lioError">{error}</span>}
         <button className="lioClose" onClick={onClose}>×</button>
       </div>
 
+      {!busy && !rules.length && (
+        <div className="lrSeed">
+          {error ? `Не удалось загрузить правила: ${error}` : 'В базе пока нет правил — до этого момента в легенду шли стандартные, зашитые в код.'}
+          {!error && <button className="lrBtn lrBtnPrimary" onClick={seedDefaults}>Загрузить {PRINCIPLES.length + PRE_SUBMIT_CHECKLIST.length} стандартных правил в базу</button>}
+        </div>
+      )}
       <div className="lrCols">
         <div className="lrGroups">
           <button className={`lrGroupBtn${group === '' ? ' on' : ''}`} onClick={() => setGroup('')}>Все <b>{rules.length}</b></button>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { PRINCIPLES, PRE_SUBMIT_CHECKLIST } from './lessonRulesDefaults.js'
 import {
   listLessonRules, createLessonRule, updateLessonRule, patchLessonRule,
   setLessonRuleActive, setLessonRuleCategory, swapLessonRuleOrder, deleteLessonRule,
@@ -76,8 +77,16 @@ export function useLessonRules() {
     return swapLessonRuleOrder(inCat[i], inCat[i + 1])
   }), [run, rules])
 
+  // Таблица lesson_rules пуста (правила жили только в коде) — одним действием кладём в неё стандартные, дальше правятся в окне
+  const seedDefaults = useCallback(() => run(async () => {
+    let i = 0
+    for (const t of PRINCIPLES) await createLessonRule(t, (++i) * 10, 'principle')
+    i = 0
+    for (const t of PRE_SUBMIT_CHECKLIST) await createLessonRule(t, (++i) * 10, 'checklist')
+  }), [run])
+
   const principles = rules.filter(r => r.category === 'principle')
   const checklist  = rules.filter(r => r.category === 'checklist')
 
-  return { rules, principles, checklist, busy, error, add, edit, patch, toggle, setCategory, remove, moveUp, moveDown }
+  return { rules, principles, checklist, busy, error, add, seedDefaults, edit, patch, toggle, setCategory, remove, moveUp, moveDown }
 }

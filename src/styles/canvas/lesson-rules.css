@@ -51,6 +51,9 @@
 .lrBtnDanger:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
 .lrActiveCheck { display: flex; cursor: pointer; }
 
+/* Баннер «в базе нет правил» */
+.lrSeed { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; background: #1a1d12; border-bottom: 1px solid #3a4020; color: #d6dcae; font-size: 13px; }
+
 /* Телефон / узкое окно: колонки в одну, карточка под списком */
 @media (max-width: 900px) {
   .lrCols { grid-template-columns: 1fr; overflow-y: auto; }
