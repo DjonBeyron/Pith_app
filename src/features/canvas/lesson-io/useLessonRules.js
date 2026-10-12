@@ -55,7 +55,17 @@ export function useLessonRules() {
 
   const edit     = useCallback((id, text)     => run(() => updateLessonRule(id, text)),         [run])
   const patch    = useCallback((id, fields)   => run(() => patchLessonRule(id, fields)),         [run])
-  const toggle   = useCallback((id, active)   => run(() => setLessonRuleActive(id, active)),     [run])
+  // Переключатель «вкл/выкл» сразу меняется на экране (без ожидания сервера и без блокировки всего окна); при ошибке сервера возвращается назад
+  const toggle = useCallback(async (id, active) => {
+    setRules(prev => prev.map(r => (r.id === id ? { ...r, active } : r)))
+    try {
+      await setLessonRuleActive(id, active)
+      setError(null)
+    } catch (e) {
+      setRules(prev => prev.map(r => (r.id === id ? { ...r, active: !active } : r)))
+      setError(`Не удалось ${active ? 'включить' : 'выключить'} правило: ${e?.message ?? 'ошибка сервера'}`)
+    }
+  }, [])
   const setCategory = useCallback((id, category) => run(() => setLessonRuleCategory(id, category)), [run])
   const remove   = useCallback(id             => run(() => deleteLessonRule(id)),                [run])
 

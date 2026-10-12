@@ -56,13 +56,13 @@ export default function LessonRulesPanel({ onClose }) {
             <option value="">Все проверки</option>
             {CHECKERS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
           </select>
-          <label className="lrActiveCheck"><input type="checkbox" checked={onlyActive} onChange={e => setOnlyActive(e.target.checked)} /> Только включённые</label>
+          <button className={`lrToggle${onlyActive ? ' on' : ''}`} onClick={() => setOnlyActive(v => !v)}>{onlyActive ? '✓ Только включённые' : 'Только включённые'}</button>
           <span className="lioMeta">{busy ? 'загрузка…' : `показано ${shown.length} из ${rules.length} · включено ${rules.filter(r => r.active).length}`}</span>
-          {error && <span className="lioError">{error}</span>}
 
         </div>
       </div>
 
+      {error && rules.length > 0 && <div className="lrErr">{error}</div>}
       {!busy && !rules.length && (
         <div className="lrSeed">
           {error ? `Не удалось загрузить правила: ${error}` : 'В базе пока нет правил — до этого момента в легенду шли стандартные, зашитые в код.'}
@@ -88,10 +88,8 @@ export default function LessonRulesPanel({ onClose }) {
             const c = checkerOf(r.checker)
             return (
               <div key={r.id} className={`lrItem${r.id === selId ? ' on' : ''}${r.active ? '' : ' off'}`} onClick={() => setSelId(r.id)}>
-                <label className="lrItemOn" title={r.active ? 'Правило включено (уходит в экспорт и промпт)' : 'Правило выключено'} onClick={e => e.stopPropagation()}>
-                  <input type="checkbox" checked={r.active} disabled={busy} onChange={e => toggle(r.id, e.target.checked)} />
-                  <span>{r.active ? 'вкл' : 'выкл'}</span>
-                </label>
+                <button className={`lrItemOn${r.active ? ' on' : ''}`} title={r.active ? 'Включено — уходит в экспорт и промпт. Нажми, чтобы выключить' : 'Выключено. Нажми, чтобы включить'}
+                  onClick={e => { e.stopPropagation(); toggle(r.id, !r.active) }}>{r.active ? '● вкл' : '○ выкл'}</button>
                 <span className="lrItemIcon" title={c.hint}>{c.icon}</span>
                 <span className="lrItemTitle">{ruleTitle(r)}</span>
                 <span className={`lrSev ${r.severity}`}>{r.severity === 'error' ? 'ошибка' : 'совет'}</span>
