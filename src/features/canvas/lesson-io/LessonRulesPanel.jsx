@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLessonRules } from './useLessonRules.js'
 import RuleCard from './RuleCard.jsx'
-import { PRINCIPLES, PRE_SUBMIT_CHECKLIST } from './lessonRulesDefaults.js'
+import { SEED_RULES } from './lessonRulesSeed.js'
 import { CHECKERS, checkerOf, groupOf, ruleTitle, ruleMatches } from './ruleMeta.js'
 
 // Окно правил формирования урока на весь экран (ПК): слева группы, посередине список (название + значок «кто проверяет»),
@@ -11,7 +11,7 @@ import { CHECKERS, checkerOf, groupOf, ruleTitle, ruleMatches } from './ruleMeta
 // Два вида по category: принципы — в момент написания ноды, чек-лист — по готовому черновику целиком (PROJECT.md, «Легенда…»).
 export default function LessonRulesPanel({ onClose }) {
   const api = useLessonRules()
-  const { rules, busy, error, seedDefaults, add, patch, toggle, setCategory, remove, moveUp, moveDown } = api
+  const { rules, busy, error, seedDefaults, enrichFromSeed, add, patch, toggle, setCategory, remove, moveUp, moveDown } = api
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('')
   const [checker, setChecker] = useState('')
@@ -58,7 +58,13 @@ export default function LessonRulesPanel({ onClose }) {
       {!busy && !rules.length && (
         <div className="lrSeed">
           {error ? `Не удалось загрузить правила: ${error}` : 'В базе пока нет правил — до этого момента в легенду шли стандартные, зашитые в код.'}
-          {!error && <button className="lrBtn lrBtnPrimary" onClick={seedDefaults}>Загрузить {PRINCIPLES.length + PRE_SUBMIT_CHECKLIST.length} стандартных правил в базу</button>}
+          {!error && <button className="lrBtn lrBtnPrimary" onClick={seedDefaults}>Загрузить {SEED_RULES.length} стандартных правил в базу</button>}
+        </div>
+      )}
+      {!busy && rules.some(r => !r.title && SEED_RULES.some(x => x.text === r.text)) && (
+        <div className="lrSeed">
+          У части правил нет названий, групп и проверки (загружены раньше).
+          <button className="lrBtn lrBtnPrimary" onClick={enrichFromSeed}>Подтянуть названия, группы и примеры</button>
         </div>
       )}
       <div className="lrCols">

@@ -51,6 +51,16 @@ export async function createLessonRule(text, order, category = 'principle') {
   return toEntry(data)
 }
 
+/** Создать правило сразу со всеми полями структуры (стандартный набор): rule = { text, category, title, group, checker, severity, bad, good } */
+export async function createLessonRuleFull(rule, order) {
+  const { error } = await supabase.from('lesson_rules').insert({
+    rule_text: rule.text, sort_order: order, category: rule.category,
+    title: rule.title || null, rule_group: rule.group || null, checker: rule.checker, severity: rule.severity,
+    bad_example: rule.bad || null, good_example: rule.good || null,
+  })
+  if (error) throw error
+}
+
 export async function updateLessonRule(id, text) {
   const { error } = await supabase
     .from('lesson_rules')

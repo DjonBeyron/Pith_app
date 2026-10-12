@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { PRINCIPLES, PRE_SUBMIT_CHECKLIST } from './lessonRulesDefaults.js'
+import { SEED_RULES } from './lessonRulesSeed.js'
 import {
-  listLessonRules, createLessonRule, updateLessonRule, patchLessonRule,
+  listLessonRules, createLessonRule, createLessonRuleFull, updateLessonRule, patchLessonRule,
   setLessonRuleActive, setLessonRuleCategory, swapLessonRuleOrder, deleteLessonRule,
 } from '../../../shared/api/lessonRulesApi.js'
 
@@ -79,14 +79,21 @@ export function useLessonRules() {
 
   // Таблица lesson_rules пуста (правила жили только в коде) — одним действием кладём в неё стандартные, дальше правятся в окне
   const seedDefaults = useCallback(() => run(async () => {
-    let i = 0
-    for (const t of PRINCIPLES) await createLessonRule(t, (++i) * 10, 'principle')
-    i = 0
-    for (const t of PRE_SUBMIT_CHECKLIST) await createLessonRule(t, (++i) * 10, 'checklist')
+    const n = { principle: 0, checklist: 0 }
+    for (const r of SEED_RULES) await createLessonRuleFull(r, (++n[r.category]) * 10)
   }), [run])
+
+  // Правила уже в базе, но без названий/групп (загружены до структуры): подтягиваем структуру стандартного набора по совпадению текста
+  const enrichFromSeed = useCallback(() => run(async () => {
+    for (const r of rules) {
+      const seed = SEED_RULES.find(x => x.text === r.text)
+      if (!seed || r.title) continue
+      await patchLessonRule(r.id, { title: seed.title, group: seed.group, checker: seed.checker, severity: seed.severity, bad: seed.bad, good: seed.good })
+    }
+  }), [run, rules])
 
   const principles = rules.filter(r => r.category === 'principle')
   const checklist  = rules.filter(r => r.category === 'checklist')
 
-  return { rules, principles, checklist, busy, error, add, seedDefaults, edit, patch, toggle, setCategory, remove, moveUp, moveDown }
+  return { rules, principles, checklist, busy, error, add, seedDefaults, enrichFromSeed, edit, patch, toggle, setCategory, remove, moveUp, moveDown }
 }
