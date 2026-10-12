@@ -28,20 +28,21 @@
     },
     {
       "ref": "n2",
-      "type": "text",
+      "type": "audio",
       "seq": 2,
       "pos": [
         560,
         0
       ],
+      "note": "ОЗВУЧКА: Как сказать по-английски: я Пит?",
+      "needs": "audio — озвучка реплики",
       "data": {
-        "content": "как сказать по-английски {t:«я Пит»}?",
-        "hardWrap": false
+        "text": "Как сказать по-английски: я Пит?",
+        "showText": false
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 1800,
+          "if": "played",
           "then": "n3"
         }
       ]
@@ -172,7 +173,7 @@
       "note": "Таблица to be, шаг 1: пока только форма am",
       "data": {
         "mode": "demo",
-        "chatCaption": "to be: настоящее время",
+        "chatCaption": "to be: пока только am",
         "table": {
           "rows": [
             {
@@ -278,7 +279,7 @@
       "note": "Таблица to be, шаг 2: добавилась короткая форма I'm",
       "data": {
         "mode": "demo",
-        "chatCaption": "to be: настоящее время",
+        "chatCaption": "to be: и короче, I'm",
         "table": {
           "rows": [
             {
@@ -773,40 +774,42 @@
     },
     {
       "ref": "n29",
-      "type": "text",
+      "type": "audio",
       "seq": 25,
       "pos": [
         16040,
         0
       ],
+      "note": "ОЗВУЧКА: Ко мне подошли и спросили: how are you?",
+      "needs": "audio — озвучка реплики",
       "data": {
-        "content": "ко мне подошли и спросили how are you 😅",
-        "hardWrap": false
+        "text": "Ко мне подошли и спросили: how are you?",
+        "showText": false
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2200,
+          "if": "played",
           "then": "n30"
         }
       ]
     },
     {
       "ref": "n30",
-      "type": "text",
+      "type": "audio",
       "seq": 26,
       "pos": [
         16600,
         0
       ],
+      "note": "ОЗВУЧКА: Скажи вслух по-английски: я в порядке",
+      "needs": "audio — озвучка реплики",
       "data": {
-        "content": "скажи вслух по-английски {t:«я в порядке»}",
-        "hardWrap": false
+        "text": "Скажи вслух по-английски: я в порядке",
+        "showText": false
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2000,
+          "if": "played",
           "then": "n31"
         }
       ]
@@ -1020,7 +1023,7 @@
       "note": "Таблица to be, шаг 3: добавилась строка he, she, it",
       "data": {
         "mode": "demo",
-        "chatCaption": "to be: настоящее время",
+        "chatCaption": "to be: теперь про других",
         "table": {
           "rows": [
             {
@@ -1150,20 +1153,21 @@
     },
     {
       "ref": "n41",
-      "type": "text",
+      "type": "audio",
       "seq": 35,
       "pos": [
         22940,
         0
       ],
+      "note": "ОЗВУЧКА: Маша выиграла конкурс!",
+      "needs": "audio — озвучка реплики",
       "data": {
-        "content": "Маша выиграла конкурс 🎉",
-        "hardWrap": false
+        "text": "Маша выиграла конкурс!",
+        "showText": false
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2000,
+          "if": "played",
           "then": "n42"
         }
       ]
@@ -1255,7 +1259,7 @@
       "note": "Таблица to be, шаг 4: полная таблица настоящего времени",
       "data": {
         "mode": "demo",
-        "chatCaption": "to be: настоящее время",
+        "chatCaption": "to be: вся таблица целиком",
         "table": {
           "rows": [
             {
