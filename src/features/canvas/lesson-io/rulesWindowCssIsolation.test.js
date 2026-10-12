@@ -19,6 +19,6 @@ describe.each([['canvas/lesson-rules.css', /^rw[A-Z]/], ['canvas/lesson-review.c
     }
   })
   it('в стилях окна нет классов без своего префикса', () => {
-    expect([...classes(readFileSync(own, 'utf8'))].filter(c => /^[a-z]+[A-Z]/.test(c) && !prefix.test(c) && !/^(lio|richText|player|lessonPlayer|canvasBoard)/.test(c))).toEqual([])
+    expect([...classes(readFileSync(own, 'utf8'))].filter(c => /^[a-z]+[A-Z]/.test(c) && !prefix.test(c) && !/^(lio|richText|player|lessonPlayer|canvasBoard|phrase|chooseWord)/.test(c))).toEqual([])
   })
 })

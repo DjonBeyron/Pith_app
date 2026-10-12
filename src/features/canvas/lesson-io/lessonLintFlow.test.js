@@ -14,9 +14,9 @@ describe('ритм урока', () => {
     expect(checkFlow(nodes).join()).toContain('[R-tautology] b')
   })
   it('ответ, которого нет в пояснении, — без замечаний; ответ в слове-подстроке не считается', () => {
-    const nodes = [t('a', 'Форма с he, she, it', 'b'), { ref: 'b', type: 'type_word', data: { word: 'tries' }, triggers: [] }]
+    const nodes = [t('a', 'Форма с he, she, it', 'b'), { ref: 'b', type: 'type_word', data: { word: 'she tries' }, triggers: [] }]
     expect(checkFlow(nodes)).toEqual([])
-    const sub = [t('a', 'Она entries', 'b'), { ref: 'b', type: 'type_word', data: { word: 'tries' }, triggers: [] }]
+    const sub = [t('a', 'Она entries', 'b'), { ref: 'b', type: 'type_word', data: { word: 'she tries' }, triggers: [] }]
     expect(checkFlow(sub)).toEqual([])
   })
   it('ветка ошибки не считается основным потоком', () => {
@@ -69,5 +69,13 @@ describe('одинаковые задания подряд и ветки оши�
       t('h1', 'раз', 'h2'), t('h2', 'два', 'h3'), t('h3', 'три', 'z'), t('z', 'дальше'),
     ]
     expect(checkFlow(nodes).filter(w => /text-run/.test(w))).toEqual([])
+  })
+})
+
+describe('type_word — мини-фраза', () => {
+  const tw = (word) => [{ ref: 'a', type: 'type_word', data: { word }, triggers: [] }]
+  it('одиночное слово — замечание, фраза из двух слов — нет', () => {
+    expect(checkFlow(tw('tries')).join()).toContain('[R-type-phrase] a')
+    expect(checkFlow(tw('she tries'))).toEqual([])
   })
 })

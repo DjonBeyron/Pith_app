@@ -81,7 +81,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       </div>
       <div className="rvwCols">
         <div className="rvwFeedCol">
-          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} selRef={selRef} selTick={selTick} warnMap={warnMap} onSelect={select} onChoice={setChoice} />
+          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} selRef={selRef} selTick={selTick} warnMap={warnMap} onSelect={select} onChoice={setChoice} />
         </div>
         <div className="rvwCanvasCol">
           <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />

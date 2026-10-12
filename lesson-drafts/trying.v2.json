@@ -216,7 +216,7 @@
         0
       ],
       "data": {
-        "content": "Давай попробуем печатать ⌨️ Тапай по светящимся буквам внизу. Как будет {t:«пытаюсь»}? Звучит как трай",
+        "content": "Давай попробуем печатать ⌨️ Тапай по светящимся буквам внизу. Как будет {t:«я пытаюсь»}? Звучит как «ай трай»",
         "hardWrap": false
       },
       "triggers": [
@@ -236,12 +236,12 @@
         0
       ],
       "data": {
-        "word": "try",
-        "extraLetters": "ie",
-        "responseWrong": "Мимо) Слово совсем короткое, всего три буквы 🤔",
+        "word": "I try",
+        "extraLetters": "ae",
+        "responseWrong": "Мимо) Два коротких слова, всего четыре буквы 🤔",
         "signals": [
           {
-            "slot": 2,
+            "slot": 3,
             "ref": "n9"
           }
         ]
@@ -1072,29 +1072,8 @@
         0
       ],
       "data": {
-        "content": "Маша каждое утро пытается встать пораньше 🌅 Напечатай «пытается», тапая по светящимся буквам",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 93,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "start": 55,
-            "end": 65,
-            "mode": "text",
-            "color": "#fdfcfc",
-            "opacity": 1
-          },
-          {
-            "start": 55,
-            "end": 65,
-            "mode": "italic"
-          }
-        ]
+        "content": "Маша каждое утро пытается встать пораньше 🌅 Напечатай по-английски: {t:«она пытается»}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -1113,12 +1092,12 @@
         0
       ],
       "data": {
-        "word": "tries",
+        "word": "she tries",
         "extraLetters": "yc",
         "responseWrong": "Не то) Вспомни, как глагол ведёт себя с he / she / it 🤔",
         "signals": [
           {
-            "slot": 2,
+            "slot": 5,
             "ref": "n35"
           }
         ]
@@ -3077,29 +3056,8 @@
         0
       ],
       "data": {
-        "content": "Теперь печатаем ⌨️ Допиши: I am ___ Прямо сейчас «пытаюсь». Тапай по светящимся буквам",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 86,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "start": 49,
-            "end": 58,
-            "mode": "text",
-            "color": "#fdfcfc",
-            "opacity": 1
-          },
-          {
-            "start": 49,
-            "end": 58,
-            "mode": "italic"
-          }
-        ]
+        "content": "Теперь печатаем ⌨️ {t:«я сейчас пытаюсь»} — по-английски, тапай по светящимся буквам",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -3118,16 +3076,16 @@
         0
       ],
       "data": {
-        "word": "trying",
+        "word": "I am trying",
         "extraLetters": "ed",
         "responseWrong": "Мимо) Подумай про окончание после am, is, are 🤔",
         "signals": [
           {
-            "slot": 2,
+            "slot": 5,
             "ref": "n99"
           },
           {
-            "slot": 3,
+            "slot": 6,
             "ref": "n100"
           }
         ]

@@ -1,22 +1,46 @@
 import { useEffect, useRef } from 'react'
 import PlayerMessage from '../../player/PlayerMessage.jsx'
+import PhraseBank from '../../player/panels/phrase-assembly/PhraseBank.jsx'
+import PhraseAnswerRow from '../../player/panels/phrase-assembly/PhraseAnswerRow.jsx'
+import ChooseWordOption from '../../player/panels/choose-word/ChooseWordOption.jsx'
+import { nodeFileKey } from '../../player/preloadQueue.js'
+import { TYPE_COLOR } from '../nodeTypes.js'
 import { PlayerMutedContext } from '../../player/playerMuted.js'
 import { answerText } from './lessonTranscript.js'
 
 const NOOP = () => {}
-// Эти типы в настоящем плеере — не сообщения ленты, а панели ответа снизу: в копии рисуем «заглушку задания»
+const NO_SET = new Set()
+// Эти типы в настоящем плеере — не сообщения ленты, а панели ответа снизу: в копии рисуем панель теми же компонентами и классами, что в плеере
 const EXERCISE_TYPES = new Set(['word_choice', 'phrase_assembly', 'type_word', 'say_phrase', 'fill_blanks', 'photo_choice', 'registration'])
-const LABEL = { word_choice: 'Выбор слова', phrase_assembly: 'Собери фразу', type_word: 'Напечатай слово', say_phrase: 'Скажи фразу', fill_blanks: 'Составь предложение', photo_choice: 'Выбор фото', registration: 'Регистрация' }
+const LABEL = { word_choice: 'Выбери слово', phrase_assembly: 'Собери фразу', type_word: 'Напечатай слово', say_phrase: 'Сказать фразу', fill_blanks: 'Составь предложение', photo_choice: 'Выбрать фото', registration: 'Регистрация' }
 
-function ExerciseStub({ node }) {
+// Панель ответа «как у ученика»: настоящие кусочки панелей (банк слов, строка ответа, кнопки выбора). Верные варианты помечены для автора
+function ExercisePanel({ node }) {
   const d = node.data ?? {}
-  const opts = node.type === 'word_choice' ? (d.options ?? []).map(o => ({ t: o.text, ok: o.isCorrect }))
-    : node.type === 'phrase_assembly' ? [...(d.words ?? []).map(t => ({ t, ok: true })), ...(d.distractors ?? []).map(x => ({ t: x.text, ok: false }))]
-      : [{ t: answerText(node) || LABEL[node.type], ok: true }]
+  const accent = TYPE_COLOR[node.type] ?? '#7a7a96'
+  let body
+  if (node.type === 'phrase_assembly') {
+    const chips = [...(d.words ?? []), ...(d.distractors ?? []).map(x => x.text)].map(text => ({ text }))
+    body = (
+      <div className="phraseInner">
+        <PhraseAnswerRow placed={[]} result={null} onRemove={NOOP} />
+        <PhraseBank chips={chips} usedIdxs={NO_SET} disabled onPick={NOOP} />
+        <button className="phraseCheckBtn" disabled>Проверить</button>
+      </div>
+    )
+  } else if (node.type === 'word_choice') {
+    body = (
+      <div className="chooseWordInner">
+        {(d.options ?? []).map((o, i) => <div key={i} className={o.isCorrect ? 'rvwOptOk' : undefined}><ChooseWordOption text={o.text} state={null} disabled onClick={NOOP} /></div>)}
+      </div>
+    )
+  } else {
+    body = <div className="rvwTypeLine">{answerText(node) || LABEL[node.type]}</div>
+  }
   return (
-    <div className="rvwStub">
-      <div className="rvwStubHead">⌨ {LABEL[node.type] ?? node.type} · панель ответа</div>
-      <div className="rvwOpts">{opts.map((o, i) => <span key={i} className={`rvwOpt${o.ok ? ' ok' : ''}`}>{o.t}</span>)}</div>
+    <div className="rvwPanel" style={{ '--rvw-accent': accent }}>
+      <div className="rvwPanelHead">{LABEL[node.type] ?? node.type}</div>
+      {body}
     </div>
   )
 }
@@ -30,10 +54,18 @@ function StudentRow({ item }) {
   )
 }
 
+// Копии нод «как из истории»: isHistory выключает автозапуск видео/кружков и въезд (так их рисует сам плеер при «Продолжить урок»)
+const HISTORY = new WeakMap()
+const asHistory = node => {
+  let c = HISTORY.get(node)
+  if (!c) { c = { ...node, isHistory: true }; HISTORY.set(node, c) }
+  return c
+}
+
 // Копия ленты плеера: те же классы и те же модули сообщений (PlayerMessage), что в уроке, но без триггеров — ничего не играет и не переходит
 // дальше (звук выключен контекстом, файлов не передаём — медиа рисуются заглушками). Поверх каждого сообщения — выделение, номер, замечания и
 // переключатель «верно / неверно» на заданиях
-export default function PlayerLikeFeed({ items, canvasById, canvasNodes, selRef, selTick, warnMap, onSelect, onChoice }) {
+export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, onSelect, onChoice }) {
   const outerRef = useRef(null)
   // К выбранному сообщению — каждый раз при выборе (в том числе повторном: selTick растёт при каждом клике)
   useEffect(() => {
@@ -42,10 +74,10 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, selRef,
   }, [selRef, selTick])
 
   return (
-    <PlayerMutedContext.Provider value={true}>
+    <PlayerMutedContext.Provider value={false}>
       <div className="rvwPhone">
         <div className="lessonPlayer rvwLessonPlayer">
-          {/* Лента настоящая: .playerFeed перевёрнута (scrollY), .playerFeedInner переворачивает обратно. Прокрутка начинается снизу — к началу урока скроллим вверх */}
+          {/* Классы ленты настоящие, но переворот scaleY(-1) отключён (rvwPlayerFeed): колесо идёт в обычную сторону, лента начинается сверху */}
           <div className="playerFeed rvwPlayerFeed" ref={outerRef}>
             <div className="playerFeedInner">
               {items.map((it, i) => {
@@ -63,10 +95,10 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, selRef,
                       <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
                     </div>
                     {exercise
-                      ? <ExerciseStub node={node} />
+                      ? <ExercisePanel node={it.node} />
                       : node.type === 'reaction'
                         ? <div className="playerMsgRow"><span className="rvwEmoji">{node.typeData?.reaction?.emoji}</span></div>
-                        : <PlayerMessage node={node} lessonNodes={canvasNodes} teacherName="" adminPreview pending={false} onDone={NOOP} onTrReveal={NOOP} />}
+                        : <PlayerMessage node={asHistory(node)} file={files.find(f => f.id === nodeFileKey(node)) ?? null} lessonFiles={files} lessonNodes={canvasNodes} teacherName="" adminPreview pending={false} onDone={NOOP} onTrReveal={NOOP} />}
                     {it.choice && (
                       <div className="rvwSwitch" onClick={e => e.stopPropagation()}>
                         <button className={it.choice === 'right' ? 'on' : ''} onClick={() => onChoice(it.ref, 'right')}>✓ верно</button>

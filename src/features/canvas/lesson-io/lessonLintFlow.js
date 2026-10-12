@@ -125,6 +125,13 @@ function checkSameType(nodes) {
   return out
 }
 
+/** type_word с одиночным словом: печатать слово, которое только что объяснили, бессмысленно — просим мини-фразу из 2–3 слов */
+function checkTypePhrase(nodes) {
+  return nodes
+    .filter(n => n.type === 'type_word' && String(n.data?.word ?? '').trim().split(/\s+/).filter(Boolean).length === 1)
+    .map(n => `[R-type-phrase] ${n.ref} (type_word): печатается одно слово «${n.data.word}» — напечатать только что объяснённое слово бессмысленно, дай мини-фразу из 2–3 слов в новой ситуации («I try», «she tries»)`)
+}
+
 export function checkFlow(nodes) {
-  return [...checkTextRuns(nodes), ...checkTautology(nodes), ...checkBaseHighlight(nodes), ...checkSameType(nodes)]
+  return [...checkTextRuns(nodes), ...checkTautology(nodes), ...checkBaseHighlight(nodes), ...checkSameType(nodes), ...checkTypePhrase(nodes)]
 }
