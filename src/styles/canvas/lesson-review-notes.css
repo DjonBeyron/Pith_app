@@ -1,8 +1,9 @@
 /* ── Замечания в окне «Разбор урока» (canvas/review/NoteDialog, NotesWindow, кнопки в углу сообщения). Классы rvwNt*, rvwTool*, rvwSlotTools — только здесь */
 .rvwSlotTools { position: absolute; top: -2px; right: 6px; z-index: 5; display: flex; gap: 4px; }
-.rvwTool { padding: 2px 8px; font-size: 10px; background: #1a1d22ee; border: 1px solid #3a4050; border-radius: 10px; color: #dfe2ea; cursor: pointer; white-space: nowrap; }
+.rvwTool { display: inline-flex; align-items: center; gap: 3px; min-width: 26px; height: 26px; justify-content: center; padding: 0 6px; background: #1a1d22ee; border: 1px solid #3a4050; border-radius: 13px; color: #dfe2ea; cursor: pointer; }
+.rvwToolCount { font-size: 10px; font-weight: 700; color: #b6fe3b; }
 .rvwTool:hover { border-color: #b6fe3b; color: #b6fe3b; }
-.rvwNtBack { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 1600; background: #000a; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.rvwNtBack { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 1600; background: #00000038; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .rvwNtBox { width: min(520px, 100%); max-height: 90dvh; overflow: auto; background: #14161c; border: 1px solid #2a2d35; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; color: #dfe2ea; }
 .rvwNtWide { width: min(760px, 100%); }
 .rvwNtHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
@@ -16,3 +17,26 @@
 .rvwNtItem { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: #1a1d22; border-radius: 8px; font-size: 13px; align-items: flex-start; }
 .rvwNtLink { font-size: 11px; color: #b6fe3b; cursor: pointer; }
 .rvwNtQuote { font-size: 12px; color: #8a90a0; white-space: pre-wrap; }
+
+.rvwNtSplit { width: min(1040px, 100%); height: 92dvh; max-height: 92dvh; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr); }
+.rvwNtSplit.single { height: auto; grid-template-rows: auto auto; }
+.rvwNtHalf { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid #22252c; scrollbar-width: thin; }
+.rvwNtLabel { font-size: 11px; font-weight: 700; color: #8a90a0; text-transform: uppercase; letter-spacing: 0.05em; }
+.rvwNtTop { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 12px; align-items: start; }
+.rvwNtPreview { position: sticky; top: 0; height: 100%; min-height: 160px; border-radius: 12px; overflow: hidden; }
+.rvwNtPreview > div { min-height: 200px; height: auto; }
+.rvwNtPreview .playerFeed { position: static; height: auto; padding: 10px 0; overflow: visible; }
+.rvwEd { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.rvwEdBlock { display: flex; flex-direction: column; gap: 4px; }
+.rvwEdLbl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8a90a0; }
+.rvwEdIn { width: 100%; box-sizing: border-box; background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 13px; padding: 7px 10px; font-family: inherit; resize: vertical; }
+.rvwEdGrid { display: grid; gap: 4px; }
+.rvwEdCell { display: flex; align-items: center; gap: 2px; background: #0a0c10; border: 1px solid #1e2030; border-radius: 6px; padding-right: 4px; }
+.rvwEdCell.head { border-color: #3a4050; }
+.rvwEdCell input { flex: 1; min-width: 0; background: transparent; border: none; color: #dfe2ea; font-size: 12px; padding: 6px 7px; outline: none; }
+.rvwCopyIcon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex: 0 0 auto; background: transparent; border: none; border-radius: 6px; color: #8a90a0; cursor: pointer; }
+.rvwCopyIcon:hover { color: #b6fe3b; background: #1a1d22; }
+@media (max-width: 800px) { .rvwNtTop { grid-template-columns: 1fr; } }
+.rvwCopyIcon, .rvwTool { padding: 0; box-sizing: border-box; }
+.rvwTool { padding: 0 6px; }
+.rvwCopyIcon svg, .rvwTool svg { flex: 0 0 auto; }

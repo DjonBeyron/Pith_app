@@ -14,4 +14,9 @@ describe('buildNotesJson', () => {
     expect(j.general).toEqual([{ template: '', comment: 'общее' }])
     expect(j.format).toBe('pithy-review-notes')
   })
+  it('before/edited: правки автора видны как edited', () => {
+    const j = buildNotesJson({ notes: [{ id: '1', ref: 'a', template: '', text: 'y', before: 'старый' }], general: [], items, nodes })
+    expect(j.notes[0].content).toBe('старый')
+    expect(j.notes[0].edited).toBe('привет')
+  })
 })

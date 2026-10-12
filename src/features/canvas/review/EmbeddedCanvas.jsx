@@ -9,6 +9,7 @@ const EmbeddedCanvas = forwardRef(function EmbeddedCanvas({ initialNodes, initia
   useImperativeHandle(ref, () => ({
     focus: id => boardRef.current?.focusNodeTop(id),
     getNodes: () => boardRef.current?.getNodes() ?? [],
+    updateNode: (id, patch) => boardRef.current?.updateNode(id, patch),
   }), [])
   return (
     <div className="rvwBoardWrap">

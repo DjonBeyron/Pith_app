@@ -6,7 +6,7 @@ import ChooseWordOption from '../../player/panels/choose-word/ChooseWordOption.j
 import { nodeFileKey } from '../../player/preloadQueue.js'
 import { TYPE_COLOR } from '../nodeTypes.js'
 import { PlayerMutedContext } from '../../player/playerMuted.js'
-import { Mic } from 'lucide-react'
+import { Mic, Copy, Check, MessageSquarePlus } from 'lucide-react'
 import { answerText } from './lessonTranscript.js'
 import { nodeCopyText } from './nodeCopyText.js'
 
@@ -82,7 +82,7 @@ const asHistory = node => {
 // Копия ленты плеера: те же классы и те же модули сообщений (PlayerMessage), что в уроке, но без триггеров — ничего не играет и не переходит
 // дальше (звук выключен контекстом, файлов не передаём — медиа рисуются заглушками). Поверх каждого сообщения — выделение, номер, замечания и
 // переключатель «верно / неверно» на заданиях
-// Мини-кнопки в углу выделенного сообщения (только режим разбора): копировать текст и оставить замечание
+// Мини-иконки в углу выделенного сообщения (только режим разбора): копировать текст и оставить замечание
 function SlotTools({ item, count, onNote }) {
   const [copied, setCopied] = useState(false)
   const copy = async e => {
@@ -91,10 +91,19 @@ function SlotTools({ item, count, onNote }) {
   }
   return (
     <div className="rvwSlotTools" onClick={e => e.stopPropagation()}>
-      <button className="rvwTool" title="Скопировать текст" onClick={copy}>{copied ? '✓ скопировано' : '⧉ копировать'}</button>
-      <button className="rvwTool" title="Оставить замечание к этому сообщению" onClick={e => { e.stopPropagation(); onNote(item.ref) }}>✎{count ? ` ${count}` : ' замечание'}</button>
+      <button className="rvwTool" title="Скопировать текст" aria-label="Скопировать текст" onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}</button>
+      <button className="rvwTool" title="Оставить замечание к этому сообщению" aria-label="Замечание" onClick={e => { e.stopPropagation(); onNote(item.ref) }}>
+        <MessageSquarePlus size={13} />{count > 0 && <span className="rvwToolCount">{count}</span>}
+      </button>
     </div>
   )
+}
+
+/** Само сообщение «как в плеере»: панель задания, реакция или настоящий PlayerMessage (без триггеров). Общее для ленты и окна замечания */
+export function SlotBody({ item, canvasNode, canvasNodes, files, onPick = NOOP, onChoice = NOOP }) {
+  if (EXERCISE_TYPES.has(canvasNode.type)) return <ExercisePanel node={item.node} item={item} onPick={onPick} onChoice={onChoice} />
+  if (canvasNode.type === 'reaction') return <div className="playerMsgRow"><span className="rvwEmoji">{canvasNode.typeData?.reaction?.emoji}</span></div>
+  return <PlayerMessage node={asHistory(canvasNode)} file={files.find(f => f.id === nodeFileKey(canvasNode)) ?? null} lessonFiles={files} lessonNodes={canvasNodes} teacherName="" adminPreview pending={false} onDone={NOOP} onTrReveal={NOOP} />
 }
 
 export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, onNote, onSelect, onChoice, onPick }) {
@@ -120,18 +129,13 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
                 if (it.kind === 'student') {
                   return <div key={`s-${it.ref}-${i}`} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
                 }
-                const exercise = EXERCISE_TYPES.has(node.type)
                 return (
                   <div key={`n-${it.ref}-${i}`} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}`} onClick={() => onSelect(it.ref)}>
                     <div className="rvwSlotMeta">
                       <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
                     </div>
                     {(on || noteCounts?.get(it.ref)) && <SlotTools item={it} count={noteCounts?.get(it.ref) ?? 0} onNote={onNote} />}
-                    {exercise
-                      ? <ExercisePanel node={it.node} item={it} onPick={onPick} onChoice={onChoice} />
-                      : node.type === 'reaction'
-                        ? <div className="playerMsgRow"><span className="rvwEmoji">{node.typeData?.reaction?.emoji}</span></div>
-                        : <PlayerMessage node={asHistory(node)} file={files.find(f => f.id === nodeFileKey(node)) ?? null} lessonFiles={files} lessonNodes={canvasNodes} teacherName="" adminPreview pending={false} onDone={NOOP} onTrReveal={NOOP} />}
+                    <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} onPick={onPick} onChoice={onChoice} />
                   </div>
                 )
               })}

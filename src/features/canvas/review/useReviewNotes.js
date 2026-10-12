@@ -5,7 +5,7 @@ import { newNoteId } from './reviewNotes.js'
 export function useReviewNotes() {
   const [notes, setNotes] = useState([])
   const [general, setGeneral] = useState([])
-  const addNote = useCallback((ref, template, text) => setNotes(l => [...l, { id: newNoteId(), ref, template, text }]), [])
+  const addNote = useCallback((ref, template, text, before = '') => setNotes(l => [...l, { id: newNoteId(), ref, template, text, before }]), [])
   const addGeneral = useCallback((template, text) => setGeneral(l => [...l, { id: newNoteId(), template, text }]), [])
   const removeNote = useCallback(id => setNotes(l => l.filter(n => n.id !== id)), [])
   const removeGeneral = useCallback(id => setGeneral(l => l.filter(n => n.id !== id)), [])

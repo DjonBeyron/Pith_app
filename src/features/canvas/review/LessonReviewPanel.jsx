@@ -10,6 +10,7 @@ import RulesPane from './RulesPane.jsx'
 import NoteDialog from './NoteDialog.jsx'
 import NotesWindow from './NotesWindow.jsx'
 import { useReviewNotes } from './useReviewNotes.js'
+import { nodeCopyText } from './nodeCopyText.js'
 
 // «Разбор урока» — окно на весь экран ПК: слева копия ленты плеера (вся история сразу, на заданиях переключатель веток «верно / неверно»),
 // посередине полноценный холст, сфокусированный на выбранной ноде (редактируешь как обычно), справа замечания и правила.
@@ -26,6 +27,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const { rules, busy, addFull } = useLessonRules()
   const store = useReviewNotes()
   const [noteFor, setNoteFor] = useState(null) // ref ноды, к которой пишем замечание
+  const [noteBefore, setNoteBefore] = useState('') // текст ноды на момент открытия окна замечания (до правок в нём)
   const [notesOpen, setNotesOpen] = useState(false)
   const noteCounts = useMemo(() => { const m = new Map(); for (const n of store.notes) m.set(n.ref, (m.get(n.ref) ?? 0) + 1); return m }, [store.notes])
 
@@ -43,6 +45,10 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const sel = nodes.find(n => n.ref === selRef) ?? null
   const diff = useMemo(() => diffNodes(base, draft), [base, draft])
   const switched = Object.keys(choices).length
+
+  const openNote = ref => { setNoteBefore(nodeCopyText(nodes.find(n => n.ref === ref) ?? {})); setNoteFor(ref) }
+  // Правка ноды прямо из окна замечания: функция (data) => data для typeData[type] — идёт в копию урока разбора
+  const patchNode = fn => canvasRef.current?.updateNode(noteFor, n => ({ typeData: { ...n.typeData, [n.type]: fn(n.typeData?.[n.type] ?? {}) } }))
 
   const close = useCallback(() => {
     const lost = []
@@ -94,7 +100,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       </div>
       <div className="rvwCols">
         <div className="rvwFeedCol">
-          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} onNote={setNoteFor} onSelect={select} onChoice={setChoice} onPick={pickOption} />
+          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} onNote={openNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
         </div>
         <div className="rvwCanvasCol">
           <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />
@@ -103,7 +109,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       </div>
       {noteFor && (
         <NoteDialog title={`Замечание к №${nodes.find(n => n.ref === noteFor)?.seq} (${noteFor})`} existing={store.notes.filter(n => n.ref === noteFor)}
-          onSave={(t, x) => store.addNote(noteFor, t, x)} onRemove={store.removeNote} onClose={() => setNoteFor(null)} />
+          item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} onPatch={patchNode}
+          onSave={(t, x) => store.addNote(noteFor, t, x, noteBefore)} onRemove={store.removeNote} onClose={() => setNoteFor(null)} />
       )}
       {notesOpen && <NotesWindow store={store} items={items} nodes={nodes} lessonTitle={boardProps?.lessonTitle ?? ''} onFocus={r => { select(r); setNotesOpen(false) }} onClose={() => setNotesOpen(false)} />}
     </div>,

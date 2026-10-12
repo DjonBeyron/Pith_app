@@ -1049,7 +1049,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `src/features/canvas/review/nodeCopyText.js` (+`.test.js`) | Текст ноды для мини-кнопки «копировать» в ленте разбора (текст, расшифровка голосового, таблица построчно, варианты выбора). |
 | `src/features/canvas/review/reviewNotes.js` (+`.test.js`) | Шаблоны замечаний и сборка JSON замечаний (`pithy-review-notes`): по порядку ленты, с ref/seq/типом/веткой/текстом ноды и комментарием, плюс общие. |
 | `src/features/canvas/review/useReviewNotes.js` | Состояние замечаний окна разбора (к нодам и общие). |
-| `src/features/canvas/review/NoteDialog.jsx` | Окно «Замечание»: выбрать шаблон-чип и дописать текст (к ноде или общее). |
+| `src/features/canvas/review/NoteDialog.jsx` | Окно «Замечание» пополам: сверху «До» (то же сообщение, что в ленте, + редактор), снизу шаблон-чипы и комментарий; без ноды — общее замечание. |
+| `src/features/canvas/review/NodeEditor.jsx` | Редактор ноды в окне замечания: текст с разметкой (с иконкой копировать), расшифровка голосового, imagePrompt стикера/фото, варианты, фразы. Правки идут в копию урока разбора. |
+| `src/features/canvas/review/TableEditor.jsx` | Редактор таблицы: заголовок в чате, текст озвучки авто-таблицы, каждая ячейка с иконкой копировать. |
+| `src/features/canvas/review/CopyIcon.jsx` | Иконка «копировать» с галочкой-подтверждением. |
 | `src/features/canvas/review/NotesWindow.jsx` | Окно со всеми замечаниями: список, удалить/очистить, общее замечание, копировать или скачать JSON. |
 | `src/styles/canvas/lesson-review-notes.css` | Стили замечаний и мини-кнопок в углу сообщения в разборе (классы `rvwNt*`, `rvwTool`, `rvwSlotTools`). |
 | `src/features/canvas/review/RulesPane.jsx` | Правая колонка: замечания по ноде, правила для её типа и про порядок, поиск, «+ Своё правило» с примером из ноды |

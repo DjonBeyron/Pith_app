@@ -29,16 +29,19 @@ export function buildNotesJson({ notes, general, items, nodes, lessonTitle = '' 
     format: 'pithy-review-notes',
     version: 1,
     lesson: lessonTitle,
-    hint: 'notes — замечания к нодам по порядку ленты (ref и seq — идентификаторы ноды в JSON урока); general — замечания ко всему уроку',
+    hint: 'notes — замечания к нодам по порядку ленты (ref и seq — идентификаторы ноды в JSON урока; content — текст ноды до правок, edited — после правок автора в окне замечания, если он менял); general — замечания ко всему уроку',
     notes: sorted.map((n, k) => {
       const node = byRef.get(n.ref)
+      const now = node ? nodeCopyText(node) : ''
+      const before = n.before ?? now
       return {
         order: k + 1,
         ref: n.ref,
         seq: node?.seq ?? null,
         type: node?.type ?? null,
         branch: pos.get(n.ref)?.wrong ? 'ветка ошибки' : 'основная',
-        content: node ? nodeCopyText(node) : '',
+        content: before,
+        ...(before !== now ? { edited: now } : {}),
         template: n.template || '',
         comment: n.text || '',
       }
