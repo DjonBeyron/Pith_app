@@ -1039,10 +1039,11 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `src/features/canvas/lesson-io/RuleExample.jsx` | Редактор и предпросмотр примера «нельзя / можно» у правила: цепочка нод; текст правится тем же полем с раскраской (`RichTextField`), пузыри в предпросмотре — те же (`ChatBubblePreview`), что в плеере |
 | `src/features/canvas/review/lessonTranscript.js` (+`.test.js`) | «Лента урока»: обход графа от старта без таймеров, выбор ветки «верно / неверно» на заданиях (`buildTranscript`), ответ задания словами, замечания линтера по нодам |
 | `src/features/canvas/review/reviewRules.js` (+`.test.js`) | Связь замечаний линтера (`R-…`) с правилами, подбор правил под ноду, нода → строка примера с метками |
-| `src/features/canvas/review/LessonReviewPanel.jsx` | Окно «Разбор урока» на весь экран ПК (кнопка «Разбор» в шапке канваса): лента · нода в фокусе · правила. Пока только чтение |
-| `src/features/canvas/review/FeedItem.jsx` | Один пузырь ленты (по типу ноды; простые карточки заданий; переключатель «верно / неверно»; пузырь ответа ученика) |
-| `src/features/canvas/review/NodeFacts.jsx` | Средняя колонка: нода в фокусе со всеми параметрами и переходами (v1, чтение) |
+| `src/features/canvas/review/LessonReviewPanel.jsx` | Окно «Разбор урока» на весь экран ПК (кнопка «Разбор» в шапке канваса): слева копия ленты плеера, посередине полноценный холст на выбранной ноде (своя копия нод, правки — по «Применить»), справа правила |
 | `src/features/canvas/review/RulesPane.jsx` | Правая колонка: замечания по ноде, правила для её типа и про порядок, поиск, «+ Своё правило» с примером из ноды |
+| `src/features/canvas/review/PlayerLikeFeed.jsx` | Копия ленты плеера: настоящие классы и модули сообщений (`PlayerMessage`), без триггеров и звука; заглушки панелей заданий; переключатель «верно / неверно»; прокрутка к выбранному |
+| `src/features/canvas/review/EmbeddedCanvas.jsx` | Настоящий `CanvasBoard` внутри окна, со своей копией нод (`lessonId=null` — черновик не пишется); `focus(id)` ставит холст на ноду при каждом клике |
+| `src/features/canvas/review/applyChanges.js` (+`.test.js`) | Что менять в основном уроке по «Применить»: изменённые поля существующих нод; добавленные/удалённые считаются отдельно и не переносятся |
 | `src/styles/canvas/lesson-review.css` | Стили окна «Разбор урока» (префикс `rvw`) |
 | `src/features/canvas/lesson-io/ruleExample.js` (+`.test.js`) | Формат примера: пузыри `{type, content, highlights}` ↔ строка в базе (JSON или текст «тип: …» с метками `{g:..}`) ↔ текст для промпта ИИ (`exampleToPrompt`) |
 | `src/features/canvas/lesson-io/lessonRulesSeed.js` (+`.test.js`) | Стандартный набор правил со структурой (название, группа, кто проверяет, серьёзность, «нельзя / можно») = текст из `lessonRulesDefaults.js` + мета. Кнопки окна правил «Загрузить стандартные» / «Подтянуть названия…» кладут его в `lesson_rules`; скрипты (`scripts/lesson-rules.mjs`) берут его, пока нет `lesson-drafts/rules.json` |

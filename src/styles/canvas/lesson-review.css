@@ -8,23 +8,32 @@
 .rvwBtn { padding: 6px 12px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 8px; color: #ccc; font-size: 12px; cursor: pointer; white-space: nowrap; }
 .rvwBtn:disabled { opacity: 0.35; cursor: default; }
 .rvwBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
-.rvwCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(340px, 1.1fr) minmax(300px, 0.9fr) minmax(340px, 1fr); }
-.rvwFeed, .rvwCard, .rvwRight { overflow-y: auto; min-height: 0; padding: 12px 14px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
-.rvwFeed, .rvwCard { border-right: 1px solid #22252c; }
-.rvwFeed { display: flex; flex-direction: column; gap: 6px; }
+.rvwCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(430px, 470px) minmax(420px, 1fr) minmax(320px, 380px); }
+.rvwFeedCol, .rvwCanvasCol, .rvwRight { min-height: 0; overflow: hidden; }
+.rvwRight { overflow-y: auto; padding: 12px 14px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
+.rvwFeedCol, .rvwCanvasCol { border-right: 1px solid #22252c; position: relative; }
 .rvwEmpty { color: #6a6f78; font-size: 13px; padding: 14px 0; }
+.rvwSpacer { flex: 1; }
+.rvwInfoWarn { color: #ffd75f; }
+.rvwInfoOk { color: #b6fe3b; }
 
-/* Лента */
-.rvwItem { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 6px 8px; border: 1px solid transparent; border-radius: 10px; cursor: pointer; }
-.rvwItem:hover { border-color: #2a2d35; }
-.rvwItem.on { border-color: #b6fe3b; background: #14180d; }
-.rvwItem.wrong { border-left: 3px solid #f87171; }
-.rvwMeta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6a6f78; }
-.rvwSeq { min-width: 22px; }
-.rvwTag { padding: 1px 6px; border: 1px solid #2a2d35; border-radius: 6px; color: #8a90a0; }
+/* Копия плеера: рамка как у «телефона» (.playerPhone) — transform делает её containing block для position:fixed внутри (.lessonPlayer) */
+.rvwPhone { position: relative; width: 100%; height: 100%; overflow: hidden; transform: translateZ(0); background: #000; }
+.rvwPlayerFeed { padding-top: 14px; }
+.rvwBoardWrap { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.rvwBoardWrap .canvasBoard { position: absolute; left: 0; right: 0; top: 0; bottom: 0; width: 100%; height: 100%; }
+.rvwSlot { position: relative; border-radius: 12px; outline: 2px solid transparent; cursor: pointer; }
+.rvwSlot:hover { outline-color: #2a2d35; }
+.rvwSlot.on { outline-color: #b6fe3b; }
+.rvwSlot.wrong { box-shadow: inset 3px 0 0 #f87171; }
+.rvwSlotMeta { display: flex; gap: 6px; font-size: 10px; color: #6a6f78; padding: 0 4px; }
+.rvwStub { margin: 4px 8px; padding: 8px 10px; border: 1px dashed #3a4050; border-radius: 12px; background: #11141a; }
+.rvwStubHead { font-size: 11px; color: #8a90a0; }
+.rvwStudentRow.bad .playerMsgBubble { background: #4a1f1f; }
+.rvwTagWrong { color: #f87171; }
+
 .rvwTagWrong { border-color: #5a2a2a; color: #f87171; }
 .rvwWarn { color: #ffd75f; }
-.rvwMedia { padding: 6px 12px; background: #1a1d22; border: 1px dashed #3a4050; border-radius: 12px; color: #8a90a0; font-size: 13px; }
 .rvwEmoji { font-size: 34px; line-height: 1.2; }
 .rvwOpts { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
 .rvwOpt { padding: 4px 10px; border: 1px solid #2a2d35; border-radius: 14px; font-size: 13px; color: #b8bdca; }
@@ -34,18 +43,7 @@
 .rvwSwitch button.on { background: #1f2d10; border-color: #b6fe3b; color: #b6fe3b; }
 .rvwSwitch button.on.bad { background: #2d1010; border-color: #f87171; color: #f87171; }
 .rvwSwitch button:disabled { opacity: 0.35; cursor: default; }
-.rvwStudent { align-items: flex-end; }
-.rvwStudentBubble { padding: 6px 12px; background: #1b2a10; border: 1px solid #3a5a20; border-radius: 14px; color: #b6fe3b; font-size: 13px; }
-.rvwStudent.bad .rvwStudentBubble { background: #2a1212; border-color: #5a2a2a; color: #f87171; }
 
-/* Нода в фокусе */
-.rvwFacts { display: flex; flex-direction: column; gap: 6px; }
-.rvwFactsHead { font-weight: 700; font-size: 14px; }
-.rvwRef { color: #6a6f78; font-weight: 400; font-size: 11px; }
-.rvwFactsTitle { margin-top: 10px; color: #8a90a0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-.rvwFact { font-size: 13px; color: #b8bdca; word-break: break-word; }
-.rvwFact b { color: #8a90a0; font-weight: 600; }
-.rvwFactWarns { padding: 8px; background: #2a2412; border-radius: 8px; color: #ffd75f; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
 
 /* Правила */
 .rvwRules { display: flex; flex-direction: column; gap: 14px; }

@@ -57,7 +57,7 @@ export default function CanvasHeaderActions({
         className="canvasPageShare"
         title="Разбор урока: вся история чата сразу, ветки верно/неверно, замечания и правила"
         disabled={loading}
-        onClick={() => setReviewNodes(boardApiRef.current?.getNodes() ?? [])}
+        onClick={() => setReviewNodes({ nodes: boardApiRef.current?.getNodes() ?? [], zones: boardApiRef.current?.getZones() ?? [] })}
       >Разбор</button>
       {/* Зона: рамкой с подписью группируешь ноды одного смыслового куска
           урока («Часть 2», «Тренировка вперемешку») — чисто для автора,
