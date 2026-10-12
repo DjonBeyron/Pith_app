@@ -1,8 +1,11 @@
 // Проверки «живого» стиля реплик Пита (чат друга, а не учебник): тире, точки, смайлы/скобки, служебные слова вместо живой речи.
 // Работают на формате обмена ({ ref, type, data }) уже после applyMarkup (текст без меток). Чистые функции, возвращают строки-замечания.
 const EMOJI = /[\u{1F600}-\u{1F64F}\u{1F910}-\u{1F9FF}\u{1F44C}\u{1F44D}\u{1F44F}\u{1F525}\u{1F389}\u{1F680}\u{1F4AA}]/u
-const BRACKETS_END = /\){1,}\s*$/
+const BRACKETS_END = /[()]+\s*$/ // «)», «))» радость, «(», «((» грусть или досада
 const META = /мини-?сцена|штраф|раунд на время|упражнени|правильный ответ|задание\b/i
+// Прошедшее время мужского рода о действиях ученика выдаёт его пол: «успел», «угадал», «справился» — говори «получилось», «в точку»
+const GENDER = /(^|[^а-яё])(успел|угадал|справился|составил|понял|ответил|заметил|выбрал|написал|молодец)(?![а-яё])/i
+const MAX_REACTION_WORDS = 8 // реакция на успех — коротко
 const MAX_PERIOD_SHARE = 0.1   // точки в конце предложений — не больше 10% реплик
 const EMOJI_SHARE = [0.25, 0.55] // среди реплик со смайлом настоящих эмодзи ~40%, остальные — скобки
 
@@ -43,6 +46,32 @@ function checkMeta(nodes) {
     .map(n => `[R-meta] ${n.ref}: учебные слова («мини-сцена», «штраф», «раунд», «упражнение»…) — друг так не говорит, скажи по-человечески («представь…», «давай на время»)`)
 }
 
+function checkGender(nodes) {
+  return talks(nodes).filter(n => {
+    const t = textOf(n)
+    const m = GENDER.exec(t)
+    if (!m) return false
+    const clause = t.slice(0, m.index).split(/[.!?)\n]/).pop() // «я сделаю вид, что не заметил» — это Пит о себе, не о ученике
+    return !/(^|\s)я(\s|$)/i.test(clause)
+  }).map(n => `[R-gender] ${n.ref}: форма мужского рода о действии ученика («успел», «угадал», «справился») выдаёт пол — скажи нейтрально («получилось», «в точку», «вышло»)`)
+}
+
+const CORRECT_IF = /correct|say_done/
+/** Реакция на успех (текст сразу после верного ответа) — коротко: «в точку))», «ого! три из трёх, круто)» */
+function checkReactionLength(nodes) {
+  const byRef = new Map(nodes.map(n => [n.ref, n]))
+  const out = []
+  for (const ex of nodes) {
+    for (const t of ex.triggers ?? []) {
+      const r = CORRECT_IF.test(t.if) ? byRef.get(t.then) : null
+      // нода после верного ответа может быть уже следующим заданием/сценой (вопрос, «скажи/собери/переведи…») — это не реакция
+      const isTask = /\?|скажи|напечатай|собери|переведи|ответь|представь|давай/i.test(r ? textOf(r) : '')
+      if (r?.type === 'text' && !isTask && textOf(r).trim().split(/\s+/).length > MAX_REACTION_WORDS) out.push(`[R-react-len] ${r.ref}: реакция на верный ответ длиннее ${MAX_REACTION_WORDS} слов — на успех отвечают коротко («в точку))», «да)) именно так!»), без комментариев после`)
+    }
+  }
+  return out
+}
+
 export function checkStyle(nodes) {
-  return [...checkDash(nodes), ...checkPeriods(nodes), ...checkSmileys(nodes), ...checkMeta(nodes)]
+  return [...checkDash(nodes), ...checkPeriods(nodes), ...checkSmileys(nodes), ...checkMeta(nodes), ...checkGender(nodes), ...checkReactionLength(nodes)]
 }
