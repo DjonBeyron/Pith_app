@@ -132,6 +132,49 @@ function checkTypePhrase(nodes) {
     .map(n => `[R-type-phrase] ${n.ref} (type_word): печатается одно слово «${n.data.word}» — напечатать только что объяснённое слово бессмысленно, дай мини-фразу из 2–3 слов в новой ситуации («I try», «she tries»)`)
 }
 
+const SOFT = new Set(['reaction', 'system', 'pin_message']) // не «анонс задания»: пропускаем при поиске того, кто вызвал задание
+
+/** Чем анонсируется каждое задание (ближайшая нода перед ним, кроме реакций/заголовков): по основному потоку, в порядке урока */
+function announcers(nodes) {
+  const byRef = new Map(nodes.map(n => [n.ref, n]))
+  const targets = new Set(nodes.flatMap(n => (n.triggers ?? []).map(t => t.then)))
+  const start = nodes.find(n => !targets.has(n.ref)) ?? nodes[0]
+  const out = []
+  let prev = null
+  const seen = new Set()
+  for (let cur = start; cur && !seen.has(cur.ref); ) {
+    seen.add(cur.ref)
+    const menu = cur.type === 'word_choice' && (cur.data?.options ?? []).every(o => o?.isCorrect) // выбор «дальше / ещё» — не задание
+    if (EXERCISES.has(cur.type) && !menu) out.push({ ref: cur.ref, by: prev?.type ?? null })
+    if (!SOFT.has(cur.type)) prev = cur
+    const next = (cur.triggers ?? []).find(t => t.then && !WRONG.test(t.if))?.then
+    cur = next ? byRef.get(next) : null
+  }
+  return out
+}
+
+/** Задания не должны почти всегда анонсироваться текстом: чередуй с голосом (audio) и фото */
+function checkTaskVariety(nodes) {
+  const list = announcers(nodes)
+  if (list.length < 6) return []
+  const out = []
+  const share = list.filter(a => a.by === 'text').length / list.length
+  if (share > 0.65) out.push(`[R-task-variety] ${Math.round(share * 100)}% заданий вызываются текстом — чередуй: где-то голосом (audio), где-то фото с подписью`)
+  for (let i = 0; i + 2 < list.length; i++) {
+    if (list[i].by === 'text' && list[i + 1].by === 'text' && list[i + 2].by === 'text') { out.push(`[R-task-variety] ${list[i].ref}, ${list[i + 1].ref}, ${list[i + 2].ref}: три задания подряд вызываются текстом — смени подачу (голос или фото)`); break }
+  }
+  return out
+}
+
+/** В уроке из нескольких частей должна быть хотя бы одна таблица на три части: правила, которые проще показать сеткой, — таблицей */
+function checkTables(nodes) {
+  const parts = nodes.filter(n => n.type === 'system').length
+  const tables = nodes.filter(n => n.type === 'table').length
+  return parts >= 4 && tables < Math.floor(parts / 3)
+    ? [`[R-table] в уроке ${parts} частей и всего ${tables} таблиц — правило, которое проще показать сеткой (формы по лицам, времена), покажи таблицей (demo/dictator) в начале части`]
+    : []
+}
+
 export function checkFlow(nodes) {
-  return [...checkTextRuns(nodes), ...checkTautology(nodes), ...checkBaseHighlight(nodes), ...checkSameType(nodes), ...checkTypePhrase(nodes)]
+  return [...checkTextRuns(nodes), ...checkTautology(nodes), ...checkBaseHighlight(nodes), ...checkSameType(nodes), ...checkTypePhrase(nodes), ...checkTaskVariety(nodes), ...checkTables(nodes)]
 }

@@ -79,3 +79,27 @@ describe('type_word — мини-фраза', () => {
     expect(checkFlow(tw('she tries'))).toEqual([])
   })
 })
+
+describe('подача заданий и таблицы', () => {
+  const ex = (ref, then) => ({ ref, type: 'type_word', data: { word: 'she tries' }, triggers: then ? [{ if: 'type_correct', then }] : [] })
+  const tx = (ref, then) => ({ ref, type: 'text', data: { content: 'вызов' }, triggers: [{ if: 'timer', then }] })
+  const chain = types => {
+    const nodes = []
+    types.forEach((ty, i) => {
+      const nextRef = `p${i}`
+      nodes.push(ty === 'text' ? tx(`t${i}`, `e${i}`) : { ref: `t${i}`, type: ty, data: { caption: 'вызов' }, triggers: [{ if: 'timer', then: `e${i}` }] })
+      nodes.push(ex(`e${i}`, i + 1 < types.length ? `t${i + 1}` : null))
+      void nextRef
+    })
+    return nodes
+  }
+  it('все задания вызываются текстом — замечание; с голосом и фото — нет', () => {
+    expect(checkFlow(chain(['text', 'text', 'text', 'text', 'text', 'text'])).join()).toContain('[R-task-variety]')
+    expect(checkFlow(chain(['text', 'audio', 'text', 'photo', 'text', 'audio'])).filter(w => /task-variety/.test(w))).toEqual([])
+  })
+  it('в уроке из 4+ частей нужна хотя бы одна таблица на три части', () => {
+    const sys = i => ({ ref: 's' + i, type: 'system', data: { content: 'Часть' }, triggers: [] })
+    expect(checkFlow([sys(1), sys(2), sys(3), sys(4)]).join()).toContain('[R-table]')
+    expect(checkFlow([sys(1), sys(2), sys(3), sys(4), { ref: 'tb', type: 'table', data: {}, triggers: [] }]).filter(w => /R-table/.test(w))).toEqual([])
+  })
+})
