@@ -42,13 +42,20 @@ export function parseMarkup(src) {
   return { text, highlights }
 }
 
-/** Данные ноды: если текстовое поле содержит метки — заменить его чистым текстом и построить highlights. Иначе вернуть как есть */
+/**
+ * Данные ноды при импорте: метки {g:..} → чистый текст + highlights; обычный текст без раскраски получает базовый серый на весь текст
+ * (обязательное правило легенды — автору и ИИ о нём помнить не нужно). Ручные highlights без меток не трогаем.
+ */
 export function applyMarkup(data) {
   if (!data || typeof data !== 'object') return data
   const key = TEXT_KEYS.find(k => hasMarkup(data[k]))
-  if (!key) return data
-  const { text, highlights } = parseMarkup(data[key])
-  return { ...data, [key]: text, highlights }
+  if (key) {
+    const { text, highlights } = parseMarkup(data[key])
+    return { ...data, [key]: text, highlights }
+  }
+  const plain = TEXT_KEYS.find(k => typeof data[k] === 'string' && data[k].length)
+  if (plain && !(data.highlights?.length)) return { ...data, highlights: [hl(0, data[plain].length, 'text', WHITE, 0.75)] }
+  return data
 }
 
 /** Какой метке {g:..}/{t:..}… соответствует сочетание стилей (null — нестандартное). Общая логика для toMarkup и подписи в панели раскраски */

@@ -13,6 +13,7 @@
 import { applyMarkup } from '../../../shared/lib/lessonMarkup.js'
 import { checkSayPhrase } from './lessonLintSay.js'
 import { checkFlow } from './lessonLintFlow.js'
+import { checkStyle } from './lessonLintStyle.js'
 import { checkAnswersAndLimits } from './lessonLintAnswers.js'
 
 const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
@@ -183,6 +184,7 @@ export function lintLesson(rawNodes) {
 
   warnings.push(...checkSayPhrase(nodes, start))
   warnings.push(...checkFlow(nodes))
+  warnings.push(...checkStyle(nodes))
   warnings.push(...checkAnswersAndLimits(nodes))
 
   for (const n of nodes) {
