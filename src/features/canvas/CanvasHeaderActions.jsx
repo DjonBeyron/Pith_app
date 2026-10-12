@@ -54,8 +54,8 @@ export default function CanvasHeaderActions({
         }}
       >⇄</button>
       <button
-        className="canvasPageShare"
-        title="Разбор урока: вся история чата сразу, ветки верно/неверно, замечания и правила"
+        className="canvasPageShare canvasPageReview"
+        title="Разбор урока: вся история чата сразу, ветки по выбранным ответам, замечания и правила"
         disabled={loading}
         onClick={() => setReviewNodes({ nodes: boardApiRef.current?.getNodes() ?? [], zones: boardApiRef.current?.getZones() ?? [] })}
       >Разбор</button>

@@ -236,3 +236,8 @@
 
 .richTextBox:hover .richTextCopy { opacity: 1; pointer-events: auto; }
 .richTextCopy:hover { color: #b6fe3b; border-color: rgba(182, 254, 59, 0.45); }
+
+/* Проверка стиля выделенного (RichTextToolbar): цвет, начертания, метка */
+.richTextStyleReadout { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 6px 8px; font-size: 11px; color: #b8bdca; border-bottom: 1px solid #22252c; }
+.richTextStyleDot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #3a4050; flex: none; }
+.richTextStyleTag { padding: 1px 6px; border-radius: 6px; background: #1f2d10; color: #b6fe3b; }

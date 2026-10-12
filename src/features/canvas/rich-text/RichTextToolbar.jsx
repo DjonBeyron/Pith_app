@@ -8,6 +8,7 @@ import { useHighlightPrefs } from '../useHighlightPrefs.js'
 import { useColorHistory } from './useColorHistory.js'
 import { useRichTextFavorites, RICH_TEXT_FAV_ID } from './useRichTextFavorites.js'
 import { positionToolbar } from './positionToolbar.js'
+import { describeStyle } from '../../../shared/lib/styleReadout.js'
 
 const TOOLBAR_W = 280
 const LINE_H = 18 // .richTextField: font-size 12px * line-height 1.5
@@ -72,8 +73,9 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
 
   if (!rect || !range) return null
   const isOn = m => rangeHasStyle(highlights, range.start, range.end, m)
+  const style = describeStyle(highlights, range.start, range.end)
 
-  const barH = 30 + 40 + 34 + (mode === 'bg' ? 32 : 0) + 34 +
+  const barH = 30 + 40 + 34 + 44 + (mode === 'bg' ? 32 : 0) + 34 +
     (opacityOpen ? 26 : 0) + (history.length ? 34 : 0)
   const autoPos = positionToolbar(rect, TOOLBAR_W, barH, { width: window.innerWidth, height: window.innerHeight }, LINE_H)
   if (!autoPos) return null
@@ -145,7 +147,7 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
     <div
       ref={boxRef}
       className="richTextToolbar"
-      style={{ position: 'fixed', top: pos.top, left: pos.left, width: TOOLBAR_W, zIndex: 399 }}
+      style={{ position: 'fixed', top: pos.top, left: pos.left, width: TOOLBAR_W, zIndex: 1500 }}
       onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
     >
       <div className="richTextToolbarHeader" onMouseDown={onHandleMouseDown}>
@@ -153,6 +155,20 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
         <button className="richTextIconBtn richTextIconBtnClose" title="Закрыть"
           onMouseDown={e => e.stopPropagation()} onClick={onClose}><X size={13} /></button>
       </div>
+
+      {/* Проверка стиля выделенного: какой цвет и какие начертания у него сейчас (во всех полях канваса) */}
+      {style && (
+        <div className="richTextStyleReadout" title="Стиль выделенного текста">
+          <span className="richTextStyleDot" style={{ background: style.color ? hexToRgba(style.color, style.opacity ?? 1) : 'transparent' }} />
+          <span>
+            {style.mixed ? 'разные стили (показан первый)' : style.color ? `${style.color} · ${Math.round((style.opacity ?? 1) * 100)}%` : 'цвет по умолчанию'}
+            {style.flags.length > 0 && ` · ${style.flags.map(f => ({ bold: 'жирный', italic: 'курсив', underline: 'подчёркнут', strike: 'зачёркнут' })[f]).join(', ')}`}
+            {style.bg && ` · плашка ${style.bg.color}${style.bg.outline ? ' (обводка)' : ''}`}
+          </span>
+          {!style.mixed && style.isBase && <span className="richTextStyleTag">базовый серый</span>}
+          {!style.mixed && style.mark && <span className="richTextStyleTag">{`{${style.mark}:} ${style.markName}`}</span>}
+        </div>
+      )}
 
       <div className="richTextToolbarRow">
         <button className={`richTextIconBtn${mode === 'text' ? ' active' : ''}`} title="Цвет текста"

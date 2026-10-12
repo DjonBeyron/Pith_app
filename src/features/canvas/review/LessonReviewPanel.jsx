@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { fromCanvasNodes, lintLesson } from '../lesson-io/lessonLint.js'
 import { useLessonRules } from '../lesson-io/useLessonRules.js'
-import { buildTranscript, warningsByRef } from './lessonTranscript.js'
+import { buildTranscript, warningsByRef, optChoice } from './lessonTranscript.js'
 import { diffNodes } from './applyChanges.js'
 import PlayerLikeFeed from './PlayerLikeFeed.jsx'
 import EmbeddedCanvas from './EmbeddedCanvas.jsx'
@@ -55,6 +55,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     canvasRef.current?.focus(ref)
   }, [])
 
+  // Клик по варианту «Выбери слово»: выбираем реальный ответ (повторный клик по нему — снять); ветка идёт по варианту
+  const pickOption = (ref, id) => setChoices(c => { const n = { ...c }; if (n[ref] === optChoice(id)) delete n[ref]; else n[ref] = optChoice(id); return n })
   const setChoice = (ref, v) => setChoices(c => { const n = { ...c }; if (v === 'wrong') n[ref] = 'wrong'; else delete n[ref]; return n })
 
   function apply() {
@@ -70,8 +72,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       <div className="rvwTop">
         <button className="rvwBack" onClick={close}>← Назад</button>
         <span className="rvwTitle">Разбор урока</span>
-        <span className="rvwInfo">в ленте {shown} из {nodes.length} нод{switched ? ` · веток «неверно»: ${switched}` : ''}</span>
-        {switched > 0 && <button className="rvwBtn" onClick={() => setChoices({})}>Сбросить ветки</button>}
+        <span className="rvwInfo">в ленте {shown} из {nodes.length} нод{switched ? ` · выбрано ответов: ${switched}` : ''}</span>
+        {switched > 0 && <button className="rvwBtn" onClick={() => setChoices({})}>Сбросить ответы</button>}
         <span className="rvwSpacer" />
         {(diff.added > 0 || diff.removed > 0) && <span className="rvwInfo rvwInfoWarn" title="Добавленные и удалённые ноды автоматически не переносятся — сделай это на основном холсте">+{diff.added} / −{diff.removed} нод не переносятся</span>}
         {applied && <span className="rvwInfo rvwInfoOk">{applied}</span>}
@@ -81,7 +83,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       </div>
       <div className="rvwCols">
         <div className="rvwFeedCol">
-          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} selRef={selRef} selTick={selTick} warnMap={warnMap} onSelect={select} onChoice={setChoice} />
+          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} selRef={selRef} selTick={selTick} warnMap={warnMap} onSelect={select} onChoice={setChoice} onPick={pickOption} />
         </div>
         <div className="rvwCanvasCol">
           <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />

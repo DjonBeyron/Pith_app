@@ -6,6 +6,7 @@ import ChooseWordOption from '../../player/panels/choose-word/ChooseWordOption.j
 import { nodeFileKey } from '../../player/preloadQueue.js'
 import { TYPE_COLOR } from '../nodeTypes.js'
 import { PlayerMutedContext } from '../../player/playerMuted.js'
+import { Mic } from 'lucide-react'
 import { answerText } from './lessonTranscript.js'
 
 const NOOP = () => {}
@@ -14,32 +15,42 @@ const NO_SET = new Set()
 const EXERCISE_TYPES = new Set(['word_choice', 'phrase_assembly', 'type_word', 'say_phrase', 'fill_blanks', 'photo_choice', 'registration'])
 const LABEL = { word_choice: 'Выбери слово', phrase_assembly: 'Собери фразу', type_word: 'Напечатай слово', say_phrase: 'Сказать фразу', fill_blanks: 'Составь предложение', photo_choice: 'Выбрать фото', registration: 'Регистрация' }
 
-// Панель ответа «как у ученика»: настоящие кусочки панелей (банк слов, строка ответа, кнопки выбора). Верные варианты помечены для автора
-function ExercisePanel({ node }) {
+// Панель ответа «как у ученика», КОМПАКТНО: настоящие кусочки панелей (банк слов, кнопки выбора), чтобы было ясно, что за модуль.
+// «Выбери слово»: варианты кликаются — выбираем реальный ответ, и лента идёт по ветке этого варианта. Остальным заданиям — переключатель верно/неверно.
+// Клавиатуры (напечатай), микрофона с анимациями (скажи) нет — только суть задания
+function ExercisePanel({ node, item, onPick, onChoice }) {
   const d = node.data ?? {}
   const accent = TYPE_COLOR[node.type] ?? '#7a7a96'
   let body
   if (node.type === 'phrase_assembly') {
     const chips = [...(d.words ?? []), ...(d.distractors ?? []).map(x => x.text)].map(text => ({ text }))
-    body = (
-      <div className="phraseInner">
-        <PhraseAnswerRow placed={[]} result={null} onRemove={NOOP} />
-        <PhraseBank chips={chips} usedIdxs={NO_SET} disabled onPick={NOOP} />
-        <button className="phraseCheckBtn" disabled>Проверить</button>
-      </div>
-    )
+    body = <div className="phraseInner"><PhraseBank chips={chips} usedIdxs={NO_SET} disabled onPick={NOOP} /></div>
   } else if (node.type === 'word_choice') {
     body = (
       <div className="chooseWordInner">
-        {(d.options ?? []).map((o, i) => <div key={i} className={o.isCorrect ? 'rvwOptOk' : undefined}><ChooseWordOption text={o.text} state={null} disabled onClick={NOOP} /></div>)}
+        {(d.options ?? []).map((o, i) => (
+          <div key={o.id ?? i} className={`rvwOpt${o.isCorrect ? ' ok' : ''}${item.picked === o.id ? ' picked' : ''}`} onClick={e => { e.stopPropagation(); onPick(item.ref, o.id) }}>
+            <ChooseWordOption text={o.text} state={null} onClick={NOOP} />
+          </div>
+        ))}
       </div>
     )
+  } else if (node.type === 'say_phrase') {
+    body = <div className="rvwSay"><span className="rvwMic"><Mic size={14} /></span><span className="rvwTypeLine">{answerText(node) || d.pattern || ''}</span></div>
   } else {
     body = <div className="rvwTypeLine">{answerText(node) || LABEL[node.type]}</div>
   }
   return (
     <div className="rvwPanel" style={{ '--rvw-accent': accent }}>
-      <div className="rvwPanelHead">{LABEL[node.type] ?? node.type}</div>
+      <div className="rvwPanelHead">
+        <span>{LABEL[node.type] ?? node.type}</span>
+        {node.type !== 'word_choice' && item.choice && (
+          <span className="rvwSwitch" onClick={e => e.stopPropagation()}>
+            <button className={item.choice === 'right' ? 'on' : ''} onClick={() => onChoice(item.ref, 'right')}>✓</button>
+            <button className={item.choice === 'wrong' ? 'on bad' : ''} disabled={!item.hasWrong} title={item.hasWrong ? 'Показать ветку ошибки' : 'У задания нет ветки «неверно»'} onClick={() => onChoice(item.ref, 'wrong')}>✗</button>
+          </span>
+        )}
+      </div>
       {body}
     </div>
   )
@@ -49,7 +60,7 @@ function ExercisePanel({ node }) {
 function StudentRow({ item }) {
   return (
     <div className={`playerMsgRow playerMsgRowRight rvwStudentRow${item.ok ? '' : ' bad'}`}>
-      <div className="playerMsgBubble playerMsgBubble--text"><p className="playerText">{item.ok ? (answerText(item.node) || 'верный ответ') : 'неверный ответ'}</p></div>
+      <div className="playerMsgBubble playerMsgBubble--text"><p className="playerText">{item.pickedText ?? (item.ok ? (answerText(item.node) || 'верный ответ') : 'неверный ответ')}</p></div>
     </div>
   )
 }
@@ -65,7 +76,7 @@ const asHistory = node => {
 // Копия ленты плеера: те же классы и те же модули сообщений (PlayerMessage), что в уроке, но без триггеров — ничего не играет и не переходит
 // дальше (звук выключен контекстом, файлов не передаём — медиа рисуются заглушками). Поверх каждого сообщения — выделение, номер, замечания и
 // переключатель «верно / неверно» на заданиях
-export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, onSelect, onChoice }) {
+export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
   // К выбранному сообщению — каждый раз при выборе (в том числе повторном: selTick растёт при каждом клике)
   useEffect(() => {
@@ -95,16 +106,10 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
                       <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
                     </div>
                     {exercise
-                      ? <ExercisePanel node={it.node} />
+                      ? <ExercisePanel node={it.node} item={it} onPick={onPick} onChoice={onChoice} />
                       : node.type === 'reaction'
                         ? <div className="playerMsgRow"><span className="rvwEmoji">{node.typeData?.reaction?.emoji}</span></div>
                         : <PlayerMessage node={asHistory(node)} file={files.find(f => f.id === nodeFileKey(node)) ?? null} lessonFiles={files} lessonNodes={canvasNodes} teacherName="" adminPreview pending={false} onDone={NOOP} onTrReveal={NOOP} />}
-                    {it.choice && (
-                      <div className="rvwSwitch" onClick={e => e.stopPropagation()}>
-                        <button className={it.choice === 'right' ? 'on' : ''} onClick={() => onChoice(it.ref, 'right')}>✓ верно</button>
-                        <button className={it.choice === 'wrong' ? 'on bad' : ''} disabled={!it.hasWrong} title={it.hasWrong ? '' : 'У задания нет ветки «неверно»'} onClick={() => onChoice(it.ref, 'wrong')}>✗ неверно</button>
-                      </div>
-                    )}
                   </div>
                 )
               })}

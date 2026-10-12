@@ -638,31 +638,8 @@
         0
       ],
       "data": {
-        "content": "Мостик to между двумя глаголами. Подробно вот тут",
-        "hardWrap": false,
-        "highlights": [
-          {
-            "end": 49,
-            "mode": "text",
-            "color": "#ffffff",
-            "start": 0,
-            "opacity": 0.75
-          },
-          {
-            "end": 9,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 7,
-            "opacity": 1
-          },
-          {
-            "end": 9,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 7,
-            "opacity": 1
-          }
-        ]
+        "content": "{g:to} — это мостик между двумя глаголами 🌉 Подробно вот тут",
+        "hardWrap": false
       },
       "triggers": [
         {

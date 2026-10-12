@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildTranscript, findStart, answerText, warningsByRef } from './lessonTranscript.js'
+import { buildTranscript, findStart, answerText, warningsByRef, optChoice } from './lessonTranscript.js'
 
 const t = (ref, then) => ({ ref, seq: 1, type: 'text', data: { content: ref }, triggers: then ? [{ if: 'timer', then }] : [] })
 const q = (ref, right, wrong) => ({ ref, seq: 2, type: 'type_word', data: { word: 'tries' }, triggers: [{ if: 'type_correct', then: right }, { if: 'type_wrong', then: wrong }] })
@@ -24,5 +24,20 @@ describe('лента урока', () => {
     expect(answerText(lesson[1])).toBe('tries')
     const m = warningsByRef(['[R-tautology] q (type_word): …', 'Недостижимо: z'], lesson)
     expect([...m.keys()].sort()).toEqual(['q', 'z'])
+  })
+})
+
+describe('выбор конкретного варианта в «Выбери слово»', () => {
+  const wc = { ref: 'w', seq: 2, type: 'word_choice', data: { options: [{ id: 'o1', text: 'tries', isCorrect: true }, { id: 'o2', text: 'try', isCorrect: false }, { id: 'o3', text: 'tried', isCorrect: false }] },
+    triggers: [{ if: 'word_correct', then: 'z' }, { if: 'word_wrong', then: 'h' }, { if: 'o3', then: 'v' }] }
+  const lesson2 = [t('a', 'w'), wc, t('h', 'z'), t('v', 'z'), t('z')]
+  it('верный вариант — основная ветка; неверный без особого перехода — общая ветка ошибки', () => {
+    expect(buildTranscript(lesson2, { w: optChoice('o1') }).map(i => i.ref)).toEqual(['a', 'w', 'w', 'z'])
+    const wrong = buildTranscript(lesson2, { w: optChoice('o2') })
+    expect(wrong.map(i => i.ref)).toEqual(['a', 'w', 'w', 'h', 'z'])
+    expect(wrong.find(i => i.kind === 'student').pickedText).toBe('try')
+  })
+  it('у варианта есть особый переход — идём по нему', () => {
+    expect(buildTranscript(lesson2, { w: optChoice('o3') }).map(i => i.ref)).toEqual(['a', 'w', 'w', 'v', 'z'])
   })
 })

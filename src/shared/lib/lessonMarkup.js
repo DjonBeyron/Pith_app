@@ -51,7 +51,19 @@ export function applyMarkup(data) {
   return { ...data, [key]: text, highlights }
 }
 
-const near = (a, b) => String(a ?? '').toLowerCase() === b
+/** Какой метке {g:..}/{t:..}… соответствует сочетание стилей (null — нестандартное). Общая логика для toMarkup и подписи в панели раскраски */
+export function classifyStyle({ color, bold, italic, underline, pin }) {
+  if (pin) return 'p'
+  const eq = c => String(color ?? '').toLowerCase() === c
+  if (eq(GREEN) && bold) return 'g'
+  if (eq(TRANSLATION) || italic) return 't'
+  if (eq(CYAN) && (underline || bold)) return 'u'
+  if (eq(WHITE) && bold) return 'w'
+  if (!color && bold) return 'b'
+  return null
+}
+export const MARK_NAMES = { g: 'английская форма', t: 'перевод', w: 'русский термин', u: 'главный акцент', b: 'буква в прозе', p: 'плашка на букве' }
+
 /**
  * Обратное преобразование: текст + highlights → строка с метками {g:..}. Нужен, чтобы пример, раскрашенный в редакторе (тем же
  * инструментом, что и ноды), в промпте для ИИ выглядел разметкой. Понимает только стандартные сочетания (зелёный+bold, перевод #fdfcfc,
@@ -69,13 +81,7 @@ export function toMarkup(text, highlights = []) {
     const [start, end] = k.split(':').map(Number)
     const has = m => hs.some(h => h.mode === m)
     const color = (hs.find(h => h.mode === 'text' && h.color) ?? hs.find(h => h.color))?.color
-    let kind = null
-    if (hs.some(h => h.pin)) kind = 'p'
-    else if (near(color, GREEN) && has('bold')) kind = 'g'
-    else if (near(color, TRANSLATION) || has('italic')) kind = 't'
-    else if (near(color, CYAN) && (has('underline') || has('bold'))) kind = 'u'
-    else if (near(color, WHITE) && has('bold')) kind = 'w'
-    else if (!color && has('bold')) kind = 'b'
+    const kind = classifyStyle({ color, bold: has('bold'), italic: has('italic'), underline: has('underline'), pin: hs.some(h => h.pin) })
     if (kind && start < end) marks.push({ start, end, kind })
   }
   marks.sort((a, b) => a.start - b.start)

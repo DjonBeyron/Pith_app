@@ -7,6 +7,10 @@ const MAX_ITEMS = 600
 
 export const isExercise = n => (n.triggers ?? []).some(t => CORRECT.has(t.if) || WRONG.has(t.if))
 
+/** Вариант ответа в «Выбери слово»: choices[ref] = 'opt:<id варианта>' — ученик выбрал именно его (ветка берётся по варианту, а не по «верно/неверно») */
+export const optChoice = id => `opt:${id}`
+const pickedOption = (n, choice) => (typeof choice === 'string' && choice.startsWith('opt:') ? (n.data?.options ?? []).find(o => o.id === choice.slice(4)) ?? null : null)
+
 /** Правильный ответ задания словами — для пузыря ученика */
 export function answerText(n) {
   const d = n.data ?? {}
@@ -43,12 +47,18 @@ export function buildTranscript(nodes, choices = {}) {
     const wrongT = trig.find(t => WRONG.has(t.if) && t.then)
     const rightT = trig.find(t => CORRECT.has(t.if) && t.then)
     const exercise = isExercise(cur)
-    const choice = exercise && choices[cur.ref] === 'wrong' ? 'wrong' : 'right'
-    out.push({ kind: 'node', ref: cur.ref, node: cur, wrongBranch, hasWrong: !!wrongT, choice: exercise ? choice : null })
+    const raw = exercise ? choices[cur.ref] : null
+    const picked = pickedOption(cur, raw)
+    // Выбран конкретный вариант: верный/неверный — по его isCorrect, а переход — по особому триггеру этого варианта (если он есть)
+    const choice = picked ? (picked.isCorrect ? 'right' : 'wrong') : raw === 'wrong' ? 'wrong' : 'right'
+    const variantT = picked ? trig.find(t => t.if === picked.id && t.then) : null
+    out.push({ kind: 'node', ref: cur.ref, node: cur, wrongBranch, hasWrong: !!wrongT, choice: exercise ? choice : null, picked: picked?.id ?? null })
     let next
     if (exercise) {
-      out.push({ kind: 'student', ref: cur.ref, node: cur, ok: choice === 'right', wrongBranch })
-      if (choice === 'wrong' && wrongT) { next = wrongT.then; wrongBranch = true; rejoin = rightT?.then ?? null } else { next = (rightT ?? trig.find(t => t.then))?.then; wrongBranch = false }
+      out.push({ kind: 'student', ref: cur.ref, node: cur, ok: choice === 'right', wrongBranch, pickedText: picked?.text ?? null })
+      if (variantT) { next = variantT.then; wrongBranch = choice === 'wrong'; rejoin = rightT?.then ?? null }
+      else if (choice === 'wrong' && wrongT) { next = wrongT.then; wrongBranch = true; rejoin = rightT?.then ?? null }
+      else { next = (rightT ?? trig.find(t => t.then))?.then; wrongBranch = false }
     } else {
       next = trig.find(t => t.then && !WRONG.has(t.if))?.then
     }

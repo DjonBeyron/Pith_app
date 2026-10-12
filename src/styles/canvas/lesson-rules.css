@@ -2,7 +2,7 @@
    Базовые .lio* классы (заголовок, закрыть, мета) — из lesson-io.css. */
 
 .rwFull {
-  position: fixed; left: 0; right: 0; bottom: 0; top: 0; z-index: 100500; /* выше отладочной панели админа (z-index 99999–100000) */
+  position: fixed; left: 0; right: 0; bottom: 0; top: 0; z-index: 1400; /* выше окна «Поделиться» (.lioOverlay 1300), из которого открывается; панель раскраски — 1500 */
   height: 100dvh; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px);
   background: #0e1013; color: #dfe2ea;
   display: flex; flex-direction: column; overflow: hidden;

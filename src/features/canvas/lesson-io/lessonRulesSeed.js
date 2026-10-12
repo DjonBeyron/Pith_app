@@ -57,6 +57,7 @@ const PRINCIPLE_META = [
   ['say_phrase идёт парой', Q, 'judge', 'warn', 'say_phrase: She tries tennis\nsay_phrase: We tried chess', 'text: Скажи по-английски: {t:«Она пробует теннис»}\nsay_phrase: She tries tennis\nreaction: 🔥'],
   ['Конец урока: итог → выбор', Q, 'judge', 'warn'],
   ['type_word — мини-фраза, а не слово из пояснения', Z, 'auto', 'warn', 'text: Начнём с {g:try}: пытаюсь, пытаешься\ntype_word: try', 'text: Как будет {t:«я пытаюсь»}?\ntype_word: I try'],
+  ['Естественный порядок слов в реплике', T, 'judge', 'warn', 'text: Мостик {g:to} между двумя глаголами', 'text: {g:to} — это мостик между двумя глаголами 🌉'],
 ]
 
 const CHECKLIST_META = [
