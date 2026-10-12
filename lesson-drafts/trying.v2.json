@@ -161,7 +161,7 @@
         0
       ],
       "data": {
-        "content": "Давай попробуем печатать ⌨️ тапай по светящимся буквам внизу, как будет {t:«я пытаюсь»}? звучит как «ай трай»",
+        "content": "Давай попробуем печатать ⌨️ тапай по светящимся буквам внизу, как будет {t:«я пытаюсь»}? звучит как {w:ай трай}",
         "hardWrap": false
       },
       "triggers": [
@@ -211,7 +211,7 @@
         960
       ],
       "data": {
-        "content": "Звучит почти как «ай», но через {b:i} это слово не пишется, ищи букву, похожую на русскую «у»",
+        "content": "Звучит почти как {w:ай}, но через {b:i} это слово не пишется, ищи букву, похожую на русскую {w:у}",
         "hardWrap": false
       },
       "triggers": [
@@ -231,7 +231,7 @@
         480
       ],
       "data": {
-        "content": "бывает, к клавиатуре надо привыкнуть))) в конце {g:try} стоит {b:y}, она похожа на русскую «у»",
+        "content": "бывает, к клавиатуре надо привыкнуть))) в конце {g:try} стоит {b:y}, она похожа на русскую {w:у}",
         "hardWrap": false
       },
       "triggers": [
@@ -1514,7 +1514,7 @@
         480
       ],
       "data": {
-        "content": "смотри: {t:он пробовал дважды}, {g:tried} это прошедшее время",
+        "content": "смотри: {t:он пробовал дважды}, {g:tried} это {u:прошедшее время}",
         "hardWrap": false
       },
       "triggers": [
@@ -1925,7 +1925,7 @@
         0
       ],
       "data": {
-        "content": "{t:Прямо сейчас}, это пара из двух слов:\n{g:I am trying}\n{g:he, she, it is trying}\n{g:you, we, they are trying}",
+        "content": "{u:Прямо сейчас}, это пара из двух слов:\n{g:I am trying}\n{g:he, she, it is trying}\n{g:you, we, they are trying}",
         "hardWrap": true
       },
       "triggers": [
@@ -2372,7 +2372,7 @@
         480
       ],
       "data": {
-        "content": "бывает) прямо сейчас это {g:am trying}: {g:I am trying my best}",
+        "content": "бывает) {u:прямо сейчас} это {g:am trying}: {g:I am trying my best}",
         "hardWrap": false
       },
       "triggers": [
@@ -2392,7 +2392,7 @@
         0
       ],
       "data": {
-        "content": "{g:tried} → {t:прошедшее}\n{g:will try} → {t:будущее}\n{g:am / is / are trying} → {t:прямо сейчас}",
+        "content": "{g:tried} → {u:прошедшее}\n{g:will try} → {u:будущее}\n{g:am / is / are trying} → {u:прямо сейчас}",
         "hardWrap": true
       },
       "triggers": [
@@ -2951,7 +2951,7 @@
         480
       ],
       "data": {
-        "content": "{g:They try hard} это {t:они стараются изо всех сил}, настоящее время, без {g:-s}",
+        "content": "{g:They try hard} это {t:они стараются изо всех сил}, {u:настоящее время}, без {g:-s}",
         "hardWrap": false
       },
       "triggers": [

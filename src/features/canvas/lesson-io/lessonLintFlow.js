@@ -6,6 +6,10 @@ const MAX_TEXT_RUN = 2   // больше двух текстовых нод по
 const LOOKBACK = 2       // ответ задания не должен стоять дословно в стольких предыдущих нодах
 const EXERCISES = new Set(['word_choice', 'phrase_assembly', 'type_word', 'say_phrase', 'fill_blanks'])
 
+const EMOJI_ONLY = /^(?:\p{Extended_Pictographic}|\s|\u200d|\ufe0f)+$/u
+/** Сообщение из одних эмодзи (отдельный смайлик следом за фразой) — в цепочке текстов не считается */
+export const isEmojiOnly = n => n?.type === 'text' && EMOJI_ONLY.test(String(n.data?.content ?? '').trim()) && String(n.data?.content ?? '').trim().length > 0
+
 const textOf = n => {
   const d = n?.data ?? {}
   if (n?.type === 'audio' && d.showText === false) return '' // расшифровка скрыта: ученик слышит, а не читает — задание «на слух» не тавтология
@@ -23,9 +27,9 @@ export function answersOf(n) {
 }
 
 /** Ноды, в которые попадают только через ветку ошибки/пропуска (подсказки «Бывает, смотри ещё раз»): основной поток их не читает */
-function wrongOnlySet(nodes) {
+export function wrongOnlySet(nodes, wrongRe = WRONG) {
   const incoming = new Map()
-  for (const m of nodes) for (const t of m.triggers ?? []) if (t.then) incoming.set(t.then, [...(incoming.get(t.then) ?? []), { from: m.ref, wrong: WRONG.test(t.if) }])
+  for (const m of nodes) for (const t of m.triggers ?? []) if (t.then) incoming.set(t.then, [...(incoming.get(t.then) ?? []), { from: m.ref, wrong: wrongRe.test(t.if) }])
   const set = new Set()
   let grew = true
   while (grew) {
@@ -50,7 +54,8 @@ function checkTextRuns(nodes) {
     const run = []
     let cur = n
     while (cur && cur.type === 'text' && !seen.has(cur.ref) && !hint.has(cur.ref)) {
-      run.push(cur); seen.add(cur.ref)
+      if (!isEmojiOnly(cur)) run.push(cur)
+      seen.add(cur.ref)
       const nextRef = (cur.triggers ?? []).find(t => t.then && !/wrong|skip|variant/.test(t.if))?.then
       cur = nextRef ? byRef.get(nextRef) : null
     }

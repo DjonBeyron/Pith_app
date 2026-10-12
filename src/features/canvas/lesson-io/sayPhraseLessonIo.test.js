@@ -42,8 +42,8 @@ describe('say_phrase — линтер урока', () => {
   })
 
   it('нет текстовой ноды-задания перед модулем (рекомендация, не ошибка) / две подряд / первая нода урока', () => {
-    const noIntro = [ex('n1', 1, 'audio', { text: 'x' }, [{ if: 'played', then: 'n2' }]), good[1], good[2]]
-    expect(lintLesson(noIntro).join('\n')).toMatch(/n2 say_phrase: перед ней нет текстовой ноды-задания/)
+    const noIntro = [ex('n1', 1, 'circle', { text: 'x' }, [{ if: 'played', then: 'n2' }]), good[1], good[2]]
+    expect(lintLesson(noIntro).join('\n')).toMatch(/n2 say_phrase: перед ней нет ноды-задания/)
     const twice = [good[0], good[1], ex('n3', 3, 'say_phrase', { phrase: 'Hello there' }, [])]
     twice[1] = { ...good[1], triggers: [{ if: 'say_done', then: 'n3' }] }
     expect(lintLesson(twice).join('\n')).toMatch(/n3 say_phrase: идёт сразу после другой say_phrase/)
@@ -51,7 +51,7 @@ describe('say_phrase — линтер урока', () => {
   })
 
   it('замечание про задание — предупреждение (warnings), а не ошибка; поле showPhrase в старых данных ничего не ломает', () => {
-    const noIntro = [ex('n1', 1, 'audio', { text: 'x' }, [{ if: 'played', then: 'n2' }]), good[1], good[2]]
+    const noIntro = [ex('n1', 1, 'circle', { text: 'x' }, [{ if: 'played', then: 'n2' }]), good[1], good[2]]
     const w = lintLesson(noIntro)
     expect(w.some(x => /задания.*рекомендация/.test(x))).toBe(true)
     const old = [good[0], ex('n2', 2, 'say_phrase', { phrase: 'I am trying to please both', showPhrase: false, translation: 'x' }, [{ if: 'say_done', then: 'n3' }]), good[2]]

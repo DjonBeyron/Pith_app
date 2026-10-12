@@ -41,8 +41,8 @@ export function checkSayPhrase(nodes, start) {
     const parents = parentsOf.get(n.ref) ?? []
     if (n.ref === start?.ref) out.push(`${n.ref} say_phrase: стоит первой нодой урока — сначала нужна текстовая нода-задание`)
     else if (parents.some(p => p.type === 'say_phrase')) out.push(`${n.ref} say_phrase: идёт сразу после другой say_phrase — вставь между ними текстовую ноду-задание`)
-    else if (parents.length && !parents.some(p => p.type === 'text')) {
-      out.push(`${n.ref} say_phrase: перед ней нет текстовой ноды-задания — модуль сам ничего в чат не пишет и фразу не показывает, поэтому что и как сказать вслух должно объяснить сообщение перед ним (рекомендация)`)
+    else if (parents.length && !parents.some(p => ['text', 'audio', 'photo'].includes(p.type))) {
+      out.push(`${n.ref} say_phrase: перед ней нет ноды-задания (текст, голосовое или фото с подписью) — модуль сам ничего в чат не пишет и фразу не показывает, поэтому что и как сказать вслух должно объяснить сообщение перед ним (рекомендация)`)
     }
   }
   return out
