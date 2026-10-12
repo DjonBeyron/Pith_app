@@ -1,0 +1,71 @@
+/* ── Окно «Разбор урока» (canvas/review/*): на весь экран, 3 колонки: лента · нода · правила. Префикс rvw — уникальный (см. rulesWindowCssIsolation) */
+.rvwFull { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 100500; height: 100dvh; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px);
+  background: #0e1013; color: #dfe2ea; display: flex; flex-direction: column; overflow: hidden; }
+.rvwTop { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid #22252c; margin-bottom: 12px; }
+.rvwBack { padding: 8px 14px; background: #b6fe3b; border: none; border-radius: 8px; color: #0e1013; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.rvwTitle { font-weight: 700; font-size: 15px; }
+.rvwInfo { color: #8a90a0; font-size: 12px; }
+.rvwBtn { padding: 6px 12px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 8px; color: #ccc; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.rvwBtn:disabled { opacity: 0.35; cursor: default; }
+.rvwBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
+.rvwCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(340px, 1.1fr) minmax(300px, 0.9fr) minmax(340px, 1fr); }
+.rvwFeed, .rvwCard, .rvwRight { overflow-y: auto; min-height: 0; padding: 12px 14px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
+.rvwFeed, .rvwCard { border-right: 1px solid #22252c; }
+.rvwFeed { display: flex; flex-direction: column; gap: 6px; }
+.rvwEmpty { color: #6a6f78; font-size: 13px; padding: 14px 0; }
+
+/* Лента */
+.rvwItem { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 6px 8px; border: 1px solid transparent; border-radius: 10px; cursor: pointer; }
+.rvwItem:hover { border-color: #2a2d35; }
+.rvwItem.on { border-color: #b6fe3b; background: #14180d; }
+.rvwItem.wrong { border-left: 3px solid #f87171; }
+.rvwMeta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6a6f78; }
+.rvwSeq { min-width: 22px; }
+.rvwTag { padding: 1px 6px; border: 1px solid #2a2d35; border-radius: 6px; color: #8a90a0; }
+.rvwTagWrong { border-color: #5a2a2a; color: #f87171; }
+.rvwWarn { color: #ffd75f; }
+.rvwMedia { padding: 6px 12px; background: #1a1d22; border: 1px dashed #3a4050; border-radius: 12px; color: #8a90a0; font-size: 13px; }
+.rvwEmoji { font-size: 34px; line-height: 1.2; }
+.rvwOpts { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+.rvwOpt { padding: 4px 10px; border: 1px solid #2a2d35; border-radius: 14px; font-size: 13px; color: #b8bdca; }
+.rvwOpt.ok { border-color: #3a5a20; color: #b6fe3b; }
+.rvwSwitch { display: flex; gap: 6px; }
+.rvwSwitch button { padding: 4px 10px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 12px; color: #8a90a0; font-size: 12px; cursor: pointer; }
+.rvwSwitch button.on { background: #1f2d10; border-color: #b6fe3b; color: #b6fe3b; }
+.rvwSwitch button.on.bad { background: #2d1010; border-color: #f87171; color: #f87171; }
+.rvwSwitch button:disabled { opacity: 0.35; cursor: default; }
+.rvwStudent { align-items: flex-end; }
+.rvwStudentBubble { padding: 6px 12px; background: #1b2a10; border: 1px solid #3a5a20; border-radius: 14px; color: #b6fe3b; font-size: 13px; }
+.rvwStudent.bad .rvwStudentBubble { background: #2a1212; border-color: #5a2a2a; color: #f87171; }
+
+/* Нода в фокусе */
+.rvwFacts { display: flex; flex-direction: column; gap: 6px; }
+.rvwFactsHead { font-weight: 700; font-size: 14px; }
+.rvwRef { color: #6a6f78; font-weight: 400; font-size: 11px; }
+.rvwFactsTitle { margin-top: 10px; color: #8a90a0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.rvwFact { font-size: 13px; color: #b8bdca; word-break: break-word; }
+.rvwFact b { color: #8a90a0; font-weight: 600; }
+.rvwFactWarns { padding: 8px; background: #2a2412; border-radius: 8px; color: #ffd75f; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+
+/* Правила */
+.rvwRules { display: flex; flex-direction: column; gap: 14px; }
+.rvwSection { display: flex; flex-direction: column; gap: 6px; }
+.rvwSectionHead { color: #8a90a0; font-size: 12px; font-weight: 700; }
+.rvwWarnRow { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 6px 8px; background: #2a2412; border-radius: 8px; color: #ffd75f; font-size: 12px; }
+.rvwRule { border: 1px solid #22252c; border-radius: 8px; }
+.rvwRule.open { border-color: #3a4050; }
+.rvwRuleHead { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; font-size: 13px; }
+.rvwRuleTitle { flex: 1; }
+.rvwSev { font-size: 11px; padding: 2px 6px; border-radius: 6px; background: #1a1d22; color: #9aa0b4; }
+.rvwSev.error { background: #3a1a1a; color: #f87171; }
+.rvwRuleBody { padding: 4px 10px 10px; font-size: 13px; color: #b8bdca; display: flex; flex-direction: column; gap: 6px; }
+.rvwRuleBody p { margin: 0; line-height: 1.5; }
+.rvwRuleLbl { font-size: 12px; color: #8a90a0; }
+.rvwSearch, .rvwNew input, .rvwNew textarea, .rvwNew select { background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 13px; padding: 7px 10px; width: 100%; box-sizing: border-box; font-family: inherit; }
+.rvwNew { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid #2a2d35; border-radius: 10px; }
+.rvwNewEx { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #8a90a0; }
+.rvwNewBtns { display: flex; gap: 8px; }
+
+@media (max-width: 900px) {
+  .rvwCols { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; }
+}

@@ -6,7 +6,7 @@ import { EXAMPLE_TYPES, parseExample, serializeExample, newBubble } from './rule
 const LABEL = Object.fromEntries(EXAMPLE_TYPES)
 
 // Предпросмотр последовательности «как придёт в чат»: тот же пузырь, что в плеере и в окнах ноды (ChatBubblePreview)
-function Preview({ bubbles }) {
+export function Preview({ bubbles }) {
   const shown = bubbles.filter(b => b.content.trim())
   if (!shown.length) return null
   return (

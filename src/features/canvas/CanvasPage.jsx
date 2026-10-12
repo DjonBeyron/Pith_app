@@ -4,6 +4,7 @@ import CanvasBoard from './CanvasBoard.jsx'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import CanvasPageToolsMenu from './CanvasPageToolsMenu.jsx'
 import LessonIoPanel from './lesson-io/LessonIoPanel.jsx'
+import LessonReviewPanel from './review/LessonReviewPanel.jsx'
 import BatchGeneratePanel from './batch-gen/BatchGeneratePanel.jsx'
 import CanvasHeaderActions from './CanvasHeaderActions.jsx'
 import { checkNodes, formatIntegrity } from './canvasIntegrity.js'
@@ -70,6 +71,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // Панель обмена уроком: снимок нод и зон берём в момент открытия (сами они
   // живут в CanvasBoard, наружу отдаются через boardApi)
   const [ioNodes, setIoNodes] = useState(null)
+  const [reviewNodes, setReviewNodes] = useState(null) // «Разбор урока» — окно на весь экран
   const [ioZones, setIoZones] = useState([])
   // Панель «⚡ Массовая генерация» — сама читает ноды/пишет файлы через
   // boardApiRef/pickFile, состояние открытия держим здесь же, рядом с ioNodes
@@ -215,7 +217,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           unsaved={unsaved} isSaving={isSaving} loading={loading} handleSave={handleSave}
           isAdmin={isAdmin} filter={filter} menuClosedAt={menuClosedAt}
           setFilterPos={setFilterPos} setToolsPos={setToolsPos}
-          setPlayFrom={setPlayFrom} setShowPlayer={setShowPlayer} setIoNodes={setIoNodes}
+          setPlayFrom={setPlayFrom} setShowPlayer={setShowPlayer} setIoNodes={setIoNodes} setReviewNodes={setReviewNodes}
           setIoZones={setIoZones}
           setShowBatchGen={setShowBatchGen} boardApiRef={boardApiRef} lessonId={lessonId} title={title}
           lessonXp={lessonXp} setLessonXp={setLessonXp} markDirty={markDirty}
@@ -235,6 +237,8 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
         debugLinks={debugLinks} setDebugLinks={setDebugLinks}
         onResetToServer={handleResetToServer}
       />
+
+      {reviewNodes && <LessonReviewPanel nodes={reviewNodes} onClose={() => setReviewNodes(null)} />}
 
       {ioNodes && (
         <LessonIoPanel

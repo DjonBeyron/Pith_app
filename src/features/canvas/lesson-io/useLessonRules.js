@@ -108,8 +108,14 @@ export function useLessonRules() {
     }
   }), [run, rules])
 
+  // Новое правило со всеми полями (из окна «Разбор урока»: название, текст, пример из ноды)
+  const addFull = useCallback(rule => run(() => {
+    const inCat = rules.filter(r => r.category === rule.category)
+    return createLessonRuleFull(rule, (inCat.length ? Math.max(...inCat.map(r => r.order)) : 0) + 10)
+  }), [run, rules])
+
   const principles = rules.filter(r => r.category === 'principle')
   const checklist  = rules.filter(r => r.category === 'checklist')
 
-  return { rules, principles, checklist, busy, error, add, seedDefaults, enrichFromSeed, edit, patch, toggle, setCategory, remove, moveUp, moveDown }
+  return { rules, principles, checklist, busy, error, add, addFull, seedDefaults, enrichFromSeed, edit, patch, toggle, setCategory, remove, moveUp, moveDown }
 }

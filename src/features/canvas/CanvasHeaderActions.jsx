@@ -11,7 +11,7 @@ import { unlockLessonAudio } from '../../shared/lib/lessonAudioUnlock.js'
 export default function CanvasHeaderActions({
   unsaved, isSaving, loading, handleSave,
   isAdmin, filter, menuClosedAt, setFilterPos, setToolsPos,
-  setPlayFrom, setShowPlayer, setIoNodes, setIoZones, setShowBatchGen,
+  setPlayFrom, setShowPlayer, setIoNodes, setIoZones, setReviewNodes, setShowBatchGen,
   boardApiRef, lessonXp, setLessonXp, markDirty,
   switchToProduction, switchToCards, switchToWordCard, hasUnsynced, hasUnsyncedLogo, setShowPanel,
   zoneToolActive, onToggleZoneTool,
@@ -53,6 +53,12 @@ export default function CanvasHeaderActions({
           setIoZones(boardApiRef.current?.getZones() ?? [])
         }}
       >⇄</button>
+      <button
+        className="canvasPageShare"
+        title="Разбор урока: вся история чата сразу, ветки верно/неверно, замечания и правила"
+        disabled={loading}
+        onClick={() => setReviewNodes(boardApiRef.current?.getNodes() ?? [])}
+      >Разбор</button>
       {/* Зона: рамкой с подписью группируешь ноды одного смыслового куска
           урока («Часть 2», «Тренировка вперемешку») — чисто для автора,
           на плеер не влияет. Активный инструмент подсвечен, как фильтр */}
