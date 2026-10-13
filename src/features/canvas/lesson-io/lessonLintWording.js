@@ -67,7 +67,7 @@ function checkAudioMarkup(nodes) {
   return out
 }
 
-const MAX_DEMO_CELLS = 7
+const MAX_DEMO_CELLS = 5
 /** Таблица-показ (demo) с больше чем 7 ячейками — слишком плотно для голосового следом: режим авто (dictator), где голос подсвечивает нужные места */
 function checkBigDemoTable(nodes) {
   return nodes.filter(n => n.type === 'table' && n.data?.mode === 'demo')

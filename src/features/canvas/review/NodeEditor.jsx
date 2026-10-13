@@ -1,24 +1,30 @@
-import { useState } from 'react'
-import { parseMarkup, toMarkup } from '../../../shared/lib/lessonMarkup.js'
+import { toMarkup } from '../../../shared/lib/lessonMarkup.js'
 import CopyIcon from './CopyIcon.jsx'
 import TableEditor from './TableEditor.jsx'
+import { onlyEmoji } from './onlyEmoji.js'
+import RichTextField from '../rich-text/RichTextField.jsx'
 
 // Поля текста по типам ноды: [ключ в data, подпись]
 const TEXT_KEYS = { text: [['content', 'Текст']], system: [['content', 'Текст']], pin_message: [['content', 'Текст']], audio: [['text', 'Расшифровка голосового']], photo: [['caption', 'Подпись']], sticker: [['caption', 'Подпись']], circle: [['caption', 'Подпись']], video: [['caption', 'Подпись']] }
 const PROMPT_TYPES = new Set(['photo', 'sticker', 'photo_choice'])
 
-// Текст с разметкой {g:..}: правится как строка, при вводе разбирается обратно в текст + раскраску (highlights)
+// «До» (ro): текст с разметкой {g:..}, только чтение. «После»: то же поле, что на холсте (RichTextField) — выделил слово, всплыла панель раскраски;
+// покраска и текст идут в копию ноды, а в JSON замечаний видны разметкой {g:..}/{u:..}
 function MarkupField({ data, field, label, onPatch, ro }) {
-  const [val, setVal] = useState(() => toMarkup(data[field] ?? '', data.highlights ?? []))
-  const change = v => {
-    setVal(v)
-    const { text, highlights } = parseMarkup(v)
-    onPatch(d => ({ ...d, [field]: text, highlights }))
+  if (!ro) {
+    return (
+      <div className="rvwEdBlock">
+        <label className="rvwEdLbl">{label} <CopyIcon text={() => data[field] ?? ''} /></label>
+        <RichTextField field={field} value={data[field] ?? ''} highlights={data.highlights ?? []} growTextarea className="rvwEdRich"
+          onChange={patch => onPatch(d => ({ ...d, ...patch }))} />
+      </div>
+    )
   }
+  const val = toMarkup(data[field] ?? '', data.highlights ?? [])
   return (
     <div className="rvwEdBlock">
-      <label className="rvwEdLbl">{label} <CopyIcon text={() => parseMarkup(val).text} /></label>
-      <textarea className="rvwEdIn" readOnly={ro} rows={Math.min(8, Math.max(2, Math.ceil(val.length / 48)))} value={val} onChange={e => change(e.target.value)} />
+      <label className="rvwEdLbl">{label} <CopyIcon text={() => data[field] ?? ''} /></label>
+      <textarea className="rvwEdIn" readOnly rows={Math.min(8, Math.max(2, Math.ceil(val.length / 48)))} value={val} />
     </div>
   )
 }
@@ -49,7 +55,7 @@ export default function NodeEditor({ node, onPatch, ro = false }) {
         <Plain ro={ro} label="Фраза" value={d.phrase ?? ''} onChange={v => set('phrase', v)} />
         <Plain ro={ro} label="Перевод" value={d.translation ?? ''} onChange={v => set('translation', v)} />
       </>}
-      {node.type === 'reaction' && <Plain ro={ro} label="Эмодзи" value={d.emoji ?? ''} onChange={v => set('emoji', v)} />}
+      {node.type === 'reaction' && <Plain ro={ro} label="Эмодзи (только эмодзи, текст пиши в замечании)" value={d.emoji ?? ''} onChange={v => set('emoji', onlyEmoji(v))} />}
     </div>
   )
 }

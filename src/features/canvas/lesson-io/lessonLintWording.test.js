@@ -30,11 +30,11 @@ describe('lessonLintWording', () => {
     expect(checkWordingRules([A('На русский to часто не переводят')]).join()).toMatch(/R-audio-markup/)
     expect(checkWordingRules([A('На русский {g:to} часто не переводят')])).toEqual([])
   })
-  it('R-table-big: таблица-показ больше 7 ячеек', () => {
+  it('R-table-big: таблица-показ больше 5 ячеек', () => {
     const cells = n => Array.from({ length: n }, (_, i) => ({ id: 'c' + i, row: 1, col: i, value: 'x' }))
     const tb = (mode, n) => ({ ref: 't', type: 'table', data: { mode, table: { cells: cells(n) } }, triggers: [] })
-    expect(checkWordingRules([tb('demo', 8)]).join()).toMatch(/R-table-big/)
-    expect(checkWordingRules([tb('demo', 7)])).toEqual([])
+    expect(checkWordingRules([tb('demo', 6)]).join()).toMatch(/R-table-big/)
+    expect(checkWordingRules([tb('demo', 5)])).toEqual([])
     expect(checkWordingRules([tb('dictator', 12)])).toEqual([])
   })
 })

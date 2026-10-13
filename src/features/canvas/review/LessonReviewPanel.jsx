@@ -12,6 +12,7 @@ import NotesWindow from './NotesWindow.jsx'
 import { useReviewNotes } from './useReviewNotes.js'
 import { nodeCopyText } from './nodeCopyText.js'
 import { changedRefs } from './reviewNotes.js'
+import { reviewKey, loadReview, saveReview } from './reviewStorage.js'
 
 // «Разбор урока» — окно на весь экран ПК: слева копия ленты плеера (вся история сразу, на заданиях переключатель веток «верно / неверно»),
 // посередине полноценный холст, сфокусированный на выбранной ноде (редактируешь как обычно), справа замечания и правила.
@@ -26,22 +27,34 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const [selTick, setSelTick] = useState(0)
   const [applied, setApplied] = useState('')
   const { rules, busy, addFull } = useLessonRules()
-  const store = useReviewNotes()
+  const key = useMemo(() => reviewKey(initialNodes), [initialNodes])
+  const saved = useMemo(() => loadReview(key), [key])
+  const store = useReviewNotes(saved)
   const [noteFor, setNoteFor] = useState(null) // ref ноды, к которой пишем замечание
   const [notesOpen, setNotesOpen] = useState(false)
 
   // Холст при монтировании сам приводит ноды к своему виду (служебные переходы) — первое его сообщение берём за точку отсчёта для «Применить»,
   // иначе эта нормализация выглядела бы как 13 «правок» без единого действия автора
   const onBoardNodes = useCallback(list => {
-    if (firstEmit.current) { firstEmit.current = false; setBase(list) }
+    if (firstEmit.current) {
+      firstEmit.current = false; setBase(list)
+      // Правки текста, сохранённые до перезагрузки, возвращаем в копию урока — уже после того, как холст поднялся (base остаётся оригиналом)
+      setTimeout(() => { for (const [id, typeData] of Object.entries(saved?.edits ?? {})) canvasRef.current?.updateNode(id, () => ({ typeData })) }, 0)
+    }
     setDraft(list)
-  }, [])
+  }, [saved])
 
   const nodes = useMemo(() => fromCanvasNodes(draft), [draft])
   const canvasById = useMemo(() => new Map(draft.map(n => [n.id, n])), [draft])
   const items = useMemo(() => buildTranscript(nodes, choices), [nodes, choices])
   // Сколько нод в списке замечаний: с замечанием ИЛИ с правкой текста (правка без комментария тоже считается)
   const edited = changedRefs(store.originalTexts(), nodes)
+  // Сохраняем замечания, оригиналы и правки в localStorage — после перезагрузки всё на месте
+  useEffect(() => {
+    const edits = Object.fromEntries(edited.map(r => [r, canvasById.get(r)?.typeData]).filter(([, v]) => v))
+    saveReview(key, { notes: store.notes, general: store.general, originals: [...store.originals.current], edits })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, store.notes, store.general, store.version, draft])
   const noted = new Set([...store.notes.map(n => n.ref), ...edited]).size + store.general.length
   const noteCounts = useMemo(() => { const m = new Map(); for (const n of store.notes) m.set(n.ref, (m.get(n.ref) ?? 0) + 1); for (const r of edited) if (!m.has(r)) m.set(r, 1); return m }, [store.notes, edited])
   const warnMap = useMemo(() => warningsByRef(lintLesson(nodes), nodes), [nodes])
@@ -84,6 +97,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const setChoice = (ref, v) => setChoices(c => { const n = { ...c }; if (v === 'wrong') n[ref] = 'wrong'; else delete n[ref]; return n })
 
   function apply() {
+    setNoteFor(null); setNotesOpen(false) // окно замечания закрывается само, как только правки применены
     for (const { id, patch } of diff.changed) boardApiRef.current?.updateNode(id, patch)
     setBase(draft)
     setApplied(`Применено: ${diff.changed.length} ${diff.changed.length === 1 ? 'нода' : 'нод'}. Не забудь сохранить урок (💾)`)

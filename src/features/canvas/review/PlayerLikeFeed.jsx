@@ -90,7 +90,7 @@ function SlotTools({ item, count, onNote }) {
     try { await navigator.clipboard.writeText(nodeCopyText(item.node)); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch { /* буфер недоступен */ }
   }
   return (
-    <div className="rvwSlotTools" onClick={e => e.stopPropagation()}>
+    <div className={`rvwSlotTools${count > 0 ? ' keep' : ''}`} onClick={e => e.stopPropagation()}>
       <button className="rvwTool" title="Скопировать текст" aria-label="Скопировать текст" onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}</button>
       <button className="rvwTool" title="Оставить замечание к этому сообщению" aria-label="Замечание" onClick={e => { e.stopPropagation(); onNote(item.ref) }}>
         <MessageSquarePlus size={13} />{count > 0 && <span className="rvwToolCount">{count}</span>}
@@ -134,7 +134,7 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
                     <div className="rvwSlotMeta">
                       <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
                     </div>
-                    {(on || noteCounts?.get(it.ref)) && <SlotTools item={it} count={noteCounts?.get(it.ref) ?? 0} onNote={onNote} />}
+                    <SlotTools item={it} count={noteCounts?.get(it.ref) ?? 0} onNote={onNote} />
                     <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} onPick={onPick} onChoice={onChoice} />
                   </div>
                 )
