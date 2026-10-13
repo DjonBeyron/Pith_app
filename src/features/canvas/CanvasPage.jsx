@@ -6,6 +6,7 @@ import CanvasPageToolsMenu from './CanvasPageToolsMenu.jsx'
 import LessonIoPanel from './lesson-io/LessonIoPanel.jsx'
 import LessonReviewPanel from './review/LessonReviewPanel.jsx'
 import { recordLessonVersion } from './review/useLessonVersions.js'
+import { diagnoseMedia } from './injectR2Urls.js'
 import BatchGeneratePanel from './batch-gen/BatchGeneratePanel.jsx'
 import CanvasHeaderActions from './CanvasHeaderActions.jsx'
 import { checkNodes, formatIntegrity } from './canvasIntegrity.js'
@@ -81,7 +82,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // «нет» — сразу видно, строятся они вообще или дело в отображении
   const [debugLinks, setDebugLinks] = useState(false)
 
-  const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles } =
+  const { files, syncing, uploadLog, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles } =
     useLessonFiles(lessonId)
 
   const {
@@ -114,14 +115,18 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // Сохранение урока на сервер — useCanvasSave.js
   const { isSaving, handleSave: saveToServer } = useCanvasSave({
     lessonId, title, lessonXp, nodesRef, zonesRef, hasUnsynced, files, syncToServer,
-    prepareForSave, clearTeacherDraft, setSyncStatus,
+    prepareForSave, clearTeacherDraft, setSyncStatus, onUnlinkedMedia: () => setShowPanel(true),
   })
 
   // Куда вернёт «назад»: модуль урока (если открыли не из схемы — найдём сами)
   const backModule = useLessonModule(lessonId, module)
 
   // Мигающая точка на «Сохранить» — useCanvasDirty.js
-  const { dirty, markDirty, syncDirty, save: handleSave } = useCanvasDirty(lessonId, saveToServer)
+  const { dirty, markDirty, syncDirty, save: saveDirty } = useCanvasDirty(lessonId, saveToServer)
+  // Если есть файлы к загрузке — окно файлов открывается само и показывает ход загрузки (какие файлы уже на сервере)
+  const handleSave = (...a) => { if (hasUnsynced) setShowPanel(true); return saveDirty(...a) }
+  const mediaProblems = useMemo(() => diagnoseMedia(panelNodes, files), [panelNodes, files])
+  const resetNodeFile = (nodeId) => boardApiRef.current?.patchNodeTypeData(nodeId, d => ({ ...d, file_id: null, r2Url: null }))
 
   // Голосовые без волны/длительности (импорт, подложенные файлы) — досчёт в
   // фоне по одной, результат в ноды через boardApiRef; индикатор в шапке
@@ -327,6 +332,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           syncing={syncing}
           hasUnsyncedLogo={hasUnsyncedLogo}
           onRemove={removeFile}
+          problems={mediaProblems}
+          uploadLog={uploadLog}
+          onResetFile={resetNodeFile}
           onClose={() => setShowPanel(false)}
           chatTitle={chatTitle}
           onChatTitleChange={setChatTitle}

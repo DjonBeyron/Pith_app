@@ -9,7 +9,7 @@ function getNodeUsage(fileId, nodes) {
 }
 
 export default function LessonFilesPanel({
-  files, nodes, syncing, hasUnsyncedLogo, onRemove, onClose,
+  files, nodes, syncing, hasUnsyncedLogo, onRemove, onClose, problems = [], uploadLog = [], onResetFile,
   teacherName, onNameChange, teacherLogoUrl, onLogoPick,
   chatTitle, onChatTitleChange, lessonTitle,
   teacherLogoCrop, onCropChange,
@@ -49,6 +49,26 @@ export default function LessonFilesPanel({
 
       {tab === 'files' ? (
         <div className="lessonFilesList">
+          {uploadLog.length > 0 && (
+            <div className="lessonFilesLog">
+              <div className="lessonFilesLogHead">
+                <b>Журнал загрузки</b>
+                <button onClick={() => { try { navigator.clipboard.writeText(uploadLog.join('\n')) } catch { /* буфер недоступен */ } }}>Копировать</button>
+              </div>
+              <textarea readOnly rows={Math.min(10, uploadLog.length + 1)} value={uploadLog.join('\n')} onFocus={e => e.target.select()} />
+            </div>
+          )}
+          {problems.length > 0 && (
+            <div className="lessonFilesProblems">
+              <b>Нужно внимание: файл есть в ноде, но пользователь его не получит ({problems.length})</b>
+              {problems.map(p => (
+                <div key={p.nodeId} className="lessonFilesProblemRow">
+                  <span>#{p.seq} {TYPE_LABEL[p.type] ?? p.type}: {p.reason}</span>
+                  <button onClick={() => onResetFile?.(p.nodeId)} title="Убрать пустую ссылку на файл: ноду можно будет озвучить заново (⚡ Генерация)">Сбросить файл</button>
+                </div>
+              ))}
+            </div>
+          )}
           {files.length === 0 && (
             <p className="lessonFilesEmpty">Нет файлов — выберите файл в ноде</p>
           )}

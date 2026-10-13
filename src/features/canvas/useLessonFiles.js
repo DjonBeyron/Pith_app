@@ -14,6 +14,9 @@ const IDB_KEY = (lid, fid) => `lesson_blob_${lid}_${fid}`
 export function useLessonFiles(lessonId) {
   const [files, setFiles] = useState([])
   const [syncing, setSyncing] = useState(false)
+  // Журнал загрузки (показывается в окне файлов, его можно скопировать): что и когда загружалось, чем кончилось
+  const [uploadLog, setUploadLog] = useState([])
+  const addLog = msg => setUploadLog(l => [...l.slice(-400), `${new Date().toTimeString().slice(0, 8)} ${msg}`])
   const readyRef = useRef(false)
   // filesRef keeps current files without being a useCallback dependency
   const filesRef = useRef(files)
@@ -147,29 +150,40 @@ export function useLessonFiles(lessonId) {
   async function syncToServer() {
     const toUpload = files.filter(f => f.status === 'local' && f.localFile)
     const toDelete = files.filter(f => f.status === 'toDelete')
+    const stuck = files.filter(f => f.status === 'local' && !f.localFile)
+    if (!toUpload.length && !toDelete.length && !stuck.length) return files
+    setUploadLog([])
+    addLog(`Сохранение: к загрузке ${toUpload.length}, к удалению ${toDelete.length}${stuck.length ? `, без локальной копии ${stuck.length}` : ''}`)
+    for (const f of stuck) addLog(`⚠ ${f.name}: локальной копии нет (не восстановилась в браузере), загружать нечего`)
     if (!toUpload.length && !toDelete.length) return files
     setSyncing(true)
 
     let result = files
 
+    let doneCount = 0
     for (const f of toUpload) {
       for (let attempt = 1; attempt <= 2; attempt++) { // одна повторная попытка: на пакете из десятков файлов сеть/квота иногда подводят
       try {
         // Дедуп: файл с таким же содержимым (SHA-256) уже лежит в R2 —
         // переиспользуем его r2Url вместо повторной загрузки байт (та же
         // картинка/видео учителя часто ставится в несколько уроков подряд)
+        addLog(`[${doneCount + 1}/${toUpload.length}] ${f.name} (${Math.round(f.size / 1024)} КБ), попытка ${attempt}`)
         const contentHash = await hashFile(f.localFile)
         const existing = await findFileByHash(contentHash)
         let r2Url
         if (existing) {
           r2Url = existing.r2Url
           pLog('syncToServer: dedup hit — reuse r2Url from file', existing.id, 'skip upload for', f.name)
+          addLog('  такой файл уже есть на сервере, повторная загрузка не нужна')
         } else {
           r2Url = await uploadToR2(f.localFile)
           pLog('syncToServer: uploadToR2 OK, r2Url=', r2Url?.slice(0, 50), 'clientId=', f.id)
+          addLog('  загружено в хранилище')
         }
         const inserted = await insertFile({ id: f.id, fileName: f.name, sizeBytes: f.size, contentType: f.type, r2Url, contentHash })
         pLog('syncToServer: insertFile result id=', inserted?.id ?? 'null', 'expected=', f.id, 'match=', inserted?.id === f.id)
+        addLog(`  запись в базу: ${inserted?.id === f.id ? 'OK' : `⚠ id не совпал (ждали ${String(f.id).slice(0, 8)}, вернулся ${String(inserted?.id ?? 'null').slice(0, 8)})`}`)
+        doneCount++
         result = result.map(x => x.id === f.id ? { ...x, status: 'synced', r2Url, localFile: null } : x)
         setFiles(result)
         if (lessonId) lfDelete(IDB_KEY(lessonId, f.id)).catch(() => {})
@@ -177,6 +191,7 @@ export function useLessonFiles(lessonId) {
       } catch (err) {
         pLog('syncToServer ERROR:', err.message)
         console.error('[lessonFiles] upload failed', f.name, 'попытка', attempt, err)
+        addLog(`  ✗ ОШИБКА (попытка ${attempt}): ${err?.message ?? err}`)
         if (attempt < 2) await new Promise(r => setTimeout(r, 800))
       }
       }
@@ -200,6 +215,7 @@ export function useLessonFiles(lessonId) {
       }
     }
 
+    addLog(`Готово: загружено ${doneCount} из ${toUpload.length}${doneCount < toUpload.length ? ` — не загрузилось ${toUpload.length - doneCount}, см. ошибки выше` : ''}`)
     setSyncing(false)
     return result
   }
@@ -220,5 +236,5 @@ export function useLessonFiles(lessonId) {
     }
   }, []) // stable — reads files via ref, no deps
 
-  return { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles }
+  return { files, syncing, uploadLog, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles }
 }

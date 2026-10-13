@@ -11,7 +11,7 @@ import { injectR2Urls, findUnlinkedMedia } from './injectR2Urls.js'
 // ноды + настройки учителя) после успеха. Вынесено из CanvasPage.jsx.
 export function useCanvasSave({
   lessonId, title, lessonXp, nodesRef, zonesRef, hasUnsynced, files, syncToServer,
-  prepareForSave, clearTeacherDraft, setSyncStatus,
+  prepareForSave, clearTeacherDraft, setSyncStatus, onUnlinkedMedia,
 }) {
   const [isSaving, setIsSaving] = useState(false)
 
@@ -66,7 +66,7 @@ export function useCanvasSave({
         if (serverUnlinked.length) {
           const list = serverUnlinked.slice(0, 12).join(', ') + (serverUnlinked.length > 12 ? '…' : '')
           setSyncStatus(`⚠ Сохранено, но у ${serverUnlinked.length} нод нет ссылки на файл — пользователь их не увидит (в редакторе они играют с локальной копии): ${list} · ${stamp}`)
-          window.alert(`Урок сохранён, но файлы не загрузились на сервер: нод ${serverUnlinked.length} (${list}).\n\nПользователь их не увидит. Нажмите «Сохранить» ещё раз (загрузка повторится) и проверьте интернет.`)
+          onUnlinkedMedia?.(serverUnlinked) // открыть окно файлов: там видно причину по каждой ноде и можно сбросить потерянный файл
         } else setSyncStatus(checkNodes.length !== nodesForSave.length
           ? `⚠ Сохранено ${nodesForSave.length}, но сервер вернул ${checkNodes.length} — id ${lessonId.slice(0, 8)} · ${stamp}`
           : `✓ Сохранено и проверено: ${checkNodes.length} нод · id ${lessonId.slice(0, 8)} · ${stamp}`)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { injectR2Urls, findUnlinkedMedia } from './injectR2Urls.js'
+import { injectR2Urls, findUnlinkedMedia, diagnoseMedia } from './injectR2Urls.js'
 
 const audio = (seq, d) => ({ id: 'a' + seq, seq, type: 'audio', typeData: { audio: d } })
 
@@ -17,5 +17,15 @@ describe('findUnlinkedMedia: файл есть, ссылки нет — поль
     const nodes = [audio(1, { file_id: 'f1' }), audio(2, { file_id: 'f2' })]
     const out = injectR2Urls(nodes, [{ id: 'f1', r2Url: 'https://r2/1.mp3' }, { id: 'f2', status: 'local', r2Url: null }])
     expect(findUnlinkedMedia(out)).toEqual(['audio#2'])
+  })
+  it('diagnoseMedia: потерянный файл, локальный без копии, без ссылки; здоровые и ждущие загрузки не трогает', () => {
+    const nodes = [audio(1, { file_id: 'ok' }), audio(2, { file_id: 'gone' }), audio(3, { file_id: 'nolocal' }), audio(4, { file_id: 'wait' }), audio(5, { file_id: 'noref' })]
+    const files = [
+      { id: 'ok', status: 'synced', r2Url: 'u' },
+      { id: 'nolocal', status: 'local', localFile: null },
+      { id: 'wait', status: 'local', localFile: {} },
+      { id: 'noref', status: 'synced', r2Url: null },
+    ]
+    expect(diagnoseMedia(nodes, files).map(p => [p.seq, p.reason.slice(0, 12)])).toEqual([[2, 'файл не найд'], [3, 'локальная ко'], [5, 'на сервере у']])
   })
 })

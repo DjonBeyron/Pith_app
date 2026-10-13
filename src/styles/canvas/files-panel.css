@@ -153,3 +153,12 @@
   background: #1a1c24;
   border-color: #2a2c33;
 }
+
+/* Проблемные файлы в окне файлов: нода ссылается на файл, который пользователь не получит */
+.lessonFilesProblems { margin: 6px 8px; padding: 8px 10px; background: #2d1414; border: 1px solid #6a2a2a; border-radius: 8px; color: #f3b5b5; font-size: 12px; display: flex; flex-direction: column; gap: 6px; }
+.lessonFilesProblemRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lessonFilesProblemRow button { flex: 0 0 auto; padding: 3px 8px; background: #3a1a1a; border: 1px solid #7a3a3a; border-radius: 6px; color: #ffd0d0; font-size: 11px; cursor: pointer; }
+.lessonFilesLog { margin: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
+.lessonFilesLogHead { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #c8cbd6; }
+.lessonFilesLogHead button { padding: 3px 8px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 6px; color: #ccc; font-size: 11px; cursor: pointer; }
+.lessonFilesLog textarea { width: 100%; box-sizing: border-box; background: #0a0c10; border: 1px solid #1e2030; border-radius: 6px; color: #b8bdca; font-family: ui-monospace, monospace; font-size: 11px; padding: 6px 8px; resize: vertical; }

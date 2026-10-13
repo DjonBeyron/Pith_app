@@ -34,3 +34,22 @@ export function findUnlinkedMedia(nodes) {
   }
   return out
 }
+
+/**
+ * Почему у нод нет рабочего файла — для окна файлов: [{ nodeId, seq, type, reason }].
+ * Не найден в списке (потерян), «локальный», но самой копии нет (не восстановилась из браузера — загружать нечего), на сервере без ссылки.
+ */
+export function diagnoseMedia(nodes, files) {
+  const out = []
+  for (const n of nodes ?? []) {
+    const d = n.typeData?.[n.type]
+    if (!d?.file_id) continue
+    const f = (files ?? []).find(x => x.id === d.file_id)
+    let reason = null
+    if (!f) reason = 'файл не найден в списке файлов урока (потерян)'
+    else if (f.status === 'local' && !f.localFile) reason = 'локальная копия потеряна (не восстановилась в браузере), загружать нечего'
+    else if (f.status === 'synced' && !f.r2Url) reason = 'на сервере у файла нет ссылки'
+    if (reason) out.push({ nodeId: n.id, seq: n.seq, type: n.type, reason })
+  }
+  return out
+}
