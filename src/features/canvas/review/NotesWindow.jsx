@@ -9,7 +9,7 @@ export default function NotesWindow({ store, items, nodes, lessonTitle, onFocus,
   const { notes, general, removeNote, removeGeneral, addGeneral, clear } = store
   const [adding, setAdding] = useState(false)
   const [msg, setMsg] = useState('')
-  const json = useMemo(() => buildNotesJson({ notes, general, items, nodes, lessonTitle }), [notes, general, items, nodes, lessonTitle])
+  const json = useMemo(() => buildNotesJson({ notes, general, items, nodes, lessonTitle, originals: store.originalTexts() }), [notes, general, items, nodes, lessonTitle, store])
   const byRef = new Map(nodes.map(n => [n.ref, n]))
   const rank = ref => { const k = json.notes.findIndex(x => x.ref === ref); return k < 0 ? 1e9 : k }
   const ordered = [...notes].sort((a, b) => rank(a.ref) - rank(b.ref))

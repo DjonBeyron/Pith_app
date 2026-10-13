@@ -18,12 +18,15 @@
 .rvwNtLink { font-size: 11px; color: #b6fe3b; cursor: pointer; }
 .rvwNtQuote { font-size: 12px; color: #8a90a0; white-space: pre-wrap; }
 
-.rvwNtSplit { width: min(1040px, 100%); height: 92dvh; max-height: 92dvh; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr); }
+.rvwNtSplit { width: min(1280px, 100%); height: 94dvh; max-height: 94dvh; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.rvwNtCols { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; border-top: 1px solid #22252c; padding-top: 8px; }
+.rvwNtSide { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 6px; scrollbar-width: thin; }
+.rvwNtSide:first-child { border-right: 1px solid #22252c; }
+.rvwNtLabel span { font-weight: 400; text-transform: none; letter-spacing: 0; }
 .rvwNtSplit.single { height: auto; grid-template-rows: auto auto; }
 .rvwNtHalf { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid #22252c; scrollbar-width: thin; }
 .rvwNtLabel { font-size: 11px; font-weight: 700; color: #8a90a0; text-transform: uppercase; letter-spacing: 0.05em; }
-.rvwNtTop { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 12px; align-items: start; }
-.rvwNtPreview { position: sticky; top: 0; height: 100%; min-height: 160px; border-radius: 12px; overflow: hidden; }
+.rvwNtPreview { border-radius: 12px; overflow: hidden; flex: 0 0 auto; }
 .rvwNtPreview > div { min-height: 200px; height: auto; }
 .rvwNtPreview .playerFeed { position: static; height: auto; padding: 10px 0; overflow: visible; }
 .rvwEd { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -36,7 +39,7 @@
 .rvwEdCell input { flex: 1; min-width: 0; background: transparent; border: none; color: #dfe2ea; font-size: 12px; padding: 6px 7px; outline: none; }
 .rvwCopyIcon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex: 0 0 auto; background: transparent; border: none; border-radius: 6px; color: #8a90a0; cursor: pointer; }
 .rvwCopyIcon:hover { color: #b6fe3b; background: #1a1d22; }
-@media (max-width: 800px) { .rvwNtTop { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .rvwNtCols { grid-template-columns: 1fr; } }
 .rvwCopyIcon, .rvwTool { padding: 0; box-sizing: border-box; }
 .rvwTool { padding: 0 6px; }
 .rvwCopyIcon svg, .rvwTool svg { flex: 0 0 auto; }

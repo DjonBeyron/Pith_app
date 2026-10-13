@@ -1,3 +1,4 @@
+import { toMarkup } from '../../../shared/lib/lessonMarkup.js'
 // Текст ноды для кнопки «копировать» в разборе урока: всё, что ученик читает или слышит, одной строкой/блоком. Формат нод — обмена ({ type, data }).
 const cellsText = t => {
   const cells = t?.cells ?? []
@@ -6,9 +7,11 @@ const cellsText = t => {
   return [...rows].sort((a, b) => a[0] - b[0]).map(([, r]) => r.sort((a, b) => a.col - b.col).map(c => c.value ?? '').join('\t')).join('\n')
 }
 
-export function nodeCopyText(n) {
+// markup: true — тексты с разметкой {g:..}/{u:..}: видно, что и как было выделено (для сравнения «до / после» в замечаниях)
+export function nodeCopyText(n, { markup = false } = {}) {
   const d = n?.data ?? {}
   const parts = []
+  const txt = (v, h) => (markup ? toMarkup(String(v ?? ''), h ?? d.highlights ?? []) : String(v ?? ''))
   if (n.type === 'table') {
     if (d.chatCaption) parts.push(d.chatCaption)
     parts.push(cellsText(d.table))
@@ -19,6 +22,6 @@ export function nodeCopyText(n) {
   else if (n.type === 'say_phrase') parts.push(d.phrase ?? d.pattern ?? '')
   else if (n.type === 'reaction') parts.push(d.emoji ?? '')
   else if (n.type === 'sticker') parts.push(d.imagePrompt ?? '')
-  else parts.push(d.content ?? d.text ?? d.caption ?? d.script ?? '')
+  else parts.push(txt(d.content ?? d.text ?? d.caption ?? d.script ?? ''))
   return parts.filter(Boolean).join('\n')
 }
