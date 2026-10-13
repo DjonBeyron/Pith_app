@@ -115,6 +115,14 @@ function checkPinSystem(nodes) {
   return out
 }
 
+/** Главные мысли подчёркнуты сами ({l:..}): в уроке от 20 нод (с раскраской) подчёркнутых нод не меньше одной на 15 (минимум 3) */
+function checkKeyMarks(nodes) {
+  if (nodes.length < 20 || !nodes.some(n => (n.data?.highlights ?? []).some(h => h.mode === 'bold'))) return []
+  const marked = nodes.filter(n => (n.data?.highlights ?? []).some(h => h.mode === 'underline')).length
+  const need = Math.max(3, Math.floor(nodes.length / 15))
+  return marked < need ? [`[R-key-mark] подчёркнутых главных мыслей ${marked}, нужно хотя бы ${need}: в каждом объяснении выдели ключевое слово или мысль белым подчёркиванием {l:..} (текст остаётся серым)`] : []
+}
+
 export function checkMix(nodes) {
-  return [...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
+  return [...checkKeyMarks(nodes), ...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
 }

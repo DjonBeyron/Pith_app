@@ -49,9 +49,17 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
     const st = range ? describeStyle(highlights, range.start, range.end) : null
     return st && !st.mixed && st.color ? { color: st.color, opacity: st.opacity ?? 1, base: st.isBase } : null
   })
-  const color = active?.color ?? prefs.color
+  // «Цвет линии»: красим только линию подчёркивания (текст остаётся как есть) — например, белое подчёркивание под серым текстом
+  const [lineOn, setLineOn] = useState(false)
+  const [lineC, setLineC] = useState(() => {
+    const u = range ? highlights.find(h => h.mode === 'underline' && h.start <= range.start && h.end >= range.end) : null
+    return u?.color ?? '#ffffff'
+  })
+  const baseColor = active?.color ?? prefs.color
+  const color = lineOn ? lineC : baseColor
   const opacity = active?.opacity ?? prefs.opacity
   const setColor = c => {
+    if (lineOn) { setLineC(c); return }
     prefs.setColor(c)
     setActive(a => ({ color: c, opacity: a && !a.base ? a.opacity : prefs.opacity, base: false }))
   }
@@ -117,6 +125,11 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
   // на котором реально остановились — иначе туда улетают все промежуточные
   // оттенки, через которые курсор проехал по пути
   function paintColor(c) {
+    if (lineOn) { // только линия подчёркивания
+      setLineC(c)
+      onApply(addHighlight(highlights, { start: range.start, end: range.end, mode: 'underline', color: c, opacity: 1 }))
+      return
+    }
     setColor(c)
     onApply(addHighlight(highlights, {
       start: range.start, end: range.end, color: c, mode, opacity,
@@ -216,6 +229,8 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
           onClick={() => toggleDecor('bold')}><Bold size={15} /></button>
         <button className={`richTextIconBtn${isOn('italic') ? ' active' : ''}`} title="Курсив (Ctrl+I)"
           onClick={() => toggleDecor('italic')}><Italic size={15} /></button>
+        <button className={`richTextIconBtn${lineOn ? ' active' : ''}`} title="Цвет линии подчёркивания: следующий выбранный цвет красит только линию, текст не трогает"
+          onClick={() => { setLineOn(v => !v); if (!lineOn && !isOn('underline')) onApply(addHighlight(highlights, { start: range.start, end: range.end, mode: 'underline', color: lineC, opacity: 1 })) }}><span className="richTextIconLetter" style={{ color: lineC, textDecoration: 'underline' }}>Л</span></button>
         <button className={`richTextIconBtn${isOn('underline') ? ' active' : ''}`} title="Подчеркнуть (Ctrl+U)"
           onClick={() => toggleDecor('underline')}><Underline size={15} /></button>
         <button className={`richTextIconBtn${isOn('strike') ? ' active' : ''}`} title="Зачеркнуть"

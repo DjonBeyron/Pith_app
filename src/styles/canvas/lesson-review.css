@@ -101,6 +101,11 @@
 
 /* «Изменения»: розовая полоска слева от сообщения, с отступом, не прилипает к нему */
 .rvwBtnChg.on { background: #3a1a2c; border-color: #ff5fa2; color: #ff8fc0; }
-.rvwPhone .rvwPlayerFeed { padding-left: 16px; }
-.rvwSlot.rvwChg::before { content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: #ff5fa2; pointer-events: none; }
+.rvwPhone .rvwPlayerFeed { padding-left: 30px; }
+/* Одна фигура: толстая линия (6px) с треугольником-стрелкой по центру, чуть левее сообщения, со свечением под ней, чтобы выделялась */
+.rvwSlot.rvwChg { isolation: isolate; }
+.rvwSlot.rvwChg::before { content: ''; position: absolute; left: -22px; top: 8px; bottom: 8px; width: 16px; background: #ff5fa2; pointer-events: none;
+  clip-path: polygon(0 0, 6px 0, 6px calc(50% - 10px), 16px 50%, 6px calc(50% + 10px), 6px 100%, 0 100%); }
+.rvwSlot.rvwChg::after { content: ''; position: absolute; left: -30px; top: 8px; bottom: 8px; width: 30px; pointer-events: none;
+  background: radial-gradient(ellipse 60% 50% at 30% 50%, #ff5fa255, transparent 75%); filter: blur(5px); z-index: -1; }
 .rvwTagChg { color: #ff8fc0; }

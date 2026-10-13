@@ -1,0 +1,2571 @@
+{
+  "format": "pithy-lesson",
+  "version": 1,
+  "lesson": {
+    "title": "To · тренировка",
+    "nodeCount": 88
+  },
+  "nodes": [
+    {
+      "ref": "n1",
+      "type": "audio",
+      "seq": 1,
+      "pos": [
+        0,
+        0
+      ],
+      "note": "ОЗВУЧКА: Я тут на выходные собираюсь к друзьям и составляю список дел",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Я тут на выходные собираюсь к друзьям и составляю список дел",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n2"
+        }
+      ]
+    },
+    {
+      "ref": "n2",
+      "type": "sticker",
+      "seq": 2,
+      "pos": [
+        560,
+        0
+      ],
+      "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "imagePrompt": "Мультяшный парень с блокнотом и ручкой думает над списком дел, над головой лампочка, светлый фон, без текста"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n3"
+        }
+      ]
+    },
+    {
+      "ref": "n3",
+      "type": "text",
+      "seq": 3,
+      "pos": [
+        1120,
+        0
+      ],
+      "data": {
+        "content": "ну что, с {g:to} ты уже дружишь, давай проверим, как оно работает в деле",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n4"
+        }
+      ]
+    },
+    {
+      "ref": "n4",
+      "type": "audio",
+      "seq": 4,
+      "pos": [
+        1680,
+        0
+      ],
+      "note": "ОЗВУЧКА: Будет пять уровней, и каждый чуть сложнее предыдущего",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Будет пять уровней, и каждый чуть сложнее предыдущего",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n5"
+        }
+      ]
+    },
+    {
+      "ref": "n5",
+      "type": "pin_message",
+      "seq": 5,
+      "pos": [
+        2240,
+        0
+      ],
+      "data": {
+        "content": "Тренировка: 5 уровней, от простого к сложному"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n6"
+        }
+      ]
+    },
+    {
+      "ref": "n6",
+      "type": "system",
+      "seq": 6,
+      "pos": [
+        4100,
+        0
+      ],
+      "data": {
+        "content": "Уровень 1 · разогрев"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n7"
+        }
+      ]
+    },
+    {
+      "ref": "n7",
+      "type": "text",
+      "seq": 7,
+      "pos": [
+        4660,
+        0
+      ],
+      "data": {
+        "content": "в списке первым пунктом: как сказать {t:«я хочу путешествовать»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n8"
+        }
+      ]
+    },
+    {
+      "ref": "n8",
+      "type": "phrase_assembly",
+      "seq": 8,
+      "pos": [
+        5220,
+        0
+      ],
+      "data": {
+        "words": [
+          "I",
+          "want",
+          "to",
+          "travel"
+        ],
+        "distractors": [
+          {
+            "text": "too"
+          },
+          {
+            "text": "traveling"
+          }
+        ],
+        "responseWrong": "не совсем) нужны слова: я, хочу, мостик и путешествовать"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n9"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n10"
+        }
+      ]
+    },
+    {
+      "ref": "n9",
+      "type": "text",
+      "seq": 9,
+      "pos": [
+        5780,
+        0
+      ],
+      "data": {
+        "content": "В точку 👌",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n11"
+        }
+      ]
+    },
+    {
+      "ref": "n10",
+      "type": "text",
+      "seq": 88,
+      "pos": [
+        5780,
+        480
+      ],
+      "data": {
+        "content": "близко) после {g:want} нужен {l:мостик} {g:to}, а потом действие, {g:travel}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n11"
+        }
+      ]
+    },
+    {
+      "ref": "n11",
+      "type": "text",
+      "seq": 10,
+      "pos": [
+        6340,
+        0
+      ],
+      "data": {
+        "content": "Маше нужно отдохнуть, вставь пропущенное слово: {g:She needs ___ rest}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n12"
+        }
+      ]
+    },
+    {
+      "ref": "n12",
+      "type": "word_choice",
+      "seq": 11,
+      "pos": [
+        6900,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "to",
+            "isCorrect": true
+          },
+          {
+            "text": "too",
+            "isCorrect": false
+          },
+          {
+            "text": "at",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n13"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n14"
+        }
+      ]
+    },
+    {
+      "ref": "n13",
+      "type": "text",
+      "seq": 12,
+      "pos": [
+        7460,
+        0
+      ],
+      "data": {
+        "content": "ага, так и есть)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n15"
+        }
+      ]
+    },
+    {
+      "ref": "n14",
+      "type": "text",
+      "seq": 87,
+      "pos": [
+        7460,
+        480
+      ],
+      "data": {
+        "content": "не то) после {g:needs} тоже нужен {l:мостик} {g:to}, получится {g:She needs to rest}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n15"
+        }
+      ]
+    },
+    {
+      "ref": "n15",
+      "type": "text",
+      "seq": 13,
+      "pos": [
+        8020,
+        0
+      ],
+      "data": {
+        "content": "теперь послушай 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n16"
+        }
+      ]
+    },
+    {
+      "ref": "n16",
+      "type": "audio",
+      "seq": 14,
+      "pos": [
+        8580,
+        0
+      ],
+      "note": "ОЗВУЧКА: We love to dance",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:We love to dance}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n17"
+        }
+      ]
+    },
+    {
+      "ref": "n17",
+      "type": "word_choice",
+      "seq": 15,
+      "pos": [
+        9140,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Мы любим танцевать",
+            "isCorrect": true
+          },
+          {
+            "text": "Мы любим танцы",
+            "isCorrect": false
+          },
+          {
+            "text": "Мы танцуем",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n18"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n19"
+        }
+      ]
+    },
+    {
+      "ref": "n18",
+      "type": "text",
+      "seq": 16,
+      "pos": [
+        9700,
+        0
+      ],
+      "data": {
+        "content": "Отлично 👏",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n20"
+        }
+      ]
+    },
+    {
+      "ref": "n19",
+      "type": "text",
+      "seq": 86,
+      "pos": [
+        9700,
+        480
+      ],
+      "data": {
+        "content": "хм) {g:love to} это {t:любить делать что-то}, поэтому {g:We love to dance} это {t:мы любим танцевать}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 3000,
+          "then": "n20"
+        }
+      ]
+    },
+    {
+      "ref": "n20",
+      "type": "text",
+      "seq": 17,
+      "pos": [
+        10260,
+        0
+      ],
+      "data": {
+        "content": "теперь напечатай {t:«идти на работу»}: {g:go}, мостик и {g:work}, три слова",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n21"
+        }
+      ]
+    },
+    {
+      "ref": "n21",
+      "type": "type_word",
+      "seq": 18,
+      "pos": [
+        10820,
+        0
+      ],
+      "data": {
+        "word": "go to work",
+        "extraLetters": "pl",
+        "responseWrong": "не то) нужно слово идти, мостик и работа"
+      },
+      "triggers": [
+        {
+          "if": "type_correct",
+          "then": "n22"
+        },
+        {
+          "if": "type_wrong",
+          "then": "n23"
+        }
+      ]
+    },
+    {
+      "ref": "n22",
+      "type": "text",
+      "seq": 19,
+      "pos": [
+        11380,
+        0
+      ],
+      "data": {
+        "content": "Чётко 🔥",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n24"
+        }
+      ]
+    },
+    {
+      "ref": "n23",
+      "type": "text",
+      "seq": 85,
+      "pos": [
+        11380,
+        480
+      ],
+      "data": {
+        "content": "неа) сначала {g:go}, потом мостик {g:to}, потом {g:work}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n24"
+        }
+      ]
+    },
+    {
+      "ref": "n24",
+      "type": "audio",
+      "seq": 20,
+      "pos": [
+        13240,
+        0
+      ],
+      "note": "ОЗВУЧКА: Первый уровень позади, идём дальше, теперь фразы подлиннее",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Первый уровень позади, идём дальше, теперь фразы подлиннее",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n25"
+        }
+      ]
+    },
+    {
+      "ref": "n25",
+      "type": "system",
+      "seq": 21,
+      "pos": [
+        13800,
+        0
+      ],
+      "data": {
+        "content": "Уровень 2 · увереннее"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n26"
+        }
+      ]
+    },
+    {
+      "ref": "n26",
+      "type": "audio",
+      "seq": 22,
+      "pos": [
+        14360,
+        0
+      ],
+      "note": "ОЗВУЧКА: Теперь фразы подлиннее, но мостик всё тот же",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Теперь фразы подлиннее, но мостик всё тот же",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n27"
+        }
+      ]
+    },
+    {
+      "ref": "n27",
+      "type": "table",
+      "seq": 23,
+      "pos": [
+        14920,
+        0
+      ],
+      "note": "ОЗВУЧКА таблицы: Давай вспомним. Хочу и пытаюсь, это want и try, потом мостик to и действие. Нужно и должен, это need и have, тоже с мостиком. И love to, когда любишь что-то делать",
+      "needs": "audio — озвучка таблицы по script, дорожки подсветки нарезать в редакторе",
+      "data": {
+        "mode": "dictator",
+        "chatCaption": "вспоминаем: когда нужен мостик",
+        "script": "Давай вспомним. Хочу и пытаюсь, это want и try, потом мостик to и действие. Нужно и должен, это need и have, тоже с мостиком. И love to, когда любишь что-то делать",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 25
+            },
+            {
+              "id": "r1",
+              "heightPct": 25
+            },
+            {
+              "id": "r2",
+              "heightPct": 25
+            },
+            {
+              "id": "r3",
+              "heightPct": 25
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 32
+            },
+            {
+              "id": "c1",
+              "widthPct": 36
+            },
+            {
+              "id": "c2",
+              "widthPct": 32
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 4,
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Что делаем",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Формула",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Пример",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "хочу, пытаюсь",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "want / try + to + действие",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "I want to travel",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r1c0",
+              "col": 0,
+              "row": 2,
+              "value": "нужно, должен",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r1c1",
+              "col": 1,
+              "row": 2,
+              "value": "need / have + to + действие",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r1c2",
+              "col": 2,
+              "row": 2,
+              "value": "I have to work",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r2c0",
+              "col": 0,
+              "row": 3,
+              "value": "любить делать",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r2c1",
+              "col": 1,
+              "row": 3,
+              "value": "love + to + действие",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r2c2",
+              "col": 2,
+              "row": 3,
+              "value": "We love to dance",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            }
+          ]
+        }
+      },
+      "triggers": [
+        {
+          "if": "table_correct",
+          "then": "n28"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n28",
+      "type": "photo",
+      "seq": 24,
+      "pos": [
+        15480,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "а ну-ка скажи {t:«она пытается расслабиться»}, после {g:trying} ставим {l:мостик}",
+        "imagePrompt": "Мультяшная девушка сидит в кресле, закрыла глаза, рядом чашка чая и плед, спокойный вечер, без текста на картинке"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n29"
+        }
+      ]
+    },
+    {
+      "ref": "n29",
+      "type": "phrase_assembly",
+      "seq": 25,
+      "pos": [
+        16040,
+        0
+      ],
+      "data": {
+        "words": [
+          "She",
+          "is",
+          "trying",
+          "to",
+          "relax"
+        ],
+        "distractors": [
+          {
+            "text": "too"
+          },
+          {
+            "text": "relaxing"
+          }
+        ],
+        "responseWrong": "не совсем) нужны слова: она, пытается, мостик и расслабляться"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n30"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n31"
+        }
+      ]
+    },
+    {
+      "ref": "n30",
+      "type": "text",
+      "seq": 26,
+      "pos": [
+        16600,
+        0
+      ],
+      "data": {
+        "content": "да)) именно так",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n32"
+        }
+      ]
+    },
+    {
+      "ref": "n31",
+      "type": "text",
+      "seq": 84,
+      "pos": [
+        16600,
+        480
+      ],
+      "data": {
+        "content": "близко) после {g:trying} нужен {l:мостик} {g:to}, а потом действие, {g:relax}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n32"
+        }
+      ]
+    },
+    {
+      "ref": "n32",
+      "type": "audio",
+      "seq": 27,
+      "pos": [
+        17160,
+        0
+      ],
+      "note": "ОЗВУЧКА: Теперь скажи сам: что тебе нужно сделать сегодня, начни с I have to",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Теперь скажи сам: что тебе нужно сделать сегодня, начни с {g:I have to}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n33"
+        }
+      ]
+    },
+    {
+      "ref": "n33",
+      "type": "say_phrase",
+      "seq": 28,
+      "pos": [
+        17720,
+        0
+      ],
+      "data": {
+        "voiceReply": false,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Начни с I have to, а дальше что угодно, не бойся)",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "phrase": "I have to work",
+        "translation": "Мне нужно работать",
+        "pattern": "I have to **"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n34"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n35"
+        }
+      ]
+    },
+    {
+      "ref": "n34",
+      "type": "reaction",
+      "seq": 29,
+      "pos": [
+        18280,
+        0
+      ],
+      "data": {
+        "emoji": "🔥",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n36"
+        }
+      ]
+    },
+    {
+      "ref": "n35",
+      "type": "text",
+      "seq": 83,
+      "pos": [
+        18280,
+        480
+      ],
+      "data": {
+        "content": "эээмм... начни с {g:I have to}, дальше что угодно)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n36"
+        }
+      ]
+    },
+    {
+      "ref": "n36",
+      "type": "text",
+      "seq": 30,
+      "pos": [
+        18840,
+        0
+      ],
+      "data": {
+        "content": "теперь напечатай {t:«говорить с Машей»}: {g:talk}, мостик и {g:Masha}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n37"
+        }
+      ]
+    },
+    {
+      "ref": "n37",
+      "type": "type_word",
+      "seq": 31,
+      "pos": [
+        19400,
+        0
+      ],
+      "data": {
+        "word": "talk to Masha",
+        "extraLetters": "pl",
+        "responseWrong": "не то) нужно слово говорить, мостик и имя"
+      },
+      "triggers": [
+        {
+          "if": "type_correct",
+          "then": "n38"
+        },
+        {
+          "if": "type_wrong",
+          "then": "n39"
+        }
+      ]
+    },
+    {
+      "ref": "n38",
+      "type": "text",
+      "seq": 32,
+      "pos": [
+        19960,
+        0
+      ],
+      "data": {
+        "content": "Отлично, всё на месте 👏",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n40"
+        }
+      ]
+    },
+    {
+      "ref": "n39",
+      "type": "text",
+      "seq": 82,
+      "pos": [
+        19960,
+        480
+      ],
+      "data": {
+        "content": "хм) {g:talk}, потом мостик {g:to}, потом {g:Masha}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n40"
+        }
+      ]
+    },
+    {
+      "ref": "n40",
+      "type": "audio",
+      "seq": 33,
+      "pos": [
+        21820,
+        0
+      ],
+      "note": "ОЗВУЧКА: Ты уже уверенно строишь фразы, а теперь будут ловушки",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Ты уже уверенно строишь фразы, а теперь будут ловушки",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n41"
+        }
+      ]
+    },
+    {
+      "ref": "n41",
+      "type": "system",
+      "seq": 34,
+      "pos": [
+        22380,
+        0
+      ],
+      "data": {
+        "content": "Уровень 3 · ловушки"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n42"
+        }
+      ]
+    },
+    {
+      "ref": "n42",
+      "type": "table",
+      "seq": 35,
+      "pos": [
+        22940,
+        0
+      ],
+      "note": "ОЗВУЧКА таблицы: А вот три случая без мостика. После can просто действие, I can help. После will тоже просто действие, I will call you. И домой это просто home, без to, we go home",
+      "needs": "audio — озвучка таблицы по script, дорожки подсветки нарезать в редакторе",
+      "data": {
+        "mode": "dictator",
+        "chatCaption": "когда мостик не нужен",
+        "script": "А вот три случая без мостика. После can просто действие, I can help. После will тоже просто действие, I will call you. И домой это просто home, без to, we go home",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 25
+            },
+            {
+              "id": "r1",
+              "heightPct": 25
+            },
+            {
+              "id": "r2",
+              "heightPct": 25
+            },
+            {
+              "id": "r3",
+              "heightPct": 25
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 32
+            },
+            {
+              "id": "c1",
+              "widthPct": 36
+            },
+            {
+              "id": "c2",
+              "widthPct": 32
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 4,
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Что делаем",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Формула",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Пример",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "могу",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "can + действие",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "I can help",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r1c0",
+              "col": 0,
+              "row": 2,
+              "value": "буду",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r1c1",
+              "col": 1,
+              "row": 2,
+              "value": "will + действие",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r1c2",
+              "col": 2,
+              "row": 2,
+              "value": "I will call you",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r2c0",
+              "col": 0,
+              "row": 3,
+              "value": "домой",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r2c1",
+              "col": 1,
+              "row": 3,
+              "value": "go home",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r2c2",
+              "col": 2,
+              "row": 3,
+              "value": "We go home",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            }
+          ]
+        }
+      },
+      "triggers": [
+        {
+          "if": "table_correct",
+          "then": "n43"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n43",
+      "type": "text",
+      "seq": 36,
+      "pos": [
+        23500,
+        0
+      ],
+      "data": {
+        "content": "а теперь хитрые случаи 😏 как сказать {t:«мы идём домой»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n44"
+        }
+      ]
+    },
+    {
+      "ref": "n44",
+      "type": "word_choice",
+      "seq": 37,
+      "pos": [
+        24060,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "We go home",
+            "isCorrect": true
+          },
+          {
+            "text": "We go to home",
+            "isCorrect": false
+          },
+          {
+            "text": "We go at home",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n45"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n57"
+        }
+      ]
+    },
+    {
+      "ref": "n45",
+      "type": "sticker",
+      "seq": 38,
+      "pos": [
+        24620,
+        0
+      ],
+      "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "imagePrompt": "Мультяшный кот хитро подмигивает и показывает на дверь дома, светлый фон, без текста"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n46"
+        }
+      ]
+    },
+    {
+      "ref": "n46",
+      "type": "audio",
+      "seq": 39,
+      "pos": [
+        25180,
+        0
+      ],
+      "note": "ОЗВУЧКА: Слово home уже само значит домой, поэтому мостик {l:не нужен}",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Слово {g:home} уже само значит домой, поэтому мостик {l:не нужен}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n47"
+        }
+      ]
+    },
+    {
+      "ref": "n47",
+      "type": "photo",
+      "seq": 40,
+      "pos": [
+        25740,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "а ну-ка скажи {t:«я могу помочь»}, мостик тут {x:лишний}",
+        "imagePrompt": "Мультяшный парень с поднятой рукой готов помочь, дружелюбная улыбка, светлый фон, без текста на картинке"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n48"
+        }
+      ]
+    },
+    {
+      "ref": "n48",
+      "type": "phrase_assembly",
+      "seq": 41,
+      "pos": [
+        26300,
+        0
+      ],
+      "data": {
+        "words": [
+          "I",
+          "can",
+          "help"
+        ],
+        "distractors": [
+          {
+            "text": "to"
+          },
+          {
+            "text": "too"
+          }
+        ],
+        "responseWrong": "не совсем) нужны слова: я, могу и помочь"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n49"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n50"
+        }
+      ]
+    },
+    {
+      "ref": "n49",
+      "type": "text",
+      "seq": 42,
+      "pos": [
+        26860,
+        0
+      ],
+      "data": {
+        "content": "вот кста и всё)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n51"
+        }
+      ]
+    },
+    {
+      "ref": "n50",
+      "type": "text",
+      "seq": 80,
+      "pos": [
+        26860,
+        480
+      ],
+      "data": {
+        "content": "близко) после {g:can} мостик {g:to} не нужен, просто {g:I can help}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n51"
+        }
+      ]
+    },
+    {
+      "ref": "n51",
+      "type": "text",
+      "seq": 43,
+      "pos": [
+        27420,
+        0
+      ],
+      "data": {
+        "content": "и ещё одна ловушка, {t:«я тебе позвоню»}: {g:I will ___ you}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n52"
+        }
+      ]
+    },
+    {
+      "ref": "n52",
+      "type": "word_choice",
+      "seq": 44,
+      "pos": [
+        27980,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "call",
+            "isCorrect": true
+          },
+          {
+            "text": "to call",
+            "isCorrect": false
+          },
+          {
+            "text": "calling",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n53"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n54"
+        }
+      ]
+    },
+    {
+      "ref": "n53",
+      "type": "text",
+      "seq": 45,
+      "pos": [
+        28540,
+        0
+      ],
+      "data": {
+        "content": "ага, без моста)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n55"
+        }
+      ]
+    },
+    {
+      "ref": "n54",
+      "type": "text",
+      "seq": 79,
+      "pos": [
+        28540,
+        480
+      ],
+      "data": {
+        "content": "не то) после {g:will} мостик {g:to} тоже не нужен, просто {g:I will call you}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n55"
+        }
+      ]
+    },
+    {
+      "ref": "n55",
+      "type": "pin_message",
+      "seq": 46,
+      "pos": [
+        29100,
+        0
+      ],
+      "data": {
+        "content": "без {g:to}: после {g:can}, {g:will} и в слове {g:home}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n56"
+        }
+      ]
+    },
+    {
+      "ref": "n56",
+      "type": "audio",
+      "seq": 47,
+      "pos": [
+        29660,
+        0
+      ],
+      "note": "ОЗВУЧКА: Ловушки пройдены, теперь будем говорить своими словами",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Ловушки пройдены, теперь будем говорить своими словами",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n58"
+        }
+      ]
+    },
+    {
+      "ref": "n57",
+      "type": "text",
+      "seq": 81,
+      "pos": [
+        24620,
+        480
+      ],
+      "data": {
+        "content": "близко) со словом {g:home} мостик {g:to} не нужен: {g:We go home}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n45"
+        }
+      ]
+    },
+    {
+      "ref": "n58",
+      "type": "system",
+      "seq": 48,
+      "pos": [
+        31520,
+        0
+      ],
+      "data": {
+        "content": "Уровень 4 · своими словами"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n59"
+        }
+      ]
+    },
+    {
+      "ref": "n59",
+      "type": "text",
+      "seq": 49,
+      "pos": [
+        32080,
+        0
+      ],
+      "data": {
+        "content": "длинное предложение, справишься? {t:«мне нужно поговорить с Машей»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n60"
+        }
+      ]
+    },
+    {
+      "ref": "n60",
+      "type": "phrase_assembly",
+      "seq": 50,
+      "pos": [
+        32640,
+        0
+      ],
+      "data": {
+        "words": [
+          "I",
+          "need",
+          "to",
+          "talk",
+          "to",
+          "Masha"
+        ],
+        "distractors": [
+          {
+            "text": "with"
+          },
+          {
+            "text": "too"
+          }
+        ],
+        "responseWrong": "не совсем) нужны слова: я, нужно, мостик, поговорить, мостик и имя"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n61"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n62"
+        }
+      ]
+    },
+    {
+      "ref": "n61",
+      "type": "text",
+      "seq": 51,
+      "pos": [
+        33200,
+        0
+      ],
+      "data": {
+        "content": "Супер 😎",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n63"
+        }
+      ]
+    },
+    {
+      "ref": "n62",
+      "type": "text",
+      "seq": 78,
+      "pos": [
+        33200,
+        480
+      ],
+      "data": {
+        "content": "близко) {g:need to}, а потом ещё один {g:to}: {g:I need to talk to Masha}, сначала мостик к действию, потом к человеку",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 3000,
+          "then": "n63"
+        }
+      ]
+    },
+    {
+      "ref": "n63",
+      "type": "audio",
+      "seq": 52,
+      "pos": [
+        33760,
+        0
+      ],
+      "note": "ОЗВУЧКА: Скажи вслух про Машу или друга, начни с I need to talk to",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Скажи вслух про Машу или друга, начни с {g:I need to talk to}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n64"
+        }
+      ]
+    },
+    {
+      "ref": "n64",
+      "type": "say_phrase",
+      "seq": 53,
+      "pos": [
+        34320,
+        0
+      ],
+      "data": {
+        "voiceReply": false,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Начни с I need to talk to, а потом имя)",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "phrase": "I need to talk to Masha",
+        "translation": "Мне нужно поговорить с Машей",
+        "pattern": "I need to talk to **"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n65"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n66"
+        }
+      ]
+    },
+    {
+      "ref": "n65",
+      "type": "text",
+      "seq": 54,
+      "pos": [
+        34880,
+        0
+      ],
+      "data": {
+        "content": "Вот это уровень)))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n67"
+        }
+      ]
+    },
+    {
+      "ref": "n66",
+      "type": "text",
+      "seq": 77,
+      "pos": [
+        34880,
+        480
+      ],
+      "data": {
+        "content": "хм) нужно сказать {g:I need to talk to} и любое имя)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n67"
+        }
+      ]
+    },
+    {
+      "ref": "n67",
+      "type": "text",
+      "seq": 55,
+      "pos": [
+        35440,
+        0
+      ],
+      "data": {
+        "content": "послушай внимательно 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n68"
+        }
+      ]
+    },
+    {
+      "ref": "n68",
+      "type": "audio",
+      "seq": 56,
+      "pos": [
+        36000,
+        0
+      ],
+      "note": "ОЗВУЧКА: She has to work late",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:She has to work late}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n69"
+        }
+      ]
+    },
+    {
+      "ref": "n69",
+      "type": "word_choice",
+      "seq": 57,
+      "pos": [
+        36560,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Ей нужно работать допоздна",
+            "isCorrect": true
+          },
+          {
+            "text": "Она любит работать",
+            "isCorrect": false
+          },
+          {
+            "text": "Она работала поздно",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n70"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n71"
+        }
+      ]
+    },
+    {
+      "ref": "n70",
+      "type": "text",
+      "seq": 58,
+      "pos": [
+        37120,
+        0
+      ],
+      "data": {
+        "content": "именно так)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n72"
+        }
+      ]
+    },
+    {
+      "ref": "n71",
+      "type": "text",
+      "seq": 76,
+      "pos": [
+        37120,
+        480
+      ],
+      "data": {
+        "content": "но нет) {g:has to} значит {t:нужно}, а {g:late} это {t:поздно}, поэтому {g:She has to work late} это {t:ей нужно работать допоздна}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 3200,
+          "then": "n72"
+        }
+      ]
+    },
+    {
+      "ref": "n72",
+      "type": "audio",
+      "seq": 59,
+      "pos": [
+        38980,
+        0
+      ],
+      "note": "ОЗВУЧКА: Ничего себе, как ты быстро, остался последний рывок на скорость",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Ничего себе, как ты быстро, остался последний рывок на скорость",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n73"
+        }
+      ]
+    },
+    {
+      "ref": "n73",
+      "type": "system",
+      "seq": 60,
+      "pos": [
+        39540,
+        0
+      ],
+      "data": {
+        "content": "Уровень 5 · на скорость ⏱"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n74"
+        }
+      ]
+    },
+    {
+      "ref": "n74",
+      "type": "text",
+      "seq": 61,
+      "pos": [
+        40100,
+        0
+      ],
+      "data": {
+        "content": "на скорость ⏱ {g:I need ___ eat}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n75"
+        }
+      ]
+    },
+    {
+      "ref": "n75",
+      "type": "word_choice",
+      "seq": 62,
+      "pos": [
+        40660,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "to",
+            "isCorrect": true
+          },
+          {
+            "text": "too",
+            "isCorrect": false
+          },
+          {
+            "text": "at",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "timeLimitSec": 8
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n76"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n77"
+        }
+      ]
+    },
+    {
+      "ref": "n76",
+      "type": "text",
+      "seq": 63,
+      "pos": [
+        41220,
+        0
+      ],
+      "data": {
+        "content": "Быстро 🚀",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n78"
+        }
+      ]
+    },
+    {
+      "ref": "n77",
+      "type": "text",
+      "seq": 75,
+      "pos": [
+        41220,
+        480
+      ],
+      "data": {
+        "content": "эээмм... после {g:need} нужен мостик {g:to}: {g:I need to eat}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n78"
+        }
+      ]
+    },
+    {
+      "ref": "n78",
+      "type": "text",
+      "seq": 64,
+      "pos": [
+        41780,
+        0
+      ],
+      "data": {
+        "content": "и ещё раз ⏱ {t:«мы пытаемся помочь»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n79"
+        }
+      ]
+    },
+    {
+      "ref": "n79",
+      "type": "phrase_assembly",
+      "seq": 65,
+      "pos": [
+        42340,
+        0
+      ],
+      "data": {
+        "words": [
+          "We",
+          "try",
+          "to",
+          "help"
+        ],
+        "distractors": [
+          {
+            "text": "too"
+          },
+          {
+            "text": "helps"
+          }
+        ],
+        "responseWrong": "не совсем) нужны слова: мы, пытаемся, мостик и помочь",
+        "timeLimitSec": 15
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n80"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n81"
+        }
+      ]
+    },
+    {
+      "ref": "n80",
+      "type": "text",
+      "seq": 66,
+      "pos": [
+        42900,
+        0
+      ],
+      "data": {
+        "content": "Ого, как быстро)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n82"
+        }
+      ]
+    },
+    {
+      "ref": "n81",
+      "type": "text",
+      "seq": 74,
+      "pos": [
+        42900,
+        480
+      ],
+      "data": {
+        "content": "близко) {g:We try to help}, после {g:try} тоже нужен мостик {g:to}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n82"
+        }
+      ]
+    },
+    {
+      "ref": "n82",
+      "type": "system",
+      "seq": 67,
+      "pos": [
+        44760,
+        0
+      ],
+      "data": {
+        "content": "Финал"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n83"
+        }
+      ]
+    },
+    {
+      "ref": "n83",
+      "type": "audio",
+      "seq": 68,
+      "pos": [
+        45320,
+        0
+      ],
+      "note": "ОЗВУЧКА: Если коротко, у to три работы: {l:связывает глаголы}, {l:показывает направление} и {l:ведёт к человеку}",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Если коротко, у {g:to} три работы: {l:связывает глаголы}, {l:показывает направление} и {l:ведёт к человеку}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n84"
+        }
+      ]
+    },
+    {
+      "ref": "n84",
+      "type": "audio",
+      "seq": 69,
+      "pos": [
+        45880,
+        0
+      ],
+      "note": "ОЗВУЧКА: Давай соберём всю тренировку в одну таблицу, чтобы не потерять",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Давай соберём всю тренировку в одну таблицу, чтобы не потерять",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n85"
+        }
+      ]
+    },
+    {
+      "ref": "n85",
+      "type": "table",
+      "seq": 70,
+      "pos": [
+        46440,
+        0
+      ],
+      "note": "ОЗВУЧКА таблицы: Смотри, вся тренировка на одной странице. Хочешь, пытаешься или нужно, ставь мостик to и действие, например I need to eat. Идёшь куда-то, это go to work. Говоришь с кем-то, это talk to Masha. А после can, will и в слове home мостик не нужен, просто I can help",
+      "needs": "audio — озвучка таблицы по script, дорожки подсветки нарезать в редакторе",
+      "data": {
+        "mode": "dictator",
+        "chatCaption": "вся тренировка на одной странице",
+        "script": "Смотри, вся тренировка на одной странице. Хочешь, пытаешься или нужно, ставь мостик to и действие, например I need to eat. Идёшь куда-то, это go to work. Говоришь с кем-то, это talk to Masha. А после can, will и в слове home мостик не нужен, просто I can help",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 20
+            },
+            {
+              "id": "r1",
+              "heightPct": 20
+            },
+            {
+              "id": "r2",
+              "heightPct": 20
+            },
+            {
+              "id": "r3",
+              "heightPct": 20
+            },
+            {
+              "id": "r4",
+              "heightPct": 20
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 32
+            },
+            {
+              "id": "c1",
+              "widthPct": 36
+            },
+            {
+              "id": "c2",
+              "widthPct": 32
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 5,
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Что делаем",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Формула",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Пример",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "хочу, пытаюсь, нужно",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "want / try / need / have + to + действие",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "I need to eat",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r1c0",
+              "col": 0,
+              "row": 2,
+              "value": "идти куда-то",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r1c1",
+              "col": 1,
+              "row": 2,
+              "value": "go + to + место",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r1c2",
+              "col": 2,
+              "row": 2,
+              "value": "go to work",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r2c0",
+              "col": 0,
+              "row": 3,
+              "value": "говорить с кем-то",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r2c1",
+              "col": 1,
+              "row": 3,
+              "value": "talk + to + человек",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r2c2",
+              "col": 2,
+              "row": 3,
+              "value": "talk to Masha",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r3c0",
+              "col": 0,
+              "row": 4,
+              "value": "могу, буду, домой",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r3c1",
+              "col": 1,
+              "row": 4,
+              "value": "can / will / home без to",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "r3c2",
+              "col": 2,
+              "row": 4,
+              "value": "I can help",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            }
+          ]
+        }
+      },
+      "triggers": [
+        {
+          "if": "table_correct",
+          "then": "n86"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n86",
+      "type": "text",
+      "seq": 71,
+      "pos": [
+        47000,
+        0
+      ],
+      "data": {
+        "content": "Супер, теперь {g:to} у тебя в кармане, а я кста пойду готовить 😄",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n87"
+        }
+      ]
+    },
+    {
+      "ref": "n87",
+      "type": "word_choice",
+      "seq": 72,
+      "pos": [
+        47560,
+        0
+      ],
+      "note": "Меню-развилка, не тест: «Закончить» — прощание, «Ещё один круг» — снова с уровня 1",
+      "data": {
+        "reward": false,
+        "options": [
+          {
+            "text": "Закончить ✅",
+            "isCorrect": true
+          },
+          {
+            "text": "Ещё один круг 💪",
+            "isCorrect": true
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n88"
+        },
+        {
+          "if": "word_wrong",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Закончить ✅",
+          "then": "n88"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Ещё один круг 💪",
+          "then": "n6"
+        }
+      ]
+    },
+    {
+      "ref": "n88",
+      "type": "text",
+      "seq": 73,
+      "pos": [
+        48120,
+        0
+      ],
+      "data": {
+        "content": "До встречи в следующем уроке 👋",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": null
+        }
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone-top-1",
+      "x": -150,
+      "y": -150,
+      "width": 2848,
+      "height": 560,
+      "label": "Вход",
+      "color": "#b6fe3b"
+    },
+    {
+      "id": "zone-top-2",
+      "x": 3950,
+      "y": -150,
+      "width": 7888,
+      "height": 1040,
+      "label": "Уровень 1 · разогрев",
+      "color": "#5fb8ff"
+    },
+    {
+      "id": "zone-top-3",
+      "x": 13090,
+      "y": -150,
+      "width": 7328,
+      "height": 1040,
+      "label": "Уровень 2 · увереннее",
+      "color": "#ff9f5f"
+    },
+    {
+      "id": "zone-top-4",
+      "x": 21670,
+      "y": -150,
+      "width": 8448,
+      "height": 1040,
+      "label": "Уровень 3 · ловушки",
+      "color": "#ff6fae"
+    },
+    {
+      "id": "zone-top-5",
+      "x": 31370,
+      "y": -150,
+      "width": 6208,
+      "height": 1040,
+      "label": "Уровень 4 · своими словами",
+      "color": "#ffd75f"
+    },
+    {
+      "id": "zone-top-6",
+      "x": 38830,
+      "y": -150,
+      "width": 4528,
+      "height": 1040,
+      "label": "Уровень 5 · на скорость",
+      "color": "#c9a7ff"
+    },
+    {
+      "id": "zone-top-7",
+      "x": 44610,
+      "y": -150,
+      "width": 3968,
+      "height": 560,
+      "label": "Финал",
+      "color": "#7fe3b0"
+    }
+  ]
+}

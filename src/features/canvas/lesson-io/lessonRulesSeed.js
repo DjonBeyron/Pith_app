@@ -136,6 +136,7 @@ const PRINCIPLE_META = [
   ['Ответ на очевидный вопрос новичка', Z, 'judge', 'warn', 'assembly: I talk to Masha\n(новичок: а почему не with?)', 'assembly: I talk to Masha\naudio: with тоже значит «с», только про вместе с\nlesson_ref: With'],
   ['Русская буква-слово со значением — белым жирным', S, 'judge', 'warn', 'audio: with тоже значит с', 'audio: with тоже значит {w:«С»}'],
   ['Голосовое — одна мысль', Q, 'judge', 'warn', 'audio: to ведёт к человеку. А with тоже значит с, но про вместе с, разберём отдельно', 'audio: to ведёт к человеку\naudio: А with тоже значит с, но про вместе с, разберём отдельно'],
+  ['Главные мысли подчёркивай сам', S, 'auto', 'warn', 'text: после want нужен мостик (ни одного подчёркивания в уроке)', 'text: после {g:want} нужен {l:мостик}'],
 ]
 
 const CHECKLIST_META = [
